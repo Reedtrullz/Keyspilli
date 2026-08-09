@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { fallingBars, keyboardRects, pitchColor, type PlayerSettings, type TimedNote } from "@keyspilli/player-core";
+import { fallingBars, keyboardRects, noteLabel, pitchColor, type PlayerSettings, type TimedNote } from "@keyspilli/player-core";
 
 interface Props {
   notes: TimedNote[];
@@ -23,6 +23,7 @@ export function FallingCanvas({ notes, timeRef, settings, pressedKeys }: Props) 
     let raf = 0;
     const W = 900;
     const H = 460;
+    const KB_H = 160;
     const dpr = window.devicePixelRatio || 1;
     canvas.width = W * dpr;
     canvas.height = H * dpr;
@@ -39,10 +40,10 @@ export function FallingCanvas({ notes, timeRef, settings, pressedKeys }: Props) 
       const low = Math.min(48, ...notes.map((n) => n.midi)) - 5;
       const high = Math.max(72, ...notes.map((n) => n.midi)) + 5;
       const lookahead = 3.2;
-      const pxPerSec = (H - 180) / lookahead;
+      const areaHeight = H - KB_H - 10;
       const bars = fallingBars(notes, {
         width: W,
-        height: H - 180,
+        height: areaHeight,
         nowSec: now,
         speed: s.speed,
         lookaheadSec: lookahead,
@@ -52,38 +53,61 @@ export function FallingCanvas({ notes, timeRef, settings, pressedKeys }: Props) 
 
       // draw bars
       for (const b of bars) {
-        ctx.globalAlpha = b.y < 0 ? 0.5 : 1;
         ctx.fillStyle = b.color;
         ctx.beginPath();
         ctx.roundRect(b.x, b.y, b.width, b.height, 4);
         ctx.fill();
+        // note label on the bar (skip slivers too short for text)
+        if (b.height >= 11) {
+          const fs = Math.min(13, Math.max(9, b.height - 6));
+          ctx.font = `600 ${fs}px system-ui, sans-serif`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.strokeStyle = "rgba(0,0,0,0.45)";
+          ctx.lineWidth = 3;
+          ctx.strokeText(b.label, b.x + b.width / 2, Math.min(b.y + b.height / 2, areaHeight - 6));
+          ctx.fillStyle = "#ffffff";
+          ctx.fillText(b.label, b.x + b.width / 2, Math.min(b.y + b.height / 2, areaHeight - 6));
+        }
       }
-      ctx.globalAlpha = 1;
 
       // keyboard
-      const kb = keyboardRects({ width: W, lowMidi: low, highMidi: high, whiteHeight: 160 });
+      const kb = keyboardRects({ width: W, lowMidi: low, highMidi: high, whiteHeight: KB_H });
       ctx.fillStyle = "#f4f4f5";
       for (const w of kb.whites) {
         ctx.fillStyle = pk.has(w.midi) ? pitchColor(w.midi) : "#ffffff";
-        ctx.fillRect(w.x, H - 160, w.w - 1, 160);
+        ctx.fillRect(w.x, H - KB_H, w.w - 1, KB_H);
         ctx.strokeStyle = "#d4d4d8";
-        ctx.strokeRect(w.x, H - 160, w.w - 1, 160);
+        ctx.strokeRect(w.x, H - KB_H, w.w - 1, KB_H);
+        // key label: pitch letter, octave on C
+        ctx.font = "600 12px system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "alphabetic";
+        ctx.fillStyle = pk.has(w.midi) ? "#ffffff" : "#52525b";
+        ctx.fillText(noteLabel(w.midi), w.x + w.w / 2, H - 18);
       }
       for (const b of kb.blacks) {
         ctx.fillStyle = pk.has(b.midi) ? pitchColor(b.midi) : "#27272a";
-        ctx.fillRect(b.x, H - 160, b.w, 100);
+        ctx.fillRect(b.x, H - KB_H, b.w, KB_H * 0.62);
+        if (b.w >= 17) {
+          ctx.font = "600 9px system-ui, sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "alphabetic";
+          ctx.fillStyle = pk.has(b.midi) ? "#18181b" : "#d4d4d8";
+          ctx.fillText(noteLabel(b.midi), b.x + b.w / 2, H - 16);
+        }
       }
 
-      // playhead line
+      // playhead line just above the keyboard
       ctx.strokeStyle = "#dc2626";
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(0, 8);
-      ctx.lineTo(W, 8);
+      ctx.moveTo(0, areaHeight + 4);
+      ctx.lineTo(W, areaHeight + 4);
       ctx.stroke();
       ctx.fillStyle = "#18181b";
       ctx.font = "12px monospace";
-      ctx.fillText(`${now.toFixed(1)}s`, 8, 22);
+      ctx.fillText(`${now.toFixed(1)}s`, 8, areaHeight - 6);
       raf = requestAnimationFrame(draw);
     };
     raf = requestAnimationFrame(draw);

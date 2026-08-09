@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { beatToSec, resolveTimedNotes, firstNoteAtOrAfter } from "../src/timeline.js";
 import { Grader, detectPitch } from "../src/grading.js";
 import { KeyboardInput, KEYMAP } from "../src/input.js";
-import { fallingBars } from "../src/views/falling.js";
+import { fallingBars, noteLabel } from "../src/views/falling.js";
 import { loadSettings, saveSettings, DEFAULT_SETTINGS } from "../src/prefs.js";
 import type { SongData } from "../src/types.js";
 
@@ -114,6 +114,42 @@ describe("falling bars", () => {
     expect(bars.length).toBe(3); // notes at 0s (x2) and 0.5s visible
     expect(bars[0]!.color).toMatch(/^#/);
     expect(bars[0]!.x).toBeGreaterThanOrEqual(0);
+  });
+
+  it("falls downward toward the keyboard and carries pitch labels", () => {
+    const tn = resolveTimedNotes(song, 1, 0);
+    const bars = fallingBars(tn, {
+      width: 800,
+      height: 400,
+      nowSec: 0,
+      speed: 1,
+      lookaheadSec: 0.6,
+      lowMidi: 36,
+      highMidi: 84,
+    });
+    // a future note sits above (smaller y than) the playhead line
+    const future = bars.find((b) => b.midi === 62)!;
+    expect(future.y).toBeGreaterThan(0);
+    expect(future.y).toBeLessThan(400);
+    expect(future.label).toBe("D");
+    // as time approaches the note, it moves DOWN (y grows toward the keyboard)
+    const later = fallingBars(tn, {
+      width: 800,
+      height: 400,
+      nowSec: 0.5,
+      speed: 1,
+      lookaheadSec: 0.6,
+      lowMidi: 36,
+      highMidi: 84,
+    });
+    const laterFuture = later.find((b) => b.midi === 62)!;
+    expect(laterFuture.y).toBeGreaterThan(future.y);
+  });
+
+  it("labels C keys with octave and sharps by name", () => {
+    expect(noteLabel(60)).toBe("C4");
+    expect(noteLabel(61)).toBe("C#");
+    expect(noteLabel(69)).toBe("A");
   });
 });
 

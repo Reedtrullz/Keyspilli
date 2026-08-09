@@ -11,6 +11,14 @@ export interface KeyboardGeometry {
 }
 
 const WHITE = [0, 2, 4, 5, 7, 9, 11];
+const NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+
+/** Short pitch label: letter for keys, octave appended on C (C4, C#4...). */
+export function noteLabel(midi: number): string {
+  const pc = NAMES[midi % 12]!;
+  const octave = Math.floor(midi / 12) - 1;
+  return pc === "C" ? `${pc}${octave}` : pc;
+}
 
 export function keyboardGeometry(lowMidi: number, highMidi: number, width: number, whiteHeight = 160): KeyboardGeometry {
   const whites: number[] = [];
@@ -70,7 +78,10 @@ export function fallingBars(notes: TimedNote[], o: FallingLayoutOptions): Fallin
     const x = xOf(n.midi);
     if (x < 0) continue;
     const isBlack = !WHITE.includes(n.midi % 12);
-    const y = (n.startSec - o.nowSec) * pxPerSec;
+    // Notes fall DOWN toward the keyboard: future notes start at the top
+    // (small y) and reach the playhead (bottom of the falling area) exactly
+    // at their start time.
+    const y = o.height - (n.startSec - o.nowSec) * pxPerSec;
     out.push({
       x,
       y,
@@ -78,7 +89,7 @@ export function fallingBars(notes: TimedNote[], o: FallingLayoutOptions): Fallin
       height: Math.max(8, n.durSec * pxPerSec - 2),
       color: pitchColor(n.midi),
       midi: n.midi,
-      label: "",
+      label: noteLabel(n.midi),
     });
   }
   return out;
