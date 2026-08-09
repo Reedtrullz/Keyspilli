@@ -214,6 +214,18 @@ describe("cleanTranscription", () => {
     expect(out[0]!.vel).toBe(80);
     expect(out.every((n) => n.vel >= 40)).toBe(true);
   });
+
+  it("caps simultaneously sounding notes to what two hands can play", () => {
+    const notes: Note[] = Array.from({ length: 12 }, (_, i) => ({
+      midi: 60 + i,
+      start: 0,
+      dur: 1,
+      vel: 20 + i * 5,
+    }));
+    const out = cleanTranscription(notes, { minVel: 0, minDurBeats: 0, maxPolyphony: 12, maxSounding: 8 });
+    expect(out).toHaveLength(8);
+    expect(Math.min(...out.map((n) => n.vel))).toBeGreaterThanOrEqual(20 + 4 * 5);
+  });
 });
 
 describe("writeMusicXml", () => {

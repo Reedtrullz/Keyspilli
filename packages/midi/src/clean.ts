@@ -9,6 +9,8 @@ export interface CleanOptions {
   mergeWindow?: number;
   /** drop quietest notes when more than this many sound at once */
   maxPolyphony?: number;
+  /** hard bound on simultaneously sounding notes (kills transcription walls) */
+  maxSounding?: number;
 }
 
 /**
@@ -23,10 +25,12 @@ export function cleanTranscription(notes: Note[], opts: CleanOptions = {}): Note
   const minDurBeats = opts.minDurBeats ?? 0.14;
   const mergeWindow = opts.mergeWindow ?? 0.125;
   const maxPolyphony = opts.maxPolyphony ?? 6;
+  const maxSounding = opts.maxSounding ?? 8;
 
   let out = notes.filter((n) => n.vel >= minVel && n.dur >= minDurBeats);
   out = mergeNearDuplicates(out, mergeWindow);
   out = capPolyphony(out, maxPolyphony);
+  out = capSoundingPolyphony(out, maxSounding);
   return out;
 }
 
@@ -68,6 +72,38 @@ export function capPolyphony(notes: Note[], maxPolyphony: number): Note[] {
     }
     const sorted = [...ns].sort((a, b) => b.vel - a.vel);
     out.push(...sorted.slice(0, maxPolyphony));
+  }
+  return out.sort((a, b) => a.start - b.start || a.midi - b.midi);
+}
+
+/**
+ * Bound the number of notes SOUNDING at any instant. AI transcriptions of
+ * dense productions can produce walls of 30+ simultaneous notes that no
+ * pianist could play; this drops the quietest offenders so the result stays
+ * within what two hands can actually do.
+ */
+export function capSoundingPolyphony(notes: Note[], maxSounding: number): Note[] {
+  const sorted = [...notes].sort((a, b) => a.start - b.start || a.midi - b.midi);
+  const out: Note[] = [];
+  const active: Note[] = [];
+  for (const n of sorted) {
+    // drop expired notes
+    for (let i = active.length - 1; i >= 0; i--) {
+      if (active[i]!.start + active[i]!.dur <= n.start) active.splice(i, 1);
+    }
+    if (active.length < maxSounding) {
+      active.push(n);
+      out.push(n);
+      continue;
+    }
+    // at capacity: keep the louder of (quietest active, new note)
+    const quietestIdx = active.reduce((bi, x, i) => (x.vel < active[bi]!.vel ? i : bi), 0);
+    if (n.vel >= active[quietestIdx]!.vel) {
+      out.splice(out.indexOf(active[quietestIdx]!), 1);
+      active.splice(quietestIdx, 1);
+      active.push(n);
+      out.push(n);
+    }
   }
   return out.sort((a, b) => a.start - b.start || a.midi - b.midi);
 }

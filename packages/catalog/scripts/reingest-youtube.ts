@@ -13,7 +13,12 @@ let skipped = 0;
 for (const jobId of jobs) {
   const dir = join(transcribedDir(), jobId);
   const files = await readdir(dir).catch(() => []);
-  const midiName = files.find((f) => f.endsWith("_basic_pitch.mid"));
+  // Prefer the strict-threshold re-transcription when present.
+  const reDir = join(dir, "re");
+  const reFiles = await readdir(reDir).catch(() => []);
+  const reMidi = reFiles.find((f) => f.endsWith("_basic_pitch.mid"));
+  const srcDir = reMidi ? reDir : dir;
+  const midiName = reMidi ?? files.find((f) => f.endsWith("_basic_pitch.mid"));
   if (!midiName) {
     skipped++;
     continue;
@@ -28,7 +33,7 @@ for (const jobId of jobs) {
     skipped++;
     continue;
   }
-  const buf = await readFile(join(dir, midiName));
+  const buf = await readFile(join(srcDir, midiName));
   const r = await ingestSource({
     buf: new Uint8Array(buf),
     title: song.title,
