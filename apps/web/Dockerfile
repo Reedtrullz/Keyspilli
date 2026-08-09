@@ -1,4 +1,5 @@
 FROM node:22-slim AS build
+ARG VERSION=dev
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY tsconfig.base.json ./
@@ -8,6 +9,7 @@ COPY services services
 RUN npm ci --no-audit --no-fund
 COPY apps/web apps/web
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV VERSION=$VERSION
 RUN npm run build -w @keyspilli/web
 
 FROM node:22-slim AS runtime
@@ -17,6 +19,8 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV KEYSPILLI_DATA_DIR=/data
 ENV KEYSPILLI_ORIGIN=http://127.0.0.1:3000
+ARG VERSION=dev
+ENV VERSION=$VERSION
 # Chromium for PDF export
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \

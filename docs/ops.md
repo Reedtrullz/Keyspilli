@@ -1,41 +1,48 @@
 # Keyspilli ops
 
-## Deploy (VPS with Docker)
+## Deploy (Ansible → RackNerd VPS)
+
+Keyspilli follows the cross-project deploy pattern (see `/Users/reidar/Projectos/DEPLOYMENT.md`):
+CI publishes immutable `ghcr.io/reedtrullz/keyspilli:sha-<12>` (web) and
+`ghcr.io/reedtrullz/keyspilli-worker:sha-<12>` (worker) images; the deploy job
+(or a manual run from this machine) applies `deploy/playbook.yml`, which
+verifies the images/version, starts the compose stack on the VPS, checks
+`/api/health` locally and publicly, manages the host Caddy block, and rolls
+back to the previous images on failure.
+
+Manual deploy (equivalent to the CI job):
 
 ```bash
-# on the VPS, with this repo present:
-git pull
-docker compose up -d --build
+APP_VERSION=$(git rev-parse HEAD) ansible-playbook \
+  -i deploy/inventory/hosts.yml deploy/playbook.yml \
+  -e "docker_image=ghcr.io/reedtrullz/keyspilli:$(git rev-parse --short=12 HEAD)" \
+  -e "worker_image=ghcr.io/reedtrullz/keyspilli-worker:$(git rev-parse --short=12 HEAD)"
 ```
 
-- `web` serves the app on port 3000 (internal).
-- `worker` polls the SQLite job table and processes YouTube conversions.
-- `caddy` fronts everything on :80/:443. Set `DOMAIN=keyspilli.example.com` in
-  `.env` for automatic HTTPS; without it Caddy serves plain HTTP on port 80.
-- All state lives in the `keyspilli_data` volume (`/data`): `db.sqlite`,
-  `artifacts/`, `seed-midi/`, `transcribed/`.
+Preconditions (matching the other projects):
 
-## First run on a fresh volume
+- Control node: `brew install ansible` + `ansible-galaxy collection install -r deploy/requirements.yml`.
+- SSH key at `~/.ssh/id_rsa_racknerd`; inventory points at `198.23.137.16`, user `deploy`.
+- VPS: Docker, Docker Compose v2, Caddy; GHCR pull access (`docker login ghcr.io` if the images are private).
+- Domain: the inventory defaults to `keyspilli.reidar.tech` — add a Caddy
+  block for any other domain to `deploy/playbook.yml` vars or the inventory.
+- CI additionally needs the `production` GitHub environment and secrets
+  `VPS_SSH_PRIVATE_KEY` + `VPS_SSH_HOST_KEY` (see the Configure SSH key step in
+  `.github/workflows/ci.yml`).
 
-The catalog must be built before the app is useful:
+## First run on a fresh volume (catalog)
+
+The catalog must be built before the app is useful. Build it locally and copy
+`data/` contents into the VPS volume, or run inside the container:
 
 ```bash
-docker compose run --rm web sh -c "
-  cd /app && \
-  node /app/apps/web/server.js & sleep 2; kill %1
-"
+docker compose run --rm web node --import tsx packages/catalog/scripts/pipeline.ts
 ```
 
-Simpler: build the catalog locally and copy the volume contents, or run the
-pipeline inside the web image:
+## Health / version contract
 
-```bash
-docker compose run --rm web node packages/catalog/scripts/pipeline.ts
-```
-
-(The web image includes the full monorepo build context; the standalone server
-is only in the runtime layer, so pipeline runs use `node --import tsx` on the
-TS sources when available in the image.)
+`/api/health` returns `{status: "healthy", version, commit, image}`. The
+playbook refuses to deploy unless the container reports the exact git SHA.
 
 ## Backups
 

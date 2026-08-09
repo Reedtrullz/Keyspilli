@@ -1,0 +1,52 @@
+services:
+  web:
+    image: "{{ compose_image | default(docker_image) }}"
+    container_name: "{{ container_name }}"
+    restart: unless-stopped
+    ports:
+      - "{{ app_bind_address }}:{{ app_host_port }}:3000"
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: "0.0.0.0"
+      VERSION: "{{ compose_app_version | default(app_version) }}"
+      IMAGE_REF: "{{ compose_image | default(docker_image) }}"
+      KEYSPILLI_DATA_DIR: /data
+      KEYSPILLI_ORIGIN: "http://{{ app_bind_address }}:{{ app_host_port }}"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          node -e "require('http').get('http://127.0.0.1:3000/api/health', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
+      interval: 30s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
+    volumes:
+      - keyspilli_data:/data
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  worker:
+    image: "{{ compose_worker_image | default(worker_image) }}"
+    container_name: "{{ worker_container_name }}"
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      KEYSPILLI_DATA_DIR: /data
+      KEYSPILLI_BP_SERIALIZATION: onnx
+    volumes:
+      - keyspilli_data:/data
+    depends_on:
+      - web
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+volumes:
+  keyspilli_data:

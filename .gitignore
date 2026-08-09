@@ -19,3 +19,5 @@ data/audio/
 services/transcribe/.venv/
 test-results/
 playwright-report/
+collections/
+.ansible-venv/
