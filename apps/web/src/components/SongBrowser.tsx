@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { loadJson } from "@keyspilli/player-core";
 
 interface Song {
   id: string;
@@ -28,8 +29,15 @@ export function SongBrowser() {
   const [key, setKey] = useState("");
   const [bass, setBass] = useState("");
   const [sort, setSort] = useState("popular");
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const [favorites, setFavorites] = useState<string[]>(() => loadJson("keyspilli.favorites", [] as string[]));
+  const [learned, setLearned] = useState<string[]>(() => loadJson("keyspilli.learned", [] as string[]));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const visible = useMemo(
+    () => (favoritesOnly ? songs.filter((s) => favorites.includes(s.id)) : songs),
+    [songs, favoritesOnly, favorites],
+  );
 
   useEffect(() => {
     const params = new URLSearchParams({ sort, limit: "200" });
@@ -87,12 +95,16 @@ export function SongBrowser() {
           <option value="artist">Artist A–Z</option>
           <option value="difficulty">Difficulty ↑</option>
         </select>
-        <span className="text-xs text-zinc-500">{loading ? "Loading…" : `${songs.length} results`}</span>
+        <label className="flex items-center gap-1.5 text-sm">
+          <input type="checkbox" checked={favoritesOnly} onChange={(e) => setFavoritesOnly(e.target.checked)} />
+          Favorites only
+        </label>
+        <span className="text-xs text-zinc-500">{loading ? "Loading…" : `${visible.length} results`}</span>
       </div>
       {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
-      {!loading && songs.length === 0 && <p className="text-zinc-500 py-8 text-center">No songs match these filters.</p>}
+      {!loading && visible.length === 0 && <p className="text-zinc-500 py-8 text-center">No songs match these filters.</p>}
       <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {songs.map((s) => (
+        {visible.map((s) => (
           <li key={s.id}>
             <Link href={`/player/${s.id}`} className="block rounded-xl border border-zinc-200 bg-white p-4 hover:border-zinc-400 transition-colors">
               <div className="flex items-center gap-2 text-xs text-zinc-500 mb-1">
@@ -102,7 +114,11 @@ export function SongBrowser() {
                 <span className="ml-auto">{s.plays > 0 ? `${s.plays} plays` : ""}</span>
               </div>
               <div className="font-medium leading-tight">{s.title}</div>
-              <div className="text-sm text-zinc-500">{s.artist}</div>
+              <div className="text-sm text-zinc-500 flex gap-2">
+                <span>{s.artist}</span>
+                {favorites.includes(s.id) && <span className="text-rose-500">♥</span>}
+                {learned.includes(s.id) && <span className="text-green-600">✓ learned</span>}
+              </div>
             </Link>
           </li>
         ))}

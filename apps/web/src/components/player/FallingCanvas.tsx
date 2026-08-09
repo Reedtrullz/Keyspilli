@@ -92,7 +92,7 @@ export function FallingCanvas({ notes, timeRef, settings, pressedKeys }: Props) 
 
   return (
     <div className="relative">
-      <canvas ref={canvasRef} aria-label="Falling notes player" style={{ aspectRatio: "900/460" }} />
+      <canvas ref={canvasRef} aria-label="Falling notes player" className="w-full h-auto" style={{ aspectRatio: "900/460", width: "100%" }} />
       <div className="absolute bottom-2 left-3 text-[11px] text-zinc-400 pointer-events-none">
         Keys: A–K / ; play · Z / X shift octave · practice graded
       </div>

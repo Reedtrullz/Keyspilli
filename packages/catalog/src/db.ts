@@ -236,7 +236,7 @@ export function updateJob(id: string, patch: Partial<Pick<JobRow, "status" | "so
     sets.push("finished_at = @finishedAt");
     params.finishedAt = patch.finishedAt;
   }
-  if (sets.length) getDb().prepare(`UPDATE conversion_jobs SET ${sets.join(", ")} WHERE id = ?`).run(params);
+  if (sets.length) getDb().prepare(`UPDATE conversion_jobs SET ${sets.join(", ")} WHERE id = @id`).run(params);
 }
 
 export function getQueuedJobs(): JobRow[] {

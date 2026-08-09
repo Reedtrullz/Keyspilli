@@ -1,0 +1,46 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    environment:
+      - KEYSPILLI_DATA_DIR=/data
+      - KEYSPILLI_ORIGIN=http://web:3000
+    volumes:
+      - keyspilli_data:/data
+    expose:
+      - "3000"
+
+  worker:
+    build:
+      context: .
+      dockerfile: services/transcribe/Dockerfile
+    restart: unless-stopped
+    environment:
+      - KEYSPILLI_DATA_DIR=/data
+      - KEYSPILLI_BP_SERIALIZATION=onnx
+    volumes:
+      - keyspilli_data:/data
+    depends_on:
+      - web
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN=${DOMAIN:-}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+
+volumes:
+  keyspilli_data:
+  caddy_data:
+  caddy_config:

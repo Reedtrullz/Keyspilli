@@ -57,6 +57,10 @@ export default function YoutubePage() {
         Paste a <strong>solo piano cover</strong> (no vocals or drums, under 5 minutes). A worker downloads the audio,
         transcribes it to MIDI, and creates a full playable arrangement — usually in a minute or two.
       </p>
+      <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-6">
+        Experimental: transcription is fully automatic. Clean solo-piano audio works best; fast passages and heavy
+        pedal can produce wrong notes. You can always edit the exported MusicXML in MuseScore.
+      </p>
 
       <form
         className="flex gap-2 mb-4"

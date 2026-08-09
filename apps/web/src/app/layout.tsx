@@ -27,7 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className="min-h-screen flex flex-col">
         <header className="border-b border-zinc-200 bg-white sticky top-0 z-40">
-          <div className="max-w-6xl mx-auto px-4 h-14 flex items-center gap-6">
+          <div className="max-w-6xl mx-auto px-4 py-2 flex flex-wrap items-center gap-x-6 gap-y-1">
             <Link href="/" className="font-bold text-lg tracking-tight">
               Keyspilli
             </Link>

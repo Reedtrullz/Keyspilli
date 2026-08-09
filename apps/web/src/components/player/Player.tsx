@@ -23,6 +23,7 @@ import { SheetMusicView } from "./SheetMusicView";
 import { SettingsDialog } from "./SettingsDialog";
 import { DownloadDialog } from "./DownloadDialog";
 import { GradingPanel } from "./GradingPanel";
+import { loadJson, saveJson } from "@keyspilli/player-core";
 
 export interface PlayerDetail {
   song: SongRow;
@@ -55,6 +56,8 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
   const [pressedKeys, setPressedKeys] = useState<Set<number>>(new Set());
   const [midiConnected, setMidiConnected] = useState(false);
   const [songKeyLabel, setSongKeyLabel] = useState(initial.data.key);
+  const [favorites, setFavorites] = useState<string[]>(() => loadJson("keyspilli.favorites", [] as string[]));
+  const [learned, setLearned] = useState<string[]>(() => loadJson("keyspilli.learned", [] as string[]));
 
   const audioRef = useRef<AudioEngine | null>(null);
   const timeRef = useRef(0);
@@ -220,6 +223,14 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
     setPressedKeys((s) => new Set(s).add(midi));
   }
 
+  function handleMicNote(midi: number) {
+    if (grading && graderRef.current) {
+      graderRef.current.play(midi, posRef.current);
+    }
+    const n = { midi, startSec: 0, durSec: 0.35, vel: 90, hand: "R" as const };
+    audioRef.current?.noteOn(n);
+  }
+
   function toggleLoop() {
     if (loop) {
       setLoop(null);
@@ -234,6 +245,20 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
   function seekToMeasure(i: number) {
     const m = initial.data.measures[i];
     if (m) seek(m.startBeat * (60 / initial.data.tempoBpm / settings.speed));
+  }
+
+  function toggleFavorite() {
+    const id = initial.song.id;
+    const next = favorites.includes(id) ? favorites.filter((f) => f !== id) : [...favorites, id];
+    setFavorites(next);
+    saveJson("keyspilli.favorites", next);
+  }
+
+  function toggleLearned() {
+    const id = initial.song.id;
+    const next = learned.includes(id) ? learned.filter((f) => f !== id) : [...learned, id];
+    setLearned(next);
+    saveJson("keyspilli.learned", next);
   }
 
   function updateSettings(p: Partial<PlayerSettings>) {
@@ -342,7 +367,7 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
           Metronome
         </button>
 
-        <div className="ml-auto flex gap-2 text-sm">
+        <div className="ml-auto flex flex-wrap justify-end gap-2 text-sm">
           <button onClick={() => setShowDownload(true)} className="px-4 py-2 rounded-full bg-zinc-900 text-white font-medium hover:bg-zinc-700">
             Download Sheet &amp; MIDI
           </button>
@@ -354,6 +379,22 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
             className={`px-4 py-2 rounded-full border font-medium ${grading ? "bg-amber-100 border-amber-300" : "border-zinc-300 hover:bg-zinc-100"}`}
           >
             {grading ? "Finish practice" : "Practice"}
+          </button>
+          <button
+            onClick={toggleFavorite}
+            aria-pressed={favorites.includes(initial.song.id)}
+            className={`px-3 py-2 rounded-full border text-sm ${favorites.includes(initial.song.id) ? "bg-rose-100 border-rose-300" : "border-zinc-300 hover:bg-zinc-100"}`}
+            title="Add to favorites"
+          >
+            {favorites.includes(initial.song.id) ? "♥ Favorited" : "♡ Favorite"}
+          </button>
+          <button
+            onClick={toggleLearned}
+            aria-pressed={learned.includes(initial.song.id)}
+            className={`px-3 py-2 rounded-full border text-sm ${learned.includes(initial.song.id) ? "bg-green-100 border-green-300" : "border-zinc-300 hover:bg-zinc-100"}`}
+            title="Mark as learned"
+          >
+            {learned.includes(initial.song.id) ? "✓ Learned" : "Learned?"}
           </button>
         </div>
       </div>
@@ -410,6 +451,7 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
               result={gradeResult}
               onWaitToggle={() => setWaitMode((w) => !w)}
               onExit={finishGrading}
+              onMicNote={handleMicNote}
             />
           )}
           {playing && (
