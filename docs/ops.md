@@ -53,6 +53,11 @@ The deploy pipeline does not rebuild the catalog on the VPS — the
 `keyspilli_keyspilli_data` volume holds it. After adding songs locally:
 
 ```bash
+# 1. Checkpoint SQLite FIRST — the main db file excludes un-checkpointed WAL
+#    writes, and copying it alone silently ships a stale catalog.
+node -e "const D=require('better-sqlite3')('data/db.sqlite'); D.pragma('wal_checkpoint(TRUNCATE)'); D.close()"
+
+# 2. Ship the data and swap it into the volume
 tar czf - -C data db.sqlite artifacts transcribed seed-midi \
   | ssh deploy@198.23.137.16 'mkdir -p /tmp/keyspilli-seed && tar xzf - -C /tmp/keyspilli-seed'
 ssh deploy@198.23.137.16 'docker stop keyspilli keyspilli-worker && \
@@ -61,6 +66,9 @@ ssh deploy@198.23.137.16 'docker stop keyspilli keyspilli-worker && \
     sh -c "rm -f /data/db.sqlite-wal /data/db.sqlite-shm && cp -a /src/. /data/" && \
   docker start keyspilli keyspilli-worker'
 ```
+
+Verify after the swap: `https://keys.reidar.tech/api/songs?group=1&limit=1` should
+report the expected song count.
 
 ## Health / version contract
 
