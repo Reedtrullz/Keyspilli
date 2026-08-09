@@ -4,25 +4,34 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { loadJson } from "@keyspilli/player-core";
 
-interface Song {
-  id: string;
-  title: string;
-  artist: string;
-  difficulty: string;
-  key: string;
-  tempo: number;
-  plays: number;
-  mood: string;
-  bassPattern: string;
-  style: string;
+interface GroupedSong {
+  representative: { id: string; title: string; artist: string; key: string; tempo: number };
+  levels: { id: string; difficulty: string }[];
+  totalPlays: number;
 }
 
 const DIFFICULTIES = ["very-beginner", "beginner", "very-easy", "easy", "medium", "advanced"];
 const KEYS = ["C", "D", "E", "F", "G", "A", "B", "Bb", "Eb", "Ab", "Db", "F#", "C#"];
 const BASS = ["block", "octave", "oompah", "walking", "pedal", "arpeggio"];
+const LEVEL_LABEL: Record<string, string> = {
+  "very-beginner": "Very Beginner",
+  beginner: "Beginner",
+  "very-easy": "Very Easy",
+  easy: "Easy",
+  medium: "Medium",
+  advanced: "Advanced",
+};
+const LEVEL_SHORT: Record<string, string> = {
+  "very-beginner": "VB",
+  beginner: "B",
+  "very-easy": "VE",
+  easy: "E",
+  medium: "M",
+  advanced: "A",
+};
 
 export function SongBrowser() {
-  const [songs, setSongs] = useState<Song[]>([]);
+  const [songs, setSongs] = useState<GroupedSong[]>([]);
   const [input, setInput] = useState("");
   const [q, setQ] = useState("");
   const [difficulty, setDifficulty] = useState("");
@@ -34,13 +43,9 @@ export function SongBrowser() {
   const [learned, setLearned] = useState<string[]>(() => loadJson("keyspilli.learned", [] as string[]));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const visible = useMemo(
-    () => (favoritesOnly ? songs.filter((s) => favorites.includes(s.id)) : songs),
-    [songs, favoritesOnly, favorites],
-  );
 
   useEffect(() => {
-    const params = new URLSearchParams({ sort, limit: "200" });
+    const params = new URLSearchParams({ sort, limit: "200", group: "1" });
     if (q) params.set("q", q);
     if (difficulty) params.set("difficulty", difficulty);
     if (key) params.set("key", key);
@@ -60,6 +65,14 @@ export function SongBrowser() {
     const t = setTimeout(() => setQ(input), 200);
     return () => clearTimeout(t);
   }, [input]);
+
+  const visible = useMemo(
+    () =>
+      favoritesOnly
+        ? songs.filter((s) => s.levels.some((l) => favorites.includes(l.id)))
+        : songs,
+    [songs, favoritesOnly, favorites],
+  );
 
   return (
     <div>
@@ -99,29 +112,47 @@ export function SongBrowser() {
           <input type="checkbox" checked={favoritesOnly} onChange={(e) => setFavoritesOnly(e.target.checked)} />
           Favorites only
         </label>
-        <span className="text-xs text-zinc-500">{loading ? "Loading…" : `${visible.length} results`}</span>
+        <span className="text-xs text-zinc-500">{loading ? "Loading…" : `${visible.length} songs`}</span>
       </div>
       {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
       {!loading && visible.length === 0 && <p className="text-zinc-500 py-8 text-center">No songs match these filters.</p>}
       <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {visible.map((s) => (
-          <li key={s.id}>
-            <Link href={`/player/${s.id}`} className="block rounded-xl border border-zinc-200 bg-white p-4 hover:border-zinc-400 transition-colors">
-              <div className="flex items-center gap-2 text-xs text-zinc-500 mb-1">
-                <span className="font-mono">{s.key}</span>
-                <span>{s.difficulty}</span>
-                <span>{s.tempo} BPM</span>
-                <span className="ml-auto">{s.plays > 0 ? `${s.plays} plays` : ""}</span>
+        {visible.map((s) => {
+          const fav = s.levels.some((l) => favorites.includes(l.id));
+          const done = s.levels.some((l) => learned.includes(l.id));
+          return (
+            <li key={s.representative.id}>
+              <div className="rounded-xl border border-zinc-200 bg-white p-4 hover:border-zinc-400 transition-colors h-full">
+                <div className="flex items-center gap-2 text-xs text-zinc-500 mb-1">
+                  <span className="font-mono">{s.representative.key}</span>
+                  <span>{s.representative.tempo} BPM</span>
+                  <span className="ml-auto">{s.totalPlays > 0 ? `${s.totalPlays} plays` : ""}</span>
+                </div>
+                <Link href={`/player/${s.representative.id}`} className="font-medium leading-tight hover:underline">
+                  {s.representative.title}
+                </Link>
+                <div className="text-sm text-zinc-500 flex gap-2">
+                  <span>{s.representative.artist}</span>
+                  {fav && <span className="text-rose-500">♥</span>}
+                  {done && <span className="text-green-600">✓ learned</span>}
+                </div>
+                <div className="flex flex-wrap gap-1 mt-3" role="group" aria-label={`Difficulty levels for ${s.representative.title}`}>
+                  {s.levels.map((l) => (
+                    <Link
+                      key={l.id}
+                      href={`/player/${l.id}`}
+                      title={`${LEVEL_LABEL[l.difficulty] ?? l.difficulty} arrangement`}
+                      aria-label={`Open ${LEVEL_LABEL[l.difficulty] ?? l.difficulty} level`}
+                      className="px-2 py-0.5 rounded-full border border-zinc-300 text-[11px] text-zinc-600 hover:bg-zinc-900 hover:text-white hover:border-zinc-900"
+                    >
+                      {LEVEL_SHORT[l.difficulty] ?? l.difficulty}
+                    </Link>
+                  ))}
+                </div>
               </div>
-              <div className="font-medium leading-tight">{s.title}</div>
-              <div className="text-sm text-zinc-500 flex gap-2">
-                <span>{s.artist}</span>
-                {favorites.includes(s.id) && <span className="text-rose-500">♥</span>}
-                {learned.includes(s.id) && <span className="text-green-600">✓ learned</span>}
-              </div>
-            </Link>
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

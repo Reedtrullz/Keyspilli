@@ -10,10 +10,22 @@ test("home page shows the catalog", async ({ page }) => {
 
 test("song library filters by difficulty", async ({ page }) => {
   await page.goto("/songs");
-  await page.getByLabel("Difficulty").selectOption("beginner");
+  await page.getByLabel("Difficulty", { exact: true }).selectOption("beginner");
   await expect(page.locator("a[href^='/player/']").first()).toBeVisible();
-  const first = await page.locator("a[href^='/player/']").first().textContent();
-  expect(first).toContain("beginner");
+  await expect(page.getByRole("link", { name: "Open Beginner level" }).first()).toBeVisible();
+});
+
+test("song library groups difficulty levels into one card per song", async ({ page }) => {
+  await page.goto("/songs");
+  await page.getByLabel("Sort").selectOption("title");
+  const vocalise = page.getByText("Vocalise № 1", { exact: true });
+  await expect(vocalise).toHaveCount(1);
+  const levels = page.getByRole("group", { name: /Difficulty levels for Vocalise/ });
+  await expect(levels.getByRole("link", { name: "Open Very Beginner level" })).toBeVisible();
+  await expect(levels.getByRole("link", { name: "Open Beginner level" })).toBeVisible();
+  await expect(levels.getByRole("link", { name: "Open Easy level" })).toBeVisible();
+  await expect(levels.getByRole("link", { name: "Open Advanced level" })).toBeVisible();
+  await expect(levels.getByRole("link")).toHaveCount(6);
 });
 
 test("player loads and switches views", async ({ page }) => {

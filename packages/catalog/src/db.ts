@@ -2,6 +2,7 @@ import Database from "better-sqlite3";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { dbPath } from "./paths.js";
+import { groupSongs, type GroupedSong } from "./group.js";
 
 export interface SongRow {
   id: string;
@@ -158,7 +159,7 @@ export function getSongsByBase(baseId: string): SongRow[] {
   return (getDb().prepare("SELECT * FROM songs WHERE base_id = ? ORDER BY difficulty_score").all(baseId) as Record<string, unknown>[]).map(mapSong);
 }
 
-export function listSongs(f: SongFilters = {}): SongRow[] {
+export function listSongs(f: SongFilters = {}, limitCap = 200): SongRow[] {
   const conds: string[] = [];
   const params: Record<string, unknown> = {};
   const map: Record<string, string> = {
@@ -189,7 +190,7 @@ export function listSongs(f: SongFilters = {}): SongRow[] {
         : f.sort === "difficulty"
           ? "difficulty_score"
           : "plays DESC";
-  const limit = Math.min(200, f.limit ?? 60);
+  const limit = Math.min(limitCap, f.limit ?? 60);
   const offset = f.offset ?? 0;
   return (
     getDb()
@@ -198,6 +199,37 @@ export function listSongs(f: SongFilters = {}): SongRow[] {
       )
       .all({ ...params, limit, offset }) as Record<string, unknown>[]
   ).map(mapSong);
+}
+
+/**
+ * Grouped view of the catalog: one entry per song with all difficulty
+ * levels attached. Filters match any variant of a song.
+ */
+export function listSongsGrouped(f: SongFilters = {}): GroupedSong[] {
+  const all = listSongs({ ...f, limit: 10_000 }, 10_000);
+  let grouped = groupSongs(all);
+  if (f.difficulty) grouped = grouped.filter((g) => g.levels.some((l) => l.difficulty === f.difficulty));
+  if (f.key) grouped = grouped.filter((g) => g.levels.some((l) => l.key === f.key));
+  if (f.style) grouped = grouped.filter((g) => g.levels.some((l) => l.style === f.style));
+  if (f.mood) grouped = grouped.filter((g) => g.levels.some((l) => l.mood === f.mood));
+  if (f.bassPattern) grouped = grouped.filter((g) => g.levels.some((l) => l.bassPattern === f.bassPattern));
+  if (f.category) grouped = grouped.filter((g) => g.levels.some((l) => l.category === f.category));
+  if (f.artist) grouped = grouped.filter((g) => g.levels.some((l) => l.artist === f.artist));
+  if (f.q) {
+    const q = f.q.toLowerCase();
+    grouped = grouped.filter((g) => g.representative.title.toLowerCase().includes(q) || g.representative.artist.toLowerCase().includes(q));
+  }
+  const order =
+    f.sort === "title"
+      ? (a: GroupedSong, b: GroupedSong) => a.representative.title.localeCompare(b.representative.title)
+      : f.sort === "artist"
+        ? (a: GroupedSong, b: GroupedSong) => a.representative.artist.localeCompare(b.representative.artist)
+        : f.sort === "difficulty"
+          ? (a: GroupedSong, b: GroupedSong) => a.representative.difficultyScore - b.representative.difficultyScore
+          : (a: GroupedSong, b: GroupedSong) => b.totalPlays - a.totalPlays;
+  grouped.sort(order);
+  const limit = Math.min(200, f.limit ?? 60);
+  return grouped.slice(f.offset ?? 0, (f.offset ?? 0) + limit);
 }
 
 export function countSongs(): number {

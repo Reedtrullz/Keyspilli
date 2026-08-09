@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listSongs, countSongs, SongFilters } from "@keyspilli/catalog";
+import { listSongs, listSongsGrouped, countSongs, SongFilters } from "@keyspilli/catalog";
 
 export const dynamic = "force-dynamic";
 
@@ -17,5 +17,9 @@ export async function GET(req: NextRequest) {
     limit: Number(sp.get("limit") ?? 60),
     offset: Number(sp.get("offset") ?? 0),
   };
+  if (sp.get("group") === "1") {
+    const songs = listSongsGrouped(f);
+    return NextResponse.json({ songs, total: songs.length });
+  }
   return NextResponse.json({ songs: listSongs(f), total: countSongs() });
 }

@@ -1,13 +1,11 @@
 import Link from "next/link";
-import { listSongs, countSongs, getDb } from "@keyspilli/catalog";
+import { listSongsGrouped, countSongs, getDb, type GroupedSong } from "@keyspilli/catalog";
 
 export const dynamic = "force-dynamic";
 
 export default function HomePage() {
-  const popular = listSongs({ sort: "popular", limit: 12 });
-  const recent = listSongs({ limit: 12 }).sort(
-    (a, b) => (a.createdAt < b.createdAt ? 1 : -1),
-  );
+  const popular = listSongsGrouped({ sort: "popular", limit: 12 });
+  const recent = listSongsGrouped({ limit: 200 }).sort((a, b) => (a.lastCreatedAt < b.lastCreatedAt ? 1 : -1)).slice(0, 12);
   const plays = (getDb().prepare("SELECT COALESCE(SUM(plays),0) AS s FROM songs").get() as { s: number }).s;
   const total = countSongs();
 
@@ -47,24 +45,52 @@ export default function HomePage() {
   );
 }
 
-function SongGrid({ songs }: { songs: ReturnType<typeof listSongs> }) {
+const LEVEL_LABEL: Record<string, string> = {
+  "very-beginner": "Very Beginner",
+  beginner: "Beginner",
+  "very-easy": "Very Easy",
+  easy: "Easy",
+  medium: "Medium",
+  advanced: "Advanced",
+};
+const LEVEL_SHORT: Record<string, string> = {
+  "very-beginner": "VB",
+  beginner: "B",
+  "very-easy": "VE",
+  easy: "E",
+  medium: "M",
+  advanced: "A",
+};
+
+function SongGrid({ songs }: { songs: GroupedSong[] }) {
   return (
     <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
       {songs.map((s) => (
-        <li key={s.id}>
-          <Link
-            href={`/player/${s.id}`}
-            className="block rounded-xl border border-zinc-200 bg-white p-4 hover:border-zinc-400 transition-colors"
-          >
+        <li key={s.representative.id}>
+          <div className="rounded-xl border border-zinc-200 bg-white p-4 hover:border-zinc-400 transition-colors h-full">
             <div className="flex items-center gap-2 text-xs text-zinc-500 mb-1">
-              <span className="font-mono">{s.key}</span>
-              <span>{s.difficulty}</span>
-              <span>{s.tempo} BPM</span>
-              <span className="ml-auto">{s.plays > 0 ? `${s.plays} plays` : ""}</span>
+              <span className="font-mono">{s.representative.key}</span>
+              <span>{s.representative.tempo} BPM</span>
+              <span className="ml-auto">{s.totalPlays > 0 ? `${s.totalPlays} plays` : ""}</span>
             </div>
-            <div className="font-medium leading-tight">{s.title}</div>
-            <div className="text-sm text-zinc-500">{s.artist}</div>
-          </Link>
+            <Link href={`/player/${s.representative.id}`} className="font-medium leading-tight hover:underline">
+              {s.representative.title}
+            </Link>
+            <div className="text-sm text-zinc-500">{s.representative.artist}</div>
+            <div className="flex flex-wrap gap-1 mt-3" role="group" aria-label={`Difficulty levels for ${s.representative.title}`}>
+              {s.levels.map((l) => (
+                <Link
+                  key={l.id}
+                  href={`/player/${l.id}`}
+                  title={`${LEVEL_LABEL[l.difficulty] ?? l.difficulty} arrangement`}
+                  aria-label={`Open ${LEVEL_LABEL[l.difficulty] ?? l.difficulty} level`}
+                  className="px-2 py-0.5 rounded-full border border-zinc-300 text-[11px] text-zinc-600 hover:bg-zinc-900 hover:text-white hover:border-zinc-900"
+                >
+                  {LEVEL_SHORT[l.difficulty] ?? l.difficulty}
+                </Link>
+              ))}
+            </div>
+          </div>
         </li>
       ))}
     </ul>
