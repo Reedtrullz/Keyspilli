@@ -14,6 +14,8 @@ const POLL_MS = Number(process.env.KEYSPILLI_POLL_MS ?? 5000);
 const PYTHON = process.env.KEYSPILLI_PYTHON ?? join(ROOT, "services", "transcribe", ".venv", "bin", "python");
 const BASIC_PITCH = join(dirname(PYTHON), "basic-pitch");
 const BASIC_PITCH_SERIALIZATION = process.env.KEYSPILLI_BP_SERIALIZATION ?? "";
+const ONSET_THRESHOLD = process.env.KEYSPILLI_ONSET ?? "0.65";
+const FRAME_THRESHOLD = process.env.KEYSPILLI_FRAME ?? "0.45";
 
 async function run(cmd: string, args: string[], timeoutMs = 300_000): Promise<string> {
   const { stdout } = await execFileP(cmd, args, { timeout: timeoutMs, maxBuffer: 32 * 1024 * 1024 });
@@ -55,7 +57,7 @@ async function processJob(jobId: string): Promise<void> {
     const audio = files.find((f) => f.startsWith("audio."));
     if (!audio) throw new Error("no audio file produced");
     const audioPath = join(dir, audio);
-    const bpArgs = [dir, audioPath, "--save-midi"];
+    const bpArgs = [dir, audioPath, "--save-midi", "--onset-threshold", ONSET_THRESHOLD, "--frame-threshold", FRAME_THRESHOLD];
     if (BASIC_PITCH_SERIALIZATION) bpArgs.push("--model-serialization", BASIC_PITCH_SERIALIZATION);
     await run(BASIC_PITCH, bpArgs, 900_000);
     const midiName = (await readdir(dir)).find((f) => f.endsWith("_basic_pitch.mid"));
