@@ -20,6 +20,27 @@ async function run(cmd: string, args: string[], timeoutMs = 300_000): Promise<st
   return stdout;
 }
 
+/**
+ * yt-dlp with a client fallback chain (default -> android -> tv) plus an
+ * explicit JS runtime. YouTube bot-challenges datacenter IPs on the default
+ * client; the android/tv clients usually bypass it.
+ */
+const YT_CLIENTS = ["", "youtube:player_client=android", "youtube:player_client=tv"];
+
+async function ytDlp(args: string[], timeoutMs = 300_000): Promise<string> {
+  let lastError: unknown = null;
+  for (const client of YT_CLIENTS) {
+    try {
+      const full = ["--js-runtimes", "node", ...args];
+      if (client) full.push("--extractor-args", client);
+      return await run("yt-dlp", full, timeoutMs);
+    } catch (e) {
+      lastError = e;
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error("yt-dlp failed on all clients");
+}
+
 async function processJob(jobId: string): Promise<void> {
   const job = getJob(jobId);
   if (!job || job.status !== "queued") return;
@@ -27,24 +48,9 @@ async function processJob(jobId: string): Promise<void> {
   const dir = join(transcribedDir(), jobId);
   await mkdir(dir, { recursive: true });
   try {
-    const info = await run("yt-dlp", ["--skip-download", "--print", "%(title)s|%(uploader)s", job.youtubeUrl], 60_000);
+    const info = await ytDlp(["--skip-download", "--print", "%(title)s|%(uploader)s", job.youtubeUrl], 60_000);
     const [title, uploader] = info.trim().split("|").map((s) => s?.trim() ?? "");
-    // YouTube blocks some clients; try the default, then android, then tv.
-    let downloaded = false;
-    let lastError: unknown = null;
-    for (const client of ["", "youtube:player_client=android", "youtube:player_client=tv"]) {
-      try {
-        const args = ["-x", "--audio-format", "mp3", "--max-filesize", "80M", "-o", join(dir, "audio.%(ext)s")];
-        if (client) args.push("--extractor-args", client);
-        args.push(job.youtubeUrl);
-        await run("yt-dlp", args);
-        downloaded = true;
-        break;
-      } catch (e) {
-        lastError = e;
-      }
-    }
-    if (!downloaded) throw lastError instanceof Error ? lastError : new Error("yt-dlp download failed");
+    await ytDlp(["-x", "--audio-format", "mp3", "--max-filesize", "80M", "-o", join(dir, "audio.%(ext)s"), job.youtubeUrl]);
     const files = await readdir(dir);
     const audio = files.find((f) => f.startsWith("audio."));
     if (!audio) throw new Error("no audio file produced");
