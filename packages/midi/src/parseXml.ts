@@ -19,7 +19,10 @@ export function parseMusicXmlNotes(xml: string): ParsedMidi {
   const fifths = parseInt(firstMatch(xml, /<fifths>(-?\d+)<\/fifths>/), 10) || 0;
   const mode = firstMatch(xml, /<mode>(major|minor)<\/mode>/);
   const notes: Note[] = [];
-  const measures = xml.match(/<measure\b[^>]*>[\s\S]*?<\/measure>/g) ?? [];
+  // `measure` must be followed by a space or `>` so `<measure-numbering>`
+  // print elements are not mistaken for measure starts (Audiveris/MuseScore
+  // emit one per system, which previously truncated multi-system scores).
+  const measures = xml.match(/<measure(?:[ >])[^>]*>[\s\S]*?<\/measure>/g) ?? [];
   const beatsPerMeasure = beats * (4 / beatType);
   for (let mi = 0; mi < measures.length; mi++) {
     const m = measures[mi]!;
