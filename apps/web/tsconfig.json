@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "plugins": [{ "name": "next" }],
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "incremental": true,
+    "noEmit": true
+  },
+  "include": ["next-env.d.ts", "src", "e2e", "vitest.config.ts", "playwright.config.ts"]
+}

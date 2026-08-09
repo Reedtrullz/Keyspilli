@@ -1,0 +1,21 @@
+{
+  "name": "keyspilli",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "services/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @keyspilli/web",
+    "build": "npm run build -w @keyspilli/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "pipeline": "npm run pipeline -w @keyspilli/catalog",
+    "seed": "npm run seed -w @keyspilli/catalog"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
