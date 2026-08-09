@@ -39,6 +39,29 @@ The catalog must be built before the app is useful. Build it locally and copy
 docker compose run --rm web node --import tsx packages/catalog/scripts/pipeline.ts
 ```
 
+## Adding songs from the Ultimate Guitar list
+
+`catalog/ug-tabs.json` is the source list (82 songs from "My tabs @
+Ultimate-Guitar.Com"). `packages/catalog/scripts/fetch-ug-midis.ts` downloads
+verified MIDI files from BitMidi (personal use; the MIDI files themselves stay
+out of git) and appends them to `catalog/manifest.json`. Then run
+`npm run pipeline` and transfer `data/` to the VPS volume (see below).
+
+## Syncing catalog data to the VPS
+
+The deploy pipeline does not rebuild the catalog on the VPS — the
+`keyspilli_keyspilli_data` volume holds it. After adding songs locally:
+
+```bash
+tar czf - -C data db.sqlite artifacts transcribed seed-midi \
+  | ssh deploy@198.23.137.16 'mkdir -p /tmp/keyspilli-seed && tar xzf - -C /tmp/keyspilli-seed'
+ssh deploy@198.23.137.16 'docker stop keyspilli keyspilli-worker && \
+  docker run --rm -v keyspilli_keyspilli_data:/data -v /tmp/keyspilli-seed:/src:ro \
+    ghcr.io/reedtrullz/keyspilli:latest \
+    sh -c "rm -f /data/db.sqlite-wal /data/db.sqlite-shm && cp -a /src/. /data/" && \
+  docker start keyspilli keyspilli-worker'
+```
+
 ## Health / version contract
 
 `/api/health` returns `{status: "healthy", version, commit, image}`. The
