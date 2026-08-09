@@ -7,7 +7,7 @@ import { execFile } from "node:child_process";
 import { mkdir, readdir, readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
-import { getQueuedJobs, updateJob, getJob, transcribedDir, ROOT, ingestSource } from "@keyspilli/catalog";
+import { getQueuedJobs, updateJob, getJob, getSong, transcribedDir, ROOT, ingestSource } from "@keyspilli/catalog";
 
 const execFileP = promisify(execFile);
 const POLL_MS = Number(process.env.KEYSPILLI_POLL_MS ?? 5000);
@@ -64,14 +64,18 @@ async function processJob(jobId: string): Promise<void> {
     if (!midiName) throw new Error("basic_pitch produced no MIDI");
     const midiOut = join(dir, midiName);
     const midi = await readFile(midiOut);
+    // If the job points at an existing song, replace that base (stable URLs)
+    // and keep its metadata; otherwise create a fresh entry from the video.
+    const existing = job.songId ? getSong(job.songId) : undefined;
     const result = await ingestSource({
       buf: new Uint8Array(midi),
-      title: title || "YouTube conversion",
-      artist: uploader || "YouTube",
-      category: "YouTube",
+      title: existing?.title ?? (title || "YouTube conversion"),
+      artist: existing?.artist ?? (uploader || "YouTube"),
+      category: existing?.category ?? "YouTube",
       contentType: "youtube",
       acquiredVia: "youtube",
       sourceYoutubeUrl: job.youtubeUrl,
+      baseId: existing?.baseId,
     });
     if (result.error) throw new Error(result.error);
     const songId = result.songIds[3] ?? result.songIds[0]!; // point at the "easy" variant when available
