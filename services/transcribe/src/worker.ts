@@ -8,6 +8,7 @@ import { mkdir, readdir, readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 import { getQueuedJobs, updateJob, getJob, getSong, transcribedDir, ROOT, ingestSource } from "@keyspilli/catalog";
+import { parseMidi, writeMidi } from "@keyspilli/midi";
 
 const execFileP = promisify(execFile);
 const POLL_MS = Number(process.env.KEYSPILLI_POLL_MS ?? 5000);
@@ -16,6 +17,7 @@ const BASIC_PITCH = join(dirname(PYTHON), "basic-pitch");
 const BASIC_PITCH_SERIALIZATION = process.env.KEYSPILLI_BP_SERIALIZATION ?? "";
 const ONSET_THRESHOLD = process.env.KEYSPILLI_ONSET ?? "0.65";
 const FRAME_THRESHOLD = process.env.KEYSPILLI_FRAME ?? "0.45";
+const ONSET_MATCH_SEC = Number(process.env.KEYSPILLI_ONSET_MATCH_SEC ?? 0.15);
 
 async function run(cmd: string, args: string[], timeoutMs = 300_000): Promise<string> {
   const { stdout } = await execFileP(cmd, args, { timeout: timeoutMs, maxBuffer: 32 * 1024 * 1024 });
@@ -63,7 +65,25 @@ async function processJob(jobId: string): Promise<void> {
     const midiName = (await readdir(dir)).find((f) => f.endsWith("_basic_pitch.mid"));
     if (!midiName) throw new Error("basic_pitch produced no MIDI");
     const midiOut = join(dir, midiName);
-    const midi = await readFile(midiOut);
+    // Filter Basic Pitch output against the real audio onsets: Basic Pitch
+    // fabricates notes between real ones (especially on pedaled/fade-out
+    // sections); any note whose onset has no nearby audio onset is removed.
+    const onsetJson = await run(PYTHON, [join(ROOT, "services", "transcribe", "src", "audio_onsets.py"), audioPath], 180_000);
+    const audioOnsets = JSON.parse(onsetJson) as number[];
+    const raw = parseMidi(new Uint8Array(await readFile(midiOut)));
+    const secPerBeat = 60 / raw.tempoBpm;
+    const kept = raw.notes.filter((n) =>
+      audioOnsets.some((a) => Math.abs(a - n.start * secPerBeat) <= ONSET_MATCH_SEC),
+    );
+    if (kept.length < raw.notes.length * 0.2) {
+      throw new Error(`onset filter dropped too much (${kept.length}/${raw.notes.length})`);
+    }
+    const midi = writeMidi(kept, {
+      tempoBpm: raw.tempoBpm,
+      timeSig: raw.timeSig,
+      keySig: raw.keySig,
+      keyMode: raw.keyMode,
+    });
     // If the job points at an existing song, replace that base (stable URLs)
     // and keep its metadata; otherwise create a fresh entry from the video.
     const existing = job.songId ? getSong(job.songId) : undefined;
