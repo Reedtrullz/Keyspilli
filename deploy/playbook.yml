@@ -17,7 +17,7 @@
 #     (default APP_VERSION env)
 #   - allow_mutable_tag: set true only for an intentional latest/manual
 #     recovery deploy
-#   - app_domain: public domain (inventory default keyspilli.reidar.tech)
+#   - app_domain: public domain (inventory default keys.reidar.tech)
 # Usage:
 #   APP_VERSION=$(git rev-parse HEAD) ansible-playbook \
 #     -i deploy/inventory/hosts.yml deploy/playbook.yml \

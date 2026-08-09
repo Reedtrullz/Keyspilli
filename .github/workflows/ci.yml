@@ -143,7 +143,7 @@ jobs:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     environment:
       name: production
-      url: https://keyspilli.reidar.tech
+      url: https://keys.reidar.tech
 
     steps:
       - name: Check out repository
@@ -216,7 +216,7 @@ jobs:
           import urllib.request
 
           expected = os.environ['GITHUB_SHA']
-          url = 'https://keyspilli.reidar.tech/api/health'
+          url = 'https://keys.reidar.tech/api/health'
           last = None
           for _ in range(12):
               try:

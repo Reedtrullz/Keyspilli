@@ -24,7 +24,7 @@ Preconditions (matching the other projects):
 - Control node: `brew install ansible` + `ansible-galaxy collection install -r deploy/requirements.yml`.
 - SSH key at `~/.ssh/id_rsa_racknerd`; inventory points at `198.23.137.16`, user `deploy`.
 - VPS: Docker, Docker Compose v2, Caddy; GHCR pull access (`docker login ghcr.io` if the images are private).
-- Domain: the inventory defaults to `keyspilli.reidar.tech` — add a Caddy
+- Domain: the inventory defaults to `keys.reidar.tech` — add a Caddy
   block for any other domain to `deploy/playbook.yml` vars or the inventory.
 - CI additionally needs the `production` GitHub environment and secrets
   `VPS_SSH_PRIVATE_KEY` + `VPS_SSH_HOST_KEY` (see the Configure SSH key step in
