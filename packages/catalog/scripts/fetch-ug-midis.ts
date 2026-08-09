@@ -116,7 +116,7 @@ function accepted(tab: Tab, pageTitleText: string): boolean {
   const artistHit = artistTokens.size > 0 && [...artistTokens].every((t) => norm(pageTitleText).includes(t));
   const singleWord = tokens(tab.song).size === 1;
   if (singleWord) {
-    const t = [...tokens(tab.song)][0]!;
+    const t = [...tokens(tab.song)][0] ?? "";
     return tokens(pageTitleText).has(t) && (artistHit || tokens(pageTitleText).size <= 2);
   }
   if (titleSim >= 0.8) return true;
