@@ -130,7 +130,7 @@ async function findMatch(tab: Tab): Promise<{ href: string; title: string } | nu
     const results: { href: string; text: string }[] = [];
     const re = /<a[^>]+href="(\/[a-z0-9-]+-mid)"[^>]*>([\s\S]*?)<\/a>/g;
     for (const m of html.matchAll(re)) {
-      const text = m[2].replace(/<[^>]+>/g, "").trim();
+      const text = (m[2] ?? "").replace(/<[^>]+>/g, "").trim();
       if (text) results.push({ href: m[1]!, text });
     }
     if (results.length === 0) continue;
