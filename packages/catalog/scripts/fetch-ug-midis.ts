@@ -182,6 +182,9 @@ async function main() {
   const existing = new Set(manifest.songs.map((s) => String(s.sourceFile)));
   const results: { ok: string[]; failed: { artist: string; song: string; reason: string }[] } = { ok: [], failed: [] };
   const queue = tabs.filter((t) => !existing.has(`${slugify(`${t.artist}-${t.song}`)}.mid`));
+  const disabledSlugs = new Set(
+    manifest.songs.filter((s) => s.disabled).map((s) => String(s.sourceFile)),
+  );
 
   let pending = queue;
   for (let pass = 0; pass < 3 && pending.length > 0; pass++) {
@@ -193,6 +196,10 @@ async function main() {
     for (const tab of pending) {
       const slug = slugify(`${tab.artist}-${tab.song}`);
       const file = `${slug}.mid`;
+      if (disabledSlugs.has(file)) {
+        console.log(`- ${file}: disabled in manifest, skipped`);
+        continue;
+      }
       const dest = join(SEED_DIR, file);
       try {
         const match = await findMatch(tab);

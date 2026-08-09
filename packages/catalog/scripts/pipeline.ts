@@ -24,6 +24,7 @@ interface ManifestSong {
   sourceUrl: string;
   license: string;
   instrument?: string;
+  disabled?: boolean;
 }
 
 const manifest: { songs: ManifestSong[] } = JSON.parse(
@@ -59,6 +60,10 @@ let failed = 0;
 const failures: string[] = [];
 const t0 = Date.now();
 for (const s of manifest.songs) {
+  if (s.disabled) {
+    process.stdout.write(`- ${s.id}: disabled, skipped\n`);
+    continue;
+  }
   const r = await processSong(s);
   if (r.ok) {
     ok++;
@@ -76,6 +81,7 @@ console.log(`songs in db: ${countSongs()}`);
 // sanity: every variant has artifacts + db row
 let missing = 0;
 for (const s of manifest.songs) {
+  if (s.disabled) continue;
   const rows = getSongsByBase(s.id);
   if (rows.length !== LEVEL_ORDER.length) missing++;
 }
