@@ -8,6 +8,7 @@ import {
   buildVariants,
   writeMidi,
   writeMusicXml,
+  cleanTranscription,
   LEVEL_ORDER,
   Note,
 } from "../src/index.js";
@@ -101,6 +102,18 @@ describe("splitHands", () => {
     expect(lh.map((n) => n.midi)).toEqual([48, 52]);
     expect(rh.map((n) => n.midi)).toEqual([60, 64, 67, 72]);
   });
+
+  it("falls back to a percentile split for continuous-range material", () => {
+    const notes: Note[] = [];
+    for (let m = 36; m <= 72; m += 2) {
+      notes.push({ midi: m, start: 0, dur: 1, vel: 80 });
+    }
+    const { lh, rh } = splitHands(notes);
+    expect(lh.length).toBeGreaterThan(0);
+    expect(rh.length).toBeGreaterThan(0);
+    expect(lh.length / notes.length).toBeGreaterThan(0.1);
+    expect(lh.length / notes.length).toBeLessThan(0.9);
+  });
 });
 
 describe("detectKey", () => {
@@ -146,12 +159,14 @@ describe("buildVariants", () => {
   it("produces 6 levels with monotonic simplification", () => {
     const variants = buildVariants(src, { title: "Scale", artist: "Test" });
     expect(variants.map((v) => v.level)).toEqual(LEVEL_ORDER);
-    // Every easier level is a note-subset of the next harder level.
+    // Every easier level preserves the melody: RH notes are a subset of the
+    // next harder level's RH notes (LH roots are intentionally re-voiced).
     const keys = (notes: Note[]) =>
       new Set(notes.map((n) => `${n.midi}@${n.start.toFixed(2)}`));
     for (let i = 0; i < variants.length - 1; i++) {
-      for (const k of keys(variants[i]!.notes)) {
-        expect(keys(variants[i + 1]!.notes).has(k)).toBe(true);
+      const rhNow = variants[i]!.notes.filter((n) => n.hand !== "L");
+      for (const k of keys(rhNow)) {
+        expect(keys(variants[i + 1]!.notes.filter((n) => n.hand !== "L")).has(k)).toBe(true);
       }
     }
     expect(variants[0]!.notes.every((n) => n.hand === "R")).toBe(true);
@@ -161,6 +176,43 @@ describe("buildVariants", () => {
     const variants = buildVariants(src, { title: "Scale", artist: "Test" });
     const scores = variants.map((v) => v.difficultyScore);
     expect(scores).toEqual([...scores].sort((a, b) => a - b));
+  });
+
+  it("keeps hand labels on the advanced variant", () => {
+    const variants = buildVariants(src, { title: "Scale", artist: "Test" });
+    const advanced = variants[variants.length - 1]!;
+    expect(advanced.notes.some((n) => n.hand === "L")).toBe(true);
+    expect(advanced.notes.some((n) => n.hand === "R")).toBe(true);
+  });
+});
+
+describe("cleanTranscription", () => {
+  it("drops quiet and ultra-short ghost notes, keeps real notes", () => {
+    const notes: Note[] = [
+      { midi: 60, start: 0, dur: 0.5, vel: 80 },
+      { midi: 62, start: 0, dur: 0.05, vel: 60 },
+      { midi: 64, start: 0.5, dur: 0.5, vel: 20 },
+    ];
+    const out = cleanTranscription(notes);
+    expect(out).toHaveLength(1);
+    expect(out[0]!.midi).toBe(60);
+  });
+
+  it("merges near-duplicate re-triggers and caps polyphony", () => {
+    const notes: Note[] = [
+      { midi: 60, start: 0, dur: 0.5, vel: 80 },
+      { midi: 60, start: 0.05, dur: 0.3, vel: 70 },
+      { midi: 64, start: 0, dur: 0.5, vel: 60 },
+      { midi: 67, start: 0.01, dur: 0.5, vel: 40 },
+      { midi: 72, start: 0, dur: 0.5, vel: 30 },
+      { midi: 55, start: 0.02, dur: 0.5, vel: 20 },
+    ];
+    const out = cleanTranscription(notes, { minVel: 0, minDurBeats: 0, maxPolyphony: 3 });
+    // duplicate C merged; 6 distinct pitches capped to 3 loudest
+    expect(out).toHaveLength(3);
+    expect(out[0]!.midi).toBe(60);
+    expect(out[0]!.vel).toBe(80);
+    expect(out.every((n) => n.vel >= 40)).toBe(true);
   });
 });
 

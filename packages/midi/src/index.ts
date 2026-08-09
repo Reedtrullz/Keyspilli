@@ -3,6 +3,7 @@ export { parseMidi } from "./parse.js";
 export { quantize } from "./quantize.js";
 export { splitHands, detectKey, keyName, chordName, detectBassPattern, melodyFrom } from "./analyze.js";
 export { buildVariants } from "./simplify.js";
+export { cleanTranscription } from "./clean.js";
 export { writeMidi } from "./writeMidi.js";
 export { writeMusicXml } from "./writeXml.js";
 export { PITCH_COLORS, pitchColor } from "./pitchColors.js";

@@ -3,6 +3,7 @@ import { join } from "node:path";
 import {
   parseMidi,
   parseMusicXmlNotes,
+  cleanTranscription,
   buildVariants,
   writeMidi,
   writeMusicXml,
@@ -73,6 +74,10 @@ export async function ingestSource(inp: IngestInput): Promise<{ baseId: string; 
       : parseMidi(inp.buf);
   } catch (e) {
     return { baseId: "", songIds: [], error: `parse failed: ${(e as Error).message}` };
+  }
+  // AI transcriptions carry ghost notes; human MIDI files do not.
+  if (inp.contentType === "youtube") {
+    parsed.notes = cleanTranscription(parsed.notes);
   }
   if (parsed.notes.length < 8) return { baseId: "", songIds: [], error: "too few notes" };
 

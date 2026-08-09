@@ -97,7 +97,9 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   const key = meta.key ?? detectKey(src.notes).name;
   const tempo = meta.tempo ?? Math.round(src.tempoBpm);
 
-  const advanced = quantize(base, { grid: 0.125 });
+  // Use the hand-labeled split output, not the raw base, so the advanced
+  // variant keeps L/R hand labels for two-staff rendering.
+  const advanced = quantize([...rh, ...lh], { grid: 0.125 });
   const medium = quantize([...simplifyRhythm(rh, 0.125), ...thinChord(lh, 3)], { grid: 0.125 });
   const easy = quantize(
     [...melodyOnly(rh, 0.125, 0.5), ...thinChord(lh, 2).map((n) => ({ ...n, midi: rootOf(n.midi) }))],
