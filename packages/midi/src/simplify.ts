@@ -44,9 +44,8 @@ function simplifyRhythm(notes: Note[], grid: number): Note[] {
 }
 
 function melodyOnly(notes: Note[], grid: number, minDur: number): Note[] {
-  const { rh } = splitHands(notes);
   const bySlice = new Map<number, Note[]>();
-  for (const n of rh) {
+  for (const n of notes) {
     const k = Math.round(n.start / grid);
     const arr = bySlice.get(k) ?? [];
     arr.push(n);
@@ -60,7 +59,7 @@ function melodyOnly(notes: Note[], grid: number, minDur: number): Note[] {
     const top = group.reduce((a, b) => (b.midi > a.midi ? b : a));
     const next = slices[i + 1];
     const dur = next === undefined ? Math.max(minDur, top.dur) : Math.max(minDur, (next - k) * grid);
-    out.push({ ...top, dur, hand: "R" });
+    out.push({ ...top, dur });
   }
   return out;
 }

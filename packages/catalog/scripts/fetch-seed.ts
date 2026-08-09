@@ -44,7 +44,7 @@ async function fetchPage(start: number): Promise<{ rows: Row[]; more: boolean }>
   for (const g of groups) {
     const innerRows = g.split(/<tr/i).slice(1);
     const cells = (i: number) =>
-      (innerRows[i] ? [...innerRows[i]!.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map((m) => strip(m[1])) : []);
+      (innerRows[i] ? [...innerRows[i]!.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map((m) => strip(m[1] ?? "")) : []);
     const mid = g.match(/href="(https:\/\/www\.mutopiaproject\.org\/ftp\/[^"]+\.mid)"/);
     if (!mid) continue;
     const r1 = cells(0);
@@ -56,7 +56,7 @@ async function fetchPage(start: number): Promise<{ rows: Row[]; more: boolean }>
       instrumentation: r2[0] || "",
       style: r2[2] || "",
       license: r3[1] || "",
-      midUrl: mid[1]!,
+      midUrl: mid[1] ?? "",
     });
   }
   const more = /make-table\.cgi\?startat=\d+/.test(html);

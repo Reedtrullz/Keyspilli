@@ -1,8 +1,14 @@
+import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 
-/** Repo root (packages/catalog/src -> repo root). */
-export const ROOT = resolve(fileURLToPath(new URL("../../..", import.meta.url)));
+/**
+ * Repo root, resolved from cwd so it works under npm workspaces
+ * (cwd = apps/web), CLI scripts (cwd = repo root) and Docker (KEYSPILLI_DATA_DIR).
+ */
+export const ROOT = resolve(
+  process.cwd(),
+  existsSync(resolve(process.cwd(), "apps")) ? "." : "../..",
+);
 
 export function dataDir(): string {
   return process.env.KEYSPILLI_DATA_DIR ?? resolve(ROOT, "data");

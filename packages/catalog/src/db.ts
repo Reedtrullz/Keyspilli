@@ -34,6 +34,7 @@ export interface SongFilters {
   mood?: string;
   bassPattern?: string;
   category?: string;
+  artist?: string;
   q?: string;
   sort?: "popular" | "title" | "artist" | "difficulty";
   limit?: number;
@@ -51,6 +52,44 @@ export interface JobRow {
 }
 
 let db: Database.Database | null = null;
+
+function mapSong(r: Record<string, unknown>): SongRow {
+  return {
+    id: r.id as string,
+    baseId: r.base_id as string,
+    title: r.title as string,
+    artist: r.artist as string,
+    category: r.category as string,
+    difficulty: r.difficulty as string,
+    difficultyScore: r.difficulty_score as number,
+    key: r.key as string,
+    tempo: r.tempo as number,
+    style: r.style as string,
+    mood: r.mood as string,
+    bassPattern: r.bass_pattern as string,
+    duration: r.duration as number,
+    contentType: r.content_type as string,
+    acquiredVia: r.acquired_via as string | null,
+    sourceYoutubeUrl: r.source_youtube_url as string | null,
+    hasSheetXml: r.has_sheet_xml as number,
+    sections: r.sections as string | null,
+    plays: r.plays as number,
+    level: r.level as string,
+    createdAt: r.created_at as string,
+  };
+}
+
+function mapJob(r: Record<string, unknown>): JobRow {
+  return {
+    id: r.id as string,
+    youtubeUrl: r.youtube_url as string,
+    status: r.status as JobRow["status"],
+    songId: r.song_id as string | null,
+    error: r.error as string | null,
+    createdAt: r.created_at as string,
+    finishedAt: r.finished_at as string | null,
+  };
+}
 
 export function getDb(): Database.Database {
   if (db) return db;
@@ -111,11 +150,12 @@ export function upsertSong(s: SongRow): void {
 }
 
 export function getSong(id: string): SongRow | undefined {
-  return getDb().prepare("SELECT * FROM songs WHERE id = ?").get(id) as SongRow | undefined;
+  const r = getDb().prepare("SELECT * FROM songs WHERE id = ?").get(id) as Record<string, unknown> | undefined;
+  return r ? mapSong(r) : undefined;
 }
 
 export function getSongsByBase(baseId: string): SongRow[] {
-  return getDb().prepare("SELECT * FROM songs WHERE base_id = ? ORDER BY difficulty_score").all(baseId) as SongRow[];
+  return (getDb().prepare("SELECT * FROM songs WHERE base_id = ? ORDER BY difficulty_score").all(baseId) as Record<string, unknown>[]).map(mapSong);
 }
 
 export function listSongs(f: SongFilters = {}): SongRow[] {
@@ -128,6 +168,7 @@ export function listSongs(f: SongFilters = {}): SongRow[] {
     mood: "mood",
     bassPattern: "bass_pattern",
     category: "category",
+    artist: "artist",
   };
   for (const [k, v] of Object.entries(map)) {
     const val = (f as Record<string, unknown>)[k];
@@ -150,11 +191,13 @@ export function listSongs(f: SongFilters = {}): SongRow[] {
           : "plays DESC";
   const limit = Math.min(200, f.limit ?? 60);
   const offset = f.offset ?? 0;
-  return getDb()
-    .prepare(
-      `SELECT * FROM songs ${conds.length ? "WHERE " + conds.join(" AND ") : ""} ORDER BY ${order} LIMIT @limit OFFSET @offset`,
-    )
-    .all({ ...params, limit, offset }) as SongRow[];
+  return (
+    getDb()
+      .prepare(
+        `SELECT * FROM songs ${conds.length ? "WHERE " + conds.join(" AND ") : ""} ORDER BY ${order} LIMIT @limit OFFSET @offset`,
+      )
+      .all({ ...params, limit, offset }) as Record<string, unknown>[]
+  ).map(mapSong);
 }
 
 export function countSongs(): number {
@@ -197,11 +240,14 @@ export function updateJob(id: string, patch: Partial<Pick<JobRow, "status" | "so
 }
 
 export function getQueuedJobs(): JobRow[] {
-  return getDb()
-    .prepare("SELECT * FROM conversion_jobs WHERE status IN ('queued','processing') ORDER BY created_at LIMIT 5")
-    .all() as JobRow[];
+  return (
+    getDb()
+      .prepare("SELECT * FROM conversion_jobs WHERE status IN ('queued','processing') ORDER BY created_at LIMIT 5")
+      .all() as Record<string, unknown>[]
+  ).map(mapJob);
 }
 
 export function getJob(id: string): JobRow | undefined {
-  return getDb().prepare("SELECT * FROM conversion_jobs WHERE id = ?").get(id) as JobRow | undefined;
+  const r = getDb().prepare("SELECT * FROM conversion_jobs WHERE id = ?").get(id) as Record<string, unknown> | undefined;
+  return r ? mapJob(r) : undefined;
 }

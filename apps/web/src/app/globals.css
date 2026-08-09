@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+:root {
+  --pitch-0: #e5484d;
+  --pitch-1: #ea7326;
+  --pitch-2: #f5a524;
+  --pitch-3: #d1b426;
+  --pitch-4: #46a758;
+  --pitch-5: #12a594;
+  --pitch-6: #0091ff;
+  --pitch-7: #3e63dd;
+  --pitch-8: #6e56cf;
+  --pitch-9: #ab4aba;
+  --pitch-10: #d6409f;
+  --pitch-11: #e93d82;
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: #fafafa;
+  color: #18181b;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.sheet-svg svg {
+  width: 100%;
+  height: auto;
+}
