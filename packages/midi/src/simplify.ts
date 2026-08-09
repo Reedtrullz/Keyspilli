@@ -5,6 +5,18 @@ import { quantize } from "./quantize.js";
 export interface VariantOptions {
   /** 16th-note grid (beats) used for note slicing */
   grid?: number;
+  /** octave-shift notes outside the piano range (21-108) into it */
+  normalizeRange?: boolean;
+}
+
+/** Shift out-of-piano-range notes by octaves so everything is playable. */
+export function normalizePianoRange(notes: Note[]): Note[] {
+  return notes.map((n) => {
+    let midi = n.midi;
+    while (midi < 21) midi += 12;
+    while (midi > 108) midi -= 12;
+    return midi === n.midi ? n : { ...n, midi };
+  });
 }
 
 function chordsAt(notes: Note[], grid: number): ChordLabel[] {
@@ -93,7 +105,8 @@ function rootOf(midi: number): number {
 export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOptions = {}): Variant[] {
   const grid = opts.grid ?? 0.25;
   const base = quantize(src.notes, { grid: 0.125, minDur: 0.05 });
-  const { rh, lh } = splitHands(base);
+  const splitSource = opts.normalizeRange === false ? base : normalizePianoRange(base);
+  const { rh, lh } = splitHands(splitSource);
   const key = meta.key ?? detectKey(src.notes).name;
   const tempo = meta.tempo ?? Math.round(src.tempoBpm);
 

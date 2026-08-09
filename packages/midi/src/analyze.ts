@@ -89,12 +89,17 @@ export function splitHands(notes: Note[]): { rh: Note[]; lh: Note[] } {
         )!;
   // If the gap split leaves one hand nearly empty (e.g. continuous-range AI
   // transcriptions), fall back to a percentile boundary so both hands get a
-  // usable part: ~25% of distinct pitches to the left hand.
+  // usable part: ~25% of NOTES to the left hand (note-count percentile,
+  // not distinct-pitch percentile — sparse sub-bass regions would otherwise
+  // starve the left hand).
   const mid0 = (chosen.a + chosen.b) / 2;
   const lhCount = notes.filter((n) => n.midi <= mid0).length;
   if (lhCount < notes.length * 0.15 || lhCount > notes.length * 0.85) {
-    const idx = Math.max(1, Math.min(distinct.length - 2, Math.floor(distinct.length * 0.25)));
-    chosen = { a: distinct[idx - 1]!, b: distinct[idx]!, gap: distinct[idx]! - distinct[idx - 1]! };
+    const sortedNotes = [...notes].sort((a, b) => a.midi - b.midi);
+    const target = Math.max(1, Math.min(sortedNotes.length - 1, Math.floor(sortedNotes.length * 0.25)));
+    const lo = sortedNotes[target - 1]!.midi;
+    const hi = sortedNotes[target]!.midi;
+    chosen = { a: lo, b: hi, gap: hi - lo };
   }
   const mid = (chosen.a + chosen.b) / 2;
   return {
