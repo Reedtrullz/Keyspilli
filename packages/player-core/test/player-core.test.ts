@@ -1,0 +1,134 @@
+import { describe, expect, it } from "vitest";
+import { beatToSec, resolveTimedNotes, firstNoteAtOrAfter } from "../src/timeline.js";
+import { Grader, detectPitch } from "../src/grading.js";
+import { KeyboardInput, KEYMAP } from "../src/input.js";
+import { fallingBars } from "../src/views/falling.js";
+import { loadSettings, saveSettings, DEFAULT_SETTINGS } from "../src/prefs.js";
+import type { SongData } from "../src/types.js";
+
+const song: SongData = {
+  notes: [
+    { midi: 60, start: 0, dur: 1, vel: 80, hand: "R" },
+    { midi: 62, start: 1, dur: 1, vel: 80, hand: "R" },
+    { midi: 64, start: 2, dur: 1, vel: 80, hand: "R" },
+    { midi: 48, start: 0, dur: 4, vel: 80, hand: "L" },
+  ],
+  chords: [{ beat: 0, name: "C", notes: [48, 60] }],
+  measures: [{ index: 0, startBeat: 0, endBeat: 4 }],
+  key: "C",
+  tempoBpm: 120,
+  timeSig: [4, 4],
+};
+
+describe("timeline", () => {
+  it("converts beats to seconds at speed", () => {
+    expect(beatToSec(1, 120, 1)).toBeCloseTo(0.5, 5);
+    expect(beatToSec(1, 120, 2)).toBeCloseTo(0.25, 5);
+    expect(beatToSec(1, 60, 0.5)).toBeCloseTo(2, 5);
+  });
+
+  it("resolves timed notes with transpose", () => {
+    const tn = resolveTimedNotes(song, 1, 2);
+    expect(tn[0]!.midi).toBe(62);
+    expect(tn[0]!.startSec).toBeCloseTo(0, 5);
+    expect(tn[2]!.midi).toBe(66);
+    expect(tn[2]!.startSec).toBeCloseTo(1, 5);
+    expect(tn[3]!.hand).toBe("L");
+  });
+
+  it("binary search finds first note at/after time", () => {
+    const tn = resolveTimedNotes(song, 1, 0);
+    expect(firstNoteAtOrAfter(tn, 0)).toBe(0);
+    expect(firstNoteAtOrAfter(tn, 0.6)).toBe(2);
+    expect(firstNoteAtOrAfter(tn, 5)).toBe(4);
+  });
+});
+
+describe("grader", () => {
+  const notes = [
+    { midi: 60, startSec: 0, durSec: 0.5, vel: 80 },
+    { midi: 62, startSec: 0.5, durSec: 0.5, vel: 80 },
+    { midi: 64, startSec: 1, durSec: 0.5, vel: 80 },
+  ];
+
+  it("scores hits, wrongs and misses", () => {
+    const g = new Grader(notes);
+    g.play(60, 0.05);
+    g.play(63, 0.55); // wrong pitch in window
+    g.play(62, 0.6); // slightly late but within tolerance
+    const r = g.result();
+    expect(r.hit).toBe(2);
+    expect(r.wrong).toBe(1);
+    expect(r.missed).toBe(1);
+    expect(r.accuracyPct).toBe(50);
+  });
+
+  it("wait mode holds until the right note", () => {
+    const g = new Grader(notes, { waitMode: true });
+    expect(g.currentWait?.midi).toBe(60);
+    expect(g.play(64, 0)).toBe(false);
+    expect(g.play(60, 0)).toBe(true);
+    expect(g.currentWait?.midi).toBe(62);
+  });
+});
+
+describe("detectPitch", () => {
+  it("detects a 440 Hz sine", () => {
+    const sr = 44100;
+    const buf = new Float32Array(sr);
+    for (let i = 0; i < sr; i++) buf[i] = Math.sin((2 * Math.PI * 440 * i) / sr);
+    expect(detectPitch(buf, sr)).toBe(69);
+  });
+  it("returns null for silence", () => {
+    expect(detectPitch(new Float32Array(44100), 44100)).toBeNull();
+  });
+});
+
+describe("keyboard input", () => {
+  it("maps keys to midi with octave shift", () => {
+    const events: string[] = [];
+    const ki = new KeyboardInput({
+      onNoteOn: (m) => events.push(`on:${m}`),
+      onNoteOff: (m) => events.push(`off:${m}`),
+    });
+    expect(KEYMAP["a"]).toBe(60);
+    const down = { key: "a", type: "keydown", repeat: false, preventDefault: () => {} } as unknown as KeyboardEvent;
+    ki.handleKey(down);
+    ki.handleKey({ ...down, type: "keyup" } as unknown as KeyboardEvent);
+    expect(events).toEqual(["on:60", "off:60"]);
+  });
+});
+
+describe("falling bars", () => {
+  it("maps notes to bars within the time window", () => {
+    const tn = resolveTimedNotes(song, 1, 0);
+    const bars = fallingBars(tn, {
+      width: 800,
+      height: 400,
+      nowSec: 0,
+      speed: 1,
+      lookaheadSec: 0.6,
+      lowMidi: 36,
+      highMidi: 84,
+    });
+    expect(bars.length).toBe(3); // notes at 0s (x2) and 0.5s visible
+    expect(bars[0]!.color).toMatch(/^#/);
+    expect(bars[0]!.x).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe("prefs", () => {
+  const mem = new Map<string, string>();
+  (globalThis as Record<string, unknown>).localStorage = {
+    getItem: (k: string) => mem.get(k) ?? null,
+    setItem: (k: string, v: string) => void mem.set(k, v),
+    removeItem: (k: string) => void mem.delete(k),
+    clear: () => mem.clear(),
+  };
+  it("defaults and roundtrip", () => {
+    expect(loadSettings().mode).toBe(DEFAULT_SETTINGS.mode);
+    const p = { ...DEFAULT_SETTINGS, mode: "sheet" as const, transpose: 3 };
+    saveSettings(p);
+    expect(loadSettings().transpose).toBe(3);
+  });
+});
