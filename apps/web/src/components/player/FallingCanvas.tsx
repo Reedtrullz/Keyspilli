@@ -51,26 +51,6 @@ export function FallingCanvas({ notes, timeRef, settings, pressedKeys }: Props) 
         highMidi: high,
       });
 
-      // draw bars
-      for (const b of bars) {
-        ctx.fillStyle = b.color;
-        ctx.beginPath();
-        ctx.roundRect(b.x, b.y, b.width, b.height, 4);
-        ctx.fill();
-        // note label on the bar (skip slivers too short for text)
-        if (b.height >= 11) {
-          const fs = Math.min(13, Math.max(9, b.height - 6));
-          ctx.font = `600 ${fs}px system-ui, sans-serif`;
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          ctx.strokeStyle = "rgba(0,0,0,0.45)";
-          ctx.lineWidth = 3;
-          ctx.strokeText(b.label, b.x + b.width / 2, Math.min(b.y + b.height / 2, areaHeight - 6));
-          ctx.fillStyle = "#ffffff";
-          ctx.fillText(b.label, b.x + b.width / 2, Math.min(b.y + b.height / 2, areaHeight - 6));
-        }
-      }
-
       // keyboard
       const kb = keyboardRects({ width: W, lowMidi: low, highMidi: high, whiteHeight: KB_H });
       ctx.fillStyle = "#f4f4f5";
@@ -98,16 +78,37 @@ export function FallingCanvas({ notes, timeRef, settings, pressedKeys }: Props) 
         }
       }
 
-      // playhead line just above the keyboard
+      // playhead line just above the keyboard (the note lands exactly here)
       ctx.strokeStyle = "#dc2626";
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(0, areaHeight + 4);
-      ctx.lineTo(W, areaHeight + 4);
+      ctx.moveTo(0, areaHeight);
+      ctx.lineTo(W, areaHeight);
       ctx.stroke();
       ctx.fillStyle = "#18181b";
       ctx.font = "12px monospace";
       ctx.fillText(`${now.toFixed(1)}s`, 8, areaHeight - 6);
+
+      // draw bars ON TOP of the keyboard so a sounding note visibly
+      // continues past the playhead over the keys instead of vanishing
+      for (const b of bars) {
+        ctx.fillStyle = b.color;
+        ctx.beginPath();
+        ctx.roundRect(b.x, b.y, b.width, b.height, 4);
+        ctx.fill();
+        // note label on the bar (skip slivers too short for text)
+        if (b.height >= 11) {
+          const fs = Math.min(13, Math.max(9, b.height - 6));
+          ctx.font = `600 ${fs}px system-ui, sans-serif`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.strokeStyle = "rgba(0,0,0,0.45)";
+          ctx.lineWidth = 3;
+          ctx.strokeText(b.label, b.x + b.width / 2, Math.min(b.y + b.height / 2, H - 14));
+          ctx.fillStyle = "#ffffff";
+          ctx.fillText(b.label, b.x + b.width / 2, Math.min(b.y + b.height / 2, H - 14));
+        }
+      }
       raf = requestAnimationFrame(draw);
     };
     raf = requestAnimationFrame(draw);
