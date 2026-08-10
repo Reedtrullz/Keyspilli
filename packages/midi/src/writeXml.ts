@@ -30,18 +30,23 @@ function typeFromDur(beats: number): { type: string; dots: number } {
     [3, "half"],
     [6, "whole"],
     [0.75, "eighth"],
+    [0.375, "16th"],
   ];
   for (const [b, t] of dotted) {
     if (Math.abs(beats - b) < 1e-6) return { type: t, dots: 1 };
   }
   const names = ["whole", "half", "quarter", "eighth", "16th", "32nd", "64th"];
   let b = beats;
-  let i = 0;
+  let i = 2; // 1 beat = quarter
   while (b < 1 && i < names.length - 1) {
     b *= 2;
     i++;
   }
-  return { type: names[Math.min(i, names.length - 1)]!, dots: 0 };
+  while (b > 1 && i > 0) {
+    b /= 2;
+    i--;
+  }
+  return { type: names[i]!, dots: 0 };
 }
 
 function xmlEscape(s: string): string {
@@ -99,7 +104,7 @@ export function writeMusicXml(variant: Variant, title: string, artist: string): 
             (isChord ? "<chord/>" : "") +
             `<pitch><step>${step}</step>${alter ? `<alter>${alter}</alter>` : ""}<octave>${octave}</octave></pitch>` +
             `<duration>${Math.round(Math.max(0.25, n.dur) * DIV)}</duration>` +
-            `<voice>${st}</voice><type>${type}</type>${dots ? "<dots><dot/></dots>" : ""}` +
+            `<voice>${st}</voice><type>${type}</type>${dots ? "<dot/>" : ""}` +
             `<staff>${st}</staff>${lyric}</note>`,
         );
       }
@@ -113,7 +118,7 @@ export function writeMusicXml(variant: Variant, title: string, artist: string): 
           : "";
       return (
         `<measure number="${mi + 1}">` +
-        `<attributes><divisions>${DIV}</divisions>${keyTime}` +
+        `<attributes><divisions>${DIV}</divisions>${keyTime}<staves>2</staves>` +
         `<clef number="1"><sign>G</sign><line>2</line></clef>` +
         `<clef number="2"><sign>F</sign><line>4</line></clef>` +
         `<staff-details number="1"><staff-lines>5</staff-lines></staff-details>` +

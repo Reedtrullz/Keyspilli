@@ -11,6 +11,7 @@ import {
   cleanTranscription,
   LEVEL_ORDER,
   Note,
+  Variant,
 } from "../src/index.js";
 
 const HEX = (s: string) => new Uint8Array(s.trim().split(/\s+/).map((b) => parseInt(b, 16)));
@@ -229,6 +230,49 @@ describe("cleanTranscription", () => {
 });
 
 describe("writeMusicXml", () => {
+  it("writes correct note types for common durations", () => {
+    const v: Variant = {
+      level: "advanced",
+      difficultyScore: 0,
+      notes: [
+        { midi: 60, start: 0, dur: 0.5, vel: 80, hand: "R" },
+        { midi: 62, start: 0.5, dur: 1, vel: 80, hand: "R" },
+        { midi: 64, start: 1.5, dur: 2, vel: 80, hand: "L" },
+        { midi: 48, start: 3.5, dur: 4, vel: 80, hand: "L" },
+      ],
+      chords: [],
+      bassPattern: "block",
+      key: "C",
+      tempoBpm: 120,
+      timeSig: [4, 4],
+      measures: [{ index: 0, startBeat: 0, endBeat: 4 }],
+    };
+    const xml = writeMusicXml(v, "T", "A");
+    expect(xml).toContain("<type>eighth</type>");
+    expect(xml).toContain("<type>quarter</type>");
+    expect(xml).toContain("<type>half</type>");
+    expect(xml).toContain("<type>whole</type>");
+    expect(xml).not.toContain("<dots>");
+    expect(xml).toContain("<staves>2</staves>");
+  });
+
+  it("writes dotted notes as a direct <dot/>", () => {
+    const v: Variant = {
+      level: "advanced",
+      difficultyScore: 0,
+      notes: [{ midi: 60, start: 0, dur: 1.5, vel: 80, hand: "R" }],
+      chords: [],
+      bassPattern: "block",
+      key: "C",
+      tempoBpm: 120,
+      timeSig: [4, 4],
+      measures: [{ index: 0, startBeat: 0, endBeat: 4 }],
+    };
+    const xml = writeMusicXml(v, "T", "A");
+    expect(xml).toContain("<type>quarter</type><dot/>");
+    expect(xml).not.toContain("<dots>");
+  });
+
   it("produces valid-looking score-partwise XML with colors", () => {
     const src = parseMidi(SCALE_MIDI);
     const variant = buildVariants(src, { title: "Scale", artist: "Test" })[1]!;
