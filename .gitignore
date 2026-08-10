@@ -21,3 +21,4 @@ test-results/
 playwright-report/
 collections/
 .ansible-venv/
+node_modules
