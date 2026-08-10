@@ -1,7 +1,7 @@
 export * from "./types.js";
 export { parseMidi } from "./parse.js";
 export { quantize } from "./quantize.js";
-export { splitHands, detectKey, keyName, chordName, detectBassPattern, melodyFrom } from "./analyze.js";
+export { splitHands, detectKey, keyName, chordName, detectBassPattern, melodyFrom, keySignature } from "./analyze.js";
 export { buildVariants } from "./simplify.js";
 export { cleanTranscription } from "./clean.js";
 export { writeMidi } from "./writeMidi.js";

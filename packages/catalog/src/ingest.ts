@@ -7,6 +7,7 @@ import {
   buildVariants,
   writeMidi,
   writeMusicXml,
+  keySignature,
   LEVEL_ORDER,
 } from "@keyspilli/midi";
 import { upsertSong, getSongsByBase, SongRow } from "./db.js";
@@ -44,17 +45,6 @@ function slugify(s: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 60);
-}
-
-function keySigOf(key: string): number {
-  const major = ["C", "G", "D", "A", "E", "B", "F#", "C#"];
-  const flat = ["F", "Bb", "Eb", "Ab", "Db", "Gb", "Cb"];
-  const root = key.split(" ")[0]!;
-  const mi = major.indexOf(root);
-  if (mi >= 0) return mi;
-  const fi = flat.indexOf(root);
-  if (fi >= 0) return -(fi + 1);
-  return 0;
 }
 
 function looksLikeXml(buf: Uint8Array): boolean {
@@ -97,8 +87,8 @@ export async function ingestSource(inp: IngestInput): Promise<{ baseId: string; 
     const midi = writeMidi(v.notes, {
       tempoBpm: v.tempoBpm,
       timeSig: v.timeSig,
-      keySig: keySigOf(v.key),
-      keyMode: v.key.includes("m") ? 1 : 0,
+      keySig: keySignature(v.key).fifths,
+      keyMode: keySignature(v.key).mode,
       title: `${inp.title} (${v.level})`,
       tracks: [
         { name: "Right Hand", notes: v.notes.filter((n) => n.hand !== "L") },

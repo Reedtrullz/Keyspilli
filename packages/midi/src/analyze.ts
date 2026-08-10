@@ -5,11 +5,28 @@ const FLAT_KEYS = ["C", "F", "Bb", "Eb", "Ab", "Db", "Gb", "Cb"];
 const MINOR_SHARP = ["A", "E", "B", "F#", "C#", "G#", "D#", "A#"];
 const MINOR_FLAT = ["A", "D", "G", "C", "F", "Bb", "Eb", "Ab"];
 
+const MAJOR_FIFTHS_BY_NAME: Record<string, number> = {
+  C: 0, G: 1, D: 2, A: 3, E: 4, B: 5, "F#": 6, "C#": 7,
+  F: -1, Bb: -2, Eb: -3, Ab: -4, Db: -5, Gb: -6, Cb: -7,
+};
+const MINOR_FIFTHS_BY_NAME: Record<string, number> = {
+  A: 0, E: 1, B: 2, "F#": 3, "C#": 4, "G#": 5, "D#": 6, "A#": 7,
+  D: -1, G: -2, C: -3, F: -4, Bb: -5, Eb: -6, Ab: -7,
+};
+
+/** Key signature (fifths + mode) for a key name like "G", "F#m" or "Eb". */
+export function keySignature(key: string): { fifths: number; mode: 0 | 1 } {
+  const minor = /m$/.test(key);
+  const root = minor ? key.slice(0, -1) : key;
+  const table = minor ? MINOR_FIFTHS_BY_NAME : MAJOR_FIFTHS_BY_NAME;
+  return { fifths: table[root] ?? 0, mode: minor ? 1 : 0 };
+}
+
 export function keyName(sharps: number, minor: boolean): string {
   const idx = Math.abs(sharps);
   if (idx > 7) return "C";
-  if (sharps >= 0) return minor ? MINOR_SHARP[idx]! : SHARP_KEYS[idx]!;
-  return minor ? MINOR_FLAT[idx]! : FLAT_KEYS[idx]!;
+  if (sharps >= 0) return minor ? MINOR_SHARP[idx]! + "m" : SHARP_KEYS[idx]!;
+  return minor ? MINOR_FLAT[idx]! + "m" : FLAT_KEYS[idx]!;
 }
 
 const MAJOR_PROFILE = [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88];

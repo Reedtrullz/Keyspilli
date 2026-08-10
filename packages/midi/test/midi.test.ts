@@ -4,6 +4,7 @@ import {
   quantize,
   splitHands,
   detectKey,
+  keySignature,
   chordName,
   buildVariants,
   writeMidi,
@@ -140,7 +141,19 @@ describe("detectKey", () => {
       { midi: 65, start: 0, dur: 1, vel: 80 },
       { midi: 67, start: 0, dur: 1, vel: 80 },
     ];
-    expect(detectKey(notes).name).toBe("A");
+    expect(detectKey(notes).name).toBe("Am");
+  });
+});
+
+describe("keySignature", () => {
+  it("maps major and minor key names to fifths and mode", () => {
+    expect(keySignature("C")).toEqual({ fifths: 0, mode: 0 });
+    expect(keySignature("G")).toEqual({ fifths: 1, mode: 0 });
+    expect(keySignature("F")).toEqual({ fifths: -1, mode: 0 });
+    expect(keySignature("Am")).toEqual({ fifths: 0, mode: 1 });
+    expect(keySignature("Dm")).toEqual({ fifths: -1, mode: 1 });
+    expect(keySignature("Ebm")).toEqual({ fifths: -6, mode: 1 });
+    expect(keySignature("F#m")).toEqual({ fifths: 3, mode: 1 });
   });
 });
 
@@ -284,5 +297,21 @@ describe("writeMusicXml", () => {
     expect(xml).toContain('color="#');
     expect(xml).toContain("<metronome>");
     expect((xml.match(/<note/g) ?? []).length).toBeGreaterThanOrEqual(variant.notes.length);
+  });
+
+  it("writes minor key signatures", () => {
+    const v: Variant = {
+      level: "advanced",
+      difficultyScore: 0,
+      notes: [{ midi: 60, start: 0, dur: 1, vel: 80, hand: "R" }],
+      chords: [],
+      bassPattern: "block",
+      key: "Dm",
+      tempoBpm: 120,
+      timeSig: [4, 4],
+      measures: [{ index: 0, startBeat: 0, endBeat: 4 }],
+    };
+    const xml = writeMusicXml(v, "T", "A");
+    expect(xml).toContain("<key><fifths>-1</fifths><mode>minor</mode></key>");
   });
 });

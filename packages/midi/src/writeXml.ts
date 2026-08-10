@@ -1,5 +1,6 @@
 import { Note, Variant } from "./types.js";
 import { PITCH_COLORS } from "./pitchColors.js";
+import { keySignature } from "./analyze.js";
 
 const DIV = 960;
 
@@ -53,18 +54,6 @@ function xmlEscape(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
-function keySigFromName(key: string): { fifths: number; mode: number } {
-  const major = ["C", "G", "D", "A", "E", "B", "F#", "C#"];
-  const flat = ["F", "Bb", "Eb", "Ab", "Db", "Gb", "Cb"];
-  const root = key.split(" ")[0]!;
-  const mode = key.includes("m") ? 1 : 0;
-  const mi = major.indexOf(root);
-  if (mi >= 0) return { fifths: mi, mode };
-  const fi = flat.indexOf(root);
-  if (fi >= 0) return { fifths: -(fi + 1), mode };
-  return { fifths: 0, mode };
-}
-
 /**
  * Write score-partwise MusicXML (piano grand staff) with per-note colors.
  * Notes are in beats; lyrics attach to RH notes via note.lyrics.
@@ -73,7 +62,7 @@ export function writeMusicXml(variant: Variant, title: string, artist: string): 
   const [num, den] = variant.timeSig;
   const beatsPerMeasure = num * (4 / den);
   const measures = variant.measures;
-  const { fifths, mode } = keySigFromName(variant.key);
+  const { fifths, mode } = keySignature(variant.key);
   const bpm = variant.tempoBpm;
 
   const notesByMeasure = new Map<number, Note[]>();
