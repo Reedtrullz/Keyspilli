@@ -228,7 +228,7 @@ export function listSongsGrouped(f: SongFilters = {}): GroupedSong[] {
           ? (a: GroupedSong, b: GroupedSong) => a.representative.difficultyScore - b.representative.difficultyScore
           : (a: GroupedSong, b: GroupedSong) => b.totalPlays - a.totalPlays;
   grouped.sort(order);
-  const limit = Math.min(200, f.limit ?? 60);
+  const limit = Math.min(2000, f.limit ?? 60);
   return grouped.slice(f.offset ?? 0, (f.offset ?? 0) + limit);
 }
 

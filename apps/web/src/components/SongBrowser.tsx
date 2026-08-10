@@ -45,7 +45,7 @@ export function SongBrowser() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const params = new URLSearchParams({ sort, limit: "200", group: "1" });
+    const params = new URLSearchParams({ sort, limit: "2000", group: "1" });
     if (q) params.set("q", q);
     if (difficulty) params.set("difficulty", difficulty);
     if (key) params.set("key", key);
