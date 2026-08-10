@@ -20,7 +20,7 @@ const HEX = (s: string) => new Uint8Array(s.trim().split(/\s+/).map((b) => parse
 /** Format-0 SMF: C major scale, 120 BPM, 4/4, division 480, quarter-note length. */
 const SCALE_MIDI = HEX(`
   4d 54 68 64 00 00 00 06 00 00 00 01 01 e0
-  4d 54 72 6b 00 00 00 6c
+  4d 54 72 6b 00 00 00 64
   00 ff 51 03 07 a1 20
   00 ff 58 04 04 02 18 08
   00 ff 59 02 00 00
@@ -51,6 +51,72 @@ describe("parseMidi", () => {
 
   it("rejects non-MIDI input", () => {
     expect(() => parseMidi(new Uint8Array([1, 2, 3]))).toThrow();
+  });
+
+  it("sign-extends flat key signatures", () => {
+    const buf = HEX(`
+      4d 54 68 64 00 00 00 06 00 00 00 01 01 e0
+      4d 54 72 6b 00 00 00 08
+      00 ff 59 02 ff 01
+      00 ff 2f 00
+    `);
+    const m = parseMidi(buf);
+    expect(m.keySig).toBe(-1);
+    expect(m.keyMode).toBe(1);
+  });
+
+  it("keeps running status across meta events", () => {
+    const buf = HEX(`
+      4d 54 68 64 00 00 00 06 00 00 00 01 01 e0
+      4d 54 72 6b 00 00 00 18
+      00 90 3c 64
+      00 ff 51 03 07 a1 20
+      00 3e 64
+      83 60 80 3c 40
+      00 80 3e 40
+      00 ff 2f 00
+    `);
+    const m = parseMidi(buf);
+    expect(m.notes.map((n) => [n.midi, n.start, n.dur])).toEqual([
+      [60, 0, 1],
+      [62, 0, 1],
+    ]);
+  });
+
+  it("skips drum channel (10) note events", () => {
+    const buf = HEX(`
+      4d 54 68 64 00 00 00 06 00 00 00 01 01 e0
+      4d 54 72 6b 00 00 00 13
+      00 99 24 60
+      83 60 89 24 40
+      00 90 3c 64
+      83 60 80 3c 40
+      00 ff 2f 00
+    `);
+    const m = parseMidi(buf);
+    expect(m.notes.map((n) => n.midi)).toEqual([60]);
+  });
+
+  it("rejects truncated tracks and invalid headers with clear errors", () => {
+    expect(() => parseMidi(new Uint8Array(4))).toThrow(/MThd/);
+    const truncated = HEX(`
+      4d 54 68 64 00 00 00 06 00 00 00 01 01 e0
+      4d 54 72 6b 00 00 00 30
+      00 90 3c 64
+    `);
+    expect(() => parseMidi(truncated)).toThrow(/truncated track/);
+    expect(() => parseMidi(HEX(`4d 54 68 64 00 00 00 08 00 00 00 01 01 e0`))).toThrow(/header/);
+  });
+
+  it("ignores zero-duration tempo meta events", () => {
+    const buf = HEX(`
+      4d 54 68 64 00 00 00 06 00 00 00 01 01 e0
+      4d 54 72 6b 00 00 00 09
+      00 ff 51 03 00 00 00
+      00 ff 2f 00
+    `);
+    const m = parseMidi(buf);
+    expect(m.tempoBpm).toBe(120);
   });
 });
 

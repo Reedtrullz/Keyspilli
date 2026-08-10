@@ -4,7 +4,7 @@ import { parseMusicXmlNotes, parseMidi, buildVariants, writeMusicXml } from "../
 const HEX = (s: string) => new Uint8Array(s.trim().split(/\s+/).map((b) => parseInt(b, 16)));
 const SCALE_MIDI = HEX(`
   4d 54 68 64 00 00 00 06 00 00 00 01 01 e0
-  4d 54 72 6b 00 00 00 6c
+  4d 54 72 6b 00 00 00 64
   00 ff 51 03 07 a1 20 00 ff 58 04 04 02 18 08
   00 ff 59 02 00 00 00 c0 00 00 90 3c 64 83 60 80 3c 40
   00 90 3e 64 83 60 80 3e 40 00 90 40 64 83 60 80 40 40

@@ -18,12 +18,14 @@ function readStr(data: Uint8Array, pos: { v: number }, len: number): string {
 
 /** Parse a Standard MIDI File into absolute-beat note events. */
 export function parseMidi(buf: Uint8Array): ParsedMidi {
-  if (readStr(buf, { v: 0 }, 4) !== "MThd") throw new Error("not a MIDI file (missing MThd)");
+  if (buf.length < 14 || readStr(buf, { v: 0 }, 4) !== "MThd") throw new Error("not a MIDI file (missing MThd)");
   const headerLen = (buf[4]! << 24) | (buf[5]! << 16) | (buf[6]! << 8) | buf[7]!;
+  if (headerLen !== 6) throw new Error("unsupported MIDI header length");
   const format = (buf[8]! << 8) | buf[9]!;
   const ntrks = (buf[10]! << 8) | buf[11]!;
   const division = (buf[12]! << 8) | buf[13]!;
   if (division & 0x8000) throw new Error("SMPTE timing not supported");
+  if (ntrks === 0 || ntrks > 512) throw new Error("invalid track count");
   let pos = 8 + headerLen;
 
   const trackNotes: Note[][] = [];
@@ -35,10 +37,11 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
   let title: string | undefined;
 
   for (let t = 0; t < ntrks; t++) {
-    if (readStr(buf, { v: pos }, 4) !== "MTrk") throw new Error("bad track header");
+    if (pos + 8 > buf.length || readStr(buf, { v: pos }, 4) !== "MTrk") throw new Error("bad track header");
     pos += 4;
     const len = (buf[pos]! << 24) | (buf[pos + 1]! << 16) | (buf[pos + 2]! << 8) | buf[pos + 3]!;
     pos += 4;
+    if (len < 0 || pos + len > buf.length) throw new Error("truncated track");
     const end = pos + len;
     let tick = 0;
     let running: number | null = null;
@@ -54,7 +57,8 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
         if (running === null) throw new Error(`running status without previous status at pos=${pos} byte=${buf[pos]?.toString(16)}`);
         status = running;
         pos--;
-      } else {
+      } else if (status < 0xf0) {
+        // only channel messages update running status; meta/sysex must not
         running = status;
       }
       const kind = status & 0xf0;
@@ -67,11 +71,11 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
           pos = lenPos.v;
           if (type === 0x51 && len2 === 3) {
             const us = (buf[pos]! << 16) | (buf[pos + 1]! << 8) | buf[pos + 2]!;
-            tempos.push({ beat: tick / division, bpm: 60_000_000 / us });
+            if (us > 0) tempos.push({ beat: tick / division, bpm: 60_000_000 / us });
           } else if (type === 0x58 && len2 === 4) {
             timeSig = [buf[pos]!, 1 << buf[pos + 1]!];
           } else if (type === 0x59 && len2 === 2) {
-            keySig = buf[pos]!;
+            keySig = (buf[pos]! << 24) >> 24;
             keyMode = buf[pos + 1]! === 0 ? 0 : 1;
           } else if (type === 0x03) {
             trackNames.push(readStr(buf, { v: pos }, len2));
@@ -92,6 +96,7 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
       if (kind === 0x80 || (kind === 0x90 && buf[pos + 1] === 0)) {
         const note = buf[pos]!;
         pos += 2;
+        if (chan === 9) continue; // percussion: no piano notes
         const started = on.get(note);
         if (started) {
           on.delete(note);
@@ -101,7 +106,7 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
         const note = buf[pos]!;
         const vel = buf[pos + 1]!;
         pos += 2;
-        if (vel > 0) on.set(note, { start: b, vel });
+        if (chan !== 9 && vel > 0) on.set(note, { start: b, vel });
       } else if (kind === 0xa0 || kind === 0xb0 || kind === 0xe0) {
         pos += 2;
       } else if (kind === 0xc0 || kind === 0xd0) {
@@ -119,10 +124,12 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
     }
   }
 
-  const all = trackNotes.flat();
-  all.sort((a, b) => a.start - b.start || a.midi - b.midi);
+  const valid = trackNotes
+    .flat()
+    .filter((n) => Number.isFinite(n.midi) && n.midi >= 0 && n.midi <= 127 && Number.isFinite(n.start) && Number.isFinite(n.dur));
+  valid.sort((a, b) => a.start - b.start || a.midi - b.midi);
   const tempoBpm = tempos[0]?.bpm ?? 120;
-  const durationBeats = all.reduce((m, n) => Math.max(m, n.start + n.dur), 0);
+  const durationBeats = valid.reduce((m, n) => Math.max(m, n.start + n.dur), 0);
   return {
     format,
     division,
@@ -130,7 +137,7 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
     keySig,
     keyMode,
     timeSig,
-    notes: all,
+    notes: valid,
     trackNames: trackNames.filter((n) => n.trim()),
     durationBeats,
     title,
