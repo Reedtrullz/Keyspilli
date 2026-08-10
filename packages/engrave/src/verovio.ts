@@ -4,6 +4,7 @@ export interface VerovioToolkit {
   loadData: (xml: string) => boolean;
   renderToSVG: (page?: number) => string;
   getPageCount: () => number;
+  setOptions?: (o: Record<string, unknown>) => void;
 }
 
 /** Lazily load the Verovio WASM toolkit (client-side only). */
@@ -19,9 +20,12 @@ export async function loadVerovio(): Promise<VerovioToolkit> {
       VerovioToolkit: new (m: unknown) => VerovioToolkit;
     };
     const VerovioModule = await createVerovioModule.default();
-    const tk = new VerovioToolkit(VerovioModule);
-    return tk;
+    return new VerovioToolkit(VerovioModule);
   })();
+  // A failed load must not brick the sheet view for the whole session.
+  toolkitPromise.catch(() => {
+    toolkitPromise = null;
+  });
   return toolkitPromise;
 }
 
@@ -34,8 +38,8 @@ export interface RenderOptions {
 }
 
 /** Render MusicXML to an SVG document string. */
-export async function renderMusicXml(xml: string, opts: RenderOptions = {}): Promise<string> {
-  const tk = await loadVerovio();
+export async function renderMusicXml(xml: string, opts: RenderOptions = {}, toolkit?: VerovioToolkit): Promise<string> {
+  const tk = toolkit ?? (await loadVerovio());
   const options = {
     scale: opts.scale ?? 50,
     pageWidth: opts.pageWidth ?? 1200,
@@ -45,10 +49,8 @@ export async function renderMusicXml(xml: string, opts: RenderOptions = {}): Pro
     adjustPageHeight: 1,
     font: "Bravura",
   };
-  tk.loadData(xml);
-  // Verovio exposes options via loadData's second arg in some builds.
-  try {
-    (tk as unknown as { setOptions?: (o: Record<string, unknown>) => void }).setOptions?.(options);
-  } catch {}
+  // Verovio lays out at load time; options must be set first.
+  tk.setOptions?.(options);
+  if (!tk.loadData(xml)) throw new Error("Verovio loadData failed");
   return tk.renderToSVG(1);
 }
