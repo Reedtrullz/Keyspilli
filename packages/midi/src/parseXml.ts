@@ -21,7 +21,7 @@ export function parseMusicXmlNotes(xml: string): ParsedMidi {
   const notes: Note[] = [];
   // Parse only the first part; multi-instrument exports are out of scope.
   // ponytail: per-part divisions/attributes unsupported; add when uploads need it.
-  const partBody = xml.match(/<part\b[^>]*>([\s\S]*?)<\/part>/)?.[1] ?? xml;
+  const partBody = xml.match(/<part(?![-\w])[^>]*>([\s\S]*?)<\/part>/)?.[1] ?? xml;
   const measures = partBody.match(/<measure(?:[ >])[^>]*>[\s\S]*?<\/measure>/g) ?? [];
   const beatsPerMeasure = beats * (4 / beatType);
   for (let mi = 0; mi < measures.length; mi++) {

@@ -101,6 +101,19 @@ describe("grader", () => {
     expect(g.play(60, -2)).toBe(false);
     expect(g.play(60, 0.05)).toBe(true);
   });
+
+  it("accepts the correct pitch played after its window in wait mode", () => {
+    const g = new Grader(notes, { waitMode: true });
+    expect(g.currentWait?.midi).toBe(60);
+    expect(g.play(60, 2.0)).toBe(true);
+  });
+
+  it("counts unplayed notes as missed in wait mode", () => {
+    const g = new Grader(notes, { waitMode: true });
+    const r = g.result();
+    expect(r.missed).toBe(3);
+    expect(r.accuracyPct).toBe(0);
+  });
 });
 
 describe("detectPitch", () => {

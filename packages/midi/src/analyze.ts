@@ -14,10 +14,11 @@ const MINOR_FIFTHS_BY_NAME: Record<string, number> = {
   D: -1, G: -2, C: -3, F: -4, Bb: -5, Eb: -6, Ab: -7,
 };
 
-/** Key signature (fifths + mode) for a key name like "G", "F#m" or "Eb". */
+/** Key signature (fifths + mode) for a key name like "G", "F#m", "A minor" or "Eb". */
 export function keySignature(key: string): { fifths: number; mode: 0 | 1 } {
-  const minor = /m$/.test(key);
-  const root = minor ? key.slice(0, -1) : key;
+  const trimmed = key.trim();
+  const minor = /m(?:inor)?$/i.test(trimmed);
+  const root = trimmed.split(/\s+/)[0]!.replace(/m$/i, "");
   const table = minor ? MINOR_FIFTHS_BY_NAME : MAJOR_FIFTHS_BY_NAME;
   return { fifths: table[root] ?? 0, mode: minor ? 1 : 0 };
 }

@@ -242,6 +242,14 @@ describe("keySignature", () => {
     expect(keySignature("Ebm")).toEqual({ fifths: -6, mode: 1 });
     expect(keySignature("F#m")).toEqual({ fifths: 3, mode: 1 });
   });
+
+  it("maps a space-separated minor key name", () => {
+    expect(keySignature("A minor")).toEqual({ fifths: 0, mode: 1 });
+  });
+
+  it("maps a space-separated major key name", () => {
+    expect(keySignature("F# major")).toEqual({ fifths: 6, mode: 0 });
+  });
 });
 
 describe("chordName", () => {
