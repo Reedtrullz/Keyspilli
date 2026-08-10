@@ -147,13 +147,13 @@ export class Grader {
         this.wrongs++;
         return false;
       }
-      if (Math.abs(now - this.waitingFor.startSec) <= TIME_TOLERANCE) {
+      if (now >= this.waitingFor.startSec - TIME_TOLERANCE) {
         this.hits++;
         this.remaining.splice(this.remaining.indexOf(this.waitingFor), 1);
         this.waitingFor = null;
         return true;
       }
-      return false; // correct pitch, outside the window: hold
+      return false; // correct pitch, pressed too early: hold
     }
     const window = this.remaining.filter((n) => Math.abs(now - n.startSec) <= TIME_TOLERANCE);
     const exact = window.find((n) => n.midi === midi);
@@ -184,14 +184,16 @@ export class Grader {
   }
 
   result(): GradeResult {
-    const total = this.hits + this.wrongs + this.missed + this.late;
+    // wait mode suppresses tick(), so unplayed notes can only be counted here
+    const missed = this.missed + (this.waitMode ? this.remaining.length : 0);
+    const total = this.hits + this.wrongs + missed + this.late;
     const accuracyPct = total === 0 ? 100 : Math.round((this.hits / total) * 100);
     let summary = "";
     if (accuracyPct >= 90) summary = "Great run — clean and in time.";
     else if (accuracyPct >= 70) summary = "Good work. A few spots to polish.";
     else if (this.missed > this.wrongs) summary = "Most mistakes were missed notes.";
     else summary = "Many notes were technically right but off the beat.";
-    return { total, hit: this.hits, missed: this.missed, wrong: this.wrongs, late: this.late, accuracyPct, summary };
+    return { total, hit: this.hits, missed, wrong: this.wrongs, late: this.late, accuracyPct, summary };
   }
 }
 ```
@@ -497,7 +499,9 @@ Add to the `describe("parseMusicXmlNotes", ...)` block in `packages/midi/test/pa
 <note><pitch><step>D</step><octave>4</octave></pitch><duration>1</duration></note>
 </measure></part></score-partwise>`;
     const m = parseMusicXmlNotes(xml);
-    expect(m.notes.map((n) => `${n.midi}@${n.start}`)).toEqual(["60@0", "64@0", "67@0", "65@0.5", "57@0", "62@0.5"]);
+    // parseMusicXmlNotes sorts by start then midi, so the A3 (57@0) appears
+    // before the chord members instead of keeping document order.
+    expect(m.notes.map((n) => `${n.midi}@${n.start}`)).toEqual(["57@0", "60@0", "64@0", "67@0", "62@0.5", "65@0.5"]);
   });
 
   it("skips notes without a valid octave or duration", () => {
@@ -614,7 +618,7 @@ Add to the `describe("parseMidi", ...)` block in `packages/midi/test/midi.test.t
   it("sign-extends flat key signatures", () => {
     const buf = HEX(`
       4d 54 68 64 00 00 00 06 00 00 00 01 01 e0
-      4d 54 72 6b 00 00 00 08
+      4d 54 72 6b 00 00 00 0a
       00 ff 59 02 ff 01
       00 ff 2f 00
     `);
@@ -626,12 +630,12 @@ Add to the `describe("parseMidi", ...)` block in `packages/midi/test/midi.test.t
   it("keeps running status across meta events", () => {
     const buf = HEX(`
       4d 54 68 64 00 00 00 06 00 00 00 01 01 e0
-      4d 54 72 6b 00 00 00 18
+      4d 54 72 6b 00 00 00 1b
       00 90 3c 64
       00 ff 51 03 07 a1 20
       00 3e 64
       83 60 80 3c 40
-      83 60 80 3e 40
+      00 80 3e 40
       00 ff 2f 00
     `);
     const m = parseMidi(buf);
@@ -644,7 +648,7 @@ Add to the `describe("parseMidi", ...)` block in `packages/midi/test/midi.test.t
   it("skips drum channel (10) note events", () => {
     const buf = HEX(`
       4d 54 68 64 00 00 00 06 00 00 00 01 01 e0
-      4d 54 72 6b 00 00 00 13
+      4d 54 72 6b 00 00 00 16
       00 99 24 60
       83 60 89 24 40
       00 90 3c 64
@@ -669,7 +673,7 @@ Add to the `describe("parseMidi", ...)` block in `packages/midi/test/midi.test.t
   it("ignores zero-duration tempo meta events", () => {
     const buf = HEX(`
       4d 54 68 64 00 00 00 06 00 00 00 01 01 e0
-      4d 54 72 6b 00 00 00 09
+      4d 54 72 6b 00 00 00 0b
       00 ff 51 03 00 00 00
       00 ff 2f 00
     `);
