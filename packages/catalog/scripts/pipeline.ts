@@ -75,7 +75,10 @@ for (const s of manifest.songs) {
   }
 }
 console.log(`\npipeline done: ${ok} ok, ${failed} failed in ${((Date.now() - t0) / 1000).toFixed(1)}s`);
-if (failures.length) console.log(failures.join("\n"));
+if (failures.length) {
+  console.log(failures.join("\n"));
+  process.exitCode = 1;
+}
 console.log(`songs in db: ${countSongs()}`);
 
 // sanity: every variant has artifacts + db row
@@ -86,3 +89,4 @@ for (const s of manifest.songs) {
   if (rows.length !== LEVEL_ORDER.length) missing++;
 }
 console.log(`bases with incomplete variant sets: ${missing}`);
+if (missing) process.exitCode = 1;

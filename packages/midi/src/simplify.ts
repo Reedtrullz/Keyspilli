@@ -36,25 +36,6 @@ function chordsAt(notes: Note[], grid: number): ChordLabel[] {
   return out;
 }
 
-function simplifyRhythm(notes: Note[], grid: number): Note[] {
-  const bySlice = new Map<number, Note[]>();
-  for (const n of notes) {
-    const k = Math.round(n.start / grid);
-    const arr = bySlice.get(k) ?? [];
-    arr.push(n);
-    bySlice.set(k, arr);
-  }
-  const out: Note[] = [];
-  const slices = [...bySlice.keys()].sort((a, b) => a - b);
-  for (let i = 0; i < slices.length; i++) {
-    const k = slices[i]!;
-    const next = slices[i + 1];
-    const dur = next === undefined ? 1 : Math.max(grid, (next - k) * grid);
-    for (const n of bySlice.get(k)!) out.push({ ...n, dur });
-  }
-  return out;
-}
-
 function melodyOnly(notes: Note[], grid: number, minDur: number): Note[] {
   const bySlice = new Map<number, Note[]>();
   for (const n of notes) {
@@ -72,6 +53,23 @@ function melodyOnly(notes: Note[], grid: number, minDur: number): Note[] {
     const next = slices[i + 1];
     const dur = next === undefined ? Math.max(minDur, top.dur) : Math.max(minDur, (next - k) * grid);
     out.push({ ...top, dur });
+  }
+  return out;
+}
+
+/** Keep the highest `keep` voices per slice (melody-first piano texture). */
+function topVoices(notes: Note[], grid: number, keep: number): Note[] {
+  const bySlice = new Map<number, Note[]>();
+  for (const n of notes) {
+    const k = Math.round(n.start / grid);
+    const arr = bySlice.get(k) ?? [];
+    arr.push(n);
+    bySlice.set(k, arr);
+  }
+  const out: Note[] = [];
+  for (const ns of bySlice.values()) {
+    const sorted = [...ns].sort((a, b) => b.midi - a.midi);
+    for (const n of sorted.slice(0, keep)) out.push(n);
   }
   return out;
 }
@@ -101,7 +99,9 @@ const KEY_PC: Record<string, number> = {
 function rootOf(midi: number, key: string): number {
   const pc = KEY_PC[key.replace(/m$/, "")] ?? 0;
   const offset = ((midi - pc) % 12 + 12) % 12;
-  return midi - offset;
+  let root = midi - offset;
+  while (root < 21) root += 12; // keep the rooted bass on the piano
+  return root;
 }
 
 /**
@@ -118,19 +118,23 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   const tempo = meta.tempo ?? Math.round(src.tempoBpm);
 
   // Use the hand-labeled split output, not the raw base, so the advanced
-  // variant keeps L/R hand labels for two-staff rendering.
-  const advanced = quantize([...rh, ...lh], { grid: 0.125 });
-  const medium = quantize([...simplifyRhythm(rh, 0.125), ...thinChord(lh, 3)], { grid: 0.125 });
+  // variant keeps L/R hand labels for two-staff rendering. Cap voices per
+  // slice so full-band multitrack MIDIs stay a playable piano texture.
+  const advanced = quantize([...topVoices(rh, 0.125, 4), ...thinChord(lh, 4)], { grid: 0.125 });
+  const medium = quantize([...topVoices(rh, 0.125, 3), ...thinChord(lh, 3)], { grid: 0.125 });
   const easy = quantize(
     [...melodyOnly(rh, 0.125, 0.5), ...thinChord(lh, 2).map((n) => ({ ...n, midi: rootOf(n.midi, key) }))],
+    { grid: 0.125 },
+  );
+  // Each easier level is a reduction of the level above it, so the ladder
+  // is a true subset (same melody, same moments) instead of a re-selection
+  // that drifts apart in fast passages.
+  const veryEasy = quantize(
+    [...melodyOnly(easy.filter((n) => n.hand !== "L"), 0.25, 0.5), ...easy.filter((n) => n.hand === "L")],
     { grid: 0.25 },
   );
-  const lhRoots = lh
-    .map((n) => ({ ...n, midi: rootOf(n.midi, key) }))
-    .filter((n, i, a) => a.findIndex((x) => Math.abs(x.start - n.start) < 1e-6) === i);
-  const veryEasy = quantize([...melodyOnly(rh, 0.25, 0.5), ...lhRoots], { grid: 0.25 });
-  const beginner = quantize(melodyOnly(rh, 0.25, 0.5), { grid: 0.25 });
-  const veryBeginner = quantize(melodyOnly(rh, 0.5, 1), { grid: 0.5 });
+  const beginner = quantize(melodyOnly(veryEasy.filter((n) => n.hand !== "L"), 0.25, 0.5), { grid: 0.25 });
+  const veryBeginner = quantize(melodyOnly(beginner, 0.5, 1), { grid: 0.5 });
 
   const sets: Record<DifficultyLevel, Note[]> = {
     "very-beginner": veryBeginner,

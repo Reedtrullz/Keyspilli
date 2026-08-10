@@ -12,6 +12,7 @@
     "build": "npm run build -w @keyspilli/web",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
+    "verify-catalog": "npm run verify-catalog -w @keyspilli/catalog",
     "pipeline": "npm run pipeline -w @keyspilli/catalog",
     "seed": "npm run seed -w @keyspilli/catalog"
   },

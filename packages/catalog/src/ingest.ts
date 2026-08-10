@@ -9,6 +9,7 @@ import {
   writeMusicXml,
   keySignature,
   LEVEL_ORDER,
+  validateVariants,
 } from "@keyspilli/midi";
 import { upsertSong, getSongsByBase, SongRow } from "./db.js";
 import { artifactsDir } from "./paths.js";
@@ -78,6 +79,10 @@ export async function ingestSource(inp: IngestInput): Promise<{ baseId: string; 
     key: inp.key,
     tempo: inp.tempo,
   });
+  const validationErrors = validateVariants(variants);
+  if (validationErrors.length) {
+    return { baseId: "", songIds: [], error: `validation failed: ${validationErrors.join("; ")}` };
+  }
   const durationSec = Math.round((parsed.durationBeats * 60) / parsed.tempoBpm);
   const songIds: string[] = [];
 

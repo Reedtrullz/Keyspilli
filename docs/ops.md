@@ -52,6 +52,12 @@ out of git) and appends them to `catalog/manifest.json`. Then run
 The deploy pipeline does not rebuild the catalog on the VPS — the
 `keyspilli_keyspilli_data` volume holds it. After adding songs locally:
 
+Run the playability gate first; it exits non-zero if any song fails:
+
+```bash
+npm run verify-catalog
+```
+
 ```bash
 # 1. Checkpoint SQLite FIRST — the main db file excludes un-checkpointed WAL
 #    writes, and copying it alone silently ships a stale catalog.

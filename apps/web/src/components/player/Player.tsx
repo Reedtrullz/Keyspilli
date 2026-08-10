@@ -101,18 +101,17 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
   const scheduleWindow = useCallback((from: number, to: number) => {
     const eng = audioRef.current;
     if (!eng) return;
-    const ctx = (eng as unknown as { ensure(): AudioContext }).ensure();
-    const base = ctx.currentTime - posRef.current;
+    from = Math.max(from, posRef.current);
     for (const n of notes) {
       if (n.startSec >= from && n.startSec < to && (n.hand === "L" ? settingsRef.current.backgroundMode === "piano" : true)) {
-        eng.noteOn(n, base + n.startSec - ctx.currentTime);
+        eng.noteOn(n, Math.max(0, n.startSec - posRef.current));
       }
     }
     if (settingsRef.current.metronome && settingsRef.current.backgroundMode !== "chord") {
       const beat = 60 / initial.data.tempoBpm / settingsRef.current.speed;
       for (let t = Math.ceil(from / beat) * beat; t < to; t += beat) {
         const beatIndex = Math.round(t / beat);
-        eng.metronomeClick(beatIndex % (initial.data.timeSig[0] * (4 / initial.data.timeSig[1])) === 0 ? 0 : 1, base + t - ctx.currentTime);
+        eng.metronomeClick(beatIndex % (initial.data.timeSig[0] * (4 / initial.data.timeSig[1])) === 0 ? 0 : 1, Math.max(0, t - posRef.current));
       }
     }
     lastScheduledRef.current = to;
@@ -125,7 +124,7 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
     setPlaying(true);
     posRef.current = timeRef.current;
     lastScheduledRef.current = timeRef.current;
-    scheduleWindow(timeRef.current, timeRef.current);
+    scheduleWindow(timeRef.current, timeRef.current + 0.12);
     void fetch(`/api/songs/${initial.song.id}/play`, { method: "POST" });
   }, [audio, scheduleWindow, initial.song.id]);
 
@@ -139,9 +138,11 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
   }, []);
 
   const seek = useCallback((t: number) => {
-    timeRef.current = Math.max(0, Math.min(duration, t));
-    lastScheduledRef.current = timeRef.current;
-    setTime(timeRef.current);
+    const next = Math.max(0, Math.min(duration, t));
+    posRef.current = next;
+    timeRef.current = next;
+    lastScheduledRef.current = next;
+    setTime(next);
   }, [duration]);
 
   const togglePlay = useCallback(() => {
@@ -164,7 +165,7 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
         audioRef.current = null;
         audio().ensure();
         lastScheduledRef.current = posRef.current;
-        scheduleWindow(posRef.current, posRef.current);
+        scheduleWindow(posRef.current, posRef.current + 0.12);
       } else {
         posRef.current = next;
       }

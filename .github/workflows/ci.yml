@@ -48,6 +48,9 @@ jobs:
       - name: Build catalog pipeline (db + artifacts)
         run: npm run pipeline
 
+      - name: Verify catalog playability
+        run: npm run verify-catalog
+
       - name: TypeScript
         run: npm run typecheck
 

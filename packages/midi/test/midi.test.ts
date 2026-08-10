@@ -7,6 +7,7 @@ import {
   keySignature,
   chordName,
   buildVariants,
+  validateVariants,
   writeMidi,
   writeMusicXml,
   cleanTranscription,
@@ -317,6 +318,73 @@ describe("buildVariants", () => {
     const advanced = variants[variants.length - 1]!;
     expect(advanced.notes.some((n) => n.hand === "L")).toBe(true);
     expect(advanced.notes.some((n) => n.hand === "R")).toBe(true);
+  });
+
+  it("caps advanced/medium polyphony so band MIDIs stay playable", () => {
+    const src: ParsedMidi = {
+      format: 0,
+      division: 480,
+      tempoBpm: 120,
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes: [
+        ...([60, 62, 64, 65, 67, 69, 71, 74] as const).map((midi) => ({ midi, start: 0, dur: 1, vel: 80 })),
+        ...([36, 38, 40, 41, 43] as const).map((midi) => ({ midi, start: 0, dur: 1, vel: 80 })),
+      ],
+      trackNames: ["Band"],
+      durationBeats: 4,
+    };
+    const variants = buildVariants(src, { title: "Band", artist: "Test" });
+    const maxSim = (notes: Note[]) => {
+      const by = new Map<string, number>();
+      for (const n of notes) {
+        const k = n.start.toFixed(3);
+        by.set(k, (by.get(k) ?? 0) + 1);
+      }
+      return Math.max(...by.values());
+    };
+    const advanced = variants[5]!;
+    const medium = variants[4]!;
+    expect(maxSim(advanced.notes)).toBeLessThanOrEqual(8);
+    expect(maxSim(medium.notes)).toBeLessThanOrEqual(6);
+    expect(medium.notes.length).toBeLessThan(advanced.notes.length);
+  });
+
+  it("validateVariants accepts built variants and rejects unplayable ones", () => {
+    const notes: Note[] = [];
+    for (let b = 0; b < 16; b++) {
+      notes.push({ midi: 60 + (b % 8), start: b, dur: 1, vel: 80 });
+      notes.push({ midi: 36, start: b, dur: 1, vel: 80 });
+      notes.push({ midi: 43, start: b, dur: 1, vel: 80 });
+    }
+    // one dense band chord in the middle, like a multitrack studio MIDI
+    for (const midi of [38, 40, 41, 62, 64, 65, 67, 69, 71, 74, 76]) notes.push({ midi, start: 4, dur: 1, vel: 80 });
+    const denseSrc: ParsedMidi = {
+      format: 0,
+      division: 480,
+      tempoBpm: 120,
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes,
+      trackNames: ["Band"],
+      durationBeats: 16,
+    };
+    expect(validateVariants(buildVariants(denseSrc, { title: "Band", artist: "Test" }))).toEqual([]);
+
+    const bad = buildVariants(denseSrc, { title: "Band", artist: "Test" });
+    const advanced = bad[5]!;
+    advanced.notes = [
+      ...advanced.notes,
+      ...[77, 79, 81, 83, 84, 86, 88, 89, 91, 93].map((midi) => ({ midi, start: 4, dur: 1, vel: 80, hand: "R" as const })),
+    ];
+    advanced.tempoBpm = 400;
+    advanced.timeSig = [3, 3];
+    const errors = validateVariants(bad);
+    expect(errors.some((e) => e.includes("simultaneous notes"))).toBe(true);
+    expect(errors.some((e) => e.includes("tempo 400"))).toBe(true);
+    expect(errors.some((e) => e.includes("bad time signature 3/3"))).toBe(true);
   });
 });
 
