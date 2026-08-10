@@ -139,6 +139,26 @@ describe("writeMidi roundtrip", () => {
     expect(m.notes[2]!.start).toBeCloseTo(1, 3);
     expect(m.notes[2]!.dur).toBeCloseTo(0.5, 3);
   });
+
+  it("does not cut short a same-pitch re-strike", () => {
+    const bytes = writeMidi(
+      [
+        { midi: 60, start: 0, dur: 4, vel: 80 },
+        { midi: 60, start: 2, dur: 4, vel: 80 },
+      ],
+      { tempoBpm: 120, keySig: 0, keyMode: 0 },
+    );
+    const m = parseMidi(bytes);
+    expect(m.notes.map((n) => [n.start, n.dur])).toEqual([
+      [0, 2],
+      [2, 4],
+    ]);
+  });
+
+  it("skips zero-velocity notes", () => {
+    const bytes = writeMidi([{ midi: 60, start: 0, dur: 1, vel: 0 }], { tempoBpm: 120 });
+    expect(parseMidi(bytes).notes).toHaveLength(0);
+  });
 });
 
 describe("quantize", () => {

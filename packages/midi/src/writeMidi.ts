@@ -62,22 +62,34 @@ export function writeMidi(notes: Note[], opts: WriteMidiOptions): Uint8Array {
     if (track === tracks[0]) {
       events.push(
         { tick: 0, bytes: [0xff, 0x51, 0x03, (tempoUs >>> 16) & 0xff, (tempoUs >>> 8) & 0xff, tempoUs & 0xff] },
-        { tick: 0, bytes: [0xff, 0x58, 0x04, num, Math.log2(den), 24, 8] },
+        { tick: 0, bytes: [0xff, 0x58, 0x04, num, Math.round(Math.log2(den)), 24, 8] },
         { tick: 0, bytes: [0xff, 0x59, 0x02, opts.keySig ?? 0, opts.keyMode ?? 0] },
       );
     }
     events.push({ tick: 0, bytes: [0xc0, 0] }); // program: acoustic grand
     const on: Map<number, { midi: number; vel: number }> = new Map();
+    const offEvents = new Map<number, TrackEvent>();
     for (const n of [...track.notes].sort((a, b) => a.start - b.start || a.midi - b.midi)) {
       const t = Math.round(n.start * division);
+      const vel = Math.round(n.vel || 0);
+      if (vel < 1) continue; // note-on velocity 0 is a note-off in MIDI
       if (on.has(n.midi)) {
+        // re-strike: cancel the previous instance's scheduled note-off so it
+        // cannot cut the new note short
+        const stale = offEvents.get(n.midi);
+        if (stale) {
+          const i = events.indexOf(stale);
+          if (i >= 0) events.splice(i, 1);
+        }
         events.push({ tick: t, bytes: [0x80, n.midi, 0] });
         on.delete(n.midi);
       }
-      on.set(n.midi, { midi: n.midi, vel: n.vel });
-      events.push({ tick: t, bytes: [0x90, n.midi, Math.max(1, Math.min(127, n.vel || 80))] });
+      on.set(n.midi, { midi: n.midi, vel });
+      events.push({ tick: t, bytes: [0x90, n.midi, Math.max(1, Math.min(127, vel))] });
       const off = Math.round((n.start + n.dur) * division);
-      events.push({ tick: off, bytes: [0x80, n.midi, 0] });
+      const offEv = { tick: off, bytes: [0x80, n.midi, 0] as number[] };
+      offEvents.set(n.midi, offEv);
+      events.push(offEv);
     }
     trackBytes.push(buildTrack(events));
   }
