@@ -10,22 +10,21 @@ export interface GradeResult {
   summary: string;
 }
 
-const PITCH_TOLERANCE = 0; // semitones (exact match required)
 const TIME_TOLERANCE = 0.35; // seconds
 
 /**
  * Grades a player's note events against the expected notes.
  * - hit: correct pitch within the time window
  * - wrong: incorrect pitch within the time window
- * - missed: expected note with no matching event
- * - late: correct pitch but beyond the window
+ * - missed: expected note whose window passed with no matching event
+ * - late: correct pitch played after its window (counted once)
  */
 export class Grader {
   private remaining: TimedNote[];
   private hits = 0;
   private wrongs = 0;
-  private lates = 0;
-  private played = new Set<number>();
+  private late = 0;
+  private missed = 0;
   private waitMode = false;
   private waitingFor: TimedNote | null = null;
 
@@ -37,33 +36,51 @@ export class Grader {
     this.waitMode = opts.waitMode ?? false;
   }
 
-  /** Call as time advances; prunes expected notes that passed without input. */
+  /** Call as time advances; counts expected notes whose window passed without input. */
   tick(now: number): void {
-    const past = this.remaining.filter((n) => now - n.startSec > TIME_TOLERANCE && n.startSec + n.durSec < now);
-    for (const n of past) this.remaining.splice(this.remaining.indexOf(n), 1);
+    if (this.waitMode) return; // wait mode advances only on correct input
+    let i = 0;
+    while (i < this.remaining.length) {
+      const n = this.remaining[i]!;
+      if (now - n.startSec > TIME_TOLERANCE) {
+        this.missed++;
+        this.remaining.splice(i, 1);
+      } else {
+        i++;
+      }
+    }
   }
 
   /** Feed a played note (midi) at the given time. Returns true if accepted in wait mode. */
   play(midi: number, now: number): boolean {
-    const window = this.remaining.filter((n) => Math.abs(now - n.startSec) <= TIME_TOLERANCE);
-    const exact = window.find((n) => n.midi === midi);
-    if (exact) {
-      this.hits++;
-      this.remaining.splice(this.remaining.indexOf(exact), 1);
-      this.played.add(midi);
-      this.waitingFor = null;
-      return true;
-    }
-    if (window.length > 0) this.wrongs++;
-    else if (this.waitMode && this.waitingFor && midi !== this.waitingFor.midi) this.wrongs++;
     if (this.waitMode && this.waitingFor) {
-      if (midi === this.waitingFor.midi) {
+      if (midi !== this.waitingFor.midi) {
+        this.wrongs++;
+        return false;
+      }
+      if (Math.abs(now - this.waitingFor.startSec) <= TIME_TOLERANCE) {
         this.hits++;
         this.remaining.splice(this.remaining.indexOf(this.waitingFor), 1);
         this.waitingFor = null;
         return true;
       }
-      return false;
+      return false; // correct pitch, outside the window: hold
+    }
+    const window = this.remaining.filter((n) => Math.abs(now - n.startSec) <= TIME_TOLERANCE);
+    const exact = window.find((n) => n.midi === midi);
+    if (exact) {
+      this.hits++;
+      this.remaining.splice(this.remaining.indexOf(exact), 1);
+      return true;
+    }
+    if (window.length > 0) {
+      this.wrongs++;
+      return true;
+    }
+    const pastIdx = this.remaining.findIndex((n) => n.midi === midi && now > n.startSec + TIME_TOLERANCE);
+    if (pastIdx >= 0) {
+      this.late++;
+      this.remaining.splice(pastIdx, 1);
     }
     return true;
   }
@@ -78,15 +95,14 @@ export class Grader {
   }
 
   result(): GradeResult {
-    const total = this.hits + this.remaining.length + this.lates;
-    const missed = this.remaining.length;
-    const accuracyPct = total === 0 ? 100 : Math.round((this.hits / (this.hits + this.wrongs + missed)) * 100);
+    const total = this.hits + this.wrongs + this.missed + this.late;
+    const accuracyPct = total === 0 ? 100 : Math.round((this.hits / total) * 100);
     let summary = "";
     if (accuracyPct >= 90) summary = "Great run — clean and in time.";
     else if (accuracyPct >= 70) summary = "Good work. A few spots to polish.";
-    else if (missed > this.wrongs) summary = "Most mistakes were missed notes.";
+    else if (this.missed > this.wrongs) summary = "Most mistakes were missed notes.";
     else summary = "Many notes were technically right but off the beat.";
-    return { total, hit: this.hits, missed, wrong: this.wrongs, late: this.lates, accuracyPct, summary };
+    return { total, hit: this.hits, missed: this.missed, wrong: this.wrongs, late: this.late, accuracyPct, summary };
   }
 }
 

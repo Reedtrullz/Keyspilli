@@ -56,6 +56,7 @@ describe("grader", () => {
     g.play(60, 0.05);
     g.play(63, 0.55); // wrong pitch in window
     g.play(62, 0.6); // slightly late but within tolerance
+    g.tick(1.5); // last note passes untouched
     const r = g.result();
     expect(r.hit).toBe(2);
     expect(r.wrong).toBe(1);
@@ -69,6 +70,36 @@ describe("grader", () => {
     expect(g.play(64, 0)).toBe(false);
     expect(g.play(60, 0)).toBe(true);
     expect(g.currentWait?.midi).toBe(62);
+  });
+
+  it("counts unplayed notes as missed instead of scoring 100%", () => {
+    const g = new Grader(notes);
+    g.tick(0.5);
+    g.tick(1.0);
+    g.tick(1.5);
+    const r = g.result();
+    expect(r.missed).toBe(3);
+    expect(r.hit).toBe(0);
+    expect(r.accuracyPct).toBe(0);
+  });
+
+  it("counts correct-but-late notes once, as late", () => {
+    const g = new Grader(notes);
+    g.play(60, 0.05);
+    g.play(64, 2.0); // window for the note at 1.0s ended at 1.35s
+    g.tick(1.5); // middle note passes untouched
+    const r = g.result();
+    expect(r.hit).toBe(1);
+    expect(r.late).toBe(1);
+    expect(r.missed).toBe(1);
+    expect(r.accuracyPct).toBe(33);
+  });
+
+  it("rejects the expected note before its time window in wait mode", () => {
+    const g = new Grader(notes, { waitMode: true });
+    expect(g.currentWait?.midi).toBe(60);
+    expect(g.play(60, -2)).toBe(false);
+    expect(g.play(60, 0.05)).toBe(true);
   });
 });
 
