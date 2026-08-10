@@ -97,6 +97,13 @@
         mode: '0755'
       tags: [deploy]
 
+    - name: Free disk by pruning unused Docker images
+      community.docker.docker_prune:
+        images: true
+      register: pruned
+      changed_when: pruned.images | default([]) | length > 0
+      tags: [deploy]
+
     - name: Capture current Keyspilli containers before deploy
       community.docker.docker_container_info:
         name: "{{ item }}"
