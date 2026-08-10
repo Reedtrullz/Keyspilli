@@ -56,7 +56,7 @@ describe("parseMidi", () => {
   it("sign-extends flat key signatures", () => {
     const buf = HEX(`
       4d 54 68 64 00 00 00 06 00 00 00 01 01 e0
-      4d 54 72 6b 00 00 00 08
+      4d 54 72 6b 00 00 00 0a
       00 ff 59 02 ff 01
       00 ff 2f 00
     `);
@@ -68,7 +68,7 @@ describe("parseMidi", () => {
   it("keeps running status across meta events", () => {
     const buf = HEX(`
       4d 54 68 64 00 00 00 06 00 00 00 01 01 e0
-      4d 54 72 6b 00 00 00 18
+      4d 54 72 6b 00 00 00 1b
       00 90 3c 64
       00 ff 51 03 07 a1 20
       00 3e 64
@@ -86,7 +86,7 @@ describe("parseMidi", () => {
   it("skips drum channel (10) note events", () => {
     const buf = HEX(`
       4d 54 68 64 00 00 00 06 00 00 00 01 01 e0
-      4d 54 72 6b 00 00 00 13
+      4d 54 72 6b 00 00 00 16
       00 99 24 60
       83 60 89 24 40
       00 90 3c 64
@@ -111,7 +111,7 @@ describe("parseMidi", () => {
   it("ignores zero-duration tempo meta events", () => {
     const buf = HEX(`
       4d 54 68 64 00 00 00 06 00 00 00 01 01 e0
-      4d 54 72 6b 00 00 00 09
+      4d 54 72 6b 00 00 00 0b
       00 ff 51 03 00 00 00
       00 ff 2f 00
     `);
