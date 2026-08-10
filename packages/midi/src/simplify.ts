@@ -93,8 +93,15 @@ function thinChord(notes: Note[], keep: number): Note[] {
   return out.sort((a, b) => a.start - b.start || a.midi - b.midi);
 }
 
-function rootOf(midi: number): number {
-  return midi - ((midi - 24) % 12);
+const KEY_PC: Record<string, number> = {
+  C: 0, "C#": 1, Db: 1, D: 2, "D#": 3, Eb: 3, E: 4, F: 5, "F#": 6, Gb: 6,
+  G: 7, "G#": 8, Ab: 8, A: 9, "A#": 10, Bb: 10, B: 11,
+};
+
+function rootOf(midi: number, key: string): number {
+  const pc = KEY_PC[key.replace(/m$/, "")] ?? 0;
+  const offset = ((midi - pc) % 12 + 12) % 12;
+  return midi - offset;
 }
 
 /**
@@ -115,11 +122,11 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   const advanced = quantize([...rh, ...lh], { grid: 0.125 });
   const medium = quantize([...simplifyRhythm(rh, 0.125), ...thinChord(lh, 3)], { grid: 0.125 });
   const easy = quantize(
-    [...melodyOnly(rh, 0.125, 0.5), ...thinChord(lh, 2).map((n) => ({ ...n, midi: rootOf(n.midi) }))],
+    [...melodyOnly(rh, 0.125, 0.5), ...thinChord(lh, 2).map((n) => ({ ...n, midi: rootOf(n.midi, key) }))],
     { grid: 0.25 },
   );
   const lhRoots = lh
-    .map((n) => ({ ...n, midi: rootOf(n.midi) }))
+    .map((n) => ({ ...n, midi: rootOf(n.midi, key) }))
     .filter((n, i, a) => a.findIndex((x) => Math.abs(x.start - n.start) < 1e-6) === i);
   const veryEasy = quantize([...melodyOnly(rh, 0.25, 0.5), ...lhRoots], { grid: 0.25 });
   const beginner = quantize(melodyOnly(rh, 0.25, 0.5), { grid: 0.25 });

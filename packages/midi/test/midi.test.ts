@@ -12,6 +12,7 @@ import {
   cleanTranscription,
   LEVEL_ORDER,
   Note,
+  ParsedMidi,
   Variant,
 } from "../src/index.js";
 
@@ -271,6 +272,31 @@ describe("buildVariants", () => {
     }
     expect(variants[0]!.notes.every((n) => n.hand === "R")).toBe(true);
     expect(variants[5]!.notes.length).toBeGreaterThan(0);
+  });
+  it("roots easy-variant bass notes to the song key", () => {
+    const src: ParsedMidi = {
+      format: 0,
+      division: 480,
+      tempoBpm: 120,
+      keySig: 1,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes: [
+        { midi: 71, start: 0, dur: 1, vel: 80 },
+        { midi: 55, start: 0, dur: 1, vel: 80 },
+        { midi: 67, start: 1, dur: 1, vel: 80 },
+        { midi: 50, start: 1, dur: 1, vel: 80 },
+      ],
+      trackNames: ["Test"],
+      durationBeats: 4,
+    };
+    const variants = buildVariants(src, { title: "G", artist: "T", key: "G" });
+    for (const level of ["easy", "very-easy"] as const) {
+      const v = variants.find((x) => x.level === level)!;
+      const bass = v.notes.filter((n) => n.hand === "L");
+      expect(bass.length).toBeGreaterThan(0);
+      expect(bass.every((n) => n.midi % 12 === 7)).toBe(true);
+    }
   });
   it("scores are monotonic", () => {
     const variants = buildVariants(src, { title: "Scale", artist: "Test" });
