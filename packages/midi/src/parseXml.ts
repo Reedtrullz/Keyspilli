@@ -19,18 +19,25 @@ export function parseMusicXmlNotes(xml: string): ParsedMidi {
   const fifths = parseInt(firstMatch(xml, /<fifths>(-?\d+)<\/fifths>/), 10) || 0;
   const mode = firstMatch(xml, /<mode>(major|minor)<\/mode>/);
   const notes: Note[] = [];
-  // `measure` must be followed by a space or `>` so `<measure-numbering>`
-  // print elements are not mistaken for measure starts (Audiveris/MuseScore
-  // emit one per system, which previously truncated multi-system scores).
-  const measures = xml.match(/<measure(?:[ >])[^>]*>[\s\S]*?<\/measure>/g) ?? [];
+  // Parse only the first part; multi-instrument exports are out of scope.
+  // ponytail: per-part divisions/attributes unsupported; add when uploads need it.
+  const partBody = xml.match(/<part\b[^>]*>([\s\S]*?)<\/part>/)?.[1] ?? xml;
+  const measures = partBody.match(/<measure(?:[ >])[^>]*>[\s\S]*?<\/measure>/g) ?? [];
   const beatsPerMeasure = beats * (4 / beatType);
   for (let mi = 0; mi < measures.length; mi++) {
     const m = measures[mi]!;
     const measureStart = mi * beatsPerMeasure;
     let cursor = 0;
     let lastStart = 0;
-    const noteEls = m.match(/<note\b[^>]*>[\s\S]*?<\/note>/g) ?? [];
-    for (const el of noteEls) {
+    const els = m.match(/<(note|backup|forward)\b[^>]*>[\s\S]*?<\/(?:note|backup|forward)>/g) ?? [];
+    for (const el of els) {
+      if (el.startsWith("<backup") || el.startsWith("<forward")) {
+        const d = parseInt(firstMatch(el, /<duration>(\d+)<\/duration>/), 10) || 0;
+        cursor = el.startsWith("<backup")
+          ? Math.max(0, cursor - d / divisions)
+          : cursor + d / divisions;
+        continue;
+      }
       const chord = /<chord\s*\/>/.test(el);
       const step = firstMatch(el, /<step>([A-G])<\/step>/);
       if (!step) continue;
@@ -41,13 +48,15 @@ export function parseMusicXmlNotes(xml: string): ParsedMidi {
       const voiceRaw = firstMatch(el, /<voice>(\d+)<\/voice>/);
       const pc = STEP_PC[step]! + alter;
       const midi = 12 * (octave + 1) + pc;
+      const durBeats = dur / divisions;
+      if (!Number.isFinite(midi) || midi < 0 || midi > 127 || !Number.isFinite(durBeats) || durBeats <= 0) continue;
       const start = chord ? lastStart : (lastStart = cursor);
-      cursor += dur / divisions;
+      if (!chord) cursor += durBeats;
       const lyric = firstMatch(el, /<lyric\b[^>]*>[\s\S]*?<text>([\s\S]*?)<\/text>/);
       notes.push({
         midi,
         start: measureStart + start,
-        dur: dur / divisions,
+        dur: durBeats,
         vel: 80,
         hand: staffRaw === "2" ? "L" : staffRaw === "1" ? "R" : voiceRaw === "2" ? "L" : "R",
         lyrics: lyric ? lyric.replace(/&amp;/g, "&").replace(/&lt;/g, "<") : undefined,

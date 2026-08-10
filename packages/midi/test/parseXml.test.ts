@@ -42,4 +42,41 @@ describe("parseMusicXmlNotes", () => {
     expect(parsed.notes[2]!.start).toBe(0);
     expect(parsed.notes[0]!.dur).toBe(1);
   });
+
+  it("keeps chord members on one beat and honors <backup>", () => {
+    const xml = `<?xml version="1.0"?><score-partwise version="4.0"><part id="P1"><measure number="1"><attributes><divisions>4</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>
+<note><pitch><step>C</step><octave>4</octave></pitch><duration>2</duration></note>
+<note><chord/><pitch><step>E</step><octave>4</octave></pitch><duration>2</duration></note>
+<note><chord/><pitch><step>G</step><octave>4</octave></pitch><duration>2</duration></note>
+<note><pitch><step>F</step><octave>4</octave></pitch><duration>1</duration></note>
+<backup><duration>5</duration></backup>
+<note><pitch><step>A</step><octave>3</octave></pitch><duration>2</duration></note>
+<note><pitch><step>D</step><octave>4</octave></pitch><duration>1</duration></note>
+</measure></part></score-partwise>`;
+    const m = parseMusicXmlNotes(xml);
+    // parseMusicXmlNotes sorts by start then midi, so the backup-targeted A3
+    // (57@0) sorts before the chord members instead of keeping document order.
+    expect(m.notes.map((n) => `${n.midi}@${n.start}`)).toEqual(["57@0", "60@0", "64@0", "67@0", "62@0.5", "65@0.5"]);
+  });
+
+  it("skips notes without a valid octave or duration", () => {
+    const xml = `<score-partwise version="4.0"><part id="P1"><measure number="1"><attributes><divisions>4</divisions></attributes>
+<note><pitch><step>C</step></pitch><duration>2</duration></note>
+<note><pitch><step>D</step><octave>4</octave></pitch><duration>0</duration></note>
+<note><pitch><step>E</step><octave>4</octave></pitch><duration>2</duration></note>
+</measure></part></score-partwise>`;
+    const m = parseMusicXmlNotes(xml);
+    expect(m.notes.map((n) => n.midi)).toEqual([64]);
+  });
+
+  it("parses only the first part of a multi-part score", () => {
+    const xml = `<score-partwise version="4.0"><part id="P1"><measure number="1"><attributes><divisions>4</divisions></attributes>
+<note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration></note>
+</measure></part><part id="P2"><measure number="1"><attributes><divisions>4</divisions></attributes>
+<note><pitch><step>G</step><octave>3</octave></pitch><duration>4</duration></note>
+</measure></part></score-partwise>`;
+    const m = parseMusicXmlNotes(xml);
+    expect(m.notes).toHaveLength(1);
+    expect(m.notes[0]!.midi).toBe(60);
+  });
 });
