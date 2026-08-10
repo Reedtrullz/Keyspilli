@@ -78,15 +78,17 @@ export function fallingBars(notes: TimedNote[], o: FallingLayoutOptions): Fallin
     const x = xOf(n.midi);
     if (x < 0) continue;
     const isBlack = !WHITE.includes(n.midi % 12);
-    // Notes fall DOWN toward the keyboard: future notes start at the top
-    // (small y) and reach the playhead (bottom of the falling area) exactly
-    // at their start time.
-    const y = o.height - (n.startSec - o.nowSec) * pxPerSec;
+    // Notes fall DOWN toward the keyboard. The note's leading edge is its
+    // BOTTOM: it lands exactly on the playhead (y == o.height) at the note's
+    // start time, and the bar extends UPWARD for the note's duration.
+    const bottom = o.height - (n.startSec - o.nowSec) * pxPerSec;
+    const height = Math.max(6, n.durSec * pxPerSec - 2);
+    const y = bottom - height;
     out.push({
       x,
       y,
       width: isBlack ? geo.blackWidth : geo.whiteWidth * 0.92,
-      height: Math.max(8, n.durSec * pxPerSec - 2),
+      height,
       color: pitchColor(n.midi),
       midi: n.midi,
       label: noteLabel(n.midi),

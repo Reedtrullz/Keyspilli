@@ -127,16 +127,28 @@ describe("falling bars", () => {
       lowMidi: 36,
       highMidi: 84,
     });
-    // a future note sits above (smaller y than) the playhead line
+    // a future note's bottom edge (the leading edge) sits above the playhead
     const future = bars.find((b) => b.midi === 62)!;
-    expect(future.y).toBeGreaterThan(0);
-    expect(future.y).toBeLessThan(400);
+    expect(future.y + future.height).toBeGreaterThan(0);
+    expect(future.y + future.height).toBeLessThan(400);
     expect(future.label).toBe("D");
+    // at the note's start time, its BOTTOM edge lands exactly on the playhead
+    const atStart = fallingBars(tn, {
+      width: 800,
+      height: 400,
+      nowSec: 0.5,
+      speed: 1,
+      lookaheadSec: 0.6,
+      lowMidi: 36,
+      highMidi: 84,
+    });
+    const landing = atStart.find((b) => b.midi === 62)!;
+    expect(landing.y + landing.height).toBeCloseTo(400, 5);
     // as time approaches the note, it moves DOWN (y grows toward the keyboard)
     const later = fallingBars(tn, {
       width: 800,
       height: 400,
-      nowSec: 0.5,
+      nowSec: 0.25,
       speed: 1,
       lookaheadSec: 0.6,
       lowMidi: 36,
