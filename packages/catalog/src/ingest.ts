@@ -12,7 +12,7 @@ import {
   validateVariants,
 } from "@keyspilli/midi";
 import { upsertSong, getSongsByBase, SongRow } from "./db.js";
-import { artifactsDir } from "./paths.js";
+import { artifactsDir, uploadsDir } from "./paths.js";
 
 const LEVEL_CODE: Record<string, string> = {
   "very-beginner": "vb",
@@ -82,6 +82,11 @@ export async function ingestSource(inp: IngestInput): Promise<{ baseId: string; 
   const validationErrors = validateVariants(variants);
   if (validationErrors.length) {
     return { baseId: "", songIds: [], error: `validation failed: ${validationErrors.join("; ")}` };
+  }
+  // Keep the raw source for future re-validation when thresholds change.
+  if (inp.contentType === "upload") {
+    await mkdir(uploadsDir(), { recursive: true });
+    await writeFile(join(uploadsDir(), `${baseId}.${looksLikeXml(inp.buf) ? "xml" : "mid"}`), inp.buf);
   }
   const durationSec = Math.round((parsed.durationBeats * 60) / parsed.tempoBpm);
   const songIds: string[] = [];

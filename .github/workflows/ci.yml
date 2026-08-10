@@ -51,6 +51,9 @@ jobs:
       - name: Verify catalog playability
         run: npm run verify-catalog
 
+      - name: Calibration drift check
+        run: npm run calibrate
+
       - name: TypeScript
         run: npm run typecheck
 

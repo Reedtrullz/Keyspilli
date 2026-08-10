@@ -5,13 +5,14 @@ import { LEVEL_ORDER, Note, Variant } from "./types.js";
  * the current catalog (P99 + headroom): full-band multitrack MIDIs flattened
  * into piano notes exceed these; real piano arrangements do not.
  */
-const LIMITS: Record<string, { maxSim: number; maxDensity: number }> = {
-  "very-beginner": { maxSim: 2, maxDensity: 4 },
-  beginner: { maxSim: 2, maxDensity: 4 },
-  "very-easy": { maxSim: 5, maxDensity: 7 },
-  easy: { maxSim: 5, maxDensity: 7 },
-  medium: { maxSim: 12, maxDensity: 10 },
-  advanced: { maxSim: 13, maxDensity: 10 },
+/** Single source of truth for the playability gate; calibrate with npm run calibrate. */
+export const PLAYABILITY_LIMITS: Record<string, { maxSim: number; maxDensity: number; minMedianIoi: number }> = {
+  "very-beginner": { maxSim: 2, maxDensity: 4, minMedianIoi: 0.45 },
+  beginner: { maxSim: 2, maxDensity: 4, minMedianIoi: 0.22 },
+  "very-easy": { maxSim: 5, maxDensity: 7, minMedianIoi: 0.22 },
+  easy: { maxSim: 5, maxDensity: 7, minMedianIoi: 0.1 },
+  medium: { maxSim: 12, maxDensity: 10, minMedianIoi: 0.1 },
+  advanced: { maxSim: 13, maxDensity: 10, minMedianIoi: 0.1 },
 };
 
 /** Max grid-shift tolerance between neighboring levels (round-half-up boundaries). */
@@ -42,7 +43,7 @@ function hasNear(harder: Map<number, number[]>, midi: number, start: number, tol
 
 function validateVariant(v: Variant): string[] {
   const out: string[] = [];
-  const lim = LIMITS[v.level];
+  const lim = PLAYABILITY_LIMITS[v.level];
   if (!lim) {
     out.push(`${v.level}: unknown difficulty level`);
     return out;
@@ -60,6 +61,7 @@ function validateVariant(v: Variant): string[] {
   if (v.notes.length < 8) out.push(`${v.level}: only ${v.notes.length} notes`);
 
   const byStart = new Map<string, number>();
+  const starts: number[] = [];
   let maxSim = 0;
   let span = 0;
   for (const n of v.notes) {
@@ -80,12 +82,22 @@ function validateVariant(v: Variant): string[] {
     byStart.set(k, c);
     if (c > maxSim) maxSim = c;
     span = Math.max(span, n.start + n.dur);
+    starts.push(n.start);
   }
   if (maxSim > lim.maxSim) out.push(`${v.level}: ${maxSim} simultaneous notes (limit ${lim.maxSim})`);
   if (span > 0) {
     const density = v.notes.length / span;
     if (density > lim.maxDensity) {
       out.push(`${v.level}: ${density.toFixed(1)} notes/sec (limit ${lim.maxDensity})`);
+    }
+  }
+  const distinct = [...new Set(starts.map((s) => s.toFixed(3)).map(Number))].sort((a, b) => a - b);
+  const gaps: number[] = [];
+  for (let i = 1; i < distinct.length; i++) gaps.push(distinct[i]! - distinct[i - 1]!);
+  if (gaps.length) {
+    const medianIoi = gaps.sort((a, b) => a - b)[Math.floor(gaps.length / 2)]!;
+    if (medianIoi < lim.minMedianIoi) {
+      out.push(`${v.level}: median inter-onset ${medianIoi.toFixed(3)}s below floor ${lim.minMedianIoi}s`);
     }
   }
   return out;

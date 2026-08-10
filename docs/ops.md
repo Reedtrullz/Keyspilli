@@ -56,6 +56,7 @@ Run the playability gate first; it exits non-zero if any song fails:
 
 ```bash
 npm run verify-catalog
+npm run calibrate   # fails if catalog P99 drifts past configured limits
 ```
 
 ```bash

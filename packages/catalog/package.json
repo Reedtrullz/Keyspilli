@@ -8,6 +8,8 @@
     "fetch-seed": "tsx scripts/fetch-seed.ts",
     "pipeline": "tsx scripts/pipeline.ts",
     "verify-catalog": "tsx scripts/verify-catalog.ts",
+    "calibrate": "tsx scripts/calibrate-limits.ts",
+    "reingest-uploads": "tsx scripts/reingest-uploads.ts",
     "seed": "tsx scripts/seed.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"

@@ -29,3 +29,7 @@ export function seedMidiDir(): string {
 export function transcribedDir(): string {
   return resolve(dataDir(), "transcribed");
 }
+
+export function uploadsDir(): string {
+  return resolve(dataDir(), "uploads");
+}

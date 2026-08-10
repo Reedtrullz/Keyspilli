@@ -386,6 +386,13 @@ describe("buildVariants", () => {
     expect(errors.some((e) => e.includes("tempo 400"))).toBe(true);
     expect(errors.some((e) => e.includes("bad time signature 3/3"))).toBe(true);
   });
+
+  it("validateVariants rejects variants with a frantic median inter-onset interval", () => {
+    const variants = buildVariants(src, { title: "Scale", artist: "Test" });
+    const vb = variants[0]!;
+    vb.notes = Array.from({ length: 10 }, (_, i) => ({ midi: 60, start: i * 0.1, dur: 0.5, vel: 80, hand: "R" as const }));
+    expect(validateVariants(variants).some((e) => e.includes("inter-onset"))).toBe(true);
+  });
 });
 
 describe("cleanTranscription", () => {
