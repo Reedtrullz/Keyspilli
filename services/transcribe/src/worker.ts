@@ -78,6 +78,12 @@ async function processJob(jobId: string): Promise<void> {
     if (kept.length < raw.notes.length * 0.2) {
       throw new Error(`onset filter dropped too much (${kept.length}/${raw.notes.length})`);
     }
+    // Trim leading silence: video intros (title cards, spoken openings) often
+    // leave 5-40s with no notes; the player should start at the first note.
+    const firstStart = Math.min(...kept.map((n) => n.start));
+    if (firstStart * secPerBeat > 2) {
+      for (const n of kept) n.start = Math.max(0, n.start - firstStart);
+    }
     const midi = writeMidi(kept, {
       tempoBpm: raw.tempoBpm,
       timeSig: raw.timeSig,
