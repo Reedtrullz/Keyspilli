@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { beatToSec, resolveTimedNotes, firstNoteAtOrAfter } from "../src/timeline.js";
 import { Grader, detectPitch } from "../src/grading.js";
 import { KeyboardInput, KEYMAP } from "../src/input.js";
-import { fallingBars, noteLabel } from "../src/views/falling.js";
+import { fallingBars, noteLabel, upcomingMidi } from "../src/views/falling.js";
 import { loadSettings, saveSettings, DEFAULT_SETTINGS } from "../src/prefs.js";
 import type { SongData } from "../src/types.js";
 
@@ -206,6 +206,17 @@ describe("falling bars", () => {
     expect(noteLabel(60)).toBe("C4");
     expect(noteLabel(61)).toBe("C#");
     expect(noteLabel(69)).toBe("A");
+  });
+
+  it("flags keys for bars landing within the lookahead window", () => {
+    const areaHeight = 400;
+    const lookaheadSec = 2;
+    const bars = [
+      { midi: 60, y: 340, height: 10, x: 0, width: 10, color: "#fff", label: "C4" }, // 0.25s away
+      { midi: 62, y: 140, height: 10, x: 0, width: 10, color: "#fff", label: "D" }, // 1.25s away
+      { midi: 64, y: 399, height: 10, x: 0, width: 10, color: "#fff", label: "E" }, // already past
+    ];
+    expect([...upcomingMidi(bars, areaHeight, lookaheadSec)]).toEqual([60]);
   });
 });
 
