@@ -13,6 +13,7 @@ export function LeadSheetView({ data, time, settings }: { data: SongData; time: 
   const measureBeats = m.endBeat - m.startBeat;
   const W = 880;
   const H = 240;
+  const playX = 80 + ((time / beatSec - m.startBeat) / measureBeats) * (W - 160);
 
   return (
     <div className="overflow-x-auto">
@@ -48,6 +49,7 @@ export function LeadSheetView({ data, time, settings }: { data: SongData; time: 
                 {c.name}
               </text>
             ))}
+          {time > 0 && <line x1={playX} y1="28" x2={playX} y2={H - 52} stroke="#dc2626" strokeWidth="2" />}
         </svg>
         <p className="text-xs text-zinc-400 mt-2">
           Measure {currentMeasure + 1} of {data.measures.length} — dots follow the melody, chords below for your left hand.

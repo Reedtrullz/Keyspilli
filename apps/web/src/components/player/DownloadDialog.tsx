@@ -16,11 +16,19 @@ export function DownloadDialog({
     { label: "MusicXML", desc: "Edit in MuseScore or any notation app", href: `/api/song/${songId}/export?type=musicxml`, enabled: true },
   ];
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Download sheet music or MIDI">
+    <div
+      className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Download sheet music or MIDI"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div className="bg-white rounded-2xl w-full max-w-md p-5 shadow-xl">
         <div className="flex justify-between items-center mb-1">
           <h2 className="font-semibold">Download</h2>
-          <button onClick={onClose} className="px-2 py-1 rounded-lg hover:bg-zinc-100" aria-label="Close">×</button>
+          <button autoFocus onClick={onClose} className="px-2 py-1 rounded-lg hover:bg-zinc-100" aria-label="Close">×</button>
         </div>
         <p className="text-xs text-zinc-500 mb-4">Everything is free — yours to keep.</p>
         <div className="space-y-2">

@@ -69,6 +69,7 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
   const loopRef = useRef<{ start: number; end: number } | null>(null);
   const settingsRef = useRef(settings);
   const dataRef = useRef(initial.data);
+  const modeMenuRef = useRef<HTMLDivElement>(null);
 
   settingsRef.current = settings;
   dataRef.current = initial.data;
@@ -205,6 +206,27 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [grading]);
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setShowModeMenu(false);
+        setShowSettings(false);
+        setShowDownload(false);
+      }
+    };
+    const onDown = (e: MouseEvent) => {
+      if (showModeMenu && modeMenuRef.current && !modeMenuRef.current.contains(e.target as Node)) {
+        setShowModeMenu(false);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("mousedown", onDown);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("mousedown", onDown);
+    };
+  }, [showModeMenu]);
+
   function handleNote(midi: number, on: boolean) {
     if (!on) {
       audioRef.current?.noteOff(midi);
@@ -290,27 +312,29 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
     initial.data.measures.length - 1,
     Math.floor((time / (60 / initial.data.tempoBpm / settings.speed)) / (initial.data.timeSig[0] * (4 / initial.data.timeSig[1]))),
   );
+  const activeModeLabel = MODES.find((m) => m.id === settings.mode)?.label ?? settings.mode;
+  const fmtTime = (t: number) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
       <div className="mb-3 flex items-center gap-2 flex-wrap">
         <div>
-          <h1 className="text-xl font-bold leading-tight">{initial.song.title}</h1>
+          <h1 className="text-xl font-bold leading-tight truncate max-w-[70vw]" title={initial.song.title}>{initial.song.title}</h1>
           <div className="text-sm text-zinc-500">by {initial.song.artist}</div>
         </div>
         <div className="ml-auto flex gap-2 text-xs">
-          <span className="px-2 py-1 rounded-full bg-zinc-100">{initial.song.key}</span>
-          <span className="px-2 py-1 rounded-full bg-zinc-100">{initial.song.difficulty}</span>
-          <span className="px-2 py-1 rounded-full bg-zinc-100">{initial.song.tempo} BPM</span>
+          <span className="px-2 py-1 rounded-full bg-zinc-100 text-zinc-700 font-medium">{initial.song.key}</span>
+          <span className="px-2 py-1 rounded-full bg-zinc-100 text-zinc-700 font-medium">{initial.song.difficulty}</span>
+          <span className="px-2 py-1 rounded-full bg-zinc-100 text-zinc-700 font-medium">{initial.song.tempo} BPM</span>
           {midiConnected && <span className="px-2 py-1 rounded-full bg-green-100 text-green-800">MIDI connected</span>}
         </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-2 mb-4">
-        <div className="relative">
+        <div className="relative" ref={modeMenuRef}>
           <button
             onClick={() => setShowModeMenu((s) => !s)}
-            className="px-3 py-2 rounded-full border border-zinc-300 text-sm flex items-center gap-2"
+            className="min-h-11 px-3 py-2 rounded-full border border-zinc-300 text-sm flex items-center gap-2"
             aria-haspopup="menu"
             aria-expanded={showModeMenu}
           >
@@ -346,7 +370,7 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
               key={h}
               onClick={() => updateSettings({ hand: h })}
               aria-pressed={settings.hand === h}
-              className={`px-3 py-2 rounded-full text-sm border ${settings.hand === h ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300"}`}
+              className={`min-w-11 min-h-11 px-3 py-2 rounded-full text-sm border ${settings.hand === h ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300"}`}
             >
               {h === "both" ? "All" : h}
             </button>
@@ -356,35 +380,35 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
         <button
           onClick={() => updateSettings({ chordKeys: !settings.chordKeys })}
           aria-pressed={settings.chordKeys}
-          className={`px-3 py-2 rounded-full text-sm border ${settings.chordKeys ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300"}`}
+          className={`min-h-11 px-3 py-2 rounded-full text-sm border ${settings.chordKeys ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300"}`}
         >
           Chord Keys
         </button>
         <button
           onClick={() => updateSettings({ metronome: !settings.metronome })}
           aria-pressed={settings.metronome}
-          className={`px-3 py-2 rounded-full text-sm border ${settings.metronome ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300"}`}
+          className={`min-h-11 px-3 py-2 rounded-full text-sm border ${settings.metronome ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300"}`}
         >
           Metronome
         </button>
 
         <div className="ml-auto flex flex-wrap justify-end gap-2 text-sm">
-          <button onClick={() => setShowDownload(true)} className="px-4 py-2 rounded-full bg-zinc-900 text-white font-medium hover:bg-zinc-700">
+          <button onClick={() => setShowDownload(true)} className="min-h-11 px-4 py-2 rounded-full bg-zinc-900 text-white font-medium hover:bg-zinc-700">
             Download Sheet &amp; MIDI
           </button>
-          <button onClick={() => setShowSettings(true)} className="px-4 py-2 rounded-full border border-zinc-300 font-medium hover:bg-zinc-100" aria-label="Open settings">
+          <button onClick={() => setShowSettings(true)} className="min-h-11 px-4 py-2 rounded-full border border-zinc-300 font-medium hover:bg-zinc-100" aria-label="Open settings">
             Settings
           </button>
           <button
             onClick={() => grading ? finishGrading() : startGrading(false)}
-            className={`px-4 py-2 rounded-full border font-medium ${grading ? "bg-amber-100 border-amber-300" : "border-zinc-300 hover:bg-zinc-100"}`}
+            className={`min-h-11 px-4 py-2 rounded-full border font-medium ${grading ? "bg-amber-100 border-amber-300" : "border-zinc-300 hover:bg-zinc-100"}`}
           >
             {grading ? "Finish practice" : "Practice"}
           </button>
           <button
             onClick={toggleFavorite}
             aria-pressed={favorites.includes(initial.song.id)}
-            className={`px-3 py-2 rounded-full border text-sm ${favorites.includes(initial.song.id) ? "bg-rose-100 border-rose-300" : "border-zinc-300 hover:bg-zinc-100"}`}
+            className={`min-h-11 px-3 py-2 rounded-full border text-sm ${favorites.includes(initial.song.id) ? "bg-rose-100 border-rose-300" : "border-zinc-300 hover:bg-zinc-100"}`}
             title="Add to favorites"
           >
             {favorites.includes(initial.song.id) ? "♥ Favorited" : "♡ Favorite"}
@@ -392,7 +416,7 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
           <button
             onClick={toggleLearned}
             aria-pressed={learned.includes(initial.song.id)}
-            className={`px-3 py-2 rounded-full border text-sm ${learned.includes(initial.song.id) ? "bg-green-100 border-green-300" : "border-zinc-300 hover:bg-zinc-100"}`}
+            className={`min-h-11 px-3 py-2 rounded-full border text-sm ${learned.includes(initial.song.id) ? "bg-green-100 border-green-300" : "border-zinc-300 hover:bg-zinc-100"}`}
             title="Mark as learned"
           >
             {learned.includes(initial.song.id) ? "✓ Learned" : "Learned?"}
@@ -402,45 +426,54 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
 
       <div className="rounded-2xl border border-zinc-200 bg-white overflow-hidden mb-4">
         <div className="flex items-center gap-3 px-4 py-3 border-b border-zinc-100 flex-wrap">
-          <button onClick={togglePlay} className="w-12 h-12 rounded-full bg-zinc-900 text-white text-lg" aria-label={playing ? "Pause" : "Play"}>
+          <button onClick={togglePlay} className="w-12 h-12 rounded-full bg-zinc-900 text-white text-lg shadow-sm hover:bg-zinc-700" aria-label={playing ? "Pause" : "Play"}>
             {playing ? "❚❚" : "▶"}
           </button>
           <button
             onClick={toggleLoop}
             aria-pressed={!!loop}
-            className={`px-3 py-1.5 rounded-full text-xs font-mono border ${loop ? "bg-indigo-100 border-indigo-300 text-indigo-800" : "border-zinc-300"}`}
+            className={`min-h-11 px-3 py-1.5 rounded-full text-xs font-mono border ${loop ? "bg-indigo-100 border-indigo-300 text-indigo-800" : "border-zinc-300"}`}
             title="Loop 4 measures from current position"
           >
             LOOP {loop ? "ON" : "OFF"}
           </button>
           <div className="flex items-center gap-1">
-            <button onClick={() => seekToMeasure(Math.max(0, currentMeasure - 1))} className="px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Previous measure">‹</button>
+            <button onClick={() => seekToMeasure(Math.max(0, currentMeasure - 1))} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Previous measure">‹</button>
             <span className="px-2 text-xs font-mono" title="Measure — click to jump">
               {currentMeasure + 1}/{initial.data.measures.length}
             </span>
-            <button onClick={() => seekToMeasure(Math.min(initial.data.measures.length - 1, currentMeasure + 1))} className="px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Next measure">›</button>
+            <button onClick={() => seekToMeasure(Math.min(initial.data.measures.length - 1, currentMeasure + 1))} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Next measure">›</button>
           </div>
           <div className="flex items-center gap-1" aria-label="Practice speed">
-            <button onClick={() => updateSettings({ speed: Math.max(0.25, +(settings.speed - 0.1).toFixed(2)) })} className="px-2 py-1.5 rounded-lg border border-zinc-300 text-xs">−</button>
+            <button onClick={() => updateSettings({ speed: Math.max(0.25, +(settings.speed - 0.1).toFixed(2)) })} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs">−</button>
             <span className="px-2 text-xs font-medium" title="Practice speed">{Math.round(settings.speed * 100)}%</span>
-            <button onClick={() => updateSettings({ speed: Math.min(2, +(settings.speed + 0.1).toFixed(2)) })} className="px-2 py-1.5 rounded-lg border border-zinc-300 text-xs">+</button>
+            <button onClick={() => updateSettings({ speed: Math.min(2, +(settings.speed + 0.1).toFixed(2)) })} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs">+</button>
           </div>
           <div className="flex items-center gap-1" aria-label="Transpose">
-            <button onClick={() => updateSettings({ transpose: settings.transpose - 1 })} className="px-2 py-1.5 rounded-lg border border-zinc-300 text-xs">−</button>
+            <button onClick={() => updateSettings({ transpose: settings.transpose - 1 })} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs">−</button>
             <span className="px-2 text-xs font-medium">
               Key {songKeyLabel} {settings.transpose ? `(${settings.transpose > 0 ? "+" : ""}${settings.transpose})` : ""}
             </span>
-            <button onClick={() => updateSettings({ transpose: settings.transpose + 1 })} className="px-2 py-1.5 rounded-lg border border-zinc-300 text-xs">+</button>
+            <button onClick={() => updateSettings({ transpose: settings.transpose + 1 })} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs">+</button>
             {settings.transpose !== 0 && (
-              <button onClick={() => updateSettings({ transpose: 0 })} className="px-2 py-1.5 rounded-lg border border-zinc-300 text-xs text-zinc-500">
+              <button onClick={() => updateSettings({ transpose: 0 })} className="min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs text-zinc-500">
                 Reset
               </button>
             )}
           </div>
-          <div className="ml-auto text-xs text-zinc-400 font-mono">{time.toFixed(1)}s</div>
+          <output role="timer" aria-label="Elapsed time" className="ml-auto text-xs text-zinc-500 font-mono tabular-nums w-[5ch] text-right select-none">
+            {fmtTime(time)}
+          </output>
         </div>
 
-        <div className="relative">
+        <div
+          className={`relative ${playing && !grading ? "cursor-pointer" : ""}`}
+          onClick={() => {
+            if (playing && !grading) stopPlayback();
+          }}
+          role="region"
+          aria-label={`Player stage — ${activeModeLabel}`}
+        >
           {settings.mode === "falling" && <FallingCanvas notes={notes} timeRef={timeRef} settings={settings} pressedKeys={pressedKeys} />}
           {settings.mode === "beginner" && <BeginnerView data={initial.data} time={time} settings={settings} />}
           {settings.mode === "leadsheet" && <LeadSheetView data={initial.data} time={time} settings={settings} />}
@@ -460,6 +493,9 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
               Playing — click anywhere to pause
             </div>
           )}
+          <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+            {activeModeLabel} view active
+          </p>
         </div>
       </div>
 
