@@ -61,8 +61,20 @@ export function FallingCanvas({ notes, timeRef, settings, pressedKeys, chords, t
 
       const upcoming = upcomingMidi(bars, areaHeight, lookahead);
 
-      // --- Chord labels on the left margin ---
       const speed = s.speed;
+
+      // --- Determine current chord for keyboard highlighting ---
+      const beatSec = 60 / (bpm * s.speed);
+      const currentBeat = now / beatSec;
+      let activeChordNotes: Set<number> = new Set();
+      for (let i = ch.length - 1; i >= 0; i--) {
+        if (currentBeat >= ch[i]!.beat) {
+          activeChordNotes = new Set(ch[i]!.notes);
+          break;
+        }
+      }
+
+      // --- Chord labels on the left margin ---
       for (const c of ch) {
         const cSec = (c.beat * 60) / (bpm * speed);
         const bottom = areaHeight - (cSec - now) * pxPerSec;
@@ -90,28 +102,42 @@ export function FallingCanvas({ notes, timeRef, settings, pressedKeys, chords, t
 
       // --- Keyboard ---
       const kb = keyboardRects({ width: KEYBOARD_W, lowMidi: low, highMidi: high, whiteHeight: KB_H });
+      // Key rendering with chord highlighting
       ctx.fillStyle = "#f4f4f5";
       for (const w of kb.whites) {
         const kx = w.x + LEFT_MARGIN;
-        ctx.fillStyle = pk.has(w.midi) ? pitchColor(w.midi) : "#ffffff";
+        const isChord = activeChordNotes.has(w.midi) && !pk.has(w.midi);
+        ctx.fillStyle = pk.has(w.midi) ? pitchColor(w.midi) : isChord ? pitchColor(w.midi) : "#ffffff";
+        if (isChord) ctx.globalAlpha = 0.55;
         ctx.fillRect(kx, H - KB_H, w.w - 1, KB_H);
+        ctx.globalAlpha = 1;
         ctx.strokeStyle = "#d4d4d8";
         ctx.strokeRect(kx, H - KB_H, w.w - 1, KB_H);
         ctx.font = "600 12px system-ui, sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "alphabetic";
-        ctx.fillStyle = pk.has(w.midi) ? "#ffffff" : "#52525b";
+        if (isChord) {
+          // Colored bottom strip + white label for chord keys
+          ctx.fillStyle = pitchColor(w.midi);
+          ctx.fillRect(kx, H - 18, w.w - 1, 18);
+          ctx.fillStyle = "#ffffff";
+        } else {
+          ctx.fillStyle = pk.has(w.midi) ? "#ffffff" : "#52525b";
+        }
         ctx.fillText(noteLabel(w.midi), kx + w.w / 2, H - 18);
       }
       for (const b of kb.blacks) {
         const kx = b.x + LEFT_MARGIN;
-        ctx.fillStyle = pk.has(b.midi) ? pitchColor(b.midi) : "#27272a";
+        const isChordB = activeChordNotes.has(b.midi) && !pk.has(b.midi);
+        ctx.fillStyle = pk.has(b.midi) ? pitchColor(b.midi) : isChordB ? pitchColor(b.midi) : "#27272a";
+        if (isChordB) ctx.globalAlpha = 0.65;
         ctx.fillRect(kx, H - KB_H, b.w, KB_H * 0.62);
+        ctx.globalAlpha = 1;
         if (b.w >= 17) {
           ctx.font = "600 9px system-ui, sans-serif";
           ctx.textAlign = "center";
           ctx.textBaseline = "alphabetic";
-          ctx.fillStyle = pk.has(b.midi) ? "#18181b" : "#d4d4d8";
+          ctx.fillStyle = pk.has(b.midi) ? "#18181b" : isChordB ? "#ffffff" : "#d4d4d8";
           ctx.fillText(noteLabel(b.midi), kx + b.w / 2, H - 16);
         }
       }
