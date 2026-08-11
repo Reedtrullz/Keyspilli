@@ -15,6 +15,7 @@ export function BeginnerView({ data, time, settings }: { data: SongData; time: n
   const measureBeats = m.endBeat - m.startBeat;
   const W = 880;
   const H = 300;
+  const playX = 60 + ((time / beatSec - m.startBeat) / measureBeats) * (W - 120);
 
   return (
     <div className="overflow-x-auto">
@@ -61,6 +62,7 @@ export function BeginnerView({ data, time, settings }: { data: SongData; time: n
                 {c.name}
               </text>
             ))}
+          {time > 0 && <line x1={playX} y1="40" x2={playX} y2="230" stroke="#dc2626" strokeWidth="2" />}
         </svg>
       </div>
     </div>
