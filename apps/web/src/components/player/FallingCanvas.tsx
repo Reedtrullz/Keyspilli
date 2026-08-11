@@ -50,33 +50,27 @@ export function FallingCanvas({ notes, timeRef, settings, pressedKeys, chords, t
       const low = Math.min(48, ...notes.map((n) => n.midi)) - 3;
       const high = Math.max(72, ...notes.map((n) => n.midi)) + 3;
 
-      // Unified pitch mapping — all notes fall toward correct keys
       const bars = fallingBars(notes, {
-        width: KEYBOARD_W,
-        height: areaHeight,
-        nowSec: now,
-        speed,
-        lookaheadSec: lookahead,
-        lowMidi: low,
-        highMidi: high,
+        width: KEYBOARD_W, height: areaHeight, nowSec: now, speed,
+        lookaheadSec: lookahead, lowMidi: low, highMidi: high,
       });
       for (const b of bars) b.x += LEFT_MARGIN;
-
       const upcoming = upcomingMidi(bars, areaHeight, lookahead);
 
       // --- Determine current chord ---
       const beatSec = 60 / (bpm * speed);
       const currentBeat = now / beatSec;
       let activeChordNotes: Set<number> = new Set();
+      let activeChordName = "";
       for (let i = ch.length - 1; i >= 0; i--) {
         if (currentBeat >= ch[i]!.beat) {
           activeChordNotes = new Set(ch[i]!.notes);
+          activeChordName = ch[i]!.name;
           break;
         }
       }
 
-      // --- Left-hand background zone (subtle tinted band) ---
-      // Find the x-range of left-hand notes to draw a subtle backdrop
+      // --- Left-hand background zone ---
       const leftBars = bars.filter((b) => b.hand === "L");
       if (leftBars.length > 0) {
         const lxMin = Math.min(...leftBars.map((b) => b.x));
@@ -93,10 +87,11 @@ export function FallingCanvas({ notes, timeRef, settings, pressedKeys, chords, t
         const bottom = areaHeight - (cSec - now) * pxPerSec;
         if (bottom < -30 || bottom > areaHeight + 30) continue;
         const y = Math.max(16, Math.min(areaHeight - 6, bottom - 4));
-        ctx.font = "700 13px system-ui, sans-serif";
+        const isActive = c.name === activeChordName;
+        ctx.font = isActive ? "800 14px system-ui, sans-serif" : "700 13px system-ui, sans-serif";
         ctx.textAlign = "right";
         ctx.textBaseline = "middle";
-        ctx.fillStyle = "#18181b";
+        ctx.fillStyle = isActive ? "#2563eb" : "#18181b";
         ctx.fillText(c.name, LEFT_MARGIN - 10, y);
       }
 
@@ -115,7 +110,6 @@ export function FallingCanvas({ notes, timeRef, settings, pressedKeys, chords, t
 
       // --- Keyboard ---
       const kb = keyboardRects({ width: KEYBOARD_W, lowMidi: low, highMidi: high, whiteHeight: KB_H });
-      ctx.fillStyle = "#f4f4f5";
       for (const w of kb.whites) {
         const kx = w.x + LEFT_MARGIN;
         const isChord = activeChordNotes.has(w.midi) && !pk.has(w.midi);
@@ -127,12 +121,13 @@ export function FallingCanvas({ notes, timeRef, settings, pressedKeys, chords, t
         ctx.textAlign = "center";
         ctx.textBaseline = "alphabetic";
         if (isChord) {
-          ctx.globalAlpha = 0.25;
+          // Chord key: tinted body + thick colored strip + border
+          ctx.globalAlpha = 0.4;
           ctx.fillStyle = pitchColor(w.midi);
           ctx.fillRect(kx, H - KB_H, w.w - 1, KB_H);
           ctx.globalAlpha = 1;
           ctx.fillStyle = pitchColor(w.midi);
-          ctx.fillRect(kx, H - 36, w.w - 1, 36);
+          ctx.fillRect(kx, H - 44, w.w - 1, 44);
           ctx.fillStyle = "#ffffff";
           ctx.font = "700 13px system-ui, sans-serif";
           ctx.strokeStyle = pitchColor(w.midi);
@@ -188,14 +183,13 @@ export function FallingCanvas({ notes, timeRef, settings, pressedKeys, chords, t
       for (const b of bars) {
         const isLeft = b.hand === "L";
         if (isLeft) {
-          // Left-hand: wide, semi-transparent bars with note labels
-          ctx.globalAlpha = 0.35;
+          // Left-hand: wide, visible bars with note labels
+          ctx.globalAlpha = 0.5;
           ctx.fillStyle = b.color;
           ctx.beginPath();
           ctx.roundRect(b.x - 6, b.y, b.width + 12, b.height, 4);
           ctx.fill();
           ctx.globalAlpha = 1;
-          // Note label
           if (b.height >= 14) {
             ctx.font = "600 10px system-ui, sans-serif";
             ctx.textAlign = "center";
