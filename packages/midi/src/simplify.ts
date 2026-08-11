@@ -74,6 +74,48 @@ function topVoices(notes: Note[], grid: number, keep: number): Note[] {
   return out;
 }
 
+/**
+ * Drop notes that would make one hand's SOUNDING pitch span exceed `maxSpan`
+ * (notes overlap across slices even when their starts are different). The
+ * hand's melodic extreme (highest for RH, lowest for LH) is kept and only
+ * unreachable inner/outer voices are removed, so the line survives.
+ */
+function capSoundingSpan(notes: Note[], maxSpan: number, anchor: "high" | "low"): Note[] {
+  const sorted = [...notes].sort(
+    (a, b) => a.start - b.start || (anchor === "high" ? b.midi - a.midi : a.midi - b.midi),
+  );
+  const out: Note[] = [];
+  const active: { end: number; midi: number; note: Note }[] = [];
+  for (const n of sorted) {
+    for (let i = active.length - 1; i >= 0; i--) {
+      if (active[i]!.end <= n.start) active.splice(i, 1);
+    }
+    const mids = active.map((a) => a.midi);
+    if (mids.length === 0) {
+      active.push({ end: n.start + n.dur, midi: n.midi, note: n });
+      out.push(n);
+      continue;
+    }
+    const span = Math.max(...mids, n.midi) - Math.min(...mids, n.midi);
+    const extendsAnchor = anchor === "high" ? n.midi > Math.max(...mids) : n.midi < Math.min(...mids);
+    if (span <= maxSpan) {
+      active.push({ end: n.start + n.dur, midi: n.midi, note: n });
+      out.push(n);
+    } else if (extendsAnchor) {
+      const kept = active.filter((a) => Math.abs(a.midi - n.midi) <= maxSpan);
+      const removed = new Set(active.filter((a) => !kept.includes(a)).map((a) => a.note));
+      for (let i = out.length - 1; i >= 0; i--) {
+        const note = out[i];
+        if (note !== undefined && removed.has(note)) out.splice(i, 1);
+      }
+      active.length = 0;
+      active.push(...kept, { end: n.start + n.dur, midi: n.midi, note: n });
+      out.push(n);
+    }
+  }
+  return out;
+}
+
 function thinChord(notes: Note[], keep: number): Note[] {
   const bySlice = new Map<number, Note[]>();
   for (const n of notes) {
@@ -119,22 +161,48 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
 
   // Use the hand-labeled split output, not the raw base, so the advanced
   // variant keeps L/R hand labels for two-staff rendering. Cap voices per
-  // slice so full-band multitrack MIDIs stay a playable piano texture.
-  const advanced = quantize([...topVoices(rh, 0.125, 4), ...thinChord(lh, 4)], { grid: 0.125 });
-  const medium = quantize([...topVoices(rh, 0.125, 3), ...thinChord(lh, 3)], { grid: 0.125 });
+  // slice AND sounding span so full-band multitrack MIDIs stay a playable
+  // piano texture; each easier level is then a reduction of the level above
+  // so the ladder stays a true subset.
+  const advanced = quantize(
+    [
+      ...capSoundingSpan(topVoices(rh, 0.125, 4), 12, "high"),
+      ...capSoundingSpan(thinChord(lh, 4), 12, "low"),
+    ],
+    { grid: 0.125 },
+  );
+  const advancedRh = advanced.filter((n) => n.hand !== "L");
+  const advancedLh = advanced.filter((n) => n.hand === "L");
+  const medium = quantize(
+    [
+      ...capSoundingSpan(topVoices(advancedRh, 0.125, 3), 12, "high"),
+      ...capSoundingSpan(thinChord(advancedLh, 3), 12, "low"),
+    ],
+    { grid: 0.125 },
+  );
+  const mediumRh = medium.filter((n) => n.hand !== "L");
+  const mediumLh = medium.filter((n) => n.hand === "L");
   const easy = quantize(
-    [...melodyOnly(rh, 0.125, 0.5), ...thinChord(lh, 2).map((n) => ({ ...n, midi: rootOf(n.midi, key) }))],
+    [
+      ...capSoundingSpan(melodyOnly(mediumRh, 0.125, 0.5), 12, "high"),
+      ...capSoundingSpan(thinChord(mediumLh, 2).map((n) => ({ ...n, midi: rootOf(n.midi, key) })), 12, "low"),
+    ],
     { grid: 0.125 },
   );
   // Each easier level is a reduction of the level above it, so the ladder
   // is a true subset (same melody, same moments) instead of a re-selection
   // that drifts apart in fast passages.
+  const easyRh = easy.filter((n) => n.hand !== "L");
+  const easyLh = easy.filter((n) => n.hand === "L");
   const veryEasy = quantize(
-    [...melodyOnly(easy.filter((n) => n.hand !== "L"), 0.25, 0.5), ...easy.filter((n) => n.hand === "L")],
+    [...capSoundingSpan(melodyOnly(easyRh, 0.25, 0.5), 12, "high"), ...easyLh],
     { grid: 0.25 },
   );
-  const beginner = quantize(melodyOnly(veryEasy.filter((n) => n.hand !== "L"), 0.25, 0.5), { grid: 0.25 });
-  const veryBeginner = quantize(melodyOnly(beginner, 0.5, 1), { grid: 0.5 });
+  const beginner = quantize(
+    capSoundingSpan(melodyOnly(veryEasy.filter((n) => n.hand !== "L"), 0.25, 0.5), 12, "high"),
+    { grid: 0.25 },
+  );
+  const veryBeginner = quantize(capSoundingSpan(melodyOnly(beginner, 0.5, 1), 12, "high"), { grid: 0.5 });
 
   const sets: Record<DifficultyLevel, Note[]> = {
     "very-beginner": veryBeginner,
