@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { beatToSec, resolveTimedNotes, firstNoteAtOrAfter } from "../src/timeline.js";
 import { Grader, detectPitch } from "../src/grading.js";
-import { KeyboardInput, KEYMAP } from "../src/input.js";
+import { KeyboardInput, KEYMAP, MidiInput } from "../src/input.js";
 import { fallingBars, noteLabel, upcomingMidi } from "../src/views/falling.js";
 import { loadSettings, saveSettings, DEFAULT_SETTINGS } from "../src/prefs.js";
 import type { SongData } from "../src/types.js";
@@ -140,6 +140,28 @@ describe("keyboard input", () => {
     ki.handleKey(down);
     ki.handleKey({ ...down, type: "keyup" } as unknown as KeyboardEvent);
     expect(events).toEqual(["on:60", "off:60"]);
+  });
+});
+
+describe("midi input", () => {
+  it("disconnect removes message handlers from connected inputs", async () => {
+    const input = { onmidimessage: null } as { onmidimessage: ((e: unknown) => void) | null };
+    const real = Object.getOwnPropertyDescriptor(globalThis, "navigator");
+    Object.defineProperty(globalThis, "navigator", {
+      value: { requestMIDIAccess: async () => ({ inputs: new Map([["in", input]]) }) },
+      configurable: true,
+      writable: true,
+    });
+    try {
+      const mi = new MidiInput({ onNoteOn: () => {}, onNoteOff: () => {} });
+      await mi.connect();
+      expect(mi.connectedCount).toBe(1);
+      mi.disconnect();
+      expect(input.onmidimessage).toBeNull();
+      expect(mi.connectedCount).toBe(0);
+    } finally {
+      if (real) Object.defineProperty(globalThis, "navigator", real);
+    }
   });
 });
 

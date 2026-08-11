@@ -85,4 +85,10 @@ export class MidiInput {
   get connectedCount(): number {
     return this.inputs.length;
   }
+
+  /** Remove all MIDI message handlers (call when the consumer unmounts). */
+  disconnect(): void {
+    for (const input of this.inputs) input.onmidimessage = null;
+    this.inputs = [];
+  }
 }

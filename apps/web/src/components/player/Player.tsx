@@ -6,11 +6,16 @@ import {
   AudioEngine,
   KeyboardInput,
   MidiInput,
-  Grader,
+  PlaybackEngine,
+  loadJson,
   loadSettings,
-  saveSettings,
+  measureIndex,
   resolveTimedNotes,
+  saveJson,
+  saveSettings,
+  secPerBeat,
   DEFAULT_SETTINGS,
+  type LoopRegion,
   type PlayerSettings,
   type ViewMode,
   type SongData,
@@ -24,7 +29,6 @@ import { SheetMusicView } from "./SheetMusicView";
 import { SettingsDialog } from "./SettingsDialog";
 import { DownloadDialog } from "./DownloadDialog";
 import { GradingPanel } from "./GradingPanel";
-import { loadJson, saveJson } from "@keyspilli/player-core";
 
 export interface PlayerDetail {
   song: SongRow;
@@ -39,6 +43,9 @@ const MODES: { id: ViewMode; label: string; hint: string }[] = [
   { id: "leadsheet", label: "Lead Sheet", hint: "Lyrics + chords" },
 ];
 
+/** Pressed keys drop if their noteOff was lost (common with USB-MIDI). */
+const GHOST_KEY_TIMEOUT_MS = 5000;
+
 export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMode | null }) {
   const [settings, setSettings] = useState<PlayerSettings>(() => {
     const s = loadSettings();
@@ -47,43 +54,21 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
   });
   const [time, setTime] = useState(0);
   const [playing, setPlaying] = useState(false);
-  const [loop, setLoop] = useState<{ start: number; end: number } | null>(null);
+  const [loop, setLoop] = useState<LoopRegion | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showModeMenu, setShowModeMenu] = useState(false);
   const [showDownload, setShowDownload] = useState(false);
   const [grading, setGrading] = useState(false);
   const [waitMode, setWaitMode] = useState(false);
   const [gradeResult, setGradeResult] = useState<string | null>(null);
-  const [pressedKeys, setPressedKeys] = useState<Set<number>>(new Set());
+  const [pressedKeys, setPressedKeys] = useState<Map<number, number>>(new Map());
   const [midiConnected, setMidiConnected] = useState(false);
   const [songKeyLabel, setSongKeyLabel] = useState(initial.data.key);
   const [favorites, setFavorites] = useState<string[]>(() => loadJson("keyspilli.favorites", [] as string[]));
   const [learned, setLearned] = useState<string[]>(() => loadJson("keyspilli.learned", [] as string[]));
 
-  const audioRef = useRef<AudioEngine | null>(null);
-  const timeRef = useRef(0);
-  const playingRef = useRef(false);
-  const posRef = useRef(0);
-  const lastScheduledRef = useRef(0);
-  const graderRef = useRef<Grader | null>(null);
-  const waitRef = useRef(false);
-  const loopRef = useRef<{ start: number; end: number } | null>(null);
-  const settingsRef = useRef(settings);
-  const dataRef = useRef(initial.data);
+  const engineRef = useRef<PlaybackEngine | null>(null);
   const modeMenuRef = useRef<HTMLDivElement>(null);
-
-  settingsRef.current = settings;
-  dataRef.current = initial.data;
-  waitRef.current = waitMode;
-  loopRef.current = loop;
-
-  const audio = useCallback(() => {
-    if (!audioRef.current) {
-      audioRef.current = new AudioEngine();
-      audioRef.current.setGains(settingsRef.current.voiceGain, settingsRef.current.pianoGain);
-    }
-    return audioRef.current;
-  }, []);
 
   const notes = useMemo(
     () =>
@@ -95,104 +80,106 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
     [initial.data, settings.speed, settings.transpose, settings.hand],
   );
 
-  const duration = useMemo(
-    () => notes.reduce((m, n) => Math.max(m, n.startSec + n.durSec), 8),
-    [notes],
-  );
+  const duration = useMemo(() => notes.reduce((m, n) => Math.max(m, n.startSec + n.durSec), 8), [notes]);
 
-  const scheduleWindow = useCallback((from: number, to: number) => {
-    const eng = audioRef.current;
-    if (!eng) return;
-    from = Math.max(from, posRef.current);
+  // MIDI range is fixed per note set; computed once instead of per canvas frame.
+  const midiRange = useMemo(() => {
+    let low = 48;
+    let high = 72;
     for (const n of notes) {
-      if (n.startSec >= from && n.startSec < to && (n.hand === "L" ? settingsRef.current.backgroundMode === "piano" : true)) {
-        eng.noteOn(n, Math.max(0, n.startSec - posRef.current));
-      }
+      if (n.midi < low) low = n.midi;
+      if (n.midi > high) high = n.midi;
     }
-    if (settingsRef.current.metronome && settingsRef.current.backgroundMode !== "chord") {
-      const beat = 60 / initial.data.tempoBpm / settingsRef.current.speed;
-      for (let t = Math.ceil(from / beat) * beat; t < to; t += beat) {
-        const beatIndex = Math.round(t / beat);
-        eng.metronomeClick(beatIndex % (initial.data.timeSig[0] * (4 / initial.data.timeSig[1])) === 0 ? 0 : 1, Math.max(0, t - posRef.current));
-      }
-    }
-    lastScheduledRef.current = to;
-  }, [notes, initial.data.tempoBpm, initial.data.timeSig]);
+    return { low: low - 3, high: high + 3 };
+  }, [notes]);
 
-  const startPlayback = useCallback(() => {
-    const eng = audio();
-    eng.ensure();
-    playingRef.current = true;
-    setPlaying(true);
-    posRef.current = timeRef.current;
-    lastScheduledRef.current = timeRef.current;
-    scheduleWindow(timeRef.current, timeRef.current + 0.12);
-    void fetch(`/api/songs/${initial.song.id}/play`, { method: "POST" });
-  }, [audio, scheduleWindow, initial.song.id]);
-
-  const stopPlayback = useCallback(() => {
-    playingRef.current = false;
-    setPlaying(false);
-    if (audioRef.current) {
-      audioRef.current.dispose();
-      audioRef.current = null;
-    }
+  // Engine lifecycle: one PlaybackEngine per mount, disposed on unmount.
+  useEffect(() => {
+    const engine = new PlaybackEngine(
+      new AudioEngine(),
+      notes,
+      duration,
+      { tempoBpm: initial.data.tempoBpm, timeSig: initial.data.timeSig },
+      settings,
+    );
+    engine.onChange = (snap) => {
+      setTime(snap.time);
+      setPlaying(snap.playing);
+    };
+    engineRef.current = engine;
+    return () => {
+      engineRef.current = null;
+      engine.audio.dispose();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const seek = useCallback((t: number) => {
-    const next = Math.max(0, Math.min(duration, t));
-    posRef.current = next;
-    timeRef.current = next;
-    lastScheduledRef.current = next;
-    setTime(next);
-  }, [duration]);
-
-  const togglePlay = useCallback(() => {
-    if (playingRef.current) stopPlayback();
-    else startPlayback();
-  }, [startPlayback, stopPlayback]);
-
-  // Main rAF loop
   useEffect(() => {
-    if (!playingRef.current) return;
+    if (engineRef.current) engineRef.current.settings = settings;
+  }, [settings]);
+
+  useEffect(() => {
+    engineRef.current?.setNotes(notes, duration);
+  }, [notes, duration]);
+
+  useEffect(() => {
+    engineRef.current?.setLoop(loop);
+  }, [loop]);
+
+  useEffect(() => {
+    if (engineRef.current) engineRef.current.waitMode = waitMode;
+  }, [waitMode]);
+
+  // Main rAF loop. The engine owns playback state; this just feeds it dt.
+  useEffect(() => {
+    if (!playing) return;
     let raf = 0;
     let last = performance.now();
     const tick = (now: number) => {
       const dt = (now - last) / 1000;
       last = now;
-      const next = posRef.current + dt;
-      if (loopRef.current && next > loopRef.current.end) {
-        posRef.current = loopRef.current.start;
-        audioRef.current?.dispose();
-        audioRef.current = null;
-        audio().ensure();
-        lastScheduledRef.current = posRef.current;
-        scheduleWindow(posRef.current, posRef.current + 0.12);
-      } else {
-        posRef.current = next;
-      }
-      if (posRef.current >= duration && !loopRef.current) {
-        stopPlayback();
-        seek(0);
-        return;
-      }
-      scheduleWindow(lastScheduledRef.current, posRef.current + 0.12);
-      if (graderRef.current && !waitRef.current) graderRef.current.tick(posRef.current);
-      timeRef.current = posRef.current;
-      setTime(posRef.current);
-      raf = requestAnimationFrame(tick);
+      const eng = engineRef.current;
+      if (!eng) return;
+      eng.tick(dt);
+      if (eng.playing) raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [playing, audio, scheduleWindow, stopPlayback, seek, duration]);
+  }, [playing]);
 
-  // Keyboard + MIDI input
+  const startPlayback = useCallback(() => {
+    engineRef.current?.start();
+    void fetch(`/api/songs/${initial.song.id}/play`, { method: "POST" });
+  }, [initial.song.id]);
+
+  const stopPlayback = useCallback(() => {
+    engineRef.current?.stop();
+  }, []);
+
+  const seek = useCallback((t: number) => {
+    engineRef.current?.seek(t);
+  }, []);
+
+  function togglePlay() {
+    if (playing) stopPlayback();
+    else startPlayback();
+  }
+
+  // Keyboard + MIDI input (one keydown listener; Escape handled first).
   useEffect(() => {
     const ki = new KeyboardInput({
       onNoteOn: (m) => handleNote(m, true),
       onNoteOff: (m) => handleNote(m, false),
     });
-    const onKey = (e: KeyboardEvent) => ki.handleKey(e);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setShowModeMenu(false);
+        setShowSettings(false);
+        setShowDownload(false);
+      } else {
+        ki.handleKey(e);
+      }
+    };
     window.addEventListener("keydown", onKey);
     window.addEventListener("keyup", onKey);
     const mi = new MidiInput({
@@ -203,56 +190,56 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
     return () => {
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("keyup", onKey);
+      mi.disconnect();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [grading]);
+  }, []);
 
+  // Outside-click closes the mode menu.
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setShowModeMenu(false);
-        setShowSettings(false);
-        setShowDownload(false);
-      }
-    };
     const onDown = (e: MouseEvent) => {
       if (showModeMenu && modeMenuRef.current && !modeMenuRef.current.contains(e.target as Node)) {
         setShowModeMenu(false);
       }
     };
-    window.addEventListener("keydown", onKey);
     window.addEventListener("mousedown", onDown);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      window.removeEventListener("mousedown", onDown);
-    };
+    return () => window.removeEventListener("mousedown", onDown);
   }, [showModeMenu]);
 
+  // Sweep pressed keys whose noteOff never arrived.
+  useEffect(() => {
+    const id = setInterval(() => {
+      setPressedKeys((m) => {
+        const now = performance.now();
+        const next = new Map<number, number>();
+        let changed = false;
+        for (const [midi, at] of m) {
+          if (now - at < GHOST_KEY_TIMEOUT_MS) next.set(midi, at);
+          else changed = true;
+        }
+        return changed ? next : m;
+      });
+    }, 2000);
+    return () => clearInterval(id);
+  }, []);
+
   function handleNote(midi: number, on: boolean) {
+    const eng = engineRef.current;
+    if (!eng) return;
     if (!on) {
-      audioRef.current?.noteOff(midi);
+      eng.handleNoteOff(midi);
       setPressedKeys((s) => {
-        const n = new Set(s);
+        const n = new Map(s);
         n.delete(midi);
         return n;
       });
       return;
     }
-    if (grading && graderRef.current) {
-      const accepted = graderRef.current.play(midi, posRef.current);
-      if (!accepted) return;
-    }
-    const n = { midi, startSec: 0, durSec: 0.4, vel: 100, hand: "R" as const };
-    audioRef.current?.noteOn(n);
-    setPressedKeys((s) => new Set(s).add(midi));
+    if (!eng.handleNoteOn(midi)) return;
+    setPressedKeys((s) => new Map(s).set(midi, performance.now()));
   }
 
   function handleMicNote(midi: number) {
-    if (grading && graderRef.current) {
-      graderRef.current.play(midi, posRef.current);
-    }
-    const n = { midi, startSec: 0, durSec: 0.35, vel: 90, hand: "R" as const };
-    audioRef.current?.noteOn(n);
+    engineRef.current?.handleMicNote(midi);
   }
 
   function toggleLoop() {
@@ -261,14 +248,13 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
       return;
     }
     const measures = 4 * (initial.data.timeSig[0] * (4 / initial.data.timeSig[1]));
-    const secPerBeat = 60 / initial.data.tempoBpm / settings.speed;
-    const end = timeRef.current + measures * secPerBeat;
-    setLoop({ start: timeRef.current, end });
+    const t = engineRef.current?.time ?? time;
+    setLoop({ startSec: t, endSec: t + measures * secPerBeat(initial.data.tempoBpm, settings.speed) });
   }
 
   function seekToMeasure(i: number) {
     const m = initial.data.measures[i];
-    if (m) seek(m.startBeat * (60 / initial.data.tempoBpm / settings.speed));
+    if (m) seek(m.startBeat * secPerBeat(initial.data.tempoBpm, settings.speed));
   }
 
   function toggleFavorite() {
@@ -286,9 +272,9 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
   }
 
   function updateSettings(p: Partial<PlayerSettings>) {
-    const next = { ...settingsRef.current, ...p };
+    const next = { ...settings, ...p };
     setSettings(next);
-    audioRef.current?.setGains(next.voiceGain, next.pianoGain);
+    engineRef.current?.audio.setGains(next.voiceGain, next.pianoGain);
     saveSettings(next);
   }
 
@@ -296,25 +282,26 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
     setWaitMode(wait);
     setGrading(true);
     setGradeResult(null);
-    stopPlayback();
-    seek(0);
-    graderRef.current = new Grader(notes, { waitMode: wait });
+    engineRef.current?.startGrading(wait);
   }
 
   function finishGrading() {
-    if (graderRef.current) setGradeResult(graderRef.current.result().summary);
-    graderRef.current = null;
+    const result = engineRef.current?.finishGrading();
+    if (result) setGradeResult(result.summary);
     setGrading(false);
     setWaitMode(false);
   }
 
-  const waitNote = grading && waitMode ? graderRef.current?.currentWait : null;
-  const currentMeasure = Math.min(
-    initial.data.measures.length - 1,
-    Math.floor((time / (60 / initial.data.tempoBpm / settings.speed)) / (initial.data.timeSig[0] * (4 / initial.data.timeSig[1]))),
+  const waitNote = grading && waitMode ? engineRef.current?.waitNote : null;
+  const currentMeasure = measureIndex(
+    time,
+    initial.data.tempoBpm,
+    settings.speed,
+    initial.data.timeSig,
+    initial.data.measures.length,
   );
   const activeModeLabel = MODES.find((m) => m.id === settings.mode)?.label ?? settings.mode;
-  const currentBeat = time / (60 / initial.data.tempoBpm / settings.speed);
+  const currentBeat = time / secPerBeat(initial.data.tempoBpm, settings.speed);
   const fmtTime = (t: number) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
 
   return (
@@ -477,7 +464,18 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
           aria-label={`Player stage — ${activeModeLabel}`}
         >
           {settings.mode === "falling" && <ChordStrip chords={initial.data.chords} currentBeat={currentBeat} />}
-          {settings.mode === "falling" && <FallingCanvas notes={notes} timeRef={timeRef} settings={settings} pressedKeys={pressedKeys} chords={initial.data.chords} tempoBpm={initial.data.tempoBpm} />}
+          {settings.mode === "falling" && (
+            <FallingCanvas
+              notes={notes}
+              time={time}
+              settings={settings}
+              pressedKeys={pressedKeys}
+              chords={initial.data.chords}
+              tempoBpm={initial.data.tempoBpm}
+              lowMidi={midiRange.low}
+              highMidi={midiRange.high}
+            />
+          )}
           {settings.mode === "beginner" && <BeginnerView data={initial.data} time={time} settings={settings} />}
           {settings.mode === "leadsheet" && <LeadSheetView data={initial.data} time={time} settings={settings} />}
           {settings.mode === "sheet" && <SheetMusicView songId={initial.song.id} />}

@@ -31,60 +31,28 @@ export interface LoopRegion {
   endSec: number;
 }
 
-export class Timeline {
-  private _time = 0;
-  private _speed = 1;
-  loop: LoopRegion | null = null;
-  private listeners = new Set<() => void>();
+/** Seconds per beat at a given BPM and speed multiplier. */
+export function secPerBeat(bpm: number, speed: number): number {
+  return 60 / (bpm * speed);
+}
 
-  constructor(
-    private durationSec: number,
-    private onNoteDue: (n: TimedNote, atSec: number) => void,
-    private onTick: (time: number) => void = () => {},
-  ) {}
+/** Beats in one measure for a time signature (3/4 -> 3, 6/8 -> 3). */
+export function beatsPerMeasure(timeSig: [number, number]): number {
+  return timeSig[0] * (4 / timeSig[1]);
+}
 
-  get time(): number {
-    return this._time;
-  }
-
-  get speed(): number {
-    return this._speed;
-  }
-
-  setSpeed(s: number): void {
-    this._speed = Math.max(0.25, Math.min(2, s));
-    this.emit();
-  }
-
-  seek(t: number): void {
-    this._time = Math.max(0, Math.min(this.durationSec, t));
-    this.emit();
-  }
-
-  get duration(): number {
-    return this.durationSec;
-  }
-
-  /** Advance by dt seconds (from requestAnimationFrame). Returns due notes. */
-  advance(dt: number): TimedNote[] {
-    const next = this._time + dt;
-    if (this.loop && next > this.loop.endSec) {
-      this._time = this.loop.startSec;
-    } else {
-      this._time = Math.min(next, this.durationSec);
-    }
-    this.emit();
-    return [];
-  }
-
-  onChange(cb: () => void): () => void {
-    this.listeners.add(cb);
-    return () => this.listeners.delete(cb);
-  }
-
-  private emit(): void {
-    for (const l of this.listeners) l();
-  }
+/** Index of the measure containing timeSec, clamped to the song's range. */
+export function measureIndex(
+  timeSec: number,
+  bpm: number,
+  speed: number,
+  timeSig: [number, number],
+  measureCount: number,
+): number {
+  return Math.min(
+    measureCount - 1,
+    Math.floor(timeSec / secPerBeat(bpm, speed) / beatsPerMeasure(timeSig)),
+  );
 }
 
 /** Binary-search index of first note starting at or after t. */
