@@ -108,6 +108,21 @@ export class AudioEngine {
     this.active.delete(midi);
   }
 
+  /** Silence everything without closing the context (loop wraps, pause). */
+  cancelAll(): void {
+    const t = this.ctx?.currentTime ?? 0;
+    for (const [, entries] of this.active) {
+      for (const e of entries) {
+        try {
+          e.gain.gain.cancelScheduledValues(t);
+          e.gain.gain.setTargetAtTime(0, t, 0.01);
+          e.osc.stop(t + 0.05);
+        } catch {}
+      }
+    }
+    this.active.clear();
+  }
+
   metronomeClick(beat: number, when = 0): void {
     const ctx = this.ensure();
     if (!this.master) return;
