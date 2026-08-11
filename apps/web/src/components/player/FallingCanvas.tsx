@@ -1,21 +1,32 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { fallingBars, keyboardRects, noteLabel, pitchColor, upcomingMidi, type PlayerSettings, type TimedNote } from "@keyspilli/player-core";
+import {
+  fallingBars,
+  keyboardRects,
+  noteLabel,
+  pitchColor,
+  secPerBeat,
+  upcomingMidi,
+  type PlayerSettings,
+  type TimedNote,
+} from "@keyspilli/player-core";
 
 interface Props {
   notes: TimedNote[];
-  timeRef: React.MutableRefObject<number>;
+  time: number;
   settings: PlayerSettings;
-  pressedKeys: Set<number>;
+  pressedKeys: Map<number, number>;
   chords: { beat: number; name: string; notes: number[] }[];
   tempoBpm: number;
+  lowMidi: number;
+  highMidi: number;
 }
 
-export function FallingCanvas({ notes, timeRef, settings, pressedKeys, chords, tempoBpm }: Props) {
+export function FallingCanvas({ notes, time, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const propsRef = useRef({ notes, settings, pressedKeys, chords, tempoBpm });
-  propsRef.current = { notes, settings, pressedKeys, chords, tempoBpm };
+  const propsRef = useRef({ notes, time, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi });
+  propsRef.current = { notes, time, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi };
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -35,8 +46,7 @@ export function FallingCanvas({ notes, timeRef, settings, pressedKeys, chords, t
     canvas.style.width = "100%";
 
     const draw = () => {
-      const { notes, settings: s, pressedKeys: pk, chords: ch, tempoBpm: bpm } = propsRef.current;
-      const now = timeRef.current;
+      const { notes, time: now, settings: s, pressedKeys: pk, chords: ch, tempoBpm: bpm, lowMidi: low, highMidi: high } = propsRef.current;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, W, H);
       ctx.fillStyle = "#fafafa";
@@ -47,9 +57,6 @@ export function FallingCanvas({ notes, timeRef, settings, pressedKeys, chords, t
       const areaHeight = H - KB_H - 10;
       const pxPerSec = areaHeight / lookahead;
 
-      const low = Math.min(48, ...notes.map((n) => n.midi)) - 3;
-      const high = Math.max(72, ...notes.map((n) => n.midi)) + 3;
-
       const bars = fallingBars(notes, {
         width: KEYBOARD_W, height: areaHeight, nowSec: now, speed,
         lookaheadSec: lookahead, lowMidi: low, highMidi: high,
@@ -58,7 +65,7 @@ export function FallingCanvas({ notes, timeRef, settings, pressedKeys, chords, t
       const upcoming = upcomingMidi(bars, areaHeight, lookahead);
 
       // --- Determine current chord ---
-      const beatSec = 60 / (bpm * speed);
+      const beatSec = secPerBeat(bpm, speed);
       const currentBeat = now / beatSec;
       let activeChordNotes: Set<number> = new Set();
       let activeChordName = "";
@@ -220,7 +227,7 @@ export function FallingCanvas({ notes, timeRef, settings, pressedKeys, chords, t
     };
     raf = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(raf);
-  }, [timeRef]);
+  }, []);
 
   return (
     <div className="relative">

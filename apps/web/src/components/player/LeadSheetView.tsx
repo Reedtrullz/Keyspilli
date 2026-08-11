@@ -1,12 +1,15 @@
 "use client";
 
-import { pitchColor, type PlayerSettings, type SongData } from "@keyspilli/player-core";
+import { measureIndex, pitchColor, secPerBeat, type PlayerSettings, type SongData } from "@keyspilli/player-core";
 
 export function LeadSheetView({ data, time, settings }: { data: SongData; time: number; settings: PlayerSettings }) {
-  const beatSec = 60 / data.tempoBpm / settings.speed;
-  const currentMeasure = Math.min(
-    data.measures.length - 1,
-    Math.floor(time / beatSec / (data.timeSig[0] * (4 / data.timeSig[1]))),
+  const beatSec = secPerBeat(data.tempoBpm, settings.speed);
+  const currentMeasure = measureIndex(
+    time,
+    data.tempoBpm,
+    settings.speed,
+    data.timeSig,
+    data.measures.length,
   );
   const m = data.measures[currentMeasure] ?? data.measures[0]!;
   const notes = data.notes.filter((n) => n.start >= m.startBeat && n.start < m.endBeat && n.hand !== "L");

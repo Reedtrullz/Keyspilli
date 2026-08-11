@@ -1,15 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { getSong, getSongsByBase, artifactsDir, SongRow } from "@keyspilli/catalog";
-
-export interface SongData {
-  notes: { midi: number; start: number; dur: number; vel: number; hand?: "R" | "L"; lyrics?: string }[];
-  chords: { beat: number; name: string; notes: number[] }[];
-  measures: { index: number; startBeat: number; endBeat: number }[];
-  key: string;
-  tempoBpm: number;
-  timeSig: [number, number];
-}
+import type { SongData } from "@keyspilli/player-core";
 
 export interface SongDetail {
   song: SongRow;

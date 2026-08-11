@@ -56,6 +56,14 @@ test("player controls: loop, tempo, transpose, hands", async ({ page }) => {
   await page.getByRole("button", { name: "All", exact: true }).click();
 });
 
+test("practice mode starts and exits cleanly", async ({ page }) => {
+  await page.goto(`/player/${SONG}`);
+  await page.getByRole("button", { name: "Practice", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Practice mode" })).toBeVisible();
+  await page.getByRole("button", { name: "Exit", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Practice mode" })).not.toBeVisible();
+});
+
 test("download dialog offers free exports", async ({ page }) => {
   await page.goto(`/player/${SONG}`);
   await page.getByRole("button", { name: /Download Sheet & MIDI/ }).click();
