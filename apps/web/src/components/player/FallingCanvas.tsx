@@ -107,20 +107,28 @@ export function FallingCanvas({ notes, timeRef, settings, pressedKeys, chords, t
       for (const w of kb.whites) {
         const kx = w.x + LEFT_MARGIN;
         const isChord = activeChordNotes.has(w.midi) && !pk.has(w.midi);
-        ctx.fillStyle = pk.has(w.midi) ? pitchColor(w.midi) : isChord ? pitchColor(w.midi) : "#ffffff";
-        if (isChord) ctx.globalAlpha = 0.55;
+        ctx.fillStyle = pk.has(w.midi) ? pitchColor(w.midi) : "#ffffff";
         ctx.fillRect(kx, H - KB_H, w.w - 1, KB_H);
-        ctx.globalAlpha = 1;
         ctx.strokeStyle = "#d4d4d8";
         ctx.strokeRect(kx, H - KB_H, w.w - 1, KB_H);
         ctx.font = "600 12px system-ui, sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "alphabetic";
         if (isChord) {
-          // Colored bottom strip + white label for chord keys
+          // Chord key: tinted body + thick colored strip + border
+          ctx.globalAlpha = 0.25;
           ctx.fillStyle = pitchColor(w.midi);
-          ctx.fillRect(kx, H - 18, w.w - 1, 18);
+          ctx.fillRect(kx, H - KB_H, w.w - 1, KB_H);
+          ctx.globalAlpha = 1;
+          // Thick colored bar at bottom
+          ctx.fillStyle = pitchColor(w.midi);
+          ctx.fillRect(kx, H - 36, w.w - 1, 36);
           ctx.fillStyle = "#ffffff";
+          ctx.font = "700 13px system-ui, sans-serif";
+          // Colored border
+          ctx.strokeStyle = pitchColor(w.midi);
+          ctx.lineWidth = 2;
+          ctx.strokeRect(kx + 1, H - KB_H, w.w - 3, KB_H);
         } else {
           ctx.fillStyle = pk.has(w.midi) ? "#ffffff" : "#52525b";
         }
@@ -129,15 +137,24 @@ export function FallingCanvas({ notes, timeRef, settings, pressedKeys, chords, t
       for (const b of kb.blacks) {
         const kx = b.x + LEFT_MARGIN;
         const isChordB = activeChordNotes.has(b.midi) && !pk.has(b.midi);
-        ctx.fillStyle = pk.has(b.midi) ? pitchColor(b.midi) : isChordB ? pitchColor(b.midi) : "#27272a";
-        if (isChordB) ctx.globalAlpha = 0.65;
+        ctx.fillStyle = pk.has(b.midi) ? pitchColor(b.midi) : "#27272a";
         ctx.fillRect(kx, H - KB_H, b.w, KB_H * 0.62);
-        ctx.globalAlpha = 1;
         if (b.w >= 17) {
           ctx.font = "600 9px system-ui, sans-serif";
           ctx.textAlign = "center";
           ctx.textBaseline = "alphabetic";
-          ctx.fillStyle = pk.has(b.midi) ? "#18181b" : isChordB ? "#ffffff" : "#d4d4d8";
+          if (isChordB) {
+            // Chord black key: colored fill + white label
+            ctx.fillStyle = pitchColor(b.midi);
+            ctx.fillRect(kx, H - KB_H * 0.62, b.w, KB_H * 0.62);
+            ctx.fillStyle = "#ffffff";
+            // Colored border
+            ctx.strokeStyle = pitchColor(b.midi);
+            ctx.lineWidth = 2;
+            ctx.strokeRect(kx, H - KB_H * 0.62, b.w, KB_H * 0.62);
+          } else {
+            ctx.fillStyle = pk.has(b.midi) ? "#18181b" : "#d4d4d8";
+          }
           ctx.fillText(noteLabel(b.midi), kx + b.w / 2, H - 16);
         }
       }
