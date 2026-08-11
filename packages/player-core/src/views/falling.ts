@@ -46,6 +46,7 @@ export interface FallingBar {
   color: string;
   midi: number;
   label: string;
+  hand?: "R" | "L";
 }
 
 export interface FallingLayoutOptions {
@@ -92,6 +93,7 @@ export function fallingBars(notes: TimedNote[], o: FallingLayoutOptions): Fallin
       color: pitchColor(n.midi),
       midi: n.midi,
       label: noteLabel(n.midi),
+      hand: n.hand,
     });
   }
   return out;

@@ -474,7 +474,7 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
           role="region"
           aria-label={`Player stage — ${activeModeLabel}`}
         >
-          {settings.mode === "falling" && <FallingCanvas notes={notes} timeRef={timeRef} settings={settings} pressedKeys={pressedKeys} />}
+          {settings.mode === "falling" && <FallingCanvas notes={notes} timeRef={timeRef} settings={settings} pressedKeys={pressedKeys} chords={initial.data.chords} tempoBpm={initial.data.tempoBpm} />}
           {settings.mode === "beginner" && <BeginnerView data={initial.data} time={time} settings={settings} />}
           {settings.mode === "leadsheet" && <LeadSheetView data={initial.data} time={time} settings={settings} />}
           {settings.mode === "sheet" && <SheetMusicView songId={initial.song.id} />}
