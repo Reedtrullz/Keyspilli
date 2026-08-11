@@ -103,7 +103,9 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
   const scheduleWindow = useCallback((from: number, to: number) => {
     const eng = audioRef.current;
     if (!eng) return;
-    from = Math.max(from, posRef.current);
+    // `lastScheduledRef` is the true lower bound of already-scheduled notes;
+    // clamping by the advancing position would let hiccup frames skip notes.
+    from = Math.max(from, lastScheduledRef.current);
     for (const n of notes) {
       if (n.startSec >= from && n.startSec < to && (n.hand === "L" ? settingsRef.current.backgroundMode === "piano" : true)) {
         eng.noteOn(n, Math.max(0, n.startSec - posRef.current));
@@ -186,6 +188,16 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
     return () => cancelAnimationFrame(raf);
   }, [playing, audio, scheduleWindow, stopPlayback, seek, duration]);
 
+  // Reset the grader when the note set changes mid-practice (hand/speed/
+  // transpose edits would otherwise grade against stale notes).
+  useEffect(() => {
+    if (grading && graderRef.current) {
+      graderRef.current = new Grader(notes, { waitMode: waitRef.current });
+      seek(0);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notes]);
+
   // Keyboard + MIDI input
   useEffect(() => {
     const ki = new KeyboardInput({
@@ -203,6 +215,7 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
     return () => {
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("keyup", onKey);
+      mi.disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [grading]);
