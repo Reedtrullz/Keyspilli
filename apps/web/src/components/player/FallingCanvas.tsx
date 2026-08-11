@@ -8,6 +8,8 @@ import {
   pitchColor,
   secPerBeat,
   upcomingMidi,
+  visibleMidiRange,
+  type LoopRegion,
   type PlayerSettings,
   type TimedNote,
 } from "@keyspilli/player-core";
@@ -21,12 +23,13 @@ interface Props {
   tempoBpm: number;
   lowMidi: number;
   highMidi: number;
+  loop: LoopRegion | null;
 }
 
-export function FallingCanvas({ notes, time, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi }: Props) {
+export function FallingCanvas({ notes, time, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const propsRef = useRef({ notes, time, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi });
-  propsRef.current = { notes, time, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi };
+  const propsRef = useRef({ notes, time, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop });
+  propsRef.current = { notes, time, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop };
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -46,7 +49,17 @@ export function FallingCanvas({ notes, time, settings, pressedKeys, chords, temp
     canvas.style.width = "100%";
 
     const draw = () => {
-      const { notes, time: now, settings: s, pressedKeys: pk, chords: ch, tempoBpm: bpm, lowMidi: low, highMidi: high } = propsRef.current;
+      const {
+        notes,
+        time: now,
+        settings: s,
+        pressedKeys: pk,
+        chords: ch,
+        tempoBpm: bpm,
+        lowMidi: low,
+        highMidi: high,
+        loop,
+      } = propsRef.current;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, W, H);
       ctx.fillStyle = "#fafafa";
@@ -57,9 +70,12 @@ export function FallingCanvas({ notes, time, settings, pressedKeys, chords, temp
       const areaHeight = H - KB_H - 10;
       const pxPerSec = areaHeight / lookahead;
 
+      // Clamp the keyboard to ~4 octaves around the median visible pitch so
+      // wide arrangements stay readable; full range is the empty-window fallback.
+      const range = visibleMidiRange(notes, now, lookahead, { lowMidi: low, highMidi: high });
       const bars = fallingBars(notes, {
         width: KEYBOARD_W, height: areaHeight, nowSec: now, speed,
-        lookaheadSec: lookahead, lowMidi: low, highMidi: high,
+        lookaheadSec: lookahead, lowMidi: range.lowMidi, highMidi: range.highMidi,
       });
       for (const b of bars) b.x += LEFT_MARGIN;
       const upcoming = upcomingMidi(bars, areaHeight, lookahead);
@@ -116,7 +132,7 @@ export function FallingCanvas({ notes, time, settings, pressedKeys, chords, temp
       }
 
       // --- Keyboard ---
-      const kb = keyboardRects({ width: KEYBOARD_W, lowMidi: low, highMidi: high, whiteHeight: KB_H });
+      const kb = keyboardRects({ width: KEYBOARD_W, lowMidi: range.lowMidi, highMidi: range.highMidi, whiteHeight: KB_H });
       for (const w of kb.whites) {
         const kx = w.x + LEFT_MARGIN;
         const isChord = activeChordNotes.has(w.midi) && !pk.has(w.midi);
@@ -185,6 +201,63 @@ export function FallingCanvas({ notes, time, settings, pressedKeys, chords, temp
       ctx.fillStyle = "#18181b";
       ctx.font = "12px monospace";
       ctx.fillText(`${now.toFixed(1)}s`, LEFT_MARGIN + 4, areaHeight - 6);
+
+      // --- Loop region (dashed lines + tinted band) ---
+      if (loop) {
+        const yStart = areaHeight - (loop.startSec - now) * pxPerSec;
+        const yEnd = areaHeight - (loop.endSec - now) * pxPerSec;
+        const top = Math.min(yStart, yEnd);
+        const bottom = Math.max(yStart, yEnd);
+        if (bottom > 0 && top < areaHeight) {
+          ctx.fillStyle = "rgba(79,70,229,0.08)";
+          ctx.fillRect(LEFT_MARGIN, Math.max(0, top), W - LEFT_MARGIN - RIGHT_MARGIN, Math.min(areaHeight, bottom) - Math.max(0, top));
+        }
+        ctx.strokeStyle = "#4f46e5";
+        ctx.globalAlpha = 0.8;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 4]);
+        for (const y of [yStart, yEnd]) {
+          if (y < 0 || y > areaHeight) continue;
+          ctx.beginPath();
+          ctx.moveTo(LEFT_MARGIN, y);
+          ctx.lineTo(W - RIGHT_MARGIN, y);
+          ctx.stroke();
+        }
+        ctx.setLineDash([]);
+        ctx.globalAlpha = 1;
+      }
+
+      // --- Out-of-range edge indicators ---
+      let below = 0;
+      let above = 0;
+      for (const n of notes) {
+        if (n.startSec > now + lookahead || n.startSec + n.durSec < now - 0.05) continue;
+        if (n.midi < range.lowMidi) below++;
+        else if (n.midi > range.highMidi) above++;
+      }
+      ctx.font = "700 12px system-ui, sans-serif";
+      ctx.fillStyle = "#71717a";
+      if (below > 0) {
+        ctx.beginPath();
+        ctx.moveTo(LEFT_MARGIN + 2, H - KB_H + 8);
+        ctx.lineTo(LEFT_MARGIN + 12, H - KB_H + 8);
+        ctx.lineTo(LEFT_MARGIN + 7, H - KB_H - 2);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillText(String(below), LEFT_MARGIN + 16, H - KB_H + 8);
+      }
+      if (above > 0) {
+        const rx = W - RIGHT_MARGIN - 12;
+        ctx.beginPath();
+        ctx.moveTo(rx, H - KB_H + 8);
+        ctx.lineTo(rx + 10, H - KB_H + 8);
+        ctx.lineTo(rx + 5, H - KB_H - 2);
+        ctx.closePath();
+        ctx.fill();
+        ctx.textAlign = "left";
+        ctx.fillText(String(above), rx + 14, H - KB_H + 8);
+        ctx.textAlign = "center";
+      }
 
       // --- Draw bars with hand differentiation ---
       for (const b of bars) {

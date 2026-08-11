@@ -8,6 +8,7 @@ export const DEFAULT_SETTINGS: PlayerSettings = {
   backgroundMode: "piano",
   metronome: false,
   chordKeys: true,
+  sustainPedal: true,
   hand: "both",
   speed: 1,
   transpose: 0,

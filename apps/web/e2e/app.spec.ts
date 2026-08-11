@@ -54,6 +54,14 @@ test("player controls: loop, tempo, transpose, hands", async ({ page }) => {
   await expect(page.getByText("90%")).toBeVisible();
   await page.getByRole("button", { name: "R", exact: true }).click();
   await page.getByRole("button", { name: "All", exact: true }).click();
+  // seek bar + spacebar play/pause
+  const seek = page.getByRole("slider", { name: "Seek" });
+  await expect(seek).toBeVisible();
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  await page.keyboard.press("Space");
+  await expect(page.getByText("Playing — click anywhere to pause")).toBeVisible();
+  await page.keyboard.press("Space");
+  await expect(page.getByText("Playing — click anywhere to pause")).not.toBeVisible();
 });
 
 test("practice mode starts and exits cleanly", async ({ page }) => {

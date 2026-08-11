@@ -97,8 +97,8 @@ export function GradingPanel({
       {micError && <p className="text-xs text-red-600 mb-2">{micError}</p>}
       {waitMode && waitNote && (
         <div className="rounded-xl bg-indigo-50 p-3 text-sm mb-2">
-          Play: <span className="font-bold">{NOTE_NAMES[waitNote.midi % 12]}</span>
-          <span className="text-zinc-500"> ({waitNote.midi})</span>
+          Play: <span className="font-bold">{NOTE_NAMES[waitNote.midi % 12]}{Math.floor(waitNote.midi / 12) - 1}</span>
+          <span className="text-zinc-500"> ({waitNote.hand === "L" ? "left hand" : "right hand"})</span>
         </div>
       )}
       {result && <div className="rounded-xl bg-green-50 p-3 text-sm">{result}</div>}

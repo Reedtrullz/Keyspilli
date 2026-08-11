@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { beatToSec, resolveTimedNotes, firstNoteAtOrAfter } from "../src/timeline.js";
+import { beatToSec, resolveTimedNotes, firstNoteAtOrAfter, dedupeChords } from "../src/timeline.js";
 import { Grader, detectPitch } from "../src/grading.js";
 import { KeyboardInput, KEYMAP, MidiInput } from "../src/input.js";
-import { fallingBars, noteLabel, upcomingMidi } from "../src/views/falling.js";
+import { fallingBars, noteLabel, upcomingMidi, visibleMidiRange } from "../src/views/falling.js";
 import { loadSettings, saveSettings, DEFAULT_SETTINGS } from "../src/prefs.js";
 import type { SongData } from "../src/types.js";
 
@@ -41,6 +41,38 @@ describe("timeline", () => {
     expect(firstNoteAtOrAfter(tn, 0)).toBe(0);
     expect(firstNoteAtOrAfter(tn, 0.6)).toBe(2);
     expect(firstNoteAtOrAfter(tn, 5)).toBe(4);
+  });
+
+  it("collapses consecutive same-name chords", () => {
+    const names = dedupeChords([
+      { beat: 0, name: "C", notes: [48, 60] },
+      { beat: 0.25, name: "C", notes: [48, 60] },
+      { beat: 0.5, name: "C", notes: [48, 62] },
+      { beat: 2, name: "G", notes: [43, 55] },
+      { beat: 2.25, name: "G", notes: [43, 55] },
+      { beat: 4, name: "C", notes: [48, 60] },
+    ]).map((c) => c.name);
+    expect(names).toEqual(["C", "G", "C"]);
+  });
+
+  it("accents downbeats with a velocity curve", () => {
+    const tn = resolveTimedNotes({ ...song, notes: [{ midi: 60, start: 0, dur: 1, vel: 100, hand: "R" as const }] }, 1, 0);
+    expect(tn[0]!.vel).toBe(110);
+    const off = resolveTimedNotes({ ...song, notes: [{ midi: 60, start: 0.25, dur: 1, vel: 100, hand: "R" as const }] }, 1, 0);
+    expect(off[0]!.vel).toBe(85);
+  });
+});
+
+describe("visibleMidiRange", () => {
+  it("clamps the rendered span to the median visible pitch", () => {
+    const tn = resolveTimedNotes(song, 1, 0);
+    const wide = tn.map((n, i) => ({ ...n, midi: 30 + ((i * 20) % 70) }));
+    const r = visibleMidiRange(wide, 0, 3.2, { lowMidi: 22, highMidi: 109 });
+    expect(r.highMidi - r.lowMidi).toBeLessThanOrEqual(48);
+  });
+
+  it("falls back to the full range when nothing is visible", () => {
+    expect(visibleMidiRange([], 0, 3.2, { lowMidi: 22, highMidi: 109 })).toEqual({ lowMidi: 22, highMidi: 109 });
   });
 });
 
@@ -93,6 +125,15 @@ describe("grader", () => {
     expect(r.late).toBe(1);
     expect(r.missed).toBe(1);
     expect(r.accuracyPct).toBe(33);
+  });
+
+  it("scales timing tolerance with tempo", () => {
+    const fast = new Grader(notes, { bpm: 160 }); // beat 0.375s -> tolerance 0.15s
+    fast.play(60, 0.2); // outside the window, pitch matches after it -> late
+    expect(fast.result().late).toBe(1);
+    const slow = new Grader(notes, { bpm: 60 }); // beat 1s -> tolerance 0.4s
+    slow.play(60, 0.35); // inside the window -> hit
+    expect(slow.result().hit).toBe(1);
   });
 
   it("rejects the expected note before its time window in wait mode", () => {

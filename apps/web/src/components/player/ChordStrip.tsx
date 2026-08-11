@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useRef } from "react";
+
 interface ChordStripProps {
   chords: { beat: number; name: string; notes: number[] }[];
   currentBeat: number;
@@ -65,6 +67,7 @@ function MiniKeyboard({ notes }: { notes: number[] }) {
 }
 
 export function ChordStrip({ chords, currentBeat }: ChordStripProps) {
+  const stripRef = useRef<HTMLDivElement>(null);
   if (chords.length === 0) return null;
 
   // Find which chord is currently active
@@ -76,11 +79,19 @@ export function ChordStrip({ chords, currentBeat }: ChordStripProps) {
     }
   }
 
+  // Keep the active chord visible even when the user scrolled elsewhere.
+  useEffect(() => {
+    stripRef.current
+      ?.querySelector(`[data-chord-idx="${activeIdx}"]`)
+      ?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+  }, [activeIdx]);
+
   return (
-    <div className="flex gap-2 overflow-x-auto px-3 py-2 border-b border-zinc-100 bg-white" role="list" aria-label="Chord progression">
+    <div ref={stripRef} className="flex gap-2 overflow-x-auto px-3 py-2 border-b border-zinc-100 bg-white" role="list" aria-label="Chord progression">
       {chords.map((c, i) => (
         <div
           key={i}
+          data-chord-idx={i}
           role="listitem"
           className={`flex flex-col items-center gap-0.5 shrink-0 px-2 py-1 rounded-lg transition-colors ${
             i === activeIdx ? "bg-blue-50 ring-1 ring-blue-300" : ""

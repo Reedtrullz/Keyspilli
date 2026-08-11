@@ -429,6 +429,36 @@ describe("buildVariants", () => {
     expect(errors.some((e) => e.includes("bad time signature 3/3"))).toBe(true);
   });
 
+  it("dedupes consecutive same-name chords in built variants", () => {
+    const notes: Note[] = [];
+    for (let b = 0; b < 16; b++) {
+      notes.push({ midi: 60, start: b * 0.25, dur: 0.25, vel: 80 });
+      notes.push({ midi: 64, start: b * 0.25, dur: 0.25, vel: 80 });
+      notes.push({ midi: 67, start: b * 0.25, dur: 0.25, vel: 80 });
+    }
+    for (let b = 16; b < 24; b++) {
+      notes.push({ midi: 55, start: b * 0.25, dur: 0.25, vel: 80 });
+      notes.push({ midi: 59, start: b * 0.25, dur: 0.25, vel: 80 });
+      notes.push({ midi: 62, start: b * 0.25, dur: 0.25, vel: 80 });
+    }
+    const src: ParsedMidi = {
+      format: 0,
+      division: 480,
+      tempoBpm: 120,
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes,
+      trackNames: ["Test"],
+      durationBeats: 24,
+    };
+    for (const v of buildVariants(src, { title: "T", artist: "A" })) {
+      const names = v.chords.map((c) => c.name);
+      for (let i = 1; i < names.length; i++) expect(names[i]).not.toBe(names[i - 1]);
+      expect(v.chords.length).toBeLessThan(8); // 24 slices collapsed into changes
+    }
+  });
+
   it("validateVariants rejects variants with a frantic median inter-onset interval", () => {
     const variants = buildVariants(src, { title: "Scale", artist: "Test" });
     const vb = variants[0]!;

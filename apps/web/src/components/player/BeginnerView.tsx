@@ -1,6 +1,6 @@
 "use client";
 
-import { measureIndex, pitchColor, secPerBeat, type PlayerSettings, type SongData } from "@keyspilli/player-core";
+import { dedupeChords, measureIndex, pitchColor, secPerBeat, type PlayerSettings, type SongData } from "@keyspilli/player-core";
 
 const LETTERS = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
@@ -15,10 +15,16 @@ export function BeginnerView({ data, time, settings }: { data: SongData; time: n
   );
   const m = data.measures[currentMeasure] ?? data.measures[0]!;
   const notes = data.notes.filter((n) => n.start >= m.startBeat && n.start < m.endBeat);
+  const chords = dedupeChords(data.chords);
   const measureBeats = m.endBeat - m.startBeat;
   const W = 880;
   const H = 300;
   const playX = 60 + ((time / beatSec - m.startBeat) / measureBeats) * (W - 120);
+  // Scale the staff to the measure's actual pitch range so wide arrangements
+  // don't render notes above/below the visible area.
+  const mids = notes.map((n) => n.midi);
+  const lo = Math.min(...mids, 55);
+  const hi = Math.max(...mids, 72);
 
   return (
     <div className="overflow-x-auto">
@@ -34,7 +40,7 @@ export function BeginnerView({ data, time, settings }: { data: SongData; time: n
           {notes.map((n, i) => {
             const beatOffset = n.start - m.startBeat;
             const x = 60 + (beatOffset / measureBeats) * (W - 120);
-            const y = 135 - (n.midi - 55) * 6;
+            const y = 40 + ((hi - n.midi) / (hi - lo || 1)) * 190;
             const col = pitchColor(n.midi);
             return (
               <g key={i}>
@@ -50,7 +56,7 @@ export function BeginnerView({ data, time, settings }: { data: SongData; time: n
               </g>
             );
           })}
-          {data.chords
+          {chords
             .filter((c) => c.beat >= m.startBeat && c.beat < m.endBeat)
             .map((c, i) => (
               <text

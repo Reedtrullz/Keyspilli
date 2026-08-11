@@ -33,7 +33,15 @@ function chordsAt(notes: Note[], grid: number): ChordLabel[] {
     if (pcs.length < 2) continue;
     out.push({ beat, name: chordName(pcs), notes: mids });
   }
-  return out;
+  // Per-grid-slice analysis produces the same chord every 0.25 beats; collapse
+  // consecutive same-name runs into the progression's actual changes.
+  const deduped: ChordLabel[] = [];
+  for (const c of out) {
+    const prev = deduped[deduped.length - 1];
+    if (prev && prev.name === c.name) continue;
+    deduped.push(c);
+  }
+  return deduped;
 }
 
 function melodyOnly(notes: Note[], grid: number, minDur: number): Note[] {

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   AudioEngine,
+  dedupeChords,
   KeyboardInput,
   MidiInput,
   PlaybackEngine,
@@ -82,6 +83,10 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
 
   const duration = useMemo(() => notes.reduce((m, n) => Math.max(m, n.startSec + n.durSec), 8), [notes]);
 
+  // Existing artifacts still carry per-grid-slice chord spam; collapse runs of
+  // the same chord before rendering. (New ingests dedupe in chordsAt.)
+  const chords = useMemo(() => dedupeChords(initial.data.chords), [initial.data.chords]);
+
   // MIDI range is fixed per note set; computed once instead of per canvas frame.
   const midiRange = useMemo(() => {
     let low = 48;
@@ -106,6 +111,7 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
       setTime(snap.time);
       setPlaying(snap.playing);
     };
+    engine.audio.sustainPedal = settings.sustainPedal;
     engineRef.current = engine;
     return () => {
       engineRef.current = null;
@@ -164,6 +170,8 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
     if (playing) stopPlayback();
     else startPlayback();
   }
+  const togglePlayRef = useRef(togglePlay);
+  togglePlayRef.current = togglePlay;
 
   // Keyboard + MIDI input (one keydown listener; Escape handled first).
   useEffect(() => {
@@ -176,6 +184,12 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
         setShowModeMenu(false);
         setShowSettings(false);
         setShowDownload(false);
+      } else if (e.key === " " && e.type === "keydown") {
+        // Space = play/pause, but never hijack typing or focused controls.
+        const t = e.target as HTMLElement | null;
+        if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.tagName === "BUTTON" || t.isContentEditable)) return;
+        e.preventDefault();
+        togglePlayRef.current();
       } else {
         ki.handleKey(e);
       }
@@ -275,6 +289,7 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
     const next = { ...settings, ...p };
     setSettings(next);
     engineRef.current?.audio.setGains(next.voiceGain, next.pianoGain);
+    if (engineRef.current) engineRef.current.audio.sustainPedal = next.sustainPedal;
     saveSettings(next);
   }
 
@@ -455,6 +470,19 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
           </output>
         </div>
 
+        <div className="px-4 pb-3 border-b border-zinc-100">
+          <input
+            type="range"
+            min={0}
+            max={Math.max(1, duration)}
+            step={0.01}
+            value={Math.min(time, duration)}
+            onChange={(e) => seek(Number(e.target.value))}
+            className="w-full"
+            aria-label="Seek"
+          />
+        </div>
+
         <div
           className={`relative ${playing && !grading ? "cursor-pointer" : ""}`}
           onClick={() => {
@@ -463,17 +491,18 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
           role="region"
           aria-label={`Player stage — ${activeModeLabel}`}
         >
-          {settings.mode === "falling" && <ChordStrip chords={initial.data.chords} currentBeat={currentBeat} />}
+          {settings.mode === "falling" && <ChordStrip chords={chords} currentBeat={currentBeat} />}
           {settings.mode === "falling" && (
             <FallingCanvas
               notes={notes}
               time={time}
               settings={settings}
               pressedKeys={pressedKeys}
-              chords={initial.data.chords}
+              chords={chords}
               tempoBpm={initial.data.tempoBpm}
               lowMidi={midiRange.low}
               highMidi={midiRange.high}
+              loop={loop}
             />
           )}
           {settings.mode === "beginner" && <BeginnerView data={initial.data} time={time} settings={settings} />}

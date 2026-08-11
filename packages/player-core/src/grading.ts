@@ -1,4 +1,5 @@
 import type { TimedNote } from "./timeline.js";
+import { secPerBeat } from "./timeline.js";
 
 export interface GradeResult {
   total: number;
@@ -9,8 +10,6 @@ export interface GradeResult {
   accuracyPct: number;
   summary: string;
 }
-
-const TIME_TOLERANCE = 0.35; // seconds
 
 /**
  * Grades a player's note events against the expected notes.
@@ -27,13 +26,16 @@ export class Grader {
   private missed = 0;
   private waitMode = false;
   private waitingFor: TimedNote | null = null;
+  private tolerance: number;
 
   constructor(
     notes: TimedNote[],
-    opts: { waitMode?: boolean } = {},
+    opts: { waitMode?: boolean; bpm?: number } = {},
   ) {
     this.remaining = [...notes].sort((a, b) => a.startSec - b.startSec);
     this.waitMode = opts.waitMode ?? false;
+    // Tempo-scaled tolerance: 40% of a beat, capped at 400ms (legacy fixed 350ms).
+    this.tolerance = opts.bpm ? Math.min(0.4, secPerBeat(opts.bpm, 1) * 0.4) : 0.35;
   }
 
   /** Call as time advances; counts expected notes whose window passed without input. */
@@ -42,7 +44,7 @@ export class Grader {
     let i = 0;
     while (i < this.remaining.length) {
       const n = this.remaining[i]!;
-      if (now - n.startSec > TIME_TOLERANCE) {
+      if (now - n.startSec > this.tolerance) {
         this.missed++;
         this.remaining.splice(i, 1);
       } else {
@@ -58,7 +60,7 @@ export class Grader {
         this.wrongs++;
         return false;
       }
-      if (now >= this.waitingFor.startSec - TIME_TOLERANCE) {
+      if (now >= this.waitingFor.startSec - this.tolerance) {
         this.hits++;
         this.remaining.splice(this.remaining.indexOf(this.waitingFor), 1);
         this.waitingFor = null;
@@ -66,7 +68,7 @@ export class Grader {
       }
       return false; // correct pitch, pressed too early: hold
     }
-    const window = this.remaining.filter((n) => Math.abs(now - n.startSec) <= TIME_TOLERANCE);
+    const window = this.remaining.filter((n) => Math.abs(now - n.startSec) <= this.tolerance);
     const exact = window.find((n) => n.midi === midi);
     if (exact) {
       this.hits++;
@@ -77,7 +79,7 @@ export class Grader {
       this.wrongs++;
       return true;
     }
-    const pastIdx = this.remaining.findIndex((n) => n.midi === midi && now > n.startSec + TIME_TOLERANCE);
+    const pastIdx = this.remaining.findIndex((n) => n.midi === midi && now > n.startSec + this.tolerance);
     if (pastIdx >= 0) {
       this.late++;
       this.remaining.splice(pastIdx, 1);

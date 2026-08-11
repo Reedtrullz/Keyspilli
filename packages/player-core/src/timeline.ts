@@ -1,4 +1,5 @@
 import type { SongData } from "./types.js";
+import type { ChordLabel } from "@keyspilli/midi";
 
 /** Converts beat-based song data into seconds given a speed multiplier. */
 export function beatToSec(beat: number, bpm: number, speed: number): number {
@@ -16,14 +17,30 @@ export interface TimedNote {
 
 /** Resolve song data to absolute-second notes with transpose applied. */
 export function resolveTimedNotes(song: SongData, speed: number, transpose: number): TimedNote[] {
-  return song.notes.map((n) => ({
-    midi: n.midi + transpose,
-    startSec: beatToSec(n.start, song.tempoBpm, speed),
-    durSec: beatToSec(n.dur, song.tempoBpm, speed),
-    vel: n.vel,
-    hand: n.hand,
-    lyrics: n.lyrics,
-  }));
+  return song.notes.map((n) => {
+    // ponytail: crude downbeat accent (beat-grid heuristic), not a
+    // reconstruction of source dynamics; replace when sources carry velocities.
+    const vel = Math.round(Math.min(127, Math.max(1, n.vel * (n.start % 1 === 0 ? 1.1 : 0.85))));
+    return {
+      midi: n.midi + transpose,
+      startSec: beatToSec(n.start, song.tempoBpm, speed),
+      durSec: beatToSec(n.dur, song.tempoBpm, speed),
+      vel,
+      hand: n.hand,
+      lyrics: n.lyrics,
+    };
+  });
+}
+
+/** Collapse consecutive same-name chords (per-grid-slice analysis noise). */
+export function dedupeChords(chords: ChordLabel[]): ChordLabel[] {
+  const out: ChordLabel[] = [];
+  for (const c of chords) {
+    const prev = out[out.length - 1];
+    if (prev && prev.name === c.name) continue;
+    out.push(c);
+  }
+  return out;
 }
 
 export interface LoopRegion {

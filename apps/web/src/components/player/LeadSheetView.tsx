@@ -1,6 +1,6 @@
 "use client";
 
-import { measureIndex, pitchColor, secPerBeat, type PlayerSettings, type SongData } from "@keyspilli/player-core";
+import { dedupeChords, measureIndex, pitchColor, secPerBeat, type PlayerSettings, type SongData } from "@keyspilli/player-core";
 
 export function LeadSheetView({ data, time, settings }: { data: SongData; time: number; settings: PlayerSettings }) {
   const beatSec = secPerBeat(data.tempoBpm, settings.speed);
@@ -13,10 +13,15 @@ export function LeadSheetView({ data, time, settings }: { data: SongData; time: 
   );
   const m = data.measures[currentMeasure] ?? data.measures[0]!;
   const notes = data.notes.filter((n) => n.start >= m.startBeat && n.start < m.endBeat && n.hand !== "L");
+  const chords = dedupeChords(data.chords);
   const measureBeats = m.endBeat - m.startBeat;
   const W = 880;
   const H = 240;
   const playX = 80 + ((time / beatSec - m.startBeat) / measureBeats) * (W - 160);
+  // Scale by absolute pitch (not pitch class) so octave leaps render apart.
+  const mids = notes.map((n) => n.midi);
+  const lo = Math.min(...mids, 55);
+  const hi = Math.max(...mids, 72);
 
   return (
     <div className="overflow-x-auto">
@@ -25,7 +30,7 @@ export function LeadSheetView({ data, time, settings }: { data: SongData; time: 
           <rect width={W} height={H} fill="#fff" rx="12" />
           {notes.map((n, i) => {
             const x = 80 + ((n.start - m.startBeat) / measureBeats) * (W - 160);
-            const y = 80;
+            const y = 28 + ((hi - n.midi) / (hi - lo || 1)) * (H - 80);
             return (
               <g key={i}>
                 <circle cx={x} cy={y - ((n.midi % 12) - 5) * 4} r="10" fill={pitchColor(n.midi)} />
@@ -37,7 +42,7 @@ export function LeadSheetView({ data, time, settings }: { data: SongData; time: 
               </g>
             );
           })}
-          {data.chords
+          {chords
             .filter((c) => c.beat >= m.startBeat && c.beat < m.endBeat)
             .map((c, i) => (
               <text

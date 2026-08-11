@@ -28,6 +28,7 @@ class FakeAudio implements AudioLike {
   }
   setGains(): void {}
   dispose(): void {}
+  sustainPedal = true;
 }
 
 const SONG = { tempoBpm: 120, timeSig: [4, 4] as [number, number] };
@@ -122,6 +123,15 @@ describe("PlaybackEngine", () => {
     expect(result).not.toBeNull();
     expect(result!.hit).toBe(1);
     expect(eng.grader).toBeNull();
+  });
+
+  it("startGrading skips grace notes", () => {
+    const { eng } = engine();
+    eng.setNotes([...notes, { midi: 70, startSec: 0.25, durSec: 0.03, vel: 80 }], 1.5);
+    eng.startGrading(true);
+    expect(eng.waitNote?.midi).toBe(60);
+    expect(eng.handleNoteOn(60)).toBe(true);
+    expect(eng.waitNote?.midi).toBe(62); // the grace note at 0.25s is skipped
   });
 
   it("startGrading stops playback and resets position", () => {

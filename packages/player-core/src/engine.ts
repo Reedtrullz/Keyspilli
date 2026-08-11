@@ -14,6 +14,7 @@ export interface AudioLike {
   cancelAll(): void;
   setGains(voice: number, piano: number): void;
   dispose(): void;
+  sustainPedal: boolean;
 }
 
 export interface EngineSnapshot {
@@ -115,7 +116,11 @@ export class PlaybackEngine {
     this.waitMode = wait;
     this.stop();
     this.seek(0);
-    this.grader = new Grader(this.notes, { waitMode: wait });
+    // Skip grace notes and ornaments: they're decoration, not the content
+    // being practiced. Hand filtering already happened in the notes memo.
+    const minDurSec = 0.125 * (60 / this.song.tempoBpm / this.settings.speed);
+    const gradeable = this.notes.filter((n) => n.durSec >= minDurSec);
+    this.grader = new Grader(gradeable, { waitMode: wait, bpm: this.song.tempoBpm });
     this.emit();
   }
 

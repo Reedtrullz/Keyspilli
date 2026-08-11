@@ -99,6 +99,33 @@ export function fallingBars(notes: TimedNote[], o: FallingLayoutOptions): Fallin
   return out;
 }
 
+/**
+ * Clamp the rendered keyboard to a max span around the median pitch of the
+ * notes currently visible, so wide arrangements stay readable. Falls back to
+ * the full song range when nothing is in the window.
+ */
+export function visibleMidiRange(
+  notes: TimedNote[],
+  nowSec: number,
+  lookaheadSec: number,
+  fallback: { lowMidi: number; highMidi: number },
+  maxSpan = 48,
+): { lowMidi: number; highMidi: number } {
+  const visible: number[] = [];
+  for (const n of notes) {
+    if (n.startSec <= nowSec + lookaheadSec && n.startSec + n.durSec >= nowSec - 0.05) {
+      visible.push(n.midi);
+    }
+  }
+  if (visible.length === 0) return fallback;
+  visible.sort((a, b) => a - b);
+  const median = visible[Math.floor(visible.length / 2)]!;
+  return {
+    lowMidi: Math.max(21, median - maxSpan / 2),
+    highMidi: Math.min(108, median + maxSpan / 2),
+  };
+}
+
 /** MIDI notes whose bars will cross the playhead within `windowSec`. */
 export function upcomingMidi(bars: FallingBar[], areaHeight: number, lookaheadSec: number, windowSec = 1): Set<number> {
   const pxPerSec = areaHeight / lookaheadSec;

@@ -15,6 +15,8 @@ export class AudioEngine {
 
   voiceGain = 1;
   pianoGain = 0.4;
+  /** Simulated pedal ring after the written duration (see PlayerSettings). */
+  sustainPedal = true;
 
   ensure(): AudioContext {
     if (!this.ctx) {
@@ -62,20 +64,40 @@ export class AudioEngine {
     osc1.type = "triangle";
     osc2.type = "sine";
     osc1.frequency.value = freq;
-    osc2.frequency.value = freq * 2;
+    // Low notes get overtones instead of a doubled fundamental (inaudible on
+    // small speakers); high notes get a damped second partial (less shrill).
+    const isLow = n.midi < 48;
+    const isHigh = n.midi > 84;
+    osc2.frequency.value = isLow ? freq * 3 : freq * 2;
     filter.type = "lowpass";
-    filter.frequency.value = 2200 + n.vel * 8;
-    const peak = 0.06 + (n.vel / 127) * 0.12;
+    // Velocity sweep: quiet notes are duller, loud notes brighter.
+    filter.frequency.value = 1200 + n.vel * 20;
+    // Wider gain curve: roughly 4x dynamic range from pp to ff.
+    let peak = 0.03 + (n.vel / 127) * 0.22;
+    if (isLow) peak *= 1 + Math.max(0, 60 - n.midi) * 0.015; // bass presence
+    const decay = Math.max(0.08, n.durSec * 0.85);
+    const osc2Gain = ctx.createGain();
+    osc2Gain.gain.value = isHigh ? Math.max(0.2, 1 - (n.midi - 84) * 0.04) : 1;
     gain.gain.setValueAtTime(0, t);
     gain.gain.linearRampToValueAtTime(peak, t + 0.005);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + Math.max(0.15, n.durSec * 0.9));
+    if (n.durSec < 0.1) {
+      // Staccato notes: sharp falloff instead of a 4x-too-long tail.
+      gain.gain.setTargetAtTime(0, t + 0.005, 0.015);
+    } else if (this.sustainPedal) {
+      // Quiet pedal ring after the decay so notes don't cut mechanically.
+      gain.gain.exponentialRampToValueAtTime(peak * 0.05, t + decay * 0.7);
+      gain.gain.setTargetAtTime(peak * 0.03, t + decay * 0.7, 0.15);
+    } else {
+      gain.gain.exponentialRampToValueAtTime(0.001, t + decay);
+    }
     osc1.connect(filter);
-    osc2.connect(filter);
+    osc2.connect(osc2Gain);
+    osc2Gain.connect(filter);
     filter.connect(gain);
     gain.connect(bus);
     osc1.start(t);
     osc2.start(t);
-    const stopAt = t + Math.max(0.2, n.durSec) + 0.1;
+    const stopAt = t + decay + (this.sustainPedal && n.durSec >= 0.1 ? 0.55 : 0.05);
     osc1.stop(stopAt);
     osc2.stop(stopAt);
     const entry = { osc: osc1, gain };

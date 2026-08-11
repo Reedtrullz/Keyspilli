@@ -19,6 +19,7 @@ export interface PlayerSettings {
   backgroundMode: "piano" | "chord";
   metronome: boolean;
   chordKeys: boolean;
+  sustainPedal: boolean;
   hand: "L" | "R" | "both";
   speed: number;
   transpose: number;
