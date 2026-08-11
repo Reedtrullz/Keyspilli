@@ -10,6 +10,7 @@
     "verify-catalog": "tsx scripts/verify-catalog.ts",
     "calibrate": "tsx scripts/calibrate-limits.ts",
     "reingest-uploads": "tsx scripts/reingest-uploads.ts",
+    "reingest-midi-pack": "tsx scripts/reingest-midi-pack.ts",
     "seed": "tsx scripts/seed.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
