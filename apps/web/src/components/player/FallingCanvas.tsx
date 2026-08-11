@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { fallingBars, keyboardRects, noteLabel, pitchColor, upcomingMidi, type PlayerSettings, type TimedNote } from "@keyspilli/player-core";
+import { noteLabel, pitchColor, type PlayerSettings, type TimedNote } from "@keyspilli/player-core";
 
 interface Props {
   notes: TimedNote[];
@@ -26,9 +26,10 @@ export function FallingCanvas({ notes, timeRef, settings, pressedKeys, chords, t
     const W = 960;
     const H = 500;
     const KB_H = 140;
-    const LEFT_MARGIN = 80;
-    const RIGHT_MARGIN = 80;
-    const KEYBOARD_W = W - LEFT_MARGIN - RIGHT_MARGIN;
+    const LEFT_MARGIN = 70;
+    const RIGHT_MARGIN = 16;
+    const CHORD_ZONE_RATIO = 0.38;
+    const DIVIDER_GAP = 6;
     const dpr = window.devicePixelRatio || 1;
     canvas.width = W * dpr;
     canvas.height = H * dpr;
@@ -42,29 +43,39 @@ export function FallingCanvas({ notes, timeRef, settings, pressedKeys, chords, t
       ctx.fillStyle = "#fafafa";
       ctx.fillRect(0, 0, W, H);
 
-      const low = Math.min(48, ...notes.map((n) => n.midi)) - 3;
-      const high = Math.max(72, ...notes.map((n) => n.midi)) + 3;
+      const speed = s.speed;
       const lookahead = 3.2;
       const areaHeight = H - KB_H - 10;
       const pxPerSec = areaHeight / lookahead;
-      const bars = fallingBars(notes, {
-        width: KEYBOARD_W,
-        height: areaHeight,
-        nowSec: now,
-        speed: s.speed,
-        lookaheadSec: lookahead,
-        lowMidi: low,
-        highMidi: high,
-      });
-      // Offset all bar x positions by the left margin
-      for (const b of bars) b.x += LEFT_MARGIN;
 
-      const upcoming = upcomingMidi(bars, areaHeight, lookahead);
+      // Split notes by hand
+      const leftNotes = notes.filter((n) => n.hand === "L");
+      const rightNotes = notes.filter((n) => n.hand !== "L");
 
-      const speed = s.speed;
+      // Zone layout
+      const totalW = W - LEFT_MARGIN - RIGHT_MARGIN;
+      const chordW = Math.round(totalW * CHORD_ZONE_RATIO);
+      const melodyX = LEFT_MARGIN + chordW + DIVIDER_GAP;
+      const melodyW = W - RIGHT_MARGIN - melodyX;
 
-      // --- Determine current chord for keyboard highlighting ---
-      const beatSec = 60 / (bpm * s.speed);
+      // Pitch ranges for each zone
+      const leftMidi = leftNotes.length > 0
+        ? { lo: Math.min(...leftNotes.map((n) => n.midi)) - 1, hi: Math.max(...leftNotes.map((n) => n.midi)) + 1 }
+        : { lo: 48, hi: 60 };
+      const rightMidi = rightNotes.length > 0
+        ? { lo: Math.min(...rightNotes.map((n) => n.midi)) - 1, hi: Math.max(...rightNotes.map((n) => n.midi)) + 1 }
+        : { lo: 60, hi: 84 };
+      if (leftMidi.hi <= leftMidi.lo) leftMidi.hi = leftMidi.lo + 12;
+      if (rightMidi.hi <= rightMidi.lo) rightMidi.hi = rightMidi.lo + 12;
+
+      // Helper: map MIDI to zone-local x
+      const localX = (midi: number, zoneX: number, zoneW: number, lo: number, hi: number) => {
+        const t = (midi - lo) / (hi - lo);
+        return zoneX + t * (zoneW - 24) + 12;
+      };
+
+      // --- Determine current chord ---
+      const beatSec = 60 / (bpm * speed);
       const currentBeat = now / beatSec;
       let activeChordNotes: Set<number> = new Set();
       for (let i = ch.length - 1; i >= 0; i--) {
@@ -74,17 +85,35 @@ export function FallingCanvas({ notes, timeRef, settings, pressedKeys, chords, t
         }
       }
 
+      // --- Zone divider ---
+      const dividerX = LEFT_MARGIN + chordW + DIVIDER_GAP / 2;
+      ctx.strokeStyle = "#e4e4e7";
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(dividerX, 0);
+      ctx.lineTo(dividerX, areaHeight);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // --- Zone labels ---
+      ctx.font = "600 10px system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#a1a1aa";
+      ctx.fillText("CHORDS", LEFT_MARGIN + chordW / 2, 14);
+      ctx.fillText("MELODY", melodyX + melodyW / 2, 14);
+
       // --- Chord labels on the left margin ---
       for (const c of ch) {
         const cSec = (c.beat * 60) / (bpm * speed);
         const bottom = areaHeight - (cSec - now) * pxPerSec;
         if (bottom < -30 || bottom > areaHeight + 30) continue;
-        const y = Math.max(16, Math.min(areaHeight - 6, bottom - 4));
-        ctx.font = "700 13px system-ui, sans-serif";
+        const y = Math.max(24, Math.min(areaHeight - 6, bottom - 4));
+        ctx.font = "700 12px system-ui, sans-serif";
         ctx.textAlign = "right";
         ctx.textBaseline = "middle";
         ctx.fillStyle = "#18181b";
-        ctx.fillText(c.name, LEFT_MARGIN - 10, y);
+        ctx.fillText(c.name, LEFT_MARGIN - 8, y);
       }
 
       // --- Draw lyrics (right side) ---
@@ -97,78 +126,137 @@ export function FallingCanvas({ notes, timeRef, settings, pressedKeys, chords, t
         ctx.textAlign = "left";
         ctx.textBaseline = "middle";
         ctx.fillStyle = "#52525b";
-        ctx.fillText(n.lyrics, W - RIGHT_MARGIN + 10, y);
+        ctx.fillText(n.lyrics, W - RIGHT_MARGIN + 4, y);
+      }
+
+      // --- Draw left-hand bars (chord zone) ---
+      for (const n of leftNotes) {
+        if (n.startSec > now + lookahead || n.startSec + n.durSec < now - 0.05) continue;
+        const x = localX(n.midi, LEFT_MARGIN, chordW, leftMidi.lo, leftMidi.hi);
+        const bottom = areaHeight - (n.startSec - now) * pxPerSec;
+        const height = Math.max(8, n.durSec * pxPerSec - 2);
+        const y = bottom - height;
+        const col = pitchColor(n.midi);
+        // Wide, semi-transparent ghost bar
+        ctx.globalAlpha = 0.3;
+        ctx.fillStyle = col;
+        ctx.beginPath();
+        ctx.roundRect(x - 10, y, 24, height, 4);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        // Note label on longer bars
+        if (height >= 14) {
+          ctx.font = "600 10px system-ui, sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillStyle = col;
+          ctx.fillText(noteLabel(n.midi), x + 2, Math.min(y + height / 2, areaHeight - 4));
+        }
+      }
+
+      // --- Draw right-hand bars (melody zone) ---
+      for (const n of rightNotes) {
+        if (n.startSec > now + lookahead || n.startSec + n.durSec < now - 0.05) continue;
+        const x = localX(n.midi, melodyX, melodyW, rightMidi.lo, rightMidi.hi);
+        const bottom = areaHeight - (n.startSec - now) * pxPerSec;
+        const height = Math.max(8, n.durSec * pxPerSec - 2);
+        const y = bottom - height;
+        const col = pitchColor(n.midi);
+        const barW = Math.min(28, melodyW / (rightMidi.hi - rightMidi.lo + 1) * 0.7);
+        // Vivid bar with note label
+        ctx.fillStyle = col;
+        ctx.beginPath();
+        ctx.roundRect(x - barW / 2, y, barW, height, 4);
+        ctx.fill();
+        if (height >= 11) {
+          const fs = Math.min(12, Math.max(9, height - 6));
+          ctx.font = `600 ${fs}px system-ui, sans-serif`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.strokeStyle = "rgba(0,0,0,0.4)";
+          ctx.lineWidth = 3;
+          ctx.strokeText(noteLabel(n.midi), x, Math.min(y + height / 2, areaHeight - 4));
+          ctx.fillStyle = "#ffffff";
+          ctx.fillText(noteLabel(n.midi), x, Math.min(y + height / 2, areaHeight - 4));
+        }
       }
 
       // --- Keyboard ---
-      const kb = keyboardRects({ width: KEYBOARD_W, lowMidi: low, highMidi: high, whiteHeight: KB_H });
-      // Key rendering with chord highlighting
-      ctx.fillStyle = "#f4f4f5";
-      for (const w of kb.whites) {
-        const kx = w.x + LEFT_MARGIN;
+      const allMidi = [...leftNotes.map((n) => n.midi), ...rightNotes.map((n) => n.midi)];
+      const kbLow = allMidi.length > 0 ? Math.min(...allMidi) - 3 : 48;
+      const kbHigh = allMidi.length > 0 ? Math.max(...allMidi) + 3 : 72;
+      const kbX = LEFT_MARGIN;
+      const kbW = W - LEFT_MARGIN - RIGHT_MARGIN;
+      const whiteKeys: { midi: number; x: number; w: number }[] = [];
+      const blackKeys: { midi: number; x: number; w: number }[] = [];
+      const WHITE = [0, 2, 4, 5, 7, 9, 11];
+      const whites: number[] = [];
+      for (let m = kbLow; m <= kbHigh; m++) {
+        if (WHITE.includes(m % 12)) whites.push(m);
+        else blackKeys.push({ midi: m, x: 0, w: 0 });
+      }
+      const ww = kbW / Math.max(whites.length, 1);
+      for (let i = 0; i < whites.length; i++) {
+        whiteKeys.push({ midi: whites[i]!, x: kbX + i * ww, w: ww });
+      }
+      for (const bk of blackKeys) {
+        const prevWhite = bk.midi - 1;
+        const idx = whites.indexOf(prevWhite);
+        if (idx < 0) continue;
+        bk.x = kbX + idx * ww + ww - ww * 0.3;
+        bk.w = ww * 0.6;
+      }
+
+      // Render white keys
+      for (const w of whiteKeys) {
         const isChord = activeChordNotes.has(w.midi) && !pk.has(w.midi);
         ctx.fillStyle = pk.has(w.midi) ? pitchColor(w.midi) : "#ffffff";
-        ctx.fillRect(kx, H - KB_H, w.w - 1, KB_H);
+        ctx.fillRect(w.x, H - KB_H, w.w - 1, KB_H);
         ctx.strokeStyle = "#d4d4d8";
-        ctx.strokeRect(kx, H - KB_H, w.w - 1, KB_H);
-        ctx.font = "600 12px system-ui, sans-serif";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "alphabetic";
+        ctx.strokeRect(w.x, H - KB_H, w.w - 1, KB_H);
         if (isChord) {
-          // Chord key: tinted body + thick colored strip + border
           ctx.globalAlpha = 0.25;
           ctx.fillStyle = pitchColor(w.midi);
-          ctx.fillRect(kx, H - KB_H, w.w - 1, KB_H);
+          ctx.fillRect(w.x, H - KB_H, w.w - 1, KB_H);
           ctx.globalAlpha = 1;
-          // Thick colored bar at bottom
           ctx.fillStyle = pitchColor(w.midi);
-          ctx.fillRect(kx, H - 36, w.w - 1, 36);
-          ctx.fillStyle = "#ffffff";
-          ctx.font = "700 13px system-ui, sans-serif";
-          // Colored border
+          ctx.fillRect(w.x, H - 36, w.w - 1, 36);
           ctx.strokeStyle = pitchColor(w.midi);
           ctx.lineWidth = 2;
-          ctx.strokeRect(kx + 1, H - KB_H, w.w - 3, KB_H);
+          ctx.strokeRect(w.x + 1, H - KB_H, w.w - 3, KB_H);
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "700 13px system-ui, sans-serif";
         } else {
           ctx.fillStyle = pk.has(w.midi) ? "#ffffff" : "#52525b";
+          ctx.font = "600 12px system-ui, sans-serif";
         }
-        ctx.fillText(noteLabel(w.midi), kx + w.w / 2, H - 18);
+        ctx.textAlign = "center";
+        ctx.textBaseline = "alphabetic";
+        ctx.fillText(noteLabel(w.midi), w.x + w.w / 2, H - 18);
       }
-      for (const b of kb.blacks) {
-        const kx = b.x + LEFT_MARGIN;
-        const isChordB = activeChordNotes.has(b.midi) && !pk.has(b.midi);
-        ctx.fillStyle = pk.has(b.midi) ? pitchColor(b.midi) : "#27272a";
-        ctx.fillRect(kx, H - KB_H, b.w, KB_H * 0.62);
-        if (b.w >= 17) {
+      // Render black keys
+      for (const bk of blackKeys) {
+        if (bk.w === 0) continue;
+        const isChordB = activeChordNotes.has(bk.midi) && !pk.has(bk.midi);
+        ctx.fillStyle = pk.has(bk.midi) ? pitchColor(bk.midi) : "#27272a";
+        ctx.fillRect(bk.x, H - KB_H, bk.w, KB_H * 0.62);
+        if (isChordB) {
+          ctx.fillStyle = pitchColor(bk.midi);
+          ctx.fillRect(bk.x, H - KB_H * 0.62, bk.w, KB_H * 0.62);
+          ctx.strokeStyle = pitchColor(bk.midi);
+          ctx.lineWidth = 2;
+          ctx.strokeRect(bk.x, H - KB_H * 0.62, bk.w, KB_H * 0.62);
+        }
+        if (bk.w >= 17) {
           ctx.font = "600 9px system-ui, sans-serif";
           ctx.textAlign = "center";
           ctx.textBaseline = "alphabetic";
-          if (isChordB) {
-            // Chord black key: colored fill + white label
-            ctx.fillStyle = pitchColor(b.midi);
-            ctx.fillRect(kx, H - KB_H * 0.62, b.w, KB_H * 0.62);
-            ctx.fillStyle = "#ffffff";
-            // Colored border
-            ctx.strokeStyle = pitchColor(b.midi);
-            ctx.lineWidth = 2;
-            ctx.strokeRect(kx, H - KB_H * 0.62, b.w, KB_H * 0.62);
-          } else {
-            ctx.fillStyle = pk.has(b.midi) ? "#18181b" : "#d4d4d8";
-          }
-          ctx.fillText(noteLabel(b.midi), kx + b.w / 2, H - 16);
+          ctx.fillStyle = pk.has(bk.midi) || isChordB ? "#ffffff" : "#d4d4d8";
+          ctx.fillText(noteLabel(bk.midi), bk.x + bk.w / 2, H - 16);
         }
       }
 
-      // Upcoming-note strips on top of the key fills
-      for (const key of [...kb.whites, ...kb.blacks]) {
-        if (!upcoming.has(key.midi) || pk.has(key.midi)) continue;
-        ctx.globalAlpha = 0.75;
-        ctx.fillStyle = pitchColor(key.midi);
-        ctx.fillRect(key.x + LEFT_MARGIN, H - KB_H, key.w, 8);
-        ctx.globalAlpha = 1;
-      }
-
-      // Playhead line
+      // --- Playhead line ---
       ctx.strokeStyle = "#dc2626";
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -179,36 +267,6 @@ export function FallingCanvas({ notes, timeRef, settings, pressedKeys, chords, t
       ctx.font = "12px monospace";
       ctx.fillText(`${now.toFixed(1)}s`, LEFT_MARGIN + 4, areaHeight - 6);
 
-      // --- Draw bars with hand differentiation ---
-      for (const b of bars) {
-        const isLeft = b.hand === "L";
-        if (isLeft) {
-          // Left-hand: wide ghost bars — visible but clearly muted, pitch-colored
-          ctx.globalAlpha = 0.22;
-          ctx.fillStyle = ghostColor(b.color);
-          ctx.beginPath();
-          ctx.roundRect(b.x - 8, b.y, b.width + 16, b.height, 4);
-          ctx.fill();
-          ctx.globalAlpha = 1;
-        } else {
-          // Right-hand: vivid, compact, with note labels
-          ctx.fillStyle = b.color;
-          ctx.beginPath();
-          ctx.roundRect(b.x, b.y, b.width, b.height, 4);
-          ctx.fill();
-          if (b.height >= 11) {
-            const fs = Math.min(13, Math.max(9, b.height - 6));
-            ctx.font = `600 ${fs}px system-ui, sans-serif`;
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.strokeStyle = "rgba(0,0,0,0.45)";
-            ctx.lineWidth = 3;
-            ctx.strokeText(b.label, b.x + b.width / 2, Math.min(b.y + b.height / 2, H - 14));
-            ctx.fillStyle = "#ffffff";
-            ctx.fillText(b.label, b.x + b.width / 2, Math.min(b.y + b.height / 2, H - 14));
-          }
-        }
-      }
       raf = requestAnimationFrame(draw);
     };
     raf = requestAnimationFrame(draw);
@@ -224,16 +282,3 @@ export function FallingCanvas({ notes, timeRef, settings, pressedKeys, chords, t
     </div>
   );
 }
-
-/** Desaturate and lighten a hex color for left-hand "ghost" rendering. */
-function ghostColor(hex: string): string {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  const gray = Math.round(r * 0.3 + g * 0.5 + b * 0.2);
-  const mix = 0.55;
-  const dr = Math.round(r + (gray - r) * mix);
-  const dg = Math.round(g + (gray - g) * mix);
-  const db = Math.round(b + (gray - b) * mix);
-  return `rgb(${Math.min(255, dr + 30)},${Math.min(255, dg + 30)},${Math.min(255, db + 30)})`;
- }
