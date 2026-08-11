@@ -5,7 +5,7 @@
  *
  * Usage: tsx scripts/reingest-midi-pack.ts "/path/to/pack" [base-id...]
  */
-import { copyFile, readFile, readdir } from "node:fs/promises";
+import { copyFile, readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { getDb, getSongsByBase, seedMidiDir, ingestSource } from "../src/index.js";
 
@@ -19,19 +19,27 @@ const tokens = (s: string) => new Set(slug(s).split("-").filter((t) => t.length 
 const files = (await readdir(packDir)).filter((f) => /\.(mid|midi)$/i.test(f));
 const fileIndex = files.map((f) => ({ f, slug: slug(f.replace(/\.[^.]+$/, "")), tokens: tokens(f) }));
 
-function findFile(baseId: string, title?: string): string | undefined {
+function findFile(baseId: string, title: string | undefined, artist: string | undefined): { file: string; via: string } | undefined {
   const exact = fileIndex.find((x) => x.slug === baseId);
-  if (exact) return exact.f;
+  if (exact) return { file: exact.f, via: "slug" };
   const t = tokens(baseId);
   if (t.size >= 2) {
     const byTokens = fileIndex.find((x) => [...t].every((tok) => x.tokens.has(tok)));
-    if (byTokens) return byTokens.f;
+    if (byTokens) return { file: byTokens.f, via: "token" };
   }
   if (title) {
-    const ts = slug(title);
-    if (ts.length >= 6) {
-      const byTitle = fileIndex.find((x) => x.slug.includes(ts) || ts.includes(x.slug));
-      if (byTitle) return byTitle.f;
+    const titleTokens = tokens(title);
+    const artistTokens = tokens(artist ?? "");
+    const byTitleTokens =
+      titleTokens.size >= 2 ? fileIndex.find((x) => [...titleTokens].every((tok) => x.tokens.has(tok))) : undefined;
+    if (byTitleTokens) return { file: byTitleTokens.f, via: "title-token" };
+    // Single-token titles are ambiguous: only auto-match when the artist is
+    // known and present in the candidate filename, else leave for manual review.
+    if (titleTokens.size === 1 && artistTokens.size >= 1) {
+      const byArtistAndTitle = fileIndex.find(
+        (x) => [...artistTokens].some((tok) => x.tokens.has(tok)) && [...titleTokens].every((tok) => x.tokens.has(tok)),
+      );
+      if (byArtistAndTitle) return { file: byArtistAndTitle.f, via: "artist-title" };
     }
   }
   return undefined;
@@ -43,20 +51,22 @@ const midiPackRows = getDb()
 
 let ok = 0;
 let skipped = 0;
+const matches: Record<string, { file: string; via: string }> = {};
 for (const { base_id: baseId } of midiPackRows) {
   if (only.size && !only.has(baseId)) continue;
   const song = getSongsByBase(baseId)[0];
-  const file = findFile(baseId, song?.title);
+  const found = findFile(baseId, song?.title, song?.artist);
   if (!song) {
     skipped++;
     console.warn(`x ${baseId}: no db row`);
     continue;
   }
-  if (!file) {
+  if (!found) {
     skipped++;
-    console.warn(`x ${baseId}: no pack file found`);
+    console.warn(`x ${baseId}: NEEDS_MANUAL - no unambiguous pack file`);
     continue;
   }
+  const { file, via } = found;
   await copyFile(join(packDir, file), join(seedMidiDir(), `${baseId}.mid`));
   const buf = await readFile(join(packDir, file));
   const r = await ingestSource({
@@ -77,7 +87,9 @@ for (const { base_id: baseId } of midiPackRows) {
     console.warn(`x ${baseId}: ${r.error}`);
   } else {
     ok++;
+    matches[baseId] = { file, via };
     console.log(`+ ${baseId} (${file})`);
   }
 }
+await writeFile(join(seedMidiDir(), "midi-pack-matches.json"), JSON.stringify(matches, null, 2));
 console.log(`re-ingested ${ok}, skipped ${skipped}`);
