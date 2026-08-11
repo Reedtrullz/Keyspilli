@@ -17,6 +17,7 @@ import {
 } from "@keyspilli/player-core";
 import type { SongRow } from "@keyspilli/catalog";
 import { FallingCanvas } from "./FallingCanvas";
+import { ChordStrip } from "./ChordStrip";
 import { BeginnerView } from "./BeginnerView";
 import { LeadSheetView } from "./LeadSheetView";
 import { SheetMusicView } from "./SheetMusicView";
@@ -313,6 +314,7 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
     Math.floor((time / (60 / initial.data.tempoBpm / settings.speed)) / (initial.data.timeSig[0] * (4 / initial.data.timeSig[1]))),
   );
   const activeModeLabel = MODES.find((m) => m.id === settings.mode)?.label ?? settings.mode;
+  const currentBeat = time / (60 / initial.data.tempoBpm / settings.speed);
   const fmtTime = (t: number) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
 
   return (
@@ -474,6 +476,7 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
           role="region"
           aria-label={`Player stage — ${activeModeLabel}`}
         >
+          {settings.mode === "falling" && <ChordStrip chords={initial.data.chords} currentBeat={currentBeat} />}
           {settings.mode === "falling" && <FallingCanvas notes={notes} timeRef={timeRef} settings={settings} pressedKeys={pressedKeys} chords={initial.data.chords} tempoBpm={initial.data.tempoBpm} />}
           {settings.mode === "beginner" && <BeginnerView data={initial.data} time={time} settings={settings} />}
           {settings.mode === "leadsheet" && <LeadSheetView data={initial.data} time={time} settings={settings} />}
