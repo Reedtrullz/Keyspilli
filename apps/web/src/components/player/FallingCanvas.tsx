@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { fallingBars, keyboardRects, noteLabel, pitchColor, type PlayerSettings, type TimedNote } from "@keyspilli/player-core";
+import { fallingBars, keyboardRects, noteLabel, pitchColor, upcomingMidi, type PlayerSettings, type TimedNote } from "@keyspilli/player-core";
 
 interface Props {
   notes: TimedNote[];
@@ -50,6 +50,9 @@ export function FallingCanvas({ notes, timeRef, settings, pressedKeys }: Props) 
         lowMidi: low,
         highMidi: high,
       });
+      // Keys for notes landing within the next ~1 second get a colored strip
+      // so the player can see where to press before the bar arrives.
+      const upcoming = upcomingMidi(bars, areaHeight, lookahead);
 
       // keyboard
       const kb = keyboardRects({ width: W, lowMidi: low, highMidi: high, whiteHeight: KB_H });
@@ -76,6 +79,15 @@ export function FallingCanvas({ notes, timeRef, settings, pressedKeys }: Props) 
           ctx.fillStyle = pk.has(b.midi) ? "#18181b" : "#d4d4d8";
           ctx.fillText(noteLabel(b.midi), b.x + b.w / 2, H - 16);
         }
+      }
+
+      // Upcoming-note strips on top of the key fills (before the playhead).
+      for (const key of [...kb.whites, ...kb.blacks]) {
+        if (!upcoming.has(key.midi) || pk.has(key.midi)) continue;
+        ctx.globalAlpha = 0.75;
+        ctx.fillStyle = pitchColor(key.midi);
+        ctx.fillRect(key.x, H - KB_H, key.w, 8);
+        ctx.globalAlpha = 1;
       }
 
       // playhead line just above the keyboard (the note lands exactly here)

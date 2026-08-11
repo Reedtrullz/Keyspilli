@@ -97,6 +97,17 @@ export function fallingBars(notes: TimedNote[], o: FallingLayoutOptions): Fallin
   return out;
 }
 
+/** MIDI notes whose bars will cross the playhead within `windowSec`. */
+export function upcomingMidi(bars: FallingBar[], areaHeight: number, lookaheadSec: number, windowSec = 1): Set<number> {
+  const pxPerSec = areaHeight / lookaheadSec;
+  const out = new Set<number>();
+  for (const b of bars) {
+    const distToPlayhead = areaHeight - (b.y + b.height);
+    if (distToPlayhead > 0 && distToPlayhead < pxPerSec * windowSec) out.add(b.midi);
+  }
+  return out;
+}
+
 /** Keyboard row geometry for drawing the on-screen keyboard. */
 export function keyboardRects(o: { width: number; lowMidi: number; highMidi: number; whiteHeight: number }): {
   whites: { midi: number; x: number; w: number }[];
