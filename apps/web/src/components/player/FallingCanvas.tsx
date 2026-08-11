@@ -140,11 +140,11 @@ export function FallingCanvas({ notes, timeRef, settings, pressedKeys, chords, t
       for (const b of bars) {
         const isLeft = b.hand === "L";
         if (isLeft) {
-          // Left-hand: wide, semi-transparent, muted
-          ctx.globalAlpha = 0.35;
-          ctx.fillStyle = b.color;
+          // Left-hand: wide ghost bars — visible but clearly muted, pitch-colored
+          ctx.globalAlpha = 0.22;
+          ctx.fillStyle = ghostColor(b.color);
           ctx.beginPath();
-          ctx.roundRect(b.x - 2, b.y, b.width + 4, b.height, 3);
+          ctx.roundRect(b.x - 8, b.y, b.width + 16, b.height, 4);
           ctx.fill();
           ctx.globalAlpha = 1;
         } else {
@@ -181,3 +181,16 @@ export function FallingCanvas({ notes, timeRef, settings, pressedKeys, chords, t
     </div>
   );
 }
+
+/** Desaturate and lighten a hex color for left-hand "ghost" rendering. */
+function ghostColor(hex: string): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const gray = Math.round(r * 0.3 + g * 0.5 + b * 0.2);
+  const mix = 0.55;
+  const dr = Math.round(r + (gray - r) * mix);
+  const dg = Math.round(g + (gray - g) * mix);
+  const db = Math.round(b + (gray - b) * mix);
+  return `rgb(${Math.min(255, dr + 30)},${Math.min(255, dg + 30)},${Math.min(255, db + 30)})`;
+ }
