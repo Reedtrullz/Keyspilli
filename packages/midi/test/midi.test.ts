@@ -351,6 +351,48 @@ describe("buildVariants", () => {
     expect(medium.notes.length).toBeLessThan(advanced.notes.length);
   });
 
+  it("keeps sounding hand spans within a physical reach", () => {
+    const src: ParsedMidi = {
+      format: 0,
+      division: 480,
+      tempoBpm: 120,
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes: [
+        { midi: 91, start: 0, dur: 1, vel: 80 },
+        { midi: 79, start: 0, dur: 1, vel: 80 },
+        { midi: 67, start: 0, dur: 1, vel: 80 },
+        { midi: 55, start: 0, dur: 1, vel: 80 },
+        { midi: 36, start: 0, dur: 1, vel: 80 },
+        { midi: 50, start: 0, dur: 1, vel: 80 },
+        { midi: 86, start: 0.25, dur: 0.5, vel: 80 },
+      ],
+      trackNames: ["Band"],
+      durationBeats: 4,
+    };
+    const variants = buildVariants(src, { title: "Band", artist: "Test" });
+    for (const variant of variants) {
+      for (const hand of ["L", "R"] as const) {
+        const hn = variant.notes.filter((x) => x.hand === hand);
+        const events: [number, number, number][] = [];
+        for (const n of hn) {
+          events.push([n.start, 1, n.midi]);
+          events.push([n.start + n.dur, -1, n.midi]);
+        }
+        events.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+        const active = new Set<number>();
+        let maxSpan = 0;
+        for (const [, kind, midi] of events) {
+          if (kind === 1) active.add(midi);
+          else active.delete(midi);
+          if (active.size > 1) maxSpan = Math.max(maxSpan, Math.max(...active) - Math.min(...active));
+        }
+        expect(maxSpan).toBeLessThanOrEqual(12);
+      }
+    }
+  });
+
   it("validateVariants accepts built variants and rejects unplayable ones", () => {
     const notes: Note[] = [];
     for (let b = 0; b < 16; b++) {
