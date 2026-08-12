@@ -99,7 +99,10 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
   // Keyboard range is stable per measure so the piano doesn't re-center every
   // frame; empty measures keep the previous range.
   const lastMidiRangeRef = useRef({ lowMidi: 45, highMidi: 99 });
-  const midiRange = useMemo(() => {
+  const midiRange = useMemo<{ lowMidi: number; highMidi: number }>(() => {
+    if (settings.showAllKeys) {
+      return { lowMidi: 21, highMidi: 108 };
+    }
     const r = measureMidiRange(
       notes,
       initial.data.measures,
@@ -111,7 +114,7 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
     lastMidiRangeRef.current = r;
     return r;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [notes, settings.speed, currentMeasure]);
+  }, [notes, settings.speed, currentMeasure, settings.showAllKeys]);
 
   // Engine lifecycle: one PlaybackEngine per mount, disposed on unmount.
   useEffect(() => {
@@ -405,6 +408,13 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
           className={`min-h-11 px-3 py-2 rounded-full text-sm border ${settings.metronome ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300"}`}
         >
           Metronome
+        </button>
+        <button
+          onClick={() => updateSettings({ showAllKeys: !settings.showAllKeys })}
+          aria-pressed={settings.showAllKeys}
+          className={`min-h-11 px-3 py-2 rounded-full text-sm border ${settings.showAllKeys ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300"}`}
+        >
+          88 Keys
         </button>
 
         <div className="ml-auto flex flex-wrap justify-end gap-2 text-sm">

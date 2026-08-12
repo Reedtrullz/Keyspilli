@@ -24,4 +24,5 @@ export interface PlayerSettings {
   speed: number;
   transpose: number;
   mode: ViewMode;
+  showAllKeys: boolean;
 }

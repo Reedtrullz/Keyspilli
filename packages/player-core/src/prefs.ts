@@ -13,6 +13,7 @@ export const DEFAULT_SETTINGS: PlayerSettings = {
   speed: 1,
   transpose: 0,
   mode: "falling",
+  showAllKeys: true,
 };
 
 function storage(): Storage | null {

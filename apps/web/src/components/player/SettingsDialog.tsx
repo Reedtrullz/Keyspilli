@@ -86,6 +86,16 @@ export function SettingsDialog({
           <span className="text-xs text-zinc-500 ml-auto">Let notes ring past their written length</span>
         </label>
 
+        <label className="flex items-center gap-2 text-sm mb-4">
+          <input
+            type="checkbox"
+            checked={settings.showAllKeys}
+            onChange={(e) => onChange({ showAllKeys: e.target.checked })}
+          />
+          Show all 88 keys
+          <span className="text-xs text-zinc-500 ml-auto">Full piano instead of zoomed view</span>
+        </label>
+
         <button onClick={onClose} className="w-full py-2.5 rounded-xl bg-zinc-900 text-white text-sm font-medium">
           Done
         </button>
