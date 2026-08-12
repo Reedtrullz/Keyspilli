@@ -38,10 +38,10 @@ export function FallingCanvas({ notes, time, settings, pressedKeys, chords, temp
     if (!ctx) return;
     let raf = 0;
     const W = 960;
-    const H = 500;
+    const H = 540;
     const KB_H = 140;
-    const LEFT_MARGIN = 80;
-    const RIGHT_MARGIN = 80;
+    const LEFT_MARGIN = 32;
+    const RIGHT_MARGIN = 32;
     const KEYBOARD_W = W - LEFT_MARGIN - RIGHT_MARGIN;
     const dpr = window.devicePixelRatio || 1;
     canvas.width = W * dpr;
@@ -333,7 +333,7 @@ export function FallingCanvas({ notes, time, settings, pressedKeys, chords, temp
 
   return (
     <div className="relative">
-      <canvas ref={canvasRef} aria-label="Falling notes player" className="w-full h-auto" style={{ aspectRatio: "960/500", width: "100%" }} />
+      <canvas ref={canvasRef} aria-label="Falling notes player" className="w-full h-auto" style={{ aspectRatio: "960/540", width: "100%" }} />
       <div className="absolute bottom-2 left-3 text-[11px] text-zinc-400 pointer-events-none">
         Keys: A–K / ; play · Z / X shift octave · practice graded
       </div>
