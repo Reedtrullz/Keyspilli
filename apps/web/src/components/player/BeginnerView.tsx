@@ -25,6 +25,11 @@ export function BeginnerView({ data, time, settings }: { data: SongData; time: n
   const mids = notes.map((n) => n.midi);
   const lo = Math.min(...mids, 55);
   const hi = Math.max(...mids, 72);
+  const spread = Math.max(12, hi - lo);
+
+  const startCounts = new Map<number, number>();
+  const startIndices = new Map<number, number>();
+  notes.forEach((n) => startCounts.set(n.start, (startCounts.get(n.start) ?? 0) + 1));
 
   return (
     <div className="overflow-x-auto">
@@ -39,8 +44,12 @@ export function BeginnerView({ data, time, settings }: { data: SongData; time: n
           <line x1="24" y1="230" x2={W - 24} y2="230" stroke="#e4e4e7" />
           {notes.map((n, i) => {
             const beatOffset = n.start - m.startBeat;
-            const x = 60 + (beatOffset / measureBeats) * (W - 120);
-            const y = 40 + ((hi - n.midi) / (hi - lo || 1)) * 190;
+            const count = startCounts.get(n.start) ?? 1;
+            const idx = startIndices.get(n.start) ?? 0;
+            startIndices.set(n.start, idx + 1);
+            const xOffset = count > 1 ? (idx - (count - 1) / 2) * 16 : 0;
+            const x = 60 + (beatOffset / measureBeats) * (W - 120) + xOffset;
+            const y = 40 + ((hi - n.midi) / spread) * 190;
             const col = pitchColor(n.midi);
             return (
               <g key={i}>

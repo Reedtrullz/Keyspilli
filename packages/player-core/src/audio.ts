@@ -66,21 +66,23 @@ export class AudioEngine {
     osc1.frequency.value = freq;
     // Low notes get overtones instead of a doubled fundamental (inaudible on
     // small speakers); high notes get a damped second partial (less shrill).
+    const isSubBass = n.midi < 36;
     const isLow = n.midi < 48;
     const isHigh = n.midi > 84;
-    osc2.frequency.value = isLow ? freq * 3 : freq * 2;
+    osc2.frequency.value = isSubBass ? freq * 4 : isLow ? freq * 3 : freq * 2;
     filter.type = "lowpass";
-    // Velocity sweep: quiet notes are duller, loud notes brighter.
-    filter.frequency.value = 1200 + n.vel * 20;
-    // Wider gain curve: roughly 4x dynamic range from pp to ff.
-    let peak = 0.03 + (n.vel / 127) * 0.22;
-    if (isLow) peak *= 1 + Math.max(0, 60 - n.midi) * 0.015; // bass presence
-    const decay = Math.max(0.08, n.durSec * 0.85);
+    // Velocity sweep: quiet notes are duller, loud notes brighter; high notes tamed.
+    filter.frequency.value = isHigh ? 800 + n.vel * 10 : 800 + n.vel * 25;
+    // Dynamic range curve (~10x range from softest to loudest).
+    let peak = 0.01 + Math.pow(n.vel / 127, 1.5) * 0.25;
+    if (isSubBass) peak *= 1.8;
+    else if (isLow) peak *= 1 + Math.max(0, 60 - n.midi) * 0.02; // bass presence
+    const decay = Math.max(0.06, n.durSec * 0.85);
     const osc2Gain = ctx.createGain();
-    osc2Gain.gain.value = isHigh ? Math.max(0.2, 1 - (n.midi - 84) * 0.04) : 1;
+    osc2Gain.gain.value = isSubBass ? 2.0 : isLow ? 1.2 : isHigh ? Math.max(0.2, 1 - (n.midi - 84) * 0.04) : 1;
     gain.gain.setValueAtTime(0, t);
     gain.gain.linearRampToValueAtTime(peak, t + 0.005);
-    if (n.durSec < 0.1) {
+    if (n.durSec < 0.2) {
       // Staccato notes: sharp falloff instead of a 4x-too-long tail.
       gain.gain.setTargetAtTime(0, t + 0.005, 0.015);
     } else if (this.sustainPedal) {
@@ -97,7 +99,7 @@ export class AudioEngine {
     gain.connect(bus);
     osc1.start(t);
     osc2.start(t);
-    const stopAt = t + decay + (this.sustainPedal && n.durSec >= 0.1 ? 0.55 : 0.05);
+    const stopAt = t + decay + (this.sustainPedal && n.durSec >= 0.2 ? 0.55 : 0.05);
     osc1.stop(stopAt);
     osc2.stop(stopAt);
     const entry = { osc: osc1, gain };

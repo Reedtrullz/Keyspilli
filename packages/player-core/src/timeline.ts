@@ -20,7 +20,8 @@ export function resolveTimedNotes(song: SongData, speed: number, transpose: numb
   return song.notes.map((n) => {
     // ponytail: crude downbeat accent (beat-grid heuristic), not a
     // reconstruction of source dynamics; replace when sources carry velocities.
-    const vel = Math.round(Math.min(127, Math.max(1, n.vel * (n.start % 1 === 0 ? 1.1 : 0.85))));
+    const beatAccent = n.start % 4 === 0 ? 1.1 : n.start % 1 === 0 ? 1.02 : 0.85;
+    const vel = Math.round(Math.min(127, Math.max(1, n.vel * beatAccent)));
     return {
       midi: n.midi + transpose,
       startSec: beatToSec(n.start, song.tempoBpm, speed),
@@ -44,7 +45,8 @@ export function dedupeChords(chords: ChordLabel[], minRunBeats = 1): ChordLabel[
   const filtered: ChordLabel[] = [];
   for (const c of chords) {
     const pcs = [...new Set(c.notes.map((m) => m % 12))].sort((a, b) => a - b);
-    const name = chordName(pcs);
+    const bassPc = c.notes.length > 0 ? Math.min(...c.notes) % 12 : undefined;
+    const name = chordName(pcs, bassPc);
     if (!name) continue; // unlabelable cluster (chromatic flash), any size
     filtered.push(pcs.length === 2 ? { ...c, name } : c);
   }

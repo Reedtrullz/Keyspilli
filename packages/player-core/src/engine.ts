@@ -118,7 +118,7 @@ export class PlaybackEngine {
     this.seek(0);
     // Skip grace notes and ornaments: they're decoration, not the content
     // being practiced. Hand filtering already happened in the notes memo.
-    const minDurSec = 0.125 * (60 / this.song.tempoBpm / this.settings.speed);
+    const minDurSec = 0.25 * (60 / this.song.tempoBpm / this.settings.speed);
     const gradeable = this.notes.filter((n) => n.durSec >= minDurSec);
     this.grader = new Grader(gradeable, { waitMode: wait, bpm: this.song.tempoBpm });
     this.emit();

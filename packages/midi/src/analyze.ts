@@ -61,30 +61,47 @@ export function detectKey(notes: Note[]): { name: string; sharps: number; mode: 
 }
 
 /** Name a chord from its pitch classes (bass = lowest note). */
-export function chordName(pcs: number[]): string {
+export function chordName(pcs: number[], bassPc?: number): string {
   if (pcs.length === 0) return "";
-  const bass = pcs[0]!;
-  const set = [...new Set(pcs.map((p) => (p - bass + 12) % 12))].sort((a, b) => a - b);
-  const has = (x: number) => set.includes(x);
-  let quality = "";
-  let seventh = "";
-  const is7 = has(10);
-  const isMaj7 = has(11);
-  if (has(3) && has(6)) quality = "dim";
-  else if (has(4) && has(8)) quality = "aug";
-  else if (has(3)) quality = "m";
-  else if (has(4)) quality = "";
-  else if (has(2)) quality = "sus2";
-  else if (has(5)) quality = "sus4";
-  else if (has(7) && !is7 && !isMaj7) quality = "5"; // root+fifth = power chord
-  if (isMaj7 && !is7) seventh = "maj7";
-  else if (is7) seventh = "7";
-  // Sets with no recognizable quality aren't playable chords (root+3rd or
-  // root+6th dyads, chromatic clusters); return "" so callers can drop them.
-  const noQuality = !quality && !seventh;
-  if (noQuality && (pcs.length === 2 || (!has(3) && !has(4)))) return "";
-  const rootName = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"][bass]!;
-  return rootName + quality + seventh;
+  const candidates = bassPc !== undefined ? [bassPc, ...pcs.filter((p) => p !== bassPc)] : pcs;
+
+  let bestName = "";
+  let maxScore = -1;
+
+  for (const r of candidates) {
+    const set = [...new Set(pcs.map((p) => (p - r + 12) % 12))].sort((a, b) => a - b);
+    const has = (x: number) => set.includes(x);
+    let quality: string | null = null;
+    let seventh = "";
+    let score = 0;
+    const is7 = has(10);
+    const isMaj7 = has(11);
+
+    if (has(3) && has(6)) { quality = "dim"; score = 10; }
+    else if (has(4) && has(8)) { quality = "aug"; score = 10; }
+    else if (has(3)) { quality = "m"; score = has(7) ? 10 : 5; }
+    else if (has(4)) { quality = ""; score = has(7) ? 10 : 5; }
+    else if (has(2)) { quality = "sus2"; score = has(7) ? 8 : 4; }
+    else if (has(5)) { quality = "sus4"; score = has(7) ? 8 : 4; }
+    else if (has(7) && !is7 && !isMaj7) { quality = "5"; score = 6; }
+
+    if (isMaj7 && !is7) { seventh = "maj7"; score += (has(7) || has(4) || has(3) ? 6 : 2); }
+    else if (is7) { seventh = "7"; score += (has(7) || has(4) || has(3) ? 6 : 2); }
+
+    if (quality === null && !seventh) continue;
+    const noQuality = !quality && !seventh;
+    if ((noQuality && (pcs.length === 2 || (!has(3) && !has(4)))) || (pcs.length === 2 && !has(3) && !has(4) && !has(7))) continue;
+
+    if (bassPc !== undefined && r === bassPc) score += 3;
+
+    if (score > maxScore) {
+      maxScore = score;
+      const rootName = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"][r]!;
+      bestName = rootName + (quality ?? "") + seventh;
+    }
+  }
+
+  return bestName;
 }
 
 /**

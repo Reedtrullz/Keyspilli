@@ -268,6 +268,7 @@ describe("chordName", () => {
     expect(chordName([0, 7, 10])).toBe("C7"); // seventh dyad keeps its name
     expect(chordName([0, 4])).toBe(""); // root + third: no chord name
     expect(chordName([0, 1])).toBe(""); // chromatic clash: no chord name
+    expect(chordName([0, 3, 8], 8)).toBe("G#");
   });
 });
 

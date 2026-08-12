@@ -276,9 +276,11 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
       setLoop(null);
       return;
     }
-    const measures = 4 * (initial.data.timeSig[0] * (4 / initial.data.timeSig[1]));
-    const t = engineRef.current?.time ?? time;
-    setLoop({ startSec: t, endSec: t + measures * secPerBeat(initial.data.tempoBpm, settings.speed) });
+    const startBeat = initial.data.measures[currentMeasure]?.startBeat ?? 0;
+    const measureBeats = initial.data.timeSig[0] * (4 / initial.data.timeSig[1]);
+    const startSec = startBeat * secPerBeat(initial.data.tempoBpm, settings.speed);
+    const endSec = (startBeat + 4 * measureBeats) * secPerBeat(initial.data.tempoBpm, settings.speed);
+    setLoop({ startSec, endSec });
   }
 
   function seekToMeasure(i: number) {
@@ -313,6 +315,7 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
     setGrading(true);
     setGradeResult(null);
     engineRef.current?.startGrading(wait);
+    if (!wait) startPlayback();
   }
 
   function finishGrading() {
@@ -473,8 +476,11 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
               </button>
             )}
           </div>
-          <output role="timer" aria-label="Elapsed time" className="ml-auto text-xs text-zinc-500 font-mono tabular-nums w-[5ch] text-right select-none">
-            {fmtTime(time)}
+          <output role="timer" aria-label="Elapsed time" className="ml-auto text-xs text-zinc-500 font-mono tabular-nums text-right select-none flex items-center gap-1.5">
+            <span>{fmtTime(time)}</span>
+            <span className="text-zinc-300">/</span>
+            <span>{fmtTime(duration)}</span>
+            <span className="text-zinc-400">(-{fmtTime(Math.max(0, duration - time))})</span>
           </output>
         </div>
 
@@ -486,7 +492,10 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
             step={0.01}
             value={Math.min(time, duration)}
             onChange={(e) => seek(Number(e.target.value))}
-            className="w-full"
+            className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-zinc-900"
+            style={{
+              background: `linear-gradient(to right, #18181b 0%, #18181b ${(time / Math.max(1, duration)) * 100}%, #e4e4e7 ${(time / Math.max(1, duration)) * 100}%, #e4e4e7 100%)`,
+            }}
             aria-label="Seek"
           />
         </div>
@@ -511,6 +520,7 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
               lowMidi={midiRange.lowMidi}
               highMidi={midiRange.highMidi}
               loop={loop}
+              waitNote={waitNote}
             />
           )}
           {settings.mode === "beginner" && <BeginnerView data={initial.data} time={time} settings={settings} />}

@@ -33,7 +33,7 @@ export function LeadSheetView({ data, time, settings }: { data: SongData; time: 
             const y = 28 + ((hi - n.midi) / (hi - lo || 1)) * (H - 80);
             return (
               <g key={i}>
-                <circle cx={x} cy={y - ((n.midi % 12) - 5) * 4} r="10" fill={pitchColor(n.midi)} />
+                <circle cx={x} cy={y} r="10" fill={pitchColor(n.midi)} />
                 {n.lyrics && (
                   <text x={x} y={y + 34} textAnchor="middle" fontSize="13" fill="#3f3f46">
                     {n.lyrics}

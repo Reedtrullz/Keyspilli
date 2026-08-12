@@ -23,12 +23,13 @@ interface Props {
   lowMidi: number;
   highMidi: number;
   loop: LoopRegion | null;
+  waitNote?: TimedNote | null;
 }
 
-export function FallingCanvas({ notes, time, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop }: Props) {
+export function FallingCanvas({ notes, time, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop, waitNote }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const propsRef = useRef({ notes, time, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop });
-  propsRef.current = { notes, time, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop };
+  const propsRef = useRef({ notes, time, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop, waitNote });
+  propsRef.current = { notes, time, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop, waitNote };
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -58,6 +59,7 @@ export function FallingCanvas({ notes, time, settings, pressedKeys, chords, temp
         lowMidi: low,
         highMidi: high,
         loop,
+        waitNote,
       } = propsRef.current;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, W, H);
@@ -69,6 +71,23 @@ export function FallingCanvas({ notes, time, settings, pressedKeys, chords, temp
       const areaHeight = H - KB_H - 10;
       const pxPerSec = areaHeight / lookahead;
 
+      // --- Beat grid lines ---
+      const beatSec = secPerBeat(bpm, speed);
+      const startBeat = Math.floor((now - 0.5) / beatSec);
+      const endBeat = Math.ceil((now + lookahead) / beatSec);
+      for (let b = startBeat; b <= endBeat; b++) {
+        if (b < 0) continue;
+        const bSec = b * beatSec;
+        const y = areaHeight - (bSec - now) * pxPerSec;
+        if (y < 0 || y > areaHeight) continue;
+        const isDownbeat = b % 4 === 0;
+        ctx.strokeStyle = isDownbeat ? "rgba(24, 24, 27, 0.12)" : "rgba(24, 24, 27, 0.04)";
+        ctx.lineWidth = isDownbeat ? 1.5 : 1;
+        ctx.beginPath();
+        ctx.moveTo(LEFT_MARGIN, y);
+        ctx.lineTo(W - RIGHT_MARGIN, y);
+        ctx.stroke();
+      }
       const bars = fallingBars(notes, {
         width: KEYBOARD_W, height: areaHeight, nowSec: now, speed,
         lookaheadSec: lookahead, lowMidi: low, highMidi: high,
@@ -77,7 +96,6 @@ export function FallingCanvas({ notes, time, settings, pressedKeys, chords, temp
       const upcoming = upcomingMidi(bars, areaHeight, lookahead);
 
       // --- Determine current chord ---
-      const beatSec = secPerBeat(bpm, speed);
       const currentBeat = now / beatSec;
       let activeChordNotes: Set<number> = new Set();
       let activeChordName = "";
@@ -129,18 +147,26 @@ export function FallingCanvas({ notes, time, settings, pressedKeys, chords, temp
 
       // --- Keyboard ---
       const kb = keyboardRects({ width: KEYBOARD_W, lowMidi: low, highMidi: high, whiteHeight: KB_H });
-      for (const w of kb.whites) {
-        const kx = w.x + LEFT_MARGIN;
-        const isChord = activeChordNotes.has(w.midi) && !pk.has(w.midi);
-        ctx.fillStyle = pk.has(w.midi) ? pitchColor(w.midi) : "#ffffff";
-        ctx.fillRect(kx, H - KB_H, w.w - 1, KB_H);
-        ctx.strokeStyle = "#d4d4d8";
-        ctx.strokeRect(kx, H - KB_H, w.w - 1, KB_H);
-        ctx.font = "600 12px system-ui, sans-serif";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "alphabetic";
-        if (isChord) {
-          // Chord key: tinted body + thick colored strip + border
+     for (const w of kb.whites) {
+       const kx = w.x + LEFT_MARGIN;
+       const isChord = activeChordNotes.has(w.midi) && !pk.has(w.midi);
+       const isWait = waitNote && (w.midi === waitNote.midi || w.midi % 12 === waitNote.midi % 12) && !pk.has(w.midi);
+       ctx.fillStyle = pk.has(w.midi) ? pitchColor(w.midi) : "#ffffff";
+       ctx.fillRect(kx, H - KB_H, w.w - 1, KB_H);
+       ctx.strokeStyle = "#d4d4d8";
+       ctx.strokeRect(kx, H - KB_H, w.w - 1, KB_H);
+       ctx.font = "600 12px system-ui, sans-serif";
+       ctx.textAlign = "center";
+       ctx.textBaseline = "alphabetic";
+       if (isWait) {
+         ctx.fillStyle = "#fbbf24";
+         ctx.fillRect(kx, H - KB_H, w.w - 1, KB_H);
+         ctx.strokeStyle = "#f59e0b";
+         ctx.lineWidth = 3;
+         ctx.strokeRect(kx + 1, H - KB_H, w.w - 3, KB_H);
+         ctx.fillStyle = "#78350f";
+       } else if (isChord) {
+         // Chord key: tinted body + thick colored strip + border
           ctx.globalAlpha = 0.4;
           ctx.fillStyle = pitchColor(w.midi);
           ctx.fillRect(kx, H - KB_H, w.w - 1, KB_H);
@@ -157,13 +183,20 @@ export function FallingCanvas({ notes, time, settings, pressedKeys, chords, temp
         }
         ctx.fillText(noteLabel(w.midi), kx + w.w / 2, H - 18);
       }
-      for (const b of kb.blacks) {
-        const kx = b.x + LEFT_MARGIN;
-        const isChordB = activeChordNotes.has(b.midi) && !pk.has(b.midi);
-        ctx.fillStyle = pk.has(b.midi) ? pitchColor(b.midi) : "#27272a";
-        ctx.fillRect(kx, H - KB_H, b.w, KB_H * 0.62);
-        if (isChordB) {
-          ctx.fillStyle = pitchColor(b.midi);
+     for (const b of kb.blacks) {
+       const kx = b.x + LEFT_MARGIN;
+       const isChordB = activeChordNotes.has(b.midi) && !pk.has(b.midi);
+       const isWaitB = waitNote && (b.midi === waitNote.midi || b.midi % 12 === waitNote.midi % 12) && !pk.has(b.midi);
+       ctx.fillStyle = pk.has(b.midi) ? pitchColor(b.midi) : "#27272a";
+       ctx.fillRect(kx, H - KB_H, b.w, KB_H * 0.62);
+       if (isWaitB) {
+         ctx.fillStyle = "#f59e0b";
+         ctx.fillRect(kx, H - KB_H * 0.62, b.w, KB_H * 0.62);
+         ctx.strokeStyle = "#b45309";
+         ctx.lineWidth = 3;
+         ctx.strokeRect(kx, H - KB_H * 0.62, b.w, KB_H * 0.62);
+       } else if (isChordB) {
+         ctx.fillStyle = pitchColor(b.midi);
           ctx.fillRect(kx, H - KB_H * 0.62, b.w, KB_H * 0.62);
           ctx.strokeStyle = pitchColor(b.midi);
           ctx.lineWidth = 2;
