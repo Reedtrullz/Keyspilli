@@ -66,9 +66,9 @@ describe("timeline", () => {
 
   it("accents downbeats with a velocity curve", () => {
     const tn = resolveTimedNotes({ ...song, notes: [{ midi: 60, start: 0, dur: 1, vel: 100, hand: "R" as const }] }, 1, 0);
-    expect(tn[0]!.vel).toBe(110);
+    expect(tn[0]!.vel).toBe(115);
     const off = resolveTimedNotes({ ...song, notes: [{ midi: 60, start: 0.25, dur: 1, vel: 100, hand: "R" as const }] }, 1, 0);
-    expect(off[0]!.vel).toBe(85);
+    expect(off[0]!.vel).toBe(80);
   });
 });
 

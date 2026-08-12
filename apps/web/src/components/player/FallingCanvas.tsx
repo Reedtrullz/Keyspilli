@@ -150,7 +150,7 @@ export function FallingCanvas({ notes, time, settings, pressedKeys, chords, temp
      for (const w of kb.whites) {
        const kx = w.x + LEFT_MARGIN;
        const isChord = activeChordNotes.has(w.midi) && !pk.has(w.midi);
-       const isWait = waitNote && (w.midi === waitNote.midi || w.midi % 12 === waitNote.midi % 12) && !pk.has(w.midi);
+       const isWait = waitNote && w.midi === waitNote.midi && !pk.has(w.midi);
        ctx.fillStyle = pk.has(w.midi) ? pitchColor(w.midi) : "#ffffff";
        ctx.fillRect(kx, H - KB_H, w.w - 1, KB_H);
        ctx.strokeStyle = "#d4d4d8";
@@ -186,7 +186,7 @@ export function FallingCanvas({ notes, time, settings, pressedKeys, chords, temp
      for (const b of kb.blacks) {
        const kx = b.x + LEFT_MARGIN;
        const isChordB = activeChordNotes.has(b.midi) && !pk.has(b.midi);
-       const isWaitB = waitNote && (b.midi === waitNote.midi || b.midi % 12 === waitNote.midi % 12) && !pk.has(b.midi);
+       const isWaitB = waitNote && b.midi === waitNote.midi && !pk.has(b.midi);
        ctx.fillStyle = pk.has(b.midi) ? pitchColor(b.midi) : "#27272a";
        ctx.fillRect(kx, H - KB_H, b.w, KB_H * 0.62);
        if (isWaitB) {

@@ -17,11 +17,19 @@ export interface TimedNote {
 
 /** Resolve song data to absolute-second notes with transpose applied. */
 export function resolveTimedNotes(song: SongData, speed: number, transpose: number): TimedNote[] {
-  return song.notes.map((n) => {
-    // ponytail: crude downbeat accent (beat-grid heuristic), not a
-    // reconstruction of source dynamics; replace when sources carry velocities.
-    const beatAccent = n.start % 4 === 0 ? 1.1 : n.start % 1 === 0 ? 1.02 : 0.85;
-    const vel = Math.round(Math.min(127, Math.max(1, n.vel * beatAccent)));
+  return song.notes.map((n, i) => {
+    // ponytail: metric accent + deterministic jitter for flat-velocity sources;
+    // replace when sources carry real dynamics.
+    const b = n.start;
+    const beatAccent =
+      b % 4 === 0 ? 1.15 :           // strong downbeat
+      b % 4 === 2 ? 1.05 :           // secondary accent (beat 3)
+      b % 1 === 0 ? 0.95 :           // weak beats (2, 4)
+      0.80;                           // off-beat subdivisions
+    // Deterministic jitter seeded by note index — keeps playback reproducible
+    // but not robotically identical. ±5% range.
+    const jitter = 1 + 0.05 * Math.sin(i * 7919);
+    const vel = Math.round(Math.min(127, Math.max(1, n.vel * beatAccent * jitter)));
     return {
       midi: n.midi + transpose,
       startSec: beatToSec(n.start, song.tempoBpm, speed),
@@ -34,11 +42,9 @@ export function resolveTimedNotes(song: SongData, speed: number, transpose: numb
 }
 
 /**
- * Display-time chord cleanup for existing artifacts: collapse consecutive
- * same-name runs, drop sets with no real chord name (unlabelable dyads and
- * chromatic clusters), re-label 2-note power chords with current naming
- * ("C#" -> "C#5"), then drop runs that hold for less than `minRunBeats`
- * (per-slice harmonic flashes).
+ * Display-time chord cleanup: re-label every chord using bass-aware naming,
+ * collapse consecutive same-name runs (keeping the first), drop unlabelable
+ * clusters, and drop runs shorter than `minRunBeats`.
  */
 export function dedupeChords(chords: ChordLabel[], minRunBeats = 1): ChordLabel[] {
   const out: ChordLabel[] = [];
@@ -48,15 +54,18 @@ export function dedupeChords(chords: ChordLabel[], minRunBeats = 1): ChordLabel[
     const bassPc = c.notes.length > 0 ? Math.min(...c.notes) % 12 : undefined;
     const name = chordName(pcs, bassPc);
     if (!name) continue; // unlabelable cluster (chromatic flash), any size
-    filtered.push(pcs.length === 2 ? { ...c, name } : c);
+    filtered.push({ ...c, name });
   }
+  let runStart: ChordLabel | null = null;
   for (let i = 0; i < filtered.length; i++) {
     const c = filtered[i]!;
+    if (!runStart) runStart = c;
     const next = filtered[i + 1];
-    if (next && next.name === c.name) continue; // collapse same-name runs
-    const runBeats = (next?.beat ?? c.beat + 1) - c.beat;
-    if (runBeats < minRunBeats) continue; // transient flash: not the progression
-    out.push(c);
+    if (next && next.name === c.name) continue; // still in the same run
+    // End of run: runStart is the first chord, next is the first of a new run
+    const runBeats = (next?.beat ?? runStart.beat + 1) - runStart.beat;
+    if (runBeats >= minRunBeats) out.push(runStart);
+    runStart = null;
   }
   return out;
 }
