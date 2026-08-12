@@ -1,5 +1,5 @@
 import type { TimedNote } from "../timeline.js";
-import { pitchColor } from "@keyspilli/midi";
+import { pitchColor, type MeasureInfo } from "@keyspilli/midi";
 
 export interface KeyboardGeometry {
   whiteKeys: number[]; // midi of white keys
@@ -100,29 +100,42 @@ export function fallingBars(notes: TimedNote[], o: FallingLayoutOptions): Fallin
 }
 
 /**
- * Clamp the rendered keyboard to a max span around the median pitch of the
- * notes currently visible, so wide arrangements stay readable. Falls back to
- * the full song range when nothing is in the window.
+ * Keyboard range for one measure (plus a beat of overlap), so the piano stays
+ * put while playing through the measure instead of re-centering every frame.
+ * Wide measures clamp to `maxSpan` around the median; empty measures return
+ * the previous range.
  */
-export function visibleMidiRange(
+export function measureMidiRange(
   notes: TimedNote[],
-  nowSec: number,
-  lookaheadSec: number,
+  measures: MeasureInfo[],
+  tempoBpm: number,
+  speed: number,
+  measureIdx: number,
   fallback: { lowMidi: number; highMidi: number },
-  maxSpan = 48,
+  maxSpan = 54,
 ): { lowMidi: number; highMidi: number } {
-  const visible: number[] = [];
+  const m = measures[measureIdx];
+  if (!m) return fallback;
+  const next = measures[measureIdx + 1];
+  const secPerBeat = 60 / (tempoBpm * speed);
+  const startSec = m.startBeat * secPerBeat;
+  const endSec = (next?.endBeat ?? m.endBeat) * secPerBeat;
+  const mids: number[] = [];
   for (const n of notes) {
-    if (n.startSec <= nowSec + lookaheadSec && n.startSec + n.durSec >= nowSec - 0.05) {
-      visible.push(n.midi);
-    }
+    if (n.startSec < endSec && n.startSec + n.durSec >= startSec) mids.push(n.midi);
   }
-  if (visible.length === 0) return fallback;
-  visible.sort((a, b) => a - b);
-  const median = visible[Math.floor(visible.length / 2)]!;
+  if (mids.length === 0) return fallback;
+  mids.sort((a, b) => a - b);
+  let lowMidi = mids[0]! - 3;
+  let highMidi = mids[mids.length - 1]! + 3;
+  if (highMidi - lowMidi > maxSpan) {
+    const median = mids[Math.floor(mids.length / 2)]!;
+    lowMidi = median - maxSpan / 2;
+    highMidi = median + maxSpan / 2;
+  }
   return {
-    lowMidi: Math.max(21, median - maxSpan / 2),
-    highMidi: Math.min(108, median + maxSpan / 2),
+    lowMidi: Math.max(21, lowMidi),
+    highMidi: Math.min(108, highMidi),
   };
 }
 

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { beatToSec, resolveTimedNotes, firstNoteAtOrAfter, dedupeChords } from "../src/timeline.js";
 import { Grader, detectPitch } from "../src/grading.js";
 import { KeyboardInput, KEYMAP, MidiInput } from "../src/input.js";
-import { fallingBars, noteLabel, upcomingMidi, visibleMidiRange } from "../src/views/falling.js";
+import { fallingBars, noteLabel, upcomingMidi, measureMidiRange } from "../src/views/falling.js";
 import { loadSettings, saveSettings, DEFAULT_SETTINGS } from "../src/prefs.js";
 import type { SongData } from "../src/types.js";
 
@@ -63,16 +63,29 @@ describe("timeline", () => {
   });
 });
 
-describe("visibleMidiRange", () => {
-  it("clamps the rendered span to the median visible pitch", () => {
-    const tn = resolveTimedNotes(song, 1, 0);
-    const wide = tn.map((n, i) => ({ ...n, midi: 30 + ((i * 20) % 70) }));
-    const r = visibleMidiRange(wide, 0, 3.2, { lowMidi: 22, highMidi: 109 });
-    expect(r.highMidi - r.lowMidi).toBeLessThanOrEqual(48);
+describe("measureMidiRange", () => {
+  const tn = resolveTimedNotes(song, 1, 0); // notes at beats 0 (x2) and 1, tempo 120
+
+  it("covers the measure's notes with a margin", () => {
+    const r = measureMidiRange(tn, song.measures, 120, 1, 0, { lowMidi: 45, highMidi: 99 });
+    expect(r.lowMidi).toBe(45); // lowest visible midi 48 minus 3
+    expect(r.highMidi).toBeGreaterThanOrEqual(67);
   });
 
-  it("falls back to the full range when nothing is visible", () => {
-    expect(visibleMidiRange([], 0, 3.2, { lowMidi: 22, highMidi: 109 })).toEqual({ lowMidi: 22, highMidi: 109 });
+  it("is stable for any position within the same measure", () => {
+    const a = measureMidiRange(tn, song.measures, 120, 1, 0, { lowMidi: 45, highMidi: 99 });
+    const b = measureMidiRange(tn, song.measures, 120, 1, 0, { lowMidi: 45, highMidi: 99 });
+    expect(a).toEqual(b);
+  });
+
+  it("clamps wide measures and keeps the previous range when empty", () => {
+    const wide = tn.map((n, i) => ({ ...n, midi: 30 + ((i * 20) % 70) }));
+    const r = measureMidiRange(wide, song.measures, 120, 1, 0, { lowMidi: 22, highMidi: 109 });
+    expect(r.highMidi - r.lowMidi).toBeLessThanOrEqual(54);
+    expect(measureMidiRange([], song.measures, 120, 1, 0, { lowMidi: 40, highMidi: 80 })).toEqual({
+      lowMidi: 40,
+      highMidi: 80,
+    });
   });
 });
 

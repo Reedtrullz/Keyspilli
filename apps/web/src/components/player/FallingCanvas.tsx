@@ -8,7 +8,6 @@ import {
   pitchColor,
   secPerBeat,
   upcomingMidi,
-  visibleMidiRange,
   type LoopRegion,
   type PlayerSettings,
   type TimedNote,
@@ -70,12 +69,9 @@ export function FallingCanvas({ notes, time, settings, pressedKeys, chords, temp
       const areaHeight = H - KB_H - 10;
       const pxPerSec = areaHeight / lookahead;
 
-      // Clamp the keyboard to ~4 octaves around the median visible pitch so
-      // wide arrangements stay readable; full range is the empty-window fallback.
-      const range = visibleMidiRange(notes, now, lookahead, { lowMidi: low, highMidi: high });
       const bars = fallingBars(notes, {
         width: KEYBOARD_W, height: areaHeight, nowSec: now, speed,
-        lookaheadSec: lookahead, lowMidi: range.lowMidi, highMidi: range.highMidi,
+        lookaheadSec: lookahead, lowMidi: low, highMidi: high,
       });
       for (const b of bars) b.x += LEFT_MARGIN;
       const upcoming = upcomingMidi(bars, areaHeight, lookahead);
@@ -132,7 +128,7 @@ export function FallingCanvas({ notes, time, settings, pressedKeys, chords, temp
       }
 
       // --- Keyboard ---
-      const kb = keyboardRects({ width: KEYBOARD_W, lowMidi: range.lowMidi, highMidi: range.highMidi, whiteHeight: KB_H });
+      const kb = keyboardRects({ width: KEYBOARD_W, lowMidi: low, highMidi: high, whiteHeight: KB_H });
       for (const w of kb.whites) {
         const kx = w.x + LEFT_MARGIN;
         const isChord = activeChordNotes.has(w.midi) && !pk.has(w.midi);
@@ -232,8 +228,8 @@ export function FallingCanvas({ notes, time, settings, pressedKeys, chords, temp
       let above = 0;
       for (const n of notes) {
         if (n.startSec > now + lookahead || n.startSec + n.durSec < now - 0.05) continue;
-        if (n.midi < range.lowMidi) below++;
-        else if (n.midi > range.highMidi) above++;
+        if (n.midi < low) below++;
+        else if (n.midi > high) above++;
       }
       ctx.font = "700 12px system-ui, sans-serif";
       ctx.fillStyle = "#71717a";

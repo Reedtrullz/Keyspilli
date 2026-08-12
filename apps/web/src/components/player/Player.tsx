@@ -11,6 +11,7 @@ import {
   loadJson,
   loadSettings,
   measureIndex,
+  measureMidiRange,
   resolveTimedNotes,
   saveJson,
   saveSettings,
@@ -87,16 +88,30 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
   // the same chord before rendering. (New ingests dedupe in chordsAt.)
   const chords = useMemo(() => dedupeChords(initial.data.chords), [initial.data.chords]);
 
-  // MIDI range is fixed per note set; computed once instead of per canvas frame.
+  const currentMeasure = measureIndex(
+    time,
+    initial.data.tempoBpm,
+    settings.speed,
+    initial.data.timeSig,
+    initial.data.measures.length,
+  );
+
+  // Keyboard range is stable per measure so the piano doesn't re-center every
+  // frame; empty measures keep the previous range.
+  const lastMidiRangeRef = useRef({ lowMidi: 45, highMidi: 99 });
   const midiRange = useMemo(() => {
-    let low = 48;
-    let high = 72;
-    for (const n of notes) {
-      if (n.midi < low) low = n.midi;
-      if (n.midi > high) high = n.midi;
-    }
-    return { low: low - 3, high: high + 3 };
-  }, [notes]);
+    const r = measureMidiRange(
+      notes,
+      initial.data.measures,
+      initial.data.tempoBpm,
+      settings.speed,
+      currentMeasure,
+      lastMidiRangeRef.current,
+    );
+    lastMidiRangeRef.current = r;
+    return r;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notes, settings.speed, currentMeasure]);
 
   // Engine lifecycle: one PlaybackEngine per mount, disposed on unmount.
   useEffect(() => {
@@ -308,13 +323,6 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
   }
 
   const waitNote = grading && waitMode ? engineRef.current?.waitNote : null;
-  const currentMeasure = measureIndex(
-    time,
-    initial.data.tempoBpm,
-    settings.speed,
-    initial.data.timeSig,
-    initial.data.measures.length,
-  );
   const activeModeLabel = MODES.find((m) => m.id === settings.mode)?.label ?? settings.mode;
   const currentBeat = time / secPerBeat(initial.data.tempoBpm, settings.speed);
   const fmtTime = (t: number) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
@@ -500,8 +508,8 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
               pressedKeys={pressedKeys}
               chords={chords}
               tempoBpm={initial.data.tempoBpm}
-              lowMidi={midiRange.low}
-              highMidi={midiRange.high}
+              lowMidi={midiRange.lowMidi}
+              highMidi={midiRange.highMidi}
               loop={loop}
             />
           )}
