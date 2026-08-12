@@ -30,7 +30,7 @@ function chordsAt(notes: Note[], grid: number): ChordLabel[] {
   const out: ChordLabel[] = [];
   for (const [beat, mids] of [...bySlice.entries()].sort((a, b) => a[0] - b[0])) {
     const pcs = [...new Set(mids.map((m) => m % 12))].sort((a, b) => a - b);
-    if (pcs.length < 2) continue;
+    if (pcs.length < 3) continue; // 2-note fragments aren't full chord shapes
     const name = chordName(pcs);
     if (!name) continue; // unlabelable dyad (root+3rd, chromatic clash, ...)
     out.push({ beat, name, notes: mids });

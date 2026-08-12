@@ -45,23 +45,22 @@ describe("timeline", () => {
 
   it("collapses consecutive same-name chords", () => {
     const names = dedupeChords([
-      { beat: 0, name: "C", notes: [48, 55] },
-      { beat: 0.25, name: "C", notes: [48, 55] },
-      { beat: 0.5, name: "C", notes: [48, 55] },
-      { beat: 2, name: "D", notes: [50, 57] },
-      { beat: 2.25, name: "D", notes: [50, 57] },
-      { beat: 4, name: "C", notes: [48, 55] },
+      { beat: 0, name: "C", notes: [48, 52, 55] },
+      { beat: 0.25, name: "C", notes: [48, 52, 55] },
+      { beat: 0.5, name: "C", notes: [48, 52, 55] },
+      { beat: 2, name: "Dm", notes: [50, 53, 57] },
+      { beat: 2.25, name: "Dm", notes: [50, 53, 57] },
+      { beat: 4, name: "C", notes: [48, 52, 55] },
     ]).map((c) => c.name);
-    expect(names).toEqual(["C5", "D5", "C5"]);
+    expect(names).toEqual(["C", "Dm", "C"]);
   });
 
-  it("drops unlabelable dyads and re-labels power chords", () => {
+  it("drops two-note fragments that would render as scattered keys", () => {
     const out = dedupeChords([
-      { beat: 0, name: "E", notes: [40, 44] }, // root + third: no chord name
-      { beat: 1, name: "C", notes: [36, 43] }, // root + fifth: "C5"
-      { beat: 2, name: "C", notes: [36, 43] },
+      { beat: 0, name: "C5", notes: [36, 43] }, // C + G: only 2 pitch classes
+      { beat: 1, name: "Cm", notes: [48, 51, 55] }, // C + Eb + G: full shape
     ]);
-    expect(out.map((c) => c.name)).toEqual(["C5"]);
+    expect(out.map((c) => c.name)).toEqual(["Cm"]);
   });
 
   it("accents downbeats with a velocity curve", () => {

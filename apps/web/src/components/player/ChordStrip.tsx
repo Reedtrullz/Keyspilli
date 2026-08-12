@@ -9,25 +9,24 @@ interface ChordStripProps {
 
 /** Mini piano keyboard diagram for a single chord. */
 function MiniKeyboard({ notes }: { notes: number[] }) {
-  // Show one octave range centered on the chord's lowest note
+  if (notes.length === 0) return null;
   const low = Math.min(...notes);
-  const high = Math.max(...notes);
-  // Expand to cover at least an octave
+  // Anchor a full octave at the chord's lowest note and highlight by pitch
+  // class. Chords in the data span 3-4 octaves (bass + melody doublings), so a
+  // window cropped to the note span would hide most of the chord's keys.
   const rangeLow = Math.floor(low / 12) * 12;
-  const rangeHigh = rangeLow + 12;
   const W = 56;
   const H = 28;
   const noteSet = new Set(notes.map((n) => n % 12));
   const WHITE = [0, 2, 4, 5, 7, 9, 11];
-  const whites = WHITE.filter((pc) => pc + rangeLow >= low - 1 && pc + rangeLow <= high + 1);
-  if (whites.length === 0) whites.push(0);
-  const ww = W / (whites.length || 1);
+  const whites = [...WHITE];
+  const ww = W / whites.length;
 
   return (
     <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
       {whites.map((pc, i) => {
         const midi = pc + rangeLow;
-        const active = noteSet.has(midi % 12);
+        const active = noteSet.has(pc);
         return (
           <rect
             key={`w${i}`}
