@@ -31,17 +31,23 @@ function chordsAt(notes: Note[], grid: number): ChordLabel[] {
   for (const [beat, mids] of [...bySlice.entries()].sort((a, b) => a[0] - b[0])) {
     const pcs = [...new Set(mids.map((m) => m % 12))].sort((a, b) => a - b);
     if (pcs.length < 2) continue;
-    out.push({ beat, name: chordName(pcs), notes: mids });
+    const name = chordName(pcs);
+    if (!name) continue; // unlabelable dyad (root+3rd, chromatic clash, ...)
+    out.push({ beat, name, notes: mids });
   }
   // Per-grid-slice analysis produces the same chord every 0.25 beats; collapse
-  // consecutive same-name runs into the progression's actual changes.
-  const deduped: ChordLabel[] = [];
-  for (const c of out) {
-    const prev = deduped[deduped.length - 1];
-    if (prev && prev.name === c.name) continue;
-    deduped.push(c);
+  // consecutive same-name runs and keep only runs that hold >= 1 beat, so the
+  // progression shows real changes instead of harmonic flashes.
+  const kept: ChordLabel[] = [];
+  for (let i = 0; i < out.length; i++) {
+    const c = out[i]!;
+    const next = out[i + 1];
+    if (next && next.name === c.name) continue;
+    const runBeats = (next?.beat ?? c.beat + 1) - c.beat;
+    if (runBeats < 1) continue;
+    kept.push(c);
   }
-  return deduped;
+  return kept;
 }
 
 function melodyOnly(notes: Note[], grid: number, minDur: number): Note[] {

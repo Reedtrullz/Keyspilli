@@ -1,5 +1,5 @@
 import type { SongData } from "./types.js";
-import type { ChordLabel } from "@keyspilli/midi";
+import { chordName, type ChordLabel } from "@keyspilli/midi";
 
 /** Converts beat-based song data into seconds given a speed multiplier. */
 export function beatToSec(beat: number, bpm: number, speed: number): number {
@@ -32,12 +32,33 @@ export function resolveTimedNotes(song: SongData, speed: number, transpose: numb
   });
 }
 
-/** Collapse consecutive same-name chords (per-grid-slice analysis noise). */
-export function dedupeChords(chords: ChordLabel[]): ChordLabel[] {
+/**
+ * Display-time chord cleanup for existing artifacts: collapse consecutive
+ * same-name runs and drop 2-note sets that have no real chord name (they
+ * rendered as bare "single-note" labels like "C" or "E"), then drop runs that
+ * hold for less than `minRunBeats` (per-slice harmonic flashes).
+ */
+export function dedupeChords(chords: ChordLabel[], minRunBeats = 1): ChordLabel[] {
   const out: ChordLabel[] = [];
+  const filtered: ChordLabel[] = [];
   for (const c of chords) {
-    const prev = out[out.length - 1];
-    if (prev && prev.name === c.name) continue;
+    const pcs = [...new Set(c.notes.map((m) => m % 12))].sort((a, b) => a - b);
+    const name = chordName(pcs);
+    if (!name) continue; // unlabelable cluster (chromatic flash), any size
+    if (pcs.length === 2) {
+      // Re-label with current naming ("C#" -> "C5" power chord); drop dyads
+      // that still have no real chord name.
+      filtered.push({ ...c, name });
+    } else {
+      filtered.push(c);
+    }
+  }
+  for (let i = 0; i < filtered.length; i++) {
+    const c = filtered[i]!;
+    const next = filtered[i + 1];
+    if (next && next.name === c.name) continue; // collapse same-name runs
+    const runBeats = (next?.beat ?? c.beat + 1) - c.beat;
+    if (runBeats < minRunBeats) continue; // transient flash: not the progression
     out.push(c);
   }
   return out;

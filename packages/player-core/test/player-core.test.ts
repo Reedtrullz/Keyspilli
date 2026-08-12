@@ -45,14 +45,23 @@ describe("timeline", () => {
 
   it("collapses consecutive same-name chords", () => {
     const names = dedupeChords([
-      { beat: 0, name: "C", notes: [48, 60] },
-      { beat: 0.25, name: "C", notes: [48, 60] },
-      { beat: 0.5, name: "C", notes: [48, 62] },
-      { beat: 2, name: "G", notes: [43, 55] },
-      { beat: 2.25, name: "G", notes: [43, 55] },
-      { beat: 4, name: "C", notes: [48, 60] },
+      { beat: 0, name: "C", notes: [48, 55] },
+      { beat: 0.25, name: "C", notes: [48, 55] },
+      { beat: 0.5, name: "C", notes: [48, 55] },
+      { beat: 2, name: "D", notes: [50, 57] },
+      { beat: 2.25, name: "D", notes: [50, 57] },
+      { beat: 4, name: "C", notes: [48, 55] },
     ]).map((c) => c.name);
-    expect(names).toEqual(["C", "G", "C"]);
+    expect(names).toEqual(["C5", "D5", "C5"]);
+  });
+
+  it("drops unlabelable dyads and re-labels power chords", () => {
+    const out = dedupeChords([
+      { beat: 0, name: "E", notes: [40, 44] }, // root + third: no chord name
+      { beat: 1, name: "C", notes: [36, 43] }, // root + fifth: "C5"
+      { beat: 2, name: "C", notes: [36, 43] },
+    ]);
+    expect(out.map((c) => c.name)).toEqual(["C5"]);
   });
 
   it("accents downbeats with a velocity curve", () => {

@@ -76,8 +76,13 @@ export function chordName(pcs: number[]): string {
   else if (has(4)) quality = "";
   else if (has(2)) quality = "sus2";
   else if (has(5)) quality = "sus4";
+  else if (has(7) && !is7 && !isMaj7) quality = "5"; // root+fifth = power chord
   if (isMaj7 && !is7) seventh = "maj7";
   else if (is7) seventh = "7";
+  // Sets with no recognizable quality aren't playable chords (root+3rd or
+  // root+6th dyads, chromatic clusters); return "" so callers can drop them.
+  const noQuality = !quality && !seventh;
+  if (noQuality && (pcs.length === 2 || (!has(3) && !has(4)))) return "";
   const rootName = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"][bass]!;
   return rootName + quality + seventh;
 }
