@@ -5,7 +5,7 @@
  */
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
-import { getJob, getSong, transcribedDir, ingestSource } from "../src/index.js";
+import { getJob, getSong, transcribedDir, ingestSource, filterTranscription } from "../src/index.js";
 
 const targets = new Set(process.argv.slice(2));
 if (!targets.size) { console.error("usage: tsx scripts/restore-youtube.ts <baseId> ..."); process.exit(1); }
@@ -24,9 +24,11 @@ for (const jobId of jobs) {
   const midiName = reFiles.find((f) => f.endsWith("_basic_pitch.mid")) ?? files.find((f) => f.endsWith("_basic_pitch.mid"));
   if (!midiName) continue;
   const srcDir = reFiles.length ? reDir : dir;
-  const buf = await readFile(join(srcDir, midiName));
+  const audioName = (reFiles.find((f) => f.startsWith("audio.")) ?? files.find((f) => f.startsWith("audio.")));
+  if (!audioName) continue;
+  const filtered = await filterTranscription(new Uint8Array(await readFile(join(srcDir, midiName))), join(srcDir, audioName));
   const r = await ingestSource({
-    buf: new Uint8Array(buf),
+    buf: filtered,
     title: song.title,
     artist: song.artist,
     category: song.category,

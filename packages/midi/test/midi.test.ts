@@ -515,6 +515,16 @@ describe("cleanTranscription", () => {
     expect(out).toHaveLength(8);
     expect(Math.min(...out.map((n) => n.vel))).toBeGreaterThanOrEqual(20 + 4 * 5);
   });
+
+  it("caps sustained pads so notes don't drone for minutes", () => {
+    const notes: Note[] = [
+      { midi: 60, start: 0, dur: 300, vel: 80 },
+      { midi: 64, start: 0, dur: 0.5, vel: 70 },
+    ];
+    const out = cleanTranscription(notes);
+    expect(out.find((n) => n.midi === 60)!.dur).toBe(8);
+    expect(out.find((n) => n.midi === 64)!.dur).toBe(0.5);
+  });
 });
 
 describe("writeMusicXml", () => {

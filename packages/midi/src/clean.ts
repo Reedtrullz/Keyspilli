@@ -11,6 +11,9 @@ export interface CleanOptions {
   maxPolyphony?: number;
   /** hard bound on simultaneously sounding notes (kills transcription walls) */
   maxSounding?: number;
+  /** cap notes held longer than this (beats); Basic Pitch tracks sustained
+   * pads/background tones as minutes-long piano notes that drone */
+  maxDurBeats?: number;
 }
 
 /**
@@ -26,8 +29,11 @@ export function cleanTranscription(notes: Note[], opts: CleanOptions = {}): Note
   const mergeWindow = opts.mergeWindow ?? 0.125;
   const maxPolyphony = opts.maxPolyphony ?? 6;
   const maxSounding = opts.maxSounding ?? 8;
+  const maxDurBeats = opts.maxDurBeats ?? 8;
 
-  let out = notes.filter((n) => n.vel >= minVel && n.dur >= minDurBeats);
+  let out = notes
+    .filter((n) => n.vel >= minVel && n.dur >= minDurBeats)
+    .map((n) => (n.dur > maxDurBeats ? { ...n, dur: maxDurBeats } : n));
   out = mergeNearDuplicates(out, mergeWindow);
   out = capPolyphony(out, maxPolyphony);
   out = capSoundingPolyphony(out, maxSounding);

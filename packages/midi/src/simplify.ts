@@ -66,7 +66,9 @@ function melodyOnly(notes: Note[], grid: number, minDur: number): Note[] {
     const group = bySlice.get(k)!;
     const top = group.reduce((a, b) => (b.midi > a.midi ? b : a));
     const next = slices[i + 1];
-    const dur = next === undefined ? Math.max(minDur, top.dur) : Math.max(minDur, (next - k) * grid);
+    // Cap the legato fill: stretching across rests makes sparse sections ring
+    // for 10+ seconds. Notes keep their attack, rests stay rests.
+    const dur = next === undefined ? Math.max(minDur, top.dur) : Math.max(minDur, Math.min(8, (next - k) * grid));
     out.push({ ...top, dur });
   }
   return out;
