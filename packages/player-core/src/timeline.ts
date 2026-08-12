@@ -34,20 +34,19 @@ export function resolveTimedNotes(song: SongData, speed: number, transpose: numb
 
 /**
  * Display-time chord cleanup for existing artifacts: collapse consecutive
- * same-name runs, keep only full chord shapes (3+ pitch classes — 2-note
- * fragments render as scattered keys that read like single notes), drop sets
- * with no real chord name, then drop runs that hold for less than
- * `minRunBeats` (per-slice harmonic flashes).
+ * same-name runs, drop sets with no real chord name (unlabelable dyads and
+ * chromatic clusters), re-label 2-note power chords with current naming
+ * ("C#" -> "C#5"), then drop runs that hold for less than `minRunBeats`
+ * (per-slice harmonic flashes).
  */
 export function dedupeChords(chords: ChordLabel[], minRunBeats = 1): ChordLabel[] {
   const out: ChordLabel[] = [];
   const filtered: ChordLabel[] = [];
   for (const c of chords) {
     const pcs = [...new Set(c.notes.map((m) => m % 12))].sort((a, b) => a - b);
-    if (pcs.length < 3) continue;
     const name = chordName(pcs);
     if (!name) continue; // unlabelable cluster (chromatic flash), any size
-    filtered.push(c);
+    filtered.push(pcs.length === 2 ? { ...c, name } : c);
   }
   for (let i = 0; i < filtered.length; i++) {
     const c = filtered[i]!;

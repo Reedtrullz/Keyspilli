@@ -55,12 +55,13 @@ describe("timeline", () => {
     expect(names).toEqual(["C", "Dm", "C"]);
   });
 
-  it("drops two-note fragments that would render as scattered keys", () => {
+  it("keeps labeled power chords and drops unlabelable dyads", () => {
     const out = dedupeChords([
-      { beat: 0, name: "C5", notes: [36, 43] }, // C + G: only 2 pitch classes
-      { beat: 1, name: "Cm", notes: [48, 51, 55] }, // C + Eb + G: full shape
+      { beat: 0, name: "C", notes: [36, 43] }, // C + G: re-labeled "C5"
+      { beat: 1, name: "E", notes: [40, 44] }, // E + G#: root+third, no label -> dropped
+      { beat: 2, name: "Cm", notes: [48, 51, 55] }, // full chord: kept
     ]);
-    expect(out.map((c) => c.name)).toEqual(["Cm"]);
+    expect(out.map((c) => c.name)).toEqual(["C5", "Cm"]);
   });
 
   it("accents downbeats with a velocity curve", () => {
