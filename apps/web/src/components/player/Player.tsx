@@ -62,7 +62,7 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
   const [showDownload, setShowDownload] = useState(false);
   const [grading, setGrading] = useState(false);
   const [waitMode, setWaitMode] = useState(false);
-  const [gradeResult, setGradeResult] = useState<string | null>(null);
+  const [gradeResult, setGradeResult] = useState<{ summary: string; accuracyPct: number; hit: number; missed: number; wrong: number; late: number; total: number } | null>(null);
   const [pressedKeys, setPressedKeys] = useState<Map<number, number>>(new Map());
   const [midiConnected, setMidiConnected] = useState(false);
   const [songKeyLabel, setSongKeyLabel] = useState(initial.data.key);
@@ -320,7 +320,7 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
 
   function finishGrading() {
     const result = engineRef.current?.finishGrading();
-    if (result) setGradeResult(result.summary);
+    if (result) setGradeResult(result);
     setGrading(false);
     setWaitMode(false);
   }

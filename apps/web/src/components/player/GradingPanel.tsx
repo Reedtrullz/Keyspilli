@@ -15,7 +15,7 @@ export function GradingPanel({
 }: {
   waitMode: boolean;
   waitNote: TimedNote | null | undefined;
-  result: string | null;
+  result: { summary: string; accuracyPct: number; hit: number; missed: number; wrong: number; late: number; total: number } | null;
   onWaitToggle: () => void;
   onExit: () => void;
   onMicNote: (midi: number) => void;
@@ -101,7 +101,20 @@ export function GradingPanel({
           <span className="text-zinc-500"> ({waitNote.hand === "L" ? "left hand" : "right hand"})</span>
         </div>
       )}
-      {result && <div className="rounded-xl bg-green-50 p-3 text-sm">{result}</div>}
+      {result && (
+        <div className="rounded-xl bg-green-50 p-3 text-sm">
+          <div className="flex items-baseline gap-2 mb-1">
+            <span className="text-2xl font-bold">{result.accuracyPct}%</span>
+            <span className="text-zinc-600">{result.summary}</span>
+          </div>
+          <div className="text-xs text-zinc-500 flex gap-3">
+            <span>✓ {result.hit} hit</span>
+            <span>✗ {result.missed} missed</span>
+            <span>~ {result.wrong} wrong</span>
+            {result.late > 0 && <span>⏱ {result.late} late</span>}
+          </div>
+        </div>
+      )}
       <p className="text-[11px] text-zinc-400 mt-2">Mic grading needs a quiet room; MIDI/keyboard grading is exact.</p>
     </div>
   );

@@ -99,7 +99,10 @@ export class AudioEngine {
     gain.connect(bus);
     osc1.start(t);
     osc2.start(t);
-    const stopAt = t + decay + (this.sustainPedal && n.durSec >= 0.2 ? 0.55 : 0.05);
+    // ponytail: sustain tail scales with note length so short notes don't ring
+    // 3× their written duration; cap at 0.6s for long notes.
+    const tail = this.sustainPedal && n.durSec >= 0.2 ? Math.min(0.6, n.durSec * 0.4) : 0.05;
+    const stopAt = t + decay + tail;
     osc1.stop(stopAt);
     osc2.stop(stopAt);
     const entry = { osc: osc1, gain };
