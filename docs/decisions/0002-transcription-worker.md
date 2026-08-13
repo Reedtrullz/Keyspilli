@@ -33,3 +33,22 @@ Serialization by platform:
 - VPS: `docker compose up` runs the worker automatically.
 - Known environmental pins (also in the Dockerfile): `setuptools<81`
   (pkg_resources), `scipy<1.13` (removed `signal.gaussian`), `numpy<2`.
+
+## 2026-08-13 follow-up
+
+- **120 BPM problem fixed:** Basic Pitch MIDIs carry no real tempo meta, so
+  every YouTube row was stored at 120 BPM. `reingest-all-youtube.ts` now
+  detects tempo from the audio (`services/transcribe/src/tempo.py`),
+  rewrites the raw MIDI's tempo meta, then runs the onset filter + re-ingest
+  with stable base ids. `KEYSPILLI_TEMPO_OVERRIDE` forces a tempo.
+- **Raw unquantized evidence:** the pipeline stores Basic Pitch's raw,
+  unquantized notes; quantization happens in `buildVariants` (0.125 grid for
+  the advanced level, coarser for reductions).
+- **Ladder fix:** variants are reductions of the hand-labeled advanced split,
+  so each easier level is a true subset of the level above.
+- **Worker reliability:** `conversion_jobs` gained an `attempts` counter;
+  worker boot requeues orphaned `processing` jobs; failed jobs retry up to
+  `KEYSPILLI_MAX_ATTEMPTS` (default 3) before staying `error`.
+- **Accuracy study:** measurement harness added (`audit-transcriptions.ts`:
+  per-song metrics plus reference-MIDI pitch-class overlap and median onset
+  error). A fixture-based reference study is still pending.

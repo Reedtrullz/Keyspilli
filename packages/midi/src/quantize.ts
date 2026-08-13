@@ -16,7 +16,7 @@ function roundTo(x: number, g: number): number {
 /** Snap note times to a rhythmic grid, merge unisons, drop tiny/quiet notes. */
 export function quantize(notes: Note[], opts: QuantizeOptions = {}): Note[] {
   const grid = opts.grid ?? 0.25;
-  const minDur = opts.minDur ?? 0.05;
+  const minDur = opts.minDur ?? 0.125;
   const minVel = opts.minVel ?? 8;
   const out = new Map<string, Note>();
   for (const n of notes) {

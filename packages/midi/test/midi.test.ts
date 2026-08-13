@@ -204,6 +204,16 @@ describe("splitHands", () => {
     expect(lh.length / notes.length).toBeGreaterThan(0.1);
     expect(lh.length / notes.length).toBeLessThan(0.9);
   });
+
+  it("uses the 25% note-count percentile directly when preferPercentile is set", () => {
+    const notes: Note[] = [];
+    for (let m = 36; m <= 72; m += 2) {
+      notes.push({ midi: m, start: 0, dur: 1, vel: 80 });
+    }
+    const { lh, rh } = splitHands(notes, { preferPercentile: true });
+    expect(lh.map((n) => n.midi)).toEqual([36, 38, 40, 42]);
+    expect(rh).toHaveLength(15);
+  });
 });
 
 describe("detectKey", () => {
@@ -289,6 +299,64 @@ describe("buildVariants", () => {
     }
     expect(variants[0]!.notes.every((n) => n.hand === "R")).toBe(true);
     expect(variants[5]!.notes.length).toBeGreaterThan(0);
+  });
+
+  it("separates medium from advanced on a 16th-note run", () => {
+    const notes: Note[] = [{ midi: 36, start: 0, dur: 4, vel: 80 }];
+    for (let i = 0; i < 32; i++) {
+      notes.push({ midi: 76, start: i * 0.125, dur: 0.125, vel: 80 });
+      if (i % 2 === 1) {
+        notes.push({ midi: 72 - (i % 8), start: i * 0.125, dur: 0.125, vel: 80 });
+      }
+    }
+    const src: ParsedMidi = {
+      format: 0,
+      division: 480,
+      tempoBpm: 120,
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes,
+      trackNames: ["Run"],
+      durationBeats: 4,
+    };
+    const variants = buildVariants(src, { title: "Run", artist: "Test" });
+    const advanced = variants.find((v) => v.level === "advanced")!;
+    const medium = variants.find((v) => v.level === "medium")!;
+    expect(medium.notes.length).toBeLessThan(advanced.notes.length);
+    // every short off-eighth non-top note vanished; nothing else did
+    for (const n of advanced.notes) {
+      const k = Math.round(n.start / 0.125);
+      const shouldDrop = n.dur <= 0.25 && k % 2 === 1 && n.midi !== 76;
+      expect(medium.notes.some((m) => m.midi === n.midi && m.start === n.start)).toBe(!shouldDrop);
+    }
+  });
+
+  it("excludes short passing tones from chord labels", () => {
+    const notes: Note[] = [
+      { midi: 36, start: 0, dur: 4, vel: 80 },
+      { midi: 60, start: 0, dur: 1, vel: 80 },
+      { midi: 64, start: 0, dur: 1, vel: 80 },
+      { midi: 67, start: 0, dur: 1, vel: 80 },
+      { midi: 62, start: 0.125, dur: 0.125, vel: 80 },
+      { midi: 65, start: 1, dur: 1, vel: 80 },
+      { midi: 69, start: 1, dur: 1, vel: 80 },
+      { midi: 72, start: 1, dur: 1, vel: 80 },
+    ];
+    const src: ParsedMidi = {
+      format: 0,
+      division: 480,
+      tempoBpm: 120,
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes,
+      trackNames: ["Pass"],
+      durationBeats: 4,
+    };
+    for (const v of buildVariants(src, { title: "Pass", artist: "Test" })) {
+      for (const c of v.chords) expect(c.notes).not.toContain(62);
+    }
   });
   it("roots easy-variant bass notes to the song key", () => {
     const src: ParsedMidi = {
@@ -520,10 +588,32 @@ describe("cleanTranscription", () => {
     const notes: Note[] = [
       { midi: 60, start: 0, dur: 300, vel: 80 },
       { midi: 64, start: 0, dur: 0.5, vel: 70 },
+      { midi: 67, start: 0, dur: 0.5, vel: 70 },
     ];
     const out = cleanTranscription(notes);
     expect(out.find((n) => n.midi === 60)!.dur).toBe(2);
     expect(out.find((n) => n.midi === 64)!.dur).toBe(0.5);
+  });
+
+  it("scales the duration ceiling with the median input duration", () => {
+    const notes: Note[] = [
+      { midi: 60, start: 0, dur: 300, vel: 80 },
+      { midi: 64, start: 0, dur: 4, vel: 70 },
+      { midi: 67, start: 0, dur: 4, vel: 70 },
+    ];
+    const out = cleanTranscription(notes, { minVel: 0, minDurBeats: 0 });
+    expect(out.find((n) => n.midi === 60)!.dur).toBe(8);
+    expect(out.find((n) => n.midi === 64)!.dur).toBe(4);
+  });
+
+  it("honors an explicit maxDurBeats override", () => {
+    const notes: Note[] = [
+      { midi: 60, start: 0, dur: 300, vel: 80 },
+      { midi: 64, start: 0, dur: 4, vel: 70 },
+    ];
+    const out = cleanTranscription(notes, { minVel: 0, minDurBeats: 0, maxDurBeats: 3 });
+    expect(out.find((n) => n.midi === 60)!.dur).toBe(3);
+    expect(out.find((n) => n.midi === 64)!.dur).toBe(3);
   });
 });
 

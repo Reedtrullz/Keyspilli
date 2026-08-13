@@ -17,19 +17,28 @@ export interface TimedNote {
 
 /** Resolve song data to absolute-second notes with transpose applied. */
 export function resolveTimedNotes(song: SongData, speed: number, transpose: number): TimedNote[] {
+  const vels = song.notes.map((n) => n.vel);
+  const mean = vels.reduce((s, v) => s + v, 0) / Math.max(1, vels.length);
+  const stddev = Math.sqrt(vels.reduce((s, v) => s + (v - mean) ** 2, 0) / Math.max(1, vels.length));
+  // Real dynamics (stddev >= 8) pass through untouched; synthetic accent +
+  // jitter is only for flat-velocity sources.
+  const useRealDynamics = stddev >= 8;
   return song.notes.map((n, i) => {
-    // ponytail: metric accent + deterministic jitter for flat-velocity sources;
-    // replace when sources carry real dynamics.
-    const b = n.start;
-    const beatAccent =
-      b % 4 === 0 ? 1.15 :           // strong downbeat
-      b % 4 === 2 ? 1.05 :           // secondary accent (beat 3)
-      b % 1 === 0 ? 0.95 :           // weak beats (2, 4)
-      0.80;                           // off-beat subdivisions
-    // Deterministic jitter seeded by note index — keeps playback reproducible
-    // but not robotically identical. ±5% range.
-    const jitter = 1 + 0.05 * Math.sin(i * 7919);
-    const vel = Math.round(Math.min(127, Math.max(1, n.vel * beatAccent * jitter)));
+    let vel = n.vel;
+    if (!useRealDynamics) {
+      // ponytail: metric accent + deterministic jitter for flat-velocity
+      // sources; replace when sources carry real dynamics.
+      const b = n.start;
+      const beatAccent =
+        b % 4 === 0 ? 1.15 :           // strong downbeat
+        b % 4 === 2 ? 1.05 :           // secondary accent (beat 3)
+        b % 1 === 0 ? 0.95 :           // weak beats (2, 4)
+        0.80;                           // off-beat subdivisions
+      // Deterministic jitter seeded by note index — keeps playback reproducible
+      // but not robotically identical. ±5% range.
+      const jitter = 1 + 0.05 * Math.sin(i * 7919);
+      vel = Math.round(Math.min(127, Math.max(1, n.vel * beatAccent * jitter)));
+    }
     return {
       midi: n.midi + transpose,
       startSec: beatToSec(n.start, song.tempoBpm, speed),

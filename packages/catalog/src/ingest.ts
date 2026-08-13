@@ -1,5 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { unzipSync } from "fflate";
 import {
   parseMidi,
   parseMusicXmlNotes,
@@ -53,6 +54,28 @@ function looksLikeXml(buf: Uint8Array): boolean {
   return head.startsWith("<?xml") || head.startsWith("<score-partwise");
 }
 
+function isZip(buf: Uint8Array): boolean {
+  return buf.length >= 4 && buf[0] === 0x50 && buf[1] === 0x4b && buf[2] === 0x03 && buf[3] === 0x04;
+}
+
+/**
+ * Extract the score .xml from a compressed .mxl. Container.xml is the
+ * canonical pointer; some exports omit it, so fall back to the first .xml.
+ */
+function mxlScoreXml(buf: Uint8Array): string {
+  const files = unzipSync(buf);
+  const names = Object.keys(files);
+  let scoreName = names.find((n) => n.endsWith(".xml") && n !== "META-INF/container.xml");
+  const container = files["META-INF/container.xml"];
+  if (container) {
+    // ponytail: regex on container.xml; a DOM parser only if files ever miss rootfile full-path
+    const m = new TextDecoder().decode(container).match(/full-path="([^"]+)"/);
+    if (m?.[1] && files[m[1]]) scoreName = m[1];
+  }
+  if (!scoreName) throw new Error("no MusicXML score in .mxl");
+  return new TextDecoder().decode(files[scoreName]);
+}
+
 /**
  * Parse a MIDI/MusicXML buffer, generate 6 difficulty variants, write
  * artifacts and DB rows. Returns the base id + created song ids.
@@ -60,9 +83,12 @@ function looksLikeXml(buf: Uint8Array): boolean {
 export async function ingestSource(inp: IngestInput): Promise<{ baseId: string; songIds: string[]; error?: string }> {
   let parsed;
   try {
-    parsed = looksLikeXml(inp.buf)
-      ? parseMusicXmlNotes(new TextDecoder().decode(inp.buf))
-      : parseMidi(inp.buf);
+    const isMxl = isZip(inp.buf);
+    parsed = isMxl
+      ? parseMusicXmlNotes(mxlScoreXml(inp.buf))
+      : looksLikeXml(inp.buf)
+        ? parseMusicXmlNotes(new TextDecoder().decode(inp.buf))
+        : parseMidi(inp.buf);
   } catch (e) {
     return { baseId: "", songIds: [], error: `parse failed: ${(e as Error).message}` };
   }
@@ -86,7 +112,8 @@ export async function ingestSource(inp: IngestInput): Promise<{ baseId: string; 
   // Keep the raw source for future re-validation when thresholds change.
   if (inp.contentType === "upload") {
     await mkdir(uploadsDir(), { recursive: true });
-    await writeFile(join(uploadsDir(), `${baseId}.${looksLikeXml(inp.buf) ? "xml" : "mid"}`), inp.buf);
+    const ext = isZip(inp.buf) ? "mxl" : looksLikeXml(inp.buf) ? "xml" : "mid";
+    await writeFile(join(uploadsDir(), `${baseId}.${ext}`), inp.buf);
   }
   const durationSec = Math.round((parsed.durationBeats * 60) / parsed.tempoBpm);
   const songIds: string[] = [];

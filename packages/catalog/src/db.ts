@@ -48,6 +48,7 @@ export interface JobRow {
   status: "queued" | "processing" | "done" | "error";
   songId: string | null;
   error: string | null;
+  attempts?: number;
   createdAt: string;
   finishedAt: string | null;
 }
@@ -87,6 +88,7 @@ function mapJob(r: Record<string, unknown>): JobRow {
     status: r.status as JobRow["status"],
     songId: r.song_id as string | null,
     error: r.error as string | null,
+    attempts: (r.attempts as number | undefined) ?? 0,
     createdAt: r.created_at as string,
     finishedAt: r.finished_at as string | null,
   };
@@ -135,6 +137,10 @@ export function getDb(): Database.Database {
       finished_at TEXT
     );
   `);
+  const cols = db.prepare("PRAGMA table_info(conversion_jobs)").all() as { name: string }[];
+  if (!cols.some((c) => c.name === "attempts")) {
+    db.exec("ALTER TABLE conversion_jobs ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0");
+  }
   return db;
 }
 
@@ -243,13 +249,13 @@ export function incrementPlays(id: string): void {
 export function insertJob(j: JobRow): void {
   getDb()
     .prepare(
-      `INSERT INTO conversion_jobs (id, youtube_url, status, song_id, error, created_at, finished_at)
-       VALUES (@id, @youtubeUrl, @status, @songId, @error, @createdAt, @finishedAt)`,
+      `INSERT INTO conversion_jobs (id, youtube_url, status, song_id, error, attempts, created_at, finished_at)
+       VALUES (@id, @youtubeUrl, @status, @songId, @error, @attempts, @createdAt, @finishedAt)`,
     )
-    .run(j);
+    .run({ ...j, attempts: j.attempts ?? 0 });
 }
 
-export function updateJob(id: string, patch: Partial<Pick<JobRow, "status" | "songId" | "error" | "finishedAt">>): void {
+export function updateJob(id: string, patch: Partial<Pick<JobRow, "status" | "songId" | "error" | "attempts" | "finishedAt">>): void {
   const sets: string[] = [];
   const params: Record<string, unknown> = { id };
   if (patch.status !== undefined) {
@@ -268,13 +274,32 @@ export function updateJob(id: string, patch: Partial<Pick<JobRow, "status" | "so
     sets.push("finished_at = @finishedAt");
     params.finishedAt = patch.finishedAt;
   }
+  if (patch.attempts !== undefined) {
+    sets.push("attempts = @attempts");
+    params.attempts = patch.attempts;
+  }
   if (sets.length) getDb().prepare(`UPDATE conversion_jobs SET ${sets.join(", ")} WHERE id = @id`).run(params);
+}
+
+export function claimJob(id: string): boolean {
+  const r = getDb()
+    .prepare("UPDATE conversion_jobs SET status = 'processing' WHERE id = ? AND status = 'queued'")
+    .run(id);
+  return r.changes === 1;
+}
+
+export function requeueOrphaned(): number {
+  return getDb().prepare("UPDATE conversion_jobs SET status = 'queued' WHERE status = 'processing'").run().changes;
+}
+
+export function deleteSongsByBase(baseId: string): number {
+  return getDb().prepare("DELETE FROM songs WHERE base_id = ?").run(baseId).changes;
 }
 
 export function getQueuedJobs(): JobRow[] {
   return (
     getDb()
-      .prepare("SELECT * FROM conversion_jobs WHERE status IN ('queued','processing') ORDER BY created_at LIMIT 5")
+      .prepare("SELECT * FROM conversion_jobs WHERE status = 'queued' ORDER BY created_at LIMIT 5")
       .all() as Record<string, unknown>[]
   ).map(mapJob);
 }

@@ -30,7 +30,13 @@ export function cleanTranscription(notes: Note[], opts: CleanOptions = {}): Note
   const mergeWindow = opts.mergeWindow ?? 0.125;
   const maxPolyphony = opts.maxPolyphony ?? 6;
   const maxSounding = opts.maxSounding ?? 8;
-  const maxDurBeats = opts.maxDurBeats ?? 2;
+  // Scale the duration ceiling to the input's typical note length: sustained
+  // material (pads, whole-note passages) needs more room than a busy
+  // transcription, but never drifts past 8 beats.
+  const durs = notes.map((n) => n.dur).sort((a, b) => a - b);
+  const mid = Math.floor(durs.length / 2);
+  const medianDur = durs.length === 0 ? 0.5 : durs.length % 2 === 1 ? durs[mid]! : (durs[mid - 1]! + durs[mid]!) / 2;
+  const maxDurBeats = opts.maxDurBeats ?? Math.min(8, Math.max(2, 4 * medianDur));
 
   let out = notes
     .filter((n) => n.vel >= minVel && n.dur >= minDurBeats)
@@ -70,7 +76,7 @@ function truncateHand(notes: Note[], maxDurBeats: number): Note[] {
       let dur = n.dur;
       if (next && dur > timeToNext) dur = Math.min(dur, Math.max(timeToNext, 0.25));
       dur = Math.min(dur, maxDurBeats);
-      out.push({ ...n, dur: Math.max(0.125, dur) });
+      out.push({ ...n, dur: Math.max(0.25, dur) });
     }
   }
   return out;
