@@ -123,6 +123,17 @@
       "instrument": "for Horn and Piano"
     },
     {
+      "id": "a-thousand-years",
+      "title": "A Thousand Years",
+      "artist": "Christina Perri",
+      "category": "Pop",
+      "style": "pop",
+      "mood": "peaceful",
+      "sourceUrl": "file:///Users/reidar/Downloads/Christina Perri - A Thousand Years.mid",
+      "sourceFile": "a-thousand-years.mid",
+      "license": "Personal MIDI file (private use)"
+    },
+    {
       "id": "abba-lay-all-your-love-on-me",
       "title": "Lay All Your Love On Me",
       "artist": "ABBA",
