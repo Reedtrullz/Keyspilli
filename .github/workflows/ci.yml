@@ -306,6 +306,8 @@ jobs:
             NAME="$(basename "$f")"
             $SSH $HOST "$COMPOSE exec -T -i worker sh -c 'mkdir -p /data/seed-midi && cat > /data/seed-midi/$NAME'" < "$f"
           done
+          # Manifest metadata for curated restores inside the worker container.
+          $SSH $HOST "$COMPOSE exec -T -i worker sh -c 'cat > /data/manifest.json'" < catalog/manifest.json
           # Run detached inside the worker container so a dropped SSH channel
           # (this takes ~20-30 min) cannot kill the rebuild.
           $SSH $HOST "cd /opt/apps/keyspilli && $COMPOSE exec -T -d worker sh -c 'node --import tsx packages/catalog/scripts/reingest-all-youtube.ts --keep-existing-tempo > /tmp/reingest.log 2>&1; node --import tsx packages/catalog/scripts/restore-curated.ts >> /tmp/reingest.log 2>&1'"
