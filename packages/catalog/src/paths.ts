@@ -3,11 +3,12 @@ import { resolve } from "node:path";
 
 /**
  * Repo root, resolved from cwd so it works under npm workspaces
- * (cwd = apps/web), CLI scripts (cwd = repo root) and Docker (KEYSPILLI_DATA_DIR).
+ * (cwd = apps/web), CLI scripts (cwd = repo root) and the Docker worker
+ * (cwd = /app, which has no apps/ directory but does have services/).
  */
 export const ROOT = resolve(
   process.cwd(),
-  existsSync(resolve(process.cwd(), "apps")) ? "." : "../..",
+  ["apps", "services", "packages"].some((p) => existsSync(resolve(process.cwd(), p))) ? "." : "../..",
 );
 
 export function dataDir(): string {
