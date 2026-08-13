@@ -54,24 +54,49 @@ function chordsAt(notes: Note[], grid: number): ChordLabel[] {
 
 /**
  * Medium-level rhythmic reduction: drop short off-eighth passing tones that
- * are not the top voice of their hand's slice. Selection-only (no start
- * shifts), so the ladder stays a true subset of advanced.
+ * are not an outer voice of their hand's slice. A note is a passing tone when
+ * the next same-hand onset lands < 0.25 beats after it. Slice top (melody)
+ * and bottom (bass) survive; single-note slices have no outer voice, so
+ * scalar 16th-note runs collapse to eighths on the grid. Selection-only (no
+ * start shifts), so the ladder stays a true subset of advanced.
  */
 export function reduceMediumRhythm(notes: Note[]): Note[] {
-  const sliceKey = (n: Note) => `${n.hand === "L" ? "L" : "R"}:${Math.round(n.start / 0.125)}`;
+  const handOf = (n: Note) => (n.hand === "L" ? "L" : "R");
+  const sliceKey = (n: Note) => `${handOf(n)}:${Math.round(n.start / 0.125)}`;
   const bySlice = new Map<string, Note[]>();
+  const onsetsByHand = new Map<string, number[]>();
   for (const n of notes) {
     const key = sliceKey(n);
     const arr = bySlice.get(key) ?? [];
     arr.push(n);
     bySlice.set(key, arr);
+    const hand = handOf(n);
+    const onsets = onsetsByHand.get(hand) ?? [];
+    onsets.push(n.start);
+    onsetsByHand.set(hand, onsets);
   }
-  const top = new Map<string, number>();
-  for (const [key, ns] of bySlice) top.set(key, Math.max(...ns.map((n) => n.midi)));
+  const high = new Map<string, number>();
+  const low = new Map<string, number>();
+  for (const [key, ns] of bySlice) {
+    high.set(key, Math.max(...ns.map((n) => n.midi)));
+    low.set(key, Math.min(...ns.map((n) => n.midi)));
+  }
+  const sortedOnsets = new Map<string, number[]>();
+  for (const [hand, onsets] of onsetsByHand) {
+    sortedOnsets.set(hand, [...new Set(onsets)].sort((a, b) => a - b));
+  }
   return notes.filter((n) => {
+    const hand = handOf(n);
+    const key = sliceKey(n);
     const k = Math.round(n.start / 0.125);
-    if (n.dur <= 0.25 && k % 2 === 1 && n.midi !== top.get(sliceKey(n))) return false;
-    return true;
+    // Passing tones are defined by onset spacing: a sustained note attacked
+    // 0.125 beats after an off-eighth start is still a passing tone.
+    if (k % 2 !== 1) return true;
+    const ns = bySlice.get(key)!;
+    const isOuter = ns.length >= 2 && (n.midi === high.get(key) || n.midi === low.get(key));
+    if (isOuter) return true;
+    const next = sortedOnsets.get(hand)!.find((o) => o > n.start + 1e-9);
+    return next === undefined || next - n.start >= 0.25;
   });
 }
 

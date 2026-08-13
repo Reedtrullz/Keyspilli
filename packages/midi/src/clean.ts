@@ -38,9 +38,9 @@ export function cleanTranscription(notes: Note[], opts: CleanOptions = {}): Note
   const medianDur = durs.length === 0 ? 0.5 : durs.length % 2 === 1 ? durs[mid]! : (durs[mid - 1]! + durs[mid]!) / 2;
   const maxDurBeats = opts.maxDurBeats ?? Math.min(8, Math.max(2, 4 * medianDur));
 
-  let out = notes
-    .filter((n) => n.vel >= minVel && n.dur >= minDurBeats)
-    .map((n) => (n.dur > maxDurBeats ? { ...n, dur: maxDurBeats } : n));
+  // Keep true durations here; capHandOverlaps enforces the ceiling per hand
+  // so it can tell drones (past the ceiling) apart from legato overlaps.
+  let out = notes.filter((n) => n.vel >= minVel && n.dur >= minDurBeats);
   out = mergeNearDuplicates(out, mergeWindow);
   out = capPolyphony(out, maxPolyphony);
   out = capSoundingPolyphony(out, maxSounding);
@@ -48,7 +48,7 @@ export function cleanTranscription(notes: Note[], opts: CleanOptions = {}): Note
   return out;
 }
 
-/** Truncate note durations so sequential notes/chords in the same hand do not overlap past the next attack. */
+/** Cap drones per hand: notes past the ceiling end at the next attack (floor 0.25); legato overlaps under the ceiling are kept. */
 export function capHandOverlaps(notes: Note[], maxDurBeats = 2.0): Note[] {
   const { rh, lh } = splitHands(notes);
   return [...truncateHand(rh, maxDurBeats), ...truncateHand(lh, maxDurBeats)].sort(
@@ -56,6 +56,7 @@ export function capHandOverlaps(notes: Note[], maxDurBeats = 2.0): Note[] {
   );
 }
 
+/** Shorten a hand's notes only when they are drones: duration past the ceiling AND overlapping the next same-hand attack. */
 function truncateHand(notes: Note[], maxDurBeats: number): Note[] {
   const sorted = [...notes].sort((a, b) => a.start - b.start || a.midi - b.midi);
   const slices: { start: number; notes: Note[] }[] = [];
@@ -74,7 +75,7 @@ function truncateHand(notes: Note[], maxDurBeats: number): Note[] {
     const timeToNext = next ? next.start - curr.start : maxDurBeats;
     for (const n of curr.notes) {
       let dur = n.dur;
-      if (next && dur > timeToNext) dur = Math.min(dur, Math.max(timeToNext, 0.25));
+      if (next && dur > maxDurBeats && dur > timeToNext) dur = Math.min(dur, Math.max(timeToNext, 0.25));
       dur = Math.min(dur, maxDurBeats);
       out.push({ ...n, dur: Math.max(0.25, dur) });
     }

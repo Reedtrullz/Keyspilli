@@ -70,6 +70,15 @@ function gridPct(notes: Note[]): number {
   return (100 * on) / Math.max(1, notes.length);
 }
 
+// beat_track frequently locks onto a multiple of the real tempo on solo
+// piano; values in these ranges are worth an ear check (or a manual override
+// via the song edit UI / KEYSPILLI_TEMPO_OVERRIDE).
+function tempoFlag(bpm: number): string {
+  if (bpm > 140) return "2x?";
+  if (bpm < 80) return "1/2x?";
+  return "";
+}
+
 const seedIndex = (await readdir(seedMidiDir()).catch(() => [] as string[]))
   .filter((f) => f.endsWith(".mid"))
   .map((f) => ({ f, tokens: tokens(f) }));
@@ -102,7 +111,7 @@ async function compareReference(v: VariantJson, refFile: string): Promise<{ pcOv
 }
 
 const cols = [
-  "base", "title", "tempoBpm", "notes_a", "notes_m", "notes_e", "durMax_a",
+  "base", "title", "tempoBpm", "tempoFlag", "notes_a", "notes_m", "notes_e", "durMax_a",
   "pct>2", "pct>8", "maxSim_a", "pctGrid16", "refPCoverlap", "refOnsetErr",
 ];
 console.log(cols.join("\t"));
@@ -138,7 +147,7 @@ for (const { base_id: base } of bases) {
     refCount++;
   }
   console.log(
-    [base, title, v.tempoBpm, a?.notes.length ?? 0, m?.notes.length ?? 0, e?.notes.length ?? 0,
+    [base, title, v.tempoBpm, tempoFlag(v.tempoBpm), a?.notes.length ?? 0, m?.notes.length ?? 0, e?.notes.length ?? 0,
       durMax.toFixed(2), pct2.toFixed(1), pct8.toFixed(2), sim, grid.toFixed(1), pc, oe].join("\t"),
   );
   med[0]!.push(v.tempoBpm);

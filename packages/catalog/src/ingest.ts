@@ -58,20 +58,71 @@ function isZip(buf: Uint8Array): boolean {
   return buf.length >= 4 && buf[0] === 0x50 && buf[1] === 0x4b && buf[2] === 0x03 && buf[3] === 0x04;
 }
 
+const MAX_MXL_ENTRIES = 200;
+const MAX_MXL_UNCOMPRESSED = 64 * 1024 * 1024;
+
+/**
+ * Reject zip bombs before fflate inflates anything: read the EOCD and central
+ * directory directly and enforce entry-count and total uncompressed-size
+ * limits. The upload route accepts ~10MB, so an unbounded unzipSync is an
+ * amplification vector.
+ */
+function assertMxlZipSafe(buf: Uint8Array): void {
+  if (buf.length < 22) throw new Error("invalid .mxl zip (truncated)");
+  const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+  let eocd = -1;
+  const scanStart = Math.max(0, buf.length - 22 - 0xffff);
+  for (let i = buf.length - 22; i >= scanStart; i--) {
+    if (dv.getUint32(i, true) === 0x06054b50) {
+      eocd = i;
+      break;
+    }
+  }
+  if (eocd === -1) throw new Error("invalid .mxl zip (no end-of-central-directory)");
+  const totalEntries = dv.getUint16(eocd + 10, true);
+  const cdSize = dv.getUint32(eocd + 12, true);
+  const cdOffset = dv.getUint32(eocd + 16, true);
+  if (totalEntries === 0xffff || cdSize === 0xffffffff || cdOffset === 0xffffffff) {
+    throw new Error(".mxl zip64 not supported");
+  }
+  if (totalEntries > MAX_MXL_ENTRIES) {
+    throw new Error(`.mxl zip has too many entries (${totalEntries} > ${MAX_MXL_ENTRIES})`);
+  }
+  if (cdOffset + cdSize > buf.length) throw new Error("invalid .mxl zip central directory");
+  const cdEnd = cdOffset + cdSize;
+  let offset = cdOffset;
+  let totalUncompressed = 0;
+  for (let i = 0; i < totalEntries; i++) {
+    if (offset + 46 > cdEnd || dv.getUint32(offset, true) !== 0x02014b50) {
+      throw new Error("invalid .mxl zip central directory");
+    }
+    totalUncompressed += dv.getUint32(offset + 24, true);
+    if (totalUncompressed > MAX_MXL_UNCOMPRESSED) {
+      throw new Error(`.mxl zip expands beyond ${MAX_MXL_UNCOMPRESSED / (1024 * 1024)}MB`);
+    }
+    offset += 46 + dv.getUint16(offset + 28, true) + dv.getUint16(offset + 30, true) + dv.getUint16(offset + 32, true);
+  }
+}
+
 /**
  * Extract the score .xml from a compressed .mxl. Container.xml is the
- * canonical pointer; some exports omit it, so fall back to the first .xml.
+ * canonical pointer; some exports omit it, so fall back to a .musicxml
+ * entry, then any .xml outside META-INF/ (signatures/container live there
+ * and are not scores).
  */
 function mxlScoreXml(buf: Uint8Array): string {
+  assertMxlZipSafe(buf);
   const files = unzipSync(buf);
   const names = Object.keys(files);
-  let scoreName = names.find((n) => n.endsWith(".xml") && n !== "META-INF/container.xml");
+  let scoreName: string | undefined;
   const container = files["META-INF/container.xml"];
   if (container) {
     // ponytail: regex on container.xml; a DOM parser only if files ever miss rootfile full-path
     const m = new TextDecoder().decode(container).match(/full-path="([^"]+)"/);
     if (m?.[1] && files[m[1]]) scoreName = m[1];
   }
+  if (!scoreName) scoreName = names.find((n) => n.endsWith(".musicxml"));
+  if (!scoreName) scoreName = names.find((n) => n.endsWith(".xml") && !n.startsWith("META-INF/"));
   if (!scoreName) throw new Error("no MusicXML score in .mxl");
   return new TextDecoder().decode(files[scoreName]);
 }
@@ -115,10 +166,12 @@ export async function ingestSource(inp: IngestInput): Promise<{ baseId: string; 
     const ext = isZip(inp.buf) ? "mxl" : looksLikeXml(inp.buf) ? "xml" : "mid";
     await writeFile(join(uploadsDir(), `${baseId}.${ext}`), inp.buf);
   }
-  const durationSec = Math.round((parsed.durationBeats * 60) / parsed.tempoBpm);
   const songIds: string[] = [];
 
   for (const v of variants) {
+    // Playback uses the variant tempo (which may be a forwarded override),
+    // so duration must match that tempo, not the raw source tempo.
+    const durationSec = Math.round((parsed.durationBeats * 60) / v.tempoBpm);
     const dir = artifactsDir(baseId, LEVEL_CODE[v.level]!);
     await mkdir(dir, { recursive: true });
     const midi = writeMidi(v.notes, {

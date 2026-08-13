@@ -22,8 +22,8 @@ export function quantize(notes: Note[], opts: QuantizeOptions = {}): Note[] {
   for (const n of notes) {
     if (n.vel < minVel) continue;
     const start = roundTo(n.start, grid);
-    let dur = roundTo(n.start + n.dur, grid) - start;
-    if (dur < minDur) dur = minDur;
+    const dur = roundTo(n.start + n.dur, grid) - start;
+    if (dur < minDur) continue; // drop sub-minDur ghosts instead of inflating them
     const key = `${n.midi}:${start.toFixed(3)}`;
     const prev = out.get(key);
     if (prev) {

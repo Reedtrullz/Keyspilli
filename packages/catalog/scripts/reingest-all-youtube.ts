@@ -1,9 +1,11 @@
 /**
- * Re-run the worker pipeline in place for every YouTube base: detect tempo
- * from the audio, rewrite the raw Basic Pitch MIDI's tempo meta, onset-filter,
- * and re-ingest with stable base ids (player URLs stay stable).
+ * Re-run the worker pipeline in place for YouTube bases: detect tempo from
+ * the audio, rescale the raw Basic Pitch MIDI's beats to that tempo (the raw
+ * beats are seconds-derived at 120 BPM, so without rescaling playback speed
+ * and the onset filter would both be wrong), onset-filter, and re-ingest with
+ * stable base ids (player URLs stay stable).
  *
- * Usage: npx tsx packages/catalog/scripts/reingest-all-youtube.ts [--dry-run]
+ * Usage: npx tsx packages/catalog/scripts/reingest-all-youtube.ts [--dry-run] [--keep-existing-tempo] [baseId...]
  */
 import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
@@ -15,13 +17,15 @@ import { filterTranscription, getDb, getSongsByBase, ingestSource, transcribedDi
 import { artifactsDir, ROOT } from "../src/paths.js";
 
 const execFileP = promisify(execFile);
-const dryRun = process.argv.includes("--dry-run");
+const args = process.argv.slice(2);
+const dryRun = args.includes("--dry-run");
+const keepExistingTempo = args.includes("--keep-existing-tempo");
+const onlyBases = args.filter((a) => !a.startsWith("--"));
 const PYTHON = process.env.KEYSPILLI_PYTHON ?? join(ROOT, "services", "transcribe", ".venv", "bin", "python");
 const TEMPO_PY = join(ROOT, "services", "transcribe", "src", "tempo.py");
 
 async function detectTempo(audioPath: string): Promise<number> {
   if (process.env.KEYSPILLI_TEMPO_OVERRIDE) return Number(process.env.KEYSPILLI_TEMPO_OVERRIDE);
-  // The tempo lane owns tempo.py; until it lands, keep Basic Pitch's default.
   if (!existsSync(TEMPO_PY)) return 120;
   const { stdout } = await execFileP(PYTHON, [TEMPO_PY, audioPath], { timeout: 120_000, maxBuffer: 8 * 1024 * 1024 });
   const bpm = Number((stdout.match(/\d+(?:\.\d+)?/) ?? [])[0]);
@@ -36,11 +40,6 @@ async function findSource(jobId: string | undefined, baseId: string): Promise<{ 
     if (name.includes(jobId ?? "\u0000") || name.includes(baseId)) candidates.push(join(transcribedDir(), name));
   }
   for (const dir of candidates) {
-    // Prefer the strict-threshold re-transcription when present.
-    const reFiles = await readdir(join(dir, "re")).catch(() => [] as string[]);
-    const reMidi = reFiles.find((f) => f.endsWith("_basic_pitch.mid"));
-    const reAudio = reFiles.find((f) => f.startsWith("audio."));
-    if (reMidi && reAudio) return { midi: join(dir, "re", reMidi), audio: join(dir, "re", reAudio) };
     const files = await readdir(dir).catch(() => [] as string[]);
     const midi = files.find((f) => f.endsWith("_basic_pitch.mid"));
     const audio = files.find((f) => f.startsWith("audio."));
@@ -58,7 +57,8 @@ async function variantCount(baseId: string): Promise<number | undefined> {
   }
 }
 
-const bases = getDb().prepare("SELECT DISTINCT base_id FROM songs WHERE content_type='youtube' ORDER BY base_id").all() as { base_id: string }[];
+const rows = getDb().prepare("SELECT DISTINCT base_id FROM songs WHERE content_type='youtube' ORDER BY base_id").all() as { base_id: string }[];
+const bases = onlyBases.length ? rows.filter((r) => onlyBases.includes(r.base_id)) : rows;
 let ok = 0;
 let skipped = 0;
 
@@ -75,10 +75,24 @@ for (const { base_id: base } of bases) {
     continue;
   }
   const before = await variantCount(base);
-  const bpm = await detectTempo(src.audio);
+  let detected: number;
+  try {
+    detected = await detectTempo(src.audio);
+  } catch (err) {
+    skipped++;
+    console.warn(`x ${base}: tempo detection failed, skipped: ${(err as Error).message}`);
+    continue;
+  }
+  // Non-120 DB tempos are manual corrections (the old pipeline always stored
+  // 120); keep them when asked so the VPS preserves e.g. Dear God's 75 BPM.
+  const tempo = keepExistingTempo && song.tempo && song.tempo !== 120 ? song.tempo : detected;
   const raw = parseMidi(new Uint8Array(await readFile(src.midi)));
-  const rewritten = writeMidi(raw.notes, {
-    tempoBpm: bpm,
+  // Raw beats are calibrated to the source MIDI's tempo (120); rescale so the
+  // absolute seconds stay identical while the beat unit matches the new tempo.
+  const factor = tempo / raw.tempoBpm;
+  const notes = raw.notes.map((n) => ({ ...n, start: n.start * factor, dur: n.dur * factor }));
+  const rewritten = writeMidi(notes, {
+    tempoBpm: tempo,
     timeSig: raw.timeSig,
     keySig: raw.keySig,
     keyMode: raw.keyMode,
@@ -92,7 +106,7 @@ for (const { base_id: base } of bases) {
     continue;
   }
   const filteredNotes = parseMidi(new Uint8Array(filtered)).notes.length;
-  console.log(`~ ${base}: tempo ${raw.tempoBpm} -> ${bpm}, notes ${raw.notes.length} -> ${filteredNotes}`);
+  console.log(`~ ${base}: tempo ${raw.tempoBpm} -> ${tempo}${keepExistingTempo && tempo !== detected ? ` (kept ${tempo}, detected ${detected})` : ""}, notes ${raw.notes.length} -> ${filteredNotes}`);
   if (dryRun) {
     console.log(`? ${base}: would re-ingest (before a-notes ${before ?? "n/a"})`);
     continue;
@@ -102,6 +116,10 @@ for (const { base_id: base } of bases) {
     title: song.title,
     artist: song.artist,
     category: song.category,
+    style: song.style,
+    mood: song.mood,
+    key: song.key,
+    tempo,
     contentType: "youtube",
     acquiredVia: "youtube",
     sourceYoutubeUrl: job?.youtube_url ?? song.sourceYoutubeUrl ?? "",
@@ -113,7 +131,7 @@ for (const { base_id: base } of bases) {
     console.warn(`x ${base}: ${r.error}`);
   } else {
     ok++;
-    console.log(`+ ${base}: a-notes ${before ?? "n/a"} -> ${after ?? "n/a"}, ${bpm} BPM`);
+    console.log(`+ ${base}: a-notes ${before ?? "n/a"} -> ${after ?? "n/a"}, ${tempo} BPM`);
   }
 }
 
