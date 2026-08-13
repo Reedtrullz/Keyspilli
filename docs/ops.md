@@ -142,7 +142,7 @@ npx tsx packages/catalog/scripts/reingest-all-youtube.ts
 - `KEYSPILLI_TEMPO_OVERRIDE=<bpm>` forces a tempo instead of running tempo.py.
 - If `tempo.py` is not present yet, re-ingest keeps the MIDI's tempo (120).
 - Worker boot requeues orphaned `processing` jobs; failed jobs retry up to
-  `KEYSPILLI_MAX_ATTEMPTS` (default 3) before staying `error`.
+  `KEYSPILLI_MAX_ATTEMPTS` (default 2) before staying `error`.
 
 ## Useful commands
 
@@ -151,3 +151,14 @@ docker compose logs -f web
 docker compose logs -f worker
 docker compose run --rm web node --import tsx packages/catalog/scripts/pipeline.ts
 ```
+
+### Rebuild notes (2026-08-13)
+
+- The re-ingest rescales the raw MIDI's beats to the new tempo, so playback
+  speed stays identical to the original recording and the onset filter stays
+  aligned. Do not re-ingest with the old (meta-only) script.
+- `--keep-existing-tempo` preserves non-120 DB tempos (manual corrections such
+  as Dear God's 75 BPM) and only detects for rows still at the old 120 default.
+- Positional base ids restrict the run: `npx tsx ... reingest-all-youtube.ts <baseId>...`
+- VPS: trigger the "Rebuild YouTube catalog on VPS" job via GitHub Actions
+  workflow dispatch (runs inside the worker container with `--keep-existing-tempo`).

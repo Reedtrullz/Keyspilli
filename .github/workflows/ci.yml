@@ -244,3 +244,79 @@ jobs:
               time.sleep(5)
           print(f'Public health check did not expose expected version {expected}. Last response: {last}', file=sys.stderr)
           sys.exit(1)
+
+  reingest-youtube-catalog:
+    name: Rebuild YouTube catalog on VPS
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    if: github.event_name == 'workflow_dispatch'
+    environment:
+      name: production
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+      - name: Install Ansible
+        shell: bash
+        run: |
+          python3 -m venv .ansible-venv
+          . .ansible-venv/bin/activate
+          python -m pip install --upgrade pip
+          python -m pip install ansible==12.3.0
+          ansible-galaxy collection install -r deploy/requirements.yml
+          echo "$PWD/.ansible-venv/bin" >> "$GITHUB_PATH"
+
+      - name: Configure SSH key
+        shell: bash
+        env:
+          VPS_SSH_HOST_KEY: ${{ vars.VPS_SSH_HOST_KEY || secrets.VPS_SSH_HOST_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa_racknerd
+          chmod 600 ~/.ssh/id_rsa_racknerd
+
+          expected_host_key="$(printf '%s\n' "${VPS_SSH_HOST_KEY:-}" | sed -e 's/\r$//' -e '/^[[:space:]]*$/d' -e '/^[[:space:]]*#/d' | sort -u)"
+          if [[ -z "$expected_host_key" ]]; then
+            echo "VPS_SSH_HOST_KEY repository variable or secret must be set before production reingest." >&2
+            exit 1
+          fi
+
+          scanned_host_key="$(ssh-keyscan -T 10 -t ed25519 198.23.137.16 2>/dev/null | sed -e 's/\r$//' -e '/^[[:space:]]*$/d' -e '/^[[:space:]]*#/d' | sort -u)"
+          if [[ "$scanned_host_key" != "$expected_host_key" ]]; then
+            echo "VPS SSH host key mismatch; refusing to update known_hosts." >&2
+            exit 1
+          fi
+
+          printf '%s\n' "$expected_host_key" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_rsa_racknerd -o BatchMode=yes -o StrictHostKeyChecking=yes deploy@198.23.137.16 'echo "SSH OK"'
+
+      - name: Re-ingest all YouTube bases in the worker container
+        shell: bash
+        env:
+          ANSIBLE_CONFIG: deploy/ansible.cfg
+        run: |
+          ansible -b -i deploy/inventory/hosts.yml keyspilli -m shell -a "cd /opt/apps/keyspilli && docker compose -f compose.production.yml exec -T worker node --import tsx packages/catalog/scripts/reingest-all-youtube.ts --keep-existing-tempo"
+
+      - name: Verify live catalog tempos
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          import urllib.request
+
+          with urllib.request.urlopen('https://keys.reidar.tech/api/songs?limit=1000', timeout=20) as response:
+              data = json.loads(response.read().decode())
+          songs = data.get('songs', data)
+          non120 = [
+              s for s in songs
+              if s.get('tempo') and s['tempo'] != 120
+              and any(t in (s.get('title') or '').lower() for t in ('cover', 'piano', 'tutorial'))
+          ]
+          print(f'total={len(songs)} youtube-ish-non120={len(non120)}')
+          for s in non120[:5]:
+              print(s['id'], s['tempo'])
+          if not non120:
+              raise SystemExit('no live youtube song has a detected tempo != 120; rebuild may have failed')
+          PY

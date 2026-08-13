@@ -54,8 +54,8 @@ async function processJob(jobId: string): Promise<void> {
   // Atomic claim: another worker may have taken it while we read metadata.
   if (!claimJob(jobId)) return;
   const dir = join(transcribedDir(), jobId);
-  await mkdir(dir, { recursive: true });
   try {
+    await mkdir(dir, { recursive: true });
     const info = await ytDlp(["--skip-download", "--print", "%(title)s\x1f%(uploader)s\x1f%(duration)s", job.youtubeUrl], 60_000);
     const [title, uploader, durationRaw] = info.trim().split("\x1f").map((s) => s?.trim() ?? "");
     if (Number(durationRaw) > 300) throw new Error(`video longer than 300s (${durationRaw}s)`);

@@ -49,6 +49,7 @@ export interface JobRow {
   songId: string | null;
   error: string | null;
   attempts?: number;
+  startedAt?: string | null;
   createdAt: string;
   finishedAt: string | null;
 }
@@ -89,18 +90,31 @@ function mapJob(r: Record<string, unknown>): JobRow {
     songId: r.song_id as string | null,
     error: r.error as string | null,
     attempts: (r.attempts as number | undefined) ?? 0,
+    startedAt: (r.started_at as string | null | undefined) ?? null,
     createdAt: r.created_at as string,
     finishedAt: r.finished_at as string | null,
   };
 }
 
+function migrateColumn(conn: Database.Database, table: string, col: string, def: string): void {
+  const cols = conn.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
+  if (cols.some((c) => c.name === col)) return;
+  try {
+    conn.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${def}`);
+  } catch (e) {
+    // Web + worker boot together; a check-then-ALTER race makes one process
+    // see "duplicate column name". The other process already migrated.
+    if (!(e as Error).message.includes("duplicate column name")) throw e;
+  }
+}
+
 export function getDb(): Database.Database {
   if (db) return db;
   mkdirSync(dirname(dbPath()), { recursive: true });
-  db = new Database(dbPath());
-  db.pragma("journal_mode = WAL");
-  db.pragma("busy_timeout = 5000");
-  db.exec(`
+  const conn = new Database(dbPath());
+  conn.pragma("journal_mode = WAL");
+  conn.pragma("busy_timeout = 5000");
+  conn.exec(`
     CREATE TABLE IF NOT EXISTS songs (
       id TEXT PRIMARY KEY,
       base_id TEXT NOT NULL,
@@ -137,10 +151,9 @@ export function getDb(): Database.Database {
       finished_at TEXT
     );
   `);
-  const cols = db.prepare("PRAGMA table_info(conversion_jobs)").all() as { name: string }[];
-  if (!cols.some((c) => c.name === "attempts")) {
-    db.exec("ALTER TABLE conversion_jobs ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0");
-  }
+  migrateColumn(conn, "conversion_jobs", "attempts", "INTEGER NOT NULL DEFAULT 0");
+  migrateColumn(conn, "conversion_jobs", "started_at", "TEXT");
+  db = conn;
   return db;
 }
 
@@ -283,17 +296,35 @@ export function updateJob(id: string, patch: Partial<Pick<JobRow, "status" | "so
 
 export function claimJob(id: string): boolean {
   const r = getDb()
-    .prepare("UPDATE conversion_jobs SET status = 'processing' WHERE id = ? AND status = 'queued'")
+    .prepare("UPDATE conversion_jobs SET status = 'processing', started_at = datetime('now') WHERE id = ? AND status = 'queued'")
     .run(id);
   return r.changes === 1;
 }
 
 export function requeueOrphaned(): number {
-  return getDb().prepare("UPDATE conversion_jobs SET status = 'queued' WHERE status = 'processing'").run().changes;
+  // Only reclaim jobs a worker has been stuck on for 15+ minutes; a fresh
+  // started_at means another worker is legitimately running it.
+  return getDb()
+    .prepare(
+      "UPDATE conversion_jobs SET status = 'queued' WHERE status = 'processing' AND (started_at IS NULL OR started_at < datetime('now', '-15 minutes'))",
+    )
+    .run().changes;
 }
 
 export function deleteSongsByBase(baseId: string): number {
   return getDb().prepare("DELETE FROM songs WHERE base_id = ?").run(baseId).changes;
+}
+
+export function deleteJobsByBase(baseId: string): string[] {
+  const rows = getDb()
+    .prepare("SELECT id FROM conversion_jobs WHERE song_id IN (SELECT id FROM songs WHERE base_id = ?)")
+    .all(baseId) as { id: string }[];
+  if (rows.length) {
+    getDb()
+      .prepare("DELETE FROM conversion_jobs WHERE song_id IN (SELECT id FROM songs WHERE base_id = ?)")
+      .run(baseId);
+  }
+  return rows.map((r) => r.id);
 }
 
 export function getQueuedJobs(): JobRow[] {

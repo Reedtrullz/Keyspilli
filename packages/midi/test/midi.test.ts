@@ -7,6 +7,7 @@ import {
   keySignature,
   chordName,
   buildVariants,
+  reduceMediumRhythm,
   validateVariants,
   writeMidi,
   writeMusicXml,
@@ -176,6 +177,16 @@ describe("quantize", () => {
     expect(q.find((n) => n.midi === 60)!.dur).toBeGreaterThanOrEqual(0.48);
     expect(q.find((n) => n.midi === 62)!.start).toBe(0.25);
   });
+
+  it("drops sub-minDur ghosts instead of inflating them", () => {
+    const notes: Note[] = [
+      { midi: 60, start: 0, dur: 0.05, vel: 80 },
+      { midi: 62, start: 0, dur: 0.5, vel: 80 },
+      { midi: 64, start: 0.25, dur: 0.125, vel: 80 },
+    ];
+    const q = quantize(notes, { grid: 0.125, minDur: 0.125 });
+    expect(q.map((n) => n.midi)).toEqual([62, 64]);
+  });
 });
 
 describe("splitHands", () => {
@@ -302,11 +313,15 @@ describe("buildVariants", () => {
   });
 
   it("separates medium from advanced on a 16th-note run", () => {
-    const notes: Note[] = [{ midi: 36, start: 0, dur: 4, vel: 80 }];
+    // quarter-note bass keeps the hand split gap-based (no percentile fallback)
+    const notes: Note[] = [];
+    for (let b = 0; b < 16; b++) notes.push({ midi: 36, start: b * 0.25, dur: 0.25, vel: 80 });
     for (let i = 0; i < 32; i++) {
       notes.push({ midi: 76, start: i * 0.125, dur: 0.125, vel: 80 });
       if (i % 2 === 1) {
-        notes.push({ midi: 72 - (i % 8), start: i * 0.125, dur: 0.125, vel: 80 });
+        // passing inner voice (70) plus a protected bass note (67) under the top (76)
+        notes.push({ midi: 71, start: i * 0.125, dur: 0.125, vel: 80 });
+        notes.push({ midi: 67, start: i * 0.125, dur: 0.125, vel: 80 });
       }
     }
     const src: ParsedMidi = {
@@ -324,10 +339,16 @@ describe("buildVariants", () => {
     const advanced = variants.find((v) => v.level === "advanced")!;
     const medium = variants.find((v) => v.level === "medium")!;
     expect(medium.notes.length).toBeLessThan(advanced.notes.length);
-    // every short off-eighth non-top note vanished; nothing else did
+    // only passing inner voices vanished; slice top (76) and bottom (67) survive,
+    // and the final chord's inner voice has no following onset, so it is kept
     for (const n of advanced.notes) {
       const k = Math.round(n.start / 0.125);
-      const shouldDrop = n.dur <= 0.25 && k % 2 === 1 && n.midi !== 76;
+      const nextOnset = advanced.notes
+        .filter((m) => m.hand === n.hand && m.start > n.start + 1e-9)
+        .map((m) => m.start)
+        .sort((a, b) => a - b)[0];
+      const isPassing = nextOnset !== undefined && nextOnset - n.start < 0.25;
+      const shouldDrop = n.dur <= 0.25 && k % 2 === 1 && n.midi === 71 && isPassing;
       expect(medium.notes.some((m) => m.midi === n.midi && m.start === n.start)).toBe(!shouldDrop);
     }
   });
@@ -543,6 +564,48 @@ describe("buildVariants", () => {
   });
 });
 
+describe("reduceMediumRhythm", () => {
+  it("reduces scalar 16th-note runs to eighth notes", () => {
+    const notes: Note[] = [0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75].map((start, i) => ({
+      midi: [72, 74, 76, 77, 79, 81, 83][i]!,
+      start,
+      dur: 0.125,
+      vel: 80,
+      hand: "R" as const,
+    }));
+    const out = reduceMediumRhythm(notes);
+    expect(out.map((n) => [n.midi, n.start])).toEqual([
+      [72, 0],
+      [76, 0.25],
+      [79, 0.5],
+      [83, 0.75],
+    ]);
+  });
+
+  it("keeps LH bass roots on short off-eighth chords", () => {
+    const notes: Note[] = [
+      { midi: 36, start: 0.125, dur: 0.125, vel: 80, hand: "L" },
+      { midi: 43, start: 0.125, dur: 0.125, vel: 80, hand: "L" },
+      { midi: 50, start: 0.125, dur: 0.125, vel: 80, hand: "L" },
+      { midi: 36, start: 0.25, dur: 0.125, vel: 80, hand: "L" },
+      { midi: 43, start: 0.25, dur: 0.125, vel: 80, hand: "L" },
+      { midi: 50, start: 0.25, dur: 0.125, vel: 80, hand: "L" },
+    ];
+    const out = reduceMediumRhythm(notes);
+    expect(out.filter((n) => n.start === 0.125).map((n) => n.midi).sort()).toEqual([36, 50]);
+    expect(out.filter((n) => n.start === 0.25)).toHaveLength(3);
+  });
+
+  it("keeps short off-eighth notes whose next same-hand onset is at least 0.25 away", () => {
+    const notes: Note[] = [
+      { midi: 76, start: 0.125, dur: 0.125, vel: 80, hand: "R" },
+      { midi: 76, start: 0.5, dur: 0.5, vel: 80, hand: "R" },
+    ];
+    const out = reduceMediumRhythm(notes);
+    expect(out).toHaveLength(2);
+  });
+});
+
 describe("cleanTranscription", () => {
   it("drops quiet and ultra-short ghost notes, keeps real notes", () => {
     const notes: Note[] = [
@@ -614,6 +677,28 @@ describe("cleanTranscription", () => {
     const out = cleanTranscription(notes, { minVel: 0, minDurBeats: 0, maxDurBeats: 3 });
     expect(out.find((n) => n.midi === 60)!.dur).toBe(3);
     expect(out.find((n) => n.midi === 64)!.dur).toBe(3);
+  });
+
+  it("keeps legato overlaps that stay under the duration ceiling", () => {
+    const notes: Note[] = [
+      { midi: 36, start: 0, dur: 3, vel: 80 },
+      { midi: 76, start: 0, dur: 0.5, vel: 70 },
+      { midi: 40, start: 1, dur: 1, vel: 70 },
+    ];
+    const out = cleanTranscription(notes, { minVel: 0, minDurBeats: 0, maxDurBeats: 4 });
+    expect(out.find((n) => n.midi === 36)!.dur).toBe(3);
+    expect(out.find((n) => n.midi === 40)!.dur).toBe(1);
+  });
+
+  it("truncates a drone past the ceiling back to the next attack", () => {
+    const notes: Note[] = [
+      { midi: 36, start: 0, dur: 300, vel: 80 },
+      { midi: 76, start: 0, dur: 0.5, vel: 70 },
+      { midi: 40, start: 1, dur: 1, vel: 70 },
+    ];
+    const out = cleanTranscription(notes, { minVel: 0, minDurBeats: 0, maxDurBeats: 4 });
+    expect(out.find((n) => n.midi === 36)!.dur).toBe(1);
+    expect(out.find((n) => n.midi === 40)!.dur).toBe(1);
   });
 });
 
