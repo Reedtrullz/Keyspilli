@@ -196,7 +196,8 @@ export function melodyFrom(notes: Note[], grid: number): Note[] {
     const group = bySlice.get(k)!;
     const top = group.reduce((a, b) => (b.midi > a.midi ? b : a));
     const next = slices[i + 1];
-    const dur = next === undefined ? top.dur : Math.max(0.25, (next - k) * grid);
+    const gap = next === undefined ? top.dur : (next - k) * grid;
+    const dur = next === undefined ? Math.min(2.5, top.dur) : Math.min(2.5, Math.max(0.25, gap <= 1.5 ? gap : Math.min(top.dur, gap)));
     out.push({ ...top, dur, hand: "R" });
   }
   return out;

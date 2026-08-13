@@ -68,7 +68,8 @@ function melodyOnly(notes: Note[], grid: number, minDur: number): Note[] {
     const next = slices[i + 1];
     // Cap the legato fill: stretching across rests makes sparse sections ring
     // for 10+ seconds. Notes keep their attack, rests stay rests.
-    const dur = next === undefined ? Math.max(minDur, top.dur) : Math.max(minDur, Math.min(8, (next - k) * grid));
+    const gap = next === undefined ? top.dur : (next - k) * grid;
+    const dur = next === undefined ? Math.max(minDur, Math.min(2.5, top.dur)) : Math.min(2.5, Math.max(minDur, gap <= 1.5 ? gap : Math.min(top.dur, gap)));
     out.push({ ...top, dur });
   }
   return out;

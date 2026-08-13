@@ -29,7 +29,7 @@ export function cleanTranscription(notes: Note[], opts: CleanOptions = {}): Note
   const mergeWindow = opts.mergeWindow ?? 0.125;
   const maxPolyphony = opts.maxPolyphony ?? 6;
   const maxSounding = opts.maxSounding ?? 8;
-  const maxDurBeats = opts.maxDurBeats ?? 8;
+  const maxDurBeats = opts.maxDurBeats ?? 3;
 
   let out = notes
     .filter((n) => n.vel >= minVel && n.dur >= minDurBeats)
