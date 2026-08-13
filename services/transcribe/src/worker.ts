@@ -4,10 +4,11 @@
  * MIDI into the catalog, and marks the job done/error.
  */
 import { execFile } from "node:child_process";
+import { existsSync } from "node:fs";
 import { mkdir, readdir, readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
-import { claimJob, getQueuedJobs, requeueOrphaned, updateJob, getJob, getSong, transcribedDir, ROOT, ingestSource, filterTranscription } from "@keyspilli/catalog";
+import { claimJob, getQueuedJobs, requeueOrphaned, updateJob, getJob, getSong, transcribedDir, ROOT, seedMidiDir, ingestSource, filterTranscription } from "@keyspilli/catalog";
 
 const execFileP = promisify(execFile);
 const POLL_MS = Number(process.env.KEYSPILLI_POLL_MS ?? 5000);
@@ -53,6 +54,12 @@ async function processJob(jobId: string): Promise<void> {
   if (!job) return;
   // Atomic claim: another worker may have taken it while we read metadata.
   if (!claimJob(jobId)) return;
+  const existing = job.songId ? getSong(job.songId) : undefined;
+  if (existing && existsSync(join(seedMidiDir(), `${existing.baseId}.mid`))) {
+    updateJob(jobId, { status: "done", songId: existing.id, finishedAt: new Date().toISOString() });
+    console.log(`[worker] ${jobId} curated base (${existing.baseId}), kept existing artifacts`);
+    return;
+  }
   const dir = join(transcribedDir(), jobId);
   try {
     await mkdir(dir, { recursive: true });
@@ -78,7 +85,6 @@ async function processJob(jobId: string): Promise<void> {
     const midi = await filterTranscription(new Uint8Array(await readFile(midiOut)), audioPath);
     // If the job points at an existing song, replace that base (stable URLs)
     // and keep its metadata; otherwise create a fresh entry from the video.
-    const existing = job.songId ? getSong(job.songId) : undefined;
     const result = await ingestSource({
       buf: new Uint8Array(midi),
       title: existing?.title ?? (title || "YouTube conversion"),

@@ -293,24 +293,31 @@ jobs:
           printf '%s\n' "$expected_host_key" > ~/.ssh/known_hosts
           ssh -i ~/.ssh/id_rsa_racknerd -o BatchMode=yes -o StrictHostKeyChecking=yes deploy@198.23.137.16 'echo "SSH OK"'
 
-      - name: Re-ingest all YouTube bases in the worker container
+      - name: Re-ingest YouTube + restore curated bases on VPS
         shell: bash
         run: |
           HOST="deploy@198.23.137.16"
           SSH="ssh -i ~/.ssh/id_rsa_racknerd -o BatchMode=yes -o StrictHostKeyChecking=yes"
           COMPOSE="docker compose -f /opt/apps/keyspilli/compose.production.yml"
+          # Push curated seed MIDIs (tracked in git) into the data volume so
+          # restore-curated.ts can rebuild them from the seed arrangement.
+          for f in data/seed-midi/*.mid; do
+            [ -f "$f" ] || continue
+            NAME="$(basename "$f")"
+            $SSH $HOST "$COMPOSE exec -T -i worker sh -c 'mkdir -p /data/seed-midi && cat > /data/seed-midi/$NAME'" < "$f"
+          done
           # Run detached inside the worker container so a dropped SSH channel
-          # (this command takes ~20-30 min) cannot kill the rebuild.
-          $SSH $HOST "cd /opt/apps/keyspilli && $COMPOSE exec -T -d worker sh -c 'node --import tsx packages/catalog/scripts/reingest-all-youtube.ts --keep-existing-tempo > /tmp/reingest.log 2>&1'"
+          # (this takes ~20-30 min) cannot kill the rebuild.
+          $SSH $HOST "cd /opt/apps/keyspilli && $COMPOSE exec -T -d worker sh -c 'node --import tsx packages/catalog/scripts/reingest-all-youtube.ts --keep-existing-tempo > /tmp/reingest.log 2>&1; node --import tsx packages/catalog/scripts/restore-curated.ts >> /tmp/reingest.log 2>&1'"
           for i in $(seq 1 120); do
             sleep 15
-            OUT=$($SSH $HOST "$COMPOSE exec -T worker sh -c 'tail -2 /tmp/reingest.log'" 2>/dev/null || true)
-            echo "$OUT" | tail -2
-            if echo "$OUT" | grep -q "re-ingested"; then break; fi
+            OUT=$($SSH $HOST "$COMPOSE exec -T worker sh -c 'tail -3 /tmp/reingest.log'" 2>/dev/null || true)
+            echo "$OUT" | tail -3
+            if echo "$OUT" | grep -q "restored"; then break; fi
           done
           $SSH $HOST "$COMPOSE exec -T worker sh -c 'cat /tmp/reingest.log'" > /tmp/reingest-full.log 2>&1 || true
-          tail -5 /tmp/reingest-full.log
-          if ! grep -q "re-ingested 37" /tmp/reingest-full.log; then
+          tail -6 /tmp/reingest-full.log
+          if ! grep -q "re-ingested" /tmp/reingest-full.log || ! grep -q "restored" /tmp/reingest-full.log; then
             echo "rebuild did not complete:"
             grep -E "^(x|-)" /tmp/reingest-full.log | head -10 || true
             exit 1
