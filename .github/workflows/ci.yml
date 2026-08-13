@@ -305,10 +305,29 @@ jobs:
         run: |
           python3 - <<'PY'
           import json
+          import time
           import urllib.request
 
-          with urllib.request.urlopen('https://keys.reidar.tech/api/songs?limit=1000', timeout=20) as response:
-              data = json.loads(response.read().decode())
+          url = 'https://keys.reidar.tech/api/songs?limit=1000'
+          req = urllib.request.Request(
+              url,
+              headers={
+                  'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36',
+                  'Accept': 'application/json',
+              },
+          )
+          data = None
+          last = None
+          for _ in range(10):
+              try:
+                  with urllib.request.urlopen(req, timeout=20) as response:
+                      data = json.loads(response.read().decode())
+                  break
+              except Exception as exc:
+                  last = exc
+                  time.sleep(5)
+          if data is None:
+              raise SystemExit(f'verify failed: {last}')
           songs = data.get('songs', data)
           non120 = [
               s for s in songs

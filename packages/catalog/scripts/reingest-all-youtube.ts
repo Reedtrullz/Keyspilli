@@ -32,6 +32,14 @@ async function detectTempo(audioPath: string): Promise<number> {
   return bpm >= 20 && bpm <= 300 ? bpm : 120;
 }
 
+/** Prefer the real files; the data volume carries macOS AppleDouble junk (._*). */
+function pickFiles(files: string[]): { midi?: string; audio?: string } {
+  const clean = files.filter((f) => !f.startsWith("._"));
+  const midi = clean.find((f) => f === "audio_basic_pitch.mid") ?? clean.find((f) => f.endsWith("_basic_pitch.mid"));
+  const audio = clean.find((f) => f === "audio.mp3") ?? clean.find((f) => f.startsWith("audio.") && !f.endsWith(".part"));
+  return { midi, audio };
+}
+
 async function findSource(jobId: string | undefined, baseId: string): Promise<{ midi: string; audio: string } | undefined> {
   const candidates: string[] = [];
   if (jobId) candidates.push(join(transcribedDir(), jobId));
@@ -41,8 +49,7 @@ async function findSource(jobId: string | undefined, baseId: string): Promise<{ 
   }
   for (const dir of candidates) {
     const files = await readdir(dir).catch(() => [] as string[]);
-    const midi = files.find((f) => f.endsWith("_basic_pitch.mid"));
-    const audio = files.find((f) => f.startsWith("audio."));
+    const { midi, audio } = pickFiles(files);
     if (midi && audio) return { midi: join(dir, midi), audio: join(dir, audio) };
   }
   return undefined;
