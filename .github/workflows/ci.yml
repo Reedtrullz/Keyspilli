@@ -295,11 +295,26 @@ jobs:
 
       - name: Re-ingest all YouTube bases in the worker container
         shell: bash
-        env:
-          ANSIBLE_CONFIG: deploy/ansible.cfg
         run: |
-          ansible -b -i deploy/inventory/hosts.yml keyspilli -m shell -a "cd /opt/apps/keyspilli && docker compose -f compose.production.yml exec -T worker node --import tsx packages/catalog/scripts/reingest-all-youtube.ts --keep-existing-tempo"
-
+          HOST="deploy@198.23.137.16"
+          SSH="ssh -i ~/.ssh/id_rsa_racknerd -o BatchMode=yes -o StrictHostKeyChecking=yes"
+          COMPOSE="docker compose -f /opt/apps/keyspilli/compose.production.yml"
+          # Run detached inside the worker container so a dropped SSH channel
+          # (this command takes ~20-30 min) cannot kill the rebuild.
+          $SSH $HOST "cd /opt/apps/keyspilli && $COMPOSE exec -T -d worker sh -c 'node --import tsx packages/catalog/scripts/reingest-all-youtube.ts --keep-existing-tempo > /tmp/reingest.log 2>&1'"
+          for i in $(seq 1 120); do
+            sleep 15
+            OUT=$($SSH $HOST "$COMPOSE exec -T worker sh -c 'tail -2 /tmp/reingest.log'" 2>/dev/null || true)
+            echo "$OUT" | tail -2
+            if echo "$OUT" | grep -q "re-ingested"; then break; fi
+          done
+          $SSH $HOST "$COMPOSE exec -T worker sh -c 'cat /tmp/reingest.log'" > /tmp/reingest-full.log 2>&1 || true
+          tail -5 /tmp/reingest-full.log
+          if ! grep -q "re-ingested 37" /tmp/reingest-full.log; then
+            echo "rebuild did not complete:"
+            grep -E "^(x|-)" /tmp/reingest-full.log | head -10 || true
+            exit 1
+          fi
       - name: Verify live catalog tempos
         shell: bash
         run: |
