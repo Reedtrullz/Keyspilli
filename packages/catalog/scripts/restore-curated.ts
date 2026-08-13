@@ -13,7 +13,7 @@
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { getSongsByBase, ingestSource } from "../src/index.js";
-import { ROOT, seedMidiDir } from "../src/paths.js";
+import { ROOT, dataDir, seedMidiDir } from "../src/paths.js";
 
 interface ManifestEntry {
   id: string;
@@ -27,9 +27,12 @@ interface ManifestEntry {
 }
 
 const dryRun = process.argv.includes("--dry-run");
-const manifest = (await readFile(join(ROOT, "catalog", "manifest.json"), "utf8")
+const manifest = (await readFile(join(dataDir(), "manifest.json"), "utf8")
   .then((s) => JSON.parse(s) as { songs: ManifestEntry[] })
-  .catch(() => null))?.songs ?? [];
+  .catch(() => null))?.songs ??
+  (await readFile(join(ROOT, "catalog", "manifest.json"), "utf8")
+    .then((s) => JSON.parse(s) as { songs: ManifestEntry[] })
+    .catch(() => null))?.songs ?? [];
 const byId = new Map(manifest.map((s) => [s.id, s]));
 const files = (await readdir(seedMidiDir()).catch(() => [] as string[])).filter((f) => f.endsWith(".mid"));
 let restored = 0;
@@ -52,8 +55,8 @@ for (const f of files) {
     category: entry?.category ?? row.category ?? "Standard",
     style: entry?.style ?? row.style,
     mood: entry?.mood ?? row.mood,
-    key: entry?.key,
-    tempo: entry?.tempo,
+    key: entry?.key ?? row.key,
+    tempo: entry?.tempo ?? row.tempo,
     contentType: "standard",
     acquiredVia: row.acquiredVia ?? null,
     sourceYoutubeUrl: row.sourceYoutubeUrl ?? null,
