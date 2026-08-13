@@ -14,7 +14,7 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import { parseMidi, writeMidi } from "@keyspilli/midi";
 import { filterTranscription, getDb, getSongsByBase, ingestSource, transcribedDir } from "../src/index.js";
-import { artifactsDir, ROOT } from "../src/paths.js";
+import { artifactsDir, ROOT, seedMidiDir } from "../src/paths.js";
 
 const execFileP = promisify(execFile);
 const args = process.argv.slice(2);
@@ -76,6 +76,11 @@ for (const { base_id: base } of bases) {
     .all(`${base}-e`, `${base}-%`) as { id: string; youtube_url: string }[];
   const job = jobs[0];
   const src = await findSource(job?.id, base);
+  if (existsSync(join(seedMidiDir(), `${base}.mid`))) {
+    skipped++;
+    console.log(`- ${base}: curated seed exists, skipped (restore-curated.ts owns it)`);
+    continue;
+  }
   if (!song || !src) {
     skipped++;
     console.log(`- ${base}: no db row or raw source (job ${job?.id ?? "none"})`);
