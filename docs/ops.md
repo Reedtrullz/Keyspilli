@@ -117,6 +117,33 @@ docker compose start worker
   set `KEYSPILLI_BP_SERIALIZATION=coreml` (CoreML is ~10× faster than CPU).
 - Worker logs via `docker compose logs -f worker`.
 
+## YouTube conversion maintenance
+
+Audit transcription quality first: per-song playability metrics over stored
+artifacts (tempo, note counts per level, max duration, % notes over 2/8
+beats, max simultaneity, % starts on the 1/16 grid), plus pitch-class overlap
+and median onset error vs a seed reference MIDI when one exists for the same
+piece (else `n/a`):
+
+```bash
+npx tsx packages/catalog/scripts/audit-transcriptions.ts
+```
+
+Tempo + re-ingest: detected tempo from the audio
+(`services/transcribe/src/tempo.py`) is written into the raw Basic Pitch
+MIDI's tempo meta, which is then onset-filtered and re-ingested with stable
+base ids. Dry-run first, then the real pass:
+
+```bash
+npx tsx packages/catalog/scripts/reingest-all-youtube.ts --dry-run
+npx tsx packages/catalog/scripts/reingest-all-youtube.ts
+```
+
+- `KEYSPILLI_TEMPO_OVERRIDE=<bpm>` forces a tempo instead of running tempo.py.
+- If `tempo.py` is not present yet, re-ingest keeps the MIDI's tempo (120).
+- Worker boot requeues orphaned `processing` jobs; failed jobs retry up to
+  `KEYSPILLI_MAX_ATTEMPTS` (default 3) before staying `error`.
+
 ## Useful commands
 
 ```bash

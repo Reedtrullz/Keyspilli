@@ -104,42 +104,55 @@ export function chordName(pcs: number[], bassPc?: number): string {
   return bestName;
 }
 
+export interface SplitHandsOptions {
+  /** use the 25% note-count percentile cut directly, skipping gap>=5 logic */
+  preferPercentile?: boolean;
+}
+
 /**
  * Split notes into two hand groups by pitch: cut at the largest adjacent
  * pitch gap; if no gap >= 5 semitones (e.g. a scale), cut at the gap whose
  * midpoint is closest to middle C (60).
  */
-export function splitHands(notes: Note[]): { rh: Note[]; lh: Note[] } {
+export function splitHands(notes: Note[], opts: SplitHandsOptions = {}): { rh: Note[]; lh: Note[] } {
   if (notes.length === 0) return { rh: [], lh: [] };
   const distinct = [...new Set(notes.map((n) => n.midi))].sort((a, b) => a - b);
   if (distinct.length < 2) {
     return { rh: notes.map((n) => ({ ...n, hand: "R" as const })), lh: [] };
   }
+  // 25% of NOTES to the left hand (note-count percentile, not distinct-pitch
+  // percentile -- sparse sub-bass regions would otherwise starve the left hand).
+  const percentileCut = () => {
+    const sortedNotes = [...notes].sort((a, b) => a.midi - b.midi);
+    const target = Math.max(1, Math.min(sortedNotes.length - 1, Math.floor(sortedNotes.length * 0.25)));
+    const lo = sortedNotes[target - 1]!.midi;
+    const hi = sortedNotes[target]!.midi;
+    return { a: lo, b: hi, gap: hi - lo };
+  };
   const gaps = distinct.slice(0, -1).map((p, i) => ({
     a: p,
     b: distinct[i + 1]!,
     gap: distinct[i + 1]! - p,
   }));
   const maxGap = Math.max(...gaps.map((g) => g.gap));
-  let chosen =
-    maxGap >= 5
-      ? gaps.find((g) => g.gap === maxGap)!
-      : gaps.reduce((best, g) =>
-          Math.abs((g.a + g.b) / 2 - 60) < Math.abs((best.a + best.b) / 2 - 60) ? g : best,
-        )!;
-  // If the gap split leaves one hand nearly empty (e.g. continuous-range AI
-  // transcriptions), fall back to a percentile boundary so both hands get a
-  // usable part: ~25% of NOTES to the left hand (note-count percentile,
-  // not distinct-pitch percentile — sparse sub-bass regions would otherwise
-  // starve the left hand).
-  const mid0 = (chosen.a + chosen.b) / 2;
-  const lhCount = notes.filter((n) => n.midi <= mid0).length;
-  if (lhCount < notes.length * 0.15 || lhCount > notes.length * 0.85) {
-    const sortedNotes = [...notes].sort((a, b) => a.midi - b.midi);
-    const target = Math.max(1, Math.min(sortedNotes.length - 1, Math.floor(sortedNotes.length * 0.25)));
-    const lo = sortedNotes[target - 1]!.midi;
-    const hi = sortedNotes[target]!.midi;
-    chosen = { a: lo, b: hi, gap: hi - lo };
+  let chosen: { a: number; b: number; gap: number };
+  if (opts.preferPercentile) {
+    chosen = percentileCut();
+  } else {
+    chosen =
+      maxGap >= 5
+        ? gaps.find((g) => g.gap === maxGap)!
+        : gaps.reduce((best, g) =>
+            Math.abs((g.a + g.b) / 2 - 60) < Math.abs((best.a + best.b) / 2 - 60) ? g : best,
+          )!;
+    // If the gap split leaves one hand nearly empty (e.g. continuous-range AI
+    // transcriptions), fall back to a percentile boundary so both hands get a
+    // usable part.
+    const mid0 = (chosen.a + chosen.b) / 2;
+    const lhCount = notes.filter((n) => n.midi <= mid0).length;
+    if (lhCount < notes.length * 0.15 || lhCount > notes.length * 0.85) {
+      chosen = percentileCut();
+    }
   }
   const mid = (chosen.a + chosen.b) / 2;
   return {

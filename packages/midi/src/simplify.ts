@@ -22,6 +22,7 @@ export function normalizePianoRange(notes: Note[]): Note[] {
 function chordsAt(notes: Note[], grid: number): ChordLabel[] {
   const bySlice = new Map<number, number[]>();
   for (const n of notes) {
+    if (n.dur < 0.25) continue; // passing tones are not harmony
     const k = Math.round(n.start / grid) * grid;
     const arr = bySlice.get(k) ?? [];
     arr.push(n.midi);
@@ -49,6 +50,29 @@ function chordsAt(notes: Note[], grid: number): ChordLabel[] {
     kept.push(c);
   }
   return kept;
+}
+
+/**
+ * Medium-level rhythmic reduction: drop short off-eighth passing tones that
+ * are not the top voice of their hand's slice. Selection-only (no start
+ * shifts), so the ladder stays a true subset of advanced.
+ */
+export function reduceMediumRhythm(notes: Note[]): Note[] {
+  const sliceKey = (n: Note) => `${n.hand === "L" ? "L" : "R"}:${Math.round(n.start / 0.125)}`;
+  const bySlice = new Map<string, Note[]>();
+  for (const n of notes) {
+    const key = sliceKey(n);
+    const arr = bySlice.get(key) ?? [];
+    arr.push(n);
+    bySlice.set(key, arr);
+  }
+  const top = new Map<string, number>();
+  for (const [key, ns] of bySlice) top.set(key, Math.max(...ns.map((n) => n.midi)));
+  return notes.filter((n) => {
+    const k = Math.round(n.start / 0.125);
+    if (n.dur <= 0.25 && k % 2 === 1 && n.midi !== top.get(sliceKey(n))) return false;
+    return true;
+  });
 }
 
 function melodyOnly(notes: Note[], grid: number, minDur: number): Note[] {
@@ -171,7 +195,7 @@ function rootOf(midi: number, key: string): number {
  */
 export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOptions = {}): Variant[] {
   const grid = opts.grid ?? 0.25;
-  const base = quantize(src.notes, { grid: 0.125, minDur: 0.05 });
+  const base = quantize(src.notes, { grid: 0.125, minDur: 0.125 });
   const splitSource = opts.normalizeRange === false ? base : normalizePianoRange(base);
   const { rh, lh } = splitHands(splitSource);
   const key = meta.key ?? detectKey(src.notes).name;
@@ -192,10 +216,10 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   const advancedRh = advanced.filter((n) => n.hand !== "L");
   const advancedLh = advanced.filter((n) => n.hand === "L");
   const medium = quantize(
-    [
+    reduceMediumRhythm([
       ...capSoundingSpan(topVoices(advancedRh, 0.125, 3), 12, "high"),
       ...capSoundingSpan(thinChord(advancedLh, 3), 12, "low"),
-    ],
+    ]),
     { grid: 0.125 },
   );
   const mediumRh = medium.filter((n) => n.hand !== "L");

@@ -5,7 +5,7 @@
  */
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { getJob, getSong, transcribedDir, ingestSource } from "../src/index.js";
+import { getJob, getSong, transcribedDir, ingestSource, filterTranscription } from "../src/index.js";
 
 const jobs = await readdir(transcribedDir());
 let ok = 0;
@@ -23,6 +23,11 @@ for (const jobId of jobs) {
     skipped++;
     continue;
   }
+  const audioName = reFiles.find((f) => f.startsWith("audio.")) ?? files.find((f) => f.startsWith("audio."));
+  if (!audioName) {
+    skipped++;
+    continue;
+  }
   const job = getJob(jobId);
   if (!job?.songId) {
     skipped++;
@@ -33,9 +38,9 @@ for (const jobId of jobs) {
     skipped++;
     continue;
   }
-  const buf = await readFile(join(srcDir, midiName));
+  const buf = await filterTranscription(new Uint8Array(await readFile(join(srcDir, midiName))), join(srcDir, audioName));
   const r = await ingestSource({
-    buf: new Uint8Array(buf),
+    buf,
     title: song.title,
     artist: song.artist,
     category: song.category,

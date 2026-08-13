@@ -18,6 +18,11 @@ npm run dev        # http://localhost:3000
 KEYSPILLI_BP_SERIALIZATION=coreml npm run worker -w @keyspilli/transcribe
 ```
 
+Worker env knobs: `KEYSPILLI_TEMPO_OVERRIDE` forces the MIDI tempo (BPM),
+`KEYSPILLI_MAX_ATTEMPTS` (default 2) retries a failed job before marking it
+error, and `KEYSPILLI_BP_TIMEOUT_MS` (default 900000) bounds each Basic Pitch
+run.
+
 Requires the Python venv (`services/transcribe/.venv`, created via the
 transcribe Dockerfile or manually: python3.12 -m venv + pip install
 "setuptools<81" "numpy<2" "scipy<1.13" basic-pitch yt-dlp).

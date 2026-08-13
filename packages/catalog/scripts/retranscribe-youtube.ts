@@ -7,7 +7,7 @@ import { execFile } from "node:child_process";
 import { mkdir, readdir, readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
-import { getJob, getSong, transcribedDir, ingestSource } from "../src/index.js";
+import { getJob, getSong, transcribedDir, ingestSource, filterTranscription } from "../src/index.js";
 import { ROOT } from "../src/paths.js";
 
 const execFileP = promisify(execFile);
@@ -51,9 +51,9 @@ for (const jobId of jobs) {
     skipped++;
     continue;
   }
-  const buf = await readFile(join(outDir, midiName));
+  const buf = await filterTranscription(new Uint8Array(await readFile(join(outDir, midiName))), join(dir, audio));
   const r = await ingestSource({
-    buf: new Uint8Array(buf),
+    buf,
     title: song.title,
     artist: song.artist,
     category: song.category,

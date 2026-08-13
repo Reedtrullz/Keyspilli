@@ -70,6 +70,22 @@ describe("timeline", () => {
     const off = resolveTimedNotes({ ...song, notes: [{ midi: 60, start: 0.25, dur: 1, vel: 100, hand: "R" as const }] }, 1, 0);
     expect(off[0]!.vel).toBe(80);
   });
+
+  it("passes real velocities through when source dynamics vary", () => {
+    const tn = resolveTimedNotes(
+      {
+        ...song,
+        notes: [
+          { midi: 60, start: 0, dur: 1, vel: 40, hand: "R" as const },
+          { midi: 62, start: 0.25, dur: 1, vel: 100, hand: "R" as const },
+        ],
+      },
+      1,
+      0,
+    );
+    expect(tn[0]!.vel).toBe(40); // downbeat, but no synthetic accent
+    expect(tn[1]!.vel).toBe(100);
+  });
 });
 
 describe("measureMidiRange", () => {
