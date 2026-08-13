@@ -188,7 +188,7 @@ export default function YoutubePage() {
             type="url"
             value={retranscribeUrl}
             onChange={(e) => setRetranscribeUrl(e.target.value)}
-            placeholder="https://www.youtube.com/watch?v=…"
+            placeholder="Paste the original video URL"
             className="px-3 py-2 rounded-lg border border-zinc-300 text-sm"
           />
           <button onClick={retranscribe} className="self-start px-4 py-2 rounded-lg bg-zinc-900 text-white text-sm">
