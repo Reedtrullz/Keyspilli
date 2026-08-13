@@ -522,7 +522,7 @@ describe("cleanTranscription", () => {
       { midi: 64, start: 0, dur: 0.5, vel: 70 },
     ];
     const out = cleanTranscription(notes);
-    expect(out.find((n) => n.midi === 60)!.dur).toBe(3);
+    expect(out.find((n) => n.midi === 60)!.dur).toBe(2);
     expect(out.find((n) => n.midi === 64)!.dur).toBe(0.5);
   });
 });

@@ -1,4 +1,5 @@
 import { Note } from "./types.js";
+import { splitHands } from "./analyze.js";
 
 export interface CleanOptions {
   /** drop notes quieter than this velocity (0-127) */
@@ -29,7 +30,7 @@ export function cleanTranscription(notes: Note[], opts: CleanOptions = {}): Note
   const mergeWindow = opts.mergeWindow ?? 0.125;
   const maxPolyphony = opts.maxPolyphony ?? 6;
   const maxSounding = opts.maxSounding ?? 8;
-  const maxDurBeats = opts.maxDurBeats ?? 3;
+  const maxDurBeats = opts.maxDurBeats ?? 2;
 
   let out = notes
     .filter((n) => n.vel >= minVel && n.dur >= minDurBeats)
@@ -37,6 +38,41 @@ export function cleanTranscription(notes: Note[], opts: CleanOptions = {}): Note
   out = mergeNearDuplicates(out, mergeWindow);
   out = capPolyphony(out, maxPolyphony);
   out = capSoundingPolyphony(out, maxSounding);
+  out = capHandOverlaps(out, maxDurBeats);
+  return out;
+}
+
+/** Truncate note durations so sequential notes/chords in the same hand do not overlap past the next attack. */
+export function capHandOverlaps(notes: Note[], maxDurBeats = 2.0): Note[] {
+  const { rh, lh } = splitHands(notes);
+  return [...truncateHand(rh, maxDurBeats), ...truncateHand(lh, maxDurBeats)].sort(
+    (a, b) => a.start - b.start || a.midi - b.midi,
+  );
+}
+
+function truncateHand(notes: Note[], maxDurBeats: number): Note[] {
+  const sorted = [...notes].sort((a, b) => a.start - b.start || a.midi - b.midi);
+  const slices: { start: number; notes: Note[] }[] = [];
+  for (const n of sorted) {
+    const last = slices[slices.length - 1];
+    if (last && Math.abs(last.start - n.start) < 0.01) {
+      last.notes.push(n);
+    } else {
+      slices.push({ start: n.start, notes: [n] });
+    }
+  }
+  const out: Note[] = [];
+  for (let i = 0; i < slices.length; i++) {
+    const curr = slices[i]!;
+    const next = slices[i + 1];
+    const timeToNext = next ? next.start - curr.start : maxDurBeats;
+    for (const n of curr.notes) {
+      let dur = n.dur;
+      if (next && dur > timeToNext) dur = Math.min(dur, Math.max(timeToNext, 0.25));
+      dur = Math.min(dur, maxDurBeats);
+      out.push({ ...n, dur: Math.max(0.125, dur) });
+    }
+  }
   return out;
 }
 
