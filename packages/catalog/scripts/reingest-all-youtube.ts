@@ -86,7 +86,14 @@ for (const { base_id: base } of bases) {
   // Non-120 DB tempos are manual corrections (the old pipeline always stored
   // 120); keep them when asked so the VPS preserves e.g. Dear God's 75 BPM.
   const tempo = keepExistingTempo && song.tempo && song.tempo !== 120 ? song.tempo : detected;
-  const raw = parseMidi(new Uint8Array(await readFile(src.midi)));
+  let raw;
+  try {
+    raw = parseMidi(new Uint8Array(await readFile(src.midi)));
+  } catch (err) {
+    skipped++;
+    console.warn(`x ${base}: raw midi unreadable (${src.midi}): ${(err as Error).message}`);
+    continue;
+  }
   // Raw beats are calibrated to the source MIDI's tempo (120); rescale so the
   // absolute seconds stay identical while the beat unit matches the new tempo.
   const factor = tempo / raw.tempoBpm;
