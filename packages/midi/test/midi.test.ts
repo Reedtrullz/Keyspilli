@@ -8,6 +8,8 @@ import {
   chordName,
   buildVariants,
   reduceMediumRhythm,
+  padPitches,
+  melodyOnly,
   validateVariants,
   writeMidi,
   writeMusicXml,
@@ -773,5 +775,71 @@ describe("writeMusicXml", () => {
     };
     const xml = writeMusicXml(v, "T", "A");
     expect(xml).toContain("<key><fifths>-1</fifths><mode>minor</mode></key>");
+  });
+});
+
+describe("padPitches + pad-aware voice selection", () => {
+  function src(notes: Note[]): ParsedMidi {
+    return {
+      format: 0,
+      division: 480,
+      tempoBpm: 120,
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes,
+      trackNames: [],
+      durationBeats: Math.max(...notes.map((n) => n.start + n.dur)),
+    };
+  }
+
+  it("flags pitches sounding >= 30% of the song", () => {
+    const notes: Note[] = [
+      { midi: 88, start: 0, dur: 30, vel: 80, hand: "R" }, // 30/30 = 100%
+      { midi: 60, start: 0, dur: 1, vel: 80, hand: "R" },
+      { midi: 62, start: 1, dur: 1, vel: 80, hand: "R" },
+      { midi: 64, start: 2, dur: 1, vel: 80, hand: "R" },
+      { midi: 65, start: 3, dur: 1, vel: 80, hand: "R" },
+    ];
+    const pads = padPitches(notes);
+    expect(pads.has(88)).toBe(true);
+    expect(pads.has(60)).toBe(false);
+  });
+
+  it("prefers a moving melody over a re-triggered pad in the same hand", () => {
+    const pads = new Set([70]);
+    const notes: Note[] = [
+      { midi: 70, start: 1, dur: 1, vel: 90, hand: "R" },
+      { midi: 66, start: 1, dur: 0.5, vel: 80, hand: "R" },
+      { midi: 70, start: 2, dur: 1, vel: 90, hand: "R" },
+      { midi: 67, start: 2, dur: 0.5, vel: 80, hand: "R" },
+      { midi: 70, start: 3, dur: 1, vel: 90, hand: "R" },
+      { midi: 68, start: 3, dur: 0.5, vel: 80, hand: "R" },
+      { midi: 70, start: 9, dur: 1, vel: 90, hand: "R" },
+      { midi: 70, start: 10, dur: 1, vel: 90, hand: "R" },
+    ];
+    const out = melodyOnly(notes, 0.125, 0.5, pads);
+    const padNotes = out.filter((n) => n.midi === 70);
+    // Pad is only the melody where nothing else sounds (9+).
+    expect(padNotes.length).toBeGreaterThan(0);
+    expect(padNotes.every((n) => n.start >= 9)).toBe(true);
+    const melodyMidis = out.filter((n) => n.midi < 70).map((n) => n.midi);
+    expect(melodyMidis.sort()).toEqual([66, 67, 68]);
+  });
+
+  it("ranks pad voices below real voices in the advanced variant", () => {
+    const pad: Note = { midi: 88, start: 0, dur: 32, vel: 90, hand: "R" };
+    const chord: Note[] = [
+      { midi: 60, start: 0, dur: 4, vel: 80, hand: "R" },
+      { midi: 64, start: 0, dur: 4, vel: 80, hand: "R" },
+      { midi: 67, start: 0, dur: 4, vel: 80, hand: "R" },
+      { midi: 72, start: 0, dur: 4, vel: 80, hand: "R" },
+      { midi: 76, start: 0, dur: 4, vel: 80, hand: "R" },
+      { midi: 79, start: 0, dur: 4, vel: 80, hand: "R" },
+    ];
+    const advanced = buildVariants(src([pad, ...chord]), { title: "t", artist: "a" }).find((v) => v.level === "advanced")!;
+    // Six non-pad voices sound in the slice; topVoices keeps 4 of them and the
+    // pad (highest pitch) must not displace a real voice.
+    expect(advanced.notes.some((n) => n.midi === 88)).toBe(false);
   });
 });
