@@ -19,6 +19,25 @@ export function normalizePianoRange(notes: Note[]): Note[] {
   });
 }
 
+/**
+ * Pitches that sound for >= 30% of the song's total duration. Basic Pitch
+ * tracks sustained background layers (pads/shimmer) that re-trigger on every
+ * attack; choosing them as "the melody" produces a constant-note line. Voice
+ * selection prefers non-pad pitches, falling back to a pad when nothing else
+ * sounds in a slice.
+ */
+export function padPitches(notes: Note[]): Set<number> {
+  const pads = new Set<number>();
+  if (!notes.length) return pads;
+  const total = Math.max(...notes.map((n) => n.start + n.dur));
+  const sounding = new Map<number, number>();
+  for (const n of notes) sounding.set(n.midi, (sounding.get(n.midi) ?? 0) + n.dur);
+  for (const [midi, dur] of sounding) {
+    if (dur / total >= 0.3) pads.add(midi);
+  }
+  return pads;
+}
+
 function chordsAt(notes: Note[], grid: number): ChordLabel[] {
   const bySlice = new Map<number, number[]>();
   for (const n of notes) {
@@ -100,7 +119,7 @@ export function reduceMediumRhythm(notes: Note[]): Note[] {
   });
 }
 
-function melodyOnly(notes: Note[], grid: number, minDur: number): Note[] {
+export function melodyOnly(notes: Note[], grid: number, minDur: number, pads?: Set<number>): Note[] {
   const bySlice = new Map<number, Note[]>();
   for (const n of notes) {
     const k = Math.round(n.start / grid);
@@ -113,7 +132,10 @@ function melodyOnly(notes: Note[], grid: number, minDur: number): Note[] {
   for (let i = 0; i < slices.length; i++) {
     const k = slices[i]!;
     const group = bySlice.get(k)!;
-    const top = group.reduce((a, b) => (b.midi > a.midi ? b : a));
+    // Prefer the highest non-pad voice; a sustained background pad is not the
+    // melody. Fall back to the pad when it is the only note sounding.
+    const nonPad = pads ? group.filter((n) => !pads.has(n.midi)) : group;
+    const top = (nonPad.length ? nonPad : group).reduce((a, b) => (b.midi > a.midi ? b : a));
     const next = slices[i + 1];
     // Cap the legato fill: stretching across rests makes sparse sections ring
     // for 10+ seconds. Notes keep their attack, rests stay rests.
@@ -124,8 +146,8 @@ function melodyOnly(notes: Note[], grid: number, minDur: number): Note[] {
   return out;
 }
 
-/** Keep the highest `keep` voices per slice (melody-first piano texture). */
-function topVoices(notes: Note[], grid: number, keep: number): Note[] {
+/** Keep the highest `keep` voices per slice; pad pitches rank below real voices. */
+function topVoices(notes: Note[], grid: number, keep: number, pads?: Set<number>): Note[] {
   const bySlice = new Map<number, Note[]>();
   for (const n of notes) {
     const k = Math.round(n.start / grid);
@@ -135,7 +157,11 @@ function topVoices(notes: Note[], grid: number, keep: number): Note[] {
   }
   const out: Note[] = [];
   for (const ns of bySlice.values()) {
-    const sorted = [...ns].sort((a, b) => b.midi - a.midi);
+    const sorted = [...ns].sort((a, b) => {
+      const pa = pads?.has(a.midi) ? 1 : 0;
+      const pb = pads?.has(b.midi) ? 1 : 0;
+      return pa - pb || b.midi - a.midi;
+    });
     for (const n of sorted.slice(0, keep)) out.push(n);
   }
   return out;
@@ -225,6 +251,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   const { rh, lh } = splitHands(splitSource);
   const key = meta.key ?? detectKey(src.notes).name;
   const tempo = meta.tempo ?? Math.round(src.tempoBpm);
+  const pads = padPitches(splitSource);
 
   // Use the hand-labeled split output, not the raw base, so the advanced
   // variant keeps L/R hand labels for two-staff rendering. Cap voices per
@@ -233,7 +260,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   // so the ladder stays a true subset.
   const advanced = quantize(
     [
-      ...capSoundingSpan(topVoices(rh, 0.125, 4), 12, "high"),
+      ...capSoundingSpan(topVoices(rh, 0.125, 4, pads), 12, "high"),
       ...capSoundingSpan(thinChord(lh, 4), 12, "low"),
     ],
     { grid: 0.125 },
@@ -242,7 +269,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   const advancedLh = advanced.filter((n) => n.hand === "L");
   const medium = quantize(
     reduceMediumRhythm([
-      ...capSoundingSpan(topVoices(advancedRh, 0.125, 3), 12, "high"),
+      ...capSoundingSpan(topVoices(advancedRh, 0.125, 3, pads), 12, "high"),
       ...capSoundingSpan(thinChord(advancedLh, 3), 12, "low"),
     ]),
     { grid: 0.125 },
@@ -251,7 +278,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   const mediumLh = medium.filter((n) => n.hand === "L");
   const easy = quantize(
     [
-      ...capSoundingSpan(melodyOnly(mediumRh, 0.125, 0.5), 12, "high"),
+      ...capSoundingSpan(melodyOnly(mediumRh, 0.125, 0.5, pads), 12, "high"),
       ...capSoundingSpan(thinChord(mediumLh, 2).map((n) => ({ ...n, midi: rootOf(n.midi, key) })), 12, "low"),
     ],
     { grid: 0.125 },
@@ -262,14 +289,14 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   const easyRh = easy.filter((n) => n.hand !== "L");
   const easyLh = easy.filter((n) => n.hand === "L");
   const veryEasy = quantize(
-    [...capSoundingSpan(melodyOnly(easyRh, 0.25, 0.5), 12, "high"), ...easyLh],
+    [...capSoundingSpan(melodyOnly(easyRh, 0.25, 0.5, pads), 12, "high"), ...easyLh],
     { grid: 0.25 },
   );
   const beginner = quantize(
-    capSoundingSpan(melodyOnly(veryEasy.filter((n) => n.hand !== "L"), 0.25, 0.5), 12, "high"),
+    capSoundingSpan(melodyOnly(veryEasy.filter((n) => n.hand !== "L"), 0.25, 0.5, pads), 12, "high"),
     { grid: 0.25 },
   );
-  const veryBeginner = quantize(capSoundingSpan(melodyOnly(beginner, 0.5, 1), 12, "high"), { grid: 0.5 });
+  const veryBeginner = quantize(capSoundingSpan(melodyOnly(beginner, 0.5, 1, pads), 12, "high"), { grid: 0.5 });
 
   const sets: Record<DifficultyLevel, Note[]> = {
     "very-beginner": veryBeginner,
