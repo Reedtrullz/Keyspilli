@@ -11,7 +11,7 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import { normalizeTempoBpm, parseMidi, writeMidi } from "@keyspilli/midi";
 import { filterTranscription, getDb, getSongsByBase, ingestSource } from "../src/index.js";
-import { artifactsDir, ROOT, seedMidiDir, transcribedDir, uploadsDir } from "../src/paths.js";
+import { artifactsDir, dataDir, ROOT, seedMidiDir, transcribedDir, uploadsDir } from "../src/paths.js";
 
 const execFileP = promisify(execFile);
 const args = process.argv.slice(2);
@@ -57,7 +57,13 @@ const seedAliases: Record<string, string> = {
 const curatedYoutubeSeeds = new Set(["dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo"]);
 const storedAdvancedFallbacks = new Set(["kamerat-mot-kamerat", "red-sun-in-the-sky"]);
 
-const manifestRaw = JSON.parse(await readFile(join(ROOT, "catalog", "manifest.json"), "utf8")) as { songs?: ManifestSong[] };
+// Production worker images intentionally omit the repository's catalog/
+// directory. The workflow copies manifest.json into the mounted data volume,
+// so prefer that path and retain the checkout path for local runs.
+const manifestRaw = await readFile(join(dataDir(), "manifest.json"), "utf8")
+  .catch(() => readFile(join(ROOT, "catalog", "manifest.json"), "utf8"))
+  .then((raw) => JSON.parse(raw) as { songs?: ManifestSong[] })
+  .catch(() => ({ songs: [] as ManifestSong[] }));
 const manifest = new Map((manifestRaw.songs ?? []).map((song) => [song.id, song]));
 
 function getCatalogBases(): string[] {

@@ -7,7 +7,7 @@ import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { LEVEL_ORDER, validateArtifactFiles, validateVariants, Variant } from "@keyspilli/midi";
 import { getDb } from "../src/db.js";
-import { ROOT } from "../src/paths.js";
+import { dataDir } from "../src/paths.js";
 
 const LEVEL_CODE: Record<string, string> = {
   "very-beginner": "vb",
@@ -18,7 +18,10 @@ const LEVEL_CODE: Record<string, string> = {
   advanced: "a",
 };
 
-const artifactsRoot = join(ROOT, "data", "artifacts");
+// Resolve through the shared data-dir helper so the same gate works both in
+// the repository checkout and inside the production worker container, where
+// KEYSPILLI_DATA_DIR=/data is mounted separately from the application code.
+const artifactsRoot = join(dataDir(), "artifacts");
 const songs = await readdir(artifactsRoot);
 let failed = 0;
 let warnings = 0;

@@ -246,10 +246,10 @@ jobs:
           sys.exit(1)
 
   reingest-youtube-catalog:
-    name: Rebuild YouTube catalog on VPS
+    name: Rebuild production catalog on VPS
     runs-on: ubuntu-24.04
     needs: [deploy]
-    timeout-minutes: 40
+    timeout-minutes: 60
     if: github.event_name == 'workflow_dispatch'
     environment:
       name: production
@@ -293,7 +293,7 @@ jobs:
           printf '%s\n' "$expected_host_key" > ~/.ssh/known_hosts
           ssh -i ~/.ssh/id_rsa_racknerd -o BatchMode=yes -o StrictHostKeyChecking=yes deploy@198.23.137.16 'echo "SSH OK"'
 
-      - name: Re-ingest YouTube + restore curated bases on VPS
+      - name: Re-ingest all sources and repair artifacts on VPS
         shell: bash
         run: |
           HOST="deploy@198.23.137.16"
@@ -309,17 +309,26 @@ jobs:
           # Manifest metadata for curated restores inside the worker container.
           $SSH $HOST "$COMPOSE exec -T -i worker sh -c 'cat > /data/manifest.json'" < catalog/manifest.json
           # Run detached inside the worker container so a dropped SSH channel
-          # (this takes ~20-30 min) cannot kill the rebuild.
-          $SSH $HOST "cd /opt/apps/keyspilli && $COMPOSE exec -T -d worker sh -c 'node --import tsx packages/catalog/scripts/reingest-all-youtube.ts --keep-existing-tempo > /tmp/reingest.log 2>&1; node --import tsx packages/catalog/scripts/restore-curated.ts >> /tmp/reingest.log 2>&1'"
-          for i in $(seq 1 120); do
+          # (this takes ~20-30 min) cannot kill the rebuild. Rebuild every
+          # source class, not only YouTube: the mounted data volume can retain
+          # old artifacts after a container deploy, and curated aliases,
+          # reconstructed uploads, and serializer changes otherwise remain
+          # stale indefinitely.
+          $SSH $HOST "cd /opt/apps/keyspilli && $COMPOSE exec -T -d worker sh -c 'set -e; : > /tmp/reingest.log; node --import tsx packages/catalog/scripts/reingest-all-youtube.ts --keep-existing-tempo >> /tmp/reingest.log 2>&1; node --import tsx packages/catalog/scripts/restore-curated.ts >> /tmp/reingest.log 2>&1; node --import tsx packages/catalog/scripts/reingest-catalog.ts --skip-youtube >> /tmp/reingest.log 2>&1; node --import tsx packages/catalog/scripts/repair-artifacts.ts >> /tmp/reingest.log 2>&1; node --import tsx packages/catalog/scripts/verify-catalog.ts >> /tmp/reingest.log 2>&1; echo REBUILD_COMPLETE >> /tmp/reingest.log'"
+          for i in $(seq 1 240); do
             sleep 15
             OUT=$($SSH $HOST "$COMPOSE exec -T worker sh -c 'tail -3 /tmp/reingest.log'" 2>/dev/null || true)
             echo "$OUT" | tail -3
-            if echo "$OUT" | grep -q "restored"; then break; fi
+            if echo "$OUT" | grep -q "REBUILD_COMPLETE"; then break; fi
           done
           $SSH $HOST "$COMPOSE exec -T worker sh -c 'cat /tmp/reingest.log'" > /tmp/reingest-full.log 2>&1 || true
           tail -6 /tmp/reingest-full.log
-          if ! grep -q "re-ingested" /tmp/reingest-full.log || ! grep -q "restored" /tmp/reingest-full.log; then
+          if ! grep -q "REBUILD_COMPLETE" /tmp/reingest-full.log || \
+             ! grep -q "re-ingested" /tmp/reingest-full.log || \
+             ! grep -q "restored" /tmp/reingest-full.log || \
+             ! grep -q "reingest-catalog:" /tmp/reingest-full.log || \
+             ! grep -q "repair-artifacts:" /tmp/reingest-full.log || \
+             ! grep -q "verify-catalog: 0 of" /tmp/reingest-full.log; then
             echo "rebuild did not complete:"
             grep -E "^(x|-)" /tmp/reingest-full.log | head -10 || true
             exit 1
