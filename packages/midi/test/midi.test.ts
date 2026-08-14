@@ -843,3 +843,43 @@ describe("padPitches + pad-aware voice selection", () => {
     expect(advanced.notes.some((n) => n.midi === 88)).toBe(false);
   });
 });
+
+describe("writeMidi same-pitch pairing", () => {
+  function rt(notes: Note[]): Note[] {
+    const buf = writeMidi(notes, { tempoBpm: 120 });
+    return parseMidi(buf).notes;
+  }
+
+  it("preserves sequential same-pitch note durations", () => {
+    const notes: Note[] = [
+      { midi: 41, start: 0, dur: 8, vel: 80, hand: "R" },
+      { midi: 41, start: 9, dur: 2, vel: 80, hand: "R" },
+    ];
+    const back = rt(notes);
+    expect(back).toHaveLength(2);
+    expect(back[0]!.dur).toBeCloseTo(8, 2);
+    expect(back[1]!.dur).toBeCloseTo(2, 2);
+    expect(back[1]!.start).toBeCloseTo(9, 2);
+  });
+
+  it("cuts a genuinely overlapping re-strike at the new attack", () => {
+    const notes: Note[] = [
+      { midi: 41, start: 0, dur: 8, vel: 80, hand: "R" },
+      { midi: 41, start: 2, dur: 8, vel: 80, hand: "R" },
+    ];
+    const back = rt(notes);
+    expect(back).toHaveLength(2);
+    expect(back[0]!.dur).toBeLessThanOrEqual(2.01);
+    expect(back[1]!.dur).toBeCloseTo(8, 2);
+  });
+
+  it("does not stretch an ended note when a later same-pitch note starts", () => {
+    const notes: Note[] = [
+      { midi: 60, start: 0, dur: 4, vel: 80, hand: "R" },
+      { midi: 60, start: 10, dur: 4, vel: 80, hand: "R" },
+      { midi: 60, start: 20, dur: 4, vel: 80, hand: "R" },
+    ];
+    const back = rt(notes);
+    expect(back.map((n) => n.dur)).toEqual([4, 4, 4].map((d) => expect.closeTo(d, 2)));
+  });
+});
