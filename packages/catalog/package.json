@@ -8,6 +8,8 @@
     "fetch-seed": "tsx scripts/fetch-seed.ts",
     "pipeline": "tsx scripts/pipeline.ts",
     "verify-catalog": "tsx scripts/verify-catalog.ts",
+    "repair-artifacts": "tsx scripts/repair-artifacts.ts",
+    "reingest-catalog": "tsx scripts/reingest-catalog.ts",
     "calibrate": "tsx scripts/calibrate-limits.ts",
     "reingest-uploads": "tsx scripts/reingest-uploads.ts",
     "reingest-midi-pack": "tsx scripts/reingest-midi-pack.ts",

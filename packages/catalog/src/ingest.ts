@@ -1,4 +1,5 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, rename, rm, writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { unzipSync } from "fflate";
 import {
@@ -6,14 +7,14 @@ import {
   parseMusicXmlNotes,
   cleanTranscription,
   buildVariants,
-  writeMidi,
-  writeMusicXml,
-  keySignature,
+  normalizeTempoBpm,
+  writeVariantArtifacts,
+  validateArtifactFiles,
   LEVEL_ORDER,
   validateVariants,
 } from "@keyspilli/midi";
-import { upsertSong, getSongsByBase, SongRow } from "./db.js";
-import { artifactsDir, uploadsDir } from "./paths.js";
+import { replaceSongsByBase, getSongsByBase, SongRow } from "./db.js";
+import { dataDir, uploadsDir } from "./paths.js";
 
 const LEVEL_CODE: Record<string, string> = {
   "very-beginner": "vb",
@@ -37,6 +38,13 @@ export interface IngestInput {
   acquiredVia?: string | null;
   sourceYoutubeUrl?: string | null;
   baseId?: string;
+  /** Override the default YouTube cleanup for curated human-authored MIDI. */
+  cleanTranscription?: boolean;
+}
+
+/** Optional deterministic hook used by integration tests to exercise rollback. */
+export interface IngestOptions {
+  beforeReplace?: () => void;
 }
 
 function slugify(s: string): string {
@@ -47,6 +55,10 @@ function slugify(s: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 60);
+}
+
+function validBaseId(baseId: string): boolean {
+  return /^[a-z0-9][a-z0-9-]{0,119}$/.test(baseId);
 }
 
 function looksLikeXml(buf: Uint8Array): boolean {
@@ -131,25 +143,36 @@ function mxlScoreXml(buf: Uint8Array): string {
  * Parse a MIDI/MusicXML buffer, generate 6 difficulty variants, write
  * artifacts and DB rows. Returns the base id + created song ids.
  */
-export async function ingestSource(inp: IngestInput): Promise<{ baseId: string; songIds: string[]; error?: string }> {
+export async function ingestSource(inp: IngestInput, options: IngestOptions = {}): Promise<{ baseId: string; songIds: string[]; error?: string }> {
+  if (inp.baseId && !validBaseId(inp.baseId)) {
+    return { baseId: "", songIds: [], error: "invalid base id" };
+  }
   let parsed;
+  let isMxl = false;
+  let sourceIsXml = false;
   try {
-    const isMxl = isZip(inp.buf);
+    isMxl = isZip(inp.buf);
+    sourceIsXml = looksLikeXml(inp.buf);
     parsed = isMxl
       ? parseMusicXmlNotes(mxlScoreXml(inp.buf))
-      : looksLikeXml(inp.buf)
+      : sourceIsXml
         ? parseMusicXmlNotes(new TextDecoder().decode(inp.buf))
         : parseMidi(inp.buf);
   } catch (e) {
     return { baseId: "", songIds: [], error: `parse failed: ${(e as Error).message}` };
   }
   // AI transcriptions carry ghost notes; human MIDI files do not.
-  if (inp.contentType === "youtube") {
+  parsed.tempoBpm = normalizeTempoBpm(inp.tempo ?? parsed.tempoBpm);
+  if (inp.contentType === "youtube" && inp.cleanTranscription !== false) {
     parsed.notes = cleanTranscription(parsed.notes, { tempoBpm: parsed.tempoBpm });
   }
   if (parsed.notes.length < 8) return { baseId: "", songIds: [], error: "too few notes" };
 
   const baseId = inp.baseId ?? `${slugify(inp.artist)}-${slugify(inp.title)}-${Date.now().toString(36)}`;
+  // Re-ingests replace the six-row set atomically, but engagement history is
+  // not part of the source arrangement. Preserve per-level plays and creation
+  // timestamps so repairing an arrangement does not reset the live catalog.
+  const existingRows = inp.baseId ? getSongsByBase(baseId) : [];
   const variants = buildVariants(parsed, {
     title: inp.title,
     artist: inp.artist,
@@ -160,73 +183,131 @@ export async function ingestSource(inp: IngestInput): Promise<{ baseId: string; 
   if (validationErrors.length) {
     return { baseId: "", songIds: [], error: `validation failed: ${validationErrors.join("; ")}` };
   }
-  // Keep the raw source for future re-validation when thresholds change.
-  if (inp.contentType === "upload") {
-    await mkdir(uploadsDir(), { recursive: true });
-    const ext = isZip(inp.buf) ? "mxl" : looksLikeXml(inp.buf) ? "xml" : "mid";
-    await writeFile(join(uploadsDir(), `${baseId}.${ext}`), inp.buf);
-  }
-  const songIds: string[] = [];
 
+  const prepared = [];
+  const artifactErrors: string[] = [];
+  const createdAt = new Date().toISOString();
   for (const v of variants) {
-    // Playback uses the variant tempo (which may be a forwarded override),
-    // so duration must match that tempo, not the raw source tempo.
-    const durationSec = Math.round((parsed.durationBeats * 60) / v.tempoBpm);
-    const dir = artifactsDir(baseId, LEVEL_CODE[v.level]!);
-    await mkdir(dir, { recursive: true });
-    const midi = writeMidi(v.notes, {
-      tempoBpm: v.tempoBpm,
-      timeSig: v.timeSig,
-      keySig: keySignature(v.key).fifths,
-      keyMode: keySignature(v.key).mode,
-      title: `${inp.title} (${v.level})`,
-      tracks: [
-        { name: "Right Hand", notes: v.notes.filter((n) => n.hand !== "L") },
-        { name: "Left Hand", notes: v.notes.filter((n) => n.hand === "L") },
-      ],
-    });
-    const xml = writeMusicXml(v, inp.title, inp.artist);
-    const notesJson = JSON.stringify({
-      notes: v.notes,
-      chords: v.chords,
-      measures: v.measures,
-      key: v.key,
-      tempoBpm: v.tempoBpm,
-      timeSig: v.timeSig,
-    });
-    await Promise.all([
-      writeFile(join(dir, "variant.mid"), midi),
-      writeFile(join(dir, "variant.xml"), xml),
-      writeFile(join(dir, "notes.json"), notesJson),
-    ]);
-    const id = `${baseId}-${LEVEL_CODE[v.level]!}`;
-    songIds.push(id);
-    const row: SongRow = {
-      id,
-      baseId,
-      title: inp.title,
-      artist: inp.artist,
-      category: inp.category ?? "Upload",
-      difficulty: v.level,
-      difficultyScore: v.difficultyScore,
-      key: v.key,
-      tempo: v.tempoBpm,
-      style: inp.style ?? "classical",
-      mood: inp.mood ?? "peaceful",
-      bassPattern: v.bassPattern,
-      duration: durationSec,
-      contentType: inp.contentType,
-      acquiredVia: inp.acquiredVia ?? null,
-      sourceYoutubeUrl: inp.sourceYoutubeUrl ?? null,
-      hasSheetXml: 1,
-      sections: null,
-      plays: 0,
-      level: LEVEL_CODE[v.level]!,
-      createdAt: new Date().toISOString(),
-    };
-    upsertSong(row);
+    const code = LEVEL_CODE[v.level]!;
+    try {
+      const artifacts = writeVariantArtifacts(v, inp.title, inp.artist);
+      const issues = validateArtifactFiles(v, artifacts);
+      if (issues.length) artifactErrors.push(`${v.level}: ${issues.join("; ")}`);
+      const durationSec = Math.round((parsed.durationBeats * 60) / v.tempoBpm);
+      const previous = existingRows.find((row) => row.difficulty === v.level);
+      const row: SongRow = {
+        id: `${baseId}-${code}`,
+        baseId,
+        title: inp.title,
+        artist: inp.artist,
+        category: inp.category ?? "Upload",
+        difficulty: v.level,
+        difficultyScore: v.difficultyScore,
+        key: v.key,
+        tempo: v.tempoBpm,
+        style: inp.style ?? "classical",
+        mood: inp.mood ?? "peaceful",
+        bassPattern: v.bassPattern,
+        duration: durationSec,
+        contentType: inp.contentType,
+        acquiredVia: inp.acquiredVia ?? null,
+        sourceYoutubeUrl: inp.sourceYoutubeUrl ?? null,
+        hasSheetXml: 1,
+        sections: null,
+        plays: previous?.plays ?? 0,
+        level: code,
+        createdAt: previous?.createdAt ?? createdAt,
+      };
+      prepared.push({ code, row, midi: artifacts.midi, xml: artifacts.xml, notesJson: JSON.stringify({
+        notes: v.notes,
+        warnings: v.warnings,
+        chords: v.chords,
+        measures: v.measures,
+        key: v.key,
+        tempoBpm: v.tempoBpm,
+        timeSig: v.timeSig,
+      }) });
+    } catch (e) {
+      artifactErrors.push(`${v.level}: artifact render failed: ${(e as Error).message}`);
+    }
   }
-  return { baseId, songIds };
+  if (artifactErrors.length) {
+    return { baseId: "", songIds: [], error: `artifact validation failed: ${artifactErrors.join("; ")}` };
+  }
+
+  const artifactsRoot = join(dataDir(), "artifacts");
+  const finalRoot = join(artifactsRoot, baseId);
+  const token = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  const stageRoot = join(artifactsRoot, `.${baseId}.staging-${token}`);
+  const backupRoot = join(artifactsRoot, `.${baseId}.backup-${token}`);
+  const uploadExt = isMxl ? "mxl" : sourceIsXml ? "xml" : "mid";
+  const uploadRoot = uploadsDir();
+  const finalUpload = join(uploadRoot, `${baseId}.${uploadExt}`);
+  const stageUpload = join(uploadRoot, `.${baseId}.staging-${token}.${uploadExt}`);
+  const backupUpload = join(uploadRoot, `.${baseId}.backup-${token}.${uploadExt}`);
+  let movedArtifactBackup = false;
+  let movedUploadBackup = false;
+  let movedStageArtifacts = false;
+  let movedStageUpload = false;
+  let dbCommitted = false;
+  try {
+    await mkdir(artifactsRoot, { recursive: true });
+    await mkdir(stageRoot, { recursive: true });
+    for (const item of prepared) {
+      const dir = join(stageRoot, item.code);
+      await mkdir(dir, { recursive: true });
+      await Promise.all([
+        writeFile(join(dir, "variant.mid"), item.midi),
+        writeFile(join(dir, "variant.xml"), item.xml),
+        writeFile(join(dir, "notes.json"), item.notesJson),
+      ]);
+    }
+    if (inp.contentType === "upload") {
+      await mkdir(uploadRoot, { recursive: true });
+      await writeFile(stageUpload, inp.buf);
+    }
+
+    if (existsSync(finalRoot)) {
+      await rename(finalRoot, backupRoot);
+      movedArtifactBackup = true;
+    }
+    if (inp.contentType === "upload" && existsSync(finalUpload)) {
+      await rename(finalUpload, backupUpload);
+      movedUploadBackup = true;
+    }
+    await rename(stageRoot, finalRoot);
+    movedStageArtifacts = true;
+    if (inp.contentType === "upload") {
+      await rename(stageUpload, finalUpload);
+      movedStageUpload = true;
+    }
+
+    options.beforeReplace?.();
+    replaceSongsByBase(baseId, prepared.map((item) => item.row));
+    dbCommitted = true;
+    // Cleanup is best-effort after the DB commit. A transient unlink failure
+    // must never enter the rollback path and leave SQLite pointing at a
+    // different artifact set than the filesystem.
+    await rm(backupRoot, { recursive: true, force: true }).catch(() => undefined);
+    await rm(backupUpload, { force: true }).catch(() => undefined);
+    return { baseId, songIds: prepared.map((item) => item.row.id) };
+  } catch (e) {
+    if (dbCommitted) {
+      console.warn(`publish cleanup warning for ${baseId}: ${(e as Error).message}`);
+      return { baseId, songIds: prepared.map((item) => item.row.id) };
+    }
+    // Roll back both filesystem and DB-visible state. The DB transaction has
+    // already rolled back if replaceSongsByBase threw.
+    if (movedStageArtifacts) await rm(finalRoot, { recursive: true, force: true });
+    if (movedArtifactBackup) await rename(backupRoot, finalRoot).catch(() => undefined);
+    else await rm(backupRoot, { recursive: true, force: true });
+    if (movedStageUpload) await rm(finalUpload, { force: true });
+    if (movedUploadBackup) await rename(backupUpload, finalUpload).catch(() => undefined);
+    else await rm(backupUpload, { force: true });
+    await rm(stageRoot, { recursive: true, force: true });
+    await rm(stageUpload, { force: true });
+    return { baseId: "", songIds: [], error: `publish failed: ${(e as Error).message}` };
+  }
 }
 
 export { LEVEL_ORDER, getSongsByBase };

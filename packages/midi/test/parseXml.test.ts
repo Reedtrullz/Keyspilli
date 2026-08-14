@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseMusicXmlNotes, parseMidi, buildVariants, writeMusicXml } from "../src/index.js";
+import { parseMusicXmlNotes, parseMidi, buildVariants, writeMusicXml, Variant } from "../src/index.js";
 
 const HEX = (s: string) => new Uint8Array(s.trim().split(/\s+/).map((b) => parseInt(b, 16)));
 const SCALE_MIDI = HEX(`
@@ -14,6 +14,118 @@ const SCALE_MIDI = HEX(`
 `);
 
 describe("parseMusicXmlNotes", () => {
+  it("round-trips interleaved grand-staff note starts", () => {
+    const variant: Variant = {
+      level: "advanced",
+      difficultyScore: 0,
+      notes: [
+        { midi: 60, start: 0, dur: 1, vel: 80, hand: "R" },
+        { midi: 48, start: 0.5, dur: 1, vel: 80, hand: "L" },
+        { midi: 64, start: 1, dur: 1, vel: 80, hand: "R" },
+      ],
+      chords: [],
+      bassPattern: "block",
+      key: "C",
+      tempoBpm: 120,
+      timeSig: [4, 4],
+      measures: [{ index: 0, startBeat: 0, endBeat: 4 }],
+    };
+    const parsed = parseMusicXmlNotes(writeMusicXml(variant, "Interleaved", "Test"));
+    expect(parsed.notes.map((n) => [n.midi, n.start])).toEqual([
+      [60, 0],
+      [48, 0.5],
+      [64, 1],
+    ]);
+  });
+
+  it("keeps following attacks after a chord whose members have different durations", () => {
+    const variant: Variant = {
+      level: "advanced",
+      difficultyScore: 0,
+      notes: [
+        { midi: 60, start: 0, dur: 1, vel: 80, hand: "R" },
+        { midi: 64, start: 0, dur: 2, vel: 80, hand: "R" },
+        { midi: 67, start: 1, dur: 1, vel: 80, hand: "R" },
+      ],
+      chords: [],
+      bassPattern: "block",
+      key: "C",
+      tempoBpm: 120,
+      timeSig: [4, 4],
+      measures: [{ index: 0, startBeat: 0, endBeat: 4 }],
+    };
+    const parsed = parseMusicXmlNotes(writeMusicXml(variant, "Different durations", "Test"));
+    expect(parsed.notes.map((n) => [n.midi, n.start, n.dur])).toEqual([
+      [60, 0, 1],
+      [64, 0, 2],
+      [67, 1, 1],
+    ]);
+  });
+
+  it("splits cross-measure sustains into ties and merges them on parse", () => {
+    const variant: Variant = {
+      level: "advanced",
+      difficultyScore: 0,
+      notes: [
+        { midi: 60, start: 3, dur: 2, vel: 80, hand: "R" },
+        { midi: 48, start: 4, dur: 1, vel: 80, hand: "L" },
+      ],
+      chords: [],
+      bassPattern: "block",
+      key: "C",
+      tempoBpm: 120,
+      timeSig: [4, 4],
+      measures: [
+        { index: 0, startBeat: 0, endBeat: 4 },
+        { index: 1, startBeat: 4, endBeat: 8 },
+      ],
+    };
+    const xml = writeMusicXml(variant, "Tie", "Test");
+    expect(xml).toContain("<tie type=\"start\"/>");
+    expect(xml).toContain("<tie type=\"stop\"/>");
+    const parsed = parseMusicXmlNotes(xml);
+    expect(parsed.notes.map((n) => [n.midi, n.start, n.dur])).toEqual([
+      [60, 3, 2],
+      [48, 4, 1],
+    ]);
+  });
+
+  it("keeps overlapping same-pitch tie chains on their original voices", () => {
+    // Both notes cross the same barline and therefore have continuations at
+    // one onset. Matching by pitch/start alone would swap their durations.
+    const variant: Variant = {
+      level: "advanced",
+      difficultyScore: 0,
+      notes: [
+        { midi: 50, start: 3, dur: 1.25, vel: 80, hand: "L" },
+        { midi: 50, start: 3.5, dur: 2.75, vel: 80, hand: "L" },
+      ],
+      chords: [],
+      bassPattern: "block",
+      key: "C",
+      tempoBpm: 120,
+      timeSig: [4, 4],
+      measures: [
+        { index: 0, startBeat: 0, endBeat: 4 },
+        { index: 1, startBeat: 4, endBeat: 8 },
+      ],
+    };
+    const parsed = parseMusicXmlNotes(writeMusicXml(variant, "Overlapping ties", "Test"));
+    expect(parsed.notes.map((n) => [n.midi, n.start, n.dur])).toEqual([
+      [50, 3, 1.25],
+      [50, 3.5, 2.75],
+    ]);
+  });
+
+  it("merges external MusicXML tie and tied notation elements", () => {
+    const xml = `<?xml version="1.0"?><score-partwise version="4.0"><part id="P1"><measure number="1"><attributes><divisions>4</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>
+<note><pitch><step>C</step><octave>4</octave></pitch><duration>16</duration><tie type="start"/><voice>1</voice></note></measure>
+<measure number="2"><note><pitch><step>C</step><octave>4</octave></pitch><duration>16</duration><tie type="stop"/><voice>1</voice><notations><tied type="stop"/></notations></note></measure></part></score-partwise>`;
+    const parsed = parseMusicXmlNotes(xml);
+    expect(parsed.notes).toHaveLength(1);
+    expect(parsed.notes[0]).toMatchObject({ midi: 60, start: 0, dur: 8 });
+  });
+
   it("round-trips our MusicXML writer output", () => {
     const src = parseMidi(SCALE_MIDI);
     const variant = buildVariants(src, { title: "Scale", artist: "Test" })[2]!;

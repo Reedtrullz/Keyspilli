@@ -72,7 +72,11 @@ let skipped = 0;
 for (const { base_id: base } of bases) {
   const song = getSongsByBase(base)[0];
   const jobs = getDb()
-    .prepare("SELECT * FROM conversion_jobs WHERE song_id = ? OR song_id LIKE ? ORDER BY created_at")
+    // Reprocessed jobs are newer and exist specifically to replace broken
+    // first-pass transcriptions. Always prefer the newest completed source;
+    // selecting the oldest row can silently resurrect the artifact this
+    // rebuild is meant to repair. Tie-break by id for deterministic runs.
+    .prepare("SELECT * FROM conversion_jobs WHERE song_id = ? OR song_id LIKE ? ORDER BY created_at DESC, id DESC")
     .all(`${base}-e`, `${base}-%`) as { id: string; youtube_url: string }[];
   const job = jobs[0];
   const src = await findSource(job?.id, base);
@@ -143,6 +147,7 @@ for (const { base_id: base } of bases) {
     acquiredVia: "youtube",
     sourceYoutubeUrl: job?.youtube_url ?? song.sourceYoutubeUrl ?? "",
     baseId: base,
+    cleanTranscription: false,
   });
   const after = await variantCount(base);
   if (r.error) {

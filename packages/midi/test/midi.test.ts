@@ -13,7 +13,10 @@ import {
   validateVariants,
   writeMidi,
   writeMusicXml,
+  parseMusicXmlNotes,
+  validateArtifactRoundtrip,
   cleanTranscription,
+  sanitizeImportedNotes,
   LEVEL_ORDER,
   Note,
   ParsedMidi,
@@ -145,7 +148,7 @@ describe("writeMidi roundtrip", () => {
     expect(m.notes[2]!.dur).toBeCloseTo(0.5, 3);
   });
 
-  it("does not cut short a same-pitch re-strike", () => {
+  it("preserves overlapping same-pitch note durations", () => {
     const bytes = writeMidi(
       [
         { midi: 60, start: 0, dur: 4, vel: 80 },
@@ -155,8 +158,23 @@ describe("writeMidi roundtrip", () => {
     );
     const m = parseMidi(bytes);
     expect(m.notes.map((n) => [n.start, n.dur])).toEqual([
-      [0, 2],
+      [0, 4],
       [2, 4],
+    ]);
+  });
+
+  it("preserves nested same-pitch note durations", () => {
+    const bytes = writeMidi(
+      [
+        { midi: 60, start: 0, dur: 8, vel: 80 },
+        { midi: 60, start: 2, dur: 2, vel: 70 },
+      ],
+      { tempoBpm: 120, keySig: 0, keyMode: 0 },
+    );
+    const m = parseMidi(bytes);
+    expect(m.notes.map((n) => [n.start, n.dur])).toEqual([
+      [0, 8],
+      [2, 2],
     ]);
   });
 
@@ -314,6 +332,46 @@ describe("buildVariants", () => {
     expect(variants[5]!.notes.length).toBeGreaterThan(0);
   });
 
+  it("falls back from an implausible source tempo before validation", () => {
+    const notes = Array.from({ length: 16 }, (_, i) => ({
+      midi: 60 + (i % 4),
+      start: i * 0.5,
+      dur: 0.5,
+      vel: 80,
+    }));
+    const variants = buildVariants(
+      {
+        format: 0,
+        division: 480,
+        tempoBpm: 16,
+        keySig: 0,
+        keyMode: 0,
+        timeSig: [4, 4],
+        notes,
+        trackNames: ["Tempo fixture"],
+        durationBeats: 8,
+      },
+      { title: "Tempo fixture", artist: "Test" },
+    );
+    expect(new Set(variants.map((v) => v.tempoBpm))).toEqual(new Set([120]));
+    expect(validateVariants(variants)).toEqual([]);
+    const overridden = buildVariants(
+      {
+        format: 0,
+        division: 480,
+        tempoBpm: 16,
+        keySig: 0,
+        keyMode: 0,
+        timeSig: [4, 4],
+        notes,
+        trackNames: ["Tempo fixture"],
+        durationBeats: 8,
+      },
+      { title: "Tempo fixture", artist: "Test", tempo: 100 },
+    );
+    expect(new Set(overridden.map((v) => v.tempoBpm))).toEqual(new Set([100]));
+  });
+
   it("separates medium from advanced on a 16th-note run", () => {
     // quarter-note bass keeps the hand split gap-based (no percentile fallback)
     const notes: Note[] = [];
@@ -404,6 +462,31 @@ describe("buildVariants", () => {
       const bass = v.notes.filter((n) => n.hand === "L");
       expect(bass.length).toBeGreaterThan(0);
       expect(bass.every((n) => n.midi % 12 === 7)).toBe(true);
+    }
+  });
+
+  it("caps fast scalar variants without breaking the RH ladder", () => {
+    const notes: Note[] = [];
+    for (let i = 0; i < 256; i++) {
+      notes.push({ midi: 60 + (i % 8), start: i * 0.125, dur: 0.125, vel: 80 });
+    }
+    const fast: ParsedMidi = {
+      format: 0,
+      division: 480,
+      tempoBpm: 180,
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes,
+      trackNames: ["Fast"],
+      durationBeats: 32,
+    };
+    const variants = buildVariants(fast, { title: "Fast", artist: "Test" });
+    expect(validateVariants(variants)).toEqual([]);
+    const keys = (ns: Note[]) => new Set(ns.filter((n) => n.hand !== "L").map((n) => `${n.midi}@${n.start.toFixed(3)}`));
+    for (let i = 0; i < variants.length - 1; i++) {
+      const harder = keys(variants[i + 1]!.notes);
+      for (const key of keys(variants[i]!.notes)) expect(harder.has(key)).toBe(true);
     }
   });
   it("scores are monotonic", () => {
@@ -563,6 +646,121 @@ describe("buildVariants", () => {
     const vb = variants[0]!;
     vb.notes = Array.from({ length: 10 }, (_, i) => ({ midi: 60, start: i * 0.1, dur: 0.5, vel: 80, hand: "R" as const }));
     expect(validateVariants(variants).some((e) => e.includes("inter-onset"))).toBe(true);
+  });
+
+  it("interprets inter-onset and density limits in seconds at the source tempo", () => {
+    const starts = [0, 0.25, 0.5, 0.75, 1, 2, 3, 4];
+    const make = (tempoBpm: number): Variant => ({
+      level: "advanced",
+      difficultyScore: 4.6,
+      notes: starts.map((start, i) => ({ midi: 60 + i, start, dur: 0.125, vel: 80, hand: "R" as const })),
+      chords: [],
+      bassPattern: "none",
+      key: "C",
+      tempoBpm,
+      timeSig: [4, 4],
+      measures: [{ index: 0, startBeat: 0, endBeat: 4 }, { index: 1, startBeat: 4, endBeat: 8 }],
+    });
+    expect(validateVariants([make(60)])).toEqual([]);
+    expect(validateVariants([make(240)]).some((e) => e.includes("inter-onset"))).toBe(true);
+  });
+});
+
+describe("import sanitization", () => {
+  const soundingCount = (notes: Note[]) => {
+    const events = notes
+      .flatMap((n) => [[n.start, 1], [n.start + n.dur, -1]] as [number, number][])
+      .sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    let active = 0;
+    let max = 0;
+    for (const [, delta] of events) {
+      active += delta;
+      max = Math.max(max, active);
+    }
+    return max;
+  };
+
+  it("caps long standard-import sustains before variant generation", () => {
+    const notes: Note[] = [
+      { midi: 34, start: 0, dur: 100, vel: 80 },
+      ...Array.from({ length: 20 }, (_, i) => ({
+        midi: 38 + (i % 3),
+        start: i * 2,
+        dur: 1,
+        vel: 80,
+      })),
+    ];
+    const src: ParsedMidi = {
+      format: 0,
+      division: 480,
+      tempoBpm: 120,
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes,
+      trackNames: [],
+      durationBeats: 100,
+    };
+    const variants = buildVariants(src, { title: "Drone", artist: "Test" });
+    expect(variants.every((v) => Math.max(...v.notes.map((n) => n.dur)) <= 8)).toBe(true);
+  });
+
+  it("records octave normalization instead of hiding out-of-range source pitches", () => {
+    const src: ParsedMidi = {
+      format: 0,
+      division: 480,
+      tempoBpm: 120,
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes: Array.from({ length: 8 }, (_, i) => ({ midi: i === 0 ? 12 : 60 + i, start: i, dur: 0.5, vel: 80 })),
+      trackNames: [],
+      durationBeats: 8,
+    };
+    const variants = buildVariants(src, { title: "Range", artist: "Test" });
+    expect(variants.every((v) => v.warnings?.some((w) => w.includes("octave-normalized")))).toBe(true);
+    expect(variants.every((v) => v.notes.every((n) => n.midi >= 21 && n.midi <= 108))).toBe(true);
+  });
+
+  it("caps staggered sounding walls without removing reasonable legato", () => {
+    const wall = Array.from({ length: 16 }, (_, i) => ({
+      midi: 40 + i,
+      start: i * 0.5,
+      dur: 8,
+      vel: 80,
+    }));
+    const sanitized = sanitizeImportedNotes(wall, { tempoBpm: 120, maxSounding: 12 });
+    expect(soundingCount(sanitized)).toBeLessThanOrEqual(12);
+
+    const legato: Note[] = [
+      { midi: 60, start: 0, dur: 4, vel: 80 },
+      { midi: 64, start: 1, dur: 4, vel: 80 },
+    ];
+    expect(sanitizeImportedNotes(legato, { tempoBpm: 120 })).toEqual(legato);
+  });
+
+  it("preserves explicit hand labels instead of re-splitting by pitch", () => {
+    const labeled: Note[] = [
+      { midi: 36, start: 0, dur: 1, vel: 80, hand: "R" },
+      { midi: 84, start: 1, dur: 1, vel: 80, hand: "L" },
+    ];
+    const sanitized = sanitizeImportedNotes(labeled, { maxDurBeats: 8 });
+    expect(sanitized.map((n) => [n.midi, n.hand])).toEqual([
+      [36, "R"],
+      [84, "L"],
+    ]);
+  });
+
+  it("does not stretch short imported re-attacks to a quarter beat", () => {
+    const sanitized = sanitizeImportedNotes(
+      [
+        { midi: 60, start: 0, dur: 4, vel: 80, hand: "R" },
+        { midi: 64, start: 0.125, dur: 4, vel: 80, hand: "R" },
+      ],
+      { tempoBpm: 120, maxDurBeats: 2 },
+    );
+    expect(sanitized.find((n) => n.midi === 60)?.dur).toBeCloseTo(0.125, 6);
+    expect(sanitized.find((n) => n.midi === 64)?.dur).toBeCloseTo(2, 6);
   });
 });
 
@@ -748,6 +946,28 @@ describe("writeMusicXml", () => {
     expect(xml).not.toContain("<dots>");
   });
 
+  it("preserves short 16th-note durations in MusicXML", () => {
+    const v: Variant = {
+      level: "advanced",
+      difficultyScore: 0,
+      notes: [
+        { midi: 60, start: 0, dur: 0.125, vel: 80, hand: "R" },
+        { midi: 62, start: 0.125, dur: 0.125, vel: 80, hand: "R" },
+      ],
+      chords: [],
+      bassPattern: "block",
+      key: "C",
+      tempoBpm: 120,
+      timeSig: [4, 4],
+      measures: [{ index: 0, startBeat: 0, endBeat: 4 }],
+    };
+    const parsed = parseMusicXmlNotes(writeMusicXml(v, "T", "A"));
+    expect(parsed.notes.map((n) => [n.midi, n.start, n.dur])).toEqual([
+      [60, 0, 0.125],
+      [62, 0.125, 0.125],
+    ]);
+  });
+
   it("produces valid-looking score-partwise XML with colors", () => {
     const src = parseMidi(SCALE_MIDI);
     const variant = buildVariants(src, { title: "Scale", artist: "Test" })[1]!;
@@ -862,14 +1082,14 @@ describe("writeMidi same-pitch pairing", () => {
     expect(back[1]!.start).toBeCloseTo(9, 2);
   });
 
-  it("cuts a genuinely overlapping re-strike at the new attack", () => {
+  it("preserves a genuinely overlapping re-strike at the new attack", () => {
     const notes: Note[] = [
       { midi: 41, start: 0, dur: 8, vel: 80, hand: "R" },
       { midi: 41, start: 2, dur: 8, vel: 80, hand: "R" },
     ];
     const back = rt(notes);
     expect(back).toHaveLength(2);
-    expect(back[0]!.dur).toBeLessThanOrEqual(2.01);
+    expect(back[0]!.dur).toBeCloseTo(8, 2);
     expect(back[1]!.dur).toBeCloseTo(8, 2);
   });
 
@@ -881,6 +1101,28 @@ describe("writeMidi same-pitch pairing", () => {
     ];
     const back = rt(notes);
     expect(back.map((n) => n.dur)).toEqual([4, 4, 4].map((d) => expect.closeTo(d, 2)));
+  });
+});
+
+describe("artifact roundtrip validation", () => {
+  it("accepts nested same-pitch MIDI and short MusicXML notes", () => {
+    const variant: Variant = {
+      level: "advanced",
+      difficultyScore: 0,
+      notes: [
+        { midi: 60, start: 0, dur: 8, vel: 80, hand: "R" },
+        { midi: 60, start: 2, dur: 2, vel: 70, hand: "R" },
+        { midi: 64, start: 0, dur: 0.125, vel: 80, hand: "R" },
+        { midi: 67, start: 0.125, dur: 0.125, vel: 80, hand: "R" },
+      ],
+      chords: [],
+      bassPattern: "block",
+      key: "C",
+      tempoBpm: 120,
+      timeSig: [4, 4],
+      measures: [{ index: 0, startBeat: 0, endBeat: 8 }],
+    };
+    expect(validateArtifactRoundtrip(variant, "T", "A")).toEqual([]);
   });
 });
 
@@ -901,5 +1143,39 @@ describe("cleanTranscription seconds-based ceiling", () => {
     expect(Math.max(...slow.map((n) => n.dur))).toBeLessThanOrEqual(3.01);
     const fast = cleanTranscription(padNotes(20), { tempoBpm: 150 });
     expect(Math.max(...fast.map((n) => n.dur))).toBeGreaterThan(3);
+  });
+});
+
+describe("buildVariants ladder recovery", () => {
+  it("keeps every level publishable when quarter-grid reduction meets eighth-grid attacks", () => {
+    // A dense but playable eighth-note source is a useful regression fixture:
+    // beginner/very-beginner quantization lands between the harder level's
+    // attacks, so strict (near-zero) ladder matching would otherwise discard
+    // almost the entire RH line.
+    const notes: Note[] = Array.from({ length: 96 }, (_, i) => ({
+      midi: 60 + (i % 12),
+      start: i * 0.125,
+      dur: 0.25,
+      vel: 80,
+    }));
+    const src: ParsedMidi = {
+      format: 0,
+      division: 480,
+      tempoBpm: 90,
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes,
+      trackNames: [],
+      durationBeats: notes.at(-1)!.start + notes.at(-1)!.dur,
+    };
+    const variants = buildVariants(src, { title: "Grid fixture", artist: "Test" });
+    expect(variants.every((v) => v.notes.length >= 8)).toBe(true);
+    expect(validateVariants(variants)).toEqual([]);
+    expect(variants[0]!.notes.length).toBeLessThanOrEqual(variants[1]!.notes.length);
+    expect(variants[1]!.notes.length).toBeLessThanOrEqual(variants[2]!.notes.length);
+    expect(variants[2]!.notes.length).toBeLessThanOrEqual(variants[3]!.notes.length);
+    expect(variants[3]!.notes.length).toBeLessThanOrEqual(variants[4]!.notes.length);
+    expect(variants[4]!.notes.length).toBeLessThanOrEqual(variants[5]!.notes.length);
   });
 });

@@ -98,6 +98,10 @@ async function processJob(jobId: string): Promise<void> {
       acquiredVia: "youtube",
       sourceYoutubeUrl: job.youtubeUrl,
       baseId: existing?.baseId,
+      // filterTranscription already removed audio-unmatched notes and trimmed
+      // silence; do not run the generic AI cleaner a second time and erase
+      // legitimate short/grace notes from the filtered result.
+      cleanTranscription: false,
     });
     if (result.error) throw new Error(result.error);
     const songId = result.songIds[3] ?? result.songIds[0]!; // point at the "easy" variant when available

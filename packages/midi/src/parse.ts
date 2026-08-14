@@ -45,7 +45,11 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
     const end = pos + len;
     let tick = 0;
     let running: number | null = null;
-    const on: Map<number, { start: number; vel: number }> = new Map();
+    // MIDI does not carry a note identity on note-off events. Keep a FIFO
+    // queue per (channel,pitch). The writer allocates separate channels for
+    // overlapping same-pitch intervals, which makes even nested re-strikes
+    // unambiguous instead of guessing which note an off event belongs to.
+    const on: Map<string, { midi: number; start: number; vel: number }[]> = new Map();
     const notes: Note[] = [];
 
     while (pos < end) {
@@ -97,16 +101,23 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
         const note = buf[pos]!;
         pos += 2;
         if (chan === 9) continue; // percussion: no piano notes
-        const started = on.get(note);
-        if (started) {
-          on.delete(note);
-          notes.push({ midi: note, start: started.start, dur: b - started.start, vel: started.vel });
+        const key = `${chan}:${note}`;
+        const started = on.get(key);
+        if (started?.length) {
+          const active = started.shift()!;
+          if (started.length === 0) on.delete(key);
+          notes.push({ midi: note, start: active.start, dur: b - active.start, vel: active.vel });
         }
       } else if (kind === 0x90) {
         const note = buf[pos]!;
         const vel = buf[pos + 1]!;
         pos += 2;
-        if (chan !== 9 && vel > 0) on.set(note, { start: b, vel });
+        if (chan !== 9 && vel > 0) {
+          const key = `${chan}:${note}`;
+          const active = on.get(key) ?? [];
+          active.push({ midi: note, start: b, vel });
+          on.set(key, active);
+        }
       } else if (kind === 0xa0 || kind === 0xb0 || kind === 0xe0) {
         pos += 2;
       } else if (kind === 0xc0 || kind === 0xd0) {
@@ -114,8 +125,10 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
       }
     }
     // close hanging notes at track end
-    for (const [note, s] of on) {
-      notes.push({ midi: note, start: s.start, dur: Math.max(0.01, tick / division - s.start), vel: s.vel });
+    for (const active of on.values()) {
+      for (const s of active) {
+        notes.push({ midi: s.midi, start: s.start, dur: Math.max(0.01, tick / division - s.start), vel: s.vel });
+      }
     }
     trackNotes.push(notes);
     if (t === 0) {

@@ -5,7 +5,7 @@
  */
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
-import { LEVEL_ORDER, validateVariants, Variant } from "@keyspilli/midi";
+import { LEVEL_ORDER, validateArtifactFiles, validateVariants, Variant } from "@keyspilli/midi";
 import { getDb } from "../src/db.js";
 import { ROOT } from "../src/paths.js";
 
@@ -36,7 +36,19 @@ for (const song of songs.sort()) {
       issues.push(`${level}: missing or invalid notes.json`);
     }
   }
-  if (issues.length === 0) issues.push(...validateVariants(variants));
+  if (issues.length === 0) {
+    issues.push(...validateVariants(variants));
+    for (const v of variants) {
+      const code = LEVEL_CODE[v.level]!;
+      try {
+        const midi = new Uint8Array(await readFile(join(artifactsRoot, song, code, "variant.mid")));
+        const xml = await readFile(join(artifactsRoot, song, code, "variant.xml"), "utf8");
+        for (const issue of validateArtifactFiles(v, { midi, xml })) issues.push(`${v.level}: ${issue}`);
+      } catch (e) {
+        issues.push(`${v.level}: artifact missing or invalid: ${(e as Error).message}`);
+      }
+    }
+  }
   // Data-level quality checks for AI-transcribed songs: warnings, not gate
   // failures, because they are fixable by re-ingest rather than a code change.
   const row = getDb().prepare("SELECT content_type FROM songs WHERE base_id = ? LIMIT 1").get(song) as

@@ -22,6 +22,67 @@ export interface CleanOptions {
   maxDurSec?: number;
 }
 
+/** Default hard ceiling for human-authored imported sustains. */
+export const DEFAULT_IMPORTED_MAX_DUR_SEC = 4;
+/** A piano arrangement should never require more than this many held notes. */
+export const DEFAULT_IMPORTED_MAX_SOUNDING = 12;
+
+/**
+ * Convert a real-time sustain ceiling into beats while keeping the result
+ * bounded for malformed tempos. This is shared by import sanitization and
+ * validation so a note cannot pass generation and then fail publication.
+ */
+export function maxDurationBeatsForTempo(
+  tempoBpm: number | undefined,
+  maxDurSec = DEFAULT_IMPORTED_MAX_DUR_SEC,
+): number {
+  const tempo = Number(tempoBpm);
+  const seconds = Number(maxDurSec);
+  if (!Number.isFinite(tempo) || tempo <= 0 || !Number.isFinite(seconds) || seconds <= 0) return 8;
+  return Math.min(8, Math.max(2, Math.round((seconds * tempo) / 60)));
+}
+
+export interface ImportedSanitizeOptions {
+  /** source tempo used to make the sustain ceiling tempo-aware */
+  tempoBpm?: number;
+  /** explicit sustain ceiling in beats, mainly for deterministic tests */
+  maxDurBeats?: number;
+  /** sustain ceiling in seconds when maxDurBeats is omitted */
+  maxDurSec?: number;
+  /** maximum number of notes allowed to overlap at any instant */
+  maxSounding?: number;
+}
+
+/**
+ * Conservative cleanup for every imported MIDI/MusicXML source.
+ *
+ * Unlike cleanTranscription(), this does not remove quiet notes, merge close
+ * re-strikes, or otherwise reinterpret human dynamics. It only drops malformed
+ * events, caps drone-like sustains, and limits staggered sounding walls that
+ * cannot be played by two hands. Existing hand labels are preserved; labels
+ * inferred solely for the overlap pass are removed before returning.
+ */
+export function sanitizeImportedNotes(notes: Note[], opts: ImportedSanitizeOptions = {}): Note[] {
+  const maxDurBeats = opts.maxDurBeats ?? maxDurationBeatsForTempo(opts.tempoBpm);
+  const maxSounding = Math.max(1, Math.floor(opts.maxSounding ?? DEFAULT_IMPORTED_MAX_SOUNDING));
+  const hadHandLabels = notes.some((n) => n.hand !== undefined);
+  const valid = notes.filter((n) =>
+    Number.isFinite(n.midi) &&
+    Number.isFinite(n.start) && n.start >= 0 &&
+    Number.isFinite(n.dur) && n.dur > 0 &&
+    Number.isFinite(n.vel),
+  );
+  // Keep the shortest grid supported by the importer. Human-authored
+  // MusicXML/MIDI commonly contains 16th notes; the AI cleanup path below
+  // intentionally keeps its historical 0.25-beat floor.
+  let out = capHandOverlaps(valid, maxDurBeats, 0.125);
+  out = capSoundingPolyphony(out, maxSounding);
+  if (!hadHandLabels) {
+    out = out.map(({ hand: _hand, ...n }) => n);
+  }
+  return out.sort((a, b) => a.start - b.start || a.midi - b.midi || a.dur - b.dur);
+}
+
 /**
  * Post-process AI-transcribed note lists (Basic Pitch output). Removes the
  * typical false positives: very short/quiet ghost notes, same-pitch notes
@@ -60,15 +121,25 @@ export function cleanTranscription(notes: Note[], opts: CleanOptions = {}): Note
 }
 
 /** Cap drones per hand: notes past the ceiling end at the next attack (floor 0.25); legato overlaps under the ceiling are kept. */
-export function capHandOverlaps(notes: Note[], maxDurBeats = 2.0): Note[] {
-  const { rh, lh } = splitHands(notes);
-  return [...truncateHand(rh, maxDurBeats), ...truncateHand(lh, maxDurBeats)].sort(
+export function capHandOverlaps(notes: Note[], maxDurBeats = 2.0, minDurBeats = 0.25): Note[] {
+  // Preserve explicit staff/hand assignments from MusicXML and curated MIDI.
+  // Only infer a pitch split for unlabeled imports; otherwise a low note
+  // intentionally written on the RH staff (or a cross-handed LH note) would
+  // silently move to the opposite hand during sanitization.
+  const hasHandLabels = notes.some((n) => n.hand !== undefined);
+  const { rh, lh } = hasHandLabels
+    ? {
+        rh: notes.filter((n) => n.hand !== "L"),
+        lh: notes.filter((n) => n.hand === "L"),
+      }
+    : splitHands(notes);
+  return [...truncateHand(rh, maxDurBeats, minDurBeats), ...truncateHand(lh, maxDurBeats, minDurBeats)].sort(
     (a, b) => a.start - b.start || a.midi - b.midi,
   );
 }
 
 /** Shorten a hand's notes only when they are drones: duration past the ceiling AND overlapping the next same-hand attack. */
-function truncateHand(notes: Note[], maxDurBeats: number): Note[] {
+function truncateHand(notes: Note[], maxDurBeats: number, minDurBeats: number): Note[] {
   const sorted = [...notes].sort((a, b) => a.start - b.start || a.midi - b.midi);
   const slices: { start: number; notes: Note[] }[] = [];
   for (const n of sorted) {
@@ -86,9 +157,14 @@ function truncateHand(notes: Note[], maxDurBeats: number): Note[] {
     const timeToNext = next ? next.start - curr.start : maxDurBeats;
     for (const n of curr.notes) {
       let dur = n.dur;
-      if (next && dur > maxDurBeats && dur > timeToNext) dur = Math.min(dur, Math.max(timeToNext, 0.25));
+      if (next && dur > maxDurBeats && dur > timeToNext) {
+        // Keep the importer's minimum grid (typically a 16th note) rather
+        // than stretching every short re-attack to the AI cleaner's historical
+        // quarter-beat floor.
+        dur = Math.min(dur, Math.max(timeToNext, minDurBeats));
+      }
       dur = Math.min(dur, maxDurBeats);
-      out.push({ ...n, dur: Math.max(0.25, dur) });
+      out.push({ ...n, dur: Math.max(minDurBeats, dur) });
     }
   }
   return out;

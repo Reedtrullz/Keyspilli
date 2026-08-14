@@ -1,10 +1,13 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { mkdtempSync, rmSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { zipSync } from "fflate";
 import { ingestSource } from "../src/ingest.js";
 import { getSongsByBase } from "../src/db.js";
+import { artifactsDir, uploadsDir } from "../src/paths.js";
+import { maxDurationBeatsForTempo, writeMidi } from "@keyspilli/midi";
 
 const tmp = mkdtempSync(join(tmpdir(), "keyspilli-catalog-"));
 const OLD_DATA_DIR = process.env.KEYSPILLI_DATA_DIR;
@@ -115,5 +118,179 @@ describe("ingestSource .mxl", () => {
     const fastDur = getSongsByBase(fast.baseId)[0]!.duration;
     expect(fastDur).toBeLessThan(slowDur);
     expect(Math.abs(fastDur - slowDur / 2)).toBeLessThanOrEqual(1);
+  });
+
+  it("falls back to a safe tempo when the source MIDI tempo is invalid", async () => {
+    // Build a valid note stream whose tempo meta is zero.  The parser treats
+    // that malformed meta as an unknown tempo; ingestion must normalize it to
+    // the publish-safe 120 BPM fallback rather than persisting NaN/Infinity.
+    const source = writeMidi(
+      Array.from({ length: 12 }, (_, i) => ({ midi: 60 + i, start: i, dur: 0.5, vel: 80 })),
+      { tempoBpm: 0 },
+    );
+    const res = await ingestSource({
+      buf: source,
+      title: "As Time Goes By",
+      artist: "Tester",
+      contentType: "standard",
+      baseId: "invalid-source-tempo",
+    });
+    expect(res.error).toBeUndefined();
+    expect(getSongsByBase("invalid-source-tempo").every((row) => row.tempo === 120)).toBe(true);
+  });
+
+  it("rejects invalid variants before publishing any artifacts or rows", async () => {
+    const xml = new Uint8Array(new TextEncoder().encode(
+      scoreXml([60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79]).replace(
+        "<beat-type>4</beat-type>",
+        "<beat-type>3</beat-type>",
+      ),
+    ));
+    const baseId = "atomic-invalid";
+    const res = await ingestSource({
+      buf: xml,
+      title: "Invalid",
+      artist: "Tester",
+      contentType: "upload",
+      baseId,
+    });
+    expect(res.error).toContain("bad time signature");
+    expect(getSongsByBase(baseId)).toEqual([]);
+    expect(existsSync(artifactsDir(baseId, "vb"))).toBe(false);
+  });
+
+  it("restores artifacts and rows when publication fails after rename", async () => {
+    const xml = new Uint8Array(new TextEncoder().encode(scoreXml([60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79])));
+    const baseId = "atomic-rollback";
+    const first = await ingestSource({
+      buf: xml,
+      title: "Before",
+      artist: "Tester",
+      contentType: "upload",
+      baseId,
+    });
+    expect(first.error).toBeUndefined();
+    const beforeRows = getSongsByBase(baseId);
+    const beforeFiles = ["vb", "b", "ve", "e", "m", "a"].flatMap((level) => [
+      join(artifactsDir(baseId, level), "variant.mid"),
+      join(artifactsDir(baseId, level), "variant.xml"),
+      join(artifactsDir(baseId, level), "notes.json"),
+    ]).map((path) => [path, readFileSync(path)] as const);
+    const uploadPath = join(uploadsDir(), `${baseId}.xml`);
+    beforeFiles.push([uploadPath, readFileSync(uploadPath)]);
+
+    const failed = await ingestSource(
+      { buf: xml, title: "After", artist: "Tester", contentType: "upload", baseId },
+      { beforeReplace: () => { throw new Error("injected publication failure"); } },
+    );
+    expect(failed.error).toContain("publish failed");
+    expect(getSongsByBase(baseId)).toEqual(beforeRows);
+    for (const [path, bytes] of beforeFiles) expect(readFileSync(path)).toEqual(bytes);
+  });
+
+  it("preserves engagement metadata when an existing base is re-ingested", async () => {
+    const xml = new Uint8Array(new TextEncoder().encode(scoreXml([60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79])));
+    const baseId = "preserve-metadata";
+    const first = await ingestSource({
+      buf: xml,
+      title: "Before",
+      artist: "Tester",
+      contentType: "upload",
+      baseId,
+    });
+    expect(first.error).toBeUndefined();
+    const before = getSongsByBase(baseId);
+    const createdAt = before[0]!.createdAt;
+    const db = (await import("../src/db.js")).getDb();
+    db.prepare("UPDATE songs SET plays = 17 WHERE base_id = ?").run(baseId);
+
+    const second = await ingestSource({
+      buf: xml,
+      title: "After",
+      artist: "Tester",
+      contentType: "upload",
+      baseId,
+    });
+    expect(second.error).toBeUndefined();
+    const after = getSongsByBase(baseId);
+    expect(after.every((row) => row.plays === 17)).toBe(true);
+    expect(after.every((row) => row.createdAt === createdAt)).toBe(true);
+    expect(after.every((row) => row.title === "After")).toBe(true);
+  });
+
+  it("can preserve a curated YouTube MIDI without transcription cleanup", async () => {
+    const notes = Array.from({ length: 12 }, (_, i) => ({
+      midi: 60 + i,
+      start: i,
+      dur: 0.5,
+      vel: i === 0 ? 10 : 80,
+    }));
+    const buf = writeMidi(notes, { tempoBpm: 120 });
+    const baseId = "curated-youtube-raw";
+    const res = await ingestSource({
+      buf,
+      title: "Curated",
+      artist: "Tester",
+      contentType: "youtube",
+      acquiredVia: "youtube",
+      baseId,
+      cleanTranscription: false,
+    });
+    expect(res.error).toBeUndefined();
+    const advanced = JSON.parse(readFileSync(join(artifactsDir(baseId, "a"), "notes.json"), "utf8")) as { notes: { midi: number }[] };
+    expect(advanced.notes.some((n) => n.midi === 60)).toBe(true);
+  });
+
+  it("sanitizes a standard import before publishing variants", async () => {
+    const notes = [
+      { midi: 48, start: 0, dur: 100, vel: 80 },
+      ...Array.from({ length: 11 }, (_, i) => ({ midi: 72 + i, start: i, dur: 0.75, vel: 80 })),
+    ];
+    const res = await ingestSource({
+      buf: writeMidi(notes, { tempoBpm: 120 }),
+      title: "Standard sustain wall",
+      artist: "Tester",
+      contentType: "standard",
+      baseId: "standard-sustain-wall",
+    });
+    expect(res.error).toBeUndefined();
+    expect(res.songIds).toHaveLength(6);
+    const maxDur = maxDurationBeatsForTempo(120);
+    for (const level of ["vb", "b", "ve", "e", "m", "a"]) {
+      const artifact = JSON.parse(readFileSync(join(artifactsDir("standard-sustain-wall", level), "notes.json"), "utf8")) as {
+        tempoBpm: number;
+        notes: { start: number; dur: number }[];
+      };
+      expect(Math.max(...artifact.notes.map((n) => n.dur))).toBeLessThanOrEqual(maxDur);
+    }
+  });
+
+  it("caps staggered sounding walls in standard imports", async () => {
+    const notes = Array.from({ length: 16 }, (_, i) => ({
+      midi: 48 + i,
+      start: i * 0.5,
+      dur: 8,
+      vel: 80,
+    }));
+    const res = await ingestSource({
+      buf: writeMidi(notes, { tempoBpm: 120 }),
+      title: "Staggered wall",
+      artist: "Tester",
+      contentType: "standard",
+      baseId: "standard-staggered-wall",
+    });
+    expect(res.error).toBeUndefined();
+    const advanced = JSON.parse(readFileSync(join(artifactsDir("standard-staggered-wall", "a"), "notes.json"), "utf8")) as {
+      notes: { start: number; dur: number }[];
+    };
+    const events = advanced.notes.flatMap((n) => [[n.start, 1], [n.start + n.dur, -1]] as [number, number][])
+      .sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    let sounding = 0;
+    let maxSounding = 0;
+    for (const [, delta] of events) {
+      sounding += delta;
+      maxSounding = Math.max(maxSounding, sounding);
+    }
+    expect(maxSounding).toBeLessThanOrEqual(12);
   });
 });

@@ -1,4 +1,5 @@
 import { LEVEL_ORDER, Note, Variant } from "./types.js";
+import { maxDurationBeatsForTempo } from "./clean.js";
 
 /**
  * Playability/correctness limits per difficulty level, calibrated against
@@ -7,16 +8,19 @@ import { LEVEL_ORDER, Note, Variant } from "./types.js";
  */
 /** Single source of truth for the playability gate; calibrate with npm run calibrate. */
 export const PLAYABILITY_LIMITS: Record<string, { maxSim: number; maxDensity: number; minMedianIoi: number }> = {
-  "very-beginner": { maxSim: 2, maxDensity: 4, minMedianIoi: 0.45 },
-  beginner: { maxSim: 2, maxDensity: 4, minMedianIoi: 0.22 },
-  "very-easy": { maxSim: 5, maxDensity: 7, minMedianIoi: 0.22 },
-  easy: { maxSim: 5, maxDensity: 7, minMedianIoi: 0.1 },
-  medium: { maxSim: 12, maxDensity: 10, minMedianIoi: 0.1 },
-  advanced: { maxSim: 13, maxDensity: 10, minMedianIoi: 0.1 },
+  // Attack density and IOI are measured in seconds (see validateVariant below).
+  // These are catalog P99/P1 values with modest headroom, recalibrated after
+  // fixing the old beat/second unit mismatch.
+  "very-beginner": { maxSim: 2, maxDensity: 5, minMedianIoi: 0.15 },
+  beginner: { maxSim: 2, maxDensity: 6, minMedianIoi: 0.08 },
+  "very-easy": { maxSim: 5, maxDensity: 12, minMedianIoi: 0.08 },
+  easy: { maxSim: 5, maxDensity: 12, minMedianIoi: 0.08 },
+  medium: { maxSim: 12, maxDensity: 16, minMedianIoi: 0.08 },
+  advanced: { maxSim: 13, maxDensity: 18, minMedianIoi: 0.08 },
 };
 
 /** Max grid-shift tolerance between neighboring levels (round-half-up boundaries). */
-const LADDER_TOL: Record<string, number> = {
+export const LADDER_TOL: Record<string, number> = {
   "very-beginner": 0.26,
   beginner: 0.02,
   "very-easy": 0.13,
@@ -63,7 +67,13 @@ function validateVariant(v: Variant): string[] {
   const byStart = new Map<string, number>();
   const starts: number[] = [];
   let maxSim = 0;
+  let maxSounding = 0;
   let span = 0;
+  let validCount = 0;
+  let tooLong = 0;
+  const validNotes: Note[] = [];
+  const tempoBpm = Number.isFinite(v.tempoBpm) && v.tempoBpm > 0 ? v.tempoBpm : 120;
+  const maxDurBeats = maxDurationBeatsForTempo(tempoBpm);
   for (const n of v.notes) {
     if (!Number.isFinite(n.midi) || n.midi < 21 || n.midi > 108) {
       out.push(`${v.level}: midi ${n.midi} outside piano range 21-108`);
@@ -77,6 +87,9 @@ function validateVariant(v: Variant): string[] {
       out.push(`${v.level}: invalid duration ${n.dur}`);
       continue;
     }
+    validCount++;
+    validNotes.push(n);
+    if (n.dur > maxDurBeats + 1e-6) tooLong++;
     const k = n.start.toFixed(3);
     const c = (byStart.get(k) ?? 0) + 1;
     byStart.set(k, c);
@@ -84,11 +97,29 @@ function validateVariant(v: Variant): string[] {
     span = Math.max(span, n.start + n.dur);
     starts.push(n.start);
   }
-  if (maxSim > lim.maxSim) out.push(`${v.level}: ${maxSim} simultaneous notes (limit ${lim.maxSim})`);
+  if (maxSim > lim.maxSim) out.push(v.level + ": " + maxSim + " simultaneous notes (limit " + lim.maxSim + ")");
+  const soundingEvents = validNotes.flatMap((n) => [[n.start, 1], [n.start + n.dur, -1]] as [number, number][])
+    .sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  let sounding = 0;
+  for (const [, delta] of soundingEvents) {
+    sounding += delta;
+    if (sounding > maxSounding) maxSounding = sounding;
+  }
+  if (maxSounding > lim.maxSim) out.push(v.level + ": " + maxSounding + " sounding notes (limit " + lim.maxSim + ")");
+  if (tooLong) out.push(v.level + ": " + tooLong + " notes longer than " + maxDurBeats + " beats");
   if (span > 0) {
-    const density = v.notes.length / span;
+    // `start`/`dur` are stored in beats, but playability limits are expressed
+    // in real-time units so the same gate behaves consistently at 60 BPM and
+    // 240 BPM. Invalid tempo is reported above; use a neutral fallback here
+    // so this check remains deterministic and never emits NaN.
+    const spanSec = span * 60 / tempoBpm;
+    // Chord members are one physical attack, not separate rhythmic events.
+    // Count distinct onsets here and use maxSim above to gate chord size; this
+    // avoids rejecting fast but playable arpeggios/chords merely because a
+    // score contains several pitches at one attack.
+    const density = byStart.size / spanSec;
     if (density > lim.maxDensity) {
-      out.push(`${v.level}: ${density.toFixed(1)} notes/sec (limit ${lim.maxDensity})`);
+      out.push(`${v.level}: ${density.toFixed(1)} attacks/sec (limit ${lim.maxDensity})`);
     }
   }
   const distinct = [...new Set(starts.map((s) => s.toFixed(3)).map(Number))].sort((a, b) => a - b);
@@ -96,8 +127,9 @@ function validateVariant(v: Variant): string[] {
   for (let i = 1; i < distinct.length; i++) gaps.push(distinct[i]! - distinct[i - 1]!);
   if (gaps.length) {
     const medianIoi = gaps.sort((a, b) => a - b)[Math.floor(gaps.length / 2)]!;
-    if (medianIoi < lim.minMedianIoi) {
-      out.push(`${v.level}: median inter-onset ${medianIoi.toFixed(3)}s below floor ${lim.minMedianIoi}s`);
+    const medianIoiSec = medianIoi * 60 / tempoBpm;
+    if (medianIoiSec < lim.minMedianIoi) {
+      out.push(`${v.level}: median inter-onset ${medianIoiSec.toFixed(3)}s below floor ${lim.minMedianIoi}s`);
     }
   }
   return out;

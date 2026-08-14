@@ -69,6 +69,8 @@ export interface Variant {
   level: DifficultyLevel;
   difficultyScore: number;
   notes: Note[];
+  /** Non-fatal source transformations applied before publication. */
+  warnings?: string[];
   chords: ChordLabel[];
   bassPattern: string;
   key: string;

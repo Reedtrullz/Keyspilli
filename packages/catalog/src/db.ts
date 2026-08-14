@@ -169,6 +169,20 @@ export function upsertSong(s: SongRow): void {
     .run(s);
 }
 
+/** Replace a complete six-level song set in one SQLite transaction. */
+export function replaceSongsByBase(baseId: string, rows: SongRow[]): void {
+  const conn = getDb();
+  const tx = conn.transaction((items: SongRow[]) => {
+    conn.prepare("DELETE FROM songs WHERE base_id = ?").run(baseId);
+    const stmt = conn.prepare(
+      `INSERT INTO songs (id, base_id, title, artist, category, difficulty, difficulty_score, key, tempo, style, mood, bass_pattern, duration, content_type, acquired_via, source_youtube_url, has_sheet_xml, sections, plays, level, created_at)
+       VALUES (@id, @baseId, @title, @artist, @category, @difficulty, @difficultyScore, @key, @tempo, @style, @mood, @bassPattern, @duration, @contentType, @acquiredVia, @sourceYoutubeUrl, @hasSheetXml, @sections, @plays, @level, @createdAt)`,
+    );
+    for (const row of items) stmt.run(row);
+  });
+  tx(rows);
+}
+
 export function getSong(id: string): SongRow | undefined {
   const r = getDb().prepare("SELECT * FROM songs WHERE id = ?").get(id) as Record<string, unknown> | undefined;
   return r ? mapSong(r) : undefined;

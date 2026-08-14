@@ -36,6 +36,7 @@ for (const jobId of jobs) {
     acquiredVia: "youtube",
     sourceYoutubeUrl: job.youtubeUrl,
     baseId: song.baseId,
+    cleanTranscription: false,
   });
   if (r.error) console.warn(`x ${song.baseId}: ${r.error}`);
   else { ok++; console.log(`+ ${song.baseId} restored`); }

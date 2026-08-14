@@ -13,10 +13,26 @@ function varint(n: number): number[] {
 interface TrackEvent {
   tick: number;
   bytes: number[];
+  /** Optional same-tick ordering override (lower runs first). */
+  order?: number;
 }
 
 function buildTrack(events: TrackEvent[]): Uint8Array {
-  events.sort((a, b) => a.tick - b.tick || (a.bytes[0]! & 0xf0) - (b.bytes[0]! & 0xf0));
+  events.sort((a, b) => {
+    if (a.tick !== b.tick) return a.tick - b.tick;
+    if (a.order !== undefined || b.order !== undefined) return (a.order ?? 2) - (b.order ?? 2);
+    // At the same tick, note-offs must precede note-ons so a channel can be
+    // reused without creating a zero-length ambiguity.
+    const statusOrder = (status: number) => {
+      const kind = status & 0xf0;
+      if (status === 0xff) return 0;
+      if (kind === 0x80) return 1;
+      if (kind === 0xc0 || kind === 0xd0) return 2;
+      if (kind === 0x90) return 3;
+      return 2;
+    };
+    return statusOrder(a.bytes[0]!) - statusOrder(b.bytes[0]!);
+  });
   const body: number[] = [];
   let last = 0;
   for (const ev of events) {
@@ -31,6 +47,38 @@ function buildTrack(events: TrackEvent[]): Uint8Array {
 
 function strBytes(s: string): number[] {
   return [...s].map((c) => c.charCodeAt(0));
+}
+
+const MELODY_CHANNELS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15];
+
+/**
+ * Allocate MIDI channels per pitch so overlapping intervals never share a
+ * channel. MIDI note-off events carry only pitch+channel, so this is required
+ * to preserve nested same-pitch re-strikes during parse/write roundtrips.
+ */
+function allocateChannels(notes: Note[]): Map<Note, number> {
+  const byPitch = new Map<number, { note: Note; end: number; channel: number }[]>();
+  const out = new Map<Note, number>();
+  const ordered = notes
+    .filter((n) => Number.isFinite(n.start) && Number.isFinite(n.dur) && n.dur > 0 && Number.isFinite(n.vel) && n.vel > 0)
+    .slice()
+    .sort((a, b) => a.start - b.start || (a.start + a.dur) - (b.start + b.dur) || a.midi - b.midi);
+
+  for (const note of ordered) {
+    const lanes = byPitch.get(note.midi) ?? [];
+    if (!byPitch.has(note.midi)) byPitch.set(note.midi, lanes);
+    const start = note.start;
+    const lane = lanes.find((x) => x.end <= start + 1e-9);
+    const used = new Set(lanes.map((x) => x.channel));
+    const channel = lane?.channel ?? MELODY_CHANNELS.find((ch) => !used.has(ch));
+    if (channel === undefined) {
+      throw new Error(`too many overlapping MIDI notes for pitch ${note.midi} (maximum ${MELODY_CHANNELS.length})`);
+    }
+    if (lane) lane.end = note.start + note.dur;
+    else lanes.push({ note, end: note.start + note.dur, channel });
+    out.set(note, channel);
+  }
+  return out;
 }
 
 export interface WriteMidiOptions {
@@ -66,37 +114,20 @@ export function writeMidi(notes: Note[], opts: WriteMidiOptions): Uint8Array {
         { tick: 0, bytes: [0xff, 0x59, 0x02, opts.keySig ?? 0, opts.keyMode ?? 0] },
       );
     }
-    events.push({ tick: 0, bytes: [0xc0, 0] }); // program: acoustic grand
-    const on: Map<number, { midi: number; vel: number }> = new Map();
-    const soundingEnd = new Map<number, number>();
-    const offEvents = new Map<number, TrackEvent>();
+    const channels = allocateChannels(track.notes);
+    const usedChannels = [...new Set(channels.values())].sort((a, b) => a - b);
+    for (const channel of usedChannels) {
+      events.push({ tick: 0, order: 1, bytes: [0xc0 | channel, 0] }); // acoustic grand
+    }
     for (const n of [...track.notes].sort((a, b) => a.start - b.start || a.midi - b.midi)) {
       const t = Math.round(n.start * division);
       const vel = Math.round(n.vel || 0);
-      if (vel < 1) continue; // note-on velocity 0 is a note-off in MIDI
+      if (vel < 1 || !Number.isFinite(n.start) || !Number.isFinite(n.dur) || n.dur <= 0) continue;
       const off = Math.round((n.start + n.dur) * division);
-      // Only cut a previous same-pitch note when it is still sounding at the
-      // new attack. Cancelling the scheduled note-off of an already-ended
-      // note would stretch it to the next attack.
-      const prevEnd = soundingEnd.get(n.midi);
-      if (on.has(n.midi) && prevEnd !== undefined && t < prevEnd) {
-        // re-strike: cancel the previous instance's scheduled note-off so the
-        // new note is not cut short; the off at the attack tick sorts before
-        // the new note-on (0x80 < 0x90), so the pairing stays correct.
-        const stale = offEvents.get(n.midi);
-        if (stale) {
-          const i = events.indexOf(stale);
-          if (i >= 0) events.splice(i, 1);
-        }
-        events.push({ tick: t, bytes: [0x80, n.midi, 0] });
-        on.delete(n.midi);
-      }
-      on.set(n.midi, { midi: n.midi, vel });
-      soundingEnd.set(n.midi, off);
-      events.push({ tick: t, bytes: [0x90, n.midi, Math.max(1, Math.min(127, vel))] });
-      const offEv = { tick: off, bytes: [0x80, n.midi, 0] as number[] };
-      offEvents.set(n.midi, offEv);
-      events.push(offEv);
+      const channel = channels.get(n);
+      if (channel === undefined) continue;
+      events.push({ tick: t, order: 3, bytes: [0x90 | channel, n.midi, Math.max(1, Math.min(127, vel))] });
+      events.push({ tick: off, order: 0, bytes: [0x80 | channel, n.midi, 0] });
     }
     trackBytes.push(buildTrack(events));
   }
