@@ -68,14 +68,21 @@ export function writeMidi(notes: Note[], opts: WriteMidiOptions): Uint8Array {
     }
     events.push({ tick: 0, bytes: [0xc0, 0] }); // program: acoustic grand
     const on: Map<number, { midi: number; vel: number }> = new Map();
+    const soundingEnd = new Map<number, number>();
     const offEvents = new Map<number, TrackEvent>();
     for (const n of [...track.notes].sort((a, b) => a.start - b.start || a.midi - b.midi)) {
       const t = Math.round(n.start * division);
       const vel = Math.round(n.vel || 0);
       if (vel < 1) continue; // note-on velocity 0 is a note-off in MIDI
-      if (on.has(n.midi)) {
-        // re-strike: cancel the previous instance's scheduled note-off so it
-        // cannot cut the new note short
+      const off = Math.round((n.start + n.dur) * division);
+      // Only cut a previous same-pitch note when it is still sounding at the
+      // new attack. Cancelling the scheduled note-off of an already-ended
+      // note would stretch it to the next attack.
+      const prevEnd = soundingEnd.get(n.midi);
+      if (on.has(n.midi) && prevEnd !== undefined && t < prevEnd) {
+        // re-strike: cancel the previous instance's scheduled note-off so the
+        // new note is not cut short; the off at the attack tick sorts before
+        // the new note-on (0x80 < 0x90), so the pairing stays correct.
         const stale = offEvents.get(n.midi);
         if (stale) {
           const i = events.indexOf(stale);
@@ -85,8 +92,8 @@ export function writeMidi(notes: Note[], opts: WriteMidiOptions): Uint8Array {
         on.delete(n.midi);
       }
       on.set(n.midi, { midi: n.midi, vel });
+      soundingEnd.set(n.midi, off);
       events.push({ tick: t, bytes: [0x90, n.midi, Math.max(1, Math.min(127, vel))] });
-      const off = Math.round((n.start + n.dur) * division);
       const offEv = { tick: off, bytes: [0x80, n.midi, 0] as number[] };
       offEvents.set(n.midi, offEv);
       events.push(offEv);
