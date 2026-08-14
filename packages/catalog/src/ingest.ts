@@ -145,7 +145,7 @@ export async function ingestSource(inp: IngestInput): Promise<{ baseId: string; 
   }
   // AI transcriptions carry ghost notes; human MIDI files do not.
   if (inp.contentType === "youtube") {
-    parsed.notes = cleanTranscription(parsed.notes);
+    parsed.notes = cleanTranscription(parsed.notes, { tempoBpm: parsed.tempoBpm });
   }
   if (parsed.notes.length < 8) return { baseId: "", songIds: [], error: "too few notes" };
 

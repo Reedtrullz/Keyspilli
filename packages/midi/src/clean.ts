@@ -15,6 +15,11 @@ export interface CleanOptions {
   /** cap notes held longer than this (beats); Basic Pitch tracks sustained
    * pads/background tones as minutes-long piano notes that drone */
   maxDurBeats?: number;
+  /** source tempo, for a SECONDS-based duration ceiling (a beat cap of 8 is
+   * 6.4s at 75 BPM but only 2.7s at 180; slow songs need a shorter cap) */
+  tempoBpm?: number;
+  /** max sustain in seconds when tempoBpm is provided */
+  maxDurSec?: number;
 }
 
 /**
@@ -30,13 +35,19 @@ export function cleanTranscription(notes: Note[], opts: CleanOptions = {}): Note
   const mergeWindow = opts.mergeWindow ?? 0.125;
   const maxPolyphony = opts.maxPolyphony ?? 6;
   const maxSounding = opts.maxSounding ?? 8;
-  // Scale the duration ceiling to the input's typical note length: sustained
-  // material (pads, whole-note passages) needs more room than a busy
-  // transcription, but never drifts past 8 beats.
-  const durs = notes.map((n) => n.dur).sort((a, b) => a - b);
-  const mid = Math.floor(durs.length / 2);
-  const medianDur = durs.length === 0 ? 0.5 : durs.length % 2 === 1 ? durs[mid]! : (durs[mid - 1]! + durs[mid]!) / 2;
-  const maxDurBeats = opts.maxDurBeats ?? Math.min(8, Math.max(2, 4 * medianDur));
+  // Duration ceiling: seconds-based when the tempo is known (a beat cap of 8
+  // is 6.4s at 75 BPM but only 2.7s at 180), otherwise scaled to the input's
+  // typical note length. Never drifts past 8 beats.
+  let maxDurBeats = opts.maxDurBeats;
+  if (maxDurBeats === undefined && opts.tempoBpm) {
+    maxDurBeats = Math.min(8, Math.max(2, Math.round(((opts.maxDurSec ?? 2.5) * opts.tempoBpm) / 60)));
+  }
+  if (maxDurBeats === undefined) {
+    const durs = notes.map((n) => n.dur).sort((a, b) => a - b);
+    const mid = Math.floor(durs.length / 2);
+    const medianDur = durs.length === 0 ? 0.5 : durs.length % 2 === 1 ? durs[mid]! : (durs[mid - 1]! + durs[mid]!) / 2;
+    maxDurBeats = Math.min(8, Math.max(2, 4 * medianDur));
+  }
 
   // Keep true durations here; capHandOverlaps enforces the ceiling per hand
   // so it can tell drones (past the ceiling) apart from legato overlaps.
