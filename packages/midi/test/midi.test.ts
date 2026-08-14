@@ -883,3 +883,23 @@ describe("writeMidi same-pitch pairing", () => {
     expect(back.map((n) => n.dur)).toEqual([4, 4, 4].map((d) => expect.closeTo(d, 2)));
   });
 });
+
+describe("cleanTranscription seconds-based ceiling", () => {
+  function padNotes(dur: number): Note[] {
+    return [
+      { midi: 40, start: 0, dur, vel: 90, hand: "R" },
+      { midi: 41, start: 0.5, dur, vel: 90, hand: "R" },
+      { midi: 42, start: 1, dur, vel: 90, hand: "R" },
+      { midi: 43, start: 1.5, dur, vel: 90, hand: "R" },
+      { midi: 44, start: 2, dur, vel: 90, hand: "R" },
+    ];
+  }
+
+  it("caps durations by seconds, not beats, when the tempo is known", () => {
+    // 2.5s at 75 BPM = ~3 beats; at 150 BPM = ~6 beats.
+    const slow = cleanTranscription(padNotes(20), { tempoBpm: 75 });
+    expect(Math.max(...slow.map((n) => n.dur))).toBeLessThanOrEqual(3.01);
+    const fast = cleanTranscription(padNotes(20), { tempoBpm: 150 });
+    expect(Math.max(...fast.map((n) => n.dur))).toBeGreaterThan(3);
+  });
+});
