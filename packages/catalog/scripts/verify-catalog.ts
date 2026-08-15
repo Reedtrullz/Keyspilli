@@ -22,11 +22,29 @@ const LEVEL_CODE: Record<string, string> = {
 // the repository checkout and inside the production worker container, where
 // KEYSPILLI_DATA_DIR=/data is mounted separately from the application code.
 const artifactsRoot = join(dataDir(), "artifacts");
-const songs = await readdir(artifactsRoot);
+const db = getDb();
+const linkedRows = db
+  .prepare("SELECT DISTINCT base_id AS baseId FROM songs WHERE base_id IS NOT NULL AND base_id <> ''")
+  .all() as { baseId: string }[];
+const linkedBases = linkedRows.map((row) => row.baseId).filter(Boolean).sort();
+const linkedSet = new Set(linkedBases);
+const artifactEntries = await readdir(artifactsRoot, { withFileTypes: true }).catch(() => []);
+const artifactBases = artifactEntries
+  .filter((entry) => entry.isDirectory() && !entry.name.startsWith("."))
+  .map((entry) => entry.name)
+  .sort();
+const orphanBases = artifactBases.filter((baseId) => !linkedSet.has(baseId));
 let failed = 0;
 let warnings = 0;
 
-for (const song of songs.sort()) {
+// Artifact directories can outlive their database rows after a failed or
+// interrupted rebuild. They are useful for cleanup diagnostics, but must not
+// fail the release gate: only database-linked bases are public catalog rows.
+for (const orphan of orphanBases) {
+  console.log(`WARN orphan artifact directory ${orphan} (not linked from songs table)`);
+}
+
+for (const song of linkedBases) {
   const issues: string[] = [];
   const warns: string[] = [];
   const variants: Variant[] = [];
@@ -54,7 +72,7 @@ for (const song of songs.sort()) {
   }
   // Data-level quality checks for AI-transcribed songs: warnings, not gate
   // failures, because they are fixable by re-ingest rather than a code change.
-  const row = getDb().prepare("SELECT content_type FROM songs WHERE base_id = ? LIMIT 1").get(song) as
+  const row = db.prepare("SELECT content_type FROM songs WHERE base_id = ? LIMIT 1").get(song) as
     | { content_type?: string }
     | undefined;
   const dataLevel = row?.content_type === "youtube" || row?.content_type === "upload";
@@ -78,5 +96,6 @@ for (const song of songs.sort()) {
   }
 }
 
-console.log(`verify-catalog: ${failed} of ${songs.length} songs failed, ${warnings} data warnings`);
+const orphanSuffix = orphanBases.length ? `, ${orphanBases.length} orphan artifact dirs ignored` : "";
+console.log(`verify-catalog: ${failed} of ${linkedBases.length} songs failed, ${warnings} data warnings${orphanSuffix}`);
 if (failed) process.exitCode = 1;

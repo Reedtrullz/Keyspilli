@@ -39,13 +39,16 @@ interface StagedBase {
   issues: string[];
 }
 
-function parseArgs(argv: string[]): { baseIds: string[]; dryRun: boolean } {
+function parseArgs(argv: string[]): { baseIds: string[]; dryRun: boolean; includeOrphans: boolean } {
   const baseIds: string[] = [];
   let dryRun = false;
+  let includeOrphans = false;
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]!;
     if (arg === "--dry-run") {
       dryRun = true;
+    } else if (arg === "--include-orphans") {
+      includeOrphans = true;
     } else if (arg === "--base-id") {
       const id = argv[++i];
       if (!id) throw new Error("--base-id requires a value");
@@ -53,20 +56,20 @@ function parseArgs(argv: string[]): { baseIds: string[]; dryRun: boolean } {
     } else if (arg.startsWith("--base-id=")) {
       baseIds.push(arg.slice(10));
     } else if (arg === "--help" || arg === "-h") {
-      console.log("Usage: tsx repair-artifacts.ts [--dry-run] [--base-id <id>]...");
+      console.log("Usage: tsx repair-artifacts.ts [--dry-run] [--include-orphans] [--base-id <id>]...");
       process.exit(0);
     } else {
       throw new Error(`unknown argument ${arg}`);
     }
   }
-  return { baseIds, dryRun };
+  return { baseIds, dryRun, includeOrphans };
 }
 
-async function catalogBaseIds(root: string): Promise<string[]> {
+async function catalogBaseIds(root: string, includeOrphans: boolean): Promise<string[]> {
   const ids = new Set<string>();
   const rows = getDb().prepare("SELECT DISTINCT base_id AS baseId FROM songs").all() as { baseId: string }[];
   for (const row of rows) ids.add(row.baseId);
-  if (existsSync(root)) {
+  if (includeOrphans && existsSync(root)) {
     for (const entry of await readdir(root, { withFileTypes: true })) {
       if (entry.isDirectory() && !entry.name.startsWith(".")) ids.add(entry.name);
     }
@@ -182,9 +185,9 @@ async function repairOne(baseId: string, artifactRoot: string, dryRun: boolean):
   }
 }
 
-const { baseIds: requested, dryRun } = parseArgs(process.argv.slice(2));
+const { baseIds: requested, dryRun, includeOrphans } = parseArgs(process.argv.slice(2));
 const root = join(dataDir(), "artifacts");
-const ids = requested.length ? requested : await catalogBaseIds(root);
+const ids = requested.length ? requested : await catalogBaseIds(root, includeOrphans);
 let repaired = 0;
 let failed = 0;
 for (const baseId of ids) {
