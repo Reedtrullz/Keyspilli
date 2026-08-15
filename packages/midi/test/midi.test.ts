@@ -533,6 +533,32 @@ describe("buildVariants", () => {
     expect(medium.notes.length).toBeLessThan(advanced.notes.length);
   });
 
+  it("keeps both hands for a dense curated Piano arrangement", () => {
+    // Curated piano arrangements can have a continuous pitch range and high
+    // overlap without being an AI transcription wall. The source track name
+    // is the signal that this material should still receive a normal hand
+    // split rather than forcing every note onto the right-hand staff.
+    const src: ParsedMidi = {
+      format: 0,
+      division: 480,
+      tempoBpm: 75,
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes: Array.from({ length: 16 }, (_, i) => ({
+        midi: 48 + i,
+        start: 0,
+        dur: 1,
+        vel: 80,
+      })),
+      trackNames: ["Piano"],
+      durationBeats: 1,
+    };
+    const advanced = buildVariants(src, { title: "Piano", artist: "Test" }).find((v) => v.level === "advanced")!;
+    expect(advanced.notes.some((n) => n.hand === "L")).toBe(true);
+    expect(advanced.notes.some((n) => n.hand === "R")).toBe(true);
+  });
+
   it("keeps sounding hand spans within a physical reach", () => {
     const src: ParsedMidi = {
       format: 0,

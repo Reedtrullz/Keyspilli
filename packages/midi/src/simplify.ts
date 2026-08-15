@@ -272,8 +272,19 @@ function capAttackDensity(notes: Note[], tempoBpm: number, maxDensity: number, m
 
 /** Detect the continuous-pitch, high-overlap walls that need a percentile
  * hand split. A large pitch gap is a real bass/treble boundary and should
- * continue to win; only dense material with no such boundary is rebalanced. */
-function isDenseContinuousWall(notes: Note[]): boolean {
+ * continue to win; only dense material with no such boundary is rebalanced.
+ * Curated piano arrangements and sources with explicit hand labels are
+ * already meaningful two-hand material, so their metadata must override this
+ * transcription-wall safeguard. */
+function isDenseContinuousWall(notes: Note[], trackNames: string[] = []): boolean {
+  if (notes.some((n) => n.hand !== undefined)) return false;
+  const namedPiano = trackNames.some((name) => /\b(?:piano|keyboard|keys?)\b/i.test(name));
+  // A named Piano track is normally a curated arrangement, but a staggered
+  // wall of very long notes can still carry that generic writer-generated
+  // name. Keep the wall safeguard for that malformed shape; real curated
+  // material has a varied duration distribution (as in Dear God).
+  const longSustainRatio = notes.filter((n) => n.dur >= 4).length / Math.max(1, notes.length);
+  if (namedPiano && longSustainRatio < 0.5) return false;
   if (notes.length < 12) return false;
   const distinct = [...new Set(notes.map((n) => n.midi))].sort((a, b) => a - b);
   if (distinct.length < 2) return false;
@@ -499,7 +510,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     ? [`${shifted.length} source notes were octave-normalized into the piano range 21-108`]
     : [];
   const splitSource = normalized;
-  const pathologicalWall = isDenseContinuousWall(imported);
+  const pathologicalWall = isDenseContinuousWall(imported, src.trackNames);
   const split = pathologicalWall
     ? { rh: splitSource.map((n) => ({ ...n, hand: "R" as const })), lh: [] as Note[] }
     : splitHands(splitSource);
