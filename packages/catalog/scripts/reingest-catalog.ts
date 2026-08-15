@@ -249,7 +249,11 @@ for (const baseId of bases) {
     console.warn("- " + baseId + ": no catalog metadata");
     continue;
   }
-  if (skipYoutube && meta.contentType === "youtube") {
+  // A curated YouTube seed is restored by restore-curated.ts immediately
+  // before this pass.  That restore intentionally stores the row as standard
+  // MIDI so hand labels/dynamics are preserved, so checking only the DB
+  // content type would immediately overwrite the repaired seed here.
+  if (skipYoutube && (meta.contentType === "youtube" || curatedYoutubeSeeds.has(baseId))) {
     skipped++;
     console.log("- " + baseId + ": skipped YouTube");
     continue;
