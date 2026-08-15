@@ -559,6 +559,47 @@ describe("buildVariants", () => {
     expect(advanced.notes.some((n) => n.hand === "R")).toBe(true);
   });
 
+  it("does not create same-pitch overlaps while reducing a curated piano import", () => {
+    // Dear God's source MIDI has clean, sequential bass re-attacks. Snapping
+    // the advanced/medium LH to a quarter grid moves adjacent eighth-grid
+    // attacks onto each other, so the player retriggers the same oscillator
+    // while the previous one is still ringing. Keep this small fixture shaped
+    // like that source to make the regression independent of the binary seed.
+    const notes: Note[] = [
+      { midi: 41, start: 0.125, dur: 0.375, vel: 80 },
+      { midi: 41, start: 0.5, dur: 3, vel: 80 },
+      ...Array.from({ length: 6 }, (_, i) => ({ midi: 43 + i, start: i + 1, dur: 0.25, vel: 80 })),
+      ...Array.from({ length: 24 }, (_, i) => ({ midi: 72 + (i % 8), start: i * 0.25, dur: 0.125, vel: 80 })),
+    ];
+    const src: ParsedMidi = {
+      format: 0,
+      division: 480,
+      tempoBpm: 75,
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes,
+      trackNames: ["Piano"],
+      durationBeats: 8,
+    };
+    const overlaps = (input: Note[]) => {
+      const byPitchHand = new Map<string, Note[]>();
+      const out: [Note, Note][] = [];
+      for (const n of input) {
+        const key = `${n.midi}:${n.hand ?? "?"}`;
+        const prior = byPitchHand.get(key) ?? [];
+        for (const p of prior) if (p.start + p.dur > n.start + 1e-9) out.push([p, n]);
+        prior.push(n);
+        byPitchHand.set(key, prior);
+      }
+      return out;
+    };
+    expect(overlaps(notes)).toHaveLength(0);
+    for (const variant of buildVariants(src, { title: "Dear God fixture", artist: "Dadebrayant" })) {
+      expect(overlaps(variant.notes), variant.level).toHaveLength(0);
+    }
+  });
+
   it("keeps sounding hand spans within a physical reach", () => {
     const src: ParsedMidi = {
       format: 0,

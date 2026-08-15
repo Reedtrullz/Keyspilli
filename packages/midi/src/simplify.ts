@@ -232,9 +232,56 @@ function thinChord(notes: Note[], keep: number): Note[] {
   for (const [k, ns] of bySlice) {
     const sorted = [...ns].sort((a, b) => a.midi - b.midi);
     const kept = sorted.slice(0, Math.min(keep, sorted.length));
-    for (const n of kept) out.push({ ...n, start: k });
+    // The quarter-note bin is only a selection window. Keep each attack at
+    // its imported (eighth-note) onset: snapping here can move two sequential
+    // same-pitch re-attacks onto one another and create an overlap that did
+    // not exist in the source arrangement.
+    for (const n of kept) out.push({ ...n });
   }
   return out.sort((a, b) => a.start - b.start || a.midi - b.midi);
+}
+
+/** Remove unisons that overlap only because a simpler level re-voiced them. */
+function trimSamePitchOverlaps(notes: Note[], minDur = 0.125): Note[] {
+  const groups = new Map<string, Note[]>();
+  for (const n of notes) {
+    const key = `${n.hand === "L" ? "L" : "R"}:${n.midi}`;
+    const group = groups.get(key) ?? [];
+    group.push({ ...n });
+    groups.set(key, group);
+  }
+  const out: Note[] = [];
+  for (const group of groups.values()) {
+    group.sort((a, b) => a.start - b.start || b.vel - a.vel || b.dur - a.dur);
+    const kept: Note[] = [];
+    for (const n of group) {
+      const prev = kept[kept.length - 1];
+      if (!prev) {
+        kept.push(n);
+        continue;
+      }
+      if (Math.abs(prev.start - n.start) <= 1e-9) {
+        // Re-voicing can collapse two source pitches onto the same attack;
+        // retain one physical strike with the stronger dynamics and longest
+        // written duration.
+        prev.dur = Math.max(prev.dur, n.dur);
+        prev.vel = Math.max(prev.vel, n.vel);
+        continue;
+      }
+      if (prev.start + prev.dur > n.start + 1e-9) {
+        prev.dur = n.start - prev.start;
+        if (prev.dur < minDur - 1e-9) kept.pop();
+      }
+      kept.push(n);
+    }
+    out.push(...kept);
+  }
+  return out.sort(
+    (a, b) =>
+      a.start - b.start ||
+      a.midi - b.midi ||
+      (a.hand ?? "").localeCompare(b.hand ?? ""),
+  );
 }
 
 /**
@@ -533,42 +580,52 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   const advanced = capLevel("advanced", quantize(
     [
       ...capSoundingSpan(topVoices(rh, 0.125, 4, pads), 12, "high"),
-      ...capSoundingSpan(thinChord(lh, 4), 12, "low"),
+      // Advanced keeps the imported LH attacks intact. Chord thinning is a
+      // simplification operation; applying it here changed eighth-note bass
+      // timing and introduced same-pitch overlaps in curated arrangements.
+      ...capSoundingSpan(lh, 12, "low"),
     ],
     { grid: 0.125 },
   ));
   const advancedRh = advanced.filter((n) => n.hand !== "L");
   const advancedLh = advanced.filter((n) => n.hand === "L");
-  const medium = capLevel("medium", quantize(
+  const medium = capLevel("medium", trimSamePitchOverlaps(quantize(
     reduceMediumRhythm([
       ...capSoundingSpan(topVoices(advancedRh, 0.125, 3, pads), 12, "high"),
       ...capSoundingSpan(thinChord(advancedLh, 3), 12, "low"),
     ]),
     { grid: 0.125 },
-  ));
+  )));
   const mediumRh = medium.filter((n) => n.hand !== "L");
   const mediumLh = medium.filter((n) => n.hand === "L");
-  const easy = capLevel("easy", quantize(
+  const easy = capLevel("easy", trimSamePitchOverlaps(quantize(
     [
       ...capSoundingSpan(melodyOnly(mediumRh, 0.125, 0.5, pads), 12, "high"),
-      ...capSoundingSpan(thinChord(mediumLh, 2).map((n) => ({ ...n, midi: rootOf(n.midi, key) })), 12, "low"),
+      ...capSoundingSpan(
+        trimSamePitchOverlaps(thinChord(mediumLh, 2).map((n) => ({ ...n, midi: rootOf(n.midi, key) }))),
+        12,
+        "low",
+      ),
     ],
     { grid: 0.125 },
-  ));
+  )));
   // Each easier level is a reduction of the level above it, so the ladder
   // is a true subset (same melody, same moments) instead of a re-selection
   // that drifts apart in fast passages.
   const easyRh = easy.filter((n) => n.hand !== "L");
   const easyLh = easy.filter((n) => n.hand === "L");
-  const veryEasy = capLevel("very-easy", quantize(
+  const veryEasy = capLevel("very-easy", trimSamePitchOverlaps(quantize(
     [...capSoundingSpan(melodyOnly(easyRh, 0.25, 0.5, pads), 12, "high"), ...easyLh],
     { grid: 0.25 },
-  ));
-  const beginner = capLevel("beginner", quantize(
+  )));
+  const beginner = capLevel("beginner", trimSamePitchOverlaps(quantize(
     capSoundingSpan(melodyOnly(veryEasy.filter((n) => n.hand !== "L"), 0.25, 0.5, pads), 12, "high"),
     { grid: 0.25 },
-  ));
-  const veryBeginner = capLevel("very-beginner", quantize(capSoundingSpan(melodyOnly(beginner, 0.5, 1, pads), 12, "high"), { grid: 0.5 }));
+  )));
+  const veryBeginner = capLevel(
+    "very-beginner",
+    trimSamePitchOverlaps(quantize(capSoundingSpan(melodyOnly(beginner, 0.5, 1, pads), 12, "high"), { grid: 0.5 })),
+  );
 
   const rawSets: Record<DifficultyLevel, Note[]> = {
     "very-beginner": veryBeginner,
@@ -585,13 +642,13 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   for (let i = LEVEL_ORDER.length - 2; i >= 0; i--) {
     const easier = LEVEL_ORDER[i]!;
     const harder = LEVEL_ORDER[i + 1]!;
-    sets[easier] = preserveRhLadder(
+    sets[easier] = trimSamePitchOverlaps(preserveRhLadder(
       sets[easier]!,
       sets[harder]!,
       LADDER_TOL[easier] ?? 0.02,
       PLAYABILITY_LIMITS[easier]!.maxSim,
       pathologicalWall,
-    );
+    ));
   }
   const scores: Record<DifficultyLevel, number> = {
     "very-beginner": 1,
