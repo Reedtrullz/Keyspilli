@@ -8,6 +8,12 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      rebuild_base_id:
+        description: "Optional single base id to rebuild (leave blank for the full catalog)"
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: read
@@ -299,6 +305,18 @@ jobs:
           HOST="deploy@198.23.137.16"
           SSH="ssh -i ~/.ssh/id_rsa_racknerd -o BatchMode=yes -o StrictHostKeyChecking=yes"
           COMPOSE="docker compose -f /opt/apps/keyspilli/compose.production.yml"
+          REBUILD_BASE_ID="${{ inputs.rebuild_base_id }}"
+          if [ -n "$REBUILD_BASE_ID" ] && [[ ! "$REBUILD_BASE_ID" =~ ^[a-z0-9][a-z0-9-]{0,119}$ ]]; then
+            echo "Invalid rebuild_base_id; expected a catalog base id slug." >&2
+            exit 1
+          fi
+          REBUILD_ENV=""
+          if [ -n "$REBUILD_BASE_ID" ]; then
+            REBUILD_ENV="-e REBUILD_BASE_ID=$REBUILD_BASE_ID"
+            echo "Targeted rebuild: $REBUILD_BASE_ID"
+          else
+            echo "Full catalog rebuild"
+          fi
           # Push curated seed MIDIs (tracked in git) into the data volume so
           # restore-curated.ts can rebuild them from the seed arrangement.
           for f in data/seed-midi/*.mid; do
@@ -309,21 +327,21 @@ jobs:
           # Manifest metadata for curated restores inside the worker container.
           $SSH $HOST "$COMPOSE exec -T -i worker sh -c 'cat > /data/manifest.json'" < catalog/manifest.json
           # Run detached inside the worker container so a dropped SSH channel
-          # (this takes ~20-30 min) cannot kill the rebuild. Rebuild every
-          # source class, not only YouTube: the mounted data volume can retain
-          # old artifacts after a container deploy, and curated aliases,
-          # reconstructed uploads, and serializer changes otherwise remain
-          # stale indefinitely.
-          $SSH $HOST "cd /opt/apps/keyspilli && $COMPOSE exec -T -d worker sh -c 'set -e; : > /tmp/reingest.log; node --import tsx packages/catalog/scripts/reingest-all-youtube.ts --keep-existing-tempo >> /tmp/reingest.log 2>&1; node --import tsx packages/catalog/scripts/restore-curated.ts >> /tmp/reingest.log 2>&1; node --import tsx packages/catalog/scripts/reingest-catalog.ts --skip-youtube >> /tmp/reingest.log 2>&1; node --import tsx packages/catalog/scripts/repair-artifacts.ts >> /tmp/reingest.log 2>&1; node --import tsx packages/catalog/scripts/verify-catalog.ts >> /tmp/reingest.log 2>&1; echo REBUILD_COMPLETE >> /tmp/reingest.log'"
+          # cannot kill the rebuild.  A failure marker makes the poll fail fast
+          # instead of tailing stale output until the 60-minute job timeout.
+          # Supplying rebuild_base_id narrows every source/repair/gate step to
+          # one base, which is useful for a focused production repair.
+          $SSH $HOST "cd /opt/apps/keyspilli && $COMPOSE exec -T -d $REBUILD_ENV worker sh -c 'REBUILD_BASE_ID=\"\${REBUILD_BASE_ID:-}\"; : > /tmp/reingest.log; if [ -n \"\$REBUILD_BASE_ID\" ]; then if { node --import tsx packages/catalog/scripts/reingest-all-youtube.ts --keep-existing-tempo \"\$REBUILD_BASE_ID\" && node --import tsx packages/catalog/scripts/restore-curated.ts \"\$REBUILD_BASE_ID\" && node --import tsx packages/catalog/scripts/reingest-catalog.ts --skip-youtube \"\$REBUILD_BASE_ID\" && node --import tsx packages/catalog/scripts/repair-artifacts.ts --base-id \"\$REBUILD_BASE_ID\" && node --import tsx packages/catalog/scripts/verify-catalog.ts \"\$REBUILD_BASE_ID\" && echo REBUILD_COMPLETE; } >> /tmp/reingest.log 2>&1; then :; else rc=\$?; echo REBUILD_FAILED:\$rc >> /tmp/reingest.log; exit \$rc; fi; else if { node --import tsx packages/catalog/scripts/reingest-all-youtube.ts --keep-existing-tempo && node --import tsx packages/catalog/scripts/restore-curated.ts && node --import tsx packages/catalog/scripts/reingest-catalog.ts --skip-youtube && node --import tsx packages/catalog/scripts/repair-artifacts.ts && node --import tsx packages/catalog/scripts/verify-catalog.ts && echo REBUILD_COMPLETE; } >> /tmp/reingest.log 2>&1; then :; else rc=\$?; echo REBUILD_FAILED:\$rc >> /tmp/reingest.log; exit \$rc; fi; fi'"
           for i in $(seq 1 240); do
             sleep 15
             OUT=$($SSH $HOST "$COMPOSE exec -T worker sh -c 'tail -3 /tmp/reingest.log'" 2>/dev/null || true)
             echo "$OUT" | tail -3
-            if echo "$OUT" | grep -q "REBUILD_COMPLETE"; then break; fi
+            if echo "$OUT" | grep -Eq "REBUILD_(COMPLETE|FAILED)"; then break; fi
           done
           $SSH $HOST "$COMPOSE exec -T worker sh -c 'cat /tmp/reingest.log'" > /tmp/reingest-full.log 2>&1 || true
           tail -6 /tmp/reingest-full.log
-          if ! grep -q "REBUILD_COMPLETE" /tmp/reingest-full.log || \
+          if grep -q "REBUILD_FAILED" /tmp/reingest-full.log || \
+             ! grep -q "REBUILD_COMPLETE" /tmp/reingest-full.log || \
              ! grep -q "re-ingested" /tmp/reingest-full.log || \
              ! grep -q "restored" /tmp/reingest-full.log || \
              ! grep -q "reingest-catalog:" /tmp/reingest-full.log || \

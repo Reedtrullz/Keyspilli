@@ -241,6 +241,31 @@ describe("ingestSource .mxl", () => {
     expect(advanced.notes.some((n) => n.midi === 60)).toBe(true);
   });
 
+  it("caps long YouTube transcription tails before publishing variants", async () => {
+    const notes = Array.from({ length: 24 }, (_, i) => ({
+      midi: 60 + (i % 8),
+      start: i * 0.5,
+      dur: 3,
+      vel: 80,
+    }));
+    const baseId = "youtube-duration-cap";
+    const res = await ingestSource({
+      buf: writeMidi(notes, { tempoBpm: 75 }),
+      title: "Transcription duration cap",
+      artist: "Tester",
+      contentType: "youtube",
+      acquiredVia: "youtube",
+      baseId,
+      cleanTranscription: false,
+    });
+    expect(res.error).toBeUndefined();
+    const advanced = JSON.parse(readFileSync(join(artifactsDir(baseId, "a"), "notes.json"), "utf8")) as {
+      notes: { start: number; dur: number }[];
+    };
+    expect(Math.max(...advanced.notes.map((n) => n.dur))).toBeLessThanOrEqual(1.5);
+    expect(advanced.notes.some((n) => n.start === 0)).toBe(true);
+  });
+
   it("sanitizes a standard import before publishing variants", async () => {
     const notes = [
       { midi: 48, start: 0, dur: 100, vel: 80 },

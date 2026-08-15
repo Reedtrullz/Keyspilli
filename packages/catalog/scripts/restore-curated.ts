@@ -8,7 +8,7 @@
  * worker container has no catalog/manifest.json, so it falls back to the DB
  * row's metadata there.
  *
- * Usage: npx tsx packages/catalog/scripts/restore-curated.ts [--dry-run]
+ * Usage: npx tsx packages/catalog/scripts/restore-curated.ts [--dry-run] [baseId...]
  */
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
@@ -27,6 +27,7 @@ interface ManifestEntry {
 }
 
 const dryRun = process.argv.includes("--dry-run");
+const requested = new Set(process.argv.slice(2).filter((arg) => !arg.startsWith("--")));
 const manifest = (await readFile(join(dataDir(), "manifest.json"), "utf8")
   .then((s) => JSON.parse(s) as { songs: ManifestEntry[] })
   .catch(() => null))?.songs ??
@@ -39,6 +40,7 @@ let restored = 0;
 
 for (const f of files) {
   const baseId = f.slice(0, -4);
+  if (requested.size && !requested.has(baseId)) continue;
   const row = getSongsByBase(baseId)[0];
   if (!row) continue;
   const entry = byId.get(baseId);

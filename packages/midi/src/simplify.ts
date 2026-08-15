@@ -9,6 +9,13 @@ export interface VariantOptions {
   grid?: number;
   /** octave-shift notes outside the piano range (21-108) into it */
   normalizeRange?: boolean;
+  /**
+   * Optional hard ceiling for imported note sustains, in beats.  Audio
+   * transcriptions often inherit a detector's tail (or a pedal resonance)
+   * instead of a real note-off; callers that have a transcription source can
+   * use this to keep those tails from masking the next melodic attack.
+   */
+  maxDurBeats?: number;
 }
 
 export const SAFE_TEMPO_BPM = 120;
@@ -570,7 +577,10 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   // Every source type passes through the same conservative structural cleanup.
   // YouTube ingestion may additionally run cleanTranscription() beforehand;
   // this second pass is intentionally idempotent and protects direct callers.
-  const imported = sanitizeImportedNotes(src.notes, { tempoBpm: tempo });
+  const imported = sanitizeImportedNotes(src.notes, {
+    tempoBpm: tempo,
+    ...(opts.maxDurBeats !== undefined ? { maxDurBeats: opts.maxDurBeats } : {}),
+  });
   const base = quantize(imported, { grid: 0.125, minDur: 0.125 });
   const normalized = opts.normalizeRange === false ? base : normalizePianoRange(base);
   const shifted = base.filter((n, i) => normalized[i]!.midi !== n.midi);

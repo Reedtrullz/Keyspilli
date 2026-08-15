@@ -23,14 +23,18 @@ const LEVEL_CODE: Record<string, string> = {
 // KEYSPILLI_DATA_DIR=/data is mounted separately from the application code.
 const artifactsRoot = join(dataDir(), "artifacts");
 const db = getDb();
+// A targeted rebuild can verify only the base it touched; the default remains
+// the fail-closed full-catalog gate used by CI and release checks.
+const requested = new Set(process.argv.slice(2).filter((arg) => !arg.startsWith("--")));
 const linkedRows = db
   .prepare("SELECT DISTINCT base_id AS baseId FROM songs WHERE base_id IS NOT NULL AND base_id <> ''")
   .all() as { baseId: string }[];
-const linkedBases = linkedRows.map((row) => row.baseId).filter(Boolean).sort();
-const linkedSet = new Set(linkedBases);
+const allLinkedBases = linkedRows.map((row) => row.baseId).filter(Boolean).sort();
+const linkedBases = requested.size ? allLinkedBases.filter((baseId) => requested.has(baseId)) : allLinkedBases;
+const linkedSet = new Set(allLinkedBases);
 const artifactEntries = await readdir(artifactsRoot, { withFileTypes: true }).catch(() => []);
 const artifactBases = artifactEntries
-  .filter((entry) => entry.isDirectory() && !entry.name.startsWith("."))
+  .filter((entry) => entry.isDirectory() && !entry.name.startsWith(".") && (!requested.size || requested.has(entry.name)))
   .map((entry) => entry.name)
   .sort();
 const orphanBases = artifactBases.filter((baseId) => !linkedSet.has(baseId));

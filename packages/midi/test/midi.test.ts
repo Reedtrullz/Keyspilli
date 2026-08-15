@@ -642,6 +642,31 @@ describe("buildVariants", () => {
     }
   });
 
+  it("can cap transcription tails without moving melodic attacks", () => {
+    const notes: Note[] = Array.from({ length: 24 }, (_, i) => ({
+      midi: 60 + (i % 8),
+      start: i * 0.5,
+      dur: 3,
+      vel: 80,
+    }));
+    const src: ParsedMidi = {
+      format: 0,
+      division: 480,
+      tempoBpm: 75,
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes,
+      trackNames: [],
+      durationBeats: 15,
+    };
+    const advanced = buildVariants(src, { title: "Audio import", artist: "Test" }, { maxDurBeats: 1.5 })
+      .find((v) => v.level === "advanced")!;
+    expect(Math.max(...advanced.notes.map((n) => n.dur))).toBeLessThanOrEqual(1.5);
+    expect(advanced.notes.map((n) => n.start)).toContain(0);
+    expect(advanced.notes.map((n) => n.start)).toContain(5.5);
+  });
+
   it("keeps sounding hand spans within a physical reach", () => {
     const src: ParsedMidi = {
       format: 0,

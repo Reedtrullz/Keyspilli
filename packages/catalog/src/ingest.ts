@@ -25,6 +25,13 @@ const LEVEL_CODE: Record<string, string> = {
   advanced: "a",
 };
 
+// Basic Pitch/other audio transcriptions routinely report the release tail
+// (or pedal resonance) as a multi-beat note.  At a slow tempo that turns into
+// a 2–4 second falling bar and masks the next melody attack.  Keep the
+// transcription path conservative while leaving human-authored MIDI uploads
+// free to contain legitimate longer holds.
+const MAX_YOUTUBE_IMPORT_DUR_BEATS = 1.5;
+
 export interface IngestInput {
   buf: Uint8Array;
   title: string;
@@ -173,12 +180,16 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
   // not part of the source arrangement. Preserve per-level plays and creation
   // timestamps so repairing an arrangement does not reset the live catalog.
   const existingRows = inp.baseId ? getSongsByBase(baseId) : [];
-  const variants = buildVariants(parsed, {
-    title: inp.title,
-    artist: inp.artist,
-    key: inp.key,
-    tempo: inp.tempo,
-  });
+  const variants = buildVariants(
+    parsed,
+    {
+      title: inp.title,
+      artist: inp.artist,
+      key: inp.key,
+      tempo: inp.tempo,
+    },
+    inp.contentType === "youtube" ? { maxDurBeats: MAX_YOUTUBE_IMPORT_DUR_BEATS } : undefined,
+  );
   const validationErrors = validateVariants(variants);
   if (validationErrors.length) {
     return { baseId: "", songIds: [], error: `validation failed: ${validationErrors.join("; ")}` };
