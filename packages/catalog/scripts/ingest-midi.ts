@@ -20,6 +20,7 @@ const r = await ingestSource({
   contentType: "youtube",
   acquiredVia: "youtube",
   sourceYoutubeUrl: sourceUrl ?? row.sourceYoutubeUrl ?? undefined,
+  sourceRef: `youtube-midi:${midiPath.split("/").at(-1) ?? "unknown"}`,
   baseId,
 });
 console.log(r.error ? `FAIL ${r.error}` : `OK ${baseId}`);

@@ -3,9 +3,10 @@
  * collection) into data/seed-midi/ and write catalog/manifest.json.
  * Idempotent: skips already-downloaded files unless --force.
  */
-import { mkdir, writeFile, access } from "node:fs/promises";
+import { access, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { mergeSeedEntries, type ManifestEntry } from "../src/manifest.js";
 
 const ROOT = resolve(fileURLToPath(new URL("../../..", import.meta.url)));
 const SEED_DIR = join(ROOT, "data", "seed-midi");
@@ -76,6 +77,13 @@ function slugify(s: string): string {
 async function main() {
   await mkdir(SEED_DIR, { recursive: true });
   await mkdir(join(ROOT, "catalog"), { recursive: true });
+  // Keep locally supplied/curated sources when regenerating the public seed
+  // list. This is important on clean CI runners: the tracked Dear God MIDI is
+  // present, while the ignored downloaded UG files are not.
+  const existingManifest = await readFile(MANIFEST, "utf8")
+    .then((raw) => JSON.parse(raw) as { songs?: ManifestEntry[] })
+    .catch(() => ({ songs: [] as ManifestEntry[] }));
+  const availableSourceFiles = new Set(await readdir(SEED_DIR));
   const seen = new Set<string>();
   const perComposer = new Map<string, number>();
   const picked: Row[] = [];
@@ -102,7 +110,7 @@ async function main() {
   const list = (solo.length >= TARGET ? solo : picked).slice(0, TARGET);
   console.log(`${list.length} candidates (${solo.length} solo piano)`);
 
-  const entries: Record<string, unknown>[] = [];
+  const entries: ManifestEntry[] = [];
   let failures = 0;
   for (const r of list) {
     const slug = slugify(`${r.composer}-${r.title}`);
@@ -130,11 +138,12 @@ async function main() {
     await new Promise((r) => setTimeout(r, 120));
   }
 
-  await writeFile(MANIFEST, JSON.stringify({ generatedAt: new Date().toISOString(), count: entries.length, songs: entries }, null, 2));
-  console.log(`manifest: ${entries.length} songs, ${failures} download failures`);
+  const merged = mergeSeedEntries(entries, existingManifest.songs ?? [], availableSourceFiles);
+  await writeFile(MANIFEST, JSON.stringify({ generatedAt: new Date().toISOString(), count: merged.length, songs: merged }, null, 2));
+  console.log(`manifest: ${merged.length} songs (${entries.length} fetched, ${merged.length - entries.length} preserved), ${failures} download failures`);
 }
 
-function mkEntry(slug: string, r: Row, file: string): Record<string, unknown> {
+function mkEntry(slug: string, r: Row, file: string): ManifestEntry {
   return {
     id: slug,
     title: r.title,

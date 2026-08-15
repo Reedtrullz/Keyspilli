@@ -22,6 +22,9 @@ interface ManifestSong {
   tempo?: number;
   sourceFile: string;
   sourceUrl: string;
+  contentType?: "standard" | "youtube" | "upload";
+  acquiredVia?: string | null;
+  sourceRef?: string | null;
   license: string;
   instrument?: string;
   disabled?: boolean;
@@ -39,6 +42,13 @@ async function processSong(s: ManifestSong): Promise<{ ok: boolean; error?: stri
   } catch {
     return { ok: false, error: "missing midi file", variants: 0 };
   }
+  // A manifest source URL is part of the canonical provenance. In
+  // particular, a curated seed can still be an audio-derived YouTube source;
+  // treating every manifest row as generic standard MIDI would re-enable the
+  // old restore/reingest overwrite bug.
+  const youtubeSource = /(?:youtube\.com|youtu\.be)/i.test(s.sourceUrl ?? "");
+  const contentType = s.contentType ?? (youtubeSource ? "youtube" : "standard");
+  const acquiredVia = s.acquiredVia ?? (youtubeSource ? "youtube" : null);
   const r = await ingestSource({
     buf: new Uint8Array(buf),
     title: s.title,
@@ -48,7 +58,10 @@ async function processSong(s: ManifestSong): Promise<{ ok: boolean; error?: stri
     mood: s.mood,
     key: s.key,
     tempo: s.tempo,
-    contentType: "standard",
+    contentType,
+    acquiredVia,
+    sourceYoutubeUrl: youtubeSource ? s.sourceUrl : null,
+    sourceRef: s.sourceRef ?? `manifest:${s.sourceFile}`,
     baseId: s.id,
   });
   if (r.error) return { ok: false, error: r.error, variants: 0 };

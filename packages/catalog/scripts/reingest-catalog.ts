@@ -32,6 +32,9 @@ interface ManifestSong {
   key?: string;
   tempo?: number;
   sourceFile: string;
+  sourceUrl?: string;
+  contentType?: "standard" | "youtube" | "upload";
+  acquiredVia?: string | null;
   disabled?: boolean;
 }
 
@@ -54,7 +57,6 @@ interface YoutubeSource { midi: string; audio: string; jobUrl: string | null }
 const seedAliases: Record<string, string> = {
   "taylor-swift-love-story": "love-story-where-do-i-begin.mid",
 };
-const curatedYoutubeSeeds = new Set(["dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo"]);
 const storedAdvancedFallbacks = new Set(["kamerat-mot-kamerat", "red-sun-in-the-sky"]);
 
 // Production worker images intentionally omit the repository's catalog/
@@ -75,7 +77,14 @@ function metadataFor(baseId: string): CatalogMeta | undefined {
   const row = getSongsByBase(baseId)[0];
   if (!row) return undefined;
   const fromManifest = manifest.get(baseId);
-  const contentType = row.contentType === "youtube" || row.contentType === "upload" ? row.contentType : "standard";
+  const manifestYoutube = /(?:youtube\.com|youtu\.be)/i.test(fromManifest?.sourceUrl ?? "");
+  const contentType = fromManifest?.contentType ?? (row.contentType === "upload"
+    ? "upload"
+    : row.contentType === "youtube" || row.acquiredVia === "youtube"
+      ? "youtube"
+      : manifestYoutube
+        ? "youtube"
+        : "standard");
   return {
     baseId,
     title: fromManifest?.title ?? row.title,
@@ -86,8 +95,8 @@ function metadataFor(baseId: string): CatalogMeta | undefined {
     key: fromManifest?.key ?? row.key,
     tempo: fromManifest?.tempo ?? row.tempo,
     contentType,
-    acquiredVia: row.acquiredVia,
-    sourceYoutubeUrl: row.sourceYoutubeUrl,
+    acquiredVia: fromManifest?.acquiredVia ?? row.acquiredVia ?? (manifestYoutube ? "youtube" : null),
+    sourceYoutubeUrl: manifestYoutube ? fromManifest?.sourceUrl ?? row.sourceYoutubeUrl : row.sourceYoutubeUrl,
   };
 }
 
@@ -194,10 +203,10 @@ async function sourcePathFor(baseId: string, meta: CatalogMeta): Promise<string>
   throw new Error("no source file or approved fallback");
 }
 
-async function sourceFor(baseId: string, meta: CatalogMeta): Promise<{ buf: Uint8Array; source: string; cleanTranscription?: boolean; sourceYoutubeUrl?: string | null; tempo?: number }> {
+async function sourceFor(baseId: string, meta: CatalogMeta): Promise<{ buf: Uint8Array; source: string; sourceRef?: string; cleanTranscription?: boolean; sourceYoutubeUrl?: string | null; tempo?: number }> {
   if (meta.contentType === "upload") {
     const path = await findUpload(baseId);
-    if (path) return { buf: new Uint8Array(await readFile(path)), source: "upload:" + path };
+    if (path) return { buf: new Uint8Array(await readFile(path)), source: "upload:" + path, sourceRef: `upload:${baseId}` };
     // The original upload may have been pruned while the repaired artifact
     // set remained. Reconstruct a deterministic MIDI source from the
     // validated advanced notes so this base can still be rebuilt and the
@@ -205,6 +214,7 @@ async function sourceFor(baseId: string, meta: CatalogMeta): Promise<{ buf: Uint
     return {
       buf: await storedAdvancedMidi(baseId, meta.tempo ?? 120),
       source: "reconstructed-upload:" + join(artifactsDir(baseId, "a"), "notes.json"),
+      sourceRef: `reconstructed-upload:${baseId}`,
     };
   }
   const seed = await findSeed(baseId);
@@ -212,7 +222,8 @@ async function sourceFor(baseId: string, meta: CatalogMeta): Promise<{ buf: Uint
     return {
       buf: new Uint8Array(await readFile(seed.path)),
       source: (seed.alias ? "alias:" : "seed:") + seed.path,
-      cleanTranscription: meta.contentType === "youtube" && curatedYoutubeSeeds.has(baseId) ? false : undefined,
+      sourceRef: `seed:${seed.alias ? seedAliases[baseId] : baseId + ".mid"}`,
+      cleanTranscription: meta.contentType === "youtube" ? false : undefined,
     };
   }
   if (meta.contentType === "youtube") {
@@ -223,6 +234,7 @@ async function sourceFor(baseId: string, meta: CatalogMeta): Promise<{ buf: Uint
     return {
       buf: prepared.buf,
       source: "youtube:" + youtube.midi,
+      sourceRef: `youtube:${baseId}`,
       sourceYoutubeUrl: youtube.jobUrl ?? meta.sourceYoutubeUrl,
       tempo,
       // filterTranscription already performed the audio-aware cleanup. Only
@@ -232,7 +244,7 @@ async function sourceFor(baseId: string, meta: CatalogMeta): Promise<{ buf: Uint
     };
   }
   if (storedAdvancedFallbacks.has(baseId)) {
-    return { buf: await storedAdvancedMidi(baseId, meta.tempo ?? 120), source: "stored-advanced-fallback" };
+    return { buf: await storedAdvancedMidi(baseId, meta.tempo ?? 120), source: "stored-advanced-fallback", sourceRef: `stored-advanced:${baseId}` };
   }
   throw new Error("no source file or approved fallback");
 }
@@ -246,14 +258,13 @@ for (const baseId of bases) {
   const meta = metadataFor(baseId);
   if (!meta) {
     skipped++;
+    if (onlyBases.length) failed++;
     console.warn("- " + baseId + ": no catalog metadata");
     continue;
   }
-  // A curated YouTube seed is restored by restore-curated.ts immediately
-  // before this pass.  That restore intentionally stores the row as standard
-  // MIDI so hand labels/dynamics are preserved, so checking only the DB
-  // content type would immediately overwrite the repaired seed here.
-  if (skipYoutube && (meta.contentType === "youtube" || curatedYoutubeSeeds.has(baseId))) {
+  // Curated YouTube seeds retain their source provenance, so this pass cannot
+  // overwrite a repaired seed after restore-curated.ts runs.
+  if (skipYoutube && meta.contentType === "youtube") {
     skipped++;
     console.log("- " + baseId + ": skipped YouTube");
     continue;
@@ -278,6 +289,7 @@ for (const baseId of bases) {
       contentType: meta.contentType,
       acquiredVia: meta.acquiredVia,
       sourceYoutubeUrl: src.sourceYoutubeUrl ?? meta.sourceYoutubeUrl,
+      sourceRef: src.sourceRef,
       baseId,
       cleanTranscription: src.cleanTranscription,
     });
@@ -295,4 +307,6 @@ for (const baseId of bases) {
 }
 
 console.log("reingest-catalog: " + ok + " ok, " + failed + " failed, " + skipped + " skipped" + (dryRun ? " (dry run)" : ""));
-if (failed && !dryRun) process.exitCode = 1;
+// Dry-run is a preflight gate: missing rows/sources must fail before an
+// operator trusts the subsequent production rebuild steps.
+if (failed) process.exitCode = 1;

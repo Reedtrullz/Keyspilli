@@ -44,11 +44,16 @@ export interface IngestInput {
   contentType: "standard" | "youtube" | "upload";
   acquiredVia?: string | null;
   sourceYoutubeUrl?: string | null;
+  /** Stable, non-secret source label persisted in each variant notes.json. */
+  sourceRef?: string | null;
   baseId?: string;
   /** Override the default YouTube cleanup for curated human-authored MIDI. */
   cleanTranscription?: boolean;
-  /** Optional sustain ceiling for a curated transcription source. */
-  maxDurBeats?: number;
+  /**
+   * Optional sustain ceiling for a transcription source. `null` explicitly
+   * preserves long human-authored MIDI/MusicXML sustains.
+   */
+  maxDurBeats?: number | null;
 }
 
 /** Optional deterministic hook used by integration tests to exercise rollback. */
@@ -182,7 +187,15 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
   // not part of the source arrangement. Preserve per-level plays and creation
   // timestamps so repairing an arrangement does not reset the live catalog.
   const existingRows = inp.baseId ? getSongsByBase(baseId) : [];
-  const maxDurBeats = inp.maxDurBeats ?? (inp.contentType === "youtube" ? MAX_YOUTUBE_IMPORT_DUR_BEATS : undefined);
+  // Audio/YouTube transcriptions need a conservative tail ceiling. Standard
+  // MIDI and MusicXML are commonly human-authored and may contain legitimate
+  // multi-measure pedal tones, so they opt out unless a caller explicitly
+  // supplies a transcription ceiling (e.g. a curated audio-derived seed).
+  const maxDurBeats = inp.maxDurBeats !== undefined
+    ? inp.maxDurBeats
+    : inp.contentType === "youtube"
+      ? MAX_YOUTUBE_IMPORT_DUR_BEATS
+      : null;
   const variants = buildVariants(
     parsed,
     {
@@ -193,7 +206,7 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
     },
     maxDurBeats === undefined ? undefined : { maxDurBeats },
   );
-  const validationErrors = validateVariants(variants);
+  const validationErrors = validateVariants(variants, { maxDurBeats });
   if (validationErrors.length) {
     return { baseId: "", songIds: [], error: `validation failed: ${validationErrors.join("; ")}` };
   }
@@ -240,6 +253,12 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
         key: v.key,
         tempoBpm: v.tempoBpm,
         timeSig: v.timeSig,
+        provenance: {
+          kind: inp.contentType,
+          acquiredVia: inp.acquiredVia ?? null,
+          sourceRef: inp.sourceRef ?? inp.sourceYoutubeUrl ?? null,
+          sourceYoutubeUrl: inp.sourceYoutubeUrl ?? null,
+        },
       }) });
     } catch (e) {
       artifactErrors.push(`${v.level}: artifact render failed: ${(e as Error).message}`);

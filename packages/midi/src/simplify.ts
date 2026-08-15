@@ -13,9 +13,10 @@ export interface VariantOptions {
    * Optional hard ceiling for imported note sustains, in beats.  Audio
    * transcriptions often inherit a detector's tail (or a pedal resonance)
    * instead of a real note-off; callers that have a transcription source can
-   * use this to keep those tails from masking the next melodic attack.
+   * use this to keep those tails from masking the next melodic attack. Pass
+   * `null` for a human-authored source whose long sustains are intentional.
    */
-  maxDurBeats?: number;
+  maxDurBeats?: number | null;
 }
 
 export const SAFE_TEMPO_BPM = 120;
@@ -577,10 +578,12 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   // Every source type passes through the same conservative structural cleanup.
   // YouTube ingestion may additionally run cleanTranscription() beforehand;
   // this second pass is intentionally idempotent and protects direct callers.
-  const imported = sanitizeImportedNotes(src.notes, {
-    tempoBpm: tempo,
-    ...(opts.maxDurBeats !== undefined ? { maxDurBeats: opts.maxDurBeats } : {}),
-  });
+  const sanitizeOptions: Parameters<typeof sanitizeImportedNotes>[1] = { tempoBpm: tempo };
+  // Preserve the distinction between an omitted option (legacy direct-call
+  // safety default) and an explicit null (human-authored source, no blanket
+  // duration cap). Catalog ingestion always supplies one of these policies.
+  if (opts.maxDurBeats !== undefined) sanitizeOptions.maxDurBeats = opts.maxDurBeats;
+  const imported = sanitizeImportedNotes(src.notes, sanitizeOptions);
   const base = quantize(imported, { grid: 0.125, minDur: 0.125 });
   const normalized = opts.normalizeRange === false ? base : normalizePianoRange(base);
   const shifted = base.filter((n, i) => normalized[i]!.midi !== n.midi);

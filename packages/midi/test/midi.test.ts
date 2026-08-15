@@ -148,6 +148,24 @@ describe("parseMidi", () => {
       [72, "R"],
     ]);
   });
+
+  it("repairs duplicated one-sided labels when track pitch ranges contradict them", () => {
+    const bytes = writeMidi(
+      [],
+      {
+        tempoBpm: 120,
+        tracks: [
+          { name: "Pianl LH", notes: [{ midi: 72, start: 0, dur: 1, vel: 90 }] },
+          { name: "Pianl LH", notes: [{ midi: 36, start: 0, dur: 1, vel: 90 }] },
+        ],
+      },
+    );
+    const parsed = parseMidi(bytes);
+    expect(parsed.notes.map((n) => [n.midi, n.hand])).toEqual([
+      [36, "L"],
+      [72, "R"],
+    ]);
+  });
 });
 
 describe("writeMidi roundtrip", () => {
@@ -837,6 +855,34 @@ describe("import sanitization", () => {
     };
     const variants = buildVariants(src, { title: "Drone", artist: "Test" });
     expect(variants.every((v) => Math.max(...v.notes.map((n) => n.dur)) <= 8)).toBe(true);
+  });
+
+  it("preserves long human-authored sustains when the source opts out of capping", () => {
+    const notes: Note[] = [
+      { midi: 34, start: 0, dur: 100, vel: 80, hand: "L" },
+      ...Array.from({ length: 20 }, (_, i) => ({
+        midi: 72 + (i % 3),
+        start: i * 2,
+        dur: 1,
+        vel: 80,
+        hand: "R" as const,
+      })),
+    ];
+    const src: ParsedMidi = {
+      format: 0,
+      division: 480,
+      tempoBpm: 120,
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes,
+      trackNames: ["Right Hand", "Left Hand"],
+      durationBeats: 100,
+    };
+    const variants = buildVariants(src, { title: "Human sustain", artist: "Test" }, { maxDurBeats: null });
+    const advanced = variants.find((v) => v.level === "advanced")!;
+    expect(advanced.notes.some((n) => n.midi === 34 && n.dur >= 100)).toBe(true);
+    expect(validateVariants(variants, { maxDurBeats: null })).toEqual([]);
   });
 
   it("records octave normalization instead of hiding out-of-range source pitches", () => {

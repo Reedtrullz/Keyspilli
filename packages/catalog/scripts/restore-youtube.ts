@@ -35,6 +35,7 @@ for (const jobId of jobs) {
     contentType: "youtube",
     acquiredVia: "youtube",
     sourceYoutubeUrl: job.youtubeUrl,
+    sourceRef: `youtube-job:${jobId}`,
     baseId: song.baseId,
     cleanTranscription: false,
   });

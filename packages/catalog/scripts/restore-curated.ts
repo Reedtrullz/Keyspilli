@@ -24,6 +24,9 @@ interface ManifestEntry {
   mood?: string;
   key?: string;
   tempo?: number;
+  sourceUrl?: string;
+  contentType?: "standard" | "youtube" | "upload";
+  acquiredVia?: string | null;
 }
 
 const dryRun = process.argv.includes("--dry-run");
@@ -50,6 +53,19 @@ for (const f of files) {
     console.log(`? ${baseId}: would restore from seed (${buf.length} bytes)`);
     continue;
   }
+  // A curated seed may have been stored as `standard` by an older restore,
+  // while acquiredVia still records that it came from YouTube. Keep that
+  // provenance when restoring so later rebuild stages can identify and skip
+  // the curated source without a song-specific allowlist.
+  const manifestYoutube = /(?:youtube\.com|youtu\.be)/i.test(entry?.sourceUrl ?? "");
+  const contentType = entry?.contentType ?? (row.contentType === "upload"
+    ? "upload"
+    : row.contentType === "youtube" || row.acquiredVia === "youtube"
+      ? "youtube"
+      : manifestYoutube
+        ? "youtube"
+        : "standard");
+  const acquiredVia = entry?.acquiredVia ?? row.acquiredVia ?? (manifestYoutube ? "youtube" : null);
   const r = await ingestSource({
     buf,
     title: entry?.title ?? row.title,
@@ -59,15 +75,15 @@ for (const f of files) {
     mood: entry?.mood ?? row.mood,
     key: entry?.key ?? row.key,
     tempo: entry?.tempo ?? row.tempo,
-    contentType: "standard",
-    acquiredVia: row.acquiredVia ?? null,
-    sourceYoutubeUrl: row.sourceYoutubeUrl ?? null,
+    contentType,
+    acquiredVia,
+    sourceYoutubeUrl: manifestYoutube ? entry?.sourceUrl : row.sourceYoutubeUrl ?? null,
+    sourceRef: `seed:${f}`,
     baseId,
-    // Curated YouTube seeds are restored as standard MIDI so their hand
-    // labels/dynamics are preserved, but they still came from an audio
-    // transcription and need the same short-tail ceiling as the YouTube
-    // ingestion path.
-    maxDurBeats: row.acquiredVia === "youtube" ? MAX_YOUTUBE_IMPORT_DUR_BEATS : undefined,
+    // Keep the source-aware tail ceiling for curated YouTube imports while
+    // disabling ghost-note cleanup (the seed is already hand-curated).
+    cleanTranscription: contentType === "youtube" ? false : undefined,
+    maxDurBeats: contentType === "youtube" ? MAX_YOUTUBE_IMPORT_DUR_BEATS : undefined,
   });
   if (r.error) {
     console.warn(`x ${baseId}: ${r.error}`);

@@ -80,6 +80,7 @@ for (const { base_id: baseId } of midiPackRows) {
     tempo: song.tempo,
     contentType: "standard",
     acquiredVia: "midi-pack",
+    sourceRef: `midi-pack:${file}`,
     baseId,
   });
   if (r.error) {

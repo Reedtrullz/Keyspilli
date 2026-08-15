@@ -10,7 +10,7 @@ import { getSongsByBase, uploadsDir, ingestSource } from "../src/index.js";
 let ok = 0;
 let skipped = 0;
 for (const f of (await readdir(uploadsDir())).sort()) {
-  const m = f.match(/^(.*)\.(mid|xml)$/i);
+  const m = f.match(/^(.*)\.(mid|midi|xml|musicxml|mxl)$/i);
   if (!m) {
     skipped++;
     continue;
@@ -30,6 +30,7 @@ for (const f of (await readdir(uploadsDir())).sort()) {
     category: "Upload",
     contentType: "upload",
     acquiredVia: "upload",
+    sourceRef: `upload:${f}`,
     baseId,
   });
   if (r.error) {

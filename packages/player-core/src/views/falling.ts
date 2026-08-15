@@ -102,8 +102,9 @@ export function fallingBars(notes: TimedNote[], o: FallingLayoutOptions): Fallin
 /**
  * Keyboard range for one measure (plus a beat of overlap), so the piano stays
  * put while playing through the measure instead of re-centering every frame.
- * Wide measures clamp to `maxSpan` around the median; empty measures return
- * the previous range.
+ * Wide measures expand to the complete piano range used by the measure (up
+ * to the 88-key MIDI bounds) instead of silently dropping notes outside a
+ * median-centered window; empty measures return the previous range.
  */
 export function measureMidiRange(
   notes: TimedNote[],
@@ -112,7 +113,7 @@ export function measureMidiRange(
   speed: number,
   measureIdx: number,
   fallback: { lowMidi: number; highMidi: number },
-  maxSpan = 54,
+  _maxSpan = 54,
 ): { lowMidi: number; highMidi: number } {
   const m = measures[measureIdx];
   if (!m) return fallback;
@@ -128,11 +129,12 @@ export function measureMidiRange(
   mids.sort((a, b) => a - b);
   let lowMidi = mids[0]! - 3;
   let highMidi = mids[mids.length - 1]! + 3;
-  if (highMidi - lowMidi > maxSpan) {
-    const median = mids[Math.floor(mids.length / 2)]!;
-    lowMidi = median - maxSpan / 2;
-    highMidi = median + maxSpan / 2;
-  }
+  // Older versions centered a 54-semitone window on the median here. That
+  // made xOf() return -100 for legitimate notes at either edge of a wide
+  // measure, so the falling view silently omitted attacks. Keep the argument
+  // for API compatibility, but prefer a complete range (capped only by the
+  // real 88-key piano limits) so every note remains renderable.
+  void _maxSpan;
   return {
     lowMidi: Math.max(21, lowMidi),
     highMidi: Math.min(108, highMidi),

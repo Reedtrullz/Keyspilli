@@ -145,7 +145,8 @@ for (const { base_id: base } of bases) {
     tempo,
     contentType: "youtube",
     acquiredVia: "youtube",
-    sourceYoutubeUrl: job?.youtube_url ?? song.sourceYoutubeUrl ?? "",
+    sourceYoutubeUrl: job?.youtube_url ?? song.sourceYoutubeUrl ?? null,
+    sourceRef: `youtube-job:${job?.id ?? "unknown"}`,
     baseId: base,
     cleanTranscription: false,
   });

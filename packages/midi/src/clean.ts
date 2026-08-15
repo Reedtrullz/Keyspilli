@@ -45,9 +45,13 @@ export function maxDurationBeatsForTempo(
 export interface ImportedSanitizeOptions {
   /** source tempo used to make the sustain ceiling tempo-aware */
   tempoBpm?: number;
-  /** explicit sustain ceiling in beats, mainly for deterministic tests */
-  maxDurBeats?: number;
-  /** sustain ceiling in seconds when maxDurBeats is omitted */
+  /**
+   * Explicit sustain ceiling in beats. `null` disables duration capping for a
+   * human-authored source; omitting it keeps the historical safety default for
+   * direct callers that do not know the source provenance.
+   */
+  maxDurBeats?: number | null;
+  /** sustain ceiling in seconds when maxDurBeats is omitted (not when null) */
   maxDurSec?: number;
   /** maximum number of notes allowed to overlap at any instant */
   maxSounding?: number;
@@ -58,12 +62,15 @@ export interface ImportedSanitizeOptions {
  *
  * Unlike cleanTranscription(), this does not remove quiet notes, merge close
  * re-strikes, or otherwise reinterpret human dynamics. It only drops malformed
- * events, caps drone-like sustains, and limits staggered sounding walls that
- * cannot be played by two hands. Existing hand labels are preserved; labels
- * inferred solely for the overlap pass are removed before returning.
+ * events, optionally caps drone-like sustains, and limits staggered sounding
+ * walls that cannot be played by two hands. Existing hand labels are
+ * preserved; labels inferred solely for the overlap pass are removed before
+ * returning.
  */
 export function sanitizeImportedNotes(notes: Note[], opts: ImportedSanitizeOptions = {}): Note[] {
-  const maxDurBeats = opts.maxDurBeats ?? maxDurationBeatsForTempo(opts.tempoBpm);
+  const maxDurBeats = opts.maxDurBeats === null
+    ? undefined
+    : opts.maxDurBeats ?? maxDurationBeatsForTempo(opts.tempoBpm);
   const maxSounding = Math.max(1, Math.floor(opts.maxSounding ?? DEFAULT_IMPORTED_MAX_SOUNDING));
   const hadHandLabels = notes.some((n) => n.hand !== undefined);
   const valid = notes.filter((n) =>
@@ -75,7 +82,10 @@ export function sanitizeImportedNotes(notes: Note[], opts: ImportedSanitizeOptio
   // Keep the shortest grid supported by the importer. Human-authored
   // MusicXML/MIDI commonly contains 16th notes; the AI cleanup path below
   // intentionally keeps its historical 0.25-beat floor.
-  let out = capHandOverlaps(valid, maxDurBeats, 0.125);
+  // A null ceiling is the explicit human-authored path. Legitimate MIDI and
+  // MusicXML arrangements can hold a pedal/bass note for many measures, so a
+  // generic seconds-based cap must not silently rewrite those sources.
+  let out = maxDurBeats === undefined ? valid : capHandOverlaps(valid, maxDurBeats, 0.125);
   out = capSoundingPolyphony(out, maxSounding);
   if (!hadHandLabels) {
     out = out.map(({ hand: _hand, ...n }) => n);
