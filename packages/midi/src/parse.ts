@@ -151,6 +151,31 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
   const valid = trackNotes
     .flat()
     .filter((n) => Number.isFinite(n.midi) && n.midi >= 0 && n.midi <= 127 && Number.isFinite(n.start) && Number.isFinite(n.dur));
+
+  // Some exported arrangements duplicate a single staff name on every track
+  // (for example, both tracks may be called "Pianl LH" even though one is the
+  // upper staff).  Treat that as contradictory metadata only when every
+  // non-empty track claims the same hand and their pitch centres are clearly
+  // separated.  Genuine cross-handed imports keep their explicit labels.
+  const nonEmptyTracks = trackNotes.filter((notes) => notes.length > 0);
+  const explicitHands = new Set(nonEmptyTracks.flatMap((notes) => notes.map((n) => n.hand).filter((h): h is Hand => h !== undefined)));
+  const allTracksExplicit = nonEmptyTracks.every((notes) => notes.every((n) => n.hand !== undefined));
+  if (nonEmptyTracks.length >= 2 && allTracksExplicit && explicitHands.size === 1) {
+    const medians = nonEmptyTracks.map((notes) => {
+      const pitches = notes.map((n) => n.midi).sort((a, b) => a - b);
+      return pitches[Math.floor(pitches.length / 2)]!;
+    });
+    const minMedian = Math.min(...medians);
+    const maxMedian = Math.max(...medians);
+    if (maxMedian - minMedian >= 12) {
+      const splitAt = (minMedian + maxMedian) / 2;
+      for (const notes of nonEmptyTracks) {
+        const median = notes.map((n) => n.midi).sort((a, b) => a - b)[Math.floor(notes.length / 2)]!;
+        const inferred: Hand = median <= splitAt ? "L" : "R";
+        for (const note of notes) note.hand = inferred;
+      }
+    }
+  }
   valid.sort((a, b) => a.start - b.start || a.midi - b.midi);
   const tempoBpm = tempos[0]?.bpm ?? 120;
   const durationBeats = valid.reduce((m, n) => Math.max(m, n.start + n.dur), 0);

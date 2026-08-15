@@ -45,7 +45,15 @@ function hasNear(harder: Map<number, number[]>, midi: number, start: number, tol
   return starts.some((s) => Math.abs(s - start) <= tol);
 }
 
-function validateVariant(v: Variant): string[] {
+export interface VariantValidationOptions {
+  /**
+   * Source-aware sustain ceiling. `null` skips the generic duration gate for
+   * human-authored sources; omission keeps the legacy safety default.
+   */
+  maxDurBeats?: number | null;
+}
+
+function validateVariant(v: Variant, opts: VariantValidationOptions): string[] {
   const out: string[] = [];
   const lim = PLAYABILITY_LIMITS[v.level];
   if (!lim) {
@@ -73,7 +81,9 @@ function validateVariant(v: Variant): string[] {
   let tooLong = 0;
   const validNotes: Note[] = [];
   const tempoBpm = Number.isFinite(v.tempoBpm) && v.tempoBpm > 0 ? v.tempoBpm : 120;
-  const maxDurBeats = maxDurationBeatsForTempo(tempoBpm);
+  const maxDurBeats = opts.maxDurBeats === null
+    ? undefined
+    : opts.maxDurBeats ?? maxDurationBeatsForTempo(tempoBpm);
   for (const n of v.notes) {
     if (!Number.isFinite(n.midi) || n.midi < 21 || n.midi > 108) {
       out.push(`${v.level}: midi ${n.midi} outside piano range 21-108`);
@@ -89,7 +99,7 @@ function validateVariant(v: Variant): string[] {
     }
     validCount++;
     validNotes.push(n);
-    if (n.dur > maxDurBeats + 1e-6) tooLong++;
+    if (maxDurBeats !== undefined && n.dur > maxDurBeats + 1e-6) tooLong++;
     const k = n.start.toFixed(3);
     const c = (byStart.get(k) ?? 0) + 1;
     byStart.set(k, c);
@@ -136,10 +146,10 @@ function validateVariant(v: Variant): string[] {
 }
 
 /** Fail-closed gate: every issue returned must be fixed before a song goes live. */
-export function validateVariants(variants: Variant[]): string[] {
+export function validateVariants(variants: Variant[], opts: VariantValidationOptions = {}): string[] {
   const errors: string[] = [];
   const byLevel = new Map(variants.map((v) => [v.level, v]));
-  for (const v of variants) errors.push(...validateVariant(v));
+  for (const v of variants) errors.push(...validateVariant(v, opts));
   for (let i = 0; i < LEVEL_ORDER.length - 1; i++) {
     const level = LEVEL_ORDER[i]!;
     const easier = byLevel.get(level);

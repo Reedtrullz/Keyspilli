@@ -103,10 +103,12 @@ describe("measureMidiRange", () => {
     expect(a).toEqual(b);
   });
 
-  it("clamps wide measures and keeps the previous range when empty", () => {
+  it("expands wide measures so edge notes remain visible and keeps the previous range when empty", () => {
     const wide = tn.map((n, i) => ({ ...n, midi: 30 + ((i * 20) % 70) }));
     const r = measureMidiRange(wide, song.measures, 120, 1, 0, { lowMidi: 22, highMidi: 109 });
-    expect(r.highMidi - r.lowMidi).toBeLessThanOrEqual(54);
+    expect(r.lowMidi).toBeLessThanOrEqual(30);
+    expect(r.highMidi).toBeGreaterThanOrEqual(90);
+    expect(r.highMidi - r.lowMidi).toBeLessThanOrEqual(87);
     expect(measureMidiRange([], song.measures, 120, 1, 0, { lowMidi: 40, highMidi: 80 })).toEqual({
       lowMidi: 40,
       highMidi: 80,
@@ -259,6 +261,23 @@ describe("falling bars", () => {
     expect(bars.length).toBe(3); // notes at 0s (x2) and 0.5s visible
     expect(bars[0]!.color).toMatch(/^#/);
     expect(bars[0]!.x).toBeGreaterThanOrEqual(0);
+  });
+
+  it("keeps notes at both edges of a wide keyboard range", () => {
+    const wide = [
+      { midi: 24, startSec: 0, durSec: 0.5, vel: 80 },
+      { midi: 96, startSec: 0, durSec: 0.5, vel: 80 },
+    ];
+    const bars = fallingBars(wide, {
+      width: 800,
+      height: 400,
+      nowSec: 0,
+      speed: 1,
+      lookaheadSec: 0.6,
+      lowMidi: 21,
+      highMidi: 108,
+    });
+    expect(bars.map((bar) => bar.midi)).toEqual([24, 96]);
   });
 
   it("falls downward toward the keyboard and carries pitch labels", () => {

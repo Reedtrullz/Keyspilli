@@ -143,6 +143,11 @@ npx tsx packages/catalog/scripts/reingest-all-youtube.ts
 - If `tempo.py` is not present yet, re-ingest keeps the MIDI's tempo (120).
 - Worker boot requeues orphaned `processing` jobs; failed jobs retry up to
   `KEYSPILLI_MAX_ATTEMPTS` (default 2) before staying `error`.
+- `fetch-seed.ts` preserves existing manifest entries whose source files are
+  present locally, so a clean CI fetch cannot drop tracked curated seeds.
+- Every generated `notes.json` records a non-secret `provenance` object
+  (`kind`, `acquiredVia`, `sourceRef`, and optional YouTube URL); re-ingest and
+  curated restore scripts carry this metadata forward.
 
 ## Useful commands
 

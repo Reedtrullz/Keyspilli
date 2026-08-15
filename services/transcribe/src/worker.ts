@@ -97,14 +97,17 @@ async function processJob(jobId: string): Promise<void> {
       contentType: "youtube",
       acquiredVia: "youtube",
       sourceYoutubeUrl: job.youtubeUrl,
+      sourceRef: `youtube-job:${jobId}`,
       baseId: existing?.baseId,
-      // filterTranscription already removed audio-unmatched notes and trimmed
-      // silence; do not run the generic AI cleaner a second time and erase
-      // legitimate short/grace notes from the filtered result.
-      cleanTranscription: false,
+      // filterTranscription removes audio-unmatched notes and trims silence.
+      // Keep the conservative ingest cleaner enabled too; it only removes
+      // short/quiet re-strikes and catches misclicks that share a real onset.
+      cleanTranscription: true,
     });
     if (result.error) throw new Error(result.error);
-    const songId = result.songIds[3] ?? result.songIds[0]!; // point at the "easy" variant when available
+    // Keep the conversion job pointed at the stable easy variant by its
+    // level suffix; array order is an implementation detail of the ladder.
+    const songId = result.songIds.find((id) => id.endsWith("-e")) ?? result.songIds[0]!;
     updateJob(jobId, { status: "done", songId, finishedAt: new Date().toISOString() });
     console.log(`[worker] ${jobId} done → ${songId}`);
   } catch (e) {

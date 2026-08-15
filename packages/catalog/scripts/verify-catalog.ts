@@ -7,6 +7,7 @@ import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { LEVEL_ORDER, validateArtifactFiles, validateVariants, Variant } from "@keyspilli/midi";
 import { getDb } from "../src/db.js";
+import { MAX_YOUTUBE_IMPORT_DUR_BEATS } from "../src/ingest.js";
 import { dataDir } from "../src/paths.js";
 
 const LEVEL_CODE: Record<string, string> = {
@@ -51,6 +52,13 @@ for (const orphan of orphanBases) {
 for (const song of linkedBases) {
   const issues: string[] = [];
   const warns: string[] = [];
+  const row = db.prepare("SELECT content_type FROM songs WHERE base_id = ? LIMIT 1").get(song) as
+    | { content_type?: string }
+    | undefined;
+  // Match ingestSource's source-aware sustain policy. Human-authored standard
+  // and upload arrangements may contain intentional multi-measure holds;
+  // YouTube/audio imports must satisfy the explicit tail ceiling.
+  const maxDurBeats = row?.content_type === "youtube" ? MAX_YOUTUBE_IMPORT_DUR_BEATS : null;
   const variants: Variant[] = [];
   for (const level of LEVEL_ORDER) {
     const path = join(artifactsRoot, song, LEVEL_CODE[level]!, "notes.json");
@@ -62,7 +70,7 @@ for (const song of linkedBases) {
     }
   }
   if (issues.length === 0) {
-    issues.push(...validateVariants(variants));
+    issues.push(...validateVariants(variants, { maxDurBeats }));
     for (const v of variants) {
       const code = LEVEL_CODE[v.level]!;
       try {
@@ -76,9 +84,6 @@ for (const song of linkedBases) {
   }
   // Data-level quality checks for AI-transcribed songs: warnings, not gate
   // failures, because they are fixable by re-ingest rather than a code change.
-  const row = db.prepare("SELECT content_type FROM songs WHERE base_id = ? LIMIT 1").get(song) as
-    | { content_type?: string }
-    | undefined;
   const dataLevel = row?.content_type === "youtube" || row?.content_type === "upload";
   if (dataLevel && issues.length === 0) {
     const long = variants.filter((v) => v.notes.some((n) => n.dur > 8)).map((v) => v.level);

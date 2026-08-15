@@ -37,6 +37,7 @@ const r = await ingestSource({
   tempo,
   contentType: "standard",
   acquiredVia: "omr",
+  sourceRef: `omr:${xmlPath.split("/").at(-1) ?? "unknown"}`,
   baseId,
 });
 if (r.error) {

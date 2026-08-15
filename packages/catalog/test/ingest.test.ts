@@ -233,12 +233,21 @@ describe("ingestSource .mxl", () => {
       artist: "Tester",
       contentType: "youtube",
       acquiredVia: "youtube",
+      sourceRef: "seed:curated-youtube-raw.mid",
       baseId,
       cleanTranscription: false,
     });
     expect(res.error).toBeUndefined();
     const advanced = JSON.parse(readFileSync(join(artifactsDir(baseId, "a"), "notes.json"), "utf8")) as { notes: { midi: number }[] };
     expect(advanced.notes.some((n) => n.midi === 60)).toBe(true);
+    const artifact = JSON.parse(readFileSync(join(artifactsDir(baseId, "a"), "notes.json"), "utf8")) as {
+      provenance: { kind: string; acquiredVia: string; sourceRef: string };
+    };
+    expect(artifact.provenance).toMatchObject({
+      kind: "youtube",
+      acquiredVia: "youtube",
+      sourceRef: "seed:curated-youtube-raw.mid",
+    });
   });
 
   it("caps long YouTube transcription tails before publishing variants", async () => {
@@ -266,7 +275,7 @@ describe("ingestSource .mxl", () => {
     expect(advanced.notes.some((n) => n.start === 0)).toBe(true);
   });
 
-  it("sanitizes a standard import before publishing variants", async () => {
+  it("preserves long human-authored sustains in standard imports", async () => {
     const notes = [
       { midi: 48, start: 0, dur: 100, vel: 80 },
       ...Array.from({ length: 11 }, (_, i) => ({ midi: 72 + i, start: i, dur: 0.75, vel: 80 })),
@@ -281,13 +290,13 @@ describe("ingestSource .mxl", () => {
     expect(res.error).toBeUndefined();
     expect(res.songIds).toHaveLength(6);
     const maxDur = maxDurationBeatsForTempo(120);
-    for (const level of ["vb", "b", "ve", "e", "m", "a"]) {
-      const artifact = JSON.parse(readFileSync(join(artifactsDir("standard-sustain-wall", level), "notes.json"), "utf8")) as {
-        tempoBpm: number;
-        notes: { start: number; dur: number }[];
-      };
-      expect(Math.max(...artifact.notes.map((n) => n.dur))).toBeLessThanOrEqual(maxDur);
-    }
+    const advanced = JSON.parse(readFileSync(join(artifactsDir("standard-sustain-wall", "a"), "notes.json"), "utf8")) as {
+      notes: { start: number; dur: number }[];
+    };
+    // A standard MIDI/MusicXML source may intentionally hold a pedal/bass
+    // note for many measures. The default standard path must not rewrite it
+    // with the transcription tail ceiling.
+    expect(Math.max(...advanced.notes.map((n) => n.dur))).toBeGreaterThan(maxDur);
   });
 
   it("caps staggered sounding walls in standard imports", async () => {

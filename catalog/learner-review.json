@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "purpose": "Learner-first musical calibration from owner listening sessions",
+  "principles": [
+    "Prefer a recognizable, playable arrangement over literal source fidelity.",
+    "Keep the melody predominantly in the right hand.",
+    "Use the left hand for useful bass notes and proper piano chord shapes.",
+    "Treat structural validation as necessary but not sufficient for musical quality."
+  ],
+  "verdicts": {
+    "dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo": {
+      "rating": "good",
+      "feedback": "Pretty decent at this point.",
+      "action": "preserve; use as a learner-quality regression reference"
+    },
+    "l-v-beethoven-sonata-no-1-2nd-movement-adagio": {
+      "rating": "good",
+      "feedback": "Sounds pretty good.",
+      "action": "preserve; classical two-hand regression reference"
+    },
+    "miley-cyrus-we-can-t-stop": {
+      "rating": "good",
+      "feedback": "Sounds pretty good.",
+      "action": "preserve; pop melody/chord regression reference"
+    },
+    "taylor-swift-shake-it-off": {
+      "rating": "good",
+      "feedback": "Sounds good!",
+      "action": "preserve; hand-label and groove regression reference"
+    },
+    "katherine-cordova-coldplay-fix-you-advanced-piano-cover-mslws0x0": {
+      "rating": "polish",
+      "feedback": "Sounds decent.",
+      "action": "keep recognizable melody; polish voicing and sustain"
+    },
+    "piano-cover-hozier-take-me-to-church-mslwsak4": {
+      "rating": "polish",
+      "feedback": "Pretty good, but has weird extra notes and misclicks.",
+      "action": "remove isolated transcription ghosts while preserving melody attacks"
+    },
+    "piano-cover-by-pianella-piano-ava-max-kings-queens-mslwtpef": {
+      "rating": "polish",
+      "feedback": "Somewhat decent, but could be better.",
+      "action": "rebalance melody/chords and review awkward attacks"
+    },
+    "riyandi-kusuma-james-blunt-you-re-beautiful-piano-cover-by-riyandi-kusuma-mslwth1z": {
+      "rating": "polish",
+      "feedback": "Pretty good, but could benefit from some adjustment.",
+      "action": "polish hand balance and sustain without changing identity"
+    },
+    "rousseau-john-legend-all-of-me-piano-cover-mslwrq3x": {
+      "rating": "polish",
+      "feedback": "Pretty decent, but could benefit from some adjustment.",
+      "action": "preserve recognizable melody; simplify excessive right-hand texture"
+    },
+    "sia-chandelier": {
+      "rating": "polish",
+      "feedback": "Sounds pretty good, but it does not seem human-playable on piano.",
+      "action": "enforce learner sounding budget and reduce same-pitch re-strikes"
+    },
+    "status-quo-in-the-army-now": {
+      "rating": "polish",
+      "feedback": "Sounds pretty good, but is very heavy on the right hand.",
+      "action": "move useful bass/chord attacks left and thin right-hand density"
+    },
+    "the-police-every-breath-you-take": {
+      "rating": "polish",
+      "feedback": "Pretty good, but would benefit from some polish.",
+      "action": "create a useful left-hand accompaniment and remove held-note clutter"
+    },
+    "pink-just-give-me-a-reason": {
+      "rating": "bad",
+      "blocked": true,
+      "feedback": "This is not the right track; it also has weird artifacts.",
+      "action": "block from learner catalogue until source identity is corrected"
+    },
+    "abba-lay-all-your-love-on-me": {
+      "rating": "bad",
+      "blocked": true,
+      "feedback": "Pretty messy and broken.",
+      "action": "revoice into RH melody/LH chord-bass texture; manual listening gate"
+    },
+    "olectralab-katyusha-piano-cover-mslzvw9f": {
+      "rating": "bad",
+      "blocked": true,
+      "feedback": "Does not sound good.",
+      "action": "source-aware re-transcription or replacement; do not polish blindly"
+    },
+    "piano-free-sheet-music-sabaton-the-final-solution-mslzzcr5": {
+      "rating": "bad",
+      "blocked": true,
+      "feedback": "Recognizable, but does not sound good.",
+      "action": "source-aware re-transcription or replacement; preserve recognition"
+    }
+  }
+}

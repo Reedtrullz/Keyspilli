@@ -148,6 +148,24 @@ describe("parseMidi", () => {
       [72, "R"],
     ]);
   });
+
+  it("repairs duplicated one-sided labels when track pitch ranges contradict them", () => {
+    const bytes = writeMidi(
+      [],
+      {
+        tempoBpm: 120,
+        tracks: [
+          { name: "Pianl LH", notes: [{ midi: 72, start: 0, dur: 1, vel: 90 }] },
+          { name: "Pianl LH", notes: [{ midi: 36, start: 0, dur: 1, vel: 90 }] },
+        ],
+      },
+    );
+    const parsed = parseMidi(bytes);
+    expect(parsed.notes.map((n) => [n.midi, n.hand])).toEqual([
+      [36, "L"],
+      [72, "R"],
+    ]);
+  });
 });
 
 describe("writeMidi roundtrip", () => {
@@ -352,6 +370,67 @@ describe("buildVariants", () => {
     }
     expect(variants[0]!.notes.every((n) => n.hand === "R")).toBe(true);
     expect(variants[5]!.notes.length).toBeGreaterThan(0);
+  });
+
+  it("revoices a one-staff chordal import for the learner profile", () => {
+    const notes: Note[] = [];
+    for (let i = 0; i < 24; i++) {
+      const start = i * 0.5;
+      // A melody plus a low triad-like attack, all incorrectly labelled RH by
+      // the source exporter. The learner profile should expose a useful LH
+      // part without changing the source/default profile.
+      notes.push({ midi: 72 + (i % 5), start, dur: 0.4, vel: 90, hand: "R" });
+      notes.push({ midi: 48, start, dur: 0.4, vel: 70, hand: "R" });
+      notes.push({ midi: 52, start, dur: 0.4, vel: 65, hand: "R" });
+    }
+    const input: ParsedMidi = {
+      format: 0,
+      division: 480,
+      tempoBpm: 100,
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes,
+      trackNames: ["Piano"],
+      durationBeats: 12,
+    };
+    const source = buildVariants(input, { title: "Source", artist: "Test" }).find((v) => v.level === "advanced")!;
+    const learner = buildVariants(input, { title: "Learner", artist: "Test" }, { arrangementProfile: "learner" })
+      .find((v) => v.level === "advanced")!;
+    expect(source.notes.every((n) => n.hand !== "L")).toBe(true);
+    expect(learner.notes.some((n) => n.hand === "L")).toBe(true);
+    expect(learner.notes.some((n) => n.hand !== "L" && n.midi >= 72)).toBe(true);
+  });
+
+  it("keeps learner advanced sounding notes within an eight-finger budget", () => {
+    const notes: Note[] = [];
+    for (let i = 0; i < 32; i++) {
+      for (let j = 0; j < 12; j++) {
+        notes.push({ midi: 36 + j * 4, start: i, dur: 4, vel: 70, hand: j < 6 ? "L" : "R" });
+      }
+    }
+    const input: ParsedMidi = {
+      format: 0,
+      division: 480,
+      tempoBpm: 90,
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes,
+      trackNames: ["LH", "RH"],
+      durationBeats: 35,
+    };
+    const advanced = buildVariants(input, { title: "Dense", artist: "Test" }, { arrangementProfile: "learner" })
+      .find((v) => v.level === "advanced")!;
+    const events = advanced.notes.flatMap((n) => [[n.start, 1], [n.start + n.dur, -1]] as [number, number][])
+      .sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    let active = 0;
+    let max = 0;
+    for (const [, delta] of events) {
+      active += delta;
+      max = Math.max(max, active);
+    }
+    expect(max).toBeLessThanOrEqual(8);
   });
 
   it("falls back from an implausible source tempo before validation", () => {
@@ -837,6 +916,34 @@ describe("import sanitization", () => {
     };
     const variants = buildVariants(src, { title: "Drone", artist: "Test" });
     expect(variants.every((v) => Math.max(...v.notes.map((n) => n.dur)) <= 8)).toBe(true);
+  });
+
+  it("preserves long human-authored sustains when the source opts out of capping", () => {
+    const notes: Note[] = [
+      { midi: 34, start: 0, dur: 100, vel: 80, hand: "L" },
+      ...Array.from({ length: 20 }, (_, i) => ({
+        midi: 72 + (i % 3),
+        start: i * 2,
+        dur: 1,
+        vel: 80,
+        hand: "R" as const,
+      })),
+    ];
+    const src: ParsedMidi = {
+      format: 0,
+      division: 480,
+      tempoBpm: 120,
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes,
+      trackNames: ["Right Hand", "Left Hand"],
+      durationBeats: 100,
+    };
+    const variants = buildVariants(src, { title: "Human sustain", artist: "Test" }, { maxDurBeats: null });
+    const advanced = variants.find((v) => v.level === "advanced")!;
+    expect(advanced.notes.some((n) => n.midi === 34 && n.dur >= 100)).toBe(true);
+    expect(validateVariants(variants, { maxDurBeats: null })).toEqual([]);
   });
 
   it("records octave normalization instead of hiding out-of-range source pitches", () => {

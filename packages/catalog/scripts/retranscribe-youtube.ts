@@ -60,8 +60,11 @@ for (const jobId of jobs) {
     contentType: "youtube",
     acquiredVia: "youtube",
     sourceYoutubeUrl: job.youtubeUrl,
+    sourceRef: `youtube-job:${jobId}`,
     baseId: song.baseId,
-    cleanTranscription: false,
+    // filterTranscription removes audio-unmatched notes; the conservative
+    // ingest cleaner then catches short misclicks on genuine onsets.
+    cleanTranscription: true,
   });
   if (r.error) {
     console.warn(`x ${song.baseId}: ${r.error}`);
