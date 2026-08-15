@@ -9,6 +9,8 @@
     "pipeline": "tsx scripts/pipeline.ts",
     "verify-catalog": "tsx scripts/verify-catalog.ts",
     "quality-report": "tsx scripts/quality-report.ts",
+    "learner-report": "tsx scripts/learner-report.ts",
+    "learner-audit": "tsx scripts/learner-audit.ts",
     "repair-artifacts": "tsx scripts/repair-artifacts.ts",
     "reingest-catalog": "tsx scripts/reingest-catalog.ts",
     "calibrate": "tsx scripts/calibrate-limits.ts",

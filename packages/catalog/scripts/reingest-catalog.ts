@@ -237,10 +237,11 @@ async function sourceFor(baseId: string, meta: CatalogMeta): Promise<{ buf: Uint
       sourceRef: `youtube:${baseId}`,
       sourceYoutubeUrl: youtube.jobUrl ?? meta.sourceYoutubeUrl,
       tempo,
-      // filterTranscription already performed the audio-aware cleanup. Only
-      // run the generic AI cleaner when --allow-unfiltered-youtube had to
-      // bypass that filter.
-      cleanTranscription: !prepared.filtered,
+      // The onset filter removes notes with no audio attack. Keep the second,
+      // deliberately conservative ghost-note pass as well: it catches short
+      // low-velocity misclicks that happen on a real onset (the common Hozier
+      // “extra note” failure) without touching curated seed restores.
+      cleanTranscription: true,
     };
   }
   if (storedAdvancedFallbacks.has(baseId)) {

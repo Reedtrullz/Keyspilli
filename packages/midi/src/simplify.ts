@@ -17,6 +17,14 @@ export interface VariantOptions {
    * `null` for a human-authored source whose long sustains are intentional.
    */
   maxDurBeats?: number | null;
+  /**
+   * Arrangement intent. `source` keeps the imported staff assignment as
+   * faithfully as possible (the historical direct-call behaviour). `learner`
+   * applies the conservative two-hand, melody-over-chords shaping used by the
+   * catalogue: suspicious one-sided labels are rebalanced by pitch and the
+   * advanced level gets a human-sized sounding budget.
+   */
+  arrangementProfile?: "source" | "learner";
 }
 
 export const SAFE_TEMPO_BPM = 120;
@@ -346,6 +354,52 @@ function splitPreservingHands(notes: Note[], forceUnlabeledToRh = false): { rh: 
   return { rh: [...labeledRh, ...inferred.rh], lh: [...labeledLh, ...inferred.lh] };
 }
 
+function handStats(notes: Note[]): { left: Note[]; right: Note[]; pitchSpan: number; chordSlices: number } {
+  const left = notes.filter((n) => n.hand === "L");
+  const right = notes.filter((n) => n.hand !== "L");
+  const pitches = notes.map((n) => n.midi);
+  const bySlice = new Map<number, Set<number>>();
+  for (const n of notes) {
+    const key = Math.round(n.start / 0.125);
+    const slice = bySlice.get(key) ?? new Set<number>();
+    slice.add(n.midi);
+    bySlice.set(key, slice);
+  }
+  const chordSlices = [...bySlice.values()].filter((slice) => {
+    if (slice.size < 2) return false;
+    const sorted = [...slice].sort((a, b) => a - b);
+    return sorted[sorted.length - 1]! - sorted[0]! >= 3;
+  }).length;
+  return {
+    left,
+    right,
+    pitchSpan: pitches.length ? Math.max(...pitches) - Math.min(...pitches) : 0,
+    chordSlices,
+  };
+}
+
+/**
+ * Imported MIDI labels are frequently copied from a single source staff (all
+ * notes say RH, or the bass staff contains almost everything). That is legal
+ * MIDI but a poor teaching arrangement: the learner sees no useful left-hand
+ * part. Re-split only when the shape provides evidence for a two-hand texture
+ * (a meaningful pitch span and repeated chord/voice slices), leaving genuinely
+ * monophonic pieces and balanced/cross-handed arrangements untouched.
+ */
+function shouldRebalanceForLearner(notes: Note[]): boolean {
+  if (notes.length < 16) return false;
+  const { left, right, pitchSpan, chordSlices } = handStats(notes);
+  const smaller = Math.min(left.length, right.length);
+  const larger = Math.max(left.length, right.length);
+  const oneSided = smaller === 0;
+  const severelyImbalanced = larger > 0 && smaller / larger < 0.15;
+  if (!oneSided && !severelyImbalanced) return false;
+  if (pitchSpan < 24) return false;
+  // At least a few independent attacks must support a harmony/bass reading;
+  // a single high-register melody should not acquire invented left-hand notes.
+  return chordSlices >= Math.max(3, Math.floor(notes.length / 80)) || Math.min(...notes.map((n) => n.midi)) <= 48;
+}
+
 /** Detect the continuous-pitch, high-overlap walls that need a percentile
  * hand split. A large pitch gap is a real bass/treble boundary and should
  * continue to win; only dense material with no such boundary is rebalanced.
@@ -574,6 +628,7 @@ function rootOf(midi: number, key: string): number {
  */
 export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOptions = {}): Variant[] {
   const grid = opts.grid ?? 0.25;
+  const learnerProfile = opts.arrangementProfile === "learner";
   const tempo = normalizeTempoBpm(meta.tempo ?? src.tempoBpm);
   // Every source type passes through the same conservative structural cleanup.
   // YouTube ingestion may additionally run cleanTranscription() beforehand;
@@ -597,11 +652,19 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     unlabeledSource.length ? unlabeledSource : splitSource,
     src.trackNames,
   );
-  const split = hasExplicitHands
-    ? splitPreservingHands(splitSource, pathologicalWall && unlabeledSource.length > 0)
-    : pathologicalWall
-      ? { rh: splitSource.map((n) => ({ ...n, hand: "R" as const })), lh: [] as Note[] }
-      : splitHands(splitSource);
+  // Learner arrangements may correct a source that labels every staff note as
+  // one hand. This is deliberately gated by `shouldRebalanceForLearner`; a
+  // real cross-handed score and a genuinely monophonic melody keep the source
+  // labels. Dense unlabeled transcription walls retain their existing safety
+  // fallback below.
+  const learnerRebalance = learnerProfile && shouldRebalanceForLearner(splitSource);
+  const split = learnerRebalance
+    ? splitHands(splitSource)
+    : hasExplicitHands
+      ? splitPreservingHands(splitSource, pathologicalWall && unlabeledSource.length > 0)
+      : pathologicalWall
+        ? { rh: splitSource.map((n) => ({ ...n, hand: "R" as const })), lh: [] as Note[] }
+        : splitHands(splitSource);
   const { rh, lh } = split;
   const key = meta.key ?? detectKey(imported).name;
   // Detect background pads before sustain capping; otherwise a long drone
@@ -618,7 +681,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   // slice AND sounding span so full-band multitrack MIDIs stay a playable
   // piano texture; each easier level is then a reduction of the level above
   // so the ladder stays a true subset.
-  const advanced = capLevel("advanced", quantize(
+  const advancedSource = quantize(
     [
       ...capSoundingSpan(topVoices(rh, 0.125, 4, pads), 12, "high"),
       // Advanced keeps the imported LH attacks intact. Chord thinning is a
@@ -627,7 +690,19 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
       ...capSoundingSpan(lh, 12, "low"),
     ],
     { grid: 0.125 },
-  ));
+  );
+  // The source-level validator allows up to 13 simultaneous notes for
+  // advanced material because some faithful arrangements use large chords.
+  // A learner still has two hands: cap the advanced texture at four held
+  // notes per hand (eight total), shortening old sustains before dropping new
+  // attacks. This specifically prevents the “sounds right but no human could
+  // play it” failure mode while preserving the melody and chord attacks.
+  const advanced = capLevel(
+    "advanced",
+    learnerProfile
+      ? trimSamePitchOverlaps(capPlayableSounding(advancedSource, 8))
+      : advancedSource,
+  );
   const advancedRh = advanced.filter((n) => n.hand !== "L");
   const advancedLh = advanced.filter((n) => n.hand === "L");
   const medium = capLevel("medium", trimSamePitchOverlaps(quantize(

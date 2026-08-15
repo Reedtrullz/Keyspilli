@@ -3,6 +3,7 @@ import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { dbPath } from "./paths.js";
 import { groupSongs, type GroupedSong } from "./group.js";
+import { blockedLearnerBases, isLearnerBlocked } from "./learner-review.js";
 
 export interface SongRow {
   id: string;
@@ -185,7 +186,8 @@ export function replaceSongsByBase(baseId: string, rows: SongRow[]): void {
 
 export function getSong(id: string): SongRow | undefined {
   const r = getDb().prepare("SELECT * FROM songs WHERE id = ?").get(id) as Record<string, unknown> | undefined;
-  return r ? mapSong(r) : undefined;
+  if (!r || isLearnerBlocked(r.base_id as string)) return undefined;
+  return mapSong(r);
 }
 
 export function getSongsByBase(baseId: string): SongRow[] {
@@ -195,6 +197,12 @@ export function getSongsByBase(baseId: string): SongRow[] {
 export function listSongs(f: SongFilters = {}, limitCap = 200): SongRow[] {
   const conds: string[] = [];
   const params: Record<string, unknown> = {};
+  const blocked = [...blockedLearnerBases()];
+  if (blocked.length) {
+    const placeholders = blocked.map((_, index) => `blocked${index}`);
+    conds.push(`base_id NOT IN (${placeholders.map((name) => `@${name}`).join(", ")})`);
+    for (const [index, baseId] of blocked.entries()) params[`blocked${index}`] = baseId;
+  }
   const map: Record<string, string> = {
     difficulty: "difficulty",
     key: "key",
@@ -266,7 +274,10 @@ export function listSongsGrouped(f: SongFilters = {}): GroupedSong[] {
 }
 
 export function countSongs(): number {
-  return (getDb().prepare("SELECT COUNT(*) AS c FROM songs").get() as { c: number }).c;
+  const blocked = [...blockedLearnerBases()];
+  if (!blocked.length) return (getDb().prepare("SELECT COUNT(*) AS c FROM songs").get() as { c: number }).c;
+  const placeholders = blocked.map(() => "?").join(", ");
+  return (getDb().prepare(`SELECT COUNT(*) AS c FROM songs WHERE base_id NOT IN (${placeholders})`).get(...blocked) as { c: number }).c;
 }
 
 export function incrementPlays(id: string): void {

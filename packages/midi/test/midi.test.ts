@@ -372,6 +372,67 @@ describe("buildVariants", () => {
     expect(variants[5]!.notes.length).toBeGreaterThan(0);
   });
 
+  it("revoices a one-staff chordal import for the learner profile", () => {
+    const notes: Note[] = [];
+    for (let i = 0; i < 24; i++) {
+      const start = i * 0.5;
+      // A melody plus a low triad-like attack, all incorrectly labelled RH by
+      // the source exporter. The learner profile should expose a useful LH
+      // part without changing the source/default profile.
+      notes.push({ midi: 72 + (i % 5), start, dur: 0.4, vel: 90, hand: "R" });
+      notes.push({ midi: 48, start, dur: 0.4, vel: 70, hand: "R" });
+      notes.push({ midi: 52, start, dur: 0.4, vel: 65, hand: "R" });
+    }
+    const input: ParsedMidi = {
+      format: 0,
+      division: 480,
+      tempoBpm: 100,
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes,
+      trackNames: ["Piano"],
+      durationBeats: 12,
+    };
+    const source = buildVariants(input, { title: "Source", artist: "Test" }).find((v) => v.level === "advanced")!;
+    const learner = buildVariants(input, { title: "Learner", artist: "Test" }, { arrangementProfile: "learner" })
+      .find((v) => v.level === "advanced")!;
+    expect(source.notes.every((n) => n.hand !== "L")).toBe(true);
+    expect(learner.notes.some((n) => n.hand === "L")).toBe(true);
+    expect(learner.notes.some((n) => n.hand !== "L" && n.midi >= 72)).toBe(true);
+  });
+
+  it("keeps learner advanced sounding notes within an eight-finger budget", () => {
+    const notes: Note[] = [];
+    for (let i = 0; i < 32; i++) {
+      for (let j = 0; j < 12; j++) {
+        notes.push({ midi: 36 + j * 4, start: i, dur: 4, vel: 70, hand: j < 6 ? "L" : "R" });
+      }
+    }
+    const input: ParsedMidi = {
+      format: 0,
+      division: 480,
+      tempoBpm: 90,
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes,
+      trackNames: ["LH", "RH"],
+      durationBeats: 35,
+    };
+    const advanced = buildVariants(input, { title: "Dense", artist: "Test" }, { arrangementProfile: "learner" })
+      .find((v) => v.level === "advanced")!;
+    const events = advanced.notes.flatMap((n) => [[n.start, 1], [n.start + n.dur, -1]] as [number, number][])
+      .sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    let active = 0;
+    let max = 0;
+    for (const [, delta] of events) {
+      active += delta;
+      max = Math.max(max, active);
+    }
+    expect(max).toBeLessThanOrEqual(8);
+  });
+
   it("falls back from an implausible source tempo before validation", () => {
     const notes = Array.from({ length: 16 }, (_, i) => ({
       midi: 60 + (i % 4),

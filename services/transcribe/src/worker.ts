@@ -99,10 +99,10 @@ async function processJob(jobId: string): Promise<void> {
       sourceYoutubeUrl: job.youtubeUrl,
       sourceRef: `youtube-job:${jobId}`,
       baseId: existing?.baseId,
-      // filterTranscription already removed audio-unmatched notes and trimmed
-      // silence; do not run the generic AI cleaner a second time and erase
-      // legitimate short/grace notes from the filtered result.
-      cleanTranscription: false,
+      // filterTranscription removes audio-unmatched notes and trims silence.
+      // Keep the conservative ingest cleaner enabled too; it only removes
+      // short/quiet re-strikes and catches misclicks that share a real onset.
+      cleanTranscription: true,
     });
     if (result.error) throw new Error(result.error);
     // Keep the conversion job pointed at the stable easy variant by its

@@ -54,6 +54,8 @@ export interface IngestInput {
    * preserves long human-authored MIDI/MusicXML sustains.
    */
   maxDurBeats?: number | null;
+  /** Arrangement intent; catalogue imports default to the learner profile. */
+  arrangementProfile?: "source" | "learner";
 }
 
 /** Optional deterministic hook used by integration tests to exercise rollback. */
@@ -204,7 +206,10 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
       key: inp.key,
       tempo: inp.tempo,
     },
-    maxDurBeats === undefined ? undefined : { maxDurBeats },
+    {
+      ...(maxDurBeats === undefined ? {} : { maxDurBeats }),
+      arrangementProfile: inp.arrangementProfile ?? "learner",
+    },
   );
   const validationErrors = validateVariants(variants, { maxDurBeats });
   if (validationErrors.length) {

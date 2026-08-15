@@ -148,7 +148,9 @@ for (const { base_id: base } of bases) {
     sourceYoutubeUrl: job?.youtube_url ?? song.sourceYoutubeUrl ?? null,
     sourceRef: `youtube-job:${job?.id ?? "unknown"}`,
     baseId: base,
-    cleanTranscription: false,
+    // Keep the audio-onset filter and run the conservative ghost-note pass in
+    // ingestSource as well; real-onset misclicks can survive the first filter.
+    cleanTranscription: true,
   });
   const after = await variantCount(base);
   if (r.error) {

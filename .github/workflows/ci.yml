@@ -326,6 +326,9 @@ jobs:
           done
           # Manifest metadata for curated restores inside the worker container.
           $SSH $HOST "$COMPOSE exec -T -i worker sh -c 'cat > /data/manifest.json'" < catalog/manifest.json
+          # Learner review data keeps known source-identity failures out of the
+          # public catalogue while they are awaiting a replacement source.
+          $SSH $HOST "$COMPOSE exec -T -i worker sh -c 'cat > /data/learner-review.json'" < catalog/learner-review.json
           # Clear the sentinel synchronously before starting the detached
           # process. Clearing it inside `exec -d` races the first poll and can
           # make a previous REBUILD_COMPLETE marker look like this run's
