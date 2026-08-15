@@ -126,6 +126,28 @@ describe("parseMidi", () => {
     const m = parseMidi(buf);
     expect(m.tempoBpm).toBe(120);
   });
+
+  it("preserves RH/LH track labels on parsed notes", () => {
+    const bytes = writeMidi(
+      [
+        { midi: 72, start: 0, dur: 1, vel: 90 },
+        { midi: 36, start: 0, dur: 1, vel: 90 },
+      ],
+      {
+        tempoBpm: 120,
+        tracks: [
+          { name: "RH", notes: [{ midi: 72, start: 0, dur: 1, vel: 90 }] },
+          { name: "LH", notes: [{ midi: 36, start: 0, dur: 1, vel: 90 }] },
+        ],
+      },
+    );
+    const parsed = parseMidi(bytes);
+    expect(parsed.trackNames).toEqual(["RH", "LH"]);
+    expect(parsed.notes.map((n) => [n.midi, n.hand])).toEqual([
+      [36, "L"],
+      [72, "R"],
+    ]);
+  });
 });
 
 describe("writeMidi roundtrip", () => {
@@ -557,6 +579,26 @@ describe("buildVariants", () => {
     const advanced = buildVariants(src, { title: "Piano", artist: "Test" }).find((v) => v.level === "advanced")!;
     expect(advanced.notes.some((n) => n.hand === "L")).toBe(true);
     expect(advanced.notes.some((n) => n.hand === "R")).toBe(true);
+  });
+
+  it("does not replace explicit cross-handed staff labels with pitch splitting", () => {
+    const src: ParsedMidi = {
+      format: 1,
+      division: 480,
+      tempoBpm: 120,
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes: [
+        ...Array.from({ length: 8 }, (_, i) => ({ midi: 48 + (i % 2), start: i, dur: 0.5, vel: 80, hand: "R" as const })),
+        ...Array.from({ length: 8 }, (_, i) => ({ midi: 72 + (i % 2), start: i, dur: 0.5, vel: 80, hand: "L" as const })),
+      ],
+      trackNames: ["RH", "LH"],
+      durationBeats: 8,
+    };
+    const advanced = buildVariants(src, { title: "Cross-handed", artist: "Test" }).find((v) => v.level === "advanced")!;
+    expect(advanced.notes.filter((n) => n.midi < 60).every((n) => n.hand === "R")).toBe(true);
+    expect(advanced.notes.filter((n) => n.midi > 60).every((n) => n.hand === "L")).toBe(true);
   });
 
   it("does not create same-pitch overlaps while reducing a curated piano import", () => {

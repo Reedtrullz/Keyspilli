@@ -317,6 +317,27 @@ function capAttackDensity(notes: Note[], tempoBpm: number, maxDensity: number, m
   return groups.filter((_, i) => keep.has(i)).flatMap(([, ns]) => ns);
 }
 
+/**
+ * Respect explicit staff/track labels while still giving unlabeled material
+ * a deterministic pitch-based split. MIDI imports can contain one named LH
+ * track plus auxiliary unlabeled tracks, so an all-or-nothing branch would
+ * either discard the label or force every auxiliary note onto the RH staff.
+ */
+function splitPreservingHands(notes: Note[], forceUnlabeledToRh = false): { rh: Note[]; lh: Note[] } {
+  const labeledRh = notes.filter((n) => n.hand === "R");
+  const labeledLh = notes.filter((n) => n.hand === "L");
+  const unlabeled = notes.filter((n) => n.hand === undefined);
+  if (!unlabeled.length) return { rh: labeledRh, lh: labeledLh };
+  if (forceUnlabeledToRh) {
+    return {
+      rh: [...labeledRh, ...unlabeled.map((n) => ({ ...n, hand: "R" as const }))],
+      lh: labeledLh,
+    };
+  }
+  const inferred = splitHands(unlabeled);
+  return { rh: [...labeledRh, ...inferred.rh], lh: [...labeledLh, ...inferred.lh] };
+}
+
 /** Detect the continuous-pitch, high-overlap walls that need a percentile
  * hand split. A large pitch gap is a real bass/treble boundary and should
  * continue to win; only dense material with no such boundary is rebalanced.
@@ -557,10 +578,17 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     ? [`${shifted.length} source notes were octave-normalized into the piano range 21-108`]
     : [];
   const splitSource = normalized;
-  const pathologicalWall = isDenseContinuousWall(imported, src.trackNames);
-  const split = pathologicalWall
-    ? { rh: splitSource.map((n) => ({ ...n, hand: "R" as const })), lh: [] as Note[] }
-    : splitHands(splitSource);
+  const hasExplicitHands = splitSource.some((n) => n.hand !== undefined);
+  const unlabeledSource = splitSource.filter((n) => n.hand === undefined);
+  const pathologicalWall = isDenseContinuousWall(
+    unlabeledSource.length ? unlabeledSource : splitSource,
+    src.trackNames,
+  );
+  const split = hasExplicitHands
+    ? splitPreservingHands(splitSource, pathologicalWall && unlabeledSource.length > 0)
+    : pathologicalWall
+      ? { rh: splitSource.map((n) => ({ ...n, hand: "R" as const })), lh: [] as Note[] }
+      : splitHands(splitSource);
   const { rh, lh } = split;
   const key = meta.key ?? detectKey(imported).name;
   // Detect background pads before sustain capping; otherwise a long drone

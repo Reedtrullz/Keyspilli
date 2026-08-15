@@ -1,4 +1,13 @@
-import { Note, ParsedMidi } from "./types.js";
+import { Hand, Note, ParsedMidi } from "./types.js";
+
+function inferTrackHand(names: string[]): Hand | undefined {
+  const text = names.join(" ").toLowerCase();
+  // Only use unambiguous staff/voice labels. Generic track names such as
+  // "piano" or "melody" should still go through the pitch-based splitter.
+  if (/\b(?:left\s*hand|lh|bass|lower)\b/.test(text)) return "L";
+  if (/\b(?:right\s*hand|rh|treble|upper)\b/.test(text)) return "R";
+  return undefined;
+}
 
 function readVarint(data: Uint8Array, pos: { v: number }): number {
   let value = 0;
@@ -45,6 +54,7 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
     const end = pos + len;
     let tick = 0;
     let running: number | null = null;
+    const namesInTrack: string[] = [];
     // MIDI does not carry a note identity on note-off events. Keep a FIFO
     // queue per (channel,pitch). The writer allocates separate channels for
     // overlapping same-pitch intervals, which makes even nested re-strikes
@@ -82,7 +92,11 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
             keySig = (buf[pos]! << 24) >> 24;
             keyMode = buf[pos + 1]! === 0 ? 0 : 1;
           } else if (type === 0x03) {
-            trackNames.push(readStr(buf, { v: pos }, len2));
+            const name = readStr(buf, { v: pos }, len2);
+            if (name.trim()) {
+              namesInTrack.push(name);
+              trackNames.push(name);
+            }
           } else if (type === 0x01 || type === 0x02) {
             const s = readStr(buf, { v: pos }, len2);
             if (!title && s.trim()) title = s.trim();
@@ -130,11 +144,8 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
         notes.push({ midi: s.midi, start: s.start, dur: Math.max(0.01, tick / division - s.start), vel: s.vel });
       }
     }
-    trackNotes.push(notes);
-    if (t === 0) {
-      const n = trackNames[trackNames.length - 1];
-      if (n && /piano/i.test(n)) trackNames.splice(trackNames.length - 1, 1, n);
-    }
+    const hand = inferTrackHand(namesInTrack);
+    trackNotes.push(hand ? notes.map((n) => ({ ...n, hand })) : notes);
   }
 
   const valid = trackNotes
