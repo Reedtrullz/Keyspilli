@@ -12,7 +12,7 @@
  */
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
-import { getSongsByBase, ingestSource } from "../src/index.js";
+import { getSongsByBase, ingestSource, MAX_YOUTUBE_IMPORT_DUR_BEATS } from "../src/index.js";
 import { ROOT, dataDir, seedMidiDir } from "../src/paths.js";
 
 interface ManifestEntry {
@@ -63,6 +63,11 @@ for (const f of files) {
     acquiredVia: row.acquiredVia ?? null,
     sourceYoutubeUrl: row.sourceYoutubeUrl ?? null,
     baseId,
+    // Curated YouTube seeds are restored as standard MIDI so their hand
+    // labels/dynamics are preserved, but they still came from an audio
+    // transcription and need the same short-tail ceiling as the YouTube
+    // ingestion path.
+    maxDurBeats: row.acquiredVia === "youtube" ? MAX_YOUTUBE_IMPORT_DUR_BEATS : undefined,
   });
   if (r.error) {
     console.warn(`x ${baseId}: ${r.error}`);

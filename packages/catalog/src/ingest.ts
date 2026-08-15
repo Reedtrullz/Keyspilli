@@ -30,7 +30,7 @@ const LEVEL_CODE: Record<string, string> = {
 // a 2–4 second falling bar and masks the next melody attack.  Keep the
 // transcription path conservative while leaving human-authored MIDI uploads
 // free to contain legitimate longer holds.
-const MAX_YOUTUBE_IMPORT_DUR_BEATS = 1.5;
+export const MAX_YOUTUBE_IMPORT_DUR_BEATS = 1.5;
 
 export interface IngestInput {
   buf: Uint8Array;
@@ -47,6 +47,8 @@ export interface IngestInput {
   baseId?: string;
   /** Override the default YouTube cleanup for curated human-authored MIDI. */
   cleanTranscription?: boolean;
+  /** Optional sustain ceiling for a curated transcription source. */
+  maxDurBeats?: number;
 }
 
 /** Optional deterministic hook used by integration tests to exercise rollback. */
@@ -180,6 +182,7 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
   // not part of the source arrangement. Preserve per-level plays and creation
   // timestamps so repairing an arrangement does not reset the live catalog.
   const existingRows = inp.baseId ? getSongsByBase(baseId) : [];
+  const maxDurBeats = inp.maxDurBeats ?? (inp.contentType === "youtube" ? MAX_YOUTUBE_IMPORT_DUR_BEATS : undefined);
   const variants = buildVariants(
     parsed,
     {
@@ -188,7 +191,7 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
       key: inp.key,
       tempo: inp.tempo,
     },
-    inp.contentType === "youtube" ? { maxDurBeats: MAX_YOUTUBE_IMPORT_DUR_BEATS } : undefined,
+    maxDurBeats === undefined ? undefined : { maxDurBeats },
   );
   const validationErrors = validateVariants(variants);
   if (validationErrors.length) {
