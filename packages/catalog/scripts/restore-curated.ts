@@ -45,8 +45,11 @@ for (const f of files) {
   const baseId = f.slice(0, -4);
   if (requested.size && !requested.has(baseId)) continue;
   const row = getSongsByBase(baseId)[0];
-  if (!row) continue;
   const entry = byId.get(baseId);
+  // A newly added tracked seed may not have a DB row yet. Manifest metadata
+  // is sufficient to publish it; older seed files without a manifest entry
+  // remain ignored rather than inventing catalogue metadata.
+  if (!row && !entry) continue;
   const buf = new Uint8Array(await readFile(join(seedMidiDir(), f)));
   if (dryRun) {
     restored++;
@@ -58,26 +61,26 @@ for (const f of files) {
   // provenance when restoring so later rebuild stages can identify and skip
   // the curated source without a song-specific allowlist.
   const manifestYoutube = /(?:youtube\.com|youtu\.be)/i.test(entry?.sourceUrl ?? "");
-  const contentType = entry?.contentType ?? (row.contentType === "upload"
+  const contentType = entry?.contentType ?? (row?.contentType === "upload"
     ? "upload"
-    : row.contentType === "youtube" || row.acquiredVia === "youtube"
+    : row?.contentType === "youtube" || row?.acquiredVia === "youtube"
       ? "youtube"
       : manifestYoutube
         ? "youtube"
         : "standard");
-  const acquiredVia = entry?.acquiredVia ?? row.acquiredVia ?? (manifestYoutube ? "youtube" : null);
+  const acquiredVia = entry?.acquiredVia ?? row?.acquiredVia ?? (manifestYoutube ? "youtube" : null);
   const r = await ingestSource({
     buf,
-    title: entry?.title ?? row.title,
-    artist: entry?.artist ?? row.artist,
-    category: entry?.category ?? row.category ?? "Standard",
-    style: entry?.style ?? row.style,
-    mood: entry?.mood ?? row.mood,
-    key: entry?.key ?? row.key,
-    tempo: entry?.tempo ?? row.tempo,
+    title: entry?.title ?? row?.title ?? baseId,
+    artist: entry?.artist ?? row?.artist ?? "Unknown",
+    category: entry?.category ?? row?.category ?? "Standard",
+    style: entry?.style ?? row?.style ?? "classical",
+    mood: entry?.mood ?? row?.mood ?? "peaceful",
+    key: entry?.key ?? row?.key,
+    tempo: entry?.tempo ?? row?.tempo,
     contentType,
     acquiredVia,
-    sourceYoutubeUrl: manifestYoutube ? entry?.sourceUrl : row.sourceYoutubeUrl ?? null,
+    sourceYoutubeUrl: manifestYoutube ? entry?.sourceUrl : row?.sourceYoutubeUrl ?? null,
     sourceRef: `seed:${f}`,
     baseId,
     // Keep the source-aware tail ceiling for curated YouTube imports while
