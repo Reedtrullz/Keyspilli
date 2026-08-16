@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-08-09T13:22:51.232Z",
-  "count": 152,
+  "generatedAt": "2026-08-16T01:58:00.000Z",
+  "count": 153,
   "songs": [
     {
       "id": "a-adam-giselle-pas-de-deux-1er-acte",
@@ -1859,6 +1859,22 @@
       "source": "ug-tabs",
       "verifiedTitle": "The Killers - Human (Deepack Hardstyle Bootleg).mid",
       "disabled": true
+    },
+    {
+      "id": "the-theorist-elton-john-your-song-piano-cover-jz6ugvghbt8",
+      "title": "Elton John - Your Song | The Theorist Piano Cover",
+      "artist": "The Theorist",
+      "category": "Pop",
+      "style": "pop",
+      "mood": "peaceful",
+      "tempo": 129,
+      "sourceUrl": "https://www.youtube.com/watch?v=JZ6uGVghbT8",
+      "sourceFile": "the-theorist-elton-john-your-song-piano-cover-jz6ugvghbt8.mid",
+      "contentType": "youtube",
+      "acquiredVia": "youtube",
+      "sourceRef": "youtube:JZ6uGVghbT8",
+      "license": "YouTube transcription (The Theorist; private use)",
+      "instrument": "for Piano"
     },
     {
       "id": "w-h-doane-near-the-cross",
