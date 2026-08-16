@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { PlaybackEngine, type AudioLike } from "../src/engine.js";
 import { DEFAULT_SETTINGS } from "../src/prefs.js";
 import type { PlayerSettings } from "../src/types.js";
-import type { TimedNote } from "../src/timeline.js";
+import { dedupeChords, type TimedNote } from "../src/timeline.js";
 
 class FakeAudio implements AudioLike {
   noteOns: { midi: number; when: number }[] = [];
@@ -10,7 +10,7 @@ class FakeAudio implements AudioLike {
   ensured = 0;
   cancelled = 0;
   clicks: number[] = [];
-  playedChords: { pitchClasses: number[]; bassMidi: number; when: number }[] = [];
+  playedChords: { midiNotes: number[]; when: number; durationSec: number }[] = [];
   ensure(): unknown {
     this.ensured++;
     return {};
@@ -24,8 +24,8 @@ class FakeAudio implements AudioLike {
   metronomeClick(beat: number): void {
     this.clicks.push(beat);
   }
-  playChord(pitchClasses: number[], bassMidi: number, when = 0): void {
-    this.playedChords.push({ pitchClasses, bassMidi, when });
+  playChord(midiNotes: number[], when: number, durationSec: number): void {
+    this.playedChords.push({ midiNotes, when, durationSec });
   }
   cancelAll(): void {
     this.cancelled++;
@@ -211,10 +211,10 @@ describe("PlaybackEngine", () => {
       ],
     );
     eng.start();
-    expect(audio.playedChords).toEqual([{ pitchClasses: [0, 4, 7], bassMidi: 48, when: 0 }]);
+    expect(audio.playedChords).toEqual([{ midiNotes: [48, 52, 55], when: 0, durationSec: 1.2 }]);
     expect(audio.noteOns.map((n) => n.midi)).not.toContain(48);
     eng.tick(0.5);
-    expect(audio.playedChords.map((c) => c.pitchClasses)).toContainEqual([2, 5, 9]);
+    expect(audio.playedChords.map((c) => c.midiNotes)).toContainEqual([50, 53, 57]);
   });
 
   it("falls back to piano scheduling when chord mode has no timeline", () => {
@@ -238,5 +238,65 @@ describe("PlaybackEngine", () => {
     eng.seek(0.6);
     expect(audio.cancelled).toBeGreaterThan(before);
     expect(audio.playedChords.length).toBeGreaterThan(1);
+  });
+
+  it("passes sorted absolute MIDI voicings, preserving octaves and collapsing exact duplicates", () => {
+    const audio = new FakeAudio();
+    const eng = new PlaybackEngine(
+      audio,
+      [],
+      1,
+      SONG,
+      { ...DEFAULT_SETTINGS, backgroundMode: "chord", transpose: 2 },
+      [{ beat: 0, name: "C", notes: [67, 48, 60, 60, 48, 72] }],
+    );
+    eng.start();
+    expect(audio.playedChords).toEqual([{ midiNotes: [50, 62, 69, 74], when: 0, durationSec: 1.2 }]);
+  });
+
+  it("converts chord duration beats using tempo and playback speed", () => {
+    const audio = new FakeAudio();
+    const eng = new PlaybackEngine(
+      audio,
+      [],
+      2,
+      SONG,
+      { ...DEFAULT_SETTINGS, backgroundMode: "chord", speed: 2 },
+      [{ beat: 0, name: "C", notes: [48, 55, 60], durationBeats: 4 }],
+    );
+    eng.start();
+    expect(audio.playedChords).toEqual([{ midiNotes: [48, 55, 60], when: 0, durationSec: 1 }]);
+  });
+
+  it("converts a deduped next-onset span at the active tempo", () => {
+    const chords = dedupeChords([
+      { beat: 0, name: "C", notes: [48, 52, 55], sourceKind: "generated" as const },
+      { beat: 2, name: "G", notes: [43, 47, 50], sourceKind: "generated" as const },
+    ]);
+    expect(chords[0]!.durationBeats).toBe(2);
+
+    const fastAudio = new FakeAudio();
+    const fast = new PlaybackEngine(
+      fastAudio,
+      [],
+      2,
+      { tempoBpm: 120, timeSig: [4, 4] },
+      { ...DEFAULT_SETTINGS, backgroundMode: "chord" },
+      chords,
+    );
+    fast.start();
+    expect(fastAudio.playedChords[0]!.durationSec).toBeCloseTo(1, 5);
+
+    const slowAudio = new FakeAudio();
+    const slow = new PlaybackEngine(
+      slowAudio,
+      [],
+      2,
+      { tempoBpm: 60, timeSig: [4, 4] },
+      { ...DEFAULT_SETTINGS, backgroundMode: "chord" },
+      chords,
+    );
+    slow.start();
+    expect(slowAudio.playedChords[0]!.durationSec).toBeCloseTo(2, 5);
   });
 });

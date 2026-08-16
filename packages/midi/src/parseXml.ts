@@ -57,7 +57,11 @@ function mergeTiedNotes(notes: ParsedXmlNote[]): Note[] {
  */
 export function parseMusicXmlNotes(xml: string): ParsedMidi {
   const divisions = Math.max(1, parseInt(firstMatch(xml, /<divisions>(\d+)<\/divisions>/), 10) || 1);
-  const tempo = parseInt(firstMatch(xml, /<per-minute>(\d+)<\/per-minute>/), 10) || 120;
+  // MusicXML permits fractional metronome values. Keep the explicit value so
+  // artifact validation can distinguish a real tempo direction from the
+  // parser's safe fallback when a source omitted one.
+  const tempoMatch = xml.match(/<per-minute>\s*([0-9]+(?:\.[0-9]+)?)\s*<\/per-minute>/i);
+  const tempo = tempoMatch ? Number.parseFloat(tempoMatch[1]!) : 120;
   const beats = parseInt(firstMatch(xml, /<time><beats>(\d+)<\/beats><beat-type>(\d+)<\/beat-type><\/time>/) || firstMatch(xml, /<beats>(\d+)<\/beats>/), 10) || 4;
   const beatType = parseInt(firstMatch(xml, /<beat-type>(\d+)<\/beat-type>/), 10) || 4;
   const fifths = parseInt(firstMatch(xml, /<fifths>(-?\d+)<\/fifths>/), 10) || 0;
@@ -122,6 +126,7 @@ export function parseMusicXmlNotes(xml: string): ParsedMidi {
     format: 0,
     division: divisions,
     tempoBpm: tempo,
+    tempoMetaPresent: tempoMatch !== null,
     keySig: fifths,
     keyMode: mode === "minor" ? 1 : 0,
     timeSig: [beats, beatType],

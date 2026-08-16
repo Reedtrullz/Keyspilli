@@ -52,6 +52,7 @@ const MODES: { id: ViewMode; label: string; hint: string }[] = [
 
 /** Pressed keys drop if their noteOff was lost (common with USB-MIDI). */
 const GHOST_KEY_TIMEOUT_MS = 5000;
+const TEMPO_SEMANTICS_NOTICE_KEY = "keyspilli.tempo-semantics.v1";
 
 export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMode | null }) {
   const [settings, setSettings] = useState<PlayerSettings>(() => {
@@ -65,6 +66,7 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
   const [showSettings, setShowSettings] = useState(false);
   const [showModeMenu, setShowModeMenu] = useState(false);
   const [showDownload, setShowDownload] = useState(false);
+  const [showTempoSemanticsNotice, setShowTempoSemanticsNotice] = useState(false);
   const [grading, setGrading] = useState(false);
   const [waitMode, setWaitMode] = useState(false);
   const [gradeResult, setGradeResult] = useState<{ summary: string; accuracyPct: number; hit: number; missed: number; wrong: number; late: number; total: number } | null>(null);
@@ -77,6 +79,18 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
     const value = loadJson("keyspilli.chordSource", "auto" as ChordSourceId);
     return value === "ug" || value === "generated" || value === "auto" ? value : "auto";
   });
+
+  // Tempo semantics changed from rewriting beat coordinates to controlling
+  // playback speed. Keep acknowledgement in versioned UI state so a future
+  // semantics change can show a new notice without touching artifact data.
+  useEffect(() => {
+    setShowTempoSemanticsNotice(loadJson<boolean>(TEMPO_SEMANTICS_NOTICE_KEY, false) !== true);
+  }, []);
+
+  function dismissTempoSemanticsNotice() {
+    saveJson(TEMPO_SEMANTICS_NOTICE_KEY, true);
+    setShowTempoSemanticsNotice(false);
+  }
 
   const engineRef = useRef<PlaybackEngine | null>(null);
   const modeMenuRef = useRef<HTMLDivElement>(null);
@@ -99,7 +113,10 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
       ...resolved,
       // Keep the established inferred-chord naming/cleanup path unchanged;
       // only source timelines bypass relabeling so their provenance is visible.
-      generated: { ...resolved.generated, chords: dedupeChords(initial.data.chords) },
+      // Normalize through the generated source first. This stamps legacy
+      // generated events with sourceKind=generated while preserving explicit
+      // authored/inferred/unknown metadata on newer artifacts.
+      generated: { ...resolved.generated, chords: dedupeChords(resolved.generated.chords) },
     };
   }, [initial.data]);
   const selectedChordSource = useMemo(
@@ -408,6 +425,20 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
         </div>
       </div>
 
+      {showTempoSemanticsNotice && (
+        <div className="mb-4 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-900" role="status">
+          <div className="flex items-start gap-3">
+            <p className="flex-1">
+              Practice tempo changes playback speed only and preserve the arrangement&apos;s beat coordinates. Source tempo
+              corrections are a separate maintainer calibration/rebuild action.
+            </p>
+            <button onClick={dismissTempoSemanticsNotice} className="shrink-0 rounded-lg border border-indigo-300 px-2 py-1 text-xs font-medium hover:bg-indigo-100">
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center gap-2 mb-4">
         <div className="relative" ref={modeMenuRef}>
           <button
@@ -593,8 +624,8 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
               waitNote={waitNote}
             />
           )}
-          {settings.mode === "beginner" && <BeginnerView data={initial.data} time={time} settings={settings} />}
-          {settings.mode === "leadsheet" && <LeadSheetView data={initial.data} time={time} settings={settings} />}
+          {settings.mode === "beginner" && <BeginnerView data={initial.data} time={time} settings={settings} chords={chords} />}
+          {settings.mode === "leadsheet" && <LeadSheetView data={initial.data} time={time} settings={settings} chords={chords} />}
           {settings.mode === "sheet" && <SheetMusicView songId={initial.song.id} />}
           {grading && (
             <GradingPanel

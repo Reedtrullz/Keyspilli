@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import type { ChordLabel } from "@keyspilli/midi";
+import { chordProvenance } from "./chord-provenance";
 
 interface ChordStripProps {
-  chords: { beat: number; name: string; notes: number[] }[];
+  chords: ChordLabel[];
   currentBeat: number;
 }
 
@@ -23,7 +25,7 @@ function MiniKeyboard({ notes }: { notes: number[] }) {
   const ww = W / whites.length;
 
   return (
-    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} aria-hidden="true">
       {whites.map((pc, i) => {
         const midi = pc + rangeLow;
         const active = noteSet.has(pc);
@@ -86,22 +88,28 @@ export function ChordStrip({ chords, currentBeat }: ChordStripProps) {
   if (chords.length === 0) return null;
 
   return (
-    <div ref={stripRef} className="flex gap-2 overflow-x-auto px-3 py-2 border-b border-zinc-100 bg-white" role="list" aria-label="Chord progression">
-      {chords.map((c, i) => (
-        <div
-          key={i}
-          data-chord-idx={i}
-          role="listitem"
-          className={`flex flex-col items-center gap-0.5 shrink-0 px-2 py-1 rounded-lg transition-colors ${
-            i === activeIdx ? "bg-blue-50 ring-1 ring-blue-300" : ""
-          }`}
-        >
-          <span className={`text-[10px] font-semibold leading-tight ${i === activeIdx ? "text-blue-700" : "text-zinc-600"}`}>
-            {c.name}
-          </span>
-          <MiniKeyboard notes={c.notes} />
-        </div>
-      ))}
+    <div ref={stripRef} className="flex gap-2 overflow-x-auto px-3 py-2 border-b border-zinc-100 bg-white" role="list" aria-label="Chord progression. Amber dotted chords are inferred; gray dotted chords have unknown provenance.">
+      {chords.map((c, i) => {
+        const provenance = chordProvenance(c);
+        return (
+          <div
+            key={i}
+            data-chord-idx={i}
+            data-source-kind={c.sourceKind ?? "unknown"}
+            role="listitem"
+            aria-label={`${c.name}: ${provenance.label}`}
+            title={provenance.label}
+            className={`flex flex-col items-center gap-0.5 shrink-0 px-2 py-1 rounded-lg transition-colors ${
+              i === activeIdx ? "bg-blue-50 ring-1 ring-blue-300" : ""
+            }`}
+          >
+            <span className={`text-[10px] font-semibold leading-tight ${provenance.textClass} ${provenance.dotted ? `border-b border-dotted ${provenance.borderClass}` : ""}`}>
+              {c.name}
+            </span>
+            <MiniKeyboard notes={c.notes} />
+          </div>
+        );
+      })}
     </div>
   );
 }

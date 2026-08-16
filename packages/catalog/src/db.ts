@@ -367,6 +367,34 @@ export function deleteSongsByBase(baseId: string): number {
   return getDb().prepare("DELETE FROM songs WHERE base_id = ?").run(baseId).changes;
 }
 
+export interface DeletedBaseRows {
+  jobIds: string[];
+  songCount: number;
+}
+
+/**
+ * Remove the read-model rows for one base as one SQLite transaction.
+ * Callers should invoke this only after the artifact filesystem commit has
+ * succeeded; a thrown transaction leaves the database intact so the stale
+ * read model can be reconciled explicitly.
+ */
+export function deleteBaseRows(baseId: string): DeletedBaseRows {
+  const conn = getDb();
+  const remove = conn.transaction((id: string): DeletedBaseRows => {
+    const jobs = conn
+      .prepare("SELECT id FROM conversion_jobs WHERE song_id IN (SELECT id FROM songs WHERE base_id = ?)")
+      .all(id) as { id: string }[];
+    if (jobs.length) {
+      conn
+        .prepare("DELETE FROM conversion_jobs WHERE song_id IN (SELECT id FROM songs WHERE base_id = ?)")
+        .run(id);
+    }
+    const songCount = conn.prepare("DELETE FROM songs WHERE base_id = ?").run(id).changes;
+    return { jobIds: jobs.map((row) => row.id), songCount };
+  });
+  return remove(baseId);
+}
+
 export function deleteJobsByBase(baseId: string): string[] {
   const rows = getDb()
     .prepare("SELECT id FROM conversion_jobs WHERE song_id IN (SELECT id FROM songs WHERE base_id = ?)")

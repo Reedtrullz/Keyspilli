@@ -11,7 +11,20 @@ import { ROOT } from "./paths.js";
 
 const execFileP = promisify(execFile);
 const PYTHON = process.env.KEYSPILLI_PYTHON ?? join(ROOT, "services", "transcribe", ".venv", "bin", "python");
-const ONSET_MATCH_SEC = Number(process.env.KEYSPILLI_ONSET_MATCH_SEC ?? 0.15);
+
+/** Bump when the audio-onset filtering algorithm or its Python contract changes. */
+export const TRANSCRIPTION_FILTER_VERSION = "audio-onset-filter-v1";
+
+/** Effective onset detector settings in services/transcribe/src/audio_onsets.py. */
+export const AUDIO_ONSET_DETECTOR_CONFIG = {
+  sampleRate: 22_050,
+  hopLength: 512,
+  backtrack: true,
+  delta: 0.07,
+} as const;
+
+/** Maximum distance between an audio onset and a Basic Pitch note onset. */
+export const ONSET_MATCH_SEC = Number(process.env.KEYSPILLI_ONSET_MATCH_SEC ?? 0.15);
 
 export async function filterTranscription(rawMidi: Uint8Array, audioPath: string): Promise<Uint8Array> {
   const { stdout } = await execFileP(PYTHON, [join(ROOT, "services", "transcribe", "src", "audio_onsets.py"), audioPath], {

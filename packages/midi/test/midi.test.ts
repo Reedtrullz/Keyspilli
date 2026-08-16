@@ -14,8 +14,12 @@ import {
   writeMidi,
   writeMusicXml,
   parseMusicXmlNotes,
+  writeVariantArtifacts,
   validateArtifactRoundtrip,
+  validateArtifactFiles,
   cleanTranscription,
+  TRANSCRIPTION_CLEANUP_CONFIG,
+  transcriptionMaxDurationBeats,
   sanitizeImportedNotes,
   LEVEL_ORDER,
   Note,
@@ -48,6 +52,7 @@ describe("parseMidi", () => {
   it("parses a hand-built scale fixture", () => {
     const m = parseMidi(SCALE_MIDI);
     expect(m.tempoBpm).toBe(120);
+    expect(m.tempoMetaPresent).toBe(true);
     expect(m.timeSig).toEqual([4, 4]);
     expect(m.keySig).toBe(0);
     expect(m.notes).toHaveLength(8);
@@ -125,6 +130,7 @@ describe("parseMidi", () => {
     `);
     const m = parseMidi(buf);
     expect(m.tempoBpm).toBe(120);
+    expect(m.tempoMetaPresent).toBe(false);
   });
 
   it("preserves RH/LH track labels on parsed notes", () => {
@@ -540,6 +546,39 @@ describe("buildVariants", () => {
       for (const c of v.chords) expect(c.notes).not.toContain(62);
     }
   });
+
+  it("stamps generated chord provenance and keeps absolute voicings canonical", () => {
+    const makeVariants = (notes: Note[]) => buildVariants({
+      format: 0,
+      division: 480,
+      tempoBpm: 120,
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes,
+      trackNames: ["Generated chord"],
+      durationBeats: 4,
+    }, { title: "Generated chord", artist: "Test" });
+    const input: Note[] = [
+      { midi: 67, start: 0, dur: 1, vel: 80 },
+      { midi: 60, start: 0, dur: 1, vel: 80 },
+      { midi: 64, start: 0, dur: 1, vel: 80 },
+      { midi: 60, start: 0, dur: 1, vel: 80 },
+    ];
+    const variants = makeVariants(input);
+    const chords = variants.flatMap((variant) => variant.chords);
+    expect(chords.length).toBeGreaterThan(0);
+    expect(chords.every((chord) => chord.sourceKind === "generated")).toBe(true);
+    for (const chord of chords) {
+      expect(chord.notes).toEqual([...new Set(chord.notes)].sort((a, b) => a - b));
+    }
+
+    // Reordering equivalent source notes must not change the generated chord
+    // event or its absolute MIDI voicing.
+    const reordered = makeVariants([...input].reverse()).map((variant) => variant.chords);
+    expect(reordered).toEqual(variants.map((variant) => variant.chords));
+  });
+
   it("roots easy-variant bass notes to the song key", () => {
     const src: ParsedMidi = {
       format: 0,
@@ -1048,6 +1087,19 @@ describe("reduceMediumRhythm", () => {
 });
 
 describe("cleanTranscription", () => {
+  it("keeps cleanup defaults and effective duration ceilings inspectable for provenance", () => {
+    expect(TRANSCRIPTION_CLEANUP_CONFIG).toEqual({
+      minVelocity: 30,
+      minDurationBeats: 0.14,
+      mergeWindowBeats: 0.125,
+      maxPolyphony: 6,
+      maxSounding: 8,
+      maxDurationSec: 2.5,
+    });
+    expect(transcriptionMaxDurationBeats(120)).toBe(5);
+    expect(transcriptionMaxDurationBeats(75)).toBe(3);
+  });
+
   it("drops quiet and ultra-short ghost notes, keeps real notes", () => {
     const notes: Note[] = [
       { midi: 60, start: 0, dur: 0.5, vel: 80 },
@@ -1364,6 +1416,68 @@ describe("artifact roundtrip validation", () => {
       measures: [{ index: 0, startBeat: 0, endBeat: 8 }],
     };
     expect(validateArtifactRoundtrip(variant, "T", "A")).toEqual([]);
+  });
+
+  it("keeps fractional BPM consistent across MIDI, MusicXML, and artifact validation", () => {
+    const variant: Variant = {
+      level: "advanced",
+      difficultyScore: 0,
+      notes: [{ midi: 60, start: 0, dur: 1, vel: 80, hand: "R" }],
+      chords: [],
+      bassPattern: "block",
+      key: "C",
+      tempoBpm: 120.25,
+      timeSig: [4, 4],
+      measures: [{ index: 0, startBeat: 0, endBeat: 4 }],
+    };
+    const artifacts = writeVariantArtifacts(variant, "T", "A");
+    const parsedMidi = parseMidi(artifacts.midi);
+    const parsedXml = parseMusicXmlNotes(artifacts.xml);
+    // SMF stores integer microseconds per quarter note, so its parsed BPM is
+    // close rather than bit-identical; MusicXML preserves the decimal value.
+    expect(parsedMidi.tempoBpm).toBeCloseTo(variant.tempoBpm, 3);
+    expect(parsedXml.tempoBpm).toBe(variant.tempoBpm);
+    expect(validateArtifactFiles(variant, artifacts)).toEqual([]);
+  });
+
+  it("rejects stale MIDI tempo metadata while allowing MIDI tempo encoding quantization", () => {
+    const variant: Variant = {
+      level: "advanced",
+      difficultyScore: 0,
+      notes: [{ midi: 60, start: 0, dur: 1, vel: 80, hand: "R" }],
+      chords: [],
+      bassPattern: "block",
+      key: "C",
+      tempoBpm: 142,
+      timeSig: [4, 4],
+      measures: [{ index: 0, startBeat: 0, endBeat: 4 }],
+    };
+    const good = writeVariantArtifacts(variant, "T", "A");
+    // MIDI's microseconds-per-quarter representation rounds the encoded BPM
+    // slightly; this is valid and must not make every 142-BPM artifact fail.
+    expect(validateArtifactFiles(variant, good)).toEqual([]);
+
+    const staleMidi = writeMidi(variant.notes, { tempoBpm: 141 });
+    const issues = validateArtifactFiles(variant, { ...good, midi: staleMidi });
+    expect(issues.some((issue) => issue.startsWith("midi roundtrip: tempo "))).toBe(true);
+  });
+
+  it("rejects stale MusicXML metronome tempo metadata", () => {
+    const variant: Variant = {
+      level: "advanced",
+      difficultyScore: 0,
+      notes: [{ midi: 60, start: 0, dur: 1, vel: 80, hand: "R" }],
+      chords: [],
+      bassPattern: "block",
+      key: "C",
+      tempoBpm: 120,
+      timeSig: [4, 4],
+      measures: [{ index: 0, startBeat: 0, endBeat: 4 }],
+    };
+    const good = writeVariantArtifacts(variant, "T", "A");
+    const staleXml = good.xml.replace("<per-minute>120</per-minute>", "<per-minute>119</per-minute>");
+    const issues = validateArtifactFiles(variant, { ...good, xml: staleXml });
+    expect(issues.some((issue) => issue.startsWith("xml roundtrip: tempo "))).toBe(true);
   });
 });
 

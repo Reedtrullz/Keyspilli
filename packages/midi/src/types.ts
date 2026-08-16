@@ -14,11 +14,30 @@ export interface Note {
   lyrics?: string;
 }
 
+/** Provenance of a chord event; omitted on legacy chord labels. */
+export type ChordSourceKind = "authored" | "inferred" | "generated" | "unknown";
+
+/** Why a chord label or voicing was inferred. */
+export type ChordInferenceType =
+  | "dyad-completion"
+  | "carry-forward-root"
+  | "nearest-symbol"
+  | "subbeat-extension"
+  | "voicing";
+
 export interface ChordLabel {
   /** beat position */
   beat: number;
   name: string;
   notes: number[];
+  /** Event provenance; absent for legacy labels without source metadata. */
+  sourceKind?: ChordSourceKind;
+  /** Whether the label or playable voicing was inferred. */
+  inferred?: boolean;
+  /** Strategy used to infer the label or voicing, when applicable. */
+  inferenceType?: ChordInferenceType;
+  /** Optional span in beats; legacy labels derive their span from the next event. */
+  durationBeats?: number;
 }
 
 /** Chord qualities supported by the lead-sheet parser and chord player. */
@@ -84,6 +103,8 @@ export interface ParsedMidi {
   division: number;
   /** beats per quarter note */
   tempoBpm: number;
+  /** Whether the source carried an explicit tempo meta/direction. */
+  tempoMetaPresent?: boolean;
   /** key signature in sharps (+n) / flats (-n) */
   keySig: number;
   /** key mode: 0 major, 1 minor */

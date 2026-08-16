@@ -18,7 +18,7 @@ export default function YoutubePage() {
   const [retranscribeSongId, setRetranscribeSongId] = useState("");
   const [retranscribeUrl, setRetranscribeUrl] = useState("");
   const [editSongId, setEditSongId] = useState("");
-  const [edit, setEdit] = useState({ title: "", artist: "", key: "", tempo: "" });
+  const [edit, setEdit] = useState({ title: "", artist: "", key: "", playbackTempo: "", calibrationTempo: "" });
   const [jobId, setJobId] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "queued" | "processing" | "done" | "error">("idle");
   const [songId, setSongId] = useState<string | null>(null);
@@ -111,11 +111,15 @@ export default function YoutubePage() {
 
   async function editSong() {
     if (!editSongId.trim()) return;
+    if (edit.calibrationTempo.trim()) {
+      setError("Use ‘Rebuild from source tempo’ for calibration changes; playback saves preserve beat coordinates.");
+      return;
+    }
     const body: Record<string, string | number> = {};
     if (edit.title.trim()) body.title = edit.title.trim();
     if (edit.artist.trim()) body.artist = edit.artist.trim();
     if (edit.key.trim()) body.key = edit.key.trim();
-    if (edit.tempo.trim()) body.tempo = Number(edit.tempo);
+    if (edit.playbackTempo.trim()) body.playbackTempo = Number(edit.playbackTempo);
     if (!Object.keys(body).length) return;
     try {
       const res = await fetch(`/api/songs/${editSongId.trim()}`, {
@@ -125,8 +129,26 @@ export default function YoutubePage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "update failed");
-      setActionMsg(`Updated ${data.songIds.length} variants`);
-      setEdit({ title: "", artist: "", key: "", tempo: "" });
+      setActionMsg(`Updated ${data.songIds.length} variants${data.tempoRole ? ` (${data.tempoRole})` : ""}`);
+      setEdit({ title: "", artist: "", key: "", playbackTempo: "", calibrationTempo: "" });
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
+  async function rebuildCalibration() {
+    if (!editSongId.trim() || !edit.calibrationTempo.trim()) return;
+    const body = { calibrationTempo: Number(edit.calibrationTempo) };
+    try {
+      const res = await fetch(`/api/songs/${editSongId.trim()}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "calibration rebuild failed");
+      setActionMsg(`Rebuilt ${data.songIds.length} variants from source calibration`);
+      setEdit((current) => ({ ...current, calibrationTempo: "" }));
     } catch (e) {
       setError((e as Error).message);
     }
@@ -218,11 +240,26 @@ export default function YoutubePage() {
           <input value={edit.title} onChange={(e) => setEdit({ ...edit, title: e.target.value })} placeholder="Title" className="px-3 py-2 rounded-lg border border-zinc-300 text-sm" />
           <input value={edit.artist} onChange={(e) => setEdit({ ...edit, artist: e.target.value })} placeholder="Artist" className="px-3 py-2 rounded-lg border border-zinc-300 text-sm" />
           <input value={edit.key} onChange={(e) => setEdit({ ...edit, key: e.target.value })} placeholder="Key (e.g. G)" className="px-3 py-2 rounded-lg border border-zinc-300 text-sm" />
-          <input value={edit.tempo} onChange={(e) => setEdit({ ...edit, tempo: e.target.value })} placeholder="Tempo BPM" className="px-3 py-2 rounded-lg border border-zinc-300 text-sm" />
+          <input value={edit.playbackTempo} onChange={(e) => setEdit({ ...edit, playbackTempo: e.target.value })} placeholder="Playback tempo BPM" className="px-3 py-2 rounded-lg border border-zinc-300 text-sm" />
         </div>
-        <button onClick={editSong} className="px-4 py-2 rounded-lg bg-zinc-900 text-white text-sm">
-          Save
-        </button>
+        <button onClick={editSong} className="px-4 py-2 rounded-lg bg-zinc-900 text-white text-sm">Save metadata / playback</button>
+        <div className="mt-4 pt-3 border-t border-zinc-100">
+          <p className="text-xs text-amber-700 mb-2">
+            Source calibration changes beat coordinates and rebuilds every variant. Use this only when the detected source
+            tempo is wrong; learner playback changes above preserve the arrangement timeline.
+          </p>
+          <div className="flex gap-2">
+            <input
+              value={edit.calibrationTempo}
+              onChange={(e) => setEdit({ ...edit, calibrationTempo: e.target.value })}
+              placeholder="Source calibration BPM"
+              className="flex-1 px-3 py-2 rounded-lg border border-amber-300 text-sm"
+            />
+            <button onClick={rebuildCalibration} className="px-4 py-2 rounded-lg border border-amber-400 bg-amber-50 text-amber-900 text-sm">
+              Rebuild from source tempo
+            </button>
+          </div>
+        </div>
       </div>
 
       <h2 className="font-semibold text-sm mb-2">Recent jobs</h2>

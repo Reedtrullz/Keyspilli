@@ -9,6 +9,8 @@ export {
   cleanTranscription,
   sanitizeImportedNotes,
   maxDurationBeatsForTempo,
+  transcriptionMaxDurationBeats,
+  TRANSCRIPTION_CLEANUP_CONFIG,
   DEFAULT_IMPORTED_MAX_DUR_SEC,
   DEFAULT_IMPORTED_MAX_SOUNDING,
 } from "./clean.js";
@@ -16,7 +18,7 @@ export { writeMidi } from "./writeMidi.js";
 export { writeMusicXml } from "./writeXml.js";
 export { PITCH_COLORS, pitchColor } from "./pitchColors.js";
 export { parseMusicXmlNotes } from "./parseXml.js";
-export { writeVariantArtifacts, validateArtifactFiles, validateArtifactRoundtrip } from "./roundtrip.js";
+export { ARTIFACT_TEMPO_TOLERANCE, writeVariantArtifacts, validateArtifactFiles, validateArtifactRoundtrip } from "./roundtrip.js";
 export {
   parseChordSymbol,
   tryParseChordSymbol,

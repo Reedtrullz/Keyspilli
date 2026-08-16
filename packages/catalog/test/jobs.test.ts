@@ -3,7 +3,7 @@ import Database from "better-sqlite3";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { claimJob, deleteJobsByBase, getDb, getJob, getQueuedJobs, insertJob, requeueOrphaned, updateJob, upsertSong } from "../src/db.js";
+import { claimJob, deleteBaseRows, getDb, getJob, getQueuedJobs, insertJob, requeueOrphaned, updateJob, upsertSong } from "../src/db.js";
 import type { JobRow, SongRow } from "../src/db.js";
 
 // Fresh data dir per test run; db.ts caches its connection, so this must be
@@ -83,7 +83,7 @@ describe("conversion jobs", () => {
     expect(getJob("attempts-1")!.attempts).toBe(1);
   });
 
-  it("deleteJobsByBase removes jobs pointing at any variant of the base", () => {
+  it("deleteBaseRows removes jobs and songs atomically for any variant of the base", () => {
     const song: SongRow = {
       id: "del-base-m",
       baseId: "del-base",
@@ -112,9 +112,10 @@ describe("conversion jobs", () => {
     insertJob({ ...job("job-del-1", "queued"), songId: "del-base-m" });
     insertJob({ ...job("job-del-2", "queued"), songId: "del-base-e" });
     insertJob({ ...job("job-keep-1", "queued"), songId: "other-m" });
-    expect(deleteJobsByBase("del-base").sort()).toEqual(["job-del-1", "job-del-2"]);
+    expect(deleteBaseRows("del-base")).toEqual({ jobIds: ["job-del-1", "job-del-2"], songCount: 2 });
     expect(getJob("job-del-1")).toBeUndefined();
     expect(getJob("job-del-2")).toBeUndefined();
     expect(getJob("job-keep-1")).toBeDefined();
+    expect(getDb().prepare("SELECT id FROM songs WHERE base_id = ?").all("del-base")).toEqual([]);
   });
 });

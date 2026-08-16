@@ -10,6 +10,13 @@ import { getDb } from "../src/db.js";
 import { MAX_YOUTUBE_IMPORT_DUR_BEATS } from "../src/ingest.js";
 import { disabledManifestBases } from "../src/manifest.js";
 import { dataDir } from "../src/paths.js";
+import {
+  readArrangementManifest,
+  temposAgree,
+  validateTempoProvenance,
+  type IdentityStatus,
+  type ArrangementManifest,
+} from "../src/artifact-manifest.js";
 
 const LEVEL_CODE: Record<string, string> = {
   "very-beginner": "vb",
@@ -23,11 +30,25 @@ const LEVEL_DIFFICULTY: Record<string, string> = Object.fromEntries(
   Object.entries(LEVEL_CODE).map(([difficulty, code]) => [code, difficulty]),
 );
 
+const cliArgs = process.argv.slice(2);
+const repairMode = cliArgs.includes("--repair");
+const requested = new Set(cliArgs.filter((arg) => !arg.startsWith("--")));
+
+// Tempo repair is deliberately targeted.  A verifier run without an explicit
+// base id remains read-only, and the operator must name every base whose
+// denormalized SQLite tempo mirrors may be changed.
+if (repairMode && requested.size === 0) {
+  console.error("verify-catalog: --repair requires at least one base id");
+  process.exitCode = 2;
+  process.exit();
+}
+
 type ArtifactProvenance = {
   kind?: unknown;
   acquiredVia?: unknown;
   sourceRef?: unknown;
   sourceYoutubeUrl?: unknown;
+  tempo?: unknown;
 };
 
 // Resolve through the shared data-dir helper so the same gate works both in
@@ -38,7 +59,6 @@ const db = getDb();
 const disabledBases = disabledManifestBases();
 // A targeted rebuild can verify only the base it touched; the default remains
 // the fail-closed full-catalog gate used by CI and release checks.
-const requested = new Set(process.argv.slice(2).filter((arg) => !arg.startsWith("--")));
 const linkedRows = db
   .prepare("SELECT DISTINCT base_id AS baseId FROM songs WHERE base_id IS NOT NULL AND base_id <> ''")
   .all() as { baseId: string }[];
@@ -53,6 +73,14 @@ const artifactBases = artifactEntries
 const orphanBases = artifactBases.filter((baseId) => !linkedSet.has(baseId));
 let failed = 0;
 let warnings = 0;
+let repaired = 0;
+const manifestCounts: Record<IdentityStatus | "missing" | "invalid", number> = {
+  "legacy-bootstrap": 0,
+  current: 0,
+  migrated: 0,
+  missing: 0,
+  invalid: 0,
+};
 
 // Artifact directories can outlive their database rows after a failed or
 // interrupted rebuild. They are useful for cleanup diagnostics, but must not
@@ -64,6 +92,20 @@ for (const orphan of orphanBases) {
 for (const song of linkedBases) {
   const issues: string[] = [];
   const warns: string[] = [];
+  const tempoMirrorIssues: string[] = [];
+  const manifestRead = await readArrangementManifest(song);
+  let manifest: ArrangementManifest | undefined;
+  if (manifestRead.status === "missing") {
+    manifestCounts.missing++;
+    warns.push("artifact manifest is missing; legacy mode");
+  } else if (manifestRead.status === "invalid") {
+    manifestCounts.invalid++;
+    issues.push(`invalid arrangement manifest: ${manifestRead.errors.join("; ")}`);
+  } else {
+    manifest = manifestRead.manifest;
+    manifestCounts[manifest.identityStatus]++;
+    if (manifest.baseId !== song) issues.push(`manifest base id ${manifest.baseId} differs from directory ${song}`);
+  }
   if (disabledBases.has(song)) issues.push("base is disabled in the catalog manifest but still linked in the database");
   const dbRows = db
     .prepare("SELECT id, level, difficulty, tempo, content_type, acquired_via, source_youtube_url FROM songs WHERE base_id = ? ORDER BY level, id")
@@ -100,6 +142,15 @@ for (const song of linkedBases) {
     if (expectedLevels.includes(dbRow.level) && dbRow.difficulty !== LEVEL_DIFFICULTY[dbRow.level]) {
       issues.push(`database row ${dbRow.level} has unexpected difficulty ${dbRow.difficulty}`);
     }
+    if (expectedLevels.includes(dbRow.level)) {
+      if (typeof dbRow.content_type !== "string" || dbRow.content_type.trim() === "") {
+        issues.push(`database row ${dbRow.level} is missing content_type metadata`);
+      }
+      const dbTempo = Number(dbRow.tempo);
+      if (!Number.isFinite(dbTempo) || dbTempo < 20 || dbTempo > 300) {
+        issues.push(`database row ${dbRow.level} has invalid tempo metadata ${String(dbRow.tempo)}`);
+      }
+    }
   }
   const contentTypes = new Set(dbRows.map((dbRow) => dbRow.content_type ?? null));
   const acquiredVia = new Set(dbRows.map((dbRow) => dbRow.acquired_via ?? null));
@@ -122,13 +173,19 @@ for (const song of linkedBases) {
       issues.push(`${level}: missing or invalid notes.json`);
     }
   }
-  if (issues.length === 0) {
+  // Validate the complete artifact set independently of database tempo
+  // mirrors. In repair mode a stale DB tempo is the one permitted defect; it
+  // must never short-circuit MIDI/XML or variant validation.
+  if (variants.length === expectedLevels.length) {
     issues.push(...validateVariants(variants, { maxDurBeats }));
     for (const v of variants) {
       const code = LEVEL_CODE[v.level]!;
       const dbRow = dbRows.find((candidate) => candidate.level === code);
       if (dbRow && Math.abs(Number(dbRow.tempo) - Number(v.tempoBpm)) > 1e-6) {
-        issues.push(`${v.level}: database tempo ${dbRow.tempo} differs from artifact tempo ${v.tempoBpm}`);
+        tempoMirrorIssues.push(`${v.level}: database tempo ${dbRow.tempo} differs from artifact tempo ${v.tempoBpm}`);
+      }
+      if (manifest && Math.abs(manifest.tempo.playback.bpm - Number(v.tempoBpm)) > 1e-6) {
+        issues.push(`${v.level}: manifest playback tempo ${manifest.tempo.playback.bpm} differs from artifact tempo ${v.tempoBpm}`);
       }
       const provenance = (v as Variant & { provenance?: ArtifactProvenance }).provenance;
       if (!provenance || typeof provenance !== "object" || typeof provenance.kind !== "string") {
@@ -149,6 +206,19 @@ for (const song of linkedBases) {
           issues.push(`${v.level}: artifact sourceRef provenance is malformed`);
         }
       }
+      // Legacy notes.json may omit the diagnostic tempo copy. If present,
+      // validate it and ensure its playback mirror agrees with the canonical
+      // notes tempo; the manifest remains the runtime authority.
+      if (provenance && typeof provenance === "object" && provenance.tempo !== undefined) {
+        const tempoErrors = validateTempoProvenance(provenance.tempo, `${v.level}.provenance.tempo`);
+        issues.push(...tempoErrors);
+        if (!tempoErrors.length) {
+          const tempo = provenance.tempo as { playback: { bpm: number } };
+          if (!temposAgree(tempo.playback.bpm, v.tempoBpm)) {
+            issues.push(`${v.level}: artifact provenance playback tempo ${tempo.playback.bpm} differs from notes.json tempo ${v.tempoBpm}`);
+          }
+        }
+      }
       try {
         const midi = new Uint8Array(await readFile(join(artifactsRoot, song, code, "variant.mid")));
         const xml = await readFile(join(artifactsRoot, song, code, "variant.xml"), "utf8");
@@ -156,6 +226,50 @@ for (const song of linkedBases) {
       } catch (e) {
         issues.push(`${v.level}: artifact missing or invalid: ${(e as Error).message}`);
       }
+    }
+  }
+
+  // A valid manifest is required for repair: notes.json is a mirror, not an
+  // authority. The normal verifier still supports legacy read-only mode, but
+  // --repair must fail closed rather than bootstrap from an arbitrary level.
+  if (repairMode && tempoMirrorIssues.length && manifestRead.status !== "valid") {
+    issues.push("tempo repair requires a valid arrangement manifest");
+  }
+
+  if (tempoMirrorIssues.length && (!repairMode || issues.length > 0)) {
+    issues.push(...tempoMirrorIssues);
+  }
+
+  if (repairMode && tempoMirrorIssues.length && issues.length === 0 && manifest) {
+    const targetTempo = manifest.tempo.playback.bpm;
+    try {
+      const updated = db.transaction(() => {
+        // Re-check the complete six-row shape inside the write transaction.
+        // No rows are synthesized, and a concurrent/partial read-model
+        // change aborts the repair instead of updating a subset.
+        const currentRows = db
+          .prepare("SELECT level, tempo FROM songs WHERE base_id = ? ORDER BY level, id")
+          .all(song) as Array<{ level: string; tempo: unknown }>;
+        const currentLevels = currentRows.map((row) => row.level);
+        const expectedSet = new Set(expectedLevels);
+        if (currentRows.length !== expectedLevels.length || currentLevels.some((level) => !expectedSet.has(level)) || new Set(currentLevels).size !== expectedLevels.length) {
+          throw new Error("database row set changed during tempo repair; refusing partial update");
+        }
+        db.prepare("UPDATE songs SET tempo = ? WHERE base_id = ?").run(targetTempo, song);
+        const afterRows = db
+          .prepare("SELECT level, tempo FROM songs WHERE base_id = ? ORDER BY level, id")
+          .all(song) as Array<{ level: string; tempo: unknown }>;
+        if (afterRows.length !== expectedLevels.length || afterRows.some((row) => Number(row.tempo) !== targetTempo)) {
+          throw new Error("database tempo repair did not produce six matching mirrors");
+        }
+        return currentRows.some((row) => Number(row.tempo) !== targetTempo);
+      })();
+      if (updated) {
+        repaired++;
+        console.log(`REPAIRED ${song}: database tempo mirrors -> ${targetTempo} BPM from manifest`);
+      }
+    } catch (error) {
+      issues.push(`tempo repair failed: ${(error as Error).message}`);
     }
   }
   // Data-level quality checks for AI-transcribed songs: warnings, not gate
@@ -182,5 +296,10 @@ for (const song of linkedBases) {
 }
 
 const orphanSuffix = orphanBases.length ? `, ${orphanBases.length} orphan artifact dirs ignored` : "";
-console.log(`verify-catalog: ${failed} of ${linkedBases.length} songs failed, ${warnings} data warnings${orphanSuffix}`);
+const manifestSummary = Object.entries(manifestCounts)
+  .filter(([, count]) => count > 0)
+  .map(([status, count]) => `${status}=${count}`)
+  .join(", ");
+console.log(`verify-catalog: ${failed} of ${linkedBases.length} songs failed, ${warnings} data warnings, ${repaired} tempo mirror sets repaired${orphanSuffix}`);
+console.log(`verify-catalog manifests: ${manifestSummary || "none"}`);
 if (failed) process.exitCode = 1;

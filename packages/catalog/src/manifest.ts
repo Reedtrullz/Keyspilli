@@ -8,7 +8,7 @@
  * directory. Freshly fetched entries win on id collisions because they carry
  * the current upstream metadata.
  */
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { ROOT, dataDir } from "./paths.js";
 
@@ -19,7 +19,16 @@ export interface ManifestEntry {
 }
 
 let disabledPath: string | undefined;
+let disabledSignature: string | undefined;
 let disabledIds = new Set<string>();
+let disabledError: Error | undefined;
+
+function manifestSignature(path: string): string {
+  const stat = statSync(path);
+  // Include inode and mtime so an atomic replacement at the same pathname
+  // invalidates the in-process cache immediately.
+  return `${stat.dev}:${stat.ino}:${stat.size}:${stat.mtimeMs}`;
+}
 
 /**
  * Return manifest entries explicitly disabled from the learner catalogue.
@@ -32,19 +41,43 @@ let disabledIds = new Set<string>();
 export function disabledManifestBases(): ReadonlySet<string> {
   const candidates = [join(dataDir(), "manifest.json"), join(ROOT, "catalog", "manifest.json")];
   const path = candidates.find((candidate) => existsSync(candidate));
-  if (!path) return new Set<string>();
-  if (path === disabledPath) return disabledIds;
+  if (!path) {
+    disabledPath = undefined;
+    disabledSignature = undefined;
+    disabledError = undefined;
+    disabledIds = new Set<string>();
+    return disabledIds;
+  }
+  const signature = manifestSignature(path);
+  if (path === disabledPath && signature === disabledSignature) {
+    if (disabledError) throw disabledError;
+    return disabledIds;
+  }
   try {
     const parsed = JSON.parse(readFileSync(path, "utf8")) as { songs?: Array<{ id?: string; disabled?: boolean }> };
+    if (!parsed || !Array.isArray(parsed.songs)) {
+      throw new Error("catalog manifest must contain a songs array");
+    }
     disabledPath = path;
+    disabledSignature = signature;
+    disabledError = undefined;
     disabledIds = new Set(
       (parsed.songs ?? [])
         .filter((entry) => entry.disabled === true && typeof entry.id === "string")
         .map((entry) => entry.id as string),
     );
     return disabledIds;
-  } catch {
-    return new Set<string>();
+  } catch (error) {
+    // A malformed policy file must not silently make previously disabled
+    // catalogue rows public. Throwing fails the request/rebuild closed; an
+    // atomic publisher can then replace the file and the signature above
+    // causes the next call to re-read it.
+    const cause = error instanceof Error ? error.message : String(error);
+    const failure = new Error(`unable to load catalog manifest ${path}: ${cause}`);
+    disabledPath = path;
+    disabledSignature = signature;
+    disabledError = failure;
+    throw failure;
   }
 }
 

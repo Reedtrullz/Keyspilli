@@ -45,6 +45,8 @@ describe("chord source selection", () => {
       provenance: { kind: "standard", sourceRef: "ug-tabs:example" },
     }));
     expect(sources.ug?.provenance).toBe("ug-tabs:example");
+    expect(sources.generated.chords[0]?.sourceKind).toBe("generated");
+    expect(sources.ug?.chords[0]?.sourceKind).toBe("authored");
     expect(selectChordSource(sources, "auto").source?.id).toBe("ug");
     expect(selectChordSource(sources, "ug").fallback).toBe(false);
   });
@@ -84,5 +86,43 @@ describe("chord source selection", () => {
     }));
     expect(sources.ug?.provenance).toBe("ultimate-guitar:example");
     expect(sources.ug?.chords[0]?.notes.length).toBeGreaterThan(0);
+  });
+
+  it("preserves event provenance, duration, and explicit voicings at the web boundary", () => {
+    expect(normalizeChordTimeline([
+      {
+        beat: 0,
+        name: "C/E",
+        notes: [52, 55, 60, 64],
+        sourceKind: "authored",
+        inferred: false,
+        inferenceType: "voicing",
+        durationBeats: 4,
+      },
+    ])).toEqual([
+      {
+        beat: 0,
+        name: "C/E",
+        notes: [52, 55, 60, 64],
+        sourceKind: "authored",
+        inferred: false,
+        inferenceType: "voicing",
+        durationBeats: 4,
+      },
+    ]);
+  });
+
+  it("retains an explicit empty voicing instead of inferring notes", () => {
+    expect(normalizeChordTimeline([{
+      beat: 0,
+      name: "N.C.",
+      notes: [],
+      sourceKind: "authored",
+    }])).toEqual([{
+      beat: 0,
+      name: "N.C.",
+      notes: [],
+      sourceKind: "authored",
+    }]);
   });
 });

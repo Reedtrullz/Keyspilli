@@ -64,6 +64,109 @@ describe("timeline", () => {
     expect(out.map((c) => c.name)).toEqual(["C5", "Cm"]);
   });
 
+  it("uses source authority and preserves the winning voicing metadata", () => {
+    const out = dedupeChords([
+      { beat: 0, name: "C", notes: [60, 64, 67], sourceKind: "generated" as const },
+      {
+        beat: 0,
+        name: "C",
+        notes: [48, 60, 64, 67],
+        sourceKind: "authored" as const,
+        durationBeats: 4,
+        inferred: false,
+      },
+      { beat: 0, name: "C", notes: [60, 64, 67, 72], sourceKind: "inferred" as const, inferenceType: "voicing" as const },
+    ]);
+    expect(out).toEqual([expect.objectContaining({
+      sourceKind: "authored",
+      notes: [48, 60, 64, 67],
+      durationBeats: 4,
+      inferred: false,
+    })]);
+  });
+
+  it("prefers compact generated voicings but richer authored voicings", () => {
+    const generated = dedupeChords([
+      { beat: 0, name: "C", notes: [48, 60, 64, 67], sourceKind: "generated" as const },
+      { beat: 0, name: "C", notes: [60, 64, 67], sourceKind: "generated" as const },
+    ]);
+    const authored = dedupeChords([
+      { beat: 0, name: "C", notes: [60, 64, 67], sourceKind: "authored" as const },
+      { beat: 0, name: "C", notes: [48, 60, 64, 67], sourceKind: "authored" as const },
+    ]);
+    expect(generated[0]!.notes).toEqual([60, 64, 67]);
+    expect(authored[0]!.notes).toEqual([48, 60, 64, 67]);
+  });
+
+  it("compacts reordered/octave-doubled runs but keeps inversion changes", () => {
+    const out = dedupeChords([
+      { beat: 0, name: "C", notes: [67, 60, 64], sourceKind: "generated" as const },
+      { beat: 0.25, name: "C", notes: [72, 64, 60, 67], sourceKind: "generated" as const },
+      { beat: 1, name: "C/E", notes: [64, 67, 72], sourceKind: "generated" as const },
+    ]);
+    expect(out).toHaveLength(2);
+    expect(out[0]!.notes).toEqual([67, 60, 64]);
+    expect(out[1]!.notes).toEqual([64, 67, 72]);
+  });
+
+  it("assigns compacted generated chords their next-onset span", () => {
+    const out = dedupeChords([
+      { beat: 0, name: "C", notes: [48, 52, 55], sourceKind: "generated" as const },
+      { beat: 0.25, name: "C", notes: [48, 52, 55], sourceKind: "generated" as const },
+      { beat: 0.5, name: "C", notes: [48, 52, 55], sourceKind: "generated" as const },
+      // The missing beats are a real gap in the source timeline. The C run
+      // should still end at the next harmonic onset, not at a fixed 1 beat.
+      { beat: 3.5, name: "G", notes: [43, 47, 50], sourceKind: "generated" as const },
+    ]);
+    expect(out.map(({ beat, durationBeats }) => ({ beat, durationBeats }))).toEqual([
+      { beat: 0, durationBeats: 3.5 },
+      { beat: 3.5, durationBeats: 1 },
+    ]);
+  });
+
+  it("preserves explicit authored and inferred durations", () => {
+    const authored = dedupeChords([
+      { beat: 0, name: "C", notes: [48, 52, 55], sourceKind: "authored" as const, durationBeats: 0.5 },
+      { beat: 4, name: "G", notes: [43, 47, 50], sourceKind: "authored" as const, durationBeats: 2 },
+    ]);
+    const inferred = dedupeChords([
+      { beat: 0, name: "C", notes: [48, 52, 55], sourceKind: "inferred" as const, inferenceType: "voicing" as const, durationBeats: 0.75 },
+      { beat: 4, name: "G", notes: [43, 47, 50], sourceKind: "inferred" as const, inferenceType: "voicing" as const, durationBeats: 2 },
+    ]);
+    expect(authored.map((event) => event.durationBeats)).toEqual([0.5, 2]);
+    expect(inferred.map((event) => event.durationBeats)).toEqual([0.75, 2]);
+  });
+
+  it("is idempotent when a short middle run is removed", () => {
+    const input = [
+      { beat: 0.5, name: "F", notes: [41, 45, 48], sourceKind: "unknown" as const, durationBeats: 2 },
+      { beat: 1, name: "C", notes: [48, 52, 55] },
+      { beat: 1.5, name: "G", notes: [43, 47, 50], sourceKind: "generated" as const, inferred: true },
+      { beat: 1.75, name: "F", notes: [41, 45, 48] },
+    ];
+    const once = dedupeChords(input);
+    expect(once).toEqual([
+      { beat: 0.5, name: "F", notes: [41, 45, 48], sourceKind: "unknown", durationBeats: 1 },
+    ]);
+    expect(dedupeChords(once)).toEqual(once);
+  });
+
+  it("is permutation-stable and only classifies unknown provenance with context", () => {
+    const events = [
+      { beat: 0, name: "C", notes: [60, 64, 67], sourceKind: "generated" as const },
+      { beat: 0, name: "C", notes: [48, 60, 64, 67], sourceKind: "unknown" as const },
+      { beat: 1, name: "G", notes: [55, 59, 62], sourceKind: "generated" as const },
+    ];
+    const forward = dedupeChords(events);
+    const reverse = dedupeChords([...events].reverse());
+    expect(reverse).toEqual(forward);
+    expect(forward[0]!.sourceKind).toBe("generated");
+
+    const authored = dedupeChords(events, { unknownSourceKind: "authored" });
+    expect(authored[0]!.sourceKind).toBe("unknown");
+    expect(authored[0]!.notes).toEqual([48, 60, 64, 67]);
+  });
+
   it("accents downbeats with a velocity curve", () => {
     const tn = resolveTimedNotes({ ...song, notes: [{ midi: 60, start: 0, dur: 1, vel: 100, hand: "R" as const }] }, 1, 0);
     expect(tn[0]!.vel).toBe(115);

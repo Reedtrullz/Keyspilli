@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { pitchColor, type SongData } from "@keyspilli/player-core";
+import { chordProvenance } from "@/components/player/chord-provenance";
 
 const LETTERS = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
@@ -17,6 +18,9 @@ export function SimplifyScore({ data, title }: { data: SongData; title: string }
       <h1 style={{ fontSize: 20, margin: "0 0 4px" }}>{title}</h1>
       <p style={{ fontSize: 12, color: "#71717a", margin: "0 0 24px" }}>
         Key {data.key} · {data.tempoBpm} BPM · Color-coded learner score — every note colored by pitch
+      </p>
+      <p style={{ fontSize: 11, color: "#71717a", margin: "-12px 0 24px" }}>
+        Dotted amber chords are inferred; dotted gray chords have unknown provenance.
       </p>
       {Array.from({ length: rows }, (_, row) => {
         const ms = data.measures.slice(row * measuresPerRow, (row + 1) * measuresPerRow);
@@ -57,11 +61,27 @@ export function SimplifyScore({ data, title }: { data: SongData; title: string }
                     })}
                   </div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-                    {mChords.map((c, i) => (
-                      <span key={i} style={{ fontSize: 11, fontWeight: 600, border: "1px solid #e4e4e7", borderRadius: 6, padding: "2px 6px" }}>
-                        {c.name}
-                      </span>
-                    ))}
+                    {mChords.map((c, i) => {
+                      const provenance = chordProvenance(c);
+                      return (
+                        <span
+                          key={i}
+                          title={provenance.label}
+                          aria-label={`${c.name}: ${provenance.label}`}
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 600,
+                            color: provenance.stroke,
+                            background: provenance.fill,
+                            border: `1px ${provenance.dotted ? "dotted" : "solid"} ${provenance.stroke}`,
+                            borderRadius: 6,
+                            padding: "2px 6px",
+                          }}
+                        >
+                          {c.name}
+                        </span>
+                      );
+                    })}
                   </div>
                 </div>
               );

@@ -1,11 +1,89 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { getSong, getSongsByBase, artifactsDir, loadChordTimeline, SongRow } from "@keyspilli/catalog";
-import { chordToNotes, type ChordLabel } from "@keyspilli/midi";
+import {
+  artifactsDir,
+  getSong,
+  getSongsByBase,
+  loadChordTimeline,
+  readArrangementManifest,
+  resolveArtifactPlaybackTempo,
+  type ArrangementManifest,
+  type SongRow,
+} from "@keyspilli/catalog";
+import { chordToNotes, validateArtifactFiles, type ChordLabel, type Variant } from "@keyspilli/midi";
 import type { SongData } from "@keyspilli/player-core";
 
 type LoadedChordTimeline = NonNullable<Awaited<ReturnType<typeof loadChordTimeline>>>;
-type PlayerChord = ChordLabel & { durationBeats?: number };
+type PlayerChord = Omit<ChordLabel, "sourceKind" | "inferred" | "inferenceType" | "durationBeats"> & {
+  sourceKind?: "authored" | "inferred" | "generated" | "unknown";
+  inferred?: boolean;
+  inferenceType?: "dyad-completion" | "carry-forward-root" | "nearest-symbol" | "subbeat-extension" | "voicing";
+  duration?: number;
+  durationBeats?: number;
+};
+
+type UnknownRecord = Record<string, unknown>;
+
+function record(value: unknown): UnknownRecord | null {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? value as UnknownRecord
+    : null;
+}
+
+function finite(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return null;
+}
+
+/** Copy the event-level fields that are meaningful to the player boundary. */
+function preserveChordMetadata(value: unknown): Omit<PlayerChord, "beat" | "name" | "notes"> {
+  const obj = record(value);
+  if (!obj) return {};
+  const metadata: Omit<PlayerChord, "beat" | "name" | "notes"> = {};
+  if (typeof obj.sourceKind === "string" && obj.sourceKind.trim()) {
+    metadata.sourceKind = obj.sourceKind as NonNullable<PlayerChord["sourceKind"]>;
+  }
+  if (typeof obj.inferred === "boolean") metadata.inferred = obj.inferred;
+  if (typeof obj.inferenceType === "string" && obj.inferenceType.trim()) {
+    metadata.inferenceType = obj.inferenceType as NonNullable<PlayerChord["inferenceType"]>;
+  }
+
+  const durationBeats = finite(obj.durationBeats);
+  const duration = finite(obj.duration);
+  if (durationBeats !== null && durationBeats > 0) metadata.durationBeats = durationBeats;
+  if (duration !== null && duration > 0) {
+    metadata.duration = duration;
+    // A few older exports called the beat span `duration`; expose the
+    // player-native alias as well while retaining the source field.
+    if (metadata.durationBeats === undefined) metadata.durationBeats = duration;
+  }
+  return metadata;
+}
+
+function chordDuration(value: unknown): number {
+  const obj = record(value);
+  const duration = finite(obj?.durationBeats ?? obj?.duration);
+  return duration !== null && duration > 0 ? duration : 0;
+}
+
+function hasExplicitNotes(value: unknown): boolean {
+  const obj = record(value);
+  return obj !== null && ["notes", "midis", "pitches", "midiNotes", "midi", "pitch"]
+    .some((key) => Object.prototype.hasOwnProperty.call(obj, key));
+}
+
+function preserveChord(value: unknown, notes: number[]): PlayerChord | null {
+  const obj = record(value);
+  if (!obj) return null;
+  const beat = finite(obj.beat);
+  const name = typeof obj.name === "string" ? obj.name : null;
+  if (beat === null || name === null) return null;
+  return { beat, name, notes, ...preserveChordMetadata(value) };
+}
 
 /**
  * Merge a normalized chart with generated chords without leaving silent gaps.
@@ -18,17 +96,18 @@ export function mergeChartTimeline(
 ): { chords: PlayerChord[]; provenance: LoadedChordTimeline["provenance"] } {
   if (timeline.provenance.kind !== "chart") {
     return {
-      chords: timeline.chords.flatMap((chord) => (
-        Array.isArray(chord.notes) && chord.notes.length > 0
-          ? [{ beat: chord.beat, durationBeats: chord.durationBeats, name: chord.name, notes: chord.notes }]
-          : []
-      )),
+      chords: timeline.chords.flatMap((chord) => preserveChord(chord, Array.isArray(chord.notes) ? chord.notes : []) ?? []),
       provenance: timeline.provenance,
     };
   }
 
   const chartChords: PlayerChord[] = timeline.chords.flatMap((chord) => {
-    const supplied = Array.isArray(chord.notes) && chord.notes.length > 0 ? chord.notes : null;
+    // An omitted notes field is safe to voice from the supplied symbol. An
+    // explicit empty array means the source intentionally has no voicing, so
+    // preserve it as a display-only chart event.
+    const supplied = Array.isArray(chord.notes)
+      ? chord.notes
+      : hasExplicitNotes(chord) ? [] : undefined;
     const notes = supplied ?? (() => {
       try {
         return chordToNotes(chord.name, { octave: 3, bassOctave: 2, includeBass: true });
@@ -36,14 +115,20 @@ export function mergeChartTimeline(
         return null;
       }
     })();
-    return notes?.length
-      ? [{ beat: chord.beat, durationBeats: chord.durationBeats, name: chord.name, notes }]
-      : [];
+    // Preserve an authored symbol even when voicing is unsupported. An empty
+    // notes array is display-only but still suppresses generated fallback for
+    // the chart event's declared duration.
+    return preserveChord(chord, notes ?? []) ?? [];
   });
 
   const generatedFallback = generated.filter((chord) => (
-    !chartChords.some((chart) => chord.beat >= chart.beat && chord.beat < chart.beat + (chart.durationBeats ?? 0))
-  ));
+    !chartChords.some((chart) => (
+      // Chart material has precedence at an authored event position even if
+      // an older artifact omitted its duration.
+      chord.beat === chart.beat
+      || (chord.beat >= chart.beat && chord.beat < chart.beat + chordDuration(chart))
+    ))
+  )).map((chord) => preserveChord(chord, chord.notes)).filter((chord): chord is PlayerChord => chord !== null);
   const partial = timeline.coverage !== undefined && timeline.coverage !== "full-song";
   const fallback = timeline.provenance.fallback === true || partial || generatedFallback.length > 0;
   const provenance = fallback
@@ -66,15 +151,61 @@ export interface SongDetail {
   song: SongRow;
   data: SongData | null;
   variants: SongRow[];
+  artifact: SongArtifactStatus;
+}
+
+export type SongArtifactStatus =
+  | { status: "legacy"; errors: []; manifest?: undefined }
+  | { status: "valid"; errors: []; manifest: ArrangementManifest }
+  | { status: "unavailable"; errors: string[]; manifest?: ArrangementManifest };
+
+function unavailableArtifact(errors: string[], manifest?: ArrangementManifest): SongArtifactStatus {
+  return { status: "unavailable", errors, ...(manifest ? { manifest } : {}) };
+}
+
+export async function loadSongArtifact(song: SongRow): Promise<{ data: SongData | null; artifact: SongArtifactStatus }> {
+  const manifestRead = await readArrangementManifest(song.baseId);
+  if (manifestRead.status === "invalid") {
+    return { data: null, artifact: unavailableArtifact(manifestRead.errors) };
+  }
+  const manifest = manifestRead.status === "valid" ? manifestRead.manifest : null;
+  if (manifest && manifest.baseId !== song.baseId) {
+    return {
+      data: null,
+      artifact: unavailableArtifact([`manifest baseId ${manifest.baseId} does not match ${song.baseId}`], manifest),
+    };
+  }
+
+  const notesPath = join(artifactsDir(song.baseId, song.level), "notes.json");
+  let stored: SongData;
+  try {
+    stored = JSON.parse(await readFile(notesPath, "utf8")) as SongData;
+  } catch {
+    return {
+      data: null,
+      artifact: unavailableArtifact([`missing or corrupt ${song.level}/notes.json`], manifest ?? undefined),
+    };
+  }
+
+  const tempo = resolveArtifactPlaybackTempo(manifest, stored.tempoBpm, song.tempo);
+  if (tempo.status === "invalid") {
+    return { data: null, artifact: unavailableArtifact(tempo.errors, manifest ?? undefined) };
+  }
+  // The manifest is authoritative when present. Assigning the resolved value
+  // here keeps downstream playback and seek code on the same runtime value;
+  // the equality check above prevents this from masking a stale mirror.
+  const data = { ...stored, tempoBpm: tempo.bpm };
+  if (tempo.status === "legacy") {
+    return { data, artifact: { status: "legacy", errors: [] } };
+  }
+  return { data, artifact: { status: "valid", errors: [], manifest: tempo.manifest } };
 }
 
 export async function getSongDetail(id: string): Promise<SongDetail | null> {
   const song = getSong(id);
   if (!song) return null;
-  const stored = await readFile(join(artifactsDir(song.baseId, song.level), "notes.json"), "utf8")
-    .then((s) => JSON.parse(s) as SongData)
-    .catch(() => null);
-  let data = stored;
+  const loaded = await loadSongArtifact(song);
+  let data = loaded.data;
   if (data) {
     // Chord charts live beside the immutable app image rather than in the
     // mutable song database. Keep the existing generated timeline intact and
@@ -89,6 +220,13 @@ export async function getSongDetail(id: string): Promise<SongDetail | null> {
         } as SongData & { chordProvenance?: unknown; ugChordTimeline?: unknown };
         if (timeline.provenance.kind === "chart") {
           metadata.ugChordTimeline = merged.chords;
+        } else if (timeline.provenance.kind === "midi-derived") {
+          // Legacy notes.json files predate event-level provenance. The
+          // normalized MIDI-derived projection is the authoritative shape at
+          // this boundary: it stamps those events as generated and preserves
+          // their computed durations and optional inference metadata. Keep UG
+          // chart material separate in ugChordTimeline above.
+          metadata.chords = merged.chords;
         }
         data = metadata;
       }
@@ -98,11 +236,40 @@ export async function getSongDetail(id: string): Promise<SongDetail | null> {
     }
   }
   const variants = getSongsByBase(song.baseId);
-  return { song, data, variants };
+  return { song, data, variants, artifact: loaded.artifact };
 }
 
 export async function getArtifactFile(id: string, name: "variant.mid" | "variant.xml"): Promise<Buffer | null> {
   const song = getSong(id);
   if (!song) return null;
-  return readFile(join(artifactsDir(song.baseId, song.level), name)).catch(() => null);
+  // Exports are another runtime boundary: never serve a MIDI/XML artifact
+  // whose manifest or denormalized tempo mirrors would make the player reject
+  // the same arrangement.
+  const loaded = await loadSongArtifact(song);
+  if (!loaded.data) return null;
+  const dir = artifactsDir(song.baseId, song.level);
+  try {
+    // Validate both rendered forms against the selected notes.json before
+    // serving either one. This closes the gap where a stale export could be
+    // downloaded even though the player correctly uses the canonical notes.
+    const [midi, xml] = await Promise.all([
+      readFile(join(dir, "variant.mid")),
+      readFile(join(dir, "variant.xml"), "utf8"),
+    ]);
+    const variant: Variant = {
+      level: song.difficulty as Variant["level"],
+      difficultyScore: song.difficultyScore,
+      notes: loaded.data.notes,
+      chords: loaded.data.chords,
+      bassPattern: song.bassPattern,
+      key: loaded.data.key,
+      tempoBpm: loaded.data.tempoBpm,
+      timeSig: loaded.data.timeSig,
+      measures: loaded.data.measures,
+    };
+    if (validateArtifactFiles(variant, { midi, xml }).length > 0) return null;
+    return name === "variant.mid" ? midi : Buffer.from(xml, "utf8");
+  } catch {
+    return null;
+  }
 }

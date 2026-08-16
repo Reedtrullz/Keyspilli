@@ -82,6 +82,16 @@ describe("ingestSource .mxl", () => {
     const res = await ingest(new Uint8Array(mxl));
     expect(res.error).toBeUndefined();
     expect(res.songIds).toHaveLength(6);
+    const manifest = JSON.parse(readFileSync(join(tmp, "artifacts", res.baseId, "manifest.json"), "utf8")) as {
+      identityStatus: string;
+      sourceArtifactHash: string;
+      configFingerprint: string;
+      tempo: { calibration: { bpm: number }; playback: { bpm: number } };
+    };
+    expect(manifest.identityStatus).toBe("current");
+    expect(manifest.sourceArtifactHash).toMatch(/^[0-9a-f]{64}$/);
+    expect(manifest.configFingerprint).toMatch(/^[0-9a-f]{64}$/);
+    expect(manifest.tempo.calibration.bpm).toBe(manifest.tempo.playback.bpm);
   });
 
   it("prefers a .musicxml entry over META-INF files when container has no rootfile", async () => {
@@ -284,6 +294,145 @@ describe("ingestSource .mxl", () => {
       acquiredVia: "youtube",
       sourceRef: "seed:curated-youtube-raw.mid",
     });
+  });
+
+  it("persists effective audio transcription settings in the manifest and notes sidecar", async () => {
+    const transcription = {
+      basicPitchVersion: "0.3.0",
+      modelSerialization: "onnx",
+      onsetThreshold: 0.65,
+      frameThreshold: 0.45,
+      tempo: 142,
+      tempoSource: "detected" as const,
+      audioSource: "youtube",
+      transcribedAt: "2026-08-16T17:30:00.000Z",
+      pipeline: {
+        filterVersion: "audio-onset-filter-v1",
+        normalizerId: "midi-normalizer-v2",
+        gridPolicyId: "beat-grid-v2",
+        variantPolicyId: "learner-variant-ladder-v2",
+      },
+      postProcessing: {
+        filterApplied: true,
+        cleanupApplied: true,
+        onsetMatchSec: 0.15,
+        onsetDetector: { sampleRate: 22050, hopLength: 512, backtrack: true, delta: 0.07 },
+        minVelocity: 30,
+        minDurationBeats: 0.14,
+        mergeWindowBeats: 0.125,
+        maxPolyphony: 6,
+        maxSounding: 8,
+        maxDurationSec: 2.5,
+        maxDurationBeats: 5,
+        importedMaxDurationBeats: 1.5,
+        importedMaxSounding: 12,
+      },
+    };
+    const buf = writeMidi(
+      Array.from({ length: 12 }, (_, i) => ({ midi: 60 + i, start: i * 0.5, dur: 0.5, vel: 80 })),
+      { tempoBpm: 142 },
+    );
+    const withProvenance = await ingestSource({
+      buf,
+      title: "Provenance song",
+      artist: "Tester",
+      contentType: "youtube",
+      acquiredVia: "youtube",
+      sourceYoutubeUrl: "https://youtube.example/video",
+      baseId: "transcription-provenance",
+      cleanTranscription: false,
+      transcription,
+    });
+    expect(withProvenance.error).toBeUndefined();
+
+    const manifest = JSON.parse(readFileSync(join(tmp, "artifacts", withProvenance.baseId, "manifest.json"), "utf8")) as {
+      transcription?: typeof transcription;
+      configFingerprint: string;
+    };
+    const notes = JSON.parse(readFileSync(join(artifactsDir(withProvenance.baseId, "a"), "notes.json"), "utf8")) as {
+      provenance: {
+        transcription?: typeof transcription;
+        tempo: {
+          calibration: { bpm: number; source: string; resolvedAt: string; role: string };
+          playback: { bpm: number; source: string; resolvedAt: string; role: string };
+        };
+      };
+    };
+    expect(manifest.transcription).toEqual(transcription);
+    expect(notes.provenance.transcription).toEqual(transcription);
+    expect(notes.provenance.tempo).toEqual({
+      calibration: expect.objectContaining({ bpm: 142, source: "detected", role: "source-calibration" }),
+      playback: expect.objectContaining({ bpm: 142, source: "detected", role: "playback" }),
+    });
+    expect(notes.provenance.tempo.calibration.resolvedAt).toBe(notes.provenance.tempo.playback.resolvedAt);
+
+    const standard = await ingestSource({
+      buf,
+      title: "Provenance song",
+      artist: "Tester",
+      contentType: "standard",
+      baseId: "standard-without-transcription",
+    });
+    expect(standard.error).toBeUndefined();
+    const standardManifest = JSON.parse(readFileSync(join(tmp, "artifacts", standard.baseId, "manifest.json"), "utf8")) as {
+      transcription?: unknown;
+      configFingerprint: string;
+    };
+    const standardNotes = JSON.parse(readFileSync(join(artifactsDir(standard.baseId, "a"), "notes.json"), "utf8")) as {
+      provenance: { transcription?: unknown; tempo?: unknown };
+    };
+    expect(standardManifest.transcription).toBeUndefined();
+    expect(standardNotes.provenance.transcription).toBeUndefined();
+    expect(standardNotes.provenance.tempo).toEqual({
+      calibration: expect.objectContaining({ bpm: 142, source: "midi-meta", role: "source-calibration" }),
+      playback: expect.objectContaining({ bpm: 142, source: "midi-meta", role: "playback" }),
+    });
+    expect(standardManifest.configFingerprint).not.toBe(manifest.configFingerprint);
+  });
+
+  it("keeps the processing fingerprint stable when display and source labels change", async () => {
+    const buf = writeMidi(
+      Array.from({ length: 12 }, (_, i) => ({ midi: 60 + i, start: i * 0.5, dur: 0.5, vel: 80 })),
+      { tempoBpm: 120 },
+    );
+    const first = await ingestSource({
+      buf,
+      title: "Original display title",
+      artist: "Original display artist",
+      contentType: "youtube",
+      acquiredVia: "youtube",
+      sourceRef: "source:original",
+      sourceYoutubeUrl: "https://youtube.example/original",
+      baseId: "fingerprint-display-original",
+      cleanTranscription: false,
+      maxDurBeats: 1.5,
+      key: "C",
+      tempo: 120,
+    });
+    const second = await ingestSource({
+      buf,
+      title: "Corrected display title",
+      artist: "Corrected display artist",
+      contentType: "youtube",
+      acquiredVia: "catalog-relabel",
+      sourceRef: "source:corrected",
+      sourceYoutubeUrl: "https://youtube.example/corrected",
+      baseId: "fingerprint-display-corrected",
+      cleanTranscription: false,
+      maxDurBeats: 1.5,
+      key: "C",
+      tempo: 120,
+    });
+    expect(first.error).toBeUndefined();
+    expect(second.error).toBeUndefined();
+
+    const readFingerprint = (baseId: string): string => {
+      const manifest = JSON.parse(
+        readFileSync(join(tmp, "artifacts", baseId, "manifest.json"), "utf8"),
+      ) as { configFingerprint: string };
+      return manifest.configFingerprint;
+    };
+    expect(readFingerprint(first.baseId)).toBe(readFingerprint(second.baseId));
   });
 
   it("caps long YouTube transcription tails before publishing variants", async () => {

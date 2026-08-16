@@ -183,6 +183,7 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
     format,
     division,
     tempoBpm,
+    tempoMetaPresent: tempos.length > 0,
     keySig,
     keyMode,
     timeSig,

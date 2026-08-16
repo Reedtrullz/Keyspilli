@@ -328,7 +328,11 @@ jobs:
             $SSH $HOST "$COMPOSE exec -T -i worker sh -c 'mkdir -p /data/seed-midi && cat > /data/seed-midi/$NAME'" < "$f"
           done
           # Manifest metadata for curated restores inside the worker container.
-          $SSH $HOST "$COMPOSE exec -T -i worker sh -c 'cat > /data/manifest.json'" < catalog/manifest.json
+          # Write the policy file to the same mounted volume and rename it only
+          # after the transfer completes. Readers therefore see either the
+          # previous complete manifest or the new complete manifest, never a
+          # partially streamed JSON document.
+          $SSH $HOST "$COMPOSE exec -T -i worker sh -c 'set -eu; cat > /data/.manifest.json.tmp; mv -f /data/.manifest.json.tmp /data/manifest.json'" < catalog/manifest.json
           # Learner review data keeps known source-identity failures out of the
           # public catalogue while they are awaiting a replacement source.
           $SSH $HOST "$COMPOSE exec -T -i worker sh -c 'cat > /data/learner-review.json'" < catalog/learner-review.json

@@ -5,6 +5,8 @@ import type { PlayerSettings } from "./types.js";
 
 /** How far ahead of the playhead notes are scheduled. */
 const SCHEDULE_LOOKAHEAD = 0.12;
+/** Legacy fallback span for chord events without an explicit duration. */
+const DEFAULT_CHORD_DURATION_SEC = 1.2;
 
 /** Minimal audio surface the engine needs (AudioEngine satisfies this). */
 export interface AudioLike {
@@ -13,7 +15,13 @@ export interface AudioLike {
   noteOff(midi: number): void;
   metronomeClick(beat: number, when?: number): void;
   /** Optional so light-weight test doubles and non-audio consumers can keep working. */
-  playChord?(pitchClasses: number[], bassMidi: number, when?: number, durationSec?: number): void;
+  /**
+   * Play the supplied absolute MIDI voicing at a scheduled offset.
+   *
+   * The handoff is intentionally event-level: stop/seek cancellation is
+   * global, and no per-voice identity is promised by this surface.
+   */
+  playChord?(midiNotes: number[], when: number, durationSec: number): void;
   cancelAll(): void;
   setGains(voice: number, piano: number): void;
   dispose(): void;
@@ -295,16 +303,15 @@ export class PlaybackEngine {
     const playChord = this.audio.playChord;
     if (!playChord || chord.notes.length === 0) return;
     const transposed = chord.notes.map((midi) => midi + this.settings.transpose);
-    const pitchClasses = [...new Set(transposed.map((midi) => ((midi % 12) + 12) % 12))];
-    if (pitchClasses.length === 0) return;
-    // Source timelines normally contain absolute MIDI notes. If a compact
-    // pitch-class timeline is supplied, anchor it in a comfortable bass range.
-    const min = Math.min(...transposed);
-    const bassMidi = min < 24 ? 36 + ((min % 12) + 12) % 12 : min;
+    // Chord labels carry absolute MIDI notes. Keep inversions and octave
+    // doublings, while making ordering deterministic and collapsing only
+    // exact duplicate MIDI numbers (the audio contract has no voice identity).
+    const midiNotes = [...new Set(transposed)].sort((a, b) => a - b);
+    if (midiNotes.length === 0) return;
     const durationSec = chord.durationBeats !== undefined
       ? beatToSec(chord.durationBeats, this.song.tempoBpm, this.settings.speed)
-      : undefined;
-    playChord.call(this.audio, pitchClasses, bassMidi, when, durationSec);
+      : DEFAULT_CHORD_DURATION_SEC;
+    playChord.call(this.audio, midiNotes, when, durationSec);
   }
 
   private emit(): void {

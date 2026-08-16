@@ -7,14 +7,22 @@ import sys
 
 import librosa
 
+# Keep these values mirrored by AUDIO_ONSET_DETECTOR_CONFIG in
+# packages/catalog/src/transcribe.ts so provenance describes the detector that
+# actually ran, not only the note-to-onset matching tolerance.
+SAMPLE_RATE = 22050
+HOP_LENGTH = 512
+BACKTRACK = True
+DELTA = 0.07
+
 
 def main() -> None:
     path = sys.argv[1]
-    y, sr = librosa.load(path, sr=22050, mono=True)
+    y, sr = librosa.load(path, sr=SAMPLE_RATE, mono=True)
     frames = librosa.onset.onset_detect(
-        y=y, sr=sr, hop_length=512, backtrack=True, delta=0.07
+        y=y, sr=sr, hop_length=HOP_LENGTH, backtrack=BACKTRACK, delta=DELTA
     )
-    times = librosa.frames_to_time(frames, sr=sr, hop_length=512)
+    times = librosa.frames_to_time(frames, sr=sr, hop_length=HOP_LENGTH)
     print(json.dumps([round(float(t), 3) for t in times]))
 
 

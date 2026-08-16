@@ -132,6 +132,7 @@ describe("parseMusicXmlNotes", () => {
     const xml = writeMusicXml(variant, "Scale", "Test");
     const parsed = parseMusicXmlNotes(xml);
     expect(parsed.tempoBpm).toBe(variant.tempoBpm);
+    expect(parsed.tempoMetaPresent).toBe(true);
     expect(parsed.timeSig).toEqual(variant.timeSig);
     expect(parsed.notes.length).toBe(variant.notes.length);
     const a = parsed.notes.map((n) => `${n.midi}@${n.start.toFixed(2)}:${n.hand}`);

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { mkdir, rename, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
@@ -12,9 +13,21 @@ import {
   validateArtifactFiles,
   LEVEL_ORDER,
   validateVariants,
+  TRANSCRIPTION_CLEANUP_CONFIG as MIDI_TRANSCRIPTION_CLEANUP_CONFIG,
+  DEFAULT_IMPORTED_MAX_SOUNDING,
 } from "@keyspilli/midi";
 import { replaceSongsByBase, getSongsByBase, SongRow } from "./db.js";
 import { dataDir, uploadsDir } from "./paths.js";
+import {
+  parseTranscriptionProvenance,
+  transcriptionConfigForFingerprint,
+  writeArrangementManifestFile,
+  type ArrangementManifest,
+  type TempoSource,
+  type TranscriptionProvenance,
+} from "./artifact-manifest.js";
+import { AUDIO_ONSET_DETECTOR_CONFIG, ONSET_MATCH_SEC, TRANSCRIPTION_FILTER_VERSION } from "./transcribe.js";
+import { publishBaseArtifact } from "./publish.js";
 
 const LEVEL_CODE: Record<string, string> = {
   "very-beginner": "vb",
@@ -31,6 +44,31 @@ const LEVEL_CODE: Record<string, string> = {
 // transcription path conservative while leaving human-authored MIDI uploads
 // free to contain legitimate longer holds.
 export const MAX_YOUTUBE_IMPORT_DUR_BEATS = 1.5;
+
+// These identifiers are part of the rebuild identity. Bumping one when its
+// corresponding transformation changes makes an old fingerprint stale even
+// when the input bytes and user-facing ingest options are unchanged.
+export const INGEST_NORMALIZER_ID = "midi-normalizer-v2";
+export const INGEST_GRID_POLICY_ID = "beat-grid-v2";
+export const INGEST_VARIANT_POLICY_ID = "learner-variant-ladder-v2";
+
+/**
+ * Versioned processing identities used by audio transcription provenance and
+ * the artifact config fingerprint. Keep this next to the actual ingest
+ * policies so changing a transformation forces an explicit rebuild decision.
+ */
+export const TRANSCRIPTION_PIPELINE_CONFIG = {
+  filterVersion: TRANSCRIPTION_FILTER_VERSION,
+  normalizerId: INGEST_NORMALIZER_ID,
+  gridPolicyId: INGEST_GRID_POLICY_ID,
+  variantPolicyId: INGEST_VARIANT_POLICY_ID,
+} as const;
+
+/** Effective defaults for the two cleanup stages used by YouTube ingestion. */
+export const TRANSCRIPTION_POST_PROCESSING_DEFAULTS = {
+  ...MIDI_TRANSCRIPTION_CLEANUP_CONFIG,
+  importedMaxSounding: DEFAULT_IMPORTED_MAX_SOUNDING,
+} as const;
 
 export interface IngestInput {
   buf: Uint8Array;
@@ -56,6 +94,12 @@ export interface IngestInput {
   maxDurBeats?: number | null;
   /** Arrangement intent; catalogue imports default to the learner profile. */
   arrangementProfile?: "source" | "learner";
+  /**
+   * Effective audio-transcription settings. Standard MIDI/MusicXML uploads
+   * omit this block; Basic Pitch workers persist it on the base manifest and
+   * in every level's notes.json provenance.
+   */
+  transcription?: TranscriptionProvenance;
 }
 
 /** Optional deterministic hook used by integration tests to exercise rollback. */
@@ -163,6 +207,16 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
   if (inp.baseId && !validBaseId(inp.baseId)) {
     return { baseId: "", songIds: [], error: "invalid base id" };
   }
+  let transcription: TranscriptionProvenance | undefined;
+  if (inp.transcription !== undefined) {
+    try {
+      // Validate once at the ingest boundary, then use the same normalized
+      // value for the manifest, notes sidecars, and config fingerprint.
+      transcription = parseTranscriptionProvenance(inp.transcription);
+    } catch (e) {
+      return { baseId: "", songIds: [], error: (e as Error).message };
+    }
+  }
   let parsed;
   let isMxl = false;
   let sourceIsXml = false;
@@ -216,7 +270,20 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
     return { baseId: "", songIds: [], error: `validation failed: ${validationErrors.join("; ")}` };
   }
 
-  const prepared = [];
+  // Resolve both tempo roles once at ingestion. The manifest is the runtime
+  // authority; every generated notes.json receives the same role-tagged copy
+  // as diagnostic provenance, so a variant remains self-describing without
+  // creating a second source of truth.
+  const resolvedAt = new Date().toISOString();
+  const calibrationSource: TempoSource = inp.tempo !== undefined
+    ? "override"
+    : transcription?.tempoSource
+      ?? (inp.contentType === "youtube" ? "detected" : "midi-meta");
+  const tempoProvenance = {
+    calibration: { bpm: parsed.tempoBpm, source: calibrationSource, resolvedAt, role: "source-calibration" as const },
+    playback: { bpm: parsed.tempoBpm, source: calibrationSource, resolvedAt, role: "playback" as const },
+  };
+  const prepared: Array<{ code: string; row: SongRow; midi: Uint8Array; xml: string; notesJson: string }> = [];
   const artifactErrors: string[] = [];
   const createdAt = new Date().toISOString();
   for (const v of variants) {
@@ -250,6 +317,14 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
         level: code,
         createdAt: previous?.createdAt ?? createdAt,
       };
+      const provenance = {
+        kind: inp.contentType,
+        acquiredVia: inp.acquiredVia ?? null,
+        sourceRef: inp.sourceRef ?? inp.sourceYoutubeUrl ?? null,
+        sourceYoutubeUrl: inp.sourceYoutubeUrl ?? null,
+        tempo: tempoProvenance,
+        ...(transcription ? { transcription } : {}),
+      };
       prepared.push({ code, row, midi: artifacts.midi, xml: artifacts.xml, notesJson: JSON.stringify({
         notes: v.notes,
         warnings: v.warnings,
@@ -258,12 +333,7 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
         key: v.key,
         tempoBpm: v.tempoBpm,
         timeSig: v.timeSig,
-        provenance: {
-          kind: inp.contentType,
-          acquiredVia: inp.acquiredVia ?? null,
-          sourceRef: inp.sourceRef ?? inp.sourceYoutubeUrl ?? null,
-          sourceYoutubeUrl: inp.sourceYoutubeUrl ?? null,
-        },
+        provenance,
       }) });
     } catch (e) {
       artifactErrors.push(`${v.level}: artifact render failed: ${(e as Error).message}`);
@@ -274,76 +344,116 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
   }
 
   const artifactsRoot = join(dataDir(), "artifacts");
-  const finalRoot = join(artifactsRoot, baseId);
-  const token = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-  const stageRoot = join(artifactsRoot, `.${baseId}.staging-${token}`);
-  const backupRoot = join(artifactsRoot, `.${baseId}.backup-${token}`);
   const uploadExt = isMxl ? "mxl" : sourceIsXml ? "xml" : "mid";
   const uploadRoot = uploadsDir();
   const finalUpload = join(uploadRoot, `${baseId}.${uploadExt}`);
+  const token = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
   const stageUpload = join(uploadRoot, `.${baseId}.staging-${token}.${uploadExt}`);
   const backupUpload = join(uploadRoot, `.${baseId}.backup-${token}.${uploadExt}`);
-  let movedArtifactBackup = false;
   let movedUploadBackup = false;
-  let movedStageArtifacts = false;
   let movedStageUpload = false;
-  let dbCommitted = false;
+  const sourceArtifactHash = createHash("sha256").update(inp.buf).digest("hex");
+  const configFingerprint = createHash("sha256")
+    .update(JSON.stringify({
+      pipeline: "ingest-v2",
+      normalizerId: INGEST_NORMALIZER_ID,
+      gridPolicyId: INGEST_GRID_POLICY_ID,
+      variantPolicyId: INGEST_VARIANT_POLICY_ID,
+      contentType: inp.contentType,
+      cleanTranscription: inp.contentType === "youtube" && inp.cleanTranscription !== false,
+      maxDurBeats,
+      arrangementProfile: inp.arrangementProfile ?? "learner",
+      key: inp.key ?? null,
+      tempoOverride: inp.tempo ?? null,
+      transcription: transcription ? transcriptionConfigForFingerprint(transcription) : null,
+      // Keep the effective downstream processing identity in the fingerprint
+      // even when an older caller supplies provenance without the newer
+      // pipeline/postProcessing fields. This makes a policy change visible
+      // without rewriting legacy provenance in place.
+      transcriptionPipeline: transcription ? TRANSCRIPTION_PIPELINE_CONFIG : null,
+      transcriptionPostProcessing: transcription ? {
+        filterApplied: transcription.postProcessing?.filterApplied ?? null,
+        cleanupApplied: inp.contentType === "youtube" && inp.cleanTranscription !== false,
+        onsetMatchSec: ONSET_MATCH_SEC,
+        onsetDetector: AUDIO_ONSET_DETECTOR_CONFIG,
+        minVelocity: TRANSCRIPTION_POST_PROCESSING_DEFAULTS.minVelocity,
+        minDurationBeats: TRANSCRIPTION_POST_PROCESSING_DEFAULTS.minDurationBeats,
+        mergeWindowBeats: TRANSCRIPTION_POST_PROCESSING_DEFAULTS.mergeWindowBeats,
+        maxPolyphony: TRANSCRIPTION_POST_PROCESSING_DEFAULTS.maxPolyphony,
+        maxSounding: TRANSCRIPTION_POST_PROCESSING_DEFAULTS.maxSounding,
+        maxDurationSec: TRANSCRIPTION_POST_PROCESSING_DEFAULTS.maxDurationSec,
+        maxDurationBeats: transcription.postProcessing?.maxDurationBeats ?? null,
+        importedMaxDurationBeats: maxDurBeats,
+        importedMaxSounding: TRANSCRIPTION_POST_PROCESSING_DEFAULTS.importedMaxSounding,
+      } : null,
+    }))
+    .digest("hex");
+  const manifest: ArrangementManifest = {
+    schemaVersion: 1,
+    baseId,
+    identityStatus: "current",
+    sourceArtifactHash,
+    configFingerprint,
+    arrangementProfile: inp.arrangementProfile ?? "learner",
+    tempo: {
+      calibration: { bpm: parsed.tempoBpm, source: calibrationSource, resolvedAt, role: "source-calibration" },
+      playback: { bpm: parsed.tempoBpm, source: calibrationSource, resolvedAt, role: "playback" },
+    },
+    ...(transcription ? { transcription } : {}),
+    artifactWrittenAt: resolvedAt,
+  };
   try {
-    await mkdir(artifactsRoot, { recursive: true });
-    await mkdir(stageRoot, { recursive: true });
-    for (const item of prepared) {
-      const dir = join(stageRoot, item.code);
-      await mkdir(dir, { recursive: true });
-      await Promise.all([
-        writeFile(join(dir, "variant.mid"), item.midi),
-        writeFile(join(dir, "variant.xml"), item.xml),
-        writeFile(join(dir, "notes.json"), item.notesJson),
-      ]);
-    }
-    if (inp.contentType === "upload") {
-      await mkdir(uploadRoot, { recursive: true });
-      await writeFile(stageUpload, inp.buf);
-    }
-
-    if (existsSync(finalRoot)) {
-      await rename(finalRoot, backupRoot);
-      movedArtifactBackup = true;
-    }
-    if (inp.contentType === "upload" && existsSync(finalUpload)) {
-      await rename(finalUpload, backupUpload);
-      movedUploadBackup = true;
-    }
-    await rename(stageRoot, finalRoot);
-    movedStageArtifacts = true;
-    if (inp.contentType === "upload") {
-      await rename(stageUpload, finalUpload);
-      movedStageUpload = true;
-    }
-
-    options.beforeReplace?.();
-    replaceSongsByBase(baseId, prepared.map((item) => item.row));
-    dbCommitted = true;
-    // Cleanup is best-effort after the DB commit. A transient unlink failure
-    // must never enter the rollback path and leave SQLite pointing at a
-    // different artifact set than the filesystem.
-    await rm(backupRoot, { recursive: true, force: true }).catch(() => undefined);
-    await rm(backupUpload, { force: true }).catch(() => undefined);
-    return { baseId, songIds: prepared.map((item) => item.row.id) };
-  } catch (e) {
-    if (dbCommitted) {
-      console.warn(`publish cleanup warning for ${baseId}: ${(e as Error).message}`);
+    const result = await publishBaseArtifact(baseId, async (stageRoot) => {
+      for (const item of prepared) {
+        const dir = join(stageRoot, item.code);
+        await mkdir(dir, { recursive: true });
+        await Promise.all([
+          writeFile(join(dir, "variant.mid"), item.midi),
+          writeFile(join(dir, "variant.xml"), item.xml),
+          writeFile(join(dir, "notes.json"), item.notesJson),
+        ]);
+      }
+      // Keep the existing failure-injection hook before the commit marker is
+      // written. A failed preparation therefore cannot swap a partial tree.
+      options.beforeReplace?.();
+      if (inp.contentType === "upload") {
+        await mkdir(uploadRoot, { recursive: true });
+        await writeFile(stageUpload, inp.buf);
+      }
+      // The manifest is deliberately written last inside the stage. The
+      // shared publisher validates it again immediately before swapping.
+      await writeArrangementManifestFile(join(stageRoot, "manifest.json"), manifest);
       return { baseId, songIds: prepared.map((item) => item.row.id) };
+    }, {
+      artifactsRoot,
+      semanticValidation: "strict",
+      afterSwap: async () => {
+        if (inp.contentType === "upload") {
+          if (existsSync(finalUpload)) {
+            await rename(finalUpload, backupUpload);
+            movedUploadBackup = true;
+          }
+          await rename(stageUpload, finalUpload);
+          movedStageUpload = true;
+        }
+        replaceSongsByBase(baseId, prepared.map((item) => item.row));
+        // Cleanup is best-effort after the DB commit. A transient unlink
+        // failure must not make a successfully published artifact look like
+        // a failed ingest.
+        await rm(backupUpload, { force: true }).catch(() => undefined);
+      },
+    });
+    return result;
+  } catch (e) {
+    // A writer/preparation failure leaves the old artifact root untouched.
+    // If an auxiliary upload move failed before completion, restore its old
+    // sidecar; a post-swap DB failure intentionally leaves the new artifact
+    // tree in place for reconciliation by the catalog verifier.
+    if (!movedStageUpload && movedUploadBackup) {
+      await rename(backupUpload, finalUpload).catch(() => undefined);
     }
-    // Roll back both filesystem and DB-visible state. The DB transaction has
-    // already rolled back if replaceSongsByBase threw.
-    if (movedStageArtifacts) await rm(finalRoot, { recursive: true, force: true });
-    if (movedArtifactBackup) await rename(backupRoot, finalRoot).catch(() => undefined);
-    else await rm(backupRoot, { recursive: true, force: true });
-    if (movedStageUpload) await rm(finalUpload, { force: true });
-    if (movedUploadBackup) await rename(backupUpload, finalUpload).catch(() => undefined);
-    else await rm(backupUpload, { force: true });
-    await rm(stageRoot, { recursive: true, force: true });
     await rm(stageUpload, { force: true });
+    await rm(backupUpload, { force: true });
     return { baseId: "", songIds: [], error: `publish failed: ${(e as Error).message}` };
   }
 }

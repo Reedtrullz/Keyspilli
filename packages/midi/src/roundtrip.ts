@@ -11,6 +11,11 @@ export interface VariantArtifacts {
 }
 
 const ROUNDTRIP_TOLERANCE = 0.01;
+// MIDI stores tempo as integer microseconds per quarter note, so parsing a
+// perfectly valid integer BPM can differ by a few ten-thousandths. This is
+// intentionally much tighter than a human-visible stale tempo edit while
+// still accepting the format's lossless-in-practice quantization.
+export const ARTIFACT_TEMPO_TOLERANCE = 0.01;
 
 function noteShape(notes: Note[]): { midi: number; start: number; dur: number }[] {
   return notes
@@ -40,6 +45,15 @@ function compareNotes(source: Note[], actual: Note[], label: string): string[] {
     }
   }
   return issues;
+}
+
+function compareTempo(expected: number, actual: number, explicit: boolean, label: string): string[] {
+  if (!explicit) return [`${label}: tempo metadata missing`];
+  if (!Number.isFinite(expected)) return [`${label}: source tempo ${String(expected)} invalid`];
+  if (!Number.isFinite(actual) || Math.abs(expected - actual) > ARTIFACT_TEMPO_TOLERANCE) {
+    return [`${label}: tempo ${Number.isFinite(actual) ? actual : String(actual)} != source ${expected}`];
+  }
+  return [];
 }
 
 /** Render a generated variant exactly as ingest does. */
@@ -77,12 +91,16 @@ export function validateArtifactRoundtrip(variant: Variant, title: string, artis
 export function validateArtifactFiles(variant: Variant, artifacts: VariantArtifacts): string[] {
   const issues: string[] = [];
   try {
-    issues.push(...compareNotes(variant.notes, parseMidi(artifacts.midi).notes, "midi roundtrip"));
+    const parsedMidi = parseMidi(artifacts.midi);
+    issues.push(...compareTempo(variant.tempoBpm, parsedMidi.tempoBpm, parsedMidi.tempoMetaPresent === true, "midi roundtrip"));
+    issues.push(...compareNotes(variant.notes, parsedMidi.notes, "midi roundtrip"));
   } catch (e) {
     issues.push(`midi roundtrip parse failed: ${(e as Error).message}`);
   }
   try {
-    issues.push(...compareNotes(variant.notes, parseMusicXmlNotes(artifacts.xml).notes, "xml roundtrip"));
+    const parsedXml = parseMusicXmlNotes(artifacts.xml);
+    issues.push(...compareTempo(variant.tempoBpm, parsedXml.tempoBpm, parsedXml.tempoMetaPresent === true, "xml roundtrip"));
+    issues.push(...compareNotes(variant.notes, parsedXml.notes, "xml roundtrip"));
   } catch (e) {
     issues.push(`xml roundtrip parse failed: ${(e as Error).message}`);
   }

@@ -176,16 +176,24 @@ export class AudioEngine {
     };
   }
 
-  /** Synthesize a chord (pitch classes) — used by chord-mode background. */
-  playChord(pcs: number[], bassMidi: number, when = 0, durationSec = 1.2): void {
+  /**
+   * Synthesize an explicit-MIDI chord used by chord-mode background.
+   *
+   * Notes are sorted and exact duplicate MIDI numbers are collapsed at the
+   * audio boundary as a defensive guarantee for direct callers. Distinct
+   * octaves remain separate voices. Cancellation remains global via
+   * cancelAll(); this method does not promise per-voice identity.
+   */
+  playChord(midiNotes: number[], when: number, durationSec: number): void {
     const ctx = this.ensure();
     if (!this.pianoGainNode) return;
     const t = ctx.currentTime + when;
     const duration = Math.max(0.2, Math.min(8, durationSec));
-    for (const pc of pcs) {
-      let midi = bassMidi + ((pc - (bassMidi % 12) + 12) % 12);
-      if (midi < bassMidi) midi += 12;
-      if (midi > bassMidi + 24) midi -= 12;
+    // Keep exact octave doublings but avoid creating duplicate oscillators for
+    // the same MIDI number. Sorting makes direct and engine callers agree on
+    // a deterministic handoff without changing the voicing itself.
+    const notes = [...new Set(midiNotes)].sort((a, b) => a - b);
+    for (const midi of notes) {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = "triangle";

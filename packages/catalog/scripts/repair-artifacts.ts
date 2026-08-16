@@ -3,16 +3,22 @@
  *
  * This repair intentionally does not touch notes.json or database rows: the
  * serializers are the only source of truth being repaired. Each base is
- * staged as a complete six-level set and then swapped file-by-file with a
- * rollback journal, so a failed render or rename cannot leave half a song
- * updated.
+ * staged as a complete six-level set and published through the same lock,
+ * manifest-commit, and atomic swap protocol as ingestion and metadata edits.
  */
-import { mkdir, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { join, relative, dirname } from "node:path";
+import { join } from "node:path";
 import { LEVEL_ORDER, validateArtifactFiles, writeVariantArtifacts, type Variant } from "@keyspilli/midi";
 import { getDb } from "../src/db.js";
 import { dataDir } from "../src/paths.js";
+import {
+  createLegacyBootstrapManifest,
+  parseArrangementManifest,
+  writeArrangementManifestFile,
+  type ArrangementManifest,
+} from "../src/artifact-manifest.js";
+import { publishBaseArtifact } from "../src/publish.js";
 
 const LEVEL_CODE: Record<string, string> = {
   "very-beginner": "vb",
@@ -22,22 +28,6 @@ const LEVEL_CODE: Record<string, string> = {
   medium: "m",
   advanced: "a",
 };
-
-interface Replacement {
-  finalPath: string;
-  stagePath: string;
-  backupPath: string;
-  hadOriginal: boolean;
-  movedOriginal: boolean;
-  installed: boolean;
-}
-
-interface StagedBase {
-  stageRoot: string;
-  backupRoot: string;
-  replacements: Replacement[];
-  issues: string[];
-}
 
 function parseArgs(argv: string[]): { baseIds: string[]; dryRun: boolean; includeOrphans: boolean } {
   const baseIds: string[] = [];
@@ -77,108 +67,129 @@ async function catalogBaseIds(root: string, includeOrphans: boolean): Promise<st
   return [...ids].sort();
 }
 
-async function renderBase(baseId: string, artifactRoot: string): Promise<StagedBase> {
+interface RenderedBase {
+  manifest: ArrangementManifest;
+  issues: string[];
+}
+
+/**
+ * Render one complete base into the caller-provided staging root. The caller
+ * must publish that root through publishBaseArtifact; this function never
+ * mutates the live artifact tree.
+ */
+async function renderBase(baseId: string, artifactRoot: string, stageRoot: string): Promise<RenderedBase> {
   const titleRow = getDb().prepare("SELECT title, artist FROM songs WHERE base_id = ? LIMIT 1").get(baseId) as
     | { title: string; artist: string }
     | undefined;
   const title = titleRow?.title ?? baseId;
   const artist = titleRow?.artist ?? "Unknown";
-  const token = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-  const stageRoot = join(artifactRoot, `.${baseId}.repair-staging-${token}`);
-  const backupRoot = join(artifactRoot, `.${baseId}.repair-backup-${token}`);
-  const replacements: Replacement[] = [];
   const issues: string[] = [];
-  try {
-    await mkdir(stageRoot, { recursive: true });
-    for (const level of LEVEL_ORDER) {
-      const code = LEVEL_CODE[level]!;
-      const dir = join(artifactRoot, baseId, code);
-      const notesPath = join(dir, "notes.json");
-      let variant: Variant;
-      try {
-        variant = { ...(JSON.parse(await readFile(notesPath, "utf8")) as Variant), level };
-      } catch (e) {
-        issues.push(`${level}: missing or invalid notes.json (${(e as Error).message})`);
-        continue;
+  await mkdir(stageRoot, { recursive: true });
+
+  const manifestPath = join(artifactRoot, baseId, "manifest.json");
+  let existingManifest: ArrangementManifest | undefined;
+  if (existsSync(manifestPath)) {
+    try {
+      existingManifest = parseArrangementManifest(JSON.parse(await readFile(manifestPath, "utf8")));
+      if (existingManifest.baseId !== baseId) {
+        issues.push(`manifest baseId ${existingManifest.baseId} does not match ${baseId}`);
       }
+    } catch (e) {
+      issues.push(`manifest.json is invalid (${(e as Error).message})`);
+    }
+  }
+
+  const dbRows = getDb().prepare("SELECT tempo FROM songs WHERE base_id = ? ORDER BY difficulty_score").all(baseId) as { tempo: number }[];
+  const variants: Array<{ level: string; code: string; dir: string; variant: Variant; notesJson: string }> = [];
+  const tempos: number[] = [];
+  for (const level of LEVEL_ORDER) {
+    const code = LEVEL_CODE[level]!;
+    const dir = join(artifactRoot, baseId, code);
+    const notesPath = join(dir, "notes.json");
+    let notesJson: string;
+    let variant: Variant;
+    try {
+      notesJson = await readFile(notesPath, "utf8");
+      variant = { ...(JSON.parse(notesJson) as Variant), level };
+    } catch (e) {
+      issues.push(`${level}: missing or invalid notes.json (${(e as Error).message})`);
+      continue;
+    }
+    if (!Number.isFinite(variant.tempoBpm) || variant.tempoBpm < 20 || variant.tempoBpm > 300) {
+      issues.push(`${level}: invalid tempoBpm ${String(variant.tempoBpm)}`);
+    } else {
+      tempos.push(variant.tempoBpm);
+    }
+    variants.push({ level, code, dir, variant, notesJson });
+  }
+
+  const allTemposAgree = tempos.length === LEVEL_ORDER.length && tempos.every((tempo) => tempo === tempos[0]);
+  if (!allTemposAgree && tempos.length) issues.push("notes.json tempoBpm values disagree across levels");
+  if (dbRows.length && tempos.length && dbRows.some((row) => row.tempo !== tempos[0])) {
+    issues.push("database tempo disagrees with notes.json tempoBpm");
+  }
+  if (existingManifest && tempos.length && existingManifest.tempo.playback.bpm !== tempos[0]) {
+    issues.push("manifest playback tempo disagrees with notes.json tempoBpm");
+  }
+  if (existingManifest && dbRows.length && dbRows.some((row) => row.tempo !== existingManifest!.tempo.playback.bpm)) {
+    issues.push("database tempo disagrees with manifest playback tempo");
+  }
+
+  const bpm = tempos[0];
+  const manifest: ArrangementManifest = existingManifest
+    ? { ...existingManifest, artifactWrittenAt: new Date().toISOString() }
+    : bpm === undefined
+      ? createLegacyBootstrapManifest(baseId, 120)
+      : createLegacyBootstrapManifest(baseId, bpm);
+
+  if (!issues.length) {
+    for (const item of variants) {
       let artifacts;
       try {
-        artifacts = writeVariantArtifacts(variant, title, artist);
+        artifacts = writeVariantArtifacts(item.variant, title, artist);
       } catch (e) {
-        issues.push(`${level}: render failed (${(e as Error).message})`);
+        issues.push(`${item.level}: render failed (${(e as Error).message})`);
         continue;
       }
-      const artifactIssues = validateArtifactFiles(variant, artifacts);
+      const artifactIssues = validateArtifactFiles(item.variant, artifacts);
       if (artifactIssues.length) {
-        issues.push(...artifactIssues.map((issue) => `${level}: ${issue}`));
+        issues.push(...artifactIssues.map((issue) => `${item.level}: ${issue}`));
         continue;
       }
-      const stageDir = join(stageRoot, code);
+      const stageDir = join(stageRoot, item.code);
       await mkdir(stageDir, { recursive: true });
       await Promise.all([
         writeFile(join(stageDir, "variant.mid"), artifacts.midi),
         writeFile(join(stageDir, "variant.xml"), artifacts.xml),
+        // Repair must stage notes.json too: the base-tree swap is the unit of
+        // publication, even though this command does not rewrite its bytes.
+        writeFile(join(stageDir, "notes.json"), item.notesJson),
       ]);
-      for (const file of ["variant.mid", "variant.xml"]) {
-        const finalPath = join(dir, file);
-        const stagePath = join(stageDir, file);
-        const backupPath = join(backupRoot, code, file);
-        replacements.push({ finalPath, stagePath, backupPath, hadOriginal: existsSync(finalPath), movedOriginal: false, installed: false });
-      }
     }
-    if (issues.length) return { stageRoot, backupRoot, replacements, issues };
-    if (replacements.length !== LEVEL_ORDER.length * 2) {
-      issues.push(`expected ${LEVEL_ORDER.length * 2} artifacts, prepared ${replacements.length}`);
-      return { stageRoot, backupRoot, replacements, issues };
-    }
-    return { stageRoot, backupRoot, replacements, issues };
-  } finally {
-    // The caller owns stage/backup cleanup after a successful swap or rollback.
   }
-}
-
-async function replaceBase(baseId: string, artifactRoot: string, replacements: Replacement[], stageRoot: string, backupRoot: string): Promise<void> {
-  const baseRoot = join(artifactRoot, baseId);
-  await mkdir(backupRoot, { recursive: true });
-  try {
-    for (const item of replacements) {
-      if (item.hadOriginal) {
-        const rel = relative(baseRoot, item.finalPath);
-        await mkdir(dirname(join(backupRoot, rel)), { recursive: true });
-        await rename(item.finalPath, item.backupPath);
-        item.movedOriginal = true;
-    }
-      await mkdir(dirname(item.finalPath), { recursive: true });
-      await rename(item.stagePath, item.finalPath);
-      item.installed = true;
-    }
-    await rm(stageRoot, { recursive: true, force: true });
-    await rm(backupRoot, { recursive: true, force: true });
-  } catch (e) {
-    for (const item of replacements.slice().reverse()) {
-      if (item.installed) await rm(item.finalPath, { force: true }).catch(() => undefined);
-      if (item.movedOriginal) await rename(item.backupPath, item.finalPath).catch(() => undefined);
-    }
-    await rm(stageRoot, { recursive: true, force: true });
-    await rm(backupRoot, { recursive: true, force: true });
-    throw e;
+  if (!issues.length) {
+    // Commit marker is always the final staged file.
+    await writeArrangementManifestFile(join(stageRoot, "manifest.json"), manifest);
   }
+  return { manifest, issues };
 }
 
 async function repairOne(baseId: string, artifactRoot: string, dryRun: boolean): Promise<{ repaired: boolean; issues: string[] }> {
-  const rendered = await renderBase(baseId, artifactRoot);
-  if (rendered.issues.length) {
-    await rm(rendered.stageRoot, { recursive: true, force: true });
-    await rm(rendered.backupRoot, { recursive: true, force: true });
-    return { repaired: false, issues: rendered.issues };
-  }
   if (dryRun) {
-    await rm(rendered.stageRoot, { recursive: true, force: true });
-    await rm(rendered.backupRoot, { recursive: true, force: true });
-    return { repaired: false, issues: [] };
+    const token = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+    const stageRoot = join(artifactRoot, `.${baseId}.repair-check-${token}`);
+    try {
+      const rendered = await renderBase(baseId, artifactRoot, stageRoot);
+      return { repaired: false, issues: rendered.issues };
+    } finally {
+      await rm(stageRoot, { recursive: true, force: true });
+    }
   }
   try {
-    await replaceBase(baseId, artifactRoot, rendered.replacements, rendered.stageRoot, rendered.backupRoot);
+    await publishBaseArtifact(baseId, async (stageRoot) => {
+      const rendered = await renderBase(baseId, artifactRoot, stageRoot);
+      if (rendered.issues.length) throw new Error(rendered.issues.join("; "));
+    }, { artifactsRoot: artifactRoot, semanticValidation: "strict" });
     return { repaired: true, issues: [] };
   } catch (e) {
     return { repaired: false, issues: [`publication failed: ${(e as Error).message}`] };

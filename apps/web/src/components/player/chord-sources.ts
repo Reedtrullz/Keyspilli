@@ -10,7 +10,20 @@ import type { SongData } from "@keyspilli/player-core";
  */
 export type ChordSourceId = "auto" | "ug" | "generated";
 
-export type PlayerChordLabel = ChordLabel & { durationBeats?: number };
+/**
+ * Chord metadata is optional because older notes.json artifacts only contain
+ * beat/name/notes. Keep the web boundary permissive so newer catalog events
+ * do not lose provenance while they are normalized for playback.
+ */
+export interface PlayerChordMetadata {
+  sourceKind?: "authored" | "inferred" | "generated" | "unknown";
+  inferred?: boolean;
+  inferenceType?: "dyad-completion" | "carry-forward-root" | "nearest-symbol" | "subbeat-extension" | "voicing";
+  duration?: number;
+  durationBeats?: number;
+}
+
+export type PlayerChordLabel = Omit<ChordLabel, keyof PlayerChordMetadata> & PlayerChordMetadata;
 
 export interface ChordSourceOption {
   id: Exclude<ChordSourceId, "auto">;
@@ -84,6 +97,88 @@ function numberList(value: unknown): number[] {
     .filter((item): item is number => item !== null && Number.isInteger(item) && item >= 0 && item <= 127);
 }
 
+function hasOwn(value: UnknownRecord, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(value, key);
+}
+
+/** Keep event-level provenance and duration aliases when crossing into UI data. */
+function preservedMetadata(obj: UnknownRecord): PlayerChordMetadata {
+  const metadata: PlayerChordMetadata = {};
+  if (typeof obj.sourceKind === "string" && obj.sourceKind.trim()) {
+    metadata.sourceKind = obj.sourceKind as NonNullable<PlayerChordMetadata["sourceKind"]>;
+  }
+  if (typeof obj.inferred === "boolean") metadata.inferred = obj.inferred;
+  if (typeof obj.inferenceType === "string" && obj.inferenceType.trim()) {
+    metadata.inferenceType = obj.inferenceType as NonNullable<PlayerChordMetadata["inferenceType"]>;
+  }
+
+  const durationBeats = finite(obj.durationBeats);
+  const duration = finite(obj.duration);
+  if (durationBeats !== null && durationBeats > 0) metadata.durationBeats = durationBeats;
+  if (duration !== null && duration > 0) {
+    metadata.duration = duration;
+    // Some source exports call the beat span `duration`; keep the source key
+    // and also expose the player-native alias used by PlaybackEngine.
+    if (metadata.durationBeats === undefined) metadata.durationBeats = duration;
+  }
+  return metadata;
+}
+
+function metadataKey(chord: PlayerChordLabel): string {
+  return JSON.stringify([
+    chord.sourceKind ?? null,
+    chord.inferred ?? null,
+    chord.inferenceType ?? null,
+    chord.duration ?? null,
+    chord.durationBeats ?? null,
+  ]);
+}
+
+function sourceRank(chord: PlayerChordLabel): number {
+  if (chord.sourceKind === "authored") return 3;
+  if (chord.sourceKind === "inferred") return 2;
+  if (chord.sourceKind === "generated") return 1;
+  return 0;
+}
+
+function chordFingerprint(chord: PlayerChordLabel): string {
+  return JSON.stringify([
+    chord.beat,
+    chord.durationBeats ?? chord.duration ?? 0,
+    chord.sourceKind ?? "unknown",
+    chord.name,
+    [...chord.notes].sort((a, b) => a - b),
+    chord.inferred ?? false,
+    chord.inferenceType ?? "",
+  ]);
+}
+
+function preferSameBeat(previous: PlayerChordLabel, candidate: PlayerChordLabel): PlayerChordLabel {
+  const previousRank = sourceRank(previous);
+  const candidateRank = sourceRank(candidate);
+  if (candidateRank !== previousRank) return candidateRank > previousRank ? candidate : previous;
+
+  // Authority comes before voicing richness: an authored display-only symbol
+  // still suppresses generated material at the same onset.
+  const previousPlayable = previous.notes.length > 0;
+  const candidatePlayable = candidate.notes.length > 0;
+  if (candidatePlayable !== previousPlayable) return candidatePlayable ? candidate : previous;
+
+  // Preserve more authored/inferred detail, while keeping generated learner
+  // voicings compact when the source rank is otherwise tied.
+  if (candidateRank >= 2 && candidate.notes.length !== previous.notes.length) {
+    return candidate.notes.length > previous.notes.length ? candidate : previous;
+  }
+  if (candidateRank === 1 && candidate.notes.length !== previous.notes.length) {
+    return candidate.notes.length < previous.notes.length ? candidate : previous;
+  }
+
+  const previousDuration = previous.durationBeats ?? previous.duration ?? 0;
+  const candidateDuration = candidate.durationBeats ?? candidate.duration ?? 0;
+  if (candidateDuration !== previousDuration) return candidateDuration > previousDuration ? candidate : previous;
+  return chordFingerprint(candidate) < chordFingerprint(previous) ? candidate : previous;
+}
+
 function chordArray(value: unknown): unknown[] {
   if (Array.isArray(value)) return value;
   const obj = record(value);
@@ -95,22 +190,27 @@ function chordArray(value: unknown): unknown[] {
 }
 
 /** Normalize source events while preserving explicitly supplied chord names. */
-export function normalizeChordTimeline(value: unknown): PlayerChordLabel[] {
+export function normalizeChordTimeline(
+  value: unknown,
+  legacySourceKind?: PlayerChordMetadata["sourceKind"],
+): PlayerChordLabel[] {
   const out: PlayerChordLabel[] = [];
   for (const item of chordArray(value)) {
     const obj = record(item);
     if (!obj) continue;
     const beat = finite(obj.beat ?? obj.startBeat ?? obj.start ?? obj.time);
     if (beat === null || beat < 0) continue;
-    let notes = numberList(obj.notes ?? obj.midis ?? obj.pitches ?? obj.midiNotes);
-    if (!notes.length) {
+    const explicitNotesKey = ["notes", "midis", "pitches", "midiNotes"].find((key) => hasOwn(obj, key));
+    const hasExplicitNotes = explicitNotesKey !== undefined || hasOwn(obj, "midi") || hasOwn(obj, "pitch");
+    let notes = numberList(explicitNotesKey === undefined ? undefined : obj[explicitNotesKey]);
+    if (!notes.length && (hasOwn(obj, "midi") || hasOwn(obj, "pitch"))) {
       const single = finite(obj.midi ?? obj.pitch);
-    if (single !== null && Number.isInteger(single) && single >= 0 && single <= 127) notes.push(single);
+      if (single !== null && Number.isInteger(single) && single >= 0 && single <= 127) notes.push(single);
     }
     // Chart timelines may intentionally omit a voicing and provide only a
     // validated symbol. Use the shared MIDI chord helper for a stable learner
     // voicing instead of dropping an otherwise usable source event.
-    if (!notes.length) {
+    if (!notes.length && !hasExplicitNotes) {
       const symbol = text(obj.name ?? obj.label ?? obj.chord ?? obj.symbol);
       if (symbol) {
         try {
@@ -121,20 +221,36 @@ export function normalizeChordTimeline(value: unknown): PlayerChordLabel[] {
         }
       }
     }
-    if (!notes.length) continue;
     const name = text(obj.name ?? obj.label ?? obj.chord ?? obj.symbol) ?? "Chord";
-    const durationBeats = finite(obj.durationBeats ?? obj.duration);
-    out.push({ beat, name, notes, ...(durationBeats !== null && durationBeats > 0 ? { durationBeats } : {}) });
+    const metadata = preservedMetadata(obj);
+    if (metadata.sourceKind === undefined && legacySourceKind !== undefined) {
+      metadata.sourceKind = legacySourceKind;
+    }
+    out.push({ beat, name, notes, ...metadata });
   }
 
   out.sort((a, b) => a.beat - b.beat);
-  // Source exports can repeat the same symbol at every subdivision. Keep the
-  // first event only when the voicing is also unchanged; an inversion or
-  // octave change is musically meaningful even when the label repeats.
-  const deduped: PlayerChordLabel[] = [];
+  // Resolve same-onset conflicts before compaction. Source authority must not
+  // depend on array arrival order (especially for authored-vs-generated data).
+  const byBeat: PlayerChordLabel[] = [];
   for (const chord of out) {
+    const previous = byBeat.at(-1);
+    if (previous && previous.beat === chord.beat) byBeat[byBeat.length - 1] = preferSameBeat(previous, chord);
+    else byBeat.push(chord);
+  }
+
+  // Source exports can repeat the same symbol at every subdivision. Keep the
+  // first event only when the voicing and provenance are also unchanged; an
+  // inversion, octave change, or source decision is musically meaningful.
+  const deduped: PlayerChordLabel[] = [];
+  for (const chord of byBeat) {
     const previous = deduped.at(-1);
-    if (previous && previous.name === chord.name && JSON.stringify(previous.notes) === JSON.stringify(chord.notes)) continue;
+    if (
+      previous
+      && previous.name === chord.name
+      && JSON.stringify(previous.notes) === JSON.stringify(chord.notes)
+      && metadataKey(previous) === metadataKey(chord)
+    ) continue;
     deduped.push(chord);
   }
   return deduped;
@@ -168,7 +284,7 @@ function findUgTimeline(data: UnknownRecord): { value: unknown; provenance: stri
   ];
   for (const key of directKeys) {
     if (data[key] !== undefined) {
-      const chords = normalizeChordTimeline(data[key]);
+      const chords = normalizeChordTimeline(data[key], "authored");
       const provenance = provenanceCandidates(data).find(isUgText);
       if (chords.length) return { value: chords, provenance: describeProvenance(provenance) ?? "ug-tabs", fallback, fallbackReason };
     }
@@ -183,14 +299,14 @@ function findUgTimeline(data: UnknownRecord): { value: unknown; provenance: stri
       for (const item of value) {
         const obj = record(item);
         if (!obj || !isUgText(obj.id ?? obj.source ?? obj.label ?? obj.provenance)) continue;
-        const chords = normalizeChordTimeline(obj.timeline ?? obj.chords ?? obj.events ?? obj);
+        const chords = normalizeChordTimeline(obj.timeline ?? obj.chords ?? obj.events ?? obj, "authored");
         if (chords.length) return { value: chords, provenance: describeProvenance(obj.provenance ?? obj.source ?? obj.label) ?? "ug-tabs", fallback: obj.fallback === true, fallbackReason: text(obj.fallbackReason) };
       }
     } else if (record(value)) {
       for (const [sourceId, sourceValue] of Object.entries(value as UnknownRecord)) {
         if (!isUgText(sourceId) && !isUgText(describeProvenance(sourceValue))) continue;
         const sourceObj = record(sourceValue);
-        const chords = normalizeChordTimeline(sourceObj?.timeline ?? sourceObj?.chords ?? sourceValue);
+        const chords = normalizeChordTimeline(sourceObj?.timeline ?? sourceObj?.chords ?? sourceValue, "authored");
         if (chords.length) return { value: chords, provenance: describeProvenance(sourceObj?.provenance ?? sourceObj?.source ?? sourceId) ?? "ug-tabs", fallback: sourceObj?.fallback === true, fallbackReason: text(sourceObj?.fallbackReason) };
       }
     }
@@ -204,7 +320,7 @@ function findUgTimeline(data: UnknownRecord): { value: unknown; provenance: stri
     const timelineObj = record(data.chordTimeline);
     const timelineSource = timelineObj?.source ?? timelineObj?.provenance ?? timelineObj?.provider;
     if (isUgText(timelineSource) || provenance !== undefined) {
-      const chords = normalizeChordTimeline(data.chordTimeline);
+      const chords = normalizeChordTimeline(data.chordTimeline, "authored");
       if (chords.length) return { value: chords, provenance: describeProvenance(timelineSource ?? provenance) ?? "ug-tabs", fallback, fallbackReason };
     }
   }
@@ -213,7 +329,7 @@ function findUgTimeline(data: UnknownRecord): { value: unknown; provenance: stri
 
 export function resolveChordSources(data: SongData): ChordSourceResolution {
   const raw = data as unknown as UnknownRecord;
-  const generated = normalizeChordTimeline(raw.chords);
+  const generated = normalizeChordTimeline(raw.chords, "generated");
   const ug = findUgTimeline(raw);
   return {
     generated: {

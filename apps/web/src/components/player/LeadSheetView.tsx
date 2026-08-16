@@ -1,8 +1,10 @@
 "use client";
 
-import { dedupeChords, measureIndex, pitchColor, secPerBeat, type PlayerSettings, type SongData } from "@keyspilli/player-core";
+import React from "react";
+import { measureIndex, pitchColor, secPerBeat, type ChordLabel, type PlayerSettings, type SongData } from "@keyspilli/player-core";
+import { chordProvenance } from "./chord-provenance";
 
-export function LeadSheetView({ data, time, settings }: { data: SongData; time: number; settings: PlayerSettings }) {
+export function LeadSheetView({ data, time, settings, chords }: { data: SongData; time: number; settings: PlayerSettings; chords: ChordLabel[] }) {
   const beatSec = secPerBeat(data.tempoBpm, settings.speed);
   const currentMeasure = measureIndex(
     time,
@@ -13,7 +15,6 @@ export function LeadSheetView({ data, time, settings }: { data: SongData; time: 
   );
   const m = data.measures[currentMeasure] ?? data.measures[0]!;
   const notes = data.notes.filter((n) => n.start >= m.startBeat && n.start < m.endBeat && n.hand !== "L");
-  const chords = dedupeChords(data.chords);
   const measureBeats = m.endBeat - m.startBeat;
   const W = 880;
   const H = 240;
@@ -26,7 +27,7 @@ export function LeadSheetView({ data, time, settings }: { data: SongData; time: 
   return (
     <div className="overflow-x-auto">
       <div className="p-6">
-        <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Lead sheet view">
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Lead sheet view. Amber dotted chords are inferred; gray dotted chords have unknown provenance.">
           <rect width={W} height={H} fill="#fff" rx="12" />
           {notes.map((n, i) => {
             const x = 80 + ((n.start - m.startBeat) / measureBeats) * (W - 160);
@@ -44,19 +45,39 @@ export function LeadSheetView({ data, time, settings }: { data: SongData; time: 
           })}
           {chords
             .filter((c) => c.beat >= m.startBeat && c.beat < m.endBeat)
-            .map((c, i) => (
-              <text
-                key={`c${i}`}
-                x={80 + ((c.beat - m.startBeat) / measureBeats) * (W - 160)}
-                y={H - 36}
-                textAnchor="middle"
-                fontSize="14"
-                fontWeight="700"
-                fill="#18181b"
-              >
-                {c.name}
-              </text>
-            ))}
+            .map((c, i) => {
+              const provenance = chordProvenance(c);
+              const x = 80 + ((c.beat - m.startBeat) / measureBeats) * (W - 160);
+              const width = Math.max(36, c.name.length * 8 + 12);
+              return (
+                <g key={`c${i}`} aria-label={`${c.name}: ${provenance.label}`}>
+                  {provenance.dotted && (
+                    <rect
+                      x={x - width / 2}
+                      y={H - 56}
+                      width={width}
+                      height="24"
+                      rx="4"
+                      fill={provenance.fill}
+                      stroke={provenance.stroke}
+                      strokeWidth="1"
+                      strokeDasharray="2 2"
+                    />
+                  )}
+                  <title>{`${c.name}: ${provenance.label}`}</title>
+                  <text
+                    x={x}
+                    y={H - 36}
+                    textAnchor="middle"
+                    fontSize="14"
+                    fontWeight="700"
+                    fill={provenance.stroke}
+                  >
+                    {c.name}
+                  </text>
+                </g>
+              );
+            })}
           {time > 0 && <line x1={playX} y1="28" x2={playX} y2={H - 52} stroke="#dc2626" strokeWidth="2" />}
         </svg>
         <p className="text-xs text-zinc-400 mt-2">

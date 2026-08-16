@@ -17,6 +17,20 @@ const EPSILON = 1e-7;
 const DEFAULT_TIME_SIG: [number, number] = [4, 4];
 const FORBIDDEN_PAYLOAD_KEYS = new Set(["lyrics", "lyric", "tab", "tabs", "tablature", "raw", "rawtext", "charttext"]);
 
+/** Event-level origin. This is deliberately separate from chart/midi source metadata. */
+export type ChordTimelineEventSourceKind = "authored" | "inferred" | "generated" | "unknown";
+
+/** Known inference labels, while accepting future labels for forward compatibility. */
+export type ChordInferenceType =
+  | "dyad-completion"
+  | "carry-forward-root"
+  | "nearest-symbol"
+  | "subbeat-extension"
+  | "voicing"
+  | (string & {});
+
+const EVENT_SOURCE_KINDS = new Set<ChordTimelineEventSourceKind>(["authored", "inferred", "generated", "unknown"]);
+
 export interface ChordTimelineEvent {
   /** Start position in quarter-note beats. */
   beat: number;
@@ -25,6 +39,12 @@ export interface ChordTimelineEvent {
   name: string;
   /** Optional playable voicing supplied by a catalog curator. */
   notes?: number[];
+  /** Event-level source classification, independent of the source provider. */
+  sourceKind: ChordTimelineEventSourceKind;
+  /** Whether this label or voicing was inferred. */
+  inferred?: boolean;
+  /** Strategy used to infer the label or voicing, when applicable. */
+  inferenceType?: ChordInferenceType;
 }
 
 export interface ChordTimelineProvenance {
@@ -74,9 +94,14 @@ interface TimelineInputEvent {
   beat?: unknown;
   startBeat?: unknown;
   durationBeats?: unknown;
+  /** Legacy alias accepted by generated notes exports. */
+  duration?: unknown;
   endBeat?: unknown;
   name?: unknown;
   notes?: unknown;
+  sourceKind?: unknown;
+  inferred?: unknown;
+  inferenceType?: unknown;
 }
 
 interface TimelineInput {
@@ -92,6 +117,12 @@ interface TimelineInput {
   chords?: unknown;
   provenance?: unknown;
 }
+
+type ParsedTimelineEvent = ChordTimelineEvent & {
+  inputIndex: number;
+  explicitDuration?: number;
+  explicitEnd?: number;
+};
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -133,6 +164,128 @@ function readNotes(raw: unknown, path: string, errors: string[]): number[] | und
     }
   }
   return [...new Set(notes)].sort((a, b) => a - b);
+}
+
+function eventSourceKindForInput(value: unknown, defaults?: { source?: ChordSourceRef }): ChordTimelineEventSourceKind {
+  // The caller's source reference is the strongest legacy-origin signal. In
+  // particular, a generated notes.json projection must not inherit an
+  // unrelated chart source merely because it is being used as a fallback.
+  if (defaults?.source?.kind === "chart") return "authored";
+  if (defaults?.source?.kind === "midi-derived") return "generated";
+  if (isRecord(value)) {
+    if (value.kind === "chart") return "authored";
+    if (value.kind === "midi-derived") return "generated";
+  }
+  // A direct normalizer call has no reliable origin context. Preserve that
+  // uncertainty instead of promoting a legacy event to generated.
+  return "unknown";
+}
+
+function readEventSourceKind(raw: unknown, fallback: ChordTimelineEventSourceKind, path: string, errors: string[]): ChordTimelineEventSourceKind {
+  if (raw === undefined) return fallback;
+  if (typeof raw !== "string" || !EVENT_SOURCE_KINDS.has(raw as ChordTimelineEventSourceKind)) {
+    errors.push(`${path}.sourceKind must be authored, inferred, generated, or unknown`);
+    return fallback;
+  }
+  return raw as ChordTimelineEventSourceKind;
+}
+
+function readInferred(raw: unknown, path: string, errors: string[]): boolean | undefined {
+  if (raw === undefined) return undefined;
+  if (typeof raw !== "boolean") {
+    errors.push(`${path}.inferred must be a boolean`);
+    return undefined;
+  }
+  return raw;
+}
+
+function readInferenceType(raw: unknown, path: string, errors: string[]): ChordInferenceType | undefined {
+  if (raw === undefined) return undefined;
+  if (typeof raw !== "string" || raw.trim() === "" || /[\r\n]/.test(raw)) {
+    errors.push(`${path}.inferenceType must be a non-empty single-line string`);
+    return undefined;
+  }
+  return raw.trim();
+}
+
+function eventAuthorityRank(sourceKind: ChordTimelineEventSourceKind): number {
+  // Unknown is not an authority claim. Explicitly classified generated data
+  // therefore wins over an ambiguous event, while every known source remains
+  // below authored and inferred material.
+  if (sourceKind === "authored") return 3;
+  if (sourceKind === "inferred") return 2;
+  if (sourceKind === "generated") return 1;
+  return 0;
+}
+
+function hasPlayableNotes(event: ChordTimelineEvent): boolean {
+  return Array.isArray(event.notes) && event.notes.length > 0;
+}
+
+function playableNoteCount(event: ChordTimelineEvent): number {
+  return new Set(event.notes ?? []).size;
+}
+
+function explicitDuration(event: ParsedTimelineEvent): number {
+  if (event.explicitDuration !== undefined) return event.explicitDuration;
+  if (event.explicitEnd !== undefined) return Math.max(0, event.explicitEnd - event.beat);
+  return 0;
+}
+
+/**
+ * A fixed-field, input-order-independent representation for same-onset
+ * conflicts. `inputIndex` is deliberately excluded: source array order is
+ * not provenance and must never decide which event survives a rebuild.
+ */
+function eventFingerprint(event: ParsedTimelineEvent): string {
+  return JSON.stringify({
+    beat: event.beat,
+    durationBeats: event.explicitDuration ?? null,
+    endBeat: event.explicitEnd ?? null,
+    name: event.name,
+    notes: event.notes === undefined ? null : event.notes,
+    sourceKind: event.sourceKind,
+    inferred: event.inferred ?? null,
+    inferenceType: event.inferenceType ?? null,
+  });
+}
+
+/** Return positive when `candidate` should replace `previous`. */
+function compareSameOnsetEvents(candidate: ParsedTimelineEvent, previous: ParsedTimelineEvent): number {
+  const candidateRank = eventAuthorityRank(candidate.sourceKind);
+  const previousRank = eventAuthorityRank(previous.sourceKind);
+  if (candidateRank !== previousRank) return candidateRank - previousRank;
+
+  const candidatePlayable = hasPlayableNotes(candidate);
+  const previousPlayable = hasPlayableNotes(previous);
+  if (candidatePlayable !== previousPlayable) return candidatePlayable ? 1 : -1;
+
+  // An explicit empty notes array is a meaningful display-only authored
+  // event. Preserve it over an omitted notes field when all other precedence
+  // criteria tie.
+  const candidateHasNotes = candidate.notes !== undefined;
+  const previousHasNotes = previous.notes !== undefined;
+  if (candidateHasNotes !== previousHasNotes) return candidateHasNotes ? 1 : -1;
+
+  if (candidatePlayable && previousPlayable) {
+    const candidateCount = playableNoteCount(candidate);
+    const previousCount = playableNoteCount(previous);
+    if (candidateCount !== previousCount) {
+      // Generated/ambiguous fallbacks prefer the leaner learner-safe voicing;
+      // authored and inferred sources retain the richer explicit voicing.
+      const leanerWins = candidate.sourceKind === "generated" || candidate.sourceKind === "unknown";
+      return leanerWins ? previousCount - candidateCount : candidateCount - previousCount;
+    }
+  }
+
+  const candidateDuration = explicitDuration(candidate);
+  const previousDuration = explicitDuration(previous);
+  if (candidateDuration !== previousDuration) return candidateDuration - previousDuration;
+
+  const candidateFingerprint = eventFingerprint(candidate);
+  const previousFingerprint = eventFingerprint(previous);
+  if (candidateFingerprint === previousFingerprint) return 0;
+  return candidateFingerprint < previousFingerprint ? 1 : -1;
 }
 
 function validateChartVoicing(name: string, notes: number[] | undefined, path: string, chartLike: boolean, errors: string[]): void {
@@ -178,7 +331,10 @@ function sourceFromProvenance(raw: unknown, fallback: ChordSourceRef): ChordTime
     sourceUrl: typeof raw.sourceUrl === "string" || raw.sourceUrl === null ? raw.sourceUrl : fallback.sourceUrl ?? null,
     retrievedAt: typeof raw.retrievedAt === "string" || raw.retrievedAt === null ? raw.retrievedAt : fallback.retrievedAt ?? null,
     confidence: typeof raw.confidence === "string" ? raw.confidence : fallback.confidence,
-    fallback: raw.fallback === true,
+    // Do not synthesize `fallback: false` when a canonical timeline omitted
+    // the optional flag. Re-normalizing a normalized artifact must be a fixed
+    // point, while an explicitly supplied false value remains round-trippable.
+    ...(raw.fallback === true || raw.fallback === false ? { fallback: raw.fallback } : {}),
     fallbackReason: typeof raw.fallbackReason === "string" ? raw.fallbackReason : undefined,
   };
 }
@@ -194,6 +350,7 @@ export function normalizeChordTimeline(value: unknown, defaults?: { source?: Cho
   const errors: string[] = [];
   rejectPayloadKeys(input, "timeline", errors);
   rejectPayloadKeys(input.provenance, "timeline.provenance", errors);
+  const legacyEventSourceKind = eventSourceKindForInput(input.provenance, defaults);
   const chartLike = defaults?.source?.kind === "chart"
     || (isRecord(input.provenance) && input.provenance.kind === "chart");
   if (input.schemaVersion !== undefined && input.schemaVersion !== CHORD_TIMELINE_SCHEMA_VERSION) {
@@ -214,7 +371,7 @@ export function normalizeChordTimeline(value: unknown, defaults?: { source?: Cho
   if (errors.length) throw new Error(`invalid chord timeline: ${errors.join("; ")}`);
 
   const rawEvents = input.chords as unknown[];
-  const parsed: Array<ChordTimelineEvent & { inputIndex: number; explicitDuration?: number; explicitEnd?: number }> = [];
+  const parsed: ParsedTimelineEvent[] = [];
   for (const [index, rawEvent] of rawEvents.entries()) {
     const path = `chords[${index}]`;
     if (!isRecord(rawEvent)) {
@@ -232,11 +389,14 @@ export function normalizeChordTimeline(value: unknown, defaults?: { source?: Cho
       errors.push(`${path}.name must be a non-empty single-line string`);
       continue;
     }
-    const duration = event.durationBeats;
+    const duration = event.durationBeats ?? event.duration;
     const end = event.endBeat;
     if (duration !== undefined && (!finite(duration) || duration <= 0)) errors.push(`${path}.durationBeats must be positive`);
     if (end !== undefined && (!finite(end) || end <= (beatRaw as number))) errors.push(`${path}.endBeat must be after beat`);
     const notes = readNotes(event.notes, `${path}.notes`, errors);
+    const sourceKind = readEventSourceKind(event.sourceKind, legacyEventSourceKind, path, errors);
+    const inferred = readInferred(event.inferred, path, errors);
+    const inferenceType = readInferenceType(event.inferenceType, path, errors);
     const parsedDuration = finite(duration) && duration > 0 ? duration : undefined;
     const parsedEnd = finite(end) && end > (beatRaw as number) ? end : undefined;
     validateChartVoicing(event.name.trim(), notes, `${path}`, chartLike, errors);
@@ -245,6 +405,9 @@ export function normalizeChordTimeline(value: unknown, defaults?: { source?: Cho
       durationBeats: parsedDuration ?? (parsedEnd !== undefined ? parsedEnd - (beatRaw as number) : 0),
       name: event.name.trim(),
       ...(notes === undefined ? {} : { notes }),
+      sourceKind,
+      ...(inferred === undefined ? {} : { inferred }),
+      ...(inferenceType === undefined ? {} : { inferenceType }),
       inputIndex: index,
       ...(parsedDuration === undefined ? {} : { explicitDuration: parsedDuration }),
       ...(parsedEnd === undefined ? {} : { explicitEnd: parsedEnd }),
@@ -252,50 +415,76 @@ export function normalizeChordTimeline(value: unknown, defaults?: { source?: Cho
   }
   if (errors.length) throw new Error(`invalid chord timeline: ${errors.join("; ")}`);
 
-  parsed.sort((a, b) => a.beat - b.beat || a.inputIndex - b.inputIndex);
-  // At one beat position the last authored label wins. This is deterministic
-  // for accidental duplicate source rows and avoids overlapping events.
+  parsed.sort((a, b) => {
+    const beatOrder = a.beat - b.beat;
+    if (beatOrder !== 0) return beatOrder;
+    const aFingerprint = eventFingerprint(a);
+    const bFingerprint = eventFingerprint(b);
+    return aFingerprint < bFingerprint ? -1 : aFingerprint > bFingerprint ? 1 : 0;
+  });
+  // At one beat position explicit source authority wins. The canonical
+  // fingerprint is the final tie-break, so shuffling input rows cannot change
+  // the normalized artifact.
   const atBeat: typeof parsed = [];
   for (const event of parsed) {
     const previous = atBeat.at(-1);
-    if (previous && equalBeat(previous.beat, event.beat)) atBeat[atBeat.length - 1] = event;
-    else atBeat.push(event);
-  }
-  // Consecutive repeats are one timeline run; a chart can contain them when a
-  // provider emits a chord per measure.
-  const compact: typeof parsed = [];
-  for (const event of atBeat) {
-    const previous = compact.at(-1);
-    if (previous && previous.name === event.name && JSON.stringify(previous.notes ?? []) === JSON.stringify(event.notes ?? [])) continue;
-    compact.push(event);
-  }
+    if (!previous || !equalBeat(previous.beat, event.beat)) {
+      atBeat.push(event);
+      continue;
+    }
 
+    if (compareSameOnsetEvents(event, previous) > 0) atBeat[atBeat.length - 1] = event;
+  }
   const suppliedDuration = input.durationBeats;
   if (suppliedDuration !== undefined && (!finite(suppliedDuration) || suppliedDuration < 0)) {
     throw new Error("invalid chord timeline: durationBeats must be a finite non-negative number");
   }
   const fallbackSpan = timeSig[0] * (4 / timeSig[1]);
   let durationBeats = finite(suppliedDuration) ? roundBeat(suppliedDuration) : 0;
-  if (finite(suppliedDuration) && compact.length && durationBeats < compact.at(-1)!.beat) {
+  if (finite(suppliedDuration) && atBeat.length && durationBeats < atBeat.at(-1)!.beat) {
     throw new Error("invalid chord timeline: durationBeats ends before the final chord");
   }
   if (!durationBeats) {
-    durationBeats = compact.reduce((max, event) => Math.max(max, event.beat + (event.explicitDuration ?? fallbackSpan)), 0);
+    durationBeats = atBeat.reduce((max, event) => Math.max(max, event.beat + (event.explicitDuration ?? fallbackSpan)), 0);
     durationBeats = roundBeat(durationBeats);
   }
-  const chords: ChordTimelineEvent[] = [];
-  for (let i = 0; i < compact.length; i++) {
-    const event = compact[i]!;
-    const nextBeat = compact[i + 1]?.beat ?? durationBeats;
+  const projected: ChordTimelineEvent[] = [];
+  for (let i = 0; i < atBeat.length; i++) {
+    const event = atBeat[i]!;
+    const nextBeat = atBeat[i + 1]?.beat ?? durationBeats;
     const requestedEnd = event.explicitEnd ?? (event.explicitDuration !== undefined ? event.beat + event.explicitDuration : nextBeat);
     const endBeat = Math.min(nextBeat, requestedEnd, durationBeats || nextBeat);
     if (endBeat <= event.beat + EPSILON) throw new Error(`invalid chord timeline: chords[${event.inputIndex}] has no positive span`);
-    chords.push({
+    projected.push({
       beat: event.beat,
       durationBeats: roundBeat(endBeat - event.beat),
       name: event.name,
       ...(event.notes === undefined ? {} : { notes: event.notes }),
+      sourceKind: event.sourceKind,
+      ...(event.inferred === undefined ? {} : { inferred: event.inferred }),
+      ...(event.inferenceType === undefined ? {} : { inferenceType: event.inferenceType }),
     });
+  }
+
+  // Compact only genuinely contiguous repeats after their spans have been
+  // projected. Comparing input-only duration fields made normalization
+  // non-idempotent: an omitted duration could become an explicit clipped
+  // duration on the first pass and then cause a neighboring event to vanish
+  // on the second. The canonical spans are now the compaction authority.
+  const chords: ChordTimelineEvent[] = [];
+  for (const event of projected) {
+    const previous = chords.at(-1);
+    const samePayload = previous
+      && previous.name === event.name
+      && JSON.stringify(previous.notes ?? []) === JSON.stringify(event.notes ?? [])
+      && previous.sourceKind === event.sourceKind
+      && previous.inferred === event.inferred
+      && previous.inferenceType === event.inferenceType;
+    if (samePayload && equalBeat(previous.beat + previous.durationBeats, event.beat)) {
+      previous.durationBeats = roundBeat(previous.durationBeats + event.durationBeats);
+      continue;
+    }
+    chords.push(event);
   }
 
   const fallbackSource: ChordSourceRef = defaults?.source ?? {
@@ -360,6 +549,7 @@ interface StoredVariant {
   notes?: unknown;
   chords?: unknown;
   measures?: unknown;
+  durationBeats?: unknown;
   key?: unknown;
   tempoBpm?: unknown;
   timeSig?: unknown;
@@ -377,10 +567,27 @@ function generatedTimeline(value: StoredVariant, baseId: string, entry: ChordSou
   const chords = Array.isArray(value.chords)
     ? value.chords.map((chord) => {
       if (!isRecord(chord)) return chord;
-      return { beat: chord.beat, name: chord.name, notes: chord.notes };
+      // Keep the complete chord event shape when projecting legacy
+      // notes.json. Older files omit all optional metadata; the surrounding
+      // MIDI-derived source context classifies those events as generated.
+      return {
+        beat: chord.beat,
+        startBeat: chord.startBeat,
+        durationBeats: chord.durationBeats ?? chord.duration,
+        endBeat: chord.endBeat,
+        name: chord.name,
+        notes: chord.notes,
+        // The surrounding source context is MIDI-derived, so normalization
+        // stamps omitted legacy fields as generated. Preserve an explicit
+        // event sourceKind instead of guessing from the projection itself.
+        ...(chord.sourceKind === undefined ? {} : { sourceKind: chord.sourceKind }),
+        inferred: chord.inferred,
+        inferenceType: chord.inferenceType,
+      };
     })
     : [];
-  const durationBeats = Math.max(noteEnd, measureEnd, 0);
+  const storedDuration = finite(value.durationBeats) ? value.durationBeats : 0;
+  const durationBeats = Math.max(noteEnd, measureEnd, storedDuration, 0);
   return normalizeChordTimeline({
     schemaVersion: CHORD_TIMELINE_SCHEMA_VERSION,
     baseId,

@@ -8,7 +8,26 @@ import { existsSync } from "node:fs";
 import { mkdir, readdir, readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
-import { claimJob, getQueuedJobs, requeueOrphaned, updateJob, getJob, getSong, transcribedDir, ROOT, seedMidiDir, ingestSource, filterTranscription } from "@keyspilli/catalog";
+import {
+  claimJob,
+  getQueuedJobs,
+  requeueOrphaned,
+  updateJob,
+  getJob,
+  getSong,
+  transcribedDir,
+  ROOT,
+  seedMidiDir,
+  ingestSource,
+  filterTranscription,
+  AUDIO_ONSET_DETECTOR_CONFIG,
+  MAX_YOUTUBE_IMPORT_DUR_BEATS,
+  ONSET_MATCH_SEC,
+  TRANSCRIPTION_PIPELINE_CONFIG,
+  TRANSCRIPTION_POST_PROCESSING_DEFAULTS,
+  type TranscriptionProvenance,
+} from "@keyspilli/catalog";
+import { parseMidi, transcriptionMaxDurationBeats } from "@keyspilli/midi";
 
 const execFileP = promisify(execFile);
 const POLL_MS = Number(process.env.KEYSPILLI_POLL_MS ?? 5000);
@@ -20,6 +39,7 @@ const BASIC_PITCH = join(dirname(PYTHON), "basic-pitch");
 const TEMPO_PY = join(ROOT, "services", "transcribe", "src", "tempo.py");
 const TEMPO_OVERRIDE = process.env.KEYSPILLI_TEMPO_OVERRIDE;
 const BASIC_PITCH_SERIALIZATION = process.env.KEYSPILLI_BP_SERIALIZATION ?? "";
+const BASIC_PITCH_VERSION = process.env.KEYSPILLI_BP_VERSION ?? process.env.BASIC_PITCH_VERSION ?? "unknown";
 const ONSET_THRESHOLD = process.env.KEYSPILLI_ONSET ?? "0.65";
 const FRAME_THRESHOLD = process.env.KEYSPILLI_FRAME ?? "0.45";
 
@@ -82,11 +102,46 @@ async function processJob(jobId: string): Promise<void> {
     })).trim();
     if (tempo) bpArgs.push("--midi-tempo", tempo);
     if (BASIC_PITCH_SERIALIZATION) bpArgs.push("--model-serialization", BASIC_PITCH_SERIALIZATION);
+    const transcribedAt = new Date().toISOString();
+    const detectedTempo = tempo ? Number(tempo) : undefined;
     await run(BASIC_PITCH, bpArgs, BP_TIMEOUT_MS);
     const midiName = (await readdir(dir)).find((f) => f.endsWith("_basic_pitch.mid"));
     if (!midiName) throw new Error("basic_pitch produced no MIDI");
     const midiOut = join(dir, midiName);
     const midi = await filterTranscription(new Uint8Array(await readFile(midiOut)), audioPath);
+    // Read the post-filter MIDI tempo because this is the exact tempo passed
+    // to ingestSource and therefore the tempo used by cleanTranscription's
+    // seconds-to-beats sustain calculation.
+    const filteredTempo = parseMidi(midi).tempoBpm;
+    const transcription: TranscriptionProvenance = {
+      basicPitchVersion: BASIC_PITCH_VERSION,
+      // Basic Pitch chooses its own default when this flag is absent. Record
+      // that fact instead of making a missing env var indistinguishable from
+      // an old artifact that never recorded transcription settings.
+      modelSerialization: BASIC_PITCH_SERIALIZATION || "default",
+      onsetThreshold: Number(ONSET_THRESHOLD),
+      frameThreshold: Number(FRAME_THRESHOLD),
+      ...(typeof detectedTempo === "number" && Number.isFinite(detectedTempo) ? { tempo: detectedTempo } : {}),
+      tempoSource: TEMPO_OVERRIDE ? "override" : tempo ? "detected" : "default",
+      audioSource: "youtube",
+      transcribedAt,
+      pipeline: TRANSCRIPTION_PIPELINE_CONFIG,
+      postProcessing: {
+        filterApplied: true,
+        cleanupApplied: true,
+        onsetMatchSec: ONSET_MATCH_SEC,
+        onsetDetector: AUDIO_ONSET_DETECTOR_CONFIG,
+        minVelocity: TRANSCRIPTION_POST_PROCESSING_DEFAULTS.minVelocity,
+        minDurationBeats: TRANSCRIPTION_POST_PROCESSING_DEFAULTS.minDurationBeats,
+        mergeWindowBeats: TRANSCRIPTION_POST_PROCESSING_DEFAULTS.mergeWindowBeats,
+        maxPolyphony: TRANSCRIPTION_POST_PROCESSING_DEFAULTS.maxPolyphony,
+        maxSounding: TRANSCRIPTION_POST_PROCESSING_DEFAULTS.maxSounding,
+        maxDurationSec: TRANSCRIPTION_POST_PROCESSING_DEFAULTS.maxDurationSec,
+        maxDurationBeats: transcriptionMaxDurationBeats(filteredTempo),
+        importedMaxDurationBeats: MAX_YOUTUBE_IMPORT_DUR_BEATS,
+        importedMaxSounding: TRANSCRIPTION_POST_PROCESSING_DEFAULTS.importedMaxSounding,
+      },
+    };
     // If the job points at an existing song, replace that base (stable URLs)
     // and keep its metadata; otherwise create a fresh entry from the video.
     const result = await ingestSource({
@@ -114,6 +169,18 @@ async function processJob(jobId: string): Promise<void> {
       // Keep the conservative ingest cleaner enabled too; it only removes
       // short/quiet re-strikes and catches misclicks that share a real onset.
       cleanTranscription: true,
+      transcription,
+    }, {
+      // DELETE removes the queued job while holding the same base artifact
+      // lock used by ingestSource. Re-check inside that lock immediately
+      // before the swap so an already-claimed worker cannot resurrect a base
+      // after deletion has completed.
+      beforeReplace: () => {
+        const latest = getJob(jobId);
+        if (!latest || latest.status !== "processing" || latest.songId !== job.songId) {
+          throw new Error("conversion job was deleted or cancelled before publication");
+        }
+      },
     });
     if (result.error) throw new Error(result.error);
     // Keep the conversion job pointed at the stable easy variant by its

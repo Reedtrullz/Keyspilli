@@ -76,12 +76,17 @@ function chordsAt(notes: Note[], grid: number): ChordLabel[] {
   }
   const out: ChordLabel[] = [];
   for (const [beat, mids] of [...bySlice.entries()].sort((a, b) => a[0] - b[0])) {
-    const pcs = [...new Set(mids.map((m) => m % 12))].sort((a, b) => a - b);
+    // Keep the absolute voicing deterministic.  The input note order can
+    // vary between MIDI tracks (and between equivalent rebuilds), while the
+    // player/export contract preserves octave doublings and inversions.  Only
+    // exact duplicate MIDI pitches are removed; distinct octaves remain.
+    const canonicalNotes = [...new Set(mids)].sort((a, b) => a - b);
+    const pcs = [...new Set(canonicalNotes.map((m) => m % 12))].sort((a, b) => a - b);
     if (pcs.length < 2) continue;
-    const bassPc = Math.min(...mids) % 12;
+    const bassPc = canonicalNotes[0]! % 12;
     const name = chordName(pcs, bassPc);
     if (!name) continue; // unlabelable dyad (root+3rd, chromatic clash, ...)
-    out.push({ beat, name, notes: mids });
+    out.push({ beat, name, notes: canonicalNotes, sourceKind: "generated" });
   }
   // Per-grid-slice analysis produces the same chord every 0.25 beats; collapse
   // consecutive same-name runs and keep only runs that hold >= 1 beat, so the

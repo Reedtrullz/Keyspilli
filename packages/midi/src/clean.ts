@@ -1,6 +1,23 @@
 import { Note } from "./types.js";
 import { splitHands } from "./analyze.js";
 
+/**
+ * Defaults used by the Basic Pitch transcription cleanup pass.
+ *
+ * Keep these values in one exported object so the worker's provenance and the
+ * actual cleanup implementation cannot quietly drift apart. These are
+ * separate from the imported-MIDI safety defaults below: transcriptions may
+ * discard quiet/short events, while human-authored MIDI should retain them.
+ */
+export const TRANSCRIPTION_CLEANUP_CONFIG = {
+  minVelocity: 30,
+  minDurationBeats: 0.14,
+  mergeWindowBeats: 0.125,
+  maxPolyphony: 6,
+  maxSounding: 8,
+  maxDurationSec: 2.5,
+} as const;
+
 export interface CleanOptions {
   /** drop notes quieter than this velocity (0-127) */
   minVel?: number;
@@ -26,6 +43,18 @@ export interface CleanOptions {
 export const DEFAULT_IMPORTED_MAX_DUR_SEC = 4;
 /** A piano arrangement should never require more than this many held notes. */
 export const DEFAULT_IMPORTED_MAX_SOUNDING = 12;
+
+/**
+ * Effective duration ceiling used by cleanTranscription when tempo is known.
+ * Exporting the calculation lets provenance record the value that was
+ * actually applied, rather than only the seconds-based input constant.
+ */
+export function transcriptionMaxDurationBeats(
+  tempoBpm: number,
+  maxDurSec: number = TRANSCRIPTION_CLEANUP_CONFIG.maxDurationSec,
+): number {
+  return Math.min(8, Math.max(2, Math.round((maxDurSec * tempoBpm) / 60)));
+}
 
 /**
  * Convert a real-time sustain ceiling into beats while keeping the result
@@ -101,17 +130,20 @@ export function sanitizeImportedNotes(notes: Note[], opts: ImportedSanitizeOptio
  * this (it would eat real grace notes and quiet dynamics).
  */
 export function cleanTranscription(notes: Note[], opts: CleanOptions = {}): Note[] {
-  const minVel = opts.minVel ?? 30;
-  const minDurBeats = opts.minDurBeats ?? 0.14;
-  const mergeWindow = opts.mergeWindow ?? 0.125;
-  const maxPolyphony = opts.maxPolyphony ?? 6;
-  const maxSounding = opts.maxSounding ?? 8;
+  const minVel = opts.minVel ?? TRANSCRIPTION_CLEANUP_CONFIG.minVelocity;
+  const minDurBeats = opts.minDurBeats ?? TRANSCRIPTION_CLEANUP_CONFIG.minDurationBeats;
+  const mergeWindow = opts.mergeWindow ?? TRANSCRIPTION_CLEANUP_CONFIG.mergeWindowBeats;
+  const maxPolyphony = opts.maxPolyphony ?? TRANSCRIPTION_CLEANUP_CONFIG.maxPolyphony;
+  const maxSounding = opts.maxSounding ?? TRANSCRIPTION_CLEANUP_CONFIG.maxSounding;
   // Duration ceiling: seconds-based when the tempo is known (a beat cap of 8
   // is 6.4s at 75 BPM but only 2.7s at 180), otherwise scaled to the input's
   // typical note length. Never drifts past 8 beats.
   let maxDurBeats = opts.maxDurBeats;
   if (maxDurBeats === undefined && opts.tempoBpm) {
-    maxDurBeats = Math.min(8, Math.max(2, Math.round(((opts.maxDurSec ?? 2.5) * opts.tempoBpm) / 60)));
+    maxDurBeats = transcriptionMaxDurationBeats(
+      opts.tempoBpm,
+      opts.maxDurSec ?? TRANSCRIPTION_CLEANUP_CONFIG.maxDurationSec,
+    );
   }
   if (maxDurBeats === undefined) {
     const durs = notes.map((n) => n.dur).sort((a, b) => a - b);

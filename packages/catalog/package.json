@@ -15,6 +15,7 @@
     "verify-chord-sources": "tsx scripts/verify-chord-sources.ts",
     "validate-chords": "tsx scripts/verify-chord-sources.ts",
     "repair-artifacts": "tsx scripts/repair-artifacts.ts",
+    "migrate-artifacts": "tsx scripts/migrate-artifacts.ts",
     "reingest-catalog": "tsx scripts/reingest-catalog.ts",
     "calibrate": "tsx scripts/calibrate-limits.ts",
     "reingest-uploads": "tsx scripts/reingest-uploads.ts",
