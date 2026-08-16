@@ -60,7 +60,11 @@ export function mergeSeedEntries(
 
   for (const entry of existing) {
     if (!entry.id || byId.has(entry.id)) continue;
-    if (entry.sourceFile && availableSourceFiles.has(entry.sourceFile)) {
+    // Disabled entries are policy, not sources to ingest. Preserve them even
+    // when their original file is unavailable on a clean CI runner; otherwise
+    // a fetch-seed pass silently removes the visibility gate from the
+    // published manifest and stale production rows become public again.
+    if (entry.disabled === true || (entry.sourceFile && availableSourceFiles.has(entry.sourceFile))) {
       byId.set(entry.id, entry);
     }
   }

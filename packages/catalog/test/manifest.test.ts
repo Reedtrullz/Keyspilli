@@ -23,6 +23,15 @@ describe("mergeSeedEntries", () => {
     const merged = mergeSeedEntries([], [{ id: "missing", sourceFile: "missing.mid" }], new Set());
     expect(merged).toEqual([]);
   });
+
+  it("preserves disabled policy entries even when their source is unavailable", () => {
+    const merged = mergeSeedEntries(
+      [],
+      [{ id: "blocked-source", sourceFile: "missing.mid", disabled: true }],
+      new Set(),
+    );
+    expect(merged).toEqual([{ id: "blocked-source", sourceFile: "missing.mid", disabled: true }]);
+  });
 });
 
 describe("disabledManifestBases", () => {
