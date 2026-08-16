@@ -53,4 +53,28 @@ describe("catalog chart timeline merge", () => {
     expect(merged.chords[0]?.notes).toEqual([43, 55, 59, 62, 65]);
     expect(merged.provenance.fallback).not.toBe(true);
   });
+
+  it("does not relabel a generated-only fallback as an Ultimate Guitar chart", () => {
+    const timeline = {
+      schemaVersion: 1 as const,
+      baseId: "generated-song",
+      title: "Generated Song",
+      artist: "Tester",
+      timeSig: [4, 4] as [number, number],
+      durationBeats: 4,
+      coverage: "full-song" as const,
+      chords: [{ beat: 0, durationBeats: 4, name: "C", notes: [48, 52, 55] }],
+      provenance: {
+        sourceId: "midi-derived",
+        provider: "keyspilli",
+        kind: "midi-derived" as const,
+        sourceRef: "variant:a:notes.json",
+        fallback: true,
+        fallbackReason: "chart artifact unavailable; derived from a/notes.json",
+      },
+    };
+    const merged = mergeChartTimeline(timeline, []);
+    expect(merged.provenance.kind).toBe("midi-derived");
+    expect(merged.provenance.fallbackReason).toContain("chart artifact unavailable");
+  });
 });

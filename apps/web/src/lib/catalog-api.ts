@@ -16,6 +16,17 @@ export function mergeChartTimeline(
   timeline: LoadedChordTimeline,
   generated: ChordLabel[],
 ): { chords: PlayerChord[]; provenance: LoadedChordTimeline["provenance"] } {
+  if (timeline.provenance.kind !== "chart") {
+    return {
+      chords: timeline.chords.flatMap((chord) => (
+        Array.isArray(chord.notes) && chord.notes.length > 0
+          ? [{ beat: chord.beat, durationBeats: chord.durationBeats, name: chord.name, notes: chord.notes }]
+          : []
+      )),
+      provenance: timeline.provenance,
+    };
+  }
+
   const chartChords: PlayerChord[] = timeline.chords.flatMap((chord) => {
     const supplied = Array.isArray(chord.notes) && chord.notes.length > 0 ? chord.notes : null;
     const notes = supplied ?? (() => {
