@@ -57,6 +57,9 @@ jobs:
       - name: Verify catalog playability
         run: npm run verify-catalog
 
+      - name: Verify chord sources
+        run: npm run verify-chord-sources -- --require-catalog
+
       - name: Calibration drift check
         run: npm run calibrate
 

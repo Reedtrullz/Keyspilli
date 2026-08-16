@@ -10,6 +10,7 @@ class FakeAudio implements AudioLike {
   ensured = 0;
   cancelled = 0;
   clicks: number[] = [];
+  playedChords: { pitchClasses: number[]; bassMidi: number; when: number }[] = [];
   ensure(): unknown {
     this.ensured++;
     return {};
@@ -22,6 +23,9 @@ class FakeAudio implements AudioLike {
   }
   metronomeClick(beat: number): void {
     this.clicks.push(beat);
+  }
+  playChord(pitchClasses: number[], bassMidi: number, when = 0): void {
+    this.playedChords.push({ pitchClasses, bassMidi, when });
   }
   cancelAll(): void {
     this.cancelled++;
@@ -38,9 +42,9 @@ const notes: TimedNote[] = [
   { midi: 64, startSec: 1.0, durSec: 0.5, vel: 80 },
 ];
 
-function engine(over: Partial<PlayerSettings> = {}): { eng: PlaybackEngine; audio: FakeAudio } {
+function engine(over: Partial<PlayerSettings> = {}, chords: { beat: number; name: string; notes: number[] }[] = []): { eng: PlaybackEngine; audio: FakeAudio } {
   const audio = new FakeAudio();
-  const eng = new PlaybackEngine(audio, notes, 1.5, SONG, { ...DEFAULT_SETTINGS, ...over });
+  const eng = new PlaybackEngine(audio, notes, 1.5, SONG, { ...DEFAULT_SETTINGS, ...over }, chords);
   return { eng, audio };
 }
 
@@ -142,5 +146,53 @@ describe("PlaybackEngine", () => {
     expect(eng.playing).toBe(false);
     expect(eng.time).toBe(0);
     expect(audio.cancelled).toBeGreaterThan(0);
+  });
+
+  it("plays source chords and omits the recorded left hand in chord mode", () => {
+    const sourceNotes: TimedNote[] = [
+      { midi: 60, startSec: 0, durSec: 0.5, vel: 80, hand: "R" },
+      { midi: 48, startSec: 0, durSec: 0.5, vel: 80, hand: "L" },
+      { midi: 62, startSec: 0.5, durSec: 0.5, vel: 80, hand: "R" },
+    ];
+    const audio = new FakeAudio();
+    const eng = new PlaybackEngine(
+      audio,
+      sourceNotes,
+      1,
+      SONG,
+      { ...DEFAULT_SETTINGS, backgroundMode: "chord" },
+      [
+        { beat: 0, name: "C", notes: [48, 52, 55] },
+        { beat: 1, name: "Dm", notes: [50, 53, 57] },
+      ],
+    );
+    eng.start();
+    expect(audio.playedChords).toEqual([{ pitchClasses: [0, 4, 7], bassMidi: 48, when: 0 }]);
+    expect(audio.noteOns.map((n) => n.midi)).not.toContain(48);
+    eng.tick(0.5);
+    expect(audio.playedChords.map((c) => c.pitchClasses)).toContainEqual([2, 5, 9]);
+  });
+
+  it("falls back to piano scheduling when chord mode has no timeline", () => {
+    const audio = new FakeAudio();
+    const sourceNotes: TimedNote[] = [
+      { midi: 48, startSec: 0, durSec: 0.5, vel: 80, hand: "L" },
+    ];
+    const eng = new PlaybackEngine(audio, sourceNotes, 0.5, SONG, { ...DEFAULT_SETTINGS, backgroundMode: "chord" });
+    eng.start();
+    expect(audio.noteOns.map((n) => n.midi)).toEqual([48]);
+    expect(audio.playedChords).toHaveLength(0);
+  });
+
+  it("cancels and reschedules chord audio when seeking during playback", () => {
+    const { eng, audio } = engine({ backgroundMode: "chord" }, [
+      { beat: 0, name: "C", notes: [48, 52, 55] },
+      { beat: 1, name: "Dm", notes: [50, 53, 57] },
+    ]);
+    eng.start();
+    const before = audio.cancelled;
+    eng.seek(0.6);
+    expect(audio.cancelled).toBeGreaterThan(before);
+    expect(audio.playedChords.length).toBeGreaterThan(1);
   });
 });

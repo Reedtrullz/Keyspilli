@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 const SONG = "f-f-chopin-nocturne-m";
+const UG_SONG = "the-theorist-elton-john-your-song-piano-cover-jz6ugvghbt8-a";
 
 test("home page shows the catalog", async ({ page }) => {
   await page.goto("/");
@@ -62,6 +63,19 @@ test("player controls: loop, tempo, transpose, hands", async ({ page }) => {
   await expect(page.getByText("Playing — click anywhere to pause")).toBeVisible();
   await page.keyboard.press("Space");
   await expect(page.getByText("Playing — click anywhere to pause")).not.toBeVisible();
+});
+
+test("chord mode exposes the curated UG timeline and partial fallback", async ({ page }) => {
+  await page.goto(`/player/${UG_SONG}`);
+  await page.getByRole("button", { name: "Open settings" }).click();
+  const dialog = page.getByRole("dialog", { name: "Player settings" });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole("button", { name: "Chord mode" }).click();
+  await expect(dialog.getByText("Chord source")).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "UG timeline" })).toBeEnabled();
+  await dialog.getByRole("button", { name: "UG timeline" }).click();
+  await dialog.getByRole("button", { name: "Done" }).click();
+  await expect(page.getByTestId("chord-mode-status")).toHaveText("UG + generated fallback");
 });
 
 test("practice mode starts and exits cleanly", async ({ page }) => {

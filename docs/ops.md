@@ -109,6 +109,27 @@ docker compose start worker
 3. Run `npm run pipeline`.
 4. Commit `catalog/manifest.json`.
 
+## Ultimate Guitar chord mode
+
+The player supports an optional chart-backed chord timeline alongside the
+generated MIDI chords. Source mappings live in `catalog/chord-sources.json`,
+and normalized, payload-free timelines live under `catalog/chord-timelines/`.
+Validate them before a build:
+
+```bash
+npm run verify-chord-sources
+```
+
+CI runs the same verifier with `--require-catalog`; after the pipeline it
+resolves every database-linked base through either a checked-in chart or the
+generated MIDI fallback. An empty chord timeline is reported for diagnosis
+and deliberately leaves the player on its normal piano background.
+
+The player can prefer UG chords, generated chords, or automatically choose UG
+when available. A missing or partial chart falls back to generated chords and
+is labelled in the player. Do not check in copied lyrics, raw tab text, or
+provider page bodies; retain only normalized chord events and provenance.
+
 ## YouTube conversion notes
 
 - The worker uses `yt-dlp` + Basic Pitch (CPU). Long videos are slow; the UI

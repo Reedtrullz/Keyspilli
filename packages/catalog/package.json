@@ -11,6 +11,8 @@
     "quality-report": "tsx scripts/quality-report.ts",
     "learner-report": "tsx scripts/learner-report.ts",
     "learner-audit": "tsx scripts/learner-audit.ts",
+    "verify-chord-sources": "tsx scripts/verify-chord-sources.ts",
+    "validate-chords": "tsx scripts/verify-chord-sources.ts",
     "repair-artifacts": "tsx scripts/repair-artifacts.ts",
     "reingest-catalog": "tsx scripts/reingest-catalog.ts",
     "calibrate": "tsx scripts/calibrate-limits.ts",

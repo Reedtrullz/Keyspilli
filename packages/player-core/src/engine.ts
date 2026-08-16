@@ -1,5 +1,6 @@
 import { Grader, type GradeResult } from "./grading.js";
-import { beatsPerMeasure, firstNoteAtOrAfter, type LoopRegion, type TimedNote } from "./timeline.js";
+import { beatToSec, beatsPerMeasure, firstNoteAtOrAfter, type LoopRegion, type TimedNote } from "./timeline.js";
+import type { ChordLabel } from "@keyspilli/midi";
 import type { PlayerSettings } from "./types.js";
 
 /** How far ahead of the playhead notes are scheduled. */
@@ -11,6 +12,8 @@ export interface AudioLike {
   noteOn(n: TimedNote, when?: number): void;
   noteOff(midi: number): void;
   metronomeClick(beat: number, when?: number): void;
+  /** Optional so light-weight test doubles and non-audio consumers can keep working. */
+  playChord?(pitchClasses: number[], bassMidi: number, when?: number, durationSec?: number): void;
   cancelAll(): void;
   setGains(voice: number, piano: number): void;
   dispose(): void;
@@ -27,6 +30,8 @@ export interface EngineSongMeta {
   timeSig: [number, number];
 }
 
+type ChordPlaybackLabel = ChordLabel & { durationBeats?: number };
+
 /**
  * Plain (non-React) owner of all mutable playback state. The AudioEngine is
  * injected so the engine never touches browser context lifecycle, and the
@@ -40,11 +45,14 @@ export class PlaybackEngine {
   grader: Grader | null = null;
   /** Assigned by the owner whenever settings change. */
   settings: PlayerSettings;
+  /** Optional beat-based source timeline used by chord background mode. */
+  chords: ChordPlaybackLabel[];
   /** Assigned by the owner whenever wait mode toggles. */
   waitMode = false;
   onChange: ((snap: EngineSnapshot) => void) | null = null;
 
   private lastScheduled = 0;
+  private lastChordScheduled = -1;
 
   constructor(
     public readonly audio: AudioLike,
@@ -52,8 +60,10 @@ export class PlaybackEngine {
     public duration: number,
     private readonly song: EngineSongMeta,
     settings: PlayerSettings,
+    chords: ChordPlaybackLabel[] = [],
   ) {
     this.settings = settings;
+    this.chords = chords;
   }
 
   start(): void {
@@ -61,6 +71,7 @@ export class PlaybackEngine {
     this.audio.ensure();
     this.playing = true;
     this.lastScheduled = this.time;
+    this.lastChordScheduled = -1;
     this.schedule(this.time, this.time + SCHEDULE_LOOKAHEAD);
     this.emit();
   }
@@ -69,12 +80,17 @@ export class PlaybackEngine {
     if (!this.playing && !this.grader) return;
     this.playing = false;
     this.audio.cancelAll();
+    this.lastChordScheduled = -1;
     this.emit();
   }
 
   seek(t: number): void {
+    const wasPlaying = this.playing;
+    if (wasPlaying) this.audio.cancelAll();
     this.time = Math.max(0, Math.min(this.duration, t));
     this.lastScheduled = this.time;
+    this.lastChordScheduled = -1;
+    if (wasPlaying) this.schedule(this.time, this.time + SCHEDULE_LOOKAHEAD);
     this.emit();
   }
 
@@ -105,7 +121,47 @@ export class PlaybackEngine {
     this.notes = notes;
     this.duration = duration;
     // Mid-playback note changes (speed/transpose/hand) reschedule from now.
-    if (this.playing) this.lastScheduled = this.time;
+    if (this.playing) {
+      this.audio.cancelAll();
+      this.lastScheduled = this.time;
+      this.lastChordScheduled = -1;
+      this.schedule(this.time, this.time + SCHEDULE_LOOKAHEAD);
+    }
+  }
+
+  /** Update the source timeline without requiring a new playback engine. */
+  setChords(chords: ChordPlaybackLabel[]): void {
+    if (this.chords === chords) return;
+    this.chords = chords;
+    this.lastChordScheduled = -1;
+    if (this.playing) {
+      this.audio.cancelAll();
+      this.lastScheduled = this.time;
+      this.schedule(this.time, this.time + SCHEDULE_LOOKAHEAD);
+    }
+  }
+
+  /**
+   * Apply settings while allowing background source changes to take effect at
+   * the current playhead. Direct assignment remains supported for callers that
+   * only need the old behaviour.
+   */
+  setSettings(settings: PlayerSettings): void {
+    const backgroundChanged = this.settings.backgroundMode !== settings.backgroundMode;
+    const chordTimingChanged = this.settings.speed !== settings.speed || this.settings.transpose !== settings.transpose;
+    this.settings = settings;
+    if (backgroundChanged && this.playing) {
+      this.audio.cancelAll();
+      this.lastScheduled = this.time;
+      this.lastChordScheduled = -1;
+      this.schedule(this.time, this.time + SCHEDULE_LOOKAHEAD);
+    } else if (chordTimingChanged && this.playing) {
+      // The notes effect will immediately install the newly resolved notes;
+      // clear the old audio horizon here so it cannot overlap that update.
+      this.audio.cancelAll();
+      this.lastScheduled = this.time;
+      this.lastChordScheduled = -1;
+    }
   }
 
   setLoop(region: LoopRegion | null): void {
@@ -161,14 +217,18 @@ export class PlaybackEngine {
 
   private schedule(from: number, to: number): void {
     from = Math.max(from, this.lastScheduled);
+    const chordMode = this.settings.backgroundMode === "chord" && this.chords.length > 0 && !!this.audio.playChord;
+    if (chordMode) this.scheduleChords(from, to);
     let i = firstNoteAtOrAfter(this.notes, from);
     for (; i < this.notes.length; i++) {
       const n = this.notes[i]!;
       if (n.startSec >= to) break;
-      if (n.hand === "L" && this.settings.backgroundMode !== "piano") continue;
+      if (n.hand === "L" && chordMode) continue;
       this.audio.noteOn(n, Math.max(0, n.startSec - this.time));
     }
-    if (this.settings.metronome && this.settings.backgroundMode !== "chord") {
+    // A missing source timeline falls back to the piano background, including
+    // its metronome behaviour, rather than silently muting the left hand.
+    if (this.settings.metronome && !chordMode) {
       const beat = 60 / this.song.tempoBpm / this.settings.speed;
       const perMeasure = beatsPerMeasure(this.song.timeSig);
       for (let t = Math.ceil(from / beat) * beat; t < to; t += beat) {
@@ -180,6 +240,57 @@ export class PlaybackEngine {
       }
     }
     this.lastScheduled = to;
+  }
+
+  private scheduleChords(from: number, to: number): void {
+    const playChord = this.audio.playChord;
+    if (!playChord || this.chords.length === 0) return;
+    const speed = this.settings.speed;
+    const chordAt = (chord: ChordLabel) => beatToSec(chord.beat, this.song.tempoBpm, speed);
+
+    // When starting or seeking into the middle of a song, sound the chord that
+    // is already active at the playhead before scheduling future changes.
+    let cursor = this.lastChordScheduled;
+    if (cursor < 0) {
+      let active = -1;
+      for (let i = 0; i < this.chords.length; i++) {
+        if (chordAt(this.chords[i]!) <= from + 1e-6) active = i;
+        else break;
+      }
+      if (active >= 0) {
+        this.playChord(this.chords[active]!, 0);
+        cursor = active;
+      }
+    }
+
+    for (let i = cursor + 1; i < this.chords.length; i++) {
+      const chord = this.chords[i]!;
+      const eventSec = chordAt(chord);
+      if (eventSec < from - 1e-6) {
+        cursor = i;
+        continue;
+      }
+      if (eventSec >= to) break;
+      this.playChord(chord, Math.max(0, eventSec - this.time));
+      cursor = i;
+    }
+    this.lastChordScheduled = cursor;
+  }
+
+  private playChord(chord: ChordPlaybackLabel, when: number): void {
+    const playChord = this.audio.playChord;
+    if (!playChord || chord.notes.length === 0) return;
+    const transposed = chord.notes.map((midi) => midi + this.settings.transpose);
+    const pitchClasses = [...new Set(transposed.map((midi) => ((midi % 12) + 12) % 12))];
+    if (pitchClasses.length === 0) return;
+    // Source timelines normally contain absolute MIDI notes. If a compact
+    // pitch-class timeline is supplied, anchor it in a comfortable bass range.
+    const min = Math.min(...transposed);
+    const bassMidi = min < 24 ? 36 + ((min % 12) + 12) % 12 : min;
+    const durationSec = chord.durationBeats !== undefined
+      ? beatToSec(chord.durationBeats, this.song.tempoBpm, this.settings.speed)
+      : undefined;
+    playChord.call(this.audio, pitchClasses, bassMidi, when, durationSec);
   }
 
   private emit(): void {
