@@ -19,6 +19,7 @@ import { join } from "node:path";
 import { getDb } from "../src/db.js";
 import { blockedLearnerBases } from "../src/learner-review.js";
 import { ROOT, artifactsDir, dataDir, seedMidiDir, transcribedDir } from "../src/paths.js";
+import { resolveYoutubeSource } from "../src/youtube-source.js";
 
 const LEVELS = ["vb", "b", "ve", "e", "m", "a"] as const;
 const ADVANCED = "a";
@@ -293,11 +294,9 @@ const seedFiles = new Set((await readdir(seedMidiDir()).catch(() => [] as string
 const transcribedDirs = new Set<string>();
 for (const entry of await readdir(transcribedDir(), { withFileTypes: true }).catch(() => [])) {
   if (!entry.isDirectory()) continue;
-  const files = await readdir(join(transcribedDir(), entry.name)).catch(() => [] as string[]);
-  if (
-    files.some((file) => file === "audio_basic_pitch.mid" || file.endsWith("_basic_pitch.mid")) &&
-    files.some((file) => file === "audio.mp3")
-  ) {
+  // Use the same validated root/strict/auto source boundary as rebuilds so a
+  // strict MIDI paired with root audio is not misclassified as unavailable.
+  if (await resolveYoutubeSource(join(transcribedDir(), entry.name), "auto")) {
     transcribedDirs.add(entry.name);
   }
 }

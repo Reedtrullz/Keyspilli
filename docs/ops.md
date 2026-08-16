@@ -161,16 +161,43 @@ piece (else `n/a`):
 npx tsx packages/catalog/scripts/audit-transcriptions.ts
 ```
 
+For the controlled piano fixture comparison, use the explicit read-only
+mapping (it reports candidate/audio hashes, embedded tempo evidence, and
+artifact provenance):
+
+```bash
+npx tsx packages/catalog/scripts/compare-piano-fixtures.ts
+```
+
+Its onset metrics are timing diagnostics only; they are not pitch accuracy or
+learner-quality scores.
+
+`quality-report.ts` uses the same validated YouTube source resolver when
+classifying whether a persisted transcription source is available.
+
 Tempo + re-ingest: detected tempo from the audio
 (`services/transcribe/src/tempo.py`) is written into the raw Basic Pitch
 MIDI's tempo meta, which is then onset-filtered and re-ingested with stable
 base ids. Dry-run first, then the real pass:
 
 ```bash
-npx tsx packages/catalog/scripts/reingest-all-youtube.ts --dry-run
-npx tsx packages/catalog/scripts/reingest-all-youtube.ts
+npx tsx packages/catalog/scripts/reingest-all-youtube.ts --source=root --dry-run
+npx tsx packages/catalog/scripts/reingest-all-youtube.ts --source=root
 ```
 
+- Source selection is explicit: `--source=root` (the production rebuild
+  default), `--source=strict` (only a validated `re/` candidate; fail closed if
+  it is absent), or `--source=auto` (use strict when present, otherwise root).
+  CI/VPS rebuilds and the full-catalog `reingest-catalog.ts` pass use
+  `--source=root` deliberately; strict is opt-in after an A/B review. The
+  restore and single-pass re-ingest helpers retain their legacy `auto` default
+  for compatibility, but production/operator runs should pass `--source=root`
+  or `--source=strict` explicitly. They pair a `re/` MIDI with the job's root
+  audio when the strict run does not carry a second audio file, and strict
+  source failures now return a non-zero exit status.
+- `retranscribe-youtube.ts` is the mutation-producing strict Basic Pitch job:
+  it writes `re/` candidates from root audio and immediately ingests them.
+  Treat it as an operator-reviewed experiment; it has no dry-run mode.
 - `KEYSPILLI_TEMPO_OVERRIDE=<bpm>` forces a tempo instead of running tempo.py.
 - If `tempo.py` is not present yet, re-ingest keeps the MIDI's tempo (120).
 - Worker boot requeues orphaned `processing` jobs; failed jobs retry up to
@@ -196,6 +223,13 @@ docker compose run --rm web node --import tsx packages/catalog/scripts/pipeline.
   aligned. Do not re-ingest with the old (meta-only) script.
 - `--keep-existing-tempo` preserves non-120 DB tempos (manual corrections such
   as Dear God's 75 BPM) and only detects for rows still at the old 120 default.
+- For a targeted run, keep the source choice explicit as well:
+  `npx tsx .../reingest-all-youtube.ts --source=root <baseId> ...`.
+- The helper scripts have read-only preflight modes:
+  `npx tsx .../reingest-youtube.ts --dry-run --source=root` and
+  `npx tsx .../restore-youtube.ts --dry-run --source=root <baseId> ...`.
+  `reingest-catalog.ts --dry-run` also leaves disabled rows untouched and only
+  reports the removal it would perform.
 - Positional base ids restrict the run: `npx tsx ... reingest-all-youtube.ts <baseId>...`
 - VPS: trigger the "Rebuild YouTube catalog on VPS" job via GitHub Actions
   workflow dispatch (runs inside the worker container with `--keep-existing-tempo`).

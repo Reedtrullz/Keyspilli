@@ -3,6 +3,10 @@
  *
  * Run with --dry-run before a production rebuild. Base ids are preserved and
  * ingestSource publishes each six-level set atomically.
+ *
+ * Usage: npx tsx packages/catalog/scripts/reingest-catalog.ts [--dry-run]
+ *   [--skip-youtube] [--allow-unfiltered-youtube] [--source=root|strict|auto]
+ *   [baseId...]
  */
 import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
@@ -10,7 +14,15 @@ import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { normalizeTempoBpm, parseMidi, writeMidi } from "@keyspilli/midi";
-import { filterTranscription, getDb, getSongsByBase, ingestSource, removeSongsByBase } from "../src/index.js";
+import {
+  filterTranscription,
+  getDb,
+  getSongsByBase,
+  ingestSource,
+  removeSongsByBase,
+  parseYoutubeSourceArgs,
+  resolveYoutubeSource,
+} from "../src/index.js";
 import { artifactsDir, dataDir, ROOT, seedMidiDir, transcribedDir, uploadsDir } from "../src/paths.js";
 
 const execFileP = promisify(execFile);
@@ -18,7 +30,10 @@ const args = process.argv.slice(2);
 const dryRun = args.includes("--dry-run");
 const skipYoutube = args.includes("--skip-youtube");
 const allowUnfilteredYoutube = args.includes("--allow-unfiltered-youtube");
-const onlyBases = args.filter((arg) => !arg.startsWith("--"));
+// Keep the full-catalog rebuild root-only by default. Operators can opt into
+// a validated re/ candidate explicitly, while auto retains the helper
+// scripts' strict-when-present fallback behavior.
+const { selection: sourceSelection, positionalArgs: onlyBases } = parseYoutubeSourceArgs(args, "root");
 const PYTHON = process.env.KEYSPILLI_PYTHON ?? join(ROOT, "services", "transcribe", ".venv", "bin", "python");
 const TEMPO_PY = join(ROOT, "services", "transcribe", "src", "tempo.py");
 
@@ -52,7 +67,13 @@ interface CatalogMeta {
   sourceYoutubeUrl: string | null;
 }
 
-interface YoutubeSource { midi: string; audio: string; jobUrl: string | null }
+interface YoutubeSource {
+  midi: string;
+  audio: string;
+  jobUrl: string | null;
+  sourceKind: "root" | "re";
+  availableKinds: ("root" | "re")[];
+}
 
 const seedAliases: Record<string, string> = {
   "taylor-swift-love-story": "love-story-where-do-i-begin.mid",
@@ -74,6 +95,10 @@ const manifest = new Map((manifestRaw.songs ?? []).map((song) => [song.id, song]
 // then fail closed below because it no longer has catalog metadata.
 for (const song of manifest.values()) {
   if (!song.disabled) continue;
+  if (dryRun) {
+    if (getSongsByBase(song.id).length) console.log(`? ${song.id}: would remove disabled catalogue rows`);
+    continue;
+  }
   const removed = removeSongsByBase(song.id);
   if (removed) console.log(`- ${song.id}: disabled, removed ${removed} stale database rows`);
 }
@@ -128,13 +153,6 @@ async function findUpload(baseId: string): Promise<string | undefined> {
   return name ? join(uploadsDir(), name) : undefined;
 }
 
-function pickTranscribedFiles(files: string[]): { midi?: string; audio?: string } {
-  const clean = files.filter((file) => !file.startsWith("._"));
-  const midi = clean.find((file) => file === "audio_basic_pitch.mid") ?? clean.find((file) => file.endsWith("_basic_pitch.mid"));
-  const audio = clean.find((file) => file === "audio.mp3") ?? clean.find((file) => file.startsWith("audio.") && !file.endsWith(".part"));
-  return { midi, audio };
-}
-
 async function findYoutubeSource(baseId: string): Promise<YoutubeSource | undefined> {
   // Prefer the newest completed transcription.  Reprocessed jobs (for
   // example the `re2-*` runs kept in data/transcribed/) exist specifically to
@@ -150,12 +168,22 @@ async function findYoutubeSource(baseId: string): Promise<YoutubeSource | undefi
   for (const candidate of candidates) {
     if (seen.has(candidate.dir)) continue;
     seen.add(candidate.dir);
-    const picked = pickTranscribedFiles(await readdir(candidate.dir).catch(() => [] as string[]));
-    if (picked.midi && picked.audio) {
-      return { midi: join(candidate.dir, picked.midi), audio: join(candidate.dir, picked.audio), jobUrl: candidate.jobUrl };
-    }
+    const source = await resolveYoutubeSource(candidate.dir, sourceSelection);
+    if (!source) continue;
+    return {
+      midi: source.midiPath,
+      audio: source.audioPath,
+      jobUrl: candidate.jobUrl,
+      sourceKind: source.sourceKind,
+      availableKinds: source.availableKinds,
+    };
   }
   return undefined;
+}
+
+function describeYoutubeSource(source: YoutubeSource): string {
+  const alternateKinds = source.availableKinds.filter((kind) => kind !== source.sourceKind);
+  return `youtube:${source.sourceKind}:${source.midi}${alternateKinds.length ? ` (also available: ${alternateKinds.join(",")})` : ""}`;
 }
 
 async function detectTempo(audioPath: string): Promise<number> {
@@ -204,7 +232,7 @@ async function sourcePathFor(baseId: string, meta: CatalogMeta): Promise<string>
   if (meta.contentType === "youtube") {
     const youtube = await findYoutubeSource(baseId);
     if (!youtube) throw new Error("raw YouTube transcription source missing");
-    return "youtube:" + youtube.midi;
+    return describeYoutubeSource(youtube);
   }
   if (storedAdvancedFallbacks.has(baseId)) {
     const path = join(artifactsDir(baseId, "a"), "notes.json");
@@ -243,7 +271,7 @@ async function sourceFor(baseId: string, meta: CatalogMeta): Promise<{ buf: Uint
     const prepared = await prepareYoutubeMidi(youtube, tempo);
     return {
       buf: prepared.buf,
-      source: "youtube:" + youtube.midi,
+      source: describeYoutubeSource(youtube),
       sourceRef: `youtube:${baseId}`,
       sourceYoutubeUrl: youtube.jobUrl ?? meta.sourceYoutubeUrl,
       tempo,

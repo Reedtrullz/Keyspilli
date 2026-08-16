@@ -10,3 +10,5 @@ export * from "./publish.js";
 export * from "./legacy-migration.js";
 export * from "./chord-sources.js";
 export * from "./chord-timeline.js";
+export * from "./youtube-source.js";
+export * from "./fixture-evidence.js";
