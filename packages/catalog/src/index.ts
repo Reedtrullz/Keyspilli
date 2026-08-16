@@ -4,3 +4,5 @@ export * from "./ingest.js";
 export * from "./group.js";
 export * from "./transcribe.js";
 export * from "./learner-review.js";
+export * from "./chord-sources.js";
+export * from "./chord-timeline.js";

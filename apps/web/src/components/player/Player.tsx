@@ -31,6 +31,11 @@ import { SheetMusicView } from "./SheetMusicView";
 import { SettingsDialog } from "./SettingsDialog";
 import { DownloadDialog } from "./DownloadDialog";
 import { GradingPanel } from "./GradingPanel";
+import {
+  resolveChordSources,
+  selectChordSource,
+  type ChordSourceId,
+} from "./chord-sources";
 
 export interface PlayerDetail {
   song: SongRow;
@@ -68,6 +73,10 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
   const [songKeyLabel, setSongKeyLabel] = useState(initial.data.key);
   const [favorites, setFavorites] = useState<string[]>(() => loadJson("keyspilli.favorites", [] as string[]));
   const [learned, setLearned] = useState<string[]>(() => loadJson("keyspilli.learned", [] as string[]));
+  const [chordSourcePreference, setChordSourcePreference] = useState<ChordSourceId>(() => {
+    const value = loadJson("keyspilli.chordSource", "auto" as ChordSourceId);
+    return value === "ug" || value === "generated" || value === "auto" ? value : "auto";
+  });
 
   const engineRef = useRef<PlaybackEngine | null>(null);
   const modeMenuRef = useRef<HTMLDivElement>(null);
@@ -84,9 +93,26 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
 
   const duration = useMemo(() => notes.reduce((m, n) => Math.max(m, n.startSec + n.durSec), 8), [notes]);
 
+  const chordSources = useMemo(() => {
+    const resolved = resolveChordSources(initial.data);
+    return {
+      ...resolved,
+      // Keep the established inferred-chord naming/cleanup path unchanged;
+      // only source timelines bypass relabeling so their provenance is visible.
+      generated: { ...resolved.generated, chords: dedupeChords(initial.data.chords) },
+    };
+  }, [initial.data]);
+  const selectedChordSource = useMemo(
+    () => selectChordSource(chordSources, chordSourcePreference),
+    [chordSources, chordSourcePreference],
+  );
   // Existing artifacts still carry per-grid-slice chord spam; collapse runs of
-  // the same chord before rendering. (New ingests dedupe in chordsAt.)
-  const chords = useMemo(() => dedupeChords(initial.data.chords), [initial.data.chords]);
+  // the same chord before rendering. (New ingests dedupe in chordsAt.) The
+  // source timeline keeps its supplied names/voicings intact.
+  const chords = useMemo(
+    () => selectedChordSource.source?.chords ?? [],
+    [selectedChordSource.source],
+  );
 
   const currentMeasure = measureIndex(
     time,
@@ -124,6 +150,7 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
       duration,
       { tempoBpm: initial.data.tempoBpm, timeSig: initial.data.timeSig },
       settings,
+      chords,
     );
     engine.onChange = (snap) => {
       setTime(snap.time);
@@ -139,12 +166,16 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
   }, []);
 
   useEffect(() => {
-    if (engineRef.current) engineRef.current.settings = settings;
+    engineRef.current?.setSettings(settings);
   }, [settings]);
 
   useEffect(() => {
     engineRef.current?.setNotes(notes, duration);
   }, [notes, duration]);
+
+  useEffect(() => {
+    engineRef.current?.setChords(chords);
+  }, [chords]);
 
   useEffect(() => {
     engineRef.current?.setLoop(loop);
@@ -313,6 +344,11 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
     saveSettings(next);
   }
 
+  function updateChordSource(source: ChordSourceId) {
+    setChordSourcePreference(source);
+    saveJson("keyspilli.chordSource", source);
+  }
+
   function startGrading(wait: boolean) {
     setWaitMode(wait);
     setGrading(true);
@@ -330,6 +366,13 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
 
   const waitNote = grading && waitMode ? engineRef.current?.waitNote : null;
   const activeModeLabel = MODES.find((m) => m.id === settings.mode)?.label ?? settings.mode;
+  const chordModeBadge = settings.backgroundMode !== "chord"
+    ? null
+    : selectedChordSource.source
+      ? selectedChordSource.fallback && selectedChordSource.source.id === "generated"
+        ? "Generated fallback"
+        : selectedChordSource.source.label
+      : "Piano fallback";
   const currentBeat = time / secPerBeat(initial.data.tempoBpm, settings.speed);
   const fmtTime = (t: number) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
 
@@ -344,6 +387,16 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
           <span className="px-2 py-1 rounded-full bg-zinc-100 text-zinc-700 font-medium">{initial.song.key}</span>
           <span className="px-2 py-1 rounded-full bg-zinc-100 text-zinc-700 font-medium">{initial.song.difficulty}</span>
           <span className="px-2 py-1 rounded-full bg-zinc-100 text-zinc-700 font-medium">{initial.song.tempo} BPM</span>
+          {settings.backgroundMode === "chord" && (
+            <span
+              className={`px-2 py-1 rounded-full font-medium ${selectedChordSource.fallback ? "bg-amber-100 text-amber-800" : "bg-blue-100 text-blue-800"}`}
+              data-testid="chord-mode-status"
+              role="status"
+              title={selectedChordSource.fallbackReason ?? selectedChordSource.source?.provenance ?? undefined}
+            >
+              {chordModeBadge}
+            </span>
+          )}
           {midiConnected && <span className="px-2 py-1 rounded-full bg-green-100 text-green-800">MIDI connected</span>}
         </div>
       </div>
@@ -578,6 +631,13 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
         <SettingsDialog
           settings={settings}
           onChange={updateSettings}
+          chordSource={chordSourcePreference}
+          chordSources={{
+            ug: chordSources.ug,
+            generated: chordSources.generated,
+          }}
+          chordSourceStatus={selectedChordSource.fallbackReason}
+          onChordSourceChange={updateChordSource}
           onClose={() => setShowSettings(false)}
         />
       )}

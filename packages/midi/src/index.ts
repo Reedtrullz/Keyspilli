@@ -17,3 +17,17 @@ export { writeMusicXml } from "./writeXml.js";
 export { PITCH_COLORS, pitchColor } from "./pitchColors.js";
 export { parseMusicXmlNotes } from "./parseXml.js";
 export { writeVariantArtifacts, validateArtifactFiles, validateArtifactRoundtrip } from "./roundtrip.js";
+export {
+  parseChordSymbol,
+  tryParseChordSymbol,
+  chordIntervals,
+  chordPitchClasses,
+  chordToNotes,
+  generateChordNotes,
+  chordToMidi,
+  chordToNoteEvents,
+  transposeChordSymbol,
+  capoChordSymbol,
+  applyCapo,
+  transposeMidiNotes,
+} from "./chords.js";

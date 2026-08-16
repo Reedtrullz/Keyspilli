@@ -1,14 +1,23 @@
 "use client";
 
 import type { PlayerSettings } from "@keyspilli/player-core";
+import type { ChordSourceId, ChordSourceOption } from "./chord-sources";
 
 export function SettingsDialog({
   settings,
   onChange,
+  chordSource = "auto",
+  chordSources,
+  chordSourceStatus = null,
+  onChordSourceChange,
   onClose,
 }: {
   settings: PlayerSettings;
   onChange: (p: Partial<PlayerSettings>) => void;
+  chordSource?: ChordSourceId;
+  chordSources?: { ug: ChordSourceOption | null; generated: ChordSourceOption };
+  chordSourceStatus?: string | null;
+  onChordSourceChange?: (source: ChordSourceId) => void;
   onClose: () => void;
 }) {
   return (
@@ -44,6 +53,48 @@ export function SettingsDialog({
           <p className="text-xs text-zinc-500 mt-1">
             {settings.backgroundMode === "piano" ? "Plays the left hand as recorded" : "Synthesizes a chord on each change"}
           </p>
+          {settings.backgroundMode === "chord" && chordSources && onChordSourceChange && (
+            <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="text-xs font-medium text-zinc-700">Chord source</span>
+                <span className="text-[11px] text-zinc-500">Used for sound + strip</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => onChordSourceChange("auto")}
+                  aria-pressed={chordSource === "auto"}
+                  className={`px-2 py-2 rounded-lg text-xs border ${chordSource === "auto" ? "bg-zinc-700 text-white border-zinc-700" : "border-zinc-300 bg-white"}`}
+                  title="Prefer UG chords and fall back to generated chords"
+                >
+                  Auto
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onChordSourceChange("ug")}
+                  disabled={!chordSources.ug?.chords.length}
+                  aria-pressed={chordSource === "ug"}
+                  className={`px-2 py-2 rounded-lg text-xs border ${chordSource === "ug" ? "bg-blue-700 text-white border-blue-700" : "border-zinc-300 bg-white"} disabled:opacity-50 disabled:cursor-not-allowed`}
+                  title={chordSources.ug?.provenance ?? "No UG chord timeline for this arrangement"}
+                >
+                  UG timeline
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onChordSourceChange("generated")}
+                  disabled={!chordSources.generated.chords.length}
+                  aria-pressed={chordSource === "generated"}
+                  className={`px-2 py-2 rounded-lg text-xs border ${chordSource === "generated" ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300 bg-white"} disabled:opacity-50 disabled:cursor-not-allowed`}
+                  title="Chord labels inferred from the piano arrangement"
+                >
+                  Generated
+                </button>
+              </div>
+              <p className={`text-[11px] mt-2 ${chordSourceStatus ? "text-amber-700" : "text-zinc-500"}`} role={chordSourceStatus ? "status" : undefined}>
+                {chordSourceStatus ?? (chordSource === "auto" && chordSources.ug?.chords.length ? "Auto-selected UG timeline when available." : "Using generated chord timeline.")}
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="mb-2">

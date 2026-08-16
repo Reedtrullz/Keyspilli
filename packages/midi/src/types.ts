@@ -21,6 +21,64 @@ export interface ChordLabel {
   notes: number[];
 }
 
+/** Chord qualities supported by the lead-sheet parser and chord player. */
+export type ChordQuality =
+  | "major"
+  | "minor"
+  | "7"
+  | "maj7"
+  | "m7"
+  | "6"
+  | "sus2"
+  | "sus4"
+  | "dim"
+  | "aug"
+  | "add9";
+
+/** Parsed, normalized chord symbol. Root/bass pitch classes are in [0, 11]. */
+export interface ChordSymbol {
+  /** Canonical symbol, e.g. `Cmaj7/E`. */
+  symbol: string;
+  /** Spelled root, e.g. `Bb` or `F#`. */
+  root: string;
+  rootPc: number;
+  quality: ChordQuality;
+  /** Optional slash-bass spelling and pitch class. */
+  bass?: string;
+  bassPc?: number;
+}
+
+export interface ChordParseOptions {
+  /** Sounding semitone shift caused by a capo. */
+  capo?: number;
+  /** Additional sounding semitone shift. */
+  transpose?: number;
+  /** Prefer flat spellings when formatting shifted symbols. */
+  preferFlats?: boolean;
+}
+
+export interface ChordVoicingOptions extends ChordParseOptions {
+  /** MIDI octave containing the chord root (C4 is MIDI 60); defaults to 4. */
+  octave?: number;
+  /** MIDI octave for a slash/optional bass; defaults to octave - 1. */
+  bassOctave?: number;
+  /** Add a low root bass to an ordinary chord; slash chords always include bass. */
+  includeBass?: boolean;
+  /** Optional deterministic cap on the number of notes, preserving the shell. */
+  maxNotes?: number;
+}
+
+export interface ChordNoteOptions extends ChordVoicingOptions {
+  /** Start time in beats for generated note events. */
+  start?: number;
+  /** Duration in beats for generated note events. */
+  dur?: number;
+  /** MIDI velocity for generated note events. */
+  vel?: number;
+  hand?: Hand;
+  lyrics?: string;
+}
+
 export interface ParsedMidi {
   format: number;
   division: number;

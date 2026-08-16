@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "baseId": "the-theorist-elton-john-your-song-piano-cover-jz6ugvghbt8",
+      "canonicalTitle": "Your Song",
+      "canonicalArtist": "Elton John",
+      "fallbackSourceId": "midi-derived",
+      "sources": [
+        {
+          "id": "ug-your-song",
+          "provider": "ultimate-guitar",
+          "kind": "chart",
+          "sourceRef": "ultimate-guitar:elton-john/your-song",
+          "sourceUrl": "https://tabs.ultimate-guitar.com/tab/elton-john/your-song-chords-29113",
+          "artifactPath": "catalog/chord-timelines/your-song.json",
+          "retrievedAt": "2026-08-16",
+          "confidence": "curated",
+          "priority": 0
+        },
+        {
+          "id": "midi-derived",
+          "provider": "keyspilli",
+          "kind": "midi-derived",
+          "sourceRef": "variant:advanced:notes.json",
+          "confidence": "fallback",
+          "priority": 100
+        }
+      ]
+    }
+  ]
+}

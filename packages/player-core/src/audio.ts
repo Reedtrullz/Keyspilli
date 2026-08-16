@@ -12,6 +12,7 @@ export class AudioEngine {
   private voiceGainNode: GainNode | null = null;
   private pianoGainNode: GainNode | null = null;
   private active = new Map<number, { osc: OscillatorNode; gain: GainNode }[]>();
+  private activeChords = new Set<{ osc: OscillatorNode; gain: GainNode }>();
 
   voiceGain = 1;
   pianoGain = 0.4;
@@ -148,6 +149,7 @@ export class AudioEngine {
       }
     }
     this.active.clear();
+    this.cancelChords();
   }
 
   metronomeClick(beat: number, when = 0): void {
@@ -167,10 +169,11 @@ export class AudioEngine {
   }
 
   /** Synthesize a chord (pitch classes) — used by chord-mode background. */
-  playChord(pcs: number[], bassMidi: number, when = 0): void {
+  playChord(pcs: number[], bassMidi: number, when = 0, durationSec = 1.2): void {
     const ctx = this.ensure();
     if (!this.pianoGainNode) return;
     const t = ctx.currentTime + when;
+    const duration = Math.max(0.2, Math.min(8, durationSec));
     for (const pc of pcs) {
       let midi = bassMidi + ((pc - (bassMidi % 12) + 12) % 12);
       if (midi < bassMidi) midi += 12;
@@ -180,15 +183,36 @@ export class AudioEngine {
       osc.type = "triangle";
       osc.frequency.value = NOTE_FREQ(midi);
       gain.gain.setValueAtTime(0.05, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 1.2);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
       osc.connect(gain);
       gain.connect(this.pianoGainNode);
       osc.start(t);
-      osc.stop(t + 1.3);
+      const entry = { osc, gain };
+      this.activeChords.add(entry);
+      osc.onended = () => {
+        this.activeChords.delete(entry);
+        gain.disconnect();
+      };
+      osc.stop(t + duration + 0.1);
     }
   }
 
+  private cancelChords(): void {
+    const t = this.ctx?.currentTime ?? 0;
+    for (const entry of this.activeChords) {
+      try {
+        entry.gain.gain.cancelScheduledValues(t);
+        entry.gain.gain.setTargetAtTime(0, t, 0.02);
+        entry.osc.stop(t + 0.05);
+      } catch {
+        // An oscillator may have ended between iteration and cancellation.
+      }
+    }
+    this.activeChords.clear();
+  }
+
   dispose(): void {
+    this.cancelChords();
     void this.ctx?.close();
     this.ctx = null;
   }
