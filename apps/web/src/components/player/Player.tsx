@@ -113,6 +113,13 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
     () => selectedChordSource.source?.chords ?? [],
     [selectedChordSource.source],
   );
+  // Playback applies transpose inside PlaybackEngine. Keep the visual chord
+  // keys in the same transposed coordinate space as the falling notes without
+  // feeding already-transposed values back into the audio scheduler.
+  const visualChords = useMemo(
+    () => chords.map((c) => ({ ...c, notes: c.notes.map((midi) => midi + settings.transpose) })),
+    [chords, settings.transpose],
+  );
 
   const currentMeasure = measureIndex(
     time,
@@ -182,7 +189,7 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
   }, [loop]);
 
   useEffect(() => {
-    if (engineRef.current) engineRef.current.waitMode = waitMode;
+    engineRef.current?.setWaitMode(waitMode);
   }, [waitMode]);
 
   // Main rAF loop. The engine owns playback state; this just feeds it dt.
@@ -571,14 +578,14 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
           role="region"
           aria-label={`Player stage — ${activeModeLabel}`}
         >
-          {settings.mode === "falling" && <ChordStrip chords={chords} currentBeat={currentBeat} />}
+          {settings.mode === "falling" && <ChordStrip chords={visualChords} currentBeat={currentBeat} />}
           {settings.mode === "falling" && (
             <FallingCanvas
               notes={notes}
               time={time}
               settings={settings}
               pressedKeys={pressedKeys}
-              chords={chords}
+              chords={visualChords}
               tempoBpm={initial.data.tempoBpm}
               lowMidi={midiRange.lowMidi}
               highMidi={midiRange.highMidi}

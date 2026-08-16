@@ -149,15 +149,19 @@ export class PlaybackEngine {
   setSettings(settings: PlayerSettings): void {
     const backgroundChanged = this.settings.backgroundMode !== settings.backgroundMode;
     const chordTimingChanged = this.settings.speed !== settings.speed || this.settings.transpose !== settings.transpose;
+    const metronomeChanged = this.settings.metronome !== settings.metronome;
+    const sustainChanged = this.settings.sustainPedal !== settings.sustainPedal;
     this.settings = settings;
+    this.audio.sustainPedal = settings.sustainPedal;
     if (backgroundChanged && this.playing) {
       this.audio.cancelAll();
       this.lastScheduled = this.time;
       this.lastChordScheduled = -1;
       this.schedule(this.time, this.time + SCHEDULE_LOOKAHEAD);
-    } else if (chordTimingChanged && this.playing) {
+    } else if ((chordTimingChanged || metronomeChanged || sustainChanged) && this.playing) {
       // The notes effect will immediately install the newly resolved notes;
-      // clear the old audio horizon here so it cannot overlap that update.
+      // clear the old audio horizon here so it cannot overlap that update (or
+      // leave stale metronome clicks/pedal tails after a setting change).
       this.audio.cancelAll();
       this.lastScheduled = this.time;
       this.lastChordScheduled = -1;
@@ -166,6 +170,13 @@ export class PlaybackEngine {
 
   setLoop(region: LoopRegion | null): void {
     this.loop = region;
+  }
+
+  /** Toggle wait mode for an active run and keep the grader in sync. */
+  setWaitMode(wait: boolean): void {
+    this.waitMode = wait;
+    this.grader?.setWaitMode(wait);
+    this.emit();
   }
 
   startGrading(wait: boolean): void {
@@ -209,6 +220,9 @@ export class PlaybackEngine {
   handleMicNote(midi: number): void {
     if (this.grader) this.grader.play(midi, this.time);
     this.audio.noteOn({ midi, startSec: 0, durSec: 0.35, vel: 90, hand: "R" });
+    // Microphone input does not update pressedKeys in the React owner; emit a
+    // snapshot so wait-note progress and other grading UI re-render immediately.
+    this.emit();
   }
 
   get waitNote(): TimedNote | null {

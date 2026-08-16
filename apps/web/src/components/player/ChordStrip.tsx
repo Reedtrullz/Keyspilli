@@ -67,8 +67,6 @@ function MiniKeyboard({ notes }: { notes: number[] }) {
 
 export function ChordStrip({ chords, currentBeat }: ChordStripProps) {
   const stripRef = useRef<HTMLDivElement>(null);
-  if (chords.length === 0) return null;
-
   // Find which chord is currently active
   let activeIdx = 0;
   for (let i = chords.length - 1; i >= 0; i--) {
@@ -84,6 +82,8 @@ export function ChordStrip({ chords, currentBeat }: ChordStripProps) {
       ?.querySelector(`[data-chord-idx="${activeIdx}"]`)
       ?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
   }, [activeIdx]);
+
+  if (chords.length === 0) return null;
 
   return (
     <div ref={stripRef} className="flex gap-2 overflow-x-auto px-3 py-2 border-b border-zinc-100 bg-white" role="list" aria-label="Chord progression">

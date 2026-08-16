@@ -13,6 +13,7 @@ export class AudioEngine {
   private pianoGainNode: GainNode | null = null;
   private active = new Map<number, { osc: OscillatorNode; gain: GainNode }[]>();
   private activeChords = new Set<{ osc: OscillatorNode; gain: GainNode }>();
+  private activeClicks = new Set<{ osc: OscillatorNode; gain: GainNode }>();
 
   voiceGain = 1;
   pianoGain = 0.4;
@@ -150,6 +151,7 @@ export class AudioEngine {
     }
     this.active.clear();
     this.cancelChords();
+    this.cancelClicks();
   }
 
   metronomeClick(beat: number, when = 0): void {
@@ -166,6 +168,12 @@ export class AudioEngine {
     gain.connect(this.master);
     osc.start(t);
     osc.stop(t + 0.06);
+    const entry = { osc, gain };
+    this.activeClicks.add(entry);
+    osc.onended = () => {
+      this.activeClicks.delete(entry);
+      gain.disconnect();
+    };
   }
 
   /** Synthesize a chord (pitch classes) — used by chord-mode background. */
@@ -211,8 +219,23 @@ export class AudioEngine {
     this.activeChords.clear();
   }
 
+  private cancelClicks(): void {
+    const t = this.ctx?.currentTime ?? 0;
+    for (const entry of this.activeClicks) {
+      try {
+        entry.gain.gain.cancelScheduledValues(t);
+        entry.gain.gain.setTargetAtTime(0, t, 0.01);
+        entry.osc.stop(t + 0.02);
+      } catch {
+        // A short click may have ended between iteration and cancellation.
+      }
+    }
+    this.activeClicks.clear();
+  }
+
   dispose(): void {
     this.cancelChords();
+    this.cancelClicks();
     void this.ctx?.close();
     this.ctx = null;
   }

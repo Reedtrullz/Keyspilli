@@ -38,6 +38,17 @@ export class Grader {
     this.tolerance = opts.bpm ? Math.min(0.4, secPerBeat(opts.bpm, 1) * 0.4) : 0.35;
   }
 
+  /**
+   * Change wait mode without rebuilding the run. The player exposes this as a
+   * checkbox while a practice run is in progress, so the grader must follow
+   * the engine's mode as well as the rendered control.
+   */
+  setWaitMode(wait: boolean): void {
+    if (this.waitMode === wait) return;
+    this.waitMode = wait;
+    this.waitingFor = wait ? (this.remaining[0] ?? null) : null;
+  }
+
   /** Call as time advances; counts expected notes whose window passed without input. */
   tick(now: number): void {
     if (this.waitMode) return; // wait mode advances only on correct input
@@ -97,9 +108,10 @@ export class Grader {
   }
 
   result(): GradeResult {
-    // Wait mode suppresses tick(), so remaining notes never get pruned; count
-    // them as missed here instead of letting an unplayed run score 100%.
-    const missed = this.missed + (this.waitMode ? this.remaining.length : 0);
+    // A run can be finished before playback reaches the end. Count every
+    // expected note still in the queue so an early exit cannot score 100%.
+    // Wait mode also suppresses tick(), so this covers that path too.
+    const missed = this.missed + this.remaining.length;
     const total = this.hits + this.wrongs + missed + this.late;
     const accuracyPct = total === 0 ? 100 : Math.round((this.hits / total) * 100);
     let summary = "";

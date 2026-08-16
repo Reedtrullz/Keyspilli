@@ -116,6 +116,50 @@ describe("PlaybackEngine", () => {
     expect(audio.noteOns.some((n) => n.midi === 60 && n.when > 0)).toBe(true);
   });
 
+  it("seeking during playback cancels the old horizon and schedules the new one", () => {
+    const { eng, audio } = engine();
+    eng.start();
+    eng.tick(0.2);
+    const before = audio.cancelled;
+    audio.noteOns = [];
+    eng.seek(0.95);
+    expect(audio.cancelled).toBeGreaterThan(before);
+    expect(audio.noteOns).toEqual([{ midi: 64, when: expect.closeTo(0.05, 5) }]);
+  });
+
+  it("keeps the grader in sync when wait mode is toggled", () => {
+    const { eng } = engine();
+    eng.startGrading(false);
+    eng.setWaitMode(true);
+    expect(eng.waitNote?.midi).toBe(60);
+    expect(eng.handleNoteOn(64)).toBe(false);
+    expect(eng.handleNoteOn(60)).toBe(true);
+    eng.setWaitMode(false);
+    expect(eng.waitNote).toBeNull();
+  });
+
+  it("emits after microphone input so wait progress can render", () => {
+    const { eng } = engine();
+    const snapshots: number[] = [];
+    eng.onChange = (snap) => snapshots.push(snap.time);
+    eng.startGrading(true);
+    snapshots.length = 0;
+    eng.handleMicNote(60);
+    expect(snapshots.length).toBeGreaterThan(0);
+    expect(eng.waitNote?.midi).toBe(62);
+  });
+
+  it("cancels scheduled audio when metronome or pedal settings change", () => {
+    const { eng, audio } = engine({ metronome: true });
+    eng.start();
+    const before = audio.cancelled;
+    eng.setSettings({ ...eng.settings, metronome: false });
+    expect(audio.cancelled).toBeGreaterThan(before);
+    const afterMetronome = audio.cancelled;
+    eng.setSettings({ ...eng.settings, sustainPedal: !eng.settings.sustainPedal });
+    expect(audio.cancelled).toBeGreaterThan(afterMetronome);
+  });
+
   it("grades input through the engine and finishes with a result", () => {
     const { eng } = engine();
     eng.startGrading(true);

@@ -195,6 +195,26 @@ describe("grader", () => {
     expect(r.missed).toBe(3);
     expect(r.accuracyPct).toBe(0);
   });
+
+  it("counts remaining notes when a non-wait run ends early", () => {
+    const g = new Grader(notes);
+    g.play(60, 0.05);
+    const r = g.result();
+    expect(r.hit).toBe(1);
+    expect(r.missed).toBe(2);
+    expect(r.total).toBe(3);
+    expect(r.accuracyPct).toBe(33);
+  });
+
+  it("switches wait mode for an existing run", () => {
+    const g = new Grader(notes);
+    g.play(60, 0.05);
+    g.setWaitMode(true);
+    expect(g.currentWait?.midi).toBe(62);
+    expect(g.play(64, 0.5)).toBe(false);
+    expect(g.play(62, 0.5)).toBe(true);
+    expect(g.currentWait?.midi).toBe(64);
+  });
 });
 
 describe("detectPitch", () => {
