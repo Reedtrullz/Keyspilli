@@ -15,6 +15,7 @@
     "verify-catalog": "npm run verify-catalog -w @keyspilli/catalog",
     "migrate-artifacts": "npm run migrate-artifacts -w @keyspilli/catalog --",
     "audit-catalog": "npm run audit-catalog -w @keyspilli/catalog",
+    "compare-piano-fixtures": "npm run compare-piano-fixtures -w @keyspilli/catalog",
     "quality-report": "npm run quality-report -w @keyspilli/catalog",
     "learner-audit": "npm run learner-audit -w @keyspilli/catalog",
     "learner-report": "npm run learner-report -w @keyspilli/catalog",

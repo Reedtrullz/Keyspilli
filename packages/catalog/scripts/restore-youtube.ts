@@ -1,32 +1,67 @@
 /**
  * Restore specific songs to their original YouTube transcription
  * (used when a sheet-music replacement turned out to be truncated).
- * Usage: tsx scripts/restore-youtube.ts <baseId> [<baseId> ...]
+ * Usage: tsx scripts/restore-youtube.ts [--dry-run] [--source=root|strict|auto] <baseId> [<baseId> ...]
  */
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
-import { getJob, getSong, transcribedDir, ingestSource, filterTranscription } from "../src/index.js";
+import {
+  filterTranscription,
+  getJob,
+  getSong,
+  ingestSource,
+  parseYoutubeSourceArgs,
+  resolveYoutubeSource,
+  transcribedDir,
+} from "../src/index.js";
 
-const targets = new Set(process.argv.slice(2));
-if (!targets.size) { console.error("usage: tsx scripts/restore-youtube.ts <baseId> ..."); process.exit(1); }
+const args = process.argv.slice(2);
+const dryRun = args.includes("--dry-run");
+const { selection: sourceSelection, positionalArgs: targetArgs } = parseYoutubeSourceArgs(args, "auto");
+const targets = new Set(targetArgs);
+if (!targets.size) { console.error("usage: tsx scripts/restore-youtube.ts [--dry-run] [--source=root|strict|auto] <baseId> ..."); process.exit(1); }
 
-const jobs = await readdir(transcribedDir());
-let ok = 0;
-for (const jobId of jobs) {
+type RestoreCandidate = {
+  jobId: string;
+  job: NonNullable<ReturnType<typeof getJob>>;
+  song: NonNullable<ReturnType<typeof getSong>>;
+};
+
+const latestByBase = new Map<string, RestoreCandidate>();
+for (const jobId of await readdir(transcribedDir())) {
   const job = getJob(jobId);
   if (!job?.songId) continue;
   const song = getSong(job.songId);
   if (!song || !targets.has(song.baseId)) continue;
+  const previous = latestByBase.get(song.baseId);
+  if (!previous || job.createdAt > previous.job.createdAt || (job.createdAt === previous.job.createdAt && jobId > previous.jobId)) {
+    latestByBase.set(song.baseId, { jobId, job, song });
+  }
+}
+
+let ok = 0;
+let failed = 0;
+const matchedTargets = new Set<string>();
+for (const [baseId, candidate] of latestByBase) {
+  const { jobId, job, song } = candidate;
+  matchedTargets.add(baseId);
   const dir = join(transcribedDir(), jobId);
-  const files = await readdir(dir).catch(() => []);
-  const reDir = join(dir, "re");
-  const reFiles = await readdir(reDir).catch(() => []);
-  const midiName = reFiles.find((f) => f.endsWith("_basic_pitch.mid")) ?? files.find((f) => f.endsWith("_basic_pitch.mid"));
-  if (!midiName) continue;
-  const srcDir = reFiles.length ? reDir : dir;
-  const audioName = (reFiles.find((f) => f.startsWith("audio.")) ?? files.find((f) => f.startsWith("audio.")));
-  if (!audioName) continue;
-  const filtered = await filterTranscription(new Uint8Array(await readFile(join(srcDir, midiName))), join(srcDir, audioName));
+  const source = await resolveYoutubeSource(dir, sourceSelection);
+  if (!source) {
+    failed++;
+    console.error(`x ${song.baseId}: requested ${sourceSelection} source is unavailable`);
+    continue;
+  }
+  console.log(`~ ${song.baseId}: source=${source.sourceKind}${dryRun ? " (dry run)" : ""}`);
+  if (dryRun) continue;
+  let filtered: Uint8Array;
+  try {
+    filtered = await filterTranscription(new Uint8Array(await readFile(source.midiPath)), source.audioPath);
+  } catch (error) {
+    failed++;
+    console.error(`x ${song.baseId}: onset filter failed: ${(error as Error).message}`);
+    continue;
+  }
   const r = await ingestSource({
     buf: filtered,
     title: song.title,
@@ -39,7 +74,17 @@ for (const jobId of jobs) {
     baseId: song.baseId,
     cleanTranscription: false,
   });
-  if (r.error) console.warn(`x ${song.baseId}: ${r.error}`);
-  else { ok++; console.log(`+ ${song.baseId} restored`); }
+  if (r.error) {
+    failed++;
+    console.warn(`x ${song.baseId}: ${r.error}`);
+  }
+  else { ok++; console.log(`+ ${song.baseId} restored (source=${source.sourceKind})`); }
 }
-console.log(`restored ${ok}`);
+for (const target of targets) {
+  if (!matchedTargets.has(target)) {
+    failed++;
+    console.error(`x ${target}: no matching YouTube conversion job`);
+  }
+}
+console.log(`restored ${ok}, failed ${failed}${dryRun ? " (dry run)" : ""}`);
+if (failed) process.exitCode = 1;

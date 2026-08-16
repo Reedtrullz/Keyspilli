@@ -5,7 +5,7 @@
  */
 import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
-import { mkdir, readdir, readFile } from "node:fs/promises";
+import { mkdir, readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 import {
@@ -15,6 +15,7 @@ import {
   updateJob,
   getJob,
   getSong,
+  resolveYoutubeAudio,
   transcribedDir,
   ROOT,
   seedMidiDir,
@@ -26,6 +27,7 @@ import {
   TRANSCRIPTION_PIPELINE_CONFIG,
   TRANSCRIPTION_POST_PROCESSING_DEFAULTS,
   type TranscriptionProvenance,
+  resolveYoutubeSource,
 } from "@keyspilli/catalog";
 import { parseMidi, transcriptionMaxDurationBeats } from "@keyspilli/midi";
 
@@ -89,12 +91,10 @@ async function processJob(jobId: string): Promise<void> {
     if (!Number.isFinite(duration) || duration <= 0) throw new Error(`video duration unavailable (${durationRaw || "unknown"})`);
     if (duration > 300) throw new Error(`video longer than 300s (${durationRaw}s)`);
     await ytDlp(["-x", "--audio-format", "mp3", "--max-filesize", "80M", "-o", join(dir, "audio.%(ext)s"), job.youtubeUrl]);
-    const files = await readdir(dir);
     // Do not feed a partially downloaded `audio.mp3.part` (or a stale
     // sidecar) to tempo detection/Basic Pitch after a retried yt-dlp run.
-    const audio = files.find((f) => /^audio\.(?:mp3|m4a|wav|flac|opus|webm|ogg)$/i.test(f));
-    if (!audio) throw new Error("no audio file produced");
-    const audioPath = join(dir, audio);
+    const audioPath = await resolveYoutubeAudio(dir);
+    if (!audioPath) throw new Error("no audio file produced");
     const bpArgs = [dir, audioPath, "--save-midi", "--onset-threshold", ONSET_THRESHOLD, "--frame-threshold", FRAME_THRESHOLD];
     const tempo = TEMPO_OVERRIDE ?? (await run(PYTHON, [TEMPO_PY, audioPath], TEMPO_TIMEOUT_MS).catch((e) => {
       console.warn(`[worker] ${jobId} tempo detection failed: ${(e as Error).message}`);
@@ -105,10 +105,12 @@ async function processJob(jobId: string): Promise<void> {
     const transcribedAt = new Date().toISOString();
     const detectedTempo = tempo ? Number(tempo) : undefined;
     await run(BASIC_PITCH, bpArgs, BP_TIMEOUT_MS);
-    const midiName = (await readdir(dir)).find((f) => f.endsWith("_basic_pitch.mid"));
-    if (!midiName) throw new Error("basic_pitch produced no MIDI");
-    const midiOut = join(dir, midiName);
-    const midi = await filterTranscription(new Uint8Array(await readFile(midiOut)), audioPath);
+    // Validate the root candidate through the shared resolver. This keeps a
+    // retry from ingesting a corrupt/partial sidecar and gives the worker the
+    // same candidate semantics as catalog rebuilds.
+    const source = await resolveYoutubeSource(dir, "root");
+    if (!source) throw new Error("basic_pitch produced no usable root MIDI/audio pair");
+    const midi = await filterTranscription(new Uint8Array(await readFile(source.midiPath)), source.audioPath);
     // Read the post-filter MIDI tempo because this is the exact tempo passed
     // to ingestSource and therefore the tempo used by cleanTranscription's
     // seconds-to-beats sustain calculation.

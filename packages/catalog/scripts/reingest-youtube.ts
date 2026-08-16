@@ -2,30 +2,37 @@
  * Re-ingest existing YouTube transcriptions with the ghost-note cleanup and
  * keep the SAME base ids (so player URLs stay stable). Used after pipeline
  * changes that affect transcription handling.
+ *
+ * Usage: tsx scripts/reingest-youtube.ts [--dry-run] [--source=root|strict|auto]
  */
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { getJob, getSong, transcribedDir, ingestSource, filterTranscription } from "../src/index.js";
+import {
+  filterTranscription,
+  getJob,
+  getSong,
+  ingestSource,
+  parseYoutubeSourceArgs,
+  resolveYoutubeSource,
+  transcribedDir,
+} from "../src/index.js";
 
+const args = process.argv.slice(2);
+const dryRun = args.includes("--dry-run");
+const { selection: sourceSelection } = parseYoutubeSourceArgs(args, "auto");
 const jobs = await readdir(transcribedDir());
 let ok = 0;
 let skipped = 0;
+let failed = 0;
 for (const jobId of jobs) {
   const dir = join(transcribedDir(), jobId);
-  const files = await readdir(dir).catch(() => []);
-  // Prefer the strict-threshold re-transcription when present.
-  const reDir = join(dir, "re");
-  const reFiles = await readdir(reDir).catch(() => []);
-  const reMidi = reFiles.find((f) => f.endsWith("_basic_pitch.mid"));
-  const srcDir = reMidi ? reDir : dir;
-  const midiName = reMidi ?? files.find((f) => f.endsWith("_basic_pitch.mid"));
-  if (!midiName) {
+  const source = await resolveYoutubeSource(dir, sourceSelection);
+  if (!source) {
     skipped++;
-    continue;
-  }
-  const audioName = reFiles.find((f) => f.startsWith("audio.")) ?? files.find((f) => f.startsWith("audio."));
-  if (!audioName) {
-    skipped++;
+    if (sourceSelection === "strict") {
+      failed++;
+      console.error(`x ${jobId}: requested strict source is unavailable`);
+    }
     continue;
   }
   const job = getJob(jobId);
@@ -38,7 +45,16 @@ for (const jobId of jobs) {
     skipped++;
     continue;
   }
-  const buf = await filterTranscription(new Uint8Array(await readFile(join(srcDir, midiName))), join(srcDir, audioName));
+  console.log(`~ ${song.baseId}: source=${source.sourceKind}${dryRun ? " (dry run)" : ""}`);
+  if (dryRun) continue;
+  let buf: Uint8Array;
+  try {
+    buf = await filterTranscription(new Uint8Array(await readFile(source.midiPath)), source.audioPath);
+  } catch (error) {
+    failed++;
+    console.error(`x ${song.baseId}: onset filter failed: ${(error as Error).message}`);
+    continue;
+  }
   const r = await ingestSource({
     buf,
     title: song.title,
@@ -52,10 +68,12 @@ for (const jobId of jobs) {
     cleanTranscription: false,
   });
   if (r.error) {
+    failed++;
     console.warn(`x ${song.baseId}: ${r.error}`);
   } else {
     ok++;
-    console.log(`+ ${song.baseId} (cleaned)`);
+    console.log(`+ ${song.baseId} (cleaned, source=${source.sourceKind})`);
   }
 }
-console.log(`re-ingested ${ok}, skipped ${skipped}`);
+console.log(`re-ingested ${ok}, skipped ${skipped}, failed ${failed}${dryRun ? " (dry run)" : ""}`);
+if (failed) process.exitCode = 1;

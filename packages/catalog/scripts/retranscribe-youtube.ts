@@ -7,7 +7,15 @@ import { execFile } from "node:child_process";
 import { mkdir, readdir, readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
-import { getJob, getSong, transcribedDir, ingestSource, filterTranscription } from "../src/index.js";
+import {
+  filterTranscription,
+  getJob,
+  getSong,
+  ingestSource,
+  resolveYoutubeAudio,
+  resolveYoutubeSource,
+  transcribedDir,
+} from "../src/index.js";
 import { ROOT } from "../src/paths.js";
 
 const execFileP = promisify(execFile);
@@ -19,12 +27,12 @@ const FRAME = process.env.KEYSPILLI_FRAME ?? "0.45";
 const jobs = await readdir(transcribedDir());
 let ok = 0;
 let skipped = 0;
+let failed = 0;
 for (const jobId of jobs) {
   const dir = join(transcribedDir(), jobId);
-  const files = await readdir(dir).catch(() => []);
-  const audio = files.find((f) => f.startsWith("audio."));
+  const audioPath = await resolveYoutubeAudio(dir);
   const job = getJob(jobId);
-  if (!audio || !job?.songId) {
+  if (!audioPath || !job?.songId) {
     skipped++;
     continue;
   }
@@ -37,7 +45,7 @@ for (const jobId of jobs) {
   await mkdir(outDir, { recursive: true });
   const args = [
     outDir,
-    join(dir, audio),
+    audioPath,
     "--save-midi",
     "--onset-threshold",
     ONSET,
@@ -46,12 +54,18 @@ for (const jobId of jobs) {
   ];
   if (process.env.KEYSPILLI_BP_SERIALIZATION) args.push("--model-serialization", process.env.KEYSPILLI_BP_SERIALIZATION);
   await execFileP(BASIC_PITCH, args, { timeout: 900_000, maxBuffer: 32 * 1024 * 1024 });
-  const midiName = (await readdir(outDir)).find((f) => f.endsWith("_basic_pitch.mid"));
-  if (!midiName) {
+  // The strict output is persisted under re/. Resolve it through the same
+  // validator used by restore/re-ingest so a stale or corrupt sidecar cannot
+  // be mistaken for the result of this run. Keep the original root audio for
+  // onset matching: Basic Pitch does not create a second recording here.
+  const source = await resolveYoutubeSource(dir, "strict");
+  if (!source) {
     skipped++;
+    failed++;
+    console.error(`x ${jobId}: Basic Pitch did not produce a usable strict MIDI`);
     continue;
   }
-  const buf = await filterTranscription(new Uint8Array(await readFile(join(outDir, midiName))), join(dir, audio));
+  const buf = await filterTranscription(new Uint8Array(await readFile(source.midiPath)), audioPath);
   const r = await ingestSource({
     buf,
     title: song.title,
@@ -67,10 +81,12 @@ for (const jobId of jobs) {
     cleanTranscription: true,
   });
   if (r.error) {
+    failed++;
     console.warn(`x ${song.baseId}: ${r.error}`);
   } else {
     ok++;
     console.log(`+ ${song.baseId}`);
   }
 }
-console.log(`re-transcribed ${ok}, skipped ${skipped}`);
+console.log(`re-transcribed ${ok}, skipped ${skipped}, failed ${failed}`);
+if (failed) process.exitCode = 1;
