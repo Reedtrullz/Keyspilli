@@ -84,17 +84,25 @@ playbook refuses to deploy unless the container reports the exact git SHA.
 
 ## Backups
 
-Nightly cron on the VPS:
+The deployment installs and enables `keyspilli-backup.timer`, scheduled around
+03:00 host time with a randomized delay of up to 15 minutes. The one-shot service
+executes `deploy/backup.sh` inside the running worker image, sharing the live
+data volume and writing to `/backups` on the VPS:
 
-```cron
-0 3 * * * /path/to/repo/deploy/backup.sh >> /var/log/keyspilli-backup.log 2>&1
+```bash
+systemctl status keyspilli-backup.timer
+systemctl list-timers keyspilli-backup.timer
+systemctl start keyspilli-backup.service  # manual verified run
+journalctl -u keyspilli-backup.service --since today
 ```
 
-Backups land in `/backups` (mount or copy off-box): a consistent SQLite copy
-plus a tarball of `artifacts/` and any persisted source/provenance material
-(`seed-midi/`, `transcribed/`, `uploads/`, `manifest.json`, and review metadata),
-retained 14 days. The backup script fails closed when the database or artifact
-tree is missing; it does not publish a dated partial backup.
+Backups contain a consistent SQLite copy plus a validated tarball of
+`artifacts/` and persisted source/provenance material (`seed-midi/`,
+`transcribed/`, `uploads/`, `manifest.json`, and review metadata), retained 14
+days. The script fails closed when the database, artifact tree, or source
+material is missing and never publishes a dated partial backup. `/backups` is
+currently local to the VPS; copy the dated files off-box if disaster recovery
+outside that host is required.
 
 Restore:
 

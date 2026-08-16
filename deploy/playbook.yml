@@ -1,7 +1,7 @@
 ---
 # Playbook: deploy-keyspilli.yml
 # Description: Deploy Keyspilli to the Racknerd VPS as GHCR-backed Docker
-#   containers (web + worker) and expose it at keyspilli.reidar.tech through
+#   containers (web + worker) and expose it at keys.reidar.tech through
 #   host Caddy.
 # Requirements:
 #   - Target host has Docker, Docker Compose v2, and Caddy installed.
@@ -96,6 +96,61 @@
         group: deploy
         mode: '0755'
       tags: [deploy]
+
+    - name: Ensure local backup directory exists
+      ansible.builtin.file:
+        path: /backups
+        state: directory
+        owner: root
+        group: root
+        mode: '0750'
+      tags: [backup]
+
+    - name: Install backup script beside the deployment
+      ansible.builtin.copy:
+        src: backup.sh
+        dest: "{{ app_dir }}/backup.sh"
+        owner: root
+        group: root
+        mode: '0750'
+      tags: [backup]
+
+    - name: Install backup runner
+      ansible.builtin.template:
+        src: templates/keyspilli-backup-runner.sh.j2
+        dest: /usr/local/sbin/keyspilli-backup-runner
+        owner: root
+        group: root
+        mode: '0750'
+      tags: [backup]
+
+    - name: Install backup systemd service
+      ansible.builtin.template:
+        src: templates/keyspilli-backup.service.j2
+        dest: /etc/systemd/system/keyspilli-backup.service
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Reload systemd
+      tags: [backup]
+
+    - name: Install backup systemd timer
+      ansible.builtin.template:
+        src: templates/keyspilli-backup.timer.j2
+        dest: /etc/systemd/system/keyspilli-backup.timer
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Reload systemd
+      tags: [backup]
+
+    - name: Enable and start nightly backup timer
+      ansible.builtin.systemd:
+        name: keyspilli-backup.timer
+        enabled: true
+        state: started
+        daemon_reload: true
+      tags: [backup]
 
     - name: Free disk by pruning all unused Docker images
       # `docker_prune(images: true)` only removes dangling layers. Immutable
@@ -358,6 +413,13 @@
           tags: [rollback]
 
   handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: true
+      become: true
+      listen: "Reload systemd"
+      tags: [backup]
+
     - name: Reload Caddy
       ansible.builtin.systemd:
         name: caddy

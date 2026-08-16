@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+image="$(/usr/bin/docker inspect keyspilli-worker --format '{{.Config.Image}}')"
+if [[ -z "$image" ]]; then
+  echo "backup failed: keyspilli-worker image is unavailable" >&2
+  exit 1
+fi
+
+exec /usr/bin/docker run --rm \
+  --volumes-from keyspilli-worker \
+  -v /backups:/backups \
+  -v {{ app_dir }}/backup.sh:/usr/local/bin/keyspilli-backup:ro \
+  -e KEYSPILLI_DATA_DIR=/data \
+  -e KEYSPILLI_BACKUP_DIR=/backups \
+  --entrypoint /bin/bash \
+  "$image" /usr/local/bin/keyspilli-backup

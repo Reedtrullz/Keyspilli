@@ -1,0 +1,12 @@
+[Unit]
+Description=Keyspilli catalogue backup
+Requires=docker.service
+After=docker.service
+ConditionPathExists={{ app_dir }}/backup.sh
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/keyspilli-backup-runner
+TimeoutStartSec=1800
+Nice=10
+IOSchedulingClass=best-effort
