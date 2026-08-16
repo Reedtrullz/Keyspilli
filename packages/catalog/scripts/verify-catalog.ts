@@ -30,6 +30,17 @@ const LEVEL_DIFFICULTY: Record<string, string> = Object.fromEntries(
   Object.entries(LEVEL_CODE).map(([difficulty, code]) => [code, difficulty]),
 );
 
+// Equal note counts are only a useful signal when the playable content also
+// differs. Sparse/generated songs can legitimately produce identical medium
+// and advanced variants; do not report those as misleading quality warnings.
+function noteFingerprint(notes: Variant["notes"]): string {
+  return JSON.stringify(
+    notes
+      .map((note) => [note.midi, note.start, note.dur, note.vel, note.hand ?? null] as const)
+      .sort((a, b) => a[1] - b[1] || a[0] - b[0] || a[2] - b[2] || a[3] - b[3] || String(a[4]).localeCompare(String(b[4]))),
+  );
+}
+
 const cliArgs = process.argv.slice(2);
 const repairMode = cliArgs.includes("--repair");
 const requested = new Set(cliArgs.filter((arg) => !arg.startsWith("--")));
@@ -280,7 +291,9 @@ for (const song of linkedBases) {
     if (long.length) warns.push(`note > 8 beats in ${long.join(", ")}`);
     const a = variants.find((v) => v.level === "advanced");
     const m = variants.find((v) => v.level === "medium");
-    if (a && m && a.notes.length === m.notes.length) warns.push("advanced and medium note counts equal");
+    if (a && m && a.notes.length === m.notes.length && noteFingerprint(a.notes) !== noteFingerprint(m.notes)) {
+      warns.push("advanced and medium note counts equal but note content differs");
+    }
     if (variants.some((v) => v.tempoBpm < 20 || v.tempoBpm > 300)) warns.push("tempo outside 20-300 BPM");
   }
   if (issues.length) {

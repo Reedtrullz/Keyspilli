@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-image="$(/usr/bin/docker inspect keyspilli-worker --format '{{.Config.Image}}')"
+image="$(/usr/bin/docker inspect keyspilli-worker --format '{% raw %}{{.Config.Image}}{% endraw %}')"
 if [[ -z "$image" ]]; then
   echo "backup failed: keyspilli-worker image is unavailable" >&2
   exit 1
