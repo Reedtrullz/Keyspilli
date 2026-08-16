@@ -332,6 +332,13 @@ jobs:
           # Learner review data keeps known source-identity failures out of the
           # public catalogue while they are awaiting a replacement source.
           $SSH $HOST "$COMPOSE exec -T -i worker sh -c 'cat > /data/learner-review.json'" < catalog/learner-review.json
+          if [ -n "$REBUILD_BASE_ID" ]; then
+            # A targeted run with an unknown base would otherwise let every
+            # stage skip cleanly and still report success (verify-catalog
+            # verifies an empty selection). Accept an existing DB base or a
+            # curated seed copied above that restore-curated.ts can publish.
+            $SSH $HOST "cd /opt/apps/keyspilli && $COMPOSE exec -T $REBUILD_ENV worker node --import tsx packages/catalog/scripts/assert-rebuild-target.ts $REBUILD_BASE_ID"
+          fi
           # Clear the sentinel synchronously before starting the detached
           # process. Clearing it inside `exec -d` races the first poll and can
           # make a previous REBUILD_COMPLETE marker look like this run's
@@ -342,7 +349,7 @@ jobs:
           # instead of tailing stale output until the 60-minute job timeout.
           # Supplying rebuild_base_id narrows every source/repair/gate step to
           # one base, which is useful for a focused production repair.
-          $SSH $HOST "cd /opt/apps/keyspilli && $COMPOSE exec -T -d $REBUILD_ENV worker sh -c 'REBUILD_BASE_ID=\"\${REBUILD_BASE_ID:-}\"; if [ -n \"\$REBUILD_BASE_ID\" ]; then if { node --import tsx packages/catalog/scripts/reingest-all-youtube.ts --keep-existing-tempo \"\$REBUILD_BASE_ID\" && node --import tsx packages/catalog/scripts/restore-curated.ts \"\$REBUILD_BASE_ID\" && node --import tsx packages/catalog/scripts/reingest-catalog.ts --skip-youtube \"\$REBUILD_BASE_ID\" && node --import tsx packages/catalog/scripts/repair-artifacts.ts --base-id \"\$REBUILD_BASE_ID\" && node --import tsx packages/catalog/scripts/verify-catalog.ts \"\$REBUILD_BASE_ID\" && echo REBUILD_COMPLETE; } >> /tmp/reingest.log 2>&1; then :; else rc=\$?; echo REBUILD_FAILED:\$rc >> /tmp/reingest.log; exit \$rc; fi; else if { node --import tsx packages/catalog/scripts/reingest-all-youtube.ts --keep-existing-tempo && node --import tsx packages/catalog/scripts/restore-curated.ts && node --import tsx packages/catalog/scripts/reingest-catalog.ts --skip-youtube && node --import tsx packages/catalog/scripts/repair-artifacts.ts && node --import tsx packages/catalog/scripts/verify-catalog.ts && echo REBUILD_COMPLETE; } >> /tmp/reingest.log 2>&1; then :; else rc=\$?; echo REBUILD_FAILED:\$rc >> /tmp/reingest.log; exit \$rc; fi; fi'"
+          $SSH $HOST "cd /opt/apps/keyspilli && $COMPOSE exec -T -d $REBUILD_ENV worker sh -c 'REBUILD_BASE_ID=\"\${REBUILD_BASE_ID:-}\"; if [ -n \"\$REBUILD_BASE_ID\" ]; then if { node --import tsx packages/catalog/scripts/reingest-all-youtube.ts --keep-existing-tempo \"\$REBUILD_BASE_ID\" && node --import tsx packages/catalog/scripts/restore-curated.ts \"\$REBUILD_BASE_ID\" && node --import tsx packages/catalog/scripts/reingest-catalog.ts --skip-youtube \"\$REBUILD_BASE_ID\" && node --import tsx packages/catalog/scripts/repair-artifacts.ts --base-id \"\$REBUILD_BASE_ID\" && node --import tsx packages/catalog/scripts/verify-catalog.ts \"\$REBUILD_BASE_ID\" && echo \"REBUILD_COMPLETE:\$REBUILD_BASE_ID\"; } >> /tmp/reingest.log 2>&1; then :; else rc=\$?; echo REBUILD_FAILED:\$rc >> /tmp/reingest.log; exit \$rc; fi; else if { node --import tsx packages/catalog/scripts/reingest-all-youtube.ts --keep-existing-tempo && node --import tsx packages/catalog/scripts/restore-curated.ts && node --import tsx packages/catalog/scripts/reingest-catalog.ts --skip-youtube && node --import tsx packages/catalog/scripts/repair-artifacts.ts && node --import tsx packages/catalog/scripts/verify-catalog.ts && echo REBUILD_COMPLETE:full; } >> /tmp/reingest.log 2>&1; then :; else rc=\$?; echo REBUILD_FAILED:\$rc >> /tmp/reingest.log; exit \$rc; fi; fi'"
           for i in $(seq 1 240); do
             sleep 15
             OUT=$($SSH $HOST "$COMPOSE exec -T worker sh -c 'tail -3 /tmp/reingest.log'" 2>/dev/null || true)
@@ -360,6 +367,10 @@ jobs:
              ! grep -q "verify-catalog: 0 of" /tmp/reingest-full.log; then
             echo "rebuild did not complete:"
             grep -E "^(x|-)" /tmp/reingest-full.log | head -10 || true
+            exit 1
+          fi
+          if [ -n "$REBUILD_BASE_ID" ] && ! grep -q "REBUILD_COMPLETE:$REBUILD_BASE_ID" /tmp/reingest-full.log; then
+            echo "targeted rebuild did not publish its requested completion marker: $REBUILD_BASE_ID" >&2
             exit 1
           fi
       - name: Verify live catalog tempos

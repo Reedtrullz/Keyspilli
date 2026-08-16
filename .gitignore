@@ -16,6 +16,7 @@ data/seed-midi/
 data/artifacts/
 data/transcribed/
 data/audio/
+data/uploads/
 services/transcribe/.venv/
 test-results/
 playwright-report/

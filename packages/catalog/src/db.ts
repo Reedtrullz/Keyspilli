@@ -3,7 +3,8 @@ import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { dbPath } from "./paths.js";
 import { groupSongs, type GroupedSong } from "./group.js";
-import { blockedLearnerBases, isLearnerBlocked } from "./learner-review.js";
+import { disabledManifestBases } from "./manifest.js";
+import { blockedLearnerBases } from "./learner-review.js";
 
 export interface SongRow {
   id: string;
@@ -184,9 +185,18 @@ export function replaceSongsByBase(baseId: string, rows: SongRow[]): void {
   tx(rows);
 }
 
+/** Remove a complete base from the read model without touching its artifacts. */
+export function removeSongsByBase(baseId: string): number {
+  return getDb().prepare("DELETE FROM songs WHERE base_id = ?").run(baseId).changes;
+}
+
+function hiddenBaseIds(): ReadonlySet<string> {
+  return new Set([...blockedLearnerBases(), ...disabledManifestBases()]);
+}
+
 export function getSong(id: string): SongRow | undefined {
   const r = getDb().prepare("SELECT * FROM songs WHERE id = ?").get(id) as Record<string, unknown> | undefined;
-  if (!r || isLearnerBlocked(r.base_id as string)) return undefined;
+  if (!r || hiddenBaseIds().has(r.base_id as string)) return undefined;
   return mapSong(r);
 }
 
@@ -197,11 +207,11 @@ export function getSongsByBase(baseId: string): SongRow[] {
 export function listSongs(f: SongFilters = {}, limitCap = 200): SongRow[] {
   const conds: string[] = [];
   const params: Record<string, unknown> = {};
-  const blocked = [...blockedLearnerBases()];
-  if (blocked.length) {
-    const placeholders = blocked.map((_, index) => `blocked${index}`);
+  const hidden = [...hiddenBaseIds()];
+  if (hidden.length) {
+    const placeholders = hidden.map((_, index) => `hidden${index}`);
     conds.push(`base_id NOT IN (${placeholders.map((name) => `@${name}`).join(", ")})`);
-    for (const [index, baseId] of blocked.entries()) params[`blocked${index}`] = baseId;
+    for (const [index, baseId] of hidden.entries()) params[`hidden${index}`] = baseId;
   }
   const map: Record<string, string> = {
     difficulty: "difficulty",
@@ -247,7 +257,17 @@ export function listSongs(f: SongFilters = {}, limitCap = 200): SongRow[] {
  * levels attached. Filters match any variant of a song.
  */
 export function listSongsGrouped(f: SongFilters = {}): GroupedSong[] {
-  const all = listSongs({ ...f, limit: 10_000 }, 10_000);
+  let grouped = groupedSongsForFilters(f);
+  const order = groupedOrder(f);
+  grouped.sort(order);
+  const limit = Math.min(2000, f.limit ?? 60);
+  return grouped.slice(f.offset ?? 0, (f.offset ?? 0) + limit);
+}
+
+function groupedSongsForFilters(f: SongFilters): GroupedSong[] {
+  // Apply pagination after grouping; using the raw row offset here can drop
+  // partial six-level sets and makes the reported total depend on page size.
+  const all = listSongs({ ...f, limit: 10_000, offset: 0 }, 10_000);
   let grouped = groupSongs(all);
   if (f.difficulty) grouped = grouped.filter((g) => g.levels.some((l) => l.difficulty === f.difficulty));
   if (f.key) grouped = grouped.filter((g) => g.levels.some((l) => l.key === f.key));
@@ -260,24 +280,31 @@ export function listSongsGrouped(f: SongFilters = {}): GroupedSong[] {
     const q = f.q.toLowerCase();
     grouped = grouped.filter((g) => g.representative.title.toLowerCase().includes(q) || g.representative.artist.toLowerCase().includes(q));
   }
+  return grouped;
+}
+
+function groupedOrder(f: SongFilters): (a: GroupedSong, b: GroupedSong) => number {
   const order =
     f.sort === "title"
       ? (a: GroupedSong, b: GroupedSong) => a.representative.title.localeCompare(b.representative.title)
       : f.sort === "artist"
         ? (a: GroupedSong, b: GroupedSong) => a.representative.artist.localeCompare(b.representative.artist)
         : f.sort === "difficulty"
-          ? (a: GroupedSong, b: GroupedSong) => a.representative.difficultyScore - b.representative.difficultyScore
-          : (a: GroupedSong, b: GroupedSong) => b.totalPlays - a.totalPlays;
-  grouped.sort(order);
-  const limit = Math.min(2000, f.limit ?? 60);
-  return grouped.slice(f.offset ?? 0, (f.offset ?? 0) + limit);
+        ? (a: GroupedSong, b: GroupedSong) => a.representative.difficultyScore - b.representative.difficultyScore
+        : (a: GroupedSong, b: GroupedSong) => b.totalPlays - a.totalPlays;
+  return order;
+}
+
+/** Count the full filtered grouped catalogue, independent of page size. */
+export function countSongsGrouped(f: SongFilters = {}): number {
+  return groupedSongsForFilters(f).length;
 }
 
 export function countSongs(): number {
-  const blocked = [...blockedLearnerBases()];
-  if (!blocked.length) return (getDb().prepare("SELECT COUNT(*) AS c FROM songs").get() as { c: number }).c;
-  const placeholders = blocked.map(() => "?").join(", ");
-  return (getDb().prepare(`SELECT COUNT(*) AS c FROM songs WHERE base_id NOT IN (${placeholders})`).get(...blocked) as { c: number }).c;
+  const hidden = [...hiddenBaseIds()];
+  if (!hidden.length) return (getDb().prepare("SELECT COUNT(*) AS c FROM songs").get() as { c: number }).c;
+  const placeholders = hidden.map(() => "?").join(", ");
+  return (getDb().prepare(`SELECT COUNT(*) AS c FROM songs WHERE base_id NOT IN (${placeholders})`).get(...hidden) as { c: number }).c;
 }
 
 export function incrementPlays(id: string): void {

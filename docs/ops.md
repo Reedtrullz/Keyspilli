@@ -91,14 +91,17 @@ Nightly cron on the VPS:
 ```
 
 Backups land in `/backups` (mount or copy off-box): a consistent SQLite copy
-plus a tarball of `artifacts/`, retained 14 days.
+plus a tarball of `artifacts/` and any persisted source/provenance material
+(`seed-midi/`, `transcribed/`, `uploads/`, `manifest.json`, and review metadata),
+retained 14 days. The backup script fails closed when the database or artifact
+tree is missing; it does not publish a dated partial backup.
 
 Restore:
 
 ```bash
 docker compose stop worker
 docker compose run --rm -v keyspilli_data:/data -v /backups:/backups web \
-  sh -c "cp /backups/db-LATEST.sqlite /data/db.sqlite && tar -xzf /backups/artifacts-LATEST.tar.gz -C /data"
+  sh -c "set -eu; test -f /backups/db-LATEST.sqlite; test -f /backups/artifacts-LATEST.tar.gz; rm -f /data/db.sqlite-wal /data/db.sqlite-shm /data/manifest.json /data/learner-review.json; rm -rf /data/artifacts /data/seed-midi /data/transcribed /data/uploads; cp /backups/db-LATEST.sqlite /data/db.sqlite; tar -xzf /backups/artifacts-LATEST.tar.gz -C /data; test -d /data/artifacts"
 docker compose start worker
 ```
 

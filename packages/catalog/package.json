@@ -8,6 +8,7 @@
     "fetch-seed": "tsx scripts/fetch-seed.ts",
     "pipeline": "tsx scripts/pipeline.ts",
     "verify-catalog": "tsx scripts/verify-catalog.ts",
+    "audit-catalog": "tsx scripts/audit-catalog.ts",
     "quality-report": "tsx scripts/quality-report.ts",
     "learner-report": "tsx scripts/learner-report.ts",
     "learner-audit": "tsx scripts/learner-audit.ts",

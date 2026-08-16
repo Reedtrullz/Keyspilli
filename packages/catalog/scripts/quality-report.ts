@@ -17,6 +17,7 @@
 import { access, readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { getDb } from "../src/db.js";
+import { blockedLearnerBases } from "../src/learner-review.js";
 import { ROOT, artifactsDir, dataDir, seedMidiDir, transcribedDir } from "../src/paths.js";
 
 const LEVELS = ["vb", "b", "ve", "e", "m", "a"] as const;
@@ -394,10 +395,26 @@ const artifactBases = artifactEntries.filter((entry) => entry.isDirectory() && !
 const dbBases = [...dbByBase.keys()].sort();
 const manifestEnabled = (manifest.songs ?? []).filter((entry) => !entry.disabled).map((entry) => entry.id);
 const manifestDisabled = (manifest.songs ?? []).filter((entry) => entry.disabled).map((entry) => entry.id);
+const blockedBases = blockedLearnerBases();
+const hiddenBases = new Set([...manifestDisabled, ...blockedBases]);
 const manifestMissingInDb = manifestEnabled.filter((id) => !dbByBase.has(id));
 const dbNotInManifest = dbBases.filter((id) => !manifestById.has(id));
 const artifactNotInDb = artifactBases.filter((id) => !dbByBase.has(id));
 const dbNotInArtifacts = dbBases.filter((id) => !artifactBases.includes(id));
+const conversionJobs = db
+  .prepare("SELECT id, status, song_id AS songId FROM conversion_jobs ORDER BY created_at, id")
+  .all() as Array<{ id: string; status: string; songId: string | null }>;
+const conversionJobBaseId = (songId: string | null): string | null => {
+  if (!songId) return null;
+  return songId.replace(/-(?:vb|b|ve|e|m|a)$/, "");
+};
+const orphanConversionJobs = conversionJobs.filter((job) => {
+  const baseId = conversionJobBaseId(job.songId);
+  return Boolean(baseId && !dbByBase.has(baseId));
+});
+const conversionJobsByStatus = Object.fromEntries(
+  [...new Set(conversionJobs.map((job) => job.status))].sort().map((status) => [status, conversionJobs.filter((job) => job.status === status).length]),
+);
 const counts = Object.fromEntries(QUALITY_LEVELS.map((quality) => [quality, reports.filter((report) => report.classification === quality).length]));
 const byContentType = Object.fromEntries(
   [...new Set(reports.map((report) => report.contentType))].sort().map((contentType) => {
@@ -488,15 +505,30 @@ const report = {
   coverage: {
     dbBases: dbBases.length,
     dbRows: rows.length,
+    publicDbBases: dbBases.filter((id) => !hiddenBases.has(id)).length,
+    publicDbRows: rows.filter((row) => !hiddenBases.has(row.baseId)).length,
     expectedRowsFromSixLevels: dbBases.length * LEVELS.length,
     artifactBases: artifactBases.length,
     dbNotInManifestCount: dbNotInManifest.length,
     dbNotInManifestSample: args.all ? dbNotInManifest : dbNotInManifest.slice(0, 25),
+    disabledManifestPresentInDb: manifestDisabled.filter((id) => dbByBase.has(id)),
+    blockedLearnerPresentInDb: [...blockedBases].filter((id) => dbByBase.has(id)),
     artifactNotInDbCount: artifactNotInDb.length,
     artifactNotInDb,
     dbNotInArtifactsCount: dbNotInArtifacts.length,
     dbNotInArtifacts,
     basesWithSixArtifacts: reports.filter((r) => r.artifactLevels.length === LEVELS.length && r.missingArtifacts.length === 0).length,
+    conversionJobs: {
+      total: conversionJobs.length,
+      byStatus: conversionJobsByStatus,
+      orphanCount: orphanConversionJobs.length,
+      orphan: (args.all ? orphanConversionJobs : orphanConversionJobs.slice(0, 25)).map((job) => ({
+        id: job.id,
+        status: job.status,
+        songId: job.songId,
+        baseId: conversionJobBaseId(job.songId),
+      })),
+    },
   },
   checks: {
     verifierEquivalent: "Run npm run verify-catalog for the fail-closed artifact/ladder gate; this report is diagnostic and classifies musical risk.",

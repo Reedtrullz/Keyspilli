@@ -120,6 +120,42 @@ describe("ingestSource .mxl", () => {
     expect(Math.abs(fastDur - slowDur / 2)).toBeLessThanOrEqual(1);
   });
 
+  it("keeps the generated MIDI tempo when replacing an existing transcription", async () => {
+    const notes = Array.from({ length: 12 }, (_, i) => ({
+      midi: 60 + i,
+      start: i * 0.5,
+      dur: 0.5,
+      vel: 80,
+    }));
+    const baseId = "transcription-tempo-refresh";
+    const first = await ingestSource({
+      buf: writeMidi(notes, { tempoBpm: 75 }),
+      title: "Tempo refresh",
+      artist: "Tester",
+      contentType: "youtube",
+      acquiredVia: "youtube",
+      baseId,
+      cleanTranscription: false,
+    });
+    expect(first.error).toBeUndefined();
+
+    // A worker replacement receives a newly generated MIDI whose beat grid
+    // is authoritative. Omitting the old row tempo must therefore publish
+    // the parsed 120 BPM value rather than stretching the new timeline with
+    // the stale 75 BPM metadata from the first run.
+    const second = await ingestSource({
+      buf: writeMidi(notes, { tempoBpm: 120 }),
+      title: "Tempo refresh",
+      artist: "Tester",
+      contentType: "youtube",
+      acquiredVia: "youtube",
+      baseId,
+      cleanTranscription: false,
+    });
+    expect(second.error).toBeUndefined();
+    expect(getSongsByBase(baseId).every((row) => row.tempo === 120)).toBe(true);
+  });
+
   it("falls back to a safe tempo when the source MIDI tempo is invalid", async () => {
     // Build a valid note stream whose tempo meta is zero.  The parser treats
     // that malformed meta as an unknown tempo; ingestion must normalize it to

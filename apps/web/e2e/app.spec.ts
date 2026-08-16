@@ -29,6 +29,14 @@ test("song library groups difficulty levels into one card per song", async ({ pa
   await expect(levels.getByRole("link")).toHaveCount(6);
 });
 
+test("catalog API reports the full grouped total independently of page size", async ({ request }) => {
+  const res = await request.get("/api/songs?group=1&limit=1");
+  expect(res.status()).toBe(200);
+  const body = (await res.json()) as { songs: unknown[]; total: number };
+  expect(body.songs).toHaveLength(1);
+  expect(body.total).toBeGreaterThan(body.songs.length);
+});
+
 test("player loads and switches views", async ({ page }) => {
   await page.goto(`/player/${SONG}`);
   await expect(page.getByRole("heading", { name: "Nocturne" })).toBeVisible();

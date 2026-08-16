@@ -10,7 +10,7 @@ import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { normalizeTempoBpm, parseMidi, writeMidi } from "@keyspilli/midi";
-import { filterTranscription, getDb, getSongsByBase, ingestSource } from "../src/index.js";
+import { filterTranscription, getDb, getSongsByBase, ingestSource, removeSongsByBase } from "../src/index.js";
 import { artifactsDir, dataDir, ROOT, seedMidiDir, transcribedDir, uploadsDir } from "../src/paths.js";
 
 const execFileP = promisify(execFile);
@@ -67,6 +67,16 @@ const manifestRaw = await readFile(join(dataDir(), "manifest.json"), "utf8")
   .then((raw) => JSON.parse(raw) as { songs?: ManifestSong[] })
   .catch(() => ({ songs: [] as ManifestSong[] }));
 const manifest = new Map((manifestRaw.songs ?? []).map((song) => [song.id, song]));
+
+// A persistent production volume can outlive a manifest entry. Reconcile
+// explicitly disabled bases before selecting rebuild work so a full rebuild
+// cannot leave stale songs publicly reachable. Targeting a disabled base will
+// then fail closed below because it no longer has catalog metadata.
+for (const song of manifest.values()) {
+  if (!song.disabled) continue;
+  const removed = removeSongsByBase(song.id);
+  if (removed) console.log(`- ${song.id}: disabled, removed ${removed} stale database rows`);
+}
 
 function getCatalogBases(): string[] {
   const rows = getDb().prepare("SELECT DISTINCT base_id AS base_id FROM songs ORDER BY base_id").all() as { base_id: string }[];

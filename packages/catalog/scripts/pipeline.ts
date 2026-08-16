@@ -7,7 +7,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { LEVEL_ORDER } from "@keyspilli/midi";
-import { countSongs, getSongsByBase } from "../src/db.js";
+import { countSongs, getSongsByBase, removeSongsByBase } from "../src/db.js";
 import { ingestSource } from "../src/ingest.js";
 import { ROOT, seedMidiDir } from "../src/paths.js";
 
@@ -74,7 +74,9 @@ const failures: string[] = [];
 const t0 = Date.now();
 for (const s of manifest.songs) {
   if (s.disabled) {
+    const removed = removeSongsByBase(s.id);
     process.stdout.write(`- ${s.id}: disabled, skipped\n`);
+    if (removed) process.stdout.write(`  removed ${removed} stale database rows\n`);
     continue;
   }
   const r = await processSong(s);

@@ -39,6 +39,15 @@ export default function YoutubePage() {
 
   async function convert() {
     setError("");
+    // Give immediate feedback for a malformed URL instead of entering the
+    // queued state while the API route is still compiling or responding.
+    // This mirrors the server-side contract and keeps the form usable when
+    // the browser's native `type=url` validation accepts a non-YouTube URL.
+    if (!/^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\//.test(url.trim())) {
+      setStatus("error");
+      setError("paste a valid YouTube URL");
+      return;
+    }
     setStatus("queued");
     try {
       const res = await fetch("/api/youtube", {

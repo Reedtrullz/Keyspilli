@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mergeSeedEntries } from "../src/manifest.js";
+import { disabledManifestBases, mergeSeedEntries } from "../src/manifest.js";
 
 describe("mergeSeedEntries", () => {
   it("preserves available local sources while preferring fetched metadata", () => {
@@ -22,5 +22,13 @@ describe("mergeSeedEntries", () => {
   it("does not preserve a manifest entry whose source is unavailable", () => {
     const merged = mergeSeedEntries([], [{ id: "missing", sourceFile: "missing.mid" }], new Set());
     expect(merged).toEqual([]);
+  });
+});
+
+describe("disabledManifestBases", () => {
+  it("loads disabled sources as a runtime visibility gate", () => {
+    const disabled = disabledManifestBases();
+    expect(disabled).toContain("coldplay-viva-la-vida");
+    expect(disabled).not.toContain("taylor-swift-shake-it-off");
   });
 });

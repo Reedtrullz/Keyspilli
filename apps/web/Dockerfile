@@ -6,6 +6,7 @@ COPY tsconfig.base.json ./
 COPY apps/web/package.json apps/web/package.json
 COPY packages packages
 COPY services services
+COPY catalog/manifest.json catalog/manifest.json
 COPY catalog/learner-review.json catalog/learner-review.json
 COPY catalog/chord-sources.json catalog/chord-sources.json
 COPY catalog/chord-timelines catalog/chord-timelines
@@ -30,11 +31,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
     libgbm1 libpango-1.0-0 libcairo2 libasound2 fonts-liberation \
     && rm -rf /var/lib/apt/lists/*
-RUN npx --yes playwright@1.51.1 install chromium --with-deps || true
+RUN npx --yes playwright@1.51.1 install chromium --with-deps
 COPY --from=build /app/apps/web/.next/standalone ./
 COPY --from=build /app/apps/web/.next/static ./apps/web/.next/static
 COPY --from=build /app/apps/web/public ./apps/web/public
 COPY --from=build /app/catalog/learner-review.json ./catalog/learner-review.json
+COPY --from=build /app/catalog/manifest.json ./catalog/manifest.json
 COPY --from=build /app/catalog/chord-sources.json ./catalog/chord-sources.json
 COPY --from=build /app/catalog/chord-timelines ./catalog/chord-timelines
 VOLUME /data
