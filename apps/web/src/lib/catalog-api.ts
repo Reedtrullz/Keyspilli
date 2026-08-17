@@ -128,7 +128,16 @@ export function mergeChartTimeline(
       chord.beat === chart.beat
       || (chord.beat >= chart.beat && chord.beat < chart.beat + chordDuration(chart))
     ))
-  )).map((chord) => preserveChord(chord, chord.notes)).filter((chord): chord is PlayerChord => chord !== null);
+  )).map((chord) => {
+    const preserved = preserveChord(chord, chord.notes);
+    if (!preserved) return null;
+    // Legacy notes.json files often omit event provenance. Once an event is
+    // selected as chart coverage fallback, its origin is unambiguous: it is
+    // generated MIDI material, not an authored chart event.
+    return preserved.sourceKind === undefined
+      ? { ...preserved, sourceKind: "generated" as const }
+      : preserved;
+  }).filter((chord): chord is PlayerChord => chord !== null);
   const partial = timeline.coverage !== undefined && timeline.coverage !== "full-song";
   const fallback = timeline.provenance.fallback === true || partial || generatedFallback.length > 0;
   const provenance = fallback

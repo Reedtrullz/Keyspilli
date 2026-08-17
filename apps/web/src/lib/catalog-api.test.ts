@@ -235,6 +235,7 @@ describe("catalog chart timeline merge", () => {
     // fills the uncovered remainder.
     expect(merged.chords.map((chord) => chord.name)).toEqual(["C", "Unsupported", "G"]);
     expect(merged.chords[1]?.notes).toEqual([]);
+    expect(merged.chords[2]?.sourceKind).toBe("generated");
     expect(merged.provenance.fallback).toBe(true);
     expect(merged.provenance.fallbackReason).toMatch(/remaining song|uncovered/i);
   });

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   AudioEngine,
+  ChordGrader,
   dedupeChords,
   KeyboardInput,
   MidiInput,
@@ -18,6 +19,7 @@ import {
   secPerBeat,
   DEFAULT_SETTINGS,
   type LoopRegion,
+  type ChordPracticeSnapshot,
   type PlayerSettings,
   type ViewMode,
   type SongData,
@@ -25,6 +27,8 @@ import {
 import type { SongRow } from "@keyspilli/catalog";
 import { FallingCanvas } from "./FallingCanvas";
 import { ChordStrip } from "./ChordStrip";
+import { ChordPracticePanel } from "./ChordPracticePanel";
+import { buildChordPracticeTargets, selectPracticeChords } from "./chord-practice";
 import { BeginnerView } from "./BeginnerView";
 import { LeadSheetView } from "./LeadSheetView";
 import { SheetMusicView } from "./SheetMusicView";
@@ -68,6 +72,8 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
   const [showDownload, setShowDownload] = useState(false);
   const [showTempoSemanticsNotice, setShowTempoSemanticsNotice] = useState(false);
   const [grading, setGrading] = useState(false);
+  const [chordPracticeActive, setChordPracticeActive] = useState(false);
+  const [chordPracticeSnapshot, setChordPracticeSnapshot] = useState<ChordPracticeSnapshot | null>(null);
   const [waitMode, setWaitMode] = useState(false);
   const [gradeResult, setGradeResult] = useState<{ summary: string; accuracyPct: number; hit: number; missed: number; wrong: number; late: number; total: number } | null>(null);
   const [pressedKeys, setPressedKeys] = useState<Map<number, number>>(new Map());
@@ -93,6 +99,7 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
   }
 
   const engineRef = useRef<PlaybackEngine | null>(null);
+  const chordPracticeRef = useRef<ChordGrader | null>(null);
   const modeMenuRef = useRef<HTMLDivElement>(null);
 
   const notes = useMemo(
@@ -130,6 +137,17 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
     () => selectedChordSource.source?.chords ?? [],
     [selectedChordSource.source],
   );
+  const currentMeasure = measureIndex(
+    time,
+    initial.data.tempoBpm,
+    settings.speed,
+    initial.data.timeSig,
+    initial.data.measures.length,
+  );
+  const chordPracticeTargets = useMemo(
+    () => buildChordPracticeTargets(selectPracticeChords(chords, initial.data.measures, currentMeasure), settings.transpose),
+    [chords, initial.data.measures, currentMeasure, settings.transpose],
+  );
   // Playback applies transpose inside PlaybackEngine. Keep the visual chord
   // keys in the same transposed coordinate space as the falling notes without
   // feeding already-transposed values back into the audio scheduler.
@@ -138,13 +156,12 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
     [chords, settings.transpose],
   );
 
-  const currentMeasure = measureIndex(
-    time,
-    initial.data.tempoBpm,
-    settings.speed,
-    initial.data.timeSig,
-    initial.data.measures.length,
-  );
+  useEffect(() => {
+    if (!chordPracticeActive) return;
+    const session = new ChordGrader(chordPracticeTargets);
+    chordPracticeRef.current = session;
+    setChordPracticeSnapshot(session.snapshot());
+  }, [chordPracticeActive, chordPracticeTargets]);
 
   // Keyboard range is stable per measure so the piano doesn't re-center every
   // frame; empty measures keep the previous range.
@@ -227,9 +244,10 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
   }, [playing]);
 
   const startPlayback = useCallback(() => {
+    if (chordPracticeActive) return;
     engineRef.current?.start();
     void fetch(`/api/songs/${initial.song.id}/play`, { method: "POST" });
-  }, [initial.song.id]);
+  }, [chordPracticeActive, initial.song.id]);
 
   const stopPlayback = useCallback(() => {
     engineRef.current?.stop();
@@ -322,11 +340,17 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
       return;
     }
     if (!eng.handleNoteOn(midi)) return;
+    if (chordPracticeRef.current) {
+      chordPracticeRef.current.play(midi);
+      setChordPracticeSnapshot(chordPracticeRef.current.snapshot());
+    }
     setPressedKeys((s) => new Map(s).set(midi, performance.now()));
   }
 
   function handleMicNote(midi: number) {
-    engineRef.current?.handleMicNote(midi);
+    // Current pitch detection is monophonic, so microphone input remains a
+    // note-practice feature and is intentionally not used to grade chords.
+    if (!chordPracticeRef.current) engineRef.current?.handleMicNote(midi);
   }
 
   function toggleLoop() {
@@ -374,6 +398,7 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
   }
 
   function startGrading(wait: boolean) {
+    if (chordPracticeActive) exitChordPractice();
     setWaitMode(wait);
     setGrading(true);
     setGradeResult(null);
@@ -386,6 +411,36 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
     if (result) setGradeResult(result);
     setGrading(false);
     setWaitMode(false);
+  }
+
+  function startChordPractice() {
+    if (grading) finishGrading();
+    engineRef.current?.stop();
+    const session = new ChordGrader(chordPracticeTargets);
+    chordPracticeRef.current = session;
+    setChordPracticeActive(true);
+    setChordPracticeSnapshot(session.snapshot());
+  }
+
+  function exitChordPractice() {
+    chordPracticeRef.current = null;
+    setChordPracticeActive(false);
+    setChordPracticeSnapshot(null);
+  }
+
+  function skipChordPractice() {
+    const session = chordPracticeRef.current;
+    if (!session) return;
+    session.skip();
+    setChordPracticeSnapshot(session.snapshot());
+  }
+
+  function hearChordPractice() {
+    const target = chordPracticeRef.current?.currentTarget;
+    const audio = engineRef.current?.audio;
+    if (!target || !audio?.playChord) return;
+    audio.ensure();
+    audio.playChord(target.notes, 0, 1.5);
   }
 
   const waitNote = grading && waitMode ? engineRef.current?.waitNote : null;
@@ -522,6 +577,13 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
             {grading ? "Finish practice" : "Practice"}
           </button>
           <button
+            onClick={() => chordPracticeActive ? exitChordPractice() : startChordPractice()}
+            className={`min-h-11 px-4 py-2 rounded-full border font-medium ${chordPracticeActive ? "bg-indigo-100 border-indigo-300 text-indigo-900" : "border-indigo-300 text-indigo-800 hover:bg-indigo-50"}`}
+            aria-pressed={chordPracticeActive}
+          >
+            {chordPracticeActive ? "Exit chord practice" : "Chord practice"}
+          </button>
+          <button
             onClick={toggleFavorite}
             aria-pressed={favorites.includes(initial.song.id)}
             className={`min-h-11 px-3 py-2 rounded-full border text-sm ${favorites.includes(initial.song.id) ? "bg-rose-100 border-rose-300" : "border-zinc-300 hover:bg-zinc-100"}`}
@@ -542,7 +604,7 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
 
       <div className="rounded-2xl border border-zinc-200 bg-white overflow-hidden mb-4">
         <div className="flex items-center gap-3 px-4 py-3 border-b border-zinc-100 flex-wrap">
-          <button onClick={togglePlay} className="w-12 h-12 rounded-full bg-zinc-900 text-white text-lg shadow-sm hover:bg-zinc-700" aria-label={playing ? "Pause" : "Play"}>
+          <button onClick={togglePlay} disabled={chordPracticeActive} className="w-12 h-12 rounded-full bg-zinc-900 text-white text-lg shadow-sm hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed" aria-label={playing ? "Pause" : "Play"} title={chordPracticeActive ? "Exit chord practice to play the arrangement" : undefined}>
             {playing ? "❚❚" : "▶"}
           </button>
           <button
@@ -609,24 +671,38 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
           role="region"
           aria-label={`Player stage — ${activeModeLabel}`}
         >
-          {settings.mode === "falling" && <ChordStrip chords={visualChords} currentBeat={currentBeat} />}
-          {settings.mode === "falling" && (
-            <FallingCanvas
-              notes={notes}
-              time={time}
-              settings={settings}
-              pressedKeys={pressedKeys}
-              chords={visualChords}
-              tempoBpm={initial.data.tempoBpm}
-              lowMidi={midiRange.lowMidi}
-              highMidi={midiRange.highMidi}
-              loop={loop}
-              waitNote={waitNote}
+          {chordPracticeActive ? (
+            <ChordPracticePanel
+              targets={chordPracticeTargets}
+              snapshot={chordPracticeSnapshot ?? new ChordGrader(chordPracticeTargets).snapshot()}
+              active={chordPracticeActive}
+              onStart={startChordPractice}
+              onHear={hearChordPractice}
+              onSkip={skipChordPractice}
+              onExit={exitChordPractice}
             />
+          ) : (
+            <>
+              {settings.mode === "falling" && <ChordStrip chords={visualChords} currentBeat={currentBeat} />}
+              {settings.mode === "falling" && (
+                <FallingCanvas
+                  notes={notes}
+                  time={time}
+                  settings={settings}
+                  pressedKeys={pressedKeys}
+                  chords={visualChords}
+                  tempoBpm={initial.data.tempoBpm}
+                  lowMidi={midiRange.lowMidi}
+                  highMidi={midiRange.highMidi}
+                  loop={loop}
+                  waitNote={waitNote}
+                />
+              )}
+              {settings.mode === "beginner" && <BeginnerView data={initial.data} time={time} settings={settings} chords={chords} />}
+              {settings.mode === "leadsheet" && <LeadSheetView data={initial.data} time={time} settings={settings} chords={chords} />}
+              {settings.mode === "sheet" && <SheetMusicView songId={initial.song.id} />}
+            </>
           )}
-          {settings.mode === "beginner" && <BeginnerView data={initial.data} time={time} settings={settings} chords={chords} />}
-          {settings.mode === "leadsheet" && <LeadSheetView data={initial.data} time={time} settings={settings} chords={chords} />}
-          {settings.mode === "sheet" && <SheetMusicView songId={initial.song.id} />}
           {grading && (
             <GradingPanel
               waitMode={waitMode}
