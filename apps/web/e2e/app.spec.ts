@@ -94,6 +94,20 @@ test("practice mode starts and exits cleanly", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Practice mode" })).not.toBeVisible();
 });
 
+test("chord practice shows a compact target and advances by chord", async ({ page }) => {
+  await page.goto(`/player/${SONG}`);
+  await page.getByRole("button", { name: "Chord practice", exact: true }).click();
+  const panel = page.getByTestId("chord-practice-panel");
+  await expect(panel).toBeVisible();
+  await expect(panel.getByRole("heading", { name: "Play the chord together" })).toBeVisible();
+  await expect(panel.getByLabel("Target notes")).toBeVisible();
+  await expect(panel.getByRole("button", { name: "Hear chord" })).toBeVisible();
+  await panel.getByRole("button", { name: "Skip" }).click();
+  await expect(panel.getByText(/Chord 2 of/)).toBeVisible();
+  await page.getByRole("button", { name: "Exit chord practice", exact: true }).click();
+  await expect(panel).not.toBeVisible();
+});
+
 test("download dialog offers free exports", async ({ page }) => {
   await page.goto(`/player/${SONG}`);
   await page.getByRole("button", { name: /Download Sheet & MIDI/ }).click();
