@@ -166,6 +166,41 @@ describe("ingestSource .mxl", () => {
     expect(getSongsByBase(baseId).every((row) => row.tempo === 120)).toBe(true);
   });
 
+  it("does not let temporary cleanup hand labels suppress learner voice redistribution", async () => {
+    const notes = Array.from({ length: 24 }, (_, i) => {
+      const start = i * 0.5;
+      return [
+        { midi: 35, start, dur: 0.4, vel: 70 },
+        { midi: 47, start, dur: 0.4, vel: 70 },
+        { midi: 54, start, dur: 0.4, vel: 68 },
+        { midi: 59, start, dur: 0.4, vel: 66 },
+        { midi: 64, start, dur: 0.4, vel: 64 },
+        { midi: 72 + (i % 5), start, dur: 0.35, vel: 90 },
+      ];
+    }).flat();
+    const baseId = "learner-cleanup-hands";
+    const result = await ingestSource({
+      buf: writeMidi(notes, { tempoBpm: 100 }),
+      title: "Learner cleanup hands",
+      artist: "Tester",
+      contentType: "youtube",
+      acquiredVia: "youtube",
+      baseId,
+      cleanTranscription: true,
+    });
+    expect(result.error).toBeUndefined();
+    const advanced = JSON.parse(readFileSync(join(artifactsDir(baseId, "a"), "notes.json"), "utf8")) as {
+      notes: { midi: number; start: number; hand?: "L" | "R" }[];
+      warnings?: string[];
+    };
+    expect(advanced.warnings).toContain("learner inner-voice redistribution applied (inferred staff assignment)");
+    const leftGroups = new Map<number, number>();
+    for (const note of advanced.notes.filter((n) => n.hand === "L")) {
+      leftGroups.set(note.start, (leftGroups.get(note.start) ?? 0) + 1);
+    }
+    expect([...leftGroups.values()].some((size) => size >= 3)).toBe(true);
+  });
+
   it("falls back to a safe tempo when the source MIDI tempo is invalid", async () => {
     // Build a valid note stream whose tempo meta is zero.  The parser treats
     // that malformed meta as an unknown tempo; ingestion must normalize it to
@@ -310,7 +345,7 @@ describe("ingestSource .mxl", () => {
         filterVersion: "audio-onset-filter-v1",
         normalizerId: "midi-normalizer-v2",
         gridPolicyId: "beat-grid-v2",
-        variantPolicyId: "learner-variant-ladder-v2",
+        variantPolicyId: "learner-variant-ladder-v3",
       },
       postProcessing: {
         filterApplied: true,

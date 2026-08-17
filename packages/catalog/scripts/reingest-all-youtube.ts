@@ -5,22 +5,28 @@
  * and the onset filter would both be wrong), onset-filter, and re-ingest with
  * stable base ids (player URLs stay stable).
  *
- * Usage: npx tsx packages/catalog/scripts/reingest-all-youtube.ts [--dry-run] [--keep-existing-tempo] [--source=root|strict|auto] [baseId...]
+ * Usage: npx tsx packages/catalog/scripts/reingest-all-youtube.ts [--dry-run] [--keep-existing-tempo] [--preserve-melody] [--source=root|strict|auto] [baseId...]
  */
 import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
-import { readFile, readdir } from "node:fs/promises";
-import { join } from "node:path";
+import { readFile, readdir, stat } from "node:fs/promises";
+import { basename, join } from "node:path";
 import { promisify } from "node:util";
-import { parseMidi, writeMidi } from "@keyspilli/midi";
+import { parseMidi, transcriptionMaxDurationBeats, writeMidi } from "@keyspilli/midi";
 import {
+  AUDIO_ONSET_DETECTOR_CONFIG,
   filterTranscription,
   getDb,
   getSongsByBase,
   ingestSource,
+  MAX_YOUTUBE_IMPORT_DUR_BEATS,
+  ONSET_MATCH_SEC,
   parseYoutubeSourceArgs,
   resolveYoutubeSource,
+  TRANSCRIPTION_PIPELINE_CONFIG,
+  TRANSCRIPTION_POST_PROCESSING_DEFAULTS,
   transcribedDir,
+  type TranscriptionProvenance,
 } from "../src/index.js";
 import { artifactsDir, ROOT, seedMidiDir } from "../src/paths.js";
 
@@ -28,9 +34,22 @@ const execFileP = promisify(execFile);
 const args = process.argv.slice(2);
 const dryRun = args.includes("--dry-run");
 const keepExistingTempo = args.includes("--keep-existing-tempo");
+// The normal onset gate is conservative and remains the default. This
+// explicit canary mode keeps the rescaled Basic Pitch source intact so the
+// learner arranger can recover continuity-supported melody/inner voices before
+// we decide whether the source is safe to publish.
+const preserveMelody = args.includes("--preserve-melody");
 const { selection: sourceSelection, positionalArgs: onlyBases } = parseYoutubeSourceArgs(args, "root");
+if (preserveMelody && onlyBases.length !== 1) {
+  console.error("--preserve-melody requires exactly one target base id; refusing a full-catalog raw transcription run");
+  process.exit(1);
+}
 const PYTHON = process.env.KEYSPILLI_PYTHON ?? join(ROOT, "services", "transcribe", ".venv", "bin", "python");
 const TEMPO_PY = join(ROOT, "services", "transcribe", "src", "tempo.py");
+const BASIC_PITCH_VERSION = process.env.KEYSPILLI_BP_VERSION ?? process.env.BASIC_PITCH_VERSION ?? "unknown";
+const BASIC_PITCH_SERIALIZATION = process.env.KEYSPILLI_BP_SERIALIZATION ?? "default";
+const ONSET_THRESHOLD = Number(process.env.KEYSPILLI_ONSET ?? 0.65);
+const FRAME_THRESHOLD = Number(process.env.KEYSPILLI_FRAME ?? 0.45);
 
 async function detectTempo(audioPath: string): Promise<number> {
   if (process.env.KEYSPILLI_TEMPO_OVERRIDE) return Number(process.env.KEYSPILLI_TEMPO_OVERRIDE);
@@ -40,10 +59,17 @@ async function detectTempo(audioPath: string): Promise<number> {
   return bpm >= 20 && bpm <= 300 ? bpm : 120;
 }
 
+type ResolvedYoutubeSource = NonNullable<Awaited<ReturnType<typeof resolveYoutubeSource>>>;
+
+interface SelectedYoutubeSource {
+  candidate: ResolvedYoutubeSource;
+  sourceId: string;
+}
+
 async function findSource(
   jobId: string | undefined,
   baseId: string,
-): Promise<Awaited<ReturnType<typeof resolveYoutubeSource>> | undefined> {
+): Promise<SelectedYoutubeSource | undefined> {
   const candidates: string[] = [];
   if (jobId) candidates.push(join(transcribedDir(), jobId));
   // Fallback: any dir whose name contains the job id or song id.
@@ -52,7 +78,7 @@ async function findSource(
   }
   for (const dir of candidates) {
     const source = await resolveYoutubeSource(dir, sourceSelection);
-    if (source) return source;
+    if (source) return { candidate: source, sourceId: basename(dir) };
   }
   return undefined;
 }
@@ -83,7 +109,10 @@ for (const { base_id: base } of bases) {
     .prepare("SELECT * FROM conversion_jobs WHERE song_id = ? OR song_id LIKE ? ORDER BY created_at DESC, id DESC")
     .all(`${base}-e`, `${base}-%`) as { id: string; youtube_url: string }[];
   const job = jobs[0];
-  const src = await findSource(job?.id, base);
+  const selected = await findSource(job?.id, base);
+  const src = selected?.candidate;
+  const selectedSourceId = selected?.sourceId;
+  const selectedJob = jobs.find((candidate) => candidate.id === selectedSourceId) ?? job;
   if (existsSync(join(seedMidiDir(), `${base}.mid`))) {
     skipped++;
     console.log(`- ${base}: curated seed exists, skipped (restore-curated.ts owns it)`);
@@ -144,7 +173,7 @@ for (const { base_id: base } of bases) {
   });
   let filtered: Uint8Array;
   try {
-    filtered = await filterTranscription(rewritten, src.audioPath);
+    filtered = preserveMelody ? rewritten : await filterTranscription(rewritten, src.audioPath);
   } catch (err) {
     skipped++;
     const message = `x ${base}: onset filter failed: ${(err as Error).message}`;
@@ -158,11 +187,42 @@ for (const { base_id: base } of bases) {
   }
   const filteredNotes = parseMidi(new Uint8Array(filtered)).notes.length;
   const alternateKinds = src.availableKinds.filter((kind) => kind !== src.sourceKind);
-  console.log(`~ ${base}: source=${src.sourceKind}${alternateKinds.length ? ` (also available: ${alternateKinds.join(",")})` : ""}, tempo ${raw.tempoBpm} -> ${tempo}${keepExistingTempo && tempo !== detected ? ` (kept ${tempo}, detected ${detected})` : ""}, notes ${raw.notes.length} -> ${filteredNotes}`);
+  console.log(`~ ${base}: source=${src.sourceKind}${alternateKinds.length ? ` (also available: ${alternateKinds.join(",")})` : ""}, tempo ${raw.tempoBpm} -> ${tempo}${keepExistingTempo && tempo !== detected ? ` (kept ${tempo}, detected ${detected})` : ""}, notes ${raw.notes.length} -> ${filteredNotes}${preserveMelody ? " (melody-preserving; onset filter bypassed)" : ""}`);
   if (dryRun) {
     console.log(`? ${base}: would re-ingest (before a-notes ${before ?? "n/a"})`);
     continue;
   }
+  const sourceStat = await stat(src.midiPath).catch(() => undefined);
+  const transcription: TranscriptionProvenance = {
+    basicPitchVersion: BASIC_PITCH_VERSION,
+    modelSerialization: BASIC_PITCH_SERIALIZATION,
+    onsetThreshold: ONSET_THRESHOLD,
+    frameThreshold: FRAME_THRESHOLD,
+    tempo,
+    tempoSource: process.env.KEYSPILLI_TEMPO_OVERRIDE
+      ? "override"
+      : keepExistingTempo && tempo !== detected
+        ? "manual"
+        : "detected",
+    audioSource: "youtube",
+    transcribedAt: sourceStat?.mtime.toISOString() ?? new Date().toISOString(),
+    pipeline: TRANSCRIPTION_PIPELINE_CONFIG,
+    postProcessing: {
+      filterApplied: !preserveMelody,
+      cleanupApplied: true,
+      onsetMatchSec: ONSET_MATCH_SEC,
+      onsetDetector: AUDIO_ONSET_DETECTOR_CONFIG,
+      minVelocity: TRANSCRIPTION_POST_PROCESSING_DEFAULTS.minVelocity,
+      minDurationBeats: TRANSCRIPTION_POST_PROCESSING_DEFAULTS.minDurationBeats,
+      mergeWindowBeats: TRANSCRIPTION_POST_PROCESSING_DEFAULTS.mergeWindowBeats,
+      maxPolyphony: TRANSCRIPTION_POST_PROCESSING_DEFAULTS.maxPolyphony,
+      maxSounding: TRANSCRIPTION_POST_PROCESSING_DEFAULTS.maxSounding,
+      maxDurationSec: TRANSCRIPTION_POST_PROCESSING_DEFAULTS.maxDurationSec,
+      maxDurationBeats: transcriptionMaxDurationBeats(tempo),
+      importedMaxDurationBeats: MAX_YOUTUBE_IMPORT_DUR_BEATS,
+      importedMaxSounding: TRANSCRIPTION_POST_PROCESSING_DEFAULTS.importedMaxSounding,
+    },
+  };
   const r = await ingestSource({
     buf: new Uint8Array(filtered),
     title: song.title,
@@ -171,15 +231,24 @@ for (const { base_id: base } of bases) {
     style: song.style,
     mood: song.mood,
     key: song.key,
-    tempo,
+    // The rewritten MIDI already carries the resolved calibration tempo. Do
+    // not pass a second override here: ingestSource would otherwise label the
+    // manifest as "override" while this transcription block says detected or
+    // manual. One parsed MIDI tempo is the authority at this seam.
+    tempo: undefined,
     contentType: "youtube",
     acquiredVia: "youtube",
-    sourceYoutubeUrl: job?.youtube_url ?? song.sourceYoutubeUrl ?? null,
-    sourceRef: `youtube-job:${job?.id ?? "unknown"}`,
+    sourceYoutubeUrl: selectedJob?.youtube_url ?? song.sourceYoutubeUrl ?? null,
+    sourceRef: selectedSourceId
+      ? `${selectedJob?.id === selectedSourceId ? "youtube-job" : "youtube-source"}:${selectedSourceId}`
+      : "youtube-source:unknown",
     baseId: base,
-    // Keep the audio-onset filter and run the conservative ghost-note pass in
-    // ingestSource as well; real-onset misclicks can survive the first filter.
+    // Run the conservative ghost-note pass in ingestSource. In the explicit
+    // melody-preserving canary the audio-onset gate was bypassed above, so the
+    // provenance block records that choice instead of silently calling it a
+    // filtered transcription.
     cleanTranscription: true,
+    transcription,
   });
   const after = await variantCount(base);
   if (r.error) {
