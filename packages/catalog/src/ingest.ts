@@ -50,7 +50,7 @@ export const MAX_YOUTUBE_IMPORT_DUR_BEATS = 1.5;
 // when the input bytes and user-facing ingest options are unchanged.
 export const INGEST_NORMALIZER_ID = "midi-normalizer-v2";
 export const INGEST_GRID_POLICY_ID = "beat-grid-v2";
-export const INGEST_VARIANT_POLICY_ID = "learner-variant-ladder-v2";
+export const INGEST_VARIANT_POLICY_ID = "learner-variant-ladder-v3";
 
 /**
  * Versioned processing identities used by audio transcription provenance and
@@ -234,7 +234,15 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
   // AI transcriptions carry ghost notes; human MIDI files do not.
   parsed.tempoBpm = normalizeTempoBpm(inp.tempo ?? parsed.tempoBpm);
   if (inp.contentType === "youtube" && inp.cleanTranscription !== false) {
+    // cleanTranscription uses a temporary pitch split while capping sustained
+    // overlaps. Those labels are inferred implementation details, not source
+    // staff assignments; remove them before the learner arranger decides
+    // whether a dense one-staff texture needs inner-voice redistribution.
+    const hadExplicitHands = parsed.notes.some((note) => note.hand !== undefined);
     parsed.notes = cleanTranscription(parsed.notes, { tempoBpm: parsed.tempoBpm });
+    if (!hadExplicitHands) {
+      parsed.notes = parsed.notes.map(({ hand: _hand, ...note }) => note);
+    }
   }
   if (parsed.notes.length < 8) return { baseId: "", songIds: [], error: "too few notes" };
 
@@ -263,6 +271,7 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
     {
       ...(maxDurBeats === undefined ? {} : { maxDurBeats }),
       arrangementProfile: inp.arrangementProfile ?? "learner",
+      audioDerived: inp.contentType === "youtube",
     },
   );
   const validationErrors = validateVariants(variants, { maxDurBeats });

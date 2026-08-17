@@ -14,6 +14,14 @@ on:
         required: false
         default: ""
         type: string
+      rebuild_transcription_mode:
+        description: "YouTube transcription path for a targeted rebuild"
+        required: false
+        default: "strict"
+        type: choice
+        options:
+          - strict
+          - preserve-melody
 
 permissions:
   contents: read
@@ -309,10 +317,26 @@ jobs:
           SSH="ssh -i ~/.ssh/id_rsa_racknerd -o BatchMode=yes -o StrictHostKeyChecking=yes"
           COMPOSE="docker compose -f /opt/apps/keyspilli/compose.production.yml"
           REBUILD_BASE_ID="${{ inputs.rebuild_base_id }}"
+          REBUILD_TRANSCRIPTION_MODE="${{ inputs.rebuild_transcription_mode }}"
           if [ -n "$REBUILD_BASE_ID" ] && [[ ! "$REBUILD_BASE_ID" =~ ^[a-z0-9][a-z0-9-]{0,119}$ ]]; then
             echo "Invalid rebuild_base_id; expected a catalog base id slug." >&2
             exit 1
           fi
+          case "$REBUILD_TRANSCRIPTION_MODE" in
+            strict) YOUTUBE_REINGEST_ARGS="--source=root --keep-existing-tempo" ;;
+            preserve-melody)
+              if [ -z "$REBUILD_BASE_ID" ]; then
+                echo "preserve-melody is only allowed for a targeted rebuild; refusing a full-catalog raw transcription run." >&2
+                exit 1
+              fi
+              YOUTUBE_REINGEST_ARGS="--source=root --keep-existing-tempo --preserve-melody"
+              ;;
+            *)
+              echo "Invalid rebuild_transcription_mode: $REBUILD_TRANSCRIPTION_MODE" >&2
+              exit 1
+              ;;
+          esac
+          echo "YouTube transcription mode: $REBUILD_TRANSCRIPTION_MODE"
           REBUILD_ENV=""
           if [ -n "$REBUILD_BASE_ID" ]; then
             REBUILD_ENV="-e REBUILD_BASE_ID=$REBUILD_BASE_ID"
@@ -353,7 +377,7 @@ jobs:
           # instead of tailing stale output until the 60-minute job timeout.
           # Supplying rebuild_base_id narrows every source/repair/gate step to
           # one base, which is useful for a focused production repair.
-          $SSH $HOST "cd /opt/apps/keyspilli && $COMPOSE exec -T -d $REBUILD_ENV worker sh -c 'REBUILD_BASE_ID=\"\${REBUILD_BASE_ID:-}\"; if [ -n \"\$REBUILD_BASE_ID\" ]; then if { node --import tsx packages/catalog/scripts/reingest-all-youtube.ts --source=root --keep-existing-tempo \"\$REBUILD_BASE_ID\" && node --import tsx packages/catalog/scripts/restore-curated.ts \"\$REBUILD_BASE_ID\" && node --import tsx packages/catalog/scripts/reingest-catalog.ts --source=root --skip-youtube \"\$REBUILD_BASE_ID\" && node --import tsx packages/catalog/scripts/repair-artifacts.ts --base-id \"\$REBUILD_BASE_ID\" && node --import tsx packages/catalog/scripts/verify-catalog.ts \"\$REBUILD_BASE_ID\" && echo \"REBUILD_COMPLETE:\$REBUILD_BASE_ID\"; } >> /tmp/reingest.log 2>&1; then :; else rc=\$?; echo REBUILD_FAILED:\$rc >> /tmp/reingest.log; exit \$rc; fi; else if { node --import tsx packages/catalog/scripts/reingest-all-youtube.ts --source=root --keep-existing-tempo && node --import tsx packages/catalog/scripts/restore-curated.ts && node --import tsx packages/catalog/scripts/reingest-catalog.ts --source=root --skip-youtube && node --import tsx packages/catalog/scripts/repair-artifacts.ts && node --import tsx packages/catalog/scripts/verify-catalog.ts && echo REBUILD_COMPLETE:full; } >> /tmp/reingest.log 2>&1; then :; else rc=\$?; echo REBUILD_FAILED:\$rc >> /tmp/reingest.log; exit \$rc; fi; fi'"
+          $SSH $HOST "cd /opt/apps/keyspilli && $COMPOSE exec -T -d $REBUILD_ENV worker sh -c 'REBUILD_BASE_ID=\"\${REBUILD_BASE_ID:-}\"; if [ -n \"\$REBUILD_BASE_ID\" ]; then if { node --import tsx packages/catalog/scripts/reingest-all-youtube.ts $YOUTUBE_REINGEST_ARGS \"\$REBUILD_BASE_ID\" && node --import tsx packages/catalog/scripts/restore-curated.ts \"\$REBUILD_BASE_ID\" && node --import tsx packages/catalog/scripts/reingest-catalog.ts --source=root --skip-youtube \"\$REBUILD_BASE_ID\" && node --import tsx packages/catalog/scripts/repair-artifacts.ts --base-id \"\$REBUILD_BASE_ID\" && node --import tsx packages/catalog/scripts/verify-catalog.ts \"\$REBUILD_BASE_ID\" && echo \"REBUILD_COMPLETE:\$REBUILD_BASE_ID\"; } >> /tmp/reingest.log 2>&1; then :; else rc=\$?; echo REBUILD_FAILED:\$rc >> /tmp/reingest.log; exit \$rc; fi; else if { node --import tsx packages/catalog/scripts/reingest-all-youtube.ts $YOUTUBE_REINGEST_ARGS && node --import tsx packages/catalog/scripts/restore-curated.ts && node --import tsx packages/catalog/scripts/reingest-catalog.ts --source=root --skip-youtube && node --import tsx packages/catalog/scripts/repair-artifacts.ts && node --import tsx packages/catalog/scripts/verify-catalog.ts && echo REBUILD_COMPLETE:full; } >> /tmp/reingest.log 2>&1; then :; else rc=\$?; echo REBUILD_FAILED:\$rc >> /tmp/reingest.log; exit \$rc; fi; fi'"
           for i in $(seq 1 240); do
             sleep 15
             OUT=$($SSH $HOST "$COMPOSE exec -T worker sh -c 'tail -3 /tmp/reingest.log'" 2>/dev/null || true)

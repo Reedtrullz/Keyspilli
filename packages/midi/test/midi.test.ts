@@ -408,6 +408,49 @@ describe("buildVariants", () => {
     expect(learner.notes.some((n) => n.hand !== "L" && n.midi >= 72)).toBe(true);
   });
 
+  it("keeps recurring mid-register accompaniment in the LH when the largest pitch gap is misleading", () => {
+    const notes: Note[] = [];
+    for (let i = 0; i < 24; i++) {
+      const start = i * 0.5;
+      // This deliberately has a large bass-to-accompaniment gap. A largest-gap
+      // split would cut between 35 and 47 and leave the recurring 47/54/59/64
+      // chord tones in the RH. Learner rebalancing should keep those voices
+      // together with the bass while leaving the high line in the RH.
+      notes.push({ midi: 35, start, dur: 0.4, vel: 70 });
+      notes.push({ midi: 47, start, dur: 0.4, vel: 70 });
+      notes.push({ midi: 54, start, dur: 0.4, vel: 68 });
+      notes.push({ midi: 59, start, dur: 0.4, vel: 66 });
+      notes.push({ midi: 64, start, dur: 0.4, vel: 64 });
+      notes.push({ midi: 72 + (i % 5), start, dur: 0.35, vel: 90 });
+    }
+    const input: ParsedMidi = {
+      format: 0,
+      division: 480,
+      tempoBpm: 100,
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes,
+      trackNames: [],
+      durationBeats: 12,
+    };
+    notes.push({ midi: 35, start: 12.5, dur: 0.4, vel: 70 });
+    const advanced = buildVariants(input, { title: "Mid accompaniment", artist: "Test" }, { arrangementProfile: "learner", audioDerived: true })
+      .find((v) => v.level === "advanced")!;
+    const lhGroups = new Map<number, Note[]>();
+    for (const note of advanced.notes.filter((n) => n.hand === "L")) {
+      const group = lhGroups.get(note.start) ?? [];
+      group.push(note);
+      lhGroups.set(note.start, group);
+    }
+    expect([...lhGroups.values()].some((group) => group.length >= 3)).toBe(true);
+    expect(advanced.notes.some((n) => n.hand !== "L" && n.midi >= 72)).toBe(true);
+    expect(advanced.notes.some((n) => n.start === 12.5 && n.midi === 35 && n.hand === "L")).toBe(true);
+    const curated = buildVariants(input, { title: "Curated", artist: "Test" }, { arrangementProfile: "learner" })
+      .find((v) => v.level === "advanced")!;
+    expect(curated.warnings ?? []).not.toContain("learner inner-voice redistribution applied (inferred staff assignment)");
+  });
+
   it("keeps learner advanced sounding notes within an eight-finger budget", () => {
     const notes: Note[] = [];
     for (let i = 0; i < 32; i++) {

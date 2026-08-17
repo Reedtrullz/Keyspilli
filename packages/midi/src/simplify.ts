@@ -25,6 +25,13 @@ export interface VariantOptions {
    * advanced level gets a human-sized sounding budget.
    */
   arrangementProfile?: "source" | "learner";
+  /**
+   * The source is an audio transcription whose one-staff pitch stream may
+   * need inferred inner-voice placement. Keep this opt-in so curated MIDI
+   * and MusicXML arrangements are never octave-revoiced by a shape-only
+   * heuristic.
+   */
+  audioDerived?: boolean;
 }
 
 export const SAFE_TEMPO_BPM = 120;
@@ -405,6 +412,67 @@ function shouldRebalanceForLearner(notes: Note[]): boolean {
   return chordSlices >= Math.max(3, Math.floor(notes.length / 80)) || Math.min(...notes.map((n) => n.midi)) <= 48;
 }
 
+function onsetGroups(notes: Note[]): Note[][] {
+  const groups = new Map<string, Note[]>();
+  for (const note of notes) {
+    const key = note.start.toFixed(3);
+    const group = groups.get(key) ?? [];
+    group.push(note);
+    groups.set(key, group);
+  }
+  return [...groups.values()].sort((a, b) => a[0]!.start - b[0]!.start);
+}
+
+/**
+ * Detect the common audio-transcription shape where the pitch split is
+ * numerically balanced but musically useless: a high melody sits above
+ * recurring bass-plus-inner-voice attacks, while the preliminary LH contains
+ * almost no multi-note onsets. Keep this gate narrow so melody-only songs and
+ * already-labelled piano arrangements are not rewritten.
+ */
+function shouldRedistributeInnerVoices(notes: Note[]): boolean {
+  if (notes.length < 24 || notes.some((note) => note.hand !== undefined)) return false;
+  const preliminary = splitHands(notes);
+  const lhGroups = onsetGroups(preliminary.lh);
+  if (lhGroups.length < 8) return false;
+  const lhMultiRatio = lhGroups.filter((group) => group.length > 1).length / lhGroups.length;
+  if (lhMultiRatio >= 0.15) return false;
+  const candidateGroups = onsetGroups(notes).filter((group) => {
+    if (group.length < 2) return false;
+    const sorted = [...group].sort((a, b) => a.midi - b.midi);
+    return sorted[0]!.midi <= 50 && sorted[sorted.length - 1]!.midi - sorted[0]!.midi >= 7;
+  });
+  return candidateGroups.length >= Math.max(8, Math.floor(onsetGroups(notes).length * 0.08));
+}
+
+/**
+ * Move inner voices from a one-staff transcription into a compact LH shell.
+ * The highest co-onset remains the melody; lower co-onsets are octave-revoiced
+ * into a playable bass/register. This is deliberately an inferred learner
+ * arrangement, not a claim that Basic Pitch supplied staff assignments.
+ */
+function redistributeInnerVoices(notes: Note[]): Note[] {
+  return onsetGroups(notes).flatMap((group) => {
+    if (group.length === 1) {
+      const note = group[0]!;
+      return [{ ...note, hand: note.midi <= 50 ? "L" as const : "R" as const }];
+    }
+    const sorted = [...group].sort((a, b) => a.midi - b.midi || b.vel - a.vel);
+    const melody = sorted[sorted.length - 1]!;
+    const moveToLeft = sorted.length >= 2 && (sorted[0]!.midi <= 50 || sorted.length >= 3)
+      ? new Set(sorted.slice(0, -1))
+      : new Set<Note>();
+    return group.map((note) => {
+      if (note === melody) return { ...note, hand: "R" as const };
+      if (!moveToLeft.has(note)) return { ...note, hand: "R" as const };
+      let midi = note.midi;
+      while (midi > 55) midi -= 12;
+      while (midi < 36) midi += 12;
+      return { ...note, midi, hand: "L" as const };
+    });
+  });
+}
+
 /** Detect the continuous-pitch, high-overlap walls that need a percentile
  * hand split. A large pitch gap is a real bass/treble boundary and should
  * continue to win; only dense material with no such boundary is rebalanced.
@@ -644,12 +712,20 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   // duration cap). Catalog ingestion always supplies one of these policies.
   if (opts.maxDurBeats !== undefined) sanitizeOptions.maxDurBeats = opts.maxDurBeats;
   const imported = sanitizeImportedNotes(src.notes, sanitizeOptions);
-  const base = quantize(imported, { grid: 0.125, minDur: 0.125 });
+  // Run the gated learner voice pass before quantization so co-onset evidence
+  // from the transcription is not erased by the later grid merge.
+  const innerVoiceArrangement = learnerProfile && opts.audioDerived === true && shouldRedistributeInnerVoices(imported);
+  const arrangedImported = innerVoiceArrangement ? redistributeInnerVoices(imported) : imported;
+  const base = quantize(arrangedImported, { grid: 0.125, minDur: 0.125 });
   const normalized = opts.normalizeRange === false ? base : normalizePianoRange(base);
   const shifted = base.filter((n, i) => normalized[i]!.midi !== n.midi);
   const sourceWarnings = shifted.length
     ? [`${shifted.length} source notes were octave-normalized into the piano range 21-108`]
     : [];
+  const arrangementWarnings = innerVoiceArrangement
+    ? ["learner inner-voice redistribution applied (inferred staff assignment)"]
+    : [];
+  const warnings = [...sourceWarnings, ...arrangementWarnings];
   const splitSource = normalized;
   const hasExplicitHands = splitSource.some((n) => n.hand !== undefined);
   const unlabeledSource = splitSource.filter((n) => n.hand === undefined);
@@ -692,7 +768,10 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
       // Advanced keeps the imported LH attacks intact. Chord thinning is a
       // simplification operation; applying it here changed eighth-note bass
       // timing and introduced same-pitch overlaps in curated arrangements.
-      ...capSoundingSpan(lh, 12, "low"),
+      // Learner rebalancing may intentionally keep a low bass plus a
+      // mid-register shell (roughly a tenth); the historical 12-semitone
+      // ceiling would discard the shell and recreate bass-only LH output.
+      ...capSoundingSpan(lh, innerVoiceArrangement ? 19 : 12, "low"),
     ],
     { grid: 0.125 },
   );
@@ -713,7 +792,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   const medium = capLevel("medium", trimSamePitchOverlaps(quantize(
     reduceMediumRhythm([
       ...capSoundingSpan(topVoices(advancedRh, 0.125, 3, pads), 12, "high"),
-      ...capSoundingSpan(thinChord(advancedLh, 3), 12, "low"),
+      ...capSoundingSpan(thinChord(advancedLh, 3), innerVoiceArrangement ? 19 : 12, "low"),
     ]),
     { grid: 0.125 },
   )));
@@ -724,7 +803,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
       ...capSoundingSpan(melodyOnly(mediumRh, 0.125, 0.5, pads), 12, "high"),
       ...capSoundingSpan(
         trimSamePitchOverlaps(thinChord(mediumLh, 2).map((n) => ({ ...n, midi: rootOf(n.midi, key) }))),
-        12,
+        innerVoiceArrangement ? 19 : 12,
         "low",
       ),
     ],
@@ -786,7 +865,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
       level,
       difficultyScore: scores[level]!,
       notes,
-      ...(sourceWarnings.length ? { warnings: sourceWarnings } : {}),
+      ...(warnings.length ? { warnings } : {}),
       chords: chordsAt(notes, grid),
       bassPattern: level === "advanced" || level === "medium" ? lhPattern : level === "very-easy" || level === "easy" ? "block" : "none",
       key,

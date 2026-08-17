@@ -128,7 +128,7 @@ describe("artifact arrangement manifest", () => {
         filterVersion: "audio-onset-filter-v1",
         normalizerId: "midi-normalizer-v2",
         gridPolicyId: "beat-grid-v2",
-        variantPolicyId: "learner-variant-ladder-v2",
+        variantPolicyId: "learner-variant-ladder-v3",
       },
       postProcessing: {
         filterApplied: true,
