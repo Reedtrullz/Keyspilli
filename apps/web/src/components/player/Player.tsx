@@ -102,6 +102,13 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
   const engineRef = useRef<PlaybackEngine | null>(null);
   const chordPracticeRef = useRef<ChordGrader | null>(null);
   const modeMenuRef = useRef<HTMLDivElement>(null);
+  const chordPracticeActiveRef = useRef(chordPracticeActive);
+  const skipChordPracticeRef = useRef(skipChordPractice);
+  const hearChordPracticeRef = useRef(hearChordPractice);
+
+  useEffect(() => { chordPracticeActiveRef.current = chordPracticeActive; }, [chordPracticeActive]);
+  useEffect(() => { skipChordPracticeRef.current = skipChordPractice; }, [skipChordPractice]);
+  useEffect(() => { hearChordPracticeRef.current = hearChordPractice; }, [hearChordPractice]);
 
   const notes = useMemo(
     () =>
@@ -289,6 +296,15 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
         if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.tagName === "BUTTON" || t.isContentEditable)) return;
         e.preventDefault();
         togglePlayRef.current();
+      } else if (chordPracticeActiveRef.current) {
+        // Chord practice shortcuts
+        if (e.key === "n" || e.key === "N") {
+          e.preventDefault();
+          skipChordPracticeRef.current?.();
+        } else if (e.key === "h" || e.key === "H") {
+          e.preventDefault();
+          hearChordPracticeRef.current?.();
+        }
       } else {
         ki.handleKey(e);
       }

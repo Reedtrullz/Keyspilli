@@ -38,6 +38,11 @@ export class Grader {
     this.tolerance = opts.bpm ? Math.min(0.4, secPerBeat(opts.bpm, 1) * 0.4) : 0.35;
   }
 
+  /** Recompute tolerance when speed or BPM changes mid-grading. */
+  updateTempo(bpm: number, speed: number): void {
+    this.tolerance = Math.min(0.4, secPerBeat(bpm, speed) * 0.4);
+  }
+
   /**
    * Change wait mode without rebuilding the run. The player exposes this as a
    * checkbox while a practice run is in progress, so the grader must follow

@@ -105,7 +105,9 @@ export class PlaybackEngine {
   /** Advance by dt seconds (called from the owner's rAF loop). */
   tick(dt: number): void {
     if (!this.playing) return;
-    const next = this.time + dt;
+    // Clamp dt to prevent tab-background jumps from destroying playback state
+    const clampedDt = Math.min(dt, 0.5);
+    const next = this.time + clampedDt;
     if (this.loop && next > this.loop.endSec) {
       this.time = this.loop.startSec;
       this.audio.cancelAll();
@@ -130,6 +132,26 @@ export class PlaybackEngine {
     this.duration = duration;
     this.chords = this.normalizeChordTimeline(this.chords);
     // Mid-playback note changes (speed/transpose/hand) reschedule from now.
+    if (this.playing) {
+      this.audio.cancelAll();
+      this.lastScheduled = this.time;
+      this.lastChordScheduled = -1;
+      this.schedule(this.time, this.time + SCHEDULE_LOOKAHEAD);
+    }
+  }
+
+  /** Update notes, duration, and chords in one atomic operation. */
+  setTimeline(notes: TimedNote[], duration: number, chords: ChordPlaybackLabel[]): void {
+    const notesChanged = this.notes !== notes;
+    const chordsChanged = this.chords !== chords;
+    if (!notesChanged && !chordsChanged) return;
+    if (notesChanged) {
+      this.notes = notes;
+      this.duration = duration;
+    }
+    if (chordsChanged) {
+      this.chords = this.normalizeChordTimeline(chords);
+    }
     if (this.playing) {
       this.audio.cancelAll();
       this.lastScheduled = this.time;
@@ -174,6 +196,11 @@ export class PlaybackEngine {
       this.audio.cancelAll();
       this.lastScheduled = this.time;
       this.lastChordScheduled = -1;
+    }
+
+    // Update grader tolerance when playback speed changes
+    if (this.grader && chordTimingChanged) {
+      this.grader.updateTempo(this.song.tempoBpm, settings.speed);
     }
   }
 

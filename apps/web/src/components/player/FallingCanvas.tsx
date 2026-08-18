@@ -28,9 +28,32 @@ interface Props {
 
 export function FallingCanvas({ notes, time, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop, waitNote }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const propsRef = useRef({ notes, time, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop, waitNote });
-  propsRef.current = { notes, time, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop, waitNote };
 
+  // Individual refs for each prop — draw loop reads these instead of closures
+  const timeRef = useRef(time);
+  const notesRef = useRef(notes);
+  const settingsRef = useRef(settings);
+  const pressedKeysRef = useRef(pressedKeys);
+  const chordsRef = useRef(chords);
+  const tempoBpmRef = useRef(tempoBpm);
+  const lowMidiRef = useRef(lowMidi);
+  const highMidiRef = useRef(highMidi);
+  const loopRef = useRef(loop);
+  const waitNoteRef = useRef(waitNote);
+
+  // Lightweight sync: props → refs (no rAF involved)
+  useEffect(() => { timeRef.current = time; }, [time]);
+  useEffect(() => { notesRef.current = notes; }, [notes]);
+  useEffect(() => { settingsRef.current = settings; }, [settings]);
+  useEffect(() => { pressedKeysRef.current = pressedKeys; }, [pressedKeys]);
+  useEffect(() => { chordsRef.current = chords; }, [chords]);
+  useEffect(() => { tempoBpmRef.current = tempoBpm; }, [tempoBpm]);
+  useEffect(() => { lowMidiRef.current = lowMidi; }, [lowMidi]);
+  useEffect(() => { highMidiRef.current = highMidi; }, [highMidi]);
+  useEffect(() => { loopRef.current = loop; }, [loop]);
+  useEffect(() => { waitNoteRef.current = waitNote; }, [waitNote]);
+
+  // Single rAF loop — runs once on mount, reads state from refs
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -44,24 +67,22 @@ export function FallingCanvas({ notes, time, settings, pressedKeys, chords, temp
     const RIGHT_MARGIN = 32;
     const KEYBOARD_W = W - LEFT_MARGIN - RIGHT_MARGIN;
     const dpr = window.devicePixelRatio || 1;
-    canvas.width = W * dpr;
-    canvas.height = H * dpr;
-    canvas.style.width = "100%";
+    canvas.width = canvas.clientWidth * dpr;
+    canvas.height = canvas.clientHeight * dpr;
+    ctx.scale(dpr, dpr);
 
     const draw = () => {
-      const {
-        notes,
-        time: now,
-        settings: s,
-        pressedKeys: pk,
-        chords: ch,
-        tempoBpm: bpm,
-        lowMidi: low,
-        highMidi: high,
-        loop,
-        waitNote,
-      } = propsRef.current;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      // Read all state from refs (stable across frames)
+      const now = timeRef.current;
+      const currentNotes = notesRef.current;
+      const s = settingsRef.current;
+      const pk = pressedKeysRef.current;
+      const ch = chordsRef.current;
+      const bpm = tempoBpmRef.current;
+      const low = lowMidiRef.current;
+      const high = highMidiRef.current;
+      const currentLoop = loopRef.current;
+      const currentWaitNote = waitNoteRef.current;
       ctx.clearRect(0, 0, W, H);
       ctx.fillStyle = "#fafafa";
       ctx.fillRect(0, 0, W, H);
@@ -88,7 +109,7 @@ export function FallingCanvas({ notes, time, settings, pressedKeys, chords, temp
         ctx.lineTo(W - RIGHT_MARGIN, y);
         ctx.stroke();
       }
-      const bars = fallingBars(notes, {
+      const bars = fallingBars(currentNotes, {
         width: KEYBOARD_W, height: areaHeight, nowSec: now, speed,
         lookaheadSec: lookahead, lowMidi: low, highMidi: high,
       });
@@ -133,7 +154,7 @@ export function FallingCanvas({ notes, time, settings, pressedKeys, chords, temp
       }
 
       // --- Draw lyrics (right side) ---
-      for (const n of notes) {
+      for (const n of currentNotes) {
         if (!n.lyrics) continue;
         const bottom = areaHeight - (n.startSec - now) * pxPerSec;
         if (bottom < -20 || bottom > areaHeight + 20) continue;
@@ -150,7 +171,7 @@ export function FallingCanvas({ notes, time, settings, pressedKeys, chords, temp
      for (const w of kb.whites) {
        const kx = w.x + LEFT_MARGIN;
        const isChord = s.chordKeys && activeChordNotes.has(w.midi) && !pk.has(w.midi);
-       const isWait = waitNote && w.midi === waitNote.midi && !pk.has(w.midi);
+       const isWait = currentWaitNote && w.midi === currentWaitNote.midi && !pk.has(w.midi);
        ctx.fillStyle = pk.has(w.midi) ? pitchColor(w.midi) : "#ffffff";
        ctx.fillRect(kx, H - KB_H, w.w - 1, KB_H);
        ctx.strokeStyle = "#d4d4d8";
@@ -186,7 +207,7 @@ export function FallingCanvas({ notes, time, settings, pressedKeys, chords, temp
      for (const b of kb.blacks) {
        const kx = b.x + LEFT_MARGIN;
        const isChordB = s.chordKeys && activeChordNotes.has(b.midi) && !pk.has(b.midi);
-       const isWaitB = waitNote && b.midi === waitNote.midi && !pk.has(b.midi);
+       const isWaitB = currentWaitNote && b.midi === currentWaitNote.midi && !pk.has(b.midi);
        ctx.fillStyle = pk.has(b.midi) ? pitchColor(b.midi) : "#27272a";
        ctx.fillRect(kx, H - KB_H, b.w, KB_H * 0.62);
        if (isWaitB) {
@@ -232,9 +253,9 @@ export function FallingCanvas({ notes, time, settings, pressedKeys, chords, temp
       ctx.fillText(`${now.toFixed(1)}s`, LEFT_MARGIN + 4, areaHeight - 6);
 
       // --- Loop region (dashed lines + tinted band) ---
-      if (loop) {
-        const yStart = areaHeight - (loop.startSec - now) * pxPerSec;
-        const yEnd = areaHeight - (loop.endSec - now) * pxPerSec;
+      if (currentLoop) {
+        const yStart = areaHeight - (currentLoop.startSec - now) * pxPerSec;
+        const yEnd = areaHeight - (currentLoop.endSec - now) * pxPerSec;
         const top = Math.min(yStart, yEnd);
         const bottom = Math.max(yStart, yEnd);
         if (bottom > 0 && top < areaHeight) {
@@ -259,7 +280,7 @@ export function FallingCanvas({ notes, time, settings, pressedKeys, chords, temp
       // --- Out-of-range edge indicators ---
       let below = 0;
       let above = 0;
-      for (const n of notes) {
+      for (const n of currentNotes) {
         if (n.startSec > now + lookahead || n.startSec + n.durSec < now - 0.05) continue;
         if (n.midi < low) below++;
         else if (n.midi > high) above++;
@@ -340,3 +361,4 @@ export function FallingCanvas({ notes, time, settings, pressedKeys, chords, temp
     </div>
   );
 }
+
