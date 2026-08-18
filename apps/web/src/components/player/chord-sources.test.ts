@@ -72,6 +72,81 @@ describe("chord source selection", () => {
     expect(selectChordSource(sources, "ug")).toMatchObject({ fallback: true, fallbackReason: "opening section only" });
   });
 
+  it("keeps the generated continuation in the explicit auto hybrid", () => {
+    const sources = resolveChordSources(song({
+      notes: [{ midi: 48, start: 0, dur: 508, vel: 80, hand: "L" }],
+      measures: [{ index: 0, startBeat: 0, endBeat: 508 }],
+      chords: [{ beat: 132.5, name: "G", notes: [43, 47, 50], sourceKind: "generated" as const, durationBeats: 12 }],
+      ugChordTimeline: [{ beat: 0, name: "C", notes: [48, 52, 55], sourceKind: "authored" as const, durationBeats: 4 }],
+      chordProvenance: {
+        provider: "ultimate-guitar",
+        sourceRef: "ultimate-guitar:partial",
+        fallback: true,
+        fallbackReason: "opening section only",
+      },
+    }));
+    expect(sources.ug?.chords).toHaveLength(1);
+    expect(sources.auto.chords).toEqual(expect.arrayContaining([
+      expect.objectContaining({ beat: 0, sourceKind: "authored" }),
+      expect.objectContaining({ beat: 132.5, sourceKind: "generated", durationBeats: 12 }),
+    ]));
+    expect(sources.auto.chords.some((chord) => chord.beat > 4 && chord.beat < 132.5)).toBe(false);
+    expect(selectChordSource(sources, "auto").source?.id).toBe("auto");
+  });
+
+  it("fails closed to legacy chords for malformed or future source bundles", () => {
+    const raw = { beat: 0, name: "Legacy generated", notes: [48, 52, 55], sourceKind: "generated" as const };
+    for (const chordSources of [
+      { schemaVersion: 2, generated: { id: "generated", label: "future", chords: [raw], fallback: false }, ug: null, auto: null },
+      { schemaVersion: 1, generated: null, ug: null, auto: { id: "auto", label: "broken", chords: [], fallback: false } },
+    ]) {
+      const sources = resolveChordSources(song({ chords: [raw], chordSources }));
+      expect(sources.generated.chords[0]?.name).toBe("Legacy generated");
+      expect(sources.generated.chords[0]?.sourceKind).toBe("generated");
+      expect(sources.ug).toBeNull();
+    }
+  });
+
+  it("projects structured source provenance without losing the display string", () => {
+    const sources = resolveChordSources(song({
+      chordSources: {
+        schemaVersion: 1,
+        generated: {
+          id: "generated",
+          label: "Generated chords",
+          chords: [{ beat: 0, name: "C", notes: [48, 52, 55], sourceKind: "generated" }],
+          provenance: "variant:a:notes.json",
+          provenanceInfo: { sourceId: "midi-derived", provider: "keyspilli", kind: "midi-derived", sourceRef: "variant:a:notes.json" },
+          fallback: false,
+        },
+        ug: {
+          id: "ug",
+          label: "UG timeline",
+          chords: [{ beat: 0, name: "C", notes: [48, 52, 55], sourceKind: "authored" }],
+          provenance: "ultimate-guitar:test",
+          provenanceInfo: { sourceId: "ug-test", provider: "ultimate-guitar", kind: "chart", sourceRef: "ultimate-guitar:test", confidence: "curated" },
+          fallback: false,
+        },
+        auto: {
+          id: "auto",
+          label: "UG timeline",
+          chords: [{ beat: 0, name: "C", notes: [48, 52, 55], sourceKind: "authored" }],
+          provenance: "ultimate-guitar:test",
+          provenanceInfo: { sourceId: "ug-test", provider: "ultimate-guitar", kind: "chart", sourceRef: "ultimate-guitar:test", confidence: "curated" },
+          fallback: false,
+        },
+      },
+    }));
+    expect(sources.ug?.provenance).toBe("ultimate-guitar:test");
+    expect(sources.ug?.provenanceInfo).toMatchObject({
+      provider: "ultimate-guitar",
+      kind: "chart",
+      sourceRef: "ultimate-guitar:test",
+    });
+    expect(sources.generated.provenance).toBe("variant:a:notes.json");
+    expect(sources.generated.provenanceInfo?.sourceRef).toBe("variant:a:notes.json");
+  });
+
   it("does not treat an unlabelled generic timeline as UG", () => {
     const sources = resolveChordSources(song({ chordTimeline: [{ beat: 0, name: "C", notes: [48, 52, 55] }] }));
     expect(sources.ug).toBeNull();

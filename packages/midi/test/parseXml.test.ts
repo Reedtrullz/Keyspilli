@@ -90,6 +90,33 @@ describe("parseMusicXmlNotes", () => {
     ]);
   });
 
+  it("pads both grand-staff streams to the measure boundary", () => {
+    const variant: Variant = {
+      level: "advanced",
+      difficultyScore: 0,
+      notes: [
+        { midi: 60, start: 0, dur: 1, vel: 80, hand: "R" },
+        { midi: 48, start: 2.5, dur: 0.5, vel: 80, hand: "L" },
+      ],
+      chords: [],
+      bassPattern: "block",
+      key: "C",
+      tempoBpm: 120,
+      timeSig: [4, 4],
+      measures: [{ index: 0, startBeat: 0, endBeat: 4 }],
+    };
+    const xml = writeMusicXml(variant, "Padded staff", "Test");
+    const measure = xml.match(/<measure(?:[ >])[^>]*>[\s\S]*?<\/measure>/)?.[0] ?? "";
+    // The RH stream is followed by a full-measure backup before the LH stream;
+    // the LH stream itself ends with a forward to the same boundary.
+    expect(measure).toContain('<backup><duration>3840</duration></backup>');
+    expect(measure).toMatch(/<staff>2<\/staff>[\s\S]*?<forward><duration>960<\/duration><\/forward><\/measure>$/);
+    expect(parseMusicXmlNotes(xml).notes.map((n) => [n.midi, n.start, n.dur])).toEqual([
+      [60, 0, 1],
+      [48, 2.5, 0.5],
+    ]);
+  });
+
   it("keeps overlapping same-pitch tie chains on their original voices", () => {
     // Both notes cross the same barline and therefore have continuations at
     // one onset. Matching by pitch/start alone would swap their durations.

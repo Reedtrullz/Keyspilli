@@ -53,6 +53,51 @@ test("player loads and switches views", async ({ page }) => {
   await page.getByRole("button", { name: /View/ }).click();
   await page.getByRole("menuitemradio", { name: /Sheet Music/ }).click();
   await expect(page.locator(".sheet-svg svg").first()).toBeVisible({ timeout: 30_000 });
+  const scorePages = page.locator(".sheet-svg__page");
+  await expect(scorePages.first()).toBeVisible({ timeout: 30_000 });
+  expect(await scorePages.count()).toBeGreaterThan(1);
+  const scoreGeometry = await page.locator(".sheet-svg svg").first().evaluate((svg) => ({
+    width: Number.parseFloat(svg.getAttribute("width") ?? "0"),
+    height: Number.parseFloat(svg.getAttribute("height") ?? "0"),
+    viewBox: svg.getAttribute("viewBox"),
+    renderedHeight: svg.getBoundingClientRect().height,
+  }));
+  expect(scoreGeometry.width).toBeGreaterThan(100);
+  expect(scoreGeometry.height).toBeGreaterThan(100);
+  expect(scoreGeometry.renderedHeight).toBeGreaterThan(100);
+  expect(scoreGeometry.viewBox).toBeTruthy();
+  expect(await page.evaluate(() => (window as unknown as { __sheetError?: string }).__sheetError)).toBeFalsy();
+});
+
+test("Your Song Sheet Music renders all pages with notation glyphs", async ({ page }) => {
+  await page.goto(`/player/${UG_SONG}`);
+  await page.getByRole("button", { name: /View/ }).click();
+  await page.getByRole("menuitemradio", { name: /Sheet Music/ }).click();
+
+  const pages = page.locator(".sheet-svg__page");
+  await expect(page.locator(".sheet-svg svg").first()).toBeVisible({ timeout: 30_000 });
+  // Page count is layout-engine/font dependent (the same target renders 12–13
+  // pages across supported builds), but rendering more than one page proves we
+  // are exercising the multipage path rather than the old single-strip output.
+  await expect.poll(() => pages.count(), { timeout: 30_000 }).toBeGreaterThan(1);
+
+  const score = await pages.evaluateAll((elements) => {
+    const markup = elements.map((element) => element.innerHTML).join("\n");
+    const svgs = elements.flatMap((element) => Array.from(element.querySelectorAll("svg")));
+    return {
+      pages: elements.length,
+      svgCount: svgs.length,
+      hasNotationGlyph: /(?:tie|slur)/i.test(markup),
+      hasStaffContent: /(?:staff|measure|note)/i.test(markup),
+      minHeight: Math.min(...svgs.map((svg) => svg.getBoundingClientRect().height)),
+    };
+  });
+  expect(score.pages).toBeGreaterThan(1);
+  expect(score.svgCount).toBeGreaterThanOrEqual(score.pages);
+  expect(score.hasNotationGlyph).toBe(true);
+  expect(score.hasStaffContent).toBe(true);
+  expect(score.minHeight).toBeGreaterThan(100);
+  expect(await page.evaluate(() => (window as unknown as { __sheetError?: string }).__sheetError)).toBeFalsy();
 });
 
 test("player controls: loop, tempo, transpose, hands", async ({ page }) => {
@@ -73,7 +118,7 @@ test("player controls: loop, tempo, transpose, hands", async ({ page }) => {
   await expect(page.getByText("Playing — click anywhere to pause")).not.toBeVisible();
 });
 
-test("chord mode exposes the curated UG timeline and partial fallback", async ({ page }) => {
+test("chord mode distinguishes strict UG coverage from hybrid Auto", async ({ page }) => {
   await page.goto(`/player/${UG_SONG}`);
   await page.getByRole("button", { name: "Open settings" }).click();
   const dialog = page.getByRole("dialog", { name: "Player settings" });
@@ -83,6 +128,12 @@ test("chord mode exposes the curated UG timeline and partial fallback", async ({
   await expect(dialog.getByRole("button", { name: "UG timeline" })).toBeEnabled();
   await dialog.getByRole("button", { name: "UG timeline" }).click();
   await dialog.getByRole("button", { name: "Done" }).click();
+  await expect(page.getByTestId("chord-mode-status")).toHaveText("UG opening (partial)");
+
+  await page.getByRole("button", { name: "Open settings" }).click();
+  const hybridDialog = page.getByRole("dialog", { name: "Player settings" });
+  await hybridDialog.getByRole("button", { name: "Auto" }).click();
+  await hybridDialog.getByRole("button", { name: "Done" }).click();
   await expect(page.getByTestId("chord-mode-status")).toHaveText("UG + generated fallback");
 });
 
@@ -136,6 +187,23 @@ test("classic PDF export renders engraved score", async ({ request }) => {
   expect(res.headers()["content-type"]).toContain("application/pdf");
   const body = await res.body();
   expect(body.subarray(0, 5).toString()).toBe("%PDF-");
+});
+
+test("Your Song PDF export works for both layouts", async ({ request }) => {
+  for (const layout of ["simplify", "classic"] as const) {
+    const res = await request.get(`/api/song/${UG_SONG}/export?type=pdf&layout=${layout}`);
+    expect(res.status(), `${layout} PDF status`).toBe(200);
+    expect(res.headers()["content-type"], `${layout} PDF content type`).toContain("application/pdf");
+    const body = await res.body();
+    expect(body.byteLength, `${layout} PDF size`).toBeGreaterThan(1000);
+    expect(body.subarray(0, 5).toString(), `${layout} PDF header`).toBe("%PDF-");
+  }
+});
+
+test("PDF export rejects unknown layouts with a stable safe error", async ({ request }) => {
+  const res = await request.get(`/api/song/${SONG}/export?type=pdf&layout=unknown`);
+  expect(res.status()).toBe(400);
+  await expect(res.json()).resolves.toEqual({ error: "unknown PDF layout" });
 });
 
 test("upload flow creates a playable song", async ({ request }) => {

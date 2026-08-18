@@ -76,8 +76,8 @@ describe("chord contract end to end", () => {
     ).find((candidate) => candidate.level === "advanced");
     expect(variant).toBeDefined();
     expect(variant!.chords).toEqual([
-      { beat: 0, name: "C", notes: [48, 52, 55, 72], sourceKind: "generated" },
-      { beat: 4, name: "Dm", notes: [50, 53, 57, 74], sourceKind: "generated" },
+      { beat: 0, name: "C", notes: [48, 52, 55], sourceKind: "generated", inferred: true, inferenceType: "voicing" },
+      { beat: 4, name: "Dm", notes: [50, 53, 57], sourceKind: "generated", inferred: true, inferenceType: "voicing" },
     ]);
 
     // Treat the variant as the serialized artifact crossing the catalog
@@ -101,8 +101,8 @@ describe("chord contract end to end", () => {
       },
     });
     expect(catalogTimeline.chords).toEqual([
-      { beat: 0, durationBeats: 4, name: "C", notes: [48, 52, 55, 72], sourceKind: "generated" },
-      { beat: 4, durationBeats: 4, name: "Dm", notes: [50, 53, 57, 74], sourceKind: "generated" },
+      { beat: 0, durationBeats: 4, name: "C", notes: [48, 52, 55], sourceKind: "generated", inferred: true, inferenceType: "voicing" },
+      { beat: 4, durationBeats: 4, name: "Dm", notes: [50, 53, 57], sourceKind: "generated", inferred: true, inferenceType: "voicing" },
     ]);
 
     // This is the web boundary used by Player. It must not reduce the
@@ -125,13 +125,13 @@ describe("chord contract end to end", () => {
 
     engine.start();
     expect(audio.playedChords).toEqual([
-      { midiNotes: [50, 54, 57, 74], when: 0, durationSec: 1.6 },
+      { midiNotes: [50, 54, 57], when: 0, durationSec: 1.6 },
     ]);
 
     // The second event lands at beat 4 = 1.6 seconds at this tempo/speed.
     engine.tick(1.6);
     expect(audio.playedChords[1]).toMatchObject({
-      midiNotes: [52, 55, 59, 76],
+      midiNotes: [52, 55, 59],
       durationSec: 1.6,
     });
     expect(audio.playedChords[1]!.when).toBeCloseTo(0, 8);

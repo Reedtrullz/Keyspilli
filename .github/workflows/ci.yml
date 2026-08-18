@@ -81,7 +81,11 @@ jobs:
         run: npm run build
 
       - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
+        run: npx --no-install playwright install --with-deps chromium
+        working-directory: apps/web
+
+      - name: Verify Playwright Chromium launch
+        run: node scripts/verify-playwright-runtime.mjs
         working-directory: apps/web
 
       - name: End-to-end tests

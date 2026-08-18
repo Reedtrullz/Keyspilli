@@ -161,8 +161,11 @@ export function writeMusicXml(variant: Variant, title: string, artist: string): 
   /** Render one staff as a cursor-aware stream. MusicXML advances a part's
    * cursor sequentially, so interleaved RH/LH notes must be written as two
    * streams separated by <backup>; otherwise the second staff is shifted by
-   * whatever duration happened to be emitted on the first staff. */
-  const renderStaff = (notes: XmlNoteSegment[], staff: 1 | 2, measureStart: number): { xml: string; cursor: number } => {
+   * whatever duration happened to be emitted on the first staff. Every staff
+   * is padded to the measure boundary: a missing trailing <forward> makes
+   * MusicXML importers advance the next measure at a different time and can
+   * leave otherwise balanced cross-bar ties open. */
+  const renderStaff = (notes: XmlNoteSegment[], staff: 1 | 2, measureStart: number, measureLength: number): { xml: string; cursor: number } => {
     const byStart = new Map<number, XmlNoteSegment[]>();
     for (const n of notes) {
       const rel = Math.max(0, n.start - measureStart);
@@ -234,14 +237,22 @@ export function writeMusicXml(variant: Variant, title: string, artist: string): 
         }
       }
     }
+    // A staff may legitimately rest after its final attack. Keep the part
+    // cursor at the declared measure boundary so both staffs share the same
+    // timeline and tie matching remains stable across bars.
+    if (cursor < measureLength - 1e-9) {
+      xml.push("<forward><duration>" + Math.round((measureLength - cursor) * DIV) + "</duration></forward>");
+      cursor = measureLength;
+    }
     return { xml: xml.join(""), cursor };
   };
 
   const measureXml = measures
     .map((m, mi) => {
       const notes = notesByMeasure.get(mi) ?? [];
-      const rh = renderStaff(notes.filter((n) => n.hand !== "L"), 1, m.startBeat);
-      const lh = renderStaff(notes.filter((n) => n.hand === "L"), 2, m.startBeat);
+      const measureLength = Math.max(0, m.endBeat - m.startBeat);
+      const rh = renderStaff(notes.filter((n) => n.hand !== "L"), 1, m.startBeat, measureLength);
+      const lh = renderStaff(notes.filter((n) => n.hand === "L"), 2, m.startBeat, measureLength);
       const noteXmls =
         rh.xml +
         (rh.cursor > 0 ? "<backup><duration>" + Math.round(rh.cursor * DIV) + "</duration></backup>" : "") +

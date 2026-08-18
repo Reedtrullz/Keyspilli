@@ -1,5 +1,5 @@
 import { Grader, type GradeResult } from "./grading.js";
-import { beatToSec, beatsPerMeasure, firstNoteAtOrAfter, type LoopRegion, type TimedNote } from "./timeline.js";
+import { beatToSec, beatsPerMeasure, completeChordDurations, firstNoteAtOrAfter, secPerBeat, type LoopRegion, type TimedNote } from "./timeline.js";
 import type { ChordLabel } from "@keyspilli/midi";
 import type { PlayerSettings } from "./types.js";
 
@@ -71,7 +71,7 @@ export class PlaybackEngine {
     chords: ChordPlaybackLabel[] = [],
   ) {
     this.settings = settings;
-    this.chords = chords;
+    this.chords = this.normalizeChordTimeline(chords);
   }
 
   start(): void {
@@ -128,6 +128,7 @@ export class PlaybackEngine {
     if (this.notes === notes) return;
     this.notes = notes;
     this.duration = duration;
+    this.chords = this.normalizeChordTimeline(this.chords);
     // Mid-playback note changes (speed/transpose/hand) reschedule from now.
     if (this.playing) {
       this.audio.cancelAll();
@@ -140,7 +141,7 @@ export class PlaybackEngine {
   /** Update the source timeline without requiring a new playback engine. */
   setChords(chords: ChordPlaybackLabel[]): void {
     if (this.chords === chords) return;
-    this.chords = chords;
+    this.chords = this.normalizeChordTimeline(chords);
     this.lastChordScheduled = -1;
     if (this.playing) {
       this.audio.cancelAll();
@@ -239,13 +240,13 @@ export class PlaybackEngine {
 
   private schedule(from: number, to: number): void {
     from = Math.max(from, this.lastScheduled);
-    const chordMode = this.settings.backgroundMode === "chord" && this.chords.length > 0 && !!this.audio.playChord;
+    const chordMode = this.settings.backgroundMode === "chord" && this.hasPlayableChord() && !!this.audio.playChord;
     if (chordMode) this.scheduleChords(from, to);
     let i = firstNoteAtOrAfter(this.notes, from);
     for (; i < this.notes.length; i++) {
       const n = this.notes[i]!;
       if (n.startSec >= to) break;
-      if (n.hand === "L" && chordMode) continue;
+      if (n.hand === "L" && chordMode && this.chordCoversBeat(n.startSec / secPerBeat(this.song.tempoBpm, this.settings.speed))) continue;
       this.audio.noteOn(n, Math.max(0, n.startSec - this.time));
     }
     // A missing source timeline falls back to the piano background, including
@@ -276,8 +277,10 @@ export class PlaybackEngine {
     if (cursor < 0) {
       let active = -1;
       for (let i = 0; i < this.chords.length; i++) {
-        if (chordAt(this.chords[i]!) <= from + 1e-6) active = i;
-        else break;
+        const chord = this.chords[i]!;
+        const end = chord.beat + (chord.durationBeats ?? 0);
+        if (chordAt(chord) > from + 1e-6) break;
+        if (this.isPlayable(chord) && (chord.durationBeats === undefined || from < beatToSec(end, this.song.tempoBpm, speed))) active = i;
       }
       if (active >= 0) {
         this.playChord(this.chords[active]!, 0);
@@ -293,7 +296,7 @@ export class PlaybackEngine {
         continue;
       }
       if (eventSec >= to) break;
-      this.playChord(chord, Math.max(0, eventSec - this.time));
+      if (this.isPlayable(chord)) this.playChord(chord, Math.max(0, eventSec - this.time));
       cursor = i;
     }
     this.lastChordScheduled = cursor;
@@ -312,6 +315,41 @@ export class PlaybackEngine {
       ? beatToSec(chord.durationBeats, this.song.tempoBpm, this.settings.speed)
       : DEFAULT_CHORD_DURATION_SEC;
     playChord.call(this.audio, midiNotes, when, durationSec);
+  }
+
+  private isPlayable(chord: ChordPlaybackLabel): boolean {
+    return Array.isArray(chord.notes) && chord.notes.some((note) => Number.isInteger(note) && note >= 0 && note <= 127);
+  }
+
+  private hasPlayableChord(): boolean {
+    return this.chords.some((chord) => this.isPlayable(chord));
+  }
+
+  /** Return true only while a valid chord event is actually active. */
+  private chordCoversBeat(beat: number): boolean {
+    for (const chord of this.chords) {
+      if (chord.beat > beat + 1e-7) break;
+      if (!this.isPlayable(chord)) continue;
+      const duration = chord.durationBeats;
+      if (duration !== undefined && beat < chord.beat + duration - 1e-7) return true;
+      // Legacy source events without a span retain the old compatibility
+      // behaviour: they suppress LH only for the short engine fallback.
+      if (duration === undefined && beat < chord.beat + DEFAULT_CHORD_DURATION_SEC / secPerBeat(this.song.tempoBpm, this.settings.speed)) return true;
+    }
+    return false;
+  }
+
+  /**
+   * New provenance-aware events get beat spans before reaching audio. Legacy
+   * events are intentionally left untouched so their fixed wall-clock
+   * fallback remains a compatibility path only.
+   */
+  private normalizeChordTimeline(chords: ChordPlaybackLabel[]): ChordPlaybackLabel[] {
+    const known = chords.filter((chord) => chord.sourceKind !== undefined);
+    const legacy = chords.filter((chord) => chord.sourceKind === undefined);
+    const durationBeats = this.duration / secPerBeat(this.song.tempoBpm, this.settings.speed);
+    const completed = completeChordDurations(known, durationBeats);
+    return [...completed, ...legacy].sort((a, b) => a.beat - b.beat);
   }
 
   private emit(): void {

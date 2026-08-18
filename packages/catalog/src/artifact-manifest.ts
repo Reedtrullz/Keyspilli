@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { dataDir } from "./paths.js";
+import type { SourceProvenance } from "./provenance.js";
 
 export const ARRANGEMENT_MANIFEST_SCHEMA_VERSION = 1 as const;
 
@@ -126,6 +127,8 @@ export interface ArrangementManifest {
   /** Required for current/migrated artifacts; absent only for legacy bootstrap. */
   configFingerprint?: string;
   arrangementProfile?: string;
+  /** Canonical logical source identity plus optional physical source locator. */
+  source?: SourceProvenance;
   tempo: TempoProvenance;
   /** Absent for standard MIDI/MusicXML uploads without an audio transcription. */
   transcription?: TranscriptionProvenance;
@@ -319,6 +322,22 @@ function validateResolvedTempo(value: unknown, path: string, errors: string[]): 
   }
 }
 
+function validateSourceProvenance(value: unknown, path: string, errors: string[]): void {
+  if (!isRecord(value)) {
+    errors.push(`${path} must be an object`);
+    return;
+  }
+  for (const key of ["kind", "acquiredVia", "sourceRef", "sourceYoutubeUrl", "sourceArtifactRef"] as const) {
+    const field = value[key];
+    if (field !== undefined && field !== null && (typeof field !== "string" || field.trim() === "")) {
+      errors.push(`${path}.${key} must be a non-empty string or null when present`);
+    }
+  }
+  if (value.sourceRef === undefined && value.sourceYoutubeUrl === undefined) {
+    errors.push(`${path} must contain sourceRef or sourceYoutubeUrl`);
+  }
+}
+
 /** Validate the role-tagged tempo copy used by notes.json provenance. */
 export function validateTempoProvenance(value: unknown, path = "tempo"): string[] {
   const errors: string[] = [];
@@ -362,6 +381,7 @@ export function validateArrangementManifest(value: unknown): string[] {
   if (value.arrangementProfile !== undefined && (typeof value.arrangementProfile !== "string" || value.arrangementProfile.trim() === "")) {
     errors.push("arrangementProfile must be a non-empty string when present");
   }
+  if (value.source !== undefined) validateSourceProvenance(value.source, "source", errors);
   if (!isRecord(value.tempo)) {
     errors.push("tempo must be an object");
   } else {

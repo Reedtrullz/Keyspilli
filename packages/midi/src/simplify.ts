@@ -73,27 +73,51 @@ export function padPitches(notes: Note[]): Set<number> {
 }
 
 function chordsAt(notes: Note[], grid: number): ChordLabel[] {
-  const bySlice = new Map<number, number[]>();
+  const bySlice = new Map<number, { all: number[]; lh: number[]; rh: number[] }>();
   for (const n of notes) {
     if (n.dur < 0.25) continue; // passing tones are not harmony
     const k = Math.round(n.start / grid) * grid;
-    const arr = bySlice.get(k) ?? [];
-    arr.push(n.midi);
-    bySlice.set(k, arr);
+    const slice = bySlice.get(k) ?? { all: [], lh: [], rh: [] };
+    slice.all.push(n.midi);
+    if (n.hand === "L") slice.lh.push(n.midi);
+    else if (n.hand === "R") slice.rh.push(n.midi);
+    bySlice.set(k, slice);
   }
   const out: ChordLabel[] = [];
-  for (const [beat, mids] of [...bySlice.entries()].sort((a, b) => a[0] - b[0])) {
-    // Keep the absolute voicing deterministic.  The input note order can
-    // vary between MIDI tracks (and between equivalent rebuilds), while the
-    // player/export contract preserves octave doublings and inversions.  Only
-    // exact duplicate MIDI pitches are removed; distinct octaves remain.
-    const canonicalNotes = [...new Set(mids)].sort((a, b) => a - b);
-    const pcs = [...new Set(canonicalNotes.map((m) => m % 12))].sort((a, b) => a - b);
+  for (const [beat, slice] of [...bySlice.entries()].sort((a, b) => a[0] - b[0])) {
+    // The left hand is the most reliable harmonic evidence in a piano
+    // arrangement. If it has at least two distinct pitch classes, keep that
+    // voicing and avoid allowing the highest melody note to rename the chord.
+    // For melody-only/legacy material, use the full cluster minus its top
+    // voice where possible, then fall back to the complete cluster.
+    const lh = [...new Set(slice.lh)].sort((a, b) => a - b);
+    const all = [...new Set(slice.all)].sort((a, b) => a - b);
+    const lhPitchClasses = new Set(lh.map((midi) => midi % 12));
+    const harmonic = lhPitchClasses.size >= 2
+      ? lh
+      : all.length > 2
+        ? all.slice(0, -1)
+        : all;
+    // Generated chord playback is a learner accompaniment, not a verbatim
+    // dump of every sounding pitch. Preserve the absolute bass and upper
+    // shell while keeping the voicing compact and playable.
+    const canonicalNotes = [...new Set(harmonic)].sort((a, b) => a - b);
+    const compactNotes = canonicalNotes.length > 4
+      ? [canonicalNotes[0]!, ...canonicalNotes.slice(-3)]
+      : canonicalNotes;
+    const pcs = [...new Set(compactNotes.map((m) => m % 12))].sort((a, b) => a - b);
     if (pcs.length < 2) continue;
-    const bassPc = canonicalNotes[0]! % 12;
+    const bassPc = compactNotes[0]! % 12;
     const name = chordName(pcs, bassPc);
     if (!name) continue; // unlabelable dyad (root+3rd, chromatic clash, ...)
-    out.push({ beat, name, notes: canonicalNotes, sourceKind: "generated" });
+    out.push({
+      beat,
+      name,
+      notes: compactNotes,
+      sourceKind: "generated",
+      inferred: true,
+      inferenceType: "voicing",
+    });
   }
   // Per-grid-slice analysis produces the same chord every 0.25 beats; collapse
   // consecutive same-name runs and keep only runs that hold >= 1 beat, so the

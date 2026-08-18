@@ -16,6 +16,19 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV VERSION=$VERSION
 RUN npm run build -w @keyspilli/web
 
+FROM build AS browser-assets
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+# Install the browser from the exact Playwright package resolved by package-lock.json.
+RUN npx --no-install playwright install chromium
+# Launch it in an environment matching the final runtime image. This catches missing
+# browser libraries during image construction instead of on the first PDF request.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
+    libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
+    libgbm1 libpango-1.0-0 libcairo2 libasound2 fonts-liberation \
+    && rm -rf /var/lib/apt/lists/*
+RUN node apps/web/scripts/verify-playwright-runtime.mjs
+
 FROM node:22-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
@@ -23,6 +36,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV KEYSPILLI_DATA_DIR=/data
 ENV KEYSPILLI_ORIGIN=http://127.0.0.1:3000
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 ARG VERSION=dev
 ENV VERSION=$VERSION
 # Chromium for PDF export
@@ -31,7 +45,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
     libgbm1 libpango-1.0-0 libcairo2 libasound2 fonts-liberation \
     && rm -rf /var/lib/apt/lists/*
-RUN npx --yes playwright@1.51.1 install chromium --with-deps
+COPY --from=browser-assets /ms-playwright /ms-playwright
 COPY --from=build /app/apps/web/.next/standalone ./
 COPY --from=build /app/apps/web/.next/static ./apps/web/.next/static
 COPY --from=build /app/apps/web/public ./apps/web/public

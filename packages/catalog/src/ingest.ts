@@ -26,6 +26,7 @@ import {
   type TempoSource,
   type TranscriptionProvenance,
 } from "./artifact-manifest.js";
+import { canonicalizeSourceProvenance } from "./provenance.js";
 import { AUDIO_ONSET_DETECTOR_CONFIG, ONSET_MATCH_SEC, TRANSCRIPTION_FILTER_VERSION } from "./transcribe.js";
 import { publishBaseArtifact } from "./publish.js";
 
@@ -279,6 +280,17 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
     return { baseId: "", songIds: [], error: `validation failed: ${validationErrors.join("; ")}` };
   }
 
+  // Keep the public/logical source identity separate from a physical seed or
+  // upload path. For YouTube inputs the URL's video id wins over a legacy
+  // `seed:<file>`/`youtube:<baseId>` label, so all six levels and the base
+  // manifest carry one stable identity without losing the physical locator.
+  const sourceProvenance = canonicalizeSourceProvenance({
+    kind: inp.contentType,
+    acquiredVia: inp.acquiredVia ?? null,
+    sourceRef: inp.sourceRef ?? inp.sourceYoutubeUrl ?? null,
+    sourceYoutubeUrl: inp.sourceYoutubeUrl ?? null,
+  });
+
   // Resolve both tempo roles once at ingestion. The manifest is the runtime
   // authority; every generated notes.json receives the same role-tagged copy
   // as diagnostic provenance, so a variant remains self-describing without
@@ -327,10 +339,7 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
         createdAt: previous?.createdAt ?? createdAt,
       };
       const provenance = {
-        kind: inp.contentType,
-        acquiredVia: inp.acquiredVia ?? null,
-        sourceRef: inp.sourceRef ?? inp.sourceYoutubeUrl ?? null,
-        sourceYoutubeUrl: inp.sourceYoutubeUrl ?? null,
+        ...sourceProvenance,
         tempo: tempoProvenance,
         ...(transcription ? { transcription } : {}),
       };
@@ -404,6 +413,7 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
     sourceArtifactHash,
     configFingerprint,
     arrangementProfile: inp.arrangementProfile ?? "learner",
+    source: sourceProvenance,
     tempo: {
       calibration: { bpm: parsed.tempoBpm, source: calibrationSource, resolvedAt, role: "source-calibration" },
       playback: { bpm: parsed.tempoBpm, source: calibrationSource, resolvedAt, role: "playback" },
