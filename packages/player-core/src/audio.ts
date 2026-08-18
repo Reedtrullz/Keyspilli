@@ -14,6 +14,7 @@ export class AudioEngine {
   private active = new Map<number, { osc: OscillatorNode; gain: GainNode }[]>();
   private activeChords = new Set<{ osc: OscillatorNode; gain: GainNode }>();
   private activeClicks = new Set<{ osc: OscillatorNode; gain: GainNode }>();
+  private visibilityHandler: (() => void) | null = null;
 
   voiceGain = 1;
   pianoGain = 0.4;
@@ -21,7 +22,7 @@ export class AudioEngine {
   sustainPedal = true;
 
   ensure(): AudioContext {
-    if (!this.ctx) {
+    if (!this.ctx || this.ctx.state === "closed") {
       this.ctx = new AudioContext();
       this.master = this.ctx.createGain();
       this.master.connect(this.ctx.destination);
@@ -33,6 +34,28 @@ export class AudioEngine {
     }
     if (this.ctx.state === "suspended") void this.ctx.resume();
     return this.ctx;
+  }
+
+  /** Start listening for tab visibility changes to suspend/resume audio. */
+  startVisibilityTracking(): void {
+    if (this.visibilityHandler) return;
+    this.visibilityHandler = () => {
+      if (!this.ctx || this.ctx.state === "closed") return;
+      if (document.hidden) {
+        this.ctx.suspend().catch(() => {});
+      } else {
+        this.ctx.resume().catch(() => {});
+      }
+    };
+    document.addEventListener("visibilitychange", this.visibilityHandler);
+  }
+
+  /** Stop listening for tab visibility changes. */
+  stopVisibilityTracking(): void {
+    if (this.visibilityHandler) {
+      document.removeEventListener("visibilitychange", this.visibilityHandler);
+      this.visibilityHandler = null;
+    }
   }
 
   setGains(voice: number, piano: number): void {
@@ -242,9 +265,12 @@ export class AudioEngine {
   }
 
   dispose(): void {
+    this.stopVisibilityTracking();
     this.cancelChords();
     this.cancelClicks();
-    void this.ctx?.close();
+    if (this.ctx && this.ctx.state !== "closed") {
+      void this.ctx.close();
+    }
     this.ctx = null;
   }
 }

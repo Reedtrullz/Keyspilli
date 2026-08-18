@@ -5,7 +5,40 @@ import { parseTempoRequest, TempoRequestError, type TempoRequestPatch } from "@/
 
 export const dynamic = "force-dynamic";
 
+function checkAuth(req: Request): Response | null {
+  const token = process.env.KEYSPILLI_API_TOKEN;
+  if (!token) return null; // no auth configured, allow
+  const auth = req.headers.get("authorization");
+  if (auth !== `Bearer ${token}`) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+  return null;
+}
+
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT = 5;
+const RATE_WINDOW_MS = 60_000;
+
+function checkRateLimit(ip: string): Response | null {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
+    return null;
+  }
+  entry.count++;
+  if (entry.count > RATE_LIMIT) {
+    return NextResponse.json({ error: "too many requests, try again later" }, { status: 429 });
+  }
+  return null;
+}
+
 export async function POST(req: NextRequest) {
+  const authResponse = checkAuth(req);
+  if (authResponse) return authResponse;
+  const ip = req.headers.get("x-forwarded-for") || "unknown";
+  const rateLimitResponse = checkRateLimit(ip);
+  if (rateLimitResponse) return rateLimitResponse;
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   const url = typeof body.url === "string" ? body.url.trim() : "";
   if (!url || !/^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\//.test(url)) {
@@ -47,7 +80,7 @@ export async function POST(req: NextRequest) {
     if (e instanceof SongUpdateError) return NextResponse.json({ error: e.message }, { status: e.status });
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
-  const id = `job-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  const id = `job-${crypto.randomUUID()}`;
   insertJob({
     id,
     youtubeUrl: url,

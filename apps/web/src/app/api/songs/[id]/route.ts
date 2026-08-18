@@ -14,6 +14,16 @@ import { join } from "node:path";
 
 export const dynamic = "force-dynamic";
 
+function checkAuth(req: Request): Response | null {
+  const token = process.env.KEYSPILLI_API_TOKEN;
+  if (!token) return null; // no auth configured, allow
+  const auth = req.headers.get("authorization");
+  if (auth !== `Bearer ${token}`) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+  return null;
+}
+
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const detail = await getSongDetail(id);
@@ -22,6 +32,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 }
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const authResponse = checkAuth(req);
+  if (authResponse) return authResponse;
   const { id } = await params;
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   const patch = {} as SongPatch & TempoRequestPatch;
@@ -53,6 +65,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 }
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const authResponse = checkAuth(_req);
+  if (authResponse) return authResponse;
   const { id } = await params;
   // Variant ids and base ids both work; resolve before deleting so jobs
   // pointing at any variant of this base are cleaned up too.

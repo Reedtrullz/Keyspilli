@@ -99,7 +99,8 @@ describe("PlaybackEngine", () => {
   it("stops and seeks to 0 at the end of the song", () => {
     const { eng } = engine();
     eng.start();
-    eng.tick(2);
+    // Tick enough to reach the end (dt is clamped to 0.5s)
+    for (let i = 0; i < 5; i++) eng.tick(0.5);
     expect(eng.playing).toBe(false);
     expect(eng.time).toBe(0);
   });
@@ -324,4 +325,27 @@ describe("PlaybackEngine", () => {
     slow.start();
     expect(slowAudio.playedChords[0]!.durationSec).toBeCloseTo(2, 5);
   });
+  it("clamps dt to 0.5s to prevent tab-background jumps", () => {
+    const { eng } = engine();
+    eng.start();
+    eng.tick(10); // huge dt (simulating background tab)
+    expect(eng.time).toBeLessThanOrEqual(0.55); // clamped to 0.5 + some tolerance
+    expect(eng.playing).toBe(true); // didn't crash or overshoot wildly
+  });
+
+  it("setTimeline updates notes and chords atomically", () => {
+    const audio = new FakeAudio();
+    const eng = new PlaybackEngine(audio, notes, 1.5, SONG, { ...DEFAULT_SETTINGS, backgroundMode: "chord" }, []);
+    eng.start();
+    audio.noteOns = [];
+    eng.setTimeline(
+      [{ midi: 72, startSec: 0, durSec: 0.5, vel: 80 }],
+      0.5,
+      [{ beat: 0, name: "C", notes: [60, 64, 67] }],
+    );
+    eng.tick(0.02);
+    expect(audio.noteOns.some(n => n.midi === 72)).toBe(true);
+    expect(audio.playedChords.length).toBeGreaterThan(0);
+  });
+
 });

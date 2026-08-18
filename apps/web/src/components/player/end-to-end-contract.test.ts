@@ -129,7 +129,9 @@ describe("chord contract end to end", () => {
     ]);
 
     // The second event lands at beat 4 = 1.6 seconds at this tempo/speed.
-    engine.tick(1.6);
+    // Advance in sub-clamp increments (dt is clamped to 0.5s to prevent
+    // tab-background jumps, so a single 1.6s tick would not reach here).
+    for (let i = 0; i < 4; i++) engine.tick(0.4);
     expect(audio.playedChords[1]).toMatchObject({
       midiNotes: [52, 55, 59],
       durationSec: 1.6,

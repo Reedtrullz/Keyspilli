@@ -5,7 +5,7 @@
  */
 import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
-import { mkdir, readFile } from "node:fs/promises";
+import { mkdir, readFile, stat } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 import {
@@ -44,6 +44,18 @@ const BASIC_PITCH_SERIALIZATION = process.env.KEYSPILLI_BP_SERIALIZATION ?? "";
 const BASIC_PITCH_VERSION = process.env.KEYSPILLI_BP_VERSION ?? process.env.BASIC_PITCH_VERSION ?? "unknown";
 const ONSET_THRESHOLD = process.env.KEYSPILLI_ONSET ?? "0.65";
 const FRAME_THRESHOLD = process.env.KEYSPILLI_FRAME ?? "0.45";
+
+// Validate numeric env vars at startup to fail fast on misconfiguration
+function requirePositiveFloat(name: string, value: string): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    throw new Error(`Environment variable ${name} must be a positive number, got "${value}"`);
+  }
+  return parsed;
+}
+requirePositiveFloat("KEYSPILLI_ONSET_MATCH_SEC", process.env.KEYSPILLI_ONSET_MATCH_SEC ?? "0.15");
+requirePositiveFloat("KEYSPILLI_ONSET", ONSET_THRESHOLD);
+requirePositiveFloat("KEYSPILLI_FRAME", FRAME_THRESHOLD);
 
 async function run(cmd: string, args: string[], timeoutMs = 300_000): Promise<string> {
   const { stdout } = await execFileP(cmd, args, { timeout: timeoutMs, maxBuffer: 32 * 1024 * 1024 });
@@ -95,6 +107,10 @@ async function processJob(jobId: string): Promise<void> {
     // sidecar) to tempo detection/Basic Pitch after a retried yt-dlp run.
     const audioPath = await resolveYoutubeAudio(dir);
     if (!audioPath) throw new Error("no audio file produced");
+    // Basic Pitch silently produces empty MIDI from truncated/unplayable files.
+    // Reject files that are too small to contain valid audio.
+    const { size: audioSize } = await stat(audioPath);
+    if (audioSize < 1024) throw new Error(`audio file too small (${audioSize} bytes), likely corrupt download`);
     const bpArgs = [dir, audioPath, "--save-midi", "--onset-threshold", ONSET_THRESHOLD, "--frame-threshold", FRAME_THRESHOLD];
     const tempo = TEMPO_OVERRIDE ?? (await run(PYTHON, [TEMPO_PY, audioPath], TEMPO_TIMEOUT_MS).catch((e) => {
       console.warn(`[worker] ${jobId} tempo detection failed: ${(e as Error).message}`);
@@ -206,6 +222,12 @@ async function processJob(jobId: string): Promise<void> {
 async function loop(): Promise<void> {
   const orphaned = requeueOrphaned();
   if (orphaned) console.log(`[worker] requeued ${orphaned} orphaned job(s)`);
+  try {
+    const version = await run("yt-dlp", ["--version"], 10_000);
+    console.log(`[worker] yt-dlp version: ${version.trim()}`);
+  } catch {
+    console.warn("[worker] could not determine yt-dlp version");
+  }
   console.log(`[worker] polling every ${POLL_MS}ms`);
   for (;;) {
     try {

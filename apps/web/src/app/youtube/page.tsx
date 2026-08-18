@@ -66,12 +66,20 @@ export default function YoutubePage() {
   }
 
   function poll(id: string) {
+    let elapsed = 0;
     const t = window.setInterval(async () => {
+      elapsed += 3000;
       try {
         const r = await fetch(`/api/youtube/status/${id}`);
         const j = await r.json();
-        if (j.status === "processing") setStatus("processing");
-        else if (j.status === "done") {
+        if (j.status === "processing") {
+          setStatus("processing");
+          // After 10 minutes, stop auto-polling
+          if (elapsed >= 600_000) {
+            window.clearInterval(t);
+            setError("This is taking longer than expected. The transcription may still be running in the background.");
+          }
+        } else if (j.status === "done") {
           setStatus("done");
           setSongId(j.songId);
           window.clearInterval(t);
@@ -165,7 +173,7 @@ export default function YoutubePage() {
     <div className="max-w-2xl mx-auto px-4 py-10">
       <h1 className="text-2xl font-bold mb-2">YouTube → Sheet Music</h1>
       <p className="text-zinc-600 text-sm mb-6">
-        Paste a <strong>solo piano cover</strong> (no vocals or drums, under 5 minutes). A worker downloads the audio,
+        Paste a <strong>solo piano cover</strong> (no vocals or drums, 10 seconds to 5 minutes). A worker downloads the audio,
         transcribes it to MIDI, and creates a full playable arrangement — usually in a minute or two.
       </p>
       <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-6">
