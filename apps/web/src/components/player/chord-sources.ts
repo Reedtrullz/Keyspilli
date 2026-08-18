@@ -1,5 +1,5 @@
 import { chordToNotes, type ChordLabel } from "@keyspilli/midi";
-import type { SongData } from "@keyspilli/player-core";
+import { completeChordDurations, type ChordSourceProvenance, type SongData } from "@keyspilli/player-core";
 
 /**
  * The player can receive an optional source timeline without making the
@@ -26,10 +26,13 @@ export interface PlayerChordMetadata {
 export type PlayerChordLabel = Omit<ChordLabel, keyof PlayerChordMetadata> & PlayerChordMetadata;
 
 export interface ChordSourceOption {
-  id: Exclude<ChordSourceId, "auto">;
+  id: ChordSourceId;
   label: string;
   chords: PlayerChordLabel[];
   provenance: string | null;
+  /** Structured source provenance; `provenance` remains the display string. */
+  provenanceInfo?: ChordSourceProvenance | null;
+  coverage?: "opening-section" | "full-song";
   fallback: boolean;
   fallbackReason: string | null;
 }
@@ -37,6 +40,7 @@ export interface ChordSourceOption {
 export interface ChordSourceResolution {
   generated: ChordSourceOption;
   ug: ChordSourceOption | null;
+  auto: ChordSourceOption;
 }
 
 export interface SelectedChordSource {
@@ -83,6 +87,42 @@ function describeProvenance(value: unknown): string | null {
     if (found) return found;
   }
   return null;
+}
+
+function structuredProvenance(value: unknown): ChordSourceProvenance | null {
+  const obj = record(value);
+  if (!obj) return null;
+  const out: ChordSourceProvenance = {};
+  for (const key of ["sourceId", "provider", "kind", "sourceRef", "confidence", "fallbackReason"] as const) {
+    if (typeof obj[key] === "string" && obj[key].trim()) out[key] = obj[key].trim();
+  }
+  for (const key of ["sourceUrl", "retrievedAt"] as const) {
+    if (typeof obj[key] === "string" || obj[key] === null) out[key] = obj[key] as string | null;
+  }
+  if (typeof obj.fallback === "boolean") out.fallback = obj.fallback;
+  return Object.keys(out).length ? out : null;
+}
+
+function validSourceOption(value: unknown, expectedId: ChordSourceId): UnknownRecord | null {
+  const obj = record(value);
+  if (!obj || obj.id !== expectedId || typeof obj.label !== "string" || !obj.label.trim() || !Array.isArray(obj.chords)) return null;
+  if (typeof obj.fallback !== "boolean") return null;
+  if (obj.coverage !== undefined && obj.coverage !== "opening-section" && obj.coverage !== "full-song") return null;
+  if (obj.provenance !== undefined && obj.provenance !== null && typeof obj.provenance !== "string") return null;
+  if (obj.provenanceInfo !== undefined && obj.provenanceInfo !== null && !structuredProvenance(obj.provenanceInfo)) return null;
+  if (obj.fallbackReason !== undefined && obj.fallbackReason !== null && typeof obj.fallbackReason !== "string") return null;
+  return obj;
+}
+
+/** Validate the versioned bundle before allowing it to override legacy fields. */
+function validChordSourceBundle(value: unknown): { generated: UnknownRecord; ug: UnknownRecord | null; auto: UnknownRecord } | null {
+  const obj = record(value);
+  if (!obj || obj.schemaVersion !== 1) return null;
+  const generated = validSourceOption(obj.generated, "generated");
+  const auto = validSourceOption(obj.auto, "auto");
+  if (!generated || !auto) return null;
+  if (obj.ug !== null && validSourceOption(obj.ug, "ug") === null) return null;
+  return { generated, ug: obj.ug as UnknownRecord | null, auto };
 }
 
 function numberList(value: unknown): number[] {
@@ -194,6 +234,8 @@ export function normalizeChordTimeline(
   value: unknown,
   legacySourceKind?: PlayerChordMetadata["sourceKind"],
 ): PlayerChordLabel[] {
+  const container = record(value);
+  const containerDuration = finite(container?.durationBeats ?? container?.duration);
   const out: PlayerChordLabel[] = [];
   for (const item of chordArray(value)) {
     const obj = record(item);
@@ -253,7 +295,9 @@ export function normalizeChordTimeline(
     ) continue;
     deduped.push(chord);
   }
-  return deduped;
+  return containerDuration !== null
+    ? completeChordDurations(deduped, containerDuration)
+    : deduped;
 }
 
 function provenanceCandidates(data: UnknownRecord): unknown[] {
@@ -271,10 +315,34 @@ function provenanceCandidates(data: UnknownRecord): unknown[] {
   return out.filter((value) => value !== undefined && value !== null);
 }
 
-function findUgTimeline(data: UnknownRecord): { value: unknown; provenance: string | null; fallback: boolean; fallbackReason: string | null } | null {
+function findUgTimeline(data: UnknownRecord): {
+  value: unknown;
+  provenance: string | null;
+  provenanceInfo?: ChordSourceProvenance | null;
+  coverage?: "opening-section" | "full-song";
+  durationBeats?: number;
+  fallback: boolean;
+  fallbackReason: string | null;
+} | null {
+  const sourceBundle = validChordSourceBundle(data.chordSources);
   const provenanceObject = record(data.chordProvenance);
   const fallback = provenanceObject?.fallback === true;
   const fallbackReason = text(provenanceObject?.fallbackReason);
+  const bundleUg = sourceBundle?.ug;
+  if (bundleUg) {
+    const chords = normalizeChordTimeline(bundleUg.chords ?? bundleUg.timeline ?? bundleUg, "authored");
+    if (chords.length) {
+      return {
+        value: chords,
+        provenance: describeProvenance(bundleUg.provenanceInfo ?? bundleUg.provenance) ?? "ug-tabs",
+        provenanceInfo: structuredProvenance(bundleUg.provenanceInfo ?? bundleUg.provenance),
+        coverage: bundleUg.coverage === "opening-section" || bundleUg.coverage === "full-song" ? bundleUg.coverage : undefined,
+        durationBeats: finite(bundleUg.durationBeats) ?? undefined,
+        fallback: bundleUg.fallback === true,
+        fallbackReason: text(bundleUg.fallbackReason),
+      };
+    }
+  }
   const directKeys = [
     "ugChordTimeline",
     "ugChords",
@@ -286,7 +354,18 @@ function findUgTimeline(data: UnknownRecord): { value: unknown; provenance: stri
     if (data[key] !== undefined) {
       const chords = normalizeChordTimeline(data[key], "authored");
       const provenance = provenanceCandidates(data).find(isUgText);
-      if (chords.length) return { value: chords, provenance: describeProvenance(provenance) ?? "ug-tabs", fallback, fallbackReason };
+      if (chords.length) {
+        const obj = record(data[key]);
+        return {
+          value: chords,
+          provenance: describeProvenance(provenance) ?? "ug-tabs",
+          provenanceInfo: structuredProvenance(data.chordProvenance ?? provenance),
+          coverage: obj?.coverage === "opening-section" || obj?.coverage === "full-song" ? obj.coverage : undefined,
+          durationBeats: finite(obj?.durationBeats) ?? undefined,
+          fallback,
+          fallbackReason,
+        };
+      }
     }
   }
 
@@ -300,14 +379,30 @@ function findUgTimeline(data: UnknownRecord): { value: unknown; provenance: stri
         const obj = record(item);
         if (!obj || !isUgText(obj.id ?? obj.source ?? obj.label ?? obj.provenance)) continue;
         const chords = normalizeChordTimeline(obj.timeline ?? obj.chords ?? obj.events ?? obj, "authored");
-        if (chords.length) return { value: chords, provenance: describeProvenance(obj.provenance ?? obj.source ?? obj.label) ?? "ug-tabs", fallback: obj.fallback === true, fallbackReason: text(obj.fallbackReason) };
+        if (chords.length) return {
+          value: chords,
+          provenance: describeProvenance(obj.provenance ?? obj.source ?? obj.label) ?? "ug-tabs",
+          provenanceInfo: structuredProvenance(obj.provenance),
+          coverage: obj.coverage === "opening-section" || obj.coverage === "full-song" ? obj.coverage : undefined,
+          durationBeats: finite(obj.durationBeats) ?? undefined,
+          fallback: obj.fallback === true,
+          fallbackReason: text(obj.fallbackReason),
+        };
       }
     } else if (record(value)) {
       for (const [sourceId, sourceValue] of Object.entries(value as UnknownRecord)) {
         if (!isUgText(sourceId) && !isUgText(describeProvenance(sourceValue))) continue;
         const sourceObj = record(sourceValue);
         const chords = normalizeChordTimeline(sourceObj?.timeline ?? sourceObj?.chords ?? sourceValue, "authored");
-        if (chords.length) return { value: chords, provenance: describeProvenance(sourceObj?.provenance ?? sourceObj?.source ?? sourceId) ?? "ug-tabs", fallback: sourceObj?.fallback === true, fallbackReason: text(sourceObj?.fallbackReason) };
+        if (chords.length) return {
+          value: chords,
+          provenance: describeProvenance(sourceObj?.provenance ?? sourceObj?.source ?? sourceId) ?? "ug-tabs",
+          provenanceInfo: structuredProvenance(sourceObj?.provenance),
+          coverage: sourceObj?.coverage === "opening-section" || sourceObj?.coverage === "full-song" ? sourceObj.coverage : undefined,
+          durationBeats: finite(sourceObj?.durationBeats) ?? undefined,
+          fallback: sourceObj?.fallback === true,
+          fallbackReason: text(sourceObj?.fallbackReason),
+        };
       }
     }
   }
@@ -321,35 +416,132 @@ function findUgTimeline(data: UnknownRecord): { value: unknown; provenance: stri
     const timelineSource = timelineObj?.source ?? timelineObj?.provenance ?? timelineObj?.provider;
     if (isUgText(timelineSource) || provenance !== undefined) {
       const chords = normalizeChordTimeline(data.chordTimeline, "authored");
-      if (chords.length) return { value: chords, provenance: describeProvenance(timelineSource ?? provenance) ?? "ug-tabs", fallback, fallbackReason };
+      if (chords.length) return {
+        value: chords,
+        provenance: describeProvenance(timelineSource ?? provenance) ?? "ug-tabs",
+        provenanceInfo: structuredProvenance(timelineObj?.provenance ?? data.chordProvenance),
+        coverage: timelineObj?.coverage === "opening-section" || timelineObj?.coverage === "full-song" ? timelineObj.coverage : undefined,
+        durationBeats: finite(timelineObj?.durationBeats) ?? undefined,
+        fallback,
+        fallbackReason,
+      };
     }
   }
   return null;
 }
 
+function arrangementDurationBeats(data: SongData): number {
+  const raw = data as unknown as UnknownRecord;
+  const notes = Array.isArray(raw.notes) ? raw.notes : [];
+  const measures = Array.isArray(raw.measures) ? raw.measures : [];
+  const noteEnd = notes.reduce((max, value) => {
+    const obj = record(value);
+    const start = finite(obj?.start) ?? 0;
+    const duration = finite(obj?.dur) ?? 0;
+    return Math.max(max, start + duration);
+  }, 0);
+  const measureEnd = measures.reduce((max, value) => {
+    const obj = record(value);
+    return Math.max(max, finite(obj?.endBeat) ?? 0);
+  }, 0);
+  return Math.max(noteEnd, measureEnd, 0);
+}
+
+function chordEnd(chord: PlayerChordLabel, nextBeat: number | undefined, arrangementEnd: number): number {
+  const explicit = typeof chord.durationBeats === "number" && Number.isFinite(chord.durationBeats) && chord.durationBeats > 0
+    ? chord.durationBeats
+    : undefined;
+  const naturalEnd = nextBeat ?? arrangementEnd;
+  return Math.min(chord.beat + (explicit ?? Math.max(0, naturalEnd - chord.beat)), naturalEnd, arrangementEnd || Number.POSITIVE_INFINITY);
+}
+
+/** Merge strict chart coverage with generated continuation without changing source identity. */
+function buildHybridTimeline(
+  chart: PlayerChordLabel[],
+  generated: PlayerChordLabel[],
+  arrangementEnd: number,
+): PlayerChordLabel[] {
+  const orderedChart = [...chart].sort((a, b) => a.beat - b.beat);
+  const generatedFallback = generated.filter((candidate) => {
+    for (let i = 0; i < orderedChart.length; i++) {
+      const source = orderedChart[i]!;
+      const end = chordEnd(source, orderedChart[i + 1]?.beat, arrangementEnd);
+      if (candidate.beat === source.beat || (candidate.beat >= source.beat && candidate.beat < end)) return false;
+    }
+    return true;
+  });
+  return completeChordDurations([...orderedChart, ...generatedFallback].sort((a, b) => a.beat - b.beat), arrangementEnd);
+}
+
 export function resolveChordSources(data: SongData): ChordSourceResolution {
   const raw = data as unknown as UnknownRecord;
-  const generated = normalizeChordTimeline(raw.chords, "generated");
+  const arrangementEnd = arrangementDurationBeats(data);
+  // A malformed or future bundle is ignored wholesale. Legacy raw.chords and
+  // the older UG aliases remain the safe compatibility projection.
+  const bundle = validChordSourceBundle(raw.chordSources);
+  const generated = completeChordDurations(
+    normalizeChordTimeline(bundle?.generated ?? raw.chords, "generated"),
+    arrangementEnd,
+  );
   const ug = findUgTimeline(raw);
+  const strictUg = ug
+    ? completeChordDurations(
+        normalizeChordTimeline(ug.value, "authored"),
+        ug.durationBeats ?? (ug.coverage === "full-song" ? arrangementEnd : undefined),
+      )
+    : [];
+  const generatedOption: ChordSourceOption = {
+    id: "generated",
+    label: "Generated chords",
+    chords: generated,
+    provenance: describeProvenance(bundle?.generated.provenanceInfo ?? bundle?.generated.provenance),
+    provenanceInfo: structuredProvenance(bundle?.generated.provenanceInfo ?? bundle?.generated.provenance),
+    coverage: "full-song",
+    fallback: false,
+    fallbackReason: null,
+  };
+  const ugOption: ChordSourceOption | null = strictUg.length
+    ? {
+        id: "ug",
+        label: ug?.fallback ? "UG + generated fallback" : ug?.coverage === "opening-section" ? "UG opening (partial)" : "UG timeline",
+        chords: strictUg,
+        provenance: ug?.provenance ?? "ug-tabs",
+        provenanceInfo: ug?.provenanceInfo ?? null,
+        coverage: ug?.coverage,
+        fallback: ug?.fallback ?? false,
+        fallbackReason: ug?.fallbackReason ?? null,
+      }
+    : null;
+  const auto: ChordSourceOption = bundle?.auto
+    ? {
+        id: "auto",
+        label: text(bundle.auto.label) ?? (ugOption ? "UG + generated fallback" : "Generated fallback"),
+        chords: completeChordDurations(
+          normalizeChordTimeline(bundle.auto.chords, undefined),
+          arrangementEnd,
+        ),
+        provenance: describeProvenance(bundle.auto.provenanceInfo ?? bundle.auto.provenance) ?? ugOption?.provenance ?? null,
+        provenanceInfo: structuredProvenance(bundle.auto.provenanceInfo ?? bundle.auto.provenance) ?? ugOption?.provenanceInfo ?? null,
+        coverage: "full-song",
+        fallback: bundle.auto.fallback === true,
+        fallbackReason: text(bundle.auto.fallbackReason) ?? (bundle.auto.fallback === true && ugOption ? "Generated chords fill uncovered chart events and the remaining song." : null),
+      }
+    : {
+        id: "auto",
+        label: ugOption ? "UG + generated fallback" : "Generated fallback",
+        chords: ugOption ? buildHybridTimeline(strictUg, generated, arrangementEnd) : generated,
+        provenance: ugOption?.provenance ?? null,
+        provenanceInfo: ugOption?.provenanceInfo ?? null,
+        coverage: "full-song",
+        fallback: Boolean(ugOption && (ugOption.coverage === "opening-section" || ugOption.fallback)),
+        fallbackReason: ugOption && (ugOption.coverage === "opening-section" || ugOption.fallback)
+          ? `UG chart covers ${ug?.coverage ?? "opening-section"}; generated chords fill uncovered chart events and the remaining song.`
+          : null,
+      };
   return {
-    generated: {
-      id: "generated",
-      label: "Generated chords",
-      chords: generated,
-      provenance: null,
-      fallback: false,
-      fallbackReason: null,
-    },
-    ug: ug
-      ? {
-          id: "ug",
-          label: ug.fallback ? "UG + generated fallback" : "UG timeline",
-          chords: ug.value as PlayerChordLabel[],
-          provenance: ug.provenance,
-          fallback: ug.fallback,
-          fallbackReason: ug.fallbackReason,
-        }
-      : null,
+    generated: generatedOption,
+    ug: ugOption,
+    auto,
   };
 }
 
@@ -377,8 +569,11 @@ export function selectChordSource(
     }
     return { source: null, requested, fallback: true, fallbackReason: "No generated chord timeline is available; using piano background." };
   }
-  if (resolution.ug?.chords.length) {
+  if (resolution.ug?.chords.length && !resolution.auto.fallback) {
     return { source: resolution.ug, requested, fallback: resolution.ug.fallback, fallbackReason: resolution.ug.fallbackReason };
+  }
+  if (resolution.auto.chords.length) {
+    return { source: resolution.auto, requested, fallback: resolution.auto.fallback, fallbackReason: resolution.auto.fallbackReason };
   }
   if (resolution.generated.chords.length) {
     return { source: resolution.generated, requested, fallback: false, fallbackReason: null };

@@ -9,6 +9,7 @@ import {
   resolveChordSourceArtifact,
   resolveChordTimeline,
   ROOT,
+  sourceKindMismatch,
 } from "../src/index.js";
 
 const map = await loadChordSourceMap();
@@ -26,6 +27,11 @@ for (const entry of map.entries) {
     try {
       const artifact = parseChordTimeline(JSON.parse(await readFile(path, "utf8")), { source });
       if (artifact.baseId !== entry.baseId) throw new Error(`baseId ${artifact.baseId} does not match mapping ${entry.baseId}`);
+      if (artifact.provenance.kind !== source.kind) {
+        throw new Error(`provenance kind ${artifact.provenance.kind} does not match mapped source kind ${source.kind}`);
+      }
+      const originIssues = sourceKindMismatch(source.kind, artifact.chords.map((chord) => chord.sourceKind));
+      if (originIssues.length) throw new Error(originIssues.join("; "));
       artifacts++;
       console.log(`OK ${entry.baseId}/${source.id}: ${artifact.chords.length} chords, ${artifact.durationBeats} beats`);
     } catch (error) {
@@ -87,8 +93,12 @@ if (linkedBases.length === 0) {
     if (!resolution) {
       fallbackFailures.push(`${baseId}: no chart or generated fallback timeline resolved`);
     } else if (resolution.source.kind === "chart") {
+      const originIssues = sourceKindMismatch("chart", resolution.timeline.chords.map((chord) => chord.sourceKind));
+      for (const issue of originIssues) fallbackFailures.push(`${baseId}: ${issue}`);
       chartSources++;
     } else {
+      const originIssues = sourceKindMismatch("midi-derived", resolution.timeline.chords.map((chord) => chord.sourceKind));
+      for (const issue of originIssues) fallbackFailures.push(`${baseId}: ${issue}`);
       generatedSources++;
     }
   }

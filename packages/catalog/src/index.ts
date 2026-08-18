@@ -6,6 +6,7 @@ export * from "./transcribe.js";
 export * from "./learner-review.js";
 export * from "./manifest.js";
 export * from "./artifact-manifest.js";
+export * from "./provenance.js";
 export * from "./publish.js";
 export * from "./legacy-migration.js";
 export * from "./chord-sources.js";

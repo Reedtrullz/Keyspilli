@@ -228,6 +228,31 @@ describe("PlaybackEngine", () => {
     expect(audio.playedChords).toHaveLength(0);
   });
 
+  it("resumes the recorded left hand in an uncovered hybrid gap", () => {
+    const audio = new FakeAudio();
+    const sourceNotes: TimedNote[] = [
+      { midi: 48, startSec: 3, durSec: 0.5, vel: 80, hand: "L" }, // beat 6 at 120 BPM
+    ];
+    const eng = new PlaybackEngine(
+      audio,
+      sourceNotes,
+      5,
+      SONG,
+      { ...DEFAULT_SETTINGS, backgroundMode: "chord" },
+      [
+        { beat: 0, durationBeats: 4, name: "C", notes: [48, 52, 55], sourceKind: "authored" },
+        // Deliberate uncovered interval from beat 4 through beat 8.
+        { beat: 8, durationBeats: 4, name: "G", notes: [43, 47, 50], sourceKind: "generated" },
+      ],
+    );
+    eng.start();
+    audio.noteOns = [];
+    audio.playedChords = [];
+    eng.seek(3);
+    expect(audio.noteOns).toEqual([{ midi: 48, when: 0 }]);
+    expect(audio.playedChords).toHaveLength(0);
+  });
+
   it("cancels and reschedules chord audio when seeking during playback", () => {
     const { eng, audio } = engine({ backgroundMode: "chord" }, [
       { beat: 0, name: "C", notes: [48, 52, 55] },

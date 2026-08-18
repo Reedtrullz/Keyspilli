@@ -57,6 +57,8 @@ export interface ChordDedupeOptions {
    * deliberately not an authority rank and is never silently promoted.
    */
   unknownSourceKind?: Exclude<ChordSourceKind, "unknown">;
+  /** Arrangement end used to close a final generated run. */
+  durationBeats?: number;
 }
 
 type ChordEvent = ChordLabel & { sourceKind?: ChordSourceKind };
@@ -334,7 +336,7 @@ function dedupeChordsOnce(
     // authoritative on the winning event below.
     const runEnd = Math.max(
       ...run.map((event) => event.end),
-      nextStart ?? first.start + 1,
+      nextStart ?? options.durationBeats ?? first.start + 1,
     );
     if (runEnd - first.start >= minRunBeats) {
       const winner = run.reduce((best, candidate) => compareChordEvents(candidate, best) > 0 ? candidate : best);
@@ -392,6 +394,54 @@ export function dedupeChords(
     current = next;
   }
   return current;
+}
+
+/**
+ * Complete beat spans at the player boundary.
+ *
+ * New generated and hybrid timelines are required to carry an explicit span
+ * so the audio engine can schedule them at the active tempo. Legacy events
+ * without provenance remain untouched by callers that need the historical
+ * wall-clock fallback. Explicit spans are clipped to the next onset and the
+ * supplied arrangement end, which prevents overlaps after a source merge.
+ */
+export function completeChordDurations<T extends ChordLabel>(
+  chords: readonly T[],
+  durationBeats?: number,
+): T[] {
+  const ordered = chords
+    .filter((chord) => Number.isFinite(chord.beat) && chord.beat >= 0)
+    .map((chord, index) => ({ chord, index }))
+    .sort((a, b) => a.chord.beat - b.chord.beat || a.index - b.index);
+  if (!ordered.length) return [];
+
+  const finiteDuration = typeof durationBeats === "number" && Number.isFinite(durationBeats) && durationBeats > 0
+    ? durationBeats
+    : undefined;
+  const out: T[] = [];
+  for (let i = 0; i < ordered.length; i++) {
+    const chord = ordered[i]!.chord;
+    const nextBeat = ordered[i + 1]?.chord.beat;
+    const explicit = typeof chord.durationBeats === "number" && Number.isFinite(chord.durationBeats) && chord.durationBeats > 0
+      ? chord.durationBeats
+      : undefined;
+    const naturalEnd = nextBeat !== undefined
+      ? nextBeat
+      : finiteDuration !== undefined
+        ? finiteDuration
+        : explicit !== undefined
+          ? chord.beat + explicit
+          : undefined;
+    if (naturalEnd === undefined) {
+      out.push(chord);
+      continue;
+    }
+    const requestedEnd = explicit === undefined ? naturalEnd : chord.beat + explicit;
+    const end = Math.min(requestedEnd, naturalEnd, finiteDuration ?? Number.POSITIVE_INFINITY);
+    if (!(end > chord.beat + 1e-7)) continue;
+    out.push({ ...chord, durationBeats: end - chord.beat });
+  }
+  return out;
 }
 
 export interface LoopRegion {

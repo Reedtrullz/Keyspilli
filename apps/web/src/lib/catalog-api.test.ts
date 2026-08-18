@@ -6,7 +6,7 @@ import { join } from "node:path";
 import type { ChordLabel } from "@keyspilli/midi";
 import { createLegacyBootstrapManifest, arrangementManifestPath, upsertSong, writeArrangementManifestFile, type SongRow } from "@keyspilli/catalog";
 import { writeMidi, writeMusicXml } from "@keyspilli/midi";
-import { getArtifactFile, getSongDetail, loadSongArtifact, mergeChartTimeline } from "./catalog-api";
+import { buildAutoChordSource, getArtifactFile, getSongDetail, loadSongArtifact, mergeChartTimeline } from "./catalog-api";
 
 const dataRoot = mkdtempSync(join(tmpdir(), "keyspilli-catalog-api-"));
 const previousDataRoot = process.env.KEYSPILLI_DATA_DIR;
@@ -208,6 +208,58 @@ describe("catalog artifact export validation", () => {
 });
 
 describe("catalog chart timeline merge", () => {
+  it("marks only partial or generated-filled merges as fallback", () => {
+    const fullTimeline = {
+      schemaVersion: 1 as const,
+      baseId: "full-song",
+      title: "Full Song",
+      artist: "Tester",
+      timeSig: [4, 4] as [number, number],
+      durationBeats: 8,
+      coverage: "full-song" as const,
+      chords: [{ beat: 0, durationBeats: 8, name: "C", notes: [48, 52, 55], sourceKind: "authored" as const }],
+      provenance,
+    };
+    const full = mergeChartTimeline(fullTimeline, [], 8);
+    const fullAuto = buildAutoChordSource(fullTimeline, full, {
+      id: "ug",
+      label: "UG timeline",
+      chords: full.chords,
+      provenance: "ultimate-guitar:test",
+      coverage: "full-song",
+      fallback: false,
+      fallbackReason: null,
+    });
+    expect(fullAuto.fallback).toBe(false);
+    expect(fullAuto.label).toBe("UG timeline");
+    expect(fullAuto.provenance).toBe("ultimate-guitar:test");
+    expect(fullAuto.provenanceInfo).toMatchObject({ kind: "chart", sourceRef: "ultimate-guitar:test" });
+
+    const partialTimeline = {
+      ...fullTimeline,
+      baseId: "partial-song",
+      durationBeats: 4,
+      coverage: "opening-section" as const,
+      chords: [{ beat: 0, durationBeats: 4, name: "C", notes: [48, 52, 55], sourceKind: "authored" as const }],
+    };
+    const partial = mergeChartTimeline(partialTimeline, [
+      { beat: 4, durationBeats: 4, name: "G", notes: [43, 47, 50], sourceKind: "generated" },
+    ], 8);
+    const partialAuto = buildAutoChordSource(partialTimeline, partial, {
+      id: "ug",
+      label: "UG opening (partial)",
+      chords: partial.chords.slice(0, 1),
+      provenance: "ultimate-guitar:test",
+      coverage: "opening-section",
+      fallback: false,
+      fallbackReason: null,
+    });
+    expect(partialAuto.fallback).toBe(true);
+    expect(partialAuto.label).toBe("UG + generated fallback");
+    expect(partialAuto.fallbackReason).toMatch(/generated|remaining/i);
+    expect(partialAuto.provenanceInfo).toMatchObject({ kind: "chart", sourceRef: "ultimate-guitar:test", fallback: true });
+  });
+
   it("fills partial or unvoiced chart positions from generated chords", () => {
     const timeline = {
       schemaVersion: 1 as const,

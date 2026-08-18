@@ -10,6 +10,7 @@ import { getDb } from "../src/db.js";
 import { MAX_YOUTUBE_IMPORT_DUR_BEATS } from "../src/ingest.js";
 import { disabledManifestBases } from "../src/manifest.js";
 import { dataDir } from "../src/paths.js";
+import { compareProvenanceSnapshots, type ProvenanceSnapshot } from "../src/provenance.js";
 import {
   readArrangementManifest,
   temposAgree,
@@ -59,6 +60,7 @@ type ArtifactProvenance = {
   acquiredVia?: unknown;
   sourceRef?: unknown;
   sourceYoutubeUrl?: unknown;
+  sourceArtifactRef?: unknown;
   tempo?: unknown;
 };
 
@@ -169,7 +171,27 @@ for (const song of linkedBases) {
   if (contentTypes.size > 1) issues.push("database variants disagree on content type");
   if (acquiredVia.size > 1) issues.push("database variants disagree on acquired_via provenance");
   if (sourceYoutubeUrls.size > 1) issues.push("database variants disagree on source_youtube_url provenance");
-  const row = dbRows[0] as { content_type?: string } | undefined;
+  const row = dbRows[0] as {
+    content_type?: string;
+    acquired_via?: string | null;
+    source_youtube_url?: string | null;
+  } | undefined;
+  const provenanceSnapshots: ProvenanceSnapshot[] = [];
+  // The DB schema intentionally stores the public URL separately from the
+  // per-level JSON sidecar. Include it when available so a seed-path label in
+  // notes.json is compared as a physical locator, not mistaken for a changed
+  // YouTube source.
+  if (row && (row.content_type === "youtube" || row.acquired_via === "youtube" || row.source_youtube_url)) {
+    provenanceSnapshots.push({
+      label: "database",
+      contentType: row.content_type,
+      acquiredVia: row.acquired_via,
+      sourceYoutubeUrl: row.source_youtube_url,
+    });
+  }
+  if (manifest?.source) {
+    provenanceSnapshots.push({ label: "artifact manifest", provenance: manifest.source });
+  }
   // Match ingestSource's source-aware sustain policy. Human-authored standard
   // and upload arrangements may contain intentional multi-measure holds;
   // YouTube/audio imports must satisfy the explicit tail ceiling.
@@ -199,6 +221,7 @@ for (const song of linkedBases) {
         issues.push(`${v.level}: manifest playback tempo ${manifest.tempo.playback.bpm} differs from artifact tempo ${v.tempoBpm}`);
       }
       const provenance = (v as Variant & { provenance?: ArtifactProvenance }).provenance;
+      provenanceSnapshots.push({ label: `notes.json/${v.level}`, provenance });
       if (!provenance || typeof provenance !== "object" || typeof provenance.kind !== "string") {
         issues.push(`${v.level}: artifact provenance is missing or malformed`);
       } else if (dbRow) {
@@ -238,6 +261,15 @@ for (const song of linkedBases) {
         issues.push(`${v.level}: artifact missing or invalid: ${(e as Error).message}`);
       }
     }
+  }
+
+  // Compare logical source identity after all six notes sidecars have been
+  // loaded. Warnings are intentionally non-fatal for legacy manifests that
+  // predate the source block; explicit cross-level/DB drift is fail-closed.
+  const provenanceDiffs = compareProvenanceSnapshots(provenanceSnapshots);
+  for (const diff of provenanceDiffs) {
+    if (diff.severity === "error") issues.push(`provenance: ${diff.message}`);
+    else warns.push(`provenance: ${diff.message}`);
   }
 
   // A valid manifest is required for repair: notes.json is a mirror, not an

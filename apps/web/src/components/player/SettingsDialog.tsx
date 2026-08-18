@@ -15,7 +15,7 @@ export function SettingsDialog({
   settings: PlayerSettings;
   onChange: (p: Partial<PlayerSettings>) => void;
   chordSource?: ChordSourceId;
-  chordSources?: { ug: ChordSourceOption | null; generated: ChordSourceOption };
+  chordSources?: { ug: ChordSourceOption | null; generated: ChordSourceOption; auto: ChordSourceOption };
   chordSourceStatus?: string | null;
   onChordSourceChange?: (source: ChordSourceId) => void;
   onClose: () => void;
@@ -65,7 +65,7 @@ export function SettingsDialog({
                   onClick={() => onChordSourceChange("auto")}
                   aria-pressed={chordSource === "auto"}
                   className={`px-2 py-2 rounded-lg text-xs border ${chordSource === "auto" ? "bg-zinc-700 text-white border-zinc-700" : "border-zinc-300 bg-white"}`}
-                  title="Prefer UG chords and fall back to generated chords"
+                  title={chordSources.auto.fallbackReason ?? "Use authored UG coverage with generated continuation"}
                 >
                   Auto
                 </button>
@@ -91,7 +91,7 @@ export function SettingsDialog({
                 </button>
               </div>
               <p className={`text-[11px] mt-2 ${chordSourceStatus ? "text-amber-700" : "text-zinc-500"}`} role={chordSourceStatus ? "status" : undefined}>
-                {chordSourceStatus ?? (chordSource === "auto" && chordSources.ug?.chords.length ? "Auto-selected UG timeline when available." : "Using generated chord timeline.")}
+                {chordSourceStatus ?? (chordSource === "auto" && chordSources.ug?.chords.length ? "Use the authored UG opening and generated continuation where the chart is uncovered." : "Using generated chord timeline.")}
               </p>
             </div>
           )}

@@ -37,7 +37,38 @@ body {
   }
 }
 
-.sheet-svg svg {
+.sheet-svg {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  background: #f4f4f5;
+  overflow-x: auto;
+}
+
+.sheet-svg__page {
+  width: min(100%, 900px);
+  flex: 0 0 auto;
+  padding: 1rem;
+  background: #fff;
+  border: 1px solid #e4e4e7;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 2px rgb(24 24 27 / 0.06);
+}
+
+/* Keep Verovio's intrinsic width/height and viewBox relationship intact.
+ * Width may scale down on small screens, but height must remain auto so a
+ * multipage score can never collapse into the old 9px strip. */
+.sheet-svg__page svg {
+  display: block;
   width: 100%;
+  max-width: 100%;
   height: auto;
+}
+
+.sheet-svg__error {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 0.75rem;
+  margin: 1rem;
 }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   AudioEngine,
   ChordGrader,
+  completeChordDurations,
   dedupeChords,
   KeyboardInput,
   MidiInput,
@@ -116,6 +117,10 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
 
   const chordSources = useMemo(() => {
     const resolved = resolveChordSources(initial.data);
+    const arrangementEnd = Math.max(
+      initial.data.notes.reduce((max, note) => Math.max(max, note.start + note.dur), 0),
+      initial.data.measures.reduce((max, measure) => Math.max(max, measure.endBeat), 0),
+    );
     return {
       ...resolved,
       // Keep the established inferred-chord naming/cleanup path unchanged;
@@ -123,7 +128,10 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
       // Normalize through the generated source first. This stamps legacy
       // generated events with sourceKind=generated while preserving explicit
       // authored/inferred/unknown metadata on newer artifacts.
-      generated: { ...resolved.generated, chords: dedupeChords(resolved.generated.chords) },
+      generated: {
+        ...resolved.generated,
+        chords: completeChordDurations(dedupeChords(resolved.generated.chords, { durationBeats: arrangementEnd }), arrangementEnd),
+      },
     };
   }, [initial.data]);
   const selectedChordSource = useMemo(
@@ -749,6 +757,7 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
           chordSources={{
             ug: chordSources.ug,
             generated: chordSources.generated,
+            auto: chordSources.auto,
           }}
           chordSourceStatus={selectedChordSource.fallbackReason}
           onChordSourceChange={updateChordSource}
