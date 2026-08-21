@@ -74,6 +74,7 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
   const [showTempoSemanticsNotice, setShowTempoSemanticsNotice] = useState(false);
   const [grading, setGrading] = useState(false);
   const [chordPracticeActive, setChordPracticeActive] = useState(false);
+  const [modeMenuIdx, setModeMenuIdx] = useState(-1);
   const [chordPracticeSnapshot, setChordPracticeSnapshot] = useState<ChordPracticeSnapshot | null>(null);
   const [waitMode, setWaitMode] = useState(false);
   const [gradeResult, setGradeResult] = useState<{ summary: string; accuracyPct: number; hit: number; missed: number; wrong: number; late: number; total: number } | null>(null);
@@ -334,6 +335,55 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
     return () => window.removeEventListener("mousedown", onDown);
   }, [showModeMenu]);
 
+  // Reset mode menu index when menu opens/closes.
+  useEffect(() => {
+    if (!showModeMenu) {
+      setModeMenuIdx(-1);
+    } else {
+      setModeMenuIdx(MODES.findIndex((m) => m.id === settings.mode));
+    }
+  }, [showModeMenu, settings.mode]);
+
+
+  function handleModeMenuKey(e: React.KeyboardEvent) {
+    if (!showModeMenu) return;
+    const len = MODES.length;
+    switch (e.key) {
+      case "ArrowDown":
+        e.preventDefault();
+        setModeMenuIdx((i) => (i + 1) % len);
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        setModeMenuIdx((i) => (i - 1 + len) % len);
+        break;
+      case "Home":
+        e.preventDefault();
+        setModeMenuIdx(0);
+        break;
+      case "End":
+        e.preventDefault();
+        setModeMenuIdx(len - 1);
+        break;
+      case "Enter":
+      case " ":
+        e.preventDefault();
+        if (modeMenuIdx >= 0) {
+          const m = MODES[modeMenuIdx]!;
+          updateSettings({ mode: m.id });
+          setShowModeMenu(false);
+          const modePath = m.id === "falling" ? "" : `/${m.id}`;
+          window.history.replaceState(null, "", `/player/${initial.song.id}${modePath}`);
+        }
+        break;
+      case "Escape":
+        e.preventDefault();
+        setShowModeMenu(false);
+        break;
+    }
+  }
+
+
   // Sweep pressed keys whose noteOff never arrived.
   useEffect(() => {
     const id = setInterval(() => {
@@ -524,17 +574,23 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
             onClick={() => setShowModeMenu((s) => !s)}
             className="min-h-11 px-3 py-2 rounded-full border border-zinc-300 text-sm flex items-center gap-2"
             aria-haspopup="menu"
+            onKeyDown={handleModeMenuKey}
             aria-expanded={showModeMenu}
           >
             <span className="text-zinc-500">View</span>
             <span className="font-medium">{MODES.find((m) => m.id === settings.mode)?.label}</span>
           </button>
           {showModeMenu && (
-            <div className="absolute z-30 mt-2 w-64 rounded-xl border border-zinc-200 bg-white shadow-lg p-2" role="menu">
+            <div className="absolute z-30 mt-2 w-64 rounded-xl border border-zinc-200 bg-white shadow-lg p-2" role="menu"
+              onKeyDown={handleModeMenuKey}
+              aria-activedescendant={modeMenuIdx >= 0 ? `mode-menu-${MODES[modeMenuIdx]!.id}` : undefined}
+              tabIndex={-1}>
               {MODES.map((m) => (
                 <button
                   key={m.id}
                   role="menuitemradio"
+                  id={`mode-menu-${m.id}`}
+                  tabIndex={-1}
                   aria-checked={settings.mode === m.id}
                   onClick={() => {
                     updateSettings({ mode: m.id });
@@ -588,7 +644,7 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
         </button>
 
         <div className="ml-auto flex flex-wrap justify-end gap-2 text-sm">
-          <button onClick={() => setShowDownload(true)} className="min-h-11 px-4 py-2 rounded-full bg-zinc-900 text-white font-medium hover:bg-zinc-700">
+          <button onClick={() => setShowDownload(true)} className="min-h-11 px-4 py-2 rounded-full bg-zinc-900 text-white font-medium hover:bg-zinc-700" aria-label="Download sheet music and MIDI">
             Download Sheet &amp; MIDI
           </button>
           <button onClick={() => setShowSettings(true)} className="min-h-11 px-4 py-2 rounded-full border border-zinc-300 font-medium hover:bg-zinc-100" aria-label="Open settings">
@@ -647,18 +703,18 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
             <button onClick={() => seekToMeasure(Math.min(initial.data.measures.length - 1, currentMeasure + 1))} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Next measure">›</button>
           </div>
           <div className="flex items-center gap-1" aria-label="Practice speed">
-            <button onClick={() => updateSettings({ speed: Math.max(0.25, +(settings.speed - 0.1).toFixed(2)) })} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs">−</button>
+            <button onClick={() => updateSettings({ speed: Math.max(0.25, +(settings.speed - 0.1).toFixed(2)) })} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Decrease speed">−</button>
             <span className="px-2 text-xs font-medium" title="Practice speed">{Math.round(settings.speed * 100)}%</span>
             <button onClick={() => updateSettings({ speed: Math.min(2, +(settings.speed + 0.1).toFixed(2)) })} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs">+</button>
           </div>
           <div className="flex items-center gap-1" aria-label="Transpose">
-            <button onClick={() => updateSettings({ transpose: settings.transpose - 1 })} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs">−</button>
+            <button onClick={() => updateSettings({ transpose: settings.transpose - 1 })} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Transpose down">−</button>
             <span className="px-2 text-xs font-medium">
               Key {songKeyLabel} {settings.transpose ? `(${settings.transpose > 0 ? "+" : ""}${settings.transpose})` : ""}
             </span>
-            <button onClick={() => updateSettings({ transpose: settings.transpose + 1 })} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs">+</button>
+            <button onClick={() => updateSettings({ transpose: settings.transpose + 1 })} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Transpose up">+</button>
             {settings.transpose !== 0 && (
-              <button onClick={() => updateSettings({ transpose: 0 })} className="min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs text-zinc-500">
+              <button onClick={() => updateSettings({ transpose: 0 })} className="min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs text-zinc-500" aria-label="Reset transpose">
                 Reset
               </button>
             )}
