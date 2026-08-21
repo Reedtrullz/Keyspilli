@@ -11,6 +11,7 @@ coverage/
 .env.*
 !.env.example
 data/db.sqlite
+apps/data/*.sqlite*
 data/db.sqlite-*
 data/seed-midi/
 data/artifacts/
@@ -23,3 +24,7 @@ playwright-report/
 collections/
 .ansible-venv/
 node_modules
+
+# App runtime data
+apps/data/*.sqlite*
+*.tsbuildinfo
