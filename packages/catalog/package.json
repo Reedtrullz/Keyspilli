@@ -23,7 +23,11 @@
     "reingest-midi-pack": "tsx scripts/reingest-midi-pack.ts",
     "seed": "tsx scripts/seed.ts",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "chord-diagnostic": "tsx scripts/chord-diagnostic.ts",
+    "param-sweep": "tsx scripts/param-sweep.ts",
+    "audio-ab": "tsx scripts/audio-ab.ts",
+    "tempo-robustness": "tsx scripts/tempo-robustness.ts"
   },
   "dependencies": {
     "@keyspilli/midi": "*",

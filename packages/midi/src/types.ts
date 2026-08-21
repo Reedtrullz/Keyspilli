@@ -163,3 +163,30 @@ export interface MeasureInfo {
   startBeat: number;
   endBeat: number;
 }
+
+/** A named section of a song (verse, chorus, bridge, etc.) for practice navigation. */
+export interface Section {
+  /** Unique section identifier (e.g., "verse-1", "chorus", "bridge"). */
+  id: string;
+  /** Human-readable label (e.g., "Verse 1", "Chorus"). */
+  label: string;
+  /** Start position in quarter-note beats. */
+  startBeat: number;
+  /** End position in quarter-note beats. */
+  endBeat: number;
+  /** Optional section type for UI hints. */
+  type?: "verse" | "chorus" | "bridge" | "intro" | "outro" | "pre-chorus" | "interlude" | "custom";
+}
+
+/** Practice annotation for a section or the full song. */
+export interface PracticeAnnotation {
+  /** Section ID this annotation applies to, or "full" for the whole song. */
+  sectionId: string;
+  /** Suggested target tempo in BPM for this section. */
+  targetTempo?: number;
+  /** Number of times to repeat this section before moving on. */
+  repeatTarget?: number;
+  /** Free-text practice note. */
+  note?: string;
+}
+

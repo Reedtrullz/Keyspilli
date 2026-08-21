@@ -166,3 +166,39 @@ export function validateVariants(variants: Variant[], opts: VariantValidationOpt
   }
   return errors;
 }
+
+/**
+ * Verify monotonicity across difficulty levels: each level should be a
+ * strict simplification of the level above it (note count non-increasing,
+ * difficulty scores monotonically non-decreasing when moving to harder levels).
+ *
+ * Returns an array of error strings; empty means all checks passed.
+ */
+export function verifyMonotonicity(variants: Variant[]): string[] {
+  const errors: string[] = [];
+  const byLevel = new Map(variants.map((v) => [v.level, v]));
+
+  for (let i = 0; i < LEVEL_ORDER.length - 1; i++) {
+    const easierName = LEVEL_ORDER[i]!;
+    const harderName = LEVEL_ORDER[i + 1]!;
+    const easier = byLevel.get(easierName);
+    const harder = byLevel.get(harderName);
+    if (!easier || !harder) continue;
+
+    // Note count must be non-increasing from harder to easier
+    if (easier.notes.length > harder.notes.length) {
+      errors.push(
+        `${easierName} has ${easier.notes.length} notes but ${harderName} has ${harder.notes.length} (easier should not have more)`,
+      );
+    }
+
+    // Difficulty score must be non-decreasing from easier to harder
+    if (easier.difficultyScore > harder.difficultyScore) {
+      errors.push(
+        `${easierName} difficultyScore ${easier.difficultyScore} > ${harderName} difficultyScore ${harder.difficultyScore}`,
+      );
+    }
+  }
+
+  return errors;
+}

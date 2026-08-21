@@ -7,3 +7,4 @@ export * from "./grading.js";
 export * from "./chord-practice.js";
 export * from "./prefs.js";
 export * from "./views/falling.js";
+export * from "./sections.js";

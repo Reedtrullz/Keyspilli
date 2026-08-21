@@ -1,6 +1,6 @@
-import type { Note, ChordLabel, MeasureInfo } from "@keyspilli/midi";
+import type { Note, ChordLabel, MeasureInfo, Section, PracticeAnnotation } from "@keyspilli/midi";
 
-export type { Note, ChordLabel, MeasureInfo };
+export type { Note, ChordLabel, MeasureInfo, Section, PracticeAnnotation };
 
 /** Provenance for an optional external chord timeline. */
 export interface ChordSourceProvenance {
@@ -48,6 +48,8 @@ export interface SongData {
   /** Optional explicit chord source projections for newer catalogue payloads. */
   chordSources?: ChordSourceBundle;
   measures: MeasureInfo[];
+  sections?: Section[];
+  practiceAnnotations?: PracticeAnnotation[];
   key: string;
   tempoBpm: number;
   timeSig: [number, number];

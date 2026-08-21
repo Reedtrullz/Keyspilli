@@ -33,3 +33,11 @@ export {
   applyCapo,
   transposeMidiNotes,
 } from "./chords.js";
+export {
+  melodyContinuity,
+  rhLhBalance,
+  soundingDensity,
+  arrangementQualityReport,
+} from "./arrangement-quality.js";
+export type { RhLhBalance, ArrangementQualityReport } from "./arrangement-quality.js";
+export { verifyMonotonicity } from "./validate.js";
