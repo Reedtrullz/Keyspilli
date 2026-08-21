@@ -705,7 +705,7 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
           <div className="flex items-center gap-1" aria-label="Practice speed">
             <button onClick={() => updateSettings({ speed: Math.max(0.25, +(settings.speed - 0.1).toFixed(2)) })} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Decrease speed">−</button>
             <span className="px-2 text-xs font-medium" title="Practice speed">{Math.round(settings.speed * 100)}%</span>
-            <button onClick={() => updateSettings({ speed: Math.min(2, +(settings.speed + 0.1).toFixed(2)) })} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs">+</button>
+            <button onClick={() => updateSettings({ speed: Math.min(2, +(settings.speed + 0.1).toFixed(2)) })} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Increase speed">+</button>
           </div>
           <div className="flex items-center gap-1" aria-label="Transpose">
             <button onClick={() => updateSettings({ transpose: settings.transpose - 1 })} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Transpose down">−</button>

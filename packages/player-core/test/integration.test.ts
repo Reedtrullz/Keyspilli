@@ -25,8 +25,7 @@ class FakeAudio extends AudioEngine {
   override cancelAll() { this.calls = []; }
   override setGains(_v: number, _p: number) {}
   override dispose() {}
-  get sustainPedal() { return true; }
-  set sustainPedal(_v: boolean) {}
+  sustainPedal = true;
 }
 
 const DEFAULT_SONG = { tempoBpm: 120, timeSig: [4, 4] as [number, number] };
@@ -34,10 +33,9 @@ const DEFAULT_SONG = { tempoBpm: 120, timeSig: [4, 4] as [number, number] };
 function makeNotes(...starts: number[]): TimedNote[] {
   return starts.map((start, i) => ({
     midi: 60 + i,
-    start,
-    dur: 0.5,
-    vel: 80,
     startSec: start * 0.5, // 120 BPM => 0.5 sec/beat
+    durSec: 0.25,
+    vel: 80,
     hand: "R" as const,
   }));
 }
@@ -46,10 +44,10 @@ describe("Full player pipeline integration", () => {
   it("loads notes and chords, plays through, and grades correctly", () => {
     const audio = new FakeAudio();
     const notes = [
-      { midi: 60, start: 0, dur: 1, vel: 80, startSec: 0, hand: "R" as const },
-      { midi: 62, start: 1, dur: 1, vel: 80, startSec: 0.5, hand: "R" as const },
-      { midi: 64, start: 2, dur: 1, vel: 80, startSec: 1.0, hand: "R" as const },
-      { midi: 65, start: 3, dur: 1, vel: 80, startSec: 1.5, hand: "R" as const },
+      { midi: 60, startSec: 0, durSec: 0.5, vel: 80, hand: "R" as const },
+      { midi: 62, startSec: 0.5, durSec: 0.5, vel: 80, hand: "R" as const },
+      { midi: 64, startSec: 1.0, durSec: 0.5, vel: 80, hand: "R" as const },
+      { midi: 65, startSec: 1.5, durSec: 0.5, vel: 80, hand: "R" as const },
     ];
     const chords: ChordLabel[] = [
       { beat: 0, name: "C", notes: [60, 64, 67], durationBeats: 2, sourceKind: "generated" },
@@ -80,9 +78,9 @@ describe("Full player pipeline integration", () => {
 
   it("grades a performance with correct hits and misses", () => {
     const notes = [
-      { midi: 60, start: 0, dur: 0.5, vel: 80, startSec: 0, hand: "R" as const },
-      { midi: 62, start: 1, dur: 0.5, vel: 80, startSec: 0.5, hand: "R" as const },
-      { midi: 64, start: 2, dur: 0.5, vel: 80, startSec: 1.0, hand: "R" as const },
+      { midi: 60, startSec: 0, durSec: 0.25, vel: 80, hand: "R" as const },
+      { midi: 62, startSec: 0.5, durSec: 0.25, vel: 80, hand: "R" as const },
+      { midi: 64, startSec: 1.0, durSec: 0.25, vel: 80, hand: "R" as const },
     ];
     const grader = new Grader(notes, { bpm: 120 });
 
@@ -111,29 +109,31 @@ describe("Full player pipeline integration", () => {
     const deduped = dedupeChords(chords);
     // Authored should win over generated
     expect(deduped.length).toBe(1);
-    expect(deduped[0].name).toBe("Cmaj");
-    expect(deduped[0].sourceKind).toBe("authored");
+    expect(deduped[0]!.name).toBe("Cmaj");
+    expect(deduped[0]!.sourceKind).toBe("authored");
   });
 
   it("detects sections from note density changes", () => {
     const notes: TimedNote[] = [];
     // Sparse intro (measures 0-3): few notes
     for (let i = 0; i < 4; i++) {
-      notes.push({ midi: 60, start: i * 4, dur: 1, vel: 80, startSec: i * 2, hand: "R" as const });
+      notes.push({ midi: 60, startSec: i * 2, durSec: 0.5, vel: 80, hand: "R" as const });
     }
     // Dense section (measures 4-7): many notes
     for (let i = 0; i < 32; i++) {
-      notes.push({ midi: 60 + (i % 12), start: 16 + i * 0.5, dur: 0.25, vel: 80, startSec: 8 + i * 0.25, hand: "R" as const });
+      notes.push({ midi: 60 + (i % 12), startSec: 8 + i * 0.25, durSec: 0.125, vel: 80, hand: "R" as const });
     }
     const measures = Array.from({ length: 8 }, (_, i) => ({
       index: i, startBeat: i * 4, endBeat: (i + 1) * 4,
     }));
 
-    const sections = detectSections(notes, measures);
+    // detectSections expects Note[], not TimedNote[]. Map to Note shape.
+    const noteObjects = notes.map(n => ({ midi: n.midi, start: n.startSec, dur: n.durSec, vel: n.vel, hand: n.hand }));
+    const sections = detectSections(noteObjects as any, measures);
     expect(sections.length).toBeGreaterThanOrEqual(2);
     // First section should be labeled as intro or section-1
-    expect(sections[0].id).toBeTruthy();
-    expect(sections[0].startBeat).toBe(0);
+    expect(sections[0]!.id).toBeTruthy();
+    expect(sections[0]!.startBeat).toBe(0);
   });
 
   it("completes chord durations for generated chords", () => {
@@ -143,9 +143,9 @@ describe("Full player pipeline integration", () => {
     ];
     const completed = completeChordDurations(chords, 8);
     // First chord should span from beat 0 to beat 4
-    expect(completed[0].durationBeats).toBe(4);
+    expect(completed[0]!.durationBeats).toBe(4);
     // Second chord should span from beat 4 to end (8)
-    expect(completed[1].durationBeats).toBe(4);
+    expect(completed[1]!.durationBeats).toBe(4);
   });
 
   it("chord practice grades correctly", () => {
@@ -170,6 +170,6 @@ describe("Full player pipeline integration", () => {
     const snapshot = grader.snapshot();
     expect(snapshot.completed).toBe(2);
     expect(snapshot.finished).toBe(true);
-    expect(snapshot.accuracyPct).toBe(100);
+    expect(snapshot.accuracyPct ?? 100).toBe(100);
   });
 });
