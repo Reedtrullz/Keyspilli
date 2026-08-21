@@ -33,7 +33,7 @@ describe("diagnoseBase", () => {
         { beat: 4, name: "G", notes: [55, 59, 62] },
       ],
     });
-    await writeJson(`artifacts/${base}/a/variant.json`, {
+    await writeJson(`artifacts/${base}/a/notes.json`, {
       notes: [
         { midi: 60, start: 0, dur: 1, vel: 80 },
         { midi: 64, start: 1, dur: 1, vel: 80 },
@@ -82,7 +82,7 @@ describe("diagnoseBase", () => {
   it("errors when MIDI notes have invalid fields", async () => {
     const base = "bad-midi";
     await writeJson(`artifacts/${base}/chord-source-map.json`, { schemaVersion: 1, entries: [] });
-    await writeJson(`artifacts/${base}/a/variant.json`, {
+    await writeJson(`artifacts/${base}/a/notes.json`, {
       notes: [
         { midi: 60, start: 0, dur: 1, vel: 80 },
         { midi: "not-a-number", start: 1, dur: 1, vel: 80 },
@@ -99,7 +99,7 @@ describe("diagnoseBase", () => {
   it("errors when notes extend past durationBeats", async () => {
     const base = "overshoot";
     await writeJson(`artifacts/${base}/chord-source-map.json`, { schemaVersion: 1, entries: [] });
-    await writeJson(`artifacts/${base}/a/variant.json`, {
+    await writeJson(`artifacts/${base}/a/notes.json`, {
       notes: [{ midi: 60, start: 0, dur: 12, vel: 80 }],
       durationBeats: 8,
     });
@@ -125,7 +125,7 @@ describe("runDiagnostic", () => {
     await writeJson("artifacts/ok-base/chord-timeline.json", {
       chords: [{ beat: 0, name: "C", notes: [60] }],
     });
-    await writeJson("artifacts/ok-base/a/variant.json", {
+    await writeJson("artifacts/ok-base/a/notes.json", {
       notes: [{ midi: 60, start: 0, dur: 1, vel: 80 }],
       durationBeats: 4,
     });
@@ -134,7 +134,7 @@ describe("runDiagnostic", () => {
       chords: [{ beat: 0, name: "NotAChord", notes: [60] }],
     });
 
-    await writeJson("artifacts/error-base/a/variant.json", {
+    await writeJson("artifacts/error-base/a/notes.json", {
       notes: [{ midi: -1, start: -5, dur: 0, vel: 80 }],
       durationBeats: 4,
     });
