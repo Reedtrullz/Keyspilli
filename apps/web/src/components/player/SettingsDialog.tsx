@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import type { PlayerSettings } from "@keyspilli/player-core";
 import type { ChordSourceId, ChordSourceOption } from "./chord-sources";
 
@@ -20,10 +21,62 @@ export function SettingsDialog({
   onChordSourceChange?: (source: ChordSourceId) => void;
   onClose: () => void;
 }) {
+
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  // Escape to close.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [onClose]);
+
+  // Focus trap: keep Tab/Shift+Tab cycling within the dialog.
+  useEffect(() => {
+    const el = dialogRef.current;
+    if (!el) return;
+    el.focus();
+    const onFocusIn = (e: FocusEvent) => {
+      if (!el.contains(e.target as Node)) {
+        el.focus();
+      }
+    };
+    document.addEventListener("focusin", onFocusIn);
+    return () => document.removeEventListener("focusin", onFocusIn);
+  }, []);
+
+  function handleDialogKeyDown(e: React.KeyboardEvent) {
+    if (e.key !== "Tab") return;
+    const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+      "button, [href], input, select, textarea, [tabindex]:not([tabindex=\"-1\"])"
+    );
+    if (!focusable || focusable.length === 0) return;
+    const first = focusable[0]!;
+    const last = focusable[focusable.length - 1]!;
+    if (e.shiftKey) {
+      if (document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      }
+    } else {
+      if (document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
+      ref={dialogRef}
       role="dialog"
+      onKeyDown={handleDialogKeyDown}
       aria-modal="true"
       aria-label="Player settings"
       onMouseDown={(e) => {

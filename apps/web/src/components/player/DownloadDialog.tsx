@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 export function DownloadDialog({
   songId,
   hasSheetXml,
@@ -15,6 +16,19 @@ export function DownloadDialog({
     { label: "MIDI", desc: "Full arrangement for any DAW or keyboard", href: `/api/song/${songId}/export?type=midi`, enabled: true },
     { label: "MusicXML", desc: "Edit in MuseScore or any notation app", href: `/api/song/${songId}/export?type=musicxml`, enabled: true },
   ];
+
+  // Escape to close.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [onClose]);
+
   return (
     <div
       className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
