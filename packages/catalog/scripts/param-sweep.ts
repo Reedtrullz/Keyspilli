@@ -25,10 +25,10 @@ const execFileP = promisify(execFile);
 const BASIC_PITCH = join(ROOT, "services", "transcribe", ".venv", "bin", "basic-pitch");
 const BP_TIMEOUT_MS = 300_000;
 
-const ONSET_THRESHOLDS = [0.5, 0.6, 0.65, 0.7, 0.8];
-const FRAME_THRESHOLDS = [0.3, 0.4, 0.45, 0.5, 0.6];
+export const ONSET_THRESHOLDS = [0.5, 0.6, 0.65, 0.7, 0.8];
+export const FRAME_THRESHOLDS = [0.3, 0.4, 0.45, 0.5, 0.6];
 
-interface SweepMetrics {
+export interface SweepMetrics {
   noteCount: number;
   pitchRange: [number, number] | null;
   pitchCoverage: number;
@@ -38,7 +38,7 @@ interface SweepMetrics {
   durationSeconds: number;
 }
 
-interface SweepResult {
+export interface SweepResult {
   fixture: string;
   onsetThreshold: number;
   frameThreshold: number;
@@ -89,7 +89,7 @@ function maxSimultaneous(notes: Note[]): number {
   return mx;
 }
 
-function computeMetrics(notes: Note[], tempoBpm: number): SweepMetrics {
+export function computeMetrics(notes: Note[], tempoBpm: number): SweepMetrics {
   const secPerBeat = 60 / tempoBpm;
   const durationBeats = notes.reduce((m, n) => Math.max(m, n.start + n.dur), 0);
   const durationSeconds = durationBeats * secPerBeat;
@@ -138,6 +138,7 @@ async function readFixtureMidi(
   }
 }
 
+/* istanbul ignore next -- only runs when executed as a script */
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   if (args.length < 1) {
@@ -246,5 +247,4 @@ async function main(): Promise<void> {
   }
 }
 
-await main();
-
+if (process.argv[1]?.endsWith("param-sweep.ts")) await main();

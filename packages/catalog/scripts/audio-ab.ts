@@ -22,9 +22,9 @@ const execFileP = promisify(execFile);
 const BASIC_PITCH = process.env.KEYSPILLI_BASIC_PITCH ?? join(ROOT, "services", "transcribe", ".venv", "bin", "basic-pitch");
 const BP_TIMEOUT_MS = 300_000;
 
-type ConditionName = "raw" | "normalized" | "highpass";
+export type ConditionName = "raw" | "normalized" | "highpass";
 
-interface ABMetrics {
+export interface ABMetrics {
   noteCount: number;
   pitchCoverage: number;
   onsetDensity: number;
@@ -32,7 +32,7 @@ interface ABMetrics {
   durationSeconds: number;
 }
 
-interface ABResult {
+export interface ABResult {
   audioFile: string;
   condition: ConditionName;
   runtimeMs: number;
@@ -71,7 +71,7 @@ function maxSimultaneous(notes: Note[]): number {
   return mx;
 }
 
-function computeMetrics(notes: Note[], tempoBpm: number): ABMetrics {
+export function computeMetrics(notes: Note[], tempoBpm: number): ABMetrics {
   const secPerBeat = 60 / tempoBpm;
   const durationBeats = notes.reduce((m, n) => Math.max(m, n.start + n.dur), 0);
   const durationSeconds = durationBeats * secPerBeat;
@@ -122,7 +122,7 @@ async function runBP(audioPath: string, outDir: string): Promise<Uint8Array> {
 // Mock mode
 // ---------------------------------------------------------------------------
 
-function mockResult(audioFile: string, condition: ConditionName): ABResult {
+export function mockResult(audioFile: string, condition: ConditionName): ABResult {
   const seed = audioFile.length + condition.length;
   const notes = 80 + (seed * 17) % 200;
   const tempo = 90 + (seed * 13) % 60;
@@ -148,6 +148,7 @@ function mockResult(audioFile: string, condition: ConditionName): ABResult {
 // Main
 // ---------------------------------------------------------------------------
 
+/* istanbul ignore next -- only runs when executed as a script */
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   if (args.length < 1) {
@@ -255,5 +256,4 @@ async function main(): Promise<void> {
   }
 }
 
-await main();
-
+if (process.argv[1]?.endsWith("audio-ab.ts")) await main();

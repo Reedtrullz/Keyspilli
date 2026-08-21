@@ -20,6 +20,7 @@ import { getDb } from "../src/db.js";
 import { blockedLearnerBases } from "../src/learner-review.js";
 import { ROOT, artifactsDir, dataDir, seedMidiDir, transcribedDir } from "../src/paths.js";
 import { resolveYoutubeSource } from "../src/youtube-source.js";
+import { arrangementQualityReport, melodyContinuity, rhLhBalance, soundingDensity } from "@keyspilli/midi";
 
 const LEVELS = ["vb", "b", "ve", "e", "m", "a"] as const;
 const ADVANCED = "a";
@@ -104,6 +105,14 @@ interface BaseReport {
   variantIssues: string[];
   classification: QualityClass;
   findings: string[];
+  arrangementQuality?: {
+    melodyContinuity: number;
+    rhRatio: number;
+    lhRatio: number;
+    crossingCount: number;
+    density: number;
+    flags: string[];
+  };
 }
 
 function quantile(values: number[], p: number): number {
@@ -384,6 +393,30 @@ for (const [baseId, row] of dbByBase) {
     if (advanced.largestOnsetGapBeats > 16) report.findings.push(`largest onset gap ${round(advanced.largestOnsetGapBeats)} beats`);
     if (advanced.warnings.length) report.findings.push(...advanced.warnings);
   }
+  // Attach library-computed arrangement quality for the advanced variant when
+  // its notes are available. This replaces ad-hoc metric duplication with the
+  // tested shared functions.
+  const advNotes = levelMetrics.a ? undefined : undefined; // notes not stored on LevelMetric
+  try {
+    const advDir = join(dataDir(), "artifacts", baseId, "a");
+    const advRaw = await readFile(join(advDir, "notes.json"), "utf8");
+    const advData = JSON.parse(advRaw) as { notes: import("@keyspilli/midi").Note[]; durationBeats?: number };
+    if (Array.isArray(advData.notes) && advData.notes.length > 0) {
+      const durationBeats = advData.durationBeats ?? advData.notes.reduce((m, n) => Math.max(m, n.start + n.dur), 0);
+      const aq = arrangementQualityReport(advData.notes, durationBeats);
+      const balance = rhLhBalance(advData.notes);
+      report.arrangementQuality = {
+        melodyContinuity: round(melodyContinuity(advData.notes), 3),
+        rhRatio: round(balance.rhRatio, 3),
+        lhRatio: round(balance.lhRatio, 3),
+        crossingCount: balance.crossingCount,
+        density: round(soundingDensity(advData.notes, durationBeats), 3),
+        flags: aq.flags,
+      };
+    }
+  } catch {
+    // Arrangement quality is supplementary; never block the main report.
+  }
   report.findings.push(...variantIssues);
   report.classification = classify(report);
   reports.push(report);
@@ -466,6 +499,7 @@ function compactReport(report: BaseReport) {
     sourceFile: report.sourceFile,
     classification: report.classification,
     findings: report.findings,
+    arrangementQuality: report.arrangementQuality ?? undefined,
     advanced: advanced
       ? {
           notes: advanced.notes,

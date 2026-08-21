@@ -74,7 +74,7 @@ function medianInterOnsetInterval(notes: Note[], tempoBpm: number): number {
 // Tempo analysis
 // ---------------------------------------------------------------------------
 
-interface TempoAnalysis {
+export interface TempoAnalysis {
   detectedTempo: number;
   noteCount: number;
   densityNps: number;
@@ -84,7 +84,7 @@ interface TempoAnalysis {
   candidates: TempoCandidate[];
 }
 
-interface TempoCandidate {
+export interface TempoCandidate {
   tempo: number;
   factor: string;
   densityNps: number;
@@ -93,7 +93,7 @@ interface TempoCandidate {
   reason: string;
 }
 
-function analyzeTempo(notes: Note[], detectedTempo: number): TempoAnalysis {
+export function analyzeTempo(notes: Note[], detectedTempo: number): TempoAnalysis {
   const nps = noteCountPerSecond(notes, detectedTempo);
   const medianIoi = medianInterOnsetInterval(notes, detectedTempo);
 
@@ -102,7 +102,7 @@ function analyzeTempo(notes: Note[], detectedTempo: number): TempoAnalysis {
   // Check 2x (tempo too slow)
   const nps2x = noteCountPerSecond(notes, detectedTempo * 2);
   const medianIoi2x = medianIoi / 2;
-  if (nps < LOW_DENSITY_NPS) {
+  if (notes.length > 0 && nps < LOW_DENSITY_NPS) {
     const conf = nps < LOW_DENSITY_NPS * 0.5 ? "high" : "medium";
     candidates.push({
       tempo: detectedTempo * 2,
@@ -117,7 +117,7 @@ function analyzeTempo(notes: Note[], detectedTempo: number): TempoAnalysis {
   // Check 0.5x (tempo too fast)
   const npsHalf = noteCountPerSecond(notes, detectedTempo * 0.5);
   const medianIoiHalf = medianIoi * 2;
-  if (nps > HIGH_DENSITY_NPS) {
+  if (notes.length > 0 && nps > HIGH_DENSITY_NPS) {
     const conf = nps > HIGH_DENSITY_NPS * 1.5 ? "high" : "medium";
     candidates.push({
       tempo: detectedTempo * 0.5,
@@ -140,7 +140,7 @@ function analyzeTempo(notes: Note[], detectedTempo: number): TempoAnalysis {
   };
 }
 
-function recommendTempo(analysis: TempoAnalysis): { tempo: number; confidence: string; reason: string } {
+export function recommendTempo(analysis: TempoAnalysis): { tempo: number; confidence: string; reason: string } {
   if (!analysis.candidates.length) {
     return {
       tempo: analysis.detectedTempo,
@@ -166,6 +166,7 @@ function recommendTempo(analysis: TempoAnalysis): { tempo: number; confidence: s
 // Main
 // ---------------------------------------------------------------------------
 
+/* istanbul ignore next -- only runs when executed as a script */
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   if (args.length < 1) {
@@ -242,5 +243,4 @@ async function main(): Promise<void> {
   }
 }
 
-await main();
-
+if (process.argv[1]?.endsWith("tempo-robustness.ts")) await main();

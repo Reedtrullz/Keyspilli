@@ -26,6 +26,7 @@ import {
   type PlayerSettings,
   type ViewMode,
   type SongData,
+  type Section as SongSection,
 } from "@keyspilli/player-core";
 import type { SongRow } from "@keyspilli/catalog";
 import { FallingCanvas } from "./FallingCanvas";
@@ -76,6 +77,7 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
   const [time, setTime] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [loop, setLoop] = useState<LoopRegion | null>(null);
+  const sections: SongSection[] = initial.data.sections ?? [];
   const [showSettings, setShowSettings] = useState(false);
   const [showModeMenu, setShowModeMenu] = useState(false);
   const [showDownload, setShowDownload] = useState(false);
@@ -447,6 +449,15 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
     setLoop({ startSec, endSec });
   }
 
+  function seekToSection(s: SongSection) {
+    seek(s.startBeat * secPerBeat(initial.data.tempoBpm, settings.speed));
+  }
+
+  function loopSection(s: SongSection) {
+    const spb = secPerBeat(initial.data.tempoBpm, settings.speed);
+    setLoop({ startSec: s.startBeat * spb, endSec: s.endBeat * spb });
+  }
+
   function seekToMeasure(i: number) {
     const m = initial.data.measures[i];
     if (m) seek(m.startBeat * secPerBeat(initial.data.tempoBpm, settings.speed));
@@ -757,6 +768,36 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
             aria-label="Seek"
           />
         </div>
+        {sections.length > 1 && (
+          <div role="navigation" aria-label="Song sections" className="px-4 py-2 border-b border-zinc-100 flex flex-wrap gap-1.5 overflow-x-auto">
+            {sections.map((s) => {
+              const spb = secPerBeat(initial.data.tempoBpm, settings.speed);
+              const startSec = s.startBeat * spb;
+              const endSec = s.endBeat * spb;
+              const active = time >= startSec && time < endSec;
+              const isLooping = loop && loop.startSec === startSec && loop.endSec === endSec;
+              return (
+                <span key={s.id} className="inline-flex items-center rounded-full border text-xs min-h-9 overflow-hidden shrink-0">
+                  <button
+                    onClick={() => seekToSection(s)}
+                    aria-current={active ? "true" : undefined}
+                    className={`px-2.5 py-1 font-medium transition-colors ${active ? "bg-zinc-900 text-white border-zinc-900" : "hover:bg-zinc-100 border-transparent"}`}
+                  >
+                    {s.label}
+                  </button>
+                  <button
+                    onClick={() => loopSection(s)}
+                    aria-pressed={!!isLooping}
+                    title={`Loop ${s.label}`}
+                    className={`px-1.5 py-1 border-l ${isLooping ? "bg-indigo-100 border-indigo-300 text-indigo-700" : "border-zinc-200 hover:bg-zinc-50 text-zinc-500"}`}
+                  >
+                    ⟳
+                  </button>
+                </span>
+              );
+            })}
+          </div>
+        )}
 
         <div
           className={`relative ${playing && !grading ? "cursor-pointer" : ""}`}
