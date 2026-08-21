@@ -51,3 +51,22 @@ export function loadJson<T>(key: string, fallback: T): T {
 export function saveJson(key: string, v: unknown): void {
   storage()?.setItem(key, JSON.stringify(v));
 }
+
+const SONG_KEY_PREFIX = "keyspilli.song-prefs.v1:";
+
+/** Per-song practice settings that survive reloads and song switches. */
+export interface SongPrefs {
+  speed?: number;
+  transpose?: number;
+  mode?: string;
+  hand?: "L" | "R" | "both";
+}
+
+export function loadSongPrefs(songId: string): SongPrefs {
+  return loadJson<SongPrefs>(SONG_KEY_PREFIX + songId, {});
+}
+
+export function saveSongPrefs(songId: string, prefs: Partial<SongPrefs>): void {
+  const current = loadSongPrefs(songId);
+  saveJson(SONG_KEY_PREFIX + songId, { ...current, ...prefs });
+}

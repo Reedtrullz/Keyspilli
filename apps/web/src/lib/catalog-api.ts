@@ -11,7 +11,7 @@ import {
   type SongRow,
 } from "@keyspilli/catalog";
 import { chordToNotes, validateArtifactFiles, type ChordLabel, type Variant } from "@keyspilli/midi";
-import { completeChordDurations, type ChordSourceBundle, type ChordSourceTimeline, type SongData } from "@keyspilli/player-core";
+import { completeChordDurations, detectSections, type ChordSourceBundle, type ChordSourceTimeline, type SongData } from "@keyspilli/player-core";
 
 type LoadedChordTimeline = NonNullable<Awaited<ReturnType<typeof loadChordTimeline>>>;
 type PlayerChord = Omit<ChordLabel, "sourceKind" | "inferred" | "inferenceType" | "durationBeats"> & {
@@ -260,6 +260,15 @@ export async function loadSongArtifact(song: SongRow): Promise<{ data: SongData 
   // here keeps downstream playback and seek code on the same runtime value;
   // the equality check above prevents this from masking a stale mirror.
   const data = { ...stored, tempoBpm: tempo.bpm };
+  // Compute heuristic sections at load time so the player can offer practice
+  // navigation without requiring every checked-in artifact to carry metadata.
+  if (!data.sections && data.measures.length > 0) {
+    try {
+      data.sections = detectSections(data.notes, data.measures, data.timeSig);
+    } catch {
+      // Section detection is best-effort; never block song loading on it.
+    }
+  }
   if (tempo.status === "legacy") {
     return { data, artifact: { status: "legacy", errors: [] } };
   }

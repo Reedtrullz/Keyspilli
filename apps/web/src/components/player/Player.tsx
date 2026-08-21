@@ -12,11 +12,13 @@ import {
   PlaybackEngine,
   loadJson,
   loadSettings,
+  loadSongPrefs,
   measureIndex,
   measureMidiRange,
   resolveTimedNotes,
   saveJson,
   saveSettings,
+  saveSongPrefs,
   secPerBeat,
   DEFAULT_SETTINGS,
   type LoopRegion,
@@ -62,6 +64,12 @@ const TEMPO_SEMANTICS_NOTICE_KEY = "keyspilli.tempo-semantics.v1";
 export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMode | null }) {
   const [settings, setSettings] = useState<PlayerSettings>(() => {
     const s = loadSettings();
+    // Per-song practice settings override global defaults for this song.
+    const songPrefs = loadSongPrefs(initial.song.id);
+    if (songPrefs.speed !== undefined) s.speed = songPrefs.speed;
+    if (songPrefs.transpose !== undefined) s.transpose = songPrefs.transpose;
+    if (songPrefs.mode !== undefined) s.mode = songPrefs.mode as ViewMode;
+    if (songPrefs.hand !== undefined) s.hand = songPrefs.hand;
     if (mode) s.mode = mode;
     return s;
   });
@@ -464,6 +472,13 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
     engineRef.current?.audio.setGains(next.voiceGain, next.pianoGain);
     if (engineRef.current) engineRef.current.audio.sustainPedal = next.sustainPedal;
     saveSettings(next);
+    // Persist practice-relevant settings per song so switching songs restores them.
+    saveSongPrefs(initial.song.id, {
+      speed: next.speed,
+      transpose: next.transpose,
+      mode: next.mode,
+      hand: next.hand,
+    });
   }
 
   function updateChordSource(source: ChordSourceId) {

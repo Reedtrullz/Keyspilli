@@ -46,7 +46,7 @@ function chordTimelinePath(baseId: string, root: string): string {
 }
 
 function variantPath(baseId: string, level: string, root: string): string {
-  return join(root, "artifacts", baseId, level, "variant.json");
+  return join(root, "artifacts", baseId, level, "notes.json");
 }
 
 export async function diagnoseBase(baseId: string, dataRoot: string): Promise<BaseDiagnostic> {
