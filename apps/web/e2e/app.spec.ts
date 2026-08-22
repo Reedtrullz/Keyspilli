@@ -104,7 +104,7 @@ test("player controls: loop, tempo, transpose, hands", async ({ page }) => {
   await page.goto(`/player/${SONG}`);
   await page.getByRole("button", { name: /LOOP OFF/ }).click();
   await expect(page.getByRole("button", { name: /LOOP ON/ })).toBeVisible();
-  await page.getByRole("button", { name: "−" }).first().click();
+  await page.getByRole("button", { name: "Decrease speed" }).click();
   await expect(page.getByText("90%")).toBeVisible();
   await page.getByRole("button", { name: "R", exact: true }).click();
   await page.getByRole("button", { name: "All", exact: true }).click();
@@ -161,7 +161,7 @@ test("chord practice shows a compact target and advances by chord", async ({ pag
 
 test("download dialog offers free exports", async ({ page }) => {
   await page.goto(`/player/${SONG}`);
-  await page.getByRole("button", { name: /Download Sheet & MIDI/ }).click();
+  await page.getByRole("button", { name: /Download sheet music and MIDI/ }).click();
   await expect(page.getByRole("dialog", { name: /Download sheet music or MIDI/ })).toBeVisible();
   await expect(page.getByRole("link", { name: /MIDI/ })).toBeVisible();
   await expect(page.getByRole("link", { name: /Simplify PDF/ })).toBeVisible();
