@@ -38,7 +38,6 @@
     worker_image: ghcr.io/reedtrullz/keyspilli-worker:latest
     app_version: "{{ lookup('ansible.builtin.env', 'APP_VERSION') | default('latest', true) }}"
     allow_mutable_tag: false
-    ghcr_pull_token: ""
     health_url: "http://{{ app_bind_address }}:{{ app_host_port }}/api/health"
     public_health_url: "https://{{ app_domain }}/api/health"
     caddy_marker_name: Keyspilli
@@ -219,14 +218,6 @@
 
     - name: Deploy candidate images and verify exact public version
       block:
-        - name: Log in to GHCR when a pull token is provided
-          when: ghcr_pull_token | length > 0
-          community.docker.docker_login:
-            registry_url: https://ghcr.io
-            username: Reedtrullz
-            password: "{{ ghcr_pull_token }}"
-          tags: [deploy]
-
         - name: Pull requested GHCR images
           community.docker.docker_image:
             name: "{{ item }}"
@@ -420,6 +411,16 @@
           ansible.builtin.debug:
             msg: "Rolled back to {{ previous_app_version }} on {{ health_url }}"
           tags: [rollback]
+
+        - name: Fail CI after a successful rollback
+          # The rollback restores service but the candidate deploy itself
+          # failed. Exit non-zero so CI reports the real outcome instead of
+          # silently marking a rolled-back deployment as green.
+          ansible.builtin.fail:
+            msg: >-
+              Candidate deploy failed and was rolled back to
+              {{ previous_app_version }}. See rescue failure above:
+              {{ ansible_failed_result | default({}) }}
 
   handlers:
     - name: Reload systemd
