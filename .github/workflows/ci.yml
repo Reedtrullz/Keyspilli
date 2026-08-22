@@ -225,12 +225,14 @@ jobs:
         env:
           APP_VERSION: ${{ github.sha }}
           ANSIBLE_CONFIG: deploy/ansible.cfg
+          GHCR_PULL_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
         run: |
           ansible-playbook \
             -i deploy/inventory/hosts.yml \
             deploy/playbook.yml \
             -e "docker_image=${{ needs.build-and-push.outputs.image }}:${{ needs.build-and-push.outputs.tag }}" \
-            -e "worker_image=${{ env.WORKER_IMAGE_NAME }}:${{ needs.build-and-push.outputs.tag }}"
+            -e "worker_image=${{ env.WORKER_IMAGE_NAME }}:${{ needs.build-and-push.outputs.tag }}" \
+            -e "ghcr_pull_token=${{ secrets.GHCR_PULL_TOKEN }}"
 
       - name: Verify public deployment version
         shell: bash
