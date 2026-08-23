@@ -76,7 +76,18 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
   });
   const [time, setTime] = useState(0);
   const [playing, setPlaying] = useState(false);
-  const [loop, setLoop] = useState<LoopRegion | null>(null);
+  const timeRef = useRef(time);
+  const playingRef = useRef(playing);
+  const settingsTriggerRef = useRef<HTMLButtonElement>(null);
+  const downloadTriggerRef = useRef<HTMLButtonElement>(null);
+  // Store loop anchors in musical time (beats); seconds are derived from the
+  // current speed so tempo changes automatically reproject the region.
+  const [loopBeats, setLoopBeats] = useState<{ startBeat: number; endBeat: number } | null>(null);
+  const loop = useMemo<LoopRegion | null>(() => {
+    if (!loopBeats) return null;
+    const spb = secPerBeat(initial.data.tempoBpm, settings.speed);
+    return { startSec: loopBeats.startBeat * spb, endSec: loopBeats.endBeat * spb };
+  }, [loopBeats, initial.data.tempoBpm, settings.speed]);
   const sections: SongSection[] = initial.data.sections ?? [];
   const [showSettings, setShowSettings] = useState(false);
   const [showModeMenu, setShowModeMenu] = useState(false);
@@ -117,9 +128,11 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
   const skipChordPracticeRef = useRef(skipChordPractice);
   const hearChordPracticeRef = useRef(hearChordPractice);
 
-  useEffect(() => { chordPracticeActiveRef.current = chordPracticeActive; }, [chordPracticeActive]);
-  useEffect(() => { skipChordPracticeRef.current = skipChordPractice; }, [skipChordPractice]);
-  useEffect(() => { hearChordPracticeRef.current = hearChordPractice; }, [hearChordPractice]);
+  // Latest-ref pattern: assign during render instead of subscribing effects
+  // that re-fire every render because function declarations get new identities.
+  chordPracticeActiveRef.current = chordPracticeActive;
+  skipChordPracticeRef.current = skipChordPractice;
+  hearChordPracticeRef.current = hearChordPractice;
 
   const notes = useMemo(
     () =>
@@ -170,9 +183,17 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
     initial.data.timeSig,
     initial.data.measures.length,
   );
+  // Freeze chord-practice targets at session start: a seek changes the
+  // current measure but must not silently discard accumulated progress.
+  const chordPracticeTargetsRef = useRef<ReturnType<typeof buildChordPracticeTargets> | null>(null);
   const chordPracticeTargets = useMemo(
-    () => buildChordPracticeTargets(selectPracticeChords(chords, initial.data.measures, currentMeasure), settings.transpose),
-    [chords, initial.data.measures, currentMeasure, settings.transpose],
+    () => {
+      if (chordPracticeActive && chordPracticeTargetsRef.current) return chordPracticeTargetsRef.current;
+      const next = buildChordPracticeTargets(selectPracticeChords(chords, initial.data.measures, currentMeasure), settings.transpose);
+      chordPracticeTargetsRef.current = next;
+      return next;
+    },
+    [chords, initial.data.measures, currentMeasure, settings.transpose, chordPracticeActive],
   );
   // Playback applies transpose inside PlaybackEngine. Keep the visual chord
   // keys in the same transposed coordinate space as the falling notes without
@@ -220,8 +241,11 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
       chords,
     );
     engine.onChange = (snap) => {
-      setTime(snap.time);
-      setPlaying(snap.playing);
+      // Per-frame updates go to a ref consumed by the canvas rAF loop.
+      // React state changes are reserved for discrete events (play/pause,
+      // seek, grading start/finish), which call the setters directly.
+      timeRef.current = snap.time;
+      playingRef.current = snap.playing;
     };
     engine.audio.sustainPedal = settings.sustainPedal;
     engineRef.current = engine;
@@ -235,6 +259,14 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
   useEffect(() => {
     engineRef.current?.setSettings(settings);
   }, [settings]);
+
+  // Discrete events (play/pause/seek) still update React state so buttons
+  // and progress bar re-render; per-frame engine ticks only touch refs.
+  function syncTransportState() {
+    if (!engineRef.current) return;
+    setTime(engineRef.current.time);
+    setPlaying(engineRef.current.playing);
+  }
 
   useEffect(() => {
     engineRef.current?.setNotes(notes, duration);
@@ -272,15 +304,18 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
   const startPlayback = useCallback(() => {
     if (chordPracticeActive) return;
     engineRef.current?.start();
-    void fetch(`/api/songs/${initial.song.id}/play`, { method: "POST" });
+    syncTransportState();
+    void fetch(`/api/songs/${encodeURIComponent(initial.song.id)}/play`, { method: "POST" }).catch(() => {});
   }, [chordPracticeActive, initial.song.id]);
 
   const stopPlayback = useCallback(() => {
     engineRef.current?.stop();
+    syncTransportState();
   }, []);
 
   const seek = useCallback((t: number) => {
     engineRef.current?.seek(t);
+    syncTransportState();
   }, []);
 
   function togglePlay() {
@@ -383,7 +418,7 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
           updateSettings({ mode: m.id });
           setShowModeMenu(false);
           const modePath = m.id === "falling" ? "" : `/${m.id}`;
-          window.history.replaceState(null, "", `/player/${initial.song.id}${modePath}`);
+          window.history.replaceState(null, "", `/player/${encodeURIComponent(initial.song.id)}${modePath}`);
         }
         break;
       case "Escape":
@@ -439,14 +474,12 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
 
   function toggleLoop() {
     if (loop) {
-      setLoop(null);
+      setLoopBeats(null);
       return;
     }
     const startBeat = initial.data.measures[currentMeasure]?.startBeat ?? 0;
     const measureBeats = initial.data.timeSig[0] * (4 / initial.data.timeSig[1]);
-    const startSec = startBeat * secPerBeat(initial.data.tempoBpm, settings.speed);
-    const endSec = (startBeat + 4 * measureBeats) * secPerBeat(initial.data.tempoBpm, settings.speed);
-    setLoop({ startSec, endSec });
+    setLoopBeats({ startBeat, endBeat: startBeat + 4 * measureBeats });
   }
 
   function seekToSection(s: SongSection) {
@@ -454,8 +487,7 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
   }
 
   function loopSection(s: SongSection) {
-    const spb = secPerBeat(initial.data.tempoBpm, settings.speed);
-    setLoop({ startSec: s.startBeat * spb, endSec: s.endBeat * spb });
+    setLoopBeats({ startBeat: s.startBeat, endBeat: s.endBeat });
   }
 
   function seekToMeasure(i: number) {
@@ -509,6 +541,7 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
   function finishGrading() {
     const result = engineRef.current?.finishGrading();
     if (result) setGradeResult(result);
+    syncTransportState();
     setGrading(false);
     setWaitMode(false);
   }
@@ -516,6 +549,7 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
   function startChordPractice() {
     if (grading) finishGrading();
     engineRef.current?.stop();
+    chordPracticeTargetsRef.current = null; // recompute for the new session
     const session = new ChordGrader(chordPracticeTargets);
     chordPracticeRef.current = session;
     setChordPracticeActive(true);
@@ -524,6 +558,7 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
 
   function exitChordPractice() {
     chordPracticeRef.current = null;
+    chordPracticeTargetsRef.current = null;
     setChordPracticeActive(false);
     setChordPracticeSnapshot(null);
   }
@@ -670,10 +705,10 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
         </button>
 
         <div className="ml-auto flex flex-wrap justify-end gap-2 text-sm">
-          <button onClick={() => setShowDownload(true)} className="min-h-11 px-4 py-2 rounded-full bg-zinc-900 text-white font-medium hover:bg-zinc-700" aria-label="Download sheet music and MIDI">
+          <button ref={downloadTriggerRef} onClick={() => setShowDownload(true)} className="min-h-11 px-4 py-2 rounded-full bg-zinc-900 text-white font-medium hover:bg-zinc-700" aria-label="Download sheet music and MIDI">
             Download Sheet &amp; MIDI
           </button>
-          <button onClick={() => setShowSettings(true)} className="min-h-11 px-4 py-2 rounded-full border border-zinc-300 font-medium hover:bg-zinc-100" aria-label="Open settings">
+          <button ref={settingsTriggerRef} onClick={() => setShowSettings(true)} className="min-h-11 px-4 py-2 rounded-full border border-zinc-300 font-medium hover:bg-zinc-100" aria-label="Open settings">
             Settings
           </button>
           <button
@@ -889,10 +924,16 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
           }}
           chordSourceStatus={selectedChordSource.fallbackReason}
           onChordSourceChange={updateChordSource}
-          onClose={() => setShowSettings(false)}
+          onClose={() => {
+            setShowSettings(false);
+            settingsTriggerRef.current?.focus();
+          }}
         />
       )}
-      {showDownload && <DownloadDialog songId={initial.song.id} hasSheetXml={initial.song.hasSheetXml === 1} onClose={() => setShowDownload(false)} />}
+      {showDownload && <DownloadDialog songId={initial.song.id} hasSheetXml={initial.song.hasSheetXml === 1} onClose={() => {
+        setShowDownload(false);
+        downloadTriggerRef.current?.focus();
+      }} />}
 
       <section className="mt-8 text-sm text-zinc-600">
         <h2 className="font-semibold text-zinc-800 mb-2">About this arrangement</h2>

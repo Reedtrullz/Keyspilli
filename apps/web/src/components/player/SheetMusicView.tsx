@@ -20,7 +20,7 @@ export function SheetMusicView({ songId }: { songId: string }) {
     state.__sheetReady = false;
     delete state.__sheetError;
 
-    fetch(`/api/v1/sheet/${songId}`, { signal: controller.signal })
+    fetch(`/api/v1/sheet/${encodeURIComponent(songId)}`, { signal: controller.signal })
       .then((r) => {
         if (!r.ok) throw new Error("sheet unavailable");
         return r.text();

@@ -26,16 +26,17 @@ export class Grader {
   private missed = 0;
   private waitMode = false;
   private waitingFor: TimedNote | null = null;
+  private lastAcceptedNote: TimedNote | null = null;
   private tolerance: number;
 
   constructor(
     notes: TimedNote[],
-    opts: { waitMode?: boolean; bpm?: number } = {},
+    opts: { waitMode?: boolean; bpm?: number; speed?: number } = {},
   ) {
     this.remaining = [...notes].sort((a, b) => a.startSec - b.startSec);
     this.waitMode = opts.waitMode ?? false;
     // Tempo-scaled tolerance: 40% of a beat, capped at 400ms (legacy fixed 350ms).
-    this.tolerance = opts.bpm ? Math.min(0.4, secPerBeat(opts.bpm, 1) * 0.4) : 0.35;
+    this.tolerance = opts.bpm ? Math.min(0.4, secPerBeat(opts.bpm, opts.speed ?? 1) * 0.4) : 0.35;
   }
 
   /** Recompute tolerance when speed or BPM changes mid-grading. */
@@ -76,13 +77,14 @@ export class Grader {
         this.wrongs++;
         return false;
       }
-      if (now >= this.waitingFor.startSec - this.tolerance) {
-        this.hits++;
-        this.remaining.splice(this.remaining.indexOf(this.waitingFor), 1);
-        this.waitingFor = null;
-        return true;
-      }
-      return false; // correct pitch, pressed too early: hold
+      // In wait mode the transport is paused and time does not advance,
+      // so the temporal window check would permanently block progress.
+      // Accept any correct-pitch press immediately.
+      this.hits++;
+      this.remaining.splice(this.remaining.indexOf(this.waitingFor), 1);
+      this.lastAcceptedNote = this.waitingFor;
+      this.waitingFor = null;
+      return true;
     }
     const window = this.remaining.filter((n) => Math.abs(now - n.startSec) <= this.tolerance);
     const exact = window.find((n) => n.midi === midi);
@@ -110,6 +112,15 @@ export class Grader {
     const next = this.remaining[0];
     if (next) this.waitingFor = next;
     return this.waitingFor;
+  }
+
+  isWaitMode(): boolean {
+    return this.waitMode;
+  }
+
+  /** The most recently accepted note in wait mode (for transport advance). */
+  lastAccepted(): TimedNote | null {
+    return this.lastAcceptedNote;
   }
 
   result(): GradeResult {

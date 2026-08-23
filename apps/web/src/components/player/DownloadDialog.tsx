@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 export function DownloadDialog({
   songId,
   hasSheetXml,
@@ -17,6 +17,8 @@ export function DownloadDialog({
     { label: "MusicXML", desc: "Edit in MuseScore or any notation app", href: `/api/song/${songId}/export?type=musicxml`, enabled: true },
   ];
 
+  const dialogRef = useRef<HTMLDivElement>(null);
+
   // Escape to close.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -26,15 +28,51 @@ export function DownloadDialog({
       }
     };
     window.addEventListener("keydown", onKey, true);
-    return () => window.removeEventListener("keydown", onKey, true);
+    const el = dialogRef.current;
+    if (!el) return;
+    el.focus();
+    const onFocusIn = (e: FocusEvent) => {
+      if (!el.contains(e.target as Node)) {
+        el.focus();
+      }
+    };
+    document.addEventListener("focusin", onFocusIn);
+    return () => {
+      window.removeEventListener("keydown", onKey, true);
+      document.removeEventListener("focusin", onFocusIn);
+    };
   }, [onClose]);
+
+  function handleDialogKeyDown(e: React.KeyboardEvent) {
+    if (e.key !== "Tab") return;
+    const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+      "button, [href], input, select, textarea, [tabindex]:not([tabindex=\"-1\"])"
+    );
+    if (!focusable || focusable.length === 0) return;
+    const first = focusable[0]!;
+    const last = focusable[focusable.length - 1]!;
+    if (e.shiftKey) {
+      if (document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      }
+    } else {
+      if (document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  }
 
   return (
     <div
       className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
+      ref={dialogRef}
+      tabIndex={-1}
       role="dialog"
       aria-modal="true"
       aria-label="Download sheet music or MIDI"
+      onKeyDown={handleDialogKeyDown}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}

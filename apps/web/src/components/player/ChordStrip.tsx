@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 import type { ChordLabel } from "@keyspilli/midi";
 import { chordProvenance } from "./chord-provenance";
 
@@ -9,8 +9,9 @@ interface ChordStripProps {
   currentBeat: number;
 }
 
-/** Mini piano keyboard diagram for a single chord. */
-function MiniKeyboard({ notes }: { notes: number[] }) {
+/** Mini piano keyboard diagram for a single chord. Memoized so per-frame
+ * active-index changes only re-render the two affected items. */
+const MiniKeyboard = memo(function MiniKeyboard({ notes }: { notes: number[] }) {
   if (notes.length === 0) return null;
   const low = Math.min(...notes);
   // Anchor a full octave at the chord's lowest note and highlight by pitch
@@ -65,9 +66,9 @@ function MiniKeyboard({ notes }: { notes: number[] }) {
       })}
     </svg>
   );
-}
+});
 
-export function ChordStrip({ chords, currentBeat }: ChordStripProps) {
+export const ChordStrip = memo(function ChordStrip({ chords, currentBeat }: ChordStripProps) {
   const stripRef = useRef<HTMLDivElement>(null);
   // Find which chord is currently active
   let activeIdx = 0;
@@ -112,4 +113,4 @@ export function ChordStrip({ chords, currentBeat }: ChordStripProps) {
       })}
     </div>
   );
-}
+});

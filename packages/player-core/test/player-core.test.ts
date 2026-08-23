@@ -279,11 +279,11 @@ describe("grader", () => {
     expect(slow.result().hit).toBe(1);
   });
 
-  it("rejects the expected note before its time window in wait mode", () => {
+  it("accepts the expected note immediately in wait mode (transport paused)", () => {
     const g = new Grader(notes, { waitMode: true });
     expect(g.currentWait?.midi).toBe(60);
-    expect(g.play(60, -2)).toBe(false);
-    expect(g.play(60, 0.05)).toBe(true);
+    // Wait mode pauses transport, so temporal gating is meaningless here.
+    expect(g.play(60, -2)).toBe(true);
   });
 
   it("accepts the correct pitch played after its window in wait mode", () => {
@@ -349,7 +349,10 @@ describe("keyboard input", () => {
 
 describe("midi input", () => {
   it("disconnect removes message handlers from connected inputs", async () => {
-    const input = { onmidimessage: null } as { onmidimessage: ((e: unknown) => void) | null };
+    // The rescan guard checks "onmidimessage" in input, so the mock must
+    // declare the property for the handler to attach.
+    const input = { onmidimessage: null } as { id?: string; onmidimessage: ((e: unknown) => void) | null };
+    input.id = "in";
     const real = Object.getOwnPropertyDescriptor(globalThis, "navigator");
     Object.defineProperty(globalThis, "navigator", {
       value: { requestMIDIAccess: async () => ({ inputs: new Map([["in", input]]) }) },
