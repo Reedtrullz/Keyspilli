@@ -16,7 +16,11 @@ export function BeginnerView({ data, time, settings, chords }: { data: SongData;
     data.measures.length,
   );
   const m = data.measures[currentMeasure] ?? data.measures[0]!;
-  const notes = data.notes.filter((n) => n.start >= m.startBeat && n.start < m.endBeat);
+  // Views must show the same pitches the audio engine sounds (which are
+  // transposed), so shift note MIDI values to match.
+  const notes = data.notes
+    .filter((n) => n.start >= m.startBeat && n.start < m.endBeat)
+    .map((n) => ({ ...n, midi: n.midi + settings.transpose }));
   const measureBeats = m.endBeat - m.startBeat;
   const W = 880;
   const H = 300;

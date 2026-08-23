@@ -13,6 +13,8 @@ export interface TimedNote {
   vel: number;
   hand?: "R" | "L";
   lyrics?: string;
+  /** Marks voices triggered by live MIDI/mic input so noteOff targets only them. */
+  fromInput?: boolean;
 }
 
 /** Resolve song data to absolute-second notes with transpose applied. */

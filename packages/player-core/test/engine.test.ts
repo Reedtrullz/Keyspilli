@@ -5,7 +5,7 @@ import type { PlayerSettings } from "../src/types.js";
 import { dedupeChords, type TimedNote } from "../src/timeline.js";
 
 class FakeAudio implements AudioLike {
-  noteOns: { midi: number; when: number }[] = [];
+  noteOns: { midi: number; when: number; fromInput?: boolean }[] = [];
   noteOffs: number[] = [];
   ensured = 0;
   cancelled = 0;
@@ -16,7 +16,7 @@ class FakeAudio implements AudioLike {
     return {};
   }
   noteOn(n: TimedNote, when = 0): void {
-    this.noteOns.push({ midi: n.midi, when });
+    this.noteOns.push({ midi: n.midi, when, fromInput: n.fromInput });
   }
   noteOff(midi: number): void {
     this.noteOffs.push(midi);
@@ -325,12 +325,12 @@ describe("PlaybackEngine", () => {
     slow.start();
     expect(slowAudio.playedChords[0]!.durationSec).toBeCloseTo(2, 5);
   });
-  it("clamps dt to 0.5s to prevent tab-background jumps", () => {
+  it("skips forward on tab-background dt jumps without replaying notes", () => {
     const { eng } = engine();
     eng.start();
     eng.tick(10); // huge dt (simulating background tab)
-    expect(eng.time).toBeLessThanOrEqual(0.55); // clamped to 0.5 + some tolerance
-    expect(eng.playing).toBe(true); // didn't crash or overshoot wildly
+    expect(eng.time).toBeCloseTo(10, 1); // playhead advances by the full gap
+    expect(eng.playing).toBe(true);
   });
 
   it("setTimeline updates notes and chords atomically", () => {
@@ -348,4 +348,30 @@ describe("PlaybackEngine", () => {
     expect(audio.playedChords.length).toBeGreaterThan(0);
   });
 
+  it("noteOff only targets input-originated voices", () => {
+    const audio = new FakeAudio();
+    const eng = new PlaybackEngine(audio, notes, 1.5, SONG, DEFAULT_SETTINGS);
+    eng.handleNoteOn(60);
+    expect(audio.noteOns.filter(n => n.midi === 60 && n.fromInput === true).length).toBe(1);
+    // Song-scheduled noteOn should NOT have fromInput.
+    eng.start();
+    eng.tick(0.01);
+    expect(audio.noteOns.some(n => n.midi === 60 && n.fromInput !== true)).toBe(true);
+    // handleMicNote should also set fromInput.
+    eng.handleMicNote(62);
+    expect(audio.noteOns.some(n => n.midi === 62 && n.fromInput === true)).toBe(true);
+  });
+
+  it("hidden-tab skip cancels audio and does not replay missed notes", () => {
+    const { eng, audio } = engine();
+    eng.start();
+    eng.tick(0.5); // advance normally to t=0.5
+    const before = audio.noteOns.length;
+    eng.tick(3.0); // dt > clamp -> skip forward
+    expect(eng.time).toBeCloseTo(3.5, 1);
+    const newOns = audio.noteOns.slice(before);
+    const replayed = newOns.filter((n) => n.when === 0 && n.midi >= 62 && n.midi <= 64);
+    expect(replayed).toHaveLength(0);
+    expect(audio.cancelled).toBeGreaterThan(0);
+  });
 });

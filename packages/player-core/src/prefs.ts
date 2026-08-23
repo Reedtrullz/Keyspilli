@@ -2,6 +2,10 @@ import type { PlayerSettings } from "./types.js";
 
 const KEY = "keyspilli.prefs.v1";
 
+const VIEW_MODES = ["falling", "beginner", "sheet", "leadsheet"] as const;
+const HANDS = ["L", "R", "both"] as const;
+const BACKGROUNDS = ["piano", "chord"] as const;
+
 export const DEFAULT_SETTINGS: PlayerSettings = {
   voiceGain: 1,
   pianoGain: 0.4,
@@ -24,18 +28,48 @@ function storage(): Storage | null {
   }
 }
 
+function clampNum(v: unknown, min: number, max: number, fallback: number): number {
+  if (typeof v !== "number" || !Number.isFinite(v)) return fallback;
+  return Math.min(max, Math.max(min, v));
+}
+
+function pickEnum<T extends string>(v: unknown, allowed: readonly T[], fallback: T): T {
+  return allowed.includes(v as T) ? (v as T) : fallback;
+}
+
+function pickBool(v: unknown, fallback: boolean): boolean {
+  return typeof v === "boolean" ? v : fallback;
+}
+
 export function loadSettings(): PlayerSettings {
   const s = storage();
   if (!s) return { ...DEFAULT_SETTINGS };
   try {
-    return { ...DEFAULT_SETTINGS, ...(JSON.parse(s.getItem(KEY) ?? "{}") as Partial<PlayerSettings>) };
+    const raw = JSON.parse(s.getItem(KEY) ?? "{}") as Record<string, unknown>;
+    return {
+      voiceGain: clampNum(raw.voiceGain, 0, 2, DEFAULT_SETTINGS.voiceGain),
+      pianoGain: clampNum(raw.pianoGain, 0, 2, DEFAULT_SETTINGS.pianoGain),
+      backgroundMode: pickEnum(raw.backgroundMode, BACKGROUNDS, DEFAULT_SETTINGS.backgroundMode),
+      metronome: pickBool(raw.metronome, DEFAULT_SETTINGS.metronome),
+      chordKeys: pickBool(raw.chordKeys, DEFAULT_SETTINGS.chordKeys),
+      sustainPedal: pickBool(raw.sustainPedal, DEFAULT_SETTINGS.sustainPedal),
+      hand: pickEnum(raw.hand, HANDS, DEFAULT_SETTINGS.hand),
+      speed: clampNum(raw.speed, 0.25, 4, DEFAULT_SETTINGS.speed),
+      transpose: clampNum(Math.trunc(Number(raw.transpose)), -24, 24, DEFAULT_SETTINGS.transpose),
+      mode: pickEnum(raw.mode, VIEW_MODES, DEFAULT_SETTINGS.mode),
+      showAllKeys: pickBool(raw.showAllKeys, DEFAULT_SETTINGS.showAllKeys),
+    };
   } catch {
     return { ...DEFAULT_SETTINGS };
   }
 }
 
 export function saveSettings(p: PlayerSettings): void {
-  storage()?.setItem(KEY, JSON.stringify(p));
+  try {
+    storage()?.setItem(KEY, JSON.stringify(p));
+  } catch {
+    // Quota or serialization failures must not break playback.
+  }
 }
 
 export function loadJson<T>(key: string, fallback: T): T {
@@ -49,7 +83,11 @@ export function loadJson<T>(key: string, fallback: T): T {
 }
 
 export function saveJson(key: string, v: unknown): void {
-  storage()?.setItem(key, JSON.stringify(v));
+  try {
+    storage()?.setItem(key, JSON.stringify(v));
+  } catch {
+    // Swallow quota errors for auxiliary JSON too.
+  }
 }
 
 const SONG_KEY_PREFIX = "keyspilli.song-prefs.v1:";
@@ -63,7 +101,25 @@ export interface SongPrefs {
 }
 
 export function loadSongPrefs(songId: string): SongPrefs {
-  return loadJson<SongPrefs>(SONG_KEY_PREFIX + songId, {});
+  const s = storage();
+  if (!s) return {};
+  try {
+    const raw = JSON.parse(s.getItem(SONG_KEY_PREFIX + songId) ?? "{}") as Record<string, unknown>;
+    const out: SongPrefs = {};
+    if (raw.speed !== undefined) {
+      const n = Number(raw.speed);
+      if (Number.isFinite(n)) out.speed = clampNum(n, 0.25, 4, 1);
+    }
+    if (raw.transpose !== undefined) {
+      const n = Number(raw.transpose);
+      if (Number.isFinite(n)) out.transpose = clampNum(Math.trunc(n), -24, 24, 0);
+    }
+    if (typeof raw.mode === "string") out.mode = raw.mode;
+    if (HANDS.includes(raw.hand as (typeof HANDS)[number])) out.hand = raw.hand as SongPrefs["hand"];
+    return out;
+  } catch {
+    return {};
+  }
 }
 
 export function saveSongPrefs(songId: string, prefs: Partial<SongPrefs>): void {

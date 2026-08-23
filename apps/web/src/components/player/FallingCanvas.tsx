@@ -20,13 +20,14 @@ interface Props {
   pressedKeys: Map<number, number>;
   chords: { beat: number; name: string; notes: number[] }[];
   tempoBpm: number;
+  timeSig?: [number, number];
   lowMidi: number;
   highMidi: number;
   loop: LoopRegion | null;
   waitNote?: TimedNote | null;
 }
 
-export function FallingCanvas({ notes, time, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop, waitNote }: Props) {
+export function FallingCanvas({ notes, time, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop, waitNote, timeSig = [4, 4] }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Individual refs for each prop — draw loop reads these instead of closures
@@ -40,6 +41,7 @@ export function FallingCanvas({ notes, time, settings, pressedKeys, chords, temp
   const highMidiRef = useRef(highMidi);
   const loopRef = useRef(loop);
   const waitNoteRef = useRef(waitNote);
+  const timeSigRef = useRef(timeSig);
 
   // Lightweight sync: props → refs (no rAF involved)
   useEffect(() => { timeRef.current = time; }, [time]);
@@ -52,6 +54,7 @@ export function FallingCanvas({ notes, time, settings, pressedKeys, chords, temp
   useEffect(() => { highMidiRef.current = highMidi; }, [highMidi]);
   useEffect(() => { loopRef.current = loop; }, [loop]);
   useEffect(() => { waitNoteRef.current = waitNote; }, [waitNote]);
+  useEffect(() => { timeSigRef.current = timeSig; }, [timeSig]);
 
   // Single rAF loop — runs once on mount, reads state from refs
   useEffect(() => {
@@ -66,12 +69,19 @@ export function FallingCanvas({ notes, time, settings, pressedKeys, chords, temp
     const LEFT_MARGIN = 32;
     const RIGHT_MARGIN = 32;
     const KEYBOARD_W = W - LEFT_MARGIN - RIGHT_MARGIN;
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = canvas.clientWidth * dpr;
-    canvas.height = canvas.clientHeight * dpr;
-    ctx.scale(dpr, dpr);
+    // Fit the fixed logical space onto the element's real size each time it
+    // changes, so narrow/mobile viewports scale instead of clipping.
+    let appliedClientW = 0;
 
     const draw = () => {
+      const clientW = canvas.clientWidth;
+      if (clientW !== appliedClientW) {
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = Math.max(1, Math.round(clientW * dpr));
+        canvas.height = Math.max(1, Math.round(canvas.clientHeight * dpr));
+        ctx.setTransform(canvas.width / W, 0, 0, canvas.height / H, 0, 0);
+        appliedClientW = clientW;
+      }
       // Read all state from refs (stable across frames)
       const now = timeRef.current;
       const currentNotes = notesRef.current;
@@ -101,7 +111,8 @@ export function FallingCanvas({ notes, time, settings, pressedKeys, chords, temp
         const bSec = b * beatSec;
         const y = areaHeight - (bSec - now) * pxPerSec;
         if (y < 0 || y > areaHeight) continue;
-        const isDownbeat = b % 4 === 0;
+        // Downbeat spacing follows the song's actual meter, not a hardcoded 4.
+        const isDownbeat = b % (timeSigRef.current[0] * 4 / timeSigRef.current[1]) === 0;
         ctx.strokeStyle = isDownbeat ? "rgba(24, 24, 27, 0.12)" : "rgba(24, 24, 27, 0.04)";
         ctx.lineWidth = isDownbeat ? 1.5 : 1;
         ctx.beginPath();
@@ -317,7 +328,11 @@ export function FallingCanvas({ notes, time, settings, pressedKeys, chords, temp
           ctx.globalAlpha = 0.5;
           ctx.fillStyle = b.color;
           ctx.beginPath();
-          ctx.roundRect(b.x - 6, b.y, b.width + 12, b.height, 4);
+          if (typeof ctx.roundRect === "function") {
+            ctx.roundRect(b.x - 6, b.y, b.width + 12, b.height, 4);
+          } else {
+            ctx.rect(b.x - 6, b.y, b.width + 12, b.height);
+          }
           ctx.fill();
           ctx.globalAlpha = 1;
           if (b.height >= 14) {
@@ -331,7 +346,11 @@ export function FallingCanvas({ notes, time, settings, pressedKeys, chords, temp
           // Right-hand: vivid, compact, with note labels
           ctx.fillStyle = b.color;
           ctx.beginPath();
-          ctx.roundRect(b.x, b.y, b.width, b.height, 4);
+          if (typeof ctx.roundRect === "function") {
+            ctx.roundRect(b.x, b.y, b.width, b.height, 4);
+          } else {
+            ctx.rect(b.x, b.y, b.width, b.height);
+          }
           ctx.fill();
           if (b.height >= 11) {
             const fs = Math.min(13, Math.max(9, b.height - 6));
@@ -361,4 +380,3 @@ export function FallingCanvas({ notes, time, settings, pressedKeys, chords, temp
     </div>
   );
 }
-

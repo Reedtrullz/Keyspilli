@@ -75,6 +75,7 @@ export function SettingsDialog({
     <div
       className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
       ref={dialogRef}
+      tabIndex={-1}
       role="dialog"
       onKeyDown={handleDialogKeyDown}
       aria-modal="true"

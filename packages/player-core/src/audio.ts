@@ -15,8 +15,8 @@ export class AudioEngine {
   private master: GainNode | null = null;
   private voiceGainNode: GainNode | null = null;
   private pianoGainNode: GainNode | null = null;
-  private active = new Map<number, { osc: OscillatorNode; gain: GainNode }[]>();
-  private activeChords = new Set<{ osc: OscillatorNode; gain: GainNode }>();
+  private active = new Map<number, { osc: OscillatorNode; gain: GainNode; fromInput?: boolean }[]>();
+  private activeChords = new Set<{ oscs: OscillatorNode[]; gain: GainNode }>();
   private activeClicks = new Set<{ osc: OscillatorNode; gain: GainNode }>();
   private visibilityHandler: (() => void) | null = null;
 
@@ -172,7 +172,7 @@ export class AudioEngine {
     osc1.stop(stopAt);
     osc2.stop(stopAt);
     osc3.stop(stopAt);
-    const entry = { osc: osc1, gain };
+    const entry = { osc: osc1, gain, fromInput: n.fromInput ?? false };
     const list = this.active.get(n.midi) ?? [];
     list.push(entry);
     this.active.set(n.midi, list);
@@ -188,18 +188,30 @@ export class AudioEngine {
   }
 
   /** Stop any sounding note at this pitch (input-driven playback). */
+  /** Stop only input-originated voices at this pitch. Song-scheduled notes
+   * sharing the same MIDI number are left ringing so a player's key release
+   * cannot cut the arrangement short (review P2: voice stealing). */
   noteOff(midi: number): void {
     const arr = this.active.get(midi);
     if (!arr) return;
     const t = this.ctx?.currentTime ?? 0;
+    const remaining: typeof arr = [];
     for (const e of arr) {
+      if (!e.fromInput) {
+        remaining.push(e);
+        continue;
+      }
       try {
         e.gain.gain.cancelScheduledValues(t);
         e.gain.gain.setTargetAtTime(0, t, 0.03);
         e.osc.stop(t + 0.12);
       } catch {}
     }
-    this.active.delete(midi);
+    if (remaining.length > 0) {
+      this.active.set(midi, remaining);
+    } else {
+      this.active.delete(midi);
+    }
   }
 
   /** Silence everything without closing the context (loop wraps, pause). */
@@ -280,7 +292,7 @@ export class AudioEngine {
       gain.connect(this.pianoGainNode);
       osc1.start(t);
       osc2.start(t);
-      const entry = { osc: osc1, gain };
+      const entry = { oscs: [osc1, osc2], gain };
       this.activeChords.add(entry);
       osc1.onended = () => {
         this.activeChords.delete(entry);
@@ -297,7 +309,13 @@ export class AudioEngine {
       try {
         entry.gain.gain.cancelScheduledValues(t);
         entry.gain.gain.setTargetAtTime(0, t, 0.02);
-        entry.osc.stop(t + 0.05);
+        for (const osc of entry.oscs) {
+          try {
+            osc.stop(t + 0.05);
+          } catch {
+            // An individual oscillator may have already ended.
+          }
+        }
       } catch {
         // An oscillator may have ended between iteration and cancellation.
       }
@@ -330,4 +348,3 @@ export class AudioEngine {
     this.compressor = null;
   }
 }
-

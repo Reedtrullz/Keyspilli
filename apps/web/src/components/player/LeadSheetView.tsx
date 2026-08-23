@@ -14,7 +14,10 @@ export function LeadSheetView({ data, time, settings, chords }: { data: SongData
     data.measures.length,
   );
   const m = data.measures[currentMeasure] ?? data.measures[0]!;
-  const notes = data.notes.filter((n) => n.start >= m.startBeat && n.start < m.endBeat && n.hand !== "L");
+  // Match the transposed audio so visual pitch positions stay correct.
+  const notes = data.notes
+    .filter((n) => n.start >= m.startBeat && n.start < m.endBeat && n.hand !== "L")
+    .map((n) => ({ ...n, midi: n.midi + settings.transpose }));
   const measureBeats = m.endBeat - m.startBeat;
   const W = 880;
   const H = 240;

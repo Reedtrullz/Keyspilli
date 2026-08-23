@@ -105,9 +105,18 @@ export class PlaybackEngine {
   /** Advance by dt seconds (called from the owner's rAF loop). */
   tick(dt: number): void {
     if (!this.playing) return;
-    // Clamp dt to prevent tab-background jumps from destroying playback state
-    const clampedDt = Math.min(dt, 0.5);
-    const next = this.time + clampedDt;
+    // When dt exceeded the clamp, rAF stalled (tab was hidden). Skip forward:
+    // do not replay every note scheduled during the gap as an instant burst.
+    if (dt > 0.5) {
+      this.time += dt;
+      this.lastScheduled = this.time;
+      this.audio.cancelAll();
+      this.schedule(this.lastScheduled, this.time + SCHEDULE_LOOKAHEAD);
+      if (this.grader && !this.waitMode) this.grader.tick(this.time);
+      this.emit();
+      return;
+    }
+    const next = this.time + dt;
     if (this.loop && next > this.loop.endSec) {
       this.time = this.loop.startSec;
       this.audio.cancelAll();
@@ -223,7 +232,7 @@ export class PlaybackEngine {
     // being practiced. Hand filtering already happened in the notes memo.
     const minDurSec = 0.25 * (60 / this.song.tempoBpm / this.settings.speed);
     const gradeable = this.notes.filter((n) => n.durSec >= minDurSec);
-    this.grader = new Grader(gradeable, { waitMode: wait, bpm: this.song.tempoBpm });
+    this.grader = new Grader(gradeable, { waitMode: wait, bpm: this.song.tempoBpm, speed: this.settings.speed });
     this.emit();
   }
 
@@ -240,10 +249,22 @@ export class PlaybackEngine {
     return result;
   }
 
-  /** Input-driven note (keyboard/MIDI). Returns false when the grader rejects it. */
+  /**
+   * Input-driven note (keyboard/MIDI). Returns false when the grader rejects it.
+   * Input voices are tagged so noteOff can release only what the player played
+   * instead of cutting song-scheduled notes at the same pitch (voice stealing).
+   */
   handleNoteOn(midi: number): boolean {
     if (this.grader && !this.grader.play(midi, this.time)) return false;
-    this.audio.noteOn({ midi, startSec: 0, durSec: 0.4, vel: 100, hand: "R" });
+    // Wait mode: the transport is paused; advance time past the accepted
+    // note so the UI shows progress and subsequent notes become reachable.
+    if (this.grader?.isWaitMode() && this.grader.lastAccepted()) {
+      const accepted = this.grader.lastAccepted()!;
+      this.time = accepted.startSec + accepted.durSec;
+      this.lastScheduled = this.time;
+      if (!this.playing) this.schedule(this.time, this.time + SCHEDULE_LOOKAHEAD);
+    }
+    this.audio.noteOn({ midi, startSec: 0, durSec: 0.4, vel: 100, hand: "R", fromInput: true });
     this.emit();
     return true;
   }
@@ -255,7 +276,7 @@ export class PlaybackEngine {
   /** Mic-detected note: always sounds, but still feeds the grader. */
   handleMicNote(midi: number): void {
     if (this.grader) this.grader.play(midi, this.time);
-    this.audio.noteOn({ midi, startSec: 0, durSec: 0.35, vel: 90, hand: "R" });
+    this.audio.noteOn({ midi, startSec: 0, durSec: 0.35, vel: 90, hand: "R", fromInput: true });
     // Microphone input does not update pressedKeys in the React owner; emit a
     // snapshot so wait-note progress and other grading UI re-render immediately.
     this.emit();

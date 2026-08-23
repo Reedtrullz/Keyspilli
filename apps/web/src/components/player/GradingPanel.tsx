@@ -30,6 +30,7 @@ export function GradingPanel({
     if (!micOn) return;
     let cancelled = false;
     let raf = 0;
+    let micCtx: AudioContext | null = null;
     let lastMidi: number | null = null;
     let lastFire = 0;
     async function start() {
@@ -41,6 +42,7 @@ export function GradingPanel({
         }
         streamRef.current = stream;
         const ctx = new AudioContext();
+        micCtx = ctx;
         const src = ctx.createMediaStreamSource(stream);
         const analyser = ctx.createAnalyser();
         analyser.fftSize = 2048;
@@ -72,6 +74,8 @@ export function GradingPanel({
       cancelAnimationFrame(raf);
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
+      void micCtx?.close();
+      micCtx = null;
     };
   }, [micOn]);
 
