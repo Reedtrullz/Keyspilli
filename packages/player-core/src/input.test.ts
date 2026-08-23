@@ -1,4 +1,8 @@
 import { afterEach, describe, expect, it } from "vitest";
+import { DEFAULT_SETTINGS } from "./prefs.js";
+import type { AudioLike } from "./engine.js";
+import type { TimedNote } from "./timeline.js";
+import { PlaybackEngine } from "./engine.js";
 import { KeyboardInput, MidiInput } from "./input.js";
 
 type MidiHandler = (e: { data?: Uint8Array }) => void;
@@ -141,6 +145,70 @@ describe("MidiInput lifecycle", () => {
       expect(await mi.connect()).toBe(true);
       expect(mi.connectedCount).toBe(2);
       expect(a.onmidimessage).not.toBeNull();
+    } finally {
+      restore();
+    }
+  });
+});
+
+class ReconnectAudio implements AudioLike {
+  noteOns: { midi: number; fromInput?: boolean }[] = [];
+  noteOffs: number[] = [];
+  ensured = 0;
+  cancelled = 0;
+  clicks: number[] = [];
+  ensure(): unknown { this.ensured++; return {}; }
+  noteOn(n: TimedNote, when = 0): void { void when; this.noteOns.push({ midi: n.midi, fromInput: n.fromInput }); }
+  noteOff(midi: number): void { this.noteOffs.push(midi); }
+  metronomeClick(beat: number): void { void beat; }
+  cancelAll(): void { this.cancelled++; }
+  setGains(): void {}
+  dispose(): void {}
+  sustainPedal = true;
+}
+
+describe("MIDI reconnect held-note release through the engine", () => {
+  it("releases a pressed note after adapter disconnect and reconnect without stale state", async () => {
+    // Mirror Player.tsx: the owner tracks pressed keys; MidiInput only forwards events.
+    const pressed = new Map<number, number>();
+    const audio = new ReconnectAudio();
+    const eng = new PlaybackEngine(audio, [], 10, { tempoBpm: 120, timeSig: [4, 4] }, { ...DEFAULT_SETTINGS });
+    let tick = 0;
+    const mi = new MidiInput({
+      onNoteOn: (m) => { eng.handleNoteOn(m); pressed.set(m, ++tick); },
+      onNoteOff: (m) => { eng.handleNoteOff(m); pressed.delete(m); },
+    });
+
+    const input: FakeMidiInput = { id: "in-a", onmidimessage: null };
+    const restore = installNavigator([input]);
+    try {
+      expect(await mi.connect()).toBe(true);
+
+      // Press and release C4 over the first connection.
+      input.onmidimessage!({ data: new Uint8Array([0x90, 64, 100]) });
+      expect(pressed.has(64)).toBe(true);
+      expect(audio.noteOns.at(-1)?.fromInput).toBe(true);
+      input.onmidimessage!({ data: new Uint8Array([0x80, 64, 0]) });
+      expect(pressed.has(64)).toBe(false);
+      expect(audio.noteOffs.at(-1)).toBe(64);
+
+      // Adapter disappears and returns as a fresh device.
+      mi.disconnect();
+      access.inputs.delete(input.id);
+      expect(await mi.connect()).toBe(true);
+      const fresh: FakeMidiInput = { id: "in-b", onmidimessage: null };
+      access.inputs.set(fresh.id, fresh);
+      access.onstatechange?.();
+      expect(mi.connectedCount).toBe(1);
+      expect(pressed.size).toBe(0);
+
+      // Same key press/release on the reconnected device stays consistent.
+      fresh.onmidimessage!({ data: new Uint8Array([0x90, 64, 100]) });
+      expect(pressed.has(64)).toBe(true);
+      expect(audio.noteOns.filter((n) => n.fromInput).length).toBe(2);
+      fresh.onmidimessage!({ data: new Uint8Array([0x80, 64, 0]) });
+      expect(pressed.has(64)).toBe(false);
+      expect(audio.noteOffs.at(-1)).toBe(64);
     } finally {
       restore();
     }
