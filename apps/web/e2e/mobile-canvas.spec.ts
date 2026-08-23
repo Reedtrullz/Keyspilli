@@ -6,6 +6,7 @@ test("falling canvas fits the 390px mobile viewport without horizontal scroll", 
   await page.goto("/songs");
   const firstPlayer = page.locator("a[href^='/player/']").first();
   await firstPlayer.click();
+  await expect(page).toHaveURL(/\/player\//, { timeout: 10_000 });
   await expect(page.locator("canvas").first()).toBeVisible();
 
   const metrics = await page.evaluate(() => {
