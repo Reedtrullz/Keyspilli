@@ -16,6 +16,9 @@ import {
 interface Props {
   notes: TimedNote[];
   time: number;
+  /** Live engine clock. When supplied it wins over the time prop so the
+   * canvas can redraw at frame rate without re-rendering the whole player. */
+  timeRef?: { current: number };
   settings: PlayerSettings;
   pressedKeys: Map<number, number>;
   chords: { beat: number; name: string; notes: number[] }[];
@@ -27,11 +30,11 @@ interface Props {
   waitNote?: TimedNote | null;
 }
 
-export function FallingCanvas({ notes, time, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop, waitNote, timeSig = [4, 4] }: Props) {
+export function FallingCanvas({ notes, time, timeRef, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop, waitNote, timeSig = [4, 4] }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Individual refs for each prop — draw loop reads these instead of closures
-  const timeRef = useRef(time);
+  const fallbackTimeRef = useRef(time);
   const notesRef = useRef(notes);
   const settingsRef = useRef(settings);
   const pressedKeysRef = useRef(pressedKeys);
@@ -44,7 +47,7 @@ export function FallingCanvas({ notes, time, settings, pressedKeys, chords, temp
   const timeSigRef = useRef(timeSig);
 
   // Lightweight sync: props → refs (no rAF involved)
-  useEffect(() => { timeRef.current = time; }, [time]);
+  useEffect(() => { fallbackTimeRef.current = time; }, [time]);
   useEffect(() => { notesRef.current = notes; }, [notes]);
   useEffect(() => { settingsRef.current = settings; }, [settings]);
   useEffect(() => { pressedKeysRef.current = pressedKeys; }, [pressedKeys]);
@@ -55,6 +58,7 @@ export function FallingCanvas({ notes, time, settings, pressedKeys, chords, temp
   useEffect(() => { loopRef.current = loop; }, [loop]);
   useEffect(() => { waitNoteRef.current = waitNote; }, [waitNote]);
   useEffect(() => { timeSigRef.current = timeSig; }, [timeSig]);
+  const liveTime = timeRef ?? fallbackTimeRef;
 
   // Single rAF loop — runs once on mount, reads state from refs
   useEffect(() => {
@@ -83,7 +87,7 @@ export function FallingCanvas({ notes, time, settings, pressedKeys, chords, temp
         appliedClientW = clientW;
       }
       // Read all state from refs (stable across frames)
-      const now = timeRef.current;
+      const now = liveTime.current;
       const currentNotes = notesRef.current;
       const s = settingsRef.current;
       const pk = pressedKeysRef.current;

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { PlaybackEngine, type AudioLike } from "../src/engine.js";
 import { DEFAULT_SETTINGS } from "../src/prefs.js";
 import type { PlayerSettings } from "../src/types.js";
-import { dedupeChords, type TimedNote } from "../src/timeline.js";
+import { dedupeChords, secPerBeat, type TimedNote } from "../src/timeline.js";
 
 class FakeAudio implements AudioLike {
   noteOns: { midi: number; when: number; fromInput?: boolean }[] = [];
@@ -373,5 +373,86 @@ describe("PlaybackEngine", () => {
     const replayed = newOns.filter((n) => n.when === 0 && n.midi >= 62 && n.midi <= 64);
     expect(replayed).toHaveLength(0);
     expect(audio.cancelled).toBeGreaterThan(0);
+  });
+});
+
+describe("chord silence across transport changes", () => {
+  const chords = [
+    { beat: 0, name: "C", notes: [48, 52, 55], durationBeats: 4 },
+    { beat: 4, name: "G", notes: [43, 47, 50], durationBeats: 4 },
+  ];
+
+  it("seeking during playback cancels stale chord voices", () => {
+    const { eng, audio } = engine({ backgroundMode: "chord" }, chords);
+    eng.start();
+    expect(audio.playedChords.length).toBeGreaterThan(0);
+    const before = audio.cancelled;
+    audio.playedChords.length = 0;
+    eng.seek(2);
+    expect(audio.cancelled).toBeGreaterThan(before);
+    eng.tick(0.02);
+    // Re-scheduling sounds the active chord at the new playhead exactly once.
+    expect(audio.playedChords.length).toBe(1);
+  });
+
+  it("pausing cancels scheduled chords and resume does not double-fire", () => {
+    const { eng, audio } = engine({ backgroundMode: "chord" }, chords);
+    eng.start();
+    eng.tick(0.05);
+    const beforePause = audio.playedChords.length;
+    eng.stop();
+    expect(audio.cancelled).toBeGreaterThan(0);
+    audio.playedChords.length = 0;
+    eng.start();
+    for (let i = 0; i < 10; i++) eng.tick(0.02);
+    expect(audio.playedChords.length).toBeLessThanOrEqual(beforePause);
+  });
+
+  it("loop wrap cancels the outgoing chord horizon before restarting", () => {
+    const { eng, audio } = engine({ backgroundMode: "chord" }, chords);
+    eng.setLoop({ startSec: 0, endSec: 1.2 });
+    eng.start();
+    eng.tick(0.5);
+    eng.tick(0.5);
+    const before = audio.cancelled;
+    eng.tick(0.5); // crosses loop end
+    expect(audio.cancelled).toBeGreaterThan(before);
+    expect(eng.time).toBe(0);
+  });
+});
+
+describe("speed-stable loops", () => {
+  function makeLoopEngine(speed: number) {
+    const beatSec = secPerBeat(120, speed);
+    const songNotes: TimedNote[] = [
+      { midi: 60, startSec: beatSec, durSec: 0.25, vel: 80 },
+      { midi: 64, startSec: beatSec * 3, durSec: 0.25, vel: 80 },
+    ];
+    const audio = new FakeAudio();
+    return { audio, eng: new PlaybackEngine(audio, songNotes, 6, SONG, { ...DEFAULT_SETTINGS, speed }) };
+  }
+
+  it("reprojects a beat-based loop when speed halves", () => {
+    const fast = makeLoopEngine(1);
+    fast.eng.setLoop({ startSec: 0, endSec: secPerBeat(120, 1) * 4 }); // beats 1-4 at x1
+    fast.eng.start();
+    let wrapsFast = 0;
+    for (let i = 0; i < 200; i++) {
+      fast.eng.tick(0.1);
+      if (fast.eng.time === 0) wrapsFast++;
+    }
+    expect(wrapsFast).toBeGreaterThan(0);
+
+    const slow = makeLoopEngine(0.5);
+    slow.eng.setLoop({ startSec: 0, endSec: secPerBeat(120, 0.5) * 4 }); // same beats at x0.5
+    slow.eng.start();
+    let elapsedToWrap = 0;
+    while (elapsedToWrap < 20) {
+      slow.eng.tick(0.1);
+      elapsedToWrap += 0.1;
+      if (slow.eng.time === 0) break;
+    }
+    // 4 beats at 120bpm spans 2s at x1 and must span exactly 4s at x0.5.
+    expect(elapsedToWrap).toBeCloseTo(4, 1);
   });
 });

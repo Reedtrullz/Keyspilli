@@ -78,6 +78,14 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
   const [playing, setPlaying] = useState(false);
   const timeRef = useRef(time);
   const playingRef = useRef(playing);
+  // Client-only preferences: initialize false for SSR, then sync from
+  // localStorage after mount. Avoids hydration mismatch on class names.
+  const [sectionsCollapsed, setSectionsCollapsed] = useState(false);
+  const [fullWidth, setFullWidth] = useState(false);
+  useEffect(() => {
+    setSectionsCollapsed(loadJson("keyspilli.sectionsCollapsed", false));
+    setFullWidth(loadJson("keyspilli.fullWidth", false));
+  }, []);
   const settingsTriggerRef = useRef<HTMLButtonElement>(null);
   const downloadTriggerRef = useRef<HTMLButtonElement>(null);
   // Store loop anchors in musical time (beats); seconds are derived from the
@@ -289,12 +297,19 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
     if (!playing) return;
     let raf = 0;
     let last = performance.now();
+    // React-rendered transport UI (progress bar, timer, chord/section
+    // highlights) refreshes at 10Hz; the canvas reads the live ref at 60fps.
+    let lastSync = 0;
     const tick = (now: number) => {
       const dt = (now - last) / 1000;
       last = now;
       const eng = engineRef.current;
       if (!eng) return;
       eng.tick(dt);
+      if (now - lastSync >= 100) {
+        lastSync = now;
+        setTime(eng.time);
+      }
       if (eng.playing) raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -529,6 +544,20 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
     saveJson("keyspilli.chordSource", source);
   }
 
+  function toggleSectionsCollapsed() {
+    setSectionsCollapsed((v) => {
+      saveJson("keyspilli.sectionsCollapsed", !v);
+      return !v;
+    });
+  }
+
+  function toggleFullWidth() {
+    setFullWidth((v) => {
+      saveJson("keyspilli.fullWidth", !v);
+      return !v;
+    });
+  }
+
   function startGrading(wait: boolean) {
     if (chordPracticeActive) exitChordPractice();
     setWaitMode(wait);
@@ -588,10 +617,14 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
         : selectedChordSource.source.label
       : "Piano fallback";
   const currentBeat = time / secPerBeat(initial.data.tempoBpm, settings.speed);
+  const activeSection = sections.find((s) => {
+    const spb = secPerBeat(initial.data.tempoBpm, settings.speed);
+    return time >= s.startBeat * spb && time < s.endBeat * spb;
+  });
   const fmtTime = (t: number) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6">
+    <div className={fullWidth ? "w-full px-4 py-6" : "max-w-6xl mx-auto px-4 py-6"}>
       <div className="mb-3 flex items-center gap-2 flex-wrap">
         <div>
           <h1 className="text-xl font-bold leading-tight truncate max-w-[70vw]" title={initial.song.title}>{initial.song.title}</h1>
@@ -703,6 +736,13 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
         >
           88 Keys
         </button>
+        <button
+          onClick={toggleFullWidth}
+          aria-pressed={fullWidth}
+          className={`min-h-11 px-3 py-2 rounded-full text-sm border ${fullWidth ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300"}`}
+        >
+          Full width
+        </button>
 
         <div className="ml-auto flex flex-wrap justify-end gap-2 text-sm">
           <button ref={downloadTriggerRef} onClick={() => setShowDownload(true)} className="min-h-11 px-4 py-2 rounded-full bg-zinc-900 text-white font-medium hover:bg-zinc-700" aria-label="Download sheet music and MIDI">
@@ -804,33 +844,45 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
           />
         </div>
         {sections.length > 1 && (
-          <div role="navigation" aria-label="Song sections" className="px-4 py-2 border-b border-zinc-100 flex flex-wrap gap-1.5 overflow-x-auto">
-            {sections.map((s) => {
-              const spb = secPerBeat(initial.data.tempoBpm, settings.speed);
-              const startSec = s.startBeat * spb;
-              const endSec = s.endBeat * spb;
-              const active = time >= startSec && time < endSec;
-              const isLooping = loop && loop.startSec === startSec && loop.endSec === endSec;
-              return (
-                <span key={s.id} className="inline-flex items-center rounded-full border text-xs min-h-9 overflow-hidden shrink-0">
-                  <button
-                    onClick={() => seekToSection(s)}
-                    aria-current={active ? "true" : undefined}
-                    className={`px-2.5 py-1 font-medium transition-colors ${active ? "bg-zinc-900 text-white border-zinc-900" : "hover:bg-zinc-100 border-transparent"}`}
-                  >
-                    {s.label}
-                  </button>
-                  <button
-                    onClick={() => loopSection(s)}
-                    aria-pressed={!!isLooping}
-                    title={`Loop ${s.label}`}
-                    className={`px-1.5 py-1 border-l ${isLooping ? "bg-indigo-100 border-indigo-300 text-indigo-700" : "border-zinc-200 hover:bg-zinc-50 text-zinc-500"}`}
-                  >
-                    ⟳
-                  </button>
-                </span>
-              );
-            })}
+          <div role="navigation" aria-label="Song sections" className="px-4 py-2 border-b border-zinc-100 flex items-center gap-1.5 overflow-x-auto">
+            <button
+              onClick={toggleSectionsCollapsed}
+              aria-expanded={!sectionsCollapsed}
+              className={`min-h-9 px-2 py-1 rounded-full border text-xs font-medium shrink-0 ${sectionsCollapsed ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300 hover:bg-zinc-100"}`}
+              title={sectionsCollapsed ? "Expand sections" : "Collapse sections"}
+            >
+              {sectionsCollapsed ? "▸ Sections" : "▾ Sections"}
+            </button>
+            {sectionsCollapsed ? (
+              <span className="text-xs text-zinc-500 truncate">{activeSection?.label ?? "Sections hidden"}</span>
+              ) : (
+              sections.map((s) => {
+                const spb = secPerBeat(initial.data.tempoBpm, settings.speed);
+                const startSec = s.startBeat * spb;
+                const endSec = s.endBeat * spb;
+                const active = time >= startSec && time < endSec;
+                const isLooping = loop && loop.startSec === startSec && loop.endSec === endSec;
+                return (
+                  <span key={s.id} className="inline-flex items-center rounded-full border text-xs min-h-9 overflow-hidden shrink-0">
+                    <button
+                      onClick={() => seekToSection(s)}
+                      aria-current={active ? "true" : undefined}
+                      className={`px-2.5 py-1 font-medium transition-colors ${active ? "bg-zinc-900 text-white border-zinc-900" : "hover:bg-zinc-100 border-transparent"}`}
+                    >
+                      {s.label}
+                    </button>
+                    <button
+                      onClick={() => loopSection(s)}
+                      aria-pressed={!!isLooping}
+                      title={`Loop ${s.label}`}
+                      className={`px-1.5 py-1 border-l ${isLooping ? "bg-indigo-100 border-indigo-300 text-indigo-700" : "border-zinc-200 hover:bg-zinc-50 text-zinc-500"}`}
+                    >
+                      ⟳
+                    </button>
+                  </span>
+                );
+              })
+            )}
           </div>
         )}
 
@@ -859,6 +911,7 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
                 <FallingCanvas
                   notes={notes}
                   time={time}
+                  timeRef={timeRef}
                   settings={settings}
                   pressedKeys={pressedKeys}
                   chords={visualChords}
