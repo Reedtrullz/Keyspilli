@@ -263,7 +263,7 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
       engine.audio.dispose();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [settings.soundSource]);
 
   useEffect(() => {
     engineRef.current?.setSettings(settings);

@@ -21,6 +21,7 @@ export class SamplerAudioEngine implements AudioLike {
   private piano: Smplr | null = null;
   private pianoReady = false;
   private pianoFailed = false;
+  private loadStarted = false;
   /** Fallback engine used until samples are loaded or if loading fails. */
   private fallbackEngine: AudioEngine | null = null;
 
@@ -59,6 +60,12 @@ export class SamplerAudioEngine implements AudioLike {
       this.applyGains();
     }
     if (this.ctx.state === "suspended") void this.ctx.resume();
+    // Start fetching samples as soon as the context exists so the first
+    // play uses the sampler rather than falling back to oscillators.
+    if (!this.loadStarted && !this.pianoFailed) {
+      this.loadStarted = true;
+      void this.loadPiano();
+    }
     return this.ctx;
   }
 
