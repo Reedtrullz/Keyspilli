@@ -1,13 +1,11 @@
 import type { NextConfig } from "next";
 
-const monorepoRoot = new URL("../..", import.meta.url).pathname;
-
 const nextConfig: NextConfig = {
   output: "standalone",
-  outputFileTracingRoot: monorepoRoot,
+  outputFileTracingRoot: new URL("..", import.meta.url).pathname,
   serverExternalPackages: ["better-sqlite3"],
-  turbopack: {},
   webpack(config) {
+    // Workspace TS packages use ESM-style ".js" import specifiers.
     config.resolve.extensionAlias = { ".js": [".ts", ".tsx", ".js"] };
     return config;
   },
