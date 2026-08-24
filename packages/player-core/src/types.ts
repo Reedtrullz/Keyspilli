@@ -61,6 +61,8 @@ export interface PlayerSettings {
   voiceGain: number;
   pianoGain: number;
   backgroundMode: "piano" | "chord";
+  /** "synth" = oscillator fallback, "sampled" = smplr SplendidGrandPiano. */
+  soundSource: "synth" | "sampled";
   metronome: boolean;
   chordKeys: boolean;
   sustainPedal: boolean;

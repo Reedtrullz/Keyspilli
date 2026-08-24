@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   AudioEngine,
+  SamplerAudioEngine,
   ChordGrader,
   completeChordDurations,
   dedupeChords,
@@ -241,7 +242,7 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
   // Engine lifecycle: one PlaybackEngine per mount, disposed on unmount.
   useEffect(() => {
     const engine = new PlaybackEngine(
-      new AudioEngine(),
+      settings.soundSource === "sampled" ? new SamplerAudioEngine() : new AudioEngine(),
       notes,
       duration,
       { tempoBpm: initial.data.tempoBpm, timeSig: initial.data.timeSig },

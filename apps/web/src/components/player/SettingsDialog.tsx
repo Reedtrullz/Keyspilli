@@ -151,6 +151,27 @@ export function SettingsDialog({
           )}
         </div>
 
+        <div className="mb-4">
+          <h3 className="text-sm font-medium mb-2">Piano sound</h3>
+          <div className="flex gap-2">
+            {(["sampled", "synth"] as const).map((s) => (
+              <button
+                key={s}
+                onClick={() => onChange({ soundSource: s })}
+                aria-pressed={settings.soundSource === s}
+                className={`flex-1 px-3 py-2 rounded-xl text-sm border ${settings.soundSource === s ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300"}`}
+              >
+                {s === "sampled" ? "Sampled piano" : "Synth"}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-zinc-500 mt-1">
+            {settings.soundSource === "sampled"
+              ? "Realistic multi-layer piano samples (loads on first play)"
+              : "Lightweight oscillator tone; works instantly on slow connections"}
+          </p>
+        </div>
+
         <div className="mb-2">
           <label className="flex justify-between text-sm mb-1">
             <span>Voice</span>

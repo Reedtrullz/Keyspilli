@@ -5,11 +5,13 @@ const KEY = "keyspilli.prefs.v1";
 const VIEW_MODES = ["falling", "beginner", "sheet", "leadsheet"] as const;
 const HANDS = ["L", "R", "both"] as const;
 const BACKGROUNDS = ["piano", "chord"] as const;
+const SOUND_SOURCES = ["synth", "sampled"] as const;
 
 export const DEFAULT_SETTINGS: PlayerSettings = {
   voiceGain: 1,
   pianoGain: 0.4,
   backgroundMode: "piano",
+  soundSource: "sampled",
   metronome: false,
   chordKeys: true,
   sustainPedal: true,
@@ -50,6 +52,7 @@ export function loadSettings(): PlayerSettings {
       voiceGain: clampNum(raw.voiceGain, 0, 2, DEFAULT_SETTINGS.voiceGain),
       pianoGain: clampNum(raw.pianoGain, 0, 2, DEFAULT_SETTINGS.pianoGain),
       backgroundMode: pickEnum(raw.backgroundMode, BACKGROUNDS, DEFAULT_SETTINGS.backgroundMode),
+      soundSource: pickEnum(raw.soundSource, SOUND_SOURCES, DEFAULT_SETTINGS.soundSource),
       metronome: pickBool(raw.metronome, DEFAULT_SETTINGS.metronome),
       chordKeys: pickBool(raw.chordKeys, DEFAULT_SETTINGS.chordKeys),
       sustainPedal: pickBool(raw.sustainPedal, DEFAULT_SETTINGS.sustainPedal),
