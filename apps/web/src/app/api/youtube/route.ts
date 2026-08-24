@@ -18,9 +18,16 @@ function checkAuth(req: Request): Response | null {
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT = 5;
 const RATE_WINDOW_MS = 60_000;
+let lastCleanup = Date.now();
 
 function checkRateLimit(ip: string): Response | null {
   const now = Date.now();
+  if (now - lastCleanup > RATE_WINDOW_MS) {
+    lastCleanup = now;
+    for (const [key, entry] of rateLimitMap) {
+      if (now > entry.resetAt) rateLimitMap.delete(key);
+    }
+  }
   const entry = rateLimitMap.get(ip);
   if (!entry || now > entry.resetAt) {
     rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
@@ -36,7 +43,9 @@ function checkRateLimit(ip: string): Response | null {
 export async function POST(req: NextRequest) {
   const authResponse = checkAuth(req);
   if (authResponse) return authResponse;
-  const ip = req.headers.get("x-forwarded-for") || "unknown";
+  // Caddy sets X-Real-IP from the actual remote address; X-Forwarded-For
+  // can be spoofed by clients when no trusted proxy overwrites it.
+  const ip = req.headers.get("x-real-ip") || "unknown";
   const rateLimitResponse = checkRateLimit(ip);
   if (rateLimitResponse) return rateLimitResponse;
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;

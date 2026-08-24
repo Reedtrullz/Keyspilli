@@ -108,8 +108,10 @@ Restore:
 
 ```bash
 docker compose stop worker
+LATEST_DB=$(ls -1t /backups/db-*.sqlite | head -1)
+LATEST_ARCHIVE=$(ls -1t /backups/artifacts-*.tar.gz | head -1)
 docker compose run --rm -v keyspilli_data:/data -v /backups:/backups web \
-  sh -c "set -eu; test -f /backups/db-LATEST.sqlite; test -f /backups/artifacts-LATEST.tar.gz; rm -f /data/db.sqlite-wal /data/db.sqlite-shm /data/manifest.json /data/learner-review.json; rm -rf /data/artifacts /data/seed-midi /data/transcribed /data/uploads; cp /backups/db-LATEST.sqlite /data/db.sqlite; tar -xzf /backups/artifacts-LATEST.tar.gz -C /data; test -d /data/artifacts"
+  sh -c "set -eu; test -f '$LATEST_DB'; test -f '$LATEST_ARCHIVE'; rm -f /data/db.sqlite-wal /data/db.sqlite-shm /data/manifest.json /data/learner-review.json; rm -rf /data/artifacts /data/seed-midi /data/transcribed /data/uploads; cp '$LATEST_DB' /data/db.sqlite; tar -xzf '$LATEST_ARCHIVE' -C /data; test -d /data/artifacts"
 docker compose start worker
 ```
 

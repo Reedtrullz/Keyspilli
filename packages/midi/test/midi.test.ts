@@ -174,6 +174,39 @@ describe("parseMidi", () => {
   });
 });
 
+describe("parseMidi truncated input", () => {
+  function midiWithTrack(payload: number[]): Uint8Array {
+    return new Uint8Array([
+      0x4d, 0x54, 0x68, 0x64, // "MThd"
+      0x00, 0x00, 0x00, 0x06, // header len = 6
+      0x00, 0x01,             // format 1
+      0x00, 0x01,             // ntrks = 1
+      0x01, 0xe0,             // division = 480
+      0x4d, 0x54, 0x72, 0x6b, // "MTrk"
+      (payload.length >>> 24) & 0xff,
+      (payload.length >>> 16) & 0xff,
+      (payload.length >>> 8) & 0xff,
+      payload.length & 0xff,
+      ...payload,
+    ]);
+  }
+
+  it.each([
+    ["delta varint", [0x81], /truncated MIDI varint/],
+    ["overlong delta varint", [0x81, 0x81, 0x81, 0x81, 0x00], /invalid MIDI varint/],
+    ["event status", [0x00], /truncated MIDI event/],
+    ["meta type", [0x00, 0xff], /truncated MIDI meta/],
+    ["meta length", [0x00, 0xff, 0x01, 0x81], /truncated MIDI varint/],
+    ["meta payload", [0x00, 0xff, 0x01, 0x02, 0x41], /truncated MIDI meta payload/],
+    ["sysex length", [0x00, 0xf0, 0x81], /truncated MIDI varint/],
+    ["sysex payload", [0x00, 0xf0, 0x02, 0x41], /truncated MIDI sysex payload/],
+    ["two-byte channel payload", [0x00, 0x90, 0x3c], /truncated MIDI channel message/],
+    ["one-byte channel payload", [0x00, 0xc0], /truncated MIDI channel message/],
+  ] as const)("rejects a truncated %s", (_name, payload, expected) => {
+    expect(() => parseMidi(midiWithTrack([...payload]))).toThrow(expected);
+  });
+});
+
 describe("writeMidi roundtrip", () => {
   it("write -> parse preserves notes", () => {
     const notes: Note[] = [
