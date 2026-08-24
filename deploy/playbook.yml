@@ -43,7 +43,7 @@
     caddy_marker_name: Keyspilli
     rollback_image: "{{ app_name }}:rollback"
     rollback_worker_image: "{{ app_name }}-worker:rollback"
-    keyspilli_api_token: "{{ lookup('ansible.builtin.vault', 'keyspilli_api_token') | default('', true) }}"
+    keyspilli_api_token: "{{ lookup('ansible.builtin.env', 'KEYSPILLI_API_TOKEN') | default('', true) }}"
 
   pre_tasks:
     - name: Validate deployment variables
