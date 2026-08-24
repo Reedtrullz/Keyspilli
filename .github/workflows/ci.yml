@@ -225,7 +225,6 @@ jobs:
         env:
           APP_VERSION: ${{ github.sha }}
           ANSIBLE_CONFIG: deploy/ansible.cfg
-          KEYSPILLI_API_TOKEN: ${{ secrets.KEYSPILLI_API_TOKEN }}
         run: |
           ansible-playbook \
             -i deploy/inventory/hosts.yml \

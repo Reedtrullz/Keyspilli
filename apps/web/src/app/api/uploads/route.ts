@@ -1,12 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ingestSource } from "@keyspilli/catalog";
-import { checkMutationAuth } from "@/lib/mutation-auth";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
+function checkAuth(req: Request): Response | null {
+  const token = process.env.KEYSPILLI_API_TOKEN;
+  if (!token) return null; // no auth configured, allow
+  const auth = req.headers.get("authorization");
+  if (auth !== `Bearer ${token}`) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+  return null;
+}
+
 export async function POST(req: NextRequest) {
-  const authResponse = checkMutationAuth(req);
+  const authResponse = checkAuth(req);
   if (authResponse) return authResponse;
   const buf = Buffer.from(await req.arrayBuffer());
   if (buf.length > 10 * 1024 * 1024) {

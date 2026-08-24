@@ -11,7 +11,6 @@ services:
       HOSTNAME: "0.0.0.0"
       VERSION: "{{ compose_app_version | default(app_version) }}"
       IMAGE_REF: "{{ compose_image | default(docker_image) }}"
-      KEYSPILLI_API_TOKEN: {{ keyspilli_api_token | default('') | to_json }}
       KEYSPILLI_DATA_DIR: /data
       KEYSPILLI_ORIGIN: "http://{{ app_bind_address }}:{{ app_host_port }}"
     healthcheck:

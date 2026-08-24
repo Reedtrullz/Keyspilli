@@ -2,9 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { insertJob, getSongsByBase } from "@keyspilli/catalog";
 import { applySongMetadata, resolveBaseId, SongUpdateError, type SongPatch } from "@/lib/song-update";
 import { parseTempoRequest, TempoRequestError, type TempoRequestPatch } from "@/lib/tempo-request";
-import { checkMutationAuth } from "@/lib/mutation-auth";
 
 export const dynamic = "force-dynamic";
+
+function checkAuth(req: Request): Response | null {
+  const token = process.env.KEYSPILLI_API_TOKEN;
+  if (!token) return null; // no auth configured, allow
+  const auth = req.headers.get("authorization");
+  if (auth !== `Bearer ${token}`) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+  return null;
+}
 
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT = 5;
@@ -32,7 +41,7 @@ function checkRateLimit(ip: string): Response | null {
 }
 
 export async function POST(req: NextRequest) {
-  const authResponse = checkMutationAuth(req);
+  const authResponse = checkAuth(req);
   if (authResponse) return authResponse;
   // Caddy sets X-Real-IP from the actual remote address; X-Forwarded-For
   // can be spoofed by clients when no trusted proxy overwrites it.
