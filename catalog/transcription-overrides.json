@@ -4,6 +4,22 @@
     "collapseOctaveDoubles": true,
     "thinBassMinGapBeats": 0.4
   },
+  "dorelia-bast-sabaton-en-livstid-i-krig-a-lifetime-of-war-piano-cover-mslzy9fm": {
+    "collapseOctaveDoubles": true,
+    "thinBassMinGapBeats": 0.4
+  },
+  "margarita-sipatova-ozzy-osbourne-mama-i-m-coming-home-piano-cover-mslzxjx2": {
+    "collapseOctaveDoubles": true,
+    "thinBassMinGapBeats": 0.4
+  },
+  "piano-free-sheet-music-sabaton-the-final-solution-mslzzcr5": {
+    "collapseOctaveDoubles": true,
+    "thinBassMinGapBeats": 0.4
+  },
+  "piano-duet-tutorial-levva-livet-age-aleksandersen-mslzwgdw": {
+    "collapseOctaveDoubles": true,
+    "thinBassMinGapBeats": 0.4
+  },
   "re2-levva": {
     "onsetThreshold": 0.4,
     "frameThreshold": 0.25,
