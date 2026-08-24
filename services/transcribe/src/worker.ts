@@ -52,6 +52,7 @@ interface TranscriptionOverride {
   onsetThreshold?: number;
   frameThreshold?: number;
   onsetMatchSec?: number;
+  collapseOctaveDoubles?: boolean;
   thinBassMinGapBeats?: number;
   trimIntroBeats?: number;
   tempoBpm?: number;
@@ -157,6 +158,7 @@ async function processJob(jobId: string): Promise<void> {
     if (!source) throw new Error("basic_pitch produced no usable root MIDI/audio pair");
     const midi = await filterTranscription(new Uint8Array(await readFile(source.midiPath)), source.audioPath, {
       onsetMatchSec: onsetMatch,
+      collapseOctaveDoubles: ov.collapseOctaveDoubles,
       trimIntroBeats: ov.trimIntroBeats,
       thinBassMinGapBeats: ov.thinBassMinGapBeats,
     });

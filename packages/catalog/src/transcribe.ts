@@ -32,6 +32,7 @@ export async function filterTranscription(
   opts: {
     onsetMatchSec?: number;
     trimIntroBeats?: number;
+    collapseOctaveDoubles?: boolean;
     thinBassMinGapBeats?: number;
   } = {},
 ): Promise<Uint8Array> {
@@ -69,6 +70,41 @@ export async function filterTranscription(
     }
     if (kept.length < raw.notes.length * 0.2) {
       throw new Error(`bass thinning dropped too much (${kept.length}/${raw.notes.length})`);
+    }
+  }
+  // One acoustic attack often produces C3+C5+C6 in the transcription: the
+  // higher octaves are harmonics of the same played note, not separate keys.
+  // Collapse each same-pitch-class stack at one onset down to its lowest note.
+  if (opts.collapseOctaveDoubles) {
+    const byOnset = new Map<number, typeof kept>();
+    for (const n of kept) {
+      const key = Math.round(n.start * 1000);
+      const arr = byOnset.get(key);
+      if (arr) arr.push(n);
+      else byOnset.set(key, [n]);
+    }
+    const droppedOctaves = new Set<(typeof kept)[number]>();
+    for (const group of byOnset.values()) {
+      if (group.length < 2) continue;
+      const byPc = new Map<number, typeof group>();
+      for (const n of group) {
+        const pc = n.midi % 12;
+        const arr = byPc.get(pc);
+        if (arr) arr.push(n);
+        else byPc.set(pc, [n]);
+      }
+      for (const stack of byPc.values()) {
+        if (stack.length < 2) continue;
+        stack.sort((a, b) => a.midi - b.midi);
+        for (let i = 1; i < stack.length; i++) droppedOctaves.add(stack[i]!);
+      }
+    }
+    for (const n of droppedOctaves) {
+      const i = kept.indexOf(n);
+      if (i >= 0) kept.splice(i, 1);
+    }
+    if (kept.length < raw.notes.length * 0.2) {
+      throw new Error(`octave collapse dropped too much (${kept.length}/${raw.notes.length})`);
     }
   }
   // Trim leading silence: video intros (title cards, spoken openings) often

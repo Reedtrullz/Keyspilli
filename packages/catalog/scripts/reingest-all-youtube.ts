@@ -58,6 +58,7 @@ interface TranscriptionOverride {
   onsetThreshold?: number;
   frameThreshold?: number;
   onsetMatchSec?: number;
+  collapseOctaveDoubles?: boolean;
   thinBassMinGapBeats?: number;
   trimIntroBeats?: number;
   tempoBpm?: number;
@@ -140,6 +141,7 @@ for (const { base_id: base } of bases) {
   // match override to the existing source, but record BP thresholds in
   // provenance so a future re-transcription knows what was used.
   const onsetMatch = ov.onsetMatchSec ?? ONSET_MATCH_SEC;
+  const collapseOctaves = ov.collapseOctaveDoubles;
   const thinBassGap = ov.thinBassMinGapBeats;
   const trimIntroBeats = ov.trimIntroBeats;
   if (existsSync(join(seedMidiDir(), `${base}.mid`))) {
@@ -205,7 +207,7 @@ for (const { base_id: base } of bases) {
   try {
     filtered = preserveMelody
       ? rewritten
-      : await filterTranscription(rewritten, src.audioPath, { onsetMatchSec: onsetMatch, trimIntroBeats, thinBassMinGapBeats: thinBassGap });
+      : await filterTranscription(rewritten, src.audioPath, { onsetMatchSec: onsetMatch, trimIntroBeats, collapseOctaveDoubles: collapseOctaves, thinBassMinGapBeats: thinBassGap });
   } catch (err) {
     skipped++;
     const message = `x ${base}: onset filter failed: ${(err as Error).message}`;
