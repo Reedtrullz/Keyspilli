@@ -16,7 +16,13 @@ export const dynamic = "force-dynamic";
 
 function checkAuth(req: Request): Response | null {
   const token = process.env.KEYSPILLI_API_TOKEN;
-  if (!token) return null; // no auth configured, allow
+  if (!token) {
+    console.error("KEYSPILLI_API_TOKEN is not configured; rejecting mutation request");
+    return NextResponse.json(
+      { error: "server authentication is not configured" },
+      { status: 503 },
+    );
+  }
   const auth = req.headers.get("authorization");
   if (auth !== `Bearer ${token}`) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });

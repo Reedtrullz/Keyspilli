@@ -43,6 +43,7 @@
     caddy_marker_name: Keyspilli
     rollback_image: "{{ app_name }}:rollback"
     rollback_worker_image: "{{ app_name }}-worker:rollback"
+    keyspilli_api_token: "{{ lookup('ansible.builtin.vault', 'keyspilli_api_token') | default('', true) }}"
 
   pre_tasks:
     - name: Validate deployment variables
@@ -64,7 +65,15 @@
           /api/health. Set allow_mutable_tag=true only for an intentional
           mutable-tag deploy.
         success_msg: Keyspilli deployment variables validated.
-      tags: [always]
+        tags: [always]
+
+    - name: Assert API token is configured for production
+      ansible.builtin.assert:
+        that:
+          - keyspilli_api_token | length >= 32
+        fail_msg: >-
+          keyspilli_api_token must be set in Ansible Vault with at least 32 characters.
+          The application rejects all mutation requests without it (fail-closed auth).
 
     - name: Verify Docker is available on target host
       ansible.builtin.command: docker --version
