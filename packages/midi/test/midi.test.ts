@@ -174,6 +174,38 @@ describe("parseMidi", () => {
   });
 });
 
+describe("parseMidi truncated input", () => {
+  function makeMinimalMidi(truncateAt: number): Uint8Array {
+    // MThd (14 bytes) + MTrk header (8 bytes) + note-on + note-off + EOT.
+    const bytes = new Uint8Array([
+      0x4d, 0x54, 0x68, 0x64, // "MThd"
+      0x00, 0x00, 0x00, 0x06, // header len = 6
+      0x00, 0x01,             // format 1
+      0x00, 0x01,             // ntrks = 1
+      0x01, 0xe0,             // division = 480
+      0x4d, 0x54, 0x72, 0x6b, // "MTrk"
+      0x00, 0x00, 0x00, 0x12, // track len = 18
+      // delta=0, note-on C4 vel=80
+      0x00, 0x90, 0x3c, 0x50,
+      // delta=480, note-off C4 vel=0
+      0x83, 0x60, 0x80, 0x3c, 0x00,
+      // delta=0, end-of-track meta
+      0x00, 0xff, 0x2f, 0x00,
+    ]);
+    return bytes.slice(0, truncateAt);
+  }
+
+  it.each([22, 23, 24, 25, 26, 27, 28, 29, 30])(
+    "rejects a file truncated at byte %i instead of reading undefined",
+    (n) => {
+      const buf = makeMinimalMidi(n);
+      expect(() => {
+        parseMidi(buf);
+      }).toThrow(/truncated|bad track/);
+    },
+  );
+});
+
 describe("writeMidi roundtrip", () => {
   it("write -> parse preserves notes", () => {
     const notes: Note[] = [

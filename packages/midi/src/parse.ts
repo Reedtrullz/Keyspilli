@@ -9,9 +9,10 @@ function inferTrackHand(names: string[]): Hand | undefined {
   return undefined;
 }
 
-function readVarint(data: Uint8Array, pos: { v: number }): number {
+function readVarint(data: Uint8Array, pos: { v: number }, end: number): number {
   let value = 0;
   for (let i = 0; i < 4; i++) {
+    if (pos.v >= end) throw new Error(`truncated MIDI varint at pos=${pos.v}`);
     const b = data[pos.v++]!;
     value = (value << 7) | (b & 0x7f);
     if (!(b & 0x80)) break;
@@ -19,9 +20,12 @@ function readVarint(data: Uint8Array, pos: { v: number }): number {
   return value;
 }
 
-function readStr(data: Uint8Array, pos: { v: number }, len: number): string {
+function readStr(data: Uint8Array, pos: { v: number }, len: number, end?: number): string {
   let s = "";
-  for (let i = 0; i < len; i++) s += String.fromCharCode(data[pos.v++]!);
+  for (let i = 0; i < len; i++) {
+    if (end !== undefined && pos.v >= end) throw new Error(`truncated MIDI string at pos=${pos.v}`);
+    s += String.fromCharCode(data[pos.v++]!);
+  }
   return s;
 }
 
@@ -46,7 +50,7 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
   let title: string | undefined;
 
   for (let t = 0; t < ntrks; t++) {
-    if (pos + 8 > buf.length || readStr(buf, { v: pos }, 4) !== "MTrk") throw new Error("bad track header");
+    if (pos + 8 > buf.length || readStr(buf, { v: pos }, 4, buf.length) !== "MTrk") throw new Error("bad track header");
     pos += 4;
     const len = (buf[pos]! << 24) | (buf[pos + 1]! << 16) | (buf[pos + 2]! << 8) | buf[pos + 3]!;
     pos += 4;
@@ -64,8 +68,9 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
 
     while (pos < end) {
       const deltaPos = { v: pos };
-      tick += readVarint(buf, deltaPos);
+      tick += readVarint(buf, deltaPos, end);
       pos = deltaPos.v;
+      if (pos >= end) throw new Error(`truncated MIDI event at pos=${pos}`);
       let status = buf[pos++]!;
       if (status < 0x80) {
         if (running === null) throw new Error(`running status without previous status at pos=${pos} byte=${buf[pos]?.toString(16)}`);
@@ -79,10 +84,12 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
       const chan = status & 0x0f;
       if (kind === 0xf0) {
         if (status === 0xff) {
+          if (pos >= end) throw new Error(`truncated MIDI meta at pos=${pos}`);
           const type = buf[pos++]!;
           const lenPos = { v: pos };
-          const len2 = readVarint(buf, lenPos);
+          const len2 = readVarint(buf, lenPos, end);
           pos = lenPos.v;
+          if (pos + len2 > end) throw new Error(`truncated MIDI meta payload at pos=${pos} len=${len2} end=${end}`);
           if (type === 0x51 && len2 === 3) {
             const us = (buf[pos]! << 16) | (buf[pos + 1]! << 8) | buf[pos + 2]!;
             if (us > 0) tempos.push({ beat: tick / division, bpm: 60_000_000 / us });
@@ -104,13 +111,20 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
           pos += len2;
         } else if (status === 0xf0 || status === 0xf7) {
           const lenPos = { v: pos };
-          const len2 = readVarint(buf, lenPos);
+          const len2 = readVarint(buf, lenPos, end);
           pos = lenPos.v;
+          if (pos + len2 > end) throw new Error(`truncated MIDI sysex payload at pos=${pos} len=${len2} end=${end}`);
           pos += len2;
         }
         continue;
       }
       const b = tick / division;
+      if (pos + 2 > end && (kind === 0x80 || kind === 0x90 || kind === 0xa0 || kind === 0xb0 || kind === 0xe0)) {
+        throw new Error(`truncated MIDI channel message at pos=${pos} kind=0x${kind.toString(16)}`);
+      }
+      if (kind === 0xc0 || kind === 0xd0) {
+        if (pos + 1 > end) throw new Error(`truncated MIDI channel message at pos=${pos} kind=0x${kind.toString(16)}`);
+      }
       if (kind === 0x80 || (kind === 0x90 && buf[pos + 1] === 0)) {
         const note = buf[pos]!;
         pos += 2;
