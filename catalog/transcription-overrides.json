@@ -1,0 +1,37 @@
+{
+  "re2-levva": {
+    "onsetThreshold": 0.4,
+    "frameThreshold": 0.25,
+    "onsetMatchSec": 0.35
+  },
+  "job-mslzvbd0-jiuqh4": {
+    "onsetThreshold": 0.4,
+    "frameThreshold": 0.25,
+    "onsetMatchSec": 0.35
+  },
+  "re2-neverenough": {
+    "onsetThreshold": 0.4,
+    "frameThreshold": 0.25,
+    "onsetMatchSec": 0.35
+  },
+  "job-mslzvbcz-n8xcem": {
+    "onsetThreshold": 0.4,
+    "frameThreshold": 0.25,
+    "onsetMatchSec": 0.35
+  },
+  "job-mslzvbd0-4p8qvt": {
+    "onsetThreshold": 0.4,
+    "frameThreshold": 0.25,
+    "onsetMatchSec": 0.35
+  },
+  "re-beautiful-an": {
+    "onsetThreshold": 0.4,
+    "frameThreshold": 0.25,
+    "onsetMatchSec": 0.35
+  },
+  "job-mslzvbd0-w83lqe": {
+    "onsetThreshold": 0.4,
+    "frameThreshold": 0.25,
+    "onsetMatchSec": 0.35
+  }
+}

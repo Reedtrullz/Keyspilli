@@ -26,7 +26,11 @@ export const AUDIO_ONSET_DETECTOR_CONFIG = {
 /** Maximum distance between an audio onset and a Basic Pitch note onset. */
 export const ONSET_MATCH_SEC = Number(process.env.KEYSPILLI_ONSET_MATCH_SEC ?? 0.15);
 
-export async function filterTranscription(rawMidi: Uint8Array, audioPath: string): Promise<Uint8Array> {
+export async function filterTranscription(
+  rawMidi: Uint8Array,
+  audioPath: string,
+  opts: { onsetMatchSec?: number } = {},
+): Promise<Uint8Array> {
   const { stdout } = await execFileP(PYTHON, [join(ROOT, "services", "transcribe", "src", "audio_onsets.py"), audioPath], {
     timeout: 180_000,
     maxBuffer: 32 * 1024 * 1024,
@@ -34,7 +38,8 @@ export async function filterTranscription(rawMidi: Uint8Array, audioPath: string
   const audioOnsets = JSON.parse(stdout) as number[];
   const raw = parseMidi(rawMidi);
   const secPerBeat = 60 / raw.tempoBpm;
-  const kept = raw.notes.filter((n) => audioOnsets.some((a) => Math.abs(a - n.start * secPerBeat) <= ONSET_MATCH_SEC));
+  const matchSec = opts.onsetMatchSec ?? ONSET_MATCH_SEC;
+  const kept = raw.notes.filter((n) => audioOnsets.some((a) => Math.abs(a - n.start * secPerBeat) <= matchSec));
   if (kept.length < raw.notes.length * 0.2) {
     throw new Error(`onset filter dropped too much (${kept.length}/${raw.notes.length})`);
   }
