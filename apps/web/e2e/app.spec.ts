@@ -3,6 +3,14 @@ import { expect, test } from "@playwright/test";
 const SONG = "f-f-chopin-nocturne-m";
 const UG_SONG = "the-theorist-elton-john-your-song-piano-cover-jz6ugvghbt8-a";
 
+// Pin e2e runs to the deterministic oscillator engine so sampled-piano CDN
+// fetches do not stall headless playback assertions.
+test.beforeEach(async ({ context }) => {
+  await context.addInitScript(() => {
+    window.localStorage.setItem("keyspilli.prefs.v1", JSON.stringify({ soundSource: "synth" }));
+  });
+});
+
 test("home page shows the catalog", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: /Play the songs you love/ })).toBeVisible();

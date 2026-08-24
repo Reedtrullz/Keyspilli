@@ -2,6 +2,14 @@ import { expect, test } from "@playwright/test";
 
 const SONG = "f-f-chopin-nocturne-m";
 
+// Pin e2e runs to the deterministic oscillator engine so sampled-piano CDN
+// fetches do not stall headless playback assertions.
+test.beforeEach(async ({ context }) => {
+  await context.addInitScript(() => {
+    window.localStorage.setItem("keyspilli.prefs.v1", JSON.stringify({ soundSource: "synth" }));
+  });
+});
+
 test("transport UI advances during playback without pause", async ({ page }) => {
   await page.goto(`/player/${SONG}`);
   await expect(page.locator("canvas").first()).toBeVisible();
