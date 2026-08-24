@@ -52,6 +52,7 @@ interface TranscriptionOverride {
   onsetThreshold?: number;
   frameThreshold?: number;
   onsetMatchSec?: number;
+  thinBassMinGapBeats?: number;
   trimIntroBeats?: number;
   tempoBpm?: number;
 }
@@ -157,6 +158,7 @@ async function processJob(jobId: string): Promise<void> {
     const midi = await filterTranscription(new Uint8Array(await readFile(source.midiPath)), source.audioPath, {
       onsetMatchSec: onsetMatch,
       trimIntroBeats: ov.trimIntroBeats,
+      thinBassMinGapBeats: ov.thinBassMinGapBeats,
     });
     // Read the post-filter MIDI tempo because this is the exact tempo passed
     // to ingestSource and therefore the tempo used by cleanTranscription's

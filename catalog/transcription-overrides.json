@@ -1,6 +1,7 @@
 {
   "aria-ellys-music-the-warning-hell-you-call-a-dream-piano-cover-by-aria-ellys-mslzwo1d": {
-    "tempoBpm": 95
+    "tempoBpm": 95,
+    "thinBassMinGapBeats": 0.4
   },
   "re2-levva": {
     "onsetThreshold": 0.4,

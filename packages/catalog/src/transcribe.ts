@@ -29,7 +29,11 @@ export const ONSET_MATCH_SEC = Number(process.env.KEYSPILLI_ONSET_MATCH_SEC ?? 0
 export async function filterTranscription(
   rawMidi: Uint8Array,
   audioPath: string,
-  opts: { onsetMatchSec?: number; trimIntroBeats?: number } = {},
+  opts: {
+    onsetMatchSec?: number;
+    trimIntroBeats?: number;
+    thinBassMinGapBeats?: number;
+  } = {},
 ): Promise<Uint8Array> {
   const { stdout } = await execFileP(PYTHON, [join(ROOT, "services", "transcribe", "src", "audio_onsets.py"), audioPath], {
     timeout: 180_000,
@@ -42,6 +46,30 @@ export async function filterTranscription(
   const kept = raw.notes.filter((n) => audioOnsets.some((a) => Math.abs(a - n.start * secPerBeat) <= matchSec));
   if (kept.length < raw.notes.length * 0.2) {
     throw new Error(`onset filter dropped too much (${kept.length}/${raw.notes.length})`);
+  }
+  // Bass guitar and rhythm-guitar roots transcribe as octave-doubled low
+  // clusters that read as mud on piano. Keep the lowest note of each bass
+  // attack and enforce a minimum gap so the low register stays a line.
+  const thinBassGap = opts.thinBassMinGapBeats;
+  if (thinBassGap !== undefined && thinBassGap > 0) {
+    const BASS_SPLIT_MIDI = 48;
+    const sortedBass = kept
+      .filter((n) => n.midi < BASS_SPLIT_MIDI)
+      .sort((a, b) => a.start - b.start || a.midi - b.midi);
+    const droppedBass = new Set(sortedBass);
+    let lastKeptStart = -Infinity;
+    for (const n of sortedBass) {
+      if (n.start < lastKeptStart + thinBassGap) continue;
+      droppedBass.delete(n);
+      lastKeptStart = n.start;
+    }
+    for (const n of droppedBass) {
+      const i = kept.indexOf(n);
+      if (i >= 0) kept.splice(i, 1);
+    }
+    if (kept.length < raw.notes.length * 0.2) {
+      throw new Error(`bass thinning dropped too much (${kept.length}/${raw.notes.length})`);
+    }
   }
   // Trim leading silence: video intros (title cards, spoken openings) often
   // leave 5-40s with no notes; the player should start at the first note.
