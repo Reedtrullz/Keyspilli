@@ -209,7 +209,10 @@ test("PDF export rejects unknown layouts with a stable safe error", async ({ req
 test("upload flow creates a playable song", async ({ request }) => {
   const fs = await import("node:fs");
   const buf = fs.readFileSync("../../data/seed-midi/f-abt-vocalise-o-1.mid");
-  const res = await request.post("/api/uploads?title=Upload Test&artist=Keyspilli", { data: buf });
+  const res = await request.post("/api/uploads?title=Upload Test&artist=Keyspilli", {
+    data: buf,
+    headers: { authorization: "Bearer test-token-for-e2e" },
+  });
   expect(res.status()).toBe(200);
   const body = (await res.json()) as { songIds: string[] };
   expect(body.songIds.length).toBe(6);
