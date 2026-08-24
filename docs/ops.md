@@ -13,7 +13,9 @@ back to the previous images on failure.
 Manual deploy (equivalent to the CI job):
 
 ```bash
-APP_VERSION=$(git rev-parse HEAD) ansible-playbook \
+export APP_VERSION=$(git rev-parse HEAD)
+export KEYSPILLI_API_TOKEN='<at-least-32-character-secret>'
+ansible-playbook \
   -i deploy/inventory/hosts.yml deploy/playbook.yml \
   -e "docker_image=ghcr.io/reedtrullz/keyspilli:$(git rev-parse --short=12 HEAD)" \
   -e "worker_image=ghcr.io/reedtrullz/keyspilli-worker:$(git rev-parse --short=12 HEAD)"
@@ -27,8 +29,10 @@ Preconditions (matching the other projects):
 - Domain: the inventory defaults to `keys.reidar.tech` — add a Caddy
   block for any other domain to `deploy/playbook.yml` vars or the inventory.
 - CI additionally needs the `production` GitHub environment and secrets
-  `VPS_SSH_PRIVATE_KEY` + `VPS_SSH_HOST_KEY` (see the Configure SSH key step in
-  `.github/workflows/ci.yml`).
+  `VPS_SSH_PRIVATE_KEY`, `VPS_SSH_HOST_KEY`, and `KEYSPILLI_API_TOKEN` (see the
+  Configure SSH key and deploy steps in `.github/workflows/ci.yml`). The API
+  token must contain at least 32 characters; mutation routes fail closed if it
+  is missing.
 
 ## First run on a fresh volume (catalog)
 
@@ -108,8 +112,10 @@ Restore:
 
 ```bash
 docker compose stop worker
+LATEST_DB=$(ls -1t /backups/db-*.sqlite | head -1)
+LATEST_ARCHIVE=$(ls -1t /backups/artifacts-*.tar.gz | head -1)
 docker compose run --rm -v keyspilli_data:/data -v /backups:/backups web \
-  sh -c "set -eu; test -f /backups/db-LATEST.sqlite; test -f /backups/artifacts-LATEST.tar.gz; rm -f /data/db.sqlite-wal /data/db.sqlite-shm /data/manifest.json /data/learner-review.json; rm -rf /data/artifacts /data/seed-midi /data/transcribed /data/uploads; cp /backups/db-LATEST.sqlite /data/db.sqlite; tar -xzf /backups/artifacts-LATEST.tar.gz -C /data; test -d /data/artifacts"
+  sh -c "set -eu; test -f '$LATEST_DB'; test -f '$LATEST_ARCHIVE'; rm -f /data/db.sqlite-wal /data/db.sqlite-shm /data/manifest.json /data/learner-review.json; rm -rf /data/artifacts /data/seed-midi /data/transcribed /data/uploads; cp '$LATEST_DB' /data/db.sqlite; tar -xzf '$LATEST_ARCHIVE' -C /data; test -d /data/artifacts"
 docker compose start worker
 ```
 
