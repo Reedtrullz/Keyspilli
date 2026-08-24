@@ -1,8 +1,9 @@
 # Keyspilli
 
 Personal browser-based piano-learning app (private, single-user). Color-coded
-interactive player with 4 view modes, a ~100-song catalog, MIDI uploads,
-YouTube conversion, live practice grading, and free PDF/MIDI/MusicXML export.
+interactive player with 4 view modes, a ~167-song catalogue (444 difficulty
+variants), MIDI uploads, YouTube conversion, live practice grading, and free
+PDF/MIDI/MusicXML export.
 
 ## Quick start
 
