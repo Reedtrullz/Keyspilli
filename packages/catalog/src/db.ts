@@ -217,6 +217,28 @@ export function listSongsGrouped(f: SongFilters = {}): GroupedSong[] {
   return grouped.slice(f.offset ?? 0, (f.offset ?? 0) + limit);
 }
 
+export interface GroupedSongsPage {
+  songs: GroupedSong[];
+  total: number;
+}
+
+/**
+ * Grouped listing and total count from a single catalogue scan.
+ * Previously the API route called listSongsGrouped and countSongsGrouped
+ * separately, causing two full table loads per grouped page view.
+ */
+export function listSongsGroupedWithTotal(f: SongFilters = {}): GroupedSongsPage {
+  const grouped = groupedSongsForFilters(f);
+  const order = groupedOrder(f);
+  grouped.sort(order);
+  const offset = f.offset ?? 0;
+  const limit = Math.min(2000, f.limit ?? 60);
+  return {
+    songs: grouped.slice(offset, offset + limit),
+    total: grouped.length,
+  };
+}
+
 function groupedSongsForFilters(f: SongFilters): GroupedSong[] {
   // Apply pagination after grouping; using the raw row offset here can drop
   // partial six-level sets and makes the reported total depend on page size.
