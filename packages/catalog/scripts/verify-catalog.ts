@@ -327,6 +327,17 @@ for (const song of linkedBases) {
       warns.push("advanced and medium note counts equal but note content differs");
     }
     if (variants.some((v) => v.tempoBpm < 20 || v.tempoBpm > 300)) warns.push("tempo outside 20-300 BPM");
+    // A recognisable arrangement needs a melodic line. Flag YouTube/upload
+    // transcriptions whose advanced variant has fewer than one right-hand
+    // note per second; these usually mean the source melody was soft or
+    // legato and Basic Pitch missed it.
+    if (a) {
+      const durSec = Math.max(...a.notes.map((n) => n.start + n.dur));
+      const rh = a.notes.filter((n) => n.hand === "R").length;
+      if (durSec > 0 && rh / durSec < 1.0) {
+        warns.push(`low melody density: ${rh} RH notes in ${durSec.toFixed(0)}s (${(rh / durSec).toFixed(2)}/s)`);
+      }
+    }
   }
   if (issues.length) {
     failed++;

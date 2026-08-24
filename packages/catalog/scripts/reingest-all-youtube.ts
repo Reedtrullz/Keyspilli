@@ -9,6 +9,7 @@
  */
 import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { readFile, readdir, stat } from "node:fs/promises";
 import { basename, join } from "node:path";
 import { promisify } from "node:util";
@@ -50,6 +51,22 @@ const BASIC_PITCH_VERSION = process.env.KEYSPILLI_BP_VERSION ?? process.env.BASI
 const BASIC_PITCH_SERIALIZATION = process.env.KEYSPILLI_BP_SERIALIZATION ?? "default";
 const ONSET_THRESHOLD = Number(process.env.KEYSPILLI_ONSET ?? 0.65);
 const FRAME_THRESHOLD = Number(process.env.KEYSPILLI_FRAME ?? 0.45);
+
+/** Per-base transcription tuning. Keyed by base id or job id; values fall
+ * back to the global env defaults when omitted. */
+interface TranscriptionOverride {
+  onsetThreshold?: number;
+  frameThreshold?: number;
+  onsetMatchSec?: number;
+}
+function getOverride(baseId: string, jobId?: string): TranscriptionOverride {
+  try {
+    const map = JSON.parse(readFileSync(join(ROOT, "catalog", "transcription-overrides.json"), "utf8"));
+    return (jobId && map[jobId]) || map[baseId] || {};
+  } catch {
+    return {};
+  }
+}
 
 async function detectTempo(audioPath: string): Promise<number> {
   if (process.env.KEYSPILLI_TEMPO_OVERRIDE) return Number(process.env.KEYSPILLI_TEMPO_OVERRIDE);
@@ -113,6 +130,13 @@ for (const { base_id: base } of bases) {
   const src = selected?.candidate;
   const selectedSourceId = selected?.sourceId;
   const selectedJob = jobs.find((candidate) => candidate.id === selectedSourceId) ?? job;
+  const ov = getOverride(base, job?.id);
+  // The raw BP MIDI on disk was produced with whatever thresholds the original
+  // worker run used; re-running Basic Pitch here would be expensive and the
+  // stored source may already be the best available. Apply only the onset
+  // match override to the existing source, but record BP thresholds in
+  // provenance so a future re-transcription knows what was used.
+  const onsetMatch = ov.onsetMatchSec ?? ONSET_MATCH_SEC;
   if (existsSync(join(seedMidiDir(), `${base}.mid`))) {
     skipped++;
     console.log(`- ${base}: curated seed exists, skipped (restore-curated.ts owns it)`);
@@ -173,7 +197,7 @@ for (const { base_id: base } of bases) {
   });
   let filtered: Uint8Array;
   try {
-    filtered = preserveMelody ? rewritten : await filterTranscription(rewritten, src.audioPath);
+    filtered = preserveMelody ? rewritten : await filterTranscription(rewritten, src.audioPath, { onsetMatchSec: onsetMatch });
   } catch (err) {
     skipped++;
     const message = `x ${base}: onset filter failed: ${(err as Error).message}`;
@@ -196,8 +220,8 @@ for (const { base_id: base } of bases) {
   const transcription: TranscriptionProvenance = {
     basicPitchVersion: BASIC_PITCH_VERSION,
     modelSerialization: BASIC_PITCH_SERIALIZATION,
-    onsetThreshold: ONSET_THRESHOLD,
-    frameThreshold: FRAME_THRESHOLD,
+    onsetThreshold: ov.onsetThreshold ?? ONSET_THRESHOLD,
+    frameThreshold: ov.frameThreshold ?? FRAME_THRESHOLD,
     tempo,
     tempoSource: process.env.KEYSPILLI_TEMPO_OVERRIDE
       ? "override"
@@ -210,7 +234,7 @@ for (const { base_id: base } of bases) {
     postProcessing: {
       filterApplied: !preserveMelody,
       cleanupApplied: true,
-      onsetMatchSec: ONSET_MATCH_SEC,
+      onsetMatchSec: onsetMatch,
       onsetDetector: AUDIO_ONSET_DETECTOR_CONFIG,
       minVelocity: TRANSCRIPTION_POST_PROCESSING_DEFAULTS.minVelocity,
       minDurationBeats: TRANSCRIPTION_POST_PROCESSING_DEFAULTS.minDurationBeats,

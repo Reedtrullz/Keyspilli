@@ -4,7 +4,7 @@
  * MIDI into the catalog, and marks the job done/error.
  */
 import { execFile } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { mkdir, readFile, stat } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
@@ -44,6 +44,28 @@ const BASIC_PITCH_SERIALIZATION = process.env.KEYSPILLI_BP_SERIALIZATION ?? "";
 const BASIC_PITCH_VERSION = process.env.KEYSPILLI_BP_VERSION ?? process.env.BASIC_PITCH_VERSION ?? "unknown";
 const ONSET_THRESHOLD = process.env.KEYSPILLI_ONSET ?? "0.65";
 const FRAME_THRESHOLD = process.env.KEYSPILLI_FRAME ?? "0.45";
+
+/** Per-job transcription tuning. Loaded lazily so a worker can pick up edits
+ * without a restart; keyed by job id or song base id, whichever matches first.
+ * Values are optional and fall back to the global env defaults. */
+interface TranscriptionOverride {
+  onsetThreshold?: number;
+  frameThreshold?: number;
+  onsetMatchSec?: number;
+}
+let overrideCache: { path: string; mtimeMs: number; map: Record<string, TranscriptionOverride> } | undefined;
+function getOverride(jobId: string): TranscriptionOverride {
+  const path = join(ROOT, "catalog", "transcription-overrides.json");
+  try {
+    const mtimeMs = statSync(path).mtimeMs;
+    if (!overrideCache || overrideCache.path !== path || overrideCache.mtimeMs !== mtimeMs) {
+      overrideCache = { path, mtimeMs, map: JSON.parse(readFileSync(path, "utf8")) };
+    }
+    return overrideCache.map[jobId] ?? {};
+  } catch {
+    return {};
+  }
+}
 
 // Validate numeric env vars at startup to fail fast on misconfiguration
 function requirePositiveFloat(name: string, value: string): number {
@@ -97,6 +119,10 @@ async function processJob(jobId: string): Promise<void> {
   const dir = join(transcribedDir(), jobId);
   try {
     await mkdir(dir, { recursive: true });
+    const ov = getOverride(jobId);
+    const onsetTh = requirePositiveFloat("override.onsetThreshold", String(ov.onsetThreshold ?? ONSET_THRESHOLD));
+    const frameTh = requirePositiveFloat("override.frameThreshold", String(ov.frameThreshold ?? FRAME_THRESHOLD));
+    const onsetMatch = requirePositiveFloat("override.onsetMatchSec", String(ov.onsetMatchSec ?? ONSET_MATCH_SEC));
     const info = await ytDlp(["--skip-download", "--print", "%(title)s\x1f%(uploader)s\x1f%(duration)s", job.youtubeUrl], 60_000);
     const [title, uploader, durationRaw] = info.trim().split("\x1f").map((s) => s?.trim() ?? "");
     const duration = Number(durationRaw);
@@ -111,7 +137,7 @@ async function processJob(jobId: string): Promise<void> {
     // Reject files that are too small to contain valid audio.
     const { size: audioSize } = await stat(audioPath);
     if (audioSize < 1024) throw new Error(`audio file too small (${audioSize} bytes), likely corrupt download`);
-    const bpArgs = [dir, audioPath, "--save-midi", "--onset-threshold", ONSET_THRESHOLD, "--frame-threshold", FRAME_THRESHOLD];
+    const bpArgs = [dir, audioPath, "--save-midi", "--onset-threshold", String(onsetTh), "--frame-threshold", String(frameTh)];
     const tempo = TEMPO_OVERRIDE ?? (await run(PYTHON, [TEMPO_PY, audioPath], TEMPO_TIMEOUT_MS).catch((e) => {
       console.warn(`[worker] ${jobId} tempo detection failed: ${(e as Error).message}`);
       return "";
@@ -126,7 +152,9 @@ async function processJob(jobId: string): Promise<void> {
     // same candidate semantics as catalog rebuilds.
     const source = await resolveYoutubeSource(dir, "root");
     if (!source) throw new Error("basic_pitch produced no usable root MIDI/audio pair");
-    const midi = await filterTranscription(new Uint8Array(await readFile(source.midiPath)), source.audioPath);
+    const midi = await filterTranscription(new Uint8Array(await readFile(source.midiPath)), source.audioPath, {
+      onsetMatchSec: onsetMatch,
+    });
     // Read the post-filter MIDI tempo because this is the exact tempo passed
     // to ingestSource and therefore the tempo used by cleanTranscription's
     // seconds-to-beats sustain calculation.
@@ -137,8 +165,8 @@ async function processJob(jobId: string): Promise<void> {
       // that fact instead of making a missing env var indistinguishable from
       // an old artifact that never recorded transcription settings.
       modelSerialization: BASIC_PITCH_SERIALIZATION || "default",
-      onsetThreshold: Number(ONSET_THRESHOLD),
-      frameThreshold: Number(FRAME_THRESHOLD),
+      onsetThreshold: onsetTh,
+      frameThreshold: frameTh,
       ...(typeof detectedTempo === "number" && Number.isFinite(detectedTempo) ? { tempo: detectedTempo } : {}),
       tempoSource: TEMPO_OVERRIDE ? "override" : tempo ? "detected" : "default",
       audioSource: "youtube",
@@ -147,7 +175,7 @@ async function processJob(jobId: string): Promise<void> {
       postProcessing: {
         filterApplied: true,
         cleanupApplied: true,
-        onsetMatchSec: ONSET_MATCH_SEC,
+        onsetMatchSec: onsetMatch,
         onsetDetector: AUDIO_ONSET_DETECTOR_CONFIG,
         minVelocity: TRANSCRIPTION_POST_PROCESSING_DEFAULTS.minVelocity,
         minDurationBeats: TRANSCRIPTION_POST_PROCESSING_DEFAULTS.minDurationBeats,
