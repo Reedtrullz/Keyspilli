@@ -65,7 +65,7 @@
           /api/health. Set allow_mutable_tag=true only for an intentional
           mutable-tag deploy.
         success_msg: Keyspilli deployment variables validated.
-        tags: [always]
+      tags: [always]
 
     - name: Assert API token is configured for production
       ansible.builtin.assert:
