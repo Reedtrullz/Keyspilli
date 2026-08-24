@@ -33,7 +33,6 @@ export function detectSections(
   }
 
   const sections: Section[] = [];
-  const typeLabels: Array<NonNullable<Section["type"]>> = ["intro", "verse", "chorus", "bridge", "outro"];
 
   for (let i = 0; i < boundaries.length - 1; i++) {
     const startIdx = boundaries[i]!;
@@ -45,19 +44,23 @@ export function detectSections(
       (n) => n.start >= startMeasure.startBeat && n.start < endMeasure.endBeat,
     );
     const sectionDensity = sectionNotes.length / Math.max(1, endIdx - startIdx);
+    const overallDensity = avg(densities);
 
     let type: NonNullable<Section["type"]> = "custom";
-    if (i === 0 && sectionDensity < avg(densities) * 0.6) {
+    // Only label intro/outro when density evidence supports a sparse bookend.
+    // Interior sections get the honest generic label instead of cycling through
+    // verse/chorus/bridge guesses that imply structure we cannot detect.
+    if (i === 0 && sectionDensity < overallDensity * 0.6) {
       type = "intro";
-    } else if (i === boundaries.length - 2 && sectionDensity < avg(densities) * 0.5) {
+    } else if (i === boundaries.length - 2 && sectionDensity < overallDensity * 0.5) {
       type = "outro";
-    } else {
-      type = typeLabels[i % typeLabels.length] ?? "custom";
     }
 
     sections.push({
       id: "section-" + (i + 1),
-      label: type.charAt(0).toUpperCase() + type.slice(1) + " " + (i + 1),
+      label: type === "custom"
+        ? "Section " + (i + 1)
+        : type.charAt(0).toUpperCase() + type.slice(1) + " " + (i + 1),
       startBeat: startMeasure.startBeat,
       endBeat: endMeasure.endBeat,
       type,
