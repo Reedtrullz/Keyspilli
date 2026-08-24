@@ -53,6 +53,7 @@ interface TranscriptionOverride {
   frameThreshold?: number;
   onsetMatchSec?: number;
   trimIntroBeats?: number;
+  tempoBpm?: number;
 }
 let overrideCache: { path: string; mtimeMs: number; map: Record<string, TranscriptionOverride> } | undefined;
 function getOverride(jobId: string): TranscriptionOverride {
@@ -139,10 +140,10 @@ async function processJob(jobId: string): Promise<void> {
     const { size: audioSize } = await stat(audioPath);
     if (audioSize < 1024) throw new Error(`audio file too small (${audioSize} bytes), likely corrupt download`);
     const bpArgs = [dir, audioPath, "--save-midi", "--onset-threshold", String(onsetTh), "--frame-threshold", String(frameTh)];
-    const tempo = TEMPO_OVERRIDE ?? (await run(PYTHON, [TEMPO_PY, audioPath], TEMPO_TIMEOUT_MS).catch((e) => {
+    const tempo = ov.tempoBpm != null ? String(ov.tempoBpm) : ((TEMPO_OVERRIDE ?? (await run(PYTHON, [TEMPO_PY, audioPath], TEMPO_TIMEOUT_MS).catch((e) => {
       console.warn(`[worker] ${jobId} tempo detection failed: ${(e as Error).message}`);
       return "";
-    })).trim();
+    })))).trim();
     if (tempo) bpArgs.push("--midi-tempo", tempo);
     if (BASIC_PITCH_SERIALIZATION) bpArgs.push("--model-serialization", BASIC_PITCH_SERIALIZATION);
     const transcribedAt = new Date().toISOString();

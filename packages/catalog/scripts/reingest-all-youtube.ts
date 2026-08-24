@@ -59,6 +59,7 @@ interface TranscriptionOverride {
   frameThreshold?: number;
   onsetMatchSec?: number;
   trimIntroBeats?: number;
+  tempoBpm?: number;
 }
 function getOverride(baseId: string, jobId?: string): TranscriptionOverride {
   try {
@@ -158,7 +159,8 @@ for (const { base_id: base } of bases) {
   const before = await variantCount(base);
   let detected: number;
   try {
-    detected = await detectTempo(src.audioPath);
+    var tempoOv = getOverride(base, job?.id);
+    detected = tempoOv.tempoBpm ?? await detectTempo(src.audioPath);
   } catch (err) {
     skipped++;
     const message = `x ${base}: tempo detection failed, skipped: ${(err as Error).message}`;
@@ -172,7 +174,7 @@ for (const { base_id: base } of bases) {
   }
   // Non-120 DB tempos are manual corrections (the old pipeline always stored
   // 120); keep them when asked so the VPS preserves e.g. Dear God's 75 BPM.
-  const tempo = keepExistingTempo && song.tempo && song.tempo !== 120 ? song.tempo : detected;
+  const tempo = tempoOv?.tempoBpm ?? (keepExistingTempo && song.tempo && song.tempo !== 120 ? song.tempo : detected);
   let raw;
   try {
     raw = parseMidi(new Uint8Array(await readFile(src.midiPath)));
