@@ -13,7 +13,9 @@ back to the previous images on failure.
 Manual deploy (equivalent to the CI job):
 
 ```bash
-APP_VERSION=$(git rev-parse HEAD) ansible-playbook \
+export APP_VERSION=$(git rev-parse HEAD)
+export KEYSPILLI_API_TOKEN='<at-least-32-character-secret>'
+ansible-playbook \
   -i deploy/inventory/hosts.yml deploy/playbook.yml \
   -e "docker_image=ghcr.io/reedtrullz/keyspilli:$(git rev-parse --short=12 HEAD)" \
   -e "worker_image=ghcr.io/reedtrullz/keyspilli-worker:$(git rev-parse --short=12 HEAD)"
@@ -27,8 +29,10 @@ Preconditions (matching the other projects):
 - Domain: the inventory defaults to `keys.reidar.tech` — add a Caddy
   block for any other domain to `deploy/playbook.yml` vars or the inventory.
 - CI additionally needs the `production` GitHub environment and secrets
-  `VPS_SSH_PRIVATE_KEY` + `VPS_SSH_HOST_KEY` (see the Configure SSH key step in
-  `.github/workflows/ci.yml`).
+  `VPS_SSH_PRIVATE_KEY`, `VPS_SSH_HOST_KEY`, and `KEYSPILLI_API_TOKEN` (see the
+  Configure SSH key and deploy steps in `.github/workflows/ci.yml`). The API
+  token must contain at least 32 characters; mutation routes fail closed if it
+  is missing.
 
 ## First run on a fresh volume (catalog)
 

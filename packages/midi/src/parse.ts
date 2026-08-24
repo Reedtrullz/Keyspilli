@@ -15,9 +15,9 @@ function readVarint(data: Uint8Array, pos: { v: number }, end: number): number {
     if (pos.v >= end) throw new Error(`truncated MIDI varint at pos=${pos.v}`);
     const b = data[pos.v++]!;
     value = (value << 7) | (b & 0x7f);
-    if (!(b & 0x80)) break;
+    if (!(b & 0x80)) return value;
   }
-  return value;
+  throw new Error(`invalid MIDI varint at pos=${pos.v}`);
 }
 
 function readStr(data: Uint8Array, pos: { v: number }, len: number, end?: number): string {

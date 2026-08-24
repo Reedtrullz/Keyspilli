@@ -1,27 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ingestSource } from "@keyspilli/catalog";
+import { checkMutationAuth } from "@/lib/mutation-auth";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-function checkAuth(req: Request): Response | null {
-  const token = process.env.KEYSPILLI_API_TOKEN;
-  if (!token) {
-    console.error("KEYSPILLI_API_TOKEN is not configured; rejecting mutation request");
-    return NextResponse.json(
-      { error: "server authentication is not configured" },
-      { status: 503 },
-    );
-  }
-  const auth = req.headers.get("authorization");
-  if (auth !== `Bearer ${token}`) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
-  return null;
-}
-
 export async function POST(req: NextRequest) {
-  const authResponse = checkAuth(req);
+  const authResponse = checkMutationAuth(req);
   if (authResponse) return authResponse;
   const buf = Buffer.from(await req.arrayBuffer());
   if (buf.length > 10 * 1024 * 1024) {
