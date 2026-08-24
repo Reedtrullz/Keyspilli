@@ -1,4 +1,4 @@
-import type { SongRow } from "./db.js";
+import type { SongRow } from "./db-types.js";
 
 export interface GroupedSong {
   representative: SongRow;
