@@ -9,6 +9,18 @@ interface ParsedXmlNote extends Note {
 
 const STEP_PC: Record<string, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
 
+/** Decode the standard XML entities that appear in MusicXML lyrics. */
+function decodeXmlEntities(s: string): string {
+  return s
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number(code)))
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, code) => String.fromCodePoint(Number.parseInt(code, 16)));
+}
+
 function firstMatch(s: string, re: RegExp): string {
   return s.match(re)?.[1] ?? "";
 }
@@ -113,7 +125,7 @@ export function parseMusicXmlNotes(xml: string): ParsedMidi {
         dur: durBeats,
         vel: 80,
         hand: staffRaw === "2" ? "L" : staffRaw === "1" ? "R" : voiceRaw === "2" ? "L" : "R",
-        lyrics: lyric ? lyric.replace(/&amp;/g, "&").replace(/&lt;/g, "<") : undefined,
+        lyrics: lyric ? decodeXmlEntities(lyric) : undefined,
         tieStart,
         tieStop,
         voiceId: voiceRaw || staffRaw || undefined,
