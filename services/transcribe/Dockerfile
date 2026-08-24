@@ -7,6 +7,7 @@ COPY packages packages
 COPY services services
 COPY catalog/manifest.json catalog/manifest.json
 COPY catalog/learner-review.json catalog/learner-review.json
+COPY catalog/transcription-overrides.json catalog/transcription-overrides.json
 COPY catalog/chord-sources.json catalog/chord-sources.json
 COPY catalog/chord-timelines catalog/chord-timelines
 RUN npm ci --no-audit --no-fund
@@ -26,6 +27,7 @@ COPY --from=build /app/packages ./packages
 COPY --from=build /app/services ./services
 COPY --from=build /app/catalog/manifest.json ./catalog/manifest.json
 COPY --from=build /app/catalog/learner-review.json ./catalog/learner-review.json
+COPY --from=build /app/catalog/transcription-overrides.json ./catalog/transcription-overrides.json
 COPY --from=build /app/catalog/chord-sources.json ./catalog/chord-sources.json
 COPY --from=build /app/catalog/chord-timelines ./catalog/chord-timelines
 COPY package.json tsconfig.base.json ./
