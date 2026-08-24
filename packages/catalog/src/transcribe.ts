@@ -29,7 +29,7 @@ export const ONSET_MATCH_SEC = Number(process.env.KEYSPILLI_ONSET_MATCH_SEC ?? 0
 export async function filterTranscription(
   rawMidi: Uint8Array,
   audioPath: string,
-  opts: { onsetMatchSec?: number } = {},
+  opts: { onsetMatchSec?: number; trimIntroBeats?: number } = {},
 ): Promise<Uint8Array> {
   const { stdout } = await execFileP(PYTHON, [join(ROOT, "services", "transcribe", "src", "audio_onsets.py"), audioPath], {
     timeout: 180_000,
@@ -48,6 +48,21 @@ export async function filterTranscription(
   const firstStart = Math.min(...kept.map((n) => n.start));
   if (firstStart * secPerBeat > 2) {
     for (const n of kept) n.start = Math.max(0, n.start - firstStart);
+  }
+  // Per-song override: some transcriptions start with phantom bass-only bars
+  // from a spoken intro. Drop everything before the first real melodic beat.
+  if (opts.trimIntroBeats !== undefined && opts.trimIntroBeats > 0) {
+    const remaining = kept.filter((n) => n.start >= opts.trimIntroBeats!);
+    if (remaining.length >= 8) {
+      for (const n of remaining) n.start -= opts.trimIntroBeats!;
+      return writeMidi(remaining, {
+        tempoBpm: raw.tempoBpm,
+        timeSig: raw.timeSig,
+        keySig: raw.keySig,
+        keyMode: raw.keyMode,
+      });
+    }
+    console.warn(`[filterTranscription] trimIntroBeats=${opts.trimIntroBeats} would drop below 8 notes; skipped`);
   }
   return writeMidi(kept, {
     tempoBpm: raw.tempoBpm,

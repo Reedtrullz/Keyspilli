@@ -52,6 +52,7 @@ interface TranscriptionOverride {
   onsetThreshold?: number;
   frameThreshold?: number;
   onsetMatchSec?: number;
+  trimIntroBeats?: number;
 }
 let overrideCache: { path: string; mtimeMs: number; map: Record<string, TranscriptionOverride> } | undefined;
 function getOverride(jobId: string): TranscriptionOverride {
@@ -154,6 +155,7 @@ async function processJob(jobId: string): Promise<void> {
     if (!source) throw new Error("basic_pitch produced no usable root MIDI/audio pair");
     const midi = await filterTranscription(new Uint8Array(await readFile(source.midiPath)), source.audioPath, {
       onsetMatchSec: onsetMatch,
+      trimIntroBeats: ov.trimIntroBeats,
     });
     // Read the post-filter MIDI tempo because this is the exact tempo passed
     // to ingestSource and therefore the tempo used by cleanTranscription's

@@ -11,6 +11,7 @@
 import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
 import { readFile, readdir } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { normalizeTempoBpm, parseMidi, writeMidi } from "@keyspilli/midi";
@@ -194,14 +195,27 @@ async function detectTempo(audioPath: string): Promise<number> {
   return normalizeTempoBpm(bpm);
 }
 
-async function prepareYoutubeMidi(source: YoutubeSource, tempo: number): Promise<{ buf: Uint8Array; filtered: boolean }> {
+interface TranscriptionOverride {
+  trimIntroBeats?: number;
+}
+function getOverrideForBase(baseId: string): TranscriptionOverride | undefined {
+  try {
+    const map = JSON.parse(readFileSync(join(ROOT, "catalog", "transcription-overrides.json"), "utf8")) as Record<string, TranscriptionOverride>;
+    return map[baseId];
+  } catch {
+    return undefined;
+  }
+}
+
+async function prepareYoutubeMidi(source: YoutubeSource, tempo: number, baseId?: string): Promise<{ buf: Uint8Array; filtered: boolean }> {
   const raw = parseMidi(new Uint8Array(await readFile(source.midi)));
   const rawTempo = normalizeTempoBpm(raw.tempoBpm);
   const factor = tempo / rawTempo;
   const notes = raw.notes.map((note) => ({ ...note, start: note.start * factor, dur: note.dur * factor }));
   const rewritten = writeMidi(notes, { tempoBpm: tempo, timeSig: raw.timeSig, keySig: raw.keySig, keyMode: raw.keyMode });
   try {
-    return { buf: await filterTranscription(rewritten, source.audio), filtered: true };
+    const ov = baseId ? getOverrideForBase(baseId) : undefined;
+    return { buf: await filterTranscription(rewritten, source.audio, { trimIntroBeats: ov?.trimIntroBeats }), filtered: true };
   } catch (error) {
     if (!allowUnfilteredYoutube) throw error;
     console.warn("! allowing unfiltered YouTube source: " + (error as Error).message);
@@ -268,7 +282,7 @@ async function sourceFor(baseId: string, meta: CatalogMeta): Promise<{ buf: Uint
     const youtube = await findYoutubeSource(baseId);
     if (!youtube) throw new Error("raw YouTube transcription source missing");
     const tempo = await detectTempo(youtube.audio);
-    const prepared = await prepareYoutubeMidi(youtube, tempo);
+    const prepared = await prepareYoutubeMidi(youtube, tempo, baseId);
     return {
       buf: prepared.buf,
       source: describeYoutubeSource(youtube),

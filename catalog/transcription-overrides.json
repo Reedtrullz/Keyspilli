@@ -2,7 +2,8 @@
   "re2-levva": {
     "onsetThreshold": 0.4,
     "frameThreshold": 0.25,
-    "onsetMatchSec": 0.35
+    "onsetMatchSec": 0.35,
+    "trimIntroBeats": 32
   },
   "job-mslzvbd0-jiuqh4": {
     "onsetThreshold": 0.4,
