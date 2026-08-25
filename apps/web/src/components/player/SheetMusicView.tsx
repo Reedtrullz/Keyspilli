@@ -97,6 +97,7 @@ export function SheetMusicView({ songId, renderMode = "virtual" }: SheetMusicVie
       __sheetPageCount: 0,
       __sheetRenderedPages: 0,
       __sheetRenderMode: renderMode,
+      __sheetRenderer: "pending",
       __sheetPrintReady: renderMode === "all",
     });
 
@@ -142,6 +143,7 @@ export function SheetMusicView({ songId, renderMode = "virtual" }: SheetMusicVie
 
         sessionRef.current = session;
         fallbackPagesRef.current = fallbackPages;
+        updateSheetState({ __sheetRenderer: session ? "worker" : "main" });
         const count = session?.pageCount ?? fallbackPages?.length ?? 0;
         if (!count) throw new Error("Verovio returned no pages");
         setPageCount(count);
