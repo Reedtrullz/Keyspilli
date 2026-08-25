@@ -10,6 +10,13 @@ COPY catalog/learner-review.json catalog/learner-review.json
 COPY catalog/transcription-overrides.json catalog/transcription-overrides.json
 COPY catalog/chord-sources.json catalog/chord-sources.json
 COPY catalog/chord-timelines catalog/chord-timelines
+# better-sqlite3 normally downloads a prebuilt binary. Keep the fallback path
+# deterministic when that download is unavailable (for example, a transient
+# ECONNRESET in CI) by providing the node-gyp toolchain in the build stage.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 make g++ \
+    && rm -rf /var/lib/apt/lists/*
+ENV npm_config_python=/usr/bin/python3
 RUN npm ci --no-audit --no-fund
 RUN npm run typecheck -w @keyspilli/transcribe
 
