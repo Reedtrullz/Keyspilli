@@ -158,7 +158,10 @@ jobs:
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.version=${{ github.sha }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # The worker image contains a large Python/ML dependency layer. Exporting
+          # it to the GHA cache made the exporter spend 18+ minutes on one layer
+          # after the image itself had finished. Keep cache reads for warm builds,
+          # but do not publish this image's cache so the post-build phase is bounded.
 
   deploy:
     name: Deploy to VPS with Ansible
