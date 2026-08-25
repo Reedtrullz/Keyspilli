@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import { measureIndex, pitchColor, secPerBeat, type ChordLabel, type PlayerSettings, type SongData } from "@keyspilli/player-core";
 import { chordProvenance } from "./chord-provenance";
 
@@ -15,17 +15,28 @@ export function LeadSheetView({ data, time, settings, chords }: { data: SongData
   );
   const m = data.measures[currentMeasure] ?? data.measures[0]!;
   // Match the transposed audio so visual pitch positions stay correct.
-  const notes = data.notes
-    .filter((n) => n.start >= m.startBeat && n.start < m.endBeat && n.hand !== "L")
-    .map((n) => ({ ...n, midi: n.midi + settings.transpose }));
+  // The parent refreshes the transport UI at 10Hz. Memoize the active-measure
+  // projection so playhead movement does not rescan every note in the song.
+  const notes = useMemo(
+    () => data.notes
+      .filter((n) => n.start >= m.startBeat && n.start < m.endBeat && n.hand !== "L")
+      .map((n) => ({ ...n, midi: n.midi + settings.transpose })),
+    [data.notes, m.startBeat, m.endBeat, settings.transpose],
+  );
   const measureBeats = m.endBeat - m.startBeat;
   const W = 880;
   const H = 240;
   const playX = 80 + ((time / beatSec - m.startBeat) / measureBeats) * (W - 160);
   // Scale by absolute pitch (not pitch class) so octave leaps render apart.
-  const mids = notes.map((n) => n.midi);
+  const mids = useMemo(() => notes.map((n) => n.midi), [notes]);
   const lo = Math.min(...mids, 55);
   const hi = Math.max(...mids, 72);
+  const measureChords = useMemo(
+    () => chords
+      .filter((c) => c.beat >= m.startBeat && c.beat < m.endBeat)
+      .map((chord) => ({ chord, provenance: chordProvenance(chord) })),
+    [chords, m.startBeat, m.endBeat],
+  );
 
   return (
     <div className="overflow-x-auto">
@@ -46,10 +57,7 @@ export function LeadSheetView({ data, time, settings, chords }: { data: SongData
               </g>
             );
           })}
-          {chords
-            .filter((c) => c.beat >= m.startBeat && c.beat < m.endBeat)
-            .map((c, i) => {
-              const provenance = chordProvenance(c);
+          {measureChords.map(({ chord: c, provenance }, i) => {
               const x = 80 + ((c.beat - m.startBeat) / measureBeats) * (W - 160);
               const width = Math.max(36, c.name.length * 8 + 12);
               return (

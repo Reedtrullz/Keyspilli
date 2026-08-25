@@ -20,6 +20,15 @@ export interface GradeResult {
  */
 export class Grader {
   private remaining: TimedNote[];
+  /**
+   * Index of the first note which has not been missed. `tick()` advances this
+   * cursor instead of splicing one item at a time from the front of the
+   * array. Front-splicing shifts every later note and made long grading runs
+   * quadratic in the number of expected notes.
+   */
+  private remainingStart = 0;
+  /** Number of active expected notes (the array can retain missed prefix rows). */
+  private remainingCount: number;
   private hits = 0;
   private wrongs = 0;
   private late = 0;
@@ -34,6 +43,7 @@ export class Grader {
     opts: { waitMode?: boolean; bpm?: number; speed?: number } = {},
   ) {
     this.remaining = [...notes].sort((a, b) => a.startSec - b.startSec);
+    this.remainingCount = this.remaining.length;
     this.waitMode = opts.waitMode ?? false;
     // Tempo-scaled tolerance: 40% of a beat, capped at 400ms (legacy fixed 350ms).
     this.tolerance = opts.bpm ? Math.min(0.4, secPerBeat(opts.bpm, opts.speed ?? 1) * 0.4) : 0.35;
@@ -52,20 +62,20 @@ export class Grader {
   setWaitMode(wait: boolean): void {
     if (this.waitMode === wait) return;
     this.waitMode = wait;
-    this.waitingFor = wait ? (this.remaining[0] ?? null) : null;
+    this.waitingFor = wait ? (this.remaining[this.remainingStart] ?? null) : null;
   }
 
   /** Call as time advances; counts expected notes whose window passed without input. */
   tick(now: number): void {
     if (this.waitMode) return; // wait mode advances only on correct input
-    let i = 0;
-    while (i < this.remaining.length) {
-      const n = this.remaining[i]!;
+    while (this.remainingStart < this.remaining.length) {
+      const n = this.remaining[this.remainingStart]!;
       if (now - n.startSec > this.tolerance) {
         this.missed++;
-        this.remaining.splice(i, 1);
+        this.remainingStart++;
+        this.remainingCount--;
       } else {
-        i++;
+        break;
       }
     }
   }
@@ -81,26 +91,53 @@ export class Grader {
       // so the temporal window check would permanently block progress.
       // Accept any correct-pitch press immediately.
       this.hits++;
-      this.remaining.splice(this.remaining.indexOf(this.waitingFor), 1);
+      const index = this.remaining.indexOf(this.waitingFor, this.remainingStart);
+      if (index >= this.remainingStart) {
+        this.remaining.splice(index, 1);
+        this.remainingCount--;
+      }
       this.lastAcceptedNote = this.waitingFor;
       this.waitingFor = null;
       return true;
     }
-    const window = this.remaining.filter((n) => Math.abs(now - n.startSec) <= this.tolerance);
-    const exact = window.find((n) => n.midi === midi);
-    if (exact) {
+    const lower = now - this.tolerance;
+    const upper = now + this.tolerance;
+    let exactIndex = -1;
+    let hasWindow = false;
+    // Expected notes are sorted by start time. Skip the stale prefix and stop
+    // at the first future note beyond the input window instead of filtering
+    // the entire queue for every key press.
+    for (let i = this.remainingStart; i < this.remaining.length; i++) {
+      const n = this.remaining[i]!;
+      if (n.startSec > upper) break;
+      if (n.startSec >= lower) {
+        hasWindow = true;
+        if (exactIndex < 0 && n.midi === midi) exactIndex = i;
+      }
+    }
+    if (exactIndex >= 0) {
       this.hits++;
-      this.remaining.splice(this.remaining.indexOf(exact), 1);
+      this.remaining.splice(exactIndex, 1);
+      this.remainingCount--;
       return true;
     }
-    if (window.length > 0) {
+    if (hasWindow) {
       this.wrongs++;
       return true;
     }
-    const pastIdx = this.remaining.findIndex((n) => n.midi === midi && now > n.startSec + this.tolerance);
-    if (pastIdx >= 0) {
+    let pastIdx = -1;
+    for (let i = this.remainingStart; i < this.remaining.length; i++) {
+      const n = this.remaining[i]!;
+      if (n.startSec >= lower) break;
+      if (n.midi === midi) {
+        pastIdx = i;
+        break;
+      }
+    }
+    if (pastIdx >= this.remainingStart) {
       this.late++;
       this.remaining.splice(pastIdx, 1);
+      this.remainingCount--;
     }
     return true;
   }
@@ -109,7 +146,7 @@ export class Grader {
   get currentWait(): TimedNote | null {
     if (!this.waitMode) return null;
     if (this.waitingFor) return this.waitingFor;
-    const next = this.remaining[0];
+    const next = this.remaining[this.remainingStart];
     if (next) this.waitingFor = next;
     return this.waitingFor;
   }
@@ -127,7 +164,7 @@ export class Grader {
     // A run can be finished before playback reaches the end. Count every
     // expected note still in the queue so an early exit cannot score 100%.
     // Wait mode also suppresses tick(), so this covers that path too.
-    const missed = this.missed + this.remaining.length;
+    const missed = this.missed + this.remainingCount;
     const total = this.hits + this.wrongs + missed + this.late;
     const accuracyPct = total === 0 ? 100 : Math.round((this.hits / total) * 100);
     let summary = "";

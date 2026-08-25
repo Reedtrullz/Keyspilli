@@ -1,16 +1,69 @@
 "use client";
 
-import { useEffect } from "react";
-import { pitchColor, type SongData } from "@keyspilli/player-core";
-import { chordProvenance } from "@/components/player/chord-provenance";
+import React, { useEffect, useMemo } from "react";
+import { pitchColor, type MeasureInfo, type SongData } from "@keyspilli/player-core";
+import { chordProvenance } from "../player/chord-provenance";
 
 const LETTERS = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+
+/**
+ * Bucket timeline events by measure once instead of filtering the complete
+ * arrangement for every measure in the printable score.  Normal catalogue
+ * measures are sorted and non-overlapping, so a binary search gives O(N log M)
+ * preprocessing while preserving each input array's order inside a bucket.
+ * The fallback keeps the old inclusive-range semantics for malformed or
+ * overlapping measure metadata rather than silently dropping an event.
+ */
+function bucketByMeasure<T>(
+  items: readonly T[],
+  measures: readonly MeasureInfo[],
+  beatOf: (item: T) => number,
+): T[][] {
+  const buckets = measures.map(() => [] as T[]);
+  if (items.length === 0 || measures.length === 0) return buckets;
+
+  const ordered = measures.every((measure, index) => index === 0 || measure.startBeat >= measures[index - 1]!.startBeat);
+  const disjoint = measures.every((measure, index) => index === 0 || measure.startBeat >= measures[index - 1]!.endBeat);
+  if (!ordered || !disjoint) {
+    for (const item of items) {
+      const beat = beatOf(item);
+      if (!Number.isFinite(beat)) continue;
+      measures.forEach((measure, index) => {
+        if (beat >= measure.startBeat && beat < measure.endBeat) buckets[index]!.push(item);
+      });
+    }
+    return buckets;
+  }
+
+  for (const item of items) {
+    const beat = beatOf(item);
+    if (!Number.isFinite(beat)) continue;
+    let low = 0;
+    let high = measures.length;
+    while (low < high) {
+      const middle = (low + high) >> 1;
+      if (measures[middle]!.endBeat <= beat) low = middle + 1;
+      else high = middle;
+    }
+    const measure = measures[low];
+    if (measure && beat >= measure.startBeat && beat < measure.endBeat) buckets[low]!.push(item);
+  }
+  return buckets;
+}
 
 export function SimplifyScore({ data, title }: { data: SongData; title: string }) {
   useEffect(() => {
     (window as unknown as { __sheetReady?: boolean }).__sheetReady = true;
   }, []);
-  const notes = data.notes.filter((n) => n.hand !== "L");
+  const notes = useMemo(() => data.notes.filter((n) => n.hand !== "L"), [data.notes]);
+  const noteBuckets = useMemo(
+    () => bucketByMeasure(notes, data.measures, (note) => note.start),
+    [notes, data.measures],
+  );
+  const chordBuckets = useMemo(
+    () => bucketByMeasure(data.chords, data.measures, (chord) => chord.beat),
+    [data.chords, data.measures],
+  );
   const measuresPerRow = 4;
   const rows = Math.ceil(data.measures.length / measuresPerRow);
   return (
@@ -23,12 +76,14 @@ export function SimplifyScore({ data, title }: { data: SongData; title: string }
         Dotted amber chords are inferred; dotted gray chords have unknown provenance.
       </p>
       {Array.from({ length: rows }, (_, row) => {
-        const ms = data.measures.slice(row * measuresPerRow, (row + 1) * measuresPerRow);
+        const rowStart = row * measuresPerRow;
+        const ms = data.measures.slice(rowStart, rowStart + measuresPerRow);
         return (
           <div key={row} style={{ display: "flex", gap: 16, marginBottom: 24 }}>
-            {ms.map((m) => {
-              const mNotes = notes.filter((n) => n.start >= m.startBeat && n.start < m.endBeat);
-              const mChords = data.chords.filter((c) => c.beat >= m.startBeat && c.beat < m.endBeat);
+            {ms.map((m, column) => {
+              const measureIndex = rowStart + column;
+              const mNotes = noteBuckets[measureIndex] ?? [];
+              const mChords = chordBuckets[measureIndex] ?? [];
               const beats = m.endBeat - m.startBeat;
               return (
                 <div key={m.index} style={{ flex: 1, border: "1px solid #e4e4e7", borderRadius: 8, padding: 12, minHeight: 220 }}>

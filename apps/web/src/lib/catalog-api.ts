@@ -1,6 +1,9 @@
 import { readFile } from "node:fs/promises";
+import { statSync } from "node:fs";
 import { join } from "node:path";
+import { cache } from "react";
 import {
+  arrangementManifestPath,
   artifactsDir,
   getSong,
   getSongsByBase,
@@ -224,6 +227,70 @@ export type SongArtifactStatus =
   | { status: "valid"; errors: []; manifest: ArrangementManifest }
   | { status: "unavailable"; errors: string[]; manifest?: ArrangementManifest };
 
+/**
+ * Validated exports are immutable until their atomic artifact publication
+ * changes one of the files below. Keeping a small LRU here avoids reparsing
+ * the same large MIDI/XML pair for every download while retaining a bounded
+ * memory footprint and a signature check on every request.
+ */
+interface ArtifactCacheEntry {
+  midi: Buffer;
+  xml: Buffer;
+}
+
+const ARTIFACT_CACHE_LIMIT = 32;
+const ARTIFACT_CACHE_MAX_BYTES = 64 * 1024 * 1024;
+const artifactCache = new Map<string, ArtifactCacheEntry>();
+let artifactCacheBytes = 0;
+
+function artifactFileSignature(path: string): string {
+  try {
+    const stat = statSync(path, { bigint: true });
+    // Artifact publication replaces files atomically. Device/inode catches a
+    // same-size replacement while mtime/size also detect in-place edits.
+    return `${path}:${stat.dev}:${stat.ino}:${stat.size}:${stat.mtimeNs}`;
+  } catch {
+    // Missing files must be part of the key so a later publish is observable.
+    return `${path}:missing`;
+  }
+}
+
+function artifactCacheKey(song: SongRow): string {
+  const dir = artifactsDir(song.baseId, song.level);
+  return JSON.stringify({
+    // These are the database mirrors used to construct the validation
+    // variant. `plays` is intentionally omitted: recording a play should not
+    // evict an otherwise immutable export.
+    song: [song.id, song.baseId, song.level, song.difficulty, song.difficultyScore, song.bassPattern, song.tempo],
+    files: [
+      artifactFileSignature(join(dir, "notes.json")),
+      artifactFileSignature(join(dir, "variant.mid")),
+      artifactFileSignature(join(dir, "variant.xml")),
+      artifactFileSignature(arrangementManifestPath(song.baseId)),
+    ],
+  });
+}
+
+function cachedArtifact(entry: ArtifactCacheEntry, name: "variant.mid" | "variant.xml"): Buffer {
+  // Return a copy so callers cannot mutate the process-wide cache.
+  return Buffer.from(name === "variant.mid" ? entry.midi : entry.xml);
+}
+
+function rememberArtifact(key: string, entry: ArtifactCacheEntry): void {
+  const previous = artifactCache.get(key);
+  if (previous) artifactCacheBytes -= previous.midi.byteLength + previous.xml.byteLength;
+  artifactCache.delete(key);
+  artifactCache.set(key, entry);
+  artifactCacheBytes += entry.midi.byteLength + entry.xml.byteLength;
+  while (artifactCache.size > ARTIFACT_CACHE_LIMIT || artifactCacheBytes > ARTIFACT_CACHE_MAX_BYTES) {
+    const oldest = artifactCache.keys().next().value;
+    if (oldest === undefined) break;
+    const evicted = artifactCache.get(oldest);
+    if (evicted) artifactCacheBytes -= evicted.midi.byteLength + evicted.xml.byteLength;
+    artifactCache.delete(oldest);
+  }
+}
+
 function unavailableArtifact(errors: string[], manifest?: ArrangementManifest): SongArtifactStatus {
   return { status: "unavailable", errors, ...(manifest ? { manifest } : {}) };
 }
@@ -275,7 +342,17 @@ export async function loadSongArtifact(song: SongRow): Promise<{ data: SongData 
   return { data, artifact: { status: "valid", errors: [], manifest: tempo.manifest } };
 }
 
-export async function getSongDetail(id: string): Promise<SongDetail | null> {
+/**
+ * Load the complete player payload without memoization.
+ *
+ * The exported wrapper below adds React request memoization. Keeping the
+ * implementation separate makes the freshness boundary explicit: this
+ * function still reads the current database, policy files, manifest, and
+ * artifact on a new request, while repeated calls for the same id during one
+ * server render (for example `generateMetadata` followed by the page) share
+ * one result.
+ */
+async function loadSongDetailUncached(id: string): Promise<SongDetail | null> {
   const song = getSong(id);
   if (!song) return null;
   const loaded = await loadSongArtifact(song);
@@ -365,9 +442,25 @@ export async function getSongDetail(id: string): Promise<SongDetail | null> {
   return { song, data, variants, artifact: loaded.artifact };
 }
 
+/**
+ * Request-local detail memoization for RSC/Next metadata + page rendering.
+ *
+ * React's `cache` scope is the current server request, rather than a process
+ * cache, so mutable catalog/policy changes remain visible on the next
+ * request. This is intentionally not `unstable_cache`/a persistent cache.
+ */
+export const getSongDetail = cache(loadSongDetailUncached);
+
 export async function getArtifactFile(id: string, name: "variant.mid" | "variant.xml"): Promise<Buffer | null> {
   const song = getSong(id);
   if (!song) return null;
+  const cacheKey = artifactCacheKey(song);
+  const cached = artifactCache.get(cacheKey);
+  if (cached) {
+    // Refresh the LRU position without changing the bounded cache size.
+    rememberArtifact(cacheKey, cached);
+    return cachedArtifact(cached, name);
+  }
   // Exports are another runtime boundary: never serve a MIDI/XML artifact
   // whose manifest or denormalized tempo mirrors would make the player reject
   // the same arrangement.
@@ -394,7 +487,12 @@ export async function getArtifactFile(id: string, name: "variant.mid" | "variant
       measures: loaded.data.measures,
     };
     if (validateArtifactFiles(variant, { midi, xml }).length > 0) return null;
-    return name === "variant.mid" ? midi : Buffer.from(xml, "utf8");
+    const entry: ArtifactCacheEntry = { midi, xml: Buffer.from(xml, "utf8") };
+    // Do not cache an entry if publication changed a file while it was being
+    // read/validated. The current request may still return the bytes it
+    // validated, but the next request must perform a fresh read.
+    if (artifactCacheKey(song) === cacheKey) rememberArtifact(cacheKey, entry);
+    return cachedArtifact(entry, name);
   } catch {
     return null;
   }

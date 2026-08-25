@@ -188,6 +188,31 @@ describe("catalog artifact export validation", () => {
     await expect(getArtifactFile(song().id, "variant.xml")).resolves.toBeInstanceOf(Buffer);
   });
 
+  it("revalidates a cached export after an in-place artifact update", async () => {
+    await writeExportFixture();
+    const first = await getArtifactFile(song().id, "variant.mid");
+    expect(first).toBeInstanceOf(Buffer);
+
+    // Keep the same path and byte shape while changing the rendered note. The
+    // signature must notice the write instead of serving the prior validated
+    // bytes from the bounded process-local cache.
+    await writeExportFixture({
+      midiNotes: [{ midi: 62, start: 1, dur: 2, vel: 90, hand: "R" }],
+    });
+    await expect(getArtifactFile(song().id, "variant.mid")).resolves.toBeNull();
+  });
+
+  it("does not expose mutable cache buffers to callers", async () => {
+    await writeExportFixture();
+    const first = await getArtifactFile(song().id, "variant.mid");
+    if (!(first instanceof Buffer) || first.length === 0) throw new Error("expected cached MIDI bytes");
+    const original = first[0];
+    if (original === undefined) throw new Error("expected first MIDI byte");
+    first![0] = original ^ 0xff;
+    const second = await getArtifactFile(song().id, "variant.mid");
+    expect(second?.[0]).toBe(original);
+  });
+
   it("fails closed for a stale MIDI note or tempo export", async () => {
     await writeExportFixture({
       midiNotes: [{ midi: 62, start: 1, dur: 2, vel: 90, hand: "R" }],

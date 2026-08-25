@@ -19,6 +19,8 @@ interface Props {
   /** Live engine clock. When supplied it wins over the time prop so the
    * canvas can redraw at frame rate without re-rendering the whole player. */
   timeRef?: { current: number };
+  /** Keep the animation loop idle while the transport is paused. */
+  playing: boolean;
   settings: PlayerSettings;
   pressedKeys: Map<number, number>;
   chords: { beat: number; name: string; notes: number[] }[];
@@ -30,7 +32,7 @@ interface Props {
   waitNote?: TimedNote | null;
 }
 
-export function FallingCanvas({ notes, time, timeRef, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop, waitNote, timeSig = [4, 4] }: Props) {
+export function FallingCanvas({ notes, time, timeRef, playing, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop, waitNote, timeSig = [4, 4] }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Individual refs for each prop — draw loop reads these instead of closures
@@ -45,6 +47,10 @@ export function FallingCanvas({ notes, time, timeRef, settings, pressedKeys, cho
   const loopRef = useRef(loop);
   const waitNoteRef = useRef(waitNote);
   const timeSigRef = useRef(timeSig);
+  const playingRef = useRef(playing);
+  playingRef.current = playing;
+  const drawRef = useRef<(() => void) | null>(null);
+  const rafRef = useRef(0);
 
   // Lightweight sync: props → refs (no rAF involved)
   useEffect(() => { fallbackTimeRef.current = time; }, [time]);
@@ -60,13 +66,20 @@ export function FallingCanvas({ notes, time, timeRef, settings, pressedKeys, cho
   useEffect(() => { timeSigRef.current = timeSig; }, [timeSig]);
   const liveTime = timeRef ?? fallbackTimeRef;
 
-  // Single rAF loop — runs once on mount, reads state from refs
+  // When paused, refs still receive updates for seeks/settings/input, but a
+  // single redraw is enough. During playback the animation loop below reads
+  // the refs directly and does not need an extra React-driven draw.
+  useEffect(() => {
+    if (!playingRef.current) drawRef.current?.();
+  }, [notes, time, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop, waitNote, timeSig]);
+
+  // Single rAF loop — draws once on mount and only schedules frames while
+  // playing, reading state from refs.
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    let raf = 0;
     const W = 960;
     const H = 540;
     const KB_H = 140;
@@ -78,6 +91,7 @@ export function FallingCanvas({ notes, time, timeRef, settings, pressedKeys, cho
     let appliedClientW = 0;
 
     const draw = () => {
+      rafRef.current = 0;
       const clientW = canvas.clientWidth;
       if (clientW !== appliedClientW) {
         const dpr = window.devicePixelRatio || 1;
@@ -369,11 +383,25 @@ export function FallingCanvas({ notes, time, timeRef, settings, pressedKeys, cho
           }
         }
       }
-      raf = requestAnimationFrame(draw);
+      if (playingRef.current) rafRef.current = requestAnimationFrame(draw);
     };
-    raf = requestAnimationFrame(draw);
-    return () => cancelAnimationFrame(raf);
+    drawRef.current = draw;
+    draw();
+    return () => {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = 0;
+      if (drawRef.current === draw) drawRef.current = null;
+    };
   }, []);
+
+  // A paused canvas still needs one frame when playback starts/stops. Cancel
+  // any queued callback first so rapid play/pause toggles cannot create two
+  // concurrent loops.
+  useEffect(() => {
+    cancelAnimationFrame(rafRef.current);
+    rafRef.current = 0;
+    drawRef.current?.();
+  }, [playing]);
 
   return (
     <div className="relative">

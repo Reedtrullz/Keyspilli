@@ -22,6 +22,10 @@ export class SamplerAudioEngine implements AudioLike {
   private pianoReady = false;
   private pianoFailed = false;
   private loadStarted = false;
+  /** One shared load promise prevents duplicate sample graphs/fetches. */
+  private pianoLoadPromise: Promise<void> | null = null;
+  /** Invalidates a load that resolves after dispose/context recreation. */
+  private loadGeneration = 0;
   /** Fallback engine used until samples are loaded or if loading fails. */
   private fallbackEngine: AudioEngine | null = null;
 
@@ -43,6 +47,14 @@ export class SamplerAudioEngine implements AudioLike {
 
   ensure(): AudioContext {
     if (!this.ctx || this.ctx.state === "closed") {
+      // A closed context cannot accept an instrument that is still loading.
+      // Invalidate any previous request before creating the replacement.
+      this.loadGeneration++;
+      this.pianoLoadPromise = null;
+      this.loadStarted = false;
+      this.pianoReady = false;
+      this.pianoFailed = false;
+      this.piano = null;
       this.ctx = new AudioContext();
       this.compressor = this.ctx.createDynamicsCompressor();
       this.compressor.threshold.value = -24;
@@ -62,26 +74,46 @@ export class SamplerAudioEngine implements AudioLike {
     if (this.ctx.state === "suspended") void this.ctx.resume();
     // Start fetching samples as soon as the context exists so the first
     // play uses the sampler rather than falling back to oscillators.
-    if (!this.loadStarted && !this.pianoFailed) {
+    if (!this.loadStarted && !this.pianoLoadPromise && !this.pianoFailed) {
       this.loadStarted = true;
-      void this.loadPiano();
+      const generation = this.loadGeneration;
+      const context = this.ctx;
+      const load = this.loadPiano(context, generation);
+      this.pianoLoadPromise = load;
+      // `loadPiano` handles expected failures itself; this handler only
+      // releases the in-flight marker once the request settles.
+      void load.then(
+        () => {
+          if (this.loadGeneration === generation) this.pianoLoadPromise = null;
+        },
+        () => {
+          if (this.loadGeneration === generation) this.pianoLoadPromise = null;
+        },
+      );
     }
     return this.ctx;
   }
 
-  private async loadPiano(): Promise<void> {
-    const ctx = this.ensure();
-    if (!this.pianoGainNode) return;
+  private async loadPiano(ctx: AudioContext, generation: number): Promise<void> {
+    if (this.loadGeneration !== generation || this.ctx !== ctx || !this.pianoGainNode) return;
     try {
       const inst = SplendidGrandPiano(ctx, {
         destination: this.pianoGainNode,
       });
       await inst.ready;
+      // Dispose an instrument that completed after this engine moved to a new
+      // context. Without this guard, a late load could resurrect audio after
+      // `dispose()` and retain the old context graph.
+      if (this.loadGeneration !== generation || this.ctx !== ctx) {
+        try { inst.dispose(); } catch { /* already disposed */ }
+        return;
+      }
       this.piano = inst;
       this.pianoReady = true;
       // Sync pedal state now that the sampler can receive CC64.
       inst.setCC(64, this.sustainPedal ? 127 : 0);
     } catch (e) {
+      if (this.loadGeneration !== generation || this.ctx !== ctx) return;
       console.warn("[SamplerAudioEngine] sample loading failed; falling back to oscillator mode", e);
       this.pianoFailed = true;
     }
@@ -99,7 +131,6 @@ export class SamplerAudioEngine implements AudioLike {
       this.fallbackEngine = new AudioEngine();
       this.fallbackEngine.setGains(this.voiceGain, this.pianoGain);
     }
-    void this.loadPiano();
     this.fallbackEngine.noteOn(n, when);
   }
 
@@ -167,7 +198,12 @@ export class SamplerAudioEngine implements AudioLike {
   }
 
   dispose(): void {
+    this.loadGeneration++;
+    this.pianoLoadPromise = null;
+    this.loadStarted = false;
     this.cancelAll();
+    this.pianoReady = false;
+    this.pianoFailed = false;
     if (this.piano) {
       try { this.piano.dispose(); } catch { /* already disposed */ }
       this.piano = null;

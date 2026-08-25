@@ -311,7 +311,14 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
         lastSync = now;
         setTime(eng.time);
       }
-      if (eng.playing) raf = requestAnimationFrame(tick);
+      if (eng.playing) {
+        raf = requestAnimationFrame(tick);
+      } else {
+        // PlaybackEngine stops and seeks to zero when a song reaches its end.
+        // Mirror that terminal state in React so the canvas animation loop is
+        // also torn down instead of continuing after transport has stopped.
+        setPlaying(false);
+      }
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
@@ -913,6 +920,7 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
                   notes={notes}
                   time={time}
                   timeRef={timeRef}
+                  playing={playing}
                   settings={settings}
                   pressedKeys={pressedKeys}
                   chords={visualChords}

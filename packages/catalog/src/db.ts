@@ -1,7 +1,7 @@
 import Database from "better-sqlite3";
-import { mkdirSync } from "node:fs";
-import { dirname } from "node:path";
-import { dbPath } from "./paths.js";
+import { existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { ROOT, dataDir, dbPath } from "./paths.js";
 import type { JobRow, SongFilters, SongRow } from "./db-types.js";
 import { groupSongs, type GroupedSong } from "./group.js";
 import { disabledManifestBases } from "./manifest.js";
@@ -10,6 +10,104 @@ import { blockedLearnerBases } from "./learner-review.js";
 export type { SongRow, JobRow, SongFilters };
 
 let db: Database.Database | null = null;
+
+/**
+ * Raw visible-song snapshot used by the grouped catalogue read model.
+ *
+ * Grouped pages used to issue a full SELECT (and map every row) for each
+ * endpoint call.  Keeping only the raw rows here lets all filtering/grouping
+ * remain request-local while avoiding repeated SQLite scans.  The cache is
+ * deliberately invalidated by every write helper below and also carries
+ * filesystem/SQLite signatures so a write made by another process cannot
+ * leave the read model stale.
+ */
+interface SongReadModelCache {
+  generation: number;
+  dataSignature: string;
+  policySignature: string;
+  rows: SongRow[];
+}
+
+let songReadModelGeneration = 0;
+let songReadModelCache: SongReadModelCache | undefined;
+let learnerReviewCachePath: string | undefined;
+let learnerReviewCacheSignature: string | undefined;
+let learnerReviewCache = new Set<string>();
+
+/** Invalidate the grouped catalogue raw-row snapshot after an out-of-band update. */
+export function invalidateSongReadModel(): void {
+  songReadModelGeneration += 1;
+  songReadModelCache = undefined;
+}
+
+function fileSignature(path: string): string {
+  try {
+    const stat = statSync(path);
+    // inode + device catches atomic replacement at the same path; size and
+    // mtime catch in-place edits.  A missing marker is part of the signature
+    // so creating/removing a policy or WAL file forces a refresh as well.
+    return `${path}:${stat.dev}:${stat.ino}:${stat.size}:${stat.mtimeMs}`;
+  } catch {
+    return `${path}:missing`;
+  }
+}
+
+function songDataSignature(conn: Database.Database): string {
+  // `data_version` changes when another connection commits.  The file
+  // markers additionally cover WAL/checkpoint/atomic-replace changes that a
+  // long-lived process may otherwise not observe through its own connection.
+  const dataVersion = conn.pragma("data_version", { simple: true }) as number;
+  return [dbPath(), `${dbPath()}-wal`, `${dbPath()}-shm`].map(fileSignature).concat(`data_version:${dataVersion}`).join("|");
+}
+
+function policySignature(): string {
+  return [
+    join(dataDir(), "manifest.json"),
+    join(ROOT, "catalog", "manifest.json"),
+    join(dataDir(), "learner-review.json"),
+    join(ROOT, "catalog", "learner-review.json"),
+  ]
+    .map(fileSignature)
+    .join("|");
+}
+
+function policyBasesFromFile(path: string): ReadonlySet<string> {
+  if (!existsSync(path)) return new Set<string>();
+  const signature = fileSignature(path);
+  if (path === learnerReviewCachePath && signature === learnerReviewCacheSignature) {
+    return learnerReviewCache;
+  }
+  try {
+    const parsed = JSON.parse(readFileSync(path, "utf8")) as {
+      verdicts?: Record<string, { blocked?: boolean }>;
+    };
+    learnerReviewCachePath = path;
+    learnerReviewCacheSignature = signature;
+    learnerReviewCache = new Set(
+      Object.entries(parsed.verdicts ?? {}).filter(([, entry]) => entry?.blocked === true).map(([baseId]) => baseId),
+    );
+    return learnerReviewCache;
+  } catch {
+    // The existing learner-review gate fails open on malformed data.  The
+    // manifest loader itself still throws (and therefore fails closed) when
+    // it is used by hiddenBaseIds below.
+    learnerReviewCachePath = path;
+    learnerReviewCacheSignature = signature;
+    learnerReviewCache = new Set<string>();
+    return learnerReviewCache;
+  }
+}
+
+function learnerReviewBases(): ReadonlySet<string> {
+  const path = [join(dataDir(), "learner-review.json"), join(ROOT, "catalog", "learner-review.json")].find((candidate) => existsSync(candidate));
+  if (!path) {
+    learnerReviewCachePath = undefined;
+    learnerReviewCacheSignature = undefined;
+    learnerReviewCache = new Set<string>();
+    return blockedLearnerBases();
+  }
+  return policyBasesFromFile(path);
+}
 
 function mapSong(r: Record<string, unknown>): SongRow {
   return {
@@ -122,6 +220,7 @@ export function upsertSong(s: SongRow): void {
          duration=@duration, has_sheet_xml=@hasSheetXml, sections=@sections, plays=plays`,
     )
     .run(s);
+  invalidateSongReadModel();
 }
 
 /** Replace a complete six-level song set in one SQLite transaction. */
@@ -136,15 +235,74 @@ export function replaceSongsByBase(baseId: string, rows: SongRow[]): void {
     for (const row of items) stmt.run(row);
   });
   tx(rows);
+  invalidateSongReadModel();
 }
 
 /** Remove a complete base from the read model without touching its artifacts. */
 export function removeSongsByBase(baseId: string): number {
-  return getDb().prepare("DELETE FROM songs WHERE base_id = ?").run(baseId).changes;
+  const result = getDb().prepare("DELETE FROM songs WHERE base_id = ?").run(baseId);
+  invalidateSongReadModel();
+  return result.changes;
 }
 
-function hiddenBaseIds(): ReadonlySet<string> {
-  return new Set([...blockedLearnerBases(), ...disabledManifestBases()]);
+function hiddenBaseIds(refreshLearnerReview = false): ReadonlySet<string> {
+  // Re-read the learner-review policy when the grouped snapshot is rebuilt.
+  // learner-review.ts intentionally keeps a path-only cache for its other
+  // callers; reading the selected file here prevents an atomic replacement
+  // from leaving this read model stale.  Malformed review data remains the
+  // documented fail-open behaviour, while manifest parsing stays fail-closed.
+  const blocked = refreshLearnerReview ? learnerReviewBases() : blockedLearnerBases();
+  return new Set([...blocked, ...disabledManifestBases()]);
+}
+
+function visibleSongRowsSnapshot(): SongRow[] {
+  const conn = getDb();
+  const dataBefore = songDataSignature(conn);
+  const policyBefore = policySignature();
+  const cached = songReadModelCache;
+  if (
+    cached &&
+    cached.generation === songReadModelGeneration &&
+    cached.dataSignature === dataBefore &&
+    cached.policySignature === policyBefore
+  ) {
+    return cached.rows;
+  }
+
+  const hidden = hiddenBaseIds(true);
+  const rows = (conn.prepare("SELECT * FROM songs").all() as Record<string, unknown>[])
+    .filter((row) => !hidden.has(row.base_id as string))
+    .map(mapSong);
+
+  // A concurrent writer can commit between the pre-query signature and the
+  // SELECT.  Store the post-query signature so the next call will rebuild;
+  // retry once immediately when the change is observable, avoiding a stale
+  // response for the current request as well.
+  const dataAfter = songDataSignature(conn);
+  const policyAfter = policySignature();
+  if (dataAfter !== dataBefore || policyAfter !== policyBefore) {
+    const hiddenAfter = hiddenBaseIds(true);
+    const freshRows = (conn.prepare("SELECT * FROM songs").all() as Record<string, unknown>[])
+      .filter((row) => !hiddenAfter.has(row.base_id as string))
+      .map(mapSong);
+    const freshData = songDataSignature(conn);
+    const freshPolicy = policySignature();
+    songReadModelCache = {
+      generation: songReadModelGeneration,
+      dataSignature: freshData,
+      policySignature: freshPolicy,
+      rows: freshRows,
+    };
+    return freshRows;
+  }
+
+  songReadModelCache = {
+    generation: songReadModelGeneration,
+    dataSignature: dataAfter,
+    policySignature: policyAfter,
+    rows,
+  };
+  return rows;
 }
 
 export function getSong(id: string): SongRow | undefined {
@@ -242,8 +400,12 @@ export function listSongsGroupedWithTotal(f: SongFilters = {}): GroupedSongsPage
 function groupedSongsForFilters(f: SongFilters): GroupedSong[] {
   // Apply pagination after grouping; using the raw row offset here can drop
   // partial six-level sets and makes the reported total depend on page size.
-  const all = listSongs({ ...f, limit: 10_000, offset: 0 }, 10_000);
-  let grouped = groupSongs(all);
+  // Read the complete visible snapshot: the previous listSongs(limit=10_000)
+  // path silently truncated catalogues larger than 10,000 rows.
+  const all = visibleSongRowsSnapshot().filter((row) => matchesSongFilters(row, f));
+  // Grouping currently returns references to input rows.  Clone the cached
+  // snapshot for request isolation so a caller cannot mutate future results.
+  let grouped = groupSongs(all.map((row) => ({ ...row })));
   if (f.difficulty) grouped = grouped.filter((g) => g.levels.some((l) => l.difficulty === f.difficulty));
   if (f.key) grouped = grouped.filter((g) => g.levels.some((l) => l.key === f.key));
   if (f.style) grouped = grouped.filter((g) => g.levels.some((l) => l.style === f.style));
@@ -256,6 +418,27 @@ function groupedSongsForFilters(f: SongFilters): GroupedSong[] {
     grouped = grouped.filter((g) => g.representative.title.toLowerCase().includes(q) || g.representative.artist.toLowerCase().includes(q));
   }
   return grouped;
+}
+
+function matchesSongFilters(row: SongRow, f: SongFilters): boolean {
+  for (const [key, value] of [
+    ["difficulty", row.difficulty],
+    ["key", row.key],
+    ["style", row.style],
+    ["mood", row.mood],
+    ["bassPattern", row.bassPattern],
+    ["category", row.category],
+    ["artist", row.artist],
+  ] as const) {
+    const requested = f[key];
+    // Match listSongs' SQL builder: empty strings are ignored.
+    if (typeof requested === "string" && requested && value !== requested) return false;
+  }
+  if (f.q) {
+    const q = f.q.toLowerCase();
+    if (!row.title.toLowerCase().includes(q) && !row.artist.toLowerCase().includes(q)) return false;
+  }
+  return true;
 }
 
 function groupedOrder(f: SongFilters): (a: GroupedSong, b: GroupedSong) => number {
@@ -284,6 +467,7 @@ export function countSongs(): number {
 
 export function incrementPlays(id: string): void {
   getDb().prepare("UPDATE songs SET plays = plays + 1 WHERE id = ?").run(id);
+  invalidateSongReadModel();
 }
 
 export function insertJob(j: JobRow): void {
@@ -339,7 +523,9 @@ export function requeueOrphaned(): number {
 }
 
 export function deleteSongsByBase(baseId: string): number {
-  return getDb().prepare("DELETE FROM songs WHERE base_id = ?").run(baseId).changes;
+  const result = getDb().prepare("DELETE FROM songs WHERE base_id = ?").run(baseId);
+  invalidateSongReadModel();
+  return result.changes;
 }
 
 export interface DeletedBaseRows {
@@ -367,7 +553,9 @@ export function deleteBaseRows(baseId: string): DeletedBaseRows {
     const songCount = conn.prepare("DELETE FROM songs WHERE base_id = ?").run(id).changes;
     return { jobIds: jobs.map((row) => row.id), songCount };
   });
-  return remove(baseId);
+  const result = remove(baseId);
+  invalidateSongReadModel();
+  return result;
 }
 
 export function deleteJobsByBase(baseId: string): string[] {

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import { measureIndex, pitchColor, secPerBeat, type ChordLabel, type PlayerSettings, type SongData } from "@keyspilli/player-core";
 import { chordProvenance } from "./chord-provenance";
 
@@ -18,23 +18,38 @@ export function BeginnerView({ data, time, settings, chords }: { data: SongData;
   const m = data.measures[currentMeasure] ?? data.measures[0]!;
   // Views must show the same pitches the audio engine sounds (which are
   // transposed), so shift note MIDI values to match.
-  const notes = data.notes
-    .filter((n) => n.start >= m.startBeat && n.start < m.endBeat)
-    .map((n) => ({ ...n, midi: n.midi + settings.transpose }));
+  // Playback updates `time` at 10Hz. Keep the expensive note projection tied
+  // to the active measure instead of rescanning the complete arrangement on
+  // every transport tick.
+  const notes = useMemo(
+    () => data.notes
+      .filter((n) => n.start >= m.startBeat && n.start < m.endBeat)
+      .map((n) => ({ ...n, midi: n.midi + settings.transpose })),
+    [data.notes, m.startBeat, m.endBeat, settings.transpose],
+  );
   const measureBeats = m.endBeat - m.startBeat;
   const W = 880;
   const H = 300;
   const playX = 60 + ((time / beatSec - m.startBeat) / measureBeats) * (W - 120);
   // Scale the staff to the measure's actual pitch range so wide arrangements
   // don't render notes above/below the visible area.
-  const mids = notes.map((n) => n.midi);
+  const mids = useMemo(() => notes.map((n) => n.midi), [notes]);
   const lo = Math.min(...mids, 55);
   const hi = Math.max(...mids, 72);
   const spread = Math.max(12, hi - lo);
 
-  const startCounts = new Map<number, number>();
+  const startCounts = useMemo(() => {
+    const counts = new Map<number, number>();
+    notes.forEach((n) => counts.set(n.start, (counts.get(n.start) ?? 0) + 1));
+    return counts;
+  }, [notes]);
   const startIndices = new Map<number, number>();
-  notes.forEach((n) => startCounts.set(n.start, (startCounts.get(n.start) ?? 0) + 1));
+  const measureChords = useMemo(
+    () => chords
+      .filter((c) => c.beat >= m.startBeat && c.beat < m.endBeat)
+      .map((chord) => ({ chord, provenance: chordProvenance(chord) })),
+    [chords, m.startBeat, m.endBeat],
+  );
 
   return (
     <div className="overflow-x-auto">
@@ -70,10 +85,7 @@ export function BeginnerView({ data, time, settings, chords }: { data: SongData;
               </g>
             );
           })}
-          {chords
-            .filter((c) => c.beat >= m.startBeat && c.beat < m.endBeat)
-            .map((c, i) => {
-              const provenance = chordProvenance(c);
+          {measureChords.map(({ chord: c, provenance }, i) => {
               const x = 60 + ((c.beat - m.startBeat) / measureBeats) * (W - 120);
               const width = Math.max(34, c.name.length * 7.5 + 10);
               return (
