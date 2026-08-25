@@ -23,8 +23,8 @@ function noteShape(notes: Note[]): { midi: number; start: number; dur: number }[
     .sort((a, b) => a.midi - b.midi || a.start - b.start || a.dur - b.dur);
 }
 
-function compareNotes(source: Note[], actual: Note[], label: string): string[] {
-  const a = noteShape(source);
+function compareNotes(expected: ReturnType<typeof noteShape>, actual: Note[], label: string): string[] {
+  const a = expected;
   const b = noteShape(actual);
   const issues: string[] = [];
   if (a.length !== b.length) {
@@ -90,17 +90,21 @@ export function validateArtifactRoundtrip(variant: Variant, title: string, artis
 /** Validate already-rendered bytes/markup (used by catalog verification). */
 export function validateArtifactFiles(variant: Variant, artifacts: VariantArtifacts): string[] {
   const issues: string[] = [];
+  // The canonical notes are compared against both renderings. Normalize that
+  // shared side once instead of sorting the same source array twice for large
+  // arrangements.
+  const expectedNotes = noteShape(variant.notes);
   try {
     const parsedMidi = parseMidi(artifacts.midi);
     issues.push(...compareTempo(variant.tempoBpm, parsedMidi.tempoBpm, parsedMidi.tempoMetaPresent === true, "midi roundtrip"));
-    issues.push(...compareNotes(variant.notes, parsedMidi.notes, "midi roundtrip"));
+    issues.push(...compareNotes(expectedNotes, parsedMidi.notes, "midi roundtrip"));
   } catch (e) {
     issues.push(`midi roundtrip parse failed: ${(e as Error).message}`);
   }
   try {
     const parsedXml = parseMusicXmlNotes(artifacts.xml);
     issues.push(...compareTempo(variant.tempoBpm, parsedXml.tempoBpm, parsedXml.tempoMetaPresent === true, "xml roundtrip"));
-    issues.push(...compareNotes(variant.notes, parsedXml.notes, "xml roundtrip"));
+    issues.push(...compareNotes(expectedNotes, parsedXml.notes, "xml roundtrip"));
   } catch (e) {
     issues.push(`xml roundtrip parse failed: ${(e as Error).message}`);
   }

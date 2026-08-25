@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useRef } from "react";
+import React, { memo, useEffect, useMemo, useRef } from "react";
 import type { ChordLabel } from "@keyspilli/midi";
 import { chordProvenance } from "./chord-provenance";
 
@@ -68,8 +68,43 @@ const MiniKeyboard = memo(function MiniKeyboard({ notes }: { notes: number[] }) 
   );
 });
 
+const ACTIVE_CHORD_CLASS = "bg-blue-50 ring-1 ring-blue-300";
+
+/**
+ * Chord content is immutable while the playhead moves. Keep each item behind
+ * a memo boundary so a list rebuild only renders the item whose active state
+ * changed (the active class itself is toggled by ChordStrip below).
+ */
+const ChordItem = memo(function ChordItem({
+  chord,
+  index,
+  active,
+}: {
+  chord: ChordLabel;
+  index: number;
+  active: boolean;
+}) {
+  const provenance = chordProvenance(chord);
+  return (
+    <div
+      data-chord-idx={index}
+      data-source-kind={chord.sourceKind ?? "unknown"}
+      role="listitem"
+      aria-label={`${chord.name}: ${provenance.label}`}
+      title={provenance.label}
+      className={`flex flex-col items-center gap-0.5 shrink-0 px-2 py-1 rounded-lg transition-colors ${active ? ACTIVE_CHORD_CLASS : ""}`}
+    >
+      <span className={`text-[10px] font-semibold leading-tight ${provenance.textClass} ${provenance.dotted ? `border-b border-dotted ${provenance.borderClass}` : ""}`}>
+        {chord.name}
+      </span>
+      <MiniKeyboard notes={chord.notes} />
+    </div>
+  );
+});
+
 export const ChordStrip = memo(function ChordStrip({ chords, currentBeat }: ChordStripProps) {
   const stripRef = useRef<HTMLDivElement>(null);
+  const previousActiveIdxRef = useRef<number | null>(null);
   // Find which chord is currently active
   let activeIdx = 0;
   for (let i = chords.length - 1; i >= 0; i--) {
@@ -78,6 +113,34 @@ export const ChordStrip = memo(function ChordStrip({ chords, currentBeat }: Chor
       break;
     }
   }
+
+  // Build the expensive chord/SVG subtree only when the timeline changes.
+  // During playback currentBeat changes every 100ms, so rebuilding 700+
+  // children here would otherwise dominate the React work. The initial active
+  // class is captured for SSR/hydration; subsequent active changes are limited
+  // to classList updates on the old and new elements below.
+  const chordItems = useMemo(
+    () => chords.map((chord, index) => (
+      <ChordItem
+        key={index}
+        chord={chord}
+        index={index}
+        active={index === activeIdx}
+      />
+    )),
+    [chords],
+  );
+
+  useEffect(() => {
+    const root = stripRef.current;
+    if (!root) return;
+    const previousIdx = previousActiveIdxRef.current;
+    if (previousIdx !== null && previousIdx !== activeIdx) {
+      root.querySelector(`[data-chord-idx="${previousIdx}"]`)?.classList.remove(...ACTIVE_CHORD_CLASS.split(" "));
+    }
+    root.querySelector(`[data-chord-idx="${activeIdx}"]`)?.classList.add(...ACTIVE_CHORD_CLASS.split(" "));
+    previousActiveIdxRef.current = activeIdx;
+  }, [activeIdx]);
 
   // Keep the active chord visible even when the user scrolled elsewhere.
   useEffect(() => {
@@ -90,27 +153,7 @@ export const ChordStrip = memo(function ChordStrip({ chords, currentBeat }: Chor
 
   return (
     <div ref={stripRef} className="flex gap-2 overflow-x-auto px-3 py-2 border-b border-zinc-100 bg-white" role="list" aria-label="Chord progression. Amber dotted chords are inferred; gray dotted chords have unknown provenance.">
-      {chords.map((c, i) => {
-        const provenance = chordProvenance(c);
-        return (
-          <div
-            key={i}
-            data-chord-idx={i}
-            data-source-kind={c.sourceKind ?? "unknown"}
-            role="listitem"
-            aria-label={`${c.name}: ${provenance.label}`}
-            title={provenance.label}
-            className={`flex flex-col items-center gap-0.5 shrink-0 px-2 py-1 rounded-lg transition-colors ${
-              i === activeIdx ? "bg-blue-50 ring-1 ring-blue-300" : ""
-            }`}
-          >
-            <span className={`text-[10px] font-semibold leading-tight ${provenance.textClass} ${provenance.dotted ? `border-b border-dotted ${provenance.borderClass}` : ""}`}>
-              {c.name}
-            </span>
-            <MiniKeyboard notes={c.notes} />
-          </div>
-        );
-      })}
+      {chordItems}
     </div>
   );
 });

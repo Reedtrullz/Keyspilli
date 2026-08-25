@@ -10,12 +10,18 @@ export function detectSections(
 ): Section[] {
   if (measures.length === 0) return [];
 
-  const densities = measures.map((m) => {
-    const measureNotes = notes.filter(
-      (n) => n.start >= m.startBeat && n.start < m.endBeat,
-    );
-    return measureNotes.length;
-  });
+  // Notes are commonly already sorted, but callers are not required to pass
+  // them that way. Sorting the starts once lets every measure/section use a
+  // logarithmic range count instead of scanning the complete note list.
+  // NaN starts never matched the old range predicate, so omit them here.
+  const sortedStarts = notes
+    .map((note) => note.start)
+    .filter((start) => !Number.isNaN(start))
+    .sort((a, b) => a - b);
+
+  const densities = measures.map((measure) =>
+    countInRange(sortedStarts, measure.startBeat, measure.endBeat),
+  );
 
   const boundaries: number[] = [0];
   const windowSize = Math.min(4, Math.floor(measures.length / 4) || 1);
@@ -33,6 +39,7 @@ export function detectSections(
   }
 
   const sections: Section[] = [];
+  const overallDensity = avg(densities);
 
   for (let i = 0; i < boundaries.length - 1; i++) {
     const startIdx = boundaries[i]!;
@@ -40,11 +47,12 @@ export function detectSections(
     const startMeasure = measures[startIdx]!;
     const endMeasure = measures[endIdx - 1] ?? measures[measures.length - 1]!;
 
-    const sectionNotes = notes.filter(
-      (n) => n.start >= startMeasure.startBeat && n.start < endMeasure.endBeat,
+    const sectionNoteCount = countInRange(
+      sortedStarts,
+      startMeasure.startBeat,
+      endMeasure.endBeat,
     );
-    const sectionDensity = sectionNotes.length / Math.max(1, endIdx - startIdx);
-    const overallDensity = avg(densities);
+    const sectionDensity = sectionNoteCount / Math.max(1, endIdx - startIdx);
 
     let type: NonNullable<Section["type"]> = "custom";
     // Only label intro/outro when density evidence supports a sparse bookend.
@@ -72,4 +80,26 @@ export function detectSections(
 
 function avg(nums: number[]): number {
   return nums.length > 0 ? nums.reduce((a, b) => a + b, 0) / nums.length : 0;
+}
+
+/** Count sorted note starts in the half-open interval [start, end). */
+function countInRange(sortedStarts: number[], start: number, end: number): number {
+  // This also preserves the old filter's result for malformed/reversed ranges:
+  // no value can satisfy both comparisons in that case.
+  if (!(start <= end)) return 0;
+  return lowerBound(sortedStarts, end) - lowerBound(sortedStarts, start);
+}
+
+function lowerBound(values: number[], target: number): number {
+  let low = 0;
+  let high = values.length;
+  while (low < high) {
+    const mid = low + ((high - low) >>> 1);
+    if (values[mid]! < target) {
+      low = mid + 1;
+    } else {
+      high = mid;
+    }
+  }
+  return low;
 }

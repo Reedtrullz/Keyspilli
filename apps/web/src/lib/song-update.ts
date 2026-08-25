@@ -8,6 +8,7 @@ import {
   getDb,
   getSong,
   getSongsByBase,
+  invalidateSongReadModel,
   parseTempoProvenance,
   publishBaseArtifact,
   readArrangementManifest,
@@ -596,6 +597,9 @@ export async function applySongMetadata(id: string, patch: SongPatch): Promise<S
       afterSwap: () => {
         if (!dbSets.length) return;
         getDb().prepare(`UPDATE songs SET ${dbSets.join(", ")} WHERE base_id = @baseId`).run(dbParams);
+        // This metadata UPDATE bypasses the catalog write helpers; drop the
+        // grouped read-model snapshot after the artifact/database commit.
+        invalidateSongReadModel();
       },
     },
   );
