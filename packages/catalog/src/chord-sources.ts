@@ -1,3 +1,4 @@
+import { statSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { isAbsolute, relative, resolve } from "node:path";
 import { ROOT } from "./paths.js";
@@ -162,8 +163,17 @@ export function parseChordSourceMap(value: unknown): ChordSourceMap {
 }
 
 export async function loadChordSourceMap(filePath = process.env.KEYSPILLI_CHORD_SOURCE_MAP ?? resolve(ROOT, "catalog/chord-sources.json")): Promise<ChordSourceMap> {
-  const raw = JSON.parse(await readFile(filePath, "utf8")) as unknown;
-  return parseChordSourceMap(raw);
+  const path = resolve(filePath);
+  const signature = sourceMapFileSignature(path);
+  const cached = sourceMapCache.get(path);
+  if (cached?.signature === signature) {
+    rememberSourceMap(path, cached);
+    return cached.map;
+  }
+  const raw = JSON.parse(await readFile(path, "utf8")) as unknown;
+  const map = parseChordSourceMap(raw);
+  rememberSourceMap(path, { signature, map });
+  return map;
 }
 
 /** Resolve a checked-in source artifact while rejecting path traversal. */
@@ -174,4 +184,31 @@ export function resolveChordSourceArtifact(source: ChordSourceRef, catalogRoot =
 
 export function sourcePriority(source: ChordSourceRef, index: number): number {
   return source.priority ?? index;
+}
+
+interface SourceMapCacheEntry {
+  signature: string;
+  map: ChordSourceMap;
+}
+
+const SOURCE_MAP_CACHE_LIMIT = 8;
+const sourceMapCache = new Map<string, SourceMapCacheEntry>();
+
+function sourceMapFileSignature(path: string): string {
+  try {
+    const stat = statSync(path, { bigint: true });
+    return `${stat.dev}:${stat.ino}:${stat.size}:${stat.mtimeNs}`;
+  } catch {
+    return "missing";
+  }
+}
+
+function rememberSourceMap(path: string, entry: SourceMapCacheEntry): void {
+  sourceMapCache.delete(path);
+  sourceMapCache.set(path, entry);
+  while (sourceMapCache.size > SOURCE_MAP_CACHE_LIMIT) {
+    const oldest = sourceMapCache.keys().next().value;
+    if (oldest === undefined) break;
+    sourceMapCache.delete(oldest);
+  }
 }
