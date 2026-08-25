@@ -107,6 +107,37 @@ describe("chord source selection", () => {
     }
   });
 
+  it("resolves a compact generated source from the canonical legacy chords", () => {
+    const generated = [
+      { beat: 0, name: "C", notes: [48, 52, 55], sourceKind: "generated" as const, durationBeats: 4 },
+      { beat: 4, name: "G", notes: [43, 47, 50], sourceKind: "generated" as const, durationBeats: 4 },
+    ];
+    const full = resolveChordSources(song({
+      chords: generated,
+      chordSources: {
+        schemaVersion: 1,
+        generated: { id: "generated", label: "Generated chords", chords: generated, fallback: false },
+        ug: null,
+        auto: { id: "auto", label: "Generated fallback", chords: generated, fallback: true },
+      },
+    }));
+    const compact = resolveChordSources(song({
+      chords: generated,
+      chordSources: {
+        schemaVersion: 1,
+        generated: { id: "generated", label: "Generated chords", chordsRef: "data.chords", fallback: false } as unknown as Record<string, unknown>,
+        ug: null,
+        auto: { id: "auto", label: "Generated fallback", chords: generated, fallback: true },
+      },
+    }));
+    expect(compact.generated.chords).toEqual(full.generated.chords);
+    expect(compact.generated.provenance).toBe(full.generated.provenance);
+    expect(selectChordSource(compact, "generated")).toMatchObject({
+      source: { id: "generated", chords: full.generated.chords },
+      fallback: false,
+    });
+  });
+
   it("projects structured source provenance without losing the display string", () => {
     const sources = resolveChordSources(song({
       chordSources: {

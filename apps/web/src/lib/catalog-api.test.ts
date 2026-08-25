@@ -158,6 +158,18 @@ describe("catalog artifact manifest read boundary", () => {
     expect(detail?.data).not.toHaveProperty("ugChordTimeline");
   });
 
+  it("ships one generated chord timeline copy with an explicit compact reference", async () => {
+    await writeLegacyGeneratedChordNotes();
+
+    const detail = await getSongDetail(song().id);
+    const bundle = detail?.data?.chordSources;
+    expect(bundle?.generated).toMatchObject({ id: "generated", chordsRef: "data.chords" });
+    expect(bundle?.generated).not.toHaveProperty("chords");
+    // The canonical top-level projection remains available for simplified
+    // export and older API consumers.
+    expect(detail?.data?.chords).toHaveLength(1);
+  });
+
   it("fails closed for malformed manifests, missing selected levels, and mirror drift", async () => {
     await writeFile(arrangementManifestPath("catalog-api-song"), "{\"schemaVersion\":1}\n");
     await expect(loadSongArtifact(song(120))).resolves.toMatchObject({

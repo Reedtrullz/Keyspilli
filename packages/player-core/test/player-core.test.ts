@@ -2,7 +2,19 @@ import { describe, expect, it } from "vitest";
 import { beatToSec, resolveTimedNotes, firstNoteAtOrAfter, dedupeChords } from "../src/timeline.js";
 import { Grader, detectPitch } from "../src/grading.js";
 import { KeyboardInput, KEYMAP, MidiInput } from "../src/input.js";
-import { fallingBars, keyboardRects, noteLabel, upcomingMidi, measureMidiRange } from "../src/views/falling.js";
+import {
+  createFallingChordIndex,
+  createFallingNoteIndex,
+  fallingBars,
+  fallingBarsIndexed,
+  fallingChordRange,
+  fallingNoteRange,
+  keyboardRects,
+  lastFallingChordIndex,
+  noteLabel,
+  upcomingMidi,
+  measureMidiRange,
+} from "../src/views/falling.js";
 import { loadSettings, saveSettings, DEFAULT_SETTINGS } from "../src/prefs.js";
 import type { SongData } from "../src/types.js";
 
@@ -473,6 +485,64 @@ describe("falling bars", () => {
       { midi: 64, y: 399, height: 10, x: 0, width: 10, color: "#fff", label: "E" }, // already past
     ];
     expect([...upcomingMidi(bars, areaHeight, lookaheadSec)]).toEqual([60]);
+  });
+
+  it("indexes sorted notes without changing visible bars or order", () => {
+    const notes = resolveTimedNotes(song, 1, 0).sort((a, b) => a.startSec - b.startSec);
+    const index = createFallingNoteIndex(notes);
+    expect(index.sorted).toBe(true);
+    const options = {
+      width: 800,
+      height: 400,
+      nowSec: 0.5,
+      speed: 1,
+      lookaheadSec: 0.6,
+      lowMidi: 36,
+      highMidi: 84,
+    };
+    expect(fallingBarsIndexed(index, options)).toEqual(fallingBars(notes, options));
+    expect(fallingNoteRange(index, options.nowSec, options.lookaheadSec)).toEqual({ start: 0, end: 4 });
+    const reused: ReturnType<typeof fallingBars> = [];
+    const firstFrame = fallingBarsIndexed(index, options, reused).map((bar) => ({ ...bar }));
+    const secondFrame = fallingBarsIndexed(index, options, reused).map((bar) => ({ ...bar }));
+    expect(secondFrame).toEqual(firstFrame);
+  });
+
+  it("falls back to the legacy path for unsorted timelines", () => {
+    const notes = [
+      { midi: 60, startSec: 2, durSec: 0.5, vel: 80 },
+      { midi: 62, startSec: 0, durSec: 0.5, vel: 80 },
+    ];
+    const index = createFallingNoteIndex(notes);
+    expect(index.sorted).toBe(false);
+    const options = {
+      width: 800,
+      height: 400,
+      nowSec: 0,
+      speed: 1,
+      lookaheadSec: 0.6,
+      lowMidi: 36,
+      highMidi: 84,
+    };
+    expect(fallingBarsIndexed(index, options)).toEqual(fallingBars(notes, options));
+    expect(fallingNoteRange(index, options.nowSec, options.lookaheadSec)).toEqual({ start: 0, end: 2 });
+  });
+
+  it("indexes chord labels while retaining duplicate-beat and unsorted semantics", () => {
+    const chords = [
+      { beat: 0, name: "C", notes: [60] },
+      { beat: 2, name: "G", notes: [67] },
+      { beat: 2, name: "G7", notes: [67, 71] },
+      { beat: 4, name: "C", notes: [60] },
+    ];
+    const index = createFallingChordIndex(chords);
+    expect(lastFallingChordIndex(index, 1.99)).toBe(0);
+    expect(lastFallingChordIndex(index, 2)).toBe(2);
+    expect(fallingChordRange(index, 1, 2)).toEqual({ start: 1, end: 3 });
+    const unsorted = createFallingChordIndex([chords[1]!, chords[0]!, chords[2]!]);
+    expect(unsorted.sorted).toBe(false);
+    expect(lastFallingChordIndex(unsorted, 1)).toBe(1);
+    expect(fallingChordRange(unsorted, 0, 1)).toEqual({ start: 0, end: 3 });
   });
 });
 

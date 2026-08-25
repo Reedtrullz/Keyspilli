@@ -64,6 +64,7 @@ test("player loads and switches views", async ({ page }) => {
   const scorePages = page.locator(".sheet-svg__page");
   await expect(scorePages.first()).toBeVisible({ timeout: 30_000 });
   expect(await scorePages.count()).toBeGreaterThan(1);
+  expect(await page.evaluate(() => (window as unknown as { __sheetRenderMode?: string }).__sheetRenderMode)).toBe("virtual");
   const scoreGeometry = await page.locator(".sheet-svg svg").first().evaluate((svg) => ({
     width: Number.parseFloat(svg.getAttribute("width") ?? "0"),
     height: Number.parseFloat(svg.getAttribute("height") ?? "0"),
@@ -77,34 +78,49 @@ test("player loads and switches views", async ({ page }) => {
   expect(await page.evaluate(() => (window as unknown as { __sheetError?: string }).__sheetError)).toBeFalsy();
 });
 
-test("Your Song Sheet Music renders all pages with notation glyphs", async ({ page }) => {
+test("Your Song Sheet Music virtualizes SVG pages and renders the last page on scroll", async ({ page }) => {
   await page.goto(`/player/${UG_SONG}`);
   await page.getByRole("button", { name: /View/ }).click();
   await page.getByRole("menuitemradio", { name: /Sheet Music/ }).click();
 
   const pages = page.locator(".sheet-svg__page");
   await expect(page.locator(".sheet-svg svg").first()).toBeVisible({ timeout: 30_000 });
-  // Page count is layout-engine/font dependent (the same target renders 12–13
-  // pages across supported builds), but rendering more than one page proves we
-  // are exercising the multipage path rather than the old single-strip output.
-  await expect.poll(() => pages.count(), { timeout: 30_000 }).toBeGreaterThan(1);
+  const pageCount = await page.evaluate(() => (window as unknown as { __sheetPageCount?: number }).__sheetPageCount ?? 0);
+  expect(pageCount).toBeGreaterThan(1);
+  const firstScore = await pages.first().evaluate((element) => ({
+    markup: element.innerHTML,
+    svgCount: element.querySelectorAll("svg").length,
+    height: Math.min(...Array.from(element.querySelectorAll("svg")).map((svg) => svg.getBoundingClientRect().height)),
+  }));
+  expect(firstScore.svgCount).toBeGreaterThanOrEqual(1);
+  expect(firstScore.markup).toMatch(/(?:tie|slur)/i);
+  expect(firstScore.markup).toMatch(/(?:staff|measure|note)/i);
+  expect(firstScore.height).toBeGreaterThan(100);
 
-  const score = await pages.evaluateAll((elements) => {
-    const markup = elements.map((element) => element.innerHTML).join("\n");
-    const svgs = elements.flatMap((element) => Array.from(element.querySelectorAll("svg")));
+  // Page shells preserve the total scroll range, while the virtualizer keeps
+  // only a bounded neighborhood of expensive SVG markup attached.
+  const lastPage = pages.nth(pageCount - 1);
+  await lastPage.scrollIntoViewIfNeeded();
+  await expect(lastPage.locator("svg").first()).toBeVisible({ timeout: 30_000 });
+  const lastScore = await lastPage.evaluate((element) => {
+    const markup = element.innerHTML;
+    const svgs = Array.from(element.querySelectorAll("svg"));
     return {
-      pages: elements.length,
       svgCount: svgs.length,
-      hasNotationGlyph: /(?:tie|slur)/i.test(markup),
-      hasStaffContent: /(?:staff|measure|note)/i.test(markup),
+      // Page-local IDs vary across Verovio builds; the first page assertions
+      // above cover notation semantics, while the last-page check verifies
+      // that a real rendered SVG (rather than a placeholder) is mounted.
+      hasNotationGlyph: /<(?:path|use|text)\b/i.test(markup),
+      hasStaffContent: /<(?:g|path|use|text)\b/i.test(markup),
       minHeight: Math.min(...svgs.map((svg) => svg.getBoundingClientRect().height)),
     };
   });
-  expect(score.pages).toBeGreaterThan(1);
-  expect(score.svgCount).toBeGreaterThanOrEqual(score.pages);
-  expect(score.hasNotationGlyph).toBe(true);
-  expect(score.hasStaffContent).toBe(true);
-  expect(score.minHeight).toBeGreaterThan(100);
+  expect(lastScore.svgCount).toBeGreaterThanOrEqual(1);
+  expect(lastScore.hasNotationGlyph).toBe(true);
+  expect(lastScore.hasStaffContent).toBe(true);
+  expect(lastScore.minHeight).toBeGreaterThan(100);
+  const mountedSvgPages = await pages.evaluateAll((elements) => elements.filter((element) => element.querySelector("svg")).length);
+  expect(mountedSvgPages).toBeLessThanOrEqual(5);
   expect(await page.evaluate(() => (window as unknown as { __sheetError?: string }).__sheetError)).toBeFalsy();
 });
 

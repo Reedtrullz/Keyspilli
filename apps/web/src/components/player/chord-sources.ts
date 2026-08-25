@@ -105,7 +105,13 @@ function structuredProvenance(value: unknown): ChordSourceProvenance | null {
 
 function validSourceOption(value: unknown, expectedId: ChordSourceId): UnknownRecord | null {
   const obj = record(value);
-  if (!obj || obj.id !== expectedId || typeof obj.label !== "string" || !obj.label.trim() || !Array.isArray(obj.chords)) return null;
+  if (!obj || obj.id !== expectedId || typeof obj.label !== "string" || !obj.label.trim()) return null;
+  // The generated timeline is also present in the legacy top-level `chords`
+  // field. Detail responses may omit that exact duplicate and carry this
+  // explicit reference instead. Keep every other source strict so a partial
+  // or future bundle still fails closed to the legacy projection.
+  const compactGenerated = expectedId === "generated" && obj.chordsRef === "data.chords";
+  if (!Array.isArray(obj.chords) && !compactGenerated) return null;
   if (typeof obj.fallback !== "boolean") return null;
   if (obj.coverage !== undefined && obj.coverage !== "opening-section" && obj.coverage !== "full-song") return null;
   if (obj.provenance !== undefined && obj.provenance !== null && typeof obj.provenance !== "string") return null;
@@ -479,8 +485,15 @@ export function resolveChordSources(data: SongData): ChordSourceResolution {
   // A malformed or future bundle is ignored wholesale. Legacy raw.chords and
   // the older UG aliases remain the safe compatibility projection.
   const bundle = validChordSourceBundle(raw.chordSources);
+  // Compact detail payloads can reference the exact legacy generated timeline
+  // instead of shipping it a second time under `chordSources.generated`.
+  // `validChordSourceBundle` has already checked the reference marker, while
+  // this fallback keeps the normal full bundle path unchanged.
+  const generatedInput = bundle?.generated?.chordsRef === "data.chords"
+    ? raw.chords
+    : bundle?.generated ?? raw.chords;
   const generated = completeChordDurations(
-    normalizeChordTimeline(bundle?.generated ?? raw.chords, "generated"),
+    normalizeChordTimeline(generatedInput, "generated"),
     arrangementEnd,
   );
   const ug = findUgTimeline(raw);
