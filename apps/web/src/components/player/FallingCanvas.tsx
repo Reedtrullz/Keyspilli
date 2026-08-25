@@ -14,6 +14,8 @@ import {
   secPerBeat,
   upcomingMidi,
   type LoopRegion,
+  type FallingChordIndex,
+  type FallingNoteIndex,
   type PlayerSettings,
   type TimedNote,
 } from "@keyspilli/player-core";
@@ -43,10 +45,10 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
   // Individual refs for each prop — draw loop reads these instead of closures
   const fallbackTimeRef = useRef(time);
   const notesRef = useRef(notes);
-  const noteIndexRef = useRef(createFallingNoteIndex(notes));
+  const noteIndexRef = useRef<FallingNoteIndex | null>(null);
   const settingsRef = useRef(settings);
   const pressedKeysRef = useRef(pressedKeys);
-  const chordIndexRef = useRef(createFallingChordIndex(chords));
+  const chordIndexRef = useRef<FallingChordIndex<Props["chords"][number]> | null>(null);
   const tempoBpmRef = useRef(tempoBpm);
   const lowMidiRef = useRef(lowMidi);
   const highMidiRef = useRef(highMidi);
@@ -109,7 +111,7 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
     const chordRangeCache = { start: 0, end: 0 };
     const activeChordNotes = new Set<number>();
     let activeChordIndex = -2;
-    let activeChordIndexSource: ReturnType<typeof createFallingChordIndex> | null = null;
+    let activeChordIndexSource: FallingChordIndex<Props["chords"][number]> | null = null;
 
     const draw = () => {
       rafRef.current = 0;
@@ -158,7 +160,7 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
         ctx.lineTo(W - RIGHT_MARGIN, y);
         ctx.stroke();
       }
-      const noteIndex = noteIndexRef.current;
+      const noteIndex = noteIndexRef.current!;
       const bars = fallingBarsIndexed(noteIndex, {
         width: KEYBOARD_W, height: areaHeight, nowSec: now, speed,
         lookaheadSec: lookahead, lowMidi: low, highMidi: high,
@@ -167,7 +169,7 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
 
       // --- Determine current chord ---
       const currentBeat = now / beatSec;
-      const chordIndex = chordIndexRef.current;
+      const chordIndex = chordIndexRef.current!;
       const activeChordEventIndex = lastFallingChordIndex(chordIndex, currentBeat);
       if (chordIndex !== activeChordIndexSource || activeChordEventIndex !== activeChordIndex) {
         activeChordNotes.clear();
