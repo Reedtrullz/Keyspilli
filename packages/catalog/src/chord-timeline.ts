@@ -1,5 +1,6 @@
+import { statSync } from "node:fs";
 import { readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { chordPitchClasses, tryParseChordSymbol } from "@keyspilli/midi";
 import {
   type ChordSourceEntry,
@@ -88,6 +89,23 @@ export interface ChordTimelineLoadOptions {
   /** Runtime data directory used by generated notes.json fallback. */
   runtimeDataDir?: string;
   fallbackLevel?: string;
+}
+
+interface TimelineCacheEntry {
+  value: ChordTimelineResolution | null;
+}
+
+const TIMELINE_CACHE_LIMIT = 32;
+const timelineCache = new Map<string, TimelineCacheEntry>();
+const timelineInflight = new Map<string, Promise<ChordTimelineResolution | null>>();
+
+function timelineFileSignature(path: string): string {
+  try {
+    const stat = statSync(path, { bigint: true });
+    return `${path}:${stat.dev}:${stat.ino}:${stat.size}:${stat.mtimeNs}`;
+  } catch {
+    return `${path}:missing`;
+  }
 }
 
 interface TimelineInputEvent {
@@ -617,8 +635,56 @@ async function readJson(path: string): Promise<unknown> {
   return JSON.parse(await readFile(path, "utf8")) as unknown;
 }
 
+function timelineMappingPath(options: ChordTimelineLoadOptions): string {
+  return resolve(options.mappingPath ?? process.env.KEYSPILLI_CHORD_SOURCE_MAP ?? resolve(ROOT, "catalog/chord-sources.json"));
+}
+
+function timelineDependencyPaths(
+  baseId: string,
+  options: ChordTimelineLoadOptions,
+  map?: ChordSourceMap,
+): string[] {
+  const paths = [timelineMappingPath(options)];
+  const entry = map?.entries.find((candidate) => candidate.baseId === baseId);
+  for (const source of entry?.sources ?? []) {
+    const artifactPath = resolveChordSourceArtifact(source, options.catalogRoot ?? ROOT);
+    if (artifactPath) paths.push(artifactPath);
+  }
+  const level = options.fallbackLevel ?? "a";
+  paths.push(join(options.runtimeDataDir ?? dataDir(), "artifacts", baseId, level, "notes.json"));
+  return [...new Set(paths.map((path) => resolve(path)))];
+}
+
+async function timelineCacheKey(baseId: string, options: ChordTimelineLoadOptions): Promise<string> {
+  let map: ChordSourceMap | undefined;
+  try {
+    map = await loadChordSourceMap(timelineMappingPath(options));
+  } catch {
+    // The uncached resolver preserves its existing fail-open fallback when
+    // the optional source map is absent or invalid.
+  }
+  const dependencies = timelineDependencyPaths(baseId, options, map);
+  return JSON.stringify({
+    baseId,
+    fallbackLevel: options.fallbackLevel ?? "a",
+    catalogRoot: resolve(options.catalogRoot ?? ROOT),
+    runtimeDataDir: resolve(options.runtimeDataDir ?? dataDir()),
+    dependencies: dependencies.map((path) => timelineFileSignature(path)),
+  });
+}
+
+function rememberTimeline(key: string, value: ChordTimelineResolution | null): void {
+  timelineCache.delete(key);
+  timelineCache.set(key, { value });
+  while (timelineCache.size > TIMELINE_CACHE_LIMIT) {
+    const oldest = timelineCache.keys().next().value;
+    if (oldest === undefined) break;
+    timelineCache.delete(oldest);
+  }
+}
+
 /** Resolve the best checked-in chart, then fall back to generated MIDI chords. */
-export async function resolveChordTimeline(baseId: string, options: ChordTimelineLoadOptions = {}): Promise<ChordTimelineResolution | null> {
+async function resolveChordTimelineUncached(baseId: string, options: ChordTimelineLoadOptions = {}): Promise<ChordTimelineResolution | null> {
   const warnings: string[] = [];
   let map: ChordSourceMap = { schemaVersion: 1, entries: [] };
   try {
@@ -659,6 +725,37 @@ export async function resolveChordTimeline(baseId: string, options: ChordTimelin
     warnings.push(`midi-derived fallback: ${(error as Error).message}`);
     return null;
   }
+}
+
+/**
+ * Resolve normalized chord timelines through a bounded dependency-keyed cache.
+ *
+ * Chord maps and generated notes are published as files, so every lookup
+ * includes device/inode/size/mtime signatures for all possible source files.
+ * A changed or newly published file therefore gets a new key without a
+ * process-wide invalidation hook, while repeated player/detail requests avoid
+ * reparsing the same notes.json and chart artifacts. Concurrent misses share
+ * one in-flight resolver.
+ */
+export async function resolveChordTimeline(baseId: string, options: ChordTimelineLoadOptions = {}): Promise<ChordTimelineResolution | null> {
+  const key = await timelineCacheKey(baseId, options);
+  const cached = timelineCache.get(key);
+  if (cached) {
+    rememberTimeline(key, cached.value);
+    return cached.value;
+  }
+  const existing = timelineInflight.get(key);
+  if (existing) return existing;
+  const pending = resolveChordTimelineUncached(baseId, options)
+    .then((value) => {
+      rememberTimeline(key, value);
+      return value;
+    })
+    .finally(() => {
+      timelineInflight.delete(key);
+    });
+  timelineInflight.set(key, pending);
+  return pending;
 }
 
 /** Convenience loader for callers that only need the normalized timeline. */

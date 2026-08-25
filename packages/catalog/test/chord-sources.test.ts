@@ -357,6 +357,52 @@ describe("catalog chord source plumbing", () => {
     }
   });
 
+  it("reuses normalized timelines and invalidates them when notes are republished", async () => {
+    const root = await mkdtemp("keyspilli-chord-cache-");
+    try {
+      const baseId = "cache-song";
+      const mappingPath = join(root, "map.json");
+      const notesPath = join(root, "artifacts", baseId, "a", "notes.json");
+      await mkdir(join(root, "artifacts", baseId, "a"), { recursive: true });
+      await writeFile(mappingPath, JSON.stringify({
+        schemaVersion: 1,
+        entries: [{
+          baseId,
+          canonicalTitle: "Cache Song",
+          canonicalArtist: "Tester",
+          fallbackSourceId: "midi",
+          sources: [
+            { id: "chart", provider: "test", kind: "chart", sourceRef: "test:missing", artifactPath: "missing.json" },
+            { id: "midi", provider: "keyspilli", kind: "midi-derived", sourceRef: "variant:a:notes.json", confidence: "fallback" },
+          ],
+        }],
+      }));
+      const writeNotes = async (name: string, midi: number[]) => {
+        await writeFile(notesPath, JSON.stringify({
+          notes: [{ midi: midi[0], start: 0, dur: 4 }],
+          durationBeats: 4,
+          chords: [{ beat: 0, durationBeats: 4, name, notes: midi }],
+          measures: [{ startBeat: 0, endBeat: 4 }],
+        }));
+      };
+
+      await writeNotes("C", [48, 52, 55]);
+      const first = await resolveChordTimeline(baseId, { mappingPath, catalogRoot: root, runtimeDataDir: root });
+      const second = await resolveChordTimeline(baseId, { mappingPath, catalogRoot: root, runtimeDataDir: root });
+      expect(first).not.toBeNull();
+      expect(second).toBe(first);
+      expect(first?.timeline.chords[0]?.name).toBe("C");
+
+      await rm(notesPath, { force: true });
+      await writeNotes("D", [50, 54, 57]);
+      const republished = await resolveChordTimeline(baseId, { mappingPath, catalogRoot: root, runtimeDataDir: root });
+      expect(republished).not.toBe(first);
+      expect(republished?.timeline.chords[0]?.name).toBe("D");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("returns the timeline directly for simple callers", async () => {
     const timeline = await loadChordTimeline(YOUR_SONG);
     expect(timeline?.schemaVersion).toBe(1);
