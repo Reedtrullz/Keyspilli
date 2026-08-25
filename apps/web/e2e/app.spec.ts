@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 
 const SONG = "f-f-chopin-nocturne-m";
 const UG_SONG = "the-theorist-elton-john-your-song-piano-cover-jz6ugvghbt8-a";
+const BRAHMS_SONG = "j-brahms-brahms-horn-trio-a";
 
 // Pin e2e runs to the deterministic oscillator engine so sampled-piano CDN
 // fetches do not stall headless playback assertions.
@@ -124,6 +125,46 @@ test("Your Song Sheet Music virtualizes SVG pages and renders the last page on s
   expect(mountedSvgPages).toBeLessThanOrEqual(5);
   expect(await page.evaluate(() => (window as unknown as { __sheetRenderer?: string }).__sheetRenderer)).toBe("worker");
   expect(await page.evaluate(() => (window as unknown as { __sheetError?: string }).__sheetError)).toBeFalsy();
+});
+
+test("direct sheet routes start with a metadata shell and load player data on mode switch", async ({ page }) => {
+  let detailRequests = 0;
+  page.on("request", (request) => {
+    if (request.url().endsWith(`/api/songs/${SONG}`)) detailRequests += 1;
+  });
+
+  await page.goto(`/player/${SONG}/sheet`);
+  await expect(page.getByRole("heading", { name: "Nocturne" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Player stage — Sheet Music" })).toBeVisible();
+  // SheetMusicView only needs the id/XML route; the large player detail is
+  // deferred until a control or another view explicitly needs it.
+  expect(detailRequests).toBe(0);
+
+  await page.getByRole("button", { name: /View/ }).click();
+  await page.getByRole("menuitemradio", { name: /Beginner/ }).click();
+  await expect(page.getByLabel("Beginner notes view")).toBeVisible();
+  expect(detailRequests).toBeGreaterThan(0);
+});
+
+test("direct sheet RSC payload excludes the large player detail", async ({ page }) => {
+  const detailRequests: string[] = [];
+  page.on("request", (request) => {
+    if (request.method() === "GET" && request.url().endsWith(`/api/songs/${BRAHMS_SONG}`)) {
+      detailRequests.push(request.url());
+    }
+  });
+
+  const response = await page.goto(`/player/${BRAHMS_SONG}/sheet`);
+  expect(response).toBeTruthy();
+  const html = (await response!.body()).toString();
+  // Production before this round was 1,184,890 decoded bytes for this
+  // 69-page fixture and serialized `data.notes` in the RSC flight payload.
+  expect(Buffer.byteLength(html)).toBeLessThan(600_000);
+  expect(html).not.toContain('\\"data\\":{\\"notes\\":');
+  expect(detailRequests).toHaveLength(0);
+  await expect(page.locator(".sheet-svg svg").first()).toBeVisible({ timeout: 30_000 });
+  expect(await page.evaluate(() => (window as unknown as { __sheetRenderer?: string }).__sheetRenderer)).toBe("worker");
+  expect(await page.evaluate(() => (window as unknown as { __sheetPageCount?: number }).__sheetPageCount)).toBe(69);
 });
 
 test("player controls: loop, tempo, transpose, hands", async ({ page }) => {

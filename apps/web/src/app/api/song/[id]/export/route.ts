@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { chromium, type Browser, type Page } from "playwright";
-import { getArtifactFile, getSongDetail } from "@/lib/catalog-api";
+import { getArtifactFile, getSongDetailShell } from "@/lib/catalog-api";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -120,9 +120,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: "unknown PDF layout" }, { status: 400 });
     }
     if (layout === "classic") {
-      const detail = await getSongDetail(id);
-      if (!detail || !detail.data) return NextResponse.json({ error: "not found" }, { status: 404 });
-      if (detail.song.hasSheetXml !== 1) {
+      const shell = await getSongDetailShell(id);
+      if (!shell) return NextResponse.json({ error: "not found" }, { status: 404 });
+      if (shell.song.hasSheetXml !== 1) {
         return NextResponse.json(
           { error: "classic PDF unavailable", code: "CLASSIC_PDF_UNAVAILABLE" },
           { status: 404 },

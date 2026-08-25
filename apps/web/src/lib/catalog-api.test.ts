@@ -6,7 +6,7 @@ import { join } from "node:path";
 import type { ChordLabel } from "@keyspilli/midi";
 import { createLegacyBootstrapManifest, arrangementManifestPath, upsertSong, writeArrangementManifestFile, type SongRow } from "@keyspilli/catalog";
 import { writeMidi, writeMusicXml } from "@keyspilli/midi";
-import { buildAutoChordSource, getArtifactFile, getSongDetail, loadSongArtifact, mergeChartTimeline } from "./catalog-api";
+import { buildAutoChordSource, getArtifactFile, getSongDetail, getSongDetailShell, loadSongArtifact, mergeChartTimeline } from "./catalog-api";
 
 const dataRoot = mkdtempSync(join(tmpdir(), "keyspilli-catalog-api-"));
 const previousDataRoot = process.env.KEYSPILLI_DATA_DIR;
@@ -127,6 +127,14 @@ beforeEach(async () => {
 });
 
 describe("catalog artifact manifest read boundary", () => {
+  it("builds a metadata-only player shell without reading notes.json", async () => {
+    await rm(join(dataRoot, "artifacts", "catalog-api-song", "a", "notes.json"));
+    const shell = await getSongDetailShell(song().id);
+    expect(shell).toEqual({ song: song(), variants: [song()] });
+    expect(shell).not.toHaveProperty("data");
+    expect(shell).not.toHaveProperty("artifact");
+  });
+
   it("allows an explicit legacy read from the selected notes.json only", async () => {
     const loaded = await loadSongArtifact(song(120));
     expect(loaded.artifact).toEqual({ status: "legacy", errors: [] });

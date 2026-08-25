@@ -52,6 +52,14 @@ export interface PlayerDetail {
   variants: SongRow[];
 }
 
+/** Metadata-only payload used while a direct sheet route loads its player data. */
+export interface PlayerShell {
+  song: SongRow;
+  variants: SongRow[];
+}
+
+export type PlayerInitial = PlayerDetail | PlayerShell;
+
 const MODES: { id: ViewMode; label: string; hint: string }[] = [
   { id: "falling", label: "Fall Down", hint: "Notes fall onto the keyboard" },
   { id: "beginner", label: "Beginner", hint: "Big colored notes + letters" },
@@ -63,7 +71,7 @@ const MODES: { id: ViewMode; label: string; hint: string }[] = [
 const GHOST_KEY_TIMEOUT_MS = 5000;
 const TEMPO_SEMANTICS_NOTICE_KEY = "keyspilli.tempo-semantics.v1";
 
-export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMode | null }) {
+function FullPlayer({ initial, mode }: { initial: PlayerDetail; mode: ViewMode | null }) {
   const [settings, setSettings] = useState<PlayerSettings>(() => {
     const s = loadSettings();
     // Per-song practice settings override global defaults for this song.
@@ -1009,4 +1017,277 @@ export function Player({ initial, mode }: { initial: PlayerDetail; mode: ViewMod
       </section>
     </div>
   );
+}
+
+function isPlayerDetail(initial: PlayerInitial): initial is PlayerDetail {
+  return "data" in initial && initial.data != null;
+}
+
+/**
+ * Keep direct sheet navigation useful before the large player payload arrives.
+ * The sheet renderer only needs the song id, while practice controls and the
+ * other views explicitly request the complete detail JSON from the API.
+ */
+function PlayerShellView({ initial, mode }: { initial: PlayerShell; mode: ViewMode | null }) {
+  const [detail, setDetail] = useState<PlayerDetail | null>(null);
+  const [requestedMode, setRequestedMode] = useState<ViewMode>(mode ?? "sheet");
+  const [showModeMenu, setShowModeMenu] = useState(false);
+  const [showDownload, setShowDownload] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [modeMenuIdx, setModeMenuIdx] = useState(-1);
+  const downloadTriggerRef = useRef<HTMLButtonElement>(null);
+  const modeMenuRef = useRef<HTMLDivElement>(null);
+  const loadRequestRef = useRef<AbortController | null>(null);
+
+  useEffect(() => () => {
+    loadRequestRef.current?.abort();
+    loadRequestRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    if (!showModeMenu) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (!modeMenuRef.current?.contains(event.target as Node)) {
+        setShowModeMenu(false);
+        setModeMenuIdx(-1);
+      }
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [showModeMenu]);
+
+  function handleShellModeMenuKey(event: React.KeyboardEvent) {
+    if (!showModeMenu) return;
+    const len = MODES.length;
+    switch (event.key) {
+      case "ArrowDown":
+        event.preventDefault();
+        setModeMenuIdx((index) => (index + 1) % len);
+        break;
+      case "ArrowUp":
+        event.preventDefault();
+        setModeMenuIdx((index) => (index - 1 + len) % len);
+        break;
+      case "Home":
+        event.preventDefault();
+        setModeMenuIdx(0);
+        break;
+      case "End":
+        event.preventDefault();
+        setModeMenuIdx(len - 1);
+        break;
+      case "Escape":
+        event.preventDefault();
+        setShowModeMenu(false);
+        setModeMenuIdx(-1);
+        break;
+      case "Enter":
+      case " ":
+        event.preventDefault();
+        if (modeMenuIdx >= 0) {
+          const item = MODES[modeMenuIdx]!;
+          setShowModeMenu(false);
+          setModeMenuIdx(-1);
+          if (item.id === "sheet") {
+            loadRequestRef.current?.abort();
+            setLoading(false);
+            setError("");
+            setRequestedMode("sheet");
+            window.history.replaceState(null, "", `/player/${encodeURIComponent(initial.song.id)}/sheet`);
+          } else {
+            void loadDetail(item.id);
+          }
+        }
+        break;
+    }
+  }
+
+  const loadDetail = useCallback(async (nextMode: ViewMode) => {
+    // Remember the requested target before the network round-trip so a failed
+    // mode switch can be retried with the same target instead of silently
+    // falling back to the sheet route.
+    setRequestedMode(nextMode);
+    if (detail) {
+      if (nextMode !== "sheet") {
+        window.history.replaceState(null, "", `/player/${encodeURIComponent(initial.song.id)}/${nextMode}`);
+      }
+      return;
+    }
+    loadRequestRef.current?.abort();
+    const controller = new AbortController();
+    loadRequestRef.current = controller;
+    setLoading(true);
+    setError("");
+    try {
+      const response = await fetch(`/api/songs/${encodeURIComponent(initial.song.id)}`, {
+        signal: controller.signal,
+        cache: "no-store",
+        headers: { Accept: "application/json" },
+      });
+      if (controller.signal.aborted) return;
+      const value = await response.json().catch(() => null) as Partial<PlayerDetail> | null;
+      if (controller.signal.aborted || loadRequestRef.current !== controller) return;
+      if (!response.ok || !value || !value.song || !value.data || !Array.isArray(value.variants)) {
+        throw new Error("The player arrangement could not be loaded.");
+      }
+      setDetail(value as PlayerDetail);
+      if (nextMode !== "sheet") {
+        window.history.replaceState(null, "", `/player/${encodeURIComponent(initial.song.id)}/${nextMode}`);
+      }
+    } catch (cause) {
+      if (loadRequestRef.current === controller && !(cause instanceof DOMException && cause.name === "AbortError")) {
+        setError(cause instanceof Error ? cause.message : "The player arrangement could not be loaded.");
+      }
+    } finally {
+      if (loadRequestRef.current === controller) {
+        loadRequestRef.current = null;
+        setLoading(false);
+      }
+    }
+  }, [detail, initial.song.id]);
+
+  if (detail) return <FullPlayer initial={detail} mode={requestedMode} />;
+
+  const activeMode = requestedMode === "sheet" ? "Sheet Music" : MODES.find((item) => item.id === requestedMode)?.label ?? requestedMode;
+
+  return (
+    <div className="max-w-6xl mx-auto px-4 py-6">
+      <div className="mb-3 flex items-center gap-2 flex-wrap">
+        <div>
+          <h1 className="text-xl font-bold leading-tight truncate max-w-[70vw]" title={initial.song.title}>{initial.song.title}</h1>
+          <div className="text-sm text-zinc-500">by {initial.song.artist}</div>
+        </div>
+        <div className="ml-auto flex gap-2 text-xs">
+          <span className="px-2 py-1 rounded-full bg-zinc-100 text-zinc-700 font-medium">{initial.song.key}</span>
+          <span className="px-2 py-1 rounded-full bg-zinc-100 text-zinc-700 font-medium">{initial.song.difficulty}</span>
+          <span className="px-2 py-1 rounded-full bg-zinc-100 text-zinc-700 font-medium">{initial.song.tempo} BPM</span>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <div className="relative" ref={modeMenuRef}>
+          <button
+            onClick={() => {
+              setShowModeMenu((visible) => !visible);
+              setModeMenuIdx(-1);
+            }}
+            className="min-h-11 px-3 py-2 rounded-full border border-zinc-300 text-sm flex items-center gap-2"
+            aria-haspopup="menu"
+            aria-expanded={showModeMenu}
+            onKeyDown={handleShellModeMenuKey}
+          >
+            <span className="text-zinc-500">View</span>
+            <span className="font-medium">{activeMode}</span>
+          </button>
+          {showModeMenu && (
+            <div
+              className="absolute z-30 mt-2 w-64 rounded-xl border border-zinc-200 bg-white shadow-lg p-2"
+              role="menu"
+              tabIndex={-1}
+              onKeyDown={handleShellModeMenuKey}
+              aria-activedescendant={modeMenuIdx >= 0 ? `shell-mode-menu-${MODES[modeMenuIdx]!.id}` : undefined}
+            >
+              {MODES.map((item) => (
+                <button
+                  key={item.id}
+                  role="menuitemradio"
+                  id={`shell-mode-menu-${item.id}`}
+                  aria-checked={requestedMode === item.id}
+                  tabIndex={-1}
+                  onClick={() => {
+                    setShowModeMenu(false);
+                    setModeMenuIdx(-1);
+                    if (item.id === "sheet") {
+                      loadRequestRef.current?.abort();
+                      setLoading(false);
+                      setError("");
+                      setRequestedMode("sheet");
+                      window.history.replaceState(null, "", `/player/${encodeURIComponent(initial.song.id)}/sheet`);
+                    } else {
+                      void loadDetail(item.id);
+                    }
+                  }}
+                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-zinc-100"
+                >
+                  <div className="text-sm font-medium">{item.label}</div>
+                  <div className="text-xs text-zinc-500">{item.hint}</div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <button
+          ref={downloadTriggerRef}
+          onClick={() => setShowDownload(true)}
+          className="min-h-11 px-4 py-2 rounded-full bg-zinc-900 text-white font-medium hover:bg-zinc-700"
+          aria-label="Download sheet music and MIDI"
+        >
+          Download Sheet &amp; MIDI
+        </button>
+        <button
+          onClick={() => void loadDetail("sheet")}
+          disabled={loading}
+          className="min-h-11 px-4 py-2 rounded-full border border-zinc-300 font-medium hover:bg-zinc-100 disabled:opacity-50"
+        >
+          {loading ? "Loading controls…" : "Load practice controls"}
+        </button>
+      </div>
+
+      {error && (
+        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
+          <p>{error}</p>
+          <button onClick={() => void loadDetail(requestedMode)} className="mt-2 rounded-lg border border-red-300 px-3 py-1.5 font-medium hover:bg-red-100">
+            Retry
+          </button>
+        </div>
+      )}
+
+      <div className="rounded-2xl border border-zinc-200 bg-white overflow-hidden mb-4">
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-zinc-100 flex-wrap">
+          <span className="text-sm text-zinc-600">Sheet Music</span>
+          {loading && <span className="text-xs text-zinc-500" role="status">Loading practice controls…</span>}
+        </div>
+        <div className="relative" role="region" aria-label="Player stage — Sheet Music">
+          <SheetMusicView songId={initial.song.id} />
+          <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">Sheet Music view active</p>
+        </div>
+      </div>
+
+      {initial.variants.length > 1 && (
+        <section className="mb-6">
+          <h2 className="text-sm font-semibold text-zinc-500 mb-2">Same song, other levels</h2>
+          <div className="flex flex-wrap gap-2">
+            {initial.variants.map((variant) => (
+              <Link
+                key={variant.id}
+                href={`/player/${variant.id}`}
+                className={`px-3 py-2 rounded-full text-sm border ${variant.id === initial.song.id ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300 hover:bg-zinc-100"}`}
+              >
+                {variant.difficulty}
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {showDownload && <DownloadDialog songId={initial.song.id} hasSheetXml={initial.song.hasSheetXml === 1} onClose={() => {
+        setShowDownload(false);
+        downloadTriggerRef.current?.focus();
+      }} />}
+
+      <section className="mt-8 text-sm text-zinc-600">
+        <h2 className="font-semibold text-zinc-800 mb-2">About this arrangement</h2>
+        <p>Key of {initial.song.key} · {initial.song.tempo} BPM · {initial.song.bassPattern} bass</p>
+        <p className="mt-2 text-zinc-500">Load practice controls to play, transpose, or switch to another learning view.</p>
+      </section>
+    </div>
+  );
+}
+
+export function Player({ initial, mode }: { initial: PlayerInitial; mode: ViewMode | null }) {
+  return isPlayerDetail(initial)
+    ? <FullPlayer initial={initial} mode={mode} />
+    : <PlayerShellView key={`${initial.song.id}:${mode ?? "sheet"}`} initial={initial} mode={mode} />;
 }

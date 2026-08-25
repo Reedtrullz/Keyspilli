@@ -43,7 +43,9 @@ describe("catalog detail request memoization", () => {
 
     // The wrapper is entered twice, but the underlying detail loader runs
     // once for the same id. A different id remains an independent key.
-    expect(cacheCalls.cacheWrappers).toBe(1);
+    // The metadata-only shell has its own request-local cache boundary; the
+    // complete detail loader remains independently memoized.
+    expect(cacheCalls.cacheWrappers).toBe(2);
     expect(cacheCalls.wrappedInvocations).toBe(3);
     expect(cacheCalls.underlyingInvocations).toBe(2);
   });
