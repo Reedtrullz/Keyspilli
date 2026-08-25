@@ -112,12 +112,128 @@ export interface FallingLayoutOptions {
   highMidi: number;
 }
 
-/** Map notes to falling bars for the given viewport + time window. */
-export function fallingBars(notes: TimedNote[], o: FallingLayoutOptions): FallingBar[] {
+/**
+ * A small interval index for the falling-note viewport.
+ *
+ * Timelines produced by the catalog are sorted by start time. Keeping the
+ * prefix maximum end time lets the renderer skip notes that have already
+ * finished while still including a long note that started before the
+ * viewport. Hand-authored/test timelines are allowed to be unsorted; those
+ * keep the old linear path so render order and edge semantics remain exact.
+ */
+export interface FallingNoteIndex {
+  readonly notes: TimedNote[];
+  readonly sorted: boolean;
+  /** Start times, present for sorted timelines. */
+  readonly starts: readonly number[];
+  /** Prefix maximum of startSec + durSec, present for sorted timelines. */
+  readonly prefixMaxEnd: readonly number[];
+}
+
+export function createFallingNoteIndex(notes: TimedNote[]): FallingNoteIndex {
+  let sorted = true;
+  const starts = new Array<number>(notes.length);
+  const prefixMaxEnd = new Array<number>(notes.length);
+  let maxEnd = Number.NEGATIVE_INFINITY;
+  let previousStart = Number.NEGATIVE_INFINITY;
+  for (let i = 0; i < notes.length; i++) {
+    const note = notes[i]!;
+    const start = note.startSec;
+    starts[i] = start;
+    if (!Number.isFinite(start) || start < previousStart) sorted = false;
+    previousStart = start;
+    const end = start + note.durSec;
+    if (end > maxEnd) maxEnd = end;
+    prefixMaxEnd[i] = maxEnd;
+  }
+  return { notes, sorted, starts, prefixMaxEnd };
+}
+
+function lowerBound(values: readonly number[], target: number): number {
+  let lo = 0;
+  let hi = values.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (values[mid]! < target) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo;
+}
+
+function upperBound(values: readonly number[], target: number): number {
+  let lo = 0;
+  let hi = values.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (values[mid]! <= target) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo;
+}
+
+/** Return the sorted-note bounds that can overlap a falling viewport. */
+export function fallingNoteRange(
+  index: FallingNoteIndex,
+  nowSec: number,
+  lookaheadSec: number,
+  endGraceSec = 0.05,
+): { start: number; end: number } {
+  if (!index.sorted) return { start: 0, end: index.notes.length };
+  const start = lowerBound(index.prefixMaxEnd, nowSec - endGraceSec);
+  const end = upperBound(index.starts, nowSec + lookaheadSec);
+  return { start, end };
+}
+
+/**
+ * Draw bars using a prebuilt note index. The optional output array is cleared
+ * and reused by the caller to avoid one hot-loop array allocation per frame.
+ */
+export function fallingBarsIndexed(
+  index: FallingNoteIndex,
+  o: FallingLayoutOptions,
+  out: FallingBar[] = [],
+): FallingBar[] {
+  if (!index.sorted) return fallingBars(index.notes, o, out);
   const layout = keyboardLayout(o.lowMidi, o.highMidi, o.width);
   const { geometry: geo, xByMidi } = layout;
   const pxPerSec = o.height / o.lookaheadSec;
-  const out: FallingBar[] = [];
+  const range = fallingNoteRange(index, o.nowSec, o.lookaheadSec);
+  out.length = 0;
+  for (let i = range.start; i < range.end; i++) {
+    const n = index.notes[i]!;
+    if (n.startSec + n.durSec < o.nowSec - 0.05) continue;
+    // Preserve the legacy edge behavior for a black note immediately above
+    // the requested range: its preceding white key may still be visible.
+    let x = xByMidi.get(n.midi);
+    if (x === undefined) {
+      const previous = !WHITE.includes(n.midi % 12) ? xByMidi.get(n.midi - 1) : undefined;
+      x = previous === undefined ? -100 : previous + geo.whiteWidth - geo.blackWidth / 2;
+    }
+    if (x < 0) continue;
+    const isBlack = !WHITE.includes(n.midi % 12);
+    const bottom = o.height - (n.startSec - o.nowSec) * pxPerSec;
+    const height = Math.max(6, n.durSec * pxPerSec - 2);
+    const y = bottom - height;
+    out.push({
+      x,
+      y,
+      width: isBlack ? geo.blackWidth : geo.whiteWidth * 0.92,
+      height,
+      color: pitchColor(n.midi),
+      midi: n.midi,
+      label: noteLabel(n.midi),
+      hand: n.hand,
+    });
+  }
+  return out;
+}
+
+/** Map notes to falling bars for the given viewport + time window. */
+export function fallingBars(notes: TimedNote[], o: FallingLayoutOptions, out: FallingBar[] = []): FallingBar[] {
+  const layout = keyboardLayout(o.lowMidi, o.highMidi, o.width);
+  const { geometry: geo, xByMidi } = layout;
+  const pxPerSec = o.height / o.lookaheadSec;
+  out.length = 0;
   for (const n of notes) {
     if (n.startSec > o.nowSec + o.lookaheadSec || n.startSec + n.durSec < o.nowSec - 0.05) continue;
     // Preserve the legacy edge behavior for a black note immediately above
@@ -192,10 +308,57 @@ export function measureMidiRange(
   };
 }
 
+/** Timeline index for chord labels drawn alongside the falling notes. */
+export interface FallingChordIndex<T extends { beat: number }> {
+  readonly events: T[];
+  readonly sorted: boolean;
+  readonly beats: readonly number[];
+}
+
+export function createFallingChordIndex<T extends { beat: number }>(events: T[]): FallingChordIndex<T> {
+  let sorted = true;
+  const beats = new Array<number>(events.length);
+  let previous = Number.NEGATIVE_INFINITY;
+  for (let i = 0; i < events.length; i++) {
+    const beat = events[i]!.beat;
+    beats[i] = beat;
+    if (!Number.isFinite(beat) || beat < previous) sorted = false;
+    previous = beat;
+  }
+  return { events, sorted, beats };
+}
+
+/** Last chord event at or before a beat, preserving duplicate-beat order. */
+export function lastFallingChordIndex<T extends { beat: number }>(index: FallingChordIndex<T>, beat: number): number {
+  if (!index.sorted) {
+    for (let i = index.events.length - 1; i >= 0; i--) {
+      if (beat >= index.events[i]!.beat) return i;
+    }
+    return -1;
+  }
+  return upperBound(index.beats, beat) - 1;
+}
+
+/** Sorted chord bounds for a visible beat interval. */
+export function fallingChordRange<T extends { beat: number }>(
+  index: FallingChordIndex<T>,
+  startBeat: number,
+  endBeat: number,
+): { start: number; end: number } {
+  if (!index.sorted) return { start: 0, end: index.events.length };
+  return { start: lowerBound(index.beats, startBeat), end: upperBound(index.beats, endBeat) };
+}
+
 /** MIDI notes whose bars will cross the playhead within `windowSec`. */
-export function upcomingMidi(bars: FallingBar[], areaHeight: number, lookaheadSec: number, windowSec = 1): Set<number> {
+export function upcomingMidi(
+  bars: FallingBar[],
+  areaHeight: number,
+  lookaheadSec: number,
+  windowSec = 1,
+  out: Set<number> = new Set(),
+): Set<number> {
   const pxPerSec = areaHeight / lookaheadSec;
-  const out = new Set<number>();
+  out.clear();
   for (const b of bars) {
     const distToPlayhead = areaHeight - (b.y + b.height);
     if (distToPlayhead > 0 && distToPlayhead < pxPerSec * windowSec) out.add(b.midi);

@@ -2,8 +2,13 @@
 
 import { useEffect, useRef } from "react";
 import {
-  fallingBars,
+  createFallingChordIndex,
+  createFallingNoteIndex,
+  fallingBarsIndexed,
+  fallingChordRange,
+  fallingNoteRange,
   keyboardRects,
+  lastFallingChordIndex,
   noteLabel,
   pitchColor,
   secPerBeat,
@@ -38,9 +43,11 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
   // Individual refs for each prop — draw loop reads these instead of closures
   const fallbackTimeRef = useRef(time);
   const notesRef = useRef(notes);
+  const noteIndexRef = useRef(createFallingNoteIndex(notes));
   const settingsRef = useRef(settings);
   const pressedKeysRef = useRef(pressedKeys);
   const chordsRef = useRef(chords);
+  const chordIndexRef = useRef(createFallingChordIndex(chords));
   const tempoBpmRef = useRef(tempoBpm);
   const lowMidiRef = useRef(lowMidi);
   const highMidiRef = useRef(highMidi);
@@ -54,10 +61,16 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
 
   // Lightweight sync: props → refs (no rAF involved)
   useEffect(() => { fallbackTimeRef.current = time; }, [time]);
-  useEffect(() => { notesRef.current = notes; }, [notes]);
+  useEffect(() => {
+    notesRef.current = notes;
+    noteIndexRef.current = createFallingNoteIndex(notes);
+  }, [notes]);
   useEffect(() => { settingsRef.current = settings; }, [settings]);
   useEffect(() => { pressedKeysRef.current = pressedKeys; }, [pressedKeys]);
-  useEffect(() => { chordsRef.current = chords; }, [chords]);
+  useEffect(() => {
+    chordsRef.current = chords;
+    chordIndexRef.current = createFallingChordIndex(chords);
+  }, [chords]);
   useEffect(() => { tempoBpmRef.current = tempoBpm; }, [tempoBpm]);
   useEffect(() => { lowMidiRef.current = lowMidi; }, [lowMidi]);
   useEffect(() => { highMidiRef.current = highMidi; }, [highMidi]);
@@ -89,6 +102,13 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
     // Fit the fixed logical space onto the element's real size each time it
     // changes, so narrow/mobile viewports scale instead of clipping.
     let appliedClientW = 0;
+    let keyboardCacheKey = "";
+    let keyboardCache: ReturnType<typeof keyboardRects> | null = null;
+    const barsCache: ReturnType<typeof fallingBarsIndexed> = [];
+    const upcomingCache = new Set<number>();
+    const activeChordNotes = new Set<number>();
+    let activeChordIndex = -2;
+    let activeChordIndexSource: ReturnType<typeof createFallingChordIndex> | null = null;
 
     const draw = () => {
       rafRef.current = 0;
@@ -105,7 +125,6 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
       const currentNotes = notesRef.current;
       const s = settingsRef.current;
       const pk = pressedKeysRef.current;
-      const ch = chordsRef.current;
       const bpm = tempoBpmRef.current;
       const low = lowMidiRef.current;
       const high = highMidiRef.current;
@@ -138,38 +157,53 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
         ctx.lineTo(W - RIGHT_MARGIN, y);
         ctx.stroke();
       }
-      const bars = fallingBars(currentNotes, {
+      const noteIndex = noteIndexRef.current;
+      const bars = fallingBarsIndexed(noteIndex, {
         width: KEYBOARD_W, height: areaHeight, nowSec: now, speed,
         lookaheadSec: lookahead, lowMidi: low, highMidi: high,
-      });
-      for (const b of bars) b.x += LEFT_MARGIN;
-      const upcoming = upcomingMidi(bars, areaHeight, lookahead);
+      }, barsCache);
+      const upcoming = upcomingMidi(bars, areaHeight, lookahead, 1, upcomingCache);
 
       // --- Determine current chord ---
       const currentBeat = now / beatSec;
-      let activeChordNotes: Set<number> = new Set();
-      let activeChordName = "";
-      for (let i = ch.length - 1; i >= 0; i--) {
-        if (currentBeat >= ch[i]!.beat) {
-          activeChordNotes = new Set(ch[i]!.notes);
-          activeChordName = ch[i]!.name;
-          break;
+      const chordIndex = chordIndexRef.current;
+      const activeChordEventIndex = lastFallingChordIndex(chordIndex, currentBeat);
+      if (chordIndex !== activeChordIndexSource || activeChordEventIndex !== activeChordIndex) {
+        activeChordNotes.clear();
+        if (activeChordEventIndex >= 0) {
+          for (const midi of chordIndex.events[activeChordEventIndex]!.notes) activeChordNotes.add(midi);
         }
+        activeChordIndex = activeChordEventIndex;
+        activeChordIndexSource = chordIndex;
       }
+      let activeChordName = "";
+      if (activeChordEventIndex >= 0) activeChordName = chordIndex.events[activeChordEventIndex]!.name;
 
       // --- Left-hand background zone ---
-      const leftBars = bars.filter((b) => b.hand === "L");
-      if (leftBars.length > 0) {
-        const lxMin = Math.min(...leftBars.map((b) => b.x));
-        const lxMax = Math.max(...leftBars.map((b) => b.x + b.width));
+      let lxMin = Number.POSITIVE_INFINITY;
+      let lxMax = Number.NEGATIVE_INFINITY;
+      for (const b of bars) {
+        if (b.hand !== "L") continue;
+        if (b.x < lxMin) lxMin = b.x;
+        if (b.x + b.width > lxMax) lxMax = b.x + b.width;
+      }
+      if (lxMin !== Number.POSITIVE_INFINITY) {
         ctx.globalAlpha = 0.06;
         ctx.fillStyle = "#6366f1";
-        ctx.fillRect(lxMin - 16, 0, lxMax - lxMin + 32, areaHeight);
+        ctx.fillRect(lxMin + LEFT_MARGIN - 16, 0, lxMax - lxMin + 32, areaHeight);
         ctx.globalAlpha = 1;
       }
 
       // --- Chord labels on the left margin ---
-      for (const c of ch) {
+      const chordMarginSec = 30 / pxPerSec;
+      const chordBeatPerSec = (bpm * speed) / 60;
+      const chordLabels = fallingChordRange(
+        chordIndex,
+        (now - chordMarginSec) * chordBeatPerSec,
+        (now + lookahead + chordMarginSec) * chordBeatPerSec,
+      );
+      for (let chordIdx = chordLabels.start; chordIdx < chordLabels.end; chordIdx++) {
+        const c = chordIndex.events[chordIdx]!;
         const cSec = (c.beat * 60) / (bpm * speed);
         const bottom = areaHeight - (cSec - now) * pxPerSec;
         if (bottom < -30 || bottom > areaHeight + 30) continue;
@@ -183,7 +217,10 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
       }
 
       // --- Draw lyrics (right side) ---
-      for (const n of currentNotes) {
+      const lyricMarginSec = 20 / pxPerSec;
+      const lyricRange = fallingNoteRange(noteIndex, now - lyricMarginSec, lookahead + 2 * lyricMarginSec);
+      for (let noteIdx = lyricRange.start; noteIdx < lyricRange.end; noteIdx++) {
+        const n = currentNotes[noteIdx]!;
         if (!n.lyrics) continue;
         const bottom = areaHeight - (n.startSec - now) * pxPerSec;
         if (bottom < -20 || bottom > areaHeight + 20) continue;
@@ -196,7 +233,12 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
       }
 
       // --- Keyboard ---
-      const kb = keyboardRects({ width: KEYBOARD_W, lowMidi: low, highMidi: high, whiteHeight: KB_H });
+      const nextKeyboardCacheKey = `${low}:${high}`;
+      if (keyboardCacheKey !== nextKeyboardCacheKey || !keyboardCache) {
+        keyboardCacheKey = nextKeyboardCacheKey;
+        keyboardCache = keyboardRects({ width: KEYBOARD_W, lowMidi: low, highMidi: high, whiteHeight: KB_H });
+      }
+      const kb = keyboardCache!;
      for (const w of kb.whites) {
        const kx = w.x + LEFT_MARGIN;
        const isChord = s.chordKeys && activeChordNotes.has(w.midi) && !pk.has(w.midi);
@@ -262,7 +304,14 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
       }
 
       // Upcoming-note strips
-      for (const key of [...kb.whites, ...kb.blacks]) {
+      for (const key of kb.whites) {
+        if (!upcoming.has(key.midi) || pk.has(key.midi)) continue;
+        ctx.globalAlpha = 0.75;
+        ctx.fillStyle = pitchColor(key.midi);
+        ctx.fillRect(key.x + LEFT_MARGIN, H - KB_H, key.w, 8);
+        ctx.globalAlpha = 1;
+      }
+      for (const key of kb.blacks) {
         if (!upcoming.has(key.midi) || pk.has(key.midi)) continue;
         ctx.globalAlpha = 0.75;
         ctx.fillStyle = pitchColor(key.midi);
@@ -309,7 +358,9 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
       // --- Out-of-range edge indicators ---
       let below = 0;
       let above = 0;
-      for (const n of currentNotes) {
+      const edgeRange = fallingNoteRange(noteIndex, now, lookahead);
+      for (let noteIdx = edgeRange.start; noteIdx < edgeRange.end; noteIdx++) {
+        const n = currentNotes[noteIdx]!;
         if (n.startSec > now + lookahead || n.startSec + n.durSec < now - 0.05) continue;
         if (n.midi < low) below++;
         else if (n.midi > high) above++;
@@ -340,6 +391,7 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
 
       // --- Draw bars with hand differentiation ---
       for (const b of bars) {
+        const bx = b.x + LEFT_MARGIN;
         const isLeft = b.hand === "L";
         if (isLeft) {
           // Left-hand: wide, visible bars with note labels
@@ -347,9 +399,9 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
           ctx.fillStyle = b.color;
           ctx.beginPath();
           if (typeof ctx.roundRect === "function") {
-            ctx.roundRect(b.x - 6, b.y, b.width + 12, b.height, 4);
+            ctx.roundRect(bx - 6, b.y, b.width + 12, b.height, 4);
           } else {
-            ctx.rect(b.x - 6, b.y, b.width + 12, b.height);
+            ctx.rect(bx - 6, b.y, b.width + 12, b.height);
           }
           ctx.fill();
           ctx.globalAlpha = 1;
@@ -358,16 +410,16 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.fillStyle = b.color;
-            ctx.fillText(b.label, b.x + b.width / 2, Math.min(b.y + b.height / 2, areaHeight - 4));
+            ctx.fillText(b.label, bx + b.width / 2, Math.min(b.y + b.height / 2, areaHeight - 4));
           }
         } else {
           // Right-hand: vivid, compact, with note labels
           ctx.fillStyle = b.color;
           ctx.beginPath();
           if (typeof ctx.roundRect === "function") {
-            ctx.roundRect(b.x, b.y, b.width, b.height, 4);
+            ctx.roundRect(bx, b.y, b.width, b.height, 4);
           } else {
-            ctx.rect(b.x, b.y, b.width, b.height);
+            ctx.rect(bx, b.y, b.width, b.height);
           }
           ctx.fill();
           if (b.height >= 11) {
@@ -377,9 +429,9 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
             ctx.textBaseline = "middle";
             ctx.strokeStyle = "rgba(0,0,0,0.45)";
             ctx.lineWidth = 3;
-            ctx.strokeText(b.label, b.x + b.width / 2, Math.min(b.y + b.height / 2, H - 14));
+            ctx.strokeText(b.label, bx + b.width / 2, Math.min(b.y + b.height / 2, H - 14));
             ctx.fillStyle = "#ffffff";
-            ctx.fillText(b.label, b.x + b.width / 2, Math.min(b.y + b.height / 2, H - 14));
+            ctx.fillText(b.label, bx + b.width / 2, Math.min(b.y + b.height / 2, H - 14));
           }
         }
       }
