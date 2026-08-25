@@ -381,33 +381,31 @@
           tags: [verify]
 
         - name: Verify public simplify PDF export signature
-          ansible.builtin.uri:
-            url: "https://{{ app_domain }}/api/song/{{ pdf_smoke_song_id }}/export?type=pdf&layout=simplify"
-            return_content: true
-            status_code: 200
-            timeout: 180
-            headers:
-              Accept: application/pdf
-          register: public_simplify_pdf
-          failed_when: >-
-            public_simplify_pdf.status | default(0) != 200
-            or not (public_simplify_pdf.content | default('') is match('^%PDF-'))
+          ansible.builtin.shell: |
+            set -eu
+            tmp="$(mktemp)"
+            trap 'rm -f "$tmp"' EXIT
+            curl --fail --silent --show-error --location --max-time 180 \
+              --range 0-4 --header 'Accept: application/pdf' \
+              --output "$tmp" \
+              "https://{{ app_domain }}/api/song/{{ pdf_smoke_song_id }}/export?type=pdf&layout=simplify"
+            test "$(LC_ALL=C head -c 5 "$tmp")" = '%PDF-'
+          changed_when: false
           delegate_to: localhost
           become: false
           tags: [verify]
 
         - name: Verify public classic PDF export signature
-          ansible.builtin.uri:
-            url: "https://{{ app_domain }}/api/song/{{ pdf_smoke_song_id }}/export?type=pdf&layout=classic"
-            return_content: true
-            status_code: 200
-            timeout: 180
-            headers:
-              Accept: application/pdf
-          register: public_classic_pdf
-          failed_when: >-
-            public_classic_pdf.status | default(0) != 200
-            or not (public_classic_pdf.content | default('') is match('^%PDF-'))
+          ansible.builtin.shell: |
+            set -eu
+            tmp="$(mktemp)"
+            trap 'rm -f "$tmp"' EXIT
+            curl --fail --silent --show-error --location --max-time 180 \
+              --range 0-4 --header 'Accept: application/pdf' \
+              --output "$tmp" \
+              "https://{{ app_domain }}/api/song/{{ pdf_smoke_song_id }}/export?type=pdf&layout=classic"
+            test "$(LC_ALL=C head -c 5 "$tmp")" = '%PDF-'
+          changed_when: false
           delegate_to: localhost
           become: false
           tags: [verify]
