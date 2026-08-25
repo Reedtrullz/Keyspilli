@@ -1,4 +1,6 @@
 let toolkitPromise = null;
+let nextSessionId = 1;
+let activeSession = null;
 
 const SVG_WIDTH_RE = /<svg\b[^>]*\bwidth=["']([0-9]+(?:\.[0-9]+)?)(?:px)?["']/i;
 const SVG_HEIGHT_RE = /<svg\b[^>]*\bheight=["']([0-9]+(?:\.[0-9]+)?)(?:px)?["']/i;
@@ -53,6 +55,10 @@ function setRenderOptions(toolkit, options) {
     breaks: options.breaks ?? "auto",
     font: "Bravura",
     svgViewBox: true,
+    // Raw SVG avoids Verovio's XML serializer whitespace and reduces the
+    // structured-clone/innerHTML payload held by the main thread. This is a
+    // memory/clone optimization; it does not change the MusicXML response.
+    svgFormatRaw: options.svgFormatRaw ?? true,
   });
 }
 
@@ -62,25 +68,81 @@ function scoreForVerovio(xml) {
     .replace(/<notations>\s*<\/notations>/gi, "");
 }
 
-async function render(xml, options) {
+async function prepareSession(session) {
   const toolkit = await loadVerovio();
-  setRenderOptions(toolkit, options);
-  if (!toolkit.loadData(scoreForVerovio(xml))) throw new Error("Verovio loadData failed");
-  const pageCount = Math.max(1, Math.floor(toolkit.getPageCount()));
-  const count = options.pages === "first" ? 1 : pageCount;
-  const pages = [];
-  for (let page = 1; page <= count; page += 1) {
-    pages.push(assertRenderedPage(toolkit.renderToSVG(page), page));
+  setRenderOptions(toolkit, session.options);
+  if (!toolkit.loadData(scoreForVerovio(session.xml))) throw new Error("Verovio loadData failed");
+  session.toolkit = toolkit;
+  session.pageCount = Math.max(1, Math.floor(toolkit.getPageCount()));
+  session.prepared = true;
+}
+
+function assertActiveSession(sessionId) {
+  if (!activeSession || activeSession.sessionId !== sessionId) {
+    throw new Error("Verovio worker session is not active");
   }
-  return pages;
+  if (!activeSession.prepared || !activeSession.toolkit) {
+    throw new Error("Verovio worker session is not prepared");
+  }
+  return activeSession;
 }
 
 self.onmessage = async (event) => {
-  const { id, xml, options } = event.data ?? {};
-  if (!Number.isInteger(id) || typeof xml !== "string") return;
+  const request = event.data ?? {};
+  const { id, type } = request;
+  if (!Number.isInteger(id) || typeof type !== "string") return;
+
   try {
-    const pages = await render(xml, options ?? {});
-    self.postMessage({ id, type: "result", pages });
+    if (type === "open") {
+      if (typeof request.xml !== "string") throw new Error("MusicXML is required");
+      const session = {
+        sessionId: nextSessionId++,
+        xml: request.xml,
+        options: request.options ?? {},
+        toolkit: null,
+        pageCount: 0,
+        prepared: false,
+      };
+      // Only one Verovio toolkit is retained by this worker. Opening a new
+      // session supersedes a stale one; the main-thread generation token will
+      // ignore any replies from a session that is no longer in use.
+      activeSession = session;
+      self.postMessage({ id, type: "opened", sessionId: session.sessionId });
+      return;
+    }
+
+    if (type === "prepare") {
+      const session = assertActiveSession(request.sessionId);
+      if (!session.prepared) await prepareSession(session);
+      self.postMessage({
+        id,
+        type: "prepared",
+        sessionId: session.sessionId,
+        pageCount: session.pageCount,
+        width: session.options.pageWidth ?? 1600,
+        height: session.options.pageHeight ?? 2200,
+      });
+      return;
+    }
+
+    if (type === "renderPage") {
+      const session = assertActiveSession(request.sessionId);
+      const page = request.page;
+      if (!Number.isInteger(page) || page < 1 || page > session.pageCount) {
+        throw new RangeError(`Verovio page ${page} is outside 1–${session.pageCount}`);
+      }
+      const svg = assertRenderedPage(session.toolkit.renderToSVG(page), page);
+      self.postMessage({ id, type: "page", sessionId: session.sessionId, page, svg });
+      return;
+    }
+
+    if (type === "close") {
+      if (activeSession?.sessionId === request.sessionId) activeSession = null;
+      self.postMessage({ id, type: "closed", sessionId: request.sessionId });
+      return;
+    }
+
+    throw new Error(`Unknown Verovio worker request: ${type}`);
   } catch (error) {
     self.postMessage({
       id,

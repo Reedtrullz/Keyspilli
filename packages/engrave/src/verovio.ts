@@ -35,6 +35,8 @@ export interface RenderOptions {
   pageHeight?: number;
   colored?: boolean;
   breaks?: "none" | "auto";
+  /** Prefer compact raw SVG strings when supported by the Verovio build. */
+  svgFormatRaw?: boolean;
   /** Render every laid-out page instead of only the first page. */
   pages?: "first" | "all";
 }
@@ -86,6 +88,7 @@ function setRenderOptions(tk: VerovioToolkit, opts: RenderOptions): void {
     breaks: opts.breaks ?? "auto",
     font: "Bravura",
     svgViewBox: true,
+    svgFormatRaw: opts.svgFormatRaw ?? true,
   });
 }
 

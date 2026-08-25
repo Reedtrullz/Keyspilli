@@ -46,7 +46,6 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
   const noteIndexRef = useRef(createFallingNoteIndex(notes));
   const settingsRef = useRef(settings);
   const pressedKeysRef = useRef(pressedKeys);
-  const chordsRef = useRef(chords);
   const chordIndexRef = useRef(createFallingChordIndex(chords));
   const tempoBpmRef = useRef(tempoBpm);
   const lowMidiRef = useRef(lowMidi);
@@ -68,7 +67,6 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
   useEffect(() => { settingsRef.current = settings; }, [settings]);
   useEffect(() => { pressedKeysRef.current = pressedKeys; }, [pressedKeys]);
   useEffect(() => {
-    chordsRef.current = chords;
     chordIndexRef.current = createFallingChordIndex(chords);
   }, [chords]);
   useEffect(() => { tempoBpmRef.current = tempoBpm; }, [tempoBpm]);

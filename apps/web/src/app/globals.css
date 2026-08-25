@@ -54,6 +54,30 @@ body {
   border: 1px solid #e4e4e7;
   border-radius: 0.5rem;
   box-shadow: 0 1px 2px rgb(24 24 27 / 0.06);
+  content-visibility: auto;
+  contain-intrinsic-size: 900px 1237px;
+}
+
+/* Virtual sheet mode keeps a bounded page window mounted. The placeholders
+ * retain the page aspect ratio so scrolling does not jump as SVGs arrive. */
+.sheet-svg__page--placeholder {
+  aspect-ratio: var(--sheet-page-aspect, 1600 / 2200);
+  min-height: 15rem;
+  display: grid;
+  place-items: center;
+  color: #a1a1aa;
+  background: #fafafa;
+}
+
+.sheet-svg__page-status {
+  font-size: 0.75rem;
+}
+
+.sheet-svg__window-status {
+  width: min(100%, 900px);
+  color: #71717a;
+  font-size: 0.75rem;
+  text-align: center;
 }
 
 /* Keep Verovio's intrinsic width/height and viewBox relationship intact.
@@ -64,6 +88,40 @@ body {
   width: 100%;
   max-width: 100%;
   height: auto;
+}
+
+/* ClassicScore is the explicit all-pages print path. Keep every page visible
+ * and force page breaks even when a browser has content-visibility enabled. */
+@media print {
+  .sheet-svg {
+    display: block;
+    padding: 0;
+    background: #fff;
+  }
+
+  .sheet-svg__page,
+  .sheet-svg__page--placeholder {
+    width: 100%;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    content-visibility: visible;
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .sheet-svg__page:last-of-type {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  .sheet-svg__page-status,
+  .sheet-svg__window-status {
+    display: none;
+  }
 }
 
 .sheet-svg__error {
