@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { renderMusicXmlPages } from "@keyspilli/engrave";
+import { renderMusicXmlPages, renderMusicXmlPagesInWorker } from "@keyspilli/engrave";
 
 export function SheetMusicView({ songId }: { songId: string }) {
   const [pages, setPages] = useState<string[]>([]);
@@ -25,7 +25,14 @@ export function SheetMusicView({ songId }: { songId: string }) {
         if (!r.ok) throw new Error("sheet unavailable");
         return r.text();
       })
-      .then((xml) => renderMusicXmlPages(xml, { scale: 40, pageWidth: 1600, pageHeight: 2200, pages: "all" }))
+      .then((xml) => {
+        const options = { scale: 40, pageWidth: 1600, pageHeight: 2200, pages: "all" as const };
+        // Verovio's layout is synchronous and can freeze the main thread for
+        // several seconds on dense scores. Keep the main-thread renderer as a
+        // compatibility fallback for browsers that cannot start module
+        // workers (and for local static previews).
+        return renderMusicXmlPagesInWorker(xml, options).catch(() => renderMusicXmlPages(xml, options));
+      })
       .then((renderedPages) => {
         if (cancelled) return;
         setPages(renderedPages);

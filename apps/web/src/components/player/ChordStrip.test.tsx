@@ -25,6 +25,12 @@ describe("ChordStrip", () => {
     expect(html).toContain('aria-label="G7: Generated chord"');
     expect(html).toContain('data-chord-idx="372"');
     expect(html).toContain("<svg");
+    // Keep the high-cardinality keyboard visualization compact: each keyboard
+    // uses grouped paths rather than one SVG rect per key.
+    expect(html).not.toContain("<rect");
+    expect((html.match(/<path/g) ?? []).length).toBeGreaterThan(0);
+    expect(html).toContain('id="keyspilli-mini-keyboard-base"');
+    expect((html.match(/<use/g) ?? []).length).toBeGreaterThan(745);
   });
 
   it("keeps an empty progression empty", () => {

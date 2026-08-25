@@ -38,6 +38,59 @@ export function keyboardGeometry(lowMidi: number, highMidi: number, width: numbe
   };
 }
 
+/**
+ * Geometry shared by the falling-note and keyboard renderers.
+ *
+ * FallingCanvas calls both helpers once per animation frame. Rebuilding the
+ * white/black key arrays and searching them with `indexOf` for every visible
+ * note made that hot path scale with (notes x keyboard width). Keep a small,
+ * bounded cache keyed by the immutable layout inputs and precompute each
+ * MIDI-to-x lookup once. The returned data is treated as read-only by the
+ * renderers; callers of the public helpers still receive fresh result objects
+ * where they did before.
+ */
+interface CachedKeyboardLayout {
+  geometry: KeyboardGeometry;
+  xByMidi: Map<number, number>;
+}
+
+const KEYBOARD_LAYOUT_CACHE_LIMIT = 32;
+const keyboardLayoutCache = new Map<string, CachedKeyboardLayout>();
+
+function keyboardLayout(lowMidi: number, highMidi: number, width: number, whiteHeight = 160): CachedKeyboardLayout {
+  const key = `${lowMidi}:${highMidi}:${width}:${whiteHeight}`;
+  const cached = keyboardLayoutCache.get(key);
+  if (cached) {
+    // Keep frequently used ranges near the end of the bounded LRU.
+    keyboardLayoutCache.delete(key);
+    keyboardLayoutCache.set(key, cached);
+    return cached;
+  }
+
+  const geometry = keyboardGeometry(lowMidi, highMidi, width, whiteHeight);
+  const whiteIndex = new Map(geometry.whiteKeys.map((midi, index) => [midi, index]));
+  const xByMidi = new Map<number, number>();
+  for (const midi of geometry.whiteKeys) {
+    xByMidi.set(midi, (whiteIndex.get(midi) ?? 0) * geometry.whiteWidth);
+  }
+  for (const midi of geometry.blackKeys) {
+    const previous = whiteIndex.get(midi - 1);
+    // Preserve the legacy negative x for a black key whose preceding white
+    // key falls just outside the requested range. Falling bars skip it while
+    // keyboardRects lets the browser clip it at the edge as before.
+    xByMidi.set(midi, (previous ?? -1) * geometry.whiteWidth + geometry.whiteWidth - geometry.blackWidth / 2);
+  }
+
+  const layout = { geometry, xByMidi };
+  keyboardLayoutCache.set(key, layout);
+  while (keyboardLayoutCache.size > KEYBOARD_LAYOUT_CACHE_LIMIT) {
+    const oldest = keyboardLayoutCache.keys().next().value;
+    if (oldest === undefined) break;
+    keyboardLayoutCache.delete(oldest);
+  }
+  return layout;
+}
+
 export interface FallingBar {
   x: number;
   y: number;
@@ -61,22 +114,20 @@ export interface FallingLayoutOptions {
 
 /** Map notes to falling bars for the given viewport + time window. */
 export function fallingBars(notes: TimedNote[], o: FallingLayoutOptions): FallingBar[] {
-  const geo = keyboardGeometry(o.lowMidi, o.highMidi, o.width);
-  const xOf = (midi: number): number => {
-    if (WHITE.includes(midi % 12)) {
-      const idx = geo.whiteKeys.indexOf(midi);
-      return idx < 0 ? -100 : idx * geo.whiteWidth;
-    }
-    const prevWhite = midi - 1;
-    const idx = geo.whiteKeys.indexOf(prevWhite);
-    if (idx < 0) return -100;
-    return idx * geo.whiteWidth + geo.whiteWidth - geo.blackWidth / 2;
-  };
+  const layout = keyboardLayout(o.lowMidi, o.highMidi, o.width);
+  const { geometry: geo, xByMidi } = layout;
   const pxPerSec = o.height / o.lookaheadSec;
   const out: FallingBar[] = [];
   for (const n of notes) {
     if (n.startSec > o.nowSec + o.lookaheadSec || n.startSec + n.durSec < o.nowSec - 0.05) continue;
-    const x = xOf(n.midi);
+    // Preserve the legacy edge behavior for a black note immediately above
+    // the requested range: its preceding white key may still be visible.
+    // Normal in-range notes take the precomputed map without any search.
+    let x = xByMidi.get(n.midi);
+    if (x === undefined) {
+      const previous = !WHITE.includes(n.midi % 12) ? xByMidi.get(n.midi - 1) : undefined;
+      x = previous === undefined ? -100 : previous + geo.whiteWidth - geo.blackWidth / 2;
+    }
     if (x < 0) continue;
     const isBlack = !WHITE.includes(n.midi % 12);
     // Notes fall DOWN toward the keyboard. The note's leading edge is its
@@ -158,13 +209,11 @@ export function keyboardRects(o: { width: number; lowMidi: number; highMidi: num
   blacks: { midi: number; x: number; w: number }[];
   whiteWidth: number;
 } {
-  const geo = keyboardGeometry(o.lowMidi, o.highMidi, o.width, o.whiteHeight);
+  const { geometry: geo, xByMidi } = keyboardLayout(o.lowMidi, o.highMidi, o.width, o.whiteHeight);
   return {
     whites: geo.whiteKeys.map((midi, i) => ({ midi, x: i * geo.whiteWidth, w: geo.whiteWidth })),
     blacks: geo.blackKeys.map((midi) => {
-      const prevWhite = midi - 1;
-      const idx = geo.whiteKeys.indexOf(prevWhite);
-      return { midi, x: idx * geo.whiteWidth + geo.whiteWidth - geo.blackWidth / 2, w: geo.blackWidth };
+      return { midi, x: xByMidi.get(midi) ?? -100, w: geo.blackWidth };
     }),
     whiteWidth: geo.whiteWidth,
   };
