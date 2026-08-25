@@ -273,7 +273,10 @@ export function SheetMusicView({ songId, renderMode = "virtual" }: SheetMusicVie
           className: `sheet-svg__page${svg ? "" : " sheet-svg__page--placeholder"}`,
           key: page,
           "data-page": page,
+          role: "group",
           "aria-label": `Sheet music page ${page} of ${pageCount}`,
+          "aria-posinset": page,
+          "aria-setsize": pageCount,
           style: { "--sheet-page-aspect": `${dimensions.width} / ${dimensions.height}` } as CSSProperties,
         };
         if (svg) return <div {...props} dangerouslySetInnerHTML={{ __html: svg }} />;
