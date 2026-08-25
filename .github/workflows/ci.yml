@@ -141,7 +141,11 @@ jobs:
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.version=${{ github.sha }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # Keep the web cache bounded: mode=min avoids exporting build-only
+          # Chromium/Next intermediate layers, and a timeout prevents a slow
+          # GHA cache backend from holding the release job indefinitely.
+          # Image publication remains authoritative if cache export fails.
+          cache-to: type=gha,mode=min,timeout=120s,ignore-error=true
 
       - name: Build and push worker image
         uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7
