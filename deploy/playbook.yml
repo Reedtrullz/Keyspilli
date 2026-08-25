@@ -40,6 +40,9 @@
     allow_mutable_tag: false
     health_url: "http://{{ app_bind_address }}:{{ app_host_port }}/api/health"
     public_health_url: "https://{{ app_domain }}/api/health"
+    # The smoke fixture is overrideable for catalog changes, while this
+    # stable seeded arrangement exercises both PDF layouts after deploy.
+    pdf_smoke_song_id: "{{ lookup('ansible.builtin.env', 'KEYSPILLI_PDF_SMOKE_SONG_ID') | default('j-brahms-brahms-horn-trio-a', true) }}"
     caddy_marker_name: Keyspilli
     rollback_image: "{{ app_name }}:rollback"
     rollback_worker_image: "{{ app_name }}-worker:rollback"
@@ -289,6 +292,47 @@
             marker: "# {mark} ANSIBLE MANAGED - {{ caddy_marker_name }}"
             block: |
               {{ app_domain }} {
+                # Caddy's default response matcher excludes the vendor
+                # MusicXML MIME, so keep the standard encodings and add it
+                # explicitly for /api/v1/sheet responses.
+                encode zstd gzip {
+                  match {
+                    header Content-Type application/atom+xml*
+                    header Content-Type application/eot*
+                    header Content-Type application/font*
+                    header Content-Type application/geo+json*
+                    header Content-Type application/graphql+json*
+                    header Content-Type application/javascript*
+                    header Content-Type application/json*
+                    header Content-Type application/ld+json*
+                    header Content-Type application/manifest+json*
+                    header Content-Type application/opentype*
+                    header Content-Type application/otf*
+                    header Content-Type application/rss+xml*
+                    header Content-Type application/truetype*
+                    header Content-Type application/ttf*
+                    header Content-Type application/vnd.api+json*
+                    header Content-Type application/vnd.ms-fontobject*
+                    header Content-Type application/vnd.recordare.musicxml+xml*
+                    header Content-Type application/wasm*
+                    header Content-Type application/x-httpd-cgi*
+                    header Content-Type application/x-javascript*
+                    header Content-Type application/x-opentype*
+                    header Content-Type application/x-otf*
+                    header Content-Type application/x-perl*
+                    header Content-Type application/x-protobuf*
+                    header Content-Type application/x-ttf*
+                    header Content-Type application/xhtml+xml*
+                    header Content-Type application/xml*
+                    header Content-Type font/*
+                    header Content-Type image/svg+xml*
+                    header Content-Type image/vnd.microsoft.icon*
+                    header Content-Type image/x-icon*
+                    header Content-Type multipart/bag*
+                    header Content-Type multipart/mixed*
+                    header Content-Type text/*
+                  }
+                }
                 reverse_proxy {{ app_bind_address }}:{{ app_host_port }} {
                   header_up X-Real-IP {remote_host}
                   header_up X-Forwarded-For {remote_host}
@@ -334,6 +378,38 @@
             public_health.status | default(0) != 200
             or (public_health.json.status | default('')) != 'healthy'
             or (public_health.json.version | default('')) != app_version
+          tags: [verify]
+
+        - name: Verify public simplify PDF export signature
+          ansible.builtin.uri:
+            url: "https://{{ app_domain }}/api/song/{{ pdf_smoke_song_id }}/export?type=pdf&layout=simplify"
+            return_content: true
+            status_code: 200
+            timeout: 180
+            headers:
+              Accept: application/pdf
+          register: public_simplify_pdf
+          failed_when: >-
+            public_simplify_pdf.status | default(0) != 200
+            or not (public_simplify_pdf.content | default('') is match('^%PDF-'))
+          delegate_to: localhost
+          become: false
+          tags: [verify]
+
+        - name: Verify public classic PDF export signature
+          ansible.builtin.uri:
+            url: "https://{{ app_domain }}/api/song/{{ pdf_smoke_song_id }}/export?type=pdf&layout=classic"
+            return_content: true
+            status_code: 200
+            timeout: 180
+            headers:
+              Accept: application/pdf
+          register: public_classic_pdf
+          failed_when: >-
+            public_classic_pdf.status | default(0) != 200
+            or not (public_classic_pdf.content | default('') is match('^%PDF-'))
+          delegate_to: localhost
+          become: false
           tags: [verify]
 
         - name: Report successful deployment

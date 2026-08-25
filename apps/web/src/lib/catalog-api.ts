@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { statSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { join } from "node:path";
 import { cache } from "react";
 import {
@@ -395,6 +396,16 @@ async function loadSongDetailUncached(id: string): Promise<SongDetail | null> {
           fallback: false,
           fallbackReason: null,
         };
+        // `data.chords` is the legacy/generated projection consumed by the
+        // player and simplified export. It is byte-for-byte identical to the
+        // generated source above, so retain one canonical copy and let the
+        // web boundary resolve this explicit reference. The compact marker is
+        // intentionally scoped to the generated source; authored/auto
+        // timelines remain self-contained and independently parity-testable.
+        const compactGeneratedSource = (({ chords: _chords, ...metadata }) => ({
+          ...metadata,
+          chordsRef: "data.chords" as const,
+        }))(generatedSource);
         const ugSource: PlayerSourceOption | null = strictChart
           ? {
               id: "ug",
@@ -414,10 +425,10 @@ async function loadSongDetailUncached(id: string): Promise<SongDetail | null> {
           chordProvenance: merged.provenance,
           chordSources: {
             schemaVersion: 1,
-            generated: generatedSource,
+            generated: compactGeneratedSource,
             ug: ugSource,
             auto: autoSource,
-          } satisfies ChordSourceBundle,
+          } as unknown as ChordSourceBundle,
         } as SongData & { chordProvenance?: unknown; ugChordTimeline?: unknown };
         if (timeline.provenance.kind === "chart") {
           // Backward compatibility: this field is now strict chart material;
@@ -496,4 +507,49 @@ export async function getArtifactFile(id: string, name: "variant.mid" | "variant
   } catch {
     return null;
   }
+}
+
+export type ArtifactFileMetadata = {
+  data: Buffer;
+  etag: string;
+  lastModified: string;
+};
+
+/**
+ * Load an immutable artifact together with validators for HTTP responses.
+ *
+ * Artifact publication is atomic, so the file signature is a useful stable
+ * validator without hashing a multi-megabyte MusicXML document on every
+ * request. Retry once if a publication races the read so the body and
+ * validators describe the same version.
+ */
+export async function getArtifactFileWithMetadata(
+  id: string,
+  name: "variant.mid" | "variant.xml",
+): Promise<ArtifactFileMetadata | null> {
+  const song = getSong(id);
+  if (!song) return null;
+  const path = join(artifactsDir(song.baseId, song.level), name);
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const before = artifactFileSignature(path);
+    const data = await getArtifactFile(id, name);
+    if (!data) return null;
+    const after = artifactFileSignature(path);
+    if (before !== after) continue;
+
+    try {
+      const stat = statSync(path, { bigint: true });
+      const fingerprint = `${stat.dev}:${stat.ino}:${stat.size}:${stat.mtimeNs}`;
+      return {
+        data,
+        etag: `"${createHash("sha256").update(fingerprint).digest("hex")}"`,
+        lastModified: new Date(Number(stat.mtimeMs)).toUTCString(),
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
 }
