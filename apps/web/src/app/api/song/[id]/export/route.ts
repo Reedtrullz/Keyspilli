@@ -61,6 +61,37 @@ async function waitForExportReady(page: Page, layout: "simplify" | "classic"): P
   if (!state.ready || !state.hasContent) throw new PdfRenderError("score render did not produce printable content");
 }
 
+/**
+ * Chromium's PDF compositor spends much longer laying out thousands of SVG
+ * nodes than it does decoding the same SVG as an image. Keep the artwork
+ * vector-based, but replace each page subtree with a Blob URL before capture;
+ * this is an export-only representation and does not change the interactive
+ * sheet DOM.
+ */
+async function prepareClassicPdfCapture(page: Page): Promise<void> {
+  await page.evaluate(async () => {
+    const pageNodes = Array.from(document.querySelectorAll<HTMLElement>(".sheet-svg__page"));
+    const images: HTMLImageElement[] = [];
+    for (const pageNode of pageNodes) {
+      const svg = pageNode.querySelector(":scope > svg");
+      if (!svg) continue;
+      const source = new XMLSerializer().serializeToString(svg);
+      const image = document.createElement("img");
+      image.alt = "";
+      image.dataset.pdfSvg = "true";
+      image.style.display = "block";
+      image.style.width = "100%";
+      image.src = URL.createObjectURL(new Blob([source], { type: "image/svg+xml" }));
+      pageNode.replaceChildren(image);
+      images.push(image);
+    }
+    await Promise.all(images.map((image) => image.decode().catch(() => undefined)));
+    if (images.length !== pageNodes.length || images.some((image) => image.naturalWidth <= 0)) {
+      throw new Error("score SVG image preparation failed");
+    }
+  });
+}
+
 function pdfErrorResponse(code: "PDF_GENERATION_UNAVAILABLE" | "PDF_RENDER_FAILED") {
   return NextResponse.json(
     { error: code === "PDF_RENDER_FAILED" ? "PDF score rendering failed" : "PDF generation is unavailable", code },
@@ -107,6 +138,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       const origin = process.env.KEYSPILLI_ORIGIN ?? `http://127.0.0.1:${process.env.PORT ?? 3000}`;
       await page.goto(`${origin}/export/${id}?layout=${layout}`, { waitUntil: "networkidle" });
       await waitForExportReady(page, layout);
+      if (layout === "classic") await prepareClassicPdfCapture(page);
       const pdf = await page.pdf({ format: "A4", printBackground: true });
       return new NextResponse(new Uint8Array(pdf), {
         headers: {
