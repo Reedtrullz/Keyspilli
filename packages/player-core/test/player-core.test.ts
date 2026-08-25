@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { beatToSec, resolveTimedNotes, firstNoteAtOrAfter, dedupeChords } from "../src/timeline.js";
 import { Grader, detectPitch } from "../src/grading.js";
 import { KeyboardInput, KEYMAP, MidiInput } from "../src/input.js";
-import { fallingBars, noteLabel, upcomingMidi, measureMidiRange } from "../src/views/falling.js";
+import { fallingBars, keyboardRects, noteLabel, upcomingMidi, measureMidiRange } from "../src/views/falling.js";
 import { loadSettings, saveSettings, DEFAULT_SETTINGS } from "../src/prefs.js";
 import type { SongData } from "../src/types.js";
 
@@ -404,6 +404,16 @@ describe("falling bars", () => {
       highMidi: 108,
     });
     expect(bars.map((bar) => bar.midi)).toEqual([24, 96]);
+  });
+
+  it("keeps keyboard geometry exact when a range starts on a black key", () => {
+    const rects = keyboardRects({ width: 800, lowMidi: 22, highMidi: 36, whiteHeight: 140 });
+    expect(rects.whites.map(({ midi }) => midi)).toEqual([23, 24, 26, 28, 29, 31, 33, 35, 36]);
+    // The leading black key is positioned relative to the preceding white
+    // key outside the range, matching the legacy clipping behavior.
+    expect(rects.blacks[0]).toMatchObject({ midi: 22, x: expect.any(Number) });
+    expect(rects.blacks[0]!.x).toBeLessThan(0);
+    expect(keyboardRects({ width: 800, lowMidi: 22, highMidi: 36, whiteHeight: 140 })).toEqual(rects);
   });
 
   it("falls downward toward the keyboard and carries pitch labels", () => {
