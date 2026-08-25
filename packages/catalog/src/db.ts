@@ -194,6 +194,12 @@ export function getDb(): Database.Database {
     CREATE INDEX IF NOT EXISTS idx_songs_base ON songs(base_id);
     CREATE INDEX IF NOT EXISTS idx_songs_difficulty ON songs(difficulty);
     CREATE INDEX IF NOT EXISTS idx_songs_key ON songs(key);
+    -- The catalogue API always orders its first page by one of these columns.
+    -- Keep the sort key in the index so SQLite can stop after LIMIT rows
+    -- instead of scanning the full table and materializing a temp B-tree.
+    CREATE INDEX IF NOT EXISTS idx_songs_plays ON songs(plays DESC);
+    CREATE INDEX IF NOT EXISTS idx_songs_title_nocase ON songs(title COLLATE NOCASE);
+    CREATE INDEX IF NOT EXISTS idx_songs_difficulty_plays ON songs(difficulty, plays DESC);
     CREATE TABLE IF NOT EXISTS conversion_jobs (
       id TEXT PRIMARY KEY,
       youtube_url TEXT NOT NULL,

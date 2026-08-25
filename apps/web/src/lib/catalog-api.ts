@@ -359,12 +359,16 @@ async function loadSongDetailUncached(id: string): Promise<SongDetail | null> {
   const loaded = await loadSongArtifact(song);
   let data = loaded.data;
   if (data) {
+    // The duration is derived from the immutable note/measure arrays and is
+    // reused by each chord projection below. Avoid scanning the full
+    // arrangement once per projection on large songs.
+    const durationBeats = arrangementDurationBeats(data);
     // Newer payloads expose an explicit generated source even when no chart
     // exists. Complete known generated events here; the player keeps a
     // legacy wall-clock fallback only for unclassified old events.
     data = {
       ...data,
-      chords: completePlayerChordDurations(classifyGeneratedChords(data.chords), arrangementDurationBeats(data)),
+      chords: completePlayerChordDurations(classifyGeneratedChords(data.chords), durationBeats),
     };
     // Chord charts live beside the immutable app image rather than in the
     // mutable song database. Keep the existing generated timeline intact and
@@ -372,8 +376,8 @@ async function loadSongDetailUncached(id: string): Promise<SongDetail | null> {
     try {
       const timeline = await loadChordTimeline(song.baseId, { fallbackLevel: song.level });
       if (timeline) {
-        const generated = completePlayerChordDurations(data.chords, arrangementDurationBeats(data));
-        const merged = mergeChartTimeline(timeline, generated, arrangementDurationBeats(data));
+        const generated = completePlayerChordDurations(data.chords, durationBeats);
+        const merged = mergeChartTimeline(timeline, generated, durationBeats);
         const strictChart = timeline.provenance.kind === "chart"
           ? completePlayerChordDurations(
               timeline.chords.flatMap((chord) => preserveChord(chord, Array.isArray(chord.notes) ? chord.notes : []) ?? []),
