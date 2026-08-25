@@ -12,7 +12,8 @@ export type SheetRenderMode = "virtual" | "all";
 type SheetMusicViewProps = {
   songId: string;
   /**
-   * `virtual` keeps only a small page window in the DOM. Printable/export
+   * `virtual` keeps only a small page window of SVG markup in the DOM (the
+   * remaining page shells preserve the scroll range). Printable/export
    * surfaces must opt into `all` so page layout is complete before capture.
    */
   renderMode?: SheetRenderMode;
@@ -225,7 +226,12 @@ export function SheetMusicView({ songId, renderMode = "virtual" }: SheetMusicVie
           setActivePage(page);
           setWindowStart(start);
           setWindowEnd(end);
-          void Promise.all(pageRange(start, end).map((candidate) => renderPageRef.current(candidate)));
+          void Promise.all(pageRange(start, end).map((candidate) => renderPageRef.current(candidate)))
+            .catch((reason) => {
+              const message = String(reason instanceof Error ? reason.message : reason);
+              setError(message);
+              updateSheetState({ __sheetReady: false, __sheetError: message });
+            });
         }
       },
       { root: null, rootMargin: "100% 0px", threshold: 0.01 },
@@ -236,9 +242,12 @@ export function SheetMusicView({ songId, renderMode = "virtual" }: SheetMusicVie
 
   const mountedPages = useMemo(() => {
     if (!pageCount) return [];
-    if (renderMode === "all") return pageRange(1, pageCount);
-    return pageRange(Math.max(1, windowStart), Math.min(pageCount, windowEnd));
-  }, [pageCount, renderMode, windowEnd, windowStart]);
+    // Keep lightweight aspect-ratio placeholders for the full scroll range,
+    // while only the bounded window in `pages` contains expensive SVG markup.
+    // This preserves native scrolling/keyboard navigation without retaining a
+    // full score DOM or SVG string set.
+    return pageRange(1, pageCount);
+  }, [pageCount]);
 
   if (error) {
     return (
@@ -274,7 +283,7 @@ export function SheetMusicView({ songId, renderMode = "virtual" }: SheetMusicVie
           </div>
         );
       })}
-      {renderMode === "virtual" && pageCount > mountedPages.length && (
+      {renderMode === "virtual" && pageCount > windowEnd && (
         <p className="sheet-svg__window-status" role="status" aria-live="polite">
           Showing pages {windowStart}–{windowEnd} of {pageCount}; scroll to load more.
         </p>
