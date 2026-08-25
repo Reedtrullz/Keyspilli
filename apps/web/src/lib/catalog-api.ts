@@ -223,6 +223,19 @@ export interface SongDetail {
   artifact: SongArtifactStatus;
 }
 
+/**
+ * Metadata-only player payload used by direct sheet routes.
+ *
+ * SheetMusicView loads the immutable MusicXML artifact by id and does not need
+ * the notes/chords/measures payload that the interactive player uses. Keeping
+ * this shape separate makes it difficult to accidentally put the large
+ * `SongData` object back into the sheet route's RSC payload.
+ */
+export interface SongDetailShell {
+  song: SongRow;
+  variants: SongRow[];
+}
+
 export type SongArtifactStatus =
   | { status: "legacy"; errors: []; manifest?: undefined }
   | { status: "valid"; errors: []; manifest: ArrangementManifest }
@@ -465,6 +478,15 @@ async function loadSongDetailUncached(id: string): Promise<SongDetail | null> {
  * request. This is intentionally not `unstable_cache`/a persistent cache.
  */
 export const getSongDetail = cache(loadSongDetailUncached);
+
+async function loadSongDetailShellUncached(id: string): Promise<SongDetailShell | null> {
+  const song = getSong(id);
+  if (!song) return null;
+  return { song, variants: getSongsByBase(song.baseId) };
+}
+
+/** Request-local metadata-only loader for direct sheet pages. */
+export const getSongDetailShell = cache(loadSongDetailShellUncached);
 
 export async function getArtifactFile(id: string, name: "variant.mid" | "variant.xml"): Promise<Buffer | null> {
   const song = getSong(id);

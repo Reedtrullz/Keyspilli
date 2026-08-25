@@ -2,10 +2,10 @@ import { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const launch = vi.hoisted(() => vi.fn());
-const getSongDetail = vi.hoisted(() => vi.fn());
+const getSongDetailShell = vi.hoisted(() => vi.fn());
 
 vi.mock("playwright", () => ({ chromium: { launch } }));
-vi.mock("@/lib/catalog-api", () => ({ getArtifactFile: vi.fn(), getSongDetail }));
+vi.mock("@/lib/catalog-api", () => ({ getArtifactFile: vi.fn(), getSongDetailShell }));
 
 import { GET } from "./route";
 
@@ -15,7 +15,7 @@ const params = Promise.resolve({ id: "song-a" });
 describe("song export route PDF failures", () => {
   beforeEach(() => {
     launch.mockReset();
-    getSongDetail.mockReset();
+    getSongDetailShell.mockReset();
   });
 
   it("rejects unknown layouts before starting Chromium", async () => {
@@ -41,12 +41,7 @@ describe("song export route PDF failures", () => {
   });
 
   it("rejects classic PDF when the song has no MusicXML score", async () => {
-    getSongDetail.mockResolvedValueOnce({
-      song: { hasSheetXml: 0 },
-      data: { notes: [], chords: [], measures: [], key: "C", tempoBpm: 120, timeSig: [4, 4] },
-      variants: [],
-      artifact: { status: "unavailable", errors: [] },
-    });
+    getSongDetailShell.mockResolvedValueOnce({ song: { hasSheetXml: 0 }, variants: [] });
 
     const response = await GET(requestFor("type=pdf&layout=classic"), { params });
 

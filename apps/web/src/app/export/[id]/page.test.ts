@@ -4,11 +4,12 @@ const notFound = vi.hoisted(() => vi.fn(() => {
   throw new Error("NEXT_NOT_FOUND");
 }));
 const getSongDetail = vi.hoisted(() => vi.fn());
+const getSongDetailShell = vi.hoisted(() => vi.fn());
 const SimplifyScore = vi.hoisted(() => vi.fn(() => null));
 const ClassicScore = vi.hoisted(() => vi.fn(() => null));
 
 vi.mock("next/navigation", () => ({ notFound }));
-vi.mock("@/lib/catalog-api", () => ({ getSongDetail }));
+vi.mock("@/lib/catalog-api", () => ({ getSongDetail, getSongDetailShell }));
 vi.mock("@/components/export/SimplifyScore", () => ({ SimplifyScore }));
 vi.mock("@/components/export/ClassicScore", () => ({ ClassicScore }));
 
@@ -25,12 +26,13 @@ describe("export page layout contract", () => {
   beforeEach(() => {
     notFound.mockClear();
     getSongDetail.mockReset();
+    getSongDetailShell.mockReset();
     SimplifyScore.mockClear();
     ClassicScore.mockClear();
   });
 
   it("does not downgrade a classic request without MusicXML", async () => {
-    getSongDetail.mockResolvedValueOnce(detail(0));
+    getSongDetailShell.mockResolvedValueOnce({ song: detail(0).song, variants: [] });
 
     await expect(ExportPage({
       params: Promise.resolve({ id: "song-a" }),
@@ -38,6 +40,7 @@ describe("export page layout contract", () => {
     })).rejects.toThrow("NEXT_NOT_FOUND");
 
     expect(notFound).toHaveBeenCalledOnce();
+    expect(getSongDetail).not.toHaveBeenCalled();
     expect(ClassicScore).not.toHaveBeenCalled();
     expect(SimplifyScore).not.toHaveBeenCalled();
   });
@@ -52,7 +55,7 @@ describe("export page layout contract", () => {
   });
 
   it("uses ClassicScore only when MusicXML is available", async () => {
-    getSongDetail.mockResolvedValueOnce(detail(1));
+    getSongDetailShell.mockResolvedValueOnce({ song: detail(1).song, variants: [] });
 
     const rendered = await ExportPage({
       params: Promise.resolve({ id: "song-a" }),
@@ -61,6 +64,7 @@ describe("export page layout contract", () => {
     const score = (rendered as any).props.children.props.children;
 
     expect(score.type).toBe(ClassicScore);
+    expect(getSongDetail).not.toHaveBeenCalled();
   });
 
   it("keeps simplified layout available without MusicXML", async () => {
