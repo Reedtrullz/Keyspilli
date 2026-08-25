@@ -177,11 +177,16 @@ export function fallingNoteRange(
   nowSec: number,
   lookaheadSec: number,
   endGraceSec = 0.05,
+  out: { start: number; end: number } = { start: 0, end: 0 },
 ): { start: number; end: number } {
-  if (!index.sorted) return { start: 0, end: index.notes.length };
-  const start = lowerBound(index.prefixMaxEnd, nowSec - endGraceSec);
-  const end = upperBound(index.starts, nowSec + lookaheadSec);
-  return { start, end };
+  if (!index.sorted) {
+    out.start = 0;
+    out.end = index.notes.length;
+    return out;
+  }
+  out.start = lowerBound(index.prefixMaxEnd, nowSec - endGraceSec);
+  out.end = upperBound(index.starts, nowSec + lookaheadSec);
+  return out;
 }
 
 /**
@@ -197,9 +202,10 @@ export function fallingBarsIndexed(
   const layout = keyboardLayout(o.lowMidi, o.highMidi, o.width);
   const { geometry: geo, xByMidi } = layout;
   const pxPerSec = o.height / o.lookaheadSec;
-  const range = fallingNoteRange(index, o.nowSec, o.lookaheadSec);
+  const rangeStart = lowerBound(index.prefixMaxEnd, o.nowSec - 0.05);
+  const rangeEnd = upperBound(index.starts, o.nowSec + o.lookaheadSec);
   out.length = 0;
-  for (let i = range.start; i < range.end; i++) {
+  for (let i = rangeStart; i < rangeEnd; i++) {
     const n = index.notes[i]!;
     if (n.startSec + n.durSec < o.nowSec - 0.05) continue;
     // Preserve the legacy edge behavior for a black note immediately above
@@ -344,9 +350,16 @@ export function fallingChordRange<T extends { beat: number }>(
   index: FallingChordIndex<T>,
   startBeat: number,
   endBeat: number,
+  out: { start: number; end: number } = { start: 0, end: 0 },
 ): { start: number; end: number } {
-  if (!index.sorted) return { start: 0, end: index.events.length };
-  return { start: lowerBound(index.beats, startBeat), end: upperBound(index.beats, endBeat) };
+  if (!index.sorted) {
+    out.start = 0;
+    out.end = index.events.length;
+    return out;
+  }
+  out.start = lowerBound(index.beats, startBeat);
+  out.end = upperBound(index.beats, endBeat);
+  return out;
 }
 
 /** MIDI notes whose bars will cross the playhead within `windowSec`. */

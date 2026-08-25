@@ -102,10 +102,13 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
     // Fit the fixed logical space onto the element's real size each time it
     // changes, so narrow/mobile viewports scale instead of clipping.
     let appliedClientW = 0;
-    let keyboardCacheKey = "";
+    let keyboardLowCache = Number.NaN;
+    let keyboardHighCache = Number.NaN;
     let keyboardCache: ReturnType<typeof keyboardRects> | null = null;
     const barsCache: ReturnType<typeof fallingBarsIndexed> = [];
     const upcomingCache = new Set<number>();
+    const noteRangeCache = { start: 0, end: 0 };
+    const chordRangeCache = { start: 0, end: 0 };
     const activeChordNotes = new Set<number>();
     let activeChordIndex = -2;
     let activeChordIndexSource: ReturnType<typeof createFallingChordIndex> | null = null;
@@ -201,6 +204,7 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
         chordIndex,
         (now - chordMarginSec) * chordBeatPerSec,
         (now + lookahead + chordMarginSec) * chordBeatPerSec,
+        chordRangeCache,
       );
       for (let chordIdx = chordLabels.start; chordIdx < chordLabels.end; chordIdx++) {
         const c = chordIndex.events[chordIdx]!;
@@ -218,7 +222,7 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
 
       // --- Draw lyrics (right side) ---
       const lyricMarginSec = 20 / pxPerSec;
-      const lyricRange = fallingNoteRange(noteIndex, now - lyricMarginSec, lookahead + 2 * lyricMarginSec);
+      const lyricRange = fallingNoteRange(noteIndex, now - lyricMarginSec, lookahead + 2 * lyricMarginSec, 0.05, noteRangeCache);
       for (let noteIdx = lyricRange.start; noteIdx < lyricRange.end; noteIdx++) {
         const n = currentNotes[noteIdx]!;
         if (!n.lyrics) continue;
@@ -233,9 +237,9 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
       }
 
       // --- Keyboard ---
-      const nextKeyboardCacheKey = `${low}:${high}`;
-      if (keyboardCacheKey !== nextKeyboardCacheKey || !keyboardCache) {
-        keyboardCacheKey = nextKeyboardCacheKey;
+      if (keyboardLowCache !== low || keyboardHighCache !== high || !keyboardCache) {
+        keyboardLowCache = low;
+        keyboardHighCache = high;
         keyboardCache = keyboardRects({ width: KEYBOARD_W, lowMidi: low, highMidi: high, whiteHeight: KB_H });
       }
       const kb = keyboardCache!;
@@ -358,7 +362,7 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
       // --- Out-of-range edge indicators ---
       let below = 0;
       let above = 0;
-      const edgeRange = fallingNoteRange(noteIndex, now, lookahead);
+      const edgeRange = fallingNoteRange(noteIndex, now, lookahead, 0.05, noteRangeCache);
       for (let noteIdx = edgeRange.start; noteIdx < edgeRange.end; noteIdx++) {
         const n = currentNotes[noteIdx]!;
         if (n.startSec > now + lookahead || n.startSec + n.durSec < now - 0.05) continue;
