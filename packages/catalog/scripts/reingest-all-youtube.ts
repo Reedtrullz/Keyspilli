@@ -93,9 +93,20 @@ async function findSource(
 ): Promise<SelectedYoutubeSource | undefined> {
   const candidates: string[] = [];
   if (jobId) candidates.push(join(transcribedDir(), jobId));
-  // Fallback: any dir whose name contains the job id or song id.
+  // Fallback: any dir whose name contains the job id, song id, or the first
+  // two slug words from the base id. The latter catches operator-named repair
+  // sources like re3-levva-low for a base titled levva-livet that do not
+  // carry the full base-id or job-id strings.
+  const baseSlugWords = baseId.split("-").filter(Boolean).slice(0, 2);
+  const shortBaseKey = baseSlugWords.length === 2 ? baseSlugWords.join("-") : undefined;
   for (const name of await readdir(transcribedDir())) {
-    if (name.includes(jobId ?? "\u0000") || name.includes(baseId)) candidates.push(join(transcribedDir(), name));
+    if (
+      name.includes(jobId ?? "\u0000") ||
+      name.includes(baseId) ||
+      (shortBaseKey && name.toLowerCase().includes(shortBaseKey))
+    ) {
+      candidates.push(join(transcribedDir(), name));
+    }
   }
   for (const dir of candidates) {
     const source = await resolveYoutubeSource(dir, sourceSelection);
