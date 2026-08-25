@@ -103,12 +103,19 @@ export function SheetMusicView({ songId, renderMode = "virtual" }: SheetMusicVie
     const markPage = (page: number, svg: string) => {
       if (cancelled) return;
       loadedPagesRef.current[page] = svg;
-      setPages({ ...loadedPagesRef.current });
       const parsed = parseSvgDimensions(svg);
       if (parsed && page === 1) setDimensions(parsed);
-      updateSheetState({
-        __sheetRenderedPages: Object.keys(loadedPagesRef.current).length,
-      });
+      // Export/print renders every page, but publishing each SVG into React
+      // would repeatedly reconcile an increasingly large score DOM. Keep the
+      // pages in the ref while they are rendered and publish them once after
+      // the all-pages batch completes. Interactive mode still publishes each
+      // page so the viewport can mount its bounded window progressively.
+      if (renderMode !== "all") {
+        setPages({ ...loadedPagesRef.current });
+        updateSheetState({
+          __sheetRenderedPages: Object.keys(loadedPagesRef.current).length,
+        });
+      }
     };
 
     const load = async () => {
@@ -167,6 +174,8 @@ export function SheetMusicView({ songId, renderMode = "virtual" }: SheetMusicVie
         if (renderMode === "all") {
           for (const page of pageRange(2, count)) await renderPage(page);
           if (!cancelled) {
+            setPages({ ...loadedPagesRef.current });
+            updateSheetState({ __sheetRenderedPages: count });
             setReady(true);
             updateSheetState({ __sheetReady: true, __sheetPrintReady: true });
             await session?.close();
