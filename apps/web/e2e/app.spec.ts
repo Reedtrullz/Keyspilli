@@ -65,6 +65,7 @@ test("player loads and switches views", async ({ page }) => {
   await expect(scorePages.first()).toBeVisible({ timeout: 30_000 });
   expect(await scorePages.count()).toBeGreaterThan(1);
   expect(await page.evaluate(() => (window as unknown as { __sheetRenderMode?: string }).__sheetRenderMode)).toBe("virtual");
+  expect(await page.evaluate(() => (window as unknown as { __sheetRenderer?: string }).__sheetRenderer)).toBe("worker");
   const scoreGeometry = await page.locator(".sheet-svg svg").first().evaluate((svg) => ({
     width: Number.parseFloat(svg.getAttribute("width") ?? "0"),
     height: Number.parseFloat(svg.getAttribute("height") ?? "0"),
@@ -121,6 +122,7 @@ test("Your Song Sheet Music virtualizes SVG pages and renders the last page on s
   expect(lastScore.minHeight).toBeGreaterThan(100);
   const mountedSvgPages = await pages.evaluateAll((elements) => elements.filter((element) => element.querySelector("svg")).length);
   expect(mountedSvgPages).toBeLessThanOrEqual(5);
+  expect(await page.evaluate(() => (window as unknown as { __sheetRenderer?: string }).__sheetRenderer)).toBe("worker");
   expect(await page.evaluate(() => (window as unknown as { __sheetError?: string }).__sheetError)).toBeFalsy();
 });
 

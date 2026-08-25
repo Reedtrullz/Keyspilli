@@ -77,11 +77,11 @@ async function prepareSession(session) {
   session.prepared = true;
 }
 
-function assertActiveSession(sessionId) {
+function assertActiveSession(sessionId, requirePrepared = true) {
   if (!activeSession || activeSession.sessionId !== sessionId) {
     throw new Error("Verovio worker session is not active");
   }
-  if (!activeSession.prepared || !activeSession.toolkit) {
+  if (requirePrepared && (!activeSession.prepared || !activeSession.toolkit)) {
     throw new Error("Verovio worker session is not prepared");
   }
   return activeSession;
@@ -112,7 +112,10 @@ self.onmessage = async (event) => {
     }
 
     if (type === "prepare") {
-      const session = assertActiveSession(request.sessionId);
+      // Preparation is the operation that sets `prepared`; requiring the
+      // prepared flag here rejects every valid first prepare request and
+      // silently forces the caller onto the much slower main-thread fallback.
+      const session = assertActiveSession(request.sessionId, false);
       if (!session.prepared) await prepareSession(session);
       self.postMessage({
         id,
