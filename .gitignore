@@ -24,6 +24,7 @@ playwright-report/
 collections/
 .ansible-venv/
 node_modules
+catalog/youtube-source-candidates/
 
 # App runtime data
 apps/data/*.sqlite*

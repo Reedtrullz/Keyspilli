@@ -174,6 +174,20 @@ npx tsx packages/catalog/scripts/compare-piano-fixtures.ts
 Its onset metrics are timing diagnostics only; they are not pitch accuracy or
 learner-quality scores.
 
+Discover alternate YouTube recordings before choosing a re-transcription
+source. Discovery is read-only against YouTube and the catalog DB, does not
+download media, and merges ranked review candidates into an untracked local
+manifest:
+
+- All YouTube imports: `npx tsx packages/catalog/scripts/discover-youtube-sources.ts`
+- Selected songs: `npx tsx packages/catalog/scripts/discover-youtube-sources.ts <baseId...>`
+- Candidates per song: add `--limit 8` before base IDs.
+
+Ranking favors piano/performance signals and song-title coverage, penalizes
+tutorial/reaction-style uploads and live or unusable durations, and excludes
+the currently imported video. Treat the manifest as a review aid; importing a
+candidate remains a separate operator decision.
+
 `quality-report.ts` uses the same validated YouTube source resolver when
 classifying whether a persisted transcription source is available.
 
