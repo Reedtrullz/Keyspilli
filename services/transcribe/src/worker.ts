@@ -35,6 +35,7 @@ const execFileP = promisify(execFile);
 const POLL_MS = Number(process.env.KEYSPILLI_POLL_MS ?? 5000);
 const MAX_ATTEMPTS = Number(process.env.KEYSPILLI_MAX_ATTEMPTS ?? 2);
 const BP_TIMEOUT_MS = Number(process.env.KEYSPILLI_BP_TIMEOUT_MS ?? 900_000);
+const MAX_VIDEO_DURATION_SEC = Number(process.env.KEYSPILLI_MAX_VIDEO_DURATION_SEC ?? "300");
 const TEMPO_TIMEOUT_MS = 60_000;
 const PYTHON = process.env.KEYSPILLI_PYTHON ?? join(ROOT, "services", "transcribe", ".venv", "bin", "python");
 const BASIC_PITCH = join(dirname(PYTHON), "basic-pitch");
@@ -131,7 +132,9 @@ async function processJob(jobId: string): Promise<void> {
     const [title, uploader, durationRaw] = info.trim().split("\x1f").map((s) => s?.trim() ?? "");
     const duration = Number(durationRaw);
     if (!Number.isFinite(duration) || duration <= 0) throw new Error(`video duration unavailable (${durationRaw || "unknown"})`);
-    if (duration > 300) throw new Error(`video longer than 300s (${durationRaw}s)`);
+    if (duration > MAX_VIDEO_DURATION_SEC) {
+      throw new Error(`video longer than ${MAX_VIDEO_DURATION_SEC}s (${durationRaw}s)`);
+    }
     await ytDlp(["-x", "--audio-format", "mp3", "--max-filesize", "80M", "-o", join(dir, "audio.%(ext)s"), job.youtubeUrl]);
     // Do not feed a partially downloaded `audio.mp3.part` (or a stale
     // sidecar) to tempo detection/Basic Pitch after a retried yt-dlp run.
