@@ -75,6 +75,8 @@ export interface TranscriptionProvenance {
   frameThreshold: number;
   /** BPM explicitly supplied to the transcription, when one was available. */
   tempo?: number;
+  /** How the audio entered the worker: downloaded, operator-seeded, or upload. */
+  audioAcquisition?: "downloaded" | "pre-seeded" | "upload";
   tempoSource: TempoSource;
   audioSource: string;
   transcribedAt: string;
