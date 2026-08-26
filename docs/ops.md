@@ -150,6 +150,15 @@ provider page bodies; retain only normalized chord events and provenance.
 - Backend: ONNX (no TensorFlow needed). On the Mac for fast local development,
   set `KEYSPILLI_BP_SERIALIZATION=coreml` (CoreML is ~10× faster than CPU).
 - Worker logs via `docker compose logs -f worker`.
+ Datacenter IPs are frequently bot-challenged by YouTube. Two escapes:
+ set `KEYSPILLI_YT_COOKIES=/path/to/cookies.txt` and/or `KEYSPILLI_YT_PROXY=host:port`
+ for the worker container (both are passed to every yt-dlp call), or pre-seed
+ a job manually: create the job row, then place `audio.mp3` plus a `meta.json`
+ sidecar (`{"title": "...", "uploader": "...", "durationSec": 302}`) in
+ `/data/transcribed/<jobId>/`. When both files exist and validate, the worker
+ skips yt-dlp entirely, enforces the same duration cap, transcribes normally,
+ and records `audioAcquisition: "pre-seeded"` in artifact provenance.
+ A missing or malformed sidecar falls back to normal yt-dlp download.
 
 ## YouTube conversion maintenance
 

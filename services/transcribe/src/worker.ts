@@ -28,6 +28,7 @@ import {
   TRANSCRIPTION_POST_PROCESSING_DEFAULTS,
   type TranscriptionProvenance,
   resolveYoutubeSource,
+  parseYoutubeMetaFile,
 } from "@keyspilli/catalog";
 import { parseMidi, transcriptionMaxDurationBeats } from "@keyspilli/midi";
 
@@ -89,18 +90,33 @@ async function run(cmd: string, args: string[], timeoutMs = 300_000): Promise<st
   return stdout;
 }
 
-/**
- * yt-dlp with a client fallback chain (default -> android -> tv) plus an
- * explicit JS runtime. YouTube bot-challenges datacenter IPs on the default
- * client; the android/tv clients usually bypass it.
- */
-const YT_CLIENTS = ["", "youtube:player_client=android", "youtube:player_client=tv"];
+const YT_COOKIE_FILE = process.env.KEYSPILLI_YT_COOKIES ?? "";
+const YT_PROXY = process.env.KEYSPILLI_YT_PROXY ?? "";
+
+interface YoutubeMeta {
+  title: string;
+  uploader: string;
+  durationSec: number;
+  acquisition: "downloaded" | "pre-seeded";
+}
+
+function ytNetworkFlags(): string[] {
+  return [
+    ...(YT_COOKIE_FILE ? ["--cookies", YT_COOKIE_FILE] : []),
+    ...(YT_PROXY ? ["--proxy", YT_PROXY] : []),
+  ];
+}
 
 async function ytDlp(args: string[], timeoutMs = 300_000): Promise<string> {
+  // Client fallback chain (default -> android -> tv), an explicit JS
+  // runtime, and optional cookie/proxy flags. YouTube bot-challenges
+  // datacenter IPs on the default client; android/tv usually bypass it and
+  // cookies/proxy cover the rest.
+  const YT_CLIENTS = ["", "youtube:player_client=android", "youtube:player_client=tv"];
   let lastError: unknown = null;
   for (const client of YT_CLIENTS) {
     try {
-      const full = ["--js-runtimes", "node", ...args];
+      const full = ["--js-runtimes", "node", ...ytNetworkFlags(), ...args];
       if (client) full.push("--extractor-args", client);
       return await run("yt-dlp", full, timeoutMs);
     } catch (e) {
@@ -108,6 +124,28 @@ async function ytDlp(args: string[], timeoutMs = 300_000): Promise<string> {
     }
   }
   throw lastError instanceof Error ? lastError : new Error("yt-dlp failed on all clients");
+}
+
+async function fetchYoutubeMeta(jobId: string, dir: string, youtubeUrl: string): Promise<YoutubeMeta> {
+  // Operator escape hatch for datacenter IPs that YouTube bot-blocks:
+  // stage audio.mp3 plus a meta.json sidecar and the worker skips yt-dlp
+  // entirely. The sidecar is validated so incomplete metadata cannot enter
+  // the catalog silently.
+  const sidecar = parseYoutubeMetaFile(dir);
+  if (sidecar) {
+    console.log(`[worker] ${jobId} using pre-seeded audio + meta.json`);
+    return { ...sidecar, acquisition: "pre-seeded" };
+  }
+  const info = await ytDlp(["--skip-download", "--print", "%(title)s\u001f%(uploader)s\u001f%(duration)s", youtubeUrl], 60_000);
+  const parts = info.trim().split("\u001f").map((s) => s?.trim() ?? "");
+  const title = parts[0] ?? "";
+  const uploader = parts[1] ?? "";
+  const durationRaw = parts[2] ?? "";
+  const duration = Number(durationRaw);
+  if (!Number.isFinite(duration) || duration <= 0) {
+    throw new Error(`video duration unavailable (${durationRaw || "unknown"})`);
+  }
+  return { title: title || "YouTube conversion", uploader: uploader || "YouTube", durationSec: duration, acquisition: "downloaded" };
 }
 
 async function processJob(jobId: string): Promise<void> {
@@ -128,14 +166,13 @@ async function processJob(jobId: string): Promise<void> {
     const onsetTh = requirePositiveFloat("override.onsetThreshold", String(ov.onsetThreshold ?? ONSET_THRESHOLD));
     const frameTh = requirePositiveFloat("override.frameThreshold", String(ov.frameThreshold ?? FRAME_THRESHOLD));
     const onsetMatch = requirePositiveFloat("override.onsetMatchSec", String(ov.onsetMatchSec ?? ONSET_MATCH_SEC));
-    const info = await ytDlp(["--skip-download", "--print", "%(title)s\x1f%(uploader)s\x1f%(duration)s", job.youtubeUrl], 60_000);
-    const [title, uploader, durationRaw] = info.trim().split("\x1f").map((s) => s?.trim() ?? "");
-    const duration = Number(durationRaw);
-    if (!Number.isFinite(duration) || duration <= 0) throw new Error(`video duration unavailable (${durationRaw || "unknown"})`);
-    if (duration > MAX_VIDEO_DURATION_SEC) {
-      throw new Error(`video longer than ${MAX_VIDEO_DURATION_SEC}s (${durationRaw}s)`);
+    const meta = await fetchYoutubeMeta(jobId, dir, job.youtubeUrl);
+    if (meta.durationSec > MAX_VIDEO_DURATION_SEC) {
+      throw new Error(`video longer than ${MAX_VIDEO_DURATION_SEC}s (${meta.durationSec}s)`);
     }
-    await ytDlp(["-x", "--audio-format", "mp3", "--max-filesize", "80M", "-o", join(dir, "audio.%(ext)s"), job.youtubeUrl]);
+    if (meta.acquisition === "downloaded") {
+      await ytDlp(["-x", "--audio-format", "mp3", "--max-filesize", "80M", "-o", join(dir, "audio.%(ext)s"), job.youtubeUrl]);
+    }
     // Do not feed a partially downloaded `audio.mp3.part` (or a stale
     // sidecar) to tempo detection/Basic Pitch after a retried yt-dlp run.
     const audioPath = await resolveYoutubeAudio(dir);
@@ -178,6 +215,7 @@ async function processJob(jobId: string): Promise<void> {
       onsetThreshold: onsetTh,
       frameThreshold: frameTh,
       ...(typeof detectedTempo === "number" && Number.isFinite(detectedTempo) ? { tempo: detectedTempo } : {}),
+      ...(meta.acquisition === "pre-seeded" ? { audioAcquisition: "pre-seeded" as const } : {}),
       tempoSource: TEMPO_OVERRIDE ? "override" : tempo ? "detected" : "default",
       audioSource: "youtube",
       transcribedAt,
@@ -202,8 +240,8 @@ async function processJob(jobId: string): Promise<void> {
     // and keep its metadata; otherwise create a fresh entry from the video.
     const result = await ingestSource({
       buf: new Uint8Array(midi),
-      title: existing?.title ?? (title || "YouTube conversion"),
-      artist: existing?.artist ?? (uploader || "YouTube"),
+      title: existing?.title ?? meta.title,
+      artist: existing?.artist ?? meta.uploader,
       category: existing?.category ?? "YouTube",
       key: existing?.key,
       // Do not reuse the previous catalog row's tempo here. Basic Pitch note
