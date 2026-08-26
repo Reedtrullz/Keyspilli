@@ -51,8 +51,10 @@ const FRAME_THRESHOLD = process.env.KEYSPILLI_FRAME ?? "0.45";
  * without a restart; keyed by job id or song base id, whichever matches first.
  * Values are optional and fall back to the global env defaults. */
 interface TranscriptionOverride {
+  denseBand?: boolean;
   onsetThreshold?: number;
   frameThreshold?: number;
+  skipOnsetFilter?: boolean;
   onsetMatchSec?: number;
   collapseOctaveDoubles?: boolean;
   thinBassMinGapBeats?: number;
@@ -163,9 +165,10 @@ async function processJob(jobId: string): Promise<void> {
   try {
     await mkdir(dir, { recursive: true });
     const ov = getOverride(jobId);
-    const onsetTh = requirePositiveFloat("override.onsetThreshold", String(ov.onsetThreshold ?? ONSET_THRESHOLD));
-    const frameTh = requirePositiveFloat("override.frameThreshold", String(ov.frameThreshold ?? FRAME_THRESHOLD));
-    const onsetMatch = requirePositiveFloat("override.onsetMatchSec", String(ov.onsetMatchSec ?? ONSET_MATCH_SEC));
+    const dense = ov.denseBand === true;
+    const onsetTh = requirePositiveFloat("override.onsetThreshold", String(ov.onsetThreshold ?? (dense ? 0.4 : ONSET_THRESHOLD)));
+    const frameTh = requirePositiveFloat("override.frameThreshold", String(ov.frameThreshold ?? (dense ? 0.25 : FRAME_THRESHOLD)));
+    const onsetMatch = requirePositiveFloat("override.onsetMatchSec", String(ov.onsetMatchSec ?? (dense ? 0.35 : ONSET_MATCH_SEC)));
     const meta = await fetchYoutubeMeta(jobId, dir, job.youtubeUrl);
     if (meta.durationSec > MAX_VIDEO_DURATION_SEC) {
       throw new Error(`video longer than ${MAX_VIDEO_DURATION_SEC}s (${meta.durationSec}s)`);
@@ -197,6 +200,7 @@ async function processJob(jobId: string): Promise<void> {
     const source = await resolveYoutubeSource(dir, "root");
     if (!source) throw new Error("basic_pitch produced no usable root MIDI/audio pair");
     const midi = await filterTranscription(new Uint8Array(await readFile(source.midiPath)), source.audioPath, {
+      skipOnsetFilter: ov.skipOnsetFilter === true || dense,
       onsetMatchSec: onsetMatch,
       collapseOctaveDoubles: ov.collapseOctaveDoubles,
       trimIntroBeats: ov.trimIntroBeats,

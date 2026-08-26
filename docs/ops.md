@@ -159,6 +159,13 @@ provider page bodies; retain only normalized chord events and provenance.
  skips yt-dlp entirely, enforces the same duration cap, transcribes normally,
  and records `audioAcquisition: "pre-seeded"` in artifact provenance.
  A missing or malformed sidecar falls back to normal yt-dlp download.
+- Per-song overrides live in `catalog/transcription-overrides.json` (keyed by
+  base id or job id). In addition to the existing threshold keys, two newer
+  knobs help dense material: `"denseBand": true` lowers Basic Pitch thresholds
+  to onset 0.4 / frame 0.25, widens the onset match window to 0.35s, and skips
+  the audio-onset filter entirely; `"skipOnsetFilter": true` only disables the
+  filter. Use them when a legitimate transcription loses melody notes to the
+  filter (symptom: very low note count and pitch distribution stuck in bass).
 
 ## YouTube conversion maintenance
 

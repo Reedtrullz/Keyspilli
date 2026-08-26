@@ -55,8 +55,10 @@ const FRAME_THRESHOLD = Number(process.env.KEYSPILLI_FRAME ?? 0.45);
 /** Per-base transcription tuning. Keyed by base id or job id; values fall
  * back to the global env defaults when omitted. */
 interface TranscriptionOverride {
+  denseBand?: boolean;
   onsetThreshold?: number;
   frameThreshold?: number;
+  skipOnsetFilter?: boolean;
   onsetMatchSec?: number;
   collapseOctaveDoubles?: boolean;
   thinBassMinGapBeats?: number;
@@ -146,12 +148,13 @@ for (const { base_id: base } of bases) {
   const selectedSourceId = selected?.sourceId;
   const selectedJob = jobs.find((candidate) => candidate.id === selectedSourceId) ?? job;
   const ov = getOverride(base, job?.id);
+  const dense = ov.denseBand === true || ov.skipOnsetFilter === true;
   // The raw BP MIDI on disk was produced with whatever thresholds the original
   // worker run used; re-running Basic Pitch here would be expensive and the
   // stored source may already be the best available. Apply only the onset
   // match override to the existing source, but record BP thresholds in
   // provenance so a future re-transcription knows what was used.
-  const onsetMatch = ov.onsetMatchSec ?? ONSET_MATCH_SEC;
+  const onsetMatch = ov.onsetMatchSec ?? (dense ? 0.35 : ONSET_MATCH_SEC);
   const collapseOctaves = ov.collapseOctaveDoubles;
   const thinBassGap = ov.thinBassMinGapBeats;
   const trimIntroBeats = ov.trimIntroBeats;
@@ -216,7 +219,7 @@ for (const { base_id: base } of bases) {
   });
   let filtered: Uint8Array;
   try {
-    filtered = preserveMelody
+    filtered = preserveMelody || dense
       ? rewritten
       : await filterTranscription(rewritten, src.audioPath, { onsetMatchSec: onsetMatch, trimIntroBeats, collapseOctaveDoubles: collapseOctaves, thinBassMinGapBeats: thinBassGap });
   } catch (err) {
