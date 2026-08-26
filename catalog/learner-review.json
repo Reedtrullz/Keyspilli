@@ -87,10 +87,10 @@
       "action": "source-aware re-transcription or replacement; do not polish blindly"
     },
     "piano-free-sheet-music-sabaton-the-final-solution-mslzzcr5": {
-      "rating": "bad",
-      "blocked": true,
-      "feedback": "Recognizable, but does not sound good.",
-      "action": "source-aware re-transcription or replacement; preserve recognition"
+      "rating": "polish",
+      "blocked": false,
+      "feedback": "Earlier version was recognizable but rough; strict-source rebuild is now published for a fresh listening check.",
+      "action": "human listening gate before final acceptance"
     }
   }
 }
