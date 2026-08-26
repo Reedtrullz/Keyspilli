@@ -197,6 +197,8 @@ async function detectTempo(audioPath: string): Promise<number> {
 
 interface TranscriptionOverride {
   trimIntroBeats?: number;
+  denseBand?: boolean;
+  skipOnsetFilter?: boolean;
 }
 function getOverrideForBase(baseId: string): TranscriptionOverride | undefined {
   try {
@@ -215,6 +217,7 @@ async function prepareYoutubeMidi(source: YoutubeSource, tempo: number, baseId?:
   const rewritten = writeMidi(notes, { tempoBpm: tempo, timeSig: raw.timeSig, keySig: raw.keySig, keyMode: raw.keyMode });
   try {
     const ov = baseId ? getOverrideForBase(baseId) : undefined;
+    if (ov?.skipOnsetFilter === true || ov?.denseBand === true) return { buf: rewritten, filtered: true };
     return { buf: await filterTranscription(rewritten, source.audio, { trimIntroBeats: ov?.trimIntroBeats }), filtered: true };
   } catch (error) {
     if (!allowUnfilteredYoutube) throw error;

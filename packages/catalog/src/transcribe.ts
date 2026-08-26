@@ -31,22 +31,26 @@ export async function filterTranscription(
   audioPath: string,
   opts: {
     onsetMatchSec?: number;
+    skipOnsetFilter?: boolean;
     trimIntroBeats?: number;
     collapseOctaveDoubles?: boolean;
     thinBassMinGapBeats?: number;
   } = {},
 ): Promise<Uint8Array> {
-  const { stdout } = await execFileP(PYTHON, [join(ROOT, "services", "transcribe", "src", "audio_onsets.py"), audioPath], {
-    timeout: 180_000,
-    maxBuffer: 32 * 1024 * 1024,
-  });
-  const audioOnsets = JSON.parse(stdout) as number[];
   const raw = parseMidi(rawMidi);
   const secPerBeat = 60 / raw.tempoBpm;
-  const matchSec = opts.onsetMatchSec ?? ONSET_MATCH_SEC;
-  const kept = raw.notes.filter((n) => audioOnsets.some((a) => Math.abs(a - n.start * secPerBeat) <= matchSec));
-  if (kept.length < raw.notes.length * 0.2) {
-    throw new Error(`onset filter dropped too much (${kept.length}/${raw.notes.length})`);
+  let kept = raw.notes;
+  if (!opts.skipOnsetFilter) {
+    const { stdout } = await execFileP(PYTHON, [join(ROOT, "services", "transcribe", "src", "audio_onsets.py"), audioPath], {
+      timeout: 180_000,
+      maxBuffer: 32 * 1024 * 1024,
+    });
+    const audioOnsets = JSON.parse(stdout) as number[];
+    const matchSec = opts.onsetMatchSec ?? ONSET_MATCH_SEC;
+    kept = raw.notes.filter((n) => audioOnsets.some((a) => Math.abs(a - n.start * secPerBeat) <= matchSec));
+    if (kept.length < raw.notes.length * 0.2) {
+      throw new Error(`onset filter dropped too much (${kept.length}/${raw.notes.length})`);
+    }
   }
   // Bass guitar and rhythm-guitar roots transcribe as octave-doubled low
   // clusters that read as mud on piano. Keep the lowest note of each bass

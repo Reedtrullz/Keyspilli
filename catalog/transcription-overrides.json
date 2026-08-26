@@ -39,5 +39,17 @@
     "onsetThreshold": 0.4,
     "frameThreshold": 0.25,
     "onsetMatchSec": 0.35
+  },
+  "job-livgardet-piano-re1": {
+    "onsetThreshold": 0.3,
+    "frameThreshold": 0.15,
+    "onsetMatchSec": 1.0,
+    "tempoBpm": 122
+  },
+  "job-livgardet-organ-re1": {
+    "onsetThreshold": 0.3,
+    "frameThreshold": 0.15,
+    "onsetMatchSec": 1.0,
+    "collapseOctaveDoubles": true
   }
 }
