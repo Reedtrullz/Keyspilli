@@ -26,7 +26,7 @@ ENV NODE_ENV=production
 ENV KEYSPILLI_DATA_DIR=/data
 ENV KEYSPILLI_PYTHON=/app/.venv/bin/python
 ENV KEYSPILLI_IMPORT_MODE=auto
-ENV KEYSPILLI_DEMUCS_MODEL=htdemucs
+ENV KEYSPILLI_DEMUCS_MODEL=htdemucs_6s
 ENV KEYSPILLI_DEMUCS_DEVICE=cpu
 ENV KEYSPILLI_STEM_MIN_FREE_GIB=6
 ENV TORCH_HOME=/app/.cache/torch
@@ -56,6 +56,6 @@ RUN python3 -m venv /app/.venv \
       --index-url https://download.pytorch.org/whl/cpu \
       torch==2.1.2 torchaudio==2.1.2 \
     && /app/.venv/bin/pip install --no-cache-dir --quiet demucs==4.0.1 \
-    && /app/.venv/bin/python -c "from demucs.pretrained import get_model; get_model('htdemucs')"
+    && /app/.venv/bin/python -c "from demucs.pretrained import get_model; get_model('htdemucs_6s')"
 VOLUME /data
 CMD ["node", "--import", "tsx", "services/transcribe/src/worker.ts"]

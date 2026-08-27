@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run a bounded Demucs four-stem separation and report exact output paths."""
+"""Run a bounded Demucs separation and report exact output paths."""
 
 from __future__ import annotations
 
@@ -49,6 +49,12 @@ def main() -> None:
         if not candidate.is_file() or candidate.stat().st_size == 0:
             raise RuntimeError(f"missing or empty Demucs stem: {candidate}")
         stem_paths[stem] = str(candidate)
+    # htdemucs_6s and compatible models can expose a dedicated guitar lane.
+    # Keep it when available; the Node pipeline falls back to `other` for the
+    # established four-stem model.
+    guitar = track_dir / "guitar.wav"
+    if guitar.is_file() and guitar.stat().st_size > 0:
+        stem_paths["guitar"] = str(guitar)
 
     print("KEYSPILLI_STEMS_JSON:" + json.dumps({
         "version": importlib.metadata.version("demucs"),

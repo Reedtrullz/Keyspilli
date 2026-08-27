@@ -9,6 +9,7 @@ const execFileP = promisify(execFile);
 
 export type StemImportMode = "auto" | "legacy" | "metal";
 export type StemMidiRole = "vocals" | "bass" | "guitar" | "drums";
+type PitchedStemMidiRole = Exclude<StemMidiRole, "drums">;
 
 export interface StemPipelineConfig {
   mode: StemImportMode;
@@ -29,12 +30,12 @@ export interface StemPipelineConfig {
 export interface StemMidi {
   role: StemMidiRole;
   midi: Uint8Array;
-  noteSource: "vocals" | "bass" | "other" | "drums";
+  noteSource: "vocals" | "bass" | "guitar" | "other" | "drums";
 }
 
 export interface StemPipelineReport {
   schemaVersion: 1;
-  strategy: "demucs-four-stem-basic-pitch";
+  strategy: "demucs-role-stem-basic-pitch";
   separator: {
     engine: "demucs";
     version: string;
@@ -47,10 +48,14 @@ export interface StemPipelineReport {
     serialization: string;
     onsetThreshold: number;
     frameThreshold: number;
+    roleThresholds: Record<PitchedStemMidiRole, {
+      onsetThreshold: number;
+      frameThreshold: number;
+    }>;
   };
   stems: Array<{
     role: StemMidiRole;
-    sourceStem: "vocals" | "bass" | "other" | "drums";
+    sourceStem: "vocals" | "bass" | "guitar" | "other" | "drums";
     midiFile: string;
     midiBytes: number;
   }>;
@@ -80,9 +85,28 @@ export interface StemPipelineDependencies {
   basicPitchVersion?: string;
 }
 
-const DEFAULT_SEPARATOR_TIMEOUT_MS = 1_800_000;
+const DEFAULT_SEPARATOR_TIMEOUT_MS = 2_700_000;
 const DEFAULT_BASIC_PITCH_TIMEOUT_MS = 900_000;
 const DEFAULT_MIN_FREE_GIB = 6;
+
+function thresholdsForRole(
+  role: PitchedStemMidiRole,
+  config: StemPipelineConfig,
+): { onsetThreshold: number; frameThreshold: number } {
+  if (role === "guitar") {
+    return {
+      onsetThreshold: config.onsetThreshold === 0.65 ? 0.45 : config.onsetThreshold,
+      frameThreshold: config.frameThreshold === 0.45 ? 0.3 : config.frameThreshold,
+    };
+  }
+  if (role === "vocals") {
+    return {
+      onsetThreshold: config.onsetThreshold === 0.65 ? 0.5 : config.onsetThreshold,
+      frameThreshold: config.frameThreshold === 0.45 ? 0.3 : config.frameThreshold,
+    };
+  }
+  return { onsetThreshold: config.onsetThreshold, frameThreshold: config.frameThreshold };
+}
 
 function finiteNumber(name: string, raw: string, opts: { min: number; max?: number }): number {
   const value = Number(raw);
@@ -111,7 +135,7 @@ export function stemPipelineConfigFromEnv(
     basicPitch: paths.basicPitch,
     separatorScript: join(paths.root, "services", "transcribe", "src", "separate_stems.py"),
     drumOnsetScript: join(paths.root, "services", "transcribe", "src", "audio_onsets.py"),
-    demucsModel: env.KEYSPILLI_DEMUCS_MODEL?.trim() || "htdemucs",
+    demucsModel: env.KEYSPILLI_DEMUCS_MODEL?.trim() || "htdemucs_6s",
     demucsDevice: device,
     separatorTimeoutMs: finiteNumber(
       "KEYSPILLI_DEMUCS_TIMEOUT_MS",
@@ -249,7 +273,7 @@ export async function transcribePitchedStems(
     if (!reportLine) throw new Error("Demucs completed without a Keyspilli stem report");
     const parsedSeparation = JSON.parse(reportLine.slice("KEYSPILLI_STEMS_JSON:".length)) as {
       version?: string;
-      stems?: Partial<Record<"vocals" | "bass" | "drums" | "other", string>>;
+      stems?: Partial<Record<"vocals" | "bass" | "drums" | "guitar" | "other", string>>;
     };
     const stemPaths = parsedSeparation.stems;
     if (!stemPaths?.vocals || !stemPaths.bass || !stemPaths.other || !stemPaths.drums) {
@@ -259,21 +283,26 @@ export async function transcribePitchedStems(
     const requested = [
       { role: "vocals" as const, source: "vocals" as const, audio: stemPaths.vocals },
       { role: "bass" as const, source: "bass" as const, audio: stemPaths.bass },
-      // Demucs calls the guitar/keys/orchestra residual `other`. The metal
-      // arranger consumes it as the guitar/riff identity lane.
-      { role: "guitar" as const, source: "other" as const, audio: stemPaths.other },
+      // Six-source models expose a dedicated guitar stem. Four-source models
+      // remain supported by falling back to the mixed guitar/keys residual.
+      stemPaths.guitar
+        ? { role: "guitar" as const, source: "guitar" as const, audio: stemPaths.guitar }
+        : { role: "guitar" as const, source: "other" as const, audio: stemPaths.other },
     ];
     const stems: StemMidi[] = [];
     const reportStems: StemPipelineReport["stems"] = [];
+    const roleThresholds = {} as StemPipelineReport["transcriber"]["roleThresholds"];
     for (const item of requested) {
       const outDir = join(scratch, `basic-pitch-${item.role}`);
       await mkdir(outDir, { recursive: true });
+      const thresholds = thresholdsForRole(item.role, config);
+      roleThresholds[item.role] = thresholds;
       const args = [
         outDir,
         item.audio,
         "--save-midi",
-        "--onset-threshold", String(config.onsetThreshold),
-        "--frame-threshold", String(config.frameThreshold),
+        "--onset-threshold", String(thresholds.onsetThreshold),
+        "--frame-threshold", String(thresholds.frameThreshold),
       ];
       if (options.tempo !== undefined) args.push("--midi-tempo", String(options.tempo));
       if (config.modelSerialization) args.push("--model-serialization", config.modelSerialization);
@@ -316,7 +345,7 @@ export async function transcribePitchedStems(
 
     const report: StemPipelineReport = {
       schemaVersion: 1,
-      strategy: "demucs-four-stem-basic-pitch",
+      strategy: "demucs-role-stem-basic-pitch",
       separator: {
         engine: "demucs",
         version: parsedSeparation.version || dependencies.demucsVersion || "unknown",
@@ -329,6 +358,7 @@ export async function transcribePitchedStems(
         serialization: config.modelSerialization || "default",
         onsetThreshold: config.onsetThreshold,
         frameThreshold: config.frameThreshold,
+        roleThresholds,
       },
       stems: reportStems,
     };

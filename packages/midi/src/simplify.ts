@@ -953,18 +953,29 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   );
   const advancedRh = advanced.filter((n) => n.hand !== "L");
   const advancedLh = advanced.filter((n) => n.hand === "L");
+  const mediumTexture = [
+    ...capSoundingSpan(topVoices(advancedRh, 0.125, 3, pads), 12, "high"),
+    ...capSoundingSpan(thinChord(advancedLh, 3), innerVoiceArrangement ? 19 : 12, "low"),
+  ];
+  // A role-aware metal RH is already the selected vocal/lead-guitar identity
+  // line. Preserve its full attack detail in Medium; Easy contour-thins it
+  // below so the level remains credible for a learner.
+  const mediumReduced = metalProfile
+    ? [
+      ...mediumTexture.filter((note) => note.hand !== "L"),
+      ...reduceMediumRhythm(mediumTexture.filter((note) => note.hand === "L")),
+    ]
+    : reduceMediumRhythm(mediumTexture);
   const medium = capLevel("medium", trimSamePitchOverlaps(quantize(
-    reduceMediumRhythm([
-      ...capSoundingSpan(topVoices(advancedRh, 0.125, 3, pads), 12, "high"),
-      ...capSoundingSpan(thinChord(advancedLh, 3), innerVoiceArrangement ? 19 : 12, "low"),
-    ]),
+    mediumReduced,
     { grid: 0.125 },
   )));
   const mediumRh = medium.filter((n) => n.hand !== "L");
   const mediumLh = medium.filter((n) => n.hand === "L");
+  const easyRhSource = metalProfile ? reduceMediumRhythm(mediumRh) : mediumRh;
   const easy = capLevel("easy", trimSamePitchOverlaps(quantize(
     [
-      ...capSoundingSpan(melodyOnly(mediumRh, 0.125, 0.5, pads), 12, "high"),
+      ...capSoundingSpan(melodyOnly(easyRhSource, 0.125, 0.5, pads), 12, "high"),
       ...capSoundingSpan(
         trimSamePitchOverlaps(thinChord(mediumLh, 2).map((n) => metalProfile ? n : { ...n, midi: rootOf(n.midi, key) })),
         innerVoiceArrangement ? 19 : 12,

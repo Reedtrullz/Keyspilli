@@ -19,7 +19,7 @@ export interface MetalArrangementInput {
 export interface MetalIdentitySection {
   startBeat: number;
   endBeat: number;
-  source: "vocals" | "guitar" | "other" | "rest";
+  source: "vocals" | "guitar" | "other" | "mixed" | "rest";
   confidence: number;
 }
 
@@ -74,15 +74,27 @@ function validNotes(stem: MetalStem | undefined): Note[] {
     .sort((a, b) => a.start - b.start || b.vel - a.vel || b.midi - a.midi);
 }
 
+interface MonophonicPathOptions {
+  /** Prefer a plausible upper lead tone over lower rhythm/accompaniment bleed. */
+  preferUpperLead?: boolean;
+}
+
 /**
- * Reduce polyphonic pitch evidence to one identity voice. The small dynamic
- * program strongly prefers confident/long attacks but penalizes implausible
- * instantaneous leaps, which removes most guitar-chord and bleed duplicates.
+ * Reduce polyphonic pitch evidence to one identity voice. The greedy salience
+ * pass prefers confident/long attacks, resets continuity after a real rest,
+ * and can favor an upper guitar lead over lower accompaniment in the same
+ * onset cluster.
  */
-function monophonicPath(notes: Note[], low: number, high: number): Note[] {
-  const groups: Note[][] = [];
+function monophonicPath(
+  notes: Note[],
+  low: number,
+  high: number,
+  options: MonophonicPathOptions = {},
+): Note[] {
+  type CandidateNote = Note & { rawMidi: number };
+  const groups: CandidateNote[][] = [];
   for (const note of notes) {
-    const normalized = { ...note, midi: toRegister(note.midi, low, high) };
+    const normalized: CandidateNote = { ...note, rawMidi: note.midi, midi: toRegister(note.midi, low, high) };
     const last = groups.at(-1);
     if (last && Math.abs(last[0]!.start - normalized.start) <= 0.08) last.push(normalized);
     else groups.push([normalized]);
@@ -97,29 +109,78 @@ function monophonicPath(notes: Note[], low: number, high: number): Note[] {
       .map((note) => {
         if (!previous) return note;
         const elapsed = Math.max(0, note.start - previous.start);
+        const rest = Math.max(0, note.start - (previous.start + previous.dur));
+        const continuityPrevious = rest <= 1 ? previous : undefined;
         let pitch = note.midi;
         // A detector octave-flips guitar/vocal partials surprisingly often.
         // Within a short travel window, fold by octaves toward the previous
         // pitch; never ask the player to jump more than an octave in <=1.5
         // beats merely because the raw stem contained a distant partial.
-        if (elapsed <= 1.5) {
-          while (Math.abs(pitch - previous.midi) > 12 && pitch - previous.midi > 0 && pitch - 12 >= low) pitch -= 12;
-          while (Math.abs(pitch - previous.midi) > 12 && pitch - previous.midi < 0 && pitch + 12 <= high) pitch += 12;
+        if (continuityPrevious && elapsed <= 1.5) {
+          while (Math.abs(pitch - continuityPrevious.midi) > 12 && pitch - continuityPrevious.midi > 0 && pitch - 12 >= low) pitch -= 12;
+          while (Math.abs(pitch - continuityPrevious.midi) > 12 && pitch - continuityPrevious.midi < 0 && pitch + 12 <= high) pitch += 12;
         }
         return pitch === note.midi ? note : { ...note, midi: pitch };
       });
     if (!candidates.length) continue;
-    const best = candidates.reduce((winner, note) => {
-      const score = note.vel / 16 + Math.min(note.dur, 2) - (previous ? Math.abs(note.midi - previous.midi) / 7 : 0);
-      const winnerScore = winner.vel / 16 + Math.min(winner.dur, 2) - (previous ? Math.abs(winner.midi - previous.midi) / 7 : 0);
+    const maxVelocity = candidates.reduce((value, note) => Math.max(value, note.vel), 0);
+    const upperLeads = options.preferUpperLead
+      ? candidates.filter((note) => note.rawMidi >= 60 && note.vel >= maxVelocity * 0.65)
+      : [];
+    const selectionPool = upperLeads.length
+      ? [upperLeads.reduce((highest, note) => note.rawMidi > highest.rawMidi ? note : highest)]
+      : candidates;
+    const best = selectionPool.reduce((winner, note) => {
+      const continuityPrevious = previous && note.start - (previous.start + previous.dur) <= 1 ? previous : undefined;
+      const score = note.vel / 16
+        + Math.min(note.dur, 2)
+        - (continuityPrevious ? Math.abs(note.midi - continuityPrevious.midi) / 7 : 0);
+      const winnerScore = winner.vel / 16
+        + Math.min(winner.dur, 2)
+        - (continuityPrevious ? Math.abs(winner.midi - continuityPrevious.midi) / 7 : 0);
       return score > winnerScore ? note : winner;
     });
     const nextStart = groups[groupIndex + 1]?.[0]?.start;
-    const dur = Math.max(0.125, Math.min(best.dur, nextStart === undefined ? best.dur : nextStart - best.start));
-    previous = { ...best, dur, hand: "R" };
+    const dur = Math.max(EPS, Math.min(best.dur, nextStart === undefined ? best.dur : nextStart - best.start));
+    const { rawMidi: _rawMidi, ...selectedNote } = best;
+    previous = { ...selectedNote, dur, hand: "R" };
     selected.push(previous);
   }
   return selected;
+}
+
+/**
+ * Basic Pitch can leak sparse guitar/reverb events into the vocal stem. Only
+ * let vocals displace an active guitar lead when they form a compact moving
+ * phrase. Isolated vocal events are used only when there is no usable
+ * instrumental identity in the window.
+ */
+function trustworthyVocalNotes(notes: Note[]): Note[] {
+  const phrases: Note[][] = [];
+  for (const note of notes) {
+    const phrase = phrases.at(-1);
+    const previous = phrase?.at(-1);
+    if (!phrase || !previous || note.start - (previous.start + previous.dur) > 4) {
+      phrases.push([note]);
+    } else {
+      phrase.push(note);
+    }
+  }
+  return phrases.flatMap((phrase) => {
+    if (phrase.length < 2) return [];
+    const peakVelocity = phrase.reduce((value, note) => Math.max(value, note.vel), 0);
+    // Apply confidence locally so a quiet reverb/bleed tail cannot become
+    // trusted merely by landing 0.1 beat inside the phrase-gap boundary.
+    const credible = phrase.filter((note) => note.vel >= peakVelocity * 0.55);
+    if (credible.length < 2) return [];
+    const distinct = new Set(credible.map((note) => note.midi));
+    const first = credible[0]!;
+    const last = credible.at(-1)!;
+    const span = Math.max(0.5, last.start + Math.min(last.dur, 1) - first.start);
+    const density = credible.length / span;
+    const minimumDensity = credible.length >= 3 ? 0.35 : 0.5;
+    return distinct.size >= 2 && density >= minimumDensity ? credible : [];
+  });
 }
 
 function notesIn(notes: Note[], start: number, end: number): Note[] {
@@ -162,8 +223,16 @@ function pitchClassesAt(notes: Note[], start: number, end: number): Set<number> 
   return new Set(notes.filter((note) => note.start < end && note.start + note.dur > start).map((note) => ((note.midi % 12) + 12) % 12));
 }
 
-function identityForWindow(primary: Note[], alternates: Note[][], start: number, end: number): Note[] {
-  const selected = notesIn(primary, start, end).map((note) => ({ ...note }));
+function identityForWindow(
+  primary: Note[],
+  alternates: Note[][],
+  start: number,
+  end: number,
+  minAlternateRest = 0,
+): { notes: Note[]; primaryCount: number; alternateCount: number } {
+  const primaryNotes = notesIn(primary, start, end).map((note) => ({ ...note }));
+  const selected = [...primaryNotes];
+  let alternateCount = 0;
   // Preserve a guitar/other motif during vocal rests instead of throwing the
   // whole instrumental lane away just because the section has a vocal lead.
   for (const lane of alternates) {
@@ -172,15 +241,27 @@ function identityForWindow(primary: Note[], alternates: Note[][], start: number,
         Math.abs(existing.start - note.start) <= 0.08
         || (existing.start <= note.start && existing.start + existing.dur > note.start),
       );
-      if (!occupied) selected.push({ ...note });
+      if (occupied) continue;
+      if (minAlternateRest > 0 && primaryNotes.length) {
+        const previousEnd = primaryNotes
+          .filter((primaryNote) => primaryNote.start + primaryNote.dur <= note.start + EPS)
+          .reduce((value, primaryNote) => Math.max(value, primaryNote.start + primaryNote.dur), start);
+        const nextStart = primaryNotes
+          .filter((primaryNote) => primaryNote.start >= note.start - EPS)
+          .reduce((value, primaryNote) => Math.min(value, primaryNote.start), end);
+        if (nextStart - previousEnd < minAlternateRest) continue;
+      }
+      selected.push({ ...note });
+      alternateCount += 1;
     }
   }
-  return selected
+  const sorted = selected
     .sort((a, b) => a.start - b.start || b.vel - a.vel || b.midi - a.midi)
     .map((note, index, all) => ({
       ...note,
-      dur: Math.max(0.125, Math.min(note.dur, end - note.start, all[index + 1] ? all[index + 1]!.start - note.start : note.dur)),
+      dur: Math.max(EPS, Math.min(note.dur, end - note.start, all[index + 1] ? all[index + 1]!.start - note.start : note.dur)),
     }));
+  return { notes: sorted, primaryCount: primaryNotes.length, alternateCount };
 }
 
 function chordFor(rootPc: number, pcs: Set<number>): { name: string; notes: number[] } {
@@ -241,8 +322,9 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
   const bassStem = input.stems.find((stem) => stem.role === "bass");
   const drumsStem = input.stems.find((stem) => stem.role === "drums");
   const vocals = monophonicPath(validNotes(vocalsStem), 60, 84);
-  const guitar = monophonicPath(validNotes(guitarStem), 55, 84);
-  const other = monophonicPath(validNotes(otherStem), 55, 84);
+  const trustedVocals = trustworthyVocalNotes(vocals);
+  const guitar = monophonicPath(validNotes(guitarStem), 55, 84, { preferUpperLead: true });
+  const other = monophonicPath(validNotes(otherStem), 55, 84, { preferUpperLead: true });
   const bass = validNotes(bassStem);
   const harmonicEvidence = [...validNotes(guitarStem), ...validNotes(otherStem)];
   const sections: MetalIdentitySection[] = [];
@@ -250,19 +332,44 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
 
   for (let start = 0; start < durationBeats - EPS; start += sectionBeats) {
     const end = Math.min(durationBeats, start + sectionBeats);
-    const choices = [
-      { source: "vocals" as const, notes: vocals, confidence: vocalSourceConfidence(vocals, start, end, vocalsStem?.confidence) },
+    const rawVocalConfidence = vocalSourceConfidence(vocals, start, end, vocalsStem?.confidence);
+    const trustedVocalEvidence = notesIn(trustedVocals, start, end);
+    const vocalConfidence = trustedVocalEvidence.length
+      ? vocalSourceConfidence(trustedVocals, start, end, vocalsStem?.confidence)
+      : rawVocalConfidence;
+    const instrumentalChoices = [
       { source: "guitar" as const, notes: guitar, confidence: sourceConfidence(guitar, start, end, guitarStem?.confidence) * 0.92 },
       { source: "other" as const, notes: other, confidence: sourceConfidence(other, start, end, otherStem?.confidence) * 0.85 },
     ].sort((a, b) => b.confidence - a.confidence);
-    const winner = choices[0]!;
-    const source = winner.confidence >= 0.15 ? winner.source : "rest";
-    sections.push({ startBeat: start, endBeat: end, source, confidence: winner.confidence });
+    const instrumentalWinner = instrumentalChoices[0]!;
+    const useVocalLead = trustedVocalEvidence.length > 0
+      || (vocalConfidence >= 0.15 && instrumentalWinner.confidence < 0.15);
+    const winner = useVocalLead
+      ? {
+        source: "vocals" as const,
+        notes: trustedVocalEvidence.length ? trustedVocals : vocals,
+        confidence: vocalConfidence,
+      }
+      : instrumentalWinner;
+    let source: MetalIdentitySection["source"] = winner.confidence >= 0.15 ? winner.source : "rest";
+    let sectionConfidence = winner.confidence;
     if (source !== "rest") {
-      for (const note of identityForWindow(winner.notes, choices.slice(1).map((choice) => choice.notes), start, end)) {
+      const alternates = useVocalLead
+        ? instrumentalChoices.map((choice) => choice.notes)
+        : instrumentalChoices.slice(1).map((choice) => choice.notes);
+      const fused = identityForWindow(winner.notes, alternates, start, end, useVocalLead ? 0.5 : 0);
+      if (useVocalLead && fused.alternateCount > 0) {
+        source = "mixed";
+        const total = fused.primaryCount + fused.alternateCount;
+        sectionConfidence = total > 0
+          ? (vocalConfidence * fused.primaryCount + instrumentalWinner.confidence * fused.alternateCount) / total
+          : vocalConfidence;
+      }
+      for (const note of fused.notes) {
         identity.push(note);
       }
     }
+    sections.push({ startBeat: start, endBeat: end, source, confidence: sectionConfidence });
   }
 
   const chords: ChordLabel[] = [];

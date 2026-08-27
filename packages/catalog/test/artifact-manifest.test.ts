@@ -133,6 +133,11 @@ describe("artifact arrangement manifest", () => {
       modelSerialization: "default",
       onsetThreshold: 0.5,
       frameThreshold: 0.35,
+      stemRoleThresholds: {
+        vocals: { onsetThreshold: 0.5, frameThreshold: 0.3 },
+        bass: { onsetThreshold: 0.65, frameThreshold: 0.45 },
+        guitar: { onsetThreshold: 0.45, frameThreshold: 0.3 },
+      },
       tempoSource: "detected" as const,
       audioSource: "youtube",
       transcribedAt: now,
@@ -224,6 +229,11 @@ describe("artifact arrangement manifest", () => {
       modelSerialization: "default",
       onsetThreshold: 0.5,
       frameThreshold: 0.35,
+      stemRoleThresholds: {
+        vocals: { onsetThreshold: 0.5, frameThreshold: 0.3 },
+        bass: { onsetThreshold: 0.65, frameThreshold: 0.45 },
+        guitar: { onsetThreshold: 0.45, frameThreshold: 0.3 },
+      },
       tempoSource: "detected" as const,
       audioSource: "youtube",
       transcribedAt: now,
@@ -254,6 +264,11 @@ describe("artifact arrangement manifest", () => {
       modelSerialization: "default",
       onsetThreshold: 0.5,
       frameThreshold: 0.35,
+      stemRoleThresholds: {
+        vocals: { onsetThreshold: 0.5, frameThreshold: 0.3 },
+        bass: { onsetThreshold: 0.65, frameThreshold: 0.45 },
+        guitar: { onsetThreshold: 0.45, frameThreshold: 0.3 },
+      },
       tempoSource: "detected",
       audioSource: "youtube",
       separation: { separator: "demucs", version: "4.0.1", model: "htdemucs", device: "cpu" },
@@ -273,6 +288,13 @@ describe("artifact arrangement manifest", () => {
         warnings: ["different run evidence"],
       },
     })).toEqual(transcriptionConfigForFingerprint(transcription));
+    expect(validateTranscriptionProvenance({
+      ...transcription,
+      stemRoleThresholds: {
+        ...transcription.stemRoleThresholds,
+        guitar: { onsetThreshold: -0.1, frameThreshold: 0.3 },
+      },
+    })).toContain("transcription.stemRoleThresholds.guitar.onsetThreshold must be a finite number between 0 and 1");
   });
 
   it("fails closed on malformed or path-bearing metal provenance", () => {
