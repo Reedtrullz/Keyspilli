@@ -35,7 +35,10 @@ async function waitForExportReady(page: Page, layout: "simplify" | "classic"): P
         return state.__sheetReady === true || typeof state.__sheetError === "string";
       },
       undefined,
-      { timeout: 30_000 },
+      // The large classic smoke score produces 138 SVG pages and takes about
+      // 27 seconds on the production VPS when warm. Leave bounded cold-start
+      // headroom so a valid render does not trigger a deployment rollback.
+      { timeout: 60_000 },
     );
   } catch {
     throw new PdfRenderError("score render readiness timed out");
