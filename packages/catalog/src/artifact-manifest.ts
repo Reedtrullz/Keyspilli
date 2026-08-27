@@ -1,4 +1,5 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { dataDir } from "./paths.js";
 import type { SourceProvenance } from "./provenance.js";
@@ -56,6 +57,40 @@ export interface TranscriptionPostProcessing {
   importedMaxSounding?: number;
 }
 
+/** Musical role assigned to one of the canonical four separated stems. */
+export type SeparatedStemRole = "vocals" | "bass" | "drums" | "other";
+
+/** Reproducible, path-free summary of one stem used by the arranger. */
+export interface SeparatedStemProvenance {
+  role: SeparatedStemRole;
+  /** Number of pitched note candidates produced from this stem. */
+  noteCount: number;
+  /** Optional aggregate confidence in [0, 1]. */
+  confidence?: number;
+}
+
+/** Source-separation identity and effective stem evidence for metal imports. */
+export interface SeparationProvenance {
+  separator: string;
+  version: string;
+  model: string;
+  /** Device affects the numerical output and therefore cache identity. */
+  device?: "cpu" | "cuda" | "mps";
+  stems: SeparatedStemProvenance[];
+}
+
+export type MetalIdentitySource = "vocals" | "other" | "mixed" | "fallback-full-mix";
+
+/** Identity of the role-aware reduction applied after stem transcription. */
+export interface MetalArrangementProvenance {
+  arranger: string;
+  version: string;
+  strategy: string;
+  identitySource?: MetalIdentitySource;
+  confidence?: number;
+  warnings?: string[];
+}
+
 /**
  * Effective settings used to turn an audio source into the MIDI that is
  * ingested.  This is deliberately separate from the source URL/label
@@ -84,7 +119,26 @@ export interface TranscriptionProvenance {
   pipeline?: TranscriptionPipelineProvenance;
   /** Optional on legacy provenance; current workers write this block. */
   postProcessing?: TranscriptionPostProcessing;
+  /** Present when the source mix was separated into musical roles. */
+  separation?: SeparationProvenance;
+  /** Present when the role-aware metal arranger produced the ingested MIDI. */
+  metalArrangement?: MetalArrangementProvenance;
 }
+
+/**
+ * Stable, path-free configuration identity used when hashing an import.
+ *
+ * Stem note counts/confidence and arranger identity/confidence/warnings are
+ * run evidence, not configuration. Keeping those values out of the hash
+ * prevents a nondeterministic model run from making an otherwise identical
+ * rebuild look like a new import. The model/tool identities remain because
+ * changing them can change the generated MIDI.
+ */
+export type TranscriptionFingerprintConfig =
+  Omit<TranscriptionProvenance, "transcribedAt" | "separation" | "metalArrangement"> & {
+    separation?: Pick<SeparationProvenance, "separator" | "version" | "model" | "device">;
+    metalArrangement?: Pick<MetalArrangementProvenance, "arranger" | "version" | "strategy">;
+  };
 
 /**
  * Return the stable part of transcription provenance for cache identity.
@@ -94,9 +148,31 @@ export interface TranscriptionProvenance {
  */
 export function transcriptionConfigForFingerprint(
   value: TranscriptionProvenance,
-): Omit<TranscriptionProvenance, "transcribedAt"> {
-  const { transcribedAt: _transcribedAt, ...config } = value;
-  return config;
+): TranscriptionFingerprintConfig {
+  const {
+    transcribedAt: _transcribedAt,
+    separation,
+    metalArrangement,
+    ...config
+  } = value;
+  return {
+    ...config,
+    ...(separation ? {
+      separation: {
+        separator: separation.separator,
+        version: separation.version,
+        model: separation.model,
+        ...(separation.device ? { device: separation.device } : {}),
+      },
+    } : {}),
+    ...(metalArrangement ? {
+      metalArrangement: {
+        arranger: metalArrangement.arranger,
+        version: metalArrangement.version,
+        strategy: metalArrangement.strategy,
+      },
+    } : {}),
+  };
 }
 
 export interface ResolvedTempo {
@@ -173,13 +249,40 @@ const TEMPO_SOURCES = new Set<TempoSource>([
   "legacy",
   "manual",
 ]);
+const AUDIO_ACQUISITIONS = new Set<NonNullable<TranscriptionProvenance["audioAcquisition"]>>([
+  "downloaded",
+  "pre-seeded",
+  "upload",
+]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function isIsoTimestamp(value: unknown): value is string {
-  return typeof value === "string" && Number.isFinite(Date.parse(value));
+  if (typeof value !== "string") return false;
+  // Date.parse accepts date-only, locale, and rollover strings. Manifests are
+  // exchange artifacts, so require an ISO-8601 date-time with an explicit
+  // timezone while allowing fractional-second precision and numeric offsets.
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,9}))?(Z|[+-]\d{2}:\d{2})$/.exec(value);
+  if (!match) return false;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const hour = Number(match[4]);
+  const minute = Number(match[5]);
+  const second = Number(match[6]);
+  const offset = match[8] ?? "";
+  const offsetHour = offset === "Z" ? 0 : Number(offset.slice(1, 3));
+  const offsetMinute = offset === "Z" ? 0 : Number(offset.slice(4, 6));
+  const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const daysInMonth = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1] ?? 0;
+  if (
+    month < 1 || month > 12 || day < 1 || day > daysInMonth ||
+    hour > 23 || minute > 59 || second > 59 ||
+    offsetHour > 23 || offsetMinute > 59
+  ) return false;
+  return Number.isFinite(Date.parse(value));
 }
 
 function validNonNegativeNumber(value: unknown): value is number {
@@ -269,6 +372,95 @@ function validateTranscriptionPostProcessing(value: unknown, path: string): stri
   return errors;
 }
 
+const SEPARATED_STEM_ROLES = new Set<SeparatedStemRole>(["vocals", "bass", "drums", "other"]);
+const METAL_IDENTITY_SOURCES = new Set<MetalIdentitySource>(["vocals", "other", "mixed", "fallback-full-mix"]);
+
+function validateSeparationProvenance(value: unknown, path: string): string[] {
+  const errors: string[] = [];
+  if (!isRecord(value)) return [`${path} must be an object`];
+  for (const key of Object.keys(value)) {
+    if (!["separator", "version", "model", "device", "stems"].includes(key)) {
+      errors.push(`${path}.${key} is not a supported separation field`);
+    }
+  }
+  for (const key of ["separator", "version", "model"] as const) {
+    if (typeof value[key] !== "string" || value[key].trim() === "") {
+      errors.push(`${path}.${key} must be a non-empty string`);
+    }
+  }
+  if (value.device !== undefined && (typeof value.device !== "string" || !["cpu", "cuda", "mps"].includes(value.device))) {
+    errors.push(`${path}.device must be cpu, cuda, or mps when present`);
+  }
+  if (!Array.isArray(value.stems) || value.stems.length === 0) {
+    errors.push(`${path}.stems must be a non-empty array`);
+    return errors;
+  }
+  if (value.stems.length !== SEPARATED_STEM_ROLES.size) {
+    errors.push(`${path}.stems must contain exactly one vocals, bass, drums, and other stem`);
+  }
+  const seen = new Set<string>();
+  for (let index = 0; index < value.stems.length; index++) {
+    const stemPath = `${path}.stems[${index}]`;
+    const stem = value.stems[index];
+    if (!isRecord(stem)) {
+      errors.push(`${stemPath} must be an object`);
+      continue;
+    }
+    for (const key of Object.keys(stem)) {
+      if (!["role", "noteCount", "confidence"].includes(key)) {
+        errors.push(`${stemPath}.${key} is not a supported stem field`);
+      }
+    }
+    if (typeof stem.role !== "string" || !SEPARATED_STEM_ROLES.has(stem.role as SeparatedStemRole)) {
+      errors.push(`${stemPath}.role must be vocals, bass, drums, or other`);
+    } else if (seen.has(stem.role)) {
+      errors.push(`${path}.stems must not contain duplicate role ${stem.role}`);
+    } else {
+      seen.add(stem.role);
+    }
+    if (!Number.isInteger(stem.noteCount) || Number(stem.noteCount) < 0) {
+      errors.push(`${stemPath}.noteCount must be a non-negative integer`);
+    }
+    if (stem.confidence !== undefined &&
+      (typeof stem.confidence !== "number" || !Number.isFinite(stem.confidence) || stem.confidence < 0 || stem.confidence > 1)) {
+      errors.push(`${stemPath}.confidence must be a finite number between 0 and 1 when present`);
+    }
+  }
+  for (const role of SEPARATED_STEM_ROLES) {
+    if (!seen.has(role)) errors.push(`${path}.stems is missing required role ${role}`);
+  }
+  return errors;
+}
+
+function validateMetalArrangementProvenance(value: unknown, path: string): string[] {
+  const errors: string[] = [];
+  if (!isRecord(value)) return [`${path} must be an object`];
+  for (const key of Object.keys(value)) {
+    if (!["arranger", "version", "strategy", "identitySource", "confidence", "warnings"].includes(key)) {
+      errors.push(`${path}.${key} is not a supported metal arrangement field`);
+    }
+  }
+  for (const key of ["arranger", "version", "strategy"] as const) {
+    if (typeof value[key] !== "string" || value[key].trim() === "") {
+      errors.push(`${path}.${key} must be a non-empty string`);
+    }
+  }
+  if (value.identitySource !== undefined &&
+    (typeof value.identitySource !== "string" || !METAL_IDENTITY_SOURCES.has(value.identitySource as MetalIdentitySource))) {
+    errors.push(`${path}.identitySource must be vocals, other, mixed, or fallback-full-mix when present`);
+  }
+  if (value.confidence !== undefined &&
+    (typeof value.confidence !== "number" || !Number.isFinite(value.confidence) || value.confidence < 0 || value.confidence > 1)) {
+    errors.push(`${path}.confidence must be a finite number between 0 and 1 when present`);
+  }
+  if (value.warnings !== undefined) {
+    if (!Array.isArray(value.warnings) || value.warnings.some((warning) => typeof warning !== "string" || warning.trim() === "")) {
+      errors.push(`${path}.warnings must be an array of non-empty strings when present`);
+    }
+  }
+  return errors;
+}
+
 export function validateTranscriptionProvenance(value: unknown, path = "transcription"): string[] {
   const errors: string[] = [];
   if (!isRecord(value)) return [`${path} must be an object`];
@@ -293,10 +485,20 @@ export function validateTranscriptionProvenance(value: unknown, path = "transcri
   if (typeof value.audioSource !== "string" || value.audioSource.trim() === "") {
     errors.push(`${path}.audioSource must be a non-empty string`);
   }
+  if (value.audioAcquisition !== undefined &&
+    (typeof value.audioAcquisition !== "string" || !AUDIO_ACQUISITIONS.has(value.audioAcquisition as NonNullable<TranscriptionProvenance["audioAcquisition"]>))) {
+    errors.push(`${path}.audioAcquisition must be downloaded, pre-seeded, or upload when present`);
+  }
   if (!isIsoTimestamp(value.transcribedAt)) errors.push(`${path}.transcribedAt must be an ISO timestamp`);
   if (value.pipeline !== undefined) errors.push(...validateTranscriptionPipeline(value.pipeline, `${path}.pipeline`));
   if (value.postProcessing !== undefined) {
     errors.push(...validateTranscriptionPostProcessing(value.postProcessing, `${path}.postProcessing`));
+  }
+  if (value.separation !== undefined) {
+    errors.push(...validateSeparationProvenance(value.separation, `${path}.separation`));
+  }
+  if (value.metalArrangement !== undefined) {
+    errors.push(...validateMetalArrangementProvenance(value.metalArrangement, `${path}.metalArrangement`));
   }
   return errors;
 }
@@ -374,11 +576,18 @@ export function validateArrangementManifest(value: unknown): string[] {
   if (typeof value.identityStatus !== "string" || !IDENTITY_STATUSES.has(value.identityStatus as IdentityStatus)) {
     errors.push("identityStatus must be legacy-bootstrap, current, or migrated");
   }
-  const identityStatus = value.identityStatus as IdentityStatus;
-  for (const [key, required] of [["sourceArtifactHash", identityStatus !== "legacy-bootstrap"], ["configFingerprint", identityStatus !== "legacy-bootstrap"]] as const) {
-    const field = value[key];
-    if (required && (typeof field !== "string" || field.trim() === "")) errors.push(`${key} is required for ${identityStatus} artifacts`);
-    if (field !== undefined && (typeof field !== "string" || field.trim() === "")) errors.push(`${key} must be a non-empty string when present`);
+  const identityStatus = IDENTITY_STATUSES.has(value.identityStatus as IdentityStatus)
+    ? value.identityStatus as IdentityStatus
+    : undefined;
+  if (identityStatus) {
+    for (const key of ["sourceArtifactHash", "configFingerprint"] as const) {
+      const field = value[key];
+      if (identityStatus !== "legacy-bootstrap" && (typeof field !== "string" || field.trim() === "")) {
+        errors.push(`${key} is required for ${identityStatus} artifacts`);
+      } else if (field !== undefined && (typeof field !== "string" || field.trim() === "")) {
+        errors.push(`${key} must be a non-empty string when present`);
+      }
+    }
   }
   if (value.arrangementProfile !== undefined && (typeof value.arrangementProfile !== "string" || value.arrangementProfile.trim() === "")) {
     errors.push("arrangementProfile must be a non-empty string when present");
@@ -490,6 +699,15 @@ export async function readArrangementManifest(baseId: string, root = dataDir()):
 
 export async function writeArrangementManifestFile(path: string, manifest: ArrangementManifest): Promise<void> {
   const normalized = parseArrangementManifest(manifest);
-  await mkdir(dirname(path), { recursive: true });
-  await writeFile(path, `${JSON.stringify(normalized, null, 2)}\n`, "utf8");
+  const directory = dirname(path);
+  await mkdir(directory, { recursive: true });
+  const temporaryPath = join(directory, `.manifest-${randomUUID()}.tmp`);
+  let moved = false;
+  try {
+    await writeFile(temporaryPath, `${JSON.stringify(normalized, null, 2)}\n`, { encoding: "utf8", flag: "wx" });
+    await rename(temporaryPath, path);
+    moved = true;
+  } finally {
+    if (!moved) await rm(temporaryPath, { force: true }).catch(() => undefined);
+  }
 }

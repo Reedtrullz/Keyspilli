@@ -43,6 +43,7 @@ export interface ChordLabel {
 /** Chord qualities supported by the lead-sheet parser and chord player. */
 export type ChordQuality =
   | "major"
+  | "5"
   | "minor"
   | "7"
   | "maj7"
@@ -189,4 +190,3 @@ export interface PracticeAnnotation {
   /** Free-text practice note. */
   note?: string;
 }
-

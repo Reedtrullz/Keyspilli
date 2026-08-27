@@ -14,6 +14,23 @@ interface Job {
   finishedAt: string | null;
 }
 
+function isYoutubeVideoUrl(value: string): boolean {
+  try {
+    const parsed = new URL(value.trim());
+    if (parsed.protocol !== "https:") return false;
+    const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
+    if (!["youtube.com", "youtu.be", "m.youtube.com", "music.youtube.com"].includes(host)) return false;
+    const pathParts = parsed.pathname.split("/").filter(Boolean);
+    const id = host === "youtu.be"
+      ? pathParts[0]
+      : parsed.searchParams.get("v")
+        ?? (pathParts.length >= 2 && ["embed", "shorts", "live", "v"].includes(pathParts[0]!) ? pathParts[1] : undefined);
+    return /^[A-Za-z0-9_-]{11}$/.test(id ?? "");
+  } catch {
+    return false;
+  }
+}
+
 export default function YoutubePage() {
   const [url, setUrl] = useState("");
   const [retranscribeSongId, setRetranscribeSongId] = useState("");
@@ -72,7 +89,7 @@ export default function YoutubePage() {
     // queued state while the API route is still compiling or responding.
     // This mirrors the server-side contract and keeps the form usable when
     // the browser's native `type=url` validation accepts a non-YouTube URL.
-    if (!/^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\//.test(url.trim())) {
+    if (!isYoutubeVideoUrl(url)) {
       setStatus("error");
       setError("paste a valid YouTube URL");
       return;
@@ -405,8 +422,9 @@ export default function YoutubePage() {
       </div>
       {status === "idle" && (
         <div className="helper-callout rounded-xl p-4 text-xs text-zinc-500 motion-feedback">
-          Works best with clear, studio-quality solo piano. Full-band tracks and vocals will not transcribe cleanly.
-          The transcription worker must be running — start it with <code className="font-mono">npm run worker -w @keyspilli/transcribe</code>.
+          Clear, studio-quality audio gives the best results. Full-band rock and metal tracks are handled by the
+          worker's stem-aware piano-cover route; if that route is unsuitable, Keyspilli falls back to the legacy mix
+          transcription. The transcription worker must be running — start it with <code className="font-mono">npm run worker -w @keyspilli/transcribe</code>.
         </div>
       )}
     </div>

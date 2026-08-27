@@ -4,12 +4,14 @@
  * MIDI into the catalog, and marks the job done/error.
  */
 import { execFile } from "node:child_process";
-import { existsSync, readFileSync, statSync } from "node:fs";
-import { mkdir, readFile, stat } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
+import { mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 import {
   claimJob,
+  getDb,
   getQueuedJobs,
   requeueOrphaned,
   updateJob,
@@ -30,7 +32,10 @@ import {
   resolveYoutubeSource,
   parseYoutubeMetaFile,
 } from "@keyspilli/catalog";
-import { parseMidi, transcriptionMaxDurationBeats } from "@keyspilli/midi";
+import { buildMetalArrangement, parseMidi, transcriptionMaxDurationBeats, writeMidi } from "@keyspilli/midi";
+import { assessMetalRouting } from "./metal-routing.js";
+import { stemPipelineConfigFromEnv, transcribePitchedStems } from "./stem-pipeline.js";
+import { normalizeYoutubeImportUrl } from "./youtube-url.js";
 
 const execFileP = promisify(execFile);
 const POLL_MS = Number(process.env.KEYSPILLI_POLL_MS ?? 5000);
@@ -41,11 +46,25 @@ const TEMPO_TIMEOUT_MS = 60_000;
 const PYTHON = process.env.KEYSPILLI_PYTHON ?? join(ROOT, "services", "transcribe", ".venv", "bin", "python");
 const BASIC_PITCH = join(dirname(PYTHON), "basic-pitch");
 const TEMPO_PY = join(ROOT, "services", "transcribe", "src", "tempo.py");
-const TEMPO_OVERRIDE = process.env.KEYSPILLI_TEMPO_OVERRIDE;
+const TEMPO_OVERRIDE = process.env.KEYSPILLI_TEMPO_OVERRIDE?.trim() || undefined;
 const BASIC_PITCH_SERIALIZATION = process.env.KEYSPILLI_BP_SERIALIZATION ?? "";
 const BASIC_PITCH_VERSION = process.env.KEYSPILLI_BP_VERSION ?? process.env.BASIC_PITCH_VERSION ?? "unknown";
 const ONSET_THRESHOLD = process.env.KEYSPILLI_ONSET ?? "0.65";
 const FRAME_THRESHOLD = process.env.KEYSPILLI_FRAME ?? "0.45";
+const STEM_PIPELINE_CONFIG = stemPipelineConfigFromEnv(process.env, {
+  root: ROOT,
+  python: PYTHON,
+  basicPitch: BASIC_PITCH,
+});
+
+async function persistMetalArrangement(dir: string, midi: Uint8Array): Promise<void> {
+  const arrangedDir = join(dir, "arranged");
+  await mkdir(arrangedDir, { recursive: true });
+  const finalPath = join(arrangedDir, "arrangement.mid");
+  const stagePath = join(arrangedDir, `.arrangement-${process.pid}-${Date.now()}.mid`);
+  await writeFile(stagePath, midi);
+  await rename(stagePath, finalPath);
+}
 
 /** Per-job transcription tuning. Loaded lazily so a worker can pick up edits
  * without a restart; keyed by job id or song base id, whichever matches first.
@@ -92,6 +111,13 @@ async function run(cmd: string, args: string[], timeoutMs = 300_000): Promise<st
   return stdout;
 }
 
+async function sha256File(path: string): Promise<string> {
+  const hash = createHash("sha256");
+  const stream = createReadStream(path);
+  for await (const chunk of stream) hash.update(chunk as Buffer);
+  return hash.digest("hex");
+}
+
 const YT_COOKIE_FILE = process.env.KEYSPILLI_YT_COOKIES ?? "";
 const YT_PROXY = process.env.KEYSPILLI_YT_PROXY ?? "";
 
@@ -110,6 +136,9 @@ function ytNetworkFlags(): string[] {
 }
 
 async function ytDlp(args: string[], timeoutMs = 300_000): Promise<string> {
+  if (!args.includes("--")) {
+    throw new Error("yt-dlp invocation must include an end-of-options marker");
+  }
   // Client fallback chain (default -> android -> tv), an explicit JS
   // runtime, and optional cookie/proxy flags. YouTube bot-challenges
   // datacenter IPs on the default client; android/tv usually bypass it and
@@ -118,8 +147,13 @@ async function ytDlp(args: string[], timeoutMs = 300_000): Promise<string> {
   let lastError: unknown = null;
   for (const client of YT_CLIENTS) {
     try {
-      const full = ["--js-runtimes", "node", ...ytNetworkFlags(), ...args];
+      const full = ["--js-runtimes", "node", ...ytNetworkFlags()];
       if (client) full.push("--extractor-args", client);
+      // Keep the end-of-options marker after all worker-controlled flags. A
+      // job URL is validated before this function is called, but the marker
+      // also prevents yt-dlp from interpreting a future URL-like argument as
+      // an option; --no-playlist avoids accidental playlist expansion.
+      full.push(...args);
       return await run("yt-dlp", full, timeoutMs);
     } catch (e) {
       lastError = e;
@@ -138,7 +172,7 @@ async function fetchYoutubeMeta(jobId: string, dir: string, youtubeUrl: string):
     console.log(`[worker] ${jobId} using pre-seeded audio + meta.json`);
     return { ...sidecar, acquisition: "pre-seeded" };
   }
-  const info = await ytDlp(["--skip-download", "--print", "%(title)s\u001f%(uploader)s\u001f%(duration)s", youtubeUrl], 60_000);
+  const info = await ytDlp(["--no-playlist", "--skip-download", "--print", "%(title)s\u001f%(uploader)s\u001f%(duration)s", "--", youtubeUrl], 60_000);
   const parts = info.trim().split("\u001f").map((s) => s?.trim() ?? "");
   const title = parts[0] ?? "";
   const uploader = parts[1] ?? "";
@@ -162,6 +196,21 @@ async function processJob(jobId: string): Promise<void> {
     return;
   }
   const dir = join(transcribedDir(), jobId);
+  // Separation plus three pitched-stem transcriptions can legitimately run
+  // much longer than the database's orphan threshold. Refresh the existing
+  // started_at lease so a worker restart cannot requeue and duplicate an
+  // active job. The status guard prevents this timer from reviving a job that
+  // has already transitioned to queued/error/done.
+  const heartbeat = setInterval(() => {
+    try {
+      getDb()
+        .prepare("UPDATE conversion_jobs SET started_at = datetime('now') WHERE id = ? AND status = 'processing'")
+        .run(jobId);
+    } catch (error) {
+      console.warn(`[worker] ${jobId} heartbeat failed: ${(error as Error).message}`);
+    }
+  }, 60_000);
+  heartbeat.unref();
   try {
     await mkdir(dir, { recursive: true });
     const ov = getOverride(jobId);
@@ -169,12 +218,13 @@ async function processJob(jobId: string): Promise<void> {
     const onsetTh = requirePositiveFloat("override.onsetThreshold", String(ov.onsetThreshold ?? (dense ? 0.4 : ONSET_THRESHOLD)));
     const frameTh = requirePositiveFloat("override.frameThreshold", String(ov.frameThreshold ?? (dense ? 0.25 : FRAME_THRESHOLD)));
     const onsetMatch = requirePositiveFloat("override.onsetMatchSec", String(ov.onsetMatchSec ?? (dense ? 0.35 : ONSET_MATCH_SEC)));
-    const meta = await fetchYoutubeMeta(jobId, dir, job.youtubeUrl);
+    const youtubeUrl = normalizeYoutubeImportUrl(job.youtubeUrl);
+    const meta = await fetchYoutubeMeta(jobId, dir, youtubeUrl);
     if (meta.durationSec > MAX_VIDEO_DURATION_SEC) {
       throw new Error(`video longer than ${MAX_VIDEO_DURATION_SEC}s (${meta.durationSec}s)`);
     }
     if (meta.acquisition === "downloaded") {
-      await ytDlp(["-x", "--audio-format", "mp3", "--max-filesize", "80M", "-o", join(dir, "audio.%(ext)s"), job.youtubeUrl]);
+      await ytDlp(["--no-playlist", "-x", "--audio-format", "mp3", "--max-filesize", "80M", "-o", join(dir, "audio.%(ext)s"), "--", youtubeUrl]);
     }
     // Do not feed a partially downloaded `audio.mp3.part` (or a stale
     // sidecar) to tempo detection/Basic Pitch after a retried yt-dlp run.
@@ -184,28 +234,151 @@ async function processJob(jobId: string): Promise<void> {
     // Reject files that are too small to contain valid audio.
     const { size: audioSize } = await stat(audioPath);
     if (audioSize < 1024) throw new Error(`audio file too small (${audioSize} bytes), likely corrupt download`);
-    const bpArgs = [dir, audioPath, "--save-midi", "--onset-threshold", String(onsetTh), "--frame-threshold", String(frameTh)];
+    // Keep the canonical artifact tied to the actual source recording rather
+    // than to whichever derived MIDI a transcription strategy happened to
+    // publish. The hash is streamed so an 80 MB download does not become a
+    // second full in-memory buffer on the worker.
+    const sourceArtifactHash = await sha256File(audioPath);
     const tempo = ov.tempoBpm != null ? String(ov.tempoBpm) : ((TEMPO_OVERRIDE ?? (await run(PYTHON, [TEMPO_PY, audioPath], TEMPO_TIMEOUT_MS).catch((e) => {
       console.warn(`[worker] ${jobId} tempo detection failed: ${(e as Error).message}`);
       return "";
     })))).trim();
-    if (tempo) bpArgs.push("--midi-tempo", tempo);
-    if (BASIC_PITCH_SERIALIZATION) bpArgs.push("--model-serialization", BASIC_PITCH_SERIALIZATION);
     const transcribedAt = new Date().toISOString();
     const detectedTempo = tempo ? Number(tempo) : undefined;
-    await run(BASIC_PITCH, bpArgs, BP_TIMEOUT_MS);
-    // Validate the root candidate through the shared resolver. This keeps a
-    // retry from ingesting a corrupt/partial sidecar and gives the worker the
-    // same candidate semantics as catalog rebuilds.
-    const source = await resolveYoutubeSource(dir, "root");
-    if (!source) throw new Error("basic_pitch produced no usable root MIDI/audio pair");
-    const midi = await filterTranscription(new Uint8Array(await readFile(source.midiPath)), source.audioPath, {
-      skipOnsetFilter: ov.skipOnsetFilter === true || dense,
-      onsetMatchSec: onsetMatch,
-      collapseOctaveDoubles: ov.collapseOctaveDoubles,
-      trimIntroBeats: ov.trimIntroBeats,
-      thinBassMinGapBeats: ov.thinBassMinGapBeats,
-    });
+    let midi: Uint8Array | undefined;
+    let chords: ReturnType<typeof buildMetalArrangement>["chords"] | undefined;
+    let separation: TranscriptionProvenance["separation"] | undefined;
+    let metalArrangement: TranscriptionProvenance["metalArrangement"] | undefined;
+    let usedMetalArrangement = false;
+    let filterApplied = false;
+
+    if (STEM_PIPELINE_CONFIG.mode !== "legacy") {
+      try {
+        const stemResult = await transcribePitchedStems(audioPath, dir, {
+          ...STEM_PIPELINE_CONFIG,
+          onsetThreshold: onsetTh,
+          frameThreshold: frameTh,
+        }, {
+          ...(typeof detectedTempo === "number" && Number.isFinite(detectedTempo) ? { tempo: detectedTempo } : {}),
+        }, {
+          basicPitchVersion: BASIC_PITCH_VERSION,
+        });
+        const parsedStems = stemResult.stems.map((stem) => ({
+          role: stem.role,
+          midi: parseMidi(stem.midi),
+        }));
+        const routing = assessMetalRouting(parsedStems, { force: dense });
+        if (STEM_PIPELINE_CONFIG.mode === "auto") {
+          if (!routing.eligible) throw new Error(routing.message);
+        }
+        const detectedCounts = new Map(Object.entries(routing.features.counts) as Array<[string, number]>);
+        const arranged = buildMetalArrangement({
+          stems: parsedStems,
+          title: existing?.title ?? meta.title,
+        });
+        // A bass-only or bleed-only result is structurally valid MIDI but not
+        // a recognizable cover. In auto mode this gate deliberately falls
+        // back to the established full-mix path instead of publishing it.
+        if (arranged.stats.identityNotes < 8 || arranged.parsed.notes.length < 16) {
+          throw new Error(
+            `metal arranger produced too little identity (${arranged.stats.identityNotes} identity, `
+            + `${arranged.parsed.notes.length} total notes)`,
+          );
+        }
+        midi = writeMidi(arranged.parsed.notes, {
+          tempoBpm: arranged.parsed.tempoBpm,
+          timeSig: arranged.parsed.timeSig,
+          keySig: arranged.parsed.keySig,
+          keyMode: arranged.parsed.keyMode,
+          tracks: [
+            { name: "Right Hand", notes: arranged.parsed.notes.filter((note) => note.hand === "R") },
+            { name: "Left Hand", notes: arranged.parsed.notes.filter((note) => note.hand === "L") },
+          ],
+        });
+        await persistMetalArrangement(dir, midi);
+        chords = arranged.chords;
+        const stemCounts = detectedCounts;
+        separation = {
+          separator: stemResult.report.separator.engine,
+          version: stemResult.report.separator.version,
+          model: stemResult.report.separator.model,
+          device: stemResult.report.separator.device,
+          stems: [
+            { role: "vocals", noteCount: stemCounts.get("vocals") ?? 0 },
+            { role: "bass", noteCount: stemCounts.get("bass") ?? 0 },
+            // The four-stem model calls the riff/harmony residual `other`;
+            // buildMetalArrangement consumes the same evidence as `guitar`.
+            { role: "other", noteCount: stemCounts.get("guitar") ?? 0 },
+            { role: "drums", noteCount: stemCounts.get("drums") ?? 0 },
+          ],
+        };
+        const usedSources = arranged.ir.sections
+          .filter((section) => section.source !== "rest")
+          .map((section) => section.source === "vocals" ? "vocals" : "other");
+        const distinctSources = new Set(usedSources);
+        const confidence = arranged.ir.sections.length
+          ? arranged.ir.sections.reduce((sum, section) => sum + section.confidence, 0) / arranged.ir.sections.length
+          : undefined;
+        metalArrangement = {
+          arranger: "keyspilli-metal-arranger",
+          version: "1",
+          strategy: "section-aware-vocal-riff-power-chord",
+          ...(distinctSources.size > 1
+            ? { identitySource: "mixed" as const }
+            : distinctSources.has("vocals")
+              ? { identitySource: "vocals" as const }
+              : { identitySource: "other" as const }),
+          ...(confidence !== undefined && Number.isFinite(confidence) ? { confidence } : {}),
+          ...(arranged.warnings.length ? { warnings: arranged.warnings } : {}),
+        };
+        usedMetalArrangement = true;
+        console.log(
+          `[worker] ${jobId} metal arrangement: ${arranged.stats.identityNotes} identity, `
+          + `${arranged.stats.leftHandNotes} LH, ${arranged.stats.chordEvents} chords`,
+        );
+      } catch (error) {
+        if (STEM_PIPELINE_CONFIG.mode === "metal") throw error;
+        // transcribePitchedStems publishes its small diagnostic MIDIs before
+        // the musical routing gate runs. Remove them (and any arrangement
+        // from a prior failed attempt) when auto mode selects the legacy
+        // result, so rebuild code cannot mistake stale stem output for the
+        // source that was actually published.
+        await Promise.all([
+          rm(join(dir, "stem-midi"), { recursive: true, force: true }),
+          rm(join(dir, "arranged"), { recursive: true, force: true }),
+        ]);
+        const detail = error instanceof Error ? error.message : String(error);
+        const warning = "automatic metal stem route was unavailable or unsuitable; published legacy full-mix transcription";
+        console.warn(`[worker] ${jobId} ${warning}: ${detail}`);
+        metalArrangement = {
+          arranger: "keyspilli-metal-arranger",
+          version: "1",
+          strategy: "legacy-full-mix-fallback",
+          identitySource: "fallback-full-mix",
+          warnings: [warning],
+        };
+      }
+    }
+
+    if (!midi) {
+      const bpArgs = [dir, audioPath, "--save-midi", "--onset-threshold", String(onsetTh), "--frame-threshold", String(frameTh)];
+      if (tempo) bpArgs.push("--midi-tempo", tempo);
+      if (BASIC_PITCH_SERIALIZATION) bpArgs.push("--model-serialization", BASIC_PITCH_SERIALIZATION);
+      await run(BASIC_PITCH, bpArgs, BP_TIMEOUT_MS);
+      // Validate the root candidate through the shared resolver. This keeps a
+      // retry from ingesting a corrupt/partial sidecar and gives the worker the
+      // same candidate semantics as catalog rebuilds.
+      const source = await resolveYoutubeSource(dir, "root");
+      if (!source) throw new Error("basic_pitch produced no usable root MIDI/audio pair");
+      midi = await filterTranscription(new Uint8Array(await readFile(source.midiPath)), source.audioPath, {
+        skipOnsetFilter: ov.skipOnsetFilter === true || dense,
+        onsetMatchSec: onsetMatch,
+        collapseOctaveDoubles: ov.collapseOctaveDoubles,
+        trimIntroBeats: ov.trimIntroBeats,
+        thinBassMinGapBeats: ov.thinBassMinGapBeats,
+      });
+      filterApplied = !(ov.skipOnsetFilter === true || dense);
+    }
     // Read the post-filter MIDI tempo because this is the exact tempo passed
     // to ingestSource and therefore the tempo used by cleanTranscription's
     // seconds-to-beats sustain calculation.
@@ -219,14 +392,14 @@ async function processJob(jobId: string): Promise<void> {
       onsetThreshold: onsetTh,
       frameThreshold: frameTh,
       ...(typeof detectedTempo === "number" && Number.isFinite(detectedTempo) ? { tempo: detectedTempo } : {}),
-      ...(meta.acquisition === "pre-seeded" ? { audioAcquisition: "pre-seeded" as const } : {}),
+      audioAcquisition: meta.acquisition,
       tempoSource: TEMPO_OVERRIDE ? "override" : tempo ? "detected" : "default",
       audioSource: "youtube",
       transcribedAt,
       pipeline: TRANSCRIPTION_PIPELINE_CONFIG,
       postProcessing: {
-        filterApplied: true,
-        cleanupApplied: true,
+        filterApplied,
+        cleanupApplied: !usedMetalArrangement,
         onsetMatchSec: onsetMatch,
         onsetDetector: AUDIO_ONSET_DETECTOR_CONFIG,
         minVelocity: TRANSCRIPTION_POST_PROCESSING_DEFAULTS.minVelocity,
@@ -236,14 +409,17 @@ async function processJob(jobId: string): Promise<void> {
         maxSounding: TRANSCRIPTION_POST_PROCESSING_DEFAULTS.maxSounding,
         maxDurationSec: TRANSCRIPTION_POST_PROCESSING_DEFAULTS.maxDurationSec,
         maxDurationBeats: transcriptionMaxDurationBeats(filteredTempo),
-        importedMaxDurationBeats: MAX_YOUTUBE_IMPORT_DUR_BEATS,
+        importedMaxDurationBeats: usedMetalArrangement ? null : MAX_YOUTUBE_IMPORT_DUR_BEATS,
         importedMaxSounding: TRANSCRIPTION_POST_PROCESSING_DEFAULTS.importedMaxSounding,
       },
+      ...(separation ? { separation } : {}),
+      ...(metalArrangement ? { metalArrangement } : {}),
     };
     // If the job points at an existing song, replace that base (stable URLs)
     // and keep its metadata; otherwise create a fresh entry from the video.
     const result = await ingestSource({
       buf: new Uint8Array(midi),
+      sourceArtifactHash,
       title: existing?.title ?? meta.title,
       artist: existing?.artist ?? meta.uploader,
       category: existing?.category ?? "YouTube",
@@ -256,17 +432,19 @@ async function processJob(jobId: string): Promise<void> {
       // intended speed). Let
       // ingestSource read and normalize the tempo from this MIDI instead.
       tempo: undefined,
-      style: existing?.style,
+      style: existing?.style ?? (usedMetalArrangement ? "metal" : undefined),
       mood: existing?.mood,
       contentType: "youtube",
       acquiredVia: "youtube",
-      sourceYoutubeUrl: job.youtubeUrl,
+      sourceYoutubeUrl: youtubeUrl,
       sourceRef: `youtube-job:${jobId}`,
       baseId: existing?.baseId,
-      // filterTranscription removes audio-unmatched notes and trims silence.
-      // Keep the conservative ingest cleaner enabled too; it only removes
-      // short/quiet re-strikes and catches misclicks that share a real onset.
-      cleanTranscription: true,
+      // The metal arranger already emits a deliberately piano-shaped RH/LH
+      // score. Running the generic ghost-note cleaner again would erase or
+      // relabel authored accompaniment. The legacy path keeps that cleaner.
+      cleanTranscription: !usedMetalArrangement,
+      arrangementProfile: usedMetalArrangement ? "metal" : "learner",
+      ...(chords ? { chords } : {}),
       transcription,
     }, {
       // DELETE removes the queued job while holding the same base artifact
@@ -296,6 +474,8 @@ async function processJob(jobId: string): Promise<void> {
       updateJob(jobId, { status: "error", error: msg, attempts, finishedAt: new Date().toISOString() });
       console.error(`[worker] ${jobId} failed after ${attempts} attempts: ${(e as Error).message}`);
     }
+  } finally {
+    clearInterval(heartbeat);
   }
 }
 

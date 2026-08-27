@@ -46,6 +46,7 @@ export class SongUpdateError extends Error {
 
 const KEY_ROOTS = new Set([
   "C", "C#", "Db", "D", "D#", "Eb", "E", "F", "F#", "Gb", "G", "G#", "Ab", "A", "A#", "Bb", "B",
+  "Cb", "B#", "E#", "Fb",
 ]);
 
 const EXPECTED_VARIANT_COUNT = 6;
@@ -53,10 +54,17 @@ const EXPECTED_VARIANT_LEVELS = new Set(["a", "b", "e", "m", "ve", "vb"]);
 const BEAT_TOLERANCE = 1e-6;
 
 export function isValidKey(key: string): boolean {
-  const m = /^([A-Ga-g](?:#|b)?)(m)?$/.exec(key.trim());
+  const m = /^([A-Ga-g](?:#|b)?)(?:\s*(?:m|minor|major))?$/i.exec(key.trim());
   if (!m) return false;
   const root = m[1]!.charAt(0).toUpperCase() + m[1]!.slice(1);
   return KEY_ROOTS.has(root);
+}
+
+function normalizeKeyName(key: string): string {
+  const match = /^([A-Ga-g](?:#|b)?)(?:\s*(m|minor|major))?$/i.exec(key.trim());
+  if (!match) return key.trim();
+  const root = match[1]!.charAt(0).toUpperCase() + match[1]!.slice(1);
+  return /^(?:m|minor)$/i.test(match[2] ?? "") ? `${root}m` : root;
 }
 
 export function resolveBaseId(id: string): string | null {
@@ -86,13 +94,19 @@ function timelineEnd(
   measures: Variant["measures"],
   durationBeats: unknown,
 ): number {
-  return Math.max(
-    finiteNumber(durationBeats) ? durationBeats : 0,
-    ...notes.map((note) => note.start + note.dur),
-    ...chords.map(chordEnd),
-    ...measures.map((measure) => measure.endBeat),
-    1,
-  );
+  let end = finiteNumber(durationBeats) ? durationBeats : 0;
+  for (const note of notes) {
+    const candidate = note.start + note.dur;
+    if (finiteNumber(candidate) && candidate > end) end = candidate;
+  }
+  for (const chord of chords) {
+    const candidate = chordEnd(chord);
+    if (finiteNumber(candidate) && candidate > end) end = candidate;
+  }
+  for (const measure of measures) {
+    if (finiteNumber(measure.endBeat) && measure.endBeat > end) end = measure.endBeat;
+  }
+  return Math.max(end, 1);
 }
 
 function buildMeasures(
@@ -102,7 +116,8 @@ function buildMeasures(
   durationBeats?: unknown,
 ): Variant["measures"] {
   const [num, den] = timeSig;
-  const beatsPerMeasure = num * (4 / den);
+  const rawBeatsPerMeasure = num * (4 / den);
+  const beatsPerMeasure = finiteNumber(rawBeatsPerMeasure) && rawBeatsPerMeasure > 0 ? rawBeatsPerMeasure : 4;
   const dur = timelineEnd(notes, chords, [], durationBeats);
   const count = Math.max(1, Math.ceil(dur / beatsPerMeasure));
   return Array.from({ length: count }, (_, i) => ({
@@ -135,10 +150,16 @@ function rebuildMeasuresForCalibration(
   if (!scaled.length) return buildMeasures(notes, timeSig, chords, durationBeats);
 
   const [num, den] = timeSig;
-  const beatsPerMeasure = num * (4 / den);
+  const rawBeatsPerMeasure = num * (4 / den);
+  const beatsPerMeasure = finiteNumber(rawBeatsPerMeasure) && rawBeatsPerMeasure > 0 ? rawBeatsPerMeasure : 4;
   const requiredEnd = timelineEnd(notes, chords, scaled, durationBeats);
-  let endBeat = Math.max(...scaled.map((measure) => measure.endBeat), 0);
-  let nextIndex = Math.max(...scaled.map((measure) => measure.index), -1) + 1;
+  let endBeat = 0;
+  let nextIndex = -1;
+  for (const measure of scaled) {
+    if (finiteNumber(measure.endBeat) && measure.endBeat > endBeat) endBeat = measure.endBeat;
+    if (finiteNumber(measure.index) && measure.index > nextIndex) nextIndex = measure.index;
+  }
+  nextIndex += 1;
   while (endBeat + BEAT_TOLERANCE < requiredEnd) {
     scaled.push({ index: nextIndex++, startBeat: endBeat, endBeat: endBeat + beatsPerMeasure });
     endBeat += beatsPerMeasure;
@@ -433,6 +454,7 @@ export async function applySongMetadata(id: string, patch: SongPatch): Promise<S
   if (patch.key !== undefined && !isValidKey(patch.key)) {
     throw new SongUpdateError(400, `invalid key: ${patch.key}`);
   }
+  const normalizedKey = patch.key === undefined ? undefined : normalizeKeyName(patch.key);
   const hasPatch = [
     patch.title,
     patch.artist,
@@ -476,19 +498,25 @@ export async function applySongMetadata(id: string, patch: SongPatch): Promise<S
     const chords = calibrationChanged
       ? scaleChords(stored.chords ?? [], factor)
       : (stored.chords ?? []);
+    const scaledStoredMeasures = calibrationChanged
+      ? (stored.measures ?? []).map((measure) => ({
+          ...measure,
+          startBeat: measure.startBeat * factor,
+          endBeat: measure.endBeat * factor,
+        }))
+      : [];
     const durationBeats = calibrationChanged
-      ? Math.max(
+      ? timelineEnd(
+          notes,
+          chords,
+          scaledStoredMeasures,
           finiteNumber(stored.durationBeats) ? stored.durationBeats * factor : 0,
-          ...notes.map((note) => note.start + note.dur),
-          ...chords.map(chordEnd),
-          ...(stored.measures ?? []).map((measure) => measure.endBeat * factor),
-          0,
         )
       : stored.durationBeats;
     const measures = calibrationChanged
       ? rebuildMeasuresForCalibration(stored.measures, notes, chords, durationBeats, factor, stored.timeSig)
       : (stored.measures ?? buildMeasures(notes, stored.timeSig, chords, stored.durationBeats));
-    const key = patch.key ?? stored.key;
+    const key = normalizedKey ?? stored.key;
     const variant: Variant = {
       level: row.difficulty as Variant["level"],
       difficultyScore: row.difficultyScore,
@@ -526,7 +554,9 @@ export async function applySongMetadata(id: string, patch: SongPatch): Promise<S
     ["mood", "mood"],
     ["key", "key"],
   ] as const) {
-    const value = (patch as Record<string, unknown>)[key];
+    const value = key === "key"
+      ? normalizedKey
+      : (patch as Record<string, unknown>)[key];
     if (value !== undefined) {
       dbSets.push(`${col} = @${key}`);
       dbParams[key] = value;

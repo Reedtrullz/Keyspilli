@@ -94,6 +94,19 @@ describe("ingestSource .mxl", () => {
     expect(manifest.tempo.calibration.bpm).toBe(manifest.tempo.playback.bpm);
   });
 
+  it("bounds generated ids when display metadata is empty or unusually long", async () => {
+    const xml = new Uint8Array(new TextEncoder().encode(scoreXml([60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79])));
+    const result = await ingestSource({
+      buf: xml,
+      title: "!!!",
+      artist: "A".repeat(200),
+      contentType: "upload",
+    });
+    expect(result.error).toBeUndefined();
+    expect(result.baseId).toMatch(/^[a-z0-9][a-z0-9-]{0,119}$/);
+    expect(result.baseId.length).toBeLessThanOrEqual(120);
+  });
+
   it("prefers a .musicxml entry over META-INF files when container has no rootfile", async () => {
     const xml = scoreXml([60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79]);
     const mxl = zipSync({
@@ -199,6 +212,180 @@ describe("ingestSource .mxl", () => {
       leftGroups.set(note.start, (leftGroups.get(note.start) ?? 0) + 1);
     }
     expect([...leftGroups.values()].some((size) => size >= 3)).toBe(true);
+  });
+
+  it("publishes metal profile chords and path-free separation provenance at every level", async () => {
+    const melody = Array.from({ length: 24 }, (_, index) => ({
+      midi: 67 + (index % 5),
+      start: index * 0.5,
+      dur: 0.4,
+      vel: 90,
+      hand: "R" as const,
+    }));
+    const bass = Array.from({ length: 12 }, (_, index) => ({
+      midi: [40, 43, 45][index % 3]!,
+      start: index,
+      dur: 0.8,
+      vel: 72,
+      hand: "L" as const,
+    }));
+    const chords = [
+      { beat: 0, name: "E5", notes: [40, 47], sourceKind: "authored" as const, durationBeats: 4 },
+      { beat: 4, name: "G5", notes: [43, 50], sourceKind: "authored" as const, durationBeats: 4 },
+      { beat: 8, name: "A5", notes: [45, 52], sourceKind: "authored" as const, durationBeats: 4 },
+    ];
+    const baseId = "metal-provenance-fixture";
+    const result = await ingestSource({
+      buf: writeMidi([...melody, ...bass], {
+        tempoBpm: 120,
+        tracks: [
+          { name: "RH", notes: melody },
+          { name: "LH", notes: bass },
+        ],
+      }),
+      title: "Synthetic Metal Fixture",
+      artist: "Keyspilli Tests",
+      contentType: "youtube",
+      acquiredVia: "youtube",
+      sourceYoutubeUrl: "https://www.youtube.com/watch?v=m3talT3st01",
+      baseId,
+      cleanTranscription: false,
+      arrangementProfile: "metal",
+      chords,
+      transcription: {
+        basicPitchVersion: "0.4.0",
+        modelSerialization: "default",
+        onsetThreshold: 0.5,
+        frameThreshold: 0.35,
+        tempo: 120,
+        tempoSource: "detected",
+        audioSource: "youtube",
+        transcribedAt: "2026-08-27T08:00:00.000Z",
+        separation: {
+          separator: "demucs",
+          version: "4.0.1",
+          model: "htdemucs",
+          stems: [
+            { role: "vocals", noteCount: melody.length, confidence: 0.86 },
+            { role: "bass", noteCount: bass.length, confidence: 0.79 },
+            { role: "drums", noteCount: 0 },
+            { role: "other", noteCount: 18, confidence: 0.74 },
+          ],
+        },
+        metalArrangement: {
+          arranger: "keyspilli-metal",
+          version: "metal-arranger-v1",
+          strategy: "vocal-then-riff",
+          identitySource: "mixed",
+          confidence: 0.81,
+        },
+      },
+    });
+    expect(result.error).toBeUndefined();
+    expect(result.songIds).toHaveLength(6);
+
+    const manifest = JSON.parse(readFileSync(join(tmp, "artifacts", baseId, "manifest.json"), "utf8")) as {
+      arrangementProfile: string;
+      transcription: { separation: { stems: Array<Record<string, unknown>> }; metalArrangement: { strategy: string } };
+    };
+    expect(manifest.arrangementProfile).toBe("metal");
+    expect(manifest.transcription.metalArrangement.strategy).toBe("vocal-then-riff");
+    expect(manifest.transcription.separation.stems.every((stem) => !("path" in stem))).toBe(true);
+
+    for (const level of ["vb", "b", "ve", "e", "m", "a"]) {
+      const notes = JSON.parse(readFileSync(join(artifactsDir(baseId, level), "notes.json"), "utf8")) as {
+        chords: typeof chords;
+        provenance: { transcription: { separation: { model: string }; metalArrangement: { arranger: string } } };
+      };
+      expect(notes.chords).toEqual(chords);
+      expect(notes.provenance.transcription.separation.model).toBe("htdemucs");
+      expect(notes.provenance.transcription.metalArrangement.arranger).toBe("keyspilli-metal");
+    }
+  });
+
+  it("keeps canonical metal tails and source-audio identity out of the YouTube cap", async () => {
+    const sourceArtifactHash = "a".repeat(64);
+    const source = writeMidi(
+      Array.from({ length: 12 }, (_, index) => ({
+        midi: 60 + index,
+        start: index,
+        dur: 3,
+        vel: 84,
+        hand: "R" as const,
+      })),
+      { tempoBpm: 120 },
+    );
+    const baseId = "metal-duration-policy";
+    const result = await ingestSource({
+      buf: source,
+      sourceArtifactHash,
+      title: "Metal Duration Policy",
+      artist: "Keyspilli Tests",
+      contentType: "youtube",
+      acquiredVia: "youtube",
+      sourceYoutubeUrl: "https://www.youtube.com/watch?v=metalDuration01",
+      baseId,
+      cleanTranscription: false,
+      arrangementProfile: "metal",
+    });
+    expect(result.error).toBeUndefined();
+    const manifest = JSON.parse(readFileSync(join(tmp, "artifacts", baseId, "manifest.json"), "utf8")) as {
+      sourceArtifactHash: string;
+    };
+    expect(manifest.sourceArtifactHash).toBe(sourceArtifactHash);
+    expect(getSongsByBase(baseId).every((song) => song.style === "metal")).toBe(true);
+    const advanced = JSON.parse(readFileSync(join(artifactsDir(baseId, "a"), "notes.json"), "utf8")) as {
+      notes: { dur: number }[];
+    };
+    expect(Math.max(...advanced.notes.map((note) => note.dur))).toBeGreaterThan(1.5);
+  });
+
+  it("preserves a persisted metal profile when a rebuild omits the profile option", async () => {
+    const source = writeMidi(
+      Array.from({ length: 12 }, (_, index) => ({
+        midi: 48 + index,
+        start: index,
+        dur: 3,
+        vel: 84,
+        hand: "R" as const,
+      })),
+      { tempoBpm: 120 },
+    );
+    const baseId = "metal-profile-rebuild";
+    const first = await ingestSource({
+      buf: source,
+      title: "Metal profile rebuild",
+      artist: "Keyspilli Tests",
+      contentType: "youtube",
+      acquiredVia: "youtube",
+      sourceYoutubeUrl: "https://www.youtube.com/watch?v=metalRebuild01",
+      baseId,
+      cleanTranscription: false,
+      arrangementProfile: "metal",
+    });
+    expect(first.error).toBeUndefined();
+
+    // A catalog maintenance caller that only knows the stable base id must
+    // not silently reintroduce the legacy YouTube sustain cap.
+    const rebuilt = await ingestSource({
+      buf: source,
+      title: "Metal profile rebuild",
+      artist: "Keyspilli Tests",
+      contentType: "youtube",
+      acquiredVia: "youtube",
+      sourceYoutubeUrl: "https://www.youtube.com/watch?v=metalRebuild01",
+      baseId,
+      cleanTranscription: false,
+    });
+    expect(rebuilt.error).toBeUndefined();
+    const manifest = JSON.parse(readFileSync(join(tmp, "artifacts", baseId, "manifest.json"), "utf8")) as {
+      arrangementProfile: string;
+    };
+    expect(manifest.arrangementProfile).toBe("metal");
+    const advanced = JSON.parse(readFileSync(join(artifactsDir(baseId, "a"), "notes.json"), "utf8")) as {
+      notes: { dur: number }[];
+    };
+    expect(Math.max(...advanced.notes.map((note) => note.dur))).toBeGreaterThan(1.5);
   });
 
   it("falls back to a safe tempo when the source MIDI tempo is invalid", async () => {

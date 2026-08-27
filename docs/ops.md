@@ -145,8 +145,10 @@ provider page bodies; retain only normalized chord events and provenance.
 
 ## YouTube conversion notes
 
-- The worker uses `yt-dlp` + Basic Pitch (CPU). Long videos are slow; the UI
-  recommends solo-piano covers under 5 minutes.
+- The worker accepts videos up to the configured `KEYSPILLI_MAX_VIDEO_DURATION_SEC`
+  (600 seconds by default). CPU inference is slow; the UI recommends
+  solo-piano covers under 5 minutes, while the metal route is designed for
+  full-band recordings such as rock and metal.
 - Backend: ONNX (no TensorFlow needed). On the Mac for fast local development,
   set `KEYSPILLI_BP_SERIALIZATION=coreml` (CoreML is ~10× faster than CPU).
 - Worker logs via `docker compose logs -f worker`.
@@ -166,6 +168,52 @@ provider page bodies; retain only normalized chord events and provenance.
   the audio-onset filter entirely; `"skipOnsetFilter": true` only disables the
   filter. Use them when a legitimate transcription loses melody notes to the
   filter (symptom: very low note count and pitch distribution stuck in bass).
+
+### Metal-friendly import route
+
+The worker image defaults to `KEYSPILLI_IMPORT_MODE=auto`. The route is:
+
+1. Demucs (`htdemucs`) separates `vocals`, `bass`, `drums`, and `other`.
+2. Basic Pitch transcribes the pitched stems; a lightweight onset detector
+   supplies drum timing without turning drums into pitched piano notes.
+3. The role-aware arranger selects vocal or riff identity for the right hand,
+   keeps bass roots/fifths and section harmony in the left hand, and emits
+   explicit right-/left-hand tracks plus difficulty variants.
+
+Use `KEYSPILLI_IMPORT_MODE=metal` for a strict operator run, or
+`KEYSPILLI_IMPORT_MODE=legacy` to bypass separation. In `auto`, a missing
+model, timeout, low-free-space condition, malformed stem output, or weak
+identity result is recorded and the job uses the existing full-mix Basic
+Pitch path. This keeps ordinary imports fail-closed while allowing a noisy
+metal recording to remain importable. Set the mode in the worker container's
+environment; the Docker image default is `auto`.
+The compose file forwards `KEYSPILLI_IMPORT_MODE`, so a one-off strict canary
+can be started with `KEYSPILLI_IMPORT_MODE=metal docker compose up worker`.
+
+The shipped transcribe image includes CPU PyTorch, Demucs 4.0.1, the
+`htdemucs` weights, Basic Pitch, ffmpeg, and yt-dlp. Expect roughly a 3 GB
+worker image with the CPU torch/Demucs stack and at least 6 GiB of free space
+for the default temporary-stem guard; longer recordings may need more. The
+shipped image is CPU-only, so
+`KEYSPILLI_DEMUCS_DEVICE=cpu` is the deploy-safe setting. CUDA/MPS values are
+configuration hooks for a separately built runtime and are not enabled by the
+current image.
+
+For each successful separation, the worker keeps only compact diagnostics in
+`/data/transcribed/<jobId>/stem-midi/` (`vocals.mid`, `bass.mid`, `guitar.mid`,
+`drums.mid`, and `report.json`) plus the piano-shaped
+`arranged/arrangement.mid`; decoded WAV stems remain in a bounded temporary
+directory and are removed. If `auto` falls back, these diagnostic directories
+are removed so stale stems cannot be mistaken for the published source. The
+catalog stores model/version, note counts, arrangement strategy, identity
+source, and warnings as path-free provenance. Inspect the worker log and the
+job's `notes.json`/manifest provenance when diagnosing a result.
+
+The arranger is a practical reduction, not a claim of a note-for-note guitar
+transcription: it preserves recognizable melody/riff material and harmonic
+motion while deliberately discarding unplayable distortion layers and using
+drums as rhythmic evidence only. Validate a new band or recording manually in
+the player before treating it as a curated catalogue entry.
 
 ## YouTube conversion maintenance
 

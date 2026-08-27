@@ -12,6 +12,7 @@ import {
 describe("chord symbols", () => {
   it("parses qualities and slash basses", () => {
     expect(parseChordSymbol("C")).toMatchObject({ root: "C", rootPc: 0, quality: "major" });
+    expect(parseChordSymbol("C5")).toMatchObject({ root: "C", rootPc: 0, quality: "5" });
     expect(parseChordSymbol("Am7")).toMatchObject({ root: "A", rootPc: 9, quality: "m7" });
     expect(parseChordSymbol("F#maj7/A#")).toMatchObject({
       root: "F#",
@@ -26,6 +27,7 @@ describe("chord symbols", () => {
 
   it("covers the supported chord pitch classes", () => {
     expect(chordPitchClasses("C")).toEqual([0, 4, 7]);
+    expect(chordPitchClasses("C5")).toEqual([0, 7]);
     expect(chordPitchClasses("Cm")).toEqual([0, 3, 7]);
     expect(chordPitchClasses("C7")).toEqual([0, 4, 7, 10]);
     expect(chordPitchClasses("Cmaj7")).toEqual([0, 4, 7, 11]);
@@ -41,6 +43,7 @@ describe("chord symbols", () => {
 
   it("generates compact root-position MIDI notes and slash basses", () => {
     expect(chordToNotes("C", { octave: 4 })).toEqual([60, 64, 67]);
+    expect(chordToNotes("C5", { octave: 4 })).toEqual([60, 67]);
     expect(chordToNotes("C/E", { octave: 4, bassOctave: 3 })).toEqual([52, 60, 64, 67]);
     expect(chordToNotes("C", { octave: 4, includeBass: true, bassOctave: 3 })).toEqual([48, 60, 64, 67]);
     expect(chordToNotes("Cadd9", { octave: 4 })).toEqual([60, 64, 67, 74]);

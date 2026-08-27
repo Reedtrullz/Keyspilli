@@ -8,17 +8,38 @@ const MINOR_FLAT = ["A", "D", "G", "C", "F", "Bb", "Eb", "Ab"];
 const MAJOR_FIFTHS_BY_NAME: Record<string, number> = {
   C: 0, G: 1, D: 2, A: 3, E: 4, B: 5, "F#": 6, "C#": 7,
   F: -1, Bb: -2, Eb: -3, Ab: -4, Db: -5, Gb: -6, Cb: -7,
+  // Enharmonic spellings are accepted by the metadata editor and key
+  // detector; map them to their practical piano key signatures.
+  "B#": 0, "E#": -1, Fb: 4,
 };
 const MINOR_FIFTHS_BY_NAME: Record<string, number> = {
   A: 0, E: 1, B: 2, "F#": 3, "C#": 4, "G#": 5, "D#": 6, "A#": 7,
   D: -1, G: -2, C: -3, F: -4, Bb: -5, Eb: -6, Ab: -7,
+  "B#": -3, "E#": -4, Fb: 1, Cb: -5,
 };
+
+function maxNumber(values: Iterable<number>, fallback = Number.NEGATIVE_INFINITY): number {
+  let result = fallback;
+  for (const value of values) {
+    if (Number.isFinite(value) && value > result) result = value;
+  }
+  return result;
+}
+
+function minNumber(values: Iterable<number>, fallback = Number.POSITIVE_INFINITY): number {
+  let result = fallback;
+  for (const value of values) {
+    if (Number.isFinite(value) && value < result) result = value;
+  }
+  return result;
+}
 
 /** Key signature (fifths + mode) for a key name like "G", "F#m", "A minor" or "Eb". */
 export function keySignature(key: string): { fifths: number; mode: 0 | 1 } {
   const trimmed = key.trim();
   const minor = /m(?:inor)?$/i.test(trimmed);
-  const root = trimmed.split(/\s+/)[0]!.replace(/m$/i, "");
+  const rawRoot = trimmed.split(/\s+/)[0]!.replace(/m(?:inor)?$/i, "");
+  const root = rawRoot.charAt(0).toUpperCase() + rawRoot.slice(1);
   const table = minor ? MINOR_FIFTHS_BY_NAME : MAJOR_FIFTHS_BY_NAME;
   return { fifths: table[root] ?? 0, mode: minor ? 1 : 0 };
 }
@@ -134,7 +155,7 @@ export function splitHands(notes: Note[], opts: SplitHandsOptions = {}): { rh: N
     b: distinct[i + 1]!,
     gap: distinct[i + 1]! - p,
   }));
-  const maxGap = Math.max(...gaps.map((g) => g.gap));
+  const maxGap = maxNumber(gaps.map((g) => g.gap), 0);
   let chosen: { a: number; b: number; gap: number };
   if (opts.preferPercentile) {
     chosen = percentileCut();
@@ -189,7 +210,7 @@ export function detectBassPattern(lh: Note[], grid = 0.25): string {
     if (Math.abs(single[i]![1][0]!.midi - single[i - 1]![1][0]!.midi) <= 2) stepwise++;
   }
   if (single.length > 4 && stepwise / single.length > 0.5) return "walking";
-  const range = Math.max(...lh.map((n) => n.midi)) - Math.min(...lh.map((n) => n.midi));
+  const range = maxNumber(lh.map((n) => n.midi)) - minNumber(lh.map((n) => n.midi));
   return range < 8 ? "pedal" : "arpeggio";
 }
 

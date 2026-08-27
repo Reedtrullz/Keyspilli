@@ -3,6 +3,7 @@ import { Note, ParsedMidi, SongMeta, Variant, DifficultyLevel, LEVEL_ORDER, Chor
 import { quantize } from "./quantize.js";
 import { LADDER_TOL, PLAYABILITY_LIMITS } from "./validate.js";
 import { sanitizeImportedNotes } from "./clean.js";
+import { validateChordLabels } from "./chords.js";
 
 export interface VariantOptions {
   /** 16th-note grid (beats) used for note slicing */
@@ -20,11 +21,11 @@ export interface VariantOptions {
   /**
    * Arrangement intent. `source` keeps the imported staff assignment as
    * faithfully as possible (the historical direct-call behaviour). `learner`
-   * applies the conservative two-hand, melody-over-chords shaping used by the
-   * catalogue: suspicious one-sided labels are rebalanced by pitch and the
-   * advanced level gets a human-sized sounding budget.
+   * applies conservative two-hand, melody-over-chords shaping. `metal` uses
+   * the same learner safety gates but treats the supplied RH/LH roles as a
+   * semantic piano cover, retaining sparse harmonic anchors at every level.
    */
-  arrangementProfile?: "source" | "learner";
+  arrangementProfile?: "source" | "learner" | "metal";
   /**
    * The source is an audio transcription whose one-staff pitch stream may
    * need inferred inner-voice placement. Keep this opt-in so curated MIDI
@@ -32,9 +33,41 @@ export interface VariantOptions {
    * heuristic.
    */
   audioDerived?: boolean;
+  /** Authoritative harmony from a role-aware arranger. Avoid per-level re-inference. */
+  chords?: ChordLabel[];
 }
 
 export const SAFE_TEMPO_BPM = 120;
+
+/**
+ * Array-safe numeric extrema for imported material.  Audio transcriptions can
+ * contain hundreds of thousands of sequential attacks; spreading those
+ * arrays into Math.min/Math.max exceeds V8's argument-list limit.
+ */
+function maxNumber(values: Iterable<number>, fallback = Number.NEGATIVE_INFINITY): number {
+  let result = fallback;
+  for (const value of values) {
+    if (Number.isFinite(value) && value > result) result = value;
+  }
+  return result;
+}
+
+function minNumber(values: Iterable<number>, fallback = Number.POSITIVE_INFINITY): number {
+  let result = fallback;
+  for (const value of values) {
+    if (Number.isFinite(value) && value < result) result = value;
+  }
+  return result;
+}
+
+function maxNoteEnd(notes: Iterable<Note>, fallback = 0): number {
+  let result = fallback;
+  for (const note of notes) {
+    const end = note.start + note.dur;
+    if (Number.isFinite(end) && end > result) result = end;
+  }
+  return result;
+}
 
 /** Return a publishable integer tempo, falling back for malformed MIDI meta. */
 export function normalizeTempoBpm(value: number | undefined, fallback = SAFE_TEMPO_BPM): number {
@@ -63,7 +96,7 @@ export function normalizePianoRange(notes: Note[]): Note[] {
 export function padPitches(notes: Note[]): Set<number> {
   const pads = new Set<number>();
   if (!notes.length) return pads;
-  const total = Math.max(...notes.map((n) => n.start + n.dur));
+  const total = maxNoteEnd(notes);
   const sounding = new Map<number, number>();
   for (const n of notes) sounding.set(n.midi, (sounding.get(n.midi) ?? 0) + n.dur);
   for (const [midi, dur] of sounding) {
@@ -72,7 +105,7 @@ export function padPitches(notes: Note[]): Set<number> {
   return pads;
 }
 
-function chordsAt(notes: Note[], grid: number): ChordLabel[] {
+function chordsAt(notes: Note[], grid: number, arrangementEnd?: number): ChordLabel[] {
   const bySlice = new Map<number, { all: number[]; lh: number[]; rh: number[] }>();
   for (const n of notes) {
     if (n.dur < 0.25) continue; // passing tones are not harmony
@@ -123,13 +156,24 @@ function chordsAt(notes: Note[], grid: number): ChordLabel[] {
   // consecutive same-name runs and keep only runs that hold >= 1 beat, so the
   // progression shows real changes instead of harmonic flashes.
   const kept: ChordLabel[] = [];
-  for (let i = 0; i < out.length; i++) {
-    const c = out[i]!;
-    const next = out[i + 1];
-    if (next && next.name === c.name) continue;
-    const runBeats = (next?.beat ?? c.beat + 1) - c.beat;
-    if (runBeats < 1) continue;
-    kept.push(c);
+  if (out.length) {
+    let runStart = out[0]!;
+    for (let i = 1; i <= out.length; i++) {
+      const current = out[i];
+      if (current && current.name === runStart.name) continue;
+      const runEndBeat = current?.beat ?? Math.max(
+        arrangementEnd ?? 0,
+        maxNoteEnd(notes),
+        runStart.beat + 1,
+      );
+      if (runEndBeat - runStart.beat >= 1) {
+        kept.push({
+          ...runStart,
+          durationBeats: runEndBeat - runStart.beat,
+        });
+      }
+      if (current) runStart = current;
+    }
   }
   return kept;
 }
@@ -160,8 +204,8 @@ export function reduceMediumRhythm(notes: Note[]): Note[] {
   const high = new Map<string, number>();
   const low = new Map<string, number>();
   for (const [key, ns] of bySlice) {
-    high.set(key, Math.max(...ns.map((n) => n.midi)));
-    low.set(key, Math.min(...ns.map((n) => n.midi)));
+    high.set(key, maxNumber(ns.map((n) => n.midi)));
+    low.set(key, minNumber(ns.map((n) => n.midi)));
   }
   const sortedOnsets = new Map<string, number[]>();
   for (const [hand, onsets] of onsetsByHand) {
@@ -252,8 +296,10 @@ function capSoundingSpan(notes: Note[], maxSpan: number, anchor: "high" | "low")
       out.push(n);
       continue;
     }
-    const span = Math.max(...mids, n.midi) - Math.min(...mids, n.midi);
-    const extendsAnchor = anchor === "high" ? n.midi > Math.max(...mids) : n.midi < Math.min(...mids);
+    const activeHigh = maxNumber(mids, n.midi);
+    const activeLow = minNumber(mids, n.midi);
+    const span = activeHigh - activeLow;
+    const extendsAnchor = anchor === "high" ? n.midi > activeHigh : n.midi < activeLow;
     if (span <= maxSpan) {
       active.push({ end: n.start + n.dur, midi: n.midi, note: n });
       out.push(n);
@@ -343,7 +389,7 @@ function trimSamePitchOverlaps(notes: Note[], minDur = 0.125): Note[] {
  */
 function capAttackDensity(notes: Note[], tempoBpm: number, maxDensity: number, minMedianIoi: number): Note[] {
   if (!notes.length || !Number.isFinite(tempoBpm) || tempoBpm <= 0) return notes;
-  const span = Math.max(...notes.map((n) => n.start + n.dur));
+  const span = maxNoteEnd(notes);
   const spanSec = span * 60 / tempoBpm;
   // maxDensity and minMedianIoi are both expressed in seconds. The IOI floor
   // therefore contributes an attack-rate ceiling of 1 / seconds, while the
@@ -409,7 +455,7 @@ function handStats(notes: Note[]): { left: Note[]; right: Note[]; pitchSpan: num
   return {
     left,
     right,
-    pitchSpan: pitches.length ? Math.max(...pitches) - Math.min(...pitches) : 0,
+    pitchSpan: pitches.length ? maxNumber(pitches) - minNumber(pitches) : 0,
     chordSlices,
   };
 }
@@ -433,7 +479,7 @@ function shouldRebalanceForLearner(notes: Note[]): boolean {
   if (pitchSpan < 24) return false;
   // At least a few independent attacks must support a harmony/bass reading;
   // a single high-register melody should not acquire invented left-hand notes.
-  return chordSlices >= Math.max(3, Math.floor(notes.length / 80)) || Math.min(...notes.map((n) => n.midi)) <= 48;
+  return chordSlices >= Math.max(3, Math.floor(notes.length / 80)) || minNumber(notes.map((n) => n.midi)) <= 48;
 }
 
 function onsetGroups(notes: Note[]): Note[][] {
@@ -515,7 +561,7 @@ function isDenseContinuousWall(notes: Note[], trackNames: string[] = []): boolea
   if (notes.length < 12) return false;
   const distinct = [...new Set(notes.map((n) => n.midi))].sort((a, b) => a - b);
   if (distinct.length < 2) return false;
-  const maxGap = Math.max(...distinct.slice(1).map((m, i) => m - distinct[i]!));
+  const maxGap = maxNumber(distinct.slice(1).map((m, i) => m - distinct[i]!));
   if (maxGap >= 5) return false;
   const events = notes.flatMap((n) => [[n.start, 1], [n.start + n.dur, -1]] as [number, number][])
     .sort((a, b) => a[0] - b[0] || a[1] - b[1]);
@@ -587,6 +633,47 @@ function capPlayableSounding(notes: Note[], maxSim: number, minDur = 0.125): Not
   return out.sort((a, b) => a.start - b.start || a.midi - b.midi);
 }
 
+/**
+ * A semantic beginner reduction has one job per hand: the RH carries the
+ * identity line and the LH supplies a sparse harmonic anchor.  Applying the
+ * ordinary global two-finger cap to that texture is subtly unsafe because it
+ * sorts low pitches first; a sustained LH note can therefore consume the
+ * budget and make a simultaneous RH melody attack disappear.  Cap each hand
+ * to one sounding note instead, which both preserves melody priority and
+ * keeps the combined sounding budget at two.
+ */
+function capSemanticBeginnerHands(notes: Note[]): Note[] {
+  return [
+    ...capPlayableSounding(notes.filter((note) => note.hand === "L"), 1),
+    ...capPlayableSounding(notes.filter((note) => note.hand !== "L"), 1),
+  ].sort((a, b) => a.start - b.start || a.midi - b.midi);
+}
+
+/**
+ * Keep one deterministic LH harmonic anchor in each rhythmic window.  The
+ * lowest note at the first LH attack wins, so a role-aware arranger's bass or
+ * chord root survives while repeated metal/guitar pulses do not overwhelm a
+ * beginning pianist.  This is selection-only: pitches and attacks remain
+ * traceable to the next harder level.
+ */
+function sparseLeftHandAnchors(notes: Note[], windowBeats: number): Note[] {
+  const lhGroups = onsetGroups(notes.filter((note) => note.hand === "L"));
+  if (!lhGroups.length) return [];
+  const groupsByWindow = new Map<number, Note[][]>();
+  for (const group of lhGroups) {
+    const window = Math.floor((group[0]!.start + 1e-9) / windowBeats);
+    const groups = groupsByWindow.get(window) ?? [];
+    groups.push(group);
+    groupsByWindow.set(window, groups);
+  }
+  return [...groupsByWindow.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([, groups]) => {
+      const first = groups[0]!;
+      return [...first].sort((a, b) => a.midi - b.midi || b.vel - a.vel)[0]!;
+    });
+}
+
 /** Select a deterministic mixed-hand subset from a harder level. */
 function fallbackPlayableSubset(harder: Note[], maxSim: number, minNotes: number, existing: Note[]): Note[] {
   const byStart = new Map<number, Note[]>();
@@ -637,7 +724,11 @@ function preserveRhLadder(
   tolerance: number,
   maxSim: number,
   allowFallback = false,
+  semanticTwoHand = false,
 ): Note[] {
+  const capSounding = (notes: Note[]) => semanticTwoHand
+    ? capSemanticBeginnerHands(notes)
+    : capPlayableSounding(notes, maxSim);
   const starts = new Map<number, number[]>();
   for (const n of harder) {
     if (n.hand === "L") continue;
@@ -668,8 +759,7 @@ function preserveRhLadder(
   // the already validated harder RH material instead of publishing an invalid
   // (<8-note) level or inventing new pitches.  The fallback is capped per
   // attack so it remains within the easier level's chord-size budget.
-  let keptRh = kept.filter((n) => n.hand !== "L");
-  let result = capPlayableSounding(kept, maxSim);
+  let result = capSounding(kept);
   // Quarter-grid reductions can legitimately move an onset by half of the
   // eighth-note grid used by the harder level. If the strict ladder match
   // would leave an otherwise substantial level with fewer than eight RH
@@ -677,20 +767,19 @@ function preserveRhLadder(
   // notes onto the harder level's actual onsets. This is still a true subset
   // of harder-level pitches/attacks; it only repairs the grid mismatch.
   if (!allowFallback && result.filter((n) => n.hand !== "L").length < 8) {
-    const recovered = capPlayableSounding(collect(Math.max(tolerance, 0.13), false), maxSim);
+    const recovered = capSounding(collect(Math.max(tolerance, 0.13), false));
     if (recovered.filter((n) => n.hand !== "L").length > result.filter((n) => n.hand !== "L").length) {
       kept = recovered;
-      keptRh = recovered.filter((n) => n.hand !== "L");
       result = recovered;
     }
   }
-  if (allowFallback && keptRh.length < 8) {
+  if (allowFallback && result.filter((n) => n.hand !== "L").length < 8) {
     const lh = result.filter((n) => n.hand === "L");
-    const needed = Math.max(0, 8 - keptRh.length);
+    const needed = Math.max(0, 8 - result.filter((n) => n.hand !== "L").length);
     const fallback = fallbackRhSubset(harder, maxSim, Math.max(needed, 8));
     if (fallback.length >= needed) {
       const seen = new Set(result.filter((n) => n.hand !== "L").map((n) => `${n.midi}@${n.start.toFixed(6)}`));
-      const rh = [...keptRh];
+      const rh = result.filter((n) => n.hand !== "L");
       for (const n of fallback) {
         const key = `${n.midi}@${n.start.toFixed(6)}`;
         if (seen.has(key)) continue;
@@ -702,16 +791,59 @@ function preserveRhLadder(
     }
   }
   if (allowFallback && result.length < 8) result = fallbackPlayableSubset(harder, maxSim, 8, result);
-  return capPlayableSounding(result, maxSim);
+  return capSounding(result);
+}
+
+/**
+ * Keep metal accompaniment attacks traceable through the difficulty ladder.
+ * RH already has a dedicated matcher above; LH anchors need the same
+ * treatment because quarter-/half-bar quantization can otherwise invent a
+ * new bass onset that never existed in the next harder tier. Matching uses
+ * the level's normal tolerance and snaps to the harder level's exact attack,
+ * so the resulting note is a true semantic subset rather than a re-timed
+ * accompaniment event.
+ */
+function preserveMetalLhLadder(easier: Note[], harder: Note[], tolerance: number): Note[] {
+  const starts = new Map<number, number[]>();
+  for (const note of harder) {
+    if (note.hand !== "L") continue;
+    const values = starts.get(note.midi) ?? [];
+    values.push(note.start);
+    starts.set(note.midi, values);
+  }
+  return easier.flatMap((note) => {
+    if (note.hand !== "L") return [note];
+    const candidates = starts.get(note.midi) ?? [];
+    let match: number | undefined;
+    let distance = Number.POSITIVE_INFINITY;
+    for (const candidate of candidates) {
+      const nextDistance = Math.abs(candidate - note.start);
+      if (nextDistance < distance) {
+        match = candidate;
+        distance = nextDistance;
+      }
+    }
+    if (match === undefined || distance > tolerance) return [];
+    return [{ ...note, start: match }];
+  });
 }
 
 const KEY_PC: Record<string, number> = {
   C: 0, "C#": 1, Db: 1, D: 2, "D#": 3, Eb: 3, E: 4, F: 5, "F#": 6, Gb: 6,
   G: 7, "G#": 8, Ab: 8, A: 9, "A#": 10, Bb: 10, B: 11,
+  // Enharmonic spellings can be emitted by key detection (for example Cb
+  // for seven flats). Keep easy-level bass revoicing on the actual tonic
+  // instead of silently falling back to C.
+  Cb: 11, "B#": 0, "E#": 5, Fb: 4,
 };
 
 function rootOf(midi: number, key: string): number {
-  const pc = KEY_PC[key.replace(/m$/, "")] ?? 0;
+  // Metadata may use the same long-form names accepted by keySignature(),
+  // such as “F# minor” and “F# major”. Only the tonic token affects the
+  // octave revoice; mode is irrelevant here.
+  const rawTonic = key.trim().split(/\s+/)[0]?.replace(/m(?:inor)?$/i, "") ?? "C";
+  const tonic = rawTonic.charAt(0).toUpperCase() + rawTonic.slice(1);
+  const pc = KEY_PC[tonic] ?? 0;
   const offset = ((midi - pc) % 12 + 12) % 12;
   let root = midi - offset;
   while (root < 21) root += 12; // keep the rooted bass on the piano
@@ -724,8 +856,14 @@ function rootOf(midi: number, key: string): number {
  * equal notes) of the level above it.
  */
 export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOptions = {}): Variant[] {
+  if (opts.chords) {
+    const chordErrors = validateChordLabels(opts.chords);
+    if (chordErrors.length) throw new Error(`invalid supplied chords: ${chordErrors.join("; ")}`);
+  }
   const grid = opts.grid ?? 0.25;
+  const metalProfile = opts.arrangementProfile === "metal";
   const learnerProfile = opts.arrangementProfile === "learner";
+  const learnerSafetyProfile = learnerProfile || metalProfile;
   const tempo = normalizeTempoBpm(meta.tempo ?? src.tempoBpm);
   // Every source type passes through the same conservative structural cleanup.
   // YouTube ingestion may additionally run cleanTranscription() beforehand;
@@ -738,6 +876,8 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   const imported = sanitizeImportedNotes(src.notes, sanitizeOptions);
   // Run the gated learner voice pass before quantization so co-onset evidence
   // from the transcription is not erased by the later grid merge.
+  // Metal input is already role-aware and explicitly hand-labelled. Running
+  // the generic one-staff rebalance would undo that semantic separation.
   const innerVoiceArrangement = learnerProfile && opts.audioDerived === true && shouldRedistributeInnerVoices(imported);
   const arrangedImported = innerVoiceArrangement ? redistributeInnerVoices(imported) : imported;
   const base = quantize(arrangedImported, { grid: 0.125, minDur: 0.125 });
@@ -807,7 +947,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   // play it” failure mode while preserving the melody and chord attacks.
   const advanced = capLevel(
     "advanced",
-    learnerProfile
+    learnerSafetyProfile
       ? trimSamePitchOverlaps(capPlayableSounding(advancedSource, 8))
       : advancedSource,
   );
@@ -826,7 +966,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     [
       ...capSoundingSpan(melodyOnly(mediumRh, 0.125, 0.5, pads), 12, "high"),
       ...capSoundingSpan(
-        trimSamePitchOverlaps(thinChord(mediumLh, 2).map((n) => ({ ...n, midi: rootOf(n.midi, key) }))),
+        trimSamePitchOverlaps(thinChord(mediumLh, 2).map((n) => metalProfile ? n : { ...n, midi: rootOf(n.midi, key) })),
         innerVoiceArrangement ? 19 : 12,
         "low",
       ),
@@ -842,13 +982,35 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     [...capSoundingSpan(melodyOnly(easyRh, 0.25, 0.5, pads), 12, "high"), ...easyLh],
     { grid: 0.25 },
   )));
-  const beginner = capLevel("beginner", trimSamePitchOverlaps(quantize(
-    capSoundingSpan(melodyOnly(veryEasy.filter((n) => n.hand !== "L"), 0.25, 0.5, pads), 12, "high"),
+  const meterBeats = src.timeSig[0] * (4 / src.timeSig[1]);
+  const beatsPerMeasure = Number.isFinite(meterBeats) && meterBeats > 0 ? meterBeats : 4;
+  const beginnerRh = capSoundingSpan(melodyOnly(veryEasy.filter((n) => n.hand !== "L"), 0.25, 0.5, pads), 12, "high");
+  const beginnerSource = quantize(
+    [
+      ...beginnerRh,
+      ...(metalProfile ? sparseLeftHandAnchors(veryEasy, Math.max(1, beatsPerMeasure / 2)) : []),
+    ],
     { grid: 0.25 },
-  )));
+  );
+  const beginner = capLevel(
+    "beginner",
+    trimSamePitchOverlaps(metalProfile ? capSemanticBeginnerHands(beginnerSource) : beginnerSource),
+  );
+  const veryBeginnerRh = capSoundingSpan(
+    melodyOnly(beginner.filter((n) => n.hand !== "L"), 0.5, 1, pads),
+    12,
+    "high",
+  );
+  const veryBeginnerSource = quantize(
+    [
+      ...veryBeginnerRh,
+      ...(metalProfile ? sparseLeftHandAnchors(beginner, Math.max(1, beatsPerMeasure)) : []),
+    ],
+    { grid: 0.5 },
+  );
   const veryBeginner = capLevel(
     "very-beginner",
-    trimSamePitchOverlaps(quantize(capSoundingSpan(melodyOnly(beginner, 0.5, 1, pads), 12, "high"), { grid: 0.5 })),
+    trimSamePitchOverlaps(metalProfile ? capSemanticBeginnerHands(veryBeginnerSource) : veryBeginnerSource),
   );
 
   const rawSets: Record<DifficultyLevel, Note[]> = {
@@ -866,13 +1028,19 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   for (let i = LEVEL_ORDER.length - 2; i >= 0; i--) {
     const easier = LEVEL_ORDER[i]!;
     const harder = LEVEL_ORDER[i + 1]!;
-    sets[easier] = trimSamePitchOverlaps(preserveRhLadder(
+    const ladderReduced = preserveRhLadder(
       sets[easier]!,
       sets[harder]!,
       LADDER_TOL[easier] ?? 0.02,
       PLAYABILITY_LIMITS[easier]!.maxSim,
       pathologicalWall,
-    ));
+      metalProfile && (easier === "very-beginner" || easier === "beginner"),
+    );
+    sets[easier] = trimSamePitchOverlaps(
+      metalProfile
+        ? preserveMetalLhLadder(ladderReduced, sets[harder]!, LADDER_TOL[easier] ?? 0.02)
+        : ladderReduced,
+    );
   }
   const scores: Record<DifficultyLevel, number> = {
     "very-beginner": 1,
@@ -890,20 +1058,27 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
       difficultyScore: scores[level]!,
       notes,
       ...(warnings.length ? { warnings } : {}),
-      chords: chordsAt(notes, grid),
-      bassPattern: level === "advanced" || level === "medium" ? lhPattern : level === "very-easy" || level === "easy" ? "block" : "none",
+      chords: opts.chords
+        ? opts.chords.map((chord) => ({ ...chord, notes: [...chord.notes] }))
+        : chordsAt(notes, grid, src.durationBeats),
+      bassPattern: level === "advanced" || level === "medium"
+        ? lhPattern
+        : level === "very-easy" || level === "easy" || (metalProfile && notes.some((note) => note.hand === "L"))
+          ? "block"
+          : "none",
       key,
       tempoBpm: tempo,
       timeSig: src.timeSig,
-      measures: buildMeasures(notes, src.timeSig),
+      measures: buildMeasures(notes, src.timeSig, src.durationBeats),
     };
   });
 }
 
-function buildMeasures(notes: Note[], timeSig: [number, number]): Variant["measures"] {
+function buildMeasures(notes: Note[], timeSig: [number, number], arrangementEnd = 0): Variant["measures"] {
   const [num, den] = timeSig;
-  const beatsPerMeasure = num * (4 / den);
-  const dur = notes.reduce((m, n) => Math.max(m, n.start + n.dur), 1);
+  const rawBeatsPerMeasure = num * (4 / den);
+  const beatsPerMeasure = Number.isFinite(rawBeatsPerMeasure) && rawBeatsPerMeasure > 0 ? rawBeatsPerMeasure : 4;
+  const dur = Math.max(arrangementEnd, maxNoteEnd(notes), 1);
   const count = Math.max(1, Math.ceil(dur / beatsPerMeasure));
   return Array.from({ length: count }, (_, i) => ({
     index: i,

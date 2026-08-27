@@ -13,6 +13,7 @@ const dataDir = mkdtempSync(join(tmpdir(), "keyspilli-verify-catalog-"));
 const baseId = "verify-row-integrity";
 const repairBaseId = "verify-tempo-repair";
 const mismatchBaseId = "verify-tempo-mismatch";
+const metalDurationBaseId = "verify-metal-duration";
 
 afterAll(() => rmSync(dataDir, { recursive: true, force: true }));
 
@@ -34,6 +35,44 @@ describe("verify-catalog read-model integrity gate", () => {
         title: "Integrity fixture",
         artist: "Keyspilli",
         contentType: "standard",
+        baseId: "${id}",
+      });
+      if (result.error) throw new Error(result.error);
+    `;
+    await execFile(process.execPath, ["--import", "tsx", "--input-type=module", "-e", ingestScript], {
+      cwd: root,
+      env: { ...process.env, KEYSPILLI_DATA_DIR: dataDir },
+      maxBuffer: 2 * 1024 * 1024,
+    });
+  }
+
+  async function ingestMetalDurationFixture(id: string): Promise<void> {
+    const sourcePath = join(dataDir, `${id}.mid`);
+    writeFileSync(
+      sourcePath,
+      writeMidi(
+        Array.from({ length: 12 }, (_, index) => ({
+          midi: 60 + index,
+          start: index,
+          dur: 3,
+          vel: 84,
+          hand: "R" as const,
+        })),
+        { tempoBpm: 120 },
+      ),
+    );
+    const ingestScript = `
+      import { readFile } from "node:fs/promises";
+      import { ingestSource } from "${root}/packages/catalog/src/ingest.ts";
+      const result = await ingestSource({
+        buf: new Uint8Array(await readFile(${JSON.stringify(sourcePath)})),
+        title: "Metal duration fixture",
+        artist: "Keyspilli",
+        contentType: "youtube",
+        acquiredVia: "youtube",
+        sourceYoutubeUrl: "https://www.youtube.com/watch?v=metalVerify01",
+        arrangementProfile: "metal",
+        cleanTranscription: false,
         baseId: "${id}",
       });
       if (result.error) throw new Error(result.error);
@@ -125,5 +164,19 @@ describe("verify-catalog read-model integrity gate", () => {
     const unchangedDb = new Database(join(dataDir, "db.sqlite"));
     expect((unchangedDb.prepare("SELECT tempo FROM songs WHERE base_id = ?").all(mismatchBaseId) as { tempo: number }[]).every((row) => row.tempo === 99)).toBe(true);
     unchangedDb.close();
+  });
+
+  it("does not apply the legacy YouTube sustain cap to canonical metal artifacts", async () => {
+    await ingestMetalDurationFixture(metalDurationBaseId);
+    const result = await execFile(
+      process.execPath,
+      ["--import", "tsx", "packages/catalog/scripts/verify-catalog.ts", metalDurationBaseId],
+      {
+        cwd: root,
+        env: { ...process.env, KEYSPILLI_DATA_DIR: dataDir },
+        maxBuffer: 2 * 1024 * 1024,
+      },
+    );
+    expect(result.stdout).toContain("verify-catalog: 0 of 1 songs failed");
   });
 });

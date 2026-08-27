@@ -11,6 +11,7 @@ import {
   padPitches,
   melodyOnly,
   validateVariants,
+  verifyMonotonicity,
   writeMidi,
   writeMusicXml,
   parseMusicXmlNotes,
@@ -484,6 +485,140 @@ describe("buildVariants", () => {
     expect(curated.warnings ?? []).not.toContain("learner inner-voice redistribution applied (inferred staff assignment)");
   });
 
+  it("keeps sparse semantic LH anchors in metal beginner levels without changing learner levels", () => {
+    const notes: Note[] = [];
+    const roots = [36, 43, 41, 48];
+    for (let measure = 0; measure < 8; measure++) {
+      const root = roots[measure % roots.length]!;
+      for (let step = 0; step < 8; step++) {
+        notes.push({
+          midi: 72 + ((measure * 3 + step) % 7),
+          start: measure * 4 + step * 0.5,
+          dur: 0.5,
+          vel: 92,
+          hand: "R",
+        });
+      }
+      // Repeated bass attacks model a driving metal part. Long tails exercise
+      // the hand-aware sounding cap at the same attacks as the melody.
+      for (let beat = 0; beat < 4; beat++) {
+        notes.push({
+          midi: root,
+          start: measure * 4 + beat,
+          dur: 3,
+          vel: 76,
+          hand: "L",
+        });
+      }
+    }
+    const input: ParsedMidi = {
+      format: 1,
+      division: 480,
+      tempoBpm: 100,
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes,
+      trackNames: ["Identity melody", "Harmony roots"],
+      durationBeats: 32,
+    };
+    const learner = buildVariants(
+      input,
+      { title: "Learner", artist: "Test", key: "C" },
+      { arrangementProfile: "learner" },
+    );
+    const metal = buildVariants(
+      input,
+      { title: "Metal", artist: "Test", key: "C" },
+      { arrangementProfile: "metal" },
+    );
+    const byLevel = new Map(metal.map((variant) => [variant.level, variant]));
+    const beginner = byLevel.get("beginner")!;
+    const veryBeginner = byLevel.get("very-beginner")!;
+
+    // Existing profiles remain melody-only at the first two levels.
+    for (const level of ["very-beginner", "beginner"] as const) {
+      expect(learner.find((variant) => variant.level === level)!.notes.every((note) => note.hand !== "L")).toBe(true);
+    }
+    // Metal levels retain one playable harmonic task for the LH.
+    for (const variant of [veryBeginner, beginner]) {
+      expect(variant.notes.some((note) => note.hand === "L"), variant.level).toBe(true);
+      expect(variant.notes.some((note) => note.hand !== "L"), variant.level).toBe(true);
+      expect(variant.bassPattern).toBe("block");
+      const events = variant.notes
+        .flatMap((note) => [[note.start, 1], [note.start + note.dur, -1]] as [number, number][])
+        .sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+      let sounding = 0;
+      let maxSounding = 0;
+      for (const [, delta] of events) {
+        sounding += delta;
+        maxSounding = Math.max(maxSounding, sounding);
+      }
+      expect(maxSounding, variant.level).toBeLessThanOrEqual(2);
+      // Every sampled bass attack coincides with a protected identity attack;
+      // the two-finger cap must never let its lower-pitch sort order erase RH.
+      for (const lh of variant.notes.filter((note) => note.hand === "L")) {
+        expect(variant.notes.some((note) => note.hand !== "L" && note.start === lh.start)).toBe(true);
+      }
+    }
+
+    // The role-aware route preserves the supplied harmonic progression rather
+    // than collapsing every easy-level bass pitch onto the global key tonic.
+    expect(new Set(byLevel.get("easy")!.notes.filter((note) => note.hand === "L").map((note) => note.midi % 12)).size)
+      .toBeGreaterThan(1);
+    // LH and RH semantic anchors stay traceable through adjacent tiers.
+    for (let i = 0; i < metal.length - 1; i++) {
+      const harder = new Set(metal[i + 1]!.notes.map((note) => `${note.hand}:${note.midi}@${note.start.toFixed(3)}`));
+      for (const note of metal[i]!.notes) {
+        expect(harder.has(`${note.hand}:${note.midi}@${note.start.toFixed(3)}`), `${metal[i]!.level} ${note.hand}`).toBe(true);
+      }
+    }
+    expect(validateVariants(metal)).toEqual([]);
+    expect(verifyMonotonicity(metal)).toEqual([]);
+  });
+
+  it("does not invent metal LH attacks when coarse grids quantize accompaniment", () => {
+    const notes: Note[] = [
+      ...Array.from({ length: 48 }, (_, index) => ({
+        midi: 72 + (index % 5),
+        start: index * 0.5,
+        dur: 0.35,
+        vel: 90,
+        hand: "R" as const,
+      })),
+      ...Array.from({ length: 16 }, (_, index) => ({
+        midi: [36, 43, 41, 48][index % 4]!,
+        // Deliberately place the bass just off the quarter grid. The
+        // semantic ladder may snap it, but only to an attack in the next
+        // harder level.
+        start: index + 0.125,
+        dur: 0.75,
+        vel: 74,
+        hand: "L" as const,
+      })),
+    ];
+    const input: ParsedMidi = {
+      format: 1,
+      division: 480,
+      tempoBpm: 120,
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes,
+      trackNames: ["Right Hand", "Left Hand"],
+      durationBeats: 16,
+    };
+    const variants = buildVariants(input, { title: "Off-grid metal", artist: "Tests" }, { arrangementProfile: "metal" });
+    for (let index = 0; index < variants.length - 1; index++) {
+      const easier = variants[index]!;
+      const harder = new Set(variants[index + 1]!.notes.map((note) => `${note.hand}:${note.midi}@${note.start.toFixed(3)}`));
+      for (const note of easier.notes.filter((candidate) => candidate.hand === "L")) {
+        expect(harder.has(`${note.hand}:${note.midi}@${note.start.toFixed(3)}`), `${easier.level} LH`).toBe(true);
+      }
+    }
+    expect(validateVariants(variants)).toEqual([]);
+  });
+
   it("keeps learner advanced sounding notes within an eight-finger budget", () => {
     const notes: Note[] = [];
     for (let i = 0; i < 32; i++) {
@@ -678,6 +813,15 @@ describe("buildVariants", () => {
       const bass = v.notes.filter((n) => n.hand === "L");
       expect(bass.length).toBeGreaterThan(0);
       expect(bass.every((n) => n.midi % 12 === 7)).toBe(true);
+    }
+
+    for (const [key, pitchClass] of [["F# minor", 6], ["Cb", 11]] as const) {
+      const keyed = buildVariants(src, { title: key, artist: "T", key });
+      for (const level of ["easy", "very-easy"] as const) {
+        const bass = keyed.find((variant) => variant.level === level)!.notes.filter((note) => note.hand === "L");
+        expect(bass.length).toBeGreaterThan(0);
+        expect(bass.every((note) => note.midi % 12 === pitchClass)).toBe(true);
+      }
     }
   });
 
@@ -1393,6 +1537,16 @@ describe("padPitches + pad-aware voice selection", () => {
     const pads = padPitches(notes);
     expect(pads.has(88)).toBe(true);
     expect(pads.has(60)).toBe(false);
+  });
+
+  it("handles very large imported note arrays without argument-stack overflow", () => {
+    const notes = Array.from({ length: 130_000 }, (_, index) => ({
+      midi: 60 + (index % 12),
+      start: index * 0.125,
+      dur: 0.125,
+      vel: 80,
+    }));
+    expect(() => padPitches(notes)).not.toThrow();
   });
 
   it("prefers a moving melody over a re-triggered pad in the same hand", () => {
