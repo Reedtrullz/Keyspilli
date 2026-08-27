@@ -19,6 +19,7 @@ services:
     restart: unless-stopped
     environment:
       - KEYSPILLI_DATA_DIR=/data
+      - KEYSPILLI_IMPORT_MODE=${KEYSPILLI_IMPORT_MODE:-auto}
       - KEYSPILLI_BP_SERIALIZATION=onnx
     volumes:
       - keyspilli_data:/data

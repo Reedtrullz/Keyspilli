@@ -1,4 +1,4 @@
-import type { ChordNoteOptions, ChordParseOptions, ChordQuality, ChordSymbol, ChordVoicingOptions, Note } from "./types.js";
+import type { ChordLabel, ChordNoteOptions, ChordParseOptions, ChordQuality, ChordSymbol, ChordVoicingOptions, Note } from "./types.js";
 
 /**
  * Pitch classes for the chord qualities understood by the learner player.
@@ -8,6 +8,7 @@ import type { ChordNoteOptions, ChordParseOptions, ChordQuality, ChordSymbol, Ch
  */
 const QUALITY_INTERVALS: Record<ChordQuality, readonly number[]> = {
   major: [0, 4, 7],
+  "5": [0, 7],
   minor: [0, 3, 7],
   "7": [0, 4, 7, 10],
   maj7: [0, 4, 7, 11],
@@ -22,6 +23,7 @@ const QUALITY_INTERVALS: Record<ChordQuality, readonly number[]> = {
 
 const QUALITY_SUFFIX: Record<ChordQuality, string> = {
   major: "",
+  "5": "5",
   minor: "m",
   "7": "7",
   maj7: "maj7",
@@ -85,6 +87,7 @@ function parseQuality(raw: string): ChordQuality {
   // Spaces are common in hand-entered lead sheets (`C add9`, `G sus 4`).
   const suffix = raw.replace(/\s+/g, "");
   if (!suffix || suffix === "M" || /^maj(?:or)?$/i.test(suffix)) return "major";
+  if (suffix === "5") return "5";
   if (suffix === "m" || suffix === "-" || /^(?:min|minor)$/i.test(suffix)) return "minor";
 
   // Keep the case-sensitive M/m aliases before lower-casing the remainder.
@@ -162,6 +165,43 @@ export function tryParseChordSymbol(symbol: string, options: ChordParseOptions =
   } catch {
     return null;
   }
+}
+
+/** Validate externally supplied chord events before they reach artifacts. */
+export function validateChordLabels(value: unknown, path = "chords"): string[] {
+  if (!Array.isArray(value)) return [`${path} must be an array`];
+  const errors: string[] = [];
+  let previousBeat = -Infinity;
+  value.forEach((candidate, index) => {
+    const itemPath = `${path}[${index}]`;
+    if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) {
+      errors.push(`${itemPath} must be an object`);
+      return;
+    }
+    const chord = candidate as Partial<ChordLabel>;
+    if (typeof chord.beat !== "number" || !Number.isFinite(chord.beat) || chord.beat < 0) {
+      errors.push(`${itemPath}.beat must be a finite non-negative number`);
+    } else if (chord.beat + 1e-9 < previousBeat) {
+      errors.push(`${itemPath}.beat must be non-decreasing`);
+    } else {
+      previousBeat = chord.beat;
+    }
+    if (typeof chord.name !== "string" || !chord.name.trim()) {
+      errors.push(`${itemPath}.name must be a non-empty string`);
+    } else if (chord.name !== "N.C." && !tryParseChordSymbol(chord.name)) {
+      errors.push(`${itemPath}.name must be a supported chord symbol or N.C.`);
+    }
+    if (!Array.isArray(chord.notes) || chord.notes.length < 1) {
+      errors.push(`${itemPath}.notes must be a non-empty array`);
+    } else if (chord.notes.some((note) => !Number.isInteger(note) || note < 21 || note > 108)) {
+      errors.push(`${itemPath}.notes must contain integer MIDI pitches in 21-108`);
+    }
+    if (chord.durationBeats !== undefined &&
+      (typeof chord.durationBeats !== "number" || !Number.isFinite(chord.durationBeats) || chord.durationBeats <= 0)) {
+      errors.push(`${itemPath}.durationBeats must be a positive finite number when present`);
+    }
+  });
+  return errors;
 }
 
 function toParsedChord(symbol: string | ChordSymbol, options: ChordParseOptions = {}): ChordSymbol {

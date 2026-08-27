@@ -16,6 +16,14 @@ export {
 } from "./clean.js";
 export { writeMidi } from "./writeMidi.js";
 export { writeMusicXml } from "./writeXml.js";
+export { buildMetalArrangement } from "./metal-arrange.js";
+export type {
+  MetalArrangementInput,
+  MetalArrangementIR,
+  MetalArrangementResult,
+  MetalStem,
+  MetalStemRole,
+} from "./metal-arrange.js";
 export { PITCH_COLORS, pitchColor } from "./pitchColors.js";
 export { parseMusicXmlNotes } from "./parseXml.js";
 export { ARTIFACT_TEMPO_TOLERANCE, writeVariantArtifacts, validateArtifactFiles, validateArtifactRoundtrip } from "./roundtrip.js";
@@ -32,6 +40,7 @@ export {
   capoChordSymbol,
   applyCapo,
   transposeMidiNotes,
+  validateChordLabels,
 } from "./chords.js";
 export {
   melodyContinuity,

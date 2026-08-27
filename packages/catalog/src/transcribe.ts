@@ -68,10 +68,7 @@ export async function filterTranscription(
       droppedBass.delete(n);
       lastKeptStart = n.start;
     }
-    for (const n of droppedBass) {
-      const i = kept.indexOf(n);
-      if (i >= 0) kept.splice(i, 1);
-    }
+    kept = kept.filter((note) => !droppedBass.has(note));
     if (kept.length < raw.notes.length * 0.2) {
       throw new Error(`bass thinning dropped too much (${kept.length}/${raw.notes.length})`);
     }
@@ -103,17 +100,14 @@ export async function filterTranscription(
         for (let i = 1; i < stack.length; i++) droppedOctaves.add(stack[i]!);
       }
     }
-    for (const n of droppedOctaves) {
-      const i = kept.indexOf(n);
-      if (i >= 0) kept.splice(i, 1);
-    }
+    kept = kept.filter((note) => !droppedOctaves.has(note));
     if (kept.length < raw.notes.length * 0.2) {
       throw new Error(`octave collapse dropped too much (${kept.length}/${raw.notes.length})`);
     }
   }
   // Trim leading silence: video intros (title cards, spoken openings) often
   // leave 5-40s with no notes; the player should start at the first note.
-  const firstStart = Math.min(...kept.map((n) => n.start));
+  const firstStart = kept.reduce((earliest, note) => Math.min(earliest, note.start), Infinity);
   if (firstStart * secPerBeat > 2) {
     for (const n of kept) n.start = Math.max(0, n.start - firstStart);
   }

@@ -15,11 +15,14 @@ import {
   validateVariants,
   TRANSCRIPTION_CLEANUP_CONFIG as MIDI_TRANSCRIPTION_CLEANUP_CONFIG,
   DEFAULT_IMPORTED_MAX_SOUNDING,
+  type ChordLabel,
+  validateChordLabels,
 } from "@keyspilli/midi";
 import { replaceSongsByBase, getSongsByBase, SongRow } from "./db.js";
 import { dataDir, uploadsDir } from "./paths.js";
 import {
   parseTranscriptionProvenance,
+  readArrangementManifest,
   transcriptionConfigForFingerprint,
   writeArrangementManifestFile,
   type ArrangementManifest,
@@ -51,7 +54,7 @@ export const MAX_YOUTUBE_IMPORT_DUR_BEATS = 1.5;
 // when the input bytes and user-facing ingest options are unchanged.
 export const INGEST_NORMALIZER_ID = "midi-normalizer-v2";
 export const INGEST_GRID_POLICY_ID = "beat-grid-v2";
-export const INGEST_VARIANT_POLICY_ID = "learner-variant-ladder-v3";
+export const INGEST_VARIANT_POLICY_ID = "learner-variant-ladder-v4-metal";
 
 /**
  * Versioned processing identities used by audio transcription provenance and
@@ -73,6 +76,10 @@ export const TRANSCRIPTION_POST_PROCESSING_DEFAULTS = {
 
 export interface IngestInput {
   buf: Uint8Array;
+  /** Optional hash of the logical source bytes. Audio workers use the source
+   * audio hash here; ordinary imports default to hashing the supplied MIDI or
+   * MusicXML bytes. */
+  sourceArtifactHash?: string;
   title: string;
   artist: string;
   category?: string;
@@ -94,7 +101,9 @@ export interface IngestInput {
    */
   maxDurBeats?: number | null;
   /** Arrangement intent; catalogue imports default to the learner profile. */
-  arrangementProfile?: "source" | "learner";
+  arrangementProfile?: "source" | "learner" | "metal";
+  /** Optional role-aware harmony evidence; preserved as authored variant chords. */
+  chords?: ChordLabel[];
   /**
    * Effective audio-transcription settings. Standard MIDI/MusicXML uploads
    * omit this block; Basic Pitch workers persist it on the base manifest and
@@ -120,6 +129,18 @@ function slugify(s: string): string {
 
 function validBaseId(baseId: string): boolean {
   return /^[a-z0-9][a-z0-9-]{0,119}$/.test(baseId);
+}
+
+function generatedBaseId(artist: string, title: string): string {
+  const suffix = Date.now().toString(36);
+  const artistSlug = slugify(artist) || "artist";
+  const titleSlug = slugify(title) || "song";
+  const stem = `${artistSlug}-${titleSlug}`;
+  // Keep the uniqueness suffix even when both display fields are very long;
+  // directory names and the manifest validator share a 120-character limit.
+  const maxStemLength = Math.max(1, 120 - suffix.length - 1);
+  const boundedStem = stem.slice(0, maxStemLength).replace(/-+$/g, "") || "song";
+  return `${boundedStem}-${suffix}`;
 }
 
 function looksLikeXml(buf: Uint8Array): boolean {
@@ -218,6 +239,13 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
       return { baseId: "", songIds: [], error: (e as Error).message };
     }
   }
+  if (inp.chords !== undefined) {
+    const chordErrors = validateChordLabels(inp.chords);
+    if (chordErrors.length) return { baseId: "", songIds: [], error: `invalid chords: ${chordErrors.join("; ")}` };
+  }
+  if (inp.sourceArtifactHash !== undefined && !/^[0-9a-f]{64}$/.test(inp.sourceArtifactHash)) {
+    return { baseId: "", songIds: [], error: "invalid sourceArtifactHash: expected 64 lowercase hexadecimal characters" };
+  }
   let parsed;
   let isMxl = false;
   let sourceIsXml = false;
@@ -247,7 +275,19 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
   }
   if (parsed.notes.length < 8) return { baseId: "", songIds: [], error: "too few notes" };
 
-  const baseId = inp.baseId ?? `${slugify(inp.artist)}-${slugify(inp.title)}-${Date.now().toString(36)}`;
+  const baseId = inp.baseId ?? generatedBaseId(inp.artist, inp.title);
+  // Rebuild/restore callers often know only the stable base id. Preserve a
+  // current semantic profile when they omit an explicit override so a
+  // canonical metal artifact cannot silently fall back to the learner
+  // profile (and its short YouTube sustain cap) on the next catalog pass.
+  const persistedProfile = inp.baseId
+    ? await readArrangementManifest(baseId)
+    : undefined;
+  const arrangementProfile = inp.arrangementProfile
+    ?? (persistedProfile?.status === "valid" && ["source", "learner", "metal"].includes(persistedProfile.manifest.arrangementProfile ?? "")
+      ? persistedProfile.manifest.arrangementProfile as "source" | "learner" | "metal"
+      : undefined)
+    ?? "learner";
   // Re-ingests replace the six-row set atomically, but engagement history is
   // not part of the source arrangement. Preserve per-level plays and creation
   // timestamps so repairing an arrangement does not reset the live catalog.
@@ -258,7 +298,7 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
   // supplies a transcription ceiling (e.g. a curated audio-derived seed).
   const maxDurBeats = inp.maxDurBeats !== undefined
     ? inp.maxDurBeats
-    : inp.contentType === "youtube"
+    : inp.contentType === "youtube" && arrangementProfile !== "metal"
       ? MAX_YOUTUBE_IMPORT_DUR_BEATS
       : null;
   const variants = buildVariants(
@@ -271,8 +311,9 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
     },
     {
       ...(maxDurBeats === undefined ? {} : { maxDurBeats }),
-      arrangementProfile: inp.arrangementProfile ?? "learner",
+      arrangementProfile,
       audioDerived: inp.contentType === "youtube",
+      ...(inp.chords ? { chords: inp.chords } : {}),
     },
   );
   const validationErrors = validateVariants(variants, { maxDurBeats });
@@ -325,7 +366,7 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
         difficultyScore: v.difficultyScore,
         key: v.key,
         tempo: v.tempoBpm,
-        style: inp.style ?? "classical",
+        style: inp.style ?? (arrangementProfile === "metal" ? "metal" : "classical"),
         mood: inp.mood ?? "peaceful",
         bassPattern: v.bassPattern,
         duration: durationSec,
@@ -370,7 +411,7 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
   const backupUpload = join(uploadRoot, `.${baseId}.backup-${token}.${uploadExt}`);
   let movedUploadBackup = false;
   let movedStageUpload = false;
-  const sourceArtifactHash = createHash("sha256").update(inp.buf).digest("hex");
+  const sourceArtifactHash = inp.sourceArtifactHash ?? createHash("sha256").update(inp.buf).digest("hex");
   const configFingerprint = createHash("sha256")
     .update(JSON.stringify({
       pipeline: "ingest-v2",
@@ -380,7 +421,8 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
       contentType: inp.contentType,
       cleanTranscription: inp.contentType === "youtube" && inp.cleanTranscription !== false,
       maxDurBeats,
-      arrangementProfile: inp.arrangementProfile ?? "learner",
+      arrangementProfile,
+      chords: inp.chords ?? null,
       key: inp.key ?? null,
       tempoOverride: inp.tempo ?? null,
       transcription: transcription ? transcriptionConfigForFingerprint(transcription) : null,
@@ -412,7 +454,7 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
     identityStatus: "current",
     sourceArtifactHash,
     configFingerprint,
-    arrangementProfile: inp.arrangementProfile ?? "learner",
+    arrangementProfile,
     source: sourceProvenance,
     tempo: {
       calibration: { bpm: parsed.tempoBpm, source: calibrationSource, resolvedAt, role: "source-calibration" },

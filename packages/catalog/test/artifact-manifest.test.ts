@@ -51,6 +51,18 @@ describe("artifact arrangement manifest", () => {
       sourceArtifactHash: "sha256:audio",
       configFingerprint: "sha256:config",
     })).toEqual([]);
+
+    // A present-but-empty value is one malformed field, not both a missing
+    // required identity and a second non-empty-string violation.
+    expect(validateArrangementManifest({
+      ...base,
+      identityStatus: "current",
+      sourceArtifactHash: "",
+      configFingerprint: "",
+    })).toEqual([
+      "sourceArtifactHash is required for current artifacts",
+      "configFingerprint is required for current artifacts",
+    ]);
   });
 
   it("fails closed on malformed tempo roles or status", () => {
@@ -115,6 +127,42 @@ describe("artifact arrangement manifest", () => {
     })).toContain("transcription.transcribedAt must be an ISO timestamp");
   });
 
+  it("validates audio acquisition values and strict date-time timestamps", () => {
+    const transcription = {
+      basicPitchVersion: "0.4.0",
+      modelSerialization: "default",
+      onsetThreshold: 0.5,
+      frameThreshold: 0.35,
+      tempoSource: "detected" as const,
+      audioSource: "youtube",
+      transcribedAt: now,
+    };
+    for (const audioAcquisition of ["downloaded", "pre-seeded", "upload"] as const) {
+      expect(validateTranscriptionProvenance({ ...transcription, audioAcquisition })).toEqual([]);
+    }
+    expect(validateTranscriptionProvenance({ ...transcription, audioAcquisition: "playlist" })).toContain(
+      "transcription.audioAcquisition must be downloaded, pre-seeded, or upload when present",
+    );
+
+    for (const accepted of [
+      "2026-08-27T10:00:00Z",
+      "2026-08-27T10:00:00.1+02:00",
+      "2026-08-27T10:00:00.123456789-05:30",
+    ]) {
+      expect(validateTranscriptionProvenance({ ...transcription, transcribedAt: accepted }), accepted).toEqual([]);
+    }
+    for (const rejected of [
+      "2026-08-27",
+      "August 27, 2026",
+      "2026-08-27 10:00:00",
+      "2026-02-30T10:00:00.000Z",
+    ]) {
+      expect(validateTranscriptionProvenance({ ...transcription, transcribedAt: rejected }), rejected).toContain(
+        "transcription.transcribedAt must be an ISO timestamp",
+      );
+    }
+  });
+
   it("records the effective cleanup and pipeline identities without losing legacy compatibility", () => {
     const transcription = {
       basicPitchVersion: "0.3.0",
@@ -168,6 +216,152 @@ describe("artifact arrangement manifest", () => {
       ...transcription,
       pipeline: { ...transcription.pipeline, filterVersion: "" },
     })).toContain("transcription.pipeline.filterVersion must be a non-empty string");
+  });
+
+  it("round-trips path-free metal separation and arrangement provenance", () => {
+    const transcription = {
+      basicPitchVersion: "0.4.0",
+      modelSerialization: "default",
+      onsetThreshold: 0.5,
+      frameThreshold: 0.35,
+      tempoSource: "detected" as const,
+      audioSource: "youtube",
+      transcribedAt: now,
+      separation: {
+        separator: "demucs",
+        version: "4.0.1",
+        model: "htdemucs",
+        device: "cpu" as const,
+        stems: [
+          { role: "vocals" as const, noteCount: 24, confidence: 0.83 },
+          { role: "bass" as const, noteCount: 16, confidence: 0.76 },
+          { role: "drums" as const, noteCount: 0 },
+          { role: "other" as const, noteCount: 48, confidence: 0.71 },
+        ],
+      },
+      metalArrangement: {
+        arranger: "keyspilli-metal",
+        version: "metal-arranger-v1",
+        strategy: "vocal-then-riff",
+        identitySource: "mixed" as const,
+        confidence: 0.78,
+        warnings: ["uncertain harmony at beats 12-16"],
+      },
+    };
+    expect(parseTranscriptionProvenance(transcription)).toEqual(transcription);
+    expect(transcriptionConfigForFingerprint(transcription)).toEqual({
+      basicPitchVersion: "0.4.0",
+      modelSerialization: "default",
+      onsetThreshold: 0.5,
+      frameThreshold: 0.35,
+      tempoSource: "detected",
+      audioSource: "youtube",
+      separation: { separator: "demucs", version: "4.0.1", model: "htdemucs", device: "cpu" },
+      metalArrangement: { arranger: "keyspilli-metal", version: "metal-arranger-v1", strategy: "vocal-then-riff" },
+    });
+    expect(transcriptionConfigForFingerprint({
+      ...transcription,
+      transcribedAt: "2026-08-27T10:00:00.000Z",
+      separation: {
+        ...transcription.separation,
+        stems: transcription.separation.stems.map((stem) => ({ ...stem, noteCount: stem.noteCount + 100, confidence: 0.01 })),
+      },
+      metalArrangement: {
+        ...transcription.metalArrangement,
+        identitySource: "vocals",
+        confidence: 0.01,
+        warnings: ["different run evidence"],
+      },
+    })).toEqual(transcriptionConfigForFingerprint(transcription));
+  });
+
+  it("fails closed on malformed or path-bearing metal provenance", () => {
+    const transcription = {
+      basicPitchVersion: "0.4.0",
+      modelSerialization: "default",
+      onsetThreshold: 0.5,
+      frameThreshold: 0.35,
+      tempoSource: "detected" as const,
+      audioSource: "youtube",
+      transcribedAt: now,
+      separation: {
+        separator: "demucs",
+        version: "4.0.1",
+        model: "htdemucs",
+        stems: [
+          { role: "vocals", noteCount: 3, confidence: 1.1, path: "/tmp/vocals.wav" },
+          { role: "vocals", noteCount: -1 },
+        ],
+      },
+      metalArrangement: {
+        arranger: "keyspilli-metal",
+        version: "metal-arranger-v1",
+        strategy: "vocal-then-riff",
+        identitySource: "guitars",
+        warnings: [""],
+      },
+    };
+    expect(validateTranscriptionProvenance(transcription)).toEqual(expect.arrayContaining([
+      "transcription.separation.stems[0].path is not a supported stem field",
+      "transcription.separation.stems[0].confidence must be a finite number between 0 and 1 when present",
+      "transcription.separation.stems must not contain duplicate role vocals",
+      "transcription.separation.stems[1].noteCount must be a non-negative integer",
+      "transcription.metalArrangement.identitySource must be vocals, other, mixed, or fallback-full-mix when present",
+      "transcription.metalArrangement.warnings must be an array of non-empty strings when present",
+    ]));
+  });
+
+  it("requires the canonical four separation roles", () => {
+    const transcription = {
+      basicPitchVersion: "0.4.0",
+      modelSerialization: "default",
+      onsetThreshold: 0.5,
+      frameThreshold: 0.35,
+      tempoSource: "detected" as const,
+      audioSource: "youtube",
+      transcribedAt: now,
+      separation: {
+        separator: "demucs",
+        version: "4.0.1",
+        model: "htdemucs",
+        stems: [
+          { role: "vocals" as const, noteCount: 3 },
+          { role: "other" as const, noteCount: 2 },
+        ],
+      },
+    };
+    expect(validateTranscriptionProvenance(transcription)).toEqual(expect.arrayContaining([
+      "transcription.separation.stems must contain exactly one vocals, bass, drums, and other stem",
+      "transcription.separation.stems is missing required role bass",
+      "transcription.separation.stems is missing required role drums",
+    ]));
+  });
+
+  it("validates separation device identity when present", () => {
+    const transcription = {
+      basicPitchVersion: "0.4.0",
+      modelSerialization: "default",
+      onsetThreshold: 0.5,
+      frameThreshold: 0.35,
+      tempoSource: "detected" as const,
+      audioSource: "youtube",
+      transcribedAt: now,
+      separation: {
+        separator: "demucs",
+        version: "4.0.1",
+        model: "htdemucs",
+        device: "tpu",
+        stems: [
+          { role: "vocals" as const, noteCount: 3 },
+          { role: "bass" as const, noteCount: 2 },
+          { role: "drums" as const, noteCount: 0 },
+          { role: "other" as const, noteCount: 4 },
+        ],
+      },
+    };
+    expect(validateTranscriptionProvenance(transcription)).toContain(
+      "transcription.separation.device must be cpu, cuda, or mps when present",
+    );
   });
 
   it("uses the selected legacy notes tempo only when no manifest exists", () => {

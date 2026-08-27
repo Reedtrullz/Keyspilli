@@ -211,4 +211,13 @@ describe("applySongMetadata tempo roles", () => {
       expect(after.duration).toBe(Math.round(before.duration * 90.5 / 45));
     }
   });
+
+  it("normalizes long-form and lowercase key metadata before publishing", async () => {
+    await update.applySongMetadata(baseId, { key: "f# minor" });
+
+    const next = await stored();
+    const rows = catalog.getSongsByBase(baseId);
+    expect(rows.every((row) => row.key === "F#m")).toBe(true);
+    expect((next as typeof next & { key: string }).key).toBe("F#m");
+  });
 });

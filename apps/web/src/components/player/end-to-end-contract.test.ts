@@ -76,13 +76,14 @@ describe("chord contract end to end", () => {
     ).find((candidate) => candidate.level === "advanced");
     expect(variant).toBeDefined();
     expect(variant!.chords).toEqual([
-      { beat: 0, name: "C", notes: [48, 52, 55], sourceKind: "generated", inferred: true, inferenceType: "voicing" },
-      { beat: 4, name: "Dm", notes: [50, 53, 57], sourceKind: "generated", inferred: true, inferenceType: "voicing" },
+      { beat: 0, name: "C", notes: [48, 52, 55], sourceKind: "generated", inferred: true, inferenceType: "voicing", durationBeats: 4 },
+      { beat: 4, name: "Dm", notes: [50, 53, 57], sourceKind: "generated", inferred: true, inferenceType: "voicing", durationBeats: 4 },
     ]);
 
     // Treat the variant as the serialized artifact crossing the catalog
-    // boundary. Catalog normalization computes the two four-beat spans from
-    // the explicit artifact duration and preserves absolute MIDI notes.
+    // boundary. Catalog normalization accepts the explicit spans (legacy
+    // artifacts can still derive them from the artifact duration) and
+    // preserves absolute MIDI notes.
     const catalogTimeline = normalizeCatalogChordTimeline({
       schemaVersion: 1,
       baseId: "synthetic-contract-fixture",

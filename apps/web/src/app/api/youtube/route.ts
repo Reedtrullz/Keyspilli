@@ -1,5 +1,6 @@
+import { timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { insertJob, getSongsByBase } from "@keyspilli/catalog";
+import { canonicalYoutubeUrl, insertJob, getSongsByBase } from "@keyspilli/catalog";
 import { applySongMetadata, resolveBaseId, SongUpdateError, type SongPatch } from "@/lib/song-update";
 import { parseTempoRequest, TempoRequestError, type TempoRequestPatch } from "@/lib/tempo-request";
 
@@ -14,8 +15,10 @@ function checkAuth(req: Request): Response | null {
       { status: 503 },
     );
   }
-  const auth = req.headers.get("authorization");
-  if (auth !== `Bearer ${token}`) {
+  const auth = req.headers.get("authorization") ?? "";
+  const provided = Buffer.from(auth);
+  const expected = Buffer.from(`Bearer ${token}`);
+  if (provided.length !== expected.length || !timingSafeEqual(provided, expected)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   return null;
@@ -56,7 +59,19 @@ export async function POST(req: NextRequest) {
   if (rateLimitResponse) return rateLimitResponse;
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   const url = typeof body.url === "string" ? body.url.trim() : "";
-  if (!url || !/^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\//.test(url)) {
+  let parsedUrl: URL | undefined;
+  try {
+    parsedUrl = new URL(url);
+  } catch {
+    parsedUrl = undefined;
+  }
+  const host = parsedUrl?.hostname.toLowerCase().replace(/^www\./, "");
+  const canonicalUrl = canonicalYoutubeUrl(url);
+  if (
+    !canonicalUrl ||
+    parsedUrl?.protocol !== "https:" ||
+    !["youtube.com", "youtu.be", "m.youtube.com", "music.youtube.com"].includes(host ?? "")
+  ) {
     return NextResponse.json({ error: "paste a valid YouTube URL" }, { status: 400 });
   }
   if (body.songId !== undefined && typeof body.songId !== "string") {
@@ -98,7 +113,7 @@ export async function POST(req: NextRequest) {
   const id = `job-${crypto.randomUUID()}`;
   insertJob({
     id,
-    youtubeUrl: url,
+    youtubeUrl: canonicalUrl,
     status: "queued",
     songId,
     error: null,

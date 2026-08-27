@@ -42,6 +42,15 @@ function noteFingerprint(notes: Variant["notes"]): string {
   );
 }
 
+function maxNoteEnd(notes: Variant["notes"]): number {
+  let end = 0;
+  for (const note of notes) {
+    const candidate = note.start + note.dur;
+    if (Number.isFinite(candidate) && candidate > end) end = candidate;
+  }
+  return end;
+}
+
 const cliArgs = process.argv.slice(2);
 const repairMode = cliArgs.includes("--repair");
 const requested = new Set(cliArgs.filter((arg) => !arg.startsWith("--")));
@@ -195,7 +204,9 @@ for (const song of linkedBases) {
   // Match ingestSource's source-aware sustain policy. Human-authored standard
   // and upload arrangements may contain intentional multi-measure holds;
   // YouTube/audio imports must satisfy the explicit tail ceiling.
-  const maxDurBeats = row?.content_type === "youtube" ? MAX_YOUTUBE_IMPORT_DUR_BEATS : null;
+  const maxDurBeats = row?.content_type === "youtube" && manifest?.arrangementProfile !== "metal"
+    ? MAX_YOUTUBE_IMPORT_DUR_BEATS
+    : null;
   const variants: Variant[] = [];
   for (const level of LEVEL_ORDER) {
     const path = join(artifactsRoot, song, LEVEL_CODE[level]!, "notes.json");
@@ -332,7 +343,9 @@ for (const song of linkedBases) {
     // note per second; these usually mean the source melody was soft or
     // legato and Basic Pitch missed it.
     if (a) {
-      const durSec = Math.max(...a.notes.map((n) => n.start + n.dur));
+      const durBeats = maxNoteEnd(a.notes);
+      const tempoBpm = Number.isFinite(a.tempoBpm) && a.tempoBpm > 0 ? a.tempoBpm : 120;
+      const durSec = durBeats * 60 / tempoBpm;
       const rh = a.notes.filter((n) => n.hand === "R").length;
       if (durSec > 0 && rh / durSec < 1.0) {
         warns.push(`low melody density: ${rh} RH notes in ${durSec.toFixed(0)}s (${(rh / durSec).toFixed(2)}/s)`);
