@@ -41,7 +41,8 @@ describe("stemPipelineConfigFromEnv", () => {
       basicPitch: "/app/.venv/bin/basic-pitch",
     });
     expect(value.mode).toBe("auto");
-    expect(value.demucsModel).toBe("htdemucs");
+    expect(value.demucsModel).toBe("htdemucs_6s");
+    expect(value.separatorTimeoutMs).toBe(2_700_000);
     expect(value.minFreeBytes).toBe(6 * 1024 ** 3);
   });
 
@@ -95,8 +96,58 @@ describe("transcribePitchedStems", () => {
       expect(call.args).toContain("--midi-tempo");
       expect(call.args).toContain("128");
     }
+    expect(calls[1]?.args).toEqual(expect.arrayContaining(["--onset-threshold", "0.5", "--frame-threshold", "0.3"]));
+    expect(calls[2]?.args).toEqual(expect.arrayContaining(["--onset-threshold", "0.65", "--frame-threshold", "0.45"]));
+    expect(calls[3]?.args).toEqual(expect.arrayContaining(["--onset-threshold", "0.45", "--frame-threshold", "0.3"]));
+    expect(result.report.transcriber.roleThresholds).toEqual({
+      vocals: { onsetThreshold: 0.5, frameThreshold: 0.3 },
+      bass: { onsetThreshold: 0.65, frameThreshold: 0.45 },
+      guitar: { onsetThreshold: 0.45, frameThreshold: 0.3 },
+    });
+    expect(result.report.stems.find((stem) => stem.role === "guitar")?.sourceStem).toBe("other");
     expect((await readdir(result.artifactDir)).sort()).toEqual(["bass.mid", "drums.mid", "guitar.mid", "report.json", "vocals.mid"]);
     expect((await readdir(jobDir)).some((name) => name.startsWith(".stems-work-"))).toBe(false);
+  });
+
+  it("prefers a dedicated guitar stem when the separator reports one", async () => {
+    const jobDir = await mkdtemp(join(tmpdir(), "keyspilli-stem-guitar-test-"));
+    tempDirs.push(jobDir);
+    const audioPath = join(jobDir, "audio.mp3");
+    await writeFile(audioPath, Buffer.alloc(2048));
+    const transcribedAudio: string[] = [];
+    const transcriptionArgs: Array<readonly string[]> = [];
+    const runner: StemCommandRunner = async (command, args) => {
+      if (command === "/test/python") {
+        if (args[0] === "/test/audio_onsets.py") return { stdout: "[]", stderr: "" };
+        const output = args[args.indexOf("--output") + 1]!;
+        await mkdir(output, { recursive: true });
+        const stems: Record<string, string> = {};
+        for (const role of ["vocals", "bass", "drums", "other", "guitar"] as const) {
+          const path = join(output, `${role}.wav`);
+          await writeFile(path, Buffer.alloc(2048));
+          stems[role] = path;
+        }
+        return { stdout: `KEYSPILLI_STEMS_JSON:${JSON.stringify({ version: "4.0.1", stems })}`, stderr: "" };
+      }
+      transcribedAudio.push(args[1]!);
+      transcriptionArgs.push(args);
+      await writeFile(join(args[0]!, `${args[1]!.split("/").pop()}_basic_pitch.mid`), Buffer.from([1, 2, 3]));
+      return { stdout: "", stderr: "" };
+    };
+
+    const result = await transcribePitchedStems(audioPath, jobDir, {
+      ...config(),
+      onsetThreshold: 0.8,
+      frameThreshold: 0.6,
+    }, {}, {
+      run: runner,
+      freeBytes: async () => 10 * 1024 ** 3,
+    });
+
+    expect(transcribedAudio.some((path) => path.endsWith("/guitar.wav"))).toBe(true);
+    expect(transcribedAudio.some((path) => path.endsWith("/other.wav"))).toBe(false);
+    expect(transcriptionArgs.every((args) => args.includes("0.8") && args.includes("0.6"))).toBe(true);
+    expect(result.report.stems.find((stem) => stem.role === "guitar")?.sourceStem).toBe("guitar");
   });
 
   it("fails before spawning Demucs when disk headroom is below the configured floor", async () => {

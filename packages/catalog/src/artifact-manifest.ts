@@ -108,6 +108,11 @@ export interface TranscriptionProvenance {
   modelSerialization: string;
   onsetThreshold: number;
   frameThreshold: number;
+  /** Effective per-role thresholds used by separated-stem transcription. */
+  stemRoleThresholds?: Partial<Record<"vocals" | "bass" | "guitar", {
+    onsetThreshold: number;
+    frameThreshold: number;
+  }>>;
   /** BPM explicitly supplied to the transcription, when one was available. */
   tempo?: number;
   /** How the audio entered the worker: downloaded, operator-seeded, or upload. */
@@ -474,6 +479,29 @@ export function validateTranscriptionProvenance(value: unknown, path = "transcri
     const threshold = value[key];
     if (typeof threshold !== "number" || !Number.isFinite(threshold) || threshold < 0 || threshold > 1) {
       errors.push(`${path}.${key} must be a finite number between 0 and 1`);
+    }
+  }
+  if (value.stemRoleThresholds !== undefined) {
+    if (!isRecord(value.stemRoleThresholds)) {
+      errors.push(`${path}.stemRoleThresholds must be an object when present`);
+    } else {
+      for (const [role, thresholds] of Object.entries(value.stemRoleThresholds)) {
+        const rolePath = `${path}.stemRoleThresholds.${role}`;
+        if (!["vocals", "bass", "guitar"].includes(role)) {
+          errors.push(`${rolePath} is not a supported pitched stem role`);
+          continue;
+        }
+        if (!isRecord(thresholds)) {
+          errors.push(`${rolePath} must be an object`);
+          continue;
+        }
+        for (const key of ["onsetThreshold", "frameThreshold"] as const) {
+          const threshold = thresholds[key];
+          if (typeof threshold !== "number" || !Number.isFinite(threshold) || threshold < 0 || threshold > 1) {
+            errors.push(`${rolePath}.${key} must be a finite number between 0 and 1`);
+          }
+        }
+      }
     }
   }
   if (value.tempo !== undefined && !validBpm(value.tempo)) {

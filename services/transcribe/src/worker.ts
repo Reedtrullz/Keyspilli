@@ -259,6 +259,7 @@ async function processJob(jobId: string): Promise<void> {
     let chords: ReturnType<typeof buildMetalArrangement>["chords"] | undefined;
     let separation: TranscriptionProvenance["separation"] | undefined;
     let metalArrangement: TranscriptionProvenance["metalArrangement"] | undefined;
+    let stemRoleThresholds: TranscriptionProvenance["stemRoleThresholds"] | undefined;
     let usedMetalArrangement = false;
     let filterApplied = false;
 
@@ -316,23 +317,27 @@ async function processJob(jobId: string): Promise<void> {
           stems: [
             { role: "vocals", noteCount: stemCounts.get("vocals") ?? 0 },
             { role: "bass", noteCount: stemCounts.get("bass") ?? 0 },
-            // The four-stem model calls the riff/harmony residual `other`;
-            // buildMetalArrangement consumes the same evidence as `guitar`.
+            // Provenance keeps the canonical harmonic-residual role for
+            // backward compatibility; the model and role thresholds record
+            // whether a dedicated guitar lane fed the arranger.
             { role: "other", noteCount: stemCounts.get("guitar") ?? 0 },
             { role: "drums", noteCount: stemCounts.get("drums") ?? 0 },
           ],
         };
-        const usedSources = arranged.ir.sections
-          .filter((section) => section.source !== "rest")
-          .map((section) => section.source === "vocals" ? "vocals" : "other");
+        stemRoleThresholds = stemResult.report.transcriber.roleThresholds;
+        const usedSources = arranged.ir.sections.flatMap((section) => {
+          if (section.source === "rest") return [];
+          if (section.source === "mixed") return ["vocals", "other"] as const;
+          return [section.source === "vocals" ? "vocals" : "other"] as const;
+        });
         const distinctSources = new Set(usedSources);
         const confidence = arranged.ir.sections.length
           ? arranged.ir.sections.reduce((sum, section) => sum + section.confidence, 0) / arranged.ir.sections.length
           : undefined;
         metalArrangement = {
           arranger: "keyspilli-metal-arranger",
-          version: "1",
-          strategy: "section-aware-vocal-riff-power-chord",
+          version: "2",
+          strategy: "phrase-fused-vocal-lead-power-chord",
           ...(distinctSources.size > 1
             ? { identitySource: "mixed" as const }
             : distinctSources.has("vocals")
@@ -357,6 +362,7 @@ async function processJob(jobId: string): Promise<void> {
           rm(join(dir, "stem-midi"), { recursive: true, force: true }),
           rm(join(dir, "arranged"), { recursive: true, force: true }),
         ]);
+        stemRoleThresholds = undefined;
         const detail = error instanceof Error ? error.message : String(error);
         const warning = "automatic metal stem route was unavailable or unsuitable; published legacy full-mix transcription";
         console.warn(`[worker] ${jobId} ${warning}: ${detail}`);
@@ -401,6 +407,7 @@ async function processJob(jobId: string): Promise<void> {
       modelSerialization: BASIC_PITCH_SERIALIZATION || "default",
       onsetThreshold: onsetTh,
       frameThreshold: frameTh,
+      ...(stemRoleThresholds ? { stemRoleThresholds } : {}),
       ...(typeof detectedTempo === "number" && Number.isFinite(detectedTempo) ? { tempo: detectedTempo } : {}),
       audioAcquisition: meta.acquisition,
       tempoSource: TEMPO_OVERRIDE ? "override" : tempo ? "detected" : "default",

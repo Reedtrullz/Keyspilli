@@ -36,23 +36,42 @@ describe("detectSections", () => {
         id: "section-2",
         label: "Section 2",
         startBeat: 12,
-        endBeat: 16,
-        type: "custom",
-      },
-      {
-        id: "section-3",
-        label: "Section 3",
-        startBeat: 16,
         endBeat: 20,
         type: "custom",
       },
       {
-        id: "section-4",
-        label: "Outro 4",
+        id: "section-3",
+        label: "Outro 3",
         startBeat: 20,
         endBeat: 32,
         type: "outro",
       },
     ]);
+  });
+
+  it("collapses adjacent density changes instead of creating one-measure fragments", () => {
+    const measures = Array.from({ length: 24 }, (_, index) => ({
+      index,
+      startBeat: index * 4,
+      endBeat: (index + 1) * 4,
+    }));
+    const densities = [
+      ...Array(8).fill(2),
+      1,
+      12,
+      4,
+      14,
+      ...Array(12).fill(10),
+    ] as number[];
+    const notes = densities.flatMap((count, measure) => Array.from({ length: count }, (_, index) => ({
+      midi: 60 + (index % 12),
+      start: measure * 4 + (index + 1) / (count + 1) * 4,
+      dur: 0.125,
+      vel: 80,
+    })));
+
+    const sections = detectSections(notes, measures);
+    expect(sections.every((section) => section.endBeat - section.startBeat >= 8)).toBe(true);
+    expect(sections.some((section) => section.endBeat - section.startBeat === 4)).toBe(false);
   });
 });

@@ -189,12 +189,18 @@ provider page bodies; retain only normalized chord events and provenance.
 
 The worker image defaults to `KEYSPILLI_IMPORT_MODE=auto`. The route is:
 
-1. Demucs (`htdemucs`) separates `vocals`, `bass`, `drums`, and `other`.
-2. Basic Pitch transcribes the pitched stems; a lightweight onset detector
-   supplies drum timing without turning drums into pitched piano notes.
-3. The role-aware arranger selects vocal or riff identity for the right hand,
-   keeps bass roots/fifths and section harmony in the left hand, and emits
-   explicit right-/left-hand tracks plus difficulty variants.
+1. Demucs (`htdemucs_6s`) separates a dedicated `guitar` lane alongside
+   `vocals`, `bass`, `drums`, and `other`; configured four-stem models remain
+   compatible and use `other` as the guitar fallback.
+2. Basic Pitch uses role-specific thresholds for vocals, bass, and guitar; a
+   lightweight onset detector supplies drum timing without turning drums into
+   pitched piano notes.
+3. The role-aware arranger fuses trustworthy moving vocal phrases with lead
+   guitar in the vocal rests, prefers upper guitar leads over lower rhythm
+   bleed, and preserves short solo attacks through Medium. Easy keeps the
+   melodic contour while thinning implausibly fast attacks. The arranger keeps
+   bass roots/fifths and section harmony in the left hand and emits explicit
+   right-/left-hand tracks plus difficulty variants.
 
 Use `KEYSPILLI_IMPORT_MODE=metal` for a strict operator run, or
 `KEYSPILLI_IMPORT_MODE=legacy` to bypass separation. In `auto`, a missing
@@ -207,7 +213,7 @@ The compose file forwards `KEYSPILLI_IMPORT_MODE`, so a one-off strict canary
 can be started with `KEYSPILLI_IMPORT_MODE=metal docker compose up worker`.
 
 The shipped transcribe image includes CPU PyTorch, Demucs 4.0.1, the
-`htdemucs` weights, Basic Pitch, ffmpeg, and yt-dlp. Expect roughly a 3 GB
+`htdemucs_6s` weights, Basic Pitch, ffmpeg, and yt-dlp. Expect roughly a 3 GB
 worker image with the CPU torch/Demucs stack and at least 6 GiB of free space
 for the default temporary-stem guard; longer recordings may need more. The
 shipped image is CPU-only, so

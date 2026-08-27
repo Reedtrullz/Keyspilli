@@ -43,10 +43,11 @@ provenance with the catalog artifact.
 `docker-compose.yml` forwards this setting, so `KEYSPILLI_IMPORT_MODE=metal
 docker compose up worker` enables the strict route for a canary run.
 
-Useful worker knobs: `KEYSPILLI_DEMUCS_MODEL` (default `htdemucs`),
+Useful worker knobs: `KEYSPILLI_DEMUCS_MODEL` (default `htdemucs_6s`, which
+provides a dedicated guitar stem; four-stem models fall back to `other`),
 `KEYSPILLI_DEMUCS_DEVICE` (the shipped worker image is CPU-only),
 `KEYSPILLI_STEM_MIN_FREE_GIB` (default `6`),
-`KEYSPILLI_DEMUCS_TIMEOUT_MS` (default `1800000`),
+`KEYSPILLI_DEMUCS_TIMEOUT_MS` (default `2700000`),
 `KEYSPILLI_TEMPO_OVERRIDE` (forces the MIDI tempo in BPM),
 `KEYSPILLI_MAX_ATTEMPTS` (default `2`), and
 `KEYSPILLI_BP_TIMEOUT_MS` (default `900000` per Basic Pitch run).

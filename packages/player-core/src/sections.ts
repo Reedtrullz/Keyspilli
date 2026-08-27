@@ -25,14 +25,29 @@ export function detectSections(
 
   const boundaries: number[] = [0];
   const windowSize = Math.min(4, Math.floor(measures.length / 4) || 1);
+  const minSectionMeasures = Math.min(4, Math.max(2, Math.floor(measures.length / 12)));
+  const candidates: Array<{ index: number; strength: number }> = [];
 
   for (let i = windowSize; i < measures.length - windowSize; i++) {
     const beforeAvg = avg(densities.slice(Math.max(0, i - windowSize), i));
     const afterAvg = avg(densities.slice(i, i + windowSize));
-    if (beforeAvg > 0 && Math.abs(afterAvg - beforeAvg) / beforeAvg > 0.4) {
-      boundaries.push(i);
+    const strength = beforeAvg > 0 ? Math.abs(afterAvg - beforeAvg) / beforeAvg : 0;
+    if (strength > 0.4 && i >= minSectionMeasures && measures.length - i >= minSectionMeasures) {
+      candidates.push({ index: i, strength });
     }
   }
+
+  // A density transition often fires on several adjacent measures. Keep the
+  // strongest candidate in each minimum-spacing neighbourhood. Strength-first
+  // suppression avoids a chain of weak candidates accidentally joining two
+  // real transitions that are far enough apart to be useful practice sections.
+  const selected: Array<{ index: number; strength: number }> = [];
+  for (const candidate of [...candidates].sort((a, b) => b.strength - a.strength || a.index - b.index)) {
+    if (selected.every((boundary) => Math.abs(candidate.index - boundary.index) >= minSectionMeasures)) {
+      selected.push(candidate);
+    }
+  }
+  boundaries.push(...selected.map((candidate) => candidate.index).sort((a, b) => a - b));
 
   if (!boundaries.includes(measures.length)) {
     boundaries.push(measures.length);
