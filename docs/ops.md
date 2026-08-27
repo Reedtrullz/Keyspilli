@@ -145,6 +145,14 @@ provider page bodies; retain only normalized chord events and provenance.
 
 ## YouTube conversion notes
 
+- The learner-facing `/youtube` page enqueues through `POST /api/youtube/import`.
+  That endpoint deliberately accepts only `{ "url": "https://..." }`, checks
+  same-origin browser metadata, limits active work and repeat requests, and
+  rejects duplicate URLs. It exists so the no-login single-user page does not
+  need the server-only `KEYSPILLI_API_TOKEN` in browser JavaScript.
+- `POST /api/youtube` remains the bearer-protected maintainer endpoint for
+  metadata overrides and re-transcription. Never expose `KEYSPILLI_API_TOKEN`
+  through `NEXT_PUBLIC_*` variables or embed it in the page bundle.
 - The worker accepts videos up to the configured `KEYSPILLI_MAX_VIDEO_DURATION_SEC`
   (600 seconds by default). CPU inference is slow; the UI recommends
   solo-piano covers under 5 minutes, while the metal route is designed for
