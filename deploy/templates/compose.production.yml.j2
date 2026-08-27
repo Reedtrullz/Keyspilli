@@ -42,8 +42,13 @@ services:
       NODE_ENV: production
       KEYSPILLI_DATA_DIR: /data
       KEYSPILLI_BP_SERIALIZATION: onnx
+      KEYSPILLI_YT_PROXY: "{{ keyspilli_yt_proxy | default('') }}"
+      KEYSPILLI_YT_COOKIES: "{{ '/run/secrets/keyspilli_youtube_cookies' if (keyspilli_yt_cookies_path | default('') | length > 0) else '' }}"
     volumes:
       - keyspilli_data:/data
+{% if keyspilli_yt_cookies_path | default('') | length > 0 %}
+      - "{{ keyspilli_yt_cookies_path }}:/run/secrets/keyspilli_youtube_cookies:ro"
+{% endif %}
     depends_on:
       - web
     logging:

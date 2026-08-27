@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@keyspilli/catalog";
+import { publicJobError } from "../../../../lib/job-error";
 
 export const dynamic = "force-dynamic";
 
@@ -11,5 +12,10 @@ export async function GET() {
        FROM conversion_jobs ORDER BY created_at DESC LIMIT 50`,
     )
     .all();
-  return NextResponse.json({ jobs });
+  return NextResponse.json({
+    jobs: (jobs as Array<Record<string, unknown>>).map((job) => ({
+      ...job,
+      error: publicJobError(job.error),
+    })),
+  });
 }
