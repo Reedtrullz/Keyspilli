@@ -47,6 +47,11 @@
     rollback_image: "{{ app_name }}:rollback"
     rollback_worker_image: "{{ app_name }}-worker:rollback"
     keyspilli_api_token: "{{ lookup('ansible.builtin.env', 'KEYSPILLI_API_TOKEN') | default('', true) }}"
+    # Optional YouTube acquisition escapes. The proxy value is deliberately
+    # limited to a non-credential endpoint; cookie material stays on the VPS
+    # and is mounted read-only by the rendered Compose file.
+    keyspilli_yt_proxy: "{{ lookup('ansible.builtin.env', 'KEYSPILLI_YT_PROXY') | default('', true) }}"
+    keyspilli_yt_cookies_path: "{{ lookup('ansible.builtin.env', 'KEYSPILLI_YT_COOKIES_PATH') | default('', true) }}"
 
   pre_tasks:
     - name: Validate deployment variables
@@ -77,6 +82,42 @@
         fail_msg: >-
           keyspilli_api_token must be set in Ansible Vault with at least 32 characters.
           The application rejects all mutation requests without it (fail-closed auth).
+
+    - name: Validate optional YouTube acquisition settings
+      ansible.builtin.assert:
+        that:
+          - keyspilli_yt_proxy | length == 0 or '@' not in keyspilli_yt_proxy
+          - keyspilli_yt_proxy | length == 0 or '\n' not in keyspilli_yt_proxy
+          - keyspilli_yt_proxy | length == 0 or '\r' not in keyspilli_yt_proxy
+          - keyspilli_yt_proxy | length == 0 or '"' not in keyspilli_yt_proxy
+          - keyspilli_yt_proxy | length == 0 or "'" not in keyspilli_yt_proxy
+          - keyspilli_yt_cookies_path | length == 0 or keyspilli_yt_cookies_path is match('^/')
+          - keyspilli_yt_cookies_path | length == 0 or '\n' not in keyspilli_yt_cookies_path
+          - keyspilli_yt_cookies_path | length == 0 or '\r' not in keyspilli_yt_cookies_path
+          - keyspilli_yt_cookies_path | length == 0 or '"' not in keyspilli_yt_cookies_path
+          - keyspilli_yt_cookies_path | length == 0 or "'" not in keyspilli_yt_cookies_path
+        fail_msg: >-
+          KEYSPILLI_YT_PROXY must be a non-credential proxy endpoint and
+          KEYSPILLI_YT_COOKIES_PATH must be an absolute path on the VPS.
+          Keep browser cookies out of environment values and repository files.
+      no_log: true
+
+    - name: Check optional YouTube cookie file
+      ansible.builtin.stat:
+        path: "{{ keyspilli_yt_cookies_path }}"
+      register: keyspilli_yt_cookies_stat
+      when: keyspilli_yt_cookies_path | length > 0
+      no_log: true
+
+    - name: Assert optional YouTube cookie file is a regular file
+      ansible.builtin.assert:
+        that:
+          - keyspilli_yt_cookies_stat.stat.exists | bool
+          - keyspilli_yt_cookies_stat.stat.isreg | bool
+          - keyspilli_yt_cookies_stat.stat.mode in ['0600', '0640']
+        fail_msg: "KEYSPILLI_YT_COOKIES_PATH must point to an existing regular 0600/0640 cookie file on the VPS."
+      when: keyspilli_yt_cookies_path | length > 0
+      no_log: true
 
     - name: Verify Docker is available on target host
       ansible.builtin.command: docker --version

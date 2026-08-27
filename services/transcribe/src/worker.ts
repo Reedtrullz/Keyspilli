@@ -36,6 +36,11 @@ import { buildMetalArrangement, parseMidi, transcriptionMaxDurationBeats, writeM
 import { assessMetalRouting } from "./metal-routing.js";
 import { stemPipelineConfigFromEnv, transcribePitchedStems } from "./stem-pipeline.js";
 import { normalizeYoutubeImportUrl } from "./youtube-url.js";
+import {
+  isYoutubeBotChallenge,
+  sanitizeProcessError,
+  YOUTUBE_BOT_BLOCK_MESSAGE,
+} from "./errors.js";
 
 const execFileP = promisify(execFile);
 const POLL_MS = Number(process.env.KEYSPILLI_POLL_MS ?? 5000);
@@ -107,8 +112,12 @@ requirePositiveFloat("KEYSPILLI_ONSET", ONSET_THRESHOLD);
 requirePositiveFloat("KEYSPILLI_FRAME", FRAME_THRESHOLD);
 
 async function run(cmd: string, args: string[], timeoutMs = 300_000): Promise<string> {
-  const { stdout } = await execFileP(cmd, args, { timeout: timeoutMs, maxBuffer: 32 * 1024 * 1024 });
-  return stdout;
+  try {
+    const { stdout } = await execFileP(cmd, args, { timeout: timeoutMs, maxBuffer: 32 * 1024 * 1024 });
+    return stdout;
+  } catch (error) {
+    throw sanitizeProcessError(error);
+  }
 }
 
 async function sha256File(path: string): Promise<string> {
@@ -156,6 +165,7 @@ async function ytDlp(args: string[], timeoutMs = 300_000): Promise<string> {
       full.push(...args);
       return await run("yt-dlp", full, timeoutMs);
     } catch (e) {
+      if (isYoutubeBotChallenge(e)) throw new Error(YOUTUBE_BOT_BLOCK_MESSAGE);
       lastError = e;
     }
   }
@@ -466,13 +476,17 @@ async function processJob(jobId: string): Promise<void> {
     console.log(`[worker] ${jobId} done → ${songId}`);
   } catch (e) {
     const attempts = (job.attempts ?? 0) + 1;
-    const msg = `attempt ${attempts}: ${(e as Error).message}`;
-    if (attempts < MAX_ATTEMPTS) {
+    const detail = e instanceof Error ? e.message : String(e);
+    const msg = `attempt ${attempts}: ${detail}`;
+    // A YouTube bot challenge is tied to the worker's egress/session. Retrying
+    // the same URL immediately with another attempt only hammers the blocked
+    // IP, so surface an actionable terminal error instead.
+    if (!isYoutubeBotChallenge(e) && attempts < MAX_ATTEMPTS) {
       updateJob(jobId, { status: "queued", error: msg, attempts });
-      console.warn(`[worker] ${jobId} attempt ${attempts}/${MAX_ATTEMPTS} failed, requeued: ${(e as Error).message}`);
+      console.warn(`[worker] ${jobId} attempt ${attempts}/${MAX_ATTEMPTS} failed, requeued: ${detail}`);
     } else {
       updateJob(jobId, { status: "error", error: msg, attempts, finishedAt: new Date().toISOString() });
-      console.error(`[worker] ${jobId} failed after ${attempts} attempts: ${(e as Error).message}`);
+      console.error(`[worker] ${jobId} failed after ${attempts} attempts: ${detail}`);
     }
   } finally {
     clearInterval(heartbeat);

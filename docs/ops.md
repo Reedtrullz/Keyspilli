@@ -160,15 +160,23 @@ provider page bodies; retain only normalized chord events and provenance.
 - Backend: ONNX (no TensorFlow needed). On the Mac for fast local development,
   set `KEYSPILLI_BP_SERIALIZATION=coreml` (CoreML is ~10× faster than CPU).
 - Worker logs via `docker compose logs -f worker`.
- Datacenter IPs are frequently bot-challenged by YouTube. Two escapes:
- set `KEYSPILLI_YT_COOKIES=/path/to/cookies.txt` and/or `KEYSPILLI_YT_PROXY=host:port`
- for the worker container (both are passed to every yt-dlp call), or pre-seed
- a job manually: create the job row, then place `audio.mp3` plus a `meta.json`
- sidecar (`{"title": "...", "uploader": "...", "durationSec": 302}`) in
- `/data/transcribed/<jobId>/`. When both files exist and validate, the worker
- skips yt-dlp entirely, enforces the same duration cap, transcribes normally,
- and records `audioAcquisition: "pre-seeded"` in artifact provenance.
- A missing or malformed sidecar falls back to normal yt-dlp download.
+- Datacenter IPs are frequently bot-challenged by YouTube. The worker image
+  includes yt-dlp's matching EJS challenge solver, but a blocked egress still
+  needs an operator escape. For a production deploy, set
+  `KEYSPILLI_YT_PROXY=http://host:port` to a trusted non-credential proxy endpoint and
+  `KEYSPILLI_YT_COOKIES_PATH=/absolute/path/on/vps/cookies.txt`; Ansible mounts
+  the cookie file read-only at the worker's secret path. Never put browser
+  cookies or proxy credentials in the repository, a browser bundle, or a proxy
+  URL. For a one-off container run, `KEYSPILLI_YT_COOKIES` may point directly
+  at a read-only cookie file. Both settings are passed to every yt-dlp call.
+  If YouTube still returns a bot challenge, do not keep retrying the same job:
+  use a trusted egress or pre-seed a job manually: create the job row, then
+  place `audio.mp3` plus a `meta.json` sidecar
+  (`{"title": "...", "uploader": "...", "durationSec": 302}`) in
+  `/data/transcribed/<jobId>/`. When both files exist and validate, the worker
+  skips yt-dlp entirely, enforces the same duration cap, transcribes normally,
+  and records `audioAcquisition: "pre-seeded"` in artifact provenance.
+  A missing or malformed sidecar falls back to normal yt-dlp download.
 - Per-song overrides live in `catalog/transcription-overrides.json` (keyed by
   base id or job id). In addition to the existing threshold keys, two newer
   knobs help dense material: `"denseBand": true` lowers Basic Pitch thresholds

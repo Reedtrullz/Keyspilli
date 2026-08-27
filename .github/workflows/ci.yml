@@ -233,6 +233,11 @@ jobs:
           APP_VERSION: ${{ github.sha }}
           ANSIBLE_CONFIG: deploy/ansible.cfg
           KEYSPILLI_API_TOKEN: ${{ secrets.KEYSPILLI_API_TOKEN }}
+          # Optional: a trusted non-credential proxy endpoint and an absolute
+          # cookie-file path that already exists on the VPS. The playbook
+          # mounts the latter read-only; cookie contents never enter CI.
+          KEYSPILLI_YT_PROXY: ${{ vars.KEYSPILLI_YT_PROXY || secrets.KEYSPILLI_YT_PROXY }}
+          KEYSPILLI_YT_COOKIES_PATH: ${{ vars.KEYSPILLI_YT_COOKIES_PATH || secrets.KEYSPILLI_YT_COOKIES_PATH }}
         run: |
           ansible-playbook \
             -i deploy/inventory/hosts.yml \

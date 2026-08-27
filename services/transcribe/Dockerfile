@@ -46,8 +46,11 @@ COPY --from=build /app/catalog/chord-timelines ./catalog/chord-timelines
 # CUDA runtimes. Bake the model into the image so jobs do not depend on a
 # first-run model download.
 COPY package.json tsconfig.base.json ./
+# yt-dlp's default extra includes the matching EJS challenge solver. The bare
+# package leaves JS runtimes configured but no solver scripts, which makes
+# otherwise valid YouTube clients fail signature challenges.
 RUN python3 -m venv /app/.venv \
-    && /app/.venv/bin/pip install --no-cache-dir --quiet "setuptools<81" "numpy<2" "scipy<1.13" librosa mir_eval pretty_midi resampy scikit-learn typing_extensions onnxruntime yt-dlp \
+    && /app/.venv/bin/pip install --no-cache-dir --quiet "setuptools<81" "numpy<2" "scipy<1.13" librosa mir_eval pretty_midi resampy scikit-learn typing_extensions onnxruntime "yt-dlp[default]==2026.08.19" \
     && /app/.venv/bin/pip install --no-cache-dir --quiet --no-deps basic-pitch \
     && /app/.venv/bin/pip install --no-cache-dir --quiet \
       --index-url https://download.pytorch.org/whl/cpu \
