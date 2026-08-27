@@ -14,6 +14,32 @@ interface Job {
   finishedAt: string | null;
 }
 
+interface ApiResponse {
+  error?: string;
+  jobId?: string;
+  [key: string]: unknown;
+}
+
+async function readApiResponse(res: Response): Promise<ApiResponse> {
+  const text = await res.text();
+  if (!text) return {};
+  try {
+    const parsed = JSON.parse(text) as unknown;
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed as ApiResponse : {};
+  } catch {
+    return {};
+  }
+}
+
+function requestError(res: Response, data: ApiResponse, fallback: string): Error {
+  if (res.status === 401) return new Error("This maintainer action requires an operator token.");
+  if (res.status === 429) return new Error(data.error ?? "The importer is busy; try again shortly.");
+  if (res.status === 502 || res.status === 503 || res.status === 504) {
+    return new Error("The importer service is temporarily unavailable; please try again.");
+  }
+  return new Error(data.error ?? fallback);
+}
+
 function isYoutubeVideoUrl(value: string): boolean {
   try {
     const parsed = new URL(value.trim());
@@ -96,13 +122,14 @@ export default function YoutubePage() {
     }
     setStatus("queued");
     try {
-      const res = await fetch("/api/youtube", {
+      const res = await fetch("/api/youtube/import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "failed to queue");
+      const data = await readApiResponse(res);
+      if (!res.ok) throw requestError(res, data, "failed to queue");
+      if (!data.jobId) throw new Error("The importer did not return a job id; please try again.");
       setJobId(data.jobId);
       poll(data.jobId);
     } catch (e) {
@@ -121,8 +148,10 @@ export default function YoutubePage() {
         const j = await r.json();
         if (j.status === "processing") {
           setStatus("processing");
-          // After 10 minutes, stop auto-polling
-          if (elapsed >= 600_000) {
+          // CPU stem separation can take around 15 minutes for a full-band
+          // track. Keep polling long enough to cover that path, but still
+          // give the user a truthful escape hatch if a worker is wedged.
+          if (elapsed >= 1_200_000) {
             window.clearInterval(t);
             if (pollTimerRef.current === t) pollTimerRef.current = null;
             setStatus("error");
@@ -155,9 +184,9 @@ export default function YoutubePage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error ?? "failed to queue");
-    setActionMsg(`Queued job ${data.jobId}`);
+    const data = await readApiResponse(res);
+    if (!res.ok) throw requestError(res, data, "failed to queue");
+    setActionMsg(`Queued job ${data.jobId ?? ""}`.trim());
     await refreshJobs();
   }
 
@@ -188,9 +217,10 @@ export default function YoutubePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "update failed");
-      setActionMsg(`Updated ${data.songIds.length} variants${data.tempoRole ? ` (${data.tempoRole})` : ""}`);
+      const data = await readApiResponse(res);
+      if (!res.ok) throw requestError(res, data, "update failed");
+      const songCount = Array.isArray(data.songIds) ? data.songIds.length : 0;
+      setActionMsg(`Updated ${songCount} variants${data.tempoRole ? ` (${data.tempoRole})` : ""}`);
       setEdit({ title: "", artist: "", key: "", playbackTempo: "", calibrationTempo: "" });
     } catch (e) {
       setError((e as Error).message);
@@ -206,9 +236,10 @@ export default function YoutubePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "calibration rebuild failed");
-      setActionMsg(`Rebuilt ${data.songIds.length} variants from source calibration`);
+      const data = await readApiResponse(res);
+      if (!res.ok) throw requestError(res, data, "calibration rebuild failed");
+      const songCount = Array.isArray(data.songIds) ? data.songIds.length : 0;
+      setActionMsg(`Rebuilt ${songCount} variants from source calibration`);
       setEdit((current) => ({ ...current, calibrationTempo: "" }));
     } catch (e) {
       setError((e as Error).message);
@@ -220,6 +251,10 @@ export default function YoutubePage() {
       method: action === "retry" ? "POST" : "DELETE",
     });
     if (res.ok) await refreshJobs();
+    else {
+      const data = await readApiResponse(res);
+      setError(requestError(res, data, `${action} failed`).message);
+    }
   }
 
   function renderConversionStatus(value: typeof status) {
@@ -227,7 +262,7 @@ export default function YoutubePage() {
       return <p className="text-sm text-zinc-600" role="status">Queued… the worker will pick this up shortly.</p>;
     }
     if (value === "processing") {
-      return <p className="text-sm text-indigo-600" role="status">Transcribing audio → MIDI → arrangements. This takes 1–3 minutes.</p>;
+      return <p className="text-sm text-indigo-600" role="status">Separating audio → MIDI → piano arrangement. Full-band tracks can take up to 15 minutes on the worker.</p>;
     }
     if (value === "done" && songId) {
       return (
@@ -249,12 +284,13 @@ export default function YoutubePage() {
     <div className="page-shell max-w-2xl mx-auto px-4 py-10">
       <h1 className="page-title text-2xl font-bold mb-2 motion-rise-in">YouTube → Sheet Music</h1>
       <p className="text-zinc-600 text-sm mb-6 motion-rise-in">
-        Paste a <strong>solo piano cover</strong> (no vocals or drums, 10 seconds to 5 minutes). A worker downloads the audio,
-        transcribes it to MIDI, and creates a full playable arrangement — usually in a minute or two.
+        Paste a YouTube track (10 seconds to 5 minutes). Solo-piano covers are easiest, while the worker can also
+        separate full-band rock and metal into a playable piano arrangement.
       </p>
       <p className="motion-feedback text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-6">
-        Experimental: transcription is fully automatic. Clean solo-piano audio works best; fast passages and heavy
-        pedal can produce wrong notes. You can always edit the exported MusicXML in MuseScore.
+        Experimental: transcription is fully automatic. Full-band separation runs on CPU and may take up to 15 minutes;
+        fast passages, heavy pedal, and dense guitar mixes can still produce wrong notes. You can edit the exported
+        MusicXML in MuseScore.
       </p>
 
       <form
@@ -312,7 +348,7 @@ export default function YoutubePage() {
         >
           <span>
             <span className="block font-semibold text-sm">Maintainer tools</span>
-            <span className="block text-xs text-zinc-500 mt-0.5">Re-transcribe or repair existing arrangements</span>
+            <span className="block text-xs text-zinc-500 mt-0.5">Re-transcribe or repair existing arrangements (operator token required)</span>
           </span>
           <span className="text-xs text-zinc-500" aria-hidden="true">{maintainerOpen ? "Hide" : "Show"}</span>
         </button>
