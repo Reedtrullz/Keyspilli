@@ -54,7 +54,7 @@ export const MAX_YOUTUBE_IMPORT_DUR_BEATS = 1.5;
 // when the input bytes and user-facing ingest options are unchanged.
 export const INGEST_NORMALIZER_ID = "midi-normalizer-v2";
 export const INGEST_GRID_POLICY_ID = "beat-grid-v2";
-export const INGEST_VARIANT_POLICY_ID = "learner-variant-ladder-v4-metal";
+export const INGEST_VARIANT_POLICY_ID = "learner-variant-ladder-v5-metal-piano-realism";
 
 /**
  * Versioned processing identities used by audio transcription provenance and

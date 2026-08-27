@@ -9,6 +9,14 @@ function inferTrackHand(names: string[]): Hand | undefined {
   return undefined;
 }
 
+function inferTrackIdentitySource(names: string[]): Note["identitySource"] {
+  const text = names.join(" ").toLowerCase();
+  if (/\bvocals?\b/.test(text)) return "vocals";
+  if (/\bguitars?\b/.test(text)) return "guitar";
+  if (/\bother\b/.test(text)) return "other";
+  return undefined;
+}
+
 function readVarint(data: Uint8Array, pos: { v: number }, end: number): number {
   let value = 0;
   for (let i = 0; i < 4; i++) {
@@ -159,7 +167,10 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
       }
     }
     const hand = inferTrackHand(namesInTrack);
-    trackNotes.push(hand ? notes.map((n) => ({ ...n, hand })) : notes);
+    const identitySource = inferTrackIdentitySource(namesInTrack);
+    trackNotes.push(hand || identitySource
+      ? notes.map((n) => ({ ...n, ...(hand ? { hand } : {}), ...(identitySource ? { identitySource } : {}) }))
+      : notes);
   }
 
   const valid = trackNotes

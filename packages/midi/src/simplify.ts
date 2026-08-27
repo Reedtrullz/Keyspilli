@@ -226,6 +226,155 @@ export function reduceMediumRhythm(notes: Note[]): Note[] {
   });
 }
 
+/**
+ * Select a physically phrased metal RH path inside each real phrase. This is
+ * tempo-aware and local, because a whole-song density average cannot see a
+ * half-second detector burst. Pitch and attack choices are selection-only so
+ * every easier level remains traceable to its harder neighbor.
+ */
+function reduceMetalRhRealism(notes: Note[], tempoBpm: number, maxAttacksPerSecond: number, legato = false): Note[] {
+  if (!notes.length) return [];
+  const safeTempo = normalizeTempoBpm(tempoBpm);
+  const secondsPerBeat = 60 / safeTempo;
+  const safeRate = Number.isFinite(maxAttacksPerSecond) && maxAttacksPerSecond > 0 ? maxAttacksPerSecond : 4;
+  const minimumSpacingBeats = (safeTempo / 60) / safeRate;
+  const source = [...notes]
+    .sort((a, b) => a.start - b.start
+      || Number(b.identitySource === "vocals") - Number(a.identitySource === "vocals")
+      || b.vel - a.vel || b.dur - a.dur || b.midi - a.midi)
+    .filter((note, index, all) => index === 0 || Math.abs(note.start - all[index - 1]!.start) > 1e-9);
+
+  const merged: Note[] = [];
+  for (const original of source) {
+    const note = { ...original };
+    const previous = merged.at(-1);
+    const elapsedSec = previous ? (note.start - previous.start) * secondsPerBeat : Number.POSITIVE_INFINITY;
+    if (
+      previous
+      && previous.identitySource !== "vocals"
+      && note.identitySource !== "vocals"
+      && previous.midi === note.midi
+      && elapsedSec <= 0.09 + 1e-9
+      && note.start <= previous.start + previous.dur + 0.125 + 1e-9
+    ) {
+      previous.dur = Math.max(previous.dur, note.start + note.dur - previous.start);
+      previous.vel = Math.max(previous.vel, note.vel);
+      continue;
+    }
+    merged.push(note);
+  }
+
+  const cleaned = merged.filter((note, index, all) => {
+    if (note.identitySource === "vocals") return true;
+    const previous = all[index - 1];
+    const next = all[index + 1];
+    if (!previous || !next) return true;
+    const intoSec = (note.start - previous.start) * secondsPerBeat;
+    const outSec = (next.start - note.start) * secondsPerBeat;
+    const durationSec = note.dur * secondsPerBeat;
+    return !(
+      intoSec <= 0.3 + 1e-9
+      && outSec <= 0.3 + 1e-9
+      && durationSec <= 0.2 + 1e-9
+      && Math.abs(note.midi - previous.midi) >= 7
+      && Math.abs(note.midi - next.midi) >= 7
+      && Math.abs(previous.midi - next.midi) <= 4
+    );
+  });
+
+  const phrases: Note[][] = [];
+  for (const note of cleaned) {
+    const phrase = phrases.at(-1);
+    const previous = phrase?.at(-1);
+    const restBeats = previous ? note.start - (previous.start + previous.dur) : Number.POSITIVE_INFINITY;
+    if (!phrase || !previous || (restBeats >= 0.5 && restBeats * secondsPerBeat >= 0.35)) phrases.push([note]);
+    else phrase.push(note);
+  }
+
+  const selected: Note[] = [];
+  for (const phrase of phrases) {
+    if (phrase.length <= 1) {
+      selected.push(...phrase.map((note) => ({ ...note })));
+      continue;
+    }
+    const protectedAnchors = phrase.filter((note) => note.identitySource === "vocals");
+    const candidates = phrase.flatMap((note, phraseIndex) => note.identitySource !== "vocals"
+      && protectedAnchors.every((anchor) => Math.abs(note.start - anchor.start) >= minimumSpacingBeats - 1e-9)
+      ? [{ note, phraseIndex }]
+      : []);
+    const weights = candidates.map(({ note, phraseIndex: index }) => {
+      const previous = phrase[index - 1];
+      const next = phrase[index + 1];
+      const endpoint = index === 0 || index === phrase.length - 1;
+      const localExtremum = previous && next
+        && ((note.midi > previous.midi && note.midi > next.midi) || (note.midi < previous.midi && note.midi < next.midi));
+      const prominence = previous && next
+        ? Math.min(Math.abs(note.midi - previous.midi), Math.abs(note.midi - next.midi))
+        : 0;
+      const stepConnector = previous && next
+        && Math.abs(note.midi - previous.midi) <= 4
+        && Math.abs(next.midi - note.midi) <= 4;
+      const beatPosition = Math.abs(note.start - Math.round(note.start));
+      const halfBeatPosition = Math.abs(note.start * 2 - Math.round(note.start * 2));
+      return 1
+        + Math.min(note.dur * secondsPerBeat, 0.75) * 1.5
+        + Math.max(0, Math.min(1, note.vel / 127)) * 0.5
+        + (endpoint ? 5 : 0)
+        + (localExtremum && prominence >= 3 ? 2 + Math.min(2, prominence / 6) : 0)
+        + (stepConnector ? 0.75 : 0)
+        + (beatPosition <= 1e-6 ? 0.75 : halfBeatPosition <= 1e-6 ? 0.35 : 0);
+    });
+    const previousCompatible = candidates.map(({ note }, index) => {
+      let low = 0;
+      let high = index - 1;
+      let compatible = -1;
+      while (low <= high) {
+        const candidate = Math.floor((low + high) / 2);
+        if (note.start - candidates[candidate]!.note.start >= minimumSpacingBeats - 1e-9) {
+          compatible = candidate;
+          low = candidate + 1;
+        } else {
+          high = candidate - 1;
+        }
+      }
+      return compatible;
+    });
+    const best = new Array<number>(candidates.length + 1).fill(0);
+    const take = new Array<boolean>(candidates.length).fill(false);
+    for (let index = 0; index < candidates.length; index++) {
+      const include = weights[index]! + best[previousCompatible[index]! + 1]!;
+      const exclude = best[index]!;
+      if (include > exclude + 1e-9) {
+        best[index + 1] = include;
+        take[index] = true;
+      } else {
+        best[index + 1] = exclude;
+      }
+    }
+    const phraseSelection: Note[] = [];
+    for (let index = candidates.length - 1; index >= 0;) {
+      const include = weights[index]! + best[previousCompatible[index]! + 1]!;
+      if (take[index] && Math.abs(best[index + 1]! - include) <= 1e-9) {
+        phraseSelection.push({ ...candidates[index]!.note });
+        index = previousCompatible[index]!;
+      } else {
+        index -= 1;
+      }
+    }
+    selected.push(...protectedAnchors.map((note) => ({ ...note })), ...phraseSelection.reverse());
+  }
+
+  const sorted = selected.sort((a, b) => a.start - b.start || a.midi - b.midi);
+  if (!legato) return sorted;
+  return sorted.map((note, index) => {
+    const next = sorted[index + 1];
+    if (!next) return { ...note };
+    const gap = next.start - note.start;
+    if (gap <= 0 || gap * secondsPerBeat > 0.5) return { ...note };
+    return { ...note, dur: Math.min(gap, Math.max(note.dur, gap * 0.9)) };
+  });
+}
+
 export function melodyOnly(notes: Note[], grid: number, minDur: number, pads?: Set<number>): Note[] {
   const bySlice = new Map<number, Note[]>();
   for (const n of notes) {
@@ -926,9 +1075,10 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   // slice AND sounding span so full-band multitrack MIDIs stay a playable
   // piano texture; each easier level is then a reduction of the level above
   // so the ladder stays a true subset.
+  const advancedRhSource = metalProfile ? reduceMetalRhRealism(rh, tempo, 8) : rh;
   const advancedSource = quantize(
     [
-      ...capSoundingSpan(topVoices(rh, 0.125, 4, pads), 12, "high"),
+      ...capSoundingSpan(topVoices(advancedRhSource, 0.125, 4, pads), 12, "high"),
       // Advanced keeps the imported LH attacks intact. Chord thinning is a
       // simplification operation; applying it here changed eighth-note bass
       // timing and introduced same-pitch overlaps in curated arrangements.
@@ -957,12 +1107,12 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     ...capSoundingSpan(topVoices(advancedRh, 0.125, 3, pads), 12, "high"),
     ...capSoundingSpan(thinChord(advancedLh, 3), innerVoiceArrangement ? 19 : 12, "low"),
   ];
-  // A role-aware metal RH is already the selected vocal/lead-guitar identity
-  // line. Preserve its full attack detail in Medium; Easy contour-thins it
-  // below so the level remains credible for a learner.
+  // A role-aware RH carries the song identity, but detector articulation is
+  // not piano fingering. Progressively reduce its local phrase rate while the
+  // LH keeps the existing accompaniment reduction.
   const mediumReduced = metalProfile
     ? [
-      ...mediumTexture.filter((note) => note.hand !== "L"),
+      ...reduceMetalRhRealism(mediumTexture.filter((note) => note.hand !== "L"), tempo, 6, true),
       ...reduceMediumRhythm(mediumTexture.filter((note) => note.hand === "L")),
     ]
     : reduceMediumRhythm(mediumTexture);
@@ -972,7 +1122,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   )));
   const mediumRh = medium.filter((n) => n.hand !== "L");
   const mediumLh = medium.filter((n) => n.hand === "L");
-  const easyRhSource = metalProfile ? reduceMediumRhythm(mediumRh) : mediumRh;
+  const easyRhSource = metalProfile ? reduceMetalRhRealism(mediumRh, tempo, 4, true) : mediumRh;
   const easy = capLevel("easy", trimSamePitchOverlaps(quantize(
     [
       ...capSoundingSpan(melodyOnly(easyRhSource, 0.125, 0.5, pads), 12, "high"),
@@ -989,13 +1139,17 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   // that drifts apart in fast passages.
   const easyRh = easy.filter((n) => n.hand !== "L");
   const easyLh = easy.filter((n) => n.hand === "L");
+  const veryEasyRhSource = metalProfile ? reduceMetalRhRealism(easyRh, tempo, 3, true) : easyRh;
   const veryEasy = capLevel("very-easy", trimSamePitchOverlaps(quantize(
-    [...capSoundingSpan(melodyOnly(easyRh, 0.25, 0.5, pads), 12, "high"), ...easyLh],
+    [...capSoundingSpan(melodyOnly(veryEasyRhSource, 0.25, 0.5, pads), 12, "high"), ...easyLh],
     { grid: 0.25 },
   )));
   const meterBeats = src.timeSig[0] * (4 / src.timeSig[1]);
   const beatsPerMeasure = Number.isFinite(meterBeats) && meterBeats > 0 ? meterBeats : 4;
-  const beginnerRh = capSoundingSpan(melodyOnly(veryEasy.filter((n) => n.hand !== "L"), 0.25, 0.5, pads), 12, "high");
+  const beginnerRhSource = metalProfile
+    ? reduceMetalRhRealism(veryEasy.filter((n) => n.hand !== "L"), tempo, 2.5, true)
+    : veryEasy.filter((n) => n.hand !== "L");
+  const beginnerRh = capSoundingSpan(melodyOnly(beginnerRhSource, 0.25, 0.5, pads), 12, "high");
   const beginnerSource = quantize(
     [
       ...beginnerRh,
@@ -1007,8 +1161,11 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     "beginner",
     trimSamePitchOverlaps(metalProfile ? capSemanticBeginnerHands(beginnerSource) : beginnerSource),
   );
+  const veryBeginnerRhSource = metalProfile
+    ? reduceMetalRhRealism(beginner.filter((n) => n.hand !== "L"), tempo, 2, true)
+    : beginner.filter((n) => n.hand !== "L");
   const veryBeginnerRh = capSoundingSpan(
-    melodyOnly(beginner.filter((n) => n.hand !== "L"), 0.5, 1, pads),
+    melodyOnly(veryBeginnerRhSource, 0.5, 1, pads),
     12,
     "high",
   );
