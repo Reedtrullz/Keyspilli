@@ -10,6 +10,8 @@ export interface Note {
   /** 0-127 */
   vel: number;
   hand?: Hand;
+  /** Source lane for role-aware learner arrangement; absent on legacy notes. */
+  identitySource?: "vocals" | "guitar" | "other";
   /** optional lyric syllable for this note */
   lyrics?: string;
 }

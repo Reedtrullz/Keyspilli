@@ -302,7 +302,10 @@ async function processJob(jobId: string): Promise<void> {
           keySig: arranged.parsed.keySig,
           keyMode: arranged.parsed.keyMode,
           tracks: [
-            { name: "Right Hand", notes: arranged.parsed.notes.filter((note) => note.hand === "R") },
+            { name: "Right Hand Vocals", notes: arranged.parsed.notes.filter((note) => note.hand === "R" && note.identitySource === "vocals") },
+            { name: "Right Hand Guitar", notes: arranged.parsed.notes.filter((note) => note.hand === "R" && note.identitySource === "guitar") },
+            { name: "Right Hand Other", notes: arranged.parsed.notes.filter((note) => note.hand === "R" && note.identitySource === "other") },
+            { name: "Right Hand", notes: arranged.parsed.notes.filter((note) => note.hand === "R" && !note.identitySource) },
             { name: "Left Hand", notes: arranged.parsed.notes.filter((note) => note.hand === "L") },
           ],
         });
@@ -336,8 +339,8 @@ async function processJob(jobId: string): Promise<void> {
           : undefined;
         metalArrangement = {
           arranger: "keyspilli-metal-arranger",
-          version: "2",
-          strategy: "phrase-fused-vocal-lead-power-chord",
+          version: "3",
+          strategy: "piano-realistic-phrase-fused-vocal-lead-power-chord",
           ...(distinctSources.size > 1
             ? { identitySource: "mixed" as const }
             : distinctSources.has("vocals")

@@ -340,6 +340,47 @@ describe("ingestSource .mxl", () => {
     expect(Math.max(...advanced.notes.map((note) => note.dur))).toBeGreaterThan(1.5);
   });
 
+  it("reattaches metal identity sources after the arranged MIDI roundtrip", async () => {
+    const rh = Array.from({ length: 32 }, (_, index) => ({
+      midi: index === 1 ? 72 : index === 9 ? 74 : index === 17 ? 76 : 64 + (index % 4),
+      start: index * 0.25,
+      dur: 0.2,
+      vel: 84,
+      hand: "R" as const,
+    }));
+    const lh = Array.from({ length: 8 }, (_, start) => ({ midi: 40, start, dur: 0.8, vel: 72, hand: "L" as const }));
+    const identitySources = rh.map((note, index) => ({
+      start: note.start,
+      midi: note.midi,
+      identitySource: index === 1 || index === 9 || index === 17 ? "vocals" as const : "guitar" as const,
+    }));
+    const baseId = "metal-identity-roundtrip";
+    const result = await ingestSource({
+      buf: writeMidi([...rh, ...lh], {
+        tempoBpm: 120,
+        tracks: [
+          { name: "Right Hand Vocals", notes: rh.filter((_, index) => index === 1 || index === 9 || index === 17) },
+          { name: "Right Hand Guitar", notes: rh.filter((_, index) => index !== 1 && index !== 9 && index !== 17) },
+          { name: "Left Hand", notes: lh },
+        ],
+      }),
+      title: "Metal Identity Roundtrip",
+      artist: "Keyspilli Tests",
+      contentType: "youtube",
+      baseId,
+      cleanTranscription: false,
+      arrangementProfile: "metal",
+    });
+    expect(result.error).toBeUndefined();
+    const medium = JSON.parse(readFileSync(join(artifactsDir(baseId, "m"), "notes.json"), "utf8")) as {
+      notes: Array<{ start: number; midi: number; identitySource?: string }>;
+    };
+    for (const anchor of identitySources.filter((source) => source.identitySource === "vocals")) {
+      expect(medium.notes.some((note) => note.start === anchor.start && note.midi === anchor.midi
+        && note.identitySource === "vocals")).toBe(true);
+    }
+  });
+
   it("preserves a persisted metal profile when a rebuild omits the profile option", async () => {
     const source = writeMidi(
       Array.from({ length: 12 }, (_, index) => ({

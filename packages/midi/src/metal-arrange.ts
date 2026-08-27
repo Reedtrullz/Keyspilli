@@ -117,6 +117,12 @@ function monophonicPath(
         // pitch; never ask the player to jump more than an octave in <=1.5
         // beats merely because the raw stem contained a distant partial.
         if (continuityPrevious && elapsed <= 1.5) {
+          // An exact octave inside half a beat is the detector switching
+          // harmonics, not useful piano articulation. Keep the attack and
+          // pitch class but continue in the established register.
+          if (elapsed <= 0.5 + EPS && Math.abs(pitch - continuityPrevious.midi) === 12) {
+            pitch = continuityPrevious.midi;
+          }
           while (Math.abs(pitch - continuityPrevious.midi) > 12 && pitch - continuityPrevious.midi > 0 && pitch - 12 >= low) pitch -= 12;
           while (Math.abs(pitch - continuityPrevious.midi) > 12 && pitch - continuityPrevious.midi < 0 && pitch + 12 <= high) pitch += 12;
         }
@@ -229,7 +235,7 @@ function identityForWindow(
   start: number,
   end: number,
   minAlternateRest = 0,
-): { notes: Note[]; primaryCount: number; alternateCount: number } {
+): { notes: Note[]; primaryNotes: Note[]; primaryCount: number; alternateCount: number } {
   const primaryNotes = notesIn(primary, start, end).map((note) => ({ ...note }));
   const selected = [...primaryNotes];
   let alternateCount = 0;
@@ -261,7 +267,95 @@ function identityForWindow(
       ...note,
       dur: Math.max(EPS, Math.min(note.dur, end - note.start, all[index + 1] ? all[index + 1]!.start - note.start : note.dur)),
     }));
-  return { notes: sorted, primaryCount: primaryNotes.length, alternateCount };
+  return { notes: sorted, primaryNotes, primaryCount: primaryNotes.length, alternateCount };
+}
+
+/**
+ * Trace the fused vocal/guitar phrase through octave-equivalent registers.
+ * Trusted vocal pitches and phrase starts are anchors; surrounding guitar
+ * partials may move by octaves when that avoids physically implausible rapid
+ * travel. A real rest starts a fresh path, preserving deliberate register
+ * changes between phrases.
+ */
+function stabilizeIdentityRegister(
+  notes: Note[],
+  tempoBpm: number,
+  registerAnchors: ReadonlySet<string>,
+  low = 55,
+  high = 84,
+): Note[] {
+  if (notes.length < 2) return notes.map((note) => ({ ...note }));
+  const sorted = [...notes].sort((a, b) => a.start - b.start || b.vel - a.vel || b.midi - a.midi);
+  const phrases: Note[][] = [];
+  for (const note of sorted) {
+    const phrase = phrases.at(-1);
+    const previous = phrase?.at(-1);
+    const soundingRest = previous ? note.start - (previous.start + previous.dur) : Number.POSITIVE_INFINITY;
+    if (!phrase || !previous || soundingRest > 1) phrases.push([note]);
+    else phrase.push(note);
+  }
+
+  const secondsPerBeat = 60 / (Number.isFinite(tempoBpm) && tempoBpm > 0 ? tempoBpm : 120);
+  const candidatesFor = (note: Note): number[] => {
+    const pitches: number[] = [];
+    for (let pitch = note.midi; pitch >= low; pitch -= 12) pitches.push(pitch);
+    for (let pitch = note.midi + 12; pitch <= high; pitch += 12) pitches.push(pitch);
+    return [...new Set(pitches)].sort((a, b) => a - b);
+  };
+  const transitionCost = (from: number, to: number, elapsedBeats: number): number => {
+    const interval = Math.abs(to - from);
+    const elapsedSec = Math.max(0.001, elapsedBeats * secondsPerBeat);
+    let cost = interval * 0.03;
+    const comfortable = elapsedSec < 0.12 ? 5 : elapsedSec < 0.2 ? 7 : elapsedSec < 0.35 ? 11 : 24;
+    if (interval > comfortable) cost += (interval - comfortable) * 0.8;
+    if (elapsedSec < 0.35 && interval >= 12) cost += 2;
+    return cost;
+  };
+
+  const output: Note[] = [];
+  for (const phrase of phrases) {
+    const states = phrase.map(candidatesFor);
+    const costs: number[][] = [];
+    const parents: number[][] = [];
+    for (let index = 0; index < phrase.length; index++) {
+      costs[index] = [];
+      parents[index] = [];
+      for (let candidateIndex = 0; candidateIndex < states[index]!.length; candidateIndex++) {
+        const pitch = states[index]![candidateIndex]!;
+        const anchorKey = `${phrase[index]!.start.toFixed(6)}:${phrase[index]!.midi}`;
+        const anchored = index === 0 || registerAnchors.has(anchorKey);
+        const emission = (Math.abs(pitch - phrase[index]!.midi) / 12) * (anchored ? 100 : 1);
+        if (index === 0) {
+          costs[index]![candidateIndex] = emission;
+          parents[index]![candidateIndex] = -1;
+          continue;
+        }
+        let bestCost = Number.POSITIVE_INFINITY;
+        let bestParent = 0;
+        const elapsed = phrase[index]!.start - phrase[index - 1]!.start;
+        for (let previousIndex = 0; previousIndex < states[index - 1]!.length; previousIndex++) {
+          const candidateCost = costs[index - 1]![previousIndex]!
+            + emission
+            + transitionCost(states[index - 1]![previousIndex]!, pitch, elapsed);
+          if (candidateCost < bestCost - EPS) {
+            bestCost = candidateCost;
+            bestParent = previousIndex;
+          }
+        }
+        costs[index]![candidateIndex] = bestCost;
+        parents[index]![candidateIndex] = bestParent;
+      }
+    }
+    const finalCosts = costs.at(-1)!;
+    let state = finalCosts.reduce((best, cost, index) => cost < finalCosts[best]! - EPS ? index : best, 0);
+    const path = new Array<number>(phrase.length);
+    for (let index = phrase.length - 1; index >= 0; index--) {
+      path[index] = states[index]![state]!;
+      state = parents[index]![state]!;
+    }
+    output.push(...phrase.map((note, index) => ({ ...note, midi: path[index]! })));
+  }
+  return output.sort((a, b) => a.start - b.start || b.vel - a.vel || b.midi - a.midi);
 }
 
 function chordFor(rootPc: number, pcs: Set<number>): { name: string; notes: number[] } {
@@ -321,14 +415,18 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
   const otherStem = input.stems.find((stem) => stem.role === "other" && stem !== guitarStem);
   const bassStem = input.stems.find((stem) => stem.role === "bass");
   const drumsStem = input.stems.find((stem) => stem.role === "drums");
-  const vocals = monophonicPath(validNotes(vocalsStem), 60, 84);
+  const vocals = monophonicPath(validNotes(vocalsStem), 60, 84)
+    .map((note) => ({ ...note, identitySource: "vocals" as const }));
   const trustedVocals = trustworthyVocalNotes(vocals);
-  const guitar = monophonicPath(validNotes(guitarStem), 55, 84, { preferUpperLead: true });
-  const other = monophonicPath(validNotes(otherStem), 55, 84, { preferUpperLead: true });
+  const guitar = monophonicPath(validNotes(guitarStem), 55, 84, { preferUpperLead: true })
+    .map((note) => ({ ...note, identitySource: "guitar" as const }));
+  const other = monophonicPath(validNotes(otherStem), 55, 84, { preferUpperLead: true })
+    .map((note) => ({ ...note, identitySource: "other" as const }));
   const bass = validNotes(bassStem);
   const harmonicEvidence = [...validNotes(guitarStem), ...validNotes(otherStem)];
   const sections: MetalIdentitySection[] = [];
   const identity: Note[] = [];
+  const vocalRegisterAnchors = new Set<string>();
 
   for (let start = 0; start < durationBeats - EPS; start += sectionBeats) {
     const end = Math.min(durationBeats, start + sectionBeats);
@@ -358,6 +456,9 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
         ? instrumentalChoices.map((choice) => choice.notes)
         : instrumentalChoices.slice(1).map((choice) => choice.notes);
       const fused = identityForWindow(winner.notes, alternates, start, end, useVocalLead ? 0.5 : 0);
+      if (useVocalLead) {
+        for (const note of fused.primaryNotes) vocalRegisterAnchors.add(`${note.start.toFixed(6)}:${note.midi}`);
+      }
       if (useVocalLead && fused.alternateCount > 0) {
         source = "mixed";
         const total = fused.primaryCount + fused.alternateCount;
@@ -372,6 +473,7 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
     sections.push({ startBeat: start, endBeat: end, source, confidence: sectionConfidence });
   }
 
+  const stabilizedIdentity = stabilizeIdentityRegister(identity, tempoBpm, vocalRegisterAnchors);
   const chords: ChordLabel[] = [];
   const leftHand: Note[] = [];
   let previousRoot: number | undefined;
@@ -403,11 +505,11 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
   }
 
   const rhythmicAccents = validNotes(drumsStem).map((note) => note.start).filter((beat, index, all) => index === 0 || beat - all[index - 1]! >= 0.125);
-  const notes = uniqueSorted([...identity.map((note) => ({ ...note, hand: "R" as const })), ...leftHand]);
+  const notes = uniqueSorted([...stabilizedIdentity.map((note) => ({ ...note, hand: "R" as const })), ...leftHand]);
   const warnings: string[] = [];
   const mismatchedTempo = input.stems.filter((stem) => Math.abs(stem.midi.tempoBpm - tempoBpm) > 0.5);
   if (mismatchedTempo.length) warnings.push(`${mismatchedTempo.length} stems had mismatched tempo metadata; beat positions were used unchanged`);
-  if (!identity.length) warnings.push("no reliable vocal, guitar, or other identity line was found");
+  if (!stabilizedIdentity.length) warnings.push("no reliable vocal, guitar, or other identity line was found");
   if (!bass.length) warnings.push("no bass stem was available; harmony roots may be less reliable");
   const sourceSections: Record<string, number> = {};
   for (const section of sections) {
@@ -426,12 +528,12 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
     durationBeats,
     ...(input.title ? { title: input.title } : {}),
   };
-  const ir: MetalArrangementIR = { version: 1, tempoBpm, timeSig, durationBeats, sections, identity: identity.map((note) => ({ ...note })), harmony: chords, rhythmicAccents };
+  const ir: MetalArrangementIR = { version: 1, tempoBpm, timeSig, durationBeats, sections, identity: stabilizedIdentity.map((note) => ({ ...note })), harmony: chords, rhythmicAccents };
   return {
     parsed,
     chords,
     ir,
-    stats: { identityNotes: identity.length, leftHandNotes: leftHand.length, chordEvents: chords.length, sourceSections },
+    stats: { identityNotes: stabilizedIdentity.length, leftHandNotes: leftHand.length, chordEvents: chords.length, sourceSections },
     warnings,
   };
 }

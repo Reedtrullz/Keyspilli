@@ -83,7 +83,9 @@ describe("metal piano arranger", () => {
     expect(rh.find((note) => note.start === 0)?.midi).toBe(76);
     expect(rh.find((note) => note.start === 2)?.midi).toBe(77);
     expect(rh.find((note) => note.start === 4)?.midi).toBe(79);
-    expect(rh.some((note) => note.start === 0.5 && note.midi === 61)).toBe(true);
+    const firstGuitarFill = rh.find((note) => note.start === 0.5)!;
+    expect(firstGuitarFill.midi % 12).toBe(1);
+    expect(Math.abs(firstGuitarFill.midi - 76)).toBeLessThanOrEqual(7);
     expect(new Set(rh.map((note) => note.start.toFixed(3))).size).toBe(rh.length);
     expect(result.ir.sections[0]?.source).toBe("mixed");
   });
@@ -146,7 +148,7 @@ describe("metal piano arranger", () => {
     expect(rh.find((note) => note.start === 2)?.midi).toBe(78);
   });
 
-  it("keeps fast lead attacks through medium and contour-thins easy", () => {
+  it("keeps playable advanced detail and progressively thins machine-fast metal attacks", () => {
     const guitar = Array.from({ length: 64 }, (_, index) => ({
       midi: 64 + (index % 7),
       start: index * 0.125,
@@ -162,21 +164,127 @@ describe("metal piano arranger", () => {
       chords: arranged.chords,
     });
     const expectedStarts = guitar.map((note) => note.start.toFixed(3));
-    for (const level of ["advanced", "medium"] as const) {
-      const rhStarts = variants
-        .find((variant) => variant.level === level)!
-        .notes.filter((note) => note.hand === "R")
-        .map((note) => note.start.toFixed(3));
-      expect(rhStarts).toEqual(expectedStarts);
-    }
-    const easyStarts = variants
-      .find((variant) => variant.level === "easy")!
+    const startsFor = (level: string) => variants
+      .find((variant) => variant.level === level)!
       .notes.filter((note) => note.hand === "R")
       .map((note) => note.start.toFixed(3));
-    expect(easyStarts.length).toBeLessThan(expectedStarts.length);
-    expect(easyStarts.every((start) => expectedStarts.includes(start))).toBe(true);
+    const advancedStarts = startsFor("advanced");
+    const mediumStarts = startsFor("medium");
+    const easyStarts = startsFor("easy");
+    const veryEasyStarts = startsFor("very-easy");
+    expect(advancedStarts).toEqual(expectedStarts);
+    expect(mediumStarts.length).toBeLessThan(advancedStarts.length);
+    expect(easyStarts.length).toBeLessThanOrEqual(mediumStarts.length);
+    expect(veryEasyStarts.length).toBeLessThan(easyStarts.length);
+    expect(mediumStarts.every((start) => advancedStarts.includes(start))).toBe(true);
+    expect(easyStarts.every((start) => mediumStarts.includes(start))).toBe(true);
+    expect(veryEasyStarts.every((start) => easyStarts.includes(start))).toBe(true);
     expect(validateVariants(variants)).toEqual([]);
     expect(verifyMonotonicity(variants)).toEqual([]);
+  });
+
+  it("removes rapid return spikes and enforces a tempo-aware local piano rate", () => {
+    const scattered: Note[] = [
+      { midi: 64, start: 0, dur: 0.2, vel: 90, hand: "R" },
+      { midi: 76, start: 0.125, dur: 0.1, vel: 72, hand: "R" },
+      { midi: 65, start: 0.25, dur: 0.2, vel: 88, hand: "R" },
+      ...Array.from({ length: 29 }, (_, index) => ({
+        midi: 66 + (index % 5), start: 0.375 + index * 0.125, dur: 0.1, vel: 84, hand: "R" as const,
+      })),
+    ];
+    const source = midi(scattered, 4);
+    source.tempoBpm = 120;
+    const variants = buildVariants(source, { title: "Scattered lead", artist: "Fixture" }, {
+      arrangementProfile: "metal",
+      audioDerived: false,
+    });
+    const advanced = variants.find((variant) => variant.level === "advanced")!.notes.filter((note) => note.hand === "R");
+    const easy = variants.find((variant) => variant.level === "easy")!.notes.filter((note) => note.hand === "R");
+    expect(advanced.some((note) => note.start === 0.125 && note.midi === 76)).toBe(false);
+    expect(advanced.length).toBeLessThan(scattered.length);
+    expect(easy.length).toBeLessThan(advanced.length);
+    for (let index = 1; index < easy.length; index++) {
+      expect((easy[index]!.start - easy[index - 1]!.start) * 60 / 120).toBeGreaterThanOrEqual(0.25 - 1e-9);
+    }
+    expect(easy.every((note) => advanced.some((source) => source.start === note.start && source.midi === note.midi))).toBe(true);
+  });
+
+  it("stabilizes exact-octave vocal and guitar flicker without changing vocal anchors", () => {
+    const result = buildMetalArrangement({
+      stems: [
+        { role: "vocals", midi: midi([
+          { midi: 76, start: 0, dur: 0.2, vel: 98 },
+          { midi: 77, start: 1, dur: 0.2, vel: 98 },
+          { midi: 79, start: 2, dur: 0.2, vel: 98 },
+        ], 3) },
+        { role: "guitar", midi: midi([
+          { midi: 64, start: 0.25, dur: 0.15, vel: 86 },
+          { midi: 76, start: 0.5, dur: 0.15, vel: 86 },
+          { midi: 64, start: 0.75, dur: 0.15, vel: 86 },
+          { midi: 65, start: 1.25, dur: 0.15, vel: 86 },
+          { midi: 77, start: 1.5, dur: 0.15, vel: 86 },
+        ], 3) },
+      ],
+    });
+    const rh = result.parsed.notes.filter((note) => note.hand === "R");
+    expect(rh.find((note) => note.start === 0)?.midi).toBe(76);
+    expect(rh.find((note) => note.start === 1)?.midi).toBe(77);
+    for (let index = 1; index < rh.length; index++) {
+      if (rh[index]!.start - rh[index - 1]!.start <= 0.5) {
+        expect(Math.abs(rh[index]!.midi - rh[index - 1]!.midi)).toBeLessThan(12);
+      }
+    }
+  });
+
+  it("folds machine-fast exact-octave flips inside a trusted vocal phrase", () => {
+    const result = buildMetalArrangement({
+      stems: [{ role: "vocals", midi: midi([
+        { midi: 66, start: 0, dur: 0.2, vel: 98 },
+        { midi: 78, start: 0.25, dur: 0.15, vel: 96 },
+        { midi: 67, start: 0.5, dur: 0.2, vel: 98 },
+      ], 2) }],
+    });
+    const rh = result.parsed.notes.filter((note) => note.hand === "R");
+    expect(rh.map((note) => note.start)).toEqual([0, 0.25, 0.5]);
+    expect(rh[1]?.midi).toBe(66);
+    expect(rh.every((note) => note.identitySource === "vocals")).toBe(true);
+  });
+
+  it("keeps register smoothing active across a long sustained note", () => {
+    const result = buildMetalArrangement({
+      stems: [{ role: "guitar", midi: midi([
+        { midi: 64, start: 0, dur: 3, vel: 92 },
+        { midi: 76, start: 2.5, dur: 0.2, vel: 84 },
+        { midi: 65, start: 2.75, dur: 0.2, vel: 90 },
+      ], 4) }],
+    });
+    const rh = result.parsed.notes.filter((note) => note.hand === "R");
+    expect(rh.find((note) => note.start === 2.5)?.midi).toBe(64);
+    expect(Math.abs(rh[1]!.midi - rh[0]!.midi)).toBeLessThan(12);
+  });
+
+  it("retains interior vocal anchors while progressively reducing guitar filler", () => {
+    const notes = Array.from({ length: 13 }, (_, index) => ({
+      midi: 64 + (index % 4),
+      start: index * 0.25,
+      dur: 0.2,
+      vel: 84,
+      hand: "R" as const,
+      identitySource: index === 1 || index === 5 || index === 9 ? "vocals" as const : "guitar" as const,
+    }));
+    notes[1]!.midi = 72;
+    notes[5]!.midi = 74;
+    notes[9]!.midi = 76;
+    const variants = buildVariants(midi(notes, 4), { title: "Vocal anchors", artist: "Fixture" }, {
+      arrangementProfile: "metal",
+      audioDerived: false,
+    });
+    for (const level of ["medium", "easy"]) {
+      const rh = variants.find((variant) => variant.level === level)!.notes.filter((note) => note.hand === "R");
+      for (const anchor of notes.filter((note) => note.identitySource === "vocals")) {
+        expect(rh.some((note) => note.start === anchor.start && note.midi === anchor.midi)).toBe(true);
+      }
+    }
   });
 
   it("is deterministic and supplies authoritative chords to all playable levels", () => {
