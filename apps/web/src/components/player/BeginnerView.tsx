@@ -58,7 +58,7 @@ export function BeginnerView({ data, time, settings, chords }: { data: SongData;
           <span>Measure {currentMeasure + 1} of {data.measures.length}</span>
           <span>{data.key} · {data.tempoBpm} BPM</span>
         </div>
-        <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Beginner notes view. Amber dotted chords are inferred; gray dotted chords have unknown provenance.">
+        <svg viewBox={`0 0 ${W} ${H}`} className="player-notation-svg w-full" role="img" aria-label="Beginner notes view. Amber dotted chords are inferred; gray dotted chords have unknown provenance.">
           <rect x="0" y="0" width={W} height={H} fill="#fff" rx="12" />
           <line x1="24" y1="40" x2={W - 24} y2="40" stroke="#e4e4e7" />
           <line x1="24" y1="230" x2={W - 24} y2="230" stroke="#e4e4e7" />

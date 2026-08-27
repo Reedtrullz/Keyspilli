@@ -3,6 +3,7 @@
 import React, { memo, useEffect, useMemo, useRef, useState } from "react";
 import type { ChordLabel } from "@keyspilli/midi";
 import { chordProvenance } from "./chord-provenance";
+import { prefersReducedMotion } from "./player-motion";
 
 interface ChordStripProps {
   chords: ChordLabel[];
@@ -98,7 +99,7 @@ const MiniKeyboard = memo(function MiniKeyboard({ notes }: { notes: number[] }) 
   const activeBlackKeys = BLACK_PITCH_CLASSES.filter((pc) => noteSet.has(pc));
 
   return (
-    <svg width={MINI_KEYBOARD_WIDTH} height={MINI_KEYBOARD_HEIGHT} viewBox={`0 0 ${MINI_KEYBOARD_WIDTH} ${MINI_KEYBOARD_HEIGHT}`} aria-hidden="true">
+    <svg width={MINI_KEYBOARD_WIDTH} height={MINI_KEYBOARD_HEIGHT} viewBox={`0 0 ${MINI_KEYBOARD_WIDTH} ${MINI_KEYBOARD_HEIGHT}`} className="chord-strip-mini-keyboard" aria-hidden="true">
       <use href={`#${MINI_KEYBOARD_BASE_ID}`} />
       {activeWhiteKeys.map((pc) => (
         <use key={`active-w-${pc}`} href={`#${MINI_KEY_IDS.get(pc)}`} fill="#3b82f6" stroke="#d4d4d8" strokeWidth={0.5} />
@@ -110,7 +111,7 @@ const MiniKeyboard = memo(function MiniKeyboard({ notes }: { notes: number[] }) 
   );
 });
 
-const ACTIVE_CHORD_CLASS = "bg-blue-50 ring-1 ring-blue-300";
+const ACTIVE_CHORD_CLASS = "bg-blue-50 ring-1 ring-blue-300 shadow-md scale-[1.04]";
 
 /**
  * Chord content is immutable while the playhead moves. Keep each item behind
@@ -136,11 +137,12 @@ const ChordItem = memo(function ChordItem({
       role="listitem"
       aria-posinset={index + 1}
       aria-setsize={setSize}
+      aria-current={active ? "step" : undefined}
       aria-label={`${chord.name}: ${provenance.label}`}
       title={provenance.label}
-      className={`flex flex-col items-center gap-0.5 shrink-0 px-2 py-1 rounded-lg transition-colors ${active ? ACTIVE_CHORD_CLASS : ""}`}
+      className={`flex flex-col items-center gap-0.5 shrink-0 px-2 py-1 rounded-lg transition-[background-color,box-shadow,transform] duration-200 ease-out motion-reduce:transition-none ${active ? ACTIVE_CHORD_CLASS : ""}`}
     >
-      <span className={`text-[10px] font-semibold leading-tight ${provenance.textClass} ${provenance.dotted ? `border-b border-dotted ${provenance.borderClass}` : ""}`}>
+      <span className={`chord-strip-label text-[10px] font-semibold leading-tight ${provenance.textClass} ${provenance.dotted ? `border-b border-dotted ${provenance.borderClass}` : ""}`}>
         {chord.name}
       </span>
       <MiniKeyboard notes={chord.notes} />
@@ -184,6 +186,8 @@ export const ChordStrip = memo(function ChordStrip({ chords, currentBeat }: Chor
   const visibleCount = Math.max(1, Math.ceil(viewportWidth / CHORD_SLOT_WIDTH));
   const visibleStart = Math.max(0, Math.floor(scrollLeft / CHORD_SLOT_WIDTH) - CHORD_VIRTUAL_BUFFER);
   const visibleEnd = Math.min(chords.length, visibleStart + visibleCount + CHORD_VIRTUAL_BUFFER * 2);
+  const currentChord = chords[activeIdx] ?? null;
+  const nextChord = activeIdx >= 0 ? chords[activeIdx + 1] ?? null : null;
   const activeOutsideWindow = activeIdx >= 0
     && activeIdx < chords.length
     && (activeIdx < visibleStart || activeIdx >= visibleEnd)
@@ -246,7 +250,12 @@ export const ChordStrip = memo(function ChordStrip({ chords, currentBeat }: Chor
     if (previousIdx !== null && previousIdx !== activeIdx) {
       root.querySelector(`[data-chord-idx="${previousIdx}"]`)?.classList.remove(...ACTIVE_CHORD_CLASS.split(" "));
     }
-    root.querySelector(`[data-chord-idx="${activeIdx}"]`)?.classList.add(...ACTIVE_CHORD_CLASS.split(" "));
+    const activeElement = root.querySelector(`[data-chord-idx="${activeIdx}"]`);
+    activeElement?.classList.add(...ACTIVE_CHORD_CLASS.split(" "));
+    activeElement?.setAttribute("aria-current", "step");
+    if (previousIdx !== null && previousIdx !== activeIdx) {
+      root.querySelector(`[data-chord-idx="${previousIdx}"]`)?.removeAttribute("aria-current");
+    }
     previousActiveIdxRef.current = activeIdx;
   }, [activeIdx]);
 
@@ -254,7 +263,7 @@ export const ChordStrip = memo(function ChordStrip({ chords, currentBeat }: Chor
   useEffect(() => {
     stripRef.current
       ?.querySelector(`[data-chord-idx="${activeIdx}"]`)
-      ?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+      ?.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "nearest", inline: "center" });
   }, [activeIdx]);
 
   if (chords.length === 0) return null;
@@ -262,15 +271,27 @@ export const ChordStrip = memo(function ChordStrip({ chords, currentBeat }: Chor
   return (
     <>
       <MiniKeyboardDefs />
+      <div className="chord-strip-summary sm:hidden" role="status" aria-live="polite" aria-atomic="true" aria-label="Current and next chord">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500">Now</span>
+        <span className="text-sm font-semibold text-blue-700 truncate" title={currentChord?.name ?? "No chord"}>
+          {currentChord?.name ?? "—"}
+        </span>
+        <span className="text-zinc-300" aria-hidden="true">→</span>
+        <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500">Next</span>
+        <span className="text-sm font-medium text-zinc-700 truncate" title={nextChord?.name ?? "End"}>
+          {nextChord?.name ?? "End"}
+        </span>
+      </div>
       <div
         ref={stripRef}
         onScroll={handleScroll}
-        className="relative overflow-x-auto px-3 py-2 border-b border-zinc-100 bg-white"
+        className="chord-strip relative overflow-x-auto px-3 py-2 border-b border-zinc-100 bg-white"
         role="list"
         aria-label="Chord progression. Amber dotted chords are inferred; gray dotted chords have unknown provenance."
       >
-        <div
-          role="presentation"
+          <div
+            role="presentation"
+            className="chord-strip-track"
           style={{
             position: "relative",
             width: chords.length * CHORD_SLOT_WIDTH,

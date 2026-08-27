@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { PlayerSettings } from "@keyspilli/player-core";
 import type { ChordSourceId, ChordSourceOption } from "./chord-sources";
+import { dialogMotionClasses, useDialogMotion, usePresence } from "./player-motion";
 
 export function SettingsDialog({
   settings,
@@ -23,24 +24,42 @@ export function SettingsDialog({
 }) {
 
   const dialogRef = useRef<HTMLDivElement>(null);
+  const chordSourcePanelRef = useRef<HTMLDivElement>(null);
+  const { requestClose, visible, closing } = useDialogMotion(onClose);
+  const motion = dialogMotionClasses(visible, closing);
+  const chordSourcePresent = settings.backgroundMode === "chord" && Boolean(chordSources && onChordSourceChange);
+  const chordSourcePresence = usePresence(chordSourcePresent);
+
+  useEffect(() => {
+    const panel = chordSourcePanelRef.current;
+    if (!panel) return;
+    if (!chordSourcePresent) panel.setAttribute("inert", "");
+    else panel.removeAttribute("inert");
+  }, [chordSourcePresent, chordSourcePresence.mounted]);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (closing) dialog.setAttribute("inert", "");
+    else dialog.removeAttribute("inert");
+  }, [closing]);
 
   // Escape to close.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.stopPropagation();
-        onClose();
+        requestClose();
       }
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [onClose]);
+  }, [requestClose]);
 
   // Focus trap: keep Tab/Shift+Tab cycling within the dialog.
   useEffect(() => {
     const el = dialogRef.current;
-    if (!el) return;
-    el.focus();
+    if (!el || closing) return;
     const onFocusIn = (e: FocusEvent) => {
       if (!el.contains(e.target as Node)) {
         el.focus();
@@ -48,7 +67,7 @@ export function SettingsDialog({
     };
     document.addEventListener("focusin", onFocusIn);
     return () => document.removeEventListener("focusin", onFocusIn);
-  }, []);
+  }, [closing]);
 
   function handleDialogKeyDown(e: React.KeyboardEvent) {
     if (e.key !== "Tab") return;
@@ -73,31 +92,33 @@ export function SettingsDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
+      className={`fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4 ${motion.overlay}`}
       ref={dialogRef}
       tabIndex={-1}
       role="dialog"
+      aria-hidden={closing}
       onKeyDown={handleDialogKeyDown}
       aria-modal="true"
       aria-label="Player settings"
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) requestClose();
       }}
     >
-      <div className="bg-white rounded-2xl w-full max-w-md p-5 shadow-xl">
+      <div className={`bg-white rounded-2xl w-full max-w-md p-5 shadow-xl ${motion.panel}`}>
         <div className="flex justify-between items-center mb-4">
           <h2 className="font-semibold">Settings</h2>
-          <button autoFocus onClick={onClose} className="px-2 py-1 rounded-lg hover:bg-zinc-100" aria-label="Close settings">×</button>
+          <button autoFocus onClick={requestClose} className="px-2 py-1 rounded-lg hover:bg-zinc-100" aria-label="Close settings">×</button>
         </div>
 
         <div className="mb-4">
           <h3 className="text-sm font-medium mb-2">Background sound</h3>
-          <div className="flex gap-2">
+          <div className="flex gap-2" role="radiogroup" aria-label="Background sound">
             {(["piano", "chord"] as const).map((b) => (
               <button
                 key={b}
                 onClick={() => onChange({ backgroundMode: b })}
-                aria-pressed={settings.backgroundMode === b}
+                role="radio"
+                aria-checked={settings.backgroundMode === b}
                 className={`flex-1 px-3 py-2 rounded-xl text-sm border ${settings.backgroundMode === b ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300"}`}
               >
                 {b === "piano" ? "Piano background" : "Chord mode"}
@@ -107,17 +128,23 @@ export function SettingsDialog({
           <p className="text-xs text-zinc-500 mt-1">
             {settings.backgroundMode === "piano" ? "Plays the left hand as recorded" : "Synthesizes a chord on each change"}
           </p>
-          {settings.backgroundMode === "chord" && chordSources && onChordSourceChange && (
-            <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+          {chordSourcePresence.mounted && chordSources && onChordSourceChange && (
+            <div
+              ref={chordSourcePanelRef}
+              className="motion-presence mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3"
+              data-state={chordSourcePresent ? "open" : "closed"}
+              aria-hidden={!chordSourcePresent}
+            >
               <div className="flex items-center justify-between gap-2 mb-2">
                 <span className="text-xs font-medium text-zinc-700">Chord source</span>
                 <span className="text-[11px] text-zinc-500">Used for sound + strip</span>
               </div>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Chord source">
                 <button
                   type="button"
                   onClick={() => onChordSourceChange("auto")}
-                  aria-pressed={chordSource === "auto"}
+                  role="radio"
+                  aria-checked={chordSource === "auto"}
                   className={`px-2 py-2 rounded-lg text-xs border ${chordSource === "auto" ? "bg-zinc-700 text-white border-zinc-700" : "border-zinc-300 bg-white"}`}
                   title={chordSources.auto.fallbackReason ?? "Use authored UG coverage with generated continuation"}
                 >
@@ -127,7 +154,8 @@ export function SettingsDialog({
                   type="button"
                   onClick={() => onChordSourceChange("ug")}
                   disabled={!chordSources.ug?.chords.length}
-                  aria-pressed={chordSource === "ug"}
+                  role="radio"
+                  aria-checked={chordSource === "ug"}
                   className={`px-2 py-2 rounded-lg text-xs border ${chordSource === "ug" ? "bg-blue-700 text-white border-blue-700" : "border-zinc-300 bg-white"} disabled:opacity-50 disabled:cursor-not-allowed`}
                   title={chordSources.ug?.provenance ?? "No UG chord timeline for this arrangement"}
                 >
@@ -137,7 +165,8 @@ export function SettingsDialog({
                   type="button"
                   onClick={() => onChordSourceChange("generated")}
                   disabled={!chordSources.generated.chords.length}
-                  aria-pressed={chordSource === "generated"}
+                  role="radio"
+                  aria-checked={chordSource === "generated"}
                   className={`px-2 py-2 rounded-lg text-xs border ${chordSource === "generated" ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300 bg-white"} disabled:opacity-50 disabled:cursor-not-allowed`}
                   title="Chord labels inferred from the piano arrangement"
                 >
@@ -153,12 +182,13 @@ export function SettingsDialog({
 
         <div className="mb-4">
           <h3 className="text-sm font-medium mb-2">Piano sound</h3>
-          <div className="flex gap-2">
+          <div className="flex gap-2" role="radiogroup" aria-label="Piano sound">
             {(["sampled", "synth"] as const).map((s) => (
               <button
                 key={s}
                 onClick={() => onChange({ soundSource: s })}
-                aria-pressed={settings.soundSource === s}
+                role="radio"
+                aria-checked={settings.soundSource === s}
                 className={`flex-1 px-3 py-2 rounded-xl text-sm border ${settings.soundSource === s ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300"}`}
               >
                 {s === "sampled" ? "Sampled piano" : "Synth"}
@@ -222,7 +252,7 @@ export function SettingsDialog({
           <span className="text-xs text-zinc-500 ml-auto">Full piano instead of zoomed view</span>
         </label>
 
-        <button onClick={onClose} className="w-full py-2.5 rounded-xl bg-zinc-900 text-white text-sm font-medium">
+        <button onClick={requestClose} className="w-full py-2.5 rounded-xl bg-zinc-900 text-white text-sm font-medium">
           Done
         </button>
       </div>

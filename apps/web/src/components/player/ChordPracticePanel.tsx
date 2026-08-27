@@ -1,7 +1,9 @@
 "use client";
 
 import type { ChordPracticeSnapshot, ChordPracticeTarget } from "@keyspilli/player-core";
+import { useEffect, useRef } from "react";
 import { chordProvenance } from "./chord-provenance";
+import { dialogMotionClasses, useDialogMotion } from "./player-motion";
 
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 const WHITE_PITCH_CLASSES = [0, 2, 4, 5, 7, 9, 11];
@@ -86,6 +88,7 @@ export function ChordPracticePanel({
   onHear,
   onSkip,
   onExit,
+  presenceVisible = true,
 }: {
   targets: ChordPracticeTarget[];
   snapshot: ChordPracticeSnapshot;
@@ -94,18 +97,30 @@ export function ChordPracticePanel({
   onHear: () => void;
   onSkip: () => void;
   onExit: () => void;
+  /** Parent-controlled visibility keeps the top-level exit action animated. */
+  presenceVisible?: boolean;
 }) {
   const target = snapshot.target;
+  const { requestClose, visible, closing } = useDialogMotion(onExit);
+  const motion = dialogMotionClasses(visible && presenceVisible, closing || !presenceVisible);
+  const panelRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const panel = panelRef.current;
+    if (!panel) return;
+    if (closing || !presenceVisible) panel.setAttribute("inert", "");
+    else panel.removeAttribute("inert");
+  }, [closing, presenceVisible]);
 
   return (
-    <section className="p-4 sm:p-6 bg-gradient-to-b from-indigo-50 to-white" aria-label="Chord practice" data-testid="chord-practice-panel">
+    <section ref={panelRef} className={`p-4 sm:p-6 bg-gradient-to-b from-indigo-50 to-white ${motion.panel}`} aria-label="Chord practice" aria-hidden={closing || !presenceVisible} data-testid="chord-practice-panel">
       <div className="flex items-start gap-3 mb-4">
         <div className="flex-1">
           <p className="text-xs uppercase tracking-wide font-semibold text-indigo-700">Chord practice</p>
           <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 mt-1">Play the chord together</h2>
           <p className="text-sm text-zinc-600 mt-1">The shown octave is a reference shape. Any octave is accepted, and note order does not matter.</p>
         </div>
-        <button onClick={onExit} className="min-h-11 px-3 rounded-xl border border-zinc-300 bg-white text-sm">Close</button>
+        <button onClick={requestClose} className="min-h-11 px-3 rounded-xl border border-zinc-300 bg-white text-sm">Close</button>
       </div>
 
       {!targets.length && (

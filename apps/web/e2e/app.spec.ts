@@ -173,8 +173,8 @@ test("player controls: loop, tempo, transpose, hands", async ({ page }) => {
   await expect(page.getByRole("button", { name: /LOOP ON/ })).toBeVisible();
   await page.getByRole("button", { name: "Decrease speed" }).click();
   await expect(page.getByText("90%")).toBeVisible();
-  await page.getByRole("button", { name: "R", exact: true }).click();
-  await page.getByRole("button", { name: "All", exact: true }).click();
+  await page.getByRole("button", { name: "Right hand", exact: true }).click();
+  await page.getByRole("button", { name: "Both hands", exact: true }).click();
   // seek bar + spacebar play/pause
   const seek = page.getByRole("slider", { name: "Seek" });
   await expect(seek).toBeVisible();
@@ -190,16 +190,17 @@ test("chord mode distinguishes strict UG coverage from hybrid Auto", async ({ pa
   await page.getByRole("button", { name: "Open settings" }).click();
   const dialog = page.getByRole("dialog", { name: "Player settings" });
   await expect(dialog).toBeVisible();
-  await dialog.getByRole("button", { name: "Chord mode" }).click();
+  await dialog.getByRole("radio", { name: "Chord mode" }).click();
   await expect(dialog.getByText("Chord source")).toBeVisible();
-  await expect(dialog.getByRole("button", { name: "UG timeline" })).toBeEnabled();
-  await dialog.getByRole("button", { name: "UG timeline" }).click();
+  await expect(dialog.getByRole("radio", { name: "UG timeline" })).toBeEnabled();
+  await dialog.getByRole("radio", { name: "UG timeline" }).click();
   await dialog.getByRole("button", { name: "Done" }).click();
+  await expect(page.locator('[role="dialog"][aria-label="Player settings"]')).toHaveCount(0);
   await expect(page.getByTestId("chord-mode-status")).toHaveText("UG opening (partial)");
 
   await page.getByRole("button", { name: "Open settings" }).click();
   const hybridDialog = page.getByRole("dialog", { name: "Player settings" });
-  await hybridDialog.getByRole("button", { name: "Auto" }).click();
+  await hybridDialog.getByRole("radio", { name: "Auto" }).click();
   await hybridDialog.getByRole("button", { name: "Done" }).click();
   await expect(page.getByTestId("chord-mode-status")).toHaveText("UG + generated fallback");
 });

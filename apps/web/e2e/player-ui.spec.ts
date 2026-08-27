@@ -79,6 +79,7 @@ test("full width player fits the 390px mobile viewport without horizontal scroll
   await page.goto(`/player/${SONG}`);
   await expect(page.locator("canvas").first()).toBeVisible();
 
+  await page.getByRole("button", { name: "Adjust", exact: true }).click();
   await page.getByRole("button", { name: "Full width" }).click();
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth > document.documentElement.clientWidth,

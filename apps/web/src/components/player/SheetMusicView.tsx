@@ -262,12 +262,21 @@ export function SheetMusicView({ songId, renderMode = "virtual" }: SheetMusicVie
 
   if (error) {
     return (
-      <div className="sheet-svg__error p-8 text-sm text-red-700" role="alert">
+      <div className="sheet-svg__error motion-feedback p-8 text-sm text-red-700" role="alert">
         Unable to engrave this score: {error}
       </div>
     );
   }
-  if (!ready && !mountedPages.length) return <div className="p-8 text-sm text-zinc-400" role="status">Engraving…</div>;
+  if (!ready && !mountedPages.length) {
+    return (
+      <div className="sheet-svg__loading motion-feedback p-4" role="status" aria-busy="true" aria-label="Engraving sheet music">
+        <div className="loading-skeleton mb-3 h-3 w-2/3 rounded-full" />
+        <div className="loading-skeleton mb-4 h-3 w-1/2 rounded-full" />
+        <div className="loading-skeleton h-[18rem] w-full rounded-xl" />
+        <span className="sr-only">Engraving…</span>
+      </div>
+    );
+  }
   return (
     <div
       ref={containerRef}
@@ -281,7 +290,7 @@ export function SheetMusicView({ songId, renderMode = "virtual" }: SheetMusicVie
       {mountedPages.map((page) => {
         const svg = pages[page];
         const props = {
-          className: `sheet-svg__page${svg ? "" : " sheet-svg__page--placeholder"}`,
+          className: `sheet-svg__page${svg ? "" : " sheet-svg__page--placeholder"}${svg && renderMode === "virtual" ? " motion-scale-in" : ""}`,
           key: page,
           "data-page": page,
           role: "group",
@@ -298,7 +307,7 @@ export function SheetMusicView({ songId, renderMode = "virtual" }: SheetMusicVie
         );
       })}
       {renderMode === "virtual" && pageCount > windowEnd && (
-        <p className="sheet-svg__window-status" role="status" aria-live="polite">
+        <p className="sheet-svg__window-status motion-feedback" role="status" aria-live="polite">
           Showing pages {windowStart}–{windowEnd} of {pageCount}; scroll to load more.
         </p>
       )}

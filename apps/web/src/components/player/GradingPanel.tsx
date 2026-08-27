@@ -2,6 +2,7 @@
 
 import { detectPitch, type TimedNote } from "@keyspilli/player-core";
 import { useEffect, useRef, useState } from "react";
+import { dialogMotionClasses, useDialogMotion } from "./player-motion";
 
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
@@ -12,6 +13,7 @@ export function GradingPanel({
   onWaitToggle,
   onExit,
   onMicNote,
+  presenceVisible = true,
 }: {
   waitMode: boolean;
   waitNote: TimedNote | null | undefined;
@@ -19,12 +21,24 @@ export function GradingPanel({
   onWaitToggle: () => void;
   onExit: () => void;
   onMicNote: (midi: number) => void;
+  /** Parent-controlled visibility keeps top-level practice actions animated. */
+  presenceVisible?: boolean;
 }) {
   const [micOn, setMicOn] = useState(false);
   const [micError, setMicError] = useState("");
+  const { requestClose, visible, closing } = useDialogMotion(onExit);
+  const motion = dialogMotionClasses(visible && presenceVisible, closing || !presenceVisible);
   const streamRef = useRef<MediaStream | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const onMicNoteRef = useRef(onMicNote);
   onMicNoteRef.current = onMicNote;
+
+  useEffect(() => {
+    const panel = panelRef.current;
+    if (!panel) return;
+    if (closing || !presenceVisible) panel.setAttribute("inert", "");
+    else panel.removeAttribute("inert");
+  }, [closing, presenceVisible]);
 
   useEffect(() => {
     if (!micOn) return;
@@ -80,10 +94,17 @@ export function GradingPanel({
   }, [micOn]);
 
   return (
-    <div className="absolute top-3 right-3 z-20 w-72 rounded-2xl border border-zinc-200 bg-white/95 shadow-lg p-4">
+    <div
+      ref={panelRef}
+      className={`grading-panel absolute top-3 right-3 z-20 w-72 rounded-2xl border border-zinc-200 bg-white/95 shadow-lg p-4 ${motion.panel}`}
+      role="region"
+      aria-label="Practice grading"
+      aria-live="polite"
+      aria-hidden={closing || !presenceVisible}
+    >
       <div className="flex justify-between items-center mb-2">
         <h3 className="text-sm font-semibold">Practice mode</h3>
-        <button onClick={onExit} className="text-xs px-2 py-1 rounded-lg border border-zinc-300">Exit</button>
+        <button onClick={requestClose} className="text-xs px-2 py-1 rounded-lg border border-zinc-300">Exit</button>
       </div>
       <p className="text-xs text-zinc-500 mb-3">
         Play along on your keyboard (computer keys A–K), a MIDI keyboard, or your microphone. Wait mode pauses until you hit the right note.
@@ -94,19 +115,20 @@ export function GradingPanel({
       </label>
       <button
         onClick={() => setMicOn((m) => !m)}
+        aria-pressed={micOn}
         className={`w-full px-3 py-2 rounded-xl text-sm border mb-2 ${micOn ? "bg-indigo-100 border-indigo-300 text-indigo-800" : "border-zinc-300 hover:bg-zinc-100"}`}
       >
         {micOn ? "🎤 Mic grading on — stop" : "🎤 Use microphone (acoustic piano)"}
       </button>
-      {micError && <p className="text-xs text-red-600 mb-2">{micError}</p>}
+      {micError && <p className="text-xs text-red-600 mb-2" role="alert">{micError}</p>}
       {waitMode && waitNote && (
-        <div className="rounded-xl bg-indigo-50 p-3 text-sm mb-2">
+        <div className="rounded-xl bg-indigo-50 p-3 text-sm mb-2" role="status" aria-live="polite">
           Play: <span className="font-bold">{NOTE_NAMES[waitNote.midi % 12]}{Math.floor(waitNote.midi / 12) - 1}</span>
           <span className="text-zinc-500"> ({waitNote.hand === "L" ? "left hand" : "right hand"})</span>
         </div>
       )}
       {result && (
-        <div className="rounded-xl bg-green-50 p-3 text-sm">
+        <div className="rounded-xl bg-green-50 p-3 text-sm" role="status">
           <div className="flex items-baseline gap-2 mb-1">
             <span className="text-2xl font-bold">{result.accuracyPct}%</span>
             <span className="text-zinc-600">{result.summary}</span>
@@ -119,7 +141,7 @@ export function GradingPanel({
           </div>
         </div>
       )}
-      <p className="text-[11px] text-zinc-400 mt-2">Mic grading needs a quiet room; MIDI/keyboard grading is exact.</p>
+      <p className="text-[11px] text-zinc-500 mt-2">Mic grading needs a quiet room; MIDI/keyboard grading is exact.</p>
     </div>
   );
 }

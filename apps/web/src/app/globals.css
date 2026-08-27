@@ -13,16 +13,31 @@
   --pitch-9: #ab4aba;
   --pitch-10: #d6409f;
   --pitch-11: #e93d82;
+
+  /* Shared motion tokens. Keep movement quick and quiet so the lesson stays
+   * the visual focus. All animated UI should use transforms and opacity. */
+  --motion-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --motion-duration-fast: 140ms;
+  /* Keep CSS exits in lockstep with the shared presence hook. A single
+   * duration prevents a layer from unmounting before its fade has finished. */
+  --motion-duration-base: 200ms;
+  --motion-duration-slow: 360ms;
+  --surface-shadow: 0 1px 2px rgb(24 24 27 / 0.04), 0 8px 24px rgb(24 24 27 / 0.04);
+  --surface-shadow-hover: 0 2px 4px rgb(24 24 27 / 0.06), 0 14px 30px rgb(24 24 27 / 0.08);
 }
 
 html {
   color-scheme: light;
+  scroll-behavior: smooth;
 }
 
 body {
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   background: #fafafa;
   color: #18181b;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }
 
 :focus-visible {
@@ -30,10 +45,823 @@ body {
   outline-offset: 2px;
 }
 
+/* Site chrome ----------------------------------------------------------- */
+
+.site-header {
+  background: rgb(255 255 255 / 0.86);
+  border-color: rgb(228 228 231 / 0.8);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  transition: background-color var(--motion-duration-base) ease, border-color var(--motion-duration-base) ease;
+}
+
+.site-header-inner {
+  scrollbar-width: none;
+}
+
+.site-header-inner::-webkit-scrollbar {
+  display: none;
+}
+
+.site-nav-link {
+  color: #52525b;
+  transition: color var(--motion-duration-fast) ease, background-color var(--motion-duration-fast) ease,
+    transform var(--motion-duration-fast) var(--motion-ease-standard);
+}
+
+.site-nav-link:hover,
+.site-nav-link:focus-visible {
+  color: #18181b;
+  background: #f4f4f5;
+}
+
+.site-nav-link[aria-current="page"] {
+  color: #18181b;
+  background: #f4f4f5;
+  font-weight: 600;
+}
+
+.site-nav-link:active {
+  transform: scale(0.97);
+}
+
+.site-nav-more {
+  display: none;
+}
+
+.site-nav-more[aria-expanded="true"] {
+  color: #18181b;
+  background: #f4f4f5;
+}
+
+.site-nav-more[data-active="true"] {
+  color: #18181b;
+  background: #f4f4f5;
+}
+
+.site-nav-more-menu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: max(0.75rem, calc((100vw - 72rem) / 2 + 1rem));
+  width: min(14rem, calc(100vw - 1.5rem));
+  padding: 0.5rem;
+  border: 1px solid #e4e4e7;
+  border-radius: 1rem;
+  background: rgb(255 255 255 / 0.96);
+  box-shadow: var(--surface-shadow-hover);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  transform-origin: top right;
+}
+
+.site-footer {
+  border-color: rgb(228 228 231 / 0.8);
+  background: rgb(255 255 255 / 0.5);
+}
+
+/* Reusable motion primitives ------------------------------------------- */
+
+@keyframes motion-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes motion-rise-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes motion-scale-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 4px, 0) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes motion-mode-exit {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(0, -3px, 0) scale(0.995);
+  }
+}
+
+@keyframes route-view-exit {
+  from { opacity: 1; transform: translate3d(0, 0, 0); }
+  to { opacity: 0; transform: translate3d(0, -4px, 0); }
+}
+
+@keyframes route-view-enter {
+  from { opacity: 0; transform: translate3d(0, 6px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+::view-transition-old(root) {
+  animation: route-view-exit var(--motion-duration-base) var(--motion-ease-exit) both;
+}
+
+::view-transition-new(root) {
+  animation: route-view-enter var(--motion-duration-slow) var(--motion-ease-standard) both;
+}
+
+.motion-fade-in,
+.motion-rise-in,
+.motion-scale-in,
+.motion-stagger > * {
+  animation-fill-mode: both;
+  animation-timing-function: var(--motion-ease-standard);
+  animation-duration: var(--motion-duration-slow);
+}
+
+.motion-fade-in {
+  animation-name: motion-fade-in;
+}
+
+.motion-rise-in,
+.motion-stagger > * {
+  animation-name: motion-rise-in;
+}
+
+.motion-scale-in {
+  animation-name: motion-scale-in;
+}
+
+.player-mode-stack {
+  position: relative;
+}
+
+.player-mode-layer-exit {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  animation: motion-mode-exit var(--motion-duration-base) var(--motion-ease-exit) both;
+}
+
+.player-mode-layer-enter {
+  position: relative;
+  z-index: 1;
+  animation: motion-scale-in var(--motion-duration-base) var(--motion-ease-standard) both;
+}
+
+.player-shell-swap {
+  position: relative;
+}
+
+.player-shell-swap-exit {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  animation: motion-mode-exit var(--motion-duration-base) var(--motion-ease-exit) both;
+}
+
+.player-shell-swap-enter {
+  position: relative;
+  z-index: 1;
+  animation: motion-scale-in var(--motion-duration-base) var(--motion-ease-standard) both;
+}
+
+.motion-state-stack {
+  position: relative;
+  display: grid;
+  min-height: 2.75rem;
+}
+
+.motion-state-layer-exit,
+.motion-state-layer-enter {
+  grid-area: 1 / 1;
+  align-self: start;
+}
+
+.motion-state-layer-exit {
+  pointer-events: none;
+  animation: motion-mode-exit var(--motion-duration-base) var(--motion-ease-exit) both;
+}
+
+.motion-state-layer-enter {
+  position: relative;
+  animation: motion-scale-in var(--motion-duration-base) var(--motion-ease-standard) both;
+}
+
+.motion-stagger > * {
+  --motion-delay: 0ms;
+  animation-delay: var(--motion-delay);
+}
+
+.motion-stagger > :nth-child(2) { --motion-delay: 32ms; }
+.motion-stagger > :nth-child(3) { --motion-delay: 64ms; }
+.motion-stagger > :nth-child(4) { --motion-delay: 96ms; }
+.motion-stagger > :nth-child(5) { --motion-delay: 128ms; }
+.motion-stagger > :nth-child(6) { --motion-delay: 160ms; }
+.motion-stagger > :nth-child(n + 7) { --motion-delay: 160ms; }
+
+/* Apply to a mounted region whose data-state toggles between open/closed
+ * when an exit animation is needed. React should remove it after the closed
+ * transition completes if the region is not kept mounted. */
+.motion-presence {
+  transform-origin: top center;
+  transition: opacity var(--motion-duration-base) var(--motion-ease-exit),
+    transform var(--motion-duration-base) var(--motion-ease-exit),
+    visibility 0s linear var(--motion-duration-base);
+}
+
+.motion-presence[data-state="open"] {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  visibility: visible;
+  animation: motion-scale-in var(--motion-duration-base) var(--motion-ease-standard) both;
+}
+
+.motion-presence[data-state="closed"] {
+  opacity: 0;
+  pointer-events: none;
+  transform: translate3d(0, 6px, 0) scale(0.99);
+  visibility: hidden;
+}
+
+.motion-feedback {
+  animation: motion-rise-in var(--motion-duration-base) var(--motion-ease-standard) both;
+}
+
+/* Quiet, high-signal interaction feedback. These classes are opt-in so
+ * controls such as the piano canvas do not accidentally acquire transforms. */
+.interactive-card {
+  transition: border-color var(--motion-duration-base) ease, box-shadow var(--motion-duration-base) var(--motion-ease-standard),
+    transform var(--motion-duration-base) var(--motion-ease-standard), background-color var(--motion-duration-base) ease;
+}
+
+@media (hover: hover) {
+  .interactive-card:hover {
+    border-color: #a1a1aa;
+    box-shadow: var(--surface-shadow-hover);
+    transform: translate3d(0, -2px, 0);
+  }
+}
+
+.interactive-card:active {
+  box-shadow: var(--surface-shadow);
+  transform: translate3d(0, 0, 0) scale(0.995);
+}
+
+.pressable {
+  transition: background-color var(--motion-duration-fast) ease, border-color var(--motion-duration-fast) ease,
+    color var(--motion-duration-fast) ease, box-shadow var(--motion-duration-fast) ease,
+    transform var(--motion-duration-fast) var(--motion-ease-standard);
+}
+
+.pressable:active {
+  transform: scale(0.98);
+}
+
+.surface-card {
+  border-color: #e4e4e7;
+  background: rgb(255 255 255 / 0.88);
+  box-shadow: var(--surface-shadow);
+}
+
+.dropzone {
+  transition: border-color var(--motion-duration-base) ease, background-color var(--motion-duration-base) ease,
+    box-shadow var(--motion-duration-base) var(--motion-ease-standard), transform var(--motion-duration-base) var(--motion-ease-standard);
+}
+
+.dropzone-content-stack {
+  min-height: 5.5rem;
+  align-items: center;
+}
+
+.dropzone-content-stack > .motion-state-layer-exit,
+.dropzone-content-stack > .motion-state-layer-enter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  text-align: center;
+}
+
+.upload-status-slot {
+  display: grid;
+  min-height: 3rem;
+}
+
+.upload-status-slot > .motion-presence {
+  grid-area: 1 / 1;
+  align-self: start;
+}
+
+.dropzone:hover,
+.dropzone:focus-within {
+  border-color: #a5b4fc;
+  background: rgb(238 242 255 / 0.42);
+  box-shadow: 0 0 0 4px rgb(99 102 241 / 0.08);
+}
+
+.job-row {
+  transition: background-color var(--motion-duration-fast) ease;
+}
+
+.job-row:hover {
+  background: #fafafa;
+}
+
+.helper-callout {
+  border: 1px solid #e4e4e7;
+  background: rgb(244 244 245 / 0.72);
+}
+
+.library-toolbar {
+  padding: 0.65rem;
+  border: 1px solid #e4e4e7;
+  border-radius: 1rem;
+  background: rgb(255 255 255 / 0.72);
+}
+
+.library-count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+.library-results {
+  transition: opacity var(--motion-duration-base) var(--motion-ease-standard),
+    transform var(--motion-duration-base) var(--motion-ease-standard);
+}
+
+.library-results[data-loading="true"] {
+  opacity: 0.62;
+  transform: translate3d(0, 2px, 0);
+}
+
+.library-filter-toggle {
+  display: none;
+}
+
+/* Player hierarchy ----------------------------------------------------- */
+
+.player-page {
+  --player-control-bg: rgb(255 255 255 / 0.9);
+}
+
+.player-surface {
+  box-shadow: var(--surface-shadow);
+}
+
+.player-control-strip {
+  position: sticky;
+  top: 2.75rem;
+  z-index: 15;
+  background: var(--player-control-bg);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+}
+
+.player-stage {
+  min-height: 18rem;
+  background: #fff;
+}
+
+.player-notation-svg {
+  display: block;
+}
+
+.player-sections-switch {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 2.25rem;
+  display: flex;
+  align-items: center;
+}
+
+.player-sections-layer-exit,
+.player-sections-layer-enter {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+  width: 100%;
+}
+
+.player-sections-layer-exit {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  animation: motion-mode-exit var(--motion-duration-base) var(--motion-ease-exit) both;
+}
+
+.player-sections-layer-enter {
+  position: relative;
+  animation: motion-scale-in var(--motion-duration-base) var(--motion-ease-standard) both;
+}
+
+.grading-panel {
+  max-height: min(28rem, calc(100% - 1.5rem));
+  overflow-y: auto;
+}
+
+.chord-strip {
+  scrollbar-width: thin;
+  scrollbar-color: #d4d4d8 transparent;
+}
+
+.chord-strip-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #f4f4f5;
+  background: #fff;
+}
+
+.chord-strip-track {
+  position: relative;
+}
+
+@media (min-width: 641px) {
+  .chord-strip-summary {
+    display: none;
+  }
+}
+
+.player-page :where(button, a) {
+  transition: background-color var(--motion-duration-fast) ease, border-color var(--motion-duration-fast) ease,
+    color var(--motion-duration-fast) ease, box-shadow var(--motion-duration-fast) ease,
+    transform var(--motion-duration-fast) var(--motion-ease-standard);
+}
+
+.player-page :where(button, a):not([disabled]):active {
+  transform: scale(0.98);
+}
+
+.player-options {
+  align-items: flex-start;
+}
+
+.player-primary-controls {
+  min-width: max-content;
+}
+
+.player-adjust-toggle {
+  display: none;
+}
+
+.player-advanced-panel {
+  flex: 1 1 auto;
+}
+
+.player-practice-button {
+  order: 1;
+}
+
+@media (min-width: 641px) {
+  .player-primary-controls {
+    padding-right: 0.75rem;
+    border-right: 1px solid #e4e4e7;
+  }
+
+  .player-secondary-actions {
+    padding-left: 0.75rem;
+    border-left: 1px solid #e4e4e7;
+  }
+}
+
+@media (max-width: 640px) {
+  .site-header-inner {
+    gap: 0.5rem;
+    padding-inline: 0.75rem;
+  }
+
+  .site-nav {
+    gap: 0;
+  }
+
+  .site-nav-link {
+    padding-inline: 0.55rem;
+    font-size: 0.75rem;
+  }
+
+  .site-nav-secondary-item {
+    display: none;
+  }
+
+  .site-nav-more {
+    display: inline-flex;
+  }
+
+  .library-toolbar input[aria-label="Search songs"] {
+    width: 100%;
+  }
+
+  .library-filter-toggle {
+    display: inline-flex;
+  }
+
+  .library-filters {
+    flex-basis: 100%;
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transform: translate3d(0, -4px, 0);
+    visibility: hidden;
+    transition: max-height var(--motion-duration-base) var(--motion-ease-standard),
+      opacity var(--motion-duration-base) var(--motion-ease-standard),
+      transform var(--motion-duration-base) var(--motion-ease-standard),
+      visibility 0s linear var(--motion-duration-base);
+  }
+
+  .library-filters[data-open="true"] {
+    max-height: 24rem;
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate3d(0, 0, 0);
+    visibility: visible;
+    transition: max-height var(--motion-duration-base) var(--motion-ease-standard),
+      opacity var(--motion-duration-base) var(--motion-ease-standard),
+      transform var(--motion-duration-base) var(--motion-ease-standard),
+      visibility 0s linear 0s;
+  }
+
+  .library-filters > label {
+    flex: 1 1 100%;
+  }
+
+  .library-count {
+    margin-left: auto;
+  }
+
+  .player-page {
+    padding-inline: 0.75rem;
+  }
+
+  .player-page > .mb-3 {
+    margin-bottom: 0.65rem;
+  }
+
+  .player-options {
+    gap: 0.5rem;
+  }
+
+  .player-primary-controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .player-adjust-toggle {
+    display: inline-flex;
+  }
+
+  .player-advanced-panel {
+    display: none;
+    width: 100%;
+    padding: 0.65rem;
+    border: 1px solid #e4e4e7;
+    border-radius: 1rem;
+    background: rgb(244 244 245 / 0.58);
+  }
+
+  .player-advanced-panel[data-mounted="true"] {
+    display: flex;
+  }
+
+  .player-advanced-panel[data-state="open"] {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    visibility: visible;
+    animation: motion-rise-in var(--motion-duration-base) var(--motion-ease-standard) both;
+    transition: opacity var(--motion-duration-base) var(--motion-ease-standard),
+      transform var(--motion-duration-base) var(--motion-ease-standard),
+      visibility 0s linear 0s;
+  }
+
+  .player-advanced-panel[data-state="closed"] {
+    opacity: 0;
+    pointer-events: none;
+    transform: translate3d(0, 6px, 0);
+    visibility: hidden;
+    transition: opacity var(--motion-duration-base) var(--motion-ease-exit),
+      transform var(--motion-duration-base) var(--motion-ease-exit),
+      visibility 0s linear var(--motion-duration-base);
+  }
+
+  .player-secondary-actions {
+    width: 100%;
+    margin-left: 0;
+    justify-content: flex-start;
+  }
+
+  .player-control-strip {
+    top: 2.75rem;
+    gap: 0.45rem;
+    padding: 0.65rem 0.75rem;
+  }
+
+  .player-control-strip > button[aria-label="Play"],
+  .player-control-strip > button[aria-label="Pause"] {
+    width: 2.75rem;
+    height: 2.75rem;
+    flex: 0 0 auto;
+  }
+
+  .player-control-strip .player-practice-button {
+    order: 2;
+    padding-inline: 0.65rem;
+  }
+
+  .player-measure-controls,
+  .player-speed-controls {
+    gap: 0.15rem;
+  }
+
+  .player-measure-controls button,
+  .player-speed-controls button {
+    min-width: 2rem;
+    min-height: 2.75rem;
+    padding-inline: 0.45rem;
+  }
+
+  .player-measure-controls span,
+  .player-speed-controls span {
+    padding-inline: 0.25rem;
+  }
+
+  .player-control-strip > output {
+    order: 5;
+    width: 100%;
+    margin-left: 0;
+    padding-top: 0.1rem;
+    border-top: 1px solid rgb(228 228 231 / 0.8);
+    text-align: left;
+  }
+
+  .player-control-strip > input[type="range"] {
+    min-width: 100%;
+  }
+
+  .player-stage {
+    min-height: 0;
+  }
+
+  .player-stage canvas {
+    min-height: 0;
+    height: auto;
+    object-fit: contain;
+  }
+
+  /* Keep fixed-coordinate notation legible on a phone. The score remains a
+   * horizontally scrollable measure surface instead of shrinking labels into
+   * unreadable dots. */
+  .player-notation-svg {
+    width: 640px;
+    max-width: none;
+  }
+
+  .chord-strip {
+    min-height: 2.75rem;
+  }
+
+  .chord-strip-track {
+    height: 2.75rem !important;
+  }
+
+  .chord-strip-mini-keyboard {
+    display: none;
+  }
+
+  .chord-strip-label {
+    font-size: 0.75rem;
+  }
+
+  .grading-panel {
+    position: relative;
+    top: auto;
+    right: auto;
+    bottom: auto;
+    left: auto;
+    width: auto;
+    margin: 0.75rem;
+    max-height: 22rem;
+  }
+
+  .player-stage .player-stage-hint {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .player-control-strip {
+    background: #fff;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+.form-control {
+  transition: border-color var(--motion-duration-fast) ease, box-shadow var(--motion-duration-fast) ease,
+    background-color var(--motion-duration-fast) ease;
+}
+
+.form-control:focus {
+  border-color: #818cf8;
+  box-shadow: 0 0 0 3px rgb(99 102 241 / 0.14);
+  outline: none;
+}
+
+.page-shell {
+  animation: motion-fade-in var(--motion-duration-slow) var(--motion-ease-standard) both;
+}
+
+.page-title {
+  letter-spacing: -0.02em;
+}
+
+/* Loading affordance for async surfaces. It is intentionally subtle so it
+ * never competes with the score or controls. */
+.loading-dot {
+  display: inline-block;
+  width: 0.35rem;
+  height: 0.35rem;
+  margin-inline: 0.1rem;
+  border-radius: 999px;
+  background: currentColor;
+  animation: loading-dot 1s ease-in-out infinite;
+}
+
+.loading-skeleton {
+  background: linear-gradient(100deg, #f4f4f5 20%, #e4e4e7 40%, #f4f4f5 60%);
+  background-size: 200% 100%;
+  animation: loading-skeleton 1.4s ease-in-out infinite;
+}
+
+@keyframes loading-dot {
+  0%, 80%, 100% { opacity: 0.25; transform: translateY(0); }
+  40% { opacity: 1; transform: translateY(-2px); }
+}
+
+@keyframes loading-skeleton {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  * {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
+  html { scroll-behavior: auto; }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+
+  .motion-rise-in,
+  .motion-scale-in,
+  .motion-stagger > *,
+  .motion-feedback,
+  .page-shell {
+    animation-name: motion-fade-in !important;
+    transform: none !important;
+  }
+
+  .motion-stagger > * { animation-delay: 0ms !important; }
+  .motion-presence[data-state="closed"] { transform: none !important; }
+  .player-mode-layer-exit,
+  .player-mode-layer-enter,
+  .player-shell-swap-exit,
+  .player-shell-swap-enter { animation: none !important; }
+  ::view-transition-old(root),
+  ::view-transition-new(root) { animation: none !important; }
+  .interactive-card:hover,
+  .interactive-card:active,
+  .pressable:active,
+  .dropzone:hover,
+  .dropzone:focus-within,
+  .site-nav-link:active { transform: none !important; }
+  .loading-dot { animation: none !important; opacity: 0.6; }
+  .loading-skeleton { animation: none !important; }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .site-header,
+  .site-footer,
+  .surface-card,
+  .site-nav-more-menu {
+    background: #fff;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 }
 
@@ -129,4 +957,8 @@ body {
   border: 1px solid #fed7aa;
   border-radius: 0.75rem;
   margin: 1rem;
+}
+
+.sheet-svg__loading {
+  min-height: 18rem;
 }
