@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import React from "react";
 import { getSongDetail } from "@/lib/catalog-api";
 import { Player, type PlayerDetail } from "@/components/player/Player";
+import { levelLabel } from "../../../components/level-labels";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   // and the page share one artifact/policy read for this id.
   const detail = await getSongDetail(id);
   if (!detail) return { title: "Not found" };
-  return { title: `${detail.song.title} by ${detail.song.artist} (${detail.song.difficulty})` };
+  return { title: `${detail.song.title} by ${detail.song.artist} (${levelLabel(detail.song.difficulty)})` };
 }
 
 export default async function PlayerPage({ params }: { params: Promise<{ id: string }> }) {

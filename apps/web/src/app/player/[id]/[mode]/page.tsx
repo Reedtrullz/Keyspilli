@@ -3,6 +3,7 @@ import React from "react";
 import { notFound } from "next/navigation";
 import { getSongDetail, getSongDetailShell } from "@/lib/catalog-api";
 import { Player, type PlayerDetail, type PlayerShell } from "@/components/player/Player";
+import { levelLabel } from "../../../../components/level-labels";
 import type { ViewMode } from "@keyspilli/player-core";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +14,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const shell = await getSongDetailShell(id);
   if (!shell) return { title: "Not found" };
-  return { title: `${shell.song.title} by ${shell.song.artist} (${shell.song.difficulty})` };
+  return { title: `${shell.song.title} by ${shell.song.artist} (${levelLabel(shell.song.difficulty)})` };
 }
 
 export default async function PlayerModePage({ params }: { params: Promise<{ id: string; mode: string }> }) {

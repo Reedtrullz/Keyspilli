@@ -41,7 +41,7 @@ export function LeadSheetView({ data, time, settings, chords }: { data: SongData
   return (
     <div className="overflow-x-auto">
       <div className="p-6">
-        <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Lead sheet view. Amber dotted chords are inferred; gray dotted chords have unknown provenance.">
+        <svg viewBox={`0 0 ${W} ${H}`} className="player-notation-svg w-full" role="img" aria-label="Lead sheet view. Amber dotted chords are inferred; gray dotted chords have unknown provenance.">
           <rect width={W} height={H} fill="#fff" rx="12" />
           {notes.map((n, i) => {
             const x = 80 + ((n.start - m.startBeat) / measureBeats) * (W - 160);
@@ -91,7 +91,7 @@ export function LeadSheetView({ data, time, settings, chords }: { data: SongData
             })}
           {time > 0 && <line x1={playX} y1="28" x2={playX} y2={H - 52} stroke="#dc2626" strokeWidth="2" />}
         </svg>
-        <p className="text-xs text-zinc-400 mt-2">
+        <p className="text-xs text-zinc-500 mt-2">
           Measure {currentMeasure + 1} of {data.measures.length} — dots follow the melody, chords below for your left hand.
         </p>
       </div>

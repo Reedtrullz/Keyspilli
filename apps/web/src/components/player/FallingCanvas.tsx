@@ -462,7 +462,7 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
   return (
     <div className="relative">
       <canvas ref={canvasRef} aria-label="Falling notes player" className="w-full h-auto" style={{ aspectRatio: "960/540", width: "100%" }} />
-      <div className="absolute bottom-2 left-3 text-[11px] text-zinc-400 pointer-events-none">
+      <div className="player-stage-hint absolute bottom-2 left-3 text-[11px] text-zinc-500 pointer-events-none">
         Keys: A–K / ; play · Z / X shift octave · practice graded
       </div>
     </div>
