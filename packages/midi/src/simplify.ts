@@ -291,6 +291,14 @@ function removeInterleavedGuitarDetours(notes: Note[], tempoBpm: number, legato:
       const previous = sorted[guitarIndexes[position - 1]!]!;
       const note = sorted[guitarIndexes[position]!]!;
       const next = sorted[guitarIndexes[position + 1]!]!;
+      const interveningVocal = sorted
+        .slice(guitarIndexes[position]! + 1, guitarIndexes[position + 1]!)
+        .find((candidate) => candidate.identitySource === "vocals");
+      const guitarPhraseLanding = interveningVocal !== undefined
+        && interveningVocal.start - note.start <= 1.5 + 1e-9
+        && note.start - previous.start <= 1 + 1e-9
+        && Math.abs(note.midi - previous.midi) <= 7;
+      if (guitarPhraseLanding) continue;
       const intoBeats = note.start - previous.start;
       const outBeats = next.start - note.start;
       const durationSec = note.dur * secondsPerBeat;

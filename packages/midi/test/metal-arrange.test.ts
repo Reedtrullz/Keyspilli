@@ -680,7 +680,10 @@ describe("metal piano arranger", () => {
       { midi: 74, start: 0, dur: 0.25, vel: 62, hand: "R", identitySource: "guitar" },
       { midi: 67, start: 0.5, dur: 0.25, vel: 62, hand: "R", identitySource: "guitar" },
       { midi: 84, start: 1, dur: 0.5, vel: 96, hand: "R", identitySource: "vocals" },
-    ], 1.75);
+      // Keep a later guitar attack so the cleanup pass sees the full
+      // guitar-vocal-guitar neighbourhood rather than a terminal phrase.
+      { midi: 75, start: 1.75, dur: 0.25, vel: 62, hand: "R", identitySource: "guitar" },
+    ], 2.5);
     const variants = buildVariants(source, { title: "Descending guitar pickup", artist: "Fixture" }, {
       arrangementProfile: "metal",
       audioDerived: true,
