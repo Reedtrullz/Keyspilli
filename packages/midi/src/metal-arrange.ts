@@ -122,16 +122,24 @@ function monophonicPath(
         // pitch; never ask the player to jump more than an octave in <=1.5
         // beats merely because the raw stem contained a distant partial.
         if (continuityPrevious && elapsed <= 1.5) {
+          // A loud, sustained high landing is the opposite of an octave
+          // flicker: it is often the actual lead resolution (the reference
+          // arrangement uses landings around MIDI 88-95). Keep that evidence
+          // in the upper register so the melody does not lose its phrase end.
+          const preserveHighLead = note.rawMidi >= 88
+            && (note.vel >= 80 || note.dur >= 0.75);
           // A sufficiently fast exact octave is usually detector harmonic
           // switching, not useful piano articulation. Instrumental lanes use
           // a wider evidence window; vocal lanes keep slower octave contours
           // intact because they are often intentional melody.
           const exactOctaveWindow = Math.max(0, options.exactOctaveWindow ?? 0.5);
-          if (elapsed <= exactOctaveWindow + EPS && Math.abs(pitch - continuityPrevious.midi) === 12) {
-            pitch = continuityPrevious.midi;
+          if (!preserveHighLead) {
+            if (elapsed <= exactOctaveWindow + EPS && Math.abs(pitch - continuityPrevious.midi) === 12) {
+              pitch = continuityPrevious.midi;
+            }
+            while (Math.abs(pitch - continuityPrevious.midi) > 12 && pitch - continuityPrevious.midi > 0 && pitch - 12 >= low) pitch -= 12;
+            while (Math.abs(pitch - continuityPrevious.midi) > 12 && pitch - continuityPrevious.midi < 0 && pitch + 12 <= high) pitch += 12;
           }
-          while (Math.abs(pitch - continuityPrevious.midi) > 12 && pitch - continuityPrevious.midi > 0 && pitch - 12 >= low) pitch -= 12;
-          while (Math.abs(pitch - continuityPrevious.midi) > 12 && pitch - continuityPrevious.midi < 0 && pitch + 12 <= high) pitch += 12;
         }
         return pitch === note.midi ? note : { ...note, midi: pitch };
       });
@@ -460,11 +468,11 @@ function stabilizeIdentityRegister(
   tempoBpm: number,
   registerAnchors: ReadonlySet<string>,
   low = 55,
-  high = 84,
+  high = 96,
 ): IdentityNote[] {
   if (notes.length < 2) return notes.map((note) => ({ ...note }));
   const sorted = [...notes].sort((a, b) => a.start - b.start || b.vel - a.vel || b.midi - a.midi);
-  const phrases: Note[][] = [];
+  const phrases: IdentityNote[][] = [];
   for (const note of sorted) {
     const phrase = phrases.at(-1);
     const previous = phrase?.at(-1);
@@ -516,7 +524,16 @@ function stabilizeIdentityRegister(
       for (let candidateIndex = 0; candidateIndex < states[index]!.length; candidateIndex++) {
         const pitch = states[index]![candidateIndex]!;
         const anchorKey = `${phrase[index]!.start.toFixed(6)}:${phrase[index]!.midi}`;
-        const anchored = index === 0 || registerAnchors.has(anchorKey);
+        // Preserve a clearly articulated high landing from the separated lead
+        // stem.  Without this anchor the register DP can trade a phrase-end
+        // resolution (for example raw MIDI 95) for an octave-lower candidate
+        // solely to make the following note cheaper, which erases the very
+        // contour we want the learner to hear.  The same velocity/duration
+        // gate used by monophonicPath keeps short detector spikes movable.
+        const rawHighLanding = phrase[index]!.rawMidi !== undefined
+          && phrase[index]!.rawMidi! >= 88
+          && (phrase[index]!.vel >= 80 || phrase[index]!.dur >= 0.75);
+        const anchored = index === 0 || registerAnchors.has(anchorKey) || rawHighLanding;
         // For non-anchored detector notes, a two-octave register correction is
         // worse than a one-octave correction, not merely twice as costly. A
         // weighted quadratic emission makes the DP prefer the raw practical
@@ -642,12 +659,12 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
   const otherStem = input.stems.find((stem) => stem.role === "other" && stem !== guitarStem);
   const bassStem = input.stems.find((stem) => stem.role === "bass");
   const drumsStem = input.stems.find((stem) => stem.role === "drums");
-  const vocals = monophonicPath(validNotes(vocalsStem), 60, 84, { exactOctaveWindow: 0.5 })
+  const vocals = monophonicPath(validNotes(vocalsStem), 60, 96, { exactOctaveWindow: 0.5 })
     .map((note) => ({ ...note, identitySource: "vocals" as const }));
   const trustedVocals = trustworthyVocalNotes(vocals);
-  const guitar = suppressLowGuitarPulseRuns(monophonicPath(validNotes(guitarStem), 55, 84, { preferUpperLead: true, exactOctaveWindow: 1 })
+  const guitar = suppressLowGuitarPulseRuns(monophonicPath(validNotes(guitarStem), 55, 96, { preferUpperLead: true, exactOctaveWindow: 1 })
     .map((note) => ({ ...note, identitySource: "guitar" as const })));
-  const other = monophonicPath(validNotes(otherStem), 55, 84, { preferUpperLead: true, exactOctaveWindow: 1 })
+  const other = monophonicPath(validNotes(otherStem), 55, 96, { preferUpperLead: true, exactOctaveWindow: 1 })
     .map((note) => ({ ...note, identitySource: "other" as const }));
   const bass = validNotes(bassStem);
   const harmonicEvidence = [...validNotes(guitarStem), ...validNotes(otherStem)];
@@ -721,6 +738,8 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
     filteredIdentity,
     tempoBpm,
     vocalRegisterAnchors,
+    55,
+    96,
   );
   const publicIdentity = stabilizedIdentity.map(({ rawMidi: _rawMidi, ...note }) => note);
   const chords: ChordLabel[] = [];
