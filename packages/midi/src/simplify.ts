@@ -227,6 +227,100 @@ export function reduceMediumRhythm(notes: Note[]): Note[] {
 }
 
 /**
+ * Keep the upper guitar line separate from a simultaneous low rhythm wall in
+ * learner metal variants. The arranger has already reduced each stem to one
+ * event per onset, so a high, moving lead phrase is the useful identity while
+ * low attacks in that same phrase are almost always accompaniment leakage.
+ * This is deliberately gated to legato learner levels; Advanced retains the
+ * source detail and the vocal lane is never filtered here.
+ */
+function suppressLowGuitarLeadFiller(notes: Note[], legato: boolean): Note[] {
+  if (!legato || notes.length < 4) return notes;
+  const sorted = [...notes].sort((a, b) => a.start - b.start || b.vel - a.vel || b.midi - a.midi);
+  const guitar = sorted.filter((note) => note.identitySource === "guitar");
+  if (guitar.length < 4) return notes;
+
+  const leadPhraseNotes = new Set<Note>();
+  for (const note of guitar) {
+    if (note.midi > 62) continue;
+    // Use a short sliding window instead of only consecutive events. A
+    // separated stem can contain rests or vocal handoffs between the upper
+    // lead and its low rhythm partials; those gaps must not hide the lead
+    // evidence that tells us the low event belongs in the accompaniment.
+    const high = guitar.filter((candidate) =>
+      candidate.midi >= 68 && Math.abs(candidate.start - note.start) <= 4 + 1e-9,
+    );
+    const distinctHigh = new Set(high.map((note) => note.midi)).size;
+    const highSpan = high.length
+      ? Math.max(...high.map((note) => note.midi)) - Math.min(...high.map((note) => note.midi))
+      : 0;
+    // A few upper attacks with a moving contour are enough to distinguish a
+    // lead/solo phrase from a low riff. Requiring both register and contour
+    // keeps a single high chord partial from suppressing a genuine low lead.
+    const leadLike = high.length >= 3
+      && distinctHigh >= 3
+      && (highSpan >= 5 || Math.max(...high.map((note) => note.midi)) >= 76);
+    if (leadLike) leadPhraseNotes.add(note);
+  }
+  if (!leadPhraseNotes.size) return notes;
+  return notes.filter((note) => !leadPhraseNotes.has(note));
+}
+
+/**
+ * Remove a short guitar excursion when the source lane makes an obvious
+ * return to the same pitch neighbourhood. The identity stream is often
+ * interleaved with vocal anchors, so looking only at adjacent events misses
+ * exactly these detector detours. This pass deliberately skips vocals while
+ * finding guitar neighbours and is limited to legato learner levels; the
+ * Advanced lane remains a faithful source-detail reference.
+ */
+function removeInterleavedGuitarDetours(notes: Note[], tempoBpm: number, legato: boolean): Note[] {
+  if (!legato || notes.length < 3) return notes;
+  const secondsPerBeat = 60 / normalizeTempoBpm(tempoBpm);
+  let current = [...notes];
+  // A second pass catches a pair of adjacent excursions without allowing a
+  // long chain of removals to collapse an entire phrase into its endpoints.
+  for (let pass = 0; pass < 2; pass++) {
+    const sorted = current.sort((a, b) => a.start - b.start || b.vel - a.vel || b.midi - a.midi);
+    const guitarIndexes = sorted
+      .map((note, index) => note.identitySource === "guitar" ? index : -1)
+      .filter((index) => index >= 0);
+    if (guitarIndexes.length < 3) return current;
+    const remove = new Set<Note>();
+    for (let position = 1; position < guitarIndexes.length - 1; position++) {
+      const previous = sorted[guitarIndexes[position - 1]!]!;
+      const note = sorted[guitarIndexes[position]!]!;
+      const next = sorted[guitarIndexes[position + 1]!]!;
+      const intoBeats = note.start - previous.start;
+      const outBeats = next.start - note.start;
+      const durationSec = note.dur * secondsPerBeat;
+      const downbeat = Math.abs(note.start - Math.round(note.start)) <= 1e-9;
+      // A quiet, short detector spike on a barline is still removable. Real
+      // downbeat landings are protected by their velocity/duration (and by
+      // the high-landing guard below), rather than by timing alone.
+      const downbeatAnchor = downbeat && (note.vel >= 90 || durationSec >= 0.35);
+      const highLanding = note.midi >= 76
+        && note.midi >= Math.max(previous.midi, next.midi)
+        && (note.vel >= 90 || durationSec >= 0.35);
+      const detour = intoBeats <= 1.5 + 1e-9
+        && outBeats <= 1.5 + 1e-9
+        && durationSec <= 0.35 + 1e-9
+        && !downbeatAnchor
+        && !highLanding
+        && note.vel < 100
+        && Math.abs(note.midi - previous.midi) >= 5
+        && Math.abs(note.midi - next.midi) >= 5
+        && Math.abs(previous.midi - next.midi) <= 5
+        && Math.sign(note.midi - previous.midi) !== Math.sign(next.midi - note.midi);
+      if (detour) remove.add(note);
+    }
+    if (!remove.size) break;
+    current = sorted.filter((note) => !remove.has(note));
+  }
+  return current;
+}
+
+/**
  * Select a physically phrased metal RH path inside each real phrase. This is
  * tempo-aware and local, because a whole-song density average cannot see a
  * half-second detector burst. Pitch and attack choices are selection-only so
@@ -238,7 +332,7 @@ function reduceMetalRhRealism(notes: Note[], tempoBpm: number, maxAttacksPerSeco
   const secondsPerBeat = 60 / safeTempo;
   const safeRate = Number.isFinite(maxAttacksPerSecond) && maxAttacksPerSecond > 0 ? maxAttacksPerSecond : 4;
   const minimumSpacingBeats = (safeTempo / 60) / safeRate;
-  const source = [...notes]
+  const source = suppressLowGuitarLeadFiller(notes, legato)
     .sort((a, b) => a.start - b.start
       || Number(b.identitySource === "vocals") - Number(a.identitySource === "vocals")
       || b.vel - a.vel || b.dur - a.dur || b.midi - a.midi)
@@ -295,7 +389,7 @@ function reduceMetalRhRealism(notes: Note[], tempoBpm: number, maxAttacksPerSeco
     lastMergedAttackStart = note.start;
   }
 
-  const cleaned = merged.filter((note, index, all) => {
+  const cleaned = removeInterleavedGuitarDetours(merged.filter((note, index, all) => {
     if (note.identitySource === "vocals") return true;
     const previous = all[index - 1];
     const next = all[index + 1];
@@ -336,7 +430,7 @@ function reduceMetalRhRealism(notes: Note[], tempoBpm: number, maxAttacksPerSeco
       )
       || broadLegatoGuitarDetour
     );
-  });
+  }), safeTempo, legato);
 
   const phrases: Note[][] = [];
   for (const note of cleaned) {
@@ -370,15 +464,52 @@ function reduceMetalRhRealism(notes: Note[], tempoBpm: number, maxAttacksPerSeco
       const stepConnector = previous && next
         && Math.abs(note.midi - previous.midi) <= 4
         && Math.abs(next.midi - note.midi) <= 4;
+      // A local salience score alone can prefer a quiet chord partial that
+      // creates a large guitar jump. Look through vocal events for the nearest
+      // guitar neighbours and lower that candidate's weight when the travel
+      // is both fast and weak. This is intentionally a selection penalty (no
+      // pitch replacement): phrase endpoints, dynamic/sustained landings, and
+      // all vocal notes remain protected.
+      let guitarTransitionPenalty = 0;
+      const previousGuitar = [...phrase.slice(0, index)]
+        .reverse()
+        .find((candidate) => candidate.identitySource === "guitar");
+      const nextGuitar = phrase.slice(index + 1)
+        .find((candidate) => candidate.identitySource === "guitar");
+      const guitarLocalExtremum = previousGuitar && nextGuitar
+        && ((note.midi > previousGuitar.midi && note.midi > nextGuitar.midi)
+          || (note.midi < previousGuitar.midi && note.midi < nextGuitar.midi));
+      if (legato && note.identitySource === "guitar" && guitarLocalExtremum) {
+        const durationSec = note.dur * secondsPerBeat;
+        const protectedLead = endpoint
+          || note.vel >= 100
+          || durationSec >= 0.35
+          || (note.midi >= 76 && note.vel >= 90);
+        if (!protectedLead && note.vel < 100 && durationSec <= 0.35 + 1e-9) {
+          for (const neighbour of [previousGuitar, nextGuitar]) {
+            if (!neighbour) continue;
+            const gapBeats = Math.abs(note.start - neighbour.start);
+            const leap = Math.abs(note.midi - neighbour.midi);
+            if (gapBeats <= 1.5 + 1e-9 && leap >= 7) guitarTransitionPenalty += 2.25;
+            else if (gapBeats <= 1 + 1e-9 && leap >= 5) guitarTransitionPenalty += 0.45;
+          }
+        }
+      }
       const beatPosition = Math.abs(note.start - Math.round(note.start));
       const halfBeatPosition = Math.abs(note.start * 2 - Math.round(note.start * 2));
+      const localExtremumBonus = guitarTransitionPenalty > 0
+        ? 0
+        : localExtremum && prominence >= 3
+          ? 2 + Math.min(2, prominence / 6)
+          : 0;
       return 1
         + Math.min(note.dur * secondsPerBeat, 0.75) * 1.5
         + Math.max(0, Math.min(1, note.vel / 127)) * 0.5
         + (endpoint ? 5 : 0)
-        + (localExtremum && prominence >= 3 ? 2 + Math.min(2, prominence / 6) : 0)
+        + localExtremumBonus
         + (stepConnector ? 0.75 : 0)
-        + (beatPosition <= 1e-6 ? 0.75 : halfBeatPosition <= 1e-6 ? 0.35 : 0);
+        + (beatPosition <= 1e-6 ? 0.75 : halfBeatPosition <= 1e-6 ? 0.35 : 0)
+        - guitarTransitionPenalty;
     });
     const previousCompatible = candidates.map(({ note }, index) => {
       let low = 0;
@@ -420,7 +551,11 @@ function reduceMetalRhRealism(notes: Note[], tempoBpm: number, maxAttacksPerSeco
     selected.push(...protectedAnchors.map((note) => ({ ...note })), ...phraseSelection.reverse());
   }
 
-  const sorted = selected.sort((a, b) => a.start - b.start || a.midi - b.midi);
+  const sorted = removeInterleavedGuitarDetours(
+    selected.sort((a, b) => a.start - b.start || a.midi - b.midi),
+    safeTempo,
+    legato,
+  );
   if (!legato) return sorted;
   return sorted.map((note, index) => {
     const next = sorted[index + 1];
