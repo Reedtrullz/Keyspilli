@@ -305,6 +305,21 @@ describe("metal piano arranger", () => {
     expect(guitarBleed).toBeUndefined();
   });
 
+  it("does not insert a quiet low guitar bleed attack directly after a vocal ending", () => {
+    const result = buildMetalArrangement({
+      stems: [
+        { role: "vocals", midi: midi([
+          { midi: 71, start: 1, dur: 0.5, vel: 98 },
+          { midi: 73, start: 3, dur: 0.5, vel: 98 },
+          { midi: 75, start: 5, dur: 0.5, vel: 98 },
+        ]) },
+        { role: "guitar", midi: midi([{ midi: 55, start: 2, dur: 0.25, vel: 40 }]) },
+      ],
+    });
+    const guitarBleed = result.ir.identity.find((note) => note.identitySource === "guitar" && note.start === 2);
+    expect(guitarBleed).toBeUndefined();
+  });
+
   it("retains interior vocal anchors while progressively reducing guitar filler", () => {
     const notes = Array.from({ length: 13 }, (_, index) => ({
       midi: 64 + (index % 4),

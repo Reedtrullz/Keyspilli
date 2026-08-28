@@ -255,6 +255,12 @@ function identityForWindow(
         const nextPrimary = primaryNotes
           .filter((primaryNote) => primaryNote.start >= note.start - EPS)
           .sort((a, b) => a.start - b.start)[0];
+        const previousPrimary = primaryNotes
+          .filter((primaryNote) => primaryNote.start + primaryNote.dur <= note.start + EPS)
+          .sort((a, b) => b.start - a.start)[0];
+        const restBefore = previousPrimary
+          ? note.start - (previousPrimary.start + previousPrimary.dur)
+          : Number.POSITIVE_INFINITY;
         const restAfter = nextStart - (note.start + note.dur);
         // A low instrumental attack directly before a far-away vocal
         // entrance is usually rhythm bleed, not a lead phrase. Keep close
@@ -266,6 +272,16 @@ function identityForWindow(
           && note.midi <= 60
           && note.vel < 64
           && Math.abs(note.midi - nextPrimary.midi) >= 12
+        ) continue;
+        // Apply the same guard after a vocal ending; a quiet low attack with
+        // no melodic landing is just as likely to be the rhythm stem leaking
+        // into the right-hand identity lane.
+        if (
+          previousPrimary
+          && restBefore <= 0.75 + EPS
+          && note.midi <= 60
+          && note.vel < 64
+          && Math.abs(note.midi - previousPrimary.midi) >= 12
         ) continue;
       }
       selected.push({ ...note });
