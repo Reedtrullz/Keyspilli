@@ -321,6 +321,61 @@ function removeInterleavedGuitarDetours(notes: Note[], tempoBpm: number, legato:
 }
 
 /**
+ * Remove an isolated guitar interjection immediately before a vocal anchor
+ * when it would force a large, fast register handoff.  A vocal phrase is
+ * identity-bearing, so it is never filtered; this gate only removes a weak
+ * guitar singleton that has no nearby guitar support of its own.  Keeping
+ * the gate source-aware is important: the reference arrangement has a dense
+ * lower accompaniment, but its upper line does not alternate between distant
+ * instrumental and vocal registers on every attack.
+ */
+function removeWeakGuitarVocalHandoffs(notes: Note[], tempoBpm: number, legato: boolean): Note[] {
+  if (!legato || notes.length < 3) return notes;
+  const secondsPerBeat = 60 / normalizeTempoBpm(tempoBpm);
+  const sorted = [...notes].sort((a, b) => a.start - b.start || b.vel - a.vel || b.midi - a.midi);
+  const vocals = sorted.filter((note) => note.identitySource === "vocals");
+  const guitars = sorted.filter((note) => note.identitySource === "guitar");
+  if (vocals.length < 1 || guitars.length < 1) return notes;
+  const maxVocalBracketBeats = 1.5;
+  const maxHandoffBeats = 1;
+  const maxSupportBeats = 0.75;
+  return sorted.filter((note) => {
+    if (note.identitySource !== "guitar") return true;
+    const nextVocal = vocals.find((vocal) => vocal.start >= note.start - 1e-9 && vocal.start - note.start <= maxVocalBracketBeats + 1e-9);
+    // A guitar attack immediately before a vocal entrance is the risky case:
+    // it can make the next singer note appear as a register jump. Restrict
+    // this gate to that direction. Guitar attacks after a vocal are retained
+    // so a phrase landing is not deleted merely because the next vocal is
+    // farther away.
+    if (!nextVocal) return true;
+
+    const previousGuitar = [...guitars]
+      .reverse()
+      .find((candidate) => candidate.start < note.start - 1e-9);
+    const nextGuitar = guitars.find((candidate) => candidate.start > note.start + 1e-9);
+    const supportedByPrevious = previousGuitar !== undefined
+      && note.start - previousGuitar.start <= maxSupportBeats + 1e-9
+      && Math.abs(note.midi - previousGuitar.midi) <= 5;
+    const supportedByNext = nextGuitar !== undefined
+      && nextGuitar.start - note.start <= maxSupportBeats + 1e-9
+      && Math.abs(nextGuitar.midi - note.midi) <= 5;
+    if (supportedByPrevious || supportedByNext) return true;
+
+    const toVocal = nextVocal.start - note.start;
+    const nextLeap = Math.abs(nextVocal.midi - note.midi);
+    const abruptHandoff = toVocal <= maxHandoffBeats + 1e-9 && nextLeap >= 9;
+    if (!abruptHandoff) return true;
+
+    const durationSec = note.dur * secondsPerBeat;
+    const protectedLanding = note.vel >= 90
+      || durationSec >= 0.5
+      || (note.midi >= 76 && (note.vel >= 80 || durationSec >= 0.35));
+    if (protectedLanding) return true;
+    return false;
+  });
+}
+
+/**
  * Score the travel between two selected guitar attacks.  The ordinary
  * interval scheduler only knows whether two starts fit on the piano grid; it
  * can therefore choose a sparse sequence whose individual notes are salient
@@ -466,11 +521,15 @@ function reduceMetalRhRealism(notes: Note[], tempoBpm: number, maxAttacksPerSeco
     lastMergedAttackStart = note.start;
   }
 
-  const cleaned = removeInterleavedGuitarDetours(merged.filter((note, index, all) => {
+  const handoffCleaned = removeWeakGuitarVocalHandoffs(merged, safeTempo, legato);
+  const cleaned = removeInterleavedGuitarDetours(handoffCleaned.filter((note, index, all) => {
     if (note.identitySource === "vocals") return true;
     const previous = all[index - 1];
     const next = all[index + 1];
     if (!previous || !next) return true;
+    const sameSourceNeighbours = note.identitySource !== undefined
+      && previous.identitySource === note.identitySource
+      && next.identitySource === note.identitySource;
     const intoSec = (note.start - previous.start) * secondsPerBeat;
     const outSec = (next.start - note.start) * secondsPerBeat;
     const durationSec = note.dur * secondsPerBeat;
@@ -504,6 +563,7 @@ function reduceMetalRhRealism(notes: Note[], tempoBpm: number, maxAttacksPerSeco
         // Keep a clearly intentional lead accent even when it reverses; the
         // quietness guard targets low-energy separated partials instead.
         && note.vel <= Math.max(previous.vel, next.vel) * 0.9 + 1e-9
+        && sameSourceNeighbours
       )
       || broadLegatoGuitarDetour
     );
