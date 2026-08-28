@@ -209,6 +209,45 @@ describe("metal piano arranger", () => {
     expect(easy.every((note) => advanced.some((source) => source.start === note.start && source.midi === note.midi))).toBe(true);
   });
 
+  it("drops an eighth-note guitar detour between nearby lead pitches", () => {
+    const source = midi([
+      { midi: 64, start: 0, dur: 0.5, vel: 92, hand: "R", identitySource: "guitar" },
+      // This low, short chord-tone hit is typical of a separated guitar
+      // partial, not a useful piano melody note between 64 and 67.
+      { midi: 55, start: 0.625, dur: 0.5, vel: 52, hand: "R", identitySource: "guitar" },
+      { midi: 67, start: 1.25, dur: 0.5, vel: 92, hand: "R", identitySource: "guitar" },
+    ], 2);
+    const variants = buildVariants(source, { title: "Lead detour", artist: "Fixture" }, {
+      arrangementProfile: "metal",
+      audioDerived: true,
+    });
+    for (const level of ["advanced", "medium", "easy"] as const) {
+      const notes = variants.find((variant) => variant.level === level)!.notes.filter((note) => note.hand !== "L");
+      expect(notes.some((note) => note.start === 0.625 && note.midi === 55), `${level} kept detector detour`).toBe(false);
+    }
+  });
+
+  it("ties contiguous same-pitch vocal fragments without erasing real re-attacks", () => {
+    const source = midi([
+      { midi: 72, start: 0, dur: 0.25, vel: 72, hand: "R", identitySource: "vocals" },
+      { midi: 72, start: 0.25, dur: 0.25, vel: 88, hand: "R", identitySource: "vocals" },
+      { midi: 72, start: 0.5, dur: 0.25, vel: 80, hand: "R", identitySource: "vocals" },
+      { midi: 74, start: 1, dur: 0.25, vel: 90, hand: "R", identitySource: "vocals" },
+      // The gap makes this a deliberate re-attack rather than a detector
+      // fragment of the preceding sustained syllable.
+      { midi: 74, start: 2, dur: 0.25, vel: 90, hand: "R", identitySource: "vocals" },
+    ], 3);
+    const variants = buildVariants(source, { title: "Vocal ties", artist: "Fixture" }, {
+      arrangementProfile: "metal",
+      audioDerived: true,
+    });
+    const advanced = variants.find((variant) => variant.level === "advanced")!.notes
+      .filter((note) => note.hand !== "L");
+    expect(advanced.filter((note) => note.midi === 72)).toHaveLength(1);
+    expect(advanced.find((note) => note.midi === 72)?.dur).toBeGreaterThanOrEqual(0.75);
+    expect(advanced.filter((note) => note.midi === 74).map((note) => note.start)).toEqual([1, 2]);
+  });
+
   it("stabilizes exact-octave vocal and guitar flicker without changing vocal anchors", () => {
     const result = buildMetalArrangement({
       stems: [
@@ -285,6 +324,46 @@ describe("metal piano arranger", () => {
     const rh = result.parsed.notes.filter((note) => note.hand === "R");
     expect(rh.find((note) => note.start === 2.5)?.midi).toBe(64);
     expect(Math.abs(rh[1]!.midi - rh[0]!.midi)).toBeLessThan(12);
+  });
+
+  it("does not let a vocal anchor revoice a guitar phrase after a real rest", () => {
+    const result = buildMetalArrangement({
+      stems: [
+        { role: "vocals", midi: midi([
+          { midi: 80, start: 0, dur: 0.3, vel: 100 },
+          { midi: 81, start: 1, dur: 0.3, vel: 100 },
+          { midi: 82, start: 2, dur: 0.3, vel: 100 },
+        ]) },
+        { role: "guitar", midi: midi([
+          { midi: 57, start: 2.8, dur: 0.3, vel: 90 },
+          { midi: 69, start: 3.6, dur: 0.3, vel: 90 },
+          { midi: 57, start: 4.4, dur: 0.3, vel: 90 },
+        ]) },
+      ],
+    });
+    const guitar = result.ir.identity.filter((note) => note.identitySource === "guitar");
+    expect(guitar.map((note) => note.midi)).toEqual([57, 57, 57]);
+  });
+
+  it("does not trade a raw-register step for a fast octave-up flicker", () => {
+    const result = buildMetalArrangement({
+      stems: [{ role: "guitar", midi: midi([
+        { midi: 52, start: 0, dur: 0.3, vel: 90 },
+        { midi: 45, start: 0.16, dur: 0.3, vel: 90 },
+      ], 2) }],
+    });
+    expect(result.ir.identity.map((note) => note.midi)).toEqual([64, 57]);
+  });
+
+  it("keeps a rapid adjacent-register guitar figure from bouncing by octave", () => {
+    const result = buildMetalArrangement({
+      stems: [{ role: "guitar", midi: midi([
+        { midi: 52, start: 0, dur: 0.3, vel: 90 },
+        { midi: 45, start: 0.16, dur: 0.3, vel: 90 },
+        { midi: 52, start: 0.32, dur: 0.3, vel: 90 },
+      ], 2) }],
+    });
+    expect(result.ir.identity.map((note) => note.midi)).toEqual([64, 57, 64]);
   });
 
   it("keeps fused vocal-to-guitar handoffs within one piano octave", () => {

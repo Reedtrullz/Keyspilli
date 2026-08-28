@@ -364,7 +364,18 @@ function stabilizeIdentityRegister(
     const phrase = phrases.at(-1);
     const previous = phrase?.at(-1);
     const soundingRest = previous ? note.start - (previous.start + previous.dur) : Number.POSITIVE_INFINITY;
-    if (!phrase || !previous || soundingRest > 1) phrases.push([note]);
+    // A vocal anchor should smooth a genuinely overlapping guitar handoff,
+    // but it must not pull a later instrumental phrase into the singer's
+    // register after a breath. Resetting on a source change with a modest rest
+    // keeps the lead lane near its own raw register and removes the resulting
+    // octave flicker without splitting normal fill notes inside a phrase.
+    const sourceHandoffRest = Boolean(
+      previous?.identitySource
+      && note.identitySource
+      && previous.identitySource !== note.identitySource
+      && soundingRest >= 0.35 - EPS,
+    );
+    if (!phrase || !previous || soundingRest > 1 || sourceHandoffRest) phrases.push([note]);
     else phrase.push(note);
   }
 
@@ -403,11 +414,18 @@ function stabilizeIdentityRegister(
         const anchored = index === 0 || registerAnchors.has(anchorKey);
         // For non-anchored detector notes, a two-octave register correction is
         // worse than a one-octave correction, not merely twice as costly. A
-        // quadratic emission makes the DP choose the nearest practical piano
-        // register at mixed vocal/guitar handoffs while vocal anchors remain
-        // effectively immutable.
+        // weighted quadratic emission makes the DP prefer the raw practical
+        // register over a rapid fifth-sized detour that would then bounce an
+        // octave on the next attack, while vocal anchors remain effectively
+        // immutable. At a close vocal/instrumental handoff, relax that bias so
+        // the new source can still meet the previous anchor within one octave.
         const registerDistance = Math.abs(pitch - phrase[index]!.midi) / 12;
-        const emission = (anchored ? registerDistance : registerDistance ** 2) * (anchored ? 100 : 1);
+        const sourceChanged = index > 0
+          && phrase[index - 1]!.identitySource
+          && phrase[index]!.identitySource
+          && phrase[index - 1]!.identitySource !== phrase[index]!.identitySource;
+        const nonAnchoredWeight = sourceChanged ? 1 : 3;
+        const emission = (anchored ? registerDistance : registerDistance ** 2) * (anchored ? 100 : nonAnchoredWeight);
         if (index === 0) {
           costs[index]![candidateIndex] = emission;
           parents[index]![candidateIndex] = -1;
@@ -438,7 +456,28 @@ function stabilizeIdentityRegister(
     }
     output.push(...phrase.map((note, index) => ({ ...note, midi: path[index]! })));
   }
-  return output.sort((a, b) => a.start - b.start || b.vel - a.vel || b.midi - a.midi);
+  const stabilized = output.sort((a, b) => a.start - b.start || b.vel - a.vel || b.midi - a.midi);
+  // The dynamic-programming path can still choose an octave-shifted candidate
+  // when two adjacent raw pitches sit near the comfort boundary (for example,
+  // 64 -> 57 may become 64 -> 69 -> 64). Undo only that small detour when the
+  // raw-register travel is at most a few semitones worse; this preserves large
+  // handoffs that genuinely need octave revoicing while removing the audible
+  // up/down flicker in a single instrumental lane.
+  for (let index = 1; index < stabilized.length; index++) {
+    const previous = stabilized[index - 1]!;
+    const note = stabilized[index]!;
+    if (
+      note.identitySource === "vocals"
+      || previous.identitySource !== note.identitySource
+      || note.rawMidi === undefined
+    ) continue;
+    const rawRegister = toRegister(note.rawMidi, low, high);
+    if (Math.abs(note.midi - rawRegister) !== 12) continue;
+    const rawTravel = Math.abs(rawRegister - previous.midi);
+    const chosenTravel = Math.abs(note.midi - previous.midi);
+    if (rawTravel <= chosenTravel + 3) note.midi = rawRegister;
+  }
+  return stabilized;
 }
 
 function chordFor(rootPc: number, pcs: Set<number>): { name: string; notes: number[] } {
