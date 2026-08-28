@@ -634,6 +634,68 @@ describe("metal piano arranger", () => {
     expect(advanced.some((note) => note.identitySource === "guitar" && note.start === 1.25 && note.midi === 78)).toBe(true);
   });
 
+  it("drops a weak guitar handoff that would make the vocal melody leap", () => {
+    const source = midi([
+      { midi: 83, start: 0, dur: 0.5, vel: 100, hand: "R", identitySource: "vocals" },
+      // This is an isolated, low, quiet guitar partial between two vocal
+      // anchors. Keeping it forces an 19-semitone handoff in a learner RH.
+      { midi: 64, start: 0.75, dur: 0.25, vel: 48, hand: "R", identitySource: "guitar" },
+      { midi: 84, start: 1.5, dur: 0.5, vel: 96, hand: "R", identitySource: "vocals" },
+      { midi: 65, start: 2.25, dur: 0.5, vel: 72, hand: "R", identitySource: "guitar" },
+    ], 3.25);
+    const variants = buildVariants(source, { title: "Vocal guitar handoff", artist: "Fixture" }, {
+      arrangementProfile: "metal",
+      audioDerived: true,
+    });
+    for (const level of ["medium", "easy"] as const) {
+      const notes = variants.find((variant) => variant.level === level)!.notes.filter((note) => note.hand !== "L");
+      expect(notes.some((note) => note.identitySource === "guitar" && note.start === 0.75), `${level} kept weak vocal handoff`).toBe(false);
+      expect(notes.filter((note) => note.identitySource === "vocals").map((note) => note.midi)).toEqual([83, 84]);
+    }
+    const advanced = variants.find((variant) => variant.level === "advanced")!.notes.filter((note) => note.hand !== "L");
+    expect(advanced.some((note) => note.identitySource === "guitar" && note.start === 0.75)).toBe(true);
+  });
+
+  it("keeps a connected guitar run through a vocal bracket", () => {
+    const source = midi([
+      { midi: 83, start: 0, dur: 0.5, vel: 100, hand: "R", identitySource: "vocals" },
+      { midi: 70, start: 0.5, dur: 0.25, vel: 62, hand: "R", identitySource: "guitar" },
+      { midi: 71, start: 1, dur: 0.25, vel: 62, hand: "R", identitySource: "guitar" },
+      { midi: 84, start: 1.75, dur: 0.5, vel: 96, hand: "R", identitySource: "vocals" },
+    ], 2.5);
+    const variants = buildVariants(source, { title: "Connected guitar bracket", artist: "Fixture" }, {
+      arrangementProfile: "metal",
+      audioDerived: true,
+    });
+    for (const level of ["medium", "easy"] as const) {
+      const notes = variants.find((variant) => variant.level === level)!.notes.filter((note) => note.hand !== "L");
+      expect(notes.some((note) => note.identitySource === "guitar" && note.midi === 70), `${level} removed the guitar run entrance`).toBe(true);
+      expect(notes.some((note) => note.identitySource === "guitar" && note.midi === 71), `${level} removed the guitar run continuation`).toBe(true);
+      expect(notes.filter((note) => note.identitySource === "vocals").map((note) => note.midi)).toEqual([83, 84]);
+    }
+  });
+
+  it("keeps a descending guitar pickup even when its final handoff is wide", () => {
+    const source = midi([
+      { midi: 74, start: 0, dur: 0.25, vel: 62, hand: "R", identitySource: "guitar" },
+      { midi: 67, start: 0.5, dur: 0.25, vel: 62, hand: "R", identitySource: "guitar" },
+      { midi: 84, start: 1, dur: 0.5, vel: 96, hand: "R", identitySource: "vocals" },
+      // Keep a later guitar attack so the cleanup pass sees the full
+      // guitar-vocal-guitar neighbourhood rather than a terminal phrase.
+      { midi: 75, start: 1.75, dur: 0.25, vel: 62, hand: "R", identitySource: "guitar" },
+    ], 2.5);
+    const variants = buildVariants(source, { title: "Descending guitar pickup", artist: "Fixture" }, {
+      arrangementProfile: "metal",
+      audioDerived: true,
+    });
+    for (const level of ["medium", "easy"] as const) {
+      const notes = variants.find((variant) => variant.level === level)!.notes.filter((note) => note.hand !== "L");
+      expect(notes.some((note) => note.identitySource === "guitar" && note.midi === 74), `${level} removed the pickup entrance`).toBe(true);
+      expect(notes.some((note) => note.identitySource === "guitar" && note.midi === 67), `${level} removed the pickup landing`).toBe(true);
+      expect(notes.filter((note) => note.identitySource === "vocals").map((note) => note.midi)).toEqual([84]);
+    }
+  });
+
   it("keeps a strong high guitar landing while smoothing quiet contour noise", () => {
     const source = midi([
       { midi: 64, start: 0, dur: 0.5, vel: 92, hand: "R", identitySource: "guitar" },
