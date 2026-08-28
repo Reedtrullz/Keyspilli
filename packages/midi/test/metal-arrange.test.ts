@@ -656,6 +656,99 @@ describe("metal piano arranger", () => {
     expect(advanced.some((note) => note.identitySource === "guitar" && note.start === 0.75)).toBe(true);
   });
 
+  it("drops only an isolated redundant guitar singleton between vocal anchors", () => {
+    const source = midi([
+      { midi: 72, start: 0, dur: 0.5, vel: 100, hand: "R", identitySource: "vocals" },
+      // This attack is a redundant guitar hit between two vocal anchors. It
+      // should not make the learner switch sources for one note, while the
+      // vocal contour remains identity-bearing.
+      { midi: 72, start: 0.5, dur: 0.25, vel: 48, hand: "R", identitySource: "guitar" },
+      { midi: 74, start: 1, dur: 0.5, vel: 96, hand: "R", identitySource: "vocals" },
+      // These two guitar attacks form a connected pickup and must survive the
+      // singleton gate even though they sit between vocal phrases.
+      { midi: 67, start: 1.5, dur: 0.25, vel: 62, hand: "R", identitySource: "guitar" },
+      { midi: 69, start: 2, dur: 0.25, vel: 62, hand: "R", identitySource: "guitar" },
+      { midi: 76, start: 2.75, dur: 0.5, vel: 96, hand: "R", identitySource: "vocals" },
+    ], 3.5);
+    const variants = buildVariants(source, { title: "Vocal bracket singleton", artist: "Fixture" }, {
+      arrangementProfile: "metal",
+      audioDerived: true,
+    });
+    for (const level of ["medium", "easy"] as const) {
+      const notes = variants.find((variant) => variant.level === level)!.notes.filter((note) => note.hand !== "L");
+      expect(notes.some((note) => note.identitySource === "guitar" && note.start === 0.5), `${level} kept redundant guitar singleton`).toBe(false);
+      expect(notes.filter((note) => note.identitySource === "vocals").map((note) => note.midi)).toEqual([72, 74, 76]);
+      expect(notes.some((note) => note.identitySource === "guitar" && note.start === 1.5), `${level} removed connected guitar pickup`).toBe(true);
+      expect(notes.some((note) => note.identitySource === "guitar" && note.start === 2), `${level} removed connected guitar continuation`).toBe(true);
+    }
+    const advanced = variants.find((variant) => variant.level === "advanced")!.notes.filter((note) => note.hand !== "L");
+    expect(advanced.some((note) => note.identitySource === "guitar" && note.start === 0.5)).toBe(true);
+  });
+
+  it("drops an isolated large-hop guitar handoff after candidate scheduling", () => {
+    const source = midi([
+      { midi: 72, start: 0, dur: 0.5, vel: 100, hand: "R", identitySource: "vocals" },
+      // The second quiet guitar candidate keeps the pre-selection guard from
+      // treating the first attack as unsupported. Spacing selects only one of
+      // them; the post-selection gate must then judge the played singleton.
+      { midi: 64, start: 0.5, dur: 0.25, vel: 48, hand: "R", identitySource: "guitar" },
+      { midi: 65, start: 0.625, dur: 0.125, vel: 40, hand: "R", identitySource: "guitar" },
+      { midi: 84, start: 1, dur: 0.5, vel: 96, hand: "R", identitySource: "vocals" },
+    ], 2);
+    const variants = buildVariants(source, { title: "Post-selection handoff", artist: "Fixture" }, {
+      arrangementProfile: "metal",
+      audioDerived: true,
+    });
+    for (const level of ["medium", "easy"] as const) {
+      const notes = variants.find((variant) => variant.level === level)!.notes.filter((note) => note.hand !== "L");
+      expect(notes.filter((note) => note.identitySource === "guitar")).toHaveLength(0);
+      expect(notes.filter((note) => note.identitySource === "vocals").map((note) => note.midi)).toEqual([72, 84]);
+    }
+    const advanced = variants.find((variant) => variant.level === "advanced")!.notes.filter((note) => note.hand !== "L");
+    expect(advanced.some((note) => note.identitySource === "guitar" && (note.start === 0.5 || note.start === 0.625))).toBe(true);
+  });
+
+  it("keeps a quiet guitar bridge that improves a vocal leap", () => {
+    const source = midi([
+      { midi: 64, start: 0, dur: 0.5, vel: 100, hand: "R", identitySource: "vocals" },
+      // Each guitar leg is wide, but the bridge halves the direct vocal
+      // leap. It is a useful playable handoff, not a disposable singleton.
+      { midi: 72, start: 0.5, dur: 0.25, vel: 48, hand: "R", identitySource: "guitar" },
+      { midi: 80, start: 1, dur: 0.5, vel: 100, hand: "R", identitySource: "vocals" },
+    ], 2);
+    const variants = buildVariants(source, { title: "Vocal bridge", artist: "Fixture" }, {
+      arrangementProfile: "metal",
+      audioDerived: true,
+    });
+    for (const level of ["medium", "easy"] as const) {
+      const notes = variants.find((variant) => variant.level === level)!.notes.filter((note) => note.hand !== "L");
+      expect(notes.some((note) => note.identitySource === "guitar" && note.midi === 72), `${level} removed useful vocal bridge`).toBe(true);
+    }
+  });
+
+  it("drops a weak terminal guitar step when it worsens the vocal handoff", () => {
+    const source = midi([
+      { midi: 83, start: 0, dur: 0.5, vel: 100, hand: "R", identitySource: "vocals" },
+      { midi: 72, start: 0.5, dur: 0.25, vel: 62, hand: "R", identitySource: "guitar" },
+      { midi: 70, start: 1, dur: 0.25, vel: 62, hand: "R", identitySource: "guitar" },
+      // This final, quiet step adds three semitones to the next vocal jump
+      // without carrying a new lead contour, so it should not be played.
+      { midi: 65, start: 1.5, dur: 0.125, vel: 48, hand: "R", identitySource: "guitar" },
+      { midi: 84, start: 2, dur: 0.5, vel: 100, hand: "R", identitySource: "vocals" },
+    ], 3);
+    const variants = buildVariants(source, { title: "Terminal guitar step", artist: "Fixture" }, {
+      arrangementProfile: "metal",
+      audioDerived: true,
+    });
+    for (const level of ["medium", "easy"] as const) {
+      const notes = variants.find((variant) => variant.level === level)!.notes.filter((note) => note.hand !== "L");
+      expect(notes.some((note) => note.identitySource === "guitar" && note.midi === 65), `${level} kept terminal handoff step`).toBe(false);
+      expect(notes.filter((note) => note.identitySource === "guitar").map((note) => note.midi)).toEqual([72, 70]);
+    }
+    const advanced = variants.find((variant) => variant.level === "advanced")!.notes.filter((note) => note.hand !== "L");
+    expect(advanced.some((note) => note.identitySource === "guitar" && note.midi === 65)).toBe(true);
+  });
+
   it("keeps a connected guitar run through a vocal bracket", () => {
     const source = midi([
       { midi: 83, start: 0, dur: 0.5, vel: 100, hand: "R", identitySource: "vocals" },
@@ -731,6 +824,65 @@ describe("metal piano arranger", () => {
     expect(advanced.filter((note) => note.midi === 72)).toHaveLength(1);
     expect(advanced.find((note) => note.midi === 72)?.dur).toBeGreaterThanOrEqual(0.75);
     expect(advanced.filter((note) => note.midi === 74).map((note) => note.start)).toEqual([1, 2]);
+  });
+
+  it("ties a one-grid vocal fragment gap but preserves a real vocal re-attack", () => {
+    const source = midi([
+      { midi: 72, start: 0, dur: 0.25, vel: 72, hand: "R", identitySource: "vocals" },
+      // Quantization can leave one 32nd-note grid gap between fragments of
+      // the same sung syllable. At 120 BPM this is only 62.5 ms.
+      { midi: 72, start: 0.375, dur: 0.25, vel: 88, hand: "R", identitySource: "vocals" },
+      { midi: 74, start: 1, dur: 0.25, vel: 90, hand: "R", identitySource: "vocals" },
+      // A half-beat silence is a real re-attack, not a detector fragment.
+      { midi: 74, start: 1.75, dur: 0.25, vel: 90, hand: "R", identitySource: "vocals" },
+    ], 3);
+    const variants = buildVariants(source, { title: "Vocal gap bound", artist: "Fixture" }, {
+      arrangementProfile: "metal",
+      audioDerived: true,
+    });
+    const advanced = variants.find((variant) => variant.level === "advanced")!.notes
+      .filter((note) => note.hand !== "L" && note.identitySource === "vocals");
+    expect(advanced.filter((note) => note.midi === 72)).toHaveLength(1);
+    expect(advanced.find((note) => note.midi === 72)?.dur).toBeGreaterThanOrEqual(0.625);
+    expect(advanced.filter((note) => note.midi === 74).map((note) => note.start)).toEqual([1, 1.75]);
+  });
+
+  it("does not tie contiguous same-pitch guitar re-attacks in the advanced lane", () => {
+    const source = midi([
+      { midi: 64, start: 0, dur: 0.25, vel: 84, hand: "R", identitySource: "guitar" },
+      { midi: 64, start: 0.25, dur: 0.25, vel: 88, hand: "R", identitySource: "guitar" },
+    ], 2);
+    const variants = buildVariants(source, { title: "Guitar re-attacks", artist: "Fixture" }, {
+      arrangementProfile: "metal",
+      audioDerived: true,
+    });
+    const advanced = variants.find((variant) => variant.level === "advanced")!.notes
+      .filter((note) => note.hand !== "L" && note.identitySource === "guitar");
+    expect(advanced.map((note) => note.start)).toEqual([0, 0.25]);
+  });
+
+  it("drops a quiet short vocal detour in learner levels but keeps Advanced detail", () => {
+    const source = midi([
+      { midi: 84, start: 0, dur: 0.5, vel: 100, hand: "R", identitySource: "vocals" },
+      // A weak, short lower fragment between matching vocal pitches is more
+      // likely a Basic Pitch contour flicker than a syllable the learner must
+      // re-articulate. Advanced remains the source-detail reference.
+      { midi: 81, start: 0.5, dur: 0.125, vel: 43, hand: "R", identitySource: "vocals" },
+      { midi: 84, start: 0.75, dur: 0.75, vel: 57, hand: "R", identitySource: "vocals" },
+    ], 2);
+    const variants = buildVariants(source, { title: "Vocal contour detour", artist: "Fixture" }, {
+      arrangementProfile: "metal",
+      audioDerived: true,
+    });
+    for (const level of ["medium", "easy"] as const) {
+      const notes = variants.find((variant) => variant.level === level)!.notes
+        .filter((note) => note.hand !== "L" && note.identitySource === "vocals");
+      expect(notes.some((note) => note.midi === 81), `${level} kept quiet vocal detour`).toBe(false);
+      expect(notes.filter((note) => note.midi === 84).length).toBe(2);
+    }
+    const advanced = variants.find((variant) => variant.level === "advanced")!.notes
+      .filter((note) => note.hand !== "L" && note.identitySource === "vocals");
+    expect(advanced.some((note) => note.midi === 81 && note.start === 0.5)).toBe(true);
   });
 
   it("ties same-pitch vocal fragments across interleaved guitar attacks", () => {
