@@ -675,6 +675,24 @@ describe("metal piano arranger", () => {
     }
   });
 
+  it("keeps a descending guitar pickup even when its final handoff is wide", () => {
+    const source = midi([
+      { midi: 74, start: 0, dur: 0.25, vel: 62, hand: "R", identitySource: "guitar" },
+      { midi: 67, start: 0.5, dur: 0.25, vel: 62, hand: "R", identitySource: "guitar" },
+      { midi: 84, start: 1, dur: 0.5, vel: 96, hand: "R", identitySource: "vocals" },
+    ], 1.75);
+    const variants = buildVariants(source, { title: "Descending guitar pickup", artist: "Fixture" }, {
+      arrangementProfile: "metal",
+      audioDerived: true,
+    });
+    for (const level of ["medium", "easy"] as const) {
+      const notes = variants.find((variant) => variant.level === level)!.notes.filter((note) => note.hand !== "L");
+      expect(notes.some((note) => note.identitySource === "guitar" && note.midi === 74), `${level} removed the pickup entrance`).toBe(true);
+      expect(notes.some((note) => note.identitySource === "guitar" && note.midi === 67), `${level} removed the pickup landing`).toBe(true);
+      expect(notes.filter((note) => note.identitySource === "vocals").map((note) => note.midi)).toEqual([84]);
+    }
+  });
+
   it("keeps a strong high guitar landing while smoothing quiet contour noise", () => {
     const source = midi([
       { midi: 64, start: 0, dur: 0.5, vel: 92, hand: "R", identitySource: "guitar" },

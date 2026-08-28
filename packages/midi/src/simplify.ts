@@ -354,11 +354,9 @@ function removeWeakGuitarVocalHandoffs(notes: Note[], tempoBpm: number, legato: 
       .find((candidate) => candidate.start < note.start - 1e-9);
     const nextGuitar = guitars.find((candidate) => candidate.start > note.start + 1e-9);
     const supportedByPrevious = previousGuitar !== undefined
-      && note.start - previousGuitar.start <= maxSupportBeats + 1e-9
-      && Math.abs(note.midi - previousGuitar.midi) <= 5;
+      && note.start - previousGuitar.start <= maxSupportBeats + 1e-9;
     const supportedByNext = nextGuitar !== undefined
-      && nextGuitar.start - note.start <= maxSupportBeats + 1e-9
-      && Math.abs(nextGuitar.midi - note.midi) <= 5;
+      && nextGuitar.start - note.start <= maxSupportBeats + 1e-9;
     if (supportedByPrevious || supportedByNext) return true;
 
     const toVocal = nextVocal.start - note.start;
@@ -527,8 +525,10 @@ function reduceMetalRhRealism(notes: Note[], tempoBpm: number, maxAttacksPerSeco
     const previous = all[index - 1];
     const next = all[index + 1];
     if (!previous || !next) return true;
-    const sameSourceNeighbours = note.identitySource !== undefined
-      && previous.identitySource === note.identitySource
+    // Keep the historical cleanup for a completely unlabeled triple while
+    // preventing a guitar rule from treating vocal neighbours as guitar
+    // evidence. Explicit source labels must match on all three notes.
+    const sameSourceNeighbours = previous.identitySource === note.identitySource
       && next.identitySource === note.identitySource;
     const intoSec = (note.start - previous.start) * secondsPerBeat;
     const outSec = (next.start - note.start) * secondsPerBeat;
@@ -594,10 +594,20 @@ function reduceMetalRhRealism(notes: Note[], tempoBpm: number, maxAttacksPerSeco
       candidates
         .filter(({ note, phraseIndex }) => {
           const durationSec = note.dur * secondsPerBeat;
+          const previousGuitar = note.identitySource === "guitar"
+            ? phrase.slice(0, phraseIndex).reverse().find((candidate) => candidate.identitySource === "guitar")
+            : undefined;
+          const nextPhraseNote = phrase[phraseIndex + 1];
+          const guitarPhraseLanding = note.identitySource === "guitar"
+            && nextPhraseNote?.identitySource === "vocals"
+            && previousGuitar !== undefined
+            && note.start - previousGuitar.start <= 1 + 1e-9
+            && Math.abs(note.midi - previousGuitar.midi) <= 7;
           return phraseIndex === 0
             || phraseIndex === phrase.length - 1
             || note.vel >= 100
-            || (note.midi >= 76 && (note.vel >= 90 || durationSec >= 0.5));
+            || (note.midi >= 76 && (note.vel >= 90 || durationSec >= 0.5))
+            || guitarPhraseLanding;
         })
         .map(({ note }) => note),
     );
