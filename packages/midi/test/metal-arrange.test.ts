@@ -359,6 +359,7 @@ describe("metal piano arranger", () => {
       ],
     });
     expect(result.ir.identity.find((note) => note.identitySource === "guitar" && note.start === 7.75)).toBeUndefined();
+    expect(result.ir.sections[0]?.source).toBe("rest");
     const variants = buildVariants(result.parsed, { title: "Boundary bleed", artist: "Fixture" }, {
       arrangementProfile: "metal",
       audioDerived: false,
@@ -374,6 +375,20 @@ describe("metal piano arranger", () => {
         { role: "vocals", midi: midi(Array.from({ length: 8 }, (_, index) => ({
           midi: 72 + (index % 4), start: index, dur: 0.5, vel: 98,
         })), 16) },
+        { role: "guitar", midi: midi([{ midi: 55, start: 8.25, dur: 0.2, vel: 40 }], 16) },
+      ],
+    });
+    expect(result.ir.identity.find((note) => note.identitySource === "guitar" && note.start === 8.25)).toBeUndefined();
+  });
+
+  it("filters a quiet low guitar attack while a sustained vocal crosses a section boundary", () => {
+    const result = buildMetalArrangement({
+      stems: [
+        { role: "vocals", midi: midi([
+          { midi: 72, start: 6, dur: 0.5, vel: 98 },
+          { midi: 74, start: 7.5, dur: 2, vel: 98 },
+          { midi: 76, start: 10, dur: 0.5, vel: 98 },
+        ], 16) },
         { role: "guitar", midi: midi([{ midi: 55, start: 8.25, dur: 0.2, vel: 40 }], 16) },
       ],
     });
