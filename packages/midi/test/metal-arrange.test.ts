@@ -227,6 +227,29 @@ describe("metal piano arranger", () => {
     }
   });
 
+  it("drops a quiet five-semitone guitar U-turn but preserves vocal contour", () => {
+    const source = midi([
+      { midi: 64, start: 0, dur: 0.5, vel: 92, hand: "R", identitySource: "guitar" },
+      // A quiet partial between nearby lead pitches is not useful piano
+      // melody when it reverses immediately.
+      { midi: 58, start: 0.5, dur: 0.5, vel: 42, hand: "R", identitySource: "guitar" },
+      { midi: 63, start: 1, dur: 0.5, vel: 92, hand: "R", identitySource: "guitar" },
+      // Vocal contour is identity-bearing and must not be smoothed away.
+      { midi: 72, start: 2, dur: 0.5, vel: 92, hand: "R", identitySource: "vocals" },
+      { midi: 65, start: 2.5, dur: 0.5, vel: 42, hand: "R", identitySource: "vocals" },
+      { midi: 71, start: 3, dur: 0.5, vel: 92, hand: "R", identitySource: "vocals" },
+    ], 4);
+    const variants = buildVariants(source, { title: "Quiet guitar U-turn", artist: "Fixture" }, {
+      arrangementProfile: "metal",
+      audioDerived: true,
+    });
+    for (const level of ["advanced", "medium", "easy"] as const) {
+      const notes = variants.find((variant) => variant.level === level)!.notes.filter((note) => note.hand !== "L");
+      expect(notes.some((note) => note.identitySource === "guitar" && note.start === 0.5 && note.midi === 58), `${level} kept quiet guitar U-turn`).toBe(false);
+      expect(notes.some((note) => note.identitySource === "vocals" && note.start === 2.5 && note.midi === 65), `${level} removed vocal contour`).toBe(true);
+    }
+  });
+
   it("ties contiguous same-pitch vocal fragments without erasing real re-attacks", () => {
     const source = midi([
       { midi: 72, start: 0, dur: 0.25, vel: 72, hand: "R", identitySource: "vocals" },
