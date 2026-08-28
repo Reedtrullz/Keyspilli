@@ -77,7 +77,12 @@ function validNotes(stem: MetalStem | undefined): Note[] {
 interface MonophonicPathOptions {
   /** Prefer a plausible upper lead tone over lower rhythm/accompaniment bleed. */
   preferUpperLead?: boolean;
+  /** Maximum beat distance for treating an exact octave as detector flicker. */
+  exactOctaveWindow?: number;
 }
+
+/** Internal source pitch retained until boundary cleanup is complete. */
+type IdentityNote = Note & { rawMidi?: number };
 
 /**
  * Reduce polyphonic pitch evidence to one identity voice. The greedy salience
@@ -90,8 +95,8 @@ function monophonicPath(
   low: number,
   high: number,
   options: MonophonicPathOptions = {},
-): Note[] {
-  type CandidateNote = Note & { rawMidi: number };
+): IdentityNote[] {
+  type CandidateNote = IdentityNote & { rawMidi: number };
   const groups: CandidateNote[][] = [];
   for (const note of notes) {
     const normalized: CandidateNote = { ...note, rawMidi: note.midi, midi: toRegister(note.midi, low, high) };
@@ -100,8 +105,8 @@ function monophonicPath(
     else groups.push([normalized]);
   }
 
-  let previous: Note | undefined;
-  const selected: Note[] = [];
+  let previous: IdentityNote | undefined;
+  const selected: IdentityNote[] = [];
   for (let groupIndex = 0; groupIndex < groups.length; groupIndex++) {
     const group = groups[groupIndex]!;
     const candidates = group
@@ -117,10 +122,12 @@ function monophonicPath(
         // pitch; never ask the player to jump more than an octave in <=1.5
         // beats merely because the raw stem contained a distant partial.
         if (continuityPrevious && elapsed <= 1.5) {
-          // An exact octave inside one beat is usually detector harmonic
-          // switching, not useful piano articulation. Keep the attack and
-          // pitch class but continue in the established register.
-          if (elapsed <= 1 + EPS && Math.abs(pitch - continuityPrevious.midi) === 12) {
+          // A sufficiently fast exact octave is usually detector harmonic
+          // switching, not useful piano articulation. Instrumental lanes use
+          // a wider evidence window; vocal lanes keep slower octave contours
+          // intact because they are often intentional melody.
+          const exactOctaveWindow = Math.max(0, options.exactOctaveWindow ?? 0.5);
+          if (elapsed <= exactOctaveWindow + EPS && Math.abs(pitch - continuityPrevious.midi) === 12) {
             pitch = continuityPrevious.midi;
           }
           while (Math.abs(pitch - continuityPrevious.midi) > 12 && pitch - continuityPrevious.midi > 0 && pitch - 12 >= low) pitch -= 12;
@@ -148,7 +155,7 @@ function monophonicPath(
     });
     const nextStart = groups[groupIndex + 1]?.[0]?.start;
     const dur = Math.max(EPS, Math.min(best.dur, nextStart === undefined ? best.dur : nextStart - best.start));
-    const { rawMidi: _rawMidi, ...selectedNote } = best;
+    const selectedNote: IdentityNote = { ...best };
     previous = { ...selectedNote, dur, hand: "R" };
     selected.push(previous);
   }
@@ -189,7 +196,7 @@ function trustworthyVocalNotes(notes: Note[]): Note[] {
   });
 }
 
-function notesIn(notes: Note[], start: number, end: number): Note[] {
+function notesIn<T extends Note>(notes: T[], start: number, end: number): T[] {
   return notes.filter((note) => note.start >= start - EPS && note.start < end - EPS);
 }
 
@@ -230,12 +237,12 @@ function pitchClassesAt(notes: Note[], start: number, end: number): Set<number> 
 }
 
 function identityForWindow(
-  primary: Note[],
-  alternates: Note[][],
+  primary: IdentityNote[],
+  alternates: IdentityNote[][],
   start: number,
   end: number,
   minAlternateRest = 0,
-): { notes: Note[]; primaryNotes: Note[]; primaryCount: number; alternateCount: number } {
+): { notes: IdentityNote[]; primaryNotes: IdentityNote[]; primaryCount: number; alternateCount: number } {
   const primaryNotes = notesIn(primary, start, end).map((note) => ({ ...note }));
   const selected = [...primaryNotes];
   let alternateCount = 0;
@@ -269,9 +276,9 @@ function identityForWindow(
         if (
           nextPrimary
           && restAfter <= 0.25 + EPS
-          && note.midi <= 60
+          && (note.rawMidi ?? note.midi) <= 60
           && note.vel < 64
-          && Math.abs(note.midi - nextPrimary.midi) >= 12
+          && Math.abs((note.rawMidi ?? note.midi) - (nextPrimary.rawMidi ?? nextPrimary.midi)) >= 12
         ) continue;
         // Apply the same guard after a vocal ending; a quiet low attack with
         // no melodic landing is just as likely to be the rhythm stem leaking
@@ -279,9 +286,9 @@ function identityForWindow(
         if (
           previousPrimary
           && restBefore <= 0.75 + EPS
-          && note.midi <= 60
+          && (note.rawMidi ?? note.midi) <= 60
           && note.vel < 64
-          && Math.abs(note.midi - previousPrimary.midi) >= 12
+          && Math.abs((note.rawMidi ?? note.midi) - (previousPrimary.rawMidi ?? previousPrimary.midi)) >= 12
         ) continue;
       }
       selected.push({ ...note });
@@ -298,6 +305,38 @@ function identityForWindow(
 }
 
 /**
+ * Apply the vocal-boundary bleed guard across section windows as well as
+ * inside them. A section can end immediately before a vocal phrase starts,
+ * so looking only at its local primary notes would leave that attack
+ * unclassified. The raw source pitch is used here because the instrumental
+ * lane may already have been octave-registered for piano.
+ */
+function suppressBoundaryBleed(notes: IdentityNote[], vocals: IdentityNote[]): IdentityNote[] {
+  if (!vocals.length) return notes;
+  const sortedVocals = [...vocals].sort((a, b) => a.start - b.start);
+  return notes.filter((note) => {
+    if (note.identitySource !== "guitar" && note.identitySource !== "other") return true;
+    const rawMidi = note.rawMidi ?? note.midi;
+    if (rawMidi > 60 || note.vel >= 64) return true;
+    const nextPrimary = sortedVocals.find((vocal) => vocal.start >= note.start - EPS);
+    if (
+      nextPrimary
+      && nextPrimary.start - (note.start + note.dur) <= 0.25 + EPS
+      && Math.abs(rawMidi - (nextPrimary.rawMidi ?? nextPrimary.midi)) >= 12
+    ) return false;
+    const previousPrimary = [...sortedVocals]
+      .reverse()
+      .find((vocal) => vocal.start + vocal.dur <= note.start + EPS);
+    if (
+      previousPrimary
+      && note.start - (previousPrimary.start + previousPrimary.dur) <= 0.75 + EPS
+      && Math.abs(rawMidi - (previousPrimary.rawMidi ?? previousPrimary.midi)) >= 12
+    ) return false;
+    return true;
+  });
+}
+
+/**
  * Trace the fused vocal/guitar phrase through octave-equivalent registers.
  * Trusted vocal pitches and phrase starts are anchors; surrounding guitar
  * partials may move by octaves when that avoids physically implausible rapid
@@ -305,12 +344,12 @@ function identityForWindow(
  * changes between phrases.
  */
 function stabilizeIdentityRegister(
-  notes: Note[],
+  notes: IdentityNote[],
   tempoBpm: number,
   registerAnchors: ReadonlySet<string>,
   low = 55,
   high = 84,
-): Note[] {
+): IdentityNote[] {
   if (notes.length < 2) return notes.map((note) => ({ ...note }));
   const sorted = [...notes].sort((a, b) => a.start - b.start || b.vel - a.vel || b.midi - a.midi);
   const phrases: Note[][] = [];
@@ -343,7 +382,7 @@ function stabilizeIdentityRegister(
     return cost;
   };
 
-  const output: Note[] = [];
+  const output: IdentityNote[] = [];
   for (const phrase of phrases) {
     const states = phrase.map(candidatesFor);
     const costs: number[][] = [];
@@ -452,12 +491,12 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
   const otherStem = input.stems.find((stem) => stem.role === "other" && stem !== guitarStem);
   const bassStem = input.stems.find((stem) => stem.role === "bass");
   const drumsStem = input.stems.find((stem) => stem.role === "drums");
-  const vocals = monophonicPath(validNotes(vocalsStem), 60, 84)
+  const vocals = monophonicPath(validNotes(vocalsStem), 60, 84, { exactOctaveWindow: 0.5 })
     .map((note) => ({ ...note, identitySource: "vocals" as const }));
   const trustedVocals = trustworthyVocalNotes(vocals);
-  const guitar = monophonicPath(validNotes(guitarStem), 55, 84, { preferUpperLead: true })
+  const guitar = monophonicPath(validNotes(guitarStem), 55, 84, { preferUpperLead: true, exactOctaveWindow: 1 })
     .map((note) => ({ ...note, identitySource: "guitar" as const }));
-  const other = monophonicPath(validNotes(otherStem), 55, 84, { preferUpperLead: true })
+  const other = monophonicPath(validNotes(otherStem), 55, 84, { preferUpperLead: true, exactOctaveWindow: 1 })
     .map((note) => ({ ...note, identitySource: "other" as const }));
   const bass = validNotes(bassStem);
   const harmonicEvidence = [...validNotes(guitarStem), ...validNotes(otherStem)];
@@ -510,7 +549,12 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
     sections.push({ startBeat: start, endBeat: end, source, confidence: sectionConfidence });
   }
 
-  const stabilizedIdentity = stabilizeIdentityRegister(identity, tempoBpm, vocalRegisterAnchors);
+  const stabilizedIdentity = stabilizeIdentityRegister(
+    suppressBoundaryBleed(identity, trustedVocals),
+    tempoBpm,
+    vocalRegisterAnchors,
+  );
+  const publicIdentity = stabilizedIdentity.map(({ rawMidi: _rawMidi, ...note }) => note);
   const chords: ChordLabel[] = [];
   const leftHand: Note[] = [];
   let previousRoot: number | undefined;
@@ -542,11 +586,11 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
   }
 
   const rhythmicAccents = validNotes(drumsStem).map((note) => note.start).filter((beat, index, all) => index === 0 || beat - all[index - 1]! >= 0.125);
-  const notes = uniqueSorted([...stabilizedIdentity.map((note) => ({ ...note, hand: "R" as const })), ...leftHand]);
+  const notes = uniqueSorted([...publicIdentity.map((note) => ({ ...note, hand: "R" as const })), ...leftHand]);
   const warnings: string[] = [];
   const mismatchedTempo = input.stems.filter((stem) => Math.abs(stem.midi.tempoBpm - tempoBpm) > 0.5);
   if (mismatchedTempo.length) warnings.push(`${mismatchedTempo.length} stems had mismatched tempo metadata; beat positions were used unchanged`);
-  if (!stabilizedIdentity.length) warnings.push("no reliable vocal, guitar, or other identity line was found");
+  if (!publicIdentity.length) warnings.push("no reliable vocal, guitar, or other identity line was found");
   if (!bass.length) warnings.push("no bass stem was available; harmony roots may be less reliable");
   const sourceSections: Record<string, number> = {};
   for (const section of sections) {
@@ -565,12 +609,12 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
     durationBeats,
     ...(input.title ? { title: input.title } : {}),
   };
-  const ir: MetalArrangementIR = { version: 1, tempoBpm, timeSig, durationBeats, sections, identity: stabilizedIdentity.map((note) => ({ ...note })), harmony: chords, rhythmicAccents };
+  const ir: MetalArrangementIR = { version: 1, tempoBpm, timeSig, durationBeats, sections, identity: publicIdentity.map((note) => ({ ...note })), harmony: chords, rhythmicAccents };
   return {
     parsed,
     chords,
     ir,
-    stats: { identityNotes: stabilizedIdentity.length, leftHandNotes: leftHand.length, chordEvents: chords.length, sourceSections },
+    stats: { identityNotes: publicIdentity.length, leftHandNotes: leftHand.length, chordEvents: chords.length, sourceSections },
     warnings,
   };
 }

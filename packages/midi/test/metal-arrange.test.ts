@@ -250,7 +250,7 @@ describe("metal piano arranger", () => {
     expect(rh.every((note) => note.identitySource === "vocals")).toBe(true);
   });
 
-  it("folds slower detector octave flips before they become vocal anchors", () => {
+  it("preserves slower vocal octave contours before they become anchors", () => {
     const result = buildMetalArrangement({
       stems: [{ role: "vocals", midi: midi([
         { midi: 64, start: 0, dur: 0.4, vel: 98 },
@@ -259,7 +259,19 @@ describe("metal piano arranger", () => {
       ]) }],
     });
     const rh = result.parsed.notes.filter((note) => note.hand === "R");
-    expect(rh.map((note) => note.midi)).toEqual([64, 64, 65]);
+    expect(rh.map((note) => note.midi)).toEqual([64, 76, 65]);
+  });
+
+  it("preserves a deliberate vocal octave leap at phrase tempo", () => {
+    const result = buildMetalArrangement({
+      stems: [{ role: "vocals", midi: midi([
+        { midi: 60, start: 0, dur: 0.6, vel: 98 },
+        { midi: 72, start: 1, dur: 0.6, vel: 98 },
+        { midi: 60, start: 2, dur: 0.6, vel: 98 },
+      ], 3) }],
+    });
+    const rh = result.parsed.notes.filter((note) => note.hand === "R");
+    expect(rh.map((note) => note.midi)).toEqual([60, 72, 60]);
   });
 
   it("keeps register smoothing active across a long sustained note", () => {
@@ -318,6 +330,54 @@ describe("metal piano arranger", () => {
     });
     const guitarBleed = result.ir.identity.find((note) => note.identitySource === "guitar" && note.start === 2);
     expect(guitarBleed).toBeUndefined();
+  });
+
+  it("uses raw guitar pitch when rejecting re-registered bleed before vocals", () => {
+    const result = buildMetalArrangement({
+      stems: [
+        { role: "vocals", midi: midi([
+          { midi: 84, start: 1, dur: 0.5, vel: 98 },
+          { midi: 82, start: 2, dur: 0.5, vel: 98 },
+          { midi: 80, start: 3, dur: 0.5, vel: 98 },
+        ]) },
+        { role: "guitar", midi: midi([
+          { midi: 84, start: 0.5, dur: 0.2, vel: 86 },
+          { midi: 55, start: 0.75, dur: 0.2, vel: 40 },
+        ]) },
+      ],
+    });
+    expect(result.ir.identity.find((note) => note.identitySource === "guitar" && note.start === 0.75)).toBeUndefined();
+  });
+
+  it("filters a quiet low guitar attack across a vocal section boundary", () => {
+    const result = buildMetalArrangement({
+      stems: [
+        { role: "vocals", midi: midi(Array.from({ length: 8 }, (_, index) => ({
+          midi: 84 - (index % 4), start: 8 + index, dur: 0.5, vel: 98,
+        })), 16) },
+        { role: "guitar", midi: midi([{ midi: 55, start: 7.75, dur: 0.2, vel: 40 }], 16) },
+      ],
+    });
+    expect(result.ir.identity.find((note) => note.identitySource === "guitar" && note.start === 7.75)).toBeUndefined();
+    const variants = buildVariants(result.parsed, { title: "Boundary bleed", artist: "Fixture" }, {
+      arrangementProfile: "metal",
+      audioDerived: false,
+      chords: result.chords,
+    });
+    expect(variants).toHaveLength(6);
+    expect(validateVariants(variants)).toEqual([]);
+  });
+
+  it("filters a quiet low guitar attack after a vocal section boundary", () => {
+    const result = buildMetalArrangement({
+      stems: [
+        { role: "vocals", midi: midi(Array.from({ length: 8 }, (_, index) => ({
+          midi: 72 + (index % 4), start: index, dur: 0.5, vel: 98,
+        })), 16) },
+        { role: "guitar", midi: midi([{ midi: 55, start: 8.25, dur: 0.2, vel: 40 }], 16) },
+      ],
+    });
+    expect(result.ir.identity.find((note) => note.identitySource === "guitar" && note.start === 8.25)).toBeUndefined();
   });
 
   it("retains interior vocal anchors while progressively reducing guitar filler", () => {
