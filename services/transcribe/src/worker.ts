@@ -35,6 +35,7 @@ import {
 import { buildMetalArrangement, parseMidi, transcriptionMaxDurationBeats, writeMidi } from "@keyspilli/midi";
 import { assessMetalRouting } from "./metal-routing.js";
 import { stemPipelineConfigFromEnv, transcribePitchedStems } from "./stem-pipeline.js";
+import { metalArrangementTracks } from "./metal-midi.js";
 import { normalizeYoutubeImportUrl } from "./youtube-url.js";
 import {
   isYoutubeBotChallenge,
@@ -301,13 +302,7 @@ async function processJob(jobId: string): Promise<void> {
           timeSig: arranged.parsed.timeSig,
           keySig: arranged.parsed.keySig,
           keyMode: arranged.parsed.keyMode,
-          tracks: [
-            { name: "Right Hand Vocals", notes: arranged.parsed.notes.filter((note) => note.hand === "R" && note.identitySource === "vocals") },
-            { name: "Right Hand Guitar", notes: arranged.parsed.notes.filter((note) => note.hand === "R" && note.identitySource === "guitar") },
-            { name: "Right Hand Other", notes: arranged.parsed.notes.filter((note) => note.hand === "R" && note.identitySource === "other") },
-            { name: "Right Hand", notes: arranged.parsed.notes.filter((note) => note.hand === "R" && !note.identitySource) },
-            { name: "Left Hand", notes: arranged.parsed.notes.filter((note) => note.hand === "L") },
-          ],
+          tracks: metalArrangementTracks(arranged.parsed.notes),
         });
         await persistMetalArrangement(dir, midi);
         chords = arranged.chords;
