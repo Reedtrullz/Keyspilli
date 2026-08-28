@@ -163,6 +163,111 @@ function monophonicPath(
 }
 
 /**
+ * A separated guitar stem often contains the rhythm guitar's low power-chord
+ * pulse as a single repeated pitch. Once the stem has been reduced to one
+ * note per onset, that pulse is indistinguishable from a lead line unless we
+ * remove the repeated wall before vocal/guitar fusion. Keep a strong, sparse
+ * phrase anchor, but leave any higher-register contour untouched.
+ * Short runs and runs with a real pitch contour are deliberately preserved so
+ * a genuinely low guitar melody is not erased.
+ */
+function suppressLowGuitarPulseRuns(notes: IdentityNote[]): IdentityNote[] {
+  const sorted = [...notes].sort((a, b) => a.start - b.start || b.vel - a.vel || b.midi - a.midi);
+  const lowMaxMidi = 62;
+  const maxPulsePitchSpan = 5;
+  // Stem extraction can miss several pulse attacks, so a rhythm run may have
+  // bar-sized gaps even though it repeats the same low pitch throughout.
+  const maxInterAttackBeats = 4.5;
+  const minRunLength = 4;
+  const anchorSpacingBeats = 4;
+  const lowNotes = sorted.filter((note) =>
+    (note.identitySource === "guitar" || note.identitySource === "other") && note.midi <= lowMaxMidi,
+  );
+  const retainedLowNotes = new Set<IdentityNote>();
+
+  let index = 0;
+  while (index < lowNotes.length) {
+    const first = lowNotes[index]!;
+    const run = [first];
+    let cursor = index + 1;
+    while (cursor < lowNotes.length) {
+      const note = lowNotes[cursor]!;
+      const previous = run.at(-1)!;
+      if (
+        note.identitySource !== first.identitySource
+        || note.midi > lowMaxMidi
+        || Math.abs(note.midi - first.midi) > maxPulsePitchSpan
+        || note.start - previous.start > maxInterAttackBeats + EPS
+      ) break;
+      run.push(note);
+      cursor += 1;
+    }
+    const pitchCounts = new Map<number, number>();
+    for (const note of run) pitchCounts.set(note.midi, (pitchCounts.get(note.midi) ?? 0) + 1);
+    const maxRepeatedPitch = Math.max(...pitchCounts.values());
+    const pitchDeltas = run.slice(1).map((note, deltaIndex) => note.midi - run[deltaIndex]!.midi);
+    const absolutePitchDeltas = pitchDeltas.map((delta) => Math.abs(delta)).sort((a, b) => a - b);
+    const medianAbsPitchDelta = absolutePitchDeltas.length
+      ? absolutePitchDeltas[Math.floor(absolutePitchDeltas.length / 2)]!
+      : 0;
+    let longestMonotonicSteps = 0;
+    let monotonicSteps = 0;
+    let previousDirection = 0;
+    for (const delta of pitchDeltas) {
+      const direction = Math.sign(delta);
+      if (direction !== 0 && direction === previousDirection) monotonicSteps += 1;
+      else monotonicSteps = direction === 0 ? 0 : 1;
+      longestMonotonicSteps = Math.max(longestMonotonicSteps, monotonicSteps);
+      previousDirection = direction;
+    }
+    const dominantPitchRatio = maxRepeatedPitch / run.length;
+    const repeatedAttackRatio = run.length > 1
+      ? pitchDeltas.filter((delta) => delta === 0).length / pitchDeltas.length
+      : 1;
+    // A real low lead may revisit its tonic several times while still making
+    // a clear three-note contour. Require a stable, low-variation run and a
+    // high dominant-pitch ratio (or a long wall) before calling it rhythm.
+    const hasClearContour = longestMonotonicSteps >= 3;
+    const stableLowPulse = medianAbsPitchDelta <= 2
+      && !hasClearContour
+      && (
+        dominantPitchRatio >= 0.6
+        || (run.length >= 16 && dominantPitchRatio >= 0.3 && repeatedAttackRatio >= 0.25)
+      );
+    const pulseLike = run.length >= minRunLength && stableLowPulse;
+    if (run.length < minRunLength || !pulseLike) {
+      run.forEach((note) => retainedLowNotes.add(note));
+    } else {
+      for (let windowStart = run[0]!.start; windowStart <= run.at(-1)!.start + EPS; windowStart += anchorSpacingBeats) {
+        const windowEnd = windowStart + anchorSpacingBeats;
+        const candidates = run.filter((note) => note.start >= windowStart - EPS && note.start < windowEnd - EPS);
+        if (!candidates.length) continue;
+        // A first/strong downbeat is a more useful rhythmic hint than the
+        // weakest detector fragment at the start of a run. Prefer dynamics,
+        // then a higher shell tone, then an onset close to the beat grid.
+        const anchor = candidates.reduce((winner, note) => {
+          const winnerGridDistance = Math.abs(winner.start - Math.round(winner.start));
+          const noteGridDistance = Math.abs(note.start - Math.round(note.start));
+          return note.vel > winner.vel
+            || (note.vel === winner.vel && note.midi > winner.midi)
+            || (note.vel === winner.vel && note.midi === winner.midi && noteGridDistance < winnerGridDistance - EPS)
+            || (note.vel === winner.vel && note.midi === winner.midi && Math.abs(note.start - Math.round(note.start)) <= winnerGridDistance + EPS && note.start < winner.start)
+            ? note
+            : winner;
+        });
+        retainedLowNotes.add(anchor);
+      }
+    }
+    index += run.length;
+  }
+  // Classify the low-note subsequence independently of high lead attacks.
+  // A solo landing interleaved with a rhythm wall must not reset the wall;
+  // retain all high notes and only replace the low pulse objects selected
+  // above with their sparse phrase anchors.
+  return sorted.filter((note) => note.midi > lowMaxMidi || retainedLowNotes.has(note));
+}
+
+/**
  * Basic Pitch can leak sparse guitar/reverb events into the vocal stem. Only
  * let vocals displace an active guitar lead when they form a compact moving
  * phrase. Isolated vocal events are used only when there is no usable
@@ -540,8 +645,8 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
   const vocals = monophonicPath(validNotes(vocalsStem), 60, 84, { exactOctaveWindow: 0.5 })
     .map((note) => ({ ...note, identitySource: "vocals" as const }));
   const trustedVocals = trustworthyVocalNotes(vocals);
-  const guitar = monophonicPath(validNotes(guitarStem), 55, 84, { preferUpperLead: true, exactOctaveWindow: 1 })
-    .map((note) => ({ ...note, identitySource: "guitar" as const }));
+  const guitar = suppressLowGuitarPulseRuns(monophonicPath(validNotes(guitarStem), 55, 84, { preferUpperLead: true, exactOctaveWindow: 1 })
+    .map((note) => ({ ...note, identitySource: "guitar" as const })));
   const other = monophonicPath(validNotes(otherStem), 55, 84, { preferUpperLead: true, exactOctaveWindow: 1 })
     .map((note) => ({ ...note, identitySource: "other" as const }));
   const bass = validNotes(bassStem);

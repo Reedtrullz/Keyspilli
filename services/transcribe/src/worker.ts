@@ -339,8 +339,8 @@ async function processJob(jobId: string): Promise<void> {
           : undefined;
         metalArrangement = {
           arranger: "keyspilli-metal-arranger",
-          version: "3",
-          strategy: "piano-realistic-phrase-fused-vocal-lead-power-chord",
+          version: "4",
+          strategy: "piano-realistic-phrase-fused-vocal-lead-rhythm-gate-power-chord",
           ...(distinctSources.size > 1
             ? { identitySource: "mixed" as const }
             : distinctSources.has("vocals")

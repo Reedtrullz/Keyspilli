@@ -245,10 +245,16 @@ function reduceMetalRhRealism(notes: Note[], tempoBpm: number, maxAttacksPerSeco
     .filter((note, index, all) => index === 0 || Math.abs(note.start - all[index - 1]!.start) > 1e-9);
 
   const merged: Note[] = [];
+  let lastMergedAttackStart: number | undefined;
   for (const original of source) {
     const note = { ...original };
     const previous = merged.at(-1);
-    const elapsedSec = previous ? (note.start - previous.start) * secondsPerBeat : Number.POSITIVE_INFINITY;
+    const elapsedSec = previous && lastMergedAttackStart !== undefined
+      ? (note.start - lastMergedAttackStart) * secondsPerBeat
+      : Number.POSITIVE_INFINITY;
+    const gapSec = previous
+      ? Math.max(0, note.start - (previous.start + previous.dur)) * secondsPerBeat
+      : Number.POSITIVE_INFINITY;
     // Basic Pitch commonly splits one sung syllable into adjacent fragments
     // at nearly the same pitch. Treat those as one sustained piano note; a
     // real gap or a pitch change still creates a fresh attack. This is limited
@@ -263,6 +269,7 @@ function reduceMetalRhRealism(notes: Note[], tempoBpm: number, maxAttacksPerSeco
     ) {
       previous.dur = Math.max(previous.dur, note.start + note.dur - previous.start);
       previous.vel = Math.max(previous.vel, note.vel);
+      lastMergedAttackStart = note.start;
       continue;
     }
     if (
@@ -270,14 +277,22 @@ function reduceMetalRhRealism(notes: Note[], tempoBpm: number, maxAttacksPerSeco
       && previous.identitySource !== "vocals"
       && note.identitySource !== "vocals"
       && previous.midi === note.midi
-      && elapsedSec <= 0.09 + 1e-9
-      && note.start <= previous.start + previous.dur + 0.125 + 1e-9
+      // In a legato learner level, overlapping same-pitch guitar attacks are
+      // one held piano tone rather than separate picked strikes. Keep the
+      // advanced/source texture tighter so deliberate re-attacks remain
+      // available there, while allowing a quarter-second fragment boundary
+      // to collapse in the playable levels.
+      && elapsedSec <= (legato ? 0.5 : 0.09) + 1e-9
+      && gapSec <= (legato ? 0.25 : 0) + 1e-9
+      && note.start <= previous.start + previous.dur + (legato ? 0.5 : 0.125) + 1e-9
     ) {
       previous.dur = Math.max(previous.dur, note.start + note.dur - previous.start);
       previous.vel = Math.max(previous.vel, note.vel);
+      lastMergedAttackStart = note.start;
       continue;
     }
     merged.push(note);
+    lastMergedAttackStart = note.start;
   }
 
   const cleaned = merged.filter((note, index, all) => {
@@ -288,22 +303,38 @@ function reduceMetalRhRealism(notes: Note[], tempoBpm: number, maxAttacksPerSeco
     const intoSec = (note.start - previous.start) * secondsPerBeat;
     const outSec = (next.start - note.start) * secondsPerBeat;
     const durationSec = note.dur * secondsPerBeat;
-    return !(
-      // A detector's short chord-tone detour often lasts a full eighth note
-      // by the time Basic Pitch has merged overlapping partials. Treat that
-      // as an ornamental hit when it sits between two nearby lead pitches;
-      // otherwise the piano lane faithfully reproduces a guitar pick/noise
-      // event as an awkward leap. Keep this local and source-aware below so
-      // vocal anchors and deliberate wide figures are untouched.
-      intoSec <= 0.4 + 1e-9
-      && outSec <= 0.4 + 1e-9
+    const isHalfBeatAnchor = Math.abs(note.start * 2 - Math.round(note.start * 2)) <= 1e-9;
+    const broadLegatoGuitarDetour = legato
+      && note.identitySource === "guitar"
+      && previous.identitySource === "guitar"
+      && next.identitySource === "guitar"
+      && intoSec <= 1.5 * secondsPerBeat + 1e-9
+      && outSec <= 1.5 * secondsPerBeat + 1e-9
       && durationSec <= 0.35 + 1e-9
+      && !isHalfBeatAnchor
+      && note.vel < 100
       && Math.abs(note.midi - previous.midi) >= 5
       && Math.abs(note.midi - next.midi) >= 5
-      && Math.abs(previous.midi - next.midi) <= 5
-      // Keep a clearly intentional lead accent even when it reverses; the
-      // quietness guard targets low-energy separated partials instead.
-      && note.vel <= Math.max(previous.vel, next.vel) * 0.9 + 1e-9
+      && Math.abs(previous.midi - next.midi) <= 5;
+    return !(
+      (
+        // A detector's short chord-tone detour often lasts a full eighth note
+        // by the time Basic Pitch has merged overlapping partials. Treat that
+        // as an ornamental hit when it sits between two nearby lead pitches;
+        // otherwise the piano lane faithfully reproduces a guitar pick/noise
+        // event as an awkward leap. Keep this local and source-aware below so
+        // vocal anchors and deliberate wide figures are untouched.
+        intoSec <= 0.4 + 1e-9
+        && outSec <= 0.4 + 1e-9
+        && durationSec <= 0.35 + 1e-9
+        && Math.abs(note.midi - previous.midi) >= 5
+        && Math.abs(note.midi - next.midi) >= 5
+        && Math.abs(previous.midi - next.midi) <= 5
+        // Keep a clearly intentional lead accent even when it reverses; the
+        // quietness guard targets low-energy separated partials instead.
+        && note.vel <= Math.max(previous.vel, next.vel) * 0.9 + 1e-9
+      )
+      || broadLegatoGuitarDetour
     );
   });
 
@@ -1137,7 +1168,11 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   // LH keeps the existing accompaniment reduction.
   const mediumReduced = metalProfile
     ? [
-      ...reduceMetalRhRealism(mediumTexture.filter((note) => note.hand !== "L"), tempo, 6, true),
+      // Medium should still expose more lead detail than Easy, but a sixth-
+      // note pulse at common metal tempos is a poor single-hand piano target.
+      // Four attacks/sec gives a half-beat floor at 120 BPM while removing
+      // detector chatter from the playable middle level.
+      ...reduceMetalRhRealism(mediumTexture.filter((note) => note.hand !== "L"), tempo, 4, true),
       ...reduceMediumRhythm(mediumTexture.filter((note) => note.hand === "L")),
     ]
     : reduceMediumRhythm(mediumTexture);

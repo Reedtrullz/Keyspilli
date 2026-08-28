@@ -60,6 +60,102 @@ describe("metal piano arranger", () => {
     expect(new Set(result.ir.identity.map((note) => note.midi)).size).toBeGreaterThan(1);
   });
 
+  it("suppresses repeated low guitar pulses while preserving lead and vocal anchors", () => {
+    const pulsePitches = [57, 57, 59, 57, 57, 60, 57, 62];
+    const lowPulse = Array.from({ length: 12 }, (_, index) => ({
+      midi: pulsePitches[index % pulsePitches.length]!,
+      start: index * 0.75,
+      dur: 0.5,
+      vel: index % 4 === 0 ? 88 : 64,
+    }));
+    const result = buildMetalArrangement({
+      stems: [
+        { role: "guitar", midi: midi([
+          ...lowPulse,
+          { midi: 72, start: 12, dur: 0.5, vel: 92 },
+          { midi: 74, start: 12.75, dur: 0.5, vel: 90 },
+        ], 12) },
+        { role: "vocals", midi: midi([
+          { midi: 79, start: 14, dur: 0.5, vel: 100 },
+          { midi: 81, start: 14.75, dur: 0.5, vel: 98 },
+        ], 16) },
+      ],
+    });
+    const identity = result.ir.identity;
+    const lowGuitar = identity.filter((note) => note.identitySource === "guitar" && note.midi <= 60);
+    expect(lowGuitar.length).toBeLessThanOrEqual(3);
+    expect(identity.some((note) => note.identitySource === "guitar" && note.start === 12 && note.midi === 72)).toBe(true);
+    expect(identity.filter((note) => note.identitySource === "vocals").map((note) => note.midi)).toEqual([79, 81]);
+  });
+
+  it("suppresses low pulse subsequences even when high guitar landings are interleaved", () => {
+    const lowPulse = Array.from({ length: 16 }, (_, index) => ({
+      midi: index % 5 === 0 ? 59 : 57,
+      start: index * 0.75,
+      dur: 0.35,
+      vel: index % 4 === 0 ? 86 : 64,
+    }));
+    const highLead = Array.from({ length: 6 }, (_, index) => ({
+      midi: 68 + (index % 4),
+      start: 0.375 + index * 1.5,
+      dur: 0.3,
+      vel: 92,
+    }));
+    const result = buildMetalArrangement({
+      stems: [{ role: "guitar", midi: midi([...lowPulse, ...highLead], 14) }],
+    });
+    const guitar = result.ir.identity.filter((note) => note.identitySource === "guitar");
+    expect(guitar.filter((note) => note.midi <= 60).length).toBeLessThanOrEqual(5);
+    expect(guitar.filter((note) => note.midi >= 68).length).toBeGreaterThanOrEqual(5);
+  });
+
+  it("keeps a repeated-note low guitar motif when it has a real melodic contour", () => {
+    const result = buildMetalArrangement({
+      stems: [{ role: "guitar", midi: midi([
+        { midi: 55, start: 0, dur: 0.5, vel: 88 },
+        { midi: 57, start: 0.75, dur: 0.5, vel: 86 },
+        { midi: 59, start: 1.5, dur: 0.5, vel: 84 },
+        { midi: 57, start: 2.25, dur: 0.5, vel: 82 },
+        { midi: 55, start: 3, dur: 0.5, vel: 80 },
+        { midi: 57, start: 3.75, dur: 0.5, vel: 78 },
+        { midi: 59, start: 4.5, dur: 0.5, vel: 76 },
+        { midi: 57, start: 5.25, dur: 0.5, vel: 74 },
+      ], 7) }],
+    });
+    const guitar = result.ir.identity.filter((note) => note.identitySource === "guitar");
+    expect(guitar.map((note) => note.start)).toEqual([0, 0.75, 1.5, 2.25, 3, 3.75, 4.5, 5.25]);
+  });
+
+  it("keeps a moving low guitar contour instead of treating it as a pulse", () => {
+    const result = buildMetalArrangement({
+      stems: [{ role: "guitar", midi: midi([
+        { midi: 55, start: 0, dur: 0.5, vel: 88 },
+        { midi: 57, start: 0.75, dur: 0.5, vel: 86 },
+        { midi: 59, start: 1.5, dur: 0.5, vel: 84 },
+        { midi: 61, start: 2.25, dur: 0.5, vel: 82 },
+        { midi: 63, start: 3, dur: 0.5, vel: 80 },
+        { midi: 65, start: 3.75, dur: 0.5, vel: 78 },
+      ], 5) }],
+    });
+    const guitar = result.ir.identity.filter((note) => note.identitySource === "guitar");
+    expect(guitar.map((note) => note.start)).toEqual([0, 0.75, 1.5, 2.25, 3, 3.75]);
+  });
+
+  it("keeps a gently turning low lead instead of thinning it as a repeated pulse", () => {
+    const result = buildMetalArrangement({
+      stems: [{ role: "guitar", midi: midi([
+        { midi: 55, start: 0, dur: 0.5, vel: 88 },
+        { midi: 57, start: 0.75, dur: 0.5, vel: 86 },
+        { midi: 59, start: 1.5, dur: 0.5, vel: 84 },
+        { midi: 60, start: 2.25, dur: 0.5, vel: 82 },
+        { midi: 59, start: 3, dur: 0.5, vel: 80 },
+        { midi: 60, start: 3.75, dur: 0.5, vel: 78 },
+      ], 5) }],
+    });
+    const guitar = result.ir.identity.filter((note) => note.identitySource === "guitar");
+    expect(guitar.map((note) => note.start)).toEqual([0, 0.75, 1.5, 2.25, 3, 3.75]);
+  });
+
   it("fuses a trustworthy vocal phrase with denser lead guitar in the same section", () => {
     const vocals: Note[] = [
       { midi: 76, start: 0, dur: 0.35, vel: 96 },
@@ -250,6 +346,30 @@ describe("metal piano arranger", () => {
     }
   });
 
+  it("removes selected low guitar contour detours while retaining high lead landings", () => {
+    const source = midi([
+      { midi: 76, start: 0, dur: 0.5, vel: 88, hand: "R", identitySource: "guitar" },
+      { midi: 64, start: 0.375, dur: 0.25, vel: 88, hand: "R", identitySource: "guitar" },
+      { midi: 75, start: 1, dur: 0.5, vel: 88, hand: "R", identitySource: "guitar" },
+      { midi: 66, start: 1.375, dur: 0.25, vel: 88, hand: "R", identitySource: "guitar" },
+      { midi: 74, start: 2, dur: 0.5, vel: 88, hand: "R", identitySource: "guitar" },
+      { midi: 79, start: 2.5, dur: 0.5, vel: 96, hand: "R", identitySource: "vocals" },
+    ], 4);
+    const variants = buildVariants(source, { title: "Guitar contour detours", artist: "Fixture" }, {
+      arrangementProfile: "metal",
+      audioDerived: true,
+    });
+    for (const level of ["medium", "easy"] as const) {
+      const notes = variants.find((variant) => variant.level === level)!.notes.filter((note) => note.hand !== "L");
+      expect(notes.some((note) => note.identitySource === "guitar" && note.midi === 64)).toBe(false);
+      expect(notes.some((note) => note.identitySource === "guitar" && note.midi === 66)).toBe(false);
+      expect(notes.filter((note) => note.identitySource === "guitar").map((note) => note.midi)).toEqual([76, 75, 74]);
+      expect(notes.some((note) => note.identitySource === "vocals" && note.midi === 79)).toBe(true);
+    }
+    const advanced = variants.find((variant) => variant.level === "advanced")!.notes.filter((note) => note.hand !== "L");
+    expect(advanced.filter((note) => note.identitySource === "guitar").map((note) => note.midi)).toEqual([76, 64, 75, 66, 74]);
+  });
+
   it("ties contiguous same-pitch vocal fragments without erasing real re-attacks", () => {
     const source = midi([
       { midi: 72, start: 0, dur: 0.25, vel: 72, hand: "R", identitySource: "vocals" },
@@ -269,6 +389,66 @@ describe("metal piano arranger", () => {
     expect(advanced.filter((note) => note.midi === 72)).toHaveLength(1);
     expect(advanced.find((note) => note.midi === 72)?.dur).toBeGreaterThanOrEqual(0.75);
     expect(advanced.filter((note) => note.midi === 74).map((note) => note.start)).toEqual([1, 2]);
+  });
+
+  it("ties overlapping repeated guitar articulations in legato learner levels", () => {
+    const source = midi([
+      { midi: 64, start: 0, dur: 0.75, vel: 72, hand: "R", identitySource: "guitar" },
+      { midi: 64, start: 0.5, dur: 0.75, vel: 84, hand: "R", identitySource: "guitar" },
+      { midi: 64, start: 1, dur: 0.75, vel: 78, hand: "R", identitySource: "guitar" },
+      { midi: 64, start: 1.5, dur: 0.75, vel: 80, hand: "R", identitySource: "guitar" },
+    ], 3);
+    const variants = buildVariants(source, { title: "Guitar articulations", artist: "Fixture" }, {
+      arrangementProfile: "metal",
+      audioDerived: true,
+    });
+    const advanced = variants.find((variant) => variant.level === "advanced")!.notes
+      .filter((note) => note.identitySource === "guitar");
+    const medium = variants.find((variant) => variant.level === "medium")!.notes
+      .filter((note) => note.identitySource === "guitar");
+    expect(advanced).toHaveLength(4);
+    expect(medium).toHaveLength(1);
+    expect(medium[0]!.dur).toBeGreaterThanOrEqual(2.25);
+  });
+
+  it("ties a short guitar fragment gap but preserves a long overlapping re-attack", () => {
+    const source = midi([
+      { midi: 64, start: 0, dur: 0.25, vel: 72, hand: "R", identitySource: "guitar" },
+      { midi: 64, start: 0.625, dur: 0.25, vel: 84, hand: "R", identitySource: "guitar" },
+      { midi: 67, start: 4, dur: 4, vel: 82, hand: "R", identitySource: "guitar" },
+      { midi: 67, start: 6, dur: 0.5, vel: 96, hand: "R", identitySource: "guitar" },
+    ], 8);
+    const variants = buildVariants(source, { title: "Guitar gap policy", artist: "Fixture" }, {
+      arrangementProfile: "metal",
+      audioDerived: true,
+    });
+    const medium = variants.find((variant) => variant.level === "medium")!.notes
+      .filter((note) => note.identitySource === "guitar");
+    expect(medium.filter((note) => note.midi === 64)).toHaveLength(1);
+    expect(medium.find((note) => note.midi === 64)?.dur).toBeGreaterThanOrEqual(0.875);
+    expect(medium.filter((note) => note.midi === 67)).toHaveLength(2);
+  });
+
+  it("keeps medium metal lead attacks on a half-beat piano floor", () => {
+    const source = midi(Array.from({ length: 32 }, (_, index) => ({
+      midi: 72 + (index % 5),
+      start: index * 0.125,
+      dur: 0.1,
+      vel: 82,
+      hand: "R" as const,
+      identitySource: "guitar" as const,
+    })), 4.5);
+    const variants = buildVariants(source, { title: "Dense guitar lead", artist: "Fixture" }, {
+      arrangementProfile: "metal",
+      audioDerived: true,
+    });
+    const medium = variants.find((variant) => variant.level === "medium")!.notes
+      .filter((note) => note.hand !== "L");
+    const starts = medium.map((note) => note.start);
+    expect(starts.length).toBeGreaterThan(1);
+    for (let index = 1; index < starts.length; index++) {
+      expect(starts[index]! - starts[index - 1]!).toBeGreaterThanOrEqual(0.5 - 1e-9);
+    }
   });
 
   it("stabilizes exact-octave vocal and guitar flicker without changing vocal anchors", () => {
