@@ -604,7 +604,11 @@ describe("metal piano arranger", () => {
       // harder-level detail; the learner path must keep the opening descent
       // within a comfortable octave instead of jumping straight to a low
       // detector partial.
-      expect(guitar.length, `${level} collapsed the solo contour`).toBeGreaterThanOrEqual(level === "medium" ? 9 : 8);
+      // The reference keeps a connected upper figure through this whole
+      // eight-beat phrase. Learner levels may remove quarter-beat ornaments,
+      // but should not collapse the phrase to isolated landings when a
+      // stepwise candidate exists at the half-beat floor.
+      expect(guitar.length, `${level} collapsed the solo contour`).toBeGreaterThanOrEqual(level === "medium" ? 10 : 8);
       expect(Math.abs(guitar[1]!.midi - guitar[0]!.midi), `${level} lost the connected opening descent`).toBeLessThanOrEqual(9);
       expect(guitar.some((note) => (note.midi === 67 || note.midi === 71) && note.start >= 1.5 && note.start <= 2.25), `${level} lost the phrase middle`).toBe(true);
       expect(guitar.some((note) => note.midi === 64 && note.start >= 7), `${level} lost the phrase landing`).toBe(true);
