@@ -179,9 +179,17 @@ function monophonicPath(
  * Short runs and runs with a real pitch contour are deliberately preserved so
  * a genuinely low guitar melody is not erased.
  */
-function suppressLowGuitarPulseRuns(notes: IdentityNote[]): IdentityNote[] {
+interface GuitarPulseLanes {
+  lead: IdentityNote[];
+  rhythm: IdentityNote[];
+}
+
+function suppressLowGuitarPulseRuns(notes: IdentityNote[]): GuitarPulseLanes {
   const sorted = [...notes].sort((a, b) => a.start - b.start || b.vel - a.vel || b.midi - a.midi);
   const lowMaxMidi = 62;
+  // Keep the original registered-pitch pulse gate narrow. Re-registered raw
+  // lows (which may be an octave above this threshold after continuity
+  // folding) are handled by the separate detector below.
   const maxPulsePitchSpan = 5;
   // Stem extraction can miss several pulse attacks, so a rhythm run may have
   // bar-sized gaps even though it repeats the same low pitch throughout.
@@ -189,9 +197,13 @@ function suppressLowGuitarPulseRuns(notes: IdentityNote[]): IdentityNote[] {
   const minRunLength = 4;
   const anchorSpacingBeats = 4;
   const lowNotes = sorted.filter((note) =>
-    (note.identitySource === "guitar" || note.identitySource === "other") && note.midi <= lowMaxMidi,
+    (note.identitySource === "guitar" || note.identitySource === "other")
+      && note.midi <= lowMaxMidi
+      && (note.rawMidi ?? note.midi) <= lowMaxMidi,
   );
   const retainedLowNotes = new Set<IdentityNote>();
+  const suppressedPulseNotes = new Set<IdentityNote>();
+  const rhythmLowNotes = new Set<IdentityNote>();
 
   let index = 0;
   while (index < lowNotes.length) {
@@ -232,11 +244,18 @@ function suppressLowGuitarPulseRuns(notes: IdentityNote[]): IdentityNote[] {
     const repeatedAttackRatio = run.length > 1
       ? pitchDeltas.filter((delta) => delta === 0).length / pitchDeltas.length
       : 1;
+    const hasLeadContext = sorted.some((candidate) =>
+      candidate.identitySource === first.identitySource
+      && (candidate.rawMidi ?? candidate.midi) >= 68
+      && candidate.start >= first.start - 4 - EPS
+      && candidate.start <= run.at(-1)!.start + 4 + EPS,
+    );
     // A real low lead may revisit its tonic several times while still making
     // a clear three-note contour. Require a stable, low-variation run and a
     // high dominant-pitch ratio (or a long wall) before calling it rhythm.
     const hasClearContour = longestMonotonicSteps >= 3;
-    const stableLowPulse = medianAbsPitchDelta <= 2
+    const stableLowPulse = hasLeadContext
+      && medianAbsPitchDelta <= 2
       && !hasClearContour
       && (
         dominantPitchRatio >= 0.6
@@ -246,6 +265,14 @@ function suppressLowGuitarPulseRuns(notes: IdentityNote[]): IdentityNote[] {
     if (run.length < minRunLength || !pulseLike) {
       run.forEach((note) => retainedLowNotes.add(note));
     } else {
+      // A stable wall is accompaniment evidence, not a RH melody. Keep the
+      // complete low subsequence in a separate lane so the piano arrangement
+      // can preserve its pulse without making the learner's melody jump
+      // between an upper lead and repeated low detector partials.
+      run.forEach((note) => {
+        rhythmLowNotes.add(note);
+        suppressedPulseNotes.add(note);
+      });
       for (let windowStart = run[0]!.start; windowStart <= run.at(-1)!.start + EPS; windowStart += anchorSpacingBeats) {
         const windowEnd = windowStart + anchorSpacingBeats;
         const candidates = run.filter((note) => note.start >= windowStart - EPS && note.start < windowEnd - EPS);
@@ -263,16 +290,62 @@ function suppressLowGuitarPulseRuns(notes: IdentityNote[]): IdentityNote[] {
             ? note
             : winner;
         });
-        retainedLowNotes.add(anchor);
+        // Retained as an accompaniment anchor below; do not put it back into
+        // the RH identity lane. `rhythmLowNotes` remains complete for the
+        // advanced source and is reduced by the normal learner LH passes.
+        rhythmLowNotes.add(anchor);
       }
     }
     index += run.length;
   }
+  // `monophonicPath` may octave-register a raw low partial toward the active
+  // lead before the pulse classifier runs (for example raw MIDI 57 becomes
+  // registered MIDI 69 after a lead at MIDI 72). Inspect this re-registered
+  // subset separately, but require a genuinely repeated raw pitch so a real
+  // low contour is not mistaken for accompaniment.
+  const reRegisteredLow = sorted.filter((note) =>
+    (note.identitySource === "guitar" || note.identitySource === "other")
+      && (note.rawMidi ?? note.midi) <= lowMaxMidi
+      && note.midi > lowMaxMidi,
+  );
+  let rawIndex = 0;
+  while (rawIndex < reRegisteredLow.length) {
+    const first = reRegisteredLow[rawIndex]!;
+    const firstRaw = first.rawMidi ?? first.midi;
+    const run = [first];
+    let cursor = rawIndex + 1;
+    while (cursor < reRegisteredLow.length) {
+      const note = reRegisteredLow[cursor]!;
+      const previous = run.at(-1)!;
+      const rawPitch = note.rawMidi ?? note.midi;
+      if (
+        note.identitySource !== first.identitySource
+        || Math.abs(rawPitch - firstRaw) > 2
+        || note.start - previous.start > maxInterAttackBeats + EPS
+      ) break;
+      run.push(note);
+      cursor += 1;
+    }
+    const repeatedRawRatio = run.length > 1
+      ? run.filter((note) => (note.rawMidi ?? note.midi) === firstRaw).length / run.length
+      : 1;
+    if (run.length >= minRunLength && repeatedRawRatio >= 0.75) {
+      run.forEach((note) => {
+        rhythmLowNotes.add(note);
+        suppressedPulseNotes.add(note);
+      });
+    }
+    rawIndex += run.length;
+  }
   // Classify the low-note subsequence independently of high lead attacks.
   // A solo landing interleaved with a rhythm wall must not reset the wall;
-  // retain all high notes and only replace the low pulse objects selected
-  // above with their sparse phrase anchors.
-  return sorted.filter((note) => note.midi > lowMaxMidi || retainedLowNotes.has(note));
+  // Retain all high notes and genuine low contours in the lead lane. Stable
+  // low walls are returned separately for explicit LH accompaniment routing.
+  return {
+    lead: sorted.filter((note) => !suppressedPulseNotes.has(note)
+      && ((note.rawMidi ?? note.midi) > lowMaxMidi || note.midi > lowMaxMidi || retainedLowNotes.has(note))),
+    rhythm: sorted.filter((note) => rhythmLowNotes.has(note)),
+  };
 }
 
 /**
@@ -662,8 +735,10 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
   const vocals = monophonicPath(validNotes(vocalsStem), 60, 96, { exactOctaveWindow: 0.5 })
     .map((note) => ({ ...note, identitySource: "vocals" as const }));
   const trustedVocals = trustworthyVocalNotes(vocals);
-  const guitar = suppressLowGuitarPulseRuns(monophonicPath(validNotes(guitarStem), 55, 96, { preferUpperLead: true, exactOctaveWindow: 1 })
+  const guitarLanes = suppressLowGuitarPulseRuns(monophonicPath(validNotes(guitarStem), 55, 96, { preferUpperLead: true, exactOctaveWindow: 1 })
     .map((note) => ({ ...note, identitySource: "guitar" as const })));
+  const guitar = guitarLanes.lead;
+  const rhythmGuitar = guitarLanes.rhythm;
   const other = monophonicPath(validNotes(otherStem), 55, 96, { preferUpperLead: true, exactOctaveWindow: 1 })
     .map((note) => ({ ...note, identitySource: "other" as const }));
   const bass = validNotes(bassStem);
@@ -770,6 +845,21 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
       const fifth = chord.notes.find((note) => note % 12 === (rootPc! + 7) % 12);
       if (fifth !== undefined) leftHand.push({ midi: fifth, start: beat, dur: Math.min(duration, 1.5), vel: 62, hand: "L" });
     }
+  }
+
+  // Stable low guitar walls are useful rhythmic evidence but poor RH melody.
+  // Route them to a low register while preserving their original attacks;
+  // the variant builder can then thin this explicit accompaniment lane per
+  // difficulty without contaminating identity selection.
+  for (const note of rhythmGuitar) {
+    leftHand.push({
+      midi: toRegister(note.rawMidi ?? note.midi, 36, 54),
+      start: note.start,
+      dur: Math.min(Math.max(note.dur, 0.25), 0.75),
+      vel: Math.max(40, Math.min(76, note.vel)),
+      hand: "L",
+      identitySource: note.identitySource,
+    });
   }
 
   const rhythmicAccents = validNotes(drumsStem).map((note) => note.start).filter((beat, index, all) => index === 0 || beat - all[index - 1]! >= 0.125);

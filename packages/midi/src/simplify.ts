@@ -321,6 +321,82 @@ function removeInterleavedGuitarDetours(notes: Note[], tempoBpm: number, legato:
 }
 
 /**
+ * Score the travel between two selected guitar attacks.  The ordinary
+ * interval scheduler only knows whether two starts fit on the piano grid; it
+ * can therefore choose a sparse sequence whose individual notes are salient
+ * but whose hand has to jump between them.  Keep this penalty deliberately
+ * modest and source-local: a real rest, a vocal handoff, or a non-guitar lane
+ * must not inherit a guitar fingering constraint.
+ */
+function metalGuitarTransitionPenalty(previous: Note, note: Note, gapBeats: number): number {
+  if (previous.identitySource !== "guitar" || note.identitySource !== "guitar") return 0;
+  if (!Number.isFinite(gapBeats) || gapBeats <= 0 || gapBeats > 1.5 + 1e-9) return 0;
+  const leap = Math.abs(note.midi - previous.midi);
+  if (leap < 5) return 0;
+  const comfortable = gapBeats <= 0.5 + 1e-9 ? 5 : gapBeats <= 1 + 1e-9 ? 7 : 12;
+  const excess = Math.max(0, leap - comfortable);
+  // A fixed surcharge for a fast >=7-semitone travel prevents a low-weight
+  // detector spike from winning over a connected step, while the excess term
+  // still lets a phrase resolve by a genuine octave when no nearby option
+  // exists. Add a little extra pressure above an octave: that is the common
+  // register-flicker shape in separated guitar stems, not a hard rejection.
+  return excess * 0.9
+    + (leap >= 7 && gapBeats <= 1 + 1e-9 ? 1 : 0)
+    + (leap >= 10 && gapBeats <= 1.5 + 1e-9 ? 1.5 : 0);
+}
+
+/**
+ * Select a source-aware guitar path from a richer phrase candidate set. This
+ * is a first-order dynamic program: every candidate can start a path, and a
+ * later candidate may follow whenever the learner spacing floor is met. The
+ * path maximises note salience minus local guitar travel cost, so a quiet
+ * large leap loses to a connected step even when both attacks are otherwise
+ * equally plausible. Vocal anchors are excluded by the caller and remain
+ * mandatory in the returned phrase.
+ */
+function selectMetalGuitarContour(
+  candidates: { note: Note; phraseIndex: number }[],
+  weights: number[],
+  minimumSpacingBeats: number,
+  mandatory: ReadonlySet<Note> = new Set(),
+): Note[] {
+  if (!candidates.length) return [];
+  const best = new Array<number>(candidates.length).fill(Number.NEGATIVE_INFINITY);
+  const parent = new Array<number>(candidates.length).fill(-1);
+  for (let index = 0; index < candidates.length; index++) {
+    const current = candidates[index]!.note;
+    // A phrase landing or a strong/sustained high attack is identity-bearing
+    // even when its travel to the previous note is wider than comfortable.
+    // Give it a bounded reward rather than making it an unconditional hard
+    // constraint; two mandatory attacks inside one spacing window can still
+    // resolve to the more salient one.
+    const mandatoryBonus = 24;
+    best[index] = weights[index]! + (mandatory.has(current) ? mandatoryBonus : 0);
+    for (let previousIndex = 0; previousIndex < index; previousIndex++) {
+      const previous = candidates[previousIndex]!.note;
+      const gap = current.start - previous.start;
+      if (gap < minimumSpacingBeats - 1e-9) continue;
+      const transition = metalGuitarTransitionPenalty(previous, current, gap);
+      const score = best[previousIndex]! + weights[index]!
+        + (mandatory.has(current) ? mandatoryBonus : 0)
+        - transition;
+      if (score > best[index]! + 1e-9) {
+        best[index] = score;
+        parent[index] = previousIndex;
+      }
+    }
+  }
+  let state = best.reduce((winner, score, index) => score > best[winner]! + 1e-9 ? index : winner, 0);
+  const selected: Note[] = [];
+  while (state >= 0) {
+    selected.push({ ...candidates[state]!.note });
+    state = parent[state]!;
+  }
+  const result = selected.reverse();
+  return result;
+}
+
+/**
  * Select a physically phrased metal RH path inside each real phrase. This is
  * tempo-aware and local, because a whole-song density average cannot see a
  * half-second detector burst. Pitch and attack choices are selection-only so
@@ -340,6 +416,7 @@ function reduceMetalRhRealism(notes: Note[], tempoBpm: number, maxAttacksPerSeco
 
   const merged: Note[] = [];
   let lastMergedAttackStart: number | undefined;
+  let lastMergedVocal: Note | undefined;
   for (const original of source) {
     const note = { ...original };
     const previous = merged.at(-1);
@@ -355,17 +432,17 @@ function reduceMetalRhRealism(notes: Note[], tempoBpm: number, maxAttacksPerSeco
     // to the vocal lane so repeated guitar articulations remain available in
     // the harder metal levels.
     if (
-      previous
-      && previous.identitySource === "vocals"
+      lastMergedVocal
       && note.identitySource === "vocals"
-      && previous.midi === note.midi
-      && note.start <= previous.start + previous.dur + 1e-9
+      && lastMergedVocal.midi === note.midi
+      && note.start <= lastMergedVocal.start + lastMergedVocal.dur + 1e-9
     ) {
-      previous.dur = Math.max(previous.dur, note.start + note.dur - previous.start);
-      previous.vel = Math.max(previous.vel, note.vel);
+      lastMergedVocal.dur = Math.max(lastMergedVocal.dur, note.start + note.dur - lastMergedVocal.start);
+      lastMergedVocal.vel = Math.max(lastMergedVocal.vel, note.vel);
       lastMergedAttackStart = note.start;
       continue;
     }
+    if (note.identitySource === "vocals") lastMergedVocal = note;
     if (
       previous
       && previous.identitySource !== "vocals"
@@ -452,6 +529,18 @@ function reduceMetalRhRealism(notes: Note[], tempoBpm: number, maxAttacksPerSeco
       && protectedAnchors.every((anchor) => Math.abs(note.start - anchor.start) >= minimumSpacingBeats - 1e-9)
       ? [{ note, phraseIndex }]
       : []);
+    const useContourDp = legato && candidates.some(({ note }) => note.identitySource === "guitar");
+    const mandatoryContourNotes = new Set(
+      candidates
+        .filter(({ note, phraseIndex }) => {
+          const durationSec = note.dur * secondsPerBeat;
+          return phraseIndex === 0
+            || phraseIndex === phrase.length - 1
+            || note.vel >= 100
+            || (note.midi >= 76 && (note.vel >= 90 || durationSec >= 0.5));
+        })
+        .map(({ note }) => note),
+    );
     const weights = candidates.map(({ note, phraseIndex: index }) => {
       const previous = phrase[index - 1];
       const next = phrase[index + 1];
@@ -500,7 +589,7 @@ function reduceMetalRhRealism(notes: Note[], tempoBpm: number, maxAttacksPerSeco
       const localExtremumBonus = guitarTransitionPenalty > 0
         ? 0
         : localExtremum && prominence >= 3
-          ? 2 + Math.min(2, prominence / 6)
+          ? useContourDp ? 0.5 : 2 + Math.min(2, prominence / 6)
           : 0;
       return 1
         + Math.min(note.dur * secondsPerBeat, 0.75) * 1.5
@@ -509,46 +598,51 @@ function reduceMetalRhRealism(notes: Note[], tempoBpm: number, maxAttacksPerSeco
         + localExtremumBonus
         + (stepConnector ? 0.75 : 0)
         + (beatPosition <= 1e-6 ? 0.75 : halfBeatPosition <= 1e-6 ? 0.35 : 0)
-        - guitarTransitionPenalty;
+        - (useContourDp ? 0 : guitarTransitionPenalty);
     });
-    const previousCompatible = candidates.map(({ note }, index) => {
-      let low = 0;
-      let high = index - 1;
-      let compatible = -1;
-      while (low <= high) {
-        const candidate = Math.floor((low + high) / 2);
-        if (note.start - candidates[candidate]!.note.start >= minimumSpacingBeats - 1e-9) {
-          compatible = candidate;
-          low = candidate + 1;
+    const phraseSelection: Note[] = [];
+    if (useContourDp) {
+      phraseSelection.push(...selectMetalGuitarContour(candidates, weights, minimumSpacingBeats, mandatoryContourNotes));
+    } else {
+      const previousCompatible = candidates.map(({ note }, index) => {
+        let low = 0;
+        let high = index - 1;
+        let compatible = -1;
+        while (low <= high) {
+          const candidate = Math.floor((low + high) / 2);
+          if (note.start - candidates[candidate]!.note.start >= minimumSpacingBeats - 1e-9) {
+            compatible = candidate;
+            low = candidate + 1;
+          } else {
+            high = candidate - 1;
+          }
+        }
+        return compatible;
+      });
+      const best = new Array<number>(candidates.length + 1).fill(0);
+      const take = new Array<boolean>(candidates.length).fill(false);
+      for (let index = 0; index < candidates.length; index++) {
+        const include = weights[index]! + best[previousCompatible[index]! + 1]!;
+        const exclude = best[index]!;
+        if (include > exclude + 1e-9) {
+          best[index + 1] = include;
+          take[index] = true;
         } else {
-          high = candidate - 1;
+          best[index + 1] = exclude;
         }
       }
-      return compatible;
-    });
-    const best = new Array<number>(candidates.length + 1).fill(0);
-    const take = new Array<boolean>(candidates.length).fill(false);
-    for (let index = 0; index < candidates.length; index++) {
-      const include = weights[index]! + best[previousCompatible[index]! + 1]!;
-      const exclude = best[index]!;
-      if (include > exclude + 1e-9) {
-        best[index + 1] = include;
-        take[index] = true;
-      } else {
-        best[index + 1] = exclude;
+      for (let index = candidates.length - 1; index >= 0;) {
+        const include = weights[index]! + best[previousCompatible[index]! + 1]!;
+        if (take[index] && Math.abs(best[index + 1]! - include) <= 1e-9) {
+          phraseSelection.push({ ...candidates[index]!.note });
+          index = previousCompatible[index]!;
+        } else {
+          index -= 1;
+        }
       }
+      phraseSelection.reverse();
     }
-    const phraseSelection: Note[] = [];
-    for (let index = candidates.length - 1; index >= 0;) {
-      const include = weights[index]! + best[previousCompatible[index]! + 1]!;
-      if (take[index] && Math.abs(best[index + 1]! - include) <= 1e-9) {
-        phraseSelection.push({ ...candidates[index]!.note });
-        index = previousCompatible[index]!;
-      } else {
-        index -= 1;
-      }
-    }
-    selected.push(...protectedAnchors.map((note) => ({ ...note })), ...phraseSelection.reverse());
+    selected.push(...protectedAnchors.map((note) => ({ ...note })), ...phraseSelection);
   }
 
   const sorted = removeInterleavedGuitarDetours(
@@ -677,6 +771,48 @@ function thinChord(notes: Note[], keep: number): Note[] {
     for (const n of kept) out.push({ ...n });
   }
   return out.sort((a, b) => a.start - b.start || a.midi - b.midi);
+}
+
+/**
+ * Reduce an explicit metal rhythm lane without touching the harmonic shell.
+ * Separated guitar stems can contain a quarter-note wall even after the RH
+ * lead has been selected; copying every attack into the LH makes a learner
+ * play a drum-machine pattern underneath long root/fifth blocks. Keep one
+ * source attack per spacing window, preserving the original onset/pitch so
+ * the difficulty ladder can still match it to the next harder level.
+ */
+function thinMetalRhythm(notes: Note[], minimumSpacingBeats: number): Note[] {
+  const sorted = notes
+    .filter((note) => note.identitySource === "guitar" || note.identitySource === "other")
+    .sort((a, b) => a.start - b.start || b.vel - a.vel || a.midi - b.midi);
+  if (!sorted.length || !Number.isFinite(minimumSpacingBeats) || minimumSpacingBeats <= 0) return sorted;
+  const selected: Note[] = [];
+  for (const note of sorted) {
+    const previous = selected.at(-1);
+    if (!previous || note.start - previous.start >= minimumSpacingBeats - 1e-9) {
+      selected.push({ ...note });
+      continue;
+    }
+    // Co-onset detector duplicates are one physical strike. If the later
+    // duplicate is stronger, let it represent the window; otherwise keep the
+    // first attack so phrase starts and downbeats are stable.
+    if (Math.abs(note.start - previous.start) <= 1e-9
+      && (note.vel > previous.vel || (note.vel === previous.vel && note.midi < previous.midi))) {
+      selected[selected.length - 1] = { ...note };
+    }
+  }
+  return selected;
+}
+
+/** Build the metal LH texture: sparse harmonic shell plus a source-aware
+ * rhythm lane. `rhythmGap` is a beat floor that increases for easier levels. */
+function metalLeftHandTexture(notes: Note[], rhythmGap: number, harmonicVoices: number): Note[] {
+  const harmonic = thinChord(
+    notes.filter((note) => note.identitySource !== "guitar" && note.identitySource !== "other"),
+    harmonicVoices,
+  );
+  const rhythm = thinMetalRhythm(notes, rhythmGap);
+  return [...harmonic, ...rhythm].sort((a, b) => a.start - b.start || a.midi - b.midi);
 }
 
 /** Remove unisons that overlap only because a simpler level re-voiced them. */
@@ -1294,9 +1430,19 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   );
   const advancedRh = advanced.filter((n) => n.hand !== "L");
   const advancedLh = advanced.filter((n) => n.hand === "L");
+  // Build learner lead candidates from the richer pre-cap stream. The
+  // advanced playable cap is intentionally conservative for simultaneous
+  // voices, but using that already-pruned result here can erase the connected
+  // guitar landings that a medium/easy contour selector needs to choose from.
+  // The final ladder intersection still guarantees every published learner
+  // note exists in Advanced.
+  const mediumRhCandidates = metalProfile ? advancedRhSource : advancedRh;
+  const mediumLhTexture = metalProfile
+    ? metalLeftHandTexture(advancedLh, 0.5, 3)
+    : thinChord(advancedLh, 3);
   const mediumTexture = [
-    ...capSoundingSpan(topVoices(advancedRh, 0.125, 3, pads), 12, "high"),
-    ...capSoundingSpan(thinChord(advancedLh, 3), innerVoiceArrangement ? 19 : 12, "low"),
+    ...capSoundingSpan(topVoices(mediumRhCandidates, 0.125, 3, pads), 12, "high"),
+    ...capSoundingSpan(mediumLhTexture, innerVoiceArrangement ? 19 : 12, "low"),
   ];
   // A role-aware RH carries the song identity, but detector articulation is
   // not piano fingering. Progressively reduce its local phrase rate while the
@@ -1318,11 +1464,14 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   const mediumRh = medium.filter((n) => n.hand !== "L");
   const mediumLh = medium.filter((n) => n.hand === "L");
   const easyRhSource = metalProfile ? reduceMetalRhRealism(mediumRh, tempo, 4, true) : mediumRh;
+  const easyLhTexture = metalProfile
+    ? metalLeftHandTexture(mediumLh, 0.75, 2)
+    : trimSamePitchOverlaps(thinChord(mediumLh, 2).map((n) => ({ ...n, midi: rootOf(n.midi, key) })));
   const easy = capLevel("easy", trimSamePitchOverlaps(quantize(
     [
       ...capSoundingSpan(melodyOnly(easyRhSource, 0.125, 0.5, pads), 12, "high"),
       ...capSoundingSpan(
-        trimSamePitchOverlaps(thinChord(mediumLh, 2).map((n) => metalProfile ? n : { ...n, midi: rootOf(n.midi, key) })),
+        easyLhTexture,
         innerVoiceArrangement ? 19 : 12,
         "low",
       ),
@@ -1335,8 +1484,9 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   const easyRh = easy.filter((n) => n.hand !== "L");
   const easyLh = easy.filter((n) => n.hand === "L");
   const veryEasyRhSource = metalProfile ? reduceMetalRhRealism(easyRh, tempo, 3, true) : easyRh;
+  const veryEasyLhTexture = metalProfile ? metalLeftHandTexture(easyLh, 1, 2) : easyLh;
   const veryEasy = capLevel("very-easy", trimSamePitchOverlaps(quantize(
-    [...capSoundingSpan(melodyOnly(veryEasyRhSource, 0.25, 0.5, pads), 12, "high"), ...easyLh],
+    [...capSoundingSpan(melodyOnly(veryEasyRhSource, 0.25, 0.5, pads), 12, "high"), ...veryEasyLhTexture],
     { grid: 0.25 },
   )));
   const meterBeats = src.timeSig[0] * (4 / src.timeSig[1]);
