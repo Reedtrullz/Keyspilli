@@ -361,24 +361,159 @@ function removeWeakGuitarVocalHandoffs(notes: Note[], tempoBpm: number, legato: 
       .reverse()
       .find((candidate) => candidate.start < note.start - 1e-9);
     const nextGuitar = guitars.find((candidate) => candidate.start > note.start + 1e-9);
+    const durationSec = note.dur * secondsPerBeat;
+    const toVocal = nextVocal.start - note.start;
+    const nextLeap = Math.abs(nextVocal.midi - note.midi);
+    const terminalStepWorsensHandoff = previousGuitar !== undefined
+      && note.start - previousGuitar.start <= maxSupportBeats + 1e-9
+      && toVocal <= maxHandoffBeats + 1e-9
+      // Legato scheduling may have already lengthened a selected detector
+      // attack to the next vocal entrance. Permit that bounded extension
+      // here, while still rejecting genuinely sustained (>~half-second)
+      // bridge notes.
+      && durationSec <= 0.55 + 1e-9
+      && note.vel < 80
+      && Math.abs(note.midi - previousGuitar.midi) <= 5
+      && nextLeap >= 12
+      && nextLeap >= Math.abs(nextVocal.midi - previousGuitar.midi) + 3;
+    if (terminalStepWorsensHandoff) return false;
     const supportedByPrevious = previousGuitar !== undefined
       && note.start - previousGuitar.start <= maxSupportBeats + 1e-9;
     const supportedByNext = nextGuitar !== undefined
       && nextGuitar.start - note.start <= maxSupportBeats + 1e-9;
     if (supportedByPrevious || supportedByNext) return true;
 
-    const toVocal = nextVocal.start - note.start;
-    const nextLeap = Math.abs(nextVocal.midi - note.midi);
     const abruptHandoff = toVocal <= maxHandoffBeats + 1e-9 && nextLeap >= 9;
     if (!abruptHandoff) return true;
 
-    const durationSec = note.dur * secondsPerBeat;
     const protectedLanding = note.vel >= 90
       || durationSec >= 0.5
       || (note.midi >= 76 && (note.vel >= 80 || durationSec >= 0.35));
     if (protectedLanding) return true;
     return false;
   });
+}
+
+/**
+ * Remove a very weak, short vocal fragment that immediately returns to the
+ * same pitch. Basic Pitch can split one sung syllable into a tiny lower
+ * contour flicker; making that flicker a learner attack is more distracting
+ * than helpful. Keep this deliberately narrower than the guitar cleanup:
+ * only repeated-pitch brackets are eligible, vocal notes remain untouched in
+ * Advanced/source levels, and a sustained, loud, or otherwise substantial
+ * centre note is always retained.
+ */
+function removeWeakVocalDetours(notes: Note[], tempoBpm: number, legato: boolean): Note[] {
+  if (!legato || notes.length < 3) return notes;
+  const secondsPerBeat = 60 / normalizeTempoBpm(tempoBpm);
+  const sorted = [...notes].sort((a, b) => a.start - b.start || b.vel - a.vel || b.midi - a.midi);
+  const vocals = sorted.filter((note) => note.identitySource === "vocals");
+  if (vocals.length < 3) return notes;
+
+  const remove = new Set<Note>();
+  const maxBracketBeats = 1;
+  const maxCentreDurationSec = 0.35;
+  const maxCentreVelocity = 70;
+  const maxEndpointDistance = 2;
+  const minExcursion = 3;
+
+  for (let index = 1; index < vocals.length - 1; index++) {
+    const previous = vocals[index - 1]!;
+    const note = vocals[index]!;
+    const next = vocals[index + 1]!;
+    const beforeBeats = note.start - previous.start;
+    const afterBeats = next.start - note.start;
+    const durationSec = note.dur * secondsPerBeat;
+    const centreIsWeak = note.vel <= maxCentreVelocity
+      && note.vel <= Math.max(previous.vel, next.vel) * 0.8 + 1e-9;
+    const repeatedBracket = previous.midi === next.midi;
+    const isDetour = repeatedBracket
+      && beforeBeats > 0
+      && afterBeats > 0
+      && beforeBeats <= maxBracketBeats + 1e-9
+      && afterBeats <= maxBracketBeats + 1e-9
+      && durationSec <= maxCentreDurationSec + 1e-9
+      && note.vel < maxCentreVelocity
+      && centreIsWeak
+      && Math.abs(note.midi - previous.midi) >= minExcursion
+      && Math.abs(note.midi - next.midi) >= minExcursion
+      && Math.abs(previous.midi - next.midi) <= maxEndpointDistance;
+    if (isDetour) remove.add(note);
+  }
+
+  return remove.size ? sorted.filter((note) => !remove.has(note)) : notes;
+}
+
+/**
+ * Remove a single weak guitar attack that is literally bracketed by vocal
+ * attacks in the selected learner melody.  The pre-selection handoff guard
+ * above cannot see this shape reliably: richer candidates can support the
+ * guitar note before scheduling and then be discarded by the spacing/voice
+ * selector.  Run this bounded post-selection pass so the decision is based
+ * on the notes that will actually be played.
+ *
+ * This is intentionally narrower than a general source smoother.  Vocals are
+ * immutable; a guitar run with a nearby guitar neighbour is retained; and a
+ * strong, sustained, or high landing is retained.  Only an exact-pitch
+ * redundant singleton or one that creates a >=7-semitone vocal handoff inside
+ * one beat is removed.  Advanced/source detail bypasses the pass via
+ * `legato=false`.
+ */
+function removeIsolatedGuitarVocalSingletons(notes: Note[], tempoBpm: number, legato: boolean): Note[] {
+  if (!legato || notes.length < 3) return notes;
+  const secondsPerBeat = 60 / normalizeTempoBpm(tempoBpm);
+  const sorted = [...notes].sort((a, b) => a.start - b.start || b.vel - a.vel || b.midi - a.midi);
+  const remove = new Set<Note>();
+  const maxBracketBeats = 1;
+  const maxConnectedGuitarGap = 0.75;
+
+  for (let index = 1; index < sorted.length - 1; index++) {
+    const note = sorted[index]!;
+    const previous = sorted[index - 1]!;
+    const next = sorted[index + 1]!;
+    if (
+      note.identitySource !== "guitar"
+      || previous.identitySource !== "vocals"
+      || next.identitySource !== "vocals"
+    ) continue;
+    const beforeBeats = note.start - previous.start;
+    const afterBeats = next.start - note.start;
+    if (beforeBeats > maxBracketBeats + 1e-9 || afterBeats > maxBracketBeats + 1e-9) continue;
+
+    // Do not call a member of a connected guitar run a singleton merely
+    // because a vocal note happens to sit on one side of it.  Search the
+    // selected stream, not the richer pre-selection candidates.
+    const previousGuitar = [...sorted.slice(0, index)]
+      .reverse()
+      .find((candidate) => candidate.identitySource === "guitar");
+    const nextGuitar = sorted.slice(index + 1)
+      .find((candidate) => candidate.identitySource === "guitar");
+    if (
+      (previousGuitar && note.start - previousGuitar.start <= maxConnectedGuitarGap + 1e-9)
+      || (nextGuitar && nextGuitar.start - note.start <= maxConnectedGuitarGap + 1e-9)
+    ) continue;
+
+    const durationSec = note.dur * secondsPerBeat;
+    const protectedLanding = note.vel >= 90
+      || durationSec >= 0.5
+      || (note.midi >= 76 && (note.vel >= 80 || durationSec >= 0.35));
+    if (protectedLanding) continue;
+
+    const redundant = note.midi === previous.midi || note.midi === next.midi;
+    const directVocalLeap = Math.abs(next.midi - previous.midi);
+    const adjacentLeap = Math.max(
+      Math.abs(note.midi - previous.midi),
+      Math.abs(next.midi - note.midi),
+    );
+    const createsLargeHandoff = adjacentLeap >= 7
+      // A quiet guitar bridge can make a large vocal leap playable (for
+      // example 64 -> 72 -> 80). Do not delete it merely because each leg
+      // is wide; the singleton is disposable only when it is no better than
+      // the direct vocal handoff it would replace.
+      && adjacentLeap >= directVocalLeap;
+    if (redundant || createsLargeHandoff) remove.add(note);
+  }
+  return remove.size ? sorted.filter((note) => !remove.has(note)) : notes;
 }
 
 /**
@@ -469,6 +604,10 @@ function reduceMetalRhRealism(notes: Note[], tempoBpm: number, maxAttacksPerSeco
   const secondsPerBeat = 60 / safeTempo;
   const safeRate = Number.isFinite(maxAttacksPerSecond) && maxAttacksPerSecond > 0 ? maxAttacksPerSecond : 4;
   const minimumSpacingBeats = (safeTempo / 60) / safeRate;
+  // Quantization can leave a one-grid sliver between two fragments that were
+  // contiguous in the source stem. Allow only a short, tempo-aware silence
+  // here: a larger gap is a real vocal re-attack and must remain playable.
+  const maxVocalFragmentGapBeats = Math.min(0.125, 0.08 / secondsPerBeat);
   const source = suppressLowGuitarLeadFiller(notes, legato)
     .sort((a, b) => a.start - b.start
       || Number(b.identitySource === "vocals") - Number(a.identitySource === "vocals")
@@ -478,6 +617,7 @@ function reduceMetalRhRealism(notes: Note[], tempoBpm: number, maxAttacksPerSeco
   const merged: Note[] = [];
   let lastMergedAttackStart: number | undefined;
   let lastMergedVocal: Note | undefined;
+  let lastMergedVocalAttackStart: number | undefined;
   for (const original of source) {
     const note = { ...original };
     const previous = merged.at(-1);
@@ -487,6 +627,12 @@ function reduceMetalRhRealism(notes: Note[], tempoBpm: number, maxAttacksPerSeco
     const gapSec = previous
       ? Math.max(0, note.start - (previous.start + previous.dur)) * secondsPerBeat
       : Number.POSITIVE_INFINITY;
+    const vocalGapBeats = lastMergedVocal
+      ? Math.max(0, note.start - (lastMergedVocal.start + lastMergedVocal.dur))
+      : Number.POSITIVE_INFINITY;
+    const vocalAttackGapBeats = lastMergedVocalAttackStart === undefined
+      ? Number.POSITIVE_INFINITY
+      : note.start - lastMergedVocalAttackStart;
     // Basic Pitch commonly splits one sung syllable into adjacent fragments
     // at nearly the same pitch. Treat those as one sustained piano note; a
     // real gap or a pitch change still creates a fresh attack. This is limited
@@ -496,14 +642,23 @@ function reduceMetalRhRealism(notes: Note[], tempoBpm: number, maxAttacksPerSeco
       lastMergedVocal
       && note.identitySource === "vocals"
       && lastMergedVocal.midi === note.midi
-      && note.start <= lastMergedVocal.start + lastMergedVocal.dur + 1e-9
+      // A later learner level may have extended the previous note to fill a
+      // playable gap. Keep the attack-to-attack bound as well as the silence
+      // bound so that extension cannot turn a genuine re-attack into a
+      // detector fragment.
+      && vocalAttackGapBeats <= 0.5 + 1e-9
+      && vocalGapBeats <= maxVocalFragmentGapBeats + 1e-9
     ) {
       lastMergedVocal.dur = Math.max(lastMergedVocal.dur, note.start + note.dur - lastMergedVocal.start);
       lastMergedVocal.vel = Math.max(lastMergedVocal.vel, note.vel);
       lastMergedAttackStart = note.start;
+      lastMergedVocalAttackStart = note.start;
       continue;
     }
-    if (note.identitySource === "vocals") lastMergedVocal = note;
+    if (note.identitySource === "vocals") {
+      lastMergedVocal = note;
+      lastMergedVocalAttackStart = note.start;
+    }
     if (
       previous
       && previous.identitySource !== "vocals"
@@ -527,7 +682,8 @@ function reduceMetalRhRealism(notes: Note[], tempoBpm: number, maxAttacksPerSeco
     lastMergedAttackStart = note.start;
   }
 
-  const handoffCleaned = removeWeakGuitarVocalHandoffs(merged, safeTempo, legato);
+  const vocalCleaned = removeWeakVocalDetours(merged, safeTempo, legato);
+  const handoffCleaned = removeWeakGuitarVocalHandoffs(vocalCleaned, safeTempo, legato);
   const cleaned = removeInterleavedGuitarDetours(handoffCleaned.filter((note, index, all) => {
     if (note.identitySource === "vocals") return true;
     const previous = all[index - 1];
@@ -723,8 +879,9 @@ function reduceMetalRhRealism(notes: Note[], tempoBpm: number, maxAttacksPerSeco
     selected.push(...protectedAnchors.map((note) => ({ ...note })), ...phraseSelection);
   }
 
+  const handoffSelected = removeIsolatedGuitarVocalSingletons(selected, safeTempo, legato);
   const sorted = removeInterleavedGuitarDetours(
-    selected.sort((a, b) => a.start - b.start || a.midi - b.midi),
+    handoffSelected.sort((a, b) => a.start - b.start || a.midi - b.midi),
     safeTempo,
     legato,
   );
@@ -1327,9 +1484,13 @@ function preserveRhLadder(
       result = recovered;
     }
   }
-  if (allowFallback && result.filter((n) => n.hand !== "L").length < 8) {
+  const resultRhCount = result.filter((n) => n.hand !== "L").length;
+  const fallbackTargetReached = semanticTwoHand ? result.length >= 8 : resultRhCount >= 8;
+  if (allowFallback && !fallbackTargetReached) {
     const lh = result.filter((n) => n.hand === "L");
-    const needed = Math.max(0, 8 - result.filter((n) => n.hand !== "L").length);
+    const needed = semanticTwoHand
+      ? Math.max(0, 8 - result.length)
+      : Math.max(0, 8 - resultRhCount);
     const fallback = fallbackRhSubset(harder, maxSim, Math.max(needed, 8));
     if (fallback.length >= needed) {
       const seen = new Set(result.filter((n) => n.hand !== "L").map((n) => `${n.midi}@${n.start.toFixed(6)}`));
@@ -1339,9 +1500,11 @@ function preserveRhLadder(
         if (seen.has(key)) continue;
         seen.add(key);
         rh.push(n);
-        if (rh.length >= 8) break;
+        if (semanticTwoHand ? lh.length + rh.length >= 8 : rh.length >= 8) break;
       }
-      if (rh.length >= 8) result = [...lh, ...rh].sort((a, b) => a.start - b.start || a.midi - b.midi);
+      if (semanticTwoHand ? lh.length + rh.length >= 8 : rh.length >= 8) {
+        result = [...lh, ...rh].sort((a, b) => a.start - b.start || a.midi - b.midi);
+      }
     }
   }
   if (allowFallback && result.length < 8) result = fallbackPlayableSubset(harder, maxSim, 8, result);
@@ -1619,13 +1782,15 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   for (let i = LEVEL_ORDER.length - 2; i >= 0; i--) {
     const easier = LEVEL_ORDER[i]!;
     const harder = LEVEL_ORDER[i + 1]!;
+    const metalBeginnerFallback = metalProfile
+      && (easier === "very-beginner" || easier === "beginner");
     const ladderReduced = preserveRhLadder(
       sets[easier]!,
       sets[harder]!,
       LADDER_TOL[easier] ?? 0.02,
       PLAYABILITY_LIMITS[easier]!.maxSim,
-      pathologicalWall,
-      metalProfile && (easier === "very-beginner" || easier === "beginner"),
+      pathologicalWall || metalBeginnerFallback,
+      metalBeginnerFallback,
     );
     sets[easier] = trimSamePitchOverlaps(
       metalProfile
