@@ -298,9 +298,12 @@ function reduceMetalRhRealism(notes: Note[], tempoBpm: number, maxAttacksPerSeco
       intoSec <= 0.4 + 1e-9
       && outSec <= 0.4 + 1e-9
       && durationSec <= 0.35 + 1e-9
-      && Math.abs(note.midi - previous.midi) >= 7
-      && Math.abs(note.midi - next.midi) >= 7
-      && Math.abs(previous.midi - next.midi) <= 4
+      && Math.abs(note.midi - previous.midi) >= 5
+      && Math.abs(note.midi - next.midi) >= 5
+      && Math.abs(previous.midi - next.midi) <= 5
+      // Keep a clearly intentional lead accent even when it reverses; the
+      // quietness guard targets low-energy separated partials instead.
+      && note.vel <= Math.max(previous.vel, next.vel) * 0.9 + 1e-9
     );
   });
 
