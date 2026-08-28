@@ -249,6 +249,22 @@ function reduceMetalRhRealism(notes: Note[], tempoBpm: number, maxAttacksPerSeco
     const note = { ...original };
     const previous = merged.at(-1);
     const elapsedSec = previous ? (note.start - previous.start) * secondsPerBeat : Number.POSITIVE_INFINITY;
+    // Basic Pitch commonly splits one sung syllable into adjacent fragments
+    // at nearly the same pitch. Treat those as one sustained piano note; a
+    // real gap or a pitch change still creates a fresh attack. This is limited
+    // to the vocal lane so repeated guitar articulations remain available in
+    // the harder metal levels.
+    if (
+      previous
+      && previous.identitySource === "vocals"
+      && note.identitySource === "vocals"
+      && previous.midi === note.midi
+      && note.start <= previous.start + previous.dur + 1e-9
+    ) {
+      previous.dur = Math.max(previous.dur, note.start + note.dur - previous.start);
+      previous.vel = Math.max(previous.vel, note.vel);
+      continue;
+    }
     if (
       previous
       && previous.identitySource !== "vocals"
@@ -273,9 +289,15 @@ function reduceMetalRhRealism(notes: Note[], tempoBpm: number, maxAttacksPerSeco
     const outSec = (next.start - note.start) * secondsPerBeat;
     const durationSec = note.dur * secondsPerBeat;
     return !(
-      intoSec <= 0.3 + 1e-9
-      && outSec <= 0.3 + 1e-9
-      && durationSec <= 0.2 + 1e-9
+      // A detector's short chord-tone detour often lasts a full eighth note
+      // by the time Basic Pitch has merged overlapping partials. Treat that
+      // as an ornamental hit when it sits between two nearby lead pitches;
+      // otherwise the piano lane faithfully reproduces a guitar pick/noise
+      // event as an awkward leap. Keep this local and source-aware below so
+      // vocal anchors and deliberate wide figures are untouched.
+      intoSec <= 0.4 + 1e-9
+      && outSec <= 0.4 + 1e-9
+      && durationSec <= 0.35 + 1e-9
       && Math.abs(note.midi - previous.midi) >= 7
       && Math.abs(note.midi - next.midi) >= 7
       && Math.abs(previous.midi - next.midi) <= 4
