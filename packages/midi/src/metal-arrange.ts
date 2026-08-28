@@ -318,6 +318,13 @@ function suppressBoundaryBleed(notes: IdentityNote[], vocals: IdentityNote[]): I
     if (note.identitySource !== "guitar" && note.identitySource !== "other") return true;
     const rawMidi = note.rawMidi ?? note.midi;
     if (rawMidi > 60 || note.vel >= 64) return true;
+    const activePrimary = sortedVocals.find((vocal) =>
+      vocal.start <= note.start + EPS && vocal.start + vocal.dur > note.start + EPS,
+    );
+    if (
+      activePrimary
+      && Math.abs(rawMidi - (activePrimary.rawMidi ?? activePrimary.midi)) >= 12
+    ) return false;
     const nextPrimary = sortedVocals.find((vocal) => vocal.start >= note.start - EPS);
     if (
       nextPrimary
@@ -549,8 +556,25 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
     sections.push({ startBeat: start, endBeat: end, source, confidence: sectionConfidence });
   }
 
+  const filteredIdentity = suppressBoundaryBleed(identity, trustedVocals);
+  // The initial section winner is calculated before the cross-window bleed
+  // pass. Reconcile provenance against the surviving identity notes so a
+  // guitar-only section that was fully suppressed cannot still be published
+  // as a contributing guitar section.
+  const filteredSections = sections.map((section) => {
+    const sectionNotes = notesIn(filteredIdentity, section.startBeat, section.endBeat);
+    if (!sectionNotes.length) return { ...section, source: "rest" as const, confidence: 0 };
+    const sources = new Set(
+      sectionNotes
+        .map((note) => note.identitySource)
+        .filter((source): source is NonNullable<Note["identitySource"]> => Boolean(source)),
+    );
+    if (sources.size === 1) return { ...section, source: [...sources][0]! };
+    if (sources.size > 1) return { ...section, source: "mixed" as const };
+    return section;
+  });
   const stabilizedIdentity = stabilizeIdentityRegister(
-    suppressBoundaryBleed(identity, trustedVocals),
+    filteredIdentity,
     tempoBpm,
     vocalRegisterAnchors,
   );
@@ -593,7 +617,7 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
   if (!publicIdentity.length) warnings.push("no reliable vocal, guitar, or other identity line was found");
   if (!bass.length) warnings.push("no bass stem was available; harmony roots may be less reliable");
   const sourceSections: Record<string, number> = {};
-  for (const section of sections) {
+  for (const section of filteredSections) {
     sourceSections[section.source] = (sourceSections[section.source] ?? 0) + 1;
   }
   const parsed: ParsedMidi = {
@@ -609,7 +633,7 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
     durationBeats,
     ...(input.title ? { title: input.title } : {}),
   };
-  const ir: MetalArrangementIR = { version: 1, tempoBpm, timeSig, durationBeats, sections, identity: publicIdentity.map((note) => ({ ...note })), harmony: chords, rhythmicAccents };
+  const ir: MetalArrangementIR = { version: 1, tempoBpm, timeSig, durationBeats, sections: filteredSections, identity: publicIdentity.map((note) => ({ ...note })), harmony: chords, rhythmicAccents };
   return {
     parsed,
     chords,
