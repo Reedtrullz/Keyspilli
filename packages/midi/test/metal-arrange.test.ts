@@ -250,6 +250,18 @@ describe("metal piano arranger", () => {
     expect(rh.every((note) => note.identitySource === "vocals")).toBe(true);
   });
 
+  it("folds slower detector octave flips before they become vocal anchors", () => {
+    const result = buildMetalArrangement({
+      stems: [{ role: "vocals", midi: midi([
+        { midi: 64, start: 0, dur: 0.4, vel: 98 },
+        { midi: 76, start: 0.625, dur: 0.4, vel: 96 },
+        { midi: 65, start: 1.25, dur: 0.4, vel: 98 },
+      ]) }],
+    });
+    const rh = result.parsed.notes.filter((note) => note.hand === "R");
+    expect(rh.map((note) => note.midi)).toEqual([64, 64, 65]);
+  });
+
   it("keeps register smoothing active across a long sustained note", () => {
     const result = buildMetalArrangement({
       stems: [{ role: "guitar", midi: midi([
@@ -261,6 +273,51 @@ describe("metal piano arranger", () => {
     const rh = result.parsed.notes.filter((note) => note.hand === "R");
     expect(rh.find((note) => note.start === 2.5)?.midi).toBe(64);
     expect(Math.abs(rh[1]!.midi - rh[0]!.midi)).toBeLessThan(12);
+  });
+
+  it("keeps fused vocal-to-guitar handoffs within one piano octave", () => {
+    const result = buildMetalArrangement({
+      stems: [
+        { role: "vocals", midi: midi([
+          { midi: 84, start: 0, dur: 0.5, vel: 98 },
+          { midi: 82, start: 1, dur: 0.5, vel: 98 },
+          { midi: 80, start: 2, dur: 0.5, vel: 98 },
+        ]) },
+        { role: "guitar", midi: midi([{ midi: 60, start: 1.75, dur: 0.25, vel: 90 }]) },
+      ],
+    });
+    const rh = result.parsed.notes.filter((note) => note.hand === "R");
+    expect(rh.find((note) => note.start === 1.75)?.midi).toBe(72);
+  });
+
+  it("does not insert a low guitar bleed attack directly before a vocal entrance", () => {
+    const result = buildMetalArrangement({
+      stems: [
+        { role: "vocals", midi: midi([
+          { midi: 84, start: 1, dur: 0.5, vel: 98 },
+          { midi: 82, start: 2, dur: 0.5, vel: 98 },
+          { midi: 80, start: 3, dur: 0.5, vel: 98 },
+        ]) },
+        { role: "guitar", midi: midi([{ midi: 59, start: 0.75, dur: 0.25, vel: 40 }]) },
+      ],
+    });
+    const guitarBleed = result.ir.identity.find((note) => note.identitySource === "guitar" && note.start === 0.75);
+    expect(guitarBleed).toBeUndefined();
+  });
+
+  it("does not insert a quiet low guitar bleed attack directly after a vocal ending", () => {
+    const result = buildMetalArrangement({
+      stems: [
+        { role: "vocals", midi: midi([
+          { midi: 71, start: 1, dur: 0.5, vel: 98 },
+          { midi: 73, start: 3, dur: 0.5, vel: 98 },
+          { midi: 75, start: 5, dur: 0.5, vel: 98 },
+        ]) },
+        { role: "guitar", midi: midi([{ midi: 55, start: 2, dur: 0.25, vel: 40 }]) },
+      ],
+    });
+    const guitarBleed = result.ir.identity.find((note) => note.identitySource === "guitar" && note.start === 2);
+    expect(guitarBleed).toBeUndefined();
   });
 
   it("retains interior vocal anchors while progressively reducing guitar filler", () => {
@@ -340,6 +397,18 @@ describe("metal piano arranger", () => {
     const rh = result.parsed.notes.filter((note) => note.hand === "R");
     expect(rh).toHaveLength(2);
     expect(Math.abs(rh[1]!.midi - rh[0]!.midi)).toBeLessThanOrEqual(12);
+  });
+
+  it("keeps one-beat octave-equivalent lead travel in one piano register", () => {
+    const result = buildMetalArrangement({
+      stems: [{ role: "guitar", midi: midi([
+        { midi: 84, start: 0, dur: 0.5, vel: 90 },
+        { midi: 60, start: 0.75, dur: 0.5, vel: 90 },
+      ]) }],
+    });
+    const rh = result.parsed.notes.filter((note) => note.hand === "R");
+    expect(rh).toHaveLength(2);
+    expect(rh.map((note) => note.midi)).toEqual([84, 72]);
   });
 
   it("keeps generated chord spans and final measures aligned to source duration", () => {

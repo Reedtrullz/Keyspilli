@@ -117,10 +117,10 @@ function monophonicPath(
         // pitch; never ask the player to jump more than an octave in <=1.5
         // beats merely because the raw stem contained a distant partial.
         if (continuityPrevious && elapsed <= 1.5) {
-          // An exact octave inside half a beat is the detector switching
-          // harmonics, not useful piano articulation. Keep the attack and
+          // An exact octave inside one beat is usually detector harmonic
+          // switching, not useful piano articulation. Keep the attack and
           // pitch class but continue in the established register.
-          if (elapsed <= 0.5 + EPS && Math.abs(pitch - continuityPrevious.midi) === 12) {
+          if (elapsed <= 1 + EPS && Math.abs(pitch - continuityPrevious.midi) === 12) {
             pitch = continuityPrevious.midi;
           }
           while (Math.abs(pitch - continuityPrevious.midi) > 12 && pitch - continuityPrevious.midi > 0 && pitch - 12 >= low) pitch -= 12;
@@ -249,13 +249,40 @@ function identityForWindow(
       );
       if (occupied) continue;
       if (minAlternateRest > 0 && primaryNotes.length) {
-        const previousEnd = primaryNotes
-          .filter((primaryNote) => primaryNote.start + primaryNote.dur <= note.start + EPS)
-          .reduce((value, primaryNote) => Math.max(value, primaryNote.start + primaryNote.dur), start);
         const nextStart = primaryNotes
           .filter((primaryNote) => primaryNote.start >= note.start - EPS)
           .reduce((value, primaryNote) => Math.min(value, primaryNote.start), end);
-        if (nextStart - previousEnd < minAlternateRest) continue;
+        const nextPrimary = primaryNotes
+          .filter((primaryNote) => primaryNote.start >= note.start - EPS)
+          .sort((a, b) => a.start - b.start)[0];
+        const previousPrimary = primaryNotes
+          .filter((primaryNote) => primaryNote.start + primaryNote.dur <= note.start + EPS)
+          .sort((a, b) => b.start - a.start)[0];
+        const restBefore = previousPrimary
+          ? note.start - (previousPrimary.start + previousPrimary.dur)
+          : Number.POSITIVE_INFINITY;
+        const restAfter = nextStart - (note.start + note.dur);
+        // A low instrumental attack directly before a far-away vocal
+        // entrance is usually rhythm bleed, not a lead phrase. Keep close
+        // stepwise fills (which can be useful melody connectors), but reject
+        // a large register jump when the alternate has no real landing room.
+        if (
+          nextPrimary
+          && restAfter <= 0.25 + EPS
+          && note.midi <= 60
+          && note.vel < 64
+          && Math.abs(note.midi - nextPrimary.midi) >= 12
+        ) continue;
+        // Apply the same guard after a vocal ending; a quiet low attack with
+        // no melodic landing is just as likely to be the rhythm stem leaking
+        // into the right-hand identity lane.
+        if (
+          previousPrimary
+          && restBefore <= 0.75 + EPS
+          && note.midi <= 60
+          && note.vel < 64
+          && Math.abs(note.midi - previousPrimary.midi) >= 12
+        ) continue;
       }
       selected.push({ ...note });
       alternateCount += 1;
@@ -306,9 +333,13 @@ function stabilizeIdentityRegister(
     const interval = Math.abs(to - from);
     const elapsedSec = Math.max(0.001, elapsedBeats * secondsPerBeat);
     let cost = interval * 0.03;
-    const comfortable = elapsedSec < 0.12 ? 5 : elapsedSec < 0.2 ? 7 : elapsedSec < 0.35 ? 11 : 24;
+    // At song tempos a two-octave jump can fit inside roughly half a second,
+    // but it is not a practical single-hand piano motion. Treat one octave
+    // as the comfortable ceiling until the phrase has had enough time to
+    // move; this also lets octave-equivalent candidates beat raw detector
+    // register outliers at vocal/guitar handoffs.
+    const comfortable = elapsedSec < 0.12 ? 5 : elapsedSec < 0.2 ? 7 : elapsedSec < 0.35 ? 11 : elapsedSec < 0.65 ? 12 : 19;
     if (interval > comfortable) cost += (interval - comfortable) * 0.8;
-    if (elapsedSec < 0.35 && interval >= 12) cost += 2;
     return cost;
   };
 
@@ -324,7 +355,13 @@ function stabilizeIdentityRegister(
         const pitch = states[index]![candidateIndex]!;
         const anchorKey = `${phrase[index]!.start.toFixed(6)}:${phrase[index]!.midi}`;
         const anchored = index === 0 || registerAnchors.has(anchorKey);
-        const emission = (Math.abs(pitch - phrase[index]!.midi) / 12) * (anchored ? 100 : 1);
+        // For non-anchored detector notes, a two-octave register correction is
+        // worse than a one-octave correction, not merely twice as costly. A
+        // quadratic emission makes the DP choose the nearest practical piano
+        // register at mixed vocal/guitar handoffs while vocal anchors remain
+        // effectively immutable.
+        const registerDistance = Math.abs(pitch - phrase[index]!.midi) / 12;
+        const emission = (anchored ? registerDistance : registerDistance ** 2) * (anchored ? 100 : 1);
         if (index === 0) {
           costs[index]![candidateIndex] = emission;
           parents[index]![candidateIndex] = -1;
