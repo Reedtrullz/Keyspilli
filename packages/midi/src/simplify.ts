@@ -549,6 +549,7 @@ function metalGuitarTransitionPenalty(previous: Note, note: Note, gapBeats: numb
  * to survive the learner spacing pass.
  */
 function metalGuitarCoveragePenalty(
+  phrase: Note[],
   candidates: { note: Note; phraseIndex: number }[],
   previousIndex: number,
   currentIndex: number,
@@ -560,26 +561,46 @@ function metalGuitarCoveragePenalty(
   const gapBeats = current.start - previous.start;
   const targetGap = Math.max(1, minimumSpacingBeats * 2);
   if (gapBeats <= targetGap + 1e-9) return 0;
-  const hasStepwiseBridge = candidates
-    .slice(previousIndex + 1, currentIndex)
-    .some(({ note }) => {
-      const beforeGap = note.start - previous.start;
-      const afterGap = current.start - note.start;
-      const directionTurns = Math.sign(note.midi - previous.midi) !== Math.sign(current.midi - note.midi);
-      const quietShortSpike = note.vel < 70 && note.dur <= 0.25 + 1e-9
-        && directionTurns
-        && Math.max(Math.abs(note.midi - previous.midi), Math.abs(current.midi - note.midi)) >= 7;
-      return note.identitySource === "guitar"
-        && beforeGap >= minimumSpacingBeats - 1e-9
-        && afterGap >= minimumSpacingBeats - 1e-9
-        && !quietShortSpike
-        // A half-beat learner step can still cover a minor sixth in the
-        // opening descent of a lead phrase. Keep the bridge criterion looser
-        // than the transition comfort threshold; the DP's travel penalty
-        // remains responsible for rejecting genuinely wide zig-zags.
-        && Math.abs(note.midi - previous.midi) <= 9
-        && Math.abs(current.midi - note.midi) <= 9;
-    });
+  // Keep the bridge lookup local. Besides avoiding an allocation for every
+  // DP edge, this bounds the nested scan on dense detector output to a small
+  // phrase neighbourhood rather than turning the O(n^2) contour DP into an
+  // accidental O(n^3) pass on long uploads.
+  if (gapBeats > targetGap + 3 + 1e-9) return 0;
+
+  const previousPhraseIndex = candidates[previousIndex]!.phraseIndex;
+  const currentPhraseIndex = candidates[currentIndex]!.phraseIndex;
+  // Candidate filtering removes vocals, so a candidate-only scan could make
+  // a guitar bridge jump across an intervening vocal or other source event.
+  // The original phrase is authoritative for source barriers.
+  for (let phraseIndex = previousPhraseIndex + 1; phraseIndex < currentPhraseIndex; phraseIndex++) {
+    if (phrase[phraseIndex]!.identitySource !== "guitar") return 0;
+  }
+
+  let hasStepwiseBridge = false;
+  for (let middleIndex = previousIndex + 1; middleIndex < currentIndex; middleIndex++) {
+    const note = candidates[middleIndex]!.note;
+    const beforeGap = note.start - previous.start;
+    const afterGap = current.start - note.start;
+    const directionTurns = Math.sign(note.midi - previous.midi) !== Math.sign(current.midi - note.midi);
+    const quietShortSpike = note.vel < 70 && note.dur <= 0.25 + 1e-9
+      && directionTurns
+      && Math.max(Math.abs(note.midi - previous.midi), Math.abs(current.midi - note.midi)) >= 7;
+    if (
+      note.identitySource === "guitar"
+      && beforeGap >= minimumSpacingBeats - 1e-9
+      && afterGap >= minimumSpacingBeats - 1e-9
+      && !quietShortSpike
+      // A half-beat learner step can still cover a minor sixth in the
+      // opening descent of a lead phrase. Keep the bridge criterion looser
+      // than the transition comfort threshold; the DP's travel penalty
+      // remains responsible for rejecting genuinely wide zig-zags.
+      && Math.abs(note.midi - previous.midi) <= 9
+      && Math.abs(current.midi - note.midi) <= 9
+    ) {
+      hasStepwiseBridge = true;
+      break;
+    }
+  }
   if (!hasStepwiseBridge) return 0;
   return Math.min(6, 5 + (gapBeats - targetGap) * 1.5);
 }
@@ -594,6 +615,7 @@ function metalGuitarCoveragePenalty(
  * mandatory in the returned phrase.
  */
 function selectMetalGuitarContour(
+  phrase: Note[],
   candidates: { note: Note; phraseIndex: number }[],
   weights: number[],
   minimumSpacingBeats: number,
@@ -616,7 +638,7 @@ function selectMetalGuitarContour(
       const gap = current.start - previous.start;
       if (gap < minimumSpacingBeats - 1e-9) continue;
       const transition = metalGuitarTransitionPenalty(previous, current, gap)
-        + metalGuitarCoveragePenalty(candidates, previousIndex, index, minimumSpacingBeats);
+        + metalGuitarCoveragePenalty(phrase, candidates, previousIndex, index, minimumSpacingBeats);
       const score = best[previousIndex]! + weights[index]!
         + (mandatory.has(current) ? mandatoryBonus : 0)
         - transition;
@@ -880,7 +902,7 @@ function reduceMetalRhRealism(notes: Note[], tempoBpm: number, maxAttacksPerSeco
     });
     const phraseSelection: Note[] = [];
     if (useContourDp) {
-      phraseSelection.push(...selectMetalGuitarContour(candidates, weights, minimumSpacingBeats, mandatoryContourNotes));
+      phraseSelection.push(...selectMetalGuitarContour(phrase, candidates, weights, minimumSpacingBeats, mandatoryContourNotes));
     } else {
       const previousCompatible = candidates.map(({ note }, index) => {
         let low = 0;
