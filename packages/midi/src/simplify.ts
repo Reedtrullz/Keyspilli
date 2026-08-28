@@ -542,6 +542,49 @@ function metalGuitarTransitionPenalty(previous: Note, note: Note, gapBeats: numb
 }
 
 /**
+ * Prefer a connected stepwise bridge when the scheduler would otherwise
+ * leave a long hole in a lead phrase. This is intentionally a soft, local
+ * penalty: a real rest, a source handoff, or a gap with no usable bridge is
+ * left alone, while a quiet candidate that can fill the hole earns a chance
+ * to survive the learner spacing pass.
+ */
+function metalGuitarCoveragePenalty(
+  candidates: { note: Note; phraseIndex: number }[],
+  previousIndex: number,
+  currentIndex: number,
+  minimumSpacingBeats: number,
+): number {
+  const previous = candidates[previousIndex]?.note;
+  const current = candidates[currentIndex]?.note;
+  if (!previous || !current || previous.identitySource !== "guitar" || current.identitySource !== "guitar") return 0;
+  const gapBeats = current.start - previous.start;
+  const targetGap = Math.max(1, minimumSpacingBeats * 2);
+  if (gapBeats <= targetGap + 1e-9) return 0;
+  const hasStepwiseBridge = candidates
+    .slice(previousIndex + 1, currentIndex)
+    .some(({ note }) => {
+      const beforeGap = note.start - previous.start;
+      const afterGap = current.start - note.start;
+      const directionTurns = Math.sign(note.midi - previous.midi) !== Math.sign(current.midi - note.midi);
+      const quietShortSpike = note.vel < 70 && note.dur <= 0.25 + 1e-9
+        && directionTurns
+        && Math.max(Math.abs(note.midi - previous.midi), Math.abs(current.midi - note.midi)) >= 7;
+      return note.identitySource === "guitar"
+        && beforeGap >= minimumSpacingBeats - 1e-9
+        && afterGap >= minimumSpacingBeats - 1e-9
+        && !quietShortSpike
+        // A half-beat learner step can still cover a minor sixth in the
+        // opening descent of a lead phrase. Keep the bridge criterion looser
+        // than the transition comfort threshold; the DP's travel penalty
+        // remains responsible for rejecting genuinely wide zig-zags.
+        && Math.abs(note.midi - previous.midi) <= 9
+        && Math.abs(current.midi - note.midi) <= 9;
+    });
+  if (!hasStepwiseBridge) return 0;
+  return Math.min(6, 5 + (gapBeats - targetGap) * 1.5);
+}
+
+/**
  * Select a source-aware guitar path from a richer phrase candidate set. This
  * is a first-order dynamic program: every candidate can start a path, and a
  * later candidate may follow whenever the learner spacing floor is met. The
@@ -572,7 +615,8 @@ function selectMetalGuitarContour(
       const previous = candidates[previousIndex]!.note;
       const gap = current.start - previous.start;
       if (gap < minimumSpacingBeats - 1e-9) continue;
-      const transition = metalGuitarTransitionPenalty(previous, current, gap);
+      const transition = metalGuitarTransitionPenalty(previous, current, gap)
+        + metalGuitarCoveragePenalty(candidates, previousIndex, index, minimumSpacingBeats);
       const score = best[previousIndex]! + weights[index]!
         + (mandatory.has(current) ? mandatoryBonus : 0)
         - transition;
