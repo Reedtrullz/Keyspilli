@@ -33,16 +33,20 @@ export interface ListeningSoundfontInput {
 export interface ListeningRendererInput {
   backend: string;
   version: string;
+  implementation?: string;
   sampleRate: number;
   channels?: 1 | 2;
+  gain?: number;
   soundfont?: ListeningSoundfontInput;
 }
 
 export interface ListeningRendererRecord {
   backend: string;
   version: string;
+  implementation?: string;
   sampleRate: number;
   channels: 1 | 2;
+  gain?: number;
   soundfont?: {
     identifier: string;
     sha256: string | null;
@@ -95,7 +99,25 @@ export interface ListeningCandidateInput {
   midiDurationSeconds?: number;
   expectedDurationSeconds?: number;
   renderedDurationSeconds?: number;
+  /** Release/pedal tail tolerance for the duration diagnostic. */
+  durationToleranceSeconds?: number;
   renderedSampleCount?: number;
+  /** Optional inexpensive diagnostics from the canonical PCM render. */
+  audio?: ListeningAudioDiagnostics;
+}
+
+export interface ListeningAudioDiagnostics {
+  bytes: number;
+  sampleRate: number;
+  channels: 1 | 2;
+  frameCount: number;
+  sampleCount: number;
+  durationSeconds: number;
+  peak: number;
+  rms: number;
+  silenceRatio: number;
+  clippingCount: number;
+  sha256: string;
 }
 
 export interface ListeningArtifactRecord {
@@ -112,6 +134,7 @@ export interface ListeningCandidateRecord {
   wav: ListeningArtifactRecord;
   duration: ListeningDurationDiagnostics;
   renderedSampleCount: number | null;
+  audio?: ListeningAudioDiagnostics;
 }
 
 export interface ListeningExcerptInput {
@@ -126,6 +149,8 @@ export interface ListeningExcerptRecord {
   label?: string;
   startSeconds: number;
   endSeconds: number;
+  /** Local convenience paths; omitted from path-safe canonical output. */
+  artifacts?: Record<string, string>;
 }
 
 export interface ListeningBlindAlias {
@@ -257,6 +282,9 @@ function normalizeRenderer(input: ListeningRendererInput): ListeningRendererReco
   const version = requireText(input.version, "renderer.version");
   const sampleRate = normalizeSampleRate(input.sampleRate, DEFAULT_LISTENING_NORMALIZATION.sampleRate);
   const channels = normalizeChannels(input.channels, DEFAULT_LISTENING_NORMALIZATION.channels);
+  const gain = input.gain === undefined ? undefined : input.gain;
+  if (gain !== undefined && (!finite(gain) || gain <= 0 || gain > 10)) throw new Error("renderer.gain must be finite and in (0, 10]");
+  const implementation = input.implementation === undefined ? undefined : requireText(input.implementation, "renderer.implementation");
   const soundfont = input.soundfont
     ? {
       identifier: requireText(input.soundfont.identifier ?? "soundfont", "renderer.soundfont.identifier"),
@@ -264,7 +292,15 @@ function normalizeRenderer(input: ListeningRendererInput): ListeningRendererReco
       ...(input.soundfont.path ? { path: input.soundfont.path } : {}),
     }
     : undefined;
-  return { backend, version, sampleRate, channels, ...(soundfont ? { soundfont } : {}) };
+  return {
+    backend,
+    version,
+    ...(implementation ? { implementation } : {}),
+    sampleRate,
+    channels,
+    ...(gain !== undefined ? { gain } : {}),
+    ...(soundfont ? { soundfont } : {}),
+  };
 }
 
 export function normalizeListeningNormalization(
@@ -280,7 +316,7 @@ export function normalizeListeningNormalization(
   if (!finite(maxGainDb) || maxGainDb < 0) throw new Error("normalization.maxGainDb must be finite and non-negative");
   const sampleRate = normalizeSampleRate(source.sampleRate, renderer?.sampleRate ?? DEFAULT_LISTENING_NORMALIZATION.sampleRate);
   const channels = normalizeChannels(source.channels, renderer?.channels ?? DEFAULT_LISTENING_NORMALIZATION.channels);
-  return { method, targetPeakDb, maxGainDb, sampleRate, channels };
+  return { method, targetPeakDb: round(targetPeakDb), maxGainDb: round(maxGainDb), sampleRate, channels };
 }
 
 export function durationDiagnostics(
@@ -392,7 +428,8 @@ function normalizeCandidate(input: ListeningCandidateInput): ListeningCandidateR
   const midiRef = input.midiRef ?? input.midi;
   const wavRef = input.wavRef ?? input.wav;
   const expected = input.expectedDurationSeconds ?? input.midiDurationSeconds ?? input.durationSeconds;
-  const duration = durationDiagnostics(expected, input.renderedDurationSeconds);
+  const duration = durationDiagnostics(expected, input.renderedDurationSeconds, input.durationToleranceSeconds ?? DEFAULT_DURATION_TOLERANCE_SECONDS);
+  const audio = input.audio && normalizeAudioDiagnostics(input.audio);
   return {
     id,
     ...(typeof input.label === "string" && input.label.trim() ? { label: input.label.trim() } : {}),
@@ -401,6 +438,29 @@ function normalizeCandidate(input: ListeningCandidateInput): ListeningCandidateR
     wav: artifactRecord(wavRef, wavPath, `${id}.wav`),
     duration,
     renderedSampleCount: nonNegativeFinite(input.renderedSampleCount) ? Math.trunc(input.renderedSampleCount) : null,
+    ...(audio ? { audio } : {}),
+  };
+}
+
+function normalizeAudioDiagnostics(input: ListeningAudioDiagnostics): ListeningAudioDiagnostics {
+  const numeric = (value: unknown, field: string, min = 0): number => {
+    if (!finite(value) || value < min) throw new Error(`audio.${field} must be finite and >= ${min}`);
+    return round(value);
+  };
+  if (input.channels !== 1 && input.channels !== 2) throw new Error("audio.channels must be 1 or 2");
+  const sha256 = requireText(input.sha256, "audio.sha256");
+  return {
+    bytes: Math.trunc(numeric(input.bytes, "bytes")),
+    sampleRate: Math.trunc(numeric(input.sampleRate, "sampleRate", 1)),
+    channels: input.channels,
+    frameCount: Math.trunc(numeric(input.frameCount, "frameCount")),
+    sampleCount: Math.trunc(numeric(input.sampleCount, "sampleCount")),
+    durationSeconds: numeric(input.durationSeconds, "durationSeconds"),
+    peak: numeric(input.peak, "peak"),
+    rms: numeric(input.rms, "rms"),
+    silenceRatio: numeric(input.silenceRatio, "silenceRatio"),
+    clippingCount: Math.trunc(numeric(input.clippingCount, "clippingCount")),
+    sha256,
   };
 }
 
@@ -453,13 +513,19 @@ export function canonicalListeningManifest(manifest: ListeningManifest): object 
     wav: { id: candidate.wav.id },
     duration: candidate.duration,
     renderedSampleCount: candidate.renderedSampleCount,
+    ...(candidate.audio ? { audio: candidate.audio } : {}),
   }));
   return canonicalize({
     schemaVersion: manifest.schemaVersion,
     renderer: manifest.renderer,
     normalization: manifest.normalization,
     candidates,
-    excerpts: [...manifest.excerpts].sort((a, b) => a.startSeconds - b.startSeconds || compareText(a.id, b.id)),
+    excerpts: [...manifest.excerpts].sort((a, b) => a.startSeconds - b.startSeconds || compareText(a.id, b.id)).map((excerpt) => ({
+      id: excerpt.id,
+      ...(excerpt.label ? { label: excerpt.label } : {}),
+      startSeconds: excerpt.startSeconds,
+      endSeconds: excerpt.endSeconds,
+    })),
     blind: { aliases: [...manifest.blind.aliases].sort((a, b) => compareText(a.alias, b.alias)) },
   }) as object;
 }

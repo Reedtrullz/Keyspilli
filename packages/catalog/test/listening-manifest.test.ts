@@ -114,6 +114,36 @@ describe("listening manifest helpers", () => {
     })));
   });
 
+  it("retains canonical PCM diagnostics without exposing local paths", () => {
+    const manifest = createListeningManifest({
+      renderer: { backend: "fluidsynth", version: "2.6.0", implementation: "pcm16-v1", sampleRate: 44_100, channels: 2, gain: 1 },
+      candidates: [{
+        id: "metal-easy",
+        midiPath: "/private/tmp/input.mid",
+        wavPath: "/private/tmp/output.wav",
+        expectedDurationSeconds: 10,
+        renderedDurationSeconds: 10.01,
+        audio: {
+          bytes: 1_000,
+          sampleRate: 44_100,
+          channels: 2,
+          frameCount: 500,
+          sampleCount: 1_000,
+          durationSeconds: 0.011,
+          peak: 0.891,
+          rms: 0.2,
+          silenceRatio: 0.1,
+          clippingCount: 0,
+          sha256: "b".repeat(64),
+        },
+      }],
+    });
+    const canonical = canonicalListeningManifestJson(manifest);
+    expect(canonical).toContain('"audio"');
+    expect(canonical).toContain('"sha256":"' + "b".repeat(64) + '"');
+    expect(canonical).not.toContain("/private/tmp");
+  });
+
   it("reports unavailable and out-of-tolerance render durations", () => {
     expect(durationDiagnostics(undefined, undefined)).toMatchObject({ status: "unavailable", deltaSeconds: null });
     expect(durationDiagnostics(10, 10.04, 0.1)).toMatchObject({ status: "ok", deltaSeconds: 0.04 });
