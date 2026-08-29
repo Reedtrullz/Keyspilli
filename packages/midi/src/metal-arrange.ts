@@ -655,16 +655,27 @@ function inferConservativeTopLine(
     const candidate = bucket
       .filter(({ note }) => !occupied(note))
       .sort((a, b) => {
-        const previous = [...existing, ...chosen].sort((left, right) => left.start - right.start).at(-1);
-        const previousDistance = previous ? Math.abs(a.note.midi - previous.midi) : 0;
-        const next = existing
-          .filter((note) => note.start > bucketEnd + EPS)
-          .sort((left, right) => left.start - right.start)[0];
-        const nextDistance = next ? Math.abs(a.note.midi - next.midi) : 0;
-        const bPreviousDistance = previous ? Math.abs(b.note.midi - previous.midi) : 0;
-        const bNextDistance = next ? Math.abs(b.note.midi - next.midi) : 0;
-        const aScore = a.support * 2 + a.note.vel / 64 + Math.min(a.note.dur, 1) - (previousDistance + nextDistance) * 0.03;
-        const bScore = b.support * 2 + b.note.vel / 64 + Math.min(b.note.dur, 1) - (bPreviousDistance + bNextDistance) * 0.03;
+        const selectedSoFar = [...existing, ...chosen];
+        const score = (entry: typeof a): number => {
+          // Only earlier events may shape an inferred contour. Looking at the
+          // last note in the whole section let a future vocal/identity note
+          // pull every sparse recovery backward into an artificial leap.
+          const previous = selectedSoFar
+            .filter((note) => note.start <= entry.note.start + EPS)
+            .sort((left, right) => left.start - right.start)
+            .at(-1);
+          const next = existing
+            .filter((note) => note.start > entry.note.start + EPS)
+            .sort((left, right) => left.start - right.start)[0];
+          const previousDistance = previous ? Math.abs(entry.note.midi - previous.midi) : 0;
+          const nextDistance = next ? Math.abs(entry.note.midi - next.midi) : 0;
+          return entry.support * 2
+            + entry.note.vel / 64
+            + Math.min(entry.note.dur, 1)
+            - (previousDistance + nextDistance) * 0.03;
+        };
+        const aScore = score(a);
+        const bScore = score(b);
         return bScore - aScore || a.note.start - b.note.start;
       })[0];
     if (!candidate) continue;
