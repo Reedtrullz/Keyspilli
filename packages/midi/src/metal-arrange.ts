@@ -1317,6 +1317,7 @@ function regularizeSparseResidualPhrase(
   phrase: IdentityNote[],
   rawUpper: Note[],
   source: UpperEvidenceLane["source"],
+  maxBaseDensity = 1.1,
 ): IdentityNote[] | undefined {
   if (source !== "other" || phrase.length < 4) return undefined;
   const phraseStart = phrase[0]!.start;
@@ -1333,7 +1334,7 @@ function regularizeSparseResidualPhrase(
   // second pass. Keeping this threshold tight is important: the helper runs
   // before the learner ladder, so regularizing a denser phrase would also
   // erase Advanced/source detail without recovering anything useful.
-  if (baseDensity > 1.1 + EPS) return undefined;
+  if (baseDensity > maxBaseDensity + EPS) return undefined;
 
   const candidates = rawUpper
     .filter((note) => note.midi >= 61
@@ -1452,7 +1453,17 @@ function regularizeSparseResidualPhrase(
     selected[bucketIndex] = { ...candidateBuckets[bucketIndex]!.entries[state]! };
     state = parents[bucketIndex]![state]!;
   }
-  return selected;
+  // Rounding a detector onset into adjacent beat buckets can still leave two
+  // neighboring original events less than a half beat apart (for example,
+  // when one falls just before a bucket boundary and the next just after it).
+  // Keep the first supported attack and drop only the later duplicate; this
+  // preserves source timing while enforcing the learner-safe spacing floor.
+  const paced: IdentityNote[] = [];
+  for (const note of selected) {
+    const previous = paced.at(-1);
+    if (!previous || note.start - previous.start >= 0.55 - EPS) paced.push(note);
+  }
+  return paced;
 }
 
 /**
@@ -1579,8 +1590,14 @@ function selectResidualUpperMelodyPath(notes: Note[], source: UpperEvidenceLane[
     else phrase.push(note);
   }
   const selected: IdentityNote[] = [];
-  for (const phrase of selectedPhrases) {
-    const regularized = regularizeSparseResidualPhrase(phrase, upper, source);
+  for (const [phraseIndex, phrase] of selectedPhrases.entries()) {
+    // The first contiguous residual phrase is the only place where the
+    // decoder may use a slightly denser beat-grid recovery. Opening residual
+    // evidence commonly contains one attack per ~0.7 beat plus detector
+    // partials; later phrases retain the stricter gate so this remains a
+    // source-local opening cleanup rather than a song-wide density rewrite.
+    const maxBaseDensity = phraseIndex === 0 ? 1.5 : 1.1;
+    const regularized = regularizeSparseResidualPhrase(phrase, upper, source, maxBaseDensity);
     selected.push(...(regularized ?? phrase.map((note) => ({ ...note }))));
   }
   return selected;

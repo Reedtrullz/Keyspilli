@@ -489,6 +489,59 @@ describe("metal piano arranger", () => {
     }
   });
 
+  it("regularizes a moderately dense opening residual phrase without promoting partials", () => {
+    const lead = [64, 65, 67, 69, 67, 65, 64, 62, 64, 65, 67, 69, 71, 69, 67, 65];
+    const makeResidual = (offset: number): Note[] => lead.flatMap((pitch, index) => {
+      const start = offset + index * 0.72;
+      return [
+        { midi: pitch, start, dur: 0.35, vel: 62 },
+        // Same-onset detector partials are intentionally short and quiet.
+        { midi: [78, 81, 74, 79][index % 4]!, start: start + 0.12, dur: 0.08, vel: 44 },
+        { midi: [76, 80, 77][index % 3]!, start: start + 0.31, dur: 0.07, vel: 43 },
+      ];
+    });
+    const build = (offset: number) => buildMetalArrangement({
+      sectionBeats: 32,
+      stems: [{ role: "other", midi: midi(makeResidual(offset), offset + 32) }],
+    });
+    const result = build(0);
+    const shifted = build(16);
+    const other = result.ir.identity
+      .filter((note) => note.identitySource === "other")
+      .sort((a, b) => a.start - b.start);
+    const shiftedOther = shifted.ir.identity
+      .filter((note) => note.identitySource === "other")
+      .sort((a, b) => a.start - b.start);
+    const gaps = other.slice(1).map((note, index) => note.start - other[index]!.start);
+    expect(other.length, "moderately dense residual phrase was not recovered").toBeLessThanOrEqual(14);
+    expect(other.length).toBeGreaterThanOrEqual(10);
+    expect(Math.min(...gaps), "residual opening kept detector partial chatter").toBeGreaterThanOrEqual(0.55 - 1e-6);
+    expect(other.every((note) => lead.includes(note.midi)), "residual partial became the melody").toBe(true);
+    expect(shiftedOther.map((note) => ({ start: Number((note.start - 16).toFixed(6)), midi: note.midi })))
+      .toEqual(other.map((note) => ({ start: Number(note.start.toFixed(6)), midi: note.midi })));
+  });
+
+  it("keeps jittered residual opening attacks off a sub-half-beat floor", () => {
+    const lead = [64, 65, 67, 69, 67, 65, 64, 62, 64, 65, 67, 69, 71, 69, 67, 65];
+    const starts = [0.119, 1.538, 1.969, 2.381, 3.264, 4.426, 5.549, 6.966, 7.627, 8.936, 9.326, 10.515, 11.747, 12.982, 13.314, 13.706];
+    const residual = starts.flatMap((start, index) => [
+      { midi: lead[index]!, start, dur: 0.35, vel: 62 },
+      { midi: [78, 81, 74, 79][index % 4]!, start: start + 0.12, dur: 0.08, vel: 44 },
+      { midi: [76, 80, 77][index % 3]!, start: start + 0.31, dur: 0.07, vel: 43 },
+    ]);
+    const result = buildMetalArrangement({
+      sectionBeats: 32,
+      stems: [{ role: "other", midi: midi(residual, 24) }],
+    });
+    const other = result.ir.identity
+      .filter((note) => note.identitySource === "other")
+      .sort((a, b) => a.start - b.start);
+    const gaps = other.slice(1).map((note, index) => note.start - other[index]!.start);
+    expect(Math.min(...gaps), "jittered residual decoder kept a sub-half-beat attack pair")
+      .toBeGreaterThanOrEqual(0.55 - 1e-6);
+    expect(other.every((note) => lead.includes(note.midi)), "jittered residual partial became melody").toBe(true);
+  });
+
   it("preserves the residual role when no dedicated guitar stem exists", () => {
     const lead = [64, 65, 67, 69, 67, 65, 64, 62, 64, 65, 67, 69].map((midi, index) => ({
       midi,
