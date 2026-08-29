@@ -448,6 +448,41 @@ function removeWeakVocalDetours(notes: Note[], tempoBpm: number, legato: boolean
 }
 
 /**
+ * Remove an unsupported residual-stem spike before learner merging can make
+ * its neighbours look farther apart.  The `other` lane is often a full-mix
+ * residue: a quiet, eighth-note detector hit can sit between two ordinary
+ * upper attacks and sound like a random piano leap.  Keep this deliberately
+ * residual-only and legato-only; vocals, dedicated guitar, and Advanced
+ * source detail are not altered.
+ */
+function removeResidualUpperOutliers(notes: Note[], legato: boolean): Note[] {
+  if (!legato || notes.length < 3) return notes;
+  const residual = notes
+    .filter((note) => note.identitySource === "other" && note.midi >= 61)
+    .sort((a, b) => a.start - b.start || b.vel - a.vel || b.midi - a.midi);
+  if (residual.length < 3) return notes;
+
+  const remove = new Set<Note>();
+  for (let index = 1; index < residual.length - 1; index++) {
+    const previous = residual[index - 1]!;
+    const note = residual[index]!;
+    const next = residual[index + 1]!;
+    const beforeBeats = note.start - previous.start;
+    const afterBeats = next.start - note.start;
+    if (beforeBeats > 1.5 + 1e-9 || afterBeats > 1.5 + 1e-9) continue;
+    if (note.vel > 48 || note.dur > 0.375 + 1e-9) continue;
+    if (Math.abs(note.midi - previous.midi) < 7 || Math.abs(note.midi - next.midi) < 7) continue;
+    if (Math.abs(previous.midi - next.midi) > 5) continue;
+    const hasSamePitchSupport = residual.some((candidate) => candidate !== note
+      && candidate.midi === note.midi
+      && Math.abs(candidate.start - note.start) <= 2 + 1e-9);
+    if (hasSamePitchSupport) continue;
+    remove.add(note);
+  }
+  return remove.size ? notes.filter((note) => !remove.has(note)) : notes;
+}
+
+/**
  * Remove a single weak guitar attack that is literally bracketed by vocal
  * attacks in the selected learner melody.  The pre-selection handoff guard
  * above cannot see this shape reliably: richer candidates can support the
@@ -689,11 +724,12 @@ function reduceMetalRhRealism(notes: Note[], tempoBpm: number, maxAttacksPerSeco
   // contiguous in the source stem. Allow only a short, tempo-aware silence
   // here: a larger gap is a real vocal re-attack and must remain playable.
   const maxVocalFragmentGapBeats = Math.min(0.125, 0.08 / secondsPerBeat);
-  const source = suppressLowGuitarLeadFiller(notes, legato)
+  const dedupedSource = suppressLowGuitarLeadFiller(notes, legato)
     .sort((a, b) => a.start - b.start
       || Number(b.identitySource === "vocals") - Number(a.identitySource === "vocals")
       || b.vel - a.vel || b.dur - a.dur || b.midi - a.midi)
     .filter((note, index, all) => index === 0 || Math.abs(note.start - all[index - 1]!.start) > 1e-9);
+  const source = removeResidualUpperOutliers(dedupedSource, legato);
 
   const merged: Note[] = [];
   let lastMergedAttackStart: number | undefined;

@@ -530,6 +530,34 @@ describe("metal piano arranger", () => {
     expect(result.parsed.notes.filter((note) => note.hand === "L" && note.identitySource === "guitar")).toHaveLength(8);
   });
 
+  it("drops a sustained sub-register vocal drone without dropping a moving low vocal phrase", () => {
+    const droneAndHook: Note[] = [
+      { midi: 29, start: 0, dur: 6.5, vel: 78 },
+      { midi: 72, start: 7, dur: 0.5, vel: 98 },
+      { midi: 74, start: 8, dur: 0.5, vel: 96 },
+    ];
+    const droneResult = buildMetalArrangement({
+      stems: [
+        { role: "vocals", midi: midi(droneAndHook, 10) },
+        { role: "guitar", midi: midi([{ midi: 64, start: 7.5, dur: 0.5, vel: 84 }], 10) },
+      ],
+    });
+    const vocalIdentity = droneResult.ir.identity.filter((note) => note.identitySource === "vocals");
+    expect(vocalIdentity.some((note) => note.start < 1), "raw low vocal drone was promoted into RH").toBe(false);
+    expect(vocalIdentity.map((note) => note.midi)).toEqual([72, 74]);
+
+    const movingLow = [42, 44, 47, 49].map((midi, index) => ({
+      midi,
+      start: index * 0.5,
+      dur: 0.35,
+      vel: 84,
+    }));
+    const movingResult = buildMetalArrangement({
+      stems: [{ role: "vocals", midi: midi(movingLow, 3) }],
+    });
+    expect(movingResult.ir.identity.filter((note) => note.identitySource === "vocals")).toHaveLength(4);
+  });
+
   it("preserves a repeated upper MIDI 62 hook instead of classifying it as low pulse", () => {
     const hook = Array.from({ length: 8 }, (_, index) => ({
       midi: index % 4 < 2 ? 62 : 64,
@@ -1048,6 +1076,30 @@ describe("metal piano arranger", () => {
     }
     const advanced = variants.find((variant) => variant.level === "advanced")!.notes.filter((note) => note.hand !== "L");
     expect(advanced.some((note) => note.identitySource === "other" && note.start === 1.25)).toBe(true);
+  });
+
+  it("drops a quiet residual spike after a long gap without changing Advanced detail", () => {
+    const source = midi([
+      { midi: 62, start: 1, dur: 0.5, vel: 72, hand: "R", identitySource: "other" },
+      // The preceding lead attack is more than the old local-detour window
+      // away. This weak short residual spike should not become a learner
+      // melody solely because the next upper attack is nearby.
+      { midi: 72, start: 2, dur: 0.25, vel: 44, hand: "R", identitySource: "other" },
+      { midi: 64, start: 2.75, dur: 0.5, vel: 72, hand: "R", identitySource: "other" },
+    ], 3.5);
+    const variants = buildVariants(source, { title: "Residual gap spike", artist: "Fixture" }, {
+      arrangementProfile: "metal",
+      audioDerived: true,
+    });
+    for (const level of ["medium", "easy"] as const) {
+      const notes = variants.find((variant) => variant.level === level)!.notes
+        .filter((note) => note.hand !== "L" && note.identitySource === "other");
+      expect(notes.some((note) => note.midi === 72 && note.start === 2), `${level} kept residual gap spike`).toBe(false);
+      expect(notes.map((note) => note.midi)).toEqual([62, 64]);
+    }
+    const advanced = variants.find((variant) => variant.level === "advanced")!.notes
+      .filter((note) => note.hand !== "L" && note.identitySource === "other");
+    expect(advanced.some((note) => note.midi === 72 && note.start === 2)).toBe(true);
   });
 
   it("retains enough connected landings from a dense stepwise solo phrase", () => {
