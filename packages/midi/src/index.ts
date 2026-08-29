@@ -21,6 +21,7 @@ export type {
   GuitarLeadPathDiagnostics,
   GuitarLeadPathOptions,
   GuitarLeadPathResult,
+  GuitarHarmonyDiagnostics,
   MetalArrangementInput,
   MetalArrangementIR,
   MetalArrangementResult,
