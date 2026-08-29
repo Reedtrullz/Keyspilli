@@ -325,6 +325,28 @@ function classificationForCandidate(candidate: ArrangementCandidate, haystack: s
 }
 
 /**
+ * Return an analysis identifier that is safe to expose in reports/API
+ * payloads. Candidate ids are caller-controlled labels and older import
+ * paths occasionally used a local filename as the id. Keep established
+ * logical ids byte-for-byte, but replace path-like ids with the strongest
+ * available logical source identity (or a deterministic metadata label).
+ */
+function logicalPianoCandidateId(candidate: ArrangementCandidate): string {
+  const supplied = typeof candidate.id === "string" ? candidate.id.trim() : "";
+  if (supplied && !isPathLikeSourceRef(supplied)) return supplied;
+
+  const provenance = canonicalCandidateProvenance(candidate);
+  if (provenance.sourceRef && isLogicalSourceRef(provenance.sourceRef)) return provenance.sourceRef;
+
+  // A non-YouTube URL is not a stable source identity in this contract, so do
+  // not copy its path into the fallback id. The source type plus normalized
+  // title gives callers a deterministic, path-free logical label instead.
+  const sourceType = clean(String(candidate.sourceType || "candidate")) || "candidate";
+  const title = typeof candidate.title === "string" ? slug(candidate.title) : "";
+  return `${sourceType}:${title || "candidate"}`;
+}
+
+/**
  * Classify a candidate from stable metadata in a fixed precedence order.
  * Metadata is evidence for choosing a lane, not proof that the media is
  * actually solo piano; the import stage remains responsible for validation.
@@ -333,18 +355,19 @@ export function analyzePianoCandidate(candidate: ArrangementCandidate): PianoCan
   const haystack = clean(`${candidate.title} ${candidate.url ?? ""} ${candidate.localPath ?? ""}`);
   const { classification, signals } = classificationForCandidate(candidate, haystack);
   const strategy = pianoStrategyForCandidate(candidate, haystack);
+  const candidateId = logicalPianoCandidateId(candidate);
   const usable = strategy !== "unsupported" && classification !== "bad-cover" && classification !== "ambiguous";
   const reason = usable ? undefined
     : classification === "bad-cover" ? "metadata indicates a non-solo or non-piano source"
       : strategy === "unsupported" ? "candidate type is unsupported by the piano pipeline"
         : "metadata is insufficient to select a piano extraction lane";
   return {
-    candidateId: candidate.id,
+    candidateId,
     classification,
     strategy,
     usable,
     ...(reason ? { reason } : {}),
-    ...(strategy === "existing-symbolic-link" ? { symbolicCandidateId: candidate.id } : {}),
+    ...(strategy === "existing-symbolic-link" ? { symbolicCandidateId: candidateId } : {}),
     signals,
     provenance: safeAnalysisProvenance(candidate, strategy),
   };

@@ -76,6 +76,37 @@ describe("song research foundation", () => {
     expect(analyzePianoCandidate(candidate({ sourceType: "piano-cover-video", title: "Defence Of Moscow piano cover", url: "https://example.test/download.mid" })).strategy).toBe("piano-audio-transcription");
     expect(selectPianoExtractionStrategy(candidate({ sourceType: "metal-transcription" }))).toBe("unsupported");
   });
+  it("does not expose path-like candidate ids in piano analysis", () => {
+    const fromLogicalSource = analyzePianoCandidate(candidate({
+      id: "/Users/reidar/Downloads/Defence Of Moscow.mid",
+      sourceType: "midi",
+      localPath: "/Users/reidar/Downloads/Defence Of Moscow.mid",
+      provenance: {
+        kind: "midi",
+        acquiredVia: "upload",
+        sourceRef: "midi-pack:defence-of-moscow",
+        sourceArtifactRef: "/Users/reidar/Downloads/Defence Of Moscow.mid",
+      },
+    }));
+    expect(fromLogicalSource).toMatchObject({
+      candidateId: "midi-pack:defence-of-moscow",
+      symbolicCandidateId: "midi-pack:defence-of-moscow",
+      strategy: "existing-symbolic-link",
+      usable: true,
+    });
+    expect(JSON.stringify(fromLogicalSource)).not.toMatch(/Users\/reidar|Defence Of Moscow\.mid/);
+
+    const metadataFallback = analyzePianoCandidate(candidate({
+      id: "/tmp/opaque/cover.mid",
+      sourceType: "midi",
+      title: "Defence Of Moscow arrangement",
+      url: "https://example.test/download.mid",
+      provenance: { kind: "midi", acquiredVia: "catalog" },
+    }));
+    expect(metadataFallback.candidateId).toBe("midi:defence-of-moscow-arrangement");
+    expect(metadataFallback.strategy).toBe("existing-symbolic-link");
+    expect(JSON.stringify(metadataFallback)).not.toMatch(/opaque|cover\.mid|example\.test/);
+  });
   it("normalizes song identity and canonical YouTube provenance", () => {
     expect(identity).toMatchObject({
       title: "Defence Of Moscow",
