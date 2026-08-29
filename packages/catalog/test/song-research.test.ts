@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildResearchQueries,
+  canonicalCandidateKey,
   classifyArrangementCandidate,
   createSongIdentity,
   mergeArrangementCandidates,
@@ -88,6 +89,17 @@ describe("song research foundation", () => {
     expect(ranked.find((item) => item.id === "substring")!.reasons!.join(" ")).toMatch(/title tokens|0\/3|1\/3/i);
   });
 
+  it("matches multi-word artists as a contiguous token sequence", () => {
+    const song = createSongIdentity({ title: "The Signal", artist: "The Birthday Massacre" });
+    const ranked = rankArrangementCandidates(song, [
+      candidate({ id: "contiguous", title: "The Birthday Massacre The Signal piano", provenance: { kind: "midi", acquiredVia: "catalog", sourceRef: "example:contiguous" } }),
+      candidate({ id: "fragmented", title: "The Signal Birthday piano", provenance: { kind: "midi", acquiredVia: "catalog", sourceRef: "example:fragmented" } }),
+    ]);
+    expect(ranked[0]?.id).toBe("contiguous");
+    expect(ranked.find((item) => item.id === "contiguous")?.reasons?.join(" ")).toMatch(/artist match/);
+    expect(ranked.find((item) => item.id === "fragmented")?.reasons?.join(" ")).toMatch(/artist mismatch/);
+  });
+
   it("merges canonical duplicates and is deterministic for equal ids", () => {
     const one = candidate({ id: "same", url: "https://youtu.be/abc12345678?t=4", title: "Defence Of Moscow piano", confidence: 0.4 });
     const two = candidate({ id: "same", url: "https://www.youtube.com/watch?v=abc12345678", title: "Defence Of Moscow piano cover", confidence: 0.9 });
@@ -109,6 +121,40 @@ describe("song research foundation", () => {
     expect(normalized.confidence).toBe(1);
     expect(normalized.coverage).toBeNull();
     expect(JSON.stringify(normalized)).not.toMatch(/NaN|Infinity/);
+  });
+
+  it("keeps ranked score fields finite when caller metadata is non-finite", () => {
+    const invalid = candidate({
+      durationSeconds: Number.POSITIVE_INFINITY,
+      confidence: Number.NaN,
+      coverage: { startSeconds: Number.NaN, endSeconds: Number.POSITIVE_INFINITY, completeness: Number.NaN },
+      score: Number.NaN,
+      scoreBreakdown: { stale: Number.POSITIVE_INFINITY },
+    });
+    const ranked = rankArrangementCandidates({ ...identity, durationSeconds: Number.POSITIVE_INFINITY }, [invalid])[0]!;
+    expect(ranked.durationSeconds).toBeNull();
+    expect(ranked.confidence).toBeUndefined();
+    expect(typeof ranked.score).toBe("number");
+    expect(Number.isFinite(ranked.score)).toBe(true);
+    expect(Object.values(ranked.scoreBreakdown ?? {}).every((value) => Number.isFinite(value))).toBe(true);
+    expect(JSON.stringify(ranked)).not.toMatch(/NaN|Infinity/);
+  });
+
+  it("forces direct metal transcription to a safe audio fallback", () => {
+    const classified = classifyArrangementCandidate(candidate({
+      sourceType: "metal-transcription",
+      extractionStrategy: "symbolic",
+      selection: "preferred",
+      fallbackTier: 0,
+    }));
+    expect(classified).toMatchObject({
+      sourceType: "metal-transcription",
+      extractionStrategy: "audio-transcription",
+      selection: "fallback",
+      fallbackTier: 1,
+    });
+    expect(classifyArrangementCandidate(candidate({ sourceType: "piano-cover-video", extractionStrategy: "symbolic" })).extractionStrategy).toBe("audio-midi");
+    expect(classifyArrangementCandidate(candidate({ sourceType: "midi", extractionStrategy: "visual-midi" })).extractionStrategy).toBe("symbolic");
   });
 
   it("serializes a stable path-free manifest", () => {
@@ -141,5 +187,54 @@ describe("song research foundation", () => {
     expect(manifest).not.toMatch(/password|secret|\/Users\/reidar|\/tmp\/private/);
     expect(manifest).toContain("example.test");
     expect(manifest).toContain("v=abc12345678");
+  });
+
+  it("does not serialize relative paths or invalid file URLs", () => {
+    const nestedCandidate = {
+      ...candidate({
+        id: "relative-paths",
+        localPath: "./private/defence.mid",
+        provenance: {
+          kind: "midi",
+          acquiredVia: "upload",
+          sourceRef: "catalog:defence-of-moscow",
+          sourceArtifactRef: "relative/secret.mid",
+          nested: {
+            path: "cache/secret.mid",
+            file: "secret.mid",
+            fileUrl: "file:relative/secret.mid",
+            safeRef: "catalog:defence-of-moscow",
+          },
+        } as never,
+      }),
+      nestedPath: "./nested/secret",
+      nestedFile: "secret.mid",
+      fileUrl: "file:relative/secret.mid",
+      extra: { safeRef: "catalog:defence-of-moscow" },
+    } as ArrangementCandidate;
+    const manifest = serializeResearchManifest(identity, [nestedCandidate]);
+    expect(manifest).not.toMatch(/private|secret|file:/i);
+    expect(manifest).toContain("catalog:defence-of-moscow");
+  });
+
+  it("uses a canonical candidate YouTube URL over stale provenance", () => {
+    const item = candidate({
+      id: "youtube-conflict",
+      url: "https://www.youtube.com/watch?v=abc12345678",
+      provenance: {
+        kind: "youtube",
+        acquiredVia: "catalog",
+        sourceYoutubeUrl: "https://www.youtube.com/watch?v=def12345678",
+        sourceRef: "youtube:def12345678",
+      },
+    });
+    expect(mergeArrangementCandidates([item])[0]).toMatchObject({
+      url: "https://www.youtube.com/watch?v=abc12345678",
+      provenance: {
+        sourceYoutubeUrl: "https://www.youtube.com/watch?v=abc12345678",
+        sourceRef: "youtube:abc12345678",
+      },
+    });
+    expect(canonicalCandidateKey(item)).toContain("youtube:abc12345678");
   });
 });

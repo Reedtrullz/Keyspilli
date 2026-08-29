@@ -102,7 +102,7 @@ function finitePositive(value: unknown): number | null {
 }
 
 function normalizeCoverage(value: CandidateCoverage | null | undefined): CandidateCoverage | null {
-  if (!value) return null;
+  if (!value || typeof value !== "object") return null;
   const startSeconds = finiteInRange(value.startSeconds, 0, Number.MAX_SAFE_INTEGER);
   const endSeconds = finiteInRange(value.endSeconds, 0, Number.MAX_SAFE_INTEGER);
   const completeness = finiteInRange(value.completeness, 0, 1);
@@ -118,12 +118,18 @@ function normalizeCandidate(candidate: ArrangementCandidate): ArrangementCandida
       ? Math.max(0, Math.min(1, candidate.confidence))
       : undefined;
   const coverage = normalizeCoverage(candidate.coverage);
+  const score = typeof candidate.score === "number" && Number.isFinite(candidate.score) ? candidate.score : undefined;
+  const scoreBreakdown = candidate.scoreBreakdown && typeof candidate.scoreBreakdown === "object"
+    ? Object.fromEntries(Object.entries(candidate.scoreBreakdown).filter(([, item]) => typeof item === "number" && Number.isFinite(item)))
+    : undefined;
   return {
     ...candidate,
     ...(durationSeconds === null ? { durationSeconds: null } : { durationSeconds }),
-    ...(candidate.confidence === undefined || confidence === undefined ? {} : { confidence }),
+    confidence,
     ...(candidate.coverage === undefined ? {} : { coverage }),
     ...(candidate.fallbackTier === undefined ? {} : { fallbackTier: candidate.fallbackTier === null ? null : Math.max(0, Math.floor(finiteInRange(candidate.fallbackTier, 0, Number.MAX_SAFE_INTEGER) ?? 0)) }),
+    score,
+    scoreBreakdown,
   };
 }
 
@@ -201,24 +207,39 @@ export function classifyArrangementCandidate(candidate: ArrangementCandidate, op
   } else if (inferred && strategyFor(sourceType) === "symbolic" && sourceType === "midi") {
     signals.push("explicit symbolic source");
   }
-  const extractionStrategy = candidate.extractionStrategy && ["symbolic", "audio-transcription", "visual-midi", "audio-midi", "none"].includes(candidate.extractionStrategy)
-    ? candidate.extractionStrategy
-    : strategyFor(sourceType);
-  const selection = candidate.selection ?? (sourceType === "metal-transcription" ? "fallback" : "preferred");
-  const fallbackTier = candidate.fallbackTier ?? (selection === "fallback" ? 1 : null);
+  const extractionStrategy = strategyFor(sourceType);
+  const selection = sourceType === "metal-transcription" ? "fallback" : candidate.selection ?? "preferred";
+  const normalizedTier = candidate.fallbackTier === null || candidate.fallbackTier === undefined
+    ? null
+    : Math.max(0, Math.floor(finiteInRange(candidate.fallbackTier, 0, Number.MAX_SAFE_INTEGER) ?? 0));
+  const fallbackTier = sourceType === "metal-transcription"
+    ? Math.max(1, normalizedTier ?? 1)
+    : normalizedTier ?? (selection === "fallback" ? 1 : null);
   return { ...normalizeCandidate({ ...candidate, sourceType, extractionStrategy, selection, fallbackTier }), sourceType, extractionStrategy, selection, signals };
+}
+
+function containsTokenSequence(haystack: readonly string[], needle: readonly string[]): boolean {
+  if (needle.length === 0) return false;
+  for (let start = 0; start <= haystack.length - needle.length; start += 1) {
+    if (needle.every((token, index) => haystack[start + index] === token)) return true;
+  }
+  return false;
 }
 
 function score(candidate: ClassifiedCandidate, song: SongIdentity): { value: number; breakdown: Record<string, number>; reasons: string[] } {
   const haystack = `${candidate.title} ${candidate.url ?? ""}`.toLowerCase();
   const reasons: string[] = [];
   const breakdown: Record<string, number> = {};
-  const add = (key: string, amount: number, reason?: string) => { breakdown[key] = amount; if (reason) reasons.push(reason); };
+  const add = (key: string, amount: number, reason?: string) => {
+    const finiteAmount = Number.isFinite(amount) ? amount : 0;
+    breakdown[key] = finiteAmount;
+    if (reason) reasons.push(reason);
+  };
   const titleTokens = tokens(song.normalizedTitle).filter((token) => token.length > 1);
   const haystackTokens = new Set(tokens(haystack));
   const matched = titleTokens.filter((token) => haystackTokens.has(token)).length;
   add("exactTitle", matched === titleTokens.length ? RESEARCH_SCORE_WEIGHTS.exactTitle : -20, `${matched}/${titleTokens.length} title tokens`);
-  const artistMatch = tokens(haystack).includes(song.normalizedArtist);
+  const artistMatch = containsTokenSequence(tokens(haystack), tokens(song.normalizedArtist));
   add("artist", artistMatch ? RESEARCH_SCORE_WEIGHTS.artist : -18, artistMatch ? "artist match" : "artist mismatch");
   if (/piano|keyboard/.test(haystack)) add("piano", RESEARCH_SCORE_WEIGHTS.piano, "piano signal");
   if (/tutorial/.test(haystack)) add("tutorial", RESEARCH_SCORE_WEIGHTS.tutorial, "tutorial signal");
@@ -226,8 +247,9 @@ function score(candidate: ClassifiedCandidate, song: SongIdentity): { value: num
   if (["midi", "musicxml", "guitar-pro", "structured-tab"].includes(candidate.sourceType)) add("symbolic", RESEARCH_SCORE_WEIGHTS.symbolic, "symbolic source");
   if (candidate.sourceType === "metal-transcription") add("directFallback", RESEARCH_SCORE_WEIGHTS.directFallback, "direct transcription fallback");
   if (/reaction|review|lesson|karaoke|mashup|remix|nightcore|sped up|slowed/.test(haystack)) add("negativeSignal", RESEARCH_SCORE_WEIGHTS.negativeSignal, "negative search signal");
-  if (song.durationSeconds && candidate.durationSeconds && candidate.durationSeconds > 0) {
-    const drift = Math.abs(candidate.durationSeconds - song.durationSeconds) / song.durationSeconds;
+  const songDuration = finitePositive(song.durationSeconds);
+  if (songDuration !== null && candidate.durationSeconds && candidate.durationSeconds > 0) {
+    const drift = Math.abs(candidate.durationSeconds - songDuration) / songDuration;
     add("coherentDuration", drift <= 0.15 ? RESEARCH_SCORE_WEIGHTS.coherentDuration : -10, `duration drift ${(drift * 100).toFixed(0)}%`);
   }
   if (candidate.coverage && candidate.coverage.completeness < 0.9) add("partialCoverage", RESEARCH_SCORE_WEIGHTS.partialCoverage * (1 - candidate.coverage.completeness), "partial coverage");
@@ -237,9 +259,22 @@ function score(candidate: ClassifiedCandidate, song: SongIdentity): { value: num
   return { value, breakdown, reasons };
 }
 
+function canonicalCandidateProvenance(candidate: ArrangementCandidate): SourceProvenance {
+  const candidateYoutubeUrl = canonicalYoutubeUrl(candidate.url);
+  const raw = candidate.provenance && typeof candidate.provenance === "object" && !Array.isArray(candidate.provenance)
+    ? candidate.provenance as SourceProvenance
+    : {};
+  // A concrete candidate URL is the strongest identity available. In
+  // particular, do not let a stale sidecar URL change the candidate's key.
+  return canonicalizeSourceProvenance(
+    candidateYoutubeUrl ? { ...raw, sourceYoutubeUrl: candidateYoutubeUrl } : raw,
+    candidateYoutubeUrl ? { sourceYoutubeUrl: candidateYoutubeUrl } : {},
+  );
+}
+
 export function rankArrangementCandidates(song: SongIdentity, candidates: readonly ArrangementCandidate[]): ClassifiedCandidate[] {
   return mergeArrangementCandidates(candidates).map((raw) => {
-    const candidate = classifyArrangementCandidate({ ...raw, provenance: canonicalizeSourceProvenance(raw.provenance, { sourceYoutubeUrl: raw.url }) });
+    const candidate = classifyArrangementCandidate({ ...raw, provenance: canonicalCandidateProvenance(raw) });
     const result = score(candidate, song);
     return { ...candidate, score: result.value, scoreBreakdown: result.breakdown, reasons: result.reasons };
   }).sort((a, b) => (b.score! - a.score!) || a.id.localeCompare(b.id) || canonicalCandidateKey(a).localeCompare(canonicalCandidateKey(b)) || stableJson(a).localeCompare(stableJson(b)));
@@ -247,7 +282,7 @@ export function rankArrangementCandidates(song: SongIdentity, candidates: readon
 
 /** Stable logical key used to collapse repeated search results and aliases. */
 export function canonicalCandidateKey(candidate: ArrangementCandidate): string {
-  const provenance = canonicalizeSourceProvenance(candidate.provenance, { sourceYoutubeUrl: candidate.url });
+  const provenance = canonicalCandidateProvenance(candidate);
   const logical = provenance.sourceRef ?? canonicalYoutubeUrl(candidate.url) ?? candidate.id;
   return `${candidate.sourceType}|${logical}`;
 }
@@ -276,7 +311,7 @@ export function mergeArrangementCandidates(candidates: readonly ArrangementCandi
     const first = ordered[0]!;
     const url = canonicalYoutubeUrl(first.url) ?? first.url ?? null;
     const confidence = Math.max(...group.map((item) => item.confidence ?? 0));
-    const mergedProvenance = canonicalizeSourceProvenance(first.provenance, { sourceYoutubeUrl: url });
+    const mergedProvenance = canonicalCandidateProvenance({ ...first, url });
     return {
       ...first,
       ...(url === null ? { url: null } : { url }),
@@ -293,28 +328,47 @@ function stable(value: unknown): unknown {
 }
 
 const SENSITIVE_KEY = /(?:password|passwd|secret|token|api[_-]?key|access[_-]?key|authorization|credential|cookie|session)/i;
-const PATH_KEY = /(?:^|_)(?:local|absolute|sourceArtifact|artifact)?(?:path|filename|fileName|file)(?:$|_)/i;
+const PATH_KEY = /(?:path|filename|file|artifactref)/i;
 const URL_KEY = /(?:url|uri|href|sourceYoutubeUrl)$/i;
 const SENSITIVE_QUERY = /^(?:token|access_token|refresh_token|api_key|apikey|key|secret|password|passwd|auth|authorization|cookie|session|sig|signature|.*(?:token|secret|password|credential|auth|api[_-]?key|signature).*)$/i;
 
-function safeUrl(value: string): string {
+function safeUrl(value: string): string | null {
   try {
     const url = new URL(value);
+    if (url.protocol === "file:") return null;
     url.username = "";
     url.password = "";
     for (const key of [...url.searchParams.keys()]) if (SENSITIVE_QUERY.test(key)) url.searchParams.delete(key);
+    if (SENSITIVE_QUERY.test(url.hash.replace(/^#/, ""))) url.hash = "";
     return url.toString();
   } catch {
-    return value;
+    return null;
   }
+}
+
+function isLogicalSourceRef(value: string): boolean {
+  if (/^(?:file|https?|ftp|ssh):/i.test(value)) return false;
+  return /^(?:youtube|catalog|upload|midi-pack|seed|manifest|reconstructed-upload|stored-advanced):[A-Za-z0-9_-]+$/i.test(value)
+    || /^[A-Za-z][A-Za-z0-9+.-]*:[A-Za-z0-9_-]+$/.test(value);
+}
+
+function isPathLikeSourceRef(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed || isLogicalSourceRef(trimmed)) return false;
+  return /^(?:file:|[~.]?[\/]|[A-Za-z]:[\\/])/.test(trimmed)
+    || /[\\/]/.test(trimmed)
+    || /[?#@]/.test(trimmed)
+    || /\.(?:mid|midi|musicxml|xml|gp|gpx|mp3|wav|flac|json)$/i.test(trimmed);
 }
 
 function sanitizeManifestValue(value: unknown, key = ""): unknown {
   if (SENSITIVE_KEY.test(key)) return undefined;
-  if ((PATH_KEY.test(key) || /(?:artifact|file)ref$/i.test(key)) && typeof value === "string" && (value.startsWith("/") || /^[A-Za-z]:[\\/]/.test(value))) return undefined;
+  if (PATH_KEY.test(key)) return undefined;
+  if (/^sourceRef$/i.test(key) && typeof value === "string" && isPathLikeSourceRef(value)) return undefined;
   if (typeof value === "string") {
-    if (/^(?:\/|[A-Za-z]:[\\/]|file:\/\/)/.test(value)) return undefined;
-    return URL_KEY.test(key) || /^https?:\/\//i.test(value) ? safeUrl(value) : value;
+    if (/^file:/i.test(value) || /^(?:\/|[A-Za-z]:[\\/]|~[\\/]|\.\.?[\\/])/.test(value)) return undefined;
+    if (URL_KEY.test(key) || /^[a-z][a-z\d+.-]*:\/\//i.test(value)) return safeUrl(value) ?? undefined;
+    return value;
   }
   if (Array.isArray(value)) return value.map((item) => sanitizeManifestValue(item, key)).filter((item) => item !== undefined);
   if (value && typeof value === "object") {
