@@ -65,6 +65,7 @@ interface RawTranscription {
 export interface PianoCacheKeyInput {
   mediaSha256: string;
   model: string;
+  backendId: string;
   backendVersion: string;
   config?: Record<string, unknown>;
 }
@@ -79,7 +80,7 @@ function stableJson(value: unknown): string {
 
 /** Cache identity is independent of object key insertion order. */
 export function pianoTranscriptionCacheKey(input: PianoCacheKeyInput): string {
-  return `piano-transcription:${createHash("sha256").update(stableJson({ mediaSha256: input.mediaSha256, model: input.model, backendVersion: input.backendVersion, config: input.config ?? {} })).digest("hex")}`;
+  return `piano-transcription:${createHash("sha256").update(stableJson({ mediaSha256: input.mediaSha256, model: input.model, backendId: input.backendId, backendVersion: input.backendVersion, config: input.config ?? {} })).digest("hex")}`;
 }
 
 function asNumber(value: unknown): number | undefined {
@@ -94,7 +95,15 @@ export function normalizePianoTranscription(raw: unknown, provenance: PianoTrans
       const n = entry as Record<string, unknown>;
       const midi = asNumber(n.midi), start = asNumber(n.start), dur = asNumber(n.dur), vel = asNumber(n.vel);
       if (midi === undefined || start === undefined || dur === undefined || vel === undefined || midi < 0 || midi > 127 || start < 0 || dur <= 0) return [];
-      return [{ midi: Math.round(midi), start, dur, vel: Math.max(0, Math.min(127, Math.round(vel))), ...(n.hand === "L" || n.hand === "R" ? { hand: n.hand } : {}) }];
+      return [{
+        midi: Math.round(midi),
+        start,
+        dur,
+        vel: Math.max(0, Math.min(127, Math.round(vel))),
+        ...(n.hand === "L" || n.hand === "R" ? { hand: n.hand } : {}),
+        ...(n.identitySource === "vocals" || n.identitySource === "guitar" || n.identitySource === "other" ? { identitySource: n.identitySource } : {}),
+        ...(typeof n.lyrics === "string" ? { lyrics: n.lyrics } : {}),
+      }];
     }) : [];
   const tempoBpm = asNumber(input.tempoBpm) ?? 120;
   const durationBeats = notes.reduce((max, n) => Math.max(max, n.start + n.dur), 0);
@@ -127,7 +136,7 @@ export function createPianoTranscriptionAdapter(options: PianoTranscriptionAdapt
     backendVersion,
     async transcribe(request: PianoTranscriptionRequest): Promise<PianoTranscriptionResult> {
       const config = request.config ?? {};
-      const provenance = { backendId, backendVersion, model: request.model, mediaSha256: request.mediaSha256, config, cacheKey: pianoTranscriptionCacheKey({ mediaSha256: request.mediaSha256, model: request.model, backendVersion, config }) };
+      const provenance = { backendId, backendVersion, model: request.model, mediaSha256: request.mediaSha256, config: { ...config }, cacheKey: pianoTranscriptionCacheKey({ mediaSha256: request.mediaSha256, model: request.model, backendId, backendVersion, config }) };
       if (options.enabled === false) return { status: "unavailable", error: PIANO_TRANSCRIPTION_UNAVAILABLE, provenance };
       try {
         const result = await run(options.command, ["--model", request.model, "--output-format", "json", ...(Object.keys(config).length ? ["--config-json", stableJson(config)] : []), request.mediaPath], { timeout: options.timeoutMs ?? 120_000 });
