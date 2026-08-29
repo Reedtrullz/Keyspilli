@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 import {
@@ -9,12 +10,12 @@ import {
   type SongMeta,
 } from "@keyspilli/midi";
 import {
-  alignSymbolicScores,
   normalizeSymbolicScore,
   type NormalizedSymbolicScore,
   type SymbolicAlignmentOptions,
   type SymbolicScoreInput,
 } from "./symbolic-alignment.js";
+import { alignPianoCandidates as alignPianoCandidatesWithDrift } from "./piano-alignment.js";
 
 const EPS = 1e-9;
 const ONSET_TOLERANCE = 0.08;
@@ -163,6 +164,9 @@ export interface PianoEvaluationReport {
   schemaVersion: 1;
   candidates: PianoCandidateEvaluation[];
   ranking: PianoRankingEntry[];
+  /** Explicitly distinguishes omitted reference evidence from a failed read. */
+  referenceStatus?: "not-requested" | "available" | "missing" | "invalid";
+  referenceDiagnostics?: string[];
   disclaimer: string;
   determinism: { canonicalSha256: string };
 }
@@ -399,38 +403,111 @@ function candidateScore(evaluation: PianoCandidateEvaluation): { score: number |
   return { score: round(Math.max(0, Math.min(100, score))), reasons };
 }
 
-function inputScore(input: PianoCandidateInput): { score: NormalizedSymbolicScore | null; diagnostics: string[] } {
+function inputScore(input: PianoCandidateInput, subject = "candidate"): { score: NormalizedSymbolicScore | null; diagnostics: string[] } {
   const diagnostics: string[] = [];
   try {
-    if (input.bytes) return { score: normalizeSymbolicScore(parseMidi(input.bytes)), diagnostics };
-    if (input.parsed) return { score: normalizeSymbolicScore(input.parsed), diagnostics };
-    if (input.notes) return { score: normalizeSymbolicScore({ ...input, notes: input.notes }), diagnostics };
+    let score: NormalizedSymbolicScore | null = null;
+    if (input.bytes) score = normalizeSymbolicScore(parseMidi(input.bytes));
+    else if (input.parsed) score = normalizeSymbolicScore(input.parsed);
+    else if (input.notes) score = normalizeSymbolicScore({ ...input, notes: input.notes });
+    if (score) {
+      diagnostics.push(...score.warnings);
+      if (!score.notes.length) return { score: null, diagnostics: [...diagnostics, `${subject} contains no valid symbolic notes`] };
+      return { score, diagnostics };
+    }
   } catch (error) {
     diagnostics.push(`symbolic parse unavailable: ${error instanceof Error ? error.message : "unknown error"}`);
   }
+  if (!diagnostics.length) diagnostics.push(`${subject} symbolic notes unavailable`);
   return { score: null, diagnostics };
 }
 
-function candidateId(input: PianoCandidateInput, index: number): string {
-  const raw = input.id ?? input.label ?? input.selector ?? `candidate-${index + 1}`;
+function baseCandidateId(input: PianoCandidateInput, index: number): string {
+  const raw = input.id ?? input.label ?? input.selector ?? "candidate";
   const clean = basename(raw).replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "");
   return clean || `candidate-${index + 1}`;
 }
 
+function candidateSortKey(input: PianoCandidateInput, score: NormalizedSymbolicScore | null): string {
+  if (input.bytes) return hashText(Buffer.from(input.bytes).toString("base64"));
+  const notes = score?.notes ?? input.notes ?? [];
+  return hashText(JSON.stringify({
+    notes: sortedNotes(notes).map((note) => ({
+      midi: note.midi, start: note.start, dur: note.dur, vel: note.vel,
+      hand: note.hand ?? null, identitySource: note.identitySource ?? null,
+    })),
+    tempoBpm: score?.tempoBpm ?? input.tempoBpm ?? null,
+    durationBeats: score?.durationBeats ?? input.durationBeats ?? null,
+  }));
+}
+
+function uniqueCandidateId(base: string, used: Set<string>, counts: Map<string, number>): string {
+  let next = counts.get(base) ?? 0;
+  let id = next === 0 ? base : `${base}-${next + 1}`;
+  while (used.has(id)) {
+    next += 1;
+    id = `${base}-${next + 1}`;
+  }
+  counts.set(base, next + 1);
+  used.add(id);
+  return id;
+}
+
 function referenceMetrics(reference: NormalizedSymbolicScore | null, candidate: NormalizedSymbolicScore, options?: SymbolicAlignmentOptions): PianoReferenceMetrics | null {
   if (!reference) return null;
-  const aligned = alignSymbolicScores(reference, candidate, options);
+  const aligned = alignPianoCandidatesWithDrift(reference, candidate, options ? {
+    onsetToleranceBeats: options.onsetToleranceBeats,
+    beatScales: options.beatScales,
+    transpositions: options.transpositions,
+    offsetBeats: options.offsetsBeats,
+    maxOffsetBeats: options.maxOffsetBeats,
+    windows: options.windows?.map((window) => ({ id: window.id, reference: window.reference, candidate: window.candidate })),
+    minMatchedOnsets: options.minMatchedOnsets,
+  } : undefined);
+  const referenceGroups = onsetGroups(reference.notes);
+  const candidateGroups = onsetGroups(candidate.notes);
+  const matched = aligned.matches;
+  const exactCount = matched.filter((match) => match.exactPitch).length;
+  const pitchClassCount = matched.filter((match) => {
+    const referenceGroup = referenceGroups.find((group) => Math.abs(group[0]!.start - match.referenceBeat) <= ONSET_TOLERANCE + EPS);
+    const referenceClasses = new Set(referenceGroup?.map((note) => ((note.midi % 12) + 12) % 12));
+    return match.transposedCandidateMidis.some((midi) => referenceClasses.has(((midi % 12) + 12) % 12));
+  }).length;
+  const f1 = (count: number, predicted: number, actual: number): { precision: number | null; recall: number | null; f1: number | null } => {
+    const precision = predicted ? count / predicted : null;
+    const recall = actual ? count / actual : null;
+    return { precision, recall, f1: precision !== null && recall !== null && precision + recall > EPS ? (2 * precision * recall) / (precision + recall) : null };
+  };
+  const exact = f1(exactCount, candidateGroups.length, referenceGroups.length);
+  const pitchClass = f1(pitchClassCount, candidateGroups.length, referenceGroups.length);
+  const onset = f1(matched.length, candidateGroups.length, referenceGroups.length);
+  const errors = matched.map((match) => match.onsetErrorBeats).sort((a, b) => a - b);
+  const referencePitches = referenceGroups.map((group) => Math.max(...group.map((note) => note.midi)));
+  const candidatePitches = candidateGroups.map((group) => Math.max(...group.map((note) => note.midi + aligned.transpositionSemitones)));
+  const intervals = matched.slice(1).map((_match, index) => ({
+    reference: Math.sign(referencePitches[index + 1]! - referencePitches[index]!),
+    candidate: Math.sign(candidatePitches[index + 1]! - candidatePitches[index]!),
+  }));
+  const directionAgreement = intervals.length ? intervals.filter((pair) => pair.reference === pair.candidate).length / intervals.length : null;
+  const status = aligned.status === "rejected" ? "mismatch" : aligned.status;
   return {
-    status: aligned.status === "aligned" ? "aligned" : aligned.status,
-    offsetBeats: aligned.alignmentRequired ? null : aligned.offsetBeats,
-    beatScale: aligned.alignmentRequired ? null : aligned.beatScale,
-    transpositionSemitones: aligned.alignmentRequired ? null : aligned.transpositionSemitones,
-    confidence: aligned.alignmentRequired ? null : aligned.confidence,
+    status,
+    offsetBeats: aligned.offsetBeats,
+    beatScale: aligned.beatScale,
+    transpositionSemitones: aligned.transpositionSemitones,
+    confidence: aligned.confidence,
     coverage: {
-      referenceRatio: aligned.alignmentRequired ? null : aligned.coverage.referenceRatio,
-      candidateRatio: aligned.alignmentRequired ? null : aligned.coverage.candidateRatio,
+      referenceRatio: aligned.coverage.referenceRatio,
+      candidateRatio: aligned.coverage.candidateRatio,
     },
-    metrics: aligned.metrics,
+    metrics: {
+      exactPitch: { precision: exact.precision === null ? null : round(exact.precision), recall: exact.recall === null ? null : round(exact.recall), f1: exact.f1 === null ? null : round(exact.f1) },
+      pitchClass: { precision: pitchClass.precision === null ? null : round(pitchClass.precision), recall: pitchClass.recall === null ? null : round(pitchClass.recall), f1: pitchClass.f1 === null ? null : round(pitchClass.f1) },
+      onset: { precision: onset.precision === null ? null : round(onset.precision), recall: onset.recall === null ? null : round(onset.recall), f1: onset.f1 === null ? null : round(onset.f1), matched: matched.length },
+      chroma: { cosine: null },
+      contour: { directionAgreement: directionAgreement === null ? null : round(directionAgreement), matchedIntervals: intervals.length },
+      density: { referenceOnsets: referenceGroups.length, candidateOnsets: candidateGroups.length, ratio: referenceGroups.length ? round(candidateGroups.length / referenceGroups.length) : null },
+    },
     diagnostics: aligned.diagnostics,
   };
 }
@@ -454,31 +531,47 @@ function emptyUnavailable(input: PianoCandidateInput, id: string, diagnostics: s
 }
 
 export function evaluatePianoCandidates(input: PianoEvaluationInput): PianoEvaluationReport {
-  const referenceParsed = input.reference ? inputScore(input.reference).score : null;
-  const results = input.candidates.map((candidate, index): PianoCandidateEvaluation => {
-    const id = candidateId(candidate, index);
+  const referenceParsedResult = input.reference ? inputScore(input.reference, "reference") : null;
+  const referenceParsed = referenceParsedResult?.score ?? null;
+  const referenceStatus: PianoEvaluationReport["referenceStatus"] = !input.reference
+    ? "not-requested"
+    : input.reference.mediaAvailable === false
+      ? "missing"
+      : referenceParsed
+        ? "available"
+        : "invalid";
+  const referenceDiagnostics = referenceParsedResult?.diagnostics.length ? [...new Set(referenceParsedResult.diagnostics)].sort() : undefined;
+  const records = input.candidates.map((candidate, index) => {
     const parsed = inputScore(candidate);
+    const baseId = baseCandidateId(candidate, index);
     const notes = parsed.score?.notes ?? [];
-    if (!parsed.score || candidate.mediaAvailable === false || candidate.backendAvailable === false) return emptyUnavailable(candidate, id, parsed.diagnostics);
-    const metrics = structuralMetrics(notes, parsed.score.tempoBpm, parsed.score.durationBeats);
-    const evaluation: PianoCandidateEvaluation = {
-      id,
-      ...(candidate.label ? { label: candidate.label } : {}),
-      status: "available",
-      purity: purity(candidate, notes),
-      metrics,
-      reference: referenceMetrics(referenceParsed, parsed.score, input.alignment),
-      rankScore: null,
-      diagnostics: [...parsed.score.warnings, ...parsed.diagnostics].sort(),
-      notes,
-      tempoBpm: parsed.score.tempoBpm,
-      timeSig: parsed.score.timeSig,
-      durationBeats: parsed.score.durationBeats,
-    };
-    const score = candidateScore(evaluation);
-    evaluation.rankScore = score.score;
-    return evaluation;
-  }).sort((a, b) => a.id.localeCompare(b.id));
+    let evaluation: PianoCandidateEvaluation;
+    if (!parsed.score || candidate.mediaAvailable === false || candidate.backendAvailable === false) {
+      evaluation = emptyUnavailable(candidate, baseId, parsed.diagnostics);
+    } else {
+      const metrics = structuralMetrics(notes, parsed.score.tempoBpm, parsed.score.durationBeats);
+      evaluation = {
+        id: baseId,
+        ...(candidate.label ? { label: candidate.label } : {}),
+        status: "available",
+        purity: purity(candidate, notes),
+        metrics,
+        reference: referenceMetrics(referenceParsed, parsed.score, input.alignment),
+        rankScore: null,
+        diagnostics: [...parsed.score.warnings, ...parsed.diagnostics].sort(),
+        notes,
+        tempoBpm: parsed.score.tempoBpm,
+        timeSig: parsed.score.timeSig,
+        durationBeats: parsed.score.durationBeats,
+      };
+      const score = candidateScore(evaluation);
+      evaluation.rankScore = score.score;
+    }
+    return { evaluation, baseId, sortKey: candidateSortKey(candidate, parsed.score) };
+  }).sort((a, b) => a.baseId.localeCompare(b.baseId) || a.sortKey.localeCompare(b.sortKey));
+  const usedIds = new Set<string>();
+  const idCounts = new Map<string, number>();
+  const results = records.map(({ evaluation, baseId }) => ({ ...evaluation, id: uniqueCandidateId(baseId, usedIds, idCounts) }));
   const ranking = results.map((result) => {
     const score = candidateScore(result);
     return { id: result.id, score: score.score, reasons: score.reasons };
@@ -487,6 +580,8 @@ export function evaluatePianoCandidates(input: PianoEvaluationInput): PianoEvalu
     schemaVersion: 1 as const,
     candidates: results,
     ranking,
+    referenceStatus,
+    ...(referenceDiagnostics ? { referenceDiagnostics } : {}),
     disclaimer: "Ranking summarizes symbolic and metadata evidence only; it does not claim recognizability or musical correctness.",
   };
   const canonical = canonicalPianoEvaluationJson(reportWithoutHash as PianoEvaluationReport);
@@ -494,22 +589,14 @@ export function evaluatePianoCandidates(input: PianoEvaluationInput): PianoEvalu
 }
 
 function hashText(value: string): string {
-  // A tiny deterministic FNV-1a hash keeps this module dependency-free. It is
-  // a determinism marker, not an integrity/security hash.
-  let hash = 2166136261;
-  for (let index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return (hash >>> 0).toString(16).padStart(8, "0");
+  return createHash("sha256").update(value, "utf8").digest("hex");
 }
 
 function redact(value: unknown, key?: string): unknown {
   if (key && /(?:^|)(?:path|dir|file)$/i.test(key)) return undefined;
   if (key === "notes" || key === "bytes") return undefined;
   if (typeof value === "string") {
-    if (/^(?:file:)?\/(?:Users|private|tmp|var|home)\//.test(value) || /^[A-Za-z]:[\\/]/.test(value)) return "[redacted-path]";
-    return value;
+    return redactEmbeddedPaths(value);
   }
   if (Array.isArray(value)) return value.map((item) => redact(item)).filter((item) => item !== undefined);
   if (value && typeof value === "object") {
@@ -521,6 +608,14 @@ function redact(value: unknown, key?: string): unknown {
     return result;
   }
   return value;
+}
+
+/** Redact paths wherever they occur, including inside parser/IO diagnostics. */
+function redactEmbeddedPaths(value: string): string {
+  return value
+    .replace(/file:\/\/(?:Users|private|tmp|var|home)\/[^\s"']+/gi, "[redacted-path]")
+    .replace(/(?:\/(?:Users|private|tmp|var|home)\/|[A-Za-z]:[\\/])[^\s"']+/g, "[redacted-path]")
+    .replace(/(^|\s)(\.\.?\/|[^\s/]+\/)[^\s"']+\.(?:mid|midi|json|wav|mp3)(?=$|[\s"'])/gi, "$1[redacted-path]");
 }
 
 export function canonicalPianoEvaluationJson(report: PianoEvaluationReport | object): string {
@@ -569,7 +664,7 @@ function previewMidi(notes: Note[], evaluation: PianoCandidateEvaluation, title:
 /** Write local-only previews. This function has no database or publish path. */
 export async function writePianoPreviews(evaluation: PianoCandidateEvaluation, outputDir: string): Promise<PianoPreviewWriteResult> {
   if (evaluation.status !== "available" || !evaluation.notes?.length) throw new Error("cannot preview unavailable piano candidate");
-  const folder = join(outputDir, candidateId({ id: evaluation.id }, 0));
+  const folder = join(outputDir, baseCandidateId({ id: evaluation.id }, 0));
   await mkdir(folder, { recursive: true });
   const raw = evaluation.notes.map((note) => ({ ...note }));
   const aligned = alignedPreviewNotes(evaluation);

@@ -9,6 +9,7 @@ import {
   writePianoPreviews,
   type PianoCandidateInput,
 } from "../src/piano-evaluation.js";
+import { runPianoEvaluationCli } from "../scripts/evaluate-piano-candidates.js";
 
 const notes: Note[] = [
   { midi: 60, start: 0, dur: 1, vel: 90, hand: "R", identitySource: "vocals" },
@@ -79,6 +80,50 @@ describe("piano candidate evaluation", () => {
     expect(report.candidates[0]?.diagnostics).toContain("media unavailable");
     expect(canonicalPianoEvaluationJson(report)).not.toContain("/Users/reidar");
     expect(canonicalPianoEvaluationJson(report)).not.toContain("selector");
+  });
+
+  it("fails closed for empty and all-invalid symbolic candidates", () => {
+    const report = evaluatePianoCandidates({
+      candidates: [
+        candidate({ id: "empty", notes: [] }),
+        candidate({ id: "invalid", notes: [{ midi: 300, start: 0, dur: 1, vel: 90 } as Note] }),
+      ],
+    });
+
+    expect(report.candidates.every((entry) => entry.status === "unavailable")).toBe(true);
+    expect(report.candidates.every((entry) => entry.metrics === null && entry.rankScore === null)).toBe(true);
+    expect(report.candidates.flatMap((entry) => entry.diagnostics)).toEqual(expect.arrayContaining([
+      "candidate contains no valid symbolic notes",
+    ]));
+  });
+
+  it("makes duplicate candidate IDs unique without depending on input order", () => {
+    const first = evaluatePianoCandidates({ candidates: [candidate({ id: "same" }), candidate({ id: "same" })] });
+    const second = evaluatePianoCandidates({ candidates: [candidate({ id: "same" }), candidate({ id: "same" })] });
+    expect(first.candidates.map((entry) => entry.id)).toEqual(["same", "same-2"]);
+    expect(canonicalPianoEvaluationJson(first)).toBe(canonicalPianoEvaluationJson(second));
+    expect(first.determinism.canonicalSha256).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it("distinguishes a missing reference from an omitted reference in the CLI", async () => {
+    const out: string[] = [];
+    const errors: string[] = [];
+    const code = await runPianoEvaluationCli(["--candidate", "/private/clean-piano.mid", "--reference", "/private/missing-reference.mid"], {
+      stdout: (value) => out.push(value),
+      stderr: (value) => errors.push(value),
+    });
+    expect(code).toBe(0);
+    expect(errors.join("")).toMatch(/reference unavailable/i);
+    expect(errors.join("")).not.toContain("/private/missing-reference.mid");
+    expect(out.join("")).toMatch(/"referenceStatus"\s*:\s*"missing"/);
+    expect(out.join("")).not.toContain("/private/clean-piano.mid");
+  });
+
+  it("uses a collision-resistant real SHA-256 canonical hash", () => {
+    const left = evaluatePianoCandidates({ candidates: [candidate({ id: "left" })] });
+    const right = evaluatePianoCandidates({ candidates: [candidate({ id: "right" })] });
+    expect(left.determinism.canonicalSha256).toMatch(/^[0-9a-f]{64}$/);
+    expect(left.determinism.canonicalSha256).not.toBe(right.determinism.canonicalSha256);
   });
 
   it("is deterministic independent of candidate order and writes four local previews", async () => {

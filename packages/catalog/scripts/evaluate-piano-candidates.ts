@@ -31,6 +31,14 @@ interface PianoCliOptions {
   metadata?: unknown;
 }
 
+function redactCliError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  return message
+    .replace(/file:\/\/(?:Users|private|tmp|var|home)\/[^\s"']+/gi, "[redacted-path]")
+    .replace(/(?:\/(?:Users|private|tmp|var|home)\/|[A-Za-z]:[\\/])[^\s"']+/g, "[redacted-path]")
+    .replace(/(^|\s)(\.\.?\/|[^\s/]+\/)[^\s"']+\.(?:mid|midi|json|wav|mp3)(?=$|[\s"'])/gi, "$1[redacted-path]");
+}
+
 function usage(): string {
   return [
     "Usage: evaluate-piano-candidates.ts --candidate [id=]PATH [--candidate [id=]PATH ...] [options]",
@@ -79,7 +87,7 @@ async function parseMetadata(value: unknown): Promise<unknown> {
   if (typeof value !== "string") return value;
   try { return JSON.parse(value); } catch { /* value may be a JSON file */ }
   try { return JSON.parse(await readFile(value, "utf8")); } catch (error) {
-    throw new Error(`metadata unavailable: ${error instanceof Error ? error.message : "invalid JSON"}`);
+    throw new Error(`metadata unavailable: ${redactCliError(error)}`);
   }
 }
 
@@ -97,7 +105,7 @@ async function readSymbolic(path: string, id: string, metadata: unknown): Promis
       selector: path,
       mediaAvailable: false,
       metadata,
-      unavailableReason: `media unavailable: ${error instanceof Error ? error.message : "read failed"}`,
+      unavailableReason: `media unavailable: ${redactCliError(error)}`,
     };
   }
 }
@@ -106,13 +114,17 @@ async function readReference(path: string, metadata: unknown): Promise<PianoCand
   try {
     const bytes = new Uint8Array(await readFile(path));
     if (extname(path).toLowerCase() === ".json") {
-      return { ...(JSON.parse(new TextDecoder().decode(bytes)) as object), id: "reference", selector: path, metadata } as PianoCandidateInput;
+      try {
+        return { ...(JSON.parse(new TextDecoder().decode(bytes)) as object), id: "reference", selector: path, metadata } as PianoCandidateInput;
+      } catch {
+        return { id: "reference", selector: path, mediaAvailable: true, metadata, notes: [], unavailableReason: "reference invalid" };
+      }
     }
     return { id: "reference", selector: path, bytes, metadata };
   } catch {
     // A missing reference is equivalent to no reference evidence; candidate
     // reports stay usable and state their missing-reference boundary below.
-    return { id: "reference", selector: path, mediaAvailable: false, metadata };
+    return { id: "reference", selector: path, mediaAvailable: false, metadata, unavailableReason: "reference unavailable" };
   }
 }
 
@@ -133,6 +145,8 @@ export async function runPianoEvaluationCli(argv: string[], io: PianoCliIo = {
   }
   const inputs = await Promise.all(options.candidates.map(({ id, path }) => readSymbolic(path, id ?? path, metadata)));
   const reference = options.reference ? await readReference(options.reference, metadata) : undefined;
+  if (reference?.mediaAvailable === false) io.stderr("reference unavailable\n");
+  else if (reference?.unavailableReason === "reference invalid") io.stderr("reference invalid\n");
   const report = evaluatePianoCandidates({ candidates: inputs, reference });
   const previewSummary: Record<string, { raw: string; aligned: string; easy: string; medium: string }> = {};
   if (options.outputDir) {
