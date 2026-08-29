@@ -112,6 +112,38 @@ describe("piano candidate evaluation", () => {
     expect(diagnostics).toContain("[redacted-path]");
   });
 
+  it("redacts generic POSIX paths while preserving logical URLs", () => {
+    const report = evaluatePianoCandidates({
+      candidates: [{
+        id: "generic-paths",
+        mediaAvailable: false,
+        unavailableReason: [
+          "failed to read /root/keyspilli/secret.mid",
+          "fallback /opt/keyspilli/cache.mid",
+          "mounted /mnt/private/source.mid",
+          "workspace /workspace/project/output.mid",
+          "config /etc/keyspilli/config.json",
+          "source https://example.test/root/track.mid",
+          "logical candidate-42",
+        ].join("; "),
+      }],
+    });
+
+    const diagnostics = report.candidates[0]?.diagnostics.join(" ") ?? "";
+    for (const path of [
+      "/root/keyspilli/secret.mid",
+      "/opt/keyspilli/cache.mid",
+      "/mnt/private/source.mid",
+      "/workspace/project/output.mid",
+      "/etc/keyspilli/config.json",
+    ]) {
+      expect(diagnostics).not.toContain(path);
+    }
+    expect(diagnostics).toContain("https://example.test/root/track.mid");
+    expect(diagnostics).toContain("candidate-42");
+    expect(diagnostics.match(/\[redacted-path\]/g)).toHaveLength(5);
+  });
+
   it("fails closed for empty and all-invalid symbolic candidates", () => {
     const report = evaluatePianoCandidates({
       candidates: [
@@ -147,6 +179,34 @@ describe("piano candidate evaluation", () => {
     expect(errors.join("")).not.toContain("/private/missing-reference.mid");
     expect(out.join("")).toMatch(/"referenceStatus"\s*:\s*"missing"/);
     expect(out.join("")).not.toContain("/private/clean-piano.mid");
+  });
+
+  it("redacts generic POSIX paths from CLI failures", async () => {
+    const out: string[] = [];
+    const errors: string[] = [];
+    const code = await runPianoEvaluationCli(["--candidate", "/opt/keyspilli/private-candidate.mid"], {
+      stdout: (value) => out.push(value),
+      stderr: (value) => errors.push(value),
+    });
+
+    expect(code).toBe(0);
+    expect(out.join("")).not.toContain("/opt/keyspilli/private-candidate.mid");
+    expect(errors.join("")).not.toContain("/opt/keyspilli/private-candidate.mid");
+  });
+
+  it("redacts generic POSIX paths from direct CLI diagnostics", async () => {
+    const errors: string[] = [];
+    const code = await runPianoEvaluationCli([
+      "--candidate", "/private/clean-piano.mid",
+      "--metadata", "/root/keyspilli/private-metadata.json",
+    ], {
+      stdout: () => undefined,
+      stderr: (value) => errors.push(value),
+    });
+
+    expect(code).toBe(2);
+    expect(errors.join("")).not.toContain("/root/keyspilli/private-metadata.json");
+    expect(errors.join("")).toContain("[redacted-path]");
   });
 
   it("uses a collision-resistant real SHA-256 canonical hash", () => {

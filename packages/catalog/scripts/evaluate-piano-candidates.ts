@@ -33,10 +33,13 @@ interface PianoCliOptions {
 
 function redactCliError(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
+  const roots = "(?:Users|private|tmp|var|home|root|opt|mnt|workspace|etc|srv|data|app)";
   return message
-    .replace(/file:\/\/(?:Users|private|tmp|var|home)\/[^\s"']+/gi, "[redacted-path]")
-    .replace(/(?:\/(?:Users|private|tmp|var|home)\/|[A-Za-z]:[\\/])[^\s"']+/g, "[redacted-path]")
-    .replace(/(^|\s)(\.\.?\/|[^\s/]+\/)[^\s"']+\.(?:mid|midi|json|wav|mp3)(?=$|[\s"'])/gi, "$1[redacted-path]");
+    .replace(new RegExp(`file:///?${roots}(?:/[^\\s"'<>;,)]*)?`, "gi"), "[redacted-path]")
+    .replace(new RegExp(`(^|[\\s(\"'=,;\\[\\]])/${roots}(?:/[^\\s\"'<>;,)]*)?`, "gi"), "$1[redacted-path]")
+    .replace(/(^|[\s(\"'=,;\[\]])\/(?:[A-Za-z0-9._-]+\/)+[^\s"'<>;,)]*/g, "$1[redacted-path]")
+    .replace(/(^|[\s(\"'=,;\[\]])[A-Za-z]:[\\/][^\s"'<>;,)]*/g, "$1[redacted-path]")
+    .replace(/(^|\s)(?!(?:[A-Za-z][A-Za-z0-9+.-]*:)?\/\/)(\.\.?\/|[^\s/]+\/)[^\s"']+\.(?:mid|midi|json|wav|mp3)(?=$|[\s"'])/gi, "$1[redacted-path]");
 }
 
 function usage(): string {

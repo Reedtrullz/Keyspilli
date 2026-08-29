@@ -711,10 +711,19 @@ function redact(value: unknown, key?: string): unknown {
 
 /** Redact paths wherever they occur, including inside parser/IO diagnostics. */
 function redactEmbeddedPaths(value: string): string {
+  const roots = "(?:Users|private|tmp|var|home|root|opt|mnt|workspace|etc|srv|data|app)";
   return value
-    .replace(/file:\/\/(?:Users|private|tmp|var|home)\/[^\s"']+/gi, "[redacted-path]")
-    .replace(/(?:\/(?:Users|private|tmp|var|home)\/|[A-Za-z]:[\\/])[^\s"']+/g, "[redacted-path]")
-    .replace(/(^|\s)(\.\.?\/|[^\s/]+\/)[^\s"']+\.(?:mid|midi|json|wav|mp3)(?=$|[\s"'])/gi, "$1[redacted-path]");
+    // Handle file URIs before ordinary absolute paths. The optional slash
+    // accepts both file://root/... and the usual file:///root/... form.
+    .replace(new RegExp(`file:///?${roots}(?:/[^\\s"'<>;,)]*)?`, "gi"), "[redacted-path]")
+    // Require a non-URL boundary before POSIX paths. Without this boundary,
+    // /root in https://host/root/file.mid would corrupt a logical URL.
+    .replace(new RegExp(`(^|[\\s(\"'=,;\\[\\]])/${roots}(?:/[^\\s\"'<>;,)]*)?`, "gi"), "$1[redacted-path]")
+    .replace(/(^|[\s(\"'=,;\[\]])\/(?:[A-Za-z0-9._-]+\/)+[^\s"'<>;,)]*/g, "$1[redacted-path]")
+    .replace(/(^|[\s(\"'=,;\[\]])[A-Za-z]:[\\/][^\s"'<>;,)]*/g, "$1[redacted-path]")
+    // Relative paths are still redacted, but URL schemes are deliberately
+    // excluded so logical source URLs remain useful in diagnostics.
+    .replace(/(^|\s)(?!(?:[A-Za-z][A-Za-z0-9+.-]*:)?\/\/)(\.\.?\/|[^\s/]+\/)[^\s"']+\.(?:mid|midi|json|wav|mp3)(?=$|[\s"'])/gi, "$1[redacted-path]");
 }
 
 export function canonicalPianoEvaluationJson(report: PianoEvaluationReport | object): string {
