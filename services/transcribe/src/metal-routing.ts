@@ -1,7 +1,7 @@
 import type { ParsedMidi } from "@keyspilli/midi";
 
 /** The roles that the stem pipeline can present to the metal arranger. */
-export type MetalRoutingRole = "vocals" | "bass" | "guitar" | "drums";
+export type MetalRoutingRole = "vocals" | "bass" | "guitar" | "other" | "drums";
 
 export interface MetalRoutingStem {
   role: MetalRoutingRole;
@@ -37,7 +37,7 @@ export const DEFAULT_METAL_ROUTING_THRESHOLDS: Readonly<MetalRoutingThresholds> 
 };
 
 export interface MetalRoutingFeatures {
-  counts: Record<MetalRoutingRole, number>;
+  counts: Record<Exclude<MetalRoutingRole, "other">, number>;
   guitarAttackCount: number;
   /** Full-song density, retained for diagnostics and trend comparison. */
   guitarAttackDensity: number;
@@ -155,7 +155,7 @@ export function assessMetalRouting(
     bass: validNotes(byRole.get("bass")),
     guitar: validNotes(byRole.get("guitar")),
     drums: validNotes(byRole.get("drums")),
-  } satisfies Record<MetalRoutingRole, ValidNote[]>;
+  } satisfies Record<Exclude<MetalRoutingRole, "other">, ValidNote[]>;
   const duration = durationBeats([...byRole.values()]);
   const guitarAttacks = attackCount(roleNotes.guitar);
   const firstGuitar = roleNotes.guitar[0];
@@ -176,7 +176,7 @@ export function assessMetalRouting(
     bass: roleNotes.bass.length,
     guitar: roleNotes.guitar.length,
     drums: roleNotes.drums.length,
-  } satisfies Record<MetalRoutingRole, number>;
+  } satisfies Record<Exclude<MetalRoutingRole, "other">, number>;
   const features: MetalRoutingFeatures = {
     counts,
     guitarAttackCount: guitarAttacks,

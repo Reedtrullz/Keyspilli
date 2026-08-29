@@ -109,7 +109,7 @@ export interface TranscriptionProvenance {
   onsetThreshold: number;
   frameThreshold: number;
   /** Effective per-role thresholds used by separated-stem transcription. */
-  stemRoleThresholds?: Partial<Record<"vocals" | "bass" | "guitar", {
+  stemRoleThresholds?: Partial<Record<"vocals" | "bass" | "guitar" | "other", {
     onsetThreshold: number;
     frameThreshold: number;
   }>>;
@@ -487,7 +487,7 @@ export function validateTranscriptionProvenance(value: unknown, path = "transcri
     } else {
       for (const [role, thresholds] of Object.entries(value.stemRoleThresholds)) {
         const rolePath = `${path}.stemRoleThresholds.${role}`;
-        if (!["vocals", "bass", "guitar"].includes(role)) {
+        if (!["vocals", "bass", "guitar", "other"].includes(role)) {
           errors.push(`${rolePath} is not a supported pitched stem role`);
           continue;
         }

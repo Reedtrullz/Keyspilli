@@ -192,14 +192,17 @@ The worker image defaults to `KEYSPILLI_IMPORT_MODE=auto`. The route is:
 1. Demucs (`htdemucs_6s`) separates a dedicated `guitar` lane alongside
    `vocals`, `bass`, `drums`, and `other`; configured four-stem models remain
    compatible and use `other` as the guitar fallback.
-2. Basic Pitch uses role-specific thresholds for vocals, bass, and guitar; a
-   lightweight onset detector supplies drum timing without turning drums into
-   pitched piano notes.
-3. The role-aware arranger fuses trustworthy moving vocal phrases with lead
-   guitar in the vocal rests, prefers upper guitar leads over lower rhythm
-   bleed, and preserves short solo attacks through Medium. Easy keeps the
-   melodic contour while thinning implausibly fast attacks. The arranger keeps
-   bass roots/fifths and section harmony in the left hand and emits explicit
+2. Basic Pitch uses role-specific thresholds for vocals, bass, guitar, and the
+   residual `other` lane; a lightweight onset detector supplies drum timing
+   without turning drums into pitched piano notes.
+3. The role-aware arranger compares dedicated guitar with residual upper
+   evidence, moves stable low rhythm into the left hand, fuses trustworthy
+   moving vocal phrases with lead guitar in vocal rests, and preserves short
+   solo attacks through Medium. Easy keeps the melodic contour while thinning
+   implausibly fast attacks. Sparse sections may receive a conservative
+   upper-evidence top-line only when repeated stem evidence supports it; no
+   pitch is invented for a low-only/rest section. The arranger keeps bass
+   roots/fifths and section harmony in the left hand and emits explicit
    right-/left-hand tracks plus difficulty variants.
 
 Use `KEYSPILLI_IMPORT_MODE=metal` for a strict operator run, or
@@ -223,7 +226,7 @@ current image.
 
 For each successful separation, the worker keeps only compact diagnostics in
 `/data/transcribed/<jobId>/stem-midi/` (`vocals.mid`, `bass.mid`, `guitar.mid`,
-`drums.mid`, and `report.json`) plus the piano-shaped
+`other.mid`, `drums.mid`, and `report.json`) plus the piano-shaped
 `arranged/arrangement.mid`; decoded WAV stems remain in a bounded temporary
 directory and are removed. If `auto` falls back, these diagnostic directories
 are removed so stale stems cannot be mistaken for the published source. The

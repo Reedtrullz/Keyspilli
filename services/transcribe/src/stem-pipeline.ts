@@ -8,7 +8,7 @@ import { writeMidi } from "@keyspilli/midi";
 const execFileP = promisify(execFile);
 
 export type StemImportMode = "auto" | "legacy" | "metal";
-export type StemMidiRole = "vocals" | "bass" | "guitar" | "drums";
+export type StemMidiRole = "vocals" | "bass" | "guitar" | "other" | "drums";
 type PitchedStemMidiRole = Exclude<StemMidiRole, "drums">;
 
 export interface StemPipelineConfig {
@@ -48,10 +48,12 @@ export interface StemPipelineReport {
     serialization: string;
     onsetThreshold: number;
     frameThreshold: number;
-    roleThresholds: Record<PitchedStemMidiRole, {
+    // Four-source fallback has no dedicated `other` transcription; report only
+    // the roles that actually ran rather than fabricating a threshold entry.
+    roleThresholds: Partial<Record<PitchedStemMidiRole, {
       onsetThreshold: number;
       frameThreshold: number;
-    }>;
+    }>>;
   };
   stems: Array<{
     role: StemMidiRole;
@@ -93,7 +95,7 @@ function thresholdsForRole(
   role: PitchedStemMidiRole,
   config: StemPipelineConfig,
 ): { onsetThreshold: number; frameThreshold: number } {
-  if (role === "guitar") {
+  if (role === "guitar" || role === "other") {
     return {
       onsetThreshold: config.onsetThreshold === 0.65 ? 0.45 : config.onsetThreshold,
       frameThreshold: config.frameThreshold === 0.45 ? 0.3 : config.frameThreshold,
@@ -280,14 +282,25 @@ export async function transcribePitchedStems(
       throw new Error("Demucs did not report a complete vocals/bass/drums/other stem set");
     }
 
-    const requested = [
+    const requested: Array<{
+      role: PitchedStemMidiRole;
+      source: "vocals" | "bass" | "guitar" | "other";
+      audio: string;
+    }> = [
       { role: "vocals" as const, source: "vocals" as const, audio: stemPaths.vocals },
       { role: "bass" as const, source: "bass" as const, audio: stemPaths.bass },
       // Six-source models expose a dedicated guitar stem. Four-source models
       // remain supported by falling back to the mixed guitar/keys residual.
-      stemPaths.guitar
-        ? { role: "guitar" as const, source: "guitar" as const, audio: stemPaths.guitar }
-        : { role: "guitar" as const, source: "other" as const, audio: stemPaths.other },
+      ...(stemPaths.guitar
+        ? [
+          { role: "guitar" as const, source: "guitar" as const, audio: stemPaths.guitar },
+          // The residual six-source stem often contains keyboards, lead
+          // fragments, and upper-band material that is useful for melody.
+          // Keep it separate so the arranger can compare it with guitar
+          // rather than silently discarding it.
+          { role: "other" as const, source: "other" as const, audio: stemPaths.other },
+        ]
+        : [{ role: "guitar" as const, source: "other" as const, audio: stemPaths.other }]),
     ];
     const stems: StemMidi[] = [];
     const reportStems: StemPipelineReport["stems"] = [];

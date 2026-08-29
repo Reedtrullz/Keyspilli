@@ -283,7 +283,10 @@ async function processJob(jobId: string): Promise<void> {
         if (STEM_PIPELINE_CONFIG.mode === "auto") {
           if (!routing.eligible) throw new Error(routing.message);
         }
-        const detectedCounts = new Map(Object.entries(routing.features.counts) as Array<[string, number]>);
+        // Routing counts intentionally cover only the core eligibility roles;
+        // count every parsed stem separately for provenance so a dedicated
+        // residual `other` lane is not silently reported as zero.
+        const detectedCounts = new Map(parsedStems.map((stem) => [stem.role, stem.midi.notes.length] as const));
         const arranged = buildMetalArrangement({
           stems: parsedStems,
           title: existing?.title ?? meta.title,
@@ -315,10 +318,10 @@ async function processJob(jobId: string): Promise<void> {
           stems: [
             { role: "vocals", noteCount: stemCounts.get("vocals") ?? 0 },
             { role: "bass", noteCount: stemCounts.get("bass") ?? 0 },
-            // Provenance keeps the canonical harmonic-residual role for
-            // backward compatibility; the model and role thresholds record
-            // whether a dedicated guitar lane fed the arranger.
-            { role: "other", noteCount: stemCounts.get("guitar") ?? 0 },
+            // Keep one canonical residual role in the manifest while
+            // accounting for both the dedicated guitar and six-source
+            // `other` evidence that fed the arranger.
+            { role: "other", noteCount: (stemCounts.get("guitar") ?? 0) + (stemCounts.get("other") ?? 0) },
             { role: "drums", noteCount: stemCounts.get("drums") ?? 0 },
           ],
         };
