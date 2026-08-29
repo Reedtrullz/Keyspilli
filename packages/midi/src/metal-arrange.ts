@@ -290,6 +290,19 @@ interface GuitarPulseLanes {
 }
 
 /**
+ * Keep quiet upper detector events only when they have local support. A lone,
+ * very short spike is usually bleed/reverb and can otherwise become a fake
+ * RH melody after octave registration. Sustained or strongly articulated
+ * notes remain eligible as phrase landings even when they are isolated.
+ */
+function supportedUpperRawNotes(notes: Note[]): Note[] {
+  const upper = notes.filter((note) => note.midi >= 61);
+  return upper.filter((note) => note.vel >= 48 || note.dur >= 0.2 || upper.some((candidate) =>
+    candidate !== note && Math.abs(candidate.start - note.start) <= 2 + EPS,
+  ));
+}
+
+/**
  * Preserve detector notes below the RH register before octave registration can
  * turn them into a fake melody (raw 29/41 both become 65 in the RH window).
  * One representative attack per onset is enough for the LH rhythm lane; the
@@ -310,11 +323,29 @@ function rawLowRhythmEvents(
   const routeLow = (note: Note): boolean => {
     // Detector sub-bass notes cannot be a useful RH melody after registration.
     if (note.midi < 45) return true;
+    // Two low pitches at one onset are a power-chord/root cluster, even when
+    // the lead detector did not return an upper note for that attack. Route
+    // the cluster together so the louder root cannot octave-fold into RH
+    // while its quieter companion silently disappears.
+    if (lowNotes.some((candidate) => candidate !== note && sameOnset(candidate, note))) return true;
     const nearbyUpper = upperNear(note);
-    if (nearbyUpper.length < 2) return false;
     // A simultaneous upper attack is strong evidence that this is the power
     // root/accompaniment voice, even when the root is quieter than the lead.
     if (nearbyUpper.some((candidate) => sameOnset(candidate, note))) return true;
+    if (nearbyUpper.length === 1) {
+      const local = localLow(note);
+      const localPitches = local.map((candidate) => candidate.midi);
+      const gaps = local.slice(1)
+        .map((candidate, index) => candidate.start - local[index]!.start)
+        .filter((gap) => gap > EPS)
+        .sort((a, b) => a - b);
+      const medianGap = gaps.length ? gaps[Math.floor(gaps.length / 2)]! : Number.POSITIVE_INFINITY;
+      // One isolated upper spike still identifies a dense, stable low wall;
+      // keep that wall in LH while the unsupported spike is discarded from
+      // the lead candidates below.
+      if (local.length >= 3 && new Set(localPitches).size <= 2 && medianGap <= 1 + EPS) return true;
+    }
+    if (nearbyUpper.length < 2) return false;
     // Preserve a sparse low motif, but route a locally dense low wall when an
     // upper lane is present. This catches raw 50–57 attacks that would
     // otherwise octave-fold into a fake RH 62–69 melody.
@@ -623,7 +654,7 @@ interface UpperEvidenceLane {
  * and is used only to fill genuinely sparse phrases.
  */
 function upperHarmonicPath(notes: Note[], source: UpperEvidenceLane["source"]): IdentityNote[] {
-  const upper = notes.filter((note) => note.midi >= 61);
+  const upper = supportedUpperRawNotes(notes);
   return monophonicPath(upper, 55, 96, { exactOctaveWindow: 1, coherent: true })
     .map((note) => ({ ...note, identitySource: source }));
 }
@@ -1069,6 +1100,8 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
   const trustedVocals = trustworthyVocalNotes(vocals);
   const guitarRaw = validNotes(guitarStem);
   const otherRaw = validNotes(otherStem);
+  const guitarUpperRaw = supportedUpperRawNotes(guitarRaw);
+  const otherUpperRaw = supportedUpperRawNotes(otherRaw);
   const guitarUpperEvidence = upperHarmonicPath(guitarRaw, "guitar");
   const otherUpperEvidence = upperHarmonicPath(otherRaw, "other");
   const upperEvidenceLanes: UpperEvidenceLane[] = [
@@ -1076,21 +1109,25 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
     { source: "other", notes: otherUpperEvidence },
   ];
   const sharedUpperEvidence = [...guitarUpperEvidence, ...otherUpperEvidence];
-  const guitarRawRhythm = rawLowRhythmEvents(guitarRaw, "guitar", sharedUpperEvidence);
-  const otherRawRhythm = rawLowRhythmEvents(otherRaw, "other", sharedUpperEvidence);
+  const rawUpperContext: IdentityNote[] = [
+    ...guitarRaw.filter((note) => note.midi >= 61).map((note) => ({ ...note, rawMidi: note.midi, identitySource: "guitar" as const })),
+    ...otherRaw.filter((note) => note.midi >= 61).map((note) => ({ ...note, rawMidi: note.midi, identitySource: "other" as const })),
+  ];
+  const guitarRawRhythm = rawLowRhythmEvents(guitarRaw, "guitar", rawUpperContext);
+  const otherRawRhythm = rawLowRhythmEvents(otherRaw, "other", rawUpperContext);
   const isRoutedRawLow = (note: Note, routed: IdentityNote[]): boolean =>
     note.midi <= 60 && routed.some((candidate) => Math.abs(candidate.start - note.start) <= 0.08 + EPS);
   // Split raw low material before octave registration. Otherwise MIDI 50–54
   // can become a false RH 62–66 line and the later pulse pass cannot recover
   // which detector event was really accompaniment.
   const guitarPath = monophonicPath(
-    guitarRaw.filter((note) => note.midi >= 45 && !isRoutedRawLow(note, guitarRawRhythm)),
+    guitarRaw.filter((note) => (note.midi < 61 || guitarUpperRaw.includes(note)) && note.midi >= 45 && !isRoutedRawLow(note, guitarRawRhythm)),
     55,
     96,
     { preferUpperLead: true, exactOctaveWindow: 1, coherent: true },
   ).map((note) => ({ ...note, identitySource: "guitar" as const }));
   const otherPath = monophonicPath(
-    otherRaw.filter((note) => note.midi >= 45 && !isRoutedRawLow(note, otherRawRhythm)),
+    otherRaw.filter((note) => (note.midi < 61 || otherUpperRaw.includes(note)) && note.midi >= 45 && !isRoutedRawLow(note, otherRawRhythm)),
     55,
     96,
     { preferUpperLead: true, exactOctaveWindow: 1, coherent: true },

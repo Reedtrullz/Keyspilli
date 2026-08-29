@@ -330,6 +330,29 @@ describe("metal piano arranger", () => {
     expect(result.ir.identity.filter((note) => note.identitySource === "guitar" && note.midi >= 74).length).toBeGreaterThanOrEqual(6);
   });
 
+  it("routes a low co-onset dyad even when no upper detector note was returned", () => {
+    const result = buildMetalArrangement({
+      stems: [{ role: "guitar", midi: midi([
+        { midi: 52, start: 0, dur: 0.25, vel: 112 },
+        { midi: 60, start: 0, dur: 0.25, vel: 56 },
+      ], 2) }],
+    });
+    expect(result.ir.identity.some((note) => note.identitySource === "guitar")).toBe(false);
+    expect(result.parsed.notes.some((note) => note.hand === "L" && note.identitySource === "guitar" && note.start === 0)).toBe(true);
+  });
+
+  it("routes a lone low root beside one upper lead attack into LH", () => {
+    const result = buildMetalArrangement({
+      stems: [{ role: "guitar", midi: midi([
+        { midi: 52, start: 0, dur: 0.25, vel: 112 },
+        { midi: 72, start: 0, dur: 0.5, vel: 64 },
+      ], 2) }],
+    });
+    expect(result.ir.identity.some((note) => note.identitySource === "guitar" && note.midi === 72)).toBe(true);
+    expect(result.ir.identity.some((note) => note.identitySource === "guitar" && note.midi <= 60)).toBe(false);
+    expect(result.parsed.notes.some((note) => note.hand === "L" && note.identitySource === "guitar" && note.start === 0)).toBe(true);
+  });
+
   it("thins routed metal rhythm attacks as difficulty becomes easier", () => {
     const lowPulse = Array.from({ length: 24 }, (_, index) => ({
       midi: index % 2 === 0 ? 45 : 52,
