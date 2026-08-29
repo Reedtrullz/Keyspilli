@@ -62,6 +62,13 @@ export interface ProvenanceTraceEvent {
   selectionReason?: string;
   rawCandidateCount?: number;
   selected?: boolean;
+  traceRefs?: string[];
+  startBeat?: number;
+  endBeat?: number;
+  midi?: number;
+  rawMidi?: number;
+  dur?: number;
+  hand?: "R" | "L";
 }
 
 export interface ProvenanceTraceInput {

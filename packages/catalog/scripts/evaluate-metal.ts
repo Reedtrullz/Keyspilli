@@ -23,6 +23,7 @@ import {
   buildVariants,
   parseMidi,
   writeMidi,
+  type MetalArrangementTraceEvent,
   type MetalStem,
   type Note,
   type ParsedMidi,
@@ -34,6 +35,7 @@ import {
   type ArrangementEvaluationCandidate,
   type ArrangementEvaluationInput,
   type EvaluationWindow,
+  type ProvenanceTraceEvent,
 } from "../src/arrangement-evaluation.js";
 
 interface CliOptions {
@@ -47,6 +49,8 @@ interface CliOptions {
   mode: "structural" | "reference" | "human";
   expectedDurationBeats?: number;
   windows: EvaluationWindow[];
+  traceWindows: Array<{ id: string; startBeat: number; endBeat: number }>;
+  traceOut?: string;
 }
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -64,6 +68,8 @@ function usage(): string {
     "  --revision TEXT         optional candidate revision label",
     "  --mode structural|reference|human",
     "  --expected-duration N   optional candidate duration expectation in beats",
+    "  --trace-window ID=S,E   explicit arranger trace window (repeatable; --window candidate bounds also work)",
+    "  --trace-out FILE        write the deterministic local arranger lineage trace (requires --stems)",
     "  --out FILE              write report here; otherwise print JSON to stdout",
   ].join("\n");
 }
@@ -101,8 +107,17 @@ function parseWindow(value: string): EvaluationWindow {
   return { id, candidate, reference };
 }
 
+function parseTraceWindow(value: string): { id: string; startBeat: number; endBeat: number } {
+  const equal = value.indexOf("=");
+  if (equal <= 0) throw new Error(`--trace-window must be ID=start,end: ${value}`);
+  const id = value.slice(0, equal).trim();
+  const bounds = parseBounds(value.slice(equal + 1), `trace window ${id}`);
+  if (!id) throw new Error(`--trace-window requires a non-empty ID: ${value}`);
+  return { id, startBeat: bounds[0], endBeat: bounds[1] };
+}
+
 function parseArgs(argv: string[]): CliOptions {
-  const result: CliOptions = { fixtureId: "local-metal", mode: "structural", windows: [] };
+  const result: CliOptions = { fixtureId: "local-metal", mode: "structural", windows: [], traceWindows: [] };
   for (let index = 0; index < argv.length; index++) {
     const arg = argv[index]!;
     const equal = arg.indexOf("=");
@@ -123,6 +138,8 @@ function parseArgs(argv: string[]): CliOptions {
       case "--label": result.label = value(); break;
       case "--revision": result.revision = value(); break;
       case "--expected-duration": result.expectedDurationBeats = parseNumber(value(), "--expected-duration"); break;
+      case "--trace-window": result.traceWindows.push(parseTraceWindow(value())); break;
+      case "--trace-out": result.traceOut = value(); break;
       case "--mode": {
         const mode = value();
         if (mode !== "structural" && mode !== "reference" && mode !== "human") throw new Error(`unsupported --mode: ${mode}`);
@@ -136,6 +153,11 @@ function parseArgs(argv: string[]): CliOptions {
   }
   if (!result.stems && !result.candidate) throw new Error("one of --stems or --candidate is required\n" + usage());
   if (result.mode === "reference" && !result.reference) throw new Error("--mode=reference requires --reference");
+  if (result.traceOut && !result.stems) throw new Error("--trace-out requires --stems; serialized candidates have no private lineage");
+  if (result.traceWindows.length && !result.stems) throw new Error("--trace-window requires --stems; serialized candidates have no private lineage");
+  if (result.traceOut && !result.traceWindows.length && !result.windows.length) {
+    throw new Error("--trace-out requires at least one --trace-window or --window candidate range");
+  }
   return result;
 }
 
@@ -207,6 +229,25 @@ function rejectReferenceInsideRepo(path: string): void {
   }
 }
 
+function evaluationTraceEvent(event: MetalArrangementTraceEvent): ProvenanceTraceEvent {
+  return {
+    key: event.key,
+    ...(event.windowId ? { windowId: event.windowId } : {}),
+    stage: event.stage,
+    source: event.source,
+    selectionReason: event.selectionReason,
+    ...(event.rawCandidateCount === undefined ? {} : { rawCandidateCount: event.rawCandidateCount }),
+    selected: event.selected,
+    traceRefs: [...event.traceRefs].sort(),
+    ...(event.startBeat === undefined ? {} : { startBeat: event.startBeat }),
+    ...(event.endBeat === undefined ? {} : { endBeat: event.endBeat }),
+    ...(event.midi === undefined ? {} : { midi: event.midi }),
+    ...(event.rawMidi === undefined ? {} : { rawMidi: event.rawMidi }),
+    ...(event.dur === undefined ? {} : { dur: event.dur }),
+    ...(event.hand === undefined ? {} : { hand: event.hand }),
+  };
+}
+
 async function run(options: CliOptions): Promise<string> {
   // Resolve and validate the reference before any potentially expensive stem
   // arrangement work.  The content is not read until the repository guard has
@@ -216,12 +257,22 @@ async function run(options: CliOptions): Promise<string> {
 
   let candidate: ArrangementEvaluationCandidate;
   let variants;
+  const traceEvents: MetalArrangementTraceEvent[] = [];
+  const traceWindows = options.traceWindows.length
+    ? options.traceWindows
+    : options.windows.map((window) => ({ id: window.id, startBeat: window.candidate[0], endBeat: window.candidate[1] }));
   if (options.candidate) {
     const loaded = await midiFile(options.candidate, "candidate");
     candidate = { selector: loaded.path, bytes: loaded.bytes, parsed: loaded.parsed };
   } else {
     const stems = await loadStems(options.stems!);
-    const arrangement = buildMetalArrangement({ stems, title: options.fixtureId });
+    const arrangement = buildMetalArrangement({
+      stems,
+      title: options.fixtureId,
+      ...((options.traceOut || options.traceWindows.length) && traceWindows.length
+        ? { debug: { traceWindows, traceSink: (event: MetalArrangementTraceEvent): void => { traceEvents.push(event); } } }
+        : {}),
+    });
     const bytes = generatedBytes(arrangement.parsed);
     // Metrics must describe the exact bytes whose hash is reported.  MIDI
     // serialization quantizes beat positions and may alter track metadata, so
@@ -252,16 +303,32 @@ async function run(options: CliOptions): Promise<string> {
   }
 
   const reference = referencePath ? await midiFileResolved(referencePath, "reference") : undefined;
+  const trace = traceEvents.length
+    ? { status: "available" as const, events: traceEvents.map(evaluationTraceEvent) }
+    : undefined;
   const input: ArrangementEvaluationInput = {
     fixture: { id: options.fixtureId, ...(options.label ? { label: options.label } : {}) },
     candidate: { ...candidate, ...(options.revision ? { revision: options.revision } : {}) },
     ...(reference ? { reference: { selector: reference.path, bytes: reference.bytes, parsed: reference.parsed, windows: options.windows } } : {}),
     windows: options.windows,
     variants,
+    ...(trace ? { trace } : {}),
     mode: options.mode,
     expectedDurationBeats: options.expectedDurationBeats,
   };
-  return canonicalEvaluationJson(evaluateArrangement(input));
+  const report = evaluateArrangement(input);
+  if (options.traceOut) {
+    const out = resolve(options.traceOut);
+    await mkdir(dirname(out), { recursive: true });
+    await writeFile(out, JSON.stringify({
+      schemaVersion: 1,
+      status: report.trace.status,
+      windowIds: traceWindows.map((window) => window.id).sort(),
+      events: report.trace.events ?? [],
+      ...(report.trace.windows ? { windows: report.trace.windows } : {}),
+    }, null, 2) + "\n", "utf8");
+  }
+  return canonicalEvaluationJson(report);
 }
 
 export async function main(argv = process.argv.slice(2)): Promise<void> {

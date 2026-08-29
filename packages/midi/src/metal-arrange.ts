@@ -16,6 +16,44 @@ export interface MetalArrangementInput {
   sectionBeats?: number;
   harmonyBeats?: number;
   title?: string;
+  /** Optional development-only lineage capture; never serialized into MIDI/IR. */
+  debug?: MetalArrangementDebugOptions;
+}
+
+export type MetalArrangementTraceStage = "raw" | "lead" | "residual" | "cluster" | "semantic" | "chord" | "left-hand" | "final";
+
+export interface MetalArrangementTraceWindow {
+  id: string;
+  startBeat: number;
+  endBeat: number;
+}
+
+/**
+ * Development-only event emitted by the arranger when a trace sink is
+ * supplied.  `traceRefs` are deterministic source-event identifiers, not
+ * public Note/IR fields; callers should treat this as a local diagnostic.
+ */
+export interface MetalArrangementTraceEvent {
+  key: string;
+  windowId?: string;
+  stage: MetalArrangementTraceStage;
+  source?: MetalStemRole | "mixed" | null;
+  selectionReason: string;
+  rawCandidateCount?: number;
+  selected: boolean;
+  traceRefs: string[];
+  startBeat?: number;
+  endBeat?: number;
+  midi?: number;
+  rawMidi?: number;
+  dur?: number;
+  hand?: "R" | "L";
+}
+
+export interface MetalArrangementDebugOptions {
+  /** Explicit windows keep traces bounded and make local comparisons reproducible. */
+  traceWindows?: MetalArrangementTraceWindow[];
+  traceSink?: (event: MetalArrangementTraceEvent) => void;
 }
 
 export interface MetalIdentitySection {
@@ -92,9 +130,162 @@ interface MonophonicPathOptions {
 }
 
 /** Internal source pitch retained until boundary cleanup is complete. */
-type IdentityNote = Note & { rawMidi?: number };
+type IdentityNote = Note & { rawMidi?: number; traceRefs?: string[] };
 
 type MonophonicCandidate = IdentityNote & { rawMidi: number };
+
+function traceNumber(value: number): string {
+  return Number.isFinite(value) ? value.toFixed(6) : "nan";
+}
+
+function traceNoteSignature(note: Note): string {
+  return [traceNumber(note.start), traceNumber(note.dur), note.midi, note.vel, note.hand ?? "R"].join(":");
+}
+
+function traceSourceNotes(stem: MetalStem | undefined, source: MetalStemRole, enabled: boolean): IdentityNote[] {
+  // Keep the arranger's existing ordering even when tracing is enabled; the
+  // debug sink must be observational and cannot change a tie-sensitive choice.
+  const notes = validNotes(stem);
+  if (!enabled) return notes;
+  const occurrences = new Map<string, number>();
+  return notes.map((note) => {
+    const signature = traceNoteSignature(note);
+    const occurrence = occurrences.get(signature) ?? 0;
+    occurrences.set(signature, occurrence + 1);
+    return { ...note, traceRefs: [`source:${source}:${signature}:${occurrence}`] };
+  });
+}
+
+function stripPrivateTrace(note: IdentityNote): Note {
+  const { rawMidi: _rawMidi, traceRefs: _traceRefs, ...publicNote } = note;
+  return publicNote;
+}
+
+interface MetalArrangementTraceCollector {
+  enabled: boolean;
+  emitNote: (
+    stage: MetalArrangementTraceStage,
+    note: IdentityNote,
+    source: MetalStemRole | "mixed" | null | undefined,
+    selectionReason: string,
+    selected?: boolean,
+    rawCandidateCount?: number,
+  ) => void;
+  emitCluster: (source: MetalStemRole, notes: IdentityNote[], selected: boolean, selectionReason: string) => void;
+  emitRefs: (
+    stage: MetalArrangementTraceStage,
+    refs: string[],
+    source: MetalStemRole | "mixed" | null | undefined,
+    selectionReason: string,
+    selected?: boolean,
+    startBeat?: number,
+  ) => void;
+  flush: () => void;
+}
+
+function createMetalArrangementTraceCollector(
+  options: MetalArrangementDebugOptions | undefined,
+  durationBeats: number,
+): MetalArrangementTraceCollector {
+  const sink = options?.traceSink;
+  const enabled = typeof sink === "function";
+  const windows = (options?.traceWindows?.length
+    ? options.traceWindows
+    : [{ id: "full", startBeat: 0, endBeat: durationBeats }])
+    .filter((window) => Number.isFinite(window.startBeat) && Number.isFinite(window.endBeat) && window.endBeat > window.startBeat)
+    .map((window) => ({ ...window }));
+  const events: MetalArrangementTraceEvent[] = [];
+  const stageRank: Record<MetalArrangementTraceStage, number> = {
+    raw: 0,
+    lead: 1,
+    residual: 2,
+    cluster: 3,
+    semantic: 4,
+    chord: 5,
+    "left-hand": 6,
+    final: 7,
+  };
+  const sourceRank: Record<string, number> = { vocals: 0, guitar: 1, other: 2, bass: 3, drums: 4, mixed: 5, "": 6 };
+  const inWindow = (startBeat: number | undefined): MetalArrangementTraceWindow | undefined => {
+    if (startBeat === undefined || !Number.isFinite(startBeat)) return undefined;
+    return windows.find((window) => startBeat >= window.startBeat - EPS && startBeat < window.endBeat + EPS);
+  };
+  const refs = (notes: IdentityNote[]): string[] => [...new Set(notes.flatMap((note) => note.traceRefs ?? []))].sort();
+  const emitRefs = (
+    stage: MetalArrangementTraceStage,
+    sourceRefs: string[],
+    source: MetalStemRole | "mixed" | null | undefined,
+    selectionReason: string,
+    selected = true,
+    startBeat?: number,
+  ): void => {
+    if (!enabled || !sourceRefs.length) return;
+    const window = inWindow(startBeat);
+    if (startBeat !== undefined && !window) return;
+    const traceRefs = [...new Set(sourceRefs)].sort();
+    const key = `${stage}:${source ?? ""}:${traceRefs.join(",")}:${traceNumber(startBeat ?? 0)}`;
+    events.push({
+      key,
+      ...(window ? { windowId: window.id } : {}),
+      stage,
+      source,
+      selectionReason,
+      selected,
+      traceRefs,
+      ...(startBeat !== undefined ? { startBeat } : {}),
+    });
+  };
+  const emitNote = (
+    stage: MetalArrangementTraceStage,
+    note: IdentityNote,
+    source: MetalStemRole | "mixed" | null | undefined,
+    selectionReason: string,
+    selected = true,
+    rawCandidateCount?: number,
+  ): void => {
+    if (!enabled) return;
+    const window = inWindow(note.start);
+    if (!window) return;
+    const traceRefs = refs([note]);
+    if (!traceRefs.length) return;
+    const normalizedSource = source ?? note.identitySource ?? null;
+    const key = `${stage}:${normalizedSource ?? ""}:${traceRefs.join(",")}:${traceNumber(note.start)}:${note.midi}`;
+    events.push({
+      key,
+      windowId: window.id,
+      stage,
+      source: normalizedSource,
+      selectionReason,
+      ...(rawCandidateCount === undefined ? {} : { rawCandidateCount }),
+      selected,
+      traceRefs,
+      startBeat: note.start,
+      endBeat: note.start + note.dur,
+      midi: note.midi,
+      ...(note.rawMidi === undefined ? {} : { rawMidi: note.rawMidi }),
+      dur: note.dur,
+      ...(note.hand ? { hand: note.hand } : {}),
+    });
+  };
+  const emitCluster = (source: MetalStemRole, clusterNotes: IdentityNote[], selected: boolean, selectionReason: string): void => {
+    if (!clusterNotes.length) return;
+    emitRefs("cluster", refs(clusterNotes), source, selectionReason, selected, clusterNotes[0]!.start);
+  };
+  return {
+    enabled,
+    emitNote,
+    emitCluster,
+    emitRefs,
+    flush: (): void => {
+      if (!enabled || !sink) return;
+      events.sort((a, b) => stageRank[a.stage] - stageRank[b.stage]
+        || (a.startBeat ?? 0) - (b.startBeat ?? 0)
+        || (sourceRank[a.source ?? ""] ?? 6) - (sourceRank[b.source ?? ""] ?? 6)
+        || a.key.localeCompare(b.key));
+      for (const event of events) sink(event);
+    },
+  };
+}
 
 /**
  * Configuration for the source-locked guitar lead selector.  The selector is
@@ -150,6 +341,7 @@ interface GuitarHarmonicAttack {
   bassSupported: boolean;
   memberCount: number;
   lowMemberCount: number;
+  traceRefs: string[];
 }
 
 export interface GuitarHarmonyDiagnostics {
@@ -1136,8 +1328,8 @@ function suppressLowGuitarPulseRuns(notes: IdentityNote[], externalLeadContext: 
  * phrase. Isolated vocal events are used only when there is no usable
  * instrumental identity in the window.
  */
-function trustworthyVocalNotes(notes: Note[]): Note[] {
-  const phrases: Note[][] = [];
+function trustworthyVocalNotes(notes: IdentityNote[]): IdentityNote[] {
+  const phrases: IdentityNote[][] = [];
   for (const note of notes) {
     const phrase = phrases.at(-1);
     const previous = phrase?.at(-1);
@@ -1173,13 +1365,13 @@ function trustworthyVocalNotes(notes: Note[]): Note[] {
  * below raw MIDI 60. Short moving low-register vocal phrases and isolated low
  * anchors remain eligible.
  */
-function filterLowVocalDroneNotes(notes: Note[]): Note[] {
+function filterLowVocalDroneNotes(notes: IdentityNote[]): IdentityNote[] {
   const lowDrones = notes.filter((note) => note.midi < 45 && note.dur >= 2 - EPS);
-  const lowWallNotes = new Set<Note>();
+  const lowWallNotes = new Set<IdentityNote>();
   const lowAttacks = notes
     .filter((note) => note.midi < 60 && note.dur < 2 - EPS)
     .sort((a, b) => a.start - b.start || b.vel - a.vel || b.dur - a.dur);
-  let run: Note[] = [];
+  let run: IdentityNote[] = [];
   const flushWall = (): void => {
     const starts = run.reduce<number[]>((result, note) => {
       if (!result.length || note.start - result.at(-1)! > 0.08 + EPS) result.push(note.start);
@@ -2273,8 +2465,8 @@ function pitchClass(midi: number): number {
 
 interface SemanticHarmonyCluster {
   start: number;
-  notes: Note[];
-  residual: Note[];
+  notes: IdentityNote[];
+  residual: IdentityNote[];
 }
 
 interface SemanticHarmonyCandidate {
@@ -2307,9 +2499,9 @@ function freshGuitarHarmonyDiagnostics(
 }
 
 function inferSemanticGuitarHarmony(
-  raw: Note[],
+  raw: IdentityNote[],
   lead: IdentityNote[],
-  bass: Note[],
+  bass: IdentityNote[],
   source: "guitar" | "other",
   stemConfidence = 1,
 ): GuitarHarmonyInference {
@@ -2565,6 +2757,7 @@ function inferSemanticGuitarHarmony(
       bassSupported,
       memberCount: item.cluster.notes.length,
       lowMemberCount: item.cluster.notes.filter((note) => note.midi <= 60).length,
+      traceRefs: [...new Set(item.cluster.notes.flatMap((note) => note.traceRefs ?? []))].sort(),
     });
     diagnostics.qualityCounts[quality] += 1;
     if (bassSupported) diagnostics.bassSupportedRoots += 1;
@@ -2672,6 +2865,7 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
     }
     return result;
   }, 1);
+  const trace = createMetalArrangementTraceCollector(input.debug, durationBeats);
   const meterBeats = beatsPerMeasure(timeSig);
   const sectionBeats = Math.max(2, input.sectionBeats ?? meterBeats * 2);
   const harmonyBeats = Math.max(1, input.harmonyBeats ?? meterBeats / 2);
@@ -2694,13 +2888,18 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
     ?? (roleGuitarStem?.sourceStem === "other" ? roleGuitarStem : undefined);
   const bassStem = input.stems.find((stem) => stem.role === "bass");
   const drumsStem = input.stems.find((stem) => stem.role === "drums");
-  const vocalRaw = filterLowVocalDroneNotes(validNotes(vocalsStem));
+  const vocalSourceNotes = traceSourceNotes(vocalsStem, "vocals", trace.enabled);
+  const vocalRaw = filterLowVocalDroneNotes(vocalSourceNotes);
   const vocals = monophonicPath(vocalRaw, 60, 96, { exactOctaveWindow: 0.5 })
     .map((note) => ({ ...note, identitySource: "vocals" as const }));
   const trustedVocals = trustworthyVocalNotes(vocals);
-  const guitarRaw = validNotes(guitarStem);
-  const otherRaw = validNotes(otherStem);
-  const bass = validNotes(bassStem);
+  const guitarRaw = traceSourceNotes(guitarStem, "guitar", trace.enabled);
+  const otherRaw = traceSourceNotes(otherStem, "other", trace.enabled);
+  const bass = traceSourceNotes(bassStem, "bass", trace.enabled);
+  const drumsRaw = traceSourceNotes(drumsStem, "drums", trace.enabled);
+  for (const [source, notes] of [["vocals", vocalSourceNotes], ["guitar", guitarRaw], ["other", otherRaw], ["bass", bass], ["drums", drumsRaw]] as const) {
+    for (const note of notes) trace.emitNote("raw", note, source, "source stem candidate", true, notes.length);
+  }
   const guitarUpperRaw = supportedUpperRawNotes(guitarRaw);
   const otherUpperRaw = supportedUpperRawNotes(otherRaw);
   const guitarUpperEvidence = upperHarmonicPath(guitarRaw, "guitar");
@@ -2782,6 +2981,25 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
   const otherLanes = suppressLowGuitarPulseRuns(otherPath, [...guitarPath, ...sharedUpperEvidence]);
   const other = otherLanes.lead;
   const rhythmOther = [...otherLanes.rhythm, ...otherRawRhythm];
+  const tracePath = (source: "guitar" | "other", raw: IdentityNote[], path: IdentityNote[]): void => {
+    const selectedRefs = new Set(path.flatMap((note) => note.traceRefs ?? []));
+    const selectedStage: MetalArrangementTraceStage = source === "other" ? "residual" : "lead";
+    for (const note of path) trace.emitNote(selectedStage, note, source, source === "other" ? "selected residual upper path" : "selected coherent lead path", true, raw.length);
+    for (const note of raw) {
+      if (note.traceRefs?.some((ref) => selectedRefs.has(ref))) continue;
+      trace.emitNote("residual", note, source, "not selected as lead; retained as residual evidence", false, raw.length);
+    }
+    const ordered = [...raw].sort((a, b) => a.start - b.start || a.midi - b.midi || a.dur - b.dur || a.vel - b.vel);
+    for (let index = 0; index < ordered.length;) {
+      const note = ordered[index]!;
+      const cluster = ordered.filter((candidate) => Math.abs(candidate.start - note.start) <= 0.08 + EPS);
+      trace.emitCluster(source, cluster, cluster.some((candidate) => candidate.traceRefs?.some((ref) => selectedRefs.has(ref))), "raw onset cluster after lead matching");
+      const start = note.start;
+      while (index < ordered.length && ordered[index]!.start - start <= 0.08 + EPS) index += 1;
+    }
+  };
+  tracePath("guitar", guitarRaw, guitar);
+  tracePath("other", otherRaw, other);
   const dedicatedGuitarHarmony = guitarStem
     ? inferSemanticGuitarHarmony(guitarRaw, guitarPath, bass, "guitar", guitarStem.confidence)
     : { attacks: [], diagnostics: freshGuitarHarmonyDiagnostics() };
@@ -2814,13 +3032,24 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
     dur: attack.dur,
     vel: Math.round(70 + attack.confidence * 40),
     identitySource: attack.source,
+    traceRefs: attack.traceRefs,
   }));
+  for (const attack of guitarHarmony.attacks) {
+    trace.emitNote("semantic", {
+      midi: attack.rootMidi,
+      start: attack.start,
+      dur: attack.dur,
+      vel: Math.round(70 + attack.confidence * 40),
+      identitySource: attack.source,
+      traceRefs: attack.traceRefs,
+    }, attack.source, `semantic ${attack.quality} attack`, true, attack.memberCount);
+  }
   const selectedHarmonicEvidence: IdentityNote[] = [
     ...semanticEvidence,
     ...(guitarStem ? guitarPath : []),
     ...otherPath,
   ];
-  const rawHarmonicEvidence: Note[] = [...guitarRaw, ...otherRaw];
+  const rawHarmonicEvidence: IdentityNote[] = [...guitarRaw, ...otherRaw];
   const sections: MetalIdentitySection[] = [];
   const identity: Note[] = [];
   const vocalRegisterAnchors = new Set<string>();
@@ -2972,9 +3201,10 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
     55,
     96,
   );
-  const publicIdentity = stabilizedIdentity.map(({ rawMidi: _rawMidi, ...note }) => note);
+  for (const note of stabilizedIdentity) trace.emitNote("final", note, note.identitySource ?? null, "survived final identity cleanup", true);
+  const publicIdentity = stabilizedIdentity.map(stripPrivateTrace);
   const chords: ChordLabel[] = [];
-  const leftHand: Note[] = [];
+  const leftHand: IdentityNote[] = [];
   let previousRoot: number | undefined;
   for (let beat = 0; beat < durationBeats - EPS; beat += harmonyBeats) {
     const end = Math.min(durationBeats, beat + harmonyBeats);
@@ -3001,6 +3231,10 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
     previousRoot = rootPc;
     const chord = chordFor(rootPc, evidence, semanticReliable ? semantic?.quality : undefined);
     const duration = Math.max(0.25, end - beat);
+    const chordTraceRefs = [...new Set((semanticReliable ? selectedHarmonicEvidence : rawHarmonicEvidence)
+      .filter((note) => note.start >= beat - EPS && note.start < end - EPS)
+      .flatMap((note) => note.traceRefs ?? []))].sort();
+    trace.emitRefs("chord", chordTraceRefs, semantic?.source ?? guitarHarmony.diagnostics.source ?? null, `inferred ${chord.name} chord`, true, beat);
     chords.push({
       beat,
       name: chord.name,
@@ -3011,17 +3245,17 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
       durationBeats: duration,
     });
     const root = chord.notes[0]!;
-    leftHand.push({ midi: root, start: beat, dur: Math.min(duration, 1.5), vel: 68, hand: "L" });
+    leftHand.push({ midi: root, start: beat, dur: Math.min(duration, 1.5), vel: 68, hand: "L", traceRefs: chordTraceRefs });
     if (chord.notes.length > 1) {
       const fifth = chord.notes.find((note) => note % 12 === (rootPc! + 7) % 12);
-      if (fifth !== undefined) leftHand.push({ midi: fifth, start: beat, dur: Math.min(duration, 1.5), vel: 62, hand: "L" });
+      if (fifth !== undefined) leftHand.push({ midi: fifth, start: beat, dur: Math.min(duration, 1.5), vel: 62, hand: "L", traceRefs: chordTraceRefs });
     }
   }
 
   // A singleton semantic attack is a possible melodic lead, not an
   // accompaniment event. Multi-note stacks become one source-tagged LH root
   // strike, including the common low-root + selected-upper-fifth case.
-  const semanticLeftHand: Note[] = [];
+  const semanticLeftHand: IdentityNote[] = [];
   const semanticSeen = new Set<string>();
   for (const attack of guitarHarmony.attacks.filter((candidate) => candidate.memberCount >= 2
     && candidate.confidence >= 0.5
@@ -3043,9 +3277,10 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
       vel: 58,
       hand: "L",
       identitySource: attack.source,
+      traceRefs: attack.traceRefs,
     });
   }
-  const appendTaggedLeftHand = (note: Note): void => {
+  const appendTaggedLeftHand = (note: IdentityNote): void => {
     const duplicateIndex = leftHand.findIndex((existing) => existing.hand === "L"
       && pitchClass(existing.midi) === pitchClass(note.midi)
       && Math.abs(existing.start - note.start) <= 0.08 + EPS);
@@ -3085,6 +3320,7 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
       vel: Math.max(40, Math.min(76, note.vel)),
       hand: "L",
       identitySource: note.identitySource,
+      traceRefs: note.traceRefs,
     });
   }
   for (const note of rhythmOther.filter((note) => !semanticAttackKeys.has(`${note.identitySource}:${note.start.toFixed(4)}`) && !hasSemanticRootAt(note))) {
@@ -3095,11 +3331,14 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
       vel: Math.max(40, Math.min(76, note.vel)),
       hand: "L",
       identitySource: note.identitySource,
+      traceRefs: note.traceRefs,
     });
   }
 
-  const rhythmicAccents = validNotes(drumsStem).map((note) => note.start).filter((beat, index, all) => index === 0 || beat - all[index - 1]! >= 0.125);
-  const notes = uniqueSorted([...publicIdentity.map((note) => ({ ...note, hand: "R" as const })), ...leftHand]);
+  const rhythmicAccents = drumsRaw.map((note) => note.start).filter((beat, index, all) => index === 0 || beat - all[index - 1]! >= 0.125);
+  const publicLeftHand = leftHand.map(stripPrivateTrace);
+  for (const note of leftHand) trace.emitNote("left-hand", note, note.identitySource ?? null, "emitted accompaniment/root event", true);
+  const notes = uniqueSorted([...publicIdentity.map((note) => ({ ...note, hand: "R" as const })), ...publicLeftHand]);
   const emittedSemanticKeys = new Set(notes
     .filter((note) => note.hand === "L" && note.identitySource)
     .map((note) => `${note.identitySource}:${note.midi}:${note.start.toFixed(4)}`));
@@ -3130,8 +3369,9 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
     ...(input.title ? { title: input.title } : {}),
   };
   const ir: MetalArrangementIR = { version: 1, tempoBpm, timeSig, durationBeats, sections: filteredSections, identity: publicIdentity.map((note) => ({ ...note })), harmony: chords, rhythmicAccents };
+  trace.flush();
   return {
-    parsed,
+    parsed: { ...parsed, notes },
     chords,
     ir,
     stats: {

@@ -22,9 +22,13 @@ export type {
   GuitarLeadPathOptions,
   GuitarLeadPathResult,
   GuitarHarmonyDiagnostics,
+  MetalArrangementDebugOptions,
   MetalArrangementInput,
   MetalArrangementIR,
   MetalArrangementResult,
+  MetalArrangementTraceEvent,
+  MetalArrangementTraceStage,
+  MetalArrangementTraceWindow,
   MetalStem,
   MetalStemRole,
 } from "./metal-arrange.js";

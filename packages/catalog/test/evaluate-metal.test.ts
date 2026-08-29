@@ -94,6 +94,39 @@ describe("evaluate-metal CLI", () => {
     }
   });
 
+  it("writes an explicit windowed arranger provenance trace for local stems", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "keyspilli-evaluate-metal-trace-"));
+    try {
+      await midiFile(join(directory, "other.mid"), [
+        { midi: 64, start: 0, dur: 0.75, vel: 100 },
+        { midi: 67, start: 1, dur: 0.75, vel: 96 },
+        { midi: 69, start: 2, dur: 0.75, vel: 96 },
+        { midi: 67, start: 3, dur: 0.75, vel: 96 },
+      ]);
+      const output = join(directory, "report.json");
+      const trace = join(directory, "trace.json");
+      runCli([
+        "--stems", directory,
+        "--fixture-id", "trace-test",
+        "--window", "opening=0,4,0,4",
+        "--trace-window", "opening=0,4",
+        "--trace-out", trace,
+        "--out", output,
+      ]);
+      const report = JSON.parse(await readFile(output, "utf8"));
+      const traceReport = JSON.parse(await readFile(trace, "utf8"));
+      expect(report.trace.status).toBe("available");
+      expect(report.trace.events.some((event: { stage?: string; source?: string; selected?: boolean }) =>
+        event.stage === "residual" && event.source === "other" && event.selected)).toBe(true);
+      expect(traceReport.schemaVersion).toBe(1);
+      expect(traceReport.windowIds).toEqual(["opening"]);
+      expect(traceReport.events).toEqual(report.trace.events);
+      expect(JSON.stringify(traceReport)).not.toContain(directory);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
   it("rejects a reference path inside the repository", async () => {
     const directory = await mkdtemp(join(tmpdir(), "keyspilli-evaluate-metal-guard-"));
     try {
