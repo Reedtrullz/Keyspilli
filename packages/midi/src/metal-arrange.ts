@@ -1508,6 +1508,10 @@ function chooseInstrumentalRestLanes(
   const preferredIsConnected = Boolean(
     preferredOption
     && preferredLastAttack !== undefined
+    // A section seam is not a reason to resurrect a palm-muted upper wall.
+    // Let the current section's lane-quality comparison choose a coherent
+    // residual contour when the carried guitar evidence is wall-like.
+    && !(preferredOption.source === "guitar" && isUpperGuitarRhythmWall(preferredOption.candidates))
     && preferredOption.candidates.some((note) => note.start - preferredLastAttack <= 1.5 + EPS),
   );
   const sectionWinner = preferredIsConnected

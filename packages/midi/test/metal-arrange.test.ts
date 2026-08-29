@@ -646,6 +646,53 @@ describe("metal piano arranger", () => {
       .toBe(false);
   });
 
+  it("does not carry a guitar wall through vocal rests at a section seam", () => {
+    const vocals = [
+      { midi: 79, start: 0, dur: 0.35, vel: 110 },
+      { midi: 81, start: 2, dur: 0.35, vel: 110 },
+      { midi: 79, start: 4, dur: 0.35, vel: 110 },
+    ];
+    const guitar = [
+      { midi: 72, start: 0.75, dur: 0.35, vel: 90 },
+      { midi: 74, start: 1.5, dur: 0.35, vel: 90 },
+      { midi: 76, start: 2.25, dur: 0.35, vel: 90 },
+      { midi: 75, start: 3, dur: 0.35, vel: 90 },
+      ...Array.from({ length: 8 }, (_, index) => ({
+        midi: 64,
+        start: 4 + index * 0.5,
+        dur: 0.25,
+        vel: 118,
+      })),
+    ];
+    const residualLead = [72, 74, 76, 77].map((midi, index) => ({
+      midi,
+      start: 4 + index,
+      dur: 0.5,
+      vel: 80,
+    }));
+    const result = buildMetalArrangement({
+      sectionBeats: 4,
+      stems: [
+        { role: "vocals", midi: midi(vocals, 8) },
+        { role: "guitar", midi: midi(guitar, 8) },
+        { role: "other", midi: midi(residualLead, 8) },
+      ],
+    });
+
+    const secondSection = result.ir.identity
+      .filter((note) => note.start >= 4 && note.start < 8)
+      .sort((a, b) => a.start - b.start);
+    // The first residual attack shares the vocal's onset and is intentionally
+    // occupied by that hard vocal anchor; the remaining contour must still
+    // beat the carried guitar wall.
+    expect(secondSection.filter((note) => note.identitySource === "other").map((note) => note.midi))
+      .toEqual(residualLead.filter((note) => note.start > 4).map((note) => note.midi));
+    expect(secondSection.filter((note) => note.identitySource === "guitar"), "the carried guitar wall overrode a vocal-rest lane")
+      .toHaveLength(0);
+    expect(result.ir.identity.filter((note) => note.identitySource === "vocals").map((note) => note.midi))
+      .toEqual(vocals.map((note) => note.midi));
+  });
+
   it("does not let an isolated residual upper spike route a low guitar contour into LH", () => {
     const guitarContour = [50, 52, 54, 52, 50, 52].map((midi, index) => ({
       midi,
