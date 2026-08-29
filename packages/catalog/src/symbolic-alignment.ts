@@ -551,8 +551,10 @@ function buildMetrics(
     const candDirection = Math.sign(contour[index]!.candidateMidi - contour[index - 1]!.candidateMidi);
     if (refDirection === candDirection) directionAgreement += 1;
   }
-  const refChroma = chromaVector(reference.notes, 0);
-  const candChroma = chromaVector(candidate.notes, hypothesis.transpose);
+  const referenceNotes = hypothesis.referenceGroups.flatMap((group) => group.notes);
+  const candidateNotes = hypothesis.candidateGroups.flatMap((group) => group.notes);
+  const refChroma = chromaVector(referenceNotes.length ? referenceNotes : reference.notes, 0);
+  const candChroma = chromaVector(candidateNotes.length ? candidateNotes : candidate.notes, hypothesis.transpose);
   const candidateSpan = Math.max(0, hypothesis.candidateGroups.length ? Math.max(...hypothesis.candidateGroups.flatMap((group) => group.notes.map((note) => note.start + note.dur))) : candidate.durationBeats);
   const referenceSpan = Math.max(0, hypothesis.referenceGroups.length ? Math.max(...hypothesis.referenceGroups.flatMap((group) => group.notes.map((note) => note.start + note.dur))) : reference.durationBeats);
   return {
@@ -629,6 +631,21 @@ function normalizedWindows(input: SymbolicAlignmentWindow[] | undefined): { wind
   return { windows: valid, invalid };
 }
 
+function windowHypotheses(windows: readonly SymbolicAlignmentWindow[]): { offsets: number[]; scales: number[] } {
+  const offsets = new Set<number>();
+  const scales = new Set<number>();
+  for (const window of windows) {
+    const referenceSpan = window.reference[1]! - window.reference[0]!;
+    const candidateSpan = window.candidate[1]! - window.candidate[0]!;
+    const scale = referenceSpan > EPS && candidateSpan > EPS ? candidateSpan / referenceSpan : 1;
+    if (finite(scale) && scale > 0) {
+      scales.add(round(scale, 6));
+      offsets.add(round(window.candidate[0]! - window.reference[0]! * scale, 6));
+    }
+  }
+  return { offsets: [...offsets].sort((a, b) => a - b), scales: [...scales].sort((a, b) => a - b) };
+}
+
 /**
  * Align a reference score (first argument) to a candidate score (second
  * argument). `offsetBeats` is the candidate's leading offset: candidate beat
@@ -644,6 +661,7 @@ export function alignSymbolicScores(
   const tolerance = clamp(normalizeNumber(options.onsetToleranceBeats, DEFAULT_TOLERANCE), 0.001, 1);
   const normalizedWindowResult = normalizedWindows(options.windows);
   const windows = normalizedWindowResult.windows;
+  const invalidOnlyWindows = Array.isArray(options.windows) && options.windows.length > 0 && windows.length === 0;
   const durationRatio = reference.durationBeats > EPS && candidate.durationBeats > EPS
     ? candidate.durationBeats / reference.durationBeats : 1;
   const explicitOffsetLimit = normalizeNumber(options.maxOffsetBeats, 16);
@@ -651,7 +669,7 @@ export function alignSymbolicScores(
     || (options.beatScales?.some((scale) => finite(scale) && Math.abs(scale - 1) > EPS) ?? false)
     || (options.offsetsBeats?.some((offset) => finite(offset) && Math.abs(offset) > explicitOffsetLimit) ?? false);
   const unannotatedExtremeMismatch = !hasExplicitHypothesis && (durationRatio < 0.25 || durationRatio > 4);
-  if (unannotatedExtremeMismatch) {
+  if (invalidOnlyWindows || unannotatedExtremeMismatch) {
     const emptyMetric: SymbolicAlignmentMetrics = {
       matchedNotes: 0, matchedReferenceNotes: 0, matchedCandidateNotes: 0,
       exactPitch: metric(0, candidate.notes.length, reference.notes.length),
@@ -673,18 +691,19 @@ export function alignSymbolicScores(
       metrics: emptyMetric,
       matches: [],
       windows: [],
-      diagnostics: ["candidate/reference duration mismatch requires explicit alignment windows or anchors"],
+      diagnostics: [invalidOnlyWindows ? "all supplied alignment windows are invalid" : "candidate/reference duration mismatch requires explicit alignment windows or anchors"],
     };
   }
 
   const maxOffset = clamp(normalizeNumber(options.maxOffsetBeats, 16), 0, 128);
+  const windowCandidates = windowHypotheses(windows);
   const explicitOffsets = options.offsetsBeats !== undefined;
-  const offsets = sortedUnique(options.offsetsBeats ?? (options.allowOffset === false ? [0] : defaultOffsets(reference, candidate, maxOffset)), [0]);
-  const scales = sortedUnique(options.beatScales ?? defaultScales(options), [1]).filter((scale) => scale > 0 && scale >= 0.5 && scale <= 2);
+  const offsets = sortedUnique(options.offsetsBeats ?? (windows.length ? [...windowCandidates.offsets, 0] : (options.allowOffset === false ? [0] : defaultOffsets(reference, candidate, maxOffset))), [0]);
+  const scales = sortedUnique(options.beatScales ?? (windows.length ? [...windowCandidates.scales, 1] : defaultScales(options)), [1]).filter((scale) => scale > 0 && scale >= 0.25 && scale <= 4);
   const transpositions = sortedUnique(options.transpositions ?? defaultTranspositions(options), [0]).filter((transpose) => transpose >= -24 && transpose <= 24);
   const hypotheses: Hypothesis[] = [];
   for (const scale of scales) for (const offset of offsets) for (const transpose of transpositions) {
-    if (!explicitOffsets && Math.abs(offset) > maxOffset + EPS) continue;
+    if (!explicitOffsets && !windows.length && Math.abs(offset) > maxOffset + EPS) continue;
     hypotheses.push(evaluateHypothesis(reference, candidate, offset, scale, transpose, tolerance, windows));
   }
   hypotheses.sort((a, b) => b.score - a.score

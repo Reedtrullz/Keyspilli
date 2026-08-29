@@ -164,6 +164,29 @@ describe("symbolic alignment", () => {
     expect(result.windows[0]).toMatchObject({ matchedOnsets: 0, exactPitch: { f1: null } });
   });
 
+  it("derives an alignment hypothesis from annotated windows", () => {
+    const result = alignSymbolicScores(
+      score([{ midi: 60, start: 100, dur: 1, vel: 90 }, { midi: 62, start: 101, dur: 1, vel: 90 }], { durationBeats: 102 }),
+      score([{ midi: 60, start: 110, dur: 1, vel: 90 }, { midi: 62, start: 111, dur: 1, vel: 90 }], { durationBeats: 112 }),
+      { windows: [{ id: "late", reference: [100, 102], candidate: [110, 112] }] },
+    );
+    expect(result.status).toBe("aligned");
+    expect(result.offsetBeats).toBe(10);
+    expect(result.metrics.exactPitch.f1).toBe(1);
+    expect(result.windows[0]?.matchedOnsets).toBe(2);
+  });
+
+  it("fails closed when every supplied window is malformed", () => {
+    const result = alignSymbolicScores(
+      score([{ midi: 60, start: 0, dur: 1, vel: 90 }]),
+      score([{ midi: 60, start: 0, dur: 1, vel: 90 }]),
+      { windows: [{ id: "bad", reference: [2, 1], candidate: [0, 1] }] },
+    );
+    expect(result.status).toBe("alignment-required");
+    expect(result.alignmentRequired).toBe(true);
+    expect(result.matches).toEqual([]);
+  });
+
   it("honors an explicit large offset instead of applying the automatic offset cap", () => {
     const result = alignSymbolicScores(
       score([{ midi: 60, start: 0, dur: 1, vel: 90 }]),
