@@ -1512,6 +1512,43 @@ describe("metal piano arranger", () => {
     }
   });
 
+  it("keeps learner coverage across a shifted stepwise guitar phrase", () => {
+    const starts = [16, 16.25, 16.5, 16.75, 17.25, 17.5, 17.75, 18, 18.25, 19,
+      19.5, 20, 20.25, 20.5, 20.75, 21, 21.25, 21.5, 21.75, 22, 22.75, 23.25];
+    const pitches = [76, 72, 67, 64, 64, 67, 69, 69, 71, 64, 67, 69,
+      69, 72, 69, 69, 69, 67, 65, 67, 72, 64];
+    const source = midi(pitches.map((midi, index) => ({
+      midi,
+      start: starts[index]!,
+      dur: 0.25,
+      vel: 80,
+      hand: "R" as const,
+      identitySource: "guitar" as const,
+    })), 24);
+    const variants = buildVariants(source, { title: "Shifted lead coverage", artist: "Fixture" }, {
+      arrangementProfile: "metal",
+      audioDerived: true,
+    });
+    const count = (level: "easy" | "medium" | "advanced") => variants
+      .find((variant) => variant.level === level)!.notes
+      .filter((note) => note.hand !== "L" && note.identitySource === "guitar" && note.start >= 16);
+    expect(count("advanced").length).toBe(pitches.length);
+    // The old salience-only scheduler keeps 11 Medium / 9 Easy attacks here;
+    // a connected shifted phrase should retain at least twelve supported
+    // landings without restoring the quarter-beat ornament wholesale.
+    expect(count("medium").length, "medium dropped too much of a connected lead phrase").toBeGreaterThanOrEqual(12);
+    expect(count("easy").length, "easy lost the phrase contour").toBeGreaterThanOrEqual(12);
+    for (const level of ["easy", "medium"] as const) {
+      const notes = count(level);
+      expect(notes[0]?.midi, `${level} lost the phrase landing`).toBe(76);
+      expect(notes.at(-1)?.midi, `${level} lost the terminal landing`).toBe(64);
+      expect(notes.some((note) => note.midi === 69 && note.start >= 20), `${level} lost a middle connector`).toBe(true);
+      const gaps = notes.slice(1).map((note, index) => note.start - notes[index]!.start);
+      expect(Math.min(...gaps), `${level} violated the half-beat learner floor`).toBeGreaterThanOrEqual(0.5 - 1e-9);
+    }
+    expect(count("easy").every((note) => count("medium").some((sourceNote) => sourceNote.start === note.start && sourceNote.midi === note.midi))).toBe(true);
+  });
+
   it("scores guitar contour through a vocal handoff instead of its adjacent vocal pitch", () => {
     const source = midi([
       { midi: 64, start: 0.25, dur: 0.5, vel: 92, hand: "R", identitySource: "guitar" },

@@ -398,6 +398,26 @@ function removeWeakGuitarVocalHandoffs(notes: Note[], tempoBpm: number, legato: 
 }
 
 /**
+ * A legato learner may tie detector re-attacks, but a repeated pitch inside a
+ * changing guitar contour is still a real melodic event. Basic Pitch often
+ * emits two or three same-pitch attacks immediately before a stepwise move;
+ * collapsing those before contour selection is the main way a metal solo
+ * becomes unnaturally sparse. Require a genuine local contour before
+ * preserving the re-attack so a single-pitch rhythm wall keeps the existing
+ * tie/thinning behaviour.
+ */
+function hasMovingGuitarContext(note: Note, source: Note[]): boolean {
+  if (note.identitySource !== "guitar") return false;
+  const context = source
+    .filter((candidate) => candidate.identitySource === "guitar"
+      && Math.abs(candidate.start - note.start) <= 2.5 + 1e-9)
+    .sort((a, b) => a.start - b.start || b.vel - a.vel);
+  if (new Set(context.map((candidate) => candidate.midi)).size < 3) return false;
+  return context.some((candidate) => candidate.midi !== note.midi
+    && Math.abs(candidate.start - note.start) <= 0.9 + 1e-9);
+}
+
+/**
  * Remove a very weak, short vocal fragment that immediately returns to the
  * same pitch. Basic Pitch can split one sung syllable into a tiny lower
  * contour flicker; making that flicker a learner attack is more distracting
@@ -580,9 +600,12 @@ function metalInstrumentalTransitionPenalty(previous: Note, note: Note, gapBeats
   // still lets a phrase resolve by a genuine octave when no nearby option
   // exists. Add a little extra pressure above an octave: that is the common
   // register-flicker shape in separated guitar stems, not a hard rejection.
-  return excess * 0.9
-    + (leap >= 7 && gapBeats <= 1 + 1e-9 ? 1 : 0)
-    + (leap >= 10 && gapBeats <= 1.5 + 1e-9 ? 1.5 : 0);
+  const quietSpike = note.vel < 60 && note.dur <= 0.2 + 1e-9 && leap >= 7;
+  return excess * 0.25
+    + (leap >= 7 && gapBeats <= 1 + 1e-9 ? 0.35 : 0)
+    + (leap >= 10 && gapBeats <= 1.5 + 1e-9 ? 0.6 : 0)
+    + (leap >= 10 && gapBeats <= 1 + 1e-9 ? 3.5 : 0)
+    + (quietSpike ? 2.5 : 0);
 }
 
 /**
@@ -610,7 +633,18 @@ function metalInstrumentalCoveragePenalty(
   const source = previous.identitySource;
   const gapBeats = current.start - previous.start;
   const targetGap = Math.max(1, minimumSpacingBeats * 2);
-  if (gapBeats <= targetGap + 1e-9) return 0;
+  if (gapBeats <= targetGap + 1e-9) {
+    // In a connected guitar lead, a comfortable half-/whole-beat connector
+    // is positive evidence rather than a cost. The ordinary salience DP can
+    // otherwise choose two loud endpoints and leave an unplayable hole even
+    // though a supported stepwise attack exists between them. Keep this
+    // reward guitar-only so residual fallback lanes do not regain detector
+    // chatter merely because they are dense.
+    return source === "guitar" && gapBeats >= minimumSpacingBeats - 1e-9
+      && Math.abs(current.midi - previous.midi) <= 5
+      ? -0.8
+      : 0;
+  }
   // Keep the bridge lookup local. Besides avoiding an allocation for every
   // DP edge, this bounds the nested scan on dense detector output to a small
   // phrase neighbourhood rather than turning the O(n^2) contour DP into an
@@ -895,19 +929,33 @@ function reduceMetalRhRealism(notes: Note[], tempoBpm: number, maxAttacksPerSeco
       lastMergedVocal = note;
       lastMergedVocalAttackStart = note.start;
     }
+    const preserveMelodicReattack = Boolean(
+      previous
+      && previous.midi === note.midi
+      && (hasMovingGuitarContext(previous, source) || hasMovingGuitarContext(note, source)),
+    );
+    const shortFragmentMerge = legato
+      && elapsedSec <= 0.4 + 1e-9
+      && gapSec <= 0.2 + 1e-9
+      && previous?.dur !== undefined
+      && previous.dur <= 0.25 + 1e-9
+      && note.dur <= 0.25 + 1e-9;
     if (
       previous
       && previous.identitySource !== "vocals"
       && note.identitySource !== "vocals"
       && previous.midi === note.midi
+      && !preserveMelodicReattack
       // In a legato learner level, overlapping same-pitch guitar attacks are
       // one held piano tone rather than separate picked strikes. Keep the
       // advanced/source texture tighter so deliberate re-attacks remain
       // available there, while allowing a quarter-second fragment boundary
       // to collapse in the playable levels.
-      && elapsedSec <= (legato ? 0.5 : 0.09) + 1e-9
-      && gapSec <= (legato ? 0.25 : 0) + 1e-9
-      && note.start <= previous.start + previous.dur + (legato ? 0.5 : 0.125) + 1e-9
+      && (elapsedSec <= (legato ? 0.25 : 0.09) + 1e-9 || shortFragmentMerge)
+      && (gapSec <= (legato ? 0.125 : 0) + 1e-9 || shortFragmentMerge)
+      && note.start <= previous.start + previous.dur + (legato
+        ? shortFragmentMerge ? 0.5 : 0.25
+        : 0.125) + 1e-9
     ) {
       previous.dur = Math.max(previous.dur, note.start + note.dur - previous.start);
       previous.vel = Math.max(previous.vel, note.vel);
@@ -1021,8 +1069,21 @@ function reduceMetalRhRealism(notes: Note[], tempoBpm: number, maxAttacksPerSeco
         ? Math.min(Math.abs(note.midi - previous.midi), Math.abs(note.midi - next.midi))
         : 0;
       const stepConnector = previous && next
+        && previous.identitySource === note.identitySource
+        && next.identitySource === note.identitySource
         && Math.abs(note.midi - previous.midi) <= 4
         && Math.abs(next.midi - note.midi) <= 4;
+      // A dense, stepwise guitar phrase contains useful connector attacks
+      // even when each individual note is quieter than a detector spike. The
+      // contour DP should prefer those connectors over leaving a one-beat
+      // hole, but only when both local intervals are already comfortable.
+      // This bonus is source/legato scoped; vocals and residual fallback keep
+      // their existing salience policy.
+      const coverageBonus = useContourDp
+        && note.identitySource === "guitar"
+        && stepConnector
+        ? 3
+        : 0;
       // A local salience score alone can prefer a quiet chord partial that
       // creates a large guitar jump. Look through vocal events for the nearest
       // guitar neighbours and lower that candidate's weight when the travel
@@ -1071,6 +1132,7 @@ function reduceMetalRhRealism(notes: Note[], tempoBpm: number, maxAttacksPerSeco
         + (endpoint ? 5 : 0)
         + localExtremumBonus
         + (stepConnector ? 0.75 : 0)
+        + coverageBonus
         + (beatPosition <= 1e-6 ? 0.75 : halfBeatPosition <= 1e-6 ? 0.35 : 0)
         - (useContourDp ? 0 : instrumentalTransitionPenalty);
     });
