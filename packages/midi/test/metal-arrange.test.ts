@@ -168,6 +168,29 @@ describe("metal piano arranger", () => {
     expect(result.ir.identity.some((note) => note.identitySource === "guitar" && note.midi >= 72)).toBe(true);
   });
 
+  it("routes wide alternating low roots before they octave-fold into RH", () => {
+    const lowPulse = Array.from({ length: 20 }, (_, index) => ({
+      // Detector partials can alternate by a full octave, so these notes do
+      // not form one fixed-pitch run even though they are one rhythm wall.
+      midi: index % 2 === 0 ? 50 : 60,
+      start: index * 0.5,
+      dur: 0.25,
+      vel: index % 4 === 0 ? 84 : 72,
+    }));
+    const highLead = Array.from({ length: 10 }, (_, index) => ({
+      midi: 72 + (index % 4),
+      start: index,
+      dur: 0.5,
+      vel: 92,
+    }));
+    const result = buildMetalArrangement({
+      stems: [{ role: "guitar", midi: midi([...lowPulse, ...highLead], 10) }],
+    });
+    const guitarRh = result.ir.identity.filter((note) => note.identitySource === "guitar");
+    expect(guitarRh.every((note) => note.midi >= 72), "wide low rhythm wall leaked into RH").toBe(true);
+    expect(result.parsed.notes.filter((note) => note.hand === "L" && note.identitySource === "guitar").length).toBeGreaterThanOrEqual(10);
+  });
+
   it("uses residual upper evidence to keep a melody while moving dense guitar rhythm to LH", () => {
     const lowGuitarWall = Array.from({ length: 24 }, (_, index) => ({
       midi: index % 2 === 0 ? 45 : 52,
@@ -221,6 +244,113 @@ describe("metal piano arranger", () => {
     expect(guitar.filter((note) => note.midi < 68).length).toBe(0);
     expect(guitar.length).toBeLessThan(other.length);
     expect(other.map((note) => note.midi).slice(0, 6)).toEqual([72, 74, 76, 77, 76, 74]);
+  });
+
+  it("keeps one coherent instrumental lane through vocal rests", () => {
+    const vocals: Note[] = [
+      { midi: 79, start: 0, dur: 0.35, vel: 100 },
+      { midi: 81, start: 2, dur: 0.35, vel: 100 },
+      { midi: 79, start: 4, dur: 0.35, vel: 100 },
+    ];
+    const guitar = [72, 74, 76, 75, 73, 72].map((midi, index) => ({
+      midi,
+      start: 0.75 + index * 0.5,
+      dur: 0.35,
+      vel: 86,
+    }));
+    // Residual separation can contain many upper chord partials. They are
+    // evidence, but should not be interleaved into every vocal rest when a
+    // connected guitar lead is already available for that phrase.
+    const residualOther = Array.from({ length: 24 }, (_, index) => ({
+      midi: [67, 76, 81, 72][index % 4]!,
+      start: 0.5 + index * 0.125,
+      dur: 0.1,
+      vel: 54,
+    }));
+    const result = buildMetalArrangement({
+      stems: [
+        { role: "vocals", midi: midi(vocals, 8) },
+        { role: "guitar", midi: midi(guitar, 8) },
+        { role: "other", midi: midi(residualOther, 8) },
+      ],
+    });
+    const section = result.ir.identity.filter((note) => note.start >= 0.5 && note.start < 4);
+    expect(section.some((note) => note.identitySource === "guitar")).toBe(true);
+    expect(section.some((note) => note.identitySource === "other")).toBe(false);
+    expect(result.ir.identity.filter((note) => note.identitySource === "vocals").map((note) => note.midi)).toEqual([79, 81, 79]);
+  });
+
+  it("decodes a dense residual lane into a stepwise upper contour", () => {
+    const lead = [64, 65, 67, 69, 67, 65, 64, 62, 64, 65, 67, 69, 71, 69, 67, 65];
+    const residual: Note[] = [];
+    for (let index = 0; index < lead.length; index++) {
+      const start = index * 0.5;
+      residual.push({ midi: lead[index]!, start, dur: 0.42, vel: 66 });
+      // This is the kind of residual chord partial that currently wins an
+      // otherwise empty onset and makes the generated RH sound like scattered
+      // detector hits rather than a playable line.
+      residual.push({ midi: index % 2 ? 81 : 76, start: start + 0.18, dur: 0.08, vel: 44 });
+      residual.push({ midi: index % 3 ? 74 : 79, start: start + 0.31, dur: 0.07, vel: 42 });
+    }
+    const lowWall = Array.from({ length: 24 }, (_, index) => ({
+      midi: 57,
+      start: index * 0.25,
+      dur: 0.12,
+      vel: 82,
+    }));
+    const result = buildMetalArrangement({
+      stems: [
+        { role: "guitar", midi: midi(lowWall, 8) },
+        { role: "other", midi: midi(residual, 8) },
+      ],
+    });
+    const other = result.ir.identity
+      .filter((note) => note.identitySource === "other")
+      .sort((a, b) => a.start - b.start);
+    expect(other.length, "residual chord partials were promoted as melody").toBeLessThanOrEqual(18);
+    expect(other.map((note) => note.midi).filter((pitch) => pitch === 76 || pitch === 81 || pitch === 79)).toHaveLength(0);
+    expect(other.map((note) => note.midi).slice(0, 4)).toEqual(lead.slice(0, 4));
+    expect(other.map((note) => note.midi).every((pitch) => lead.includes(pitch))).toBe(true);
+    expect(other.map((note) => note.midi).filter((pitch) => pitch >= 62 && pitch <= 71).length).toBeGreaterThanOrEqual(12);
+  });
+
+  it("carries a coherent guitar phrase across vocal gaps and section seams", () => {
+    const vocals = [0, 2, 4, 6].map((start, index) => ({
+      midi: 76 + (index % 2),
+      start,
+      dur: 0.35,
+      vel: 104,
+    }));
+    const guitarPitches = [72, 74, 75, 74, 72, 74, 75, 74];
+    const guitar = guitarPitches.map((midi, index) => ({
+      midi,
+      start: 0.75 + index * 0.75,
+      dur: 0.35,
+      vel: 84,
+    }));
+    // The residual lane is intentionally denser and louder in the middle
+    // gap. A phrase-level source carry should keep the connected guitar line
+    // rather than flipping to `other` for one vocal rest or at beat 4.
+    const residual = Array.from({ length: 12 }, (_, index) => ({
+      midi: [84, 82, 86, 81][index % 4]!,
+      start: 2.5 + index * 0.125,
+      dur: 0.18,
+      vel: 112,
+    }));
+    const result = buildMetalArrangement({
+      sectionBeats: 4,
+      stems: [
+        { role: "vocals", midi: midi(vocals, 8) },
+        { role: "guitar", midi: midi(guitar, 8) },
+        { role: "other", midi: midi(residual, 8) },
+      ],
+    });
+    const instrumental = result.ir.identity
+      .filter((note) => note.start >= 0.5 && note.start < 8 && note.identitySource !== "vocals")
+      .sort((a, b) => a.start - b.start);
+    expect(instrumental.some((note) => note.identitySource === "guitar")).toBe(true);
+    expect(instrumental.some((note) => note.identitySource === "other"), "source flipped to residual lane inside the guitar phrase").toBe(false);
+    expect(result.ir.identity.filter((note) => note.identitySource === "vocals").map((note) => note.midi)).toEqual([76, 77, 76, 77]);
   });
 
   it("uses contour continuity when a polyphonic onset offers a quiet step and a loud distant spike", () => {
@@ -764,6 +894,27 @@ describe("metal piano arranger", () => {
     }
     const advanced = variants.find((variant) => variant.level === "advanced")!.notes.filter((note) => note.hand !== "L");
     expect(advanced.some((note) => note.identitySource === "guitar" && note.start === 1.25 && note.midi === 78)).toBe(true);
+  });
+
+  it("applies the playable contour guard to residual upper lanes", () => {
+    const source = midi([
+      { midi: 64, start: 0.25, dur: 0.5, vel: 92, hand: "R", identitySource: "other" },
+      { midi: 69, start: 0.75, dur: 0.5, vel: 92, hand: "R", identitySource: "other" },
+      { midi: 78, start: 1.25, dur: 0.125, vel: 48, hand: "R", identitySource: "other" },
+      { midi: 74, start: 1.75, dur: 0.5, vel: 92, hand: "R", identitySource: "other" },
+      { midi: 75, start: 2.25, dur: 0.5, vel: 92, hand: "R", identitySource: "other" },
+    ], 3.25);
+    const variants = buildVariants(source, { title: "Residual contour", artist: "Fixture" }, {
+      arrangementProfile: "metal",
+      audioDerived: true,
+    });
+    for (const level of ["medium", "easy"] as const) {
+      const notes = variants.find((variant) => variant.level === level)!.notes.filter((note) => note.hand !== "L");
+      expect(notes.some((note) => note.identitySource === "other" && note.start === 1.25), `${level} kept residual contour spike`).toBe(false);
+      expect(notes.filter((note) => note.identitySource === "other").map((note) => note.midi)).toEqual([64, 69, 74, 75]);
+    }
+    const advanced = variants.find((variant) => variant.level === "advanced")!.notes.filter((note) => note.hand !== "L");
+    expect(advanced.some((note) => note.identitySource === "other" && note.start === 1.25)).toBe(true);
   });
 
   it("retains enough connected landings from a dense stepwise solo phrase", () => {

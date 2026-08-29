@@ -282,45 +282,46 @@ function removeInterleavedGuitarDetours(notes: Note[], tempoBpm: number, legato:
   // long chain of removals to collapse an entire phrase into its endpoints.
   for (let pass = 0; pass < 2; pass++) {
     const sorted = current.sort((a, b) => a.start - b.start || b.vel - a.vel || b.midi - a.midi);
-    const guitarIndexes = sorted
-      .map((note, index) => note.identitySource === "guitar" ? index : -1)
-      .filter((index) => index >= 0);
-    if (guitarIndexes.length < 3) return current;
     const remove = new Set<Note>();
-    for (let position = 1; position < guitarIndexes.length - 1; position++) {
-      const previous = sorted[guitarIndexes[position - 1]!]!;
-      const note = sorted[guitarIndexes[position]!]!;
-      const next = sorted[guitarIndexes[position + 1]!]!;
-      const interveningVocal = sorted
-        .slice(guitarIndexes[position]! + 1, guitarIndexes[position + 1]!)
-        .find((candidate) => candidate.identitySource === "vocals");
-      const guitarPhraseLanding = interveningVocal !== undefined
-        && interveningVocal.start - note.start <= 1.5 + 1e-9
-        && note.start - previous.start <= 1 + 1e-9
-        && Math.abs(note.midi - previous.midi) <= 7;
-      if (guitarPhraseLanding) continue;
-      const intoBeats = note.start - previous.start;
-      const outBeats = next.start - note.start;
-      const durationSec = note.dur * secondsPerBeat;
-      const downbeat = Math.abs(note.start - Math.round(note.start)) <= 1e-9;
-      // A quiet, short detector spike on a barline is still removable. Real
-      // downbeat landings are protected by their velocity/duration (and by
-      // the high-landing guard below), rather than by timing alone.
-      const downbeatAnchor = downbeat && (note.vel >= 90 || durationSec >= 0.35);
-      const highLanding = note.midi >= 76
-        && note.midi >= Math.max(previous.midi, next.midi)
-        && (note.vel >= 90 || durationSec >= 0.35);
-      const detour = intoBeats <= 1.5 + 1e-9
-        && outBeats <= 1.5 + 1e-9
-        && durationSec <= 0.35 + 1e-9
-        && !downbeatAnchor
-        && !highLanding
-        && note.vel < 100
-        && Math.abs(note.midi - previous.midi) >= 5
-        && Math.abs(note.midi - next.midi) >= 5
-        && Math.abs(previous.midi - next.midi) <= 5
-        && Math.sign(note.midi - previous.midi) !== Math.sign(next.midi - note.midi);
-      if (detour) remove.add(note);
+    for (const source of ["guitar", "other"] as const) {
+      const sourceIndexes = sorted
+        .map((note, index) => note.identitySource === source ? index : -1)
+        .filter((index) => index >= 0);
+      for (let position = 1; position < sourceIndexes.length - 1; position++) {
+        const previous = sorted[sourceIndexes[position - 1]!]!;
+        const note = sorted[sourceIndexes[position]!]!;
+        const next = sorted[sourceIndexes[position + 1]!]!;
+        const interveningVocal = sorted
+          .slice(sourceIndexes[position]! + 1, sourceIndexes[position + 1]!)
+          .find((candidate) => candidate.identitySource === "vocals");
+        const phraseLanding = interveningVocal !== undefined
+          && interveningVocal.start - note.start <= 1.5 + 1e-9
+          && note.start - previous.start <= 1 + 1e-9
+          && Math.abs(note.midi - previous.midi) <= 7;
+        if (phraseLanding) continue;
+        const intoBeats = note.start - previous.start;
+        const outBeats = next.start - note.start;
+        const durationSec = note.dur * secondsPerBeat;
+        const downbeat = Math.abs(note.start - Math.round(note.start)) <= 1e-9;
+        // A quiet, short detector spike on a barline is still removable. Real
+        // downbeat landings are protected by their velocity/duration (and by
+        // the high-landing guard below), rather than by timing alone.
+        const downbeatAnchor = downbeat && (note.vel >= 90 || durationSec >= 0.35);
+        const highLanding = note.midi >= 76
+          && note.midi >= Math.max(previous.midi, next.midi)
+          && (note.vel >= 90 || durationSec >= 0.35);
+        const detour = intoBeats <= 1.5 + 1e-9
+          && outBeats <= 1.5 + 1e-9
+          && durationSec <= 0.35 + 1e-9
+          && !downbeatAnchor
+          && !highLanding
+          && note.vel < 100
+          && Math.abs(note.midi - previous.midi) >= 5
+          && Math.abs(note.midi - next.midi) >= 5
+          && Math.abs(previous.midi - next.midi) <= 5
+          && Math.sign(note.midi - previous.midi) !== Math.sign(next.midi - note.midi);
+        if (detour) remove.add(note);
+      }
     }
     if (!remove.size) break;
     current = sorted.filter((note) => !remove.has(note));
@@ -342,13 +343,14 @@ function removeWeakGuitarVocalHandoffs(notes: Note[], tempoBpm: number, legato: 
   const secondsPerBeat = 60 / normalizeTempoBpm(tempoBpm);
   const sorted = [...notes].sort((a, b) => a.start - b.start || b.vel - a.vel || b.midi - a.midi);
   const vocals = sorted.filter((note) => note.identitySource === "vocals");
-  const guitars = sorted.filter((note) => note.identitySource === "guitar");
-  if (vocals.length < 1 || guitars.length < 1) return notes;
+  const instrumentals = sorted.filter((note) => isMetalInstrumentalSource(note.identitySource));
+  if (vocals.length < 1 || instrumentals.length < 1) return notes;
   const maxVocalBracketBeats = 1.5;
   const maxHandoffBeats = 1;
   const maxSupportBeats = 0.75;
   return sorted.filter((note) => {
-    if (note.identitySource !== "guitar") return true;
+    if (!isMetalInstrumentalSource(note.identitySource)) return true;
+    const source = note.identitySource;
     const nextVocal = vocals.find((vocal) => vocal.start >= note.start - 1e-9 && vocal.start - note.start <= maxVocalBracketBeats + 1e-9);
     // A guitar attack immediately before a vocal entrance is the risky case:
     // it can make the next singer note appear as a register jump. Restrict
@@ -357,15 +359,16 @@ function removeWeakGuitarVocalHandoffs(notes: Note[], tempoBpm: number, legato: 
     // farther away.
     if (!nextVocal) return true;
 
-    const previousGuitar = [...guitars]
+    const previousInstrumental = [...instrumentals]
       .reverse()
-      .find((candidate) => candidate.start < note.start - 1e-9);
-    const nextGuitar = guitars.find((candidate) => candidate.start > note.start + 1e-9);
+      .find((candidate) => candidate.identitySource === source && candidate.start < note.start - 1e-9);
+    const nextInstrumental = instrumentals
+      .find((candidate) => candidate.identitySource === source && candidate.start > note.start + 1e-9);
     const durationSec = note.dur * secondsPerBeat;
     const toVocal = nextVocal.start - note.start;
     const nextLeap = Math.abs(nextVocal.midi - note.midi);
-    const terminalStepWorsensHandoff = previousGuitar !== undefined
-      && note.start - previousGuitar.start <= maxSupportBeats + 1e-9
+    const terminalStepWorsensHandoff = previousInstrumental !== undefined
+      && note.start - previousInstrumental.start <= maxSupportBeats + 1e-9
       && toVocal <= maxHandoffBeats + 1e-9
       // Legato scheduling may have already lengthened a selected detector
       // attack to the next vocal entrance. Permit that bounded extension
@@ -373,14 +376,14 @@ function removeWeakGuitarVocalHandoffs(notes: Note[], tempoBpm: number, legato: 
       // bridge notes.
       && durationSec <= 0.55 + 1e-9
       && note.vel < 80
-      && Math.abs(note.midi - previousGuitar.midi) <= 5
+      && Math.abs(note.midi - previousInstrumental.midi) <= 5
       && nextLeap >= 12
-      && nextLeap >= Math.abs(nextVocal.midi - previousGuitar.midi) + 3;
+      && nextLeap >= Math.abs(nextVocal.midi - previousInstrumental.midi) + 3;
     if (terminalStepWorsensHandoff) return false;
-    const supportedByPrevious = previousGuitar !== undefined
-      && note.start - previousGuitar.start <= maxSupportBeats + 1e-9;
-    const supportedByNext = nextGuitar !== undefined
-      && nextGuitar.start - note.start <= maxSupportBeats + 1e-9;
+    const supportedByPrevious = previousInstrumental !== undefined
+      && note.start - previousInstrumental.start <= maxSupportBeats + 1e-9;
+    const supportedByNext = nextInstrumental !== undefined
+      && nextInstrumental.start - note.start <= maxSupportBeats + 1e-9;
     if (supportedByPrevious || supportedByNext) return true;
 
     const abruptHandoff = toVocal <= maxHandoffBeats + 1e-9 && nextLeap >= 9;
@@ -472,10 +475,11 @@ function removeIsolatedGuitarVocalSingletons(notes: Note[], tempoBpm: number, le
     const previous = sorted[index - 1]!;
     const next = sorted[index + 1]!;
     if (
-      note.identitySource !== "guitar"
+      !isMetalInstrumentalSource(note.identitySource)
       || previous.identitySource !== "vocals"
       || next.identitySource !== "vocals"
     ) continue;
+    const source = note.identitySource;
     const beforeBeats = note.start - previous.start;
     const afterBeats = next.start - note.start;
     if (beforeBeats > maxBracketBeats + 1e-9 || afterBeats > maxBracketBeats + 1e-9) continue;
@@ -483,14 +487,14 @@ function removeIsolatedGuitarVocalSingletons(notes: Note[], tempoBpm: number, le
     // Do not call a member of a connected guitar run a singleton merely
     // because a vocal note happens to sit on one side of it.  Search the
     // selected stream, not the richer pre-selection candidates.
-    const previousGuitar = [...sorted.slice(0, index)]
+    const previousInstrumental = [...sorted.slice(0, index)]
       .reverse()
-      .find((candidate) => candidate.identitySource === "guitar");
-    const nextGuitar = sorted.slice(index + 1)
-      .find((candidate) => candidate.identitySource === "guitar");
+      .find((candidate) => candidate.identitySource === source);
+    const nextInstrumental = sorted.slice(index + 1)
+      .find((candidate) => candidate.identitySource === source);
     if (
-      (previousGuitar && note.start - previousGuitar.start <= maxConnectedGuitarGap + 1e-9)
-      || (nextGuitar && nextGuitar.start - note.start <= maxConnectedGuitarGap + 1e-9)
+      (previousInstrumental && note.start - previousInstrumental.start <= maxConnectedGuitarGap + 1e-9)
+      || (nextInstrumental && nextInstrumental.start - note.start <= maxConnectedGuitarGap + 1e-9)
     ) continue;
 
     const durationSec = note.dur * secondsPerBeat;
@@ -524,8 +528,13 @@ function removeIsolatedGuitarVocalSingletons(notes: Note[], tempoBpm: number, le
  * modest and source-local: a real rest, a vocal handoff, or a non-guitar lane
  * must not inherit a guitar fingering constraint.
  */
-function metalGuitarTransitionPenalty(previous: Note, note: Note, gapBeats: number): number {
-  if (previous.identitySource !== "guitar" || note.identitySource !== "guitar") return 0;
+function isMetalInstrumentalSource(source: Note["identitySource"]): boolean {
+  return source === "guitar" || source === "other";
+}
+
+function metalInstrumentalTransitionPenalty(previous: Note, note: Note, gapBeats: number): number {
+  if (!isMetalInstrumentalSource(previous.identitySource)
+    || previous.identitySource !== note.identitySource) return 0;
   if (!Number.isFinite(gapBeats) || gapBeats <= 0 || gapBeats > 1.5 + 1e-9) return 0;
   const leap = Math.abs(note.midi - previous.midi);
   if (leap < 5) return 0;
@@ -548,7 +557,7 @@ function metalGuitarTransitionPenalty(previous: Note, note: Note, gapBeats: numb
  * left alone, while a quiet candidate that can fill the hole earns a chance
  * to survive the learner spacing pass.
  */
-function metalGuitarCoveragePenalty(
+function metalInstrumentalCoveragePenalty(
   phrase: Note[],
   candidates: { note: Note; phraseIndex: number }[],
   previousIndex: number,
@@ -557,7 +566,13 @@ function metalGuitarCoveragePenalty(
 ): number {
   const previous = candidates[previousIndex]?.note;
   const current = candidates[currentIndex]?.note;
-  if (!previous || !current || previous.identitySource !== "guitar" || current.identitySource !== "guitar") return 0;
+  if (
+    !previous
+    || !current
+    || !isMetalInstrumentalSource(previous.identitySource)
+    || previous.identitySource !== current.identitySource
+  ) return 0;
+  const source = previous.identitySource;
   const gapBeats = current.start - previous.start;
   const targetGap = Math.max(1, minimumSpacingBeats * 2);
   if (gapBeats <= targetGap + 1e-9) return 0;
@@ -573,7 +588,7 @@ function metalGuitarCoveragePenalty(
   // a guitar bridge jump across an intervening vocal or other source event.
   // The original phrase is authoritative for source barriers.
   for (let phraseIndex = previousPhraseIndex + 1; phraseIndex < currentPhraseIndex; phraseIndex++) {
-    if (phrase[phraseIndex]!.identitySource !== "guitar") return 0;
+    if (phrase[phraseIndex]!.identitySource !== source) return 0;
   }
 
   let hasStepwiseBridge = false;
@@ -586,7 +601,7 @@ function metalGuitarCoveragePenalty(
       && directionTurns
       && Math.max(Math.abs(note.midi - previous.midi), Math.abs(current.midi - note.midi)) >= 7;
     if (
-      note.identitySource === "guitar"
+      note.identitySource === source
       && beforeGap >= minimumSpacingBeats - 1e-9
       && afterGap >= minimumSpacingBeats - 1e-9
       && !quietShortSpike
@@ -614,7 +629,7 @@ function metalGuitarCoveragePenalty(
  * equally plausible. Vocal anchors are excluded by the caller and remain
  * mandatory in the returned phrase.
  */
-function selectMetalGuitarContour(
+function selectMetalInstrumentalContour(
   phrase: Note[],
   candidates: { note: Note; phraseIndex: number }[],
   weights: number[],
@@ -637,8 +652,8 @@ function selectMetalGuitarContour(
       const previous = candidates[previousIndex]!.note;
       const gap = current.start - previous.start;
       if (gap < minimumSpacingBeats - 1e-9) continue;
-      const transition = metalGuitarTransitionPenalty(previous, current, gap)
-        + metalGuitarCoveragePenalty(phrase, candidates, previousIndex, index, minimumSpacingBeats);
+      const transition = metalInstrumentalTransitionPenalty(previous, current, gap)
+        + metalInstrumentalCoveragePenalty(phrase, candidates, previousIndex, index, minimumSpacingBeats);
       const score = best[previousIndex]! + weights[index]!
         + (mandatory.has(current) ? mandatoryBonus : 0)
         - transition;
@@ -819,25 +834,25 @@ function reduceMetalRhRealism(notes: Note[], tempoBpm: number, maxAttacksPerSeco
       && protectedAnchors.every((anchor) => Math.abs(note.start - anchor.start) >= minimumSpacingBeats - 1e-9)
       ? [{ note, phraseIndex }]
       : []);
-    const useContourDp = legato && candidates.some(({ note }) => note.identitySource === "guitar");
+    const useContourDp = legato && candidates.some(({ note }) => isMetalInstrumentalSource(note.identitySource));
     const mandatoryContourNotes = new Set(
       candidates
         .filter(({ note, phraseIndex }) => {
           const durationSec = note.dur * secondsPerBeat;
-          const previousGuitar = note.identitySource === "guitar"
-            ? phrase.slice(0, phraseIndex).reverse().find((candidate) => candidate.identitySource === "guitar")
+          const previousInstrumental = isMetalInstrumentalSource(note.identitySource)
+            ? phrase.slice(0, phraseIndex).reverse().find((candidate) => candidate.identitySource === note.identitySource)
             : undefined;
           const nextPhraseNote = phrase[phraseIndex + 1];
-          const guitarPhraseLanding = note.identitySource === "guitar"
+          const instrumentalPhraseLanding = isMetalInstrumentalSource(note.identitySource)
             && nextPhraseNote?.identitySource === "vocals"
-            && previousGuitar !== undefined
-            && note.start - previousGuitar.start <= 1 + 1e-9
-            && Math.abs(note.midi - previousGuitar.midi) <= 7;
+            && previousInstrumental !== undefined
+            && note.start - previousInstrumental.start <= 1 + 1e-9
+            && Math.abs(note.midi - previousInstrumental.midi) <= 7;
           return phraseIndex === 0
             || phraseIndex === phrase.length - 1
             || note.vel >= 100
             || (note.midi >= 76 && (note.vel >= 90 || durationSec >= 0.5))
-            || guitarPhraseLanding;
+            || instrumentalPhraseLanding;
         })
         .map(({ note }) => note),
     );
@@ -859,34 +874,38 @@ function reduceMetalRhRealism(notes: Note[], tempoBpm: number, maxAttacksPerSeco
       // is both fast and weak. This is intentionally a selection penalty (no
       // pitch replacement): phrase endpoints, dynamic/sustained landings, and
       // all vocal notes remain protected.
-      let guitarTransitionPenalty = 0;
-      const previousGuitar = [...phrase.slice(0, index)]
+      let instrumentalTransitionPenalty = 0;
+      const previousInstrumental = isMetalInstrumentalSource(note.identitySource)
+        ? [...phrase.slice(0, index)]
         .reverse()
-        .find((candidate) => candidate.identitySource === "guitar");
-      const nextGuitar = phrase.slice(index + 1)
-        .find((candidate) => candidate.identitySource === "guitar");
-      const guitarLocalExtremum = previousGuitar && nextGuitar
-        && ((note.midi > previousGuitar.midi && note.midi > nextGuitar.midi)
-          || (note.midi < previousGuitar.midi && note.midi < nextGuitar.midi));
-      if (legato && note.identitySource === "guitar" && guitarLocalExtremum) {
+        .find((candidate) => candidate.identitySource === note.identitySource)
+        : undefined;
+      const nextInstrumental = isMetalInstrumentalSource(note.identitySource)
+        ? phrase.slice(index + 1)
+          .find((candidate) => candidate.identitySource === note.identitySource)
+        : undefined;
+      const instrumentalLocalExtremum = previousInstrumental && nextInstrumental
+        && ((note.midi > previousInstrumental.midi && note.midi > nextInstrumental.midi)
+          || (note.midi < previousInstrumental.midi && note.midi < nextInstrumental.midi));
+      if (legato && isMetalInstrumentalSource(note.identitySource) && instrumentalLocalExtremum) {
         const durationSec = note.dur * secondsPerBeat;
         const protectedLead = endpoint
           || note.vel >= 100
           || durationSec >= 0.35
           || (note.midi >= 76 && note.vel >= 90);
         if (!protectedLead && note.vel < 100 && durationSec <= 0.35 + 1e-9) {
-          for (const neighbour of [previousGuitar, nextGuitar]) {
+          for (const neighbour of [previousInstrumental, nextInstrumental]) {
             if (!neighbour) continue;
             const gapBeats = Math.abs(note.start - neighbour.start);
             const leap = Math.abs(note.midi - neighbour.midi);
-            if (gapBeats <= 1.5 + 1e-9 && leap >= 7) guitarTransitionPenalty += 2.25;
-            else if (gapBeats <= 1 + 1e-9 && leap >= 5) guitarTransitionPenalty += 0.45;
+            if (gapBeats <= 1.5 + 1e-9 && leap >= 7) instrumentalTransitionPenalty += 2.25;
+            else if (gapBeats <= 1 + 1e-9 && leap >= 5) instrumentalTransitionPenalty += 0.45;
           }
         }
       }
       const beatPosition = Math.abs(note.start - Math.round(note.start));
       const halfBeatPosition = Math.abs(note.start * 2 - Math.round(note.start * 2));
-      const localExtremumBonus = guitarTransitionPenalty > 0
+      const localExtremumBonus = instrumentalTransitionPenalty > 0
         ? 0
         : localExtremum && prominence >= 3
           ? useContourDp ? 0.5 : 2 + Math.min(2, prominence / 6)
@@ -898,11 +917,11 @@ function reduceMetalRhRealism(notes: Note[], tempoBpm: number, maxAttacksPerSeco
         + localExtremumBonus
         + (stepConnector ? 0.75 : 0)
         + (beatPosition <= 1e-6 ? 0.75 : halfBeatPosition <= 1e-6 ? 0.35 : 0)
-        - (useContourDp ? 0 : guitarTransitionPenalty);
+        - (useContourDp ? 0 : instrumentalTransitionPenalty);
     });
     const phraseSelection: Note[] = [];
     if (useContourDp) {
-      phraseSelection.push(...selectMetalGuitarContour(phrase, candidates, weights, minimumSpacingBeats, mandatoryContourNotes));
+      phraseSelection.push(...selectMetalInstrumentalContour(phrase, candidates, weights, minimumSpacingBeats, mandatoryContourNotes));
     } else {
       const previousCompatible = candidates.map(({ note }, index) => {
         let low = 0;
