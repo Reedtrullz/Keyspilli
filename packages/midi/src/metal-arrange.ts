@@ -2715,6 +2715,62 @@ function inferSemanticGuitarHarmony(
     if (bassSupported) diagnostics.bassSupportedRoots += 1;
     diagnostics.collapsedUnisonOctaveFifth += duplicateCount;
   }
+
+  // A detector can expose a single false third (or suspension) for one
+  // attack while the surrounding guitar phrase keeps the same harmony.  Do
+  // not let that isolated classification churn the chord label.  A quality
+  // change must persist for two connected semantic attacks, mirroring the
+  // root stabilizer above; once confirmed, move the first pending attack to
+  // the new quality as well.  Phrase breaks reset the state so a genuine
+  // change after a rest still comes through immediately.
+  let previousQuality: GuitarHarmonicQuality | undefined;
+  let pendingQuality: GuitarHarmonicQuality | undefined;
+  let pendingQualityCount = 0;
+  let pendingQualityStart: number | undefined;
+  let previousAttackStart: number | undefined;
+  for (let index = 0; index < attacks.length; index += 1) {
+    const attack = attacks[index]!;
+    if (previousAttackStart !== undefined && attack.start - previousAttackStart > 1.5 + EPS) {
+      previousQuality = undefined;
+      pendingQuality = undefined;
+      pendingQualityCount = 0;
+      pendingQualityStart = undefined;
+    }
+    const candidateQuality = attack.quality;
+    if (previousQuality !== undefined && candidateQuality !== previousQuality) {
+      if (pendingQuality === candidateQuality) pendingQualityCount += 1;
+      else {
+        pendingQuality = candidateQuality;
+        pendingQualityCount = 1;
+        pendingQualityStart = index;
+      }
+      if (pendingQualityCount >= 2) {
+        previousQuality = candidateQuality;
+        if (pendingQualityStart !== undefined) {
+          const retroactive = attacks[pendingQualityStart]!;
+          if (retroactive.quality !== candidateQuality) {
+            diagnostics.qualityCounts[retroactive.quality] -= 1;
+            diagnostics.qualityCounts[candidateQuality] += 1;
+            retroactive.quality = candidateQuality;
+          }
+        }
+        pendingQuality = undefined;
+        pendingQualityCount = 0;
+        pendingQualityStart = undefined;
+      } else {
+        diagnostics.qualityCounts[candidateQuality] -= 1;
+        diagnostics.qualityCounts[previousQuality] += 1;
+        attack.quality = previousQuality;
+        diagnostics.stabilizedTransitions += 1;
+      }
+    } else {
+      previousQuality = candidateQuality;
+      pendingQuality = undefined;
+      pendingQualityCount = 0;
+      pendingQualityStart = undefined;
+    }
+    previousAttackStart = attack.start;
+  }
   diagnostics.semanticAttackCount = attacks.length;
   return { attacks, diagnostics };
 }
