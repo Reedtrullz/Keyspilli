@@ -109,6 +109,28 @@ describe("local song research report", () => {
     expect(result.json).toBe(resultReordered.json);
   });
 
+  it("rejects malformed video ids instead of constructing unsafe candidate urls", () => {
+    const report = buildResearchReport({
+      song,
+      discoveryCandidates: [{
+        videoId: "https://user:pass@evil.test/video",
+        url: "https://user:pass@evil.test/video",
+        title: "malformed result",
+        uploader: "attacker",
+        durationSeconds: 120,
+        isLive: false,
+      }],
+      discoveredBy: {
+        "https://user:pass@evil.test/video": ["untrusted query"],
+      },
+    });
+
+    expect(report.candidates.some((candidate) => candidate.id.includes("evil.test"))).toBe(false);
+    expect(report.candidates.some((candidate) => candidate.title === "malformed result")).toBe(false);
+    expect(report.discoveredBy).toEqual({});
+    expect(serializeResearchReport(report)).not.toMatch(/evil\.test|user:pass|malformed result/);
+  });
+
   it("parses local MIDI and MusicXML, hashes artifacts, and aligns local MIDI", () => {
     const xmlBytes = new TextEncoder().encode(musicXml);
     const report = buildResearchReport({

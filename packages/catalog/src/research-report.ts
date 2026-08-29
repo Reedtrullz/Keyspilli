@@ -259,7 +259,8 @@ function localCandidate(input: LocalSymbolicInput, song: SongIdentity): Arrangem
   };
 }
 
-function youtubeCandidate(input: YoutubeDiscoveryCandidate, discoveredBy: readonly string[] | undefined): ArrangementCandidate {
+function youtubeCandidate(input: YoutubeDiscoveryCandidate, discoveredBy: readonly string[] | undefined): ArrangementCandidate | null {
+  if (!/^[A-Za-z0-9_-]{11}$/.test(input.videoId)) return null;
   const url = "https://www.youtube.com/watch?v=" + input.videoId;
   return classifyArrangementCandidate({
     id: "youtube:" + input.videoId,
@@ -358,6 +359,7 @@ export function buildResearchReport(input: ResearchReportInput): ResearchReport 
   const localInputs = localInputResult.inputs;
   const discovered = (input.discoveryCandidates ?? [])
     .map((candidate) => youtubeCandidate(candidate, input.discoveredBy?.[candidate.videoId]))
+    .filter((candidate): candidate is ArrangementCandidate => candidate !== null)
     .sort((a, b) => a.id.localeCompare(b.id));
   const local = localInputs.map((candidate) => localCandidate(candidate, song));
   const allCandidates = [...discovered, ...local, directFallback(song)];
@@ -407,6 +409,7 @@ export function buildResearchReport(input: ResearchReportInput): ResearchReport 
     discoveryErrors: normalizeDiscoveryErrors([...(input.discoveryErrors ?? []), ...localInputResult.collisions]),
     discoveredBy: Object.fromEntries(
       Object.entries(input.discoveredBy ?? {})
+        .filter(([videoId]) => /^[A-Za-z0-9_-]{11}$/.test(videoId))
         .sort(([left], [right]) => left.localeCompare(right))
         .map(([videoId, queries]) => ["youtube:" + videoId, [...new Set(queries)].sort()]),
     ),

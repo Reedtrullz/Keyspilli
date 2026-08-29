@@ -155,6 +155,32 @@ describe("symbolic alignment", () => {
     expect(result.windows[0]).toMatchObject({ matchedOnsets: 2, exactPitch: { f1: 1 } });
   });
 
+  it("counts matched onset groups rather than jittered notes inside a window", () => {
+    const reference = score([
+      { midi: 60, start: 0, dur: 1, vel: 100 },
+      { midi: 64, start: 0.04, dur: 1, vel: 90 },
+      { midi: 67, start: 1, dur: 1, vel: 100 },
+    ]);
+    const candidate = score([
+      { midi: 60, start: 2, dur: 1, vel: 100 },
+      { midi: 64, start: 2.04, dur: 1, vel: 90 },
+      { midi: 67, start: 3, dur: 1, vel: 100 },
+    ]);
+    const result = alignSymbolicScores(reference, candidate, {
+      offsetsBeats: [2],
+      transpositions: [0],
+      beatScales: [1],
+      windows: [{ id: "jittered", reference: [0, 2], candidate: [2, 4] }],
+    });
+
+    expect(result.metrics.matchedNotes).toBe(3);
+    expect(result.windows[0]).toMatchObject({
+      referenceOnsets: 2,
+      candidateOnsets: 2,
+      matchedOnsets: 2,
+    });
+  });
+
   it("does not fabricate a window match when its domains contain no paired onset", () => {
     const result = alignSymbolicScores(
       score([{ midi: 60, start: 0, dur: 1, vel: 90 }]),

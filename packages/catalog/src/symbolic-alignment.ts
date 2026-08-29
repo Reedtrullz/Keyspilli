@@ -583,7 +583,15 @@ function windowResults(
     const refGroups = indexedGroups(reference.notes, tolerance, window.reference);
     const candGroups = indexedGroups(candidate.notes, tolerance, window.candidate);
     const matches = hypothesis.matches.filter((match) => match.referenceStart >= window.reference[0]! - EPS && match.referenceStart < window.reference[1]! - EPS && match.candidateStart >= window.candidate[0]! - EPS && match.candidateStart < window.candidate[1]! - EPS);
-    const matchedReferenceStarts = new Set(matches.map((match) => match.referenceStart));
+    const referenceGroupByNote = new Map<number, number>();
+    for (let groupIndex = 0; groupIndex < refGroups.length; groupIndex += 1) {
+      for (const noteIndex of refGroups[groupIndex]!.noteIndices) referenceGroupByNote.set(noteIndex, groupIndex);
+    }
+    const matchedReferenceGroups = new Set<number>();
+    for (const match of matches) {
+      const groupIndex = referenceGroupByNote.get(match.referenceIndex);
+      if (groupIndex !== undefined) matchedReferenceGroups.add(groupIndex);
+    }
     const exact = matches.filter((match) => match.exactPitch).length;
     const pc = matches.filter((match) => match.pitchClass).length;
     const errors = matches.map((match) => match.onsetErrorBeats);
@@ -591,7 +599,7 @@ function windowResults(
       id: window.id,
       reference: window.reference,
       candidate: window.candidate,
-      matchedOnsets: matchedReferenceStarts.size,
+      matchedOnsets: matchedReferenceGroups.size,
       candidateOnsets: candGroups.length,
       referenceOnsets: refGroups.length,
       onsetErrorBeats: { median: quantile(errors, 0.5), p90: quantile(errors, 0.9) },
