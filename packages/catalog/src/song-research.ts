@@ -1,4 +1,5 @@
 import { canonicalizeSourceProvenance, canonicalYoutubeUrl, extractYoutubeVideoId, type SourceProvenance } from "./provenance.js";
+import { buildYoutubeQueries } from "./youtube-discovery.js";
 
 export type ArrangementSourceType =
   | "midi" | "musicxml" | "guitar-pro" | "structured-tab"
@@ -6,6 +7,7 @@ export type ArrangementSourceType =
   | "metal-transcription";
 
 export type ExtractionStrategy = "symbolic" | "audio-transcription" | "visual-midi" | "audio-midi" | "none";
+export type CandidateSelection = "preferred" | "fallback";
 
 export interface SongIdentityInput {
   title: string;
@@ -48,12 +50,21 @@ export interface ArrangementCandidate {
   score?: number;
   scoreBreakdown?: Record<string, number>;
   reasons?: string[];
+  /** Direct transcription is explicitly a fallback, never implicit truth. */
+  selection?: CandidateSelection;
+  fallbackTier?: number | null;
 }
 
 export interface ClassifiedCandidate extends ArrangementCandidate {
   sourceType: ArrangementSourceType;
   extractionStrategy: ExtractionStrategy;
   signals: string[];
+  selection: CandidateSelection;
+}
+
+export interface ClassifierOptions {
+  /** Metadata classification may override an explicit source type only when requested. */
+  overrideSourceType?: boolean;
 }
 
 export const RESEARCH_SCORE_WEIGHTS = Object.freeze({
@@ -76,6 +87,44 @@ const NOISE = /\b(official|music|video|audio|hd|hq|4k|lyrics|cover|piano|tutoria
 function clean(value: string): string {
   return value.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
     .replace(/[()[\]{}]/g, " ").replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function tokens(value: string): string[] {
+  return clean(value).split(" ").filter(Boolean);
+}
+
+function finiteInRange(value: unknown, minimum: number, maximum: number): number | null {
+  return typeof value === "number" && Number.isFinite(value) && value >= minimum && value <= maximum ? value : null;
+}
+
+function finitePositive(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : null;
+}
+
+function normalizeCoverage(value: CandidateCoverage | null | undefined): CandidateCoverage | null {
+  if (!value) return null;
+  const startSeconds = finiteInRange(value.startSeconds, 0, Number.MAX_SAFE_INTEGER);
+  const endSeconds = finiteInRange(value.endSeconds, 0, Number.MAX_SAFE_INTEGER);
+  const completeness = finiteInRange(value.completeness, 0, 1);
+  if (startSeconds === null || endSeconds === null || endSeconds < startSeconds || completeness === null) return null;
+  return { startSeconds, endSeconds, completeness };
+}
+
+function normalizeCandidate(candidate: ArrangementCandidate): ArrangementCandidate {
+  const durationSeconds = finitePositive(candidate.durationSeconds);
+  const confidence = candidate.confidence === undefined
+    ? undefined
+    : typeof candidate.confidence === "number" && Number.isFinite(candidate.confidence)
+      ? Math.max(0, Math.min(1, candidate.confidence))
+      : undefined;
+  const coverage = normalizeCoverage(candidate.coverage);
+  return {
+    ...candidate,
+    ...(durationSeconds === null ? { durationSeconds: null } : { durationSeconds }),
+    ...(candidate.confidence === undefined || confidence === undefined ? {} : { confidence }),
+    ...(candidate.coverage === undefined ? {} : { coverage }),
+    ...(candidate.fallbackTier === undefined ? {} : { fallbackTier: candidate.fallbackTier === null ? null : Math.max(0, Math.floor(finiteInRange(candidate.fallbackTier, 0, Number.MAX_SAFE_INTEGER) ?? 0)) }),
+  };
 }
 
 function titleWithoutNoise(title: string, artist: string): string {
@@ -104,34 +153,60 @@ export function createSongIdentity(input: SongIdentityInput): SongIdentity {
     normalizedArtist,
     sourceYoutubeUrl,
     youtubeVideoId,
-    durationSeconds: typeof input.durationSeconds === "number" && Number.isFinite(input.durationSeconds) ? input.durationSeconds : null,
+    durationSeconds: finitePositive(input.durationSeconds),
     version: input.version?.trim() || null,
   };
 }
 
 export function buildResearchQueries(song: SongIdentity): string[] {
-  const title = song.title;
-  const base = `${song.artist} ${title}`;
+  const compatible = buildYoutubeQueries({
+    baseId: song.id,
+    title: song.title,
+    artist: song.artist,
+    sourceYoutubeUrl: song.sourceYoutubeUrl,
+  });
+  const base = `${song.artist} ${song.title}`;
   return [...new Set([
-    `${base} piano`, `${base} transcription`, `${base} Synthesia`, `${base} MIDI`,
+    ...compatible,
+    `${base} Synthesia`,
+    `${base} MIDI`,
   ])];
 }
 
-export function classifyArrangementCandidate(candidate: ArrangementCandidate): ClassifiedCandidate {
+function strategyFor(sourceType: ArrangementSourceType): ExtractionStrategy {
+  if (["midi", "musicxml", "guitar-pro", "structured-tab"].includes(sourceType)) return "symbolic";
+  if (sourceType === "piano-tutorial-video") return "visual-midi";
+  if (sourceType === "piano-cover-video") return "audio-midi";
+  if (sourceType === "piano-cover-audio") return "audio-midi";
+  if (sourceType === "metal-transcription") return "audio-transcription";
+  return "none";
+}
+
+function inferredType(haystack: string): { sourceType: ArrangementSourceType; extractionStrategy: ExtractionStrategy; signal: string } | null {
+  if (/synthesia|tutorial|falling notes|visual midi/.test(haystack)) return { sourceType: "piano-tutorial-video", extractionStrategy: "visual-midi", signal: "tutorial/synthesia" };
+  if (/piano|keyboard/.test(haystack) && /cover|performance|play(ed|ing)?/.test(haystack)) return { sourceType: "piano-cover-video", extractionStrategy: "audio-midi", signal: "piano performance" };
+  if (/metal transcription|ai transcription|direct transcription/.test(haystack)) return { sourceType: "metal-transcription", extractionStrategy: "audio-transcription", signal: "direct fallback" };
+  if (/\.(?:mid|midi)(?:$|[?#])/.test(haystack)) return { sourceType: "midi", extractionStrategy: "symbolic", signal: "symbolic source" };
+  return null;
+}
+
+export function classifyArrangementCandidate(candidate: ArrangementCandidate, options: ClassifierOptions = {}): ClassifiedCandidate {
   const haystack = `${candidate.title} ${candidate.url ?? ""}`.toLowerCase();
   const signals: string[] = [];
   let sourceType = candidate.sourceType;
-  let extractionStrategy = candidate.extractionStrategy ?? "none";
-  if (/synthesia|tutorial|falling notes|visual midi/.test(haystack)) {
-    sourceType = "piano-tutorial-video"; extractionStrategy = "visual-midi"; signals.push("tutorial/synthesia");
-  } else if (/piano|keyboard/.test(haystack) && /cover|performance|play(ed|ing)?/.test(haystack)) {
-    sourceType = "piano-cover-video"; extractionStrategy = "audio-midi"; signals.push("piano performance");
-  } else if (/metal transcription|ai transcription|direct transcription/.test(haystack)) {
-    sourceType = "metal-transcription"; extractionStrategy = "audio-transcription"; signals.push("direct fallback");
-  } else if (candidate.sourceType === "midi" || /\.mid(i)?(?:$|\?)/.test(haystack)) {
-    extractionStrategy = "symbolic"; signals.push("symbolic source");
+  const inferred = inferredType(haystack);
+  if (options.overrideSourceType && inferred) {
+    sourceType = inferred.sourceType;
+    signals.push(inferred.signal);
+  } else if (inferred && strategyFor(sourceType) === "symbolic" && sourceType === "midi") {
+    signals.push("explicit symbolic source");
   }
-  return { ...candidate, sourceType, extractionStrategy, signals };
+  const extractionStrategy = candidate.extractionStrategy && ["symbolic", "audio-transcription", "visual-midi", "audio-midi", "none"].includes(candidate.extractionStrategy)
+    ? candidate.extractionStrategy
+    : strategyFor(sourceType);
+  const selection = candidate.selection ?? (sourceType === "metal-transcription" ? "fallback" : "preferred");
+  const fallbackTier = candidate.fallbackTier ?? (selection === "fallback" ? 1 : null);
+  return { ...normalizeCandidate({ ...candidate, sourceType, extractionStrategy, selection, fallbackTier }), sourceType, extractionStrategy, selection, signals };
 }
 
 function score(candidate: ClassifiedCandidate, song: SongIdentity): { value: number; breakdown: Record<string, number>; reasons: string[] } {
@@ -139,10 +214,12 @@ function score(candidate: ClassifiedCandidate, song: SongIdentity): { value: num
   const reasons: string[] = [];
   const breakdown: Record<string, number> = {};
   const add = (key: string, amount: number, reason?: string) => { breakdown[key] = amount; if (reason) reasons.push(reason); };
-  const titleTokens = song.normalizedTitle.split(" ").filter((token) => token.length > 1);
-  const matched = titleTokens.filter((token) => haystack.includes(token)).length;
+  const titleTokens = tokens(song.normalizedTitle).filter((token) => token.length > 1);
+  const haystackTokens = new Set(tokens(haystack));
+  const matched = titleTokens.filter((token) => haystackTokens.has(token)).length;
   add("exactTitle", matched === titleTokens.length ? RESEARCH_SCORE_WEIGHTS.exactTitle : -20, `${matched}/${titleTokens.length} title tokens`);
-  add("artist", haystack.includes(song.normalizedArtist) ? RESEARCH_SCORE_WEIGHTS.artist : -18, haystack.includes(song.normalizedArtist) ? "artist match" : "artist mismatch");
+  const artistMatch = tokens(haystack).includes(song.normalizedArtist);
+  add("artist", artistMatch ? RESEARCH_SCORE_WEIGHTS.artist : -18, artistMatch ? "artist match" : "artist mismatch");
   if (/piano|keyboard/.test(haystack)) add("piano", RESEARCH_SCORE_WEIGHTS.piano, "piano signal");
   if (/tutorial/.test(haystack)) add("tutorial", RESEARCH_SCORE_WEIGHTS.tutorial, "tutorial signal");
   if (/synthesia/.test(haystack)) add("synthesia", RESEARCH_SCORE_WEIGHTS.synthesia, "Synthesia signal");
@@ -161,11 +238,52 @@ function score(candidate: ClassifiedCandidate, song: SongIdentity): { value: num
 }
 
 export function rankArrangementCandidates(song: SongIdentity, candidates: readonly ArrangementCandidate[]): ClassifiedCandidate[] {
-  return candidates.map((raw) => {
+  return mergeArrangementCandidates(candidates).map((raw) => {
     const candidate = classifyArrangementCandidate({ ...raw, provenance: canonicalizeSourceProvenance(raw.provenance, { sourceYoutubeUrl: raw.url }) });
     const result = score(candidate, song);
     return { ...candidate, score: result.value, scoreBreakdown: result.breakdown, reasons: result.reasons };
-  }).sort((a, b) => (b.score! - a.score!) || a.id.localeCompare(b.id));
+  }).sort((a, b) => (b.score! - a.score!) || a.id.localeCompare(b.id) || canonicalCandidateKey(a).localeCompare(canonicalCandidateKey(b)) || stableJson(a).localeCompare(stableJson(b)));
+}
+
+/** Stable logical key used to collapse repeated search results and aliases. */
+export function canonicalCandidateKey(candidate: ArrangementCandidate): string {
+  const provenance = canonicalizeSourceProvenance(candidate.provenance, { sourceYoutubeUrl: candidate.url });
+  const logical = provenance.sourceRef ?? canonicalYoutubeUrl(candidate.url) ?? candidate.id;
+  return `${candidate.sourceType}|${logical}`;
+}
+
+function candidateRichness(candidate: ArrangementCandidate): number {
+  return Object.entries(candidate).reduce((score, [, value]) => score + (value === null || value === undefined || value === "" ? 0 : Array.isArray(value) && value.length === 0 ? 0 : 1), 0)
+    + (candidate.confidence ?? 0) * 10;
+}
+
+function stableJson(value: unknown): string {
+  return JSON.stringify(stable(value));
+}
+
+/** Merge canonical aliases without making input/search order observable. */
+export function mergeArrangementCandidates(candidates: readonly ArrangementCandidate[]): ArrangementCandidate[] {
+  const groups = new Map<string, ArrangementCandidate[]>();
+  for (const raw of candidates) {
+    const candidate = normalizeCandidate(raw);
+    const key = canonicalCandidateKey(candidate);
+    const group = groups.get(key) ?? [];
+    group.push(candidate);
+    groups.set(key, group);
+  }
+  return [...groups.entries()].sort(([left], [right]) => left.localeCompare(right)).map(([, group]) => {
+    const ordered = [...group].sort((left, right) => (candidateRichness(right) - candidateRichness(left)) || stableJson(left).localeCompare(stableJson(right)));
+    const first = ordered[0]!;
+    const url = canonicalYoutubeUrl(first.url) ?? first.url ?? null;
+    const confidence = Math.max(...group.map((item) => item.confidence ?? 0));
+    const mergedProvenance = canonicalizeSourceProvenance(first.provenance, { sourceYoutubeUrl: url });
+    return {
+      ...first,
+      ...(url === null ? { url: null } : { url }),
+      provenance: mergedProvenance,
+      ...(group.some((item) => item.confidence !== undefined) ? { confidence } : {}),
+    };
+  });
 }
 
 function stable(value: unknown): unknown {
@@ -174,9 +292,44 @@ function stable(value: unknown): unknown {
   return value;
 }
 
+const SENSITIVE_KEY = /(?:password|passwd|secret|token|api[_-]?key|access[_-]?key|authorization|credential|cookie|session)/i;
+const PATH_KEY = /(?:^|_)(?:local|absolute|sourceArtifact|artifact)?(?:path|filename|fileName|file)(?:$|_)/i;
+const URL_KEY = /(?:url|uri|href|sourceYoutubeUrl)$/i;
+const SENSITIVE_QUERY = /^(?:token|access_token|refresh_token|api_key|apikey|key|secret|password|passwd|auth|authorization|cookie|session|sig|signature|.*(?:token|secret|password|credential|auth|api[_-]?key|signature).*)$/i;
+
+function safeUrl(value: string): string {
+  try {
+    const url = new URL(value);
+    url.username = "";
+    url.password = "";
+    for (const key of [...url.searchParams.keys()]) if (SENSITIVE_QUERY.test(key)) url.searchParams.delete(key);
+    return url.toString();
+  } catch {
+    return value;
+  }
+}
+
+function sanitizeManifestValue(value: unknown, key = ""): unknown {
+  if (SENSITIVE_KEY.test(key)) return undefined;
+  if ((PATH_KEY.test(key) || /(?:artifact|file)ref$/i.test(key)) && typeof value === "string" && (value.startsWith("/") || /^[A-Za-z]:[\\/]/.test(value))) return undefined;
+  if (typeof value === "string") {
+    if (/^(?:\/|[A-Za-z]:[\\/]|file:\/\/)/.test(value)) return undefined;
+    return URL_KEY.test(key) || /^https?:\/\//i.test(value) ? safeUrl(value) : value;
+  }
+  if (Array.isArray(value)) return value.map((item) => sanitizeManifestValue(item, key)).filter((item) => item !== undefined);
+  if (value && typeof value === "object") {
+    const output: Record<string, unknown> = {};
+    for (const [childKey, childValue] of Object.entries(value as Record<string, unknown>)) {
+      const sanitized = sanitizeManifestValue(childValue, childKey);
+      if (sanitized !== undefined) output[childKey] = sanitized;
+    }
+    return output;
+  }
+  return value;
+}
+
 export function serializeResearchManifest(song: SongIdentity, candidates: readonly ArrangementCandidate[]): string {
-  const pathFree = candidates
-    .map(({ localPath: _localPath, ...candidate }) => candidate)
-    .sort((left, right) => left.id.localeCompare(right.id));
-  return JSON.stringify(stable({ schemaVersion: 1, song, candidates: pathFree }), null, 2) + "\n";
+  const pathFree = mergeArrangementCandidates(candidates).map((candidate) => sanitizeManifestValue(candidate));
+  const safeSong = sanitizeManifestValue(song);
+  return JSON.stringify(stable({ schemaVersion: 1, song: safeSong, candidates: pathFree }), null, 2) + "\n";
 }

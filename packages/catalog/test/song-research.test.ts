@@ -3,6 +3,7 @@ import {
   buildResearchQueries,
   classifyArrangementCandidate,
   createSongIdentity,
+  mergeArrangementCandidates,
   rankArrangementCandidates,
   serializeResearchManifest,
   type ArrangementCandidate,
@@ -44,6 +45,7 @@ describe("song research foundation", () => {
     expect(buildResearchQueries(identity)).toEqual([
       "Sabaton Defence Of Moscow piano",
       "Sabaton Defence Of Moscow transcription",
+      "defence moscow Sabaton piano",
       "Sabaton Defence Of Moscow Synthesia",
       "Sabaton Defence Of Moscow MIDI",
     ]);
@@ -51,12 +53,18 @@ describe("song research foundation", () => {
   });
 
   it("classifies piano, tutorial, synthesia and direct fallback candidates", () => {
-    expect(classifyArrangementCandidate(candidate({ title: "Defence Of Moscow Synthesia piano tutorial" }))).toMatchObject({
+    expect(classifyArrangementCandidate(candidate({ title: "Defence Of Moscow Synthesia piano tutorial" }), { overrideSourceType: true })).toMatchObject({
       sourceType: "piano-tutorial-video",
       extractionStrategy: "visual-midi",
     });
-    expect(classifyArrangementCandidate(candidate({ title: "Defence Of Moscow piano cover performance" })).sourceType).toBe("piano-cover-video");
-    expect(classifyArrangementCandidate(candidate({ title: "Defence Of Moscow metal transcription" })).sourceType).toBe("metal-transcription");
+    expect(classifyArrangementCandidate(candidate({ title: "Defence Of Moscow Synthesia piano tutorial" })).sourceType).toBe("midi");
+    expect(classifyArrangementCandidate(candidate({ extractionStrategy: "not-a-strategy" as never })).extractionStrategy).toBe("symbolic");
+    expect(classifyArrangementCandidate(candidate({ title: "Defence Of Moscow piano cover performance" }), { overrideSourceType: true }).sourceType).toBe("piano-cover-video");
+    expect(classifyArrangementCandidate(candidate({ title: "Defence Of Moscow metal transcription" }), { overrideSourceType: true })).toMatchObject({
+      sourceType: "metal-transcription",
+      extractionStrategy: "audio-transcription",
+      selection: "fallback",
+    });
   });
 
   it("ranks with inspectable reasons and keeps direct transcription as fallback", () => {
@@ -71,6 +79,38 @@ describe("song research foundation", () => {
     expect(ranked[0]?.scoreBreakdown).toBeDefined();
   });
 
+  it("matches title and artist tokens at boundaries", () => {
+    const ranked = rankArrangementCandidates(identity, [
+      candidate({ id: "substring", title: "Defence Of Moscowian piano", provenance: { kind: "midi", acquiredVia: "catalog", sourceRef: "example:substring" } }),
+      candidate({ id: "exact", title: "Sabaton Defence Of Moscow piano", provenance: { kind: "midi", acquiredVia: "catalog", sourceRef: "example:exact" } }),
+    ]);
+    expect(ranked.find((item) => item.id === "exact")!.score!).toBeGreaterThan(ranked.find((item) => item.id === "substring")!.score!);
+    expect(ranked.find((item) => item.id === "substring")!.reasons!.join(" ")).toMatch(/title tokens|0\/3|1\/3/i);
+  });
+
+  it("merges canonical duplicates and is deterministic for equal ids", () => {
+    const one = candidate({ id: "same", url: "https://youtu.be/abc12345678?t=4", title: "Defence Of Moscow piano", confidence: 0.4 });
+    const two = candidate({ id: "same", url: "https://www.youtube.com/watch?v=abc12345678", title: "Defence Of Moscow piano cover", confidence: 0.9 });
+    const merged = mergeArrangementCandidates([one, two]);
+    expect(merged).toHaveLength(1);
+    expect(merged[0]).toMatchObject({ id: "same", url: "https://www.youtube.com/watch?v=abc12345678", confidence: 0.9 });
+    expect(mergeArrangementCandidates([one, two])).toEqual(mergeArrangementCandidates([two, one]));
+    expect(rankArrangementCandidates(identity, [two, one])).toEqual(rankArrangementCandidates(identity, [one, two]));
+  });
+
+  it("normalizes invalid numeric metadata instead of emitting NaN or out-of-range values", () => {
+    const invalid = candidate({
+      durationSeconds: Number.NaN,
+      confidence: 4,
+      coverage: { startSeconds: -10, endSeconds: 2, completeness: 4 },
+    });
+    const normalized = rankArrangementCandidates(identity, [invalid])[0]!;
+    expect(normalized.durationSeconds).toBeNull();
+    expect(normalized.confidence).toBe(1);
+    expect(normalized.coverage).toBeNull();
+    expect(JSON.stringify(normalized)).not.toMatch(/NaN|Infinity/);
+  });
+
   it("serializes a stable path-free manifest", () => {
     const manifestCandidates = [
       candidate({ id: "zeta", localPath: "/Users/reidar/Downloads/secret.mid" }),
@@ -80,5 +120,26 @@ describe("song research foundation", () => {
     expect(manifest).not.toContain("/Users/reidar");
     expect(JSON.parse(manifest)).toMatchObject({ schemaVersion: 1, song: { normalizedTitle: "defence of moscow" } });
     expect(serializeResearchManifest(identity, [...manifestCandidates].reverse())).toBe(manifest);
+  });
+
+  it("redacts nested paths, URL userinfo, and credential-like query values", () => {
+    const nestedCandidate = {
+      ...candidate({
+      id: "nested",
+      url: "https://user:password@example.test/defence.mid?token=secret&v=abc12345678",
+      provenance: {
+        kind: "midi",
+        acquiredVia: "upload",
+        sourceRef: "upload:local",
+        sourceArtifactRef: "/Users/reidar/Downloads/private.mid",
+        nested: { absolutePath: "/tmp/private.mid", credential: "secret", client_secret: "also-secret" },
+      } as never,
+      }),
+      extra: { arbitrary: "/tmp/hidden" },
+    } as ArrangementCandidate;
+    const manifest = serializeResearchManifest(identity, [nestedCandidate]);
+    expect(manifest).not.toMatch(/password|secret|\/Users\/reidar|\/tmp\/private/);
+    expect(manifest).toContain("example.test");
+    expect(manifest).toContain("v=abc12345678");
   });
 });
