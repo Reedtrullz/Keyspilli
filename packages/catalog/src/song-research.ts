@@ -4,7 +4,7 @@ import { buildYoutubeQueries } from "./youtube-discovery.js";
 export type ArrangementSourceType =
   | "midi" | "musicxml" | "guitar-pro" | "structured-tab"
   | "piano-cover-video" | "piano-tutorial-video" | "piano-cover-audio"
-  | "metal-transcription";
+  | "metal-transcription" | "unknown";
 
 export type ExtractionStrategy = "symbolic" | "audio-transcription" | "visual-midi" | "audio-midi" | "none";
 export type CandidateSelection = "preferred" | "fallback";
@@ -53,6 +53,10 @@ export interface ArrangementCandidate {
   /** Direct transcription is explicitly a fallback, never implicit truth. */
   selection?: CandidateSelection;
   fallbackTier?: number | null;
+  /** Optional provider/channel metadata retained for research reports. */
+  provider?: string;
+  viewCount?: number;
+  isLive?: boolean;
 }
 
 export interface ClassifiedCandidate extends ArrangementCandidate {
@@ -122,6 +126,9 @@ function normalizeCandidate(candidate: ArrangementCandidate): ArrangementCandida
   const scoreBreakdown = candidate.scoreBreakdown && typeof candidate.scoreBreakdown === "object"
     ? Object.fromEntries(Object.entries(candidate.scoreBreakdown).filter(([, item]) => typeof item === "number" && Number.isFinite(item)))
     : undefined;
+  const provider = typeof candidate.provider === "string" && candidate.provider.trim() ? candidate.provider.trim() : undefined;
+  const viewCount = typeof candidate.viewCount === "number" && Number.isFinite(candidate.viewCount) && candidate.viewCount >= 0 ? candidate.viewCount : undefined;
+  const isLive = typeof candidate.isLive === "boolean" ? candidate.isLive : undefined;
   return {
     ...candidate,
     ...(durationSeconds === null ? { durationSeconds: null } : { durationSeconds }),
@@ -130,6 +137,9 @@ function normalizeCandidate(candidate: ArrangementCandidate): ArrangementCandida
     ...(candidate.fallbackTier === undefined ? {} : { fallbackTier: candidate.fallbackTier === null ? null : Math.max(0, Math.floor(finiteInRange(candidate.fallbackTier, 0, Number.MAX_SAFE_INTEGER) ?? 0)) }),
     score,
     scoreBreakdown,
+    ...(provider ? { provider } : {}),
+    ...(viewCount !== undefined ? { viewCount } : {}),
+    ...(isLive !== undefined ? { isLive } : {}),
   };
 }
 

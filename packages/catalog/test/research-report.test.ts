@@ -61,6 +61,18 @@ describe("local song research report", () => {
     expect(result.json).not.toMatch(/\/Users\/|\/private\/|localPath|password/i);
   });
 
+  it("does not invent discovery queries for a metadata-limited URL-only run", async () => {
+    let called = false;
+    const result = await runResearch({
+      song: { title: "Submitted YouTube source", artist: "Unknown artist", sourceYoutubeUrl: "https://youtu.be/9TjXanLjpTU" },
+      metadataLimited: true,
+      search: async () => { called = true; return []; },
+    });
+    expect(called).toBe(false);
+    expect(result.report.queries).toEqual([]);
+    expect(result.report.discoveryErrors).toContain("song metadata is required for source discovery; provide --artist and --title");
+  });
+
   it("classifies injected tutorial and performance candidates deterministically", async () => {
     const discovery = [
       {
@@ -85,6 +97,8 @@ describe("local song research report", () => {
     expect(result.report.candidates.find((candidate) => candidate.id === "youtube:BBBBBBBBBBB")).toMatchObject({
       sourceType: "piano-tutorial-video",
       extractionStrategy: "visual-midi",
+      provider: "Tutor",
+      isLive: false,
     });
     expect(result.report.candidates.find((candidate) => candidate.id === "youtube:AAAAAAAAAAA")).toMatchObject({
       sourceType: "piano-cover-video",
@@ -122,11 +136,13 @@ describe("local song research report", () => {
       localCandidates: [
         local(new Uint8Array([1, 2, 3]), { title: "/Users/reidar/Downloads/private.mid" }),
         { bytes: new Uint8Array([4, 5, 6]), format: "mxl", title: "packed score" },
+        { bytes: new Uint8Array([7, 8, 9]), format: "unknown", title: "unknown input" },
       ],
     });
-    expect(report.symbolicArtifacts).toHaveLength(2);
+    expect(report.symbolicArtifacts).toHaveLength(3);
     expect(report.symbolicArtifacts.every((artifact) => artifact.error)).toBe(true);
     expect(report.recommended).toEqual([]);
+    expect(report.candidates.find((candidate) => candidate.title === "unknown input")).toMatchObject({ sourceType: "unknown", extractionStrategy: "none" });
     expect(serializeResearchReport(report)).not.toMatch(/\/Users\/reidar|private\.mid/i);
     expect(serializeResearchReport(report)).toMatch(/MXL containers are unsupported|symbolic candidate could not be parsed/);
   });
@@ -140,6 +156,17 @@ describe("local song research report", () => {
     expect(result.report.discoveryErrors).toEqual(["query failed: source discovery failed"]);
     expect(result.report.humanAcceptance).toMatchObject({ status: "reject", note: "unrecognizable and sounds bad", raterCount: 1 });
     expect(result.json).not.toMatch(/user:pass|\/Users\/reidar|secret\.mid/);
+  });
+
+  it("redacts embedded absolute and relative filenames from report text", () => {
+    const report = buildResearchReport({
+      song,
+      discoveryErrors: ["failed /opt/keyspilli/foo.mid", "failed relative.mid"],
+      humanAcceptance: { verdict: "reject", note: "bad at /private/tmp/listen.wav and secret.mid" },
+    });
+    const json = serializeResearchReport(report);
+    expect(json).not.toMatch(/\/opt\/keyspilli|relative\.mid|\/private\/tmp|listen\.wav|secret\.mid/);
+    expect(json).toContain("[redacted]");
   });
 
   it("keeps a malformed reference as a diagnostic and does not invent alignment", () => {

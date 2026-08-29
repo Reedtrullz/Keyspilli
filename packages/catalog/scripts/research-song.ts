@@ -14,6 +14,7 @@ interface CliArgs {
   noNetwork: boolean;
   humanAcceptance?: HumanAcceptanceInput;
   out?: string;
+  metadataLimited?: boolean;
 }
 
 function usage(): string {
@@ -90,8 +91,11 @@ function parseArgs(argv: string[]): CliArgs {
     }
   }
   if (!parsed.title && !parsed.url) throw new Error("provide --url or --artist/--title");
-  if (!parsed.title && parsed.url) parsed.title = "Submitted YouTube source";
-  if (!parsed.artist && parsed.url) parsed.artist = "Unknown artist";
+  if (!parsed.title && parsed.url) {
+    parsed.title = "Submitted YouTube source";
+    parsed.artist = "Unknown artist";
+    parsed.metadataLimited = true;
+  }
   if ((parsed.artist && !parsed.title) || (!parsed.artist && parsed.title)) throw new Error("--artist and --title must be supplied together");
   return parsed;
 }
@@ -136,7 +140,9 @@ async function main(): Promise<void> {
     localCandidates,
     reference,
     limit: args.limit,
-    noNetwork: args.noNetwork,
+    noNetwork: args.noNetwork || args.metadataLimited,
+    metadataLimited: args.metadataLimited,
+    ...(args.metadataLimited ? { discoveryErrors: ["song metadata is required for source discovery; provide --artist and --title"] } : {}),
     humanAcceptance: args.humanAcceptance,
   });
   if (args.out) {

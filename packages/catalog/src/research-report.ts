@@ -53,6 +53,8 @@ export interface ResearchReportInput {
   reference?: LocalReferenceInput;
   humanAcceptance?: HumanAcceptanceInput;
   alignmentOptions?: SymbolicAlignmentOptions;
+  /** URL-only invocation has no trustworthy title/artist for search queries. */
+  metadataLimited?: boolean;
 }
 
 export interface ResearchSymbolicArtifact {
@@ -134,7 +136,7 @@ export function serializeResearchReport(report: ResearchReport): string {
 
 function safeError(error: unknown, fallback: string): string {
   const message = error instanceof Error ? error.message : typeof error === "string" ? error : "";
-  if (!message || /(?:password|token|secret|cookie|authorization|--proxy|(?:https?|socks5h?):\/\/[^\s/@]+:[^\s/@]+@|\/(?:Users|private|tmp|var|home)\/|[A-Za-z]:[\\/])/i.test(message)) return fallback;
+  if (!message || /(?:password|token|secret|cookie|authorization|--proxy|(?:https?|socks5h?):\/\/[^\s/@]+:[^\s/@]+@|(?:^|[\s"'(:])(?:[A-Za-z]:[\\/]|~?[\\/]|\.\.?[\\/])|(?:^|[\s"'(:])[^\s"']+\.(?:mid|midi|musicxml|xml|gp|gpx|mp3|wav|flac|json)(?:$|[\s"'):,]))/i.test(message)) return fallback;
   return message.replace(/[\r\n]+/g, " ").slice(0, 240) || fallback;
 }
 
@@ -162,7 +164,15 @@ function safeReportUrl(value: string): string | null {
 }
 
 function reportPathLike(value: string): boolean {
-  return /^(?:file:|[\\/]|[A-Za-z]:[\\/]|~[\\/]|\.\.?[\\/])/.test(value.trim());
+  const trimmed = value.trim();
+  return /^(?:file:|[\\/]|[A-Za-z]:[\\/]|~[\\/]|\.\.?[\\/])/.test(trimmed)
+    || /^[^/\\\s]+\.(?:mid|midi|musicxml|xml|gp|gpx|mp3|wav|flac|json)$/i.test(trimmed);
+}
+
+function redactReportText(value: string): string {
+  return value
+    .replace(/(?:^|[\s"'(:])(?:[A-Za-z]:[\\/]|~?[\\/]|\.\.?[\\/])[^\s"')]+/g, (match) => match.startsWith(" ") ? " [redacted]" : "[redacted]")
+    .replace(/(?:^|[\s"'(:])[^\s"']+\.(?:mid|midi|musicxml|xml|gp|gpx|mp3|wav|flac|json)(?=$|[\s"'):,])/gi, (match) => match.startsWith(" ") ? " [redacted]" : "[redacted]");
 }
 
 /** Defensive redaction for the serialized research artifact. */
@@ -171,7 +181,7 @@ function redactReportValue(value: unknown, key = ""): unknown {
   if (typeof value === "string") {
     if (reportPathLike(value)) return undefined;
     if (REPORT_URL_KEY.test(key) || /^[a-z][a-z\d+.-]*:\/\//i.test(value)) return safeReportUrl(value) ?? undefined;
-    return value;
+    return redactReportText(value);
   }
   if (Array.isArray(value)) return value.map((item) => redactReportValue(item, key)).filter((item) => item !== undefined);
   if (value && typeof value === "object") {
@@ -229,7 +239,9 @@ function logicalLocalId(input: LocalSymbolicInput): string {
 function localCandidate(input: LocalSymbolicInput, song: SongIdentity): ArrangementCandidate {
   const hash = sha256Hex(input.bytes);
   const id = logicalLocalId(input);
-  const sourceType = input.sourceType ?? (input.format === "musicxml" ? "musicxml" : "midi");
+  const sourceType = input.sourceType ?? (
+    input.format === "musicxml" ? "musicxml" : input.format === "midi" ? "midi" : "unknown"
+  );
   const provenance: SourceProvenance = {
     kind: "local",
     acquiredVia: "submitted-local",
@@ -262,6 +274,9 @@ function youtubeCandidate(input: YoutubeDiscoveryCandidate, discoveredBy: readon
     },
     durationSeconds: input.durationSeconds,
     confidence: input.isLive ? 0 : 0.5,
+    provider: input.uploader,
+    ...(finite(input.viewCount) && input.viewCount >= 0 ? { viewCount: input.viewCount } : {}),
+    isLive: input.isLive,
     selection: "preferred",
     ...(discoveredBy?.length ? { reasons: [...new Set(discoveredBy)].sort() } : {}),
   }, { overrideSourceType: true });
@@ -387,7 +402,7 @@ export function buildResearchReport(input: ResearchReportInput): ResearchReport 
   const report: ResearchReport = {
     schemaVersion: 1,
     song,
-    queries: buildResearchQueries(song).sort(),
+    queries: input.metadataLimited ? [] : buildResearchQueries(song).sort(),
     candidates: ranked,
     discoveryErrors: normalizeDiscoveryErrors([...(input.discoveryErrors ?? []), ...localInputResult.collisions]),
     discoveredBy: Object.fromEntries(
@@ -408,11 +423,12 @@ export async function runResearch(input: ResearchRunOptions): Promise<ResearchRu
   const song = identity(input.song);
   const discoveryCandidates: YoutubeDiscoveryCandidate[] = [...(input.discoveryCandidates ?? [])];
   const discoveryErrors = [...(input.discoveryErrors ?? [])];
+  if (input.metadataLimited) discoveryErrors.push("song metadata is required for source discovery; provide --artist and --title");
   const discoveredBy = new Map<string, Set<string>>();
   for (const [videoId, queries] of Object.entries(input.discoveredBy ?? {})) {
     discoveredBy.set(videoId, new Set(queries));
   }
-  if (!input.noNetwork && !input.discoveryCandidates?.length) {
+  if (!input.noNetwork && !input.metadataLimited && !input.discoveryCandidates?.length) {
     const search = input.search ?? searchYoutubeCandidates;
     for (const query of buildResearchQueries(song)) {
       try {
