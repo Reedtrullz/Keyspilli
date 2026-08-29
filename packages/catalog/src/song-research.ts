@@ -200,7 +200,7 @@ function strategyFor(sourceType: ArrangementSourceType): ExtractionStrategy {
 
 function inferredType(haystack: string): { sourceType: ArrangementSourceType; extractionStrategy: ExtractionStrategy; signal: string } | null {
   if (/synthesia|tutorial|falling notes|visual midi/.test(haystack)) return { sourceType: "piano-tutorial-video", extractionStrategy: "visual-midi", signal: "tutorial/synthesia" };
-  if (/piano|keyboard/.test(haystack) && !/official music video|official lyric video/.test(haystack)) return { sourceType: "piano-cover-video", extractionStrategy: "audio-midi", signal: "piano performance" };
+  if (/piano|keyboard/.test(haystack) && !/\b(?:official(?:\s+(?:music|lyric|audio))?\s+video|official\s+audio|(?:music|lyric)\s+video|karaoke|lyrics?)\b/.test(haystack)) return { sourceType: "piano-cover-video", extractionStrategy: "audio-midi", signal: "piano performance" };
   if (/metal transcription|ai transcription|direct transcription/.test(haystack)) return { sourceType: "metal-transcription", extractionStrategy: "audio-transcription", signal: "direct fallback" };
   if (/\.(?:mid|midi)(?:$|[?#])/.test(haystack)) return { sourceType: "midi", extractionStrategy: "symbolic", signal: "symbolic source" };
   return null;

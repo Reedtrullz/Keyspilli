@@ -83,6 +83,17 @@ describe("song research foundation", () => {
     });
   });
 
+  it("does not classify karaoke metadata as a piano cover", () => {
+    expect(classifyArrangementCandidate(candidate({
+      sourceType: "unknown",
+      title: "Sabaton Defence Of Moscow piano karaoke",
+      url: null,
+    }), { overrideSourceType: true })).toMatchObject({
+      sourceType: "unknown",
+      extractionStrategy: "none",
+    });
+  });
+
   it("ranks with inspectable reasons and keeps direct transcription as fallback", () => {
     const ranked = rankArrangementCandidates(identity, [
       candidate({ id: "direct", sourceType: "metal-transcription", title: "direct AI transcription", confidence: 0.4 }),
