@@ -30,6 +30,7 @@
     "discover-youtube-sources": "tsx scripts/discover-youtube-sources.ts",
     "tempo-robustness": "tsx scripts/tempo-robustness.ts",
     "evaluate-metal": "tsx scripts/evaluate-metal.ts",
+    "evaluate-piano-candidates": "tsx scripts/evaluate-piano-candidates.ts",
     "research:song": "tsx scripts/research-song.ts"
   },
   "dependencies": {
