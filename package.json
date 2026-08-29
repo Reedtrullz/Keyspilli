@@ -23,7 +23,8 @@
     "calibrate": "npm run calibrate -w @keyspilli/catalog",
     "pipeline": "npm run pipeline -w @keyspilli/catalog",
     "seed": "npm run seed -w @keyspilli/catalog",
-    "evaluate-metal": "npm run evaluate-metal -w @keyspilli/catalog --"
+    "evaluate-metal": "npm run evaluate-metal -w @keyspilli/catalog --",
+    "research:song": "npm run research:song -w @keyspilli/catalog --"
   },
   "engines": {
     "node": ">=20"
