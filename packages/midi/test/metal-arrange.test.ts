@@ -280,6 +280,33 @@ describe("metal piano arranger", () => {
     expect(result.ir.identity.filter((note) => note.identitySource === "vocals").map((note) => note.midi)).toEqual([79, 81, 79]);
   });
 
+  it("does not reintroduce residual spikes when a sparse guitar lane owns the section", () => {
+    const guitar: Note[] = [
+      { midi: 72, start: 1, dur: 0.4, vel: 90 },
+      { midi: 74, start: 3, dur: 0.4, vel: 90 },
+      { midi: 76, start: 5, dur: 0.4, vel: 90 },
+    ];
+    // Residual/full-mix chatter is dense and high, but it is not a second
+    // authored melody. The selected guitar lane must remain the only
+    // instrumental source used by sparse top-line recovery.
+    const residual = Array.from({ length: 32 }, (_, index) => ({
+      midi: index % 2 ? 64 : 84,
+      start: 0.5 + index * 0.25,
+      dur: 0.08,
+      vel: 52,
+    }));
+    const result = buildMetalArrangement({
+      sectionBeats: 16,
+      stems: [
+        { role: "guitar", midi: midi(guitar, 16) },
+        { role: "other", midi: midi(residual, 16) },
+      ],
+    });
+    const identity = result.ir.identity;
+    expect(identity.filter((note) => note.identitySource === "other"), "residual lane leaked into sparse inference").toHaveLength(0);
+    expect(identity.filter((note) => note.identitySource === "guitar").length).toBeGreaterThanOrEqual(3);
+  });
+
   it("decodes a dense residual lane into a stepwise upper contour", () => {
     const lead = [64, 65, 67, 69, 67, 65, 64, 62, 64, 65, 67, 69, 71, 69, 67, 65];
     const residual: Note[] = [];
@@ -312,6 +339,26 @@ describe("metal piano arranger", () => {
     expect(other.map((note) => note.midi).slice(0, 4)).toEqual(lead.slice(0, 4));
     expect(other.map((note) => note.midi).every((pitch) => lead.includes(pitch))).toBe(true);
     expect(other.map((note) => note.midi).filter((pitch) => pitch >= 62 && pitch <= 71).length).toBeGreaterThanOrEqual(12);
+  });
+
+  it("keeps a medium-density residual contour on a playable beat floor", () => {
+    const pitches = [64, 65, 67, 69, 67, 65, 64, 62, 64, 65, 67, 69, 71, 69, 67, 65, 64, 65, 67, 69];
+    const residual = pitches.map((midi, index) => ({
+      midi,
+      start: index * 0.6,
+      dur: 0.35,
+      vel: 70,
+    }));
+    const result = buildMetalArrangement({
+      sectionBeats: 16,
+      stems: [{ role: "other", midi: midi(residual, 16) }],
+    });
+    const other = result.ir.identity
+      .filter((note) => note.identitySource === "other")
+      .sort((a, b) => a.start - b.start);
+    const gaps = other.slice(1).map((note, index) => note.start - other[index]!.start);
+    expect(other.length).toBeGreaterThanOrEqual(8);
+    expect(Math.min(...gaps), "residual fallback kept sub-beat chatter").toBeGreaterThanOrEqual(1 - 1e-6);
   });
 
   it("preserves the residual role when no dedicated guitar stem exists", () => {
