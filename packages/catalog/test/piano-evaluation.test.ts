@@ -59,6 +59,22 @@ describe("piano candidate evaluation", () => {
     expect(report.candidates[0]?.purity.signals).toContain("non-piano role notes present");
   });
 
+  it("deduplicates role-lane evidence that repeats candidate notes", () => {
+    const repeated = notes[0]!;
+    const report = evaluatePianoCandidates({
+      candidates: [candidate({
+        id: "role-view",
+        notes: [repeated],
+        roleNotes: { vocals: [repeated], voice: [{ ...repeated }] },
+      })],
+    });
+
+    // The same physical event is represented by the candidate and two role
+    // views, but it must contribute once to the purity denominator/rate.
+    expect(report.candidates[0]?.purity.nonPianoNoteRatio).toBe(1);
+    expect(report.candidates[0]?.purity.pianoNoteRatio).toBe(0);
+  });
+
   it("ranks by structural/reference evidence without recognizability claims", () => {
     const report = evaluatePianoCandidates({
       candidates: [
@@ -80,6 +96,20 @@ describe("piano candidate evaluation", () => {
     expect(report.candidates[0]?.diagnostics).toContain("media unavailable");
     expect(canonicalPianoEvaluationJson(report)).not.toContain("/Users/reidar");
     expect(canonicalPianoEvaluationJson(report)).not.toContain("selector");
+  });
+
+  it("redacts unavailable reasons before returning the evaluation object", () => {
+    const report = evaluatePianoCandidates({
+      candidates: [{
+        id: "missing-reason",
+        mediaAvailable: false,
+        unavailableReason: "failed to read /Users/reidar/private/secret-track.mid",
+      }],
+    });
+
+    const diagnostics = report.candidates[0]?.diagnostics.join(" ") ?? "";
+    expect(diagnostics).not.toContain("/Users/reidar");
+    expect(diagnostics).toContain("[redacted-path]");
   });
 
   it("fails closed for empty and all-invalid symbolic candidates", () => {
@@ -124,6 +154,33 @@ describe("piano candidate evaluation", () => {
     const right = evaluatePianoCandidates({ candidates: [candidate({ id: "right" })] });
     expect(left.determinism.canonicalSha256).toMatch(/^[0-9a-f]{64}$/);
     expect(left.determinism.canonicalSha256).not.toBe(right.determinism.canonicalSha256);
+  });
+
+  it("derives contour direction from the matched groups when an onset is skipped", () => {
+    const referenceNotes: Note[] = [
+      { midi: 60, start: 0, dur: 1, vel: 90 },
+      // This reference onset is intentionally unmatched.
+      { midi: 62, start: 1, dur: 1, vel: 90 },
+      { midi: 50, start: 2, dur: 1, vel: 90 },
+    ];
+    const report = evaluatePianoCandidates({
+      candidates: [{
+        id: "skipped-contour",
+        notes: [
+          { midi: 60, start: 0, dur: 1, vel: 90 },
+          { midi: 50, start: 2, dur: 1, vel: 90 },
+        ],
+        tempoBpm: 120,
+        durationBeats: 3,
+      }],
+      reference: { id: "reference", notes: referenceNotes, tempoBpm: 120, durationBeats: 3 },
+      alignment: { offsetsBeats: [0], beatScales: [1], transpositions: [0] },
+    });
+
+    expect(report.candidates[0]?.reference?.metrics.contour).toMatchObject({
+      directionAgreement: 1,
+      matchedIntervals: 1,
+    });
   });
 
   it("is deterministic independent of candidate order and writes four local previews", async () => {

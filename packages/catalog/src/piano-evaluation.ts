@@ -211,7 +211,9 @@ function validNotes(notes: readonly Note[]): Note[] {
 
 function sortedNotes(notes: readonly Note[]): Note[] {
   return [...notes].sort((a, b) => a.start - b.start || a.midi - b.midi || a.dur - b.dur || a.vel - b.vel
-    || (a.hand ?? "").localeCompare(b.hand ?? ""));
+    || (a.hand ?? "").localeCompare(b.hand ?? "")
+    || (a.identitySource ?? "").localeCompare(b.identitySource ?? "")
+    || (a.lyrics ?? "").localeCompare(b.lyrics ?? ""));
 }
 
 function onsetGroups(notes: readonly Note[]): Note[][] {
@@ -221,6 +223,41 @@ function onsetGroups(notes: readonly Note[]): Note[][] {
     if (previous && note.start - previous[0]!.start <= ONSET_TOLERANCE + EPS) previous.push(note);
     else groups.push([note]);
   }
+  return groups;
+}
+
+interface IndexedOnsetGroup {
+  start: number;
+  notes: Note[];
+  noteIndices: number[];
+}
+
+/**
+ * Group normalized notes using the same stable order as the alignment helper,
+ * while retaining the normalized note indices carried by each match. The
+ * indices matter when an alignment skips a reference/candidate onset: a
+ * contour metric must compare the matched groups, not positional groups from
+ * the complete scores.
+ */
+function indexedOnsetGroups(notes: readonly Note[]): IndexedOnsetGroup[] {
+  const groups: IndexedOnsetGroup[] = [];
+  notes.map((note, index) => ({ note, index })).sort((a, b) =>
+    a.note.start - b.note.start
+    || a.note.midi - b.note.midi
+    || a.note.dur - b.note.dur
+    || a.note.vel - b.note.vel
+    || (a.note.hand ?? "").localeCompare(b.note.hand ?? "")
+    || (a.note.identitySource ?? "").localeCompare(b.note.identitySource ?? "")
+    || (a.note.lyrics ?? "").localeCompare(b.note.lyrics ?? "")
+    || a.index - b.index).forEach(({ note, index }) => {
+      const previous = groups.at(-1);
+      if (previous && note.start - previous.start <= ONSET_TOLERANCE + EPS) {
+        previous.notes.push(note);
+        previous.noteIndices.push(index);
+      } else {
+        groups.push({ start: note.start, notes: [note], noteIndices: [index] });
+      }
+    });
   return groups;
 }
 
@@ -344,22 +381,69 @@ function sourceText(input: PianoCandidateInput): string {
   return values.join(" ");
 }
 
+interface PianoRoleEvidence {
+  note: Note;
+  roles: Set<string>;
+  explicitRoles: Set<string>;
+}
+
+function roleNoteKey(note: Note): string {
+  // roleNotes are often a view over the same events that are already present
+  // in the candidate score. Keep the event identity independent of its role
+  // so supplying both views does not double the purity denominator. A note
+  // that is explicitly assigned multiple roles still contributes once.
+  return JSON.stringify([
+    note.midi,
+    note.start,
+    note.dur,
+    note.vel,
+    note.hand ?? null,
+    note.lyrics ?? null,
+  ]);
+}
+
+function collectRoleEvidence(input: PianoCandidateInput, notes: readonly Note[]): PianoRoleEvidence[] {
+  const evidence = new Map<string, PianoRoleEvidence>();
+  const add = (note: Note, role: string, explicit: boolean): void => {
+    const valid = validNotes([note])[0];
+    if (!valid) return;
+    const key = roleNoteKey(valid);
+    const existing = evidence.get(key);
+    if (existing) {
+      if (role) existing.roles.add(role);
+      if (explicit && role) existing.explicitRoles.add(role);
+    } else {
+      evidence.set(key, {
+        note: valid,
+        roles: new Set(role ? [role] : []),
+        explicitRoles: new Set(explicit && role ? [role] : []),
+      });
+    }
+  };
+  for (const note of notes) add(note, note.identitySource?.toLowerCase() ?? "", false);
+  for (const [role, lane] of Object.entries(input.roleNotes ?? {})) {
+    for (const note of lane) add(note, role.toLowerCase(), true);
+  }
+  return [...evidence.values()];
+}
+
+function isNonPianoRole(role: string): boolean {
+  return /vocal|voice|guitar|bass|drum|strings?|orchestra|synth|backing/.test(role);
+}
+
 function purity(input: PianoCandidateInput, notes: readonly Note[]): PianoPurityReport {
   const text = sourceText(input);
   const pianoSignal = /\b(piano|keyboard|grand|upright)\b/.test(text);
   const nonPianoSignal = /\b(vocal|vocals|voice|guitar|bass|drum|strings?|orchestra|synth|backing|karaoke|mixed|overlay)\b/.test(text);
-  const roleNotes = Object.entries(input.roleNotes ?? {}).flatMap(([role, roleNotes]) => roleNotes.map((note) => ({ role: role.toLowerCase(), note })));
-  const allRoleNotes = [...notes.map((note) => ({ role: note.identitySource?.toLowerCase() ?? "", note })), ...roleNotes];
+  const allRoleNotes = collectRoleEvidence(input, notes);
   // `Note.identitySource` describes the source lane of an arrangement, not
   // necessarily an audible overlay. When metadata explicitly says piano,
   // only separately supplied role lanes (or contradictory metadata) count as
   // overlay evidence. This avoids treating a piano arrangement's vocal-derived
   // melody and `other` bass shell as non-piano instruments.
-  const explicitRoleNotes = roleNotes.filter(({ role }) => /vocal|voice|guitar|bass|drum|strings?|orchestra|synth|backing/.test(role));
-  const noteRoleEvidence = !pianoSignal || nonPianoSignal
-    ? allRoleNotes.filter(({ role }) => /vocal|voice|guitar|bass|drum|strings?|orchestra|synth|backing/.test(role))
-    : [];
-  const nonPianoNotes = [...explicitRoleNotes, ...noteRoleEvidence];
+  const nonPianoNotes = allRoleNotes.filter(({ roles, explicitRoles }) =>
+    [...explicitRoles].some(isNonPianoRole)
+    || ((!pianoSignal || nonPianoSignal) && [...roles].some(isNonPianoRole)));
   const ratio = allRoleNotes.length ? nonPianoNotes.length / allRoleNotes.length : null;
   const signals = new Set<string>();
   if (pianoSignal) signals.add("piano metadata signal");
@@ -464,13 +548,18 @@ function referenceMetrics(reference: NormalizedSymbolicScore | null, candidate: 
     windows: options.windows?.map((window) => ({ id: window.id, reference: window.reference, candidate: window.candidate })),
     minMatchedOnsets: options.minMatchedOnsets,
   } : undefined);
-  const referenceGroups = onsetGroups(reference.notes);
-  const candidateGroups = onsetGroups(candidate.notes);
+  const referenceGroups = indexedOnsetGroups(reference.notes);
+  const candidateGroups = indexedOnsetGroups(candidate.notes);
+  const referenceGroupByNote = new Map<number, number>();
+  const candidateGroupByNote = new Map<number, number>();
+  referenceGroups.forEach((group, index) => group.noteIndices.forEach((noteIndex) => referenceGroupByNote.set(noteIndex, index)));
+  candidateGroups.forEach((group, index) => group.noteIndices.forEach((noteIndex) => candidateGroupByNote.set(noteIndex, index)));
   const matched = aligned.matches;
   const exactCount = matched.filter((match) => match.exactPitch).length;
   const pitchClassCount = matched.filter((match) => {
-    const referenceGroup = referenceGroups.find((group) => Math.abs(group[0]!.start - match.referenceBeat) <= ONSET_TOLERANCE + EPS);
-    const referenceClasses = new Set(referenceGroup?.map((note) => ((note.midi % 12) + 12) % 12));
+    const referenceGroupIndex = referenceGroupByNote.get(match.referenceIndex);
+    const referenceGroup = referenceGroupIndex === undefined ? undefined : referenceGroups[referenceGroupIndex];
+    const referenceClasses = new Set(referenceGroup?.notes.map((note) => ((note.midi % 12) + 12) % 12));
     return match.transposedCandidateMidis.some((midi) => referenceClasses.has(((midi % 12) + 12) % 12));
   }).length;
   const f1 = (count: number, predicted: number, actual: number): { precision: number | null; recall: number | null; f1: number | null } => {
@@ -482,12 +571,22 @@ function referenceMetrics(reference: NormalizedSymbolicScore | null, candidate: 
   const pitchClass = f1(pitchClassCount, candidateGroups.length, referenceGroups.length);
   const onset = f1(matched.length, candidateGroups.length, referenceGroups.length);
   const errors = matched.map((match) => match.onsetErrorBeats).sort((a, b) => a - b);
-  const referencePitches = referenceGroups.map((group) => Math.max(...group.map((note) => note.midi)));
-  const candidatePitches = candidateGroups.map((group) => Math.max(...group.map((note) => note.midi + aligned.transpositionSemitones)));
-  const intervals = matched.slice(1).map((_match, index) => ({
-    reference: Math.sign(referencePitches[index + 1]! - referencePitches[index]!),
-    candidate: Math.sign(candidatePitches[index + 1]! - candidatePitches[index]!),
-  }));
+  const referencePitches = referenceGroups.map((group) => Math.max(...group.notes.map((note) => note.midi)));
+  const candidatePitches = candidateGroups.map((group) => Math.max(...group.notes.map((note) => note.midi + aligned.transpositionSemitones)));
+  const matchedContour = matched.flatMap((match) => {
+    const referenceGroupIndex = referenceGroupByNote.get(match.referenceIndex);
+    const candidateGroupIndex = candidateGroupByNote.get(match.candidateIndex);
+    return referenceGroupIndex === undefined || candidateGroupIndex === undefined
+      ? []
+      : [{ referenceGroupIndex, candidateGroupIndex }];
+  });
+  const intervals = matchedContour.slice(1).map((point, index) => {
+    const previous = matchedContour[index]!;
+    return {
+      reference: Math.sign(referencePitches[point.referenceGroupIndex]! - referencePitches[previous.referenceGroupIndex]!),
+      candidate: Math.sign(candidatePitches[point.candidateGroupIndex]! - candidatePitches[previous.candidateGroupIndex]!),
+    };
+  });
   const directionAgreement = intervals.length ? intervals.filter((pair) => pair.reference === pair.candidate).length / intervals.length : null;
   const status = aligned.status === "rejected" ? "mismatch" : aligned.status;
   return {
@@ -513,10 +612,10 @@ function referenceMetrics(reference: NormalizedSymbolicScore | null, candidate: 
 }
 
 function emptyUnavailable(input: PianoCandidateInput, id: string, diagnostics: string[]): PianoCandidateEvaluation {
-  const reasons = [...diagnostics];
+  const reasons = diagnostics.map((reason) => redactEmbeddedPaths(reason));
   if (input.mediaAvailable === false) reasons.push("media unavailable");
   if (input.backendAvailable === false) reasons.push("backend unavailable");
-  if (input.unavailableReason) reasons.push(input.unavailableReason);
+  if (input.unavailableReason) reasons.push(redactEmbeddedPaths(input.unavailableReason));
   if (!reasons.length) reasons.push("symbolic notes unavailable");
   return {
     id,
