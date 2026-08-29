@@ -168,6 +168,168 @@ describe("metal piano arranger", () => {
     expect(result.ir.identity.some((note) => note.identitySource === "guitar" && note.midi >= 72)).toBe(true);
   });
 
+  it("uses residual upper evidence to keep a melody while moving dense guitar rhythm to LH", () => {
+    const lowGuitarWall = Array.from({ length: 24 }, (_, index) => ({
+      midi: index % 2 === 0 ? 45 : 52,
+      start: index * 0.5,
+      dur: 0.25,
+      vel: 76,
+    }));
+    const residualLead = Array.from({ length: 12 }, (_, index) => ({
+      midi: [72, 74, 76, 77, 76, 74][index % 6]!,
+      start: index,
+      dur: 0.6,
+      vel: 88,
+    }));
+    const result = buildMetalArrangement({
+      stems: [
+        { role: "guitar", midi: midi(lowGuitarWall, 12) },
+        { role: "other", midi: midi(residualLead, 12) },
+      ],
+    });
+
+    const identity = result.ir.identity;
+    expect(identity.filter((note) => note.identitySource === "other").length).toBeGreaterThanOrEqual(8);
+    expect(identity.some((note) => note.identitySource === "other" && note.midi >= 72)).toBe(true);
+    expect(identity.filter((note) => note.identitySource === "guitar" && note.midi <= 62)).toHaveLength(0);
+    expect(result.parsed.notes.filter((note) => note.hand === "L" && note.identitySource === "guitar").length).toBeGreaterThanOrEqual(8);
+  });
+
+  it("prefers a coherent residual lead over a denser zig-zag guitar stem", () => {
+    const noisyGuitar = Array.from({ length: 32 }, (_, index) => ({
+      midi: [72, 84, 63, 81, 66, 87, 64, 82][index % 8]!,
+      start: index * 0.25,
+      dur: 0.12,
+      vel: 58,
+    }));
+    const coherentOther = Array.from({ length: 12 }, (_, index) => ({
+      midi: [72, 74, 76, 77, 76, 74][index % 6]!,
+      start: index * 0.75,
+      dur: 0.55,
+      vel: 92,
+    }));
+    const result = buildMetalArrangement({
+      stems: [
+        { role: "guitar", midi: midi(noisyGuitar, 10) },
+        { role: "other", midi: midi(coherentOther, 10) },
+      ],
+    });
+    const identity = result.ir.identity.filter((note) => note.identitySource !== "vocals");
+    const other = identity.filter((note) => note.identitySource === "other");
+    const guitar = identity.filter((note) => note.identitySource === "guitar");
+    expect(other.length).toBeGreaterThanOrEqual(8);
+    expect(guitar.filter((note) => note.midi < 68).length).toBe(0);
+    expect(guitar.length).toBeLessThan(other.length);
+    expect(other.map((note) => note.midi).slice(0, 6)).toEqual([72, 74, 76, 77, 76, 74]);
+  });
+
+  it("uses contour continuity when a polyphonic onset offers a quiet step and a loud distant spike", () => {
+    const result = buildMetalArrangement({
+      stems: [{ role: "guitar", midi: midi([
+        { midi: 72, start: 0, dur: 0.5, vel: 92 },
+        { midi: 84, start: 0.5, dur: 0.5, vel: 120 },
+        { midi: 74, start: 0.5, dur: 0.5, vel: 58 },
+        { midi: 76, start: 1, dur: 0.5, vel: 92 },
+      ], 3) }],
+    });
+    const guitar = result.ir.identity.filter((note) => note.identitySource === "guitar");
+    expect(guitar.map((note) => note.midi)).toEqual([72, 74, 76]);
+  });
+
+  it("recovers a sparse upper line from repeated quiet harmonic evidence without inventing notes", () => {
+    const lowRhythm = Array.from({ length: 12 }, (_, index) => ({
+      midi: 45,
+      start: index,
+      dur: 0.35,
+      vel: 118,
+    }));
+    const quietUpper = Array.from({ length: 12 }, (_, index) => ({
+      midi: [64, 65, 67, 65][index % 4]!,
+      start: index + 0.02,
+      dur: 0.45,
+      vel: 32,
+    }));
+    const result = buildMetalArrangement({
+      stems: [{ role: "guitar", midi: midi([...lowRhythm, ...quietUpper], 12) }],
+    });
+    const identity = result.ir.identity.filter((note) => note.identitySource === "guitar");
+    const upper = identity.filter((note) => note.midi >= 64);
+    expect(upper.length, "quiet repeated upper evidence was discarded before identity selection").toBeGreaterThanOrEqual(6);
+    expect(identity.filter((note) => note.midi <= 54), "low rhythm wall leaked into RH").toHaveLength(0);
+    expect(result.parsed.notes.some((note) => note.hand === "L" && note.identitySource === "guitar" && note.midi <= 54)).toBe(true);
+  });
+
+  it("does not fill a low-only phrase when no upper harmonic evidence exists", () => {
+    const lowOnly = Array.from({ length: 12 }, (_, index) => ({
+      midi: index % 2 ? 45 : 52,
+      start: index * 0.5,
+      dur: 0.25,
+      vel: 118,
+    }));
+    const result = buildMetalArrangement({
+      stems: [{ role: "guitar", midi: midi(lowOnly, 6) }],
+    });
+    const identity = result.ir.identity.filter((note) => note.identitySource === "guitar");
+    expect(identity.length).toBeGreaterThan(0);
+    expect(identity.every((note) => note.midi < 64), "low-only evidence must not be promoted into an invented upper melody").toBe(true);
+    expect(result.warnings.some((warning) => warning.includes("upper harmonic evidence"))).toBe(false);
+  });
+
+  it("does not promote one isolated quiet upper spike into a melody", () => {
+    const result = buildMetalArrangement({
+      stems: [{ role: "guitar", midi: midi([
+        { midi: 45, start: 0, dur: 0.25, vel: 112 },
+        { midi: 45, start: 1, dur: 0.25, vel: 112 },
+        { midi: 78, start: 1.02, dur: 0.08, vel: 28 },
+        { midi: 45, start: 2, dur: 0.25, vel: 112 },
+        { midi: 45, start: 3, dur: 0.25, vel: 112 },
+      ], 4) }],
+    });
+    expect(result.ir.identity.some((note) => note.midi >= 64)).toBe(false);
+    expect(result.warnings.some((warning) => warning.includes("upper harmonic evidence"))).toBe(false);
+  });
+
+  it("keeps detector lows below the playable register out of RH after octave registration", () => {
+    const lowDetector = Array.from({ length: 8 }, (_, index) => ({
+      midi: index % 2 ? 41 : 29,
+      start: index * 0.5,
+      dur: 0.25,
+      vel: 112,
+    }));
+    const result = buildMetalArrangement({
+      stems: [{ role: "guitar", midi: midi(lowDetector, 4) }],
+    });
+    expect(result.ir.identity.filter((note) => note.identitySource === "guitar")).toHaveLength(0);
+    expect(result.parsed.notes.filter((note) => note.hand === "L" && note.identitySource === "guitar")).toHaveLength(8);
+  });
+
+  it("preserves a repeated upper MIDI 62 hook instead of classifying it as low pulse", () => {
+    const hook = Array.from({ length: 8 }, (_, index) => ({
+      midi: index % 4 < 2 ? 62 : 64,
+      start: index,
+      dur: 0.6,
+      vel: 86,
+    }));
+    const result = buildMetalArrangement({
+      stems: [{ role: "guitar", midi: midi(hook, 8) }],
+    });
+    const pitches = result.ir.identity.filter((note) => note.identitySource === "guitar").map((note) => note.midi);
+    expect(pitches.filter((pitch) => pitch === 62).length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("routes a low power root that shares an onset with the lead into LH", () => {
+    const notes = Array.from({ length: 8 }, (_, index) => [
+      { midi: 45, start: index, dur: 0.25, vel: 112 },
+      { midi: 74 + (index % 3), start: index, dur: 0.5, vel: 92 },
+    ]).flat();
+    const result = buildMetalArrangement({
+      stems: [{ role: "guitar", midi: midi(notes, 8) }],
+    });
+    expect(result.ir.identity.some((note) => note.midi <= 60 && note.identitySource === "guitar")).toBe(false);
+    expect(result.parsed.notes.filter((note) => note.hand === "L" && note.identitySource === "guitar")).toHaveLength(8);
+    expect(result.ir.identity.filter((note) => note.identitySource === "guitar" && note.midi >= 74).length).toBeGreaterThanOrEqual(6);
+  });
+
   it("thins routed metal rhythm attacks as difficulty becomes easier", () => {
     const lowPulse = Array.from({ length: 24 }, (_, index) => ({
       midi: index % 2 === 0 ? 45 : 52,

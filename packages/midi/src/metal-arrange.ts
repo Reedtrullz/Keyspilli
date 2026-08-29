@@ -79,10 +79,114 @@ interface MonophonicPathOptions {
   preferUpperLead?: boolean;
   /** Maximum beat distance for treating an exact octave as detector flicker. */
   exactOctaveWindow?: number;
+  /** Use a phrase-local contour DP instead of selecting each onset greedily. */
+  coherent?: boolean;
 }
 
 /** Internal source pitch retained until boundary cleanup is complete. */
 type IdentityNote = Note & { rawMidi?: number };
+
+type MonophonicCandidate = IdentityNote & { rawMidi: number };
+
+function coherentMonophonicPath(
+  groups: MonophonicCandidate[][],
+  options: MonophonicPathOptions,
+  low: number,
+  high: number,
+): IdentityNote[] {
+  if (!groups.length) return [];
+  const candidateGroups = groups.map((group) => {
+    const maxVelocity = group.reduce((value, note) => Math.max(value, note.vel), 0);
+    const upper = options.preferUpperLead
+      ? group.filter((note) => note.rawMidi >= 60 && note.vel >= maxVelocity * 0.4)
+      : [];
+    // Keep the upper contour when it exists, but do not manufacture one when
+    // a group contains only low rhythm evidence. The low-wall classifier runs
+    // after this path and can then route that evidence to LH.
+    return (upper.length ? upper : group)
+      .slice()
+      .sort((a, b) => a.start - b.start || b.vel - a.vel || b.rawMidi - a.rawMidi);
+  });
+  const costs: number[][] = [];
+  const parents: number[][] = [];
+  const candidateEmission = (note: MonophonicCandidate): number => {
+    let value = -(note.vel / 24 + Math.min(note.dur, 1.5));
+    if (options.preferUpperLead && note.rawMidi >= 72) value -= 2.5;
+    if (note.rawMidi >= 88 && (note.vel >= 80 || note.dur >= 0.75)) value -= 2;
+    return value;
+  };
+  const transitionPenalty = (previous: MonophonicCandidate, current: MonophonicCandidate): number => {
+    const elapsed = Math.max(0.001, current.start - previous.start);
+    const interval = Math.abs(current.midi - previous.midi);
+    let value = interval * 0.05;
+    if (elapsed <= 0.5 && interval >= 5) value += 1.5 + (interval - 5) * 0.45;
+    if (elapsed <= 1 && interval >= 7) value += 2.5;
+    if (elapsed <= 1.5 && interval >= 12) value += 3;
+    // A true rest is a phrase boundary; do not force a register-continuity
+    // decision across it.
+    if (elapsed > 1.5) value = 0;
+    return value;
+  };
+  for (let groupIndex = 0; groupIndex < candidateGroups.length; groupIndex++) {
+    const group = candidateGroups[groupIndex]!;
+    costs[groupIndex] = [];
+    parents[groupIndex] = [];
+    for (let candidateIndex = 0; candidateIndex < group.length; candidateIndex++) {
+      const current = group[candidateIndex]!;
+      const emission = candidateEmission(current);
+      if (groupIndex === 0) {
+        costs[groupIndex]![candidateIndex] = emission;
+        parents[groupIndex]![candidateIndex] = -1;
+        continue;
+      }
+      let bestCost = Number.POSITIVE_INFINITY;
+      let bestParent = 0;
+      for (let previousIndex = 0; previousIndex < candidateGroups[groupIndex - 1]!.length; previousIndex++) {
+        const previous = candidateGroups[groupIndex - 1]![previousIndex]!;
+        const candidateCost = costs[groupIndex - 1]![previousIndex]!
+          + emission
+          + transitionPenalty(previous, current);
+        if (candidateCost < bestCost - EPS) {
+          bestCost = candidateCost;
+          bestParent = previousIndex;
+        }
+      }
+      costs[groupIndex]![candidateIndex] = bestCost;
+      parents[groupIndex]![candidateIndex] = bestParent;
+    }
+  }
+  const lastCosts = costs.at(-1)!;
+  let state = lastCosts.reduce((best, cost, index) => cost < lastCosts[best]! - EPS ? index : best, 0);
+  const selected = new Array<MonophonicCandidate>(candidateGroups.length);
+  for (let groupIndex = candidateGroups.length - 1; groupIndex >= 0; groupIndex--) {
+    selected[groupIndex] = candidateGroups[groupIndex]![state]!;
+    state = parents[groupIndex]![state]!;
+  }
+  const path = selected.map((note, index) => {
+    const nextStart = selected[index + 1]?.start;
+    return {
+      ...note,
+      hand: "R" as const,
+      dur: Math.max(EPS, Math.min(note.dur, nextStart === undefined ? note.dur : nextStart - note.start)),
+    };
+  });
+  // Retain the old octave-flicker guard for the DP path. A coherent contour
+  // should not turn an exact octave detector duplicate into a playable leap,
+  // but a deliberate high landing or a real phrase rest remains untouched.
+  const exactOctaveWindow = Math.max(0, options.exactOctaveWindow ?? 0.5);
+  for (let index = 1; index < path.length; index++) {
+    const previous = path[index - 1]!;
+    const note = path[index]!;
+    const elapsed = note.start - previous.start;
+    if (elapsed > exactOctaveWindow + EPS) continue;
+    const rawHighLanding = note.rawMidi >= 88 && (note.vel >= 80 || note.dur >= 0.75);
+    if (rawHighLanding) continue;
+    if (Math.abs(note.midi - previous.midi) === 12) note.midi = previous.midi;
+    while (Math.abs(note.midi - previous.midi) > 12 && note.midi > previous.midi && note.midi - 12 >= low) note.midi -= 12;
+    while (Math.abs(note.midi - previous.midi) > 12 && note.midi < previous.midi && note.midi + 12 <= high) note.midi += 12;
+  }
+  return path;
+}
 
 /**
  * Reduce polyphonic pitch evidence to one identity voice. The greedy salience
@@ -96,14 +200,15 @@ function monophonicPath(
   high: number,
   options: MonophonicPathOptions = {},
 ): IdentityNote[] {
-  type CandidateNote = IdentityNote & { rawMidi: number };
-  const groups: CandidateNote[][] = [];
+  const groups: MonophonicCandidate[][] = [];
   for (const note of notes) {
-    const normalized: CandidateNote = { ...note, rawMidi: note.midi, midi: toRegister(note.midi, low, high) };
+    const normalized: MonophonicCandidate = { ...note, rawMidi: note.midi, midi: toRegister(note.midi, low, high) };
     const last = groups.at(-1);
     if (last && Math.abs(last[0]!.start - normalized.start) <= 0.08) last.push(normalized);
     else groups.push([normalized]);
   }
+
+  if (options.coherent) return coherentMonophonicPath(groups, options, low, high);
 
   let previous: IdentityNote | undefined;
   const selected: IdentityNote[] = [];
@@ -184,13 +289,50 @@ interface GuitarPulseLanes {
   rhythm: IdentityNote[];
 }
 
-function suppressLowGuitarPulseRuns(notes: IdentityNote[]): GuitarPulseLanes {
+/**
+ * Preserve detector notes below the RH register before octave registration can
+ * turn them into a fake melody (raw 29/41 both become 65 in the RH window).
+ * One representative attack per onset is enough for the LH rhythm lane; the
+ * lead path is built from notes at or above MIDI 55 separately.
+ */
+function rawLowRhythmEvents(
+  notes: Note[],
+  source: "guitar" | "other",
+  upperContext: IdentityNote[],
+): IdentityNote[] {
+  const low = notes
+    .filter((note) => note.midi < 55 && (
+      // Extremely low detections are never a useful RH melody. A 45–54
+      // power-root is kept for a possible low lead unless an upper attack
+      // shares its onset, in which case it is unambiguously accompaniment.
+      note.midi < 45
+      || upperContext.some((upper) => (upper.rawMidi ?? upper.midi) >= 60 && Math.abs(upper.start - note.start) <= 0.08 + EPS)
+    ))
+    .sort((a, b) => a.start - b.start || b.vel - a.vel || b.midi - a.midi);
+  const selected: IdentityNote[] = [];
+  for (const note of low) {
+    const previous = selected.at(-1);
+    if (previous && Math.abs(previous.start - note.start) <= 0.08) continue;
+    selected.push({
+      ...note,
+      rawMidi: note.midi,
+      midi: toRegister(note.midi, 36, 54),
+      hand: "L",
+      identitySource: source,
+    });
+  }
+  return selected;
+}
+
+function suppressLowGuitarPulseRuns(notes: IdentityNote[], externalLeadContext: IdentityNote[] = []): GuitarPulseLanes {
   const sorted = [...notes].sort((a, b) => a.start - b.start || b.vel - a.vel || b.midi - a.midi);
-  const lowMaxMidi = 62;
+  const leadContext = [...sorted, ...externalLeadContext];
+  // Keep raw/registered MIDI 61–62 available for upper hooks; the reference
+  // opening deliberately repeats MIDI 62 as melody rather than accompaniment.
+  const lowMaxMidi = 60;
   // Keep the original registered-pitch pulse gate narrow. Re-registered raw
   // lows (which may be an octave above this threshold after continuity
   // folding) are handled by the separate detector below.
-  const maxPulsePitchSpan = 5;
   // Stem extraction can miss several pulse attacks, so a rhythm run may have
   // bar-sized gaps even though it repeats the same low pitch throughout.
   const maxInterAttackBeats = 4.5;
@@ -216,7 +358,7 @@ function suppressLowGuitarPulseRuns(notes: IdentityNote[]): GuitarPulseLanes {
       if (
         note.identitySource !== first.identitySource
         || note.midi > lowMaxMidi
-        || Math.abs(note.midi - first.midi) > maxPulsePitchSpan
+        || Math.abs(note.midi - first.midi) > 5
         || note.start - previous.start > maxInterAttackBeats + EPS
       ) break;
       run.push(note);
@@ -244,9 +386,22 @@ function suppressLowGuitarPulseRuns(notes: IdentityNote[]): GuitarPulseLanes {
     const repeatedAttackRatio = run.length > 1
       ? pitchDeltas.filter((delta) => delta === 0).length / pitchDeltas.length
       : 1;
-    const hasLeadContext = sorted.some((candidate) =>
-      candidate.identitySource === first.identitySource
-      && (candidate.rawMidi ?? candidate.midi) >= 68
+    const interAttackBeats = run.slice(1)
+      .map((note, runIndex) => note.start - run[runIndex]!.start)
+      .filter((gap) => Number.isFinite(gap) && gap > EPS)
+      .sort((a, b) => a - b);
+    const medianInterAttackBeats = interAttackBeats.length
+      ? interAttackBeats[Math.floor(interAttackBeats.length / 2)]!
+      : Number.POSITIVE_INFINITY;
+    const hasLeadContext = leadContext.some((candidate) =>
+      (candidate.identitySource === first.identitySource
+        || ((candidate.identitySource === "guitar" || candidate.identitySource === "other")
+          && (first.identitySource === "guitar" || first.identitySource === "other")))
+      // MIDI 64 is high enough to count as upper harmonic evidence while
+      // still leaving raw 55–62 melodic contours alone when no upper lane is
+      // present. This matters for sparse hooks whose detector velocity is
+      // much quieter than the palm-muted root.
+      && (candidate.rawMidi ?? candidate.midi) >= 64
       && candidate.start >= first.start - 4 - EPS
       && candidate.start <= run.at(-1)!.start + 4 + EPS,
     );
@@ -257,6 +412,10 @@ function suppressLowGuitarPulseRuns(notes: IdentityNote[]): GuitarPulseLanes {
     const stableLowPulse = hasLeadContext
       && medianAbsPitchDelta <= 2
       && !hasClearContour
+      // A repeated low pitch that only appears every few beats is a sparse
+      // melodic anchor, not a palm-muted wall. Allow a one-beat pulse (common
+      // in half-time metal riffs), but keep wider phrase anchors in RH.
+      && medianInterAttackBeats <= 1 + EPS
       && (
         dominantPitchRatio >= 0.6
         || (run.length >= 16 && dominantPitchRatio >= 0.3 && repeatedAttackRatio >= 0.25)
@@ -390,6 +549,134 @@ function sourceConfidence(notes: Note[], start: number, end: number, stemConfide
   const attacks = notesIn(notes, start, end).length;
   const expected = Math.max(1, (end - start) / 2);
   return clamp((attacks / expected) * stemConfidence, 0, 1);
+}
+
+/**
+ * Estimate whether an instrumental lane behaves like a playable melody. Raw
+ * attack density is useful for routing, but it rewards a loud palm-muted wall
+ * and detector zig-zag more than a sparse, connected lead. Keep this score
+ * deliberately explainable: register, continuity, dynamics, and density are
+ * evidence only; the phrase decoder still makes the final choice.
+ */
+function melodicConfidence(notes: Note[], start: number, end: number, stemConfidence = 1): number {
+  const evidence = notesIn(notes, start, end).sort((a, b) => a.start - b.start || b.vel - a.vel);
+  if (!evidence.length) return 0;
+  const expected = Math.max(1, (end - start) / 2);
+  const density = clamp(evidence.length / expected, 0, 1);
+  const upperRatio = evidence.filter((note) => note.midi >= 64).length / evidence.length;
+  const dynamic = evidence.reduce((sum, note) => sum + clamp(note.vel / 127, 0, 1), 0) / evidence.length;
+  const intervals = evidence.slice(1).map((note, index) => Math.abs(note.midi - evidence[index]!.midi));
+  const largeLeapRatio = intervals.length
+    ? intervals.filter((interval) => interval >= 7).length / intervals.length
+    : 0;
+  const repeatedRatio = intervals.length
+    ? intervals.filter((interval) => interval === 0).length / intervals.length
+    : 0;
+  // Constant repeated attacks are rhythm evidence unless a meaningful pitch
+  // contour exists. Penalize them gently so an intentional chant is still
+  // viable when no other identity source is available.
+  const continuity = clamp(1 - largeLeapRatio * 1.35 - Math.max(0, repeatedRatio - 0.7) * 0.4, 0, 1);
+  const score = 0.35 * continuity
+    + 0.25 * upperRatio
+    + 0.2 * dynamic
+    + 0.2 * density;
+  return clamp(score * stemConfidence, 0, 1);
+}
+
+interface UpperEvidenceLane {
+  source: "guitar" | "other";
+  notes: IdentityNote[];
+}
+
+/**
+ * Keep a second, upper-only view of each separated lane. Basic Pitch can pick
+ * a loud low guitar partial at an onset and omit a much quieter lead tone from
+ * the one-note path. This view is deliberately conservative: it reuses only
+ * notes already present in the stem, chooses one connected contour per onset,
+ * and is used only to fill genuinely sparse phrases.
+ */
+function upperHarmonicPath(notes: Note[], source: UpperEvidenceLane["source"]): IdentityNote[] {
+  const upper = notes.filter((note) => note.midi >= 60);
+  return monophonicPath(upper, 55, 96, { exactOctaveWindow: 1, coherent: true })
+    .map((note) => ({ ...note, identitySource: source }));
+}
+
+/**
+ * Recover a small top-line when the selected source path is empty or visibly
+ * sparse but the raw separated stems still contain repeated upper evidence.
+ * No pitch is synthesized: every returned event is copied from an upper stem
+ * candidate. Low-only phrases remain rests/accompaniment, and a dense phrase
+ * is left untouched so this fallback cannot turn a rhythm wall into a second
+ * melody. The one-attack-per-beat cap is intentionally below the reference's
+ * dense solo rate; learner simplification can retain more when confidence is
+ * already high.
+ */
+function inferConservativeTopLine(
+  selected: IdentityNote[],
+  lanes: UpperEvidenceLane[],
+  start: number,
+  end: number,
+): IdentityNote[] {
+  const existing = notesIn(selected, start, end);
+  const existingMelody = existing.filter((note) => note.identitySource === "vocals" || note.midi >= 64);
+  const targetAttacks = Math.max(2, Math.floor((end - start) / 2));
+  const needed = targetAttacks - existingMelody.length;
+  if (needed <= 0) return [];
+  const candidates = lanes.flatMap((lane) => {
+    const laneNotes = notesIn(lane.notes, start, end);
+    return laneNotes
+      .filter((note) => (note.rawMidi ?? note.midi) >= 60)
+      .map((note) => ({ note, source: lane.source, laneNotes }));
+  });
+  if (!candidates.length) return [];
+  const chosen: IdentityNote[] = [];
+  const occupied = (note: IdentityNote): boolean => [...existing, ...chosen].some((other) =>
+    Math.abs(other.start - note.start) <= 0.08
+    || (other.start <= note.start && other.start + other.dur > note.start + EPS),
+  );
+  const sourceSupport = (candidate: typeof candidates[number]): number => {
+    const nearby = candidate.laneNotes.filter((note) => Math.abs(note.start - candidate.note.start) <= 2 + EPS);
+    const distinctPitches = new Set(nearby.map((note) => note.midi));
+    // Repetition across a phrase is stronger evidence than one isolated high
+    // spike. A sustained/dynamic attack is allowed with less repetition.
+    if (nearby.length >= 2 && distinctPitches.size >= 2) return nearby.length + 1;
+    if (candidate.note.dur >= 0.35 || candidate.note.vel >= 64) return nearby.length;
+    return 0;
+  };
+  const ordered = [...candidates]
+    .map((candidate) => ({ ...candidate, support: sourceSupport(candidate) }))
+    .filter((candidate) => candidate.support > 0)
+    .sort((a, b) => a.note.start - b.note.start || b.support - a.support || b.note.vel - a.note.vel || b.note.midi - a.note.midi);
+  if (!ordered.length) return [];
+  const step = 1;
+  for (let bucketStart = start; bucketStart < end - EPS && chosen.length < needed; bucketStart += step) {
+    const bucketEnd = Math.min(end, bucketStart + step);
+    const bucket = ordered.filter((candidate) => candidate.note.start >= bucketStart - EPS && candidate.note.start < bucketEnd - EPS);
+    const candidate = bucket
+      .filter(({ note }) => !occupied(note))
+      .sort((a, b) => {
+        const previous = [...existing, ...chosen].sort((left, right) => left.start - right.start).at(-1);
+        const previousDistance = previous ? Math.abs(a.note.midi - previous.midi) : 0;
+        const next = existing
+          .filter((note) => note.start > bucketEnd + EPS)
+          .sort((left, right) => left.start - right.start)[0];
+        const nextDistance = next ? Math.abs(a.note.midi - next.midi) : 0;
+        const bPreviousDistance = previous ? Math.abs(b.note.midi - previous.midi) : 0;
+        const bNextDistance = next ? Math.abs(b.note.midi - next.midi) : 0;
+        const aScore = a.support * 2 + a.note.vel / 64 + Math.min(a.note.dur, 1) - (previousDistance + nextDistance) * 0.03;
+        const bScore = b.support * 2 + b.note.vel / 64 + Math.min(b.note.dur, 1) - (bPreviousDistance + bNextDistance) * 0.03;
+        return bScore - aScore || a.note.start - b.note.start;
+      })[0];
+    if (!candidate) continue;
+    const note: IdentityNote = {
+      ...candidate.note,
+      hand: "R",
+      dur: Math.min(candidate.note.dur, 0.75),
+      identitySource: candidate.source,
+    };
+    chosen.push(note);
+  }
+  return chosen;
 }
 
 /**
@@ -691,7 +978,14 @@ function chordFor(rootPc: number, pcs: Set<number>): { name: string; notes: numb
 function uniqueSorted(notes: Note[]): Note[] {
   const seen = new Set<string>();
   return notes
-    .sort((a, b) => a.start - b.start || a.midi - b.midi || b.dur - a.dur)
+    .sort((a, b) => a.start - b.start
+      || a.midi - b.midi
+      // When a routed rhythm/root event lands on the same pitch as the
+      // inferred chord shell, keep the source-tagged event. It represents
+      // both the physical strike and its provenance; dropping it would make
+      // the LH rhythm lane disappear at every chord boundary.
+      || Number(Boolean(b.identitySource)) - Number(Boolean(a.identitySource))
+      || b.dur - a.dur)
     .filter((note) => {
       const key = `${note.hand}:${note.midi}:${note.start.toFixed(4)}`;
       if (seen.has(key)) return false;
@@ -735,17 +1029,30 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
   const vocals = monophonicPath(validNotes(vocalsStem), 60, 96, { exactOctaveWindow: 0.5 })
     .map((note) => ({ ...note, identitySource: "vocals" as const }));
   const trustedVocals = trustworthyVocalNotes(vocals);
-  const guitarLanes = suppressLowGuitarPulseRuns(monophonicPath(validNotes(guitarStem), 55, 96, { preferUpperLead: true, exactOctaveWindow: 1 })
-    .map((note) => ({ ...note, identitySource: "guitar" as const })));
-  const guitar = guitarLanes.lead;
-  const rhythmGuitar = guitarLanes.rhythm;
-  const other = monophonicPath(validNotes(otherStem), 55, 96, { preferUpperLead: true, exactOctaveWindow: 1 })
+  const guitarRaw = validNotes(guitarStem);
+  const otherRaw = validNotes(otherStem);
+  const guitarPath = monophonicPath(guitarRaw.filter((note) => note.midi >= 45), 55, 96, { preferUpperLead: true, exactOctaveWindow: 1, coherent: true })
+    .map((note) => ({ ...note, identitySource: "guitar" as const }));
+  const otherPath = monophonicPath(otherRaw.filter((note) => note.midi >= 45), 55, 96, { preferUpperLead: true, exactOctaveWindow: 1, coherent: true })
     .map((note) => ({ ...note, identitySource: "other" as const }));
+  const guitarUpperEvidence = upperHarmonicPath(guitarRaw, "guitar");
+  const otherUpperEvidence = upperHarmonicPath(otherRaw, "other");
+  const upperEvidenceLanes: UpperEvidenceLane[] = [
+    { source: "guitar", notes: guitarUpperEvidence },
+    { source: "other", notes: otherUpperEvidence },
+  ];
+  const guitarLanes = suppressLowGuitarPulseRuns(guitarPath, [...otherPath, ...guitarUpperEvidence]);
+  const guitar = guitarLanes.lead;
+  const rhythmGuitar = [...guitarLanes.rhythm, ...rawLowRhythmEvents(guitarRaw, "guitar", guitarUpperEvidence)];
+  const otherLanes = suppressLowGuitarPulseRuns(otherPath, [...guitarPath, ...otherUpperEvidence]);
+  const other = otherLanes.lead;
+  const rhythmOther = [...otherLanes.rhythm, ...rawLowRhythmEvents(otherRaw, "other", otherUpperEvidence)];
   const bass = validNotes(bassStem);
   const harmonicEvidence = [...validNotes(guitarStem), ...validNotes(otherStem)];
   const sections: MetalIdentitySection[] = [];
   const identity: Note[] = [];
   const vocalRegisterAnchors = new Set<string>();
+  let inferredTopLineSections = 0;
 
   for (let start = 0; start < durationBeats - EPS; start += sectionBeats) {
     const end = Math.min(durationBeats, start + sectionBeats);
@@ -755,8 +1062,8 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
       ? vocalSourceConfidence(trustedVocals, start, end, vocalsStem?.confidence)
       : rawVocalConfidence;
     const instrumentalChoices = [
-      { source: "guitar" as const, notes: guitar, confidence: sourceConfidence(guitar, start, end, guitarStem?.confidence) * 0.92 },
-      { source: "other" as const, notes: other, confidence: sourceConfidence(other, start, end, otherStem?.confidence) * 0.85 },
+      { source: "guitar" as const, notes: guitar, confidence: melodicConfidence(guitar, start, end, guitarStem?.confidence) * 0.92 },
+      { source: "other" as const, notes: other, confidence: melodicConfidence(other, start, end, otherStem?.confidence) * 0.85 },
     ].sort((a, b) => b.confidence - a.confidence);
     const instrumentalWinner = instrumentalChoices[0]!;
     const useVocalLead = trustedVocalEvidence.length > 0
@@ -770,10 +1077,16 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
       : instrumentalWinner;
     let source: MetalIdentitySection["source"] = winner.confidence >= 0.15 ? winner.source : "rest";
     let sectionConfidence = winner.confidence;
+    const sectionIdentity: IdentityNote[] = [];
     if (source !== "rest") {
+      // In an instrumental-only phrase, commit to the best-scoring melodic
+      // lane instead of interleaving every residual source into the RH. Dense
+      // guitar partials and a sparse keys/lead contour otherwise create a
+      // synthetic source-switching line that neither performer would play.
+      // Vocal phrases retain the intentional rest-filling behavior below.
       const alternates = useVocalLead
         ? instrumentalChoices.map((choice) => choice.notes)
-        : instrumentalChoices.slice(1).map((choice) => choice.notes);
+        : [];
       const fused = identityForWindow(winner.notes, alternates, start, end, useVocalLead ? 0.5 : 0);
       if (useVocalLead) {
         for (const note of fused.primaryNotes) vocalRegisterAnchors.add(`${note.start.toFixed(6)}:${note.midi}`);
@@ -786,8 +1099,16 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
           : vocalConfidence;
       }
       for (const note of fused.notes) {
+        sectionIdentity.push(note);
         identity.push(note);
       }
+    }
+    const inferred = inferConservativeTopLine(sectionIdentity, upperEvidenceLanes, start, end);
+    if (inferred.length) {
+      inferredTopLineSections += 1;
+      sectionConfidence = Math.max(sectionConfidence, 0.16);
+      if (source === "rest") source = inferred[0]!.identitySource ?? "other";
+      for (const note of inferred) identity.push(note);
     }
     sections.push({ startBeat: start, endBeat: end, source, confidence: sectionConfidence });
   }
@@ -861,6 +1182,16 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
       identitySource: note.identitySource,
     });
   }
+  for (const note of rhythmOther) {
+    leftHand.push({
+      midi: toRegister(note.rawMidi ?? note.midi, 36, 54),
+      start: note.start,
+      dur: Math.min(Math.max(note.dur, 0.25), 0.75),
+      vel: Math.max(40, Math.min(76, note.vel)),
+      hand: "L",
+      identitySource: note.identitySource,
+    });
+  }
 
   const rhythmicAccents = validNotes(drumsStem).map((note) => note.start).filter((beat, index, all) => index === 0 || beat - all[index - 1]! >= 0.125);
   const notes = uniqueSorted([...publicIdentity.map((note) => ({ ...note, hand: "R" as const })), ...leftHand]);
@@ -868,6 +1199,9 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
   const mismatchedTempo = input.stems.filter((stem) => Math.abs(stem.midi.tempoBpm - tempoBpm) > 0.5);
   if (mismatchedTempo.length) warnings.push(`${mismatchedTempo.length} stems had mismatched tempo metadata; beat positions were used unchanged`);
   if (!publicIdentity.length) warnings.push("no reliable vocal, guitar, or other identity line was found");
+  if (inferredTopLineSections) {
+    warnings.push(`conservative upper harmonic evidence filled ${inferredTopLineSections} sparse section${inferredTopLineSections === 1 ? "" : "s"}`);
+  }
   if (!bass.length) warnings.push("no bass stem was available; harmony roots may be less reliable");
   const sourceSections: Record<string, number> = {};
   for (const section of filteredSections) {

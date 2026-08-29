@@ -109,7 +109,7 @@ describe("transcribePitchedStems", () => {
     expect((await readdir(jobDir)).some((name) => name.startsWith(".stems-work-"))).toBe(false);
   });
 
-  it("prefers a dedicated guitar stem when the separator reports one", async () => {
+  it("transcribes dedicated guitar and residual other stems when both are available", async () => {
     const jobDir = await mkdtemp(join(tmpdir(), "keyspilli-stem-guitar-test-"));
     tempDirs.push(jobDir);
     const audioPath = join(jobDir, "audio.mp3");
@@ -145,9 +145,16 @@ describe("transcribePitchedStems", () => {
     });
 
     expect(transcribedAudio.some((path) => path.endsWith("/guitar.wav"))).toBe(true);
-    expect(transcribedAudio.some((path) => path.endsWith("/other.wav"))).toBe(false);
+    expect(transcribedAudio.some((path) => path.endsWith("/other.wav"))).toBe(true);
+    expect(result.stems.map((stem) => stem.role)).toEqual(["vocals", "bass", "guitar", "other", "drums"]);
+    expect(result.stems.find((stem) => stem.role === "other")?.noteSource).toBe("other");
+    expect(transcriptionArgs).toHaveLength(4);
     expect(transcriptionArgs.every((args) => args.includes("0.8") && args.includes("0.6"))).toBe(true);
     expect(result.report.stems.find((stem) => stem.role === "guitar")?.sourceStem).toBe("guitar");
+    expect(result.report.stems.find((stem) => stem.role === "other")?.sourceStem).toBe("other");
+    expect((await readdir(result.artifactDir)).sort()).toEqual([
+      "bass.mid", "drums.mid", "guitar.mid", "other.mid", "report.json", "vocals.mid",
+    ]);
   });
 
   it("fails before spawning Demucs when disk headroom is below the configured floor", async () => {

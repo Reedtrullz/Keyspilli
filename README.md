@@ -44,7 +44,8 @@ provenance with the catalog artifact.
 docker compose up worker` enables the strict route for a canary run.
 
 Useful worker knobs: `KEYSPILLI_DEMUCS_MODEL` (default `htdemucs_6s`, which
-provides a dedicated guitar stem; four-stem models fall back to `other`),
+provides a dedicated guitar stem plus residual `other` evidence; four-stem
+models fall back to `other`),
 `KEYSPILLI_DEMUCS_DEVICE` (the shipped worker image is CPU-only),
 `KEYSPILLI_STEM_MIN_FREE_GIB` (default `6`),
 `KEYSPILLI_DEMUCS_TIMEOUT_MS` (default `2700000`),
