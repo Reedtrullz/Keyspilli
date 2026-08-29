@@ -1549,6 +1549,82 @@ describe("metal piano arranger", () => {
     expect(count("easy").every((note) => count("medium").some((sourceNote) => sourceNote.start === note.start && sourceNote.midi === note.midi))).toBe(true);
   });
 
+  it("preserves a connected lead through vocal gaps instead of collapsing it to sparse landings", () => {
+    const starts = [
+      0.375, 1.125, 1.375, 2.125, 2.5, 2.875, 3.625, 3.875, 4.5, 4.875,
+      5.5, 6.125, 6.875, 7.375, 8.125, 8.625, 9, 9.375, 10, 10.5, 10.75,
+      11.5, 11.875, 12.625, 12.875, 13.125, 13.75, 14.125, 14.875, 15.625,
+      16.25, 16.5, 17, 17.625, 17.875, 18.5, 18.75, 19.5, 20.25, 20.5, 21.125,
+      21.625, 22.25, 22.875, 23.625, 23.875, 24.25, 24.875, 25.5, 26.125, 26.75,
+      27, 27.375, 27.625, 27.875, 28.625, 29.375, 29.625, 30, 30.375, 30.625,
+      31, 31.625,
+    ];
+    const pitches = [
+      65, 67, 69, 67, 69, 71, 69, 67, 69, 71, 69, 67, 65, 64, 64, 65,
+      64, 64, 65, 65, 67, 69, 71, 72, 74, 76, 77, 76, 77, 79, 77, 79,
+      79, 77, 79, 77, 79, 77, 79, 79, 79, 79, 77, 79, 79, 77, 76, 77,
+      79, 77, 76, 74, 76, 74, 76, 74, 76, 77, 79, 79, 77, 76, 74,
+    ];
+    const velocities = [
+      68, 81, 79, 64, 71, 85, 64, 61, 81, 65, 80, 69, 88, 60, 71, 69,
+      76, 60, 70, 57, 86, 75, 65, 75, 82, 72, 59, 57, 58, 55, 68, 69,
+      64, 59, 88, 84, 75, 78, 77, 84, 75, 63, 68, 74, 86, 83, 79, 63,
+      81, 82, 61, 72, 70, 59, 79, 88, 83, 62, 83, 71, 83, 72, 59,
+    ];
+    const guitar = starts.map((start, index) => ({
+      midi: pitches[index]!,
+      start,
+      dur: 0.25,
+      vel: velocities[index]!,
+      hand: "R" as const,
+      identitySource: "guitar" as const,
+    }));
+    const vocals = [3.5, 11.5, 19.5, 27.5].map((start, index) => ({
+      midi: 79 + (index % 3),
+      start,
+      dur: 0.35,
+      vel: 104,
+      hand: "R" as const,
+      identitySource: "vocals" as const,
+    }));
+    const source = midi([...guitar, ...vocals], 32);
+    const variants = buildVariants(source, { title: "Vocal-gap lead coverage", artist: "Fixture" }, {
+      arrangementProfile: "metal",
+      audioDerived: true,
+    });
+    expect(validateVariants(variants)).toEqual([]);
+    expect(verifyMonotonicity(variants)).toEqual([]);
+    const sourceGuitarKeys = new Set(guitar.map((note) => `${note.start}:${note.midi}`));
+    const sourceVocalKeys = vocals.map((note) => `${note.start}:${note.midi}`);
+    for (const level of ["medium", "easy"] as const) {
+      const variant = variants.find((candidate) => candidate.level === level)!;
+      const notes = variant.notes
+        .filter((note) => note.hand !== "L" && note.identitySource === "guitar");
+      // The source supplies a connected, stepwise lead through every vocal
+      // gap. Keep a useful existing-note contour rather than only a handful
+      // of phrase endpoints; no new attacks or pitches may be invented.
+      // Four vocal anchors leave a substantial set of feasible guitar
+      // attacks once the half-beat learner floor and vocal spacing guards are
+      // applied. The recovery pass must keep at least 35 without inventing
+      // notes.
+      expect(notes.length, `${level} collapsed the connected lead through vocal gaps`).toBeGreaterThanOrEqual(35);
+      expect(notes.some((note) => note.start < 4), `${level} lost the opening lead`).toBe(true);
+      expect(notes.some((note) => note.start >= 16 && note.start < 24), `${level} lost the middle lead`).toBe(true);
+      expect(notes.some((note) => note.start >= 28), `${level} lost the closing lead`).toBe(true);
+      const gaps = notes.slice(1).map((note, index) => note.start - notes[index]!.start);
+      expect(Math.min(...gaps), `${level} violated the half-beat floor`).toBeGreaterThanOrEqual(0.5 - 1e-9);
+      expect(notes.every((note) => sourceGuitarKeys.has(`${note.start}:${note.midi}`)), `${level} invented a guitar attack`).toBe(true);
+      expect(new Set(notes.map((note) => `${note.start}:${note.midi}`)).size, `${level} duplicated a guitar attack`).toBe(notes.length);
+      expect(variant.notes.filter((note) => note.hand !== "L" && note.identitySource === "vocals").map((note) => `${note.start}:${note.midi}`)).toEqual(sourceVocalKeys);
+    }
+    const advancedVariant = variants.find((variant) => variant.level === "advanced")!;
+    const advanced = advancedVariant.notes
+      .filter((note) => note.hand !== "L" && note.identitySource === "guitar");
+    expect(advanced.length).toBeGreaterThanOrEqual(guitar.length - 9);
+    expect(advanced.every((note) => sourceGuitarKeys.has(`${note.start}:${note.midi}`))).toBe(true);
+    expect(advancedVariant.notes.filter((note) => note.hand !== "L" && note.identitySource === "vocals").map((note) => `${note.start}:${note.midi}`)).toEqual(sourceVocalKeys);
+  });
+
   it("scores guitar contour through a vocal handoff instead of its adjacent vocal pitch", () => {
     const source = midi([
       { midi: 64, start: 0.25, dur: 0.5, vel: 92, hand: "R", identitySource: "guitar" },
