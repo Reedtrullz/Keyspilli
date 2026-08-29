@@ -353,11 +353,6 @@ function rawLowRhythmEvents(
       : Number.POSITIVE_INFINITY;
     const localSpan = (local.at(-1)?.start ?? note.start) - (local[0]?.start ?? note.start);
     const localDensity = local.length >= 2 && localSpan > EPS ? local.length / localSpan : 0;
-    // A raw 45–54 detector partial can octave-fold into a false RH note
-    // (e.g. 52 -> 64). Only make that routing decision when an upper event in
-    // the same local phrase proves that a separate lead exists. Low-only
-    // phrases stay eligible for the historical register-continuity path.
-    if (note.midi < 55 && nearbyUpper.length > 0) return true;
     const localDeltas = local.slice(1).map((candidate, index) => candidate.midi - local[index]!.midi);
     let longestMonotonicSteps = 0;
     let monotonicSteps = 0;
@@ -369,13 +364,73 @@ function rawLowRhythmEvents(
       longestMonotonicSteps = Math.max(longestMonotonicSteps, monotonicSteps);
       previousDirection = direction;
     }
+    // Use a wider contour window than the wall statistics.  The edge of a
+    // phrase can have only two local pitches (for example the final 50→52),
+    // while the preceding four-beat context still makes the moving contour
+    // unambiguous.  Looking beyond the ±2-beat wall window prevents an
+    // unrelated upper attack near that edge from routing the tail into LH.
+    const noteIndex = lowNotes.indexOf(note);
+    const contourWindow: Note[] = [note];
+    // Keep the contour context connected.  A later phrase separated by a
+    // one-and-a-half-beat rest must not make the first two notes of a sparse
+    // low phrase look like a moving melody merely because an upper event is
+    // nearby.  Detector contours normally have <=1-beat inter-onset gaps;
+    // larger gaps are treated as phrase boundaries for this exception.
+    for (let index = noteIndex - 1; index >= 0; index -= 1) {
+      const candidate = lowNotes[index]!;
+      const next = lowNotes[index + 1]!;
+      if (note.start - candidate.start > 4 + EPS || next.start - candidate.start > 1.25 + EPS) break;
+      contourWindow.unshift(candidate);
+    }
+    for (let index = noteIndex + 1; index < lowNotes.length; index += 1) {
+      const candidate = lowNotes[index]!;
+      const previous = lowNotes[index - 1]!;
+      if (candidate.start - note.start > 4 + EPS || candidate.start - previous.start > 1.25 + EPS) break;
+      contourWindow.push(candidate);
+    }
+    const contourPitches = contourWindow.map((candidate) => candidate.midi);
+    let contourLongestMonotonicSteps = 0;
+    let contourMonotonicSteps = 0;
+    let contourPreviousDirection = 0;
+    for (let index = 1; index < contourPitches.length; index += 1) {
+      const direction = Math.sign(contourPitches[index]! - contourPitches[index - 1]!);
+      if (direction !== 0 && direction === contourPreviousDirection) contourMonotonicSteps += 1;
+      else contourMonotonicSteps = direction === 0 ? 0 : 1;
+      contourLongestMonotonicSteps = Math.max(contourLongestMonotonicSteps, contourMonotonicSteps);
+      contourPreviousDirection = direction;
+    }
+    const clearLowContour = contourWindow.length >= 4
+      && new Set(contourPitches).size >= 3
+      && contourLongestMonotonicSteps >= 2;
+    // A raw 45–54 detector partial can octave-fold into a false RH note
+    // (e.g. 52 -> 64). Only make that routing decision when an upper event in
+    // the same local phrase proves that a separate lead exists. A moving
+    // low-register contour is an exception: its changing pitches and directed
+    // steps are useful melody evidence even when an unrelated upper event is
+    // nearby. Low-only phrases remain eligible for the historical
+    // register-continuity path.
+    if (note.midi < 55 && nearbyUpper.length > 0 && !clearLowContour) return true;
+    const dominantLocalPitchRatio = local.length
+      ? Math.max(...localPitches.map((pitch) => localPitches.filter((value) => value === pitch).length)) / local.length
+      : 0;
+    // A source-local repeated wall should still be routed when the other
+    // stem has no credible upper evidence. Otherwise filtering an unrelated
+    // quiet spike out of `upperContext` would let a raw 45/57 wall octave-fold
+    // back into RH. Require a dominant pitch and preserve clear monotonic
+    // contours so moving low motifs remain eligible melody candidates.
+    const sourceLocalRepeatedWall = local.length >= 4
+      && dominantLocalPitchRatio >= 0.75
+      && medianLocalGap <= 0.75 + EPS
+      && local.every((candidate) => candidate.dur <= 0.75 + EPS)
+      && !(new Set(localPitches).size >= 3 && longestMonotonicSteps >= 3);
+    if (sourceLocalRepeatedWall) return true;
     // Dense alternating power-root fragments can span more than the old
     // five-semitone run key (detector octave choices commonly add another
     // octave). Treat them as rhythm when they lack a sustained monotonic
     // contour; sparse or clearly ascending/descending low hooks remain RH
     // candidates. This runs before octave registration so raw 50–60 notes do
     // not become a scattered 62–72 melody.
-    const denseAlternatingLowWall = nearbyUpper.length > 0
+    const denseAlternatingLowWall = !clearLowContour && nearbyUpper.length > 0
       && (() => {
         // Use a wider diagnostic window for the first attack of a wall. The
         // detector may report octave/partial changes greater than five
@@ -409,7 +464,7 @@ function rawLowRhythmEvents(
           && wallLongestMonotonic < 3;
       })();
     if (denseAlternatingLowWall) return true;
-    if (nearbyUpper.length === 1) {
+    if (!clearLowContour && nearbyUpper.length === 1) {
       const medianGap = medianLocalGap;
       // One isolated upper spike still identifies a dense, stable low wall;
       // keep that wall in LH while the unsupported spike is discarded from
@@ -665,14 +720,44 @@ function trustworthyVocalNotes(notes: Note[]): Note[] {
  * Basic Pitch occasionally labels a very low, sustained vocal-stem bleed as a
  * note (for example raw MIDI 29 for several beats). Register normalization
  * would octave-fold that detector artifact into an apparently plausible RH
- * melody. Keep the gate deliberately narrow: only raw pitches below 45 that
- * are long, or are immediate re-attacks of a long same-pitch drone, are
- * omitted. Short moving low-register vocal phrases remain eligible.
+ * melody. Keep the gate deliberately narrow: long/drone material is filtered
+ * only below raw MIDI 45, while a short regular same-pitch wall is filtered
+ * below raw MIDI 60. Short moving low-register vocal phrases and isolated low
+ * anchors remain eligible.
  */
 function filterLowVocalDroneNotes(notes: Note[]): Note[] {
   const lowDrones = notes.filter((note) => note.midi < 45 && note.dur >= 2 - EPS);
-  if (!lowDrones.length) return notes;
+  const lowWallNotes = new Set<Note>();
+  const lowAttacks = notes
+    .filter((note) => note.midi < 60 && note.dur < 2 - EPS)
+    .sort((a, b) => a.start - b.start || b.vel - a.vel || b.dur - a.dur);
+  let run: Note[] = [];
+  const flushWall = (): void => {
+    const starts = run.reduce<number[]>((result, note) => {
+      if (!result.length || note.start - result.at(-1)! > 0.08 + EPS) result.push(note.start);
+      return result;
+    }, []);
+    const distinctPitches = new Set(run.map((note) => note.midi));
+    const shortRepeatedWall = starts.length >= 4
+      && distinctPitches.size === 1
+      && run.every((note) => note.dur <= 0.75 + EPS)
+      && starts.slice(1).every((start, index) => start - starts[index]! <= 1 + EPS);
+    if (shortRepeatedWall) run.forEach((note) => lowWallNotes.add(note));
+    run = [];
+  };
+  for (const note of lowAttacks) {
+    const previous = run.at(-1);
+    if (!previous || (note.midi === previous.midi && note.start - previous.start <= 1 + EPS)) {
+      run.push(note);
+    } else {
+      flushWall();
+      run.push(note);
+    }
+  }
+  flushWall();
+  if (!lowDrones.length && !lowWallNotes.size) return notes;
   return notes.filter((note) => {
+    if (lowWallNotes.has(note)) return false;
     if (note.midi >= 45) return true;
     if (note.dur >= 2 - EPS) return false;
     return !lowDrones.some((drone) => drone.midi === note.midi
@@ -689,6 +774,27 @@ function sourceConfidence(notes: Note[], start: number, end: number, stemConfide
   const attacks = notesIn(notes, start, end).length;
   const expected = Math.max(1, (end - start) / 2);
   return clamp((attacks / expected) * stemConfidence, 0, 1);
+}
+
+function isUpperGuitarRhythmWall(notes: Note[]): boolean {
+  const evidence = notes.slice().sort((a, b) => a.start - b.start || b.vel - a.vel);
+  if (evidence.length < 4 || evidence[0]?.identitySource !== "guitar") return false;
+  const upperRatio = evidence.filter((note) => note.midi >= 64).length / evidence.length;
+  const repeatedRatio = evidence.length > 1
+    ? evidence.slice(1).filter((note, index) => note.midi === evidence[index]!.midi).length / (evidence.length - 1)
+    : 1;
+  const distinctPitches = new Set(evidence.map((note) => note.midi)).size;
+  const gaps = evidence.slice(1)
+    .map((note, index) => note.start - evidence[index]!.start)
+    .filter((gap) => gap > EPS)
+    .sort((a, b) => a - b);
+  const medianGap = gaps.length ? gaps[Math.floor(gaps.length / 2)]! : Number.POSITIVE_INFINITY;
+  const attackDensity = evidence.length / Math.max(0.5, evidence.at(-1)!.start - evidence[0]!.start);
+  return upperRatio >= 0.8
+    && distinctPitches <= 2
+    && repeatedRatio >= 0.75
+    && medianGap <= 0.75 + EPS
+    && attackDensity >= 1.5 - EPS;
 }
 
 /**
@@ -720,7 +826,16 @@ function melodicConfidence(notes: Note[], start: number, end: number, stemConfid
     + 0.25 * upperRatio
     + 0.2 * dynamic
     + 0.2 * density;
-  return clamp(score * stemConfidence, 0, 1);
+  // A dedicated guitar stem often contains a palm-muted upper partial wall
+  // (the same short MIDI pitch repeated every half beat). When a coherent
+  // residual lane is also present, treating that wall as an equally melodic
+  // source makes the section start on rhythm noise and hides the real lead.
+  // Penalize only the guitar role, and only when the evidence is genuinely
+  // wall-like; a repeated note with pitch motion, a sparse hook, or an
+  // other-only fallback remains eligible.
+  const upperRhythmWall = isUpperGuitarRhythmWall(evidence);
+  const rolePenalty = upperRhythmWall ? 0.35 : 0;
+  return clamp((score - rolePenalty) * stemConfidence, 0, 1);
 }
 
 interface UpperEvidenceLane {
@@ -739,6 +854,157 @@ function upperHarmonicPath(notes: Note[], source: UpperEvidenceLane["source"]): 
   const upper = supportedUpperRawNotes(notes);
   return monophonicPath(upper, 55, 96, { exactOctaveWindow: 1, coherent: true })
     .map((note) => ({ ...note, identitySource: source }));
+}
+
+/**
+ * Recover a regular, evidence-backed contour when a residual phrase has
+ * enough raw coverage but the first monophonic pass selected a sparse set of
+ * detector onsets. This is intentionally restricted to the residual lane:
+ * dedicated guitar and Advanced/source detail keep their richer paths. The
+ * decoder selects existing raw notes only; it does not quantize or synthesize
+ * attacks. A small dynamic program prefers one credible event per beat while
+ * penalizing quiet short spikes and abrupt neighbouring leaps.
+ */
+function regularizeSparseResidualPhrase(
+  phrase: IdentityNote[],
+  rawUpper: Note[],
+  source: UpperEvidenceLane["source"],
+): IdentityNote[] | undefined {
+  if (source !== "other" || phrase.length < 4) return undefined;
+  const phraseStart = phrase[0]!.start;
+  const phraseEnd = phrase.at(-1)!.start;
+  const span = phraseEnd - phraseStart;
+  if (!Number.isFinite(span) || span < 4) return undefined;
+  const baseDensity = phrase.length / Math.max(1, span);
+  // Dense authored/solo evidence already has enough attacks for the normal
+  // contour scheduler. Only regularize a collapsed residual phrase whose
+  // selected path is substantially sparse. This pass is deliberately kept
+  // out of the dense residual/solo path; it is a recovery step for a line
+  // that has fallen below roughly one supported attack per beat.
+  // A phrase that already has roughly one attack per beat does not need a
+  // second pass. Keeping this threshold tight is important: the helper runs
+  // before the learner ladder, so regularizing a denser phrase would also
+  // erase Advanced/source detail without recovering anything useful.
+  if (baseDensity > 1.1 + EPS) return undefined;
+
+  const candidates = rawUpper
+    .filter((note) => note.midi >= 61
+      && note.start >= phraseStart - 0.46 - EPS
+      && note.start <= phraseEnd + 0.46 + EPS)
+    .sort((a, b) => a.start - b.start || b.vel - a.vel || b.dur - a.dur || b.midi - a.midi);
+  if (candidates.length < 4) return undefined;
+  const rawStarts = candidates.reduce<number[]>((starts, note) => {
+    if (!starts.length || note.start - starts.at(-1)! > 0.08 + EPS) starts.push(note.start);
+    return starts;
+  }, []);
+  const rawDensity = rawStarts.length / Math.max(1, span);
+  if (rawDensity < 2.5) return undefined;
+  // A residual stream above roughly four attacks/beat is usually a dense
+  // accompaniment/solo texture rather than a collapsed beat-level melody.
+  // Leave it to the normal contour scheduler so this recovery pass cannot
+  // flatten authored detail.
+  if (rawDensity > 4.5 + EPS) return undefined;
+
+  const bucketCount = Math.max(1, Math.floor(span + EPS) + 1);
+  const buckets = new Map<number, Note[]>();
+  for (const note of candidates) {
+    const bucket = Math.round(note.start - phraseStart);
+    if (bucket < 0 || bucket >= bucketCount) continue;
+    const entries = buckets.get(bucket) ?? [];
+    entries.push(note);
+    buckets.set(bucket, entries);
+  }
+  const covered = [...buckets.keys()].length;
+  if (covered < Math.max(4, Math.ceil(bucketCount * 0.65))) return undefined;
+
+  const candidateBuckets = [...buckets.entries()]
+    .sort(([left], [right]) => left - right)
+    .map(([bucket, entries]) => ({
+      bucket,
+      entries: entries
+        .filter((note) => note.vel >= 56 || note.dur >= 0.3
+          || (note.midi >= 88 && (note.vel >= 80 || note.dur >= 0.75)))
+        .map((note) => ({
+          ...note,
+          midi: toRegister(note.midi, 55, 96),
+          rawMidi: note.midi,
+          hand: "R" as const,
+          identitySource: source,
+        }))
+        .sort((a, b) => a.start - b.start || b.vel - a.vel || b.dur - a.dur || b.rawMidi - a.rawMidi),
+    }))
+    .filter((bucket) => bucket.entries.length > 0);
+  if (candidateBuckets.length < Math.max(4, Math.ceil(bucketCount * 0.65))) return undefined;
+  const distinctPitches = new Set(candidateBuckets.flatMap((bucket) => bucket.entries.map((note) => note.midi)));
+  if (distinctPitches.size < 3) return undefined;
+  const credibleCandidates = candidates.filter((note) => note.vel >= 56 || note.dur >= 0.3);
+  const moderateRegisterRatio = credibleCandidates.length
+    ? credibleCandidates.filter((note) => note.midi >= 61 && note.midi <= 71).length / credibleCandidates.length
+    : 0;
+  const preferModerateRegister = moderateRegisterRatio >= 0.35;
+
+  const score = (note: IdentityNote, bucket: number): number => {
+    const gridDistance = Math.abs(note.start - (phraseStart + bucket));
+    const gridFit = Math.max(0, 1 - Math.min(1, gridDistance / 0.46));
+    const dynamic = clamp(note.vel / 127, 0, 1);
+    const duration = clamp(note.dur / 0.35, 0, 1);
+    const weakSpike = note.vel < 56 && note.dur < 0.3;
+    const rawMidi = note.rawMidi ?? note.midi;
+    const rawHighLanding = rawMidi >= 88 && (note.vel >= 80 || note.dur >= 0.75);
+    const highPartialPenalty = preferModerateRegister && rawMidi >= 72 && !rawHighLanding
+      ? 1.1 + (note.vel < 64 && note.dur < 0.5 ? 0.7 : 0)
+      : 0;
+    return gridFit * 1.5 + dynamic * 1.1 + duration * 1.4
+      - (weakSpike ? 1.5 : 0)
+      - highPartialPenalty;
+  };
+  const transition = (previous: IdentityNote, current: IdentityNote): number => {
+    const gap = current.start - previous.start;
+    const leap = Math.abs(current.midi - previous.midi);
+    let value = leap * 0.06;
+    if (gap <= 1.1 + EPS && leap >= 7) value += 1.5 + (leap - 7) * 0.25;
+    if (gap <= 1.5 + EPS && leap >= 12) value += 2;
+    return value;
+  };
+
+  const best: number[][] = [];
+  const parents: number[][] = [];
+  for (let bucketIndex = 0; bucketIndex < candidateBuckets.length; bucketIndex++) {
+    const group = candidateBuckets[bucketIndex]!;
+    best[bucketIndex] = [];
+    parents[bucketIndex] = [];
+    for (let candidateIndex = 0; candidateIndex < group.entries.length; candidateIndex++) {
+      const note = group.entries[candidateIndex]!;
+      const emission = score(note, group.bucket);
+      if (bucketIndex === 0) {
+        best[bucketIndex]![candidateIndex] = emission;
+        parents[bucketIndex]![candidateIndex] = -1;
+        continue;
+      }
+      let bestScore = Number.NEGATIVE_INFINITY;
+      let bestParent = 0;
+      for (let previousIndex = 0; previousIndex < candidateBuckets[bucketIndex - 1]!.entries.length; previousIndex++) {
+        const previous = candidateBuckets[bucketIndex - 1]!.entries[previousIndex]!;
+        const candidateScore = best[bucketIndex - 1]![previousIndex]!
+          + emission
+          - transition(previous, note);
+        if (candidateScore > bestScore + EPS) {
+          bestScore = candidateScore;
+          bestParent = previousIndex;
+        }
+      }
+      best[bucketIndex]![candidateIndex] = bestScore;
+      parents[bucketIndex]![candidateIndex] = bestParent;
+    }
+  }
+  const finalScores = best.at(-1)!;
+  let state = finalScores.reduce((winner, value, index) => value > finalScores[winner]! + EPS ? index : winner, 0);
+  const selected = new Array<IdentityNote>(candidateBuckets.length);
+  for (let bucketIndex = candidateBuckets.length - 1; bucketIndex >= 0; bucketIndex--) {
+    selected[bucketIndex] = { ...candidateBuckets[bucketIndex]!.entries[state]! };
+    state = parents[bucketIndex]![state]!;
+  }
+  return selected;
 }
 
 /**
@@ -762,14 +1028,19 @@ function selectResidualUpperMelodyPath(notes: Note[], source: UpperEvidenceLane[
   for (const note of base) {
     const phrase = phrases.at(-1);
     const previous = phrase?.at(-1);
-    if (!phrase || !previous || note.start - previous.start > 1.5 + EPS) phrases.push([note]);
+    // Residual stems often lose several attacks at a phrase seam. Keep a
+    // little more temporal context than the guitar path so two short bursts
+    // separated by a detector gap are decoded as one playable contour rather
+    // than bypassing the spacing scheduler as independent tiny phrases.
+    if (!phrase || !previous || note.start - previous.start > 3 + EPS
+      || note.start - phrase[0]!.start > 32 + EPS) phrases.push([note]);
     else phrase.push(note);
   }
 
-  const selected: IdentityNote[] = [];
+  const selectedBase: IdentityNote[] = [];
   for (const phrase of phrases) {
     if (phrase.length <= 3) {
-      selected.push(...phrase.map((note) => ({ ...note })));
+      selectedBase.push(...phrase.map((note) => ({ ...note })));
       continue;
     }
     const span = Math.max(1, phrase.at(-1)!.start - phrase[0]!.start);
@@ -843,9 +1114,87 @@ function selectResidualUpperMelodyPath(notes: Note[], source: UpperEvidenceLane[
       path.push({ ...phrase[state]! });
       state = parent[state]!;
     }
-    selected.push(...path.reverse());
+    selectedBase.push(...path.reverse());
+  }
+
+  // Run residual recovery after the normal weighted-interval pass. That
+  // ordering is important: dense detector evidence must first be reduced to
+  // the learner's ordinary contour, and only a genuinely sparse result may
+  // borrow additional supported raw attacks. Advanced/source detail remains
+  // on the normal path whenever it is already dense enough.
+  const selectedPhrases: IdentityNote[][] = [];
+  for (const note of selectedBase) {
+    const phrase = selectedPhrases.at(-1);
+    const previous = phrase?.at(-1);
+    if (!phrase || !previous || note.start - previous.start > 3 + EPS
+      || note.start - phrase[0]!.start > 32 + EPS) selectedPhrases.push([note]);
+    else phrase.push(note);
+  }
+  const selected: IdentityNote[] = [];
+  for (const phrase of selectedPhrases) {
+    const regularized = regularizeSparseResidualPhrase(phrase, upper, source);
+    selected.push(...(regularized ?? phrase.map((note) => ({ ...note }))));
   }
   return selected;
+}
+
+/**
+ * Preserve a short low-register contour that leads into a later residual
+ * upper phrase. The upper-only residual path is intentionally strict, but
+ * using it as the complete identity path can erase the recognisable opening
+ * when the detector reports that line below MIDI 61 first. This gate is
+ * deliberately narrow: it only considers the first contiguous prefix, needs
+ * real pitch motion, and never revives low attacks already routed to LH.
+ */
+function selectResidualOpeningContour(
+  notes: Note[],
+  upperEvidence: IdentityNote[],
+  routedLow: IdentityNote[],
+  openingBeats: number,
+  source: UpperEvidenceLane["source"],
+): IdentityNote[] {
+  const firstUpperStart = upperEvidence[0]?.start;
+  if (!Number.isFinite(firstUpperStart) || !Number.isFinite(openingBeats) || openingBeats <= 0) return [];
+  const openingEnd = Math.min(openingBeats, firstUpperStart!);
+  if (openingEnd < 2 - EPS) return [];
+
+  const candidates = notes
+    .filter((note) => note.midi >= 55
+      && note.midi <= 60
+      && note.start >= -EPS
+      && note.start < openingEnd - EPS
+      && !routedLow.some((routed) => Math.abs(routed.start - note.start) <= 0.08 + EPS))
+    .sort((a, b) => a.start - b.start || b.vel - a.vel || b.midi - a.midi);
+  if (candidates.length < 3 || candidates[0]!.start > 0.5 + EPS) return [];
+
+  const prefix: Note[] = [candidates[0]!];
+  for (const note of candidates.slice(1)) {
+    if (note.start - prefix.at(-1)!.start > 1.5 + EPS) break;
+    prefix.push(note);
+  }
+  const span = prefix.at(-1)!.start - prefix[0]!.start;
+  const distinctPitches = new Set(prefix.map((note) => note.midi));
+  const dominantPitchRatio = Math.max(...[...distinctPitches].map((pitch) =>
+    prefix.filter((note) => note.midi === pitch).length)) / prefix.length;
+  const deltas = prefix.slice(1).map((note, index) => note.midi - prefix[index]!.midi);
+  let longestMonotonicSteps = 0;
+  let monotonicSteps = 0;
+  let previousDirection = 0;
+  for (const delta of deltas) {
+    const direction = Math.sign(delta);
+    if (direction !== 0 && direction === previousDirection) monotonicSteps += 1;
+    else monotonicSteps = direction === 0 ? 0 : 1;
+    longestMonotonicSteps = Math.max(longestMonotonicSteps, monotonicSteps);
+    previousDirection = direction;
+  }
+  if (prefix.length < 3
+    || span < 2 - EPS
+    || distinctPitches.size < 3
+    || dominantPitchRatio > 0.75 + EPS
+    || longestMonotonicSteps < 2) return [];
+
+  return monophonicPath(prefix, 55, 96, { exactOctaveWindow: 1, coherent: true })
+    .map((note) => ({ ...note, identitySource: source }));
 }
 
 /**
@@ -1080,11 +1429,20 @@ function instrumentalLaneQuality(notes: IdentityNote[], start: number, end: numb
   const upperCoverage = clamp(upper.length / 4, 0, 1);
   const dynamics = upper.reduce((sum, note) => sum + clamp(note.vel / 127, 0, 1), 0) / upper.length;
   const duration = upper.reduce((sum, note) => sum + clamp(note.dur / 0.5, 0, 1), 0) / upper.length;
-  return 0.3 * continuity
+  // A dedicated guitar lane can be loud and perfectly regular while still
+  // being a palm-muted rhythm wall.  The section chooser uses this quality
+  // score directly for vocal rests, so apply the same bounded wall penalty as
+  // melodicConfidence; otherwise a wall can win here even when the top-level
+  // section score correctly prefers a coherent residual contour.  Keep the
+  // penalty finite so a guitar wall remains usable when it is the only lane.
+  const upperRhythmWall = isUpperGuitarRhythmWall(ordered);
+  const rolePenalty = upperRhythmWall ? 0.35 : 0;
+  return clamp(0.3 * continuity
     + 0.25 * densityFit
     + 0.2 * upperCoverage
     + 0.15 * dynamics
-    + 0.1 * duration;
+    + 0.1 * duration
+    - rolePenalty, 0, 1);
 }
 
 /**
@@ -1150,6 +1508,10 @@ function chooseInstrumentalRestLanes(
   const preferredIsConnected = Boolean(
     preferredOption
     && preferredLastAttack !== undefined
+    // A section seam is not a reason to resurrect a palm-muted upper wall.
+    // Let the current section's lane-quality comparison choose a coherent
+    // residual contour when the carried guitar evidence is wall-like.
+    && !(preferredOption.source === "guitar" && isUpperGuitarRhythmWall(preferredOption.candidates))
     && preferredOption.candidates.some((note) => note.start - preferredLastAttack <= 1.5 + EPS),
   );
   const sectionWinner = preferredIsConnected
@@ -1509,12 +1871,12 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
     { source: "other", notes: otherUpperEvidence },
   ];
   const sharedUpperEvidence = [...guitarUpperEvidence, ...otherUpperEvidence];
-  const rawUpperContext: IdentityNote[] = [
-    ...guitarRaw.filter((note) => note.midi >= 61).map((note) => ({ ...note, rawMidi: note.midi, identitySource: "guitar" as const })),
-    ...otherRaw.filter((note) => note.midi >= 61).map((note) => ({ ...note, rawMidi: note.midi, identitySource: "other" as const })),
-  ];
-  const guitarRawRhythm = rawLowRhythmEvents(guitarRaw, "guitar", rawUpperContext);
-  const otherRawRhythm = rawLowRhythmEvents(otherRaw, "other", rawUpperContext);
+  const guitarRawUpperContext: IdentityNote[] = guitarUpperRaw
+    .map((note) => ({ ...note, rawMidi: note.midi, identitySource: "guitar" as const }));
+  const otherRawUpperContext: IdentityNote[] = otherUpperRaw
+    .map((note) => ({ ...note, rawMidi: note.midi, identitySource: "other" as const }));
+  const guitarRawRhythm = rawLowRhythmEvents(guitarRaw, "guitar", guitarRawUpperContext);
+  const otherRawRhythm = rawLowRhythmEvents(otherRaw, "other", otherRawUpperContext);
   const isRoutedRawLow = (note: Note, routed: IdentityNote[]): boolean =>
     note.midi <= 60 && routed.some((candidate) => Math.abs(candidate.start - note.start) <= 0.08 + EPS);
   // Split raw low material before octave registration. Otherwise MIDI 50–54
@@ -1524,9 +1886,16 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
     guitarRaw.filter((note) => (note.midi < 61 || guitarUpperRaw.includes(note)) && note.midi >= 45 && !isRoutedRawLow(note, guitarRawRhythm)),
     55,
     96,
-    { preferUpperLead: true, exactOctaveWindow: 1, coherent: true },
-  ).map((note) => ({ ...note, identitySource: "guitar" as const }));
+      { preferUpperLead: true, exactOctaveWindow: 1, coherent: true },
+    ).map((note) => ({ ...note, identitySource: "guitar" as const }));
   const otherUpperPitchClasses = new Set(otherUpperEvidence.map((note) => note.midi));
+  const otherOpeningEvidence = selectResidualOpeningContour(
+    otherRaw,
+    otherUpperEvidence,
+    otherRawRhythm,
+    sectionBeats,
+    "other",
+  );
   // `other` is a residual/full-mix lane in Demucs' six-stem output. When it
   // has a real upper contour, use that upper-only path as identity evidence;
   // allowing every low residual partial into the same monophonic chooser
@@ -1534,7 +1903,7 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
   // the broader path as a backwards-compatible fallback for sparse/low-only
   // residual stems.
   const otherIdentityPath = otherUpperEvidence.length >= 3 && otherUpperPitchClasses.size >= 2
-    ? otherUpperEvidence
+    ? [...otherOpeningEvidence, ...otherUpperEvidence]
     : monophonicPath(
       otherRaw.filter((note) => (note.midi < 61 || otherUpperRaw.includes(note)) && note.midi >= 45 && !isRoutedRawLow(note, otherRawRhythm)),
       55,
@@ -1576,8 +1945,14 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
     const carriedChoice = activeInstrumentSource
       ? instrumentalChoices.find((choice) => choice.source === activeInstrumentSource)
       : undefined;
+    const carriedWall = Boolean(
+      carriedChoice
+      && activeInstrumentSource === "guitar"
+      && isUpperGuitarRhythmWall(notesIn(carriedChoice.notes, start, end)),
+    );
     const carriedContinuation = Boolean(
       carriedChoice
+      && !carriedWall
       && carriedLastAttack !== undefined
       && notesIn(carriedChoice.notes, start, end).some((note) => note.start - carriedLastAttack <= 1.5 + EPS),
     );

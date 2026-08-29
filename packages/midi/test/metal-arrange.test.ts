@@ -246,6 +246,69 @@ describe("metal piano arranger", () => {
     expect(other.map((note) => note.midi).slice(0, 6)).toEqual([72, 74, 76, 77, 76, 74]);
   });
 
+  it("does not mistake a repeated upper guitar wall for the lead when residual contour is coherent", () => {
+    const guitarWall = Array.from({ length: 16 }, (_, index) => ({
+      midi: 64,
+      start: index * 0.5,
+      dur: 0.25,
+      vel: 60,
+    }));
+    const residualLead = [64, 65, 67, 69, 67, 65, 64, 62].map((midi, index) => ({
+      midi,
+      start: index,
+      dur: 0.5,
+      vel: 64,
+    }));
+    const result = buildMetalArrangement({
+      sectionBeats: 8,
+      stems: [
+        { role: "guitar", midi: midi(guitarWall, 8) },
+        { role: "other", midi: midi(residualLead, 8) },
+      ],
+    });
+    const identity = result.ir.identity.filter((note) => note.start < 8);
+    expect(identity.filter((note) => note.identitySource === "other").map((note) => note.midi))
+      .toEqual(residualLead.map((note) => note.midi));
+    expect(identity.some((note) => note.identitySource === "guitar"), "repeated guitar wall won the RH lane")
+      .toBe(false);
+  });
+
+  it("lets a coherent residual contour beat a guitar wall inside vocal rests", () => {
+    const vocals = [0, 2, 4, 6].map((start, index) => ({
+      midi: 76 + (index % 2),
+      start,
+      dur: 0.25,
+      vel: 110,
+    }));
+    const guitarWall = Array.from({ length: 16 }, (_, index) => ({
+      midi: 64,
+      start: 0.5 + index * 0.5,
+      dur: 0.25,
+      vel: 118,
+    }));
+    const residualLead = [64, 65, 67, 69, 67, 65, 64, 62].map((midi, index) => ({
+      midi,
+      start: 0.5 + index,
+      dur: 0.5,
+      vel: 64,
+    }));
+    const result = buildMetalArrangement({
+      sectionBeats: 8,
+      stems: [
+        { role: "vocals", midi: midi(vocals, 8) },
+        { role: "guitar", midi: midi(guitarWall, 8) },
+        { role: "other", midi: midi(residualLead, 8) },
+      ],
+    });
+    const identity = result.ir.identity.filter((note) => note.start < 8);
+    expect(identity.filter((note) => note.identitySource === "other").map((note) => note.midi))
+      .toEqual(residualLead.map((note) => note.midi));
+    expect(identity.filter((note) => note.identitySource === "guitar"), "guitar wall won a vocal rest")
+      .toHaveLength(0);
+    expect(identity.filter((note) => note.identitySource === "vocals").map((note) => note.midi))
+      .toEqual(vocals.map((note) => note.midi));
+  });
+
   it("keeps one coherent instrumental lane through vocal rests", () => {
     const vocals: Note[] = [
       { midi: 79, start: 0, dur: 0.35, vel: 100 },
@@ -361,6 +424,71 @@ describe("metal piano arranger", () => {
     expect(Math.min(...gaps), "residual fallback kept sub-beat chatter").toBeGreaterThanOrEqual(1 - 1e-6);
   });
 
+  it("regularizes fragmented residual phrases across detector gaps", () => {
+    const residual: Note[] = [
+      { midi: 64, start: 0, dur: 0.45, vel: 72 },
+      { midi: 65, start: 0.5, dur: 0.45, vel: 70 },
+      // A detector gap can split what is still one residual phrase. The
+      // learner path should not preserve a fast pair on either side of that
+      // bookkeeping gap when a beat-level contour is available.
+      { midi: 67, start: 2.25, dur: 0.45, vel: 72 },
+      { midi: 69, start: 2.75, dur: 0.45, vel: 70 },
+      { midi: 67, start: 4.5, dur: 0.45, vel: 72 },
+      { midi: 65, start: 5, dur: 0.45, vel: 70 },
+    ];
+    const result = buildMetalArrangement({
+      sectionBeats: 8,
+      stems: [{ role: "other", midi: midi(residual, 8) }],
+    });
+    const other = result.ir.identity
+      .filter((note) => note.identitySource === "other")
+      .sort((a, b) => a.start - b.start);
+    const gaps = other.slice(1).map((note, index) => note.start - other[index]!.start);
+    expect(other.length, "fragmented residual chatter was retained").toBeLessThanOrEqual(4);
+    expect(Math.min(...gaps), "fragmented residual phrase kept a sub-beat pair").toBeGreaterThanOrEqual(1 - 1e-6);
+    expect(other.map((note) => note.midi)).toEqual([64, 69, 65]);
+  });
+
+  it("regularizes a sparse residual phrase onto supported beat positions", () => {
+    const lead = [64, 64, 62, 62, 64, 64, 64, 64, 65, 65, 64, 64, 62, 62, 62, 62];
+    const offsets = [0.06, -0.18, 0.11, -0.07, 0.2, -0.16, 0.09, -0.22, 0.12, -0.08, 0.17, -0.14, 0.05, -0.19, 0.13, -0.06];
+    const residual: Note[] = [];
+    for (let index = 0; index < lead.length; index++) {
+      const start = index + offsets[index]!;
+      residual.push({ midi: lead[index]!, start, dur: 0.35, vel: 62 });
+      // Dense residual chord partials should not become the melody merely
+      // because they are a little louder or happen between beat attacks.
+      residual.push({ midi: [78, 81, 74, 79][index % 4]!, start: start + 0.12, dur: 0.08, vel: 44 });
+      residual.push({ midi: [76, 80, 77][index % 3]!, start: start + 0.31, dur: 0.07, vel: 43 });
+    }
+    const result = buildMetalArrangement({
+      sectionBeats: 32,
+      stems: [{ role: "other", midi: midi(residual, 20) }],
+    });
+    const other = result.ir.identity
+      .filter((note) => note.identitySource === "other")
+      .sort((a, b) => a.start - b.start);
+    const gaps = other.slice(1).map((note, index) => note.start - other[index]!.start);
+    expect(other.length).toBeGreaterThanOrEqual(12);
+    expect(other.length).toBeLessThanOrEqual(18);
+    expect(Math.min(...gaps), "residual beat phrase kept detector chatter").toBeGreaterThanOrEqual(0.55 - 1e-6);
+    expect(other.every((note) => lead.includes(note.midi)), "residual chord partial became melody").toBe(true);
+
+    const variants = buildVariants(
+      result.parsed,
+      { title: "residual coverage", artist: "Fixture", tempo: 120, key: "C" },
+      { arrangementProfile: "metal", chords: result.chords },
+    );
+    for (const level of ["easy", "medium"] as const) {
+      const melody = variants.find((variant) => variant.level === level)!.notes
+        .filter((note) => note.hand === "R" && note.identitySource === "other")
+        .sort((a, b) => a.start - b.start);
+      const variantGaps = melody.slice(1).map((note, index) => note.start - melody[index]!.start);
+      expect(melody.length, `${level} discarded the supported residual coverage`).toBeGreaterThanOrEqual(12);
+      expect(Math.min(...variantGaps), `${level} reintroduced residual chatter`).toBeGreaterThanOrEqual(0.55 - 1e-6);
+    }
+  });
+
   it("preserves the residual role when no dedicated guitar stem exists", () => {
     const lead = [64, 65, 67, 69, 67, 65, 64, 62, 64, 65, 67, 69].map((midi, index) => ({
       midi,
@@ -383,6 +511,21 @@ describe("metal piano arranger", () => {
     expect(identity.some((note) => note.identitySource === "guitar"), "residual-only input was aliased to guitar").toBe(false);
     expect(identity.some((note) => note.identitySource === "other" && note.midi <= 60), "raw low residual wall leaked into RH").toBe(false);
     expect(result.parsed.notes.some((note) => note.hand === "L" && note.identitySource === "other"), "residual low wall was not retained as LH accompaniment").toBe(true);
+  });
+
+  it("keeps a residual-only low wall in LH instead of promoting it into RH", () => {
+    const lowWall = Array.from({ length: 16 }, (_, index) => ({
+      midi: 57,
+      start: index * 0.5,
+      dur: 0.25,
+      vel: 118,
+    }));
+    const result = buildMetalArrangement({
+      stems: [{ role: "other", midi: midi(lowWall, 8) }],
+    });
+
+    expect(result.ir.identity.filter((note) => note.identitySource === "other")).toHaveLength(0);
+    expect(result.parsed.notes.filter((note) => note.hand === "L" && note.identitySource === "other").length).toBeGreaterThanOrEqual(8);
   });
 
   it("uses the residual decoder when a routing-compatible guitar role came from other", () => {
@@ -409,6 +552,29 @@ describe("metal piano arranger", () => {
     expect(identity.some((note) => note.identitySource === "other" && note.midi >= 62)).toBe(true);
     expect(identity.some((note) => note.identitySource === "guitar"), "other provenance was treated as guitar").toBe(false);
     expect(identity.some((note) => note.identitySource === "other" && note.midi <= 60), "raw low residual wall leaked into RH").toBe(false);
+  });
+
+  it("keeps a coherent residual opening contour before upper evidence appears", () => {
+    const opening = [55, 57, 59, 60].map((midi, index) => ({
+      midi,
+      start: index,
+      dur: 0.4,
+      vel: 80,
+    }));
+    const laterUpper = [72, 74, 76, 77].map((midi, index) => ({
+      midi,
+      start: 8 + index,
+      dur: 0.4,
+      vel: 80,
+    }));
+    const result = buildMetalArrangement({
+      stems: [{ role: "other", midi: midi([...opening, ...laterUpper], 12) }],
+    });
+
+    const openingIdentity = result.ir.identity
+      .filter((note) => note.identitySource === "other" && note.start < 4)
+      .sort((a, b) => a.start - b.start);
+    expect(openingIdentity.map((note) => note.midi), "residual opening contour was dropped before upper evidence").toEqual(opening.map((note) => note.midi));
   });
 
   it("carries a coherent guitar phrase across vocal gaps and section seams", () => {
@@ -448,6 +614,156 @@ describe("metal piano arranger", () => {
     expect(instrumental.some((note) => note.identitySource === "guitar")).toBe(true);
     expect(instrumental.some((note) => note.identitySource === "other"), "source flipped to residual lane inside the guitar phrase").toBe(false);
     expect(result.ir.identity.filter((note) => note.identitySource === "vocals").map((note) => note.midi)).toEqual([76, 77, 76, 77]);
+  });
+
+  it("does not carry a repeated guitar wall over a residual lead at a section seam", () => {
+    const guitarWall = Array.from({ length: 16 }, (_, index) => ({
+      midi: 64,
+      start: index * 0.5,
+      dur: 0.25,
+      vel: 70,
+    }));
+    const residualLead = [72, 74, 76, 77].map((midi, index) => ({
+      midi,
+      start: 4 + index,
+      dur: 0.5,
+      vel: 80,
+    }));
+    const result = buildMetalArrangement({
+      sectionBeats: 4,
+      stems: [
+        { role: "guitar", midi: midi(guitarWall, 8) },
+        { role: "other", midi: midi(residualLead, 8) },
+      ],
+    });
+
+    const secondSection = result.ir.identity
+      .filter((note) => note.start >= 4 && note.start < 8)
+      .sort((a, b) => a.start - b.start);
+    expect(secondSection.filter((note) => note.identitySource === "other").map((note) => note.midi))
+      .toEqual(residualLead.map((note) => note.midi));
+    expect(secondSection.some((note) => note.identitySource === "guitar"), "the carried guitar wall overrode the residual lane")
+      .toBe(false);
+  });
+
+  it("does not carry a guitar wall through vocal rests at a section seam", () => {
+    const vocals = [
+      { midi: 79, start: 0, dur: 0.35, vel: 110 },
+      { midi: 81, start: 2, dur: 0.35, vel: 110 },
+      { midi: 79, start: 4, dur: 0.35, vel: 110 },
+    ];
+    const guitar = [
+      { midi: 72, start: 0.75, dur: 0.35, vel: 90 },
+      { midi: 74, start: 1.5, dur: 0.35, vel: 90 },
+      { midi: 76, start: 2.25, dur: 0.35, vel: 90 },
+      { midi: 75, start: 3, dur: 0.35, vel: 90 },
+      ...Array.from({ length: 8 }, (_, index) => ({
+        midi: 64,
+        start: 4 + index * 0.5,
+        dur: 0.25,
+        vel: 118,
+      })),
+    ];
+    const residualLead = [72, 74, 76, 77].map((midi, index) => ({
+      midi,
+      start: 4 + index,
+      dur: 0.5,
+      vel: 80,
+    }));
+    const result = buildMetalArrangement({
+      sectionBeats: 4,
+      stems: [
+        { role: "vocals", midi: midi(vocals, 8) },
+        { role: "guitar", midi: midi(guitar, 8) },
+        { role: "other", midi: midi(residualLead, 8) },
+      ],
+    });
+
+    const secondSection = result.ir.identity
+      .filter((note) => note.start >= 4 && note.start < 8)
+      .sort((a, b) => a.start - b.start);
+    // The first residual attack shares the vocal's onset and is intentionally
+    // occupied by that hard vocal anchor; the remaining contour must still
+    // beat the carried guitar wall.
+    expect(secondSection.filter((note) => note.identitySource === "other").map((note) => note.midi))
+      .toEqual(residualLead.filter((note) => note.start > 4).map((note) => note.midi));
+    expect(secondSection.filter((note) => note.identitySource === "guitar"), "the carried guitar wall overrode a vocal-rest lane")
+      .toHaveLength(0);
+    expect(result.ir.identity.filter((note) => note.identitySource === "vocals").map((note) => note.midi))
+      .toEqual(vocals.map((note) => note.midi));
+  });
+
+  it("does not let an isolated residual upper spike route a low guitar contour into LH", () => {
+    const guitarContour = [50, 52, 54, 52, 50, 52].map((midi, index) => ({
+      midi,
+      start: index,
+      dur: 0.4,
+      vel: 90,
+    }));
+    const result = buildMetalArrangement({
+      sectionBeats: 8,
+      stems: [
+        { role: "guitar", midi: midi(guitarContour, 8) },
+        // This spike is intentionally too weak/short to become residual
+        // melody evidence, but it must not be used as guitar context.
+        { role: "other", midi: midi([{ midi: 72, start: 0, dur: 0.05, vel: 30 }], 8) },
+      ],
+    });
+
+    const guitarIdentity = result.ir.identity
+      .filter((note) => note.identitySource === "guitar")
+      .sort((a, b) => a.start - b.start);
+    expect(guitarIdentity.map((note) => note.start)).toEqual(guitarContour.map((note) => note.start));
+    expect(result.parsed.notes.filter((note) => note.hand === "L" && note.identitySource === "guitar")).toHaveLength(0);
+
+    const sameStemSpikeResult = buildMetalArrangement({
+      sectionBeats: 8,
+      stems: [{
+        role: "guitar",
+        midi: midi([
+          ...guitarContour,
+          { midi: 72, start: 0, dur: 0.05, vel: 30 },
+        ], 8),
+      }],
+    });
+    expect(
+      sameStemSpikeResult.ir.identity
+        .filter((note) => note.identitySource === "guitar")
+        .sort((a, b) => a.start - b.start)
+        .map((note) => note.start),
+      "an unsupported same-source spike altered low-contour routing",
+    ).toEqual(guitarContour.map((note) => note.start));
+    expect(sameStemSpikeResult.parsed.notes.filter((note) => note.hand === "L" && note.identitySource === "guitar")).toHaveLength(0);
+  });
+
+  it("does not route a moving raw-low contour because of unrelated upper evidence", () => {
+    const contour = [50, 52, 54, 52, 50, 52].map((midi, index) => ({
+      midi,
+      start: index,
+      dur: 0.4,
+      vel: 90,
+    }));
+    const result = buildMetalArrangement({
+      sectionBeats: 12,
+      stems: [{
+        role: "guitar",
+        midi: midi([
+          ...contour,
+          // Supported, but not co-onset: this must not classify the
+          // preceding moving low contour as accompaniment.
+          { midi: 72, start: 8, dur: 0.5, vel: 90 },
+        ], 10),
+      }],
+    });
+    const guitarIdentity = result.ir.identity
+      .filter((note) => note.identitySource === "guitar")
+      .sort((a, b) => a.start - b.start);
+    expect(guitarIdentity.map((note) => note.start)).toEqual([
+      ...contour.map((note) => note.start),
+      8,
+    ]);
+    expect(result.parsed.notes.filter((note) => note.hand === "L" && note.identitySource === "guitar"))
+      .toHaveLength(0);
   });
 
   it("uses contour continuity when a polyphonic onset offers a quiet step and a loud distant spike", () => {
@@ -556,6 +872,66 @@ describe("metal piano arranger", () => {
       stems: [{ role: "vocals", midi: midi(movingLow, 3) }],
     });
     expect(movingResult.ir.identity.filter((note) => note.identitySource === "vocals")).toHaveLength(4);
+  });
+
+  it("does not promote a short repeated sub-register vocal wall", () => {
+    const vocalWall = Array.from({ length: 8 }, (_, index) => ({
+      midi: 41,
+      start: index * 0.5,
+      dur: 0.25,
+      vel: 84,
+    }));
+    const result = buildMetalArrangement({
+      stems: [{ role: "vocals", midi: midi(vocalWall, 4) }],
+    });
+    expect(result.ir.identity.filter((note) => note.identitySource === "vocals"), "short low vocal wall was promoted into RH").toHaveLength(0);
+  });
+
+  it("does not promote short low vocal walls across the detector sub-register", () => {
+    for (const rawMidi of [45, 57]) {
+      const vocalWall = Array.from({ length: 8 }, (_, index) => ({
+        midi: rawMidi,
+        start: index * 0.5,
+        dur: 0.25,
+        vel: 84,
+      }));
+      const result = buildMetalArrangement({
+        stems: [{ role: "vocals", midi: midi(vocalWall, 4) }],
+      });
+      expect(
+        result.ir.identity.filter((note) => note.identitySource === "vocals"),
+        `raw vocal wall ${rawMidi} was promoted into RH`,
+      ).toHaveLength(0);
+    }
+
+    const movingLow = [45, 47, 49, 47].map((midi, index) => ({
+      midi,
+      start: index * 0.75,
+      dur: 0.35,
+      vel: 84,
+    }));
+    const movingResult = buildMetalArrangement({
+      stems: [{ role: "vocals", midi: midi(movingLow, 4) }],
+    });
+    expect(movingResult.ir.identity.filter((note) => note.identitySource === "vocals")).toHaveLength(4);
+  });
+
+  it("preserves moving low vocal phrases and isolated low anchors", () => {
+    const movingLow = [41, 43, 44, 46].map((midi, index) => ({
+      midi,
+      start: index * 0.5,
+      dur: 0.35,
+      vel: 84,
+    }));
+    const movingResult = buildMetalArrangement({
+      stems: [{ role: "vocals", midi: midi(movingLow, 3) }],
+    });
+    expect(movingResult.ir.identity.filter((note) => note.identitySource === "vocals")).toHaveLength(4);
+
+    const anchorResult = buildMetalArrangement({
+      stems: [{ role: "vocals", midi: midi([{ midi: 41, start: 0, dur: 0.5, vel: 110 }], 2) }],
+    });
+    expect(anchorResult.ir.identity.filter((note) => note.identitySource === "vocals")).toHaveLength(1);
   });
 
   it("preserves a repeated upper MIDI 62 hook instead of classifying it as low pulse", () => {
