@@ -18,4 +18,6 @@ export * from "./fixture-evidence.js";
 export * from "./arrangement-evaluation.js";
 export * from "./song-research.js";
 export * from "./symbolic-alignment.js";
+export * from "./piano-alignment.js";
+export * from "./piano-evaluation.js";
 export * from "./research-report.js";
