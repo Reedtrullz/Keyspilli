@@ -11,6 +11,14 @@ export const ARRANGEMENT_EVALUATION_CONFIG = {
   isolatedDurationBeats: 0.25,
   repeatedGapBeats: 0.5,
   spanViolationSemitones: 12,
+  /** Non-blocking shape checks; these prompt review without treating
+   * legitimate metal density or articulation as structural invalidity. */
+  warningOnsetsPerSecond: 12,
+  warningVeryShortRate: 0.8,
+  warningMinimumVeryShortNotes: 16,
+  warningWallMinimumRun: 8,
+  warningWallRate: 0.4,
+  warningDurationMismatchBeats: 4,
   referenceOnsetToleranceBeats: 0.125,
   minimumReferenceWindows: 3,
   minimumReferenceBars: 32,
@@ -57,11 +65,16 @@ export interface ArrangementEvaluationReference {
 export interface ProvenanceTraceEvent {
   key: string;
   windowId?: string;
-  stage?: "raw" | "lead" | "residual" | "cluster" | "semantic" | "chord" | "left-hand" | "final";
+  stage?: "raw" | "cleaned" | "lead" | "residual" | "cluster" | "semantic" | "decision" | "chord" | "left-hand" | "final";
+  parentKeys?: string[];
   source?: string | null;
+  sourceStem?: string | null;
+  note?: { midi: number; rawMidi?: number; start: number; dur: number; vel: number; hand?: "R" | "L" };
   selectionReason?: string;
   rawCandidateCount?: number;
   selected?: boolean;
+  confidence?: number;
+  semantic?: { rootPc: number; quality: string; bassSupported: boolean; memberCount: number };
 }
 
 export interface ProvenanceTraceInput {
@@ -140,6 +153,8 @@ export interface GlobalMetrics {
   isolatedShortCount: number;
   veryShortCount: number;
   repeatedAttackRate: number;
+  /** All consecutive close onsets, regardless of pitch. */
+  closeAttackRate: number;
   rhLhCollisionCount: number;
   rhLhCollisionRate: number;
   handSpanViolations: number;
@@ -197,7 +212,8 @@ export interface VariantEvaluationMetrics {
 export interface SourceCounts {
   vocals: number;
   guitar: number;
-  bass: number;
+  /** Note.identitySource does not carry bass attribution. */
+  bass: number | null;
   other: number;
   generated: number | null;
   inferred: number | null;
@@ -291,6 +307,8 @@ export interface GateResult {
   mode: "structural" | "reference" | "human";
   status: "pass" | "fail" | "null";
   failures: string[];
+  /** Non-blocking output-shape diagnostics for human review. */
+  warnings: string[];
   evaluated: string[];
   thresholds: Record<string, number>;
   /** Makes intentionally unavailable checks explicit in candidate-only reports. */
@@ -473,9 +491,19 @@ function sweepSimultaneity(notes: Note[]): { max: number; quantiles: number[] } 
   return { max, quantiles: [quantile(levels, 0.5) ?? 0, quantile(levels, 0.9) ?? 0, quantile(levels, 0.99) ?? 0] };
 }
 
-function activeCoverage(notes: Note[], durationBeats: number): GlobalMetrics["coverage"] {
-  if (!notes.length || durationBeats <= 0) return { firstBeat: null, lastBeat: null, activeBeats: 0, ratio: 0 };
-  const events = notes.flatMap((note) => [[note.start, 1], [Math.min(durationBeats, note.start + note.dur), -1]] as [number, number][])
+function activeCoverage(notes: Note[], durationBeats: number, offsetBeats = 0): GlobalMetrics["coverage"] {
+  if (!notes.length || durationBeats <= 0 || !Number.isFinite(offsetBeats)) {
+    return { firstBeat: null, lastBeat: null, activeBeats: 0, ratio: 0 };
+  }
+  const windowStart = offsetBeats;
+  const windowEnd = offsetBeats + durationBeats;
+  const clipped = notes.flatMap((note) => {
+    const start = Math.max(windowStart, note.start);
+    const end = Math.min(windowEnd, note.start + note.dur);
+    return end > start ? [{ start, end }] : [];
+  });
+  if (!clipped.length) return { firstBeat: null, lastBeat: null, activeBeats: 0, ratio: 0 };
+  const events = clipped.flatMap(({ start, end }) => [[start, 1], [end, -1]] as [number, number][])
     .sort((a, b) => a[0] - b[0] || a[1] - b[1]);
   let active = 0;
   let previous = events[0]![0];
@@ -485,11 +513,16 @@ function activeCoverage(notes: Note[], durationBeats: number): GlobalMetrics["co
     active += delta;
     previous = time;
   }
-  return { firstBeat: Math.min(...notes.map((note) => note.start)), lastBeat: Math.max(...notes.map((note) => note.start + note.dur)), activeBeats: round(activeBeats), ratio: round(activeBeats / durationBeats) };
+  return {
+    firstBeat: Math.min(...clipped.map(({ start }) => start)),
+    lastBeat: Math.max(...clipped.map(({ end }) => end)),
+    activeBeats: round(activeBeats),
+    ratio: round(activeBeats / durationBeats),
+  };
 }
 
 function sourceCounts(notes: Note[]): SourceCounts {
-  const counts: SourceCounts = { vocals: 0, guitar: 0, bass: 0, other: 0, generated: null, inferred: null, unknown: 0 };
+  const counts: SourceCounts = { vocals: 0, guitar: 0, bass: null, other: 0, generated: null, inferred: null, unknown: 0 };
   for (const note of notes) {
     if (note.identitySource === "vocals") counts.vocals++;
     else if (note.identitySource === "guitar") counts.guitar++;
@@ -527,17 +560,32 @@ function collisionCount(notes: Note[]): number {
   return count;
 }
 
-function globalMetrics(notes: Note[], tempoBpm: number, durationBeats: number, expectedDurationBeats?: number): GlobalMetrics {
+function globalMetrics(
+  notes: Note[],
+  tempoBpm: number,
+  durationBeats: number,
+  expectedDurationBeats?: number,
+  coverageOffsetBeats = 0,
+  durationMismatchBasis: GlobalMetrics["durationMismatch"]["basis"] = expectedDurationBeats === undefined ? "unavailable" : "expected",
+): GlobalMetrics {
   const valid = cleanNotes(notes);
   const durationSeconds = tempoBpm > 0 ? durationBeats * 60 / tempoBpm : 0;
   const groups = starts(valid);
+  const grouped = onsetGroups(valid);
   const sweep = sweepSimultaneity(valid);
   const rh = valid.filter((note) => handOf(note) === "R");
   const lh = valid.filter((note) => handOf(note) === "L");
   const collision = collisionCount(valid);
   const isolated = valid.filter((note) => note.dur <= ARRANGEMENT_EVALUATION_CONFIG.isolatedDurationBeats
     && (note.start === 0 || !valid.some((other) => other !== note && Math.abs(other.start - note.start) <= ARRANGEMENT_EVALUATION_CONFIG.isolatedGapBeats))).length;
-  const repeated = groups.slice(1).filter((start, index) => start - groups[index]! <= ARRANGEMENT_EVALUATION_CONFIG.repeatedGapBeats).length;
+  const closeAttacks = grouped.slice(1).filter((group, index) => group.start - grouped[index]!.start <= ARRANGEMENT_EVALUATION_CONFIG.repeatedGapBeats + 1e-9).length;
+  // A close attack is not necessarily a repeated attack: a fast stepwise
+  // melody can change pitch on every onset.  Keep both rates explicit so the
+  // repeated-pitch diagnostic does not overstate rhythmic chatter.
+  const repeatedAttacks = grouped.slice(1).filter((group, index) => {
+    if (group.start - grouped[index]!.start > ARRANGEMENT_EVALUATION_CONFIG.repeatedGapBeats + 1e-9) return false;
+    return group.notes.some((note) => grouped[index]!.notes.some((previous) => previous.midi === note.midi));
+  }).length;
   const range = rangeOf(valid);
   const low = valid.length ? Math.min(...valid.map((note) => note.midi)) : null;
   const high = valid.length ? Math.max(...valid.map((note) => note.midi)) : null;
@@ -559,15 +607,63 @@ function globalMetrics(notes: Note[], tempoBpm: number, durationBeats: number, e
     chromaticOutlier: { value: null, basis: "unavailable", count: null, total: null },
     isolatedShortCount: isolated,
     veryShortCount: valid.filter((note) => note.dur <= ARRANGEMENT_EVALUATION_CONFIG.veryShortBeats).length,
-    repeatedAttackRate: groups.length > 1 ? round(repeated / (groups.length - 1)) : 0,
+    repeatedAttackRate: grouped.length > 1 ? round(repeatedAttacks / (grouped.length - 1)) : 0,
+    closeAttackRate: grouped.length > 1 ? round(closeAttacks / (grouped.length - 1)) : 0,
     rhLhCollisionCount: collision,
     rhLhCollisionRate: valid.length ? round(collision / valid.length) : 0,
     handSpanViolations,
-    coverage: activeCoverage(valid, durationBeats),
+    coverage: activeCoverage(valid, durationBeats, coverageOffsetBeats),
     durationMismatch: expectedDurationBeats === undefined
       ? { value: null, basis: "unavailable" }
-      : { value: round(durationBeats - expectedDurationBeats), basis: "expected" },
+      : { value: round(durationBeats - expectedDurationBeats), basis: durationMismatchBasis },
   };
+}
+
+interface RepeatedPitchWall {
+  hand: "L" | "R";
+  length: number;
+  rate: number;
+}
+
+/**
+ * Find sustained same-pitch attack walls without treating every repeated
+ * rhythmic motif as a structural failure. Chord shells do not participate;
+ * they are covered by simultaneity and chord-density metrics instead.
+ */
+function repeatedPitchWalls(notes: Note[]): RepeatedPitchWall[] {
+  const walls: RepeatedPitchWall[] = [];
+  for (const hand of ["R", "L"] as const) {
+    const groups = onsetGroups(notes, hand);
+    let runStart = 0;
+    let previousPitch: number | null = null;
+    const flush = (endExclusive: number): void => {
+      const length = endExclusive - runStart;
+      const rate = groups.length ? length / groups.length : 0;
+      if (length >= ARRANGEMENT_EVALUATION_CONFIG.warningWallMinimumRun
+        && rate >= ARRANGEMENT_EVALUATION_CONFIG.warningWallRate) {
+        walls.push({ hand, length, rate });
+      }
+    };
+    for (let index = 0; index < groups.length; index++) {
+      const group = groups[index]!;
+      const onlyNote = group.notes.length === 1 ? group.notes[0] : undefined;
+      const pitch = onlyNote?.midi ?? null;
+      const shortEnough = Boolean(onlyNote && onlyNote.dur <= 0.75);
+      const previousGroup = groups[index - 1];
+      const connected = index > runStart
+        && previousPitch !== null
+        && pitch === previousPitch
+        && Boolean(previousGroup && group.start - previousGroup.start <= ARRANGEMENT_EVALUATION_CONFIG.repeatedGapBeats + 1e-9)
+        && shortEnough;
+      if (!connected) {
+        if (index > runStart) flush(index);
+        runStart = index;
+      }
+      previousPitch = shortEnough ? pitch : null;
+    }
+    if (groups.length > runStart) flush(groups.length);
+  }
+  return walls.sort((a, b) => a.hand.localeCompare(b.hand) || b.length - a.length || b.rate - a.rate);
 }
 
 function parserFor(candidate: ArrangementEvaluationCandidate, notes: Note[]): ArrangementEvaluationReport["candidate"]["parser"] {
@@ -624,7 +720,9 @@ function orderedTrace(trace: ProvenanceTraceInput | undefined): ArrangementEvalu
   if (trace?.status !== "available") return { status: "unavailable" };
   const sortText = (a: string, b: string): number => a < b ? -1 : a > b ? 1 : 0;
   const sortEvents = (events: ProvenanceTraceEvent[] | undefined): ProvenanceTraceEvent[] | undefined => events
-    ? [...events].sort((a, b) => sortText(a.key, b.key) || sortText(a.stage ?? "", b.stage ?? "") || sortText(a.source ?? "", b.source ?? ""))
+    ? [...events]
+      .map((event) => ({ ...event, ...(event.parentKeys ? { parentKeys: [...event.parentKeys].sort() } : {}) }))
+      .sort((a, b) => sortText(a.key, b.key) || sortText(a.stage ?? "", b.stage ?? "") || sortText(a.source ?? "", b.source ?? ""))
     : undefined;
   const windows = trace.windows
     ? Object.fromEntries(Object.entries(trace.windows).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0).map(([id, events]) => [id, sortEvents(events)!]))
@@ -663,25 +761,28 @@ function metricBundle(
   candidate: ArrangementEvaluationCandidate,
   input: ArrangementEvaluationInput,
   expectedDurationBeats?: number,
+  coverageOffsetBeats = 0,
+  durationMismatchBasis: GlobalMetrics["durationMismatch"]["basis"] = expectedDurationBeats === undefined ? "unavailable" : "expected",
 ): MetricBundle {
   const durationSeconds = tempoBpm > 0 ? durationBeats * 60 / tempoBpm : 0;
-  const right = notes.filter((note) => handOf(note) === "R");
-  const left = notes.filter((note) => handOf(note) === "L");
-  const transition = sourceTransitions(notes);
-  const sectionSource: Record<string, SourceCounts> = { full: sourceCounts(notes) };
+  const valid = cleanNotes(notes);
+  const right = valid.filter((note) => handOf(note) === "R");
+  const left = valid.filter((note) => handOf(note) === "L");
+  const transition = sourceTransitions(valid);
+  const sectionSource: Record<string, SourceCounts> = { full: sourceCounts(valid) };
   return {
-    global: globalMetrics(notes, tempoBpm, durationBeats, expectedDurationBeats),
+    global: globalMetrics(valid, tempoBpm, durationBeats, expectedDurationBeats, coverageOffsetBeats, durationMismatchBasis),
     rightHand: handMetrics(right, durationSeconds),
     leftHand: leftHandMetrics(left, durationSeconds),
-    guitar: guitarMetrics(notes, candidate, input),
+    guitar: guitarMetrics(valid, candidate, input),
     source: {
-      final: { all: sourceCounts(notes), right: sourceCounts(right), left: sourceCounts(left) },
+      final: { all: sourceCounts(valid), right: sourceCounts(right), left: sourceCounts(left) },
       transitions: transition.transitions,
       rapidTransitions: transition.rapid,
-      vocalFinalCount: notes.filter((note) => note.identitySource === "vocals").length,
+      vocalFinalCount: valid.filter((note) => note.identitySource === "vocals").length,
       bassFinalCount: null,
-      drumDerivedPitchCount: notes.filter((note) => Boolean((note as AnyNote).isDrum || (note as AnyNote).drum)).length,
-      unknownProvenanceCount: notes.filter((note) => !note.identitySource).length,
+      drumDerivedPitchCount: valid.filter((note) => Boolean((note as AnyNote).isDrum || (note as AnyNote).drum)).length,
+      unknownProvenanceCount: valid.filter((note) => !note.identitySource).length,
       sectionSourceCounts: sectionSource,
     },
   };
@@ -690,24 +791,26 @@ function metricBundle(
 function variantDurationBeats(variant: Variant): number {
   const measureEnd = variant.measures.reduce((max, measure) => Math.max(max, measure.endBeat), 0);
   if (Number.isFinite(measureEnd) && measureEnd > 0) return measureEnd;
-  return Math.max(0, ...variant.notes.filter(finiteNote).map((note) => note.start + note.dur));
+  const notes = Array.isArray(variant.notes) ? variant.notes : [];
+  return Math.max(0, ...notes.filter(finiteNote).map((note) => note.start + note.dur));
 }
 
 function variantMetrics(variant: Variant, input: ArrangementEvaluationInput): VariantEvaluationMetrics {
-  const durationBeats = variantDurationBeats(variant);
+  const validNotes = Array.isArray(variant.notes) ? variant.notes.filter(finiteNote) : [];
+  const durationBeats = variantDurationBeats({ ...variant, notes: validNotes });
   // A semantic guitar pass is performed before variant construction.  Do not
   // repeat its canonical diagnostics for every learner level; the per-level
   // guitar bundle below reports final tagged RH/LH counts and nulls the
   // unavailable upstream fields.
   const candidate: ArrangementEvaluationCandidate = {
     selector: `variant:${variant.level}`,
-    notes: variant.notes,
+    notes: validNotes,
     tempoBpm: variant.tempoBpm,
     durationBeats,
     timeSig: variant.timeSig,
   };
   const variantInput: ArrangementEvaluationInput = { ...input, candidate, guitarDiagnostics: undefined };
-  const bundle = metricBundle(variant.notes, variant.tempoBpm, durationBeats, candidate, variantInput);
+  const bundle = metricBundle(validNotes, variant.tempoBpm, durationBeats, candidate, variantInput);
   return {
     level: variant.level,
     difficultyScore: variant.difficultyScore,
@@ -866,8 +969,10 @@ function qualityGate(
   mode: ArrangementEvaluationInput["mode"],
   parserValid = true,
   referenceStatus?: ReferenceEvaluation["status"],
+  expectedDurationBeats?: number,
 ): GateResult {
   const failures: string[] = [];
+  const warnings: string[] = [];
   const evaluated = ["finite MIDI notes", "finite parser metadata", "sounding simultaneity", "piano range", "drum-derived pitch count"];
   const invalid = notes.filter((note) => !finiteNote(note)).length;
   if (invalid) failures.push(`${invalid} non-finite or invalid MIDI notes`);
@@ -879,11 +984,50 @@ function qualityGate(
   if (outsidePiano) failures.push(`${outsidePiano} notes outside piano range 21-108`);
   const drums = valid.filter((note) => Boolean((note as AnyNote).isDrum || (note as AnyNote).drum)).length;
   if (drums) failures.push(`${drums} drum-derived pitches present`);
+
+  // Shape checks are deliberately non-blocking. Dense or short attacks can
+  // be intentional in metal, but these signals are useful review prompts.
+  const durationSeconds = parser.tempoBpm > 0 ? parser.durationBeats * 60 / parser.tempoBpm : 0;
+  const onsetCount = onsetGroups(valid).length;
+  const onsetsPerSecond = durationSeconds > 0 ? onsetCount / durationSeconds : 0;
+  if (onsetsPerSecond > ARRANGEMENT_EVALUATION_CONFIG.warningOnsetsPerSecond + 1e-9) {
+    warnings.push(`onset density ${round(onsetsPerSecond)}/s exceeds warning threshold ${ARRANGEMENT_EVALUATION_CONFIG.warningOnsetsPerSecond}/s`);
+  }
+  const veryShortCount = valid.filter((note) => note.dur <= ARRANGEMENT_EVALUATION_CONFIG.veryShortBeats).length;
+  const veryShortRate = valid.length ? veryShortCount / valid.length : 0;
+  if (valid.length >= ARRANGEMENT_EVALUATION_CONFIG.warningMinimumVeryShortNotes
+    && veryShortRate >= ARRANGEMENT_EVALUATION_CONFIG.warningVeryShortRate) {
+    warnings.push(`very-short notes ${veryShortCount}/${valid.length} (${round(veryShortRate)}) exceed warning rate ${ARRANGEMENT_EVALUATION_CONFIG.warningVeryShortRate}`);
+  }
+  if (!valid.some((note) => handOf(note) === "R")) warnings.push("candidate has no right-hand events");
+  for (const wall of repeatedPitchWalls(valid)) {
+    warnings.push(`${wall.hand} repeated-pitch wall run ${wall.length} attacks (${round(wall.rate) * 100}% of ${wall.hand === "R" ? "right" : "left"}-hand onsets)`);
+  }
+  if (expectedDurationBeats !== undefined && Number.isFinite(expectedDurationBeats)) {
+    const difference = Math.abs(parser.durationBeats - expectedDurationBeats);
+    if (difference >= ARRANGEMENT_EVALUATION_CONFIG.warningDurationMismatchBeats - 1e-9) {
+      warnings.push(`candidate duration differs from expected by ${round(difference)} beats`);
+    }
+  }
   if (variants) {
     evaluated.push("variant validation", "variant monotonicity");
     if (!variants.length) failures.push("variant list is empty");
-    for (const variant of variants) if (!variant.notes.length) failures.push(`${variant.level} variant has no notes`);
-    failures.push(...validateVariants(variants), ...verifyMonotonicity(variants));
+    const safeVariants: Variant[] = [];
+    for (const variant of variants) {
+      const rawNotes = (variant as unknown as { notes?: unknown }).notes;
+      if (!Array.isArray(rawNotes)) {
+        failures.push(`${variant.level}: variant notes are not an array`);
+        continue;
+      }
+      const invalidVariantNotes = rawNotes.filter((note) => !finiteNote(note as Note)).length;
+      if (invalidVariantNotes) failures.push(`${variant.level}: ${invalidVariantNotes} non-finite or invalid MIDI notes`);
+      const validVariantNotes = rawNotes.filter((note): note is Note => finiteNote(note as Note));
+      if (!validVariantNotes.length) failures.push(`${variant.level} variant has no valid notes`);
+      safeVariants.push({ ...variant, notes: validVariantNotes });
+    }
+    // Validators assume note-shaped objects. Run them against the guarded
+    // view so malformed input produces a gate failure instead of a crash.
+    failures.push(...validateVariants(safeVariants), ...verifyMonotonicity(safeVariants));
   } else evaluated.push("variant validation unavailable (candidate-only)", "variant monotonicity unavailable (candidate-only)");
   const selectedMode = mode ?? "structural";
   let status: GateResult["status"] = failures.length ? "fail" : "pass";
@@ -899,8 +1043,20 @@ function qualityGate(
     mode: selectedMode,
     status,
     failures,
+    warnings,
     evaluated,
-    thresholds: { maxSimultaneity: 8, pianoMin: 21, pianoMax: 108, onsetToleranceBeats: ARRANGEMENT_EVALUATION_CONFIG.onsetToleranceBeats },
+    thresholds: {
+      maxSimultaneity: 8,
+      pianoMin: 21,
+      pianoMax: 108,
+      onsetToleranceBeats: ARRANGEMENT_EVALUATION_CONFIG.onsetToleranceBeats,
+      warningOnsetsPerSecond: ARRANGEMENT_EVALUATION_CONFIG.warningOnsetsPerSecond,
+      warningVeryShortRate: ARRANGEMENT_EVALUATION_CONFIG.warningVeryShortRate,
+      warningMinimumVeryShortNotes: ARRANGEMENT_EVALUATION_CONFIG.warningMinimumVeryShortNotes,
+      warningWallMinimumRun: ARRANGEMENT_EVALUATION_CONFIG.warningWallMinimumRun,
+      warningWallRate: ARRANGEMENT_EVALUATION_CONFIG.warningWallRate,
+      warningDurationMismatchBeats: ARRANGEMENT_EVALUATION_CONFIG.warningDurationMismatchBeats,
+    },
     availability: { variants: variants ? "evaluated" : "unavailable" },
   };
 }
@@ -928,13 +1084,46 @@ export function evaluateArrangement(input: ArrangementEvaluationInput): Arrangem
   const candidateNotes = notesFor(input.candidate);
   const parser = parserFor(input.candidate, candidateNotes);
   const windows = orderedWindows(input.windows ?? input.reference?.windows ?? []);
-  const bundle = metricBundle(candidateNotes, parser.tempoBpm, parser.durationBeats, input.candidate, input, input.expectedDurationBeats);
+  const referenceDuration = input.reference?.durationBeats ?? input.reference?.parsed?.durationBeats;
+  const hasReferenceDuration = referenceDuration !== undefined && Number.isFinite(referenceDuration) && referenceDuration >= 0;
+  const expectedDurationBeats = input.expectedDurationBeats ?? (hasReferenceDuration ? referenceDuration : undefined);
+  const durationMismatchBasis: GlobalMetrics["durationMismatch"]["basis"] = input.expectedDurationBeats !== undefined
+    ? "expected"
+    : hasReferenceDuration ? "reference" : "unavailable";
+  const bundle = metricBundle(
+    candidateNotes,
+    parser.tempoBpm,
+    parser.durationBeats,
+    input.candidate,
+    input,
+    expectedDurationBeats,
+    0,
+    durationMismatchBasis,
+  );
+  const referenceDurationBeats = input.reference?.durationBeats ?? input.reference?.parsed?.durationBeats;
+  if (input.expectedDurationBeats === undefined
+    && referenceDurationBeats !== undefined
+    && Number.isFinite(referenceDurationBeats)
+    && referenceDurationBeats >= 0) {
+    bundle.global.durationMismatch = {
+      value: round(parser.durationBeats - referenceDurationBeats),
+      basis: "reference",
+    };
+  }
   const variants: Record<string, VariantEvaluationMetrics> = {};
   for (const variant of input.variants ?? []) variants[variant.level] = variantMetrics(variant, input);
   const sections: Record<string, SectionEvaluationMetrics> = {};
   for (const window of windows) {
     const sectionNotes = cleanNotes(candidateNotes).filter((note) => note.start >= window.candidate[0] && note.start < window.candidate[1]);
-    const sectionBundle = metricBundle(sectionNotes, parser.tempoBpm, window.candidate[1] - window.candidate[0], input.candidate, input);
+    const sectionBundle = metricBundle(
+      sectionNotes,
+      parser.tempoBpm,
+      window.candidate[1] - window.candidate[0],
+      input.candidate,
+      input,
+      undefined,
+      window.candidate[0],
+    );
     sections[window.id] = {
       startBeat: window.candidate[0], endBeat: window.candidate[1], coverage: sectionBundle.global.coverage, global: sectionBundle.global, rightHand: sectionBundle.rightHand, leftHand: sectionBundle.leftHand,
       source: sectionBundle.source.final.all, guitar: { finalRightHandCount: sectionBundle.guitar.finalRightHandCount, finalLeftHandCount: sectionBundle.guitar.finalLeftHandCount },
@@ -951,7 +1140,15 @@ export function evaluateArrangement(input: ArrangementEvaluationInput): Arrangem
     metrics: { ...bundle, sections, variants },
     ...(referenceReport ? { reference: referenceReport } : {}),
     trace: orderedTrace(input.trace),
-    gate: qualityGate(candidateNotes, parser, input.variants, input.mode, parserMetadataValid(input.candidate), referenceReport?.status),
+    gate: qualityGate(
+      candidateNotes,
+      parser,
+      input.variants,
+      input.mode,
+      parserMetadataValid(input.candidate),
+      referenceReport?.status,
+      expectedDurationBeats,
+    ),
   };
   const canonical = canonicalEvaluationJson(reportWithoutDeterminism as ArrangementEvaluationReport);
   return { ...reportWithoutDeterminism, determinism: { canonicalSha256: sha256Hex(new TextEncoder().encode(canonical)) } };

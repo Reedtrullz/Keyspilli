@@ -18,6 +18,51 @@ export interface MetalArrangementInput {
   title?: string;
 }
 
+/** Stages exposed by the optional development provenance sidecar. */
+export type MetalArrangementTraceStage =
+  | "raw"
+  | "cleaned"
+  | "lead"
+  | "residual"
+  | "cluster"
+  | "semantic"
+  | "decision"
+  | "chord"
+  | "left-hand"
+  | "final";
+
+/**
+ * A path-free, numeric provenance event.  This type is deliberately separate
+ * from `Note`: trace references never enter serialized MIDI, IR, manifests, or
+ * the public player payload.
+ */
+export interface MetalArrangementTraceEvent {
+  key: string;
+  stage: MetalArrangementTraceStage;
+  parentKeys: string[];
+  source?: MetalStemRole | null;
+  sourceStem?: MetalStemRole | null;
+  note?: { midi: number; rawMidi?: number; start: number; dur: number; vel: number; hand?: "R" | "L" };
+  selected?: boolean;
+  selectionReason?: string;
+  confidence?: number;
+  semantic?: {
+    rootPc: number;
+    quality: GuitarHarmonicQuality;
+    bassSupported: boolean;
+    memberCount: number;
+  };
+}
+
+/** Development-only collector used by the local evaluator. */
+export interface MetalArrangementTraceSink {
+  record(event: MetalArrangementTraceEvent): void;
+}
+
+export interface MetalArrangementDebugOptions {
+  trace?: MetalArrangementTraceSink;
+}
+
 export interface MetalIdentitySection {
   startBeat: number;
   endBeat: number;
@@ -54,6 +99,39 @@ export interface MetalArrangementResult {
 const EPS = 1e-6;
 const SHARP_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
+function traceNote(note: IdentityNote | Note): MetalArrangementTraceEvent["note"] {
+  const internal = note as Note & { rawMidi?: number };
+  return {
+    midi: note.midi,
+    ...(internal.rawMidi === undefined ? {} : { rawMidi: internal.rawMidi }),
+    start: note.start,
+    dur: note.dur,
+    vel: note.vel,
+    ...(note.hand ? { hand: note.hand } : {}),
+  };
+}
+
+function traceParents(note: IdentityNote | Note): string[] {
+  const internal = note as Note & { traceRefs?: readonly string[] };
+  return internal.traceRefs ? [...internal.traceRefs].sort() : [];
+}
+
+function emitTrace(
+  sink: MetalArrangementTraceSink | undefined,
+  event: MetalArrangementTraceEvent,
+): void {
+  if (!sink) return;
+  sink.record({
+    ...event,
+    parentKeys: [...event.parentKeys].sort(),
+  });
+}
+
+function stripInternalIdentity(note: IdentityNote): Note {
+  const { rawMidi: _rawMidi, traceRefs: _traceRefs, traceSourceStem: _traceSourceStem, ...publicNote } = note;
+  return publicNote;
+}
+
 function isMetalInstrumentalSource(source: Note["identitySource"]): source is "guitar" | "other" {
   return source === "guitar" || source === "other";
 }
@@ -82,6 +160,63 @@ function validNotes(stem: MetalStem | undefined): Note[] {
     .sort((a, b) => a.start - b.start || b.vel - a.vel || b.midi - a.midi);
 }
 
+function traceRawNotes(
+  stem: MetalStem | undefined,
+  role: MetalStemRole,
+  sink: MetalArrangementTraceSink | undefined,
+): IdentityNote[] {
+  if (!stem) return [];
+  const actualRole = stem.sourceStem ?? role;
+  const identitySource = actualRole === "vocals" || actualRole === "guitar" || actualRole === "other"
+    ? actualRole
+    : undefined;
+  // Canonical ordering makes IDs stable under input-note reordering. Exact
+  // duplicates receive occurrence suffixes; they are indistinguishable by
+  // content, so the suffix is deterministic regardless of source order.
+  const counts = new Map<string, number>();
+  const sourceNotes = validNotes(stem);
+  // Keep the historical `validNotes` order when tracing is disabled. The
+  // sidecar is opt-in and must not perturb public arrangement decisions.
+  if (!sink) return sourceNotes as IdentityNote[];
+  const canonical = sourceNotes.slice().sort((a, b) =>
+    a.start - b.start || a.midi - b.midi || a.dur - b.dur || a.vel - b.vel
+    || (a.lyrics ?? "").localeCompare(b.lyrics ?? ""));
+  const ids = new Map<Note, string>();
+  const canonicalCounts = new Map<string, number>();
+  for (const note of canonical) {
+    const tuple = `${note.start.toFixed(6)}:${note.midi}:${note.dur.toFixed(6)}:${note.vel}:${note.lyrics ?? ""}`;
+    const occurrence = canonicalCounts.get(tuple) ?? 0;
+    canonicalCounts.set(tuple, occurrence + 1);
+    ids.set(note, `raw:${actualRole}:${tuple}:${occurrence}`);
+  }
+  return sourceNotes.map((note) => {
+    const tuple = `${note.start.toFixed(6)}:${note.midi}:${note.dur.toFixed(6)}:${note.vel}:${note.lyrics ?? ""}`;
+    const occurrence = counts.get(tuple) ?? 0;
+    counts.set(tuple, occurrence + 1);
+    // Object identity is unique for duplicate entries in a parsed source;
+    // the tuple fallback keeps synthetic callers safe if they reuse objects.
+    const key = ids.get(note) ?? `raw:${actualRole}:${tuple}:${occurrence}`;
+    const tagged: IdentityNote = {
+      ...note,
+      ...(identitySource ? { identitySource } : {}),
+      traceRefs: [key],
+      traceSourceStem: actualRole,
+    };
+    emitTrace(sink, {
+      key,
+      stage: "raw",
+      parentKeys: [],
+      source: identitySource ?? null,
+      sourceStem: actualRole,
+      note: traceNote({ ...tagged, rawMidi: note.midi }),
+      selected: true,
+      selectionReason: "source-note",
+      ...(stem.confidence === undefined ? {} : { confidence: stem.confidence }),
+    });
+    return tagged;
+  });
+}
+
 interface MonophonicPathOptions {
   /** Prefer a plausible upper lead tone over lower rhythm/accompaniment bleed. */
   preferUpperLead?: boolean;
@@ -92,7 +227,13 @@ interface MonophonicPathOptions {
 }
 
 /** Internal source pitch retained until boundary cleanup is complete. */
-type IdentityNote = Note & { rawMidi?: number };
+type IdentityNote = Note & {
+  rawMidi?: number;
+  /** Internal source-event references; stripped before any public result. */
+  traceRefs?: readonly string[];
+  /** Original separated stem role, useful when a routing alias is used. */
+  traceSourceStem?: MetalStemRole;
+};
 
 type MonophonicCandidate = IdentityNote & { rawMidi: number };
 
@@ -150,6 +291,8 @@ interface GuitarHarmonicAttack {
   bassSupported: boolean;
   memberCount: number;
   lowMemberCount: number;
+  /** Internal raw-source lineage for the optional debug trace. */
+  traceRefs?: readonly string[];
 }
 
 export interface GuitarHarmonyDiagnostics {
@@ -2553,6 +2696,7 @@ function inferSemanticGuitarHarmony(
       + (bassSupported ? 0.18 : 0)
       + ((strongMinor || strongMajor || repeatedMinor || repeatedMajor) ? 0.1 : 0)
       + clamp(item.rootMargin / 8, 0, 0.1)) * clamp(stemConfidence, 0, 1), 0, 1);
+    const traceRefs = [...new Set(item.cluster.notes.flatMap((note) => (note as IdentityNote).traceRefs ?? []))].sort();
     attacks.push({
       start: item.cluster.start,
       dur: Math.max(0.25, Math.min(1.5, Math.max(...item.cluster.notes.map((note) => note.dur)))),
@@ -2565,6 +2709,7 @@ function inferSemanticGuitarHarmony(
       bassSupported,
       memberCount: item.cluster.notes.length,
       lowMemberCount: item.cluster.notes.filter((note) => note.midi <= 60).length,
+      ...(traceRefs.length ? { traceRefs } : {}),
     });
     diagnostics.qualityCounts[quality] += 1;
     if (bassSupported) diagnostics.bassSupportedRoots += 1;
@@ -2659,7 +2804,10 @@ function uniqueSorted(notes: Note[]): Note[] {
  * arrangement. Drums contribute timing accents only; they are never emitted
  * as pitched notes.
  */
-export function buildMetalArrangement(input: MetalArrangementInput): MetalArrangementResult {
+export function buildMetalArrangement(
+  input: MetalArrangementInput,
+  debug: MetalArrangementDebugOptions = {},
+): MetalArrangementResult {
   if (!input.stems.length) throw new Error("Metal arrangement requires at least one stem");
   const reference = input.stems.find((stem) => stem.role !== "drums")?.midi ?? input.stems[0]!.midi;
   const tempoBpm = reference.tempoBpm;
@@ -2694,13 +2842,47 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
     ?? (roleGuitarStem?.sourceStem === "other" ? roleGuitarStem : undefined);
   const bassStem = input.stems.find((stem) => stem.role === "bass");
   const drumsStem = input.stems.find((stem) => stem.role === "drums");
-  const vocalRaw = filterLowVocalDroneNotes(validNotes(vocalsStem));
+  const trace = debug.trace;
+  const vocalSourceNotes = traceRawNotes(vocalsStem, "vocals", trace);
+  const guitarRaw = traceRawNotes(guitarStem, "guitar", trace);
+  const otherRaw = traceRawNotes(otherStem, "other", trace);
+  const bass = traceRawNotes(bassStem, "bass", trace);
+  const drums = traceRawNotes(drumsStem, "drums", trace);
+  const vocalRaw = filterLowVocalDroneNotes(vocalSourceNotes);
+  const retainedVocalRaw = new Set(vocalRaw);
+  for (const note of vocalSourceNotes) {
+    const key = traceParents(note)[0];
+    if (!key) continue;
+    const retained = retainedVocalRaw.has(note);
+    emitTrace(trace, {
+      key: `cleaned:${key}`,
+      stage: "cleaned",
+      parentKeys: [key],
+      source: "vocals",
+      sourceStem: "vocals",
+      note: traceNote({ ...note, rawMidi: note.midi }),
+      selected: retained,
+      selectionReason: retained ? "vocal-candidate-retained" : "low-vocal-drone-or-wall",
+    });
+  }
   const vocals = monophonicPath(vocalRaw, 60, 96, { exactOctaveWindow: 0.5 })
     .map((note) => ({ ...note, identitySource: "vocals" as const }));
+  if (trace) {
+    for (const [index, note] of vocals.entries()) {
+      const parents = traceParents(note);
+      emitTrace(trace, {
+        key: `lead:vocals:${index}:${note.start.toFixed(6)}`,
+        stage: "lead",
+        parentKeys: parents,
+        source: "vocals",
+        sourceStem: note.traceSourceStem ?? "vocals",
+        note: traceNote(note),
+        selected: true,
+        selectionReason: "monophonic-vocal-lead",
+      });
+    }
+  }
   const trustedVocals = trustworthyVocalNotes(vocals);
-  const guitarRaw = validNotes(guitarStem);
-  const otherRaw = validNotes(otherStem);
-  const bass = validNotes(bassStem);
   const guitarUpperRaw = supportedUpperRawNotes(guitarRaw);
   const otherUpperRaw = supportedUpperRawNotes(otherRaw);
   const guitarUpperEvidence = upperHarmonicPath(guitarRaw, "guitar");
@@ -2782,6 +2964,48 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
   const otherLanes = suppressLowGuitarPulseRuns(otherPath, [...guitarPath, ...sharedUpperEvidence]);
   const other = otherLanes.lead;
   const rhythmOther = [...otherLanes.rhythm, ...otherRawRhythm];
+  const emitPathTrace = (
+    stage: "lead" | "residual",
+    rawNotes: IdentityNote[],
+    selectedNotes: IdentityNote[],
+    source: "guitar" | "other",
+  ): void => {
+    if (!trace) return;
+    const selectedRefs = new Set(selectedNotes.flatMap((note) => traceParents(note)));
+    for (const raw of rawNotes) {
+      const rawKey = traceParents(raw)[0];
+      if (!rawKey) continue;
+      const selected = selectedRefs.has(rawKey);
+      emitTrace(trace, {
+        key: `${stage}:${rawKey}`,
+        stage,
+        parentKeys: [rawKey],
+        source,
+        sourceStem: raw.traceSourceStem ?? source,
+        note: traceNote({ ...raw, rawMidi: raw.midi }),
+        selected,
+        selectionReason: selected
+          ? stage === "lead" ? "selected-lead-event" : "selected-residual-contour"
+          : stage === "lead" ? "rejected-harmonic-or-rhythm-candidate" : "rejected-residual-partial",
+      });
+    }
+  };
+  emitPathTrace("lead", guitarRaw, guitar, "guitar");
+  emitPathTrace("residual", otherRaw, other, "other");
+  for (const rhythm of [...rhythmGuitar, ...rhythmOther]) {
+    const parents = traceParents(rhythm);
+    if (!parents.length) continue;
+    emitTrace(trace, {
+      key: `decision:rhythm:${parents[0]}`,
+      stage: "decision",
+      parentKeys: parents,
+      source: rhythm.identitySource ?? null,
+      sourceStem: rhythm.traceSourceStem ?? rhythm.identitySource ?? null,
+      note: traceNote({ ...rhythm, rawMidi: rhythm.rawMidi ?? rhythm.midi }),
+      selected: false,
+      selectionReason: "rhythm-wall-routed-out-of-RH",
+    });
+  }
   const dedicatedGuitarHarmony = guitarStem
     ? inferSemanticGuitarHarmony(guitarRaw, guitarPath, bass, "guitar", guitarStem.confidence)
     : { attacks: [], diagnostics: freshGuitarHarmonyDiagnostics() };
@@ -2805,15 +3029,54 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
   // window and therefore has no raw notes in that tail window.
   if (residualFallbackPhrases > 0) residualGuitarHarmony.diagnostics.fallbackWindows = residualFallbackPhrases;
   const guitarHarmony = guitarStem ? dedicatedGuitarHarmony : residualGuitarHarmony;
+  for (const [index, attack] of guitarHarmony.attacks.entries()) {
+    const parents = attack.traceRefs ? [...attack.traceRefs].sort() : [];
+    const clusterKey = `cluster:${attack.source}:${attack.start.toFixed(6)}:${index}`;
+    const semanticKey = `semantic:${attack.source}:${attack.start.toFixed(6)}:${index}`;
+    emitTrace(trace, {
+      key: clusterKey,
+      stage: "cluster",
+      parentKeys: parents,
+      source: attack.source,
+      sourceStem: attack.source,
+      selected: true,
+      selectionReason: "onset-cluster",
+      confidence: attack.confidence,
+      semantic: {
+        rootPc: attack.rootPc,
+        quality: attack.quality,
+        bassSupported: attack.bassSupported,
+        memberCount: attack.memberCount,
+      },
+    });
+    emitTrace(trace, {
+      key: semanticKey,
+      stage: "semantic",
+      parentKeys: [clusterKey],
+      source: attack.source,
+      sourceStem: attack.source,
+      selected: true,
+      selectionReason: "semantic-harmonic-attack",
+      confidence: attack.confidence,
+      semantic: {
+        rootPc: attack.rootPc,
+        quality: attack.quality,
+        bassSupported: attack.bassSupported,
+        memberCount: attack.memberCount,
+      },
+    });
+  }
   // Semantic guitar roots replace duplicate raw guitar stack evidence for
   // harmony only. The selected lead and residual `other` fallback remain
   // independent, so this cannot erase a playable RH contour.
-  const semanticEvidence: IdentityNote[] = guitarHarmony.attacks.map((attack) => ({
+  const semanticEvidence: IdentityNote[] = guitarHarmony.attacks.map((attack, index) => ({
     midi: attack.rootMidi,
     start: attack.start,
     dur: attack.dur,
     vel: Math.round(70 + attack.confidence * 40),
     identitySource: attack.source,
+    traceRefs: [`semantic:${attack.source}:${attack.start.toFixed(6)}:${index}`],
+    traceSourceStem: attack.source,
   }));
   const selectedHarmonicEvidence: IdentityNote[] = [
     ...semanticEvidence,
@@ -2972,7 +3235,19 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
     55,
     96,
   );
-  const publicIdentity = stabilizedIdentity.map(({ rawMidi: _rawMidi, ...note }) => note);
+  for (const [index, note] of stabilizedIdentity.entries()) {
+    emitTrace(trace, {
+      key: `decision:identity:${index}:${note.start.toFixed(6)}:${note.midi}`,
+      stage: "decision",
+      parentKeys: traceParents(note),
+      source: note.identitySource ?? null,
+      sourceStem: note.traceSourceStem ?? note.identitySource ?? null,
+      note: traceNote(note),
+      selected: true,
+      selectionReason: "identity-window-and-register-selection",
+    });
+  }
+  const publicIdentity = stabilizedIdentity.map(stripInternalIdentity);
   const chords: ChordLabel[] = [];
   const leftHand: Note[] = [];
   let previousRoot: number | undefined;
@@ -3001,6 +3276,29 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
     previousRoot = rootPc;
     const chord = chordFor(rootPc, evidence, semanticReliable ? semantic?.quality : undefined);
     const duration = Math.max(0.25, end - beat);
+    const semanticIndex = semantic ? guitarHarmony.attacks.indexOf(semantic) : -1;
+    const semanticParent = semanticIndex >= 0
+      ? `semantic:${semantic!.source}:${semantic!.start.toFixed(6)}:${semanticIndex}`
+      : undefined;
+    const chordKey = `chord:${beat.toFixed(6)}`;
+    emitTrace(trace, {
+      key: chordKey,
+      stage: "chord",
+      parentKeys: semanticParent ? [semanticParent] : [],
+      source: semantic?.source ?? null,
+      sourceStem: semantic?.source ?? null,
+      selected: true,
+      selectionReason: semanticReliable ? "semantic-harmony-chord" : "raw-harmony-fallback",
+      ...(semantic ? {
+        confidence: semantic.confidence,
+        semantic: {
+          rootPc: semantic.rootPc,
+          quality: semantic.quality,
+          bassSupported: semantic.bassSupported,
+          memberCount: semantic.memberCount,
+        },
+      } : {}),
+    });
     chords.push({
       beat,
       name: chord.name,
@@ -3011,31 +3309,54 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
       durationBeats: duration,
     });
     const root = chord.notes[0]!;
-    leftHand.push({ midi: root, start: beat, dur: Math.min(duration, 1.5), vel: 68, hand: "L" });
+    leftHand.push({ midi: root, start: beat, dur: Math.min(duration, 1.5), vel: 68, hand: "L", traceRefs: [chordKey] } as Note & { traceRefs: string[] });
+    emitTrace(trace, {
+      key: `left-hand:${chordKey}:root`,
+      stage: "left-hand",
+      parentKeys: [chordKey],
+      source: semantic?.source ?? null,
+      sourceStem: semantic?.source ?? null,
+      note: { midi: root, start: beat, dur: Math.min(duration, 1.5), vel: 68, hand: "L" },
+      selected: true,
+      selectionReason: semanticReliable ? "inferred-chord-root" : "raw-harmony-root-fallback",
+    });
     if (chord.notes.length > 1) {
       const fifth = chord.notes.find((note) => note % 12 === (rootPc! + 7) % 12);
-      if (fifth !== undefined) leftHand.push({ midi: fifth, start: beat, dur: Math.min(duration, 1.5), vel: 62, hand: "L" });
+      if (fifth !== undefined) {
+        leftHand.push({ midi: fifth, start: beat, dur: Math.min(duration, 1.5), vel: 62, hand: "L", traceRefs: [chordKey] } as Note & { traceRefs: string[] });
+        emitTrace(trace, {
+          key: `left-hand:${chordKey}:fifth`,
+          stage: "left-hand",
+          parentKeys: [chordKey],
+          source: semantic?.source ?? null,
+          sourceStem: semantic?.source ?? null,
+          note: { midi: fifth, start: beat, dur: Math.min(duration, 1.5), vel: 62, hand: "L" },
+          selected: true,
+          selectionReason: semanticReliable ? "inferred-chord-fifth" : "raw-harmony-fifth-fallback",
+        });
+      }
     }
   }
 
   // A singleton semantic attack is a possible melodic lead, not an
   // accompaniment event. Multi-note stacks become one source-tagged LH root
   // strike, including the common low-root + selected-upper-fifth case.
-  const semanticLeftHand: Note[] = [];
+  const semanticLeftHand: IdentityNote[] = [];
   const semanticSeen = new Set<string>();
-  for (const attack of guitarHarmony.attacks.filter((candidate) => candidate.memberCount >= 2
-    && candidate.confidence >= 0.5
-    && (candidate.quality === "power"
-      || candidate.quality === "major"
-      || candidate.quality === "minor"
-      || candidate.quality === "sus2"
-      || candidate.quality === "sus4"
-      || candidate.quality === "single"
-      || candidate.quality === "unknown"))) {
+  for (const [attackIndex, attack] of guitarHarmony.attacks.entries()) {
+    if (attack.memberCount < 2 || attack.confidence < 0.5
+      || !(attack.quality === "power"
+        || attack.quality === "major"
+        || attack.quality === "minor"
+        || attack.quality === "sus2"
+        || attack.quality === "sus4"
+        || attack.quality === "single"
+        || attack.quality === "unknown")) continue;
     const midi = toRegister(attack.rootMidi, 36, 54);
     const key = `${attack.source}:${midi}:${attack.start.toFixed(4)}`;
     if (semanticSeen.has(key)) continue;
     semanticSeen.add(key);
+    const semanticTraceKey = `semantic:${attack.source}:${attack.start.toFixed(6)}:${attackIndex}`;
     semanticLeftHand.push({
       midi,
       start: attack.start,
@@ -3043,6 +3364,25 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
       vel: 58,
       hand: "L",
       identitySource: attack.source,
+      traceRefs: [semanticTraceKey],
+      traceSourceStem: attack.source,
+    });
+    emitTrace(trace, {
+      key: `left-hand:${semanticTraceKey}`,
+      stage: "left-hand",
+      parentKeys: [semanticTraceKey],
+      source: attack.source,
+      sourceStem: attack.source,
+      note: { midi, start: attack.start, dur: Math.min(attack.dur, 0.75), vel: 58, hand: "L" },
+      selected: true,
+      selectionReason: "semantic-rhythm-root",
+      confidence: attack.confidence,
+      semantic: {
+        rootPc: attack.rootPc,
+        quality: attack.quality,
+        bassSupported: attack.bassSupported,
+        memberCount: attack.memberCount,
+      },
     });
   }
   const appendTaggedLeftHand = (note: Note): void => {
@@ -3098,8 +3438,24 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
     });
   }
 
-  const rhythmicAccents = validNotes(drumsStem).map((note) => note.start).filter((beat, index, all) => index === 0 || beat - all[index - 1]! >= 0.125);
-  const notes = uniqueSorted([...publicIdentity.map((note) => ({ ...note, hand: "R" as const })), ...leftHand]);
+  const rhythmicAccents = drums.map((note) => note.start).filter((beat, index, all) => index === 0 || beat - all[index - 1]! >= 0.125);
+  const preFinalNotes: IdentityNote[] = [
+    ...stabilizedIdentity.map((note) => ({ ...note, hand: "R" as const })),
+    ...leftHand.map((note) => ({ ...note } as IdentityNote)),
+  ];
+  for (const [index, note] of preFinalNotes.entries()) {
+    emitTrace(trace, {
+      key: `final:${note.hand === "L" ? "L" : "R"}:${index}:${note.start.toFixed(6)}:${note.midi}`,
+      stage: "final",
+      parentKeys: traceParents(note),
+      source: note.identitySource ?? null,
+      sourceStem: note.traceSourceStem ?? note.identitySource ?? null,
+      note: traceNote(note),
+      selected: true,
+      selectionReason: note.hand === "L" ? "left-hand-emission" : "right-hand-identity",
+    });
+  }
+  const notes = uniqueSorted(preFinalNotes.map(stripInternalIdentity));
   const emittedSemanticKeys = new Set(notes
     .filter((note) => note.hand === "L" && note.identitySource)
     .map((note) => `${note.identitySource}:${note.midi}:${note.start.toFixed(4)}`));

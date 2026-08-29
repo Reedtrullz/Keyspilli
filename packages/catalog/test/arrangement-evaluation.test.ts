@@ -280,4 +280,105 @@ describe("arrangement evaluation", () => {
     });
     expect(report.metrics.global.durationMismatch).toEqual({ value: -4, basis: "expected" });
   });
+
+  it("clips section coverage to the section's absolute beat window", () => {
+    const notes: Note[] = [{ midi: 60, start: 8, dur: 2, vel: 90, hand: "R" }];
+    const report = evaluateArrangement({
+      ...input(notes),
+      windows: [{ id: "late", candidate: [8, 12] }],
+    });
+    expect(report.metrics.sections.late?.coverage).toEqual({
+      firstBeat: 8,
+      lastBeat: 10,
+      activeBeats: 2,
+      ratio: 0.5,
+    });
+  });
+
+  it("keeps bass attribution tri-state when Note provenance cannot carry it", () => {
+    const report = evaluateArrangement(input([
+      { midi: 40, start: 0, dur: 1, vel: 90, hand: "L", identitySource: "guitar" },
+    ]));
+    expect(report.metrics.source.final.all.bass).toBeNull();
+    expect(report.metrics.source.final.left.bass).toBeNull();
+  });
+
+  it("separates close attacks from repeated-pitch attacks", () => {
+    const report = evaluateArrangement(input([
+      { midi: 60, start: 0, dur: 1, vel: 90, hand: "R" },
+      { midi: 62, start: 0.25, dur: 1, vel: 90, hand: "R" },
+      { midi: 60, start: 0.5, dur: 1, vel: 90, hand: "R" },
+      { midi: 60, start: 0.75, dur: 1, vel: 90, hand: "R" },
+    ]));
+    expect(report.metrics.global.closeAttackRate).toBe(1);
+    expect(report.metrics.global.repeatedAttackRate).toBe(0.333);
+  });
+
+  it("fails the structural gate for invalid variant notes without crashing evaluation", () => {
+    const invalidVariant = {
+      level: "easy",
+      difficultyScore: 0.4,
+      notes: [{ midi: Number.NaN, start: 0, dur: 1, vel: 90, hand: "R" }],
+      chords: [],
+      bassPattern: "root-fifth",
+      key: "C",
+      tempoBpm: 120,
+      timeSig: [4, 4],
+      measures: [{ index: 0, startBeat: 0, endBeat: 4 }],
+    } as unknown as Variant;
+    const report = evaluateArrangement({
+      ...input([{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }]),
+      variants: [invalidVariant],
+    });
+    expect(report.gate.status).toBe("fail");
+    expect(report.gate.failures).toContain("easy: 1 non-finite or invalid MIDI notes");
+  });
+
+  it("reports suspicious output shape as non-blocking quality warnings", () => {
+    const notes: Note[] = Array.from({ length: 32 }, (_, index) => ({
+      midi: 60,
+      start: index * 0.125,
+      dur: 0.0625,
+      vel: 90,
+      hand: "R" as const,
+    }));
+    const report = evaluateArrangement(input(notes));
+    expect(report.gate.status).toBe("pass");
+    expect(report.gate.warnings).toEqual(expect.arrayContaining([
+      "onset density 16/s exceeds warning threshold 12/s",
+      "very-short notes 32/32 (1) exceed warning rate 0.8",
+      "R repeated-pitch wall run 32 attacks (100% of right-hand onsets)",
+    ]));
+  });
+
+  it("warns when a candidate has no right-hand events without failing the structural gate", () => {
+    const report = evaluateArrangement(input([
+      { midi: 48, start: 0, dur: 1, vel: 90, hand: "L" },
+    ]));
+    expect(report.gate.status).toBe("pass");
+    expect(report.gate.warnings).toContain("candidate has no right-hand events");
+  });
+
+  it("warns on a material explicit duration mismatch", () => {
+    const report = evaluateArrangement({
+      ...input([{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }]),
+      expectedDurationBeats: 8,
+    });
+    expect(report.gate.status).toBe("pass");
+    expect(report.gate.warnings).toContain("candidate duration differs from expected by 4 beats");
+  });
+
+  it("reports reference duration mismatch with an explicit reference basis", () => {
+    const candidate = parsed([{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }]);
+    candidate.durationBeats = 12;
+    const reference = parsed([{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }]);
+    reference.durationBeats = 8;
+    const report = evaluateArrangement({
+      fixture: { id: "reference-duration" },
+      candidate: { selector: "candidate.mid", parsed: candidate },
+      reference: { selector: "reference.mid", parsed: reference, windows: [{ id: "body", candidate: [0, 4], reference: [0, 4] }] },
+      windows: [{ id: "body", candidate: [0, 4], reference: [0, 4] }],
+    });
+    expect(report.metrics.global.durationMismatch).toEqual({ value: 4, basis: "reference" });
+  });
 });

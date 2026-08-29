@@ -23,6 +23,7 @@ import {
   buildVariants,
   parseMidi,
   writeMidi,
+  type MetalArrangementTraceEvent,
   type MetalStem,
   type Note,
   type ParsedMidi,
@@ -46,6 +47,7 @@ interface CliOptions {
   revision?: string;
   mode: "structural" | "reference" | "human";
   expectedDurationBeats?: number;
+  traceOut?: string;
   windows: EvaluationWindow[];
 }
 
@@ -64,6 +66,7 @@ function usage(): string {
     "  --revision TEXT         optional candidate revision label",
     "  --mode structural|reference|human",
     "  --expected-duration N   optional candidate duration expectation in beats",
+    "  --trace-out FILE       write optional development provenance trace (stems only)",
     "  --out FILE              write report here; otherwise print JSON to stdout",
   ].join("\n");
 }
@@ -123,6 +126,7 @@ function parseArgs(argv: string[]): CliOptions {
       case "--label": result.label = value(); break;
       case "--revision": result.revision = value(); break;
       case "--expected-duration": result.expectedDurationBeats = parseNumber(value(), "--expected-duration"); break;
+      case "--trace-out": result.traceOut = value(); break;
       case "--mode": {
         const mode = value();
         if (mode !== "structural" && mode !== "reference" && mode !== "human") throw new Error(`unsupported --mode: ${mode}`);
@@ -207,6 +211,18 @@ function rejectReferenceInsideRepo(path: string): void {
   }
 }
 
+function orderedTraceEvents(events: MetalArrangementTraceEvent[]): MetalArrangementTraceEvent[] {
+  const compareText = (a: string, b: string): number => a < b ? -1 : a > b ? 1 : 0;
+  return events
+    .map((event) => ({
+      ...event,
+      ...(event.parentKeys ? { parentKeys: [...event.parentKeys].sort(compareText) } : {}),
+    }))
+    .sort((a, b) => compareText(a.key, b.key)
+      || compareText(a.stage, b.stage)
+      || compareText(a.source ?? "", b.source ?? ""));
+}
+
 async function run(options: CliOptions): Promise<string> {
   // Resolve and validate the reference before any potentially expensive stem
   // arrangement work.  The content is not read until the repository guard has
@@ -216,12 +232,17 @@ async function run(options: CliOptions): Promise<string> {
 
   let candidate: ArrangementEvaluationCandidate;
   let variants;
+  const traceEvents: MetalArrangementTraceEvent[] = [];
+  const traceSink = options.traceOut
+    ? { record: (event: MetalArrangementTraceEvent): void => { traceEvents.push(event); } }
+    : undefined;
   if (options.candidate) {
+    if (options.traceOut) throw new Error("--trace-out requires --stems; candidate MIDI has no source lineage");
     const loaded = await midiFile(options.candidate, "candidate");
     candidate = { selector: loaded.path, bytes: loaded.bytes, parsed: loaded.parsed };
   } else {
     const stems = await loadStems(options.stems!);
-    const arrangement = buildMetalArrangement({ stems, title: options.fixtureId });
+    const arrangement = buildMetalArrangement({ stems, title: options.fixtureId }, traceSink ? { trace: traceSink } : undefined);
     const bytes = generatedBytes(arrangement.parsed);
     // Metrics must describe the exact bytes whose hash is reported.  MIDI
     // serialization quantizes beat positions and may alter track metadata, so
@@ -252,6 +273,7 @@ async function run(options: CliOptions): Promise<string> {
   }
 
   const reference = referencePath ? await midiFileResolved(referencePath, "reference") : undefined;
+  const stableTraceEvents = orderedTraceEvents(traceEvents);
   const input: ArrangementEvaluationInput = {
     fixture: { id: options.fixtureId, ...(options.label ? { label: options.label } : {}) },
     candidate: { ...candidate, ...(options.revision ? { revision: options.revision } : {}) },
@@ -260,8 +282,15 @@ async function run(options: CliOptions): Promise<string> {
     variants,
     mode: options.mode,
     expectedDurationBeats: options.expectedDurationBeats,
+    ...(stableTraceEvents.length ? { trace: { status: "available" as const, events: stableTraceEvents } } : {}),
   };
-  return canonicalEvaluationJson(evaluateArrangement(input));
+  const output = canonicalEvaluationJson(evaluateArrangement(input));
+  if (options.traceOut) {
+    const tracePath = resolve(options.traceOut);
+    await mkdir(dirname(tracePath), { recursive: true });
+    await writeFile(tracePath, JSON.stringify({ schemaVersion: 1, events: stableTraceEvents }, null, 2) + "\n", "utf8");
+  }
+  return output;
 }
 
 export async function main(argv = process.argv.slice(2)): Promise<void> {

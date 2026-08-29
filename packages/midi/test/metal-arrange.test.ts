@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildMetalArrangement, buildVariants, parseChordSymbol, selectGuitarLeadPath, validateVariants, verifyMonotonicity } from "../src/index.js";
-import type { Note, ParsedMidi } from "../src/index.js";
+import type { MetalArrangementTraceEvent, Note, ParsedMidi } from "../src/index.js";
 
 function midi(notes: Note[], durationBeats = 16): ParsedMidi {
   return {
@@ -2456,5 +2456,78 @@ describe("metal piano arranger", () => {
     expect(second).toEqual(first);
     expect(first.notes.every((note) => note.identitySource === "guitar")).toBe(true);
     expect(first.notes.some((note) => note.midi === 36 || note.midi === 35 || note.midi === 84 || note.midi === 76)).toBe(false);
+  });
+
+  it("keeps the optional provenance trace private, linked, and deterministic", () => {
+    const input = {
+      stems: [
+        { role: "vocals" as const, midi: midi([
+          { midi: 72, start: 1, dur: 0.5, vel: 104 },
+          { midi: 74, start: 3, dur: 0.5, vel: 100 },
+        ], 8) },
+        { role: "guitar" as const, confidence: 0.9, midi: midi([
+          { midi: 48, start: 0, dur: 0.8, vel: 100 },
+          { midi: 55, start: 0.01, dur: 0.75, vel: 92 },
+          { midi: 72, start: 0, dur: 0.6, vel: 108 },
+          { midi: 50, start: 2, dur: 0.8, vel: 100 },
+          { midi: 57, start: 2.01, dur: 0.75, vel: 92 },
+          { midi: 74, start: 2, dur: 0.6, vel: 104 },
+        ], 8) },
+        { role: "other" as const, midi: midi([
+          { midi: 65, start: 4, dur: 0.35, vel: 48 },
+        ], 8) },
+        { role: "bass" as const, midi: midi([
+          { midi: 36, start: 0, dur: 4, vel: 100 },
+        ], 8) },
+        { role: "drums" as const, midi: midi([
+          { midi: 36, start: 0, dur: 0.1, vel: 120 },
+        ], 8) },
+      ],
+    };
+
+    const plain = buildMetalArrangement(input);
+    const firstTrace: MetalArrangementTraceEvent[] = [];
+    const traced = buildMetalArrangement(input, { trace: { record: (event) => firstTrace.push(event) } });
+    expect(traced).toEqual(plain);
+
+    const hiddenKeys = ["rawMidi", "traceRefs", "traceSourceStem"];
+    const publicJson = JSON.stringify(plain);
+    for (const hiddenKey of hiddenKeys) expect(publicJson).not.toContain(hiddenKey);
+    for (const note of [...plain.parsed.notes, ...plain.ir.identity]) {
+      for (const hiddenKey of hiddenKeys) expect(hiddenKey in note).toBe(false);
+    }
+
+    const stages = new Set(firstTrace.map((event) => event.stage));
+    for (const stage of ["raw", "cleaned", "lead", "residual", "cluster", "semantic", "decision", "chord", "left-hand", "final"] as const) {
+      expect(stages.has(stage), `trace should contain ${stage} events`).toBe(true);
+    }
+    const byKey = new Map(firstTrace.map((event) => [event.key, event]));
+    for (const event of firstTrace.filter((candidate) => candidate.stage === "cluster" || candidate.stage === "semantic" || candidate.stage === "final")) {
+      expect(event.parentKeys.length, `${event.stage} event ${event.key} should have parents`).toBeGreaterThan(0);
+      for (const parentKey of event.parentKeys) expect(byKey.has(parentKey)).toBe(true);
+    }
+    const semantic = firstTrace.find((event) => event.stage === "semantic");
+    expect(semantic?.semantic).toEqual(expect.objectContaining({ quality: expect.any(String), memberCount: expect.any(Number) }));
+    const semanticLeftHand = firstTrace.find((event) => event.stage === "left-hand" && event.selectionReason === "semantic-rhythm-root");
+    expect(semanticLeftHand?.parentKeys).toContain(semantic?.key);
+    expect(firstTrace.some((event) => event.stage === "final" && event.note?.hand === "L" && event.parentKeys.includes(semantic?.key ?? ""))).toBe(true);
+    expect(firstTrace.filter((event) => event.stage === "final").every((event) => event.sourceStem !== "drums")).toBe(true);
+    expect(firstTrace.some((event) => event.stage === "raw" && event.sourceStem === "drums")).toBe(true);
+
+    const canonicalTrace = (events: MetalArrangementTraceEvent[]) => events
+      .map((event) => ({
+        ...event,
+        parentKeys: [...event.parentKeys].sort(),
+      }))
+      .sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)));
+    const reordered = {
+      stems: input.stems
+        .map((stem) => ({ ...stem, midi: { ...stem.midi, notes: [...stem.midi.notes].reverse() } }))
+        .reverse(),
+    };
+    const secondTrace: MetalArrangementTraceEvent[] = [];
+    const reorderedResult = buildMetalArrangement(reordered, { trace: { record: (event) => secondTrace.push(event) } });
+    expect(reorderedResult).toEqual(plain);
+    expect(canonicalTrace(secondTrace)).toEqual(canonicalTrace(firstTrace));
   });
 });
