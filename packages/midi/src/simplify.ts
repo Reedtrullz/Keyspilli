@@ -4,6 +4,7 @@ import { quantize } from "./quantize.js";
 import { LADDER_TOL, PLAYABILITY_LIMITS } from "./validate.js";
 import { sanitizeImportedNotes } from "./clean.js";
 import { validateChordLabels } from "./chords.js";
+import { selectGuitarLeadPath } from "./metal-arrange.js";
 
 export interface VariantOptions {
   /** 16th-note grid (beats) used for note slicing */
@@ -743,6 +744,49 @@ function selectMetalInstrumentalContour(
 }
 
 /**
+ * Apply the source-locked guitar tracker only to phrases that contain enough
+ * temporal spread to represent a lead contour.  Very dense detector runs are
+ * intentionally left to the existing learner scheduler: they already have a
+ * level-specific spacing policy and forcing the source tracker onto them can
+ * make the easier ladder collapse to the same attack set.  The helper returns
+ * only notes that were present in the input phrase; it never synthesizes a
+ * replacement pitch or changes any note payload.
+ */
+function selectMetalLearnerGuitarPhrase(phrase: Note[], minimumSpacingBeats: number): Note[] | undefined {
+  if (phrase.length < 6) return undefined;
+  const span = phrase.at(-1)!.start - phrase[0]!.start;
+  if (!Number.isFinite(span) || span < 2) return undefined;
+  const gaps = phrase.slice(1).map((note, index) => note.start - phrase[index]!.start);
+  const sortedGaps = [...gaps].sort((a, b) => a - b);
+  const middle = sortedGaps.length ? (sortedGaps.length - 1) * 0.5 : 0;
+  const medianGap = sortedGaps.length
+    ? sortedGaps[Math.floor(middle)]!
+      + (sortedGaps[Math.ceil(middle)]! - sortedGaps[Math.floor(middle)]!) * (middle - Math.floor(middle))
+    : 0;
+  if (medianGap < 0.25 - 1e-9) return undefined;
+  if (new Set(phrase.map((note) => note.midi)).size < 3) return undefined;
+  const intervals = gaps.map((_, index) => Math.abs(phrase[index + 1]!.midi - phrase[index]!.midi));
+  const largeLeapRatio = intervals.length
+    ? intervals.filter((interval) => interval >= 7).length / intervals.length
+    : 0;
+  const repeatedRatio = intervals.length
+    ? intervals.filter((interval) => interval === 0).length / intervals.length
+    : 0;
+  if (largeLeapRatio > 0.55 + 1e-9 || repeatedRatio > 0.75 + 1e-9) return undefined;
+
+  return selectGuitarLeadPath(phrase, {
+    minimumSpacingBeats: Math.max(0.5, minimumSpacingBeats),
+    groupToleranceBeats: 0.08,
+    phraseBreakBeats: 1.5,
+    maxCandidatesPerGroup: 4,
+    beamWidth: 24,
+    allowGapRecovery: true,
+    skipPenalty: 1.5,
+    minimumPhraseGroups: 4,
+  }).notes;
+}
+
+/**
  * Restore supported residual attacks that a learner interval pass skipped
  * from an otherwise sparse, beat-level phrase. Residual detector paths can
  * arrive at the learner reducer with a coherent one-beat contour but still
@@ -1275,6 +1319,16 @@ function reduceMetalRhRealism(
       ? [{ note, phraseIndex }]
       : []);
     const useContourDp = legato && candidates.some(({ note }) => isMetalInstrumentalSource(note.identitySource));
+    const learnerGuitarPath = preserveGuitarCoverage && legato
+      ? selectMetalLearnerGuitarPhrase(
+        phrase.filter((note) => note.identitySource === "guitar" && note.hand !== "L" && note.midi >= 61),
+        minimumSpacingBeats,
+      ) ?? []
+      : [];
+    const guitarCoverageKeys = new Set(
+      learnerGuitarPath.map((note) => `${note.start.toFixed(6)}:${note.midi}:${note.dur.toFixed(6)}:${note.vel}`),
+    );
+    const noteKey = (note: Note): string => `${note.start.toFixed(6)}:${note.midi}:${note.dur.toFixed(6)}:${note.vel}`;
     const mandatoryContourNotes = new Set(
       candidates
         .filter(({ note, phraseIndex }) => {
@@ -1292,7 +1346,8 @@ function reduceMetalRhRealism(
             || phraseIndex === phrase.length - 1
             || note.vel >= 100
             || (note.midi >= 76 && (note.vel >= 90 || durationSec >= 0.5))
-            || instrumentalPhraseLanding;
+            || instrumentalPhraseLanding
+            || guitarCoverageKeys.has(noteKey(note));
         })
         .map(({ note }) => note),
     );

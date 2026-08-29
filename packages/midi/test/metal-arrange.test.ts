@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildMetalArrangement, buildVariants, parseChordSymbol, validateVariants, verifyMonotonicity } from "../src/index.js";
+import { buildMetalArrangement, buildVariants, parseChordSymbol, selectGuitarLeadPath, validateVariants, verifyMonotonicity } from "../src/index.js";
 import type { Note, ParsedMidi } from "../src/index.js";
 
 function midi(notes: Note[], durationBeats = 16): ParsedMidi {
@@ -2327,5 +2327,81 @@ describe("metal piano arranger", () => {
     const result = buildMetalArrangement({ stems: [{ role: "guitar", midi: malformed }] });
     expect(result.ir.sections.length).toBeGreaterThan(0);
     expect(result.parsed.notes.length).toBeGreaterThan(0);
+  });
+
+  it("selects a coherent guitar contour from harmonic stack candidates", () => {
+    const contour = [64, 65, 67, 69, 71, 72, 74, 76];
+    const candidates = contour.flatMap((pitch, index) => {
+      const start = index * 0.5;
+      return [
+        { midi: pitch, start, dur: 0.45, vel: 72, identitySource: "guitar" as const },
+        // Loud, short octave/fifth partials are deliberately more salient
+        // than the intended line; the path must use neighbouring contour
+        // support rather than velocity alone.
+        { midi: pitch + 12, start: start + 0.03, dur: 0.06, vel: 118, identitySource: "guitar" as const },
+        { midi: pitch + 7, start: start + 0.06, dur: 0.06, vel: 110, identitySource: "guitar" as const },
+      ];
+    });
+    const result = selectGuitarLeadPath(candidates, { minimumSpacingBeats: 0.45 });
+    expect(result.notes.map((note) => note.midi)).toEqual(contour);
+    expect(result.notes.map((note) => note.start)).toEqual(contour.map((_, index) => index * 0.5));
+    expect(result.notes.every((note) => note.identitySource === "guitar")).toBe(true);
+    expect(result.diagnostics.harmonicGroupCount).toBe(contour.length);
+    expect(result.diagnostics.harmonicRejectedCount).toBeGreaterThan(0);
+  });
+
+  it("keeps an articulated expressive leap and a fast scalar run", () => {
+    const leap = selectGuitarLeadPath([
+      { midi: 64, start: 0, dur: 0.5, vel: 100, identitySource: "guitar" as const },
+      { midi: 84, start: 1, dur: 0.9, vel: 120, identitySource: "guitar" as const },
+      { midi: 72, start: 2, dur: 0.5, vel: 100, identitySource: "guitar" as const },
+      { midi: 75, start: 3, dur: 0.5, vel: 100, identitySource: "guitar" as const },
+    ], { minimumSpacingBeats: 0.5 });
+    expect(leap.notes.some((note) => note.start === 1 && note.midi === 84)).toBe(true);
+
+    const runPitches = [64, 65, 67, 69, 71, 72, 74, 76, 74, 72, 71, 69];
+    const run = selectGuitarLeadPath(runPitches.map((midi, index) => ({
+      midi,
+      start: index * 0.25,
+      dur: 0.2,
+      vel: 100,
+      identitySource: "guitar" as const,
+    })), { minimumSpacingBeats: 0.125 });
+    expect(run.notes.map((note) => note.midi)).toEqual(runPitches);
+    expect(run.notes).toHaveLength(runPitches.length);
+  });
+
+  it("recovers an existing bridge candidate but rejects a weak chromatic gap spike", () => {
+    const bridge = selectGuitarLeadPath([
+      { midi: 64, start: 0, dur: 0.5, vel: 110, identitySource: "guitar" as const },
+      { midi: 68, start: 1.25, dur: 0.4, vel: 96, identitySource: "guitar" as const },
+      { midi: 72, start: 2.5, dur: 0.5, vel: 110, identitySource: "guitar" as const },
+    ], { minimumSpacingBeats: 1.5, phraseBreakBeats: 3 });
+    expect(bridge.notes.map((note) => note.start)).toEqual([0, 1.25, 2.5]);
+    expect(bridge.diagnostics.recoveredCount).toBe(1);
+
+    const bad = selectGuitarLeadPath([
+      { midi: 64, start: 0, dur: 0.5, vel: 110, identitySource: "guitar" as const },
+      { midi: 84, start: 1.25, dur: 0.05, vel: 30, identitySource: "guitar" as const },
+      { midi: 72, start: 2.5, dur: 0.5, vel: 110, identitySource: "guitar" as const },
+    ], { minimumSpacingBeats: 1.5, phraseBreakBeats: 3 });
+    expect(bad.notes.some((note) => note.start === 1.25)).toBe(false);
+  });
+
+  it("keeps guitar lead selection source-locked and deterministic", () => {
+    const notes: Note[] = [
+      { midi: 64, start: 0, dur: 0.5, vel: 90, identitySource: "guitar" },
+      { midi: 67, start: 0.5, dur: 0.5, vel: 92, identitySource: "guitar" },
+      { midi: 69, start: 1, dur: 0.5, vel: 94, identitySource: "guitar" },
+      { midi: 84, start: 0.25, dur: 0.5, vel: 120, identitySource: "vocals" },
+      { midi: 36, start: 0, dur: 2, vel: 120, identitySource: undefined },
+      { midi: 35, start: 0.25, dur: 0.1, vel: 120, identitySource: undefined },
+      { midi: 76, start: 0.75, dur: 0.1, vel: 40, identitySource: "other" },
+    ];
+    const first = selectGuitarLeadPath(notes, { minimumSpacingBeats: 0.25 });
+    const second = selectGuitarLeadPath([...notes].reverse(), { minimumSpacingBeats: 0.25 });
+    expect(second).toEqual(first);
+    expect(first.notes.every((note) => note.identitySource === "guitar")).toBe(true);
+    expect(first.notes.some((note) => note.midi === 36 || note.midi === 35 || note.midi === 84 || note.midi === 76)).toBe(false);
   });
 });
