@@ -6,8 +6,26 @@ export type ArrangementSourceType =
   | "piano-cover-video" | "piano-tutorial-video" | "piano-cover-audio"
   | "metal-transcription" | "unknown";
 
-export type ExtractionStrategy = "symbolic" | "audio-transcription" | "visual-midi" | "audio-midi" | "none";
+/** Extraction lanes used by the piano research/import pipeline. */
+export type PianoExtractionStrategy = "symbolic" | "audio-transcription" | "visual-midi" | "audio-midi" | "none";
+/** Historical name retained for callers of the original research API. */
+export type ExtractionStrategy = PianoExtractionStrategy;
 export type CandidateSelection = "preferred" | "fallback";
+
+export type PianoCandidateClassification = "solo-piano" | "tutorial" | "synthesia" | "bad-cover" | "ambiguous";
+
+/**
+ * Metadata-only analysis. This is intentionally not a claim about the audio:
+ * callers must still validate downloaded media and extracted notes.
+ */
+export interface PianoCandidateAnalysis {
+  candidateId: string;
+  classification: PianoCandidateClassification;
+  strategy: PianoExtractionStrategy;
+  signals: string[];
+  /** Logical/public identity only; physical artifact paths are never exposed. */
+  provenance: Pick<SourceProvenance, "kind" | "acquiredVia" | "sourceRef" | "sourceYoutubeUrl">;
+}
 
 export interface SongIdentityInput {
   title: string;
@@ -204,6 +222,73 @@ function inferredType(haystack: string): { sourceType: ArrangementSourceType; ex
   if (/metal transcription|ai transcription|direct transcription/.test(haystack)) return { sourceType: "metal-transcription", extractionStrategy: "audio-transcription", signal: "direct fallback" };
   if (/\.(?:mid|midi)(?:$|[?#])/.test(haystack)) return { sourceType: "midi", extractionStrategy: "symbolic", signal: "symbolic source" };
   return null;
+}
+
+function safeAnalysisProvenance(candidate: ArrangementCandidate): PianoCandidateAnalysis["provenance"] {
+  const provenance = canonicalCandidateProvenance(candidate);
+  const safe: PianoCandidateAnalysis["provenance"] = {};
+  for (const key of ["kind", "acquiredVia", "sourceRef", "sourceYoutubeUrl"] as const) {
+    const value = provenance[key];
+    if (typeof value !== "string" || !value.trim()) continue;
+    // sourceRef is useful only as a logical identity. Never leak a local path
+    // from a sidecar into an analysis record intended for reports/API payloads.
+    if (key === "sourceRef" && !isLogicalSourceRef(value)) continue;
+    safe[key] = value;
+  }
+  return safe;
+}
+
+/**
+ * Classify a candidate from stable metadata in a fixed precedence order.
+ * Metadata is evidence for choosing a lane, not proof that the media is
+ * actually solo piano; the import stage remains responsible for validation.
+ */
+export function analyzePianoCandidate(candidate: ArrangementCandidate): PianoCandidateAnalysis {
+  const haystack = clean(`${candidate.title} ${candidate.url ?? ""}`);
+  const signals: string[] = [];
+  let classification: PianoCandidateClassification = "ambiguous";
+
+  if (/\b(?:synthesia|falling notes|visual midi)\b/.test(haystack)) {
+    classification = "synthesia";
+    signals.push("synthesia/visual-midi metadata");
+  } else if (/\b(?:piano\s+)?tutorial\b|how to play|lesson/.test(haystack)) {
+    classification = "tutorial";
+    signals.push("tutorial metadata");
+  } else if (/\b(?:karaoke|reaction|remix|mashup|nightcore|slowed|sped up|lyrics?)\b/.test(haystack)
+    || /\b(?:with|feat(?:uring)?|and)\s+(?:vocals?|drums?)\b/.test(haystack)
+    || /\bpiano\s+(?:cover|performance)\b.*\b(?:vocals?|drums?)\b/.test(haystack)) {
+    classification = "bad-cover";
+    signals.push("non-solo cover metadata");
+  } else if (candidate.sourceType === "piano-cover-video" || candidate.sourceType === "piano-cover-audio"
+    || /\bsolo\s+piano\b|\bpiano\s+instrumental\b|\binstrumental\s+piano\b/.test(haystack)) {
+    classification = "solo-piano";
+    signals.push(candidate.sourceType.startsWith("piano-cover") ? "piano cover source" : "solo piano metadata");
+  } else if (["midi", "musicxml", "guitar-pro", "structured-tab"].includes(candidate.sourceType)) {
+    classification = "solo-piano";
+    signals.push("symbolic source metadata");
+  } else {
+    signals.push("insufficient piano metadata");
+  }
+
+  return {
+    candidateId: candidate.id,
+    classification,
+    strategy: selectPianoExtractionStrategy({ classification, strategy: "none" }),
+    signals,
+    provenance: safeAnalysisProvenance(candidate),
+  };
+}
+
+/** Select an extraction lane without trusting caller-provided strategy fields. */
+export function selectPianoExtractionStrategy(
+  input: Pick<PianoCandidateAnalysis, "classification" | "strategy"> | ArrangementCandidate,
+): PianoExtractionStrategy {
+  if ("classification" in input) {
+    if (input.classification === "synthesia" || input.classification === "tutorial") return "visual-midi";
+    if (input.classification === "solo-piano") return "audio-midi";
+    return "none";
+  }
+  return strategyFor(input.sourceType);
 }
 
 export function classifyArrangementCandidate(candidate: ArrangementCandidate, options: ClassifierOptions = {}): ClassifiedCandidate {

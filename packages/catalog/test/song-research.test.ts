@@ -5,6 +5,8 @@ import {
   classifyArrangementCandidate,
   createSongIdentity,
   mergeArrangementCandidates,
+  analyzePianoCandidate,
+  selectPianoExtractionStrategy,
   rankArrangementCandidates,
   serializeResearchManifest,
   type ArrangementCandidate,
@@ -31,6 +33,33 @@ function candidate(overrides: Partial<ArrangementCandidate> = {}): ArrangementCa
 }
 
 describe("song research foundation", () => {
+  it("classifies piano metadata deterministically and keeps provenance safe", () => {
+    const analysis = analyzePianoCandidate(candidate({
+      id: "synthesia",
+      title: "Sabaton Defence Of Moscow Synthesia piano tutorial",
+      url: "https://youtu.be/abc12345678?t=44",
+      localPath: "/Users/reidar/private/source.wav",
+      provenance: {
+        kind: "youtube",
+        sourceRef: "youtube:stale000000",
+        sourceYoutubeUrl: "https://youtu.be/stale000000",
+        sourceArtifactRef: "/Users/reidar/private/source.wav",
+      },
+    }));
+    expect(analysis).toMatchObject({
+      candidateId: "synthesia",
+      classification: "synthesia",
+      strategy: "visual-midi",
+      provenance: {
+        sourceRef: "youtube:abc12345678",
+        sourceYoutubeUrl: "https://www.youtube.com/watch?v=abc12345678",
+      },
+    });
+    expect(JSON.stringify(analysis)).not.toMatch(/Users\/reidar|source\.wav|stale000000/);
+    expect(selectPianoExtractionStrategy(analyzePianoCandidate(candidate({ title: "Defence Of Moscow solo piano cover" })))).toBe("audio-midi");
+    expect(analyzePianoCandidate(candidate({ title: "Defence Of Moscow piano karaoke vocals" })).classification).toBe("bad-cover");
+    expect(analyzePianoCandidate(candidate({ sourceType: "unknown", title: "Defence Of Moscow" })).classification).toBe("ambiguous");
+  });
   it("normalizes song identity and canonical YouTube provenance", () => {
     expect(identity).toMatchObject({
       title: "Defence Of Moscow",
