@@ -530,6 +530,34 @@ describe("metal piano arranger", () => {
     expect(result.parsed.notes.filter((note) => note.hand === "L" && note.identitySource === "guitar")).toHaveLength(8);
   });
 
+  it("drops a sustained sub-register vocal drone without dropping a moving low vocal phrase", () => {
+    const droneAndHook: Note[] = [
+      { midi: 29, start: 0, dur: 6.5, vel: 78 },
+      { midi: 72, start: 7, dur: 0.5, vel: 98 },
+      { midi: 74, start: 8, dur: 0.5, vel: 96 },
+    ];
+    const droneResult = buildMetalArrangement({
+      stems: [
+        { role: "vocals", midi: midi(droneAndHook, 10) },
+        { role: "guitar", midi: midi([{ midi: 64, start: 7.5, dur: 0.5, vel: 84 }], 10) },
+      ],
+    });
+    const vocalIdentity = droneResult.ir.identity.filter((note) => note.identitySource === "vocals");
+    expect(vocalIdentity.some((note) => note.start < 1), "raw low vocal drone was promoted into RH").toBe(false);
+    expect(vocalIdentity.map((note) => note.midi)).toEqual([72, 74]);
+
+    const movingLow = [42, 44, 47, 49].map((midi, index) => ({
+      midi,
+      start: index * 0.5,
+      dur: 0.35,
+      vel: 84,
+    }));
+    const movingResult = buildMetalArrangement({
+      stems: [{ role: "vocals", midi: midi(movingLow, 3) }],
+    });
+    expect(movingResult.ir.identity.filter((note) => note.identitySource === "vocals")).toHaveLength(4);
+  });
+
   it("preserves a repeated upper MIDI 62 hook instead of classifying it as low pulse", () => {
     const hook = Array.from({ length: 8 }, (_, index) => ({
       midi: index % 4 < 2 ? 62 : 64,

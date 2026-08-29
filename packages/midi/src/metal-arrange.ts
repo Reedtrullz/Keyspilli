@@ -661,6 +661,26 @@ function trustworthyVocalNotes(notes: Note[]): Note[] {
   });
 }
 
+/**
+ * Basic Pitch occasionally labels a very low, sustained vocal-stem bleed as a
+ * note (for example raw MIDI 29 for several beats). Register normalization
+ * would octave-fold that detector artifact into an apparently plausible RH
+ * melody. Keep the gate deliberately narrow: only raw pitches below 45 that
+ * are long, or are immediate re-attacks of a long same-pitch drone, are
+ * omitted. Short moving low-register vocal phrases remain eligible.
+ */
+function filterLowVocalDroneNotes(notes: Note[]): Note[] {
+  const lowDrones = notes.filter((note) => note.midi < 45 && note.dur >= 2 - EPS);
+  if (!lowDrones.length) return notes;
+  return notes.filter((note) => {
+    if (note.midi >= 45) return true;
+    if (note.dur >= 2 - EPS) return false;
+    return !lowDrones.some((drone) => drone.midi === note.midi
+      && note.start <= drone.start + drone.dur + 0.25 + EPS
+      && note.start + note.dur >= drone.start - 0.25 - EPS);
+  });
+}
+
 function notesIn<T extends Note>(notes: T[], start: number, end: number): T[] {
   return notes.filter((note) => note.start >= start - EPS && note.start < end - EPS);
 }
@@ -1471,7 +1491,8 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
     ?? (roleGuitarStem?.sourceStem === "other" ? roleGuitarStem : undefined);
   const bassStem = input.stems.find((stem) => stem.role === "bass");
   const drumsStem = input.stems.find((stem) => stem.role === "drums");
-  const vocals = monophonicPath(validNotes(vocalsStem), 60, 96, { exactOctaveWindow: 0.5 })
+  const vocalRaw = filterLowVocalDroneNotes(validNotes(vocalsStem));
+  const vocals = monophonicPath(vocalRaw, 60, 96, { exactOctaveWindow: 0.5 })
     .map((note) => ({ ...note, identitySource: "vocals" as const }));
   const trustedVocals = trustworthyVocalNotes(vocals);
   const guitarRaw = validNotes(guitarStem);
