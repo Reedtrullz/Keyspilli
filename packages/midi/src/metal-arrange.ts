@@ -98,7 +98,7 @@ function coherentMonophonicPath(
   const candidateGroups = groups.map((group) => {
     const maxVelocity = group.reduce((value, note) => Math.max(value, note.vel), 0);
     const upper = options.preferUpperLead
-      ? group.filter((note) => note.rawMidi >= 60 && note.vel >= maxVelocity * 0.4)
+      ? group.filter((note) => note.rawMidi >= 61 && note.vel >= maxVelocity * 0.4)
       : [];
     // Keep the upper contour when it exists, but do not manufacture one when
     // a group contains only low rhythm evidence. The low-wall classifier runs
@@ -300,14 +300,41 @@ function rawLowRhythmEvents(
   source: "guitar" | "other",
   upperContext: IdentityNote[],
 ): IdentityNote[] {
+  const upper = upperContext.filter((candidate) => (candidate.rawMidi ?? candidate.midi) >= 61);
+  const lowNotes = notes
+    .filter((note) => note.midi <= 60)
+    .sort((a, b) => a.start - b.start || b.vel - a.vel || b.midi - a.midi);
+  const sameOnset = (left: Note, right: Note): boolean => Math.abs(left.start - right.start) <= 0.08 + EPS;
+  const upperNear = (note: Note): Note[] => upper.filter((candidate) => Math.abs(candidate.start - note.start) <= 4 + EPS);
+  const localLow = (note: Note): Note[] => lowNotes.filter((candidate) => Math.abs(candidate.start - note.start) <= 2 + EPS);
+  const routeLow = (note: Note): boolean => {
+    // Detector sub-bass notes cannot be a useful RH melody after registration.
+    if (note.midi < 45) return true;
+    const nearbyUpper = upperNear(note);
+    if (nearbyUpper.length < 2) return false;
+    // A simultaneous upper attack is strong evidence that this is the power
+    // root/accompaniment voice, even when the root is quieter than the lead.
+    if (nearbyUpper.some((candidate) => sameOnset(candidate, note))) return true;
+    // Preserve a sparse low motif, but route a locally dense low wall when an
+    // upper lane is present. This catches raw 50–57 attacks that would
+    // otherwise octave-fold into a fake RH 62–69 melody.
+    const local = localLow(note);
+    const localPitches = local.map((candidate) => candidate.midi);
+    // A low line with a real changing contour is still plausible melody even
+    // when an upper lane is active. Preserve it before applying density-based
+    // rhythm classification.
+    if (new Set(localPitches).size >= 3) return false;
+    const gaps = local.slice(1)
+      .map((candidate, index) => candidate.start - local[index]!.start)
+      .filter((gap) => gap > EPS)
+      .sort((a, b) => a - b);
+    const medianGap = gaps.length ? gaps[Math.floor(gaps.length / 2)]! : Number.POSITIVE_INFINITY;
+    const span = (local.at(-1)?.start ?? note.start) - (local[0]?.start ?? note.start);
+    const density = local.length >= 2 && span > EPS ? local.length / span : 0;
+    return note.dur <= 0.75 + EPS && (medianGap <= 1 + EPS || density >= 1);
+  };
   const low = notes
-    .filter((note) => note.midi < 55 && (
-      // Extremely low detections are never a useful RH melody. A 45–54
-      // power-root is kept for a possible low lead unless an upper attack
-      // shares its onset, in which case it is unambiguously accompaniment.
-      note.midi < 45
-      || upperContext.some((upper) => (upper.rawMidi ?? upper.midi) >= 60 && Math.abs(upper.start - note.start) <= 0.08 + EPS)
-    ))
+    .filter((note) => note.midi <= 60 && routeLow(note))
     .sort((a, b) => a.start - b.start || b.vel - a.vel || b.midi - a.midi);
   const selected: IdentityNote[] = [];
   for (const note of low) {
@@ -401,7 +428,7 @@ function suppressLowGuitarPulseRuns(notes: IdentityNote[], externalLeadContext: 
       // still leaving raw 55–62 melodic contours alone when no upper lane is
       // present. This matters for sparse hooks whose detector velocity is
       // much quieter than the palm-muted root.
-      && (candidate.rawMidi ?? candidate.midi) >= 64
+      && (candidate.rawMidi ?? candidate.midi) >= 61
       && candidate.start >= first.start - 4 - EPS
       && candidate.start <= run.at(-1)!.start + 4 + EPS,
     );
@@ -596,7 +623,7 @@ interface UpperEvidenceLane {
  * and is used only to fill genuinely sparse phrases.
  */
 function upperHarmonicPath(notes: Note[], source: UpperEvidenceLane["source"]): IdentityNote[] {
-  const upper = notes.filter((note) => note.midi >= 60);
+  const upper = notes.filter((note) => note.midi >= 61);
   return monophonicPath(upper, 55, 96, { exactOctaveWindow: 1, coherent: true })
     .map((note) => ({ ...note, identitySource: source }));
 }
@@ -1042,22 +1069,38 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
   const trustedVocals = trustworthyVocalNotes(vocals);
   const guitarRaw = validNotes(guitarStem);
   const otherRaw = validNotes(otherStem);
-  const guitarPath = monophonicPath(guitarRaw.filter((note) => note.midi >= 45), 55, 96, { preferUpperLead: true, exactOctaveWindow: 1, coherent: true })
-    .map((note) => ({ ...note, identitySource: "guitar" as const }));
-  const otherPath = monophonicPath(otherRaw.filter((note) => note.midi >= 45), 55, 96, { preferUpperLead: true, exactOctaveWindow: 1, coherent: true })
-    .map((note) => ({ ...note, identitySource: "other" as const }));
   const guitarUpperEvidence = upperHarmonicPath(guitarRaw, "guitar");
   const otherUpperEvidence = upperHarmonicPath(otherRaw, "other");
   const upperEvidenceLanes: UpperEvidenceLane[] = [
     { source: "guitar", notes: guitarUpperEvidence },
     { source: "other", notes: otherUpperEvidence },
   ];
-  const guitarLanes = suppressLowGuitarPulseRuns(guitarPath, [...otherPath, ...guitarUpperEvidence]);
+  const sharedUpperEvidence = [...guitarUpperEvidence, ...otherUpperEvidence];
+  const guitarRawRhythm = rawLowRhythmEvents(guitarRaw, "guitar", sharedUpperEvidence);
+  const otherRawRhythm = rawLowRhythmEvents(otherRaw, "other", sharedUpperEvidence);
+  const isRoutedRawLow = (note: Note, routed: IdentityNote[]): boolean =>
+    note.midi <= 60 && routed.some((candidate) => Math.abs(candidate.start - note.start) <= 0.08 + EPS);
+  // Split raw low material before octave registration. Otherwise MIDI 50–54
+  // can become a false RH 62–66 line and the later pulse pass cannot recover
+  // which detector event was really accompaniment.
+  const guitarPath = monophonicPath(
+    guitarRaw.filter((note) => note.midi >= 45 && !isRoutedRawLow(note, guitarRawRhythm)),
+    55,
+    96,
+    { preferUpperLead: true, exactOctaveWindow: 1, coherent: true },
+  ).map((note) => ({ ...note, identitySource: "guitar" as const }));
+  const otherPath = monophonicPath(
+    otherRaw.filter((note) => note.midi >= 45 && !isRoutedRawLow(note, otherRawRhythm)),
+    55,
+    96,
+    { preferUpperLead: true, exactOctaveWindow: 1, coherent: true },
+  ).map((note) => ({ ...note, identitySource: "other" as const }));
+  const guitarLanes = suppressLowGuitarPulseRuns(guitarPath, [...otherPath, ...sharedUpperEvidence]);
   const guitar = guitarLanes.lead;
-  const rhythmGuitar = [...guitarLanes.rhythm, ...rawLowRhythmEvents(guitarRaw, "guitar", guitarUpperEvidence)];
-  const otherLanes = suppressLowGuitarPulseRuns(otherPath, [...guitarPath, ...otherUpperEvidence]);
+  const rhythmGuitar = [...guitarLanes.rhythm, ...guitarRawRhythm];
+  const otherLanes = suppressLowGuitarPulseRuns(otherPath, [...guitarPath, ...sharedUpperEvidence]);
   const other = otherLanes.lead;
-  const rhythmOther = [...otherLanes.rhythm, ...rawLowRhythmEvents(otherRaw, "other", otherUpperEvidence)];
+  const rhythmOther = [...otherLanes.rhythm, ...otherRawRhythm];
   const bass = validNotes(bassStem);
   const harmonicEvidence = [...validNotes(guitarStem), ...validNotes(otherStem)];
   const sections: MetalIdentitySection[] = [];
