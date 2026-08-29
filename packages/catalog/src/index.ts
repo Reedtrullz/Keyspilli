@@ -15,3 +15,4 @@ export * from "./youtube-source.js";
 export * from "./youtube-meta.js";
 export * from "./youtube-discovery.js";
 export * from "./fixture-evidence.js";
+export * from "./arrangement-evaluation.js";

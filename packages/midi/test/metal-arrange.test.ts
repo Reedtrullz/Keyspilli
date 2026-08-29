@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildMetalArrangement, buildVariants, parseChordSymbol, validateVariants, verifyMonotonicity } from "../src/index.js";
-import type { Note, ParsedMidi } from "../src/index.js";
+import { buildMetalArrangement, buildVariants, parseChordSymbol, selectGuitarLeadPath, validateVariants, verifyMonotonicity } from "../src/index.js";
+import type { MetalArrangementTraceEvent, Note, ParsedMidi } from "../src/index.js";
 
 function midi(notes: Note[], durationBeats = 16): ParsedMidi {
   return {
@@ -487,6 +487,59 @@ describe("metal piano arranger", () => {
       expect(melody.length, `${level} discarded the supported residual coverage`).toBeGreaterThanOrEqual(12);
       expect(Math.min(...variantGaps), `${level} reintroduced residual chatter`).toBeGreaterThanOrEqual(0.55 - 1e-6);
     }
+  });
+
+  it("regularizes a moderately dense opening residual phrase without promoting partials", () => {
+    const lead = [64, 65, 67, 69, 67, 65, 64, 62, 64, 65, 67, 69, 71, 69, 67, 65];
+    const makeResidual = (offset: number): Note[] => lead.flatMap((pitch, index) => {
+      const start = offset + index * 0.72;
+      return [
+        { midi: pitch, start, dur: 0.35, vel: 62 },
+        // Same-onset detector partials are intentionally short and quiet.
+        { midi: [78, 81, 74, 79][index % 4]!, start: start + 0.12, dur: 0.08, vel: 44 },
+        { midi: [76, 80, 77][index % 3]!, start: start + 0.31, dur: 0.07, vel: 43 },
+      ];
+    });
+    const build = (offset: number) => buildMetalArrangement({
+      sectionBeats: 32,
+      stems: [{ role: "other", midi: midi(makeResidual(offset), offset + 32) }],
+    });
+    const result = build(0);
+    const shifted = build(16);
+    const other = result.ir.identity
+      .filter((note) => note.identitySource === "other")
+      .sort((a, b) => a.start - b.start);
+    const shiftedOther = shifted.ir.identity
+      .filter((note) => note.identitySource === "other")
+      .sort((a, b) => a.start - b.start);
+    const gaps = other.slice(1).map((note, index) => note.start - other[index]!.start);
+    expect(other.length, "moderately dense residual phrase was not recovered").toBeLessThanOrEqual(14);
+    expect(other.length).toBeGreaterThanOrEqual(10);
+    expect(Math.min(...gaps), "residual opening kept detector partial chatter").toBeGreaterThanOrEqual(0.55 - 1e-6);
+    expect(other.every((note) => lead.includes(note.midi)), "residual partial became the melody").toBe(true);
+    expect(shiftedOther.map((note) => ({ start: Number((note.start - 16).toFixed(6)), midi: note.midi })))
+      .toEqual(other.map((note) => ({ start: Number(note.start.toFixed(6)), midi: note.midi })));
+  });
+
+  it("keeps jittered residual opening attacks off a sub-half-beat floor", () => {
+    const lead = [64, 65, 67, 69, 67, 65, 64, 62, 64, 65, 67, 69, 71, 69, 67, 65];
+    const starts = [0.119, 1.538, 1.969, 2.381, 3.264, 4.426, 5.549, 6.966, 7.627, 8.936, 9.326, 10.515, 11.747, 12.982, 13.314, 13.706];
+    const residual = starts.flatMap((start, index) => [
+      { midi: lead[index]!, start, dur: 0.35, vel: 62 },
+      { midi: [78, 81, 74, 79][index % 4]!, start: start + 0.12, dur: 0.08, vel: 44 },
+      { midi: [76, 80, 77][index % 3]!, start: start + 0.31, dur: 0.07, vel: 43 },
+    ]);
+    const result = buildMetalArrangement({
+      sectionBeats: 32,
+      stems: [{ role: "other", midi: midi(residual, 24) }],
+    });
+    const other = result.ir.identity
+      .filter((note) => note.identitySource === "other")
+      .sort((a, b) => a.start - b.start);
+    const gaps = other.slice(1).map((note, index) => note.start - other[index]!.start);
+    expect(Math.min(...gaps), "jittered residual decoder kept a sub-half-beat attack pair")
+      .toBeGreaterThanOrEqual(0.55 - 1e-6);
+    expect(other.every((note) => lead.includes(note.midi)), "jittered residual partial became melody").toBe(true);
   });
 
   it("preserves the residual role when no dedicated guitar stem exists", () => {
@@ -1549,6 +1602,82 @@ describe("metal piano arranger", () => {
     expect(count("easy").every((note) => count("medium").some((sourceNote) => sourceNote.start === note.start && sourceNote.midi === note.midi))).toBe(true);
   });
 
+  it("preserves a connected lead through vocal gaps instead of collapsing it to sparse landings", () => {
+    const starts = [
+      0.375, 1.125, 1.375, 2.125, 2.5, 2.875, 3.625, 3.875, 4.5, 4.875,
+      5.5, 6.125, 6.875, 7.375, 8.125, 8.625, 9, 9.375, 10, 10.5, 10.75,
+      11.5, 11.875, 12.625, 12.875, 13.125, 13.75, 14.125, 14.875, 15.625,
+      16.25, 16.5, 17, 17.625, 17.875, 18.5, 18.75, 19.5, 20.25, 20.5, 21.125,
+      21.625, 22.25, 22.875, 23.625, 23.875, 24.25, 24.875, 25.5, 26.125, 26.75,
+      27, 27.375, 27.625, 27.875, 28.625, 29.375, 29.625, 30, 30.375, 30.625,
+      31, 31.625,
+    ];
+    const pitches = [
+      65, 67, 69, 67, 69, 71, 69, 67, 69, 71, 69, 67, 65, 64, 64, 65,
+      64, 64, 65, 65, 67, 69, 71, 72, 74, 76, 77, 76, 77, 79, 77, 79,
+      79, 77, 79, 77, 79, 77, 79, 79, 79, 79, 77, 79, 79, 77, 76, 77,
+      79, 77, 76, 74, 76, 74, 76, 74, 76, 77, 79, 79, 77, 76, 74,
+    ];
+    const velocities = [
+      68, 81, 79, 64, 71, 85, 64, 61, 81, 65, 80, 69, 88, 60, 71, 69,
+      76, 60, 70, 57, 86, 75, 65, 75, 82, 72, 59, 57, 58, 55, 68, 69,
+      64, 59, 88, 84, 75, 78, 77, 84, 75, 63, 68, 74, 86, 83, 79, 63,
+      81, 82, 61, 72, 70, 59, 79, 88, 83, 62, 83, 71, 83, 72, 59,
+    ];
+    const guitar = starts.map((start, index) => ({
+      midi: pitches[index]!,
+      start,
+      dur: 0.25,
+      vel: velocities[index]!,
+      hand: "R" as const,
+      identitySource: "guitar" as const,
+    }));
+    const vocals = [3.5, 11.5, 19.5, 27.5].map((start, index) => ({
+      midi: 79 + (index % 3),
+      start,
+      dur: 0.35,
+      vel: 104,
+      hand: "R" as const,
+      identitySource: "vocals" as const,
+    }));
+    const source = midi([...guitar, ...vocals], 32);
+    const variants = buildVariants(source, { title: "Vocal-gap lead coverage", artist: "Fixture" }, {
+      arrangementProfile: "metal",
+      audioDerived: true,
+    });
+    expect(validateVariants(variants)).toEqual([]);
+    expect(verifyMonotonicity(variants)).toEqual([]);
+    const sourceGuitarKeys = new Set(guitar.map((note) => `${note.start}:${note.midi}`));
+    const sourceVocalKeys = vocals.map((note) => `${note.start}:${note.midi}`);
+    for (const level of ["medium", "easy"] as const) {
+      const variant = variants.find((candidate) => candidate.level === level)!;
+      const notes = variant.notes
+        .filter((note) => note.hand !== "L" && note.identitySource === "guitar");
+      // The source supplies a connected, stepwise lead through every vocal
+      // gap. Keep a useful existing-note contour rather than only a handful
+      // of phrase endpoints; no new attacks or pitches may be invented.
+      // Four vocal anchors leave a substantial set of feasible guitar
+      // attacks once the half-beat learner floor and vocal spacing guards are
+      // applied. The recovery pass must keep at least 35 without inventing
+      // notes.
+      expect(notes.length, `${level} collapsed the connected lead through vocal gaps`).toBeGreaterThanOrEqual(35);
+      expect(notes.some((note) => note.start < 4), `${level} lost the opening lead`).toBe(true);
+      expect(notes.some((note) => note.start >= 16 && note.start < 24), `${level} lost the middle lead`).toBe(true);
+      expect(notes.some((note) => note.start >= 28), `${level} lost the closing lead`).toBe(true);
+      const gaps = notes.slice(1).map((note, index) => note.start - notes[index]!.start);
+      expect(Math.min(...gaps), `${level} violated the half-beat floor`).toBeGreaterThanOrEqual(0.5 - 1e-9);
+      expect(notes.every((note) => sourceGuitarKeys.has(`${note.start}:${note.midi}`)), `${level} invented a guitar attack`).toBe(true);
+      expect(new Set(notes.map((note) => `${note.start}:${note.midi}`)).size, `${level} duplicated a guitar attack`).toBe(notes.length);
+      expect(variant.notes.filter((note) => note.hand !== "L" && note.identitySource === "vocals").map((note) => `${note.start}:${note.midi}`)).toEqual(sourceVocalKeys);
+    }
+    const advancedVariant = variants.find((variant) => variant.level === "advanced")!;
+    const advanced = advancedVariant.notes
+      .filter((note) => note.hand !== "L" && note.identitySource === "guitar");
+    expect(advanced.length).toBeGreaterThanOrEqual(guitar.length - 9);
+    expect(advanced.every((note) => sourceGuitarKeys.has(`${note.start}:${note.midi}`))).toBe(true);
+    expect(advancedVariant.notes.filter((note) => note.hand !== "L" && note.identitySource === "vocals").map((note) => `${note.start}:${note.midi}`)).toEqual(sourceVocalKeys);
+  });
+
   it("scores guitar contour through a vocal handoff instead of its adjacent vocal pitch", () => {
     const source = midi([
       { midi: 64, start: 0.25, dur: 0.5, vel: 92, hand: "R", identitySource: "guitar" },
@@ -2251,5 +2380,154 @@ describe("metal piano arranger", () => {
     const result = buildMetalArrangement({ stems: [{ role: "guitar", midi: malformed }] });
     expect(result.ir.sections.length).toBeGreaterThan(0);
     expect(result.parsed.notes.length).toBeGreaterThan(0);
+  });
+
+  it("selects a coherent guitar contour from harmonic stack candidates", () => {
+    const contour = [64, 65, 67, 69, 71, 72, 74, 76];
+    const candidates = contour.flatMap((pitch, index) => {
+      const start = index * 0.5;
+      return [
+        { midi: pitch, start, dur: 0.45, vel: 72, identitySource: "guitar" as const },
+        // Loud, short octave/fifth partials are deliberately more salient
+        // than the intended line; the path must use neighbouring contour
+        // support rather than velocity alone.
+        { midi: pitch + 12, start: start + 0.03, dur: 0.06, vel: 118, identitySource: "guitar" as const },
+        { midi: pitch + 7, start: start + 0.06, dur: 0.06, vel: 110, identitySource: "guitar" as const },
+      ];
+    });
+    const result = selectGuitarLeadPath(candidates, { minimumSpacingBeats: 0.45 });
+    expect(result.notes.map((note) => note.midi)).toEqual(contour);
+    expect(result.notes.map((note) => note.start)).toEqual(contour.map((_, index) => index * 0.5));
+    expect(result.notes.every((note) => note.identitySource === "guitar")).toBe(true);
+    expect(result.diagnostics.harmonicGroupCount).toBe(contour.length);
+    expect(result.diagnostics.harmonicRejectedCount).toBeGreaterThan(0);
+  });
+
+  it("keeps an articulated expressive leap and a fast scalar run", () => {
+    const leap = selectGuitarLeadPath([
+      { midi: 64, start: 0, dur: 0.5, vel: 100, identitySource: "guitar" as const },
+      { midi: 84, start: 1, dur: 0.9, vel: 120, identitySource: "guitar" as const },
+      { midi: 72, start: 2, dur: 0.5, vel: 100, identitySource: "guitar" as const },
+      { midi: 75, start: 3, dur: 0.5, vel: 100, identitySource: "guitar" as const },
+    ], { minimumSpacingBeats: 0.5 });
+    expect(leap.notes.some((note) => note.start === 1 && note.midi === 84)).toBe(true);
+
+    const runPitches = [64, 65, 67, 69, 71, 72, 74, 76, 74, 72, 71, 69];
+    const run = selectGuitarLeadPath(runPitches.map((midi, index) => ({
+      midi,
+      start: index * 0.25,
+      dur: 0.2,
+      vel: 100,
+      identitySource: "guitar" as const,
+    })), { minimumSpacingBeats: 0.125 });
+    expect(run.notes.map((note) => note.midi)).toEqual(runPitches);
+    expect(run.notes).toHaveLength(runPitches.length);
+  });
+
+  it("recovers an existing bridge candidate but rejects a weak chromatic gap spike", () => {
+    const bridge = selectGuitarLeadPath([
+      { midi: 64, start: 0, dur: 0.5, vel: 110, identitySource: "guitar" as const },
+      { midi: 68, start: 1.25, dur: 0.4, vel: 96, identitySource: "guitar" as const },
+      { midi: 72, start: 2.5, dur: 0.5, vel: 110, identitySource: "guitar" as const },
+    ], { minimumSpacingBeats: 1.5, phraseBreakBeats: 3 });
+    expect(bridge.notes.map((note) => note.start)).toEqual([0, 1.25, 2.5]);
+    expect(bridge.diagnostics.recoveredCount).toBe(1);
+
+    const bad = selectGuitarLeadPath([
+      { midi: 64, start: 0, dur: 0.5, vel: 110, identitySource: "guitar" as const },
+      { midi: 84, start: 1.25, dur: 0.05, vel: 30, identitySource: "guitar" as const },
+      { midi: 72, start: 2.5, dur: 0.5, vel: 110, identitySource: "guitar" as const },
+    ], { minimumSpacingBeats: 1.5, phraseBreakBeats: 3 });
+    expect(bad.notes.some((note) => note.start === 1.25)).toBe(false);
+  });
+
+  it("keeps guitar lead selection source-locked and deterministic", () => {
+    const notes: Note[] = [
+      { midi: 64, start: 0, dur: 0.5, vel: 90, identitySource: "guitar" },
+      { midi: 67, start: 0.5, dur: 0.5, vel: 92, identitySource: "guitar" },
+      { midi: 69, start: 1, dur: 0.5, vel: 94, identitySource: "guitar" },
+      { midi: 84, start: 0.25, dur: 0.5, vel: 120, identitySource: "vocals" },
+      { midi: 36, start: 0, dur: 2, vel: 120, identitySource: undefined },
+      { midi: 35, start: 0.25, dur: 0.1, vel: 120, identitySource: undefined },
+      { midi: 76, start: 0.75, dur: 0.1, vel: 40, identitySource: "other" },
+    ];
+    const first = selectGuitarLeadPath(notes, { minimumSpacingBeats: 0.25 });
+    const second = selectGuitarLeadPath([...notes].reverse(), { minimumSpacingBeats: 0.25 });
+    expect(second).toEqual(first);
+    expect(first.notes.every((note) => note.identitySource === "guitar")).toBe(true);
+    expect(first.notes.some((note) => note.midi === 36 || note.midi === 35 || note.midi === 84 || note.midi === 76)).toBe(false);
+  });
+
+  it("keeps the optional provenance trace private, linked, and deterministic", () => {
+    const input = {
+      stems: [
+        { role: "vocals" as const, midi: midi([
+          { midi: 72, start: 1, dur: 0.5, vel: 104 },
+          { midi: 74, start: 3, dur: 0.5, vel: 100 },
+        ], 8) },
+        { role: "guitar" as const, confidence: 0.9, midi: midi([
+          { midi: 48, start: 0, dur: 0.8, vel: 100 },
+          { midi: 55, start: 0.01, dur: 0.75, vel: 92 },
+          { midi: 72, start: 0, dur: 0.6, vel: 108 },
+          { midi: 50, start: 2, dur: 0.8, vel: 100 },
+          { midi: 57, start: 2.01, dur: 0.75, vel: 92 },
+          { midi: 74, start: 2, dur: 0.6, vel: 104 },
+        ], 8) },
+        { role: "other" as const, midi: midi([
+          { midi: 65, start: 4, dur: 0.35, vel: 48 },
+        ], 8) },
+        { role: "bass" as const, midi: midi([
+          { midi: 36, start: 0, dur: 4, vel: 100 },
+        ], 8) },
+        { role: "drums" as const, midi: midi([
+          { midi: 36, start: 0, dur: 0.1, vel: 120 },
+        ], 8) },
+      ],
+    };
+
+    const plain = buildMetalArrangement(input);
+    const firstTrace: MetalArrangementTraceEvent[] = [];
+    const traced = buildMetalArrangement(input, { trace: { record: (event) => firstTrace.push(event) } });
+    expect(traced).toEqual(plain);
+
+    const hiddenKeys = ["rawMidi", "traceRefs", "traceSourceStem"];
+    const publicJson = JSON.stringify(plain);
+    for (const hiddenKey of hiddenKeys) expect(publicJson).not.toContain(hiddenKey);
+    for (const note of [...plain.parsed.notes, ...plain.ir.identity]) {
+      for (const hiddenKey of hiddenKeys) expect(hiddenKey in note).toBe(false);
+    }
+
+    const stages = new Set(firstTrace.map((event) => event.stage));
+    for (const stage of ["raw", "cleaned", "lead", "residual", "cluster", "semantic", "decision", "chord", "left-hand", "final"] as const) {
+      expect(stages.has(stage), `trace should contain ${stage} events`).toBe(true);
+    }
+    const byKey = new Map(firstTrace.map((event) => [event.key, event]));
+    for (const event of firstTrace.filter((candidate) => candidate.stage === "cluster" || candidate.stage === "semantic" || candidate.stage === "final")) {
+      expect(event.parentKeys.length, `${event.stage} event ${event.key} should have parents`).toBeGreaterThan(0);
+      for (const parentKey of event.parentKeys) expect(byKey.has(parentKey)).toBe(true);
+    }
+    const semantic = firstTrace.find((event) => event.stage === "semantic");
+    expect(semantic?.semantic).toEqual(expect.objectContaining({ quality: expect.any(String), memberCount: expect.any(Number) }));
+    const semanticLeftHand = firstTrace.find((event) => event.stage === "left-hand" && event.selectionReason === "semantic-rhythm-root");
+    expect(semanticLeftHand?.parentKeys).toContain(semantic?.key);
+    expect(firstTrace.some((event) => event.stage === "final" && event.note?.hand === "L" && event.parentKeys.includes(semantic?.key ?? ""))).toBe(true);
+    expect(firstTrace.filter((event) => event.stage === "final").every((event) => event.sourceStem !== "drums")).toBe(true);
+    expect(firstTrace.some((event) => event.stage === "raw" && event.sourceStem === "drums")).toBe(true);
+
+    const canonicalTrace = (events: MetalArrangementTraceEvent[]) => events
+      .map((event) => ({
+        ...event,
+        parentKeys: [...event.parentKeys].sort(),
+      }))
+      .sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)));
+    const reordered = {
+      stems: input.stems
+        .map((stem) => ({ ...stem, midi: { ...stem.midi, notes: [...stem.midi.notes].reverse() } }))
+        .reverse(),
+    };
+    const secondTrace: MetalArrangementTraceEvent[] = [];
+    const reorderedResult = buildMetalArrangement(reordered, { trace: { record: (event) => secondTrace.push(event) } });
+    expect(reorderedResult).toEqual(plain);
+    expect(canonicalTrace(secondTrace)).toEqual(canonicalTrace(firstTrace));
   });
 });

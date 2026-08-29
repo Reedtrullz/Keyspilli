@@ -28,7 +28,8 @@
     "param-sweep": "tsx scripts/param-sweep.ts",
     "audio-ab": "tsx scripts/audio-ab.ts",
     "discover-youtube-sources": "tsx scripts/discover-youtube-sources.ts",
-    "tempo-robustness": "tsx scripts/tempo-robustness.ts"
+    "tempo-robustness": "tsx scripts/tempo-robustness.ts",
+    "evaluate-metal": "tsx scripts/evaluate-metal.ts"
   },
   "dependencies": {
     "@keyspilli/midi": "*",

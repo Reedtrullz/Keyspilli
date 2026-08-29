@@ -22,7 +22,8 @@
     "verify-chord-sources": "npm run verify-chord-sources -w @keyspilli/catalog",
     "calibrate": "npm run calibrate -w @keyspilli/catalog",
     "pipeline": "npm run pipeline -w @keyspilli/catalog",
-    "seed": "npm run seed -w @keyspilli/catalog"
+    "seed": "npm run seed -w @keyspilli/catalog",
+    "evaluate-metal": "npm run evaluate-metal -w @keyspilli/catalog --"
   },
   "engines": {
     "node": ">=20"

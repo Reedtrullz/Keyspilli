@@ -18,6 +18,51 @@ export interface MetalArrangementInput {
   title?: string;
 }
 
+/** Stages exposed by the optional development provenance sidecar. */
+export type MetalArrangementTraceStage =
+  | "raw"
+  | "cleaned"
+  | "lead"
+  | "residual"
+  | "cluster"
+  | "semantic"
+  | "decision"
+  | "chord"
+  | "left-hand"
+  | "final";
+
+/**
+ * A path-free, numeric provenance event.  This type is deliberately separate
+ * from `Note`: trace references never enter serialized MIDI, IR, manifests, or
+ * the public player payload.
+ */
+export interface MetalArrangementTraceEvent {
+  key: string;
+  stage: MetalArrangementTraceStage;
+  parentKeys: string[];
+  source?: MetalStemRole | null;
+  sourceStem?: MetalStemRole | null;
+  note?: { midi: number; rawMidi?: number; start: number; dur: number; vel: number; hand?: "R" | "L" };
+  selected?: boolean;
+  selectionReason?: string;
+  confidence?: number;
+  semantic?: {
+    rootPc: number;
+    quality: GuitarHarmonicQuality;
+    bassSupported: boolean;
+    memberCount: number;
+  };
+}
+
+/** Development-only collector used by the local evaluator. */
+export interface MetalArrangementTraceSink {
+  record(event: MetalArrangementTraceEvent): void;
+}
+
+export interface MetalArrangementDebugOptions {
+  trace?: MetalArrangementTraceSink;
+}
+
 export interface MetalIdentitySection {
   startBeat: number;
   endBeat: number;
@@ -45,12 +90,47 @@ export interface MetalArrangementResult {
     leftHandNotes: number;
     chordEvents: number;
     sourceSections: Record<string, number>;
+    guitarLead?: GuitarLeadPathDiagnostics;
+    guitarHarmony?: GuitarHarmonyDiagnostics;
   };
   warnings: string[];
 }
 
 const EPS = 1e-6;
 const SHARP_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+
+function traceNote(note: IdentityNote | Note): MetalArrangementTraceEvent["note"] {
+  const internal = note as Note & { rawMidi?: number };
+  return {
+    midi: note.midi,
+    ...(internal.rawMidi === undefined ? {} : { rawMidi: internal.rawMidi }),
+    start: note.start,
+    dur: note.dur,
+    vel: note.vel,
+    ...(note.hand ? { hand: note.hand } : {}),
+  };
+}
+
+function traceParents(note: IdentityNote | Note): string[] {
+  const internal = note as Note & { traceRefs?: readonly string[] };
+  return internal.traceRefs ? [...internal.traceRefs].sort() : [];
+}
+
+function emitTrace(
+  sink: MetalArrangementTraceSink | undefined,
+  event: MetalArrangementTraceEvent,
+): void {
+  if (!sink) return;
+  sink.record({
+    ...event,
+    parentKeys: [...event.parentKeys].sort(),
+  });
+}
+
+function stripInternalIdentity(note: IdentityNote): Note {
+  const { rawMidi: _rawMidi, traceRefs: _traceRefs, traceSourceStem: _traceSourceStem, ...publicNote } = note;
+  return publicNote;
+}
 
 function isMetalInstrumentalSource(source: Note["identitySource"]): source is "guitar" | "other" {
   return source === "guitar" || source === "other";
@@ -80,6 +160,63 @@ function validNotes(stem: MetalStem | undefined): Note[] {
     .sort((a, b) => a.start - b.start || b.vel - a.vel || b.midi - a.midi);
 }
 
+function traceRawNotes(
+  stem: MetalStem | undefined,
+  role: MetalStemRole,
+  sink: MetalArrangementTraceSink | undefined,
+): IdentityNote[] {
+  if (!stem) return [];
+  const actualRole = stem.sourceStem ?? role;
+  const identitySource = actualRole === "vocals" || actualRole === "guitar" || actualRole === "other"
+    ? actualRole
+    : undefined;
+  // Canonical ordering makes IDs stable under input-note reordering. Exact
+  // duplicates receive occurrence suffixes; they are indistinguishable by
+  // content, so the suffix is deterministic regardless of source order.
+  const counts = new Map<string, number>();
+  const sourceNotes = validNotes(stem);
+  // Keep the historical `validNotes` order when tracing is disabled. The
+  // sidecar is opt-in and must not perturb public arrangement decisions.
+  if (!sink) return sourceNotes as IdentityNote[];
+  const canonical = sourceNotes.slice().sort((a, b) =>
+    a.start - b.start || a.midi - b.midi || a.dur - b.dur || a.vel - b.vel
+    || (a.lyrics ?? "").localeCompare(b.lyrics ?? ""));
+  const ids = new Map<Note, string>();
+  const canonicalCounts = new Map<string, number>();
+  for (const note of canonical) {
+    const tuple = `${note.start.toFixed(6)}:${note.midi}:${note.dur.toFixed(6)}:${note.vel}:${note.lyrics ?? ""}`;
+    const occurrence = canonicalCounts.get(tuple) ?? 0;
+    canonicalCounts.set(tuple, occurrence + 1);
+    ids.set(note, `raw:${actualRole}:${tuple}:${occurrence}`);
+  }
+  return sourceNotes.map((note) => {
+    const tuple = `${note.start.toFixed(6)}:${note.midi}:${note.dur.toFixed(6)}:${note.vel}:${note.lyrics ?? ""}`;
+    const occurrence = counts.get(tuple) ?? 0;
+    counts.set(tuple, occurrence + 1);
+    // Object identity is unique for duplicate entries in a parsed source;
+    // the tuple fallback keeps synthetic callers safe if they reuse objects.
+    const key = ids.get(note) ?? `raw:${actualRole}:${tuple}:${occurrence}`;
+    const tagged: IdentityNote = {
+      ...note,
+      ...(identitySource ? { identitySource } : {}),
+      traceRefs: [key],
+      traceSourceStem: actualRole,
+    };
+    emitTrace(sink, {
+      key,
+      stage: "raw",
+      parentKeys: [],
+      source: identitySource ?? null,
+      sourceStem: actualRole,
+      note: traceNote({ ...tagged, rawMidi: note.midi }),
+      selected: true,
+      selectionReason: "source-note",
+      ...(stem.confidence === undefined ? {} : { confidence: stem.confidence }),
+    });
+    return tagged;
+  });
+}
+
 interface MonophonicPathOptions {
   /** Prefer a plausible upper lead tone over lower rhythm/accompaniment bleed. */
   preferUpperLead?: boolean;
@@ -90,9 +227,463 @@ interface MonophonicPathOptions {
 }
 
 /** Internal source pitch retained until boundary cleanup is complete. */
-type IdentityNote = Note & { rawMidi?: number };
+type IdentityNote = Note & {
+  rawMidi?: number;
+  /** Internal source-event references; stripped before any public result. */
+  traceRefs?: readonly string[];
+  /** Original separated stem role, useful when a routing alias is used. */
+  traceSourceStem?: MetalStemRole;
+};
 
 type MonophonicCandidate = IdentityNote & { rawMidi: number };
+
+/**
+ * Configuration for the source-locked guitar lead selector.  The selector is
+ * deliberately small and deterministic: it only chooses notes already
+ * present in a guitar stem and never infers a pitch or a new attack.
+ */
+export interface GuitarLeadPathOptions {
+  /** Minimum attack spacing used by the path. Defaults to a playable .5 beat. */
+  minimumSpacingBeats?: number;
+  /** Jitter tolerance for grouping one detector attack's harmonic stack. */
+  groupToleranceBeats?: number;
+  /** Rest that starts a new phrase and resets continuity. */
+  phraseBreakBeats?: number;
+  /** Maximum candidates retained from one harmonic group. */
+  maxCandidatesPerGroup?: number;
+  /** Beam width for the bounded second-order path search. */
+  beamWidth?: number;
+  /** Whether a supported existing note may bridge a suspicious gap. */
+  allowGapRecovery?: boolean;
+  /** Integration-only tuning for how expensive skipping a detector group is. */
+  skipPenalty?: number;
+  /** Preserve short phrases for the legacy monophonic register chooser. */
+  minimumPhraseGroups?: number;
+}
+
+export interface GuitarLeadPathDiagnostics {
+  rawCandidateCount: number;
+  harmonicGroupCount: number;
+  selectedCount: number;
+  recoveredCount: number;
+  rejectedCount: number;
+  harmonicRejectedCount: number;
+  largeJumpRejectedCount: number;
+}
+
+export interface GuitarLeadPathResult {
+  notes: Note[];
+  diagnostics: GuitarLeadPathDiagnostics;
+}
+
+type GuitarHarmonicQuality = "power" | "major" | "minor" | "sus2" | "sus4" | "single" | "unknown";
+
+/** Private semantic event retained only while constructing metal harmony. */
+interface GuitarHarmonicAttack {
+  start: number;
+  dur: number;
+  rootPc: number;
+  rootMidi: number;
+  quality: GuitarHarmonicQuality;
+  confidence: number;
+  source: "guitar" | "other";
+  evidence: number[];
+  bassSupported: boolean;
+  memberCount: number;
+  lowMemberCount: number;
+  /** Internal raw-source lineage for the optional debug trace. */
+  traceRefs?: readonly string[];
+}
+
+export interface GuitarHarmonyDiagnostics {
+  /** Source lane analyzed by the private semantic pass. */
+  source?: "guitar" | "other";
+  /** Raw notes from that analyzed source lane. */
+  rawSourceNotes?: number;
+  rawGuitarNotes: number;
+  leadNotes: number;
+  residualNotes: number;
+  onsetClusterCount: number;
+  semanticAttackCount: number;
+  collapsedUnisonOctaveFifth: number;
+  rejectedWeakThirds: number;
+  bassSupportedRoots: number;
+  stabilizedTransitions: number;
+  emittedLeftHandEvents: number;
+  /** Accepted residual phrase gates plus harmony windows using raw fallback. */
+  fallbackWindows: number;
+  qualityCounts: Record<GuitarHarmonicQuality, number>;
+}
+
+interface GuitarLeadCandidate {
+  id: number;
+  note: IdentityNote;
+  groupIndex: number;
+  confidence: number;
+  melodicSupport: number;
+  harmonicPenalty: number;
+  wallLike: boolean;
+  emission: number;
+}
+
+interface GuitarLeadHistory {
+  candidate: GuitarLeadCandidate;
+  previous?: GuitarLeadHistory;
+}
+
+interface GuitarLeadState {
+  previous?: GuitarLeadCandidate;
+  last?: GuitarLeadCandidate;
+  history?: GuitarLeadHistory;
+  score: number;
+  skipped: number;
+  selectedCount: number;
+}
+
+interface InternalGuitarLeadPathResult {
+  notes: IdentityNote[];
+  diagnostics: GuitarLeadPathDiagnostics;
+}
+
+function normalizedLeadPitch(note: Note): number {
+  return note.midi;
+}
+
+function harmonicCloneDistance(distance: number): boolean {
+  return distance === 0 || distance === 7 || distance === 12 || distance === 19 || distance === 24;
+}
+
+function guitarLeadConfidence(note: IdentityNote, melodicSupport: number): number {
+  const velocity = clamp(note.vel / 127, 0, 1);
+  const duration = clamp(note.dur / 0.75, 0, 1);
+  const raw = note.rawMidi ?? note.midi;
+  const register = raw >= 72 ? 1 : raw >= 64 ? 0.85 : raw >= 61 ? 0.55 : raw >= 55 ? 0.25 : 0;
+  return clamp(velocity * 0.42 + duration * 0.22 + melodicSupport * 0.24 + register * 0.12, 0, 1);
+}
+
+function guitarLeadWallLike(
+  candidate: IdentityNote,
+  neighbouringGroups: IdentityNote[][],
+): boolean {
+  const raw = candidate.rawMidi ?? candidate.midi;
+  if (raw > 62) return false;
+  const nearby = neighbouringGroups
+    .flat()
+    .filter((note) => Math.abs(note.start - candidate.start) <= 2 + EPS);
+  if (nearby.length < 4) return false;
+  const samePitch = nearby.filter((note) => (note.rawMidi ?? note.midi) === raw).length;
+  const distinct = new Set(nearby.map((note) => note.rawMidi ?? note.midi));
+  const starts = nearby
+    .map((note) => note.start)
+    .sort((a, b) => a - b)
+    .filter((start, index, all) => index === 0 || start - all[index - 1]! > 0.08 + EPS);
+  const gaps = starts.slice(1).map((start, index) => start - starts[index]!);
+  const medianGap = gaps.length ? [...gaps].sort((a, b) => a - b)[Math.floor(gaps.length / 2)]! : Infinity;
+  const short = nearby.filter((note) => note.dur <= 0.6 + EPS).length / nearby.length;
+  return samePitch / nearby.length >= 0.75
+    && distinct.size <= 2
+    && medianGap <= 0.75 + EPS
+    && short >= 0.75;
+}
+
+function guitarLeadTransitionScore(
+  previousPrevious: GuitarLeadCandidate | undefined,
+  previous: GuitarLeadCandidate | undefined,
+  current: GuitarLeadCandidate,
+  minimumSpacingBeats: number,
+  phraseBreakBeats: number,
+): number {
+  if (!previous) return 0;
+  const gap = current.note.start - previous.note.start;
+  if (gap > phraseBreakBeats + EPS) return 0;
+  const interval = Math.abs(normalizedLeadPitch(current.note) - normalizedLeadPitch(previous.note));
+  const articulated = current.note.vel >= 100
+    || current.note.dur >= 0.6
+    || ((current.note.rawMidi ?? current.note.midi) >= 88 && current.note.dur >= 0.45);
+  let penalty = interval * 0.025;
+  if (gap <= 0.5 + EPS && interval >= 7) penalty += 0.9 + (interval - 7) * 0.18;
+  if (gap <= 1 + EPS && interval >= 9) penalty += 1.1;
+  if (gap <= 1.5 + EPS && interval >= 12) penalty += 1.7;
+  if (gap < minimumSpacingBeats + 0.125 && interval >= 5) penalty += 0.35;
+  if (articulated) penalty *= 0.35;
+
+  let reward = 0;
+  if (interval <= 5) reward += 0.45;
+  if (previousPrevious) {
+    const incoming = normalizedLeadPitch(previous.note) - normalizedLeadPitch(previousPrevious.note);
+    const outgoing = normalizedLeadPitch(current.note) - normalizedLeadPitch(previous.note);
+    if (Math.sign(incoming) !== 0 && Math.sign(outgoing) !== 0 && Math.sign(incoming) !== Math.sign(outgoing)
+      && Math.abs(incoming) >= 5 && Math.abs(outgoing) >= 5 && !articulated) {
+      penalty += 0.8;
+    }
+    if (Math.abs(normalizedLeadPitch(current.note) - normalizedLeadPitch(previousPrevious.note)) <= 2
+      && Math.abs(incoming) >= 9 && Math.abs(outgoing) >= 9 && !articulated) {
+      penalty += 1.2;
+    }
+  }
+  return reward - penalty;
+}
+
+function selectGuitarLeadPathInternal(
+  inputNotes: Note[],
+  options: GuitarLeadPathOptions = {},
+): InternalGuitarLeadPathResult {
+  const minimumSpacingBeats = Math.max(0, options.minimumSpacingBeats ?? 0.5);
+  const groupToleranceBeats = Math.max(0, options.groupToleranceBeats ?? 0.08);
+  const phraseBreakBeats = Math.max(0.5, options.phraseBreakBeats ?? 1.5);
+  const maxCandidatesPerGroup = Math.max(1, Math.floor(options.maxCandidatesPerGroup ?? 4));
+  const beamWidth = Math.max(4, Math.floor(options.beamWidth ?? 24));
+  const skipPenalty = Math.max(0, options.skipPenalty ?? 1.5);
+  const minimumPhraseGroups = Math.max(0, Math.floor(options.minimumPhraseGroups ?? 0));
+  const rawCandidates = inputNotes
+    .filter((note) => note.identitySource === "guitar" && note.hand !== "L")
+    .filter((note) => Number.isFinite(note.start) && Number.isFinite(note.dur) && note.dur > 0 && Number.isFinite(note.midi))
+    .map((note) => ({ ...note, rawMidi: note.midi, identitySource: "guitar" as const }));
+  const diagnostics: GuitarLeadPathDiagnostics = {
+    rawCandidateCount: rawCandidates.length,
+    harmonicGroupCount: 0,
+    selectedCount: 0,
+    recoveredCount: 0,
+    rejectedCount: 0,
+    harmonicRejectedCount: 0,
+    largeJumpRejectedCount: 0,
+  };
+  if (!rawCandidates.length) return { notes: [], diagnostics };
+  const sorted = rawCandidates.sort((a, b) => a.start - b.start || a.midi - b.midi || b.vel - a.vel || b.dur - a.dur);
+  const groups: IdentityNote[][] = [];
+  for (const note of sorted) {
+    const group = groups.at(-1);
+    if (group && note.start - group[0]!.start <= groupToleranceBeats + EPS) group.push(note);
+    else groups.push([note]);
+  }
+  diagnostics.harmonicGroupCount = groups.length;
+
+  const phraseGroups: IdentityNote[][][] = [];
+  for (const group of groups) {
+    const phrase = phraseGroups.at(-1);
+    const previous = phrase?.at(-1);
+    if (!phrase || !previous || group[0]!.start - previous.at(-1)!.start > phraseBreakBeats + EPS) phraseGroups.push([group]);
+    else phrase.push(group);
+  }
+  let nextId = 0;
+  const allSelected = new Set<number>();
+  const recovered = new Set<number>();
+  const allCandidates = new Map<number, GuitarLeadCandidate>();
+
+  for (const phrase of phraseGroups) {
+    const phraseCandidates: GuitarLeadCandidate[][] = phrase.map((group, phraseIndex) => {
+      const neighbouringGroups = phrase.slice(Math.max(0, phraseIndex - 3), Math.min(phrase.length, phraseIndex + 4));
+      const adjacentGroups = [phrase[phraseIndex - 1], phrase[phraseIndex + 1]].filter(
+        (candidate): candidate is IdentityNote[] => Boolean(candidate),
+      );
+      const preliminary = group.map((note) => {
+        // Melodic support comes from adjacent attack groups, not from the
+        // octave/fifth stack at the same onset. Otherwise a loud harmonic
+        // clone can support itself and defeat the contour evidence.
+        const neighbours = adjacentGroups.flat();
+        const nearest = neighbours.length
+          ? Math.min(...neighbours.map((candidate) => Math.abs(normalizedLeadPitch(candidate) - normalizedLeadPitch(note))))
+          : Infinity;
+        const support = nearest <= 3 ? 1 : nearest <= 5 ? 0.8 : nearest <= 9 ? 0.35 : 0;
+        return { note, support, confidence: guitarLeadConfidence(note, support) };
+      });
+      const qualityByNote = new Map(preliminary.map((entry) => [entry.note, entry.confidence]));
+      const candidates = preliminary.map(({ note, support, confidence }) => {
+        const raw = note.rawMidi ?? note.midi;
+        const wallLike = guitarLeadWallLike(note, neighbouringGroups);
+        const clonePeers = group.filter((peer) => peer !== note && harmonicCloneDistance(Math.abs((peer.rawMidi ?? peer.midi) - raw)));
+        const strongerClone = clonePeers.some((peer) => (qualityByNote.get(peer) ?? 0) > confidence + 0.08
+          || (peer.dur >= note.dur + 0.15 && peer.vel >= note.vel * 0.5));
+        const highLanding = raw >= 88 && (note.vel >= 80 || note.dur >= 0.75);
+        const harmonicPenalty = strongerClone ? (highLanding ? 0.15 : 0.7) : 0;
+        const isolatedPenalty = support === 0 && note.vel < 70 && note.dur < 0.15 ? 0.9 : 0;
+        const wallPenalty = wallLike ? 1.1 : 0;
+        const endpoint = phraseIndex === 0 || phraseIndex === phrase.length - 1;
+        const emission = 1.5
+          + confidence * 2
+          + support * 0.75
+          // An upper guitar attack is more likely to be the melodic voice
+          // than a registered low shell. Keep this preference independent of
+          // velocity: Basic Pitch can assign the actual lead a quieter
+          // velocity than a rhythm partial at the same onset.
+          + (raw >= 72 ? 0.6 : raw >= 64 ? 0.15 : 0)
+          + (endpoint ? 0.7 : 0)
+          + (highLanding ? 0.75 : 0)
+          - harmonicPenalty
+          - isolatedPenalty
+          - wallPenalty;
+        return {
+          id: nextId++,
+          note,
+          groupIndex: phraseIndex,
+          confidence,
+          melodicSupport: support,
+          harmonicPenalty,
+          wallLike,
+          emission,
+        } satisfies GuitarLeadCandidate;
+      });
+      const retained = candidates
+        .sort((a, b) => b.emission - a.emission || b.confidence - a.confidence || a.note.start - b.note.start || a.note.midi - b.note.midi)
+        .slice(0, phrase.length < minimumPhraseGroups ? candidates.length : maxCandidatesPerGroup);
+      for (const candidate of retained) allCandidates.set(candidate.id, candidate);
+      return retained;
+    });
+
+    // Very short phrases do not contain enough temporal evidence for a
+    // second-order path decision. Keep every existing candidate in those
+    // groups and let the established monophonic/register chooser select the
+    // stack representative downstream; this preserves sparse lead entries,
+    // vocal handoffs, and octave-fold fixtures without weakening the long-
+    // phrase DP's artifact rejection.
+    if (phrase.length < minimumPhraseGroups) {
+      phraseCandidates.flat().forEach((candidate) => allSelected.add(candidate.id));
+      continue;
+    }
+
+    let states: GuitarLeadState[] = [{ score: 0, skipped: 0, selectedCount: 0 }];
+    for (let phraseGroupIndex = 0; phraseGroupIndex < phraseCandidates.length; phraseGroupIndex += 1) {
+      const group = phraseCandidates[phraseGroupIndex]!;
+      const endpointGroup = phraseGroupIndex === 0 || phraseGroupIndex === phraseCandidates.length - 1;
+      const nextStates: GuitarLeadState[] = [];
+      for (const state of states) {
+        const bestEmission = group[0]?.emission ?? 0;
+        const weakGroup = bestEmission < 2.3;
+        let emitted = false;
+        if (!endpointGroup) {
+          nextStates.push({
+            ...state,
+            score: state.score - (weakGroup ? skipPenalty * 0.55 : skipPenalty),
+            skipped: state.skipped + 1,
+          });
+        }
+        for (const candidate of group) {
+          if (state.last && candidate.note.start - state.last.note.start < minimumSpacingBeats - EPS) continue;
+          emitted = true;
+          const transition = guitarLeadTransitionScore(
+            state.previous,
+            state.last,
+            candidate,
+            minimumSpacingBeats,
+            phraseBreakBeats,
+          );
+          nextStates.push({
+            previous: state.last,
+            last: candidate,
+            history: { candidate, previous: state.history },
+            score: state.score + candidate.emission + transition,
+            skipped: state.skipped,
+            selectedCount: state.selectedCount + 1,
+          });
+        }
+        // Keep a malformed/overlapping endpoint from deleting the entire
+        // phrase. Normal phrases have at least one compatible endpoint; this
+        // fallback only applies when every endpoint candidate violates the
+        // spacing floor imposed by an earlier attack.
+        if (endpointGroup && !emitted) {
+          nextStates.push({
+            ...state,
+            score: state.score - (weakGroup ? skipPenalty * 0.55 : skipPenalty),
+            skipped: state.skipped + 1,
+          });
+        }
+      }
+      const deduped = new Map<string, GuitarLeadState>();
+      for (const state of nextStates) {
+        const key = `${state.previous?.id ?? -1}:${state.last?.id ?? -1}`;
+        const current = deduped.get(key);
+        if (!current || state.score > current.score + EPS
+          || (Math.abs(state.score - current.score) <= EPS && state.skipped < current.skipped)) deduped.set(key, state);
+      }
+      states = [...deduped.values()]
+        .sort((a, b) => b.score - a.score || b.selectedCount - a.selectedCount || a.skipped - b.skipped
+          || (a.last?.id ?? -1) - (b.last?.id ?? -1))
+        .slice(0, beamWidth);
+    }
+    if (!states.length) continue;
+    const winner = states.reduce((best, state) => state.score > best.score + EPS
+      || (Math.abs(state.score - best.score) <= EPS && state.selectedCount > best.selectedCount) ? state : best, states[0]!);
+    const selected: GuitarLeadCandidate[] = [];
+    for (let history = winner.history; history; history = history.previous) selected.push(history.candidate);
+    selected.reverse();
+    selected.forEach((candidate) => allSelected.add(candidate.id));
+
+    if (options.allowGapRecovery !== false && selected.length >= 2) {
+      const selectedByStart = [...selected].sort((a, b) => a.note.start - b.note.start || a.id - b.id);
+      for (let index = 1; index < selectedByStart.length; index++) {
+        const previous = selectedByStart[index - 1]!;
+        const current = selectedByStart[index]!;
+        const gap = current.note.start - previous.note.start;
+        // A gap is suspicious once it is materially wider than the active
+        // learner floor.  Do not scale this by the floor itself: a diagnostic
+        // caller may use a deliberately wide 1.5-beat floor to force a
+        // bridge candidate, while normal Easy/Medium floors remain at .5.
+        if (gap <= Math.max(1.25, minimumSpacingBeats + 0.5) + EPS) continue;
+        const recoverySpacing = Math.min(0.5, minimumSpacingBeats);
+        const between = phraseCandidates.flat().filter((candidate) => !allSelected.has(candidate.id)
+          && candidate.note.start > previous.note.start + recoverySpacing - EPS
+          && candidate.note.start < current.note.start - recoverySpacing + EPS
+          && !candidate.wallLike
+          && candidate.harmonicPenalty < 0.5);
+        let bridge: GuitarLeadCandidate | undefined;
+        let bridgeScore = Number.NEGATIVE_INFINITY;
+        for (const candidate of between) {
+          const before = candidate.note.start - previous.note.start;
+          const after = current.note.start - candidate.note.start;
+          if (before < recoverySpacing - EPS || after < recoverySpacing - EPS) continue;
+          const ratio = before / gap;
+          const interpolated = previous.note.midi + (current.note.midi - previous.note.midi) * ratio;
+          const error = Math.abs(candidate.note.midi - interpolated);
+          const stepwise = Math.abs(candidate.note.midi - previous.note.midi) <= 5
+            && Math.abs(current.note.midi - candidate.note.midi) <= 5;
+          const articulated = candidate.note.vel >= 80 || candidate.note.dur >= 0.25;
+          if (error > (stepwise ? 5 : articulated ? 3 : 2.5)) continue;
+          const score = candidate.emission + (stepwise ? 2.5 : 0) + (error <= 2 ? 1 : 0)
+            + (articulated ? 0.8 : 0) - error * 0.35;
+          if (score > bridgeScore + EPS) {
+            bridge = candidate;
+            bridgeScore = score;
+          }
+        }
+        if (bridge) {
+          allSelected.add(bridge.id);
+          recovered.add(bridge.id);
+          selectedByStart.splice(index, 0, bridge);
+          index += 1;
+        }
+      }
+    }
+  }
+
+  const selectedNotes = [...allCandidates.values()]
+    .filter((candidate) => allSelected.has(candidate.id))
+    .map((candidate) => ({ ...candidate.note, rawMidi: candidate.note.rawMidi ?? candidate.note.midi, identitySource: "guitar" as const, hand: "R" as const }))
+    .sort((a, b) => a.start - b.start || a.midi - b.midi || b.vel - a.vel);
+  diagnostics.selectedCount = selectedNotes.length;
+  diagnostics.recoveredCount = recovered.size;
+  diagnostics.rejectedCount = Math.max(0, diagnostics.rawCandidateCount - diagnostics.selectedCount);
+  diagnostics.harmonicRejectedCount = [...allCandidates.values()]
+    .filter((candidate) => !allSelected.has(candidate.id) && (candidate.harmonicPenalty > 0 || candidate.wallLike)).length;
+  diagnostics.largeJumpRejectedCount = [...allCandidates.values()]
+    .filter((candidate) => !allSelected.has(candidate.id)
+      && candidate.harmonicPenalty <= 0
+      && !candidate.wallLike
+      && candidate.melodicSupport < 0.5).length;
+  return { notes: selectedNotes, diagnostics };
+}
+
+/**
+ * Select a deterministic, guitar-only melodic path from existing candidates.
+ * The public result strips the internal raw-pitch field but preserves source,
+ * onset, duration, velocity, and pitch exactly.
+ */
+export function selectGuitarLeadPath(notes: Note[], options: GuitarLeadPathOptions = {}): GuitarLeadPathResult {
+  const internal = selectGuitarLeadPathInternal(notes, options);
+  return {
+    notes: internal.notes.map(({ rawMidi: _rawMidi, ...note }) => ({ ...note, identitySource: "guitar" as const })),
+    diagnostics: internal.diagnostics,
+  };
+}
 
 function coherentMonophonicPath(
   groups: MonophonicCandidate[][],
@@ -869,6 +1460,7 @@ function regularizeSparseResidualPhrase(
   phrase: IdentityNote[],
   rawUpper: Note[],
   source: UpperEvidenceLane["source"],
+  maxBaseDensity = 1.1,
 ): IdentityNote[] | undefined {
   if (source !== "other" || phrase.length < 4) return undefined;
   const phraseStart = phrase[0]!.start;
@@ -885,7 +1477,7 @@ function regularizeSparseResidualPhrase(
   // second pass. Keeping this threshold tight is important: the helper runs
   // before the learner ladder, so regularizing a denser phrase would also
   // erase Advanced/source detail without recovering anything useful.
-  if (baseDensity > 1.1 + EPS) return undefined;
+  if (baseDensity > maxBaseDensity + EPS) return undefined;
 
   const candidates = rawUpper
     .filter((note) => note.midi >= 61
@@ -1004,7 +1596,17 @@ function regularizeSparseResidualPhrase(
     selected[bucketIndex] = { ...candidateBuckets[bucketIndex]!.entries[state]! };
     state = parents[bucketIndex]![state]!;
   }
-  return selected;
+  // Rounding a detector onset into adjacent beat buckets can still leave two
+  // neighboring original events less than a half beat apart (for example,
+  // when one falls just before a bucket boundary and the next just after it).
+  // Keep the first supported attack and drop only the later duplicate; this
+  // preserves source timing while enforcing the learner-safe spacing floor.
+  const paced: IdentityNote[] = [];
+  for (const note of selected) {
+    const previous = paced.at(-1);
+    if (!previous || note.start - previous.start >= 0.55 - EPS) paced.push(note);
+  }
+  return paced;
 }
 
 /**
@@ -1131,8 +1733,14 @@ function selectResidualUpperMelodyPath(notes: Note[], source: UpperEvidenceLane[
     else phrase.push(note);
   }
   const selected: IdentityNote[] = [];
-  for (const phrase of selectedPhrases) {
-    const regularized = regularizeSparseResidualPhrase(phrase, upper, source);
+  for (const [phraseIndex, phrase] of selectedPhrases.entries()) {
+    // The first contiguous residual phrase is the only place where the
+    // decoder may use a slightly denser beat-grid recovery. Opening residual
+    // evidence commonly contains one attack per ~0.7 beat plus detector
+    // partials; later phrases retain the stricter gate so this remains a
+    // source-local opening cleanup rather than a song-wide density rewrite.
+    const maxBaseDensity = phraseIndex === 0 ? 1.5 : 1.1;
+    const regularized = regularizeSparseResidualPhrase(phrase, upper, source, maxBaseDensity);
     selected.push(...(regularized ?? phrase.map((note) => ({ ...note }))));
   }
   return selected;
@@ -1781,15 +2389,393 @@ function stabilizeIdentityRegister(
   return stabilized;
 }
 
-function chordFor(rootPc: number, pcs: Set<number>): { name: string; notes: number[] } {
+interface GuitarHarmonyInference {
+  attacks: GuitarHarmonicAttack[];
+  diagnostics: GuitarHarmonyDiagnostics;
+}
+
+const EMPTY_GUITAR_HARMONY_DIAGNOSTICS: GuitarHarmonyDiagnostics = {
+  rawSourceNotes: 0,
+  rawGuitarNotes: 0,
+  leadNotes: 0,
+  residualNotes: 0,
+  onsetClusterCount: 0,
+  semanticAttackCount: 0,
+  collapsedUnisonOctaveFifth: 0,
+  rejectedWeakThirds: 0,
+  bassSupportedRoots: 0,
+  stabilizedTransitions: 0,
+  emittedLeftHandEvents: 0,
+  fallbackWindows: 0,
+  qualityCounts: { power: 0, major: 0, minor: 0, sus2: 0, sus4: 0, single: 0, unknown: 0 },
+};
+
+function pitchClass(midi: number): number {
+  return ((Math.round(midi) % 12) + 12) % 12;
+}
+
+interface SemanticHarmonyCluster {
+  start: number;
+  notes: Note[];
+  residual: Note[];
+}
+
+interface SemanticHarmonyCandidate {
+  cluster: SemanticHarmonyCluster;
+  pcs: number[];
+  root: number;
+  rootScore: number;
+  rootMargin: number;
+  bassSupport: number;
+  bassPc?: number;
+  rootMidi?: number;
+}
+
+function freshGuitarHarmonyDiagnostics(
+  rawCount = 0,
+  leadCount = 0,
+  source?: "guitar" | "other",
+): GuitarHarmonyDiagnostics {
+  return {
+    ...EMPTY_GUITAR_HARMONY_DIAGNOSTICS,
+    ...(source ? { source } : {}),
+    rawSourceNotes: rawCount,
+    // Keep the historical field accurate for a dedicated guitar analysis;
+    // residual fallback is identified by `source`/`rawSourceNotes` instead of
+    // misreporting its `other` notes as guitar material.
+    rawGuitarNotes: source === "guitar" ? rawCount : 0,
+    leadNotes: leadCount,
+    qualityCounts: { ...EMPTY_GUITAR_HARMONY_DIAGNOSTICS.qualityCounts },
+  };
+}
+
+function inferSemanticGuitarHarmony(
+  raw: Note[],
+  lead: IdentityNote[],
+  bass: Note[],
+  source: "guitar" | "other",
+  stemConfidence = 1,
+): GuitarHarmonyInference {
+  const diagnostics = freshGuitarHarmonyDiagnostics(raw.length, lead.length, source);
+  if (!raw.length) return { attacks: [], diagnostics };
+
+  // Consume one raw event for each selected lead event. Matching by raw pitch,
+  // onset, and deterministic tie-breaks preserves duplicate same-pitch events
+  // instead of removing an entire source cluster from harmonic evidence.
+  const orderedRaw = raw
+    .map((note, index) => ({ note, index }))
+    .sort((a, b) => a.note.start - b.note.start || a.note.midi - b.note.midi || b.note.vel - a.note.vel || b.note.dur - a.note.dur || a.index - b.index);
+  const usedRaw = new Set<number>();
+  for (const candidate of [...lead].sort((a, b) => a.start - b.start || (a.rawMidi ?? a.midi) - (b.rawMidi ?? b.midi) || b.vel - a.vel || b.dur - a.dur)) {
+    const rawMidi = candidate.rawMidi ?? candidate.midi;
+    const match = orderedRaw
+      .filter(({ index, note }) => !usedRaw.has(index) && note.midi === rawMidi && Math.abs(note.start - candidate.start) <= 0.08 + EPS)
+      .sort((a, b) => Math.abs(a.note.start - candidate.start) - Math.abs(b.note.start - candidate.start)
+        || Math.abs(a.note.vel - candidate.vel) - Math.abs(b.note.vel - candidate.vel)
+        || Math.abs(a.note.dur - candidate.dur) - Math.abs(b.note.dur - candidate.dur)
+        || a.index - b.index)[0];
+    if (match) usedRaw.add(match.index);
+  }
+
+  const allClusters: SemanticHarmonyCluster[] = [];
+  for (const entry of orderedRaw) {
+    const cluster = allClusters.at(-1);
+    if (!cluster || entry.note.start - cluster.start > 0.08 + EPS) {
+      allClusters.push({ start: entry.note.start, notes: [entry.note], residual: usedRaw.has(entry.index) ? [] : [entry.note] });
+    } else {
+      cluster.notes.push(entry.note);
+      if (!usedRaw.has(entry.index)) cluster.residual.push(entry.note);
+    }
+  }
+  diagnostics.residualNotes = orderedRaw.filter(({ index }) => !usedRaw.has(index)).length;
+  diagnostics.onsetClusterCount = allClusters.length;
+  const clusters = allClusters.filter((cluster) => cluster.residual.length > 0);
+  if (!clusters.length) return { attacks: [], diagnostics };
+
+  const bassSupportAt = (start: number): Map<number, number> => {
+    const support = new Map<number, number>();
+    for (const note of bass) {
+      const distance = Math.abs(note.start - start);
+      const overlaps = note.start <= start + 0.35 + EPS && note.start + note.dur > start + EPS;
+      if (distance > 1.5 + EPS && !overlaps) continue;
+      const proximity = distance <= 0.35 + EPS ? 1 : overlaps ? 0.65 : 0.25;
+      const strength = proximity * clamp(note.vel / 127, 0.25, 1) * clamp(note.dur / 1.5, 0.25, 1);
+      const pc = pitchClass(note.midi);
+      support.set(pc, (support.get(pc) ?? 0) + strength);
+    }
+    return support;
+  };
+
+  const preliminary: SemanticHarmonyCandidate[] = clusters.map((cluster) => {
+    const pcs = [...new Set(cluster.notes.map((note) => pitchClass(note.midi)))].sort((a, b) => a - b);
+    const counts = new Map<number, number>();
+    for (const note of cluster.notes) counts.set(pitchClass(note.midi), (counts.get(pitchClass(note.midi)) ?? 0) + 1);
+    const bassSupport = bassSupportAt(cluster.start);
+    const bassEntries = [...bassSupport.entries()].sort((a, b) => b[1] - a[1] || a[0] - b[0]);
+    const candidatePcs = new Set(pcs);
+    for (const [bassPc] of bassEntries.slice(0, 2)) {
+      // Bass can fill a missing root only when guitar evidence supplies a
+      // compatible fifth/third. A bass note on its own is never a chord.
+      if (pcs.some((pc) => (pc - bassPc + 12) % 12 === 7 || (pc - bassPc + 12) % 12 === 3 || (pc - bassPc + 12) % 12 === 4)) candidatePcs.add(bassPc);
+    }
+    const scored = [...candidatePcs].map((root) => {
+      const fifth = pcs.some((pc) => (pc - root + 12) % 12 === 7) ? 1 : 0;
+      const rootCount = Math.min(2, counts.get(root) ?? 0);
+      const lowRoot = cluster.notes.some((note) => pitchClass(note.midi) === root && note.midi <= 60) ? 1 : 0;
+      const third = pcs.some((pc) => (pc - root + 12) % 12 === 3 || (pc - root + 12) % 12 === 4) ? 1 : 0;
+      const suspension = pcs.some((pc) => (pc - root + 12) % 12 === 2 || (pc - root + 12) % 12 === 5) ? 0.25 : 0;
+      const bass = bassSupport.get(root) ?? 0;
+      // A compatible bass can supply a missing guitar root, but it is not an
+      // unconditional override. Give a missing root a stronger lift than an
+      // already-present root, while short passing bass notes remain too weak
+      // to displace repeated guitar evidence.
+      const bassWeight = pcs.includes(root) ? 0.9 : 2.15;
+      const repeatedRootSupport = clusters.filter((candidate) =>
+        Math.abs(candidate.start - cluster.start) <= 1.5 + EPS
+        && candidate.notes.some((note) => pitchClass(note.midi) === root),
+      ).length;
+      const continuity = Math.min(1, Math.max(0, repeatedRootSupport - 1) * 0.25);
+      return { root, score: rootCount * 1.6 + fifth * 1.8 + lowRoot * 1.4 + third * 0.45 + suspension + bass * bassWeight + continuity };
+    }).sort((a, b) => b.score - a.score || a.root - b.root);
+    const winner = scored[0]!;
+    const rootNote = cluster.notes.filter((note) => pitchClass(note.midi) === winner.root)
+      .sort((a, b) => a.midi - b.midi || b.vel - a.vel || b.dur - a.dur)[0];
+    return {
+      cluster,
+      pcs,
+      root: winner.root,
+      rootScore: winner.score,
+      rootMargin: winner.score - (scored[1]?.score ?? 0),
+      bassSupport: bassSupport.get(winner.root) ?? 0,
+      bassPc: bassEntries[0]?.[0],
+      rootMidi: rootNote?.midi ?? (bassEntries[0]?.[0] === winner.root ? bass.find((note) => pitchClass(note.midi) === winner.root)?.midi : undefined),
+    };
+  });
+
+  const phraseFor = (index: number): SemanticHarmonyCandidate[] => {
+    const phrase: SemanticHarmonyCandidate[] = [preliminary[index]!];
+    for (let cursor = index - 1; cursor >= 0; cursor -= 1) {
+      if (phrase[0]!.cluster.start - preliminary[cursor]!.cluster.start > 1.5 + EPS) break;
+      phrase.unshift(preliminary[cursor]!);
+    }
+    for (let cursor = index + 1; cursor < preliminary.length; cursor += 1) {
+      if (preliminary[cursor]!.cluster.start - phrase.at(-1)!.cluster.start > 1.5 + EPS) break;
+      phrase.push(preliminary[cursor]!);
+    }
+    return phrase;
+  };
+
+  const credibleThird = (item: SemanticHarmonyCandidate, root: number, interval: number): boolean => item.cluster.notes.some((note) => pitchClass(note.midi) === (root + interval) % 12 && (note.vel >= 72 || note.dur >= 0.35));
+  // Stabilize roots before classifying quality so a confirmed change can
+  // retroactively claim its first attack. This gives a repeated G power
+  // phrase `[C, G, G]` the musically useful `[C, G, G]` result while a lone
+  // passing G in `[C, G, C]` remains C throughout. A long rest resets the
+  // state, so unrelated phrases do not inherit an earlier root.
+  const stabilizedRoots: number[] = [];
+  let previousRoot: number | undefined;
+  let pendingRoot: number | undefined;
+  let pendingCount = 0;
+  let pendingStartIndex: number | undefined;
+  let previousStart: number | undefined;
+  for (let index = 0; index < preliminary.length; index += 1) {
+    const item = preliminary[index]!;
+    if (previousStart !== undefined && item.cluster.start - previousStart > 1.5 + EPS) {
+      previousRoot = undefined;
+      pendingRoot = undefined;
+      pendingCount = 0;
+      pendingStartIndex = undefined;
+    }
+    let root = item.root;
+    const freshBass = item.bassPc === item.root && item.bassSupport >= 0.8;
+    if (previousRoot !== undefined && root !== previousRoot) {
+      if (pendingRoot === root) pendingCount += 1;
+      else {
+        pendingRoot = root;
+        pendingCount = 1;
+        pendingStartIndex = index;
+      }
+      if (item.rootMargin >= 1.75 && freshBass || pendingCount >= 2) {
+        previousRoot = root;
+        if (pendingCount >= 2 && pendingStartIndex !== undefined) {
+          // The first attack was held only because confirmation had not yet
+          // arrived. Once the second attack agrees, move that held attack to
+          // the confirmed root as well.
+          stabilizedRoots[pendingStartIndex] = root;
+        }
+        pendingRoot = undefined;
+        pendingCount = 0;
+        pendingStartIndex = undefined;
+      } else {
+        root = previousRoot;
+        diagnostics.stabilizedTransitions += 1;
+      }
+    } else {
+      previousRoot = root;
+      pendingRoot = undefined;
+      pendingCount = 0;
+      pendingStartIndex = undefined;
+    }
+    previousStart = item.cluster.start;
+    stabilizedRoots[index] = root;
+  }
+
+  const attacks: GuitarHarmonicAttack[] = [];
+  for (let index = 0; index < preliminary.length; index += 1) {
+    const item = preliminary[index]!;
+    const root = stabilizedRoots[index] ?? item.root;
+    const hasFifth = item.pcs.includes((root + 7) % 12);
+    const hasMinorThird = item.pcs.includes((root + 3) % 12);
+    const hasMajorThird = item.pcs.includes((root + 4) % 12);
+    const phrase = phraseFor(index);
+    const repeatedMinor = phrase.filter((entry) => credibleThird(entry, root, 3)).length >= 2;
+    const repeatedMajor = phrase.filter((entry) => credibleThird(entry, root, 4)).length >= 2;
+    const strongMinor = credibleThird(item, root, 3);
+    const strongMajor = credibleThird(item, root, 4);
+    let quality: GuitarHarmonicQuality;
+    if (hasMinorThird && hasMajorThird) {
+      // A stack containing both third spellings is ambiguous (often a
+      // detector collision). Keep it power-safe/unknown even if a fifth is
+      // present rather than inventing a major/minor label.
+      diagnostics.rejectedWeakThirds += 1;
+      quality = "unknown";
+    } else if (item.pcs.length === 1) quality = "single";
+    else if (hasMinorThird && !hasMajorThird && (repeatedMinor || strongMinor)) quality = "minor";
+    else if (hasMajorThird && !hasMinorThird && (repeatedMajor || strongMajor)) quality = "major";
+    else if (hasMinorThird || hasMajorThird) {
+      if (!((hasMinorThird && (repeatedMinor || strongMinor)) || (hasMajorThird && (repeatedMajor || strongMajor)))) diagnostics.rejectedWeakThirds += 1;
+      quality = hasFifth ? "power" : "unknown";
+    } else if (item.pcs.includes((root + 2) % 12) && !item.pcs.includes((root + 5) % 12)) quality = "sus2";
+    else if (item.pcs.includes((root + 5) % 12) && !item.pcs.includes((root + 2) % 12)) quality = "sus4";
+    else if (hasFifth) quality = "power";
+    else quality = "unknown";
+
+    // A pending root change may intentionally hold the prior root for one
+    // attack. Do not reinterpret the new cluster's intervals (for example
+    // G-D as C-sus2) against a root that is absent from that cluster.
+    if (root !== item.root && !item.pcs.includes(root)) quality = hasFifth ? "power" : "unknown";
+
+    // Only a residual member plus a harmonic relationship creates a semantic
+    // rhythm attack. A lead-only event, and an unrelated singleton residual,
+    // stay in the RH/legacy fallback path without an invented LH root. If a
+    // cluster has multiple residual members, retain it for an explicit
+    // unknown-quality event so ambiguous stacks remain diagnosable.
+    const pairIntervals = item.pcs.flatMap((left, leftIndex) => item.pcs
+      .slice(leftIndex + 1)
+      .flatMap((right) => [(right - left + 12) % 12, (left - right + 12) % 12]));
+    // A zero interval is meaningful only when it comes from two distinct raw
+    // members (a unison/octave duplicate). Do not let the self-pairs of a
+    // pitch-class set make an unrelated singleton, such as a tritone, look
+    // like a harmonic stack.
+    const hasRawUnisonOrOctave = item.cluster.notes.some((left, leftIndex) => item.cluster.notes
+      .slice(leftIndex + 1)
+      .some((right) => pitchClass(left.midi) === pitchClass(right.midi)));
+    const hasHarmonicRelationship = item.cluster.residual.length >= 2
+      || hasRawUnisonOrOctave
+      || pairIntervals.some((interval) => [2, 3, 4, 5, 7, 8, 9, 10].includes(interval));
+    if (item.cluster.notes.length < 2 || !hasHarmonicRelationship) continue;
+    const rootMidi = item.cluster.notes.filter((note) => pitchClass(note.midi) === root)
+      .sort((a, b) => a.midi - b.midi || b.vel - a.vel)[0]?.midi
+      ?? (item.bassPc === root ? bass.find((note) => pitchClass(note.midi) === root)?.midi : undefined)
+      ?? toRegister(36 + root, 36, 60);
+    const duplicateCount = item.cluster.notes.filter((note) => {
+      const interval = (pitchClass(note.midi) - pitchClass(rootMidi) + 12) % 12;
+      // Interval 0 is a unison/octave; +7 is the normal root-above-fifth
+      // detector duplicate. Do not count +5 (a fourth/suspension) as a
+      // collapsed fifth merely because the pitch-class distance wraps.
+      return Math.abs(note.midi - rootMidi) > 0 && (interval === 0 || interval === 7);
+    }).length;
+    const bassSupported = item.bassSupport >= 0.3 && item.bassPc === root;
+    const meanVelocity = item.cluster.notes.reduce((sum, note) => sum + clamp(note.vel / 127, 0, 1), 0) / item.cluster.notes.length;
+    const meanDuration = item.cluster.notes.reduce((sum, note) => sum + clamp(note.dur / 1.5, 0, 1), 0) / item.cluster.notes.length;
+    const localSupport = clamp(item.cluster.notes.length / 4, 0, 1);
+    const confidence = clamp((0.18
+      + meanVelocity * 0.2
+      + meanDuration * 0.15
+      + localSupport * 0.12
+      + (hasFifth ? 0.16 : 0)
+      + (bassSupported ? 0.18 : 0)
+      + ((strongMinor || strongMajor || repeatedMinor || repeatedMajor) ? 0.1 : 0)
+      + clamp(item.rootMargin / 8, 0, 0.1)) * clamp(stemConfidence, 0, 1), 0, 1);
+    const traceRefs = [...new Set(item.cluster.notes.flatMap((note) => (note as IdentityNote).traceRefs ?? []))].sort();
+    attacks.push({
+      start: item.cluster.start,
+      dur: Math.max(0.25, Math.min(1.5, Math.max(...item.cluster.notes.map((note) => note.dur)))),
+      rootPc: root,
+      rootMidi,
+      quality,
+      confidence,
+      source,
+      evidence: item.pcs,
+      bassSupported,
+      memberCount: item.cluster.notes.length,
+      lowMemberCount: item.cluster.notes.filter((note) => note.midi <= 60).length,
+      ...(traceRefs.length ? { traceRefs } : {}),
+    });
+    diagnostics.qualityCounts[quality] += 1;
+    if (bassSupported) diagnostics.bassSupportedRoots += 1;
+    diagnostics.collapsedUnisonOctaveFifth += duplicateCount;
+  }
+  diagnostics.semanticAttackCount = attacks.length;
+  return { attacks, diagnostics };
+}
+
+interface ResidualHarmonyPhraseWindow {
+  start: number;
+  end: number;
+}
+
+function strictResidualHarmonyPhraseWindows(notes: IdentityNote[]): ResidualHarmonyPhraseWindow[] {
+  const upper = notes.filter((note) => (note.rawMidi ?? note.midi) >= 61).sort((a, b) => a.start - b.start || b.vel - a.vel);
+  const windows: ResidualHarmonyPhraseWindow[] = [];
+  let phrase: IdentityNote[] = [];
+  const flush = (): void => {
+    if (phrase.length < 3) return;
+    const distinct = new Set(phrase.map((note) => note.midi));
+    const gaps = phrase.slice(1).map((note, index) => note.start - phrase[index]!.start).filter((gap) => gap > EPS).sort((a, b) => a - b);
+    const intervals = phrase.slice(1).map((note, index) => Math.abs(note.midi - phrase[index]!.midi));
+    const largeLeapRatio = intervals.length ? intervals.filter((interval) => interval >= 7).length / intervals.length : 1;
+    const repeatedRatio = Math.max(...[...distinct].map((pitch) => phrase.filter((note) => note.midi === pitch).length)) / phrase.length;
+    const medianGap = gaps.length ? gaps[Math.floor(gaps.length / 2)]! : Number.POSITIVE_INFINITY;
+    const p90Gap = gaps.length ? gaps[Math.min(gaps.length - 1, Math.floor(gaps.length * 0.9))]! : Number.POSITIVE_INFINITY;
+    if (distinct.size >= 3 && medianGap >= 0.25 - EPS && medianGap <= 1.5 + EPS && p90Gap <= 2 + EPS && largeLeapRatio < 0.45 && repeatedRatio < 0.8) {
+      windows.push({ start: phrase[0]!.start, end: phrase.at(-1)!.start });
+    }
+  };
+  for (const note of upper) {
+    const previous = phrase.at(-1);
+    if (previous && (note.start - previous.start > 1.5 + EPS || note.start - phrase[0]!.start > 32 + EPS)) {
+      flush();
+      phrase = [];
+    }
+    phrase.push(note);
+  }
+  flush();
+  return windows;
+}
+
+function chordFor(rootPc: number, pcs: Set<number>, semanticQuality?: GuitarHarmonicQuality): { name: string; notes: number[] } {
   const hasMinor = pcs.has((rootPc + 3) % 12);
   const hasMajor = pcs.has((rootPc + 4) % 12);
-  const quality = hasMinor === hasMajor ? "5" : hasMinor ? "m" : "";
+  const quality = semanticQuality === "minor" ? "m"
+    : semanticQuality === "major" ? ""
+      : semanticQuality === "sus2" ? "sus2"
+        : semanticQuality === "sus4" ? "sus4"
+          : semanticQuality === "single" ? "single"
+            : semanticQuality === "power" || semanticQuality === "unknown" ? "5"
+              : hasMinor === hasMajor ? "5" : hasMinor ? "m" : "";
   const root = 36 + rootPc;
   const bassRoot = root > 47 ? root - 12 : root;
-  const intervals = quality === "m" ? [0, 3, 7] : quality === "" ? [0, 4, 7] : [0, 7];
+  // Keep the semantic quality visible in the existing chord-label contract.
+  // `single` is represented by the root name and a root-only voicing; an
+  // `unknown` attack remains the conservative power-safe `5` shape.
+  const displayQuality = quality === "single" ? "" : quality;
+  const intervals = quality === "m" ? [0, 3, 7]
+    : quality === "" ? [0, 4, 7]
+      : quality === "sus2" ? [0, 2, 7]
+        : quality === "sus4" ? [0, 5, 7]
+          : quality === "single" ? [0] : [0, 7];
   return {
-    name: `${SHARP_NAMES[rootPc]}${quality}`,
+    name: `${SHARP_NAMES[rootPc]}${displayQuality}`,
     notes: intervals.map((interval) => bassRoot + interval),
   };
 }
@@ -1818,7 +2804,10 @@ function uniqueSorted(notes: Note[]): Note[] {
  * arrangement. Drums contribute timing accents only; they are never emitted
  * as pitched notes.
  */
-export function buildMetalArrangement(input: MetalArrangementInput): MetalArrangementResult {
+export function buildMetalArrangement(
+  input: MetalArrangementInput,
+  debug: MetalArrangementDebugOptions = {},
+): MetalArrangementResult {
   if (!input.stems.length) throw new Error("Metal arrangement requires at least one stem");
   const reference = input.stems.find((stem) => stem.role !== "drums")?.midi ?? input.stems[0]!.midi;
   const tempoBpm = reference.tempoBpm;
@@ -1853,12 +2842,47 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
     ?? (roleGuitarStem?.sourceStem === "other" ? roleGuitarStem : undefined);
   const bassStem = input.stems.find((stem) => stem.role === "bass");
   const drumsStem = input.stems.find((stem) => stem.role === "drums");
-  const vocalRaw = filterLowVocalDroneNotes(validNotes(vocalsStem));
+  const trace = debug.trace;
+  const vocalSourceNotes = traceRawNotes(vocalsStem, "vocals", trace);
+  const guitarRaw = traceRawNotes(guitarStem, "guitar", trace);
+  const otherRaw = traceRawNotes(otherStem, "other", trace);
+  const bass = traceRawNotes(bassStem, "bass", trace);
+  const drums = traceRawNotes(drumsStem, "drums", trace);
+  const vocalRaw = filterLowVocalDroneNotes(vocalSourceNotes);
+  const retainedVocalRaw = new Set(vocalRaw);
+  for (const note of vocalSourceNotes) {
+    const key = traceParents(note)[0];
+    if (!key) continue;
+    const retained = retainedVocalRaw.has(note);
+    emitTrace(trace, {
+      key: `cleaned:${key}`,
+      stage: "cleaned",
+      parentKeys: [key],
+      source: "vocals",
+      sourceStem: "vocals",
+      note: traceNote({ ...note, rawMidi: note.midi }),
+      selected: retained,
+      selectionReason: retained ? "vocal-candidate-retained" : "low-vocal-drone-or-wall",
+    });
+  }
   const vocals = monophonicPath(vocalRaw, 60, 96, { exactOctaveWindow: 0.5 })
     .map((note) => ({ ...note, identitySource: "vocals" as const }));
+  if (trace) {
+    for (const [index, note] of vocals.entries()) {
+      const parents = traceParents(note);
+      emitTrace(trace, {
+        key: `lead:vocals:${index}:${note.start.toFixed(6)}`,
+        stage: "lead",
+        parentKeys: parents,
+        source: "vocals",
+        sourceStem: note.traceSourceStem ?? "vocals",
+        note: traceNote(note),
+        selected: true,
+        selectionReason: "monophonic-vocal-lead",
+      });
+    }
+  }
   const trustedVocals = trustworthyVocalNotes(vocals);
-  const guitarRaw = validNotes(guitarStem);
-  const otherRaw = validNotes(otherStem);
   const guitarUpperRaw = supportedUpperRawNotes(guitarRaw);
   const otherUpperRaw = supportedUpperRawNotes(otherRaw);
   const guitarUpperEvidence = upperHarmonicPath(guitarRaw, "guitar");
@@ -1882,8 +2906,31 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
   // Split raw low material before octave registration. Otherwise MIDI 50–54
   // can become a false RH 62–66 line and the later pulse pass cannot recover
   // which detector event was really accompaniment.
+  const guitarPathInput = guitarRaw
+    .filter((note) => (note.midi < 61 || guitarUpperRaw.includes(note)) && note.midi >= 45 && !isRoutedRawLow(note, guitarRawRhythm))
+    .map((note) => ({ ...note, identitySource: "guitar" as const }));
+  // Resolve harmonic stacks and detector spikes while the raw guitar
+  // candidates are still available. The integration uses a very small spacing
+  // floor so Advanced keeps its source density; learner-level .5-beat floors
+  // are applied later by reduceMetalRhRealism/buildVariants.
+  const guitarLeadSelection = selectGuitarLeadPathInternal(guitarPathInput, {
+    minimumSpacingBeats: 0.08,
+    groupToleranceBeats: 0.08,
+    phraseBreakBeats: 1.5,
+    maxCandidatesPerGroup: 4,
+    beamWidth: 24,
+    allowGapRecovery: true,
+    // Keep the source selector conservative at arrangement time. Learner
+    // density/contour reducers make the intentional spacing decisions later;
+    // this pass should resolve stacks and obvious detector artifacts without
+    // deleting an entire attack group from Advanced/source identity. A high
+    // skip cost makes the DP choose one representative per detector onset;
+    // the lossy learner floors remain downstream where level policy is known.
+    skipPenalty: 30,
+    minimumPhraseGroups: 4,
+  });
   const guitarPath = monophonicPath(
-    guitarRaw.filter((note) => (note.midi < 61 || guitarUpperRaw.includes(note)) && note.midi >= 45 && !isRoutedRawLow(note, guitarRawRhythm)),
+    guitarLeadSelection.notes.length ? guitarLeadSelection.notes : guitarPathInput,
     55,
     96,
       { preferUpperLead: true, exactOctaveWindow: 1, coherent: true },
@@ -1917,8 +2964,126 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
   const otherLanes = suppressLowGuitarPulseRuns(otherPath, [...guitarPath, ...sharedUpperEvidence]);
   const other = otherLanes.lead;
   const rhythmOther = [...otherLanes.rhythm, ...otherRawRhythm];
-  const bass = validNotes(bassStem);
-  const harmonicEvidence = [...validNotes(guitarStem), ...validNotes(otherStem)];
+  const emitPathTrace = (
+    stage: "lead" | "residual",
+    rawNotes: IdentityNote[],
+    selectedNotes: IdentityNote[],
+    source: "guitar" | "other",
+  ): void => {
+    if (!trace) return;
+    const selectedRefs = new Set(selectedNotes.flatMap((note) => traceParents(note)));
+    for (const raw of rawNotes) {
+      const rawKey = traceParents(raw)[0];
+      if (!rawKey) continue;
+      const selected = selectedRefs.has(rawKey);
+      emitTrace(trace, {
+        key: `${stage}:${rawKey}`,
+        stage,
+        parentKeys: [rawKey],
+        source,
+        sourceStem: raw.traceSourceStem ?? source,
+        note: traceNote({ ...raw, rawMidi: raw.midi }),
+        selected,
+        selectionReason: selected
+          ? stage === "lead" ? "selected-lead-event" : "selected-residual-contour"
+          : stage === "lead" ? "rejected-harmonic-or-rhythm-candidate" : "rejected-residual-partial",
+      });
+    }
+  };
+  emitPathTrace("lead", guitarRaw, guitar, "guitar");
+  emitPathTrace("residual", otherRaw, other, "other");
+  for (const rhythm of [...rhythmGuitar, ...rhythmOther]) {
+    const parents = traceParents(rhythm);
+    if (!parents.length) continue;
+    emitTrace(trace, {
+      key: `decision:rhythm:${parents[0]}`,
+      stage: "decision",
+      parentKeys: parents,
+      source: rhythm.identitySource ?? null,
+      sourceStem: rhythm.traceSourceStem ?? rhythm.identitySource ?? null,
+      note: traceNote({ ...rhythm, rawMidi: rhythm.rawMidi ?? rhythm.midi }),
+      selected: false,
+      selectionReason: "rhythm-wall-routed-out-of-RH",
+    });
+  }
+  const dedicatedGuitarHarmony = guitarStem
+    ? inferSemanticGuitarHarmony(guitarRaw, guitarPath, bass, "guitar", guitarStem.confidence)
+    : { attacks: [], diagnostics: freshGuitarHarmonyDiagnostics() };
+  const residualHarmonyWindows = guitarStem ? [] : strictResidualHarmonyPhraseWindows(otherUpperEvidence);
+  const residualFallbackPhrases = residualHarmonyWindows.length;
+  const inResidualHarmonyWindow = (start: number): boolean => residualHarmonyWindows.some((window) =>
+    start >= window.start - 0.08 - EPS && start <= window.end + 0.08 + EPS,
+  );
+  const residualGuitarHarmony = !guitarStem && residualFallbackPhrases > 0
+    ? inferSemanticGuitarHarmony(
+      otherRaw.filter((note) => inResidualHarmonyWindow(note.start)),
+      other.filter((note) => inResidualHarmonyWindow(note.start)),
+      bass,
+      "other",
+      otherStem?.confidence,
+    )
+    : { attacks: [], diagnostics: freshGuitarHarmonyDiagnostics() };
+  // Count the accepted residual phrase gates as fallback windows as well as
+  // any later harmony windows that need raw-evidence fallback. This keeps the
+  // diagnostic useful even when a gated phrase ends before the final grid
+  // window and therefore has no raw notes in that tail window.
+  if (residualFallbackPhrases > 0) residualGuitarHarmony.diagnostics.fallbackWindows = residualFallbackPhrases;
+  const guitarHarmony = guitarStem ? dedicatedGuitarHarmony : residualGuitarHarmony;
+  for (const [index, attack] of guitarHarmony.attacks.entries()) {
+    const parents = attack.traceRefs ? [...attack.traceRefs].sort() : [];
+    const clusterKey = `cluster:${attack.source}:${attack.start.toFixed(6)}:${index}`;
+    const semanticKey = `semantic:${attack.source}:${attack.start.toFixed(6)}:${index}`;
+    emitTrace(trace, {
+      key: clusterKey,
+      stage: "cluster",
+      parentKeys: parents,
+      source: attack.source,
+      sourceStem: attack.source,
+      selected: true,
+      selectionReason: "onset-cluster",
+      confidence: attack.confidence,
+      semantic: {
+        rootPc: attack.rootPc,
+        quality: attack.quality,
+        bassSupported: attack.bassSupported,
+        memberCount: attack.memberCount,
+      },
+    });
+    emitTrace(trace, {
+      key: semanticKey,
+      stage: "semantic",
+      parentKeys: [clusterKey],
+      source: attack.source,
+      sourceStem: attack.source,
+      selected: true,
+      selectionReason: "semantic-harmonic-attack",
+      confidence: attack.confidence,
+      semantic: {
+        rootPc: attack.rootPc,
+        quality: attack.quality,
+        bassSupported: attack.bassSupported,
+        memberCount: attack.memberCount,
+      },
+    });
+  }
+  // Semantic guitar roots replace duplicate raw guitar stack evidence for
+  // harmony only. The selected lead and residual `other` fallback remain
+  // independent, so this cannot erase a playable RH contour.
+  const semanticEvidence: IdentityNote[] = guitarHarmony.attacks.map((attack, index) => ({
+    midi: attack.rootMidi,
+    start: attack.start,
+    dur: attack.dur,
+    vel: Math.round(70 + attack.confidence * 40),
+    identitySource: attack.source,
+    traceRefs: [`semantic:${attack.source}:${attack.start.toFixed(6)}:${index}`],
+    traceSourceStem: attack.source,
+  }));
+  const selectedHarmonicEvidence: IdentityNote[] = [
+    ...semanticEvidence,
+    ...(guitarStem ? guitarPath : []),
+    ...otherPath,
+  ];
+  const rawHarmonicEvidence: Note[] = [...guitarRaw, ...otherRaw];
   const sections: MetalIdentitySection[] = [];
   const identity: Note[] = [];
   const vocalRegisterAnchors = new Set<string>();
@@ -2070,20 +3235,70 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
     55,
     96,
   );
-  const publicIdentity = stabilizedIdentity.map(({ rawMidi: _rawMidi, ...note }) => note);
+  for (const [index, note] of stabilizedIdentity.entries()) {
+    emitTrace(trace, {
+      key: `decision:identity:${index}:${note.start.toFixed(6)}:${note.midi}`,
+      stage: "decision",
+      parentKeys: traceParents(note),
+      source: note.identitySource ?? null,
+      sourceStem: note.traceSourceStem ?? note.identitySource ?? null,
+      note: traceNote(note),
+      selected: true,
+      selectionReason: "identity-window-and-register-selection",
+    });
+  }
+  const publicIdentity = stabilizedIdentity.map(stripInternalIdentity);
   const chords: ChordLabel[] = [];
   const leftHand: Note[] = [];
   let previousRoot: number | undefined;
   for (let beat = 0; beat < durationBeats - EPS; beat += harmonyBeats) {
     const end = Math.min(durationBeats, beat + harmonyBeats);
     const bassNote = bassAt(bass, beat, end);
-    const evidence = pitchClassesAt(harmonicEvidence, beat, end);
-    let rootPc = bassNote ? ((bassNote.midi % 12) + 12) % 12 : previousRoot;
+    const semanticInWindow = guitarHarmony.attacks
+      .filter((attack) => attack.start >= beat - EPS && attack.start < end - EPS)
+      .sort((a, b) => b.confidence - a.confidence || a.start - b.start);
+    const semanticReliable = semanticInWindow.some((attack) => attack.confidence >= 0.55 && attack.memberCount >= 2);
+    const evidence = pitchClassesAt(semanticReliable ? selectedHarmonicEvidence : rawHarmonicEvidence, beat, end);
+    if (!semanticReliable && evidence.size > 0) guitarHarmony.diagnostics.fallbackWindows += 1;
+    const semanticByRoot = new Map<number, { score: number; attack: GuitarHarmonicAttack }>();
+    for (const attack of semanticInWindow) {
+      const current = semanticByRoot.get(attack.rootPc);
+      const score = attack.confidence + (attack.bassSupported ? 0.15 : 0);
+      if (!current || score > current.score + EPS || (Math.abs(score - current.score) <= EPS && attack.start < current.attack.start)) {
+        semanticByRoot.set(attack.rootPc, { score, attack });
+      }
+    }
+    const semantic = [...semanticByRoot.values()].sort((a, b) => b.score - a.score || a.attack.start - b.attack.start)[0]?.attack;
+    let rootPc = semantic?.rootPc
+      ?? (bassNote ? ((bassNote.midi % 12) + 12) % 12 : previousRoot);
     if (rootPc === undefined && evidence.size) rootPc = [...evidence][0];
     if (rootPc === undefined) continue;
     previousRoot = rootPc;
-    const chord = chordFor(rootPc, evidence);
+    const chord = chordFor(rootPc, evidence, semanticReliable ? semantic?.quality : undefined);
     const duration = Math.max(0.25, end - beat);
+    const semanticIndex = semantic ? guitarHarmony.attacks.indexOf(semantic) : -1;
+    const semanticParent = semanticIndex >= 0
+      ? `semantic:${semantic!.source}:${semantic!.start.toFixed(6)}:${semanticIndex}`
+      : undefined;
+    const chordKey = `chord:${beat.toFixed(6)}`;
+    emitTrace(trace, {
+      key: chordKey,
+      stage: "chord",
+      parentKeys: semanticParent ? [semanticParent] : [],
+      source: semantic?.source ?? null,
+      sourceStem: semantic?.source ?? null,
+      selected: true,
+      selectionReason: semanticReliable ? "semantic-harmony-chord" : "raw-harmony-fallback",
+      ...(semantic ? {
+        confidence: semantic.confidence,
+        semantic: {
+          rootPc: semantic.rootPc,
+          quality: semantic.quality,
+          bassSupported: semantic.bassSupported,
+          memberCount: semantic.memberCount,
+        },
+      } : {}),
+    });
     chords.push({
       beat,
       name: chord.name,
@@ -2094,19 +3309,116 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
       durationBeats: duration,
     });
     const root = chord.notes[0]!;
-    leftHand.push({ midi: root, start: beat, dur: Math.min(duration, 1.5), vel: 68, hand: "L" });
+    leftHand.push({ midi: root, start: beat, dur: Math.min(duration, 1.5), vel: 68, hand: "L", traceRefs: [chordKey] } as Note & { traceRefs: string[] });
+    emitTrace(trace, {
+      key: `left-hand:${chordKey}:root`,
+      stage: "left-hand",
+      parentKeys: [chordKey],
+      source: semantic?.source ?? null,
+      sourceStem: semantic?.source ?? null,
+      note: { midi: root, start: beat, dur: Math.min(duration, 1.5), vel: 68, hand: "L" },
+      selected: true,
+      selectionReason: semanticReliable ? "inferred-chord-root" : "raw-harmony-root-fallback",
+    });
     if (chord.notes.length > 1) {
       const fifth = chord.notes.find((note) => note % 12 === (rootPc! + 7) % 12);
-      if (fifth !== undefined) leftHand.push({ midi: fifth, start: beat, dur: Math.min(duration, 1.5), vel: 62, hand: "L" });
+      if (fifth !== undefined) {
+        leftHand.push({ midi: fifth, start: beat, dur: Math.min(duration, 1.5), vel: 62, hand: "L", traceRefs: [chordKey] } as Note & { traceRefs: string[] });
+        emitTrace(trace, {
+          key: `left-hand:${chordKey}:fifth`,
+          stage: "left-hand",
+          parentKeys: [chordKey],
+          source: semantic?.source ?? null,
+          sourceStem: semantic?.source ?? null,
+          note: { midi: fifth, start: beat, dur: Math.min(duration, 1.5), vel: 62, hand: "L" },
+          selected: true,
+          selectionReason: semanticReliable ? "inferred-chord-fifth" : "raw-harmony-fifth-fallback",
+        });
+      }
     }
   }
+
+  // A singleton semantic attack is a possible melodic lead, not an
+  // accompaniment event. Multi-note stacks become one source-tagged LH root
+  // strike, including the common low-root + selected-upper-fifth case.
+  const semanticLeftHand: IdentityNote[] = [];
+  const semanticSeen = new Set<string>();
+  for (const [attackIndex, attack] of guitarHarmony.attacks.entries()) {
+    if (attack.memberCount < 2 || attack.confidence < 0.5
+      || !(attack.quality === "power"
+        || attack.quality === "major"
+        || attack.quality === "minor"
+        || attack.quality === "sus2"
+        || attack.quality === "sus4"
+        || attack.quality === "single"
+        || attack.quality === "unknown")) continue;
+    const midi = toRegister(attack.rootMidi, 36, 54);
+    const key = `${attack.source}:${midi}:${attack.start.toFixed(4)}`;
+    if (semanticSeen.has(key)) continue;
+    semanticSeen.add(key);
+    const semanticTraceKey = `semantic:${attack.source}:${attack.start.toFixed(6)}:${attackIndex}`;
+    semanticLeftHand.push({
+      midi,
+      start: attack.start,
+      dur: Math.min(attack.dur, 0.75),
+      vel: 58,
+      hand: "L",
+      identitySource: attack.source,
+      traceRefs: [semanticTraceKey],
+      traceSourceStem: attack.source,
+    });
+    emitTrace(trace, {
+      key: `left-hand:${semanticTraceKey}`,
+      stage: "left-hand",
+      parentKeys: [semanticTraceKey],
+      source: attack.source,
+      sourceStem: attack.source,
+      note: { midi, start: attack.start, dur: Math.min(attack.dur, 0.75), vel: 58, hand: "L" },
+      selected: true,
+      selectionReason: "semantic-rhythm-root",
+      confidence: attack.confidence,
+      semantic: {
+        rootPc: attack.rootPc,
+        quality: attack.quality,
+        bassSupported: attack.bassSupported,
+        memberCount: attack.memberCount,
+      },
+    });
+  }
+  const appendTaggedLeftHand = (note: Note): void => {
+    const duplicateIndex = leftHand.findIndex((existing) => existing.hand === "L"
+      && pitchClass(existing.midi) === pitchClass(note.midi)
+      && Math.abs(existing.start - note.start) <= 0.08 + EPS);
+    if (duplicateIndex < 0) {
+      leftHand.push(note);
+      return;
+    }
+    // Keep one root attack per onset. A semantic/rhythm event carries source
+    // provenance, so it replaces an untagged chord shell; competing tagged
+    // lanes retain the first deterministic winner.
+    if (!leftHand[duplicateIndex]!.identitySource || leftHand[duplicateIndex]!.identitySource === note.identitySource) {
+      leftHand[duplicateIndex] = note;
+    }
+  };
+  // Merge semantic roots with the pre-existing chord shell by pitch class and
+  // onset, not only by exact MIDI. The shell may voice the same root an
+  // octave lower; keeping both would create a duplicate LH attack and hide
+  // the source-tagged semantic event. Prefer the semantic note so its source
+  // provenance and attack duration remain visible.
+  for (const note of semanticLeftHand) appendTaggedLeftHand(note);
+  const semanticAttackKeys = new Set(semanticLeftHand.map((note) => `${note.identitySource}:${note.start.toFixed(4)}`));
+  const hasSemanticRootAt = (note: Note): boolean => semanticLeftHand.some((semantic) =>
+    semantic.identitySource === note.identitySource
+    && pitchClass(semantic.midi) === pitchClass(note.midi)
+    && Math.abs(semantic.start - note.start) <= 0.08 + EPS,
+  );
 
   // Stable low guitar walls are useful rhythmic evidence but poor RH melody.
   // Route them to a low register while preserving their original attacks;
   // the variant builder can then thin this explicit accompaniment lane per
   // difficulty without contaminating identity selection.
-  for (const note of rhythmGuitar) {
-    leftHand.push({
+  for (const note of rhythmGuitar.filter((note) => !semanticAttackKeys.has(`${note.identitySource}:${note.start.toFixed(4)}`) && !hasSemanticRootAt(note))) {
+    appendTaggedLeftHand({
       midi: toRegister(note.rawMidi ?? note.midi, 36, 54),
       start: note.start,
       dur: Math.min(Math.max(note.dur, 0.25), 0.75),
@@ -2115,8 +3427,8 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
       identitySource: note.identitySource,
     });
   }
-  for (const note of rhythmOther) {
-    leftHand.push({
+  for (const note of rhythmOther.filter((note) => !semanticAttackKeys.has(`${note.identitySource}:${note.start.toFixed(4)}`) && !hasSemanticRootAt(note))) {
+    appendTaggedLeftHand({
       midi: toRegister(note.rawMidi ?? note.midi, 36, 54),
       start: note.start,
       dur: Math.min(Math.max(note.dur, 0.25), 0.75),
@@ -2126,8 +3438,28 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
     });
   }
 
-  const rhythmicAccents = validNotes(drumsStem).map((note) => note.start).filter((beat, index, all) => index === 0 || beat - all[index - 1]! >= 0.125);
-  const notes = uniqueSorted([...publicIdentity.map((note) => ({ ...note, hand: "R" as const })), ...leftHand]);
+  const rhythmicAccents = drums.map((note) => note.start).filter((beat, index, all) => index === 0 || beat - all[index - 1]! >= 0.125);
+  const preFinalNotes: IdentityNote[] = [
+    ...stabilizedIdentity.map((note) => ({ ...note, hand: "R" as const })),
+    ...leftHand.map((note) => ({ ...note } as IdentityNote)),
+  ];
+  for (const [index, note] of preFinalNotes.entries()) {
+    emitTrace(trace, {
+      key: `final:${note.hand === "L" ? "L" : "R"}:${index}:${note.start.toFixed(6)}:${note.midi}`,
+      stage: "final",
+      parentKeys: traceParents(note),
+      source: note.identitySource ?? null,
+      sourceStem: note.traceSourceStem ?? note.identitySource ?? null,
+      note: traceNote(note),
+      selected: true,
+      selectionReason: note.hand === "L" ? "left-hand-emission" : "right-hand-identity",
+    });
+  }
+  const notes = uniqueSorted(preFinalNotes.map(stripInternalIdentity));
+  const emittedSemanticKeys = new Set(notes
+    .filter((note) => note.hand === "L" && note.identitySource)
+    .map((note) => `${note.identitySource}:${note.midi}:${note.start.toFixed(4)}`));
+  const emittedSemanticLeftHandEvents = semanticLeftHand.filter((note) => emittedSemanticKeys.has(`${note.identitySource}:${note.midi}:${note.start.toFixed(4)}`)).length;
   const warnings: string[] = [];
   const mismatchedTempo = input.stems.filter((stem) => Math.abs(stem.midi.tempoBpm - tempoBpm) > 0.5);
   if (mismatchedTempo.length) warnings.push(`${mismatchedTempo.length} stems had mismatched tempo metadata; beat positions were used unchanged`);
@@ -2158,7 +3490,17 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
     parsed,
     chords,
     ir,
-    stats: { identityNotes: publicIdentity.length, leftHandNotes: leftHand.length, chordEvents: chords.length, sourceSections },
+    stats: {
+      identityNotes: publicIdentity.length,
+      leftHandNotes: leftHand.length,
+      chordEvents: chords.length,
+      sourceSections,
+      guitarLead: guitarLeadSelection.diagnostics,
+      guitarHarmony: {
+        ...guitarHarmony.diagnostics,
+        emittedLeftHandEvents: emittedSemanticLeftHandEvents,
+      },
+    },
     warnings,
   };
 }

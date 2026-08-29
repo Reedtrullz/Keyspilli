@@ -4,6 +4,7 @@ import { quantize } from "./quantize.js";
 import { LADDER_TOL, PLAYABILITY_LIMITS } from "./validate.js";
 import { sanitizeImportedNotes } from "./clean.js";
 import { validateChordLabels } from "./chords.js";
+import { selectGuitarLeadPath } from "./metal-arrange.js";
 
 export interface VariantOptions {
   /** 16th-note grid (beats) used for note slicing */
@@ -743,6 +744,49 @@ function selectMetalInstrumentalContour(
 }
 
 /**
+ * Apply the source-locked guitar tracker only to phrases that contain enough
+ * temporal spread to represent a lead contour.  Very dense detector runs are
+ * intentionally left to the existing learner scheduler: they already have a
+ * level-specific spacing policy and forcing the source tracker onto them can
+ * make the easier ladder collapse to the same attack set.  The helper returns
+ * only notes that were present in the input phrase; it never synthesizes a
+ * replacement pitch or changes any note payload.
+ */
+function selectMetalLearnerGuitarPhrase(phrase: Note[], minimumSpacingBeats: number): Note[] | undefined {
+  if (phrase.length < 6) return undefined;
+  const span = phrase.at(-1)!.start - phrase[0]!.start;
+  if (!Number.isFinite(span) || span < 2) return undefined;
+  const gaps = phrase.slice(1).map((note, index) => note.start - phrase[index]!.start);
+  const sortedGaps = [...gaps].sort((a, b) => a - b);
+  const middle = sortedGaps.length ? (sortedGaps.length - 1) * 0.5 : 0;
+  const medianGap = sortedGaps.length
+    ? sortedGaps[Math.floor(middle)]!
+      + (sortedGaps[Math.ceil(middle)]! - sortedGaps[Math.floor(middle)]!) * (middle - Math.floor(middle))
+    : 0;
+  if (medianGap < 0.25 - 1e-9) return undefined;
+  if (new Set(phrase.map((note) => note.midi)).size < 3) return undefined;
+  const intervals = gaps.map((_, index) => Math.abs(phrase[index + 1]!.midi - phrase[index]!.midi));
+  const largeLeapRatio = intervals.length
+    ? intervals.filter((interval) => interval >= 7).length / intervals.length
+    : 0;
+  const repeatedRatio = intervals.length
+    ? intervals.filter((interval) => interval === 0).length / intervals.length
+    : 0;
+  if (largeLeapRatio > 0.55 + 1e-9 || repeatedRatio > 0.75 + 1e-9) return undefined;
+
+  return selectGuitarLeadPath(phrase, {
+    minimumSpacingBeats: Math.max(0.5, minimumSpacingBeats),
+    groupToleranceBeats: 0.08,
+    phraseBreakBeats: 1.5,
+    maxCandidatesPerGroup: 4,
+    beamWidth: 24,
+    allowGapRecovery: true,
+    skipPenalty: 1.5,
+    minimumPhraseGroups: 4,
+  }).notes;
+}
+
+/**
  * Restore supported residual attacks that a learner interval pass skipped
  * from an otherwise sparse, beat-level phrase. Residual detector paths can
  * arrive at the learner reducer with a coherent one-beat contour but still
@@ -808,9 +852,14 @@ function restoreSparseResidualCoverage(
     const vocalIntervals = result
       .filter((note) => note.identitySource === "vocals")
       .map((note) => ({ start: note.start, end: note.start + note.dur }));
+    const tooCloseToPlayedAttack = (note: Note): boolean => result.some((played) =>
+      played.hand !== "L"
+      && Math.abs(played.start - note.start) < minimumSpacingBeats - 1e-9,
+    );
     let candidates = phrase.filter((note) => {
       if (kept.some((other) => Math.abs(other.start - note.start) <= 1e-9)) return false;
       if (note.vel < 56 && note.dur < 0.3) return false;
+      if (tooCloseToPlayedAttack(note)) return false;
       return !vocalIntervals.some((interval) => interval.start <= note.start + 1e-9
         && interval.end > note.start + 1e-9);
     });
@@ -825,6 +874,7 @@ function restoreSparseResidualCoverage(
       let winnerScore = Number.NEGATIVE_INFINITY;
       for (const candidate of candidates) {
         if (kept.some((note) => Math.abs(note.start - candidate.start) < targetSpacing - 1e-9)) continue;
+        if (tooCloseToPlayedAttack(candidate)) continue;
         const nearestGrid = Math.round((candidate.start - phraseStart) / targetSpacing) * targetSpacing + phraseStart;
         const gridFit = Math.max(0, 1 - Math.min(1, Math.abs(candidate.start - nearestGrid) / (targetSpacing * 0.6)));
         const previous = kept.filter((note) => note.start < candidate.start).at(-1);
@@ -862,12 +912,243 @@ function restoreSparseResidualCoverage(
 }
 
 /**
+ * Restore supported guitar lead attacks that the contour scheduler skipped
+ * inside a connected phrase.  Metal learner levels are intentionally selected
+ * from a richer source stream than Advanced, but a weighted interval pass can
+ * still choose only endpoints around vocal anchors and leave the solo
+ * unrecognisably sparse.  This pass is selection-only: it copies existing
+ * source-tagged guitar notes, never changes their pitch or onset, keeps vocals
+ * immutable, and respects the learner spacing floor.
+ *
+ * The gate is deliberately conservative.  A phrase must already have a
+ * selected guitar attack, several distinct upper pitches, useful candidate
+ * density, and a mostly connected contour.  Stable repeated walls and noisy
+ * residual lanes therefore remain with their existing rhythm/source policy.
+ */
+function restoreSparseGuitarCoverage(
+  sourceCandidates: Note[],
+  selected: Note[],
+  minimumSpacingBeats: number,
+): Note[] {
+  const guitarCandidates = sourceCandidates
+    .filter((note) => note.identitySource === "guitar" && note.midi >= 61)
+    .sort((a, b) => a.start - b.start || b.vel - a.vel || b.dur - a.dur);
+  if (guitarCandidates.length < 6) return selected;
+
+  const phrases: Note[][] = [];
+  for (const note of guitarCandidates) {
+    const phrase = phrases.at(-1);
+    const previous = phrase?.at(-1);
+    if (!phrase || !previous || note.start - previous.start > 1.5 + 1e-9
+      || note.start - phrase[0]!.start > 32 + 1e-9) {
+      phrases.push([note]);
+    } else {
+      phrase.push(note);
+    }
+  }
+
+  const result = [...selected];
+  const vocalNotes = result.filter((note) => note.identitySource === "vocals");
+  // Keep a useful coverage target separate from the physical learner floor:
+  // a valid phrase may add at half-beat spacing, while the target remains
+  // conservative enough not to restore every detector attack.
+  const targetSpacing = Math.max(minimumSpacingBeats, 0.75);
+  const coverageFloor = Math.max(minimumSpacingBeats, 0.5);
+  const keyFor = (note: Note): string => `${note.identitySource ?? ""}:${note.start.toFixed(6)}:${note.midi}`;
+  const selectedKeys = new Set(result.map(keyFor));
+  const tooCloseToPlayedAttack = (note: Note): boolean => result.some((played) =>
+    played.hand !== "L"
+    && Math.abs(played.start - note.start) < minimumSpacingBeats - 1e-9,
+  );
+
+  for (const phrase of phrases) {
+    if (phrase.length < 6) continue;
+    const phraseStart = phrase[0]!.start;
+    const phraseEnd = phrase.at(-1)!.start;
+    const span = phraseEnd - phraseStart;
+    if (!Number.isFinite(span) || span < 2) continue;
+
+    const distinctPitches = new Set(phrase.map((note) => note.midi));
+    if (distinctPitches.size < 3) continue;
+    const intervals = phrase.slice(1).map((note, index) => Math.abs(note.midi - phrase[index]!.midi));
+    const largeLeapRatio = intervals.length
+      ? intervals.filter((interval) => interval >= 7).length / intervals.length
+      : 0;
+    const repeatedRatio = intervals.length
+      ? intervals.filter((interval) => interval === 0).length / intervals.length
+      : 0;
+    if (largeLeapRatio > 0.45 + 1e-9 || repeatedRatio > 0.75 + 1e-9) continue;
+    if (phrase.length / Math.max(1, span) < 1.25 - 1e-9) continue;
+
+    const inPhrase = (note: Note): boolean => note.identitySource === "guitar"
+      && note.start >= phraseStart - 1e-9
+      && note.start <= phraseEnd + 1e-9;
+    const kept = result.filter(inPhrase).sort((a, b) => a.start - b.start);
+    // Recovery must refine an already selected guitar phrase, never create a
+    // new instrumental source in a section that the lane selector rejected.
+    if (!kept.length) continue;
+
+    const targetCount = Math.min(
+      phrase.length,
+      Math.max(kept.length, Math.floor(span / targetSpacing + 1 + 1e-9)),
+    );
+    if (targetCount <= kept.length) continue;
+
+    const available = phrase.filter((note) => !selectedKeys.has(keyFor(note)));
+    while (kept.length < targetCount) {
+      let winner: Note | undefined;
+      let winnerScore = Number.NEGATIVE_INFINITY;
+      for (const candidate of available) {
+        if (selectedKeys.has(keyFor(candidate)) || tooCloseToPlayedAttack(candidate)) continue;
+        if (vocalNotes.some((vocal) => Math.abs(vocal.start - candidate.start) < minimumSpacingBeats - 1e-9)) continue;
+
+        const previous = kept.filter((note) => note.start < candidate.start).at(-1);
+        const next = kept.find((note) => note.start > candidate.start);
+        const beforeGap = previous ? candidate.start - previous.start : Number.POSITIVE_INFINITY;
+        const afterGap = next ? next.start - candidate.start : Number.POSITIVE_INFINITY;
+        const stepToPrevious = previous ? Math.abs(candidate.midi - previous.midi) : 0;
+        const stepToNext = next ? Math.abs(next.midi - candidate.midi) : 0;
+        const bridgesGap = previous !== undefined && next !== undefined
+          && beforeGap >= targetSpacing - 1e-9
+          && afterGap >= targetSpacing - 1e-9;
+        const stepwise = (previous !== undefined && stepToPrevious <= 5)
+          || (next !== undefined && stepToNext <= 5);
+        const quietLargeLeap = candidate.vel < 70 && candidate.dur <= 0.25 + 1e-9
+          && ((previous !== undefined && stepToPrevious >= 7) || (next !== undefined && stepToNext >= 7));
+        const gridDistance = Math.abs((candidate.start - phraseStart) / targetSpacing
+          - Math.round((candidate.start - phraseStart) / targetSpacing));
+        const gridFit = Math.max(0, 1 - Math.min(1, gridDistance));
+        const endpoint = previous === undefined || next === undefined;
+        const score = (bridgesGap ? 4 : 0)
+          + (stepwise ? 2.5 : 0)
+          + gridFit
+          + Math.min(1, candidate.dur / 0.35)
+          + Math.min(1, candidate.vel / 127)
+          + (endpoint ? 1.5 : 0)
+          - (quietLargeLeap ? 3 : 0)
+          - Math.max(0, Math.max(stepToPrevious, stepToNext) - 7) * 0.2;
+        if (score > winnerScore + 1e-9) {
+          winner = candidate;
+          winnerScore = score;
+        }
+      }
+      if (!winner) break;
+      const copy = { ...winner };
+      kept.push(copy);
+      kept.sort((a, b) => a.start - b.start);
+      result.push(copy);
+      selectedKeys.add(keyFor(copy));
+    }
+
+    // The greedy add-only pass can be trapped when every omitted candidate is
+    // just inside the floor of an existing attack. In that case, choose a
+    // larger source-locked subset from the cleaned phrase, allowing a bounded
+    // replacement of a weak attack rather than resurrecting pre-cleanup data.
+    if (kept.length < targetCount) {
+      const fixed = result.filter((note) => !inPhrase(note) && note.hand !== "L");
+      const candidates = phrase.filter((note) => note.hand !== "L"
+        && !fixed.some((played) => Math.abs(played.start - note.start) < coverageFloor - 1e-9));
+      const previousCompatible = candidates.map((note, index) => {
+        let low = 0;
+        let high = index - 1;
+        let compatible = -1;
+        while (low <= high) {
+          const middle = Math.floor((low + high) / 2);
+          if (note.start - candidates[middle]!.start >= coverageFloor - 1e-9) {
+            compatible = middle;
+            low = middle + 1;
+          } else {
+            high = middle - 1;
+          }
+        }
+        return compatible;
+      });
+      const weights = candidates.map((candidate, index) => {
+        const previous = candidates[index - 1];
+        const next = candidates[index + 1];
+        const selectedBonus = selectedKeys.has(keyFor(candidate)) ? 6 : 0;
+        const endpoint = index === 0 || index === candidates.length - 1;
+        const stepwise = (previous !== undefined && Math.abs(candidate.midi - previous.midi) <= 5)
+          || (next !== undefined && Math.abs(next.midi - candidate.midi) <= 5);
+        const quietLargeLeap = candidate.vel < 70 && candidate.dur <= 0.25 + 1e-9
+          && ((previous !== undefined && Math.abs(candidate.midi - previous.midi) >= 7)
+            || (next !== undefined && Math.abs(next.midi - candidate.midi) >= 7));
+        const gridDistance = Math.abs((candidate.start - phraseStart) / targetSpacing
+          - Math.round((candidate.start - phraseStart) / targetSpacing));
+        return selectedBonus
+          + (endpoint ? 2 : 0)
+          + (stepwise ? 2 : 0)
+          + Math.max(0, 1 - Math.min(1, gridDistance))
+          + Math.min(1, candidate.dur / 0.35)
+          + Math.min(1, candidate.vel / 127)
+          - (quietLargeLeap ? 3 : 0);
+      });
+      const dp = Array.from({ length: candidates.length + 1 }, () =>
+        new Array<number>(targetCount + 1).fill(Number.NEGATIVE_INFINITY));
+      const take = Array.from({ length: candidates.length + 1 }, () =>
+        new Array<boolean>(targetCount + 1).fill(false));
+      dp[0]![0] = 0;
+      for (let candidateIndex = 1; candidateIndex <= candidates.length; candidateIndex += 1) {
+        dp[candidateIndex]![0] = 0;
+        for (let count = 1; count <= targetCount; count += 1) {
+          const skipped = dp[candidateIndex - 1]![count]!;
+          const parent = previousCompatible[candidateIndex - 1]! + 1;
+          const parentScore = dp[parent]![count - 1]!;
+          const included = parentScore > Number.NEGATIVE_INFINITY / 2
+            ? parentScore + weights[candidateIndex - 1]!
+            : Number.NEGATIVE_INFINITY;
+          if (included > skipped + 1e-9) {
+            dp[candidateIndex]![count] = included;
+            take[candidateIndex]![count] = true;
+          } else {
+            dp[candidateIndex]![count] = skipped;
+          }
+        }
+      }
+      let count = targetCount;
+      while (count > kept.length && dp[candidates.length]![count]! <= Number.NEGATIVE_INFINITY / 2) count -= 1;
+      if (count > kept.length) {
+        const chosen: Note[] = [];
+        let candidateIndex = candidates.length;
+        while (candidateIndex > 0 && count > 0) {
+          if (take[candidateIndex]![count]) {
+            chosen.push({ ...candidates[candidateIndex - 1]! });
+            candidateIndex = previousCompatible[candidateIndex - 1]! + 1;
+            count -= 1;
+          } else {
+            candidateIndex -= 1;
+          }
+        }
+        chosen.reverse();
+        if (chosen.length > kept.length) {
+          for (let resultIndex = result.length - 1; resultIndex >= 0; resultIndex -= 1) {
+            if (inPhrase(result[resultIndex]!)) {
+              selectedKeys.delete(keyFor(result[resultIndex]!));
+              result.splice(resultIndex, 1);
+            }
+          }
+          result.push(...chosen);
+          for (const note of chosen) selectedKeys.add(keyFor(note));
+        }
+      }
+    }
+  }
+  return result.sort((a, b) => a.start - b.start || a.midi - b.midi);
+}
+
+/**
  * Select a physically phrased metal RH path inside each real phrase. This is
  * tempo-aware and local, because a whole-song density average cannot see a
  * half-second detector burst. Pitch and attack choices are selection-only so
  * every easier level remains traceable to its harder neighbor.
  */
-function reduceMetalRhRealism(notes: Note[], tempoBpm: number, maxAttacksPerSecond: number, legato = false): Note[] {
+function reduceMetalRhRealism(
+  notes: Note[],
+  tempoBpm: number,
+  maxAttacksPerSecond: number,
+  legato = false,
+  preserveGuitarCoverage = false,
+): Note[] {
   if (!notes.length) return [];
   const safeTempo = normalizeTempoBpm(tempoBpm);
   const secondsPerBeat = 60 / safeTempo;
@@ -1038,6 +1319,16 @@ function reduceMetalRhRealism(notes: Note[], tempoBpm: number, maxAttacksPerSeco
       ? [{ note, phraseIndex }]
       : []);
     const useContourDp = legato && candidates.some(({ note }) => isMetalInstrumentalSource(note.identitySource));
+    const learnerGuitarPath = preserveGuitarCoverage && legato
+      ? selectMetalLearnerGuitarPhrase(
+        phrase.filter((note) => note.identitySource === "guitar" && note.hand !== "L" && note.midi >= 61),
+        minimumSpacingBeats,
+      ) ?? []
+      : [];
+    const guitarCoverageKeys = new Set(
+      learnerGuitarPath.map((note) => `${note.start.toFixed(6)}:${note.midi}:${note.dur.toFixed(6)}:${note.vel}`),
+    );
+    const noteKey = (note: Note): string => `${note.start.toFixed(6)}:${note.midi}:${note.dur.toFixed(6)}:${note.vel}`;
     const mandatoryContourNotes = new Set(
       candidates
         .filter(({ note, phraseIndex }) => {
@@ -1055,7 +1346,8 @@ function reduceMetalRhRealism(notes: Note[], tempoBpm: number, maxAttacksPerSeco
             || phraseIndex === phrase.length - 1
             || note.vel >= 100
             || (note.midi >= 76 && (note.vel >= 90 || durationSec >= 0.5))
-            || instrumentalPhraseLanding;
+            || instrumentalPhraseLanding
+            || guitarCoverageKeys.has(noteKey(note));
         })
         .map(({ note }) => note),
     );
@@ -1181,18 +1473,21 @@ function reduceMetalRhRealism(notes: Note[], tempoBpm: number, maxAttacksPerSeco
     selected.push(...protectedAnchors.map((note) => ({ ...note })), ...phraseSelection);
   }
 
-  const coverageSelected = legato
-    ? restoreSparseResidualCoverage(notes, selected, minimumSpacingBeats, safeRate)
+  const residualCovered = legato
+    ? restoreSparseResidualCoverage(cleaned, selected, minimumSpacingBeats, safeRate)
     : selected;
-  const handoffSelected = removeIsolatedGuitarVocalSingletons(coverageSelected, safeTempo, legato);
+  const handoffSelected = removeIsolatedGuitarVocalSingletons(residualCovered, safeTempo, legato);
   const sorted = removeInterleavedGuitarDetours(
     handoffSelected.sort((a, b) => a.start - b.start || a.midi - b.midi),
     safeTempo,
     legato,
   );
   if (!legato) return sorted;
-  return sorted.map((note, index) => {
-    const next = sorted[index + 1];
+  const coverageSelected = preserveGuitarCoverage
+    ? restoreSparseGuitarCoverage(cleaned, sorted, minimumSpacingBeats)
+    : sorted;
+  return coverageSelected.sort((a, b) => a.start - b.start || a.midi - b.midi).map((note, index, all) => {
+    const next = all[index + 1];
     if (!next) return { ...note };
     const gap = next.start - note.start;
     if (gap <= 0 || gap * secondsPerBeat > 0.5) return { ...note };
@@ -2029,7 +2324,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
       // note pulse at common metal tempos is a poor single-hand piano target.
       // Four attacks/sec gives a half-beat floor at 120 BPM while removing
       // detector chatter from the playable middle level.
-      ...reduceMetalRhRealism(mediumTexture.filter((note) => note.hand !== "L"), tempo, 4, true),
+      ...reduceMetalRhRealism(mediumTexture.filter((note) => note.hand !== "L"), tempo, 4, true, true),
       ...reduceMediumRhythm(mediumTexture.filter((note) => note.hand === "L")),
     ]
     : reduceMediumRhythm(mediumTexture);
@@ -2039,7 +2334,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   )));
   const mediumRh = medium.filter((n) => n.hand !== "L");
   const mediumLh = medium.filter((n) => n.hand === "L");
-  const easyRhSource = metalProfile ? reduceMetalRhRealism(mediumRh, tempo, 4, true) : mediumRh;
+  const easyRhSource = metalProfile ? reduceMetalRhRealism(mediumRh, tempo, 4, true, true) : mediumRh;
   const easyLhTexture = metalProfile
     ? metalLeftHandTexture(mediumLh, 0.75, 2)
     : trimSamePitchOverlaps(thinChord(mediumLh, 2).map((n) => ({ ...n, midi: rootOf(n.midi, key) })));
