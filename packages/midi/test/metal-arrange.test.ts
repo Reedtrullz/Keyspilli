@@ -1078,6 +1078,30 @@ describe("metal piano arranger", () => {
     expect(advanced.some((note) => note.identitySource === "other" && note.start === 1.25)).toBe(true);
   });
 
+  it("drops a quiet residual spike after a long gap without changing Advanced detail", () => {
+    const source = midi([
+      { midi: 62, start: 1, dur: 0.5, vel: 72, hand: "R", identitySource: "other" },
+      // The preceding lead attack is more than the old local-detour window
+      // away. This weak short residual spike should not become a learner
+      // melody solely because the next upper attack is nearby.
+      { midi: 72, start: 2, dur: 0.25, vel: 44, hand: "R", identitySource: "other" },
+      { midi: 64, start: 2.75, dur: 0.5, vel: 72, hand: "R", identitySource: "other" },
+    ], 3.5);
+    const variants = buildVariants(source, { title: "Residual gap spike", artist: "Fixture" }, {
+      arrangementProfile: "metal",
+      audioDerived: true,
+    });
+    for (const level of ["medium", "easy"] as const) {
+      const notes = variants.find((variant) => variant.level === level)!.notes
+        .filter((note) => note.hand !== "L" && note.identitySource === "other");
+      expect(notes.some((note) => note.midi === 72 && note.start === 2), `${level} kept residual gap spike`).toBe(false);
+      expect(notes.map((note) => note.midi)).toEqual([62, 64]);
+    }
+    const advanced = variants.find((variant) => variant.level === "advanced")!.notes
+      .filter((note) => note.hand !== "L" && note.identitySource === "other");
+    expect(advanced.some((note) => note.midi === 72 && note.start === 2)).toBe(true);
+  });
+
   it("retains enough connected landings from a dense stepwise solo phrase", () => {
     const starts = [0, 0.25, 0.5, 0.75, 1.25, 1.5, 1.75, 2, 2.25, 3, 4, 4.25, 4.5, 4.75, 5, 5.25, 5.5, 5.75, 6, 6.25, 6.75, 7.25];
     const pitches = [76, 72, 67, 64, 64, 67, 69, 69, 71, 64, 67, 69, 69, 72, 69, 69, 69, 67, 65, 67, 72, 64];
