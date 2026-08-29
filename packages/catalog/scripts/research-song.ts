@@ -1,5 +1,6 @@
-import { readFile, writeFile } from "node:fs/promises";
-import { extname } from "node:path";
+import { readFile, realpath, stat, writeFile } from "node:fs/promises";
+import { dirname, extname, isAbsolute, relative, resolve, sep } from "node:path";
+import { fileURLToPath } from "node:url";
 import { runResearch, type HumanAcceptanceInput, type LocalSymbolicInput } from "../src/research-report.js";
 
 interface CliArgs {
@@ -16,6 +17,8 @@ interface CliArgs {
   out?: string;
   metadataLimited?: boolean;
 }
+
+const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 function usage(): string {
   return [
@@ -108,13 +111,28 @@ function formatForPath(path: string): LocalSymbolicInput["format"] {
   return "unknown";
 }
 
-async function loadLocalCandidate(path: string): Promise<LocalSymbolicInput> {
-  let bytes: Uint8Array;
+async function regularFile(path: string, label: string): Promise<string> {
+  let resolved: string;
   try {
-    bytes = new Uint8Array(await readFile(path));
+    resolved = await realpath(resolve(path));
+    const info = await stat(resolved);
+    if (!info.isFile()) throw new Error("not a regular file");
   } catch {
-    throw new Error("could not read local candidate");
+    throw new Error(`could not read local ${label}`);
   }
+  return resolved;
+}
+
+function rejectReferenceInsideRepo(path: string): void {
+  const repoRelative = relative(REPO_ROOT, path);
+  if (repoRelative === "" || (!repoRelative.startsWith(`..${sep}`) && repoRelative !== ".." && !isAbsolute(repoRelative))) {
+    throw new Error("reference must be outside the repository; keep copyrighted reference files local-only");
+  }
+}
+
+async function loadLocalCandidate(path: string): Promise<LocalSymbolicInput> {
+  const resolved = await regularFile(path, "candidate");
+  const bytes = new Uint8Array(await readFile(resolved));
   return { bytes, format: formatForPath(path) };
 }
 
@@ -123,11 +141,9 @@ async function main(): Promise<void> {
   const localCandidates = await Promise.all(args.candidates.map(loadLocalCandidate));
   let reference: { bytes: Uint8Array; format: LocalSymbolicInput["format"] } | undefined;
   if (args.reference) {
-    try {
-      reference = { bytes: new Uint8Array(await readFile(args.reference)), format: formatForPath(args.reference) };
-    } catch {
-      throw new Error("could not read local reference");
-    }
+    const referencePath = await regularFile(args.reference, "reference");
+    rejectReferenceInsideRepo(referencePath);
+    reference = { bytes: new Uint8Array(await readFile(referencePath)), format: formatForPath(args.reference) };
   }
   const result = await runResearch({
     song: {
