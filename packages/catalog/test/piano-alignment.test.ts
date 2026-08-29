@@ -69,7 +69,7 @@ describe("constrained piano timing alignment", () => {
 
   it("rejects a pathological warp instead of fabricating alignment", () => {
     const reference = score([0, 1, 2, 3], [60, 62, 64, 65], 4.5);
-    const candidate = score([0, 1, 9, 10], [60, 62, 64, 65], 11);
+    const candidate = score([0, 3, 6, 9], [60, 62, 64, 65], 10);
 
     const result = alignPianoCandidates(reference, candidate, {
       maxLocalTempoScale: 2,
@@ -80,6 +80,34 @@ describe("constrained piano timing alignment", () => {
     expect(result.matches).toEqual([]);
     expect(result.confidence).toBe(0);
     expect(result.diagnostics.some((diagnostic) => diagnostic.includes("pathological"))).toBe(true);
+  });
+
+  it("selects a lower-ranked valid hypothesis when the highest match path is pathological", () => {
+    const reference = score([0, 1, 2, 3], [60, 62, 64, 65], 4.5);
+    // The offset-0 path matches all four onsets but jumps from beat 1 to 9.
+    // A second, offset-20 path has one fewer match but remains physically
+    // valid. The invalid high-scoring path must not mask the valid one.
+    const candidate = score(
+      [0, 1, 9, 10, 20, 21, 22],
+      [60, 62, 64, 65, 60, 62, 64],
+      24,
+    );
+    const result = alignPianoCandidates(reference, candidate, {
+      tempoScales: [1],
+      transpositionSemitones: [0],
+      offsetBeats: [0, 20],
+      maxWarpBeats: 0.75,
+      maxLocalTempoScale: 2,
+    });
+
+    expect(result.status).toBe("partial");
+    expect(result.matches).toHaveLength(3);
+    expect(result.mapping).toEqual([
+      { referenceBeat: 0, candidateBeat: 20 },
+      { referenceBeat: 1, candidateBeat: 21 },
+      { referenceBeat: 2, candidateBeat: 22 },
+    ]);
+    expect(result.diagnostics.some((diagnostic) => diagnostic.includes("discarded 1 pathological"))).toBe(true);
   });
 
   it("is deterministic for reordered notes and preserves the mapping contract", () => {
