@@ -277,6 +277,7 @@ async function processJob(jobId: string): Promise<void> {
         });
         const parsedStems = stemResult.stems.map((stem) => ({
           role: stem.role,
+          sourceStem: stem.noteSource,
           midi: parseMidi(stem.midi),
         }));
         const routing = assessMetalRouting(parsedStems, { force: dense });

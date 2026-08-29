@@ -1570,11 +1570,20 @@ function preserveRhLadder(
     }
   }
   const resultRhCount = result.filter((n) => n.hand !== "L").length;
-  const fallbackTargetReached = semanticTwoHand ? result.length >= 8 : resultRhCount >= 8;
+  const harderRhCount = harder.filter((n) => n.hand !== "L").length;
+  // A semantic beginner level needs an identity task as well as its sparse
+  // LH anchor.  Counting only the combined note total lets eight LH notes
+  // satisfy the fallback even when the harder tier still has RH material;
+  // that publishes an unplayable one-handed level.  If the harder tier has no
+  // RH material there is nothing traceable to recover, so retain the source's
+  // genuinely LH-only texture rather than inventing a hand assignment.
+  const fallbackTargetReached = semanticTwoHand
+    ? result.length >= 8 && (resultRhCount > 0 || harderRhCount === 0)
+    : resultRhCount >= 8;
   if (allowFallback && !fallbackTargetReached) {
     const lh = result.filter((n) => n.hand === "L");
     const needed = semanticTwoHand
-      ? Math.max(0, 8 - result.length)
+      ? Math.max(8 - result.length, resultRhCount > 0 || harderRhCount === 0 ? 0 : 1)
       : Math.max(0, 8 - resultRhCount);
     const fallback = fallbackRhSubset(harder, maxSim, Math.max(needed, 8));
     if (fallback.length >= needed) {
@@ -1585,9 +1594,13 @@ function preserveRhLadder(
         if (seen.has(key)) continue;
         seen.add(key);
         rh.push(n);
-        if (semanticTwoHand ? lh.length + rh.length >= 8 : rh.length >= 8) break;
+        if (semanticTwoHand
+          ? lh.length + rh.length >= 8 && (rh.length > 0 || harderRhCount === 0)
+          : rh.length >= 8) break;
       }
-      if (semanticTwoHand ? lh.length + rh.length >= 8 : rh.length >= 8) {
+      if (semanticTwoHand
+        ? lh.length + rh.length >= 8 && (rh.length > 0 || harderRhCount === 0)
+        : rh.length >= 8) {
         result = [...lh, ...rh].sort((a, b) => a.start - b.start || a.midi - b.midi);
       }
     }

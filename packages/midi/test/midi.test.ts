@@ -1732,6 +1732,44 @@ describe("cleanTranscription seconds-based ceiling", () => {
 });
 
 describe("buildVariants ladder recovery", () => {
+  it("does not mistake eight LH anchors for a complete semantic beginner level", () => {
+    // The coarse beginner reduction can lose an off-grid RH attack while its
+    // sparse LH anchors still match the harder level.  A semantic two-hand
+    // fallback must recover the RH task whenever the harder tier has one;
+    // counting only the combined note total would incorrectly accept an
+    // LH-only learner level.
+    const notes: Note[] = [
+      { midi: 72, start: 0.125, dur: 0.25, vel: 80, hand: "R" },
+      ...Array.from({ length: 8 }, (_, index) => ({
+        midi: 36 + (index % 2) * 7,
+        start: index * 4,
+        dur: 1,
+        vel: 72,
+        hand: "L" as const,
+      })),
+    ];
+    const variants = buildVariants(
+      {
+        format: 1,
+        division: 480,
+        tempoBpm: 120,
+        keySig: 0,
+        keyMode: 0,
+        timeSig: [4, 4],
+        notes,
+        trackNames: ["Right Hand", "Left Hand"],
+        durationBeats: 32,
+      },
+      { title: "Two-hand fallback", artist: "Test" },
+      { arrangementProfile: "metal" },
+    );
+    for (const level of ["very-beginner", "beginner"] as const) {
+      const variant = variants.find((candidate) => candidate.level === level)!;
+      expect(variant.notes.filter((note) => note.hand !== "L").length, level).toBeGreaterThan(0);
+      expect(variant.notes.filter((note) => note.hand === "L").length, level).toBeGreaterThanOrEqual(8);
+    }
+  });
+
   it("keeps every level publishable when quarter-grid reduction meets eighth-grid attacks", () => {
     // A dense but playable eighth-note source is a useful regression fixture:
     // beginner/very-beginner quantization lands between the harder level's

@@ -314,6 +314,56 @@ describe("metal piano arranger", () => {
     expect(other.map((note) => note.midi).filter((pitch) => pitch >= 62 && pitch <= 71).length).toBeGreaterThanOrEqual(12);
   });
 
+  it("preserves the residual role when no dedicated guitar stem exists", () => {
+    const lead = [64, 65, 67, 69, 67, 65, 64, 62, 64, 65, 67, 69].map((midi, index) => ({
+      midi,
+      start: index * 0.5,
+      dur: 0.42,
+      vel: 72,
+    }));
+    const lowWall = Array.from({ length: 24 }, (_, index) => ({
+      midi: 57,
+      start: index * 0.25,
+      dur: 0.12,
+      vel: 82,
+    }));
+    const result = buildMetalArrangement({
+      stems: [{ role: "other", midi: midi([...lowWall, ...lead], 8) }],
+    });
+
+    const identity = result.ir.identity;
+    expect(identity.some((note) => note.identitySource === "other" && note.midi >= 62)).toBe(true);
+    expect(identity.some((note) => note.identitySource === "guitar"), "residual-only input was aliased to guitar").toBe(false);
+    expect(identity.some((note) => note.identitySource === "other" && note.midi <= 60), "raw low residual wall leaked into RH").toBe(false);
+    expect(result.parsed.notes.some((note) => note.hand === "L" && note.identitySource === "other"), "residual low wall was not retained as LH accompaniment").toBe(true);
+  });
+
+  it("uses the residual decoder when a routing-compatible guitar role came from other", () => {
+    const lead = [64, 65, 67, 69, 67, 65, 64, 62].map((midi, index) => ({
+      midi,
+      start: index * 0.5,
+      dur: 0.42,
+      vel: 72,
+    }));
+    const lowWall = Array.from({ length: 16 }, (_, index) => ({
+      midi: 57,
+      start: index * 0.25,
+      dur: 0.12,
+      vel: 82,
+    }));
+    const routingCompatibleResidual = {
+      role: "guitar" as const,
+      sourceStem: "other" as const,
+      midi: midi([...lowWall, ...lead], 8),
+    };
+    const result = buildMetalArrangement({ stems: [routingCompatibleResidual] });
+
+    const identity = result.ir.identity;
+    expect(identity.some((note) => note.identitySource === "other" && note.midi >= 62)).toBe(true);
+    expect(identity.some((note) => note.identitySource === "guitar"), "other provenance was treated as guitar").toBe(false);
+    expect(identity.some((note) => note.identitySource === "other" && note.midi <= 60), "raw low residual wall leaked into RH").toBe(false);
+  });
+
   it("carries a coherent guitar phrase across vocal gaps and section seams", () => {
     const vocals = [0, 2, 4, 6].map((start, index) => ({
       midi: 76 + (index % 2),
@@ -445,6 +495,42 @@ describe("metal piano arranger", () => {
     });
     const pitches = result.ir.identity.filter((note) => note.identitySource === "guitar").map((note) => note.midi);
     expect(pitches.filter((pitch) => pitch === 62).length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("routes isolated raw guitar notes below the RH floor while preserving low contours and MIDI 62 hooks", () => {
+    const lowSubRegister = [52, 52, 54].map((midi, index) => ({
+      midi,
+      start: index * 1.5,
+      dur: 0.3,
+      vel: 88,
+    }));
+    const lowContour = [55, 57, 59, 60, 59].map((midi, index) => ({
+      midi,
+      start: 4.5 + index * 0.75,
+      dur: 0.45,
+      vel: 86,
+    }));
+    const upperHook = [
+      // Keep the upper evidence close enough to establish a separate lead
+      // for the raw 52/54 partials, but outside the later low contour so the
+      // latter remains a valid melodic motif.
+      { midi: 62, start: 0.25, dur: 0.5, vel: 84 },
+      ...[62, 62, 64].map((midi, index) => ({
+        midi,
+        start: 14.25 + index * 0.75,
+        dur: 0.5,
+        vel: 84,
+      })),
+    ];
+    const result = buildMetalArrangement({
+      stems: [{ role: "guitar", midi: midi([...lowSubRegister, ...lowContour, ...upperHook], 17) }],
+    });
+
+    const identity = result.ir.identity.filter((note) => note.identitySource === "guitar");
+    expect(identity.some((note) => [0, 1.5, 3].includes(note.start)), "raw <55 guitar note folded into RH").toBe(false);
+    expect(result.parsed.notes.filter((note) => note.hand === "L" && note.identitySource === "guitar" && [0, 1.5, 3].includes(note.start))).toHaveLength(3);
+    expect(identity.filter((note) => note.start >= 4.5 && note.start < 14.25).map((note) => note.midi)).toEqual([55, 57, 59, 60, 59]);
+    expect(identity.filter((note) => note.midi === 62).length).toBeGreaterThanOrEqual(2);
   });
 
   it("routes a low power root that shares an onset with the lead into LH", () => {
