@@ -123,6 +123,15 @@ async function regularFile(path: string, label: string): Promise<string> {
   return resolved;
 }
 
+async function readRegularFile(path: string, label: string): Promise<{ path: string; bytes: Uint8Array }> {
+  const resolved = await regularFile(path, label);
+  try {
+    return { path: resolved, bytes: new Uint8Array(await readFile(resolved)) };
+  } catch {
+    throw new Error(`could not read local ${label}`);
+  }
+}
+
 function rejectReferenceInsideRepo(path: string): void {
   const repoRelative = relative(REPO_ROOT, path);
   if (repoRelative === "" || (!repoRelative.startsWith(`..${sep}`) && repoRelative !== ".." && !isAbsolute(repoRelative))) {
@@ -131,9 +140,8 @@ function rejectReferenceInsideRepo(path: string): void {
 }
 
 async function loadLocalCandidate(path: string): Promise<LocalSymbolicInput> {
-  const resolved = await regularFile(path, "candidate");
-  const bytes = new Uint8Array(await readFile(resolved));
-  return { bytes, format: formatForPath(path) };
+  const loaded = await readRegularFile(path, "candidate");
+  return { bytes: loaded.bytes, format: formatForPath(path) };
 }
 
 async function main(): Promise<void> {
@@ -141,9 +149,9 @@ async function main(): Promise<void> {
   const localCandidates = await Promise.all(args.candidates.map(loadLocalCandidate));
   let reference: { bytes: Uint8Array; format: LocalSymbolicInput["format"] } | undefined;
   if (args.reference) {
-    const referencePath = await regularFile(args.reference, "reference");
-    rejectReferenceInsideRepo(referencePath);
-    reference = { bytes: new Uint8Array(await readFile(referencePath)), format: formatForPath(args.reference) };
+    const loaded = await readRegularFile(args.reference, "reference");
+    rejectReferenceInsideRepo(loaded.path);
+    reference = { bytes: loaded.bytes, format: formatForPath(args.reference) };
   }
   const result = await runResearch({
     song: {
