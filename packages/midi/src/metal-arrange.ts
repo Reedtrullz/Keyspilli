@@ -754,10 +754,22 @@ function selectResidualUpperMelodyPath(notes: Note[], source: UpperEvidenceLane[
     }
     const span = Math.max(1, phrase.at(-1)!.start - phrase[0]!.start);
     const density = phrase.length / span;
-    // A residual phrase above roughly two attacks/beat is normally detector
-    // chatter. A half-beat floor still retains the contour density a learner
-    // needs for a fast lead; sparse phrases keep their authored spacing.
-    const minimumSpacing = density >= 1.25 ? 0.5 : 0.75;
+    const gaps = phrase.slice(1)
+      .map((note, index) => note.start - phrase[index]!.start)
+      .filter((gap) => gap > EPS)
+      .sort((a, b) => a - b);
+    const medianGap = gaps.length ? gaps[Math.floor(gaps.length / 2)]! : Number.POSITIVE_INFINITY;
+    const intervals = phrase.slice(1).map((note, index) => Math.abs(note.midi - phrase[index]!.midi));
+    const largeLeapRatio = intervals.length
+      ? intervals.filter((interval) => interval >= 7).length / intervals.length
+      : 0;
+    // A residual phrase below roughly two attacks/beat can still be a useful
+    // authored lead (the coherent-other fallback uses ~0.75-beat attacks).
+    // Only impose a one-beat floor when its timing/contour also looks like
+    // detector jitter; genuinely dense lead evidence keeps the half-beat
+    // contour floor.
+    const jitterLike = medianGap < 0.7 - EPS || largeLeapRatio >= 0.35;
+    const minimumSpacing = density >= 2 ? 0.5 : jitterLike ? 1 : 0.75;
     const weights = phrase.map((note, index) => {
       const previous = phrase[index - 1];
       const next = phrase[index + 1];
@@ -831,13 +843,17 @@ function inferConservativeTopLine(
   lanes: UpperEvidenceLane[],
   start: number,
   end: number,
+  allowedSource?: UpperEvidenceLane["source"],
 ): IdentityNote[] {
   const existing = notesIn(selected, start, end);
   const existingMelody = existing.filter((note) => note.identitySource === "vocals" || note.midi >= 64);
   const targetAttacks = Math.max(2, Math.floor((end - start) / 2));
   const needed = targetAttacks - existingMelody.length;
   if (needed <= 0) return [];
-  const candidates = lanes.flatMap((lane) => {
+  const candidateLanes = allowedSource
+    ? lanes.filter((lane) => lane.source === allowedSource)
+    : lanes;
+  const candidates = candidateLanes.flatMap((lane) => {
     const laneNotes = notesIn(lane.notes, start, end);
     return laneNotes
       .filter((note) => (note.rawMidi ?? note.midi) >= 60)
@@ -1558,6 +1574,11 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
         confidence: vocalConfidence,
       }
       : instrumentalWinner;
+    // Sparse recovery must stay on the lane selected for this section. The
+    // residual `other` stem is often full-mix-like; handing both lanes back to
+    // the inference pass would reintroduce its isolated spikes after the
+    // source-aware fusion gate already chose a coherent guitar phrase.
+    let inferenceSource: UpperEvidenceLane["source"] = instrumentalWinner.source;
     let source: MetalIdentitySection["source"] = winner.confidence >= 0.15 ? winner.source : "rest";
     let sectionConfidence = winner.confidence;
     const sectionIdentity: IdentityNote[] = [];
@@ -1579,6 +1600,7 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
         activeInstrumentSource,
         activeInstrumentLastAttack,
       );
+      if (fused.alternateSource) inferenceSource = fused.alternateSource;
       if (useVocalLead) {
         for (const note of fused.primaryNotes) vocalRegisterAnchors.add(`${note.start.toFixed(6)}:${note.midi}`);
       }
@@ -1601,12 +1623,29 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
         activeInstrumentLastAttack = instrumentalNotes.at(-1)!.start;
       }
     }
-    const inferred = inferConservativeTopLine(sectionIdentity, upperEvidenceLanes, start, end);
+    const inferred = inferConservativeTopLine(
+      sectionIdentity,
+      upperEvidenceLanes,
+      start,
+      end,
+      inferenceSource,
+    );
     if (inferred.length) {
       inferredTopLineSections += 1;
       sectionConfidence = Math.max(sectionConfidence, 0.16);
       if (source === "rest") source = inferred[0]!.identitySource ?? "other";
       for (const note of inferred) identity.push(note);
+      // Inferred attacks are still evidence from the selected instrumental
+      // lane. Carry their provenance across the next bookkeeping section so
+      // a sparse phrase cannot flip sources merely at an 8/16-beat seam.
+      const inferredInstrumental = inferred
+        .filter((note): note is IdentityNote & { identitySource: "guitar" | "other" } => isMetalInstrumentalSource(note.identitySource))
+        .sort((a, b) => a.start - b.start);
+      const lastInferred = inferredInstrumental.at(-1);
+      if (lastInferred) {
+        activeInstrumentSource = lastInferred.identitySource;
+        activeInstrumentLastAttack = lastInferred.start;
+      }
     }
     sections.push({ startBeat: start, endBeat: end, source, confidence: sectionConfidence });
   }
