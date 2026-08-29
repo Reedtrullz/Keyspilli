@@ -118,6 +118,17 @@ interface PathResult {
   score: number;
 }
 
+interface PathEdge {
+  reference: OnsetGroup;
+  candidate: OnsetGroup;
+  candidateIndex: number;
+  overlap: number;
+  exact: boolean;
+  timingError: number;
+  previous: number;
+  score: number;
+}
+
 interface Hypothesis {
   scale: number;
   offset: number;
@@ -256,63 +267,102 @@ function pathForHypothesis(
   transpose: number,
   maxWarp: number,
 ): PathResult {
-  const rows = references.length + 1;
-  const cols = candidates.length + 1;
-  const dp = Array.from({ length: rows }, () => Array<number>(cols).fill(Number.NEGATIVE_INFINITY));
-  const actions = Array.from({ length: rows }, () => Array<"match" | "skip-reference" | "skip-candidate" | undefined>(cols));
   const gap = -0.85;
-  dp[0]![0] = 0;
-  for (let i = 1; i < rows; i += 1) {
-    dp[i]![0] = dp[i - 1]![0]! + gap;
-    actions[i]![0] = "skip-reference";
-  }
-  for (let j = 1; j < cols; j += 1) {
-    dp[0]![j] = dp[0]![j - 1]! + gap;
-    actions[0]![j] = "skip-candidate";
-  }
-  for (let i = 1; i < rows; i += 1) {
-    for (let j = 1; j < cols; j += 1) {
-      const reference = references[i - 1]!;
-      const candidate = candidates[j - 1]!;
+  if (!references.length || !candidates.length) return { pairs: [], score: gap * (references.length + candidates.length) };
+
+  /*
+   * A full R x C Needleman-Wunsch matrix for every affine hypothesis is
+   * needlessly expensive for real piano files (and used to make the default
+   * search effectively quadratic times thousands of hypotheses).  Matches
+   * with no pitch overlap are -Infinity, so the same objective can be solved
+   * over only plausible, time-banded match edges.  For k selected edges the
+   * skip contribution is gap * (R + C - 2k), independent of the gaps between
+   * edges.  Therefore each edge has weight `matchScore - 2 * gap`, and a
+   * Fenwick prefix maximum gives the best monotonic predecessor in O(log C).
+   */
+  const lowerBound = (value: number): number => {
+    let low = 0;
+    let high = candidates.length;
+    while (low < high) {
+      const middle = (low + high) >> 1;
+      if (candidates[middle]!.start < value - EPS) low = middle + 1;
+      else high = middle;
+    }
+    return low;
+  };
+  const edgeByCandidate: Array<{ score: number; edge: number } | undefined> = Array(candidates.length + 1);
+  const better = (left: { score: number; edge: number } | undefined, right: { score: number; edge: number } | undefined) => {
+    if (!left) return right;
+    if (!right) return left;
+    return right.score > left.score + EPS || (Math.abs(right.score - left.score) <= EPS && right.edge < left.edge) ? right : left;
+  };
+  const query = (index: number): { score: number; edge: number } | undefined => {
+    let result: { score: number; edge: number } | undefined;
+    for (let cursor = index + 1; cursor > 0; cursor -= cursor & -cursor) result = better(result, edgeByCandidate[cursor]);
+    return result;
+  };
+  const update = (index: number, value: { score: number; edge: number }) => {
+    for (let cursor = index + 1; cursor < edgeByCandidate.length; cursor += cursor & -cursor) {
+      edgeByCandidate[cursor] = better(edgeByCandidate[cursor], value);
+    }
+  };
+  const edges: PathEdge[] = [];
+  let bestEdge: number | undefined;
+  // Keep a little out-of-band evidence so a clearly pathological slope can
+  // still be rejected after fitting. The final accepted path remains subject
+  // to maxWarp; this wider probe is bounded to avoid restoring R x C work.
+  const probeWarp = Math.max(8, maxWarp * 8);
+  for (let referenceIndex = 0; referenceIndex < references.length; referenceIndex += 1) {
+    const reference = references[referenceIndex]!;
+    const expected = reference.start * scale + offset;
+    const first = lowerBound(expected - probeWarp);
+    const last = lowerBound(expected + probeWarp + EPS);
+    const count = last - first;
+    const candidateIndices = count <= 64
+      ? Array.from({ length: count }, (_value, index) => first + index)
+      : [...Array.from({ length: 24 }, (_value, index) => first + index),
+        ...Array.from({ length: 16 }, (_value, index) => Math.max(first, Math.min(last - 1, lowerBound(expected) - 8 + index))),
+        ...Array.from({ length: 24 }, (_value, index) => last - 24 + index)];
+    const row: PathEdge[] = [];
+    for (const candidateIndex of [...new Set(candidateIndices)]) {
+      const candidate = candidates[candidateIndex]!;
       const pitch = pitchOverlap(reference, candidate, transpose);
-      const residual = Math.abs(candidate.start - (reference.start * scale + offset));
-      const timingPenalty = Math.min(2, residual / Math.max(maxWarp, 0.05)) * 0.22;
-      const matchScore = pitch.overlap > 0 ? pitch.overlap * 2 - timingPenalty : Number.NEGATIVE_INFINITY;
-      const matchValue = dp[i - 1]![j - 1]! + matchScore;
-      const skipReference = dp[i - 1]![j]! + gap;
-      const skipCandidate = dp[i]![j - 1]! + gap;
-      // Deterministic tie order prefers a match, then consuming reference time,
-      // then consuming candidate time.
-      let value = matchValue;
-      let action: "match" | "skip-reference" | "skip-candidate" = "match";
-      if (skipReference > value + EPS) { value = skipReference; action = "skip-reference"; }
-      if (skipCandidate > value + EPS) { value = skipCandidate; action = "skip-candidate"; }
-      dp[i]![j] = value;
-      actions[i]![j] = action;
+      if (pitch.overlap <= 0) continue;
+      const timingError = Math.abs(candidate.start - expected);
+      const timingPenalty = Math.min(2, timingError / Math.max(maxWarp, 0.05)) * 0.22;
+      const matchScore = pitch.overlap * 2 - timingPenalty;
+      const predecessor = query(candidateIndex - 1);
+      const edge: PathEdge = {
+        reference,
+        candidate,
+        candidateIndex,
+        overlap: pitch.overlap,
+        exact: pitch.exact,
+        timingError,
+        previous: predecessor?.edge ?? -1,
+        score: (predecessor?.score ?? 0) + matchScore - 2 * gap,
+      };
+      row.push(edge);
+    }
+    // Updates happen after a row is evaluated so a single reference onset
+    // cannot match multiple candidate groups.
+    for (const edge of row) {
+      const edgeIndex = edges.length;
+      edges.push(edge);
+      update(edge.candidateIndex, { score: edge.score, edge: edgeIndex });
+      if (bestEdge === undefined || edge.score > edges[bestEdge]!.score + EPS
+        || (Math.abs(edge.score - edges[bestEdge]!.score) <= EPS && edgeIndex < bestEdge)) bestEdge = edgeIndex;
     }
   }
+  if (bestEdge === undefined) return { pairs: [], score: gap * (references.length + candidates.length) };
   const pairs: PathPair[] = [];
-  let i = references.length;
-  let j = candidates.length;
-  while (i > 0 || j > 0) {
-    const action = actions[i]![j];
-    if (action === "match" && i > 0 && j > 0) {
-      const reference = references[i - 1]!;
-      const candidate = candidates[j - 1]!;
-      const pitch = pitchOverlap(reference, candidate, transpose);
-      pairs.push({ reference, candidate, overlap: pitch.overlap, exact: pitch.exact, timingError: Math.abs(candidate.start - (reference.start * scale + offset)) });
-      i -= 1;
-      j -= 1;
-    } else if (action === "skip-reference" && i > 0) {
-      i -= 1;
-    } else if (j > 0) {
-      j -= 1;
-    } else {
-      break;
-    }
+  for (let edgeIndex: number | undefined = bestEdge; edgeIndex !== undefined && edgeIndex >= 0;) {
+    const currentEdge: PathEdge = edges[edgeIndex]!;
+    pairs.push({ reference: currentEdge.reference, candidate: currentEdge.candidate, overlap: currentEdge.overlap, exact: currentEdge.exact, timingError: currentEdge.timingError });
+    edgeIndex = currentEdge.previous;
   }
   pairs.reverse();
-  return { pairs, score: dp[references.length]![candidates.length]! };
+  return { pairs, score: bestEdge === undefined ? gap * (references.length + candidates.length) : edges[bestEdge]!.score + gap * (references.length + candidates.length) };
 }
 
 function makeOffsets(
@@ -340,6 +390,70 @@ function makeOffsets(
     }
   }
   return [...offsets].sort((a, b) => Math.abs(a) - Math.abs(b) || a - b).slice(0, 64).sort((a, b) => a - b);
+}
+
+interface HypothesisSeed {
+  scale: number;
+  offset: number;
+  transpose: number;
+  score: number;
+}
+
+/**
+ * Rank the Cartesian hypothesis set using a tiny time-banded pitch probe.
+ * The exact path is still evaluated for the best bounded set below; this
+ * probe merely prevents a 9 x 64 x 25 search from allocating thousands of
+ * quadratic matrices on long piano files.
+ */
+function rankHypothesisSeeds(
+  references: readonly OnsetGroup[],
+  candidates: readonly OnsetGroup[],
+  scales: readonly number[],
+  offsets: readonly number[],
+  transpositions: readonly number[],
+  maxWarp: number,
+): HypothesisSeed[] {
+  const lowerBound = (value: number): number => {
+    let low = 0;
+    let high = candidates.length;
+    while (low < high) {
+      const middle = (low + high) >> 1;
+      if (candidates[middle]!.start < value - EPS) low = middle + 1;
+      else high = middle;
+    }
+    return low;
+  };
+  const probes = references.length <= 24
+    ? [...references]
+    : references.filter((_reference, index) => index % Math.ceil(references.length / 24) === 0).slice(0, 24);
+  const seeds: HypothesisSeed[] = [];
+  for (const scale of scales) for (const offset of offsets) for (const transpose of transpositions) {
+    let score = 0;
+    for (const reference of probes) {
+      const expected = reference.start * scale + offset;
+      const first = lowerBound(expected - maxWarp);
+      const last = lowerBound(expected + maxWarp + EPS);
+      // In dense detector output, only a bounded neighborhood around the
+      // predicted onset is needed to rank a seed. Include both ends so a
+      // nearby exact pitch is not lost to a chord partial at the center.
+      const count = last - first;
+      const limit = 32;
+      const indices = count <= limit
+        ? Array.from({ length: count }, (_value, index) => first + index)
+        : [...Array.from({ length: limit / 2 }, (_value, index) => first + index),
+          ...Array.from({ length: limit / 2 }, (_value, index) => last - limit / 2 + index)];
+      let best = 0;
+      for (const index of indices) best = Math.max(best, pitchOverlap(reference, candidates[index]!, transpose).overlap);
+      score += best;
+    }
+    seeds.push({ scale, offset, transpose, score });
+  }
+  return seeds.sort((a, b) => b.score - a.score
+    || Math.abs(a.offset) - Math.abs(b.offset)
+    || Math.abs(a.transpose) - Math.abs(b.transpose)
+    || a.scale - b.scale
+    || a.offset - b.offset
+    || a.transpose - b.transpose);
 }
 
 function buildMatches(pairs: readonly PathPair[], transpose: number): PianoAlignmentMatch[] {
@@ -499,13 +613,28 @@ export function alignPianoCandidates(
   const scales = candidateScales(options);
   const transpositions = candidateTranspositions(options);
   const offsets = makeOffsets(references, candidates, scales, transpositions, options);
+  const hasExplicitRegions = Boolean((options.regions?.length ?? 0) || (options.windows?.length ?? 0));
+  // Explicit regions are alignment anchors, not merely a post-hoc reporting
+  // view. Restrict hypothesis scoring to their domains so unrelated song
+  // material cannot select a different global offset or transposition.
+  const searchReferences = hasExplicitRegions
+    ? references.filter((group) => normalizedRegionsResult.regions.some((region) => inRange(group.start, region.reference)))
+    : references;
+  const searchCandidates = hasExplicitRegions
+    ? candidates.filter((group) => normalizedRegionsResult.regions.some((region) => inRange(group.start, region.candidate)))
+    : candidates;
+  if (!searchReferences.length || !searchCandidates.length) {
+    return emptyResult(references.length, candidates.length, ["supplied piano alignment regions contain no score onsets"], "insufficient-evidence");
+  }
+  const seeds = rankHypothesisSeeds(searchReferences, searchCandidates, scales, offsets, transpositions, maxWarp);
+  const maxHypotheses = 512;
   const hypotheses: Hypothesis[] = [];
-  for (const scale of scales) for (const offset of offsets) for (const transpose of transpositions) {
-    const path = pathForHypothesis(references, candidates, scale, offset, transpose, maxWarp);
+  for (const seed of seeds.slice(0, maxHypotheses)) {
+    const path = pathForHypothesis(searchReferences, searchCandidates, seed.scale, seed.offset, seed.transpose, maxWarp);
     if (!path.pairs.length) continue;
     const fit = affineFit(path.pairs);
     const quality = path.pairs.reduce((sum, pair) => sum + pair.overlap, 0) / path.pairs.length;
-    hypotheses.push({ scale, offset, transpose, path, fittedScale: fit.scale, fittedOffset: fit.offset, residuals: fit.residuals, quality });
+    hypotheses.push({ scale: seed.scale, offset: seed.offset, transpose: seed.transpose, path, fittedScale: fit.scale, fittedOffset: fit.offset, residuals: fit.residuals, quality });
   }
   hypotheses.sort((a, b) => b.path.pairs.length - a.path.pairs.length
     || b.quality - a.quality
@@ -537,6 +666,7 @@ export function alignPianoCandidates(
   const minMatched = Math.max(1, Math.floor(options.minMatchedOnsets ?? 2));
   const diagnostics: string[] = [];
   if (normalizedRegionsResult.invalid) diagnostics.push(`ignored ${normalizedRegionsResult.invalid} invalid piano alignment region${normalizedRegionsResult.invalid === 1 ? "" : "s"}`);
+  if (seeds.length > maxHypotheses) diagnostics.push(`bounded piano alignment hypothesis search (${maxHypotheses}/${seeds.length} candidates evaluated)`);
   if (Math.abs(best.fittedScale - 1) > 0.02) diagnostics.push(`global tempo relationship selected (${round(best.fittedScale)})`);
   if (Math.abs(best.fittedOffset) > tolerance) diagnostics.push(`intro offset selected (${round(best.fittedOffset)})`);
   if (segments.length > 1) diagnostics.push(`bounded piecewise timing drift represented by ${segments.length} segments`);

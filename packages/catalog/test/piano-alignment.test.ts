@@ -100,4 +100,43 @@ describe("constrained piano timing alignment", () => {
       { referenceBeat: 2, candidateBeat: 3 },
     ]);
   });
+
+  it("uses explicit regions as alignment anchors instead of post-hoc decoration", () => {
+    const reference = score([0, 1, 100, 101], [60, 62, 64, 65], 102);
+    const candidate = score([2, 3, 102, 103], [60, 62, 64, 65], 104);
+    const result = alignPianoCandidates(reference, candidate, {
+      tempoScales: [1],
+      transpositionSemitones: [0],
+      offsetBeats: [2],
+      regions: [{ id: "intro", reference: [0, 2], candidate: [2, 4] }],
+    });
+
+    expect(result.mapping).toEqual([
+      { referenceBeat: 0, candidateBeat: 2 },
+      { referenceBeat: 1, candidateBeat: 3 },
+    ]);
+    expect(result.regions[0]?.matchedOnsets).toBe(2);
+    expect(result.regions[0]?.coverage.referenceRatio).toBe(1);
+  });
+
+  it("keeps the default search bounded on a realistic long score", () => {
+    const count = 500;
+    const reference: PianoScoreInput = {
+      notes: Array.from({ length: count }, (_value, index) => ({ midi: 60 + (index % 7), start: index * 0.5, dur: 0.25, vel: 90 })),
+      durationBeats: count * 0.5 + 1,
+      tempoBpm: 120,
+    };
+    const candidate: PianoScoreInput = {
+      notes: reference.notes.map((note) => ({ ...note, start: note.start * 1.02 + 2, midi: note.midi + 2 })),
+      durationBeats: count * 0.5 * 1.02 + 3,
+      tempoBpm: 118,
+    };
+    const result = alignPianoCandidates(reference, candidate, {
+      tempoScales: [1, 1.02],
+      transpositionSemitones: [-2, 0, 2],
+      maxIntroOffsetBeats: 8,
+    });
+
+    expect(result.matches.length).toBeGreaterThan(450);
+  }, 10_000);
 });
