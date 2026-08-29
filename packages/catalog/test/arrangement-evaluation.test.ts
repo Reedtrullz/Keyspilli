@@ -333,7 +333,6 @@ describe("arrangement evaluation", () => {
     expect(report.gate.status).toBe("fail");
     expect(report.gate.failures).toContain("easy: 1 non-finite or invalid MIDI notes");
   });
-
   it("reports suspicious output shape as non-blocking quality warnings", () => {
     const notes: Note[] = Array.from({ length: 32 }, (_, index) => ({
       midi: 60,
@@ -367,7 +366,6 @@ describe("arrangement evaluation", () => {
     expect(report.gate.status).toBe("pass");
     expect(report.gate.warnings).toContain("candidate duration differs from expected by 4 beats");
   });
-
   it("reports reference duration mismatch with an explicit reference basis", () => {
     const candidate = parsed([{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }]);
     candidate.durationBeats = 12;
