@@ -109,6 +109,53 @@ describe("local song research report", () => {
     expect(result.json).toBe(resultReordered.json);
   });
 
+  it("excludes the submitted source and keeps generic official results unclassified", () => {
+    const report = buildResearchReport({
+      song,
+      discoveryCandidates: [
+        {
+          videoId: "9TjXanLjpTU",
+          url: "https://youtu.be/9TjXanLjpTU",
+          title: "Sabaton Defence Of Moscow (Official Music Video)",
+          uploader: "Sabaton",
+          durationSeconds: 255,
+          isLive: false,
+        },
+        {
+          videoId: "CCCCCCCCCCC",
+          url: "https://youtu.be/CCCCCCCCCCC",
+          title: "Sabaton Defence Of Moscow (Official Lyric Video)",
+          uploader: "Sabaton",
+          durationSeconds: 255,
+          isLive: false,
+        },
+        {
+          videoId: "DDDDDDDDDDD",
+          url: "https://youtu.be/DDDDDDDDDDD",
+          title: "Sabaton Defence Of Moscow piano cover",
+          uploader: "Pianist",
+          durationSeconds: 255,
+          isLive: false,
+        },
+      ],
+      discoveredBy: {
+        "9TjXanLjpTU": ["submitted"],
+        "CCCCCCCCCCC": ["official"],
+        "DDDDDDDDDDD": ["piano"],
+      },
+    });
+    expect(report.candidates.some((candidate) => candidate.id === "youtube:9TjXanLjpTU")).toBe(false);
+    expect(report.discoveredBy).not.toHaveProperty("youtube:9TjXanLjpTU");
+    expect(report.candidates.find((candidate) => candidate.id === "youtube:CCCCCCCCCCC")).toMatchObject({
+      sourceType: "unknown",
+      extractionStrategy: "none",
+    });
+    expect(report.candidates.find((candidate) => candidate.id === "youtube:DDDDDDDDDDD")).toMatchObject({
+      sourceType: "piano-cover-video",
+      extractionStrategy: "audio-midi",
+    });
+  });
+
   it("rejects malformed video ids instead of constructing unsafe candidate urls", () => {
     const report = buildResearchReport({
       song,

@@ -264,7 +264,11 @@ function youtubeCandidate(input: YoutubeDiscoveryCandidate, discoveredBy: readon
   const url = "https://www.youtube.com/watch?v=" + input.videoId;
   return classifyArrangementCandidate({
     id: "youtube:" + input.videoId,
-    sourceType: "piano-cover-video",
+    // Discovery is metadata-only.  Start unclassified and let the title/url
+    // classifier promote an actual piano/tutorial result; this prevents the
+    // submitted official source (or an unrelated lyric/karaoke video) from
+    // being reported as a piano cover merely because it came from YouTube.
+    sourceType: "unknown",
     title: input.title,
     url,
     provenance: {
@@ -287,7 +291,7 @@ function directFallback(song: SongIdentity): ArrangementCandidate {
   return {
     id: "metal-transcription:" + song.id,
     sourceType: "metal-transcription",
-    title: song.title + " direct metal transcription",
+    title: song.artist + " " + song.title + " direct metal transcription",
     provenance: {
       kind: "metal-transcription",
       acquiredVia: "audio-transcription",
@@ -358,6 +362,7 @@ export function buildResearchReport(input: ResearchReportInput): ResearchReport 
   const localInputResult = uniqueLocalInputs(input.localCandidates ?? []);
   const localInputs = localInputResult.inputs;
   const discovered = (input.discoveryCandidates ?? [])
+    .filter((candidate) => candidate.videoId !== song.youtubeVideoId)
     .map((candidate) => youtubeCandidate(candidate, input.discoveredBy?.[candidate.videoId]))
     .filter((candidate): candidate is ArrangementCandidate => candidate !== null)
     .sort((a, b) => a.id.localeCompare(b.id));
@@ -409,7 +414,7 @@ export function buildResearchReport(input: ResearchReportInput): ResearchReport 
     discoveryErrors: normalizeDiscoveryErrors([...(input.discoveryErrors ?? []), ...localInputResult.collisions]),
     discoveredBy: Object.fromEntries(
       Object.entries(input.discoveredBy ?? {})
-        .filter(([videoId]) => /^[A-Za-z0-9_-]{11}$/.test(videoId))
+        .filter(([videoId]) => /^[A-Za-z0-9_-]{11}$/.test(videoId) && videoId !== song.youtubeVideoId)
         .sort(([left], [right]) => left.localeCompare(right))
         .map(([videoId, queries]) => ["youtube:" + videoId, [...new Set(queries)].sort()]),
     ),

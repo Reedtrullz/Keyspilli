@@ -68,6 +68,21 @@ describe("song research foundation", () => {
     });
   });
 
+  it("does not infer piano provenance from generic official videos", () => {
+    expect(classifyArrangementCandidate(candidate({
+      sourceType: "unknown",
+      title: "Sabaton Defence Of Moscow (Official Music Video)",
+      url: null,
+    }), { overrideSourceType: true }).sourceType).toBe("unknown");
+    expect(classifyArrangementCandidate(candidate({
+      sourceType: "unknown",
+      title: "Sabaton Defence Of Moscow piano",
+    }), { overrideSourceType: true })).toMatchObject({
+      sourceType: "piano-cover-video",
+      extractionStrategy: "audio-midi",
+    });
+  });
+
   it("ranks with inspectable reasons and keeps direct transcription as fallback", () => {
     const ranked = rankArrangementCandidates(identity, [
       candidate({ id: "direct", sourceType: "metal-transcription", title: "direct AI transcription", confidence: 0.4 }),
