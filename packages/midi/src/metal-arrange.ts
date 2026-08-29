@@ -4,6 +4,8 @@ export type MetalStemRole = "vocals" | "bass" | "guitar" | "other" | "drums";
 
 export interface MetalStem {
   role: MetalStemRole;
+  /** Original separated stem when a routing-compatible role was remapped. */
+  sourceStem?: MetalStemRole;
   midi: ParsedMidi;
   /** Optional separator/transcriber confidence in [0, 1]. */
   confidence?: number;
@@ -326,6 +328,10 @@ function rawLowRhythmEvents(
   const localLow = (note: Note): Note[] => lowNotes.filter((candidate) => Math.abs(candidate.start - note.start) <= 2 + EPS);
   const routeLow = (note: Note): boolean => {
     // Detector sub-bass notes cannot be a useful RH melody after registration.
+    // Keep the long-standing unconditional floor for the very low octave;
+    // MIDI 45–54 is also a valid low-register motif in sparse, low-only
+    // fixtures, so route that band only when there is credible upper context
+    // showing that it is accompaniment rather than the sole melody evidence.
     if (note.midi < 45) return true;
     // Two low pitches at one onset are a power-chord/root cluster, even when
     // the lead detector did not return an upper note for that attack. Route
@@ -347,6 +353,11 @@ function rawLowRhythmEvents(
       : Number.POSITIVE_INFINITY;
     const localSpan = (local.at(-1)?.start ?? note.start) - (local[0]?.start ?? note.start);
     const localDensity = local.length >= 2 && localSpan > EPS ? local.length / localSpan : 0;
+    // A raw 45–54 detector partial can octave-fold into a false RH note
+    // (e.g. 52 -> 64). Only make that routing decision when an upper event in
+    // the same local phrase proves that a separate lead exists. Low-only
+    // phrases stay eligible for the historical register-continuity path.
+    if (note.midi < 55 && nearbyUpper.length > 0) return true;
     const localDeltas = local.slice(1).map((candidate, index) => candidate.midi - local[index]!.midi);
     let longestMonotonicSteps = 0;
     let monotonicSteps = 0;
@@ -1432,8 +1443,16 @@ export function buildMetalArrangement(input: MetalArrangementInput): MetalArrang
     }
   }
   const vocalsStem = input.stems.find((stem) => stem.role === "vocals");
-  const guitarStem = input.stems.find((stem) => stem.role === "guitar") ?? input.stems.find((stem) => stem.role === "other");
-  const otherStem = input.stems.find((stem) => stem.role === "other" && stem !== guitarStem);
+  // Keep a residual-only input labeled as `other`. Treating it as guitar
+  // loses provenance and bypasses the stricter residual upper-line decoder,
+  // which lets full-mix detector chatter back into the RH as a fake lead.
+  // The four-source worker keeps the routing role `guitar` for compatibility,
+  // but marks that lane's actual source as `other`. Normalize that alias here
+  // while retaining the public routing role in the worker/report layer.
+  const roleGuitarStem = input.stems.find((stem) => stem.role === "guitar");
+  const guitarStem = roleGuitarStem?.sourceStem === "other" ? undefined : roleGuitarStem;
+  const otherStem = input.stems.find((stem) => stem.role === "other")
+    ?? (roleGuitarStem?.sourceStem === "other" ? roleGuitarStem : undefined);
   const bassStem = input.stems.find((stem) => stem.role === "bass");
   const drumsStem = input.stems.find((stem) => stem.role === "drums");
   const vocals = monophonicPath(validNotes(vocalsStem), 60, 96, { exactOctaveWindow: 0.5 })
