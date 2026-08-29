@@ -6,10 +6,22 @@ export type ArrangementSourceType =
   | "piano-cover-video" | "piano-tutorial-video" | "piano-cover-audio"
   | "metal-transcription" | "unknown";
 
-/** Extraction lanes used by the piano research/import pipeline. */
-export type PianoExtractionStrategy = "symbolic" | "audio-transcription" | "visual-midi" | "audio-midi" | "none";
+/**
+ * Explicit extraction lanes used by the piano research/import pipeline.
+ *
+ * This is deliberately separate from the historical `ExtractionStrategy`
+ * values carried by `ClassifiedCandidate`.  Existing research manifests keep
+ * their old wire values; new piano analysis has enough information to decide
+ * whether a symbolic link can be consumed directly, needs audio transcription,
+ * or needs a visual Synthesia/tutorial extractor.
+ */
+export type PianoExtractionStrategy =
+  | "piano-audio-transcription"
+  | "visual-synthesia-extraction"
+  | "existing-symbolic-link"
+  | "unsupported";
 /** Historical name retained for callers of the original research API. */
-export type ExtractionStrategy = PianoExtractionStrategy;
+export type ExtractionStrategy = "symbolic" | "audio-transcription" | "visual-midi" | "audio-midi" | "none";
 export type CandidateSelection = "preferred" | "fallback";
 
 export type PianoCandidateClassification = "solo-piano" | "tutorial" | "synthesia" | "bad-cover" | "ambiguous";
@@ -22,9 +34,16 @@ export interface PianoCandidateAnalysis {
   candidateId: string;
   classification: PianoCandidateClassification;
   strategy: PianoExtractionStrategy;
+  usable: boolean;
+  reason?: string;
+  /** Existing symbolic candidates are passed through without audio decoding. */
+  symbolicCandidateId?: string;
   signals: string[];
   /** Logical/public identity only; physical artifact paths are never exposed. */
-  provenance: Pick<SourceProvenance, "kind" | "acquiredVia" | "sourceRef" | "sourceYoutubeUrl">;
+  provenance: Pick<SourceProvenance, "kind" | "acquiredVia" | "sourceRef" | "sourceYoutubeUrl"> & {
+    /** The decision is provenance, not an implicit caller/runtime default. */
+    extractionStrategy: PianoExtractionStrategy;
+  };
 }
 
 export interface SongIdentityInput {
@@ -224,9 +243,9 @@ function inferredType(haystack: string): { sourceType: ArrangementSourceType; ex
   return null;
 }
 
-function safeAnalysisProvenance(candidate: ArrangementCandidate): PianoCandidateAnalysis["provenance"] {
+function safeAnalysisProvenance(candidate: ArrangementCandidate, extractionStrategy: PianoExtractionStrategy): PianoCandidateAnalysis["provenance"] {
   const provenance = canonicalCandidateProvenance(candidate);
-  const safe: PianoCandidateAnalysis["provenance"] = {};
+  const safe: PianoCandidateAnalysis["provenance"] = { extractionStrategy };
   for (const key of ["kind", "acquiredVia", "sourceRef", "sourceYoutubeUrl"] as const) {
     const value = provenance[key];
     if (typeof value !== "string" || !value.trim()) continue;
@@ -238,44 +257,96 @@ function safeAnalysisProvenance(candidate: ArrangementCandidate): PianoCandidate
   return safe;
 }
 
+const SYMBOLIC_SOURCE_TYPES: readonly ArrangementSourceType[] = ["midi", "musicxml", "guitar-pro", "structured-tab"];
+
+function pianoStrategyForCandidate(candidate: ArrangementCandidate, haystack: string): PianoExtractionStrategy {
+  if (candidate.sourceType === "metal-transcription") return "unsupported";
+  // Explicit source metadata wins over title/URL inference. A symbolic URL is
+  // only inferred for an otherwise unknown candidate; this prevents a stale
+  // `.mid` token in a video URL from changing the selected source lane.
+  if (SYMBOLIC_SOURCE_TYPES.includes(candidate.sourceType)) return "existing-symbolic-link";
+  if (candidate.sourceType === "piano-tutorial-video"
+    || /\b(?:synthesia|falling notes|visual midi)\b/.test(haystack)
+    || /\b(?:piano\s+)?tutorial\b|how to play|lesson/.test(haystack)) {
+    return "visual-synthesia-extraction";
+  }
+  if (candidate.sourceType === "piano-cover-video" || candidate.sourceType === "piano-cover-audio") {
+    return "piano-audio-transcription";
+  }
+  if (candidate.sourceType === "unknown") {
+    if (/\.(?:mid|midi|musicxml|xml|gp|gpx)(?:$|[?#])/.test(haystack)) return "existing-symbolic-link";
+    if (/\bpiano\b|\bkeyboard\b/.test(haystack)) return "piano-audio-transcription";
+  }
+  return "unsupported";
+}
+
+function classificationForCandidate(candidate: ArrangementCandidate, haystack: string): {
+  classification: PianoCandidateClassification;
+  signals: string[];
+} {
+  const signals: string[] = [];
+  // Reject non-piano roles before treating a title's incidental "tutorial"
+  // or "piano" token as an extraction instruction.
+  if (/\b(?:drum|drums|guitar|bass|vocal|vocals)\s+cover\b/.test(haystack)
+    || /\b(?:karaoke|reaction|remix|mashup|nightcore|slowed|sped up|lyrics?)\b/.test(haystack)
+    || /\b(?:with|feat(?:uring)?|and)\s+(?:vocals?|drums?)\b/.test(haystack)
+    || /\bpiano\s+(?:cover|performance)\b.*\b(?:vocals?|drums?)\b/.test(haystack)) {
+    signals.push("non-solo cover metadata");
+    return { classification: "bad-cover", signals };
+  }
+  if (candidate.sourceType === "metal-transcription") {
+    signals.push("direct transcription is not a piano candidate");
+    return { classification: "ambiguous", signals };
+  }
+  if (/\b(?:synthesia|falling notes|visual midi)\b/.test(haystack)) {
+    signals.push("synthesia/visual-midi metadata");
+    return { classification: "synthesia", signals };
+  }
+  if (candidate.sourceType === "piano-tutorial-video"
+    || /\b(?:piano\s+)?tutorial\b|how to play|lesson/.test(haystack)) {
+    signals.push("tutorial metadata");
+    return { classification: "tutorial", signals };
+  }
+  if (candidate.sourceType === "piano-cover-video" || candidate.sourceType === "piano-cover-audio"
+    || SYMBOLIC_SOURCE_TYPES.includes(candidate.sourceType)
+    || /\bsolo\s+piano\b|\bpiano\s+(?:cover|performance|instrumental)\b/.test(haystack)
+    || (candidate.sourceType === "unknown" && /\.(?:mid|midi|musicxml|xml|gp|gpx)(?:$|[?#])/.test(haystack))) {
+    signals.push(SYMBOLIC_SOURCE_TYPES.includes(candidate.sourceType) || (candidate.sourceType === "unknown" && /\.(?:mid|midi|musicxml|xml|gp|gpx)(?:$|[?#])/.test(haystack))
+      ? "existing symbolic source"
+      : candidate.sourceType.startsWith("piano-cover") ? "piano cover source" : "solo piano metadata");
+    return { classification: "solo-piano", signals };
+  }
+  if (/\bpiano\b|\bkeyboard\b/.test(haystack)) {
+    signals.push("piano performance metadata");
+    return { classification: "solo-piano", signals };
+  }
+  signals.push("insufficient piano metadata");
+  return { classification: "ambiguous", signals };
+}
+
 /**
  * Classify a candidate from stable metadata in a fixed precedence order.
  * Metadata is evidence for choosing a lane, not proof that the media is
  * actually solo piano; the import stage remains responsible for validation.
  */
 export function analyzePianoCandidate(candidate: ArrangementCandidate): PianoCandidateAnalysis {
-  const haystack = clean(`${candidate.title} ${candidate.url ?? ""}`);
-  const signals: string[] = [];
-  let classification: PianoCandidateClassification = "ambiguous";
-
-  if (/\b(?:synthesia|falling notes|visual midi)\b/.test(haystack)) {
-    classification = "synthesia";
-    signals.push("synthesia/visual-midi metadata");
-  } else if (/\b(?:piano\s+)?tutorial\b|how to play|lesson/.test(haystack)) {
-    classification = "tutorial";
-    signals.push("tutorial metadata");
-  } else if (/\b(?:karaoke|reaction|remix|mashup|nightcore|slowed|sped up|lyrics?)\b/.test(haystack)
-    || /\b(?:with|feat(?:uring)?|and)\s+(?:vocals?|drums?)\b/.test(haystack)
-    || /\bpiano\s+(?:cover|performance)\b.*\b(?:vocals?|drums?)\b/.test(haystack)) {
-    classification = "bad-cover";
-    signals.push("non-solo cover metadata");
-  } else if (candidate.sourceType === "piano-cover-video" || candidate.sourceType === "piano-cover-audio"
-    || /\bsolo\s+piano\b|\bpiano\s+instrumental\b|\binstrumental\s+piano\b/.test(haystack)) {
-    classification = "solo-piano";
-    signals.push(candidate.sourceType.startsWith("piano-cover") ? "piano cover source" : "solo piano metadata");
-  } else if (["midi", "musicxml", "guitar-pro", "structured-tab"].includes(candidate.sourceType)) {
-    classification = "solo-piano";
-    signals.push("symbolic source metadata");
-  } else {
-    signals.push("insufficient piano metadata");
-  }
-
+  const haystack = clean(`${candidate.title} ${candidate.url ?? ""} ${candidate.localPath ?? ""}`);
+  const { classification, signals } = classificationForCandidate(candidate, haystack);
+  const strategy = pianoStrategyForCandidate(candidate, haystack);
+  const usable = strategy !== "unsupported" && classification !== "bad-cover" && classification !== "ambiguous";
+  const reason = usable ? undefined
+    : classification === "bad-cover" ? "metadata indicates a non-solo or non-piano source"
+      : strategy === "unsupported" ? "candidate type is unsupported by the piano pipeline"
+        : "metadata is insufficient to select a piano extraction lane";
   return {
     candidateId: candidate.id,
     classification,
-    strategy: selectPianoExtractionStrategy({ classification, strategy: "none" }),
+    strategy,
+    usable,
+    ...(reason ? { reason } : {}),
+    ...(strategy === "existing-symbolic-link" ? { symbolicCandidateId: candidate.id } : {}),
     signals,
-    provenance: safeAnalysisProvenance(candidate),
+    provenance: safeAnalysisProvenance(candidate, strategy),
   };
 }
 
@@ -284,11 +355,12 @@ export function selectPianoExtractionStrategy(
   input: Pick<PianoCandidateAnalysis, "classification" | "strategy"> | ArrangementCandidate,
 ): PianoExtractionStrategy {
   if ("classification" in input) {
-    if (input.classification === "synthesia" || input.classification === "tutorial") return "visual-midi";
-    if (input.classification === "solo-piano") return "audio-midi";
-    return "none";
+    if (input.strategy && ["piano-audio-transcription", "visual-synthesia-extraction", "existing-symbolic-link", "unsupported"].includes(input.strategy)) return input.strategy;
+    if (input.classification === "synthesia" || input.classification === "tutorial") return "visual-synthesia-extraction";
+    if (input.classification === "solo-piano") return "piano-audio-transcription";
+    return "unsupported";
   }
-  return strategyFor(input.sourceType);
+  return analyzePianoCandidate(input).strategy;
 }
 
 export function classifyArrangementCandidate(candidate: ArrangementCandidate, options: ClassifierOptions = {}): ClassifiedCandidate {

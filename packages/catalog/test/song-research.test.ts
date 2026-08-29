@@ -36,6 +36,7 @@ describe("song research foundation", () => {
   it("classifies piano metadata deterministically and keeps provenance safe", () => {
     const analysis = analyzePianoCandidate(candidate({
       id: "synthesia",
+      sourceType: "unknown",
       title: "Sabaton Defence Of Moscow Synthesia piano tutorial",
       url: "https://youtu.be/abc12345678?t=44",
       localPath: "/Users/reidar/private/source.wav",
@@ -49,16 +50,31 @@ describe("song research foundation", () => {
     expect(analysis).toMatchObject({
       candidateId: "synthesia",
       classification: "synthesia",
-      strategy: "visual-midi",
+      strategy: "visual-synthesia-extraction",
       provenance: {
         sourceRef: "youtube:abc12345678",
         sourceYoutubeUrl: "https://www.youtube.com/watch?v=abc12345678",
       },
     });
     expect(JSON.stringify(analysis)).not.toMatch(/Users\/reidar|source\.wav|stale000000/);
-    expect(selectPianoExtractionStrategy(analyzePianoCandidate(candidate({ title: "Defence Of Moscow solo piano cover" })))).toBe("audio-midi");
+    expect(selectPianoExtractionStrategy(analyzePianoCandidate(candidate({ sourceType: "piano-cover-video", title: "Defence Of Moscow solo piano cover" })))).toBe("piano-audio-transcription");
     expect(analyzePianoCandidate(candidate({ title: "Defence Of Moscow piano karaoke vocals" })).classification).toBe("bad-cover");
     expect(analyzePianoCandidate(candidate({ sourceType: "unknown", title: "Defence Of Moscow" })).classification).toBe("ambiguous");
+  });
+  it("selects an explicit semantic extraction lane for each candidate kind", () => {
+    const midi = analyzePianoCandidate(candidate({ id: "existing-midi", sourceType: "midi", title: "Defence Of Moscow arrangement", url: "https://example.test/defence.mid" }));
+    expect(midi).toMatchObject({ classification: "solo-piano", strategy: "existing-symbolic-link", usable: true, symbolicCandidateId: "existing-midi", provenance: { extractionStrategy: "existing-symbolic-link" } });
+    const audio = analyzePianoCandidate(candidate({ id: "piano-audio", sourceType: "piano-cover-audio", title: "Defence Of Moscow piano cover audio" }));
+    expect(audio).toMatchObject({ classification: "solo-piano", strategy: "piano-audio-transcription", usable: true });
+    const synthesia = analyzePianoCandidate(candidate({ id: "visual", sourceType: "piano-cover-video", title: "Defence Of Moscow Synthesia Piano Tutorial" }));
+    expect(synthesia).toMatchObject({ classification: "synthesia", strategy: "visual-synthesia-extraction", usable: true });
+    const tutorial = analyzePianoCandidate(candidate({ id: "tutorial", sourceType: "piano-tutorial-video", title: "Defence Of Moscow piano lesson" }));
+    expect(tutorial).toMatchObject({ classification: "tutorial", strategy: "visual-synthesia-extraction", usable: true });
+    const drum = analyzePianoCandidate(candidate({ id: "drums", sourceType: "unknown", title: "Defence Of Moscow drum cover" }));
+    expect(drum).toMatchObject({ classification: "bad-cover", strategy: "unsupported", usable: false });
+    expect(analyzePianoCandidate(candidate({ sourceType: "metal-transcription", title: "Defence Of Moscow direct transcription" }))).toMatchObject({ strategy: "unsupported", usable: false });
+    expect(analyzePianoCandidate(candidate({ sourceType: "piano-cover-video", title: "Defence Of Moscow piano cover", url: "https://example.test/download.mid" })).strategy).toBe("piano-audio-transcription");
+    expect(selectPianoExtractionStrategy(candidate({ sourceType: "metal-transcription" }))).toBe("unsupported");
   });
   it("normalizes song identity and canonical YouTube provenance", () => {
     expect(identity).toMatchObject({
