@@ -709,6 +709,125 @@ function selectMetalInstrumentalContour(
 }
 
 /**
+ * Restore supported residual attacks that a learner interval pass skipped
+ * from an otherwise sparse, beat-level phrase. Residual detector paths can
+ * arrive at the learner reducer with a coherent one-beat contour but still
+ * lose every other attack to salience ties. In that narrow case, adding back
+ * existing source-tagged events keeps the melody recognizable without
+ * synthesizing notes or relaxing the piano spacing floor. Dedicated guitar,
+ * vocal phrases, dense textures, and Advanced (non-legato) remain unchanged.
+ */
+function restoreSparseResidualCoverage(
+  cleaned: Note[],
+  selected: Note[],
+  minimumSpacingBeats: number,
+  maxAttacksPerSecond: number,
+): Note[] {
+  if (maxAttacksPerSecond < 3.5 - 1e-9) return selected;
+  const residual = cleaned
+    .filter((note) => note.identitySource === "other" && note.midi >= 61)
+    .sort((a, b) => a.start - b.start || b.vel - a.vel || b.dur - a.dur);
+  if (residual.length < 4) return selected;
+
+  const phrases: Note[][] = [];
+  for (const note of residual) {
+    const phrase = phrases.at(-1);
+    const previous = phrase?.at(-1);
+    if (!phrase || !previous || note.start - previous.start > 3 + 1e-9
+      || note.start - phrase[0]!.start > 32 + 1e-9) phrases.push([note]);
+    else phrase.push(note);
+  }
+  if (!phrases.length) return selected;
+
+  const result = [...selected];
+  const targetSpacing = Math.max(minimumSpacingBeats, 0.75);
+  for (const phrase of phrases) {
+    if (phrase.length < 4) continue;
+    const phraseStart = phrase[0]!.start;
+    const phraseEnd = phrase.at(-1)!.start;
+    const span = phraseEnd - phraseStart;
+    if (!Number.isFinite(span) || span < 4) continue;
+    const availableDensity = phrase.length / Math.max(1, span);
+    if (availableDensity < 0.75 - 1e-9 || availableDensity > 2.5 + 1e-9) continue;
+
+    // Do not reintroduce an alternate instrumental lane next to a dedicated
+    // guitar phrase. The source-lane selector owns that decision; this helper
+    // is only for residual-only windows where no guitar evidence is nearby.
+    const nearbyGuitar = cleaned.some((note) => note.identitySource === "guitar"
+      && note.start >= phraseStart - 1.5 - 1e-9
+      && note.start <= phraseEnd + 1.5 + 1e-9);
+    if (nearbyGuitar) continue;
+
+    const inPhrase = (note: Note): boolean => note.identitySource === "other"
+      && note.start >= phraseStart - 1e-9
+      && note.start <= phraseEnd + 1e-9;
+    const kept = result.filter(inPhrase).sort((a, b) => a.start - b.start);
+    // Source-aware fusion may intentionally select no residual material for
+    // this phrase. Do not resurrect that lane merely because raw candidates
+    // remain in `cleaned`; coverage recovery is only a denser selection of an
+    // already selected residual phrase.
+    if (!kept.length) continue;
+    const selectedDensity = kept.length / Math.max(1, span);
+    if (selectedDensity >= 0.95 - 1e-9) continue;
+    if (kept.length >= phrase.length) continue;
+
+    const vocalIntervals = result
+      .filter((note) => note.identitySource === "vocals")
+      .map((note) => ({ start: note.start, end: note.start + note.dur }));
+    let candidates = phrase.filter((note) => {
+      if (kept.some((other) => Math.abs(other.start - note.start) <= 1e-9)) return false;
+      if (note.vel < 56 && note.dur < 0.3) return false;
+      return !vocalIntervals.some((interval) => interval.start <= note.start + 1e-9
+        && interval.end > note.start + 1e-9);
+    });
+    if (!candidates.length) continue;
+
+    const targetCount = Math.min(
+      phrase.length,
+      Math.max(kept.length, Math.floor(span / targetSpacing + 1 + 1e-9)),
+    );
+    while (kept.length < targetCount) {
+      let winner: Note | undefined;
+      let winnerScore = Number.NEGATIVE_INFINITY;
+      for (const candidate of candidates) {
+        if (kept.some((note) => Math.abs(note.start - candidate.start) < targetSpacing - 1e-9)) continue;
+        const nearestGrid = Math.round((candidate.start - phraseStart) / targetSpacing) * targetSpacing + phraseStart;
+        const gridFit = Math.max(0, 1 - Math.min(1, Math.abs(candidate.start - nearestGrid) / (targetSpacing * 0.6)));
+        const previous = kept.filter((note) => note.start < candidate.start).at(-1);
+        const next = kept.find((note) => note.start > candidate.start);
+        const continuity = (previous && next)
+          ? Math.max(0, 1 - (Math.abs(candidate.midi - previous.midi) + Math.abs(next.midi - candidate.midi)) / 24)
+          : 0.5;
+        const score = gridFit * 2 + continuity
+          + Math.min(1, candidate.dur / 0.35)
+          + Math.min(1, candidate.vel / 127);
+        if (score > winnerScore + 1e-9) {
+          winner = candidate;
+          winnerScore = score;
+        }
+      }
+      if (!winner) break;
+      kept.push({ ...winner });
+      kept.sort((a, b) => a.start - b.start);
+      const candidateIndex = candidates.indexOf(winner);
+      if (candidateIndex >= 0) candidates.splice(candidateIndex, 1);
+    }
+
+    // Replace the phrase atomically.  `kept` is derived from `result`, so
+    // leaving retained entries in place and then appending `kept` would
+    // duplicate every note that survived coverage recovery.  Remove all
+    // residual entries in this span first, then append exactly the selected
+    // copies; vocal and dedicated-guitar notes are outside `inPhrase` and are
+    // untouched.
+    for (let index = result.length - 1; index >= 0; index -= 1) {
+      if (inPhrase(result[index]!)) result.splice(index, 1);
+    }
+    result.push(...kept.map((note) => ({ ...note })));
+  }
+  return result.sort((a, b) => a.start - b.start || a.midi - b.midi);
+}
+
+/**
  * Select a physically phrased metal RH path inside each real phrase. This is
  * tempo-aware and local, because a whole-song density average cannot see a
  * half-second detector burst. Pitch and attack choices are selection-only so
@@ -1000,7 +1119,10 @@ function reduceMetalRhRealism(notes: Note[], tempoBpm: number, maxAttacksPerSeco
     selected.push(...protectedAnchors.map((note) => ({ ...note })), ...phraseSelection);
   }
 
-  const handoffSelected = removeIsolatedGuitarVocalSingletons(selected, safeTempo, legato);
+  const coverageSelected = legato
+    ? restoreSparseResidualCoverage(notes, selected, minimumSpacingBeats, safeRate)
+    : selected;
+  const handoffSelected = removeIsolatedGuitarVocalSingletons(coverageSelected, safeTempo, legato);
   const sorted = removeInterleavedGuitarDetours(
     handoffSelected.sort((a, b) => a.start - b.start || a.midi - b.midi),
     safeTempo,
@@ -1815,8 +1937,25 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   const mediumLhTexture = metalProfile
     ? metalLeftHandTexture(advancedLh, 0.5, 3)
     : thinChord(advancedLh, 3);
+  const mediumRhTexture = metalProfile
+    ? [
+      // Residual upper paths have already been reduced to a coherent source
+      // lane by the metal arranger. Keep those sparse, evidence-backed
+      // attacks available to the learner scheduler; applying topVoices here
+      // again can discard every other beat before the source-aware contour
+      // pass gets a chance to restore it. Guitar and other non-residual lanes
+      // retain the existing voice cap to avoid widening dense textures.
+      ...mediumRhCandidates.filter((note) => note.identitySource === "other" && note.midi >= 61),
+      ...topVoices(
+        mediumRhCandidates.filter((note) => note.identitySource !== "other"),
+        0.125,
+        3,
+        pads,
+      ),
+    ]
+    : topVoices(mediumRhCandidates, 0.125, 3, pads);
   const mediumTexture = [
-    ...capSoundingSpan(topVoices(mediumRhCandidates, 0.125, 3, pads), 12, "high"),
+    ...capSoundingSpan(mediumRhTexture, 12, "high"),
     ...capSoundingSpan(mediumLhTexture, innerVoiceArrangement ? 19 : 12, "low"),
   ];
   // A role-aware RH carries the song identity, but detector articulation is
