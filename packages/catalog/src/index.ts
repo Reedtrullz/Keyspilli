@@ -16,3 +16,4 @@ export * from "./youtube-meta.js";
 export * from "./youtube-discovery.js";
 export * from "./fixture-evidence.js";
 export * from "./arrangement-evaluation.js";
+export * from "./song-research.js";
