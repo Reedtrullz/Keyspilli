@@ -692,18 +692,55 @@ function parserFor(candidate: ArrangementEvaluationCandidate, notes: Note[]): Ar
 }
 
 function parserMetadataValid(candidate: ArrangementEvaluationCandidate): boolean {
-  const parsed = candidate.parsed;
-  const tempo = candidate.tempoBpm ?? parsed?.tempoBpm;
-  const duration = candidate.durationBeats ?? parsed?.durationBeats;
-  const division = parsed?.division;
-  const format = parsed?.format;
-  const timeSig = parsed?.timeSig ?? candidate.timeSig;
-  return (tempo === undefined || (Number.isFinite(tempo) && tempo > 0))
-    && (duration === undefined || (Number.isFinite(duration) && duration >= 0))
-    && (division === undefined || (Number.isInteger(division) && division > 0))
-    && (format === undefined || (Number.isInteger(format) && format >= 0))
-    && (timeSig === undefined || (Array.isArray(timeSig) && timeSig.length === 2
-      && Number.isInteger(timeSig[0]) && timeSig[0] > 0 && Number.isInteger(timeSig[1]) && timeSig[1] > 0));
+  return parserMetadataFailures(candidate, "candidate").length === 0;
+}
+
+function hasOwn(value: Record<string, unknown>, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(value, key);
+}
+
+function validTimeSignature(value: unknown): value is [number, number] {
+  return Array.isArray(value)
+    && value.length === 2
+    && value.every((part) => typeof part === "number" && Number.isInteger(part) && part > 0);
+}
+
+/**
+ * Validate every explicitly supplied parser field, including null overrides.
+ * Nullish coalescing is useful for optional fallbacks when parsing, but it
+ * must not make a malformed field look absent to the structural gate.
+ */
+function parserMetadataFailures(source: unknown, label: string): string[] {
+  if (!isRecord(source)) return [`${label} parsed metadata must be an object`];
+  const failures: string[] = [];
+  const inspect = (record: Record<string, unknown>, prefix: string, includeContainerFields: boolean): void => {
+    if (hasOwn(record, "tempoBpm")
+      && !(typeof record.tempoBpm === "number" && Number.isFinite(record.tempoBpm) && record.tempoBpm > 0)) {
+      failures.push(`${prefix} tempoBpm must be a finite positive number`);
+    }
+    if (hasOwn(record, "durationBeats")
+      && !(typeof record.durationBeats === "number" && Number.isFinite(record.durationBeats) && record.durationBeats >= 0)) {
+      failures.push(`${prefix} durationBeats must be a finite non-negative number`);
+    }
+    if (hasOwn(record, "timeSig") && !validTimeSignature(record.timeSig)) {
+      failures.push(`${prefix} timeSig must be an array of two positive integers`);
+    }
+    if (includeContainerFields && hasOwn(record, "division")
+      && !(typeof record.division === "number" && Number.isInteger(record.division) && record.division > 0)) {
+      failures.push(`${prefix} division must be a positive integer`);
+    }
+    if (includeContainerFields && hasOwn(record, "format")
+      && !(typeof record.format === "number" && Number.isInteger(record.format) && record.format >= 0)) {
+      failures.push(`${prefix} format must be a non-negative integer`);
+    }
+  };
+  inspect(source, label, false);
+  const parsed = source.parsed;
+  if (parsed !== undefined && parsed !== null) {
+    if (!isRecord(parsed)) failures.push(`${label} parsed metadata must be an object`);
+    else inspect(parsed, `${label} parsed`, true);
+  }
+  return failures;
 }
 
 interface NoteSourceShape {
@@ -746,6 +783,34 @@ function byteHash(value: unknown): string | null {
   return value instanceof Uint8Array ? sha256Hex(value) : null;
 }
 
+function fixtureShapeFailures(value: unknown): string[] {
+  if (!isRecord(value)) return ["fixture must be an object"];
+  const failures: string[] = [];
+  if (typeof value.id !== "string" || !value.id.trim()) failures.push("fixture id must be a non-empty string");
+  if (value.label !== undefined && value.label !== null && typeof value.label !== "string") {
+    failures.push("fixture label must be a string");
+  }
+  return failures;
+}
+
+function safeFixture(value: unknown): { id: string; label?: string } {
+  if (!isRecord(value)) return { id: "invalid-fixture" };
+  return {
+    id: typeof value.id === "string" && value.id.trim() ? value.id : "invalid-fixture",
+    ...(typeof value.label === "string" ? { label: value.label } : {}),
+  };
+}
+
+const EVALUATION_MODES = new Set<NonNullable<ArrangementEvaluationInput["mode"]>>(["structural", "reference", "human"]);
+
+function safeMode(value: unknown): { mode: ArrangementEvaluationInput["mode"]; failures: string[] } {
+  if (value === undefined) return { mode: undefined, failures: [] };
+  if (typeof value === "string" && EVALUATION_MODES.has(value as NonNullable<ArrangementEvaluationInput["mode"]>)) {
+    return { mode: value as NonNullable<ArrangementEvaluationInput["mode"]>, failures: [] };
+  }
+  return { mode: undefined, failures: ["mode must be structural, reference, or human"] };
+}
+
 function metadataShapeFailures(source: unknown, label: string, selectorRequired: boolean): string[] {
   if (!isRecord(source)) return [`${label} must be an object`];
   const failures: string[] = [];
@@ -759,10 +824,7 @@ function metadataShapeFailures(source: unknown, label: string, selectorRequired:
   if (bytes !== undefined && bytes !== null && !(bytes instanceof Uint8Array)) {
     failures.push(`${label} bytes must be a Uint8Array`);
   }
-  const parsed = source.parsed;
-  if (parsed !== undefined && parsed !== null && !isRecord(parsed)) {
-    failures.push(`${label} parsed metadata must be an object`);
-  }
+  failures.push(...parserMetadataFailures(source, label));
   return failures;
 }
 
@@ -818,7 +880,7 @@ function validateEvaluationWindows(raw: unknown, label: string): WindowValidatio
       failures.push(`${label}: ${id} candidate bounds must be finite, non-negative, and end after start`);
       continue;
     }
-    if (candidate.reference !== undefined && candidate.reference !== null && !validWindowBounds(candidate.reference)) {
+    if (candidate.reference !== undefined && !validWindowBounds(candidate.reference)) {
       failures.push(`${label}: ${id} reference bounds must be finite, non-negative, and end after start`);
       continue;
     }
@@ -1413,6 +1475,8 @@ export function evaluateArrangement(rawInput: ArrangementEvaluationInput): Arran
   const rawInputRecord = isRecord(rawInput) ? rawInput : undefined;
   const rawCandidate = rawInputRecord?.candidate;
   const rawReference = rawInputRecord?.reference;
+  const fixture = safeFixture(rawInputRecord?.fixture);
+  const mode = safeMode(rawInputRecord?.mode);
   const candidate: ArrangementEvaluationCandidate = isRecord(rawCandidate)
     ? rawCandidate as ArrangementEvaluationCandidate
     : { selector: "invalid-candidate", notes: [] };
@@ -1421,8 +1485,10 @@ export function evaluateArrangement(rawInput: ArrangementEvaluationInput): Arran
     : undefined;
   const input = {
     ...(rawInputRecord ?? {}),
+    fixture,
     candidate,
     reference,
+    mode: mode.mode,
   } as unknown as ArrangementEvaluationInput;
   const candidateNotes = notesFor(candidate);
   const parser = parserFor(candidate, candidateNotes);
@@ -1458,6 +1524,8 @@ export function evaluateArrangement(rawInput: ArrangementEvaluationInput): Arran
     : hasReferenceDuration ? "reference" : "unavailable";
   const inputFailures = [
     ...rootInputFailures,
+    ...fixtureShapeFailures(rawInputRecord?.fixture),
+    ...mode.failures,
     ...metadataFailures,
     ...noteFailures,
     ...traceFailures,

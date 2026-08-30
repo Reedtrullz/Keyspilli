@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canonicalEvaluationJson, evaluateArrangement, type ArrangementEvaluationInput } from "../src/arrangement-evaluation.js";
+import { canonicalEvaluationJson, evaluateArrangement, type ArrangementEvaluationInput, type EvaluationWindow } from "../src/arrangement-evaluation.js";
 import type { Note, ParsedMidi, Variant } from "@keyspilli/midi";
 
 const parsed = (notes: Note[]): ParsedMidi => ({
@@ -633,5 +633,50 @@ describe("arrangement evaluation", () => {
     });
     expect(report.candidate.selector).toBe("candidate.mid");
     expect(report.reference?.referenceSelector).toBe("reference.mid");
+  });
+
+  it("fails closed when parsed metadata contains an explicit null time signature", () => {
+    const report = evaluateArrangement({
+      fixture: { id: "null-parser-timesig" },
+      candidate: {
+        selector: "candidate.mid",
+        parsed: { notes: [{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }], timeSig: null } as unknown as ParsedMidi,
+      },
+    });
+    expect(report.gate.status).toBe("fail");
+    expect(report.gate.failures).toContain("parser metadata contains non-finite or invalid values");
+  });
+
+  it("fails closed for malformed reference metadata and null alignment bounds", () => {
+    const report = evaluateArrangement({
+      fixture: { id: "malformed-reference-metadata" },
+      candidate: { selector: "candidate.mid", notes: [{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }] },
+      windows: [{ id: "intro", candidate: [0, 1], reference: null } as unknown as EvaluationWindow],
+      reference: {
+        selector: "reference.mid",
+        notes: [{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }],
+        durationBeats: Number.NaN,
+      },
+    });
+    expect(report.gate.status).toBe("fail");
+    expect(report.gate.failures).toEqual(expect.arrayContaining([
+      "reference durationBeats must be a finite non-negative number",
+      "evaluation windows: intro reference bounds must be finite, non-negative, and end after start",
+    ]));
+    expect(report.metrics.sections).toEqual({});
+  });
+
+  it("fails closed for malformed fixture and mode metadata", () => {
+    const report = evaluateArrangement({
+      fixture: { id: 42 } as unknown as ArrangementEvaluationInput["fixture"],
+      candidate: { selector: "candidate.mid", notes: [] },
+      mode: "unexpected" as unknown as ArrangementEvaluationInput["mode"],
+    });
+    expect(report.gate.status).toBe("fail");
+    expect(report.gate.failures).toEqual(expect.arrayContaining([
+      "fixture id must be a non-empty string",
+      "mode must be structural, reference, or human",
+    ]));
+    expect(report.gate.mode).toBe("structural");
   });
 });
