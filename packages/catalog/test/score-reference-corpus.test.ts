@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { writeMidi } from "@keyspilli/midi";
 import { runScoreReferenceCorpusCli } from "../scripts/build-score-reference-corpus.js";
 import {
   localScoreReferenceCorpusJson,
@@ -48,6 +49,16 @@ function corpusScore(id: string, overrides: Record<string, unknown> = {}): Score
     title: `Synthetic ${id}`,
     ...overrides,
   } as ScoreReferenceCorpusInput["scores"][number];
+}
+
+function roleScore(role: "melody" | "harmony", pitches: readonly number[]) {
+  const result = score()!;
+  const part = result.parts[0]!;
+  part.name = role;
+  part.role = role;
+  const measure = part.measures[0]!;
+  measure.events = pitches.map((pitch, index) => ({ onset: index, duration: 1, pitch, role }));
+  return result;
 }
 
 describe("local score reference corpus runner", () => {
@@ -113,6 +124,64 @@ describe("local score reference corpus runner", () => {
       expect(item.roles.rhythm).toMatchObject({ state: "UNAVAILABLE", coverage: null });
       expect(item.maturity).toBe("MELODY_READY");
       expect(result.summary).toMatchObject({ melodyReady: 1, harmonyReady: 0, fullReferenceReady: 0 });
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("records independent OMR source preferences for each role", async () => {
+    const root = await mkdtemp(join(tmpdir(), "keyspilli-score-reference-role-sources-"));
+    try {
+      const result = await runLocalScoreReferenceCorpus({
+        schemaVersion: 1,
+        scores: [corpusScore("role-sources", {
+          omr: [
+            { id: "melody-engine", version: "1", score: roleScore("melody", [60, 62, 64]) },
+            { id: "harmony-engine", version: "1", score: roleScore("harmony", [48, 52, 55]) },
+          ],
+        })],
+      }, { outputRoot: join(root, "output"), repositoryRoot: resolve(process.cwd(), "not-the-repository") });
+      const omr = result.scores[0]!.omr;
+      expect(omr.roleQuality?.selectionPolicy).toBe("independent-backend-role-selection");
+      expect(omr.preferredBackendByRole).toEqual({
+        melody: { id: "melody-engine", version: "1" },
+        harmony: { id: "harmony-engine", version: "1" },
+        rhythm: null,
+      });
+      expect(omr.roleQuality?.backendSummaries.some((row) => row.backendId === "melody-engine" && row.role === "melody")).toBe(true);
+      expect(omr.roleQuality?.backendSummaries.some((row) => row.backendId === "harmony-engine" && row.role === "harmony")).toBe(true);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("keeps OMR role-quality diagnostics when a native candidate is selected", async () => {
+    const root = await mkdtemp(join(tmpdir(), "keyspilli-score-reference-native-omr-quality-"));
+    try {
+      const nativePath = join(root, "native.mid");
+      await writeFile(nativePath, writeMidi([
+        { midi: 60, start: 0, dur: 1, vel: 100, hand: "R" },
+        { midi: 64, start: 1, dur: 1, vel: 100, hand: "R" },
+      ], { tempoBpm: 120, title: "Native score" }));
+      const result = await runLocalScoreReferenceCorpus({
+        schemaVersion: 1,
+        scores: [corpusScore("native-with-omr", {
+          nativeArtifacts: [{
+            id: "native-midi",
+            path: nativePath,
+            artifactType: "midi",
+            permitted: true,
+            provenance: "publisher export",
+            version: "1",
+          }],
+          omr: [{ id: "omr-engine", version: "1", score: score() }],
+        })],
+      }, { outputRoot: join(root, "output"), repositoryRoot: resolve(process.cwd(), "not-the-repository") });
+      const item = result.scores[0]!;
+      expect(item.selected.kind).toBe("native");
+      expect(item.quality.measures).toBeGreaterThan(0);
+      expect(item.omr.roleQuality?.selectionPolicy).toBe("independent-backend-role-selection");
+      expect(item.omr.preferredBackendByRole.melody).toEqual({ id: "omr-engine", version: "1" });
     } finally {
       await rm(root, { recursive: true, force: true });
     }

@@ -25,6 +25,14 @@ import {
 import { inspectScoreSourceForensics, type ScoreSourceForensicsReport } from "./score-source-forensics.js";
 import { parseOmrMusicXmlBytes } from "./omr-musicxml.js";
 import type { OmrScoreInput } from "./omr-consensus.js";
+import {
+  evaluateOmrRoleQuality,
+  type OmrRoleQualityBackendSummary,
+  type OmrRoleQualityReviewGroup,
+  type OmrRoleReadinessSummary,
+  type OmrRoleQualityReport,
+} from "./omr-role-quality.js";
+import type { OmrQualityReport } from "./omr-quality.js";
 
 export const LOCAL_SCORE_REFERENCE_CORPUS_SCHEMA_VERSION = 1 as const;
 
@@ -126,11 +134,25 @@ export interface ScoreReferenceOmrBackendSummary {
 export interface ScoreReferenceOmrSummary {
   status: "available" | "partial" | "unavailable" | "failed" | "not-requested";
   preferredBackend: string | null;
+  /** Independent role-local choices; this is intentionally not one global winner. */
+  preferredBackendByRole: Record<LocalScoreReferenceRole, { id: string; version: string } | null>;
+  /** Additive role-local diagnostics over every supplied OMR backend. */
+  roleQuality: ScoreReferenceOmrRoleQuality | null;
   backends: ScoreReferenceOmrBackendSummary[];
   qualityMeasures: number;
   reviewMeasures: number;
   brokenMeasures: number;
   fallbackUsed: boolean;
+}
+
+export interface ScoreReferenceOmrRoleQuality {
+  schemaVersion: OmrRoleQualityReport["schemaVersion"];
+  consensusClaim: false;
+  selectionPolicy: OmrRoleQualityReport["selectionPolicy"];
+  thresholds: OmrRoleQualityReport["thresholds"];
+  backendSummaries: OmrRoleQualityBackendSummary[];
+  roleReadiness: Record<LocalScoreReferenceRole, OmrRoleReadinessSummary>;
+  reviewGroups: OmrRoleQualityReviewGroup[];
 }
 
 export interface ScoreReferenceCorpusOutputs {
@@ -482,6 +504,39 @@ function roleReadiness(score: LocalReferenceScoreReport, role: LocalScoreReferen
   };
 }
 
+function roleQualitySummary(quality: OmrQualityReport | null): ScoreReferenceOmrRoleQuality | null {
+  if (!quality) return null;
+  const report = evaluateOmrRoleQuality(quality);
+  const roleReadiness = {
+    melody: report.roleReadiness.melody,
+    harmony: report.roleReadiness.harmony,
+    rhythm: report.roleReadiness.rhythm,
+  } satisfies Record<LocalScoreReferenceRole, OmrRoleReadinessSummary>;
+  return {
+    schemaVersion: report.schemaVersion,
+    consensusClaim: false,
+    selectionPolicy: report.selectionPolicy,
+    thresholds: report.thresholds,
+    backendSummaries: report.backendSummaries,
+    roleReadiness,
+    reviewGroups: report.reviewGroups,
+  };
+}
+
+function preferredBackendByRole(roleQuality: ScoreReferenceOmrRoleQuality | null): Record<LocalScoreReferenceRole, { id: string; version: string } | null> {
+  return {
+    melody: roleQuality?.roleReadiness.melody.preferredBackendId
+      ? { id: roleQuality.roleReadiness.melody.preferredBackendId, version: roleQuality.roleReadiness.melody.preferredBackendVersion ?? "unknown" }
+      : null,
+    harmony: roleQuality?.roleReadiness.harmony.preferredBackendId
+      ? { id: roleQuality.roleReadiness.harmony.preferredBackendId, version: roleQuality.roleReadiness.harmony.preferredBackendVersion ?? "unknown" }
+      : null,
+    rhythm: roleQuality?.roleReadiness.rhythm.preferredBackendId
+      ? { id: roleQuality.roleReadiness.rhythm.preferredBackendId, version: roleQuality.roleReadiness.rhythm.preferredBackendVersion ?? "unknown" }
+      : null,
+  };
+}
+
 function maturityFor(score: LocalReferenceScoreReport, roles: Record<LocalScoreReferenceRole, ScoreReferenceRoleReadiness>): LocalScoreReferenceMaturity {
   if (score.state === "FAILED") return "FAILED";
   if (score.selected.kind === "native") {
@@ -517,6 +572,7 @@ function scoreReport(prepared: PreparedScore, builder: LocalReferenceBuildReport
   const selectedBackend = built.selected.backend;
   const reviewItems = built.reviewQueue.items;
   const maturity = maturityFor(built, roles);
+  const roleQuality = roleQualitySummary(built.quality);
   const pdf = pdfReport(prepared.forensics, Boolean(prepared.pdfPath));
   const discovery = prepared.discovery ?? built.nativeDiscovery;
   const backends = prepared.omr.map((entry) => entry.summary);
@@ -556,6 +612,8 @@ function scoreReport(prepared: PreparedScore, builder: LocalReferenceBuildReport
     omr: {
       status: omrStatus,
       preferredBackend,
+      preferredBackendByRole: preferredBackendByRole(roleQuality),
+      roleQuality,
       backends: backends.sort((left, right) => compareText(left.id, right.id)),
       qualityMeasures,
       reviewMeasures,

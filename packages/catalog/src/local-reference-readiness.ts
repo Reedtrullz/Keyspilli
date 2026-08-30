@@ -88,6 +88,7 @@ export interface LocalReferenceReadinessOmr {
     version: string;
     status: string;
   } | null;
+  preferredBackendByRole: Record<"melody" | "harmony" | "rhythm", { id: string; version: string } | null>;
   preferredCoverage: {
     totalMeasures: number;
     availableMeasures: number;
@@ -109,6 +110,13 @@ export interface LocalReferenceReadinessRole {
   availableMeasures: number;
   reviewRegions: number;
   basis: string;
+  /** Role-local OMR quality evidence, when supplied by a corpus report. */
+  readiness?: "READY" | "REVIEW_REQUIRED" | "UNAVAILABLE";
+  coverage?: number | null;
+  eligibleMeasures?: number;
+  reviewMeasures?: number;
+  brokenMeasures?: number;
+  preferredBackend?: { id: string; version: string } | null;
 }
 
 export interface LocalReferenceReadinessReviewRegion {
@@ -683,6 +691,7 @@ function omrSummary(raw: UnknownRecord): LocalReferenceReadinessOmr {
     available: useQuality || Object.keys(consensus).length > 0 || corpusHasOmr,
     source: useQuality ? "quality" : Object.keys(consensus).length > 0 ? "consensus" : corpusHasOmr ? "quality" : "none",
     preferredBackend: preferred,
+    preferredBackendByRole: preferredBackendByRole(raw),
     preferredCoverage: preferredRow ? {
       totalMeasures: preferredRow.measureCount,
       availableMeasures: preferredRow.availableMeasures,
@@ -706,25 +715,109 @@ function eventRoles(row: UnknownRecord): Set<ReadinessRoleName> {
   return roles;
 }
 
-function benchmarkRole(raw: UnknownRecord, roleName: ReadinessRoleName): { eligible: boolean | null; coverage: number | null; trustedMeasures: number; availableMeasures: number; basis: string } {
+type OmrRoleReadinessStatus = "READY" | "REVIEW_REQUIRED" | "UNAVAILABLE";
+
+interface ParsedOmrRoleQualityReadiness {
+  present: boolean;
+  value: UnknownRecord;
+  readiness: OmrRoleReadinessStatus | null;
+  coverage: number | null;
+  eligibleMeasures: number;
+  availableMeasures: number;
+  trustedMeasures: number;
+  reviewMeasures: number;
+  brokenMeasures: number;
+  preferredBackend: { id: string; version: string } | null;
+}
+
+function omrRoleReadiness(value: unknown): OmrRoleReadinessStatus | null {
+  const normalized = text(value).toUpperCase();
+  if (normalized === "READY" || normalized === "REVIEW_REQUIRED" || normalized === "UNAVAILABLE") return normalized;
+  const referenceState = normalized;
+  if (referenceState.endsWith("_REFERENCE_READY")) return "READY";
+  if (referenceState.endsWith("_REFERENCE_NOT_READY")) return "REVIEW_REQUIRED";
+  return referenceState === "UNAVAILABLE" ? "UNAVAILABLE" : null;
+}
+
+function preferredBackendRef(value: unknown): { id: string; version: string } | null {
+  const candidate = record(value);
+  const id = safeId(candidate.id, "");
+  if (!id) return null;
+  return { id, version: safeLabel(candidate.version, "unknown") };
+}
+
+function parsedOmrRoleQualityReadiness(raw: UnknownRecord, roleName: ReadinessRoleName): ParsedOmrRoleQualityReadiness {
+  const omr = record(raw.omr);
+  const roleQuality = record(omr.roleQuality);
+  const roleReadiness = record(roleQuality.roleReadiness);
+  const value = record(roleReadiness[roleName]);
+  const preferredBackend = value.preferredBackendId
+    ? preferredBackendRef({ id: value.preferredBackendId, version: value.preferredBackendVersion })
+    : preferredBackendRef(record(omr.preferredBackendByRole)[roleName]);
+  return {
+    present: Object.keys(value).length > 0,
+    value,
+    readiness: omrRoleReadiness(value.readiness ?? value.referenceState),
+    coverage: number(value.coverage),
+    eligibleMeasures: integer(value.eligibleMeasures) ?? 0,
+    availableMeasures: integer(value.availableMeasures) ?? 0,
+    trustedMeasures: integer(value.trustedMeasures) ?? 0,
+    reviewMeasures: integer(value.reviewMeasures) ?? 0,
+    brokenMeasures: integer(value.brokenMeasures) ?? 0,
+    preferredBackend,
+  };
+}
+
+function preferredBackendByRole(raw: UnknownRecord): Record<ReadinessRoleName, { id: string; version: string } | null> {
+  return Object.fromEntries(ROLES.map((roleName) => [roleName, parsedOmrRoleQualityReadiness(raw, roleName).preferredBackend])) as Record<ReadinessRoleName, { id: string; version: string } | null>;
+}
+
+function benchmarkRole(raw: UnknownRecord, roleName: ReadinessRoleName): {
+  eligible: boolean | null;
+  readiness: OmrRoleReadinessStatus | null;
+  roleQualityPresent: boolean;
+  coverage: number | null;
+  eligibleMeasures: number;
+  trustedMeasures: number;
+  availableMeasures: number;
+  reviewMeasures: number;
+  brokenMeasures: number;
+  preferredBackend: { id: string; version: string } | null;
+  basis: string;
+} {
+  const roleQuality = parsedOmrRoleQualityReadiness(raw, roleName);
   const benchmark = record(raw.benchmark);
   const consensus = record(raw.consensus);
   const eligibility = record(record(consensus.eligibility)[roleName]);
   const benchmarkRoleValue = record(benchmark[roleName]);
   const corpusRole = record(record(raw.roles)[roleName]);
-  const selected = benchmarkRoleValue.eligible !== undefined
-    ? benchmarkRoleValue
-    : eligibility.eligible !== undefined ? eligibility : corpusRole;
-  const eligible = typeof selected.eligible === "boolean"
-    ? selected.eligible
-    : selected.state === "READY" ? true
-      : selected.state === "REVIEW_REQUIRED" || selected.state === "UNAVAILABLE" ? false : null;
+  const selected = roleQuality.present
+    ? roleQuality.value
+    : benchmarkRoleValue.eligible !== undefined
+      ? benchmarkRoleValue
+      : eligibility.eligible !== undefined ? eligibility : corpusRole;
+  const eligible = roleQuality.present
+    ? roleQuality.readiness === "READY"
+      ? true
+      : roleQuality.readiness === "REVIEW_REQUIRED" || roleQuality.readiness === "UNAVAILABLE"
+        ? false
+        : typeof selected.eligible === "boolean" ? selected.eligible : null
+    : typeof selected.eligible === "boolean"
+      ? selected.eligible
+      : selected.state === "READY" ? true
+        : selected.state === "REVIEW_REQUIRED" || selected.state === "UNAVAILABLE" ? false : null;
   return {
     eligible,
-    coverage: number(selected.coverage),
-    trustedMeasures: integer(selected.trustedMeasures ?? selected.eligibleMeasures) ?? 0,
-    availableMeasures: integer(selected.availableMeasures ?? selected.eligibleMeasures) ?? 0,
-    basis: Object.keys(benchmarkRoleValue).length ? "corpus benchmark eligibility" : Object.keys(eligibility).length ? "OMR role eligibility" : Object.keys(corpusRole).length ? "corpus role readiness" : "role-tagged quality rows",
+    readiness: roleQuality.present ? roleQuality.readiness : null,
+    roleQualityPresent: roleQuality.present,
+    coverage: roleQuality.present ? roleQuality.coverage : number(selected.coverage),
+    eligibleMeasures: roleQuality.present ? roleQuality.eligibleMeasures : integer(selected.eligibleMeasures) ?? 0,
+    trustedMeasures: roleQuality.present ? roleQuality.trustedMeasures : integer(selected.trustedMeasures ?? selected.eligibleMeasures) ?? 0,
+    availableMeasures: roleQuality.present ? roleQuality.availableMeasures : integer(selected.availableMeasures ?? selected.eligibleMeasures) ?? 0,
+    reviewMeasures: roleQuality.present ? roleQuality.reviewMeasures : integer(selected.reviewMeasures) ?? 0,
+    brokenMeasures: roleQuality.present ? roleQuality.brokenMeasures : integer(selected.brokenMeasures) ?? 0,
+    preferredBackend: roleQuality.preferredBackend,
+    basis: roleQuality.present ? "OMR role-quality readiness" : Object.keys(benchmarkRoleValue).length ? "corpus benchmark eligibility" : Object.keys(eligibility).length ? "OMR role eligibility" : Object.keys(corpusRole).length ? "corpus role readiness" : "role-tagged quality rows",
   };
 }
 
@@ -734,17 +827,28 @@ function roleReadiness(raw: UnknownRecord, roleName: ReadinessRoleName, reviewRe
   const roleRows = rows.filter((row) => eventRoles(row).has(roleName));
   const acceptedRoleRows = roleRows.filter((row) => queueState(row.state) === "AUTO_ACCEPT" || queueState(row.state) === "LIKELY_OK");
   const reviewCount = reviewRegions.filter((item) => item.role === roleName && item.decision === "pending").length;
-  const roleCoverage = explicit.coverage ?? (roleRows.length > 0 ? acceptedRoleRows.length / roleRows.length : null);
-  const availableMeasures = explicit.availableMeasures || roleRows.length;
-  const trustedMeasures = explicit.trustedMeasures || acceptedRoleRows.length;
-  const isEligible = explicit.eligible === true || (roleCoverage !== null && roleCoverage >= 0.8 && roleRows.length > 0);
+  const roleCoverage = explicit.roleQualityPresent
+    ? explicit.coverage
+    : explicit.coverage ?? (roleRows.length > 0 ? acceptedRoleRows.length / roleRows.length : null);
+  const availableMeasures = explicit.roleQualityPresent ? explicit.availableMeasures : explicit.availableMeasures || roleRows.length;
+  const trustedMeasures = explicit.roleQualityPresent ? explicit.trustedMeasures : explicit.trustedMeasures || acceptedRoleRows.length;
+  const isEligible = explicit.eligible === true || (roleCoverage !== null && roleCoverage >= 0.8 && (explicit.roleQualityPresent ? explicit.eligibleMeasures > 0 : roleRows.length > 0));
   const rawState = state(record(record(raw.readiness)[roleName]).state, "RAW_OMR");
   const scoreState = state(raw.maturity ?? raw.state, "RAW_OMR");
   const corpusRoleState = text(record(record(raw.roles)[roleName]).state);
   const allAvailableRowsBroken = rows.length > 0 && rows.every((row) => queueState(row.state) === "BROKEN");
   let resultState: LocalReferenceMaturityState;
   let basis = explicit.basis;
-  if (reviewCount > 0) {
+  if (explicit.roleQualityPresent && explicit.readiness === "READY") {
+    resultState = roleName === "melody" ? "MELODY_READY" : roleName === "harmony" ? "HARMONY_READY" : "VALIDATED_DRAFT";
+    basis = explicit.basis;
+  } else if (explicit.roleQualityPresent && explicit.readiness === "REVIEW_REQUIRED") {
+    resultState = "MANUAL_REVIEW_REQUIRED";
+    basis = "OMR role-quality readiness requires review";
+  } else if (explicit.roleQualityPresent && explicit.readiness === "UNAVAILABLE") {
+    resultState = "RAW_OMR";
+    basis = "role evidence unavailable from OMR role-quality report";
+  } else if (reviewCount > 0) {
     resultState = "MANUAL_REVIEW_REQUIRED";
     basis = "role has unresolved localized review regions";
   } else if (corpusRoleState === "REVIEW_REQUIRED") {
@@ -780,6 +884,14 @@ function roleReadiness(raw: UnknownRecord, roleName: ReadinessRoleName, reviewRe
     availableMeasures,
     reviewRegions: reviewCount,
     basis,
+    ...(explicit.roleQualityPresent ? {
+      readiness: explicit.readiness ?? "UNAVAILABLE",
+      coverage: explicit.coverage,
+      eligibleMeasures: explicit.eligibleMeasures,
+      reviewMeasures: explicit.reviewMeasures,
+      brokenMeasures: explicit.brokenMeasures,
+      preferredBackend: explicit.preferredBackend,
+    } : {}),
   };
 }
 
@@ -971,7 +1083,7 @@ function scoreReadiness(raw: UnknownRecord, input: LocalReferenceReadinessInput,
       ? reportedState
       : reportedState === "MELODY_READY" && readiness.melody.state === "MELODY_READY"
         ? "MELODY_READY"
-    : readiness.melody.state === "MELODY_READY" && readiness.harmony.state === "HARMONY_READY" ? "FULL_REFERENCE_READY"
+    : readiness.melody.state === "MELODY_READY" && readiness.harmony.state === "HARMONY_READY" && reviewSummary.pendingRegions === 0 ? "FULL_REFERENCE_READY"
       : readiness.melody.state === "MELODY_READY" ? "MELODY_READY"
         : reviewSummary.totalRegions ? "MANUAL_REVIEW_REQUIRED"
           : data.rows.length || Object.keys(record(raw.consensus)).length || Object.keys(record(raw.omr)).length ? "VALIDATED_DRAFT" : "RAW_OMR";
@@ -1068,12 +1180,16 @@ export function localReferenceReadinessMarkdown(report: LocalReferenceReadinessR
     "",
     "## Per-score readiness",
     "",
-    "| Score | Native match | Preferred backend | Melody | Harmony | Review regions | Human decisions | Listening |",
-    "| --- | --- | --- | --- | --- | ---: | ---: | --- |",
+    "| Score | Native match | Preferred backend | Melody | Harmony | Review regions | Human decisions | Listening | Role backends |",
+    "| --- | --- | --- | --- | --- | ---: | ---: | --- | --- |",
   ];
   for (const score of report.scores) {
     const preferred = score.omr.preferredBackend ? `${score.omr.preferredBackend.id} ${score.omr.preferredBackend.version}` : "none";
-    lines.push(`| ${score.artist} — ${score.title} | ${score.nativeMatch.status} | ${preferred} | ${score.readiness.melody.state} | ${score.readiness.harmony.state} | ${score.review.totalRegions} | ${score.review.actualHumanDecisions} | ${score.listening.status} |`);
+    const roleBackends = ROLES.map((roleName) => {
+      const backend = score.readiness[roleName].preferredBackend;
+      return `${roleName}: ${backend ? `${backend.id} ${backend.version}` : "none"}`;
+    }).join("; ");
+    lines.push(`| ${score.artist} — ${score.title} | ${score.nativeMatch.status} | ${preferred} | ${score.readiness.melody.state} | ${score.readiness.harmony.state} | ${score.review.totalRegions} | ${score.review.actualHumanDecisions} | ${score.listening.status} | ${roleBackends} |`);
   }
   lines.push(
     "",
@@ -1081,6 +1197,7 @@ export function localReferenceReadinessMarkdown(report: LocalReferenceReadinessR
     "",
     `- Melody-critical review regions: ${report.humanWorkload.melodyCriticalReviewRegions}`,
     `- Harmony-critical review regions: ${report.humanWorkload.harmonyCriticalReviewRegions}`,
+    `- Rhythm-critical review regions: ${report.humanWorkload.rhythmCriticalReviewRegions}`,
     `- Total localized review regions: ${report.humanWorkload.totalReviewRegions}`,
     `- Actual human decisions: ${report.humanWorkload.actualHumanDecisions}`,
     `- Pending regions: ${report.humanWorkload.pendingRegions}`,

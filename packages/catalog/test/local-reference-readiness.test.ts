@@ -133,6 +133,84 @@ describe("local reference readiness report", () => {
     expect(report.benchmarkGate).toMatchObject({ status: "PROVISIONAL", melodyReadyScores: 2, decision: "build-provisional-benchmark" });
   });
 
+  it("uses independent OMR role-quality readiness and backend preferences", () => {
+    const report = buildLocalReferenceReadiness({
+      scores: [{
+        id: "role-quality",
+        artist: "Artist",
+        title: "Role quality",
+        state: "VALIDATED_DRAFT",
+        omr: {
+          preferredBackend: "audiveris",
+          preferredBackendByRole: {
+            melody: { id: "audiveris", version: "5.11.0" },
+            harmony: { id: "homr", version: "0.3.0" },
+            rhythm: null,
+          },
+          roleQuality: {
+            roleReadiness: {
+              melody: {
+                readiness: "READY",
+                coverage: 1,
+                eligibleMeasures: 12,
+                availableMeasures: 12,
+                trustedMeasures: 12,
+                reviewMeasures: 0,
+                brokenMeasures: 0,
+                preferredBackendId: "audiveris",
+                preferredBackendVersion: "5.11.0",
+              },
+              harmony: {
+                readiness: "READY",
+                coverage: 0.9,
+                eligibleMeasures: 10,
+                availableMeasures: 9,
+                trustedMeasures: 9,
+                reviewMeasures: 0,
+                brokenMeasures: 0,
+                preferredBackendId: "homr",
+                preferredBackendVersion: "0.3.0",
+              },
+              rhythm: {
+                readiness: "UNAVAILABLE",
+                coverage: null,
+                eligibleMeasures: 0,
+                availableMeasures: 0,
+                trustedMeasures: 0,
+                reviewMeasures: 0,
+                brokenMeasures: 0,
+                preferredBackendId: null,
+                preferredBackendVersion: null,
+              },
+            },
+          },
+        },
+        // The global selected artifact may still contain a review row for
+        // harmony; role-quality readiness must use the independent HOMR lane.
+        quality: quality(),
+      }],
+    });
+
+    const score = report.scores[0]!;
+    expect(score.readiness.melody.state).toBe("MELODY_READY");
+    expect(score.readiness.harmony.state).toBe("HARMONY_READY");
+    expect(score.readiness.harmony).toMatchObject({
+      eligible: true,
+      trustedPercent: 90,
+      trustedMeasures: 9,
+      availableMeasures: 9,
+      reviewRegions: 1,
+      preferredBackend: { id: "homr", version: "0.3.0" },
+      readiness: "READY",
+      eligibleMeasures: 10,
+      reviewMeasures: 0,
+      brokenMeasures: 0,
+    });
+    expect(score.omr.preferredBackend).toMatchObject({ id: "audiveris" });
+    expect(report.summary.harmonyReadyAutomatically).toBe(1);
+    expect(report.benchmarkGate.harmonyReadyScores).toBe(1);
+  });
+
   it("fails closed for missing evidence, groups raw quality rows, and stays path-free/deterministic", () => {
     const input: LocalReferenceReadinessInput = {
       scores: [{ id: "missing", title: "Missing", artist: "Artist", quality: quality({ measures: [
@@ -154,6 +232,7 @@ describe("local reference readiness report", () => {
     const report = buildLocalReferenceReadiness({ scores: [{ id: "a", artist: "Artist", title: "A", state: "FAILED" }] });
     const markdown = localReferenceReadinessMarkdown(report);
     expect(markdown).toContain("| Score | Native match | Preferred backend | Melody | Harmony | Review regions | Human decisions | Listening |");
+    expect(markdown).toContain("- Rhythm-critical review regions: 0");
     expect(markdown).toContain("No actual human decisions supplied.");
   });
 });

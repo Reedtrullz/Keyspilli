@@ -407,6 +407,25 @@ function scoreRowsForReview(quality: OmrQualityReport): Array<Record<string, unk
       const reasons = row.diagnostics.filter((flag) => !OPTIONAL_NOTATION_FLAGS.has(flag));
       if (!reasons.length && row.state === "REVIEW") reasons.push("quality-state-review");
       if (!reasons.length) return [];
+      // Quality diagnostics are measure-scoped, but pitch/continuity issues
+      // can still be attributed safely when every event in the measure has
+      // the same explicit role. Preserve that attribution for the review
+      // queue; structural issues remain deliberately role-neutral.
+      const eventRoles = [...new Set(row.events.map((event) => event.role))];
+      const explicitRole = eventRoles.length === 1 && eventRoles[0] !== null ? eventRoles[0] : null;
+      const roleForReason = (reason: string): "melody" | "harmony" | "rhythm" | null => {
+        if (!explicitRole) return null;
+        return [
+          "impossible-leap",
+          "duplicate-event",
+          "orphan-tie-stop",
+          "orphan-tie-continue",
+          "invalid-tie",
+          "continuity-overlap",
+          "continuity-gap",
+          "density-spike",
+        ].includes(reason) ? explicitRole : null;
+      };
       return [{
         id: row.measureId ?? `${row.backendId}:${row.measureIndex ?? 0}`,
         number: row.measureNumber ?? "unknown",
@@ -422,7 +441,7 @@ function scoreRowsForReview(quality: OmrQualityReport): Array<Record<string, unk
         categories: row.categories,
         agreement: {
           structural: row.categories.structuralValidity.score,
-          disagreements: reasons.map((detail) => ({ kind: detail, role: null, detail })),
+          disagreements: reasons.map((detail) => ({ kind: detail, role: roleForReason(detail), detail })),
         },
       }];
     });
@@ -685,46 +704,47 @@ export async function buildLocalReference(input: LocalReferenceBuildInput, optio
     if (!selected && reviewNative) await materializeNative(reviewNative.value, reviewNative.verification);
   }
 
-  if (!selected) {
-    const backends = normalizedBackendRuns(source.backends ?? []);
-    if (backends.length) {
-      quality = cloneReport(evaluateOmrQuality({ engines: backends }));
-      qualitySelection = cloneReport(selectBestOmrQuality(quality));
-      const backend = selectedOmrBackend(source.backends ?? [], quality);
-      if (backend?.score) {
-        try {
-          normalized = normalizeOmrScore(backend.score);
-          if (normalized.measures.some((measure) => measure.events.length)) {
-            selected = {
-              kind: "omr",
-              id: id,
-              backend: safeId(backend.id, "omr"),
-              version: safeText(backend.version, "unknown"),
-              artifactType: "musicxml",
-              classification: "SINGLE_ENGINE_LOCAL_REFERENCE",
-              sha256: null,
-            };
-            const rendered = variantFromOmr(backend.score, normalized, title, artist);
-            outputMidi = `scores/${id}/reference.mid`;
-            outputMusicXml = `scores/${id}/reference.musicxml`;
-            await atomicWrite(resolve(outputRoot, outputMidi), writeMidi(rendered.notes, {
-              tempoBpm: rendered.variant.tempoBpm,
-              timeSig: rendered.variant.timeSig,
-              keySig: normalized.keySignature ?? 0,
-              title,
-              tracks: [
-                { name: "Reference melody", notes: rendered.notes.filter((note) => note.hand !== "L") },
-                { name: "Reference accompaniment", notes: rendered.notes.filter((note) => note.hand === "L") },
-              ],
-            }));
-            await atomicWrite(resolve(outputRoot, outputMusicXml), writeMusicXml(rendered.variant, title, artist));
-            coverageMask = `scores/${id}/coverage-mask.json`;
-            await atomicWrite(resolve(outputRoot, coverageMask), coverageForScore(id, normalized, quality));
-          }
-        } catch {
-          normalized = undefined;
-          selected = null;
+  const backends = normalizedBackendRuns(source.backends ?? []);
+  if (backends.length) {
+    quality = cloneReport(evaluateOmrQuality({ engines: backends }));
+    qualitySelection = cloneReport(selectBestOmrQuality(quality));
+  }
+
+  if (!selected && backends.length && quality) {
+    const backend = selectedOmrBackend(source.backends ?? [], quality);
+    if (backend?.score) {
+      try {
+        normalized = normalizeOmrScore(backend.score);
+        if (normalized.measures.some((measure) => measure.events.length)) {
+          selected = {
+            kind: "omr",
+            id: id,
+            backend: safeId(backend.id, "omr"),
+            version: safeText(backend.version, "unknown"),
+            artifactType: "musicxml",
+            classification: "SINGLE_ENGINE_LOCAL_REFERENCE",
+            sha256: null,
+          };
+          const rendered = variantFromOmr(backend.score, normalized, title, artist);
+          outputMidi = `scores/${id}/reference.mid`;
+          outputMusicXml = `scores/${id}/reference.musicxml`;
+          await atomicWrite(resolve(outputRoot, outputMidi), writeMidi(rendered.notes, {
+            tempoBpm: rendered.variant.tempoBpm,
+            timeSig: rendered.variant.timeSig,
+            keySig: normalized.keySignature ?? 0,
+            title,
+            tracks: [
+              { name: "Reference melody", notes: rendered.notes.filter((note) => note.hand !== "L") },
+              { name: "Reference accompaniment", notes: rendered.notes.filter((note) => note.hand === "L") },
+            ],
+          }));
+          await atomicWrite(resolve(outputRoot, outputMusicXml), writeMusicXml(rendered.variant, title, artist));
+          coverageMask = `scores/${id}/coverage-mask.json`;
+          await atomicWrite(resolve(outputRoot, coverageMask), coverageForScore(id, normalized, quality));
         }
+      } catch {
+        normalized = undefined;
+        selected = null;
       }
     }
   }
