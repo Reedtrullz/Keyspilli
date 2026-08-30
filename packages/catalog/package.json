@@ -33,7 +33,9 @@
     "evaluate-piano-candidates": "tsx scripts/evaluate-piano-candidates.ts",
     "research:song": "tsx scripts/research-song.ts",
     "render:midi": "tsx scripts/render-midi.ts",
-    "build:listening": "tsx scripts/build-listening-bundle.ts"
+    "build:listening": "tsx scripts/build-listening-bundle.ts",
+    "diagnose:piano-candidates": "tsx scripts/diagnose-piano-candidates.ts",
+    "build:piano-section-listening": "tsx scripts/build-piano-section-listening.ts"
   },
   "dependencies": {
     "@keyspilli/midi": "*",

@@ -24,6 +24,31 @@ export type ListeningWorksheetDimension = typeof LISTENING_WORKSHEET_DIMENSIONS[
 export type ListeningNormalizationMethod = "none" | "peak";
 export type ListeningDurationStatus = "ok" | "warning" | "unavailable" | "invalid";
 
+/**
+ * Human listening observations are deliberately optional.  An omitted field
+ * means that no observation has been recorded; an explicit null/empty value
+ * remains a useful pending state and must not be replaced with a guess.
+ */
+export interface HumanEvaluation {
+  recognizable?: boolean | null;
+  strengths?: string[];
+  weaknesses?: string[];
+  ratings?: Partial<Record<ListeningWorksheetDimension, number | null>>;
+  notes?: string;
+}
+
+export interface HumanEvaluationInput {
+  recognizable?: boolean | null;
+  strengths?: readonly string[];
+  weaknesses?: readonly string[];
+  ratings?: Partial<Record<ListeningWorksheetDimension, number | null>>;
+  notes?: string;
+}
+
+/** Namespaced aliases for callers that use the rest of this module's types. */
+export type ListeningHumanEvaluation = HumanEvaluation;
+export type ListeningHumanEvaluationInput = HumanEvaluationInput;
+
 export interface ListeningSoundfontInput {
   identifier?: string;
   sha256?: string | null;
@@ -104,6 +129,8 @@ export interface ListeningCandidateInput {
   renderedSampleCount?: number;
   /** Optional inexpensive diagnostics from the canonical PCM render. */
   audio?: ListeningAudioDiagnostics;
+  /** Optional human observations; omitted until a listening pass records them. */
+  humanEvaluation?: HumanEvaluationInput;
 }
 
 export interface ListeningAudioDiagnostics {
@@ -135,6 +162,7 @@ export interface ListeningCandidateRecord {
   duration: ListeningDurationDiagnostics;
   renderedSampleCount: number | null;
   audio?: ListeningAudioDiagnostics;
+  humanEvaluation?: HumanEvaluation;
 }
 
 export interface ListeningExcerptInput {
@@ -430,6 +458,7 @@ function normalizeCandidate(input: ListeningCandidateInput): ListeningCandidateR
   const expected = input.expectedDurationSeconds ?? input.midiDurationSeconds ?? input.durationSeconds;
   const duration = durationDiagnostics(expected, input.renderedDurationSeconds, input.durationToleranceSeconds ?? DEFAULT_DURATION_TOLERANCE_SECONDS);
   const audio = input.audio && normalizeAudioDiagnostics(input.audio);
+  const humanEvaluation = normalizeHumanEvaluation(input.humanEvaluation);
   return {
     id,
     ...(typeof input.label === "string" && input.label.trim() ? { label: input.label.trim() } : {}),
@@ -439,7 +468,49 @@ function normalizeCandidate(input: ListeningCandidateInput): ListeningCandidateR
     duration,
     renderedSampleCount: nonNegativeFinite(input.renderedSampleCount) ? Math.trunc(input.renderedSampleCount) : null,
     ...(audio ? { audio } : {}),
+    ...(humanEvaluation ? { humanEvaluation } : {}),
   };
+}
+
+function normalizeHumanTextList(value: unknown, field: "strengths" | "weaknesses"): string[] {
+  if (!Array.isArray(value)) throw new Error(`humanEvaluation.${field} must be an array of strings`);
+  return [...new Set(value.map((item) => {
+    if (typeof item !== "string") throw new Error(`humanEvaluation.${field} must contain only strings`);
+    return item.trim();
+  }).filter(Boolean))].sort(compareText);
+}
+
+function normalizeHumanRatings(value: unknown): Partial<Record<ListeningWorksheetDimension, number | null>> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("humanEvaluation.ratings must be an object");
+  const output: Partial<Record<ListeningWorksheetDimension, number | null>> = {};
+  for (const [dimension, rating] of Object.entries(value as Record<string, unknown>)) {
+    if (!(LISTENING_WORKSHEET_DIMENSIONS as readonly string[]).includes(dimension)) {
+      throw new Error(`humanEvaluation.ratings has unknown dimension: ${dimension}`);
+    }
+    if (rating !== null && !finite(rating)) throw new Error(`humanEvaluation.ratings.${dimension} must be finite or null`);
+    output[dimension as ListeningWorksheetDimension] = rating as number | null;
+  }
+  return output;
+}
+
+function normalizeHumanEvaluation(input: HumanEvaluationInput | undefined): HumanEvaluation | undefined {
+  if (input === undefined) return undefined;
+  if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("humanEvaluation must be an object");
+  const output: HumanEvaluation = {};
+  if ("recognizable" in input) {
+    if (input.recognizable !== null && typeof input.recognizable !== "boolean" && input.recognizable !== undefined) {
+      throw new Error("humanEvaluation.recognizable must be boolean or null");
+    }
+    if (input.recognizable !== undefined) output.recognizable = input.recognizable;
+  }
+  if ("strengths" in input && input.strengths !== undefined) output.strengths = normalizeHumanTextList(input.strengths, "strengths");
+  if ("weaknesses" in input && input.weaknesses !== undefined) output.weaknesses = normalizeHumanTextList(input.weaknesses, "weaknesses");
+  if ("ratings" in input && input.ratings !== undefined) output.ratings = normalizeHumanRatings(input.ratings);
+  if ("notes" in input) {
+    if (input.notes !== undefined && typeof input.notes !== "string") throw new Error("humanEvaluation.notes must be a string");
+    if (input.notes !== undefined) output.notes = input.notes.trim();
+  }
+  return output;
 }
 
 function normalizeAudioDiagnostics(input: ListeningAudioDiagnostics): ListeningAudioDiagnostics {
@@ -482,8 +553,10 @@ export function createListeningManifest(input: ListeningManifestInput): Listenin
 
 function redactPathLikeString(value: string): string {
   return value
-    .replace(/(^|[\s("'=,;\[\]])\/(?:[^\s"'<>;,)]*\/)+[^\s"'<>;,)]*/g, "$1[redacted-path]")
-    .replace(/(^|[\s("'=,;\[\]])[A-Za-z]:[\\/][^\s"'<>;,)]*/g, "$1[redacted-path]")
+    .replace(/(^|[\s("'=,;:\[\]])file:\/\/[^\s"'<>;,)]*/gi, "$1[redacted-path]")
+    .replace(/(^|[\s("'=,;:\[\]])(?:~\/|\.\.?\/)[^\s"'<>;,)]*/g, "$1[redacted-path]")
+    .replace(/(^|[\s("'=,;:\[\]])\/(?:[^\s"'<>;,)]*\/)+[^\s"'<>;,)]*/g, "$1[redacted-path]")
+    .replace(/(^|[\s("'=,;:\[\]])[A-Za-z]:[\\/][^\s"'<>;,)]*/g, "$1[redacted-path]")
     .replace(/(^|\s)(\.\.?\/|[^\s/]+\/)[^\s"']+\.(?:mid|midi|wav|mp3|sf2)(?=$|[\s"'])/gi, "$1[redacted-path]");
 }
 
@@ -504,6 +577,14 @@ function canonicalize(value: unknown, key?: string): unknown {
 }
 
 /** Path-safe canonical representation; local convenience paths are omitted. */
+function canonicalHumanEvaluation(evaluation: HumanEvaluation): HumanEvaluation {
+  return {
+    ...evaluation,
+    ...(evaluation.strengths ? { strengths: [...evaluation.strengths].sort(compareText) } : {}),
+    ...(evaluation.weaknesses ? { weaknesses: [...evaluation.weaknesses].sort(compareText) } : {}),
+  };
+}
+
 export function canonicalListeningManifest(manifest: ListeningManifest): object {
   const candidates = [...manifest.candidates].sort((a, b) => compareText(a.id, b.id)).map((candidate) => ({
     id: candidate.id,
@@ -514,6 +595,7 @@ export function canonicalListeningManifest(manifest: ListeningManifest): object 
     duration: candidate.duration,
     renderedSampleCount: candidate.renderedSampleCount,
     ...(candidate.audio ? { audio: candidate.audio } : {}),
+    ...(candidate.humanEvaluation !== undefined ? { humanEvaluation: canonicalHumanEvaluation(candidate.humanEvaluation) } : {}),
   }));
   return canonicalize({
     schemaVersion: manifest.schemaVersion,

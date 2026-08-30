@@ -58,3 +58,50 @@ export {
 } from "./arrangement-quality.js";
 export type { RhLhBalance, ArrangementQualityReport } from "./arrangement-quality.js";
 export { verifyMonotonicity } from "./validate.js";
+export {
+  splitPianoRoles,
+} from "./piano-roles.js";
+export type {
+  PianoRoleOptions,
+  PianoNoteRole,
+  ProtectedMelodyNote,
+  PianoRoleSplit,
+} from "./piano-roles.js";
+export {
+  groupAttackClusters,
+  groupPianoAttackClusters,
+  inferPianoHarmony,
+  realizePianoAccompaniment,
+  simplifyPianoAccompaniment,
+  DEFAULT_PIANO_ACCOMPANIMENT_CONFIG,
+} from "./piano-accompaniment.js";
+export type {
+  PianoHarmonyQuality,
+  PianoAttackCluster,
+  PianoHarmonyEvidence,
+  PianoAccompanimentConfig,
+  PianoSemanticHarmony,
+  PianoAccompanimentDiagnostics,
+  PianoAccompanimentOptions,
+  PianoAttackInput,
+  PianoAttackCollection,
+  PianoBassEvidence,
+  PianoSemanticQuality,
+  PianoHarmony,
+} from "./piano-accompaniment.js";
+export {
+  selectPianoMelodyRegions,
+  clipRegionNotes,
+  scorePianoRegion,
+} from "./piano-region-selector.js";
+export type {
+  PianoRegionRole,
+  CandidateRegion,
+  PianoRegionWindow,
+  PianoRegionCandidate,
+  PianoRegionScoreWeights,
+  PianoRegionScore,
+  PianoRegionSelectionOptions,
+  PianoRegionSelectionDiagnostics,
+  PianoRegionSelection,
+} from "./piano-region-selector.js";

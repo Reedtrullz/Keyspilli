@@ -11,6 +11,7 @@ import {
   renderListeningWorksheetMarkdown,
   validateExcerptRanges,
   type ListeningCandidateInput,
+  type ListeningManifest,
 } from "../src/listening-manifest.js";
 
 const candidates: ListeningCandidateInput[] = [
@@ -175,5 +176,95 @@ describe("listening manifest helpers", () => {
     expect(markdown).toMatch(/Would I recognize the song without seeing its title\?/);
     expect(markdown).toMatch(/Largest audible defect/);
     expect(markdown).not.toMatch(/\| [1-5] \|/);
+  });
+
+  it("round-trips explicit human evaluation metadata without filling pending fields", () => {
+    const manifest = createListeningManifest({
+      renderer: { backend: "fluidsynth", version: "x", sampleRate: 44_100, channels: 2 },
+      candidates: [{
+        id: "candidate-a",
+        wavRef: "candidate-a.wav",
+        humanEvaluation: {
+          recognizable: null,
+          strengths: [],
+          weaknesses: [],
+          ratings: { recognizability: null, melodyCorrectness: 4, playability: null },
+          notes: "",
+        },
+      }],
+    });
+
+    expect(manifest.candidates[0]?.humanEvaluation).toEqual({
+      recognizable: null,
+      strengths: [],
+      weaknesses: [],
+      ratings: { recognizability: null, melodyCorrectness: 4, playability: null },
+      notes: "",
+    });
+
+    const canonical = canonicalListeningManifestJson(manifest);
+    const roundTripped = JSON.parse(canonical) as ListeningManifest;
+    expect(roundTripped.candidates[0]?.humanEvaluation).toEqual(manifest.candidates[0]?.humanEvaluation);
+    expect(canonicalListeningManifestJson(roundTripped)).toBe(canonical);
+  });
+
+  it("canonicalizes human evaluation deterministically and redacts paths in free text", () => {
+    const evaluation = {
+      recognizable: true,
+      strengths: ["main line", "/private/review/strong.wav"],
+      weaknesses: ["dense support", "/Users/example/private.mid"],
+      ratings: { playability: 3, recognizability: 5 },
+      notes: "Review /private/review/notes.wav, file:///Users/example/notes.wav, or ~/private/notes.wav after the next pass",
+    } as const;
+    const first = createListeningManifest({
+      renderer: { backend: "fluidsynth", version: "x", sampleRate: 44_100, channels: 2 },
+      candidates: [{ id: "candidate-a", humanEvaluation: evaluation }],
+    });
+    const second = createListeningManifest({
+      renderer: { backend: "fluidsynth", version: "x", sampleRate: 44_100, channels: 2 },
+      candidates: [{
+        id: "candidate-a",
+        humanEvaluation: {
+          ...evaluation,
+          strengths: [...evaluation.strengths].reverse(),
+          weaknesses: [...evaluation.weaknesses].reverse(),
+          ratings: { recognizability: 5, playability: 3 },
+        },
+      }],
+    });
+
+    const canonical = canonicalListeningManifestJson(first);
+    expect(canonical).toBe(canonicalListeningManifestJson(second));
+    expect(canonical).not.toContain("/private/review");
+    expect(canonical).not.toContain("/Users/example");
+    expect(canonical).not.toContain("file:///Users");
+    expect(canonical).not.toContain("~/private");
+    expect(canonical).toContain('"recognizable":true');
+    expect(canonical).toContain('"ratings":{"playability":3,"recognizability":5}');
+  });
+
+  it("keeps canonical human-list ordering stable for already materialized manifests", () => {
+    const first = createListeningManifest({
+      renderer: { backend: "fluidsynth", version: "x", sampleRate: 44_100, channels: 2 },
+      candidates: [{ id: "candidate-a", humanEvaluation: { strengths: ["alpha", "beta"], weaknesses: ["mud", "noise"] } }],
+    });
+    const second = createListeningManifest({
+      renderer: { backend: "fluidsynth", version: "x", sampleRate: 44_100, channels: 2 },
+      candidates: [{ id: "candidate-a", humanEvaluation: { strengths: ["alpha", "beta"], weaknesses: ["mud", "noise"] } }],
+    });
+    first.candidates[0]!.humanEvaluation!.strengths!.reverse();
+    first.candidates[0]!.humanEvaluation!.weaknesses!.reverse();
+
+    expect(canonicalListeningManifestJson(first)).toBe(canonicalListeningManifestJson(second));
+  });
+
+  it("does not synthesize subjective human evaluation defaults", () => {
+    const manifest = createListeningManifest({
+      renderer: { backend: "fluidsynth", version: "x", sampleRate: 44_100, channels: 2 },
+      candidates: [{ id: "candidate-a" }],
+    });
+
+    expect(manifest.candidates[0]?.humanEvaluation).toBeUndefined();
+    expect(canonicalListeningManifestJson(manifest)).not.toContain("humanEvaluation");
   });
 });

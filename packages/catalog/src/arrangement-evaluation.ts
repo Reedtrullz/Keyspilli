@@ -789,33 +789,96 @@ function metricBundle(
 }
 
 function variantDurationBeats(variant: Variant): number {
-  const measureEnd = variant.measures.reduce((max, measure) => Math.max(max, measure.endBeat), 0);
+  const measures = Array.isArray(variant.measures) ? variant.measures : [];
+  const measureEnd = measures.reduce((max, measure) => {
+    const endBeat = (measure as unknown as { endBeat?: unknown } | null)?.endBeat;
+    return typeof endBeat === "number" && Number.isFinite(endBeat) ? Math.max(max, endBeat) : max;
+  }, 0);
   if (Number.isFinite(measureEnd) && measureEnd > 0) return measureEnd;
   const notes = Array.isArray(variant.notes) ? variant.notes : [];
   return Math.max(0, ...notes.filter(finiteNote).map((note) => note.start + note.dur));
 }
 
+const VARIANT_LEVELS = new Set<Variant["level"]>([
+  "very-beginner", "beginner", "very-easy", "easy", "medium", "advanced",
+]);
+
+interface GuardedVariant {
+  label: string;
+  variant: Variant;
+  metadataFailures: string[];
+}
+
+function guardVariant(raw: unknown): GuardedVariant {
+  const value = raw && typeof raw === "object" ? raw as Record<string, unknown> : {};
+  const label = typeof value.level === "string" && value.level.length ? value.level : "unknown";
+  const metadataFailures: string[] = [];
+  const level = VARIANT_LEVELS.has(value.level as Variant["level"])
+    ? value.level as Variant["level"]
+    : "advanced";
+  if (level !== value.level) metadataFailures.push(`${label}: invalid difficulty level`);
+
+  const rawMeasures = value.measures;
+  const measures = Array.isArray(rawMeasures) ? rawMeasures as Variant["measures"] : [];
+  if (!Array.isArray(rawMeasures)) metadataFailures.push(`${label}: measures must be an array`);
+
+  const rawTimeSig = value.timeSig;
+  const validTimeSig = Array.isArray(rawTimeSig)
+    && rawTimeSig.length === 2
+    && rawTimeSig.every((part) => typeof part === "number" && Number.isInteger(part) && part > 0);
+  const timeSig: [number, number] = validTimeSig
+    ? [Number(rawTimeSig[0]), Number(rawTimeSig[1])]
+    : [4, 4];
+  if (!validTimeSig) metadataFailures.push(`${label}: timeSig must be an array of two positive integers`);
+
+  const rawTempo = value.tempoBpm;
+  const tempoBpm = typeof rawTempo === "number" && Number.isFinite(rawTempo) && rawTempo > 0 ? rawTempo : 120;
+  if (!(typeof rawTempo === "number" && Number.isFinite(rawTempo) && rawTempo > 0)) {
+    metadataFailures.push(`${label}: tempoBpm must be a finite positive number`);
+  }
+
+  const rawDifficulty = value.difficultyScore;
+  const difficultyScore = typeof rawDifficulty === "number" && Number.isFinite(rawDifficulty) ? rawDifficulty : 0;
+  if (!(typeof rawDifficulty === "number" && Number.isFinite(rawDifficulty))) {
+    metadataFailures.push(`${label}: difficultyScore must be a finite number`);
+  }
+
+  const rawNotes = value.notes;
+  const notes = Array.isArray(rawNotes) ? rawNotes.filter((note): note is Note => finiteNote(note as Note)) : [];
+  const variant = {
+    ...value,
+    level,
+    difficultyScore,
+    notes,
+    tempoBpm,
+    timeSig,
+    measures,
+  } as unknown as Variant;
+  return { label, variant, metadataFailures };
+}
+
 function variantMetrics(variant: Variant, input: ArrangementEvaluationInput): VariantEvaluationMetrics {
-  const validNotes = Array.isArray(variant.notes) ? variant.notes.filter(finiteNote) : [];
-  const durationBeats = variantDurationBeats({ ...variant, notes: validNotes });
+  const guarded = guardVariant(variant).variant;
+  const validNotes = Array.isArray(guarded.notes) ? guarded.notes.filter(finiteNote) : [];
+  const durationBeats = variantDurationBeats({ ...guarded, notes: validNotes });
   // A semantic guitar pass is performed before variant construction.  Do not
   // repeat its canonical diagnostics for every learner level; the per-level
   // guitar bundle below reports final tagged RH/LH counts and nulls the
   // unavailable upstream fields.
   const candidate: ArrangementEvaluationCandidate = {
-    selector: `variant:${variant.level}`,
+    selector: `variant:${guarded.level}`,
     notes: validNotes,
-    tempoBpm: variant.tempoBpm,
+    tempoBpm: guarded.tempoBpm,
     durationBeats,
-    timeSig: variant.timeSig,
+    timeSig: guarded.timeSig,
   };
   const variantInput: ArrangementEvaluationInput = { ...input, candidate, guitarDiagnostics: undefined };
-  const bundle = metricBundle(validNotes, variant.tempoBpm, durationBeats, candidate, variantInput);
+  const bundle = metricBundle(validNotes, guarded.tempoBpm, durationBeats, candidate, variantInput);
   return {
-    level: variant.level,
-    difficultyScore: variant.difficultyScore,
-    tempoBpm: variant.tempoBpm,
-    timeSig: [...variant.timeSig] as [number, number],
+    level: guarded.level,
+    difficultyScore: guarded.difficultyScore,
+    tempoBpm: guarded.tempoBpm,
+    timeSig: [...guarded.timeSig] as [number, number],
     ...bundle,
   };
 }
@@ -1009,21 +1072,25 @@ function qualityGate(
       warnings.push(`candidate duration differs from expected by ${round(difference)} beats`);
     }
   }
-  if (variants) {
+  if (variants !== undefined) {
     evaluated.push("variant validation", "variant monotonicity");
-    if (!variants.length) failures.push("variant list is empty");
+    if (!Array.isArray(variants)) {
+      failures.push("variant list is not an array");
+    } else if (!variants.length) failures.push("variant list is empty");
     const safeVariants: Variant[] = [];
-    for (const variant of variants) {
-      const rawNotes = (variant as unknown as { notes?: unknown }).notes;
+    for (const rawVariant of Array.isArray(variants) ? variants : []) {
+      const guarded = guardVariant(rawVariant);
+      failures.push(...guarded.metadataFailures);
+      const rawNotes = (rawVariant as unknown as { notes?: unknown } | null)?.notes;
       if (!Array.isArray(rawNotes)) {
-        failures.push(`${variant.level}: variant notes are not an array`);
+        failures.push(`${guarded.label}: variant notes are not an array`);
         continue;
       }
       const invalidVariantNotes = rawNotes.filter((note) => !finiteNote(note as Note)).length;
-      if (invalidVariantNotes) failures.push(`${variant.level}: ${invalidVariantNotes} non-finite or invalid MIDI notes`);
+      if (invalidVariantNotes) failures.push(`${guarded.label}: ${invalidVariantNotes} non-finite or invalid MIDI notes`);
       const validVariantNotes = rawNotes.filter((note): note is Note => finiteNote(note as Note));
-      if (!validVariantNotes.length) failures.push(`${variant.level} variant has no valid notes`);
-      safeVariants.push({ ...variant, notes: validVariantNotes });
+      if (!validVariantNotes.length) failures.push(`${guarded.label} variant has no valid notes`);
+      safeVariants.push({ ...guarded.variant, notes: validVariantNotes });
     }
     // Validators assume note-shaped objects. Run them against the guarded
     // view so malformed input produces a gate failure instead of a crash.
@@ -1057,7 +1124,7 @@ function qualityGate(
       warningWallRate: ARRANGEMENT_EVALUATION_CONFIG.warningWallRate,
       warningDurationMismatchBeats: ARRANGEMENT_EVALUATION_CONFIG.warningDurationMismatchBeats,
     },
-    availability: { variants: variants ? "evaluated" : "unavailable" },
+    availability: { variants: variants !== undefined ? "evaluated" : "unavailable" },
   };
 }
 
@@ -1111,7 +1178,10 @@ export function evaluateArrangement(input: ArrangementEvaluationInput): Arrangem
     };
   }
   const variants: Record<string, VariantEvaluationMetrics> = {};
-  for (const variant of input.variants ?? []) variants[variant.level] = variantMetrics(variant, input);
+  for (const rawVariant of Array.isArray(input.variants) ? input.variants : []) {
+    const guarded = guardVariant(rawVariant);
+    variants[guarded.label] = variantMetrics(guarded.variant, input);
+  }
   const sections: Record<string, SectionEvaluationMetrics> = {};
   for (const window of windows) {
     const sectionNotes = cleanNotes(candidateNotes).filter((note) => note.start >= window.candidate[0] && note.start < window.candidate[1]);

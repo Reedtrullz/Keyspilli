@@ -333,6 +333,68 @@ describe("arrangement evaluation", () => {
     expect(report.gate.status).toBe("fail");
     expect(report.gate.failures).toContain("easy: 1 non-finite or invalid MIDI notes");
   });
+
+  it("fails closed when required variant metadata is null or non-finite", () => {
+    const malformedVariant = {
+      level: "easy",
+      difficultyScore: Number.NaN,
+      notes: [{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }],
+      chords: [],
+      bassPattern: "root-fifth",
+      key: "C",
+      tempoBpm: Number.NaN,
+      timeSig: null,
+      measures: null,
+    } as unknown as Variant;
+    expect(() => evaluateArrangement({
+      ...input([{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }]),
+      variants: [malformedVariant],
+    })).not.toThrow();
+    const report = evaluateArrangement({
+      ...input([{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }]),
+      variants: [malformedVariant],
+    });
+    expect(report.gate.status).toBe("fail");
+    expect(report.gate.failures).toEqual(expect.arrayContaining([
+      "easy: measures must be an array",
+      "easy: timeSig must be an array of two positive integers",
+      "easy: tempoBpm must be a finite positive number",
+      "easy: difficultyScore must be a finite number",
+    ]));
+    expect(report.metrics.variants.easy?.timeSig).toEqual([4, 4]);
+    expect(report.metrics.variants.easy?.tempoBpm).toBe(120);
+    expect(report.metrics.variants.easy?.difficultyScore).toBe(0);
+  });
+
+  it("fails closed for malformed variant metadata shapes without throwing", () => {
+    const malformedVariant = {
+      level: "easy",
+      difficultyScore: "0.4",
+      notes: [{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }],
+      chords: [],
+      bassPattern: "root-fifth",
+      key: "C",
+      tempoBpm: null,
+      timeSig: [4, Number.NaN],
+      measures: { endBeat: 4 },
+    } as unknown as Variant;
+    expect(() => evaluateArrangement({
+      ...input([{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }]),
+      variants: [malformedVariant],
+    })).not.toThrow();
+    const report = evaluateArrangement({
+      ...input([{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }]),
+      variants: [malformedVariant],
+    });
+    expect(report.gate.status).toBe("fail");
+    expect(report.gate.failures).toEqual(expect.arrayContaining([
+      "easy: measures must be an array",
+      "easy: timeSig must be an array of two positive integers",
+      "easy: tempoBpm must be a finite positive number",
+      "easy: difficultyScore must be a finite number",
+    ]));
+  });
+
   it("reports suspicious output shape as non-blocking quality warnings", () => {
     const notes: Note[] = Array.from({ length: 32 }, (_, index) => ({
       midi: 60,
