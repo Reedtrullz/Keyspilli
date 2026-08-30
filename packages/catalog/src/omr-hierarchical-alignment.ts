@@ -18,8 +18,8 @@ export type OmrAlignmentRelation =
   | "one-to-one"
   | "reference-split"
   | "candidate-merge"
-  | "reference-insertion"
-  | "candidate-insertion";
+  | "candidate-missing"
+  | "reference-missing";
 
 export interface OmrPageKey {
   page: number | null;
@@ -85,6 +85,7 @@ export interface OmrHierarchicalAlignmentOptions {
   maxSplitWidth?: 1 | 2;
   ambiguityMargin?: number;
   maxPageCells?: number;
+  maxEventTokens?: number;
   allowPageOrdinalFallback?: boolean;
 }
 
@@ -94,6 +95,7 @@ const DEFAULTS = {
   maxSplitWidth: 2 as const,
   ambiguityMargin: 0.08,
   maxPageCells: 4096,
+  maxEventTokens: 8192,
 };
 const EPS = 1e-9;
 
@@ -114,7 +116,7 @@ interface Lane {
 }
 
 interface MeasureChoice {
-  type: "one" | "split" | "merge" | "reference-insertion" | "candidate-insertion";
+  type: "one" | "split" | "merge" | "candidate-missing" | "reference-missing";
   score: number;
   i: number;
   j: number;
@@ -204,6 +206,43 @@ function rawPageDiagnostics(input: ScoreLike, label: string): string[] {
       const page = (measure as OmrMeasureInput).page;
       if (page !== undefined && pageNumber(page) === null) diagnostics.push(`${label}: invalid page metadata on ${String((measure as OmrMeasureInput).id ?? (measure as OmrMeasureInput).number ?? "measure")}`);
     }
+  }
+  return diagnostics;
+}
+
+function timingDiagnostics(input: ScoreLike, label: string): string[] {
+  const value = input as Partial<OmrScoreInput>;
+  const diagnostics: string[] = [];
+  const checkMeasure = (measure: { id?: unknown; number?: unknown; startBeat?: unknown; durationBeats?: unknown; events?: Array<{ onset?: unknown; duration?: unknown }> }, fallback: string): void => {
+    const id = String(measure.id ?? measure.number ?? fallback);
+    if (measure.startBeat !== undefined && (!finite(measure.startBeat) || measure.startBeat < 0)) diagnostics.push(`${label}: invalid nonnegative startBeat on ${id}`);
+    if (measure.durationBeats !== undefined && (!finite(measure.durationBeats) || measure.durationBeats <= 0)) diagnostics.push(`${label}: invalid positive durationBeats on ${id}`);
+    for (const [index, event] of (measure.events ?? []).entries()) {
+      if (event.onset !== undefined && (!finite(event.onset) || event.onset < 0)) diagnostics.push(`${label}: invalid nonnegative event onset on ${id}:e${index}`);
+      if (event.duration !== undefined && (!finite(event.duration) || event.duration <= 0)) diagnostics.push(`${label}: invalid positive event duration on ${id}:e${index}`);
+    }
+  };
+  if (Array.isArray(value.parts)) {
+    for (const part of value.parts) for (const [index, measure] of (part?.measures ?? []).entries()) checkMeasure(measure, `measure-${index}`);
+    return diagnostics;
+  }
+  const normalized = input as Partial<NormalizedOmrScore>;
+  if (Array.isArray(normalized.measures)) {
+    for (const measure of normalized.measures) checkMeasure(measure, measure.id);
+  }
+  return diagnostics;
+}
+
+function canonicalTimingDiagnostics(score: CanonicalScore, label: string): string[] {
+  const diagnostics: string[] = [];
+  for (const measure of score.measures) {
+    if (!finite(rationalBeatToNumber(measure.startBeat)) || rationalBeatToNumber(measure.startBeat) < 0) diagnostics.push(`${label}: invalid nonnegative startBeat on ${measure.id}`);
+    if (!finite(rationalBeatToNumber(measure.durationBeats)) || rationalBeatToNumber(measure.durationBeats) <= 0) diagnostics.push(`${label}: invalid positive durationBeats on ${measure.id}`);
+    for (const [index, event] of measure.notationEvents.entries()) {
+      if (!finite(rationalBeatToNumber(event.measureOnset)) || rationalBeatToNumber(event.measureOnset) < 0) diagnostics.push(`${label}: invalid nonnegative event onset on ${measure.id}:e${index}`);
+      if (!finite(rationalBeatToNumber(event.duration)) || rationalBeatToNumber(event.duration) <= 0) diagnostics.push(`${label}: invalid positive event duration on ${measure.id}:e${index}`);
+    }
+    if (measure.page !== null && pageNumber(measure.page) === null) diagnostics.push(`${label}: invalid page metadata on ${measure.id}`);
   }
   return diagnostics;
 }
@@ -334,7 +373,7 @@ function pairPages(reference: CanonicalScore, candidate: CanonicalScore, options
     });
   }
   for (const group of cand.groups) {
-    if (usedCandidates.has(group) || (group.key.page !== null && ref.groups.some((item) => item.key.page === group.key.page && !item.invalid))
+    if (usedCandidates.has(group) || (!group.invalid && group.key.page !== null && ref.groups.some((item) => item.key.page === group.key.page && !item.invalid))
       || (options.allowPageOrdinalFallback && group.key.page === null && ref.groups.some((item) => item.key.page === null && !item.invalid))) continue;
     pages.push({ reference: null, candidate: group.key, confidence: 0, status: "unmatched", referenceMeasureIndices: [], candidateMeasureIndices: group.measures.map((measure) => measure.index), diagnostics: [group.key.page === null ? "page metadata unavailable; no correspondence invented" : `reference page ${group.key.page} is missing`] });
   }
@@ -439,31 +478,76 @@ function mappingConfidence(evidence: OmrStaffLaneMapping["evidence"]): number {
   return round(evidence.role * 0.2 + evidence.rhythm * 0.25 + evidence.pitch * 0.25 + evidence.range * 0.15 + evidence.topology * 0.15);
 }
 
+function assignmentOrder(left: number[], right: number[]): number {
+  for (let index = 0; index < Math.max(left.length, right.length); index += 1) {
+    const a = left[index] ?? -1;
+    const b = right[index] ?? -1;
+    if (a !== b) return a - b;
+  }
+  return 0;
+}
+
+function globalLaneAssignment(scores: number[][]): number[] {
+  const candidateCount = scores[0]?.length ?? 0;
+  if (!scores.length || !candidateCount) return scores.map(() => -1);
+  if (candidateCount > 12) {
+    const pairs: Array<{ ref: number; candidate: number; score: number }> = [];
+    for (let ref = 0; ref < scores.length; ref += 1) for (let candidate = 0; candidate < candidateCount; candidate += 1) pairs.push({ ref, candidate, score: scores[ref]![candidate]! });
+    pairs.sort((left, right) => right.score - left.score || left.ref - right.ref || left.candidate - right.candidate);
+    const result = scores.map(() => -1);
+    const used = new Set<number>();
+    for (const pair of pairs) if (result[pair.ref] === -1 && !used.has(pair.candidate)) { result[pair.ref] = pair.candidate; used.add(pair.candidate); }
+    return result;
+  }
+  interface Answer { score: number; assignment: number[] }
+  const memo = new Map<string, Answer>();
+  const solve = (ref: number, used: number): Answer => {
+    if (ref >= scores.length) return { score: 0, assignment: [] };
+    const key = `${ref}:${used}`;
+    const cached = memo.get(key);
+    if (cached) return cached;
+    const options: Answer[] = [{ score: -0.2, assignment: [-1, ...solve(ref + 1, used).assignment] }];
+    for (let candidate = 0; candidate < candidateCount; candidate += 1) {
+      if (used & (1 << candidate)) continue;
+      const next = solve(ref + 1, used | (1 << candidate));
+      options.push({ score: scores[ref]![candidate]! + next.score, assignment: [candidate, ...next.assignment] });
+    }
+    options.sort((left, right) => right.score - left.score || assignmentOrder(left.assignment, right.assignment));
+    const best = options[0]!;
+    memo.set(key, best);
+    return best;
+  };
+  return solve(0, 0).assignment;
+}
+
 function mapLanes(reference: CanonicalScore, candidate: CanonicalScore, page: OmrPageAlignment, options: Required<Pick<OmrHierarchicalAlignmentOptions, "ambiguityMargin" | "onsetToleranceBeats">>): OmrStaffLaneMapping[] {
   if (!page.reference || !page.candidate) return [];
   const refs = laneGroups(reference, page);
   const cands = laneGroups(candidate, { ...page, referenceMeasureIndices: page.candidateMeasureIndices });
+  const choices = refs.map((ref) => cands.map((cand) => {
+    const evidence = laneEvidence(ref, cand, options.onsetToleranceBeats);
+    return { cand, evidence, confidence: mappingConfidence(evidence) };
+  }));
+  const assignment = globalLaneAssignment(choices.map((row) => row.map((choice) => choice.confidence)));
   const mappings: OmrStaffLaneMapping[] = [];
-  const used = new Set<string>();
-  for (const ref of refs) {
-    const choices = cands.map((cand) => {
-      const evidence = laneEvidence(ref, cand, options.onsetToleranceBeats);
-      return { cand, evidence, confidence: mappingConfidence(evidence) };
-    }).sort((left, right) => right.confidence - left.confidence || stableCompare(laneKey(left.cand.key), laneKey(right.cand.key)));
-    const best = choices[0];
+  for (const [refIndex, ref] of refs.entries()) {
+    const row = choices[refIndex]!;
+    const ranked = [...row].sort((left, right) => right.confidence - left.confidence || stableCompare(laneKey(left.cand.key), laneKey(right.cand.key)));
+    const best = ranked[0];
     if (!best) continue;
-    const second = choices.find((choice) => !used.has(laneKey(choice.cand.key)) && choice.cand !== best.cand);
-    const ambiguous = Boolean(second && best.confidence - second.confidence < options.ambiguityMargin);
+    const assignedIndex = assignment[refIndex] ?? -1;
+    const assigned = assignedIndex >= 0 ? row[assignedIndex] : undefined;
+    const second = ranked.find((choice) => choice.cand !== best.cand);
+    const ambiguous = Boolean(second && best.confidence - second.confidence <= options.ambiguityMargin);
     if (ambiguous) {
       mappings.push({ reference: ref.key, candidate: best.cand.key, confidence: best.confidence, status: "ambiguous", evidence: best.evidence });
       continue;
     }
-    if (used.has(laneKey(best.cand.key))) {
+    if (!assigned) {
       mappings.push({ reference: ref.key, candidate: best.cand.key, confidence: best.confidence, status: "unmapped", evidence: best.evidence });
       continue;
     }
-    used.add(laneKey(best.cand.key));
-    mappings.push({ reference: ref.key, candidate: best.cand.key, confidence: best.confidence, status: "mapped", evidence: best.evidence });
+    mappings.push({ reference: ref.key, candidate: assigned.cand.key, confidence: assigned.confidence, status: "mapped", evidence: assigned.evidence });
   }
   return mappings.sort((left, right) => stableCompare(laneKey(left.reference), laneKey(right.reference)));
 }
@@ -473,32 +557,39 @@ function tokenEvents(measures: CanonicalMeasure[], base: number): Array<{ token:
     .sort((left, right) => left.onset - right.onset || (left.token.midi ?? Number.MAX_SAFE_INTEGER) - (right.token.midi ?? Number.MAX_SAFE_INTEGER) || stableCompare(left.token.id, right.token.id));
 }
 
-function eventAlignment(reference: CanonicalMeasure[], candidate: CanonicalMeasure[], tolerance: number): OmrRegionEventAlignment {
+function eventAlignment(reference: CanonicalMeasure[], candidate: CanonicalMeasure[], tolerance: number, maxEventTokens: number): OmrRegionEventAlignment {
   const base = Math.min(...reference.map((measure) => rationalBeatToNumber(measure.startBeat)), ...candidate.map((measure) => rationalBeatToNumber(measure.startBeat)));
   const refs = tokenEvents(reference, base);
   const cands = tokenEvents(candidate, base);
-  const pairs: Array<{ reference: typeof refs[number]; candidate: typeof cands[number]; distance: number; pitchDistance: number }> = [];
-  for (const left of refs) for (const right of cands) {
-    const onsetError = Math.abs(left.onset - right.onset);
-    if (onsetError > tolerance + EPS) continue;
-    pairs.push({ reference: left, candidate: right, distance: onsetError + Math.abs(rationalBeatToNumber(left.token.duration) - rationalBeatToNumber(right.token.duration)), pitchDistance: left.token.midi === right.token.midi ? 0 : 1 });
-  }
-  pairs.sort((left, right) => left.pitchDistance - right.pitchDistance || left.distance - right.distance || stableCompare(left.reference.token.id, right.reference.token.id) || stableCompare(left.candidate.token.id, right.candidate.token.id));
-  const usedRefs = new Set<string>();
-  const usedCands = new Set<string>();
+  if (refs.length > maxEventTokens || cands.length > maxEventTokens) return { matched: [], unmatchedReferenceEventIds: refs.map((item) => item.token.id), unmatchedCandidateEventIds: cands.map((item) => item.token.id) };
+  const usedCands = new Set<number>();
   const matched: OmrRegionEventAlignment["matched"] = [];
-  for (const pair of pairs) {
-    if (usedRefs.has(pair.reference.token.id) || usedCands.has(pair.candidate.token.id)) continue;
-    usedRefs.add(pair.reference.token.id);
-    usedCands.add(pair.candidate.token.id);
-    matched.push({ referenceEventId: pair.reference.token.id, candidateEventId: pair.candidate.token.id, onsetError: round(Math.abs(pair.reference.onset - pair.candidate.onset)), pitchEqual: pair.reference.token.midi === pair.candidate.token.midi });
+  let cursor = 0;
+  for (const left of refs) {
+    while (cursor < cands.length && cands[cursor]!.onset < left.onset - tolerance - EPS) cursor += 1;
+    let bestIndex = -1;
+    let best: [number, number, number, string] | null = null;
+    for (let index = cursor; index < cands.length && cands[index]!.onset <= left.onset + tolerance + EPS; index += 1) {
+      if (usedCands.has(index)) continue;
+      const right = cands[index]!;
+      const key: [number, number, number, string] = [left.token.midi === right.token.midi ? 0 : 1, Math.abs(left.onset - right.onset), Math.abs(rationalBeatToNumber(left.token.duration) - rationalBeatToNumber(right.token.duration)), right.token.id];
+      if (!best || key[0] < best[0] || (key[0] === best[0] && (key[1] < best[1] || (key[1] === best[1] && (key[2] < best[2] || (key[2] === best[2] && stableCompare(key[3], best[3]) < 0)))))) { best = key; bestIndex = index; }
+    }
+    if (bestIndex >= 0) {
+      const right = cands[bestIndex]!;
+      usedCands.add(bestIndex);
+      matched.push({ referenceEventId: left.token.id, candidateEventId: right.token.id, onsetError: round(Math.abs(left.onset - right.onset)), pitchEqual: left.token.midi === right.token.midi });
+      cursor = bestIndex + 1;
+    }
   }
   matched.sort((left, right) => stableCompare(left.referenceEventId, right.referenceEventId));
-  return { matched, unmatchedReferenceEventIds: refs.filter((item) => !usedRefs.has(item.token.id)).map((item) => item.token.id), unmatchedCandidateEventIds: cands.filter((item) => !usedCands.has(item.token.id)).map((item) => item.token.id) };
+  const matchedRefs = new Set(matched.map((item) => item.referenceEventId));
+  const matchedCands = new Set(matched.map((item) => item.candidateEventId));
+  return { matched, unmatchedReferenceEventIds: refs.filter((item) => !matchedRefs.has(item.token.id)).map((item) => item.token.id), unmatchedCandidateEventIds: cands.filter((item) => !matchedCands.has(item.token.id)).map((item) => item.token.id) };
 }
 
-function regionMetrics(reference: CanonicalMeasure[], candidate: CanonicalMeasure[], tolerance: number): { confidence: number; events: OmrRegionEventAlignment; diagnostics: string[] } {
-  const events = eventAlignment(reference, candidate, tolerance);
+function regionMetrics(reference: CanonicalMeasure[], candidate: CanonicalMeasure[], tolerance: number, maxEventTokens: number): { confidence: number; events: OmrRegionEventAlignment; diagnostics: string[] } {
+  const events = eventAlignment(reference, candidate, tolerance, maxEventTokens);
   const refCount = reference.reduce((sum, measure) => sum + measure.performedTokens.length, 0);
   const candCount = candidate.reduce((sum, measure) => sum + measure.performedTokens.length, 0);
   const eventScore = events.matched.length / Math.max(refCount, candCount, 1);
@@ -510,6 +601,7 @@ function regionMetrics(reference: CanonicalMeasure[], candidate: CanonicalMeasur
   const notationTieMismatch = reference.reduce((sum, measure) => sum + measure.performedTokens.filter((token) => token.notationSegments.length > 1).length, 0)
     !== candidate.reduce((sum, measure) => sum + measure.performedTokens.filter((token) => token.notationSegments.length > 1).length, 0);
   if (notationTieMismatch) diagnostics.push("notation tie segmentation differs; performed duration was compared");
+  if (refCount > maxEventTokens || candCount > maxEventTokens) diagnostics.push(`event token limit exceeded (${Math.max(refCount, candCount)} > ${maxEventTokens})`);
   return { confidence: round(clamp(eventScore * 0.55 + durationScore * 0.25 + signatures * 0.2)), events, diagnostics };
 }
 
@@ -524,18 +616,30 @@ function boundaryCompatible(reference: CanonicalMeasure[], candidate: CanonicalM
   return refAtBoundary === candAtBoundary;
 }
 
-function relationCandidate(reference: CanonicalMeasure[], candidate: CanonicalMeasure[], tolerance: number, type: MeasureChoice["type"]): MeasureChoice | null {
+function phraseGap(measures: CanonicalMeasure[], phraseBreakBeats: number): boolean {
+  const ordered = [...measures].sort(measureOrder);
+  for (let index = 1; index < ordered.length; index += 1) {
+    const previous = ordered[index - 1]!;
+    const current = ordered[index]!;
+    const previousEnd = rationalBeatToNumber(previous.startBeat) + rationalBeatToNumber(previous.durationBeats);
+    if (rationalBeatToNumber(current.startBeat) - previousEnd > phraseBreakBeats + EPS) return true;
+  }
+  return false;
+}
+
+function relationCandidate(reference: CanonicalMeasure[], candidate: CanonicalMeasure[], tolerance: number, phraseBreakBeats: number, type: MeasureChoice["type"], maxEventTokens: number): MeasureChoice | null {
   const refDuration = reference.reduce((sum, measure) => sum + rationalBeatToNumber(measure.durationBeats), 0);
   const candDuration = candidate.reduce((sum, measure) => sum + rationalBeatToNumber(measure.durationBeats), 0);
   if (Math.abs(refDuration - candDuration) > tolerance) return null;
+  if (phraseGap(reference, phraseBreakBeats) || phraseGap(candidate, phraseBreakBeats)) return null;
   if (!boundaryCompatible(reference, candidate, tolerance)) return null;
-  const metrics = regionMetrics(reference, candidate, tolerance);
+  const metrics = regionMetrics(reference, candidate, tolerance, maxEventTokens);
   if (metrics.confidence < 0.45) return null;
   return { type, score: metrics.confidence * 2 - 0.2, i: reference.length, j: candidate.length, diagnostics: metrics.diagnostics };
 }
 
-function measureChoice(reference: CanonicalMeasure, candidate: CanonicalMeasure, tolerance: number): MeasureChoice {
-  const metrics = regionMetrics([reference], [candidate], tolerance);
+function measureChoice(reference: CanonicalMeasure, candidate: CanonicalMeasure, tolerance: number, maxEventTokens: number): MeasureChoice {
+  const metrics = regionMetrics([reference], [candidate], tolerance, maxEventTokens);
   const startDistance = Math.abs(rationalBeatToNumber(reference.startBeat) - rationalBeatToNumber(candidate.startBeat));
   const position = clamp(1 - startDistance / Math.max(rationalBeatToNumber(reference.durationBeats), rationalBeatToNumber(candidate.durationBeats), 4));
   const number = reference.number === candidate.number ? 1 : 0;
@@ -543,8 +647,8 @@ function measureChoice(reference: CanonicalMeasure, candidate: CanonicalMeasure,
   return { type: "one", score: confidence * 2 - 0.15, i: 1, j: 1, diagnostics: metrics.diagnostics };
 }
 
-function region(reference: CanonicalMeasure[], candidate: CanonicalMeasure[], relation: OmrAlignmentRelation, confidence: number, diagnostics: string[], tolerance: number): OmrMeasureRegionAlignment {
-  const metrics = reference.length && candidate.length ? regionMetrics(reference, candidate, tolerance) : null;
+function region(reference: CanonicalMeasure[], candidate: CanonicalMeasure[], relation: OmrAlignmentRelation, confidence: number, diagnostics: string[], tolerance: number, maxEventTokens: number): OmrMeasureRegionAlignment {
+  const metrics = reference.length && candidate.length ? regionMetrics(reference, candidate, tolerance, maxEventTokens) : null;
   return {
     relation,
     referenceMeasureIndices: reference.map((measure) => measure.index),
@@ -557,63 +661,66 @@ function region(reference: CanonicalMeasure[], candidate: CanonicalMeasure[], re
   };
 }
 
-function alignPage(reference: PageGroup, candidate: PageGroup, options: Required<Pick<OmrHierarchicalAlignmentOptions, "onsetToleranceBeats" | "ambiguityMargin" | "maxPageCells" | "maxSplitWidth">>): PageAlignmentResult {
+function alignPage(reference: PageGroup, candidate: PageGroup, options: Required<Pick<OmrHierarchicalAlignmentOptions, "onsetToleranceBeats" | "ambiguityMargin" | "maxPageCells" | "maxSplitWidth" | "phraseBreakBeats" | "maxEventTokens">>): PageAlignmentResult {
   const refs = reference.measures;
   const cands = candidate.measures;
   const cells = (refs.length + 1) * (cands.length + 1);
   if (cells > options.maxPageCells) return { regions: [], unmatchedReference: refs.map((measure) => measure.index), unmatchedCandidate: cands.map((measure) => measure.index), score: 0, status: "ambiguous", diagnostics: [`page cell limit exceeded (${cells} > ${options.maxPageCells})`] };
   const dp = Array.from({ length: refs.length + 1 }, () => Array.from({ length: cands.length + 1 }, () => Number.NEGATIVE_INFINITY));
   const choices: Array<Array<MeasureChoice | null>> = Array.from({ length: refs.length + 1 }, () => Array.from({ length: cands.length + 1 }, () => null));
+  const diagnostics: string[] = [];
   dp[0]![0] = 0;
-  for (let i = 1; i <= refs.length; i += 1) { dp[i]![0] = dp[i - 1]![0]! - 0.62; choices[i]![0] = { type: "candidate-insertion", score: -0.62, i: 1, j: 0, diagnostics: ["candidate measure missing"] }; }
-  for (let j = 1; j <= cands.length; j += 1) { dp[0]![j] = dp[0]![j - 1]! - 0.62; choices[0]![j] = { type: "reference-insertion", score: -0.62, i: 0, j: 1, diagnostics: ["reference measure missing"] }; }
+  for (let i = 1; i <= refs.length; i += 1) { dp[i]![0] = dp[i - 1]![0]! - 0.62; choices[i]![0] = { type: "candidate-missing", score: -0.62, i: 1, j: 0, diagnostics: ["candidate measure missing (reference-only measure)"] }; }
+  for (let j = 1; j <= cands.length; j += 1) { dp[0]![j] = dp[0]![j - 1]! - 0.62; choices[0]![j] = { type: "reference-missing", score: -0.62, i: 0, j: 1, diagnostics: ["reference measure missing (candidate-only measure)"] }; }
   for (let i = 1; i <= refs.length; i += 1) for (let j = 1; j <= cands.length; j += 1) {
     const candidates: Array<{ choice: MeasureChoice; total: number; priority: number }> = [];
-    const one = measureChoice(refs[i - 1]!, cands[j - 1]!, options.onsetToleranceBeats);
+    const one = measureChoice(refs[i - 1]!, cands[j - 1]!, options.onsetToleranceBeats, options.maxEventTokens);
     candidates.push({ choice: one, total: dp[i - 1]![j - 1]! + one.score, priority: 0 });
     if (options.maxSplitWidth === 2 && j >= 2) {
-      const split = relationCandidate([refs[i - 1]!], [cands[j - 2]!, cands[j - 1]!], options.onsetToleranceBeats, "split");
+      const split = relationCandidate([refs[i - 1]!], [cands[j - 2]!, cands[j - 1]!], options.onsetToleranceBeats, options.phraseBreakBeats, "split", options.maxEventTokens);
       if (split) candidates.push({ choice: split, total: dp[i - 1]![j - 2]! + split.score, priority: 1 });
     }
     if (options.maxSplitWidth === 2 && i >= 2) {
-      const merge = relationCandidate([refs[i - 2]!, refs[i - 1]!], [cands[j - 1]!], options.onsetToleranceBeats, "merge");
+      const merge = relationCandidate([refs[i - 2]!, refs[i - 1]!], [cands[j - 1]!], options.onsetToleranceBeats, options.phraseBreakBeats, "merge", options.maxEventTokens);
       if (merge) candidates.push({ choice: merge, total: dp[i - 2]![j - 1]! + merge.score, priority: 2 });
     }
-    candidates.push({ choice: { type: "candidate-insertion", score: -0.62, i: 1, j: 0, diagnostics: ["candidate measure missing"] }, total: dp[i - 1]![j]! - 0.62, priority: 3 });
-    candidates.push({ choice: { type: "reference-insertion", score: -0.62, i: 0, j: 1, diagnostics: ["reference measure missing"] }, total: dp[i]![j - 1]! - 0.62, priority: 4 });
+    candidates.push({ choice: { type: "candidate-missing", score: -0.62, i: 1, j: 0, diagnostics: ["candidate measure missing (reference-only measure)"] }, total: dp[i - 1]![j]! - 0.62, priority: 3 });
+    candidates.push({ choice: { type: "reference-missing", score: -0.62, i: 0, j: 1, diagnostics: ["reference measure missing (candidate-only measure)"] }, total: dp[i]![j - 1]! - 0.62, priority: 4 });
     candidates.sort((left, right) => right.total - left.total || left.priority - right.priority);
+    const bestTotal = candidates[0]!.total;
+    const secondTotal = candidates[1]?.total ?? Number.NEGATIVE_INFINITY;
+    if (secondTotal > Number.NEGATIVE_INFINITY && bestTotal - secondTotal <= options.ambiguityMargin) diagnostics.push(`near-tied page transition at ${i},${j}`);
     dp[i]![j] = candidates[0]!.total;
     choices[i]![j] = candidates[0]!.choice;
   }
   const regions: OmrMeasureRegionAlignment[] = [];
   const unmatchedReference: number[] = [];
   const unmatchedCandidate: number[] = [];
-  const diagnostics: string[] = [];
   let i = refs.length;
   let j = cands.length;
   while (i > 0 || j > 0) {
     const choice = choices[i]![j]!;
     if (choice.type === "one") {
-      const metrics = regionMetrics([refs[i - 1]!], [cands[j - 1]!], options.onsetToleranceBeats);
-      regions.push(region([refs[i - 1]!], [cands[j - 1]!], "one-to-one", metrics.confidence, choice.diagnostics, options.onsetToleranceBeats));
+      const metrics = regionMetrics([refs[i - 1]!], [cands[j - 1]!], options.onsetToleranceBeats, options.maxEventTokens);
+      regions.push(region([refs[i - 1]!], [cands[j - 1]!], "one-to-one", metrics.confidence, choice.diagnostics, options.onsetToleranceBeats, options.maxEventTokens));
       i -= 1; j -= 1;
     } else if (choice.type === "split") {
       const children = [cands[j - 2]!, cands[j - 1]!];
-      const metrics = regionMetrics([refs[i - 1]!], children, options.onsetToleranceBeats);
-      regions.push(region([refs[i - 1]!], children, "reference-split", metrics.confidence, choice.diagnostics, options.onsetToleranceBeats));
+      const metrics = regionMetrics([refs[i - 1]!], children, options.onsetToleranceBeats, options.maxEventTokens);
+      regions.push(region([refs[i - 1]!], children, "reference-split", metrics.confidence, choice.diagnostics, options.onsetToleranceBeats, options.maxEventTokens));
       i -= 1; j -= 2;
     } else if (choice.type === "merge") {
       const parents = [refs[i - 2]!, refs[i - 1]!];
-      const metrics = regionMetrics(parents, [cands[j - 1]!], options.onsetToleranceBeats);
-      regions.push(region(parents, [cands[j - 1]!], "candidate-merge", metrics.confidence, choice.diagnostics, options.onsetToleranceBeats));
+      const metrics = regionMetrics(parents, [cands[j - 1]!], options.onsetToleranceBeats, options.maxEventTokens);
+      regions.push(region(parents, [cands[j - 1]!], "candidate-merge", metrics.confidence, choice.diagnostics, options.onsetToleranceBeats, options.maxEventTokens));
       i -= 2; j -= 1;
-    } else if (choice.type === "candidate-insertion") {
+    } else if (choice.type === "candidate-missing") {
       unmatchedReference.push(refs[i - 1]!.index);
-      regions.push(region([refs[i - 1]!], [], "candidate-insertion", 0, choice.diagnostics, options.onsetToleranceBeats));
+      regions.push(region([refs[i - 1]!], [], "candidate-missing", 0, choice.diagnostics, options.onsetToleranceBeats, options.maxEventTokens));
       i -= 1;
     } else {
       unmatchedCandidate.push(cands[j - 1]!.index);
-      regions.push(region([], [cands[j - 1]!], "reference-insertion", 0, choice.diagnostics, options.onsetToleranceBeats));
+      regions.push(region([], [cands[j - 1]!], "reference-missing", 0, choice.diagnostics, options.onsetToleranceBeats, options.maxEventTokens));
       j -= 1;
     }
   }
@@ -623,7 +730,8 @@ function alignPage(reference: PageGroup, candidate: PageGroup, options: Required
   const repeated = refs.some((measure, index) => refs.slice(index + 1).some((other) => measure.fingerprint === other.fingerprint && measure.number === other.number))
     || cands.some((measure, index) => cands.slice(index + 1).some((other) => measure.fingerprint === other.fingerprint && measure.number === other.number));
   if (repeated) diagnostics.push("ambiguous repeated measure fingerprints with identical numbers");
-  return { regions, unmatchedReference, unmatchedCandidate, score: round(dp[refs.length]![cands.length]!), status: repeated ? "ambiguous" : "aligned", diagnostics };
+  const nearTie = diagnostics.some((diagnostic) => diagnostic.startsWith("near-tied page transition"));
+  return { regions, unmatchedReference, unmatchedCandidate, score: round(dp[refs.length]![cands.length]!), status: repeated || nearTie ? "ambiguous" : "aligned", diagnostics };
 }
 
 function pageGroupFor(score: CanonicalScore, page: OmrPageKey): PageGroup | undefined {
@@ -635,12 +743,19 @@ export function alignHierarchicalOmrScores(referenceInput: ScoreLike, candidateI
   const reference = scoreOf(referenceInput);
   const candidate = scoreOf(candidateInput);
   const onsetToleranceBeats = Math.max(0.001, Math.min(1, options.onsetToleranceBeats ?? DEFAULTS.onsetToleranceBeats));
+  const phraseBreakBeats = Math.max(0, options.phraseBreakBeats ?? DEFAULTS.phraseBreakBeats);
   const ambiguityMargin = Math.max(0, options.ambiguityMargin ?? DEFAULTS.ambiguityMargin);
   const maxPageCells = Math.max(1, Math.floor(options.maxPageCells ?? DEFAULTS.maxPageCells));
+  const maxEventTokens = Math.max(1, Math.floor(options.maxEventTokens ?? DEFAULTS.maxEventTokens));
   const maxSplitWidth = options.maxSplitWidth === 1 ? 1 : DEFAULTS.maxSplitWidth;
   const paired = pairPages(reference, candidate, { allowPageOrdinalFallback: Boolean(options.allowPageOrdinalFallback), ambiguityMargin });
   const pages = paired.pages.map((page) => ({ ...page }));
-  const diagnostics = [...rawPageDiagnostics(referenceInput, "reference"), ...rawPageDiagnostics(candidateInput, "candidate"), ...paired.diagnostics];
+  const diagnostics = [...rawPageDiagnostics(referenceInput, "reference"), ...timingDiagnostics(referenceInput, "reference"), ...canonicalTimingDiagnostics(reference, "reference"), ...rawPageDiagnostics(candidateInput, "candidate"), ...timingDiagnostics(candidateInput, "candidate"), ...canonicalTimingDiagnostics(candidate, "candidate"), ...paired.diagnostics];
+  const invalidInput = diagnostics.some((diagnostic) => diagnostic.includes("invalid "));
+  if (invalidInput) {
+    const invalidPages = pages.map((page) => ({ ...page, status: "ambiguous" as const, diagnostics: [...page.diagnostics, "invalid score metadata; alignment unavailable"] }));
+    return { status: "unavailable", pages: invalidPages, staffMappings: [], measures: [], unmatchedReferenceMeasures: reference.measures.map((measure) => measure.index).sort(compareNumbers), unmatchedCandidateMeasures: candidate.measures.map((measure) => measure.index).sort(compareNumbers), score: 0, diagnostics: [...diagnostics, "invalid score metadata; hierarchical alignment unavailable"] };
+  }
   const allRegions: OmrMeasureRegionAlignment[] = [];
   const unmatchedReference: number[] = [];
   const unmatchedCandidate: number[] = [];
@@ -656,7 +771,7 @@ export function alignHierarchicalOmrScores(referenceInput: ScoreLike, candidateI
     const referenceGroup = pageGroupFor(reference, page.reference);
     const candidateGroup = pageGroupFor(candidate, page.candidate);
     if (!referenceGroup || !candidateGroup) continue;
-    const local = alignPage(referenceGroup, candidateGroup, { onsetToleranceBeats, ambiguityMargin, maxPageCells, maxSplitWidth });
+    const local = alignPage(referenceGroup, candidateGroup, { onsetToleranceBeats, ambiguityMargin, maxPageCells, maxSplitWidth, phraseBreakBeats, maxEventTokens });
     page.status = local.status;
     page.confidence = round(local.regions.length ? local.regions.reduce((sum, regionValue) => sum + regionValue.confidence, 0) / local.regions.length : 0);
     page.diagnostics.push(...local.diagnostics);

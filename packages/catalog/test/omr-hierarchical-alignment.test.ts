@@ -85,7 +85,7 @@ describe("hierarchical OMR alignment", () => {
       measure("c3", 3, 8, 4, [{ onset: 0, duration: 1, pitch: 64 }], { page: 1 }),
     ])]);
     const result = run(reference, candidate);
-    expect(result.measures.map((region) => region.relation)).toContain("candidate-insertion");
+    expect(result.measures.map((region) => region.relation)).toContain("candidate-missing");
     expect(result.measures.filter((region) => region.candidateMeasureIds.includes("c:c3"))).toHaveLength(1);
     expect(result.unmatchedReferenceMeasures).toHaveLength(1);
   });
@@ -123,6 +123,72 @@ describe("hierarchical OMR alignment", () => {
     ])]);
     const result = run(reference, candidate);
     expect(result.measures.some((region) => region.relation === "reference-split")).toBe(false);
+  });
+
+  it("names candidate extras as reference-missing regions", () => {
+    const reference = score([singlePart("r", [measure("r1", 1, 0, 4, [{ onset: 0, duration: 1, pitch: 60 }], { page: 1 })])]);
+    const candidate = score([singlePart("c", [
+      measure("c1", 1, 0, 4, [{ onset: 0, duration: 1, pitch: 60 }], { page: 1 }),
+      measure("c-extra", "extra", 4, 4, [{ onset: 0, duration: 1, pitch: 61 }], { page: 1 }),
+    ])]);
+    const result = run(reference, candidate);
+    expect(result.measures.map((region) => region.relation)).toContain("reference-missing");
+    expect(result.unmatchedCandidateMeasures).toHaveLength(1);
+  });
+
+  it("rejects split or merge transitions across a configured phrase gap", () => {
+    const reference = score([singlePart("r", [measure("r1", 1, 0, 4, [{ onset: 0, duration: 1, pitch: 60 }], { page: 1 })])]);
+    const candidate = score([singlePart("c", [
+      measure("c1a", 1, 0, 2, [{ onset: 0, duration: 1, pitch: 60 }], { page: 1 }),
+      measure("c1b", "1b", 5, 2, [{ onset: 0, duration: 1, pitch: 60 }], { page: 1 }),
+    ])]);
+    const result = run(reference, candidate, { phraseBreakBeats: 1 });
+    expect(result.measures.some((region) => region.relation === "reference-split")).toBe(false);
+    expect(result.diagnostics.join(" ")).not.toContain("phrase");
+  });
+
+  it("marks a near-tied local DP transition ambiguous instead of hiding the alternative", () => {
+    const reference = score([singlePart("r", [measure("r1", 1, 0, 4, [{ onset: 0, duration: 1, pitch: 60 }], { page: 1 })])]);
+    const candidate = score([singlePart("c", [
+      measure("c1", "renamed", 0, 4, [{ onset: 0, duration: 1, pitch: 60 }], { page: 1 }),
+      measure("c-extra", "extra", 4, 4, [{ onset: 0, duration: 1, pitch: 61 }], { page: 1 }),
+    ])]);
+    const result = run(reference, candidate, { ambiguityMargin: 1.5 });
+    expect(result.status).toBe("ambiguous");
+    expect(result.pages[0]!.diagnostics.join(" ")).toContain("near-tied");
+  });
+
+  it("fails closed on malformed raw timing before normalization", () => {
+    const reference = score([singlePart("r", [measure("r1", 1, Number.NaN, 4, [{ onset: 0, duration: 1, pitch: 60 }], { page: 1 })])]);
+    const candidate = score([singlePart("c", [measure("c1", 1, 0, 4, [{ onset: 0, duration: 1, pitch: 60 }], { page: 1 })])]);
+    const result = alignHierarchicalOmrScores(reference, candidate);
+    expect(result.status).toBe("unavailable");
+    expect(result.score).toBe(0);
+    expect(result.diagnostics.join(" ")).toContain("startBeat");
+  });
+
+  it("retains a duplicate explicit candidate page as unmatched", () => {
+    const reference = score([singlePart("r", [
+      measure("r1", 1, 0, 4, [{ onset: 0, duration: 1, pitch: 60 }], { page: 1 }),
+      measure("r2", 2, 4, 4, [{ onset: 0, duration: 1, pitch: 62 }], { page: 2 }),
+    ])]);
+    const candidate = score([singlePart("c", [
+      measure("c1", 1, 0, 4, [{ onset: 0, duration: 1, pitch: 60 }], { page: 1 }),
+      measure("c2", 2, 4, 4, [{ onset: 0, duration: 1, pitch: 62 }], { page: 2 }),
+      measure("c1-again", 3, 8, 4, [{ onset: 0, duration: 1, pitch: 64 }], { page: 1 }),
+    ])]);
+    const result = run(reference, candidate);
+    expect(result.pages.some((page) => page.status === "unmatched" && page.candidateMeasureIndices.length > 0)).toBe(true);
+    expect(result.diagnostics.join(" ")).toContain("duplicate explicit page identity");
+  });
+
+  it("bounds local event matching rather than allocating a token Cartesian product", () => {
+    const events = Array.from({ length: 3 }, (_, index) => ({ onset: index, duration: 1, pitch: 60 + index }));
+    const reference = score([singlePart("r", [measure("r1", 1, 0, 4, events, { page: 1 })])]);
+    const candidate = score([singlePart("c", [measure("c1", 1, 0, 4, events, { page: 1 })])]);
+    const result = run(reference, candidate, { maxEventTokens: 2 });
+    expect(result.measures[0]!.eventAlignment?.matched).toHaveLength(0);
+    expect(result.measures[0]!.diagnostics.join(" ")).toContain("event token limit");
   });
 
   it("does not invent page correspondence for missing metadata unless ordinal fallback is enabled", () => {
