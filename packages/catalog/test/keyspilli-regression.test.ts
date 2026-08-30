@@ -95,17 +95,33 @@ describe("Keyspilli multi-song regression", () => {
 
   it("is deterministic and writes a path-safe report", async () => {
     const songs = [song("zeta", ["melody"]), song("alpha", ["melody"])];
+    songs[0]!.candidate.revision = "candidate-rev-42";
+    songs[0]!.candidate.bytes = new Uint8Array([1, 2, 3]);
     const first = runKeyspilliRegression(songs);
     const second = runKeyspilliRegression([...songs].reverse());
     expect(canonicalKeyspilliRegressionJson(first)).toBe(canonicalKeyspilliRegressionJson(second));
+    expect(first.songs[1]?.baseline.candidateIdentity).toMatchObject({ selector: "zeta.mid", revision: "candidate-rev-42", bytes: 3 });
+    expect(first.songs[1]?.baseline.candidateIdentity.sha256).toMatch(/^[a-f0-9]{64}$/);
     const output = await mkdtemp(join(tmpdir(), "keyspilli-regression-"));
     try {
       const written = await writeKeyspilliRegressionReport(output, first);
       expect(await readFile(written.path, "utf8")).toBe(written.json);
       expect(written.json).not.toContain("fixtures/");
       expect(written.json).not.toContain(output);
+      expect(written.json).toContain("candidate-rev-42");
+      expect(written.json).toContain("zeta.mid");
     } finally {
       await rm(output, { recursive: true, force: true });
     }
+  });
+
+  it("does not infer rhythm from a complete arrangement without an explicit rhythm lane", () => {
+    const candidate = song("rhythm-boundary", ["rhythm"]);
+    delete candidate.candidate.roleNotes!.rhythm;
+    const report = runKeyspilliRegression([candidate]);
+    expect(report.songs[0]?.roles.rhythm.status).toBe("unavailable");
+    expect(report.songs[0]?.roles.rhythm.metrics.onset.f1).toBeNull();
+    expect(report.aggregate.roles.rhythm.songsEligible).toBe(1);
+    expect(report.aggregate.roles.rhythm.songsEvaluated).toBe(0);
   });
 });

@@ -169,7 +169,8 @@ describe("rotating score listening pack", () => {
     const trusted = (id: string, role: string, label: string) => ({
       id, label, role, startSeconds: 0, endSeconds: 24,
       trusted: true, trustedRoles: [role], preference: label.toLowerCase(),
-      references: { midi: `private/${id}.mid`, wav: `private/${id}.wav` },
+      provenance: "/private/corpus/omr.json",
+      references: { midi: `/private/corpus/${id}.mid`, wav: `/private/corpus/${id}.wav` },
     });
     const result = selectRoleAwareRotatingScoreListeningPack([
       { ...song("alpha", "PASS", 0), sections: [trusted("opening", "melody", "Intro"), trusted("chorus", "harmony", "Chorus")] },
@@ -180,6 +181,7 @@ describe("rotating score listening pack", () => {
     expect(new Set(result.excerpts.map((excerpt) => excerpt.songId)).size).toBeGreaterThanOrEqual(2);
     expect(result.excerpts.every((excerpt) => excerpt.trusted === true)).toBe(true);
     expect(result.excerpts.every((excerpt) => !excerpt.references.midi?.startsWith("/"))).toBe(true);
+    expect(JSON.stringify(result)).not.toContain("/private/corpus/");
     expect(result.excerpts.map((excerpt) => excerpt.sectionId)).toContain("opening");
 
     const insufficient = selectRoleAwareRotatingScoreListeningPack([
@@ -187,6 +189,12 @@ describe("rotating score listening pack", () => {
     ], { seed: "roles-insufficient", targetSeconds: 48, minSeconds: 48, maxSeconds: 60 });
     expect(insufficient.status).toBe("insufficient");
     expect(insufficient.warnings.join(" ")).toMatch(/distinct trusted songs/);
+
+    const missingRoleMetadata = selectRoleAwareRotatingScoreListeningPack([
+      { ...song("alpha", "PASS", 0), sections: [{ ...trusted("no-role", "melody", "Intro"), trustedRoles: [] }] },
+      { ...song("beta", "PASS", 0), sections: [{ ...trusted("also-no-role", "melody", "Intro"), trustedRoles: [] }] },
+    ], { seed: "roles-empty", targetSeconds: 48, minSeconds: 48, maxSeconds: 60 });
+    expect(missingRoleMetadata.status).toBe("insufficient");
   });
 
   it("sanitizes absolute, traversal, and credential-bearing references", () => {

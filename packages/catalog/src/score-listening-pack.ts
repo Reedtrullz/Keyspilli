@@ -8,7 +8,7 @@
  * absolute path to a private corpus checkout.
  */
 
-import { mkdir, rename, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rename, rm, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { basename, join } from "node:path";
 
@@ -385,8 +385,8 @@ function normalizeSections(
       trustedRoles: Array.isArray(section.trustedRoles)
         ? [...new Set(section.trustedRoles.filter((role): role is string => typeof role === "string" && Boolean(role.trim())).map((role) => role.trim()))].sort(compareText)
         : [],
-      provenance: typeof section.provenance === "string" && section.provenance.trim() ? section.provenance.trim() : null,
-      preference: typeof section.preference === "string" && section.preference.trim() ? section.preference.trim().toLowerCase() : null,
+      provenance: typeof section.provenance === "string" && section.provenance.trim() ? pathSafeScoreReference(section.provenance.trim()) : null,
+      preference: typeof section.preference === "string" && section.preference.trim() ? pathSafeScoreReference(section.preference.trim().toLowerCase()) : null,
     });
   }
   return output.sort((left, right) => compareText(left.id, right.id));
@@ -503,7 +503,7 @@ export function selectRotatingScoreListeningPack(
   const candidates = accepted.map((song) => ({
     song,
     sections: normalizeSections(song, normalized.minSectionSeconds, normalized.maxSectionSeconds)
-      .filter((section) => !normalized.trustedOnly || (section.trusted && (!normalized.requiredRoles.length || section.trustedRoles.some((role) => normalized.requiredRoles.includes(role.toLowerCase())))))
+      .filter((section) => !normalized.trustedOnly || (section.trusted && section.trustedRoles.length > 0 && (!normalized.requiredRoles.length || section.trustedRoles.some((role) => normalized.requiredRoles.includes(role.toLowerCase())))))
       .sort((left, right) => (normalized.roleAware ? preferenceRank(left) - preferenceRank(right) : 0)
         || rank(normalized.seed, song.id, left.id) - rank(normalized.seed, song.id, right.id) || compareText(left.id, right.id)),
   })).filter((entry) => entry.sections.length > 0)
@@ -673,6 +673,17 @@ function validateManifestFileName(fileName: string): string {
   return trimmed;
 }
 
+async function writeAtomicLocalFile(directory: string, target: string, content: string): Promise<void> {
+  const temporaryDirectory = await mkdtemp(join(directory, ".keyspilli-score-pack-tmp-"));
+  const temporary = join(temporaryDirectory, basename(target));
+  try {
+    await writeFile(temporary, content, { encoding: "utf8", flag: "wx" });
+    await rename(temporary, target);
+  } finally {
+    await rm(temporaryDirectory, { recursive: true, force: true }).catch(() => undefined);
+  }
+}
+
 /**
  * Write only the manifest.  No referenced MIDI/WAV/PDF is opened, copied, or
  * rendered, so this function is safe to use in a repository test suite.
@@ -688,13 +699,7 @@ export async function writeRotatingScoreListeningPackManifest(
   const json = `${JSON.stringify(manifest, null, 2)}\n`;
   await mkdir(directory, { recursive: true });
   const path = join(directory, fileName);
-  const temporary = join(directory, `.${fileName}.${process.pid}.${Math.random().toString(36).slice(2)}.tmp`);
-  try {
-    await writeFile(temporary, json, { encoding: "utf8", flag: "wx" });
-    await rename(temporary, path);
-  } finally {
-    await rm(temporary, { force: true }).catch(() => undefined);
-  }
+  await writeAtomicLocalFile(directory, path, json);
   return { path, manifest, json };
 }
 
@@ -784,22 +789,10 @@ export async function writeRotatingScoreListeningPackBundle(
   const written = await writeRotatingScoreListeningPackManifest(outputDirectory, pack, options);
   const worksheet = renderScoreListeningPackWorksheet(pack);
   const worksheetPath = join(outputDirectory, "LISTENING.md");
-  const temporary = join(outputDirectory, `.LISTENING.md.${process.pid}.${Math.random().toString(36).slice(2)}.tmp`);
-  try {
-    await writeFile(temporary, worksheet, { encoding: "utf8", flag: "wx" });
-    await rename(temporary, worksheetPath);
-  } finally {
-    await rm(temporary, { force: true }).catch(() => undefined);
-  }
+  await writeAtomicLocalFile(outputDirectory, worksheetPath, worksheet);
   const blindMap = createBlindMap(pack);
   const blindMapPath = join(outputDirectory, "blind-map.json");
-  const blindMapTemporary = join(outputDirectory, `.blind-map.json.${process.pid}.${Math.random().toString(36).slice(2)}.tmp`);
-  try {
-    await writeFile(blindMapTemporary, `${JSON.stringify(blindMap, null, 2)}\n`, { encoding: "utf8", flag: "wx" });
-    await rename(blindMapTemporary, blindMapPath);
-  } finally {
-    await rm(blindMapTemporary, { force: true }).catch(() => undefined);
-  }
+  await writeAtomicLocalFile(outputDirectory, blindMapPath, `${JSON.stringify(blindMap, null, 2)}\n`);
   return { ...written, worksheetPath, worksheet, blindMapPath, blindMap };
 }
 

@@ -6,7 +6,7 @@
  * copies score/audio material. Unknown OMR regions are omitted from evaluation
  * rather than being treated as rests or failed candidate output.
  */
-import { mkdir, rename, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rename, rm, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 import type { Note, ParsedMidi } from "@keyspilli/midi";
 import {
@@ -55,7 +55,7 @@ export interface PartialRoleMetrics {
 
 export interface PartialRoleEvaluation {
   role: TrustedRole;
-  status: "evaluated" | "ineligible";
+  status: "evaluated" | "ineligible" | "unavailable";
   trustedRegionIds: string[];
   skippedRegionIds: string[];
   coverage: RoleCoverage;
@@ -72,6 +72,12 @@ export interface KeyspilliRegressionSongResult {
   baseline: {
     noteCount: number;
     durationBeats: number;
+    candidateIdentity: {
+      selector: string;
+      revision: string | null;
+      bytes: number | null;
+      sha256: string | null;
+    };
     arrangement: ArrangementEvaluationReport["metrics"];
   };
   roles: Record<TrustedRole, PartialRoleEvaluation>;
@@ -173,7 +179,9 @@ function notesForCandidate(candidate: KeyspilliCandidate, role: TrustedRole): No
   const notes = candidate.notes ?? candidate.parsed?.notes ?? [];
   if (role === "melody") return notes.filter((note) => note.identitySource === "vocals" || (note.identitySource === undefined && note.hand === "R"));
   if (role === "harmony") return notes.filter((note) => note.identitySource === "guitar" || (note.identitySource === undefined && note.hand === "L"));
-  return [...notes];
+  // Rhythm cannot be inferred safely from a complete arrangement: melody and
+  // harmony attacks are not interchangeable with a rhythm lane.
+  return [];
 }
 
 function trustedRegions(reference: PartialScoreReference, role: TrustedRole): PartialScoreReference["regions"] {
@@ -210,10 +218,13 @@ function rootComparison(candidate: readonly Note[], reference: readonly Note[], 
   for (const window of windows) {
     const c = onsetGroups(candidate.filter((note) => note.start >= window.candidate[0] && note.start < window.candidate[1]));
     const r = onsetGroups(reference.filter((note) => note.start >= (window.reference?.[0] ?? window.candidate[0]) && note.start < (window.reference?.[1] ?? window.candidate[1])));
+    const usedCandidateGroups = new Set<number>();
     for (const group of r) {
       const referenceRoot = Math.min(...group.map((note) => note.midi)) % 12;
-      const candidateGroup = c.find((value) => Math.abs(value[0]!.start - group[0]!.start) <= ONSET_TOLERANCE);
+      const candidateIndex = c.findIndex((value, index) => !usedCandidateGroups.has(index) && Math.abs(value[0]!.start - group[0]!.start) <= ONSET_TOLERANCE);
+      const candidateGroup = candidateIndex >= 0 ? c[candidateIndex] : undefined;
       if (!candidateGroup) continue;
+      usedCandidateGroups.add(candidateIndex);
       compared++;
       if (Math.min(...candidateGroup.map((note) => note.midi)) % 12 === referenceRoot) matched++;
     }
@@ -275,6 +286,9 @@ function roleEvaluation(song: KeyspilliRegressionSong, role: TrustedRole): Parti
     evaluatedBeatSpan: round(regions.reduce((sum, region) => sum + Math.max(0, region.endBeat - region.startBeat), 0)),
   };
   if (!regions.length) return { ...base, status: "ineligible", metrics: emptyMetrics(), failureClusters: [] };
+  if (role === "rhythm" && song.candidate.roleNotes?.rhythm === undefined) {
+    return { ...base, status: "unavailable", metrics: emptyMetrics(), failureClusters: ["rhythm:candidate-lane-unavailable"] };
+  }
   const referenceEvents = roleEvents(song.reference, role, regions);
   const referenceNotes = referenceEvents.map(noteFromReference);
   const candidateNotes = notesForCandidate(song.candidate, role);
@@ -305,7 +319,7 @@ function aggregateRole(rows: readonly KeyspilliRegressionSongResult[], role: Tru
 }
 
 function canonicalize(value: unknown, key?: string): unknown {
-  if (key === "report" || key === "selector" || key === "path" || key === "candidate") return undefined;
+  if (key === "path" || /path$|filename$|file$/i.test(key ?? "")) return undefined;
   if (typeof value === "string") return value.replaceAll(/(?:^|[\\/])(?:Users|private|tmp|var|home|root)[\\/][^\\s"']*/gi, "[redacted-path]");
   if (Array.isArray(value)) return value.map((item) => canonicalize(item)).filter((item) => item !== undefined);
   if (value && typeof value === "object") {
@@ -338,7 +352,17 @@ export function runKeyspilliRegression(songs: readonly KeyspilliRegressionSong[]
       songId: song.id,
       artist: typeof song.artist === "string" && song.artist.trim() ? song.artist.trim() : null,
       title: typeof song.title === "string" && song.title.trim() ? song.title.trim() : null,
-      baseline: { noteCount: candidateNotes.length, durationBeats: baselineReport.candidate.parser.durationBeats, arrangement: baselineReport.metrics },
+      baseline: {
+        noteCount: candidateNotes.length,
+        durationBeats: baselineReport.candidate.parser.durationBeats,
+        candidateIdentity: {
+          selector: baselineReport.candidate.selector,
+          revision: baselineReport.candidate.revision ?? null,
+          bytes: baselineReport.candidate.bytes,
+          sha256: baselineReport.candidate.sha256,
+        },
+        arrangement: baselineReport.metrics,
+      },
       roles: roleResults,
       failureClusters,
     } satisfies KeyspilliRegressionSongResult;
@@ -372,12 +396,13 @@ export async function writeKeyspilliRegressionReport(outputDirectory: string, re
   const json = `${JSON.stringify(canonicalize(report), null, 2)}\n`;
   await mkdir(directory, { recursive: true });
   const path = join(directory, fileName);
-  const temporary = join(directory, `.${fileName}.${process.pid}.tmp`);
+  const temporaryDirectory = await mkdtemp(join(directory, ".keyspilli-regression-tmp-"));
+  const temporary = join(temporaryDirectory, fileName);
   try {
     await writeFile(temporary, json, { encoding: "utf8", flag: "wx" });
     await rename(temporary, path);
   } finally {
-    await rm(temporary, { force: true }).catch(() => undefined);
+    await rm(temporaryDirectory, { recursive: true, force: true }).catch(() => undefined);
   }
   return { path, json, report };
 }
