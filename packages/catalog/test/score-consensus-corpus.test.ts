@@ -78,6 +78,42 @@ describe("local score consensus corpus orchestration", () => {
     expect(report).not.toHaveProperty("absolutePath");
   });
 
+  it("keeps metadata-only native discovery diagnostic without claiming native trust", () => {
+    const report = createScoreConsensusReport(scoreInput({
+      nativeDiscovery: {
+        schemaVersion: 1,
+        status: "native-symbolic",
+        selectionReason: "verified native symbolic artifact outranks OMR",
+        pdf: null,
+        selected: {
+          id: "publisher-midi",
+          artifactType: "midi",
+          provenance: "publisher export",
+          version: "v1",
+          access: "local-file",
+          accessMethod: "local-file",
+          sourcePage: "https://scores.example.test/fixture",
+          page: null,
+          bytes: 14,
+          sha256: "a".repeat(64),
+          hashStatus: "verified",
+          confidence: 1,
+          trusted: true,
+          discoveredFrom: "native-artifact",
+        },
+        candidates: [],
+        rejected: [],
+        omr: [],
+        errors: [],
+      },
+    }));
+
+    expect(report.nativeDiscovery?.status).toBe("native-symbolic");
+    expect(report.consensus.summary.state).toBe("TRUSTED_SINGLE_ENGINE");
+    expect(report.consensus.summary.state).not.toBe("TRUSTED_NATIVE");
+    expect(report.consensus.native).toBeUndefined();
+  });
+
   it("redacts paths from caller metadata before it enters the report", () => {
     const report = createScoreConsensusReport(scoreInput({ metadata: {
       sourcePath: "/Users/reidar/Downloads/score.musicxml",
