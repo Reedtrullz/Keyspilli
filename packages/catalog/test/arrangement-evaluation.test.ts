@@ -464,6 +464,40 @@ describe("arrangement evaluation", () => {
     expect(referenceReport.reference?.windows[0]?.referenceNoteCount).toBe(0);
   });
 
+  it("fails closed for malformed candidate/reference containers and byte metadata", () => {
+    const candidateReport = evaluateArrangement({
+      fixture: { id: "malformed-candidate" },
+      candidate: null as unknown as ArrangementEvaluationInput["candidate"],
+    });
+    expect(candidateReport.gate.status).toBe("fail");
+    expect(candidateReport.gate.failures).toContain("candidate must be an object");
+
+    const referenceReport = evaluateArrangement({
+      fixture: { id: "malformed-reference" },
+      candidate: { selector: "candidate.mid", notes: [{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }] },
+      windows: [{ id: "intro", candidate: [0, 1], reference: [0, 1] }],
+      reference: {
+        selector: {} as unknown as string,
+        bytes: {} as unknown as Uint8Array,
+        notes: [{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }],
+      },
+    });
+    expect(referenceReport.gate.status).toBe("fail");
+    expect(referenceReport.gate.failures).toEqual(expect.arrayContaining([
+      "reference selector must be a string",
+      "reference bytes must be a Uint8Array",
+    ]));
+    expect(referenceReport.reference?.referenceHash).toBeNull();
+
+    const byteReport = evaluateArrangement({
+      fixture: { id: "malformed-bytes" },
+      candidate: { selector: "candidate.mid", bytes: {} as unknown as Uint8Array, notes: [] },
+    });
+    expect(byteReport.gate.status).toBe("fail");
+    expect(byteReport.gate.failures).toContain("candidate bytes must be a Uint8Array");
+    expect(byteReport.candidate.sha256).toBeNull();
+  });
+
   it("fails closed and emits no sections for invalid evaluation windows", () => {
     const report = evaluateArrangement({
       ...input([{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }]),
@@ -536,6 +570,37 @@ describe("arrangement evaluation", () => {
     expect(canonical).toBe(canonicalEvaluationJson(second));
     expect(canonical).not.toContain("/private/tmp/lead.mid");
     expect(canonical).not.toContain("/Users/reidar/review.mid");
+    expect(canonical).toContain("[redacted-path]");
+  });
+
+  it("fails closed for malformed traces and drops path-bearing trace extensions", () => {
+    const base = input([{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }]);
+    const malformed = evaluateArrangement({
+      ...base,
+      trace: { status: "available", events: {} } as unknown as ArrangementEvaluationInput["trace"],
+    });
+    expect(malformed.gate.status).toBe("fail");
+    expect(malformed.gate.failures).toContain("trace events must be an array");
+
+    const report = evaluateArrangement({
+      ...base,
+      trace: {
+        status: "available",
+        events: [{
+          key: "trace",
+          source: "Users/reidar/private/review.txt",
+          sourcePath: "relative/private-source-without-extension",
+          filePath: "/private/tmp/secret-source",
+          sourceStem: "C:\\Users\\reidar\\secret.mid",
+        }],
+      } as unknown as ArrangementEvaluationInput["trace"],
+    });
+    const canonical = canonicalEvaluationJson(report);
+    expect(canonical).not.toContain("Users/reidar");
+    expect(canonical).not.toContain("relative/private-source-without-extension");
+    expect(canonical).not.toContain("secret-source");
+    expect(canonical).not.toContain("sourcePath");
+    expect(canonical).not.toContain("filePath");
     expect(canonical).toContain("[redacted-path]");
   });
 });

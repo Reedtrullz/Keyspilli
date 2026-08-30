@@ -711,28 +711,66 @@ interface NoteSourceShape {
   notes?: unknown;
 }
 
-function notesFor(source: NoteSourceShape): Note[] {
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function notesFor(source: NoteSourceShape | unknown): Note[] {
   // A nullish explicit value retains the existing fallback behavior, while a
   // non-array value is treated as malformed rather than reaching `.filter()`
   // in the metric helpers.
+  if (!isRecord(source)) return [];
   const explicit = source.notes;
   if (explicit !== undefined && explicit !== null) return Array.isArray(explicit) ? explicit as Note[] : [];
-  const parsedNotes = source.parsed?.notes as unknown;
+  const parsedNotes = isRecord(source.parsed) ? source.parsed.notes as unknown : undefined;
   return Array.isArray(parsedNotes) ? parsedNotes as Note[] : [];
 }
 
-function noteShapeFailures(source: NoteSourceShape, label: string): string[] {
+function noteShapeFailures(source: NoteSourceShape | unknown, label: string): string[] {
   const failures: string[] = [];
+  if (!isRecord(source)) return [`${label} must be an object`];
   const explicit = source.notes;
   if (explicit !== undefined && explicit !== null && !Array.isArray(explicit)) {
     failures.push(`${label} notes are not an array`);
   }
-  const parsedNotes = source.parsed?.notes as unknown;
+  const parsedNotes = isRecord(source.parsed) ? source.parsed.notes as unknown : undefined;
   if ((explicit === undefined || explicit === null)
     && parsedNotes !== undefined && parsedNotes !== null && !Array.isArray(parsedNotes)) {
     failures.push(`${label} parsed notes are not an array`);
   }
   return failures;
+}
+
+function byteHash(value: unknown): string | null {
+  return value instanceof Uint8Array ? sha256Hex(value) : null;
+}
+
+function metadataShapeFailures(source: unknown, label: string, selectorRequired: boolean): string[] {
+  if (!isRecord(source)) return [`${label} must be an object`];
+  const failures: string[] = [];
+  const selector = source.selector;
+  if (selectorRequired && (typeof selector !== "string" || !selector.trim())) {
+    failures.push(`${label} selector must be a non-empty string`);
+  } else if (!selectorRequired && selector !== undefined && selector !== null && typeof selector !== "string") {
+    failures.push(`${label} selector must be a string`);
+  }
+  const bytes = source.bytes;
+  if (bytes !== undefined && bytes !== null && !(bytes instanceof Uint8Array)) {
+    failures.push(`${label} bytes must be a Uint8Array`);
+  }
+  const parsed = source.parsed;
+  if (parsed !== undefined && parsed !== null && !isRecord(parsed)) {
+    failures.push(`${label} parsed metadata must be an object`);
+  }
+  return failures;
+}
+
+function safeSelector(value: unknown, fallback: string): string {
+  return typeof value === "string" && value.trim() ? basename(value) : fallback;
+}
+
+function safeOptionalSelector(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? basename(value) : null;
 }
 
 function orderedWindows(windows: EvaluationWindow[]): EvaluationWindow[] {
@@ -815,21 +853,95 @@ function validateEvaluationWindows(raw: unknown, label: string): WindowValidatio
   return failures.length ? { windows: [], failures } : { windows: orderedWindows(windows), failures: [] };
 }
 
-function orderedTrace(trace: ProvenanceTraceInput | undefined): ArrangementEvaluationReport["trace"] {
-  if (trace?.status !== "available") return { status: "unavailable" };
+const TRACE_STAGES = new Set<NonNullable<ProvenanceTraceEvent["stage"]>>([
+  "raw", "cleaned", "lead", "residual", "cluster", "semantic", "decision", "chord", "left-hand", "final",
+]);
+
+function traceShapeFailures(trace: unknown): string[] {
+  if (trace === undefined || trace === null) return [];
+  if (!isRecord(trace)) return ["trace must be an object"];
+  const failures: string[] = [];
+  if (trace.status !== "available" && trace.status !== "unavailable") {
+    failures.push("trace status must be available or unavailable");
+  }
+  const inspectEvents = (events: unknown, label: string): void => {
+    if (events === undefined || events === null) return;
+    if (!Array.isArray(events)) {
+      failures.push(`${label} must be an array`);
+      return;
+    }
+    for (const [index, event] of events.entries()) {
+      if (!isRecord(event)) {
+        failures.push(`${label}[${index}] must be an object`);
+      } else if (typeof event.key !== "string" || !event.key.length) {
+        failures.push(`${label}[${index}] key must be a non-empty string`);
+      }
+      if (isRecord(event) && event.parentKeys !== undefined && event.parentKeys !== null
+        && (!Array.isArray(event.parentKeys) || event.parentKeys.some((key) => typeof key !== "string"))) {
+        failures.push(`${label}[${index}] parentKeys must be an array of strings`);
+      }
+    }
+  };
+  inspectEvents(trace.events, "trace events");
+  if (trace.windows !== undefined && trace.windows !== null) {
+    if (!isRecord(trace.windows)) failures.push("trace windows must be an object");
+    else for (const [windowId, events] of Object.entries(trace.windows)) inspectEvents(events, `trace windows.${windowId}`);
+  }
+  return failures;
+}
+
+function safeTraceEvent(raw: unknown): ProvenanceTraceEvent | undefined {
+  if (!isRecord(raw) || typeof raw.key !== "string" || !raw.key.length) return undefined;
+  const event: ProvenanceTraceEvent = { key: redactEmbeddedPaths(raw.key) };
+  if (typeof raw.windowId === "string") event.windowId = redactEmbeddedPaths(raw.windowId);
+  if (typeof raw.stage === "string" && TRACE_STAGES.has(raw.stage as NonNullable<ProvenanceTraceEvent["stage"]>)) {
+    event.stage = raw.stage as NonNullable<ProvenanceTraceEvent["stage"]>;
+  }
+  if (Array.isArray(raw.parentKeys) && raw.parentKeys.every((key) => typeof key === "string")) {
+    event.parentKeys = raw.parentKeys.map((key) => redactEmbeddedPaths(key)).sort();
+  }
+  if (typeof raw.source === "string") event.source = redactEmbeddedPaths(raw.source);
+  else if (raw.source === null) event.source = null;
+  if (typeof raw.sourceStem === "string") event.sourceStem = redactEmbeddedPaths(raw.sourceStem);
+  else if (raw.sourceStem === null) event.sourceStem = null;
+  if (typeof raw.selectionReason === "string") event.selectionReason = redactEmbeddedPaths(raw.selectionReason);
+  if (typeof raw.rawCandidateCount === "number" && Number.isFinite(raw.rawCandidateCount)) event.rawCandidateCount = raw.rawCandidateCount;
+  if (typeof raw.selected === "boolean") event.selected = raw.selected;
+  if (typeof raw.confidence === "number" && Number.isFinite(raw.confidence)) event.confidence = raw.confidence;
+  if (isRecord(raw.note)
+    && typeof raw.note.midi === "number" && Number.isInteger(raw.note.midi)
+    && typeof raw.note.start === "number" && Number.isFinite(raw.note.start)
+    && typeof raw.note.dur === "number" && Number.isFinite(raw.note.dur)
+    && typeof raw.note.vel === "number" && Number.isFinite(raw.note.vel)) {
+    event.note = {
+      midi: raw.note.midi,
+      start: raw.note.start,
+      dur: raw.note.dur,
+      vel: raw.note.vel,
+      ...(raw.note.rawMidi === undefined ? {} : { rawMidi: raw.note.rawMidi as number }),
+      ...(raw.note.hand === "R" || raw.note.hand === "L" ? { hand: raw.note.hand } : {}),
+    };
+  }
+  if (isRecord(raw.semantic)
+    && typeof raw.semantic.rootPc === "number" && Number.isFinite(raw.semantic.rootPc)
+    && typeof raw.semantic.quality === "string"
+    && typeof raw.semantic.bassSupported === "boolean"
+    && typeof raw.semantic.memberCount === "number" && Number.isFinite(raw.semantic.memberCount)) {
+    event.semantic = {
+      rootPc: raw.semantic.rootPc,
+      quality: raw.semantic.quality,
+      bassSupported: raw.semantic.bassSupported,
+      memberCount: raw.semantic.memberCount,
+    };
+  }
+  return event;
+}
+
+function orderedTrace(trace: ProvenanceTraceInput | unknown): ArrangementEvaluationReport["trace"] {
+  if (!isRecord(trace) || trace.status !== "available") return { status: "unavailable" };
   const sortText = (a: string, b: string): number => a < b ? -1 : a > b ? 1 : 0;
-  const traceString = (value: string): string => redactEmbeddedPaths(value);
-  const sortEvents = (events: ProvenanceTraceEvent[] | undefined): ProvenanceTraceEvent[] | undefined => events
-    ? [...events]
-      .map((event) => ({
-        ...event,
-        key: traceString(event.key),
-        ...(event.windowId ? { windowId: traceString(event.windowId) } : {}),
-        ...(event.parentKeys ? { parentKeys: event.parentKeys.map(traceString).sort() } : {}),
-        ...(event.source ? { source: traceString(event.source) } : {}),
-        ...(event.sourceStem ? { sourceStem: traceString(event.sourceStem) } : {}),
-        ...(event.selectionReason ? { selectionReason: traceString(event.selectionReason) } : {}),
-      }))
+  const sortEvents = (events: unknown): ProvenanceTraceEvent[] | undefined => Array.isArray(events)
+    ? events.map(safeTraceEvent).filter((event): event is ProvenanceTraceEvent => Boolean(event))
       .sort((a, b) => sortText(a.key, b.key)
         || sortText(a.stage ?? "", b.stage ?? "")
         || sortText(a.source ?? "", b.source ?? "")
@@ -837,10 +949,10 @@ function orderedTrace(trace: ProvenanceTraceInput | undefined): ArrangementEvalu
         // a tie-breaker keeps duplicate-key traces permutation-stable too.
         || sortText(JSON.stringify(canonicalize(a)), JSON.stringify(canonicalize(b))))
     : undefined;
-  const windows = trace.windows
+  const windows = isRecord(trace.windows)
     ? Object.fromEntries(Object.entries(trace.windows)
       .sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
-      .map(([id, events]) => [traceString(id), sortEvents(events)!]))
+      .map(([id, events]) => [redactEmbeddedPaths(id), sortEvents(events)!]))
     : undefined;
   return { status: "available", events: sortEvents(trace.events), windows };
 }
@@ -1099,7 +1211,7 @@ function referenceEvaluation(candidate: Note[], reference: ArrangementEvaluation
   const refNotes = notesFor(reference);
   const referenceWindows = orderedWindows(windows);
   if (!referenceWindows.length || referenceWindows.some((window) => !window.reference)) return {
-    status: "alignment-required", referenceHash: reference.bytes ? sha256Hex(reference.bytes) : null, referenceSelector: reference.selector ? basename(reference.selector) : null,
+    status: "alignment-required", referenceHash: byteHash(reference.bytes), referenceSelector: safeOptionalSelector(reference.selector),
     aliasOf: reference.aliasOf ?? null,
     windows: [], matchedOnsets: 0, exactPitch: { precision: null, recall: null, f1: null }, pitchClass: { precision: null, recall: null, f1: null }, alignmentCoverageBars: 0,
     diagnostics: ["explicit candidate/reference windows are required; no automatic offset or time scaling was applied"],
@@ -1128,8 +1240,8 @@ function referenceEvaluation(candidate: Note[], reference: ArrangementEvaluation
   const enough = resultWindows.length >= ARRANGEMENT_EVALUATION_CONFIG.minimumReferenceWindows && bars >= ARRANGEMENT_EVALUATION_CONFIG.minimumReferenceBars;
   return {
     status: enough ? "aligned" : "insufficient-coverage",
-    referenceHash: reference.bytes ? sha256Hex(reference.bytes) : null,
-    referenceSelector: reference.selector ? basename(reference.selector) : null,
+    referenceHash: byteHash(reference.bytes),
+    referenceSelector: safeOptionalSelector(reference.selector),
     aliasOf: reference.aliasOf ?? null,
     windows: resultWindows,
     matchedOnsets: matched,
@@ -1244,7 +1356,11 @@ function qualityGate(
   };
 }
 
-const CANONICAL_PATH_KEY = /(?:^|[_-])(?:absolute)?path$/i;
+// Drop path-bearing metadata keys instead of relying only on value heuristics.
+// Camel-case keys such as sourcePath/filePath are common in trace payloads and
+// can contain extension-less paths that are otherwise indistinguishable from
+// ordinary labels.
+const CANONICAL_PATH_KEY = /path$|filename$|file$/i;
 
 function redactEmbeddedPaths(value: string): string {
   const roots = "(?:Users|private|tmp|var|home|root|opt|mnt|workspace|etc|srv|data|app)";
@@ -1256,8 +1372,16 @@ function redactEmbeddedPaths(value: string): string {
     .replace(new RegExp(`(^|[\\s(\"'=,;\\[\\]])/${roots}(?:/[^\\s\"'<>;,)]*)?`, "gi"), "$1[redacted-path]")
     .replace(/(^|[\s(\"'=,;\[\]])\/(?:[A-Za-z0-9._-]+\/)+[^\s\"'<>;,)]*/g, "$1[redacted-path]")
     .replace(/(^|[\s(\"'=,;\[\]])[A-Za-z]:[\\/][^\s\"'<>;,)]*/g, "$1[redacted-path]")
+    // A single-segment absolute filename (for example /score.mid) is still a
+    // local path, even though it does not contain a directory component.
+    .replace(/(^|[\s(\"'=,;\[\]])\/(?:[A-Za-z0-9._-]+\.[A-Za-z0-9_-]+)(?=$|[\s\"'<>;,\)])/g, "$1[redacted-path]")
+    // Also cover extension-less relative paths.  Require two path segments
+    // so ordinary logical labels such as "guitar/lead" are less likely to be
+    // mistaken for a path, while values such as Users/reidar/private/source
+    // are still removed from reports.
+    .replace(/(^|[\s\"'=,;([\]])(?!(?:[A-Za-z][A-Za-z0-9+.-]*:)?\/\/)(?:\.\.?\/|[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+\/)[^\s\"'<>;,\)]*(?=$|[\s\"'<>;,\)])/gi, "$1[redacted-path]")
     // Relative paths are redacted while URL schemes remain useful labels.
-    .replace(/(^|\s)(?!(?:[A-Za-z][A-Za-z0-9+.-]*:)?\/\/)(\.\.?\/|[^\s/]+\/)[^\s\"']+\.(?:mid|midi|json|wav|mp3)(?=$|[\s\"'])/gi, "$1[redacted-path]");
+    .replace(/(^|[\s\"'=,;([\]])(?!(?:[A-Za-z][A-Za-z0-9+.-]*:)?\/\/)(\.\.?\/|[^\s/]+\/)[^\s\"']+\.(?:mid|midi|json|wav|mp3|txt|pdf|xml|mxl|csv|log)(?=$|[\s\"'<>;,\)])/gi, "$1[redacted-path]");
 }
 
 function canonicalize(value: unknown, key?: string): unknown {
@@ -1280,22 +1404,50 @@ export function canonicalEvaluationJson(report: ArrangementEvaluationReport): st
   return JSON.stringify(canonicalize(report));
 }
 
-export function evaluateArrangement(input: ArrangementEvaluationInput): ArrangementEvaluationReport {
-  const candidateNotes = notesFor(input.candidate);
-  const parser = parserFor(input.candidate, candidateNotes);
-  const candidateWindowInput = input.windows !== undefined ? input.windows : input.reference?.windows;
+export function evaluateArrangement(rawInput: ArrangementEvaluationInput): ArrangementEvaluationReport {
+  // The public TypeScript signature is intentionally narrow, but this
+  // evaluator is also used by local CLIs that consume untrusted JSON.  Keep a
+  // safe view for all downstream metric helpers so malformed runtime values
+  // become explicit gate failures rather than exceptions.
+  const rawInputRecord = isRecord(rawInput) ? rawInput : undefined;
+  const rawCandidate = rawInputRecord?.candidate;
+  const rawReference = rawInputRecord?.reference;
+  const candidate: ArrangementEvaluationCandidate = isRecord(rawCandidate)
+    ? rawCandidate as ArrangementEvaluationCandidate
+    : { selector: "invalid-candidate", notes: [] };
+  const reference: ArrangementEvaluationReference | undefined = isRecord(rawReference)
+    ? rawReference as ArrangementEvaluationReference
+    : undefined;
+  const input = {
+    ...(rawInputRecord ?? {}),
+    candidate,
+    reference,
+  } as unknown as ArrangementEvaluationInput;
+  const candidateNotes = notesFor(candidate);
+  const parser = parserFor(candidate, candidateNotes);
+  const candidateWindowInput = input.windows !== undefined ? input.windows : reference?.windows;
   const windowValidation = validateEvaluationWindows(candidateWindowInput, "evaluation windows");
-  const referenceWindowValidation = input.reference?.windows !== undefined && input.windows !== undefined
-    ? validateEvaluationWindows(input.reference.windows, "reference windows")
+  const referenceWindowValidation = reference?.windows !== undefined && input.windows !== undefined
+    ? validateEvaluationWindows(reference.windows, "reference windows")
     : windowValidation;
   const windows = windowValidation.windows;
   const referenceWindows = referenceWindowValidation.windows;
-  const noteFailures = noteShapeFailures(input.candidate, "candidate")
-    .concat(input.reference ? noteShapeFailures(input.reference, "reference") : []);
+  const noteFailures = (isRecord(rawCandidate)
+    ? noteShapeFailures(rawCandidate, "candidate")
+    : ["candidate must be an object"])
+    .concat(rawReference !== undefined && rawReference !== null
+      ? (isRecord(rawReference) ? noteShapeFailures(rawReference, "reference") : ["reference must be an object"])
+      : []);
+  const metadataFailures = (isRecord(rawCandidate) ? metadataShapeFailures(rawCandidate, "candidate", true) : [])
+    .concat(rawReference !== undefined && rawReference !== null && isRecord(rawReference)
+      ? metadataShapeFailures(rawReference, "reference", false)
+      : []);
+  const traceFailures = traceShapeFailures(input.trace);
+  const rootInputFailures = rawInputRecord ? [] : ["evaluation input must be an object"];
   const rawExpectedDuration = input.expectedDurationBeats;
   const expectedDurationValid = rawExpectedDuration === undefined
     || (typeof rawExpectedDuration === "number" && Number.isFinite(rawExpectedDuration) && rawExpectedDuration >= 0);
-  const referenceDuration = input.reference?.durationBeats ?? input.reference?.parsed?.durationBeats;
+  const referenceDuration = reference?.durationBeats ?? reference?.parsed?.durationBeats;
   const hasReferenceDuration = referenceDuration !== undefined && Number.isFinite(referenceDuration) && referenceDuration >= 0;
   const expectedDurationBeats = expectedDurationValid
     ? rawExpectedDuration ?? (hasReferenceDuration ? referenceDuration : undefined)
@@ -1304,7 +1456,10 @@ export function evaluateArrangement(input: ArrangementEvaluationInput): Arrangem
     ? "expected"
     : hasReferenceDuration ? "reference" : "unavailable";
   const inputFailures = [
+    ...rootInputFailures,
+    ...metadataFailures,
     ...noteFailures,
+    ...traceFailures,
     ...windowValidation.failures,
     ...(referenceWindowValidation === windowValidation ? [] : referenceWindowValidation.failures),
     ...(expectedDurationValid ? [] : ["expected duration must be a finite non-negative number"]),
@@ -1313,13 +1468,13 @@ export function evaluateArrangement(input: ArrangementEvaluationInput): Arrangem
     candidateNotes,
     parser.tempoBpm,
     parser.durationBeats,
-    input.candidate,
+    candidate,
     input,
     expectedDurationBeats,
     0,
     durationMismatchBasis,
   );
-  const referenceDurationBeats = input.reference?.durationBeats ?? input.reference?.parsed?.durationBeats;
+  const referenceDurationBeats = reference?.durationBeats ?? reference?.parsed?.durationBeats;
   if (input.expectedDurationBeats === undefined
     && referenceDurationBeats !== undefined
     && Number.isFinite(referenceDurationBeats)
@@ -1341,7 +1496,7 @@ export function evaluateArrangement(input: ArrangementEvaluationInput): Arrangem
       sectionNotes,
       parser.tempoBpm,
       window.candidate[1] - window.candidate[0],
-      input.candidate,
+      candidate,
       input,
       undefined,
       window.candidate[0],
@@ -1349,16 +1504,16 @@ export function evaluateArrangement(input: ArrangementEvaluationInput): Arrangem
     sections[window.id] = {
       startBeat: window.candidate[0], endBeat: window.candidate[1], coverage: sectionBundle.global.coverage, global: sectionBundle.global, rightHand: sectionBundle.rightHand, leftHand: sectionBundle.leftHand,
       source: sectionBundle.source.final.all, guitar: { finalRightHandCount: sectionBundle.guitar.finalRightHandCount, finalLeftHandCount: sectionBundle.guitar.finalLeftHandCount },
-      ...(input.reference && window.reference ? { reference: compareReferenceWindow(candidateNotes, notesFor(input.reference), window) } : {}),
+      ...(reference && window.reference ? { reference: compareReferenceWindow(candidateNotes, notesFor(reference), window) } : {}),
     };
   }
   for (const [id, section] of Object.entries(sections)) bundle.source.sectionSourceCounts[id] = section.source;
-  const referenceReport = input.reference ? referenceEvaluation(candidateNotes, input.reference, parser, referenceWindows) : undefined;
+  const referenceReport = reference ? referenceEvaluation(candidateNotes, reference, parser, referenceWindows) : undefined;
   const reportWithoutDeterminism: Omit<ArrangementEvaluationReport, "determinism"> = {
     schemaVersion: 1,
     config: ARRANGEMENT_EVALUATION_CONFIG,
     fixture: input.fixture,
-    candidate: { selector: basename(input.candidate.selector), ...(input.candidate.revision ? { revision: input.candidate.revision } : {}), bytes: input.candidate.bytes?.byteLength ?? null, sha256: input.candidate.bytes ? sha256Hex(input.candidate.bytes) : null, parser },
+    candidate: { selector: safeSelector(candidate.selector, "invalid-candidate"), ...(candidate.revision ? { revision: candidate.revision } : {}), bytes: candidate.bytes instanceof Uint8Array ? candidate.bytes.byteLength : null, sha256: byteHash(candidate.bytes), parser },
     metrics: { ...bundle, sections, variants },
     ...(referenceReport ? { reference: referenceReport } : {}),
     trace: orderedTrace(input.trace),
@@ -1367,7 +1522,7 @@ export function evaluateArrangement(input: ArrangementEvaluationInput): Arrangem
       parser,
       input.variants,
       input.mode,
-      parserMetadataValid(input.candidate),
+      parserMetadataValid(candidate),
       referenceReport?.status,
       expectedDurationBeats,
       inputFailures,
