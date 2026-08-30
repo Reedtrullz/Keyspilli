@@ -11,16 +11,26 @@ import { mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import {
   createHomrBackend,
-  createPdfRasterizer,
+  DEFAULT_HOMR_EXECUTABLE,
+  DEFAULT_HOMR_FORCE_CPU,
+  DEFAULT_HOMR_PACKAGE_NAME,
+  DEFAULT_HOMR_PREFER_UVX,
+  DEFAULT_HOMR_UVX_EXECUTABLE,
+  DEFAULT_HOMR_VERSION,
+  type HomrBackendOptions,
+  type OmrBackend,
+  type OmrPageResult,
   type OmrResult,
   type PdfRasterResult,
 } from "./omr-backends.js";
+import { createPdfRasterizer } from "./omr-backends.js";
 import {
   buildOmrConsensus,
   renderOmrReviewMarkdown,
   sanitizeOmrMetadata,
   selectOmrConsensusEvents,
   type OmrBackendRun,
+  type OmrBackendPageMetadata,
   type OmrConsensusReport,
   type OmrNativeRun,
   type OmrRole,
@@ -34,6 +44,9 @@ import {
 } from "./native-score-discovery.js";
 
 export const SCORE_CONSENSUS_CORPUS_SCHEMA_VERSION = 1 as const;
+export const HOMR_AUTO_MODE = "auto" as const;
+export const HOMR_UVX_PACKAGE = `${DEFAULT_HOMR_PACKAGE_NAME}==${DEFAULT_HOMR_VERSION}`;
+export const HOMR_UVX_VERSION = DEFAULT_HOMR_VERSION;
 
 /** Convenience adapter used by the corpus runner and local tests. */
 export function parseMusicXmlScore(xml: string): OmrScoreInput {
@@ -150,6 +163,73 @@ export interface ParsedScoreConsensusArgs extends ScoreConsensusCorpusOptions {
   dpi: number;
 }
 
+export interface HomrPageScoreInput {
+  /** One-based PDF/raster page number. */
+  page: number;
+  /** Relative raster path retained for diagnostics only. */
+  relativePath?: string | null;
+  score: OmrScoreInput;
+}
+
+export interface HomrPageRunMetadata {
+  page: number;
+  rasterPage: string | null;
+  status: OmrPageResult["status"];
+  version: string;
+  elapsedMs: number;
+  exitCode: number | null;
+  musicXmlGenerated: boolean;
+  measureCount: number;
+  noteCount: number;
+  staffCount: number;
+  artifactPaths: string[];
+  warnings: string[];
+  errors: string[];
+}
+
+export interface HomrRunMetadata {
+  strategy: "one-page-per-invocation";
+  /** Requested launcher mode (`auto` may resolve to uvx or the executable fallback). */
+  mode: "auto" | "explicit";
+  requestedMode?: "auto" | "explicit";
+  /** Actual launcher selected by the backend after probing. */
+  resolvedMode?: "uvx" | "executable";
+  executable: string;
+  package: string | null;
+  model: string;
+  health: "healthy" | "partial" | "unavailable" | "failed";
+  /** Wrapper health is derived from the classified page runs. */
+  backendHealth: NonNullable<OmrResult["health"]>;
+  /** Raw backend health is retained for diagnostics only. */
+  rawBackendHealth?: OmrResult["health"];
+  requestedPages: number;
+  availablePages: number;
+  unavailablePages: number;
+  failedPages: number;
+  invocationCount: number;
+  /** One grouped backend call fans out to one HOMR invocation per page. */
+  backendCallCount: number;
+  invocations: Array<{
+    page: number;
+    rasterPage: string | null;
+    outputDirectory: string;
+  }>;
+  pages: HomrPageRunMetadata[];
+  invocation?: OmrResult["invocation"];
+  modelMetadata?: OmrResult["model"];
+  resolutionError?: string;
+}
+
+export interface HomrPageRunnerOptions {
+  scoreId: string;
+  outputRoot: string;
+  raster?: PdfRasterResult | null;
+  homr: string;
+  timeoutMs?: number;
+  /** Test seam for exercising page aggregation without an external binary. */
+  createBackend?: (options: HomrBackendOptions) => OmrBackend;
+}
+
 function finite(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
@@ -180,6 +260,119 @@ function hashText(value: string): string {
 /** Stable JSON with no physical paths or runtime timestamps. */
 export function canonicalScoreConsensusCorpusJson(value: unknown): string {
   return `${JSON.stringify(stableValue(sanitizeOmrMetadata(value)), null, 2)}\n`;
+}
+
+function positiveDuration(value: unknown, timeSignature: unknown, fallback: number): number {
+  if (finite(value) && value > 0) return value;
+  if (Array.isArray(timeSignature) && timeSignature.length === 2 && finite(timeSignature[0])
+    && finite(timeSignature[1]) && timeSignature[0] > 0 && timeSignature[1] > 0) {
+    return (timeSignature[0] * 4) / timeSignature[1];
+  }
+  return fallback;
+}
+
+function validHomrPageScore(value: unknown): value is HomrPageScoreInput {
+  if (!value || typeof value !== "object") return false;
+  const page = (value as Partial<HomrPageScoreInput>).page;
+  const score = (value as Partial<HomrPageScoreInput>).score;
+  return finite(page) && Number.isInteger(page) && page > 0
+    && Boolean(score && typeof score === "object" && Array.isArray(score.parts)
+      && score.parts.some((part) => part && typeof part === "object" && Array.isArray(part.measures) && part.measures.length));
+}
+
+function homrPageDuration(score: OmrScoreInput): number {
+  let duration = 0;
+  for (const part of Array.isArray(score.parts) ? score.parts : []) {
+    if (!part || typeof part !== "object" || !Array.isArray(part.measures)) continue;
+    let cursor = 0;
+    for (const measure of part.measures) {
+      if (!measure || typeof measure !== "object") continue;
+      const start = finite(measure.startBeat) && measure.startBeat >= 0 ? measure.startBeat : cursor;
+      const measureDuration = positiveDuration(measure.durationBeats, measure.timeSignature ?? score.timeSignature, 4);
+      cursor = start + measureDuration;
+      duration = Math.max(duration, cursor);
+    }
+  }
+  return rounded(duration);
+}
+
+/**
+ * Combine page-local HOMR MusicXML parses into one score input.
+ *
+ * HOMR emits independent, page-local scores.  Part IDs are prefixed with a
+ * zero-padded page namespace (only when needed for lexical ordering), while
+ * measure IDs remain local to their part so normalizeOmrScore produces the
+ * same namespace exactly once.  Page order and beat offsets are independent
+ * of the order in which recognition promises complete.
+ */
+export function combineHomrPageScores(inputs: readonly HomrPageScoreInput[]): OmrScoreInput | null {
+  const pages = inputs
+    .filter(validHomrPageScore)
+    .map((entry, index) => ({ ...entry, index, relativePath: safeRelativeRasterPath(entry.relativePath) }))
+    .sort((left, right) => left.page - right.page
+      || compareText(left.relativePath ?? "", right.relativePath ?? "")
+      || left.index - right.index);
+  if (!pages.length) return null;
+
+  const pageWidth = Math.max(1, String(pages.at(-1)!.page).length);
+  const pageOccurrences = new Map<number, number>();
+  const parts: OmrScoreInput["parts"] = [];
+  let beatOffset = 0;
+  for (const page of pages) {
+    const occurrence = (pageOccurrences.get(page.page) ?? 0) + 1;
+    pageOccurrences.set(page.page, occurrence);
+    const pageNamespace = `page-${String(page.page).padStart(pageWidth, "0")}${occurrence > 1 ? `-${occurrence}` : ""}`;
+    const sourceParts = Array.isArray(page.score.parts) ? page.score.parts : [];
+    const partOccurrences = new Map<string, number>();
+    for (const [partIndex, sourcePart] of sourceParts.entries()) {
+      if (!sourcePart || typeof sourcePart !== "object" || !Array.isArray(sourcePart.measures)) continue;
+      const sourcePartId = typeof sourcePart.id === "string" && sourcePart.id.trim()
+        ? sourcePart.id.trim()
+        : `part-${partIndex + 1}`;
+      const partOccurrence = (partOccurrences.get(sourcePartId) ?? 0) + 1;
+      partOccurrences.set(sourcePartId, partOccurrence);
+      const partId = `${pageNamespace}:${sourcePartId}${partOccurrence > 1 ? `-${partOccurrence}` : ""}`;
+      let cursor = 0;
+      const measures = sourcePart.measures.flatMap((sourceMeasure, measureIndex) => {
+        if (!sourceMeasure || typeof sourceMeasure !== "object") return [];
+        const startBeat = finite(sourceMeasure.startBeat) && sourceMeasure.startBeat >= 0 ? sourceMeasure.startBeat : cursor;
+        const durationBeats = positiveDuration(sourceMeasure.durationBeats, sourceMeasure.timeSignature ?? page.score.timeSignature, 4);
+        cursor = startBeat + durationBeats;
+        const rawMeasureId = typeof sourceMeasure.id === "string" && sourceMeasure.id.trim()
+          ? sourceMeasure.id.trim()
+          : String(sourceMeasure.number ?? measureIndex + 1);
+        const sourceMeasurePrefix = `${sourcePartId}:`;
+        const sourceMeasureId = rawMeasureId.startsWith(sourceMeasurePrefix)
+          ? rawMeasureId.slice(sourceMeasurePrefix.length)
+          : rawMeasureId;
+        return [{
+          ...sourceMeasure,
+          id: sourceMeasureId,
+          page: page.page,
+          startBeat: rounded(beatOffset + startBeat),
+          durationBeats: rounded(durationBeats),
+          ...(Array.isArray(sourceMeasure.events) ? { events: sourceMeasure.events.map((event) => ({ ...event })) } : {}),
+          ...(Array.isArray(sourceMeasure.rests) ? { rests: sourceMeasure.rests.map((rest) => ({ ...rest })) } : {}),
+        }];
+      });
+      parts.push({ ...sourcePart, id: partId, measures });
+    }
+    beatOffset = rounded(beatOffset + homrPageDuration(page.score));
+  }
+  if (!parts.some((part) => part.measures.length)) return null;
+  const first = pages[0]!.score;
+  return {
+    ...(typeof first.title === "string" ? { title: first.title } : {}),
+    ...(finite(first.tempoBpm) ? { tempoBpm: first.tempoBpm } : {}),
+    ...(first.timeSignature !== undefined ? { timeSignature: first.timeSignature } : {}),
+    ...(first.keySignature !== undefined ? { keySignature: first.keySignature } : {}),
+    parts,
+    metadata: {
+      adapter: "homr-page-combination-v1",
+      pages: pages.map((page) => page.page),
+      pageCount: pages.length,
+    },
+  };
 }
 
 function safePath(value: string, label: string): string {
@@ -304,10 +497,22 @@ function renderScoreReviewMarkdown(report: OmrConsensusReport, pageRefs: readonl
   return lines.join("\n");
 }
 
+function reportMetadata(input: ScoreConsensusScoreInput, safeMetadata: unknown): unknown {
+  const backendRuns = [input.audiveris, ...(input.homr ? [input.homr] : [])]
+    .filter((run) => run.metadata !== undefined)
+    .map((run) => ({ id: run.id, metadata: sanitizeOmrMetadata(run.metadata) }));
+  if (!backendRuns.length) return safeMetadata;
+  if (safeMetadata && typeof safeMetadata === "object" && !Array.isArray(safeMetadata)) {
+    return { ...(safeMetadata as Record<string, unknown>), backendRuns };
+  }
+  return { ...(safeMetadata === undefined ? {} : { source: safeMetadata }), backendRuns };
+}
+
 /** Build one additive report from already-adapted backend/native evidence. */
 export function createScoreConsensusReport(input: ScoreConsensusScoreInput): ScoreConsensusReport {
   const engines = [input.audiveris, ...(input.homr ? [input.homr] : [])];
   const safeMetadata = input.metadata === undefined ? undefined : sanitizeOmrMetadata(input.metadata);
+  const consensusMetadata = reportMetadata(input, safeMetadata);
   const safeRaster = sanitizeRasterResult(input.raster);
   const safeNativeDiscovery = input.nativeDiscovery === undefined
     ? undefined
@@ -315,7 +520,7 @@ export function createScoreConsensusReport(input: ScoreConsensusScoreInput): Sco
   const consensus = buildOmrConsensus({
     engines,
     ...(input.native ? { native: input.native } : {}),
-    ...(safeMetadata === undefined ? {} : { metadata: safeMetadata }),
+    ...(consensusMetadata === undefined ? {} : { metadata: consensusMetadata }),
   });
   const regions = consensus.measures.map((measure) => ({
     measureId: measure.id,
@@ -406,6 +611,18 @@ function stringValue(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
+/** Keep diagnostic context while removing absolute paths from messages. */
+function safeDiagnostic(value: unknown): string | null {
+  if (typeof value !== "string" || !value.trim()) return null;
+  const redacted = value
+    .replace(/(['"])(?:[A-Za-z]:[\\/]|\/)[^'"]*\1/g, "[redacted-path]")
+    .replace(/(?:[A-Za-z]:[\\/]|\/)[^\s'"`;,\)\]\r\n]*/g, "[redacted-path]")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 500);
+  return redacted || null;
+}
+
 function scoreFromMetadata(id: string, metadata: Record<string, unknown>): { artist: string; title: string; previousStatus: string | null; source: ScoreConsensusSourceMetadata; omr: Record<string, unknown> } {
   const source = metadata.sourcePdf && typeof metadata.sourcePdf === "object" && !Array.isArray(metadata.sourcePdf)
     ? metadata.sourcePdf as Record<string, unknown>
@@ -475,8 +692,345 @@ function omrRunFromResult(result: OmrResult, score: OmrScoreInput | null): OmrBa
     id: result.backend,
     version: result.version,
     status: result.status === "pass" ? "available" : result.status,
+    ...(result.health ? { health: result.health } : {}),
+    ...(result.pages ? { pages: result.pages.map((page) => ({ ...page })) } : {}),
+    ...(result.invocation
+      ? { invocation: typeof result.invocation === "string" ? result.invocation : { ...result.invocation } }
+      : {}),
+    ...(result.model
+      ? { model: typeof result.model === "string" ? result.model : { ...result.model } }
+      : {}),
     ...(score ? { score } : {}),
     ...(result.errors.length ? { error: result.errors.join("; ") } : {}),
+  };
+}
+
+function isHomrAuto(value: string): boolean {
+  return value === HOMR_AUTO_MODE;
+}
+
+function homrModel(result: OmrResult): string {
+  const model = (result as { model?: unknown }).model;
+  if (typeof model === "string" && model.trim()) return model.trim().slice(0, 120);
+  if (model && typeof model === "object") {
+    const value = model as { id?: unknown; name?: unknown; version?: unknown };
+    const id = typeof value.id === "string" && value.id.trim() ? value.id.trim() : "homr";
+    const version = typeof value.version === "string" && value.version.trim() ? `@${value.version.trim()}` : "";
+    return `${id}${version}`.slice(0, 120);
+  }
+  return "homr";
+}
+
+function homrArtifactPaths(result: OmrResult): string[] {
+  return (Array.isArray(result.artifacts) ? result.artifacts : [])
+    .map((artifact) => safeRelativeRasterPath(artifact.relativePath))
+    .filter((path): path is string => path !== null)
+    .sort(compareText);
+}
+
+function invocationArtifactPaths(allPaths: readonly string[], index: number, width: number): string[] {
+  const invocation = index + 1;
+  const names = [...new Set([
+    String(invocation),
+    String(invocation).padStart(2, "0"),
+    String(invocation).padStart(width, "0"),
+  ])];
+  const prefixes = names.map((name) => `page-${name}/`);
+  return allPaths.filter((path) => prefixes.some((prefix) => path.startsWith(prefix))).sort(compareText);
+}
+
+function safeResultPages(
+  pages: readonly OmrPageResult[],
+  pageRuns: readonly HomrPageRunMetadata[],
+): OmrBackendPageMetadata[] {
+  return pages.map((page, index) => {
+    const safe = sanitizeOmrMetadata(page);
+    const source = safe && typeof safe === "object" && !Array.isArray(safe)
+      ? { ...(safe as Record<string, unknown>) }
+      : {};
+    const run = pageRuns[index];
+    const artifacts = (Array.isArray(page.artifacts) ? page.artifacts : [])
+      .map((artifact) => {
+        const relativePath = safeRelativeRasterPath(artifact.relativePath);
+        return relativePath ? { ...artifact, relativePath } : null;
+      })
+      .filter((artifact): artifact is NonNullable<typeof artifact> => artifact !== null)
+      .sort((left, right) => compareText(left.relativePath, right.relativePath));
+    return {
+      ...source,
+      page: page.page,
+      ...(run ? {
+        status: run.status,
+        measureCount: run.measureCount,
+        noteCount: run.noteCount,
+        staffCount: run.staffCount,
+        warnings: run.warnings,
+        errors: run.errors,
+      } : {}),
+      artifacts,
+    };
+  }) as OmrBackendPageMetadata[];
+}
+
+function healthFromHomrPageRuns(pageRuns: readonly HomrPageRunMetadata[]): NonNullable<OmrResult["health"]> {
+  const available = pageRuns.filter((page) => page.status === "available").length;
+  if (available === pageRuns.length && pageRuns.length > 0) return "available";
+  if (available > 0) return "partially-available";
+  if (pageRuns.length > 0 && pageRuns.every((page) => page.status === "unavailable")) return "unavailable";
+  return "broken-output";
+}
+
+function homrBackendForOption(options: HomrPageRunnerOptions): { backend: OmrBackend; mode: "auto" | "explicit"; executable: string; package: string | null } {
+  const mode = isHomrAuto(options.homr) ? "auto" : "explicit";
+  const backendOptions: HomrBackendOptions = mode === "auto"
+    ? {
+      packageName: DEFAULT_HOMR_PACKAGE_NAME,
+      version: DEFAULT_HOMR_VERSION,
+      uvxExecutable: DEFAULT_HOMR_UVX_EXECUTABLE,
+      executable: DEFAULT_HOMR_EXECUTABLE,
+      preferUvx: DEFAULT_HOMR_PREFER_UVX,
+      forceCpu: DEFAULT_HOMR_FORCE_CPU,
+      ...(options.timeoutMs === undefined ? {} : { timeoutMs: options.timeoutMs }),
+    }
+    : {
+      executable: options.homr,
+      preferUvx: false,
+      forceCpu: DEFAULT_HOMR_FORCE_CPU,
+      ...(options.timeoutMs === undefined ? {} : { timeoutMs: options.timeoutMs }),
+    };
+  const backend = options.createBackend
+    ? options.createBackend(backendOptions)
+    : createHomrBackend(backendOptions);
+  return {
+    backend,
+    mode,
+    executable: mode === "auto" ? DEFAULT_HOMR_UVX_EXECUTABLE : options.homr,
+    package: mode === "auto" ? HOMR_UVX_PACKAGE : null,
+  };
+}
+
+function scoreMeasureCount(score: OmrScoreInput | null): number {
+  return score?.parts.reduce((count, part) => Math.max(count, Array.isArray(part?.measures) ? part.measures.length : 0), 0) ?? 0;
+}
+
+function scoreNoteCount(score: OmrScoreInput | null): number {
+  return score?.parts.reduce((count, part) => count + (Array.isArray(part?.measures)
+    ? part.measures.reduce((partCount, measure) => partCount + (Array.isArray(measure?.events) ? measure.events.length : 0), 0)
+    : 0), 0) ?? 0;
+}
+
+function scoreStaffCount(score: OmrScoreInput | null): number {
+  const staves = new Set<string>();
+  for (const part of score?.parts ?? []) {
+    for (const measure of part?.measures ?? []) {
+      for (const staff of measure?.staves ?? []) if (Number.isInteger(staff?.number) && staff.number > 0) staves.add(`${part.id}:${staff.number}`);
+      for (const event of measure?.events ?? []) if (Number.isInteger(event?.staff) && event.staff! > 0) staves.add(`${part.id}:${event.staff}`);
+    }
+  }
+  return staves.size;
+}
+
+/**
+ * Run HOMR once for each raster page and retain every page that parses.
+ *
+ * A failed page is deliberately omitted from the combined score, but remains
+ * visible in metadata and the run error.  This lets usable pages contribute
+ * evidence without turning a missing page into an apparently empty measure.
+ */
+export async function runHomrPages(options: HomrPageRunnerOptions): Promise<OmrBackendRun> {
+  const raster = sanitizeRasterResult(options.raster);
+  const pages = [...(raster?.pages ?? [])].sort((left, right) => left.page - right.page || compareText(left.relativePath, right.relativePath));
+  const mode = isHomrAuto(options.homr) ? "auto" : "explicit";
+  const executable = mode === "auto" ? DEFAULT_HOMR_UVX_EXECUTABLE : basename(options.homr);
+  const packageName = mode === "auto" ? HOMR_UVX_PACKAGE : null;
+  if (!pages.length) {
+    return {
+      id: "homr",
+      version: HOMR_UVX_VERSION,
+      status: "unavailable",
+      health: "unavailable",
+      pages: [],
+      error: "HOMR was requested but no raster pages were available",
+      metadata: {
+        strategy: "one-page-per-invocation",
+        mode,
+        executable,
+        package: packageName,
+        model: "homr",
+        health: "unavailable",
+        backendHealth: "unavailable",
+        requestedPages: 0,
+        availablePages: 0,
+        unavailablePages: 0,
+        failedPages: 0,
+        invocationCount: 0,
+        backendCallCount: 0,
+        invocations: [],
+        pages: [],
+      } satisfies HomrRunMetadata,
+    };
+  }
+  const config = homrBackendForOption(options);
+  const pageWidth = Math.max(1, String(pages.at(-1)!.page).length);
+  const pageRuns: HomrPageRunMetadata[] = [];
+  const pageScores: HomrPageScoreInput[] = [];
+  const errors: string[] = [];
+  const homrRoot = join(options.outputRoot, "scores", options.scoreId, "backends", "homr");
+  const imagePaths = pages.map((page) => join(options.outputRoot, "scores", options.scoreId, "raster", page.relativePath));
+  const started = Date.now();
+  let result: OmrResult | null = null;
+  try {
+    result = await config.backend.recognize({ imagePaths, outputDirectory: homrRoot });
+  } catch (error) {
+    const message = safeDiagnostic(error instanceof Error ? error.message : "HOMR recognition failed");
+    if (message) errors.push(message);
+  }
+  const resultPages = result && Array.isArray(result.pages) ? result.pages : [];
+  const allArtifactPaths = result ? homrArtifactPaths(result) : [];
+  const model = result ? homrModel(result) : "homr";
+  const rawInvocation = result?.invocation === undefined
+    ? undefined
+    : sanitizeOmrMetadata(result.invocation) as OmrResult["invocation"];
+  const rawModel = result?.model === undefined ? undefined : sanitizeOmrMetadata(result.model) as OmrResult["model"];
+  // The backend may have fallen back from the requested uvx launcher to an
+  // external executable. Preserve only global diagnostics here; per-page
+  // errors are reclassified below so they are not duplicated in `error`.
+  const backendGlobalErrors = (result?.errors ?? [])
+    .filter((error) => typeof error === "string" && !/^HOMR page \d+\b/.test(error))
+    .map((error) => safeDiagnostic(error))
+    .filter((error): error is string => typeof error === "string" && error.length > 0);
+  errors.push(...backendGlobalErrors);
+  const invocationRecord = rawInvocation && typeof rawInvocation === "object" && !Array.isArray(rawInvocation)
+    ? rawInvocation as unknown as Record<string, unknown>
+    : null;
+  const resolvedMode: "uvx" | "executable" = invocationRecord?.mode === "uvx" || invocationRecord?.mode === "executable"
+    ? invocationRecord.mode
+    : mode === "auto" ? "uvx" : "executable";
+  const resolvedExecutable = typeof invocationRecord?.executable === "string" && invocationRecord.executable.trim()
+    ? invocationRecord.executable.trim().slice(0, 120)
+    : resolvedMode === "uvx" ? DEFAULT_HOMR_UVX_EXECUTABLE : basename(options.homr);
+  const resolvedPackage = resolvedMode === "uvx"
+    ? typeof invocationRecord?.packageName === "string" && invocationRecord.packageName.trim()
+      ? invocationRecord.packageName.trim().slice(0, 120)
+      : packageName
+    : null;
+  const resolutionError = backendGlobalErrors.find((error) => /resolution failed|model acquisition/i.test(error));
+  for (const [index, page] of pages.entries()) {
+    const rasterPage = safeRelativeRasterPath(page.relativePath);
+    // Backend pages are numbered by invocation (1..N), while raster page
+    // numbers may be sparse (for example pages 2 and 10).  Positional lookup
+    // is therefore the only stable association between the two arrays.
+    const backendPage = resultPages[index];
+    const directArtifacts = (Array.isArray(backendPage?.artifacts) ? backendPage.artifacts : [])
+      .map((artifact) => safeRelativeRasterPath(artifact.relativePath))
+      .filter((path): path is string => path !== null)
+      .sort(compareText);
+    const pageArtifacts = directArtifacts.length
+      ? directArtifacts
+      : invocationArtifactPaths(allArtifactPaths, index, pageWidth);
+    const parseErrors: string[] = [];
+    let score: OmrScoreInput | null = null;
+    for (const artifactPath of pageArtifacts) {
+      try {
+        const parsed = parseOmrMusicXmlBytes(await readFile(join(homrRoot, artifactPath))).score;
+        if (scoreMeasureCount(parsed) > 0 && scoreNoteCount(parsed) > 0) {
+          score = parsed;
+          break;
+        }
+        parseErrors.push(`${artifactPath}: parsed score has no pitched notes`);
+      } catch (error) {
+        const detail = safeDiagnostic(error instanceof Error ? error.message : "invalid MusicXML");
+        parseErrors.push(`${artifactPath}: ${detail ?? "invalid MusicXML"}`);
+      }
+    }
+    if (!score && !pageArtifacts.length && result) parseErrors.push("HOMR produced no MusicXML artifact");
+    const rawStatus = backendPage?.status;
+    const outputBroken = !score && (pageArtifacts.length > 0 || result?.status === "pass");
+    const status: OmrPageResult["status"] = outputBroken
+      ? "broken-output"
+      : score && rawStatus !== "unavailable" && rawStatus !== "failed" && rawStatus !== "broken-output"
+        ? "available"
+        : rawStatus ?? (result?.status === "unavailable" ? "unavailable" : "failed");
+    const pageErrors = [...(backendPage?.errors ?? []), ...parseErrors]
+      .map((error) => safeDiagnostic(error))
+      .filter((error): error is string => Boolean(error));
+    const pageWarnings = [...(backendPage?.warnings ?? [])]
+      .map((warning) => safeDiagnostic(warning))
+      .filter((warning): warning is string => Boolean(warning));
+    if (pageErrors.length) errors.push(`page ${page.page}: ${pageErrors.join("; ")}`);
+    pageRuns.push({
+      page: page.page,
+      rasterPage,
+      status,
+      version: backendPage?.page ? result?.version ?? config.backend.version ?? "unknown" : result?.version ?? config.backend.version ?? "unknown",
+      elapsedMs: finite(backendPage?.elapsedMs) ? backendPage!.elapsedMs : Math.max(0, Date.now() - started),
+      exitCode: backendPage?.exitCode === null || finite(backendPage?.exitCode) ? backendPage.exitCode : result ? (status === "available" ? 0 : null) : null,
+      musicXmlGenerated: pageArtifacts.length > 0,
+      measureCount: score ? (finite(backendPage?.measureCount) ? backendPage!.measureCount : scoreMeasureCount(score)) : 0,
+      noteCount: score ? (finite(backendPage?.noteCount) ? backendPage!.noteCount : scoreNoteCount(score)) : 0,
+      staffCount: score ? (finite(backendPage?.staffCount) ? backendPage!.staffCount : scoreStaffCount(score)) : 0,
+      artifactPaths: pageArtifacts,
+      warnings: pageWarnings,
+      errors: pageErrors,
+    });
+    if (score && status === "available") pageScores.push({ page: page.page, relativePath: rasterPage, score });
+  }
+  const availablePages = pageRuns.filter((page) => page.status === "available").length;
+  const unavailablePages = pageRuns.filter((page) => page.status === "unavailable").length;
+  const failedPages = pageRuns.filter((page) => page.status !== "available" && page.status !== "unavailable").length;
+  const backendHealth = healthFromHomrPageRuns(pageRuns);
+  const rawBackendHealth = result?.health;
+  const health: HomrRunMetadata["health"] = backendHealth === "available"
+    ? "healthy"
+    : backendHealth === "partially-available"
+      ? "partial"
+      : backendHealth === "unavailable"
+        ? "unavailable"
+        : "failed";
+  const score = combineHomrPageScores(pageScores);
+  const metadata: HomrRunMetadata = {
+    strategy: "one-page-per-invocation",
+    mode: config.mode,
+    requestedMode: config.mode,
+    resolvedMode,
+    executable: resolvedExecutable,
+    package: resolvedPackage,
+    model,
+    health,
+    backendHealth,
+    requestedPages: pages.length,
+    availablePages,
+    unavailablePages,
+    failedPages,
+    invocationCount: pages.length,
+    backendCallCount: result ? 1 : 0,
+    invocations: pageRuns.map((page) => ({
+      page: page.page,
+      rasterPage: page.rasterPage,
+      outputDirectory: "scores/" + options.scoreId + "/backends/homr",
+    })),
+    pages: pageRuns,
+    ...(rawInvocation !== undefined ? { invocation: rawInvocation } : {}),
+    ...(rawModel !== undefined ? { modelMetadata: rawModel } : {}),
+    ...(rawBackendHealth !== undefined ? { rawBackendHealth } : {}),
+    ...(resolutionError ? { resolutionError } : {}),
+  };
+  const safePages: OmrBackendPageMetadata[] = resultPages.length
+    ? safeResultPages(resultPages, pageRuns)
+    : pageRuns.map((page) => ({ ...page }));
+  return {
+    id: "homr",
+    version: result?.version ?? config.backend.version ?? "unknown",
+    status: score ? "available" : backendHealth === "unavailable" ? "unavailable" : "failed",
+    health: backendHealth,
+    pages: safePages,
+    ...(rawInvocation !== undefined
+      ? { invocation: rawInvocation as unknown as NonNullable<OmrBackendRun["invocation"]> }
+      : {}),
+    ...(rawModel !== undefined ? { model: rawModel } : {}),
+    ...(score ? { score } : {}),
+    ...(errors.length ? { error: errors.join("; ") } : {}),
+    metadata,
   };
 }
 
@@ -518,21 +1072,9 @@ async function runOneScore(
       await writeJson(join(rasterRoot, "manifest.json"), { status: "unavailable", reason: error instanceof Error ? error.message : "rasterization unavailable" });
     }
   }
-  let homr = homrUnavailable();
-  if (options.homr && raster?.pages.length) {
-    const homrRoot = join(outputRoot, "scores", scoreId, "backends", "homr");
-    try {
-      const result = await createHomrBackend({ executable: options.homr, timeoutMs: options.timeoutMs }).recognize({ imagePaths: raster.pages.map((page) => join(outputRoot, "scores", scoreId, "raster", page.relativePath)), outputDirectory: homrRoot });
-      let homrScore: OmrScoreInput | null = null;
-      const firstArtifact = result.artifacts[0];
-      if (firstArtifact) {
-        try { homrScore = parseOmrMusicXmlBytes(await readFile(join(homrRoot, firstArtifact.relativePath))).score; } catch { homrScore = null; }
-      }
-      homr = omrRunFromResult(result, homrScore);
-    } catch (error) {
-      homr = { id: "homr", version: "unknown", status: "failed", error: error instanceof Error ? error.message : "homr recognition failed" };
-    }
-  }
+  const homr = options.homr
+    ? await runHomrPages({ scoreId, outputRoot, raster, homr: options.homr, timeoutMs: options.timeoutMs })
+    : homrUnavailable();
   const nativeArtifacts = artifactInputsForNativeManifest(nativeManifest, scoreId);
   let nativeDiscovery: NativeScoreDiscoveryReport | undefined;
   if (pdfPath || nativeArtifacts.length) {
@@ -656,7 +1198,19 @@ export function parseScoreConsensusArgs(argv: readonly string[]): ParsedScoreCon
       case "--corpus": result.corpusRoot = value(); break;
       case "--out": result.outputRoot = value(); break;
       case "--pdf-dir": result.pdfDir = value(); break;
-      case "--homr": result.homr = value(); break;
+      case "--homr": {
+        // `--homr` is an explicit opt-in to the pinned uvx runner.  A value
+        // remains an executable path/name for offline/local installations.
+        if (inline !== undefined) {
+          if (!inline.trim()) throw new Error("--homr requires a non-empty value");
+          result.homr = inline;
+        } else {
+          const next = argv[index + 1];
+          if (!next || next.startsWith("--")) result.homr = HOMR_AUTO_MODE;
+          else result.homr = value();
+        }
+        break;
+      }
       case "--native-manifest": result.nativeManifest = value(); break;
       case "--timeout-ms": result.timeoutMs = positiveInt(value(), flag); break;
       case "--rasterize": result.rasterize = true; break;
@@ -680,7 +1234,7 @@ export function scoreConsensusUsage(): string {
     "  --pdf-dir DIR         optional local PDF directory for raster/native metadata",
     "  --rasterize           rasterize available PDFs to deterministic PNG pages",
     "  --dpi N               raster DPI, 150-600 (default 300)",
-    "  --homr FILE           optional HOMR executable; otherwise recorded unavailable",
+    "  --homr [FILE]         optional HOMR executable; bare flag uses pinned uvx",
     "  --native-manifest FILE  explicit local native artifact manifest (never fetched)",
     "  --timeout-ms N        optional external command timeout",
   ].join("\n");

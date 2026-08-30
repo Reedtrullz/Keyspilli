@@ -375,6 +375,23 @@ describe("dual OMR consensus core", () => {
     expect(canonical).toBe(canonicalOmrConsensusJson(JSON.parse(canonical)));
   });
 
+  it("retains HOMR diagnostics in reports while excluding volatile diagnostics from canonical JSON", () => {
+    const build = (elapsedMs: number, stderrSummary: string, warnings: string[], error: string): OmrBackendRun => ({
+      id: "homr",
+      version: "0.4.0",
+      score: score(),
+      pages: [{ page: 1, status: "available", elapsedMs, stderrSummary, warnings }],
+      error,
+    });
+    const first = buildOmrConsensus({ engines: [build(120, "inference took 120ms", ["worker 1 warning"], "page 1: transient stderr 120ms")] });
+    const second = buildOmrConsensus({ engines: [build(480, "inference took 480ms", ["worker 2 warning"], "page 1: transient stderr 480ms")] });
+
+    expect(first.backends[0]?.pages).toMatchObject([
+      { page: 1, elapsedMs: 120, stderrSummary: "inference took 120ms", warnings: ["worker 1 warning"] },
+    ]);
+    expect(canonicalOmrConsensusJson(first)).toBe(canonicalOmrConsensusJson(second));
+  });
+
   it("fails closed for malformed optional backend payloads without throwing", () => {
     expect(() => normalizeOmrScore(null as unknown as OmrScoreInput)).not.toThrow();
     const report = buildOmrConsensus({

@@ -102,6 +102,12 @@ export interface OmrModelMetadata {
   version: string;
   runtime: "uvx" | "executable";
   forceCpu: boolean;
+  /** How weights are acquired; paths are intentionally never emitted. */
+  source: "uvx-managed-cache" | "external-executable" | "unknown";
+  cache: "uv-cache" | "external" | "unknown";
+  /** Optional weight records when a caller supplies/derives them safely. */
+  files?: Array<{ name: string; bytes: number; sha256: string }>;
+  [key: string]: unknown;
 }
 
 export interface OmrResult {
@@ -311,19 +317,38 @@ function sanitizedStderr(errorOrStderr: unknown, sensitivePaths: readonly string
     ? errorOrStderr
     : errorOrStderr && typeof errorOrStderr === "object" && typeof (errorOrStderr as { stderr?: unknown }).stderr === "string"
       ? (errorOrStderr as { stderr: string }).stderr
+      : errorOrStderr && typeof errorOrStderr === "object" && typeof (errorOrStderr as { message?: unknown }).message === "string"
+        ? (errorOrStderr as { message: string }).message
       : "";
   if (!raw.trim()) return null;
   const redacted = sensitivePaths.reduce((message, path) => message.split(path).join("[redacted-path]"), raw)
-    .replace(/(?:[A-Za-z]:[\\/]|\/)[^\s'"`;,)]*/g, "[redacted-path]")
+    .replace(/(['"])(?:[A-Za-z]:[\\/]|\/)[^'"]*\1/g, "[redacted-path]")
+    .replace(/(?:[A-Za-z]:[\\/]|\/)[^'"`;,)\r\n]*/g, "[redacted-path]")
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, 400);
   return redacted || null;
 }
 
+function commandDiagnostic(error: unknown, sensitivePaths: readonly string[] = []): string {
+  const detail = sanitizedStderr(error, sensitivePaths);
+  if (detail) return detail;
+  if (error && typeof error === "object") {
+    const code = (error as { code?: unknown }).code;
+    if (typeof code === "number" || typeof code === "string") return `external command exited with ${String(code).slice(0, 40)}`;
+    const signal = (error as { signal?: unknown }).signal;
+    if (typeof signal === "string" && signal.trim()) return `external command terminated by ${signal.slice(0, 40)}`;
+  }
+  return "external command failed";
+}
+
 function logicalExecutableName(executable: string): string {
   const normalized = executable.replaceAll("\\", "/");
   return basename(normalized) || "homr";
+}
+
+function compareText(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0;
 }
 
 function optionToken(value: unknown, label: string, fallback: string): string {
@@ -379,11 +404,13 @@ async function regularFileBytes(path: string, label: string): Promise<{ bytes: U
   }
 }
 
-async function walkRegularFiles(root: string): Promise<string[]> {
+async function walkRegularFiles(root: string, maxFiles = Number.POSITIVE_INFINITY): Promise<string[]> {
   const files: string[] = [];
   async function visit(directory: string): Promise<void> {
+    if (files.length >= maxFiles) return;
     const entries = await readdir(directory, { withFileTypes: true });
     for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
+      if (files.length >= maxFiles) break;
       const file = join(directory, entry.name);
       if (entry.isDirectory()) await visit(file);
       else if (entry.isFile()) files.push(file);
@@ -629,22 +656,56 @@ export function buildHomrArgs(input: OmrRecognizeInput): string[] {
 interface HomrLauncher {
   mode: "uvx" | "executable";
   executable: string;
+  /** A failed uvx probe is retained as path-safe diagnostic provenance. */
+  resolutionError?: string;
 }
 
+type HomrModelFile = { name: string; bytes: number; sha256: string };
+
+interface HomrModelDiscovery {
+  files?: HomrModelFile[];
+  error?: string;
+}
+
+const MAX_HOMR_MODEL_DISCOVERY_ATTEMPTS = 2;
+
 async function resolveHomrLauncher(
-  options: { preferUvx: boolean; uvxExecutable: string; executable: string; execFile: OmrCommandRunner; timeoutMs: number },
+  options: {
+    preferUvx: boolean;
+    uvxExecutable: string;
+    executable: string;
+    packageName: string;
+    version: string;
+    execFile: OmrCommandRunner;
+    timeoutMs: number;
+  },
 ): Promise<HomrLauncher> {
   if (options.preferUvx) {
     try {
-      await options.execFile(options.uvxExecutable, ["--version"], {
+      // HOMR does not expose a --version flag.  Resolve the pinned package
+      // and console script with --help instead; this catches both a missing
+      // uvx executable and an unresolvable package before page processing.
+      await options.execFile(options.uvxExecutable, [
+        "--from",
+        `${options.packageName}==${options.version}`,
+        options.packageName,
+        "--help",
+      ], {
         shell: false,
         timeout: options.timeoutMs,
         maxBuffer: 2 * 1024 * 1024,
         windowsHide: true,
       });
       return { mode: "uvx", executable: options.uvxExecutable };
-    } catch {
-      // uvx is optional. The explicit executable is the deterministic fallback.
+    } catch (error) {
+      // uvx is optional. The explicit executable is the deterministic fallback,
+      // but retain why the fallback was selected for path-safe diagnostics.
+      const detail = commandDiagnostic(error, [options.uvxExecutable, options.executable]);
+      return {
+        mode: "executable",
+        executable: options.executable,
+        resolutionError: `HOMR uvx resolution failed: ${detail}`,
+      };
     }
   }
   return { mode: "executable", executable: options.executable };
@@ -692,6 +753,62 @@ function homrInvocationMetadata(launcher: HomrLauncher, packageName: string, ver
 function homrPageError(error: unknown, fallback: string, sensitivePaths: readonly string[] = []): string {
   const stderr = sanitizedStderr(error, sensitivePaths);
   return stderr ? `${fallback}: ${stderr}` : fallback;
+}
+
+/**
+ * Best-effort discovery of HOMR's managed ONNX weights.  uvx keeps these in
+ * its cache rather than exposing a model directory, so the report records
+ * only cache-relative names and hashes.  Failure to inspect the cache never
+ * changes recognition status.
+ */
+async function discoverHomrModelFiles(
+  launcher: HomrLauncher,
+  uvxExecutable: string,
+  execFile: OmrCommandRunner,
+  timeoutMs: number,
+): Promise<HomrModelDiscovery> {
+  if (launcher.mode !== "uvx") return {};
+  try {
+    const uvExecutable = uvxExecutable.includes("/")
+      ? join(uvxExecutable.slice(0, uvxExecutable.lastIndexOf("/")), "uv")
+      : "uv";
+    const result = await execFile(uvExecutable, ["cache", "dir"], {
+      shell: false,
+      timeout: Math.min(timeoutMs, 30_000),
+      maxBuffer: 1024 * 1024,
+      windowsHide: true,
+    });
+    const cacheDirectory = result.stdout.trim().split(/\r?\n/).map((line) => line.trim()).find((line) => /^(?:[A-Za-z]:[\\/]|\/)/.test(line));
+    if (!cacheDirectory) return { error: "HOMR model acquisition failed: uv cache directory was not reported" };
+    const cacheRoot = resolve(cacheDirectory);
+    const archiveRoot = join(cacheRoot, "archive-v0");
+    const archiveEntries = await readdir(archiveRoot, { withFileTypes: true });
+    const candidates: string[] = [];
+    for (const entry of archiveEntries
+      .filter((entry) => entry.isDirectory())
+      .sort((a, b) => compareText(a.name, b.name))
+      .slice(0, 64)) {
+      const files = await walkRegularFiles(join(archiveRoot, entry.name), 4096);
+      candidates.push(...files.filter((file) => /(?:segnet_[^/]+|(?:encoder|decoder)_pytorch_model_[^/]+)\.onnx$/i.test(file)));
+    }
+    const records: HomrModelFile[] = [];
+    let totalBytes = 0;
+    for (const file of candidates.sort(compareText).slice(0, 16)) {
+      const name = relative(cacheRoot, resolve(file));
+      if (!name || name === ".." || name.startsWith(`..${sep}`) || resolve(cacheRoot, name) !== resolve(file)) continue;
+      const info = await lstat(file);
+      if (!info.isFile() || info.size <= 0 || info.size > 128 * 1024 * 1024 || totalBytes + info.size > 512 * 1024 * 1024) continue;
+      const bytes = new Uint8Array(await readFile(file));
+      records.push({ name: name.split(sep).join("/"), bytes: info.size, sha256: hashBytes(bytes) });
+      totalBytes += info.size;
+    }
+    return records.length
+      ? { files: records }
+      : { error: "HOMR model acquisition found no supported ONNX weight files in the uv cache" };
+  } catch (error) {
+    const detail = commandDiagnostic(error, [uvxExecutable]);
+    return { error: `HOMR model acquisition failed: ${detail}` };
+  }
 }
 
 function parseHomrPageOutput(
@@ -753,6 +870,7 @@ async function recognizeHomrPages(
     execFile: OmrCommandRunner;
     launcher?: HomrLauncher;
     resolveLauncher: () => Promise<HomrLauncher>;
+    resolveModelFiles?: (launcher: HomrLauncher) => Promise<HomrModelDiscovery>;
   },
 ): Promise<OmrResult> {
   let validated: { images: string[]; outputDirectory: string };
@@ -765,18 +883,29 @@ async function recognizeHomrPages(
   }
 
   const launcher = options.launcher ?? await options.resolveLauncher();
-  const invocation = homrInvocationMetadata(launcher, options.packageName, options.version, options.forceCpu);
-  const model: OmrModelMetadata = {
-    id: "homr",
-    packageName: options.packageName,
-    version: options.version,
-    runtime: launcher.mode,
-    forceCpu: options.forceCpu,
-  };
   const pages: OmrPageResult[] = [];
   const allArtifacts: OmrArtifact[] = [];
   const allWarnings: string[] = [];
-  const allErrors: string[] = [];
+  const allErrors: string[] = launcher.resolutionError ? [launcher.resolutionError] : [];
+  let modelFiles: HomrModelFile[] | undefined;
+  let modelDiscoveryError: string | undefined;
+  let modelDiscoveryAttempts = 0;
+
+  const discoverModelFilesAfterPage = async (): Promise<void> => {
+    if (launcher.mode !== "uvx" || modelFiles || modelDiscoveryAttempts >= MAX_HOMR_MODEL_DISCOVERY_ATTEMPTS || !options.resolveModelFiles) return;
+    modelDiscoveryAttempts += 1;
+    try {
+      const discovery = await options.resolveModelFiles(launcher);
+      if (discovery.files?.length) {
+        modelFiles = discovery.files;
+        modelDiscoveryError = undefined;
+      } else if (discovery.error) {
+        modelDiscoveryError = discovery.error;
+      }
+    } catch (error) {
+      modelDiscoveryError = `HOMR model acquisition failed: ${commandDiagnostic(error)}`;
+    }
+  };
 
   for (const [index, source] of validated.images.entries()) {
     const page = index + 1;
@@ -797,6 +926,7 @@ async function recognizeHomrPages(
         ? buildHomrUvxArgs({ imagePath: staged.path, packageName: options.packageName, version: options.version, forceCpu: options.forceCpu })
         : buildHomrExecutableArgs({ imagePath: staged.path, forceCpu: options.forceCpu });
       let commandResult: { stdout: string; stderr: string };
+      let commandSucceeded = false;
       try {
         commandResult = await options.execFile(launcher.executable, args, {
           shell: false,
@@ -806,6 +936,7 @@ async function recognizeHomrPages(
         });
         exitCode = 0;
         status = "available";
+        commandSucceeded = true;
         const stderr = sanitizedStderr(commandResult.stderr, [validated.outputDirectory, staged.path]);
         if (stderr) warnings.push(stderr);
       } catch (error) {
@@ -818,6 +949,10 @@ async function recognizeHomrPages(
           errors.push(homrPageError(error, `HOMR page ${page} recognition failed`, [validated.outputDirectory, staged.path]));
         }
       }
+
+      // HOMR downloads its managed weights on first execution. Discovering
+      // before this point races that acquisition and produces false absence.
+      if (commandSucceeded) await discoverModelFilesAfterPage();
 
       try {
         const files = await collectAdjacentOmrArtifacts(staged.directory, validated.outputDirectory);
@@ -862,6 +997,19 @@ async function recognizeHomrPages(
     allErrors.push(...errors);
   }
 
+  if (modelDiscoveryError && !modelFiles) allErrors.push(modelDiscoveryError);
+  const invocation = homrInvocationMetadata(launcher, options.packageName, options.version, options.forceCpu);
+  const model: OmrModelMetadata = {
+    id: "homr",
+    packageName: options.packageName,
+    version: options.version,
+    runtime: launcher.mode,
+    forceCpu: options.forceCpu,
+    source: launcher.mode === "uvx" ? "uvx-managed-cache" : "external-executable",
+    cache: launcher.mode === "uvx" ? "uv-cache" : "external",
+    ...(modelFiles ? { files: modelFiles } : {}),
+  };
+
   return {
     ...baseResult("homr", options.version, homrResultStatus(pages), allArtifacts, allWarnings, allErrors),
     health: homrHealth(pages),
@@ -883,6 +1031,7 @@ export function createHomrBackend(options: HomrBackendOptions = {}): OmrBackend 
   const execFile = options.execFile ?? execFileDefault;
   let discoveredVersion = version;
   let resolvedLauncher: HomrLauncher | undefined;
+  let discoveredModelFiles: HomrModelFile[] | undefined;
   return {
     id: "homr",
     get version() { return discoveredVersion; },
@@ -898,8 +1047,22 @@ export function createHomrBackend(options: HomrBackendOptions = {}): OmrBackend 
         execFile,
         launcher: resolvedLauncher,
         resolveLauncher: async () => {
-          resolvedLauncher = await resolveHomrLauncher({ preferUvx, uvxExecutable, executable, execFile, timeoutMs });
+          resolvedLauncher = await resolveHomrLauncher({
+            preferUvx,
+            uvxExecutable,
+            executable,
+            packageName,
+            version,
+            execFile,
+            timeoutMs,
+          });
           return resolvedLauncher;
+        },
+        resolveModelFiles: async (launcher) => {
+          if (discoveredModelFiles) return { files: discoveredModelFiles };
+          const discovery = await discoverHomrModelFiles(launcher, uvxExecutable, execFile, timeoutMs);
+          if (discovery.files) discoveredModelFiles = discovery.files;
+          return discovery;
         },
       });
       discoveredVersion = result.version;

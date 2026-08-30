@@ -1313,22 +1313,39 @@ function redactUrlCredentials(value: string): string {
   return value.replace(/([A-Za-z][A-Za-z0-9+.-]*:\/\/)([^\s\/@:]+)(?::[^\s\/@]*)?@/g, "$1[redacted]@");
 }
 
-function sanitizeValue(value: unknown, key = ""): unknown {
+const CANONICAL_VOLATILE_KEYS = new Set([
+  "elapsedMs",
+  "stderr",
+  "stderrSummary",
+  "warning",
+  "warnings",
+  "error",
+  "errors",
+]);
+
+function sanitizeValue(value: unknown, key = "", canonical = false): unknown {
   if (typeof value === "number") return Number.isFinite(value) ? value : null;
   if (typeof value === "string") {
     const redactedUrl = redactUrlCredentials(value);
     return pathLike(redactedUrl) || /(^|\/)(?:Users|private|tmp)(\/|$)/.test(redactedUrl) ? "[redacted-path]" : redactedUrl;
   }
-  if (Array.isArray(value)) return value.map((entry) => sanitizeValue(entry));
+  if (Array.isArray(value)) return value.map((entry) => sanitizeValue(entry, key, canonical));
   if (!value || typeof value !== "object") return value;
   const output: Record<string, unknown> = {};
   for (const objectKey of Object.keys(value as Record<string, unknown>).sort(stableCompare)) {
-    if (objectKey === "generatedAt" || objectKey === "runtime" || objectKey === "outputDirectory") continue;
+    // Runtime is meaningful provenance for normal reports (for example uvx
+    // versus an external HOMR executable), but remains excluded from the
+    // canonical identity representation below.
+    if (objectKey === "generatedAt" || objectKey === "outputDirectory" || (canonical && objectKey === "runtime")) continue;
+    // Runtime diagnostics are intentionally retained by sanitizeOmrMetadata
+    // for review artifacts, but excluded from identity JSON: process timing,
+    // stderr, and warning text can vary between equivalent HOMR runs.
+    if (canonical && CANONICAL_VOLATILE_KEYS.has(objectKey)) continue;
     const child = (value as Record<string, unknown>)[objectKey];
     if (/^(?:path|filePath|sourcePath|absolutePath|imagePath|sourcePdfPath)$/i.test(objectKey)) {
       output[objectKey] = "[redacted-path]";
     } else {
-      output[objectKey] = sanitizeValue(child, objectKey);
+      output[objectKey] = sanitizeValue(child, objectKey, canonical);
     }
   }
   void key;
@@ -1340,6 +1357,10 @@ export function sanitizeOmrMetadata(value: unknown): unknown {
   return sanitizeValue(value);
 }
 
+function sanitizeCanonicalOmrMetadata(value: unknown): unknown {
+  return sanitizeValue(value, "", true);
+}
+
 function stableValue(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(stableValue);
   if (!value || typeof value !== "object") return value;
@@ -1348,7 +1369,7 @@ function stableValue(value: unknown): unknown {
 
 /** Stable, path-safe JSON for report hashes and determinism checks. */
 export function canonicalOmrConsensusJson(value: unknown): string {
-  return JSON.stringify(stableValue(sanitizeOmrMetadata(value)));
+  return JSON.stringify(stableValue(sanitizeCanonicalOmrMetadata(value)));
 }
 
 function validCrop(value: unknown): OmrRasterizationConfig["crop"] {

@@ -1,16 +1,19 @@
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   canonicalScoreConsensusCorpusJson,
+  combineHomrPageScores,
   createScoreConsensusReport,
   parseMusicXmlScore,
   parseScoreConsensusArgs,
+  runHomrPages,
   runScoreConsensusCorpus,
   summarizeScoreConsensus,
   type ScoreConsensusScoreInput,
 } from "../src/score-consensus-corpus.js";
+import { normalizeOmrScore } from "../src/omr-consensus.js";
 
 const xml = `<?xml version="1.0"?>
 <score-partwise version="4.0">
@@ -193,5 +196,267 @@ describe("local score consensus corpus orchestration", () => {
       dpi: 400,
     });
     expect(() => parseScoreConsensusArgs(["--corpus", "/private/tmp/corpus"])).toThrow(/--out/);
+  });
+
+  it("treats a bare homr flag as the automatic pinned runner while preserving explicit executables", () => {
+    expect(parseScoreConsensusArgs(["--corpus", "/private/tmp/corpus", "--out", "/private/tmp/out", "--homr"]).homr).toBe("auto");
+    expect(parseScoreConsensusArgs(["--corpus", "/private/tmp/corpus", "--out", "/private/tmp/out", "--homr", "/opt/homr"]).homr).toBe("/opt/homr");
+    expect(parseScoreConsensusArgs(["--corpus", "/private/tmp/corpus", "--out", "/private/tmp/out", "--homr=/opt/homr"]).homr).toBe("/opt/homr");
+  });
+
+  it("combines valid HOMR page scores in page order with namespaced IDs and cumulative beat offsets", () => {
+    const pageOne = parseMusicXmlScore(xml);
+    const pageTwo = parseMusicXmlScore(xml.replace("<movement-title>Fixture</movement-title>", "<movement-title>Page two</movement-title>"));
+    const combined = combineHomrPageScores([
+      { page: 2, relativePath: "page-2.png", score: pageTwo },
+      { page: 1, relativePath: "page-1.png", score: pageOne },
+    ]);
+    expect(combined).not.toBeNull();
+    const normalized = normalizeOmrScore(combined!);
+    expect(normalized.parts.map((part) => part.id)).toEqual(["page-1:P1", "page-2:P1"]);
+    expect(normalized.measures.map((measure) => [measure.id, measure.page, measure.startBeat])).toEqual([
+      ["page-1:P1:m1", 1, 0],
+      ["page-1:P1:m2", 1, 4],
+      ["page-2:P1:m1", 2, 8],
+      ["page-2:P1:m2", 2, 12],
+    ]);
+    expect(normalized.measures.flatMap((measure) => measure.events).map((event) => event.measureId)).toContain("page-2:P1:m2");
+  });
+
+  it("keeps partial HOMR page health and invocation diagnostics in the report while retaining valid score evidence", () => {
+    const homrScore = combineHomrPageScores([{ page: 1, relativePath: "page-1.png", score: parseMusicXmlScore(xml) }]);
+    const report = createScoreConsensusReport(scoreInput({
+      homr: {
+        id: "homr",
+        version: "0.3.1",
+        status: "available",
+        score: homrScore,
+        error: "page 2: MusicXML output was invalid",
+        metadata: {
+          health: "partial",
+          model: "homr",
+          invocation: { strategy: "one-page-per-invocation", count: 2 },
+          pages: [
+            { page: 1, status: "available", measureCount: 2 },
+            { page: 2, status: "failed", errors: ["MusicXML output was invalid"] },
+          ],
+        },
+      },
+    }));
+    const metadata = report.consensus.metadata as { backendRuns?: Array<{ id: string; metadata?: { health?: string; pages?: unknown[] } }> };
+    const homr = metadata.backendRuns?.find((backend) => backend.id === "homr");
+    expect(homr?.metadata?.health).toBe("partial");
+    expect(homr?.metadata?.pages).toHaveLength(2);
+    expect(report.consensus.backends.find((backend) => backend.id === "homr")).toMatchObject({ status: "available", measureCount: 2 });
+  });
+
+  it("invokes one grouped HOMR backend call and keeps broken pages closed", async () => {
+    const root = await mkdtemp(join(tmpdir(), "keyspilli-homr-pages-"));
+    const calls: Array<{ imagePaths: readonly string[]; outputDirectory: string }> = [];
+    try {
+      const validPageXml = xml.replace("<movement-title>Fixture</movement-title>", "<movement-title>Page one</movement-title>");
+      const run = await runHomrPages({
+        scoreId: "fixture-score",
+        outputRoot: root,
+        homr: "/opt/homr",
+        raster: {
+          renderer: { id: "pdftoppm", version: "1", dpi: 300, format: "png", crop: "none", rotation: 0 },
+          pages: [
+            { page: 2, relativePath: "page-2.png", width: 100, height: 100, bytes: 10, sha256: "b" },
+            { page: 1, relativePath: "page-1.png", width: 100, height: 100, bytes: 10, sha256: "a" },
+          ],
+        },
+        createBackend: () => ({
+          id: "homr",
+          version: "0.7.0",
+          async recognize(input) {
+            calls.push(input);
+            await mkdir(input.outputDirectory, { recursive: true });
+            await mkdir(join(input.outputDirectory, "page-1"), { recursive: true });
+            await mkdir(join(input.outputDirectory, "page-2"), { recursive: true });
+            await writeFile(join(input.outputDirectory, "page-1", "result.musicxml"), validPageXml, "utf8");
+            await writeFile(join(input.outputDirectory, "page-2", "result.musicxml"), "not MusicXML", "utf8");
+            return {
+              backend: "homr",
+              version: "0.7.0",
+              status: "pass" as const,
+              health: "partially-available" as const,
+              artifacts: [
+                { relativePath: "page-1/result.musicxml", format: "musicxml" as const, bytes: 1, sha256: "0".repeat(64) },
+                { relativePath: "page-2/result.musicxml", format: "musicxml" as const, bytes: 1, sha256: "1".repeat(64) },
+              ],
+              pages: [
+                { page: 1, relativeInput: "page-1/input.png", status: "available" as const, elapsedMs: 10, exitCode: 0, artifacts: [{ relativePath: "page-1/result.musicxml", format: "musicxml" as const, bytes: 1, sha256: "0".repeat(64) }], measureCount: 2, noteCount: 4, staffCount: 1, warnings: [], errors: [] },
+                { page: 2, relativeInput: "page-2/input.png", status: "broken-output" as const, elapsedMs: 11, exitCode: 0, artifacts: [{ relativePath: "page-2/result.musicxml", format: "musicxml" as const, bytes: 1, sha256: "1".repeat(64) }], measureCount: 0, noteCount: 0, staffCount: 0, warnings: [], errors: ["malformed MusicXML"] },
+              ],
+              warnings: [],
+              errors: ["page 2: malformed MusicXML"],
+            };
+          },
+        }),
+      });
+      expect(calls).toHaveLength(1);
+      expect(calls[0]?.imagePaths.map((path) => path.split("/").at(-1))).toEqual(["page-1.png", "page-2.png"]);
+      expect(calls[0]?.outputDirectory).toBe(join(root, "scores", "fixture-score", "backends", "homr"));
+      expect(run.status).toBe("available");
+      expect(run.score).toBeDefined();
+      expect(normalizeOmrScore(run.score!).measures).toHaveLength(2);
+      expect((run.metadata as { health: string; invocationCount: number; availablePages: number; failedPages: number }).health).toBe("partial");
+      expect((run.metadata as { invocationCount: number }).invocationCount).toBe(2);
+      expect((run.metadata as { availablePages: number }).availablePages).toBe(1);
+      expect((run.metadata as { failedPages: number }).failedPages).toBe(1);
+      expect(run.error).toMatch(/page 2/i);
+      expect(JSON.stringify(run.metadata)).not.toContain(root);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("maps HOMR pages and aggregate artifacts by invocation index for non-contiguous raster pages", async () => {
+    const root = await mkdtemp(join(tmpdir(), "keyspilli-homr-index-map-"));
+    try {
+      const run = await runHomrPages({
+        scoreId: "fixture-score",
+        outputRoot: root,
+        homr: "/opt/homr",
+        raster: {
+          renderer: { id: "pdftoppm", version: "1", dpi: 300, format: "png", crop: "none", rotation: 0 },
+          pages: [
+            { page: 10, relativePath: "page-10.png", width: 100, height: 100, bytes: 10, sha256: "b" },
+            { page: 2, relativePath: "page-2.png", width: 100, height: 100, bytes: 10, sha256: "a" },
+          ],
+        },
+        createBackend: () => ({
+          id: "homr",
+          version: "0.7.0",
+          async recognize(input) {
+            await mkdir(join(input.outputDirectory, "page-1"), { recursive: true });
+            await mkdir(join(input.outputDirectory, "page-2"), { recursive: true });
+            await writeFile(join(input.outputDirectory, "page-1", "result.musicxml"), xml, "utf8");
+            await writeFile(join(input.outputDirectory, "page-2", "result.musicxml"), xml, "utf8");
+            return {
+              backend: "homr",
+              version: "0.7.0",
+              status: "pass" as const,
+              health: "available" as const,
+              artifacts: [
+                { relativePath: "page-1/result.musicxml", format: "musicxml" as const, bytes: xml.length, sha256: "0".repeat(64) },
+                { relativePath: "page-2/result.musicxml", format: "musicxml" as const, bytes: xml.length, sha256: "1".repeat(64) },
+              ],
+              pages: [
+                { page: 1, relativeInput: "page-1/input.png", status: "available" as const, elapsedMs: 10, exitCode: 0, artifacts: undefined as unknown as [], measureCount: 2, noteCount: 4, staffCount: 1, warnings: [], errors: [] },
+                { page: 2, relativeInput: "page-2/input.png", status: "available" as const, elapsedMs: 11, exitCode: 0, artifacts: undefined as unknown as [], measureCount: 2, noteCount: 4, staffCount: 1, warnings: [], errors: [] },
+              ],
+              invocation: { mode: "executable" as const, executable: "homr", packageName: "homr", version: "0.7.0", forceCpu: true, perPage: true as const, args: ["<relative-page-image>"] },
+              model: { id: "homr" as const, packageName: "homr", version: "0.7.0", runtime: "executable" as const, forceCpu: true, source: "external-executable" as const, cache: "external" as const },
+              warnings: [],
+              errors: [],
+            };
+          },
+        }),
+      });
+      const metadata = run.metadata as { pages: Array<{ page: number; artifactPaths: string[] }>; backendHealth?: string };
+      expect(metadata.pages.map((page) => [page.page, page.artifactPaths])).toEqual([
+        [2, ["page-1/result.musicxml"]],
+        [10, ["page-2/result.musicxml"]],
+      ]);
+      expect((run.pages as Array<{ page: number }> | undefined)?.map((page) => page.page)).toEqual([1, 2]);
+      expect(run.health).toBe("available");
+      expect(run.invocation).toMatchObject({ mode: "executable", executable: "homr" });
+      expect(run.model).toMatchObject({ id: "homr", version: "0.7.0" });
+      expect(normalizeOmrScore(run.score!).measures.map((measure) => measure.page)).toEqual([2, 2, 10, 10]);
+      expect(JSON.stringify(run)).not.toContain(root);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("marks malformed artifacts broken even when HOMR reports an available page and health", async () => {
+    const root = await mkdtemp(join(tmpdir(), "keyspilli-homr-broken-artifact-"));
+    try {
+      const run = await runHomrPages({
+        scoreId: "fixture-score",
+        outputRoot: root,
+        homr: "/opt/homr",
+        raster: {
+          renderer: { id: "pdftoppm", version: "1", dpi: 300, format: "png", crop: "none", rotation: 0 },
+          pages: [{ page: 7, relativePath: "page-7.png", width: 100, height: 100, bytes: 10, sha256: "a" }],
+        },
+        createBackend: () => ({
+          id: "homr",
+          version: "0.7.0",
+          async recognize(input) {
+            await mkdir(join(input.outputDirectory, "page-1"), { recursive: true });
+            await writeFile(join(input.outputDirectory, "page-1", "result.musicxml"), "", "utf8");
+            return {
+              backend: "homr",
+              version: "0.7.0",
+              status: "pass" as const,
+              health: "available" as const,
+              artifacts: [{ relativePath: "page-1/result.musicxml", format: "musicxml" as const, bytes: 0, sha256: "0".repeat(64) }],
+              pages: [{ page: 1, relativeInput: "page-1/input.png", status: "available" as const, elapsedMs: 10, exitCode: 0, artifacts: [{ relativePath: "page-1/result.musicxml", format: "musicxml" as const, bytes: 0, sha256: "0".repeat(64) }], measureCount: 2, noteCount: 4, staffCount: 1, warnings: [], errors: [] }],
+              invocation: { mode: "executable" as const, executable: "homr", packageName: "homr", version: "0.7.0", forceCpu: true, perPage: true as const, args: [] },
+              model: "homr@0.7.0",
+              warnings: [],
+              errors: [],
+            };
+          },
+        }),
+      });
+      const metadata = run.metadata as { pages: Array<{ status: string }>; backendHealth?: string; rawBackendHealth?: string };
+      expect(metadata.pages[0]?.status).toBe("broken-output");
+      expect(metadata.backendHealth).toBe("broken-output");
+      expect(metadata.rawBackendHealth).toBe("available");
+      expect(run.health).toBe("broken-output");
+      expect((run.pages as Array<{ status?: string }> | undefined)?.[0]?.status).toBe("broken-output");
+      expect(run.status).toBe("failed");
+      expect(run.error).toMatch(/malformed|empty|musicxml/i);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("reports the resolved executable when automatic uvx probing falls back", async () => {
+    const root = await mkdtemp(join(tmpdir(), "keyspilli-homr-fallback-metadata-"));
+    try {
+      const run = await runHomrPages({
+        scoreId: "fixture-score",
+        outputRoot: root,
+        homr: "auto",
+        raster: {
+          renderer: { id: "pdftoppm", version: "1", dpi: 300, format: "png", crop: "none", rotation: 0 },
+          pages: [{ page: 1, relativePath: "page-1.png", width: 100, height: 100, bytes: 10, sha256: "a" }],
+        },
+        createBackend: () => ({
+          id: "homr",
+          version: "0.7.0",
+          async recognize(input) {
+            await mkdir(join(input.outputDirectory, "page-1"), { recursive: true });
+            await writeFile(join(input.outputDirectory, "page-1", "result.musicxml"), xml, "utf8");
+            return {
+              backend: "homr",
+              version: "0.7.0",
+              status: "pass" as const,
+              health: "available" as const,
+              artifacts: [{ relativePath: "page-1/result.musicxml", format: "musicxml" as const, bytes: xml.length, sha256: "0".repeat(64) }],
+              pages: [{ page: 1, relativeInput: "page-1/input.png", status: "available" as const, elapsedMs: 1, exitCode: 0, artifacts: [{ relativePath: "page-1/result.musicxml", format: "musicxml" as const, bytes: xml.length, sha256: "0".repeat(64) }], measureCount: 2, noteCount: 4, staffCount: 1, warnings: [], errors: [] }],
+              invocation: { mode: "executable" as const, executable: "homr", packageName: "homr", version: "0.7.0", forceCpu: true, perPage: true as const, args: ["--gpu", "no"] },
+              model: { id: "homr" as const, packageName: "homr", version: "0.7.0", runtime: "executable" as const, forceCpu: true, source: "external-executable" as const, cache: "external" as const },
+              warnings: [],
+              errors: [`HOMR uvx resolution failed: package unavailable at ${root}/cache`],
+            };
+          },
+        }),
+      });
+      const metadata = run.metadata as { mode: string; resolvedMode?: string; executable: string; package: string | null; resolutionError?: string };
+      expect(metadata).toMatchObject({ mode: "auto", resolvedMode: "executable", executable: "homr", package: null });
+      expect(metadata.resolutionError).toMatch(/resolution failed/);
+      expect(run.invocation).toMatchObject({ mode: "executable", executable: "homr" });
+      expect(run.model).toMatchObject({ runtime: "executable", source: "external-executable" });
+      expect(run.error).toMatch(/resolution failed/);
+      expect(run.error).not.toContain(root);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   });
 });

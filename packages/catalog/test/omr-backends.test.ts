@@ -1,4 +1,4 @@
-import { chmod, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -179,7 +179,8 @@ describe("optional OMR backends and PDF rasterization", () => {
       const calls: Array<{ file: string; args: string[]; shell: unknown }> = [];
       const execFile: OmrCommandRunner = async (file, args, options) => {
         calls.push({ file, args: [...args], shell: options.shell });
-        if (args[0] === "--version") return { stdout: "uv 0.7.2", stderr: "" };
+        if (args.includes("--help")) return { stdout: "usage: homer", stderr: "" };
+        if (file === "uv") return { stdout: "", stderr: "" };
         const staged = args.at(-1)!;
         await writeFile(`${staged}.musicxml`, VALID_MUSIC_XML);
         return { stdout: "", stderr: "" };
@@ -187,10 +188,11 @@ describe("optional OMR backends and PDF rasterization", () => {
       const backend = createHomrBackend({ execFile });
       expect(calls).toHaveLength(0);
       const result = await backend.recognize({ imagePaths: [inputPath], outputDirectory });
-      expect(calls).toHaveLength(2); // lazy uvx probe, then one page invocation
-      expect(calls[0]).toMatchObject({ file: "uvx", args: ["--version"], shell: false });
+      expect(calls).toHaveLength(3); // lazy uvx probe, one page invocation, then cache discovery
+      expect(calls[0]).toMatchObject({ file: "uvx", args: ["--from", "homr==0.7.0", "homr", "--help"], shell: false });
       expect(calls[1]).toMatchObject({ file: "uvx", shell: false });
       expect(calls[1]!.args).toEqual(["--from", "homr==0.7.0", "homr", "--gpu", "no", expect.stringContaining("page-1")]);
+      expect(calls[2]).toMatchObject({ file: "uv", args: ["cache", "dir"], shell: false });
       expect(backend.id).toBe("homr");
       expect(backend.version).toBe("0.7.0");
       expect(result).toMatchObject({ backend: "homr", version: "0.7.0", status: "pass", health: "available" });
@@ -231,6 +233,84 @@ describe("optional OMR backends and PDF rasterization", () => {
     }
   });
 
+  it("records a sanitized uvx package-resolution fallback with executable provenance", async () => {
+    const directory = await temporaryDirectory("keyspilli-omr-homr-resolution-fallback-");
+    try {
+      const inputPath = join(directory, "source.png");
+      const outputDirectory = join(directory, "output");
+      await writeFile(inputPath, ONE_PIXEL_PNG);
+      const calls: string[] = [];
+      const execFile: OmrCommandRunner = async (file, args) => {
+        calls.push(file);
+        if (file === "uvx") {
+          throw Object.assign(new Error("uvx failed"), {
+            code: 1,
+            stderr: `error: package homr==0.7.0 could not be resolved from ${directory}/private/cache`,
+          });
+        }
+        await writeFile(`${args.at(-1)!}.musicxml`, VALID_MUSIC_XML);
+        return { stdout: "", stderr: "" };
+      };
+      const result = await createHomrBackend({ executable: "/opt/homr", execFile }).recognize({ imagePaths: [inputPath], outputDirectory });
+
+      expect(calls).toEqual(["uvx", "/opt/homr"]);
+      expect(result.status).toBe("pass");
+      expect(result.invocation).toMatchObject({ mode: "executable", executable: "homr" });
+      expect(result.model).toMatchObject({ runtime: "executable", source: "external-executable", cache: "external" });
+      expect(result.errors.join(" ")).toMatch(/uvx.*resolution|could not be resolved/i);
+      expect(result.errors.join(" ")).not.toContain(directory);
+      expect(result.errors.join(" ")).toContain("[redacted-path]");
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("discovers uvx model files after a successful page and retries a cold cache", async () => {
+    const directory = await temporaryDirectory("keyspilli-omr-homr-model-discovery-");
+    try {
+      const first = join(directory, "first.png");
+      const second = join(directory, "second.png");
+      const outputDirectory = join(directory, "output");
+      const cacheDirectory = join(directory, "uv-cache");
+      const modelPath = join(cacheDirectory, "archive-v0", "homr-wheel", "homr", "segmentation", "segnet_308-abc.onnx");
+      await Promise.all([first, second].map((path) => writeFile(path, ONE_PIXEL_PNG)));
+      const events: string[] = [];
+      let cacheLookups = 0;
+      const execFile: OmrCommandRunner = async (file, args) => {
+        if (file === "uvx" && args.includes("--help")) {
+          events.push("probe");
+          return { stdout: "usage: homer", stderr: "" };
+        }
+        if (file === "uv") {
+          cacheLookups += 1;
+          events.push(`cache-${cacheLookups}`);
+          return { stdout: `${cacheDirectory}\n`, stderr: "" };
+        }
+        events.push(`page-${args.at(-1)!.includes("page-1") ? 1 : 2}`);
+        await writeFile(`${args.at(-1)!}.musicxml`, VALID_MUSIC_XML);
+        if (events.includes("page-2")) {
+          await mkdir(join(cacheDirectory, "archive-v0", "homr-wheel", "homr", "segmentation"), { recursive: true });
+          await writeFile(modelPath, Buffer.from("synthetic-model"));
+        }
+        return { stdout: "", stderr: "" };
+      };
+      const result = await createHomrBackend({ execFile }).recognize({ imagePaths: [first, second], outputDirectory });
+      const model = result.model as { files?: Array<{ name: string; bytes: number; sha256: string }> };
+
+      expect(events).toEqual(["probe", "page-1", "cache-1", "page-2", "cache-2"]);
+      expect(events.indexOf("page-1")).toBeLessThan(events.indexOf("cache-1"));
+      expect(cacheLookups).toBe(2);
+      expect(model.files).toEqual([{
+        name: "archive-v0/homr-wheel/homr/segmentation/segnet_308-abc.onnx",
+        bytes: Buffer.byteLength("synthetic-model"),
+        sha256: expect.stringMatching(/^[0-9a-f]{64}$/),
+      }]);
+      expect(JSON.stringify(result)).not.toContain(cacheDirectory);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
   it("continues sequentially after a page failure and reports partial health", async () => {
     const directory = await temporaryDirectory("keyspilli-omr-homr-partial-");
     try {
@@ -242,7 +322,8 @@ describe("optional OMR backends and PDF rasterization", () => {
       const calls: string[] = [];
       const execFile: OmrCommandRunner = async (_file, args, options) => {
         expect(options.shell).toBe(false);
-        if (args[0] === "--version") return { stdout: "uv 0.7.2", stderr: "" };
+        if (args.includes("--help")) return { stdout: "usage: homer", stderr: "" };
+        if (args[0] === "cache" && args[1] === "dir") return { stdout: "", stderr: "" };
         const staged = args.at(-1)!;
         calls.push(staged);
         if (staged.includes("page-1")) await writeFile(`${staged}.musicxml`, VALID_MUSIC_XML);
@@ -274,7 +355,8 @@ describe("optional OMR backends and PDF rasterization", () => {
       const outputDirectory = join(directory, "output");
       await writeFile(inputPath, ONE_PIXEL_PNG);
       const execFile: OmrCommandRunner = async (_file, args) => {
-        if (args[0] === "--version") return { stdout: "uv 0.7.2", stderr: "" };
+        if (args.includes("--help")) return { stdout: "usage: homer", stderr: "" };
+        if (args[0] === "cache" && args[1] === "dir") return { stdout: "", stderr: "" };
         await writeFile(`${args.at(-1)!}.musicxml`, "<score-partwise>");
         return { stdout: "", stderr: "" };
       };
