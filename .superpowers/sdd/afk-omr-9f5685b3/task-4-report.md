@@ -24,3 +24,13 @@ The optional `RoleAlignmentRegion` adapter accepts aligned/split/merged regions 
 ## Boundaries
 
 No consensus thresholds, `OmrConsensusReport` fields, raw review items, corpus I/O, production state, or corpus artifacts were changed. Role-vote comparison was intentionally deferred: this task consumes existing trusted role states and leaves independent event-vote semantics for a later alignment-backed task.
+
+## Follow-up hardening
+
+The review follow-up keeps role-unassigned events out of otherwise trusted
+full-measure masks, counts unknown events from omitted role-labelled events,
+derives consensus provenance from the actual aligned participants, sorts report
+events before projection, filters malformed report rows fail-closed, and keeps
+rejected alignment regions as hard review-group boundaries. Focused coverage is
+now 10/10; the full catalog suite is 52 files and 462 tests; catalog typecheck
+passes.

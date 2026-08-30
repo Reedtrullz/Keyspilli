@@ -196,4 +196,88 @@ describe("OMR role-specific partial references", () => {
     expect(reference.coverage.harmony.coverage).toBeNull();
     expect(reference.regions.every((region) => region.roles.harmony.state === "UNKNOWN")).toBe(true);
   });
+
+  it("counts omitted role events rather than mask rows and keeps role-unassigned masks off trusted lanes", () => {
+    const candidate = score({
+      parts: [{
+        ...score().parts[0]!,
+        measures: score().parts[0]!.measures.map((measure) => ({
+          ...measure,
+          events: (measure.events ?? []).map((event) => event.role === "harmony" ? { ...event, pitch: event.pitch + 1 } : event),
+        })),
+      }],
+    });
+    const harmonyReference = buildTrustedPartialReference(dualReport(candidate));
+    expect(harmonyReference.coverage.harmony.unknownEventCount).toBe(2);
+
+    const unassigned = score({
+      parts: [{
+        ...score().parts[0]!,
+        measures: [{
+          ...score().parts[0]!.measures[0]!,
+          events: [
+            { onset: 0, duration: 1, pitch: 72, role: "melody" },
+            { onset: 1, duration: 1, pitch: 60 },
+          ],
+        }],
+      }],
+    });
+    const unassignedReference = buildTrustedPartialReference(buildOmrConsensus({ engines: [{ id: "single", version: "1", score: unassigned }] }));
+    expect(unassignedReference.regions[0]?.roles.melody.state).toBe("TRUSTED_SINGLE_ENGINE");
+    expect(unassignedReference.regions[0]?.unknownRoles).not.toContain("melody");
+    expect(unassignedReference.coverage.melody.unknownBeatSpan).toBe(0);
+    expect(unassignedReference.coverage.melody.unknownEventCount).toBe(0);
+  });
+
+  it("records only the engines that participate in the trusted consensus alignment", () => {
+    const report = buildOmrConsensus({
+      engines: [
+        { id: "engine-a", version: "1", independenceGroup: "group-a", score: score() },
+        { id: "engine-b", version: "1", independenceGroup: "group-b", score: score() },
+        { id: "engine-c", version: "1", independenceGroup: "group-c", score: score() },
+      ],
+    });
+    const reference = buildTrustedPartialReference(report);
+
+    expect(reference.regions[0]?.roles.melody.provenance).toMatchObject({
+      kind: "dual-omr-consensus",
+      engineIds: ["engine-a", "engine-b"],
+      independenceGroups: ["group-a", "group-b"],
+    });
+    expect(reference.regions[0]?.roles.melody.provenance.engineIds).not.toContain("engine-c");
+  });
+
+  it("is deterministic for reordered report events and fails closed for malformed reports", () => {
+    const report = dualReport();
+    const reordered = {
+      ...report,
+      measures: report.measures.map((measure) => ({ ...measure, events: [...measure.events].reverse() })).reverse(),
+    };
+    expect(buildTrustedPartialReference(report)).toEqual(buildTrustedPartialReference(reordered));
+    expect(buildTrustedPartialReference(null as unknown as OmrConsensusReport).lanes).toEqual({ melody: [], harmony: [], rhythm: [] });
+    expect(groupOmrReviewRegions({ measures: [null], reviewItems: [null] } as unknown as OmrConsensusReport)).toEqual([]);
+  });
+
+  it("never groups adjacent review items across rejected alignment regions", () => {
+    const base = score({
+      parts: [{
+        ...score().parts[0]!,
+        measures: score().parts[0]!.measures.map((measure) => ({ ...measure, events: (measure.events ?? []).filter((event) => event.role === "melody") })),
+      }],
+    });
+    const report = dualReport(score({
+      parts: [{ ...base.parts[0]!, measures: base.parts[0]!.measures.map((measure) => ({ ...measure, events: [] })) }],
+    }), base);
+    const alignedRegions: RoleAlignmentRegion[] = report.measures.map((measure) => ({
+      id: `rejected-${measure.id}`,
+      canonicalMeasureIds: [measure.id],
+      sourceMeasureIds: {},
+      startBeat: measure.startBeat,
+      endBeat: measure.startBeat + measure.durationBeats,
+      confidence: 0.2,
+      status: "ambiguous",
+    }));
+    expect(report.reviewItems).toHaveLength(2);
+    expect(groupOmrReviewRegions(report, { alignedRegions })).toHaveLength(2);
+  });
 });

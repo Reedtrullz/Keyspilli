@@ -149,6 +149,7 @@ const DISAGREEMENT_ORDER: readonly OmrDisagreementKind[] = [
   "continuity",
 ];
 const EPS = 2e-6;
+const DISAGREEMENT_KINDS = new Set<OmrDisagreementKind>(DISAGREEMENT_ORDER);
 
 function finite(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
@@ -177,6 +178,122 @@ function stableUnique<T>(values: readonly T[]): T[] {
 
 function trustedState(state: OmrTrustState | null): state is "TRUSTED_NATIVE" | "TRUSTED_CONSENSUS" | "TRUSTED_SINGLE_ENGINE" {
   return state !== null && TRUSTED_STATES.has(state);
+}
+
+function validRole(value: unknown): value is TrustedRole {
+  return value === "melody" || value === "harmony" || value === "rhythm";
+}
+
+function safeRoleState(value: unknown): { state: OmrTrustState | null; confidence: number | null } {
+  if (!value || typeof value !== "object") return { state: null, confidence: null };
+  const candidate = value as { state?: unknown; confidence?: unknown };
+  const states: readonly (OmrTrustState | null)[] = ["TRUSTED_NATIVE", "TRUSTED_CONSENSUS", "TRUSTED_SINGLE_ENGINE", "REVIEW_REQUIRED", "FAILED", null];
+  const state = states.includes(candidate.state as OmrTrustState | null) ? candidate.state as OmrTrustState | null : null;
+  return { state, confidence: finite(candidate.confidence) ? rounded(candidate.confidence) : null };
+}
+
+function safeEvent(value: unknown, fallbackMeasureId: string, fallbackMeasureIndex: number, index: number): OmrNormalizedEvent | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const candidate = value as Partial<OmrNormalizedEvent>;
+  if (typeof candidate.id !== "string" || !candidate.id || !finite(candidate.onset) || candidate.onset < 0 || !finite(candidate.duration) || candidate.duration <= 0 || !finite(candidate.pitch) || !Number.isInteger(candidate.pitch) || candidate.pitch < 0 || candidate.pitch > 127) return null;
+  const tie = candidate.tie && typeof candidate.tie === "object" ? candidate.tie : {};
+  return {
+    id: candidate.id,
+    partId: typeof candidate.partId === "string" ? candidate.partId : "unknown",
+    measureId: typeof candidate.measureId === "string" ? candidate.measureId : fallbackMeasureId,
+    measureIndex: finite(candidate.measureIndex) ? candidate.measureIndex : fallbackMeasureIndex,
+    onset: rounded(candidate.onset),
+    duration: rounded(candidate.duration),
+    pitch: candidate.pitch,
+    accidental: typeof candidate.accidental === "string" ? candidate.accidental : null,
+    tie: { start: Boolean((tie as { start?: unknown }).start), stop: Boolean((tie as { stop?: unknown }).stop), continue: Boolean((tie as { continue?: unknown }).continue) },
+    staff: finite(candidate.staff) ? candidate.staff : null,
+    voice: typeof candidate.voice === "string" ? candidate.voice : null,
+    role: validRole(candidate.role) ? candidate.role : null,
+    tuplet: Boolean(candidate.tuplet),
+  };
+}
+
+function safeMeasure(value: unknown, fallbackIndex: number): OmrConsensusMeasure | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const candidate = value as Partial<OmrConsensusMeasure>;
+  if (typeof candidate.id !== "string" || !candidate.id) return null;
+  const events = Array.isArray(candidate.events)
+    ? candidate.events.map((event, index) => safeEvent(event, candidate.id!, finite(candidate.index) ? candidate.index : fallbackIndex, index)).filter((event): event is OmrNormalizedEvent => event !== null)
+    : [];
+  const roleSource = candidate.roles && typeof candidate.roles === "object" ? candidate.roles as Record<string, unknown> : {};
+  const roles = {
+    melody: safeRoleState(roleSource.melody),
+    harmony: safeRoleState(roleSource.harmony),
+    rhythm: safeRoleState(roleSource.rhythm),
+  };
+  const agreementValue = candidate.agreement && typeof candidate.agreement === "object" ? candidate.agreement as unknown as Record<string, unknown> : null;
+  const disagreements = agreementValue && Array.isArray(agreementValue.disagreements)
+    ? agreementValue.disagreements.filter((entry): entry is Record<string, unknown> => Boolean(entry && typeof entry === "object" && !Array.isArray(entry) && DISAGREEMENT_KINDS.has((entry as { kind?: unknown }).kind as OmrDisagreementKind))).map((entry) => ({
+      kind: entry.kind as OmrDisagreementKind,
+      role: validRole(entry.role) ? entry.role : null,
+      severity: finite(entry.severity) ? rounded(entry.severity) : 0,
+      detail: typeof entry.detail === "string" ? entry.detail : "structured disagreement",
+    }))
+    : [];
+  const agreement = agreementValue && Array.isArray(agreementValue.disagreements) ? { ...candidate.agreement, disagreements } as NonNullable<OmrConsensusMeasure["agreement"]> : null;
+  return {
+    ...candidate,
+    id: candidate.id,
+    index: finite(candidate.index) ? candidate.index : fallbackIndex,
+    number: typeof candidate.number === "string" ? candidate.number : String(candidate.number ?? fallbackIndex + 1),
+    source: typeof candidate.source === "string" ? candidate.source : "unknown",
+    page: finite(candidate.page) ? candidate.page : null,
+    system: finite(candidate.system) ? candidate.system : null,
+    startBeat: finite(candidate.startBeat) ? Math.max(0, rounded(candidate.startBeat)) : 0,
+    durationBeats: finite(candidate.durationBeats) ? Math.max(0, rounded(candidate.durationBeats)) : 0,
+    state: candidate.state === "TRUSTED_NATIVE" || candidate.state === "TRUSTED_CONSENSUS" || candidate.state === "TRUSTED_SINGLE_ENGINE" || candidate.state === "REVIEW_REQUIRED" || candidate.state === "FAILED" ? candidate.state : "FAILED",
+    confidence: finite(candidate.confidence) ? rounded(candidate.confidence) : 0,
+    agreement,
+    roles,
+    events,
+    reviewReasons: Array.isArray(candidate.reviewReasons) ? candidate.reviewReasons.filter((reason): reason is string => typeof reason === "string") : [],
+  };
+}
+
+function safeReviewItem(value: unknown, fallbackIndex: number): OmrConsensusReport["reviewItems"][number] | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const candidate = value as Partial<OmrConsensusReport["reviewItems"][number]>;
+  if (typeof candidate.measureId !== "string" || !candidate.measureId) return null;
+  return {
+    measureId: candidate.measureId,
+    measureIndex: finite(candidate.measureIndex) ? candidate.measureIndex : fallbackIndex,
+    number: typeof candidate.number === "string" ? candidate.number : String(fallbackIndex + 1),
+    priority: finite(candidate.priority) ? candidate.priority : 0,
+    priorityClass: candidate.priorityClass === "high" || candidate.priorityClass === "medium" || candidate.priorityClass === "low" ? candidate.priorityClass : "low",
+    reasons: Array.isArray(candidate.reasons) ? candidate.reasons.filter((reason): reason is string => typeof reason === "string") : [],
+    roles: Array.isArray(candidate.roles) ? candidate.roles.filter(validRole) : [],
+  };
+}
+
+/** Strip malformed nested report rows before projecting; invalid rows fail closed. */
+function safeReport(value: unknown): OmrConsensusReport {
+  const source = value && typeof value === "object" && !Array.isArray(value) ? value as Partial<OmrConsensusReport> : {};
+  const measures = Array.isArray(source.measures) ? source.measures.map((measure, index) => safeMeasure(measure, index)).filter((measure): measure is OmrConsensusMeasure => measure !== null) : [];
+  const reviewItems = Array.isArray(source.reviewItems) ? source.reviewItems.map((item, index) => safeReviewItem(item, index)).filter((item): item is OmrConsensusReport["reviewItems"][number] => item !== null) : [];
+  const backends = Array.isArray(source.backends)
+    ? source.backends
+      .filter((backend): backend is OmrConsensusReport["backends"][number] => Boolean(backend && typeof backend === "object" && typeof (backend as { id?: unknown }).id === "string" && typeof (backend as { version?: unknown }).version === "string"))
+      .map((backend) => ({
+        ...backend,
+        independenceGroup: typeof backend.independenceGroup === "string" ? backend.independenceGroup : backend.id,
+        status: backend.status === "available" || backend.status === "unavailable" || backend.status === "failed" ? backend.status : "failed",
+        measureCount: finite(backend.measureCount) ? backend.measureCount : 0,
+      }))
+    : [];
+  const alignments = Array.isArray(source.alignments)
+    ? source.alignments
+      .filter((entry): entry is OmrConsensusReport["alignments"][number] => Boolean(entry && typeof entry === "object" && typeof (entry as { left?: unknown }).left === "string" && typeof (entry as { right?: unknown }).right === "string" && (entry as { alignment?: unknown }).alignment && typeof (entry as { alignment?: unknown }).alignment === "object" && Array.isArray(((entry as { alignment: { matches?: unknown } }).alignment).matches)))
+    : [];
+  const native = source.native && typeof source.native === "object" && source.native.provenance && typeof source.native.provenance === "object"
+    ? source.native
+    : undefined;
+  return { ...source, measures, reviewItems, backends, alignments, ...(native ? { native } : { native: undefined }) } as OmrConsensusReport;
 }
 
 function pageSystemCompare(left: { page: number | null; system: number | null }, right: { page: number | null; system: number | null }): number {
@@ -243,9 +360,18 @@ function reportScore(report: OmrConsensusReport, options: RoleReferenceOptions):
 }
 
 function availableBackends(report: OmrConsensusReport): OmrConsensusReport["backends"] {
-  return [...report.backends]
+  return [...(Array.isArray(report.backends) ? report.backends : [])]
     .filter((backend) => backend.status === "available" && backend.measureCount > 0)
     .sort((left, right) => compareStrings(left.id, right.id) || compareStrings(left.version, right.version));
+}
+
+function consensusParticipants(report: OmrConsensusReport, measure: OmrConsensusMeasure): OmrConsensusReport["backends"] {
+  const alignments = Array.isArray(report.alignments) ? report.alignments : [];
+  const alignment = alignments.find((entry) => entry.left === measure.source
+    && Array.isArray(entry.alignment?.matches)
+    && entry.alignment.matches.some((match) => Boolean(match && typeof match === "object" && (match.referenceMeasureId === measure.id || match.referenceIndex === measure.index))));
+  const ids = alignment ? stableUnique([alignment.left, alignment.right]) : [measure.source];
+  return availableBackends(report).filter((backend) => ids.includes(backend.id));
 }
 
 function roleProvenance(report: OmrConsensusReport, measure: OmrConsensusMeasure, role: TrustedRole): RoleProvenance {
@@ -261,7 +387,8 @@ function roleProvenance(report: OmrConsensusReport, measure: OmrConsensusMeasure
     };
   }
   if (state === "TRUSTED_CONSENSUS") {
-    const backends = availableBackends(report);
+    const backends = consensusParticipants(report, measure);
+    if (backends.length < 2) return { kind: "unknown", engineIds: [], versions: [], independenceGroups: [], sourceSha256: null };
     return {
       kind: "dual-omr-consensus",
       engineIds: stableUnique(backends.map((backend) => backend.id)).sort(compareStrings),
@@ -272,7 +399,8 @@ function roleProvenance(report: OmrConsensusReport, measure: OmrConsensusMeasure
   }
   if (state === "TRUSTED_SINGLE_ENGINE") {
     const backends = availableBackends(report).filter((backend) => backend.id === measure.source);
-    const selected = backends.length ? backends : availableBackends(report);
+    const selected = backends;
+    if (!selected.length) return { kind: "unknown", engineIds: [], versions: [], independenceGroups: [], sourceSha256: null };
     return {
       kind: "single-engine",
       engineIds: stableUnique(selected.map((backend) => backend.id)).sort(compareStrings),
@@ -330,7 +458,8 @@ function collapseTiedEvents(events: readonly InternalRoleEvent[]): InternalRoleE
 }
 
 function alignmentRegions(options: RoleReferenceOptions): readonly RoleAlignmentRegion[] {
-  return options.alignedRegions ?? options.alignmentRegions ?? [];
+  const value = options.alignedRegions ?? options.alignmentRegions;
+  return Array.isArray(value) ? value.filter((region): region is RoleAlignmentRegion => Boolean(region && typeof region === "object" && typeof region.id === "string" && Array.isArray(region.canonicalMeasureIds) && finite(region.startBeat) && finite(region.endBeat) && finite(region.confidence))) : [];
 }
 
 function numericIndex(value: string): number | null {
@@ -345,7 +474,7 @@ interface MeasureContext {
 }
 
 function contextsFor(report: OmrConsensusReport, options: RoleReferenceOptions): { contexts: MeasureContext[]; hierarchical: boolean } {
-  const measures = [...report.measures].sort((left, right) => left.index - right.index || compareStrings(left.id, right.id));
+  const measures = [...(Array.isArray(report.measures) ? report.measures : [])].sort((left, right) => left.index - right.index || compareStrings(left.id, right.id));
   const regions = [...alignmentRegions(options)]
     .filter((region) => region && typeof region.id === "string")
     .sort((left, right) => left.startBeat - right.startBeat || compareStrings(left.id, right.id));
@@ -426,14 +555,20 @@ function buildMeasureRegion(report: OmrConsensusReport, context: MeasureContext)
   const cells = {} as Record<TrustedRole, PartialRoleCell>;
   const maskReasons = {} as Record<TrustedRole, UnknownReason | null>;
   for (const role of ROLES) {
-    const roleEvents = measure.events.filter((event) => event.role === role).map((event) => projectEvent(measure, event, role));
+    const roleEvents = measure.events
+      .filter((event) => event.role === role)
+      .sort((left, right) => left.onset - right.onset || left.duration - right.duration || left.pitch - right.pitch || compareStrings(left.id, right.id))
+      .map((event) => projectEvent(measure, event, role));
     const state = measure.roles[role].state;
     const isTrusted = trustedState(state) && roleEvents.length > 0 && context.alignmentStatus !== "ambiguous" && context.alignmentStatus !== "unmatched";
     const reason = unknownReason(measure, role, roleUnassigned, context.alignmentStatus);
     const provenance = isTrusted ? roleProvenance(report, measure, role) : { kind: "unknown", engineIds: [], versions: [], independenceGroups: [], sourceSha256: null } satisfies RoleProvenance;
     const laneEvents = isTrusted ? roleEvents : [];
     events[role] = laneEvents;
-    maskReasons[role] = isTrusted && reason === "role-unassigned" ? reason : isTrusted ? null : reasonForMask(measure, role, roleUnassigned, context.alignmentStatus);
+    // A null-role event is not evidence for a trusted role. It must not turn a
+    // complete trusted lane into a full-measure unknown interval; only an
+    // otherwise untrusted cell receives the role-unassigned mask.
+    maskReasons[role] = isTrusted ? null : reasonForMask(measure, role, roleUnassigned, context.alignmentStatus);
     cells[role] = {
       state: isTrusted ? state as PartialRoleState : "UNKNOWN",
       confidence: isTrusted ? measure.roles[role].confidence : null,
@@ -479,6 +614,7 @@ function regionId(region: InternalRegion): string {
 function maskReasonForContext(region: InternalRegion, role: TrustedRole): UnknownReason | null {
   const reasons = region.contexts.map((context) => {
     const measure = context.measure;
+    if (region.cells[role].state !== "UNKNOWN" && context.alignmentStatus !== "ambiguous" && context.alignmentStatus !== "unmatched") return null;
     const roleUnassigned = measure.events.some((event) => event.role === null);
     return unknownReason(measure, role, roleUnassigned, context.alignmentStatus);
   }).filter((reason): reason is UnknownReason => reason !== null);
@@ -519,10 +655,15 @@ function roleCoverage(regions: readonly InternalRegion[], masks: PartialScoreRef
       trustedBeatSpan += duration;
       trustedEventCount += collapseTiedEvents(region.events[role]).length;
     }
+    for (const context of region.contexts) {
+      const roleEventCount = context.measure.events.filter((event) => event.role === role).length;
+      const state = context.measure.roles[role].state;
+      const alignmentRejected = context.alignmentStatus === "ambiguous" || context.alignmentStatus === "unmatched";
+      if (roleEventCount && (!trustedState(state) || alignmentRejected)) unknownEventCount += roleEventCount;
+    }
   }
   for (const mask of masks.filter((value) => value.role === role)) {
     unknownBeatSpan += Math.max(0, mask.endBeat - mask.startBeat);
-    unknownEventCount += mask.measureIds.length;
   }
   return {
     trustedBeatSpan: rounded(trustedBeatSpan),
@@ -536,8 +677,9 @@ function roleCoverage(regions: readonly InternalRegion[], masks: PartialScoreRef
 
 /** Build deterministic role lanes and explicit unknown masks from existing trust decisions. */
 export function buildTrustedPartialReference(report: OmrConsensusReport, options: RoleReferenceOptions = {}): PartialScoreReference {
-  const { contexts, hierarchical } = contextsFor(report, options);
-  const perMeasure = contexts.map((context) => buildMeasureRegion(report, context));
+  const safe = safeReport(report);
+  const { contexts, hierarchical } = contextsFor(safe, options);
+  const perMeasure = contexts.map((context) => buildMeasureRegion(safe, context));
   const regions = mergeRegions(perMeasure);
   const unknownMasks = makeUnknownMasks(regions);
   const lanes = {} as Record<TrustedRole, TrustedRoleEvent[]>;
@@ -572,8 +714,8 @@ export function buildTrustedPartialReference(report: OmrConsensusReport, options
       ...(region.context.alignmentId ? { alignmentRegionId: region.context.alignmentId } : {}),
     };
   });
-  const source = sourceMetadata(report, options);
-  const score = reportScore(report, options);
+  const source = sourceMetadata(safe, options);
+  const score = reportScore(safe, options);
   return {
     schemaVersion: OMR_PARTIAL_REFERENCE_SCHEMA_VERSION,
     score,
@@ -639,6 +781,7 @@ function membersCanJoin(left: ReviewMember, right: ReviewMember): boolean {
   const rightMeasure = right.measure;
   if (!leftMeasure || !rightMeasure) return false;
   if (left.alignmentId !== right.alignmentId) return false;
+  if (left.alignmentId?.startsWith("rejected:") || right.alignmentId?.startsWith("rejected:")) return false;
   if (left.alignmentId === null && (leftMeasure.page !== rightMeasure.page || leftMeasure.system !== rightMeasure.system)) return false;
   return true;
 }
@@ -680,6 +823,7 @@ function reviewGroup(members: readonly ReviewMember[]): OmrReviewGroup {
 
 /** Group raw review items by structured root cause while retaining every raw item unchanged. */
 export function groupOmrReviewRegions(report: OmrConsensusReport, options: Pick<RoleReferenceOptions, "alignedRegions" | "alignmentRegions" | "minAlignmentConfidence"> = {}): OmrReviewGroup[] {
+  const safe = safeReport(report);
   const suppliedRegions = [...alignmentRegions(options)]
     .filter((region) => region && typeof region.id === "string")
     .sort((left, right) => left.startBeat - right.startBeat || compareStrings(left.id, right.id));
@@ -687,12 +831,14 @@ export function groupOmrReviewRegions(report: OmrConsensusReport, options: Pick<
   const alignmentByMeasure = new Map<string, string>();
   for (const region of suppliedRegions) {
     const accepted = region.confidence >= minConfidence && (region.status === "aligned" || region.status === "split" || region.status === "merged");
-    if (!accepted) continue;
-    for (const id of region.canonicalMeasureIds) alignmentByMeasure.set(id, region.id);
+    // Keep rejected regions as distinct hard boundaries. Otherwise two
+    // rejected adjacent items on the same page/system could be grouped as if
+    // the adapter had proven continuity.
+    for (const id of region.canonicalMeasureIds) alignmentByMeasure.set(id, accepted ? region.id : `rejected:${region.id}`);
   }
-  const members = [...report.reviewItems]
+  const members = [...safe.reviewItems]
     .sort((left, right) => left.measureIndex - right.measureIndex || compareStrings(left.measureId, right.measureId))
-    .map((item) => reviewMember(report, item, alignmentByMeasure.get(item.measureId) ?? null));
+    .map((item) => reviewMember(safe, item, alignmentByMeasure.get(item.measureId) ?? null));
   const groups: ReviewMember[][] = [];
   for (const member of members) {
     const previous = groups.at(-1);
@@ -703,8 +849,9 @@ export function groupOmrReviewRegions(report: OmrConsensusReport, options: Pick<
 }
 
 export function summarizeOmrReviewGroups(report: OmrConsensusReport, groups = groupOmrReviewRegions(report)): OmrReviewGroupSummary {
+  const safe = safeReport(report);
   return {
-    rawItemCount: report.reviewItems.length,
+    rawItemCount: safe.reviewItems.length,
     groupedRegionCount: groups.length,
     criticalGroupCount: groups.filter((group) => group.priorityClass === "high").length,
   };
