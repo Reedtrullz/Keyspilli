@@ -516,6 +516,8 @@ async function collectOmrArtifacts(outputDirectory: string): Promise<OmrArtifact
 }
 
 const MAX_HOMR_ARTIFACT_BYTES = 64 * 1024 * 1024;
+const MAX_HOMR_PREPROCESS_PIXELS = 24_000_000;
+const MAX_HOMR_PREPROCESS_RAW_BYTES = 128 * 1024 * 1024;
 const MAX_HOMR_PARTS = 128;
 const MAX_HOMR_MEASURES = 10_000;
 const MAX_HOMR_NOTES = 100_000;
@@ -949,12 +951,16 @@ function decodePng(bytes: Uint8Array): DecodedPng {
     offset = end;
   }
   const channels = colorType === 0 ? 1 : colorType === 2 ? 3 : colorType === 4 ? 2 : colorType === 6 ? 4 : 0;
-  if (!width || !height || bitDepth !== 8 || !channels || interlace !== 0 || !idat.length) {
+  if (!width || !height || width * height > MAX_HOMR_PREPROCESS_PIXELS || bitDepth !== 8 || !channels || interlace !== 0 || !idat.length) {
     throw new OmrBackendError("FAILED", "HOMR preprocessing supports only non-interlaced 8-bit PNGs");
   }
   const rowBytes = width * channels;
-  const filtered = inflateSync(Buffer.concat(idat.map((chunk) => Buffer.from(chunk))));
-  if (filtered.byteLength !== height * (rowBytes + 1)) throw new OmrBackendError("FAILED", "HOMR preprocessing received invalid PNG pixel data");
+  const expectedBytes = height * (rowBytes + 1);
+  if (expectedBytes > MAX_HOMR_PREPROCESS_RAW_BYTES) throw new OmrBackendError("FAILED", "HOMR preprocessing PNG exceeds the safety limit");
+  const compressed = Buffer.concat(idat.map((chunk) => Buffer.from(chunk)));
+  if (compressed.byteLength > MAX_HOMR_PREPROCESS_RAW_BYTES) throw new OmrBackendError("FAILED", "HOMR preprocessing PNG exceeds the safety limit");
+  const filtered = inflateSync(compressed, { maxOutputLength: MAX_HOMR_PREPROCESS_RAW_BYTES });
+  if (filtered.byteLength !== expectedBytes) throw new OmrBackendError("FAILED", "HOMR preprocessing received invalid PNG pixel data");
   const rows = new Uint8Array(height * rowBytes);
   const previous = new Uint8Array(rowBytes);
   for (let y = 0; y < height; y += 1) {
@@ -1033,6 +1039,32 @@ function encodeGrayPng(width: number, height: number, values: Uint8Array): Buffe
   return Buffer.concat([Buffer.from(PNG_SIGNATURE), pngChunk("IHDR", header), pngChunk("IDAT", deflateSync(scanlines, { level: 9, strategy: 3 })), pngChunk("IEND", new Uint8Array())]);
 }
 
+function trimBinaryWhitespace(width: number, height: number, values: Uint8Array): void {
+  let left = width;
+  let top = height;
+  let right = -1;
+  let bottom = -1;
+  for (let y = 0; y < height; y += 1) for (let x = 0; x < width; x += 1) {
+    if (values[y * width + x] === 0) {
+      left = Math.min(left, x);
+      top = Math.min(top, y);
+      right = Math.max(right, x);
+      bottom = Math.max(bottom, y);
+    }
+  }
+  if (right < left || bottom < top || (left === 0 && top === 0 && right === width - 1 && bottom === height - 1)) return;
+  // Keep the page canvas and orientation stable while removing large outer
+  // whitespace: center the ink bounding box on a fresh white canvas.
+  const trimmed = new Uint8Array(values.length).fill(255);
+  const offsetX = Math.floor((width - (right - left + 1)) / 2);
+  const offsetY = Math.floor((height - (bottom - top + 1)) / 2);
+  for (let y = top; y <= bottom; y += 1) {
+    const targetY = y - top + offsetY;
+    trimmed.set(values.subarray(y * width + left, y * width + right + 1), targetY * width + offsetX);
+  }
+  values.set(trimmed);
+}
+
 function preprocessHomrImage(source: Uint8Array, variant: HomrPreprocessingVariant): Uint8Array {
   if (variant === "original") return source;
   const decoded = decodePng(source);
@@ -1053,8 +1085,7 @@ function preprocessHomrImage(source: Uint8Array, variant: HomrPreprocessingVaria
   if (variant === "grayscale-binarize" || variant === "grayscale-binarize-trim") {
     for (let index = 0; index < gray.length; index += 1) gray[index] = gray[index]! >= 128 ? 255 : 0;
   }
-  // The final ladder step intentionally keeps the original canvas dimensions:
-  // trimming only suppresses already-white edge pixels, never crops page data.
+  if (variant === "grayscale-binarize-trim") trimBinaryWhitespace(decoded.width, decoded.height, gray);
   return new Uint8Array(encodeGrayPng(decoded.width, decoded.height, gray));
 }
 
