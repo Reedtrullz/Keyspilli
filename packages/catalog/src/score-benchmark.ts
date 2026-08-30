@@ -1175,6 +1175,27 @@ export function canonicalBenchmarkCorpusJson(manifest: BenchmarkCorpusManifest):
   return stableJson(createBenchmarkCorpusManifest({ songs: manifest.songs }));
 }
 
+/**
+ * Return the stable corpus identity projection used for reproducibility hashes.
+ *
+ * `conversionTimestamp` is useful provenance in the emitted manifest, but it is
+ * run metadata rather than an input identity.  Excluding it here means rerunning
+ * the same PDFs/configuration produces the same corpus hash while the timestamp
+ * remains available in the human-readable manifest.
+ */
+function canonicalBenchmarkCorpusIdentityJson(manifest: BenchmarkCorpusManifest): string {
+  const normalized = createBenchmarkCorpusManifest({ songs: manifest.songs });
+  const identity = {
+    ...normalized,
+    songs: normalized.songs.map((song) => {
+      if (!song.provenance) return song;
+      const { conversionTimestamp: _conversionTimestamp, ...provenance } = song.provenance;
+      return { ...song, provenance };
+    }),
+  };
+  return stableJson(identity);
+}
+
 export function scoreCorpusManifestHash(manifest: BenchmarkCorpusManifest): string {
-  return sha256Text(canonicalBenchmarkCorpusJson(manifest));
+  return sha256Text(canonicalBenchmarkCorpusIdentityJson(manifest));
 }

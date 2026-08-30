@@ -150,6 +150,41 @@ describe("score benchmark core", () => {
     expect(scoreCorpusManifestHash(manifest)).toBe(scoreCorpusManifestHash(reordered));
   });
 
+  it("keeps the corpus identity hash stable across conversion timestamps", () => {
+    const provenance = createScoreProvenance({
+      sourcePdfSha256: "a".repeat(64),
+      sourcePdfBytes: 100,
+      omrBackend: "Audiveris",
+      omrVersion: "5.11.0",
+      conversionTimestamp: "2026-08-30T12:00:00.000Z",
+      normalizationVersion: "score-benchmark-v1",
+      musicXmlSha256: "b".repeat(64),
+      musicXmlBytes: 200,
+      midiSha256: "c".repeat(64),
+      midiBytes: 300,
+      validationStatus: "REVIEW_REQUIRED",
+    });
+    const first = createBenchmarkCorpusManifest({
+      songs: [{
+        id: "timestamped-score",
+        artist: "Artist",
+        title: "Title",
+        score: { sha256: "d".repeat(64), omrStatus: "converted" },
+        references: { fullScore: "normalized/reference.musicxml" },
+        validation: { status: "REVIEW_REQUIRED", warnings: [] },
+        provenance,
+      }],
+    });
+    const second = createBenchmarkCorpusManifest({
+      songs: [{
+        ...first.songs[0]!,
+        provenance: { ...provenance, conversionTimestamp: "2026-08-31T12:00:00.000Z" },
+      }],
+    });
+    expect(canonicalBenchmarkCorpusJson(first)).not.toBe(canonicalBenchmarkCorpusJson(second));
+    expect(scoreCorpusManifestHash(first)).toBe(scoreCorpusManifestHash(second));
+  });
+
   it("keeps note diagnostics deterministic when metadata tie-breakers are reordered", () => {
     const notes: ScoreNote[] = [
       { pitch: 60, onset: 0, duration: 0.5, velocity: 80, part: "b", staff: 2, voice: "2", measure: 2, source: "other" },
