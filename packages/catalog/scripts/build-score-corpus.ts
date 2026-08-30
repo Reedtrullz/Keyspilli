@@ -32,7 +32,7 @@ import {
 import {
   SCORE_LISTENING_PACK_SCHEMA_VERSION,
   selectRotatingScoreListeningPack,
-  writeRotatingScoreListeningPackManifest,
+  writeRotatingScoreListeningPackBundle,
   type ScoreCorpusSong,
   type ScoreListeningPack,
 } from "../src/score-listening-pack.js";
@@ -549,6 +549,163 @@ async function runOne(
   }
 }
 
+interface ScoreCorpusTableRow {
+  id: string;
+  artist: string;
+  title: string;
+  status: string;
+  manualReview: string;
+  sourcePdf: string | null;
+  sourceSha256: string | null;
+  omr: { status: string; backend: string | null; version: string | null };
+  musicXml: { status: string; ref: string | null };
+  midi: { status: string; ref: string | null };
+  audio: {
+    status: string;
+    ref: string | null;
+    renderer: ScoreValidationReport["artifacts"]["audio"]["renderer"] | null;
+  };
+  notation: {
+    status: string;
+    ref: string | null;
+    renderer: ScoreValidationReport["artifacts"]["notation"]["renderer"] | null;
+  };
+  structure: {
+    measures: number | null;
+    notes: number | null;
+    parts: number | null;
+    staves: number | null;
+    voices: number | null;
+    tempoBpm: number | null;
+    timeSignatures: Array<[number, number]>;
+    keySignatures: Array<{ fifths: number; mode: string }>;
+    roles: Array<{
+      id: string;
+      name: string;
+      role: string;
+      roleConfidence: string;
+      staves: number[];
+      voices: number;
+      measures: number;
+    }>;
+  };
+  warnings: string[];
+  warningCodes: string[];
+  errors: string[];
+  report: string;
+  alignment: { status: string; confidence: number | null };
+  recording: "metadata-only-no-network";
+}
+
+function scoreCorpusTableRow(entry: BatchScoreResult): ScoreCorpusTableRow {
+  const report = entry.result?.report;
+  const status = report?.status ?? "FAILED";
+  const warningRecords = report?.warnings ?? [];
+  const warnings = warningRecords.map((warning) => `${warning.code}: ${warning.message}`);
+  const warningCodes = [...new Set(warningRecords.map((warning) => warning.code))].sort(compareText);
+  const structure = report?.structure;
+  const metrics = report?.metrics;
+  const artifact = (
+    path: string | null | undefined,
+    artifactStatus?: string,
+    renderer?: ScoreValidationReport["artifacts"]["audio"]["renderer"],
+  ) => ({
+    status: path ? "PASS" : artifactStatus ?? "UNAVAILABLE",
+    ref: path ? `scores/${entry.descriptor.id}/${path.replaceAll("\\", "/").replace(/^\.\//, "")}` : null,
+    renderer: renderer ?? null,
+  });
+  return {
+    id: entry.descriptor.id,
+    artist: entry.descriptor.artist,
+    title: entry.descriptor.title,
+    status,
+    manualReview: report?.manualReview ?? "not-reviewed",
+    sourcePdf: report?.source.fileName ?? null,
+    sourceSha256: report?.source.sha256 ?? null,
+    omr: {
+      status: report?.omr.status ?? "FAILED",
+      backend: report?.omr.backend ?? null,
+      version: report?.omr.version ?? null,
+    },
+    musicXml: artifact(report?.artifacts.musicxml),
+    midi: artifact(report?.artifacts.midi),
+    audio: artifact(report?.artifacts.audio?.path, report?.artifacts.audio?.status, report?.artifacts.audio?.renderer),
+    notation: artifact(report?.artifacts.notation?.path, report?.artifacts.notation?.status, report?.artifacts.notation?.renderer),
+    structure: {
+      measures: structure?.measureCount ?? null,
+      notes: metrics?.parsedNotes ?? null,
+      parts: structure?.partCount ?? null,
+      staves: structure?.staffCount ?? null,
+      voices: structure?.voiceCount ?? null,
+      tempoBpm: structure?.tempoBpm ?? null,
+      timeSignatures: structure?.timeSignatures ?? [],
+      keySignatures: structure?.keySignatures ?? [],
+      roles: (structure?.parts ?? []).map((part) => ({
+        id: part.id,
+        name: part.name,
+        role: part.role,
+        roleConfidence: part.roleConfidence,
+        staves: [...part.staves],
+        voices: part.voiceCount,
+        measures: part.measureCount,
+      })),
+    },
+    warnings,
+    warningCodes,
+    errors: report?.errors ?? (entry.error ? [entry.error] : []),
+    report: `scores/${entry.descriptor.id}/validation/report.md`,
+    alignment: entry.alignment
+      ? { status: entry.alignment.status, confidence: finite(entry.alignment.confidence) ? entry.alignment.confidence : null }
+      : { status: "unavailable", confidence: null },
+    recording: "metadata-only-no-network",
+  };
+}
+
+function markdownCell(value: unknown): string {
+  return String(value ?? "—").replaceAll("|", "\\|").replaceAll("\n", " ");
+}
+
+function scoreCorpusSummaryMarkdown(rows: readonly ScoreCorpusTableRow[]): string {
+  const lines = [
+    "# Score corpus conversion table",
+    "",
+    "This table is local benchmark evidence. OMR output is not ground truth; every score remains unreviewed until a human checks the notation.",
+    "",
+    "| Song | OMR | MusicXML | MIDI | Validation | Warnings |",
+    "| --- | --- | --- | --- | --- | ---: |",
+  ];
+  for (const row of rows) {
+    const label = `${row.artist} — ${row.title}`;
+    const warnings = row.warningCodes.length
+      ? `${row.warnings.length} (${row.warningCodes.slice(0, 4).join(", ")}${row.warningCodes.length > 4 ? ", …" : ""})`
+      : "0";
+    lines.push(
+      `| [${markdownCell(label)}](${row.report}) | ${markdownCell(`${row.omr.status}${row.omr.version ? ` ${row.omr.version}` : ""}`)} | ${markdownCell(row.musicXml.status)} | ${markdownCell(row.midi.status)} | ${markdownCell(`${row.status} / ${row.manualReview}`)} | ${markdownCell(warnings)} |`,
+    );
+  }
+  lines.push(
+    "",
+    "## Per-score structure",
+    "",
+    "| Song | Measures | Notes | Parts | Staves | Voices | Tempo | Time signatures | Key signatures | Roles |",
+    "| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- | --- |",
+  );
+  for (const row of rows) {
+    const roles = row.structure.roles.length
+      ? row.structure.roles.map((part) => `${part.name}: ${part.role} (${part.roleConfidence}), staff ${part.staves.join(",")}`).join("; ")
+      : "—";
+    const times = row.structure.timeSignatures.length ? row.structure.timeSignatures.map((time) => time.join("/")).join(", ") : "—";
+    const keys = row.structure.keySignatures.length ? row.structure.keySignatures.map((key) => `${key.fifths}/${key.mode}`).join(", ") : "—";
+    lines.push(`| ${markdownCell(`${row.artist} — ${row.title}`)} | ${markdownCell(row.structure.measures)} | ${markdownCell(row.structure.notes)} | ${markdownCell(row.structure.parts)} | ${markdownCell(row.structure.staves)} | ${markdownCell(row.structure.voices)} | ${markdownCell(row.structure.tempoBpm)} | ${markdownCell(times)} | ${markdownCell(keys)} | ${markdownCell(roles)} |`);
+  }
+  lines.push(
+    "",
+    "Full warning text, source hashes, role metadata, and artifact references are in each linked validation report and `score-table.json`.",
+    "",
+  );
+  return lines.join("\n");
+}
+
 function emptyListeningPack(
   seed: string,
   reason: string,
@@ -591,10 +748,19 @@ async function buildBatch(options: ScoreCorpusBatchOptions): Promise<Record<stri
     .sort((left, right) => compareText(left.id, right.id));
   const corpus = createBenchmarkCorpusManifest({ songs: corpusSongs });
   await writeScoreCorpusJson(join(output, "benchmark-corpus.json"), JSON.parse(`${canonicalBenchmarkCorpusJson(corpus)}\n`), output);
+  const scoreTable = results
+    .map(scoreCorpusTableRow)
+    .sort((left, right) => compareText(left.id, right.id));
+  await writeScoreCorpusJson(join(output, "score-table.json"), {
+    schemaVersion: 1,
+    rows: scoreTable,
+  }, output);
   const summary = {
     schemaVersion: SCORE_BENCHMARK_SCHEMA_VERSION,
     status: results.every((entry) => entry.result?.status === "PASS" || entry.result?.status === "PASS_WITH_WARNINGS") ? "complete" : "review-required",
     corpusManifestSha256: scoreCorpusManifestHash(corpus),
+    scoreTable: "score-table.json",
+    scoreTableMarkdown: "corpus-summary.md",
     scores: results.map((entry) => ({
       id: entry.descriptor.id,
       artist: entry.descriptor.artist,
@@ -614,6 +780,7 @@ async function buildBatch(options: ScoreCorpusBatchOptions): Promise<Record<stri
     ],
   };
   await writeScoreCorpusJson(join(output, "corpus-summary.json"), summary, output);
+  await writeScoreCorpusText(join(output, "corpus-summary.md"), `${scoreCorpusSummaryMarkdown(scoreTable)}\n`, output);
 
   const listeningSongs = results
     .filter((entry): entry is BatchScoreResult & { result: ScoreBenchmarkResult } => entry.result !== null)
@@ -644,7 +811,7 @@ async function buildBatch(options: ScoreCorpusBatchOptions): Promise<Record<stri
     pack = emptyListeningPack(options.seed, safeError(error, "not enough usable score sections for a listening pack"), options);
   }
   await assertSafeOutputPath(join(output, "listening-pack"), output, "listening-pack output directory");
-  await writeRotatingScoreListeningPackManifest(join(output, "listening-pack"), pack);
+  await writeRotatingScoreListeningPackBundle(join(output, "listening-pack"), pack);
   await assertSafeOutputPath(join(output, "listening-pack"), output, "listening-pack output directory");
 
   const roundtrips = results.map((entry) => ({
@@ -664,6 +831,9 @@ async function buildBatch(options: ScoreCorpusBatchOptions): Promise<Record<stri
     output,
     corpusManifest: "benchmark-corpus.json",
     listeningPack: "listening-pack/manifest.json",
+    scoreTable: "score-table.json",
+    scoreTableMarkdown: "corpus-summary.md",
+    listeningPackWorksheet: "listening-pack/LISTENING.md",
     scoreCount: descriptors.length,
     reviewRequiredCount: results.filter((entry) => entry.result?.status === "REVIEW_REQUIRED").length,
     failedCount: results.filter((entry) => !entry.result || entry.result.status === "FAILED").length,

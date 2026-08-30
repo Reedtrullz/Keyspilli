@@ -5,7 +5,9 @@ import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
 import {
   pathSafeScoreReference,
+  renderScoreListeningPackWorksheet,
   selectRotatingScoreListeningPack,
+  writeRotatingScoreListeningPackBundle,
   writeRotatingScoreListeningPackManifest,
   type ScoreCorpusSong,
 } from "../src/score-listening-pack.js";
@@ -131,6 +133,28 @@ describe("rotating score listening pack", () => {
         createHash("sha256").update(written.json).digest("hex"),
       );
       await expect(writeRotatingScoreListeningPackManifest(directory, pack, { fileName: "../escape.json" })).rejects.toThrow(/path-safe/);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("writes a minimal path-safe worksheet for the rotating bundle", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "keyspilli-score-pack-bundle-"));
+    try {
+      const pack = selectRotatingScoreListeningPack([
+        song("alpha", "PASS"),
+        song("beta", "PASS_WITH_WARNINGS"),
+      ], { seed: "worksheet", targetSeconds: 48, minSeconds: 48, maxSeconds: 60 });
+      const rendered = renderScoreListeningPackWorksheet(pack);
+      expect(rendered).toContain("Recognizable? YES / NO:");
+      expect(rendered).toContain("Anything obviously wrong? YES / NO:");
+      expect(rendered).toContain("A or B better? A / B / SAME / N/A:");
+      expect(rendered).not.toContain("/private/corpus/");
+
+      const written = await writeRotatingScoreListeningPackBundle(directory, pack);
+      expect(await readFile(written.worksheetPath, "utf8")).toBe(rendered);
+      expect(written.worksheetPath).toBe(join(directory, "LISTENING.md"));
+      expect(written.worksheet).toBe(rendered);
     } finally {
       await rm(directory, { recursive: true, force: true });
     }

@@ -117,6 +117,15 @@ if (args[0] === "-batch") {
       expect(corpus.songs).toHaveLength(1);
       expect(corpus.songs[0]?.recording?.selector).toBeUndefined();
       expect(corpus.songs[0]?.recording?.versionAmbiguity).toContain("no original recording candidate selected");
+      const table = JSON.parse(await readFile(join(output, "score-table.json"), "utf8")) as {
+        rows: Array<{ id: string; omr: { status: string }; musicXml: { status: string }; midi: { status: string }; recording: string }>;
+      };
+      expect(table.rows).toHaveLength(1);
+      expect(table.rows[0]).toMatchObject({ id: "unknown-score", omr: { status: "PASS" }, musicXml: { status: "PASS" }, midi: { status: "PASS" }, recording: "metadata-only-no-network" });
+      const summary = await readFile(join(output, "corpus-summary.md"), "utf8");
+      expect(summary).toContain("| Song | OMR | MusicXML | MIDI | Validation | Warnings |");
+      expect(summary).toContain("Unknown — score");
+      expect(await readFile(join(output, "listening-pack", "LISTENING.md"), "utf8")).toContain("Human listening status: pending.");
     } finally {
       await rm(directory, { recursive: true, force: true });
     }

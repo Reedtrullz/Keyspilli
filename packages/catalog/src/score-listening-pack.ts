@@ -149,6 +149,12 @@ export interface WrittenScoreListeningPackManifest {
   json: string;
 }
 
+export interface WrittenScoreListeningPackBundle extends WrittenScoreListeningPackManifest {
+  /** Human worksheet path written alongside the path-safe manifest. */
+  worksheetPath: string;
+  worksheet: string;
+}
+
 const EPSILON = 1e-9;
 const DEFAULT_TARGET_SECONDS = 120;
 const DEFAULT_MIN_SECONDS = 90;
@@ -599,3 +605,80 @@ export async function writeRotatingScoreListeningPackManifest(
 
 export const writeScoreListeningPackManifest = writeRotatingScoreListeningPackManifest;
 export const writeRotatingListeningPackManifest = writeRotatingScoreListeningPackManifest;
+
+function worksheetReference(value: string): string | null {
+  const safe = pathSafeScoreReference(value);
+  if (!safe) return null;
+  return /^(?:https?|s3):\/\//i.test(safe) ? safe : `../${safe}`;
+}
+
+/**
+ * Render the deliberately small human worksheet for a rotating score pack.
+ * The score pack is a collection of reference excerpts rather than an A/B
+ * candidate comparison, so the A/B prompt is explicitly marked optional.
+ * All artifact links are converted to logical, path-safe references before
+ * they are placed in the worksheet.
+ */
+export function renderScoreListeningPackWorksheet(pack: ScoreListeningPack): string {
+  const manifest = canonicalManifest(pack);
+  const songs = new Map(manifest.songs.map((song) => [song.id, song]));
+  const lines = [
+    "# Rotating score listening pack",
+    "",
+    `Pack: ${manifest.packId}`,
+    `Seed: ${manifest.seed}`,
+    `Total listening time: ${manifest.totalSeconds}s (target ${manifest.targetSeconds}s)`,
+    "",
+    "Listen to each short excerpt without treating OMR output as ground truth.",
+    "Answer only the three questions below; add an optional one-line note if useful.",
+    "",
+    "## Excerpts",
+    "",
+  ];
+  manifest.excerpts.forEach((excerpt, index) => {
+    const song = songs.get(excerpt.songId);
+    const title = [song?.artist, song?.title].filter(Boolean).join(" — ") || excerpt.songId;
+    lines.push(`### ${index + 1}. ${title}`, `- Section: ${excerpt.label ?? excerpt.sectionId}`, `- Duration: ${excerpt.durationSeconds}s`);
+    for (const [key, value] of Object.entries(excerpt.references).sort(([left], [right]) => compareText(left, right))) {
+      const link = worksheetReference(value);
+      if (link) lines.push(`- ${key}: [artifact](${link})`);
+    }
+    lines.push(
+      "",
+      "Recognizable? YES / NO:",
+      "Anything obviously wrong? YES / NO:",
+      "A or B better? A / B / SAME / N/A:",
+      "Optional note:",
+      "",
+    );
+  });
+  if (!manifest.excerpts.length) lines.push("No usable excerpts were selected.", "");
+  lines.push("Human listening status: pending.", "");
+  return lines.join("\n");
+}
+
+/**
+ * Write a complete local score listening bundle: the stable manifest plus a
+ * minimal worksheet.  It intentionally does not open, copy, or render any
+ * referenced artifacts; callers may use the logical links from the manifest
+ * against their private corpus root.
+ */
+export async function writeRotatingScoreListeningPackBundle(
+  outputDirectory: string,
+  pack: ScoreListeningPack,
+  options: WriteScoreListeningPackOptions = {},
+): Promise<WrittenScoreListeningPackBundle> {
+  const written = await writeRotatingScoreListeningPackManifest(outputDirectory, pack, options);
+  const worksheet = renderScoreListeningPackWorksheet(pack);
+  const worksheetPath = join(outputDirectory, "LISTENING.md");
+  const temporary = join(outputDirectory, `.LISTENING.md.${process.pid}.${Math.random().toString(36).slice(2)}.tmp`);
+  try {
+    await writeFile(temporary, worksheet, { encoding: "utf8", flag: "wx" });
+    await rename(temporary, worksheetPath);
+  } finally {
+    await rm(temporary, { force: true }).catch(() => undefined);
+  }
+  return { ...written, worksheetPath, worksheet };
+}
+
+export const writeScoreListeningPackBundle = writeRotatingScoreListeningPackBundle;

@@ -121,7 +121,15 @@ export interface ScoreRenderArtifact {
   path?: string;
   bytes?: number;
   sha256?: string;
-  renderer?: { backend: string; version: string; sampleRate?: number; gain?: number; targetPeak?: number };
+  /** Path-free renderer provenance; local executable/SoundFont paths are never emitted. */
+  renderer?: {
+    backend: string;
+    version: string;
+    sampleRate?: number;
+    gain?: number;
+    targetPeak?: number;
+    soundfont?: { identifier: string; sha256: string };
+  };
   reason?: string;
 }
 
@@ -1112,7 +1120,14 @@ async function renderAudio(midiPath: string, wavPath: string, options: ScoreBenc
     return {
       status: "PASS",
       ...meta,
-      renderer: { backend: result.renderer.id, version: result.renderer.version, sampleRate: result.renderer.sampleRate, gain: result.renderer.gain, targetPeak: result.renderer.targetPeak },
+      renderer: {
+        backend: result.renderer.id,
+        version: result.renderer.version,
+        sampleRate: result.renderer.sampleRate,
+        gain: result.renderer.gain,
+        targetPeak: result.renderer.targetPeak,
+        soundfont: { identifier: basename(result.soundfont.path), sha256: result.soundfont.sha256 },
+      },
     };
   } catch (error) {
     const code = error && typeof error === "object" && "code" in error ? String((error as { code?: unknown }).code) : undefined;
@@ -1359,7 +1374,12 @@ async function sourceMetadata(
       musicxml: report.artifacts.musicxml,
       midi: report.artifacts.midi,
       notes: report.artifacts.notes,
-      audio: report.artifacts.audio.status === "PASS" ? { path: report.artifacts.audio.path, sha256: report.artifacts.audio.sha256 } : null,
+      audio: report.artifacts.audio.status === "PASS" ? {
+        path: report.artifacts.audio.path,
+        bytes: report.artifacts.audio.bytes,
+        sha256: report.artifacts.audio.sha256,
+        renderer: report.artifacts.audio.renderer ?? null,
+      } : null,
       notation: report.artifacts.notation.status === "PASS" ? { path: report.artifacts.notation.path, sha256: report.artifacts.notation.sha256 } : null,
     },
     derivedArtifacts: {
