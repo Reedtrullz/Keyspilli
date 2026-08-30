@@ -20,6 +20,34 @@ const minimalMusicXml = `<?xml version="1.0"?>
   </part>
 </score-partwise>`;
 
+const multiPartMusicXml = `<?xml version="1.0"?>
+<score-partwise version="4.0">
+  <part-list>
+    <score-part id="P1"><part-name>Lead Voice</part-name></score-part>
+    <score-part id="P2"><part-name>Guitar</part-name></score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes>
+        <divisions>4</divisions>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>G</sign><line>2</line></clef>
+      </attributes>
+      <note><pitch><step>C</step><octave>4</octave></pitch><duration>16</duration><voice>1</voice></note>
+    </measure>
+  </part>
+  <part id="P2">
+    <measure number="1">
+      <attributes>
+        <divisions>4</divisions>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>F</sign><line>4</line></clef>
+      </attributes>
+      <note><pitch><step>E</step><octave>3</octave></pitch><duration>16</duration><voice>1</voice></note>
+    </measure>
+  </part>
+</score-partwise>`;
+
 describe("benchmark-score CLI", () => {
   it("does not add an invalid PDF to the standalone corpus manifest", async () => {
     const directory = await mkdtemp(join(tmpdir(), "keyspilli-benchmark-score-invalid-"));
@@ -197,6 +225,52 @@ if (args[0] === "-batch") {
       expect(metadata.derivedArtifacts?.musicxml?.path).toBe("normalized/reference.musicxml");
       expect(metadata.derivedArtifacts?.notes?.sha256).toMatch(/^[0-9a-f]{64}$/);
       expect(metadata.provenance?.musicXml?.sha256).toBe(corpus.songs[0]?.provenance?.musicXml?.sha256);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("keeps the part-list out of multi-part scans and normalized note part names", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "keyspilli-benchmark-score-multipart-"));
+    try {
+      const pdf = join(directory, "score.pdf");
+      const audiveris = join(directory, "fake-audiveris");
+      const out = join(directory, "result");
+      const container = `<?xml version="1.0" encoding="UTF-8"?><container><rootfiles><rootfile full-path="score.musicxml" media-type="application/vnd.recordare.musicxml+xml"/></rootfiles></container>`;
+      const mxl = zipSync({
+        "META-INF/container.xml": new TextEncoder().encode(container),
+        "score.musicxml": new TextEncoder().encode(multiPartMusicXml),
+      });
+      const mxlBase64 = Buffer.from(mxl).toString("base64");
+      await writeFile(pdf, "%PDF-1.4\n", "utf8");
+      await writeFile(audiveris, `#!/usr/bin/env node
+import { mkdir, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+const args = process.argv.slice(2);
+if (args[0] === "-batch") {
+  const outputDir = args[3];
+  await mkdir(outputDir, { recursive: true });
+  await writeFile(join(outputDir, "score.mxl"), Buffer.from("${mxlBase64}", "base64"));
+} else {
+  console.log("Audiveris 5.11.0");
+}
+`, { encoding: "utf8", mode: 0o755 });
+      await chmod(audiveris, 0o755);
+
+      const result = await runBenchmarkScore({
+        pdf,
+        out,
+        audiveris,
+        noAudio: true,
+        noNotation: true,
+      });
+
+      expect(result.report.structure?.parts.map((part) => part.name)).toEqual(["Lead Voice", "Guitar"]);
+      expect(result.report.metrics?.parsedNotes).toBe(2);
+      const normalized = JSON.parse(await readFile(join(out, "normalized", "notes.json"), "utf8")) as {
+        notes: Array<{ part: string }>;
+      };
+      expect(normalized.notes.map((note) => note.part)).toEqual(["Guitar", "Lead Voice"]);
     } finally {
       await rm(directory, { recursive: true, force: true });
     }

@@ -1,8 +1,24 @@
-import { lstat, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
+import { chmod, lstat, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { zipSync } from "fflate";
 import { parseBatchArgs, runScoreCorpusBatch, writeScoreCorpusJson } from "../scripts/build-score-corpus.js";
+
+const minimalMusicXml = `<?xml version="1.0"?>
+<score-partwise version="4.0">
+  <part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes>
+        <divisions>4</divisions>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>G</sign><line>2</line></clef>
+      </attributes>
+      <note><pitch><step>C</step><octave>4</octave></pitch><duration>16</duration><voice>1</voice></note>
+    </measure>
+  </part>
+</score-partwise>`;
 
 describe("build-score-corpus CLI arguments", () => {
   it("parses repeatable PDFs and deterministic listening options", () => {
@@ -54,6 +70,53 @@ describe("build-score-corpus CLI arguments", () => {
       expect(await readFile(victim, "utf8")).toBe("keep me");
       expect((await lstat(output)).isSymbolicLink()).toBe(false);
       expect(JSON.parse(await readFile(output, "utf8"))).toEqual({ schemaVersion: 1, status: "ok" });
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("does not publish the direct metal fallback as an original recording selector", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "keyspilli-score-corpus-recording-"));
+    try {
+      const pdf = join(directory, "score.pdf");
+      const audiveris = join(directory, "fake-audiveris");
+      const output = join(directory, "corpus");
+      const container = `<?xml version="1.0" encoding="UTF-8"?><container><rootfiles><rootfile full-path="score.musicxml" media-type="application/vnd.recordare.musicxml+xml"/></rootfiles></container>`;
+      const mxl = zipSync({
+        "META-INF/container.xml": new TextEncoder().encode(container),
+        "score.musicxml": new TextEncoder().encode(minimalMusicXml),
+      });
+      const mxlBase64 = Buffer.from(mxl).toString("base64");
+      await writeFile(pdf, "%PDF-1.4\n", "utf8");
+      await writeFile(audiveris, `#!/usr/bin/env node
+import { mkdir, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+const args = process.argv.slice(2);
+if (args[0] === "-batch") {
+  const outputDir = args[3];
+  await mkdir(outputDir, { recursive: true });
+  await writeFile(join(outputDir, "score.mxl"), Buffer.from("${mxlBase64}", "base64"));
+} else {
+  console.log("Audiveris 5.11.0");
+}
+`, { encoding: "utf8", mode: 0o755 });
+      await chmod(audiveris, 0o755);
+
+      const exitCode = await runScoreCorpusBatch([
+        "--out", output,
+        "--pdf", pdf,
+        "--audiveris", audiveris,
+        "--no-audio",
+        "--no-notation",
+      ]);
+
+      expect(exitCode).toBe(0);
+      const corpus = JSON.parse(await readFile(join(output, "benchmark-corpus.json"), "utf8")) as {
+        songs: Array<{ recording?: { selector?: string; versionAmbiguity?: string } }>;
+      };
+      expect(corpus.songs).toHaveLength(1);
+      expect(corpus.songs[0]?.recording?.selector).toBeUndefined();
+      expect(corpus.songs[0]?.recording?.versionAmbiguity).toContain("no original recording candidate selected");
     } finally {
       await rm(directory, { recursive: true, force: true });
     }

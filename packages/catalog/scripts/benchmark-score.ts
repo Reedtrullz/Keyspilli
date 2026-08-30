@@ -491,7 +491,7 @@ function scorePartName(xml: string, id: string): string {
 
 function scanParts(xml: string): PartScan[] {
   const scans: PartScan[] = [];
-  for (const match of xml.matchAll(/<part\b([^>]*)>([\s\S]*?)<\/part>/gi)) {
+  for (const match of xml.matchAll(/<part(?=\s|>)([^>]*)>([\s\S]*?)<\/part>/gi)) {
     const opening = match[1] ?? "";
     const id = attr(opening, "id") ?? `P${scans.length + 1}`;
     const body = match[2] ?? "";
@@ -531,7 +531,7 @@ function parsedParts(xml: string, scans: PartScan[]): Array<{ name: string; note
   const root = xml.match(/<score-partwise\b[^>]*>/i)?.[0] ?? "<score-partwise version=\"4.0\">";
   const partList = xml.match(/<part-list\b[\s\S]*?<\/part-list>/i)?.[0] ?? "";
   const parts: Array<{ name: string; notes: Note[]; parsed: ParsedMidi }> = [];
-  for (const match of xml.matchAll(/<part\b[^>]*>[\s\S]*?<\/part>/gi)) {
+  for (const match of xml.matchAll(/<part(?=\s|>)[^>]*>[\s\S]*?<\/part>/gi)) {
     const body = `${root}${partList}${match[0]}</score-partwise>`;
     const parsed = parseMusicXmlNotes(body);
     const id = attr(match[0].match(/<part\b([^>]*)>/i)?.[1] ?? "", "id") ?? "";

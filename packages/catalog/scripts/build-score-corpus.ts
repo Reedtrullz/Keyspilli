@@ -451,7 +451,6 @@ async function corpusEntry(
     )
     : undefined;
   const durationSeconds = scoreDurationSeconds(report);
-  const fallback = research?.fallback ?? undefined;
   const sourcePdf = record(sourceMetadata?.sourcePdf);
   const provenance = record(sourceMetadata?.provenance) as BenchmarkCorpusSong["provenance"] | undefined;
   return {
@@ -472,7 +471,6 @@ async function corpusEntry(
     ...(roles && Object.keys(roles).length ? { roles } : {}),
     ...(provenance ? { provenance } : {}),
     recording: {
-      ...(fallback ? { selector: fallback } : {}),
       title: descriptor.title,
       ...(durationSeconds === null ? {} : { durationSeconds }),
       versionAmbiguity: "metadata-only-no-network; no original recording candidate selected",
