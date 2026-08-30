@@ -606,6 +606,7 @@ export function validateMusicXmlStructure(xml: string): MusicXmlValidationReport
   if (!parts.length) report.errors.push("MusicXML contains no parts");
   const partIds = new Set<string>();
   const globalVoices = new Set<string>();
+  const globalStaffIdentities = new Set<string>();
   const stateByPart = new Map<string, { divisions: number; beats: number; beatType: number; hasTime: boolean }>();
   for (const part of parts) {
     if (!part.id) report.errors.push("part is missing id");
@@ -617,6 +618,11 @@ export function validateMusicXmlStructure(xml: string): MusicXmlValidationReport
     const voices = new Set<string>();
     let previousMeasureNumber: number | null = null;
     const activeTies = new Set<string>();
+    const partStaffNumbers = new Set<number>();
+    const registerStaff = (staff: number): void => {
+      partStaffNumbers.add(staff);
+      globalStaffIdentities.add(`${part.id}:${staff}`);
+    };
     let maxStaff = 1;
     for (let index = 0; index < measures.length; index += 1) {
       const measure = measures[index]!;
@@ -630,6 +636,16 @@ export function validateMusicXmlStructure(xml: string): MusicXmlValidationReport
       const localWarnings: string[] = [];
       const metadata = { clefs: report.clefs, keys: report.keySignatures, times: report.timeSignatures, errors: localErrors, warnings: localWarnings };
       parseMeasureAttributes(measure.body, state, metadata);
+      const attributes = xmlBlocks(measure.body, "attributes")[0] ?? "";
+      for (const clef of xmlBlocks(attributes, "clef")) {
+        const open = clef.match(/^<clef\b[^>]*>/i)?.[0] ?? "";
+        const staff = parsePositiveInteger(xmlAttribute(open, "number")) ?? 1;
+        registerStaff(staff);
+      }
+      const declaredStaves = parsePositiveInteger(xmlText(attributes, "staves"));
+      if (declaredStaves !== null) {
+        for (let staff = 1; staff <= declaredStaves; staff += 1) registerStaff(staff);
+      }
       if (!state.hasTime && index === 0) localWarnings.push(`${part.id} measure ${measure.number || index + 1} has no time signature`);
       const expected = state.divisions * state.beats * (4 / state.beatType);
       const voiceDurations = new Map<string, number>();
@@ -645,6 +661,8 @@ export function validateMusicXmlStructure(xml: string): MusicXmlValidationReport
         voices.add(voice);
         globalVoices.add(`${part.id}:${voice}`);
         const staff = parsePositiveInteger(xmlText(event, "staff"));
+        const staffNumber = staff ?? 1;
+        registerStaff(staffNumber);
         if (staff !== null) maxStaff = Math.max(maxStaff, staff);
         const chord = /<chord\s*\/?\s*>/i.test(event);
         const start = chord ? lastStart : cursor;
@@ -725,6 +743,7 @@ export function validateMusicXmlStructure(xml: string): MusicXmlValidationReport
       report.errors.push(...localErrors);
       report.warnings.push(...localWarnings);
     }
+    if (!partStaffNumbers.size) registerStaff(1);
     for (const tie of activeTies) {
       void tie;
       report.ties.danglingStarts += 1;
@@ -732,8 +751,8 @@ export function validateMusicXmlStructure(xml: string): MusicXmlValidationReport
     }
     report.parts.push({ id: part.id, partName: partNames.get(part.id) ?? null, measureCount: measures.length, staffCount: maxStaff, voiceCount: voices.size });
     report.measureCount = Math.max(report.measureCount, measures.length);
-    report.staffCount = Math.max(report.staffCount, maxStaff);
   }
+  report.staffCount = globalStaffIdentities.size;
   report.voiceCount = globalVoices.size;
   if (!report.clefs.length) report.warnings.push("no clef declarations found");
   if (!report.keySignatures.length) report.warnings.push("no key signature declarations found");

@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { zipSync } from "fflate";
-import { runBenchmarkScore, safeError, sanitizeText } from "../scripts/benchmark-score.js";
+import { resolveAudiverisExecutable, runBenchmarkScore, safeError, sanitizeText } from "../scripts/benchmark-score.js";
 
 const minimalMusicXml = `<?xml version="1.0"?>
 <score-partwise version="4.0">
@@ -43,12 +43,23 @@ const multiPartMusicXml = `<?xml version="1.0"?>
         <time><beats>4</beats><beat-type>4</beat-type></time>
         <clef><sign>F</sign><line>4</line></clef>
       </attributes>
-      <note><pitch><step>E</step><octave>3</octave></pitch><duration>16</duration><voice>2</voice><staff>2</staff></note>
+      <note><pitch><step>E</step><octave>3</octave></pitch><duration>16</duration><voice>2</voice><staff>1</staff></note>
     </measure>
   </part>
 </score-partwise>`;
 
 describe("benchmark-score CLI", () => {
+  it("discovers the standard macOS Audiveris app bundle before the PATH fallback", async () => {
+    const probed: string[] = [];
+    const executable = await resolveAudiverisExecutable(undefined, "darwin", async (candidate) => {
+      probed.push(candidate);
+      return candidate === "/Applications/Audiveris.app/Contents/MacOS/Audiveris";
+    });
+
+    expect(executable).toBe("/Applications/Audiveris.app/Contents/MacOS/Audiveris");
+    expect(probed).toEqual(["/Applications/Audiveris.app/Contents/MacOS/Audiveris"]);
+  });
+
   it("does not add an invalid PDF to the standalone corpus manifest", async () => {
     const directory = await mkdtemp(join(tmpdir(), "keyspilli-benchmark-score-invalid-"));
     try {
@@ -266,6 +277,7 @@ if (args[0] === "-batch") {
       });
 
       expect(result.report.structure?.parts.map((part) => part.name)).toEqual(["Lead Voice", "Guitar"]);
+      expect(result.report.structure?.staffCount).toBe(2);
       expect(result.report.metrics?.parsedNotes).toBe(2);
       const normalized = JSON.parse(await readFile(join(out, "normalized", "notes.json"), "utf8")) as {
         notes: Array<{ part: string; role?: string; roleConfidence?: string; staff?: number; voice?: string; measure?: number; beat?: number; source?: string }>;
@@ -273,7 +285,7 @@ if (args[0] === "-batch") {
       expect(normalized.notes.map((note) => note.part)).toEqual(["Guitar", "Lead Voice"]);
       expect(normalized.notes).toEqual(expect.arrayContaining([
         expect.objectContaining({ part: "Lead Voice", role: "melody", roleConfidence: "high", staff: 1, voice: "1", measure: 1, beat: 1, source: "score-part:P1" }),
-        expect.objectContaining({ part: "Guitar", role: "accompaniment", roleConfidence: "high", staff: 2, voice: "2", measure: 1, beat: 1, source: "score-part:P2" }),
+        expect.objectContaining({ part: "Guitar", role: "accompaniment", roleConfidence: "high", staff: 1, voice: "2", measure: 1, beat: 1, source: "score-part:P2" }),
       ]));
     } finally {
       await rm(directory, { recursive: true, force: true });

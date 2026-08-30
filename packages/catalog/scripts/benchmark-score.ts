@@ -669,7 +669,7 @@ function parseStructure(xml: string, parsed: ParsedMidi, scans: PartScan[], warn
   const allInstruments: string[] = [];
   const allKeys: Array<{ fifths: number; mode: string }> = [];
   const allTimes: Array<[number, number]> = [];
-  let maxStaff = 1;
+  const allStaffIdentities = new Set<string>();
   let maxVoices = 0;
   for (const part of scans) {
     const staves = new Set<number>();
@@ -684,14 +684,19 @@ function parseStructure(xml: string, parsed: ParsedMidi, scans: PartScan[], warn
         const clef = `${number}:${sign}${line}`;
         clefs.add(clef);
         allClefs.push(clef);
-        staves.add(integer(number, 1));
+        const staff = integer(number, 1);
+        staves.add(staff);
+        allStaffIdentities.add(`${part.id}:${staff}`);
       }
       const declaredStaves = integer(firstMatch(attrs, /<staves>\s*(\d+)\s*<\/staves>/i), 0);
-      for (let staff = 1; staff <= declaredStaves; staff += 1) staves.add(staff);
+      for (let staff = 1; staff <= declaredStaves; staff += 1) {
+        staves.add(staff);
+        allStaffIdentities.add(`${part.id}:${staff}`);
+      }
       for (const noteXml of measure.body.match(/<note\b[\s\S]*?<\/note>/gi) ?? []) {
         const staff = integer(firstMatch(noteXml, /<staff>\s*(\d+)\s*<\/staff>/i), 1);
         staves.add(staff);
-        maxStaff = Math.max(maxStaff, staff);
+        allStaffIdentities.add(`${part.id}:${staff}`);
         const voice = firstMatch(noteXml, /<voice>\s*([^<]+)\s*<\/voice>/i);
         if (voice) voices.add(voice.trim());
       }
@@ -706,6 +711,7 @@ function parseStructure(xml: string, parsed: ParsedMidi, scans: PartScan[], warn
       const beatType = firstMatch(attrs, /<time\b[\s\S]*?<beat-type>\s*(\d+)\s*<\/beat-type>/i);
       if (beats && beatType) allTimes.push([positiveInteger(beats, 4), positiveInteger(beatType, 4)]);
     }
+    if (!staves.size) allStaffIdentities.add(`${part.id}:1`);
     if (!clefs.size) addWarning(warnings, { code: "missing-clef", severity: "review", message: `part ${part.id} has no clef declaration`, part: part.id });
     allInstruments.push(part.name);
   }
@@ -745,7 +751,7 @@ function parseStructure(xml: string, parsed: ParsedMidi, scans: PartScan[], warn
   return {
     parts,
     partCount: scans.length,
-    staffCount: maxStaff,
+    staffCount: allStaffIdentities.size,
     instrumentNames: unique(allInstruments, (value) => value),
     clefs: unique(allClefs, (value) => value),
     voiceCount: maxVoices,
@@ -956,6 +962,30 @@ function executableMissing(error: unknown): boolean {
   if (!error || typeof error !== "object") return false;
   const code = (error as NodeJS.ErrnoException & { code?: string | number }).code;
   return code === "ENOENT" || code === "ENOTDIR" || String(code) === "127";
+}
+
+const MACOS_AUDIVERIS_EXECUTABLE = "/Applications/Audiveris.app/Contents/MacOS/Audiveris";
+
+async function regularFileExists(path: string): Promise<boolean> {
+  try {
+    return (await stat(path)).isFile();
+  } catch {
+    return false;
+  }
+}
+
+/** Resolve the optional local Audiveris installation without changing CI dependencies. */
+export async function resolveAudiverisExecutable(
+  configured?: string,
+  platform: NodeJS.Platform = process.platform,
+  executableExists: (path: string) => Promise<boolean> = regularFileExists,
+): Promise<string> {
+  const explicit = configured?.trim();
+  if (explicit) return explicit;
+  if (platform === "darwin" && await executableExists(MACOS_AUDIVERIS_EXECUTABLE)) {
+    return MACOS_AUDIVERIS_EXECUTABLE;
+  }
+  return "audiveris";
 }
 
 async function probeExecutable(executable: string, label: string, timeoutMs: number): Promise<string> {
@@ -1439,7 +1469,7 @@ export async function runBenchmarkScore(options: ScoreBenchmarkOptions): Promise
 
   const report = baseReport(pdf, options);
   report.source = { fileName: pdf.fileName, sha256: pdf.sha256, pages: pdf.pages };
-  const omrExecutable = options.audiveris ?? process.env.KEYSPILLI_AUDIVERIS ?? "audiveris";
+  const omrExecutable = await resolveAudiverisExecutable(options.audiveris ?? process.env.KEYSPILLI_AUDIVERIS);
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const omrDir = join(out, "omr");
   const normalizedDir = join(out, "normalized");

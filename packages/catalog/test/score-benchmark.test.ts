@@ -44,6 +44,26 @@ const invalidXml = `<score-partwise version="4.0">
   </measure></part>
 </score-partwise>`;
 
+const twoPartsOnStaffOneXml = `<?xml version="1.0"?>
+<score-partwise version="4.0">
+  <part-list>
+    <score-part id="P1"><part-name>Lead</part-name></score-part>
+    <score-part id="P2"><part-name>Harmony</part-name></score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes><divisions>1</divisions><time><beats>4</beats><beat-type>4</beat-type></time><clef><sign>G</sign><line>2</line></clef></attributes>
+      <note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration><voice>1</voice><staff>1</staff></note>
+    </measure>
+  </part>
+  <part id="P2">
+    <measure number="1">
+      <attributes><divisions>1</divisions><time><beats>4</beats><beat-type>4</beat-type></time><clef><sign>G</sign><line>2</line></clef></attributes>
+      <note><pitch><step>E</step><octave>4</octave></pitch><duration>4</duration><voice>1</voice><staff>1</staff></note>
+    </measure>
+  </part>
+</score-partwise>`;
+
 describe("score benchmark core", () => {
   it("creates path-free deterministic provenance metadata", () => {
     const provenance = createScoreProvenance({
@@ -85,6 +105,14 @@ describe("score benchmark core", () => {
     expect(report.ties.orphanStops).toBe(0);
     expect(report.tuplets.valid).toBe(1);
     expect(report.measures.every((measure) => measure.status === "ok")).toBe(true);
+  });
+
+  it("counts distinct staves across parts rather than taking the maximum staff number", () => {
+    const report = validateMusicXmlStructure(twoPartsOnStaffOneXml);
+
+    expect(report.valid).toBe(true);
+    expect(report.staffCount).toBe(2);
+    expect(report.parts.map((part) => part.staffCount)).toEqual([1, 1]);
   });
 
   it("fails closed for broken arithmetic, ties, and tuplets", () => {
