@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { Note } from "../src/types.js";
 import {
+  assessPianoRegionCoverage,
   clipRegionNotes,
   scorePianoRegion,
   selectPianoMelodyRegions,
   type CandidateRegion,
+  type CandidateCoverageWindow,
   type PianoRegionCandidate,
 } from "../src/piano-region-selector.js";
 
@@ -280,5 +282,220 @@ describe("selectPianoMelodyRegions", () => {
 
     expect(one).toEqual(two);
     expect(one.selectedCandidateIds).toEqual([one.regions[0]?.candidateId]);
+  });
+
+  it("fails closed when explicit coverage says a note-bearing intro is not the submitted song", () => {
+    const coverage: CandidateCoverageWindow = {
+      windowId: "opening",
+      startBeat: 0,
+      endBeat: 4,
+      hasSourceMaterial: true,
+      alignmentConfidence: 0.12,
+      chromaAgreement: 0.18,
+      attackAgreement: 0.08,
+      melodicAgreement: 0.1,
+      usable: false,
+      rejectionReasons: ["custom intro does not match submitted song"],
+    };
+    const selection = selectPianoMelodyRegions(
+      [{ id: "custom-intro", notes: line(0, [60, 62, 64, 65]), coverageWindows: [coverage] }],
+      [{ id: "opening", startBeat: 0, endBeat: 4 }],
+      { coverageGate: {} },
+    );
+
+    expect(selection.notes).toEqual([]);
+    expect(selection.regions).toEqual([]);
+    expect(selection.uncoveredWindows).toEqual([{
+      windowId: "opening",
+      startBeat: 0,
+      endBeat: 4,
+      reasons: ["custom intro does not match submitted song"],
+    }]);
+    expect(selection.scores[0]?.usable).toBe(false);
+  });
+
+  it("marks a missing candidate intro uncovered while retaining a covered later phrase", () => {
+    const missingOpening: CandidateCoverageWindow = {
+      windowId: "opening", startBeat: 0, endBeat: 4, hasSourceMaterial: false,
+      alignmentConfidence: 0, chromaAgreement: 0, attackAgreement: 0,
+      melodicAgreement: 0, usable: false, rejectionReasons: ["candidate starts at verse"],
+    };
+    const coveredVerse: CandidateCoverageWindow = {
+      windowId: "verse", startBeat: 4, endBeat: 8, hasSourceMaterial: true,
+      alignmentConfidence: 0.9, chromaAgreement: 0.88, attackAgreement: 0.86,
+      melodicAgreement: 0.84, usable: true, rejectionReasons: [],
+    };
+    const selection = selectPianoMelodyRegions(
+      [{ id: "verse-only", notes: line(4, [67, 69, 71, 72]), coverageWindows: [missingOpening, coveredVerse] }],
+      [{ id: "opening", startBeat: 0, endBeat: 4 }, { id: "verse", startBeat: 4, endBeat: 8 }],
+      { coverageGate: {} },
+    );
+
+    expect(selection.regions.map((region) => [region.candidateId, region.startBeat, region.endBeat])).toEqual([
+      ["verse-only", 4, 8],
+    ]);
+    expect(selection.notes.map((note) => note.midi)).toEqual([67, 69, 71, 72]);
+    expect(selection.uncoveredWindows).toEqual([{
+      windowId: "opening",
+      startBeat: 0,
+      endBeat: 4,
+      reasons: ["candidate starts at verse"],
+    }]);
+  });
+
+  it("returns an explicit uncovered region instead of inventing a melody when no candidate passes coverage", () => {
+    const selection = selectPianoMelodyRegions(
+      [],
+      [{ id: "opening", startBeat: 0, endBeat: 4 }],
+      { coverageGate: {} },
+    );
+
+    expect(selection.notes).toEqual([]);
+    expect(selection.regions).toEqual([]);
+    expect(selection.selectedCandidateIds).toEqual([]);
+    expect(selection.uncoveredWindows).toEqual([{
+      windowId: "opening",
+      startBeat: 0,
+      endBeat: 4,
+      reasons: ["no candidate passed coverage gate"],
+    }]);
+    expect(selection.diagnostics.uncoveredWindows).toEqual(selection.uncoveredWindows);
+  });
+
+  it("selects different candidates by locally covered region instead of trusting global note presence", () => {
+    const cOpening: CandidateCoverageWindow = {
+      windowId: "opening", startBeat: 0, endBeat: 4, hasSourceMaterial: true,
+      alignmentConfidence: 0.93, chromaAgreement: 0.9, attackAgreement: 0.88,
+      melodicAgreement: 0.86, usable: true, rejectionReasons: [],
+    };
+    const cSolo: CandidateCoverageWindow = {
+      windowId: "solo", startBeat: 4, endBeat: 8, hasSourceMaterial: true,
+      alignmentConfidence: 0.22, chromaAgreement: 0.25, attackAgreement: 0.2,
+      melodicAgreement: 0.18, usable: false, rejectionReasons: ["unrelated solo"],
+    };
+    const dOpening: CandidateCoverageWindow = {
+      windowId: "opening", startBeat: 0, endBeat: 4, hasSourceMaterial: true,
+      alignmentConfidence: 0.2, chromaAgreement: 0.22, attackAgreement: 0.15,
+      melodicAgreement: 0.2, usable: false, rejectionReasons: ["different intro"],
+    };
+    const dSolo: CandidateCoverageWindow = {
+      windowId: "solo", startBeat: 4, endBeat: 8, hasSourceMaterial: true,
+      alignmentConfidence: 0.91, chromaAgreement: 0.86, attackAgreement: 0.84,
+      melodicAgreement: 0.92, usable: true, rejectionReasons: [],
+    };
+    const selection = selectPianoMelodyRegions(
+      [
+        { id: "C", notes: [...line(0, [60, 62, 64, 65]), ...line(4, [60, 62, 64, 65])], coverageWindows: [cOpening, cSolo] },
+        { id: "D", notes: [...line(0, [72, 74, 76, 77]), ...line(4, [72, 74, 76, 77])], coverageWindows: [dOpening, dSolo] },
+      ],
+      [{ id: "opening", startBeat: 0, endBeat: 4 }, { id: "solo", startBeat: 4, endBeat: 8 }],
+      { coverageGate: {} },
+    );
+
+    expect(selection.regions.map((region) => [region.candidateId, region.startBeat, region.endBeat])).toEqual([
+      ["C", 0, 4],
+      ["D", 4, 8],
+    ]);
+    expect(selection.notes.map((note) => note.midi)).toEqual([60, 62, 64, 65, 72, 74, 76, 77]);
+    expect(selection.uncoveredWindows).toEqual([]);
+  });
+
+  it("rejects note-bearing coverage without agreement evidence when strict gating is enabled", () => {
+    const selection = selectPianoMelodyRegions(
+      [{ id: "unverified", notes: line(0, [60, 62, 64, 65]) }],
+      [{ id: "opening", startBeat: 0, endBeat: 4 }],
+      { coverageGate: { requireEvidence: true } },
+    );
+
+    expect(selection.notes).toEqual([]);
+    expect(selection.uncoveredWindows[0]?.reasons).toEqual(expect.arrayContaining([
+      "alignment confidence unavailable",
+      "chroma agreement unavailable",
+      "attack agreement unavailable",
+    ]));
+  });
+
+  it("reports role-specific coverage without treating accompaniment activity as melody coverage", () => {
+    const candidate: PianoRegionCandidate = {
+      id: "split",
+      notes: line(0, [60, 62, 64, 65]),
+      melodyNotes: line(0, [72, 74, 76, 77]),
+      accompanimentNotes: [makeNote(36, 0, 4), makeNote(43, 4, 4)],
+      roleCoverage: { melody: 0.92, accompaniment: 0.28 },
+    };
+    const melody = scorePianoRegion(candidate, { id: "phrase", startBeat: 0, endBeat: 4 }, { role: "melody" });
+    const accompaniment = scorePianoRegion(candidate, { id: "phrase", startBeat: 0, endBeat: 4 }, { role: "accompaniment" });
+
+    expect(melody.roleCoverage).toBeCloseTo(0.92, 6);
+    expect(accompaniment.roleCoverage).toBeCloseTo(0.28, 6);
+    expect(melody.noteCount).toBe(4);
+    expect(accompaniment.noteCount).toBe(1);
+  });
+
+  it("exposes deterministic coverage metrics for a candidate/window pair", () => {
+    const result = assessPianoRegionCoverage(
+      { id: "lead", notes: line(0, [60, 62, 64, 65]) },
+      {
+        id: "phrase", startBeat: 0, endBeat: 4,
+        targetNotes: line(0, [60, 62, 64, 65]),
+      },
+    );
+
+    expect(result).toMatchObject({
+      startBeat: 0,
+      endBeat: 4,
+      hasSourceMaterial: true,
+      chromaAgreement: 1,
+      attackAgreement: 1,
+      melodicAgreement: 1,
+      usable: true,
+      rejectionReasons: [],
+    });
+  });
+
+  it("accepts partial explicit agreement evidence without requiring optional melodic agreement", () => {
+    const result = assessPianoRegionCoverage(
+      {
+        id: "partial-evidence",
+        notes: line(0, [60, 62, 64, 65]),
+        coverageWindows: [{
+          alignmentConfidence: 0.92,
+          chromaAgreement: 0.86,
+          attackAgreement: 0.8,
+        }],
+      },
+      { id: "phrase", startBeat: 0, endBeat: 4 },
+      { coverageGate: {} },
+    );
+
+    expect(result).toMatchObject({
+      alignmentConfidence: 0.92,
+      chromaAgreement: 0.86,
+      attackAgreement: 0.8,
+      usable: true,
+      rejectionReasons: [],
+    });
+    expect(result).not.toHaveProperty("melodicAgreement");
+  });
+
+  it("still applies the melodic threshold when optional evidence is provided", () => {
+    const result = assessPianoRegionCoverage(
+      {
+        id: "weak-melody-evidence",
+        notes: line(0, [60, 62, 64, 65]),
+        coverageWindows: [{
+          alignmentConfidence: 0.92,
+          chromaAgreement: 0.86,
+          attackAgreement: 0.8,
+          melodicAgreement: 0.2,
+        }],
+      },
+      { id: "phrase", startBeat: 0, endBeat: 4 },
+      { coverageGate: {} },
+    );
+
+    expect(result.usable).toBe(false);
+    expect(result.rejectionReasons).toContain("melodic agreement below threshold");
+    expect(result.melodicAgreement).toBe(0.2);
   });
 });

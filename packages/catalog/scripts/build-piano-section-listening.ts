@@ -1050,6 +1050,7 @@ function listeningMarkdown(
     "",
     "## Blind pass",
     ...Object.keys(blind).sort().map((alias) => `- ${alias}: [WAV](blind/${alias}.wav)`),
+    "- [Answer key](blind-map.json) (open only after recording the blind ratings)",
     "",
     "## Human listening worksheet",
     "Use the blind aliases above and record one rating per alias before opening the answer key.",
@@ -1084,6 +1085,7 @@ function listeningMarkdown(
     `- [metrics.json](${diagnosticsPath})`,
     "- [coverage-map.json](coverage-map.json)",
     "- [selected-region-map.json](selected-region-map.json)",
+    "- [blind-map.json](blind-map.json)",
     "",
     "Automated metrics are diagnostic evidence only; they do not establish recognizability or playability.",
     "",
@@ -1103,7 +1105,7 @@ export async function buildPianoSectionListeningBundle(
   const d = await readInputMidi("D", options.dMidi);
   const cOriginal = await readInputMidi("C-original-easy", options.cOriginalEasy ?? options.cMidi);
   const builder = adapter ?? await loadBuilder();
-  const builderResult = await builder.buildSectionAwarePianoCandidate(sectionBuilderInput(c, d, windows, options.dAlignment));
+  const builderResult = await builder.buildSectionAwarePianoCandidate(sectionBuilderInput(c, d, windows, options.dAlignment, options.coverage));
   const outputRoot = resolve(options.out);
   await mkdir(outputRoot, { recursive: true });
 

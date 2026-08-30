@@ -408,9 +408,13 @@ function fusedMelody(
   alternateMelodies: ReadonlyMap<string, Note[]>,
   selection: PianoRegionSelection,
   primaryId: string,
+  strictCoverage = false,
 ): { notes: Note[]; alternateRegionCount: number; clippedAlternateNoteCount: number } {
   const alternateRegions = selection.regions.filter((region) => region.candidateId !== primaryId);
-  const preserved = primaryMelody.flatMap((note) => subtractRegions(note, alternateRegions));
+  const blockedRegions = strictCoverage
+    ? [...alternateRegions, ...selection.uncoveredWindows]
+    : alternateRegions;
+  const preserved = primaryMelody.flatMap((note) => subtractRegions(note, blockedRegions));
   const selectedAlternates: Note[] = [];
   let clippedAlternateNoteCount = 0;
   for (const region of alternateRegions) {
@@ -508,7 +512,8 @@ export function buildSectionAwarePianoCandidate(input: PianoSectionBuildInput): 
     windows,
     input.selectionOptions,
   );
-  const fused = fusedMelody(primaryMelody, alternateMelodies, selection, input.primary.id);
+  const strictCoverage = Boolean(input.selectionOptions?.coverageGate && input.selectionOptions.coverageGate.enabled !== false);
+  const fused = fusedMelody(primaryMelody, alternateMelodies, selection, input.primary.id, strictCoverage);
 
   const easySimplified = simplifyPianoAccompaniment(primaryAccompaniment, mergeOptions(input.accompanimentOptions, "easy"));
   const mediumSimplified = simplifyPianoAccompaniment(primaryAccompaniment, mergeOptions(input.accompanimentOptions, "medium"));

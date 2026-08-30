@@ -208,4 +208,38 @@ describe("buildSectionAwarePianoCandidate", () => {
       alternates: [{ id: "C", parsed: parsed(dSolo) }],
     }))).toThrow(/duplicate.*candidate id/i);
   });
+
+  it("leaves a low-confidence window uncovered instead of silently restoring the primary melody", () => {
+    const unavailable = {
+      windowId: "opening",
+      startBeat: 0,
+      endBeat: 4,
+      hasSourceMaterial: true,
+      alignmentConfidence: 0.1,
+      chromaAgreement: 0.1,
+      attackAgreement: 0.1,
+      melodicAgreement: 0.1,
+      usable: false,
+      rejectionReasons: ["intro does not align"],
+    };
+    const result = buildSectionAwarePianoCandidate(input({
+      primary: {
+        id: "C",
+        parsed: parsed([...cMelody, ...cHarmony]),
+        selection: { coverageWindows: [unavailable] },
+      },
+      alternates: [{
+        id: "D",
+        parsed: parsed(dSolo),
+        selection: { coverageWindows: [unavailable] },
+      }],
+      windows: [{ id: "opening", startBeat: 0, endBeat: 4 }],
+      selectionOptions: { coverageGate: {} },
+    }));
+
+    expect(result.selection.regions).toEqual([]);
+    expect(result.selection.uncoveredWindows).toHaveLength(1);
+    expect(result.cdSelectedMelodyOnly.notes.filter((note) => note.start < 4)).toEqual([]);
+    expect(result.cdFusedEasy.notes.some((note) => note.hand === "L")).toBe(true);
+  });
 });

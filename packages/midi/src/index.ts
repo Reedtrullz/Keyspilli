@@ -90,12 +90,16 @@ export type {
   PianoHarmony,
 } from "./piano-accompaniment.js";
 export {
+  assessPianoRegionCoverage,
   selectPianoMelodyRegions,
   clipRegionNotes,
   scorePianoRegion,
 } from "./piano-region-selector.js";
 export type {
   PianoRegionRole,
+  CandidateCoverageWindow,
+  RoleCoverage,
+  PianoRegionCoverageGateOptions,
   CandidateRegion,
   PianoRegionWindow,
   PianoRegionCandidate,

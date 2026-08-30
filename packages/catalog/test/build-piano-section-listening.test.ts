@@ -59,6 +59,21 @@ describe("local piano section listening bundle", () => {
       gain: 1,
       targetPeak: 0.89,
       noRender: true,
+      coverage: {
+        candidates: {
+          C: [{
+            windowId: "opening", startBeat: 0, endBeat: 4, hasSourceMaterial: true,
+            alignmentConfidence: 0.92, chromaAgreement: 0.88, attackAgreement: 0.86,
+            melodicAgreement: 0.9, usable: true, rejectionReasons: [],
+          }],
+          D: [{
+            windowId: "opening", startBeat: 0, endBeat: 4, hasSourceMaterial: true,
+            alignmentConfidence: 0.1, chromaAgreement: 0.1, attackAgreement: 0.1,
+            melodicAgreement: 0.1, usable: false, rejectionReasons: ["unrelated candidate"],
+          }],
+        },
+        gate: {},
+      },
     });
 
     expect(result.outputs).toEqual([
@@ -133,7 +148,7 @@ describe("local piano section listening bundle", () => {
     expect(listening).not.toMatch(/- A:.*C-original-easy/);
     expect(listening).toContain("## Human listening worksheet");
     expect(listening).toContain("Is the main melody recognizable?");
-    expect(listening).not.toContain("blind-map.json");
+    expect(listening).toContain("blind-map.json");
     const blind = JSON.parse(await readFile(join(outputDirectory, "blind-map.json"), "utf8")) as Record<string, { candidateId: string; sha256: string; midiSha256: string; recoveredFromManifestSha256: string }>;
     expect(Object.keys(blind).sort()).toEqual(["A", "B", "C", "D"]);
     expect(Object.values(blind).map((entry) => entry.candidateId).sort()).toEqual([
@@ -153,7 +168,7 @@ describe("local piano section listening bundle", () => {
     expect(Object.values(blind).every((entry) => entry.midiSha256 === entry.sha256)).toBe(true);
     expect(JSON.parse(await readFile(join(outputDirectory, "coverage-map.json"), "utf8"))).toMatchObject({
       schemaVersion: 1,
-      windows: [{ id: "opening", startBeat: 0, endBeat: 4 }],
+      windows: [{ id: "opening", startBeat: 0, endBeat: 4, selectedMelodySource: "C", fallbackUsed: false }],
     });
     expect(JSON.parse(await readFile(join(outputDirectory, "selected-region-map.json"), "utf8"))).toHaveProperty("coverage");
     expect(JSON.parse(await readFile(join(outputDirectory, "evidence-manifest.json"), "utf8"))).toMatchObject({

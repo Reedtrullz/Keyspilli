@@ -4,6 +4,47 @@ import type { Note } from "./types.js";
 export type PianoRegionRole = "melody" | "melody-only" | "accompaniment" | "both";
 
 /**
+ * Local evidence that an aligned candidate actually corresponds to the
+ * submitted song in one beat window.  This is deliberately kept separate
+ * from {@link PianoRegionScore}: a source can contain notes in a window while
+ * still being an unrelated intro or a duplicated section.
+ */
+export interface CandidateCoverageWindow {
+  /** Optional source/window keys used when evidence is carried in a map. */
+  candidateId?: string;
+  windowId?: string;
+  startBeat: number;
+  endBeat: number;
+  hasSourceMaterial: boolean;
+  alignmentConfidence: number;
+  chromaAgreement: number;
+  attackAgreement: number;
+  melodicAgreement?: number;
+  usable: boolean;
+  rejectionReasons: string[];
+}
+
+/** Aggregate role-aware coverage supplied by a local evaluator. */
+export interface RoleCoverage {
+  melody: number;
+  accompaniment: number;
+}
+
+/** Fail-closed thresholds for explicit candidate/window coverage evidence. */
+export interface PianoRegionCoverageGateOptions {
+  /** Enable coverage gating. Supplying this object enables it by default. */
+  enabled?: boolean;
+  /** Require explicit alignment/agreement evidence instead of inferred notes. */
+  requireEvidence?: boolean;
+  minAlignmentConfidence?: number;
+  minChromaAgreement?: number;
+  minAttackAgreement?: number;
+  minMelodicAgreement?: number;
+  /** Minimum role coverage when role-aware evidence is present. */
+  minRoleCoverage?: number;
+}
+
+/**
  * A selected, contiguous span of an aligned candidate.
  *
  * `CandidateRegion` is intentionally independent of song names or semantic
@@ -38,6 +79,11 @@ export interface PianoRegionWindow {
   qualityScore?: number;
   confidence?: number;
   candidateScores?: Readonly<Record<string, number>>;
+  /** Optional precomputed coverage evidence for this aligned window. */
+  coverage?: Partial<CandidateCoverageWindow>;
+  alignmentConfidence?: number;
+  attackAgreement?: number;
+  melodicAgreement?: number;
   [key: string]: unknown;
 }
 
@@ -52,6 +98,17 @@ export interface PianoRegionCandidate {
   melodyNotes?: readonly Note[];
   leadNotes?: readonly Note[];
   accompanimentNotes?: readonly Note[];
+  /** Per-window musical agreement evidence, keyed by window id or bounds. */
+  coverageWindows?: readonly Partial<CandidateCoverageWindow>[];
+  coverageEvidence?: readonly Partial<CandidateCoverageWindow>[];
+  /** A scalar remains accepted for backwards compatibility with old callers. */
+  coverage?: number
+    | Partial<CandidateCoverageWindow>
+    | readonly Partial<CandidateCoverageWindow>[]
+    | Readonly<Record<string, Partial<CandidateCoverageWindow>>>;
+  roleCoverage?: Partial<RoleCoverage>;
+  melodyCoverage?: number;
+  accompanimentCoverage?: number;
   role?: PianoRegionRole;
   confidence?: number;
   melodyConfidence?: number;
@@ -60,7 +117,6 @@ export interface PianoRegionCandidate {
   melodyQuality?: number;
   melodyScore?: number;
   chromaAgreement?: number;
-  coverage?: number;
   gapRate?: number;
   pathology?: number;
   density?: number;
@@ -100,6 +156,12 @@ export interface PianoRegionScore {
   /** Combined [0, 1] penalty for polyphony, leaps, and isolated attacks. */
   pathology: number;
   noteCount: number;
+  /** False means this candidate is excluded from strict coverage selection. */
+  usable?: boolean;
+  /** The local alignment/musical evidence used by a coverage gate. */
+  coverageWindow?: CandidateCoverageWindow;
+  /** Role-specific aggregate coverage, when supplied by the caller. */
+  roleCoverage?: number;
   reasons: string[];
 }
 
@@ -126,6 +188,8 @@ export interface PianoRegionSelectionOptions {
   /** Optional global chroma target for windows that do not carry one. */
   referenceChroma?: readonly number[];
   targetChroma?: readonly number[];
+  /** Optional fail-closed local musical agreement gate. */
+  coverageGate?: PianoRegionCoverageGateOptions;
   weights?: Partial<PianoRegionScoreWeights>;
   continuityWeight?: number;
   chromaWeight?: number;
@@ -150,6 +214,13 @@ export interface PianoRegionSelectionDiagnostics {
     candidateId: string;
     score: number;
   }>;
+  /** Windows intentionally left unassigned because coverage was insufficient. */
+  uncoveredWindows: Array<{
+    windowId: string;
+    startBeat: number;
+    endBeat: number;
+    reasons: string[];
+  }>;
 }
 
 /** The selected melody stream and its score/provenance diagnostics. */
@@ -162,6 +233,10 @@ export interface PianoRegionSelection {
   selectedCandidateIds: string[];
   scores: PianoRegionScore[];
   role: PianoRegionRole;
+  /** Per-window coverage evidence for every scored candidate. */
+  coverage: CandidateCoverageWindow[];
+  /** Regions with no candidate that passed an enabled coverage gate. */
+  uncoveredWindows: PianoRegionSelectionDiagnostics["uncoveredWindows"];
   diagnostics: PianoRegionSelectionDiagnostics;
 }
 
@@ -195,6 +270,14 @@ interface ClippedPiece {
 const EPSILON = 1e-9;
 const DEFAULT_TIE_TOLERANCE = 1e-7;
 const ONSET_TOLERANCE = 0.125;
+const DEFAULT_COVERAGE_GATE: Required<Omit<PianoRegionCoverageGateOptions, "enabled">> = {
+  requireEvidence: true,
+  minAlignmentConfidence: 0.55,
+  minChromaAgreement: 0.45,
+  minAttackAgreement: 0.35,
+  minMelodicAgreement: 0.4,
+  minRoleCoverage: 0.35,
+};
 const DEFAULT_WEIGHTS: PianoRegionScoreWeights = {
   // Continuity/chroma/coverage are deliberately larger than density.
   continuity: 0.34,
@@ -530,6 +613,280 @@ function targetChroma(window: PianoRegionWindow, options: PianoRegionSelectionOp
   return uniqueNumberArray(raw) ?? (fromNotes ? chromaHistogram(canonicalNotes(fromNotes)) : undefined);
 }
 
+function regionWindowId(window: PianoRegionWindow): string {
+  return String(window.id ?? window.sectionId ?? `${stableNumber(window.startBeat)}-${stableNumber(window.endBeat)}`);
+}
+
+function roleCoverageValue(candidate: PianoRegionCandidate, role: PianoRegionRole): number | undefined {
+  const record = asRecord(candidate);
+  const roleRecord = asRecord(candidate.roleCoverage);
+  const canonicalRole = role === "melody-only" || role === "both" ? "melody" : role;
+  const names = canonicalRole === "accompaniment"
+    ? ["accompanimentCoverage", "accompaniment"]
+    : ["melodyCoverage", "melody"];
+  for (const name of names) {
+    const value = metricFrom(
+      record?.[name],
+      roleRecord?.[name],
+      roleRecord?.[canonicalRole],
+    );
+    if (value !== undefined) return clamp01(value);
+  }
+  return undefined;
+}
+
+function explicitCoverageRecords(candidate: PianoRegionCandidate, window: PianoRegionWindow): unknown[] {
+  const record = asRecord(candidate);
+  const windowRecord = asRecord(window);
+  const values: unknown[] = [
+    record?.coverageWindows,
+    record?.coverageEvidence,
+  ];
+  const scalarCoverage = record?.coverage;
+  if (typeof scalarCoverage === "object" && scalarCoverage !== null) values.push(scalarCoverage);
+  const directWindowCoverage = windowRecord?.coverage;
+  if (typeof directWindowCoverage === "object" && directWindowCoverage !== null) values.push(directWindowCoverage);
+
+  const output: unknown[] = [];
+  const coverageRecordFields = new Set([
+    "startBeat",
+    "endBeat",
+    "hasSourceMaterial",
+    "alignmentConfidence",
+    "alignmentScore",
+    "chromaAgreement",
+    "chromaScore",
+    "attackAgreement",
+    "attackScore",
+    "melodicAgreement",
+    "melodyAgreement",
+    "melodyScore",
+    "usable",
+    "rejectionReasons",
+  ]);
+  for (const value of values) {
+    if (Array.isArray(value)) {
+      output.push(...value);
+      continue;
+    }
+    const valueRecord = asRecord(value);
+    if (!valueRecord) continue;
+    if ([...coverageRecordFields].some((field) => Object.prototype.hasOwnProperty.call(valueRecord, field))) {
+      output.push(valueRecord);
+      continue;
+    }
+    for (const nested of Object.values(valueRecord)) {
+      if (nested && typeof nested === "object") output.push(nested);
+    }
+  }
+
+  const id = regionWindowId(window);
+  const candidateIds = [candidate.id, candidate.candidateId, candidate.name]
+    .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+    .map((value) => value.trim());
+  return output.filter((value) => {
+    const entry = asRecord(value);
+    if (!entry) return false;
+    if (typeof entry.candidateId === "string" && candidateIds.length > 0 && !candidateIds.includes(entry.candidateId)) return false;
+    if (typeof entry.windowId === "string" && entry.windowId !== id) return false;
+    if (typeof entry.id === "string" && entry.id !== id && entry.windowId === undefined) return false;
+    const start = finiteNumber(entry.startBeat);
+    const end = finiteNumber(entry.endBeat);
+    if (start !== undefined && Math.abs(start - window.startBeat) > ONSET_TOLERANCE) return false;
+    if (end !== undefined && Math.abs(end - window.endBeat) > ONSET_TOLERANCE) return false;
+    return true;
+  });
+}
+
+function explicitMetric(
+  candidate: PianoRegionCandidate,
+  window: PianoRegionWindow,
+  entries: readonly Record<string, unknown>[],
+  names: readonly string[],
+): number | undefined {
+  for (const entry of entries) {
+    for (const name of names) {
+      const value = finiteNumber(entry[name]);
+      if (value !== undefined) return clamp01(value);
+    }
+  }
+  return lookupMetric(candidate, window, names);
+}
+
+function onsetStarts(notes: readonly Note[]): number[] {
+  const sorted = [...notes].sort(noteSort);
+  const starts: number[] = [];
+  for (const note of sorted) {
+    const previous = starts[starts.length - 1];
+    if (previous === undefined || note.start - previous > ONSET_TOLERANCE) starts.push(note.start);
+  }
+  return starts;
+}
+
+function onsetAgreement(candidate: readonly Note[], target: readonly Note[]): number {
+  const candidateStarts = onsetStarts(candidate);
+  const targetStarts = onsetStarts(target);
+  if (!candidateStarts.length || !targetStarts.length) return 0;
+  let targetIndex = 0;
+  let matches = 0;
+  for (const start of candidateStarts) {
+    while (targetIndex < targetStarts.length && targetStarts[targetIndex]! < start - ONSET_TOLERANCE) targetIndex += 1;
+    if (targetIndex < targetStarts.length && Math.abs(targetStarts[targetIndex]! - start) <= ONSET_TOLERANCE) {
+      matches += 1;
+      targetIndex += 1;
+    }
+  }
+  return matches / Math.max(candidateStarts.length, targetStarts.length);
+}
+
+function topVoiceAtStarts(notes: readonly Note[]): Note[] {
+  return extractTopVoice([...notes].sort(noteSort));
+}
+
+function melodicAgreement(candidate: readonly Note[], target: readonly Note[]): number {
+  const candidateMelody = topVoiceAtStarts(candidate);
+  const targetMelody = topVoiceAtStarts(target);
+  if (!candidateMelody.length || !targetMelody.length) return 0;
+  let targetIndex = 0;
+  let matched = 0;
+  let total = 0;
+  for (const note of candidateMelody) {
+    while (targetIndex < targetMelody.length && targetMelody[targetIndex]!.start < note.start - ONSET_TOLERANCE) targetIndex += 1;
+    if (targetIndex >= targetMelody.length) break;
+    const targetNote = targetMelody[targetIndex]!;
+    if (Math.abs(targetNote.start - note.start) <= ONSET_TOLERANCE) {
+      matched += 1;
+      total += clamp01(1 - Math.abs(targetNote.midi - note.midi) / 12);
+      targetIndex += 1;
+    }
+  }
+  return matched > 0 ? total / Math.max(candidateMelody.length, targetMelody.length) : 0;
+}
+
+function coverageGateValues(options: PianoRegionSelectionOptions): PianoRegionCoverageGateOptions | undefined {
+  const gate = options.coverageGate;
+  if (!gate || gate.enabled === false) return undefined;
+  return gate;
+}
+
+function coverageMetric(
+  candidate: NormalizedCandidate,
+  window: NormalizedWindow,
+  role: PianoRegionRole,
+  options: PianoRegionSelectionOptions,
+): CandidateCoverageWindow {
+  const notes = clipRawNotes(candidate.notes, window.startBeat, window.endBeat);
+  const targetNotes = window.source.referenceNotes ?? window.source.targetNotes;
+  const clippedTarget = targetNotes
+    ? clipRawNotes(canonicalNotes(targetNotes), window.startBeat, window.endBeat)
+    : [];
+  const entries = explicitCoverageRecords(candidate.candidate, window.source)
+    .map((entry) => asRecord(entry))
+    .filter((entry): entry is Record<string, unknown> => Boolean(entry))
+    .sort((left, right) => stableSerialize(left).localeCompare(stableSerialize(right)));
+  const firstEntry = entries[0];
+  const target = targetChroma(window.source, options);
+  const inferredChroma = target
+    ? cosineSimilarity(chromaHistogram(notes), target)
+    : undefined;
+  const explicitChroma = explicitMetric(candidate.candidate, window.source, entries, ["chromaAgreement", "chromaScore", "harmonicAgreement"]);
+  const explicitAttack = explicitMetric(candidate.candidate, window.source, entries, ["attackAgreement", "onsetAgreement", "attackScore"]);
+  const explicitMelodic = explicitMetric(candidate.candidate, window.source, entries, ["melodicAgreement", "melodyAgreement", "melodyScore"]);
+  const explicitAlignment = explicitMetric(candidate.candidate, window.source, entries, ["alignmentConfidence", "alignmentScore"]);
+  const alignment = explicitAlignment ?? 0;
+  const chroma = explicitChroma ?? inferredChroma ?? 0;
+  const attack = explicitAttack ?? (clippedTarget.length ? onsetAgreement(notes, clippedTarget) : 0);
+  const melodic = explicitMelodic ?? (clippedTarget.length ? melodicAgreement(notes, clippedTarget) : undefined);
+  const roleCoverage = roleCoverageValue(candidate.candidate, role);
+  const explicitSource = typeof firstEntry?.hasSourceMaterial === "boolean" ? firstEntry.hasSourceMaterial : undefined;
+  // Evidence cannot manufacture a stream: a region is only source-bearing
+  // when the selected role actually has usable notes and the evidence did not
+  // explicitly mark it absent.
+  const hasSourceMaterial = notes.length > 0 && explicitSource !== false;
+  const rejectionReasons: string[] = [];
+  const pushReason = (reason: string) => {
+    if (!rejectionReasons.includes(reason)) rejectionReasons.push(reason);
+  };
+  let usable = hasSourceMaterial;
+  if (!hasSourceMaterial) pushReason("no source material");
+  if (firstEntry?.usable === false) {
+    usable = false;
+    const reasons = Array.isArray(firstEntry.rejectionReasons) ? firstEntry.rejectionReasons : [];
+    for (const reason of reasons) if (typeof reason === "string" && reason.trim()) pushReason(reason.trim());
+    if (!reasons.length) pushReason("coverage marked unusable");
+  }
+
+  const gate = coverageGateValues(options);
+  if (gate) {
+    const requireEvidence = gate.requireEvidence ?? DEFAULT_COVERAGE_GATE.requireEvidence;
+    const threshold = (name: keyof typeof DEFAULT_COVERAGE_GATE): number => {
+      const value = finiteNumber(gate[name]);
+      return value === undefined ? DEFAULT_COVERAGE_GATE[name] as number : clamp01(value);
+    };
+    if (requireEvidence && explicitAlignment === undefined) pushReason("alignment confidence unavailable");
+    if (requireEvidence && explicitChroma === undefined && !target) pushReason("chroma agreement unavailable");
+    if (requireEvidence && explicitAttack === undefined && !clippedTarget.length) pushReason("attack agreement unavailable");
+    if ((explicitAlignment !== undefined || requireEvidence) && alignment < threshold("minAlignmentConfidence")) {
+      pushReason("alignment confidence below threshold");
+    }
+    if ((explicitChroma !== undefined || target !== undefined || requireEvidence) && chroma < threshold("minChromaAgreement")) {
+      pushReason("chroma agreement below threshold");
+    }
+    if ((explicitAttack !== undefined || clippedTarget.length > 0 || requireEvidence) && attack < threshold("minAttackAgreement")) {
+      pushReason("attack agreement below threshold");
+    }
+    if (melodic !== undefined && melodic < threshold("minMelodicAgreement")) pushReason("melodic agreement below threshold");
+    if (roleCoverage !== undefined && roleCoverage < threshold("minRoleCoverage")) pushReason("role coverage below threshold");
+    if (rejectionReasons.length) usable = false;
+  }
+  rejectionReasons.sort((left, right) => left.localeCompare(right));
+  return {
+    candidateId: candidate.id,
+    windowId: window.id,
+    startBeat: window.startBeat,
+    endBeat: window.endBeat,
+    hasSourceMaterial,
+    alignmentConfidence: clamp01(alignment),
+    chromaAgreement: clamp01(chroma),
+    attackAgreement: clamp01(attack),
+    ...(melodic === undefined ? {} : { melodicAgreement: clamp01(melodic) }),
+    usable,
+    rejectionReasons,
+  };
+}
+
+/**
+ * Assess one candidate/window pair using optional explicit alignment evidence
+ * and deterministic note-derived agreement metrics.  The function never
+ * mutates its inputs and returns `usable: false` rather than inventing a
+ * source when strict coverage evidence is missing.
+ */
+export function assessPianoRegionCoverage(
+  candidate: PianoRegionCandidate,
+  window: PianoRegionWindow,
+  options: PianoRegionSelectionOptions = {},
+): CandidateCoverageWindow {
+  const role = options.melodyOnly ? "melody" : (options.role ?? "melody");
+  const normalizedCandidate = normalizeCandidates([candidate], role)[0]!;
+  const normalizedWindow = normalizeWindows([window])[0];
+  if (!normalizedWindow) {
+    return {
+      candidateId: normalizedCandidate.id,
+      windowId: regionWindowId(window),
+      startBeat: finiteNumber(window.startBeat) ?? 0,
+      endBeat: finiteNumber(window.endBeat) ?? 0,
+      hasSourceMaterial: false,
+      alignmentConfidence: 0,
+      chromaAgreement: 0,
+      attackAgreement: 0,
+      melodicAgreement: 0,
+      usable: false,
+      rejectionReasons: ["invalid window"],
+    };
+  }
+  return coverageMetric(normalizedCandidate, normalizedWindow, role, options);
+}
+
 function qualityAgreement(candidate: PianoRegionCandidate, window: PianoRegionWindow): number {
   const explicit = lookupMetric(candidate, window, ["qualityScore", "harmonyQuality", "harmonicAgreement", "qualityAgreement"]);
   if (explicit !== undefined) return clamp01(explicit);
@@ -695,6 +1052,9 @@ function scoreCandidate(
   weights: PianoRegionScoreWeights,
 ): PianoRegionScore {
   const notes = clipRawNotes(candidate.notes, window.startBeat, window.endBeat);
+  const role = options.melodyOnly ? "melody" : (options.role ?? "melody");
+  const coverageWindow = coverageMetric(candidate, window, role, options);
+  const coverageGate = coverageGateValues(options);
   const duration = window.endBeat - window.startBeat;
   const continuity = continuityScore(notes, window.startBeat, window.endBeat);
   const explicitContinuity = lookupMetric(candidate.candidate, window.source, ["melodyContinuity", "continuity", "melodyScore"]);
@@ -717,9 +1077,13 @@ function scoreCandidate(
   const sounding = soundingDensity(notes, window.startBeat, window.endBeat);
   const soundingCoverage = duration > EPSILON ? clamp01(unionLength(notes, window.startBeat, window.endBeat) / duration) : 0;
   const explicitCoverage = lookupMetric(candidate.candidate, window.source, ["coverage", "melodyCoverage"]);
-  const coverage = explicitCoverage === undefined
+  const roleCoverage = roleCoverageValue(candidate.candidate, role);
+  const roleAwareCoverage = roleCoverage === undefined
     ? soundingCoverage
-    : clamp01(soundingCoverage * 0.65 + clamp01(explicitCoverage) * 0.35);
+    : soundingCoverage * 0.65 + roleCoverage * 0.35;
+  const coverage = explicitCoverage === undefined
+    ? roleAwareCoverage
+    : clamp01(roleAwareCoverage * 0.65 + clamp01(explicitCoverage) * 0.35);
   const explicitGapRate = lookupMetric(candidate.candidate, window.source, ["gapRate", "melodyGapRate", "gaps"]);
   const gapRate = explicitGapRate === undefined
     ? clamp01(1 - coverage)
@@ -749,7 +1113,10 @@ function scoreCandidate(
       - weights.pathology * pathology
       - weights.density * densityPathology;
   const override = windowScoreOverride(candidate.candidate, window.source, window.id);
-  const score = clamp01(override === undefined ? raw : raw * 0.7 + override * 0.3);
+  const usable = coverageGate ? coverageWindow.usable : true;
+  const score = usable
+    ? clamp01(override === undefined ? raw : raw * 0.7 + override * 0.3)
+    : 0;
   const reasons: string[] = [];
   if (continuityValue >= 0.7) reasons.push("coherent melody");
   else if (continuityValue < 0.35) reasons.push("discontinuous melody");
@@ -758,6 +1125,7 @@ function scoreCandidate(
   if (gapRate >= 0.4) reasons.push("melodic gaps");
   if (pathology >= 0.5) reasons.push("pathology penalty");
   if (density >= 2) reasons.push("dense texture penalty");
+  for (const reason of coverageWindow.rejectionReasons) reasons.push(reason);
   if (reasons.length === 0) reasons.push("balanced evidence");
   return {
     candidateId: candidate.id,
@@ -772,6 +1140,9 @@ function scoreCandidate(
     density,
     pathology,
     noteCount: notes.length,
+    usable,
+    coverageWindow,
+    ...(roleCoverage === undefined ? {} : { roleCoverage }),
     reasons,
   };
 }
@@ -799,6 +1170,20 @@ export function scorePianoRegion(
       density: 0,
       pathology: 1,
       noteCount: 0,
+      usable: false,
+      coverageWindow: {
+        candidateId: normalizedCandidate.id,
+        windowId: String(window.id ?? window.sectionId ?? "window"),
+        startBeat: finiteNumber(window.startBeat) ?? 0,
+        endBeat: finiteNumber(window.endBeat) ?? 0,
+        hasSourceMaterial: false,
+        alignmentConfidence: 0,
+        chromaAgreement: 0,
+        attackAgreement: 0,
+        melodicAgreement: 0,
+        usable: false,
+        rejectionReasons: ["invalid window"],
+      },
       reasons: ["invalid window"],
     };
   }
@@ -857,7 +1242,10 @@ function selectPath(
   windows: readonly NormalizedWindow[],
   options: PianoRegionSelectionOptions,
 ): number[] {
-  if (!windows.length || !candidates.length) return [];
+  if (!windows.length) return [];
+  if (!candidates.length) {
+    return coverageGateValues(options) ? windows.map(() => -1) : [];
+  }
   const ids = candidates.map((candidate) => candidate.id);
   const minRegion = optionMinRegionBeats(options);
   const switchPenalty = optionSwitchPenalty(options);
@@ -865,7 +1253,17 @@ function selectPath(
   const tolerance = Math.max(EPSILON, finiteNumber(options.tieTolerance) ?? DEFAULT_TIE_TOLERANCE);
   let states = new Map<string, CandidatePathState>();
   const firstDuration = Math.max(EPSILON, windows[0]!.endBeat - windows[0]!.startBeat);
-  for (let candidateIndex = 0; candidateIndex < candidates.length; candidateIndex += 1) {
+  const firstUsable = scoreMatrix[0]!.map((score, index) => score?.usable !== false ? index : -1).filter((index) => index >= 0);
+  if (!firstUsable.length) {
+    bestStateForKey(states, {
+      candidateIndex: -1,
+      runBeats: 0,
+      value: 0,
+      switches: 0,
+      path: [-1],
+    }, ids, tolerance);
+  }
+  for (const candidateIndex of firstUsable) {
     const candidateScore = scoreMatrix[0]![candidateIndex]?.score ?? 0;
     bestStateForKey(states, {
       candidateIndex,
@@ -879,25 +1277,59 @@ function selectPath(
   for (let windowIndex = 1; windowIndex < windows.length; windowIndex += 1) {
     const duration = Math.max(EPSILON, windows[windowIndex]!.endBeat - windows[windowIndex]!.startBeat);
     const next = new Map<string, CandidatePathState>();
+    const usableIndices = scoreMatrix[windowIndex]!
+      .map((score, index) => score?.usable !== false ? index : -1)
+      .filter((index) => index >= 0);
     for (const previous of states.values()) {
-      const stayingScore = scoreMatrix[windowIndex]![previous.candidateIndex]?.score ?? 0;
-      bestStateForKey(next, {
-        candidateIndex: previous.candidateIndex,
-        runBeats: Math.min(minRegion, previous.runBeats + duration),
-        value: previous.value + stayingScore,
-        switches: previous.switches,
-        path: [...previous.path, previous.candidateIndex],
-      }, ids, tolerance);
+      if (!usableIndices.length) {
+        bestStateForKey(next, {
+          candidateIndex: -1,
+          runBeats: 0,
+          value: previous.value,
+          switches: previous.switches,
+          path: [...previous.path, -1],
+        }, ids, tolerance);
+        continue;
+      }
 
-      if (minRegion > EPSILON && previous.runBeats < minRegion - tolerance) continue;
-      for (let candidateIndex = 0; candidateIndex < candidates.length; candidateIndex += 1) {
+      const previousUsable = previous.candidateIndex >= 0
+        && scoreMatrix[windowIndex]![previous.candidateIndex]?.usable !== false;
+      if (previousUsable) {
+        const stayingScore = scoreMatrix[windowIndex]![previous.candidateIndex]?.score ?? 0;
+        bestStateForKey(next, {
+          candidateIndex: previous.candidateIndex,
+          runBeats: Math.min(minRegion, previous.runBeats + duration),
+          value: previous.value + stayingScore,
+          switches: previous.switches,
+          path: [...previous.path, previous.candidateIndex],
+        }, ids, tolerance);
+      }
+
+      const canSwitch = previous.candidateIndex < 0
+        || minRegion <= EPSILON
+        || previous.runBeats >= minRegion - tolerance;
+      if (!canSwitch) {
+        // A source that became unusable before its minimum region duration
+        // must not make the whole path disappear.  Reset to an explicit
+        // uncovered window; a later window may start a new source run.
+        bestStateForKey(next, {
+          candidateIndex: -1,
+          runBeats: 0,
+          value: previous.value,
+          switches: previous.switches,
+          path: [...previous.path, -1],
+        }, ids, tolerance);
+        continue;
+      }
+      for (const candidateIndex of usableIndices) {
         if (candidateIndex === previous.candidateIndex) continue;
         const score = scoreMatrix[windowIndex]![candidateIndex]?.score ?? 0;
+        const switchingFromCandidate = previous.candidateIndex >= 0;
         bestStateForKey(next, {
           candidateIndex,
           runBeats: Math.min(minRegion, duration),
-          value: previous.value + score - switchPenalty - hysteresis,
-          switches: previous.switches + 1,
+          value: previous.value + score - (switchingFromCandidate ? switchPenalty + hysteresis : 0),
+          switches: previous.switches + (switchingFromCandidate ? 1 : 0),
           path: [...previous.path, candidateIndex],
         }, ids, tolerance);
       }
@@ -948,6 +1380,10 @@ function coalesceRegions(
   let startIndex = 0;
   while (startIndex < path.length) {
     const candidateIndex = path[startIndex]!;
+    if (candidateIndex < 0 || !candidates[candidateIndex]) {
+      startIndex += 1;
+      continue;
+    }
     let endIndex = startIndex;
     while (endIndex + 1 < path.length && path[endIndex + 1] === candidateIndex
       && windows[endIndex + 1]!.startBeat <= windows[endIndex]!.endBeat + EPSILON) {
@@ -955,7 +1391,7 @@ function coalesceRegions(
     }
     const selectedScores = [] as PianoRegionScore[];
     for (let index = startIndex; index <= endIndex; index += 1) {
-      const score = scores[index]![candidateIndex];
+      const score = scores[index]?.[candidateIndex];
       if (score) selectedScores.push(score);
     }
     const startBeat = windows[startIndex]!.startBeat;
@@ -1097,11 +1533,47 @@ export function selectPianoMelodyRegions(
     score: scoreMatrix[windowIndex]?.[candidateIndex]?.score ?? 0,
   }));
   const switchCount = path.reduce(
-    (count, candidateIndex, index) => count + (index > 0 && candidateIndex !== path[index - 1] ? 1 : 0),
+    (count, candidateIndex, index) => count + (index > 0 && candidateIndex >= 0
+      && path[index - 1]! >= 0 && candidateIndex !== path[index - 1] ? 1 : 0),
     0,
   );
   const totalScore = windowSelections.reduce((sum, item) => sum + item.score, 0)
     - switchCount * optionSwitchPenalty(options);
+  const uncoveredWindows = path.flatMap((candidateIndex, windowIndex) => {
+    if (candidateIndex >= 0) return [];
+    const window = normalizedWindows[windowIndex]!;
+    const reasons = scoreMatrix[windowIndex]!
+      .flatMap((score) => score?.coverageWindow?.rejectionReasons ?? [])
+      .filter((reason, index, all) => all.indexOf(reason) === index)
+      .sort((left, right) => left.localeCompare(right));
+    const automaticReasons = new Set([
+      "alignment confidence below threshold",
+      "alignment confidence unavailable",
+      "attack agreement below threshold",
+      "attack agreement unavailable",
+      "chroma agreement below threshold",
+      "chroma agreement unavailable",
+      "melodic agreement below threshold",
+      "melodic agreement unavailable",
+      "no source material",
+      "role coverage below threshold",
+    ]);
+    const explicitReasons = reasons.filter((reason) => !automaticReasons.has(reason));
+    return [{
+      windowId: window.id,
+      startBeat: window.startBeat,
+      endBeat: window.endBeat,
+      reasons: (explicitReasons.length ? explicitReasons : reasons).length
+        ? (explicitReasons.length ? explicitReasons : reasons)
+        : ["no candidate passed coverage gate"],
+    }];
+  });
+  const coverage = flatScores
+    .flatMap((score) => score.coverageWindow ? [{ ...score.coverageWindow, rejectionReasons: [...score.coverageWindow.rejectionReasons] }] : [])
+    .sort((left, right) => {
+      const windowOrder = (left.windowId ?? "").localeCompare(right.windowId ?? "");
+      return windowOrder || (left.candidateId ?? "").localeCompare(right.candidateId ?? "");
+    });
   return {
     regions,
     notes,
@@ -1110,6 +1582,8 @@ export function selectPianoMelodyRegions(
     selectedCandidateIds,
     scores: flatScores.map((score) => ({ ...score, reasons: [...score.reasons] })),
     role,
+    coverage,
+    uncoveredWindows,
     diagnostics: {
       windowCount: normalizedWindows.length,
       candidateCount: normalizedCandidates.length,
@@ -1117,6 +1591,7 @@ export function selectPianoMelodyRegions(
       totalScore,
       selectedCandidateIds: [...selectedCandidateIds],
       windowSelections,
+      uncoveredWindows,
     },
   };
 }
