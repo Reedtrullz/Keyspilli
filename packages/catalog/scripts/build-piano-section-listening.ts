@@ -17,7 +17,10 @@ import { createHash } from "node:crypto";
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, extname, join, resolve } from "node:path";
 import {
+  type CandidateCoverageWindow,
+  type PianoRegionCoverageGateOptions,
   parseMidi,
+  splitPianoRoles,
   writeMidi,
   type Note,
   type ParsedMidi,
@@ -60,6 +63,11 @@ export interface PianoSectionListeningOptions {
   gain: number;
   targetPeak: number;
   noRender: boolean;
+  /** Optional local coverage evidence. When present, selection fails closed. */
+  coverage?: {
+    candidates: Record<string, readonly CandidateCoverageWindow[]>;
+    gate?: PianoRegionCoverageGateOptions;
+  };
 }
 
 export interface PianoSectionBuilderAdapter {
@@ -84,6 +92,52 @@ interface LocalOutput {
   wavPath?: string;
   wavRef?: string;
   render?: MidiRenderResult;
+}
+
+interface SourceIsolationOutput {
+  id: "C-raw" | "C-melody-only" | "C-accompaniment-only" | "D-raw" | "D-melody-only" | "D-accompaniment-only" | "fallback-melody-only" | "fallback-harmony-only";
+  label: string;
+  midiRef: string;
+  midiPath: string;
+  midiBytes: Uint8Array;
+  wavRef?: string;
+  wavPath?: string;
+  render?: MidiRenderResult;
+}
+
+interface CoverageCandidateReport {
+  candidateId: string;
+  hasSourceMaterial: boolean;
+  noteCount: number;
+  onsetCount: number;
+  alignmentConfidence: number | null;
+  chromaAgreement: number | null;
+  attackAgreement: number | null;
+  melodicAgreement: number | null;
+  score: number | null;
+  usable: boolean;
+  rejectionReasons: string[];
+}
+
+interface CoverageWindowReport {
+  id: string;
+  startBeat: number;
+  endBeat: number;
+  candidates: Record<string, CoverageCandidateReport>;
+  selectedMelodySource: string | null;
+  selectedAccompanimentSource: string;
+  fallbackUsed: boolean;
+  fallbackReason: string | null;
+}
+
+interface BlindMapEntry {
+  candidateId: string;
+  label: string;
+  sha256: string;
+  midiSha256: string;
+  recoveredFromManifestSha256: string;
+  wavRef?: string;
+  wavSha256?: string;
 }
 
 interface BundleSoundfontMetadata {
@@ -144,6 +198,14 @@ const BLIND_OUTPUT_IDS = [
   "CD-fused-easy",
   "CD-fused-medium",
 ] as const;
+
+/**
+ * Recovered from the prior human-listening bundle before the C/D workflow was
+ * hardened.  Keep this answer key stable: hash ordering is useful for a new
+ * blind experiment, but it must not rewrite the meaning of an existing A/B/C/D
+ * worksheet.
+ */
+const RECOVERED_BLIND_MANIFEST_SHA256 = "4a63a62fac7e195f995439d8311fe43c24fb0e9b75069e66c6311a7c7e2a7ff8";
 
 const PRIOR_HUMAN_OBSERVATIONS = {
   source: "previous local blind listening pass",
@@ -412,9 +474,22 @@ function transformDNotes(parsed: ParsedMidi, alignment: PianoSectionAlignment): 
   })).filter((note) => Number.isFinite(note.start) && note.start + note.dur > 0);
 }
 
-function sectionBuilderInput(c: InputMidi, d: InputMidi, windows: readonly PianoSectionWindow[], alignment: PianoSectionAlignment): Record<string, unknown> {
+function sectionBuilderInput(
+  c: InputMidi,
+  d: InputMidi,
+  windows: readonly PianoSectionWindow[],
+  alignment: PianoSectionAlignment,
+  coverage?: PianoSectionListeningOptions["coverage"],
+): Record<string, unknown> {
   const transformedDNotes = transformDNotes(d.parsed, alignment);
-  const primary = { id: "C", label: "C — PianoPaul05", parsed: c.parsed, notes: c.parsed.notes, bytes: c.bytes };
+  const primary = {
+    id: "C",
+    label: "C — PianoPaul05",
+    parsed: c.parsed,
+    notes: c.parsed.notes,
+    bytes: c.bytes,
+    ...(coverage?.candidates.C ? { selection: { coverageWindows: coverage.candidates.C } } : {}),
+  };
   const builderAlignment = {
     offsetBeats: alignment.offsetBeats,
     beatScale: alignment.scale,
@@ -431,6 +506,7 @@ function sectionBuilderInput(c: InputMidi, d: InputMidi, windows: readonly Piano
     bytes: d.bytes,
     alignedNotes: transformedDNotes,
     alignment: builderAlignment,
+    ...(coverage?.candidates.D ? { selection: { coverageWindows: coverage.candidates.D } } : {}),
   };
   const candidateC = { id: "C", label: primary.label, parsed: c.parsed, notes: c.parsed.notes, melodyNotes: c.parsed.notes };
   const candidateD = { id: "D", label: alternate.label, parsed: d.parsed, notes: transformedDNotes, melodyNotes: transformedDNotes, alignment: builderAlignment };
@@ -451,6 +527,7 @@ function sectionBuilderInput(c: InputMidi, d: InputMidi, windows: readonly Piano
     regionWindows: windows.map((window) => ({ ...window })),
     dAlignment: { ...builderAlignment },
     alignment: { candidateId: "D", ...builderAlignment },
+    ...(coverage ? { selectionOptions: { coverageGate: coverage.gate ?? {} } } : {}),
     cMidi: c.parsed,
     dMidi: d.parsed,
     transformedDNotes,
@@ -564,6 +641,186 @@ function midiBytesFor(value: unknown, base: ParsedMidi, title: string): Uint8Arr
   });
 }
 
+function midiBytesForNotes(notes: readonly Note[], base: ParsedMidi, title: string): Uint8Array {
+  const canonical = notes.map((note) => ({ ...note }));
+  return writeMidi(canonical, {
+    tempoBpm: base.tempoBpm,
+    timeSig: base.timeSig,
+    keySig: base.keySig,
+    keyMode: base.keyMode,
+    title,
+    tracks: [
+      { name: "Right Hand", notes: canonical.filter((note) => note.hand !== "L") },
+      { name: "Left Hand", notes: canonical.filter((note) => note.hand === "L") },
+    ],
+  });
+}
+
+function transformedParsedMidi(source: InputMidi, notes: readonly Note[]): ParsedMidi {
+  const durationBeats = notes.reduce((max, note) => Math.max(max, note.start + note.dur), 0);
+  return {
+    ...source.parsed,
+    notes: notes.map((note) => ({ ...note })),
+    durationBeats: Math.max(durationBeats, 0),
+  };
+}
+
+function clipAlignedNotesToZero(notes: readonly Note[]): Note[] {
+  return notes
+    .map((note) => {
+      const end = note.start + note.dur;
+      if (!Number.isFinite(end) || end <= EPSILON) return undefined;
+      if (note.start >= 0) return { ...note };
+      return { ...note, start: 0, dur: end };
+    })
+    .filter((note): note is Note => note !== undefined && note.dur > EPSILON);
+}
+
+function sourceIsolationSpecs(c: InputMidi, d: InputMidi, alignment: PianoSectionAlignment): Array<{
+  id: SourceIsolationOutput["id"];
+  label: string;
+  notes: Note[];
+  base: ParsedMidi;
+}> {
+  const cNotes = c.parsed.notes.map((note) => ({ ...note }));
+  const dNotes = clipAlignedNotesToZero(transformDNotes(d.parsed, alignment));
+  const cRoles = splitPianoRoles(cNotes);
+  const dRoles = splitPianoRoles(dNotes);
+  const dParsed = transformedParsedMidi(d, dNotes);
+  return [
+    { id: "C-raw", label: "C raw aligned", notes: cNotes, base: c.parsed },
+    { id: "C-melody-only", label: "C melody only", notes: cRoles.melody.map((note) => ({ ...note })), base: c.parsed },
+    { id: "C-accompaniment-only", label: "C accompaniment only", notes: cRoles.accompaniment.map((note) => ({ ...note })), base: c.parsed },
+    { id: "D-raw", label: "D raw aligned", notes: dNotes, base: dParsed },
+    { id: "D-melody-only", label: "D melody only", notes: dRoles.melody.map((note) => ({ ...note })), base: dParsed },
+    { id: "D-accompaniment-only", label: "D accompaniment only", notes: dRoles.accompaniment.map((note) => ({ ...note })), base: dParsed },
+    // Conservative fallback views: preserve the verified primary role split
+    // without inventing notes or forcing an alternate accompaniment.
+    { id: "fallback-melody-only", label: "Fallback melody only", notes: cRoles.melody.map((note) => ({ ...note })), base: c.parsed },
+    { id: "fallback-harmony-only", label: "Fallback harmony only", notes: cRoles.accompaniment.map((note) => ({ ...note })), base: c.parsed },
+  ];
+}
+
+async function writeSourceIsolationMidis(
+  specs: ReturnType<typeof sourceIsolationSpecs>,
+  outputRoot: string,
+): Promise<SourceIsolationOutput[]> {
+  const outputs: SourceIsolationOutput[] = [];
+  for (const spec of specs) {
+    const midiRef = `source-midi/${spec.id}.mid`;
+    const midiPath = join(outputRoot, midiRef);
+    const midiBytes = midiBytesForNotes(spec.notes, spec.base, spec.label);
+    await mkdir(dirname(midiPath), { recursive: true });
+    await writeFile(midiPath, midiBytes);
+    outputs.push({ id: spec.id, label: spec.label, midiRef, midiPath, midiBytes });
+  }
+  return outputs;
+}
+
+function noteWindowMetrics(notes: readonly Note[], window: PianoSectionWindow): { noteCount: number; onsetCount: number } {
+  const selected = notes.filter((note) => note.start < window.endBeat - EPSILON && note.start + note.dur > window.startBeat + EPSILON);
+  const starts = selected.map((note) => note.start).sort((a, b) => a - b);
+  let onsetCount = 0;
+  let lastStart = -Infinity;
+  for (const start of starts) {
+    if (start - lastStart > ONSET_TOLERANCE + EPSILON) {
+      onsetCount += 1;
+      lastStart = start;
+    }
+  }
+  return { noteCount: selected.length, onsetCount };
+}
+
+function selectionScoreForWindow(selection: unknown, candidateId: string, windowId: string): Record<string, number> | undefined {
+  const record = asRecord(selection);
+  const scores = record?.scores;
+  if (!Array.isArray(scores)) return undefined;
+  const score = scores.find((item) => {
+    const value = asRecord(item);
+    return value?.candidateId === candidateId && value?.windowId === windowId;
+  });
+  return asRecord(score) as Record<string, number> | undefined;
+}
+
+function selectionWindowWinner(selection: unknown, windowId: string): string | null {
+  const record = asRecord(selection);
+  const selections = record?.diagnostics && asRecord(record.diagnostics)?.windowSelections;
+  if (!Array.isArray(selections)) return null;
+  const selected = selections.find((item) => asRecord(item)?.windowId === windowId);
+  const candidateId = asRecord(selected)?.candidateId;
+  return typeof candidateId === "string" ? candidateId : null;
+}
+
+function derivedCoverageMap(
+  c: InputMidi,
+  d: InputMidi,
+  dAlignment: PianoSectionAlignment,
+  windows: readonly PianoSectionWindow[],
+  selection: unknown,
+): { schemaVersion: 1; basis: string; windows: CoverageWindowReport[] } {
+  const dNotes = transformDNotes(d.parsed, dAlignment);
+  const candidates: Array<[string, readonly Note[]]> = [["C", c.parsed.notes], ["D", dNotes]];
+  const reports = windows.map((window) => {
+    const candidateReports = Object.fromEntries(candidates.map(([candidateId, notes]) => {
+      const metrics = noteWindowMetrics(notes, window);
+      const score = selectionScoreForWindow(selection, candidateId, window.id);
+      const coverageEvidence = asRecord(score?.coverageWindow);
+      const scoreValue = typeof score?.score === "number" && Number.isFinite(score.score) ? score.score : null;
+      const hasSourceMaterial = metrics.noteCount > 0;
+      const rejectionReasons: string[] = [];
+      if (!hasSourceMaterial) rejectionReasons.push("no source material in window");
+      if (scoreValue !== null && scoreValue < 0.45) rejectionReasons.push("selector score below local usability threshold");
+      if (scoreValue === null) rejectionReasons.push("no selector score supplied");
+      const explicitUsable = typeof coverageEvidence?.usable === "boolean" ? coverageEvidence.usable : undefined;
+      const explicitReasons = Array.isArray(coverageEvidence?.rejectionReasons) ? coverageEvidence.rejectionReasons : [];
+      for (const reason of explicitReasons) {
+        if (typeof reason === "string" && reason.trim() && !rejectionReasons.includes(reason.trim())) rejectionReasons.push(reason.trim());
+      }
+      // A missing score is intentionally not treated as aligned coverage.
+      // Notes existing in a time range prove activity, not correspondence to
+      // the submitted song; fail closed until the builder supplies evidence.
+      const usable = explicitUsable ?? (hasSourceMaterial && scoreValue !== null && scoreValue >= 0.45);
+      return [candidateId, {
+        candidateId,
+        ...metrics,
+        hasSourceMaterial,
+        alignmentConfidence: typeof coverageEvidence?.alignmentConfidence === "number"
+          ? coverageEvidence.alignmentConfidence
+          : typeof score?.confidence === "number" ? score.confidence : null,
+        chromaAgreement: typeof coverageEvidence?.chromaAgreement === "number"
+          ? coverageEvidence.chromaAgreement
+          : typeof score?.chroma === "number" ? score.chroma : null,
+        attackAgreement: typeof coverageEvidence?.attackAgreement === "number"
+          ? coverageEvidence.attackAgreement
+          : typeof score?.coverage === "number" ? score.coverage : null,
+        melodicAgreement: typeof coverageEvidence?.melodicAgreement === "number"
+          ? coverageEvidence.melodicAgreement
+          : typeof score?.continuity === "number" ? score.continuity : null,
+        score: scoreValue,
+        usable,
+        rejectionReasons,
+      } satisfies CoverageCandidateReport];
+    })) as Record<string, CoverageCandidateReport>;
+    const selectedMelodySource = selectionWindowWinner(selection, window.id);
+    const selectedReport = selectedMelodySource ? candidateReports[selectedMelodySource] : undefined;
+    return {
+      id: window.id,
+      startBeat: window.startBeat,
+      endBeat: window.endBeat,
+      candidates: candidateReports,
+      selectedMelodySource,
+      selectedAccompanimentSource: "C-reconstructed",
+      fallbackUsed: selectedReport ? !selectedReport.usable : true,
+      fallbackReason: selectedReport?.usable ? null : "insufficient aligned coverage",
+    };
+  });
+  return {
+    schemaVersion: 1,
+    basis: "local selector diagnostics plus source-material presence; not a reference-alignment score",
+    windows: reports,
+  };
+}
+
 function midiMetrics(parsed: ParsedMidi): Record<string, unknown> {
   const notes = parsed.notes.filter((note) => Number.isFinite(note.start) && Number.isFinite(note.dur) && note.dur > 0);
   const starts = [...new Set(notes.map((note) => Math.round(note.start / ONSET_TOLERANCE) * ONSET_TOLERANCE))].sort((a, b) => a - b);
@@ -620,16 +877,27 @@ async function writeJson(path: string, value: unknown): Promise<void> {
 function blindOrder(outputs: readonly LocalOutput[]): LocalOutput[] {
   return BLIND_OUTPUT_IDS
     .map((id) => outputs.find((output) => output.id === id))
-    .filter((output): output is LocalOutput => output !== undefined)
-    .sort((left, right) => hashBytes(left.midiBytes).localeCompare(hashBytes(right.midiBytes)) || left.id.localeCompare(right.id));
+    .filter((output): output is LocalOutput => output !== undefined);
 }
 
-function blindMap(outputs: readonly LocalOutput[], orderedOutputs = blindOrder(outputs)): Record<string, { candidateId: string; label: string; wavRef?: string }> {
+function blindMap(outputs: readonly LocalOutput[], orderedOutputs = blindOrder(outputs)): Record<string, BlindMapEntry> {
   const aliases = ["A", "B", "C", "D"];
   return Object.fromEntries(aliases.map((alias, index) => {
     const output = orderedOutputs[index];
     const id = output?.id ?? `missing-${index + 1}`;
-    return [alias, { candidateId: id, label: output?.label ?? id, ...(output?.wavRef ? { wavRef: output.wavRef } : {}) }];
+    const midiSha256 = output ? hashBytes(output.midiBytes) : "";
+    const wavSha256 = output?.render?.wav.sha256;
+    return [alias, {
+      candidateId: id,
+      label: output?.label ?? id,
+      // `sha256` is the candidate identity hash.  Audio gets its own field so
+      // a no-render bundle still has a complete, reproducible answer key.
+      sha256: midiSha256,
+      midiSha256,
+      ...(output?.wavRef ? { wavRef: output.wavRef } : {}),
+      ...(wavSha256 ? { wavSha256 } : {}),
+      recoveredFromManifestSha256: RECOVERED_BLIND_MANIFEST_SHA256,
+    }];
   }));
 }
 
@@ -705,11 +973,60 @@ async function renderExcerpts(outputs: readonly LocalOutput[], windows: readonly
   return excerpts;
 }
 
+async function renderSourceIsolationExcerpts(
+  outputs: readonly SourceIsolationOutput[],
+  window: PianoSectionWindow,
+  tempoBpm: number,
+  out: string,
+): Promise<Record<string, BundleExcerptMetadata>> {
+  const excerpts: Record<string, BundleExcerptMetadata> = {};
+  const startSeconds = window.startBeat * 60 / tempoBpm;
+  const endSeconds = window.endBeat * 60 / tempoBpm;
+  for (const output of outputs) {
+    if (!output.wavPath) continue;
+    const ref = `opening/${output.id}.wav`;
+    const path = join(out, ref);
+    await sliceWav(output.wavPath, path, startSeconds, endSeconds);
+    const bytes = new Uint8Array(await readFile(path));
+    excerpts[output.id] = { ref, bytes: bytes.byteLength, sha256: hashBytes(bytes) };
+  }
+  return excerpts;
+}
+
+async function renderNewCandidateExcerpts(
+  outputs: readonly LocalOutput[],
+  window: PianoSectionWindow,
+  tempoBpm: number,
+  out: string,
+): Promise<{ opening: Record<string, BundleExcerptMetadata>; full: Record<string, BundleExcerptMetadata> }> {
+  const opening: Record<string, BundleExcerptMetadata> = {};
+  const full: Record<string, BundleExcerptMetadata> = {};
+  const aliases: Array<[string, string]> = [["new-easy", "CD-fused-easy"], ["new-medium", "CD-fused-medium"]];
+  for (const [alias, outputId] of aliases) {
+    const output = outputs.find((item) => item.id === outputId);
+    if (!output?.wavPath) continue;
+    const openingRef = `opening/${alias}.wav`;
+    const openingPath = join(out, openingRef);
+    await sliceWav(output.wavPath, openingPath, window.startBeat * 60 / tempoBpm, window.endBeat * 60 / tempoBpm);
+    const openingBytes = new Uint8Array(await readFile(openingPath));
+    opening[alias] = { ref: openingRef, bytes: openingBytes.byteLength, sha256: hashBytes(openingBytes) };
+
+    const fullRef = `full/${alias}.wav`;
+    const fullPath = join(out, fullRef);
+    await sliceWav(output.wavPath, fullPath, 0, Number.POSITIVE_INFINITY);
+    const fullBytes = new Uint8Array(await readFile(fullPath));
+    full[alias] = { ref: fullRef, bytes: fullBytes.byteLength, sha256: hashBytes(fullBytes) };
+  }
+  return { opening, full };
+}
+
 function listeningMarkdown(
   outputs: readonly LocalOutput[],
   windows: readonly PianoSectionWindow[],
-  blind: Record<string, { candidateId: string; label: string; wavRef?: string }>,
+  blind: Record<string, BlindMapEntry>,
   excerpts: BundleExcerptMap,
+  sourceIsolation: Record<string, BundleExcerptMetadata>,
+  newCandidates: { opening: Record<string, BundleExcerptMetadata>; full: Record<string, BundleExcerptMetadata> },
   diagnosticsPath: string,
   renderer: BundleRendererMetadata,
   normalization: BundleNormalizationMetadata,
@@ -744,6 +1061,18 @@ function listeningMarkdown(
     "- Wrong-note severity and missed-note severity (none / mild / major)",
     "- Playability at normal speed and at 70% speed (1–5)",
     "",
+    "## Opening source isolation",
+    "These are diagnostic renders of the source MIDI layers, not new production candidates.",
+    ...["C-raw", "C-melody-only", "C-accompaniment-only", "D-raw", "D-melody-only", "D-accompaniment-only", "fallback-melody-only", "fallback-harmony-only"].map((id) => {
+      const excerpt = sourceIsolation[id];
+      return `- ${id}: ${excerpt ? `[WAV](${excerpt.ref})` : "not rendered"}`;
+    }),
+    "",
+    "## New candidate renders",
+    ...["new-easy", "new-medium"].flatMap((id) => [
+      `- ${id}: ${newCandidates.opening[id] ? `[opening WAV](${newCandidates.opening[id]!.ref})` : "opening not rendered"} · ${newCandidates.full[id] ? `[full WAV](${newCandidates.full[id]!.ref})` : "full not rendered"}`,
+    ]),
+    "",
     "## Explicit aligned windows",
     ...windows.map((window) => {
       const links = Object.values(excerpts[window.id] ?? {}).map((excerpt) => `[excerpt WAV](${excerpt.ref})`);
@@ -753,6 +1082,7 @@ function listeningMarkdown(
     "## Diagnostics",
     `- [manifest.json](manifest.json)`,
     `- [metrics.json](${diagnosticsPath})`,
+    "- [coverage-map.json](coverage-map.json)",
     "- [selected-region-map.json](selected-region-map.json)",
     "",
     "Automated metrics are diagnostic evidence only; they do not establish recognizability or playability.",
@@ -790,6 +1120,15 @@ export async function buildPianoSectionListeningBundle(
     localOutputs.push({ ...outputSpec, midiPath, midiRef, midiBytes: bytes, parsed });
   }
 
+  // These source-isolation files are diagnostic views of the exact C/D input
+  // streams.  They are kept separate from the builder's `C-melody-only`
+  // output: the latter is a protected candidate product, while this set
+  // answers which source layer is responsible for an opening defect.
+  const sourceIsolationOutputs = await writeSourceIsolationMidis(
+    sourceIsolationSpecs(c, d, options.dAlignment),
+    outputRoot,
+  );
+
   const configuredSoundfontPath = options.soundfont ?? process.env.KEYSPILLI_SOUNDFONT;
   if (!options.noRender) {
     const soundfontPath = configuredSoundfontPath;
@@ -810,6 +1149,15 @@ export async function buildPianoSectionListeningBundle(
       output.wavPath = wavPath;
       output.render = render;
     }
+    for (const output of sourceIsolationOutputs) {
+      const wavRef = `audio/source/${output.id}.wav`;
+      const wavPath = join(outputRoot, wavRef);
+      await mkdir(dirname(wavPath), { recursive: true });
+      const render = await renderer.render({ midiPath: output.midiPath, outputPath: wavPath });
+      output.wavRef = wavRef;
+      output.wavPath = wavPath;
+      output.render = render;
+    }
     // Excerpt metadata is collected below after all slices have been written.
     // One flat blind directory is intentionally made from the four selected
     // comparison candidates; per-window copies remain under excerpts/.
@@ -823,6 +1171,14 @@ export async function buildPianoSectionListeningBundle(
   const excerptMetrics: BundleExcerptMap = options.noRender
     ? {}
     : await renderExcerpts(localOutputs, windows, c.parsed.tempoBpm, outputRoot);
+
+  const openingWindow = windows.find((window) => window.id === "opening") ?? windows[0]!;
+  const sourceIsolationMetrics = options.noRender || !openingWindow
+    ? {}
+    : await renderSourceIsolationExcerpts(sourceIsolationOutputs, openingWindow, c.parsed.tempoBpm, outputRoot);
+  const newCandidateMetrics = options.noRender || !openingWindow
+    ? { opening: {}, full: {} }
+    : await renderNewCandidateExcerpts(localOutputs, openingWindow, c.parsed.tempoBpm, outputRoot);
 
   const blind = blindMap(localOutputs);
   const representativeRender = localOutputs.find((output) => output.render)?.render;
@@ -861,6 +1217,21 @@ export async function buildPianoSectionListeningBundle(
   }]));
   const diagnostics = asRecord(builderResult)?.diagnostics ?? asRecord(builderResult)?.regionDiagnostics ?? null;
   const selection = asRecord(builderResult)?.selection ?? asRecord(builderResult)?.regionSelection ?? null;
+  const derivedCoverage = derivedCoverageMap(c, d, options.dAlignment, windows, selection);
+  const sourceIsolationOutputMetrics = Object.fromEntries(sourceIsolationOutputs.map((output) => [output.id, {
+    label: output.label,
+    midi: { ref: output.midiRef, bytes: output.midiBytes.byteLength, sha256: hashBytes(output.midiBytes) },
+    ...(output.wavRef && output.render ? {
+      wav: {
+        ref: output.wavRef,
+        bytes: output.render.wav.bytes,
+        sha256: output.render.wav.sha256,
+        durationSeconds: output.render.wav.durationSeconds,
+        peak: output.render.wav.peak,
+        rms: output.render.wav.rms,
+      },
+    } : {}),
+  }]));
   const manifest = {
     schemaVersion: 1,
     kind: "local-piano-section-listening-bundle",
@@ -874,8 +1245,23 @@ export async function buildPianoSectionListeningBundle(
     },
     alignment: { candidateId: "D", ...options.dAlignment, domain: "C beats" },
     windows,
+    blindMapping: {
+      basis: "recovered prior local human-listening bundle",
+      manifestSha256: RECOVERED_BLIND_MANIFEST_SHA256,
+      aliases: Object.fromEntries(Object.entries(blind).map(([alias, entry]) => [alias, entry.candidateId])),
+    },
     excerpts: excerptMetrics,
+    coverage: derivedCoverage,
+    coverageMap: "coverage-map.json",
+    selectedRegionMap: "selected-region-map.json",
+    blindMap: "blind-map.json",
     outputs: outputMetrics,
+    sourceIsolation: {
+      openingWindowId: openingWindow?.id ?? null,
+      outputs: sourceIsolationOutputMetrics,
+      excerpts: sourceIsolationMetrics,
+    },
+    newCandidates: newCandidateMetrics,
     selection: pathSafe(selection),
     builderDiagnostics: pathSafe(diagnostics),
     humanEvaluation: {
@@ -889,13 +1275,22 @@ export async function buildPianoSectionListeningBundle(
   const canonicalSha256 = hashBytes(new TextEncoder().encode(canonical));
   await writeFile(join(outputRoot, "manifest.canonical.json"), canonical, "utf8");
   await writeJson(join(outputRoot, "manifest.json"), { ...manifest, canonicalSha256 });
-  await writeJson(join(outputRoot, "metrics.json"), { schemaVersion: 1, thresholds: manifest.thresholds, renderer: rendererMetadata, normalization: normalizationMetadata, windows, excerpts: excerptMetrics, outputs: outputMetrics, builderDiagnostics: pathSafe(diagnostics) });
-  await writeJson(join(outputRoot, "selected-region-map.json"), { windows, selection: pathSafe(selection) });
+  await writeJson(join(outputRoot, "metrics.json"), { schemaVersion: 1, thresholds: manifest.thresholds, renderer: rendererMetadata, normalization: normalizationMetadata, windows, excerpts: excerptMetrics, coverage: derivedCoverage, outputs: outputMetrics, sourceIsolation: manifest.sourceIsolation, newCandidates: newCandidateMetrics, builderDiagnostics: pathSafe(diagnostics) });
+  await writeJson(join(outputRoot, "coverage-map.json"), derivedCoverage);
+  await writeJson(join(outputRoot, "selected-region-map.json"), { windows, selection: pathSafe(selection), coverage: derivedCoverage });
   await writeJson(join(outputRoot, "blind-map.json"), blind);
-  await writeJson(join(outputRoot, "evidence-manifest.json"), { schemaVersion: 1, kind: manifest.kind, manifest: "manifest.json", canonicalManifest: "manifest.canonical.json", metrics: "metrics.json", selectedRegionMap: "selected-region-map.json", blindMap: "blind-map.json", excerpts: excerptMetrics, renderer: rendererMetadata, normalization: normalizationMetadata, humanEvaluation: manifest.humanEvaluation });
-  await writeFile(join(outputRoot, "LISTENING.md"), listeningMarkdown(localOutputs, windows, blind, excerptMetrics, "metrics.json", rendererMetadata, normalizationMetadata), "utf8");
+  await writeJson(join(outputRoot, "evidence-manifest.json"), { schemaVersion: 1, kind: manifest.kind, manifest: "manifest.json", canonicalManifest: "manifest.canonical.json", metrics: "metrics.json", coverageMap: "coverage-map.json", selectedRegionMap: "selected-region-map.json", blindMap: "blind-map.json", excerpts: excerptMetrics, sourceIsolation: manifest.sourceIsolation, newCandidates: newCandidateMetrics, renderer: rendererMetadata, normalization: normalizationMetadata, humanEvaluation: manifest.humanEvaluation });
+  await writeFile(join(outputRoot, "LISTENING.md"), listeningMarkdown(localOutputs, windows, blind, excerptMetrics, sourceIsolationMetrics, newCandidateMetrics, "metrics.json", rendererMetadata, normalizationMetadata), "utf8");
 
-  const result = { out: outputRoot, outputs: localOutputs.map((output) => output.id), windows: windows.map((window) => window.id), rendered: !options.noRender, canonicalSha256 };
+  const result = {
+    out: outputRoot,
+    outputs: localOutputs.map((output) => output.id),
+    windows: windows.map((window) => window.id),
+    rendered: !options.noRender,
+    sourceIsolation: Object.keys(sourceIsolationMetrics),
+    newCandidates: Object.keys(newCandidateMetrics.opening),
+    canonicalSha256,
+  };
   console.log(JSON.stringify(result, null, 2));
   return result;
 }

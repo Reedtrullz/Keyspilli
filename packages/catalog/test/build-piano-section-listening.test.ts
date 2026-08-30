@@ -80,6 +80,14 @@ describe("local piano section listening bundle", () => {
       "CD-fused-medium.mid",
       "CD-selected-melody-only.mid",
     ]);
+    expect(await readdir(join(outputDirectory, "source-midi"))).toEqual(expect.arrayContaining([
+      "C-accompaniment-only.mid",
+      "C-melody-only.mid",
+      "C-raw.mid",
+      "D-accompaniment-only.mid",
+      "D-melody-only.mid",
+      "D-raw.mid",
+    ]));
     const manifest = JSON.parse(await readFile(join(outputDirectory, "manifest.json"), "utf8")) as Record<string, unknown>;
     expect(manifest.humanEvaluation).toMatchObject({
       status: "pending",
@@ -126,7 +134,7 @@ describe("local piano section listening bundle", () => {
     expect(listening).toContain("## Human listening worksheet");
     expect(listening).toContain("Is the main melody recognizable?");
     expect(listening).not.toContain("blind-map.json");
-    const blind = JSON.parse(await readFile(join(outputDirectory, "blind-map.json"), "utf8")) as Record<string, { candidateId: string }>;
+    const blind = JSON.parse(await readFile(join(outputDirectory, "blind-map.json"), "utf8")) as Record<string, { candidateId: string; sha256: string; midiSha256: string; recoveredFromManifestSha256: string }>;
     expect(Object.keys(blind).sort()).toEqual(["A", "B", "C", "D"]);
     expect(Object.values(blind).map((entry) => entry.candidateId).sort()).toEqual([
       "C-original-easy",
@@ -134,12 +142,30 @@ describe("local piano section listening bundle", () => {
       "CD-fused-easy",
       "CD-fused-medium",
     ].sort());
-    expect(Object.values(blind).map((entry) => entry.candidateId)).not.toEqual([
+    expect(Object.values(blind).map((entry) => entry.candidateId)).toEqual([
       "C-original-easy",
       "C-revoiced-easy",
       "CD-fused-easy",
       "CD-fused-medium",
     ]);
+    expect(Object.values(blind).every((entry) => entry.recoveredFromManifestSha256 === "4a63a62fac7e195f995439d8311fe43c24fb0e9b75069e66c6311a7c7e2a7ff8")).toBe(true);
+    expect(Object.values(blind).every((entry) => typeof entry.sha256 === "string" && entry.sha256.length === 64)).toBe(true);
+    expect(Object.values(blind).every((entry) => entry.midiSha256 === entry.sha256)).toBe(true);
+    expect(JSON.parse(await readFile(join(outputDirectory, "coverage-map.json"), "utf8"))).toMatchObject({
+      schemaVersion: 1,
+      windows: [{ id: "opening", startBeat: 0, endBeat: 4 }],
+    });
+    expect(JSON.parse(await readFile(join(outputDirectory, "selected-region-map.json"), "utf8"))).toHaveProperty("coverage");
+    expect(JSON.parse(await readFile(join(outputDirectory, "evidence-manifest.json"), "utf8"))).toMatchObject({
+      coverageMap: "coverage-map.json",
+      blindMap: "blind-map.json",
+    });
+    expect(JSON.parse(await readFile(join(outputDirectory, "manifest.json"), "utf8"))).toMatchObject({
+      sourceIsolation: { openingWindowId: "opening" },
+      newCandidates: { opening: {}, full: {} },
+    });
+    expect(listening).toContain("## Opening source isolation");
+    expect(listening).toContain("## New candidate renders");
     expect(result.rendered).toBe(false);
   });
 
