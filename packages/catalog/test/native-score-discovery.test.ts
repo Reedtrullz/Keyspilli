@@ -7,6 +7,7 @@ import {
   nativeScoreDiscoveryJson,
   type NativeScoreArtifactInput,
 } from "../src/native-score-discovery.js";
+import { discoverNativeScoreArtifacts as discoverNativeScoreArtifactsFromIndex } from "../src/index.js";
 
 function minimalMidi(): Buffer {
   const header = Buffer.alloc(14);
@@ -23,6 +24,10 @@ async function tempDir(): Promise<string> {
 }
 
 describe("native symbolic score discovery", () => {
+  it("exports the discovery API from the catalogue package index", () => {
+    expect(discoverNativeScoreArtifactsFromIndex).toBe(discoverNativeScoreArtifacts);
+  });
+
   it("reads a permitted local artifact and sidecar, hashes it, and ranks it above OMR", async () => {
     const directory = await tempDir();
     const artifactPath = join(directory, "Defence Of Moscow.mid");

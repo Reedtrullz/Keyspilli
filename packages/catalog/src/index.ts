@@ -31,3 +31,4 @@ export * from "./score-listening-pack.js";
 export * from "./omr-canonical.js";
 export * from "./omr-hierarchical-alignment.js";
 export * from "./omr-role-reference.js";
+export * from "./native-score-discovery.js";
