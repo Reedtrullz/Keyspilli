@@ -140,6 +140,27 @@ interface Hypothesis {
   quality: number;
 }
 
+/**
+ * A hypothesis is only useful when its fitted path is physically plausible.
+ * Keep this check separate from ranking: a path with more pitch matches can
+ * still be a pathological jump, and must not prevent a lower-scoring valid
+ * hypothesis from being selected.
+ */
+function isPathologicalHypothesis(
+  hypothesis: Hypothesis,
+  maxWarp: number,
+  maxLocalScale: number,
+): boolean {
+  const localSlopes = hypothesis.path.pairs.slice(1).map((pair, index) => {
+    const previous = hypothesis.path.pairs[index]!;
+    return (pair.candidate.start - previous.candidate.start)
+      / (pair.reference.start - previous.reference.start);
+  });
+  return localSlopes.some((slope) => !finite(slope) || slope <= 0
+    || slope < 1 / maxLocalScale - EPS || slope > maxLocalScale + EPS)
+    || hypothesis.residuals.some((residual) => residual > maxWarp + EPS);
+}
+
 const EPS = 1e-9;
 const DEFAULT_TOLERANCE = 0.08;
 const DEFAULT_MAX_WARP = 1.5;
@@ -643,16 +664,22 @@ export function alignPianoCandidates(
     || Math.abs(a.fittedOffset) - Math.abs(b.fittedOffset)
     || a.fittedScale - b.fittedScale
     || a.transpose - b.transpose);
-  const best = hypotheses[0];
-  if (!best) return emptyResult(references.length, candidates.length, ["insufficient onset and pitch evidence for alignment"], "insufficient-evidence");
-  const localSlopes = best.path.pairs.slice(1).map((pair, index) => {
-    const previous = best.path.pairs[index]!;
-    return (pair.candidate.start - previous.candidate.start) / (pair.reference.start - previous.reference.start);
-  });
-  const pathologicalSlope = localSlopes.some((slope) => !finite(slope) || slope <= 0 || slope < 1 / maxLocalScale - EPS || slope > maxLocalScale + EPS);
-  const pathologicalResidual = best.residuals.some((residual) => residual > maxWarp + EPS);
-  if (pathologicalSlope || pathologicalResidual) {
-    return emptyResult(references.length, candidates.length, ["pathological timing warp rejected"] , "rejected");
+  const minMatched = Math.max(1, Math.floor(options.minMatchedOnsets ?? 2));
+  const validHypotheses = hypotheses.filter((hypothesis) => !isPathologicalHypothesis(hypothesis, maxWarp, maxLocalScale));
+  const viableHypotheses = validHypotheses.filter((hypothesis) => hypothesis.path.pairs.length >= minMatched);
+  const best = viableHypotheses[0] ?? validHypotheses[0];
+  if (!hypotheses.length) {
+    return emptyResult(references.length, candidates.length, ["insufficient onset and pitch evidence for alignment"], "insufficient-evidence");
+  }
+  if (!best) {
+    return emptyResult(references.length, candidates.length, ["pathological timing warp rejected"], "rejected");
+  }
+  // A short valid prefix is not enough to rescue a search whose only
+  // sufficiently evidenced paths are pathological. Preserve the fail-closed
+  // result for that case while still allowing a lower-ranked valid path to
+  // win whenever it meets the requested evidence floor.
+  if (!viableHypotheses.length && validHypotheses.length < hypotheses.length) {
+    return emptyResult(references.length, candidates.length, ["pathological timing warp rejected"], "rejected");
   }
   const pairs = best.path.pairs;
   const matches = buildMatches(pairs, best.transpose);
@@ -663,10 +690,13 @@ export function alignPianoCandidates(
   const segments = buildSegments(pairs, Math.max(1, Math.floor(options.maxSegments ?? 8)), maxLocalScale);
   const medianResidual = quantile(best.residuals, 0.5) ?? maxWarp;
   const confidence = round(clamp(referenceRatio * 0.32 + candidateRatio * 0.18 + best.quality * 0.35 + Math.max(0, 1 - medianResidual / maxWarp) * 0.15, 0, 1));
-  const minMatched = Math.max(1, Math.floor(options.minMatchedOnsets ?? 2));
   const diagnostics: string[] = [];
   if (normalizedRegionsResult.invalid) diagnostics.push(`ignored ${normalizedRegionsResult.invalid} invalid piano alignment region${normalizedRegionsResult.invalid === 1 ? "" : "s"}`);
   if (seeds.length > maxHypotheses) diagnostics.push(`bounded piano alignment hypothesis search (${maxHypotheses}/${seeds.length} candidates evaluated)`);
+  if (validHypotheses.length < hypotheses.length) {
+    const discarded = hypotheses.length - validHypotheses.length;
+    diagnostics.push(`discarded ${discarded} pathological piano alignment hypothesis${discarded === 1 ? "" : "es"}`);
+  }
   if (Math.abs(best.fittedScale - 1) > 0.02) diagnostics.push(`global tempo relationship selected (${round(best.fittedScale)})`);
   if (Math.abs(best.fittedOffset) > tolerance) diagnostics.push(`intro offset selected (${round(best.fittedOffset)})`);
   if (segments.length > 1) diagnostics.push(`bounded piecewise timing drift represented by ${segments.length} segments`);

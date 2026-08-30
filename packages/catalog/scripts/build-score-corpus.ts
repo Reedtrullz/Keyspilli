@@ -431,7 +431,6 @@ function record(value: unknown): Record<string, unknown> | undefined {
 async function corpusEntry(
   descriptor: ScoreDescriptor,
   result: ScoreBenchmarkResult,
-  research: ResearchReport | undefined,
   sourceMetadata: Record<string, unknown> | undefined,
 ): Promise<BenchmarkCorpusSong | null> {
   const report = result.report;
@@ -587,7 +586,7 @@ async function buildBatch(options: ScoreCorpusBatchOptions): Promise<Record<stri
 
   const corpusSongs = (await Promise.all(results
     .filter((entry): entry is BatchScoreResult & { result: ScoreBenchmarkResult } => entry.result !== null)
-    .map((entry) => corpusEntry(entry.descriptor, entry.result, entry.research, entry.sourceMetadata))))
+    .map((entry) => corpusEntry(entry.descriptor, entry.result, entry.sourceMetadata))))
     .filter((entry): entry is BenchmarkCorpusSong => entry !== null)
     .sort((left, right) => compareText(left.id, right.id));
   const corpus = createBenchmarkCorpusManifest({ songs: corpusSongs });

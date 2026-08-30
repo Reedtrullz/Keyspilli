@@ -351,6 +351,21 @@ function defaultTranspositions(options: SymbolicAlignmentOptions): number[] {
   return Array.from({ length: 25 }, (_, index) => index - 12);
 }
 
+const MAX_AUTOMATIC_HYPOTHESES = 1024;
+const AUTOMATIC_SAMPLE_GROUPS = 192;
+
+interface HypothesisParameters {
+  offset: number;
+  scale: number;
+  transpose: number;
+}
+
+interface BoundedHypothesisSearch {
+  parameters: HypothesisParameters[];
+  considered: number;
+  capped: boolean;
+}
+
 function pairGroupNotes(
   reference: IndexedGroup,
   candidate: IndexedGroup,
@@ -423,6 +438,7 @@ function nearestAvailableGroup(
   target: number,
   tolerance: number,
   used: ReadonlySet<number>,
+  eligible?: (group: IndexedGroup) => boolean,
 ): { group: IndexedGroup; error: number } | undefined {
   let low = 0;
   let high = groups.length;
@@ -436,7 +452,7 @@ function nearestAvailableGroup(
     const group = groups[index]!;
     const error = Math.abs(group.start - target);
     if (error > tolerance + EPS) break;
-    if (used.has(group.index)) continue;
+    if (used.has(group.index) || (eligible && !eligible(group))) continue;
     if (!best || error < best.error - EPS || (Math.abs(error - best.error) <= EPS && group.index < best.group.index)) {
       best = { group, error };
     }
@@ -446,12 +462,103 @@ function nearestAvailableGroup(
     const group = groups[index]!;
     const error = Math.abs(group.start - target);
     if (error > tolerance + EPS) break;
-    if (used.has(group.index)) continue;
+    if (used.has(group.index) || (eligible && !eligible(group))) continue;
     if (!best || error < best.error - EPS || (Math.abs(error - best.error) <= EPS && group.index < best.group.index)) {
       best = { group, error };
     }
   }
   return best;
+}
+
+function quickHypothesisScore(
+  referenceGroups: readonly IndexedGroup[],
+  candidateGroups: readonly IndexedGroup[],
+  parameters: HypothesisParameters,
+  tolerance: number,
+): number {
+  if (!referenceGroups.length || !candidateGroups.length) return 0;
+  const stride = Math.max(1, Math.ceil(referenceGroups.length / AUTOMATIC_SAMPLE_GROUPS));
+  const sampledReferenceGroups = referenceGroups.filter((_, index) => index % stride === 0);
+  const usedCandidate = new Set<number>();
+  let matchedOnsets = 0;
+  let referenceNotes = 0;
+  let exactNotes = 0;
+  let pitchClassNotes = 0;
+  for (const referenceGroup of sampledReferenceGroups) {
+    referenceNotes += referenceGroup.notes.length;
+    const selected = nearestAvailableGroup(
+      candidateGroups,
+      referenceGroup.start * parameters.scale + parameters.offset,
+      tolerance,
+      usedCandidate,
+    );
+    if (!selected) continue;
+    usedCandidate.add(selected.group.index);
+    matchedOnsets += 1;
+    const transformedReference = {
+      ...referenceGroup,
+      notes: referenceGroup.notes.map((note) => ({
+        ...note,
+        start: note.start * parameters.scale + parameters.offset,
+      })),
+    };
+    const matches = pairGroupNotes(transformedReference, selected.group, parameters.transpose);
+    exactNotes += matches.filter((match) => match.exactPitch).length;
+    pitchClassNotes += matches.filter((match) => match.pitchClass).length;
+  }
+  if (!referenceNotes) return 0;
+  const onsetRatio = matchedOnsets / sampledReferenceGroups.length;
+  const exactRatio = exactNotes / referenceNotes;
+  const pitchClassRatio = pitchClassNotes / referenceNotes;
+  return onsetRatio * 0.45 + exactRatio * 0.4 + pitchClassRatio * 0.15;
+}
+
+function parameterOrder(a: HypothesisParameters, b: HypothesisParameters): number {
+  return Math.abs(a.offset) - Math.abs(b.offset)
+    || Math.abs(a.transpose) - Math.abs(b.transpose)
+    || Math.abs(a.scale - 1) - Math.abs(b.scale - 1)
+    || a.offset - b.offset
+    || a.scale - b.scale
+    || a.transpose - b.transpose;
+}
+
+function boundedAutomaticHypotheses(
+  offsets: readonly number[],
+  scales: readonly number[],
+  transpositions: readonly number[],
+  referenceGroups: readonly IndexedGroup[],
+  candidateGroups: readonly IndexedGroup[],
+  tolerance: number,
+): BoundedHypothesisSearch {
+  const parameters = scales.flatMap((scale) => offsets.flatMap((offset) => transpositions.map((transpose) => ({ offset, scale, transpose }))));
+  if (parameters.length <= MAX_AUTOMATIC_HYPOTHESES) return { parameters, considered: parameters.length, capped: false };
+
+  const scored = parameters.map((parameter, ordinal) => ({
+    parameter,
+    ordinal,
+    score: quickHypothesisScore(referenceGroups, candidateGroups, parameter, tolerance),
+  }));
+  const compare = (a: typeof scored[number], b: typeof scored[number]): number => b.score - a.score
+    || parameterOrder(a.parameter, b.parameter)
+    || a.ordinal - b.ordinal;
+  const perTranspose = Math.max(1, Math.floor(MAX_AUTOMATIC_HYPOTHESES / Math.max(1, transpositions.length)));
+  const selected = new Set<number>();
+  for (const transpose of transpositions) {
+    scored
+      .filter((entry) => entry.parameter.transpose === transpose)
+      .sort(compare)
+      .slice(0, perTranspose)
+      .forEach((entry) => selected.add(entry.ordinal));
+  }
+  for (const entry of [...scored].sort(compare)) {
+    if (selected.size >= MAX_AUTOMATIC_HYPOTHESES) break;
+    selected.add(entry.ordinal);
+  }
+  return {
+    parameters: [...selected].sort((a, b) => a - b).slice(0, MAX_AUTOMATIC_HYPOTHESES).map((ordinal) => parameters[ordinal]!),
+    considered: parameters.length,
+    capped: true,
+  };
 }
 
 function evaluateHypothesis(
@@ -462,9 +569,9 @@ function evaluateHypothesis(
   transpose: number,
   tolerance: number,
   windows?: SymbolicAlignmentWindow[],
+  allReferenceGroups: IndexedGroup[] = indexedGroups(reference.notes, tolerance),
+  allCandidateGroups: IndexedGroup[] = indexedGroups(candidate.notes, tolerance),
 ): Hypothesis {
-  const allReferenceGroups = indexedGroups(reference.notes, tolerance);
-  const allCandidateGroups = indexedGroups(candidate.notes, tolerance);
   const referenceGroups = windows?.length
     ? allReferenceGroups.filter((group) => windows.some((window) => inBounds(group.start, window.reference)))
     : allReferenceGroups;
@@ -477,7 +584,13 @@ function evaluateHypothesis(
   let matchedOnsets = 0;
   for (const referenceGroup of referenceGroups) {
     const transformed = referenceGroup.start * scale + offset;
-    const selected = nearestAvailableGroup(candidateGroups, transformed, tolerance, usedCandidate);
+    const referenceWindowIds = windows?.length
+      ? new Set(windows.filter((window) => inBounds(referenceGroup.start, window.reference)).map((window) => window.id))
+      : undefined;
+    const eligibleCandidate = referenceWindowIds
+      ? (group: IndexedGroup) => windows!.some((window) => referenceWindowIds.has(window.id) && inBounds(group.start, window.candidate))
+      : undefined;
+    const selected = nearestAvailableGroup(candidateGroups, transformed, tolerance, usedCandidate, eligibleCandidate);
     if (!selected) continue;
     usedCandidate.add(selected.group.index);
     matchedOnsets += 1;
@@ -610,9 +723,12 @@ function windowResults(
 }
 
 function normalizedWindows(input: SymbolicAlignmentWindow[] | undefined): { windows: SymbolicAlignmentWindow[]; invalid: number } {
-  if (!input?.length) return { windows: [], invalid: 0 };
+  if (input === undefined) return { windows: [], invalid: 0 };
+  if (!Array.isArray(input)) return { windows: [], invalid: 1 };
+  if (!input.length) return { windows: [], invalid: 0 };
   const valid: SymbolicAlignmentWindow[] = [];
   let invalid = 0;
+  const seenIds = new Set<string>();
   for (const window of input) {
     const reference = window?.reference;
     const candidate = window?.candidate;
@@ -624,6 +740,11 @@ function normalizedWindows(input: SymbolicAlignmentWindow[] | undefined): { wind
       invalid += 1;
       continue;
     }
+    if (seenIds.has(window.id)) {
+      invalid += 1;
+      continue;
+    }
+    seenIds.add(window.id);
     valid.push({
       id: window.id,
       reference: [reference[0]!, reference[1]!] as [number, number],
@@ -631,12 +752,27 @@ function normalizedWindows(input: SymbolicAlignmentWindow[] | undefined): { wind
       ...(window.anchorId ? { anchorId: window.anchorId } : {}),
     });
   }
-  valid.sort((a, b) => a.id.localeCompare(b.id)
+  const nonOverlapping: SymbolicAlignmentWindow[] = [];
+  for (const window of [...valid].sort((a, b) => a.reference[0]! - b.reference[0]!
+    || a.reference[1]! - b.reference[1]!
+    || a.candidate[0]! - b.candidate[0]!
+    || a.candidate[1]! - b.candidate[1]!
+    || a.id.localeCompare(b.id))) {
+    const overlaps = nonOverlapping.some((previous) =>
+      (window.reference[0]! < previous.reference[1]! - EPS && previous.reference[0]! < window.reference[1]! - EPS)
+      || (window.candidate[0]! < previous.candidate[1]! - EPS && previous.candidate[0]! < window.candidate[1]! - EPS));
+    if (overlaps) {
+      invalid += 1;
+      continue;
+    }
+    nonOverlapping.push(window);
+  }
+  nonOverlapping.sort((a, b) => a.id.localeCompare(b.id)
     || a.reference[0]! - b.reference[0]!
     || a.reference[1]! - b.reference[1]!
     || a.candidate[0]! - b.candidate[0]!
     || a.candidate[1]! - b.candidate[1]!);
-  return { windows: valid, invalid };
+  return { windows: nonOverlapping, invalid };
 }
 
 function windowHypotheses(windows: readonly SymbolicAlignmentWindow[]): { offsets: number[]; scales: number[] } {
@@ -669,7 +805,7 @@ export function alignSymbolicScores(
   const tolerance = clamp(normalizeNumber(options.onsetToleranceBeats, DEFAULT_TOLERANCE), 0.001, 1);
   const normalizedWindowResult = normalizedWindows(options.windows);
   const windows = normalizedWindowResult.windows;
-  const invalidOnlyWindows = Array.isArray(options.windows) && options.windows.length > 0 && windows.length === 0;
+  const invalidOnlyWindows = options.windows !== undefined && normalizedWindowResult.invalid > 0 && windows.length === 0;
   const durationRatio = reference.durationBeats > EPS && candidate.durationBeats > EPS
     ? candidate.durationBeats / reference.durationBeats : 1;
   const explicitOffsetLimit = normalizeNumber(options.maxOffsetBeats, 16);
@@ -705,14 +841,27 @@ export function alignSymbolicScores(
 
   const maxOffset = clamp(normalizeNumber(options.maxOffsetBeats, 16), 0, 128);
   const windowCandidates = windowHypotheses(windows);
+  const allReferenceGroups = indexedGroups(reference.notes, tolerance);
+  const allCandidateGroups = indexedGroups(candidate.notes, tolerance);
   const explicitOffsets = options.offsetsBeats !== undefined;
   const offsets = sortedUnique(options.offsetsBeats ?? (windows.length ? [...windowCandidates.offsets, 0] : (options.allowOffset === false ? [0] : defaultOffsets(reference, candidate, maxOffset))), [0]);
   const scales = sortedUnique(options.beatScales ?? (windows.length ? [...windowCandidates.scales, 1] : defaultScales(options)), [1]).filter((scale) => scale > 0 && scale >= 0.25 && scale <= 4);
   const transpositions = sortedUnique(options.transpositions ?? defaultTranspositions(options), [0]).filter((transpose) => transpose >= -24 && transpose <= 24);
+  const automaticSearch = !windows.length
+    && options.offsetsBeats === undefined
+    && options.beatScales === undefined
+    && options.transpositions === undefined;
+  const boundedSearch = automaticSearch
+    ? boundedAutomaticHypotheses(offsets, scales, transpositions, allReferenceGroups, allCandidateGroups, tolerance)
+    : {
+      parameters: scales.flatMap((scale) => offsets.flatMap((offset) => transpositions.map((transpose) => ({ offset, scale, transpose })))),
+      considered: scales.length * offsets.length * transpositions.length,
+      capped: false,
+    };
   const hypotheses: Hypothesis[] = [];
-  for (const scale of scales) for (const offset of offsets) for (const transpose of transpositions) {
-    if (!explicitOffsets && !windows.length && Math.abs(offset) > maxOffset + EPS) continue;
-    hypotheses.push(evaluateHypothesis(reference, candidate, offset, scale, transpose, tolerance, windows));
+  for (const parameters of boundedSearch.parameters) {
+    if (!explicitOffsets && !windows.length && Math.abs(parameters.offset) > maxOffset + EPS) continue;
+    hypotheses.push(evaluateHypothesis(reference, candidate, parameters.offset, parameters.scale, parameters.transpose, tolerance, windows, allReferenceGroups, allCandidateGroups));
   }
   hypotheses.sort((a, b) => b.score - a.score
     || b.matchedOnsets - a.matchedOnsets
@@ -721,13 +870,14 @@ export function alignSymbolicScores(
     || a.scale - b.scale
     || a.offset - b.offset
     || a.transpose - b.transpose);
-  const best = hypotheses[0] ?? evaluateHypothesis(reference, candidate, 0, 1, 0, tolerance, windows);
+  const best = hypotheses[0] ?? evaluateHypothesis(reference, candidate, 0, 1, 0, tolerance, windows, allReferenceGroups, allCandidateGroups);
   const metrics = buildMetrics(reference, candidate, best, tolerance);
   const referenceRatio = best.referenceNoteCount ? metrics.matchedReferenceNotes / best.referenceNoteCount : 0;
   const candidateRatio = best.candidateNoteCount ? metrics.matchedCandidateNotes / best.candidateNoteCount : 0;
   const partialCoverage = referenceRatio < 0.98 || candidateRatio < 0.98;
   const minMatched = Math.max(1, Math.floor(options.minMatchedOnsets ?? 1));
   const diagnostics: string[] = [];
+  if (boundedSearch.capped) diagnostics.push(`bounded automatic hypothesis search (${boundedSearch.parameters.length}/${boundedSearch.considered})`);
   if (normalizedWindowResult.invalid) diagnostics.push("ignored " + normalizedWindowResult.invalid + " invalid alignment window" + (normalizedWindowResult.invalid === 1 ? "" : "s"));
   if (best.matchedOnsets < minMatched) diagnostics.push("insufficient onset evidence for a stable alignment");
   if (options.allowTempoStretch !== false && !options.beatScales?.length && Math.abs(best.scale - 1) > EPS) diagnostics.push(`bounded beat stretch selected (${round(best.scale)})`);

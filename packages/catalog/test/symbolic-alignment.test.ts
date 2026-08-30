@@ -4,6 +4,7 @@ import {
   coarseAlignScores,
   normalizeSymbolicScore,
   parseSymbolicCandidate,
+  type SymbolicAlignmentWindow,
   type SymbolicScoreInput,
 } from "../src/symbolic-alignment.js";
 
@@ -83,6 +84,48 @@ describe("symbolic alignment", () => {
     expect(result.metrics.matchedNotes).toBe(3);
     expect(result.metrics.exactPitch.f1).toBe(1);
     expect(result.metrics.onset.f1).toBe(1);
+  });
+
+  it("bounds the default hypothesis search for a realistic dense score", () => {
+    const referenceNotes = Array.from({ length: 500 }, (_, index) => ({
+      midi: 60 + (index % 7),
+      start: index * 1.03 + (index % 5) * 0.17,
+      dur: 0.75,
+      vel: 90,
+    }));
+    const candidateNotes = Array.from({ length: 500 }, (_, index) => ({
+      midi: 60 + (index % 7),
+      start: 12 + index * 1.07 + ((index * 7) % 11) * 0.13,
+      dur: 0.75,
+      vel: 90,
+    }));
+    const result = alignSymbolicScores(
+      score(referenceNotes),
+      score(candidateNotes),
+    );
+
+    expect(result.diagnostics).toContain("bounded automatic hypothesis search (1024/4000)");
+    expect(result.metrics.onset.matched).toBeGreaterThan(0);
+  });
+
+  it("keeps the strongest automatic offset and transposition under the cap", () => {
+    const referenceNotes = Array.from({ length: 500 }, (_, index) => ({
+      midi: 60 + (index % 7),
+      start: index * 1.03 + (index % 5) * 0.17,
+      dur: 0.75,
+      vel: 90,
+    }));
+    const candidateNotes = referenceNotes.map((note) => ({
+      ...note,
+      midi: note.midi + 5,
+      start: note.start + 12,
+    }));
+    const result = alignSymbolicScores(score(referenceNotes), score(candidateNotes));
+
+    expect(result.status).toBe("aligned");
+    expect(result.offsetBeats).toBe(12);
+    expect(result.transpositionSemitones).toBe(-5);
+    expect(result.metrics.exactPitch.f1).toBe(1);
   });
 
   it("supports an explicit global stretch while retaining the intro offset", () => {
@@ -202,6 +245,36 @@ describe("symbolic alignment", () => {
     expect(result.windows[0]?.matchedOnsets).toBe(2);
   });
 
+  it("never matches an onset across two explicit window domains", () => {
+    const reference = score([
+      { midi: 60, start: 0, dur: 0.5, vel: 90 },
+      { midi: 62, start: 4, dur: 0.5, vel: 90 },
+    ], { durationBeats: 5 });
+    const candidate = score([
+      { midi: 60, start: 10, dur: 0.5, vel: 90 },
+      { midi: 62, start: 11, dur: 0.5, vel: 90 },
+    ], { durationBeats: 12 });
+    const result = alignSymbolicScores(reference, candidate, {
+      // The supplied hypothesis maps reference beat 0 into window B. The
+      // candidate must not be credited to window A merely because all window
+      // groups were pooled for the search.
+      offsetsBeats: [11],
+      transpositions: [0],
+      beatScales: [1],
+      windows: [
+        { id: "a", reference: [0, 1], candidate: [10, 10.5] },
+        { id: "b", reference: [4, 5], candidate: [11, 12] },
+      ],
+    });
+
+    expect(result.metrics.matchedNotes).toBe(0);
+    expect(result.metrics.onset.matched).toBe(0);
+    expect(result.windows).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: "a", matchedOnsets: 0 }),
+      expect.objectContaining({ id: "b", matchedOnsets: 0 }),
+    ]));
+  });
+
   it("fails closed when every supplied window is malformed", () => {
     const result = alignSymbolicScores(
       score([{ midi: 60, start: 0, dur: 1, vel: 90 }]),
@@ -211,6 +284,43 @@ describe("symbolic alignment", () => {
     expect(result.status).toBe("alignment-required");
     expect(result.alignmentRequired).toBe(true);
     expect(result.matches).toEqual([]);
+  });
+
+  it("fails closed when the explicit window collection is not an array", () => {
+    const result = alignSymbolicScores(
+      score([{ midi: 60, start: 0, dur: 1, vel: 90 }]),
+      score([{ midi: 60, start: 0, dur: 1, vel: 90 }]),
+      { windows: { id: "not-an-array" } as unknown as SymbolicAlignmentWindow[] },
+    );
+
+    expect(result.status).toBe("alignment-required");
+    expect(result.alignmentRequired).toBe(true);
+    expect(result.matches).toEqual([]);
+    expect(result.diagnostics).toContain("all supplied alignment windows are invalid");
+  });
+
+  it("drops duplicate and overlapping explicit windows deterministically", () => {
+    const result = alignSymbolicScores(
+      score([
+        { midi: 60, start: 0, dur: 0.5, vel: 90 },
+        { midi: 62, start: 3, dur: 0.5, vel: 90 },
+      ], { durationBeats: 4 }),
+      score([
+        { midi: 60, start: 0, dur: 0.5, vel: 90 },
+        { midi: 62, start: 3, dur: 0.5, vel: 90 },
+      ], { durationBeats: 4 }),
+      {
+        windows: [
+          { id: "a", reference: [0, 2], candidate: [0, 2] },
+          { id: "a", reference: [3, 4], candidate: [3, 4] },
+          { id: "b", reference: [1, 3], candidate: [1, 3] },
+        ],
+      },
+    );
+
+    expect(result.windows).toHaveLength(1);
+    expect(result.windows[0]?.id).toBe("a");
+    expect(result.diagnostics).toContain("ignored 2 invalid alignment windows");
   });
 
   it("honors an explicit large offset instead of applying the automatic offset cap", () => {

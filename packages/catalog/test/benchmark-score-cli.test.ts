@@ -15,7 +15,7 @@ const minimalMusicXml = `<?xml version="1.0"?>
         <time><beats>4</beats><beat-type>4</beat-type></time>
         <clef><sign>G</sign><line>2</line></clef>
       </attributes>
-      <note><pitch><step>C</step><octave>4</octave></pitch><duration>16</duration><voice>1</voice></note>
+      <note><pitch><step>C</step><octave>4</octave></pitch><duration>16</duration><voice>1</voice><staff>1</staff></note>
     </measure>
   </part>
 </score-partwise>`;
@@ -33,7 +33,7 @@ const multiPartMusicXml = `<?xml version="1.0"?>
         <time><beats>4</beats><beat-type>4</beat-type></time>
         <clef><sign>G</sign><line>2</line></clef>
       </attributes>
-      <note><pitch><step>C</step><octave>4</octave></pitch><duration>16</duration><voice>1</voice></note>
+      <note><pitch><step>C</step><octave>4</octave></pitch><duration>16</duration><voice>1</voice><staff>1</staff></note>
     </measure>
   </part>
   <part id="P2">
@@ -43,7 +43,7 @@ const multiPartMusicXml = `<?xml version="1.0"?>
         <time><beats>4</beats><beat-type>4</beat-type></time>
         <clef><sign>F</sign><line>4</line></clef>
       </attributes>
-      <note><pitch><step>E</step><octave>3</octave></pitch><duration>16</duration><voice>1</voice></note>
+      <note><pitch><step>E</step><octave>3</octave></pitch><duration>16</duration><voice>2</voice><staff>2</staff></note>
     </measure>
   </part>
 </score-partwise>`;
@@ -268,9 +268,13 @@ if (args[0] === "-batch") {
       expect(result.report.structure?.parts.map((part) => part.name)).toEqual(["Lead Voice", "Guitar"]);
       expect(result.report.metrics?.parsedNotes).toBe(2);
       const normalized = JSON.parse(await readFile(join(out, "normalized", "notes.json"), "utf8")) as {
-        notes: Array<{ part: string }>;
+        notes: Array<{ part: string; role?: string; roleConfidence?: string; staff?: number; voice?: string; measure?: number; beat?: number; source?: string }>;
       };
       expect(normalized.notes.map((note) => note.part)).toEqual(["Guitar", "Lead Voice"]);
+      expect(normalized.notes).toEqual(expect.arrayContaining([
+        expect.objectContaining({ part: "Lead Voice", role: "melody", roleConfidence: "high", staff: 1, voice: "1", measure: 1, beat: 1, source: "score-part:P1" }),
+        expect.objectContaining({ part: "Guitar", role: "accompaniment", roleConfidence: "high", staff: 2, voice: "2", measure: 1, beat: 1, source: "score-part:P2" }),
+      ]));
     } finally {
       await rm(directory, { recursive: true, force: true });
     }

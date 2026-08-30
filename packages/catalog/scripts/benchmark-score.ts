@@ -208,7 +208,20 @@ interface PreparedArtifacts {
   rawMxl: Uint8Array;
   rawFormat: XmlSource["rawFormat"];
   parsed: ParsedMidi;
-  partNotes: Array<{ name: string; notes: Note[] }>;
+  partNotes: Array<{
+    id: string;
+    name: string;
+    role: ScorePartSummary["role"];
+    roleConfidence: ScorePartSummary["roleConfidence"];
+    notes: Note[];
+    metadata: Array<{
+      staff?: number;
+      voice?: string;
+      measure?: number;
+      beat?: number;
+      source?: string;
+    }>;
+  }>;
   midi: Uint8Array;
   structure: ScoreStructureSummary;
   metrics: ScoreValidationMetrics;
@@ -523,19 +536,103 @@ function scanParts(xml: string): PartScan[] {
   return scans;
 }
 
-function parsedParts(xml: string, scans: PartScan[]): Array<{ name: string; notes: Note[]; parsed: ParsedMidi }> {
+interface PartNoteMetadata {
+  staff?: number;
+  voice?: string;
+  measure?: number;
+  beat?: number;
+  source?: string;
+}
+
+interface ParsedPart {
+  id: string;
+  name: string;
+  role: ScorePartSummary["role"];
+  roleConfidence: ScorePartSummary["roleConfidence"];
+  notes: Note[];
+  metadata: PartNoteMetadata[];
+  parsed: ParsedMidi;
+}
+
+function metadataForPart(partXml: string, notes: readonly Note[], part: PartScan | undefined): PartNoteMetadata[] {
+  const body = partXml.match(/<part(?=\s|>)[^>]*>([\s\S]*?)<\/part>/i)?.[1] ?? partXml;
+  const timeAttributes = body.match(/<attributes\b[\s\S]*?<\/attributes>/i)?.[0] ?? "";
+  const beats = positiveInteger(firstMatch(timeAttributes, /<beats>\s*(\d+)\s*<\/beats>/i), 4);
+  const beatType = positiveInteger(firstMatch(timeAttributes, /<beat-type>\s*(\d+)\s*<\/beat-type>/i), 4);
+  const defaultMeasureBeats = beats * (4 / beatType);
+  const raw: Array<{ midi: number; start: number; dur: number; staff: number; voice: string; measure: number; beat: number }> = [];
+  for (const [index, measureMatch] of [...body.matchAll(/<measure\b([^>]*)>([\s\S]*?)<\/measure>/gi)].entries()) {
+    const measureOpening = measureMatch[1] ?? "";
+    const measureBody = measureMatch[2] ?? "";
+    const scanned = part?.measures[index];
+    const measureStart = scanned?.startBeat ?? index * defaultMeasureBeats;
+    let divisions = scanned?.divisions ?? positiveInteger(firstMatch(measureBody, /<divisions>\s*(\d+)\s*<\/divisions>/i), 1);
+    divisions = Math.max(1, divisions);
+    let cursor = 0;
+    let lastStart = 0;
+    const measureNumber = integer(attr(measureOpening, "number"), scanned?.number ?? index + 1);
+    for (const element of measureBody.match(/<(?:note|backup|forward)\b[^>]*>[\s\S]*?<\/(?:note|backup|forward)>/gi) ?? []) {
+      if (element.startsWith("<backup") || element.startsWith("<forward")) {
+        const duration = positiveInteger(firstMatch(element, /<duration>\s*(\d+)\s*<\/duration>/i), 0) / divisions;
+        cursor = element.startsWith("<backup") ? Math.max(0, cursor - duration) : cursor + duration;
+        continue;
+      }
+      const midi = parsePitch(element);
+      const durationRaw = firstMatch(element, /<duration>\s*(-?\d+)\s*<\/duration>/i);
+      const durationDivisions = Number(durationRaw);
+      const duration = durationDivisions / divisions;
+      if (midi === null || !finite(duration) || duration <= 0) continue;
+      const chord = /<chord\s*\/>/i.test(element);
+      const startWithinMeasure = chord ? lastStart : (lastStart = cursor);
+      if (!chord) cursor += duration;
+      const staff = positiveInteger(firstMatch(element, /<staff>\s*(\d+)\s*<\/staff>/i), 1);
+      const voice = firstMatch(element, /<voice>\s*([^<]+?)\s*<\/voice>/i) || "1";
+      raw.push({
+        midi,
+        start: round(measureStart + startWithinMeasure, 6),
+        dur: duration,
+        staff,
+        voice,
+        measure: measureNumber,
+        beat: round(startWithinMeasure + 1, 6),
+      });
+    }
+  }
+  const byKey = new Map<string, PartNoteMetadata[]>();
+  for (const event of raw) {
+    const key = `${event.start.toFixed(6)}:${event.midi}`;
+    const values = byKey.get(key) ?? [];
+    values.push({ staff: event.staff, voice: event.voice, measure: event.measure, beat: event.beat });
+    byKey.set(key, values);
+  }
+  for (const values of byKey.values()) values.sort((left, right) => (left.staff ?? 0) - (right.staff ?? 0) || (left.voice ?? "").localeCompare(right.voice ?? ""));
+  return notes.map((note) => {
+    const key = `${round(note.start, 6).toFixed(6)}:${note.midi}`;
+    const metadata = byKey.get(key)?.shift() ?? {};
+    return metadata;
+  });
+}
+
+function parsedParts(xml: string, scans: PartScan[]): ParsedPart[] {
+  const partFor = (id: string, fallbackIndex: number): PartScan | undefined => scans.find((scan) => scan.id === id) ?? scans[fallbackIndex];
+  const withMetadata = (id: string, name: string, parsed: ParsedMidi, partXml: string, fallbackIndex: number): ParsedPart => {
+    const scan = partFor(id, fallbackIndex);
+    const role = scan ? { role: scan.role, roleConfidence: scan.roleConfidence } : { role: "unknown" as const, roleConfidence: "low" as const };
+    return { id, name, ...role, notes: parsed.notes, metadata: metadataForPart(partXml, parsed.notes, scan), parsed };
+  };
   if (scans.length <= 1) {
     const parsed = parseMusicXmlNotes(xml);
-    return [{ name: scans[0]?.name ?? "Reference", notes: parsed.notes, parsed }];
+    const scan = scans[0];
+    return [withMetadata(scan?.id ?? "P1", scan?.name ?? "Reference", parsed, xml, 0)];
   }
   const root = xml.match(/<score-partwise\b[^>]*>/i)?.[0] ?? "<score-partwise version=\"4.0\">";
   const partList = xml.match(/<part-list\b[\s\S]*?<\/part-list>/i)?.[0] ?? "";
-  const parts: Array<{ name: string; notes: Note[]; parsed: ParsedMidi }> = [];
+  const parts: ParsedPart[] = [];
   for (const match of xml.matchAll(/<part(?=\s|>)[^>]*>[\s\S]*?<\/part>/gi)) {
     const body = `${root}${partList}${match[0]}</score-partwise>`;
     const parsed = parseMusicXmlNotes(body);
     const id = attr(match[0].match(/<part\b([^>]*)>/i)?.[1] ?? "", "id") ?? "";
-    parts.push({ name: id ? scorePartName(xml, id) : `Part ${parts.length + 1}`, notes: parsed.notes, parsed });
+    parts.push(withMetadata(id || `P${parts.length + 1}`, id ? scorePartName(xml, id) : `Part ${parts.length + 1}`, parsed, match[0], parts.length));
   }
   return parts;
 }
@@ -1239,7 +1336,7 @@ async function prepareArtifacts(xmlSource: XmlSource): Promise<PreparedArtifacts
   } catch (error) {
     errors.push(`generated MIDI failed structural parse: ${safeError(error)}`);
   }
-  return { ...xmlSource, xml, parsed, partNotes: parsedPartList.map(({ name, notes }) => ({ name, notes })), midi, structure, metrics: notation.metrics, warnings, errors };
+  return { ...xmlSource, xml, parsed, partNotes: parsedPartList, midi, structure, metrics: notation.metrics, warnings, errors };
 }
 
 async function sourceMetadata(
@@ -1351,17 +1448,28 @@ export async function runBenchmarkScore(options: ScoreBenchmarkOptions): Promise
         schemaVersion: 1,
         tempoBpm: finite(prepared.parsed.tempoBpm) ? round(prepared.parsed.tempoBpm, 6) : null,
         timeSig: prepared.parsed.timeSig,
-        notes: prepared.partNotes.flatMap((part, partIndex) => part.notes.map((note, noteIndex) => ({
-          part: part.name,
-          partIndex,
-          noteIndex,
-          midi: note.midi,
-          start: round(note.start, 6),
-          dur: round(note.dur, 6),
-          vel: round(note.vel, 3),
-          hand: note.hand ?? "R",
-          ...(note.lyrics ? { lyrics: note.lyrics } : {}),
-        }))).sort((a, b) => a.start - b.start || a.midi - b.midi || a.partIndex - b.partIndex || a.noteIndex - b.noteIndex),
+        notes: prepared.partNotes.flatMap((part, partIndex) => part.notes.map((note, noteIndex) => {
+          const metadata = part.metadata[noteIndex] ?? {};
+          return ({
+            part: part.name,
+            partId: part.id,
+            partIndex,
+            noteIndex,
+            role: part.role,
+            roleConfidence: part.roleConfidence,
+            midi: note.midi,
+            start: round(note.start, 6),
+            dur: round(note.dur, 6),
+            vel: round(note.vel, 3),
+            hand: note.hand ?? "R",
+            ...(metadata.staff === undefined ? {} : { staff: metadata.staff }),
+            ...(metadata.voice === undefined ? {} : { voice: metadata.voice }),
+            ...(metadata.measure === undefined ? {} : { measure: metadata.measure }),
+            ...(metadata.beat === undefined ? {} : { beat: metadata.beat }),
+            source: metadata.source ?? `score-part:${part.id}`,
+            ...(note.lyrics ? { lyrics: note.lyrics } : {}),
+          });
+        })).sort((a, b) => a.start - b.start || a.midi - b.midi || a.partIndex - b.partIndex || a.noteIndex - b.noteIndex),
       };
       await writeJsonAtomic(notesPath, normalizedNotes, out);
       report.normalization.repairs = [];
