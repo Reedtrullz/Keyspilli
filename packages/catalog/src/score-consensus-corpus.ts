@@ -18,6 +18,9 @@ import {
   DEFAULT_HOMR_UVX_EXECUTABLE,
   DEFAULT_HOMR_VERSION,
   type HomrBackendOptions,
+  type HomrFailureClass,
+  type HomrPageAttempt,
+  type HomrPageRecovery,
   type OmrBackend,
   type OmrPageResult,
   type OmrResult,
@@ -185,6 +188,10 @@ export interface HomrPageRunMetadata {
   artifactPaths: string[];
   warnings: string[];
   errors: string[];
+  failureClass?: HomrFailureClass;
+  rootCause?: string;
+  attempts?: HomrPageAttempt[];
+  recovery?: HomrPageRecovery;
 }
 
 export interface HomrRunMetadata {
@@ -972,6 +979,10 @@ export async function runHomrPages(options: HomrPageRunnerOptions): Promise<OmrB
       artifactPaths: pageArtifacts,
       warnings: pageWarnings,
       errors: pageErrors,
+      ...(backendPage?.failureClass ? { failureClass: backendPage.failureClass } : {}),
+      ...(backendPage?.rootCause ? { rootCause: safeDiagnostic(backendPage.rootCause) ?? undefined } : {}),
+      ...(Array.isArray(backendPage?.attempts) ? { attempts: backendPage.attempts as unknown as HomrPageAttempt[] } : {}),
+      ...(backendPage?.recovery && typeof backendPage.recovery === "object" ? { recovery: backendPage.recovery as unknown as HomrPageRecovery } : {}),
     });
     if (score && status === "available") pageScores.push({ page: page.page, relativePath: rasterPage, score });
   }

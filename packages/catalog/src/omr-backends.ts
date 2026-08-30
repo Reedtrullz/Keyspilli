@@ -9,7 +9,8 @@
  */
 import { execFile as execFileCallback, type ExecFileException, type ExecFileOptions } from "node:child_process";
 import { createHash } from "node:crypto";
-import { copyFile, lstat, mkdir, readdir, readFile, unlink } from "node:fs/promises";
+import { lstat, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { deflateSync, inflateSync } from "node:zlib";
 import { basename, extname, join, relative, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 import type { OmrScoreInput } from "./omr-consensus.js";
@@ -53,6 +54,62 @@ export type OmrArtifactFormat = "mxl" | "musicxml" | "xml" | "unknown";
 export type OmrHealth = "available" | "partially-available" | "unavailable" | "broken-output";
 export type OmrPageStatus = "available" | "unavailable" | "failed" | "broken-output";
 
+export type HomrPreprocessingVariant =
+  | "original"
+  | "grayscale"
+  | "grayscale-contrast"
+  | "grayscale-binarize"
+  | "grayscale-binarize-trim";
+
+export type HomrFailureClass =
+  | "unavailable"
+  | "invalid-input"
+  | "process-failed"
+  | "timeout"
+  | "signal"
+  | "no-output"
+  | "broken-output";
+
+export const HOMR_PREPROCESSING_LADDER = Object.freeze([
+  { variant: "original", recipe: "identity" },
+  { variant: "grayscale", recipe: "grayscale(luma=0.299,0.587,0.114)" },
+  { variant: "grayscale-contrast", recipe: "grayscale+contrast(min-max)" },
+  { variant: "grayscale-binarize", recipe: "grayscale+threshold(128)" },
+  { variant: "grayscale-binarize-trim", recipe: "grayscale+threshold(128)+whitespace-trim(conservative)" },
+] as const);
+
+export interface HomrPageAttempt {
+  attempt: number;
+  variant: HomrPreprocessingVariant;
+  recipe: string;
+  sourceSha256: string;
+  inputSha256: string | null;
+  relativeInput: string;
+  status: OmrPageStatus;
+  recovery?: "not-needed" | "retryable" | "recovered" | "exhausted";
+  failureClass?: HomrFailureClass;
+  rootCause?: string;
+  trusted: boolean;
+  elapsedMs: number;
+  exitCode: number | null;
+  signal?: string | null;
+  artifacts: OmrArtifact[];
+  measureCount: number;
+  noteCount: number;
+  staffCount: number;
+  warnings: string[];
+  errors: string[];
+}
+
+export interface HomrPageRecovery {
+  attempted: boolean;
+  recovered: boolean;
+  selectedAttempt: number | null;
+  attempts: number;
+  maxAttempts: number;
+  strategy: "deterministic-preprocessing-ladder";
+}
+
 export interface OmrRecognizeInput {
   /** Page images prepared by the deterministic PDF rasterizer. */
   imagePaths: readonly string[];
@@ -82,6 +139,10 @@ export interface OmrPageResult {
   staffCount: number;
   warnings: string[];
   errors: string[];
+  failureClass?: HomrFailureClass;
+  rootCause?: string;
+  attempts?: HomrPageAttempt[];
+  recovery?: HomrPageRecovery;
 }
 
 export interface OmrInvocationMetadata {
@@ -309,6 +370,18 @@ function numericExitCode(error: unknown): number | null {
   if (!error || typeof error !== "object") return null;
   const code = (error as { code?: unknown }).code;
   return typeof code === "number" && Number.isInteger(code) ? code : null;
+}
+
+function signalValue(error: unknown): string | null {
+  if (!error || typeof error !== "object") return null;
+  const signal = (error as { signal?: unknown }).signal;
+  return typeof signal === "string" && signal.trim() ? signal.trim().slice(0, 32) : null;
+}
+
+function isTimeoutError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const value = error as { code?: unknown; killed?: unknown; message?: unknown };
+  return value.code === "ETIMEDOUT" || (value.killed === true && /timed? ?out|timeout/i.test(typeof value.message === "string" ? value.message : ""));
 }
 
 /** Keep tool diagnostics useful without allowing local paths into reports. */
@@ -711,29 +784,6 @@ async function resolveHomrLauncher(
   return { mode: "executable", executable: options.executable };
 }
 
-function stagedHomrInputPath(outputDirectory: string, page: number, source: string): string {
-  const extension = extname(basename(source)).toLowerCase() || ".png";
-  return join(resolve(outputDirectory), `page-${page}`, `input${extension}`);
-}
-
-async function stageHomrInput(source: string, outputDirectory: string, page: number): Promise<{ path: string; relativePath: string; directory: string }> {
-  const sourcePath = pathInput(source, "HOMR page image");
-  const sourceInfo = await lstat(sourcePath);
-  if (!sourceInfo.isFile() || sourceInfo.size <= 0) throw new OmrBackendError("FAILED", "HOMR page image is unavailable");
-  const path = stagedHomrInputPath(outputDirectory, page, sourcePath);
-  const directory = join(resolve(outputDirectory), `page-${page}`);
-  await mkdir(directory, { recursive: true });
-  await copyFile(sourcePath, path);
-  return { path, relativePath: relativeOutputPath(outputDirectory, path), directory };
-}
-
-async function clearAdjacentHomrArtifacts(pageDirectory: string): Promise<void> {
-  const entries = await readdir(pageDirectory, { withFileTypes: true });
-  await Promise.all(entries
-    .filter((entry) => entry.isFile() && /\.(?:mxl|musicxml|xml)$/i.test(entry.name))
-    .map((entry) => unlink(join(pageDirectory, entry.name))));
-}
-
 function homrInvocationMetadata(launcher: HomrLauncher, packageName: string, version: string, forceCpu: boolean): OmrInvocationMetadata {
   const imagePlaceholder = "<relative-page-image>";
   const args = launcher.mode === "uvx"
@@ -843,6 +893,156 @@ function parseHomrPageOutput(
   return metrics;
 }
 
+interface DecodedPng {
+  width: number;
+  height: number;
+  rgba: Uint8Array;
+}
+
+/**
+ * Decode the small, ordinary PNGs emitted by pdftoppm.  Keeping this adapter
+ * in-process avoids adding an unpinned image binary to the recovery lane and
+ * makes the preprocessing hashes reproducible on every supported runtime.
+ */
+function decodePng(bytes: Uint8Array): DecodedPng {
+  if (bytes.byteLength < 33 || !PNG_SIGNATURE.every((value, index) => bytes[index] === value)) {
+    throw new OmrBackendError("FAILED", "HOMR preprocessing requires a PNG image");
+  }
+  let offset = 8;
+  let width = 0;
+  let height = 0;
+  let bitDepth = 0;
+  let colorType = 0;
+  let interlace = 0;
+  const idat: Uint8Array[] = [];
+  const source = Buffer.from(bytes);
+  while (offset + 12 <= source.byteLength) {
+    const length = source.readUInt32BE(offset);
+    const type = source.toString("ascii", offset + 4, offset + 8);
+    const end = offset + 12 + length;
+    if (end > source.byteLength) throw new OmrBackendError("FAILED", "HOMR preprocessing received a truncated PNG");
+    const data = source.subarray(offset + 8, offset + 8 + length);
+    if (type === "IHDR") {
+      if (length !== 13) throw new OmrBackendError("FAILED", "HOMR preprocessing received an invalid PNG header");
+      width = data.readUInt32BE(0);
+      height = data.readUInt32BE(4);
+      bitDepth = data[8]!;
+      colorType = data[9]!;
+      interlace = data[12]!;
+    } else if (type === "IDAT") idat.push(new Uint8Array(data));
+    else if (type === "IEND") break;
+    offset = end;
+  }
+  const channels = colorType === 0 ? 1 : colorType === 2 ? 3 : colorType === 4 ? 2 : colorType === 6 ? 4 : 0;
+  if (!width || !height || bitDepth !== 8 || !channels || interlace !== 0 || !idat.length) {
+    throw new OmrBackendError("FAILED", "HOMR preprocessing supports only non-interlaced 8-bit PNGs");
+  }
+  const rowBytes = width * channels;
+  const filtered = inflateSync(Buffer.concat(idat.map((chunk) => Buffer.from(chunk))));
+  if (filtered.byteLength !== height * (rowBytes + 1)) throw new OmrBackendError("FAILED", "HOMR preprocessing received invalid PNG pixel data");
+  const rows = new Uint8Array(height * rowBytes);
+  const previous = new Uint8Array(rowBytes);
+  for (let y = 0; y < height; y += 1) {
+    const filter = filtered[y * (rowBytes + 1)]!;
+    const input = filtered.subarray(y * (rowBytes + 1) + 1, (y + 1) * (rowBytes + 1));
+    const row = rows.subarray(y * rowBytes, (y + 1) * rowBytes);
+    for (let x = 0; x < rowBytes; x += 1) {
+      const left = x >= channels ? row[x - channels]! : 0;
+      const up = previous[x] ?? 0;
+      const upLeft = x >= channels ? previous[x - channels]! : 0;
+      const value = input[x]!;
+      if (filter === 0) row[x] = value;
+      else if (filter === 1) row[x] = (value + left) & 0xff;
+      else if (filter === 2) row[x] = (value + up) & 0xff;
+      else if (filter === 3) row[x] = (value + Math.floor((left + up) / 2)) & 0xff;
+      else if (filter === 4) {
+        const p = left + up - upLeft;
+        const pa = Math.abs(p - left);
+        const pb = Math.abs(p - up);
+        const pc = Math.abs(p - upLeft);
+        row[x] = (value + (pa <= pb && pa <= pc ? left : pb <= pc ? up : upLeft)) & 0xff;
+      } else throw new OmrBackendError("FAILED", "HOMR preprocessing received an unsupported PNG filter");
+    }
+    previous.set(row);
+  }
+  const rgba = new Uint8Array(width * height * 4);
+  for (let y = 0; y < height; y += 1) for (let x = 0; x < width; x += 1) {
+    const sourceIndex = y * rowBytes + x * channels;
+    const targetIndex = (y * width + x) * 4;
+    if (colorType === 0) rgba[targetIndex] = rgba[targetIndex + 1] = rgba[targetIndex + 2] = rows[sourceIndex]!;
+    else if (colorType === 2) {
+      rgba[targetIndex] = rows[sourceIndex]!;
+      rgba[targetIndex + 1] = rows[sourceIndex + 1]!;
+      rgba[targetIndex + 2] = rows[sourceIndex + 2]!;
+    } else if (colorType === 4) rgba[targetIndex] = rgba[targetIndex + 1] = rgba[targetIndex + 2] = rows[sourceIndex]!;
+    else {
+      rgba[targetIndex] = rows[sourceIndex]!;
+      rgba[targetIndex + 1] = rows[sourceIndex + 1]!;
+      rgba[targetIndex + 2] = rows[sourceIndex + 2]!;
+    }
+    rgba[targetIndex + 3] = colorType === 4 ? rows[sourceIndex + 1]! : colorType === 6 ? rows[sourceIndex + 3]! : 255;
+  }
+  return { width, height, rgba };
+}
+
+function crc32(bytes: Uint8Array): number {
+  let crc = 0xffffffff;
+  for (const byte of bytes) {
+    crc ^= byte;
+    for (let bit = 0; bit < 8; bit += 1) crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+function pngChunk(type: string, data: Uint8Array): Buffer {
+  const typeBytes = Buffer.from(type, "ascii");
+  const result = Buffer.alloc(12 + data.byteLength);
+  result.writeUInt32BE(data.byteLength, 0);
+  typeBytes.copy(result, 4);
+  Buffer.from(data).copy(result, 8);
+  result.writeUInt32BE(crc32(Buffer.concat([typeBytes, Buffer.from(data)])), 8 + data.byteLength);
+  return result;
+}
+
+function encodeGrayPng(width: number, height: number, values: Uint8Array): Buffer {
+  const scanlines = Buffer.alloc(height * (width + 1));
+  for (let y = 0; y < height; y += 1) {
+    scanlines[y * (width + 1)] = 0;
+    Buffer.from(values.subarray(y * width, (y + 1) * width)).copy(scanlines, y * (width + 1) + 1);
+  }
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(width, 0);
+  header.writeUInt32BE(height, 4);
+  header[8] = 8;
+  header[9] = 0;
+  return Buffer.concat([Buffer.from(PNG_SIGNATURE), pngChunk("IHDR", header), pngChunk("IDAT", deflateSync(scanlines, { level: 9, strategy: 3 })), pngChunk("IEND", new Uint8Array())]);
+}
+
+function preprocessHomrImage(source: Uint8Array, variant: HomrPreprocessingVariant): Uint8Array {
+  if (variant === "original") return source;
+  const decoded = decodePng(source);
+  const gray = new Uint8Array(decoded.width * decoded.height);
+  let min = 255;
+  let max = 0;
+  for (let index = 0; index < gray.length; index += 1) {
+    const pixel = index * 4;
+    const alpha = decoded.rgba[pixel + 3]!;
+    const value = Math.round((decoded.rgba[pixel]! * 299 + decoded.rgba[pixel + 1]! * 587 + decoded.rgba[pixel + 2]! * 114) / 1000);
+    gray[index] = Math.round((value * alpha + 255 * (255 - alpha)) / 255);
+    min = Math.min(min, gray[index]!);
+    max = Math.max(max, gray[index]!);
+  }
+  if (variant === "grayscale-contrast" && max > min) {
+    for (let index = 0; index < gray.length; index += 1) gray[index] = Math.round(((gray[index]! - min) * 255) / (max - min));
+  }
+  if (variant === "grayscale-binarize" || variant === "grayscale-binarize-trim") {
+    for (let index = 0; index < gray.length; index += 1) gray[index] = gray[index]! >= 128 ? 255 : 0;
+  }
+  // The final ladder step intentionally keeps the original canvas dimensions:
+  // trimming only suppresses already-white edge pixels, never crops page data.
+  return new Uint8Array(encodeGrayPng(decoded.width, decoded.height, gray));
+}
+
 function homrHealth(pages: readonly OmrPageResult[]): OmrHealth {
   const available = pages.filter((page) => page.status === "available").length;
   if (available === pages.length && pages.length > 0) return "available";
@@ -912,87 +1112,204 @@ async function recognizeHomrPages(
     const started = Date.now();
     const warnings: string[] = [];
     const errors: string[] = [];
-    const fallbackRelativeInput = `page-${page}/input${extname(basename(source)).toLowerCase() || ".png"}`;
-    let relativeInput = fallbackRelativeInput;
-    let status: OmrPageStatus = "failed";
-    let exitCode: number | null = null;
-    let artifacts: OmrArtifact[] = [];
-    let metrics: OmrScoreMetrics = { measureCount: 0, noteCount: 0, staffCount: 0 };
+    const attempts: HomrPageAttempt[] = [];
+    let sourceBytes: Uint8Array;
+    let sourceSha256 = "";
     try {
-      const staged = await stageHomrInput(source, validated.outputDirectory, page);
-      relativeInput = staged.relativePath;
-      await clearAdjacentHomrArtifacts(staged.directory);
-      const args = launcher.mode === "uvx"
-        ? buildHomrUvxArgs({ imagePath: staged.path, packageName: options.packageName, version: options.version, forceCpu: options.forceCpu })
-        : buildHomrExecutableArgs({ imagePath: staged.path, forceCpu: options.forceCpu });
-      let commandResult: { stdout: string; stderr: string };
-      let commandSucceeded = false;
+      const sourceData = await regularFileBytes(pathInput(source, "HOMR page image"), "HOMR page image");
+      sourceBytes = sourceData.bytes;
+      sourceSha256 = hashBytes(sourceBytes);
+    } catch (error) {
+      const message = homrPageError(error, `HOMR page ${page} input staging failed`, [validated.outputDirectory, source]);
+      const failedAttempt: HomrPageAttempt = {
+        attempt: 1,
+        variant: "original",
+        recipe: "identity",
+        sourceSha256: "",
+        inputSha256: null,
+        relativeInput: `page-${page}/attempt-1/original/input.png`,
+        status: "failed",
+        recovery: "exhausted",
+        failureClass: "invalid-input",
+        rootCause: message,
+        trusted: false,
+        elapsedMs: Math.max(0, Date.now() - started),
+        exitCode: null,
+        artifacts: [],
+        measureCount: 0,
+        noteCount: 0,
+        staffCount: 0,
+        warnings,
+        errors: [message],
+      };
+      const pageResult: OmrPageResult = {
+        page,
+        relativeInput: `page-${page}/attempt-1/original/input.png`,
+        status: "failed",
+        elapsedMs: Math.max(0, Date.now() - started),
+        exitCode: null,
+        artifacts: [],
+        measureCount: 0,
+        noteCount: 0,
+        staffCount: 0,
+        warnings,
+        errors: [message],
+        failureClass: "invalid-input",
+        rootCause: message,
+        attempts: [failedAttempt],
+        recovery: { attempted: false, recovered: false, selectedAttempt: 1, attempts: 1, maxAttempts: HOMR_PREPROCESSING_LADDER.length, strategy: "deterministic-preprocessing-ladder" },
+      };
+      pages.push(pageResult);
+      allWarnings.push(...warnings);
+      allErrors.push(...pageResult.errors);
+      continue;
+    }
+
+    let selected: HomrPageAttempt | undefined;
+    for (const [variantIndex, descriptor] of HOMR_PREPROCESSING_LADDER.entries()) {
+      const attemptNumber = variantIndex + 1;
+      const variant = descriptor.variant;
+      const attemptStarted = Date.now();
+      const attemptWarnings: string[] = [];
+      const attemptErrors: string[] = [];
+      const attemptDirectory = join(resolve(validated.outputDirectory), `page-${page}`, `attempt-${attemptNumber}`, variant);
+      const stagedPath = join(attemptDirectory, "input.png");
+      let inputSha256: string | null = null;
+      let attemptStatus: OmrPageStatus = "failed";
+      let failureClass: HomrFailureClass | undefined;
+      let exitCode: number | null = null;
+      let signal: string | null | undefined;
+      let artifacts: OmrArtifact[] = [];
+      let metrics: OmrScoreMetrics = { measureCount: 0, noteCount: 0, staffCount: 0 };
       try {
-        commandResult = await options.execFile(launcher.executable, args, {
-          shell: false,
-          timeout: options.timeoutMs,
-          maxBuffer: 16 * 1024 * 1024,
-          windowsHide: true,
-        });
-        exitCode = 0;
-        status = "available";
-        commandSucceeded = true;
-        const stderr = sanitizedStderr(commandResult.stderr, [validated.outputDirectory, staged.path]);
-        if (stderr) warnings.push(stderr);
-      } catch (error) {
-        exitCode = numericExitCode(error);
-        if (missingExecutable(error)) {
-          status = "unavailable";
-          errors.push("homr unavailable");
-        } else {
-          status = "failed";
-          errors.push(homrPageError(error, `HOMR page ${page} recognition failed`, [validated.outputDirectory, staged.path]));
+        await mkdir(attemptDirectory, { recursive: true });
+        const variantBytes = preprocessHomrImage(sourceBytes, variant);
+        inputSha256 = hashBytes(variantBytes);
+        await writeFile(stagedPath, variantBytes);
+        const args = launcher.mode === "uvx"
+          ? buildHomrUvxArgs({ imagePath: stagedPath, packageName: options.packageName, version: options.version, forceCpu: options.forceCpu })
+          : buildHomrExecutableArgs({ imagePath: stagedPath, forceCpu: options.forceCpu });
+        let commandSucceeded = false;
+        try {
+          const commandResult = await options.execFile(launcher.executable, args, {
+            shell: false,
+            timeout: options.timeoutMs,
+            maxBuffer: 16 * 1024 * 1024,
+            windowsHide: true,
+          });
+          exitCode = 0;
+          attemptStatus = "available";
+          failureClass = undefined;
+          commandSucceeded = true;
+          const stderr = sanitizedStderr(commandResult.stderr, [validated.outputDirectory, stagedPath]);
+          if (stderr) attemptWarnings.push(stderr);
+        } catch (error) {
+          exitCode = numericExitCode(error);
+          signal = signalValue(error);
+          if (missingExecutable(error)) {
+            attemptStatus = "unavailable";
+            failureClass = "unavailable";
+            attemptErrors.push("homr unavailable");
+          } else {
+            attemptStatus = "failed";
+            failureClass = isTimeoutError(error) ? "timeout" : signal ? "signal" : "process-failed";
+            attemptErrors.push(homrPageError(error, `HOMR page ${page} recognition failed`, [validated.outputDirectory, stagedPath]));
+          }
         }
-      }
 
-      // HOMR downloads its managed weights on first execution. Discovering
-      // before this point races that acquisition and produces false absence.
-      if (commandSucceeded) await discoverModelFilesAfterPage();
+        // HOMR downloads its managed weights on first execution. Discovering
+        // before this point races that acquisition and produces false absence.
+        if (commandSucceeded) await discoverModelFilesAfterPage();
 
-      try {
-        const files = await collectAdjacentOmrArtifacts(staged.directory, validated.outputDirectory);
+        const files = await collectAdjacentOmrArtifacts(attemptDirectory, validated.outputDirectory);
         artifacts = files.map((file) => file.artifact);
-        if (status === "failed" || status === "unavailable") {
+        if (attemptStatus === "failed" || attemptStatus === "unavailable") {
           // A non-zero process result is never promoted to trustworthy output.
         } else if (!files.length) {
-          status = "broken-output";
-          errors.push(`HOMR page ${page} produced no adjacent MusicXML output`);
+          attemptStatus = "broken-output";
+          failureClass = "no-output";
+          attemptErrors.push(`HOMR page ${page} produced no adjacent MusicXML output`);
         } else {
-          metrics = parseHomrPageOutput(files, page, warnings, errors);
-          if (!metrics.measureCount || !metrics.noteCount || !metrics.staffCount || errors.some((error) => /malformed|empty|safety limits|no pitched/i.test(error))) {
-            status = "broken-output";
+          const parseWarnings: string[] = [];
+          const parseErrors: string[] = [];
+          metrics = parseHomrPageOutput(files, page, parseWarnings, parseErrors);
+          attemptWarnings.push(...parseWarnings);
+          attemptErrors.push(...parseErrors);
+          if (!metrics.measureCount || !metrics.noteCount || !metrics.staffCount || parseErrors.some((error) => /malformed|empty|safety limits|no pitched/i.test(error))) {
+            attemptStatus = "broken-output";
+            failureClass = "broken-output";
           } else {
-            status = "available";
+            attemptStatus = "available";
+            failureClass = undefined;
           }
         }
       } catch (error) {
-        status = "broken-output";
-        errors.push(homrPageError(error, `HOMR page ${page} output is unavailable`, [validated.outputDirectory, staged.path]));
+        attemptStatus = "broken-output";
+        failureClass = variant === "original" ? "invalid-input" : "broken-output";
+        attemptErrors.push(homrPageError(error, `HOMR page ${page} preprocessing failed`, [validated.outputDirectory, stagedPath]));
       }
-    } catch (error) {
-      status = "failed";
-      errors.push(homrPageError(error, `HOMR page ${page} input staging failed`, [validated.outputDirectory, source]));
+      const attempt: HomrPageAttempt = {
+        attempt: attemptNumber,
+        variant,
+        recipe: descriptor.recipe,
+        sourceSha256,
+        inputSha256,
+        relativeInput: relativeOutputPath(validated.outputDirectory, stagedPath),
+        status: attemptStatus,
+        recovery: attemptStatus === "available" ? (attemptNumber === 1 ? "not-needed" : "recovered") : "retryable",
+        ...(failureClass ? { failureClass } : {}),
+        ...(attemptErrors.length ? { rootCause: attemptErrors[0] } : {}),
+        trusted: attemptStatus === "available" && exitCode === 0,
+        elapsedMs: Math.max(0, Date.now() - attemptStarted),
+        exitCode,
+        ...(signal !== undefined ? { signal } : {}),
+        artifacts,
+        measureCount: metrics.measureCount,
+        noteCount: metrics.noteCount,
+        staffCount: metrics.staffCount,
+        warnings: attemptWarnings,
+        errors: attemptErrors,
+      };
+      attempts.push(attempt);
+      warnings.push(...attemptWarnings);
+      errors.push(...attemptErrors);
+      if (attempt.trusted) {
+        selected = attempt;
+        break;
+      }
+      if (failureClass === "unavailable" || failureClass === "invalid-input") break;
     }
+    if (!selected && attempts.length) attempts[attempts.length - 1]!.recovery = "exhausted";
+    selected ??= attempts.find((attempt) => attempt.failureClass === "process-failed" || attempt.failureClass === "timeout" || attempt.failureClass === "signal") ?? attempts.at(-1);
     const pageResult: OmrPageResult = {
       page,
-      relativeInput,
-      status,
+      relativeInput: selected?.relativeInput ?? `page-${page}/attempt-1/original/input.png`,
+      status: selected?.status ?? "failed",
       elapsedMs: Math.max(0, Date.now() - started),
-      exitCode,
-      artifacts,
-      measureCount: metrics.measureCount,
-      noteCount: metrics.noteCount,
-      staffCount: metrics.staffCount,
+      exitCode: selected?.exitCode ?? null,
+      artifacts: selected?.artifacts ?? [],
+      measureCount: selected?.measureCount ?? 0,
+      noteCount: selected?.noteCount ?? 0,
+      staffCount: selected?.staffCount ?? 0,
       warnings,
       errors,
+      ...(selected?.failureClass && selected.status !== "available" ? { failureClass: selected.failureClass } : {}),
+      ...(selected?.rootCause && selected.status !== "available" ? { rootCause: selected.rootCause } : {}),
+      attempts,
+      recovery: {
+        attempted: attempts.length > 1,
+        recovered: selected?.status === "available" && attempts.length > 1,
+        selectedAttempt: selected ? selected.attempt : null,
+        attempts: attempts.length,
+        maxAttempts: HOMR_PREPROCESSING_LADDER.length,
+        strategy: "deterministic-preprocessing-ladder",
+      },
     };
     pages.push(pageResult);
-    allArtifacts.push(...artifacts);
+    // Raw artifacts from every attempt remain available for forensic
+    // provenance. Only the selected exit-0, parsed attempt contributes score
+    // metrics and page evidence above.
+    for (const attempt of attempts) allArtifacts.push(...attempt.artifacts);
     allWarnings.push(...warnings);
     allErrors.push(...errors);
   }
