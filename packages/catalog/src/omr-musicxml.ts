@@ -305,12 +305,17 @@ function parseRawPart(
 ): RawPart {
   const id = part.attrs.id || `P${Math.max(1, part.name.length)}`;
   const rawMeasures: RawMeasure[] = [];
+  const sourceMeasures = children(part, "measure");
   let divisions = 1;
   let timeSignature: [number, number] | null = null;
   let keySignature: number | null = null;
-  let page: number | null = null;
+  // MusicXML commonly signals page breaks with `<print new-page="yes">`
+  // instead of repeating a page attribute on every measure.  A score-partwise
+  // document starts on page one, so seed that page and advance it at each
+  // explicit break.  Explicit `measure page=`/`page-number=` metadata still
+  // wins when present.
+  let page: number | null = sourceMeasures.length > 0 ? 1 : null;
   let system: number | null = null;
-  const sourceMeasures = children(part, "measure");
   for (let measureIndex = 0; measureIndex < sourceMeasures.length; measureIndex += 1) {
     const source = sourceMeasures[measureIndex]!;
     const number = source.attrs.number || String(measureIndex + 1);
@@ -341,6 +346,7 @@ function parseRawPart(
       } else if (name === "print") {
         const printPage = integerOf(element.attrs["page-number"]);
         if (printPage !== null && printPage > 0) page = printPage;
+        if (/^(yes|true|1)$/i.test(element.attrs["new-page"] ?? "")) page = page === null ? 1 : page + 1;
         if (/^(yes|true|1)$/i.test(element.attrs["new-system"] ?? "")) system = system === null ? 1 : system + 1;
       } else if (name === "backup" || name === "forward") {
         const durationDivisions = numberOf(child(element, "duration"));

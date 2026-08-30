@@ -92,6 +92,16 @@ describe("MusicXML to OMR score adapter", () => {
     expect(first.parts[0]!.measures[1]!.events?.find((event) => event.staff === 2)?.role).toBe("rhythm");
   });
 
+  it("infers page transitions from MusicXML print new-page markers", () => {
+    const pagedXml = MUSIC_XML.replace(
+      '    <measure number="1" page="1" system="2">',
+      '    <measure number="1"><print new-page="yes" new-system="yes"></print>',
+    );
+    const result = parseOmrMusicXml(pagedXml);
+    expect(result.score.parts[0]!.measures.map((measure) => measure.page)).toEqual([1, 2]);
+    expect(result.score.parts[1]!.measures.map((measure) => measure.page)).toEqual([1, 1]);
+  });
+
   it("reads an MXL container rootfile without writing or exposing local paths", () => {
     const mxl = zipSync({
       "META-INF/container.xml": strToU8('<?xml version="1.0"?><container><rootfiles><rootfile full-path="scores/main.musicxml"/></rootfiles></container>'),
