@@ -38,6 +38,8 @@
     "build:piano-section-listening": "tsx scripts/build-piano-section-listening.ts",
     "build:local-reference-listening": "tsx scripts/build-local-reference-listening.ts",
     "build:local-reference": "tsx scripts/build-local-reference.ts",
+    "build:score-reference-corpus": "tsx scripts/build-score-reference-corpus.ts",
+    "report:local-reference-readiness": "tsx scripts/report-local-reference-readiness.ts",
     "benchmark:score": "tsx scripts/benchmark-score.ts",
     "benchmark:scores": "tsx scripts/build-score-corpus.ts",
     "benchmark:score-consensus": "tsx scripts/run-score-consensus.ts",

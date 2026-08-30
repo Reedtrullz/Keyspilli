@@ -39,7 +39,10 @@ function hash(bytes: Uint8Array): string {
   return createHash("sha256").update(bytes).digest("hex");
 }
 
-function fakeRenderer(failingRoles: ReadonlySet<string> = new Set()): MidiAudioRenderer {
+function fakeRenderer(
+  failingRoles: ReadonlySet<string> = new Set(),
+  reportedRenderer: { id: string; version: string } = { id: "fluidsynth", version: "pcm16-v1" },
+): MidiAudioRenderer {
   return {
     id: "fluidsynth",
     version: "pcm16-v1",
@@ -52,7 +55,11 @@ function fakeRenderer(failingRoles: ReadonlySet<string> = new Set()): MidiAudioR
       await writeFile(input.outputPath, wavBytes);
       const expectedSeconds = parsed.durationBeats * 60 / parsed.tempoBpm;
       return {
-        renderer: { id: "fluidsynth", version: "pcm16-v1", executable: "/private/bin/fluidsynth", sampleRate: 8_000, gain: 1, targetPeak: 0.95 },
+        renderer: {
+          id: reportedRenderer.id as MidiRenderResult["renderer"]["id"],
+          version: reportedRenderer.version as MidiRenderResult["renderer"]["version"],
+          executable: "/private/bin/fluidsynth", sampleRate: 8_000, gain: 1, targetPeak: 0.95,
+        },
         midi: { path: input.midiPath, sha256: hash(midiBytes), tempoBpm: parsed.tempoBpm, durationBeats: parsed.durationBeats, expectedSeconds },
         soundfont: { path: "C:\\Users\\reidar\\private\\evaluation.sf2", bytes: 17, sha256: "a".repeat(64) },
         wav: {
@@ -124,7 +131,11 @@ describe("local reference listening bundle", () => {
       reviewQueue: {
         unresolvedRegions: ["measure-2"],
         items: [{
-          id: "review-1", page: 1, measureNumber: "2", role: "melody", evidence: ["check contour at /Users/reidar/private/page.png"], reasonCategory: "pitch",
+          id: "review-1", page: 1, system: 2, measureId: "measure-2", measureNumber: "2", role: "melody",
+          evidence: ["check contour at /Users/reidar/private/page.png"], reasonCategory: "pitch",
+          backendValues: { audiveris: ["F4"], homr: ["F#4"] },
+          backendInterpretations: { audiveris: ["melody"], homr: ["sharp accidental"] },
+          context: { keySignature: 0, timeSignature: [4, 4], startBeat: 4, durationBeats: 4, structural: { agreement: 0.5, evidence: ["path: /private/source.png"] } },
           recommendedAction: "Listen against the source.",
         } as never],
       },
@@ -138,11 +149,20 @@ describe("local reference listening bundle", () => {
       id: "fluidsynth", version: "pcm16-v1", sampleRate: 8_000, channels: 1, gain: 1, targetPeak: 0.95,
       soundfont: { identifier: "evaluation.sf2", bytes: 17, sha256: "a".repeat(64) },
     });
+    expect(first.determinism).toMatchObject({
+      basis: "path-free-report-without-determinism",
+      canonicalSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
+    });
     expect(JSON.stringify(first)).not.toContain(sourceRoot);
     expect(JSON.stringify(first)).not.toContain("/private/bin");
     expect(JSON.stringify(first)).not.toContain("/Users/reidar");
     expect(JSON.stringify(first)).not.toContain("C:\\Users\\reidar");
-    expect(first.review.items[0]).toMatchObject({ id: "review-1", importance: "melody" });
+    expect(first.review.items[0]).toMatchObject({
+      id: "review-1", importance: "melody", page: 1, system: 2, measureId: "measure-2",
+      backendValues: { audiveris: ["F4"], homr: ["F#4"] },
+      backendInterpretations: { audiveris: ["melody"], homr: ["sharp accidental"] },
+      context: { startBeat: 4, durationBeats: 4, structural: { agreement: 0.5 } },
+    });
     expect(first.review.items[0]?.reason).not.toContain("/Users/reidar");
 
     const listeningRoot = join(outputRoot, "scores", "synthetic-reference", "listening");
@@ -169,7 +189,11 @@ describe("local reference listening bundle", () => {
       reviewQueue: {
         unresolvedRegions: ["measure-2"],
         items: [{
-          id: "review-1", page: 1, measureNumber: "2", role: "melody", evidence: ["check contour at /Users/reidar/private/page.png"], reasonCategory: "pitch",
+          id: "review-1", page: 1, system: 2, measureId: "measure-2", measureNumber: "2", role: "melody",
+          evidence: ["check contour at /Users/reidar/private/page.png"], reasonCategory: "pitch",
+          backendValues: { audiveris: ["F4"], homr: ["F#4"] },
+          backendInterpretations: { audiveris: ["melody"], homr: ["sharp accidental"] },
+          context: { keySignature: 0, timeSignature: [4, 4], startBeat: 4, durationBeats: 4, structural: { agreement: 0.5, evidence: ["path: /private/source.png"] } },
           recommendedAction: "Listen against the source.",
         } as never],
       },
@@ -177,6 +201,34 @@ describe("local reference listening bundle", () => {
       outputRoot, repositoryRoot: process.cwd(), renderer: fakeRenderer(),
     });
     expect(localReferenceListeningJson(first)).toBe(localReferenceListeningJson(second));
+  });
+
+  it("does not leave stale WAVs visible after a rerun loses its renderer", async () => {
+    const sourceRoot = await mkdtemp(join(tmpdir(), "keyspilli-reference-stale-source-"));
+    const outputRoot = await mkdtemp(join(tmpdir(), "keyspilli-reference-stale-output-"));
+    temporaryDirectories.push(sourceRoot, outputRoot);
+    const sourcePath = join(sourceRoot, "reference.mid");
+    await writeFile(sourcePath, referenceMidi());
+
+    await buildLocalReferenceListening({ scoreId: "stale-render", referenceMidiPath: sourcePath }, {
+      outputRoot, repositoryRoot: process.cwd(), renderer: fakeRenderer(),
+    });
+    const listeningRoot = join(outputRoot, "scores", "stale-render", "listening");
+    await expect(stat(join(listeningRoot, "reference-full.wav"))).resolves.toBeTruthy();
+
+    // The second input has no lower role. A stale accompaniment artifact must
+    // disappear even though the current run has no accompaniment target.
+    await writeFile(sourcePath, writeMidi([
+      { midi: 72, start: 0, dur: 1, vel: 100, hand: "R" },
+    ], { tempoBpm: 120 }));
+    const rerun = await buildLocalReferenceListening({ scoreId: "stale-render", referenceMidiPath: sourcePath }, {
+      outputRoot, repositoryRoot: process.cwd(), renderer: fakeRenderer(new Set(["reference-full", "reference-melody"])),
+    });
+    expect(rerun.status).toBe("UNAVAILABLE");
+    await expect(stat(join(listeningRoot, "reference-full.wav"))).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(stat(join(listeningRoot, "reference-opening.wav"))).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(stat(join(listeningRoot, "reference-accompaniment.mid"))).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(stat(join(listeningRoot, "reference-accompaniment.wav"))).rejects.toMatchObject({ code: "ENOENT" });
   });
 
   it("uses a pitch split when hand metadata is absent", async () => {
@@ -218,6 +270,24 @@ describe("local reference listening bundle", () => {
     }
     await expect(stat(join(outputRoot, "scores", "failed-reference", "listening", "manifest.json"))).resolves.toBeTruthy();
     expect(JSON.stringify(report)).not.toContain(sourceRoot);
+  });
+
+  it("keeps renderer identity logical and path-free", async () => {
+    const sourceRoot = await mkdtemp(join(tmpdir(), "keyspilli-reference-renderer-source-"));
+    const outputRoot = await mkdtemp(join(tmpdir(), "keyspilli-reference-renderer-output-"));
+    temporaryDirectories.push(sourceRoot, outputRoot);
+    const sourcePath = join(sourceRoot, "reference.mid");
+    await writeFile(sourcePath, referenceMidi());
+
+    const report = await buildLocalReferenceListening({ scoreId: "renderer-labels", referenceMidiPath: sourcePath }, {
+      outputRoot,
+      repositoryRoot: process.cwd(),
+      renderer: fakeRenderer(new Set(), { id: "/Users/reidar/bin/fluidsynth", version: "../private/renderer" }),
+    });
+
+    expect(report.renderer).toMatchObject({ id: "renderer", version: "unknown" });
+    expect(JSON.stringify(report)).not.toContain("/Users/reidar");
+    expect(JSON.stringify(report)).not.toContain("../private/renderer");
   });
 
   it("fails closed for repository paths, symlinked output roots, and unsafe logical IDs", async () => {

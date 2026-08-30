@@ -736,7 +736,9 @@ function parserMetadataFailures(source: unknown, label: string): string[] {
   };
   inspect(source, label, false);
   const parsed = source.parsed;
-  if (parsed !== undefined && parsed !== null) {
+  if (hasOwn(source, "parsed") && parsed === null) {
+    failures.push(`${label} parsed metadata must be an object`);
+  } else if (parsed !== undefined) {
     if (!isRecord(parsed)) failures.push(`${label} parsed metadata must be an object`);
     else inspect(parsed, `${label} parsed`, true);
   }
@@ -772,9 +774,17 @@ function noteShapeFailures(source: NoteSourceShape | unknown, label: string): st
   }
   const parsedRecord = isRecord(source.parsed) ? source.parsed : undefined;
   const parsedNotes = parsedRecord?.notes as unknown;
-  if ((explicit === undefined || explicit === null)
+  if (parsedRecord
     && (parsedNotes === null || (parsedNotes !== undefined && !Array.isArray(parsedNotes)))) {
     failures.push(`${label} parsed notes are not an array`);
+  }
+  const noteArrays = [
+    ...(Array.isArray(explicit) ? [{ label, notes: explicit }] : []),
+    ...(Array.isArray(parsedNotes) ? [{ label: `${label} parsed`, notes: parsedNotes }] : []),
+  ];
+  for (const entry of noteArrays) {
+    const invalid = entry.notes.filter((note) => !finiteNote(note as Note)).length;
+    if (invalid) failures.push(`${entry.label}: ${invalid} non-finite or invalid MIDI notes`);
   }
   return failures;
 }
@@ -824,6 +834,12 @@ function metadataShapeFailures(source: unknown, label: string, selectorRequired:
   if (bytes !== undefined && bytes !== null && !(bytes instanceof Uint8Array)) {
     failures.push(`${label} bytes must be a Uint8Array`);
   }
+  if (source.revision !== undefined && source.revision !== null && typeof source.revision !== "string") {
+    failures.push(`${label} revision must be a string`);
+  }
+  if (source.aliasOf !== undefined && source.aliasOf !== null && typeof source.aliasOf !== "string") {
+    failures.push(`${label} aliasOf must be a string`);
+  }
   failures.push(...parserMetadataFailures(source, label));
   return failures;
 }
@@ -834,6 +850,22 @@ function safeSelector(value: unknown, fallback: string): string {
 
 function safeOptionalSelector(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? basename(value.replaceAll("\\", "/")) : null;
+}
+
+function safeOptionalMetadataString(value: unknown): string | null {
+  return typeof value === "string" && value.length ? redactEmbeddedPaths(value) : null;
+}
+
+function setRecordValue<T>(record: Record<string, T>, key: string, value: T): void {
+  // Assignment to `__proto__` invokes the legacy prototype setter on an
+  // ordinary object. Define an enumerable own property so untrusted logical
+  // identifiers remain data rather than changing the report's prototype.
+  Object.defineProperty(record, key, {
+    configurable: true,
+    enumerable: true,
+    value,
+    writable: true,
+  });
 }
 
 function orderedWindows(windows: EvaluationWindow[]): EvaluationWindow[] {
@@ -981,7 +1013,9 @@ function safeTraceEvent(raw: unknown): ProvenanceTraceEvent | undefined {
       start: raw.note.start,
       dur: raw.note.dur,
       vel: raw.note.vel,
-      ...(raw.note.rawMidi === undefined ? {} : { rawMidi: raw.note.rawMidi as number }),
+      ...(typeof raw.note.rawMidi === "number" && Number.isFinite(raw.note.rawMidi)
+        ? { rawMidi: raw.note.rawMidi }
+        : {}),
       ...(raw.note.hand === "R" || raw.note.hand === "L" ? { hand: raw.note.hand } : {}),
     };
   }
@@ -1275,7 +1309,7 @@ function referenceEvaluation(candidate: Note[], reference: ArrangementEvaluation
   const referenceWindows = orderedWindows(windows);
   if (!referenceWindows.length || referenceWindows.some((window) => !window.reference)) return {
     status: "alignment-required", referenceHash: byteHash(reference.bytes), referenceSelector: safeOptionalSelector(reference.selector),
-    aliasOf: reference.aliasOf ?? null,
+    aliasOf: safeOptionalMetadataString(reference.aliasOf),
     windows: [], matchedOnsets: 0, exactPitch: { precision: null, recall: null, f1: null }, pitchClass: { precision: null, recall: null, f1: null }, alignmentCoverageBars: 0,
     diagnostics: ["explicit candidate/reference windows are required; no automatic offset or time scaling was applied"],
   };
@@ -1305,7 +1339,7 @@ function referenceEvaluation(candidate: Note[], reference: ArrangementEvaluation
     status: enough ? "aligned" : "insufficient-coverage",
     referenceHash: byteHash(reference.bytes),
     referenceSelector: safeOptionalSelector(reference.selector),
-    aliasOf: reference.aliasOf ?? null,
+    aliasOf: safeOptionalMetadataString(reference.aliasOf),
     windows: resultWindows,
     matchedOnsets: matched,
     exactPitch: { precision: exactPrecision, recall: exactRecall, f1: f1(exactPrecision, exactRecall) },
@@ -1449,13 +1483,15 @@ function redactEmbeddedPaths(value: string): string {
 
 function canonicalize(value: unknown, key?: string): unknown {
   if (key === "generatedAt" || CANONICAL_PATH_KEY.test(key ?? "")) return undefined;
+  if (typeof value === "bigint") return value.toString();
+  if (typeof value === "number" && !Number.isFinite(value)) return null;
   if (typeof value === "string") return redactEmbeddedPaths(value);
   if (Array.isArray(value)) return value.map((item) => canonicalize(item)).filter((item) => item !== undefined);
   if (value && typeof value === "object") {
     const result: Record<string, unknown> = {};
     for (const objectKey of Object.keys(value as Record<string, unknown>).sort()) {
       const item = canonicalize((value as Record<string, unknown>)[objectKey], objectKey);
-      if (item !== undefined) result[redactEmbeddedPaths(objectKey)] = item;
+      if (item !== undefined) setRecordValue(result, redactEmbeddedPaths(objectKey), item);
     }
     return result;
   }
@@ -1556,7 +1592,7 @@ export function evaluateArrangement(rawInput: ArrangementEvaluationInput): Arran
   const variants: Record<string, VariantEvaluationMetrics> = {};
   for (const rawVariant of Array.isArray(input.variants) ? input.variants : []) {
     const guarded = guardVariant(rawVariant);
-    variants[guarded.label] = variantMetrics(guarded.variant, input);
+    setRecordValue(variants, guarded.label, variantMetrics(guarded.variant, input));
   }
   const sections: Record<string, SectionEvaluationMetrics> = {};
   for (const window of windows) {
@@ -1570,19 +1606,27 @@ export function evaluateArrangement(rawInput: ArrangementEvaluationInput): Arran
       undefined,
       window.candidate[0],
     );
-    sections[window.id] = {
+    setRecordValue(sections, window.id, {
       startBeat: window.candidate[0], endBeat: window.candidate[1], coverage: sectionBundle.global.coverage, global: sectionBundle.global, rightHand: sectionBundle.rightHand, leftHand: sectionBundle.leftHand,
       source: sectionBundle.source.final.all, guitar: { finalRightHandCount: sectionBundle.guitar.finalRightHandCount, finalLeftHandCount: sectionBundle.guitar.finalLeftHandCount },
       ...(reference && window.reference ? { reference: compareReferenceWindow(candidateNotes, notesFor(reference), window) } : {}),
-    };
+    });
   }
-  for (const [id, section] of Object.entries(sections)) bundle.source.sectionSourceCounts[id] = section.source;
+  for (const [id, section] of Object.entries(sections)) setRecordValue(bundle.source.sectionSourceCounts, id, section.source);
   const referenceReport = reference ? referenceEvaluation(candidateNotes, reference, parser, referenceWindows) : undefined;
   const reportWithoutDeterminism: Omit<ArrangementEvaluationReport, "determinism"> = {
     schemaVersion: 1,
     config: ARRANGEMENT_EVALUATION_CONFIG,
     fixture: input.fixture,
-    candidate: { selector: safeSelector(candidate.selector, "invalid-candidate"), ...(candidate.revision ? { revision: candidate.revision } : {}), bytes: candidate.bytes instanceof Uint8Array ? candidate.bytes.byteLength : null, sha256: byteHash(candidate.bytes), parser },
+    candidate: {
+      selector: safeSelector(candidate.selector, "invalid-candidate"),
+      ...(typeof candidate.revision === "string" && candidate.revision.length
+        ? { revision: redactEmbeddedPaths(candidate.revision) }
+        : {}),
+      bytes: candidate.bytes instanceof Uint8Array ? candidate.bytes.byteLength : null,
+      sha256: byteHash(candidate.bytes),
+      parser,
+    },
     metrics: { ...bundle, sections, variants },
     ...(referenceReport ? { reference: referenceReport } : {}),
     trace: orderedTrace(input.trace),

@@ -25,6 +25,7 @@ import {
 } from "./score-source-forensics.js";
 import { type NativeScoreArtifactInput, type NativeScoreDiscoveryReport } from "./native-score-discovery.js";
 import {
+  verifyNativeScoreBytes,
   verifyNativeScoreIdentity,
   type PdfForensicsReportLike,
   type NativeScoreVerificationResult,
@@ -558,42 +559,16 @@ function coverageForScore(scoreId: string, normalized: ReturnType<typeof normali
   }), null, 2)}\n`;
 }
 
-function nativeSelected(value: NativeBytesCandidate, title: string, pdfTitle: string | null): LocalReferenceSelected {
-  const candidateTitle = typeof value.candidate.label === "string" ? value.candidate.label : null;
-  const sameTitle = !pdfTitle || !candidateTitle || candidateTitle.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim() === pdfTitle.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+function nativeSelection(verification: NativeScoreVerificationResult): LocalReferenceSelected | null {
+  if (!verification.candidate) return null;
   return {
     kind: "native",
-    id: safeId(value.candidate.id, "native"),
+    id: verification.candidate.id,
     backend: null,
-    version: safeText(value.candidate.version ?? value.candidate.versionIdentity, "unknown"),
-    artifactType: value.artifactType,
-    classification: sameTitle ? "EXACT_OR_HIGH_CONFIDENCE_MATCH" : "UNKNOWN",
-    sha256: sha256Hex(value.bytes),
-  };
-}
-
-function nativeVerificationFromInjected(value: NativeBytesCandidate, selected: LocalReferenceSelected): NativeScoreVerificationResult {
-  return {
-    schemaVersion: 1,
-    classification: selected.classification as NativeScoreVerificationResult["classification"],
-    eligibleAsReference: selected.classification === "EXACT_OR_HIGH_CONFIDENCE_MATCH",
-    nativePriority: selected.classification === "EXACT_OR_HIGH_CONFIDENCE_MATCH",
-    candidate: {
-      id: selected.id,
-      artifactType: value.artifactType,
-      bytes: value.bytes.byteLength,
-      sha256: sha256Hex(value.bytes),
-      hashStatus: "verified",
-      provenance: safeText(value.candidate.provenance, "unknown"),
-      version: selected.version,
-    },
-    pdf: null,
-    symbolic: null,
-    omr: null,
-    discovery: { status: "native-symbolic", selectionReason: "explicitly supplied local native bytes", selected: null, rejected: [], errors: [] },
-    evidence: [],
-    reasons: ["native bytes were supplied through the explicit local test/input seam"],
-    nonClaims: [LOCAL_REFERENCE_BUILDER_NON_CLAIM],
+    version: verification.candidate.version,
+    artifactType: verification.candidate.artifactType,
+    classification: verification.classification,
+    sha256: verification.candidate.sha256,
   };
 }
 
@@ -623,7 +598,6 @@ export async function buildLocalReference(input: LocalReferenceBuildInput, optio
     });
   }
 
-  const pdfTitle = forensics?.metadata.title ?? forensics?.xmp.title ?? null;
   const nonClaims = [
     LOCAL_REFERENCE_BUILDER_NON_CLAIM,
     "Human review remains required for uncertain notation regions; no human musical correction was performed.",
@@ -640,65 +614,75 @@ export async function buildLocalReference(input: LocalReferenceBuildInput, optio
   let outputMxl: string | null = null;
   let coverageMask: string | null = null;
 
-  if (nativeInjected) {
-    selected = nativeSelected(nativeInjected, title, pdfTitle);
-    nativeVerification = nativeVerificationFromInjected(nativeInjected, selected);
-    if (nativeInjected.artifactType === "midi") {
+  const materializeNative = async (value: NativeBytesCandidate, verification: NativeScoreVerificationResult): Promise<boolean> => {
+    const next = nativeSelection(verification);
+    if (!next || !verification.symbolic) return false;
+    selected = next;
+    nativeVerification = cloneReport(verification);
+    nativeDiscovery = cloneReport({
+      schemaVersion: 1,
+      candidates: [],
+      omr: [],
+      ...verification.discovery,
+    });
+    if (value.artifactType === "midi") {
       outputMidi = `scores/${id}/reference.mid`;
-      await atomicWrite(resolve(outputRoot, outputMidi), nativeInjected.bytes);
-    } else if (nativeInjected.artifactType === "musicxml") {
+      await atomicWrite(resolve(outputRoot, outputMidi), value.bytes);
+    } else if (value.artifactType === "musicxml") {
       outputMusicXml = `scores/${id}/reference.musicxml`;
-      await atomicWrite(resolve(outputRoot, outputMusicXml), nativeInjected.bytes);
-    } else if (nativeInjected.artifactType === "mxl") {
+      await atomicWrite(resolve(outputRoot, outputMusicXml), value.bytes);
+    } else if (value.artifactType === "mxl") {
       outputMxl = `scores/${id}/reference.mxl`;
-      await atomicWrite(resolve(outputRoot, outputMxl), nativeInjected.bytes);
+      await atomicWrite(resolve(outputRoot, outputMxl), value.bytes);
+    } else {
+      return false;
     }
+    return true;
+  };
+
+  if (nativeInjected) {
+    const verification = verifyNativeScoreBytes(
+      (forensics ?? { metadata: {}, xmp: {} }) as PdfForensicsReportLike,
+      nativeInjected.candidate,
+      nativeInjected.bytes,
+      { artifactType: nativeInjected.artifactType },
+    );
+    nativeVerification = cloneReport(verification);
+    nativeDiscovery = cloneReport({
+      schemaVersion: 1,
+      candidates: [],
+      omr: [],
+      ...verification.discovery,
+    });
+    await materializeNative(nativeInjected, verification);
   } else {
     const nativeCandidates = [...(source.nativeArtifacts ?? [])]
       .filter((candidate): candidate is NativeScoreArtifactInput => Boolean(candidate && typeof candidate === "object"))
       .sort((left, right) => compareText(safeId(left.id, "native"), safeId(right.id, "native")));
+    let reviewNative: { value: NativeBytesCandidate; verification: NativeScoreVerificationResult } | null = null;
     for (const candidate of nativeCandidates) {
       try {
         const verification = await verifyNativeScoreIdentity(
           (forensics ?? { metadata: {}, xmp: {} }) as PdfForensicsReportLike,
           candidate,
         );
-        if (verification.eligibleAsReference && verification.candidate && typeof candidate.path === "string") {
-          nativeVerification = cloneReport(verification);
-          selected = {
-            kind: "native",
-            id: verification.candidate.id,
-            backend: null,
-            version: verification.candidate.version,
-            artifactType: verification.candidate.artifactType,
-            classification: verification.classification,
-            sha256: verification.candidate.sha256,
-          };
-          nativeDiscovery = cloneReport({
-            schemaVersion: 1,
-            candidates: [],
-            omr: [],
-            ...verification.discovery,
-          });
+        if (verification.candidate && verification.symbolic && typeof candidate.path === "string") {
           const bytes = new Uint8Array(await readFile(candidate.path));
           const type = artifactType(candidate);
-          if (type === "midi") {
-            outputMidi = `scores/${id}/reference.mid`;
-            await atomicWrite(resolve(outputRoot, outputMidi), bytes);
-          } else if (type === "musicxml") {
-            outputMusicXml = `scores/${id}/reference.musicxml`;
-            await atomicWrite(resolve(outputRoot, outputMusicXml), bytes);
-          } else if (type === "mxl") {
-            outputMxl = `scores/${id}/reference.mxl`;
-            await atomicWrite(resolve(outputRoot, outputMxl), bytes);
+          if (!type) continue;
+          const value: NativeBytesCandidate = { candidate, bytes, artifactType: type };
+          if (verification.eligibleAsReference) {
+            await materializeNative(value, verification);
+            break;
           }
-          break;
+          if (!reviewNative) reviewNative = { value, verification };
         }
       } catch {
         // A malformed native candidate is diagnostic evidence, not a reason
         // to abort an independent OMR lane.
       }
     }
+    if (!selected && reviewNative) await materializeNative(reviewNative.value, reviewNative.verification);
   }
 
   if (!selected) {

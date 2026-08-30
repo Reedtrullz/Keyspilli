@@ -2,6 +2,7 @@ import { mkdir, mkdtemp, readFile, rm, stat, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { writeMidi } from "@keyspilli/midi";
 import {
   buildLocalReference,
   localReferenceBuilderJson,
@@ -10,6 +11,10 @@ import {
 
 function pdfBytes(): Uint8Array {
   return new TextEncoder().encode("%PDF-1.7\n1 0 obj << /Type /Catalog >> endobj\n%%EOF\n");
+}
+
+function nativePdfBytes(): Uint8Array {
+  return new TextEncoder().encode("%PDF-1.7\n1 0 obj << /Type /Page /Parent 2 0 R >> endobj\n2 0 obj << /Title (Native Score) >> endobj\n%%EOF\n");
 }
 
 function score(title = "Synthetic score") {
@@ -79,6 +84,10 @@ describe("local reference builder", () => {
 
   it("prefers an eligible native candidate over contradictory OMR and stays deterministic", async () => {
     const out = await outputDir();
+    const nativeBytes = writeMidi([
+      { midi: 60, start: 0, dur: 1, vel: 100, hand: "R" },
+      { midi: 64, start: 1, dur: 1, vel: 100, hand: "R" },
+    ], { tempoBpm: 120, title: "Native Score" });
     const first = await buildLocalReference({
       id: "native-score",
       artist: "Synthetic Artist",
@@ -91,13 +100,14 @@ describe("local reference builder", () => {
         permitted: true,
         provenance: "publisher export",
         version: "2024.1",
+        label: "Native Score",
       }],
       backends: [{ id: "audiveris", version: "5.11.0", score: score("Wrong OMR"), status: "available" }],
     }, {
       outputRoot: out,
       repositoryRoot: "/private/repository",
-      forensics: { dependencies: { readBytes: async (path: string) => path.endsWith("native.mid") ? new Uint8Array([0x4d, 0x54, 0x68, 0x64, 0, 0, 0, 6, 0, 0, 0, 1, 1, 0]) : pdfBytes() } },
-      native: { artifactBytes: new Uint8Array([0x4d, 0x54, 0x68, 0x64, 0, 0, 0, 6, 0, 0, 0, 1, 1, 0]) },
+      forensics: { dependencies: { readBytes: async (path: string) => path.endsWith("native.mid") ? nativeBytes : nativePdfBytes() } },
+      native: { artifactBytes: nativeBytes },
     });
     const second = await buildLocalReference({
       id: "native-score",
@@ -111,16 +121,57 @@ describe("local reference builder", () => {
         permitted: true,
         provenance: "publisher export",
         version: "2024.1",
+        label: "Native Score",
       }],
       backends: [{ id: "audiveris", version: "5.11.0", score: score("Wrong OMR"), status: "available" }],
     }, {
       outputRoot: out,
       repositoryRoot: "/private/repository",
-      forensics: { dependencies: { readBytes: async (path: string) => path.endsWith("native.mid") ? new Uint8Array([0x4d, 0x54, 0x68, 0x64, 0, 0, 0, 6, 0, 0, 0, 1, 1, 0]) : pdfBytes() } },
-      native: { artifactBytes: new Uint8Array([0x4d, 0x54, 0x68, 0x64, 0, 0, 0, 6, 0, 0, 0, 1, 1, 0]) },
+      forensics: { dependencies: { readBytes: async (path: string) => path.endsWith("native.mid") ? nativeBytes : nativePdfBytes() } },
+      native: { artifactBytes: nativeBytes },
     });
-    expect(first.scores[0]?.selected.kind).toBe("native");
+    expect(first.scores[0]).toMatchObject({
+      state: "MELODY_READY",
+      selected: { kind: "native", classification: "EXACT_OR_HIGH_CONFIDENCE_MATCH" },
+      nativeVerification: { symbolic: { format: "midi" }, eligibleAsReference: true },
+    });
     expect(localReferenceBuilderJson(first)).toBe(localReferenceBuilderJson(second));
+  });
+
+  it("keeps a parseable native candidate review-required when PDF identity is weak", async () => {
+    const out = await outputDir();
+    const pdfPath = "/private/external/weak.pdf";
+    const nativePath = "/private/external/weak.mid";
+    const bytes = writeMidi([
+      { midi: 60, start: 0, dur: 1, vel: 100, hand: "R" },
+      { midi: 64, start: 1, dur: 1, vel: 100, hand: "R" },
+    ], { tempoBpm: 120, title: "Weak identity" });
+    const report = await buildLocalReference({
+      id: "weak-native",
+      artist: "Synthetic Artist",
+      title: "Weak identity",
+      pdfPath,
+      nativeArtifacts: [{
+        id: "weak-native-midi",
+        path: nativePath,
+        artifactType: "midi",
+        permitted: true,
+        provenance: "publisher export",
+        version: "v1",
+      }],
+    }, {
+      outputRoot: out,
+      repositoryRoot: "/private/repository",
+      forensics: { dependencies: { readBytes: async (path: string) => path === pdfPath ? new TextEncoder().encode("%PDF-1.7\\n%%EOF") : bytes } },
+      native: { artifactBytes: bytes },
+    });
+
+    expect(report.scores[0]).toMatchObject({
+      state: "REVIEW_REQUIRED",
+      selected: { kind: "native", classification: "UNKNOWN" },
+      nativeVerification: { symbolic: { format: "midi" }, eligibleAsReference: false },
+    });
+    expect(JSON.stringify(report)).not.toContain("/private/external");
   });
 
   it("fails closed when no symbolic backend is available and preserves a concrete review item", async () => {

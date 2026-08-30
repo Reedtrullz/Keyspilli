@@ -47,6 +47,16 @@ function forensics(title: string | null, pages = 2): PdfForensicsReportLike {
   };
 }
 
+function weakForensics(title: string | null): PdfForensicsReportLike {
+  return {
+    schemaVersion: 1,
+    status: "ok",
+    identity: { bytes: null, pages: null, sha256: null },
+    metadata: { title, author: null, composerHints: [], subject: null, keywords: [] },
+    xmp: null,
+  };
+}
+
 async function candidate(directory: string, title: string, extra: Partial<NativeScoreVerificationCandidate> = {}): Promise<NativeScoreVerificationCandidate> {
   const path = join(directory, "native-score.mid");
   await writeFile(path, writeMidi(notes(), { tempoBpm: 120, timeSig: [4, 4], title }));
@@ -97,6 +107,18 @@ describe("native symbolic score verification", () => {
     expect(result.reasons).toContain("symbolic title does not match PDF title");
   });
 
+  it("keeps a title-only PDF identity review-required even when the MIDI parses", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "keyspilli-native-verification-"));
+    const native = await candidate(directory, "Moonlight Sonata");
+
+    const result = await verifyNativeScoreIdentity(weakForensics("Moonlight Sonata"), native);
+
+    expect(result.symbolic).not.toBeNull();
+    expect(result.classification).toBe("UNKNOWN");
+    expect(result.eligibleAsReference).toBe(false);
+    expect(result.reasons).toContain("insufficient independent identity evidence for automatic reference use");
+  });
+
   it("classifies a structurally disagreeing candidate as the wrong arrangement", async () => {
     const directory = await mkdtemp(join(tmpdir(), "keyspilli-native-verification-"));
     const native = await candidate(directory, "Moonlight Sonata");
@@ -145,6 +167,30 @@ describe("native symbolic score verification", () => {
     expect(result.discovery.rejected).toEqual([
       { id: "native-score", reason: "invalid artifact format" },
     ]);
+  });
+
+  it("fails closed when a native header is valid but symbolic parsing fails", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "keyspilli-native-verification-"));
+    const native = await candidate(directory, "Moonlight Sonata");
+    const bytes = Buffer.alloc(23);
+    bytes.write("MThd", 0, "ascii");
+    bytes.writeUInt32BE(6, 4);
+    bytes.writeUInt16BE(0, 8);
+    bytes.writeUInt16BE(1, 10);
+    bytes.writeUInt16BE(480, 12);
+    bytes.write("MTrk", 14, "ascii");
+    bytes.writeUInt32BE(1, 18);
+    bytes[22] = 0;
+    await writeFile(native.path!, bytes);
+
+    const result = await verifyNativeScoreIdentity(forensics("Moonlight Sonata"), native);
+
+    expect(result.classification).toBe("UNKNOWN");
+    expect(result.eligibleAsReference).toBe(false);
+    expect(result.discovery.rejected).toEqual([
+      { id: "native-score", reason: "invalid artifact format" },
+    ]);
+    expect(JSON.stringify(result)).not.toContain(directory);
   });
 
   it("extracts MusicXML parts, measures, staves, and score metadata", async () => {

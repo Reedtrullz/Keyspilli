@@ -1,6 +1,7 @@
 import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { strToU8, zipSync } from "fflate";
 import { describe, expect, it } from "vitest";
 import {
   discoverNativeScoreArtifacts,
@@ -16,7 +17,18 @@ function minimalMidi(): Buffer {
   header.writeUInt16BE(0, 8);
   header.writeUInt16BE(1, 10);
   header.writeUInt16BE(480, 12);
-  return header;
+  const track = Buffer.alloc(8);
+  track.write("MTrk", 0, "ascii");
+  track.writeUInt32BE(0, 4);
+  return Buffer.concat([header, track]);
+}
+
+function minimalMxl(label: string): Uint8Array {
+  const xml = `<score-partwise version="4.0"><work><work-title>${label}</work-title></work><part-list><score-part id="P1"/></part-list><part id="P1"><measure number="1"><attributes><divisions>1</divisions></attributes><note><pitch><step>C</step><octave>4</octave></pitch><duration>1</duration></note></measure></part></score-partwise>`;
+  return zipSync({
+    "META-INF/container.xml": strToU8('<container><rootfiles><rootfile full-path="score.xml"/></rootfiles></container>'),
+    "score.xml": strToU8(xml),
+  });
 }
 
 async function tempDir(): Promise<string> {
@@ -56,7 +68,7 @@ describe("native symbolic score discovery", () => {
     expect(report.selected?.version).toBe("2024-revision");
     expect(report.selected?.page).toBe(3);
     expect(report.selected?.sha256).toMatch(/^[a-f0-9]{64}$/);
-    expect(report.selected?.bytes).toBe(14);
+    expect(report.selected?.bytes).toBe(22);
     expect(report.omr).toHaveLength(1);
     expect(report.rejected).toEqual([]);
     expect(JSON.stringify(report)).not.toContain(directory);
@@ -119,8 +131,8 @@ describe("native symbolic score discovery", () => {
     const directory = await tempDir();
     const firstPath = join(directory, "first.mxl");
     const secondPath = join(directory, "second.mxl");
-    await writeFile(firstPath, Buffer.concat([Buffer.from("PK\u0003\u0004"), Buffer.from("same-content")]));
-    await writeFile(secondPath, Buffer.concat([Buffer.from("PK\u0003\u0004"), Buffer.from("other-content")]));
+    await writeFile(firstPath, minimalMxl("version-a"));
+    await writeFile(secondPath, minimalMxl("version-b"));
     const artifacts: NativeScoreArtifactInput[] = [
       {
         id: "version-b",
@@ -226,10 +238,41 @@ describe("native symbolic score discovery", () => {
     ]);
   });
 
+  it("rejects a header-valid MIDI whose track data cannot be parsed", async () => {
+    const directory = await tempDir();
+    const artifactPath = join(directory, "truncated.mid");
+    const bytes = Buffer.alloc(23);
+    bytes.write("MThd", 0, "ascii");
+    bytes.writeUInt32BE(6, 4);
+    bytes.writeUInt16BE(0, 8);
+    bytes.writeUInt16BE(1, 10);
+    bytes.writeUInt16BE(480, 12);
+    bytes.write("MTrk", 14, "ascii");
+    bytes.writeUInt32BE(1, 18);
+    bytes[22] = 0;
+    await writeFile(artifactPath, bytes);
+
+    const report = await discoverNativeScoreArtifacts({
+      nativeArtifacts: [{
+        id: "truncated",
+        path: artifactPath,
+        artifactType: "midi",
+        permitted: true,
+        provenance: "publisher export",
+        version: "v1",
+      }],
+    });
+
+    expect(report.selected).toBeNull();
+    expect(report.candidates).toEqual([]);
+    expect(report.rejected).toEqual([{ id: "truncated", reason: "invalid artifact format" }]);
+    expect(JSON.stringify(report)).not.toContain(directory);
+  });
+
   it("recognizes namespaced MusicXML roots even after a long XML preamble", async () => {
     const directory = await tempDir();
     const artifactPath = join(directory, "namespaced.musicxml");
-    await writeFile(artifactPath, `${" ".repeat(4096)}<m:score-partwise xmlns:m="http://www.musicxml.org/xsd/musicxml">`);
+    await writeFile(artifactPath, `${" ".repeat(4096)}<m:score-partwise xmlns:m="http://www.musicxml.org/xsd/musicxml"><m:part-list><m:score-part id="P1"/></m:part-list><m:part id="P1"><m:measure number="1"><m:attributes><m:divisions>1</m:divisions></m:attributes><m:note><m:pitch><m:step>C</m:step><m:octave>4</m:octave></m:pitch><m:duration>1</m:duration></m:note></m:measure></m:part></m:score-partwise>`);
 
     const report = await discoverNativeScoreArtifacts({
       nativeArtifacts: [{

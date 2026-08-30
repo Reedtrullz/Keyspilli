@@ -410,12 +410,13 @@ function buildInput(resolved: ResolvedCliInputs): LocalReferenceBuildInput {
 }
 
 /**
- * Read bytes for the already-validated native candidates.  The builder's
- * native byte map is an intentionally explicit local-input seam: passing it
- * here means a user supplied `--native` file is eligible without requiring a
- * PDF identity match, while the path validation above still prevents remote,
- * repository, or missing inputs from entering the build.  Sidecar candidates
- * are included as well; their `permitted` flag is enforced by the builder.
+ * Read bytes for the already-validated native candidates. The builder's native
+ * byte map is an intentionally explicit local-input seam: passing it here
+ * applies the same parser, provenance, and identity checks as path-backed
+ * candidates. A permitted CLI file without independent PDF identity remains
+ * review-required; it is never promoted to a trusted reference by this seam.
+ * Sidecar candidates are included as well; their `permitted` flag is enforced
+ * by the builder.
  */
 async function nativeBytesById(input: LocalReferenceBuildInput): Promise<Record<string, Uint8Array>> {
   const result: Record<string, Uint8Array> = {};

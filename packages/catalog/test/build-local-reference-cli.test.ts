@@ -160,7 +160,7 @@ describe("build-local-reference CLI", () => {
     }
   });
 
-  it("builds an explicitly supplied native MIDI without requiring PDF identity", async () => {
+  it("keeps an explicitly supplied native MIDI review-required without PDF identity", async () => {
     const sourceDirectory = await mkdtemp(join(tmpdir(), "keyspilli-local-native-source-"));
     const outputDirectory = await mkdtemp(join(tmpdir(), "keyspilli-local-native-output-"));
     try {
@@ -181,9 +181,11 @@ describe("build-local-reference CLI", () => {
         stdout: (value) => { output += value; },
         stderr: (value) => { errors += value; },
       });
-      expect(code).toBe(0);
+      // Review-required native evidence is useful output, but must not be
+      // treated as an automatically ready reference by the CLI exit status.
+      expect(code).toBe(1);
       expect(errors).toBe("");
-      expect(JSON.parse(output)).toMatchObject({ scores: [{ state: "MELODY_READY", selected: { kind: "native", artifactType: "midi" } }] });
+      expect(JSON.parse(output)).toMatchObject({ scores: [{ state: "REVIEW_REQUIRED", selected: { kind: "native", artifactType: "midi", classification: "UNKNOWN" } }] });
       await expect(stat(join(outputDirectory, "scores", "native-midi", "reference.mid"))).resolves.toBeTruthy();
     } finally {
       await rm(sourceDirectory, { recursive: true, force: true });

@@ -107,6 +107,39 @@ describe("build-local-reference-listening CLI", () => {
     await expect(stat(join(outputRoot, "scores", "cli-reference", "listening", "reference.mid"))).resolves.toBeTruthy();
   });
 
+  it("preserves bounded backend readings and context from a local review queue", async () => {
+    const sourceRoot = await mkdtemp(join(tmpdir(), "keyspilli-reference-cli-queue-source-"));
+    const outputRoot = await mkdtemp(join(tmpdir(), "keyspilli-reference-cli-queue-output-"));
+    temporaryDirectories.push(sourceRoot, outputRoot);
+    const sourcePath = join(sourceRoot, "source.mid");
+    const queuePath = join(sourceRoot, "review.json");
+    await writeFile(sourcePath, writeMidi([{ midi: 72, start: 0, dur: 1, vel: 100, hand: "R" }], { tempoBpm: 120 }));
+    await writeFile(queuePath, JSON.stringify({
+      items: [{
+        id: "review-queue-1", page: 3, system: 4, measureId: "m-12", measureNumber: "12", role: "melody",
+        evidence: ["compare /Users/reidar/private/crop.png"], reasonCategory: "pitch",
+        backendValues: { audiveris: ["F4"], homr: ["F#4"] },
+        backendInterpretations: { audiveris: ["natural"], homr: ["sharp"] },
+        context: { keySignature: 0, timeSignature: [4, 4], startBeat: 12, durationBeats: 4, structural: { agreement: 0.8, evidence: ["/private/source.pdf"] } },
+        recommendedAction: "Listen against source.",
+      }],
+      unresolvedRegions: ["m-12"],
+    }), "utf8");
+    let stdout = "";
+    const code = await runLocalReferenceListeningCli([
+      "--reference-midi", sourcePath, "--out", outputRoot, "--id", "cli-queue", "--review-queue", queuePath,
+    ], { stdout: (value) => { stdout += value; }, stderr: () => undefined }, { renderer: fakeRenderer() });
+    expect(code).toBe(0);
+    const report = JSON.parse(stdout) as { review: { items: Array<Record<string, unknown>> } };
+    expect(report.review.items[0]).toMatchObject({
+      id: "review-queue-1", page: 3, system: 4, measureId: "m-12",
+      backendValues: { audiveris: ["F4"], homr: ["F#4"] },
+      backendInterpretations: { audiveris: ["natural"], homr: ["sharp"] },
+      context: { startBeat: 12, durationBeats: 4 },
+    });
+    expect(stdout).not.toContain(sourceRoot);
+  });
+
   it("returns an unavailable report when the default renderer has no SoundFont", async () => {
     const sourceRoot = await mkdtemp(join(tmpdir(), "keyspilli-reference-cli-unavailable-source-"));
     const outputRoot = await mkdtemp(join(tmpdir(), "keyspilli-reference-cli-unavailable-output-"));

@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
-import type { NativeScoreArtifactInput, NativeScoreDiscoveryOptions, NativeScoreDiscoveryReport } from "./native-score-discovery.js";
+import type { NativeScoreArtifactInput, NativeScoreArtifactType, NativeScoreDiscoveryOptions, NativeScoreDiscoveryReport, NativeScoreEvidence } from "./native-score-discovery.js";
 import { discoverNativeScoreArtifacts } from "./native-score-discovery.js";
+import { sha256Hex } from "./fixture-evidence.js";
 import { parseOmrMusicXmlBytes, type OmrMusicXmlParseResult } from "./omr-musicxml.js";
 import { parseSymbolicCandidate, type NormalizedSymbolicScore, type SymbolicScoreInput } from "./symbolic-alignment.js";
 
@@ -92,6 +93,70 @@ export interface NativeScoreVerificationOptions {
   discovery?: NativeScoreDiscoveryOptions;
 }
 
+export interface NativeScoreByteVerificationOptions {
+  /** Explicit format for an in-memory local test/input seam. */
+  artifactType?: NativeScoreArtifactType | string | null;
+}
+
+const SAFE_HASH = /^[a-f0-9]{64}$/i;
+const PATHISH_TEXT = /(?:^|[\s"'(:])(?:file:|[A-Za-z]:[\\/]|~[\\/]|\.{1,2}[\\/]|[\\/]|\\)|(?:^|[\s"'(:])[^\s"']+\.(?:mid|midi|musicxml|xml|mxl|mscz|pdf|wav|mp3|flac|json)(?:$|[\s"'),:])/i;
+
+function artifactType(value: NativeScoreArtifactInput, override?: unknown): "midi" | "musicxml" | "mxl" | "mscz" | null {
+  const raw = String(override ?? value.artifactType ?? value.type ?? "").trim().toLowerCase();
+  if (raw === "midi" || raw === "mid") return "midi";
+  if (raw === "musicxml" || raw === "xml") return "musicxml";
+  if (raw === "mxl") return "mxl";
+  if (raw === "mscz") return "mscz";
+  const path = typeof value.path === "string" ? value.path.toLowerCase() : "";
+  if (path.endsWith(".mid") || path.endsWith(".midi")) return "midi";
+  if (path.endsWith(".musicxml") || path.endsWith(".xml")) return "musicxml";
+  if (path.endsWith(".mxl")) return "mxl";
+  if (path.endsWith(".mscz")) return "mscz";
+  return null;
+}
+
+function provenanceText(value: unknown): string | null {
+  if (typeof value === "string") return safeMetadataText(value);
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  for (const key of ["provenance", "kind", "acquiredVia", "sourceRef"]) {
+    const text = safeMetadataText(record[key]);
+    if (text) return text;
+  }
+  return null;
+}
+
+function safeMetadataText(value: unknown): string | null {
+  const text = cleanText(value);
+  return text && !PATHISH_TEXT.test(text) ? text : null;
+}
+
+function trustedProvenance(value: string | null): boolean {
+  return Boolean(value) && !/(?:unknown|untrusted|unauthorized|fan[- ]?made|pirated|leak|torrent|scrape|random)/i.test(value!);
+}
+
+function safeUrl(value: unknown): string | null {
+  if (typeof value !== "string" || !value.trim()) return null;
+  try {
+    const url = new URL(value.trim());
+    if (!/^https?:$/.test(url.protocol) || url.username || url.password) return null;
+    url.username = "";
+    url.password = "";
+    url.search = "";
+    url.hash = "";
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+function safeId(value: unknown): string {
+  const text = cleanText(value) ?? "native";
+  if (PATHISH_TEXT.test(text)) return "native";
+  const id = text.replace(/[^A-Za-z0-9._:-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 120);
+  return id || "native";
+}
+
 function finite(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
@@ -149,6 +214,16 @@ function pdfHints(report: PdfForensicsReportLike): { title: string | null; pages
     bytes: integer(report.identity?.bytes),
     sha256: typeof report.identity?.sha256 === "string" && /^[a-f0-9]{64}$/i.test(report.identity.sha256) ? report.identity.sha256.toLowerCase() : null,
   };
+}
+
+function hasVerifiedPdfIdentity(report: PdfForensicsReportLike, pdf: ReturnType<typeof pdfHints>): boolean {
+  return report.status === "ok"
+    && pdf.title !== null
+    && pdf.pages !== null
+    && pdf.pages > 0
+    && pdf.bytes !== null
+    && pdf.bytes > 0
+    && pdf.sha256 !== null;
 }
 
 function contour(notes: readonly { midi: number }[]): NativeScoreSymbolicStructure["openingContour"] {
@@ -293,7 +368,14 @@ function compareEvidence(symbolic: NativeScoreSymbolicStructure, omr: NativeScor
   return evidence;
 }
 
-function classify(evidence: readonly NativeScoreVerificationEvidence[], parsed: boolean, pdfTitle: string | null, symbolicTitle: string | null, omr: NativeScoreVerificationOmrSummary | null): { classification: NativeScoreVerificationClassification; reasons: string[] } {
+function classify(
+  evidence: readonly NativeScoreVerificationEvidence[],
+  parsed: boolean,
+  pdfTitle: string | null,
+  symbolicTitle: string | null,
+  omr: NativeScoreVerificationOmrSummary | null,
+  verifiedPdfIdentity: boolean,
+): { classification: NativeScoreVerificationClassification; reasons: string[] } {
   const reasons: string[] = [];
   if (!parsed) return { classification: "UNKNOWN", reasons: ["native symbolic candidate could not be parsed"] };
   const title = evidence.find((item) => item.signal === "title");
@@ -305,7 +387,7 @@ function classify(evidence: readonly NativeScoreVerificationEvidence[], parsed: 
     return { classification: "WRONG_ARRANGEMENT", reasons };
   }
   const matches = evidence.filter((item) => item.outcome === "match");
-  if (title?.outcome === "match" && (omr === null || mismatches.length === 0)) {
+  if (title?.outcome === "match" && verifiedPdfIdentity && (omr === null || mismatches.length === 0)) {
     reasons.push("verified provenance and symbolic identity agree with the PDF");
     return { classification: "EXACT_OR_HIGH_CONFIDENCE_MATCH", reasons };
   }
@@ -334,53 +416,105 @@ function emptyResult(pdf: ReturnType<typeof pdfHints>, discovery: NativeScoreDis
   };
 }
 
-/** Verify one permitted local native symbolic candidate against PDF forensics. */
-export async function verifyNativeScoreIdentity(
-  report: PdfForensicsReportLike,
+function byteDiscovery(
   input: NativeScoreVerificationCandidate,
-  omrInput?: NativeScoreVerificationOmrSummary | readonly NativeScoreVerificationOmrSummary[] | null,
-  options: NativeScoreVerificationOptions = {},
-): Promise<NativeScoreVerificationResult> {
-  const pdf = pdfHints(report);
-  const omr = omrHints(omrInput);
-  const discovery = await discoverNativeScoreArtifacts({
-    pdfMetadata: { title: pdf.title, pages: pdf.pages },
-    nativeArtifacts: [input],
-    ...options.discovery,
+  bytes: Uint8Array,
+  options: NativeScoreByteVerificationOptions = {},
+): { discovery: NativeScoreDiscoveryReport; type: "midi" | "musicxml" | "mxl" | "mscz" | null } {
+  const id = safeId(input.id ?? input.label);
+  const type = artifactType(input, options.artifactType);
+  const reject = (reason: "local artifact is not explicitly permitted" | "unsupported artifact type" | "invalid artifact format" | "native artifact requires provenance and version" | "untrusted native candidate" | "invalid artifact metadata"): NativeScoreDiscoveryReport => ({
+    schemaVersion: 1,
+    status: reason === "local artifact is not explicitly permitted" || reason === "native artifact requires provenance and version" || reason === "untrusted native candidate"
+      ? "review-required" : "failed",
+    selectionReason: "native byte input could not be trusted automatically",
+    pdf: null,
+    selected: null,
+    candidates: [],
+    rejected: [{ id, reason }],
+    omr: [],
+    errors: [],
   });
-  if (!discovery.selected) return { ...emptyResult(pdf, discovery, discovery.rejected.length ? ["native candidate failed local provenance, format, or access validation"] : ["no verified native symbolic candidate was selected"]), omr };
-  if (typeof input.path !== "string" || !input.path.trim()) return { ...emptyResult(pdf, discovery, ["selected native candidate has no local path"]), omr };
-  let bytes: Uint8Array;
-  try {
-    bytes = new Uint8Array(await readFile(input.path));
-  } catch {
-    return { ...emptyResult(pdf, discovery, ["selected native candidate could not be read"]), omr };
+  if (!type) return { discovery: reject("unsupported artifact type"), type };
+  if (type === "mscz") return { discovery: reject("invalid artifact format"), type };
+  if (input.permitted !== true) return { discovery: reject("local artifact is not explicitly permitted"), type };
+  const provenance = provenanceText(input.provenance);
+  const version = safeMetadataText(input.version ?? input.versionIdentity);
+  if (!provenance || !version) return { discovery: reject("native artifact requires provenance and version"), type };
+  if (!trustedProvenance(provenance)) return { discovery: reject("untrusted native candidate"), type };
+  const suppliedHash = input.sha256 === undefined || input.sha256 === null
+    ? null
+    : typeof input.sha256 === "string" && SAFE_HASH.test(input.sha256) ? input.sha256.toLowerCase() : null;
+  if (input.sha256 !== undefined && input.sha256 !== null && suppliedHash === null) {
+    return { discovery: reject("invalid artifact metadata"), type };
   }
-  let parsed: NormalizedSymbolicScore;
-  let omrParse: OmrMusicXmlParseResult | null = null;
-  const format = discovery.selected.artifactType;
-  if (format === "mscz") return { ...emptyResult(pdf, discovery, ["MuseScore MSCZ candidates are not parsable by the native verifier"]), omr };
+  if (finite(input.bytes) && input.bytes !== bytes.byteLength) return { discovery: reject("invalid artifact metadata"), type };
+  const hash = sha256Hex(bytes);
+  if (suppliedHash !== null && suppliedHash !== hash) return { discovery: reject("invalid artifact metadata"), type };
+  const evidence: NativeScoreEvidence = {
+    id,
+    artifactType: type,
+    provenance,
+    version,
+    access: "local-file",
+    accessMethod: "local-file",
+    sourcePage: safeUrl(input.sourcePage ?? input.sourceUrl ?? input.url),
+    page: null,
+    bytes: bytes.byteLength,
+    sha256: hash,
+    hashStatus: "verified",
+    confidence: finite(input.confidence) ? Math.max(0, Math.min(1, input.confidence)) : null,
+    trusted: true,
+    discoveredFrom: "native-artifact",
+  };
+  return {
+    type,
+    discovery: {
+      schemaVersion: 1,
+      status: "native-symbolic",
+      selectionReason: "explicitly supplied local native bytes",
+      pdf: null,
+      selected: evidence,
+      candidates: [evidence],
+      rejected: [],
+      omr: [],
+      errors: [],
+    },
+  };
+}
+
+function parseNativeBytes(bytes: Uint8Array, type: "midi" | "musicxml" | "mxl"): { parsed: NormalizedSymbolicScore; omrParse: OmrMusicXmlParseResult | null } | null {
   try {
-    if (format === "midi") parsed = parseSymbolicCandidate(bytes, "midi");
-    else {
-      // The OMR MusicXML adapter is namespace-tolerant and preserves parts,
-      // measures, pages, and staves. Reuse its parsed score for both XML and
-      // MXL rather than relying on a first-part regex adapter.
-      omrParse = parseOmrMusicXmlBytes(bytes);
-      parsed = parseSymbolicCandidate(symbolicFromOmr(omrParse));
+    if (type === "midi") return { parsed: parseSymbolicCandidate(bytes, "midi"), omrParse: null };
+    if (type === "musicxml" || type === "mxl") {
+      const omrParse = parseOmrMusicXmlBytes(bytes);
+      return { parsed: parseSymbolicCandidate(symbolicFromOmr(omrParse)), omrParse };
     }
   } catch {
-    return { ...emptyResult(pdf, discovery, ["native symbolic candidate could not be parsed"]), omr };
+    return null;
   }
-  const symbolic = structure(format, parsed, omrParse);
-  // MIDI files often omit a title meta event. A permitted logical label is a
-  // bounded identity hint, never a substitute for the parsed bytes.
+  return null;
+}
+
+function resultFromNativeBytes(
+  report: PdfForensicsReportLike,
+  input: NativeScoreVerificationCandidate,
+  bytes: Uint8Array,
+  discovery: NativeScoreDiscoveryReport,
+  type: "midi" | "musicxml" | "mxl",
+  omr: NativeScoreVerificationOmrSummary | null,
+): NativeScoreVerificationResult {
+  const pdf = pdfHints(report);
+  if (!discovery.selected) return { ...emptyResult(pdf, discovery, ["native candidate failed local provenance, format, or access validation"]), omr };
+  const parsedResult = parseNativeBytes(bytes, type);
+  if (!parsedResult) return { ...emptyResult(pdf, discovery, ["native symbolic candidate could not be parsed"]), omr };
+  const symbolic = structure(type, parsedResult.parsed, parsedResult.omrParse);
   if (!symbolic.title) {
     const labelled = input as NativeScoreArtifactInput & { title?: unknown };
     symbolic.title = titleText(labelled.title) ?? titleText(input.label);
   }
   const evidence = compareEvidence(symbolic, omr, pdf.title);
-  const decision = classify(evidence, true, pdf.title, symbolic.title, omr);
+  const decision = classify(evidence, true, pdf.title, symbolic.title, omr, hasVerifiedPdfIdentity(report, pdf));
   if (report.status && report.status !== "ok") {
     decision.classification = "UNKNOWN";
     decision.reasons.unshift("PDF forensics report is not valid");
@@ -408,6 +542,48 @@ export async function verifyNativeScoreIdentity(
     reasons: decision.reasons,
     nonClaims: ["This report does not prove copyright permission, musical correctness, or listening quality."],
   };
+}
+
+/** Verify an explicitly supplied in-memory native artifact using the same
+ * parser and identity rules as path-backed verification.  This is a local
+ * builder/test seam; bytes are never serialized into the report. */
+export function verifyNativeScoreBytes(
+  report: PdfForensicsReportLike,
+  input: NativeScoreVerificationCandidate,
+  bytes: Uint8Array,
+  options: NativeScoreByteVerificationOptions = {},
+): NativeScoreVerificationResult {
+  const omr = omrHints(null);
+  const { discovery, type } = byteDiscovery(input, bytes, options);
+  if (!type || type === "mscz" || !discovery.selected) return { ...emptyResult(pdfHints(report), discovery, discovery.rejected.length ? ["native candidate failed local provenance, format, or access validation"] : ["no verified native symbolic candidate was selected"]), omr };
+  return resultFromNativeBytes(report, input, bytes, discovery, type, omr);
+}
+
+/** Verify one permitted local native symbolic candidate against PDF forensics. */
+export async function verifyNativeScoreIdentity(
+  report: PdfForensicsReportLike,
+  input: NativeScoreVerificationCandidate,
+  omrInput?: NativeScoreVerificationOmrSummary | readonly NativeScoreVerificationOmrSummary[] | null,
+  options: NativeScoreVerificationOptions = {},
+): Promise<NativeScoreVerificationResult> {
+  const pdf = pdfHints(report);
+  const omr = omrHints(omrInput);
+  const discovery = await discoverNativeScoreArtifacts({
+    pdfMetadata: { title: pdf.title, pages: pdf.pages },
+    nativeArtifacts: [input],
+    ...options.discovery,
+  });
+  if (!discovery.selected) return { ...emptyResult(pdf, discovery, discovery.rejected.length ? ["native candidate failed local provenance, format, or access validation"] : ["no verified native symbolic candidate was selected"]), omr };
+  if (typeof input.path !== "string" || !input.path.trim()) return { ...emptyResult(pdf, discovery, ["selected native candidate has no local path"]), omr };
+  let bytes: Uint8Array;
+  try {
+    bytes = new Uint8Array(await readFile(input.path));
+  } catch {
+    return { ...emptyResult(pdf, discovery, ["selected native candidate could not be read"]), omr };
+  }
+  const format = discovery.selected.artifactType;
+  if (format === "mscz") return { ...emptyResult(pdf, discovery, ["MuseScore MSCZ candidates are not parsable by the native verifier"]), omr };
+  return resultFromNativeBytes(report, input, bytes, discovery, format, omr);
 }
 
 export const verifyNativeScoreArtifact = verifyNativeScoreIdentity;

@@ -85,11 +85,29 @@ export interface LocalReferenceListeningRender {
 export interface LocalReferenceListeningReviewItem {
   id: string;
   page: number | null;
+  system: number | null;
+  measureId: string;
   measureNumber: string;
   role: string;
   reason: string;
+  /** Bounded, path-redacted interpretations from the available engines. */
+  backendValues: Record<string, string[]>;
+  backendInterpretations: Record<string, string[]>;
+  context: {
+    keySignature: number | null;
+    timeSignature: [number, number] | null;
+    startBeat: number;
+    durationBeats: number;
+    structural: { agreement: number | null; evidence: string[] };
+  };
   importance: "melody" | "harmony" | "rhythm" | "unknown";
   recommendedAction: string;
+}
+
+export interface LocalReferenceListeningDeterminism {
+  /** SHA-256 of the path-free report payload, excluding this field. */
+  canonicalSha256: string;
+  basis: "path-free-report-without-determinism";
 }
 
 export interface LocalReferenceListeningReport {
@@ -119,6 +137,7 @@ export interface LocalReferenceListeningReport {
     unresolvedRegions: string[];
     items: LocalReferenceListeningReviewItem[];
   };
+  determinism: LocalReferenceListeningDeterminism;
   outputs: LocalReferenceListeningOutputs;
   errors: Array<{ role: "full" | "melody" | "accompaniment" | "excerpt"; message: string }>;
   nonClaims: string[];
@@ -287,14 +306,72 @@ function safeReportText(value: unknown, fallback = ""): string {
     .slice(0, 500) || fallback;
 }
 
+function safeTextList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.map((item) => safeReportText(item)).filter(Boolean))].sort(compareText);
+}
+
+function safeTextRecord(value: unknown): Record<string, string[]> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const output: Record<string, string[]> = {};
+  for (const [key, items] of Object.entries(value as Record<string, unknown>).sort(([left], [right]) => compareText(left, right))) {
+    const values = safeTextList(items);
+    if (values.length) output[safeReportText(key, "unknown")] = values;
+  }
+  return output;
+}
+
+function nullableFinite(value: unknown): number | null {
+  return finite(value) ? value : null;
+}
+
+function safeReviewContext(value: unknown): LocalReferenceListeningReviewItem["context"] {
+  const context = value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+  const structural = context.structural && typeof context.structural === "object" && !Array.isArray(context.structural)
+    ? context.structural as Record<string, unknown>
+    : {};
+  const rawTimeSig = context.timeSignature;
+  const timeSignature: [number, number] | null = Array.isArray(rawTimeSig) && rawTimeSig.length === 2
+    && finite(rawTimeSig[0]) && finite(rawTimeSig[1])
+    ? [rawTimeSig[0]!, rawTimeSig[1]!]
+    : null;
+  return {
+    keySignature: nullableFinite(context.keySignature),
+    timeSignature,
+    startBeat: finite(context.startBeat) ? context.startBeat : 0,
+    durationBeats: finite(context.durationBeats) && context.durationBeats >= 0 ? context.durationBeats : 0,
+    structural: {
+      agreement: nullableFinite(structural.agreement),
+      evidence: safeTextList(structural.evidence),
+    },
+  };
+}
+
 function safeBasename(value: string): string {
   return basename(value.replaceAll("\\", "/")) || "soundfont";
 }
 
+function safeRendererLabel(value: unknown, fallback: string): string {
+  if (typeof value !== "string") return fallback;
+  const raw = value.trim();
+  // Renderer identity/version are logical labels.  A renderer may expose its
+  // executable path (or a relative path) as metadata; keep that out of the
+  // report instead of partially redacting it into a misleading label.
+  if (!raw || raw.includes("/") || raw.includes("\\") || /^(?:file:|https?:|~[\\/]|[A-Za-z]:[\\/])/i.test(raw)) return fallback;
+  const text = safeReportText(raw, fallback);
+  // Renderer identity is a logical label, not a path or URL.  Keep the
+  // report path-free even when an injected/local renderer returns arbitrary
+  // metadata (the production renderer uses fixed labels).
+  if (!text || text.includes("/") || text.includes("\\") || /^file:/i.test(text) || /^https?:/i.test(text)) return fallback;
+  return text;
+}
+
 function rendererFromResult(result: MidiRenderResult): LocalReferenceListeningRenderer {
   return {
-    id: result.renderer.id,
-    version: result.renderer.version,
+    id: safeRendererLabel(result.renderer.id, "renderer"),
+    version: safeRendererLabel(result.renderer.version, "unknown"),
     sampleRate: result.renderer.sampleRate,
     channels: result.wav.channels,
     gain: result.renderer.gain,
@@ -337,16 +414,21 @@ function reviewItems(queue: LocalReferenceListeningInput["reviewQueue"]): LocalR
     const reason = safeReportText(Array.isArray(item.evidence) ? item.evidence[0] : undefined, safeReportText(item.reasonCategory, "unknown"));
     return {
       id: safeReportText(item.id, `review-${index + 1}`),
-      page: item.page,
+      page: finite(item.page) ? item.page : null,
+      system: finite(item.system) ? item.system : null,
+      measureId: safeReportText(item.measureId, safeReportText(item.id, `measure-${index + 1}`)),
       measureNumber: safeReportText(item.measureNumber, "unknown"),
       role,
       reason,
+      backendValues: safeTextRecord(item.backendValues),
+      backendInterpretations: safeTextRecord(item.backendInterpretations),
+      context: safeReviewContext(item.context),
       importance: reviewImportance(role),
       recommendedAction: safeReportText(item.recommendedAction, "Human-review this unresolved region."),
     };
   }).sort((left, right) => {
-    const leftKey = [left.id, left.page ?? "", left.measureNumber, left.role, left.reason, left.importance, left.recommendedAction].join("\u0000");
-    const rightKey = [right.id, right.page ?? "", right.measureNumber, right.role, right.reason, right.importance, right.recommendedAction].join("\u0000");
+    const leftKey = JSON.stringify(stable(left));
+    const rightKey = JSON.stringify(stable(right));
     return compareText(leftKey, rightKey);
   });
 }
@@ -420,7 +502,12 @@ function markdown(report: LocalReferenceListeningReport): string {
   lines.push(`Review queue: [JSON](./${basename(report.outputs.reviewQueue)}).`);
   if (!report.review.items.length) lines.push("No unresolved review items were supplied.");
   for (const item of report.review.items) {
-    lines.push(`- **${item.measureNumber}**${item.page === null ? "" : ` (page ${item.page})`} — ${item.importance}; ${item.reason}. ${item.recommendedAction}`);
+    const location = [item.page === null ? null : `page ${item.page}`, item.system === null ? null : `system ${item.system}`, `measure ${item.measureNumber}`].filter(Boolean).join(", ");
+    const interpretations = Object.entries(item.backendValues).sort(([left], [right]) => compareText(left, right)).map(([backend, values]) => `${backend}: ${values.join(", ")}`).join("; ");
+    const alternateReadings = Object.entries(item.backendInterpretations).sort(([left], [right]) => compareText(left, right)).map(([backend, values]) => `${backend}: ${values.join(", ")}`).join("; ");
+    lines.push(`- **${location}** — ${item.importance}; ${item.reason}. ${item.recommendedAction}`);
+    if (interpretations) lines.push(`  - Symbolic readings: ${interpretations}`);
+    if (alternateReadings) lines.push(`  - Interpretations: ${alternateReadings}`);
   }
   lines.push("", "## Automated status", `- Rendered roles: ${report.renders.map((render) => render.role).join(", ") || "none"}`, `- Review items: ${report.review.itemCount}`, `- Manifest: [JSON](./${basename(report.outputs.manifest)})`, "", ...report.errors.map((error) => `- ${error.role}: ${error.message}`), "", report.nonClaims[0]!);
   return `${lines.join("\n")}\n`;
@@ -434,7 +521,12 @@ function html(report: LocalReferenceListeningReport): string {
   const audio = (label: string, ref: string | null) => ref
     ? `<li>${htmlEscape(label)}: <audio controls preload="none" src="./${htmlEscape(basename(ref))}"></audio> <a href="./${htmlEscape(basename(ref))}">WAV</a></li>`
     : `<li>${htmlEscape(label)}: unavailable</li>`;
-  const items = report.review.items.map((item) => `<li><strong>${htmlEscape(item.measureNumber)}</strong>${item.page === null ? "" : ` (page ${item.page})`} — ${htmlEscape(item.importance)}; ${htmlEscape(item.reason)}. ${htmlEscape(item.recommendedAction)}</li>`).join("");
+  const items = report.review.items.map((item) => {
+    const location = [item.page === null ? null : `page ${item.page}`, item.system === null ? null : `system ${item.system}`, `measure ${item.measureNumber}`].filter(Boolean).join(", ");
+    const readings = Object.entries(item.backendValues).sort(([left], [right]) => compareText(left, right)).map(([backend, values]) => `${backend}: ${values.join(", ")}`).join("; ");
+    const interpretations = Object.entries(item.backendInterpretations).sort(([left], [right]) => compareText(left, right)).map(([backend, values]) => `${backend}: ${values.join(", ")}`).join("; ");
+    return `<li><strong>${htmlEscape(location)}</strong> — ${htmlEscape(item.importance)}; ${htmlEscape(item.reason)}. ${htmlEscape(item.recommendedAction)}${readings ? `<br>Symbolic readings: ${htmlEscape(readings)}` : ""}${interpretations ? `<br>Interpretations: ${htmlEscape(interpretations)}` : ""}</li>`;
+  }).join("");
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${htmlEscape(report.title)} — local reference listening</title></head><body><h1>${htmlEscape(report.title)} — local reference listening</h1><p>Status: <strong>${htmlEscape(report.status)}</strong>. Local-only evidence; human review remains required.</p><h2>Audio</h2><ul>${audio("Full reference", report.outputs.fullWav)}${audio("Melody only", report.outputs.melodyWav)}${audio("Accompaniment only", report.outputs.accompanimentWav)}${audio("Opening excerpt", report.outputs.openingExcerptWav)}</ul><h2>Review queue</h2><p><a href="./${htmlEscape(basename(report.outputs.reviewQueue))}">Review queue JSON</a></p><ul>${items || "<li>No unresolved review items were supplied.</li>"}</ul><p>Renderer: ${htmlEscape(report.renderer ? `${report.renderer.id} ${report.renderer.version}` : "unavailable")}</p></body></html>\n`;
 }
 
@@ -479,16 +571,30 @@ export async function buildLocalReferenceListening(
     markdown: `scores/${scoreId}/listening/LISTENING.md`,
     html: `scores/${scoreId}/listening/LISTENING.html`,
   } satisfies LocalReferenceListeningOutputs;
+  // A rerun must not leave a previously rendered role/excerpt looking valid
+  // after the current renderer fails. These are all derived paths under the
+  // already validated score root, never caller-owned source paths.
+  await Promise.all([
+    refs.referenceMidi,
+    refs.fullWav,
+    refs.openingExcerptWav,
+    `scores/${scoreId}/listening/reference-melody.mid`,
+    `scores/${scoreId}/listening/reference-melody.wav`,
+    `scores/${scoreId}/listening/reference-accompaniment.mid`,
+    `scores/${scoreId}/listening/reference-accompaniment.wav`,
+  ].filter((ref): ref is string => typeof ref === "string").map((ref) => rm(resolve(outputRoot, ref), { force: true })));
   const errors: LocalReferenceListeningReport["errors"] = [];
   const renders: LocalReferenceListeningRender[] = [];
   let rendererMetadata: LocalReferenceListeningRenderer | null = null;
   const renderTarget = async (target: LocalReferenceListeningRender["role"], midiBytes: FileBytes, renderMidiPath: string, wavPath: string, midiRef: string, wavRef: string, derivedMidiPath?: string): Promise<void> => {
+    await rm(wavPath, { force: true });
     try {
       if (derivedMidiPath) await atomicWrite(derivedMidiPath, midiBytes.bytes);
       const result = await options.renderer.render({ midiPath: renderMidiPath, outputPath: wavPath });
       rendererMetadata ??= rendererFromResult(result);
       renders.push(renderRecord(target, result, midiRef, wavRef, midiBytes));
     } catch (error) {
+      await rm(wavPath, { force: true });
       errors.push({ role: target, message: sanitizeError(error) });
     }
   };
@@ -503,6 +609,7 @@ export async function buildLocalReferenceListening(
     await renderTarget("accompaniment", { bytes, size: bytes.byteLength, sha256: hashBytes(bytes) }, resolve(outputRoot, refs.accompanimentMidi), resolve(outputRoot, refs.accompanimentWav), refs.accompanimentMidi, refs.accompanimentWav, resolve(outputRoot, refs.accompanimentMidi));
   }
   let openingExcerptWav: string | null = null;
+  await rm(resolve(outputRoot, refs.openingExcerptWav), { force: true });
   if (renders.some((render) => render.role === "full")) {
     try {
       await sliceOpeningWav(resolve(outputRoot, refs.fullWav), resolve(outputRoot, refs.openingExcerptWav), Math.max(0.1, excerptSeconds));
@@ -542,7 +649,7 @@ export async function buildLocalReferenceListening(
     : renders.length >= expectedTargets && !errors.some((error) => error.role !== "excerpt")
       ? "RENDERED"
       : "PARTIAL";
-  const report: LocalReferenceListeningReport = {
+  const reportWithoutDeterminism: Omit<LocalReferenceListeningReport, "determinism"> = {
     schemaVersion: LOCAL_REFERENCE_LISTENING_SCHEMA_VERSION,
     kind: "local-score-reference-listening",
     scoreId,
@@ -565,6 +672,14 @@ export async function buildLocalReferenceListening(
     outputs,
     errors: errors.sort((left, right) => compareText(left.role, right.role) || compareText(left.message, right.message)),
     nonClaims: [LOCAL_REFERENCE_LISTENING_NON_CLAIM, "Absolute source, executable, and SoundFont paths are intentionally omitted from the report."],
+  };
+  const canonicalReport = JSON.stringify(stable(reportWithoutDeterminism));
+  const report: LocalReferenceListeningReport = {
+    ...reportWithoutDeterminism,
+    determinism: {
+      basis: "path-free-report-without-determinism",
+      canonicalSha256: hashBytes(new TextEncoder().encode(canonicalReport)),
+    },
   };
   await atomicWrite(resolve(outputRoot, refs.manifest), `${JSON.stringify(stable(report), null, 2)}\n`);
   await atomicWrite(resolve(outputRoot, refs.markdown), markdown(report));

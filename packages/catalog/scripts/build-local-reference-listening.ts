@@ -174,6 +174,44 @@ function stringValue(value: unknown, fallback: string): string {
   return typeof value === "string" && value.trim() ? value.trim() : fallback;
 }
 
+function finiteOrNull(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function stringList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.filter((entry): entry is string => typeof entry === "string").map((entry) => entry.trim()).filter(Boolean))].sort();
+}
+
+function stringRecord(value: unknown): Record<string, string[]> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const output: Record<string, string[]> = {};
+  for (const [key, entries] of Object.entries(value as Record<string, unknown>).sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0)) {
+    const values = stringList(entries);
+    if (values.length) output[key.trim() || "unknown"] = values;
+  }
+  return output;
+}
+
+function reviewContext(value: unknown): Record<string, unknown> {
+  const source = record(value) ?? {};
+  const structural = record(source.structural) ?? {};
+  const timeSig = Array.isArray(source.timeSignature) && source.timeSignature.length === 2
+    && finiteOrNull(source.timeSignature[0]) !== null && finiteOrNull(source.timeSignature[1]) !== null
+    ? [source.timeSignature[0], source.timeSignature[1]]
+    : null;
+  return {
+    keySignature: finiteOrNull(source.keySignature),
+    timeSignature: timeSig,
+    startBeat: finiteOrNull(source.startBeat) ?? 0,
+    durationBeats: Math.max(0, finiteOrNull(source.durationBeats) ?? 0),
+    structural: {
+      agreement: finiteOrNull(structural.agreement),
+      evidence: stringList(structural.evidence),
+    },
+  };
+}
+
 async function loadReviewQueue(path: string | undefined): Promise<LocalReferenceListeningInput["reviewQueue"]> {
   if (!path) return null;
   const parsed = JSON.parse(await readFile(path, "utf8")) as unknown;
@@ -186,10 +224,15 @@ async function loadReviewQueue(path: string | undefined): Promise<LocalReference
     return {
       id: stringValue(item.id, `review-${index + 1}`),
       page: typeof item.page === "number" && Number.isFinite(item.page) ? item.page : null,
+      system: typeof item.system === "number" && Number.isFinite(item.system) ? item.system : null,
+      measureId: stringValue(item.measureId, stringValue(item.id, `measure-${index + 1}`)),
       measureNumber: stringValue(item.measureNumber, "unknown"),
       role: stringValue(item.role, "unknown"),
       evidence,
       reasonCategory: stringValue(item.reasonCategory, "unknown"),
+      backendValues: stringRecord(item.backendValues),
+      backendInterpretations: stringRecord(item.backendInterpretations),
+      context: reviewContext(item.context),
       recommendedAction: stringValue(item.recommendedAction, "Human-review this unresolved region."),
     } as never;
   });

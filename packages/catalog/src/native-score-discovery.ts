@@ -2,6 +2,8 @@ import { readFile, realpath, stat } from "node:fs/promises";
 import { basename, extname, isAbsolute, resolve } from "node:path";
 import { sha256Hex } from "./fixture-evidence.js";
 import type { ArrangementCandidate } from "./song-research.js";
+import { parseOmrMusicXmlBytes } from "./omr-musicxml.js";
+import { parseSymbolicCandidate } from "./symbolic-alignment.js";
 
 /** Version of the local native-symbolic discovery contract. */
 export const NATIVE_SCORE_DISCOVERY_SCHEMA_VERSION = 1 as const;
@@ -335,6 +337,35 @@ function hasNativeFormatSignature(data: Uint8Array, type: NativeScoreArtifactTyp
   return /<(?:[A-Za-z_][\w.-]*:)?score-(?:partwise|timewise)(?:\s|>)/i.test(text);
 }
 
+/**
+ * A container/header is only an admission check.  Before an artifact is
+ * exposed as trusted native evidence, run the same parser used by the
+ * verifier.  This prevents a truncated MThd/ZIP/XML prefix from becoming a
+ * native-symbolic selection and lets malformed native evidence fall back to
+ * review/OMR deterministically.
+ */
+function parsesNativeArtifact(data: Uint8Array, type: NativeScoreArtifactType): boolean {
+  try {
+    if (type === "midi") {
+      parseSymbolicCandidate(data, "midi");
+      return true;
+    }
+    if (type === "musicxml") {
+      parseOmrMusicXmlBytes(data);
+      return true;
+    }
+    if (type === "mxl") {
+      parseOmrMusicXmlBytes(data);
+      return true;
+    }
+    // MSCZ is discoverable metadata only; there is deliberately no parser in
+    // this local boundary, so it cannot be trusted or selected automatically.
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 function provenanceText(value: unknown): string | null {
   if (typeof value === "string") return safeText(value);
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
@@ -643,6 +674,7 @@ async function inspectArtifact(
   try {
     const data = await readFile(physicalPath);
     if (!hasNativeFormatSignature(data, type)) return { evidence: null, rejected: { id, reason: "invalid artifact format" } };
+    if (!parsesNativeArtifact(data, type)) return { evidence: null, rejected: { id, reason: "invalid artifact format" } };
     const hash = sha256Hex(data);
     const suppliedHash = typeof input.sha256 === "string" && SAFE_HASH.test(input.sha256) ? input.sha256.toLowerCase() : null;
     const trusted = suppliedHash === null || suppliedHash === hash;

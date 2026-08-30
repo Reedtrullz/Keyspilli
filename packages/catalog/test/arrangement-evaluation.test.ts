@@ -613,6 +613,7 @@ describe("arrangement evaluation", () => {
           sourcePath: "relative/private-source-without-extension",
           filePath: "/private/tmp/secret-source",
           sourceStem: "C:\\Users\\reidar\\secret.mid",
+          note: { midi: 60, start: 0, dur: 1, vel: 90, rawMidi: 1n },
         }],
       } as unknown as ArrangementEvaluationInput["trace"],
     });
@@ -623,6 +624,7 @@ describe("arrangement evaluation", () => {
     expect(canonical).not.toContain("sourcePath");
     expect(canonical).not.toContain("filePath");
     expect(canonical).toContain("[redacted-path]");
+    expect(canonical).not.toContain("rawMidi");
   });
 
   it("sanitizes Windows-style selector paths in the report", () => {
@@ -645,6 +647,109 @@ describe("arrangement evaluation", () => {
     });
     expect(report.gate.status).toBe("fail");
     expect(report.gate.failures).toContain("parser metadata contains non-finite or invalid values");
+  });
+
+  it("fails closed when candidate or reference parsed metadata is explicitly null", () => {
+    const candidateReport = evaluateArrangement({
+      fixture: { id: "null-candidate-parsed" },
+      candidate: {
+        selector: "candidate.mid",
+        notes: [{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }],
+        parsed: null as unknown as ParsedMidi,
+      },
+    });
+    expect(candidateReport.gate.status).toBe("fail");
+    expect(candidateReport.gate.failures).toContain("candidate parsed metadata must be an object");
+
+    const referenceReport = evaluateArrangement({
+      fixture: { id: "null-reference-parsed" },
+      candidate: { selector: "candidate.mid", notes: [{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }] },
+      reference: {
+        selector: "reference.mid",
+        notes: [{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }],
+        parsed: null as unknown as ParsedMidi,
+      },
+    });
+    expect(referenceReport.gate.status).toBe("fail");
+    expect(referenceReport.gate.failures).toContain("reference parsed metadata must be an object");
+  });
+
+  it("fails closed when reference notes contain invalid note values", () => {
+    const report = evaluateArrangement({
+      fixture: { id: "invalid-reference-note" },
+      candidate: { selector: "candidate.mid", notes: [{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }] },
+      reference: {
+        selector: "reference.mid",
+        notes: [
+          { midi: 60, start: 0, dur: 1, vel: 90, hand: "R" },
+          { midi: Number.NaN, start: 1, dur: 1, vel: 90, hand: "R" },
+        ] as unknown as Note[],
+        windows: [{ id: "intro", candidate: [0, 2], reference: [0, 2] }],
+      },
+    });
+    expect(report.gate.status).toBe("fail");
+    expect(report.gate.failures).toContain("reference: 1 non-finite or invalid MIDI notes");
+  });
+
+  it("does not hide malformed parsed notes behind an explicit note array", () => {
+    const report = evaluateArrangement({
+      fixture: { id: "shadowed-parsed-notes" },
+      candidate: {
+        selector: "candidate.mid",
+        notes: [{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }],
+        parsed: { notes: { midi: 60 } } as unknown as ParsedMidi,
+      },
+    });
+    expect(report.gate.status).toBe("fail");
+    expect(report.gate.failures).toContain("candidate parsed notes are not an array");
+  });
+
+  it("fails closed without throwing for non-string revision and alias metadata", () => {
+    const report = evaluateArrangement({
+      fixture: { id: "hostile-metadata" },
+      candidate: {
+        selector: "candidate.mid",
+        revision: 1n as unknown as string,
+        notes: [{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }],
+      },
+      reference: {
+        selector: "reference.mid",
+        aliasOf: 2n as unknown as string,
+        notes: [{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }],
+      },
+    });
+    expect(report.gate.status).toBe("fail");
+    expect(report.gate.failures).toEqual(expect.arrayContaining([
+      "candidate revision must be a string",
+      "reference aliasOf must be a string",
+    ]));
+    expect(() => canonicalEvaluationJson(report)).not.toThrow();
+    expect(report.candidate.revision).toBeUndefined();
+    expect(report.reference?.aliasOf).toBeNull();
+  });
+
+  it("retains reserved window and variant identifiers as own report fields", () => {
+    const variant = {
+      level: "easy",
+      difficultyScore: 0.4,
+      notes: [{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }],
+      chords: [],
+      bassPattern: "root-fifth",
+      key: "C",
+      tempoBpm: 120,
+      timeSig: [4, 4],
+      measures: [{ index: 0, startBeat: 0, endBeat: 4 }],
+    } as unknown as Variant;
+    const report = evaluateArrangement({
+      fixture: { id: "reserved-identifiers" },
+      candidate: { selector: "candidate.mid", notes: [{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }] },
+      windows: [{ id: "__proto__", candidate: [0, 1] }],
+      variants: [variant],
+    });
+    expect(Object.prototype.hasOwnProperty.call(report.metrics.sections, "__proto__")).toBe(true);
+    expect(Object.prototype.hasOwnProperty.call(report.metrics.variants, "easy")).toBe(true);
+    expect(Object.prototype.hasOwnProperty.call(report.metrics.source.sectionSourceCounts, "__proto__")).toBe(true);
+    expect(canonicalEvaluationJson(report)).toContain("__proto__");
   });
 
   it("fails closed for malformed reference metadata and null alignment bounds", () => {
