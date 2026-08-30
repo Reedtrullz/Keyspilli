@@ -28,6 +28,11 @@ from `packages/catalog/src/index.ts`.
   semantic distance/agreement plus separate pitch, performed-rhythm,
   spelling, and notation-tie diagnostics. Tied segmentation does not add a
   semantic distance penalty.
+- Follow-up fix: tie-marked continuation/stop matching tolerates the existing
+  six-decimal `normalizeOmrScore` rounding, and a completed tied duration snaps
+  to an integer only within that same two-microbeat safety window. Untied notes
+  still compare exactly. Three rounded `1/3` segments now collapse to one exact
+  one-beat token.
 
 ## Tests
 
@@ -38,7 +43,8 @@ Added `packages/catalog/test/omr-canonical.test.ts` covering:
 3. tied segmentation versus a sustained event;
 4. true pitch and rhythm disagreement;
 5. deterministic reordered input;
-6. reduced rational beats.
+6. reduced rational beats;
+7. rounded triplet tie adjacency.
 
 TDD evidence: the focused test was first run before the module existed and
 failed at import with `Cannot find module '../src/omr-canonical.js'`; it then
@@ -46,7 +52,7 @@ passed after the minimal implementation.
 
 ## Verification
 
-- `pnpm exec vitest run packages/catalog/test/omr-canonical.test.ts` — 6/6
+- `pnpm exec vitest run packages/catalog/test/omr-canonical.test.ts` — 7/7
   passed.
 - `pnpm --filter @keyspilli/catalog typecheck` — passed.
 - `pnpm exec vitest run packages/catalog/test` — 417/423 passed; six existing

@@ -96,6 +96,29 @@ describe("canonical OMR score spine", () => {
     expect(compareCanonicalTokens(sustained.performedTokens, tied.performedTokens)).toMatchObject({ equal: true, distance: 0 });
   });
 
+  it("collapses rounded triplet tie adjacency into one exact performed beat", () => {
+    const tied = canonical({
+      parts: [{
+        id: "P1",
+        measures: [{
+          id: "measure-1",
+          number: "1",
+          startBeat: 0,
+          durationBeats: 1,
+          events: [
+            { onset: 0, duration: 1 / 3, pitch: 60, tie: "start" },
+            { onset: 1 / 3, duration: 1 / 3, pitch: 60, tie: "continue" },
+            { onset: 2 / 3, duration: 1 / 3, pitch: 60, tie: "stop" },
+          ],
+        }],
+      }],
+    });
+
+    expect(tied.performedTokens).toHaveLength(1);
+    expect(tied.performedTokens[0]!.duration).toEqual({ numerator: 1, denominator: 1 });
+    expect(tied.performedTokens[0]!.notationSegments).toHaveLength(3);
+  });
+
   it("distinguishes true pitch and rhythm disagreements", () => {
     const reference = canonical(score("P1", 1, "1", [{ onset: 0, duration: 1, pitch: 60 }]));
     const wrong = canonical(score("P2", 8, "other", [{ onset: 0, duration: 2, pitch: 61 }]));

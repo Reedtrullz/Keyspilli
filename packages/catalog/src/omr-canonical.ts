@@ -13,6 +13,8 @@ import type { OmrNormalizedEvent, OmrNormalizedMeasure } from "./omr-consensus.j
 export const OMR_CANONICAL_SCHEMA_VERSION = "omr-canonical-v1" as const;
 const MAX_RATIONAL_DENOMINATOR = 1_000_000;
 const RATIONAL_EPSILON = 1e-10;
+/** Existing Omr normalization rounds event beats to six decimal places. */
+const TIE_ADJACENCY_TOLERANCE_BEATS = 2e-6;
 
 export interface RationalBeat {
   numerator: number;
@@ -340,6 +342,16 @@ function tokenEnd(token: CanonicalPerformedToken): RationalBeat {
   return addRational(token.onset, token.duration);
 }
 
+function beatsNear(left: RationalBeat, right: RationalBeat): boolean {
+  return Math.abs(rationalBeatToNumber(left) - rationalBeatToNumber(right)) <= TIE_ADJACENCY_TOLERANCE_BEATS;
+}
+
+function snapCompletedTieDuration(value: RationalBeat): RationalBeat {
+  const numeric = rationalBeatToNumber(value);
+  const nearestBeat = Math.round(numeric);
+  return Math.abs(numeric - nearestBeat) <= TIE_ADJACENCY_TOLERANCE_BEATS ? rationalBeat(nearestBeat) : value;
+}
+
 function collapsePerformedTokens(events: readonly CanonicalNotationEvent[], warnings: string[]): CanonicalPerformedToken[] {
   const tokens: CanonicalPerformedToken[] = [];
   const active = new Map<string, CanonicalPerformedToken[]>();
@@ -354,7 +366,10 @@ function collapsePerformedTokens(events: readonly CanonicalNotationEvent[], warn
     if (event.tie.stop || event.tie.continue) {
       for (let index = candidates.length - 1; index >= 0; index -= 1) {
         const candidate = candidates[index]!;
-        if (equalRational(tokenEnd(candidate), event.onset)) {
+        // Only an explicit MusicXML tie may use this tiny tolerance. Ordinary
+        // untied notes continue to compare exactly, so distinct attacks are
+        // not silently merged.
+        if (beatsNear(tokenEnd(candidate), event.onset)) {
           token = candidate;
           candidates.splice(index, 1);
           break;
@@ -366,7 +381,8 @@ function collapsePerformedTokens(events: readonly CanonicalNotationEvent[], warn
       token = tokenFromEvent(event);
       tokens.push(token);
     } else {
-      token.duration = subtractRational(addRational(event.onset, event.duration), token.onset);
+      token.duration = addRational(token.duration, event.duration);
+      if (event.tie.stop && !event.tie.continue) token.duration = snapCompletedTieDuration(token.duration);
       token.notationSegments.push({ eventId: event.id, measureId: event.source.measureId, onset: event.onset, duration: event.duration, tie: event.tie });
       token.notationSpellings.push(event.spelling);
       token.tie = {
