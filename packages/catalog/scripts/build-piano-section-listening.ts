@@ -138,6 +138,13 @@ const OUTPUTS = [
   { id: "CD-fused-medium", label: "C/D fused — Medium" },
 ] as const;
 
+const BLIND_OUTPUT_IDS = [
+  "C-original-easy",
+  "C-revoiced-easy",
+  "CD-fused-easy",
+  "CD-fused-medium",
+] as const;
+
 const PRIOR_HUMAN_OBSERVATIONS = {
   source: "previous local blind listening pass",
   status: "context-only",
@@ -149,6 +156,21 @@ const PRIOR_HUMAN_OBSERVATIONS = {
   },
   note: "These observations are preserved as context. New scores remain blank until a fresh blind listening pass.",
 } as const;
+
+const PRIOR_HUMAN_CANDIDATE_REVIEWS = [
+  {
+    candidateId: "C",
+    priorLabel: "PianoPaul05",
+    status: "context-only",
+    summary: "Recognizable main melody; lower/darker accompaniment was muddy and dense.",
+  },
+  {
+    candidateId: "D",
+    priorLabel: "Pøsle",
+    status: "context-only",
+    summary: "Recognizable, with the strongest solo/lead region in the prior pass.",
+  },
+] as const;
 
 function usage(): string {
   return [
@@ -595,12 +617,19 @@ async function writeJson(path: string, value: unknown): Promise<void> {
   await writeFile(path, canonicalJson(value), "utf8");
 }
 
-function blindMap(outputs: readonly LocalOutput[]): Record<string, { candidateId: string; label: string; wavRef?: string }> {
-  const ids = ["C-original-easy", "C-revoiced-easy", "CD-fused-easy", "CD-fused-medium"];
+function blindOrder(outputs: readonly LocalOutput[]): LocalOutput[] {
+  return BLIND_OUTPUT_IDS
+    .map((id) => outputs.find((output) => output.id === id))
+    .filter((output): output is LocalOutput => output !== undefined)
+    .sort((left, right) => hashBytes(left.midiBytes).localeCompare(hashBytes(right.midiBytes)) || left.id.localeCompare(right.id));
+}
+
+function blindMap(outputs: readonly LocalOutput[], orderedOutputs = blindOrder(outputs)): Record<string, { candidateId: string; label: string; wavRef?: string }> {
   const aliases = ["A", "B", "C", "D"];
   return Object.fromEntries(aliases.map((alias, index) => {
-    const output = outputs.find((item) => item.id === ids[index]);
-    return [alias, { candidateId: ids[index]!, label: output?.label ?? ids[index]!, ...(output?.wavRef ? { wavRef: output.wavRef } : {}) }];
+    const output = orderedOutputs[index];
+    const id = output?.id ?? `missing-${index + 1}`;
+    return [alias, { candidateId: id, label: output?.label ?? id, ...(output?.wavRef ? { wavRef: output.wavRef } : {}) }];
   }));
 }
 
@@ -705,6 +734,16 @@ function listeningMarkdown(
     "## Blind pass",
     ...Object.keys(blind).sort().map((alias) => `- ${alias}: [WAV](blind/${alias}.wav)`),
     "",
+    "## Human listening worksheet",
+    "Use the blind aliases above and record one rating per alias before opening the answer key.",
+    "",
+    "- Is the main melody recognizable? (1–5)",
+    "- Does the accompaniment support the melody? (1–5)",
+    "- Are the lower notes muddy, crowded, or distracting? (1–5; note examples)",
+    "- How convincing is the lead/solo section? (1–5)",
+    "- Wrong-note severity and missed-note severity (none / mild / major)",
+    "- Playability at normal speed and at 70% speed (1–5)",
+    "",
     "## Explicit aligned windows",
     ...windows.map((window) => {
       const links = Object.values(excerpts[window.id] ?? {}).map((excerpt) => `[excerpt WAV](${excerpt.ref})`);
@@ -715,7 +754,6 @@ function listeningMarkdown(
     `- [manifest.json](manifest.json)`,
     `- [metrics.json](${diagnosticsPath})`,
     "- [selected-region-map.json](selected-region-map.json)",
-    "- [blind-map.json](blind-map.json)",
     "",
     "Automated metrics are diagnostic evidence only; they do not establish recognizability or playability.",
     "",
@@ -775,9 +813,8 @@ export async function buildPianoSectionListeningBundle(
     // Excerpt metadata is collected below after all slices have been written.
     // One flat blind directory is intentionally made from the four selected
     // comparison candidates; per-window copies remain under excerpts/.
-    const blindIds = ["C-original-easy", "C-revoiced-easy", "CD-fused-easy", "CD-fused-medium"];
-    for (const [index, id] of blindIds.entries()) {
-      const output = localOutputs.find((item) => item.id === id);
+    const orderedBlindOutputs = blindOrder(localOutputs);
+    for (const [index, output] of orderedBlindOutputs.entries()) {
       if (!output?.wavPath) continue;
       await sliceWav(output.wavPath, join(outputRoot, "blind", `${String.fromCharCode(65 + index)}.wav`), 0, Number.POSITIVE_INFINITY);
     }
@@ -841,7 +878,12 @@ export async function buildPianoSectionListeningBundle(
     outputs: outputMetrics,
     selection: pathSafe(selection),
     builderDiagnostics: pathSafe(diagnostics),
-    humanEvaluation: { status: "pending", ratings: null, priorObservations: PRIOR_HUMAN_OBSERVATIONS },
+    humanEvaluation: {
+      status: "pending",
+      ratings: null,
+      priorObservations: PRIOR_HUMAN_OBSERVATIONS,
+      priorCandidateReviews: PRIOR_HUMAN_CANDIDATE_REVIEWS,
+    },
   };
   const canonical = canonicalJson(manifest);
   const canonicalSha256 = hashBytes(new TextEncoder().encode(canonical));

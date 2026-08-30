@@ -81,7 +81,14 @@ describe("local piano section listening bundle", () => {
       "CD-selected-melody-only.mid",
     ]);
     const manifest = JSON.parse(await readFile(join(outputDirectory, "manifest.json"), "utf8")) as Record<string, unknown>;
-    expect(manifest.humanEvaluation).toMatchObject({ status: "pending", ratings: null });
+    expect(manifest.humanEvaluation).toMatchObject({
+      status: "pending",
+      ratings: null,
+      priorCandidateReviews: [
+        expect.objectContaining({ candidateId: "C", priorLabel: "PianoPaul05", status: "context-only" }),
+        expect.objectContaining({ candidateId: "D", priorLabel: "Pøsle", status: "context-only" }),
+      ],
+    });
     expect(manifest.renderer).toMatchObject({
       id: "fluidsynth",
       version: "pcm16-v1",
@@ -116,6 +123,23 @@ describe("local piano section listening bundle", () => {
     const listening = await readFile(join(outputDirectory, "LISTENING.md"), "utf8");
     expect(listening).toContain("- A: [WAV](blind/A.wav)");
     expect(listening).not.toMatch(/- A:.*C-original-easy/);
+    expect(listening).toContain("## Human listening worksheet");
+    expect(listening).toContain("Is the main melody recognizable?");
+    expect(listening).not.toContain("blind-map.json");
+    const blind = JSON.parse(await readFile(join(outputDirectory, "blind-map.json"), "utf8")) as Record<string, { candidateId: string }>;
+    expect(Object.keys(blind).sort()).toEqual(["A", "B", "C", "D"]);
+    expect(Object.values(blind).map((entry) => entry.candidateId).sort()).toEqual([
+      "C-original-easy",
+      "C-revoiced-easy",
+      "CD-fused-easy",
+      "CD-fused-medium",
+    ].sort());
+    expect(Object.values(blind).map((entry) => entry.candidateId)).not.toEqual([
+      "C-original-easy",
+      "C-revoiced-easy",
+      "CD-fused-easy",
+      "CD-fused-medium",
+    ]);
     expect(result.rendered).toBe(false);
   });
 

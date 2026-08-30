@@ -382,7 +382,9 @@ function normalizeWindows(windows: readonly PianoRegionWindow[]): NormalizedWind
     index: number;
     start: number;
     end: number;
-  } => entry.start !== undefined && entry.end !== undefined && entry.end > entry.start + EPSILON);
+  } => entry.start !== undefined && entry.end !== undefined
+    && entry.start >= 0
+    && entry.end > entry.start + EPSILON);
 
   preliminary.sort((a, b) => a.start - b.start || a.end - b.end
     || String(a.window.id ?? a.window.sectionId ?? "").localeCompare(String(b.window.id ?? b.window.sectionId ?? ""))
@@ -407,6 +409,8 @@ function validateSelectionWindows(windows: readonly PianoRegionWindow[]): void {
   if (!Array.isArray(windows)) {
     throw new TypeError("Invalid piano region windows: expected an array");
   }
+  const seen = new Set<string>();
+  const normalized: Array<{ id: string; start: number; end: number }> = [];
   for (const [index, window] of windows.entries()) {
     const raw = asRecord(window);
     const start = finiteNumber(raw?.startBeat) ?? finiteNumber(raw?.start);
@@ -415,6 +419,18 @@ function validateSelectionWindows(windows: readonly PianoRegionWindow[]): void {
     const end = explicitEnd ?? (start !== undefined && duration !== undefined ? start + duration : undefined);
     if (start === undefined || end === undefined || start < 0 || end <= start + EPSILON) {
       throw new RangeError(`Invalid piano region window at index ${index}`);
+    }
+    const id = String(raw?.id ?? raw?.sectionId ?? `${stableNumber(start)}-${stableNumber(end)}`);
+    if (seen.has(id)) throw new RangeError(`Duplicate piano region window id: ${id}`);
+    seen.add(id);
+    normalized.push({ id, start, end });
+  }
+  normalized.sort((left, right) => left.start - right.start || left.end - right.end || left.id.localeCompare(right.id));
+  for (let index = 1; index < normalized.length; index += 1) {
+    const previous = normalized[index - 1]!;
+    const current = normalized[index]!;
+    if (current.start < previous.end - EPSILON) {
+      throw new RangeError(`Overlapping piano region windows: ${previous.id} and ${current.id}`);
     }
   }
 }
@@ -1027,17 +1043,18 @@ export function clipRegionNotes(
 function mergeSelectedPieces(pieces: readonly ClippedPiece[]): Note[] {
   const sorted = [...pieces].sort((a, b) => noteSort(a.note, b.note) || a.candidateId.localeCompare(b.candidateId));
   const output: Note[] = [];
+  const byAttack = new Map<string, { note: Note; candidateId: string }>();
   for (const piece of sorted) {
     const note = { ...piece.note };
-    const previous = output[output.length - 1];
-    if (!previous) {
-      output.push(note);
-      continue;
+    const key = noteAttackKey(note);
+    const previous = byAttack.get(key);
+    if (!previous || note.dur > previous.note.dur + EPSILON
+      || (Math.abs(note.dur - previous.note.dur) <= EPSILON && note.vel > previous.note.vel)
+      || (Math.abs(note.dur - previous.note.dur) <= EPSILON && note.vel === previous.note.vel && piece.candidateId < previous.candidateId)) {
+      byAttack.set(key, { note, candidateId: piece.candidateId });
     }
-    const sameAttack = Math.abs(previous.start - note.start) <= EPSILON && previous.midi === note.midi;
-    if (sameAttack) continue;
-    output.push(note);
   }
+  output.push(...[...byAttack.values()].map(({ note }) => note));
   return output.sort(noteSort).map((note) => ({ ...note }));
 }
 
@@ -1079,12 +1096,12 @@ export function selectPianoMelodyRegions(
     candidateId: normalizedCandidates[candidateIndex]?.id ?? "",
     score: scoreMatrix[windowIndex]?.[candidateIndex]?.score ?? 0,
   }));
-  const totalScore = windowSelections.reduce((sum, item) => sum + item.score, 0)
-    - Math.max(0, selectedCandidateIds.length - 1) * optionSwitchPenalty(options);
   const switchCount = path.reduce(
     (count, candidateIndex, index) => count + (index > 0 && candidateIndex !== path[index - 1] ? 1 : 0),
     0,
   );
+  const totalScore = windowSelections.reduce((sum, item) => sum + item.score, 0)
+    - switchCount * optionSwitchPenalty(options);
   return {
     regions,
     notes,

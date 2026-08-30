@@ -706,8 +706,33 @@ function parserMetadataValid(candidate: ArrangementEvaluationCandidate): boolean
       && Number.isInteger(timeSig[0]) && timeSig[0] > 0 && Number.isInteger(timeSig[1]) && timeSig[1] > 0));
 }
 
-function notesFor(source: { parsed?: ParsedMidi; notes?: Note[] }): Note[] {
-  return source.notes ?? source.parsed?.notes ?? [];
+interface NoteSourceShape {
+  parsed?: ParsedMidi;
+  notes?: unknown;
+}
+
+function notesFor(source: NoteSourceShape): Note[] {
+  // A nullish explicit value retains the existing fallback behavior, while a
+  // non-array value is treated as malformed rather than reaching `.filter()`
+  // in the metric helpers.
+  const explicit = source.notes;
+  if (explicit !== undefined && explicit !== null) return Array.isArray(explicit) ? explicit as Note[] : [];
+  const parsedNotes = source.parsed?.notes as unknown;
+  return Array.isArray(parsedNotes) ? parsedNotes as Note[] : [];
+}
+
+function noteShapeFailures(source: NoteSourceShape, label: string): string[] {
+  const failures: string[] = [];
+  const explicit = source.notes;
+  if (explicit !== undefined && explicit !== null && !Array.isArray(explicit)) {
+    failures.push(`${label} notes are not an array`);
+  }
+  const parsedNotes = source.parsed?.notes as unknown;
+  if ((explicit === undefined || explicit === null)
+    && parsedNotes !== undefined && parsedNotes !== null && !Array.isArray(parsedNotes)) {
+    failures.push(`${label} parsed notes are not an array`);
+  }
+  return failures;
 }
 
 function orderedWindows(windows: EvaluationWindow[]): EvaluationWindow[] {
@@ -716,16 +741,106 @@ function orderedWindows(windows: EvaluationWindow[]): EvaluationWindow[] {
     || (a.reference?.[0] ?? -1) - (b.reference?.[0] ?? -1));
 }
 
+interface WindowValidation {
+  windows: EvaluationWindow[];
+  failures: string[];
+}
+
+function validWindowBounds(value: unknown): value is [number, number] {
+  return Array.isArray(value)
+    && value.length === 2
+    && value.every((part) => typeof part === "number" && Number.isFinite(part))
+    && value[0] >= 0
+    && value[1] > value[0];
+}
+
+function validateEvaluationWindows(raw: unknown, label: string): WindowValidation {
+  if (raw === undefined) return { windows: [], failures: [] };
+  if (!Array.isArray(raw)) return { windows: [], failures: [`${label} must be an array`] };
+
+  const failures: string[] = [];
+  const windows: EvaluationWindow[] = [];
+  const ids = new Set<string>();
+  for (const [index, value] of raw.entries()) {
+    if (!value || typeof value !== "object") {
+      failures.push(`${label}: window ${index} must be an object`);
+      continue;
+    }
+    const candidate = value as { id?: unknown; label?: unknown; candidate?: unknown; reference?: unknown; anchorId?: unknown };
+    const id = typeof candidate.id === "string" && candidate.id.length ? candidate.id : `#${index}`;
+    if (typeof candidate.id !== "string" || !candidate.id.length) {
+      failures.push(`${label}: window ${index} must have a non-empty string id`);
+    } else if (ids.has(candidate.id)) {
+      failures.push(`${label}: duplicate window id ${candidate.id}`);
+    } else {
+      ids.add(candidate.id);
+    }
+    if (!validWindowBounds(candidate.candidate)) {
+      failures.push(`${label}: ${id} candidate bounds must be finite, non-negative, and end after start`);
+      continue;
+    }
+    if (candidate.reference !== undefined && candidate.reference !== null && !validWindowBounds(candidate.reference)) {
+      failures.push(`${label}: ${id} reference bounds must be finite, non-negative, and end after start`);
+      continue;
+    }
+    windows.push({
+      id,
+      ...(typeof candidate.label === "string" ? { label: candidate.label } : {}),
+      candidate: [candidate.candidate[0], candidate.candidate[1]],
+      ...(candidate.reference === undefined || candidate.reference === null
+        ? {}
+        : { reference: [candidate.reference[0], candidate.reference[1]] }),
+      ...(typeof candidate.anchorId === "string" ? { anchorId: candidate.anchorId } : {}),
+    });
+  }
+
+  const byPosition = [...windows].sort((a, b) => a.candidate[0] - b.candidate[0] || a.candidate[1] - b.candidate[1] || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  for (let index = 1; index < byPosition.length; index++) {
+    const previous = byPosition[index - 1]!;
+    const current = byPosition[index]!;
+    if (current.candidate[0] < previous.candidate[1]) {
+      failures.push(`${label}: overlapping windows ${previous.id} and ${current.id}`);
+    }
+  }
+  const byReferencePosition = windows
+    .filter((window): window is EvaluationWindow & { reference: [number, number] } => Boolean(window.reference))
+    .sort((a, b) => a.reference[0] - b.reference[0] || a.reference[1] - b.reference[1] || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  for (let index = 1; index < byReferencePosition.length; index++) {
+    const previous = byReferencePosition[index - 1]!;
+    const current = byReferencePosition[index]!;
+    if (current.reference[0] < previous.reference[1]) {
+      failures.push(`${label}: overlapping reference windows ${previous.id} and ${current.id}`);
+    }
+  }
+  return failures.length ? { windows: [], failures } : { windows: orderedWindows(windows), failures: [] };
+}
+
 function orderedTrace(trace: ProvenanceTraceInput | undefined): ArrangementEvaluationReport["trace"] {
   if (trace?.status !== "available") return { status: "unavailable" };
   const sortText = (a: string, b: string): number => a < b ? -1 : a > b ? 1 : 0;
+  const traceString = (value: string): string => redactEmbeddedPaths(value);
   const sortEvents = (events: ProvenanceTraceEvent[] | undefined): ProvenanceTraceEvent[] | undefined => events
     ? [...events]
-      .map((event) => ({ ...event, ...(event.parentKeys ? { parentKeys: [...event.parentKeys].sort() } : {}) }))
-      .sort((a, b) => sortText(a.key, b.key) || sortText(a.stage ?? "", b.stage ?? "") || sortText(a.source ?? "", b.source ?? ""))
+      .map((event) => ({
+        ...event,
+        key: traceString(event.key),
+        ...(event.windowId ? { windowId: traceString(event.windowId) } : {}),
+        ...(event.parentKeys ? { parentKeys: event.parentKeys.map(traceString).sort() } : {}),
+        ...(event.source ? { source: traceString(event.source) } : {}),
+        ...(event.sourceStem ? { sourceStem: traceString(event.sourceStem) } : {}),
+        ...(event.selectionReason ? { selectionReason: traceString(event.selectionReason) } : {}),
+      }))
+      .sort((a, b) => sortText(a.key, b.key)
+        || sortText(a.stage ?? "", b.stage ?? "")
+        || sortText(a.source ?? "", b.source ?? "")
+        // Keys are normally unique, but retaining the full canonical event as
+        // a tie-breaker keeps duplicate-key traces permutation-stable too.
+        || sortText(JSON.stringify(canonicalize(a)), JSON.stringify(canonicalize(b))))
     : undefined;
   const windows = trace.windows
-    ? Object.fromEntries(Object.entries(trace.windows).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0).map(([id, events]) => [id, sortEvents(events)!]))
+    ? Object.fromEntries(Object.entries(trace.windows)
+      .sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
+      .map(([id, events]) => [traceString(id), sortEvents(events)!]))
     : undefined;
   return { status: "available", events: sortEvents(trace.events), windows };
 }
@@ -982,7 +1097,7 @@ function compareReferenceWindow(candidate: Note[], reference: Note[], window: Ev
 function referenceEvaluation(candidate: Note[], reference: ArrangementEvaluationReference | undefined, candidateParser: ArrangementEvaluationReport["candidate"]["parser"], windows: EvaluationWindow[]): ReferenceEvaluation | undefined {
   if (!reference) return undefined;
   const refNotes = notesFor(reference);
-  const referenceWindows = orderedWindows(reference.windows ?? windows);
+  const referenceWindows = orderedWindows(windows);
   if (!referenceWindows.length || referenceWindows.some((window) => !window.reference)) return {
     status: "alignment-required", referenceHash: reference.bytes ? sha256Hex(reference.bytes) : null, referenceSelector: reference.selector ? basename(reference.selector) : null,
     aliasOf: reference.aliasOf ?? null,
@@ -1033,8 +1148,9 @@ function qualityGate(
   parserValid = true,
   referenceStatus?: ReferenceEvaluation["status"],
   expectedDurationBeats?: number,
+  inputFailures: string[] = [],
 ): GateResult {
-  const failures: string[] = [];
+  const failures: string[] = [...inputFailures];
   const warnings: string[] = [];
   const evaluated = ["finite MIDI notes", "finite parser metadata", "sounding simultaneity", "piano range", "drum-derived pitch count"];
   const invalid = notes.filter((note) => !finiteNote(note)).length;
@@ -1128,14 +1244,31 @@ function qualityGate(
   };
 }
 
+const CANONICAL_PATH_KEY = /(?:^|[_-])(?:absolute)?path$/i;
+
+function redactEmbeddedPaths(value: string): string {
+  const roots = "(?:Users|private|tmp|var|home|root|opt|mnt|workspace|etc|srv|data|app)";
+  return value
+    // Handle file URIs before ordinary absolute paths.
+    .replace(new RegExp(`file:///?${roots}(?:/[^\\s\"'<>;,)]*)?`, "gi"), "[redacted-path]")
+    // Require a non-URL boundary before POSIX paths so https://host/root is
+    // not mistaken for a local path.
+    .replace(new RegExp(`(^|[\\s(\"'=,;\\[\\]])/${roots}(?:/[^\\s\"'<>;,)]*)?`, "gi"), "$1[redacted-path]")
+    .replace(/(^|[\s(\"'=,;\[\]])\/(?:[A-Za-z0-9._-]+\/)+[^\s\"'<>;,)]*/g, "$1[redacted-path]")
+    .replace(/(^|[\s(\"'=,;\[\]])[A-Za-z]:[\\/][^\s\"'<>;,)]*/g, "$1[redacted-path]")
+    // Relative paths are redacted while URL schemes remain useful labels.
+    .replace(/(^|\s)(?!(?:[A-Za-z][A-Za-z0-9+.-]*:)?\/\/)(\.\.?\/|[^\s/]+\/)[^\s\"']+\.(?:mid|midi|json|wav|mp3)(?=$|[\s\"'])/gi, "$1[redacted-path]");
+}
+
 function canonicalize(value: unknown, key?: string): unknown {
-  if (key === "generatedAt" || key === "path" || key === "absolutePath") return undefined;
+  if (key === "generatedAt" || CANONICAL_PATH_KEY.test(key ?? "")) return undefined;
+  if (typeof value === "string") return redactEmbeddedPaths(value);
   if (Array.isArray(value)) return value.map((item) => canonicalize(item)).filter((item) => item !== undefined);
   if (value && typeof value === "object") {
     const result: Record<string, unknown> = {};
     for (const objectKey of Object.keys(value as Record<string, unknown>).sort()) {
       const item = canonicalize((value as Record<string, unknown>)[objectKey], objectKey);
-      if (item !== undefined) result[objectKey] = item;
+      if (item !== undefined) result[redactEmbeddedPaths(objectKey)] = item;
     }
     return result;
   }
@@ -1150,13 +1283,32 @@ export function canonicalEvaluationJson(report: ArrangementEvaluationReport): st
 export function evaluateArrangement(input: ArrangementEvaluationInput): ArrangementEvaluationReport {
   const candidateNotes = notesFor(input.candidate);
   const parser = parserFor(input.candidate, candidateNotes);
-  const windows = orderedWindows(input.windows ?? input.reference?.windows ?? []);
+  const candidateWindowInput = input.windows !== undefined ? input.windows : input.reference?.windows;
+  const windowValidation = validateEvaluationWindows(candidateWindowInput, "evaluation windows");
+  const referenceWindowValidation = input.reference?.windows !== undefined && input.windows !== undefined
+    ? validateEvaluationWindows(input.reference.windows, "reference windows")
+    : windowValidation;
+  const windows = windowValidation.windows;
+  const referenceWindows = referenceWindowValidation.windows;
+  const noteFailures = noteShapeFailures(input.candidate, "candidate")
+    .concat(input.reference ? noteShapeFailures(input.reference, "reference") : []);
+  const rawExpectedDuration = input.expectedDurationBeats;
+  const expectedDurationValid = rawExpectedDuration === undefined
+    || (typeof rawExpectedDuration === "number" && Number.isFinite(rawExpectedDuration) && rawExpectedDuration >= 0);
   const referenceDuration = input.reference?.durationBeats ?? input.reference?.parsed?.durationBeats;
   const hasReferenceDuration = referenceDuration !== undefined && Number.isFinite(referenceDuration) && referenceDuration >= 0;
-  const expectedDurationBeats = input.expectedDurationBeats ?? (hasReferenceDuration ? referenceDuration : undefined);
-  const durationMismatchBasis: GlobalMetrics["durationMismatch"]["basis"] = input.expectedDurationBeats !== undefined
+  const expectedDurationBeats = expectedDurationValid
+    ? rawExpectedDuration ?? (hasReferenceDuration ? referenceDuration : undefined)
+    : undefined;
+  const durationMismatchBasis: GlobalMetrics["durationMismatch"]["basis"] = expectedDurationValid && rawExpectedDuration !== undefined
     ? "expected"
     : hasReferenceDuration ? "reference" : "unavailable";
+  const inputFailures = [
+    ...noteFailures,
+    ...windowValidation.failures,
+    ...(referenceWindowValidation === windowValidation ? [] : referenceWindowValidation.failures),
+    ...(expectedDurationValid ? [] : ["expected duration must be a finite non-negative number"]),
+  ];
   const bundle = metricBundle(
     candidateNotes,
     parser.tempoBpm,
@@ -1201,7 +1353,7 @@ export function evaluateArrangement(input: ArrangementEvaluationInput): Arrangem
     };
   }
   for (const [id, section] of Object.entries(sections)) bundle.source.sectionSourceCounts[id] = section.source;
-  const referenceReport = input.reference ? referenceEvaluation(candidateNotes, input.reference, parser, windows) : undefined;
+  const referenceReport = input.reference ? referenceEvaluation(candidateNotes, input.reference, parser, referenceWindows) : undefined;
   const reportWithoutDeterminism: Omit<ArrangementEvaluationReport, "determinism"> = {
     schemaVersion: 1,
     config: ARRANGEMENT_EVALUATION_CONFIG,
@@ -1218,6 +1370,7 @@ export function evaluateArrangement(input: ArrangementEvaluationInput): Arrangem
       parserMetadataValid(input.candidate),
       referenceReport?.status,
       expectedDurationBeats,
+      inputFailures,
     ),
   };
   const canonical = canonicalEvaluationJson(reportWithoutDeterminism as ArrangementEvaluationReport);

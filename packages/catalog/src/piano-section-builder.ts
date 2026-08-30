@@ -311,17 +311,47 @@ function makeMidiArtifact(
   // field. Treat unlabelled events as right-hand material here; role
   // decomposition has already happened for every generated candidate, while
   // this keeps the C-original artifact a faithful round-trip of its input.
-  const right = canonical.filter((note) => note.hand !== "L");
-  const left = canonical.filter((note) => note.hand === "L");
-  // An untouched source may not carry hand labels. Keep those notes in one
-  // track instead of silently writing an empty artifact; role-aware outputs
-  // always assign R/L before reaching this helper.
-  const tracks = right.length > 0 || left.length > 0
-    ? [
-      { name: "Piano right hand", notes: right },
-      { name: "Piano left hand", notes: left },
-    ]
-    : [{ name: "Piano source", notes: canonical }];
+  //
+  // When source provenance is present, encode it in the track name as well as
+  // the hand. Standard MIDI has no per-note identity field, but parseMidi
+  // deliberately infers both fields from these names. Keeping each
+  // source/hand pair in its own deterministic track therefore preserves the
+  // evaluator's provenance view across this local MIDI round-trip without
+  // changing the public Note or MIDI contracts.
+  const sourceLabel = (source: Note["identitySource"]): string => {
+    if (source === "vocals") return "Vocals";
+    if (source === "guitar") return "Guitar";
+    if (source === "other") return "Other";
+    return "Piano";
+  };
+  const sourceRank = (source: Note["identitySource"]): number => {
+    if (source === "vocals") return 0;
+    if (source === "guitar") return 1;
+    if (source === "other") return 2;
+    return 3;
+  };
+  const groups = new Map<string, { name: string; notes: Note[]; handRank: number; sourceRank: number }>();
+  for (const note of canonical) {
+    const hand = note.hand === "L" ? "left" : "right";
+    const handRank = hand === "right" ? 0 : 1;
+    const source = note.identitySource;
+    const key = `${hand}:${source ?? "unknown"}`;
+    const existing = groups.get(key);
+    if (existing) {
+      existing.notes.push(note);
+      continue;
+    }
+    const label = sourceLabel(source);
+    groups.set(key, {
+      name: `${label} ${hand} hand`,
+      notes: [note],
+      handRank,
+      sourceRank: sourceRank(source),
+    });
+  }
+  const tracks = [...groups.values()]
+    .sort((left, right) => left.handRank - right.handRank || left.sourceRank - right.sourceRank || left.name.localeCompare(right.name))
+    .map(({ name, notes: groupedNotes }) => ({ name, notes: groupedNotes }));
   const bytes = writeMidi(canonical, {
     tempoBpm: finite(template.tempoBpm) && template.tempoBpm > 0 ? template.tempoBpm : DEFAULT_TEMPO_BPM,
     timeSig: template.timeSig,
@@ -427,13 +457,17 @@ function mergeOptions(
 export function buildSectionAwarePianoCandidate(input: PianoSectionBuildInput): PianoSectionBuildResult {
   const windows = validateWindows(input.windows);
   assertPianoSource(input.primary, "primary");
-  for (const source of input.alternates ?? []) assertPianoSource(source, "alternate");
+  const suppliedAlternates = [...(input.alternates ?? [])];
+  for (const source of suppliedAlternates) assertPianoSource(source, "alternate");
   const alternateIds = new Set<string>();
-  const alternates = [...(input.alternates ?? [])].filter((source) => source && source.id !== input.primary.id);
-  for (const source of alternates) {
+  for (const source of suppliedAlternates) {
+    if (source.id === input.primary.id) {
+      throw new Error(`duplicate piano candidate id: ${source.id}`);
+    }
     if (alternateIds.has(source.id)) throw new Error(`duplicate piano candidate id: ${source.id}`);
     alternateIds.add(source.id);
   }
+  const alternates = suppliedAlternates;
   const template = sourceTemplate(input.primary);
   const roleOptions: PianoRoleOptions = {
     ...(input.roleOptions ?? {}),

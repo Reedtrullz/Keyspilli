@@ -185,4 +185,27 @@ describe("buildSectionAwarePianoCandidate", () => {
       ],
     }))).toThrow(/overlapping/i);
   });
+
+  it("preserves source tags through generated MIDI round-trip", () => {
+    const result = buildSectionAwarePianoCandidate(input({
+      primary: {
+        id: "C",
+        parsed: parsed([
+          { ...cMelody[0]!, identitySource: "vocals" },
+          { ...cHarmony[0]!, identitySource: "guitar" },
+        ]),
+      },
+      alternates: [],
+      windows: [{ id: "opening", startBeat: 0, endBeat: 2 }],
+    }));
+
+    expect(result.cRevoicedEasy.parsed.notes.some((note) => note.identitySource === "vocals")).toBe(true);
+    expect(result.cRevoicedEasy.parsed.notes.some((note) => note.identitySource === "guitar")).toBe(true);
+  });
+
+  it("rejects an alternate that reuses the primary candidate id", () => {
+    expect(() => buildSectionAwarePianoCandidate(input({
+      alternates: [{ id: "C", parsed: parsed(dSolo) }],
+    }))).toThrow(/duplicate.*candidate id/i);
+  });
 });

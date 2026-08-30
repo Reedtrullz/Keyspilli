@@ -441,4 +441,101 @@ describe("arrangement evaluation", () => {
     });
     expect(report.metrics.global.durationMismatch).toEqual({ value: 4, basis: "reference" });
   });
+
+  it("fails closed instead of throwing when candidate or reference notes are not arrays", () => {
+    const candidateReport = evaluateArrangement({
+      fixture: { id: "malformed-candidate-notes" },
+      candidate: { selector: "candidate.mid", notes: { midi: 60 } as unknown as Note[] },
+    });
+    expect(candidateReport.gate.status).toBe("fail");
+    expect(candidateReport.gate.failures).toContain("candidate notes are not an array");
+
+    const referenceReport = evaluateArrangement({
+      fixture: { id: "malformed-reference-notes" },
+      candidate: { selector: "candidate.mid", notes: [{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }] },
+      reference: {
+        selector: "reference.mid",
+        notes: { midi: 60 } as unknown as Note[],
+        windows: [{ id: "intro", candidate: [0, 1], reference: [0, 1] }],
+      },
+    });
+    expect(referenceReport.gate.status).toBe("fail");
+    expect(referenceReport.gate.failures).toContain("reference notes are not an array");
+    expect(referenceReport.reference?.windows[0]?.referenceNoteCount).toBe(0);
+  });
+
+  it("fails closed and emits no sections for invalid evaluation windows", () => {
+    const report = evaluateArrangement({
+      ...input([{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }]),
+      windows: [
+        { id: "reversed", candidate: [2, 1] },
+        { id: "negative", candidate: [-1, 1] },
+      ],
+    });
+    expect(report.gate.status).toBe("fail");
+    expect(report.gate.failures).toEqual(expect.arrayContaining([
+      "evaluation windows: reversed candidate bounds must be finite, non-negative, and end after start",
+      "evaluation windows: negative candidate bounds must be finite, non-negative, and end after start",
+    ]));
+    expect(report.metrics.sections).toEqual({});
+  });
+
+  it("rejects duplicate or overlapping candidate and reference windows", () => {
+    const report = evaluateArrangement({
+      ...input([{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }]),
+      windows: [
+        { id: "a", candidate: [0, 2], reference: [0, 2] },
+        { id: "a", candidate: [1, 3], reference: [1, 3] },
+        { id: "b", candidate: [4, 6], reference: [1.5, 2.5] },
+      ],
+    });
+    expect(report.gate.status).toBe("fail");
+    expect(report.gate.failures).toEqual(expect.arrayContaining([
+      "evaluation windows: duplicate window id a",
+      "evaluation windows: overlapping windows a and a",
+      "evaluation windows: overlapping reference windows a and a",
+    ]));
+    expect(report.metrics.sections).toEqual({});
+  });
+
+  it("fails closed when expected duration is non-finite", () => {
+    const report = evaluateArrangement({
+      ...input([{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }]),
+      expectedDurationBeats: Number.NaN,
+    });
+    expect(report.gate.status).toBe("fail");
+    expect(report.gate.failures).toContain("expected duration must be a finite non-negative number");
+    expect(report.metrics.global.durationMismatch).toEqual({ value: null, basis: "unavailable" });
+  });
+
+  it("redacts trace paths and orders equivalent trace keys deterministically", () => {
+    const notes = [{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" as const }];
+    const traceEvents = [
+      {
+        key: "same-key",
+        stage: "decision" as const,
+        source: "guitar",
+        selectionReason: "selected /private/tmp/lead.mid",
+      },
+      {
+        key: "same-key",
+        stage: "decision" as const,
+        source: "guitar",
+        selectionReason: "rejected /Users/reidar/review.mid",
+      },
+    ];
+    const first = evaluateArrangement({
+      ...input(notes),
+      trace: { status: "available", events: traceEvents },
+    });
+    const second = evaluateArrangement({
+      ...input(notes),
+      trace: { status: "available", events: [...traceEvents].reverse() },
+    });
+    const canonical = canonicalEvaluationJson(first);
+    expect(canonical).toBe(canonicalEvaluationJson(second));
+    expect(canonical).not.toContain("/private/tmp/lead.mid");
+    expect(canonical).not.toContain("/Users/reidar/review.mid");
+    expect(canonical).toContain("[redacted-path]");
+  });
 });

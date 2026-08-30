@@ -94,6 +94,8 @@ describe("selectPianoMelodyRegions", () => {
       { candidateId: "alternate", startBeat: 4, endBeat: 8 },
       { candidateId: "primary", startBeat: 8, endBeat: 12 },
     ]);
+    const scoreSum = selection.diagnostics.windowSelections.reduce((sum, item) => sum + item.score, 0);
+    expect(selection.diagnostics.totalScore).toBeCloseTo(scoreSum - selection.diagnostics.switchCount * 0.02, 7);
   });
 
   it("suppresses a one-window alternate when the minimum region duration is longer", () => {
@@ -245,6 +247,28 @@ describe("selectPianoMelodyRegions", () => {
 
     expect(score.score).toBe(0);
     expect(score.reasons).toContain("invalid window");
+  });
+
+  it("fails closed for a negative window in direct scoring", () => {
+    const score = scorePianoRegion(
+      { id: "primary", notes: line(0, [60, 62]) },
+      { id: "negative", startBeat: -1, endBeat: 1 },
+    );
+
+    expect(score.score).toBe(0);
+    expect(score.reasons).toContain("invalid window");
+  });
+
+  it("rejects duplicate and overlapping windows before selection", () => {
+    const candidate: PianoRegionCandidate = { id: "primary", notes: line(0, [60, 62, 64, 65]) };
+    expect(() => selectPianoMelodyRegions([candidate], [
+      { id: "same", startBeat: 0, endBeat: 2 },
+      { id: "same", startBeat: 2, endBeat: 4 },
+    ])).toThrow(/duplicate.*window/i);
+    expect(() => selectPianoMelodyRegions([candidate], [
+      { id: "first", startBeat: 0, endBeat: 3 },
+      { id: "overlap", startBeat: 2, endBeat: 4 },
+    ])).toThrow(/overlap.*window/i);
   });
 
   it("assigns stable identities to anonymous empty candidates", () => {
