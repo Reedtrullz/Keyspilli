@@ -22,6 +22,59 @@ export type OmrTrustState =
   | "FAILED";
 export type OmrAggregateTrustState = OmrTrustState | "PARTIALLY_TRUSTED";
 export type OmrBackendStatus = "available" | "unavailable" | "failed";
+/** Runtime health is additive to execution status: a backend may complete
+ * some pages, produce unusable output, or be unavailable before recognition. */
+export type OmrBackendHealth = "available" | "partially-available" | "unavailable" | "broken-output";
+export type OmrBackendPageStatus = OmrBackendHealth | OmrBackendStatus | "pass" | "success";
+
+/** Per-page diagnostics emitted by an image-based OMR adapter such as HOMR. */
+export interface OmrBackendPageMetadata {
+  page: number;
+  status?: OmrBackendPageStatus;
+  health?: OmrBackendHealth;
+  elapsedMs?: number | null;
+  musicXmlGenerated?: boolean;
+  measureCount?: number | null;
+  noteCount?: number | null;
+  staffCount?: number | null;
+  warnings?: string[];
+  stderrSummary?: string | null;
+  /** Permit adapter-specific, non-path diagnostic fields without widening the core. */
+  [key: string]: unknown;
+}
+
+/** Aggregate page counters are useful when detailed page rows are omitted. */
+export interface OmrBackendPageSummary {
+  attempted: number;
+  successful: number;
+  failed: number;
+  pages?: OmrBackendPageMetadata[];
+  [key: string]: unknown;
+}
+
+export type OmrBackendPages = OmrBackendPageMetadata[] | OmrBackendPageSummary;
+
+export interface OmrBackendInvocationMetadata {
+  command?: string;
+  args?: string[];
+  executable?: string;
+  pinned?: boolean;
+  [key: string]: unknown;
+}
+
+export type OmrBackendInvocation = string | OmrBackendInvocationMetadata;
+
+export interface OmrBackendModelMetadata {
+  id?: string;
+  name?: string;
+  version?: string;
+  sha256?: string;
+  weightsHash?: string;
+  cache?: string;
+  [key: string]: unknown;
+}
+
+export type OmrBackendModel = string | OmrBackendModelMetadata;
 export type OmrDisagreementKind =
   | "structure"
   | "rhythm"
@@ -158,6 +211,17 @@ export interface OmrBackendRun {
   version: string;
   /** Optional provenance grouping; runs in one group are not independent evidence. */
   independenceGroup?: string;
+  /** Optional operational diagnostics; these never alter consensus scoring. */
+  health?: OmrBackendHealth;
+  pages?: OmrBackendPages | null;
+  page?: number | null;
+  pageCount?: number | null;
+  pagesAttempted?: number | null;
+  pagesSuccessful?: number | null;
+  pagesFailed?: number | null;
+  pageReports?: OmrBackendPageMetadata[] | null;
+  invocation?: OmrBackendInvocation | null;
+  model?: OmrBackendModel | null;
   score?: OmrScoreInput | null;
   status?: OmrBackendStatus;
   error?: string;
@@ -286,6 +350,16 @@ export interface OmrBackendReport {
   measureCount: number;
   warnings: string[];
   error?: string;
+  health?: OmrBackendHealth;
+  pages?: OmrBackendPages | null;
+  page?: number | null;
+  pageCount?: number | null;
+  pagesAttempted?: number | null;
+  pagesSuccessful?: number | null;
+  pagesFailed?: number | null;
+  pageReports?: OmrBackendPageMetadata[] | null;
+  invocation?: OmrBackendInvocation | null;
+  model?: OmrBackendModel | null;
 }
 
 export interface OmrCoverage {
@@ -886,19 +960,92 @@ function backendStatus(run: OmrBackendRun): OmrBackendStatus {
   return run.score ? "available" : "failed";
 }
 
+const BACKEND_HEALTH_VALUES = new Set<OmrBackendHealth>([
+  "available",
+  "partially-available",
+  "unavailable",
+  "broken-output",
+]);
+
+function normalizeBackendHealth(value: unknown): OmrBackendHealth | undefined {
+  return typeof value === "string" && BACKEND_HEALTH_VALUES.has(value as OmrBackendHealth)
+    ? value as OmrBackendHealth
+    : undefined;
+}
+
+function pageSortNumber(value: unknown): number {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return Number.MAX_SAFE_INTEGER;
+  const page = (value as { page?: unknown }).page;
+  return finite(page) && Number.isInteger(page) && page > 0 ? page : Number.MAX_SAFE_INTEGER;
+}
+
+function pageSortTieBreak(value: unknown): string {
+  // stableValue is intentionally used only as a deterministic tie-breaker;
+  // page arrays retain their semantic order when page numbers differ.
+  return JSON.stringify(stableValue(value));
+}
+
+function sortBackendPageRows(value: unknown): unknown[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => sanitizeOmrMetadata(entry))
+    .sort((left, right) => pageSortNumber(left) - pageSortNumber(right) || stableCompare(pageSortTieBreak(left), pageSortTieBreak(right)));
+}
+
+function normalizeBackendPages(value: unknown): OmrBackendPages | null | undefined {
+  if (value === null) return null;
+  if (value === undefined) return undefined;
+  if (Array.isArray(value)) return sortBackendPageRows(value) as OmrBackendPageMetadata[];
+  if (!value || typeof value !== "object") return undefined;
+  const sanitized = sanitizeOmrMetadata(value);
+  if (!sanitized || typeof sanitized !== "object" || Array.isArray(sanitized)) return undefined;
+  const output = { ...(sanitized as Record<string, unknown>) };
+  // Accept common aggregate shapes while keeping unknown adapter fields. Any
+  // nested page rows are sorted by page so report serialization is stable.
+  for (const key of ["pages", "pageReports", "results", "details"] as const) {
+    if (Array.isArray(output[key])) output[key] = sortBackendPageRows(output[key]);
+  }
+  return output as OmrBackendPageSummary;
+}
+
+function normalizeBackendPageReports(value: unknown): OmrBackendPageMetadata[] | null | undefined {
+  if (value === null) return null;
+  if (value === undefined) return undefined;
+  return Array.isArray(value) ? sortBackendPageRows(value) as OmrBackendPageMetadata[] : undefined;
+}
+
+function optionalDiagnosticCount(value: unknown): number | null | undefined {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  return finite(value) && Number.isInteger(value) && value >= 0 ? value : null;
+}
+
 function safeBackendRun(value: unknown, index: number): OmrBackendRun {
   if (!value || typeof value !== "object") {
     return { id: `invalid-${index}`, version: "unknown", status: "failed", error: "invalid backend run" };
   }
   const run = value as Partial<OmrBackendRun>;
+  const pages = normalizeBackendPages(run.pages);
+  const pageReports = normalizeBackendPageReports(run.pageReports);
+  const health = normalizeBackendHealth(run.health);
   return {
     id: typeof run.id === "string" && run.id.trim() ? run.id : `backend-${index}`,
     version: typeof run.version === "string" && run.version.trim() ? run.version : "unknown",
     ...(typeof run.independenceGroup === "string" && run.independenceGroup.trim() ? { independenceGroup: run.independenceGroup } : {}),
+    ...(health ? { health } : {}),
+    ...(run.pages !== undefined && pages !== undefined ? { pages } : {}),
+    ...(run.page !== undefined ? { page: optionalDiagnosticCount(run.page) } : {}),
+    ...(run.pageCount !== undefined ? { pageCount: optionalDiagnosticCount(run.pageCount) } : {}),
+    ...(run.pagesAttempted !== undefined ? { pagesAttempted: optionalDiagnosticCount(run.pagesAttempted) } : {}),
+    ...(run.pagesSuccessful !== undefined ? { pagesSuccessful: optionalDiagnosticCount(run.pagesSuccessful) } : {}),
+    ...(run.pagesFailed !== undefined ? { pagesFailed: optionalDiagnosticCount(run.pagesFailed) } : {}),
+    ...(run.pageReports !== undefined && pageReports !== undefined ? { pageReports } : {}),
+    ...(run.invocation !== undefined ? { invocation: sanitizeOmrMetadata(run.invocation) as OmrBackendInvocation | null } : {}),
+    ...(run.model !== undefined ? { model: sanitizeOmrMetadata(run.model) as OmrBackendModel | null } : {}),
     ...(run.score && typeof run.score === "object" ? { score: run.score as OmrScoreInput } : {}),
     ...(run.status === "available" || run.status === "unavailable" || run.status === "failed" ? { status: run.status } : {}),
     ...(typeof run.error === "string" ? { error: run.error } : {}),
-    ...(run.metadata === undefined ? {} : { metadata: run.metadata }),
+    ...(run.metadata === undefined ? {} : { metadata: sanitizeOmrMetadata(run.metadata) }),
   };
 }
 
@@ -1021,6 +1168,16 @@ export function buildOmrConsensus(input: {
     measureCount: score?.measures.length ?? 0,
     warnings: score?.warnings ?? [],
     ...(run.error ? { error: sanitizeError(run.error) } : {}),
+    ...(run.health ? { health: run.health } : {}),
+    ...(run.pages !== undefined ? { pages: run.pages } : {}),
+    ...(run.page !== undefined ? { page: run.page } : {}),
+    ...(run.pageCount !== undefined ? { pageCount: run.pageCount } : {}),
+    ...(run.pagesAttempted !== undefined ? { pagesAttempted: run.pagesAttempted } : {}),
+    ...(run.pagesSuccessful !== undefined ? { pagesSuccessful: run.pagesSuccessful } : {}),
+    ...(run.pagesFailed !== undefined ? { pagesFailed: run.pagesFailed } : {}),
+    ...(run.pageReports !== undefined ? { pageReports: run.pageReports } : {}),
+    ...(run.invocation !== undefined ? { invocation: run.invocation } : {}),
+    ...(run.model !== undefined ? { model: run.model } : {}),
   }));
   const nativeInput = safeNativeRun(sourceInput.native);
   const normalizedNative = nativeInput ? normalizeOmrScore(nativeInput.score) : null;

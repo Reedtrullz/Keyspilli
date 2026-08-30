@@ -9,6 +9,7 @@ import {
   normalizeOmrRasterizationConfig,
   normalizeOmrScore,
   selectOmrConsensusEvents,
+  type OmrBackendRun,
   type OmrScoreInput,
 } from "../src/omr-consensus.js";
 
@@ -493,5 +494,50 @@ describe("dual OMR consensus core", () => {
     expect(DEFAULT_OMR_CONSENSUS_THRESHOLDS.consensusTrust).toBeGreaterThan(0.7);
     expect(DEFAULT_OMR_CONSENSUS_THRESHOLDS.reviewRequired).toBeLessThan(DEFAULT_OMR_CONSENSUS_THRESHOLDS.consensusTrust);
     expect(DEFAULT_OMR_CONSENSUS_THRESHOLDS.eligibleCoverage).toBeGreaterThanOrEqual(0.8);
+  });
+
+  it("preserves sanitized HOMR health, page, invocation, and model metadata", () => {
+    const homr = {
+      id: "homr",
+      version: "0.4.0",
+      score: score(),
+      health: "partially-available",
+      pages: [
+        { page: 2, status: "available", elapsedMs: 120, musicXmlGenerated: true, stderrSummary: "cache /Users/reidar/.cache/homr" },
+        { page: 1, status: "failed", elapsedMs: Number.NaN, musicXmlGenerated: false, stderrSummary: "failed" },
+      ],
+      invocation: { command: "uvx", args: ["--from", "homr==0.4.0", "homr", "/private/input/page-1.png"] },
+      model: { id: "homr-default", version: "2026.08", weightsPath: "/private/cache/homr/model.bin" },
+    } as unknown as OmrBackendRun;
+    const report = buildOmrConsensus({ engines: [homr] });
+    const backend = report.backends[0]!;
+
+    expect(backend).toMatchObject({
+      health: "partially-available",
+      pages: [
+        { page: 1, status: "failed", elapsedMs: null, musicXmlGenerated: false, stderrSummary: "failed" },
+        { page: 2, status: "available", elapsedMs: 120, musicXmlGenerated: true, stderrSummary: "[redacted-path]" },
+      ],
+      invocation: { command: "uvx", args: ["--from", "homr==0.4.0", "homr", "[redacted-path]"] },
+      model: { id: "homr-default", version: "2026.08", weightsPath: "[redacted-path]" },
+    });
+    expect(JSON.stringify(report)).not.toContain("/Users/reidar");
+    expect(JSON.stringify(report)).not.toContain("/private/input");
+  });
+
+  it("ignores invalid backend health metadata without changing consensus semantics", () => {
+    const homr = {
+      id: "homr",
+      version: "0.4.0",
+      score: score(),
+      health: "healthy-but-not-a-contract-state",
+      invocation: "uvx",
+      model: "homr-default",
+    } as unknown as OmrBackendRun;
+    const report = buildOmrConsensus({ engines: [homr] });
+
+    expect(report.backends[0]).not.toHaveProperty("health");
+    expect(report.backends[0]).toMatchObject({ invocation: "uvx", model: "homr-default" });
+    expect(report.summary.state).toBe("TRUSTED_SINGLE_ENGINE");
   });
 });
