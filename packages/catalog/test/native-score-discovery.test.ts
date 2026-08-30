@@ -8,6 +8,16 @@ import {
   type NativeScoreArtifactInput,
 } from "../src/native-score-discovery.js";
 
+function minimalMidi(): Buffer {
+  const header = Buffer.alloc(14);
+  header.write("MThd", 0, "ascii");
+  header.writeUInt32BE(6, 4);
+  header.writeUInt16BE(0, 8);
+  header.writeUInt16BE(1, 10);
+  header.writeUInt16BE(480, 12);
+  return header;
+}
+
 async function tempDir(): Promise<string> {
   return mkdtemp(join(tmpdir(), "keyspilli-native-score-"));
 }
@@ -17,7 +27,7 @@ describe("native symbolic score discovery", () => {
     const directory = await tempDir();
     const artifactPath = join(directory, "Defence Of Moscow.mid");
     const sidecarPath = join(directory, "Defence Of Moscow.mid.json");
-    await writeFile(artifactPath, Buffer.concat([Buffer.from("MThd"), Buffer.alloc(10)]));
+    await writeFile(artifactPath, minimalMidi());
     await writeFile(sidecarPath, JSON.stringify({
       sourcePage: "https://example.test/scores/defence-of-moscow",
       artifactType: "midi",
@@ -193,8 +203,8 @@ describe("native symbolic score discovery", () => {
     const directory = await tempDir();
     const missingMetadataPath = join(directory, "missing-metadata.mid");
     const malformedPath = join(directory, "malformed.mid");
-    await writeFile(missingMetadataPath, Buffer.concat([Buffer.from("MThd"), Buffer.alloc(10)]));
-    await writeFile(malformedPath, Buffer.from("not-midi"));
+    await writeFile(missingMetadataPath, minimalMidi());
+    await writeFile(malformedPath, Buffer.concat([Buffer.from("MThd"), Buffer.alloc(10)]));
 
     const report = await discoverNativeScoreArtifacts({
       nativeArtifacts: [

@@ -310,7 +310,19 @@ function artifactType(value: unknown, path?: string | null): NativeScoreArtifact
 }
 
 function hasNativeFormatSignature(data: Uint8Array, type: NativeScoreArtifactType): boolean {
-  if (type === "midi") return data.byteLength >= 4 && Buffer.from(data.subarray(0, 4)).toString("ascii") === "MThd";
+  if (type === "midi") {
+    const bytes = Buffer.from(data);
+    if (bytes.length < 14 || bytes.subarray(0, 4).toString("ascii") !== "MThd") return false;
+    const headerLength = bytes.readUInt32BE(4);
+    const format = bytes.readUInt16BE(8);
+    const trackCount = bytes.readUInt16BE(10);
+    const division = bytes.readUInt16BE(12);
+    return headerLength >= 6
+      && headerLength <= bytes.length - 8
+      && format <= 2
+      && trackCount >= 1
+      && division !== 0;
+  }
   if (type === "mxl" || type === "mscz") {
     if (data.byteLength < 4) return false;
     const signature = Buffer.from(data.subarray(0, 4)).toString("ascii");
