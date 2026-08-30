@@ -730,12 +730,13 @@ function noteShapeFailures(source: NoteSourceShape | unknown, label: string): st
   const failures: string[] = [];
   if (!isRecord(source)) return [`${label} must be an object`];
   const explicit = source.notes;
-  if (explicit !== undefined && explicit !== null && !Array.isArray(explicit)) {
+  if (explicit === null || (explicit !== undefined && !Array.isArray(explicit))) {
     failures.push(`${label} notes are not an array`);
   }
-  const parsedNotes = isRecord(source.parsed) ? source.parsed.notes as unknown : undefined;
+  const parsedRecord = isRecord(source.parsed) ? source.parsed : undefined;
+  const parsedNotes = parsedRecord?.notes as unknown;
   if ((explicit === undefined || explicit === null)
-    && parsedNotes !== undefined && parsedNotes !== null && !Array.isArray(parsedNotes)) {
+    && (parsedNotes === null || (parsedNotes !== undefined && !Array.isArray(parsedNotes)))) {
     failures.push(`${label} parsed notes are not an array`);
   }
   return failures;
@@ -766,11 +767,11 @@ function metadataShapeFailures(source: unknown, label: string, selectorRequired:
 }
 
 function safeSelector(value: unknown, fallback: string): string {
-  return typeof value === "string" && value.trim() ? basename(value) : fallback;
+  return typeof value === "string" && value.trim() ? basename(value.replaceAll("\\", "/")) : fallback;
 }
 
 function safeOptionalSelector(value: unknown): string | null {
-  return typeof value === "string" && value.trim() ? basename(value) : null;
+  return typeof value === "string" && value.trim() ? basename(value.replaceAll("\\", "/")) : null;
 }
 
 function orderedWindows(windows: EvaluationWindow[]): EvaluationWindow[] {

@@ -140,6 +140,27 @@ describe("arrangement evaluation", () => {
     expect(report.reference?.exactPitch.f1).toBeNull();
   });
 
+  it("fails closed when explicit candidate or reference notes are null", () => {
+    const candidateReport = evaluateArrangement({
+      fixture: { id: "null-candidate-notes" },
+      candidate: { selector: "candidate.mid", notes: null as unknown as Note[] },
+    });
+    expect(candidateReport.gate.status).toBe("fail");
+    expect(candidateReport.gate.failures).toContain("candidate notes are not an array");
+
+    const referenceReport = evaluateArrangement({
+      fixture: { id: "null-reference-notes" },
+      candidate: { selector: "candidate.mid", notes: [{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }] },
+      reference: {
+        selector: "reference.mid",
+        notes: null as unknown as Note[],
+        windows: [{ id: "intro", candidate: [0, 1], reference: [0, 1] }],
+      },
+    });
+    expect(referenceReport.gate.status).toBe("fail");
+    expect(referenceReport.gate.failures).toContain("reference notes are not an array");
+  });
+
   it("keeps canonical JSON independent of paths, timestamps, and input order", () => {
     const notes: Note[] = [
       { midi: 62, start: 1, dur: 1, vel: 90, hand: "R" },
@@ -602,5 +623,15 @@ describe("arrangement evaluation", () => {
     expect(canonical).not.toContain("sourcePath");
     expect(canonical).not.toContain("filePath");
     expect(canonical).toContain("[redacted-path]");
+  });
+
+  it("sanitizes Windows-style selector paths in the report", () => {
+    const report = evaluateArrangement({
+      fixture: { id: "windows-selector" },
+      candidate: { selector: "C:\\Users\\reidar\\private\\candidate.mid", notes: [] },
+      reference: { selector: "C:\\Users\\reidar\\private\\reference.mid", notes: [] },
+    });
+    expect(report.candidate.selector).toBe("candidate.mid");
+    expect(report.reference?.referenceSelector).toBe("reference.mid");
   });
 });
