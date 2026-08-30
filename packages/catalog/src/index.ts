@@ -28,3 +28,4 @@ export * from "./piano-candidate-diagnostics.js";
 export * from "./piano-section-builder.js";
 export * from "./score-benchmark.js";
 export * from "./score-listening-pack.js";
+export * from "./omr-canonical.js";
