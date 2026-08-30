@@ -1,0 +1,180 @@
+import { mkdir, mkdtemp, readFile, rm, stat, symlink } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { describe, expect, it } from "vitest";
+import {
+  buildLocalReference,
+  localReferenceBuilderJson,
+  type LocalReferenceBuildInput,
+} from "../src/local-reference-builder.js";
+
+function pdfBytes(): Uint8Array {
+  return new TextEncoder().encode("%PDF-1.7\n1 0 obj << /Type /Catalog >> endobj\n%%EOF\n");
+}
+
+function score(title = "Synthetic score") {
+  return {
+    title,
+    tempoBpm: 110,
+    timeSignature: [4, 4] as [number, number],
+    keySignature: 0,
+    parts: [{
+      id: "P1",
+      name: "Melody",
+      role: "melody" as const,
+      measures: [{
+        id: "P1-m1",
+        number: "1",
+        page: 1,
+        startBeat: 0,
+        durationBeats: 4,
+        timeSignature: [4, 4] as [number, number],
+        keySignature: 0,
+        events: [
+          { onset: 0, duration: 1, pitch: 60, role: "melody" as const },
+          { onset: 1, duration: 1, pitch: 62, role: "melody" as const },
+          { onset: 2, duration: 2, pitch: 64, role: "melody" as const },
+        ],
+      }],
+    }],
+  };
+}
+
+async function outputDir(): Promise<string> {
+  return mkdtemp(join(tmpdir(), "keyspilli-local-reference-"));
+}
+
+describe("local reference builder", () => {
+  it("selects a valid single OMR backend and freezes path-safe reference artifacts", async () => {
+    const out = await outputDir();
+    const input: LocalReferenceBuildInput = {
+      id: "synthetic-score",
+      artist: "Synthetic Artist",
+      title: "Synthetic Score",
+      pdfPath: "/private/external/synthetic.pdf",
+      backends: [{ id: "audiveris", version: "5.11.0", score: score(), status: "available" }],
+    };
+    const report = await buildLocalReference(input, {
+      outputRoot: out,
+      repositoryRoot: "/private/repository",
+      forensics: { dependencies: { readBytes: async () => pdfBytes() } },
+    });
+
+    const item = report.scores[0]!;
+    expect(item.state).toBe("MELODY_READY");
+    expect(item.selected.kind).toBe("omr");
+    expect(item.selected.backend).toBe("audiveris");
+    expect(item.reviewQueue.totalItems).toBe(0);
+    expect(item.outputs.referenceMusicXml).toBe("scores/synthetic-score/reference.musicxml");
+    expect(item.outputs.referenceMidi).toBe("scores/synthetic-score/reference.mid");
+    expect(item.outputs.coverageMask).toBe("scores/synthetic-score/coverage-mask.json");
+    expect(item.outputs.manifest).toBe("scores/synthetic-score/reference-manifest.json");
+    expect(item.outputs.referenceMusicXml).not.toContain("/private");
+    await expect(stat(join(out, item.outputs.referenceMusicXml!))).resolves.toBeTruthy();
+    await expect(stat(join(out, item.outputs.referenceMidi!))).resolves.toBeTruthy();
+    const xml = await readFile(join(out, item.outputs.referenceMusicXml!), "utf8");
+    expect(xml).toContain("<score-partwise");
+    expect(JSON.stringify(report)).not.toContain("/private/external");
+  });
+
+  it("prefers an eligible native candidate over contradictory OMR and stays deterministic", async () => {
+    const out = await outputDir();
+    const first = await buildLocalReference({
+      id: "native-score",
+      artist: "Synthetic Artist",
+      title: "Native Score",
+      pdfPath: "/private/external/native.pdf",
+      nativeArtifacts: [{
+        id: "native-midi",
+        path: "/private/external/native.mid",
+        artifactType: "midi",
+        permitted: true,
+        provenance: "publisher export",
+        version: "2024.1",
+      }],
+      backends: [{ id: "audiveris", version: "5.11.0", score: score("Wrong OMR"), status: "available" }],
+    }, {
+      outputRoot: out,
+      repositoryRoot: "/private/repository",
+      forensics: { dependencies: { readBytes: async (path: string) => path.endsWith("native.mid") ? new Uint8Array([0x4d, 0x54, 0x68, 0x64, 0, 0, 0, 6, 0, 0, 0, 1, 1, 0]) : pdfBytes() } },
+      native: { artifactBytes: new Uint8Array([0x4d, 0x54, 0x68, 0x64, 0, 0, 0, 6, 0, 0, 0, 1, 1, 0]) },
+    });
+    const second = await buildLocalReference({
+      id: "native-score",
+      artist: "Synthetic Artist",
+      title: "Native Score",
+      pdfPath: "/different/native.pdf",
+      nativeArtifacts: [{
+        id: "native-midi",
+        path: "/private/external/native.mid",
+        artifactType: "midi",
+        permitted: true,
+        provenance: "publisher export",
+        version: "2024.1",
+      }],
+      backends: [{ id: "audiveris", version: "5.11.0", score: score("Wrong OMR"), status: "available" }],
+    }, {
+      outputRoot: out,
+      repositoryRoot: "/private/repository",
+      forensics: { dependencies: { readBytes: async (path: string) => path.endsWith("native.mid") ? new Uint8Array([0x4d, 0x54, 0x68, 0x64, 0, 0, 0, 6, 0, 0, 0, 1, 1, 0]) : pdfBytes() } },
+      native: { artifactBytes: new Uint8Array([0x4d, 0x54, 0x68, 0x64, 0, 0, 0, 6, 0, 0, 0, 1, 1, 0]) },
+    });
+    expect(first.scores[0]?.selected.kind).toBe("native");
+    expect(localReferenceBuilderJson(first)).toBe(localReferenceBuilderJson(second));
+  });
+
+  it("fails closed when no symbolic backend is available and preserves a concrete review item", async () => {
+    const out = await outputDir();
+    const report = await buildLocalReference({
+      id: "missing-score",
+      artist: "Synthetic Artist",
+      title: "Missing Score",
+      pdfPath: "/private/external/missing.pdf",
+      backends: [{ id: "homr", version: "0.7.0", status: "unavailable", score: null, error: "optional backend unavailable" }],
+    }, {
+      outputRoot: out,
+      repositoryRoot: "/private/repository",
+      forensics: { dependencies: { readBytes: async () => pdfBytes() } },
+    });
+    expect(report.scores[0]?.state).toBe("FAILED");
+    expect(report.scores[0]?.reviewQueue.items[0]).toMatchObject({
+      scoreId: "missing-score",
+      role: "unknown",
+      reason: "symbolic backend unavailable",
+      priorityClass: "high",
+    });
+    expect(report.nonClaims).toEqual(expect.arrayContaining([
+      expect.stringContaining("no human musical correction"),
+    ]));
+    const outputs = report.scores[0]!.outputs;
+    expect(outputs.referenceMusicXml).toBeNull();
+    expect(outputs.referenceMidi).toBeNull();
+    expect(outputs.coverageMask).toBeNull();
+    await expect(stat(join(out, "scores", "missing-score", "reference.musicxml"))).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(stat(join(out, "scores", "missing-score", "reference.mid"))).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(stat(join(out, "scores", "missing-score", "coverage-mask.json"))).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(stat(join(out, outputs.manifest))).resolves.toBeTruthy();
+    await expect(stat(join(out, outputs.reviewQueue))).resolves.toBeTruthy();
+  });
+
+  it("rejects a symlinked output root before writing through it", async () => {
+    const parent = await mkdtemp(join(tmpdir(), "keyspilli-local-reference-symlink-"));
+    const target = join(parent, "target");
+    const link = join(parent, "link");
+    await mkdir(target);
+    await symlink(target, link, "dir");
+    try {
+      await expect(buildLocalReference({
+        id: "symlink-score",
+        artist: "Synthetic Artist",
+        title: "Symlink Score",
+      }, {
+        outputRoot: link,
+        repositoryRoot: "/private/repository",
+      })).rejects.toThrow(/symbolic link/i);
+      await expect(stat(join(target, "scores", "symlink-score", "reference-manifest.json"))).rejects.toMatchObject({ code: "ENOENT" });
+    } finally {
+      await rm(parent, { recursive: true, force: true });
+    }
+  });
+});
