@@ -32,6 +32,7 @@ describe("build-score-corpus CLI arguments", () => {
       "--max-seconds", "180",
       "--exclude-review",
       "--no-notation",
+      "--discover-recordings",
     ]);
 
     expect(options.pdfs).toEqual([
@@ -45,6 +46,7 @@ describe("build-score-corpus CLI arguments", () => {
     expect(options.maxSeconds).toBe(180);
     expect(options.includeReview).toBe(false);
     expect(options.noNotation).toBe(true);
+    expect(options.discoverRecordings).toBe(true);
   });
 
   it("fails closed for a missing output or invalid duration ordering", () => {

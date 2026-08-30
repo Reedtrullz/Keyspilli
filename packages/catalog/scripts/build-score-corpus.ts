@@ -23,6 +23,10 @@ import {
 } from "../src/symbolic-alignment.js";
 import { runResearch, type ResearchReport } from "../src/research-report.js";
 import {
+  discoverOriginalRecordings,
+  type OriginalRecordingDiscoveryReport,
+} from "../src/recording-discovery.js";
+import {
   SCORE_BENCHMARK_SCHEMA_VERSION,
   canonicalBenchmarkCorpusJson,
   createBenchmarkCorpusManifest,
@@ -67,6 +71,7 @@ interface ScoreCorpusBatchOptions {
   noAudio: boolean;
   noNotation: boolean;
   noResearch: boolean;
+  discoverRecordings: boolean;
   includeReview: boolean;
   seed: string;
   targetSeconds: number;
@@ -79,6 +84,7 @@ interface BatchScoreResult {
   result: ScoreBenchmarkResult | null;
   error?: string;
   research?: ResearchReport;
+  recordingDiscovery?: OriginalRecordingDiscoveryReport;
   alignment?: SymbolicAlignmentResult;
   sourceMetadata?: Record<string, unknown>;
 }
@@ -228,6 +234,7 @@ function usage(): string {
     "  --no-audio             skip FluidSynth renders",
     "  --no-notation          skip MuseScore renders",
     "  --no-research          skip local no-network song research metadata",
+    "  --discover-recordings  search public recording metadata only (opt-in; never downloads media)",
     "  --exclude-review       do not include REVIEW_REQUIRED scores in the listening pack",
     "  --seed TEXT            deterministic listening-pack seed",
     "  --target-seconds N     listening-pack target (default 120)",
@@ -243,6 +250,7 @@ export function parseBatchArgs(argv: readonly string[]): ScoreCorpusBatchOptions
     noAudio: false,
     noNotation: false,
     noResearch: false,
+    discoverRecordings: false,
     includeReview: true,
     seed: "score-corpus",
     targetSeconds: 120,
@@ -272,6 +280,7 @@ export function parseBatchArgs(argv: readonly string[]): ScoreCorpusBatchOptions
       case "--no-audio": result.noAudio = true; break;
       case "--no-notation": result.noNotation = true; break;
       case "--no-research": result.noResearch = true; break;
+      case "--discover-recordings": result.discoverRecordings = true; break;
       case "--exclude-review": result.includeReview = false; break;
       case "--seed": result.seed = value(); break;
       case "--target-seconds": result.targetSeconds = positiveNumber(value(), flag); break;
@@ -378,6 +387,33 @@ async function writeResearchArtifacts(
   }
 }
 
+/**
+ * Run the explicitly opted-in original-recording search and persist only its
+ * path-free metadata report.  This is intentionally separate from the local
+ * arrangement research artifact: the latter is always no-network, while this
+ * function is called only for --discover-recordings and uses yt-dlp flat
+ * search metadata (never an audio/video download).
+ */
+async function writeOriginalRecordingArtifacts(
+  songOut: string,
+  descriptor: ScoreDescriptor,
+  report: ScoreValidationReport,
+): Promise<OriginalRecordingDiscoveryReport> {
+  const durationSeconds = scoreDurationSeconds(report);
+  const discovery = await discoverOriginalRecordings({
+    artist: descriptor.artist,
+    title: descriptor.title,
+    durationSeconds,
+    sourceYoutubeUrl: null,
+  });
+  await writeScoreCorpusJson(
+    join(songOut, "recording", "original-recording-candidates.json"),
+    discovery,
+    songOut,
+  );
+  return discovery;
+}
+
 async function writeRoundtripAlignment(
   songOut: string,
   report: ScoreValidationReport,
@@ -432,6 +468,7 @@ async function corpusEntry(
   descriptor: ScoreDescriptor,
   result: ScoreBenchmarkResult,
   sourceMetadata: Record<string, unknown> | undefined,
+  recordingDiscovery?: OriginalRecordingDiscoveryReport,
 ): Promise<BenchmarkCorpusSong | null> {
   const report = result.report;
   if (!report.source.sha256) return null;
@@ -452,6 +489,11 @@ async function corpusEntry(
   const durationSeconds = scoreDurationSeconds(report);
   const sourcePdf = record(sourceMetadata?.sourcePdf);
   const provenance = record(sourceMetadata?.provenance) as BenchmarkCorpusSong["provenance"] | undefined;
+  const selectedRecording = recordingDiscovery?.recommendation
+    ? recordingDiscovery.candidates.find((candidate) => candidate.id === recordingDiscovery.recommendation)
+    : undefined;
+  const recordingVersion = recordingDiscovery?.versionAmbiguity
+    ?? "metadata-only-no-network; no original recording candidate selected";
   return {
     id: descriptor.id,
     artist: descriptor.artist,
@@ -470,9 +512,13 @@ async function corpusEntry(
     ...(roles && Object.keys(roles).length ? { roles } : {}),
     ...(provenance ? { provenance } : {}),
     recording: {
-      title: descriptor.title,
-      ...(durationSeconds === null ? {} : { durationSeconds }),
-      versionAmbiguity: "metadata-only-no-network; no original recording candidate selected",
+      title: selectedRecording?.title ?? descriptor.title,
+      ...(selectedRecording?.durationSeconds !== undefined
+        ? { durationSeconds: selectedRecording.durationSeconds }
+        : durationSeconds === null ? {} : { durationSeconds }),
+      ...(selectedRecording?.id ? { selector: selectedRecording.id } : {}),
+      ...(selectedRecording ? { confidence: selectedRecording.confidence } : {}),
+      versionAmbiguity: recordingVersion,
     },
   };
 }
@@ -531,6 +577,9 @@ async function runOne(
       noCorpus: true,
     });
     const research = options.noResearch ? undefined : await writeResearchArtifacts(songOut, descriptor, result.report);
+    const recordingDiscovery = options.discoverRecordings
+      ? await writeOriginalRecordingArtifacts(songOut, descriptor, result.report)
+      : undefined;
     const alignment = await writeRoundtripAlignment(songOut, result.report);
     let sourceMetadata: Record<string, unknown> | undefined;
     try {
@@ -538,7 +587,7 @@ async function runOne(
     } catch {
       sourceMetadata = undefined;
     }
-    return { descriptor, result, research, alignment, sourceMetadata };
+    return { descriptor, result, research, recordingDiscovery, alignment, sourceMetadata };
   } catch (error) {
     await writeScoreCorpusJson(join(songOut, "batch-error.json"), {
       schemaVersion: 1,
@@ -594,7 +643,7 @@ interface ScoreCorpusTableRow {
   errors: string[];
   report: string;
   alignment: { status: string; confidence: number | null };
-  recording: "metadata-only-no-network";
+  recording: string;
 }
 
 function scoreCorpusTableRow(entry: BatchScoreResult): ScoreCorpusTableRow {
@@ -657,7 +706,9 @@ function scoreCorpusTableRow(entry: BatchScoreResult): ScoreCorpusTableRow {
     alignment: entry.alignment
       ? { status: entry.alignment.status, confidence: finite(entry.alignment.confidence) ? entry.alignment.confidence : null }
       : { status: "unavailable", confidence: null },
-    recording: "metadata-only-no-network",
+    recording: entry.recordingDiscovery
+      ? `metadata-only-discovery:${entry.recordingDiscovery.status}`
+      : "metadata-only-no-network",
   };
 }
 
@@ -743,7 +794,7 @@ async function buildBatch(options: ScoreCorpusBatchOptions): Promise<Record<stri
 
   const corpusSongs = (await Promise.all(results
     .filter((entry): entry is BatchScoreResult & { result: ScoreBenchmarkResult } => entry.result !== null)
-    .map((entry) => corpusEntry(entry.descriptor, entry.result, entry.sourceMetadata))))
+    .map((entry) => corpusEntry(entry.descriptor, entry.result, entry.sourceMetadata, entry.recordingDiscovery))))
     .filter((entry): entry is BenchmarkCorpusSong => entry !== null)
     .sort((left, right) => compareText(left.id, right.id));
   const corpus = createBenchmarkCorpusManifest({ songs: corpusSongs });
@@ -769,12 +820,21 @@ async function buildBatch(options: ScoreCorpusBatchOptions): Promise<Record<stri
       sourceSha256: entry.result?.report.source.sha256 ?? null,
       report: `scores/${entry.descriptor.id}/validation/report.json`,
       alignment: entry.alignment ? { status: entry.alignment.status, confidence: entry.alignment.confidence } : { status: "unavailable" },
+      recording: entry.recordingDiscovery
+        ? {
+          status: entry.recordingDiscovery.status,
+          recommendation: entry.recordingDiscovery.recommendation,
+          report: `scores/${entry.descriptor.id}/recording/original-recording-candidates.json`,
+        }
+        : { status: "metadata-only-no-network", recommendation: null },
       error: entry.error ?? null,
       warnings: entry.result?.report.warnings.map((warning) => `${warning.code}: ${warning.message}`) ?? [],
     })).sort((left, right) => compareText(left.id, right.id)),
     nonClaims: [
       "OMR output is not ground truth; no score was manually corrected in this batch.",
-      "Recording research was metadata-only and no-network; no original recording was selected or fetched.",
+      options.discoverRecordings
+        ? "Original-recording discovery was metadata-only and opt-in; no audio/video was downloaded. Selection remains fail-closed when versions are ambiguous."
+        : "Recording research was metadata-only and no-network; no original recording was selected or fetched.",
       "Roundtrip alignment is diagnostic-only and is not evidence of musical correctness.",
       "All paths in this manifest are logical local-corpus references; source PDFs remain outside the repository.",
     ],
