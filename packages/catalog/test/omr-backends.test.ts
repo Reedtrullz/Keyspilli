@@ -1,4 +1,4 @@
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, rm, truncate, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -306,6 +306,29 @@ describe("optional OMR backends and PDF rasterization", () => {
         sha256: expect.stringMatching(/^[0-9a-f]{64}$/),
       }]);
       expect(JSON.stringify(result)).not.toContain(cacheDirectory);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects an oversized HOMR image before invoking the backend", async () => {
+    const directory = await temporaryDirectory("keyspilli-omr-homr-oversized-");
+    try {
+      const inputPath = join(directory, "oversized.png");
+      const outputDirectory = join(directory, "output");
+      await writeFile(inputPath, new Uint8Array());
+      await truncate(inputPath, 128 * 1024 * 1024 + 1);
+      let invocations = 0;
+      const execFile: OmrCommandRunner = async () => {
+        invocations += 1;
+        return { stdout: "", stderr: "" };
+      };
+      const result = await createHomrBackend({ preferUvx: false, executable: "/opt/homr", execFile }).recognize({ imagePaths: [inputPath], outputDirectory });
+
+      expect(invocations).toBe(0);
+      expect(result).toMatchObject({ status: "failed", health: "broken-output" });
+      expect(result.pages![0]).toMatchObject({ status: "failed", failureClass: "invalid-input" });
+      expect(result.pages![0]!.errors.join(" ")).toMatch(/exceeds the safety limit/i);
     } finally {
       await rm(directory, { recursive: true, force: true });
     }

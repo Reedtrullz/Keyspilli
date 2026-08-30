@@ -465,10 +465,13 @@ function relativeOutputPath(root: string, file: string): string {
   return result.split(sep).join("/");
 }
 
-async function regularFileBytes(path: string, label: string): Promise<{ bytes: Uint8Array; size: number }> {
+async function regularFileBytes(path: string, label: string, maxBytes?: number): Promise<{ bytes: Uint8Array; size: number }> {
   try {
     const info = await lstat(path);
     if (!info.isFile() || info.size <= 0) throw new Error(`${label} is not a non-empty regular file`);
+    if (maxBytes !== undefined && info.size > maxBytes) {
+      throw new OmrBackendError("FAILED", `${label} exceeds the safety limit of ${maxBytes} bytes`);
+    }
     const bytes = new Uint8Array(await readFile(path));
     return { bytes, size: info.size };
   } catch (error) {
@@ -1162,7 +1165,7 @@ async function recognizeHomrPages(
     let sourceBytes: Uint8Array;
     let sourceSha256 = "";
     try {
-      const sourceData = await regularFileBytes(pathInput(source, "HOMR page image"), "HOMR page image");
+      const sourceData = await regularFileBytes(pathInput(source, "HOMR page image"), "HOMR page image", MAX_HOMR_PREPROCESS_RAW_BYTES);
       sourceBytes = sourceData.bytes;
       sourceSha256 = hashBytes(sourceBytes);
     } catch (error) {
