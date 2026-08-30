@@ -9,7 +9,7 @@
  */
 import { execFile as execFileCallback, type ExecFileException, type ExecFileOptions } from "node:child_process";
 import { createHash } from "node:crypto";
-import { lstat, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { lstat, mkdir, readdir, readFile, unlink, writeFile } from "node:fs/promises";
 import { deflateSync, inflateSync } from "node:zlib";
 import { basename, extname, join, relative, resolve, sep } from "node:path";
 import { promisify } from "node:util";
@@ -551,6 +551,21 @@ async function collectAdjacentOmrArtifacts(pageDirectory: string, outputDirector
     });
   }
   return files;
+}
+
+/** Remove only adjacent MusicXML from the current deterministic attempt path. */
+async function clearAdjacentOmrArtifacts(pageDirectory: string): Promise<void> {
+  let entries;
+  try {
+    entries = await readdir(pageDirectory, { withFileTypes: true });
+  } catch (error) {
+    const code = error && typeof error === "object" && "code" in error ? (error as { code?: unknown }).code : undefined;
+    if (code === "ENOENT") return;
+    throw error;
+  }
+  await Promise.all(entries
+    .filter((entry) => entry.isFile() && /\.(?:mxl|musicxml|xml)$/i.test(entry.name))
+    .map((entry) => unlink(join(pageDirectory, entry.name))));
 }
 
 interface OmrScoreMetrics {
@@ -1157,7 +1172,7 @@ async function recognizeHomrPages(
         failureClass: "invalid-input",
         rootCause: message,
         attempts: [failedAttempt],
-        recovery: { attempted: false, recovered: false, selectedAttempt: 1, attempts: 1, maxAttempts: HOMR_PREPROCESSING_LADDER.length, strategy: "deterministic-preprocessing-ladder" },
+        recovery: { attempted: false, recovered: false, selectedAttempt: null, attempts: 1, maxAttempts: HOMR_PREPROCESSING_LADDER.length, strategy: "deterministic-preprocessing-ladder" },
       };
       pages.push(pageResult);
       allWarnings.push(...warnings);
@@ -1183,6 +1198,7 @@ async function recognizeHomrPages(
       let metrics: OmrScoreMetrics = { measureCount: 0, noteCount: 0, staffCount: 0 };
       try {
         await mkdir(attemptDirectory, { recursive: true });
+        await clearAdjacentOmrArtifacts(attemptDirectory);
         const variantBytes = preprocessHomrImage(sourceBytes, variant);
         inputSha256 = hashBytes(variantBytes);
         await writeFile(stagedPath, variantBytes);
@@ -1299,7 +1315,7 @@ async function recognizeHomrPages(
       recovery: {
         attempted: attempts.length > 1,
         recovered: selected?.status === "available" && attempts.length > 1,
-        selectedAttempt: selected ? selected.attempt : null,
+        selectedAttempt: selected?.trusted ? selected.attempt : null,
         attempts: attempts.length,
         maxAttempts: HOMR_PREPROCESSING_LADDER.length,
         strategy: "deterministic-preprocessing-ladder",

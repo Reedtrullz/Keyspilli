@@ -163,4 +163,32 @@ describe("generic HOMR page recovery", () => {
       await rm(root, { recursive: true, force: true });
     }
   });
+
+  it("clears stale XML in a reused attempt directory before parsing a retry", async () => {
+    const root = await fixtureDirectory("keyspilli-homr-recovery-stale-");
+    try {
+      const source = join(root, "page.png");
+      const output = join(root, "output");
+      await writeFile(source, ONE_PIXEL_PNG);
+      let invocation = 0;
+      const runner: OmrCommandRunner = async (_file, args, options) => {
+        expect(options.shell).toBe(false);
+        const image = args.at(-1)!;
+        if (args.includes("--help")) return { stdout: "usage: homr", stderr: "" };
+        invocation += 1;
+        if (invocation === 1) await writeFile(`${image}.musicxml`, VALID_MUSIC_XML);
+        return { stdout: "", stderr: "" };
+      };
+      const backend = createHomrBackend({ preferUvx: false, executable: "/opt/homr", execFile: runner });
+      const first = await backend.recognize({ imagePaths: [source], outputDirectory: output });
+      expect(first.pages![0]!.status).toBe("available");
+      const second = await backend.recognize({ imagePaths: [source], outputDirectory: output });
+      expect(second.pages![0]!.status).toBe("broken-output");
+      expect(second.pages![0]!.failureClass).toBe("no-output");
+      expect(second.pages![0]!.attempts![0]!.artifacts).toEqual([]);
+      expect(second.pages![0]!.recovery?.selectedAttempt).toBeNull();
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
 });
