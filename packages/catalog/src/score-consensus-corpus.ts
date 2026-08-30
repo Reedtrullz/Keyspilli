@@ -1467,7 +1467,7 @@ export function renderCorpusSummaryMarkdown(reports: readonly ScoreConsensusRepo
     "| --- | --- | ---: | ---: | ---: | ---: | --- | --- | --- |",
   ];
   for (const report of reports) lines.push(`| ${report.artist} — ${report.title} | ${report.consensus.summary.state} | ${report.consensus.summary.totalMeasures} | ${report.consensus.summary.trustedMeasures} | ${report.consensus.summary.reviewRequiredMeasures} | ${report.consensus.summary.failedMeasures} | ${report.benchmark.melody.eligible ? "yes" : "no"} | ${report.raster ? `${report.raster.pages.length} pages` : "unavailable"} | ${report.consensus.backends.find((backend) => backend.id === "homr")?.status ?? "unavailable"} |`);
-  lines.push("", `Targeted review items: ${summary.totals.reviewItems}`, "", "Non-claims: no human listening gate, no manual notation correction, no trusted native symbolic reference unless explicitly verified.", "");
+  lines.push("", `Targeted review items: ${summary.totals.reviewItems}`, "", "Recovery detail: homr-recovery-summary.json and homr-recovery-summary.md", "", "Non-claims: no human listening gate, no manual notation correction, no trusted native symbolic reference unless explicitly verified.", "");
   return lines.join("\n");
 }
 
