@@ -33,8 +33,3 @@ export * from "./omr-hierarchical-alignment.js";
 export * from "./omr-role-reference.js";
 export * from "./keyspilli-regression.js";
 export * from "./native-score-discovery.js";
-export * from "./score-source-forensics.js";
-export * from "./omr-review-queue.js";
-export * from "./native-score-verification.js";
-export * from "./omr-quality.js";
-export * from "./local-reference-builder.js";

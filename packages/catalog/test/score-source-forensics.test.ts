@@ -7,10 +7,6 @@ import {
   scoreSourceForensicsJson,
   type ScoreSourceForensicsDependencies,
 } from "../src/score-source-forensics.js";
-import {
-  inspectScoreSourceForensics as inspectFromIndex,
-  scoreSourceForensicsJson as jsonFromIndex,
-} from "../src/index.js";
 
 const repoRoot = resolve(process.cwd());
 
@@ -25,9 +21,10 @@ async function tempDir(): Promise<string> {
 }
 
 describe("score source forensics", () => {
-  it("re-exports the inspector and deterministic serializer from the catalog index", () => {
-    expect(inspectFromIndex).toBe(inspectScoreSourceForensics);
-    expect(jsonFromIndex).toBe(scoreSourceForensicsJson);
+  it("keeps the local-only inspector outside the production catalog barrel", async () => {
+    const catalog = await import("../src/index.js");
+    expect("inspectScoreSourceForensics" in catalog).toBe(false);
+    expect("scoreSourceForensicsJson" in catalog).toBe(false);
   });
 
   it("extracts Info, XMP, links, page/byte/hash identity through injected bytes", async () => {

@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { buildOmrReviewQueue, omrReviewQueueJson } from "../src/omr-review-queue.js";
-import * as catalog from "../src/index.js";
 
 const measure = (overrides: Record<string, unknown> = {}) => ({
   id: "score-a:m1", index: 0, number: "1", page: 2, system: 1,
@@ -34,8 +33,9 @@ describe("OMR review queue", () => {
     expect(first.nonClaims).toContain("This queue is not automatic musical pitch correction.");
   });
 
-  it("is publicly re-exported and consumes independent quality diagnostics", () => {
-    expect(catalog.buildOmrReviewQueue).toBe(buildOmrReviewQueue);
+  it("consumes independent quality diagnostics without entering the production barrel", async () => {
+    const catalog = await import("../src/index.js");
+    expect("buildOmrReviewQueue" in catalog).toBe(false);
     const queue = buildOmrReviewQueue({ scoreId: "quality-score", measures: [{
       backendId: "homr", backendVersion: "1", backendStatus: "available", sourceLabel: "homr",
       page: 3, system: 2, measureId: "P1:m3", measureNumber: "3", startBeat: 8, durationBeats: 4,
