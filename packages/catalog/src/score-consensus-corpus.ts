@@ -757,6 +757,7 @@ function summarizeRecoveryScore(report: ScoreConsensusReport): ScoreConsensusRec
       : "unknown";
   const requested = metadata !== null
     || backend?.status === "available"
+    || backend?.status === "failed"
     || backend?.pages !== undefined;
   const backendStatus = backend?.status;
   const status: ScoreConsensusHomrStatus = !requested
