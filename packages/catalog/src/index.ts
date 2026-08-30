@@ -29,3 +29,4 @@ export * from "./piano-section-builder.js";
 export * from "./score-benchmark.js";
 export * from "./score-listening-pack.js";
 export * from "./omr-canonical.js";
+export * from "./omr-hierarchical-alignment.js";
