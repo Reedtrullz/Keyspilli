@@ -220,4 +220,24 @@ describe("native symbolic score discovery", () => {
       { id: "missing-metadata", reason: "native artifact requires provenance and version" },
     ]);
   });
+
+  it("recognizes namespaced MusicXML roots even after a long XML preamble", async () => {
+    const directory = await tempDir();
+    const artifactPath = join(directory, "namespaced.musicxml");
+    await writeFile(artifactPath, `${" ".repeat(4096)}<m:score-partwise xmlns:m="http://www.musicxml.org/xsd/musicxml">`);
+
+    const report = await discoverNativeScoreArtifacts({
+      nativeArtifacts: [{
+        id: "namespaced",
+        path: artifactPath,
+        artifactType: "musicxml",
+        permitted: true,
+        provenance: "publisher export",
+        version: "v1",
+      }],
+    });
+
+    expect(report.status).toBe("native-symbolic");
+    expect(report.selected?.artifactType).toBe("musicxml");
+  });
 });

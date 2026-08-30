@@ -328,8 +328,11 @@ function hasNativeFormatSignature(data: Uint8Array, type: NativeScoreArtifactTyp
     const signature = Buffer.from(data.subarray(0, 4)).toString("ascii");
     return signature === "PK\u0003\u0004" || signature === "PK\u0005\u0006" || signature === "PK\u0007\u0008";
   }
-  const head = Buffer.from(data.subarray(0, Math.min(data.byteLength, 4096))).toString("utf8").replace(/^\uFEFF/, "");
-  return /<score-(?:partwise|timewise)(?:\s|>)/i.test(head);
+  // XML declarations, comments, and processing instructions may precede the
+  // document element by more than a small fixed prefix. Accept namespace
+  // prefixes as well; the MusicXML parser is namespace-tolerant.
+  const text = Buffer.from(data).toString("utf8").replace(/^\uFEFF/, "");
+  return /<(?:[A-Za-z_][\w.-]*:)?score-(?:partwise|timewise)(?:\s|>)/i.test(text);
 }
 
 function provenanceText(value: unknown): string | null {
