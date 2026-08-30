@@ -147,6 +147,74 @@ export interface ScoreConsensusCorpusResult {
   output: string;
   scores: ScoreConsensusReport[];
   summary: ScoreConsensusCorpusSummary;
+  /** Additive page/recovery ledger for the complete enumerated corpus run. */
+  recovery?: ScoreConsensusRecoveryReport;
+}
+
+export const SCORE_CONSENSUS_RECOVERY_SCHEMA_VERSION = 1 as const;
+
+export type ScoreConsensusAvailability = "available" | "missing" | "unknown";
+export type ScoreConsensusHomrStatus = "not-requested" | "available" | "unavailable" | "failed";
+
+export interface ScoreConsensusRecoveryScore {
+  id: string;
+  artist: string;
+  title: string;
+  sourcePdf: ScoreConsensusAvailability;
+  normalizedMusicXml: ScoreConsensusAvailability;
+  expectedPages: number | null;
+  rasterPages: number;
+  homr: {
+    requested: boolean;
+    status: ScoreConsensusHomrStatus;
+    requestedPages: number;
+    availablePages: number;
+    unavailablePages: number;
+    failedPages: number;
+    attemptedPages: number;
+    recoveredPages: number;
+    exhaustedPages: number;
+    attempts: number;
+    failureClasses: Record<string, number>;
+    rootCauses: string[];
+  };
+}
+
+export interface ScoreConsensusRecoveryTotals {
+  scoreCount: number;
+  sourcePdf: Record<ScoreConsensusAvailability, number>;
+  normalizedMusicXml: Record<ScoreConsensusAvailability, number>;
+  homrRequestedScores: number;
+  homrUnavailableScores: number;
+  homrFailedScores: number;
+  expectedPages: number;
+  rasterPages: number;
+  requestedPages: number;
+  availablePages: number;
+  unavailablePages: number;
+  failedPages: number;
+  attemptedPages: number;
+  recoveredPages: number;
+  exhaustedPages: number;
+  attempts: number;
+  failureClasses: Record<string, number>;
+}
+
+/**
+ * Page-level recovery ledger for one complete corpus enumeration.
+ *
+ * This is deliberately separate from consensus trust: a missing PDF means
+ * HOMR was not run, while an exhausted page means HOMR was run and failed.
+ * Keeping those states distinct makes a metadata-only rerun useful when the
+ * protected source PDFs are not present on the current machine.
+ */
+export interface ScoreConsensusRecoveryReport {
+  schemaVersion: typeof SCORE_CONSENSUS_RECOVERY_SCHEMA_VERSION;
+  scope: "all-enumerated-corpus-scores";
+  scoreCount: number;
+  scores: ScoreConsensusRecoveryScore[];
+  totals: ScoreConsensusRecoveryTotals;
+  nonClaims: string[];
 }
 
 export interface ScoreConsensusCorpusOptions {
@@ -606,6 +674,226 @@ export function summarizeScoreConsensus(
       "Listening-pack inclusion is a spot-check convenience, separate from benchmark eligibility.",
     ],
   };
+}
+
+function recordValue(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
+}
+
+function nonNegativeInteger(value: unknown): number | null {
+  return finite(value) && Number.isInteger(value) && value >= 0 ? value : null;
+}
+
+function availabilityValue(value: unknown): ScoreConsensusAvailability {
+  return typeof value === "boolean" ? value ? "available" : "missing" : "unknown";
+}
+
+function recoveryMetadata(report: ScoreConsensusReport): Record<string, unknown> | null {
+  const metadata = recordValue(report.consensus.metadata);
+  const runs = metadata && Array.isArray(metadata.backendRuns) ? metadata.backendRuns : [];
+  const homr = runs.find((entry) => {
+    const row = recordValue(entry);
+    return row?.id === "homr";
+  });
+  return recordValue(recordValue(homr)?.metadata);
+}
+
+function homrPageRows(report: ScoreConsensusReport, metadata: Record<string, unknown> | null): Record<string, unknown>[] {
+  const metadataPages = metadata && Array.isArray(metadata.pages) ? metadata.pages : [];
+  if (metadataPages.length) return metadataPages.map(recordValue).filter((page): page is Record<string, unknown> => page !== null);
+  const backend = report.consensus.backends.find((entry) => entry.id === "homr");
+  const pages = backend?.pages;
+  if (Array.isArray(pages)) return pages.map(recordValue).filter((page): page is Record<string, unknown> => page !== null);
+  const pageSummary = recordValue(pages);
+  const summaryPages = pageSummary && Array.isArray(pageSummary.pages) ? pageSummary.pages : [];
+  return summaryPages.map(recordValue).filter((page): page is Record<string, unknown> => page !== null);
+}
+
+function recoveryPageFailureClasses(
+  rows: readonly Record<string, unknown>[],
+): { classes: Record<string, number>; causes: string[] } {
+  const classes: Record<string, number> = {};
+  const causes = new Set<string>();
+  const addClass = (value: unknown): void => {
+    if (typeof value !== "string" || !value.trim()) return;
+    const key = value.trim().slice(0, 64);
+    classes[key] = (classes[key] ?? 0) + 1;
+  };
+  const addCause = (value: unknown): void => {
+    const cause = safeDiagnostic(value);
+    if (cause) causes.add(cause);
+  };
+  for (const page of rows) {
+    const attempts = Array.isArray(page.attempts) ? page.attempts : [];
+    if (attempts.length) {
+      for (const candidate of attempts) {
+        const attempt = recordValue(candidate);
+        if (!attempt) continue;
+        addClass(attempt.failureClass);
+        addCause(attempt.rootCause);
+      }
+    } else {
+      addClass(page.failureClass);
+      addCause(page.rootCause);
+    }
+    if (typeof page.rootCause === "string") addCause(page.rootCause);
+  }
+  return {
+    classes: Object.fromEntries(Object.entries(classes).sort(([left], [right]) => compareText(left, right))),
+    causes: [...causes].sort(compareText).slice(0, 20),
+  };
+}
+
+function summarizeRecoveryScore(report: ScoreConsensusReport): ScoreConsensusRecoveryScore {
+  const reportMetadata = recordValue(report.consensus.metadata);
+  const metadata = recoveryMetadata(report);
+  const backend = report.consensus.backends.find((entry) => entry.id === "homr");
+  const rows = homrPageRows(report, metadata);
+  const sourcePdf = availabilityValue(reportMetadata?.pdfAvailable);
+  const normalizedMusicXml = reportMetadata?.xmlAvailable !== undefined
+    ? availabilityValue(reportMetadata.xmlAvailable)
+    : report.consensus.backends.some((entry) => entry.id === "audiveris" && entry.status === "available" && entry.measureCount > 0)
+      ? "available"
+      : "unknown";
+  const requested = metadata !== null
+    || backend?.status === "available"
+    || backend?.pages !== undefined;
+  const backendStatus = backend?.status;
+  const status: ScoreConsensusHomrStatus = !requested
+    ? "not-requested"
+    : backendStatus === "available"
+      ? "available"
+      : backendStatus === "unavailable"
+        ? "unavailable"
+        : "failed";
+  const countRows = (predicate: (row: Record<string, unknown>) => boolean): number => rows.filter(predicate).length;
+  const availablePages = nonNegativeInteger(metadata?.availablePages) ?? countRows((row) => row.status === "available" || row.status === "pass" || row.status === "success");
+  const unavailablePages = nonNegativeInteger(metadata?.unavailablePages) ?? countRows((row) => row.status === "unavailable");
+  const failedPages = nonNegativeInteger(metadata?.failedPages) ?? countRows((row) => row.status !== "available" && row.status !== "pass" && row.status !== "success" && row.status !== "unavailable");
+  const attemptedPages = countRows((row) => {
+    const recovery = recordValue(row.recovery);
+    return (Array.isArray(row.attempts) && row.attempts.length > 0) || recovery?.attempted === true;
+  });
+  const recoveredPages = countRows((row) => recordValue(row.recovery)?.recovered === true);
+  const exhaustedPages = countRows((row) => {
+    const recovery = recordValue(row.recovery);
+    return recovery?.attempted === true && recovery.recovered !== true;
+  });
+  const attempts = rows.reduce((sum, row) => {
+    const rowAttempts = Array.isArray(row.attempts) ? row.attempts.length : null;
+    const recoveryAttempts = nonNegativeInteger(recordValue(row.recovery)?.attempts);
+    return sum + (rowAttempts ?? recoveryAttempts ?? 0);
+  }, 0);
+  const failure = recoveryPageFailureClasses(rows);
+  return {
+    id: report.id,
+    artist: report.artist,
+    title: report.title,
+    sourcePdf,
+    normalizedMusicXml,
+    expectedPages: nonNegativeInteger(report.source.pages),
+    rasterPages: report.raster?.pages.length ?? 0,
+    homr: {
+      requested,
+      status,
+      requestedPages: nonNegativeInteger(metadata?.requestedPages) ?? (requested ? report.raster?.pages.length ?? 0 : 0),
+      availablePages,
+      unavailablePages,
+      failedPages,
+      attemptedPages,
+      recoveredPages,
+      exhaustedPages,
+      attempts,
+      failureClasses: failure.classes,
+      rootCauses: failure.causes,
+    },
+  };
+}
+
+/**
+ * Summarize the operational side of a complete corpus run.
+ *
+ * The score list is supplied by the corpus enumerator, so this report remains
+ * useful for a metadata-only rerun: missing source PDFs are explicit and are
+ * never conflated with pages that were actually attempted and exhausted.
+ */
+export function summarizeHomrRecovery(reports: readonly ScoreConsensusReport[]): ScoreConsensusRecoveryReport {
+  const scores = [...reports].map(summarizeRecoveryScore).sort((left, right) => compareText(left.id, right.id));
+  const sourcePdf: Record<ScoreConsensusAvailability, number> = { available: 0, missing: 0, unknown: 0 };
+  const normalizedMusicXml: Record<ScoreConsensusAvailability, number> = { available: 0, missing: 0, unknown: 0 };
+  const failureClasses: Record<string, number> = {};
+  const totals: ScoreConsensusRecoveryTotals = {
+    scoreCount: scores.length,
+    sourcePdf,
+    normalizedMusicXml,
+    homrRequestedScores: 0,
+    homrUnavailableScores: 0,
+    homrFailedScores: 0,
+    expectedPages: 0,
+    rasterPages: 0,
+    requestedPages: 0,
+    availablePages: 0,
+    unavailablePages: 0,
+    failedPages: 0,
+    attemptedPages: 0,
+    recoveredPages: 0,
+    exhaustedPages: 0,
+    attempts: 0,
+    failureClasses,
+  };
+  for (const score of scores) {
+    sourcePdf[score.sourcePdf] += 1;
+    normalizedMusicXml[score.normalizedMusicXml] += 1;
+    if (score.homr.requested) totals.homrRequestedScores += 1;
+    if (score.homr.status === "unavailable") totals.homrUnavailableScores += 1;
+    if (score.homr.status === "failed") totals.homrFailedScores += 1;
+    totals.expectedPages += score.expectedPages ?? 0;
+    totals.rasterPages += score.rasterPages;
+    totals.requestedPages += score.homr.requestedPages;
+    totals.availablePages += score.homr.availablePages;
+    totals.unavailablePages += score.homr.unavailablePages;
+    totals.failedPages += score.homr.failedPages;
+    totals.attemptedPages += score.homr.attemptedPages;
+    totals.recoveredPages += score.homr.recoveredPages;
+    totals.exhaustedPages += score.homr.exhaustedPages;
+    totals.attempts += score.homr.attempts;
+    for (const [failureClass, count] of Object.entries(score.homr.failureClasses)) failureClasses[failureClass] = (failureClasses[failureClass] ?? 0) + count;
+  }
+  totals.failureClasses = Object.fromEntries(Object.entries(failureClasses).sort(([left], [right]) => compareText(left, right)));
+  return {
+    schemaVersion: SCORE_CONSENSUS_RECOVERY_SCHEMA_VERSION,
+    scope: "all-enumerated-corpus-scores",
+    scoreCount: scores.length,
+    scores,
+    totals,
+    nonClaims: [
+      "This is an operational rerun/recovery ledger, not musical ground truth or a human listening result.",
+      "A missing PDF means HOMR was not attempted for that score; it is not counted as a failed page.",
+      "Successful page recovery does not establish notation correctness or piano playability.",
+    ],
+  };
+}
+
+function markdownCell(value: string): string {
+  return value.replace(/[|\r\n]/g, (character) => character === "|" ? "\\|" : " ");
+}
+
+export function renderHomrRecoverySummaryMarkdown(report: ScoreConsensusRecoveryReport): string {
+  const lines = [
+    "# HOMR corpus rerun and recovery",
+    "",
+    "This local report covers every score enumerated by the corpus runner. Missing source PDFs, skipped runs, and exhausted page attempts are kept distinct.",
+    "",
+    `Scores: ${report.scoreCount}`,
+    `PDF source availability: ${report.totals.sourcePdf.available} available, ${report.totals.sourcePdf.missing} missing, ${report.totals.sourcePdf.unknown} unknown`,
+    `HOMR: ${report.totals.homrRequestedScores} requested, ${report.totals.recoveredPages} recovered pages, ${report.totals.exhaustedPages} exhausted pages`,
+    "",
+    "| Score | PDF | XML | Expected pages | Raster | HOMR | Requested | Available | Failed | Recovered | Exhausted | Attempts |",
+    "| --- | --- | --- | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: |",
+  ];
+  for (const score of report.scores) lines.push(`| ${markdownCell(`${score.artist} — ${score.title}`)} | ${score.sourcePdf} | ${score.normalizedMusicXml} | ${score.expectedPages ?? "?"} | ${score.rasterPages} | ${score.homr.status} | ${score.homr.requestedPages} | ${score.homr.availablePages} | ${score.homr.failedPages} | ${score.homr.recoveredPages} | ${score.homr.exhaustedPages} | ${score.homr.attempts} |`);
+  lines.push("", "Non-claims:", "", ...report.nonClaims.map((claim) => `- ${claim}`), "");
+  return lines.join("\n");
 }
 
 function parseJsonRecord(value: string): Record<string, unknown> {
@@ -1157,9 +1445,12 @@ export async function runScoreConsensusCorpus(options: ScoreConsensusCorpusOptio
     previousFailed: priorScores.filter((entry) => entry && typeof entry === "object" && (entry as Record<string, unknown>).status === "FAILED").length,
   };
   const summary = summarizeScoreConsensus(reports, before);
-  const result: ScoreConsensusCorpusResult = { schemaVersion: SCORE_CONSENSUS_CORPUS_SCHEMA_VERSION, output: "[local-output]", scores: reports, summary };
+  const recovery = summarizeHomrRecovery(reports);
+  const result: ScoreConsensusCorpusResult = { schemaVersion: SCORE_CONSENSUS_CORPUS_SCHEMA_VERSION, output: "[local-output]", scores: reports, summary, recovery };
   await writeJson(join(outputRoot, "consensus-summary.json"), { ...result, output: "[local-output]" });
   await writeFile(join(outputRoot, "consensus-summary.md"), renderCorpusSummaryMarkdown(reports, summary), { encoding: "utf8" });
+  await writeJson(join(outputRoot, "homr-recovery-summary.json"), recovery);
+  await writeFile(join(outputRoot, "homr-recovery-summary.md"), renderHomrRecoverySummaryMarkdown(recovery), { encoding: "utf8" });
   return result;
 }
 

@@ -8,8 +8,10 @@ import {
   createScoreConsensusReport,
   parseMusicXmlScore,
   parseScoreConsensusArgs,
+  renderHomrRecoverySummaryMarkdown,
   runHomrPages,
   runScoreConsensusCorpus,
+  summarizeHomrRecovery,
   summarizeScoreConsensus,
   type ScoreConsensusScoreInput,
 } from "../src/score-consensus-corpus.js";
@@ -108,6 +110,60 @@ describe("local score consensus corpus orchestration", () => {
     expect(canonicalScoreConsensusCorpusJson(first)).toBe(canonicalScoreConsensusCorpusJson(second));
   });
 
+  it("keeps missing PDFs, skipped HOMR, and exhausted recovery pages distinct", () => {
+    const skipped = createScoreConsensusReport(scoreInput({
+      id: "skipped-score",
+      metadata: { pdfAvailable: false, xmlAvailable: true },
+    }));
+    const attempted = createScoreConsensusReport(scoreInput({
+      id: "attempted-score",
+      metadata: { pdfAvailable: true, xmlAvailable: true },
+      homr: {
+        id: "homr",
+        version: "0.7.0",
+        status: "failed",
+        metadata: {
+          requestedPages: 2,
+          availablePages: 1,
+          unavailablePages: 0,
+          failedPages: 1,
+          pages: [
+            {
+              page: 1,
+              status: "available",
+              recovery: { attempted: true, recovered: true, attempts: 2 },
+              attempts: [
+                { attempt: 1, status: "failed", failureClass: "signal", rootCause: "HOMR crashed" },
+                { attempt: 2, status: "available", trusted: true },
+              ],
+            },
+            {
+              page: 2,
+              status: "broken-output",
+              recovery: { attempted: true, recovered: false, attempts: 5 },
+              attempts: [
+                { attempt: 1, status: "failed", failureClass: "process-failed", rootCause: "invalid MusicXML" },
+                { attempt: 2, status: "broken-output", failureClass: "broken-output", rootCause: "empty output" },
+              ],
+            },
+          ],
+        },
+      },
+    }));
+    const report = summarizeHomrRecovery([attempted, skipped]);
+    expect(report.scoreCount).toBe(2);
+    expect(report.totals.sourcePdf).toEqual({ available: 1, missing: 1, unknown: 0 });
+    expect(report.totals.homrRequestedScores).toBe(1);
+    expect(report.totals.recoveredPages).toBe(1);
+    expect(report.totals.exhaustedPages).toBe(1);
+    expect(report.totals.attempts).toBe(4);
+    expect(report.totals.failureClasses).toEqual({ "broken-output": 1, "process-failed": 1, signal: 1 });
+    expect(report.scores[0]?.id).toBe("attempted-score");
+    expect(report.scores[1]?.homr.status).toBe("not-requested");
+    expect(renderHomrRecoverySummaryMarkdown(report)).toContain("Missing source PDFs");
+    expect(JSON.stringify(report)).not.toContain("/private/");
+  });
+
   it("redacts local paths and nondeterministic timestamps from canonical corpus JSON", () => {
     const canonical = canonicalScoreConsensusCorpusJson({
       generatedAt: "2026-08-30T00:00:00.000Z",
@@ -141,6 +197,9 @@ describe("local score consensus corpus orchestration", () => {
       expect(JSON.stringify(result)).not.toContain(corpus);
       expect(JSON.stringify(result)).not.toContain(output);
       expect(JSON.parse(await readFile(join(output, "consensus-summary.json"), "utf8")).schemaVersion).toBe(1);
+      const recovery = JSON.parse(await readFile(join(output, "homr-recovery-summary.json"), "utf8")) as { scoreCount?: number; scores?: Array<{ homr?: { status?: string } }> };
+      expect(recovery.scoreCount).toBe(1);
+      expect(recovery.scores?.[0]?.homr?.status).toBe("not-requested");
       const events = JSON.parse(await readFile(join(output, "scores", "fixture-score", "consensus", "events.json"), "utf8")) as { events?: unknown[] };
       expect(events.events).toHaveLength(4);
       const review = JSON.parse(await readFile(join(output, "scores", "fixture-score", "review", "items.json"), "utf8")) as { pageRefs?: unknown[] };
