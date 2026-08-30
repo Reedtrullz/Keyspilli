@@ -9,9 +9,11 @@
  */
 import { execFile as execFileCallback, type ExecFileException, type ExecFileOptions } from "node:child_process";
 import { createHash } from "node:crypto";
-import { lstat, mkdir, readdir, readFile } from "node:fs/promises";
+import { copyFile, lstat, mkdir, readdir, readFile, unlink } from "node:fs/promises";
 import { basename, extname, join, relative, resolve, sep } from "node:path";
 import { promisify } from "node:util";
+import type { OmrScoreInput } from "./omr-consensus.js";
+import { parseOmrMusicXmlBytes } from "./omr-musicxml.js";
 
 const execFileDefault = promisify(execFileCallback) as unknown as OmrCommandRunner;
 const DEFAULT_RASTER_DPI = 300;
@@ -19,6 +21,25 @@ const MIN_RASTER_DPI = 150;
 const MAX_RASTER_DPI = 600;
 const DEFAULT_FIRST_PAGE = 1;
 const DEFAULT_TIMEOUT_MS = 15 * 60 * 1000;
+export const HOMR_DEFAULTS = Object.freeze({
+  packageName: "homr",
+  version: "0.7.0",
+  uvxExecutable: "uvx",
+  executable: "homr",
+  preferUvx: true,
+  forceCpu: true,
+} as const);
+export const DEFAULT_HOMR_PACKAGE_NAME = HOMR_DEFAULTS.packageName;
+export const DEFAULT_HOMR_VERSION = HOMR_DEFAULTS.version;
+export const DEFAULT_HOMR_UVX_EXECUTABLE = HOMR_DEFAULTS.uvxExecutable;
+export const DEFAULT_HOMR_EXECUTABLE = HOMR_DEFAULTS.executable;
+export const DEFAULT_HOMR_PREFER_UVX = HOMR_DEFAULTS.preferUvx;
+export const DEFAULT_HOMR_FORCE_CPU = HOMR_DEFAULTS.forceCpu;
+/** Compatibility aliases for callers that prefer a HOMR-prefixed constant. */
+export const HOMR_DEFAULT_PACKAGE_NAME = HOMR_DEFAULTS.packageName;
+export const HOMR_DEFAULT_VERSION = HOMR_DEFAULTS.version;
+export const HOMR_DEFAULT_UVX_EXECUTABLE = HOMR_DEFAULTS.uvxExecutable;
+export const HOMR_DEFAULT_EXECUTABLE = HOMR_DEFAULTS.executable;
 const PNG_SIGNATURE = Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10]);
 
 export type OmrCommandRunner = (
@@ -29,6 +50,8 @@ export type OmrCommandRunner = (
 
 export type OmrResultStatus = "pass" | "unavailable" | "failed";
 export type OmrArtifactFormat = "mxl" | "musicxml" | "xml" | "unknown";
+export type OmrHealth = "available" | "partially-available" | "unavailable" | "broken-output";
+export type OmrPageStatus = "available" | "unavailable" | "failed" | "broken-output";
 
 export interface OmrRecognizeInput {
   /** Page images prepared by the deterministic PDF rasterizer. */
@@ -45,6 +68,42 @@ export interface OmrArtifact {
   sha256: string;
 }
 
+export interface OmrPageResult {
+  page: number;
+  /** Always relative to OmrRecognizeInput.outputDirectory. */
+  relativeInput: string;
+  status: OmrPageStatus;
+  elapsedMs: number;
+  /** Zero for a successful process; null when no process was started. */
+  exitCode: number | null;
+  artifacts: OmrArtifact[];
+  measureCount: number;
+  noteCount: number;
+  staffCount: number;
+  warnings: string[];
+  errors: string[];
+}
+
+export interface OmrInvocationMetadata {
+  /** The logical launcher selected for this run, never an absolute path. */
+  mode: "uvx" | "executable";
+  executable: string;
+  packageName: string;
+  version: string;
+  forceCpu: boolean;
+  perPage: true;
+  /** The shell-free argument template with a relative-input placeholder. */
+  args: string[];
+}
+
+export interface OmrModelMetadata {
+  id: "homr";
+  packageName: string;
+  version: string;
+  runtime: "uvx" | "executable";
+  forceCpu: boolean;
+}
+
 export interface OmrResult {
   backend: string;
   version: string;
@@ -52,6 +111,11 @@ export interface OmrResult {
   artifacts: OmrArtifact[];
   warnings: string[];
   errors: string[];
+  health?: OmrHealth;
+  pages?: OmrPageResult[];
+  invocation?: OmrInvocationMetadata;
+  /** HOMR uses the structured metadata form; string remains accepted for older corpus callers. */
+  model?: OmrModelMetadata | string;
 }
 
 /** Common adapter contract for an optional external OMR engine. */
@@ -68,6 +132,19 @@ export interface OmrBackendOptions {
   version?: string;
   timeoutMs?: number;
   execFile?: OmrCommandRunner;
+}
+
+export interface HomrBackendOptions extends OmrBackendOptions {
+  /** Python distribution passed to uvx's `--from` option. */
+  packageName?: string;
+  /** Pinned Python distribution version used by uvx. */
+  version?: string;
+  /** uvx launcher to probe and invoke when preferred. */
+  uvxExecutable?: string;
+  /** Prefer uvx and fall back to executable when uvx is unavailable. */
+  preferUvx?: boolean;
+  /** Pass HOMR's explicit CPU switch (`--gpu no`). */
+  forceCpu?: boolean;
 }
 
 export interface PdfRasterConfig {
@@ -222,6 +299,47 @@ function missingExecutable(error: unknown): boolean {
   return code === "ENOENT" || code === "ENOTDIR" || code === 127;
 }
 
+function numericExitCode(error: unknown): number | null {
+  if (!error || typeof error !== "object") return null;
+  const code = (error as { code?: unknown }).code;
+  return typeof code === "number" && Number.isInteger(code) ? code : null;
+}
+
+/** Keep tool diagnostics useful without allowing local paths into reports. */
+function sanitizedStderr(errorOrStderr: unknown, sensitivePaths: readonly string[] = []): string | null {
+  const raw = typeof errorOrStderr === "string"
+    ? errorOrStderr
+    : errorOrStderr && typeof errorOrStderr === "object" && typeof (errorOrStderr as { stderr?: unknown }).stderr === "string"
+      ? (errorOrStderr as { stderr: string }).stderr
+      : "";
+  if (!raw.trim()) return null;
+  const redacted = sensitivePaths.reduce((message, path) => message.split(path).join("[redacted-path]"), raw)
+    .replace(/(?:[A-Za-z]:[\\/]|\/)[^\s'"`;,)]*/g, "[redacted-path]")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 400);
+  return redacted || null;
+}
+
+function logicalExecutableName(executable: string): string {
+  const normalized = executable.replaceAll("\\", "/");
+  return basename(normalized) || "homr";
+}
+
+function optionToken(value: unknown, label: string, fallback: string): string {
+  const resolved = value === undefined ? fallback : value;
+  if (typeof resolved !== "string" || !resolved.trim() || /[\0\r\n]/.test(resolved)) {
+    throw new OmrBackendError("INVALID_INPUT", `Invalid ${label}`);
+  }
+  return resolved.trim();
+}
+
+function optionBoolean(value: unknown, label: string, fallback: boolean): boolean {
+  const resolved = value === undefined ? fallback : value;
+  if (typeof resolved !== "boolean") throw new OmrBackendError("INVALID_INPUT", `Invalid ${label}`);
+  return resolved;
+}
+
 /** Probe lazily; probing an unavailable optional tool is represented as unknown. */
 export async function probeExecutableVersion(
   executable: string,
@@ -297,6 +415,96 @@ async function collectOmrArtifacts(outputDirectory: string): Promise<OmrArtifact
   return artifacts;
 }
 
+const MAX_HOMR_ARTIFACT_BYTES = 64 * 1024 * 1024;
+const MAX_HOMR_PARTS = 128;
+const MAX_HOMR_MEASURES = 10_000;
+const MAX_HOMR_NOTES = 100_000;
+const MAX_HOMR_STAVES = 512;
+
+interface OmrArtifactFile {
+  artifact: OmrArtifact;
+  bytes: Uint8Array;
+}
+
+/** Read only files immediately adjacent to a staged HOMR image. */
+async function collectAdjacentOmrArtifacts(pageDirectory: string, outputDirectory: string): Promise<OmrArtifactFile[]> {
+  const entries = await readdir(pageDirectory, { withFileTypes: true });
+  const candidates = entries
+    .filter((entry) => entry.isFile() && /\.(?:mxl|musicxml|xml)$/i.test(entry.name))
+    .map((entry) => join(pageDirectory, entry.name))
+    .sort((a, b) => relativeOutputPath(outputDirectory, a).localeCompare(relativeOutputPath(outputDirectory, b)));
+  const files: OmrArtifactFile[] = [];
+  for (const file of candidates) {
+    const info = await lstat(file);
+    if (info.size > MAX_HOMR_ARTIFACT_BYTES) {
+      throw new OmrBackendError("FAILED", "HOMR MusicXML output exceeds the safety limit");
+    }
+    const data = await regularFileBytes(file, "HOMR MusicXML output");
+    files.push({
+      bytes: data.bytes,
+      artifact: {
+        relativePath: relativeOutputPath(outputDirectory, file),
+        format: artifactFormat(file),
+        bytes: data.size,
+        sha256: hashBytes(data.bytes),
+      },
+    });
+  }
+  return files;
+}
+
+interface OmrScoreMetrics {
+  measureCount: number;
+  noteCount: number;
+  staffCount: number;
+}
+
+function scoreMetrics(score: OmrScoreInput): OmrScoreMetrics {
+  const parts = Array.isArray(score.parts) ? score.parts : [];
+  const staves = new Set<string>();
+  let measureCount = 0;
+  let noteCount = 0;
+  for (const part of parts) {
+    const measures = Array.isArray(part.measures) ? part.measures : [];
+    measureCount = Math.max(measureCount, measures.length);
+    let partHasPitchedEvents = false;
+    for (const measure of measures) {
+      if (Array.isArray(measure.events)) noteCount += measure.events.length;
+      if (Array.isArray(measure.events) && measure.events.length > 0) partHasPitchedEvents = true;
+      if (Array.isArray(measure.staves)) {
+        for (const staff of measure.staves) {
+          if (staff && Number.isInteger(staff.number) && staff.number > 0) staves.add(`${part.id}:${staff.number}`);
+        }
+      }
+      if (Array.isArray(measure.events)) {
+        for (const event of measure.events) {
+          if (event && event.staff !== undefined && Number.isInteger(event.staff) && event.staff > 0) staves.add(`${part.id}:${event.staff}`);
+        }
+      }
+    }
+    // MusicXML permits a single implicit staff when <staff> is omitted.
+    if (partHasPitchedEvents && ![...staves].some((staff) => staff.slice(0, staff.lastIndexOf(":")) === part.id)) staves.add(`${part.id}:1`);
+  }
+  return { measureCount, noteCount, staffCount: staves.size };
+}
+
+function pathologicalMetrics(metrics: OmrScoreMetrics, score: OmrScoreInput): string | null {
+  const partCount = Array.isArray(score.parts) ? score.parts.length : 0;
+  if (!partCount || !metrics.measureCount || !metrics.noteCount || !metrics.staffCount) {
+    return "HOMR MusicXML output is empty or contains no pitched notes";
+  }
+  if (partCount > MAX_HOMR_PARTS || metrics.measureCount > MAX_HOMR_MEASURES || metrics.noteCount > MAX_HOMR_NOTES || metrics.staffCount > MAX_HOMR_STAVES) {
+    return "HOMR MusicXML output exceeds the safety limits";
+  }
+  return null;
+}
+
+function mergeScoreMetrics(target: OmrScoreMetrics, next: OmrScoreMetrics): void {
+  target.measureCount = Math.max(target.measureCount, next.measureCount);
+  target.noteCount += next.noteCount;
+  target.staffCount += next.staffCount;
+}
+
 function validateRecognizeInput(input: OmrRecognizeInput): { images: string[]; outputDirectory: string } {
   if (!input || !Array.isArray(input.imagePaths) || input.imagePaths.length === 0) {
     throw new OmrBackendError("INVALID_INPUT", "OMR recognition requires at least one page image");
@@ -306,7 +514,7 @@ function validateRecognizeInput(input: OmrRecognizeInput): { images: string[]; o
 }
 
 function baseResult(backend: string, version: string, status: OmrResultStatus, artifacts: OmrArtifact[] = [], warnings: string[] = [], errors: string[] = []): OmrResult {
-  return { backend, version, status, artifacts, warnings, errors };
+  return { backend, version, status, artifacts, warnings, errors, pages: [] };
 }
 
 async function runOmrBackend(
@@ -358,25 +566,342 @@ export function createAudiverisBackend(options: OmrBackendOptions = {}): OmrBack
   };
 }
 
-/** Build the intentionally simple, shell-free homr command. */
-export function buildHomrArgs(input: OmrRecognizeInput): string[] {
-  const validated = validateRecognizeInput(input);
-  return ["--output-dir", validated.outputDirectory, ...validated.images];
+export interface HomrCommandInput {
+  imagePath: string;
+  packageName?: string;
+  version?: string;
+  forceCpu?: boolean;
 }
 
-/** Construct an optional homr adapter; homr is never imported or probed at startup. */
-export function createHomrBackend(options: OmrBackendOptions = {}): OmrBackend {
-  const executable = pathInput(options.executable ?? "homr", "homr executable");
+function normalizeHomrCommandInput(
+  input: HomrCommandInput | string,
+  overrides: Pick<HomrCommandInput, "packageName" | "version" | "forceCpu"> = {},
+): Required<Pick<HomrCommandInput, "imagePath" | "packageName" | "version" | "forceCpu">> {
+  const values = typeof input === "string" ? { imagePath: input, ...overrides } : { ...input, ...overrides };
+  return {
+    imagePath: pathInput(values.imagePath, "HOMR page image"),
+    packageName: optionToken(values.packageName, "HOMR package name", HOMR_DEFAULTS.packageName),
+    version: optionToken(values.version, "HOMR package version", HOMR_DEFAULTS.version),
+    forceCpu: optionBoolean(values.forceCpu, "HOMR forceCpu", HOMR_DEFAULTS.forceCpu),
+  };
+}
+
+/** Build HOMR's exact uvx command arguments for one staged image. */
+export function buildHomrUvxArgs(input: HomrCommandInput): string[];
+export function buildHomrUvxArgs(imagePath: string, options?: Pick<HomrCommandInput, "packageName" | "version" | "forceCpu">): string[];
+export function buildHomrUvxArgs(
+  input: HomrCommandInput | string,
+  options: Pick<HomrCommandInput, "packageName" | "version" | "forceCpu"> = {},
+): string[] {
+  const normalized = normalizeHomrCommandInput(input, options);
+  const args = ["--from", `${normalized.packageName}==${normalized.version}`, normalized.packageName];
+  if (normalized.forceCpu) args.push("--gpu", "no");
+  args.push(normalized.imagePath);
+  return args;
+}
+
+/** Build direct HOMR executable arguments for one staged image. */
+export function buildHomrExecutableArgs(input: HomrCommandInput): string[];
+export function buildHomrExecutableArgs(imagePath: string, options?: Pick<HomrCommandInput, "forceCpu">): string[];
+export function buildHomrExecutableArgs(
+  input: HomrCommandInput | string,
+  options: Pick<HomrCommandInput, "forceCpu"> = {},
+): string[] {
+  const normalized = normalizeHomrCommandInput(input, options);
+  const args: string[] = [];
+  if (normalized.forceCpu) args.push("--gpu", "no");
+  args.push(normalized.imagePath);
+  return args;
+}
+
+/**
+ * Compatibility helper retained for callers of the first adapter revision.
+ * HOMR 0.7.0 accepts exactly one image and has no output-directory option.
+ */
+export function buildHomrArgs(input: OmrRecognizeInput): string[] {
+  const validated = validateRecognizeInput(input);
+  if (validated.images.length !== 1) {
+    throw new OmrBackendError("INVALID_INPUT", "HOMR accepts exactly one staged page image per invocation");
+  }
+  return buildHomrExecutableArgs(validated.images[0]!);
+}
+
+interface HomrLauncher {
+  mode: "uvx" | "executable";
+  executable: string;
+}
+
+async function resolveHomrLauncher(
+  options: { preferUvx: boolean; uvxExecutable: string; executable: string; execFile: OmrCommandRunner; timeoutMs: number },
+): Promise<HomrLauncher> {
+  if (options.preferUvx) {
+    try {
+      await options.execFile(options.uvxExecutable, ["--version"], {
+        shell: false,
+        timeout: options.timeoutMs,
+        maxBuffer: 2 * 1024 * 1024,
+        windowsHide: true,
+      });
+      return { mode: "uvx", executable: options.uvxExecutable };
+    } catch {
+      // uvx is optional. The explicit executable is the deterministic fallback.
+    }
+  }
+  return { mode: "executable", executable: options.executable };
+}
+
+function stagedHomrInputPath(outputDirectory: string, page: number, source: string): string {
+  const extension = extname(basename(source)).toLowerCase() || ".png";
+  return join(resolve(outputDirectory), `page-${page}`, `input${extension}`);
+}
+
+async function stageHomrInput(source: string, outputDirectory: string, page: number): Promise<{ path: string; relativePath: string; directory: string }> {
+  const sourcePath = pathInput(source, "HOMR page image");
+  const sourceInfo = await lstat(sourcePath);
+  if (!sourceInfo.isFile() || sourceInfo.size <= 0) throw new OmrBackendError("FAILED", "HOMR page image is unavailable");
+  const path = stagedHomrInputPath(outputDirectory, page, sourcePath);
+  const directory = join(resolve(outputDirectory), `page-${page}`);
+  await mkdir(directory, { recursive: true });
+  await copyFile(sourcePath, path);
+  return { path, relativePath: relativeOutputPath(outputDirectory, path), directory };
+}
+
+async function clearAdjacentHomrArtifacts(pageDirectory: string): Promise<void> {
+  const entries = await readdir(pageDirectory, { withFileTypes: true });
+  await Promise.all(entries
+    .filter((entry) => entry.isFile() && /\.(?:mxl|musicxml|xml)$/i.test(entry.name))
+    .map((entry) => unlink(join(pageDirectory, entry.name))));
+}
+
+function homrInvocationMetadata(launcher: HomrLauncher, packageName: string, version: string, forceCpu: boolean): OmrInvocationMetadata {
+  const imagePlaceholder = "<relative-page-image>";
+  const args = launcher.mode === "uvx"
+    ? buildHomrUvxArgs({ imagePath: imagePlaceholder, packageName, version, forceCpu })
+    : buildHomrExecutableArgs({ imagePath: imagePlaceholder, forceCpu });
+  return {
+    mode: launcher.mode,
+    executable: logicalExecutableName(launcher.executable),
+    packageName,
+    version,
+    forceCpu,
+    perPage: true,
+    args,
+  };
+}
+
+function homrPageError(error: unknown, fallback: string, sensitivePaths: readonly string[] = []): string {
+  const stderr = sanitizedStderr(error, sensitivePaths);
+  return stderr ? `${fallback}: ${stderr}` : fallback;
+}
+
+function parseHomrPageOutput(
+  files: readonly OmrArtifactFile[],
+  page: number,
+  warnings: string[],
+  errors: string[],
+): OmrScoreMetrics {
+  const metrics: OmrScoreMetrics = { measureCount: 0, noteCount: 0, staffCount: 0 };
+  let broken = false;
+  for (const file of files) {
+    try {
+      const parsed = parseOmrMusicXmlBytes(file.bytes);
+      const next = scoreMetrics(parsed.score);
+      const pathological = pathologicalMetrics(next, parsed.score);
+      if (pathological) {
+        errors.push(`HOMR page ${page}: ${pathological}`);
+        broken = true;
+        continue;
+      }
+      warnings.push(...parsed.warnings.map((warning) => `HOMR page ${page}: ${sanitizedStderr(warning) ?? "parser warning"}`));
+      mergeScoreMetrics(metrics, next);
+    } catch (error) {
+      errors.push(homrPageError(error, `HOMR page ${page} MusicXML output is malformed`, []));
+      broken = true;
+    }
+  }
+  if (broken) {
+    // Do not expose counts from a partly parsed/broken page as trustworthy.
+    return { measureCount: 0, noteCount: 0, staffCount: 0 };
+  }
+  return metrics;
+}
+
+function homrHealth(pages: readonly OmrPageResult[]): OmrHealth {
+  const available = pages.filter((page) => page.status === "available").length;
+  if (available === pages.length && pages.length > 0) return "available";
+  if (available > 0) return "partially-available";
+  if (pages.length > 0 && pages.every((page) => page.status === "unavailable")) return "unavailable";
+  return "broken-output";
+}
+
+function homrResultStatus(pages: readonly OmrPageResult[]): OmrResultStatus {
+  if (pages.some((page) => page.status === "available")) return "pass";
+  if (pages.length > 0 && pages.every((page) => page.status === "unavailable")) return "unavailable";
+  return "failed";
+}
+
+async function recognizeHomrPages(
+  input: OmrRecognizeInput,
+  options: {
+    packageName: string;
+    version: string;
+    uvxExecutable: string;
+    executable: string;
+    preferUvx: boolean;
+    forceCpu: boolean;
+    timeoutMs: number;
+    execFile: OmrCommandRunner;
+    launcher?: HomrLauncher;
+    resolveLauncher: () => Promise<HomrLauncher>;
+  },
+): Promise<OmrResult> {
+  let validated: { images: string[]; outputDirectory: string };
+  try {
+    validated = validateRecognizeInput(input);
+    await mkdir(validated.outputDirectory, { recursive: true });
+  } catch (error) {
+    const message = error instanceof OmrBackendError ? error.message : "HOMR output directory is unavailable";
+    return { ...baseResult("homr", options.version, "failed", [], [], [message]), health: "broken-output", pages: [] };
+  }
+
+  const launcher = options.launcher ?? await options.resolveLauncher();
+  const invocation = homrInvocationMetadata(launcher, options.packageName, options.version, options.forceCpu);
+  const model: OmrModelMetadata = {
+    id: "homr",
+    packageName: options.packageName,
+    version: options.version,
+    runtime: launcher.mode,
+    forceCpu: options.forceCpu,
+  };
+  const pages: OmrPageResult[] = [];
+  const allArtifacts: OmrArtifact[] = [];
+  const allWarnings: string[] = [];
+  const allErrors: string[] = [];
+
+  for (const [index, source] of validated.images.entries()) {
+    const page = index + 1;
+    const started = Date.now();
+    const warnings: string[] = [];
+    const errors: string[] = [];
+    const fallbackRelativeInput = `page-${page}/input${extname(basename(source)).toLowerCase() || ".png"}`;
+    let relativeInput = fallbackRelativeInput;
+    let status: OmrPageStatus = "failed";
+    let exitCode: number | null = null;
+    let artifacts: OmrArtifact[] = [];
+    let metrics: OmrScoreMetrics = { measureCount: 0, noteCount: 0, staffCount: 0 };
+    try {
+      const staged = await stageHomrInput(source, validated.outputDirectory, page);
+      relativeInput = staged.relativePath;
+      await clearAdjacentHomrArtifacts(staged.directory);
+      const args = launcher.mode === "uvx"
+        ? buildHomrUvxArgs({ imagePath: staged.path, packageName: options.packageName, version: options.version, forceCpu: options.forceCpu })
+        : buildHomrExecutableArgs({ imagePath: staged.path, forceCpu: options.forceCpu });
+      let commandResult: { stdout: string; stderr: string };
+      try {
+        commandResult = await options.execFile(launcher.executable, args, {
+          shell: false,
+          timeout: options.timeoutMs,
+          maxBuffer: 16 * 1024 * 1024,
+          windowsHide: true,
+        });
+        exitCode = 0;
+        status = "available";
+        const stderr = sanitizedStderr(commandResult.stderr, [validated.outputDirectory, staged.path]);
+        if (stderr) warnings.push(stderr);
+      } catch (error) {
+        exitCode = numericExitCode(error);
+        if (missingExecutable(error)) {
+          status = "unavailable";
+          errors.push("homr unavailable");
+        } else {
+          status = "failed";
+          errors.push(homrPageError(error, `HOMR page ${page} recognition failed`, [validated.outputDirectory, staged.path]));
+        }
+      }
+
+      try {
+        const files = await collectAdjacentOmrArtifacts(staged.directory, validated.outputDirectory);
+        artifacts = files.map((file) => file.artifact);
+        if (status === "failed" || status === "unavailable") {
+          // A non-zero process result is never promoted to trustworthy output.
+        } else if (!files.length) {
+          status = "broken-output";
+          errors.push(`HOMR page ${page} produced no adjacent MusicXML output`);
+        } else {
+          metrics = parseHomrPageOutput(files, page, warnings, errors);
+          if (!metrics.measureCount || !metrics.noteCount || !metrics.staffCount || errors.some((error) => /malformed|empty|safety limits|no pitched/i.test(error))) {
+            status = "broken-output";
+          } else {
+            status = "available";
+          }
+        }
+      } catch (error) {
+        status = "broken-output";
+        errors.push(homrPageError(error, `HOMR page ${page} output is unavailable`, [validated.outputDirectory, staged.path]));
+      }
+    } catch (error) {
+      status = "failed";
+      errors.push(homrPageError(error, `HOMR page ${page} input staging failed`, [validated.outputDirectory, source]));
+    }
+    const pageResult: OmrPageResult = {
+      page,
+      relativeInput,
+      status,
+      elapsedMs: Math.max(0, Date.now() - started),
+      exitCode,
+      artifacts,
+      measureCount: metrics.measureCount,
+      noteCount: metrics.noteCount,
+      staffCount: metrics.staffCount,
+      warnings,
+      errors,
+    };
+    pages.push(pageResult);
+    allArtifacts.push(...artifacts);
+    allWarnings.push(...warnings);
+    allErrors.push(...errors);
+  }
+
+  return {
+    ...baseResult("homr", options.version, homrResultStatus(pages), allArtifacts, allWarnings, allErrors),
+    health: homrHealth(pages),
+    pages,
+    invocation,
+    model,
+  };
+}
+
+/** Construct an optional HOMR adapter; uvx resolution and page execution are lazy. */
+export function createHomrBackend(options: HomrBackendOptions = {}): OmrBackend {
+  const packageName = optionToken(options.packageName, "HOMR package name", HOMR_DEFAULTS.packageName);
+  const version = optionToken(options.version, "HOMR package version", HOMR_DEFAULTS.version);
+  const uvxExecutable = pathInput(options.uvxExecutable ?? HOMR_DEFAULTS.uvxExecutable, "uvx executable");
+  const executable = pathInput(options.executable ?? HOMR_DEFAULTS.executable, "homr executable");
+  const preferUvx = optionBoolean(options.preferUvx, "HOMR preferUvx", HOMR_DEFAULTS.preferUvx);
+  const forceCpu = optionBoolean(options.forceCpu, "HOMR forceCpu", HOMR_DEFAULTS.forceCpu);
   const timeoutMs = timeoutValue(options.timeoutMs);
   const execFile = options.execFile ?? execFileDefault;
-  let discoveredVersion = options.version ?? "unknown";
+  let discoveredVersion = version;
+  let resolvedLauncher: HomrLauncher | undefined;
   return {
     id: "homr",
     get version() { return discoveredVersion; },
     async recognize(input: OmrRecognizeInput): Promise<OmrResult> {
-      if (discoveredVersion === "unknown" && options.version === undefined) discoveredVersion = await probeExecutableVersion(executable, execFile, ["--version"], timeoutMs);
-      const args = buildHomrArgs(input);
-      const result = await runOmrBackend("homr", executable, discoveredVersion, execFile, timeoutMs, input, args);
+      const result = await recognizeHomrPages(input, {
+        packageName,
+        version,
+        uvxExecutable,
+        executable,
+        preferUvx,
+        forceCpu,
+        timeoutMs,
+        execFile,
+        launcher: resolvedLauncher,
+        resolveLauncher: async () => {
+          resolvedLauncher = await resolveHomrLauncher({ preferUvx, uvxExecutable, executable, execFile, timeoutMs });
+          return resolvedLauncher;
+        },
+      });
       discoveredVersion = result.version;
       return result;
     },
