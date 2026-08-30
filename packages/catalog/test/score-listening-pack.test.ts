@@ -7,6 +7,7 @@ import {
   pathSafeScoreReference,
   renderScoreListeningPackWorksheet,
   selectRotatingScoreListeningPack,
+  selectRoleAwareRotatingScoreListeningPack,
   writeRotatingScoreListeningPackBundle,
   writeRotatingScoreListeningPackManifest,
   type ScoreCorpusSong,
@@ -155,9 +156,37 @@ describe("rotating score listening pack", () => {
       expect(await readFile(written.worksheetPath, "utf8")).toBe(rendered);
       expect(written.worksheetPath).toBe(join(directory, "LISTENING.md"));
       expect(written.worksheet).toBe(rendered);
+      expect(written.blindMapPath).toBe(join(directory, "blind-map.json"));
+      const blindMap = JSON.parse(await readFile(written.blindMapPath, "utf8")) as { entries: Record<string, { excerptHash: string }> };
+      expect(Object.keys(blindMap.entries)).toEqual(["A001", "A002"]);
+      expect(Object.values(blindMap.entries).every((entry) => /^[a-f0-9]{64}$/.test(entry.excerptHash))).toBe(true);
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
+  });
+
+  it("role-aware mode selects trusted role regions only and reports insufficiency explicitly", () => {
+    const trusted = (id: string, role: string, label: string) => ({
+      id, label, role, startSeconds: 0, endSeconds: 24,
+      trusted: true, trustedRoles: [role], preference: label.toLowerCase(),
+      references: { midi: `private/${id}.mid`, wav: `private/${id}.wav` },
+    });
+    const result = selectRoleAwareRotatingScoreListeningPack([
+      { ...song("alpha", "PASS", 0), sections: [trusted("opening", "melody", "Intro"), trusted("chorus", "harmony", "Chorus")] },
+      { ...song("beta", "PASS", 0), sections: [trusted("lead", "melody", "Lead")] },
+      { ...song("untrusted", "PASS", 0), sections: [{ ...trusted("bad", "melody", "Intro"), trusted: false }] },
+    ], { seed: "roles", targetSeconds: 48, minSeconds: 48, maxSeconds: 60 });
+    expect(result.status).toBe("ready");
+    expect(new Set(result.excerpts.map((excerpt) => excerpt.songId)).size).toBeGreaterThanOrEqual(2);
+    expect(result.excerpts.every((excerpt) => excerpt.trusted === true)).toBe(true);
+    expect(result.excerpts.every((excerpt) => !excerpt.references.midi?.startsWith("/"))).toBe(true);
+    expect(result.excerpts.map((excerpt) => excerpt.sectionId)).toContain("opening");
+
+    const insufficient = selectRoleAwareRotatingScoreListeningPack([
+      { ...song("only", "PASS", 0), sections: [trusted("opening", "melody", "Intro")] },
+    ], { seed: "roles-insufficient", targetSeconds: 48, minSeconds: 48, maxSeconds: 60 });
+    expect(insufficient.status).toBe("insufficient");
+    expect(insufficient.warnings.join(" ")).toMatch(/distinct trusted songs/);
   });
 
   it("sanitizes absolute, traversal, and credential-bearing references", () => {

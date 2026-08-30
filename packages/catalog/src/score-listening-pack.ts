@@ -9,6 +9,7 @@
  */
 
 import { mkdir, rename, rm, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { basename, join } from "node:path";
 
 export const SCORE_LISTENING_PACK_SCHEMA_VERSION = 1 as const;
@@ -45,6 +46,11 @@ export interface ScoreCorpusSection {
   midiRef?: string;
   wavRef?: string;
   sourceRef?: string;
+  /** Role-aware mode consumes only explicitly trusted sections. */
+  trusted?: boolean;
+  trustedRoles?: readonly string[];
+  provenance?: string;
+  preference?: string;
 }
 
 export interface ScoreCorpusValidation {
@@ -93,6 +99,10 @@ export interface ScoreListeningPackSelectionOptions {
    * The default remains trusted-only (PASS/PASS_WITH_WARNINGS).
    */
   includeReviewRequired?: boolean;
+  /** Additive role-aware mode; generic score-pack behavior remains unchanged. */
+  trustedOnly?: boolean;
+  requiredRoles?: readonly string[];
+  roleAware?: boolean;
 }
 
 export type ScoreListeningPackStatus = "ready" | "insufficient";
@@ -115,6 +125,10 @@ export interface ScoreListeningPackExcerpt {
   startSeconds: number;
   endSeconds: number;
   durationSeconds: number;
+  trusted?: boolean;
+  trustedRoles?: string[];
+  provenance?: string | null;
+  preference?: string | null;
   /** Logical or path-safe artifact references; never required to be local paths. */
   references: Record<string, string>;
 }
@@ -153,6 +167,23 @@ export interface WrittenScoreListeningPackBundle extends WrittenScoreListeningPa
   /** Human worksheet path written alongside the path-safe manifest. */
   worksheetPath: string;
   worksheet: string;
+  blindMapPath: string;
+  blindMap: ScoreListeningPackBlindMap;
+}
+
+export interface ScoreListeningPackBlindMapEntry {
+  excerptId: string;
+  songId: string;
+  sectionId: string;
+  excerptHash: string;
+  references: Record<string, string>;
+}
+
+export interface ScoreListeningPackBlindMap {
+  schemaVersion: 1;
+  kind: "score-rotating-listening-pack-blind-map";
+  packId: string;
+  entries: Record<string, ScoreListeningPackBlindMapEntry>;
 }
 
 const EPSILON = 1e-9;
@@ -278,6 +309,10 @@ interface NormalizedSection {
   startSeconds: number;
   endSeconds: number;
   references: Record<string, string>;
+  trusted: boolean;
+  trustedRoles: string[];
+  provenance: string | null;
+  preference: string | null;
 }
 
 function referenceValue(value: ScoreCorpusReferenceValue): string | undefined {
@@ -346,6 +381,12 @@ function normalizeSections(
       startSeconds: round(section.startSeconds),
       endSeconds: round(endSeconds),
       references: collectReferences(song, section),
+      trusted: section.trusted === true,
+      trustedRoles: Array.isArray(section.trustedRoles)
+        ? [...new Set(section.trustedRoles.filter((role): role is string => typeof role === "string" && Boolean(role.trim())).map((role) => role.trim()))].sort(compareText)
+        : [],
+      provenance: typeof section.provenance === "string" && section.provenance.trim() ? section.provenance.trim() : null,
+      preference: typeof section.preference === "string" && section.preference.trim() ? section.preference.trim().toLowerCase() : null,
     });
   }
   return output.sort((left, right) => compareText(left.id, right.id));
@@ -360,6 +401,9 @@ interface NormalizedSelectionOptions {
   minSectionSeconds: number;
   maxSectionSeconds: number;
   includeReviewRequired: boolean;
+  trustedOnly: boolean;
+  requiredRoles: string[];
+  roleAware: boolean;
 }
 
 function normalizeOptions(options: ScoreListeningPackSelectionOptions): NormalizedSelectionOptions {
@@ -390,6 +434,9 @@ function normalizeOptions(options: ScoreListeningPackSelectionOptions): Normaliz
     minSectionSeconds: round(minSectionSeconds),
     maxSectionSeconds: round(maxSectionSeconds),
     includeReviewRequired: options.includeReviewRequired === true,
+    trustedOnly: options.trustedOnly === true || options.roleAware === true,
+    requiredRoles: [...new Set((options.requiredRoles ?? []).filter((role): role is string => typeof role === "string" && Boolean(role.trim())).map((role) => role.trim().toLowerCase()))].sort(compareText),
+    roleAware: options.roleAware === true,
   };
 }
 
@@ -417,12 +464,25 @@ function excerptFromSection(section: NormalizedSection, durationSeconds: number)
     endSeconds,
     durationSeconds: round(durationSeconds),
     references: { ...section.references },
+    ...(section.trusted ? { trusted: true } : {}),
+    ...(section.trustedRoles.length ? { trustedRoles: [...section.trustedRoles] } : {}),
+    ...(section.provenance ? { provenance: section.provenance } : {}),
+    ...(section.preference ? { preference: section.preference } : {}),
   };
 }
 
 function stablePackId(seed: string, excerpts: readonly ScoreListeningPackExcerpt[]): string {
   const suffix = hash32(`${seed}\u0000${excerpts.map((excerpt) => excerpt.id).join("\u0000")}`).toString(16).padStart(8, "0");
   return `score-pack-${suffix}`;
+}
+
+function preferenceRank(section: NormalizedSection): number {
+  const value = `${section.preference ?? ""} ${section.label ?? ""} ${section.role ?? ""}`.toLowerCase();
+  if (/(intro|opening|start)/.test(value)) return 0;
+  if (/(chorus|main|verse)/.test(value)) return 1;
+  if (/(lead|solo|melody)/.test(value)) return 2;
+  if (/(accompaniment|harmony|rhythm|bridge)/.test(value)) return 3;
+  return 4;
 }
 
 /**
@@ -443,11 +503,30 @@ export function selectRotatingScoreListeningPack(
   const candidates = accepted.map((song) => ({
     song,
     sections: normalizeSections(song, normalized.minSectionSeconds, normalized.maxSectionSeconds)
-      .sort((left, right) => rank(normalized.seed, song.id, left.id) - rank(normalized.seed, song.id, right.id) || compareText(left.id, right.id)),
+      .filter((section) => !normalized.trustedOnly || (section.trusted && (!normalized.requiredRoles.length || section.trustedRoles.some((role) => normalized.requiredRoles.includes(role.toLowerCase())))))
+      .sort((left, right) => (normalized.roleAware ? preferenceRank(left) - preferenceRank(right) : 0)
+        || rank(normalized.seed, song.id, left.id) - rank(normalized.seed, song.id, right.id) || compareText(left.id, right.id)),
   })).filter((entry) => entry.sections.length > 0)
     .sort((left, right) => rank(normalized.seed, left.song.id) - rank(normalized.seed, right.song.id) || compareText(left.song.id, right.song.id));
 
   if (candidates.length < normalized.minSongs) {
+    if (normalized.roleAware) {
+      const packId = options.packId === undefined ? stablePackId(normalized.seed, []) : requireText(options.packId, "packId");
+      return {
+        schemaVersion: SCORE_LISTENING_PACK_SCHEMA_VERSION,
+        kind: "score-rotating-listening-pack",
+        packId,
+        seed: normalized.seed,
+        targetSeconds: normalized.targetSeconds,
+        minSeconds: normalized.minSeconds,
+        maxSeconds: normalized.maxSeconds,
+        totalSeconds: 0,
+        status: "insufficient",
+        songs: [],
+        excerpts: [],
+        warnings: [`at least ${normalized.minSongs} distinct trusted songs with usable sections are required; found ${candidates.length}`],
+      };
+    }
     const eligibility = normalized.includeReviewRequired ? "eligible" : "accepted";
     throw new Error(`at least ${normalized.minSongs} ${eligibility} songs with usable sections are required; found ${candidates.length}`);
   }
@@ -541,6 +620,18 @@ export function selectRotatingScoreListeningPack(
 export const selectRotatingListeningPack = selectRotatingScoreListeningPack;
 export const createRotatingScoreListeningPack = selectRotatingScoreListeningPack;
 
+/**
+ * Trusted-role variant used by the OMR regression workflow. Every selected
+ * section must carry an explicit trusted flag and at least one trusted role;
+ * unknown or merely accepted whole-score status never makes a section eligible.
+ */
+export function selectRoleAwareRotatingScoreListeningPack(
+  songs: readonly ScoreCorpusSong[],
+  options: ScoreListeningPackSelectionOptions = {},
+): ScoreListeningPack {
+  return selectRotatingScoreListeningPack(songs, { ...options, roleAware: true, trustedOnly: true });
+}
+
 function canonicalManifest(pack: ScoreListeningPack): ScoreListeningPackManifest {
   const songs = [...pack.songs]
     .sort((left, right) => compareText(left.id, right.id))
@@ -552,6 +643,10 @@ function canonicalManifest(pack: ScoreListeningPack): ScoreListeningPackManifest
         .map(([key, value]) => [key, pathSafeScoreReference(value) ?? "external/artifact"] as const)
         .sort(([left], [right]) => compareText(left, right)),
     ),
+    ...(excerpt.trusted !== undefined ? { trusted: excerpt.trusted } : {}),
+    ...(excerpt.trustedRoles ? { trustedRoles: [...excerpt.trustedRoles].sort(compareText) } : {}),
+    ...(excerpt.provenance !== undefined ? { provenance: excerpt.provenance } : {}),
+    ...(excerpt.preference !== undefined ? { preference: excerpt.preference } : {}),
   }));
   return {
     schemaVersion: SCORE_LISTENING_PACK_SCHEMA_VERSION,
@@ -612,6 +707,24 @@ function worksheetReference(value: string): string | null {
   return /^(?:https?|s3):\/\//i.test(safe) ? safe : `../${safe}`;
 }
 
+function createBlindMap(pack: ScoreListeningPack): ScoreListeningPackBlindMap {
+  const entries: Record<string, ScoreListeningPackBlindMapEntry> = {};
+  const manifest = canonicalManifest(pack);
+  manifest.excerpts.forEach((excerpt, index) => {
+    const alias = `A${String(index + 1).padStart(3, "0")}`;
+    const references = Object.fromEntries(Object.entries(excerpt.references).sort(([left], [right]) => compareText(left, right)));
+    const identity = JSON.stringify({ packId: manifest.packId, alias, excerptId: excerpt.id, songId: excerpt.songId, sectionId: excerpt.sectionId, startSeconds: excerpt.startSeconds, endSeconds: excerpt.endSeconds, references });
+    entries[alias] = {
+      excerptId: excerpt.id,
+      songId: excerpt.songId,
+      sectionId: excerpt.sectionId,
+      excerptHash: createHash("sha256").update(identity).digest("hex"),
+      references,
+    };
+  });
+  return { schemaVersion: 1, kind: "score-rotating-listening-pack-blind-map", packId: manifest.packId, entries };
+}
+
 /**
  * Render the deliberately small human worksheet for a rotating score pack.
  * The score pack is a collection of reference excerpts rather than an A/B
@@ -638,7 +751,7 @@ export function renderScoreListeningPackWorksheet(pack: ScoreListeningPack): str
   manifest.excerpts.forEach((excerpt, index) => {
     const song = songs.get(excerpt.songId);
     const title = [song?.artist, song?.title].filter(Boolean).join(" — ") || excerpt.songId;
-    lines.push(`### ${index + 1}. ${title}`, `- Section: ${excerpt.label ?? excerpt.sectionId}`, `- Duration: ${excerpt.durationSeconds}s`);
+    lines.push(`### A${String(index + 1).padStart(3, "0")}`, `- Section: ${excerpt.label ?? excerpt.sectionId}`, `- Duration: ${excerpt.durationSeconds}s`);
     for (const [key, value] of Object.entries(excerpt.references).sort(([left], [right]) => compareText(left, right))) {
       const link = worksheetReference(value);
       if (link) lines.push(`- ${key}: [artifact](${link})`);
@@ -678,7 +791,16 @@ export async function writeRotatingScoreListeningPackBundle(
   } finally {
     await rm(temporary, { force: true }).catch(() => undefined);
   }
-  return { ...written, worksheetPath, worksheet };
+  const blindMap = createBlindMap(pack);
+  const blindMapPath = join(outputDirectory, "blind-map.json");
+  const blindMapTemporary = join(outputDirectory, `.blind-map.json.${process.pid}.${Math.random().toString(36).slice(2)}.tmp`);
+  try {
+    await writeFile(blindMapTemporary, `${JSON.stringify(blindMap, null, 2)}\n`, { encoding: "utf8", flag: "wx" });
+    await rename(blindMapTemporary, blindMapPath);
+  } finally {
+    await rm(blindMapTemporary, { force: true }).catch(() => undefined);
+  }
+  return { ...written, worksheetPath, worksheet, blindMapPath, blindMap };
 }
 
 export const writeScoreListeningPackBundle = writeRotatingScoreListeningPackBundle;

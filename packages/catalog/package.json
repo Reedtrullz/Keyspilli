@@ -38,7 +38,8 @@
     "build:piano-section-listening": "tsx scripts/build-piano-section-listening.ts",
     "benchmark:score": "tsx scripts/benchmark-score.ts",
     "benchmark:scores": "tsx scripts/build-score-corpus.ts",
-    "benchmark:score-consensus": "tsx scripts/run-score-consensus.ts"
+    "benchmark:score-consensus": "tsx scripts/run-score-consensus.ts",
+    "benchmark:keyspilli": "tsx scripts/benchmark-keyspilli.ts"
   },
   "dependencies": {
     "@keyspilli/midi": "*",
