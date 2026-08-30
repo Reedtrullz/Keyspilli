@@ -114,12 +114,13 @@ describe("OMR role-specific partial references", () => {
   });
 
   it("retains native provenance and trusted native role states", () => {
+    const nativeHash = "a".repeat(64);
     const report = buildOmrConsensus({
       native: {
         id: "native-score",
         version: "2026.1",
         score: score(),
-        provenance: { artifactType: "musicxml", accessMethod: "permitted-local-source", sha256: "native-hash" },
+        provenance: { artifactType: "musicxml", accessMethod: "permitted-local-source", sha256: nativeHash },
       },
       engines: [{ id: "homr", version: "0.4.0", score: score({ title: "wrong" }) }],
     });
@@ -130,9 +131,46 @@ describe("OMR role-specific partial references", () => {
       kind: "native",
       engineIds: ["native-score"],
       versions: ["2026.1"],
-      sourceSha256: "native-hash",
+      sourceSha256: nativeHash,
     });
     expect(reference.source).toMatchObject({ artifactType: "musicxml", accessMethod: "permitted-local-source" });
+  });
+
+  it("fails closed for caller-supplied native provenance hashes", () => {
+    const report = buildOmrConsensus({
+      native: {
+        id: "native-score",
+        version: "2026.1",
+        score: score(),
+        provenance: { artifactType: "musicxml", accessMethod: "permitted-local-source", sha256: "a".repeat(64) },
+      },
+      engines: [{ id: "homr", version: "0.4.0", score: score({ title: "wrong" }) }],
+    });
+    const path = "/Users/reidar/private/native.musicxml";
+    const malformed = "caller-controlled-native-label";
+    const untrustedReport = {
+      ...report,
+      native: {
+        ...report.native!,
+        provenance: { ...report.native!.provenance, sha256: path },
+      },
+    };
+    const untrustedReference = buildTrustedPartialReference(untrustedReport);
+    expect(untrustedReference.source.sha256).toBeNull();
+    expect(untrustedReference.regions[0]?.roles.melody.provenance.sourceSha256).toBeNull();
+    expect(JSON.stringify(untrustedReference)).not.toContain(path);
+
+    const malformedReport = {
+      ...report,
+      native: {
+        ...report.native!,
+        provenance: { ...report.native!.provenance, sha256: malformed },
+      },
+    };
+    const malformedReference = buildTrustedPartialReference(malformedReport);
+    expect(malformedReference.source.sha256).toBeNull();
+    expect(malformedReference.regions[0]?.roles.melody.provenance.sourceSha256).toBeNull();
+    expect(JSON.stringify(malformedReference)).not.toContain(malformed);
   });
 
   it("uses the optional alignment adapter and remains deterministic under input reordering", () => {

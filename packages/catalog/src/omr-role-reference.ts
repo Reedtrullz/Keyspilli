@@ -150,9 +150,15 @@ const DISAGREEMENT_ORDER: readonly OmrDisagreementKind[] = [
 ];
 const EPS = 2e-6;
 const DISAGREEMENT_KINDS = new Set<OmrDisagreementKind>(DISAGREEMENT_ORDER);
+const SHA256_RE = /^[0-9a-f]{64}$/i;
 
 function finite(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
+}
+
+/** Only content hashes are safe to expose as source provenance. */
+function safeSha256(value: unknown): string | null {
+  return typeof value === "string" && SHA256_RE.test(value) ? value : null;
 }
 
 function rounded(value: number, digits = 6): number {
@@ -323,7 +329,7 @@ function sourceMetadata(report: OmrConsensusReport, options: RoleReferenceOption
     ? report.metadata as Record<string, unknown>
     : {};
   const source = options.source ?? {};
-  const sha256 = typeof source.sha256 === "string"
+  const rawSha256 = typeof source.sha256 === "string"
     ? source.sha256
     : typeof native?.sha256 === "string"
       ? native.sha256
@@ -334,9 +340,9 @@ function sourceMetadata(report: OmrConsensusReport, options: RoleReferenceOption
   const accessMethod = typeof source.accessMethod === "string"
     ? source.accessMethod
     : typeof native?.accessMethod === "string" ? native.accessMethod : null;
-  const sanitized = sanitizeOmrMetadata({ sha256, artifactType, accessMethod }) as Record<string, unknown>;
+  const sanitized = sanitizeOmrMetadata({ sha256: safeSha256(rawSha256), artifactType, accessMethod }) as Record<string, unknown>;
   return {
-    sha256: typeof sanitized.sha256 === "string" && sanitized.sha256 !== "[redacted-path]" ? sanitized.sha256 : null,
+    sha256: safeSha256(sanitized.sha256),
     artifactType: typeof sanitized.artifactType === "string" ? sanitized.artifactType : "omr-consensus",
     accessMethod: typeof sanitized.accessMethod === "string" ? sanitized.accessMethod : null,
   };
@@ -383,7 +389,7 @@ function roleProvenance(report: OmrConsensusReport, measure: OmrConsensusMeasure
       engineIds: [native.id],
       versions: [native.version],
       independenceGroups: ["native"],
-      sourceSha256: typeof native.provenance.sha256 === "string" ? native.provenance.sha256 : null,
+      sourceSha256: safeSha256(native.provenance.sha256),
     };
   }
   if (state === "TRUSTED_CONSENSUS") {
