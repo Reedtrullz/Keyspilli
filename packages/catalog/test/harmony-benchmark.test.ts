@@ -1,4 +1,5 @@
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { lstat, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -13,6 +14,7 @@ import { runHarmonyBenchmarkCli } from "../scripts/benchmark-harmony.js";
 
 const hash = (char: string) => char.repeat(64);
 const note = (midi: number, start: number, dur = 4): Note => ({ midi, start, dur, vel: 80 });
+const sha256 = (bytes: Uint8Array): string => createHash("sha256").update(bytes).digest("hex");
 
 function score(id: string, windows = [{ id: "opening", startBeat: 0, endBeat: 8 }]) {
   return {
@@ -92,12 +94,16 @@ describe("local harmony benchmark evaluator", () => {
       const currentPath = join(directory, "current.mid");
       const sidecarPath = join(directory, "inputs.json");
       const out = join(directory, "out");
-      await writeFile(manifestPath, JSON.stringify(manifest()), "utf8");
-      await writeFile(referencePath, midi([note(36, 0), note(40, 0), note(43, 0)]));
-      await writeFile(currentPath, midi([note(36, 0), note(40, 0), note(43, 0)]));
+      const referenceBytes = midi([note(36, 0), note(40, 0), note(43, 0)]);
+      const currentBytes = midi([note(36, 0), note(40, 0), note(43, 0)]);
+      const manifestInput = manifest();
+      manifestInput.scores[0]!.reference.trustedCoverage.referenceSha256 = sha256(referenceBytes);
+      await writeFile(manifestPath, JSON.stringify(manifestInput), "utf8");
+      await writeFile(referencePath, referenceBytes);
+      await writeFile(currentPath, currentBytes);
       const sidecar: HarmonyBenchmarkSidecarInput = {
         schemaVersion: 1,
-        scores: [{ id: HARMONY_BENCHMARK_SCORE_IDS[0], referencePath, currentPath }],
+        scores: [{ id: HARMONY_BENCHMARK_SCORE_IDS[0], referencePath, currentPath, currentSha256: sha256(currentBytes) }],
       };
       await writeFile(sidecarPath, JSON.stringify(sidecar), "utf8");
       const cliResult = await runHarmonyBenchmarkCli(["--manifest", manifestPath, "--sidecar", sidecarPath, "--out", out]);
@@ -126,6 +132,101 @@ describe("local harmony benchmark evaluator", () => {
         sidecar: { schemaVersion: 1, scores: [{ id: HARMONY_BENCHMARK_SCORE_IDS[0], referencePath: join(process.cwd(), "package.json") }] },
         out: join(directory, "out"),
       })).rejects.toThrow(/repository/i);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed when an artifact hash is missing or does not match the manifest", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "keyspilli-harmony-benchmark-hash-"));
+    try {
+      const manifestPath = join(directory, "manifest.json");
+      const referencePath = join(directory, "reference.mid");
+      const currentPath = join(directory, "current.mid");
+      const out = join(directory, "out");
+      const referenceBytes = midi([note(36, 0), note(40, 0), note(43, 0)]);
+      const currentBytes = midi([note(36, 0), note(40, 0), note(43, 0)]);
+      const manifestInput = manifest();
+      manifestInput.scores[0]!.reference.trustedCoverage.referenceSha256 = sha256(referenceBytes);
+      await writeFile(manifestPath, JSON.stringify(manifestInput), "utf8");
+      await writeFile(referencePath, referenceBytes);
+      await writeFile(currentPath, currentBytes);
+
+      const missingHash = await runHarmonyBenchmark({
+        manifestPath,
+        sidecar: { schemaVersion: 1, scores: [{ id: HARMONY_BENCHMARK_SCORE_IDS[0], referencePath, currentPath }] },
+        out,
+      });
+      expect(missingHash.report.songs[0]?.status).toBe("unavailable");
+      expect(missingHash.report.songs[0]?.diagnostics).toContain("sabaton-1916 current artifact sha256 is required");
+
+      manifestInput.scores[0]!.candidate = { status: "available", logicalId: "current", sha256: sha256(currentBytes) };
+      await writeFile(manifestPath, JSON.stringify(manifestInput), "utf8");
+      await rm(out, { recursive: true, force: true });
+      const mismatched = await runHarmonyBenchmark({
+        manifestPath,
+        sidecar: { schemaVersion: 1, scores: [{ id: HARMONY_BENCHMARK_SCORE_IDS[0], referencePath, referenceSha256: hash("d"), currentPath, currentSha256: sha256(currentBytes) }] },
+        out,
+      });
+      expect(mismatched.report.songs[0]?.status).toBe("unavailable");
+      expect(mismatched.report.songs[0]?.diagnostics).toContain("sabaton-1916 reference artifact sha256 mismatch");
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed with diagnostics for malformed and empty MIDI artifacts", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "keyspilli-harmony-benchmark-midi-"));
+    try {
+      const manifestPath = join(directory, "manifest.json");
+      const referencePath = join(directory, "reference.mid");
+      const currentPath = join(directory, "current.mid");
+      const out = join(directory, "out");
+      const referenceBytes = midi([note(36, 0), note(40, 0), note(43, 0)]);
+      const emptyBytes = midi([]);
+      const manifestInput = manifest();
+      manifestInput.scores[0]!.reference.trustedCoverage.referenceSha256 = sha256(referenceBytes);
+      manifestInput.scores[0]!.candidate = { status: "available", logicalId: "current", sha256: sha256(emptyBytes) };
+      await writeFile(manifestPath, JSON.stringify(manifestInput), "utf8");
+      await writeFile(referencePath, referenceBytes);
+      await writeFile(currentPath, emptyBytes);
+      const empty = await runHarmonyBenchmark({
+        manifestPath,
+        sidecar: { schemaVersion: 1, scores: [{ id: HARMONY_BENCHMARK_SCORE_IDS[0], referencePath, currentPath, currentSha256: sha256(emptyBytes) }] },
+        out,
+      });
+      expect(empty.report.songs[0]?.status).toBe("unavailable");
+      expect(empty.report.songs[0]?.diagnostics).toContain("sabaton-1916 current artifact MIDI contains no notes");
+
+      await rm(currentPath);
+      await writeFile(currentPath, Buffer.from("not midi"));
+      await rm(out, { recursive: true, force: true });
+      const malformed = await runHarmonyBenchmark({
+        manifestPath,
+        sidecar: { schemaVersion: 1, scores: [{ id: HARMONY_BENCHMARK_SCORE_IDS[0], referencePath, currentPath, currentSha256: sha256(Buffer.from("not midi")) }] },
+        out,
+      });
+      expect(malformed.report.songs[0]?.status).toBe("unavailable");
+      expect(malformed.report.songs[0]?.diagnostics).toContain("sabaton-1916 current artifact MIDI is malformed");
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses to follow a report-file symlink", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "keyspilli-harmony-benchmark-symlink-"));
+    try {
+      const manifestPath = join(directory, "manifest.json");
+      const out = join(directory, "out");
+      const target = join(directory, "sentinel.json");
+      const reportPath = join(out, "harmony-benchmark-report.json");
+      await writeFile(manifestPath, JSON.stringify(manifest()), "utf8");
+      await writeFile(target, "do not overwrite\n", "utf8");
+      await mkdir(out, { recursive: true });
+      await symlink(target, reportPath);
+      await expect(runHarmonyBenchmark({ manifestPath, out })).rejects.toThrow(/symlink/i);
+      expect(await readFile(target, "utf8")).toBe("do not overwrite\n");
+      expect((await lstat(reportPath)).isSymbolicLink()).toBe(true);
     } finally {
       await rm(directory, { recursive: true, force: true });
     }

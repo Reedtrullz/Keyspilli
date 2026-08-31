@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdir, readFile, realpath, writeFile } from "node:fs/promises";
+import { lstat, mkdir, readFile, realpath, rename, unlink, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseMidi, splitHands, type Note, type ParsedMidi } from "@keyspilli/midi";
@@ -33,12 +33,13 @@ export interface HarmonyBenchmarkSidecarInput {
 }
 
 export interface HarmonyBenchmarkParsedSources {
-  reference: ParsedMidi;
+  reference?: ParsedMidi;
   baseline?: ParsedMidi;
   current?: ParsedMidi;
   /** Alias accepted by pure callers that only have one candidate. */
   candidate?: ParsedMidi;
   role?: HarmonyBenchmarkSidecarScore["role"];
+  sourceDiagnostics?: string[];
 }
 
 export interface HarmonyBenchmarkEvaluationOptions {
@@ -342,7 +343,7 @@ function songResult(score: HarmonyBenchmarkScoreInput, sources: HarmonyBenchmark
   const diagnostics: string[] = [];
   const role = sources?.role ?? options.role ?? "left-hand";
   if (!sources?.reference) {
-    diagnostics.push("reference evidence unavailable");
+    diagnostics.push(...(sources?.sourceDiagnostics ?? []), "reference evidence unavailable");
     const unavailable = emptyCandidate("unavailable", diagnostics);
     return { id: score.id, title: score.title, artist: score.artist, status: "unavailable", baseline: unavailable, current: unavailable, comparison: null, windowsEvaluated: 0, failureClusters: ["candidate-unavailable", "reference-unavailable"], diagnostics };
   }
@@ -353,7 +354,7 @@ function songResult(score: HarmonyBenchmarkScoreInput, sources: HarmonyBenchmark
   return {
     id: score.id, title: score.title, artist: score.artist, status, baseline, current,
     comparison: comparison(baseline, current), windowsEvaluated: current.windowsEvaluated,
-    failureClusters: clusters, diagnostics: [...diagnostics, ...current.diagnostics].sort(),
+    failureClusters: clusters, diagnostics: [...diagnostics, ...(sources?.sourceDiagnostics ?? []), ...current.diagnostics].sort(),
   };
 }
 
@@ -382,12 +383,31 @@ async function readJson(pathValue: string): Promise<unknown> {
   return JSON.parse(await readFile(pathValue, "utf8")) as unknown;
 }
 
-async function readParsedMidi(pathValue: string, expectedSha256?: string): Promise<ParsedMidi | undefined> {
+async function readParsedMidi(pathValue: string, expectedSha256: string | undefined, context: string, diagnostics: string[]): Promise<ParsedMidi | undefined> {
+  if (!expectedSha256) {
+    diagnostics.push(`${context} sha256 is required`);
+    return undefined;
+  }
   try {
     const bytes = await readFile(pathValue);
-    if (expectedSha256 && hashBytes(bytes).toLowerCase() !== expectedSha256.toLowerCase()) return undefined;
-    return parseMidi(bytes);
+    if (hashBytes(bytes).toLowerCase() !== expectedSha256.toLowerCase()) {
+      diagnostics.push(`${context} sha256 mismatch`);
+      return undefined;
+    }
+    let parsed: ParsedMidi;
+    try {
+      parsed = parseMidi(bytes);
+    } catch {
+      diagnostics.push(`${context} MIDI is malformed`);
+      return undefined;
+    }
+    if (parsed.notes.length === 0) {
+      diagnostics.push(`${context} MIDI contains no notes`);
+      return undefined;
+    }
+    return parsed;
   } catch {
+    diagnostics.push(`${context} artifact unavailable`);
     return undefined;
   }
 }
@@ -403,13 +423,14 @@ async function sidecarSources(manifest: HarmonyBenchmarkManifest, sidecar: Harmo
     const baselinePath = entry.baselinePath ? await assertHarmonyBenchmarkPathOutsideRepository(resolve(baseDirectory, entry.baselinePath), `${entry.id} baseline artifact`) : undefined;
     const currentPathValue = entry.currentPath ?? entry.candidatePath;
     const currentPath = currentPathValue ? await assertHarmonyBenchmarkPathOutsideRepository(resolve(baseDirectory, currentPathValue), `${entry.id} current artifact`) : undefined;
-    const reference = await readParsedMidi(referencePath, entry.referenceSha256);
-    if (!reference) continue;
-    const baseline = baselinePath ? await readParsedMidi(baselinePath, entry.baselineSha256) : undefined;
+    const sourceDiagnostics: string[] = [];
+    const referenceExpectedHash = entry.referenceSha256 ?? manifestScore.reference.trustedCoverage.referenceSha256;
+    const reference = await readParsedMidi(referencePath, referenceExpectedHash, `${entry.id} reference artifact`, sourceDiagnostics);
+    const baseline = baselinePath ? await readParsedMidi(baselinePath, entry.baselineSha256, `${entry.id} baseline artifact`, sourceDiagnostics) : undefined;
     const currentExpectedHash = entry.currentSha256 ?? entry.candidateSha256
       ?? (manifestScore.candidate.status === "available" ? manifestScore.candidate.sha256 : undefined);
-    const current = currentPath ? await readParsedMidi(currentPath, currentExpectedHash) : undefined;
-    result.set(entry.id, { reference, ...(baseline ? { baseline } : {}), ...(current ? { current } : {}), ...(entry.role ? { role: entry.role } : {}) });
+    const current = currentPath ? await readParsedMidi(currentPath, currentExpectedHash, `${entry.id} current artifact`, sourceDiagnostics) : undefined;
+    result.set(entry.id, { ...(reference ? { reference } : {}), ...(baseline ? { baseline } : {}), ...(current ? { current } : {}), ...(entry.role ? { role: entry.role } : {}), ...(sourceDiagnostics.length ? { sourceDiagnostics } : {}) });
   }
   return result;
 }
@@ -425,6 +446,22 @@ export async function runHarmonyBenchmark(options: HarmonyBenchmarkRunnerOptions
   await mkdir(outputDirectory, { recursive: true });
   const pathValue = join(outputDirectory, "harmony-benchmark-report.json");
   const json = canonicalHarmonyBenchmarkReportJson(report).replace(/\n$/, "") + "\n";
-  await writeFile(pathValue, json, "utf8");
+  const outputDirectoryStat = await lstat(outputDirectory);
+  if (!outputDirectoryStat.isDirectory() || outputDirectoryStat.isSymbolicLink()) throw new Error("harmony benchmark output directory must not be a symlink");
+  try {
+    const reportStat = await lstat(pathValue);
+    if (reportStat.isSymbolicLink()) throw new Error("harmony benchmark report path must not be a symlink");
+    if (!reportStat.isFile()) throw new Error("harmony benchmark report path must be a regular file");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+  }
+  const temporaryPath = join(outputDirectory, `.harmony-benchmark-report.${process.pid}.${Date.now()}.tmp`);
+  try {
+    await writeFile(temporaryPath, json, { encoding: "utf8", flag: "wx" });
+    await rename(temporaryPath, pathValue);
+  } catch (error) {
+    await unlink(temporaryPath).catch(() => undefined);
+    throw error;
+  }
   return { path: pathValue, json, report };
 }

@@ -144,6 +144,7 @@ function normalizeScore(raw: unknown): HarmonyBenchmarkScoreInput {
   const reference = record(row.reference);
   const coverage = record(reference.trustedCoverage);
   const backend = record(reference.selectedOmr);
+  if (reference.excludedRegions !== undefined && !Array.isArray(reference.excludedRegions)) throw new Error(`${scoreId}.excludedRegions must be an array`);
   const exclusions = Array.isArray(reference.excludedRegions) ? reference.excludedRegions : [];
   const sourcePdf: HarmonyBenchmarkHashMetadata = {
     sha256: hash(pdf.sha256, `${scoreId}.sourcePdf.sha256`), bytes: finite(pdf.bytes, `${scoreId}.sourcePdf.bytes`), pages: finite(pdf.pages, `${scoreId}.sourcePdf.pages`),

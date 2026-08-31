@@ -90,6 +90,10 @@ describe("harmony benchmark manifest", () => {
     const crossSet = input();
     crossSet.scores[0]!.reference.excludedRegions = [{ id: "excluded", startBeat: 1, endBeat: 3, reason: "uncertain" }];
     expect(() => normalizeHarmonyBenchmarkManifest(crossSet)).toThrow(/overlap/i);
+
+    const malformedExcludedRegions = input();
+    (malformedExcludedRegions.scores[0]!.reference as unknown as Record<string, unknown>).excludedRegions = "not-an-array";
+    expect(() => normalizeHarmonyBenchmarkManifest(malformedExcludedRegions)).toThrow(/excludedRegions.*array/i);
   });
 
   it("preserves a safe selectedAt timestamp and rejects relative path-like text", () => {
