@@ -68,7 +68,7 @@ function renderer(failing = false): MidiAudioRenderer {
   };
 }
 
-function longRenderer(seen: string[] = [], delayMs = 0): MidiAudioRenderer {
+function longRenderer(seen: string[] = [], delayMs = 0, createOutputDirectory = true): MidiAudioRenderer {
   const samples = Array.from({ length: 8_000 * 120 }, (_, index) => [0, 1_000, -2_000, 16_000][index % 4]!);
   const wav = wavPcm16(samples);
   return {
@@ -77,7 +77,7 @@ function longRenderer(seen: string[] = [], delayMs = 0): MidiAudioRenderer {
     async render(input): Promise<MidiRenderResult> {
       seen.push(input.outputPath);
       if (delayMs) await new Promise((resolve) => setTimeout(resolve, delayMs));
-      await mkdir(dirname(input.outputPath), { recursive: true });
+      if (createOutputDirectory) await mkdir(dirname(input.outputPath), { recursive: true });
       await writeFile(input.outputPath, wav);
       return {
         renderer: { id: "fluidsynth", version: "pcm16-v1", executable: "/private/bin/fluidsynth", sampleRate: 8_000, gain: 1, targetPeak: 0.95 },
@@ -220,6 +220,32 @@ describe("rotating multi-song blind listening bundle", () => {
       expect(audio.rms).toBeLessThan(0.4);
       expect((await readdir(output)).some((entry) => entry.startsWith(".staging-"))).toBe(false);
       expect((await readdir(output)).some((entry) => entry === ".renders")).toBe(false);
+    } finally {
+      await Promise.all([source, output].map((path) => rm(path, { recursive: true, force: true })));
+    }
+  });
+
+  it("creates each nested renderer output directory before invoking the renderer", async () => {
+    const source = await mkdtemp(join(tmpdir(), "keyspilli-rotating-render-path-source-"));
+    const output = await mkdtemp(join(tmpdir(), "keyspilli-rotating-render-path-output-"));
+    try {
+      const paths = await Promise.all(["a", "b"].map(async (id) => {
+        const path = join(source, `${id}.mid`);
+        await writeFile(path, midiBytes());
+        return path;
+      }));
+      const result = await buildRotatingListeningBundle({
+        songs: [song("a", paths[0]!, paths[0]!), song("b", paths[1]!, paths[1]!)],
+        outputRoot: output,
+        repositoryRoot: process.cwd(),
+        seed: "nested-render-path",
+        targetSeconds: 90,
+        minSeconds: 90,
+        maxSeconds: 90,
+      }, { renderer: longRenderer([], 0, false) });
+      expect(result.manifest.status).toBe("ready");
+      expect(result.manifest.errors).toEqual([]);
+      expect(result.manifest.excerpts.every((excerpt) => excerpt.candidates.A.status === "rendered" && excerpt.candidates.B.status === "rendered")).toBe(true);
     } finally {
       await Promise.all([source, output].map((path) => rm(path, { recursive: true, force: true })));
     }

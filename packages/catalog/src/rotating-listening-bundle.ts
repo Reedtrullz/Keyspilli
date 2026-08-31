@@ -575,6 +575,7 @@ export async function buildRotatingListeningBundle(
     }
     const renderKey = `${songId}\u0000${candidate}`;
     const outputPath = join(stagingRoot, ".renders", hash(renderKey).slice(0, 20), `${candidate}.full.wav`);
+    await mkdir(dirname(outputPath), { recursive: true });
     await unlink(outputPath).catch(() => undefined);
     try {
       const result = await dependencies.renderer.render({ midiPath, outputPath });
