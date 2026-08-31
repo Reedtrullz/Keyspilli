@@ -85,12 +85,26 @@ export interface HarmonyBenchmarkFailureCluster {
   songIds: string[];
 }
 
+export interface HarmonyBenchmarkCoverage {
+  manifestScoreCount: number;
+  referenceAvailableCount: number;
+  baselineAvailableCount: number;
+  currentArtifactCount: number;
+  currentEvaluableCount: number;
+  comparablePairCount: number;
+  requiredComparablePairCount: number;
+  recordingAvailableCount: number;
+  eligible: boolean;
+  blockers: string[];
+}
+
 export interface HarmonyBenchmarkReport {
   schemaVersion: 1;
   kind: "harmony-benchmark-report";
   manifestStatus: HarmonyBenchmarkManifest["status"];
   songs: HarmonyBenchmarkSongResult[];
   failureClusters: HarmonyBenchmarkFailureCluster[];
+  coverage: HarmonyBenchmarkCoverage;
   canonicalSha256: string;
 }
 
@@ -358,6 +372,30 @@ function songResult(score: HarmonyBenchmarkScoreInput, sources: HarmonyBenchmark
   };
 }
 
+function benchmarkCoverage(manifest: HarmonyBenchmarkManifest, songs: readonly HarmonyBenchmarkSongResult[], sources: ReadonlyMap<string, HarmonyBenchmarkParsedSources>): HarmonyBenchmarkCoverage {
+  const manifestScoreCount = manifest.scores.length;
+  const referenceAvailableCount = manifest.scores.filter((score) => sources.get(score.id)?.reference !== undefined).length;
+  const baselineAvailableCount = songs.filter((song) => song.baseline.status === "available").length;
+  const currentArtifactCount = songs.filter((song) => song.current.status === "available").length;
+  const currentEvaluableCount = songs.filter((song) => song.current.status === "available" && song.current.metrics !== null).length;
+  const comparablePairCount = songs.filter((song) => song.baseline.status === "available" && song.current.status === "available"
+    && song.baseline.metrics !== null && song.current.metrics !== null).length;
+  const requiredComparablePairCount = 3;
+  const recordingAvailableCount = manifest.scores.filter((score) => score.recording.status === "available").length;
+  const blockers: string[] = [];
+  if (referenceAvailableCount < manifestScoreCount) blockers.push("references-incomplete");
+  if (baselineAvailableCount < manifestScoreCount) blockers.push("baseline-artifacts-incomplete");
+  if (currentArtifactCount < manifestScoreCount) blockers.push("current-artifacts-incomplete");
+  if (currentEvaluableCount < manifestScoreCount) blockers.push("current-evaluable-incomplete");
+  if (comparablePairCount < requiredComparablePairCount) blockers.push("comparable-pairs-insufficient");
+  if (recordingAvailableCount < manifestScoreCount) blockers.push("recordings-incomplete");
+  blockers.sort(compareCodeUnits);
+  return {
+    manifestScoreCount, referenceAvailableCount, baselineAvailableCount, currentArtifactCount, currentEvaluableCount,
+    comparablePairCount, requiredComparablePairCount, recordingAvailableCount, eligible: blockers.length === 0, blockers,
+  };
+}
+
 /** Evaluate every manifest score without reading files or mutating state. */
 export function evaluateHarmonyBenchmark(
   manifest: HarmonyBenchmarkManifest,
@@ -368,7 +406,8 @@ export function evaluateHarmonyBenchmark(
   const clusterMap = new Map<string, string[]>();
   for (const song of songs) for (const cluster of song.failureClusters) (clusterMap.get(cluster) ?? (clusterMap.set(cluster, []), clusterMap.get(cluster)!)).push(song.id);
   const failureClusters = [...clusterMap.entries()].map(([code, songIds]) => ({ code, count: songIds.length, songIds: [...new Set(songIds)].sort(compareCodeUnits) })).sort((left, right) => compareCodeUnits(left.code, right.code));
-  const base = { schemaVersion: 1 as const, kind: "harmony-benchmark-report" as const, manifestStatus: manifest.status, songs, failureClusters };
+  const coverage = benchmarkCoverage(manifest, songs, sources);
+  const base = { schemaVersion: 1 as const, kind: "harmony-benchmark-report" as const, manifestStatus: manifest.status, songs, failureClusters, coverage };
   const canonicalSha256 = hashBytes(new TextEncoder().encode(canonicalJson(base)));
   return { ...base, canonicalSha256 };
 }

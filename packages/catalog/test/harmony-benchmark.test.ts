@@ -41,6 +41,24 @@ function midi(notes: Note[]): Uint8Array {
 }
 
 describe("local harmony benchmark evaluator", () => {
+  it("summarizes a six-score report with no local candidates as ineligible", () => {
+    const normalized = normalizeHarmonyBenchmarkManifest(manifest());
+    const report = evaluateHarmonyBenchmark(normalized, new Map());
+
+    expect(report.coverage).toEqual({
+      manifestScoreCount: 6,
+      referenceAvailableCount: 0,
+      baselineAvailableCount: 0,
+      currentArtifactCount: 0,
+      currentEvaluableCount: 0,
+      comparablePairCount: 0,
+      requiredComparablePairCount: 3,
+      recordingAvailableCount: 0,
+      eligible: false,
+      blockers: ["baseline-artifacts-incomplete", "comparable-pairs-insufficient", "current-artifacts-incomplete", "current-evaluable-incomplete", "recordings-incomplete", "references-incomplete"],
+    });
+  });
+
   it("evaluates six manifest rows once per explicit window and keeps missing candidates unavailable", () => {
     const normalized = normalizeHarmonyBenchmarkManifest(manifest());
     const reference = parseMidi(midi([note(36, 0), note(40, 0), note(43, 0)]));
@@ -55,6 +73,18 @@ describe("local harmony benchmark evaluator", () => {
     expect(report.songs.slice(1).every((song) => song.status === "unavailable")).toBe(true);
     expect(report.songs[1]?.current.status).toBe("unavailable");
     expect(report.failureClusters.some((cluster) => cluster.code === "candidate-unavailable")).toBe(true);
+    expect(report.coverage).toEqual({
+      manifestScoreCount: 6,
+      referenceAvailableCount: 1,
+      baselineAvailableCount: 0,
+      currentArtifactCount: 1,
+      currentEvaluableCount: 1,
+      comparablePairCount: 0,
+      requiredComparablePairCount: 3,
+      recordingAvailableCount: 0,
+      eligible: false,
+      blockers: ["baseline-artifacts-incomplete", "comparable-pairs-insufficient", "current-artifacts-incomplete", "current-evaluable-incomplete", "recordings-incomplete", "references-incomplete"],
+    });
     expect(JSON.stringify(report)).not.toContain("/Users/");
     expect(JSON.stringify(report)).not.toContain("36,0,4");
   });
@@ -84,6 +114,10 @@ describe("local harmony benchmark evaluator", () => {
     expect(report.songs[0]?.comparison).toBeDefined();
     expect(report.songs[0]?.comparison?.chromaAgreementDelta).not.toBeNull();
     expect(report.songs[0]?.current.metrics?.leftHand.noteCount).toBe(3);
+    expect(report.coverage.comparablePairCount).toBe(1);
+    expect(report.coverage.baselineAvailableCount).toBe(1);
+    expect(report.coverage.currentArtifactCount).toBe(1);
+    expect(report.coverage.currentEvaluableCount).toBe(1);
   });
 
   it("runs from an explicit sidecar, writes outside the repository, and reruns deterministically", async () => {
