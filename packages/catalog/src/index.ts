@@ -37,3 +37,6 @@ export * from "./native-score-discovery.js";
 export * from "./harmony-evaluation.js";
 export * from "./harmony-benchmark-manifest.js";
 export * from "./harmony-benchmark.js";
+export * from "./midi-corpus-roles.js";
+export * from "./midi-corpus.js";
+export * from "./midi-corpus-report.js";

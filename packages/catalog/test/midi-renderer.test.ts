@@ -8,6 +8,7 @@ import {
   buildFluidSynthArgs,
   createFluidSynthRenderer,
   resolveFluidSynthConfig,
+  slicePcm16WavFile,
   type ExecFilePromise,
 } from "../src/midi-renderer.js";
 
@@ -126,6 +127,26 @@ describe("FluidSynth MIDI renderer", () => {
       expect(a.renderer.sampleRate).toBe(44_100);
     } finally {
       await rm(f.dir, { recursive: true, force: true });
+    }
+  });
+
+  it("creates deterministic, frame-aligned PCM16 excerpts and clamps short sources", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "keyspilli-midi-renderer-excerpt-"));
+    const input = join(dir, "source.wav");
+    const first = join(dir, "first.wav");
+    const second = join(dir, "second.wav");
+    await writeFile(input, wavPcm16([1000, 2000, 3000, 4000, 5000, 6000], 4));
+    try {
+      const a = await slicePcm16WavFile(input, first, 0.25, 24);
+      const b = await slicePcm16WavFile(input, second, 0.25, 24);
+      expect(a).toMatchObject({ sampleRate: 4, channels: 1, frameCount: 5, durationSeconds: 1.25, bytes: 54 });
+      expect(a.sha256).toBe(b.sha256);
+      expect(await readFile(first)).toEqual(await readFile(second));
+      const bytes = await readFile(first);
+      const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+      expect(Array.from({ length: 5 }, (_, index) => view.getInt16(44 + index * 2, true))).toEqual([2000, 3000, 4000, 5000, 6000]);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
     }
   });
 

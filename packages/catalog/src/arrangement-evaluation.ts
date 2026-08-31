@@ -148,7 +148,8 @@ export interface GlobalMetrics {
   pitchMin: number | null;
   pitchMax: number | null;
   pitchSpan: number | null;
-  simultaneity: { max: number; p50: number; p90: number; p99: number; basis: "sounding-sweep" };
+  /** Quantiles are sampled at note start/end boundaries; max is the sweep maximum. */
+  simultaneity: { max: number; p50: number; p90: number; p99: number; basis: "event-boundary" };
   chromaticOutlier: { value: number | null; basis: "explicit-key" | "reference" | "unavailable"; count: number | null; total: number | null };
   isolatedShortCount: number;
   veryShortCount: number;
@@ -603,7 +604,7 @@ function globalMetrics(
     pitchMin: low,
     pitchMax: high,
     pitchSpan: range.span,
-    simultaneity: { max: sweep.max, p50: sweep.quantiles[0]!, p90: sweep.quantiles[1]!, p99: sweep.quantiles[2]!, basis: "sounding-sweep" },
+    simultaneity: { max: sweep.max, p50: sweep.quantiles[0]!, p90: sweep.quantiles[1]!, p99: sweep.quantiles[2]!, basis: "event-boundary" },
     chromaticOutlier: { value: null, basis: "unavailable", count: null, total: null },
     isolatedShortCount: isolated,
     veryShortCount: valid.filter((note) => note.dur <= ARRANGEMENT_EVALUATION_CONFIG.veryShortBeats).length,
@@ -1361,7 +1362,7 @@ function qualityGate(
 ): GateResult {
   const failures: string[] = [...inputFailures];
   const warnings: string[] = [];
-  const evaluated = ["finite MIDI notes", "finite parser metadata", "sounding simultaneity", "piano range", "drum-derived pitch count"];
+  const evaluated = ["finite MIDI notes", "finite parser metadata", "event-boundary simultaneity", "piano range", "drum-derived pitch count"];
   const invalid = notes.filter((note) => !finiteNote(note)).length;
   if (invalid) failures.push(`${invalid} non-finite or invalid MIDI notes`);
   if (!parserValid) failures.push("parser metadata contains non-finite or invalid values");
@@ -1403,9 +1404,20 @@ function qualityGate(
       failures.push("variant list is not an array");
     } else if (!variants.length) failures.push("variant list is empty");
     const safeVariants: Variant[] = [];
+    const seenVariantLevels = new Set<Variant["level"]>();
     for (const rawVariant of Array.isArray(variants) ? variants : []) {
       const guarded = guardVariant(rawVariant);
       failures.push(...guarded.metadataFailures);
+      // A duplicate valid difficulty level would overwrite the earlier
+      // entry in the report's level-keyed map and make validation depend on
+      // input order. Treat it as malformed metadata instead of guessing
+      // which learner level the caller intended.
+      const rawLevel = isRecord(rawVariant) ? rawVariant.level : undefined;
+      if (VARIANT_LEVELS.has(rawLevel as Variant["level"])) {
+        const level = rawLevel as Variant["level"];
+        if (seenVariantLevels.has(level)) failures.push(`${level}: duplicate difficulty level`);
+        else seenVariantLevels.add(level);
+      }
       const rawNotes = (rawVariant as unknown as { notes?: unknown } | null)?.notes;
       if (!Array.isArray(rawNotes)) {
         failures.push(`${guarded.label}: variant notes are not an array`);
@@ -1461,7 +1473,39 @@ const CANONICAL_PATH_KEY = /path$|filename$|file$/i;
 
 function redactEmbeddedPaths(value: string): string {
   const roots = "(?:Users|private|tmp|var|home|root|opt|mnt|workspace|etc|srv|data|app)";
+  const boundary = "(^|[\\s(\"'=,;\\[\\]])";
+  const endBoundary = "(?=$|[\\s\"'<>;,\\)\\]\\.!?])";
+  const extensions = "(?:mid|midi|json|wav|mp3|txt|pdf|xml|mxl|csv|log)";
+  const trimmed = value.trim();
+  const pathOnlyPatterns = [
+    new RegExp(`^/(?:${roots})(?:[\\\\/][^\"'<>;,)]*)*$`, "i"),
+    new RegExp(`^[A-Za-z]:[\\\\/][^\"'<>;,)]*$`, "i"),
+    /^\\\\[^\"'<>;,)]*$/,
+    new RegExp(`^file:/{2,}(?:/?(?:${roots})(?:[\\\\/][^\"'<>;,)]*)*|[A-Za-z]:[\\\\/][^\"'<>;,)]*)$`, "i"),
+  ];
+  if (pathOnlyPatterns.some((pattern) => pattern.test(trimmed))) {
+    const start = value.indexOf(trimmed);
+    return `${value.slice(0, start)}[redacted-path]${value.slice(start + trimmed.length)}`;
+  }
   return value
+    // A path can contain spaces, so the short root-only replacements below
+    // must not run first: they would redact only `/Users/reidar/Private` and
+    // leave the rest of the filename visible.  Consume through a known file
+    // extension in one pass for both POSIX and drive-qualified paths.
+    .replace(new RegExp(`${boundary}file:/{2,}((?:/?${roots})[^\\s\"'<>;,)]*?(?:\\s+[^\\s\"'<>;,)]*)*\\.${extensions})${endBoundary}`, "gi"), "$1[redacted-path]")
+    .replace(new RegExp(`${boundary}(/(?:${roots})[^\\s\"'<>;,)]*?(?:\\s+[^\\s\"'<>;,)]*)*\\.${extensions})${endBoundary}`, "gi"), "$1[redacted-path]")
+    .replace(new RegExp(`${boundary}([A-Za-z]:[\\\\/][^\\s\"'<>;,)]*?(?:\\s+[^\\s\"'<>;,)]*)*\\.${extensions})${endBoundary}`, "gi"), "$1[redacted-path]")
+    .replace(new RegExp(`${boundary}(\\\\[^\"'<>;,)]*?(?:\\s+[^\\s\"'<>;,)]*)*\\.${extensions})${endBoundary}`, "gi"), "$1[redacted-path]")
+    // Extension-less paths are common for temporary working files.  These
+    // patterns only start at an absolute/drive/UNC path boundary, avoiding
+    // ordinary URL and logical-label values.
+    .replace(new RegExp(`${boundary}(/(?:${roots})(?:[\\\\/][^\"'<>;,)]*)*)${endBoundary}`, "gi"), "$1[redacted-path]")
+    .replace(new RegExp(`${boundary}([A-Za-z]:[\\\\/][^\"'<>;,)]*)${endBoundary}`, "gi"), "$1[redacted-path]")
+    .replace(new RegExp(`${boundary}(\\\\[^\"'<>;,)]*)${endBoundary}`, "gi"), "$1[redacted-path]")
+    // Exact extension-less absolute paths are safe to redact as a whole.  A
+    // prose fragment is intentionally left to the conservative token rules
+    // below, preventing ordinary labels from being swallowed.
+    .replace(new RegExp(`^(\\s*)(/(?:${roots})(?:[\\\\/][^\"'<>;,)]*)+|[A-Za-z]:[\\\\/][^\"'<>;,)]*)\\s*$`, "gi"), "$1[redacted-path]")
     // Handle file URIs before ordinary absolute paths.
     .replace(new RegExp(`file:///?${roots}(?:/[^\\s\"'<>;,)]*)?`, "gi"), "[redacted-path]")
     // Require a non-URL boundary before POSIX paths so https://host/root is

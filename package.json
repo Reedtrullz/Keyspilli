@@ -32,7 +32,8 @@
     "build:piano-section-listening": "npm run build:piano-section-listening -w @keyspilli/catalog --",
     "benchmark:score": "npm run benchmark:score -w @keyspilli/catalog --",
     "benchmark:scores": "npm run benchmark:scores -w @keyspilli/catalog --",
-    "report:melody-review": "npm run report:melody-review -w @keyspilli/catalog --"
+    "report:melody-review": "npm run report:melody-review -w @keyspilli/catalog --",
+    "build:midi-corpus": "npm run build:midi-corpus -w @keyspilli/catalog --"
   },
   "engines": {
     "node": ">=20"

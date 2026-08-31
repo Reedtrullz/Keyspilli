@@ -36,6 +36,7 @@ describe("arrangement evaluation", () => {
     expect(report.metrics.source.final.right.vocals).toBe(1);
     expect(report.metrics.source.final.right.guitar).toBe(1);
     expect(report.metrics.global.simultaneity.max).toBe(3);
+    expect(report.metrics.global.simultaneity.basis).toBe("event-boundary");
     expect(report.gate.mode).toBe("structural");
   });
 
@@ -416,6 +417,33 @@ describe("arrangement evaluation", () => {
     ]));
   });
 
+  it("fails closed when the variant list contains duplicate difficulty levels", () => {
+    const notes: Note[] = Array.from({ length: 8 }, (_, index) => ({
+      midi: 60 + (index % 2),
+      start: index * 0.5,
+      dur: 0.25,
+      vel: 90,
+      hand: "R" as const,
+    }));
+    const variant = {
+      level: "easy",
+      difficultyScore: 0.4,
+      notes,
+      chords: [],
+      bassPattern: "root-fifth",
+      key: "C",
+      tempoBpm: 120,
+      timeSig: [4, 4],
+      measures: [{ index: 0, startBeat: 0, endBeat: 4 }],
+    } as unknown as Variant;
+    const report = evaluateArrangement({
+      ...input(notes.slice(0, 1)),
+      variants: [variant, { ...variant, difficultyScore: 0.5 }],
+    });
+    expect(report.gate.status).toBe("fail");
+    expect(report.gate.failures).toContain("easy: duplicate difficulty level");
+  });
+
   it("reports suspicious output shape as non-blocking quality warnings", () => {
     const notes: Note[] = Array.from({ length: 32 }, (_, index) => ({
       midi: 60,
@@ -625,6 +653,56 @@ describe("arrangement evaluation", () => {
     expect(canonical).not.toContain("filePath");
     expect(canonical).toContain("[redacted-path]");
     expect(canonical).not.toContain("rawMidi");
+  });
+
+  it("redacts complete paths when trace values contain spaces or Windows separators", () => {
+    const report = evaluateArrangement({
+      ...input([{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }]),
+      trace: {
+        status: "available",
+        events: [{
+          key: "trace",
+          source: "/Users/reidar/Private MIDI/Defence of Moscow.mid",
+          sourceStem: "C:\\Users\\reidar\\My folder\\Secret.mid",
+          selectionReason: "selected /private/tmp/Source File.mid.",
+        }],
+      },
+    });
+    const canonical = canonicalEvaluationJson(report);
+    expect(canonical).not.toContain("MIDI/Defence of Moscow.mid");
+    expect(canonical).not.toContain("folder\\\\Secret.mid");
+    expect(canonical).not.toContain("Source File.mid");
+    expect(canonical).toContain("[redacted-path]");
+
+    const uriAndUnc = evaluateArrangement({
+      ...input([{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }]),
+      trace: {
+        status: "available",
+        events: [{
+          key: "trace",
+          source: "file:///Users/reidar/Private MIDI/Reference.mid",
+          sourceStem: "\\\\server\\share\\My Folder\\Fallback.mid",
+        }],
+      },
+    });
+    const uriAndUncCanonical = canonicalEvaluationJson(uriAndUnc);
+    expect(uriAndUncCanonical).not.toContain("MIDI/Reference.mid");
+    expect(uriAndUncCanonical).not.toContain("My Folder\\\\Fallback.mid");
+
+    const extensionless = evaluateArrangement({
+      ...input([{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }]),
+      trace: {
+        status: "available",
+        events: [{
+          key: "trace",
+          source: "file://Users/reidar/My Folder/extensionless-source",
+          sourceStem: "\\\\server\\share\\My Folder\\extensionless-source",
+        }],
+      },
+    });
+    const extensionlessCanonical = canonicalEvaluationJson(extensionless);
+    expect(extensionlessCanonical).not.toContain("My Folder/extensionless-source");
+    expect(extensionlessCanonical).not.toContain("My Folder\\\\extensionless-source");
   });
 
   it("sanitizes Windows-style selector paths in the report", () => {

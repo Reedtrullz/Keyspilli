@@ -480,3 +480,84 @@ export function createFluidSynthRenderer(options: MidiRendererOptions = {}): Mid
 export function renderMidiToWav(input: MidiRenderInput, options: MidiRendererOptions = {}): Promise<MidiRenderResult> {
   return createFluidSynthRenderer(options).render(input);
 }
+
+/**
+ * Slice a canonical PCM16 WAV without re-encoding it through an external
+ * process.  This is used by local listening/evaluation bundles after a full
+ * render has completed.  The output is rebuilt with a minimal deterministic
+ * RIFF header, so repeated runs over the same input and range produce the
+ * same bytes.
+ */
+export async function slicePcm16WavFile(
+  inputPath: string,
+  outputPath: string,
+  startSeconds: number,
+  endSeconds: number,
+): Promise<{
+  sampleRate: number;
+  channels: number;
+  frameCount: number;
+  durationSeconds: number;
+  bytes: number;
+  sha256: string;
+}> {
+  const sourcePath = pathValue(inputPath, "WAV input")!;
+  const destinationPath = pathValue(outputPath, "WAV output")!;
+  if (resolve(sourcePath) === resolve(destinationPath)) {
+    throw new MidiRendererError("INVALID_INPUT", "WAV input and excerpt output must be different files");
+  }
+  if (!finite(startSeconds) || startSeconds < 0 || Number.isNaN(endSeconds) || endSeconds <= startSeconds) {
+    throw new MidiRendererError("INVALID_INPUT", "WAV excerpt range must be finite, non-negative, and non-empty");
+  }
+  const source = new Uint8Array(await readFile(sourcePath));
+  const view = new DataView(source.buffer, source.byteOffset, source.byteLength);
+  const fmt = findWavChunk(view, "fmt ");
+  if (fmt.length < 16) throw new MidiRendererError("INVALID_WAV", "WAV fmt chunk is too short");
+  const format = view.getUint16(fmt.offset, true);
+  const channels = view.getUint16(fmt.offset + 2, true);
+  const sampleRate = view.getUint32(fmt.offset + 4, true);
+  const bits = view.getUint16(fmt.offset + 14, true);
+  const data = findWavChunk(view, "data");
+  if (format !== 1 || bits !== 16 || !Number.isInteger(channels) || channels < 1 || channels > 32 || !Number.isInteger(sampleRate) || sampleRate <= 0) {
+    throw new MidiRendererError("INVALID_WAV", "WAV excerpts require canonical PCM16 data");
+  }
+  const bytesPerFrame = channels * 2;
+  if (data.length % bytesPerFrame !== 0) throw new MidiRendererError("INVALID_WAV", "WAV data is not aligned to complete PCM frames");
+  const totalFrames = data.length / bytesPerFrame;
+  const startFrame = Math.max(0, Math.min(totalFrames, Math.floor(startSeconds * sampleRate)));
+  const endFrame = Math.max(startFrame, Math.min(totalFrames, Number.isFinite(endSeconds) ? Math.ceil(endSeconds * sampleRate) : totalFrames));
+  if (endFrame <= startFrame) throw new MidiRendererError("INVALID_INPUT", "WAV excerpt range contains no audio frames");
+  const payload = source.slice(data.offset + startFrame * bytesPerFrame, data.offset + endFrame * bytesPerFrame);
+  const header = new ArrayBuffer(44);
+  const headerView = new DataView(header);
+  const writeAscii = (offset: number, value: string): void => {
+    for (let index = 0; index < value.length; index += 1) headerView.setUint8(offset + index, value.charCodeAt(index));
+  };
+  writeAscii(0, "RIFF");
+  headerView.setUint32(4, 36 + payload.length, true);
+  writeAscii(8, "WAVE");
+  writeAscii(12, "fmt ");
+  headerView.setUint32(16, 16, true);
+  headerView.setUint16(20, 1, true);
+  headerView.setUint16(22, channels, true);
+  headerView.setUint32(24, sampleRate, true);
+  headerView.setUint32(28, sampleRate * bytesPerFrame, true);
+  headerView.setUint16(32, bytesPerFrame, true);
+  headerView.setUint16(34, 16, true);
+  writeAscii(36, "data");
+  headerView.setUint32(40, payload.length, true);
+  const output = new Uint8Array(44 + payload.length);
+  output.set(new Uint8Array(header), 0);
+  output.set(payload, 44);
+  await mkdir(dirname(destinationPath), { recursive: true });
+  await writeFile(destinationPath, output);
+  const frameCount = payload.length / bytesPerFrame;
+  return {
+    sampleRate,
+    channels,
+    frameCount,
+    durationSeconds: round(frameCount / sampleRate),
+    bytes: output.byteLength,
+    sha256: hashBytes(output),
+  };
+}
