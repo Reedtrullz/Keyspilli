@@ -31,6 +31,7 @@
     "tempo-robustness": "tsx scripts/tempo-robustness.ts",
     "evaluate-metal": "tsx scripts/evaluate-metal.ts",
     "evaluate-piano-candidates": "tsx scripts/evaluate-piano-candidates.ts",
+    "route-funnel": "tsx scripts/route-funnel.ts",
     "research:song": "tsx scripts/research-song.ts",
     "render:midi": "tsx scripts/render-midi.ts",
     "build:listening": "tsx scripts/build-listening-bundle.ts",
