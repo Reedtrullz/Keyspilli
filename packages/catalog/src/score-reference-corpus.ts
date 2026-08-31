@@ -154,8 +154,51 @@ export interface ScoreReferenceOmrRoleQuality {
   selectionPolicy: OmrRoleQualityReport["selectionPolicy"];
   thresholds: OmrRoleQualityReport["thresholds"];
   backendSummaries: OmrRoleQualityBackendSummary[];
+  /**
+   * Compact per-backend/per-role category diagnostics.  This intentionally
+   * projects event-free measure rows rather than copying the normalized event
+   * payload, so corpus reports remain useful for auditing without becoming a
+   * second symbolic artifact.
+   */
+  backendDiagnostics: ScoreReferenceOmrBackendDiagnostic[];
   roleReadiness: Record<LocalScoreReferenceRole, OmrRoleReadinessSummary>;
   reviewGroups: OmrRoleQualityReviewGroup[];
+}
+
+export interface ScoreReferenceOmrCategoryDiagnostic {
+  score: number | null;
+  available: boolean;
+  basis: string | null;
+  flags: string[];
+  measureCount: number;
+  availableMeasures: number;
+}
+
+export interface ScoreReferenceOmrBackendDiagnostic {
+  backendId: string;
+  backendVersion: string;
+  role: "melody" | "harmony" | "rhythm";
+  measureCount: number;
+  availableMeasures: number;
+  coverage: number | null;
+  categories: {
+    /** Measure arithmetic and event-bound checks. */
+    rhythmicValidity: ScoreReferenceOmrCategoryDiagnostic;
+    /** Same-role pitch interval plausibility. */
+    pitchPlausibility: ScoreReferenceOmrCategoryDiagnostic;
+    /** Overlap, duplicate, and tie continuity checks. */
+    continuity: ScoreReferenceOmrCategoryDiagnostic;
+    /** Normalized measure invariants. */
+    structuralValidity: ScoreReferenceOmrCategoryDiagnostic;
+    /** Density anomaly versus the role baseline. */
+    densityAnomaly: ScoreReferenceOmrCategoryDiagnostic;
+    /** Staff/voice/accidental presence used as notation consistency evidence. */
+    notationCompleteness: ScoreReferenceOmrCategoryDiagnostic;
+    /** Key metadata is not carried by the role-quality row projection. */
+    keyConsistency: ScoreReferenceOmrCategoryDiagnostic;
+    /** Time-signature metadata is not carried by the role-quality row projection. */
+    timeConsistency: ScoreReferenceOmrCategoryDiagnostic;
+  };
 }
 
 export interface ScoreReferenceCorpusOutputs {
@@ -539,9 +582,74 @@ function roleQualitySummary(quality: OmrQualityReport | null): ScoreReferenceOmr
     selectionPolicy: report.selectionPolicy,
     thresholds: report.thresholds,
     backendSummaries: report.backendSummaries,
+    backendDiagnostics: backendRoleDiagnostics(report),
     roleReadiness,
     reviewGroups: report.reviewGroups,
   };
+}
+
+const ROLE_QUALITY_CATEGORY_KEYS = [
+  "rhythmicValidity",
+  "pitchPlausibility",
+  "continuity",
+  "structuralValidity",
+  "densityAnomaly",
+  "notationCompleteness",
+] as const;
+
+type RoleQualityCategoryKey = (typeof ROLE_QUALITY_CATEGORY_KEYS)[number];
+
+function diagnosticCategory(
+  rows: readonly OmrRoleQualityReport["measures"][number][],
+  key: RoleQualityCategoryKey,
+): ScoreReferenceOmrCategoryDiagnostic {
+  const categories = rows.map((row) => row.categories?.[key]).filter((value): value is NonNullable<typeof value> => Boolean(value));
+  const available = categories.filter((value) => value.available && finite(value.score));
+  const scores = available.map((value) => value.score!).filter(finite);
+  const flags = [...new Set(categories.flatMap((value) => Array.isArray(value.flags) ? value.flags : []))].sort(compareText);
+  const bases = [...new Set(categories.map((value) => value.basis).filter((value): value is string => typeof value === "string" && value.length > 0))].sort(compareText);
+  return {
+    score: scores.length ? Math.round((scores.reduce((sum, value) => sum + value, 0) / scores.length) * 1e6) / 1e6 : null,
+    available: scores.length > 0,
+    basis: bases.length ? bases.join("; ") : `no ${key} evidence`,
+    flags,
+    measureCount: rows.length,
+    availableMeasures: available.length,
+  };
+}
+
+function unavailableConsistencyCategory(kind: "key" | "time", measureCount: number): ScoreReferenceOmrCategoryDiagnostic {
+  return {
+    score: null,
+    available: false,
+    basis: `${kind} metadata is not represented in role-quality rows`,
+    flags: [],
+    measureCount,
+    availableMeasures: 0,
+  };
+}
+
+function backendRoleDiagnostics(report: OmrRoleQualityReport): ScoreReferenceOmrBackendDiagnostic[] {
+  const rows = Array.isArray(report.measures) ? report.measures : [];
+  return report.backendSummaries.map((summary) => {
+    const backendRows = rows.filter((row) => row.backendId === summary.backendId
+      && row.backendVersion === summary.backendVersion
+      && row.role === summary.role);
+    const categories = Object.fromEntries(ROLE_QUALITY_CATEGORY_KEYS.map((key) => [key, diagnosticCategory(backendRows, key)])) as Pick<ScoreReferenceOmrBackendDiagnostic["categories"], RoleQualityCategoryKey>;
+    return {
+      backendId: summary.backendId,
+      backendVersion: summary.backendVersion,
+      role: summary.role,
+      measureCount: summary.measureCount,
+      availableMeasures: summary.availableMeasures,
+      coverage: summary.coverage,
+      categories: {
+        ...categories,
+        keyConsistency: unavailableConsistencyCategory("key", backendRows.length),
+        timeConsistency: unavailableConsistencyCategory("time", backendRows.length),
+      },
+    };
+  });
 }
 
 function independentRoleReadiness(

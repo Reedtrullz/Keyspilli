@@ -337,6 +337,48 @@ describe("local score reference corpus runner", () => {
     }
   });
 
+  it("exposes deterministic per-backend role category diagnostics without events or paths", async () => {
+    const root = await mkdtemp(join(tmpdir(), "keyspilli-score-reference-backend-diagnostics-"));
+    const output = join(root, "output");
+    const input: ScoreReferenceCorpusInput = {
+      schemaVersion: 1,
+      scores: [corpusScore("backend-diagnostics", {
+        omr: [
+          { id: "z-melody", version: "1", score: roleScore("melody", [60, 62, 64]) },
+          { id: "a-harmony", version: "2", score: roleScore("harmony", [48, 52, 55]) },
+        ],
+      })],
+    };
+    try {
+      const first = await runLocalScoreReferenceCorpus(input, { outputRoot: output, repositoryRoot: resolve(process.cwd(), "not-the-repository") });
+      const item = first.scores[0]!;
+      const diagnostics = item.omr.roleQuality?.backendDiagnostics ?? [];
+      expect(diagnostics).toHaveLength(6);
+      const melody = diagnostics.find((row) => row.backendId === "z-melody" && row.role === "melody")!;
+      expect(melody).toMatchObject({ backendId: "z-melody", backendVersion: "1", role: "melody", measureCount: 1, availableMeasures: 1, coverage: 1 });
+      expect(melody.categories).toMatchObject({
+        structuralValidity: expect.objectContaining({ score: 1, available: true, flags: [] }),
+        rhythmicValidity: expect.objectContaining({ score: 1, available: true, flags: [] }),
+        continuity: expect.objectContaining({ score: 1, available: true, flags: [] }),
+        // A single measure has no leave-one-out density baseline, so this
+        // diagnostic is intentionally tri-state rather than a false pass.
+        densityAnomaly: expect.objectContaining({ score: null, available: false, flags: [] }),
+        pitchPlausibility: expect.objectContaining({ score: 1, available: true, flags: [] }),
+        notationCompleteness: expect.objectContaining({ score: 1, available: true, flags: [] }),
+        keyConsistency: { score: null, available: false, basis: expect.stringContaining("not represented"), flags: [] },
+        timeConsistency: { score: null, available: false, basis: expect.stringContaining("not represented"), flags: [] },
+      });
+      expect(JSON.stringify(melody)).not.toContain("eventIds");
+      expect(JSON.stringify(first)).not.toContain(root);
+
+      const second = await runLocalScoreReferenceCorpus({ ...input, scores: [...input.scores].reverse() }, { outputRoot: output, repositoryRoot: resolve(process.cwd(), "not-the-repository") });
+      expect(localScoreReferenceCorpusJson(first)).toBe(localScoreReferenceCorpusJson(second));
+      expect(await readFile(join(output, "corpus-report.json"), "utf8")).toBe(localScoreReferenceCorpusJson(second));
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("keeps OMR role-quality diagnostics when a native candidate is selected", async () => {
     const root = await mkdtemp(join(tmpdir(), "keyspilli-score-reference-native-omr-quality-"));
     try {
