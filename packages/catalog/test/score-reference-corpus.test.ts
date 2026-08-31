@@ -359,12 +359,15 @@ describe("local score reference corpus runner", () => {
       expect(melody.categories).toMatchObject({
         structuralValidity: expect.objectContaining({ score: 1, available: true, flags: [] }),
         rhythmicValidity: expect.objectContaining({ score: 1, available: true, flags: [] }),
+        measureArithmeticValidity: expect.objectContaining({ score: 1, available: true, flags: [] }),
         continuity: expect.objectContaining({ score: 1, available: true, flags: [] }),
         // A single measure has no leave-one-out density baseline, so this
         // diagnostic is intentionally tri-state rather than a false pass.
         densityAnomaly: expect.objectContaining({ score: null, available: false, flags: [] }),
         pitchPlausibility: expect.objectContaining({ score: 1, available: true, flags: [] }),
         notationCompleteness: expect.objectContaining({ score: 1, available: true, flags: [] }),
+        staffConsistency: expect.objectContaining({ score: 1, available: true, flags: [] }),
+        tieConsistency: expect.objectContaining({ score: 1, available: true, flags: [] }),
         keyConsistency: { score: null, available: false, basis: expect.stringContaining("not represented"), flags: [] },
         timeConsistency: { score: null, available: false, basis: expect.stringContaining("not represented"), flags: [] },
       });

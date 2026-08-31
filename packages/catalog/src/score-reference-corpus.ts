@@ -184,6 +184,8 @@ export interface ScoreReferenceOmrBackendDiagnostic {
   categories: {
     /** Measure arithmetic and event-bound checks. */
     rhythmicValidity: ScoreReferenceOmrCategoryDiagnostic;
+    /** Explicit alias for the measure arithmetic portion of rhythmicValidity. */
+    measureArithmeticValidity: ScoreReferenceOmrCategoryDiagnostic;
     /** Same-role pitch interval plausibility. */
     pitchPlausibility: ScoreReferenceOmrCategoryDiagnostic;
     /** Overlap, duplicate, and tie continuity checks. */
@@ -194,6 +196,10 @@ export interface ScoreReferenceOmrBackendDiagnostic {
     densityAnomaly: ScoreReferenceOmrCategoryDiagnostic;
     /** Staff/voice/accidental presence used as notation consistency evidence. */
     notationCompleteness: ScoreReferenceOmrCategoryDiagnostic;
+    /** Staff consistency evidence currently available through notation metadata. */
+    staffConsistency: ScoreReferenceOmrCategoryDiagnostic;
+    /** Tie consistency evidence currently represented by continuity/tie flags. */
+    tieConsistency: ScoreReferenceOmrCategoryDiagnostic;
     /** Key metadata is not carried by the role-quality row projection. */
     keyConsistency: ScoreReferenceOmrCategoryDiagnostic;
     /** Time-signature metadata is not carried by the role-quality row projection. */
@@ -629,6 +635,13 @@ function unavailableConsistencyCategory(kind: "key" | "time", measureCount: numb
   };
 }
 
+function diagnosticAlias(value: ScoreReferenceOmrCategoryDiagnostic, label: string): ScoreReferenceOmrCategoryDiagnostic {
+  return {
+    ...value,
+    basis: value.basis ? `${label}: ${value.basis}` : label,
+  };
+}
+
 function backendRoleDiagnostics(report: OmrRoleQualityReport): ScoreReferenceOmrBackendDiagnostic[] {
   const rows = Array.isArray(report.measures) ? report.measures : [];
   return report.backendSummaries.map((summary) => {
@@ -645,6 +658,9 @@ function backendRoleDiagnostics(report: OmrRoleQualityReport): ScoreReferenceOmr
       coverage: summary.coverage,
       categories: {
         ...categories,
+        measureArithmeticValidity: diagnosticAlias(categories.rhythmicValidity, "measure arithmetic/event bounds"),
+        staffConsistency: diagnosticAlias(categories.notationCompleteness, "staff/voice/accidental metadata"),
+        tieConsistency: diagnosticAlias(categories.continuity, "tie/continuity boundaries"),
         keyConsistency: unavailableConsistencyCategory("key", backendRows.length),
         timeConsistency: unavailableConsistencyCategory("time", backendRows.length),
       },
