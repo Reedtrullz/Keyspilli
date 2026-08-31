@@ -19,6 +19,8 @@ export { writeMusicXml } from "./writeXml.js";
 export { buildMetalArrangement, selectGuitarLeadPath } from "./metal-arrange.js";
 export type {
   GuitarLeadPathDiagnostics,
+  GuitarLeadRejectionReason,
+  GuitarLeadRejectionReasons,
   GuitarLeadPathOptions,
   GuitarLeadPathResult,
   GuitarHarmonyDiagnostics,

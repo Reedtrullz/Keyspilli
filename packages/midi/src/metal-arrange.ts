@@ -269,6 +269,44 @@ export interface GuitarLeadPathDiagnostics {
   rejectedCount: number;
   harmonicRejectedCount: number;
   largeJumpRejectedCount: number;
+  /**
+   * Optional outcome accounting for the source-locked selector.  The labels
+   * describe the first selector stage that explains each raw guitar
+   * candidate; counts partition rawCandidateCount.  Register/cleanup remain
+   * zero here because those stages belong to downstream arrangement passes.
+   */
+  rejectionReasons?: GuitarLeadRejectionReasons;
+}
+
+export type GuitarLeadRejectionReason =
+  | "selected-primary"
+  | "harmonic-stack-suppressed"
+  | "duplicate-onset"
+  | "register-rejected"
+  | "leap-rejected"
+  | "density-rejected"
+  | "spacing-rejected"
+  | "continuity-rejected"
+  | "confidence-rejected"
+  | "cleanup-rejected"
+  | "other";
+
+export type GuitarLeadRejectionReasons = Record<GuitarLeadRejectionReason, number>;
+
+function freshGuitarLeadRejectionReasons(): GuitarLeadRejectionReasons {
+  return {
+    "selected-primary": 0,
+    "harmonic-stack-suppressed": 0,
+    "duplicate-onset": 0,
+    "register-rejected": 0,
+    "leap-rejected": 0,
+    "density-rejected": 0,
+    "spacing-rejected": 0,
+    "continuity-rejected": 0,
+    "confidence-rejected": 0,
+    "cleanup-rejected": 0,
+    other: 0,
+  };
 }
 
 export interface GuitarLeadPathResult {
@@ -318,6 +356,8 @@ export interface GuitarHarmonyDiagnostics {
 interface GuitarLeadCandidate {
   id: number;
   note: IdentityNote;
+  rawIndex: number;
+  phraseId: number;
   groupIndex: number;
   confidence: number;
   melodicSupport: number;
@@ -447,9 +487,12 @@ function selectGuitarLeadPathInternal(
     rejectedCount: 0,
     harmonicRejectedCount: 0,
     largeJumpRejectedCount: 0,
+    rejectionReasons: freshGuitarLeadRejectionReasons(),
   };
   if (!rawCandidates.length) return { notes: [], diagnostics };
   const sorted = rawCandidates.sort((a, b) => a.start - b.start || a.midi - b.midi || b.vel - a.vel || b.dur - a.dur);
+  const rawIndexByNote = new Map<IdentityNote, number>();
+  sorted.forEach((note, index) => rawIndexByNote.set(note, index));
   const groups: IdentityNote[][] = [];
   for (const note of sorted) {
     const group = groups.at(-1);
@@ -473,8 +516,9 @@ function selectGuitarLeadPathInternal(
   const allSelected = new Set<number>();
   const recovered = new Set<number>();
   const allCandidates = new Map<number, GuitarLeadCandidate>();
+  const candidateByRawIndex = new Map<number, GuitarLeadCandidate>();
 
-  for (const phrase of phraseGroups) {
+  for (const [phraseId, phrase] of phraseGroups.entries()) {
     const phraseCandidates: GuitarLeadCandidate[][] = phrase.map((group, phraseIndex) => {
       const neighbouringGroups = phrase.slice(Math.max(0, phraseIndex - 3), Math.min(phrase.length, phraseIndex + 4));
       const adjacentGroups = [phrase[phraseIndex - 1], phrase[phraseIndex + 1]].filter(
@@ -519,6 +563,8 @@ function selectGuitarLeadPathInternal(
         return {
           id: nextId++,
           note,
+          rawIndex: rawIndexByNote.get(note) ?? -1,
+          phraseId,
           groupIndex: phraseIndex,
           confidence,
           melodicSupport: support,
@@ -527,6 +573,7 @@ function selectGuitarLeadPathInternal(
           emission,
         } satisfies GuitarLeadCandidate;
       });
+      for (const candidate of candidates) candidateByRawIndex.set(candidate.rawIndex, candidate);
       const retained = candidates
         .sort((a, b) => b.emission - a.emission || b.confidence - a.confidence || a.note.start - b.note.start || a.note.midi - b.note.midi)
         .slice(0, phrase.length < minimumPhraseGroups ? candidates.length : maxCandidatesPerGroup);
@@ -673,6 +720,91 @@ function selectGuitarLeadPathInternal(
       && candidate.harmonicPenalty <= 0
       && !candidate.wallLike
       && candidate.melodicSupport < 0.5).length;
+
+  // Keep the forensic accounting separate from the selector's score and
+  // state transitions.  Each valid raw guitar candidate receives exactly one
+  // first-explanation outcome, so the aggregate can be used as a conservation
+  // check without becoming another musical heuristic.  Register and cleanup
+  // are intentionally zero here: those decisions happen after this selector.
+  const rejectionReasons = diagnostics.rejectionReasons ?? freshGuitarLeadRejectionReasons();
+  const selectedCandidates = [...allCandidates.values()]
+    .filter((candidate) => allSelected.has(candidate.id))
+    .sort((a, b) => a.note.start - b.note.start || a.note.midi - b.note.midi || a.id - b.id);
+  const selectedByGroup = new Map<string, GuitarLeadCandidate[]>();
+  for (const candidate of selectedCandidates) {
+    const key = `${candidate.phraseId}:${candidate.groupIndex}`;
+    const group = selectedByGroup.get(key) ?? [];
+    group.push(candidate);
+    selectedByGroup.set(key, group);
+  }
+  const incrementReason = (reason: GuitarLeadRejectionReason): void => {
+    rejectionReasons[reason] += 1;
+  };
+  const previousSelected = (candidate: GuitarLeadCandidate): GuitarLeadCandidate | undefined => {
+    for (let index = selectedCandidates.length - 1; index >= 0; index -= 1) {
+      const previous = selectedCandidates[index]!;
+      if (previous.phraseId === candidate.phraseId && previous.note.start < candidate.note.start - EPS) return previous;
+    }
+    return undefined;
+  };
+  const nextSelected = (candidate: GuitarLeadCandidate): GuitarLeadCandidate | undefined => {
+    return selectedCandidates.find((next) => next.phraseId === candidate.phraseId
+      && next.note.start > candidate.note.start + EPS);
+  };
+  for (let rawIndex = 0; rawIndex < sorted.length; rawIndex += 1) {
+    const candidate = candidateByRawIndex.get(rawIndex);
+    if (!candidate) {
+      incrementReason("other");
+      continue;
+    }
+    if (allSelected.has(candidate.id)) {
+      incrementReason("selected-primary");
+      continue;
+    }
+
+    const selectedAtOnset = selectedByGroup.get(`${candidate.phraseId}:${candidate.groupIndex}`) ?? [];
+    const raw = candidate.note.rawMidi ?? candidate.note.midi;
+    const exactDuplicate = selectedAtOnset.some((selected) => {
+      const selectedRaw = selected.note.rawMidi ?? selected.note.midi;
+      return selectedRaw === raw && Math.abs(selected.note.start - candidate.note.start) <= groupToleranceBeats + EPS;
+    });
+    const harmonicClone = selectedAtOnset.some((selected) => {
+      const selectedRaw = selected.note.rawMidi ?? selected.note.midi;
+      return harmonicCloneDistance(Math.abs(selectedRaw - raw));
+    });
+    const previous = previousSelected(candidate);
+    const next = nextSelected(candidate);
+    const spacingConflict = selectedCandidates.some((selected) => selected.phraseId === candidate.phraseId
+      && selected.note.start !== candidate.note.start
+      && Math.abs(selected.note.start - candidate.note.start) < minimumSpacingBeats - EPS);
+    const incoming = previous ? candidate.note.midi - previous.note.midi : 0;
+    const outgoing = next ? next.note.midi - candidate.note.midi : 0;
+    const hasLargeLeap = (previous !== undefined
+      && candidate.note.start - previous.note.start <= 1.5 + EPS
+      && Math.abs(incoming) >= 7)
+      || (next !== undefined
+        && next.note.start - candidate.note.start <= 1.5 + EPS
+        && Math.abs(outgoing) >= 7);
+    const hasContinuityBreak = previous !== undefined && next !== undefined
+      && Math.sign(incoming) !== 0
+      && Math.sign(outgoing) !== 0
+      && Math.sign(incoming) !== Math.sign(outgoing)
+      && Math.abs(incoming) >= 5
+      && Math.abs(outgoing) >= 5
+      && Math.abs(next.note.midi - previous.note.midi) <= 5;
+    const confidenceRejected = candidate.confidence < 0.4
+      || (candidate.melodicSupport === 0 && candidate.note.vel < 70 && candidate.note.dur < 0.15);
+
+    if (exactDuplicate) incrementReason("duplicate-onset");
+    else if (harmonicClone || candidate.harmonicPenalty > 0 || candidate.wallLike) incrementReason("harmonic-stack-suppressed");
+    else if (confidenceRejected) incrementReason("confidence-rejected");
+    else if (spacingConflict) incrementReason("spacing-rejected");
+    else if (hasContinuityBreak) incrementReason("continuity-rejected");
+    else if (hasLargeLeap) incrementReason("leap-rejected");
+    else if (!selectedAtOnset.length) incrementReason("density-rejected");
+    else incrementReason("other");
+  }
+  diagnostics.rejectionReasons = rejectionReasons;
   return { notes: selectedNotes, diagnostics };
 }
 

@@ -2425,6 +2425,45 @@ describe("metal piano arranger", () => {
     expect(reordered).toEqual(result);
   });
 
+  it("reports deterministic, stage-oriented guitar selector rejection reasons", () => {
+    const contour = [64, 65, 67, 69, 71, 72, 74, 76];
+    const candidates = contour.flatMap((pitch, index) => {
+      const start = index * 0.5;
+      return [
+        { midi: pitch, start, dur: 0.45, vel: 72, identitySource: "guitar" as const },
+        { midi: pitch, start, dur: 0.05, vel: 38, identitySource: "guitar" as const },
+        { midi: pitch + 12, start: start + 0.03, dur: 0.06, vel: 118, identitySource: "guitar" as const },
+        { midi: pitch + 7, start: start + 0.06, dur: 0.06, vel: 110, identitySource: "guitar" as const },
+      ];
+    });
+
+    const first = selectGuitarLeadPath(candidates, { minimumSpacingBeats: 0.45 });
+    const second = selectGuitarLeadPath([...candidates].reverse(), { minimumSpacingBeats: 0.45 });
+    const reasons = first.diagnostics.rejectionReasons;
+    const labels = [
+      "selected-primary",
+      "harmonic-stack-suppressed",
+      "duplicate-onset",
+      "register-rejected",
+      "leap-rejected",
+      "density-rejected",
+      "spacing-rejected",
+      "continuity-rejected",
+      "confidence-rejected",
+      "cleanup-rejected",
+      "other",
+    ] as const;
+
+    expect(reasons).toBeDefined();
+    expect(Object.keys(reasons ?? {}).sort()).toEqual([...labels].sort());
+    expect(reasons?.["selected-primary"]).toBe(first.diagnostics.selectedCount);
+    expect(reasons?.["harmonic-stack-suppressed"]).toBeGreaterThan(0);
+    expect(reasons?.["duplicate-onset"]).toBeGreaterThan(0);
+    expect(Object.values(reasons ?? {}).reduce((sum, count) => sum + count, 0))
+      .toBe(first.diagnostics.rawCandidateCount);
+    expect(second).toEqual(first);
+  });
+
   it("keeps an articulated expressive leap and a fast scalar run", () => {
     const leap = selectGuitarLeadPath([
       { midi: 64, start: 0, dur: 0.5, vel: 100, identitySource: "guitar" as const },
