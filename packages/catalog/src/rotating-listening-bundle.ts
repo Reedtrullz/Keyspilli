@@ -496,8 +496,9 @@ function worksheet(manifest: RotatingListeningManifest): string {
     lines.push(
       "",
       "Accompaniment correctness (1–5): A ____  B ____",
-      "Anything obviously wrong? YES / NO (A ____  B ____)",
-      "Which is better overall? A / B / SAME",
+      "Recognizable? A / B / BOTH / NEITHER",
+      "Anything obviously wrong? A / B / BOTH / NEITHER",
+      "Which version is better? A / B / SAME",
       "Notes:",
       "",
     );

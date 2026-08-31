@@ -141,6 +141,7 @@ describe("rotating multi-song blind listening bundle", () => {
       expect(blindText).toContain("a.mid");
       expect(blindText).toContain("b.mid");
       expect(result.worksheet).toContain("Accompaniment correctness");
+      expect(result.worksheet).toContain("Recognizable? A / B / BOTH / NEITHER");
       expect(result.worksheet).toContain("Anything obviously wrong?");
       expect(result.worksheet).toContain("A / B / SAME");
       expect(result.worksheet.toLowerCase()).not.toContain("melody correctness");
