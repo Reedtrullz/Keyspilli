@@ -89,6 +89,18 @@ describe("local harmony benchmark evaluator", () => {
     expect(JSON.stringify(report)).not.toContain("36,0,4");
   });
 
+  it("distinguishes a parsed current artifact from trusted-window evaluability", () => {
+    const normalized = normalizeHarmonyBenchmarkManifest(manifest());
+    const reference = parseMidi(midi([note(36, 0), note(40, 0), note(43, 0)]));
+    const current = parseMidi(midi([note(36, 100), note(40, 100), note(43, 100)]));
+    const report = evaluateHarmonyBenchmark(normalized, new Map([[HARMONY_BENCHMARK_SCORE_IDS[0], { reference, current }]]));
+
+    expect(report.songs[0]?.current.status).toBe("unavailable");
+    expect(report.songs[0]?.current.windowsEvaluated).toBe(1);
+    expect(report.coverage.currentArtifactCount).toBe(1);
+    expect(report.coverage.currentEvaluableCount).toBe(0);
+  });
+
   it("reports alignment-required when evidence exists but trusted windows are absent", () => {
     const normalized = normalizeHarmonyBenchmarkManifest(manifest());
     normalized.scores[0]!.reference.trustedCoverage.windows = [];

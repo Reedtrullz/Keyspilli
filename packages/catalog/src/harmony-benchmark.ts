@@ -381,8 +381,11 @@ function songResult(score: HarmonyBenchmarkScoreInput, sources: HarmonyBenchmark
 function benchmarkCoverage(manifest: HarmonyBenchmarkManifest, songs: readonly HarmonyBenchmarkSongResult[], sources: ReadonlyMap<string, HarmonyBenchmarkParsedSources>): HarmonyBenchmarkCoverage {
   const manifestScoreCount = manifest.scores.length;
   const referenceAvailableCount = manifest.scores.filter((score) => sources.get(score.id)?.reference !== undefined).length;
-  const baselineAvailableCount = songs.filter((song) => song.baseline.status === "available").length;
-  const currentArtifactCount = songs.filter((song) => song.current.status === "available").length;
+  const baselineAvailableCount = manifest.scores.filter((score) => sources.get(score.id)?.baseline !== undefined).length;
+  const currentArtifactCount = manifest.scores.filter((score) => {
+    const source = sources.get(score.id);
+    return source?.current !== undefined || source?.candidate !== undefined;
+  }).length;
   const currentEvaluableCount = songs.filter((song) => song.current.status === "available" && song.current.metrics !== null).length;
   const comparablePairCount = songs.filter((song) => song.baseline.status === "available" && song.current.status === "available"
     && song.baseline.metrics !== null && song.current.metrics !== null).length;
