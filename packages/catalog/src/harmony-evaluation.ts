@@ -343,6 +343,41 @@ function agreement(events: readonly HarmonyChange[], expected: number | HarmonyQ
   return supported.length ? round(supported.filter((event) => event[field] === expected).length / supported.length) : null;
 }
 
+type HarmonyChangeField = "rootPc" | "bassPc" | "quality";
+
+function matchChangesByBeat(expected: readonly HarmonyChange[], observed: readonly HarmonyChange[]): Array<{ expected: HarmonyChange; observed: HarmonyChange }> {
+  const orderedExpected = [...expected].sort(compareHarmonyChanges);
+  const orderedObserved = [...observed].sort(compareHarmonyChanges);
+  const used = new Set<number>();
+  const matches: Array<{ expected: HarmonyChange; observed: HarmonyChange }> = [];
+  for (const source of orderedExpected) {
+    let best = -1;
+    let bestDistance = Infinity;
+    orderedObserved.forEach((candidate, index) => {
+      if (used.has(index)) return;
+      const distance = Math.abs(candidate.beat - source.beat);
+      if (distance > CHANGE_TOLERANCE) return;
+      if (distance < bestDistance
+        || (Math.abs(distance - bestDistance) <= EPS && best >= 0 && compareHarmonyChanges(candidate, orderedObserved[best]!) < 0)) {
+        best = index;
+        bestDistance = distance;
+      }
+    });
+    if (best >= 0) {
+      used.add(best);
+      matches.push({ expected: source, observed: orderedObserved[best]! });
+    }
+  }
+  return matches;
+}
+
+function changeAgreement(expected: readonly HarmonyChange[] | undefined, observed: readonly HarmonyChange[], field: HarmonyChangeField): number | null {
+  const expectedWithField = expected?.filter((change) => change[field] !== undefined && change[field] !== null) ?? [];
+  if (!expectedWithField.length || !observed.length) return null;
+  const matches = matchChangesByBeat(expectedWithField, observed);
+  return round(matches.filter(({ expected: source, observed: candidate }) => source[field] === candidate[field]).length / expectedWithField.length);
+}
+
 function changeValueEqual(left: HarmonyChange, right: HarmonyChange): boolean {
   const comparable = ["rootPc", "bassPc", "quality"] as const;
   const fields = comparable.filter((field) => left[field] !== undefined && left[field] !== null && right[field] !== undefined && right[field] !== null);
@@ -449,13 +484,16 @@ function unavailableMetrics(status: HarmonyAvailability, diagnostics: string[] =
 }
 
 function hasReferenceEvidence(reference: HarmonyReferenceEvidence | undefined): boolean {
-  return reference !== undefined && (
-    (reference.chroma !== undefined && reference.chroma.length > 0)
+  if (reference === undefined) return false;
+  const chroma = chromaVector(reference.chroma);
+  const changes = reference.changes?.some((change) => change.rootPc !== undefined && change.rootPc !== null
+    || change.bassPc !== undefined && change.bassPc !== null
+    || change.quality !== undefined && change.quality !== null) ?? false;
+  return (chroma?.some((value) => value > EPS) ?? false)
     || (reference.rootPc !== undefined && reference.rootPc !== null)
     || (reference.bassPc !== undefined && reference.bassPc !== null)
     || (reference.quality !== undefined && reference.quality !== null)
-    || (reference.changes !== undefined && reference.changes.length > 0)
-  );
+    || changes;
 }
 
 function evaluateWindow(input: HarmonyEvaluationWindowInput): HarmonyWindowEvaluation {
@@ -467,12 +505,18 @@ function evaluateWindow(input: HarmonyEvaluationWindowInput): HarmonyWindowEvalu
   const candidateChanges = candidate?.harmony !== undefined
     ? [...candidate.harmony].filter((change) => change.beat >= input.startBeat && change.beat < input.endBeat)
     : (candidateNotes.length ? inferChanges(candidateNotes, input.startBeat) : []);
-  const expectedChanges = reference?.changes ?? ((reference?.rootPc !== undefined || reference?.quality !== undefined) ? [{ beat: input.startBeat, rootPc: reference.rootPc, bassPc: reference.bassPc, quality: reference.quality }] : undefined);
+  const expectedChanges = reference?.changes ?? ((reference?.rootPc !== undefined || reference?.bassPc !== undefined || reference?.quality !== undefined) ? [{ beat: input.startBeat, rootPc: reference.rootPc, bassPc: reference.bassPc, quality: reference.quality }] : undefined);
   const referenceChroma = chromaVector(reference?.chroma);
   const chromaAgreement = referenceChroma && candidateNotes.length ? cosine(vectorFor(candidateNotes), referenceChroma) : null;
-  const rootAgreement = agreement(candidateChanges, reference?.rootPc, "rootPc");
-  const bassAgreement = agreement(candidateChanges, reference?.bassPc, "bassPc");
-  const qualityAgreement = agreement(candidateChanges, reference?.quality, "quality");
+  const rootAgreement = reference?.rootPc !== undefined && reference.rootPc !== null
+    ? agreement(candidateChanges, reference.rootPc, "rootPc")
+    : changeAgreement(expectedChanges, candidateChanges, "rootPc");
+  const bassAgreement = reference?.bassPc !== undefined && reference.bassPc !== null
+    ? agreement(candidateChanges, reference.bassPc, "bassPc")
+    : changeAgreement(expectedChanges, candidateChanges, "bassPc");
+  const qualityAgreement = reference?.quality !== undefined && reference.quality !== null
+    ? agreement(candidateChanges, reference.quality, "quality")
+    : changeAgreement(expectedChanges, candidateChanges, "quality");
   const chordAgreement = rootAgreement === null && qualityAgreement === null ? null : round(((rootAgreement ?? 0) + (qualityAgreement ?? 0)) / ((rootAgreement === null ? 0 : 1) + (qualityAgreement === null ? 0 : 1)));
   const timing = changeTiming(expectedChanges, candidateChanges);
   const leftHandGroups = groups(candidateNotes);

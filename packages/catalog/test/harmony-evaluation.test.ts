@@ -203,6 +203,81 @@ describe("deterministic harmony evaluation", () => {
     });
   });
 
+  it("scores per-change roots, basses, and qualities from reference changes", () => {
+    const report = evaluateHarmony({
+      windows: [{
+        id: "per-change-match",
+        startBeat: 0,
+        endBeat: 8,
+        reference: {
+          chroma: [1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0],
+          changes: [
+            { beat: 0, rootPc: 0, bassPc: 0, quality: "major" },
+            { beat: 4, rootPc: 7, bassPc: 7, quality: "minor" },
+          ],
+        },
+        candidate: {
+          leftHandNotes: [note(36, 0, 1)],
+          harmony: [
+            { beat: 0.1, rootPc: 0, bassPc: 0, quality: "major" },
+            { beat: 3.9, rootPc: 7, bassPc: 7, quality: "minor" },
+          ],
+        },
+      }],
+    });
+    const metrics = report.windows[0]!.metrics;
+
+    expect(metrics.rootAgreement).toBe(1);
+    expect(metrics.bassAgreement).toBe(1);
+    expect(metrics.qualityAgreement).toBe(1);
+  });
+
+  it("lowers independent per-change agreement when candidate values mismatch", () => {
+    const report = evaluateHarmony({
+      windows: [{
+        id: "per-change-mismatch",
+        startBeat: 0,
+        endBeat: 8,
+        reference: {
+          chroma: [1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0],
+          changes: [
+            { beat: 0, rootPc: 0, bassPc: 0, quality: "major" },
+            { beat: 4, rootPc: 7, bassPc: 7, quality: "minor" },
+          ],
+        },
+        candidate: {
+          leftHandNotes: [note(36, 0, 1)],
+          harmony: [
+            { beat: 0.1, rootPc: 0, bassPc: 0, quality: "major" },
+            { beat: 3.9, rootPc: 0, bassPc: 0, quality: "major" },
+          ],
+        },
+      }],
+    });
+    const metrics = report.windows[0]!.metrics;
+
+    expect(metrics.rootAgreement).toBeLessThan(1);
+    expect(metrics.bassAgreement).toBeLessThan(1);
+    expect(metrics.qualityAgreement).toBeLessThan(1);
+  });
+
+  it("treats all-zero chroma with no changes as unavailable reference evidence", () => {
+    const report = evaluateHarmony({
+      windows: [{
+        id: "empty-reference",
+        startBeat: 0,
+        endBeat: 4,
+        reference: { chroma: Array.from({ length: 12 }, () => 0), changes: [] },
+        candidate: { leftHandNotes: [note(36, 0, 1)] },
+      }],
+    });
+
+    expect(report.status).toBe("unavailable");
+    expect(report.windows[0]!.status).toBe("unavailable");
+    expect(report.windows[0]!.metrics.availability.overall).toBe("unavailable");
+    expect(report.windows[0]!.metrics.availability.chroma).toBe("unavailable");
+  });
+
   it("matches compatible harmony events one-to-one without consuming an incompatible nearest event", () => {
     const report = evaluateHarmony({
       windows: [{
