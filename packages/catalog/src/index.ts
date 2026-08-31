@@ -28,6 +28,7 @@ export * from "./piano-candidate-diagnostics.js";
 export * from "./piano-section-builder.js";
 export * from "./score-benchmark.js";
 export * from "./score-listening-pack.js";
+export * from "./rotating-listening-bundle.js";
 export * from "./omr-canonical.js";
 export * from "./omr-hierarchical-alignment.js";
 export * from "./omr-role-reference.js";

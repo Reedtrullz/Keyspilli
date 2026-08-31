@@ -27,6 +27,7 @@
     "research:song": "npm run research:song -w @keyspilli/catalog --",
     "render:midi": "npm run render:midi -w @keyspilli/catalog --",
     "build:listening": "npm run build:listening -w @keyspilli/catalog --",
+    "build:rotating-listening": "npm run build:rotating-listening -w @keyspilli/catalog --",
     "diagnose:piano-candidates": "npm run diagnose:piano-candidates -w @keyspilli/catalog --",
     "build:piano-section-listening": "npm run build:piano-section-listening -w @keyspilli/catalog --",
     "benchmark:score": "npm run benchmark:score -w @keyspilli/catalog --",

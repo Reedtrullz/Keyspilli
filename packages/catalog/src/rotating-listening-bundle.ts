@@ -8,7 +8,7 @@
  * state. Melody is intentionally not a worksheet dimension in this frozen
  * review slice.
  */
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { lstat, mkdir, readFile, realpath, rename, rm, stat, unlink, writeFile } from "node:fs/promises";
 import { basename, dirname, isAbsolute, join, resolve, sep } from "node:path";
 import type { MidiAudioRenderer, MidiRenderResult } from "./midi-renderer.js";
@@ -239,7 +239,8 @@ function safeText(value: unknown): string | null {
 function redact(value: string): string {
   return value
     .replace(/https?:\/\/[^\s"'<>]+/gi, "[redacted-url]")
-    .replace(/(?:file:\/\/)?(?:\/(?:Users|private|tmp|var|home|Volumes)\/[^\s"'<>;,)]*|[A-Za-z]:[\\/][^\s"'<>;,)]*)/g, "[redacted-path]")
+    .replace(/(?:file:\/\/)?\/[^\s"'<>;,)]*/g, "[redacted-path]")
+    .replace(/[A-Za-z]:[\\/][^\s"'<>;,)]*/g, "[redacted-path]")
     .replace(/(^|[\s("'=,;:\[\]])(?:\.\.?\/|[^\s/]+\/)[^\s"']+\.(?:mid|midi|wav|mp3|sf2)(?=$|[\s"'])/gi, "$1[redacted-path]")
     .replace(/[\0\r\n]+/g, " ")
     .slice(0, 500);
@@ -441,10 +442,28 @@ function writeWavSlice(source: WavInfo, outputPath: string, startSeconds: number
   return mkdir(dirname(outputPath), { recursive: true }).then(() => writeFile(outputPath, output));
 }
 
-function audioRecord(result: MidiRenderResult, ref: string, bytes: Uint8Array, durationSeconds: number): RotatingListeningAudioRecord {
+function audioRecord(ref: string, bytes: Uint8Array): RotatingListeningAudioRecord {
+  const wav = parseWav(bytes);
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const sampleCount = wav.dataLength / 2;
+  let peak = 0;
+  let sumSquares = 0;
+  let silence = 0;
+  let clipping = 0;
+  for (let offset = wav.dataOffset; offset < wav.dataOffset + wav.dataLength; offset += 2) {
+    const sample = view.getInt16(offset, true);
+    const normalized = Math.abs(sample) / 32768;
+    peak = Math.max(peak, normalized);
+    sumSquares += normalized * normalized;
+    if (Math.abs(sample) <= 32) silence += 1;
+    if (Math.abs(sample) >= 32767) clipping += 1;
+  }
+  const frameCount = wav.channels ? sampleCount / wav.channels : 0;
+  const durationSeconds = wav.sampleRate > 0 ? frameCount / wav.sampleRate : 0;
   return {
-    ref, bytes: bytes.byteLength, sha256: hashBytes(bytes), durationSeconds: round(durationSeconds), sampleRate: result.wav.sampleRate,
-    channels: result.wav.channels, peak: round(result.wav.peak), rms: round(result.wav.rms), silenceRatio: round(result.wav.silenceRatio), clippingCount: result.wav.clippingCount,
+    ref, bytes: bytes.byteLength, sha256: hashBytes(bytes), durationSeconds: round(durationSeconds), sampleRate: wav.sampleRate,
+    channels: wav.channels, peak: round(peak), rms: round(sampleCount ? Math.sqrt(sumSquares / sampleCount) : 0),
+    silenceRatio: round(sampleCount ? silence / sampleCount : 0), clippingCount: clipping,
   };
 }
 
@@ -507,18 +526,40 @@ export async function buildRotatingListeningBundle(
     pathMap.set(song.id, validated);
   }
 
-  const pack = selectRotatingScoreListeningPack(descriptors.map(toCorpusSong), {
-    seed: normalized.seed,
-    targetSeconds: normalized.targetSeconds,
-    minSeconds: normalized.minSeconds,
-    maxSeconds: normalized.maxSeconds,
-    minSongs: normalized.minSongs,
-    minSectionSeconds: normalized.minSectionSeconds,
-    maxSectionSeconds: normalized.maxSectionSeconds,
-  });
   let normalization = normalizeNormalization(options.normalization);
   await mkdir(outputRoot, { recursive: true });
+  const stagingRoot = join(outputRoot, `.staging-${randomUUID()}`);
+  await mkdir(stagingRoot, { recursive: true });
   const errors: RotatingListeningManifest["errors"] = [];
+  let pack: ScoreListeningPack;
+  try {
+    try {
+      pack = selectRotatingScoreListeningPack(descriptors.map(toCorpusSong), {
+        seed: normalized.seed,
+        targetSeconds: normalized.targetSeconds,
+        minSeconds: normalized.minSeconds,
+        maxSeconds: normalized.maxSeconds,
+        minSongs: normalized.minSongs,
+        minSectionSeconds: normalized.minSectionSeconds,
+        maxSectionSeconds: normalized.maxSectionSeconds,
+      });
+    } catch (error) {
+      errors.push({ code: "PACK_SELECTION_FAILED", message: reason(error) });
+      pack = {
+        schemaVersion: 1,
+        kind: "score-rotating-listening-pack",
+        packId: `rotating-${hash(`${normalized.seed}\u0000selector-failed`).slice(0, 16)}`,
+        seed: normalized.seed,
+        targetSeconds: normalized.targetSeconds,
+        minSeconds: normalized.minSeconds,
+        maxSeconds: normalized.maxSeconds,
+        totalSeconds: 0,
+        status: "insufficient",
+        songs: [],
+        excerpts: [],
+        warnings: ["score listening selector failed; no excerpts were selected"],
+      };
+    }
   const warnings = [...pack.warnings];
   const firstResultByCandidate = new Map<"A" | "B", MidiRenderResult>();
   const wavByCandidate = new Map<string, { result: MidiRenderResult; wav: WavInfo }>();
@@ -533,7 +574,7 @@ export async function buildRotatingListeningBundle(
       return null;
     }
     const renderKey = `${songId}\u0000${candidate}`;
-    const outputPath = join(outputRoot, ".renders", hash(renderKey).slice(0, 20), `${candidate}.full.wav`);
+    const outputPath = join(stagingRoot, ".renders", hash(renderKey).slice(0, 20), `${candidate}.full.wav`);
     await unlink(outputPath).catch(() => undefined);
     try {
       const result = await dependencies.renderer.render({ midiPath, outputPath });
@@ -572,15 +613,20 @@ export async function buildRotatingListeningBundle(
       const key = `${excerpt.songId}\u0000${candidate}`;
       const rendered = result ? wavByCandidate.get(key) : undefined;
       const ref = `audio/${hash(excerpt.id).slice(0, 16)}-${candidate}.wav`;
-      await unlink(join(outputRoot, ref)).catch(() => undefined);
+      await unlink(join(stagingRoot, ref)).catch(() => undefined);
       if (result && rendered) {
-        const path = join(outputRoot, ref);
+        const path = join(stagingRoot, ref);
+        const renderedDuration = rendered.wav.dataLength / (rendered.wav.channels * 2) / rendered.wav.sampleRate;
+        if (excerpt.endSeconds > renderedDuration + EPSILON) {
+          const message = `requested excerpt ends at ${round(excerpt.endSeconds)}s but rendered audio is only ${round(renderedDuration)}s`;
+          errors.push({ code: "EXCERPT_DURATION_MISMATCH", message, songId: excerpt.songId, candidate });
+          candidates[candidate] = { status: "failed", audio: null, reason: message };
+          continue;
+        }
         try {
           await writeWavSlice(rendered.wav, path, excerpt.startSeconds, excerpt.endSeconds);
           const bytes = new Uint8Array(await readFile(path));
-          const frameBytes = rendered.wav.channels * 2;
-          const duration = frameBytes ? (bytes.length - 44) / frameBytes / rendered.wav.sampleRate : 0;
-          candidates[candidate] = { status: "rendered", audio: audioRecord(result, ref, bytes, duration) };
+          candidates[candidate] = { status: "rendered", audio: audioRecord(ref, bytes) };
         } catch (error) {
           errors.push({ code: "EXCERPT_FAILED", message: reason(error), songId: excerpt.songId, candidate });
           candidates[candidate] = { status: "failed", audio: null, reason: reason(error) };
@@ -644,10 +690,24 @@ export async function buildRotatingListeningBundle(
   const manifestPath = join(outputRoot, "manifest.json");
   const blindMapPath = join(outputRoot, "blind-map.json");
   const worksheetPath = join(outputRoot, "LISTENING.md");
-  await atomicWrite(manifestPath, json(manifest));
-  await atomicWrite(blindMapPath, json(blindMap));
-  await atomicWrite(worksheetPath, markdown);
+  await atomicWrite(join(stagingRoot, "manifest.json"), json(manifest));
+  await atomicWrite(join(stagingRoot, "blind-map.json"), json(blindMap));
+  await atomicWrite(join(stagingRoot, "LISTENING.md"), markdown);
+  const publishedAudio = new Set(excerpts.flatMap((excerpt) => (["A", "B"] as const)
+    .map((candidate) => excerpt.candidates[candidate].audio?.ref)
+    .filter((ref): ref is string => Boolean(ref))));
+  for (const ref of [...publishedAudio].sort(compareText)) {
+    const destination = join(outputRoot, ref);
+    await mkdir(dirname(destination), { recursive: true });
+    await rename(join(stagingRoot, ref), destination);
+  }
+  for (const [name, destination] of [["manifest.json", manifestPath], ["blind-map.json", blindMapPath], ["LISTENING.md", worksheetPath]] as const) {
+    await rename(join(stagingRoot, name), destination);
+  }
   return { manifest, manifestPath, blindMap, blindMapPath, worksheet: markdown, worksheetPath, pack };
+  } finally {
+    await rm(stagingRoot, { recursive: true, force: true }).catch(() => undefined);
+  }
 }
 
 /** Canonical stable JSON for callers that do not need filesystem writes. */

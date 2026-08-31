@@ -2,14 +2,16 @@
 /** Build a local-only deterministic 90–150 second blind A/B listening bundle. */
 import { readFile, realpath, stat } from "node:fs/promises";
 import { dirname, isAbsolute, join, resolve, sep } from "node:path";
+import { fileURLToPath } from "node:url";
 import { createFluidSynthRenderer, type MidiAudioRenderer } from "../src/midi-renderer.js";
 import {
   buildRotatingListeningBundle,
   type RotatingListeningBundleOptions,
+  type RotatingListeningNormalization,
   type RotatingListeningSongDescriptor,
 } from "../src/rotating-listening-bundle.js";
 
-interface CliOptions {
+export interface CliOptions {
   songs: string;
   out: string;
   help?: boolean;
@@ -59,7 +61,16 @@ function numberValue(value: string, flag: string): number {
   return result;
 }
 
-function parseArgs(argv: readonly string[]): CliOptions {
+/** Keep CLI peak and the manifest's dB metadata derived from one value. */
+export function normalizationFromCli(options: Pick<CliOptions, "sampleRate" | "targetPeak">): Partial<RotatingListeningNormalization> | undefined {
+  if (options.sampleRate === undefined && options.targetPeak === undefined) return undefined;
+  return {
+    ...(options.sampleRate !== undefined ? { sampleRate: options.sampleRate } : {}),
+    ...(options.targetPeak !== undefined ? { targetPeakDb: 20 * Math.log10(options.targetPeak) } : {}),
+  };
+}
+
+export function parseArgs(argv: readonly string[]): CliOptions {
   const result: CliOptions = { songs: "", out: "" };
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index]!;
@@ -132,6 +143,7 @@ async function main(argv: readonly string[]): Promise<void> {
       ...(options.targetPeak !== undefined ? { targetPeak: options.targetPeak } : {}),
     });
   }
+  const cliNormalization = normalizationFromCli(options);
   const buildOptions: RotatingListeningBundleOptions = {
     songs,
     outputRoot: options.out,
@@ -139,15 +151,17 @@ async function main(argv: readonly string[]): Promise<void> {
     targetSeconds: options.targetSeconds,
     minSeconds: options.minSeconds,
     maxSeconds: options.maxSeconds,
-    ...(options.sampleRate !== undefined ? { normalization: { sampleRate: options.sampleRate } } : {}),
+    ...(cliNormalization ? { normalization: cliNormalization } : {}),
   };
   const result = await buildRotatingListeningBundle(buildOptions, { renderer });
   process.stdout.write(`${JSON.stringify({ manifest: result.manifestPath, blindMap: result.blindMapPath, worksheet: result.worksheetPath, status: result.manifest.status, totalSeconds: result.manifest.totalSeconds }, null, 2)}\n`);
 }
 
-try {
-  await main(process.argv.slice(2));
-} catch (error) {
-  process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
-  process.exitCode = 1;
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  try {
+    await main(process.argv.slice(2));
+  } catch (error) {
+    process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+    process.exitCode = 1;
+  }
 }
