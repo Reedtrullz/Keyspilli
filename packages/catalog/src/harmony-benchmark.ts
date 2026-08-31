@@ -192,8 +192,14 @@ export function normalizeHarmonyBenchmarkSidecar(input: HarmonyBenchmarkSidecarI
     for (const key of ["baselinePath", "currentPath", "candidatePath"] as const) {
       if (row[key] !== undefined) result[key] = safePath(row[key], `${id}.${key}`);
     }
+    if (row.currentPath !== undefined && row.candidatePath !== undefined) {
+      throw new Error(`${id} must not contain both currentPath and candidatePath`);
+    }
     for (const key of ["referenceSha256", "baselineSha256", "currentSha256", "candidateSha256"] as const) {
       if (row[key] !== undefined) result[key] = safeHash(row[key], `${id}.${key}`);
+    }
+    if (row.currentSha256 !== undefined && row.candidateSha256 !== undefined) {
+      throw new Error(`${id} must not contain both currentSha256 and candidateSha256`);
     }
     if (row.role !== undefined && row.role !== "left-hand" && row.role !== "harmony" && row.role !== "all") throw new Error(`${id}.role is invalid`);
     if (row.role !== undefined) result.role = row.role;
@@ -456,18 +462,25 @@ async function sidecarSources(manifest: HarmonyBenchmarkManifest, sidecar: Harmo
   if (!sidecar) return result;
   const normalized = normalizeHarmonyBenchmarkSidecar(sidecar);
   for (const entry of normalized.scores) {
-    if (!manifest.scores.some((score) => score.id === entry.id)) continue;
-    const manifestScore = manifest.scores.find((score) => score.id === entry.id)!;
+    const manifestScore = manifest.scores.find((score) => score.id === entry.id);
+    if (!manifestScore) throw new Error(`sidecar score ID ${entry.id} is not present in manifest`);
     const referencePath = await assertHarmonyBenchmarkPathOutsideRepository(resolve(baseDirectory, entry.referencePath), `${entry.id} reference artifact`);
     const baselinePath = entry.baselinePath ? await assertHarmonyBenchmarkPathOutsideRepository(resolve(baseDirectory, entry.baselinePath), `${entry.id} baseline artifact`) : undefined;
     const currentPathValue = entry.currentPath ?? entry.candidatePath;
     const currentPath = currentPathValue ? await assertHarmonyBenchmarkPathOutsideRepository(resolve(baseDirectory, currentPathValue), `${entry.id} current artifact`) : undefined;
     const sourceDiagnostics: string[] = [];
-    const referenceExpectedHash = entry.referenceSha256 ?? manifestScore.reference.trustedCoverage.referenceSha256;
+    const referenceExpectedHash = manifestScore.reference.trustedCoverage.referenceSha256;
+    if (entry.referenceSha256 && entry.referenceSha256 !== referenceExpectedHash) {
+      throw new Error(`${entry.id} referenceSha256 must match manifest expected hash`);
+    }
     const reference = await readParsedMidi(referencePath, referenceExpectedHash, `${entry.id} reference artifact`, sourceDiagnostics);
     const baseline = baselinePath ? await readParsedMidi(baselinePath, entry.baselineSha256, `${entry.id} baseline artifact`, sourceDiagnostics) : undefined;
-    const currentExpectedHash = entry.currentSha256 ?? entry.candidateSha256
-      ?? (manifestScore.candidate.status === "available" ? manifestScore.candidate.sha256 : undefined);
+    const manifestCandidateHash = manifestScore.candidate.status === "available" ? manifestScore.candidate.sha256 : undefined;
+    const sidecarCandidateHash = entry.currentSha256 ?? entry.candidateSha256;
+    if (manifestCandidateHash && sidecarCandidateHash && sidecarCandidateHash !== manifestCandidateHash) {
+      throw new Error(`${entry.id} candidate sha256 must match manifest expected hash`);
+    }
+    const currentExpectedHash = manifestCandidateHash ?? sidecarCandidateHash;
     const current = currentPath ? await readParsedMidi(currentPath, currentExpectedHash, `${entry.id} current artifact`, sourceDiagnostics) : undefined;
     result.set(entry.id, { ...(reference ? { reference } : {}), ...(baseline ? { baseline } : {}), ...(current ? { current } : {}), ...(entry.role ? { role: entry.role } : {}), ...(sourceDiagnostics.length ? { sourceDiagnostics } : {}) });
   }

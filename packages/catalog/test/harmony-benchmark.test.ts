@@ -197,13 +197,45 @@ describe("local harmony benchmark evaluator", () => {
       manifestInput.scores[0]!.candidate = { status: "available", logicalId: "current", sha256: sha256(currentBytes) };
       await writeFile(manifestPath, JSON.stringify(manifestInput), "utf8");
       await rm(out, { recursive: true, force: true });
-      const mismatched = await runHarmonyBenchmark({
+      await expect(runHarmonyBenchmark({
         manifestPath,
         sidecar: { schemaVersion: 1, scores: [{ id: HARMONY_BENCHMARK_SCORE_IDS[0], referencePath, referenceSha256: hash("d"), currentPath, currentSha256: sha256(currentBytes) }] },
         out,
-      });
-      expect(mismatched.report.songs[0]?.status).toBe("unavailable");
-      expect(mismatched.report.songs[0]?.diagnostics).toContain("sabaton-1916 reference artifact sha256 mismatch");
+      })).rejects.toThrow("sabaton-1916 referenceSha256 must match manifest expected hash");
+
+      await expect(runHarmonyBenchmark({
+        manifestPath,
+        sidecar: { schemaVersion: 1, scores: [{ id: HARMONY_BENCHMARK_SCORE_IDS[0], referencePath, currentPath, currentSha256: hash("d") }] },
+        out,
+      })).rejects.toThrow("sabaton-1916 candidate sha256 must match manifest expected hash");
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects unknown score IDs and ambiguous candidate paths or hashes", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "keyspilli-harmony-benchmark-sidecar-validation-"));
+    try {
+      const manifestPath = join(directory, "manifest.json");
+      const artifact = join(directory, "artifact.mid");
+      const out = join(directory, "out");
+      await writeFile(manifestPath, JSON.stringify(manifest()), "utf8");
+      await writeFile(artifact, midi([note(36, 0), note(40, 0), note(43, 0)]));
+      await expect(runHarmonyBenchmark({
+        manifestPath,
+        sidecar: { schemaVersion: 1, scores: [{ id: "not-in-manifest", referencePath: artifact }] },
+        out,
+      })).rejects.toThrow("sidecar score ID not-in-manifest is not present in manifest");
+      await expect(runHarmonyBenchmark({
+        manifestPath,
+        sidecar: { schemaVersion: 1, scores: [{ id: HARMONY_BENCHMARK_SCORE_IDS[0], referencePath: artifact, currentPath: artifact, candidatePath: artifact }] },
+        out,
+      })).rejects.toThrow("sabaton-1916 must not contain both currentPath and candidatePath");
+      await expect(runHarmonyBenchmark({
+        manifestPath,
+        sidecar: { schemaVersion: 1, scores: [{ id: HARMONY_BENCHMARK_SCORE_IDS[0], referencePath: artifact, currentSha256: hash("a"), candidateSha256: hash("b") }] },
+        out,
+      })).rejects.toThrow("sabaton-1916 must not contain both currentSha256 and candidateSha256");
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
@@ -234,6 +266,8 @@ describe("local harmony benchmark evaluator", () => {
 
       await rm(currentPath);
       await writeFile(currentPath, Buffer.from("not midi"));
+      manifestInput.scores[0]!.candidate = { status: "available", logicalId: "current", sha256: sha256(Buffer.from("not midi")) };
+      await writeFile(manifestPath, JSON.stringify(manifestInput), "utf8");
       await rm(out, { recursive: true, force: true });
       const malformed = await runHarmonyBenchmark({
         manifestPath,
