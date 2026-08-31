@@ -528,8 +528,17 @@ function evaluateWindow(input: HarmonyEvaluationWindowInput): HarmonyWindowEvalu
   const referenceAvailable = hasReferenceEvidence(reference);
   const status: HarmonyAvailability = diagnostics.length ? "malformed" : (referenceAvailable && candidateAvailable ? "available" : "unavailable");
   const chromaStatus: HarmonyAvailability = diagnostics.some((item) => item.includes("chroma")) ? "malformed" : (reference?.chroma !== undefined && chromaAgreement !== null ? "available" : "unavailable");
-  const rootStatus: HarmonyAvailability = diagnostics.some((item) => item.includes("rootPc") || item.includes("bassPc")) ? "malformed" : (reference && (reference.rootPc !== undefined && reference.rootPc !== null || reference.bassPc !== undefined && reference.bassPc !== null) && candidateChanges.length ? "available" : "unavailable");
-  const qualityStatus: HarmonyAvailability = diagnostics.some((item) => item.includes("quality")) ? "malformed" : (reference?.quality !== undefined && reference.quality !== null && candidateChanges.length ? "available" : "unavailable");
+  const expectedRootBass = expectedChanges?.some((change) =>
+    (change.rootPc !== undefined && change.rootPc !== null)
+    || (change.bassPc !== undefined && change.bassPc !== null),
+  ) ?? false;
+  const expectedQuality = expectedChanges?.some((change) => change.quality !== undefined && change.quality !== null) ?? false;
+  const rootStatus: HarmonyAvailability = diagnostics.some((item) => item.includes("rootPc") || item.includes("bassPc"))
+    ? "malformed"
+    : (expectedRootBass && candidateChanges.length ? "available" : "unavailable");
+  const qualityStatus: HarmonyAvailability = diagnostics.some((item) => item.includes("quality"))
+    ? "malformed"
+    : (expectedQuality && candidateChanges.length ? "available" : "unavailable");
   const timingStatus: HarmonyAvailability = diagnostics.some((item) => item.includes("changes")) ? "malformed" : (expectedAvailable && candidateChanges.length > 0 && candidateAvailable ? "available" : "unavailable");
   const accompanimentStatus: HarmonyAvailability = candidateAvailable ? "available" : "unavailable";
   const availability: HarmonyAvailabilitySummary = { overall: status, chroma: chromaStatus, rootBass: rootStatus, quality: qualityStatus, timing: timingStatus, accompaniment: accompanimentStatus };

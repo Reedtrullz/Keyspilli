@@ -230,6 +230,8 @@ describe("deterministic harmony evaluation", () => {
     expect(metrics.rootAgreement).toBe(1);
     expect(metrics.bassAgreement).toBe(1);
     expect(metrics.qualityAgreement).toBe(1);
+    expect(metrics.availability.rootBass).toBe("available");
+    expect(metrics.availability.quality).toBe("available");
   });
 
   it("lowers independent per-change agreement when candidate values mismatch", () => {
