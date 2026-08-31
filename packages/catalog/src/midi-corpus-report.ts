@@ -73,6 +73,57 @@ export type MidiCorpusEvaluationMode =
   | "BASS_ROOT"
   | "RHYTHM_ONLY";
 
+/**
+ * Human evidence is deliberately separate from parser/role readiness.  A
+ * source can be structurally useful without having been listened to, and a
+ * good listening result does not turn a band arrangement into a literal piano
+ * target.
+ */
+export type MidiCorpusHumanSourceReview = "ACCEPTED" | "NOT_REVIEWED" | "REJECTED";
+export type MidiCorpusHumanMusicalSanity = "PASS" | "NOT_REVIEWED" | "FAIL";
+
+/** Role-oriented modes used by the source-specific reference policy. */
+export type MidiCorpusReferenceMode = "PIANO_TARGET" | "MELODY" | "LEAD" | "HARMONY" | "BASS_ROOT" | "RHYTHM";
+export type MidiCorpusPolicyTarget = "PIANO_TARGET" | "SEMANTIC_REFERENCE" | "SEMANTIC_MULTITRACK";
+export type MidiCorpusMatchingPolicy = "FULL_SONG" | "ALIGNED_WINDOWS" | "SEMANTIC_ONLY" | "UNKNOWN";
+
+/**
+ * Additive policy metadata.  It describes how a source may be used as
+ * evidence; it never changes the role classifier or the generated MIDI.
+ */
+export interface MidiCorpusEvaluationPolicy {
+  target: MidiCorpusPolicyTarget;
+  referenceModes: MidiCorpusReferenceMode[];
+  matching: MidiCorpusMatchingPolicy;
+  fullSongRequired: boolean;
+  alignedWindowsRequired: boolean;
+  orchestrationLiteral: boolean;
+  warnings: string[];
+}
+
+export type MidiCorpusEvaluationPolicyInput = Partial<{
+  target: MidiCorpusPolicyTarget;
+  referenceModes: readonly MidiCorpusReferenceMode[];
+  matching: MidiCorpusMatchingPolicy;
+  fullSongRequired: boolean;
+  alignedWindowsRequired: boolean;
+  orchestrationLiteral: boolean;
+  warnings: readonly string[];
+}>;
+
+export type MidiCorpusRecordingRelation = "CANONICAL" | "ALTERNATE_ARRANGEMENT" | "SHORTENED_OR_STRUCTURALLY_DIFFERENT" | "UNKNOWN";
+export type MidiCorpusRecordingCorrespondence = "FULL_SONG" | "ALIGNED_WINDOWS" | "SEMANTIC_ONLY" | "UNKNOWN";
+
+/** Path-free logical identity for the recording/version represented by MIDI. */
+export interface MidiCorpusRecordingVersion {
+  id: string | null;
+  label: string | null;
+  relation: MidiCorpusRecordingRelation;
+  correspondence: MidiCorpusRecordingCorrespondence;
+}
+
+export type MidiCorpusRecordingVersionInput = Partial<MidiCorpusRecordingVersion>;
+
 export interface MidiCorpusParserSummary {
   format: number;
   division: number;
@@ -247,6 +298,13 @@ export interface MidiCorpusSourceReportInput {
   title?: string;
   referenceKind?: MidiCorpusReferenceKind;
   evaluationModes?: readonly MidiCorpusEvaluationMode[];
+  /** Explicit human source/musical-sanity ledger entries. */
+  humanSourceReview?: MidiCorpusHumanSourceReview;
+  humanMusicalSanity?: MidiCorpusHumanMusicalSanity;
+  /** Source-specific role/evaluation policy; omitted fields use safe defaults. */
+  evaluationPolicy?: MidiCorpusEvaluationPolicyInput;
+  /** Logical recording/version metadata only; filesystem paths are rejected. */
+  recordingVersion?: MidiCorpusRecordingVersionInput;
   result?: MidiCorpusResult;
   /** When recovery succeeded, retain the failed strict attempt separately. */
   strictResult?: MidiCorpusResult;
@@ -275,6 +333,10 @@ export interface MidiCorpusSongReport {
   title: string | null;
   referenceKind: MidiCorpusReferenceKind;
   evaluationModes: MidiCorpusEvaluationMode[];
+  humanSourceReview: MidiCorpusHumanSourceReview;
+  humanMusicalSanity: MidiCorpusHumanMusicalSanity;
+  evaluationPolicy: MidiCorpusEvaluationPolicy;
+  recordingVersion: MidiCorpusRecordingVersion;
   identity: { signature: string | null; basis: "metadata" | "canonical-notes" | "unavailable" };
   integrity: MidiCorpusIntegrityReport;
   parser: MidiCorpusParserSummary | null;
@@ -296,6 +358,14 @@ export interface MidiCorpusComparisonSnapshot {
   report?: MidiCorpusSongReport;
   metrics?: Partial<MidiCorpusMetrics>;
   coverage?: { windows: number; bars: number; status: "aligned" | "insufficient-evidence" | "not-requested" };
+  /** Exact source recording bytes used to produce this revision. */
+  inputSha256?: string;
+  /** Exact human-accepted reference bytes used for role/window evaluation. */
+  referenceSha256?: string;
+  /** Optional logical recording/version id; when present it must match. */
+  recordingVersionId?: string;
+  /** Optional non-secret strategy label for diagnostics, never an identity key. */
+  sourceStrategy?: string;
 }
 
 export interface MidiCorpusComparisonInput {
@@ -306,6 +376,10 @@ export interface MidiCorpusComparisonInput {
   status?: MidiCorpusComparisonStatus;
   alignedDurationBeats?: number;
   comparable?: boolean;
+  /** Pair-level identity shorthand when both snapshots use the same values. */
+  inputSha256?: string;
+  referenceSha256?: string;
+  recordingVersionId?: string;
 }
 
 export interface MidiCorpusMetricDelta {
@@ -807,6 +881,93 @@ function safeKind(value: unknown): MidiCorpusReferenceKind {
   return value === "piano-target" || value === "semantic-full-band" || value === "mixed" || value === "direct-piano" || value === "multitrack-piano" || value === "semantic-band" ? value : "unknown";
 }
 
+const REFERENCE_MODE_VALUES: readonly MidiCorpusReferenceMode[] = ["PIANO_TARGET", "MELODY", "LEAD", "HARMONY", "BASS_ROOT", "RHYTHM"];
+const POLICY_TARGET_VALUES: readonly MidiCorpusPolicyTarget[] = ["PIANO_TARGET", "SEMANTIC_REFERENCE", "SEMANTIC_MULTITRACK"];
+const MATCHING_POLICY_VALUES: readonly MidiCorpusMatchingPolicy[] = ["FULL_SONG", "ALIGNED_WINDOWS", "SEMANTIC_ONLY", "UNKNOWN"];
+const RECORDING_RELATION_VALUES: readonly MidiCorpusRecordingRelation[] = ["CANONICAL", "ALTERNATE_ARRANGEMENT", "SHORTENED_OR_STRUCTURALLY_DIFFERENT", "UNKNOWN"];
+const RECORDING_CORRESPONDENCE_VALUES: readonly MidiCorpusRecordingCorrespondence[] = ["FULL_SONG", "ALIGNED_WINDOWS", "SEMANTIC_ONLY", "UNKNOWN"];
+
+function safeHumanSourceReview(value: unknown): MidiCorpusHumanSourceReview {
+  return value === "ACCEPTED" || value === "REJECTED" ? value : "NOT_REVIEWED";
+}
+
+function safeHumanMusicalSanity(value: unknown): MidiCorpusHumanMusicalSanity {
+  return value === "PASS" || value === "FAIL" ? value : "NOT_REVIEWED";
+}
+
+function defaultEvaluationPolicy(kind: MidiCorpusReferenceKind): MidiCorpusEvaluationPolicy {
+  if (kind === "piano-target" || kind === "direct-piano") {
+    return {
+      target: "PIANO_TARGET",
+      referenceModes: ["BASS_ROOT", "HARMONY", "MELODY", "PIANO_TARGET", "RHYTHM"],
+      matching: "FULL_SONG",
+      fullSongRequired: true,
+      alignedWindowsRequired: false,
+      orchestrationLiteral: true,
+      warnings: [],
+    };
+  }
+  if (kind === "multitrack-piano") {
+    return {
+      target: "SEMANTIC_MULTITRACK",
+      referenceModes: ["BASS_ROOT", "HARMONY", "MELODY", "RHYTHM"],
+      matching: "SEMANTIC_ONLY",
+      fullSongRequired: false,
+      alignedWindowsRequired: false,
+      orchestrationLiteral: false,
+      warnings: ["multiple instrument lanes are role-separated evidence, not a literal solo-piano target"],
+    };
+  }
+  return {
+    target: "SEMANTIC_REFERENCE",
+    referenceModes: ["BASS_ROOT", "HARMONY", "LEAD", "MELODY", "RHYTHM"],
+    matching: "SEMANTIC_ONLY",
+    fullSongRequired: false,
+    alignedWindowsRequired: false,
+    orchestrationLiteral: false,
+    warnings: ["band/orchestral voicing is semantic reference evidence, not a literal piano-texture target"],
+  };
+}
+
+function evaluationPolicy(input: MidiCorpusSourceReportInput, kind: MidiCorpusReferenceKind): MidiCorpusEvaluationPolicy {
+  const fallback = defaultEvaluationPolicy(kind);
+  const value = input.evaluationPolicy;
+  if (!value || typeof value !== "object") return fallback;
+  const referenceModes = Array.isArray(value.referenceModes)
+    ? [...new Set(value.referenceModes.filter((mode): mode is MidiCorpusReferenceMode => REFERENCE_MODE_VALUES.includes(mode)))].sort(compareText)
+    : fallback.referenceModes;
+  const warnings = Array.isArray(value.warnings)
+    ? [...new Set([...fallback.warnings, ...value.warnings.map((warning) => sourceText(warning)).filter((warning): warning is string => warning !== null)])].sort(compareText)
+    : fallback.warnings;
+  const target = POLICY_TARGET_VALUES.includes(value.target as MidiCorpusPolicyTarget) ? value.target as MidiCorpusPolicyTarget : fallback.target;
+  const matching = MATCHING_POLICY_VALUES.includes(value.matching as MidiCorpusMatchingPolicy) ? value.matching as MidiCorpusMatchingPolicy : fallback.matching;
+  return {
+    target,
+    referenceModes: referenceModes.length ? referenceModes : fallback.referenceModes,
+    matching,
+    fullSongRequired: typeof value.fullSongRequired === "boolean" ? value.fullSongRequired : fallback.fullSongRequired,
+    alignedWindowsRequired: typeof value.alignedWindowsRequired === "boolean" ? value.alignedWindowsRequired : fallback.alignedWindowsRequired,
+    orchestrationLiteral: typeof value.orchestrationLiteral === "boolean" ? value.orchestrationLiteral : fallback.orchestrationLiteral,
+    warnings,
+  };
+}
+
+function recordingVersion(input: MidiCorpusSourceReportInput): MidiCorpusRecordingVersion {
+  const value = input.recordingVersion;
+  const relation = value && RECORDING_RELATION_VALUES.includes(value.relation as MidiCorpusRecordingRelation)
+    ? value.relation as MidiCorpusRecordingRelation
+    : "UNKNOWN";
+  const correspondence = value && RECORDING_CORRESPONDENCE_VALUES.includes(value.correspondence as MidiCorpusRecordingCorrespondence)
+    ? value.correspondence as MidiCorpusRecordingCorrespondence
+    : "UNKNOWN";
+  return {
+    id: value ? sourceText(value.id) : null,
+    label: value ? sourceText(value.label) : null,
+    relation,
+    correspondence,
+  };
+}
+
 /** Build a report for one source using only canonical in-memory data. */
 export function buildMidiCorpusSongReport(input: MidiCorpusSourceReportInput): MidiCorpusSongReport {
   const result = input.result;
@@ -852,6 +1013,10 @@ export function buildMidiCorpusSongReport(input: MidiCorpusSourceReportInput): M
     title: sourceText(input.title ?? canonical?.title),
     referenceKind: kind,
     evaluationModes: safeModes(input, kind),
+    humanSourceReview: safeHumanSourceReview(input.humanSourceReview),
+    humanMusicalSanity: safeHumanMusicalSanity(input.humanMusicalSanity),
+    evaluationPolicy: evaluationPolicy(input, kind),
+    recordingVersion: recordingVersion(input),
     identity: { signature: sourceIdentity, basis: identityBasis },
     integrity: integrity(result, canonical, input.strictResult),
     parser: parsed,
@@ -869,11 +1034,76 @@ export function buildMidiCorpusSongReport(input: MidiCorpusSourceReportInput): M
 function metricValue(snapshot: MidiCorpusComparisonSnapshot | undefined, getter: (metrics: MidiCorpusMetrics) => number | null): number | null {
   if (!snapshot) return null;
   const metrics = snapshot.report?.metrics ?? snapshot.metrics;
-  return metrics ? getter(metrics as MidiCorpusMetrics) : null;
+  if (!metrics || typeof metrics !== "object") return null;
+  // Comparison sidecars may intentionally carry only the metrics available
+  // for a role/window.  Treat missing nested fields as unavailable instead
+  // of allowing one partial snapshot to crash the entire fail-closed report.
+  try {
+    const value = getter(metrics as MidiCorpusMetrics);
+    return finite(value) ? value : null;
+  } catch {
+    return null;
+  }
 }
 
 function delta(baseline: number | null, current: number | null, lowerIsBetter: boolean): MidiCorpusMetricDelta {
   return { baseline: round(baseline), current: round(current), delta: baseline !== null && current !== null ? round(current - baseline) : null, lowerIsBetter };
+}
+
+const SHA256_HEX = /^[a-f0-9]{64}$/i;
+
+function safeSha256(value: unknown): string | null {
+  return typeof value === "string" && SHA256_HEX.test(value.trim()) ? value.trim().toLowerCase() : null;
+}
+
+interface MidiCorpusComparisonIdentityCheck {
+  valid: boolean;
+  diagnostics: string[];
+}
+
+/**
+ * A comparable duration and aligned windows do not prove that two generated
+ * files came from the same input or were scored against the same reference.
+ * Keep that proof explicit and fail closed when either identity is absent or
+ * malformed.  recordingVersionId is an optional strengthening signal: if a
+ * caller supplies it for either side, both sides must agree.
+ */
+function comparisonIdentity(input: MidiCorpusComparisonInput): MidiCorpusComparisonIdentityCheck {
+  const baseline = input.baseline;
+  const current = input.current;
+  const baselineInputRaw = baseline?.inputSha256 ?? input.inputSha256;
+  const currentInputRaw = current?.inputSha256 ?? input.inputSha256;
+  const baselineReferenceRaw = baseline?.referenceSha256 ?? input.referenceSha256;
+  const currentReferenceRaw = current?.referenceSha256 ?? input.referenceSha256;
+  const baselineInput = safeSha256(baselineInputRaw);
+  const currentInput = safeSha256(currentInputRaw);
+  const baselineReference = safeSha256(baselineReferenceRaw);
+  const currentReference = safeSha256(currentReferenceRaw);
+  const diagnostics: string[] = [];
+
+  if (!baselineInput || !currentInput) {
+    diagnostics.push("baseline/current source input identity is missing or invalid");
+  } else if (baselineInput !== currentInput) {
+    diagnostics.push("baseline/current source input identities differ");
+  }
+  if (!baselineReference || !currentReference) {
+    diagnostics.push("baseline/current reference identity is missing or invalid");
+  } else if (baselineReference !== currentReference) {
+    diagnostics.push("baseline/current reference identities differ");
+  }
+
+  const baselineVersionRaw = baseline?.recordingVersionId ?? input.recordingVersionId;
+  const currentVersionRaw = current?.recordingVersionId ?? input.recordingVersionId;
+  const baselineVersion = sourceText(baselineVersionRaw);
+  const currentVersion = sourceText(currentVersionRaw);
+  if (baselineVersionRaw !== undefined || currentVersionRaw !== undefined) {
+    if (!baselineVersion || !currentVersion) {
+      diagnostics.push("baseline/current recording version identity is missing or invalid");
+    } else if (baselineVersion !== currentVersion) {
+      diagnostics.push("baseline/current recording version identities differ");
+    }
+  }
+  return { valid: diagnostics.length === 0, diagnostics };
 }
 
 function comparisonReport(input: MidiCorpusComparisonInput): MidiCorpusComparisonReport {
@@ -890,7 +1120,8 @@ function comparisonReport(input: MidiCorpusComparisonInput): MidiCorpusCompariso
     && input.baseline?.coverage?.status === "aligned"
     && input.current?.coverage?.status === "aligned"
     && Boolean(input.baseline?.revision?.trim() && input.current?.revision?.trim());
-  const genuine = status === "aligned" && Boolean(input.baseline && input.current) && explicitAlignment;
+  const identity = comparisonIdentity(input);
+  const genuine = status === "aligned" && Boolean(input.baseline && input.current) && explicitAlignment && identity.valid;
   const metrics = {
     noteCount: delta(metricValue(input.baseline, (value) => value.global.noteCount), metricValue(input.current, (value) => value.global.noteCount), false),
     melodyLargeLeapRate: delta(metricValue(input.baseline, (value) => value.roles.melody.largeLeap.rate), metricValue(input.current, (value) => value.roles.melody.largeLeap.rate), true),
@@ -901,7 +1132,10 @@ function comparisonReport(input: MidiCorpusComparisonInput): MidiCorpusCompariso
   const improvements = Object.values(metrics).filter((value) => value.delta !== null && (value.lowerIsBetter ? value.delta < 0 : value.delta > 0)).length;
   const regressions = Object.values(metrics).filter((value) => value.delta !== null && (value.lowerIsBetter ? value.delta > 0 : value.delta < 0)).length;
   const winner: MidiCorpusComparisonReport["winner"] = !genuine ? null : improvements > 0 && regressions === 0 ? "current" : regressions > 0 && improvements === 0 ? "baseline" : improvements || regressions ? "mixed" : null;
-  const diagnostics = genuine ? [] : ["baseline/current comparison is not genuine: both revisions and explicit aligned evidence are required"];
+  const diagnostics = genuine ? [] : [
+    ...(!explicitAlignment || status !== "aligned" ? ["baseline/current comparison is not genuine: both revisions and explicit aligned evidence are required"] : []),
+    ...identity.diagnostics,
+  ];
   return { songId: sourceText(input.songId) ?? "invalid-song", status, genuine, referenceRoles: [...new Set(input.referenceRoles ?? [])].map((value) => sourceText(value) ?? "unknown").sort(compareText), alignedDurationBeats: finite(input.alignedDurationBeats) ? round(input.alignedDurationBeats!) : null, alignedBars: bars, metrics, winner, diagnostics };
 }
 

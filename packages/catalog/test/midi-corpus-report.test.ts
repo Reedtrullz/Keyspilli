@@ -80,6 +80,75 @@ describe("MIDI corpus report", () => {
     expect(canonicalMidiCorpusReportJson(first)).not.toContain("/Users/");
   });
 
+  it("records explicit human acceptance, source policy, and recording version metadata", () => {
+    const input = {
+      id: "free-bird",
+      title: "Free Bird",
+      referenceKind: "piano-target" as const,
+      canonical: fixture("Free Bird"),
+      humanSourceReview: "ACCEPTED" as const,
+      humanMusicalSanity: "PASS" as const,
+      evaluationPolicy: {
+        target: "PIANO_TARGET" as const,
+        referenceModes: ["PIANO_TARGET", "MELODY", "HARMONY", "BASS_ROOT", "RHYTHM"] as const,
+        matching: "ALIGNED_WINDOWS" as const,
+        fullSongRequired: false,
+        alignedWindowsRequired: true,
+        orchestrationLiteral: true,
+        warnings: ["shortened arrangement; use aligned windows"] as const,
+      },
+      recordingVersion: {
+        id: "free-bird-arrangement-a",
+        label: "shortened piano arrangement",
+        relation: "SHORTENED_OR_STRUCTURALLY_DIFFERENT" as const,
+        correspondence: "ALIGNED_WINDOWS" as const,
+      },
+    };
+    const first = buildMidiCorpusSongReport(input);
+    const second = buildMidiCorpusSongReport(input);
+    expect(first.humanSourceReview).toBe("ACCEPTED");
+    expect(first.humanMusicalSanity).toBe("PASS");
+    expect(first.evaluationPolicy).toEqual({
+      target: "PIANO_TARGET",
+      referenceModes: ["BASS_ROOT", "HARMONY", "MELODY", "PIANO_TARGET", "RHYTHM"],
+      matching: "ALIGNED_WINDOWS",
+      fullSongRequired: false,
+      alignedWindowsRequired: true,
+      orchestrationLiteral: true,
+      warnings: ["shortened arrangement; use aligned windows"],
+    });
+    expect(first.recordingVersion).toEqual({
+      id: "free-bird-arrangement-a",
+      label: "shortened piano arrangement",
+      relation: "SHORTENED_OR_STRUCTURALLY_DIFFERENT",
+      correspondence: "ALIGNED_WINDOWS",
+    });
+    expect(canonicalMidiCorpusReportJson(first)).toBe(canonicalMidiCorpusReportJson(second));
+  });
+
+  it("uses semantic defaults and redacts unsafe human metadata", () => {
+    const value = buildMidiCorpusSongReport({
+      id: "semantic-band",
+      referenceKind: "semantic-full-band",
+      canonical: fixture(),
+      evaluationPolicy: {
+        warnings: ["/Users/reidar/private/reference.mid", "retain semantic roles"],
+      },
+      recordingVersion: {
+        id: "/Users/reidar/private/reference.mid",
+        label: "band reference",
+      },
+    });
+    expect(value.humanSourceReview).toBe("NOT_REVIEWED");
+    expect(value.humanMusicalSanity).toBe("NOT_REVIEWED");
+    expect(value.evaluationPolicy.target).toBe("SEMANTIC_REFERENCE");
+    expect(value.evaluationPolicy.referenceModes).toEqual(["BASS_ROOT", "HARMONY", "LEAD", "MELODY", "RHYTHM"]);
+    expect(value.evaluationPolicy.orchestrationLiteral).toBe(false);
+    expect(value.evaluationPolicy.warnings).toEqual(["band/orchestral voicing is semantic reference evidence, not a literal piano-texture target", "retain semantic roles"]);
+    expect(value.recordingVersion).toMatchObject({ id: null, label: "band reference", relation: "UNKNOWN", correspondence: "UNKNOWN" });
+    expect(JSON.stringify(value)).not.toContain("/Users/reidar");
+  });
+
   it("reports derived semantic layers and direct-piano readiness", () => {
     const value = buildMidiCorpusSongReport({
       id: "single-piano",
@@ -108,8 +177,22 @@ describe("MIDI corpus report", () => {
 
   it("fails the benchmark closed until five genuine aligned pairs exist", () => {
     const result = buildMidiCorpusBenchmark([
-      { songId: "song-a", comparable: true, status: "aligned", alignedDurationBeats: 128, baseline: { revision: "old", coverage: { windows: 3, bars: 32, status: "aligned" } }, current: { revision: "new", coverage: { windows: 3, bars: 32, status: "aligned" } } },
-      { songId: "song-b", comparable: true, status: "aligned", alignedDurationBeats: 128, baseline: { revision: "old", coverage: { windows: 3, bars: 32, status: "aligned" } }, current: { revision: "new", coverage: { windows: 3, bars: 32, status: "aligned" } } },
+      {
+        songId: "song-a",
+        comparable: true,
+        status: "aligned",
+        alignedDurationBeats: 128,
+        baseline: { revision: "old", inputSha256: "a".repeat(64), referenceSha256: "b".repeat(64), coverage: { windows: 3, bars: 32, status: "aligned" } },
+        current: { revision: "new", inputSha256: "a".repeat(64), referenceSha256: "b".repeat(64), coverage: { windows: 3, bars: 32, status: "aligned" } },
+      },
+      {
+        songId: "song-b",
+        comparable: true,
+        status: "aligned",
+        alignedDurationBeats: 128,
+        baseline: { revision: "old", inputSha256: "c".repeat(64), referenceSha256: "d".repeat(64), coverage: { windows: 3, bars: 32, status: "aligned" } },
+        current: { revision: "new", inputSha256: "c".repeat(64), referenceSha256: "d".repeat(64), coverage: { windows: 3, bars: 32, status: "aligned" } },
+      },
     ]);
     expect(result.status).toBe("insufficient-evidence");
     expect(result.comparableSongCount).toBe(2);
@@ -143,6 +226,86 @@ describe("MIDI corpus report", () => {
     ], 1);
     expect(result.comparableSongCount).toBe(0);
     expect(result.comparisons[0]?.genuine).toBe(false);
+  });
+
+  it("requires matching source and reference identities for a genuine pair", () => {
+    const inputSha256 = "a".repeat(64);
+    const referenceSha256 = "b".repeat(64);
+    const result = buildMidiCorpusBenchmark([{
+      songId: "same-input",
+      comparable: true,
+      status: "aligned",
+      alignedDurationBeats: 128,
+      baseline: {
+        revision: "old",
+        inputSha256,
+        referenceSha256,
+        recordingVersionId: "recording-v1",
+        coverage: { windows: 3, bars: 32, status: "aligned" },
+      },
+      current: {
+        revision: "new",
+        inputSha256,
+        referenceSha256,
+        recordingVersionId: "recording-v1",
+        coverage: { windows: 3, bars: 32, status: "aligned" },
+      },
+    }], 1);
+    expect(result.comparableSongCount).toBe(1);
+    expect(result.comparisons[0]?.genuine).toBe(true);
+    expect(result.comparisons[0]?.diagnostics).toEqual([]);
+  });
+
+  it("rejects a pair whose source or reference identity differs", () => {
+    const inputSha256 = "a".repeat(64);
+    const referenceSha256 = "b".repeat(64);
+    const shared = {
+      revision: "old",
+      inputSha256,
+      referenceSha256,
+      coverage: { windows: 3, bars: 32, status: "aligned" as const },
+    };
+    const result = buildMidiCorpusBenchmark([{
+      songId: "different-input",
+      comparable: true,
+      status: "aligned",
+      alignedDurationBeats: 128,
+      baseline: shared,
+      current: {
+        ...shared,
+        revision: "new",
+        inputSha256: "c".repeat(64),
+        referenceSha256: "d".repeat(64),
+      },
+    }], 1);
+    expect(result.comparableSongCount).toBe(0);
+    expect(result.comparisons[0]?.genuine).toBe(false);
+    expect(result.comparisons[0]?.diagnostics).toEqual(expect.arrayContaining([
+      "baseline/current source input identities differ",
+      "baseline/current reference identities differ",
+    ]));
+  });
+
+  it("fails closed when a comparison snapshot supplies only partial metrics", () => {
+    const result = buildMidiCorpusBenchmark([{
+      songId: "partial-metrics",
+      comparable: true,
+      status: "aligned",
+      alignedDurationBeats: 128,
+      baseline: {
+        revision: "old",
+        metrics: { global: { noteCount: 12 } } as never,
+        coverage: { windows: 3, bars: 32, status: "aligned" },
+      },
+      current: {
+        revision: "new",
+        metrics: { global: { noteCount: 18 } } as never,
+        coverage: { windows: 3, bars: 32, status: "aligned" },
+      },
+    }]);
+
+    expect(result.comparisons[0]?.metrics.noteCount).toMatchObject({ baseline: 12, current: 18, delta: 6 });
+    expect(result.comparisons[0]?.metrics.melodyLargeLeapRate).toMatchObject({ baseline: null, current: null, delta: null });
   });
 
   it("only reports recurring defects after the configured occurrence threshold", () => {

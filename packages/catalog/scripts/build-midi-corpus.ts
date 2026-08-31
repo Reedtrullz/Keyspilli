@@ -24,7 +24,11 @@ import {
   canonicalMidiCorpusReportJson,
   type MidiCorpusReport,
   type MidiCorpusComparisonInput,
+  type MidiCorpusEvaluationPolicyInput,
+  type MidiCorpusHumanMusicalSanity,
+  type MidiCorpusHumanSourceReview,
   type MidiCorpusReferenceKind,
+  type MidiCorpusRecordingVersionInput,
   type MidiCorpusSongReport,
 } from "../src/midi-corpus-report.js";
 import { renderMidiToWav, slicePcm16WavFile, type MidiRenderResult } from "../src/midi-renderer.js";
@@ -37,6 +41,10 @@ export interface MidiCorpusInputSource {
   referenceKind?: MidiCorpusReferenceKind;
   evaluationModes?: string[];
   trustedRoles?: string[];
+  humanSourceReview?: MidiCorpusHumanSourceReview;
+  humanMusicalSanity?: MidiCorpusHumanMusicalSanity;
+  evaluationPolicy?: MidiCorpusEvaluationPolicyInput;
+  recordingVersion?: MidiCorpusRecordingVersionInput;
 }
 
 export interface MidiCorpusInputManifest {
@@ -84,6 +92,13 @@ const KIND_ALIASES: Record<string, MidiCorpusReferenceKind> = {
   DIRECT_PIANO: "direct-piano",
   MULTITRACK_PIANO: "multitrack-piano",
 };
+const HUMAN_SOURCE_REVIEW_VALUES = new Set<MidiCorpusHumanSourceReview>(["ACCEPTED", "NOT_REVIEWED", "REJECTED"]);
+const HUMAN_MUSICAL_SANITY_VALUES = new Set<MidiCorpusHumanMusicalSanity>(["PASS", "NOT_REVIEWED", "FAIL"]);
+const POLICY_TARGET_VALUES = new Set(["PIANO_TARGET", "SEMANTIC_REFERENCE", "SEMANTIC_MULTITRACK"]);
+const POLICY_MODE_VALUES = new Set(["PIANO_TARGET", "MELODY", "LEAD", "HARMONY", "BASS_ROOT", "RHYTHM"]);
+const MATCHING_POLICY_VALUES = new Set(["FULL_SONG", "ALIGNED_WINDOWS", "SEMANTIC_ONLY", "UNKNOWN"]);
+const RECORDING_RELATION_VALUES = new Set(["CANONICAL", "ALTERNATE_ARRANGEMENT", "SHORTENED_OR_STRUCTURALLY_DIFFERENT", "UNKNOWN"]);
+const RECORDING_CORRESPONDENCE_VALUES = new Set(["FULL_SONG", "ALIGNED_WINDOWS", "SEMANTIC_ONLY", "UNKNOWN"]);
 
 const compareText = (left: string, right: string): number => left < right ? -1 : left > right ? 1 : 0;
 
@@ -204,6 +219,65 @@ function pathFreeString(value: unknown, field: string): string {
   return normalized.slice(0, 240);
 }
 
+function parseHumanStatus<T extends string>(value: unknown, allowed: ReadonlySet<T>, field: string): T | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== "string" || !allowed.has(value as T)) throw new Error(`${field} has an unsupported value`);
+  return value as T;
+}
+
+function parseEvaluationPolicy(value: unknown, sourceId: string): MidiCorpusInputSource["evaluationPolicy"] {
+  if (value === undefined) return undefined;
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`source ${sourceId} evaluationPolicy must be an object`);
+  const raw = value as Record<string, unknown>;
+  const result: NonNullable<MidiCorpusInputSource["evaluationPolicy"]> = {};
+  if (raw.target !== undefined) {
+    if (typeof raw.target !== "string" || !POLICY_TARGET_VALUES.has(raw.target)) throw new Error(`source ${sourceId} evaluationPolicy.target is unsupported`);
+    result.target = raw.target as NonNullable<typeof result.target>;
+  }
+  if (raw.referenceModes !== undefined) {
+    if (!Array.isArray(raw.referenceModes)) throw new Error(`source ${sourceId} evaluationPolicy.referenceModes must be an array`);
+    const modes = raw.referenceModes.map((mode, index) => {
+      if (typeof mode !== "string" || !POLICY_MODE_VALUES.has(mode)) throw new Error(`source ${sourceId} evaluationPolicy.referenceModes[${index}] is unsupported`);
+      return mode as NonNullable<typeof result.referenceModes>[number];
+    });
+    result.referenceModes = [...new Set(modes)].sort(compareText);
+  }
+  if (raw.matching !== undefined) {
+    if (typeof raw.matching !== "string" || !MATCHING_POLICY_VALUES.has(raw.matching)) throw new Error(`source ${sourceId} evaluationPolicy.matching is unsupported`);
+    result.matching = raw.matching as NonNullable<typeof result.matching>;
+  }
+  for (const key of ["fullSongRequired", "alignedWindowsRequired", "orchestrationLiteral"] as const) {
+    if (raw[key] !== undefined) {
+      if (typeof raw[key] !== "boolean") throw new Error(`source ${sourceId} evaluationPolicy.${key} must be boolean`);
+      result[key] = raw[key];
+    }
+  }
+  if (raw.warnings !== undefined) {
+    if (!Array.isArray(raw.warnings)) throw new Error(`source ${sourceId} evaluationPolicy.warnings must be an array`);
+    result.warnings = [...new Set(raw.warnings.map((warning, index) => pathFreeString(warning, `source ${sourceId} evaluationPolicy.warnings[${index}]`)))].sort(compareText);
+  }
+  return result;
+}
+
+function parseRecordingVersion(value: unknown, sourceId: string): MidiCorpusInputSource["recordingVersion"] {
+  if (value === undefined) return undefined;
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`source ${sourceId} recordingVersion must be an object`);
+  const raw = value as Record<string, unknown>;
+  const result: NonNullable<MidiCorpusInputSource["recordingVersion"]> = {};
+  for (const key of ["id", "label"] as const) {
+    if (raw[key] !== undefined) result[key] = pathFreeString(raw[key], `source ${sourceId} recordingVersion.${key}`);
+  }
+  if (raw.relation !== undefined) {
+    if (typeof raw.relation !== "string" || !RECORDING_RELATION_VALUES.has(raw.relation)) throw new Error(`source ${sourceId} recordingVersion.relation is unsupported`);
+    result.relation = raw.relation as NonNullable<typeof result.relation>;
+  }
+  if (raw.correspondence !== undefined) {
+    if (typeof raw.correspondence !== "string" || !RECORDING_CORRESPONDENCE_VALUES.has(raw.correspondence)) throw new Error(`source ${sourceId} recordingVersion.correspondence is unsupported`);
+    result.correspondence = raw.correspondence as NonNullable<typeof result.correspondence>;
+  }
+  return result;
+}
+
 export function parseMidiCorpusManifest(value: unknown, requireSeven = true): MidiCorpusInputManifest {
   if (!value || typeof value !== "object") throw new Error("MIDI corpus manifest must be an object");
   const raw = value as Record<string, unknown>;
@@ -226,6 +300,10 @@ export function parseMidiCorpusManifest(value: unknown, requireSeven = true): Mi
     if (!KIND_VALUES.has(referenceKind as MidiCorpusReferenceKind)) throw new Error(`source ${id} has an unsupported referenceKind`);
     const evaluationModes = Array.isArray(item.evaluationModes) ? item.evaluationModes.filter((value): value is string => typeof value === "string").map((value) => value.trim()).filter(Boolean).sort(compareText) : undefined;
     const trustedRoles = Array.isArray(item.trustedRoles) ? item.trustedRoles.filter((value): value is string => typeof value === "string").map((value) => value.trim()).filter(Boolean).sort(compareText) : undefined;
+    const humanSourceReview = parseHumanStatus(item.humanSourceReview, HUMAN_SOURCE_REVIEW_VALUES, `source ${id} humanSourceReview`);
+    const humanMusicalSanity = parseHumanStatus(item.humanMusicalSanity, HUMAN_MUSICAL_SANITY_VALUES, `source ${id} humanMusicalSanity`);
+    const evaluationPolicy = parseEvaluationPolicy(item.evaluationPolicy, id);
+    const recordingVersion = parseRecordingVersion(item.recordingVersion, id);
     return {
       id,
       artist: typeof item.artist === "string" ? item.artist : undefined,
@@ -234,6 +312,10 @@ export function parseMidiCorpusManifest(value: unknown, requireSeven = true): Mi
       referenceKind: referenceKind as MidiCorpusReferenceKind,
       ...(evaluationModes?.length ? { evaluationModes } : {}),
       ...(trustedRoles?.length ? { trustedRoles } : {}),
+      ...(humanSourceReview ? { humanSourceReview } : {}),
+      ...(humanMusicalSanity ? { humanMusicalSanity } : {}),
+      ...(evaluationPolicy ? { evaluationPolicy } : {}),
+      ...(recordingVersion ? { recordingVersion } : {}),
     };
   });
   return { schemaVersion: 1, corpusId, sources };
@@ -255,7 +337,19 @@ function sourceReport(
   canonicalOverride?: MidiCorpusResult["canonical"],
 ): MidiCorpusSongReport {
   const canonical = canonicalOverride ?? effective.canonical;
-  if (!canonical) return buildMidiCorpusSongReport({ id: source.id, label: source.title, artist: source.artist, title: source.title, referenceKind: source.referenceKind, result: effective, strictResult: strict });
+  if (!canonical) return buildMidiCorpusSongReport({
+    id: source.id,
+    label: source.title,
+    artist: source.artist,
+    title: source.title,
+    referenceKind: source.referenceKind,
+    humanSourceReview: source.humanSourceReview,
+    humanMusicalSanity: source.humanMusicalSanity,
+    evaluationPolicy: source.evaluationPolicy,
+    recordingVersion: source.recordingVersion,
+    result: effective,
+    strictResult: strict,
+  });
   return buildMidiCorpusSongReport({
     id: source.id,
     label: source.title,
@@ -264,6 +358,10 @@ function sourceReport(
     referenceKind: source.referenceKind,
     evaluationModes: source.evaluationModes as never,
     trustedRoles: source.trustedRoles as never,
+    humanSourceReview: source.humanSourceReview,
+    humanMusicalSanity: source.humanMusicalSanity,
+    evaluationPolicy: source.evaluationPolicy,
+    recordingVersion: source.recordingVersion,
     result: effective,
     strictResult: strict,
     canonical,
@@ -293,6 +391,9 @@ async function readPairs(path: string | undefined, repositoryRoot = ROOT): Promi
       alignedDurationBeats: typeof entry.alignedDurationBeats === "number" && Number.isFinite(entry.alignedDurationBeats) ? entry.alignedDurationBeats : undefined,
       baseline: entry.baseline as MidiCorpusComparisonInput["baseline"],
       current: entry.current as MidiCorpusComparisonInput["current"],
+      ...(typeof entry.inputSha256 === "string" ? { inputSha256: entry.inputSha256 } : {}),
+      ...(typeof entry.referenceSha256 === "string" ? { referenceSha256: entry.referenceSha256 } : {}),
+      ...(typeof entry.recordingVersionId === "string" ? { recordingVersionId: entry.recordingVersionId } : {}),
     };
   });
 }
@@ -311,11 +412,11 @@ function markdownReview(report: ReturnType<typeof buildMidiCorpusReport>): strin
     "",
     "This document is path-free. Source binaries remain outside the repository and are not uploaded or cataloged.",
     "",
-    "| Source | Kind | Notes | Tempo | Piano target | Melody | Harmony | Bass/root | Normalization |",
-    "|---|---|---:|---:|---|---|---|---|---|",
+    "| Source | Kind | Human source | Musical sanity | Policy | Notes | Tempo | Piano target | Melody | Harmony | Bass/root | Normalization |",
+    "|---|---|---|---|---|---:|---:|---|---|---|---|---|",
   ];
   for (const source of report.sources) {
-    lines.push(`| ${source.id} | ${source.referenceKind} | ${source.parser?.noteCount ?? "—"} | ${source.parser?.tempoBpm ?? "—"} | ${source.readiness.pianoTarget} | ${source.readiness.melody} | ${source.readiness.harmony} | ${source.readiness.bassRoot} | ${source.integrity.normalization?.status ?? "—"} |`);
+    lines.push(`| ${source.id} | ${source.referenceKind} | ${source.humanSourceReview} | ${source.humanMusicalSanity} | ${source.evaluationPolicy.target}/${source.evaluationPolicy.matching} | ${source.parser?.noteCount ?? "—"} | ${source.parser?.tempoBpm ?? "—"} | ${source.readiness.pianoTarget} | ${source.readiness.melody} | ${source.readiness.harmony} | ${source.readiness.bassRoot} | ${source.integrity.normalization?.status ?? "—"} |`);
   }
   lines.push("", "## Benchmark boundary", "", `Genuine baseline/current comparisons: ${report.benchmark.comparableSongCount}`, `Benchmark status: ${report.benchmark.status}`, `Minimum required for strict comparison: ${report.benchmark.minimumComparableSongs}`, "", "A blind baseline/current pack is not generated without genuine same-song baseline/current inputs. Human listening decisions are recorded separately.", "");
   return lines.join("\n");
@@ -452,13 +553,52 @@ export async function buildMidiCorpus(options: BuildMidiCorpusOptions): Promise<
         ...(excerptReferenceWav ? { excerptReferenceWav } : {}),
       }, effectiveCanonical);
       reports.push(report);
-      sanityEntries.push({ id: source.id, title: report.title, artist: report.artist, referenceKind: report.referenceKind, bytes: input.bytes.byteLength, sha256: hash(input.bytes), strictStatus: report.integrity.strictParse, normalizationStatus: normalization, ...(fullReferenceWav ? { fullReferenceWav } : {}), ...(excerptReferenceWav ? { excerptReferenceWav } : {}), ...(renderMetadata ? { render: renderMetadata } : {}), ...(renderError ? { renderStatus: "failed", renderError } : options.render ? { renderStatus: "passed" } : {}) });
+      sanityEntries.push({
+        id: source.id,
+        title: report.title,
+        artist: report.artist,
+        referenceKind: report.referenceKind,
+        humanSourceReview: report.humanSourceReview,
+        humanMusicalSanity: report.humanMusicalSanity,
+        evaluationPolicy: report.evaluationPolicy,
+        recordingVersion: report.recordingVersion,
+        bytes: input.bytes.byteLength,
+        sha256: hash(input.bytes),
+        strictStatus: report.integrity.strictParse,
+        normalizationStatus: normalization,
+        ...(fullReferenceWav ? { fullReferenceWav } : {}),
+        ...(excerptReferenceWav ? { excerptReferenceWav } : {}),
+        ...(renderMetadata ? { render: renderMetadata } : {}),
+        ...(renderError ? { renderStatus: "failed", renderError } : options.render ? { renderStatus: "passed" } : {}),
+      });
     } catch (error) {
       if (!failureCounted) failedCount += 1;
       const message = redactedCliError(error);
-      const report = buildMidiCorpusSongReport({ id: source.id, label: source.title, artist: source.artist, title: source.title, referenceKind: source.referenceKind });
+      const report = buildMidiCorpusSongReport({
+        id: source.id,
+        label: source.title,
+        artist: source.artist,
+        title: source.title,
+        referenceKind: source.referenceKind,
+        humanSourceReview: source.humanSourceReview,
+        humanMusicalSanity: source.humanMusicalSanity,
+        evaluationPolicy: source.evaluationPolicy,
+        recordingVersion: source.recordingVersion,
+      });
       reports.push(report);
-      sanityEntries.push({ id: source.id, title: report.title, artist: report.artist, referenceKind: report.referenceKind, strictStatus: "failed", normalizationStatus: "FAILED", error: message });
+      sanityEntries.push({
+        id: source.id,
+        title: report.title,
+        artist: report.artist,
+        referenceKind: report.referenceKind,
+        humanSourceReview: report.humanSourceReview,
+        humanMusicalSanity: report.humanMusicalSanity,
+        evaluationPolicy: report.evaluationPolicy,
+        recordingVersion: report.recordingVersion,
+        strictStatus: "failed",
+        normalizationStatus: "FAILED",
+        error: message,
+      });
     }
   }
   const comparisons = await readPairs(options.pairs, repositoryRoot);
