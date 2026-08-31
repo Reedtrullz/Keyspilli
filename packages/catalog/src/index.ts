@@ -41,3 +41,4 @@ export * from "./recognizability-pre-gate.js";
 export * from "./midi-corpus-roles.js";
 export * from "./midi-corpus.js";
 export * from "./midi-corpus-report.js";
+export * from "./direct-amt-evaluation.js";
