@@ -3,6 +3,7 @@ import {
   applyMelodyCorrectionLedger,
   buildMelodyReviewPack,
   canonicalMelodyReviewPackJson,
+  melodyReviewPackMarkdown,
   validateMelodyCorrectionLedger,
   type MelodyReviewInput,
 } from "../src/melody-review-pack.js";
@@ -35,6 +36,17 @@ function input(scores: unknown[]): MelodyReviewInput {
 }
 
 describe("melody review pack", () => {
+  it("carries a safe page anchor and renders a trivial A/B/Neither prompt", () => {
+    const report = buildMelodyReviewPack(input([{
+      id: "song",
+      review: { regions: [group("song", 14, { page: 2, rootCauses: ["pitch"] })] },
+    }]));
+    const unit = report.bootstrap.decisions[0]!;
+    expect(unit.page).toBe(2);
+    expect(canonicalMelodyReviewPackJson(report)).toContain('"page": 2');
+    expect(melodyReviewPackMarkdown(report)).toContain("Which matches the printed melody? A / B / Neither");
+  });
+
   it("ranks deterministically regardless of score and group order", () => {
     const scores = [
       { id: "zeta", artist: "Artist", title: "Zeta", source: { pdf: { sha256: HASH_B } }, review: { regions: [group("zeta", 3), group("zeta", 1, { rootCauses: ["pitch"] })] } },

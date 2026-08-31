@@ -34,6 +34,8 @@ export interface MelodyReviewUnit {
   groupId: string;
   measureIds: string[];
   eventIds: string[];
+  /** Optional score-page anchor from the report projection; never a file path. */
+  page: number | null;
   firstMeasureIndex: number | null;
   lastMeasureIndex: number | null;
   startBeat: number | null;
@@ -340,6 +342,10 @@ function candidatesForScore(score: RecordValue, scoreIndex: number): MelodyRevie
       id: id(candidate.id, `${scoreId}:melody:${measures.join("+") || "unknown"}:${reasons[0] ?? "other"}`),
       scoreId, artist, title, scoreHash, role: "melody", groupId,
       measureIds: measures, eventIds: extractEventIds(candidate),
+      page: integer(candidate.page) ?? (() => {
+        const systems = array(candidate.pageSystems);
+        return systems.length ? integer(record(systems[0]).page) : null;
+      })(),
       firstMeasureIndex: integer(candidate.firstMeasureIndex), lastMeasureIndex: integer(candidate.lastMeasureIndex),
       startBeat: number(candidate.startBeat), endBeat: number(candidate.endBeat),
       reasonCategories: reasons.length ? reasons : ["other"], evidence,
@@ -371,6 +377,7 @@ function candidatesForScore(score: RecordValue, scoreIndex: number): MelodyRevie
       if (prior.lastMeasureIndex === null || (item.lastMeasureIndex !== null && item.lastMeasureIndex > prior.lastMeasureIndex)) prior.lastMeasureIndex = item.lastMeasureIndex;
       if (prior.startBeat === null || (item.startBeat !== null && item.startBeat < prior.startBeat)) prior.startBeat = item.startBeat;
       if (prior.endBeat === null || (item.endBeat !== null && item.endBeat > prior.endBeat)) prior.endBeat = item.endBeat;
+      if (prior.page === null || (item.page !== null && item.page < prior.page)) prior.page = item.page;
       if (prior.confidence === null) prior.confidence = item.confidence;
       prior.estimatedEventCount = Math.max(prior.estimatedEventCount ?? 0, item.estimatedEventCount ?? 0) || null;
       prior.evidenceScore = Math.max(prior.evidenceScore, item.evidenceScore);
@@ -472,11 +479,12 @@ export function melodyReviewPackMarkdown(pack: MelodyReviewPack): string {
     "",
     "## Bootstrap decisions",
     "",
-    "| # | Score | Unit | Measures | Reasons | Evidence | Rank | Cost |",
-    "| ---: | --- | --- | --- | --- | --- | ---: | ---: |",
+    "| # | Score | Page | Unit | Measures | Reasons | Evidence | Rank | Cost |",
+    "| ---: | --- | ---: | --- | --- | --- | --- | ---: | ---: |",
   ];
-  pack.bootstrap.decisions.forEach((unit, index) => lines.push(`| ${index + 1} | ${markdownCell(unit.artist)} — ${markdownCell(unit.title)} | ${markdownCell(unit.id)} | ${markdownCell(unit.measureIds.join(", "))} | ${markdownCell(unit.reasonCategories.join(", "))} | ${markdownCell(unit.evidence.join("; "))} | ${unit.rankScore} | ${unit.humanCost} |`));
-  if (!pack.bootstrap.decisions.length) lines.push("| — | No unresolved melody review units available | — | — | — | — | — | — |");
+  pack.bootstrap.decisions.forEach((unit, index) => lines.push(`| ${index + 1} | ${markdownCell(unit.artist)} — ${markdownCell(unit.title)} | ${unit.page ?? "—"} | ${markdownCell(unit.id)} | ${markdownCell(unit.measureIds.join(", "))} | ${markdownCell(unit.reasonCategories.join(", "))} | ${markdownCell(unit.evidence.join("; "))} | ${unit.rankScore} | ${unit.humanCost} |`));
+  if (!pack.bootstrap.decisions.length) lines.push("| — | No unresolved melody review units available | — | — | — | — | — | — | — |");
+  if (pack.bootstrap.decisions.length) lines.push("", "For each item: **Which matches the printed melody? A / B / Neither**. Choose the option matching the printed melody; do not enter MusicXML.");
   lines.push("", "## Deferred review units", "", `Deferred unresolved units: ${pack.deferred.length}`, "");
   for (const unit of pack.deferred) lines.push(`- ${markdownCell(unit.scoreId)} / ${markdownCell(unit.id)} (${markdownCell(unit.reasonCategories.join(", "))})`);
   if (!pack.deferred.length) lines.push("- None.");
@@ -489,8 +497,8 @@ function htmlEscape(value: unknown): string {
 }
 
 export function melodyReviewPackHtml(pack: MelodyReviewPack): string {
-  const rows = pack.bootstrap.decisions.map((unit, index) => `<tr><td>${index + 1}</td><td>${htmlEscape(`${unit.artist} — ${unit.title}`)}</td><td>${htmlEscape(unit.id)}</td><td>${htmlEscape(unit.measureIds.join(", "))}</td><td>${htmlEscape(unit.reasonCategories.join(", "))}</td><td>${unit.rankScore}</td></tr>`).join("");
-  return `<!doctype html><meta charset="utf-8"><title>Melody review bootstrap</title><h1>Melody review bootstrap</h1><p>Status: <strong>${htmlEscape(pack.status)}</strong>. Decisions: ${pack.bootstrap.decisions.length}.</p><table><thead><tr><th>#</th><th>Score</th><th>Unit</th><th>Measures</th><th>Reasons</th><th>Rank</th></tr></thead><tbody>${rows || "<tr><td colspan=6>No unresolved melody review units available.</td></tr>"}</tbody></table>`;
+  const rows = pack.bootstrap.decisions.map((unit, index) => `<tr><td>${index + 1}</td><td>${htmlEscape(`${unit.artist} — ${unit.title}`)}</td><td>${unit.page ?? "—"}</td><td>${htmlEscape(unit.id)}</td><td>${htmlEscape(unit.measureIds.join(", "))}</td><td>${htmlEscape(unit.reasonCategories.join(", "))}</td><td>${unit.rankScore}</td></tr>`).join("");
+  return `<!doctype html><meta charset="utf-8"><title>Melody review bootstrap</title><h1>Melody review bootstrap</h1><p>Status: <strong>${htmlEscape(pack.status)}</strong>. Decisions: ${pack.bootstrap.decisions.length}.</p><p><strong>Which matches the printed melody? A / B / Neither</strong>. Choose the option matching the printed melody; do not enter MusicXML.</p><table><thead><tr><th>#</th><th>Score</th><th>Page</th><th>Unit</th><th>Measures</th><th>Reasons</th><th>Rank</th></tr></thead><tbody>${rows || "<tr><td colspan=7>No unresolved melody review units available.</td></tr>"}</tbody></table>`;
 }
 
 function normalizeLedgerEntry(value: unknown, index: number): MelodyCorrectionLedgerEntry | null {
