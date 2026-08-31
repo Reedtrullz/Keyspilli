@@ -179,6 +179,10 @@ function finite(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 function round(value: number, digits = 3): number {
   const factor = 10 ** digits;
   return Math.round(value * factor) / factor;
@@ -194,8 +198,8 @@ function sortedNotes(notes: readonly Note[]): Note[] {
 }
 
 function validNote(value: unknown): value is Note {
-  if (!value || typeof value !== "object") return false;
-  const note = value as Note;
+  if (!isRecord(value)) return false;
+  const note = value as unknown as Note;
   return Number.isInteger(note.midi) && note.midi >= 0 && note.midi <= 127
     && finite(note.start) && note.start >= 0 && finite(note.dur) && note.dur > 0
     && finite(note.vel) && note.vel >= 0 && note.vel <= 127;
@@ -210,6 +214,13 @@ function quality(value: unknown): value is HarmonyQuality {
     || value === "sus4" || value === "single" || value === "unknown";
 }
 
+function compareHarmonyChanges(left: HarmonyChange, right: HarmonyChange): number {
+  return left.beat - right.beat
+    || (left.rootPc ?? -1) - (right.rootPc ?? -1)
+    || (left.bassPc ?? -1) - (right.bassPc ?? -1)
+    || String(left.quality ?? "").localeCompare(String(right.quality ?? ""));
+}
+
 function validateChanges(changes: unknown, label: string, diagnostics: string[]): HarmonyChange[] | undefined {
   if (changes === undefined) return undefined;
   if (!Array.isArray(changes)) {
@@ -218,11 +229,11 @@ function validateChanges(changes: unknown, label: string, diagnostics: string[])
   }
   const valid: HarmonyChange[] = [];
   for (const [index, raw] of changes.entries()) {
-    if (!raw || typeof raw !== "object") {
+    if (!isRecord(raw)) {
       diagnostics.push(`${label} changes[${index}] is malformed`);
       continue;
     }
-    const item = raw as HarmonyChange;
+    const item = raw as unknown as HarmonyChange;
     if (!finite(item.beat) || item.beat < 0) diagnostics.push(`${label} changes[${index}].beat is invalid`);
     if (item.rootPc !== undefined && item.rootPc !== null && !validPc(item.rootPc)) diagnostics.push(`${label} changes[${index}].rootPc is invalid`);
     if (item.bassPc !== undefined && item.bassPc !== null && !validPc(item.bassPc)) diagnostics.push(`${label} changes[${index}].bassPc is invalid`);
@@ -231,7 +242,7 @@ function validateChanges(changes: unknown, label: string, diagnostics: string[])
       && (item.bassPc === undefined || item.bassPc === null || validPc(item.bassPc))
       && (item.quality === undefined || item.quality === null || quality(item.quality))) valid.push({ ...item });
   }
-  return valid.sort((a, b) => a.beat - b.beat || (a.rootPc ?? -1) - (b.rootPc ?? -1) || String(a.quality ?? "").localeCompare(String(b.quality ?? "")));
+  return valid.sort(compareHarmonyChanges);
 }
 
 function validateChroma(value: unknown, label: string, diagnostics: string[]): number[] | undefined {
@@ -251,14 +262,14 @@ function validateChroma(value: unknown, label: string, diagnostics: string[]): n
 
 function validateWindow(window: unknown, index: number): { value?: HarmonyEvaluationWindowInput; diagnostics: string[] } {
   const diagnostics: string[] = [];
-  if (!window || typeof window !== "object") return { diagnostics: [`window ${index} is malformed`] };
-  const value = window as HarmonyEvaluationWindowInput;
+  if (!isRecord(window)) return { diagnostics: [`window ${index} is malformed`] };
+  const value = window as unknown as HarmonyEvaluationWindowInput;
   let normalized: HarmonyEvaluationWindowInput = { ...value };
   if (typeof value.id !== "string" || !value.id.trim()) diagnostics.push(`window ${index} id is invalid`);
   if (!finite(value.startBeat) || !finite(value.endBeat) || value.startBeat < 0 || value.endBeat <= value.startBeat) diagnostics.push(`window ${index} bounds are invalid`);
   const reference = value.reference;
   if (reference !== undefined) {
-    if (!reference || typeof reference !== "object") diagnostics.push(`window ${index} reference is malformed`);
+    if (!isRecord(reference)) diagnostics.push(`window ${index} reference is malformed`);
     else {
       if (reference.rootPc !== undefined && reference.rootPc !== null && !validPc(reference.rootPc)) diagnostics.push(`window ${index} reference rootPc is invalid`);
       if (reference.bassPc !== undefined && reference.bassPc !== null && !validPc(reference.bassPc)) diagnostics.push(`window ${index} reference bassPc is invalid`);
@@ -270,7 +281,7 @@ function validateWindow(window: unknown, index: number): { value?: HarmonyEvalua
   }
   const candidate = value.candidate;
   if (candidate !== undefined) {
-    if (!candidate || typeof candidate !== "object") diagnostics.push(`window ${index} candidate is malformed`);
+    if (!isRecord(candidate)) diagnostics.push(`window ${index} candidate is malformed`);
     else {
       const notes = candidate.leftHandNotes ?? candidate.notes;
       if (notes !== undefined && (!Array.isArray(notes) || notes.some((item) => !validNote(item)))) diagnostics.push(`window ${index} candidate left-hand notes are malformed`);
@@ -349,9 +360,18 @@ function changeTiming(expected: readonly HarmonyChange[] | undefined, observed: 
     observed.forEach((candidate, index) => {
       if (used.has(index)) return;
       const distance = Math.abs(candidate.beat - source.beat);
-      if (distance < bestDistance) { best = index; bestDistance = distance; }
+      // Compatibility is part of the match, rather than a check after
+      // nearest-neighbor selection. Otherwise an incompatible event can sit
+      // between a source event and the nearest compatible candidate and make
+      // a valid pair look unsupported.
+      if (distance > CHANGE_TOLERANCE || !changeValueEqual(source, candidate)) return;
+      if (distance < bestDistance
+        || (Math.abs(distance - bestDistance) <= EPS && best >= 0 && compareHarmonyChanges(candidate, observed[best]!) < 0)) {
+        best = index;
+        bestDistance = distance;
+      }
     });
-    if (best >= 0 && bestDistance <= CHANGE_TOLERANCE && changeValueEqual(source, observed[best]!)) {
+    if (best >= 0) {
       used.add(best); matched++; errors.push(bestDistance);
     }
   }
@@ -428,13 +448,25 @@ function unavailableMetrics(status: HarmonyAvailability, diagnostics: string[] =
   };
 }
 
+function hasReferenceEvidence(reference: HarmonyReferenceEvidence | undefined): boolean {
+  return reference !== undefined && (
+    (reference.chroma !== undefined && reference.chroma.length > 0)
+    || (reference.rootPc !== undefined && reference.rootPc !== null)
+    || (reference.bassPc !== undefined && reference.bassPc !== null)
+    || (reference.quality !== undefined && reference.quality !== null)
+    || (reference.changes !== undefined && reference.changes.length > 0)
+  );
+}
+
 function evaluateWindow(input: HarmonyEvaluationWindowInput): HarmonyWindowEvaluation {
   const diagnostics: string[] = [];
   const reference = input.reference;
   const candidate = input.candidate;
   const notes = candidate?.leftHandNotes ?? candidate?.notes;
   const candidateNotes = notes ? sortedNotes(notes).filter((note) => note.start >= input.startBeat && note.start < input.endBeat) : [];
-  const candidateChanges = candidate?.harmony ? [...candidate.harmony] : (candidateNotes.length ? inferChanges(candidateNotes, input.startBeat) : []);
+  const candidateChanges = candidate?.harmony !== undefined
+    ? [...candidate.harmony].filter((change) => change.beat >= input.startBeat && change.beat < input.endBeat)
+    : (candidateNotes.length ? inferChanges(candidateNotes, input.startBeat) : []);
   const expectedChanges = reference?.changes ?? ((reference?.rootPc !== undefined || reference?.quality !== undefined) ? [{ beat: input.startBeat, rootPc: reference.rootPc, bassPc: reference.bassPc, quality: reference.quality }] : undefined);
   const referenceChroma = chromaVector(reference?.chroma);
   const chromaAgreement = referenceChroma && candidateNotes.length ? cosine(vectorFor(candidateNotes), referenceChroma) : null;
@@ -444,16 +476,17 @@ function evaluateWindow(input: HarmonyEvaluationWindowInput): HarmonyWindowEvalu
   const chordAgreement = rootAgreement === null && qualityAgreement === null ? null : round(((rootAgreement ?? 0) + (qualityAgreement ?? 0)) / ((rootAgreement === null ? 0 : 1) + (qualityAgreement === null ? 0 : 1)));
   const timing = changeTiming(expectedChanges, candidateChanges);
   const leftHandGroups = groups(candidateNotes);
-  const candidateAvailable = candidate !== undefined && notes !== undefined;
+  const candidateAvailable = candidate !== undefined && notes !== undefined && candidateNotes.length > 0;
   const play = candidateAvailable ? playability(candidateNotes) : unavailableMetrics("unavailable").playability;
   const rootJitter = jitter(candidateChanges, "rootPc");
   const qualityJitter = jitter(candidateChanges, "quality");
-  const expectedAvailable = expectedChanges !== undefined;
-  const status: HarmonyAvailability = diagnostics.length ? "malformed" : (reference && candidateAvailable ? "available" : "unavailable");
-  const chromaStatus: HarmonyAvailability = diagnostics.some((item) => item.includes("chroma")) ? "malformed" : (reference?.chroma !== undefined && candidateNotes.length ? "available" : "unavailable");
-  const rootStatus: HarmonyAvailability = diagnostics.some((item) => item.includes("rootPc") || item.includes("bassPc")) ? "malformed" : (reference && (reference.rootPc !== undefined || reference.bassPc !== undefined) && candidateChanges.length ? "available" : "unavailable");
-  const qualityStatus: HarmonyAvailability = diagnostics.some((item) => item.includes("quality")) ? "malformed" : (reference?.quality !== undefined && candidateChanges.length ? "available" : "unavailable");
-  const timingStatus: HarmonyAvailability = diagnostics.some((item) => item.includes("changes")) ? "malformed" : (expectedAvailable && candidateAvailable ? "available" : "unavailable");
+  const expectedAvailable = expectedChanges !== undefined && expectedChanges.length > 0;
+  const referenceAvailable = hasReferenceEvidence(reference);
+  const status: HarmonyAvailability = diagnostics.length ? "malformed" : (referenceAvailable && candidateAvailable ? "available" : "unavailable");
+  const chromaStatus: HarmonyAvailability = diagnostics.some((item) => item.includes("chroma")) ? "malformed" : (reference?.chroma !== undefined && chromaAgreement !== null ? "available" : "unavailable");
+  const rootStatus: HarmonyAvailability = diagnostics.some((item) => item.includes("rootPc") || item.includes("bassPc")) ? "malformed" : (reference && (reference.rootPc !== undefined && reference.rootPc !== null || reference.bassPc !== undefined && reference.bassPc !== null) && candidateChanges.length ? "available" : "unavailable");
+  const qualityStatus: HarmonyAvailability = diagnostics.some((item) => item.includes("quality")) ? "malformed" : (reference?.quality !== undefined && reference.quality !== null && candidateChanges.length ? "available" : "unavailable");
+  const timingStatus: HarmonyAvailability = diagnostics.some((item) => item.includes("changes")) ? "malformed" : (expectedAvailable && candidateChanges.length > 0 && candidateAvailable ? "available" : "unavailable");
   const accompanimentStatus: HarmonyAvailability = candidateAvailable ? "available" : "unavailable";
   const availability: HarmonyAvailabilitySummary = { overall: status, chroma: chromaStatus, rootBass: rootStatus, quality: qualityStatus, timing: timingStatus, accompaniment: accompanimentStatus };
   return {
@@ -482,7 +515,7 @@ function aggregate(windows: readonly HarmonyWindowEvaluation[]): HarmonyWindowMe
   const sum = (selector: (metric: HarmonyWindowMetrics) => number): number => metrics.reduce((total, metric) => total + selector(metric), 0);
   const statuses = (selector: (availability: HarmonyAvailabilitySummary) => HarmonyAvailability): HarmonyAvailability => {
     const values = metrics.map((metric) => selector(metric.availability));
-    return values.includes("malformed") ? "malformed" : values.includes("available") ? "available" : "unavailable";
+    return values.includes("malformed") ? "malformed" : values.length > 0 && values.every((value) => value === "available") ? "available" : "unavailable";
   };
   const timingValues = metrics.map((metric) => metric.changeTiming);
   const leftHandNotes = sum((metric) => metric.leftHand.noteCount);
@@ -491,7 +524,7 @@ function aggregate(windows: readonly HarmonyWindowEvaluation[]): HarmonyWindowMe
     expected: sum((metric) => metric.changeTiming.expected), observed: sum((metric) => metric.changeTiming.observed), matched: sum((metric) => metric.changeTiming.matched), unsupported: sum((metric) => metric.changeTiming.unsupported),
     medianErrorBeats: average(timingValues.map((timing) => timing.medianErrorBeats)), p95ErrorBeats: average(timingValues.map((timing) => timing.p95ErrorBeats)),
   };
-  const status = windows.some((window) => window.status === "malformed") ? "malformed" : windows.some((window) => window.status === "available") ? "available" : "unavailable";
+  const status = windows.some((window) => window.status === "malformed") ? "malformed" : windows.length > 0 && windows.every((window) => window.status === "available") ? "available" : "unavailable";
   return {
     chromaAgreement: all((metric) => metric.chromaAgreement), rootAgreement: all((metric) => metric.rootAgreement), bassAgreement: all((metric) => metric.bassAgreement), chordAgreement: all((metric) => metric.chordAgreement), qualityAgreement: all((metric) => metric.qualityAgreement), changeTiming: aggregateTiming,
     leftHand: { attacks, noteCount: leftHandNotes, averageNotesPerAttack: attacks ? round(leftHandNotes / attacks) : null, notesPerAttack: attacks ? round(leftHandNotes / attacks) : null, maxNotesPerAttack: metrics.length ? Math.max(...metrics.map((metric) => metric.leftHand.maxNotesPerAttack ?? 0)) || null : null, attackRatePerBeat: all((metric) => metric.leftHand.attackRatePerBeat) },
@@ -518,8 +551,12 @@ export function evaluateHarmonyGate(report: Pick<HarmonyEvaluationReport, "statu
   if (options.enabled !== true) return { enabled: false, status: "disabled", failures: [], diagnostics: [], thresholds };
   const failures = report.status === "malformed" ? ["harmony evidence is malformed"] : [];
   const diagnostics = [...report.diagnostics];
-  if (report.status === "unavailable") return { enabled: true, status: "null", failures, diagnostics, thresholds };
   const metric = report.metrics;
+  const availabilityValues = Object.values(metric.availability);
+  if (availabilityValues.includes("malformed") && !failures.includes("harmony evidence is malformed")) failures.push("harmony evidence is malformed");
+  if (report.status === "unavailable" || metric.availability.overall !== "available") {
+    return { enabled: true, status: failures.length ? "fail" : "null", failures, diagnostics, thresholds };
+  }
   if (metric.chromaAgreement !== null && metric.chromaAgreement < thresholds.minimumChromaAgreement) failures.push("chroma agreement below threshold");
   if (metric.rootAgreement !== null && metric.rootAgreement < thresholds.minimumRootAgreement) failures.push("root agreement below threshold");
   if (metric.bassAgreement !== null && metric.bassAgreement < thresholds.minimumBassAgreement) failures.push("bass agreement below threshold");
@@ -529,6 +566,19 @@ export function evaluateHarmonyGate(report: Pick<HarmonyEvaluationReport, "statu
   if (metric.playability.lowRegisterMudRate !== null && metric.playability.lowRegisterMudRate > thresholds.maximumLowRegisterMudRate) failures.push("low-register mud exceeds threshold");
   if (metric.leftHand.maxNotesPerAttack !== null && metric.leftHand.maxNotesPerAttack > thresholds.maximumNotesPerAttack) failures.push("left-hand notes per attack exceed threshold");
   if (metric.playability.jumpRate !== null && metric.playability.jumpRate > thresholds.maximumJumpRate) failures.push("left-hand jumps exceed threshold");
+  const unavailableMetric = metric.changeTiming.observed === 0
+    || [
+      metric.chromaAgreement,
+      metric.rootAgreement,
+      metric.bassAgreement,
+      metric.qualityAgreement,
+      metric.changeTiming.medianErrorBeats,
+      metric.unsupportedChanges.rate,
+      metric.playability.lowRegisterMudRate,
+      metric.leftHand.maxNotesPerAttack,
+      metric.playability.jumpRate,
+    ].some((value) => value === null);
+  if (unavailableMetric) return { enabled: true, status: failures.length ? "fail" : "null", failures, diagnostics, thresholds };
   return { enabled: true, status: failures.length ? "fail" : "pass", failures, diagnostics, thresholds };
 }
 
@@ -546,7 +596,9 @@ export function evaluateHarmony(input: HarmonyEvaluationInput, gateOptions: Harm
   windows.sort((a, b) => a.startBeat - b.startBeat || a.id.localeCompare(b.id)
     || a.endBeat - b.endBeat
     || JSON.stringify({ status: a.status, diagnostics: a.diagnostics, metrics: a.metrics }).localeCompare(JSON.stringify({ status: b.status, diagnostics: b.diagnostics, metrics: b.metrics })));
-  const status: HarmonyAvailability = inputDiagnostics.length || windows.some((window) => window.status === "malformed") ? "malformed" : windows.some((window) => window.status === "available") ? "available" : "unavailable";
+  const status: HarmonyAvailability = inputDiagnostics.length || windows.some((window) => window.status === "malformed")
+    ? "malformed"
+    : windows.length > 0 && windows.every((window) => window.status === "available") ? "available" : "unavailable";
   const metrics = aggregate(windows);
   const diagnostics = [...inputDiagnostics, ...windows.flatMap((window) => window.diagnostics)].filter((item, index, list) => list.indexOf(item) === index).sort();
   const base = { schemaVersion: 1 as const, status, windows, metrics, diagnostics };
