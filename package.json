@@ -31,7 +31,8 @@
     "diagnose:piano-candidates": "npm run diagnose:piano-candidates -w @keyspilli/catalog --",
     "build:piano-section-listening": "npm run build:piano-section-listening -w @keyspilli/catalog --",
     "benchmark:score": "npm run benchmark:score -w @keyspilli/catalog --",
-    "benchmark:scores": "npm run benchmark:scores -w @keyspilli/catalog --"
+    "benchmark:scores": "npm run benchmark:scores -w @keyspilli/catalog --",
+    "report:melody-review": "npm run report:melody-review -w @keyspilli/catalog --"
   },
   "engines": {
     "node": ">=20"

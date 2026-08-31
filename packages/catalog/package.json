@@ -45,7 +45,8 @@
     "benchmark:scores": "tsx scripts/build-score-corpus.ts",
     "benchmark:score-consensus": "tsx scripts/run-score-consensus.ts",
     "benchmark:keyspilli": "tsx scripts/benchmark-keyspilli.ts",
-    "benchmark:harmony": "tsx scripts/benchmark-harmony.ts"
+    "benchmark:harmony": "tsx scripts/benchmark-harmony.ts",
+    "report:melody-review": "tsx scripts/report-melody-review.ts"
   },
   "dependencies": {
     "@keyspilli/midi": "*",
