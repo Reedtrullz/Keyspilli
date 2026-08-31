@@ -8,6 +8,7 @@ import {
   buildRotatingListeningBundle,
   type RotatingListeningSongDescriptor,
 } from "../src/rotating-listening-bundle.js";
+import type { RecognizabilityPreGateInput } from "../src/recognizability-pre-gate.js";
 import { normalizationFromCli, parseArgs } from "../scripts/build-rotating-listening-bundle.js";
 import type { MidiAudioRenderer, MidiRenderResult } from "../src/midi-renderer.js";
 
@@ -43,6 +44,20 @@ function song(id: string, baselineMidiPath: string, currentMidiPath: string): Ro
       { id: "opening", label: "Opening", startSeconds: 0, endSeconds: 30 },
       { id: "main", label: "Main", startSeconds: 40, endSeconds: 70 },
       { id: "lead", label: "Lead", startSeconds: 80, endSeconds: 110 },
+    ],
+  };
+}
+
+function failedPreGate(): RecognizabilityPreGateInput {
+  const event = (midi: number, start: number) => ({ midi, start, dur: 0.75, vel: 100 });
+  return {
+    candidateMelody: [event(72, 0), event(71, 1), event(70, 2)],
+    referenceMelody: [event(60, 0), event(61, 1), event(62, 2)],
+    alignment: { status: "aligned", confidence: 0.99 },
+    windows: [
+      { id: "intro", candidate: [0, 1], reference: [0, 1] },
+      { id: "body", candidate: [1, 2], reference: [1, 2] },
+      { id: "ending", candidate: [2, 3], reference: [2, 3] },
     ],
   };
 }
@@ -247,6 +262,30 @@ describe("rotating multi-song blind listening bundle", () => {
       expect(result.manifest.status).toBe("ready");
       expect(result.manifest.errors).toEqual([]);
       expect(result.manifest.excerpts.every((excerpt) => excerpt.candidates.A.status === "rendered" && excerpt.candidates.B.status === "rendered")).toBe(true);
+    } finally {
+      await Promise.all([source, output].map((path) => rm(path, { recursive: true, force: true })));
+    }
+  });
+
+  it("withholds candidates that fail the recognizability pre-gate before rendering", async () => {
+    const source = await mkdtemp(join(tmpdir(), "keyspilli-rotating-pregate-source-"));
+    const output = await mkdtemp(join(tmpdir(), "keyspilli-rotating-pregate-output-"));
+    try {
+      const paths = await Promise.all(["a", "b"].map(async (id) => {
+        const path = join(source, `${id}.mid`);
+        await writeFile(path, midiBytes());
+        return path;
+      }));
+      const songs = [song("a", paths[0]!, paths[0]!), song("b", paths[1]!, paths[1]!)].map((entry) => ({
+        ...entry,
+        preGate: { baseline: failedPreGate(), current: failedPreGate() },
+      }));
+      const seen: string[] = [];
+      const result = await buildRotatingListeningBundle({ songs, outputRoot: output, repositoryRoot: process.cwd(), seed: "pregate", targetSeconds: 90, minSeconds: 90, maxSeconds: 90 }, { renderer: longRenderer(seen) });
+      expect(seen).toEqual([]);
+      expect(result.manifest.status).toBe("unavailable");
+      expect(result.manifest.errors.filter((error) => error.code === "RECOGNIZABILITY_PRE_GATE_FAILED")).toHaveLength(4);
+      expect(result.manifest.excerpts.every((excerpt) => excerpt.candidates.A.status !== "rendered" && excerpt.candidates.B.status !== "rendered")).toBe(true);
     } finally {
       await Promise.all([source, output].map((path) => rm(path, { recursive: true, force: true })));
     }

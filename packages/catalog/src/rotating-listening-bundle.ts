@@ -12,6 +12,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { lstat, mkdir, readFile, realpath, rename, rm, stat, unlink, writeFile } from "node:fs/promises";
 import { basename, dirname, isAbsolute, join, resolve, sep } from "node:path";
 import type { MidiAudioRenderer, MidiRenderResult } from "./midi-renderer.js";
+import { evaluateRecognizabilityPreGate, type RecognizabilityPreGateInput, type RecognizabilityPreGateResult } from "./recognizability-pre-gate.js";
 import {
   pathSafeScoreReference,
   selectRotatingScoreListeningPack,
@@ -53,6 +54,11 @@ export interface RotatingListeningSongDescriptor {
   };
   sections?: readonly RotatingListeningSectionDescriptor[];
   durationSeconds?: number;
+  /** Optional melody-only evidence used to fail closed before rendering. */
+  preGate?: {
+    baseline?: RecognizabilityPreGateInput;
+    current?: RecognizabilityPreGateInput;
+  };
 }
 
 export interface RotatingListeningBundleOptions {
@@ -100,6 +106,7 @@ export interface RotatingListeningCandidateRecord {
   status: RotatingListeningArtifactStatus;
   audio: RotatingListeningAudioRecord | null;
   reason?: string;
+  preGate?: Pick<RecognizabilityPreGateResult, "status" | "failures">;
 }
 
 export interface RotatingListeningManifestExcerpt {
@@ -519,12 +526,14 @@ export async function buildRotatingListeningBundle(
   const descriptors = options.songs.map((song) => ({ ...song, id: safeId(song.id, "song.id") }));
   if (new Set(descriptors.map((song) => song.id)).size !== descriptors.length) throw new Error("song ids must be unique");
   const pathMap = new Map<string, CandidatePaths>();
+  const preGateMap = new Map<string, RotatingListeningSongDescriptor["preGate"]>();
   for (const song of descriptors) {
     const paths = pathsFor(song);
     const validated: CandidatePaths = {};
     if (paths.baseline) validated.baseline = await validateExternalPath(paths.baseline, `${song.id} baseline MIDI`, repositoryRoot);
     if (paths.current) validated.current = await validateExternalPath(paths.current, `${song.id} current MIDI`, repositoryRoot);
     pathMap.set(song.id, validated);
+    preGateMap.set(song.id, song.preGate);
   }
 
   let normalization = normalizeNormalization(options.normalization);
@@ -564,6 +573,7 @@ export async function buildRotatingListeningBundle(
   const warnings = [...pack.warnings];
   const firstResultByCandidate = new Map<"A" | "B", MidiRenderResult>();
   const wavByCandidate = new Map<string, { result: MidiRenderResult; wav: WavInfo }>();
+  const preGateByCandidate = new Map<string, Pick<RecognizabilityPreGateResult, "status" | "failures">>();
 
   const renderCandidate = async (songId: string, candidate: "A" | "B", midiPath: string): Promise<MidiRenderResult | null> => {
     if (!dependencies.renderer) {
@@ -573,6 +583,17 @@ export async function buildRotatingListeningBundle(
     if (!await regularFile(midiPath)) {
       errors.push({ code: "MIDI_UNAVAILABLE", message: "explicit MIDI artifact is unavailable", songId, candidate });
       return null;
+    }
+    const configuredGate = preGateMap.get(songId)?.[candidate === "A" ? "baseline" : "current"];
+    if (configuredGate) {
+      const gate = evaluateRecognizabilityPreGate(configuredGate);
+      const gateRecord = { status: gate.status, failures: [...new Set(gate.failures.map(redact))].sort(compareText) } satisfies Pick<RecognizabilityPreGateResult, "status" | "failures">;
+      preGateByCandidate.set(`${songId}\u0000${candidate}`, gateRecord);
+      if (gate.status !== "READY_FOR_HUMAN_LISTENING") {
+        const message = `recognizability pre-gate failed: ${gate.failures.join("; ")}`;
+        errors.push({ code: "RECOGNIZABILITY_PRE_GATE_FAILED", message: reason(message), songId, candidate });
+        return null;
+      }
     }
     const renderKey = `${songId}\u0000${candidate}`;
     const outputPath = join(stagingRoot, ".renders", hash(renderKey).slice(0, 20), `${candidate}.full.wav`);
@@ -622,19 +643,19 @@ export async function buildRotatingListeningBundle(
         if (excerpt.endSeconds > renderedDuration + EPSILON) {
           const message = `requested excerpt ends at ${round(excerpt.endSeconds)}s but rendered audio is only ${round(renderedDuration)}s`;
           errors.push({ code: "EXCERPT_DURATION_MISMATCH", message, songId: excerpt.songId, candidate });
-          candidates[candidate] = { status: "failed", audio: null, reason: message };
+          candidates[candidate] = { status: "failed", audio: null, reason: message, ...(preGateByCandidate.has(key) ? { preGate: preGateByCandidate.get(key) } : {}) };
           continue;
         }
         try {
           await writeWavSlice(rendered.wav, path, excerpt.startSeconds, excerpt.endSeconds);
           const bytes = new Uint8Array(await readFile(path));
-          candidates[candidate] = { status: "rendered", audio: audioRecord(ref, bytes) };
+          candidates[candidate] = { status: "rendered", audio: audioRecord(ref, bytes), ...(preGateByCandidate.has(key) ? { preGate: preGateByCandidate.get(key) } : {}) };
         } catch (error) {
           errors.push({ code: "EXCERPT_FAILED", message: reason(error), songId: excerpt.songId, candidate });
-          candidates[candidate] = { status: "failed", audio: null, reason: reason(error) };
+          candidates[candidate] = { status: "failed", audio: null, reason: reason(error), ...(preGateByCandidate.has(key) ? { preGate: preGateByCandidate.get(key) } : {}) };
         }
       } else {
-        candidates[candidate] = { status: "unavailable", audio: null, reason: "audio artifact unavailable" };
+        candidates[candidate] = { status: "unavailable", audio: null, reason: "audio artifact unavailable", ...(preGateByCandidate.has(key) ? { preGate: preGateByCandidate.get(key) } : {}) };
       }
     }
     excerpts.push({
