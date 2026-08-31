@@ -63,7 +63,7 @@ export interface MelodyReviewPack {
     decisions: MelodyReviewUnit[];
   };
   deferred: MelodyReviewUnit[];
-  resolved: Array<{ scoreId: string; unitId: string; groupId?: string; decision: Exclude<MelodyReviewDecision, "pending"> }>;
+  resolved: Array<{ scoreId: string; unitId: string; groupId?: string; eventIds?: string[]; decision: Exclude<MelodyReviewDecision, "pending"> }>;
   summary: {
     scoreCount: number;
     candidateScores: number;
@@ -280,16 +280,35 @@ function extractEventIds(candidate: RecordValue): string[] {
   return uniqueSorted(array(candidate.eventIds).filter((value): value is string => typeof value === "string").map((value) => id(value, "")));
 }
 
+function candidateIdentity(candidate: RecordValue, measures: readonly string[]): { id: string; groupId: string } | null {
+  const candidateId = candidate.id === undefined ? "" : id(candidate.id, "");
+  const candidateGroupId = candidate.groupId === undefined ? "" : id(candidate.groupId, "");
+  // An explicitly supplied but unusable identity is malformed, even if a
+  // later fallback (such as the measure list) could produce a plausible ID.
+  if (candidate.id !== undefined && !candidateId && !candidateGroupId) return null;
+  if (candidate.groupId !== undefined && !candidateGroupId && !candidateId) return null;
+  const identity = candidateId || candidateGroupId || measures.join("+");
+  if (!identity) return null;
+  return {
+    id: candidateId || `${identity}`,
+    groupId: candidateGroupId || candidateId || `${identity}`,
+  };
+}
+
 function candidatesForScore(score: RecordValue, scoreIndex: number): MelodyReviewUnit[] {
   const scoreId = id(score.id ?? score.scoreId, `score-${scoreIndex + 1}`);
   const artist = text(score.artist, "Unknown artist");
   const title = text(score.title, scoreId);
   const scoreHash = sourceHash(score);
-  const merged = new Map<string, MelodyReviewUnit>();
+  const equivalent = new Map<string, MelodyReviewUnit[]>();
   for (const candidate of reviewCandidates(score)) {
     if (role(candidate.role) !== "melody") continue;
     const measures = extractMeasureIds(candidate);
-    const groupId = id(candidate.groupId ?? candidate.id, `${scoreId}:melody:${measures.join("+") || "unknown"}`);
+    const identity = candidateIdentity(candidate, measures);
+    if (!identity) continue;
+    const groupId = identity.groupId === measures.join("+") && candidate.id === undefined && candidate.groupId === undefined
+      ? `${scoreId}:melody:${measures.join("+")}`
+      : identity.groupId;
     const backend = `${id(candidate.backendId, "backend")}\u0000${text(candidate.backendVersion, "unknown")}`;
     const key = `${scoreId}\u0000${backend}\u0000${measures.join("+") || groupId}`;
     const reasons = uniqueSorted([
@@ -328,9 +347,19 @@ function candidatesForScore(score: RecordValue, scoreIndex: number): MelodyRevie
       confidence: confidenceValue, estimatedEventCount: eventCount,
       unlockValue, humanCost, evidenceScore, rankScore,
     };
-    const prior = merged.get(key);
-    if (!prior) merged.set(key, item);
-    else {
+    equivalent.set(key, [...(equivalent.get(key) ?? []), item]);
+  }
+  const merged = new Map<string, MelodyReviewUnit>();
+  for (const [key, candidates] of equivalent) {
+    const completedDecisions = uniqueSorted(candidates
+      .map((candidate) => candidate.decision)
+      .filter((value): value is Exclude<MelodyReviewDecision, "pending"> => value !== "pending"));
+    if (completedDecisions.length > 1) {
+      throw new Error(`conflicting completed decisions for equivalent melody review group ${scoreId}/${key}: ${completedDecisions.join(", ")}`);
+    }
+    const ordered = [...candidates].sort(compareMergeUnits);
+    const prior = cloneUnit(ordered[0]!);
+    for (const item of ordered.slice(1)) {
       prior.measureIds = uniqueSorted([...prior.measureIds, ...item.measureIds], naturalCompare);
       prior.eventIds = uniqueSorted([...prior.eventIds, ...item.eventIds]);
       prior.reasonCategories = uniqueSorted([...prior.reasonCategories, ...item.reasonCategories]);
@@ -349,6 +378,7 @@ function candidatesForScore(score: RecordValue, scoreIndex: number): MelodyRevie
       prior.humanCost = Math.max(prior.humanCost, item.humanCost);
       prior.rankScore = rounded(prior.unlockValue * 100 + prior.evidenceScore * 30 + PRIORITY_RANK[prior.priority] * 3 + STATE_RANK[prior.state] - prior.humanCost * 2);
     }
+    merged.set(key, prior);
   }
   return [...merged.values()].map((item) => ({ ...item, id: item.id.replace(/^score-\d+:/, `${scoreId}:`) })).sort(compareUnits);
 }
@@ -358,6 +388,11 @@ function compareUnits(left: MelodyReviewUnit, right: MelodyReviewUnit): number {
     || PRIORITY_RANK[right.priority] - PRIORITY_RANK[left.priority] || compare(left.scoreId, right.scoreId)
     || (left.firstMeasureIndex ?? Number.MAX_SAFE_INTEGER) - (right.firstMeasureIndex ?? Number.MAX_SAFE_INTEGER)
     || compare(left.id, right.id) || compare(left.groupId, right.groupId);
+}
+
+function compareMergeUnits(left: MelodyReviewUnit, right: MelodyReviewUnit): number {
+  return compare(left.id, right.id) || compare(left.groupId, right.groupId)
+    || compare(JSON.stringify(stable(left)), JSON.stringify(stable(right)));
 }
 
 function cloneUnit(unit: MelodyReviewUnit): MelodyReviewUnit {
@@ -373,7 +408,13 @@ export function buildMelodyReviewPack(input: MelodyReviewInput | unknown = {}): 
     units: candidatesForScore(score, index),
   })).sort((left, right) => compare(left.id, right.id));
   const allUnits = allScores.flatMap((score) => score.units).filter((unit) => unit.decision === "pending").sort(compareUnits);
-  const resolved = allScores.flatMap((score) => score.units.filter((unit) => unit.decision !== "pending").map((unit) => ({ scoreId: unit.scoreId, unitId: unit.id, groupId: unit.groupId, decision: unit.decision as Exclude<MelodyReviewDecision, "pending"> }))).sort((left, right) => compare(`${left.scoreId}\u0000${left.unitId}`, `${right.scoreId}\u0000${right.unitId}`));
+  const resolved = allScores.flatMap((score) => score.units.filter((unit) => unit.decision !== "pending").map((unit) => ({
+    scoreId: unit.scoreId,
+    unitId: unit.id,
+    groupId: unit.groupId,
+    ...(unit.eventIds.length ? { eventIds: [...unit.eventIds] } : {}),
+    decision: unit.decision as Exclude<MelodyReviewDecision, "pending">,
+  }))).sort((left, right) => compare(`${left.scoreId}\u0000${left.unitId}`, `${right.scoreId}\u0000${right.unitId}`));
   const byScore = new Map<string, MelodyReviewUnit[]>();
   for (const unit of allUnits) byScore.set(unit.scoreId, [...(byScore.get(unit.scoreId) ?? []), unit]);
   const scoreRanking = [...byScore.entries()].map(([scoreId, units]) => ({ scoreId, units, best: units[0]!, total: units.reduce((sum, unit) => sum + unit.rankScore, 0) })).sort((left, right) => compareUnits(left.best, right.best) || right.total - left.total || compare(left.scoreId, right.scoreId));
@@ -461,6 +502,9 @@ function normalizeLedgerEntry(value: unknown, index: number): MelodyCorrectionLe
   const corrected = record(row.correctedValues ?? row.corrected);
   if (Object.keys(corrected).some((key) => !["pitch", "onset", "duration", "role"].includes(key))) return null;
   if (!scoreId || !scoreHash || !COMPLETED.has(decisionValue as Exclude<MelodyReviewDecision, "pending">) || !rationale) return null;
+  const groupId = row.groupId === undefined ? undefined : id(row.groupId, "");
+  const unitId = row.unitId === undefined ? undefined : id(row.unitId, "");
+  if ((row.groupId !== undefined && !groupId) || (row.unitId !== undefined && !unitId)) return null;
   const correctedValues: MelodyCorrectionValues = {};
   if (corrected.pitch !== undefined) correctedValues.pitch = corrected.pitch as number;
   if (corrected.onset !== undefined) correctedValues.onset = corrected.onset as number;
@@ -469,8 +513,8 @@ function normalizeLedgerEntry(value: unknown, index: number): MelodyCorrectionLe
   const eventIds = row.eventIds === undefined ? undefined : uniqueSorted(array(row.eventIds).filter((item): item is string => typeof item === "string").map((item) => id(item, "")));
   return {
     id: id(row.id, `ledger-${index + 1}`), scoreId, scoreHash,
-    ...(row.groupId !== undefined ? { groupId: id(row.groupId, "") } : {}),
-    ...(row.unitId !== undefined ? { unitId: id(row.unitId, "") } : {}),
+    ...(groupId !== undefined ? { groupId } : {}),
+    ...(unitId !== undefined ? { unitId } : {}),
     ...(eventIds !== undefined ? { eventIds } : {}),
     decision: decisionValue as MelodyCorrectionLedgerEntry["decision"], rationale, correctedValues,
   };
@@ -487,7 +531,7 @@ export function validateMelodyCorrectionLedger(value: unknown): MelodyCorrection
   if (Array.isArray(row.entries) && entries.length !== row.entries.length) errors.push("one or more ledger entries are malformed");
   const seen = new Map<string, MelodyCorrectionLedgerEntry>();
   for (const entry of entries) {
-    if (!entry.groupId && !entry.unitId) errors.push(`${entry.id}: groupId or unitId is required`);
+    if (Boolean(entry.groupId) === Boolean(entry.unitId)) errors.push(`${entry.id}: exactly one of groupId or unitId is required`);
     if (entry.decision === "corrected" && Object.keys(entry.correctedValues).length === 0) errors.push(`${entry.id}: correctedValues are required for corrected decisions`);
     if (entry.decision !== "corrected" && Object.keys(entry.correctedValues).length > 0) errors.push(`${entry.id}: correctedValues require corrected decision`);
     for (const [key, item] of Object.entries(entry.correctedValues)) {
@@ -511,6 +555,12 @@ export function validateMelodyCorrectionLedger(value: unknown): MelodyCorrection
   return { valid: true, errors: [], ledger };
 }
 
+function assertEventIdsMatch(entryEventIds: readonly string[] | undefined, knownEventIds: readonly string[] | undefined, target: string): void {
+  if (entryEventIds === undefined) return;
+  if (!knownEventIds?.length) throw new Error(`correction ledger event IDs cannot be verified for ${target}`);
+  if (entryEventIds.some((eventId) => !knownEventIds.includes(eventId))) throw new Error(`correction ledger event IDs do not match ${target}`);
+}
+
 /** Apply decisions to the path-free planner projection; stale hashes fail closed. */
 export function applyMelodyCorrectionLedger(pack: MelodyReviewPack, value: unknown): MelodyReviewPack {
   const validation = validateMelodyCorrectionLedger(value);
@@ -521,12 +571,23 @@ export function applyMelodyCorrectionLedger(pack: MelodyReviewPack, value: unkno
     byTarget.set(`${unit.scoreId}\u0000${unit.id}`, unit);
     byTarget.set(`${unit.scoreId}\u0000${unit.groupId}`, unit);
   }
-  const resolvedByTarget = new Map<string, { scoreHash: string | null; decision: Exclude<MelodyReviewDecision, "pending"> }>();
+  const resolvedByTarget = new Map<string, { scoreHash: string | null; decision: Exclude<MelodyReviewDecision, "pending">; eventIds?: string[] }>();
+  const setResolvedTarget = (target: string, value: { scoreHash: string | null; decision: Exclude<MelodyReviewDecision, "pending">; eventIds?: string[] }) => {
+    const prior = resolvedByTarget.get(target);
+    if (prior && (prior.decision !== value.decision || JSON.stringify(prior.eventIds) !== JSON.stringify(value.eventIds))) {
+      throw new Error(`conflicting resolved review records for ${target.replace("\u0000", "/")}`);
+    }
+    resolvedByTarget.set(target, value);
+  };
   for (const resolved of pack.resolved) {
     const score = pack.scores.find((candidate) => candidate.id === resolved.scoreId);
-    const resolvedValue = { scoreHash: score?.scoreHash ?? null, decision: resolved.decision };
-    resolvedByTarget.set(`${resolved.scoreId}\u0000${resolved.unitId}`, resolvedValue);
-    if (resolved.groupId) resolvedByTarget.set(`${resolved.scoreId}\u0000${resolved.groupId}`, resolvedValue);
+    const resolvedValue = {
+      scoreHash: score?.scoreHash ?? null,
+      decision: resolved.decision,
+      ...(resolved.eventIds !== undefined ? { eventIds: uniqueSorted(resolved.eventIds) } : {}),
+    };
+    setResolvedTarget(`${resolved.scoreId}\u0000${resolved.unitId}`, resolvedValue);
+    if (resolved.groupId) setResolvedTarget(`${resolved.scoreId}\u0000${resolved.groupId}`, resolvedValue);
   }
   const updated = new Map<string, MelodyReviewDecision>();
   for (const entry of validation.ledger.entries) {
@@ -536,10 +597,11 @@ export function applyMelodyCorrectionLedger(pack: MelodyReviewPack, value: unkno
       if (!resolved) throw new Error(`correction ledger target is not in the review pack: ${entry.scoreId}`);
       if (!resolved.scoreHash || resolved.scoreHash !== entry.scoreHash) throw new Error(`stale score hash for ${entry.scoreId}`);
       if (resolved.decision !== entry.decision) throw new Error(`conflicting correction decision for ${entry.scoreId}`);
+      assertEventIdsMatch(entry.eventIds, resolved.eventIds, `${entry.scoreId}/${entry.unitId ?? entry.groupId}`);
       continue;
     }
     if (!unit.scoreHash || unit.scoreHash !== entry.scoreHash) throw new Error(`stale score hash for ${entry.scoreId}`);
-    if (entry.eventIds !== undefined && (!unit.eventIds.length || entry.eventIds.some((eventId) => !unit.eventIds.includes(eventId)))) throw new Error(`correction ledger event IDs do not match ${unit.id}`);
+    assertEventIdsMatch(entry.eventIds, unit.eventIds, unit.id);
     const key = `${unit.scoreId}\u0000${unit.id}`;
     const prior = updated.get(key);
     if (prior && prior !== entry.decision) throw new Error(`conflicting correction decision for ${unit.id}`);
@@ -553,9 +615,16 @@ export function applyMelodyCorrectionLedger(pack: MelodyReviewPack, value: unkno
   }
   const applied = [...clone.bootstrap.decisions, ...clone.deferred];
   clone.bootstrap.decisions = applied.filter((unit) => unit.decision === "pending").slice(0, clone.bootstrap.maximum);
+  clone.bootstrap.scoreIds = uniqueSorted(clone.bootstrap.decisions.map((unit) => unit.scoreId));
   const selected = new Set(clone.bootstrap.decisions.map((unit) => `${unit.scoreId}\u0000${unit.id}`));
   clone.deferred = applied.filter((unit) => unit.decision === "pending" && !selected.has(`${unit.scoreId}\u0000${unit.id}`));
-  clone.resolved = [...clone.resolved, ...applied.filter((unit) => unit.decision !== "pending").map((unit) => ({ scoreId: unit.scoreId, unitId: unit.id, groupId: unit.groupId, decision: unit.decision as Exclude<MelodyReviewDecision, "pending"> }))]
+  clone.resolved = [...clone.resolved, ...applied.filter((unit) => unit.decision !== "pending").map((unit) => ({
+    scoreId: unit.scoreId,
+    unitId: unit.id,
+    groupId: unit.groupId,
+    ...(unit.eventIds.length ? { eventIds: [...unit.eventIds] } : {}),
+    decision: unit.decision as Exclude<MelodyReviewDecision, "pending">,
+  }))]
     .filter((item, index, all) => all.findIndex((candidate) => candidate.scoreId === item.scoreId && candidate.unitId === item.unitId) === index)
     .sort((left, right) => compare(`${left.scoreId}\u0000${left.unitId}`, `${right.scoreId}\u0000${right.unitId}`));
   clone.summary.bootstrapUnits = clone.bootstrap.decisions.length;
