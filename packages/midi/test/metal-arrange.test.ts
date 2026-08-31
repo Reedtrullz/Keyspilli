@@ -2403,6 +2403,28 @@ describe("metal piano arranger", () => {
     expect(result.diagnostics.harmonicRejectedCount).toBeGreaterThan(0);
   });
 
+  it("clusters transitive onset jitter into one harmonic attack", () => {
+    const notes = [
+      { midi: 64, start: 0, dur: 0.3, vel: 90, identitySource: "guitar" as const },
+      { midi: 76, start: 0.07, dur: 0.06, vel: 120, identitySource: "guitar" as const },
+      { midi: 71, start: 0.13, dur: 0.06, vel: 115, identitySource: "guitar" as const },
+    ];
+    const result = selectGuitarLeadPath(notes, { groupToleranceBeats: 0.08, minimumSpacingBeats: 0.08 });
+
+    expect(result.diagnostics.harmonicGroupCount).toBe(1);
+    expect(result.notes).toHaveLength(1);
+
+    const boundary = selectGuitarLeadPath([
+      notes[0]!,
+      notes[1]!,
+      { midi: 68, start: 0.17, dur: 0.06, vel: 115, identitySource: "guitar" as const },
+    ], { groupToleranceBeats: 0.08, minimumSpacingBeats: 0.08 });
+    expect(boundary.diagnostics.harmonicGroupCount).toBe(2);
+
+    const reordered = selectGuitarLeadPath([...notes].reverse(), { groupToleranceBeats: 0.08, minimumSpacingBeats: 0.08 });
+    expect(reordered).toEqual(result);
+  });
+
   it("keeps an articulated expressive leap and a fast scalar run", () => {
     const leap = selectGuitarLeadPath([
       { midi: 64, start: 0, dur: 0.5, vel: 100, identitySource: "guitar" as const },

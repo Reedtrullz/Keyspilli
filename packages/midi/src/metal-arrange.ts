@@ -453,7 +453,11 @@ function selectGuitarLeadPathInternal(
   const groups: IdentityNote[][] = [];
   for (const note of sorted) {
     const group = groups.at(-1);
-    if (group && note.start - group[0]!.start <= groupToleranceBeats + EPS) group.push(note);
+    // Detector timing jitter is transitive: if each adjacent member is within
+    // the tolerance, they belong to one physical attack. Comparing only with
+    // the first member splits a 0/.07/.13 stack into two attacks and lets a
+    // harmonic partial leak into the melodic path.
+    if (group && note.start - group.at(-1)!.start <= groupToleranceBeats + EPS) group.push(note);
     else groups.push([note]);
   }
   diagnostics.harmonicGroupCount = groups.length;
@@ -801,7 +805,7 @@ function monophonicPath(
   for (const note of notes) {
     const normalized: MonophonicCandidate = { ...note, rawMidi: note.midi, midi: toRegister(note.midi, low, high) };
     const last = groups.at(-1);
-    if (last && Math.abs(last[0]!.start - normalized.start) <= 0.08) last.push(normalized);
+    if (last && Math.abs(last.at(-1)!.start - normalized.start) <= 0.08 + EPS) last.push(normalized);
     else groups.push([normalized]);
   }
 
@@ -2480,7 +2484,7 @@ function inferSemanticGuitarHarmony(
   const allClusters: SemanticHarmonyCluster[] = [];
   for (const entry of orderedRaw) {
     const cluster = allClusters.at(-1);
-    if (!cluster || entry.note.start - cluster.start > 0.08 + EPS) {
+    if (!cluster || entry.note.start - cluster.notes.at(-1)!.start > 0.08 + EPS) {
       allClusters.push({ start: entry.note.start, notes: [entry.note], residual: usedRaw.has(entry.index) ? [] : [entry.note] });
     } else {
       cluster.notes.push(entry.note);
