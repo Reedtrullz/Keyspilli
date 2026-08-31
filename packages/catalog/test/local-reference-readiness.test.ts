@@ -211,6 +211,89 @@ describe("local reference readiness report", () => {
     expect(report.benchmarkGate.harmonyReadyScores).toBe(1);
   });
 
+  it("surfaces corpus role groups as stable actionable regions and accepts group decisions", () => {
+    const group = {
+      id: "homr:melody:P1:m2-P1:m4",
+      backendId: "homr",
+      backendVersion: "0.7.0",
+      role: "melody",
+      measureIds: ["P1:m4", "P1:m2", "P1:m3"],
+      firstMeasureIndex: 1,
+      lastMeasureIndex: 3,
+      startBeat: 4,
+      endBeat: 16,
+      pageSystems: [{ page: 2, system: 1 }, { page: 3, system: 1 }],
+      rootCauses: ["impossible-leap", "continuity-overlap"],
+      priorityClass: "high",
+      memberCount: 3,
+      estimatedEventCount: 7,
+      confidence: { min: 0.2, median: 0.5, max: 0.8 },
+    };
+    const input: LocalReferenceReadinessInput = {
+      scores: [{
+        id: "grouped-score",
+        artist: "Artist",
+        title: "Grouped",
+        state: "VALIDATED_DRAFT",
+        quality: quality({ measures: [] }),
+        review: {
+          actionableItems: 1,
+          totalItems: 3,
+          melodyCritical: 1,
+          roleGroups: [group],
+        },
+        reviewQueue: {
+          items: [{
+            id: "legacy-m2",
+            measureId: "P1:m2",
+            measureNumber: "2",
+            role: "melody",
+            reasonCategory: "pitch",
+            state: "REVIEW",
+            evidence: ["legacy queue item should be covered by group"],
+          }],
+        },
+      }],
+      humanDecisions: [{ scoreId: "grouped-score", itemId: group.id, decision: "accept" }],
+    };
+    const report = buildLocalReferenceReadiness(input);
+    const score = report.scores[0]!;
+    expect(score.review.regions).toHaveLength(1);
+    expect(score.review.regions[0]).toMatchObject({
+      id: group.id,
+      measureId: "P1:m2",
+      measureIds: ["P1:m2", "P1:m3", "P1:m4"],
+      page: 2,
+      system: 1,
+      role: "melody",
+      reasonCategory: "articulation",
+      state: "REVIEW",
+      priority: "high",
+      backendId: "homr",
+      backendVersion: "0.7.0",
+      firstMeasureIndex: 1,
+      lastMeasureIndex: 3,
+      startBeat: 4,
+      endBeat: 16,
+      memberCount: 3,
+      estimatedEventCount: 7,
+      confidence: { min: 0.2, median: 0.5, max: 0.8 },
+    });
+    expect(score.review.regions[0]?.evidence).toEqual([
+      "continuity-overlap",
+      "estimated 7 events",
+      "grouped 3 measures",
+      "impossible-leap",
+    ]);
+    expect(score.review.regions[0]?.decision).toBe("accepted");
+    expect(score.review.totalRegions).toBe(1);
+    expect(score.review.pendingRegions).toBe(0);
+    expect(score.review.actualHumanDecisions).toBe(1);
+    expect(report.humanWorkload).toMatchObject({ totalReviewRegions: 1, pendingRegions: 0, actualHumanDecisions: 1 });
+    expect(JSON.stringify(report)).not.toContain("legacy queue item should be covered by group");
+    expect(localReferenceReadinessJson(report)).toBe(localReferenceReadinessJson(buildLocalReferenceReadiness(input)));
+  });
+
   it("fails closed for missing evidence, groups raw quality rows, and stays path-free/deterministic", () => {
     const input: LocalReferenceReadinessInput = {
       scores: [{ id: "missing", title: "Missing", artist: "Artist", quality: quality({ measures: [

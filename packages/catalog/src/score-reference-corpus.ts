@@ -8,7 +8,8 @@
  * states instead of causing a corpus run to abort.
  */
 
-import { lstat, mkdir, readFile, realpath, stat, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import { lstat, mkdir, readFile, realpath, rename, rm, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, extname, isAbsolute, join, resolve, sep } from "node:path";
 import {
   buildLocalReference,
@@ -16,6 +17,7 @@ import {
   type LocalReferenceOmrBackendInput,
   type LocalReferenceScoreReport,
 } from "./local-reference-builder.js";
+import { keyName, writeMidi, writeMusicXml, type Note, type Variant } from "@keyspilli/midi";
 import {
   discoverNativeScoreArtifacts,
   type NativeScoreArtifactInput,
@@ -24,7 +26,7 @@ import {
 } from "./native-score-discovery.js";
 import { inspectScoreSourceForensics, type ScoreSourceForensicsReport } from "./score-source-forensics.js";
 import { parseOmrMusicXmlBytes } from "./omr-musicxml.js";
-import type { OmrScoreInput } from "./omr-consensus.js";
+import { normalizeOmrScore, type OmrScoreInput } from "./omr-consensus.js";
 import {
   evaluateOmrRoleQuality,
   type OmrRoleQualityBackendSummary,
@@ -33,6 +35,7 @@ import {
   type OmrRoleQualityReport,
 } from "./omr-role-quality.js";
 import type { OmrQualityReport } from "./omr-quality.js";
+import { sha256Hex } from "./fixture-evidence.js";
 
 export const LOCAL_SCORE_REFERENCE_CORPUS_SCHEMA_VERSION = 1 as const;
 
@@ -161,6 +164,15 @@ export interface ScoreReferenceCorpusOutputs {
   referenceMusicXml: string | null;
   referenceMidi: string | null;
   coverageMask: string | null;
+  /** Role-isolated artifacts are emitted only for independently READY OMR roles. */
+  roleReferences: Record<LocalScoreReferenceRole, ScoreReferenceRoleOutputs | null>;
+}
+
+export interface ScoreReferenceRoleOutputs {
+  referenceMusicXml: string;
+  referenceMidi: string;
+  coverageMask: string;
+  manifest: string;
 }
 
 export interface ScoreReferenceCorpusScoreReport {
@@ -176,6 +188,8 @@ export interface ScoreReferenceCorpusScoreReport {
   native: ScoreReferenceNativeSummary;
   omr: ScoreReferenceOmrSummary;
   roles: Record<LocalScoreReferenceRole, ScoreReferenceRoleReadiness>;
+  /** Legacy selected-global role rows retained for compatibility/debugging. */
+  selectedRoles?: Record<LocalScoreReferenceRole, ScoreReferenceRoleReadiness>;
   selected: LocalReferenceScoreReport["selected"];
   quality: {
     measures: number;
@@ -185,11 +199,18 @@ export interface ScoreReferenceCorpusScoreReport {
   };
   outputs: ScoreReferenceCorpusOutputs;
   review: {
+    /** Existing per-measure queue item count before independent role grouping. */
+    baseItems: number;
+    /** Preferred-backend role groups that replace covered base items. */
+    roleGroupItems: number;
+    /** Deduplicated actionable review-unit count. */
+    actionableItems: number;
     totalItems: number;
     melodyCritical: number;
     harmonyCritical: number;
     rhythmCritical: number;
     unknown: number;
+    roleGroups: OmrRoleQualityReviewGroup[];
   };
   errors: string[];
   nonClaims: string[];
@@ -523,6 +544,91 @@ function roleQualitySummary(quality: OmrQualityReport | null): ScoreReferenceOmr
   };
 }
 
+function independentRoleReadiness(
+  roleQuality: ScoreReferenceOmrRoleQuality,
+  detailedQuality: OmrRoleQualityReport | null,
+  role: LocalScoreReferenceRole,
+  fallbackSource: "omr" | "native" | "none",
+): ScoreReferenceRoleReadiness {
+  const summary = roleQuality.roleReadiness[role];
+  const backendRows = summary.preferredBackendId && summary.preferredBackendVersion && detailedQuality
+    ? detailedQuality.measures.filter((row) => row.role === role
+      && row.backendId === summary.preferredBackendId
+      && row.backendVersion === summary.preferredBackendVersion)
+    : [];
+  const eligibleEvents = backendRows.reduce((sum, row) => sum + row.eventCount, 0);
+  const trustedEvents = backendRows
+    .filter((row) => row.state === "AUTO_ACCEPT" || row.state === "LIKELY_OK")
+    .reduce((sum, row) => sum + row.eventCount, 0);
+  const source: "omr" | "native" | "none" = summary.preferredBackendId ? "omr"
+    : fallbackSource === "omr" ? "omr" : "none";
+  return {
+    state: summary.readiness === "READY" ? "READY" : summary.readiness === "REVIEW_REQUIRED" ? "REVIEW_REQUIRED" : "UNAVAILABLE",
+    source,
+    coverage: summary.coverage,
+    eligibleMeasures: summary.eligibleMeasures,
+    trustedMeasures: summary.trustedMeasures,
+    eligibleEvents,
+    trustedEvents,
+    reviewMeasures: summary.reviewMeasures,
+    reason: summary.readiness === "READY" ? null
+      : summary.readiness === "UNAVAILABLE" ? "no independent OMR role evidence"
+        : "one or more independent role measures require review",
+  };
+}
+
+function preferredRoleReviewGroups(
+  roleQuality: ScoreReferenceOmrRoleQuality | null,
+  roles: Record<LocalScoreReferenceRole, ScoreReferenceRoleReadiness>,
+): OmrRoleQualityReviewGroup[] {
+  if (!roleQuality) return [];
+  const groups: OmrRoleQualityReviewGroup[] = [];
+  const seen = new Set<string>();
+  for (const group of roleQuality.reviewGroups) {
+    const role = group.role as LocalScoreReferenceRole;
+    if (roles[role]?.state !== "REVIEW_REQUIRED") continue;
+    const preferred = roleQuality.roleReadiness[role];
+    if (!preferred || preferred.preferredBackendId !== group.backendId || preferred.preferredBackendVersion !== group.backendVersion) continue;
+    if (seen.has(group.id)) continue;
+    seen.add(group.id);
+    groups.push(group);
+  }
+  return groups.sort((left, right) => left.firstMeasureIndex - right.firstMeasureIndex
+    || left.lastMeasureIndex - right.lastMeasureIndex
+    || compareText(left.role, right.role)
+    || compareText(left.id, right.id));
+}
+
+type ScoreReferenceReviewItem = LocalReferenceScoreReport["reviewQueue"]["items"][number];
+
+interface ActionableReviewProjection {
+  baseItems: number;
+  roleGroupItems: number;
+  actionableItems: number;
+  remainingBaseItems: ScoreReferenceReviewItem[];
+}
+
+function actionableReviewProjection(
+  reviewItems: readonly ScoreReferenceReviewItem[],
+  roleGroups: readonly OmrRoleQualityReviewGroup[],
+): ActionableReviewProjection {
+  const coveredBaseIndexes = new Set<number>();
+  for (const group of roleGroups) {
+    const measureIds = new Set(group.measureIds);
+    if (!measureIds.size) continue;
+    reviewItems.forEach((item, index) => {
+      if (item.role === group.role && measureIds.has(item.measureId)) coveredBaseIndexes.add(index);
+    });
+  }
+  const remainingBaseItems = reviewItems.filter((_, index) => !coveredBaseIndexes.has(index));
+  return {
+    baseItems: reviewItems.length,
+    roleGroupItems: roleGroups.length,
+    actionableItems: remainingBaseItems.length + roleGroups.length,
+    remainingBaseItems,
+  };
+}
+
 function preferredBackendByRole(roleQuality: ScoreReferenceOmrRoleQuality | null): Record<LocalScoreReferenceRole, { id: string; version: string } | null> {
   return {
     melody: roleQuality?.roleReadiness.melody.preferredBackendId
@@ -558,10 +664,253 @@ function maturityFor(score: LocalReferenceScoreReport, roles: Record<LocalScoreR
   return score.selected.kind === "omr" ? "VALIDATED_DRAFT" : "RAW_OMR";
 }
 
-function scoreReport(prepared: PreparedScore, builder: LocalReferenceBuildReport): ScoreReferenceCorpusScoreReport {
+const ROLE_ORDER: readonly LocalScoreReferenceRole[] = ["melody", "harmony", "rhythm"];
+
+function emptyRoleReferences(): Record<LocalScoreReferenceRole, ScoreReferenceRoleOutputs | null> {
+  return { melody: null, harmony: null, rhythm: null };
+}
+
+function roleReferencePaths(scoreId: string, role: LocalScoreReferenceRole): ScoreReferenceRoleOutputs {
+  const roleRoot = `scores/${scoreId}/roles/${role}`;
+  return {
+    referenceMusicXml: `${roleRoot}/reference.musicxml`,
+    referenceMidi: `${roleRoot}/reference.mid`,
+    coverageMask: `${roleRoot}/coverage-mask.json`,
+    manifest: `${roleRoot}/reference-manifest.json`,
+  };
+}
+
+/** Remove only files this runner owns, so a rerun cannot leave stale role evidence. */
+async function removeRoleReferenceFiles(outputRoot: string, scoreId: string, role: LocalScoreReferenceRole): Promise<void> {
+  const paths = roleReferencePaths(scoreId, role);
+  const roleDirectory = resolve(outputRoot, `scores/${scoreId}/roles/${role}`);
+  try {
+    const info = await lstat(roleDirectory);
+    if (info.isSymbolicLink() || !info.isDirectory()) throw new Error("role artifact directory is not a regular directory");
+  } catch (error) {
+    const code = error && typeof error === "object" && "code" in error ? (error as { code?: string }).code : undefined;
+    if (code === "ENOENT" || code === "ENOTDIR") return;
+    throw error;
+  }
+  await Promise.all(Object.values(paths).map((path) => rm(resolve(outputRoot, path), { force: true })));
+}
+
+function roleNotes(
+  normalized: ReturnType<typeof normalizeOmrScore>,
+  role: LocalScoreReferenceRole,
+  trustedMeasureIds: ReadonlySet<string>,
+): Note[] {
+  const hand = role === "melody" ? "R" : "L";
+  const velocity = role === "melody" ? 100 : 74;
+  const notes: Note[] = [];
+  for (const measure of normalized.measures) {
+    if (!trustedMeasureIds.has(measure.id)) continue;
+    for (const event of measure.events) {
+      if (event.role !== role) continue;
+      notes.push({
+        midi: event.pitch,
+        start: measure.startBeat + event.onset,
+        dur: event.duration,
+        vel: velocity,
+        hand,
+      });
+    }
+  }
+  return notes.sort((left, right) => left.start - right.start || left.midi - right.midi || left.dur - right.dur);
+}
+
+function roleVariant(
+  normalized: ReturnType<typeof normalizeOmrScore>,
+  role: LocalScoreReferenceRole,
+  notes: readonly Note[],
+): Variant {
+  const timeSig = normalized.timeSignature ?? [4, 4];
+  const endBeat = Math.max(
+    normalized.measures.reduce((max, measure) => Math.max(max, measure.startBeat + measure.durationBeats), 0),
+    notes.reduce((max, note) => Math.max(max, note.start + note.dur), 0),
+  );
+  const measures = normalized.measures
+    .map((measure, index) => ({ index, startBeat: measure.startBeat, endBeat: measure.startBeat + measure.durationBeats }))
+    .filter((measure) => measure.startBeat < endBeat + 1e-9)
+    .sort((left, right) => left.startBeat - right.startBeat || left.index - right.index);
+  if (!measures.length && endBeat > 0) measures.push({ index: 0, startBeat: 0, endBeat });
+  return {
+    level: "advanced",
+    difficultyScore: 0,
+    notes: [...notes],
+    chords: [],
+    bassPattern: "",
+    key: keyName(normalized.keySignature ?? 0, false),
+    tempoBpm: normalized.tempoBpm ?? 120,
+    timeSig,
+    measures,
+  };
+}
+
+function roleQualityMeasures(
+  roleQuality: OmrRoleQualityReport,
+  backendId: string,
+  backendVersion: string,
+  role: LocalScoreReferenceRole,
+): Array<OmrRoleQualityReport["measures"][number]> {
+  return roleQuality.measures?.filter((row) => row.backendId === backendId && row.backendVersion === backendVersion && row.role === role) ?? [];
+}
+
+function trustedRoleMeasureIds(rows: readonly OmrRoleQualityReport["measures"][number][]): Set<string> {
+  return new Set(rows
+    .filter((row) => row.available && (row.state === "AUTO_ACCEPT" || row.state === "LIKELY_OK") && typeof row.measureId === "string")
+    .map((row) => row.measureId!));
+}
+
+function roleCoveragePayload(
+  scoreId: string,
+  role: LocalScoreReferenceRole,
+  backendId: string,
+  backendVersion: string,
+  rows: readonly OmrRoleQualityReport["measures"][number][],
+  normalized: ReturnType<typeof normalizeOmrScore>,
+  trustedIds: ReadonlySet<string>,
+  coverage: number | null,
+): string {
+  const byId = new Map(rows.filter((row) => typeof row.measureId === "string").map((row) => [row.measureId!, row]));
+  return `${JSON.stringify(stable({
+    schemaVersion: LOCAL_SCORE_REFERENCE_CORPUS_SCHEMA_VERSION,
+    scoreId,
+    role,
+    backend: { id: backendId, version: backendVersion },
+    trustedCoverage: coverage,
+    measures: normalized.measures.map((measure) => {
+      const row = byId.get(measure.id);
+      return {
+        id: measure.id,
+        number: measure.number,
+        page: measure.page,
+        startBeat: measure.startBeat,
+        endBeat: measure.startBeat + measure.durationBeats,
+        state: row?.state ?? "UNAVAILABLE",
+        score: row?.score ?? null,
+        diagnostics: row?.diagnostics ?? [],
+        eventCount: row?.eventCount ?? 0,
+        trusted: trustedIds.has(measure.id),
+      };
+    }),
+    excludedRegions: rows.filter((row) => !trustedIds.has(row.measureId ?? "")).map((row) => ({
+      measureId: row.measureId,
+      measureIndex: row.measureIndex,
+      diagnostics: row.diagnostics,
+    })),
+    nonClaims: ["Coverage marks automatic symbolic evidence; it does not establish musical correctness or human approval."],
+  }), null, 2)}\n`;
+}
+
+async function atomicCorpusWrite(path: string, data: string | Uint8Array): Promise<void> {
+  const temporary = `${path}.${randomUUID()}.tmp`;
+  try {
+    await writeFile(temporary, data, { flag: "wx" });
+    await rename(temporary, path);
+  } finally {
+    await rm(temporary, { force: true }).catch(() => undefined);
+  }
+}
+
+async function materializeRoleReferences(
+  prepared: PreparedScore,
+  built: LocalReferenceBuildReport,
+  outputRoot: string,
+): Promise<{ references: Record<LocalScoreReferenceRole, ScoreReferenceRoleOutputs | null>; errors: string[] }> {
+  const result = emptyRoleReferences();
+  const errors: string[] = [];
+  const cleanupFailed = new Set<LocalScoreReferenceRole>();
+  for (const role of ROLE_ORDER) {
+    try {
+      await removeRoleReferenceFiles(outputRoot, prepared.input.id, role);
+    } catch {
+      // A malformed role directory (for example a symlink or non-directory)
+      // must not prevent other independent roles from being materialized.
+      cleanupFailed.add(role);
+      errors.push(`${role} role artifact materialization failed`);
+    }
+  }
+  const builtScore = built.scores[0];
+  const roleQuality = roleQualitySummary(builtScore?.quality ?? null);
+  const detailedQuality = builtScore?.quality ? evaluateOmrRoleQuality(builtScore.quality) : null;
+  if (!roleQuality || !detailedQuality) return { references: result, errors };
+  for (const role of ROLE_ORDER) {
+    if (cleanupFailed.has(role)) continue;
+    try {
+      const readiness = roleQuality.roleReadiness[role];
+      if (readiness.readiness !== "READY" || !readiness.preferredBackendId || !readiness.preferredBackendVersion) continue;
+      const backendId = readiness.preferredBackendId;
+      const backendVersion = readiness.preferredBackendVersion;
+      const backend = prepared.omr.find((entry) => entry.backend.id === backendId
+        && entry.backend.version === backendVersion
+        && entry.backend.score);
+      if (!backend?.backend.score) continue;
+      const actualBackendVersion = typeof backend.backend.version === "string" ? backend.backend.version : backendVersion;
+      const rows = roleQualityMeasures(detailedQuality, backend.backend.id, actualBackendVersion, role);
+      const trustedIds = trustedRoleMeasureIds(rows);
+      if (!trustedIds.size) continue;
+      const normalized = normalizeOmrScore(backend.backend.score);
+      const notes = roleNotes(normalized, role, trustedIds);
+      if (!notes.length) continue;
+      const variant = roleVariant(normalized, role, notes);
+      const midi = writeMidi(notes, {
+        tempoBpm: variant.tempoBpm,
+        timeSig: variant.timeSig,
+        keySig: normalized.keySignature ?? 0,
+        title: prepared.input.title,
+        tracks: [{ name: `Reference ${role}`, notes }],
+      });
+      const musicXml = writeMusicXml(variant, prepared.input.title, prepared.input.artist);
+      const coverage = roleCoveragePayload(prepared.input.id, role, backend.backend.id, actualBackendVersion, rows, normalized, trustedIds, readiness.coverage);
+      const paths = roleReferencePaths(prepared.input.id, role);
+      const roleRoot = `scores/${prepared.input.id}/roles/${role}`;
+      await mkdir(resolve(outputRoot, roleRoot), { recursive: true });
+      const manifest = `${JSON.stringify(stable({
+        schemaVersion: LOCAL_SCORE_REFERENCE_CORPUS_SCHEMA_VERSION,
+        kind: "local-score-reference-role",
+        scoreId: prepared.input.id,
+        role,
+        sourcePdfSha256: prepared.forensics?.identity?.sha256 ?? null,
+        selectedBackend: { id: backend.backend.id, version: backend.backend.version },
+        trustedCoverage: readiness.coverage,
+        trustedMeasures: readiness.trustedMeasures,
+        eligibleMeasures: readiness.eligibleMeasures,
+        excludedRegions: rows.filter((row) => !trustedIds.has(row.measureId ?? "")).map((row) => ({ measureId: row.measureId, diagnostics: row.diagnostics })),
+        automaticRepairs: [],
+        unresolvedIssues: roleQuality.reviewGroups.filter((group) => group.backendId === backend.backend.id && group.backendVersion === backend.backend.version && group.role === role).map((group) => ({ id: group.id, causes: group.rootCauses })),
+        artifacts: {
+          referenceMusicXml: { path: paths.referenceMusicXml, bytes: new TextEncoder().encode(musicXml).byteLength, sha256: sha256Hex(new TextEncoder().encode(musicXml)) },
+          referenceMidi: { path: paths.referenceMidi, bytes: midi.byteLength, sha256: sha256Hex(midi) },
+          coverageMask: { path: paths.coverageMask, bytes: new TextEncoder().encode(coverage).byteLength, sha256: sha256Hex(new TextEncoder().encode(coverage)) },
+        },
+        nonClaims: ["This role reference is local OMR evidence, not a claim of musical correctness or human approval."],
+      }), null, 2)}\n`;
+      await atomicCorpusWrite(resolve(outputRoot, paths.referenceMidi), midi);
+      await atomicCorpusWrite(resolve(outputRoot, paths.referenceMusicXml), musicXml);
+      await atomicCorpusWrite(resolve(outputRoot, paths.coverageMask), coverage);
+      await atomicCorpusWrite(resolve(outputRoot, paths.manifest), manifest);
+      result[role] = paths;
+    } catch {
+      // A broken role must not invalidate artifacts produced for other roles.
+      // Remove only this runner's four files so a failed rerun cannot leave a
+      // stale role reference that the report does not advertise.
+      await removeRoleReferenceFiles(outputRoot, prepared.input.id, role).catch(() => undefined);
+      errors.push(`${role} role artifact materialization failed`);
+    }
+  }
+  return { references: result, errors };
+}
+
+function scoreReport(
+  prepared: PreparedScore,
+  builder: LocalReferenceBuildReport,
+  roleReferences: Record<LocalScoreReferenceRole, ScoreReferenceRoleOutputs | null> = emptyRoleReferences(),
+  roleReferenceErrors: readonly string[] = [],
+): ScoreReferenceCorpusScoreReport {
   const built = builder.scores[0]!;
   const source: "omr" | "native" | "none" = built.selected.kind === "native" ? "native" : built.qualitySelection ? "omr" : "none";
-  const roles = {
+  const selectedRoles = {
     melody: roleReadiness(built, "melody", source),
     harmony: roleReadiness(built, "harmony", source),
     rhythm: roleReadiness(built, "rhythm", source),
@@ -571,8 +920,19 @@ function scoreReport(prepared: PreparedScore, builder: LocalReferenceBuildReport
   const brokenMeasures = built.quality?.measures.filter((row) => row.state === "BROKEN").length ?? 0;
   const selectedBackend = built.selected.backend;
   const reviewItems = built.reviewQueue.items;
-  const maturity = maturityFor(built, roles);
   const roleQuality = roleQualitySummary(built.quality);
+  const detailedQuality = built.quality ? evaluateOmrRoleQuality(built.quality) : null;
+  const roles = roleQuality
+    ? {
+      melody: independentRoleReadiness(roleQuality, detailedQuality, "melody", source),
+      harmony: independentRoleReadiness(roleQuality, detailedQuality, "harmony", source),
+      rhythm: independentRoleReadiness(roleQuality, detailedQuality, "rhythm", source),
+    }
+    : selectedRoles;
+  const roleGroups = preferredRoleReviewGroups(roleQuality, roles);
+  const reviewProjection = actionableReviewProjection(reviewItems, roleGroups);
+  const remainingBaseItems = reviewProjection.remainingBaseItems;
+  const maturity = maturityFor(built, roles);
   const pdf = pdfReport(prepared.forensics, Boolean(prepared.pdfPath));
   const discovery = prepared.discovery ?? built.nativeDiscovery;
   const backends = prepared.omr.map((entry) => entry.summary);
@@ -592,6 +952,7 @@ function scoreReport(prepared: PreparedScore, builder: LocalReferenceBuildReport
   const errors = [
     ...pdf.errors,
     ...prepared.omr.filter((entry) => entry.summary.error).map((entry) => `${entry.summary.id}: ${entry.summary.error}`),
+    ...roleReferenceErrors,
     ...(built.state === "FAILED" && !built.reviewQueue.totalItems ? ["no usable symbolic reference was produced"] : []),
   ].sort(compareText);
   return {
@@ -621,6 +982,7 @@ function scoreReport(prepared: PreparedScore, builder: LocalReferenceBuildReport
       fallbackUsed: built.selected.kind !== "omr" && backends.length > 0,
     },
     roles,
+    ...(roleQuality ? { selectedRoles } : {}),
     selected: built.selected,
     quality: { measures: qualityMeasures, reviewMeasures, brokenMeasures, selectedBackend },
     outputs: {
@@ -629,13 +991,18 @@ function scoreReport(prepared: PreparedScore, builder: LocalReferenceBuildReport
       referenceMusicXml: built.outputs.referenceMusicXml,
       referenceMidi: built.outputs.referenceMidi,
       coverageMask: built.outputs.coverageMask,
+      roleReferences,
     },
     review: {
-      totalItems: reviewItems.length,
-      melodyCritical: reviewItems.filter((item) => item.role === "melody").length,
-      harmonyCritical: reviewItems.filter((item) => item.role === "harmony").length,
-      rhythmCritical: reviewItems.filter((item) => item.role === "rhythm").length,
-      unknown: reviewItems.filter((item) => item.role === "unknown").length,
+      baseItems: reviewProjection.baseItems,
+      roleGroupItems: reviewProjection.roleGroupItems,
+      actionableItems: reviewProjection.actionableItems,
+      totalItems: reviewProjection.actionableItems,
+      melodyCritical: remainingBaseItems.filter((item) => item.role === "melody").length + roleGroups.filter((group) => group.role === "melody").length,
+      harmonyCritical: remainingBaseItems.filter((item) => item.role === "harmony").length + roleGroups.filter((group) => group.role === "harmony").length,
+      rhythmCritical: remainingBaseItems.filter((item) => item.role === "rhythm").length + roleGroups.filter((group) => group.role === "rhythm").length,
+      unknown: remainingBaseItems.filter((item) => item.role === "unknown").length,
+      roleGroups,
     },
     errors,
     nonClaims: [...LOCAL_SCORE_REFERENCE_CORPUS_NON_CLAIMS, ...built.nonClaims],
@@ -668,9 +1035,11 @@ function summary(scores: readonly ScoreReferenceCorpusScoreReport[]): ScoreRefer
     sourcePdfAvailable: scores.filter((score) => score.source.pdf.status === "available").length,
     sourcePdfMissing: scores.filter((score) => score.source.pdf.status === "missing").length,
     nativeMatches: scores.filter((score) => score.native.selected).length,
-    melodyReady: scores.filter((score) => score.maturity === "MELODY_READY" || score.maturity === "HARMONY_READY" || score.maturity === "FULL_REFERENCE_READY").length,
-    harmonyReady: scores.filter((score) => score.maturity === "HARMONY_READY" || score.maturity === "FULL_REFERENCE_READY").length,
-    fullReferenceReady: scores.filter((score) => score.maturity === "FULL_REFERENCE_READY").length,
+    // Role counts are intentionally independent of whole-score maturity. A
+    // score may have a trusted melody while its harmony still requires review.
+    melodyReady: scores.filter((score) => score.roles.melody.state === "READY").length,
+    harmonyReady: scores.filter((score) => score.roles.harmony.state === "READY").length,
+    fullReferenceReady: scores.filter((score) => Object.values(score.roles).every((role) => role.state === "READY")).length,
     reviewRequired: scores.filter((score) => score.maturity === "MANUAL_REVIEW_REQUIRED").length,
     failed: scores.filter((score) => score.maturity === "FAILED").length,
     unresolvedReviewItems: scores.reduce((sum, score) => sum + score.review.totalItems, 0),
@@ -768,7 +1137,20 @@ export async function runLocalScoreReferenceCorpus(input: ScoreReferenceCorpusIn
       // emitted. The error itself is attached to the corpus row below.
       built = { schemaVersion: 1, kind: "local-score-reference", status: "FAILED", scores: [{ ...failed, nonClaims: [...failed.nonClaims, publicError(error, "reference build failed")] }], nonClaims: [...LOCAL_SCORE_REFERENCE_CORPUS_NON_CLAIMS] };
     }
-    reports.push(scoreReport(score, built));
+    let roleReferences = emptyRoleReferences();
+    let roleReferenceErrors: string[] = [];
+    try {
+      const materialized = await materializeRoleReferences(score, built, outputRoot);
+      roleReferences = materialized.references;
+      roleReferenceErrors = materialized.errors;
+    } catch (error) {
+      // Role artifacts are additive evidence. A malformed optional backend
+      // must not erase the per-score report; the role output remains null and
+      // the readiness gate stays fail-closed.
+      roleReferences = emptyRoleReferences();
+      roleReferenceErrors = [publicError(error, "role reference materialization failed")];
+    }
+    reports.push(scoreReport(score, built, roleReferences, roleReferenceErrors));
   }
   reports.sort((left, right) => compareText(left.id, right.id));
   const report: ScoreReferenceCorpusReport = {

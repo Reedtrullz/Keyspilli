@@ -1,9 +1,9 @@
-import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { writeMidi } from "@keyspilli/midi";
+import { parseMidi, writeMidi } from "@keyspilli/midi";
 import { runScoreReferenceCorpusCli } from "../scripts/build-score-reference-corpus.js";
 import {
   localScoreReferenceCorpusJson,
@@ -33,9 +33,9 @@ function score(): NonNullable<ScoreReferenceCorpusInput["scores"][number]["omr"]
         durationBeats: 4,
         timeSignature: [4, 4],
         events: [
-          { onset: 0, duration: 1, pitch: 60, role: "melody" },
-          { onset: 1, duration: 1, pitch: 62, role: "melody" },
-          { onset: 2, duration: 2, pitch: 64, role: "melody" },
+          { onset: 0, duration: 1, pitch: 60, role: "melody", staff: 1, voice: "1", accidental: "natural" },
+          { onset: 1, duration: 1, pitch: 62, role: "melody", staff: 1, voice: "1", accidental: "natural" },
+          { onset: 2, duration: 2, pitch: 64, role: "melody", staff: 1, voice: "1", accidental: "natural" },
         ],
       }],
     }],
@@ -57,7 +57,7 @@ function roleScore(role: "melody" | "harmony", pitches: readonly number[]) {
   part.name = role;
   part.role = role;
   const measure = part.measures[0]!;
-  measure.events = pitches.map((pitch, index) => ({ onset: index, duration: 1, pitch, role }));
+  measure.events = pitches.map((pitch, index) => ({ onset: index, duration: index === pitches.length - 1 ? 2 : 1, pitch, role, staff: 1, voice: "1", accidental: "natural" }));
   return result;
 }
 
@@ -114,16 +114,198 @@ describe("local score reference corpus runner", () => {
   it("reports role-level readiness independently of the overall score", async () => {
     const root = await mkdtemp(join(tmpdir(), "keyspilli-score-reference-roles-"));
     try {
+      const output = join(root, "output");
       const result = await runLocalScoreReferenceCorpus({
         schemaVersion: 1,
-        scores: [corpusScore("role-score", { omr: [{ id: "audiveris", score: score() }] })],
-      }, { outputRoot: join(root, "output"), repositoryRoot: resolve(process.cwd(), "not-the-repository") });
+        scores: [corpusScore("role-score", { omr: [{ id: "audiveris", score: roleScore("melody", [60, 62, 64]) }] })],
+      }, { outputRoot: output, repositoryRoot: resolve(process.cwd(), "not-the-repository") });
       const item = result.scores[0]!;
       expect(item.roles.melody).toMatchObject({ state: "READY", trustedMeasures: 1, eligibleMeasures: 1, coverage: 1 });
       expect(item.roles.harmony).toMatchObject({ state: "UNAVAILABLE", coverage: null });
       expect(item.roles.rhythm).toMatchObject({ state: "UNAVAILABLE", coverage: null });
       expect(item.maturity).toBe("MELODY_READY");
       expect(result.summary).toMatchObject({ melodyReady: 1, harmonyReady: 0, fullReferenceReady: 0 });
+      const melody = item.outputs.roleReferences.melody;
+      expect(melody).toMatchObject({
+        referenceMidi: "scores/role-score/roles/melody/reference.mid",
+        referenceMusicXml: "scores/role-score/roles/melody/reference.musicxml",
+        coverageMask: "scores/role-score/roles/melody/coverage-mask.json",
+        manifest: "scores/role-score/roles/melody/reference-manifest.json",
+      });
+      expect(item.outputs.roleReferences.harmony).toBeNull();
+      await expect(stat(join(output, melody!.referenceMidi))).resolves.toBeTruthy();
+      await expect(stat(join(output, melody!.referenceMusicXml))).resolves.toBeTruthy();
+      await expect(stat(join(output, melody!.coverageMask))).resolves.toBeTruthy();
+      const roleManifest = JSON.parse(await readFile(join(output, melody!.manifest), "utf8")) as Record<string, unknown>;
+      expect(roleManifest).toMatchObject({ role: "melody", selectedBackend: { id: "audiveris" } });
+      const parsedRoleMidi = parseMidi(new Uint8Array(await readFile(join(output, melody!.referenceMidi))));
+      expect(parsedRoleMidi.notes).toHaveLength(3);
+      expect(parsedRoleMidi.notes.every((note) => note.hand !== "L")).toBe(true);
+      const roleArtifactBytes = await Promise.all([
+        melody!.referenceMidi,
+        melody!.referenceMusicXml,
+        melody!.coverageMask,
+        melody!.manifest,
+      ].map(async (path) => [path, await readFile(join(output, path))] as const));
+      await runLocalScoreReferenceCorpus({
+        schemaVersion: 1,
+        scores: [corpusScore("role-score", { omr: [{ id: "audiveris", score: roleScore("melody", [60, 62, 64]) }] })],
+      }, { outputRoot: output, repositoryRoot: resolve(process.cwd(), "not-the-repository") });
+      for (const [path, bytes] of roleArtifactBytes) expect(await readFile(join(output, path))).toEqual(bytes);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("uses independent role readiness for gates while retaining selected-global rows", async () => {
+    const root = await mkdtemp(join(tmpdir(), "keyspilli-score-reference-role-gate-"));
+    try {
+      const incomplete = roleScore("melody", [60, 62, 64]);
+      const first = incomplete.parts[0]!.measures[0]!;
+      incomplete.parts[0]!.measures.push({
+        ...first,
+        id: "m2",
+        number: "2",
+        startBeat: 4,
+        events: [],
+      });
+      const result = await runLocalScoreReferenceCorpus({
+        schemaVersion: 1,
+        scores: [corpusScore("role-gate", { omr: [{ id: "audiveris", score: incomplete }] })],
+      }, { outputRoot: join(root, "output"), repositoryRoot: resolve(process.cwd(), "not-the-repository") });
+      const item = result.scores[0]!;
+      expect(item.roles.melody.state).toBe("REVIEW_REQUIRED");
+      expect(item.selectedRoles?.melody.state).toBe("READY");
+      expect(item.outputs.roleReferences.melody).toBeNull();
+      expect(result.summary.melodyReady).toBe(0);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("surfaces preferred independent role review groups as actionable work", async () => {
+    const root = await mkdtemp(join(tmpdir(), "keyspilli-score-reference-role-review-"));
+    const output = join(root, "output");
+    try {
+      const incomplete = roleScore("melody", [60, 62, 64]);
+      const first = incomplete.parts[0]!.measures[0]!;
+      incomplete.parts[0]!.measures.push({
+        ...first,
+        id: "m2",
+        number: "2",
+        startBeat: 4,
+        events: [],
+      });
+      const input: ScoreReferenceCorpusInput = {
+        schemaVersion: 1,
+        scores: [corpusScore("role-review", { omr: [{ id: "audiveris", score: incomplete }] })],
+      };
+      const result = await runLocalScoreReferenceCorpus(input, { outputRoot: output, repositoryRoot: resolve(process.cwd(), "not-the-repository") });
+      const item = result.scores[0]!;
+      const review = item.review as typeof item.review & {
+        baseItems: number;
+        roleGroupItems: number;
+        actionableItems: number;
+        roleGroups: Array<{ role: string; measureIds: string[] }>;
+      };
+      expect(item.omr.roleQuality?.reviewGroups.length).toBe(1);
+      expect(review.baseItems).toBe(0);
+      expect(review.roleGroups).toHaveLength(1);
+      expect(review.roleGroups[0]).toMatchObject({ role: "melody", measureIds: ["P1:m2"] });
+      expect(review.roleGroupItems).toBe(1);
+      expect(review.actionableItems).toBe(1);
+      expect(review.totalItems).toBe(1);
+      expect(review.melodyCritical).toBe(1);
+      expect(result.humanWorkload).toMatchObject({ totalDecisions: 1, melodyCritical: 1 });
+      expect(result.summary).toMatchObject({ unresolvedReviewItems: 1, melodyCriticalReviewItems: 1 });
+
+      const rerun = await runLocalScoreReferenceCorpus(input, { outputRoot: output, repositoryRoot: resolve(process.cwd(), "not-the-repository") });
+      expect(localScoreReferenceCorpusJson(rerun)).toBe(localScoreReferenceCorpusJson(result));
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("replaces overlapping base queue items with one role review unit", async () => {
+    const root = await mkdtemp(join(tmpdir(), "keyspilli-score-reference-role-review-dedupe-"));
+    try {
+      const overlapping = roleScore("melody", [60, 62, 64]);
+      const first = overlapping.parts[0]!.measures[0]!;
+      overlapping.parts[0]!.measures.push({
+        ...first,
+        id: "m2",
+        number: "2",
+        startBeat: 4,
+        events: [
+          { onset: 0, duration: 1, pitch: 60, role: "melody", staff: 1, voice: "1", accidental: "natural" },
+          { onset: 0, duration: 1, pitch: 60, role: "melody", staff: 1, voice: "1", accidental: "natural" },
+          { onset: 2, duration: 2, pitch: 64, role: "melody", staff: 1, voice: "1", accidental: "natural" },
+        ],
+      });
+      const result = await runLocalScoreReferenceCorpus({
+        schemaVersion: 1,
+        scores: [corpusScore("role-review-dedupe", { omr: [{ id: "audiveris", score: overlapping }] })],
+      }, { outputRoot: join(root, "output"), repositoryRoot: resolve(process.cwd(), "not-the-repository") });
+      const review = result.scores[0]!.review;
+      expect(review.baseItems).toBe(2);
+      expect(review.roleGroupItems).toBe(1);
+      expect(review.actionableItems).toBe(1);
+      expect(review.totalItems).toBe(1);
+      expect(review.melodyCritical).toBe(1);
+      expect(result.humanWorkload.totalDecisions).toBe(1);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("removes stale role artifacts when a rerun is no longer role-ready", async () => {
+    const root = await mkdtemp(join(tmpdir(), "keyspilli-score-reference-role-stale-"));
+    const output = join(root, "output");
+    const input: ScoreReferenceCorpusInput = {
+      schemaVersion: 1,
+      scores: [corpusScore("role-score", { omr: [{ id: "audiveris", score: roleScore("melody", [60, 62, 64]) }] })],
+    };
+    try {
+      const first = await runLocalScoreReferenceCorpus(input, { outputRoot: output, repositoryRoot: resolve(process.cwd(), "not-the-repository") });
+      const role = first.scores[0]!.outputs.roleReferences.melody!;
+      await expect(stat(join(output, role.manifest))).resolves.toBeTruthy();
+      await runLocalScoreReferenceCorpus({
+        schemaVersion: 1,
+        scores: [corpusScore("role-score", { omr: [{ id: "audiveris", status: "unavailable" }] })],
+      }, { outputRoot: output, repositoryRoot: resolve(process.cwd(), "not-the-repository") });
+      await expect(stat(join(output, role.referenceMidi))).rejects.toMatchObject({ code: "ENOENT" });
+      await expect(stat(join(output, role.referenceMusicXml))).rejects.toMatchObject({ code: "ENOENT" });
+      await expect(stat(join(output, role.coverageMask))).rejects.toMatchObject({ code: "ENOENT" });
+      await expect(stat(join(output, role.manifest))).rejects.toMatchObject({ code: "ENOENT" });
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("keeps successful role artifacts when another role cannot materialize", async () => {
+    const root = await mkdtemp(join(tmpdir(), "keyspilli-score-reference-role-partial-"));
+    const output = join(root, "output");
+    try {
+      const melody = roleScore("melody", [60, 62, 64]);
+      const measure = melody.parts[0]!.measures[0]!;
+      measure.events!.push(
+        { onset: 0, duration: 1, pitch: 48, role: "harmony", staff: 2, voice: "2", accidental: "natural" },
+        { onset: 1, duration: 1, pitch: 52, role: "harmony", staff: 2, voice: "2", accidental: "natural" },
+        { onset: 2, duration: 2, pitch: 55, role: "harmony", staff: 2, voice: "2", accidental: "natural" },
+      );
+      const melodyRoleDir = join(output, "scores", "partial-role", "roles", "melody");
+      await mkdir(dirname(melodyRoleDir), { recursive: true });
+      await symlink("/dev/null", melodyRoleDir);
+
+      const result = await runLocalScoreReferenceCorpus({
+        schemaVersion: 1,
+        scores: [corpusScore("partial-role", { omr: [{ id: "audiveris", score: melody }] })],
+      }, { outputRoot: output, repositoryRoot: resolve(process.cwd(), "not-the-repository") });
+      const item = result.scores[0]!;
+      expect(item.outputs.roleReferences.melody).toBeNull();
+      expect(item.outputs.roleReferences.harmony).not.toBeNull();
+      expect(item.errors.some((error) => error.includes("melody role artifact materialization failed"))).toBe(true);
+      await expect(stat(join(output, item.outputs.roleReferences.harmony!.manifest))).resolves.toBeTruthy();
     } finally {
       await rm(root, { recursive: true, force: true });
     }

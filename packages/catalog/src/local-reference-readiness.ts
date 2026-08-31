@@ -122,9 +122,12 @@ export interface LocalReferenceReadinessRole {
 export interface LocalReferenceReadinessReviewRegion {
   id: string;
   measureId: string;
+  /** All measures covered by an independent role-review group, when supplied. */
+  measureIds?: string[];
   measureNumber: string;
   page: number | null;
   system: number | null;
+  pageSystems?: Array<{ page: number | null; system: number | null }>;
   role: "melody" | "harmony" | "rhythm" | "unknown";
   reasonCategory: string;
   state: "AUTO_ACCEPT" | "LIKELY_OK" | "REVIEW" | "BROKEN";
@@ -132,6 +135,16 @@ export interface LocalReferenceReadinessReviewRegion {
   evidence: string[];
   recommendedAction: string;
   decision: "pending" | "accepted" | "rejected" | "corrected" | "skipped";
+  /** Independent role-review provenance, when this region came from a corpus group. */
+  backendId?: string;
+  backendVersion?: string;
+  firstMeasureIndex?: number | null;
+  lastMeasureIndex?: number | null;
+  startBeat?: number | null;
+  endBeat?: number | null;
+  memberCount?: number | null;
+  estimatedEventCount?: number | null;
+  confidence?: { min: number; median: number; max: number } | null;
 }
 
 export interface LocalReferenceReadinessHumanDecision {
@@ -408,6 +421,16 @@ function reasonCategory(value: unknown): string {
   return "unknown";
 }
 
+function compareMeasureIds(left: string, right: string): number {
+  const leftMatch = /(\d+)(?:\D*)$/.exec(left);
+  const rightMatch = /(\d+)(?:\D*)$/.exec(right);
+  if (leftMatch && rightMatch) {
+    const numeric = Number(leftMatch[1]) - Number(rightMatch[1]);
+    if (numeric !== 0) return numeric;
+  }
+  return compare(left, right);
+}
+
 function decisionOutcome(value: unknown): LocalReferenceReadinessHumanDecision["outcome"] | null {
   if (value === "accept" || value === "accepted" || value === "approve" || value === "approved") return "accepted";
   if (value === "reject" || value === "rejected") return "rejected";
@@ -519,11 +542,17 @@ interface ReportedReviewCounts {
 
 function reportedReviewCounts(raw: UnknownRecord): ReportedReviewCounts {
   const summary = record(raw.review);
+  const roleGroups = array(summary.roleGroups).map(record);
+  const roleGroupCounts = {
+    melody: roleGroups.filter((group) => role(group.role) === "melody").length,
+    harmony: roleGroups.filter((group) => role(group.role) === "harmony").length,
+    rhythm: roleGroups.filter((group) => role(group.role) === "rhythm").length,
+  };
   return {
-    total: integer(summary.totalItems ?? summary.totalRegions) ?? 0,
-    melody: integer(summary.melodyCritical ?? summary.melodyCriticalRegions) ?? 0,
-    harmony: integer(summary.harmonyCritical ?? summary.harmonyCriticalRegions) ?? 0,
-    rhythm: integer(summary.rhythmCritical ?? summary.rhythmCriticalRegions) ?? 0,
+    total: integer(summary.actionableItems ?? summary.totalItems ?? summary.totalRegions) ?? roleGroups.length,
+    melody: integer(summary.melodyCritical ?? summary.melodyCriticalRegions) ?? roleGroupCounts.melody,
+    harmony: integer(summary.harmonyCritical ?? summary.harmonyCriticalRegions) ?? roleGroupCounts.harmony,
+    rhythm: integer(summary.rhythmCritical ?? summary.rhythmCriticalRegions) ?? roleGroupCounts.rhythm,
   };
 }
 
@@ -895,6 +924,65 @@ function roleReadiness(raw: UnknownRecord, roleName: ReadinessRoleName, reviewRe
   };
 }
 
+function roleGroupCandidate(group: UnknownRecord, index: number): UnknownRecord | null {
+  const roleName = role(group.role);
+  if (roleName === "unknown") return null;
+  const measureIds = [...new Set(array(group.measureIds)
+    .map((value) => safeId(value, ""))
+    .filter(Boolean))].sort(compareMeasureIds);
+  const firstMeasureIndex = integer(group.firstMeasureIndex);
+  const lastMeasureIndex = integer(group.lastMeasureIndex);
+  const measureId = measureIds[0] ?? `measure-${firstMeasureIndex ?? index + 1}`;
+  const backendId = safeId(group.backendId, "backend");
+  const backendVersion = safeLabel(group.backendVersion, "unknown");
+  const fallbackId = `${backendId}:${backendVersion}:${roleName}:${measureIds.join("+") || measureId}`;
+  const id = safeId(group.id, fallbackId);
+  const pageSystems = array(group.pageSystems).map((value) => {
+    const item = record(value);
+    return { page: integer(item.page), system: integer(item.system) };
+  });
+  const firstPageSystem = pageSystems[0] ?? { page: null, system: null };
+  const rootCauses = [...new Set(array(group.rootCauses).map((value) => safeReason(value)).filter(Boolean))].sort(compare);
+  const reason = reasonCategory(rootCauses[0] ?? "structure");
+  const memberCount = integer(group.memberCount);
+  const estimatedEventCount = integer(group.estimatedEventCount);
+  const confidence = record(group.confidence);
+  const confidenceValue = finite(confidence.min) && finite(confidence.median) && finite(confidence.max)
+    ? { min: confidence.min, median: confidence.median, max: confidence.max }
+    : null;
+  const evidence = [
+    ...rootCauses,
+    memberCount === null ? "independent role-review group" : `grouped ${memberCount} measure${memberCount === 1 ? "" : "s"}`,
+    estimatedEventCount === null ? "" : `estimated ${estimatedEventCount} event${estimatedEventCount === 1 ? "" : "s"}`,
+  ].filter(Boolean);
+  return {
+    __roleGroup: true,
+    __roleGroupMeasures: measureIds,
+    id,
+    measureId,
+    measureIds,
+    measureNumber: safeLabel(group.measureNumber, firstMeasureIndex === null ? measureId : String(firstMeasureIndex + 1)),
+    page: firstPageSystem.page,
+    system: firstPageSystem.system,
+    pageSystems,
+    role: roleName,
+    reasonCategory: reason,
+    state: "REVIEW",
+    priorityClass: group.priorityClass,
+    evidence,
+    recommendedAction: `Review ${roleName} measures ${measureIds.join(", ") || measureId}${rootCauses.length ? ` for ${rootCauses.join(", ")}` : " for role quality issues"}.`,
+    backendId,
+    backendVersion,
+    firstMeasureIndex,
+    lastMeasureIndex,
+    startBeat: number(group.startBeat),
+    endBeat: number(group.endBeat),
+    memberCount,
+    estimatedEventCount,
+    confidence: confidenceValue,
+  };
+}
+
 function reviewRegions(raw: UnknownRecord): LocalReferenceReadinessReviewRegion[] {
   const queue = record(raw.reviewQueue);
   const candidates: UnknownRecord[] = array(queue.items).map(record).filter((item) => Object.keys(item).length > 0);
@@ -926,13 +1014,38 @@ function reviewRegions(raw: UnknownRecord): LocalReferenceReadinessReviewRegion[
   for (const region of array(raw.regions).map(record)) {
     if (region.review === true || text(region.state).toUpperCase() === "REVIEW_REQUIRED" || text(region.state).toUpperCase() === "FAILED") candidates.push({ ...region, reasonCategory: region.reason ?? "structure", evidence: region.evidence ?? region.diagnostics ?? [] });
   }
+  const roleGroupCandidates = array(record(raw.review).roleGroups)
+    .map(record)
+    .map((group, index) => roleGroupCandidate(group, index))
+    .filter((item): item is UnknownRecord => item !== null);
+  candidates.push(...roleGroupCandidates);
+  const coveredRoleMeasures = new Map<ReadinessRoleName, Set<string>>();
+  for (const group of roleGroupCandidates) {
+    const groupRole = role(group.role);
+    if (groupRole === "unknown") continue;
+    const measures = coveredRoleMeasures.get(groupRole) ?? new Set<string>();
+    for (const measureId of array(group.__roleGroupMeasures)) {
+      const normalized = safeId(measureId, "");
+      if (normalized) measures.add(normalized);
+    }
+    coveredRoleMeasures.set(groupRole, measures);
+  }
+  const actionableCandidates = candidates.filter((candidate) => {
+    if (candidate.__roleGroup === true) return true;
+    const candidateRole = role(candidate.role);
+    if (candidateRole === "unknown") return true;
+    const measureId = safeId(candidate.measureId ?? candidate.id, "");
+    return !(measureId && coveredRoleMeasures.get(candidateRole)?.has(measureId));
+  });
   const grouped = new Map<string, LocalReferenceReadinessReviewRegion>();
-  for (const candidate of candidates) {
+  for (const candidate of actionableCandidates) {
     const measureId = safeId(candidate.measureId ?? candidate.id, "unknown-measure");
     const measureNumber = safeLabel(candidate.measureNumber ?? candidate.number, "unknown");
     const roleName = role(candidate.role);
     const reason = reasonCategory(candidate.reasonCategory ?? candidate.reason ?? array(candidate.evidence)[0]);
-    const key = `${measureId}\u0000${roleName}\u0000${reason}`;
+    const key = candidate.__roleGroup === true
+      ? `group\u0000${safeId(candidate.id, `${measureId}:${roleName}:${reason}`)}`
+      : `${measureId}\u0000${roleName}\u0000${reason}`;
     const evidence = [...new Set([
       ...array(candidate.evidence).map((value) => safeReason(value)),
       ...array(candidate.diagnostics).map((value) => safeReason(value)),
@@ -951,6 +1064,24 @@ function reviewRegions(raw: UnknownRecord): LocalReferenceReadinessReviewRegion[
       evidence,
       recommendedAction: safeReason(candidate.recommendedAction, "Human-review this unresolved region."),
       decision: "pending",
+      ...(candidate.__roleGroup === true ? {
+        measureIds: array(candidate.measureIds).map((value) => safeId(value, "")).filter(Boolean),
+        pageSystems: array(candidate.pageSystems).map((value) => {
+          const item = record(value);
+          return { page: integer(item.page), system: integer(item.system) };
+        }),
+        backendId: safeId(candidate.backendId, "backend"),
+        backendVersion: safeLabel(candidate.backendVersion, "unknown"),
+        firstMeasureIndex: integer(candidate.firstMeasureIndex),
+        lastMeasureIndex: integer(candidate.lastMeasureIndex),
+        startBeat: number(candidate.startBeat),
+        endBeat: number(candidate.endBeat),
+        memberCount: integer(candidate.memberCount),
+        estimatedEventCount: integer(candidate.estimatedEventCount),
+        confidence: record(candidate.confidence).min !== undefined && finite(record(candidate.confidence).min) && finite(record(candidate.confidence).median) && finite(record(candidate.confidence).max)
+          ? { min: record(candidate.confidence).min as number, median: record(candidate.confidence).median as number, max: record(candidate.confidence).max as number }
+          : null,
+      } : {}),
     };
     const prior = grouped.get(key);
     if (!prior) grouped.set(key, item);
