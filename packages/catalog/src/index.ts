@@ -34,3 +34,5 @@ export * from "./omr-role-reference.js";
 export * from "./keyspilli-regression.js";
 export * from "./native-score-discovery.js";
 export * from "./harmony-evaluation.js";
+export * from "./harmony-benchmark-manifest.js";
+export * from "./harmony-benchmark.js";

@@ -1,9 +1,18 @@
 /** Path-safe, metadata-only inputs for the local harmony benchmark. */
 export const HARMONY_BENCHMARK_MANIFEST_SCHEMA_VERSION = 1 as const;
+export const HARMONY_BENCHMARK_SCORE_IDS = [
+  "sabaton-1916",
+  "sabaton-christmas-truce",
+  "sabaton-gott-mit-uns",
+  "sabaton-the-caroleans-prayer",
+  "sleep-token-take-me-back-to-eden",
+  "unknown-free-bird",
+] as const;
 
 const ID = /^[a-z0-9][a-z0-9-]{0,119}$/;
 const SHA256 = /^[0-9a-f]{64}$/i;
 const PATH_KEY = /(?:^|_|-)path$|(?:^|_|-)(?:file|filename|notes?)$/i;
+const PATH_VALUE = /^(?:\.\.?[\\/]|[A-Za-z]:[\\/]|\/{1,2}|file:)|(?:^|[\\/])[^\\/\s]+\.(?:pdf|mid|midi|musicxml|xml|wav|mp3|flac|sf2)(?:$|[\s"'(),])/i;
 
 export interface HarmonyBenchmarkHashMetadata {
   sha256: string;
@@ -78,7 +87,9 @@ function finite(value: unknown, name: string): number {
 
 function text(value: unknown, name: string, max = 500): string {
   if (typeof value !== "string" || value.trim() === "" || value.length > max || /[\0\r\n]/.test(value)) throw new Error(`${name} must be a safe string`);
-  return value.trim();
+  const result = value.trim();
+  if (PATH_VALUE.test(result) || result.includes("\\")) throw new Error(`${name} must not contain a path`);
+  return result;
 }
 
 function id(value: unknown, name: string): string {
@@ -97,7 +108,7 @@ function safeUnknownKeys(value: unknown, context: string): void {
   if (Array.isArray(value)) return value.forEach((item) => safeUnknownKeys(item, context));
   if (!value || typeof value !== "object") return;
   for (const [key, nested] of Object.entries(value)) {
-    if (PATH_KEY.test(key) || (typeof nested === "string" && (/^(?:[A-Za-z]:[\\/]|\/{1,2}|file:)/.test(nested) || nested.includes("\\")))) {
+    if (PATH_KEY.test(key) || (typeof nested === "string" && (PATH_VALUE.test(nested) || nested.includes("\\")))) {
       throw new Error(`${context} contains path-like field`);
     }
     safeUnknownKeys(nested, context);
@@ -106,12 +117,15 @@ function safeUnknownKeys(value: unknown, context: string): void {
 
 function windows(value: unknown, context: string): HarmonyBenchmarkWindow[] {
   if (!Array.isArray(value)) throw new Error(`${context} windows are required`);
+  const seen = new Set<string>();
   const result = value.map((raw, index) => {
     const row = record(raw);
     const item = { id: id(row.id, `${context}[${index}].id`), startBeat: finite(row.startBeat, `${context}[${index}].startBeat`), endBeat: finite(row.endBeat, `${context}[${index}].endBeat`) };
     if (item.startBeat < 0 || item.endBeat <= item.startBeat) throw new Error(`${context} contains invalid window`);
+    if (seen.has(item.id)) throw new Error(`${context} contains duplicate window id: ${item.id}`);
+    seen.add(item.id);
     return item;
-  }).sort((a, b) => a.startBeat - b.startBeat || a.id.localeCompare(b.id));
+  }).sort((a, b) => a.startBeat - b.startBeat || compareCodeUnits(a.id, b.id));
   for (let index = 1; index < result.length; index += 1) if (result[index]!.startBeat < result[index - 1]!.endBeat) throw new Error(`${context} windows overlap`);
   return result;
 }
@@ -139,31 +153,58 @@ function normalizeScore(raw: unknown): HarmonyBenchmarkScoreInput {
     ...(pdf.producer !== undefined ? { producer: text(pdf.producer, `${scoreId}.sourcePdf.producer`) } : {}),
   };
   if (sourcePdf.bytes < 1 || sourcePdf.pages < 1 || !Number.isInteger(sourcePdf.bytes) || !Number.isInteger(sourcePdf.pages)) throw new Error(`${scoreId}.sourcePdf metadata invalid`);
+  const trustedWindows = windows(coverage.windows, `${scoreId}.trustedCoverage`);
+  if (trustedWindows.length === 0) throw new Error(`${scoreId}.trustedCoverage must contain at least one window`);
   const exclusionRows = exclusions.map((item, index) => ({ ...windows([item], `${scoreId}.excludedRegions[${index}]`)[0]!, reason: text(record(item).reason, `${scoreId}.excludedRegions[${index}].reason`) }));
   windows(exclusionRows, `${scoreId}.excludedRegions`);
+  const trustedIds = new Set(trustedWindows.map((window) => window.id));
+  for (const excluded of exclusionRows) {
+    if (trustedIds.has(excluded.id)) throw new Error(`${scoreId} contains duplicate window id across trusted and excluded regions`);
+    if (trustedWindows.some((trusted) => trusted.startBeat < excluded.endBeat && excluded.startBeat < trusted.endBeat)) {
+      throw new Error(`${scoreId} excluded regions overlap trusted coverage`);
+    }
+  }
   return {
     id: scoreId, title: text(row.title, `${scoreId}.title`), artist: text(row.artist, `${scoreId}.artist`), sourcePdf,
-    reference: { selectedOmr: { backendId: text(backend.backendId, `${scoreId}.selectedOmr.backendId`), version: text(backend.version, `${scoreId}.selectedOmr.version`) }, trustedCoverage: { maskSha256: hash(coverage.maskSha256, `${scoreId}.maskSha256`), referenceSha256: hash(coverage.referenceSha256, `${scoreId}.referenceSha256`), windows: windows(coverage.windows, `${scoreId}.trustedCoverage`) }, excludedRegions: exclusionRows.sort((a, b) => a.startBeat - b.startBeat || a.id.localeCompare(b.id)) },
+    reference: { selectedOmr: {
+      backendId: text(backend.backendId, `${scoreId}.selectedOmr.backendId`),
+      version: text(backend.version, `${scoreId}.selectedOmr.version`),
+      ...(backend.selectedAt !== undefined ? { selectedAt: text(backend.selectedAt, `${scoreId}.selectedOmr.selectedAt`) } : {}),
+    }, trustedCoverage: { maskSha256: hash(coverage.maskSha256, `${scoreId}.maskSha256`), referenceSha256: hash(coverage.referenceSha256, `${scoreId}.referenceSha256`), windows: trustedWindows }, excludedRegions: exclusionRows.sort((a, b) => a.startBeat - b.startBeat || compareCodeUnits(a.id, b.id)) },
     candidate: evidence(row.candidate, `${scoreId}.candidate`), recording: evidence(row.recording, `${scoreId}.recording`),
   };
 }
 
+function compareCodeUnits(left: string, right: string): number {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
 function stable(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(stable);
-  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b)).map(([key, nested]) => [key, stable(nested)]));
+  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value as Record<string, unknown>).sort(([a], [b]) => compareCodeUnits(a, b)).map(([key, nested]) => [key, stable(nested)]));
   return value;
 }
 
-export function normalizeHarmonyBenchmarkManifest(input: HarmonyBenchmarkManifestInput): HarmonyBenchmarkManifest {
-  safeUnknownKeys(input, "manifest");
-  if (input?.schemaVersion !== 1 || !Array.isArray(input.scores) || input.scores.length !== 6) throw new Error("manifest must contain exactly six scores");
-  const scores = input.scores.map(normalizeScore).sort((a, b) => a.id.localeCompare(b.id));
-  if (new Set(scores.map((score) => score.id)).size !== 6) throw new Error("score IDs must be unique");
+function normalizeHarmonyBenchmarkManifestInternal(input: unknown, rejectPathLikeFields: boolean): HarmonyBenchmarkManifest {
+  if (rejectPathLikeFields) safeUnknownKeys(input, "manifest");
+  const root = record(input);
+  if (root.schemaVersion !== HARMONY_BENCHMARK_MANIFEST_SCHEMA_VERSION || !Array.isArray(root.scores) || root.scores.length !== HARMONY_BENCHMARK_SCORE_IDS.length) {
+    throw new Error("manifest must contain exactly six scores");
+  }
+  const scores = root.scores.map(normalizeScore).sort((a, b) => compareCodeUnits(a.id, b.id));
+  const expectedIds = new Set<string>(HARMONY_BENCHMARK_SCORE_IDS);
+  if (new Set(scores.map((score) => score.id)).size !== HARMONY_BENCHMARK_SCORE_IDS.length || scores.some((score) => !expectedIds.has(score.id))) {
+    throw new Error("manifest must contain exactly the canonical six score identities");
+  }
   const diagnostics = scores.flatMap((score) => [ ...(score.candidate.status === "unavailable" ? [`candidate evidence unavailable for ${score.id}`] : []), ...(score.recording.status === "unavailable" ? [`recording evidence unavailable for ${score.id}`] : []) ]);
   const manifest = { schemaVersion: 1 as const, kind: "harmony-benchmark-manifest" as const, scores, eligible: diagnostics.length === 0, status: diagnostics.length === 0 ? "available" as const : "unavailable" as const, diagnostics };
   return JSON.parse(JSON.stringify(stable(manifest))) as HarmonyBenchmarkManifest;
 }
 
+export function normalizeHarmonyBenchmarkManifest(input: HarmonyBenchmarkManifestInput): HarmonyBenchmarkManifest {
+  return normalizeHarmonyBenchmarkManifestInternal(input, true);
+}
+
 export function canonicalHarmonyBenchmarkManifestJson(manifest: HarmonyBenchmarkManifest): string {
-  return JSON.stringify(stable(manifest), null, 2) + "\n";
+  return JSON.stringify(stable(normalizeHarmonyBenchmarkManifestInternal(manifest, false)), null, 2) + "\n";
 }
