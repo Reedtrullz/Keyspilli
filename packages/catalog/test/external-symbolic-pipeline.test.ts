@@ -66,6 +66,34 @@ describe("external symbolic generation boundary", () => {
     expect(JSON.stringify(frozen)).not.toMatch(/BENCHMARK_REFERENCE/);
   });
 
+  it("rejects candidates listed in a protected benchmark manifest before freezing", () => {
+    const protectedHash = "b".repeat(64);
+    const protectedPath = "/tmp/corpus-a";
+    const protectedLineage = "fixture-set:opaque-1";
+    const manifest = {
+      benchmarkReferenceManifest: {
+        sha256: [protectedHash],
+        paths: [protectedPath],
+        lineage: [protectedLineage],
+      },
+    };
+    const protectedCandidates = [
+      record({ id: "protected-hash", content: { sha256: protectedHash, byteLength: 8, mediaType: "audio/midi" }, candidate: { ...record().candidate!, content: { sha256: protectedHash } } }),
+      record({ id: "protected-path", candidate: { ...record().candidate!, provenance: { sourceRef: "provider:opaque", acquiredVia: "local-import", physicalPath: `${protectedPath}/song.mid` } } }),
+      record({ id: "protected-lineage", candidate: { ...record().candidate!, lineage: { parent: protectedLineage } } }),
+    ];
+
+    const frozen = freezeGenerationCandidateSet(protectedCandidates, manifest);
+
+    expect(frozen.selected).toHaveLength(0);
+    expect(frozen.rejected.map((entry) => entry.recordId)).toEqual([
+      "protected-hash",
+      "protected-lineage",
+      "protected-path",
+    ]);
+    expect(frozen.rejected.flatMap((entry) => entry.reasons).join(" ")).toMatch(/protected benchmark reference manifest/i);
+  });
+
   it("is order invariant and freezes path-safe metadata with sections", () => {
     const first = record({ id: "first", candidate: { ...record().candidate!, id: "first", provenance: { sourceRef: "synthetic:first", acquiredVia: "local-bytes", physicalPath: "/Users/reidar/private/song.mid" }, notes: [{ midi: 1 }] } });
     const second = record({ id: "second", candidate: { ...record().candidate!, id: "second", provenance: { sourceRef: "synthetic:second", acquiredVia: "local-bytes" }, content: { sha256: "b".repeat(64) } } });
@@ -110,6 +138,83 @@ describe("external symbolic generation boundary", () => {
     expect(result.notes?.some((note) => note.midi === 60)).toBe(true);
   });
 
+  it("honors an explicit per-window candidate lock and reports only selected regions", () => {
+    const primary = record({
+      id: "primary-source",
+      candidate: { ...record().candidate!, id: "primary-source" },
+      score: score(60),
+    });
+    const alternate = record({
+      id: "alternate-source",
+      candidate: { ...record().candidate!, id: "alternate-source", content: { sha256: "b".repeat(64) } },
+      content: { sha256: "b".repeat(64), byteLength: 8, mediaType: "audio/midi" },
+      score: score(84),
+    });
+    const result = buildExternalSymbolicArrangement({
+      candidateSet: freezeGenerationCandidateSet([primary, alternate]),
+      mode: "direct-piano",
+      primaryRecordId: "primary-source",
+      windows: [{ id: "locked", startBeat: 0, endBeat: 2, candidateId: "alternate-source" }],
+      fallbackEnabled: false,
+    });
+
+    expect(result.status).toBe("symbolic");
+    expect(result.selectedRecordIds).toEqual(["alternate-source"]);
+    expect(result.canonical?.notes.some((note) => note.midi === 84)).toBe(true);
+    expect(result.canonical?.notes.some((note) => note.midi === 60)).toBe(false);
+  });
+
+  it("accepts an explicit per-window candidate allow-list while preserving score selection without one", () => {
+    const primary = record({
+      id: "primary-source",
+      candidate: { ...record().candidate!, id: "primary-source" },
+      score: score(60),
+    });
+    const alternate = record({
+      id: "alternate-source",
+      candidate: { ...record().candidate!, id: "alternate-source", content: { sha256: "b".repeat(64) } },
+      content: { sha256: "b".repeat(64), byteLength: 8, mediaType: "audio/midi" },
+      score: score(84),
+    });
+    const frozen = freezeGenerationCandidateSet([primary, alternate]);
+    const locked = buildExternalSymbolicArrangement({
+      candidateSet: frozen,
+      mode: "direct-piano",
+      primaryRecordId: "primary-source",
+      windows: [{ id: "allow-listed", startBeat: 0, endBeat: 2, candidateIds: ["alternate-source"] }],
+      fallbackEnabled: false,
+    });
+    const unlocked = buildExternalSymbolicArrangement({
+      candidateSet: frozen,
+      mode: "direct-piano",
+      primaryRecordId: "primary-source",
+      windows: [{ id: "unlocked", startBeat: 0, endBeat: 2 }],
+      fallbackEnabled: false,
+    });
+
+    expect(locked.selectedRecordIds).toEqual(["alternate-source"]);
+    expect(locked.canonical?.notes.some((note) => note.midi === 84)).toBe(true);
+    // Without a lock the section remains score-selected.  These fixtures are
+    // intentionally tied on evidence, so the selector's deterministic ID
+    // tie-break chooses the alternate rather than treating primaryRecordId as
+    // an implicit lock.
+    expect(unlocked.selectedRecordIds).toEqual(["alternate-source"]);
+    expect(unlocked.canonical?.notes.some((note) => note.midi === 84)).toBe(true);
+    expect(unlocked.canonical?.notes.some((note) => note.midi === 60)).toBe(false);
+  });
+
+  it("fails closed when a window lock references an unfrozen candidate", () => {
+    const result = buildExternalSymbolicArrangement({
+      candidateSet: freezeGenerationCandidateSet([record()]),
+      mode: "direct-piano",
+      windows: [{ id: "missing", startBeat: 0, endBeat: 2, candidateId: "not-frozen" }],
+      fallbackEnabled: false,
+    });
+
+    expect(result.status).toBe("unavailable");
+    expect(result.fallbackReason).toMatch(/unfrozen|candidate/i);
+  });
+
   it("requires an immutable, digest-consistent frozen set at realization", () => {
     const frozen = freezeGenerationCandidateSet([record()]);
     const bypass = buildExternalSymbolicArrangement({
@@ -121,6 +226,34 @@ describe("external symbolic generation boundary", () => {
     const mutable = { ...frozen, selected: [...frozen.selected] };
     const forged = buildExternalSymbolicArrangement({ candidateSet: mutable, windows: [{ id: "intro", startBeat: 0, endBeat: 2, candidateId: "record-a" }], fallbackEnabled: false });
     expect(forged.status).toBe("unavailable");
+  });
+
+  it("binds realization to the frozen normalized score events", () => {
+    const frozen = freezeGenerationCandidateSet([record()]);
+    const original = frozen.selected[0]!;
+    const forgedScore = JSON.parse(JSON.stringify(original.score)) as typeof original.score;
+    forgedScore.parts[0]!.measures[0]!.events![0]!.pitch += 1;
+    const deepFreeze = <T>(value: T): T => {
+      if (value && typeof value === "object" && !Object.isFrozen(value)) {
+        Object.freeze(value);
+        for (const key of Object.getOwnPropertyNames(value)) deepFreeze((value as Record<string, unknown>)[key]);
+      }
+      return value;
+    };
+    const forgedEntry = { ...original };
+    Object.defineProperty(forgedEntry, "score", {
+      value: deepFreeze(forgedScore),
+      enumerable: false,
+      writable: false,
+      configurable: false,
+    });
+    const forgedSet = deepFreeze({ ...frozen, selected: [deepFreeze(forgedEntry)] });
+    const result = buildExternalSymbolicArrangement({
+      candidateSet: forgedSet,
+      windows: [{ id: "intro", startBeat: 0, endBeat: 2, candidateId: "record-a" }],
+      fallbackEnabled: false,
+    });
+    expect(result.status).toBe("unavailable");
   });
 
   it("removes compound raw note, event, and byte payload keys from frozen metadata", () => {
@@ -164,6 +297,36 @@ describe("external symbolic generation boundary", () => {
     expect(frozen.selected[0]?.score.metadata).toEqual({});
     expect(JSON.stringify(frozen)).not.toContain('"score"');
     expect(Object.isFrozen(frozen.selected[0]?.score)).toBe(true);
+  });
+
+  it("redacts arbitrary raw score arrays from frozen metadata and its digest", () => {
+    const clean = record({
+      candidate: { ...record().candidate!, metadata: { label: "typed-candidate" } },
+      score: { ...score(), metadata: { label: "typed-score" } },
+    });
+    const raw = record({
+      candidate: {
+        ...record().candidate!,
+        metadata: {
+          label: "typed-candidate",
+          payload: { pitches: [60, 64], starts: [0, 1], durations: [1, 2], midiMeta: [{ channel: 1 }] },
+        },
+      },
+      score: {
+        ...score(),
+        metadata: {
+          label: "typed-score",
+          payload: { pitches: [60, 64], starts: [0, 1], durations: [1, 2], midiMeta: [{ channel: 1 }] },
+        },
+      },
+    });
+    const cleanFrozen = freezeGenerationCandidateSet([clean]);
+    const rawFrozen = freezeGenerationCandidateSet([raw]);
+
+    expect(rawFrozen.digest).toBe(cleanFrozen.digest);
+    expect(rawFrozen.selected[0]?.candidate.metadata).toEqual({ label: "typed-candidate" });
+    expect(rawFrozen.selected[0]?.score.metadata).toEqual({ label: "typed-score" });
+    expect(JSON.stringify(rawFrozen)).not.toMatch(/pitches|starts|durations|midiMeta/);
   });
 
   it("returns explicit fallback or unavailable without usable evidence", () => {
@@ -333,7 +496,7 @@ describe("external symbolic realization routes", () => {
       roleSelections: [{ role: "melody", candidateId: "chorus-source", sectionIds: ["chorus"] }],
       windows: [{ id: "chorus", startBeat: 0, endBeat: 4, candidateId: "chorus-source" }],
     });
-    expect(result.selectedRecordIds).toEqual(["chorus-source", "melody-source"]);
+    expect(result.selectedRecordIds).toEqual(["chorus-source"]);
     expect(result.provenance.some((entry) => entry.recordId === "chorus-source" && entry.sectionId === "chorus")).toBe(true);
     expect(result.canonical?.notes.some((note) => note.midi === 84)).toBe(true);
   });
@@ -370,6 +533,87 @@ describe("external symbolic realization routes", () => {
     expect(result.canonical?.notes.some((note) => note.identitySource === "vocals")).toBe(true);
     expect(result.canonical?.notes.some((note) => note.midi === 36 || note.midi === 38)).toBe(false);
     expect(result.variants?.easy).toBeDefined();
+  });
+
+  it("excludes timing-only parts from direct-piano notes", () => {
+    const direct = record({
+      id: "direct-with-drums",
+      evidenceClass: "PIANO_COVER_SYMBOLIC",
+      candidate: { ...record().candidate!, id: "direct-with-drums", evidenceClass: "PIANO_COVER_SYMBOLIC" },
+      score: {
+        title: "Direct with timing lane",
+        tempoBpm: 120,
+        parts: [
+          { id: "piano", name: "Piano", measures: [{ id: "p1", startBeat: 0, durationBeats: 4, events: [{ onset: 0, duration: 1, pitch: 72, role: "melody" }] }] },
+          { id: "drums", name: "Drums", role: "rhythm", measures: [{ id: "d1", startBeat: 0, durationBeats: 4, events: [{ onset: 0, duration: 1, pitch: 36 }, { onset: 1, duration: 1, pitch: 38 }] }] },
+          { id: "timing", name: "Auxiliary", role: "rhythm", percussion: true, measures: [{ id: "t1", startBeat: 0, durationBeats: 4, events: [{ onset: 2, duration: 1, pitch: 42 }] }] },
+        ],
+      },
+    });
+    const result = buildExternalSymbolicArrangement({
+      candidateSet: freezeGenerationCandidateSet([direct]),
+      mode: "direct-piano",
+      windows: [{ id: "full", startBeat: 0, endBeat: 4, candidateId: "direct-with-drums" }],
+    });
+
+    expect(result.status).toBe("symbolic");
+    expect(result.canonical?.notes.some((note) => note.midi === 36 || note.midi === 38 || note.midi === 42)).toBe(false);
+    expect(result.canonical?.notes.some((note) => note.midi === 72)).toBe(true);
+  });
+
+  it("clips semantic-band output to explicit requested windows", () => {
+    const band = record({
+      id: "clipped-band",
+      evidenceClass: "VERIFIED_STRUCTURED_BAND_SYMBOLIC",
+      candidate: { ...record().candidate!, id: "clipped-band", evidenceClass: "VERIFIED_STRUCTURED_BAND_SYMBOLIC", roles: [
+        { role: "melody", confidence: 0.9 }, { role: "bass-root", confidence: 0.85 }, { role: "harmony", confidence: 0.82 },
+      ] },
+      score: {
+        title: "Clipped band",
+        tempoBpm: 120,
+        parts: [
+          { id: "vocals", name: "Lead vocals", role: "melody", measures: [{ id: "v1", startBeat: 0, durationBeats: 6, events: [{ onset: 0, duration: 1, pitch: 72 }, { onset: 2, duration: 1, pitch: 74 }, { onset: 4, duration: 1, pitch: 76 }] }] },
+          { id: "bass", name: "Bass", role: "harmony", measures: [{ id: "b1", startBeat: 0, durationBeats: 6, events: [{ onset: 0, duration: 6, pitch: 40 }] }] },
+          { id: "guitar", name: "Rhythm Guitar", role: "harmony", measures: [{ id: "g1", startBeat: 0, durationBeats: 6, events: [{ onset: 0, duration: 6, pitch: 52 }] }] },
+        ],
+      },
+    });
+    const result = buildExternalSymbolicArrangement({
+      candidateSet: freezeGenerationCandidateSet([band]),
+      mode: "semantic-band",
+      windows: [{ id: "middle", startBeat: 1, endBeat: 5, candidateId: "clipped-band" }],
+    });
+
+    expect(result.status).toBe("symbolic");
+    for (const notes of [result.semantic?.melody, result.semantic?.bass, result.semantic?.rhythm, result.semantic?.timingOnly]) {
+      expect(notes?.every((note) => note.start >= 1 && note.start + note.dur <= 5)).toBe(true);
+    }
+  });
+
+  it("applies candidate allow-lists to semantic-band sources as well as direct piano", () => {
+    const makeBand = (id: string, pitch: number, hash: string) => record({
+      id,
+      evidenceClass: "VERIFIED_STRUCTURED_BAND_SYMBOLIC",
+      content: { sha256: hash, byteLength: 8, mediaType: "audio/midi" },
+      candidate: { ...record().candidate!, id, content: { sha256: hash, byteLength: 8, mediaType: "audio/midi" }, evidenceClass: "VERIFIED_STRUCTURED_BAND_SYMBOLIC", roles: [{ role: "melody", confidence: 0.9 }] },
+      score: {
+        title: id,
+        tempoBpm: 120,
+        parts: [{ id: "vocals", name: "Lead vocals", role: "melody", measures: [{ id: "m1", startBeat: 0, durationBeats: 4, events: [{ onset: 0, duration: 1, pitch }] }] }],
+      },
+    });
+    const primary = makeBand("band-a", 60, "a".repeat(64));
+    const alternate = makeBand("band-b", 84, "b".repeat(64));
+    const result = buildExternalSymbolicArrangement({
+      candidateSet: freezeGenerationCandidateSet([primary, alternate]),
+      mode: "semantic-band",
+      windows: [{ id: "intro", startBeat: 0, endBeat: 4, candidateIds: ["band-a"] }],
+    });
+
+    expect(result.status).toBe("symbolic");
+    expect(result.selectedRecordIds).toEqual(["band-a"]);
+    expect(result.semantic?.melody.some((note) => note.midi === 60)).toBe(true);
+    expect(result.semantic?.melody.some((note) => note.midi === 84)).toBe(false);
   });
 
   it("returns an explicit audio AMT fallback route when symbolic evidence is absent", () => {

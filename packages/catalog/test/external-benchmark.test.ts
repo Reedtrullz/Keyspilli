@@ -72,6 +72,50 @@ describe("external symbolic benchmark orchestration", () => {
     expect(conflict.songs[0]?.failures).toContain("HUMAN_REVIEW_CONFLICT");
   });
 
+  it("does not count agreeing raters as human-ready without the composite evidence gate", async () => {
+    const report = await buildExternalBenchmarkReport({ songs: [song(SEVEN_SONG_BENCHMARK_IDS[0]!)] });
+    const row = report.songs[0]!;
+
+    expect(row.human).toMatchObject({ status: "ready", raters: 2, agreeing: true, decision: "accept" });
+    expect(row.humanReady).toBe(false);
+    expect(row.readiness.status).toBe("blocked");
+    expect(row.readiness.requirements).toMatchObject({
+      humanAccepted: true,
+      symbolicOutput: true,
+      structuralPass: true,
+      referenceAdequate: false,
+    });
+    expect(row.readiness.failures).toContain("REFERENCE_COVERAGE_INSUFFICIENT");
+    expect(report.summary.humanReady).toBe(0);
+    expect(report.summary.blocked).toBe(report.songs.filter((song) => song.readiness.status === "blocked").length);
+    expect(report.summary.blocked).toBe(7);
+  });
+
+  it("requires symbolic output and a passing structural gate before human readiness", async () => {
+    const report = await buildExternalBenchmarkReport({
+      songs: [song(SEVEN_SONG_BENCHMARK_IDS[0]!, { candidateInputs: [] })],
+    });
+    const row = report.songs[0]!;
+
+    expect(row.humanReady).toBe(false);
+    expect(row.readiness.requirements).toMatchObject({ symbolicOutput: false, structuralPass: false, humanAccepted: true });
+    expect(row.readiness.failures).toEqual(expect.arrayContaining(["OUTPUT_UNAVAILABLE", "STRUCTURAL_GATE_FAILED"]));
+  });
+
+  it("requires an accepting human consensus for composite readiness", async () => {
+    const report = await buildExternalBenchmarkReport({
+      songs: [song(SEVEN_SONG_BENCHMARK_IDS[0]!, {
+        humanRaters: [{ raterId: "r1", decision: "reject" }, { raterId: "r2", decision: "reject" }],
+      })],
+    });
+    const row = report.songs[0]!;
+
+    expect(row.human).toMatchObject({ status: "ready", raters: 2, agreeing: true, decision: "reject" });
+    expect(row.humanReady).toBe(false);
+    expect(row.readiness.requirements.humanAccepted).toBe(false);
+    expect(row.readiness.failures).toContain("HUMAN_REVIEW_REJECTED");
+  });
+
   it("has deterministic path-safe reports under reordered input", async () => {
     const first = await buildExternalBenchmarkReport({ songs: [song(SEVEN_SONG_BENCHMARK_IDS[1]), song(SEVEN_SONG_BENCHMARK_IDS[0])] });
     const second = await buildExternalBenchmarkReport({ songs: [song(SEVEN_SONG_BENCHMARK_IDS[0]), song(SEVEN_SONG_BENCHMARK_IDS[1])] });
@@ -123,6 +167,37 @@ describe("external symbolic benchmark orchestration", () => {
     expect(report.songs[0]?.failures).toContain("INVALID_INPUT");
   });
 
+  it("does not let a route descriptor forge symbolic output when generation is unavailable", async () => {
+    const forgedNotes = [{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" as const }];
+    const report = await buildExternalBenchmarkReport({
+      songs: [song(SEVEN_SONG_BENCHMARK_IDS[0]!, {
+        candidateInputs: [],
+        routes: [{ id: "EXTERNAL_SYMBOLIC_FIRST", notes: forgedNotes }],
+      })],
+    });
+    const route = report.songs[0]?.routes.find(({ id }) => id === "EXTERNAL_SYMBOLIC_FIRST");
+
+    expect(route).toMatchObject({
+      status: "unavailable",
+      descriptor: { supplied: true },
+      output: { availability: "unavailable", eventCount: 0, sha256: null },
+    });
+    expect(route?.failures).toContain("OUTPUT_UNAVAILABLE");
+  });
+
+  it("canonicalizes route note fields before hashing", async () => {
+    const firstNotes = [{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" as const, identitySource: "vocals" as const, lyrics: "la", ignored: "one" }];
+    const secondNotes = [{ ignored: "two", lyrics: "la", identitySource: "vocals" as const, hand: "R" as const, vel: 90, dur: 1, start: 0, midi: 60 }];
+    const first = await buildExternalBenchmarkReport({
+      songs: [song(SEVEN_SONG_BENCHMARK_IDS[0]!, { routes: [{ id: "AUDIO_FALLBACK_CONTROL", notes: firstNotes as never }] })],
+    });
+    const second = await buildExternalBenchmarkReport({
+      songs: [song(SEVEN_SONG_BENCHMARK_IDS[0]!, { routes: [{ id: "AUDIO_FALLBACK_CONTROL", notes: secondNotes as never }] })],
+    });
+
+    expect(first.songs[0]?.routes[0]?.output.sha256).toBe(second.songs[0]?.routes[0]?.output.sha256);
+  });
+
   it("turns malformed route descriptor containers into an invalid-input report", async () => {
     const report = await buildExternalBenchmarkReport({
       songs: [song(SEVEN_SONG_BENCHMARK_IDS[0]!, { routes: { malformed: true } as never })],
@@ -145,6 +220,23 @@ describe("external symbolic benchmark orchestration", () => {
     ] });
     const report = await buildExternalBenchmarkReport({ songs: [song(SEVEN_SONG_BENCHMARK_IDS[0]!, { candidateInputs: [{ id: "candidate", bytes: mixed, format: "midi" }], referenceInputs: [{ id: "reference", bytes: mixed, format: "midi" }] })] });
     expect((report.songs[0]?.reference.alignment as any).roleFilteredWindows).toEqual([{ id: "main", role: "melody", candidatePitchedCount: 1, referencePitchedCount: 1 }]);
+  });
+
+  it("uses all pitched events for role alignment when parsed MIDI has no hand metadata", async () => {
+    const generic = writeMidi([
+      { midi: 60, start: 0, dur: 1, vel: 90 },
+      { midi: 62, start: 1, dur: 1, vel: 90 },
+    ], { tempoBpm: 120, title: "generic reference" });
+    const report = await buildExternalBenchmarkReport({
+      songs: [song(SEVEN_SONG_BENCHMARK_IDS[0]!, {
+        candidateInputs: [{ id: "candidate", bytes: generic, format: "midi" }],
+        referenceInputs: [{ id: "reference", bytes: generic, format: "midi" }],
+      })],
+    });
+
+    expect((report.songs[0]?.reference.alignment as any).roleFilteredWindows).toEqual([
+      { id: "main", role: "melody", candidatePitchedCount: 2, referencePitchedCount: 2 },
+    ]);
   });
 
   it("reports independent external/control routes with role metrics and explicit coverage", async () => {

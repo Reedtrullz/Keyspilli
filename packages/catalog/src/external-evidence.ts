@@ -127,7 +127,11 @@ function normalize(value: unknown): unknown {
 }
 
 function canonicalMetadata(candidate: ExternalEvidenceCandidate): Record<string, unknown> {
+  // Exclude both row-oriented payloads and columnar symbolic adapter output.
+  // The latter must be exact so typed fields such as durationBeats remain
+  // available to callers while arbitrary payload arrays do not enter a digest.
   const excluded = /(?:path|file|notes?|events?|artifact|locator)/i;
+  const rawScoreArrayKey = /^(?:pitches|starts|durations|midiMeta)$/i;
   const pathLike = /^(?:file:\/\/(?:(?:[A-Za-z]:[\\/])|(?:[\\/])|(?:~[\\/]))|[A-Za-z]:[\\/]|[\\/]|~[\\/])|(?:[\\/]\S+\.(?:mid|midi|musicxml|mxl|wav|mp3|json))(?:$|[?#])/i;
   const pathLikeSubstring = /(?:file:\/\/(?:(?:[A-Za-z]:[\\/])|(?:[\\/])|(?:~[\\/]))|[A-Za-z]:[\\/]|~[\\/]|\\\\|\/)[^,;)}\]]*?\.(?:musicxml|midi|mid|mxl|wav|mp3|json)(?:[?#][^\s,;)}\]]*)?/gi;
   const pathPrefixSubstring = /(?:file:\/\/(?:(?:[A-Za-z]:[\\/])|(?:[\\/])|(?:~[\\/]))[^\s,;)}\]]+|(?<![A-Za-z0-9])(?:[A-Za-z]:[\\/]|\\\\|~[\\/])[^\s,;)}\]]+|\/(?:Users|private|tmp|var|home|Volumes)(?:[\\/][^\s,;)}\]]+)+)/gi;
@@ -152,7 +156,11 @@ function canonicalMetadata(candidate: ExternalEvidenceCandidate): Record<string,
       return redacted.replace(/__LOGICAL_LABEL_(\d+)__/g, (_match, index: string) => logicalLabels[Number(index)] ?? "[redacted-path]");
     }
     if (!isRecord(value)) return finite(value);
-    return Object.fromEntries(Object.keys(value).sort().filter((childKey) => !excluded.test(childKey)).map((childKey) => [childKey, childKey.toLowerCase() === "sha256" && typeof value[childKey] === "string" ? value[childKey].toLowerCase() : strip(value[childKey], childKey)]));
+    const entries = Object.keys(value).sort()
+      .filter((childKey) => !excluded.test(childKey) && !rawScoreArrayKey.test(childKey))
+      .map((childKey) => [childKey, childKey.toLowerCase() === "sha256" && typeof value[childKey] === "string" ? value[childKey].toLowerCase() : strip(value[childKey], childKey)] as const)
+      .filter(([, child]) => child !== undefined);
+    return entries.length || Object.keys(value).length === 0 ? Object.fromEntries(entries) : undefined;
   };
   return strip(candidate) as Record<string, unknown>;
 }

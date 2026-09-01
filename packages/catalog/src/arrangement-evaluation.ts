@@ -349,6 +349,12 @@ function finiteNote(note: Note): boolean {
     && Number.isInteger(midi) && Number.isFinite(start) && Number.isFinite(dur)
     && Number.isFinite(vel) && vel >= 0 && vel <= 127
     && start >= 0 && dur > 0 && midi >= 0 && midi <= 127
+    // Keep derived end times in the exact, bounded range used by the
+    // evaluator.  A pair of individually finite values can still overflow
+    // when added (for example MAX_VALUE + MAX_VALUE), which otherwise leaks
+    // Infinity into duration/coverage metrics and can make a malformed
+    // runtime payload appear structurally valid.
+    && Number.isFinite(start + dur) && start + dur <= Number.MAX_SAFE_INTEGER
     && validHand && validSource;
 }
 
@@ -1698,5 +1704,41 @@ export function evaluateArrangementNotes(
 }
 
 export function compareArrangementReference(candidate: Note[], reference: Note[], window: EvaluationWindow): ReferenceWindowMetrics {
+  const empty = (rawWindow: unknown): ReferenceWindowMetrics => {
+    const record = isRecord(rawWindow) ? rawWindow : undefined;
+    const safeBounds = (value: unknown): [number, number] => validWindowBounds(value)
+      ? [value[0], value[1]]
+      : [0, 0];
+    return {
+      candidateBounds: safeBounds(record?.candidate),
+      referenceBounds: safeBounds(record?.reference),
+      candidateOnsetCount: 0,
+      referenceOnsetCount: 0,
+      candidateNoteCount: 0,
+      referenceNoteCount: 0,
+      matchedOnsets: 0,
+      exactPitchMatches: 0,
+      pitchClassMatches: 0,
+      onsetErrorBeats: { median: null, p90: null },
+      exactPitch: { precision: null, recall: null, f1: null },
+      pitchClass: { precision: null, recall: null, f1: null },
+      contour: { p95Leap: null, directionAgreement: null },
+      ioi: { candidateMedian: null, referenceMedian: null },
+      density: { candidate: 0, reference: 0 },
+    };
+  };
+
+  // This convenience export is also called by local diagnostics with JSON
+  // values that bypass TypeScript.  Fail closed on malformed containers,
+  // notes, or bounds instead of allowing `.filter()`/arithmetic exceptions
+  // (or Infinity) to escape to a CLI caller.
+  if (!Array.isArray(candidate) || !Array.isArray(reference)
+    || candidate.some((note) => !finiteNote(note))
+    || reference.some((note) => !finiteNote(note))
+    || !isRecord(window)
+    || !validWindowBounds(window.candidate)
+    || !validWindowBounds(window.reference)) {
+    return empty(window);
+  }
   return compareReferenceWindow(candidate, reference, window);
 }

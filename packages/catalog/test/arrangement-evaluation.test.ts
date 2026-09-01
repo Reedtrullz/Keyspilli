@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canonicalEvaluationJson, evaluateArrangement, type ArrangementEvaluationInput, type EvaluationWindow } from "../src/arrangement-evaluation.js";
+import { canonicalEvaluationJson, compareArrangementReference, evaluateArrangement, type ArrangementEvaluationInput, type EvaluationWindow } from "../src/arrangement-evaluation.js";
 import type { Note, ParsedMidi, Variant } from "@keyspilli/midi";
 
 const parsed = (notes: Note[]): ParsedMidi => ({
@@ -292,6 +292,39 @@ describe("arrangement evaluation", () => {
     });
     expect(report.gate.status).toBe("fail");
     expect(report.gate.failures).toContain("3 non-finite or invalid MIDI notes");
+  });
+
+  it("fails closed when finite note fields would overflow their derived end time", () => {
+    const report = evaluateArrangement({
+      fixture: { id: "overflowing-note" },
+      candidate: {
+        selector: "overflowing.mid",
+        notes: [{ midi: 60, start: Number.MAX_VALUE, dur: Number.MAX_VALUE, vel: 90, hand: "R" }],
+      },
+    });
+    expect(report.gate.status).toBe("fail");
+    expect(report.gate.failures).toContain("candidate: 1 non-finite or invalid MIDI notes");
+    expect(report.candidate.parser.durationBeats).toBe(0);
+    expect(report.metrics.global.coverage).toEqual({ firstBeat: null, lastBeat: null, activeBeats: 0, ratio: 0 });
+  });
+
+  it("returns an empty comparison instead of throwing for malformed runtime reference inputs", () => {
+    const malformed = compareArrangementReference(
+      {} as unknown as Note[],
+      [] as unknown as Note[],
+      { id: "intro", candidate: [0, 4], reference: [0, 4] },
+    );
+    expect(malformed.matchedOnsets).toBe(0);
+    expect(malformed.exactPitch.f1).toBeNull();
+
+    const missingBounds = compareArrangementReference(
+      [],
+      [],
+      { id: "intro", candidate: [0, 4] } as unknown as EvaluationWindow,
+    );
+    expect(missingBounds.matchedOnsets).toBe(0);
+    expect(missingBounds.candidateBounds).toEqual([0, 4]);
+    expect(missingBounds.referenceBounds).toEqual([0, 0]);
   });
 
   it("uses the explicit expected duration rather than the candidate's actual duration", () => {

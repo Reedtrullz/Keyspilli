@@ -81,6 +81,20 @@ describe("external evidence firewall", () => {
     expect(evidenceCandidateSetDigest([first, second])).toBe(evidenceCandidateSetDigest([second, first]));
   });
 
+  it("omits arbitrary raw score arrays while preserving typed metadata", () => {
+    const typed = candidate({ metadata: { label: "typed-candidate" } });
+    const raw = candidate({ metadata: {
+      label: "typed-candidate",
+      payload: { pitches: [60, 64], starts: [0, 1], durations: [1, 2], midiMeta: [{ channel: 1 }] },
+    } });
+    const [canonical] = canonicalEvidenceCandidateSet([raw]);
+
+    expect(canonical).toMatchObject({ metadata: { label: "typed-candidate" } });
+    expect(canonical?.metadata).not.toHaveProperty("payload");
+    expect(JSON.stringify(canonical)).not.toMatch(/pitches|starts|durations|midiMeta/);
+    expect(evidenceCandidateSetDigest([raw])).toBe(evidenceCandidateSetDigest([typed]));
+  });
+
   it("normalizes uppercase SHA-256 and keeps its digest equivalent", () => {
     const upper = candidate({ content: { sha256: "A".repeat(64), byteLength: 12, mediaType: "audio/midi" } });
     expect(assertGenerationEvidence(upper).content.sha256).toBe("a".repeat(64));

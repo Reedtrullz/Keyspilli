@@ -68,6 +68,17 @@ export interface PianoRegionWindow {
   endBeat: number;
   id?: string;
   sectionId?: string;
+  /**
+   * Optional source lock for this window.  When present, the selector only
+   * considers the candidate whose id (or declared alias) matches this value.
+   * The field is intentionally additive so older callers without a lock keep
+   * the normal score-based selection behaviour.
+   */
+  candidateId?: string;
+  /** Optional candidate allow-list for this window. */
+  candidateIds?: readonly string[];
+  /** More explicit alias accepted by adapters that call this an allow-list. */
+  allowedCandidateIds?: readonly string[];
   /** Optional target notes/chroma used to assess harmonic agreement. */
   referenceNotes?: readonly Note[];
   targetNotes?: readonly Note[];
@@ -185,6 +196,8 @@ export interface PianoRegionSelectionOptions {
   initialCandidateId?: string;
   previousCandidateId?: string;
   fallbackCandidateId?: string;
+  /** Opt out only for legacy callers that used candidateId as inert metadata. */
+  respectWindowCandidateId?: boolean;
   /** Optional global chroma target for windows that do not carry one. */
   referenceChroma?: readonly number[];
   targetChroma?: readonly number[];
@@ -452,6 +465,48 @@ function normalizeCandidates(candidates: readonly PianoRegionCandidate[], role: 
   });
 }
 
+function candidateAliases(candidate: NormalizedCandidate): string[] {
+  return [candidate.id, candidate.candidate.id, candidate.candidate.candidateId, candidate.candidate.name]
+    .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+    .map((value) => value.trim());
+}
+
+function windowCandidateConstraint(window: PianoRegionWindow): {
+  lock?: string;
+  allow?: string[];
+  invalid: boolean;
+} {
+  const raw = asRecord(window);
+  const lock = raw?.candidateId;
+  const allowValue = raw?.allowedCandidateIds ?? raw?.candidateIds;
+  const normalizedLock = lock === undefined ? undefined : typeof lock === "string" && lock.trim() ? lock.trim() : undefined;
+  const allow = allowValue === undefined
+    ? undefined
+    : Array.isArray(allowValue) && allowValue.length > 0 && allowValue.every((value) => typeof value === "string" && value.trim().length > 0)
+      ? allowValue.map((value) => value.trim())
+      : [];
+  const invalidAllow = allowValue !== undefined && (allow === undefined || allow.length === 0);
+  return {
+    ...(normalizedLock === undefined ? {} : { lock: normalizedLock }),
+    ...(allow === undefined ? {} : { allow }),
+    invalid: (lock !== undefined && normalizedLock === undefined) || invalidAllow,
+  };
+}
+
+function candidateAllowedForWindow(
+  candidate: NormalizedCandidate,
+  window: PianoRegionWindow,
+  respectLock: boolean,
+): boolean {
+  if (!respectLock) return true;
+  const constraint = windowCandidateConstraint(window);
+  if (constraint.invalid) return false;
+  const aliases = candidateAliases(candidate);
+  if (constraint.lock !== undefined && !aliases.includes(constraint.lock)) return false;
+  if (constraint.allow !== undefined && !constraint.allow.some((value) => aliases.includes(value))) return false;
+  return true;
+}
+
 function normalizeWindows(windows: readonly PianoRegionWindow[]): NormalizedWindow[] {
   const preliminary = windows.map((window, index) => {
     const raw = asRecord(window) ?? {};
@@ -504,6 +559,8 @@ function validateSelectionWindows(windows: readonly PianoRegionWindow[]): void {
       throw new RangeError(`Invalid piano region window at index ${index}`);
     }
     const id = String(raw?.id ?? raw?.sectionId ?? `${stableNumber(start)}-${stableNumber(end)}`);
+    const constraint = windowCandidateConstraint(raw as PianoRegionWindow);
+    if (constraint.invalid) throw new RangeError(`Invalid candidate lock in piano region window ${id}`);
     if (seen.has(id)) throw new RangeError(`Duplicate piano region window id: ${id}`);
     seen.add(id);
     normalized.push({ id, start, end });
@@ -1113,7 +1170,20 @@ function scoreCandidate(
       - weights.pathology * pathology
       - weights.density * densityPathology;
   const override = windowScoreOverride(candidate.candidate, window.source, window.id);
-  const usable = coverageGate ? coverageWindow.usable : true;
+  const candidateLockAllowed = candidateAllowedForWindow(
+    candidate,
+    window.source,
+    options.respectWindowCandidateId !== false,
+  );
+  const lockReason = candidateLockAllowed ? undefined : "candidate excluded by window lock";
+  const effectiveCoverageWindow = lockReason
+    ? {
+      ...coverageWindow,
+      usable: false,
+      rejectionReasons: [...coverageWindow.rejectionReasons, lockReason],
+    }
+    : coverageWindow;
+  const usable = candidateLockAllowed && (coverageGate ? coverageWindow.usable : true);
   const score = usable
     ? clamp01(override === undefined ? raw : raw * 0.7 + override * 0.3)
     : 0;
@@ -1125,6 +1195,7 @@ function scoreCandidate(
   if (gapRate >= 0.4) reasons.push("melodic gaps");
   if (pathology >= 0.5) reasons.push("pathology penalty");
   if (density >= 2) reasons.push("dense texture penalty");
+  if (lockReason) reasons.push(lockReason);
   for (const reason of coverageWindow.rejectionReasons) reasons.push(reason);
   if (reasons.length === 0) reasons.push("balanced evidence");
   return {
@@ -1141,7 +1212,7 @@ function scoreCandidate(
     pathology,
     noteCount: notes.length,
     usable,
-    coverageWindow,
+    coverageWindow: effectiveCoverageWindow,
     ...(roleCoverage === undefined ? {} : { roleCoverage }),
     reasons,
   };

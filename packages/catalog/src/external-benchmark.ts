@@ -62,7 +62,8 @@ export const EXTERNAL_BENCHMARK_FAILURES = [
   "UNSUPPORTED_FORMAT", "PARSE_FAILED", "MISSING_CONTENT_HASH", "IDENTITY_MISMATCH",
   "ALIGNMENT_UNAVAILABLE", "ALIGNMENT_PARTIAL", "ALIGNMENT_AMBIGUOUS", "NO_USABLE_GENERATION_CANDIDATE",
   "GENERATION_FAILED", "OUTPUT_UNAVAILABLE", "MISSING_REFERENCE", "INVALID_INPUT", "HUMAN_REVIEW_MISSING",
-  "HUMAN_REVIEW_INSUFFICIENT_RATERS", "HUMAN_REVIEW_CONFLICT",
+  "HUMAN_REVIEW_INSUFFICIENT_RATERS", "HUMAN_REVIEW_CONFLICT", "HUMAN_REVIEW_REJECTED",
+  "STRUCTURAL_GATE_FAILED", "REFERENCE_COVERAGE_INSUFFICIENT",
 ] as const;
 export type ExternalBenchmarkFailure = (typeof EXTERNAL_BENCHMARK_FAILURES)[number];
 
@@ -196,6 +197,24 @@ export interface ExternalBenchmarkHumanReport {
   decision: "accept" | "reject" | null;
 }
 
+/**
+ * Composite release readiness.  `human` remains the backwards-compatible
+ * reviewer-consensus report; this gate additionally requires a usable
+ * symbolic output, a passing structural evaluation, and sufficiently broad
+ * aligned reference evidence.
+ */
+export interface ExternalBenchmarkReadinessReport {
+  status: "ready" | "blocked";
+  requirements: {
+    symbolicOutput: boolean;
+    structuralPass: boolean;
+    referenceAligned: boolean;
+    referenceAdequate: boolean;
+    humanAccepted: boolean;
+  };
+  failures: ExternalBenchmarkFailure[];
+}
+
 export interface ExternalBenchmarkSongReport {
   id: ExternalBenchmarkSongId;
   present: boolean;
@@ -214,6 +233,9 @@ export interface ExternalBenchmarkSongReport {
   human: ExternalBenchmarkHumanReport;
   /** Alias retained for callers that use the hand-off vocabulary. */
   humanReadiness: ExternalBenchmarkHumanReport;
+  /** Composite gate; `humanReadiness` above remains reviewer-only for compatibility. */
+  readiness: ExternalBenchmarkReadinessReport;
+  humanReady: boolean;
   routes: ExternalBenchmarkRouteReport[];
   /** Convenient route-keyed projection for machine consumers. */
   routeCoverage: Partial<Record<ExternalBenchmarkRouteId, ExternalBenchmarkCoverageReport>>;
@@ -392,7 +414,24 @@ function routeOutputNotes(descriptor: ExternalBenchmarkRouteDescriptor | undefin
 
 function routeOutputHash(notes: readonly Note[]): string | null {
   if (!notes.length) return null;
-  const stableNotes = [...notes].sort((a, b) => a.start - b.start || a.midi - b.midi || a.dur - b.dur || a.vel - b.vel || (a.hand ?? "").localeCompare(b.hand ?? ""));
+  // Project onto the typed Note fields in a fixed insertion order. Route
+  // descriptors are an input seam, so arbitrary object keys (or their order)
+  // must not change the identity of an otherwise identical output.
+  const stableNotes = notes
+    .map((note) => ({
+      midi: note.midi,
+      start: note.start,
+      dur: note.dur,
+      vel: note.vel,
+      ...(note.hand === undefined ? {} : { hand: note.hand }),
+      ...(note.identitySource === undefined ? {} : { identitySource: note.identitySource }),
+      ...(note.lyrics === undefined ? {} : { lyrics: note.lyrics }),
+    }))
+    .sort((a, b) => {
+      const left = JSON.stringify(a);
+      const right = JSON.stringify(b);
+      return left < right ? -1 : left > right ? 1 : 0;
+    });
   return createHash("sha256").update(JSON.stringify(stableNotes)).digest("hex");
 }
 
@@ -508,9 +547,18 @@ function buildRouteReports(
   const byId = new Map(supplied.map((descriptor) => [descriptor.id, descriptor]));
   return [...EXTERNAL_BENCHMARK_ROUTE_IDS].map((id) => {
     const descriptor = byId.get(id);
-    const notes = routeOutputNotes(descriptor, id === "EXTERNAL_SYMBOLIC_FIRST" ? generatedNotes : []);
     const generatedExternalOutput = id === "EXTERNAL_SYMBOLIC_FIRST" && generatedNotes.length > 0;
-    const unavailableReason = cleanText(descriptor?.unavailableReason) ?? (descriptor || generatedExternalOutput ? null : "route output was not supplied");
+    // The symbolic-first route is evidence produced by the frozen generation
+    // pipeline. A descriptor may label or explicitly disable it, but it may
+    // not replace missing/generated output with benchmark-supplied notes.
+    const notes = id === "EXTERNAL_SYMBOLIC_FIRST"
+      ? (generatedExternalOutput ? [...generatedNotes] : [])
+      : routeOutputNotes(descriptor, []);
+    const unavailableReason = cleanText(descriptor?.unavailableReason) ?? (
+      id === "EXTERNAL_SYMBOLIC_FIRST" && !generatedExternalOutput
+        ? "symbolic route output was not generated"
+        : descriptor || generatedExternalOutput ? null : "route output was not supplied"
+    );
     const available = !unavailableReason && notes.length > 0;
     const coverage = benchmarkCoverage(evaluateRouteCoverage({ notes, attributions: descriptor?.attributions ?? descriptor?.attribution }));
     const reference = available && referenceNotes.length && windows.length
@@ -551,10 +599,12 @@ function alignmentSummary(result: SymbolicAlignmentResult): ExternalBenchmarkRef
 }
 
 function notesForRole(notes: readonly Note[], role: ExternalBenchmarkRole | undefined): Note[] {
-  if (!role) return [...notes];
-  if (role === "timing-only") return [];
-  if (role === "melody") return notes.filter((note) => note.hand === "R");
-  return notes.filter((note) => note.hand === "L");
+  // Parsed reference MIDIs often have generic track names and therefore no
+  // hand metadata.  Do not turn that absence into a false zero-coverage role
+  // alignment: use all pitched events until an explicit hand annotation is
+  // present.  Keep this in lockstep with routeRoleNotes, which handles the
+  // same ambiguity for the independent route reports.
+  return routeRoleNotes(notes, role ?? "all");
 }
 
 function roleAwareAlignment(
@@ -606,7 +656,7 @@ function emptySong(id: ExternalBenchmarkSongId): ExternalBenchmarkSongReport {
     outputAvailability: "unavailable",
     reference: { availability: "unavailable", recordIds: [], parsedCount: 0, validatedWindows: [], windows: [], alignment: { status: "unavailable", confidence: null, coverage: { reference: null, candidate: null }, diagnostics: [], roleFilteredWindows: [] } },
     referenceAvailability: "unavailable",
-    human, humanReadiness: human,
+    human, humanReadiness: human, readiness: emptyReadiness(), humanReady: false,
     routes,
     routeCoverage: Object.fromEntries(routes.map((route) => [route.id, route.coverage])) as Partial<Record<ExternalBenchmarkRouteId, ExternalBenchmarkCoverageReport>>,
     failures: ["MISSING_INVENTORY_ID", "MISSING_DISCOVERY", "NO_USABLE_GENERATION_CANDIDATE", "OUTPUT_UNAVAILABLE", "MISSING_REFERENCE", "HUMAN_REVIEW_MISSING"],
@@ -627,6 +677,60 @@ function humanResult(raters: readonly ExternalBenchmarkHumanRater[] | undefined)
   if (raters.length < 2) return { report: { status: "blocked", raters: raters.length, agreeing: false, decision: decisions[0] ?? null }, failures: ["HUMAN_REVIEW_INSUFFICIENT_RATERS"] };
   if (decisions.some((item) => item === null) || unique.size !== 1) return { report: { status: "blocked", raters: raters.length, agreeing: false, decision: unique.size === 1 ? [...unique][0]! : null }, failures: ["HUMAN_REVIEW_CONFLICT"] };
   return { report: { status: "ready", raters: raters.length, agreeing: true, decision: [...unique][0]! }, failures: [] };
+}
+
+/**
+ * The historical `human` report describes reviewer consensus only. Keep it
+ * unchanged and evaluate the release claim separately: human agreement is not
+ * enough when the generated output or aligned reference evidence is missing.
+ */
+function compositeReadiness(
+  generation: Pick<ExternalBenchmarkSongReport["generation"], "status">,
+  output: ExternalBenchmarkSongReport["output"],
+  reference: ExternalBenchmarkSongReport["reference"],
+  windows: readonly ExternalBenchmarkWindow[],
+  human: ExternalBenchmarkHumanReport,
+  humanFailures: readonly ExternalBenchmarkFailure[],
+): ExternalBenchmarkReadinessReport {
+  const symbolicOutput = generation.status === "symbolic" && output.availability === "available";
+  const structuralPass = output.structuralGate === "pass";
+  const referenceAligned = reference.availability === "available" && reference.alignment.status === "aligned";
+  const referenceCoverage = reference.alignment.coverage;
+  const referenceAdequate = referenceAligned
+    && windows.length >= 3
+    && finite(referenceCoverage.reference) && referenceCoverage.reference >= 0.5
+    && finite(referenceCoverage.candidate) && referenceCoverage.candidate >= 0.5;
+  const humanAccepted = human.status === "ready"
+    && human.raters >= 2
+    && human.agreeing
+    && human.decision === "accept";
+  const failures: ExternalBenchmarkFailure[] = [];
+  if (!symbolicOutput) failures.push("OUTPUT_UNAVAILABLE");
+  if (!structuralPass) failures.push("STRUCTURAL_GATE_FAILED");
+  if (!referenceAligned) {
+    if (reference.alignment.status === "partial") failures.push("ALIGNMENT_PARTIAL");
+    else if (reference.alignment.status === "ambiguous") failures.push("ALIGNMENT_AMBIGUOUS");
+    else failures.push("ALIGNMENT_UNAVAILABLE");
+  }
+  if (!referenceAdequate) failures.push("REFERENCE_COVERAGE_INSUFFICIENT");
+  if (!humanAccepted) {
+    if (human.decision === "reject") failures.push("HUMAN_REVIEW_REJECTED");
+    else humanFailures.forEach((failure) => failures.push(failure));
+  }
+  const requirements = { symbolicOutput, structuralPass, referenceAligned, referenceAdequate, humanAccepted };
+  return {
+    status: Object.values(requirements).every(Boolean) ? "ready" : "blocked",
+    requirements,
+    failures: [...new Set(failures)].sort(),
+  };
+}
+
+function emptyReadiness(): ExternalBenchmarkReadinessReport {
+  return {
+    status: "blocked",
+    requirements: { symbolicOutput: false, structuralPass: false, referenceAligned: false, referenceAdequate: false, humanAccepted: false },
+    failures: ["OUTPUT_UNAVAILABLE", "STRUCTURAL_GATE_FAILED", "ALIGNMENT_UNAVAILABLE", "REFERENCE_COVERAGE_INSUFFICIENT", "HUMAN_REVIEW_MISSING"],
+  };
 }
 
 function addFailure(failures: ExternalBenchmarkFailure[], failure: ExternalBenchmarkFailure): void {
@@ -717,6 +821,17 @@ async function evaluateSong(song: ExternalBenchmarkSongInput, windows: ExternalB
   const candidateIds = candidateRecords.map((record) => record.id).sort();
   const referenceAvailability = parsedReferences.length ? "available" as const : referenceRecords.length ? "metadata-only" as const : "unavailable" as const;
   const outputAvailability = generation.status === "symbolic" && outputNotes.length ? "available" as const : "unavailable" as const;
+  const output = { availability: outputAvailability, status: generation.status, structuralGate };
+  const referenceReport: ExternalBenchmarkReferenceReport = {
+    availability: referenceAvailability,
+    recordIds: referenceRecords.map((record) => record.id).sort(),
+    parsedCount: parsedReferences.length,
+    validatedWindows,
+    windows: validatedWindows,
+    alignment,
+  };
+  const readiness = compositeReadiness(generation, output, referenceReport, validatedWindows, human.report, human.failures);
+  readiness.failures.forEach((failure) => addFailure(failures, failure));
   const routes = buildRouteReports(song, outputNotes, primaryReference?.score ? scoreNotes(primaryReference.score as ScoreLike) : [], windows);
   const routeCoverage = Object.fromEntries(routes.map((route) => [route.id, route.coverage])) as Partial<Record<ExternalBenchmarkRouteId, ExternalBenchmarkCoverageReport>>;
   const report: ExternalBenchmarkSongReport = {
@@ -730,11 +845,11 @@ async function evaluateSong(song: ExternalBenchmarkSongInput, windows: ExternalB
     frozenGenerationCandidateSetDigest: frozen.digest,
     generation: { status: generation.status, selectedRecordIds: generation.selectedRecordIds.sort(), diagnostics: Object.values(generation.diagnostics).flatMap((value) => typeof value === "string" ? [safeError(value)] : []).sort() },
     generationStatus: generation.status,
-    output: { availability: outputAvailability, status: generation.status, structuralGate },
+    output,
     outputAvailability,
-    reference: { availability: referenceAvailability, recordIds: referenceRecords.map((record) => record.id).sort(), parsedCount: parsedReferences.length, validatedWindows, windows: validatedWindows, alignment },
+    reference: referenceReport,
     referenceAvailability,
-    human: human.report, humanReadiness: human.report,
+    human: human.report, humanReadiness: human.report, readiness, humanReady: readiness.status === "ready",
     routes,
     routeCoverage,
     failures: failures.sort(),
@@ -817,8 +932,8 @@ export async function buildExternalBenchmarkReport(input: ExternalBenchmarkInput
       symbolic: rows.filter((row) => row.generation.status === "symbolic").length,
       fallback: rows.filter((row) => row.generation.status === "fallback").length,
       unavailable: rows.filter((row) => row.generation.status === "unavailable").length,
-      humanReady: rows.filter((row) => row.human.status === "ready").length,
-      blocked: rows.filter((row) => row.human.status === "blocked").length,
+      humanReady: rows.filter((row) => row.humanReady).length,
+      blocked: rows.filter((row) => row.readiness.status === "blocked").length,
     },
   };
   const reportHash = hashCanonical(reportWithoutHash);

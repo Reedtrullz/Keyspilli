@@ -73,6 +73,38 @@ describe("selectPianoMelodyRegions", () => {
     ]);
   });
 
+  it("honors an explicit window candidate lock while allowing legacy score selection to opt out", () => {
+    const primary: PianoRegionCandidate = {
+      id: "primary",
+      notes: line(0, [60, 60, 60, 60]),
+    };
+    const alternate: PianoRegionCandidate = {
+      id: "alternate",
+      notes: line(0, [72, 74, 76, 77]),
+    };
+    const window = { id: "section", startBeat: 0, endBeat: 4, candidateId: "primary" };
+
+    const locked = selectPianoMelodyRegions([primary, alternate], [window]);
+    expect(locked.selectedCandidateIds).toEqual(["primary"]);
+    expect(locked.notes.map((note) => note.midi)).toEqual([60, 60, 60, 60]);
+    expect(locked.scores.find((score) => score.candidateId === "alternate")?.usable).toBe(false);
+
+    const legacy = selectPianoMelodyRegions([primary, alternate], [window], { respectWindowCandidateId: false });
+    expect(legacy.selectedCandidateIds).toEqual(["alternate"]);
+    expect(legacy.notes.map((note) => note.midi)).toEqual([72, 74, 76, 77]);
+  });
+
+  it("restricts a window to its candidate allow-list without changing unlocked windows", () => {
+    const primary: PianoRegionCandidate = { id: "primary", notes: line(0, [60, 62, 64, 65]) };
+    const alternate: PianoRegionCandidate = { id: "alternate", notes: line(0, [72, 74, 76, 77]) };
+    const allowListed = selectPianoMelodyRegions(
+      [primary, alternate],
+      [{ id: "section", startBeat: 0, endBeat: 4, candidateIds: ["alternate"] }],
+    );
+    expect(allowListed.selectedCandidateIds).toEqual(["alternate"]);
+    expect(allowListed.notes.every((note) => note.midi >= 72)).toBe(true);
+  });
+
   it("allows a clearly stronger alternate lead to win a sustained region", () => {
     const primary: PianoRegionCandidate = {
       id: "primary",
