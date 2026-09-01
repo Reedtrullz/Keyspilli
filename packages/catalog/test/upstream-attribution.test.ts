@@ -128,7 +128,7 @@ describe("upstream attribution evaluator", () => {
 
   it("serializes and hashes reports without paths or runtime timestamps", () => {
     const report = compareUpstreamRoutes(truth, {
-      di: { route: "di", notes: truth.notes, sourcePath: "/Users/reidar/private/take.mid", generatedAt: "2026-09-01T10:00:00Z" },
+      di: { route: "di", notes: truth.notes, sourcePath: "/Users/example/private/take.mid", generatedAt: "2026-09-01T10:00:00Z" },
     });
     const changed = { ...report, generatedAt: "2026-09-01T11:00:00Z", runtimePath: "/tmp/other" };
     expect(canonicalUpstreamReport(report)).toBe(canonicalUpstreamReport(changed));
@@ -140,7 +140,7 @@ describe("upstream attribution evaluator", () => {
   it("redacts path-like values even when their keys are not path-shaped", () => {
     const canonical = canonicalUpstreamReport({
       sourceRef: "/var/folders/keyspilli/take.mid",
-      traceSource: "file:///Users/reidar/take.mid",
+      traceSource: "file:///Users/example/take.mid",
       ordinaryUrl: "https://example.com/reference",
     });
 

@@ -12,7 +12,7 @@ const item = (id: string) => ({
     { kind: "midi", sha256: "b".repeat(64), status: "available" },
     { kind: "di", sha256: "a".repeat(64), status: "available" },
   ],
-  acquisitionPath: `/Users/reidar/private/${id}.wav`,
+  acquisitionPath: `/Users/example/private/${id}.wav`,
 });
 
 const manifest = (items = [item("z-item"), item("a-item")]) => ({
@@ -33,7 +33,7 @@ describe("upstream attribution manifest", () => {
     expect(first.items.map(({ id }) => id)).toEqual(["a-item", "z-item"]);
     expect(canonicalUpstreamManifest(first)).toBe(canonicalUpstreamManifest(second));
     expect(upstreamManifestSha256(first)).toMatch(/^[0-9a-f]{64}$/);
-    expect(canonicalUpstreamManifest(first)).not.toContain("/Users/reidar");
+    expect(canonicalUpstreamManifest(first)).not.toContain("/Users/example");
   });
 
   it.each([
