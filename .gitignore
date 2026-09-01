@@ -30,6 +30,10 @@ catalog/youtube-source-candidates/
 # Local generated/evaluation artifacts (may contain source audio or MIDI).
 output/
 
+# Local-only storage manifests may contain private absolute paths and hashes.
+/.local-artifact-retention-*.json
+/.local-artifact-inventory-*.json
+
 # App runtime data
 apps/data/*.sqlite*
 *.tsbuildinfo

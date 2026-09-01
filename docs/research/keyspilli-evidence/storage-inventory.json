@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-09-01",
+  "basis": "du -sk measured allocated bytes; /tmp is a symlink to /private/tmp and is counted once",
+  "filesystem": {"mount": "/System/Volumes/Data", "availableBytes": 16152280, "availableGiBApprox": 15.4, "capacityPercent": 97},
+  "categories": {
+    "repository": 1731956736,
+    "privateTmpKeyspilli": 25610174464,
+    "registeredWorktrees": 2626752512,
+    "selectedCaches": 6574211072,
+    "privateDownloadsKeyspilli": 285859840
+  },
+  "entries": [
+    {"pathId":"tmp-upstream-experiment","sizeBytes":7088275456,"category":"EPHEMERAL_EXPERIMENT","tracked":false,"privateOrCopyrighted":true,"reproducible":true,"reacquirable":true,"currentlyReferenced":false,"recommendedAction":"delete after remote/ledger checkpoint"},
+    {"pathId":"repo","sizeBytes":1731956736,"category":"GIT","tracked":true,"privateOrCopyrighted":false,"reproducible":true,"reacquirable":true,"currentlyReferenced":true,"recommendedAction":"retain"},
+    {"pathId":"cache-uv","sizeBytes":3668385792,"category":"PACKAGE_CACHE","tracked":false,"privateOrCopyrighted":false,"reproducible":true,"reacquirable":true,"currentlyReferenced":"unknown","recommendedAction":"keep; shared cache outside scope"},
+    {"pathId":"cache-npm","sizeBytes":1285136384,"category":"PACKAGE_CACHE","tracked":false,"privateOrCopyrighted":false,"reproducible":true,"reacquirable":true,"currentlyReferenced":"unknown","recommendedAction":"keep; shared cache outside scope"},
+    {"pathId":"cache-pnpm","sizeBytes":1154801664,"category":"PACKAGE_CACHE","tracked":false,"privateOrCopyrighted":false,"reproducible":true,"reacquirable":true,"currentlyReferenced":"unknown","recommendedAction":"keep; shared cache outside scope"},
+    {"pathId":"repo-data","sizeBytes":858046464,"category":"UNKNOWN","tracked":false,"privateOrCopyrighted":true,"reproducible":"unknown","reacquirable":"unknown","currentlyReferenced":true,"recommendedAction":"retain runtime/catalog data"},
+    {"pathId":"tmp-piano-final","sizeBytes":1753079808,"category":"EPHEMERAL_EXPERIMENT","tracked":false,"privateOrCopyrighted":true,"reproducible":true,"reacquirable":true,"currentlyReferenced":false,"recommendedAction":"delete after evidence summary"},
+    {"pathId":"tmp-piano-coverage-final","sizeBytes":1110671360,"category":"EPHEMERAL_EXPERIMENT","tracked":false,"privateOrCopyrighted":true,"reproducible":true,"reacquirable":true,"currentlyReferenced":false,"recommendedAction":"delete after evidence summary"},
+    {"pathId":"tmp-section-listening-ext","sizeBytes":908578816,"category":"EPHEMERAL_EXPERIMENT","tracked":false,"privateOrCopyrighted":true,"reproducible":true,"reacquirable":true,"currentlyReferenced":false,"recommendedAction":"delete after evidence summary"},
+    {"pathId":"tmp-homr-probe","sizeBytes":738365440,"category":"EPHEMERAL_EXPERIMENT","tracked":false,"privateOrCopyrighted":true,"reproducible":true,"reacquirable":true,"currentlyReferenced":"unknown","recommendedAction":"retain compact reports; delete intermediates"},
+    {"pathId":"repo-artifacts","sizeBytes":657076224,"category":"UNKNOWN","tracked":false,"privateOrCopyrighted":true,"reproducible":"unknown","reacquirable":"unknown","currentlyReferenced":true,"recommendedAction":"retain"},
+    {"pathId":"tmp-listening-repeats","sizeBytes":5376737280,"category":"EPHEMERAL_EXPERIMENT","tracked":false,"privateOrCopyrighted":true,"reproducible":true,"reacquirable":true,"currentlyReferenced":"reviewed","recommendedAction":"delete duplicate packs after hash/handle check"},
+    {"pathId":"tmp-decoder-audio","sizeBytes":493764608,"category":"EPHEMERAL_EXPERIMENT","tracked":false,"privateOrCopyrighted":true,"reproducible":true,"reacquirable":true,"currentlyReferenced":false,"recommendedAction":"delete after hashes are recorded"},
+    {"pathId":"tmp-trace-worktree","sizeBytes":483495936,"category":"WORKTREE","tracked":true,"privateOrCopyrighted":false,"reproducible":true,"reacquirable":true,"currentlyReferenced":true,"recommendedAction":"remove with git worktree remove only after branch push"},
+    {"pathId":"tmp-soundfont","sizeBytes":479907840,"category":"MODEL_CACHE","tracked":false,"privateOrCopyrighted":false,"reproducible":true,"reacquirable":true,"currentlyReferenced":false,"recommendedAction":"delete when no renderer uses it"},
+    {"pathId":"tmp-piano-audit","sizeBytes":466132992,"category":"EPHEMERAL_EXPERIMENT","tracked":false,"privateOrCopyrighted":true,"reproducible":true,"reacquirable":true,"currentlyReferenced":false,"recommendedAction":"delete"},
+    {"pathId":"tmp-midi-corpus-outputs","sizeBytes":1518733312,"category":"EPHEMERAL_EXPERIMENT","tracked":false,"privateOrCopyrighted":true,"reproducible":true,"reacquirable":true,"currentlyReferenced":"unknown","recommendedAction":"retain accepted compact corpus; delete redundant outputs"},
+    {"pathId":"tmp-trusted-arranger","sizeBytes":379629568,"category":"EPHEMERAL_EXPERIMENT","tracked":false,"privateOrCopyrighted":true,"reproducible":true,"reacquirable":true,"currentlyReferenced":"reviewed","recommendedAction":"delete generated audio/stems after ledger"},
+    {"pathId":"tmp-score-corpus","sizeBytes":1449019392,"category":"EPHEMERAL_EXPERIMENT","tracked":false,"privateOrCopyrighted":true,"reproducible":true,"reacquirable":true,"currentlyReferenced":"review_required","recommendedAction":"retain compact reports; prune duplicate media later"},
+    {"pathId":"tmp-smoke","sizeBytes":303988736,"category":"EPHEMERAL_EXPERIMENT","tracked":false,"privateOrCopyrighted":false,"reproducible":true,"reacquirable":true,"currentlyReferenced":false,"recommendedAction":"delete"},
+    {"pathId":"private-benchmark-midis","sizeBytes":209084,"category":"PRIVATE_REFERENCE","tracked":false,"privateOrCopyrighted":true,"reproducible":false,"reacquirable":"unknown","currentlyReferenced":true,"recommendedAction":"retain in private Downloads"},
+    {"pathId":"private-benchmark-pdfs","sizeBytes":521800,"category":"PRIVATE_REFERENCE","tracked":false,"privateOrCopyrighted":true,"reproducible":false,"reacquirable":"unknown","currentlyReferenced":true,"recommendedAction":"retain in private Downloads"},
+    {"pathId":"private-defence-audio","sizeBytes":10231805,"category":"SOURCE_MEDIA","tracked":false,"privateOrCopyrighted":true,"reproducible":false,"reacquirable":"unknown","currentlyReferenced":true,"recommendedAction":"retain private source"}
+  ]
+}
