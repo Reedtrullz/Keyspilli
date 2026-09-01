@@ -66,6 +66,8 @@ describe("external evidence firewall", () => {
     expect(() => assertGenerationEvidence(candidate({ benchmarkReferenceHashes: ["a".repeat(64)] }))).toThrow(/benchmark|reference/i);
     expect(() => assertGenerationEvidence(candidate({ provenance: { sourceRef: "fixture-reference", acquisition: "local-analysis" } }))).toThrow(/benchmark|reference/i);
     expect(() => assertGenerationEvidence(candidate({ lineage: { id: "my_reference_id" } }))).toThrow(/benchmark|reference/i);
+    expect(() => assertGenerationEvidence(candidate({ metadata: { protectedMarker: true } }))).toThrow(/benchmark|reference|protected/i);
+    expect(() => assertGenerationEvidence(candidate({ lineage: { artifactPath: "/tmp/benchmark.mid" } }))).toThrow(/benchmark|reference|protected/i);
   });
 
   it("produces an order-invariant candidate-set digest", () => {
@@ -92,6 +94,10 @@ describe("external evidence firewall", () => {
 
   it("redacts embedded physical paths while retaining surrounding logical text", () => {
     const [canonical] = canonicalEvidenceCandidateSet([candidate({ description: "prefix /private/example.mid suffix" })]);
-    expect(canonical.description).toBe("prefix [redacted-path] suffix");
+    expect(canonical!.description).toBe("prefix [redacted-path] suffix");
+    const [fileUrl] = canonicalEvidenceCandidateSet([candidate({ description: "prefix file:///tmp/My Folder/example.MIDI suffix" })]);
+    expect(fileUrl!.description).toBe("prefix [redacted-path] suffix");
+    const [backslash] = canonicalEvidenceCandidateSet([candidate({ description: "prefix C:\\\\My Folder\\\\example.MID suffix" })]);
+    expect(backslash!.description).toBe("prefix [redacted-path] suffix");
   });
 });

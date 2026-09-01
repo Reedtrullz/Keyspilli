@@ -86,7 +86,7 @@ function normalize(value: unknown): unknown {
 function canonicalMetadata(candidate: ExternalEvidenceCandidate): Record<string, unknown> {
   const excluded = /(?:path|file|notes?|events?|artifact|locator)/i;
   const pathLike = /^(?:file:\/\/|[A-Za-z]:[\\/]|[\\/]|~[\\/])|(?:[\\/]\S+\.(?:mid|midi|musicxml|mxl|wav|mp3|json))(?:$|[?#])/i;
-  const pathLikeSubstring = /(?:file:\/\/|[A-Za-z]:[\\/]|~[\\/]|\/(?:[^\s,;)}\]]+\/)*[^\s,;)}\]]+\.(?:mid|midi|musicxml|mxl|wav|mp3|json))(?:[?#][^\s,;)}\]]*)?/gi;
+  const pathLikeSubstring = /(?:file:\/\/|[A-Za-z]:[\\/]|~[\\/]|\/)[^,;)}\]]*?\.(?:musicxml|midi|mid|mxl|wav|mp3|json)(?:[?#][^\s,;)}\]]*)?/gi;
   const strip = (value: unknown): unknown => {
     if (Array.isArray(value)) return value.map(strip);
     if (typeof value === "string") {
@@ -106,7 +106,7 @@ export function assertGenerationEvidence(candidate: ExternalEvidenceCandidate): 
   if (!isOneOf(candidate.purpose, EVIDENCE_PURPOSES) || candidate.purpose === "BENCHMARK_REFERENCE") throw new Error("benchmark evidence cannot enter generation");
   if (!isOneOf(candidate.status, CANDIDATE_STATUSES) || candidate.status !== "parsed") throw new Error("candidate parse status is not generation-safe; status must be parsed");
   if (!isRecord(candidate.provenance) || typeof candidate.provenance.sourceRef !== "string" || candidate.provenance.sourceRef.trim() === "") throw new Error("candidate requires a logical source reference");
-  if (/^(?:file:\/\/|[A-Za-z]:[\\/]|[\\/]|~[\\/])|(?:[^\\s/]+\.(?:mid|midi|musicxml|mxl|wav|mp3|json))(?:[?#].*)?$/i.test(candidate.provenance.sourceRef) || /(?:^|[\\/])[^\\/]+\.(?:mid|midi|musicxml|mxl|wav|mp3|json)(?:[?#].*)?$/i.test(candidate.provenance.sourceRef)) throw new Error("candidate source reference must be logical, not a physical path");
+  if (/^(?:file:\/\/|[A-Za-z]:[\\/]|[\\/]|~[\\/])|(?:[^\\s/]+\.(?:musicxml|midi|mid|mxl|wav|mp3|json))(?:[?#].*)?$/i.test(candidate.provenance.sourceRef) || /(?:^|[\\/])[^\\/]+\.(?:musicxml|midi|mid|mxl|wav|mp3|json)(?:[?#].*)?$/i.test(candidate.provenance.sourceRef)) throw new Error("candidate source reference must be logical, not a physical path");
   const acquisitionKeys = ["acquisition", "acquiredVia"] as const;
   if (acquisitionKeys.some((key) => Object.hasOwn(candidate.provenance, key) && typeof candidate.provenance[key] !== "string")) throw new Error("candidate acquisition is not permitted for local analysis");
   const suppliedAcquisions = acquisitionKeys.map((key) => candidate.provenance[key]).filter((value) => value !== undefined);
@@ -114,16 +114,15 @@ export function assertGenerationEvidence(candidate: ExternalEvidenceCandidate): 
   const allowedAcquisitions = new Set(["local-analysis", "local-import", "local-file", "local-bytes"]);
   if (acquisitions.length !== suppliedAcquisions.length || acquisitions.length === 0 || acquisitions.some((value) => !allowedAcquisitions.has(value.toLowerCase()))) throw new Error("candidate acquisition is not permitted for local analysis");
   if (!isRecord(candidate.content) || typeof candidate.content.sha256 !== "string" || !/^[a-f0-9]{64}$/i.test(candidate.content.sha256)) throw new Error("candidate requires a SHA-256 content hash");
-  const protectedFields = [candidate.provenance, candidate.lineage, candidate.protectedMarker, candidate.benchmarkReferenceHash, candidate.benchmarkReferenceHashes];
   const containsProtectedMarker = (value: unknown, key = ""): boolean => {
-    if (/(?:path|file|artifact|locator)/i.test(key)) return false;
     if (/benchmark|reference|evaluation[-_ ]?only|protected/i.test(key)) return true;
+    if (/(?:path|file|artifact|locator)/i.test(key)) return typeof value === "string" && /benchmark|evaluation[-_ ]?only|protected/i.test(value);
     if (typeof value === "string") return /benchmark|reference|evaluation[-_ ]?only|protected/i.test(value);
     if (Array.isArray(value)) return value.some((item) => containsProtectedMarker(item));
     if (isRecord(value)) return Object.entries(value).some(([entryKey, entryValue]) => containsProtectedMarker(entryValue, entryKey));
     return false;
   };
-  if (Object.keys(candidate).some((key) => /benchmark|reference|evaluation[-_ ]?only|protected/i.test(key)) || protectedFields.some((value) => containsProtectedMarker(value))) {
+  if (containsProtectedMarker(candidate)) {
     throw new Error("benchmark/reference evidence cannot enter generation");
   }
   return { ...candidate, content: { ...candidate.content, sha256: candidate.content.sha256.toLowerCase() } };
