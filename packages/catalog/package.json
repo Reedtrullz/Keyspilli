@@ -33,6 +33,7 @@
     "evaluate-red-baron-survival": "tsx scripts/evaluate-red-baron-survival.ts",
     "evaluate:external-symbolic": "tsx scripts/evaluate-external-symbolic.ts",
     "evaluate:upstream-guitar": "tsx scripts/evaluate-upstream-guitar.ts",
+    "evaluate:gaps-guitar": "tsx scripts/evaluate-gaps-guitar.ts",
     "evaluate-piano-candidates": "tsx scripts/evaluate-piano-candidates.ts",
     "route-funnel": "tsx scripts/route-funnel.ts",
     "research:song": "tsx scripts/research-song.ts",

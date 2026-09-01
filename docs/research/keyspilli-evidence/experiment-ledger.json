@@ -225,6 +225,36 @@
       "reportHash": null,
       "reproducible": true,
       "rawArtifactRetention": "retain compact path-free reports only; reference media remains outside the repository"
+    },
+    {
+      "id": "gaps-guitar-techs-tiebreaker-2026-09-02",
+      "date": "2026-09-02",
+      "gitCommit": "957fa371f70e63d3c3f517ffcc613ff73db178d0",
+      "purpose": "Run the single pre-registered isolated Guitar-TECHS A/B tie-breaker for a guitar-specific AMT backend",
+      "songs": [],
+      "route": "frozen Guitar-TECHS v1 (14 items, DI and amp/mic) -> pinned GAPS guitar AMT -> shared upstream evaluator against frozen Basic Pitch",
+      "criticalMetrics": {
+        "backendCodeCommit": "96f6797881e9497cbfc8f8e5deccea9c1f2f7adc",
+        "checkpointSha256": "65483e7c0e340a90415b15b520687587698c8c728f5fa470a205f13ee45c6513",
+        "selectionDigest": "fa354513c6b57ec07c223b57b85c5a64eed548b0fb770d09323af3053f6d1062",
+        "baselineReportSha256": "44b8dec04526c6cd04421abc8198ab66fa6509d40a663ea69a18deb04f754adc",
+        "preRegistrationSha256": "d821ec8dd829e6d1a90af5b337afbbbe7e49c661df34b6a4d4fd56cd0c8d49e4",
+        "selectedItems": 14,
+        "completedItems": 14,
+        "completedRoutes": 28,
+        "diExactGain": 0.238746,
+        "diPcGain": 0.232105,
+        "ampMicExactGain": 0.27114,
+        "ampMicPcGain": 0.267984,
+        "gapsUnsupportedPerSecond": 0,
+        "reportSha256": "cd5c2e9a126f4391eccc88f33d927fe8c04b44225ff85f3512463f68d563cad4",
+        "canonicalReportSha256": "d6f1c048587cc262fd6a438dfa15737bfdb196606b61a9aff2f0466f6222b106"
+      },
+      "result": "GAPS materially improved onset, exact-pitch, and pitch-class F1 on both isolated modalities, increased exact precision while reducing note-count overproduction, and cleared five nontrivial technique families on both modalities; pinch-harmonics regressed.",
+      "decision": "GUITAR_SPECIFIC_AMT_VALIDATED",
+      "reportHash": "cd5c2e9a126f4391eccc88f33d927fe8c04b44225ff85f3512463f68d563cad4",
+      "reproducible": true,
+      "rawArtifactRetention": "retain compact path-free report, pre-registration, run manifest, and hashes only; delete reacquirable benchmark audio, checkpoint, environment, and feature/cache material"
     }
   ]
 }

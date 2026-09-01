@@ -83,6 +83,7 @@ export type {
 } from "./shadow-corpus-adapter.js";
 export * from "./shadow-alignment.js";
 export * from "./upstream-attribution.js";
+export * from "./gaps-attribution.js";
 export {
   shadowItemToMetalStems,
   evaluateShadowItem,
