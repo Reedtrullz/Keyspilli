@@ -31,7 +31,7 @@ pnpm --filter @keyspilli/catalog exec tsc --noEmit
   passed
 
 ./node_modules/.bin/vitest run packages/catalog/test
-  78 files; 693 passed, 6 failed (unchanged unrelated environment failures)
+  78 files; 697 passed, 6 failed (unchanged unrelated environment failures)
 ```
 
 The six full-catalog failures are unrelated subprocess-environment failures in existing `restore-curated.test.ts` and `verify-catalog.test.ts` cases. They invoke `/Users/reidar/.hermes/node/bin/node --import tsx` with cwd `/Users/reidar`, where `tsx` cannot be resolved (`ERR_MODULE_NOT_FOUND: Cannot find package 'tsx'`). The changed tests and all neighboring research/native/firewall tests pass.
