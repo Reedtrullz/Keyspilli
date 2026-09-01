@@ -37,7 +37,7 @@ because `../src/external-evidence.js` did not exist.
 
 ## Commit
 
-Commit: `5a89a9be0e787b64f69471b9b37276643ec70c32` (`feat(catalog): add external evidence firewall`)
+Implementation commit: `fe1e6a67dce5fbbde9eac03796f221b6282da97b` (`feat(catalog): add external evidence firewall`)
 
 ## Concerns and boundaries
 
