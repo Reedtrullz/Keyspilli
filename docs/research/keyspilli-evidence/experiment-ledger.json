@@ -201,7 +201,7 @@
     {
       "id": "raw-ceiling-and-selector-survival-2026-09-01",
       "date": "2026-09-01",
-      "gitCommit": "f0f65b8",
+      "gitCommit": "b9f8f636d32a63dd96adb1a0eca9d5e8b5c32bcd",
       "purpose": "Separate upstream pitch availability from pre-decoder filtering and selector loss on cold guitar stems",
       "songs": ["Final Solution", "Gott Mit Uns", "The Red Baron"],
       "route": "raw guitar oracle -> source-filtered selector -> lead diagnostics",
