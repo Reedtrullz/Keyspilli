@@ -141,12 +141,13 @@ describe("external symbolic research bridge", () => {
   it("preserves sanitized HTTP URLs while redacting physical roots and path-bearing errors", async () => {
     const inventory = await researchExternalCandidates(song, {
       discoveryRecords: [{ id: "url", title: "URL lead", provider: "Provider", sourceRef: "provider:url", sourcePage: "https://example.com/page?token=secret#section" }],
-      discoveryErrors: ["failed reading /opt/keyspilli/a.mid, /root/private/b.mid, /unknownroot/secret.mid, \\\\server\\share\\song.mid, and file://server/share/other.mid; see https://example.com/page"],
+      discoveryErrors: ["failed reading /opt/keyspilli/a.mid, /root/private/b.mid, /unknownroot/secret.mid, /unknownroot/secret, \\\\server\\share\\song.mid, and file://server/share/other.mid; see https://example.com/page, youtube:abc/section, A/B, provider/path"],
     });
     const json = serializeExternalResearchInventory(inventory);
     expect(json).toContain("https://example.com/page");
     expect(json).not.toContain("http[redacted-path]");
     expect(json).not.toMatch(/\/opt\/|\/root\/|\/srv\/|\/etc\/|\/mnt\/|\/data\/|\/unknownroot\/|server\\share|file:\/\/server|\$1/);
+    expect(json).toMatch(/youtube:abc\/section|A\/B|provider\/path/);
     expect(json).toContain("[redacted-path]");
   });
 

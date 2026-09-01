@@ -203,7 +203,7 @@ function errorText(error: unknown): string {
 /** Redact physical locators while preserving logical refs and HTTP(S) URLs. */
 function redactPhysicalText(value: string): string {
   if (/^https?:\/\//i.test(value.trim())) return value;
-  const physical = /(?:file:\/\/[^\s,;)}\]]+|\\\\[^\s,;)}\]]+|(?<![A-Za-z0-9:])(?:[A-Za-z]:[\\/]|~[\\/]|\/(?:Users|private|tmp|var|home|Volumes|workspace|opt|root|srv|etc|mnt|data)(?:[\\/]|$))[^\s,;)}\]]*|(?<![A-Za-z0-9:])\/[^\s,;)}\]]+\.(?:mid|midi|musicxml|mxl|mscz|wav|mp3|json)(?:[?#][^\s,;)}\]]*)?)/gi;
+  const physical = /(?:file:\/\/[^\s,;)}\]]+|\\\\[^\s,;)}\]]+|(?<![A-Za-z0-9:])(?:[A-Za-z]:[\\/]|~[\\/]|\/(?:Users|private|tmp|var|home|Volumes|workspace|opt|root|srv|etc|mnt|data)(?:[\\/]|$))[^\s,;)}\]]*|(?<![A-Za-z0-9:/])\/(?=[^\s,;)}\]]*\/)[^\s,;)}\]]+\.(?:mid|midi|musicxml|mxl|mscz|wav|mp3|json)(?:[?#][^\s,;)}\]]*)?|(?<![A-Za-z0-9:/])\/(?=[^\s,;)}\]]*\/)[^\s,;)}\]]+)/gi;
   return value.replace(physical, "[redacted-path]");
 }
 
