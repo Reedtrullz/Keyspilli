@@ -41,7 +41,7 @@ because `../src/external-evidence.js` did not exist.
 
 ## Commit
 
-Implementation commit: `f1bfc3ebe37fe4bf7bda89c40c4365f2daebf3fd` (`fix(catalog): redact extensionless physical evidence paths`)
+Implementation commit: `bfc8210e77e88e1ac1addc3a35ccfa88d74d6575` (`fix(catalog): narrow physical path redaction`)
 
 ## Concerns and boundaries
 
@@ -71,3 +71,5 @@ Implementation commit: `f1bfc3ebe37fe4bf7bda89c40c4365f2daebf3fd` (`fix(catalog)
   separate canonicalization concern.
 - Extensionless physical locators (file URLs, Unix, Windows, and tilde paths)
   are now redacted while retaining surrounding text.
+- Extensionless redaction is limited to physical prefixes and preserves
+  ordinary HTTPS, provider, and logical identifiers.
