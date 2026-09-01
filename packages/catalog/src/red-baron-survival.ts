@@ -204,11 +204,15 @@ function round(value: number): number {
 
 function redactPath(value: string): string {
   if (/^https?:\/\//i.test(value.trim())) return value;
-  return value
-    .replace(/file:\/\/[^\s"'<>;,)]*/gi, "[redacted-path]")
-    .replace(/(?:^|[\s(=,:;\[\]])(?:\\\\[^\s"'<>;,)]*|[A-Za-z]:[\\/][^\s"'<>;,)]*|\/(?:Users|private|tmp|var|home|Volumes|root|opt|mnt|workspace|etc|srv|data|app)(?:[\\/][^\s"'<>;,)]*)?)/gi, (match) => match.startsWith(" ") ? ` ${"[redacted-path]"}` : "[redacted-path]")
-    .replace(/(?:^|[\s(=,:;\[\]])(?:\.\.?\/|[A-Za-z0-9._-]+\/)[^\s"'<>;,)]*\.(?:mid|midi|json|wav|mp3|xml|mxl)(?=$|[\s"'<>;,\)])/gi, (match) => match.startsWith(" ") ? ` ${"[redacted-path]"}` : "[redacted-path]");
+  const physical = /(?:file:\/{1,2}[^\s"'<>;,)}]+|\\\\[^\s"'<>;,)}]+|(?<![A-Za-z0-9])[A-Za-z]:[\\/][^\s"'<>;,)}]+|~[\\/][^\s"'<>;,)}]+|(?<![A-Za-z0-9:/])\/[^\s"'<>;,)}]+)/gi;
+  const isPhysical = (candidate: string): boolean => /^(?:file:\/{1,2}|\\\\|[A-Za-z]:[\\/]|~[\\/]|\/)/i.test(candidate.trim());
+  let result = value.replace(/(["'])(.*?)\1/g, (full, quote: string, inner: string) => isPhysical(inner) ? `${quote}[redacted-path]${quote}` : full);
+  result = result.replace(physical, (match) => isPhysical(match) ? "[redacted-path]" : match);
+  return result;
 }
+
+/** Path redaction shared by the opt-in CLI and canonical report serializer. */
+export const redactStageSurvivalText = redactPath;
 
 function safeDiagnostic(value: unknown): string {
   return redactPath(typeof value === "string" ? value : String(value));
@@ -561,10 +565,10 @@ export function genericDecoderFixDecision(report: StageSurvivalReport): { decisi
   if (!report || report.status !== "ready") blockers.push("report is missing, partial, or blocked");
   if (Array.isArray(report?.diagnostics) && report.diagnostics.some((diagnostic) => /reference[- ]dependent|reference notes? used for decoding/i.test(diagnostic))) blockers.push("reference-dependent evidence is not eligible");
   const evidence = report?.evidence ?? report?.gates;
-  if (!evidence?.sourceIndependentInvariant) blockers.push("source-independent invariant evidence is required");
-  if (!evidence?.syntheticRegression) blockers.push("synthetic regression evidence is required");
-  if (!evidence?.crossSongImprovement) blockers.push("cross-song improvement evidence is required");
-  if (!evidence?.noMaterialRegression) blockers.push("no material regression must be ruled out");
+  if (evidence?.sourceIndependentInvariant !== true) blockers.push("source-independent invariant evidence is required");
+  if (evidence?.syntheticRegression !== true) blockers.push("synthetic regression evidence is required");
+  if (evidence?.crossSongImprovement !== true) blockers.push("cross-song improvement evidence is required");
+  if (evidence?.noMaterialRegression !== true) blockers.push("no material regression must be ruled out");
   return blockers.length ? { decision: "defer", eligible: false, blockers: [...new Set(blockers)].sort(compareText) } : { decision: "apply", eligible: true, blockers: [] };
 }
 

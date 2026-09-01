@@ -19,6 +19,7 @@ import {
   RED_BARON_SURVIVAL_STAGES,
   canonicalStageSurvivalJson,
   evaluateStageSurvival,
+  redactStageSurvivalText,
   type RedBaronSurvivalStage,
   type StageInput,
   type StageSurvivalReport,
@@ -53,13 +54,7 @@ function usage(): string {
   ].join("\n");
 }
 
-function redactPath(value: string): string {
-  if (/^https?:\/\//i.test(value.trim())) return value;
-  return value
-    .replace(/file:\/\/[^\s"'<>;,)]*/gi, "[redacted-path]")
-    .replace(/(?:^|[\s(=,:;\[\]])(?:\\\\[^\s"'<>;,)]*|[A-Za-z]:[\\/][^\s"'<>;,)]*|\/(?:Users|private|tmp|var|home|Volumes|root|opt|mnt|workspace|etc|srv|data|app)(?:[\\/][^\s"'<>;,)]*)?)/gi, (match) => match.startsWith(" ") ? " [redacted-path]" : "[redacted-path]")
-    .replace(/(?:^|[\s(=,:;\[\]])(?:\.\.?\/|[A-Za-z0-9._-]+\/)[^\s"'<>;,)]*\.(?:mid|midi|json|wav|mp3|xml|mxl)(?=$|[\s"'<>;,\)])/gi, (match) => match.startsWith(" ") ? " [redacted-path]" : "[redacted-path]");
-}
+const redactPath = redactStageSurvivalText;
 
 function parseFinite(value: string): number {
   const result = Number(value);
@@ -117,7 +112,8 @@ function parseOptions(argv: readonly string[]): CliOptions {
 }
 
 function assertLocalPath(path: string, label: string): void {
-  if (/^[A-Za-z][A-Za-z0-9+.-]*:\/\//.test(path) || /^https?:/i.test(path)) throw new Error(`${label} must be an explicit local path`);
+  const windowsDrivePath = /^[A-Za-z]:[\\/]/.test(path);
+  if (!windowsDrivePath && /^[A-Za-z][A-Za-z0-9+.-]*:/i.test(path)) throw new Error(`${label} must be an explicit local path`);
   if (!path.trim()) throw new Error(`${label} path is empty`);
   if (!/\.(?:mid|midi|json)$/i.test(extname(path))) throw new Error(`${label} must have a .mid, .midi, or .json extension`);
 }
@@ -178,7 +174,7 @@ export async function runRedBaronSurvivalCli(
     catch (error) { io.stderr(`${redactPath(error instanceof Error ? error.message : String(error))}\n`); return 2; }
   }
   io.stdout(pretty);
-  return 0;
+  return report.status === "ready" ? 0 : 2;
 }
 
 /* istanbul ignore next -- process entry point */

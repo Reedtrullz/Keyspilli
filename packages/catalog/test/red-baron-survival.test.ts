@@ -174,4 +174,81 @@ describe("red baron stage survival", () => {
       await rm(directory, { recursive: true, force: true });
     }
   });
+
+  it("redacts arbitrary quoted absolute, tilde, Windows, UNC, and extensionless paths while preserving logical refs", () => {
+    const report = evaluateStageSurvival(fullStages(), reference, windows);
+    const json = canonicalStageSurvivalJson({
+      ...report,
+      reference: { ...report.reference, sourceId: "/Users/reidar/quoted reference" },
+      diagnostics: [
+        'quoted "/Users/reidar/Projectos/Keyspilli/private"',
+        "tilde '~/secrets/red-baron'",
+        'windows "C:\\\\Users\\reidar\\reference"',
+        'unc "\\\\server\\share\\reference"',
+        "root /var/lib/keyspilli-reference",
+        "logical/source and https://example.test/reference.mid",
+      ],
+    });
+    expect(json).not.toContain("/Users/reidar");
+    expect(json).not.toContain("~/secrets");
+    expect(json).not.toContain("C:\\\\Users");
+    expect(json).not.toContain("\\\\server\\share");
+    expect(json).not.toContain("/var/lib");
+    expect(json).toContain("logical/source");
+    expect(json).toContain("https://example.test/reference.mid");
+  });
+
+  it("returns nonzero when the CLI evaluator produces a blocked partial report", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "keyspilli-red-baron-blocked-"));
+    try {
+      const path = join(directory, "raw.json");
+      const referencePath = join(directory, "reference.json");
+      await writeFile(path, JSON.stringify([note("a", 60, 0)]));
+      await writeFile(referencePath, JSON.stringify([note("a", 60, 0)]));
+      let output = "";
+      const code = await runRedBaronSurvivalCli(["--stage", `raw=${path}`, "--reference", referencePath, "--window", "main:0:2"], {
+        stdout: (value) => { output += value; },
+        stderr: () => {},
+      });
+      expect(code).toBe(2);
+      expect(JSON.parse(output).status).toBe("blocked");
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("requires decoder-fix evidence flags to be literal true values", () => {
+    const base = evaluateStageSurvival(fullStages(), reference, windows);
+    const truthyEvidence = {
+      sourceIndependentInvariant: 1,
+      syntheticRegression: "true",
+      crossSongImprovement: true,
+      noMaterialRegression: [] as unknown as boolean,
+    };
+    expect(genericDecoderFixDecision({ ...base, evidence: truthyEvidence as unknown as DecoderFixEvidence }).decision).toBe("defer");
+  });
+
+  it("rejects file URL schemes as non-local CLI inputs", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "keyspilli-red-baron-file-url-"));
+    try {
+      const referencePath = join(directory, "reference.json");
+      await writeFile(referencePath, JSON.stringify([note("a", 60, 0)]));
+      let errors = "";
+      const code = await runRedBaronSurvivalCli(["--stage", "raw=file:///private/tmp/raw.mid", "--reference", referencePath, "--window", "main:0:2"], {
+        stdout: () => {},
+        stderr: (value) => { errors += value; },
+      });
+      expect(code).toBe(2);
+      expect(errors).toMatch(/local/i);
+      errors = "";
+      const missingPath = "/completely/arbitrary/secret-without-extension.mid";
+      expect(await runRedBaronSurvivalCli(["--stage", `raw=${missingPath}`, "--reference", referencePath, "--window", "main:0:2"], {
+        stdout: () => {},
+        stderr: (value) => { errors += value; },
+      })).toBe(2);
+      expect(errors).not.toContain("/completely/arbitrary");
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
 });
