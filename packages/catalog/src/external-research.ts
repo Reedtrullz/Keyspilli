@@ -196,9 +196,15 @@ function hashBytes(input: Uint8Array | ArrayBuffer): string {
 
 function errorText(error: unknown): string {
   const value = error instanceof Error ? error.message : typeof error === "string" ? error : "external symbolic ingestion failed";
-  return value.replace(/file:\/\/[^\s]+/gi, "[redacted-path]")
-    .replace(/(?:^|[\s(=:])\/(?:[^\s/]+\/)*(?:Users|private|tmp|var|home|Volumes|workspace)\/[^\s)]*/gi, "$1[redacted-path]")
+  return redactPhysicalText(value)
     .replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, 240) || "external symbolic ingestion failed";
+}
+
+/** Redact physical locators while preserving logical refs and HTTP(S) URLs. */
+function redactPhysicalText(value: string): string {
+  if (/^https?:\/\//i.test(value.trim())) return value;
+  const physical = /(?:file:\/\/(?:[A-Za-z]:[\\/]|[\\/]|~[\\/])|(?<![A-Za-z0-9])(?:[A-Za-z]:[\\/]|~[\\/]|\/(?:Users|private|tmp|var|home|Volumes|workspace|opt|root|srv|etc|mnt|data)(?:[\\/]|$)))[^\s,;)}\]]*/gi;
+  return value.replace(physical, "[redacted-path]");
 }
 
 function clamp(value: number): number {
@@ -424,12 +430,15 @@ function recordFromIngestion(song: SongIdentity, input: ExternalResearchLocalInp
   const candidate = result.candidate;
   const rejectionReasons = [...result.rejectionReasons];
   if (purpose === "BENCHMARK_REFERENCE" && !rejectionReasons.some((reason) => /benchmark|reference/i.test(reason))) rejectionReasons.push("benchmark/reference evidence is evaluation-only");
+  const evidenceClass = input.evidenceClass === "BENCHMARK_REFERENCE"
+    ? input.evidenceClass
+    : result.status === "parsed" ? (input.evidenceClass ?? candidate?.evidenceClass ?? "VERIFIED_NATIVE_SYMBOLIC") : "TAB_OR_CHORD_EVIDENCE";
   return {
     id: stableId(input.id, candidate?.id ?? fallbackId),
     songId: song.id,
     title: text(input.title) ?? song.title,
     provider: text(input.provider),
-    evidenceClass: input.evidenceClass ?? candidate?.evidenceClass ?? "VERIFIED_NATIVE_SYMBOLIC",
+    evidenceClass,
     purpose,
     discovery: { status: "local-supplied", sourceRef: logicalRef(input.sourceRef) ?? candidate?.provenance.sourceRef ?? null, sourcePage: safePage(input.sourcePage) },
     acquisition: { status: result.provenance?.accessMethod === "local-file" ? "local-file" : result.provenance?.accessMethod === "local-bytes" ? "local-bytes" : "rejected", method: result.provenance?.accessMethod === "local-file" || result.provenance?.accessMethod === "local-bytes" ? result.provenance.accessMethod : null },
@@ -455,14 +464,23 @@ export async function researchExternalCandidates(songInput: SongIdentityInput | 
   const records = new Map<string, ExternalResearchRecord>();
   for (const item of discovery) records.set(stableId(item.id, `discovery:${records.size + 1}`), recordFromDiscovery(song, item));
   for (const [index, input] of localInputs.entries()) {
-    const id = stableId(input.id, stableId(input.sourceRef, input.bytes !== undefined ? `local:${hashBytes(input.bytes).slice(0, 24)}` : `local:${index + 1}`));
-    const base = records.get(id);
-    const ingestionInput = base
-      ? { ...input, purpose: input.purpose ?? base.purpose, evidenceClass: input.evidenceClass ?? base.evidenceClass }
+    const sourceRef = logicalRef(input.sourceRef);
+    const requestedId = stableId(input.id, stableId(sourceRef, input.bytes !== undefined ? `local:${hashBytes(input.bytes).slice(0, 24)}` : `local:${index + 1}`));
+    const baseByIdentity = records.get(requestedId)
+      ?? (sourceRef ? [...records.values()].find((record) => record.discovery.sourceRef === sourceRef) : undefined);
+    const ingestionInput = baseByIdentity
+      ? { ...input, purpose: input.purpose ?? baseByIdentity.purpose, evidenceClass: input.evidenceClass ?? baseByIdentity.evidenceClass }
       : input;
     const result = await ingestExternalSymbolicCandidate(ingestionInput);
+    const contentHash = result.provenance?.sha256 ?? null;
+    const id = stableId(input.id, stableId(sourceRef, contentHash ? `local:${contentHash.slice(0, 24)}` : `local:${index + 1}`));
+    const baseEntry = baseByIdentity
+      ? [...records.entries()].find(([, record]) => record === baseByIdentity)
+      : contentHash ? [...records.entries()].find(([, record]) => record.content.sha256 === contentHash) : undefined;
+    const base = baseEntry?.[1];
     const record = recordFromIngestion(song, input, result, id);
-    if (base) {
+    if (base && baseEntry) {
+      record.id = base.id;
       record.title = record.title === song.title ? base.title : record.title;
       record.provider = record.provider ?? base.provider;
       record.evidenceClass = input.evidenceClass ?? base.evidenceClass;
@@ -471,7 +489,7 @@ export async function researchExternalCandidates(songInput: SongIdentityInput | 
       record.discovery.sourcePage = record.discovery.sourcePage ?? base.discovery.sourcePage;
       if (record.purpose === "BENCHMARK_REFERENCE" && !record.rejectionReasons.some((reason) => /benchmark|reference/i.test(reason))) record.rejectionReasons.push("benchmark/reference evidence is evaluation-only");
       record.generationUsable = record.generationUsable && record.purpose !== "BENCHMARK_REFERENCE";
-      records.set(id, record);
+      records.set(baseEntry[0], record);
     } else records.set(id, record);
   }
   return {
@@ -489,8 +507,9 @@ function safeSummary(value: unknown, key = ""): unknown {
   }
   if (Array.isArray(value)) return value.map((item) => safeSummary(item, key)).filter((item) => item !== undefined);
   if (typeof value === "string") {
+    if (/^https?:\/\//i.test(value.trim())) return value;
     if (/^(?:file:\/\/|[A-Za-z]:[\\/]|[\\/]|~[\\/])/.test(value)) return "[redacted-path]";
-    return value.replace(/(?:file:\/\/|[A-Za-z]:[\\/]|\/(?:Users|private|tmp|var|home|Volumes)[\\/])[^\s,;)}\]]+/gi, "[redacted-path]");
+    return redactPhysicalText(value);
   }
   if (isRecord(value)) return Object.fromEntries(Object.keys(value).sort().map((childKey) => [childKey, safeSummary(value[childKey], childKey)]).filter(([, item]) => item !== undefined));
   return value;

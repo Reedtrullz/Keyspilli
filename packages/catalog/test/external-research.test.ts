@@ -138,6 +138,40 @@ describe("external symbolic research bridge", () => {
     expect(serializeExternalResearchInventory(forward)).toBe(serializeExternalResearchInventory(reverse));
   });
 
+  it("preserves sanitized HTTP URLs while redacting physical roots and path-bearing errors", async () => {
+    const inventory = await researchExternalCandidates(song, {
+      discoveryRecords: [{ id: "url", title: "URL lead", provider: "Provider", sourceRef: "provider:url", sourcePage: "https://example.com/page?token=secret#section" }],
+      discoveryErrors: ["failed reading /opt/keyspilli/a.mid and /root/private/b.mid; see https://example.com/page"],
+    });
+    const json = serializeExternalResearchInventory(inventory);
+    expect(json).toContain("https://example.com/page");
+    expect(json).not.toContain("http[redacted-path]");
+    expect(json).not.toMatch(/\/opt\/|\/root\/|\/srv\/|\/etc\/|\/mnt\/|\/data\/|\$1/);
+    expect(json).toContain("[redacted-path]");
+  });
+
+  it("classifies invalid and unsupported local evidence as non-native records", async () => {
+    const inventory = await researchExternalCandidates(song, {
+      localInputs: [
+        { id: "guitar-pro", sourceRef: "provider:guitar-pro", format: "guitar-pro", bytes: Uint8Array.from([1, 2, 3]) },
+        { id: "bad-midi", sourceRef: "provider:bad-midi", format: "midi", bytes: Uint8Array.from([1, 2, 3]) },
+      ],
+    });
+    expect(inventory.records.map((record) => record.evidenceClass)).toEqual(["TAB_OR_CHORD_EVIDENCE", "TAB_OR_CHORD_EVIDENCE"]);
+    expect(inventory.records.every((record) => record.generationUsable === false)).toBe(true);
+    expect(inventory.records.every((record) => record.candidate === null)).toBe(true);
+  });
+
+  it("merges a metadata discovery record with local bytes by logical sourceRef", async () => {
+    const bytes = midiBytes([{ midi: 60, start: 0, dur: 1, vel: 96, hand: "R" }]);
+    const inventory = await researchExternalCandidates(song, {
+      discoveryRecords: [{ id: "discovery-id", title: "Lead metadata", provider: "Provider", sourceRef: "provider:shared-lead", format: "midi" }],
+      localInputs: [{ sourceRef: "provider:shared-lead", title: "Lead bytes", bytes, format: "midi", purpose: "GENERATION_CANDIDATE" }],
+    });
+    expect(inventory.records).toHaveLength(1);
+    expect(inventory.records[0]).toMatchObject({ id: "discovery-id", provider: "Provider", parser: { status: "parsed" }, content: { sha256: expect.any(String) } });
+  });
+
   it("reports uncertain role evidence from register, monophony, density, and metadata", () => {
     const result = adaptNativeSymbolicBytes(midiBytes([], [
       { name: "Lead Voice", notes: [
