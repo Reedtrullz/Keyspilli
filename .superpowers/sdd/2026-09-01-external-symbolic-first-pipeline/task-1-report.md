@@ -41,7 +41,7 @@ because `../src/external-evidence.js` did not exist.
 
 ## Commit
 
-Implementation commit: `c6da016641427de1c9621fb4dbdda19886cc5a95` (`fix(catalog): close final external evidence leaks`)
+Implementation commit: `7f247b754d55afaca770d912a8b6648875eff44f` (`fix(catalog): close nested evidence marker bypass`)
 
 ## Concerns and boundaries
 
@@ -66,3 +66,6 @@ Implementation commit: `c6da016641427de1c9621fb4dbdda19886cc5a95` (`fix(catalog)
   physical paths including embedded and file-URL forms.
 - Final review hardening covers spaced/backslash/case-insensitive path forms,
   nested protected markers, and safely narrowed canonical test values.
+- Nested marker scanning now traverses all candidate metadata, including
+  path/file/artifact/locator keys, while physical-path redaction remains a
+  separate canonicalization concern.
