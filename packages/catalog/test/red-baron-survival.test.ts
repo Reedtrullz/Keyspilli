@@ -186,6 +186,7 @@ describe("red baron stage survival", () => {
         'windows "C:\\\\Users\\reidar\\reference"',
         'unc "\\\\server\\share\\reference"',
         "root /var/lib/keyspilli-reference",
+        "relative foo/bar.mid and './secret/reference'",
         "logical/source and https://example.test/reference.mid",
       ],
     });
@@ -194,6 +195,8 @@ describe("red baron stage survival", () => {
     expect(json).not.toContain("C:\\\\Users");
     expect(json).not.toContain("\\\\server\\share");
     expect(json).not.toContain("/var/lib");
+    expect(json).not.toContain("foo/bar.mid");
+    expect(json).not.toContain("./secret/reference");
     expect(json).toContain("logical/source");
     expect(json).toContain("https://example.test/reference.mid");
   });
@@ -247,6 +250,12 @@ describe("red baron stage survival", () => {
         stderr: (value) => { errors += value; },
       })).toBe(2);
       expect(errors).not.toContain("/completely/arbitrary");
+      errors = "";
+      expect(await runRedBaronSurvivalCli(["--stage", "raw=foo/bar.mid", "--reference", referencePath, "--window", "main:0:2"], {
+        stdout: () => {},
+        stderr: (value) => { errors += value; },
+      })).toBe(2);
+      expect(errors).not.toContain("foo/bar.mid");
     } finally {
       await rm(directory, { recursive: true, force: true });
     }

@@ -32,10 +32,10 @@ Commands run from `/Users/reidar/Projectos/Keyspilli`:
 
 ```text
 ./node_modules/.bin/vitest run packages/catalog/test/red-baron-survival.test.ts
-  1 file, 9 tests passed
+  1 file, 13 tests passed
 
 ./node_modules/.bin/vitest run packages/catalog/test/red-baron-survival.test.ts packages/catalog/test/external-symbolic-pipeline.test.ts packages/catalog/test/external-research.test.ts packages/catalog/test/external-evidence.test.ts packages/catalog/test/piano-alignment.test.ts
-  5 files, 55 tests passed
+  5 files, 59 tests passed
 
 pnpm --filter @keyspilli/catalog exec tsc --noEmit
   passed (pnpm emitted existing workspace-field warnings)
@@ -57,7 +57,7 @@ uploaded, committed, or passed to any decoder.
 The six full-suite failures are the existing subprocess-environment failures in
 `restore-curated.test.ts` and `verify-catalog.test.ts`: they invoke
 `/Users/reidar/.hermes/node/bin/node --import tsx` with cwd `/Users/reidar`,
-where `tsx` cannot be resolved. All 9 new tests and all neighboring focused
+where `tsx` cannot be resolved. All 13 new tests and all neighboring focused
 tests passed.
 
 ## Boundaries and caveats

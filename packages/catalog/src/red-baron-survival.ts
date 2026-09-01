@@ -205,10 +205,11 @@ function round(value: number): number {
 function redactPath(value: string): string {
   if (/^https?:\/\//i.test(value.trim())) return value;
   const physical = /(?:file:\/{1,2}[^\s"'<>;,)}]+|\\\\[^\s"'<>;,)}]+|(?<![A-Za-z0-9])[A-Za-z]:[\\/][^\s"'<>;,)}]+|~[\\/][^\s"'<>;,)}]+|(?<![A-Za-z0-9:/])\/[^\s"'<>;,)}]+)/gi;
+  const relativeFile = /(?<![A-Za-z0-9._:/-])(?:\.{1,2}[\\/]|[A-Za-z0-9._-]+[\\/])[^\s"'<>;,)}]*\.(?:mid|midi|musicxml|mxl|mscz|wav|mp3|json|xml)(?:[?#][^\s"'<>;,)}]*)?/gi;
   const isPhysical = (candidate: string): boolean => /^(?:file:\/{1,2}|\\\\|[A-Za-z]:[\\/]|~[\\/]|\/)/i.test(candidate.trim());
   let result = value.replace(/(["'])(.*?)\1/g, (full, quote: string, inner: string) => isPhysical(inner) ? `${quote}[redacted-path]${quote}` : full);
   result = result.replace(physical, (match) => isPhysical(match) ? "[redacted-path]" : match);
-  return result;
+  return result.replace(relativeFile, "[redacted-path]");
 }
 
 /** Path redaction shared by the opt-in CLI and canonical report serializer. */
