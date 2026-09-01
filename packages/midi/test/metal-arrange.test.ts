@@ -2591,4 +2591,30 @@ describe("metal piano arranger", () => {
     expect(reorderedResult).toEqual(plain);
     expect(canonicalTrace(secondTrace)).toEqual(canonicalTrace(firstTrace));
   });
+
+  it("links difficulty variants back to canonical trace events when requested", () => {
+    const trace: MetalArrangementTraceEvent[] = [];
+    const traced = buildMetalArrangement(
+      {
+        stems: [
+          ...[
+            { role: "vocals" as const, midi: midi([{ midi: 72, start: 0, dur: 0.5, vel: 104 }, { midi: 74, start: 2, dur: 0.5, vel: 100 }], 4) },
+            { role: "guitar" as const, midi: midi([{ midi: 48, start: 0, dur: 0.5, vel: 96 }, { midi: 55, start: 0.01, dur: 0.45, vel: 88 }, { midi: 72, start: 0, dur: 0.5, vel: 108 }, { midi: 50, start: 2, dur: 0.5, vel: 96 }, { midi: 57, start: 2.01, dur: 0.45, vel: 88 }, { midi: 74, start: 2, dur: 0.5, vel: 104 }], 4) },
+            { role: "bass" as const, midi: midi([{ midi: 36, start: 0, dur: 4, vel: 100 }], 4) },
+          ],
+        ],
+      },
+      { trace: { record: (event) => trace.push(event) } },
+    );
+    const variants = buildVariants(traced.parsed, { title: "Trace ladder", artist: "Fixture" }, {
+      arrangementProfile: "metal",
+      chords: traced.chords,
+      trace: { record: (event) => trace.push(event) },
+    });
+    const finalKeys = new Set(trace.filter((event) => event.stage === "final").map((event) => event.key));
+    const difficulty = trace.filter((event) => event.stage === "difficulty");
+    expect(difficulty.length).toBe(variants.reduce((sum, variant) => sum + variant.notes.length, 0));
+    expect(difficulty.every((event) => event.selected === true && event.parentKeys.some((key) => finalKeys.has(key)))).toBe(true);
+    expect(new Set(difficulty.map((event) => event.key)).size).toBe(difficulty.length);
+  });
 });

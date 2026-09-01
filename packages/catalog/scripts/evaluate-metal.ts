@@ -270,6 +270,7 @@ async function run(options: CliOptions): Promise<string> {
       arrangementProfile: "metal",
       normalizeRange: false,
       chords: arrangement.chords,
+      ...(traceSink ? { trace: traceSink } : {}),
     });
   }
 

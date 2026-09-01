@@ -4,7 +4,7 @@ import { quantize } from "./quantize.js";
 import { LADDER_TOL, PLAYABILITY_LIMITS } from "./validate.js";
 import { sanitizeImportedNotes } from "./clean.js";
 import { validateChordLabels } from "./chords.js";
-import { selectGuitarLeadPath } from "./metal-arrange.js";
+import { selectGuitarLeadPath, type MetalArrangementTraceEvent, type MetalArrangementTraceSink } from "./metal-arrange.js";
 
 export interface VariantOptions {
   /** 16th-note grid (beats) used for note slicing */
@@ -36,6 +36,61 @@ export interface VariantOptions {
   audioDerived?: boolean;
   /** Authoritative harmony from a role-aware arranger. Avoid per-level re-inference. */
   chords?: ChordLabel[];
+  /** Optional development-only lineage sidecar; never changes variant bytes. */
+  trace?: MetalArrangementTraceSink;
+}
+
+function difficultyTraceKey(level: DifficultyLevel, note: Note, index: number): string {
+  return `difficulty:${level}:${index}:${note.hand ?? "?"}:${note.start.toFixed(6)}:${note.midi}:${note.dur.toFixed(6)}:${note.vel}:${note.identitySource ?? "unknown"}`;
+}
+
+function canonicalTraceKey(note: Note): string {
+  return `final:${note.hand ?? "?"}:${note.start.toFixed(6)}:${note.midi}:${note.dur.toFixed(6)}:${note.vel}:${note.identitySource ?? "unknown"}`;
+}
+
+function difficultyParent(note: Note, canonical: Note[], startTolerance: number): { key?: string; reason: "retained" | "revoiced" | "generated" } {
+  const candidates = canonical
+    .map((source) => ({ source, start: Math.abs(source.start - note.start), pitch: Math.abs(source.midi - note.midi), dur: Math.abs(source.dur - note.dur) }))
+    .filter(({ source }) => source.hand === note.hand && source.identitySource === note.identitySource)
+    .sort((a, b) => a.start - b.start || a.pitch - b.pitch || a.dur - b.dur || a.source.midi - b.source.midi);
+  const exact = candidates.find(({ start, pitch }) => start <= startTolerance && pitch === 0);
+  if (exact) return { key: canonicalTraceKey(exact.source), reason: "retained" };
+  const nearby = candidates.find(({ start }) => start <= startTolerance);
+  if (nearby) return { key: canonicalTraceKey(nearby.source), reason: "revoiced" };
+  return { reason: "generated" };
+}
+
+function emitDifficultyTrace(
+  sink: MetalArrangementTraceSink | undefined,
+  level: DifficultyLevel,
+  notes: Note[],
+  canonical: Note[],
+): void {
+  if (!sink) return;
+  // The learner ladder intentionally quantizes the very-easy/beginner floors
+  // more coarsely than the canonical stream. Keep that deterministic timing
+  // transform traceable without treating a rounded attack as newly invented.
+  const startTolerance = level === "very-beginner" ? 0.5 : level === "beginner" || level === "very-easy" ? 0.25 : 0.125;
+  for (const [index, note] of notes.entries()) {
+    const parent = difficultyParent(note, canonical, startTolerance + 1e-9);
+    const event: MetalArrangementTraceEvent = {
+      key: difficultyTraceKey(level, note, index),
+      stage: "difficulty",
+      parentKeys: parent.key ? [parent.key] : [],
+      source: note.identitySource ?? null,
+      sourceStem: note.identitySource ?? null,
+      note: {
+        midi: note.midi,
+        start: note.start,
+        dur: note.dur,
+        vel: note.vel,
+        ...(note.hand ? { hand: note.hand } : {}),
+      },
+      selected: true,
+      selectionReason: `difficulty-${level}-${parent.reason}`,
+    };
+    sink.record(event);
+  }
 }
 
 export const SAFE_TEMPO_BPM = 120;
@@ -2439,6 +2494,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   const lhPattern = detectBassPattern(lh);
   return LEVEL_ORDER.map((level) => {
     const notes = sets[level]!.map((n) => ({ ...n }));
+    emitDifficultyTrace(opts.trace, level, notes, src.notes);
     return {
       level,
       difficultyScore: scores[level]!,

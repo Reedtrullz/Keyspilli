@@ -29,6 +29,7 @@ export type MetalArrangementTraceStage =
   | "decision"
   | "chord"
   | "left-hand"
+  | "difficulty"
   | "final";
 
 /**
@@ -114,6 +115,11 @@ function traceNote(note: IdentityNote | Note): MetalArrangementTraceEvent["note"
 function traceParents(note: IdentityNote | Note): string[] {
   const internal = note as Note & { traceRefs?: readonly string[] };
   return internal.traceRefs ? [...internal.traceRefs].sort() : [];
+}
+
+/** Stable canonical-note key shared with the optional difficulty trace. */
+function metalTraceFinalKey(note: Note): string {
+  return `final:${note.hand ?? "?"}:${note.start.toFixed(6)}:${note.midi}:${note.dur.toFixed(6)}:${note.vel}:${note.identitySource ?? "unknown"}`;
 }
 
 function emitTrace(
@@ -3635,9 +3641,10 @@ export function buildMetalArrangement(
     ...stabilizedIdentity.map((note) => ({ ...note, hand: "R" as const })),
     ...leftHand.map((note) => ({ ...note } as IdentityNote)),
   ];
-  for (const [index, note] of preFinalNotes.entries()) {
+  const finalInternalNotes = uniqueSorted(preFinalNotes) as IdentityNote[];
+  for (const note of finalInternalNotes) {
     emitTrace(trace, {
-      key: `final:${note.hand === "L" ? "L" : "R"}:${index}:${note.start.toFixed(6)}:${note.midi}`,
+      key: metalTraceFinalKey(note),
       stage: "final",
       parentKeys: traceParents(note),
       source: note.identitySource ?? null,
@@ -3647,7 +3654,7 @@ export function buildMetalArrangement(
       selectionReason: note.hand === "L" ? "left-hand-emission" : "right-hand-identity",
     });
   }
-  const notes = uniqueSorted(preFinalNotes.map(stripInternalIdentity));
+  const notes = finalInternalNotes.map(stripInternalIdentity);
   const emittedSemanticKeys = new Set(notes
     .filter((note) => note.hand === "L" && note.identitySource)
     .map((note) => `${note.identitySource}:${note.midi}:${note.start.toFixed(4)}`));

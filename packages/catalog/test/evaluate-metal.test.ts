@@ -127,6 +127,7 @@ describe("evaluate-metal CLI", () => {
       expect(trace.events).toEqual(expect.arrayContaining([
         expect.objectContaining({ stage: "raw", source: "guitar" }),
         expect.objectContaining({ stage: "lead", source: "guitar" }),
+        expect.objectContaining({ stage: "difficulty" }),
         expect.objectContaining({ stage: "final" }),
       ]));
       const orderedKeys = trace.events.map((event: { key: string }) => event.key);
