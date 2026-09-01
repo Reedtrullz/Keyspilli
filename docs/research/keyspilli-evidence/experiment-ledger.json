@@ -197,6 +197,34 @@
       "reportHash": null,
       "reproducible": true,
       "rawArtifactRetention": "retain no new listening media"
+    },
+    {
+      "id": "raw-ceiling-and-selector-survival-2026-09-01",
+      "date": "2026-09-01",
+      "gitCommit": "f0f65b8",
+      "purpose": "Separate upstream pitch availability from pre-decoder filtering and selector loss on cold guitar stems",
+      "songs": ["Final Solution", "Gott Mit Uns", "The Red Baron"],
+      "route": "raw guitar oracle -> source-filtered selector -> lead diagnostics",
+      "criticalMetrics": {"rawOnsetRecall": {"finalSolution": 0.648, "gottMitUns": 0.756, "redBaron": 0.698}, "selectorInput": {"finalSolution": 901, "gottMitUns": 883, "redBaron": 820}, "selectorSelected": {"finalSolution": 896, "gottMitUns": 864, "redBaron": 780}},
+      "result": "The raw ceiling retains timing evidence but weak exact pitch; pre-selector role/rhythm filters dominate raw-to-selector loss while the candidate cap removes none in the audited runs.",
+      "decision": "Do not broaden noisy candidates or tune a global score; pursue a richer source-aware decoder only as a separate experiment.",
+      "reportHash": "bb155290498fb7340c1528182729caf8c10cae70d8aacd9179e12b6f893607fd",
+      "reproducible": true,
+      "rawArtifactRetention": "retain compact metrics and delete duplicate generated media"
+    },
+    {
+      "id": "semantic-lineage-and-reference-support-2026-09-01",
+      "date": "2026-09-01",
+      "gitCommit": "824ea3d",
+      "purpose": "Make semantic harmony and stage-reference diagnostics traceable without changing public MIDI/API payloads",
+      "songs": ["synthetic-full-band", "The Red Baron"],
+      "route": "validated raw -> lead/residual/semantic/chord/LH/final trace; post-generation reference-support evaluator",
+      "criticalMetrics": {"invalidRawEventsRejected": true, "rhythmAndFallbackParents": true, "referenceSupportIsEvaluationOnly": true, "midiTests": 310, "catalogTests": 891},
+      "result": "Invalid source events are excluded before tracing, routed rhythm/fallback harmony retain raw ancestry, and reference-support labels are attached only to the evaluator report; harmonic fifth diagnostics no longer count legitimate triad fifths as duplicates.",
+      "decision": "Keep lineage and support accounting diagnostics-only; do not feed reference labels into generation or claim musical recognizability.",
+      "reportHash": null,
+      "reproducible": true,
+      "rawArtifactRetention": "retain compact path-free reports only; reference media remains outside the repository"
     }
   ]
 }
