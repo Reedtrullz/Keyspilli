@@ -42,3 +42,4 @@ export * from "./midi-corpus-roles.js";
 export * from "./midi-corpus.js";
 export * from "./midi-corpus-report.js";
 export * from "./direct-amt-evaluation.js";
+export * from "./external-evidence.js";
