@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildMetalArrangement, buildVariants, parseChordSymbol, selectGuitarLeadPath, validateVariants, verifyMonotonicity } from "../src/index.js";
+import { buildMetalArrangement, buildVariants, parseChordSymbol, rescueGuitarPreSelectorCandidates, selectGuitarLeadPath, validateVariants, verifyMonotonicity } from "../src/index.js";
 import type { MetalArrangementTraceEvent, Note, ParsedMidi } from "../src/index.js";
 
 function midi(notes: Note[], durationBeats = 16): ParsedMidi {
@@ -2517,6 +2517,101 @@ describe("metal piano arranger", () => {
     expect(second).toEqual(first);
     expect(first.notes.every((note) => note.identitySource === "guitar")).toBe(true);
     expect(first.notes.some((note) => note.midi === 36 || note.midi === 35 || note.midi === 84 || note.midi === 76)).toBe(false);
+  });
+
+  it("rescues only bounded connected low guitar contours from rhythm-only input", () => {
+    const contour: Note[] = [55, 57, 59, 60].map((midi, index) => ({
+      midi,
+      start: index * 0.5,
+      dur: 0.4,
+      vel: 86,
+      identitySource: "guitar" as const,
+    }));
+    const wall: Note[] = Array.from({ length: 8 }, (_, index) => ({
+      midi: 57,
+      start: 4 + index * 0.5,
+      dur: 0.2,
+      vel: 118,
+      identitySource: "guitar" as const,
+    }));
+    const stack: Note[] = [
+      { midi: 58, start: 9, dur: 0.4, vel: 90, identitySource: "guitar" },
+      { midi: 60, start: 9.04, dur: 0.4, vel: 90, identitySource: "guitar" },
+    ];
+    const lowDrone: Note = { midi: 48, start: 12, dur: 0.4, vel: 90, identitySource: "guitar" };
+    const result = rescueGuitarPreSelectorCandidates(
+      [...contour, ...wall, ...stack, lowDrone],
+      [],
+    );
+
+    expect(result.notes.map((note) => [note.start, note.midi])).toEqual(
+      contour.map((note) => [note.start, note.midi]),
+    );
+    expect(result.diagnostics.consideredCount).toBe(14);
+    expect(result.diagnostics.qualifyingGroupCount).toBe(4);
+    expect(result.diagnostics.rescuedCount).toBe(4);
+    expect(result.diagnostics.maxRescuedEvents).toBe(64);
+  });
+
+  it("keeps bounded rescue deterministic under reordering and never rescues non-guitar notes", () => {
+    const notes: Note[] = Array.from({ length: 12 }, (_, phrase) =>
+      [55, 57, 59, 60].map((midi, index) => ({
+        midi,
+        start: phrase * 2 + index * 0.5,
+        dur: 0.35,
+        vel: 80 + (index % 2) * 8,
+        identitySource: "guitar" as const,
+      })),
+    ).flat();
+    notes.push({ midi: 72, start: 0, dur: 0.5, vel: 100, identitySource: "other" });
+    const first = rescueGuitarPreSelectorCandidates(notes, []);
+    const second = rescueGuitarPreSelectorCandidates([...notes].reverse(), []);
+    expect(second).toEqual(first);
+    expect(first.notes.every((note) => note.identitySource === "guitar")).toBe(true);
+    expect(first.notes.length).toBeLessThanOrEqual(64);
+  });
+
+  it("integrates the opt-in rescue through variants without changing vocal anchors", () => {
+    const vocals: Note[] = [
+      { midi: 72, start: 5, dur: 0.5, vel: 104 },
+      { midi: 74, start: 7, dur: 0.5, vel: 100 },
+    ];
+    const contour: Note[] = [55, 57, 59, 60].map((midi, index) => ({
+      midi,
+      start: index * 0.5,
+      dur: 0.25,
+      vel: 80,
+    }));
+    const wall: Note[] = Array.from({ length: 4 }, (_, index) => ({
+      midi: 57,
+      start: 2 + index * 0.5,
+      dur: 0.2,
+      vel: 118,
+    }));
+    const input = {
+      stems: [
+        { role: "vocals" as const, midi: midi(vocals, 16) },
+        { role: "guitar" as const, midi: midi([...contour, ...wall], 16) },
+      ],
+    };
+    const baseline = buildMetalArrangement(input);
+    const rescued = buildMetalArrangement(input, { preSelectorRescue: true });
+    expect(rescued.stats.guitarPreSelector?.rescue).toEqual(expect.objectContaining({
+      consideredCount: 1,
+      rescuedCount: 1,
+    }));
+    expect(rescued.parsed.notes.some((note) => note.hand === "R" && note.identitySource === "guitar" && note.start === 3.5 && note.midi === 57)).toBe(true);
+    for (const anchor of vocals) {
+      expect(rescued.parsed.notes.some((note) => note.hand === "R" && note.identitySource === "vocals" && note.start === anchor.start && note.midi === anchor.midi)).toBe(true);
+      expect(baseline.parsed.notes.some((note) => note.hand === "R" && note.identitySource === "vocals" && note.start === anchor.start && note.midi === anchor.midi)).toBe(true);
+    }
+    const variants = buildVariants(rescued.parsed, { title: "Rescue fixture", artist: "Fixture" }, {
+      arrangementProfile: "metal",
+      audioDerived: false,
+      chords: rescued.chords,
+    });
+    expect(validateVariants(variants)).toEqual([]);
+    expect(verifyMonotonicity(variants)).toEqual([]);
   });
 
   it("keeps the optional provenance trace private, linked, and deterministic", () => {

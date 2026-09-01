@@ -16,7 +16,7 @@ export {
 } from "./clean.js";
 export { writeMidi } from "./writeMidi.js";
 export { writeMusicXml } from "./writeXml.js";
-export { buildMetalArrangement, selectGuitarLeadPath } from "./metal-arrange.js";
+export { buildMetalArrangement, rescueGuitarPreSelectorCandidates, selectGuitarLeadPath } from "./metal-arrange.js";
 export type {
   GuitarLeadPathDiagnostics,
   GuitarLeadPreSelectorDiagnostics,
@@ -27,6 +27,8 @@ export type {
   GuitarLeadPathOptions,
   GuitarLeadPathResult,
   GuitarHarmonyDiagnostics,
+  GuitarLeadPreSelectorRescueDiagnostics,
+  GuitarLeadPreSelectorRescueResult,
   MetalArrangementInput,
   MetalArrangementDebugOptions,
   MetalArrangementIR,
