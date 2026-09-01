@@ -103,7 +103,7 @@
     {
       "id": "shadow-corpus-feasibility-2026-09-01",
       "date": "2026-09-01",
-      "gitCommit": "3b76544",
+      "gitCommit": "1a37e19c108da3ac7c520239ee9972042d706a82",
       "purpose": "Assess whether a bounded open-data symbolic shadow corpus can prove EXTERNAL_SYMBOLIC_FIRST",
       "songs": [],
       "route": "synthetic aligned shadow fixtures; bounded BabySlakh acquisition attempt kept separate from benchmark data",
@@ -117,7 +117,7 @@
     {
       "id": "alignment-calibration-2026-09-01",
       "date": "2026-09-01",
-      "gitCommit": "3b76544",
+      "gitCommit": "1a37e19c108da3ac7c520239ee9972042d706a82",
       "purpose": "Calibrate symbolic alignment against hidden deterministic corruptions",
       "songs": [],
       "route": "aligned synthetic symbolic input -> offset/tempo/transpose/section corruption -> symbolic aligner",
@@ -131,7 +131,7 @@
     {
       "id": "direct-piano-preservation-2026-09-01",
       "date": "2026-09-01",
-      "gitCommit": "3b76544",
+      "gitCommit": "1a37e19c108da3ac7c520239ee9972042d706a82",
       "purpose": "Measure whether the direct-piano route damages trusted symbolic material",
       "songs": [],
       "route": "trusted synthetic/role-tagged piano -> canonical -> Advanced/Medium/Easy",
@@ -145,7 +145,7 @@
     {
       "id": "cold-seven-song-research-2026-09-01",
       "date": "2026-09-01",
-      "gitCommit": "3b76544",
+      "gitCommit": "1a37e19c108da3ac7c520239ee9972042d706a82",
       "purpose": "Recheck legitimate external symbolic, piano-cover, and structured-harmony evidence for all seven cold songs",
       "songs": ["1916", "Christmas Truce", "Final Solution", "Free Bird", "Gott Mit Uns", "The Red Baron", "The Carolean's Prayer"],
       "route": "provider retrieval and metadata audit; HTML/auth/paywall responses fail closed",
@@ -159,7 +159,7 @@
     {
       "id": "difficulty-lineage-2026-09-01",
       "date": "2026-09-01",
-      "gitCommit": "3b76544",
+      "gitCommit": "1a37e19c108da3ac7c520239ee9972042d706a82",
       "purpose": "Close the raw-to-difficulty provenance gap with an optional development trace",
       "songs": ["synthetic-full-band", "retained-stem-smoke", "The Red Baron"],
       "route": "raw -> cleaned/lead/residual/cluster/semantic/decision/chord/left-hand/final -> difficulty",
@@ -173,7 +173,7 @@
     {
       "id": "lead-contour-cold-audit-2026-09-01",
       "date": "2026-09-01",
-      "gitCommit": "3b76544",
+      "gitCommit": "1a37e19c108da3ac7c520239ee9972042d706a82",
       "purpose": "Separate raw pitch/onset support from decoder and learner contour loss",
       "songs": ["Final Solution", "Gott Mit Uns", "The Red Baron"],
       "route": "cold raw guitar oracle -> source-aware lead/semantic/canonical/Easy diagnostics",
@@ -187,7 +187,7 @@
     {
       "id": "listening-gate-2026-09-01",
       "date": "2026-09-01",
-      "gitCommit": "3b76544",
+      "gitCommit": "1a37e19c108da3ac7c520239ee9972042d706a82",
       "purpose": "Determine whether a cold-song A/B listening pack is justified",
       "songs": ["1916", "Christmas Truce", "Final Solution", "Free Bird", "Gott Mit Uns", "The Red Baron", "The Carolean's Prayer"],
       "route": "independent symbolic alignment -> three windows/32 bars -> human readiness",
