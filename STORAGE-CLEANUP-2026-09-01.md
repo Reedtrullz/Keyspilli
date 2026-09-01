@@ -1,6 +1,8 @@
 # Storage cleanup and remote durability — 2026-09-01
 
-Status: in progress until the final verification block is filled below.
+Status: complete with caveat: the data volume is above the 30 GiB safety floor
+but below the preferred 40 GiB target; protected, active, shared-cache, and
+unknown material was intentionally retained.
 
 ## Initial state
 
@@ -67,34 +69,69 @@ Active runtime/catalog data, private originals, accepted compact reference
 corpus, unknown `/private/tmp` directories, and dirty worktrees are retained.
 Bytes actually reclaimed and final free space are added after cleanup.
 
+## Cleanup accounting and incident
+
+The explicit deletion accounting is:
+
+* generated/ephemeral first pass: `21,649,494,016` bytes;
+* score/OMR/cache/duplicate second pass: `2,003,927,040` bytes;
+* generated web build cache: `259,334,144` bytes;
+* scratch/package-manager artifacts: `33,083` bytes;
+* explicitly accounted total: `23,912,788,283` bytes (about 22.27 GiB).
+
+The measured data-volume change was approximately 15.4 GiB free to 38.4 GiB
+free (about 23.1 GiB more available; filesystem allocation and deletion
+accounting differ because of APFS accounting). No private originals, active
+catalog/runtime data, unknown paths, or shared package caches were deleted.
+
+During cleanup, Finder's global **Empty Trash** action was accidentally
+invoked. Generated Keyspilli Trash content was removed, but unrelated Trash
+contents were not verified beforehand. No further Trash operations were
+performed.
+
 ## Final verification (fill after cleanup)
 
-* Remote branch before/after and verified SHA: pending.
-* Checkpoint tag and verified target: pending.
-* Deleted categories/bytes: pending; unknown/private paths were not deleted.
-* Final free space: pending.
-* Fresh `npm test --workspaces --if-present`: pending.
-* Fresh `npm run typecheck --workspaces --if-present`: pending.
-* `git diff --check`, branch/tag checks, and final status: pending.
-* Final Ponytail audit/review: pending.
+* Remote branch before: `5d8728757a5f8b97bd301a7237b1c9cdccda7aac`;
+  post-ledger commit and verified remote branch: `b426507589108c10cf42d58ca6e995ff38d5a048`.
+* Checkpoint tag: `research-metal-evidence-2026-09-01`; remote tag object
+  `2e7b05c920b07faec4775c699047ebb1e7fb48b1`, peeled target
+  `b426507589108c10cf42d58ca6e995ff38d5a048`.
+* Deleted categories/bytes: generated experiments and duplicate outputs
+  `21,649,494,016` B; score/OMR/cache/duplicate set `2,003,927,040` B;
+  web build cache `259,334,144` B; scratch/package files `33,083` B.
+* Final free space: `40,289,048` KiB (about 38.4 GiB; `df -h` rounds to
+  39 GiB).
+* Fresh `npm test --workspaces --if-present`: passed — web 85, catalog 887,
+  engrave 8, midi 306, player-core 92, transcribe 42; 1,420 tests total.
+* Fresh `npm run typecheck --workspaces --if-present`: all six workspaces
+  passed.
+* `git diff --check`, final status, worktree prune dry-run, and branch/tag
+  remote checks passed. The only retained untracked working file is the
+  private `.tmp-source-audit/` directory; local manifests and runtime data
+  remain ignored.
+* Final Ponytail review: no executable was available, so the review was
+  manual against the audit. The policy is one small ignored manifest plus
+  path-free docs; no duplicate cleanup framework or code/dependency refactor
+  was introduced. Package scratch files were removed; code/dependency
+  simplifications remain deferred.
 
 ## Answers to the mission questions
 
 1. Initial free disk: approximately 15.4 GiB.
 2. Largest offenders: upstream-model experiment (6.60 GiB), shared uv cache (3.42 GiB), piano-final (1.63 GiB), repository (1.61 GiB), npm cache (1.20 GiB), pnpm cache (1.08 GiB), piano-coverage (1.04 GiB), section-listening (0.87 GiB), unknown melband-site (0.84 GiB), repository `data/` (0.80 GiB); see the measured JSON for the complete ranked list.
-3. Major measured categories: Keyspilli `/private/tmp` 23.85 GiB, registered worktrees 2.45 GiB, selected shared caches approximately 6.12 GiB, repository 1.61 GiB, private Keyspilli Downloads about 265 MiB.
-4. Local commits missing from GitHub: 153.
+3. Major measured categories: Keyspilli `/private/tmp` 23.85 GiB, registered worktrees 2.45 GiB, selected shared caches approximately 6.12 GiB, repository 1.61 GiB, private Keyspilli Downloads about 265 MiB. The inventory's measured category totals were `EPHEMERAL_EXPERIMENT` 20.10 GiB, `PACKAGE_CACHE` 5.69 GiB, `GIT` 1.61 GiB, `UNKNOWN` 1.41 GiB, `WORKTREE` 0.45 GiB, and `MODEL_CACHE` 0.45 GiB.
+4. Local commits missing from GitHub: 153 commits in the active topic range at mission start. Ten stale local branch names were separately audited; every tip was already reachable from another pushed origin ref, so no redundant branch refs were created.
 5. Protected/private assets in unpublished history: none found.
-6. Final verified GitHub branch SHA: pending until push.
-7. Checkpoint tag: planned `research-metal-evidence-2026-09-01`, pending until push.
-8. Preserved evidence: direct-metal/source-aware and semantic-harmony conclusions, Defence reference/listening findings, OMR/Audiveris/HOMR decision, seven benchmark status, Demucs/Basic Pitch/BS-RoFormer/YourMT3+ oracle results, architecture and alignment gates.
+6. Final verified GitHub branch SHA: `b426507589108c10cf42d58ca6e995ff38d5a048`.
+7. Checkpoint tag: `research-metal-evidence-2026-09-01` (verified remotely; peeled commit `b426507589108c10cf42d58ca6e995ff38d5a048`).
+8. Preserved evidence: `docs/research/keyspilli-evidence/README.md` records direct-metal/source-aware and semantic-harmony conclusions, Defence reference/listening findings, the OMR/Audiveris/HOMR decision, seven benchmark status, AMT route results, architecture decisions, and alignment/readiness gates. `experiment-ledger.json` carries stable experiment IDs, commits, metrics, decisions, and report hashes; `reproduction-manifest.md` records model/tool/config boundaries; `storage-inventory.json` and `storage-policy.md` preserve measured storage and retention rules. Raw reports are represented by summaries/hashes, not media or copyrighted note arrays.
 9. Private irreplacable assets: seven benchmark MIDI files, available score PDFs, supplied/reference Defence files, and private recordings/source stems still under active review.
 10. Storage: private Downloads and bounded private work directories; no independent private remote was configured.
-11. Deleted: pending; only explicitly classified generated artifacts and safe scratch will be removed.
-12. Reclaimed per category: pending.
-13. Final free disk: pending.
-14. Fresh full workspace tests: pending.
+11. Deleted: generated WAV/stems/listening packs, deterministic twins, temporary OMR/raster/XML/transcription outputs, duplicate benchmark experiment outputs, selected reacquirable model/cache material, stale registered worktrees via `git worktree remove`, the generated web build cache, and untracked package-manager/scratch files. Private originals, active runtime data, unknown paths, accepted compact corpus, and protected output13 were retained.
+12. Reclaimed per category: generated/ephemeral first pass `21,649,494,016` B; score/OMR/cache/duplicate set `2,003,927,040` B; build cache `259,334,144` B; scratch/package files `33,083` B; explicit total `23,912,788,283` B. The measured free-space delta was about 23.1 GiB.
+13. Final free disk: `40,289,048` KiB, approximately 38.4 GiB (39 GiB in human-readable `df -h` output), above the 30 GiB floor but below the preferred 40 GiB.
+14. Fresh full workspace tests: yes; web 85, catalog 887, engrave 8, midi 306, player-core 92, transcribe 42, all passing (1,420 total).
 15. Initial Ponytail recommendations: remove dead `analyze2.ts`, unused/redundant dependencies/re-exports, untracked package-manager artifacts, `.DS_Store`, and consider alias shrinkage.
 16. Applied recommendations: only precise local-manifest ignore rules and safe scratch/package-manager cleanup; code/dependency suggestions deferred.
-17. Final Ponytail review: pending; it must confirm the ledger/policy is not an over-built storage framework.
+17. Final Ponytail audit/review: no executable was available; manual final review found the new cleanup infrastructure minimal — one ignored local manifest, precise ignore rules, and four small path-free docs/JSON artifacts. No over-built storage framework, duplicate ledger, or new dependency was introduced; safety/provenance checks were retained.
 18. Retention behavior: one external `KEYSPILLI_ARTIFACT_ROOT`, metadata on each run, 7-day ordinary expiry, immediate determinism-twin expiry, 30-day maximum for unreviewed listening packs, no expiry for private references, a 30 GiB disk guard, and fail-closed handling of unknown/active/private paths.
