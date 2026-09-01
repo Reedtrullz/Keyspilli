@@ -21,13 +21,13 @@ Commands run from the repository root:
 
 ```text
 npm test -w @keyspilli/catalog -- --run test/external-evidence.test.ts
-✓ test/external-evidence.test.ts (7 tests)
+✓ test/external-evidence.test.ts (9 tests)
 Test Files  1 passed (1)
-Tests  7 passed
+Tests  9 passed
 
 npm test -w @keyspilli/catalog
 Test Files  77 passed (77)
-Tests  690 passed (690)
+Tests  692 passed (692)
 
 npm run typecheck -w @keyspilli/catalog
 tsc --noEmit (passed)
@@ -41,7 +41,7 @@ because `../src/external-evidence.js` did not exist.
 
 ## Commit
 
-Implementation commit: `a4a1368f11d1628da90f501fa2f410cd3d6acf81` (`fix(catalog): fail closed on external evidence metadata`)
+Implementation commit: `f5f49087ce30a27e6eb3fc9716674c6efeddabd7` (`fix(catalog): normalize external evidence identity and provenance`)
 
 ## Concerns and boundaries
 
@@ -59,3 +59,5 @@ Implementation commit: `a4a1368f11d1628da90f501fa2f410cd3d6acf81` (`fix(catalog)
   malformed objects), recursively removes physical locator/note/event fields,
   redacts file URLs and path-like values, and rejects generic benchmark or
   reference markers in provenance/lineage metadata.
+- Final hardening lowercases accepted SHA-256 values, rejects physical source
+  references, and rejects explicit null acquisition fields.
