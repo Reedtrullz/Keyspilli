@@ -111,6 +111,23 @@ describe("external evidence firewall", () => {
     expect(() => assertGenerationEvidence(candidate({ provenance: { sourceRef: "song.mid#section", acquisition: "local-import" } }))).toThrow(/logical|source/i);
   });
 
+  it("rejects credentials and locator secrets in logical source references", () => {
+    for (const sourceRef of [
+      "https://provider.example/song?token=secret",
+      "https://user:secret@provider.example/song",
+      "provider:catalog/song?signature=secret",
+      "provider://user:secret@example/song",
+    ]) {
+      expect(() => assertGenerationEvidence(candidate({ provenance: { sourceRef, acquisition: "local-analysis" } }))).toThrow(/credential|query|fragment|source/i);
+    }
+
+    const [canonical] = canonicalEvidenceCandidateSet([candidate({
+      provenance: { sourceRef: "provider:catalog/song?token=secret", acquisition: "local-analysis" },
+    })]);
+    expect((canonical?.provenance as Record<string, unknown>)?.sourceRef).toBe("[redacted-source-ref]");
+    expect(JSON.stringify(canonical)).not.toContain("secret");
+  });
+
   it("redacts embedded physical paths while retaining surrounding logical text", () => {
     const [canonical] = canonicalEvidenceCandidateSet([candidate({ description: "prefix /private/example.mid suffix" })]);
     expect(canonical!.description).toBe("prefix [redacted-path] suffix");
@@ -178,6 +195,63 @@ describe("external evidence firewall", () => {
     expect(() => assertGenerationEvidence(candidate({
       provenance: { sourceRef: "youtube:abc", acquisition: "local-import", acquiredVia: "local-file" },
     }))).toThrow(/acqui|conflict/i);
+  });
+
+  it("rejects malformed acquisition and locator fields instead of silently dropping them", () => {
+    for (const field of ["acquisition", "acquiredVia", "sourceArtifactRef", "physicalPath", "canonicalSourceRef"] as const) {
+      for (const value of [null, 42, {}, [], undefined]) {
+        const provenance = {
+          sourceRef: "youtube:abc",
+          acquisition: "local-analysis",
+          [field]: value,
+        } as never;
+        expect(() => assertGenerationEvidence(candidate({ provenance }))).toThrow(/acqui|provenance|locator|source/i);
+      }
+    }
+  });
+
+  it("keeps physical locators and generic reference markers out of canonical generation metadata", () => {
+    const sourceArtifactRef = "/Users/reidar/My Folder/private artifact";
+    const [canonical] = canonicalEvidenceCandidateSet([candidate({
+      provenance: {
+        sourceRef: "youtube:abc",
+        acquisition: "local-analysis",
+        sourceArtifactRef,
+        physicalPath: sourceArtifactRef,
+      },
+      lineage: { id: "my_reference_id", label: "fixture-reference" },
+      description: `file:///private/My Folder/private artifact`,
+    })]);
+    const serialized = JSON.stringify(canonical);
+    expect(serialized).not.toContain(sourceArtifactRef);
+    expect(serialized).not.toContain("My Folder");
+    expect(serialized).not.toContain("fixture-reference");
+    expect(serialized).not.toContain("my_reference_id");
+
+    for (const description of [
+      "prefix /unknown-root/My Folder/private artifact suffix",
+      "prefix file://host/share/My Folder/private artifact suffix",
+      "prefix \\\\server\\share\\My Folder\\private artifact suffix",
+    ]) {
+      const [redacted] = canonicalEvidenceCandidateSet([candidate({ description })]);
+      expect(JSON.stringify(redacted)).not.toContain("My Folder");
+      expect(JSON.stringify(redacted)).not.toContain("private artifact");
+    }
+  });
+
+  it("returns a generation-safe provenance projection without physical artifact fields", () => {
+    const accepted = assertGenerationEvidence(candidate({
+      provenance: {
+        sourceRef: "youtube:abc",
+        acquisition: "local-analysis",
+        acquiredVia: "local-import",
+        sourceArtifactRef: "/Users/reidar/My Folder/private artifact",
+        physicalPath: "/private/My Folder/private artifact",
+      },
+    }));
+    expect(accepted.provenance).not.toHaveProperty("sourceArtifactRef");
+    expect(accepted.provenance).not.toHaveProperty("physicalPath");
+    expect(JSON.stringify(accepted)).not.toContain("My Folder");
   });
 
   it("keeps digest stable when role metadata order and object insertion order differ", () => {

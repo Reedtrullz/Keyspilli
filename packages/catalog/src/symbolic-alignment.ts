@@ -451,6 +451,34 @@ function groupNoteCount(groups: readonly IndexedGroup[]): number {
   return groups.reduce((sum, group) => sum + group.notes.length, 0);
 }
 
+interface WindowMembership {
+  reference: Map<number, string>;
+  candidate: Map<number, string>;
+}
+
+/**
+ * Window domains are normalized to be non-overlapping, so each indexed
+ * onset can belong to at most one explicit window.  Build this membership
+ * once per alignment instead of rescanning every window for every hypothesis.
+ */
+function windowMembership(
+  referenceGroups: readonly IndexedGroup[],
+  candidateGroups: readonly IndexedGroup[],
+  windows: readonly SymbolicAlignmentWindow[],
+): WindowMembership {
+  const reference = new Map<number, string>();
+  const candidate = new Map<number, string>();
+  for (const group of referenceGroups) {
+    const window = windows.find((candidateWindow) => inBounds(group.start, candidateWindow.reference));
+    if (window) reference.set(group.index, window.id);
+  }
+  for (const group of candidateGroups) {
+    const window = windows.find((candidateWindow) => inBounds(group.start, candidateWindow.candidate));
+    if (window) candidate.set(group.index, window.id);
+  }
+  return { reference, candidate };
+}
+
 function nearestAvailableGroup(
   groups: readonly IndexedGroup[],
   target: number,
@@ -589,12 +617,16 @@ function evaluateHypothesis(
   windows?: SymbolicAlignmentWindow[],
   allReferenceGroups: IndexedGroup[] = indexedGroups(reference.notes, tolerance),
   allCandidateGroups: IndexedGroup[] = indexedGroups(candidate.notes, tolerance),
+  membership?: WindowMembership,
 ): Hypothesis {
+  const resolvedMembership = windows?.length
+    ? membership ?? windowMembership(allReferenceGroups, allCandidateGroups, windows)
+    : undefined;
   const referenceGroups = windows?.length
-    ? allReferenceGroups.filter((group) => windows.some((window) => inBounds(group.start, window.reference)))
+    ? allReferenceGroups.filter((group) => resolvedMembership!.reference.has(group.index))
     : allReferenceGroups;
   const candidateGroups = windows?.length
-    ? allCandidateGroups.filter((group) => windows.some((window) => inBounds(group.start, window.candidate)))
+    ? allCandidateGroups.filter((group) => resolvedMembership!.candidate.has(group.index))
     : allCandidateGroups;
   const usedCandidate = new Set<number>();
   const matches: SymbolicMatch[] = [];
@@ -602,11 +634,9 @@ function evaluateHypothesis(
   let matchedOnsets = 0;
   for (const referenceGroup of referenceGroups) {
     const transformed = referenceGroup.start * scale + offset;
-    const referenceWindowIds = windows?.length
-      ? new Set(windows.filter((window) => inBounds(referenceGroup.start, window.reference)).map((window) => window.id))
-      : undefined;
-    const eligibleCandidate = referenceWindowIds
-      ? (group: IndexedGroup) => windows!.some((window) => referenceWindowIds.has(window.id) && inBounds(group.start, window.candidate))
+    const referenceWindowId = windows?.length ? resolvedMembership!.reference.get(referenceGroup.index) : undefined;
+    const eligibleCandidate = referenceWindowId !== undefined
+      ? (group: IndexedGroup) => resolvedMembership!.candidate.get(group.index) === referenceWindowId
       : undefined;
     const selected = nearestAvailableGroup(candidateGroups, transformed, tolerance, usedCandidate, eligibleCandidate);
     if (!selected) continue;
@@ -750,7 +780,13 @@ function normalizedWindows(input: SymbolicAlignmentWindow[] | undefined): { wind
   for (const window of input) {
     const reference = window?.reference;
     const candidate = window?.candidate;
-    if (typeof window?.id !== "string" || !window.id || !reference || !candidate
+    // The public type says these are tuples, but this function is also a
+    // boundary for JSON/runtime input.  Check the array shape before reading
+    // length or calling Array.prototype.every; strings and array-like
+    // objects otherwise throw here instead of producing a deterministic
+    // fail-closed result.
+    if (typeof window?.id !== "string" || !window.id
+      || !Array.isArray(reference) || !Array.isArray(candidate)
       || reference.length !== 2 || candidate.length !== 2
       || !reference.every(finite) || !candidate.every(finite)
       || reference[1]! <= reference[0]! || candidate[1]! <= candidate[0]!
@@ -793,19 +829,42 @@ function normalizedWindows(input: SymbolicAlignmentWindow[] | undefined): { wind
   return { windows: nonOverlapping, invalid };
 }
 
-function windowHypotheses(windows: readonly SymbolicAlignmentWindow[]): { offsets: number[]; scales: number[] } {
+interface WindowHypotheses {
+  offsets: number[];
+  scales: number[];
+  /**
+   * Keep the offset/scale pair that came from each window together.  Taking
+   * the cartesian product of all window-derived offsets and scales creates
+   * many hypotheses that no annotated window can actually describe (and can
+   * become quadratic in the number of windows).
+   */
+  pairs: Array<{ offset: number; scale: number }>;
+}
+
+function windowHypotheses(windows: readonly SymbolicAlignmentWindow[]): WindowHypotheses {
   const offsets = new Set<number>();
   const scales = new Set<number>();
+  const pairs = new Map<string, { offset: number; scale: number }>();
   for (const window of windows) {
     const referenceSpan = window.reference[1]! - window.reference[0]!;
     const candidateSpan = window.candidate[1]! - window.candidate[0]!;
     const scale = referenceSpan > EPS && candidateSpan > EPS ? candidateSpan / referenceSpan : 1;
     if (finite(scale) && scale > 0) {
-      scales.add(round(scale, 6));
-      offsets.add(round(window.candidate[0]! - window.reference[0]! * scale, 6));
+      const roundedScale = round(scale, 6);
+      const roundedOffset = round(window.candidate[0]! - window.reference[0]! * scale, 6);
+      scales.add(roundedScale);
+      offsets.add(roundedOffset);
+      pairs.set(`${roundedOffset}\u0000${roundedScale}`, { offset: roundedOffset, scale: roundedScale });
     }
   }
-  return { offsets: [...offsets].sort((a, b) => a - b), scales: [...scales].sort((a, b) => a - b) };
+  return {
+    offsets: [...offsets].sort((a, b) => a - b),
+    scales: [...scales].sort((a, b) => a - b),
+    pairs: [...pairs.values()].sort((a, b) => Math.abs(a.offset) - Math.abs(b.offset)
+      || Math.abs(a.scale - 1) - Math.abs(b.scale - 1)
+      || a.offset - b.offset
+      || a.scale - b.scale),
+  };
 }
 
 function confidenceLevel(confidence: number, matchedOnsets: number): SymbolicAlignmentConfidenceLevel {
@@ -954,6 +1013,7 @@ export function alignSymbolicScores(
   const windowCandidates = windowHypotheses(windows);
   const allReferenceGroups = indexedGroups(reference.notes, tolerance);
   const allCandidateGroups = indexedGroups(candidate.notes, tolerance);
+  const membership = windows.length ? windowMembership(allReferenceGroups, allCandidateGroups, windows) : undefined;
   const explicitOffsets = options.offsetsBeats !== undefined;
   const offsets = sortedUnique(options.offsetsBeats ?? (windows.length ? [...windowCandidates.offsets, 0] : (options.allowOffset === false ? [0] : defaultOffsets(reference, candidate, maxOffset))), [0]);
   const scales = sortedUnique(options.beatScales ?? (windows.length ? [...windowCandidates.scales, 1] : defaultScales(options)), [1]).filter((scale) => scale > 0 && scale >= 0.25 && scale <= 4);
@@ -962,17 +1022,30 @@ export function alignSymbolicScores(
     && options.offsetsBeats === undefined
     && options.beatScales === undefined
     && options.transpositions === undefined;
+  const useWindowDerivedPairs = windows.length > 0
+    && options.offsetsBeats === undefined
+    && options.beatScales === undefined;
+  const parameterPairs = useWindowDerivedPairs
+    ? (() => {
+      const pairs = new Map<string, { offset: number; scale: number }>();
+      for (const pair of [...windowCandidates.pairs, { offset: 0, scale: 1 }]) {
+        if (pair.scale < 0.25 || pair.scale > 4) continue;
+        pairs.set(`${pair.offset}\u0000${pair.scale}`, pair);
+      }
+      return [...pairs.values()];
+    })()
+    : scales.flatMap((scale) => offsets.map((offset) => ({ offset, scale })));
   const boundedSearch = automaticSearch
     ? boundedAutomaticHypotheses(offsets, scales, transpositions, allReferenceGroups, allCandidateGroups, tolerance)
     : {
-      parameters: scales.flatMap((scale) => offsets.flatMap((offset) => transpositions.map((transpose) => ({ offset, scale, transpose })))),
-      considered: scales.length * offsets.length * transpositions.length,
+      parameters: parameterPairs.flatMap(({ scale, offset }) => transpositions.map((transpose) => ({ offset, scale, transpose }))),
+      considered: parameterPairs.length * transpositions.length,
       capped: false,
     };
   const hypotheses: Hypothesis[] = [];
   for (const parameters of boundedSearch.parameters) {
     if (!explicitOffsets && !windows.length && Math.abs(parameters.offset) > maxOffset + EPS) continue;
-    hypotheses.push(evaluateHypothesis(reference, candidate, parameters.offset, parameters.scale, parameters.transpose, tolerance, windows, allReferenceGroups, allCandidateGroups));
+    hypotheses.push(evaluateHypothesis(reference, candidate, parameters.offset, parameters.scale, parameters.transpose, tolerance, windows, allReferenceGroups, allCandidateGroups, membership));
   }
   hypotheses.sort((a, b) => b.score - a.score
     || b.matchedOnsets - a.matchedOnsets
@@ -981,7 +1054,7 @@ export function alignSymbolicScores(
     || a.scale - b.scale
     || a.offset - b.offset
     || a.transpose - b.transpose);
-  const best = hypotheses[0] ?? evaluateHypothesis(reference, candidate, 0, 1, 0, tolerance, windows, allReferenceGroups, allCandidateGroups);
+  const best = hypotheses[0] ?? evaluateHypothesis(reference, candidate, 0, 1, 0, tolerance, windows, allReferenceGroups, allCandidateGroups, membership);
   const metrics = buildMetrics(reference, candidate, best, tolerance);
   const referenceRatio = best.referenceNoteCount ? metrics.matchedReferenceNotes / best.referenceNoteCount : 0;
   const candidateRatio = best.candidateNoteCount ? metrics.matchedCandidateNotes / best.candidateNoteCount : 0;

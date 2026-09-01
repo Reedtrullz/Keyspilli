@@ -43,3 +43,67 @@ export * from "./midi-corpus-roles.js";
 export * from "./midi-corpus.js";
 export * from "./midi-corpus-report.js";
 export * from "./direct-amt-evaluation.js";
+export * from "./external-retrieval.js";
+export * from "./shadow-corpus.js";
+// The local shadow modules intentionally have a few similarly named input
+// records.  Keep the public barrel explicit so consumers get one canonical
+// corpus manifest type while adapter/evaluator-specific records remain
+// available under unambiguous names.  The modules themselves stay directly
+// importable for local tooling.
+export {
+  SHADOW_CORPUS_ADAPTER_SCHEMA_VERSION,
+  SHADOW_CORPUS_ADAPTER_VERSION,
+  SHADOW_CORPUS_MAX_BYTES,
+  SHADOW_INSTRUMENT_ROLES,
+  adaptShadowCorpusMidiBytes,
+  adaptShadowMidiBytes,
+  adaptShadowCorpusMidiFile,
+  buildShadowCorpusItem,
+  adaptShadowCorpusItem,
+  shadowCorpusAdapterJson,
+  ShadowCorpusAdapterError,
+} from "./shadow-corpus-adapter.js";
+export type {
+  ShadowInstrumentRole,
+  ShadowGenerationEligibility as ShadowAdapterGenerationEligibility,
+  ShadowEvaluationEligibility as ShadowAdapterEvaluationEligibility,
+  ShadowMediaStatus as ShadowAdapterMediaStatus,
+  ShadowCorpusSourceRecord as ShadowAdapterSourceRecord,
+  ShadowCorpusMediaRecord as ShadowAdapterMediaRecord,
+  ShadowCorpusProgramChange,
+  ShadowCorpusTrackSummary as ShadowAdapterTrackSummary,
+  ShadowCorpusNote as ShadowAdapterNote,
+  ShadowCorpusMidiAdapterResult,
+  ShadowCorpusItemInput as ShadowAdapterItemInput,
+  ShadowCorpusAdapterPathOptions,
+  ShadowCorpusItem as ShadowAdapterItem,
+  ShadowCorpusAdapterReport,
+  ShadowCorpusAdapterErrorRecord,
+} from "./shadow-corpus-adapter.js";
+export * from "./shadow-alignment.js";
+export {
+  shadowItemToMetalStems,
+  evaluateShadowItem,
+  evaluateShadowCorpus,
+  evaluateShadowManifest,
+  canonicalShadowEvaluationJson,
+} from "./shadow-evaluation.js";
+export type {
+  ShadowTrackRole,
+  ShadowTrackInput as ShadowEvaluationTrackInput,
+  ShadowMediaInput as ShadowEvaluationMediaInput,
+  ShadowCorpusItemInput as ShadowEvaluationItemInput,
+  ShadowCorpusManifestInput as ShadowEvaluationManifestInput,
+  ShadowRoleMetrics,
+  ShadowInputMetrics,
+  ShadowMelodyMetrics,
+  ShadowHarmonyMetrics,
+  ShadowDrumMetrics,
+  ShadowTextureMetrics,
+  ShadowVariantMetrics,
+  ShadowReadiness,
+  ShadowItemEvaluationReport,
+  ShadowCorpusEvaluationReport,
+  ShadowEvaluationOptions,
+  ShadowRoleNotes,
+} from "./shadow-evaluation.js";

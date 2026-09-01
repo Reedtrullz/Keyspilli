@@ -450,6 +450,34 @@ describe("arrangement evaluation", () => {
     ]));
   });
 
+  it("fails closed for a non-array variant list or variant notes without throwing", () => {
+    const base = input([{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }]);
+    const malformedList = evaluateArrangement({
+      ...base,
+      variants: { level: "easy" } as unknown as Variant[],
+    });
+    expect(malformedList.gate.status).toBe("fail");
+    expect(malformedList.gate.failures).toContain("variant list is not an array");
+
+    const malformedVariant = evaluateArrangement({
+      ...base,
+      variants: [{
+        level: "easy",
+        difficultyScore: 0.4,
+        notes: { midi: 60 } as unknown as Note[],
+        chords: [],
+        bassPattern: "root-fifth",
+        key: "C",
+        tempoBpm: 120,
+        timeSig: [4, 4],
+        measures: [],
+      } as unknown as Variant],
+    });
+    expect(malformedVariant.gate.status).toBe("fail");
+    expect(malformedVariant.gate.failures).toContain("easy: variant notes are not an array");
+    expect(malformedVariant.metrics.variants.easy?.global.noteCount).toBe(0);
+  });
+
   it("fails closed when the variant list contains duplicate difficulty levels", () => {
     const notes: Note[] = Array.from({ length: 8 }, (_, index) => ({
       midi: 60 + (index % 2),
@@ -746,6 +774,37 @@ describe("arrangement evaluation", () => {
     });
     expect(report.candidate.selector).toBe("candidate.mid");
     expect(report.reference?.referenceSelector).toBe("reference.mid");
+  });
+
+  it("does not expose URL credentials, query tokens, or fragments in selectors and trace", () => {
+    const report = evaluateArrangement({
+      fixture: { id: "url-metadata" },
+      candidate: {
+        selector: "https://user:secret@example.com/candidate.mid?token=redact-me#private",
+        notes: [{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }],
+      },
+      reference: {
+        selector: "https://example.com/reference.mid?access_token=redact-me#private",
+        notes: [{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }],
+      },
+      trace: {
+        status: "available",
+        events: [{
+          key: "url-trace",
+          source: "https://user:secret@example.com/source.mid?token=redact-me#private",
+          sourceStem: "https://example.com/stem.mid?signature=redact-me#private",
+        }],
+      },
+    });
+
+    expect(report.candidate.selector).toBe("candidate.mid");
+    expect(report.reference?.referenceSelector).toBe("reference.mid");
+    expect(report.trace.events?.[0]?.source).toBe("https://example.com/source.mid");
+    expect(report.trace.events?.[0]?.sourceStem).toBe("https://example.com/stem.mid");
+    const serialized = JSON.stringify(report);
+    expect(serialized).not.toContain("secret");
+    expect(serialized).not.toContain("redact-me");
+    expect(serialized).not.toContain("access_token");
   });
 
   it("fails closed when parsed metadata contains an explicit null time signature", () => {

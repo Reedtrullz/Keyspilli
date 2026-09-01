@@ -117,6 +117,26 @@ describe("external symbolic research bridge", () => {
     expect(withReferenceBytes.records[0]?.rejectionReasons.join(" ")).toMatch(/benchmark/i);
   });
 
+  it("fails closed when a local generation candidate has no explicit target alignment", async () => {
+    const inventory = await researchExternalCandidates(song, {
+      localInputs: [{
+        id: "unaligned-generation",
+        sourceRef: "provider:unaligned-generation",
+        bytes: midiBytes([{ midi: 60, start: 0, dur: 1, vel: 96, hand: "R" }]),
+        format: "midi",
+        purpose: "GENERATION_CANDIDATE",
+      }],
+    });
+
+    expect(inventory.records).toHaveLength(1);
+    expect(inventory.records[0]).toMatchObject({
+      purpose: "GENERATION_CANDIDATE",
+      alignment: { status: "not-attempted" },
+      generationUsable: false,
+    });
+    expect(inventory.records[0]?.rejectionReasons.join(" ")).toMatch(/alignment.*required/i);
+  });
+
   it("records conservative identity and version statuses for acquired candidates", async () => {
     const inventory = await researchExternalCandidates(song, {
       discoveryRecords: [{ id: "lead", title: "Test Artist External Test Song MIDI", provider: "Provider", sourceRef: "provider:lead", format: "midi" }],
@@ -158,6 +178,19 @@ describe("external symbolic research bridge", () => {
     expect(json).not.toMatch(/\/opt\/|\/root\/|\/srv\/|\/etc\/|\/mnt\/|\/data\/|\/unknownroot\/|server\\share|file:\/\/server|\$1/);
     expect(json).toMatch(/youtube:abc\/section|A\/B|provider\/path/);
     expect(json).toContain("[redacted-path]");
+  });
+
+  it("sanitizes transport data from HTTP source references and rejects opaque locator data", async () => {
+    const inventory = await researchExternalCandidates(song, {
+      discoveryRecords: [
+        { id: "http", sourceRef: "https://example.com/song.mid?token=secret#part" },
+        { id: "opaque", sourceRef: "provider:catalog/song?signature=secret" },
+      ],
+    });
+
+    expect(inventory.records.find((record) => record.id === "http")?.discovery.sourceRef).toBe("https://example.com/song.mid");
+    expect(inventory.records.find((record) => record.id === "opaque")?.discovery.sourceRef).toBeNull();
+    expect(serializeExternalResearchInventory(inventory)).not.toMatch(/secret|token|signature/);
   });
 
   it("classifies invalid and unsupported local evidence as non-native records", async () => {

@@ -119,3 +119,24 @@ reports or documentation generated from a real machine. The command refuses
 to overwrite an existing report and the report serializer redacts path-like
 metadata. Keep protected benchmark references outside the repository and pass
 them only to evaluation tooling after generation-side candidate selection.
+
+## Shadow-corpus mission aggregation
+
+Synthetic shadow evidence is summarized separately from real-song benchmark
+evidence. After the local shadow, alignment, retrieval, benchmark, and
+Red-Baron reports have been produced, aggregate them with:
+
+```text
+npm run report:shadow-mission -w @keyspilli/catalog -- \
+  --input /absolute/local/shadow-mission-input.json \
+  --out /absolute/local/shadow-mission-report.json
+```
+
+The resulting `shadow-mission-report` is deterministic and path-redacted. It
+reports per-item shadow outcomes, alignment recovery, seven-song inventory,
+candidate-freeze ordering, and the first stage loss. It distinguishes
+`SHADOW_ENGINEERING_READY`, `BENCHMARK_READY_FOR_HUMAN_LISTENING`, and
+`PRODUCTION_READY`; the latter remains blocked because this local command does
+not deploy or verify production. Missing evidence is `null`/`UNAVAILABLE`, not
+zero coverage. A shadow pass is therefore not a recognizability claim, and no
+audio listening pack is created by the aggregator.

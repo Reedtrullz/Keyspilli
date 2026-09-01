@@ -852,15 +852,33 @@ function metadataShapeFailures(source: unknown, label: string, selectorRequired:
 }
 
 function safeSelector(value: unknown, fallback: string): string {
-  return typeof value === "string" && value.trim() ? basename(value.replaceAll("\\", "/")) : fallback;
+  return typeof value === "string" && value.trim() ? selectorLeaf(value, fallback) : fallback;
 }
 
 function safeOptionalSelector(value: unknown): string | null {
-  return typeof value === "string" && value.trim() ? basename(value.replaceAll("\\", "/")) : null;
+  return typeof value === "string" && value.trim() ? selectorLeaf(value, "") || null : null;
 }
 
 function safeOptionalMetadataString(value: unknown): string | null {
   return typeof value === "string" && value.length ? redactEmbeddedPaths(value) : null;
+}
+
+/**
+ * Selectors are diagnostic labels, never transport URLs.  Keep only the
+ * final path component and discard URL credentials/query/fragment material so
+ * a signed download URL cannot be echoed into an evaluation report.
+ */
+function selectorLeaf(value: string, fallback: string): string {
+  const normalized = value.trim().replaceAll("\\", "/");
+  try {
+    const parsed = new URL(normalized);
+    if (parsed.protocol === "http:" || parsed.protocol === "https:" || parsed.protocol === "file:") {
+      return basename(parsed.pathname) || parsed.hostname || fallback;
+    }
+  } catch {
+    // Treat non-URL logical selectors and Windows paths below.
+  }
+  return basename(normalized.split(/[?#]/, 1)[0] ?? "") || fallback;
 }
 
 function setRecordValue<T>(record: Record<string, T>, key: string, value: T): void {
@@ -1493,7 +1511,7 @@ function redactEmbeddedPaths(value: string): string {
     const start = value.indexOf(trimmed);
     return `${value.slice(0, start)}[redacted-path]${value.slice(start + trimmed.length)}`;
   }
-  return value
+  return redactEmbeddedUrls(value)
     // A path can contain spaces, so the short root-only replacements below
     // must not run first: they would redact only `/Users/reidar/Private` and
     // leave the rest of the filename visible.  Consume through a known file
@@ -1529,6 +1547,18 @@ function redactEmbeddedPaths(value: string): string {
     .replace(/(^|[\s\"'=,;([\]])(?!(?:[A-Za-z][A-Za-z0-9+.-]*:)?\/\/)(?:\.\.?\/|[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+\/)[^\s\"'<>;,\)]*(?=$|[\s\"'<>;,\)])/gi, "$1[redacted-path]")
     // Relative paths are redacted while URL schemes remain useful labels.
     .replace(/(^|[\s\"'=,;([\]])(?!(?:[A-Za-z][A-Za-z0-9+.-]*:)?\/\/)(\.\.?\/|[^\s/]+\/)[^\s\"']+\.(?:mid|midi|json|wav|mp3|txt|pdf|xml|mxl|csv|log)(?=$|[\s\"'<>;,\)])/gi, "$1[redacted-path]");
+}
+
+/** Remove credentials and query/fragment tokens from URL-shaped text. */
+function redactEmbeddedUrls(value: string): string {
+  return value.replace(
+    /([A-Za-z][A-Za-z0-9+.-]*:\/\/)([^\/\s"'<>;,)\]]*)(\/[^\s"'<>;,)\]]*)?/g,
+    (_match, prefix: string, authority: string, path = "") => {
+      const safeAuthority = authority.replace(/^[^@]*@/, "").split(/[?#]/, 1)[0] ?? "";
+      const safePath = String(path).split(/[?#]/, 1)[0] ?? "";
+      return `${prefix}${safeAuthority}${safePath}`;
+    },
+  );
 }
 
 function canonicalize(value: unknown, key?: string): unknown {

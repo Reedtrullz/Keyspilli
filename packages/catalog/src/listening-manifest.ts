@@ -62,6 +62,8 @@ export interface ListeningRendererInput {
   sampleRate: number;
   channels?: 1 | 2;
   gain?: number;
+  /** Exact linear peak target used by the renderer, when it exposes one. */
+  targetPeak?: number;
   soundfont?: ListeningSoundfontInput;
 }
 
@@ -72,6 +74,8 @@ export interface ListeningRendererRecord {
   sampleRate: number;
   channels: 1 | 2;
   gain?: number;
+  /** Exact linear peak target used by the renderer, when it exposes one. */
+  targetPeak?: number;
   soundfont?: {
     identifier: string;
     sha256: string | null;
@@ -312,6 +316,8 @@ function normalizeRenderer(input: ListeningRendererInput): ListeningRendererReco
   const channels = normalizeChannels(input.channels, DEFAULT_LISTENING_NORMALIZATION.channels);
   const gain = input.gain === undefined ? undefined : input.gain;
   if (gain !== undefined && (!finite(gain) || gain <= 0 || gain > 10)) throw new Error("renderer.gain must be finite and in (0, 10]");
+  const targetPeak = input.targetPeak === undefined ? undefined : input.targetPeak;
+  if (targetPeak !== undefined && (!finite(targetPeak) || targetPeak <= 0 || targetPeak > 1)) throw new Error("renderer.targetPeak must be finite and in (0, 1]");
   const implementation = input.implementation === undefined ? undefined : requireText(input.implementation, "renderer.implementation");
   const soundfont = input.soundfont
     ? {
@@ -327,6 +333,7 @@ function normalizeRenderer(input: ListeningRendererInput): ListeningRendererReco
     sampleRate,
     channels,
     ...(gain !== undefined ? { gain } : {}),
+    ...(targetPeak !== undefined ? { targetPeak } : {}),
     ...(soundfont ? { soundfont } : {}),
   };
 }

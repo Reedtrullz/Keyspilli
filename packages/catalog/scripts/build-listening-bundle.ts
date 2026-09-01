@@ -403,6 +403,7 @@ async function build(options: CliOptions): Promise<void> {
       sampleRate: options.sampleRate,
       channels: rendered[0]!.result.wav.channels === 1 ? 1 : 2,
       gain: options.gain,
+      targetPeak: options.targetPeak,
       soundfont: {
         identifier: basename(soundfontPath),
         sha256: rendered[0]!.result.soundfont.sha256,

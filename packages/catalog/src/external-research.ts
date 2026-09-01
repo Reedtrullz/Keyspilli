@@ -225,10 +225,27 @@ function assessExternalIdentity(
   return { identityStatus, versionStatus, identityReasons: reasons.length ? reasons : ["insufficient identity metadata"] };
 }
 
+function hasSensitiveLogicalRef(value: string): boolean {
+  const trimmed = value.trim();
+  if (/[?#]/.test(trimmed)) return true;
+  try {
+    const url = new URL(trimmed);
+    if (url.username || url.password) return true;
+  } catch {
+    // Opaque provider schemes are checked by the credential-shaped fallback.
+  }
+  return /(?:^|\/\/)[^/\s:@]+(?::[^/\s@]*)?@/i.test(trimmed);
+}
+
 function logicalRef(value: unknown): string | null {
   const clean = text(value);
   if (!clean || /^(?:file:\/\/|[A-Za-z]:[\\/]|[\\/]|~[\\/])/.test(clean)
     || /(?:^|[\\/])[^\\/]+\.(?:mid|midi|musicxml|xml|mxl|mscz|wav|mp3)$/i.test(clean)) return null;
+  // HTTP(S) references are useful logical labels, but retain only their
+  // public origin/path.  Opaque logical refs carrying locator data are
+  // rejected so signed tokens cannot become candidate provenance.
+  if (/^https?:\/\//i.test(clean)) return safePage(clean);
+  if (hasSensitiveLogicalRef(clean)) return null;
   return clean;
 }
 

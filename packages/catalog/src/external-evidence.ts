@@ -11,7 +11,14 @@ export const EVIDENCE_CLASSES = [
 ] as const;
 export type EvidenceClass = (typeof EVIDENCE_CLASSES)[number];
 
-export const EVIDENCE_PURPOSES = ["GENERATION_CANDIDATE", "RESEARCH_LEAD", "BENCHMARK_REFERENCE"] as const;
+/**
+ * Local/open-corpus truth is generation-safe for shadow engineering runs,
+ * but remains a distinct purpose from a real-song generation candidate.  It
+ * is intentionally not folded into BENCHMARK_REFERENCE: benchmark material
+ * remains evaluation-only at every generation boundary.
+ */
+export const SHADOW_GENERATION_TRUTH = "SHADOW_GENERATION_TRUTH" as const;
+export const EVIDENCE_PURPOSES = ["GENERATION_CANDIDATE", "RESEARCH_LEAD", "BENCHMARK_REFERENCE", SHADOW_GENERATION_TRUTH] as const;
 export type EvidencePurpose = (typeof EVIDENCE_PURPOSES)[number];
 
 export const CANDIDATE_STATUSES = ["discovered", "acquired", "parsed", "rejected", "parse-failed"] as const;
@@ -95,12 +102,33 @@ const LOGICAL_SOURCE_KEY = /^(?:canonical)?sourceRef$/i;
 const PHYSICAL_ROOT = /^(?:[A-Za-z]:[\\/]|[\\/]|~[\\/]|\\\\)/;
 const PHYSICAL_FILE_URI = /^file:\/\/(?:(?:[A-Za-z]:[\\/])|(?:[\\/])|(?:~[\\/])|[^\\/\\\s]+[\\/])/i;
 const RELATIVE_MEDIA_FILE = /(?:^|[\\/])[^\\/]+\.(?:musicxml|midi|mid|mxl|wav|mp3|json)(?:[?#].*)?$/i;
+const GENERIC_REFERENCE_MARKER = /benchmark|reference|evaluation[-_ ]?only|eval[_-]?only|protected/i;
 
 function isPhysicalSourceReference(value: string): boolean {
   const trimmed = value.trim();
   if (PHYSICAL_FILE_URI.test(trimmed) || PHYSICAL_ROOT.test(trimmed)) return true;
   if (LOGICAL_SCHEME.test(trimmed)) return false;
   return RELATIVE_MEDIA_FILE.test(trimmed);
+}
+
+/**
+ * A provenance source reference is a logical identifier, not a transport
+ * locator.  Query strings, fragments, and URL credentials can contain signed
+ * tokens or account identifiers, so they must never cross the generation
+ * boundary.  HTTP(S) callers may sanitize these values in their retrieval
+ * adapter, but direct evidence callers fail closed here.
+ */
+function hasSensitiveSourceReference(value: string): boolean {
+  const trimmed = value.trim();
+  if (/[?#]/.test(trimmed)) return true;
+  try {
+    const url = new URL(trimmed);
+    if (url.username || url.password) return true;
+  } catch {
+    // Opaque logical schemes (for example provider:track-1) are handled by
+    // the conservative credential-shaped fallback below.
+  }
+  return /(?:^|\/\/)[^/\s:@]+(?::[^/\s@]*)?@/i.test(trimmed);
 }
 
 function isLogicalLabel(value: string): boolean {
@@ -135,11 +163,28 @@ function canonicalMetadata(candidate: ExternalEvidenceCandidate): Record<string,
   const pathLike = /^(?:file:\/\/(?:(?:[A-Za-z]:[\\/])|(?:[\\/])|(?:~[\\/]))|[A-Za-z]:[\\/]|[\\/]|~[\\/])|(?:[\\/]\S+\.(?:mid|midi|musicxml|mxl|wav|mp3|json))(?:$|[?#])/i;
   const pathLikeSubstring = /(?:file:\/\/(?:(?:[A-Za-z]:[\\/])|(?:[\\/])|(?:~[\\/]))|[A-Za-z]:[\\/]|~[\\/]|\\\\|\/)[^,;)}\]]*?\.(?:musicxml|midi|mid|mxl|wav|mp3|json)(?:[?#][^\s,;)}\]]*)?/gi;
   const pathPrefixSubstring = /(?:file:\/\/(?:(?:[A-Za-z]:[\\/])|(?:[\\/])|(?:~[\\/]))[^\s,;)}\]]+|(?<![A-Za-z0-9])(?:[A-Za-z]:[\\/]|\\\\|~[\\/])[^\s,;)}\]]+|\/(?:Users|private|tmp|var|home|Volumes)(?:[\\/][^\s,;)}\]]+)+)/gi;
+  // Extensionless paths may contain spaces. Require another separator after
+  // the known physical root, then redact through the next structural
+  // delimiter. A simple `/tmp/private suffix` remains compatible with the
+  // narrower path-prefix rule above, while `/Users/reidar/My Folder/private`
+  // cannot leak its path tail.
+  const spacedPathSubstring = /(?:file:\/\/(?:(?:[A-Za-z]:[\\/])|(?:[\\/])|(?:~[\\/])|[^\\/\\\s]+[\\/])|\/(?:Users|private|tmp|var|home|Volumes)[\\/])(?!(?:[^,;)}\]]*\.(?:musicxml|midi|mid|mxl|wav|mp3|json)(?:[?#][^\s,;)}\]]*)?)(?:$|[\s,;)}\]]))(?=[^,;)}\]]*[\\/])(?=[^,;)}\]]*(?:[\\/][^,;)}\]]*[\\/]|\s[^,;)}\]]*[\\/]))[^,;)}\]]*|(?<![A-Za-z0-9:/])\/(?!Users[\\/]|private[\\/]|tmp[\\/]|var[\\/]|home[\\/]|Volumes[\\/])(?!(?:[^,;)}\]]*\.(?:musicxml|midi|mid|mxl|wav|mp3|json)(?:[?#][^\s,;)}\]]*)?)(?:$|[\s,;)}\]]))(?=[^,;)}\]]*[\\/])(?=[^,;)}\]]*(?:[\\/][^,;)}\]]*[\\/]|\s[^,;)}\]]*[\\/]))[^,;)}\]]*/gi;
+  // Keep the regular one-token file-URI rule below from treating the second
+  // slash in `file:///...` as an arbitrary absolute path after a spaced-path
+  // match has intentionally declined the extensionless case.
+  const fileUriPathSubstring = /file:\/\/(?:(?:[A-Za-z]:[\\/])|(?:[\\/])|(?:~[\\/])|[^\\/\\\s]+[\\/])(?!(?:[^,;)}\]]*\.(?:musicxml|midi|mid|mxl|wav|mp3|json)(?:[?#][^\s,;)}\]]*)?)(?:$|[\s,;)}\]]))[^\s,;)}\]]+/gi;
+  const spacedFileUriPathSubstring = /file:\/\/(?:(?:[A-Za-z]:[\\/])|(?:[\\/])|(?:~[\\/])|[^\\/\\\s]+[\\/])(?!(?:[^,;)}\]]*\.(?:musicxml|midi|mid|mxl|wav|mp3|json)(?:[?#][^\s,;)}\]]*)?)(?:$|[\s,;)}\]]))(?=[^,;)}\]]*[\\/])(?=[^,;)}\]]*[\\/][^,;)}\]]*[\\/])[^,;)}\]]*/gi;
   const relativeMediaPathSubstring = /(?<![A-Za-z0-9_:/])(?:\.{0,2}[\\/]|[A-Za-z0-9._~-]+[\\/])[^,;)}\]]*?\.(?:musicxml|midi|mid|mxl|wav|mp3|json)(?:[?#][^\s,;)}\]]*)?/gi;
+  const spacedWindowsPathSubstring = /(?:[A-Za-z]:[\\/]|\\\\|~[\\/])(?!(?:[^,;)}\]]*\.(?:musicxml|midi|mid|mxl|wav|mp3|json)(?:[?#][^\s,;)}\]]*)?)(?:$|[\s,;)}\]]))(?=[^,;)}\]]*\s[^,;)}\]]*[\\/])[^,;)}\]]*/gi;
   const strip = (value: unknown, key = ""): unknown => {
     if (Array.isArray(value)) return normalize(value.map((item) => strip(item, key)));
     if (typeof value === "string") {
-      if (LOGICAL_SOURCE_KEY.test(key)) return isPhysicalSourceReference(value) ? "[redacted-path]" : value;
+      if (LOGICAL_SOURCE_KEY.test(key)) {
+        if (isPhysicalSourceReference(value)) return "[redacted-path]";
+        if (GENERIC_REFERENCE_MARKER.test(value)) return "[redacted-reference]";
+        return hasSensitiveSourceReference(value) ? "[redacted-source-ref]" : value;
+      }
+      if (GENERIC_REFERENCE_MARKER.test(value)) return "[redacted-reference]";
       if (isLogicalLabel(value)) return value;
       if (isPhysicalSourceReference(value)) return "[redacted-path]";
       if (pathLike.test(value)) return "[redacted-path]";
@@ -150,6 +195,13 @@ function canonicalMetadata(candidate: ExternalEvidenceCandidate): Record<string,
         return `__LOGICAL_LABEL_${logicalLabels.length - 1}__`;
       });
       const redacted = protectedValue
+        // Run the extensionless-space rule first so the narrower one-token
+        // rules cannot leave the tail of a UNC or rooted path behind. Media
+        // extensions are excluded here and handled by the precise matcher.
+        .replace(spacedFileUriPathSubstring, "[redacted-path]")
+        .replace(fileUriPathSubstring, "[redacted-path]")
+        .replace(spacedPathSubstring, "[redacted-path]")
+        .replace(spacedWindowsPathSubstring, "[redacted-path]")
         .replace(pathLikeSubstring, "[redacted-path]")
         .replace(pathPrefixSubstring, "[redacted-path]")
         .replace(relativeMediaPathSubstring, "[redacted-path]");
@@ -224,6 +276,15 @@ export function assertGenerationEvidence(candidate: ExternalEvidenceCandidate, o
   if (!isOneOf(candidate.status, CANDIDATE_STATUSES) || candidate.status !== "parsed") throw new Error("candidate parse status is not generation-safe; status must be parsed");
   if (!isRecord(candidate.provenance) || typeof candidate.provenance.sourceRef !== "string" || candidate.provenance.sourceRef.trim() === "") throw new Error("candidate requires a logical source reference");
   if (isPhysicalSourceReference(candidate.provenance.sourceRef)) throw new Error("candidate source reference must be logical, not a physical path");
+  if (hasSensitiveSourceReference(candidate.provenance.sourceRef)) throw new Error("candidate source reference must not contain credentials, query, or fragment data");
+  for (const key of ["canonicalSourceRef", "physicalPath", "sourceArtifactRef"] as const) {
+    if (!Object.hasOwn(candidate.provenance, key)) continue;
+    const value = candidate.provenance[key];
+    if (typeof value !== "string" || value.trim() === "") throw new Error(`candidate provenance.${key} must be a non-empty string when supplied`);
+    if (key === "canonicalSourceRef" && (isPhysicalSourceReference(value) || hasSensitiveSourceReference(value))) {
+      throw new Error("candidate canonicalSourceRef must be logical and locator-free");
+    }
+  }
   const acquisitionKeys = ["acquisition", "acquiredVia"] as const;
   const allowedAcquisitions = new Set(["local-analysis", "local-import", "local-file", "local-bytes"]);
   const suppliedAcquisitions = acquisitionKeys.flatMap((key) => Object.hasOwn(candidate.provenance, key) ? [candidate.provenance[key]] : []);
@@ -235,8 +296,8 @@ export function assertGenerationEvidence(candidate: ExternalEvidenceCandidate, o
   if (distinctAcquisitions.size > 1 && !distinctAcquisitions.has("local-analysis")) throw new Error("conflicting candidate acquisition declarations");
   if (!isRecord(candidate.content) || typeof candidate.content.sha256 !== "string" || !/^[a-f0-9]{64}$/i.test(candidate.content.sha256)) throw new Error("candidate requires a SHA-256 content hash");
   const containsProtectedMarker = (value: unknown, key = ""): boolean => {
-    if (/benchmark|reference|evaluation[-_ ]?only|protected/i.test(key)) return true;
-    if (typeof value === "string") return /benchmark|reference|evaluation[-_ ]?only|eval[_-]?only|benchmark[_-]?reference|reference[_-]?only|protected/i.test(value);
+    if (GENERIC_REFERENCE_MARKER.test(key)) return true;
+    if (typeof value === "string") return GENERIC_REFERENCE_MARKER.test(value);
     if (Array.isArray(value)) return value.some((item) => containsProtectedMarker(item));
     if (isRecord(value)) return Object.entries(value).some(([entryKey, entryValue]) => containsProtectedMarker(entryValue, entryKey));
     return false;
@@ -247,7 +308,11 @@ export function assertGenerationEvidence(candidate: ExternalEvidenceCandidate, o
   if (includesProtectedRegistryValue(candidate, options)) {
     throw new Error("candidate matches a protected benchmark reference manifest");
   }
-  return { ...candidate, content: { ...candidate.content, sha256: candidate.content.sha256.toLowerCase() } };
+  const normalizedCandidate = { ...candidate, content: { ...candidate.content, sha256: candidate.content.sha256.toLowerCase() } };
+  // Validation is also the generation boundary: callers must not receive a
+  // candidate that still carries physical acquisition locators or raw note
+  // payloads which canonical metadata deliberately excludes.
+  return canonicalMetadata(normalizedCandidate) as ExternalEvidenceCandidate;
 }
 
 /** Stable, path-safe metadata records for a candidate set. */

@@ -204,11 +204,23 @@ function round(value: number): number {
   return Math.round(value * 1000) / 1000;
 }
 
+/**
+ * Keep a public HTTP(S) locator useful as a logical label without preserving
+ * transport data.  Query strings and fragments can contain signed tokens or
+ * embedded local/relative paths, while user-info can contain credentials.
+ * The URL path itself remains a public logical reference (for example
+ * `https://scores.example/lead.mid`).
+ */
+function sanitizeHttpUrl(value: string): string {
+  const withoutQuery = value.replace(/[?#].*$/, "");
+  return withoutQuery.replace(/^(https?:\/\/)(?:[^\/\s@]+(?::[^\/\s@]*)?@)/i, "$1");
+}
+
 function redactPath(value: string): string {
   const urls: string[] = [];
   const protectedText = value.replace(/https?:\/\/[^\s"'<>;,)}]+/gi, (url) => {
     const marker = "__SURVIVAL_URL_" + urls.length + "__";
-    urls.push(url);
+    urls.push(sanitizeHttpUrl(url));
     return marker;
   });
   value = protectedText;

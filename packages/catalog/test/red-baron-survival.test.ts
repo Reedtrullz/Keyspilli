@@ -9,6 +9,7 @@ import {
   classifyStageLoss,
   evaluateStageSurvival,
   genericDecoderFixDecision,
+  redactStageSurvivalText,
   type DecoderFixEvidence,
   type StageInput,
   type StageSurvivalReport,
@@ -206,6 +207,15 @@ describe("red baron stage survival", () => {
     expect(json).not.toContain("./secret/reference");
     expect(json).toContain("logical/source");
     expect(json).toContain("https://example.test/reference.mid");
+  });
+
+  it("strips credentials, query paths, and fragments from HTTP diagnostics", () => {
+    const value = redactStageSurvivalText(
+      "https://user:secret@example.test/reference.mid?token=secret&next=/Users/reidar/private/foo.mid#section "
+      + "https://example.test/?next=relative/private.mid",
+    );
+    expect(value).toBe("https://example.test/reference.mid https://example.test/");
+    expect(value).not.toMatch(/user|secret|token|reidar|private|relative/);
   });
 
   it("returns nonzero when the CLI evaluator produces a blocked partial report", async () => {

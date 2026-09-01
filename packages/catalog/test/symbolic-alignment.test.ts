@@ -114,6 +114,43 @@ describe("symbolic alignment", () => {
     expect(result.metrics.onset.matched).toBeGreaterThan(0);
   });
 
+  it("keeps many annotated windows from creating an offset-scale cartesian explosion", { timeout: 10_000 }, () => {
+    const referenceNotes = Array.from({ length: 96 }, (_, index) => ({
+      midi: 60 + (index % 7),
+      start: index * 2 + 0.25,
+      dur: 0.5,
+      vel: 90,
+    }));
+    const candidateNotes: typeof referenceNotes = [];
+    const windows: SymbolicAlignmentWindow[] = [];
+    let candidateStart = 12;
+    for (let index = 0; index < referenceNotes.length; index += 1) {
+      const candidateWidth = 0.85 + (index % 31) / 30 * 0.3;
+      const candidateEnd = candidateStart + candidateWidth;
+      candidateNotes.push({
+        midi: referenceNotes[index]!.midi,
+        start: candidateStart + candidateWidth * 0.25,
+        dur: candidateWidth * 0.5,
+        vel: 90,
+      });
+      windows.push({
+        id: `window-${index}`,
+        reference: [index * 2, index * 2 + 1],
+        candidate: [candidateStart, candidateEnd],
+      });
+      candidateStart = candidateEnd;
+    }
+    const result = alignSymbolicScores(
+      score(referenceNotes, { durationBeats: 192.5 }),
+      score(candidateNotes, { durationBeats: candidateStart + 1 }),
+      { windows },
+    );
+
+    expect(result.windows).toHaveLength(windows.length);
+    expect(result.windows.every((window) => window.reference[1] > window.reference[0])).toBe(true);
+    expect(result.diagnostics).toContain(`evaluated ${windows.length} explicit alignment windows`);
+  });
+
   it("keeps the strongest automatic offset and transposition under the cap", () => {
     const referenceNotes = Array.from({ length: 500 }, (_, index) => ({
       midi: 60 + (index % 7),
@@ -322,6 +359,24 @@ describe("symbolic alignment", () => {
       score([{ midi: 60, start: 0, dur: 1, vel: 90 }]),
       score([{ midi: 60, start: 0, dur: 1, vel: 90 }]),
       { windows: { id: "not-an-array" } as unknown as SymbolicAlignmentWindow[] },
+    );
+
+    expect(result.status).toBe("alignment-required");
+    expect(result.alignmentRequired).toBe(true);
+    expect(result.matches).toEqual([]);
+    expect(result.diagnostics).toContain("all supplied alignment windows are invalid");
+  });
+
+  it("fails closed when explicit window bounds are not numeric arrays", () => {
+    const result = alignSymbolicScores(
+      score([{ midi: 60, start: 0, dur: 1, vel: 90 }]),
+      score([{ midi: 60, start: 0, dur: 1, vel: 90 }]),
+      {
+        windows: [
+          { id: "string-bounds", reference: "01" as unknown as [number, number], candidate: [0, 1] },
+          { id: "object-bounds", reference: [0, 1], candidate: { 0: 0, 1: 1, length: 2 } as unknown as [number, number] },
+        ],
+      },
     );
 
     expect(result.status).toBe("alignment-required");

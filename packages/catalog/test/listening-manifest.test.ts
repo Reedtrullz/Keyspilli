@@ -97,11 +97,13 @@ describe("listening manifest helpers", () => {
         version: "2.3.5",
         sampleRate: 44_100,
         channels: 2,
+        targetPeak: 0.95,
         soundfont: { identifier: "evaluation-piano", sha256: "a".repeat(64), path: "/Users/reidar/secret/piano.sf2" },
       },
       candidates,
       blind: true,
     });
+    expect(manifest.renderer.targetPeak).toBe(0.95);
     const canonical = canonicalListeningManifestJson(manifest);
     expect(canonical).not.toContain("/private/tmp");
     expect(canonical).not.toContain("/Users/reidar");
@@ -113,6 +115,13 @@ describe("listening manifest helpers", () => {
       candidates: [...candidates].reverse(),
       blind: true,
     })));
+  });
+
+  it("rejects an invalid renderer peak target", () => {
+    expect(() => createListeningManifest({
+      renderer: { backend: "fluidsynth", version: "x", sampleRate: 44_100, targetPeak: Number.NaN },
+      candidates,
+    })).toThrow(/renderer\.targetPeak must be finite/);
   });
 
   it("retains canonical PCM diagnostics without exposing local paths", () => {
