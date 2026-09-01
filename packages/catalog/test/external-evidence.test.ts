@@ -15,7 +15,7 @@ function candidate(overrides: Partial<ExternalEvidenceCandidate> = {}): External
       provider: "example",
       acquiredVia: "local-import",
       acquisition: "local-analysis",
-      physicalPath: "/Users/reidar/private/reference.mid",
+      physicalPath: "/tmp/example/reference.mid",
     },
     content: { sha256: "a".repeat(64), byteLength: 12, mediaType: "audio/midi" },
     confidence: { source: 0.9, parse: 1, identity: 0.8, alignment: 0.7 },
@@ -39,13 +39,29 @@ describe("external evidence firewall", () => {
     expect(() => assertGenerationEvidence(candidate({ content: { byteLength: 12 } }))).toThrow(/hash/i);
     expect(() => assertGenerationEvidence(candidate({ provenance: { sourceRef: "x", acquisition: "remote-only" } }))).toThrow(/acqui/i);
     expect(() => assertGenerationEvidence(candidate({ status: "parse-failed" }))).toThrow(/parse/i);
+    expect(() => assertGenerationEvidence(candidate({ provenance: { sourceRef: "x", acquisition: "local-analysis", acquiredVia: "provider-export" } }))).toThrow(/acqui/i);
   });
 
   it("canonicalizes metadata without note arrays or physical paths", () => {
     const [canonical] = canonicalEvidenceCandidateSet([candidate()]);
     expect(canonical).not.toHaveProperty("notes");
-    expect(JSON.stringify(canonical)).not.toContain("private/reference.mid");
+    expect(JSON.stringify(canonical)).not.toContain("/tmp/example/reference.mid");
     expect(canonical).toMatchObject({ content: { sha256: "a".repeat(64) }, provenance: { sourceRef: "youtube:abc123" } });
+  });
+
+  it("redacts nested and logical path-like values case-insensitively", () => {
+    const [canonical] = canonicalEvidenceCandidateSet([candidate({
+      provenance: { sourceRef: "/tmp/source.mid", acquisition: "local-analysis", physical_path: "/tmp/source.mid" },
+      lineage: { localPath: "/tmp/lineage.mid", noteEvents: [{ pitch: 60 }], nested: { FILEPATH: "/tmp/nested.mid" } },
+    })]);
+    expect(JSON.stringify(canonical)).not.toContain("/tmp/");
+    expect(JSON.stringify(canonical)).not.toContain("noteEvents");
+  });
+
+  it("rejects benchmark markers hidden in provenance or lineage", () => {
+    expect(() => assertGenerationEvidence(candidate({ provenance: { sourceRef: "benchmark:fixture-1", acquisition: "local-analysis" } }))).toThrow(/benchmark/i);
+    expect(() => assertGenerationEvidence(candidate({ lineage: { sourceRef: "evaluation-only/reference", stage: "reference" } }))).toThrow(/benchmark|reference|evaluation/i);
+    expect(() => assertGenerationEvidence(candidate({ benchmarkReferenceHashes: ["a".repeat(64)] }))).toThrow(/benchmark|reference/i);
   });
 
   it("produces an order-invariant candidate-set digest", () => {

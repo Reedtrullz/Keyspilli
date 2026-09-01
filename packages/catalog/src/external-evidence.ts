@@ -84,11 +84,13 @@ function normalize(value: unknown): unknown {
 }
 
 function canonicalMetadata(candidate: ExternalEvidenceCandidate): Record<string, unknown> {
-  const excluded = new Set(["notes", "note", "events", "physicalPath", "sourceArtifactRef", "artifactPath", "filePath", "absolutePath", "path"]);
+  const excluded = /(?:path|file|notes?|events?)/i;
+  const pathLike = /^(?:[A-Za-z]:[\\/]|[\\/]|~[\\/])|(?:[\\/]\S+\.(?:mid|midi|musicxml|mxl|wav|mp3|json))(?:$|[?#])/i;
   const strip = (value: unknown): unknown => {
     if (Array.isArray(value)) return value.map(strip);
+    if (typeof value === "string" && pathLike.test(value)) return "[redacted-path]";
     if (!isRecord(value)) return finite(value);
-    return Object.fromEntries(Object.keys(value).sort().filter((key) => !excluded.has(key)).map((key) => [key, strip(value[key])]));
+    return Object.fromEntries(Object.keys(value).sort().filter((key) => !excluded.test(key)).map((key) => [key, strip(value[key])]));
   };
   return strip(candidate) as Record<string, unknown>;
 }
@@ -100,15 +102,30 @@ export function assertGenerationEvidence(candidate: ExternalEvidenceCandidate): 
   if (!isOneOf(candidate.purpose, EVIDENCE_PURPOSES) || candidate.purpose === "BENCHMARK_REFERENCE") throw new Error("benchmark evidence cannot enter generation");
   if (!isOneOf(candidate.status, CANDIDATE_STATUSES) || candidate.status === "parse-failed" || candidate.status === "rejected") throw new Error("candidate parse status is not generation-safe");
   if (!isRecord(candidate.provenance) || typeof candidate.provenance.sourceRef !== "string" || candidate.provenance.sourceRef.trim() === "") throw new Error("candidate requires a logical source reference");
-  const acquisition = candidate.provenance.acquisition ?? candidate.provenance.acquiredVia;
-  if (typeof acquisition !== "string" || /remote|benchmark|protected|download/i.test(acquisition)) throw new Error("candidate acquisition is not permitted for local analysis");
+  const acquisitions = [candidate.provenance.acquisition, candidate.provenance.acquiredVia].filter((value): value is string => typeof value === "string");
+  if (acquisitions.length === 0 || acquisitions.some((value) => !/^local(?:-|$)/i.test(value) || /remote|benchmark|protected|download|provider-export/i.test(value))) throw new Error("candidate acquisition is not permitted for local analysis");
   if (!isRecord(candidate.content) || typeof candidate.content.sha256 !== "string" || !/^[a-f0-9]{64}$/i.test(candidate.content.sha256)) throw new Error("candidate requires a SHA-256 content hash");
+  const protectedFields = [candidate.provenance, candidate.lineage, candidate.protectedMarker, candidate.benchmarkReferenceHash, candidate.benchmarkReferenceHashes];
+  const containsProtectedMarker = (value: unknown, key = ""): boolean => {
+    if (/benchmark|reference|evaluation[-_ ]?only|protected/i.test(key)) return true;
+    if (typeof value === "string") return /benchmark|evaluation[-_ ]?only|protected/i.test(value) || /(?:^|[/:])reference(?:$|[/:])/i.test(value);
+    if (Array.isArray(value)) return value.some((item) => containsProtectedMarker(item));
+    if (isRecord(value)) return Object.entries(value).some(([entryKey, entryValue]) => containsProtectedMarker(entryValue, entryKey));
+    return false;
+  };
+  if (Object.keys(candidate).some((key) => /benchmark|reference|evaluation[-_ ]?only|protected/i.test(key)) || protectedFields.some((value) => containsProtectedMarker(value))) {
+    throw new Error("benchmark/reference evidence cannot enter generation");
+  }
   return candidate;
 }
 
 /** Stable, path-safe metadata records for a candidate set. */
 export function canonicalEvidenceCandidateSet(candidates: readonly ExternalEvidenceCandidate[]): Record<string, unknown>[] {
-  return candidates.map(canonicalMetadata).sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
+  return candidates.map(canonicalMetadata).sort((a, b) => {
+    const left = JSON.stringify(a);
+    const right = JSON.stringify(b);
+    return left < right ? -1 : left > right ? 1 : 0;
+  });
 }
 
 /** Digest of canonical candidate metadata; note arrays and physical paths are intentionally excluded. */
