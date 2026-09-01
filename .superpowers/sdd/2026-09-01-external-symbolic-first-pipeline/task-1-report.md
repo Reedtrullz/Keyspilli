@@ -41,7 +41,7 @@ because `../src/external-evidence.js` did not exist.
 
 ## Commit
 
-Implementation commit: `7f247b754d55afaca770d912a8b6648875eff44f` (`fix(catalog): close nested evidence marker bypass`)
+Implementation commit: `f1bfc3ebe37fe4bf7bda89c40c4365f2daebf3fd` (`fix(catalog): redact extensionless physical evidence paths`)
 
 ## Concerns and boundaries
 
@@ -69,3 +69,5 @@ Implementation commit: `7f247b754d55afaca770d912a8b6648875eff44f` (`fix(catalog)
 - Nested marker scanning now traverses all candidate metadata, including
   path/file/artifact/locator keys, while physical-path redaction remains a
   separate canonicalization concern.
+- Extensionless physical locators (file URLs, Unix, Windows, and tilde paths)
+  are now redacted while retaining surrounding text.
