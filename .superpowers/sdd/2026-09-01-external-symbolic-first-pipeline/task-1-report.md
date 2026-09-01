@@ -21,13 +21,13 @@ Commands run from the repository root:
 
 ```text
 npm test -w @keyspilli/catalog -- --run test/external-evidence.test.ts
-✓ test/external-evidence.test.ts (9 tests)
+✓ test/external-evidence.test.ts (10 tests)
 Test Files  1 passed (1)
-Tests  9 passed
+Tests  10 passed
 
 npm test -w @keyspilli/catalog
 Test Files  77 passed (77)
-Tests  692 passed (692)
+Tests  693 passed (693)
 
 npm run typecheck -w @keyspilli/catalog
 tsc --noEmit (passed)
@@ -41,7 +41,7 @@ because `../src/external-evidence.js` did not exist.
 
 ## Commit
 
-Implementation commit: `f5f49087ce30a27e6eb3fc9716674c6efeddabd7` (`fix(catalog): normalize external evidence identity and provenance`)
+Implementation commit: `b754d3bcf93df6a18fff4b3ae631dda24baf269c` (`fix(catalog): tighten external evidence generation gate`)
 
 ## Concerns and boundaries
 
@@ -61,3 +61,6 @@ Implementation commit: `f5f49087ce30a27e6eb3fc9716674c6efeddabd7` (`fix(catalog)
   reference markers in provenance/lineage metadata.
 - Final hardening lowercases accepted SHA-256 values, rejects physical source
   references, and rejects explicit null acquisition fields.
+- Generation now requires `status: "parsed"`; acquisition uses an explicit
+  local allowlist; source references and canonical metadata reject/redact
+  physical paths including embedded and file-URL forms.
