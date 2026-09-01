@@ -21,9 +21,13 @@ Commands run from the repository root:
 
 ```text
 npm test -w @keyspilli/catalog -- --run test/external-evidence.test.ts
-✓ test/external-evidence.test.ts (5 tests)
+✓ test/external-evidence.test.ts (7 tests)
 Test Files  1 passed (1)
-Tests  5 passed
+Tests  7 passed
+
+npm test -w @keyspilli/catalog
+Test Files  77 passed (77)
+Tests  690 passed (690)
 
 npm run typecheck -w @keyspilli/catalog
 tsc --noEmit (passed)
@@ -37,11 +41,11 @@ because `../src/external-evidence.js` did not exist.
 
 ## Commit
 
-Implementation commit: `fe1e6a67dce5fbbde9eac03796f221b6282da97b` (`feat(catalog): add external evidence firewall`)
+Implementation commit: `e4b4139d8b1e1e99eba572e30626d193aaba0a9c` (`fix(catalog): harden external evidence firewall`)
 
 ## Concerns and boundaries
 
-- This task adds only the pure model/firewall. It does not ingest MIDI or
+- This task adds only the pure model/firewall and architecture boundary. It does not ingest MIDI or
   MusicXML, discover providers, align candidates, or alter generation routes;
   those belong to later tasks.
 - `assertGenerationEvidence` is intentionally fail-closed for benchmark and
