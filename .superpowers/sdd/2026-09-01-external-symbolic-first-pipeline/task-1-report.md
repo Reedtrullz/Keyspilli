@@ -41,7 +41,7 @@ because `../src/external-evidence.js` did not exist.
 
 ## Commit
 
-Implementation commit: `b754d3bcf93df6a18fff4b3ae631dda24baf269c` (`fix(catalog): tighten external evidence generation gate`)
+Implementation commit: `c6da016641427de1c9621fb4dbdda19886cc5a95` (`fix(catalog): close final external evidence leaks`)
 
 ## Concerns and boundaries
 
@@ -64,3 +64,5 @@ Implementation commit: `b754d3bcf93df6a18fff4b3ae631dda24baf269c` (`fix(catalog)
 - Generation now requires `status: "parsed"`; acquisition uses an explicit
   local allowlist; source references and canonical metadata reject/redact
   physical paths including embedded and file-URL forms.
+- Final review hardening covers spaced/backslash/case-insensitive path forms,
+  nested protected markers, and safely narrowed canonical test values.
