@@ -162,7 +162,13 @@ function toRegister(midi: number, low: number, high: number): number {
 function validNotes(stem: MetalStem | undefined): Note[] {
   if (!stem) return [];
   return stem.midi.notes
-    .filter((note) => Number.isFinite(note.start) && Number.isFinite(note.dur) && note.dur > 0 && note.midi >= 0 && note.midi <= 127)
+    // Keep the trace and the serialized MIDI on the same valid event domain.
+    // writeMidi cannot represent negative/non-integer/out-of-range pitches or
+    // non-positive/non-finite velocities as source events.
+    .filter((note) => Number.isInteger(note.midi) && note.midi >= 0 && note.midi <= 127
+      && Number.isFinite(note.start) && note.start >= 0
+      && Number.isFinite(note.dur) && note.dur > 0
+      && Number.isFinite(note.vel) && note.vel >= 1 && note.vel <= 127)
     .sort((a, b) => a.start - b.start || b.vel - a.vel || b.midi - a.midi);
 }
 
@@ -2821,10 +2827,10 @@ function inferSemanticGuitarHarmony(
       ?? toRegister(36 + root, 36, 60);
     const duplicateCount = item.cluster.notes.filter((note) => {
       const interval = (pitchClass(note.midi) - pitchClass(rootMidi) + 12) % 12;
-      // Interval 0 is a unison/octave; +7 is the normal root-above-fifth
-      // detector duplicate. Do not count +5 (a fourth/suspension) as a
-      // collapsed fifth merely because the pitch-class distance wraps.
-      return Math.abs(note.midi - rootMidi) > 0 && (interval === 0 || interval === 7);
+      // Interval 0 is a unison/octave duplicate. A +7 member is detector
+      // collapse only for a power-style hypothesis; in major/minor/sus
+      // stacks it is the legitimate chord fifth, not a duplicate.
+      return Math.abs(note.midi - rootMidi) > 0 && (interval === 0 || (interval === 7 && quality === "power"));
     }).length;
     const bassSupported = item.bassSupport >= 0.3 && item.bassPc === root;
     const meanVelocity = item.cluster.notes.reduce((sum, note) => sum + clamp(note.vel / 127, 0, 1), 0) / item.cluster.notes.length;
@@ -3282,6 +3288,7 @@ export function buildMetalArrangement(
     ...otherPath,
   ];
   const rawHarmonicEvidence: Note[] = [...guitarRaw, ...otherRaw];
+  const rawHarmonyTraceEvidence: IdentityNote[] = [...guitarRaw, ...otherRaw, ...bass];
   const sections: MetalIdentitySection[] = [];
   const identity: Note[] = [];
   const vocalRegisterAnchors = new Set<string>();
@@ -3478,11 +3485,14 @@ export function buildMetalArrangement(
     const semanticParent = semanticIndex >= 0
       ? `semantic:${semantic!.source}:${semantic!.start.toFixed(6)}:${semanticIndex}`
       : undefined;
+    const fallbackParents = [...new Set(rawHarmonyTraceEvidence
+      .filter((note) => note.start >= beat - 0.08 - EPS && note.start < end + 0.08 + EPS)
+      .flatMap((note) => traceParents(note)))].sort();
     const chordKey = `chord:${beat.toFixed(6)}`;
     emitTrace(trace, {
       key: chordKey,
       stage: "chord",
-      parentKeys: semanticParent ? [semanticParent] : [],
+      parentKeys: semanticParent ? [semanticParent] : fallbackParents,
       source: semantic?.source ?? null,
       sourceStem: semantic?.source ?? null,
       selected: true,
@@ -3623,7 +3633,9 @@ export function buildMetalArrangement(
       vel: Math.max(40, Math.min(76, note.vel)),
       hand: "L",
       identitySource: note.identitySource,
-    });
+      traceRefs: traceParents(note),
+      traceSourceStem: note.traceSourceStem,
+    } as IdentityNote);
   }
   for (const note of rhythmOther.filter((note) => !semanticAttackKeys.has(`${note.identitySource}:${note.start.toFixed(4)}`) && !hasSemanticRootAt(note))) {
     appendTaggedLeftHand({
@@ -3633,7 +3645,9 @@ export function buildMetalArrangement(
       vel: Math.max(40, Math.min(76, note.vel)),
       hand: "L",
       identitySource: note.identitySource,
-    });
+      traceRefs: traceParents(note),
+      traceSourceStem: note.traceSourceStem,
+    } as IdentityNote);
   }
 
   const rhythmicAccents = drums.map((note) => note.start).filter((beat, index, all) => index === 0 || beat - all[index - 1]! >= 0.125);

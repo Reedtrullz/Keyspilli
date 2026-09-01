@@ -84,6 +84,10 @@ describe("semantic guitar harmony", () => {
     });
     expect(result.chords[0]?.name).toBe(expected);
     expect(harmonyStats(result).qualityCounts[_label]).toBeGreaterThan(0);
+    // A triad/suspension fifth is chord evidence, not an octave/fifth
+    // detector duplicate. The diagnostic should reserve +7 collapse for
+    // power-style stacks.
+    expect(harmonyStats(result).collapsedUnisonOctaveFifth).toBe(0);
   });
 
   it("does not let an isolated third override a repeated power attack", () => {

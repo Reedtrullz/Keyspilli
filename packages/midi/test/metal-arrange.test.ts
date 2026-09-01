@@ -2592,6 +2592,80 @@ describe("metal piano arranger", () => {
     expect(canonicalTrace(secondTrace)).toEqual(canonicalTrace(firstTrace));
   });
 
+  it("does not trace raw events that cannot survive MIDI serialization", () => {
+    const trace: MetalArrangementTraceEvent[] = [];
+    buildMetalArrangement(
+      {
+        stems: [{ role: "guitar", midi: midi([
+          { midi: 60.5, start: 0, dur: 0.5, vel: 90 },
+          { midi: 61, start: -1, dur: 0.5, vel: 90 },
+          { midi: 62, start: 1, dur: 0.5, vel: Number.NaN },
+          { midi: 63, start: 2, dur: 0.5, vel: 0 },
+          { midi: 64, start: 3, dur: 0.5, vel: 90 },
+        ], 4) }],
+      },
+      { trace: { record: (event) => trace.push(event) } },
+    );
+
+    const raw = trace.filter((event) => event.stage === "raw");
+    expect(raw).toHaveLength(1);
+    expect(raw[0]?.note).toMatchObject({ midi: 64, start: 3, vel: 90 });
+    expect(raw.every((event) => event.note
+      && Number.isInteger(event.note.midi)
+      && event.note.midi >= 0
+      && event.note.midi <= 127
+      && Number.isFinite(event.note.start)
+      && event.note.start >= 0
+      && Number.isFinite(event.note.vel)
+      && event.note.vel >= 1
+      && event.note.vel <= 127)).toBe(true);
+  });
+
+  it("preserves raw provenance on routed rhythm LH final events", () => {
+    const lowPulse = Array.from({ length: 16 }, (_, index) => ({
+      midi: 57,
+      start: index * 0.5,
+      dur: 0.25,
+      vel: index % 4 === 0 ? 86 : 72,
+    }));
+    const highLead = Array.from({ length: 8 }, (_, index) => ({
+      midi: 72 + (index % 4),
+      start: index,
+      dur: 0.5,
+      vel: 92,
+    }));
+    const trace: MetalArrangementTraceEvent[] = [];
+    buildMetalArrangement(
+      { stems: [{ role: "guitar", midi: midi([...lowPulse, ...highLead], 8) }] },
+      { trace: { record: (event) => trace.push(event) } },
+    );
+
+    const byKey = new Map(trace.map((event) => [event.key, event]));
+    const rhythmFinal = trace.filter((event) => event.stage === "final"
+      && event.note?.hand === "L" && event.source === "guitar"
+      && event.note.dur <= 0.25 + 1e-9);
+    expect(rhythmFinal.length).toBeGreaterThan(0);
+    for (const event of rhythmFinal) {
+      expect(event.parentKeys.length, `${event.key} should retain a raw parent`).toBeGreaterThan(0);
+      expect(event.parentKeys.every((parentKey) => byKey.has(parentKey))).toBe(true);
+      expect(event.parentKeys.some((parentKey) => byKey.get(parentKey)?.stage === "raw")).toBe(true);
+    }
+  });
+
+  it("links raw harmony fallback chords to source evidence", () => {
+    const trace: MetalArrangementTraceEvent[] = [];
+    buildMetalArrangement(
+      { stems: [{ role: "guitar", midi: midi([{ midi: 60, start: 0, dur: 1, vel: 90 }], 2) }] },
+      { trace: { record: (event) => trace.push(event) } },
+    );
+    const byKey = new Map(trace.map((event) => [event.key, event]));
+    const fallback = trace.find((event) => event.stage === "chord" && event.selectionReason === "raw-harmony-fallback");
+    expect(fallback).toBeDefined();
+    expect(fallback?.parentKeys.length).toBeGreaterThan(0);
+    expect(fallback?.parentKeys.every((parentKey) => byKey.has(parentKey))).toBe(true);
+    expect(fallback?.parentKeys.some((parentKey) => byKey.get(parentKey)?.stage === "raw")).toBe(true);
+  });
+
   it("links difficulty variants back to canonical trace events when requested", () => {
     const trace: MetalArrangementTraceEvent[] = [];
     const traced = buildMetalArrangement(
