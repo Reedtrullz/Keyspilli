@@ -94,7 +94,8 @@ performed.
 * Remote branch before: `5d8728757a5f8b97bd301a7237b1c9cdccda7aac`;
   post-ledger checkpoint branch: `b426507589108c10cf42d58ca6e995ff38d5a048`;
   report-only closeout pushes advanced it through `c3653cb` and
-  `2b9e728` (the final exact SHA is verified in the final command below).
+  `2b9e728`; the terminal tip was verified by comparing
+  `git rev-parse HEAD` with `git rev-parse origin/codex/metal-inference-lane-lock`.
 * Checkpoint tag: `research-metal-evidence-2026-09-01`; remote tag object
   `2e7b05c920b07faec4775c699047ebb1e7fb48b1`, peeled target
   `b426507589108c10cf42d58ca6e995ff38d5a048`.
@@ -124,10 +125,10 @@ performed.
 3. Major measured categories: Keyspilli `/private/tmp` 23.85 GiB, registered worktrees 2.45 GiB, selected shared caches approximately 6.12 GiB, repository 1.61 GiB, private Keyspilli Downloads about 265 MiB. The inventory's measured category totals were `EPHEMERAL_EXPERIMENT` 20.10 GiB, `PACKAGE_CACHE` 5.69 GiB, `GIT` 1.61 GiB, `UNKNOWN` 1.41 GiB, `WORKTREE` 0.45 GiB, and `MODEL_CACHE` 0.45 GiB.
 4. Local commits missing from GitHub: 153 commits in the active topic range at mission start. Ten stale local branch names were separately audited; every tip was already reachable from another pushed origin ref, so no redundant branch refs were created.
 5. Protected/private assets in unpublished history: none found.
-6. Final verified GitHub branch SHA: verified equal to local `HEAD` after the
-   final report-only push; the exact value is recorded in the closeout response
-   and by the final `git rev-parse` check (the immutable checkpoint remains
-   `research-metal-evidence-2026-09-01` at `b426507...`).
+6. Final verified GitHub branch SHA: the terminal remote topic ref was verified
+   equal to local `HEAD` with `git rev-parse`; the exact terminal SHA is
+   reported in the closeout response. The immutable checkpoint remains
+   `research-metal-evidence-2026-09-01` at `b426507...`.
 7. Checkpoint tag: `research-metal-evidence-2026-09-01` (verified remotely; peeled commit `b426507589108c10cf42d58ca6e995ff38d5a048`).
 8. Preserved evidence: `docs/research/keyspilli-evidence/README.md` records direct-metal/source-aware and semantic-harmony conclusions, Defence reference/listening findings, the OMR/Audiveris/HOMR decision, seven benchmark status, AMT route results, architecture decisions, and alignment/readiness gates. `experiment-ledger.json` carries stable experiment IDs, commits, metrics, decisions, and report hashes; `reproduction-manifest.md` records model/tool/config boundaries; `storage-inventory.json` and `storage-policy.md` preserve measured storage and retention rules. Raw reports are represented by summaries/hashes, not media or copyrighted note arrays.
 9. Private irreplacable assets: seven benchmark MIDI files, available score PDFs, supplied/reference Defence files, and private recordings/source stems still under active review.
