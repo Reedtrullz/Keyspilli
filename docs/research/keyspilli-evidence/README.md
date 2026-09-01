@@ -100,3 +100,13 @@ experiment history needed to continue later.
   configuration boundaries.
 * `storage-policy.md` — one artifact root, metadata, expiry, and disk guard.
 * `storage-inventory.json` — measured storage snapshot and disposition classes.
+
+## Cold-transfer boundary
+
+`cold-transfer-preregistration.template.json` is a path-redacted template for
+an evaluation-only freeze check. `pnpm --filter @keyspilli/catalog
+evaluate:cold-transfer -- --preregistration /private/.../preregistration.json`
+verifies exact guitar-stem metadata and frozen raw MIDI outputs before opening
+any reference MIDI. Missing or hash-mismatched exact inputs fail closed as
+`GAPS_COLD_TRANSFER_UNAVAILABLE`; the catalog, production runtime, and
+downstream arrangement code remain untouched.

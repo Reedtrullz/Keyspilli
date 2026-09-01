@@ -57,6 +57,7 @@
     "build:shadow-corpus": "tsx scripts/build-shadow-corpus.ts",
     "calibrate:shadow-alignment": "tsx scripts/calibrate-shadow-alignment.ts",
     "evaluate:shadow-corpus": "tsx scripts/evaluate-shadow-corpus.ts",
+    "evaluate:cold-transfer": "tsx scripts/evaluate-cold-transfer.ts",
     "report:shadow-mission": "tsx scripts/report-shadow-mission.ts"
   },
   "dependencies": {

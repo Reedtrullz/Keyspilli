@@ -255,6 +255,25 @@
       "reportHash": "cd5c2e9a126f4391eccc88f33d927fe8c04b44225ff85f3512463f68d563cad4",
       "reproducible": true,
       "rawArtifactRetention": "retain compact path-free report, pre-registration, run manifest, and hashes only; delete reacquirable benchmark audio, checkpoint, environment, and feature/cache material"
+    },
+    {
+      "id": "cold-metal-transfer-2026-09-02",
+      "date": "2026-09-02",
+      "gitCommit": "ae4b46a2aa798a397546d966d1143dd0f25ee0fa",
+      "purpose": "Test whether the validated GAPS guitar AMT advantage transfers to three dense-metal guitar stems",
+      "songs": ["Final Solution", "Gott Mit Uns", "The Red Baron"],
+      "route": "frozen guitar stem -> Basic Pitch/GAPS raw comparison; reference evaluation held behind input freeze",
+      "criticalMetrics": {
+        "exactFrozenStemsAvailable": 0,
+        "songsRequested": 3,
+        "referencesRead": false,
+        "reportSha256": "e286fe4f868ff62f294e5695d5ff3b347c71ba4ccc90af1a6478ddf5c3b49806"
+      },
+      "result": "The exact frozen guitar-stem provenance was unavailable, so no cold GAPS inference or reference scoring was run. The fail-closed evaluator returned GAPS_COLD_TRANSFER_UNAVAILABLE.",
+      "decision": "NO_PROMOTION; reacquire the exact frozen stems before deciding replace, complement, or research-only.",
+      "reportHash": "e286fe4f868ff62f294e5695d5ff3b347c71ba4ccc90af1a6478ddf5c3b49806",
+      "reproducible": true,
+      "rawArtifactRetention": "retain the path-free preregistration/report hashes only; keep reference media and model inputs outside the repository"
     }
   ]
 }
