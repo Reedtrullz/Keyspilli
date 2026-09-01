@@ -306,7 +306,7 @@ function alignmentSummary(result: SymbolicAlignmentResult): ExternalBenchmarkRef
 function notesForRole(notes: readonly Note[], role: ExternalBenchmarkRole | undefined): Note[] {
   if (!role) return [...notes];
   if (role === "timing-only") return [];
-  if (role === "melody") return notes.filter((note) => note.hand !== "L");
+  if (role === "melody") return notes.filter((note) => note.hand === "R");
   return notes.filter((note) => note.hand === "L");
 }
 
