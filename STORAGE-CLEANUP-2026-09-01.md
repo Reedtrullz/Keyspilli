@@ -121,7 +121,7 @@ performed.
 ## Answers to the mission questions
 
 1. Initial free disk: approximately 15.4 GiB.
-2. Largest offenders: upstream-model experiment (6.60 GiB), shared uv cache (3.42 GiB), piano-final (1.63 GiB), repository (1.61 GiB), npm cache (1.20 GiB), pnpm cache (1.08 GiB), piano-coverage (1.04 GiB), section-listening (0.87 GiB), unknown melband-site (0.84 GiB), repository `data/` (0.80 GiB); see the measured JSON for the complete ranked list.
+2. Largest measured offenders: upstream-model experiment (6.60 GiB), duplicate listening packs (5.01 GiB), shared uv cache (3.42 GiB), piano-final (1.63 GiB), repository (1.61 GiB), MIDI-corpus outputs (1.41 GiB), score corpus (1.35 GiB), npm cache (1.20 GiB), pnpm cache (1.08 GiB), and piano-coverage (1.03 GiB). The next entries were section-listening (0.85 GiB), unknown melband-site (0.84 GiB), and repository `data/` (0.80 GiB); see the measured JSON for the complete ranked list.
 3. Major measured categories: Keyspilli `/private/tmp` 23.85 GiB, registered worktrees 2.45 GiB, selected shared caches approximately 6.12 GiB, repository 1.61 GiB, private Keyspilli Downloads about 265 MiB. The inventory's measured category totals were `EPHEMERAL_EXPERIMENT` 20.10 GiB, `PACKAGE_CACHE` 5.69 GiB, `GIT` 1.61 GiB, `UNKNOWN` 1.41 GiB, `WORKTREE` 0.45 GiB, and `MODEL_CACHE` 0.45 GiB.
 4. Local commits missing from GitHub: 153 commits in the active topic range at mission start. Ten stale local branch names were separately audited; every tip was already reachable from another pushed origin ref, so no redundant branch refs were created.
 5. Protected/private assets in unpublished history: none found.
