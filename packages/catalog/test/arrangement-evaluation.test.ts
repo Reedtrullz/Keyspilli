@@ -478,6 +478,51 @@ describe("arrangement evaluation", () => {
     expect(malformedVariant.metrics.variants.easy?.global.noteCount).toBe(0);
   });
 
+  it("fails closed for mixed malformed runtime containers in one evaluation", () => {
+    const report = evaluateArrangement({
+      fixture: { id: "mixed-malformed-runtime" },
+      candidate: {
+        selector: "candidate.mid",
+        notes: { midi: 60 } as unknown as Note[],
+        parsed: {
+          notes: { midi: 61 } as unknown as Note[],
+          tempoBpm: Number.NaN,
+          timeSig: null,
+        } as unknown as ParsedMidi,
+      },
+      windows: [{ id: "candidate-window", candidate: [0, 1], reference: [0, 1] }],
+      reference: {
+        selector: "reference.mid",
+        notes: { midi: 62 } as unknown as Note[],
+        windows: [{ id: "bad-reference-window", candidate: [-1, 1], reference: [0, 1] }],
+      },
+      variants: [{
+        level: "easy",
+        notes: { midi: 63 } as unknown as Note[],
+        tempoBpm: Number.NaN,
+        timeSig: null,
+        measures: null,
+        difficultyScore: Number.NaN,
+      } as unknown as Variant],
+    });
+    expect(report.gate.status).toBe("fail");
+    expect(report.metrics.sections).toHaveProperty("candidate-window");
+    expect(report.metrics.variants.easy?.global.noteCount).toBe(0);
+    expect(report.gate.failures).toEqual(expect.arrayContaining([
+      "candidate notes are not an array",
+      "candidate parsed notes are not an array",
+      "candidate parsed tempoBpm must be a finite positive number",
+      "candidate parsed timeSig must be an array of two positive integers",
+      "reference notes are not an array",
+      "reference windows: bad-reference-window candidate bounds must be finite, non-negative, and end after start",
+      "easy: variant notes are not an array",
+      "easy: measures must be an array",
+      "easy: timeSig must be an array of two positive integers",
+      "easy: tempoBpm must be a finite positive number",
+      "easy: difficultyScore must be a finite number",
+    ]));
+  });
+
   it("fails closed when the variant list contains duplicate difficulty levels", () => {
     const notes: Note[] = Array.from({ length: 8 }, (_, index) => ({
       midi: 60 + (index % 2),
