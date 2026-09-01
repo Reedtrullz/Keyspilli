@@ -1,6 +1,6 @@
 # Task 2 report: external symbolic research evidence
 
-Implementation commits: `630d82c1ea659e2aabf122d7027eadaecca5f5c9`, `474ae92440111853beb8a39b9634a8f075da6801`
+Implementation commits: `630d82c1ea659e2aabf122d7027eadaecca5f5c9`, `474ae92440111853beb8a39b9634a8f075da6801`, `7cdf5a1ac8d986dd48468b932f8102a94b3fbe57`
 
 ## Delivered
 
@@ -10,6 +10,7 @@ Implementation commits: `630d82c1ea659e2aabf122d7027eadaecca5f5c9`, `474ae924401
 - Exported the native adapter and new external research bridge from `packages/catalog/src/index.ts`.
 - Added focused synthetic coverage in `packages/catalog/test/external-research.test.ts`.
 - Hardened serialization/error redaction so HTTP(S) URLs survive intact while physical paths under standard Unix roots and Windows-style locators are redacted; invalid/unsupported local inputs are classified as non-native evidence and discovery/local rows merge by logical source identity or content hash.
+- Kept benchmark/reference discovery purpose and class authoritative when a matching local input attempts an override, and added UNC/file-server/unknown-root redaction coverage without corrupting logical refs or HTTP URLs.
 
 ## Verification
 
@@ -17,13 +18,13 @@ Commands run from `/Users/reidar/Projectos/Keyspilli`:
 
 ```text
 ./node_modules/.bin/vitest run packages/catalog/test/external-research.test.ts
-  1 file, 9 tests passed
+  1 file, 10 tests passed
 
 ./node_modules/.bin/vitest run packages/catalog/test/external-evidence.test.ts packages/catalog/test/external-research.test.ts
-  2 files, 19 tests passed
+  2 files, 20 tests passed
 
 ./node_modules/.bin/vitest run packages/catalog/test/native-score-adapter.test.ts packages/catalog/test/research-report.test.ts packages/catalog/test/song-research.test.ts packages/catalog/test/external-evidence.test.ts packages/catalog/test/external-research.test.ts
-  5 files, 54 tests passed
+  5 files, 55 tests passed
 
 pnpm --filter @keyspilli/catalog exec tsc --noEmit
   passed
