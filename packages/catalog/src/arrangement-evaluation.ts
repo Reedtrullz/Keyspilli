@@ -65,7 +65,7 @@ export interface ArrangementEvaluationReference {
 export interface ProvenanceTraceEvent {
   key: string;
   windowId?: string;
-  stage?: "raw" | "cleaned" | "lead" | "residual" | "cluster" | "semantic" | "decision" | "chord" | "left-hand" | "difficulty" | "final";
+  stage?: "raw" | "cleaned" | "eligibility" | "selector-input" | "onset-group" | "lead" | "residual" | "cluster" | "semantic" | "decision" | "chord" | "left-hand" | "difficulty" | "final";
   parentKeys?: string[];
   source?: string | null;
   sourceStem?: string | null;
@@ -974,7 +974,7 @@ function validateEvaluationWindows(raw: unknown, label: string): WindowValidatio
 }
 
 const TRACE_STAGES = new Set<NonNullable<ProvenanceTraceEvent["stage"]>>([
-  "raw", "cleaned", "lead", "residual", "cluster", "semantic", "decision", "chord", "left-hand", "difficulty", "final",
+  "raw", "cleaned", "eligibility", "selector-input", "onset-group", "lead", "residual", "cluster", "semantic", "decision", "chord", "left-hand", "difficulty", "final",
 ]);
 
 function traceShapeFailures(trace: unknown): string[] {

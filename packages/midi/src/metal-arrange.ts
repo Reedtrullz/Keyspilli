@@ -22,6 +22,9 @@ export interface MetalArrangementInput {
 export type MetalArrangementTraceStage =
   | "raw"
   | "cleaned"
+  | "eligibility"
+  | "selector-input"
+  | "onset-group"
   | "lead"
   | "residual"
   | "cluster"
@@ -92,6 +95,7 @@ export interface MetalArrangementResult {
     chordEvents: number;
     sourceSections: Record<string, number>;
     guitarLead?: GuitarLeadPathDiagnostics;
+    guitarPreSelector?: GuitarLeadPreSelectorDiagnostics;
     guitarHarmony?: GuitarHarmonyDiagnostics;
   };
   warnings: string[];
@@ -193,21 +197,24 @@ function traceRawNotes(
   const canonical = sourceNotes.slice().sort((a, b) =>
     a.start - b.start || a.midi - b.midi || a.dur - b.dur || a.vel - b.vel
     || (a.lyrics ?? "").localeCompare(b.lyrics ?? ""));
-  const ids = new Map<Note, string>();
+  const idsByTuple = new Map<string, string[]>();
   const canonicalCounts = new Map<string, number>();
   for (const note of canonical) {
     const tuple = `${note.start.toFixed(6)}:${note.midi}:${note.dur.toFixed(6)}:${note.vel}:${note.lyrics ?? ""}`;
     const occurrence = canonicalCounts.get(tuple) ?? 0;
     canonicalCounts.set(tuple, occurrence + 1);
-    ids.set(note, `raw:${actualRole}:${tuple}:${occurrence}`);
+    const ids = idsByTuple.get(tuple) ?? [];
+    ids.push(`raw:${actualRole}:${tuple}:${occurrence}`);
+    idsByTuple.set(tuple, ids);
   }
   return sourceNotes.map((note) => {
     const tuple = `${note.start.toFixed(6)}:${note.midi}:${note.dur.toFixed(6)}:${note.vel}:${note.lyrics ?? ""}`;
     const occurrence = counts.get(tuple) ?? 0;
     counts.set(tuple, occurrence + 1);
-    // Object identity is unique for duplicate entries in a parsed source;
-    // the tuple fallback keeps synthetic callers safe if they reuse objects.
-    const key = ids.get(note) ?? `raw:${actualRole}:${tuple}:${occurrence}`;
+    // Consume canonical IDs by tuple rather than object identity. Synthetic
+    // callers may intentionally reuse the same object for multiple events.
+    const ids = idsByTuple.get(tuple);
+    const key = ids?.shift() ?? `raw:${actualRole}:${tuple}:${occurrence}`;
     const tagged: IdentityNote = {
       ...note,
       ...(identitySource ? { identitySource } : {}),
@@ -288,6 +295,37 @@ export interface GuitarLeadPathDiagnostics {
    * zero here because those stages belong to downstream arrangement passes.
    */
   rejectionReasons?: GuitarLeadRejectionReasons;
+}
+
+export type GuitarLeadPreSelectorRejectionReason =
+  | "selector-input"
+  | "invalid-raw"
+  | "rhythm-only"
+  | "register-rejected"
+  | "confidence-rejected"
+  | "source-not-melodic"
+  | "other";
+
+export type GuitarLeadPreSelectorReasons = Record<GuitarLeadPreSelectorRejectionReason, number>;
+
+export interface GuitarLeadPreSelectorDiagnostics {
+  rawSourceCount: number;
+  validRawCount: number;
+  selectorInputCount: number;
+  removedCount: number;
+  reasons: GuitarLeadPreSelectorReasons;
+}
+
+function freshGuitarLeadPreSelectorReasons(): GuitarLeadPreSelectorReasons {
+  return {
+    "selector-input": 0,
+    "invalid-raw": 0,
+    "rhythm-only": 0,
+    "register-rejected": 0,
+    "confidence-rejected": 0,
+    "source-not-melodic": 0,
+    other: 0,
+  };
 }
 
 export type GuitarLeadRejectionReason =
@@ -1236,6 +1274,115 @@ function rawLowRhythmEvents(
     });
   }
   return selected;
+}
+
+function classifyGuitarPreSelector(
+  stem: MetalStem | undefined,
+  raw: IdentityNote[],
+  eligible: IdentityNote[],
+  routedRhythm: IdentityNote[],
+  upper: IdentityNote[],
+): GuitarLeadPreSelectorDiagnostics {
+  const reasons = freshGuitarLeadPreSelectorReasons();
+  const validRawCount = raw.length;
+  const rawSourceCount = stem?.midi.notes.length ?? validRawCount;
+  reasons["invalid-raw"] = Math.max(0, rawSourceCount - validRawCount);
+  const eligibleSet = new Set(eligible);
+  const upperSet = new Set(upper);
+  const routedAt = (note: IdentityNote): boolean => routedRhythm.some((candidate) =>
+    Math.abs(candidate.start - note.start) <= 0.08 + EPS,
+  );
+  for (const note of raw) {
+    let reason: GuitarLeadPreSelectorRejectionReason;
+    if (eligibleSet.has(note)) reason = "selector-input";
+    else if (note.hand === "L") reason = "source-not-melodic";
+    else if (routedAt(note)) reason = "rhythm-only";
+    else if (note.midi < 45) reason = "register-rejected";
+    else if (note.midi >= 61 && !upperSet.has(note)) reason = "confidence-rejected";
+    else reason = "other";
+    reasons[reason] += 1;
+  }
+  return {
+    rawSourceCount,
+    validRawCount,
+    selectorInputCount: eligible.length,
+    removedCount: Math.max(0, validRawCount - eligible.length),
+    reasons,
+  };
+}
+
+function emitGuitarPreSelectorTrace(
+  sink: MetalArrangementTraceSink | undefined,
+  raw: IdentityNote[],
+  eligible: IdentityNote[],
+  routedRhythm: IdentityNote[],
+  upper: IdentityNote[],
+): void {
+  if (!sink) return;
+  const eligibleSet = new Set(eligible);
+  const upperSet = new Set(upper);
+  const routedAt = (note: IdentityNote): boolean => routedRhythm.some((candidate) =>
+    Math.abs(candidate.start - note.start) <= 0.08 + EPS,
+  );
+  const reasonFor = (note: IdentityNote): GuitarLeadPreSelectorRejectionReason => {
+    if (eligibleSet.has(note)) return "selector-input";
+    if (note.hand === "L") return "source-not-melodic";
+    if (routedAt(note)) return "rhythm-only";
+    if (note.midi < 45) return "register-rejected";
+    if (note.midi >= 61 && !upperSet.has(note)) return "confidence-rejected";
+    return "other";
+  };
+  for (const note of raw) {
+    const rawKey = traceParents(note)[0];
+    if (!rawKey) continue;
+    emitTrace(sink, {
+      key: `eligibility:${rawKey}`,
+      stage: "eligibility",
+      parentKeys: [rawKey],
+      source: "guitar",
+      sourceStem: note.traceSourceStem ?? "guitar",
+      note: traceNote({ ...note, rawMidi: note.midi }),
+      selected: eligibleSet.has(note),
+      selectionReason: reasonFor(note),
+    });
+  }
+  const sorted = eligible.slice().sort((a, b) => a.start - b.start || a.midi - b.midi || b.vel - a.vel);
+  const groups: IdentityNote[][] = [];
+  for (const note of sorted) {
+    const previous = groups.at(-1);
+    if (!previous || note.start - previous.at(-1)!.start > 0.08 + EPS) groups.push([note]);
+    else previous.push(note);
+  }
+  for (const [index, group] of groups.entries()) {
+    const parentKeys = group.flatMap((note) => {
+      const rawKey = traceParents(note)[0];
+      return rawKey ? [`eligibility:${rawKey}`] : [];
+    });
+    emitTrace(sink, {
+      key: `onset-group:guitar:${index}:${group[0]!.start.toFixed(6)}`,
+      stage: "onset-group",
+      parentKeys,
+      source: "guitar",
+      sourceStem: group[0]!.traceSourceStem ?? "guitar",
+      note: traceNote({ ...group[0]!, rawMidi: group[0]!.midi }),
+      selected: true,
+      selectionReason: "selector-onset-group",
+    });
+  }
+  for (const note of eligible) {
+    const rawKey = traceParents(note)[0];
+    if (!rawKey) continue;
+    emitTrace(sink, {
+      key: `selector-input:${rawKey}`,
+      stage: "selector-input",
+      parentKeys: [`eligibility:${rawKey}`],
+      source: "guitar",
+      sourceStem: note.traceSourceStem ?? "guitar",
+      note: traceNote({ ...note, rawMidi: note.midi }),
+      selected: true,
+      selectionReason: "eligible-for-guitar-lead-selector",
+    });
+  }
 }
 
 function suppressLowGuitarPulseRuns(notes: IdentityNote[], externalLeadContext: IdentityNote[] = []): GuitarPulseLanes {
@@ -3110,9 +3257,18 @@ export function buildMetalArrangement(
   // Split raw low material before octave registration. Otherwise MIDI 50–54
   // can become a false RH 62–66 line and the later pulse pass cannot recover
   // which detector event was really accompaniment.
-  const guitarPathInput = guitarRaw
-    .filter((note) => (note.midi < 61 || guitarUpperRaw.includes(note)) && note.midi >= 45 && !isRoutedRawLow(note, guitarRawRhythm))
+  const guitarEligibleRaw = guitarRaw
+    .filter((note) => (note.midi < 61 || guitarUpperRaw.includes(note)) && note.midi >= 45 && !isRoutedRawLow(note, guitarRawRhythm));
+  const guitarPathInput = guitarEligibleRaw
     .map((note) => ({ ...note, identitySource: "guitar" as const }));
+  const guitarPreSelector = classifyGuitarPreSelector(
+    guitarStem,
+    guitarRaw,
+    guitarEligibleRaw,
+    guitarRawRhythm,
+    guitarUpperRaw,
+  );
+  emitGuitarPreSelectorTrace(trace, guitarRaw, guitarEligibleRaw, guitarRawRhythm, guitarUpperRaw);
   // Resolve harmonic stacks and detector spikes while the raw guitar
   // candidates are still available. The integration uses a very small spacing
   // floor so Advanced keeps its source density; learner-level .5-beat floors
@@ -3709,6 +3865,7 @@ export function buildMetalArrangement(
       chordEvents: chords.length,
       sourceSections,
       guitarLead: guitarLeadSelection.diagnostics,
+      guitarPreSelector,
       guitarHarmony: {
         ...guitarHarmony.diagnostics,
         emittedLeftHandEvents: emittedSemanticLeftHandEvents,

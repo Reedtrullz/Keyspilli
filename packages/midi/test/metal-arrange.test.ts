@@ -2691,4 +2691,72 @@ describe("metal piano arranger", () => {
     expect(difficulty.every((event) => event.selected === true && event.parentKeys.some((key) => finalKeys.has(key)))).toBe(true);
     expect(new Set(difficulty.map((event) => event.key)).size).toBe(difficulty.length);
   });
+
+  it("accounts for every valid raw guitar event at the pre-selector boundary", () => {
+    const input = {
+      stems: [{ role: "guitar" as const, midi: midi([
+        { midi: 40, start: 0, dur: 0.5, vel: 90 },
+        { midi: 52, start: 1, dur: 0.5, vel: 90 },
+        { midi: 72, start: 2, dur: 0.5, vel: 100 },
+        { midi: 79, start: 2.04, dur: 0.5, vel: 96 },
+        { midi: 85, start: 6, dur: 0.1, vel: 30 },
+        { midi: 60.5, start: 7, dur: 0.5, vel: 90 },
+      ], 8) }],
+    };
+    const plain = buildMetalArrangement(input);
+    const trace: MetalArrangementTraceEvent[] = [];
+    const traced = buildMetalArrangement(input, { trace: { record: (event) => trace.push(event) } });
+
+    expect(traced).toEqual(plain);
+    expect(traced.stats.guitarPreSelector).toEqual({
+      rawSourceCount: 6,
+      validRawCount: 5,
+      selectorInputCount: 2,
+      removedCount: 3,
+      reasons: {
+        "selector-input": 2,
+        "invalid-raw": 1,
+        "rhythm-only": 2,
+        "register-rejected": 0,
+        "confidence-rejected": 1,
+        "source-not-melodic": 0,
+        other: 0,
+      },
+    });
+    const diagnostics = traced.stats.guitarPreSelector!;
+    expect(Object.entries(diagnostics.reasons)
+      .filter(([reason]) => reason !== "invalid-raw")
+      .reduce((sum, [, count]) => sum + count, 0)).toBe(diagnostics.validRawCount);
+    expect(Object.values(diagnostics.reasons).reduce((sum, count) => sum + count, 0))
+      .toBe(diagnostics.rawSourceCount);
+
+    const preSelector = trace.filter((event) =>
+      event.stage === "eligibility" || event.stage === "onset-group" || event.stage === "selector-input");
+    expect(trace.filter((event) => event.stage === "eligibility")).toHaveLength(5);
+    expect(trace.filter((event) => event.stage === "selector-input")).toHaveLength(2);
+    expect(trace.filter((event) => event.stage === "onset-group")).toHaveLength(1);
+    const byKey = new Map(trace.map((event) => [event.key, event]));
+    for (const event of preSelector) {
+      expect(event.parentKeys.every((parentKey) => byKey.has(parentKey))).toBe(true);
+    }
+    expect(trace.filter((event) => event.stage === "eligibility").map((event) => event.selectionReason))
+      .toEqual(["rhythm-only", "rhythm-only", "selector-input", "selector-input", "confidence-rejected"]);
+    expect(trace.filter((event) => event.stage === "selector-input")
+      .every((event) => event.parentKeys.length === 1
+        && byKey.get(event.parentKeys[0]!)?.stage === "eligibility")).toBe(true);
+    expect(trace.filter((event) => event.stage === "onset-group")
+      .every((event) => event.parentKeys.length > 0
+        && event.parentKeys.every((parentKey) => byKey.get(parentKey)?.stage === "eligibility"))).toBe(true);
+  });
+
+  it("keeps duplicate in-memory raw guitar objects independently traceable", () => {
+    const repeated = { midi: 72, start: 0, dur: 0.5, vel: 90 };
+    const trace: MetalArrangementTraceEvent[] = [];
+    buildMetalArrangement({ stems: [{ role: "guitar", midi: midi([repeated, repeated], 2) }] }, {
+      trace: { record: (event) => trace.push(event) },
+    });
+    const raw = trace.filter((event) => event.stage === "raw");
+    expect(raw).toHaveLength(2);
+    expect(new Set(raw.map((event) => event.key)).size).toBe(2);
+  });
 });
