@@ -41,7 +41,7 @@ because `../src/external-evidence.js` did not exist.
 
 ## Commit
 
-Implementation commit: `e4b4139d8b1e1e99eba572e30626d193aaba0a9c` (`fix(catalog): harden external evidence firewall`)
+Implementation commit: `a4a1368f11d1628da90f501fa2f410cd3d6acf81` (`fix(catalog): fail closed on external evidence metadata`)
 
 ## Concerns and boundaries
 
@@ -55,3 +55,7 @@ Implementation commit: `e4b4139d8b1e1e99eba572e30626d193aaba0a9c` (`fix(catalog)
   human review remains a separate gate.
 - No benchmark media, protected artifacts, secrets, or absolute physical paths
   were added to the implementation or canonical metadata.
+- Follow-up hardening validates every supplied acquisition field (including
+  malformed objects), recursively removes physical locator/note/event fields,
+  redacts file URLs and path-like values, and rejects generic benchmark or
+  reference markers in provenance/lineage metadata.
