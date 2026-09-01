@@ -1,6 +1,6 @@
 # Task 2 report: external symbolic research evidence
 
-Implementation commit: `630d82c1ea659e2aabf122d7027eadaecca5f5c9`
+Implementation commits: `630d82c1ea659e2aabf122d7027eadaecca5f5c9`, `474ae92440111853beb8a39b9634a8f075da6801`
 
 ## Delivered
 
@@ -9,6 +9,7 @@ Implementation commit: `630d82c1ea659e2aabf122d7027eadaecca5f5c9`
 - Applied `assertGenerationEvidence` to parsed candidates. Benchmark/reference-purpose candidates are rejected and are never marked generation-usable. Metadata-only leads and parsed research leads remain non-generation records.
 - Exported the native adapter and new external research bridge from `packages/catalog/src/index.ts`.
 - Added focused synthetic coverage in `packages/catalog/test/external-research.test.ts`.
+- Hardened serialization/error redaction so HTTP(S) URLs survive intact while physical paths under standard Unix roots and Windows-style locators are redacted; invalid/unsupported local inputs are classified as non-native evidence and discovery/local rows merge by logical source identity or content hash.
 
 ## Verification
 
@@ -16,19 +17,19 @@ Commands run from `/Users/reidar/Projectos/Keyspilli`:
 
 ```text
 ./node_modules/.bin/vitest run packages/catalog/test/external-research.test.ts
-  1 file, 6 tests passed
+  1 file, 9 tests passed
 
 ./node_modules/.bin/vitest run packages/catalog/test/external-evidence.test.ts packages/catalog/test/external-research.test.ts
-  2 files, 16 tests passed
+  2 files, 19 tests passed
 
-./node_modules/.bin/vitest run packages/catalog/test/native-score-adapter.test.ts packages/catalog/test/research-report.test.ts packages/catalog/test/song-research.test.ts packages/catalog/test/external-evidence.test.ts
-  4 files, 45 tests passed
+./node_modules/.bin/vitest run packages/catalog/test/native-score-adapter.test.ts packages/catalog/test/research-report.test.ts packages/catalog/test/song-research.test.ts packages/catalog/test/external-evidence.test.ts packages/catalog/test/external-research.test.ts
+  5 files, 54 tests passed
 
 pnpm --filter @keyspilli/catalog exec tsc --noEmit
   passed
 
 ./node_modules/.bin/vitest run packages/catalog/test
-  78 files; 693 passed, 6 failed
+  78 files; 693 passed, 6 failed (unchanged unrelated environment failures)
 ```
 
 The six full-catalog failures are unrelated subprocess-environment failures in existing `restore-curated.test.ts` and `verify-catalog.test.ts` cases. They invoke `/Users/reidar/.hermes/node/bin/node --import tsx` with cwd `/Users/reidar`, where `tsx` cannot be resolved (`ERR_MODULE_NOT_FOUND: Cannot find package 'tsx'`). The changed tests and all neighboring research/native/firewall tests pass.
