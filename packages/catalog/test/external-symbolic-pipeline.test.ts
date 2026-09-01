@@ -148,10 +148,10 @@ describe("external symbolic generation boundary", () => {
   });
 
   it("keeps raw candidate payloads and unknown-root path fragments out of metadata", () => {
-    const candidate = { ...record().candidate!, rawNoteBlob: [{ midi: 60 }], eventsByTrack: [{ pitch: 60 }], byteBuffer: [1, 2], metadata: { description: "/odd/private/path", unknown: "/secret", logical: "A/B", url: "https://example.test/a/b" } };
+    const candidate = { ...record().candidate!, rawNoteBlob: [{ midi: 60 }], rawNoteBlob2: [{ midi: 60 }], note_payloads: [{ midi: 60 }], eventsByTrack: [{ pitch: 60 }], eventRows2: [{ pitch: 60 }], byteBuffer: [1, 2], metadata: { description: "/odd/private/path", unknown: "/secret", logical: "A/B", url: "https://example.test/a/b" } };
     const frozen = freezeGenerationCandidateSet([record({ candidate })]);
     const serialized = JSON.stringify(frozen);
-    expect(serialized).not.toMatch(/rawNoteBlob|eventsByTrack|byteBuffer|odd\/private\/path|\/secret/);
+    expect(serialized).not.toMatch(/rawNoteBlob|note_payloads|eventsByTrack|eventRows2|byteBuffer|odd\/private\/path|\/secret/);
     expect(serialized).toMatch(/A\/B|https:\/\/example\.test\/a\/b/);
   });
 

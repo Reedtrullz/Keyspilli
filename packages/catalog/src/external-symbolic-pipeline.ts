@@ -53,7 +53,6 @@ export interface FrozenGenerationCandidateSet {
 
 const ROLES = new Set<EvidenceRole>(["melody", "harmony", "bass-root", "rhythm", "timing-only"]);
 const PHYSICAL_KEY = /(?:path|file|locator|artifact)$/i;
-const NOTE_DATA_KEY = /(?:notes?|events?|bytes?)(?:[_-]?(?:data|list|array|payload|rows?|blob|buffer|by.*))?$/i;
 const PATH_VALUE = /^(?:file:\/\/|[A-Za-z]:[\\/]|[\\/~])|\/(?:Users|private|tmp|var|home|Volumes|root|opt|workspace|srv|etc|mnt|data)(?:[\\/]|$)/i;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -62,6 +61,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function finite(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
+}
+
+function isRawPayloadKey(key: string, allowStructuralEvents = false): boolean {
+  const normalized = key.replace(/[^a-z0-9]/gi, "").toLowerCase();
+  if (normalized === "bytelength") return false;
+  if (allowStructuralEvents && normalized === "events") return false;
+  return /notes?|events?|bytes?/.test(normalized);
 }
 
 function validCoverageNote(value: unknown): value is Note {
@@ -74,7 +80,7 @@ function validCoverageNote(value: unknown): value is Note {
 }
 
 function safeMetadata(value: unknown, key = ""): unknown {
-  if (NOTE_DATA_KEY.test(key) || PHYSICAL_KEY.test(key)) return undefined;
+  if (isRawPayloadKey(key) || PHYSICAL_KEY.test(key)) return undefined;
   if (Array.isArray(value)) return value.map((item) => safeMetadata(item, key)).filter((item) => item !== undefined);
   if (typeof value === "string") return redactPath(value);
   if (!isRecord(value)) return value;
@@ -85,7 +91,7 @@ function safeMetadata(value: unknown, key = ""): unknown {
 
 /** Scores are the normalized realization input, so their event rows remain; only locators are removed. */
 function safeScoreMetadata(value: unknown, key = ""): unknown {
-  if (PHYSICAL_KEY.test(key) || (NOTE_DATA_KEY.test(key) && key.toLowerCase() !== "events")) return undefined;
+  if (PHYSICAL_KEY.test(key) || isRawPayloadKey(key, true)) return undefined;
   if (Array.isArray(value)) return value.map((item) => safeScoreMetadata(item, key)).filter((item) => item !== undefined);
   if (typeof value === "string") return redactPath(value);
   if (!isRecord(value)) return value;
@@ -182,7 +188,7 @@ function digest(selected: readonly FrozenGenerationCandidate[]): string {
 }
 
 function hasUnsafeCandidateMetadata(value: unknown, key = ""): boolean {
-  if (NOTE_DATA_KEY.test(key) || PHYSICAL_KEY.test(key)) return true;
+  if (isRawPayloadKey(key) || PHYSICAL_KEY.test(key)) return true;
   if (typeof value === "string") return PATH_VALUE.test(value);
   if (Array.isArray(value)) return value.some((child) => hasUnsafeCandidateMetadata(child, key));
   if (!isRecord(value)) return false;

@@ -32,6 +32,10 @@
   positive duration, integer velocity 1..127, and valid hand) and redacts
   single-component absolute path fragments such as `/secret` while preserving
   logical `A/B` references and HTTPS URLs.
+- Raw candidate metadata detection normalizes key spelling and strips any
+  note/event/byte token with arbitrary separators, plurals, or suffixes (for
+  example `note_payloads`, `eventRows2`, and `rawNoteBlob2`); only required
+  `byteLength` and structural score `events` are allowlisted.
 - Exported the new boundary from `packages/catalog/src/index.ts` and added
   synthetic in-memory tests covering benchmark exclusion, order-invariant
   digest, roles/sections, malformed/non-parsed/low-confidence/misaligned
