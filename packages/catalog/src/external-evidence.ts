@@ -90,7 +90,7 @@ function canonicalMetadata(candidate: ExternalEvidenceCandidate): Record<string,
     if (Array.isArray(value)) return value.map(strip);
     if (typeof value === "string" && pathLike.test(value)) return "[redacted-path]";
     if (!isRecord(value)) return finite(value);
-    return Object.fromEntries(Object.keys(value).sort().filter((key) => !excluded.test(key)).map((key) => [key, strip(value[key])]));
+    return Object.fromEntries(Object.keys(value).sort().filter((key) => !excluded.test(key)).map((key) => [key, key.toLowerCase() === "sha256" && typeof value[key] === "string" ? value[key].toLowerCase() : strip(value[key])]));
   };
   return strip(candidate) as Record<string, unknown>;
 }
@@ -102,7 +102,10 @@ export function assertGenerationEvidence(candidate: ExternalEvidenceCandidate): 
   if (!isOneOf(candidate.purpose, EVIDENCE_PURPOSES) || candidate.purpose === "BENCHMARK_REFERENCE") throw new Error("benchmark evidence cannot enter generation");
   if (!isOneOf(candidate.status, CANDIDATE_STATUSES) || candidate.status === "parse-failed" || candidate.status === "rejected") throw new Error("candidate parse status is not generation-safe");
   if (!isRecord(candidate.provenance) || typeof candidate.provenance.sourceRef !== "string" || candidate.provenance.sourceRef.trim() === "") throw new Error("candidate requires a logical source reference");
-  const suppliedAcquisions = [candidate.provenance.acquisition, candidate.provenance.acquiredVia].filter((value) => value !== undefined && value !== null);
+  if (/^(?:file:\/\/|[A-Za-z]:[\\/]|[\\/]|~[\\/])|(?:[\\/]\S+\.(?:mid|midi|musicxml|mxl|wav|mp3|json))(?:$|[?#])/i.test(candidate.provenance.sourceRef) || /(?:^|[\\/])[^\\/]+\.(?:mid|midi|musicxml|mxl|wav|mp3|json)$/i.test(candidate.provenance.sourceRef)) throw new Error("candidate source reference must be logical, not a physical path");
+  const acquisitionKeys = ["acquisition", "acquiredVia"] as const;
+  if (acquisitionKeys.some((key) => Object.hasOwn(candidate.provenance, key) && typeof candidate.provenance[key] !== "string")) throw new Error("candidate acquisition is not permitted for local analysis");
+  const suppliedAcquisions = acquisitionKeys.map((key) => candidate.provenance[key]).filter((value) => value !== undefined);
   const acquisitions = suppliedAcquisions.filter((value): value is string => typeof value === "string");
   if (acquisitions.length !== suppliedAcquisions.length || acquisitions.length === 0 || acquisitions.some((value) => !/^local(?:-|$)/i.test(value) || /remote|benchmark|protected|download|provider-export/i.test(value))) throw new Error("candidate acquisition is not permitted for local analysis");
   if (!isRecord(candidate.content) || typeof candidate.content.sha256 !== "string" || !/^[a-f0-9]{64}$/i.test(candidate.content.sha256)) throw new Error("candidate requires a SHA-256 content hash");
@@ -118,7 +121,7 @@ export function assertGenerationEvidence(candidate: ExternalEvidenceCandidate): 
   if (Object.keys(candidate).some((key) => /benchmark|reference|evaluation[-_ ]?only|protected/i.test(key)) || protectedFields.some((value) => containsProtectedMarker(value))) {
     throw new Error("benchmark/reference evidence cannot enter generation");
   }
-  return candidate;
+  return { ...candidate, content: { ...candidate.content, sha256: candidate.content.sha256.toLowerCase() } };
 }
 
 /** Stable, path-safe metadata records for a candidate set. */

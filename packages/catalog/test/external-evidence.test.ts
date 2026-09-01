@@ -52,7 +52,7 @@ describe("external evidence firewall", () => {
 
   it("redacts nested and logical path-like values case-insensitively", () => {
     const [canonical] = canonicalEvidenceCandidateSet([candidate({
-      provenance: { sourceRef: "file:///Users/reidar/My Folder/source.xml", acquisition: "local-analysis", physical_path: "/tmp/source.mid", sourceArtifactRef: "/tmp/artifact.mid" },
+      provenance: { sourceRef: "file:///tmp/example/My Folder/source.xml", acquisition: "local-analysis", physical_path: "/tmp/source.mid", sourceArtifactRef: "/tmp/artifact.mid" },
       lineage: { localPath: "/tmp/lineage.mid", rootFile: "file:///tmp/root file.mid", noteEvents: [{ pitch: 60 }], nested: { FILEPATH: "/tmp/nested.mid" } },
     })]);
     expect(JSON.stringify(canonical)).not.toContain("/tmp/");
@@ -71,5 +71,17 @@ describe("external evidence firewall", () => {
     const first = candidate({ provenance: { sourceRef: "youtube:a", provider: "x", acquisition: "local-analysis" } });
     const second = candidate({ provenance: { sourceRef: "youtube:b", provider: "x", acquisition: "local-analysis" } });
     expect(evidenceCandidateSetDigest([first, second])).toBe(evidenceCandidateSetDigest([second, first]));
+  });
+
+  it("normalizes uppercase SHA-256 and keeps its digest equivalent", () => {
+    const upper = candidate({ content: { sha256: "A".repeat(64), byteLength: 12, mediaType: "audio/midi" } });
+    expect(assertGenerationEvidence(upper).content.sha256).toBe("a".repeat(64));
+    expect(evidenceCandidateSetDigest([upper])).toBe(evidenceCandidateSetDigest([candidate()]));
+  });
+
+  it("rejects physical source references and explicit null acquisition fields", () => {
+    expect(() => assertGenerationEvidence(candidate({ provenance: { sourceRef: "/tmp/example.mid", acquisition: "local-analysis" } }))).toThrow(/logical|source/i);
+    expect(() => assertGenerationEvidence(candidate({ provenance: { sourceRef: "file:///tmp/example.mid", acquisition: "local-analysis" } }))).toThrow(/logical|source/i);
+    expect(() => assertGenerationEvidence(candidate({ provenance: { sourceRef: "youtube:abc", acquisition: null, acquiredVia: "local-import" } }))).toThrow(/acqui/i);
   });
 });
