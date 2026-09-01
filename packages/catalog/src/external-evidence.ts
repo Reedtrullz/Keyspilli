@@ -85,9 +85,9 @@ function normalize(value: unknown): unknown {
 
 function canonicalMetadata(candidate: ExternalEvidenceCandidate): Record<string, unknown> {
   const excluded = /(?:path|file|notes?|events?|artifact|locator)/i;
-  const pathLike = /^(?:file:\/\/|[A-Za-z]:[\\/]|[\\/]|~[\\/])|(?:[\\/]\S+\.(?:mid|midi|musicxml|mxl|wav|mp3|json))(?:$|[?#])/i;
+  const pathLike = /^(?:file:\/\/(?:(?:[A-Za-z]:[\\/])|(?:[\\/])|(?:~[\\/]))|[A-Za-z]:[\\/]|[\\/]|~[\\/])|(?:[\\/]\S+\.(?:mid|midi|musicxml|mxl|wav|mp3|json))(?:$|[?#])/i;
   const pathLikeSubstring = /(?:file:\/\/|[A-Za-z]:[\\/]|~[\\/]|\/)[^,;)}\]]*?\.(?:musicxml|midi|mid|mxl|wav|mp3|json)(?:[?#][^\s,;)}\]]*)?/gi;
-  const pathPrefixSubstring = /(?:file:\/\/|[A-Za-z]:[\\/]|~[\\/]|\/)[^\s,;)}\]]+/gi;
+  const pathPrefixSubstring = /(?:file:\/\/(?:(?:[A-Za-z]:[\\/])|(?:[\\/])|(?:~[\\/]))[^\s,;)}\]]+|(?<![A-Za-z0-9])(?:[A-Za-z]:[\\/]|\\\\|~[\\/])[^\s,;)}\]]+|\/(?:Users|private|tmp|var|home|Volumes)(?:[\\/][^\s,;)}\]]+)+)/gi;
   const strip = (value: unknown): unknown => {
     if (Array.isArray(value)) return value.map(strip);
     if (typeof value === "string") {

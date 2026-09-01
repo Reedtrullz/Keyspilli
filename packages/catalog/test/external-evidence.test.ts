@@ -114,5 +114,10 @@ describe("external evidence firewall", () => {
       const [redacted] = canonicalEvidenceCandidateSet([candidate({ description })]);
       expect(redacted!.description).toBe("prefix [redacted-path] suffix");
     }
+    const logical = ["https://example.com/docs", "youtube:abc/section", "provider:catalog/song", "A/B test", "file://logical-id"];
+    for (const description of logical) {
+      const [preserved] = canonicalEvidenceCandidateSet([candidate({ description })]);
+      expect(preserved!.description).toBe(description);
+    }
   });
 });
