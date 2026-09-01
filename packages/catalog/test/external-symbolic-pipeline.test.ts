@@ -148,10 +148,11 @@ describe("external symbolic generation boundary", () => {
   });
 
   it("keeps raw candidate payloads and unknown-root path fragments out of metadata", () => {
-    const candidate = { ...record().candidate!, rawNoteBlob: [{ midi: 60 }], eventsByTrack: [{ pitch: 60 }], byteBuffer: [1, 2], metadata: { description: "/odd/private/path", locator: "/odd/private/path" } };
+    const candidate = { ...record().candidate!, rawNoteBlob: [{ midi: 60 }], eventsByTrack: [{ pitch: 60 }], byteBuffer: [1, 2], metadata: { description: "/odd/private/path", unknown: "/secret", logical: "A/B", url: "https://example.test/a/b" } };
     const frozen = freezeGenerationCandidateSet([record({ candidate })]);
     const serialized = JSON.stringify(frozen);
-    expect(serialized).not.toMatch(/rawNoteBlob|eventsByTrack|byteBuffer|odd\/private\/path/);
+    expect(serialized).not.toMatch(/rawNoteBlob|eventsByTrack|byteBuffer|odd\/private\/path|\/secret/);
+    expect(serialized).toMatch(/A\/B|https:\/\/example\.test\/a\/b/);
   });
 
   it("keeps normalized score events local but excludes them from path-safe JSON", () => {
@@ -211,5 +212,21 @@ describe("explicit evidence-class route coverage", () => {
     expect(coverage.totalNotes).toBe(1);
     expect(coverage.attributedNotePercentage).toBeNull();
     expect(coverage.diagnostics.join(" ")).toMatch(/note/i);
+  });
+
+  it("fails closed for Note values outside the MIDI contract", () => {
+    const coverage = evaluateRouteCoverage({
+      notes: [
+        { midi: 128, start: 0, dur: 1, vel: 90 },
+        { midi: 60, start: -1, dur: 1, vel: 90 },
+        { midi: 60, start: 0, dur: 1, vel: 0 },
+        notes[0]!,
+      ],
+      attributions: [{ evidenceClass: "VERIFIED_NATIVE_SYMBOLIC", noteIndices: [0] }],
+    });
+    expect(coverage.totalNotes).toBe(1);
+    expect(coverage.attributedNotePercentage).toBeNull();
+    expect(coverage.attributedDurationPercentage).toBeNull();
+    expect(coverage.diagnostics.join(" ")).toMatch(/malformed|range|note/i);
   });
 });

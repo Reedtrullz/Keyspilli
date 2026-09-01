@@ -64,6 +64,15 @@ function finite(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
 
+function validCoverageNote(value: unknown): value is Note {
+  return isRecord(value)
+    && finite(value.midi) && Number.isInteger(value.midi) && value.midi >= 0 && value.midi <= 127
+    && finite(value.start) && value.start >= 0
+    && finite(value.dur) && value.dur > 0
+    && finite(value.vel) && Number.isInteger(value.vel) && value.vel >= 1 && value.vel <= 127
+    && (value.hand === undefined || value.hand === "R" || value.hand === "L");
+}
+
 function safeMetadata(value: unknown, key = ""): unknown {
   if (NOTE_DATA_KEY.test(key) || PHYSICAL_KEY.test(key)) return undefined;
   if (Array.isArray(value)) return value.map((item) => safeMetadata(item, key)).filter((item) => item !== undefined);
@@ -87,7 +96,7 @@ function safeScoreMetadata(value: unknown, key = ""): unknown {
 
 function redactPath(value: string): string {
   if (/^https?:\/\//i.test(value.trim())) return value;
-  const physical = /(?:file:\/\/[^\s,;)}\]]+|\\\\[^\s,;)}\]]+|(?<![A-Za-z0-9:])(?:[A-Za-z]:[\\/]|~[\\/]|\/(?:Users|private|tmp|var|home|Volumes|root|opt|workspace|srv|etc|mnt|data)(?:[\\/]|$))[^\s,;)}\]]*|(?<![A-Za-z0-9:/])\/(?=[^\s,;)}\]]*\/)[^\s,;)}\]]+)/gi;
+  const physical = /(?:file:\/\/[^\s,;)}\]]+|\\\\[^\s,;)}\]]+|(?<![A-Za-z0-9:])(?:[A-Za-z]:[\\/]|~[\\/]|\/(?:Users|private|tmp|var|home|Volumes|root|opt|workspace|srv|etc|mnt|data)(?:[\\/]|$))[^\s,;)}\]]*|(?<![A-Za-z0-9:/])\/(?=[^\s,;)}\]]*\/)[^\s,;)}\]]+|(?<![A-Za-z0-9:/])\/[A-Za-z0-9._~-]+(?=$|[\s,;)}\]]))/gi;
   return value.replace(physical, "[redacted-path]");
 }
 
@@ -436,7 +445,7 @@ export function evaluateRouteCoverage(input: ExternalRouteCoverageInput): Extern
   const rawNotes = input.notes ?? input.result?.notes;
   let invalidData = false;
   const notes = rawNotes === undefined ? [] : Array.isArray(rawNotes)
-    ? rawNotes.filter((note): note is Note => isRecord(note) && finite(note.midi) && Number.isInteger(note.midi) && finite(note.start) && finite(note.dur) && note.dur > 0 && finite(note.vel))
+    ? rawNotes.filter(validCoverageNote)
     : [];
   if (rawNotes !== undefined && !Array.isArray(rawNotes)) { diagnostics.push("notes must be an array"); invalidData = true; }
   else if (Array.isArray(rawNotes) && notes.length !== rawNotes.length) { diagnostics.push("route notes contained malformed entries"); invalidData = true; }
