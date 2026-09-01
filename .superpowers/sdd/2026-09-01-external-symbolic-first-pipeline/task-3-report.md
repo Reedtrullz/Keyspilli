@@ -36,15 +36,15 @@
   note/event/byte token with arbitrary separators, plurals, or suffixes (for
   example `note_payloads`, `eventRows2`, and `rawNoteBlob2`); only required
   `byteLength` and structural score `events` are allowlisted.
-- Exported the new boundary from `packages/catalog/src/index.ts` and added
-  synthetic in-memory tests covering benchmark exclusion, order-invariant
+- Added the boundary as a direct local evaluation import and added synthetic
+  in-memory tests covering benchmark exclusion, order-invariant
   digest, roles/sections, malformed/non-parsed/low-confidence/misaligned
   rejection, path-safe immutability, symbolic realization/fallback, and route
   coverage with and without attribution.
 
 ## Verification
 
-Commands run from `/Users/reidar/Projectos/Keyspilli`:
+Commands run from the repository root:
 
 ```text
 ./node_modules/.bin/vitest run packages/catalog/test/external-symbolic-pipeline.test.ts
@@ -66,9 +66,8 @@ git diff --check
 The initial focused test was run before implementation and failed as expected
 because `../src/external-symbolic-pipeline.js` did not exist. The six full-suite
 failures are unchanged subprocess-environment failures in
-`restore-curated.test.ts` and `verify-catalog.test.ts`: they invoke
-`/Users/reidar/.hermes/node/bin/node --import tsx` with cwd `/Users/reidar`,
-where `tsx` cannot be resolved (`ERR_MODULE_NOT_FOUND`). No changed test or
+`restore-curated.test.ts` and `verify-catalog.test.ts`: the Hermes subprocess
+runtime cannot resolve the workspace `tsx` package. No changed test or
 neighboring research, builder, route, or arrangement test failed.
 
 ## Boundaries and caveats
@@ -82,4 +81,4 @@ explicit route status, not generated audio or fabricated notes.
 
 ## Commit
 
-Implementation commit: `feat(catalog): freeze symbolic generation candidates`
+Implementation commit: `93e5398`; hardening range ends at `5b2bddd`.

@@ -3,8 +3,8 @@
 ## Scope
 
 Implemented the provider-neutral external evidence model and generation
-firewall in `packages/catalog/src/external-evidence.ts`, exported it from the
-catalog index, and added focused Vitest coverage in
+firewall in `packages/catalog/src/external-evidence.ts` and added focused
+Vitest coverage in
 `packages/catalog/test/external-evidence.test.ts`.
 
 The implementation defines evidence class, purpose, status, and role unions;
@@ -41,7 +41,10 @@ because `../src/external-evidence.js` did not exist.
 
 ## Commit
 
-Implementation commit: `bfc8210e77e88e1ac1addc3a35ccfa88d74d6575` (`fix(catalog): narrow physical path redaction`)
+Implementation and hardening range: `fe1e6a6` through `bfc8210`
+(`feat(catalog): add external evidence firewall` through `fix(catalog):
+narrow physical path redaction`). The final local-only barrel boundary is
+recorded in `d167a2c`.
 
 ## Concerns and boundaries
 
@@ -73,3 +76,5 @@ Implementation commit: `bfc8210e77e88e1ac1addc3a35ccfa88d74d6575` (`fix(catalog)
   are now redacted while retaining surrounding text.
 - Extensionless redaction is limited to physical prefixes and preserves
   ordinary HTTPS, provider, and logical identifiers.
+- The external evidence modules are direct local evaluation imports; they are
+  intentionally not part of the production catalog barrel after `d167a2c`.

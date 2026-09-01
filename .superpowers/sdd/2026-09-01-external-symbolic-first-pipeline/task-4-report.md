@@ -21,14 +21,14 @@
   explicit local `.mid`, `.midi`, or note-array `.json` files, rejects URLs,
   directories, missing/duplicate/unknown inputs, supports explicit windows,
   and emits deterministic JSON.
-- Exported the pure module from `packages/catalog/src/index.ts` and added
-  synthetic tests covering duplicate-onset accounting, loss categories,
+- Added the pure module as a direct local evaluation import and synthetic
+  tests covering duplicate-onset accounting, loss categories,
   provenance, unsupported expansions, permutation determinism, fail-closed
   validation, generic decoder-fix gates, and CLI validation.
 
 ## Verification
 
-Commands run from `/Users/reidar/Projectos/Keyspilli`:
+Commands run from the repository root:
 
 ```text
 ./node_modules/.bin/vitest run packages/catalog/test/red-baron-survival.test.ts
@@ -55,9 +55,8 @@ new module did not exist. No real Red Baron/reference asset was read, copied,
 uploaded, committed, or passed to any decoder.
 
 The six full-suite failures are the existing subprocess-environment failures in
-`restore-curated.test.ts` and `verify-catalog.test.ts`: they invoke
-`/Users/reidar/.hermes/node/bin/node --import tsx` with cwd `/Users/reidar`,
-where `tsx` cannot be resolved. All 13 new tests and all neighboring focused
+`restore-curated.test.ts` and `verify-catalog.test.ts`: the Hermes subprocess
+runtime cannot resolve the workspace `tsx` package. All 13 new tests and all neighboring focused
 tests passed.
 
 ## Boundaries and caveats
@@ -70,3 +69,7 @@ true; otherwise it returns `defer` with blockers. The package's existing
 workspace setup emits warnings for direct package-script execution, so the
 verification invocation used the root `tsx` binary directly; the package
 script remains additive and follows the repository's existing script pattern.
+
+Implementation commit: `35d45fc`; final hardening is `6db6a3d`. The module is
+kept as a direct local evaluation import by the final boundary commit
+`d167a2c`.

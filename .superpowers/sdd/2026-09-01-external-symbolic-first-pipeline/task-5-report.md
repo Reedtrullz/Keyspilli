@@ -23,7 +23,7 @@
 
 ## Verification
 
-Commands run from `/Users/reidar/Projectos/Keyspilli`:
+Commands run from the repository root:
 
 ```text
 ./node_modules/.bin/vitest run packages/catalog/test/external-benchmark.test.ts
@@ -45,21 +45,20 @@ git diff --check
   79 passed test files, 734 passed tests, 6 failed unchanged
 ```
 
-The six full-catalog failures are the existing subprocess-environment
-failures in `restore-curated.test.ts` and `verify-catalog.test.ts`: those tests
-invoke `/Users/reidar/.hermes/node/bin/node --import tsx` with cwd
-`/Users/reidar`, where the Hermes subprocess cannot resolve the workspace
-`tsx` package (`ERR_MODULE_NOT_FOUND`). The new test and all focused neighboring
-tests pass. The package-script smoke command itself also cannot resolve `tsx`
-under this pnpm workspace setup; the direct repository `tsx` binary passed.
+The six full-catalog failures are the existing Hermes subprocess-environment
+failures in `restore-curated.test.ts` and `verify-catalog.test.ts`: that runtime
+cannot resolve the workspace `tsx` package. The new test and all focused
+neighboring tests pass. The direct repository `tsx` binary passed the package
+CLI smoke command.
 
 ## Boundaries and non-claims
 
 - Candidate research and freezing happen in a separate phase before any
-  reference ingestion/alignment. Reference records are marked
+  reference evaluation alignment. Reference records are marked
   `BENCHMARK_REFERENCE`, rejected by the existing generation firewall, and
   never passed to candidate selection, freezing, arrangement construction, or
-  alignment as generation input.
+  generation alignment as input. Post-freeze evaluation alignment is allowed
+  only for diagnostics.
 - Reports omit physical paths, raw bytes, raw note/event arrays, timestamps,
   and local executable details. Inventory IDs are labels only and are not
   added to leak-guard logic.
@@ -72,4 +71,5 @@ under this pnpm workspace setup; the direct repository `tsx` binary passed.
 
 ## Commit
 
-Implementation commit: this commit (`feat(catalog): add external symbolic benchmark orchestration`, unsigned because the local 1Password SSH-signing helper returned an error)
+Implementation commit: `8487b7d`; final hardening is `78fd86d`, with the
+local-only barrel boundary in `d167a2c`.

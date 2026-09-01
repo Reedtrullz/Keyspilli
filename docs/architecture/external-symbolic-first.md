@@ -31,6 +31,10 @@ Candidate selection is frozen before any benchmark reference is opened. A
 candidate-set digest, source hashes, alignment configuration, and arranger
 configuration make that boundary reproducible.
 
+Benchmark/reference material may be aligned only after the generated candidate
+is frozen, for evaluation diagnostics; it is never part of generation-side
+alignment, fusion, decoding, or arrangement construction.
+
 The target recording remains the timing authority. External symbolic sources
 are aligned to it per role and section; their tempo maps are not silently
 substituted for the recording timeline. Unaligned or ambiguous regions remain
