@@ -47,3 +47,4 @@ export * from "./native-score-adapter.js";
 export * from "./external-research.js";
 export * from "./external-symbolic-pipeline.js";
 export * from "./red-baron-survival.js";
+export * from "./external-benchmark.js";

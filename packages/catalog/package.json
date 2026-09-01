@@ -31,6 +31,7 @@
     "tempo-robustness": "tsx scripts/tempo-robustness.ts",
     "evaluate-metal": "tsx scripts/evaluate-metal.ts",
     "evaluate-red-baron-survival": "tsx scripts/evaluate-red-baron-survival.ts",
+    "evaluate:external-symbolic": "tsx scripts/evaluate-external-symbolic.ts",
     "evaluate-piano-candidates": "tsx scripts/evaluate-piano-candidates.ts",
     "route-funnel": "tsx scripts/route-funnel.ts",
     "research:song": "tsx scripts/research-song.ts",
