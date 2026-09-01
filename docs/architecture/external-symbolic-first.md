@@ -37,7 +37,10 @@ alignment, fusion, decoding, or arrangement construction.
 
 The target recording remains the timing authority. External symbolic sources
 are aligned to it per role and section; their tempo maps are not silently
-substituted for the recording timeline. Unaligned or ambiguous regions remain
+substituted for the recording timeline. A generation candidate must carry an
+explicit independently-produced `alignment: { status: "aligned" }` attestation
+before the benchmark orchestration freezes it; benchmark reference bytes are
+never allowed to create that attestation. Unaligned or ambiguous regions remain
 conservative or fall back to `AUDIO_AMT_FALLBACK`.
 
 ## Local evaluation commands

@@ -182,6 +182,33 @@ describe("external symbolic research bridge", () => {
     expect(inventory.records[0]).toMatchObject({ id: "discovery-id", provider: "Provider", parser: { status: "parsed" }, content: { sha256: expect.any(String) } });
   });
 
+  it("retains an aligned generation purpose when discovery supplies the metadata", async () => {
+    const bytes = midiBytes([{ midi: 67, start: 0, dur: 1, vel: 96, hand: "R" }]);
+    const inventory = await researchExternalCandidates(song, {
+      discoveryRecords: [{
+        id: "generation-discovery",
+        title: "Aligned lead metadata",
+        provider: "Provider",
+        sourceRef: "provider:aligned-lead",
+        format: "midi",
+        purpose: "GENERATION_CANDIDATE",
+      }],
+      localInputs: [{
+        sourceRef: "provider:aligned-lead",
+        bytes,
+        format: "midi",
+        alignment: { status: "aligned", reason: null },
+      }],
+    });
+
+    expect(inventory.records).toHaveLength(1);
+    expect(inventory.records[0]).toMatchObject({
+      purpose: "GENERATION_CANDIDATE",
+      alignment: { status: "aligned" },
+      generationUsable: true,
+    });
+  });
+
   it("keeps benchmark/reference discovery authoritative over a local purpose override", async () => {
     const inventory = await researchExternalCandidates(song, {
       discoveryRecords: [{ id: "protected", sourceRef: "provider:protected", purpose: "BENCHMARK_REFERENCE", evidenceClass: "BENCHMARK_REFERENCE" }],

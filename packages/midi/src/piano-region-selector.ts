@@ -590,29 +590,33 @@ function roleNotes(candidate: PianoRegionCandidate, role: PianoRegionRole): Note
   return extractTopVoice(canonicalNotes(candidate.notes));
 }
 
+/**
+ * Group attacks using transitive onset jitter: each note is compared with the
+ * latest member of the current group rather than the group's first onset.
+ * This keeps a cluster such as 0/.07/.13 together at the .125-beat tolerance
+ * without making the result depend on caller ordering.
+ */
+function onsetGroups(notes: readonly Note[]): Note[][] {
+  const groups: Note[][] = [];
+  for (const note of [...notes].sort(noteSort)) {
+    const current = groups[groups.length - 1];
+    const latest = current?.[current.length - 1];
+    if (!current || !latest || note.start - latest.start > ONSET_TOLERANCE) {
+      groups.push([note]);
+    } else {
+      current.push(note);
+    }
+  }
+  return groups;
+}
+
 function extractTopVoice(notes: readonly Note[]): Note[] {
   if (notes.length < 2) return [...notes].map((note) => ({ ...note }));
   const out: Note[] = [];
-  let group: Note[] = [];
-  let groupStart = Number.NaN;
-  const flush = () => {
-    if (!group.length) return;
+  for (const group of onsetGroups(notes)) {
     const top = [...group].sort((a, b) => b.midi - a.midi || b.dur - a.dur || noteIdentity(a).localeCompare(noteIdentity(b)))[0];
     if (top) out.push({ ...top });
-    group = [];
-    groupStart = Number.NaN;
-  };
-  for (const note of notes) {
-    if (!group.length || Math.abs(note.start - groupStart) <= ONSET_TOLERANCE) {
-      if (!group.length) groupStart = note.start;
-      group.push(note);
-    } else {
-      flush();
-      groupStart = note.start;
-      group.push(note);
-    }
   }
-  flush();
   return out.sort(noteSort);
 }
 
@@ -771,13 +775,7 @@ function explicitMetric(
 }
 
 function onsetStarts(notes: readonly Note[]): number[] {
-  const sorted = [...notes].sort(noteSort);
-  const starts: number[] = [];
-  for (const note of sorted) {
-    const previous = starts[starts.length - 1];
-    if (previous === undefined || note.start - previous > ONSET_TOLERANCE) starts.push(note.start);
-  }
-  return starts;
+  return onsetGroups(notes).map((group) => group[0]!.start);
 }
 
 function onsetAgreement(candidate: readonly Note[], target: readonly Note[]): number {

@@ -6,6 +6,7 @@ import {
 } from "./symbolic-alignment.js";
 import {
   evaluateArrangementNotes,
+  ARRANGEMENT_EVALUATION_CONFIG,
   type EvaluationWindow,
 } from "./arrangement-evaluation.js";
 import {
@@ -696,8 +697,14 @@ function compositeReadiness(
   const structuralPass = output.structuralGate === "pass";
   const referenceAligned = reference.availability === "available" && reference.alignment.status === "aligned";
   const referenceCoverage = reference.alignment.coverage;
+  const comparableCoverageBars = windows.reduce((sum, window) => {
+    const candidateBeats = Math.max(0, window.candidate[1] - window.candidate[0]);
+    const referenceBeats = Math.max(0, window.reference[1] - window.reference[0]);
+    return sum + Math.min(candidateBeats, referenceBeats);
+  }, 0) / 4;
   const referenceAdequate = referenceAligned
     && windows.length >= 3
+    && comparableCoverageBars >= ARRANGEMENT_EVALUATION_CONFIG.minimumReferenceBars
     && finite(referenceCoverage.reference) && referenceCoverage.reference >= 0.5
     && finite(referenceCoverage.candidate) && referenceCoverage.candidate >= 0.5;
   const humanAccepted = human.status === "ready"
@@ -777,7 +784,11 @@ async function evaluateSong(song: ExternalBenchmarkSongInput, windows: ExternalB
   // This is intentionally two calls: no reference bytes or score can exist
   // until the immutable generation freeze has completed.
   const candidateInventory = await researchExternalCandidates(identity(song.id), { discoveryRecords, localInputs: candidates });
-  const frozen = freezeGenerationCandidateSet(candidateInventory.records, { requireAlignment: false });
+  // Benchmark generation is timing-authority-safe by construction: an
+  // acquired candidate must carry an independently supplied aligned status
+  // before it can enter the immutable generation freeze.  Reference bytes
+  // are ingested only below this boundary and can never establish alignment.
+  const frozen = freezeGenerationCandidateSet(candidateInventory.records, { requireAlignment: true });
   const candidateRecords = candidateInventory.records;
   const selected = frozen.selected;
   const failures: ExternalBenchmarkFailure[] = [];
@@ -788,6 +799,7 @@ async function evaluateSong(song: ExternalBenchmarkSongInput, windows: ExternalB
   if (candidateRecords.some((record) => record.parser.status === "invalid")) addFailure(failures, "PARSE_FAILED");
   if (candidateRecords.some((record) => !record.content.sha256)) addFailure(failures, "MISSING_CONTENT_HASH");
   if (candidateRecords.some((record) => record.rejectionReasons.some((reason) => /identity|hash|source/i.test(reason)))) addFailure(failures, "IDENTITY_MISMATCH");
+  if (candidateRecords.some((record) => record.purpose === "GENERATION_CANDIDATE" && record.alignment.status !== "aligned")) addFailure(failures, "ALIGNMENT_UNAVAILABLE");
   if (!selected.length) addFailure(failures, "NO_USABLE_GENERATION_CANDIDATE");
 
   const generation = buildExternalSymbolicArrangement({ candidateSet: frozen, windows: windows.map((window) => ({ id: window.id, startBeat: window.candidate[0], endBeat: window.candidate[1] })) });

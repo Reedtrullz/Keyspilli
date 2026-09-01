@@ -48,6 +48,11 @@ export interface ExternalResearchLocalInput {
   sourcePage?: string | null;
   purpose?: EvidencePurpose;
   evidenceClass?: EvidenceClass;
+  /** Explicit target-recording alignment evidence supplied by a trusted local aligner. */
+  alignment?: {
+    status?: ExternalResearchAlignmentStatus;
+    reason?: string | null;
+  };
 }
 
 export interface ExternalRoleDiagnostic {
@@ -154,6 +159,7 @@ export interface ExternalResearchOptions {
 }
 
 const NATIVE_FORMATS = new Set(["midi", "mid", "musicxml", "xml", "mxl", "mscz"]);
+const ALIGNMENT_STATUSES = new Set<ExternalResearchAlignmentStatus>(["not-attempted", "aligned", "partial", "ambiguous", "unavailable", "rejected"]);
 const MEDIA_TYPES: Readonly<Record<string, string>> = {
   midi: "audio/midi",
   mid: "audio/midi",
@@ -244,6 +250,16 @@ function safePage(value: unknown): string | null {
 function normalizeFormat(value: unknown): string | null {
   const normalized = typeof value === "string" ? value.trim().toLowerCase().replace(/^\./, "") : "";
   return normalized || null;
+}
+
+function alignmentFromInput(input: ExternalResearchLocalInput): { status: ExternalResearchAlignmentStatus; reason: string | null; valid: boolean } {
+  const supplied = input.alignment;
+  if (supplied === undefined) return { status: "not-attempted", reason: "target alignment is required before generation", valid: true };
+  const status = supplied && typeof supplied === "object" && ALIGNMENT_STATUSES.has(supplied.status as ExternalResearchAlignmentStatus)
+    ? supplied.status as ExternalResearchAlignmentStatus
+    : "rejected";
+  const reason = typeof supplied?.reason === "string" ? text(supplied.reason) : supplied?.reason === null ? null : status === "rejected" ? "invalid alignment evidence" : null;
+  return { status, reason, valid: status !== "rejected" || Boolean(supplied?.status === "rejected") };
 }
 
 function stableId(value: unknown, fallback: string): string {
@@ -498,6 +514,11 @@ function recordFromIngestion(song: SongIdentity, input: ExternalResearchLocalInp
     ? input.evidenceClass
     : result.status === "parsed" ? (input.evidenceClass ?? candidate?.evidenceClass ?? "VERIFIED_NATIVE_SYMBOLIC") : "TAB_OR_CHORD_EVIDENCE";
   const identity = assessExternalIdentity(song, input, result.score);
+  const alignment = alignmentFromInput(input);
+  if (!alignment.valid) rejectionReasons.push("invalid alignment evidence");
+  if (purpose === "GENERATION_CANDIDATE" && alignment.status !== "aligned" && !rejectionReasons.some((reason) => /alignment/i.test(reason))) {
+    rejectionReasons.push(`alignment is ${alignment.status}; aligned status is required before generation`);
+  }
   return {
     id: stableId(input.id, candidate?.id ?? fallbackId),
     songId: song.id,
@@ -511,8 +532,8 @@ function recordFromIngestion(song: SongIdentity, input: ExternalResearchLocalInp
     content: { sha256: result.provenance?.sha256 ?? null, byteLength: result.provenance?.bytes ?? null, mediaType: result.format ? MEDIA_TYPES[result.format] ?? null : null },
     parser: { status: result.status, format: result.format, adapter: result.provenance?.parser.id ?? null, warnings: [...result.warnings].sort(), error: result.error },
     roles: result.roles,
-    alignment: { status: "not-attempted", reason: "target alignment is a later research step" },
-    generationUsable: Boolean(candidate) && purpose === "GENERATION_CANDIDATE",
+    alignment: { status: alignment.status, reason: alignment.reason },
+    generationUsable: Boolean(candidate) && purpose === "GENERATION_CANDIDATE" && alignment.status === "aligned" && alignment.valid,
     rejectionReasons: [...new Set(rejectionReasons)].sort(),
     candidate,
     score: result.score,
@@ -545,7 +566,11 @@ export async function researchExternalCandidates(songInput: SongIdentityInput | 
       ? [...records.entries()].find(([, record]) => record === baseByIdentity)
       : contentHash ? [...records.entries()].find(([, record]) => record.content.sha256 === contentHash) : undefined;
     const base = baseEntry?.[1];
-    const record = recordFromIngestion(song, input, result, id);
+    // Build the record from the effective metadata used for ingestion.  A
+    // discovery row may supply the generation purpose while the local bytes
+    // only supply content/alignment; using the original local input here
+    // would later relabel the record without recomputing generationUsable.
+    const record = recordFromIngestion(song, ingestionInput, result, id);
     if (base && baseEntry) {
       record.id = base.id;
       record.title = record.title === song.title ? base.title : record.title;

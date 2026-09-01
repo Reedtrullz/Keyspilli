@@ -240,6 +240,31 @@ describe("selectPianoMelodyRegions", () => {
     ]);
   });
 
+  it("clusters transitive jittered onsets into one attack", () => {
+    const clustered: PianoRegionCandidate = {
+      id: "clustered",
+      notes: [
+        makeNote(60, 0, 0.5),
+        makeNote(72, 0.07, 0.5),
+        makeNote(64, 0.13, 0.5),
+      ],
+    };
+
+    const selection = selectPianoMelodyRegions(
+      [clustered],
+      [{ id: "phrase", startBeat: 0, endBeat: 1 }],
+    );
+
+    expect(selection.notes).toHaveLength(1);
+    expect(selection.notes[0]).toMatchObject({ midi: 72, start: 0.07 });
+
+    const reordered = selectPianoMelodyRegions(
+      [{ ...clustered, notes: [...(clustered.notes ?? [])].reverse() }],
+      [{ id: "phrase", startBeat: 0, endBeat: 1 }],
+    );
+    expect(reordered).toEqual(selection);
+  });
+
   it("counts candidate switches from adjacent selected IDs, not region gaps", () => {
     const primary: PianoRegionCandidate = {
       id: "primary",

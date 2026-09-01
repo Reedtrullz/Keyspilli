@@ -16,10 +16,15 @@ const midi = (pitch = 60, shift = 0) => writeMidi([
   { midi: pitch + 4, start: shift + 1, dur: 1, vel: 90, hand: "R" },
 ], { tempoBpm: 120, title: "synthetic" });
 
+const longMidi = (beats: number) => writeMidi(
+  Array.from({ length: beats }, (_, index) => ({ midi: 60 + (index % 5), start: index, dur: 0.5, vel: 90, hand: "R" as const })),
+  { tempoBpm: 120, title: "synthetic-long" },
+);
+
 const windows = [{ id: "main", candidate: [0, 2] as [number, number], reference: [0, 2] as [number, number], role: "melody" as const }];
 
 function song(id: string, input: Partial<ExternalBenchmarkInput["songs"][number]> = {}) {
-  return { id, candidateInputs: [{ id: `${id}-candidate`, bytes: midi(), format: "midi", purpose: "GENERATION_CANDIDATE" as const }], referenceInputs: [{ id: `${id}-reference`, bytes: midi(), format: "midi" }], windows, humanRaters: [{ raterId: "r1", decision: "accept" as const }, { raterId: "r2", decision: "accept" as const }], ...input };
+  return { id, candidateInputs: [{ id: `${id}-candidate`, bytes: midi(), format: "midi", purpose: "GENERATION_CANDIDATE" as const, alignment: { status: "aligned" as const, reason: null } }], referenceInputs: [{ id: `${id}-reference`, bytes: midi(), format: "midi" }], windows, humanRaters: [{ raterId: "r1", decision: "accept" as const }, { raterId: "r2", decision: "accept" as const }], ...input };
 }
 
 describe("external symbolic benchmark orchestration", () => {
@@ -51,6 +56,20 @@ describe("external symbolic benchmark orchestration", () => {
     expect(row.reference.recordIds).toEqual(["reference"]);
     expect(row.generation.status).toBe("symbolic");
     expect(row.output.availability).toBe("available");
+  });
+
+  it("does not generate from a candidate without explicit target alignment", async () => {
+    const report = await buildExternalBenchmarkReport({
+      songs: [song(SEVEN_SONG_BENCHMARK_IDS[0]!, {
+        candidateInputs: [{ id: "unaligned", bytes: midi(), format: "midi" }],
+      })],
+    });
+    const row = report.songs[0]!;
+    expect(row.freeze.selectedRecordIds).toEqual([]);
+    expect(row.generation.status).not.toBe("symbolic");
+    expect(row.output.availability).toBe("unavailable");
+    expect(row.failures).toContain("ALIGNMENT_UNAVAILABLE");
+    expect(row.failures).toContain("NO_USABLE_GENERATION_CANDIDATE");
   });
 
   it("keeps local-only external evaluation modules out of the production barrel", async () => {
@@ -89,6 +108,26 @@ describe("external symbolic benchmark orchestration", () => {
     expect(report.summary.humanReady).toBe(0);
     expect(report.summary.blocked).toBe(report.songs.filter((song) => song.readiness.status === "blocked").length);
     expect(report.summary.blocked).toBe(7);
+  });
+
+  it("requires aligned reference coverage to span at least 32 bars", async () => {
+    const candidate = longMidi(96);
+    const shortWindows = [0, 32, 64].map((start) => ({
+      id: `window-${start}`,
+      candidate: [start, start + 32] as [number, number],
+      reference: [start, start + 32] as [number, number],
+      role: "melody" as const,
+    }));
+    const short = await buildExternalBenchmarkReport({
+      songs: [song(SEVEN_SONG_BENCHMARK_IDS[0]!, {
+        candidateInputs: [{ id: "candidate", bytes: candidate, format: "midi", alignment: { status: "aligned", reason: null } }],
+        referenceInputs: [{ id: "reference", bytes: candidate, format: "midi" }],
+        windows: shortWindows,
+      })],
+    });
+    expect(short.songs[0]?.reference.alignment.status).toBe("aligned");
+    expect(short.songs[0]?.readiness.status).toBe("blocked");
+    expect(short.songs[0]?.readiness.failures).toContain("REFERENCE_COVERAGE_INSUFFICIENT");
   });
 
   it("requires symbolic output and a passing structural gate before human readiness", async () => {
@@ -218,7 +257,7 @@ describe("external symbolic benchmark orchestration", () => {
       { name: "Melody", notes: [{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }] },
       { name: "Harmony", notes: [{ midi: 48, start: 0, dur: 1, vel: 90, hand: "L" }] },
     ] });
-    const report = await buildExternalBenchmarkReport({ songs: [song(SEVEN_SONG_BENCHMARK_IDS[0]!, { candidateInputs: [{ id: "candidate", bytes: mixed, format: "midi" }], referenceInputs: [{ id: "reference", bytes: mixed, format: "midi" }] })] });
+    const report = await buildExternalBenchmarkReport({ songs: [song(SEVEN_SONG_BENCHMARK_IDS[0]!, { candidateInputs: [{ id: "candidate", bytes: mixed, format: "midi", alignment: { status: "aligned", reason: null } }], referenceInputs: [{ id: "reference", bytes: mixed, format: "midi" }] })] });
     expect((report.songs[0]?.reference.alignment as any).roleFilteredWindows).toEqual([{ id: "main", role: "melody", candidatePitchedCount: 1, referencePitchedCount: 1 }]);
   });
 
@@ -229,7 +268,7 @@ describe("external symbolic benchmark orchestration", () => {
     ], { tempoBpm: 120, title: "generic reference" });
     const report = await buildExternalBenchmarkReport({
       songs: [song(SEVEN_SONG_BENCHMARK_IDS[0]!, {
-        candidateInputs: [{ id: "candidate", bytes: generic, format: "midi" }],
+        candidateInputs: [{ id: "candidate", bytes: generic, format: "midi", alignment: { status: "aligned", reason: null } }],
         referenceInputs: [{ id: "reference", bytes: generic, format: "midi" }],
       })],
     });
