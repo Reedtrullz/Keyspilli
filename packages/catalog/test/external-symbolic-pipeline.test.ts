@@ -107,6 +107,40 @@ describe("external symbolic generation boundary", () => {
     expect(result.notes?.some((note) => note.midi === 60)).toBe(true);
   });
 
+  it("requires an immutable, digest-consistent frozen set at realization", () => {
+    const frozen = freezeGenerationCandidateSet([record()]);
+    const bypass = buildExternalSymbolicArrangement({
+      candidates: frozen.selected,
+      windows: [{ id: "intro", startBeat: 0, endBeat: 2, candidateId: "record-a" }],
+      fallbackEnabled: false,
+    });
+    expect(bypass.status).toBe("unavailable");
+    const mutable = { ...frozen, selected: [...frozen.selected] };
+    const forged = buildExternalSymbolicArrangement({ candidateSet: mutable, windows: [{ id: "intro", startBeat: 0, endBeat: 2, candidateId: "record-a" }], fallbackEnabled: false });
+    expect(forged.status).toBe("unavailable");
+  });
+
+  it("removes compound raw note, event, and byte payload keys from frozen metadata", () => {
+    const candidate = { ...record().candidate!, noteEvents: [{ midi: 60 }], rawBytes: [1, 2], EventData: [{ pitch: 60 }] };
+    const frozen = freezeGenerationCandidateSet([record({ candidate })]);
+    expect(JSON.stringify(frozen)).not.toMatch(/noteEvents|rawBytes|EventData/);
+  });
+
+  it("rejects malformed section rows without throwing", () => {
+    const frozen = freezeGenerationCandidateSet([record()], { sections: [null as never] });
+    expect(frozen.selected).toHaveLength(0);
+    expect(frozen.rejected[0]?.reasons.join(" ")).toMatch(/section/i);
+  });
+
+  it("requires a valid record content hash matching the candidate hash", () => {
+    const missing = freezeGenerationCandidateSet([record({ content: { sha256: null, byteLength: 8, mediaType: "audio/midi" } })]);
+    const mismatched = freezeGenerationCandidateSet([record({ content: { sha256: "b".repeat(64), byteLength: 8, mediaType: "audio/midi" } })]);
+    expect(missing.selected).toHaveLength(0);
+    expect(mismatched.selected).toHaveLength(0);
+    expect(missing.rejected[0]?.reasons.join(" ")).toMatch(/hash/i);
+    expect(mismatched.rejected[0]?.reasons.join(" ")).toMatch(/hash/i);
+  });
+
   it("returns explicit fallback or unavailable without usable evidence", () => {
     const fallback = buildExternalSymbolicArrangement({ candidateSet: freezeGenerationCandidateSet([]) });
     expect(fallback).toMatchObject({ status: "fallback", selectedRecordIds: [] });
@@ -135,5 +169,19 @@ describe("explicit evidence-class route coverage", () => {
     expect(coverage.byEvidenceClass.VERIFIED_NATIVE_SYMBOLIC).toMatchObject({ noteCount: 1, notePercentage: 50, durationBeats: 1, durationPercentage: 33.333 });
     expect(coverage.byEvidenceClass.PIANO_COVER_SYMBOLIC?.confidence).toEqual({ min: 0.6, median: 0.6, max: 0.6 });
     expect(JSON.stringify(coverage)).not.toMatch(/identitySource/);
+  });
+
+  it("fails closed for malformed, negative, and incomplete aggregate attribution", () => {
+    expect(() => evaluateRouteCoverage({ notes, attributions: null as never })).not.toThrow();
+    expect(() => evaluateRouteCoverage({ notes, attributions: {} as never })).not.toThrow();
+    const coverage = evaluateRouteCoverage({
+      notes,
+      attributions: [{ evidenceClass: "VERIFIED_NATIVE_SYMBOLIC", noteCount: -1, durationBeats: -2, confidence: -0.1 }],
+      totalNotes: -2,
+      totalDurationBeats: -3,
+    });
+    expect(coverage.attributedNotePercentage).toBeNull();
+    expect(coverage.attributedDurationPercentage).toBeNull();
+    expect(coverage.diagnostics.join(" ")).toMatch(/invalid|incomplete/i);
   });
 });

@@ -18,6 +18,12 @@
   only through class/index records supplied by the caller; `Note.identitySource`
   is never interpreted as an evidence class. Missing or incomplete attribution
   returns null percentages and deterministic diagnostics.
+- Review hardening requires realization to receive a deeply immutable,
+  schema-1, digest-consistent frozen set; the `candidates` alias cannot bypass
+  this boundary. Frozen candidate metadata now removes compound raw
+  note/event/byte payload keys, record content hashes must be valid and match
+  candidate hashes, malformed section rows reject without throwing, and route
+  coverage rejects malformed, negative, or non-finite totals/attributions.
 - Exported the new boundary from `packages/catalog/src/index.ts` and added
   synthetic in-memory tests covering benchmark exclusion, order-invariant
   digest, roles/sections, malformed/non-parsed/low-confidence/misaligned
@@ -30,16 +36,16 @@ Commands run from `/Users/reidar/Projectos/Keyspilli`:
 
 ```text
 ./node_modules/.bin/vitest run packages/catalog/test/external-symbolic-pipeline.test.ts
-  1 file, 8 tests passed
+  1 file, 13 tests passed
 
 ./node_modules/.bin/vitest run packages/catalog/test/external-symbolic-pipeline.test.ts packages/catalog/test/external-evidence.test.ts packages/catalog/test/external-research.test.ts packages/catalog/test/piano-section-builder.test.ts packages/catalog/test/route-funnel.test.ts packages/catalog/test/arrangement-evaluation.test.ts
-  6 files, 82 tests passed
+  6 files, 87 tests passed
 
 pnpm --filter @keyspilli/catalog exec tsc --noEmit
   passed
 
 ./node_modules/.bin/vitest run packages/catalog/test
-  79 files; 705 passed, 6 failed (pre-existing environment failures)
+  79 files; 710 passed, 6 failed (pre-existing environment failures)
 
 git diff --check
   passed

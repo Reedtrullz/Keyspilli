@@ -53,7 +53,7 @@ export interface FrozenGenerationCandidateSet {
 
 const ROLES = new Set<EvidenceRole>(["melody", "harmony", "bass-root", "rhythm", "timing-only"]);
 const PHYSICAL_KEY = /(?:path|file|locator|artifact)$/i;
-const NOTE_DATA_KEY = /^(?:notes?|events?|bytes?)$/i;
+const NOTE_DATA_KEY = /(?:notes?|events?|bytes?)(?:[_-]?(?:data|list|array|payload|rows?))?$/i;
 const PATH_VALUE = /^(?:file:\/\/|[A-Za-z]:[\\/]|[\\/~])|\/(?:Users|private|tmp|var|home|Volumes|root|opt|workspace|srv|etc|mnt|data)(?:[\\/]|$)/i;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -97,6 +97,14 @@ function immutable<T>(value: T): T {
   return value;
 }
 
+function deeplyFrozen(value: unknown, seen = new Set<unknown>()): boolean {
+  if (!value || typeof value !== "object") return true;
+  if (seen.has(value)) return true;
+  if (!Object.isFrozen(value)) return false;
+  seen.add(value);
+  return Object.values(value as Record<string, unknown>).every((child) => deeplyFrozen(child, seen));
+}
+
 function confidenceValues(candidate: ExternalEvidenceCandidate, roles: readonly EvidenceRoleRecord[], sections: readonly GenerationSection[]): number[] {
   const values: number[] = [];
   for (const value of Object.values(candidate.confidence ?? {})) if (finite(value)) values.push(value);
@@ -106,9 +114,15 @@ function confidenceValues(candidate: ExternalEvidenceCandidate, roles: readonly 
 }
 
 function recordSections(recordId: string, record: ExternalResearchRecord, config: FreezeGenerationCandidateConfig): { sections: GenerationSection[]; invalid: boolean } {
-  const configured = Array.isArray(config.sections)
-    ? config.sections.filter((section) => section.recordId === recordId)
-    : config.sections && typeof config.sections === "object" ? (config.sections as Readonly<Record<string, readonly GenerationSection[]>>)[recordId] ?? [] : [];
+  let configured: unknown[];
+  if (Array.isArray(config.sections)) {
+    if (config.sections.some((section) => !isRecord(section) || typeof section.recordId !== "string" || !section.recordId.trim())) return { sections: [], invalid: true };
+    configured = config.sections.filter((section) => section.recordId === recordId);
+  } else if (config.sections && typeof config.sections === "object") {
+    configured = (config.sections as Readonly<Record<string, readonly GenerationSection[]>>)[recordId] ? [...(config.sections as Readonly<Record<string, readonly GenerationSection[]>>)[recordId]!] : [];
+  } else {
+    configured = [];
+  }
   const supplied = (configured.length ? configured : (record as unknown as { sections?: unknown }).sections) as unknown;
   if (supplied === undefined) return { sections: [], invalid: false };
   if (!Array.isArray(supplied)) return { sections: [], invalid: true };
@@ -152,6 +166,30 @@ function digest(selected: readonly FrozenGenerationCandidate[]): string {
   return createHash("sha256").update(JSON.stringify(metadata)).digest("hex");
 }
 
+function hasUnsafeCandidateMetadata(value: unknown, key = ""): boolean {
+  if (NOTE_DATA_KEY.test(key) || PHYSICAL_KEY.test(key)) return true;
+  if (typeof value === "string") return PATH_VALUE.test(value);
+  if (Array.isArray(value)) return value.some((child) => hasUnsafeCandidateMetadata(child, key));
+  if (!isRecord(value)) return false;
+  return Object.entries(value).some(([childKey, child]) => hasUnsafeCandidateMetadata(child, childKey));
+}
+
+function isFrozenCandidateSet(value: unknown): value is FrozenGenerationCandidateSet {
+  if (!isRecord(value) || value.schemaVersion !== 1 || !Array.isArray(value.selected) || !Array.isArray(value.rejected)
+    || typeof value.digest !== "string" || !/^[a-f0-9]{64}$/i.test(value.digest)
+    || !deeplyFrozen(value)) return false;
+  if (value.selected.some((entry) => !isRecord(entry) || !Object.isFrozen(entry) || typeof entry.recordId !== "string"
+    || !isRecord(entry.candidate) || !Object.isFrozen(entry.candidate) || hasUnsafeCandidateMetadata(entry.candidate)
+    || !isRecord(entry.score) || !Object.isFrozen(entry.score) || !Array.isArray(entry.roles) || !Object.isFrozen(entry.roles)
+    || entry.roles.some((role) => !isRecord(role) || !Object.isFrozen(role)))) return false;
+  try {
+    for (const entry of value.selected) assertGenerationEvidence(entry.candidate as ExternalEvidenceCandidate);
+    return value.digest.toLowerCase() === digest(value.selected as FrozenGenerationCandidate[]).toLowerCase();
+  } catch {
+    return false;
+  }
+}
+
 /** Validate and freeze generation candidates before any reference/benchmark work. */
 export function freezeGenerationCandidateSet(
   records: readonly ExternalResearchRecord[],
@@ -180,7 +218,8 @@ export function freezeGenerationCandidateSet(
       if (!candidate.content?.sha256) reasons.push("missing content hash");
       const acquisition = candidate.provenance?.acquisition ?? candidate.provenance?.acquiredVia;
       if (typeof acquisition !== "string" || !/^local-/i.test(acquisition)) reasons.push("missing local acquisition evidence");
-      if (record.content?.sha256 && candidate.content?.sha256 && record.content.sha256.toLowerCase() !== candidate.content.sha256.toLowerCase()) reasons.push("candidate content hash does not match record identity");
+      if (!record.content?.sha256 || !/^[a-f0-9]{64}$/i.test(record.content.sha256)) reasons.push("record is missing a valid content hash");
+      else if (candidate.content?.sha256 && record.content.sha256.toLowerCase() !== candidate.content.sha256.toLowerCase()) reasons.push("candidate content hash does not match record identity");
       if (record.acquisition?.status !== "local-bytes" && record.acquisition?.status !== "local-file") reasons.push("record acquisition is not local");
       if (record.evidenceClass !== candidate.evidenceClass || record.purpose !== candidate.purpose) reasons.push("record and candidate evidence identity disagree");
     }
@@ -279,7 +318,8 @@ function fallbackResult(input: ExternalSymbolicArrangementInput, reason: string)
 /** Realize only already-frozen candidates; absent explicit windows remain fallback/unavailable. */
 export function buildExternalSymbolicArrangement(input: ExternalSymbolicArrangementInput): ExternalSymbolicArrangementResult {
   const set = input.candidateSet ?? input.frozen;
-  const selected = [...(set?.selected ?? input.candidates ?? [])].filter((entry) => entry.candidate.purpose !== "BENCHMARK_REFERENCE" && entry.candidate.evidenceClass !== "BENCHMARK_REFERENCE");
+  if (!isFrozenCandidateSet(set)) return fallbackResult(input, "an immutable, digest-consistent frozen candidate set is required");
+  const selected = [...set.selected].filter((entry) => entry.candidate.purpose !== "BENCHMARK_REFERENCE" && entry.candidate.evidenceClass !== "BENCHMARK_REFERENCE");
   if (!selected.length) return fallbackResult(input, "no frozen generation candidate is available");
   const selectedIds = new Set(selected.map((entry) => entry.recordId));
   const sourceToRecordId = new Map(selected.flatMap((entry) => [[entry.recordId, entry.recordId], ...(entry.candidate.id ? [[entry.candidate.id, entry.recordId] as const] : [])] as const));
@@ -378,43 +418,70 @@ function median(values: readonly number[]): number | null {
 
 /** Report route coverage using explicit class-to-note attribution only. */
 export function evaluateRouteCoverage(input: ExternalRouteCoverageInput): ExternalRouteCoverageResult {
-  const notes = input.notes ?? input.result?.notes ?? [];
-  const totalNotes = finite(input.totalNotes) ? input.totalNotes : notes.length;
-  const totalDurationBeats = finite(input.totalDurationBeats) ? input.totalDurationBeats : notes.reduce((sum, note) => sum + (finite(note.dur) && note.dur > 0 ? note.dur : 0), 0);
-  const attributions = [...(input.attributions ?? input.attribution ?? input.noteAttribution ?? input.evidence ?? [])].sort((a, b) => String(a.evidenceClass ?? a.class ?? "").localeCompare(String(b.evidenceClass ?? b.class ?? ""))
-    || (a.noteIndex ?? a.index ?? a.noteIndices?.[0] ?? a.indices?.[0] ?? -1) - (b.noteIndex ?? b.index ?? b.noteIndices?.[0] ?? b.indices?.[0] ?? -1));
   const diagnostics: string[] = [];
+  const rawNotes = input.notes ?? input.result?.notes;
+  const notes = rawNotes === undefined ? [] : Array.isArray(rawNotes) ? rawNotes : [];
+  let invalidData = false;
+  if (rawNotes !== undefined && !Array.isArray(rawNotes)) { diagnostics.push("notes must be an array"); invalidData = true; }
+  const totalNotes = input.totalNotes === undefined
+    ? notes.length
+    : finite(input.totalNotes) && Number.isInteger(input.totalNotes) && input.totalNotes >= 0
+      ? input.totalNotes : (diagnostics.push("total note count must be a non-negative integer"), invalidData = true, 0);
+  const totalDurationBeats = input.totalDurationBeats === undefined
+    ? notes.reduce((sum, note) => sum + (finite(note.dur) && note.dur > 0 ? note.dur : 0), 0)
+    : finite(input.totalDurationBeats) && input.totalDurationBeats >= 0
+      ? input.totalDurationBeats : (diagnostics.push("total duration must be a non-negative finite number"), invalidData = true, 0);
+  const sourceAttributions: unknown = [input.attributions, input.attribution, input.noteAttribution, input.evidence].find((value) => value !== undefined);
+  const rawAttributions: unknown[] = sourceAttributions === undefined ? [] : Array.isArray(sourceAttributions) ? [...sourceAttributions] : (diagnostics.push("evidence attribution must be an array"), invalidData = true, []);
+  const attributions = rawAttributions.sort((a, b) => {
+    const left = isRecord(a) ? a : {};
+    const right = isRecord(b) ? b : {};
+    return String(left.evidenceClass ?? left.class ?? "").localeCompare(String(right.evidenceClass ?? right.class ?? ""))
+      || (Number(left.noteIndex ?? left.index ?? (Array.isArray(left.noteIndices) ? left.noteIndices[0] : undefined) ?? (Array.isArray(left.indices) ? left.indices[0] : undefined) ?? -1)
+        - Number(right.noteIndex ?? right.index ?? (Array.isArray(right.noteIndices) ? right.noteIndices[0] : undefined) ?? (Array.isArray(right.indices) ? right.indices[0] : undefined) ?? -1));
+  });
   const rows = new Map<string, { indices: Set<number>; noteCount: number; duration: number; confidence: number[]; aggregate: boolean }>();
   const owner = new Map<number, string>();
-  for (const attribution of attributions) {
+  for (const rawAttribution of attributions) {
+    const attribution = isRecord(rawAttribution) ? rawAttribution as ExternalRouteCoverageAttribution : null;
+    if (!attribution) { diagnostics.push("invalid explicit evidence attribution"); invalidData = true; continue; }
     const evidenceClass = typeof attribution?.evidenceClass === "string" ? attribution.evidenceClass : typeof attribution?.class === "string" ? attribution.class : "";
-    if (!attribution || !evidenceClass.trim()) { diagnostics.push("invalid explicit evidence attribution"); continue; }
+    if (!evidenceClass.trim()) { diagnostics.push("invalid explicit evidence attribution"); invalidData = true; continue; }
     const row = rows.get(evidenceClass) ?? { indices: new Set<number>(), noteCount: 0, duration: 0, confidence: [], aggregate: false };
-    const indices = attribution.noteIndices ? [...attribution.noteIndices] : attribution.indices ? [...attribution.indices] : attribution.noteIndex !== undefined ? [attribution.noteIndex] : attribution.index !== undefined ? [attribution.index] : [];
+    const rawIndices = attribution.noteIndices ?? attribution.indices;
+    if (rawIndices !== undefined && !Array.isArray(rawIndices)) { diagnostics.push(`evidence class ${evidenceClass} has invalid note indices`); invalidData = true; rows.set(evidenceClass, row); continue; }
+    const indices = Array.isArray(rawIndices) ? [...rawIndices] : attribution.noteIndex !== undefined ? [attribution.noteIndex] : attribution.index !== undefined ? [attribution.index] : [];
     if (indices.length) {
       for (const index of indices) {
-        if (!Number.isInteger(index) || index < 0 || index >= notes.length) { diagnostics.push(`evidence attribution index ${String(index)} is out of range`); continue; }
+        if (!Number.isInteger(index) || index < 0 || index >= notes.length) { diagnostics.push(`evidence attribution index ${String(index)} is out of range`); invalidData = true; continue; }
         const previous = owner.get(index);
-        if (previous && previous !== evidenceClass) diagnostics.push(`note ${index} has conflicting evidence classes`);
+        if (previous && previous !== evidenceClass) { diagnostics.push(`note ${index} has conflicting evidence classes`); invalidData = true; }
         owner.set(index, evidenceClass);
         row.indices.add(index);
       }
       row.noteCount = row.indices.size;
       row.duration = [...row.indices].reduce((sum, index) => sum + (notes[index] && finite(notes[index]!.dur) && notes[index]!.dur > 0 ? notes[index]!.dur : 0), 0);
-    } else if (finite(attribution.noteCount) || finite(attribution.durationBeats)) {
+    } else if (attribution.noteCount !== undefined || attribution.durationBeats !== undefined || attribution.duration !== undefined) {
+      const validCount = attribution.noteCount === undefined || (finite(attribution.noteCount) && Number.isInteger(attribution.noteCount) && attribution.noteCount >= 0);
+      const validDuration = attribution.durationBeats === undefined && attribution.duration === undefined
+        || (attribution.durationBeats !== undefined ? finite(attribution.durationBeats) && attribution.durationBeats >= 0 : finite(attribution.duration) && attribution.duration! >= 0);
+      if (!validCount || !validDuration) { diagnostics.push(`evidence class ${evidenceClass} has invalid aggregate coverage`); invalidData = true; rows.set(evidenceClass, row); continue; }
       row.aggregate = true;
       row.noteCount += finite(attribution.noteCount) ? attribution.noteCount : 0;
       row.duration += finite(attribution.durationBeats) ? attribution.durationBeats : finite(attribution.duration) ? attribution.duration : 0;
-    } else diagnostics.push(`evidence class ${evidenceClass} has no note attribution`);
-    if (finite(attribution.confidence)) row.confidence.push(attribution.confidence);
+    } else { diagnostics.push(`evidence class ${evidenceClass} has no note attribution`); invalidData = true; }
+    if (attribution.confidence !== undefined) {
+      if (finite(attribution.confidence) && attribution.confidence >= 0 && attribution.confidence <= 1) row.confidence.push(attribution.confidence);
+      else { diagnostics.push(`evidence class ${evidenceClass} has invalid confidence`); invalidData = true; }
+    }
     rows.set(evidenceClass, row);
   }
   const attributedNotes = [...owner.keys()];
-  const completeNotes = attributions.length > 0 && attributedNotes.length === totalNotes && owner.size === totalNotes && diagnostics.every((item) => !/conflicting|out of range/i.test(item));
+  const completeNotes = !invalidData && attributions.length > 0 && attributedNotes.length === totalNotes && owner.size === totalNotes && diagnostics.every((item) => !/conflicting|out of range/i.test(item));
   const aggregateRows = [...rows.values()].some((row) => row.aggregate);
   const summedNotes = [...rows.values()].reduce((sum, row) => sum + row.noteCount, 0);
   const summedDuration = [...rows.values()].reduce((sum, row) => sum + row.duration, 0);
-  const completeAggregate = attributions.length > 0 && aggregateRows && summedNotes === totalNotes && Math.abs(summedDuration - totalDurationBeats) < 1e-6;
+  const completeAggregate = !invalidData && attributions.length > 0 && aggregateRows && summedNotes === totalNotes && Math.abs(summedDuration - totalDurationBeats) < 1e-6;
   const complete = completeNotes || completeAggregate;
   if (!attributions.length) diagnostics.push("explicit evidence-class attribution is unavailable");
   else if (!complete) diagnostics.push("explicit evidence-class attribution is incomplete");
