@@ -47,7 +47,7 @@ git diff --check
   passed; local-only usage printed
 
 ./node_modules/.bin/vitest run packages/catalog/test
-  80 files; 724 passed, 6 failed
+  80 files; 728 passed, 6 failed
 ```
 
 The initial focused test was run before implementation and failed because the

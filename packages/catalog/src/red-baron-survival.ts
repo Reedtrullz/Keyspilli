@@ -203,13 +203,22 @@ function round(value: number): number {
 }
 
 function redactPath(value: string): string {
-  if (/^https?:\/\//i.test(value.trim())) return value;
+  const urls: string[] = [];
+  const protectedText = value.replace(/https?:\/\/[^\s"'<>;,)}]+/gi, (url) => {
+    const marker = "__SURVIVAL_URL_" + urls.length + "__";
+    urls.push(url);
+    return marker;
+  });
+  value = protectedText;
   const physical = /(?:file:\/{1,2}[^\s"'<>;,)}]+|\\\\[^\s"'<>;,)}]+|(?<![A-Za-z0-9])[A-Za-z]:[\\/][^\s"'<>;,)}]+|~[\\/][^\s"'<>;,)}]+|(?<![A-Za-z0-9:/])\/[^\s"'<>;,)}]+)/gi;
-  const relativeFile = /(?<![A-Za-z0-9._:/-])(?:\.{1,2}[\\/]|[A-Za-z0-9._-]+[\\/])[^\s"'<>;,)}]*\.(?:mid|midi|musicxml|mxl|mscz|wav|mp3|json|xml)(?:[?#][^\s"'<>;,)}]*)?/gi;
-  const isPhysical = (candidate: string): boolean => /^(?:file:\/{1,2}|\\\\|[A-Za-z]:[\\/]|~[\\/]|\/)/i.test(candidate.trim());
+  const relativePath = /(?<![A-Za-z0-9._:/-])(?:\.{1,2}[\\/]|[A-Za-z0-9._-]+[\\/])[^\s"'<>;,)}]+/gi;
+  const isAbsolute = (candidate: string): boolean => /^(?:file:\/{1,2}|\\\\|[A-Za-z]:[\\/]|~[\\/]|\/)/i.test(candidate.trim());
+  const isRelative = (candidate: string): boolean => /^(?:\.{1,2}[\\/]|[A-Za-z0-9._-]+[\\/])[^\s"'<>;,)}]+$/i.test(candidate.trim());
+  const isPhysical = (candidate: string): boolean => isAbsolute(candidate) || isRelative(candidate);
   let result = value.replace(/(["'])(.*?)\1/g, (full, quote: string, inner: string) => isPhysical(inner) ? `${quote}[redacted-path]${quote}` : full);
   result = result.replace(physical, (match) => isPhysical(match) ? "[redacted-path]" : match);
-  return result.replace(relativeFile, "[redacted-path]");
+  result = result.replace(relativePath, (match) => /^logical\//i.test(match) ? match : "[redacted-path]");
+  return result.replace(/__SURVIVAL_URL_(\d+)__/g, (_match, index: string) => urls[Number(index)] ?? "[redacted-url]");
 }
 
 /** Path redaction shared by the opt-in CLI and canonical report serializer. */
