@@ -1,6 +1,6 @@
 # Task 2 report: external symbolic research evidence
 
-Implementation commits: `630d82c1ea659e2aabf122d7027eadaecca5f5c9`, `474ae92440111853beb8a39b9634a8f075da6801`, `7cdf5a1ac8d986dd48468b932f8102a94b3fbe57`
+Implementation commits: `630d82c1ea659e2aabf122d7027eadaecca5f5c9`, `474ae92440111853beb8a39b9634a8f075da6801`, `7cdf5a1ac8d986dd48468b932f8102a94b3fbe57`, `07d794df5e99035777064ff01a6aebf4bb0caf5d`
 
 ## Delivered
 
@@ -11,6 +11,7 @@ Implementation commits: `630d82c1ea659e2aabf122d7027eadaecca5f5c9`, `474ae924401
 - Added focused synthetic coverage in `packages/catalog/test/external-research.test.ts`.
 - Hardened serialization/error redaction so HTTP(S) URLs survive intact while physical paths under standard Unix roots and Windows-style locators are redacted; invalid/unsupported local inputs are classified as non-native evidence and discovery/local rows merge by logical source identity or content hash.
 - Kept benchmark/reference discovery purpose and class authoritative when a matching local input attempts an override, and added UNC/file-server/unknown-root redaction coverage without corrupting logical refs or HTTP URLs.
+- Closed extensionless unknown-root leaks while preserving slash-containing logical identities and URLs.
 
 ## Verification
 
