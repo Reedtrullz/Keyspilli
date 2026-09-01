@@ -152,6 +152,44 @@ export interface StageTransition {
   targetNotes?: readonly NormalizedStageNote[];
 }
 
+export type ReferenceSupportLabel = "reference-supported" | "reference-unsupported" | "unknown";
+export type ReferenceSupportMatch = "exact" | "pitch-class" | "timing-only" | "none";
+
+export interface StageReferenceSupportSummary {
+  stage: RedBaronSurvivalStage;
+  noteCount: number;
+  supportedIn: number;
+  unsupportedIn: number;
+  unknownIn: number;
+  exact: number;
+  pitchClass: number;
+  timingOnly: number;
+  labels: Readonly<Record<ReferenceSupportLabel, readonly string[]>>;
+}
+
+export interface ReferenceSupportTransitionSummary {
+  from: RedBaronSurvivalStage;
+  to: RedBaronSurvivalStage;
+  supportedIn: number;
+  supportedRetained: number;
+  supportedRejected: number;
+  unsupportedIn: number;
+  unsupportedRetained: number;
+  unsupportedAdded: number;
+  unknownIn: number;
+  unknownRetained: number;
+  unknownAdded: number;
+}
+
+export interface ReferenceSupportReport {
+  schemaVersion: 1;
+  status: "available" | "unknown";
+  onsetToleranceBeats: number;
+  stages: Record<RedBaronSurvivalStage, StageReferenceSupportSummary>;
+  transitions: readonly ReferenceSupportTransitionSummary[];
+  diagnostics: readonly string[];
+}
+
 export interface DecoderFixEvidence {
   sourceIndependentInvariant: boolean;
   syntheticRegression: boolean;
@@ -357,6 +395,165 @@ function normalizeNotes(notes: readonly unknown[]): { notes: NormalizedStageNote
   }
   normalized.sort((left, right) => left.start - right.start || left.midi - right.midi || compareText(left.id, right.id));
   return { notes: normalized, invalidCount, rejectedCount };
+}
+
+const REFERENCE_SUPPORT_ONSET_TOLERANCE = 0.125;
+
+interface ReferenceMatchEdge {
+  targetIndex: number;
+  match: Exclude<ReferenceSupportMatch, "none">;
+  cost: number;
+}
+
+interface ReferenceStageMatches {
+  bySource: Map<number, { targetIndex: number; match: ReferenceSupportMatch }>;
+  byTarget: Map<number, number>;
+}
+
+function referencePitchClass(midi: number): number {
+  return ((midi % 12) + 12) % 12;
+}
+
+function matchReferenceNotes(
+  stageNotes: readonly NormalizedStageNote[],
+  referenceNotes: readonly NormalizedStageNote[],
+): ReferenceStageMatches {
+  const candidates: ReferenceMatchEdge[][] = stageNotes.map((stageNote) => referenceNotes
+    .map((referenceNote, targetIndex) => {
+      const timing = Math.abs(stageNote.start - referenceNote.start);
+      if (timing > REFERENCE_SUPPORT_ONSET_TOLERANCE + EPSILON) return null;
+      const exact = stageNote.midi === referenceNote.midi;
+      const pitchClass = referencePitchClass(stageNote.midi) === referencePitchClass(referenceNote.midi);
+      const match: ReferenceSupportMatch = exact ? "exact" : pitchClass ? "pitch-class" : "timing-only";
+      const tier = exact ? 0 : pitchClass ? 1 : 2;
+      return { targetIndex, match, cost: tier * 1000 + timing * 100 + Math.abs(stageNote.dur - referenceNote.dur) * 0.01 + targetIndex * 1e-6 };
+    })
+    .filter((candidate): candidate is ReferenceMatchEdge => candidate !== null)
+    .sort((left, right) => left.cost - right.cost || left.targetIndex - right.targetIndex));
+  const assignedSource = new Map<number, { targetIndex: number; match: ReferenceSupportMatch }>();
+  const assignedTarget = new Map<number, number>();
+  const augment = (sourceIndex: number, seen: Set<number>): boolean => {
+    for (const candidate of candidates[sourceIndex] ?? []) {
+      if (seen.has(candidate.targetIndex)) continue;
+      seen.add(candidate.targetIndex);
+      const occupyingSource = assignedTarget.get(candidate.targetIndex);
+      if (occupyingSource !== undefined && !augment(occupyingSource, seen)) continue;
+      const previous = assignedSource.get(sourceIndex);
+      if (previous) assignedTarget.delete(previous.targetIndex);
+      assignedSource.set(sourceIndex, { targetIndex: candidate.targetIndex, match: candidate.match });
+      assignedTarget.set(candidate.targetIndex, sourceIndex);
+      return true;
+    }
+    return false;
+  };
+  for (let sourceIndex = 0; sourceIndex < stageNotes.length; sourceIndex += 1) augment(sourceIndex, new Set());
+  return { bySource: assignedSource, byTarget: assignedTarget };
+}
+
+/**
+ * Evaluation-only reference support accounting.  This function consumes
+ * already-frozen stage arrays and never feeds labels back into generation.
+ * A note is supported when it has a one-to-one same-onset exact or pitch-class
+ * match; timing-only matches remain unsupported so pitch loss stays visible.
+ */
+export function evaluateReferenceSupport(
+  stages: StageInputs,
+  reference?: StageInputValue,
+): ReferenceSupportReport {
+  const preparedReference = prepareStage("reference", reference);
+  const prepared = {} as Record<RedBaronSurvivalStage, PreparedStage>;
+  for (const stage of RED_BARON_SURVIVAL_STAGES) prepared[stage] = prepareStage(stage, stages?.[stage]);
+  const referenceAvailable = preparedReference.status === "available";
+  const summaries = {} as Record<RedBaronSurvivalStage, StageReferenceSupportSummary>;
+  const diagnostics: string[] = [];
+  if (!referenceAvailable) diagnostics.push("reference support is unknown because a valid reference stage is unavailable");
+  for (const stage of RED_BARON_SURVIVAL_STAGES) {
+    const current = prepared[stage];
+    const matches = referenceAvailable ? matchReferenceNotes(current.notes, preparedReference.notes) : { bySource: new Map(), byTarget: new Map() };
+    const labels: Record<ReferenceSupportLabel, string[]> = {
+      "reference-supported": [],
+      "reference-unsupported": [],
+      unknown: [],
+    };
+    let exact = 0;
+    let pitchClass = 0;
+    let timingOnly = 0;
+    current.notes.forEach((note, index) => {
+      const match = matches.bySource.get(index);
+      const label: ReferenceSupportLabel = !referenceAvailable
+        ? "unknown"
+        : match?.match === "exact" || match?.match === "pitch-class"
+          ? "reference-supported"
+          : "reference-unsupported";
+      labels[label].push(note.id);
+      if (match?.match === "exact") exact += 1;
+      else if (match?.match === "pitch-class") pitchClass += 1;
+      else if (match?.match === "timing-only") timingOnly += 1;
+    });
+    summaries[stage] = {
+      stage,
+      noteCount: current.notes.length,
+      supportedIn: labels["reference-supported"].length,
+      unsupportedIn: labels["reference-unsupported"].length,
+      unknownIn: labels.unknown.length,
+      exact,
+      pitchClass,
+      timingOnly,
+      labels: {
+        "reference-supported": [...labels["reference-supported"]].sort(compareText),
+        "reference-unsupported": [...labels["reference-unsupported"]].sort(compareText),
+        unknown: [...labels.unknown].sort(compareText),
+      },
+    };
+    if (current.status !== "available") diagnostics.push(`${stage} stage support is unknown because the stage is ${current.status}`);
+  }
+
+  const transitions: ReferenceSupportTransitionSummary[] = [];
+  for (let index = 0; index < RED_BARON_SURVIVAL_STAGES.length - 1; index += 1) {
+    const from = RED_BARON_SURVIVAL_STAGES[index]!;
+    const to = RED_BARON_SURVIVAL_STAGES[index + 1]!;
+    const source = prepared[from];
+    const target = prepared[to];
+    const transition = buildTransition(from, to, source, target);
+    const sourceLabels = summaries[from].labels;
+    const targetLabels = summaries[to].labels;
+    const matchedSourceIds = new Set(transition.matches.map((match) => match.sourceId));
+    const matchedTargetIds = new Set(transition.matches.map((match) => match.targetId));
+    const count = (label: ReferenceSupportLabel, ids: readonly string[]): number => ids.filter((id) => label === "reference-supported"
+      ? sourceLabels["reference-supported"].includes(id)
+      : label === "reference-unsupported" ? sourceLabels["reference-unsupported"].includes(id) : sourceLabels.unknown.includes(id)).length;
+    const supportedIn = summaries[from].supportedIn;
+    const unsupportedIn = summaries[from].unsupportedIn;
+    const unknownIn = summaries[from].unknownIn;
+    const supportedRetained = count("reference-supported", [...matchedSourceIds]);
+    const unsupportedRetained = count("reference-unsupported", [...matchedSourceIds]);
+    const unknownRetained = count("unknown", [...matchedSourceIds]);
+    const additions = (label: ReferenceSupportLabel): number => {
+      const ids = label === "reference-supported" ? targetLabels["reference-supported"] : label === "reference-unsupported" ? targetLabels["reference-unsupported"] : targetLabels.unknown;
+      return ids.filter((id) => !matchedTargetIds.has(id)).length;
+    };
+    transitions.push({
+      from,
+      to,
+      supportedIn,
+      supportedRetained,
+      supportedRejected: supportedIn - supportedRetained,
+      unsupportedIn,
+      unsupportedRetained,
+      unsupportedAdded: additions("reference-unsupported"),
+      unknownIn,
+      unknownRetained,
+      unknownAdded: additions("unknown"),
+    });
+  }
+  return {
+    schemaVersion: 1,
+    status: referenceAvailable ? "available" : "unknown",
+    onsetToleranceBeats: REFERENCE_SUPPORT_ONSET_TOLERANCE,
+    stages: summaries,
+    transitions,
+    diagnostics: [...new Set(diagnostics)].sort(compareText),
+  };
 }
 
 function asStageInput(value: StageInputValue | undefined): { status: StageAvailability; input: StageInput; diagnostics: string[] } {

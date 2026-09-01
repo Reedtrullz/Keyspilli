@@ -8,6 +8,7 @@ import {
   canonicalStageSurvivalJson,
   classifyStageLoss,
   evaluateStageSurvival,
+  evaluateReferenceSupport,
   genericDecoderFixDecision,
   redactStageSurvivalText,
   type DecoderFixEvidence,
@@ -346,5 +347,52 @@ describe("red baron stage survival", () => {
     expect(loss.unmatchedSourceCount).toBe(0);
     expect(loss.unmatchedTargetCount).toBe(0);
     expect(loss.diagnostics.join(" ")).toMatch(/one-to-one|duplicate/i);
+  });
+
+  it("labels reference support after frozen stages without changing stage inputs", () => {
+    const stages = {
+      raw: stage([
+        note("exact", 60, 0),
+        note("pc", 76, 1),
+        note("wrong", 61, 2),
+      ]),
+      decoder: stage([
+        note("exact", 60, 0),
+        note("pc", 88, 1),
+      ]),
+      semantic: stage([note("exact", 60, 0)]),
+      canonical: stage([note("exact", 60, 0), note("added", 67, 3)]),
+      easy: stage([note("exact", 60, 0)]),
+    };
+    const before = JSON.stringify(stages);
+    const report = evaluateReferenceSupport(stages, reference);
+    expect(report.status).toBe("available");
+    expect(report.stages.raw).toMatchObject({
+      supportedIn: 2,
+      unsupportedIn: 1,
+      exact: 1,
+      pitchClass: 1,
+    });
+    expect(report.transitions[0]).toMatchObject({
+      from: "raw",
+      to: "decoder",
+      supportedIn: 2,
+      supportedRetained: 2,
+      supportedRejected: 0,
+      unsupportedIn: 1,
+      unsupportedRetained: 0,
+      unsupportedAdded: 0,
+    });
+    expect(report.stages.canonical.unsupportedIn).toBe(1);
+    expect(report.transitions[2]!.unsupportedAdded).toBe(1);
+    expect(JSON.stringify(stages)).toBe(before);
+  });
+
+  it("reports unknown support when the evaluation reference is unavailable", () => {
+    const report = evaluateReferenceSupport(fullStages(), undefined);
+    expect(report.status).toBe("unknown");
+    expect(report.stages.raw.unknownIn).toBe(3);
+    expect(report.stages.raw.supportedIn).toBe(0);
+    expect(report.transitions[0]!.unknownIn).toBe(3);
   });
 });
