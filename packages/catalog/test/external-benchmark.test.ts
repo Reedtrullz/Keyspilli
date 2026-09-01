@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { writeMidi } from "@keyspilli/midi";
 import {
@@ -5,6 +6,7 @@ import {
   SEVEN_SONG_BENCHMARK_IDS,
   buildExternalBenchmarkReport,
   canonicalExternalBenchmarkJson,
+  externalBenchmarkInventory,
   type ExternalBenchmarkInput,
 } from "../src/external-benchmark.js";
 import { runExternalSymbolicCli } from "../scripts/evaluate-external-symbolic.js";
@@ -21,6 +23,10 @@ function song(id: string, input: Partial<ExternalBenchmarkInput["songs"][number]
 }
 
 describe("external symbolic benchmark orchestration", () => {
+  it("exposes a metadata-only seven-song inventory projection", () => {
+    expect(externalBenchmarkInventory()).toEqual(SEVEN_SONG_BENCHMARK_IDS.map((id, index) => ({ id, position: index + 1, label: id.replace(/-/g, " ") })));
+  });
+
   it("keeps the exact seven-song inventory and reports missing evidence", async () => {
     expect(SEVEN_SONG_BENCHMARK_IDS).toEqual([
       "sabaton-the-red-baron", "sabaton-the-final-solution", "sabaton-christmas-truce",
@@ -74,6 +80,56 @@ describe("external symbolic benchmark orchestration", () => {
     expect(JSON.stringify(first)).not.toMatch(/note|bytes|timestamp|Users|private|tmp/i);
   });
 
+  it("retains scalar event metrics in canonical JSON and hashes while omitting raw payloads", () => {
+    const makeReport = (eventCount: number) => ({
+      route: {
+        output: { eventCount, durationBeats: 4, sha256: "output-hash" },
+        coverage: {
+          totalEvents: 2,
+          totalDurationBeats: 4,
+          byEvidenceClass: {
+            symbolic: { eventCount: 1, eventPercentage: 50, durationBeats: 2, durationPercentage: 50, confidence: { min: 1, median: 1, max: 1 } },
+          },
+          attributedEventPercentage: 50,
+          attributedDurationPercentage: 50,
+        },
+        events: [{ midi: 60, start: 0, dur: 1, vel: 90 }],
+        notes: [{ midi: 60, start: 0, dur: 1, vel: 90 }],
+      },
+    });
+    const first = makeReport(1);
+    const second = makeReport(2);
+    const firstJson = canonicalExternalBenchmarkJson(first as any);
+    const secondJson = canonicalExternalBenchmarkJson(second as any);
+    const hash = (json: string) => createHash("sha256").update(json).digest("hex");
+
+    expect(firstJson).toContain('"eventCount":1');
+    expect(firstJson).toContain('"eventPercentage":50');
+    expect(firstJson).toContain('"totalEvents":2');
+    expect(firstJson).toContain('"attributedEventPercentage":50');
+    expect(firstJson).not.toContain('"events"');
+    expect(firstJson).not.toContain('"notes"');
+    expect(firstJson).not.toBe(secondJson);
+    expect(hash(firstJson)).not.toBe(hash(secondJson));
+  });
+
+  it("rejects malformed output-note aliases before route evaluation", async () => {
+    const validNotes = [{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" as const }];
+    const report = await buildExternalBenchmarkReport({
+      songs: [song(SEVEN_SONG_BENCHMARK_IDS[0]!, {
+        routes: [{ id: "AUDIO_FALLBACK_CONTROL", notes: validNotes, outputNotes: { malformed: true } as never }],
+      })],
+    });
+    expect(report.songs[0]?.failures).toContain("INVALID_INPUT");
+  });
+
+  it("turns malformed route descriptor containers into an invalid-input report", async () => {
+    const report = await buildExternalBenchmarkReport({
+      songs: [song(SEVEN_SONG_BENCHMARK_IDS[0]!, { routes: { malformed: true } as never })],
+    });
+    expect(report.songs[0]?.failures).toContain("INVALID_INPUT");
+  });
+
   it("rejects URL and directory-like local inputs and exposes a closed taxonomy", async () => {
     await expect(buildExternalBenchmarkReport({ songs: [song(SEVEN_SONG_BENCHMARK_IDS[0], { candidateInputs: [{ path: "https://example.test/song.mid", format: "midi" }] })] })).rejects.toThrow(/local|url/i);
     expect(EXTERNAL_BENCHMARK_FAILURES).toContain("METADATA_ONLY");
@@ -89,6 +145,35 @@ describe("external symbolic benchmark orchestration", () => {
     ] });
     const report = await buildExternalBenchmarkReport({ songs: [song(SEVEN_SONG_BENCHMARK_IDS[0]!, { candidateInputs: [{ id: "candidate", bytes: mixed, format: "midi" }], referenceInputs: [{ id: "reference", bytes: mixed, format: "midi" }] })] });
     expect((report.songs[0]?.reference.alignment as any).roleFilteredWindows).toEqual([{ id: "main", role: "melody", candidatePitchedCount: 1, referencePitchedCount: 1 }]);
+  });
+
+  it("reports independent external/control routes with role metrics and explicit coverage", async () => {
+    const controlNotes = [
+      { midi: 60, start: 0, dur: 1, vel: 90, hand: "R" as const },
+      { midi: 62, start: 1, dur: 1, vel: 90, hand: "R" as const },
+    ];
+    const report = await buildExternalBenchmarkReport({
+      songs: [song(SEVEN_SONG_BENCHMARK_IDS[0]!, {
+        routes: [{
+          id: "AUDIO_FALLBACK_CONTROL",
+          label: "current audio-first control",
+          notes: controlNotes,
+          attributions: [
+            { evidenceClass: "AUDIO_AMT_FALLBACK", noteIndices: [0, 1], confidence: 0.4 },
+          ],
+        }],
+      })],
+    });
+    const row = report.songs[0]!;
+    expect(row.routes.map((route) => route.id)).toEqual(["AUDIO_FALLBACK_CONTROL", "EXTERNAL_SYMBOLIC_FIRST"]);
+    expect(row.routes[0]?.status).toBe("available");
+    expect(row.routes[0]?.coverage.byEvidenceClass.AUDIO_AMT_FALLBACK).toMatchObject({ eventPercentage: 100, durationPercentage: 100 });
+    expect(row.routes[0]?.reference.roleMetrics.melody).toMatchObject({ status: "aligned", confidence: expect.any(Number) });
+    expect(row.routes[1]?.status).toBe("available");
+    expect(row.routeCoverage).toMatchObject({
+      EXTERNAL_SYMBOLIC_FIRST: { attributedEventPercentage: null },
+      AUDIO_FALLBACK_CONTROL: { attributedEventPercentage: 100 },
+    });
   });
 
   it("turns malformed manifest rows into an explicit invalid-input report", async () => {
@@ -127,6 +212,27 @@ describe("external symbolic benchmark orchestration", () => {
 });
 
 describe("external symbolic benchmark CLI", () => {
+  it("returns a usage error when the required manifest is omitted", async () => {
+    let output = "";
+    let errors = "";
+    const code = await runExternalSymbolicCli([], {
+      stdout: (value) => { output += value; },
+      stderr: (value) => { errors += value; },
+    });
+    expect(code).toBe(2);
+    expect(output).toBe("");
+    expect(errors).toMatch(/manifest is required/i);
+  });
+
+  it("prints the explicit metadata-only inventory without reading a source", async () => {
+    const output: string[] = [];
+    const code = await runExternalSymbolicCli(["--inventory"], { stdout: (value) => output.push(value), stderr: () => undefined });
+    expect(code).toBe(0);
+    const report = JSON.parse(output.join("")) as { kind: string; songs: Array<{ id: string }> };
+    expect(report.kind).toBe("external-benchmark-inventory");
+    expect(report.songs.map((song) => song.id)).toEqual([...SEVEN_SONG_BENCHMARK_IDS]);
+  });
+
   it("rejects missing manifest and unknown options without touching the network", async () => {
     const errors: string[] = [];
     const code = await runExternalSymbolicCli(["--manifest", "https://example.test/manifest.json"], { stdout: () => undefined, stderr: (value) => errors.push(value) });

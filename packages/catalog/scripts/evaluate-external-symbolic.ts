@@ -5,6 +5,7 @@ import { basename, dirname, isAbsolute, resolve } from "node:path";
 import {
   buildExternalBenchmarkReport,
   canonicalExternalBenchmarkJson,
+  externalBenchmarkInventory,
   redactExternalBenchmarkText,
   type ExternalBenchmarkInput,
 } from "../src/external-benchmark.js";
@@ -14,11 +15,12 @@ export interface ExternalSymbolicCliIo {
   stderr: (value: string) => void;
 }
 
-interface ExternalSymbolicCliOptions { manifest: string; out?: string; help: boolean }
+interface ExternalSymbolicCliOptions { manifest: string; out?: string; inventory: boolean; help: boolean }
 
 function usage(): string {
   return [
     "Usage: evaluate-external-symbolic.ts --manifest /absolute/local/manifest.json [--out /absolute/local/output]",
+    "       evaluate-external-symbolic.ts --inventory",
     "",
     "The manifest contains an explicit { songs: [...] } array. Candidate and",
     "reference inputs must be local absolute file paths or inline bytes supplied",
@@ -40,7 +42,7 @@ function localPath(value: string, flag: string): string {
 }
 
 export function parseExternalSymbolicArgs(argv: readonly string[]): ExternalSymbolicCliOptions {
-  const options: ExternalSymbolicCliOptions = { manifest: "", help: false };
+  const options: ExternalSymbolicCliOptions = { manifest: "", inventory: false, help: false };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index]!;
     const inline = arg.includes("=") ? arg.slice(arg.indexOf("=") + 1) : undefined;
@@ -51,11 +53,13 @@ export function parseExternalSymbolicArgs(argv: readonly string[]): ExternalSymb
     };
     if (flag === "--manifest") options.manifest = localPath(value(), "--manifest");
     else if (flag === "--out") options.out = localPath(value(), "--out");
+    else if (flag === "--inventory") options.inventory = true;
     else if (flag === "--json") { /* JSON is always the output format. */ }
     else if (flag === "--help" || flag === "-h") options.help = true;
     else throw new Error(`unknown option: ${arg}`);
   }
-  if (!options.help && !options.manifest) throw new Error(`--manifest is required\n\n${usage()}`);
+  if (!options.help && !options.manifest && !options.inventory) throw new Error(`--manifest is required\n\n${usage()}`);
+  if (options.manifest && options.inventory) throw new Error("--manifest and --inventory are mutually exclusive");
   return options;
 }
 
@@ -94,10 +98,19 @@ export async function runExternalSymbolicCli(
   try { options = parseExternalSymbolicArgs(argv); }
   catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    if (message.includes("Usage:")) io.stdout(`${message}\n`); else io.stderr(`${redact(message)}\n`);
-    return message.includes("Usage:") ? 0 : 2;
+    io.stderr(`${redact(message)}\n`);
+    return 2;
   }
   if (options.help) { io.stdout(`${usage()}\n`); return 0; }
+  if (options.inventory) {
+    const output = `${JSON.stringify({ schemaVersion: 1, kind: "external-benchmark-inventory", songs: externalBenchmarkInventory() }, null, 2)}\n`;
+    if (options.out) {
+      try { await assertOutput(options.out); await writeFile(options.out, output, "utf8"); }
+      catch (error) { io.stderr(`${redact(error instanceof Error ? error.message : String(error))}\n`); return 2; }
+    }
+    io.stdout(output);
+    return 0;
+  }
   let input: ExternalBenchmarkInput;
   try { input = await readManifest(options.manifest); }
   catch (error) { io.stderr(`${redact(error instanceof Error ? error.message : String(error))}\n`); return 2; }

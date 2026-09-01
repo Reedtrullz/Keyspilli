@@ -135,8 +135,11 @@ function groupByOnset(indexed: readonly IndexedNote[], tolerance: number): Index
 
   for (const item of ordered) {
     const previous = groups[groups.length - 1];
-    const previousStart = previous?.[0]?.note.start;
-    if (previous && previousStart !== undefined && Math.abs(item.note.start - previousStart) <= tolerance) {
+    // Onset jitter is transitive: compare with the latest onset already in
+    // the group so 0.00/0.07/0.13 remains one attack at the default 0.08
+    // beat tolerance.
+    const previousLatestStart = previous?.[previous.length - 1]?.note.start;
+    if (previous && previousLatestStart !== undefined && item.note.start - previousLatestStart <= tolerance + EPSILON) {
       previous.push(item);
     } else {
       groups.push([item]);

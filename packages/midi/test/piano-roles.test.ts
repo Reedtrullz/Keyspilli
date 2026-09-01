@@ -33,6 +33,16 @@ describe("splitPianoRoles", () => {
     expect(split.protectedMelody.every((entry) => Object.isFrozen(entry))).toBe(true);
   });
 
+  it("collapses transitive onset jitter into one protected melody attack", () => {
+    const split = splitPianoRoles([
+      note(60, 0),
+      note(62, 0.07),
+      note(64, 0.13),
+    ]);
+
+    expect(split.protectedMelody).toHaveLength(1);
+  });
+
   it("does not promote lower accompaniment when a stable upper line is present", () => {
     const notes: Note[] = [
       note(36, 0, 1.5, 110, "L"),

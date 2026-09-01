@@ -10,11 +10,17 @@ export const EXTERNAL_RESEARCH_SCHEMA_VERSION = 1 as const;
 export type ExternalResearchParserStatus = "not-attempted" | "parsed" | "unsupported" | "invalid";
 export type ExternalResearchAcquisitionStatus = "not-supplied" | "local-bytes" | "local-file" | "rejected";
 export type ExternalResearchAlignmentStatus = "not-attempted" | "aligned" | "partial" | "ambiguous" | "unavailable" | "rejected";
+/** Identity is intentionally conservative: parsing alone never verifies a song edition. */
+export type ExternalResearchIdentityStatus = "EXACT_VERSION" | "LIKELY_VERSION" | "PARTIAL_ARRANGEMENT" | "COVER_VERSION" | "DIFFERENT_VERSION" | "UNKNOWN";
+export type ExternalResearchVersionStatus = "EXACT" | "CLAIMED" | "AMBIGUOUS" | "UNKNOWN";
 
 export interface ExternalResearchDiscoveryRecord {
   id?: string | null;
   title?: string | null;
   provider?: string | null;
+  artist?: string | null;
+  version?: string | null;
+  durationSeconds?: number | null;
   sourceRef?: string | null;
   sourcePage?: string | null;
   url?: string | null;
@@ -35,6 +41,9 @@ export interface ExternalResearchLocalInput {
   artifactType?: string | null;
   title?: string | null;
   provider?: string | null;
+  artist?: string | null;
+  version?: string | null;
+  durationSeconds?: number | null;
   sourceRef?: string | null;
   sourcePage?: string | null;
   purpose?: EvidencePurpose;
@@ -72,6 +81,9 @@ export interface ExternalResearchRecord {
   provider: string | null;
   evidenceClass: EvidenceClass;
   purpose: EvidencePurpose;
+  identityStatus: ExternalResearchIdentityStatus;
+  versionStatus: ExternalResearchVersionStatus;
+  identityReasons: string[];
   discovery: {
     status: "metadata-only" | "local-supplied";
     sourceRef: string | null;
@@ -118,6 +130,9 @@ export interface ExternalSymbolicIngestionResult {
   score: OmrScoreInput | null;
   /** Alias for consumers that distinguish normalized from source score. */
   normalizedScore: OmrScoreInput | null;
+  identityStatus?: ExternalResearchIdentityStatus;
+  versionStatus?: ExternalResearchVersionStatus;
+  identityReasons?: string[];
   canonical: CanonicalScore | null;
   provenance: NativeSymbolicAdapterResult["provenance"] | null;
   roles: ExternalRoleDiagnostic[];
@@ -155,6 +170,53 @@ function text(value: unknown, fallback: string | null = null): string | null {
   if (typeof value !== "string") return fallback;
   const clean = value.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, 240);
   return clean || fallback;
+}
+
+function identityText(value: unknown): string {
+  return typeof value === "string"
+    ? value.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim()
+    : "";
+}
+
+interface ExternalIdentityAssessment {
+  identityStatus: ExternalResearchIdentityStatus;
+  versionStatus: ExternalResearchVersionStatus;
+  identityReasons: string[];
+}
+
+function assessExternalIdentity(
+  song: SongIdentity,
+  input: Pick<ExternalResearchLocalInput | ExternalResearchDiscoveryRecord, "title" | "artist" | "version" | "durationSeconds">,
+  score: OmrScoreInput | null,
+): ExternalIdentityAssessment {
+  const sourceText = identityText([input.title, input.artist, score?.title].filter(Boolean).join(" "));
+  const title = identityText(song.title);
+  const artist = identityText(song.artist);
+  const titleMatch = Boolean(title && sourceText.includes(title));
+  const artistMatch = Boolean(artist && sourceText.includes(artist));
+  const sourceVersion = identityText(input.version);
+  const targetVersion = identityText(song.version);
+  const cover = /\b(?:cover|piano|tutorial|synthesia|arrangement)\b/.test(sourceText);
+  const partial = typeof input.durationSeconds === "number" && Number.isFinite(input.durationSeconds)
+    && typeof song.durationSeconds === "number" && Number.isFinite(song.durationSeconds)
+    && input.durationSeconds > 0 && song.durationSeconds > 0 && input.durationSeconds < song.durationSeconds * 0.8;
+  const reasons: string[] = [];
+  if (titleMatch) reasons.push("title matches target identity");
+  if (artistMatch) reasons.push("artist matches target identity");
+  if (cover) reasons.push("cover/arrangement metadata indicates a derived version");
+  if (partial) reasons.push("source duration indicates partial arrangement");
+  let versionStatus: ExternalResearchVersionStatus = "UNKNOWN";
+  if (sourceVersion && targetVersion && sourceVersion === targetVersion) versionStatus = "EXACT";
+  else if (sourceVersion) versionStatus = "CLAIMED";
+  else if (/\b(?:live|remix|edit|acoustic|instrumental|cover|arrangement|version)\b/.test(sourceText)) versionStatus = "AMBIGUOUS";
+  let identityStatus: ExternalResearchIdentityStatus = "UNKNOWN";
+  if (partial) identityStatus = "PARTIAL_ARRANGEMENT";
+  else if (cover) identityStatus = "COVER_VERSION";
+  else if (titleMatch && artistMatch && versionStatus === "EXACT") identityStatus = "EXACT_VERSION";
+  else if (titleMatch && (artistMatch || !artist)) identityStatus = "LIKELY_VERSION";
+  else if (sourceText && !titleMatch && /\b(?:different|alternate|other)\b/.test(sourceText)) identityStatus = "DIFFERENT_VERSION";
+  return { identityStatus, versionStatus, identityReasons: reasons.length ? reasons : ["insufficient identity metadata"] };
 }
 
 function logicalRef(value: unknown): string | null {
@@ -404,6 +466,7 @@ function recordFromDiscovery(song: SongIdentity, discovery: ExternalResearchDisc
   const purpose = discovery.purpose ?? "RESEARCH_LEAD";
   const evidenceClass = discovery.evidenceClass ?? (format && ["midi", "mid", "musicxml", "xml", "mxl"].includes(format) ? "VERIFIED_NATIVE_SYMBOLIC" : "PIANO_COVER_SYMBOLIC");
   const reasons = purpose === "BENCHMARK_REFERENCE" || evidenceClass === "BENCHMARK_REFERENCE" ? ["benchmark/reference evidence is evaluation-only"] : [];
+  const identity = assessExternalIdentity(song, discovery, null);
   return {
     id: stableId(discovery.id, `discovery:${stableId(discovery.sourceRef, "unknown")}`),
     songId: song.id,
@@ -411,6 +474,7 @@ function recordFromDiscovery(song: SongIdentity, discovery: ExternalResearchDisc
     provider: text(discovery.provider),
     evidenceClass,
     purpose,
+    ...identity,
     discovery: { status: "metadata-only", sourceRef: logicalRef(discovery.sourceRef), sourcePage: safePage(discovery.sourcePage ?? discovery.url) },
     acquisition: { status: "not-supplied", method: null },
     content: { sha256: null, byteLength: null, mediaType: format ? MEDIA_TYPES[format] ?? null : null },
@@ -433,6 +497,7 @@ function recordFromIngestion(song: SongIdentity, input: ExternalResearchLocalInp
   const evidenceClass = input.evidenceClass === "BENCHMARK_REFERENCE"
     ? input.evidenceClass
     : result.status === "parsed" ? (input.evidenceClass ?? candidate?.evidenceClass ?? "VERIFIED_NATIVE_SYMBOLIC") : "TAB_OR_CHORD_EVIDENCE";
+  const identity = assessExternalIdentity(song, input, result.score);
   return {
     id: stableId(input.id, candidate?.id ?? fallbackId),
     songId: song.id,
@@ -440,6 +505,7 @@ function recordFromIngestion(song: SongIdentity, input: ExternalResearchLocalInp
     provider: text(input.provider),
     evidenceClass,
     purpose,
+    ...identity,
     discovery: { status: "local-supplied", sourceRef: logicalRef(input.sourceRef) ?? candidate?.provenance.sourceRef ?? null, sourcePage: safePage(input.sourcePage) },
     acquisition: { status: result.provenance?.accessMethod === "local-file" ? "local-file" : result.provenance?.accessMethod === "local-bytes" ? "local-bytes" : "rejected", method: result.provenance?.accessMethod === "local-file" || result.provenance?.accessMethod === "local-bytes" ? result.provenance.accessMethod : null },
     content: { sha256: result.provenance?.sha256 ?? null, byteLength: result.provenance?.bytes ?? null, mediaType: result.format ? MEDIA_TYPES[result.format] ?? null : null },

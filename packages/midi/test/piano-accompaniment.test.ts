@@ -31,6 +31,19 @@ describe("conservative piano accompaniment", () => {
     expect(reversed).toEqual(clusters);
   });
 
+  it("collapses transitive onset jitter into one attack", () => {
+    const clusters = groupAttackClusters([
+      note(40, 0),
+      note(47, 0.07),
+      note(52, 0.13),
+      note(43, 1),
+    ]);
+
+    expect(clusters).toHaveLength(2);
+    expect(clusters[0]?.start).toBe(0);
+    expect(clusters[0]?.notes.map((item) => item.midi)).toEqual([40, 47, 52]);
+  });
+
   it("reduces an E-minor six-note stack to a conservative open accompaniment", () => {
     const input = [40, 52, 59, 64, 67, 71].map((midi) => note(midi, 0, 2, 100, "guitar"));
     const result = simplifyPianoAccompaniment(input);
@@ -141,6 +154,66 @@ describe("conservative piano accompaniment", () => {
     expect(harmony.map((event) => event.rootPc)).toEqual([0, 7, 0]);
   });
 
+  it("honors a multi-attack root persistence threshold", () => {
+    const harmony = inferPianoHarmony(
+      groupAttackClusters([
+        ...stack([48, 55], 0),
+        ...stack([43, 50], 1),
+        ...stack([43, 50], 2),
+        ...stack([48, 55], 3),
+      ]),
+      { rootChangePersistence: 3 },
+    );
+
+    expect(harmony.map((event) => event.rootPc)).toEqual([0, 0, 0, 0]);
+    expect(harmony[1]?.rootStabilized).toBe(true);
+    expect(harmony[2]?.rootStabilized).toBe(true);
+  });
+
+  it("does not let low-confidence bass or chroma evidence override stronger source harmony", () => {
+    const source = groupAttackClusters([
+      note(48, 0, 2, 120),
+      note(60, 0.01, 2, 120),
+      note(55, 0.02, 0.1, 20),
+    ]);
+    const bass = [note(43, 0, 2, 120)];
+    const strongBass = inferPianoHarmony(source, { bass, confidence: 1 });
+    const weakBass = inferPianoHarmony(source, { bass, confidence: 0.1 });
+
+    expect(strongBass[0]?.rootPc).toBe(7);
+    expect(weakBass[0]?.rootPc).toBe(0);
+
+    const suspendedSource = groupAttackClusters([
+      note(48, 0, 1, 100),
+      note(48, 0.005, 1, 100),
+      note(50, 0.01, 1, 100),
+      note(55, 0.015, 1, 100),
+    ]);
+    const chroma = Array.from({ length: 12 }, (_, pitchClass) =>
+      [2, 6, 9].includes(pitchClass) ? 1 : 0);
+    const strongChroma = inferPianoHarmony(suspendedSource, { chroma, weight: 1 });
+    const weakChroma = inferPianoHarmony(suspendedSource, { chroma, weight: 0.1 });
+
+    expect(strongChroma[0]?.rootPc).toBe(7);
+    expect(weakChroma[0]?.rootPc).toBe(0);
+  });
+
+  it("bounds evidence reliability and preserves unit defaults when metadata is absent", () => {
+    const source = groupAttackClusters([
+      note(48, 0, 2, 120),
+      note(60, 0.01, 2, 120),
+      note(55, 0.02, 0.1, 20),
+    ]);
+    const bass = [note(43, 0, 2, 120)];
+    const defaultEvidence = inferPianoHarmony(source, { bass });
+    const explicitUnitEvidence = inferPianoHarmony(source, { bass, weight: 1, confidence: 1 });
+    const zeroEvidence = inferPianoHarmony(source, { bass, weight: 2, confidence: -1 });
+
+    expect(explicitUnitEvidence[0]?.rootPc).toBe(defaultEvidence[0]?.rootPc);
+    expect(explicitUnitEvidence[0]?.quality).toBe(defaultEvidence[0]?.quality);
+    expect(zeroEvidence[0]?.rootPc).toBe(0);
+  });
+
   it("keeps protected melody out of inferred left-hand evidence", () => {
     const melody = note(64, 0, 2, 110, "guitar");
     const result = simplifyPianoAccompaniment([
@@ -150,5 +223,17 @@ describe("conservative piano accompaniment", () => {
     ], { protectedNotes: [melody] });
 
     expect(result.notes.some((item) => item.hand === "L" && item.midi === 64)).toBe(false);
+  });
+
+  it("measures generated left-hand notes without counting protected right-hand notes", () => {
+    const melody = { ...note(84, 0, 2, 110, "guitar"), hand: "R" as const };
+    const result = simplifyPianoAccompaniment([
+      melody,
+      { ...note(48, 0, 2, 80, "guitar"), hand: "L" as const },
+      { ...note(55, 0.01, 2, 80, "guitar"), hand: "L" as const },
+    ], { protectedNotes: [melody] });
+
+    expect(result.diagnostics.maxLeftHandNotesPerAttack).toBe(2);
+    expect(result.diagnostics.maxLeftHandSpan).toBe(7);
   });
 });

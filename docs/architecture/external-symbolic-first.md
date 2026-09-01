@@ -81,3 +81,38 @@ Automated structural, alignment, pitch, onset, harmony, and playability
 metrics are diagnostics. Human recognizability and musical usefulness remain a
 separate gate requiring at least two raters. A passing parser, alignment, or
 CI run is not a claim that an arrangement sounds good.
+
+## Local research cache and provider-neutral discovery
+
+`packages/catalog/src/research-cache.ts` defines the provider-neutral local
+research boundary. A `ProviderNeutralDiscoveryRecord` carries a public URL,
+provider, title/author metadata, apparent format, confidence, and explicit
+`accessibility`, `acquisitionEligibility`, and optional `legalStatus` values.
+It never carries downloaded bytes, credentials, or physical paths. Metadata
+records may be retained with `metadata-only` or restricted status for research
+direction, but they are not symbolic candidates until a separately authorized
+local acquisition and parser step supplies evidence.
+
+`buildResearchCacheKey` hashes normalized target identity, query, provider,
+artifact URL/hash, parser version, and alignment version. The key is stable
+across object property and record ordering. `serializeResearchCache` emits a
+path-free, de-duplicated JSON envelope, suitable for a local cache file; cache
+files and acquired score/audio assets remain outside the repository and are
+never uploaded or committed. `buildResearchReport` accepts these records via
+`discoveryRecords` and includes the stable `cacheKey`; reports remain
+deterministic for the same local evidence and configuration.
+
+Use the existing research command with explicit local inputs and
+`--no-network` when replaying a cache-backed run:
+
+```text
+npm run research:song -w @keyspilli/catalog -- --artist "Artist" --title "Song" \
+  --candidate /absolute/local/candidate.mid --no-network \
+  --out /absolute/local/research-report.json
+```
+
+The absolute paths above are examples only and must not appear in tracked
+reports or documentation generated from a real machine. The command refuses
+to overwrite an existing report and the report serializer redacts path-like
+metadata. Keep protected benchmark references outside the repository and pass
+them only to evaluation tooling after generation-side candidate selection.

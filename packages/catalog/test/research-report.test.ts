@@ -59,6 +59,28 @@ describe("local song research report", () => {
       fallbackTier: 1,
     });
     expect(result.json).not.toMatch(/\/Users\/|\/private\/|localPath|password/i);
+    expect(result.report.cacheKey).toMatch(/^research-cache:/);
+    expect(result.report.discoveryRecords).toEqual([]);
+  });
+
+  it("keeps provider-neutral cached metadata and access eligibility separate from candidates", () => {
+    const report = buildResearchReport({
+      song,
+      discoveryRecords: [{
+        url: "https://scores.example.test/red-baron",
+        provider: "scores.example",
+        title: "The Red Baron arrangement",
+        author: "Arranger",
+        apparentFormat: "musicxml",
+        accessibility: "login-required",
+        acquisitionEligibility: "metadata-only",
+        legalStatus: "metadata-only",
+        confidence: 0.7,
+      }],
+    });
+    expect(report.discoveryRecords[0]).toMatchObject({ accessibility: "login-required", acquisitionEligibility: "metadata-only", legalStatus: "metadata-only" });
+    expect(report.candidates.some((candidate) => candidate.id.includes("scores.example"))).toBe(false);
+    expect(serializeResearchReport(report)).not.toMatch(/Users\/reidar/);
   });
 
   it("does not invent discovery queries for a metadata-limited URL-only run", async () => {

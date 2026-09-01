@@ -1,5 +1,13 @@
 import { createHash } from "node:crypto";
-import type { Note } from "@keyspilli/midi";
+import {
+  buildMetalArrangement,
+  buildVariants,
+  keyName,
+  type ChordLabel,
+  type Note,
+  type ParsedMidi,
+  type Variant,
+} from "@keyspilli/midi";
 import type { OmrEventInput, OmrScoreInput } from "./omr-consensus.js";
 import {
   assertGenerationEvidence,
@@ -297,7 +305,38 @@ export interface ExternalSymbolicArrangementInput {
   builderInput?: PianoSectionBuildInput;
   windows?: readonly PianoSectionWindow[];
   primaryRecordId?: string;
+  /** Select the preservation-oriented piano route or semantic band route. */
+  mode?: "auto" | "direct-piano" | "semantic-band";
+  /** Select a different frozen candidate for a role/section window. */
+  roleSelections?: readonly ExternalRoleSelection[];
+  /** Explicit beat maps from a candidate into the target recording domain. */
+  alignmentMaps?: Readonly<Record<string, PianoSectionSource["alignment"]>>;
   fallbackEnabled?: boolean;
+}
+
+export interface ExternalRoleSelection {
+  role: EvidenceRole;
+  candidateId: string;
+  sectionIds?: readonly string[];
+}
+
+export interface ExternalSemanticSong {
+  schemaVersion: 1;
+  melody: readonly Note[];
+  harmony: readonly ChordLabel[];
+  bass: readonly Note[];
+  rhythm: readonly Note[];
+  timingOnly: readonly Note[];
+  sections: readonly { id: string; startBeat: number; endBeat: number; source: string | null; confidence: number }[];
+}
+
+export interface ExternalOutputProvenance {
+  recordId: string;
+  candidateId?: string;
+  evidenceClass: string;
+  role: EvidenceRole;
+  sectionId?: string;
+  confidence?: number;
 }
 
 export interface ExternalSymbolicArrangementResult {
@@ -305,6 +344,19 @@ export interface ExternalSymbolicArrangementResult {
   selectedRecordIds: string[];
   notes?: readonly Note[];
   artifact?: unknown;
+  route?: "EXTERNAL_SYMBOLIC_FIRST" | "AUDIO_AMT_FALLBACK";
+  mode?: "direct-piano" | "semantic-band";
+  evidenceClass?: "AUDIO_AMT_FALLBACK" | string;
+  canonical?: ParsedMidi;
+  variants?: { advanced: Variant; medium: Variant; easy: Variant };
+  /** Named aliases make the generated levels convenient for local callers. */
+  advanced?: Variant;
+  medium?: Variant;
+  easy?: Variant;
+  outputs?: { canonical: ParsedMidi; advanced: Variant; medium: Variant; easy: Variant };
+  semantic?: ExternalSemanticSong;
+  semanticSong?: ExternalSemanticSong;
+  provenance: readonly ExternalOutputProvenance[];
   fallbackReason?: string;
   diagnostics: Record<string, unknown>;
 }
@@ -334,39 +386,423 @@ function scoreNotes(score: OmrScoreInput): Note[] {
   return notes;
 }
 
+function scorePartEvents(part: OmrScoreInput["parts"][number]): OmrEventInput[] {
+  const events = (part.measures ?? []).flatMap((measure) => [
+    ...(measure.events ?? []),
+    ...(measure.staves ?? []).flatMap((staff) => [
+      ...(staff.events ?? []),
+      ...(staff.voices ?? []).flatMap((voice) => voice.events ?? []),
+    ]),
+    ...(measure.voices ?? []).flatMap((voice) => voice.events ?? []),
+  ]);
+  const seen = new Set<string>();
+  return events.filter((event) => {
+    const key = [event.onset, event.duration, event.pitch, event.staff ?? "", event.voice ?? ""].join(":");
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function scorePartNotes(part: OmrScoreInput["parts"][number], alignment?: PianoSectionSource["alignment"]): Note[] {
+  const offset = finite(alignment?.offsetBeats) ? alignment!.offsetBeats! : 0;
+  const scale = finite(alignment?.beatScale) && alignment!.beatScale! > 0 ? alignment!.beatScale! : 1;
+  const transpose = finite(alignment?.transposeSemitones) ? alignment!.transposeSemitones! : 0;
+  const notes: Note[] = [];
+  let cursor = 0;
+  for (const measure of part.measures ?? []) {
+    const start = finite(measure.startBeat) ? measure.startBeat : cursor;
+    for (const event of scorePartEvents({ ...part, measures: [measure] })) {
+      if (!finite(event.pitch) || !finite(event.onset) || !finite(event.duration) || event.duration <= 0) continue;
+      const mappedStart = (start + event.onset - offset) / scale;
+      const mappedEnd = mappedStart + event.duration / scale;
+      if (mappedEnd <= 0) continue;
+      const role = event.role ?? part.role;
+      const hand = role === "melody" ? "R" : role === "harmony" ? "L" : undefined;
+      notes.push({
+        midi: Math.max(0, Math.min(127, Math.round(event.pitch + transpose))),
+        start: Math.max(0, mappedStart),
+        dur: mappedEnd - Math.max(0, mappedStart),
+        vel: 96,
+        ...(hand ? { hand } : {}),
+      });
+    }
+    cursor = Math.max(cursor, start + (finite(measure.durationBeats) ? measure.durationBeats : 0));
+  }
+  return notes.sort((a, b) => a.start - b.start || a.midi - b.midi);
+}
+
+function scoreKeyMode(score: OmrScoreInput): 0 | 1 {
+  const root = score as unknown as Record<string, unknown>;
+  if (root.keyMode === 1 || (isRecord(score.metadata) && score.metadata.keyMode === 1)) return 1;
+  return 0;
+}
+
+function scoreTimeSignature(score: OmrScoreInput): [number, number] {
+  const signature = score.timeSignature;
+  if (Array.isArray(signature) && signature.length === 2 && finite(signature[0]) && finite(signature[1])
+    && signature[0] > 0 && signature[1] > 0) return [signature[0], signature[1]];
+  return [4, 4];
+}
+
+function parsedFromNotes(score: OmrScoreInput, notes: readonly Note[], title?: string): ParsedMidi {
+  const duration = notes.reduce((max, note) => Math.max(max, note.start + note.dur), 0);
+  const tempoBpm = finite(score.tempoBpm) && score.tempoBpm! > 0 ? score.tempoBpm! : 120;
+  const timeSig = scoreTimeSignature(score);
+  return {
+    format: 1,
+    division: 480,
+    tempoBpm,
+    tempoMetaPresent: true,
+    keySig: finite(score.keySignature) ? score.keySignature! : 0,
+    keyMode: scoreKeyMode(score),
+    timeSig,
+    notes: [...notes],
+    trackNames: [title ?? score.title ?? "External symbolic"],
+    durationBeats: duration,
+    ...(title || score.title ? { title: title ?? score.title } : {}),
+  };
+}
+
+function sourceRole(entry: FrozenGenerationCandidate, part: OmrScoreInput["parts"][number]): EvidenceRole {
+  const name = `${part.name ?? ""} ${part.id}`.toLowerCase();
+  if (/drum|percussion|kit/.test(name)) return "timing-only";
+  if (/vocal|voice|lead|melody|solo|treble/.test(name)) return "melody";
+  if (/bass|low/.test(name)) return "bass-root";
+  if (/rhythm|guitar|chord|harmony|accomp|piano|pad/.test(name)) return "harmony";
+  const partEvidence = entry.roles.find((role) => String(role.partId ?? "") === part.id || String(role.partName ?? "") === String(part.name ?? ""));
+  if (partEvidence && ROLES.has(partEvidence.role as EvidenceRole)) return partEvidence.role as EvidenceRole;
+  const scoreRole = part.role;
+  if (scoreRole === "melody") return "melody";
+  if (scoreRole === "harmony") return "harmony";
+  if (scoreRole === "rhythm") return "rhythm";
+  const broad = entry.roles.find((role) => ROLES.has(role.role as EvidenceRole));
+  return broad?.role as EvidenceRole ?? "harmony";
+}
+
+function selectedEntryForId(
+  candidates: readonly FrozenGenerationCandidate[],
+  candidateId: unknown,
+): FrozenGenerationCandidate | undefined {
+  if (typeof candidateId !== "string" || !candidateId.trim()) return undefined;
+  const normalized = candidateId.trim();
+  return candidates.find((entry) => entry.recordId === normalized || entry.candidate.id === normalized);
+}
+
+function roleSelectionFor(
+  input: ExternalSymbolicArrangementInput,
+  role: EvidenceRole,
+  sectionIds: readonly string[],
+  candidates: readonly FrozenGenerationCandidate[],
+): string | undefined {
+  const selection = (input.roleSelections ?? []).find((item) => item.role === role
+    && (!item.sectionIds?.length || sectionIds.some((sectionId) => item.sectionIds!.includes(sectionId))));
+  return selectedEntryForId(candidates, selection?.candidateId)?.recordId;
+}
+
+function roleSelectionError(
+  input: ExternalSymbolicArrangementInput,
+  candidates: readonly FrozenGenerationCandidate[],
+  mode: "direct-piano" | "semantic-band",
+): string | null {
+  if (input.roleSelections === undefined) return null;
+  if (!Array.isArray(input.roleSelections)) return "roleSelections must be an array";
+  const windowIds = new Set<string>();
+  for (const window of input.windows ?? []) {
+    if (typeof window?.id === "string" && window.id.trim()) windowIds.add(window.id);
+    if (typeof window?.sectionId === "string" && window.sectionId.trim()) windowIds.add(window.sectionId);
+  }
+  for (const selection of input.roleSelections) {
+    if (!isRecord(selection) || !ROLES.has(selection.role as EvidenceRole)) return "role selection has an unsupported role";
+    if (!selectedEntryForId(candidates, selection.candidateId)) return "role selection references an unfrozen candidate";
+    if (mode === "direct-piano" && selection.role !== "melody") return "direct-piano role selections support melody only";
+    if (selection.sectionIds === undefined || (Array.isArray(selection.sectionIds) && selection.sectionIds.length === 0)) continue;
+    if (mode === "semantic-band") return "section-scoped role selections are unsupported for semantic-band realization";
+    if (!Array.isArray(selection.sectionIds) || selection.sectionIds.some((sectionId) => typeof sectionId !== "string" || !sectionId.trim())) {
+      return "role selection has malformed sectionIds";
+    }
+    if (!input.windows?.length) return "section-scoped role selections require explicit input windows";
+    for (const sectionId of selection.sectionIds) {
+      if (!windowIds.has(sectionId)) return `role selection references unsupported sectionId ${sectionId}`;
+    }
+  }
+  return null;
+}
+
+function selectedWindows(
+  input: ExternalSymbolicArrangementInput,
+  candidates: readonly FrozenGenerationCandidate[],
+  primaryOverride?: FrozenGenerationCandidate,
+): PianoSectionWindow[] {
+  const windows = (input.windows ?? []).map((window) => {
+    const sectionIds = [window.sectionId, window.id].filter((value): value is string => typeof value === "string" && value.trim().length > 0);
+    const selected = roleSelectionFor(input, "melody", sectionIds, candidates);
+    return { ...window, ...(selected ? { candidateId: selected } : {}) };
+  });
+  if (windows.length) return windows;
+  const primary = primaryOverride ?? selectedEntryForId(candidates, input.primaryRecordId) ?? candidates[0];
+  const duration = primary ? scoreNotes(primary.score).reduce((max, note) => Math.max(max, note.start + note.dur), 0) : 0;
+  return primary && duration > 0 ? [{ id: "full", startBeat: 0, endBeat: duration, candidateId: primary.recordId }] : [];
+}
+
+function alignmentFor(entry: FrozenGenerationCandidate, input: ExternalSymbolicArrangementInput): PianoSectionSource["alignment"] | undefined {
+  return input.alignmentMaps?.[entry.recordId]
+    ?? (entry.candidate.id ? input.alignmentMaps?.[entry.candidate.id] : undefined);
+}
+
+function directPianoSource(entry: FrozenGenerationCandidate, input: ExternalSymbolicArrangementInput): PianoSectionSource {
+  const alignment = alignmentFor(entry, input);
+  const offset = finite(alignment?.offsetBeats) ? alignment!.offsetBeats! : 0;
+  const scale = finite(alignment?.beatScale) && alignment!.beatScale! > 0 ? alignment!.beatScale! : 1;
+  const transpose = finite(alignment?.transposeSemitones) ? alignment!.transposeSemitones! : 0;
+  const notes = scoreNotes(entry.score).flatMap((note) => {
+    const start = (note.start - offset) / scale;
+    const end = start + note.dur / scale;
+    if (end <= 0) return [];
+    const clippedStart = Math.max(0, start);
+    return [{ ...note, start: clippedStart, dur: end - clippedStart, midi: Math.max(0, Math.min(127, note.midi + transpose)) }];
+  });
+  return {
+    id: entry.recordId,
+    sourceType: "direct-piano",
+    // `parsed` and `notes` are reconstructed from the frozen normalized score;
+    // caller-provided source payloads never become generation notes.
+    parsed: parsedFromNotes(entry.score, notes, entry.score.title ?? entry.recordId),
+    notes,
+  };
+}
+
+function trustedPianoSource(
+  entry: FrozenGenerationCandidate,
+  input: ExternalSymbolicArrangementInput,
+  overlay?: PianoSectionSource,
+): PianoSectionSource {
+  const source = directPianoSource(entry, input);
+  if (!overlay) return source;
+  const alignment = alignmentFor(entry, input);
+  return {
+    ...source,
+    // Selection evidence is metadata consumed by the region scorer. Preserve
+    // it for callers, but never copy parsed/note payloads across the boundary.
+    ...(overlay.selection ? { selection: { ...overlay.selection } } : {}),
+    ...(!alignment && overlay.alignment ? { alignment: { ...overlay.alignment } } : {}),
+  };
+}
+
+function semanticBandSources(entry: FrozenGenerationCandidate, input: ExternalSymbolicArrangementInput): {
+  stems: Array<{ role: "vocals" | "bass" | "guitar" | "other" | "drums"; midi: ParsedMidi; confidence?: number }>;
+  semantic: ExternalSemanticSong;
+} {
+  const groups = new Map<string, Note[]>();
+  const timingOnly: Note[] = [];
+  const harmony: Note[] = [];
+  const bass: Note[] = [];
+  const melody: Note[] = [];
+  const rhythm: Note[] = [];
+  const mapRole = (role: EvidenceRole): "vocals" | "bass" | "guitar" | "other" | "drums" => role === "melody" ? "vocals" : role === "bass-root" ? "bass" : role === "timing-only" ? "drums" : role === "harmony" ? "guitar" : "other";
+  for (const part of entry.score.parts ?? []) {
+    const role = sourceRole(entry, part);
+    const target = mapRole(role);
+    const notes = scorePartNotes(part, input.alignmentMaps?.[entry.recordId]);
+    if (target === "drums") timingOnly.push(...notes);
+    else if (target === "vocals") melody.push(...notes);
+    else if (target === "bass") bass.push(...notes);
+    else if (target === "guitar") { harmony.push(...notes); rhythm.push(...notes); }
+    else rhythm.push(...notes);
+    groups.set(target, [...(groups.get(target) ?? []), ...notes]);
+  }
+  const stems = [...groups.entries()].filter(([, notes]) => notes.length).map(([role, notes]) => ({
+    role: role as "vocals" | "bass" | "guitar" | "other" | "drums",
+    midi: parsedFromNotes(entry.score, notes, `${entry.recordId}:${role}`),
+    confidence: entry.roles.find((item) => item.role === (role === "vocals" ? "melody" : role === "bass" ? "bass-root" : role === "drums" ? "timing-only" : "harmony"))?.confidence,
+  }));
+  const sections = (input.windows ?? []).map((window) => ({ id: window.id ?? "section", startBeat: window.startBeat, endBeat: window.endBeat, source: entry.recordId, confidence: finite(window.confidence) ? window.confidence! : 1 }));
+  return { stems, semantic: { schemaVersion: 1, melody, harmony: [], bass, rhythm, timingOnly, sections } };
+}
+
 function fallbackResult(input: ExternalSymbolicArrangementInput, reason: string): ExternalSymbolicArrangementResult {
   const fallbackEnabled = input.fallbackEnabled !== false;
   return {
     status: fallbackEnabled ? "fallback" : "unavailable",
     selectedRecordIds: [],
+    route: "AUDIO_AMT_FALLBACK",
+    evidenceClass: "AUDIO_AMT_FALLBACK",
+    provenance: [],
     fallbackReason: reason,
     diagnostics: { schemaVersion: 1, candidateCount: 0, fallbackEnabled, reason },
   };
 }
 
-/** Realize only already-frozen candidates; absent explicit windows remain fallback/unavailable. */
+function routeFor(entry: FrozenGenerationCandidate, requested: ExternalSymbolicArrangementInput["mode"]): "direct-piano" | "semantic-band" {
+  if (requested === "direct-piano" || requested === "semantic-band") return requested;
+  if (entry.candidate.evidenceClass === "PIANO_COVER_SYMBOLIC") return "direct-piano";
+  const names = (entry.score.parts ?? []).map((part) => `${part.name ?? ""} ${part.id}`.toLowerCase());
+  const hasBandLane = names.some((name) => /drum|percussion|kit|bass|guitar|vocal|voice/.test(name));
+  const hasPianoLane = names.some((name) => /piano|keyboard|keys|grand/.test(name));
+  // Native symbolic evidence can be either a piano-target score or a full
+  // band score. Keep an explicitly named piano score on the preservation
+  // path; only scores with recognizable band lanes need semantic routing.
+  if (hasPianoLane && !hasBandLane) return "direct-piano";
+  if ((entry.score.parts ?? []).length <= 2 && entry.roles.every((role) => role.role === "melody" || role.role === "harmony")) return "direct-piano";
+  return "semantic-band";
+}
+
+function variantsFor(canonical: ParsedMidi, mode: "direct-piano" | "semantic-band", chords?: readonly ChordLabel[]): { advanced: Variant; medium: Variant; easy: Variant } {
+  const all = buildVariants(canonical, {
+    title: canonical.title ?? "External symbolic arrangement",
+    artist: "external-symbolic",
+    tempo: canonical.tempoBpm,
+    key: keyName(canonical.keySig, canonical.keyMode === 1),
+  }, {
+    arrangementProfile: mode === "semantic-band" ? "metal" : "learner",
+    audioDerived: false,
+    maxDurBeats: null,
+    ...(chords?.length ? { chords: [...chords] } : {}),
+  });
+  const byLevel = new Map(all.map((variant) => [variant.level, variant]));
+  const advanced = byLevel.get("advanced");
+  const medium = byLevel.get("medium");
+  const easy = byLevel.get("easy");
+  if (!advanced || !medium || !easy) throw new Error("symbolic variant builder did not return Advanced, Medium, and Easy");
+  return { advanced, medium, easy };
+}
+
+function outputProvenance(
+  entries: readonly FrozenGenerationCandidate[],
+  windows: readonly PianoSectionWindow[],
+  selectedIds: readonly string[],
+  role: EvidenceRole,
+): ExternalOutputProvenance[] {
+  const selected = entries.filter((entry) => selectedIds.includes(entry.recordId));
+  const sections = windows.length ? windows : [{ id: "full", startBeat: 0, endBeat: 0 } as PianoSectionWindow];
+  return selected.flatMap((entry) => sections.map((section) => ({
+    recordId: entry.recordId,
+    candidateId: entry.candidate.id,
+    evidenceClass: entry.candidate.evidenceClass,
+    role,
+    ...(section.id ? { sectionId: section.id } : {}),
+    ...(entry.roles.find((item) => item.role === role)?.confidence !== undefined ? { confidence: entry.roles.find((item) => item.role === role)?.confidence } : {}),
+  })));
+}
+
+/** Realize only already-frozen candidates; no benchmark/reference source reaches either branch. */
 export function buildExternalSymbolicArrangement(input: ExternalSymbolicArrangementInput): ExternalSymbolicArrangementResult {
   const set = input.candidateSet ?? input.frozen;
   if (!isFrozenCandidateSet(set)) return fallbackResult(input, "an immutable, digest-consistent frozen candidate set is required");
   const selected = [...set.selected].filter((entry) => entry.candidate.purpose !== "BENCHMARK_REFERENCE" && entry.candidate.evidenceClass !== "BENCHMARK_REFERENCE");
   if (!selected.length) return fallbackResult(input, "no frozen generation candidate is available");
-  const selectedIds = new Set(selected.map((entry) => entry.recordId));
-  const sourceToRecordId = new Map(selected.flatMap((entry) => [[entry.recordId, entry.recordId], ...(entry.candidate.id ? [[entry.candidate.id, entry.recordId] as const] : [])] as const));
   const supplied = input.sources
     ? input.sources.flatMap((source) => {
-      const recordId = sourceToRecordId.get(source.id);
-      return recordId ? [{ ...source, id: recordId }] : [];
+      const entry = selectedEntryForId(selected, source.id);
+      return entry ? [{ entry, source }] : [];
     })
-    : selected.map((entry) => ({ id: entry.recordId, notes: scoreNotes(entry.score), sourceType: "external-symbolic" }));
+    : selected.map((entry) => ({ entry, source: undefined }));
+  const requestedPrimary = selectedEntryForId(selected, input.primary?.id)
+    ?? selectedEntryForId(selected, input.primaryRecordId);
+  const primaryEntry = requestedPrimary ?? supplied[0]?.entry ?? selected[0]!;
+  const mode = routeFor(primaryEntry, input.mode);
+  const selectionError = roleSelectionError(input, selected, mode);
+  if (selectionError) return fallbackResult(input, selectionError);
+  const windows = selectedWindows(input, selected, primaryEntry);
+
+  if (mode === "semantic-band") {
+    try {
+      const roleIds = new Map<EvidenceRole, string>();
+      for (const selection of input.roleSelections ?? []) {
+        const entry = selectedEntryForId(selected, selection.candidateId);
+        if (entry) roleIds.set(selection.role, entry.recordId);
+      }
+      const sourceEntries = [...new Map<string, FrozenGenerationCandidate>(selected.map((entry) => [entry.recordId, entry])).values()];
+      const allStems: Array<{ role: "vocals" | "bass" | "guitar" | "other" | "drums"; midi: ParsedMidi; confidence?: number }> = [];
+      const semanticByEntry = sourceEntries.map((entry) => {
+        const built = semanticBandSources(entry, input);
+        let included = false;
+        for (const stem of built.stems) {
+          const evidenceRole: EvidenceRole = stem.role === "vocals" ? "melody" : stem.role === "bass" ? "bass-root" : stem.role === "drums" ? "timing-only" : "harmony";
+          const selectedForRole = roleIds.get(evidenceRole);
+          if (selectedForRole && selectedForRole !== entry.recordId) continue;
+          allStems.push(stem);
+          included = true;
+        }
+        return { entry, built, included };
+      });
+      // buildMetalArrangement deliberately accepts one stem per semantic lane;
+      // merge multiple parts from one candidate before invoking it.
+      const merged = new Map<string, { notes: Note[]; confidence?: number }>();
+      for (const stem of allStems) {
+        const existing = merged.get(stem.role) ?? { notes: [], confidence: stem.confidence };
+        existing.notes.push(...stem.midi.notes);
+        existing.confidence = existing.confidence ?? stem.confidence;
+        merged.set(stem.role, existing);
+      }
+      const stems = [...merged.entries()].map(([role, value]) => ({
+        role: role as "vocals" | "bass" | "guitar" | "other" | "drums",
+        midi: parsedFromNotes(primaryEntry.score, value.notes, `${primaryEntry.recordId}:${role}`),
+        ...(value.confidence === undefined ? {} : { confidence: value.confidence }),
+      }));
+      if (!stems.some((stem) => stem.role !== "drums")) return fallbackResult(input, "full-band candidate has no pitched semantic roles");
+      const metal = buildMetalArrangement({ stems, title: primaryEntry.score.title ?? primaryEntry.recordId });
+      const variants = variantsFor(metal.parsed, mode, metal.chords);
+      const semantic: ExternalSemanticSong = {
+        schemaVersion: 1,
+        melody: metal.ir.identity,
+        harmony: metal.chords,
+        bass: merged.get("bass")?.notes ?? [],
+        rhythm: [...(merged.get("guitar")?.notes ?? []), ...(merged.get("other")?.notes ?? [])],
+        timingOnly: merged.get("drums")?.notes ?? [],
+        sections: metal.ir.sections.map((section, index) => ({
+          id: windows[index]?.id ?? `section-${index + 1}`,
+          startBeat: section.startBeat,
+          endBeat: section.endBeat,
+          source: section.source === "rest" ? null : primaryEntry.recordId,
+          confidence: section.confidence,
+        })),
+      };
+      const selectedRecordIds = [...new Set(semanticByEntry.filter(({ included }) => included).map(({ entry }) => entry.recordId))].sort();
+      return {
+        status: "symbolic",
+        route: "EXTERNAL_SYMBOLIC_FIRST",
+        mode,
+        evidenceClass: primaryEntry.candidate.evidenceClass,
+        selectedRecordIds,
+        canonical: metal.parsed,
+        variants,
+        advanced: variants.advanced,
+        medium: variants.medium,
+        easy: variants.easy,
+        outputs: { canonical: metal.parsed, ...variants },
+        semantic,
+        semanticSong: semantic,
+        notes: variants.medium.notes,
+        artifact: variants.medium,
+        provenance: [
+          ...outputProvenance(selected, windows, selectedRecordIds, "melody"),
+          ...outputProvenance(selected, windows, selectedRecordIds, "harmony"),
+          ...outputProvenance(selected, windows, selectedRecordIds, "bass-root"),
+          ...outputProvenance(selected, windows, selectedRecordIds, "timing-only"),
+        ],
+        diagnostics: { schemaVersion: 1, candidateSetDigest: set.digest, builder: metal.stats, warnings: metal.warnings },
+      };
+    } catch (error) {
+      return fallbackResult(input, error instanceof Error ? error.message : "semantic-band realization failed");
+    }
+  }
+
   if (!supplied.length) return fallbackResult(input, "no source matched the frozen candidate set");
-  const primaryEntry = selected.find((entry) => entry.recordId === input.primaryRecordId) ?? selected[0];
-  const windows = input.windows ? [...input.windows] : primaryEntry?.sections?.map((section) => ({ id: `${primaryEntry.recordId}:${section.id}`, startBeat: section.candidate[0], endBeat: section.candidate[1], candidateId: primaryEntry.recordId })) ?? [];
-  if (!windows.length && !input.builderInput) return fallbackResult(input, "explicit section windows are required for symbolic realization");
-  const primary = input.primary && selectedIds.has(input.primary.id)
+  const selectedPrimary = primaryEntry;
+  const primaryOverlay = input.primary && selectedEntryForId(selected, input.primary.id)?.recordId === selectedPrimary.recordId
     ? input.primary
-    : supplied.find((source) => source.id === input.primaryRecordId) ?? supplied[0];
-  if (!primary || !selectedIds.has(primary.id)) return fallbackResult(input, "frozen primary source is unavailable");
-  const alternates = (input.alternates ?? supplied.filter((source) => source.id !== primary.id)).filter((source) => selectedIds.has(source.id));
+    : supplied.find(({ entry }) => entry.recordId === selectedPrimary.recordId)?.source;
+  const primary = trustedPianoSource(selectedPrimary, input, primaryOverlay);
+  const alternateRows = input.alternates
+    ? input.alternates.flatMap((source) => {
+      const entry = selectedEntryForId(selected, source.id);
+      return entry && entry.recordId !== selectedPrimary.recordId ? [{ entry, source }] : [];
+    })
+    : supplied.filter(({ entry }) => entry.recordId !== selectedPrimary.recordId);
+  const alternates = alternateRows.map(({ entry, source }) => trustedPianoSource(entry, input, source));
+  const directWindows = windows;
+  if (!directWindows.length && !input.builderInput) return fallbackResult(input, "explicit section windows are required for symbolic realization");
   const builderInput: PianoSectionBuildInput = input.builderInput
     ? {
       ...input.builderInput,
@@ -374,15 +810,28 @@ export function buildExternalSymbolicArrangement(input: ExternalSymbolicArrangem
       alternates,
       windows: input.builderInput.windows,
     }
-    : { primary, alternates, windows };
+    : { primary, alternates, windows: directWindows };
   try {
     const built: PianoSectionBuildResult = buildSectionAwarePianoCandidate(builderInput);
+    const canonical = built.cdFusedMedium.parsed;
+    const variants = variantsFor(canonical, "direct-piano");
+    const directSelectedIds = [primary.id, ...alternates.map((source) => source.id)].sort();
     return {
       status: "symbolic",
-      selectedRecordIds: [primary.id, ...alternates.map((source) => source.id)].sort(),
-      notes: built.cdFusedMedium.notes,
-      artifact: built.cdFusedMedium,
-      diagnostics: { schemaVersion: 1, candidateSetDigest: set?.digest ?? null, builder: built.diagnostics },
+      route: "EXTERNAL_SYMBOLIC_FIRST",
+      mode: "direct-piano",
+      evidenceClass: primaryEntry.candidate.evidenceClass,
+      selectedRecordIds: directSelectedIds,
+      canonical,
+      variants,
+      advanced: variants.advanced,
+      medium: variants.medium,
+      easy: variants.easy,
+      outputs: { canonical, ...variants },
+      notes: variants.medium.notes,
+      artifact: variants.medium,
+      provenance: outputProvenance(selected, directWindows, directSelectedIds, "melody"),
+      diagnostics: { schemaVersion: 1, candidateSetDigest: set.digest, builder: built.diagnostics },
     };
   } catch (error) {
     return fallbackResult(input, error instanceof Error ? error.message : "symbolic realization failed");

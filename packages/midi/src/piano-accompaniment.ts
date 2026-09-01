@@ -275,6 +275,21 @@ function clamp(value: number, low = 0, high = 1): number {
   return Math.max(low, Math.min(high, value));
 }
 
+/**
+ * Treat omitted evidence metadata as fully reliable, but never allow an
+ * explicitly supplied value to increase evidence beyond its bounded range.
+ * Invalid runtime values fail closed rather than leaking NaN into scoring.
+ */
+function boundedEvidenceFactor(value: unknown): number {
+  if (value === undefined) return 1;
+  return finiteNumber(value) ? clamp(value) : 0;
+}
+
+function evidenceReliability(evidence: PianoHarmonyEvidence | undefined): number {
+  if (!evidence) return 1;
+  return boundedEvidenceFactor(evidence.weight) * boundedEvidenceFactor(evidence.confidence);
+}
+
 function finiteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
@@ -400,7 +415,15 @@ export function groupAttackClusters(
   const clusters: PianoAttackCluster[] = [];
   for (const note of sorted) {
     const previous = clusters[clusters.length - 1];
-    if (!previous || note.start - previous.start > normalized.groupToleranceBeats + EPS) {
+    // Onset jitter is transitive: a detector stack at 0.00/0.07/0.13 is one
+    // attack when each adjacent onset is within tolerance. `previous.notes`
+    // is MIDI-sorted for deterministic output, so derive the latest onset
+    // instead of relying on its last element.
+    const previousLatestStart = previous?.notes.reduce(
+      (latest, member) => Math.max(latest, member.start),
+      previous.start,
+    );
+    if (!previous || note.start - previousLatestStart! > normalized.groupToleranceBeats + EPS) {
       clusters.push({ start: note.start, dur: note.dur, duration: note.dur, end: note.start + note.dur, notes: [{ ...note }] });
       continue;
     }
@@ -597,19 +620,23 @@ function sustainedBassForAttack(
   return selected.sort((a, b) => b.dur - a.dur || b.vel - a.vel || a.midi - b.midi);
 }
 
-function normalizedChroma(chroma: readonly number[] | undefined): Map<number, number> {
+function normalizedChroma(
+  chroma: readonly number[] | undefined,
+  reliability = 1,
+): Map<number, number> {
   const result = new Map<number, number>();
   if (!chroma?.length) return result;
+  const boundedReliability = clamp(reliability);
   if (chroma.length === PITCH_CLASSES) {
     const max = chroma.reduce((current, value) => Math.max(current, finiteNumber(value) ? value : 0), 0);
     for (let pc = 0; pc < PITCH_CLASSES; pc += 1) {
       const value = chroma[pc] ?? 0;
-      result.set(pc, max > 0 ? clamp(value / max) : 0);
+      result.set(pc, max > 0 ? clamp(value / max) * boundedReliability : 0);
     }
     return result;
   }
   for (const value of chroma) {
-    if (finiteNumber(value) && Number.isInteger(value)) result.set(mod12(value), 1);
+    if (finiteNumber(value) && Number.isInteger(value)) result.set(mod12(value), boundedReliability);
   }
   return result;
 }
@@ -654,12 +681,14 @@ function candidateRoots(
 function bassSupportFor(
   rootPc: number,
   bassNotes: readonly Note[],
+  reliability = 1,
 ): number {
   const matching = bassNotes.filter((note) => mod12(note.midi) === rootPc);
   if (!matching.length) return 0;
   const maxDur = matching.reduce((max, note) => Math.max(max, note.dur), 0);
   const maxVel = matching.reduce((max, note) => Math.max(max, note.vel), 0);
-  return matching.reduce((max, note) => Math.max(max, noteWeight(note, maxDur, maxVel)), 0);
+  const boundedReliability = clamp(reliability);
+  return matching.reduce((max, note) => Math.max(max, noteWeight(note, maxDur, maxVel) * boundedReliability), 0);
 }
 
 function evaluateRoot(
@@ -667,6 +696,7 @@ function evaluateRoot(
   notes: readonly Note[],
   bassNotes: readonly Note[],
   chroma: Map<number, number>,
+  bassReliability = 1,
 ): RootCandidate {
   const supports = toneSupports(notes);
   const rootSupport = supportFor(supports, rootPc);
@@ -680,7 +710,7 @@ function evaluateRoot(
   const sus2Tone = supports.get(mod12(rootPc + 2));
   const sus4Tone = supports.get(mod12(rootPc + 5));
   const qualitySupport = Math.max(majorSupport, minorSupport, sus2Support, sus4Support);
-  const bassSupport = bassSupportFor(rootPc, bassNotes);
+  const bassSupport = bassSupportFor(rootPc, bassNotes, bassReliability);
   const conflictingThird = majorSupport >= 0.42 && minorSupport >= 0.42;
   const hasFifth = fifthSupport >= 0.32;
   const missingRoot = rootSupport < 0.32;
@@ -779,16 +809,17 @@ function pickBestCandidate(
   notes: readonly Note[],
   bassNotes: readonly Note[],
   chroma: Map<number, number>,
+  bassReliability = 1,
 ): RootCandidate {
   const roots = candidateRoots(notes, bassNotes, chroma);
   const fallbackRoot = mod12(notes[0]?.midi ?? bassNotes[0]?.midi ?? 0);
-  const candidates = (roots.length ? roots : [fallbackRoot]).map((rootPc) => evaluateRoot(rootPc, notes, bassNotes, chroma));
+  const candidates = (roots.length ? roots : [fallbackRoot]).map((rootPc) => evaluateRoot(rootPc, notes, bassNotes, chroma, bassReliability));
   candidates.sort((a, b) => b.score - a.score
     || b.rootSupport - a.rootSupport
     || b.fifthSupport - a.fifthSupport
     || b.bassSupport - a.bassSupport
     || a.rootPc - b.rootPc);
-  return candidates[0] ?? evaluateRoot(fallbackRoot, notes, bassNotes, chroma);
+  return candidates[0] ?? evaluateRoot(fallbackRoot, notes, bassNotes, chroma, bassReliability);
 }
 
 function rootMidiFor(
@@ -845,28 +876,43 @@ function stabilizeDecisions(
       stabilizedTransitions += 1;
     }
   }
-  // Collapse an interior one-attack root run when both neighboring runs agree.
-  // Boundary runs are left alone: a real phrase can legitimately begin or end
-  // on a chord that differs from the next/previous sustained chord.
+  // Collapse an interior short root run when both neighboring runs agree.
+  // `rootChangePersistence` is configurable, so a threshold of three must
+  // hold a two-attack detector blip just as the default threshold holds a
+  // one-attack blip. Boundary runs are left alone: a real phrase can
+  // legitimately begin or end on a chord that differs from the neighboring
+  // sustained chord.
   let runStart = 0;
   while (runStart < result.length) {
     const runRoot = result[runStart]!.candidate.rootPc;
     let runEnd = runStart + 1;
     while (runEnd < result.length && result[runEnd]!.candidate.rootPc === runRoot) runEnd += 1;
     const runLength = runEnd - runStart;
-    if (runLength < persistence && runLength === 1) {
+    if (runLength < persistence) {
       const before = result[runStart - 1];
       const after = result[runEnd];
-      const source = decisions[runStart];
       const replacement = before && after
-        && connectedAttacks(before, source, config)
-        && connectedAttacks(source, after, config)
+        && connectedAttacks(before, result[runStart], config)
+        && connectedAttacks(result[runEnd - 1], after, config)
         && before.candidate.rootPc === after.candidate.rootPc
         ? before
         : undefined;
-      if (replacement && source && source.confidence < config.strongRootConfidence) {
-        result[runStart] = { ...source, candidate: replacement.candidate, quality: replacement.quality, rootMidi: replacement.rootMidi, bassPc: replacement.bassPc, bassNotes: replacement.bassNotes, evidence: replacement.evidence, stabilized: true };
-        stabilizedTransitions += 1;
+      const sourceRun = decisions.slice(runStart, runEnd);
+      if (replacement && sourceRun.length && sourceRun.every((source) => source.confidence < config.strongRootConfidence)) {
+        for (let index = runStart; index < runEnd; index += 1) {
+          const source = decisions[index]!;
+          result[index] = {
+            ...source,
+            candidate: replacement.candidate,
+            quality: replacement.quality,
+            rootMidi: replacement.rootMidi,
+            bassPc: replacement.bassPc,
+            bassNotes: replacement.bassNotes,
+            evidence: replacement.evidence,
+            stabilized: true,
+          };
+          stabilizedTransitions += 1;
+        }
       }
     }
     runStart = runEnd;
@@ -930,9 +976,11 @@ export function inferPianoHarmony(
   const normalized = normalizeConfig(effectiveConfig);
   const clusters = normalizeAttacks(attacks, normalized);
   const raw: RawHarmonyDecision[] = clusters.map((cluster, index) => {
+    const evidence = evidenceForAttack(effectiveBass, index);
+    const reliability = evidenceReliability(evidence);
     const bassNotes = sustainedBassForAttack(cluster, effectiveBass, index, normalized);
-    const chroma = normalizedChroma(chromaForAttack(effectiveBass, index));
-    const candidate = pickBestCandidate(cluster.notes, bassNotes, chroma);
+    const chroma = normalizedChroma(chromaForAttack(effectiveBass, index), reliability);
+    const candidate = pickBestCandidate(cluster.notes, bassNotes, chroma, reliability);
     const quality = qualityFor(candidate, normalized);
     const confidence = confidenceFor(candidate, quality, normalized);
     const bassPc = bassNotes[0] ? mod12(bassNotes[0].midi) : undefined;
@@ -1191,12 +1239,15 @@ export function simplifyPianoAccompaniment(
   const lowRegisterCloseIntervalCount = clusters.reduce((sum, cluster) => sum + lowCloseIntervals(cluster.notes, config.lowRegisterBoundary), 0);
   const stabilizedTransitions = harmony.filter((event) => event.rootStabilized).length;
   const rootChanges = harmony.reduce((sum, event, index) => sum + (index > 0 && harmony[index - 1]!.rootPc !== event.rootPc ? 1 : 0), 0);
+  // These maxima describe the generated left-hand realization only. Protected
+  // right-hand notes are part of the returned arrangement, but must not make a
+  // sparse accompaniment look denser or wider than it is.
   const maxOutputPerAttack = clusters.reduce((max, cluster) => {
-    const count = output.filter((note) => Math.abs(note.start - cluster.start) <= config.groupToleranceBeats + EPS).length;
+    const count = realized.filter((note) => Math.abs(note.start - cluster.start) <= config.groupToleranceBeats + EPS).length;
     return Math.max(max, count);
   }, 0);
   const maxSpan = clusters.reduce((max, cluster) => {
-    const pitches = output.filter((note) => Math.abs(note.start - cluster.start) <= config.groupToleranceBeats + EPS).map((note) => note.midi);
+    const pitches = realized.filter((note) => Math.abs(note.start - cluster.start) <= config.groupToleranceBeats + EPS).map((note) => note.midi);
     if (pitches.length < 2) return max;
     return Math.max(max, Math.max(...pitches) - Math.min(...pitches));
   }, 0);

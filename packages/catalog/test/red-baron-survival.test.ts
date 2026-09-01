@@ -44,6 +44,13 @@ const windows = [{ id: "main", reference: [0, 4] as [number, number], stages: {
 } }];
 
 describe("red baron stage survival", () => {
+  it("fails closed for an unserializable diagnostic value", () => {
+    const diagnostic = Object.create(null) as Record<string, unknown>;
+    const report = evaluateStageSurvival({ ...fullStages(), raw: stage([note("a", 60, 0)], { diagnostics: [diagnostic] }) }, reference, windows);
+    expect(report.status).toBe("ready");
+    expect(report.diagnostics).toContain("[unserializable diagnostic]");
+  });
+
   it("accounts for duplicate onsets one-to-one and classifies stage losses", () => {
     const report = evaluateStageSurvival(fullStages(), reference, windows);
     expect(report.status).toBe("ready");
@@ -259,5 +266,75 @@ describe("red baron stage survival", () => {
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
+  });
+
+  it("preserves path-safe stage provenance in summaries and matched lineage", () => {
+    const report = evaluateStageSurvival({
+      raw: stage([note("source", 60, 0)], { id: "raw-source", source: "logical/raw", provenance: { sourceRef: "logical/raw", path: "/private/raw.mid" } }),
+      decoder: stage([note("source", 60, 0)], { id: "decoder-source", provenance: { sourceRef: "logical/decoder" } }),
+      semantic: stage([note("source", 60, 0)]),
+      canonical: stage([note("source", 60, 0)]),
+      easy: stage([note("source", 60, 0)]),
+    }, reference, windows);
+    expect(report.stages.raw.provenance).toMatchObject({ sourceRef: "logical/raw" });
+    expect(report.stages.raw.provenance).not.toHaveProperty("path");
+    expect(report.transitions[0]!.lineage[0]!.provenance).toMatchObject({ sourceRef: "logical/decoder" });
+  });
+
+  it("counts unsupported canonical additions as additions as well as a specific expansion", () => {
+    const report = evaluateStageSurvival({
+      raw: stage([note("source", 60, 0)]),
+      decoder: stage([note("source", 60, 0)]),
+      semantic: stage([note("source", 60, 0)]),
+      canonical: stage([note("source", 60, 0), note("unsupported", 48, 1, { unsupported: true })]),
+      easy: stage([note("source", 60, 0)]),
+    }, reference, windows);
+    expect(report.transitions[2]!.loss.additions).toBe(1);
+    expect(report.transitions[2]!.loss.unsupportedCanonicalExpansions).toBe(1);
+  });
+
+  it("labels unmatched rejected target notes as rejected rather than additions", () => {
+    const report = evaluateStageSurvival({
+      raw: stage([note("source", 60, 0)]),
+      decoder: stage([note("source", 60, 0)]),
+      semantic: stage([note("source", 60, 0)]),
+      canonical: stage([note("source", 60, 0)]),
+      easy: stage([note("source", 60, 0), note("rejected", 72, 3, { rejected: true })]),
+    }, reference, windows);
+    expect(report.transitions[3]!.loss.rejected).toBe(1);
+    expect(report.transitions[3]!.loss.additions).toBe(0);
+  });
+
+  it("maximizes one-to-one cardinality when a greedy match would strand a source", () => {
+    const report = evaluateStageSurvival({
+      raw: stage([
+        note("first", 60, 0, { parentIds: ["p", "q"] }),
+        note("second", 60, 2, { parentIds: ["p"] }),
+      ]),
+      decoder: stage([
+        note("target-a", 60, 2, { parentIds: ["p"] }),
+        note("target-b", 72, 3.8, { parentIds: ["q"] }),
+      ]),
+      semantic: stage([]), canonical: stage([]), easy: stage([]),
+    }, reference, windows);
+    expect(report.transitions[0]!.loss.matchedCount).toBe(2);
+    expect(report.transitions[0]!.loss.unmatchedSourceCount).toBe(0);
+  });
+
+  it("does not double-count malformed duplicate match edges", () => {
+    const loss = classifyStageLoss({
+      from: "raw",
+      to: "decoder",
+      matches: [
+        { sourceId: "r", targetId: "d", sourceIndex: 0, targetIndex: 0, pitchDelta: 0, timingDelta: 0, durationDelta: 0, classification: "retained", parentIds: [], provenanceKeys: [] },
+        { sourceId: "r", targetId: "d", sourceIndex: 0, targetIndex: 0, pitchDelta: 0, timingDelta: 0, durationDelta: 0, classification: "retained", parentIds: [], provenanceKeys: [] },
+      ],
+      sourceNotes: [note("r", 60, 0)],
+      targetNotes: [note("d", 60, 0)],
+    });
+    expect(loss.matchedCount).toBe(1);
+    expect(loss.unmatchedSourceCount).toBe(0);
+    expect(loss.unmatchedTargetCount).toBe(0);
+    expect(loss.diagnostics.join(" ")).toMatch(/one-to-one|duplicate/i);
   });
 });

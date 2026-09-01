@@ -85,6 +85,8 @@ export interface StageDiagnosticSummary {
   rejectedNoteCount: number;
   invalidNoteCount: number;
   sourceId: string | null;
+  /** Path-safe stage-level provenance retained for auditability. */
+  provenance?: Record<string, unknown>;
   rejectionReasons: readonly string[];
   diagnostics: readonly string[];
 }
@@ -221,11 +223,17 @@ function redactPath(value: string): string {
   return result.replace(/__SURVIVAL_URL_(\d+)__/g, (_match, index: string) => urls[Number(index)] ?? "[redacted-url]");
 }
 
+function isWholePhysicalPath(value: string): boolean {
+  return /^(?:file:\/{1,2}|\\\\|[A-Za-z]:[\\/]|~[\\/]|\/)/i.test(value.trim());
+}
+
 /** Path redaction shared by the opt-in CLI and canonical report serializer. */
 export const redactStageSurvivalText = redactPath;
 
 function safeDiagnostic(value: unknown): string {
-  return redactPath(typeof value === "string" ? value : String(value));
+  if (typeof value === "string") return redactPath(value);
+  try { return redactPath(String(value)); }
+  catch { return "[unserializable diagnostic]"; }
 }
 
 function sortedObject(value: unknown, key = ""): unknown {
@@ -266,7 +274,13 @@ function safeProvenance(value: unknown): Record<string, unknown> | undefined {
   for (const key of Object.keys(value).sort(compareText)) {
     if (/(?:path|file|locator|bytes?|notes?|events?)/i.test(key)) continue;
     const item = value[key];
-    if (typeof item === "string") result[key] = redactPath(item);
+    // A bare physical source reference is intentionally omitted instead of
+    // preserving a misleading redacted placeholder. Logical refs and URLs
+    // remain useful audit provenance and are retained.
+    if (typeof item === "string") {
+      if (isWholePhysicalPath(item)) continue;
+      result[key] = redactPath(item);
+    }
     else if (typeof item === "number" && !Number.isFinite(item)) result[key] = null;
     else if (Array.isArray(item)) result[key] = item.filter((child) => typeof child === "string" || typeof child === "number").map((child) => typeof child === "string" ? redactPath(child) : child);
     else if (item === null || typeof item === "boolean" || typeof item === "number") result[key] = item;
@@ -350,6 +364,7 @@ interface PreparedStage {
   invalidCount: number;
   rejectedCount: number;
   rejectionReasons: string[];
+  provenance?: Record<string, unknown>;
   summary: StageDiagnosticSummary;
 }
 
@@ -359,6 +374,7 @@ function prepareStage(stage: RedBaronSurvivalStage | "reference", value: StageIn
   const normalized = parsed.status === "available" ? normalizeNotes(notesInput) : { notes: [], invalidCount: 0, rejectedCount: 0 };
   const diagnostics = [...parsed.diagnostics];
   const rejectionReasons = [...new Set(normalized.notes.map((note) => note.rejectionReason).filter((reason): reason is string => Boolean(reason)))].sort(compareText);
+  const provenance = safeProvenance(parsed.input.provenance);
   if (normalized.invalidCount) diagnostics.push(`${normalized.invalidCount} invalid note row(s) retained as a diagnostic`);
   if (rejectionReasons.length) diagnostics.push(...rejectionReasons.map((reason) => `rejection: ${reason}`));
   return {
@@ -367,13 +383,15 @@ function prepareStage(stage: RedBaronSurvivalStage | "reference", value: StageIn
     invalidCount: normalized.invalidCount,
     rejectedCount: normalized.rejectedCount,
     rejectionReasons,
+    ...(provenance ? { provenance } : {}),
     summary: {
       stage,
       status: parsed.status,
       noteCount: normalized.notes.length,
       rejectedNoteCount: normalized.rejectedCount,
       invalidNoteCount: normalized.invalidCount,
-      sourceId: text(parsed.input.id) ? safeDiagnostic(parsed.input.id) : null,
+      sourceId: text(parsed.input.id) ? safeDiagnostic(parsed.input.id) : text(parsed.input.source) ? safeDiagnostic(parsed.input.source) : null,
+      ...(provenance ? { provenance } : {}),
       rejectionReasons,
       diagnostics: [...new Set(diagnostics)].sort(compareText),
     },
@@ -452,34 +470,58 @@ function classifyMatched(from: RedBaronSurvivalStage, source: NormalizedStageNot
 function buildTransition(from: RedBaronSurvivalStage, to: RedBaronSurvivalStage, source: PreparedStage, target: PreparedStage, sourceBounds?: readonly [number, number][], targetBounds?: readonly [number, number][]): StageTransition {
   const sourceNotes = source.notes.filter((note) => !sourceBounds || noteInAnyBounds(note, sourceBounds));
   const targetNotes = target.notes.filter((note) => !targetBounds || noteInAnyBounds(note, targetBounds));
-  const availableTargets = new Set(targetNotes.map((_note, index) => index));
+  // Find a maximum-cardinality bipartite matching. A greedy source-by-source
+  // choice can consume the only target available to a later source, falsely
+  // reporting a rejection even when a one-to-one assignment exists. Candidate
+  // ordering remains cost-then-index deterministic; augmenting paths provide
+  // the cardinality guarantee without involving any reference notes.
+  const candidatesBySource = sourceNotes.map((sourceNote) => targetNotes.map((targetNote, targetIndex) => {
+    const identity = sourceNote.id === targetNote.id;
+    const parent = overlapParent(sourceNote, targetNote);
+    const timing = Math.abs(sourceNote.start - targetNote.start);
+    if (!identity && !parent && timing > TIMING_MATCH_TOLERANCE) return null;
+    return { targetIndex, cost: candidateCost(sourceNote, targetNote, identity, parent) };
+  }).filter((value): value is { targetIndex: number; cost: number } => value !== null)
+    .sort((left, right) => left.cost - right.cost || left.targetIndex - right.targetIndex));
+  const assignedTargetToSource = new Map<number, number>();
+  const assignedSourceToTarget = new Map<number, number>();
+  const augment = (sourceIndex: number, seenTargets: Set<number>): boolean => {
+    for (const candidate of candidatesBySource[sourceIndex] ?? []) {
+      if (seenTargets.has(candidate.targetIndex)) continue;
+      seenTargets.add(candidate.targetIndex);
+      const occupyingSource = assignedTargetToSource.get(candidate.targetIndex);
+      if (occupyingSource !== undefined && !augment(occupyingSource, seenTargets)) continue;
+      const priorTarget = assignedSourceToTarget.get(sourceIndex);
+      if (priorTarget !== undefined) assignedTargetToSource.delete(priorTarget);
+      assignedSourceToTarget.set(sourceIndex, candidate.targetIndex);
+      assignedTargetToSource.set(candidate.targetIndex, sourceIndex);
+      return true;
+    }
+    return false;
+  };
+  for (let sourceIndex = 0; sourceIndex < sourceNotes.length; sourceIndex += 1) augment(sourceIndex, new Set());
   const matches: StageNoteMatch[] = [];
   for (let sourceIndex = 0; sourceIndex < sourceNotes.length; sourceIndex += 1) {
     const sourceNote = sourceNotes[sourceIndex]!;
-    const candidates = [...availableTargets].map((targetIndex) => {
-      const targetNote = targetNotes[targetIndex]!;
-      const identity = sourceNote.id === targetNote.id;
-      const parent = overlapParent(sourceNote, targetNote);
-      const timing = Math.abs(sourceNote.start - targetNote.start);
-      if (!identity && !parent && timing > TIMING_MATCH_TOLERANCE) return null;
-      return { targetIndex, cost: candidateCost(sourceNote, targetNote, identity, parent) };
-    }).filter((value): value is { targetIndex: number; cost: number } => value !== null)
-      .sort((left, right) => left.cost - right.cost || left.targetIndex - right.targetIndex);
-    const chosen = candidates[0];
-    if (!chosen) continue;
-    availableTargets.delete(chosen.targetIndex);
-    const targetNote = targetNotes[chosen.targetIndex]!;
+    const targetIndex = assignedSourceToTarget.get(sourceIndex);
+    if (targetIndex === undefined) continue;
+    const targetNote = targetNotes[targetIndex]!;
     const pitchDelta = targetNote.midi - sourceNote.midi;
     const timingDelta = targetNote.start - sourceNote.start;
     const provenanceKeys = [...new Set([...Object.keys(sourceNote.provenance ?? {}), ...Object.keys(targetNote.provenance ?? {})])].sort(compareText);
-    matches.push({ sourceId: sourceNote.id, targetId: targetNote.id, sourceIndex, targetIndex: chosen.targetIndex, pitchDelta, timingDelta: round(timingDelta), durationDelta: round(targetNote.dur - sourceNote.dur), classification: classifyMatched(from, sourceNote, targetNote, pitchDelta, timingDelta), parentIds: [...new Set([...sourceNote.parentIds, ...targetNote.parentIds])].sort(compareText), provenanceKeys });
+    matches.push({ sourceId: sourceNote.id, targetId: targetNote.id, sourceIndex, targetIndex, pitchDelta, timingDelta: round(timingDelta), durationDelta: round(targetNote.dur - sourceNote.dur), classification: classifyMatched(from, sourceNote, targetNote, pitchDelta, timingDelta), parentIds: [...new Set([...sourceNote.parentIds, ...targetNote.parentIds])].sort(compareText), provenanceKeys });
   }
   matches.sort((left, right) => left.sourceIndex - right.sourceIndex || left.targetIndex - right.targetIndex);
   const loss = classifyStageLoss({ from, to, matches, sourceNotes, targetNotes });
   const lineage = matches.map((match) => {
     const sourceNote = sourceNotes[match.sourceIndex]!;
     const targetNote = targetNotes[match.targetIndex]!;
-    const provenance = { ...(sourceNote.provenance ?? {}), ...(targetNote.provenance ?? {}) };
+    const provenance = {
+      ...(source.provenance ?? {}),
+      ...(target.provenance ?? {}),
+      ...(sourceNote.provenance ?? {}),
+      ...(targetNote.provenance ?? {}),
+    };
     return {
       sourceId: match.sourceId,
       targetId: match.targetId,
@@ -495,13 +537,33 @@ function buildTransition(from: RedBaronSurvivalStage, to: RedBaronSurvivalStage,
 }
 
 export function classifyStageLoss(transition: Pick<StageTransition, "from" | "to" | "matches"> & { sourceNotes?: readonly NormalizedStageNote[] | readonly StageNoteLike[]; targetNotes?: readonly NormalizedStageNote[] | readonly StageNoteLike[] }): StageLossSummary {
-  const sourceNotes = (transition.sourceNotes ?? []).map((note) => "state" in note && typeof note.state === "string" && typeof note.id === "string" && typeof note.midi === "number" ? note as NormalizedStageNote : normalizeNotes([note]).notes[0]).filter((note): note is NormalizedStageNote => Boolean(note));
-  const targetNotes = (transition.targetNotes ?? []).map((note) => "state" in note && typeof note.state === "string" && typeof note.id === "string" && typeof note.midi === "number" ? note as NormalizedStageNote : normalizeNotes([note]).notes[0]).filter((note): note is NormalizedStageNote => Boolean(note));
-  const matchedSource = new Set(transition.matches.map((match) => match.sourceIndex));
-  const matchedTarget = new Set(transition.matches.map((match) => match.targetIndex));
-  const counts: Record<StageLossCategory, number> = { retained: 0, pitchModified: 0, octaveShifted: 0, timingShifted: 0, rejected: 0, replaced: 0, obscured: 0, additions: 0, unsupportedCanonicalExpansions: 0 };
-  for (const match of transition.matches) counts[match.classification] += 1;
+  const isNormalized = (note: unknown): note is NormalizedStageNote => isRecord(note)
+    && typeof note.state === "string" && typeof note.id === "string" && typeof note.midi === "number"
+    && typeof note.start === "number" && typeof note.dur === "number" && typeof note.vel === "number";
+  const sourceNotes = (transition.sourceNotes ?? []).map((note) => isNormalized(note) ? note : normalizeNotes([note]).notes[0]).filter((note): note is NormalizedStageNote => Boolean(note));
+  const targetNotes = (transition.targetNotes ?? []).map((note) => isNormalized(note) ? note : normalizeNotes([note]).notes[0]).filter((note): note is NormalizedStageNote => Boolean(note));
+  const matchedSource = new Set<number>();
+  const matchedTarget = new Set<number>();
+  const validMatches: StageNoteMatch[] = [];
   const diagnostics: string[] = [];
+  for (const match of Array.isArray(transition.matches) ? transition.matches : []) {
+    const sourceIndex = match?.sourceIndex;
+    const targetIndex = match?.targetIndex;
+    if (!Number.isInteger(sourceIndex) || sourceIndex < 0 || sourceIndex >= sourceNotes.length
+      || !Number.isInteger(targetIndex) || targetIndex < 0 || targetIndex >= targetNotes.length
+      || matchedSource.has(sourceIndex) || matchedTarget.has(targetIndex)) {
+      diagnostics.push("duplicate or invalid match edge violates one-to-one accounting");
+      continue;
+    }
+    matchedSource.add(sourceIndex);
+    matchedTarget.add(targetIndex);
+    validMatches.push(match);
+  }
+  const counts: Record<StageLossCategory, number> = { retained: 0, pitchModified: 0, octaveShifted: 0, timingShifted: 0, rejected: 0, replaced: 0, obscured: 0, additions: 0, unsupportedCanonicalExpansions: 0 };
+  for (const match of validMatches) {
+    if (Object.hasOwn(counts, match.classification)) counts[match.classification] += 1;
+    else diagnostics.push("invalid match classification ignored");
+  }
   for (let index = 0; index < sourceNotes.length; index += 1) {
     if (matchedSource.has(index)) continue;
     const source = sourceNotes[index]!;
@@ -513,7 +575,15 @@ export function classifyStageLoss(transition: Pick<StageTransition, "from" | "to
   for (let index = 0; index < targetNotes.length; index += 1) {
     if (matchedTarget.has(index)) continue;
     const target = targetNotes[index]!;
-    if (transition.to === "canonical" && target.unsupported) counts.unsupportedCanonicalExpansions += 1;
+    // An unsupported canonical expansion is still an addition to the target
+    // stage. Keep both counts so callers can reconcile all unmatched targets
+    // while separately identifying the unsupported subset.
+    if (transition.to === "canonical" && target.unsupported) {
+      counts.unsupportedCanonicalExpansions += 1;
+      counts.additions += 1;
+    } else if (target.state === "rejected") counts.rejected += 1;
+    else if (target.state === "replaced") counts.replaced += 1;
+    else if (target.state === "obscured") counts.obscured += 1;
     else counts.additions += 1;
   }
   if (counts.rejected) diagnostics.push(`${counts.rejected} source note(s) rejected or not retained`);
@@ -524,7 +594,7 @@ export function classifyStageLoss(transition: Pick<StageTransition, "from" | "to
   return {
     sourceCount: sourceNotes.length,
     targetCount: targetNotes.length,
-    matchedCount: transition.matches.length,
+    matchedCount: validMatches.length,
     unmatchedSourceCount: sourceNotes.length - matchedSource.size,
     unmatchedTargetCount: targetNotes.length - matchedTarget.size,
     ...counts,

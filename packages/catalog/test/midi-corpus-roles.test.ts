@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   classifyMidiRoles,
   measureRestrikes,
+  selectMidiRoleNotes,
   songIdentitySignature,
   type CanonicalMidiRoleNote,
 } from "../src/midi-corpus-roles.js";
@@ -146,5 +147,37 @@ describe("MIDI corpus role layers", () => {
     expect(signature(second.semantic.harmony)).toEqual(signature(first.semantic.harmony));
     expect(signature(second.semantic.bassRoot)).toEqual(signature(first.semantic.bassRoot));
     expect(signature(second.semantic.rhythmAttacks)).toEqual(signature(first.semantic.rhythmAttacks));
+  });
+
+  it("selects semantic role projections without mixing percussion into pitched roles", () => {
+    const layers = classifyMidiRoles(fixture());
+    expect(selectMidiRoleNotes(layers, "melody").map((value) => value.midi)).toEqual([72, 72, 72, 74]);
+    expect(selectMidiRoleNotes(layers, "harmony").every((value) => value.percussion !== true)).toBe(true);
+    expect(selectMidiRoleNotes(layers, "rhythm").every((value) => value.percussion === true)).toBe(true);
+    expect(selectMidiRoleNotes(layers, "full-symbolic").every((value) => value.percussion !== true)).toBe(true);
+  });
+
+  it("distinguishes lead and rhythm guitar lanes deterministically", () => {
+    const base = fixture();
+    const notes = [
+      { ...base.notes[0]!, trackIndex: 4, channel: 4, midi: 76, startTick: 0, endTick: 240, startBeats: 0, durationBeats: 0.5 },
+      { ...base.notes[1]!, trackIndex: 4, channel: 4, midi: 77, startTick: 480, endTick: 720, startBeats: 1, durationBeats: 0.5 },
+      { ...base.notes[0]!, trackIndex: 5, channel: 5, midi: 52, startTick: 0, endTick: 480, startBeats: 0, durationBeats: 1 },
+      { ...base.notes[1]!, trackIndex: 5, channel: 5, midi: 55, startTick: 480, endTick: 960, startBeats: 1, durationBeats: 1 },
+    ];
+    const extended = {
+      ...base,
+      tracks: [...base.tracks,
+        { index: 4, name: "Lead Guitar", channels: [4], programs: [29], percussion: false, endTick: 960, notes: [] },
+        { index: 5, name: "Rhythm Guitar", channels: [5], programs: [27], percussion: false, endTick: 960, notes: [] },
+      ],
+      notes: [...base.notes, ...notes],
+    } as unknown as CanonicalMidi;
+    const layers = classifyMidiRoles(extended);
+    const lead = layers.lanes.find((lane) => lane.stats.trackName === "Lead Guitar");
+    const rhythm = layers.lanes.find((lane) => lane.stats.trackName === "Rhythm Guitar");
+    expect(lead).toMatchObject({ role: "melody", reason: "track-name:melody" });
+    expect(rhythm).toMatchObject({ role: "harmony", reason: "track-name:harmony" });
+    expect(selectMidiRoleNotes(layers, "melody").some((value) => value.laneKey === lead?.laneKey)).toBe(true);
   });
 });

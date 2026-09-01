@@ -29,6 +29,7 @@ interface PianoCliOptions {
   reference?: string;
   outputDir?: string;
   metadata?: unknown;
+  help: boolean;
 }
 
 function redactCliError(error: unknown): string {
@@ -54,7 +55,7 @@ function usage(): string {
 }
 
 function parseOptions(argv: string[]): PianoCliOptions {
-  const options: PianoCliOptions = { candidates: [] };
+  const options: PianoCliOptions = { candidates: [], help: false };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index]!;
     if (arg === "--candidate" || arg === "-c") {
@@ -75,14 +76,14 @@ function parseOptions(argv: string[]): PianoCliOptions {
     } else if (arg === "--json") {
       // JSON is always the only stdout format; retain the flag for scripts.
     } else if (arg === "--help" || arg === "-h") {
-      throw new Error(usage());
+      options.help = true;
     } else if (!arg.startsWith("-")) {
       options.candidates.push({ path: arg });
     } else {
       throw new Error(`unknown option: ${arg}`);
     }
   }
-  if (!options.candidates.length) throw new Error(usage());
+  if (!options.candidates.length && !options.help) throw new Error(usage());
   return options;
 }
 
@@ -140,6 +141,10 @@ export async function runPianoEvaluationCli(argv: string[], io: PianoCliIo = {
   try { options = parseOptions(argv); } catch (error) {
     io.stderr(`${error instanceof Error ? error.message : String(error)}\n`);
     return 2;
+  }
+  if (options.help) {
+    io.stdout(`${usage()}\n`);
+    return 0;
   }
   let metadata: unknown;
   try { metadata = await parseMetadata(options.metadata); } catch (error) {

@@ -21,6 +21,11 @@ import {
 } from "./youtube-discovery.js";
 import { sha256Hex } from "./fixture-evidence.js";
 import type { SourceProvenance } from "./provenance.js";
+import {
+  buildResearchCacheKey,
+  normalizeDiscoveryRecord,
+  type ProviderNeutralDiscoveryRecord,
+} from "./research-cache.js";
 
 export interface LocalSymbolicInput {
   bytes: Uint8Array;
@@ -55,6 +60,10 @@ export interface ResearchReportInput {
   alignmentOptions?: SymbolicAlignmentOptions;
   /** URL-only invocation has no trustworthy title/artist for search queries. */
   metadataLimited?: boolean;
+  /** Provider-neutral metadata records supplied by a local cache or adapter. */
+  discoveryRecords?: readonly ProviderNeutralDiscoveryRecord[];
+  parserVersion?: string;
+  alignmentVersion?: string;
 }
 
 export interface ResearchSymbolicArtifact {
@@ -94,6 +103,9 @@ export interface ResearchReport {
     note?: string;
     raterCount?: number;
   };
+  /** Stable identity for this local research input; never a filesystem path. */
+  cacheKey: string;
+  discoveryRecords: ProviderNeutralDiscoveryRecord[];
 }
 
 export interface ResearchSearchOptions {
@@ -348,6 +360,14 @@ function normalizeDiscoveryErrors(errors: readonly string[]): string[] {
   return [...new Set(errors.map((error) => safeError(error, "source discovery failed")))].sort();
 }
 
+function normalizeDiscoveryRecords(records: readonly ProviderNeutralDiscoveryRecord[]): ProviderNeutralDiscoveryRecord[] {
+  const normalized = records.map((record) => {
+    try { return normalizeDiscoveryRecord(record); } catch { return null; }
+  }).filter((record): record is ProviderNeutralDiscoveryRecord => record !== null);
+  return normalized.filter((record, index) => normalized.findIndex((candidate) => JSON.stringify(candidate) === JSON.stringify(record)) === index)
+    .sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
+}
+
 function humanAcceptance(input: HumanAcceptanceInput | undefined): ResearchReport["humanAcceptance"] {
   if (!input) return { status: "not-supplied" };
   return {
@@ -359,6 +379,7 @@ function humanAcceptance(input: HumanAcceptanceInput | undefined): ResearchRepor
 
 export function buildResearchReport(input: ResearchReportInput): ResearchReport {
   const song = identity(input.song);
+  const discoveryRecords = normalizeDiscoveryRecords(input.discoveryRecords ?? []);
   const localInputResult = uniqueLocalInputs(input.localCandidates ?? []);
   const localInputs = localInputResult.inputs;
   const discovered = (input.discoveryCandidates ?? [])
@@ -423,6 +444,15 @@ export function buildResearchReport(input: ResearchReportInput): ResearchReport 
     symbolicArtifacts: artifacts.sort((a, b) => a.id.localeCompare(b.id)),
     alignments,
     humanAcceptance: humanAcceptance(input.humanAcceptance),
+    discoveryRecords,
+    cacheKey: buildResearchCacheKey({
+      targetIdentity: { id: song.id, title: song.normalizedTitle, artist: song.normalizedArtist, version: song.version },
+      query: buildResearchQueries(song).join("\n"),
+      provider: "provider-neutral",
+      artifactHash: discoveryRecords.length ? sha256Hex(new TextEncoder().encode(JSON.stringify(discoveryRecords))) : undefined,
+      parserVersion: input.parserVersion,
+      alignmentVersion: input.alignmentVersion,
+    }),
   };
   return report;
 }

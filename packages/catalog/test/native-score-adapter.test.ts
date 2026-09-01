@@ -186,6 +186,65 @@ describe("native local symbolic adapter", () => {
     }
   });
 
+  it("preserves MIDI channel, program, percussion, and tempo-map metadata while omitting drum pitches", () => {
+    const bytes = midiFile([
+      track([
+        ...meta(0, 0x51, [0x07, 0xa1, 0x20]), // 120 BPM
+        ...meta(0, 0x58, [4, 2, 24, 8]),
+        ...meta(0, 0x2f, []),
+      ]),
+      track([
+        ...meta(0, 0x03, ascii("Piano")),
+        ...[0x00, 0xc0, 0x05], // acoustic electric piano program 6 (zero-based)
+        ...noteOn(0, 0, 60, 100),
+        ...noteOff(4, 0, 60),
+        ...[0x00, 0xc1, 0x28], // channel 2 program 41
+        ...noteOn(0, 1, 48, 90),
+        ...noteOff(4, 1, 48),
+        ...meta(0, 0x2f, []),
+      ]),
+      track([
+        ...meta(0, 0x03, ascii("Drums")),
+        ...noteOn(0, 9, 36, 100),
+        ...noteOff(4, 9, 36),
+        ...meta(0, 0x2f, []),
+      ]),
+    ]);
+    const result = adaptNativeSymbolicBytes(bytes, "midi");
+
+    expect(result.status).toBe("parsed");
+    if (result.status !== "parsed") throw new Error("expected parsed result");
+    expect(result.score.metadata).toMatchObject({
+      tempoMap: [{ tick: 0, bpm: 120 }],
+      midiTracks: [
+        expect.objectContaining({ index: 0, channels: [], percussionEventCount: 0 }),
+        expect.objectContaining({ index: 1, channels: [0, 1], programs: { "0": 5, "1": 40 } }),
+        expect.objectContaining({ index: 2, percussionEventCount: 1, percussion: true }),
+      ],
+      percussionEventCount: 1,
+    });
+    expect(result.score.parts[1]).toMatchObject({ channel: null, program: null, percussion: false });
+    expect(result.score.parts[2]).toMatchObject({ percussion: true });
+    expect(result.score.parts[2]?.measures.flatMap((measure) => measure.events ?? [])).toEqual([]);
+  });
+
+  it("reports dangling and unmatched MIDI note lifecycle events as diagnostics", () => {
+    const bytes = midiFile([track([
+      ...noteOff(0, 0, 60),
+      ...noteOn(0, 0, 60, 96),
+      ...meta(4, 0x2f, []),
+    ])]);
+    const result = adaptNativeSymbolicBytes(bytes, "midi");
+
+    expect(result.status).toBe("parsed");
+    if (result.status !== "parsed") throw new Error("expected parsed result");
+    expect(result.score.metadata).toMatchObject({
+      midiTracks: [expect.objectContaining({ danglingNoteCount: 1, unmatchedNoteOffCount: 1 })],
+      danglingNoteCount: 1,
+      unmatchedNoteOffCount: 1,
+    });
+  });
+
   it("reads an explicitly permitted local file without copying or leaking its physical path", async () => {
     const directory = await mkdtemp(join(tmpdir(), "keyspilli-native-adapter-"));
     try {

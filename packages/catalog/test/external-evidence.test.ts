@@ -120,4 +120,61 @@ describe("external evidence firewall", () => {
       expect(preserved!.description).toBe(description);
     }
   });
+
+  it("preserves logical source labels while omitting physical artifact references", () => {
+    const logicalSourceRef = "provider:catalog/song.mid";
+    const logicalUrl = "https://example.com/download/song.mid";
+    const [canonical] = canonicalEvidenceCandidateSet([candidate({
+      provenance: {
+        sourceRef: logicalSourceRef,
+        acquisition: "local-analysis",
+        sourceArtifactRef: "file:///tmp/My Folder/source.mid",
+      },
+      description: logicalUrl,
+    })]);
+
+    const provenance = canonical!.provenance as Record<string, unknown>;
+    expect(provenance.sourceRef).toBe(logicalSourceRef);
+    expect(provenance).not.toHaveProperty("sourceArtifactRef");
+    expect(canonical!.description).toBe(logicalUrl);
+    expect(JSON.stringify(canonical)).not.toContain("My Folder");
+  });
+
+  it("accepts extension-bearing logical source references with an explicit scheme", () => {
+    expect(() => assertGenerationEvidence(candidate({
+      provenance: { sourceRef: "provider:catalog/song.mid", acquisition: "local-analysis" },
+    }))).not.toThrow();
+  });
+
+  it("rejects protected hashes, paths, and lineage from an explicit benchmark manifest", () => {
+    const protectedHash = "b".repeat(64);
+    const protectedPath = "/tmp/corpus-a";
+    const protectedLineage = "fixture-set:opaque-1";
+    const manifest = { benchmarkReferenceManifest: { sha256: [protectedHash], paths: [protectedPath], lineage: [protectedLineage] } };
+    expect(() => assertGenerationEvidence(candidate({ content: { sha256: protectedHash } }), manifest)).toThrow(/benchmark|protected|reference/i);
+    expect(() => assertGenerationEvidence(candidate({ provenance: { sourceRef: "provider:opaque", acquisition: "local-import", physicalPath: `${protectedPath}/song.mid` } }), manifest)).toThrow(/benchmark|protected|reference/i);
+    expect(() => assertGenerationEvidence(candidate({ lineage: { parent: protectedLineage } }), manifest)).toThrow(/benchmark|protected|reference/i);
+  });
+
+  it("rejects an evaluation-only manifest role without relying on a song title", () => {
+    expect(() => assertGenerationEvidence(candidate({ manifestRole: "EVAL_ONLY" }))).toThrow(/benchmark|evaluation|reference/i);
+  });
+
+  it("rejects conflicting acquisition declarations", () => {
+    expect(() => assertGenerationEvidence(candidate({
+      provenance: { sourceRef: "youtube:abc", acquisition: "local-import", acquiredVia: "local-file" },
+    }))).toThrow(/acqui|conflict/i);
+  });
+
+  it("keeps digest stable when role metadata order and object insertion order differ", () => {
+    const first = candidate({
+      roles: [{ role: "melody", confidence: 0.8 }, { role: "harmony", confidence: 0.7 }],
+      metadata: { provider: "example", source: "symbolic" },
+    });
+    const second = candidate({
+      roles: [{ confidence: 0.7, role: "harmony" }, { confidence: 0.8, role: "melody" }],
+      metadata: { source: "symbolic", provider: "example" },
+    });
+    expect(evidenceCandidateSetDigest([first])).toBe(evidenceCandidateSetDigest([second]));
+  });
 });

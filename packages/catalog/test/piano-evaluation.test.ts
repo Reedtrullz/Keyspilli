@@ -29,6 +29,18 @@ const candidate = (overrides: Partial<PianoCandidateInput> = {}): PianoCandidate
 });
 
 describe("piano candidate evaluation", () => {
+  it("prints help successfully", async () => {
+    let output = "";
+    let errors = "";
+    const code = await runPianoEvaluationCli(["--help"], {
+      stdout: (value) => { output += value; },
+      stderr: (value) => { errors += value; },
+    });
+    expect(code).toBe(0);
+    expect(output).toMatch(/^Usage:/);
+    expect(errors).toBe("");
+  });
+
   it("classifies piano purity and reports structural metrics", () => {
     const report = evaluatePianoCandidates({
       candidates: [candidate()],

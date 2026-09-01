@@ -65,6 +65,22 @@ describe("constrained piano timing alignment", () => {
     expect(intro.coverage.referenceRatio).toBe(1);
     expect(ending.coverage.referenceRatio).toBeLessThan(1);
     expect(ending.confidence).toBeLessThan(intro.confidence);
+    expect(result.confidenceMap).toEqual(expect.arrayContaining([
+      expect.objectContaining({ reference: [0, 3], candidate: [2, 5] }),
+      expect.objectContaining({ reference: [3, 6], candidate: [5, 8] }),
+    ]));
+  });
+
+  it("exposes unknown confidence outside a partial aligned recording excerpt", () => {
+    const reference = score([0, 1, 2, 6], [60, 62, 64, 65], 7);
+    const candidate = score([3, 4, 5], [60, 62, 64], 6);
+    const result = alignPianoCandidates(reference, candidate, {
+      tempoScales: [1], transpositionSemitones: [0], offsetBeats: [3],
+    });
+
+    expect(result.confidenceMap.some((region) => region.level === "high")).toBe(true);
+    expect(result.confidenceMap.some((region) => region.level === "unknown")).toBe(true);
+    expect(result.confidenceMap.every((region) => region.reference[1] > region.reference[0])).toBe(true);
   });
 
   it("rejects a pathological warp instead of fabricating alignment", () => {

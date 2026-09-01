@@ -18,6 +18,12 @@ function score(notes: SymbolicScoreInput["notes"], extras: Partial<SymbolicScore
 }
 
 describe("symbolic alignment", () => {
+  it("fails closed for null score and options objects", () => {
+    expect(() => normalizeSymbolicScore(null as unknown as SymbolicScoreInput)).not.toThrow();
+    expect(normalizeSymbolicScore(null as unknown as SymbolicScoreInput)).toMatchObject({ notes: [], originalNoteCount: 0, droppedNoteCount: 0 });
+    expect(() => alignSymbolicScores(score([]), score([]), null as unknown as Parameters<typeof alignSymbolicScores>[2])).not.toThrow();
+  });
+
   it("normalizes without quantizing, filters invalid notes, and preserves metadata", () => {
     const normalized = normalizeSymbolicScore({
       notes: [
@@ -161,6 +167,31 @@ describe("symbolic alignment", () => {
     expect(result.coverage.referenceRatio).toBeGreaterThan(0.3);
     expect(result.coverage.referenceRatio).toBeLessThan(1);
     expect(result.metrics.matchedNotes).toBe(4);
+    expect(result.confidenceMap.some((region) => region.level === "high")).toBe(true);
+    expect(result.confidenceMap.some((region) => region.level === "unknown")).toBe(true);
+    expect(result.confidenceMap.every((region) => region.reference[1] > region.reference[0])).toBe(true);
+  });
+
+  it("keeps confidence-map timing in the reference domain and marks unmapped gaps unknown", () => {
+    const result = alignSymbolicScores(
+      score([
+        { midi: 60, start: 0, dur: 0.5, vel: 90 },
+        { midi: 62, start: 1, dur: 0.5, vel: 90 },
+        { midi: 64, start: 4, dur: 0.5, vel: 90 },
+      ], { durationBeats: 5 }),
+      score([
+        { midi: 60, start: 2, dur: 0.5, vel: 90 },
+        { midi: 62, start: 3, dur: 0.5, vel: 90 },
+      ], { durationBeats: 4 }),
+      { offsetsBeats: [2], transpositions: [0], beatScales: [1] },
+    );
+
+    expect(result.offsetBeats).toBe(2);
+    expect(result.confidenceMap).toEqual(expect.arrayContaining([
+      expect.objectContaining({ reference: [0, 2], candidate: [2, 4], level: "high" }),
+      expect.objectContaining({ reference: [2, 5], level: "unknown" }),
+    ]));
+    expect(result.confidenceMap.every((region) => region.reference[0] >= 0)).toBe(true);
   });
 
   it("matches notes one-to-one, even when an onset contains duplicate pitches", () => {

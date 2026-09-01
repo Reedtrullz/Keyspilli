@@ -116,6 +116,7 @@ interface MidiRawNote {
   midi: number;
   vel: number;
   channel: number;
+  program: number;
 }
 
 interface MidiTrackData {
@@ -123,6 +124,11 @@ interface MidiTrackData {
   name: string | null;
   notes: MidiRawNote[];
   endTick: number;
+  channels: number[];
+  programs: Record<string, number>;
+  percussionEventCount: number;
+  danglingNoteCount: number;
+  unmatchedNoteOffCount: number;
 }
 
 interface MidiTimeChange {
@@ -284,7 +290,12 @@ function parseNativeMidi(data: Uint8Array, options: NativeSymbolicAdapterOptions
     let running: number | null = null;
     let trackName: string | null = null;
     const notes: MidiRawNote[] = [];
-    const active = new Map<string, Array<{ midi: number; startTick: number; vel: number; channel: number }>>();
+    const active = new Map<string, Array<{ midi: number; startTick: number; vel: number; channel: number; program: number }>>();
+    const channelPrograms = new Map<number, number>();
+    const channels = new Set<number>();
+    let trackPercussionEvents = 0;
+    let danglingNoteCount = 0;
+    let unmatchedNoteOffCount = 0;
 
     while (position < end) {
       const deltaState = { value: position };
@@ -358,7 +369,9 @@ function parseNativeMidi(data: Uint8Array, options: NativeSymbolicAdapterOptions
       if (status === 0xf6 || (status >= 0xf8 && status <= 0xfe)) continue;
       if (kind === 0xc0 || kind === 0xd0) {
         if (position >= end) throw new NativeScoreAdapterError("truncated MIDI channel event");
-        position += 1;
+        const value = data[position++]!;
+        channels.add(channel);
+        if (kind === 0xc0) channelPrograms.set(channel, value);
         continue;
       }
       if (kind !== 0x80 && kind !== 0x90 && kind !== 0xa0 && kind !== 0xb0 && kind !== 0xe0) {
@@ -370,10 +383,12 @@ function parseNativeMidi(data: Uint8Array, options: NativeSymbolicAdapterOptions
       if (kind === 0x90 && velocity > 0) {
         if (channel === 9) {
           percussionDropped += 1;
+          trackPercussionEvents += 1;
         } else {
           const key = `${channel}:${pitch}`;
           const queue = active.get(key) ?? [];
-          queue.push({ midi: pitch, startTick: tick, vel: velocity, channel });
+          channels.add(channel);
+          queue.push({ midi: pitch, startTick: tick, vel: velocity, channel, program: channelPrograms.get(channel) ?? 0 });
           active.set(key, queue);
         }
       } else if (kind === 0x80 || (kind === 0x90 && velocity === 0)) {
@@ -382,8 +397,10 @@ function parseNativeMidi(data: Uint8Array, options: NativeSymbolicAdapterOptions
           const queue = active.get(key);
           const started = queue?.shift();
           if (started) {
-            if (tick > started.startTick) notes.push({ startTick: started.startTick, endTick: tick, midi: started.midi, vel: started.vel, channel: started.channel });
+            if (tick > started.startTick) notes.push({ startTick: started.startTick, endTick: tick, midi: started.midi, vel: started.vel, channel: started.channel, program: started.program });
             else warnings.push(`dropped zero-duration MIDI note on track ${trackIndex + 1}`);
+          } else {
+            unmatchedNoteOffCount += 1;
           }
           if (queue && queue.length === 0) active.delete(key);
         }
@@ -392,12 +409,26 @@ function parseNativeMidi(data: Uint8Array, options: NativeSymbolicAdapterOptions
     const endTick = tick;
     for (const queue of active.values()) {
       for (const started of queue) {
-        if (endTick > started.startTick) notes.push({ startTick: started.startTick, endTick, midi: started.midi, vel: started.vel, channel: started.channel });
+        if (endTick > started.startTick) {
+          danglingNoteCount += 1;
+          notes.push({ startTick: started.startTick, endTick, midi: started.midi, vel: started.vel, channel: started.channel, program: started.program });
+        }
         else warnings.push(`dropped hanging zero-duration MIDI note on track ${trackIndex + 1}`);
       }
     }
     notes.sort((left, right) => left.startTick - right.startTick || left.midi - right.midi || left.endTick - right.endTick || left.channel - right.channel);
-    tracks.push({ index: trackIndex, name: trackName, notes, endTick });
+    for (const note of notes) channels.add(note.channel);
+    tracks.push({
+      index: trackIndex,
+      name: trackName,
+      notes,
+      endTick,
+      channels: [...channels].sort((left, right) => left - right),
+      programs: Object.fromEntries([...channelPrograms.entries()].sort(([left], [right]) => left - right).map(([channel, program]) => [String(channel), program])),
+      percussionEventCount: trackPercussionEvents,
+      danglingNoteCount,
+      unmatchedNoteOffCount,
+    });
     position = end;
   }
 
@@ -477,7 +508,17 @@ function parseNativeMidi(data: Uint8Array, options: NativeSymbolicAdapterOptions
         events,
       };
     });
-    return { id: `track-${track.index + 1}`, name, ...(role ? { role } : {}), measures };
+    const channels = track.channels;
+    const programs = Object.values(track.programs);
+    return {
+      id: `track-${track.index + 1}`,
+      name,
+      ...(role ? { role } : {}),
+      channel: channels.length === 1 ? channels[0]! : null,
+      program: programs.length === 1 ? programs[0]! : null,
+      percussion: track.percussionEventCount > 0 || channels.includes(9),
+      measures,
+    };
   });
   const initialTime = timeAt(0);
   const initialKey = keyAt(0);
@@ -495,6 +536,20 @@ function parseNativeMidi(data: Uint8Array, options: NativeSymbolicAdapterOptions
       division,
       keyMode: initialKey.mode,
       trackNames: [...trackNames].sort(compareText),
+      tempoMap: [...tempos].sort((left, right) => left.tick - right.tick || left.bpm - right.bpm).map((tempo) => ({ tick: tempo.tick, bpm: rounded(tempo.bpm) })),
+      percussionEventCount: tracks.reduce((sum, track) => sum + track.percussionEventCount, 0),
+      midiTracks: tracks.map((track) => ({
+        index: track.index,
+        name: track.name,
+        channels: track.channels,
+        programs: track.programs,
+        percussion: track.percussionEventCount > 0 || track.channels.includes(9),
+        percussionEventCount: track.percussionEventCount,
+        danglingNoteCount: track.danglingNoteCount,
+        unmatchedNoteOffCount: track.unmatchedNoteOffCount,
+      })),
+      danglingNoteCount: tracks.reduce((sum, track) => sum + track.danglingNoteCount, 0),
+      unmatchedNoteOffCount: tracks.reduce((sum, track) => sum + track.unmatchedNoteOffCount, 0),
       measureCount: measureRanges.length,
       unavailableMetadata: ["page", "accidental", "tie"],
       ...(firstTempo === undefined ? { warnings: ["MIDI has no tempo meta; tempo remains unavailable"] } : {}),

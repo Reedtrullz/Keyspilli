@@ -140,6 +140,10 @@ export interface OmrPartInput {
   id: string;
   name?: string | null;
   role?: OmrRole;
+  /** Optional native MIDI routing metadata; never affects pitched normalization. */
+  channel?: number | null;
+  program?: number | null;
+  percussion?: boolean;
   staves?: OmrStaffInput[];
   measures: OmrMeasureInput[];
 }

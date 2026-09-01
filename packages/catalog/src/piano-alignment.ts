@@ -1,6 +1,7 @@
 import type { Note, ParsedMidi } from "@keyspilli/midi";
 import {
   normalizeSymbolicScore,
+  type SymbolicAlignmentConfidenceRegion,
   type SymbolicScoreInput,
 } from "./symbolic-alignment.js";
 
@@ -88,6 +89,7 @@ export interface PianoAlignmentResult {
   mapping: PianoAlignmentMappingPoint[];
   segments: PianoAlignmentSegment[];
   regions: PianoAlignmentRegionResult[];
+  confidenceMap: SymbolicAlignmentConfidenceRegion[];
   matches: PianoAlignmentMatch[];
   coverage: {
     referenceRatio: number;
@@ -592,7 +594,69 @@ function regionResults(
   });
 }
 
-function emptyResult(referenceCount: number, candidateCount: number, diagnostics: string[], status: PianoAlignmentResult["status"]): PianoAlignmentResult {
+function pianoConfidenceLevel(confidence: number, matchedOnsets: number): SymbolicAlignmentConfidenceRegion["level"] {
+  if (matchedOnsets <= 0 || confidence <= EPS) return "unknown";
+  if (confidence >= 0.8) return "high";
+  if (confidence >= 0.5) return "medium";
+  return "low";
+}
+
+function buildPianoConfidenceMap(
+  referenceDuration: number,
+  regions: readonly PianoAlignmentRegionInput[],
+  regionResultsValue: readonly PianoAlignmentRegionResult[],
+  pairs: readonly PathPair[],
+  explicitRegions: boolean,
+): SymbolicAlignmentConfidenceRegion[] {
+  const make = (reference: [number, number], candidate: [number, number] | null, confidence: number, matchedOnsets: number): SymbolicAlignmentConfidenceRegion => {
+    const bounded = round(clamp(confidence, 0, 1));
+    return { reference, candidate, confidence: bounded, level: pianoConfidenceLevel(bounded, matchedOnsets), matchedOnsets };
+  };
+  if (explicitRegions) {
+    const mapped = regions.map((region, index) => {
+      const value = regionResultsValue[index];
+      const matched = value?.matchedOnsets ?? 0;
+      const candidate = matched > 0 ? region.candidate : null;
+      return make(region.reference, candidate, value?.confidence ?? 0, matched);
+    });
+    const result: SymbolicAlignmentConfidenceRegion[] = [];
+    let cursor = 0;
+    for (const region of [...mapped].sort((a, b) => a.reference[0] - b.reference[0])) {
+      if (region.reference[0] > cursor + EPS) result.push(make([round(cursor), region.reference[0]], null, 0, 0));
+      result.push(region);
+      cursor = Math.max(cursor, region.reference[1]);
+    }
+    if (cursor < referenceDuration - EPS) result.push(make([round(cursor), round(referenceDuration)], null, 0, 0));
+    return result.sort((a, b) => a.reference[0] - b.reference[0] || a.reference[1] - b.reference[1]);
+  }
+  if (!pairs.length) return referenceDuration > EPS ? [make([0, round(referenceDuration)], null, 0, 0)] : [];
+  const ordered = [...pairs].sort((a, b) => a.reference.start - b.reference.start || a.candidate.start - b.candidate.start);
+  const gaps = ordered.slice(1).map((pair, index) => pair.reference.start - ordered[index]!.reference.start).filter((gap) => gap > EPS);
+  const cadence = gaps.length ? Math.max(0.25, Math.min(...gaps)) : 0.5;
+  const result: SymbolicAlignmentConfidenceRegion[] = [];
+  let cursor = 0;
+  let index = 0;
+  while (index < ordered.length) {
+    const first = ordered[index]!;
+    const run: PathPair[] = [first];
+    let last = first;
+    while (index + 1 < ordered.length && ordered[index + 1]!.reference.start - last.reference.start <= cadence * 1.75 + DEFAULT_TOLERANCE) {
+      index += 1;
+      last = ordered[index]!;
+      run.push(last);
+    }
+    const end = Math.min(referenceDuration, last.reference.start + cadence);
+    if (first.reference.start > cursor + EPS) result.push(make([round(cursor), round(first.reference.start)], null, 0, 0));
+    const confidence = run.reduce((sum, pair) => sum + pair.overlap * Math.max(0, 1 - pair.timingError / Math.max(DEFAULT_MAX_WARP, 0.25)), 0) / run.length;
+    result.push(make([round(first.reference.start), round(end)], [round(first.candidate.start), round(last.candidate.start + cadence)], confidence, run.length));
+    cursor = end;
+    index += 1;
+  }
+  if (cursor < referenceDuration - EPS) result.push(make([round(cursor), round(referenceDuration)], null, 0, 0));
+  return result;
+}
+
+function emptyResult(referenceCount: number, candidateCount: number, diagnostics: string[], status: PianoAlignmentResult["status"], referenceDuration = 0): PianoAlignmentResult {
   return {
     status,
     offsetBeats: 0,
@@ -602,6 +666,9 @@ function emptyResult(referenceCount: number, candidateCount: number, diagnostics
     mapping: [],
     segments: [],
     regions: [],
+    confidenceMap: referenceDuration > EPS ? [
+      { reference: [0, round(referenceDuration)], candidate: null, confidence: 0, level: "unknown", matchedOnsets: 0 },
+    ] : [],
     matches: [],
     coverage: { referenceRatio: 0, candidateRatio: 0, referenceOnsets: referenceCount, candidateOnsets: candidateCount },
     confidence: 0,
@@ -628,9 +695,9 @@ export function alignPianoCandidates(
     : finite(options.maxWarpSlope) ? options.maxWarpSlope! : DEFAULT_MAX_LOCAL_SCALE, 1.01, 8);
   const references = onsetGroups(reference.notes, tolerance);
   const candidates = onsetGroups(candidate.notes, tolerance);
-  if (!references.length || !candidates.length) return emptyResult(references.length, candidates.length, ["reference and candidate require at least one onset"], "insufficient-evidence");
+  if (!references.length || !candidates.length) return emptyResult(references.length, candidates.length, ["reference and candidate require at least one onset"], "insufficient-evidence", reference.durationBeats);
   const normalizedRegionsResult = normalizedRegions(options, reference.durationBeats, candidate.durationBeats);
-  if (!normalizedRegionsResult.regions.length) return emptyResult(references.length, candidates.length, ["all supplied piano alignment regions are invalid"], "insufficient-evidence");
+  if (!normalizedRegionsResult.regions.length) return emptyResult(references.length, candidates.length, ["all supplied piano alignment regions are invalid"], "insufficient-evidence", reference.durationBeats);
   const scales = candidateScales(options);
   const transpositions = candidateTranspositions(options);
   const offsets = makeOffsets(references, candidates, scales, transpositions, options);
@@ -645,7 +712,7 @@ export function alignPianoCandidates(
     ? candidates.filter((group) => normalizedRegionsResult.regions.some((region) => inRange(group.start, region.candidate)))
     : candidates;
   if (!searchReferences.length || !searchCandidates.length) {
-    return emptyResult(references.length, candidates.length, ["supplied piano alignment regions contain no score onsets"], "insufficient-evidence");
+    return emptyResult(references.length, candidates.length, ["supplied piano alignment regions contain no score onsets"], "insufficient-evidence", reference.durationBeats);
   }
   const seeds = rankHypothesisSeeds(searchReferences, searchCandidates, scales, offsets, transpositions, maxWarp);
   const maxHypotheses = 512;
@@ -669,17 +736,17 @@ export function alignPianoCandidates(
   const viableHypotheses = validHypotheses.filter((hypothesis) => hypothesis.path.pairs.length >= minMatched);
   const best = viableHypotheses[0] ?? validHypotheses[0];
   if (!hypotheses.length) {
-    return emptyResult(references.length, candidates.length, ["insufficient onset and pitch evidence for alignment"], "insufficient-evidence");
+    return emptyResult(references.length, candidates.length, ["insufficient onset and pitch evidence for alignment"], "insufficient-evidence", reference.durationBeats);
   }
   if (!best) {
-    return emptyResult(references.length, candidates.length, ["pathological timing warp rejected"], "rejected");
+    return emptyResult(references.length, candidates.length, ["pathological timing warp rejected"], "rejected", reference.durationBeats);
   }
   // A short valid prefix is not enough to rescue a search whose only
   // sufficiently evidenced paths are pathological. Preserve the fail-closed
   // result for that case while still allowing a lower-ranked valid path to
   // win whenever it meets the requested evidence floor.
   if (!viableHypotheses.length && validHypotheses.length < hypotheses.length) {
-    return emptyResult(references.length, candidates.length, ["pathological timing warp rejected"], "rejected");
+    return emptyResult(references.length, candidates.length, ["pathological timing warp rejected"], "rejected", reference.durationBeats);
   }
   const pairs = best.path.pairs;
   const matches = buildMatches(pairs, best.transpose);
@@ -688,6 +755,13 @@ export function alignPianoCandidates(
   const candidateRatio = pairs.length / candidates.length;
   const regions = regionResults(normalizedRegionsResult.regions, references, candidates, pairs);
   const segments = buildSegments(pairs, Math.max(1, Math.floor(options.maxSegments ?? 8)), maxLocalScale);
+  const confidenceMap = buildPianoConfidenceMap(
+    reference.durationBeats,
+    normalizedRegionsResult.regions,
+    regions,
+    pairs,
+    hasExplicitRegions,
+  );
   const medianResidual = quantile(best.residuals, 0.5) ?? maxWarp;
   const confidence = round(clamp(referenceRatio * 0.32 + candidateRatio * 0.18 + best.quality * 0.35 + Math.max(0, 1 - medianResidual / maxWarp) * 0.15, 0, 1));
   const diagnostics: string[] = [];
@@ -714,6 +788,7 @@ export function alignPianoCandidates(
     mapping,
     segments,
     regions,
+    confidenceMap,
     matches,
     coverage: { referenceRatio: round(referenceRatio), candidateRatio: round(candidateRatio), referenceOnsets: references.length, candidateOnsets: candidates.length },
     confidence,

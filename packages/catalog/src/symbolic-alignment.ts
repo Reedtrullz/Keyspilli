@@ -112,6 +112,21 @@ export interface SymbolicAlignmentWindowResult {
   pitchClass: SymbolicMetricF1;
 }
 
+export type SymbolicAlignmentConfidenceLevel = "high" | "medium" | "low" | "unknown";
+
+/**
+ * Confidence is expressed in the reference/recording beat domain.  Candidate
+ * beats are included only as a diagnostic mapping; they must not become the
+ * target timeline authority.
+ */
+export interface SymbolicAlignmentConfidenceRegion {
+  reference: [number, number];
+  candidate: [number, number] | null;
+  confidence: number;
+  level: SymbolicAlignmentConfidenceLevel;
+  matchedOnsets: number;
+}
+
 export interface SymbolicAlignmentResult {
   status: "aligned" | "partial" | "mismatch" | "insufficient-evidence" | "alignment-required";
   alignmentRequired: boolean;
@@ -129,6 +144,7 @@ export interface SymbolicAlignmentResult {
   metrics: SymbolicAlignmentMetrics;
   matches: SymbolicMatch[];
   windows: SymbolicAlignmentWindowResult[];
+  confidenceMap: SymbolicAlignmentConfidenceRegion[];
   diagnostics: string[];
 }
 
@@ -149,7 +165,9 @@ function round(value: number, digits = 6): number {
 }
 
 function asScoreInput(input: SymbolicScoreInput | ParsedMidi): SymbolicScoreInput {
-  return input as SymbolicScoreInput;
+  return input && typeof input === "object" && !Array.isArray(input)
+    ? input as SymbolicScoreInput
+    : { notes: [] };
 }
 
 function noteSort(a: Note, b: Note): number {
@@ -790,6 +808,97 @@ function windowHypotheses(windows: readonly SymbolicAlignmentWindow[]): { offset
   return { offsets: [...offsets].sort((a, b) => a - b), scales: [...scales].sort((a, b) => a - b) };
 }
 
+function confidenceLevel(confidence: number, matchedOnsets: number): SymbolicAlignmentConfidenceLevel {
+  if (matchedOnsets <= 0 || confidence <= EPS) return "unknown";
+  if (confidence >= 0.8) return "high";
+  if (confidence >= 0.5) return "medium";
+  return "low";
+}
+
+function confidenceRegion(
+  reference: [number, number],
+  candidate: [number, number] | null,
+  confidence: number,
+  matchedOnsets: number,
+): SymbolicAlignmentConfidenceRegion {
+  const bounded = round(clamp(confidence, 0, 1));
+  return {
+    reference: [round(reference[0]), round(reference[1])] as [number, number],
+    candidate: candidate ? [round(candidate[0]), round(candidate[1])] as [number, number] : null,
+    confidence: bounded,
+    level: confidenceLevel(bounded, matchedOnsets),
+    matchedOnsets,
+  };
+}
+
+/**
+ * Build an additive, conservative timeline map.  Unmatched reference spans
+ * are explicitly UNKNOWN, even when a different span aligned strongly.
+ */
+function buildConfidenceMap(
+  reference: NormalizedSymbolicScore,
+  hypothesis: Hypothesis,
+  windows: readonly SymbolicAlignmentWindow[],
+  tolerance: number,
+): SymbolicAlignmentConfidenceRegion[] {
+  if (windows.length) {
+    const mapped = windows.map((window) => {
+      const matches = hypothesis.matches.filter((match) =>
+        match.referenceStart >= window.reference[0]! - EPS
+        && match.referenceStart < window.reference[1]! - EPS
+        && match.candidateStart >= window.candidate[0]! - EPS
+        && match.candidateStart < window.candidate[1]! - EPS);
+      const matchedOnsets = new Set(matches.map((match) => match.referenceStart)).size;
+      const confidence = matches.length
+        ? matches.reduce((sum, match) => sum + (match.exactPitch ? 1 : match.pitchClass ? 0.75 : 0.5)
+          * Math.max(0, 1 - match.onsetErrorBeats / Math.max(tolerance * 4, 0.25)), 0) / matches.length
+        : 0;
+      return confidenceRegion(window.reference, matches.length
+        ? [Math.min(...matches.map((match) => match.candidateStart)), Math.max(...matches.map((match) => match.candidateStart)) + tolerance]
+        : null, confidence, matchedOnsets);
+    });
+    const gaps: SymbolicAlignmentConfidenceRegion[] = [];
+    let cursor = 0;
+    for (const region of [...mapped].sort((a, b) => a.reference[0] - b.reference[0])) {
+      if (region.reference[0] > cursor + EPS) gaps.push(confidenceRegion([cursor, region.reference[0]], null, 0, 0));
+      cursor = Math.max(cursor, region.reference[1]);
+    }
+    if (cursor < reference.durationBeats - EPS) gaps.push(confidenceRegion([cursor, reference.durationBeats], null, 0, 0));
+    return [...mapped, ...gaps].sort((a, b) => a.reference[0] - b.reference[0] || a.reference[1] - b.reference[1]);
+  }
+
+  const matches = [...hypothesis.matches].sort((a, b) => a.referenceStart - b.referenceStart || a.candidateStart - b.candidateStart);
+  if (!matches.length) return reference.durationBeats > EPS
+    ? [confidenceRegion([0, reference.durationBeats], null, 0, 0)] : [];
+  const starts = [...new Set(hypothesis.referenceGroups.map((group) => group.start))].sort((a, b) => a - b);
+  const gaps = starts.slice(1).map((start, index) => start - starts[index]!);
+  const cadence = gaps.length ? Math.max(0.25, Math.min(...gaps)) : 0.5;
+  const result: SymbolicAlignmentConfidenceRegion[] = [];
+  let cursor = 0;
+  let index = 0;
+  while (index < matches.length) {
+    const first = matches[index]!;
+    let last = first;
+    const run: SymbolicMatch[] = [first];
+    while (index + 1 < matches.length) {
+      const next = matches[index + 1]!;
+      if (next.referenceStart - last.referenceStart > cadence * 1.75 + tolerance) break;
+      run.push(next);
+      last = next;
+      index += 1;
+    }
+    const end = Math.min(reference.durationBeats, last.referenceStart + cadence);
+    if (first.referenceStart > cursor + EPS) result.push(confidenceRegion([cursor, first.referenceStart], null, 0, 0));
+    const quality = run.reduce((sum, match) => sum + (match.exactPitch ? 1 : match.pitchClass ? 0.75 : 0.5)
+      * Math.max(0, 1 - match.onsetErrorBeats / Math.max(tolerance * 4, 0.25)), 0) / run.length;
+    result.push(confidenceRegion([first.referenceStart, end], [first.candidateStart, last.candidateStart + cadence * hypothesis.scale], quality, new Set(run.map((match) => match.referenceStart)).size));
+    cursor = end;
+    index += 1;
+  }
+  if (cursor < reference.durationBeats - EPS) result.push(confidenceRegion([cursor, reference.durationBeats], null, 0, 0));
+  return result;
+}
+
 /**
  * Align a reference score (first argument) to a candidate score (second
  * argument). `offsetBeats` is the candidate's leading offset: candidate beat
@@ -800,6 +909,7 @@ export function alignSymbolicScores(
   candidateInput: SymbolicScoreInput | ParsedMidi,
   options: SymbolicAlignmentOptions = {},
 ): SymbolicAlignmentResult {
+  options = options && typeof options === "object" ? options : {};
   const reference = normalizeSymbolicScore(referenceInput);
   const candidate = normalizeSymbolicScore(candidateInput);
   const tolerance = clamp(normalizeNumber(options.onsetToleranceBeats, DEFAULT_TOLERANCE), 0.001, 1);
@@ -835,6 +945,7 @@ export function alignSymbolicScores(
       metrics: emptyMetric,
       matches: [],
       windows: [],
+      confidenceMap: reference.durationBeats > EPS ? [confidenceRegion([0, reference.durationBeats], null, 0, 0)] : [],
       diagnostics: [invalidOnlyWindows ? "all supplied alignment windows are invalid" : "candidate/reference duration mismatch requires explicit alignment windows or anchors"],
     };
   }
@@ -902,6 +1013,7 @@ export function alignSymbolicScores(
     metrics,
     matches: best.matches.sort((a, b) => a.referenceStart - b.referenceStart || a.candidateStart - b.candidateStart || a.referenceMidi - b.referenceMidi || a.candidateMidi - b.candidateMidi),
     windows: windowResults(reference, candidate, best, tolerance, windows),
+    confidenceMap: buildConfidenceMap(reference, best, windows, tolerance),
     diagnostics,
   };
 }

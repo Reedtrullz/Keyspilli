@@ -117,6 +117,15 @@ describe("external symbolic research bridge", () => {
     expect(withReferenceBytes.records[0]?.rejectionReasons.join(" ")).toMatch(/benchmark/i);
   });
 
+  it("records conservative identity and version statuses for acquired candidates", async () => {
+    const inventory = await researchExternalCandidates(song, {
+      discoveryRecords: [{ id: "lead", title: "Test Artist External Test Song MIDI", provider: "Provider", sourceRef: "provider:lead", format: "midi" }],
+      localInputs: [{ id: "lead", title: "Test Artist External Test Song piano cover", sourceRef: "provider:lead", bytes: midiBytes([{ midi: 60, start: 0, dur: 1, vel: 96, hand: "R" }]), format: "midi" }],
+    });
+    expect(inventory.records[0]).toMatchObject({ identityStatus: "COVER_VERSION", versionStatus: "AMBIGUOUS" });
+    expect(inventory.records[0]?.identityReasons).toEqual(expect.arrayContaining([expect.stringMatching(/title|artist/i)]));
+  });
+
   it("uses explicit local files and redacts physical paths in deterministic serialization", async () => {
     const inventory = await researchExternalCandidates(song, {
       discoveryRecords: [{ id: "local", title: "Local lead", sourceRef: "local:lead", format: "midi" }],

@@ -113,6 +113,16 @@ export interface MidiRoleLayers {
   semantic: MidiRoleSemanticLayers;
 }
 
+/** Stable consumer-facing projections for role-aware alignment/evaluation. */
+export type MidiRoleProjection =
+  | "full-symbolic"
+  | "piano-full"
+  | "melody"
+  | "harmony"
+  | "bass-root"
+  | "rhythm"
+  | "other";
+
 const finite = (value: unknown): number | null =>
   typeof value === "number" && Number.isFinite(value) ? value : null;
 
@@ -270,8 +280,8 @@ const trackRoleHint = (name: string | null): { role: MidiCorpusRole; reason: str
   if (!value) return null;
   if (/\b(?:drum|drums|percussion|kit)\b/.test(value)) return { role: "rhythm", reason: "track-name:rhythm" };
   if (/\b(?:bass|low|sub)\b/.test(value)) return { role: "bass", reason: "track-name:bass" };
-  if (/\b(?:vocal|vocals|voice|lead|melody|solo|treble)\b/.test(value)) return { role: "melody", reason: "track-name:melody" };
-  if (/\b(?:harmony|chord|chords|accompaniment|accomp|piano|guitar|keys)\b/.test(value)) return { role: "harmony", reason: "track-name:harmony" };
+  if (/\b(?:lead\s+guitar|lead|vocal|vocals|voice|melody|solo|treble)\b/.test(value)) return { role: "melody", reason: "track-name:melody" };
+  if (/\b(?:rhythm\s+guitar|rhythm\s+keys|harmony|chord|chords|accompaniment|accomp|piano|guitar|keys)\b/.test(value)) return { role: "harmony", reason: "track-name:harmony" };
   return null;
 };
 
@@ -445,6 +455,37 @@ export function classifyMidiRoles(
 
 /** Alias emphasizing that the result is a set of role-specific layers. */
 export const buildMidiRoleLayers = classifyMidiRoles;
+
+/**
+ * Select one role projection for a downstream aligner.  Semantic layers are
+ * preferred when present; coarse lane projections remain the deterministic
+ * fallback for files whose metadata did not permit semantic decomposition.
+ * The returned arrays preserve canonical timeline order and object identity.
+ */
+export function selectMidiRoleNotes(
+  layers: MidiRoleLayers,
+  projection: MidiRoleProjection,
+): readonly CanonicalMidiRoleNote[] {
+  switch (projection) {
+    case "full-symbolic":
+      return layers.semantic.fullSymbolic;
+    case "piano-full":
+      return layers.semantic.pianoTarget;
+    case "melody":
+      return layers.semantic.melody.length ? layers.semantic.melody : layers.byRole.melody;
+    case "harmony":
+      return layers.semantic.harmony.length ? layers.semantic.harmony : layers.byRole.harmony;
+    case "bass-root":
+      return layers.semantic.bassRoot.length ? layers.semantic.bassRoot : layers.byRole.bass;
+    case "rhythm":
+      return layers.semantic.rhythmAttacks.length ? layers.semantic.rhythmAttacks : layers.byRole.rhythm;
+    case "other":
+      return layers.byRole.other;
+  }
+}
+
+/** Alias for callers that describe the operation as role projection. */
+export const projectMidiRole = selectMidiRoleNotes;
 
 export interface SongIdentitySignatureOptions {
   /** Include canonical note timing/pitches when no useful metadata exists. */

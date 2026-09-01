@@ -17,6 +17,9 @@ import {
 } from "./external-research.js";
 import {
   buildExternalSymbolicArrangement,
+  evaluateRouteCoverage,
+  type ExternalRouteCoverageAttribution,
+  type ExternalRouteCoverageResult,
   freezeGenerationCandidateSet,
 } from "./external-symbolic-pipeline.js";
 import type { Note } from "@keyspilli/midi";
@@ -33,6 +36,25 @@ export const SEVEN_SONG_BENCHMARK_IDS = [
 ] as const;
 
 export type ExternalBenchmarkSongId = (typeof SEVEN_SONG_BENCHMARK_IDS)[number];
+
+export interface ExternalBenchmarkInventoryEntry {
+  id: ExternalBenchmarkSongId;
+  position: number;
+  label: string;
+}
+
+/** Metadata-only inventory projection; it contains no source or reference data. */
+export function externalBenchmarkInventory(): ExternalBenchmarkInventoryEntry[] {
+  return SEVEN_SONG_BENCHMARK_IDS.map((id, position) => ({
+    id,
+    position: position + 1,
+    label: id.replace(/-/g, " "),
+  }));
+}
+
+/** Stable route labels used to compare the new lane with the existing control. */
+export const EXTERNAL_BENCHMARK_ROUTE_IDS = ["AUDIO_FALLBACK_CONTROL", "EXTERNAL_SYMBOLIC_FIRST"] as const;
+export type ExternalBenchmarkRouteId = (typeof EXTERNAL_BENCHMARK_ROUTE_IDS)[number];
 
 /** Closed taxonomy for automated reports. */
 export const EXTERNAL_BENCHMARK_FAILURES = [
@@ -61,6 +83,67 @@ export interface ExternalBenchmarkHumanRater {
   status?: string;
 }
 
+/**
+ * An explicitly supplied output/control descriptor. The benchmark never
+ * synthesizes a control: omitted descriptors remain unavailable. `notes` are
+ * an in-memory seam for tests and local callers; the canonical report only
+ * retains counts, hashes, and diagnostics.
+ */
+export interface ExternalBenchmarkRouteDescriptor {
+  id: ExternalBenchmarkRouteId;
+  label?: string;
+  notes?: readonly Note[];
+  outputNotes?: readonly Note[];
+  attributions?: readonly ExternalRouteCoverageAttribution[];
+  attribution?: readonly ExternalRouteCoverageAttribution[];
+  unavailableReason?: string;
+}
+
+export interface ExternalBenchmarkRoleRouteMetrics {
+  status: "aligned" | "partial" | "ambiguous" | "unavailable";
+  confidence: number | null;
+  coverage: { reference: number | null; candidate: number | null };
+  pitchClassF1: number | null;
+  exactPitchF1: number | null;
+  onsetF1: number | null;
+  contourDirectionAgreement: number | null;
+  diagnostics: string[];
+}
+
+export interface ExternalBenchmarkRouteReport {
+  id: ExternalBenchmarkRouteId;
+  label: string;
+  descriptor: { supplied: boolean; unavailableReason: string | null };
+  status: "available" | "unavailable";
+  output: { availability: "available" | "unavailable"; eventCount: number; durationBeats: number; sha256: string | null };
+  /** Explicit evidence coverage; event terminology keeps this report free of raw-note payload keys. */
+  coverage: ExternalBenchmarkCoverageReport;
+  reference: {
+    status: "aligned" | "partial" | "ambiguous" | "unavailable";
+    confidence: number | null;
+    roleMetrics: Partial<Record<ExternalBenchmarkRole | "all", ExternalBenchmarkRoleRouteMetrics>>;
+    diagnostics: string[];
+  };
+  failures: ExternalBenchmarkFailure[];
+}
+
+export interface ExternalBenchmarkCoverageRow {
+  eventCount: number | null;
+  eventPercentage: number | null;
+  durationBeats: number | null;
+  durationPercentage: number | null;
+  confidence: { min: number | null; median: number | null; max: number | null };
+}
+
+export interface ExternalBenchmarkCoverageReport {
+  totalEvents: number;
+  totalDurationBeats: number;
+  byEvidenceClass: Record<string, ExternalBenchmarkCoverageRow>;
+  attributedEventPercentage: number | null;
+  attributedDurationPercentage: number | null;
+  diagnostics: string[];
+}
+
 export interface ExternalBenchmarkSongInput {
   id: string;
   discoveryRecords?: readonly ExternalResearchDiscoveryRecord[];
@@ -79,6 +162,9 @@ export interface ExternalBenchmarkSongInput {
   windows?: readonly ExternalBenchmarkWindow[];
   humanRaters?: readonly ExternalBenchmarkHumanRater[];
   raters?: readonly ExternalBenchmarkHumanRater[];
+  /** Explicit route outputs; missing control evidence stays unavailable. */
+  routes?: readonly ExternalBenchmarkRouteDescriptor[];
+  routeDescriptors?: readonly ExternalBenchmarkRouteDescriptor[];
   /** Any callback would make the evaluation non-local and is rejected. */
   discover?: unknown;
   acquire?: unknown;
@@ -128,6 +214,9 @@ export interface ExternalBenchmarkSongReport {
   human: ExternalBenchmarkHumanReport;
   /** Alias retained for callers that use the hand-off vocabulary. */
   humanReadiness: ExternalBenchmarkHumanReport;
+  routes: ExternalBenchmarkRouteReport[];
+  /** Convenient route-keyed projection for machine consumers. */
+  routeCoverage: Partial<Record<ExternalBenchmarkRouteId, ExternalBenchmarkCoverageReport>>;
   failures: ExternalBenchmarkFailure[];
 }
 
@@ -288,6 +377,164 @@ function scoreNotes(score: ScoreLike | null | undefined): Note[] {
   return out.sort((a, b) => a.start - b.start || a.midi - b.midi || a.dur - b.dur);
 }
 
+function validBenchmarkNote(note: unknown): note is Note {
+  return isObject(note)
+    && finite(note.midi) && Number.isInteger(note.midi) && note.midi >= 0 && note.midi <= 127
+    && finite(note.start) && note.start >= 0
+    && finite(note.dur) && note.dur > 0
+    && finite(note.vel) && note.vel >= 1 && note.vel <= 127;
+}
+
+function routeOutputNotes(descriptor: ExternalBenchmarkRouteDescriptor | undefined, generated: readonly Note[]): Note[] {
+  const supplied = descriptor?.outputNotes ?? descriptor?.notes;
+  return supplied === undefined ? [...generated] : supplied.filter(validBenchmarkNote).map((note) => ({ ...note }));
+}
+
+function routeOutputHash(notes: readonly Note[]): string | null {
+  if (!notes.length) return null;
+  const stableNotes = [...notes].sort((a, b) => a.start - b.start || a.midi - b.midi || a.dur - b.dur || a.vel - b.vel || (a.hand ?? "").localeCompare(b.hand ?? ""));
+  return createHash("sha256").update(JSON.stringify(stableNotes)).digest("hex");
+}
+
+function benchmarkCoverage(coverage: ExternalRouteCoverageResult): ExternalBenchmarkCoverageReport {
+  return {
+    totalEvents: coverage.totalNotes,
+    totalDurationBeats: coverage.totalDurationBeats,
+    byEvidenceClass: Object.fromEntries(Object.entries(coverage.byEvidenceClass).map(([name, row]) => [name, {
+      eventCount: row.noteCount,
+      eventPercentage: row.notePercentage,
+      durationBeats: row.durationBeats,
+      durationPercentage: row.durationPercentage,
+      confidence: row.confidence,
+    }])),
+    attributedEventPercentage: coverage.attributedNotePercentage,
+    attributedDurationPercentage: coverage.attributedDurationPercentage,
+    diagnostics: coverage.diagnostics.map((item) => item.replace(/note/gi, "event")),
+  };
+}
+
+function routeRoleNotes(notes: readonly Note[], role: ExternalBenchmarkRole | "all"): Note[] {
+  if (role === "all" || role === "timing-only") return role === "timing-only" ? [] : [...notes];
+  const explicit = notes.filter((note) => note.hand === "R" || note.hand === "L");
+  // Parsed MIDI references can omit hand annotations. In a role-scoped
+  // melody window, retaining all pitched events is safer than reporting an
+  // artificial zero-coverage alignment.
+  if (!explicit.length) return [...notes];
+  const selected = role === "melody" ? notes.filter((note) => note.hand === "R") : notes.filter((note) => note.hand === "L");
+  // Native score adapters may conservatively classify an unlabelled piano
+  // track as harmony. Do not turn that classification into an artificial
+  // zero-denominator role result when the requested role has no events.
+  return selected.length || !notes.length ? selected : [...notes];
+}
+
+function routeRoleMetrics(
+  referenceNotes: readonly Note[],
+  candidateNotes: readonly Note[],
+  windows: readonly ExternalBenchmarkWindow[],
+): { status: ExternalBenchmarkRouteReport["reference"]["status"]; confidence: number | null; roleMetrics: Partial<Record<ExternalBenchmarkRole | "all", ExternalBenchmarkRoleRouteMetrics>>; diagnostics: string[] } {
+  const roles: Array<ExternalBenchmarkRole | "all"> = [...new Set(windows.map((window) => window.role ?? "all"))];
+  if (!roles.length) return { status: "unavailable", confidence: null, roleMetrics: {}, diagnostics: ["explicit reference windows are unavailable"] };
+  const roleMetrics: Partial<Record<ExternalBenchmarkRole | "all", ExternalBenchmarkRoleRouteMetrics>> = {};
+  const diagnostics: string[] = [];
+  const statuses: ExternalBenchmarkRouteReport["reference"]["status"][] = [];
+  const confidences: number[] = [];
+  for (const role of roles) {
+    const roleWindows = windows.filter((window) => (window.role ?? "all") === role);
+    const result = alignSymbolicScores(
+      { notes: routeRoleNotes(referenceNotes, role) },
+      { notes: routeRoleNotes(candidateNotes, role) },
+      { windows: roleWindows.map((window) => ({ id: window.id, candidate: window.candidate, reference: window.reference })), minMatchedOnsets: 1 },
+    );
+    const status: ExternalBenchmarkRoleRouteMetrics["status"] = result.status === "aligned" ? "aligned" : result.status === "partial" ? "partial" : result.status === "mismatch" ? "ambiguous" : "unavailable";
+    statuses.push(status);
+    if (finite(result.confidence)) confidences.push(result.confidence);
+    roleMetrics[role] = {
+      status,
+      confidence: finite(result.confidence) ? result.confidence : null,
+      coverage: { reference: finite(result.coverage.referenceRatio) ? result.coverage.referenceRatio : null, candidate: finite(result.coverage.candidateRatio) ? result.coverage.candidateRatio : null },
+      pitchClassF1: finite(result.metrics.pitchClass.f1) ? result.metrics.pitchClass.f1 : null,
+      exactPitchF1: finite(result.metrics.exactPitch.f1) ? result.metrics.exactPitch.f1 : null,
+      onsetF1: finite(result.metrics.onset.f1) ? result.metrics.onset.f1 : null,
+      contourDirectionAgreement: finite(result.metrics.contour.directionAgreement) ? result.metrics.contour.directionAgreement : null,
+      diagnostics: [...new Set(result.diagnostics.map(safeError))].sort(),
+    };
+    diagnostics.push(...result.diagnostics.map(safeError));
+  }
+  const priority: Record<ExternalBenchmarkRouteReport["reference"]["status"], number> = { aligned: 0, partial: 1, ambiguous: 2, unavailable: 3 };
+  const status = statuses.reduce((left, right) => priority[right] > priority[left] ? right : left, "aligned" as ExternalBenchmarkRouteReport["reference"]["status"]);
+  return { status, confidence: confidences.length ? Math.round((confidences.reduce((sum, value) => sum + value, 0) / confidences.length) * 1_000_000) / 1_000_000 : null, roleMetrics, diagnostics: [...new Set(diagnostics)].sort() };
+}
+
+function emptyRoute(id: ExternalBenchmarkRouteId): ExternalBenchmarkRouteReport {
+  const coverage = benchmarkCoverage(evaluateRouteCoverage({ notes: [] }));
+  return {
+    id,
+    label: id,
+    descriptor: { supplied: false, unavailableReason: "route output was not supplied" },
+    status: "unavailable",
+    output: { availability: "unavailable", eventCount: 0, durationBeats: 0, sha256: null },
+    coverage,
+    reference: { status: "unavailable", confidence: null, roleMetrics: {}, diagnostics: ["route output was not supplied"] },
+    failures: ["OUTPUT_UNAVAILABLE"],
+  };
+}
+
+function validateRouteDescriptors(descriptors: readonly ExternalBenchmarkRouteDescriptor[] | undefined): ExternalBenchmarkRouteDescriptor[] {
+  if (descriptors === undefined) return [];
+  if (!Array.isArray(descriptors)) throw new Error("route descriptors must be an array");
+  const seen = new Set<string>();
+  return (descriptors as readonly unknown[]).map((raw, index) => {
+    if (!isObject(raw) || !EXTERNAL_BENCHMARK_ROUTE_IDS.includes(raw.id as ExternalBenchmarkRouteId)) throw new Error(`route descriptor ${index + 1} has an unknown route id`);
+    const descriptor = raw as unknown as ExternalBenchmarkRouteDescriptor;
+    if (seen.has(descriptor.id)) throw new Error(`duplicate route descriptor id: ${descriptor.id}`);
+    seen.add(descriptor.id);
+    for (const notes of [descriptor.notes, descriptor.outputNotes]) {
+      if (notes !== undefined && (!Array.isArray(notes) || notes.some((note) => !validBenchmarkNote(note)))) throw new Error(`route descriptor ${descriptor.id} contains invalid notes`);
+    }
+    for (const attributions of [descriptor.attributions, descriptor.attribution]) {
+      if (attributions !== undefined && !Array.isArray(attributions)) throw new Error(`route descriptor ${descriptor.id} attributions must be an array`);
+    }
+    return descriptor;
+  });
+}
+
+function buildRouteReports(
+  song: ExternalBenchmarkSongInput,
+  generatedNotes: readonly Note[],
+  referenceNotes: readonly Note[],
+  windows: readonly ExternalBenchmarkWindow[],
+): ExternalBenchmarkRouteReport[] {
+  const supplied = validateRouteDescriptors(song.routes ?? song.routeDescriptors);
+  const byId = new Map(supplied.map((descriptor) => [descriptor.id, descriptor]));
+  return [...EXTERNAL_BENCHMARK_ROUTE_IDS].map((id) => {
+    const descriptor = byId.get(id);
+    const notes = routeOutputNotes(descriptor, id === "EXTERNAL_SYMBOLIC_FIRST" ? generatedNotes : []);
+    const generatedExternalOutput = id === "EXTERNAL_SYMBOLIC_FIRST" && generatedNotes.length > 0;
+    const unavailableReason = cleanText(descriptor?.unavailableReason) ?? (descriptor || generatedExternalOutput ? null : "route output was not supplied");
+    const available = !unavailableReason && notes.length > 0;
+    const coverage = benchmarkCoverage(evaluateRouteCoverage({ notes, attributions: descriptor?.attributions ?? descriptor?.attribution }));
+    const reference = available && referenceNotes.length && windows.length
+      ? routeRoleMetrics(referenceNotes, notes, windows)
+      : { status: "unavailable" as const, confidence: null, roleMetrics: {}, diagnostics: ["reference scoring is unavailable for this route"] };
+    const failures: ExternalBenchmarkFailure[] = [];
+    if (!available) failures.push("OUTPUT_UNAVAILABLE");
+    if (available && reference.status === "unavailable") failures.push("ALIGNMENT_UNAVAILABLE");
+    if (reference.status === "partial") failures.push("ALIGNMENT_PARTIAL");
+    if (reference.status === "ambiguous") failures.push("ALIGNMENT_AMBIGUOUS");
+    const durationBeats = notes.reduce((max, note) => Math.max(max, note.start + note.dur), 0);
+    return {
+      id,
+      label: cleanText(descriptor?.label) ?? id,
+      descriptor: { supplied: Boolean(descriptor), unavailableReason },
+      status: available ? "available" : "unavailable",
+      output: { availability: available ? "available" : "unavailable", eventCount: notes.length, durationBeats, sha256: routeOutputHash(notes) },
+      coverage,
+      reference: { ...reference, diagnostics: [...new Set(reference.diagnostics.map(safeError))].sort() },
+      failures: [...new Set(failures)].sort(),
+    };
+  });
+}
+
 function recordStatus(record: ExternalResearchRecord): ExternalResearchParserStatus {
   return record.parser.status;
 }
@@ -344,6 +591,7 @@ function roleAwareAlignment(
 
 function emptySong(id: ExternalBenchmarkSongId): ExternalBenchmarkSongReport {
   const human: ExternalBenchmarkHumanReport = { status: "blocked", raters: 0, agreeing: false, decision: null };
+  const routes = EXTERNAL_BENCHMARK_ROUTE_IDS.map(emptyRoute);
   return {
     id, present: false,
     discovery: { status: "missing", count: 0, metadataOnly: 0, errors: [] },
@@ -359,6 +607,8 @@ function emptySong(id: ExternalBenchmarkSongId): ExternalBenchmarkSongReport {
     reference: { availability: "unavailable", recordIds: [], parsedCount: 0, validatedWindows: [], windows: [], alignment: { status: "unavailable", confidence: null, coverage: { reference: null, candidate: null }, diagnostics: [], roleFilteredWindows: [] } },
     referenceAvailability: "unavailable",
     human, humanReadiness: human,
+    routes,
+    routeCoverage: Object.fromEntries(routes.map((route) => [route.id, route.coverage])) as Partial<Record<ExternalBenchmarkRouteId, ExternalBenchmarkCoverageReport>>,
     failures: ["MISSING_INVENTORY_ID", "MISSING_DISCOVERY", "NO_USABLE_GENERATION_CANDIDATE", "OUTPUT_UNAVAILABLE", "MISSING_REFERENCE", "HUMAN_REVIEW_MISSING"],
   };
 }
@@ -394,11 +644,15 @@ function invalidSong(id: ExternalBenchmarkSongId, error: unknown): ExternalBench
 
 function isMalformedRuntimeInput(error: unknown): boolean {
   const message = safeError(error).toLowerCase();
-  return /must be an object|must contain objects|inputs must be an array|raters must be an array|decisions must be strings|callbacks are not allowed|duplicate (?:candidate|reference) id/.test(message);
+  return /must be an object|must contain objects|inputs must be an array|raters must be an array|decisions must be strings|callbacks are not allowed|duplicate (?:candidate|reference|route descriptor) id|route descriptor .*unknown|route descriptor .*invalid|route descriptors? must be an array|attributions must be an array/.test(message);
 }
 
 async function evaluateSong(song: ExternalBenchmarkSongInput, windows: ExternalBenchmarkWindow[]): Promise<ExternalBenchmarkSongReport> {
   if (song.discover !== undefined || song.acquire !== undefined) throw new Error("external benchmark discovery/acquisition callbacks are not allowed");
+  // Validate route descriptors before the candidate freeze. They are output
+  // controls only, but malformed descriptors must never be allowed to defer
+  // or influence reference evaluation.
+  validateRouteDescriptors(song.routes ?? song.routeDescriptors);
   const candidates = candidateInputsFor(song);
   const references = referenceInputsFor(song);
   validateUniqueInputIds(candidates, "candidate");
@@ -463,6 +717,8 @@ async function evaluateSong(song: ExternalBenchmarkSongInput, windows: ExternalB
   const candidateIds = candidateRecords.map((record) => record.id).sort();
   const referenceAvailability = parsedReferences.length ? "available" as const : referenceRecords.length ? "metadata-only" as const : "unavailable" as const;
   const outputAvailability = generation.status === "symbolic" && outputNotes.length ? "available" as const : "unavailable" as const;
+  const routes = buildRouteReports(song, outputNotes, primaryReference?.score ? scoreNotes(primaryReference.score as ScoreLike) : [], windows);
+  const routeCoverage = Object.fromEntries(routes.map((route) => [route.id, route.coverage])) as Partial<Record<ExternalBenchmarkRouteId, ExternalBenchmarkCoverageReport>>;
   const report: ExternalBenchmarkSongReport = {
     id: song.id as ExternalBenchmarkSongId,
     present: true,
@@ -479,14 +735,28 @@ async function evaluateSong(song: ExternalBenchmarkSongInput, windows: ExternalB
     reference: { availability: referenceAvailability, recordIds: referenceRecords.map((record) => record.id).sort(), parsedCount: parsedReferences.length, validatedWindows, windows: validatedWindows, alignment },
     referenceAvailability,
     human: human.report, humanReadiness: human.report,
+    routes,
+    routeCoverage,
     failures: failures.sort(),
   };
   return report;
 }
 
+function isBinaryPayload(value: unknown): boolean {
+  return value instanceof ArrayBuffer || ArrayBuffer.isView(value);
+}
+
+function isRawPayloadKey(key: string): boolean {
+  return /(?:bytes?|notes?|events?)/i.test(key);
+}
+
 function stable(value: unknown, key = "", omitHashes = false): unknown {
   if (omitHashes && /^(?:reportHash|canonicalSha256)$/i.test(key)) return undefined;
-  if (/(?:bytes?|notes?|events?|timestamp|path|file|locator|executable)/i.test(key)) return undefined;
+  if (/(?:timestamp|path|file|locator|executable)/i.test(key)) return undefined;
+  // Event/note/byte fields are only omitted when they carry raw payloads.
+  // Keep scalar counts and percentages such as eventCount, totalEvents, and
+  // attributedEventPercentage in the canonical report identity.
+  if (isBinaryPayload(value) || (isRawPayloadKey(key) && Array.isArray(value))) return undefined;
   if (typeof value === "string") return safeError(value);
   if (Array.isArray(value)) return value.map((item) => stable(item, key, omitHashes)).filter((item) => item !== undefined);
   if (isObject(value)) return Object.fromEntries(Object.keys(value).sort().map((childKey) => [childKey, stable(value[childKey], childKey, omitHashes)] as const).filter(([, child]) => child !== undefined));
