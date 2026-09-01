@@ -15,7 +15,7 @@ function candidate(overrides: Partial<ExternalEvidenceCandidate> = {}): External
       provider: "example",
       acquiredVia: "local-import",
       acquisition: "local-analysis",
-      physicalPath: "/tmp/example/reference.mid",
+      physicalPath: "/tmp/example/source.mid",
     },
     content: { sha256: "a".repeat(64), byteLength: 12, mediaType: "audio/midi" },
     confidence: { source: 0.9, parse: 1, identity: 0.8, alignment: 0.7 },
@@ -68,6 +68,11 @@ describe("external evidence firewall", () => {
     expect(() => assertGenerationEvidence(candidate({ lineage: { id: "my_reference_id" } }))).toThrow(/benchmark|reference/i);
     expect(() => assertGenerationEvidence(candidate({ metadata: { protectedMarker: true } }))).toThrow(/benchmark|reference|protected/i);
     expect(() => assertGenerationEvidence(candidate({ lineage: { artifactPath: "/tmp/benchmark.mid" } }))).toThrow(/benchmark|reference|protected/i);
+    expect(() => assertGenerationEvidence(candidate({ metadata: { fileName: "reference.mid" } }))).toThrow(/benchmark|reference|protected/i);
+    expect(() => assertGenerationEvidence(candidate({ lineage: { locator: "reference" } }))).toThrow(/benchmark|reference|protected/i);
+    expect(() => assertGenerationEvidence(candidate({ lineage: { artifact: { nested: { benchmark: true } } } }))).toThrow(/benchmark|reference|protected/i);
+    expect(() => assertGenerationEvidence(candidate({ metadata: { file: { protected: true } } }))).toThrow(/benchmark|reference|protected/i);
+    expect(() => assertGenerationEvidence(candidate({ provenance: { artifactRef: { nested: "benchmark" }, acquisition: "local-analysis", sourceRef: "youtube:abc" } }))).toThrow(/benchmark|reference|protected/i);
   });
 
   it("produces an order-invariant candidate-set digest", () => {

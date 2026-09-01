@@ -116,7 +116,6 @@ export function assertGenerationEvidence(candidate: ExternalEvidenceCandidate): 
   if (!isRecord(candidate.content) || typeof candidate.content.sha256 !== "string" || !/^[a-f0-9]{64}$/i.test(candidate.content.sha256)) throw new Error("candidate requires a SHA-256 content hash");
   const containsProtectedMarker = (value: unknown, key = ""): boolean => {
     if (/benchmark|reference|evaluation[-_ ]?only|protected/i.test(key)) return true;
-    if (/(?:path|file|artifact|locator)/i.test(key)) return typeof value === "string" && /benchmark|evaluation[-_ ]?only|protected/i.test(value);
     if (typeof value === "string") return /benchmark|reference|evaluation[-_ ]?only|protected/i.test(value);
     if (Array.isArray(value)) return value.some((item) => containsProtectedMarker(item));
     if (isRecord(value)) return Object.entries(value).some(([entryKey, entryValue]) => containsProtectedMarker(entryValue, entryKey));
