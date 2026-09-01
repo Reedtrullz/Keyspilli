@@ -1290,12 +1290,12 @@ function classifyGuitarPreSelector(
   const eligibleSet = new Set(eligible);
   const upperSet = new Set(upper);
   const routedAt = (note: IdentityNote): boolean => routedRhythm.some((candidate) =>
-    Math.abs(candidate.start - note.start) <= 0.08 + EPS,
+    note.midi <= 60 && Math.abs(candidate.start - note.start) <= 0.08 + EPS,
   );
   for (const note of raw) {
     let reason: GuitarLeadPreSelectorRejectionReason;
-    if (eligibleSet.has(note)) reason = "selector-input";
-    else if (note.hand === "L") reason = "source-not-melodic";
+    if (note.hand === "L") reason = "source-not-melodic";
+    else if (eligibleSet.has(note)) reason = "selector-input";
     else if (routedAt(note)) reason = "rhythm-only";
     else if (note.midi < 45) reason = "register-rejected";
     else if (note.midi >= 61 && !upperSet.has(note)) reason = "confidence-rejected";
@@ -1322,11 +1322,11 @@ function emitGuitarPreSelectorTrace(
   const eligibleSet = new Set(eligible);
   const upperSet = new Set(upper);
   const routedAt = (note: IdentityNote): boolean => routedRhythm.some((candidate) =>
-    Math.abs(candidate.start - note.start) <= 0.08 + EPS,
+    note.midi <= 60 && Math.abs(candidate.start - note.start) <= 0.08 + EPS,
   );
   const reasonFor = (note: IdentityNote): GuitarLeadPreSelectorRejectionReason => {
-    if (eligibleSet.has(note)) return "selector-input";
     if (note.hand === "L") return "source-not-melodic";
+    if (eligibleSet.has(note)) return "selector-input";
     if (routedAt(note)) return "rhythm-only";
     if (note.midi < 45) return "register-rejected";
     if (note.midi >= 61 && !upperSet.has(note)) return "confidence-rejected";
@@ -3258,7 +3258,10 @@ export function buildMetalArrangement(
   // can become a false RH 62–66 line and the later pulse pass cannot recover
   // which detector event was really accompaniment.
   const guitarEligibleRaw = guitarRaw
-    .filter((note) => (note.midi < 61 || guitarUpperRaw.includes(note)) && note.midi >= 45 && !isRoutedRawLow(note, guitarRawRhythm));
+    .filter((note) => note.hand !== "L"
+      && (note.midi < 61 || guitarUpperRaw.includes(note))
+      && note.midi >= 45
+      && !isRoutedRawLow(note, guitarRawRhythm));
   const guitarPathInput = guitarEligibleRaw
     .map((note) => ({ ...note, identitySource: "guitar" as const }));
   const guitarPreSelector = classifyGuitarPreSelector(

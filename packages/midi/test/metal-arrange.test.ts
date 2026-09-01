@@ -2696,9 +2696,10 @@ describe("metal piano arranger", () => {
     const input = {
       stems: [{ role: "guitar" as const, midi: midi([
         { midi: 40, start: 0, dur: 0.5, vel: 90 },
+        { midi: 86, start: 0, dur: 0.1, vel: 30 },
         { midi: 52, start: 1, dur: 0.5, vel: 90 },
-        { midi: 72, start: 2, dur: 0.5, vel: 100 },
-        { midi: 79, start: 2.04, dur: 0.5, vel: 96 },
+        { midi: 72, start: 3, dur: 0.5, vel: 100 },
+        { midi: 79, start: 3.04, dur: 0.5, vel: 96 },
         { midi: 85, start: 6, dur: 0.1, vel: 30 },
         { midi: 60.5, start: 7, dur: 0.5, vel: 90 },
       ], 8) }],
@@ -2709,16 +2710,16 @@ describe("metal piano arranger", () => {
 
     expect(traced).toEqual(plain);
     expect(traced.stats.guitarPreSelector).toEqual({
-      rawSourceCount: 6,
-      validRawCount: 5,
+      rawSourceCount: 7,
+      validRawCount: 6,
       selectorInputCount: 2,
-      removedCount: 3,
+      removedCount: 4,
       reasons: {
         "selector-input": 2,
         "invalid-raw": 1,
         "rhythm-only": 2,
         "register-rejected": 0,
-        "confidence-rejected": 1,
+        "confidence-rejected": 2,
         "source-not-melodic": 0,
         other: 0,
       },
@@ -2732,7 +2733,7 @@ describe("metal piano arranger", () => {
 
     const preSelector = trace.filter((event) =>
       event.stage === "eligibility" || event.stage === "onset-group" || event.stage === "selector-input");
-    expect(trace.filter((event) => event.stage === "eligibility")).toHaveLength(5);
+    expect(trace.filter((event) => event.stage === "eligibility")).toHaveLength(6);
     expect(trace.filter((event) => event.stage === "selector-input")).toHaveLength(2);
     expect(trace.filter((event) => event.stage === "onset-group")).toHaveLength(1);
     const byKey = new Map(trace.map((event) => [event.key, event]));
@@ -2740,7 +2741,7 @@ describe("metal piano arranger", () => {
       expect(event.parentKeys.every((parentKey) => byKey.has(parentKey))).toBe(true);
     }
     expect(trace.filter((event) => event.stage === "eligibility").map((event) => event.selectionReason))
-      .toEqual(["rhythm-only", "rhythm-only", "selector-input", "selector-input", "confidence-rejected"]);
+      .toEqual(["rhythm-only", "confidence-rejected", "rhythm-only", "selector-input", "selector-input", "confidence-rejected"]);
     expect(trace.filter((event) => event.stage === "selector-input")
       .every((event) => event.parentKeys.length === 1
         && byKey.get(event.parentKeys[0]!)?.stage === "eligibility")).toBe(true);
@@ -2758,5 +2759,32 @@ describe("metal piano arranger", () => {
     const raw = trace.filter((event) => event.stage === "raw");
     expect(raw).toHaveLength(2);
     expect(new Set(raw.map((event) => event.key)).size).toBe(2);
+  });
+
+  it("keeps hand-marked LH raw guitar events out of selector input", () => {
+    const input = {
+      stems: [{ role: "guitar" as const, midi: midi([
+        { midi: 72, start: 0, dur: 0.5, vel: 90, hand: "L" as const },
+      ], 2) }],
+    };
+    const trace: MetalArrangementTraceEvent[] = [];
+    const result = buildMetalArrangement(input, { trace: { record: (event) => trace.push(event) } });
+    expect(result.stats.guitarPreSelector).toEqual({
+      rawSourceCount: 1,
+      validRawCount: 1,
+      selectorInputCount: 0,
+      removedCount: 1,
+      reasons: {
+        "selector-input": 0,
+        "invalid-raw": 0,
+        "rhythm-only": 0,
+        "register-rejected": 0,
+        "confidence-rejected": 0,
+        "source-not-melodic": 1,
+        other: 0,
+      },
+    });
+    expect(trace.filter((event) => event.stage === "selector-input")).toHaveLength(0);
+    expect(trace.find((event) => event.stage === "eligibility")?.selectionReason).toBe("source-not-melodic");
   });
 });
