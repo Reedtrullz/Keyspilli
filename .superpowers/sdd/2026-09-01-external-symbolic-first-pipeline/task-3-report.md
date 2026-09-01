@@ -24,6 +24,10 @@
   note/event/byte payload keys, record content hashes must be valid and match
   candidate hashes, malformed section rows reject without throwing, and route
   coverage rejects malformed, negative, or non-finite totals/attributions.
+- Follow-up review hardening guards non-array section-map values, redacts
+  unknown-root physical path fragments, keeps normalized score data deeply
+  frozen but non-enumerable in JSON, sanitizes score metadata, and filters
+  malformed route notes before duration calculations.
 - Exported the new boundary from `packages/catalog/src/index.ts` and added
   synthetic in-memory tests covering benchmark exclusion, order-invariant
   digest, roles/sections, malformed/non-parsed/low-confidence/misaligned
@@ -36,16 +40,16 @@ Commands run from `/Users/reidar/Projectos/Keyspilli`:
 
 ```text
 ./node_modules/.bin/vitest run packages/catalog/test/external-symbolic-pipeline.test.ts
-  1 file, 13 tests passed
+  1 file, 17 tests passed
 
 ./node_modules/.bin/vitest run packages/catalog/test/external-symbolic-pipeline.test.ts packages/catalog/test/external-evidence.test.ts packages/catalog/test/external-research.test.ts packages/catalog/test/piano-section-builder.test.ts packages/catalog/test/route-funnel.test.ts packages/catalog/test/arrangement-evaluation.test.ts
-  6 files, 87 tests passed
+  6 files, 91 tests passed
 
 pnpm --filter @keyspilli/catalog exec tsc --noEmit
   passed
 
 ./node_modules/.bin/vitest run packages/catalog/test
-  79 files; 710 passed, 6 failed (pre-existing environment failures)
+  79 files; 714 passed, 6 failed (pre-existing environment failures)
 
 git diff --check
   passed

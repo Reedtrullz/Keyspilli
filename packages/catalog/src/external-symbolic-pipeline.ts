@@ -53,7 +53,7 @@ export interface FrozenGenerationCandidateSet {
 
 const ROLES = new Set<EvidenceRole>(["melody", "harmony", "bass-root", "rhythm", "timing-only"]);
 const PHYSICAL_KEY = /(?:path|file|locator|artifact)$/i;
-const NOTE_DATA_KEY = /(?:notes?|events?|bytes?)(?:[_-]?(?:data|list|array|payload|rows?))?$/i;
+const NOTE_DATA_KEY = /(?:notes?|events?|bytes?)(?:[_-]?(?:data|list|array|payload|rows?|blob|buffer|by.*))?$/i;
 const PATH_VALUE = /^(?:file:\/\/|[A-Za-z]:[\\/]|[\\/~])|\/(?:Users|private|tmp|var|home|Volumes|root|opt|workspace|srv|etc|mnt|data)(?:[\\/]|$)/i;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -76,7 +76,7 @@ function safeMetadata(value: unknown, key = ""): unknown {
 
 /** Scores are the normalized realization input, so their event rows remain; only locators are removed. */
 function safeScoreMetadata(value: unknown, key = ""): unknown {
-  if (PHYSICAL_KEY.test(key)) return undefined;
+  if (PHYSICAL_KEY.test(key) || (NOTE_DATA_KEY.test(key) && key.toLowerCase() !== "events")) return undefined;
   if (Array.isArray(value)) return value.map((item) => safeScoreMetadata(item, key)).filter((item) => item !== undefined);
   if (typeof value === "string") return redactPath(value);
   if (!isRecord(value)) return value;
@@ -86,13 +86,15 @@ function safeScoreMetadata(value: unknown, key = ""): unknown {
 }
 
 function redactPath(value: string): string {
-  return value.replace(/(?:file:\/\/|[A-Za-z]:[\\/]|~[\\/]|\/(?:Users|private|tmp|var|home|Volumes|root|opt|workspace|srv|etc|mnt|data)(?:[\\/]|$))[^\s,;)}\]]*/gi, "[redacted-path]");
+  if (/^https?:\/\//i.test(value.trim())) return value;
+  const physical = /(?:file:\/\/[^\s,;)}\]]+|\\\\[^\s,;)}\]]+|(?<![A-Za-z0-9:])(?:[A-Za-z]:[\\/]|~[\\/]|\/(?:Users|private|tmp|var|home|Volumes|root|opt|workspace|srv|etc|mnt|data)(?:[\\/]|$))[^\s,;)}\]]*|(?<![A-Za-z0-9:/])\/(?=[^\s,;)}\]]*\/)[^\s,;)}\]]+)/gi;
+  return value.replace(physical, "[redacted-path]");
 }
 
 function immutable<T>(value: T): T {
   if (value && typeof value === "object" && !Object.isFrozen(value)) {
     Object.freeze(value);
-    for (const child of Object.values(value as Record<string, unknown>)) immutable(child);
+    for (const name of Object.getOwnPropertyNames(value)) immutable((value as Record<string, unknown>)[name]);
   }
   return value;
 }
@@ -102,7 +104,7 @@ function deeplyFrozen(value: unknown, seen = new Set<unknown>()): boolean {
   if (seen.has(value)) return true;
   if (!Object.isFrozen(value)) return false;
   seen.add(value);
-  return Object.values(value as Record<string, unknown>).every((child) => deeplyFrozen(child, seen));
+  return Object.getOwnPropertyNames(value).every((name) => deeplyFrozen((value as Record<string, unknown>)[name], seen));
 }
 
 function confidenceValues(candidate: ExternalEvidenceCandidate, roles: readonly EvidenceRoleRecord[], sections: readonly GenerationSection[]): number[] {
@@ -119,7 +121,11 @@ function recordSections(recordId: string, record: ExternalResearchRecord, config
     if (config.sections.some((section) => !isRecord(section) || typeof section.recordId !== "string" || !section.recordId.trim())) return { sections: [], invalid: true };
     configured = config.sections.filter((section) => section.recordId === recordId);
   } else if (config.sections && typeof config.sections === "object") {
-    configured = (config.sections as Readonly<Record<string, readonly GenerationSection[]>>)[recordId] ? [...(config.sections as Readonly<Record<string, readonly GenerationSection[]>>)[recordId]!] : [];
+    const sectionMap = config.sections as Readonly<Record<string, readonly GenerationSection[] | null | undefined>>;
+    if (Object.hasOwn(sectionMap, recordId)) {
+      if (!Array.isArray(sectionMap[recordId])) return { sections: [], invalid: true };
+      configured = [...sectionMap[recordId]!];
+    } else configured = [];
   } else {
     configured = [];
   }
@@ -239,13 +245,21 @@ export function freezeGenerationCandidateSet(
       continue;
     }
     const safeCandidate = safeMetadata(candidate) as ExternalEvidenceCandidate;
+    const localScore = immutable(safeScoreMetadata(record.score) as OmrScoreInput);
     const frozen: FrozenGenerationCandidate = {
       recordId,
       candidate: safeCandidate,
-      score: safeScoreMetadata(record.score) as OmrScoreInput,
       roles,
       ...(sectionResult.sections.length ? { sections: sectionResult.sections } : {}),
-    };
+    } as unknown as FrozenGenerationCandidate;
+    // Keep normalized score events available to local realization while making
+    // the path-safe JSON representation metadata-only.
+    Object.defineProperty(frozen, "score", {
+      value: localScore,
+      enumerable: false,
+      writable: false,
+      configurable: false,
+    });
     selected.push(frozen);
   }
   selected.sort((a, b) => a.recordId.localeCompare(b.recordId)
@@ -420,9 +434,12 @@ function median(values: readonly number[]): number | null {
 export function evaluateRouteCoverage(input: ExternalRouteCoverageInput): ExternalRouteCoverageResult {
   const diagnostics: string[] = [];
   const rawNotes = input.notes ?? input.result?.notes;
-  const notes = rawNotes === undefined ? [] : Array.isArray(rawNotes) ? rawNotes : [];
   let invalidData = false;
+  const notes = rawNotes === undefined ? [] : Array.isArray(rawNotes)
+    ? rawNotes.filter((note): note is Note => isRecord(note) && finite(note.midi) && Number.isInteger(note.midi) && finite(note.start) && finite(note.dur) && note.dur > 0 && finite(note.vel))
+    : [];
   if (rawNotes !== undefined && !Array.isArray(rawNotes)) { diagnostics.push("notes must be an array"); invalidData = true; }
+  else if (Array.isArray(rawNotes) && notes.length !== rawNotes.length) { diagnostics.push("route notes contained malformed entries"); invalidData = true; }
   const totalNotes = input.totalNotes === undefined
     ? notes.length
     : finite(input.totalNotes) && Number.isInteger(input.totalNotes) && input.totalNotes >= 0

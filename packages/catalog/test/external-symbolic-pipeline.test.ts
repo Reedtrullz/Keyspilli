@@ -141,6 +141,27 @@ describe("external symbolic generation boundary", () => {
     expect(mismatched.rejected[0]?.reasons.join(" ")).toMatch(/hash/i);
   });
 
+  it("rejects non-array object section values without throwing", () => {
+    const frozen = freezeGenerationCandidateSet([record()], { sections: { "record-a": null as never } });
+    expect(frozen.selected).toHaveLength(0);
+    expect(frozen.rejected[0]?.reasons.join(" ")).toMatch(/section/i);
+  });
+
+  it("keeps raw candidate payloads and unknown-root path fragments out of metadata", () => {
+    const candidate = { ...record().candidate!, rawNoteBlob: [{ midi: 60 }], eventsByTrack: [{ pitch: 60 }], byteBuffer: [1, 2], metadata: { description: "/odd/private/path", locator: "/odd/private/path" } };
+    const frozen = freezeGenerationCandidateSet([record({ candidate })]);
+    const serialized = JSON.stringify(frozen);
+    expect(serialized).not.toMatch(/rawNoteBlob|eventsByTrack|byteBuffer|odd\/private\/path/);
+  });
+
+  it("keeps normalized score events local but excludes them from path-safe JSON", () => {
+    const frozen = freezeGenerationCandidateSet([record({ score: { ...score(), metadata: { rawNoteBlob: [{ midi: 1 }], locator: "/odd/private/path" } } })]);
+    expect(frozen.selected[0]?.score.parts).toHaveLength(1);
+    expect(frozen.selected[0]?.score.metadata).toEqual({});
+    expect(JSON.stringify(frozen)).not.toContain('"score"');
+    expect(Object.isFrozen(frozen.selected[0]?.score)).toBe(true);
+  });
+
   it("returns explicit fallback or unavailable without usable evidence", () => {
     const fallback = buildExternalSymbolicArrangement({ candidateSet: freezeGenerationCandidateSet([]) });
     expect(fallback).toMatchObject({ status: "fallback", selectedRecordIds: [] });
@@ -183,5 +204,12 @@ describe("explicit evidence-class route coverage", () => {
     expect(coverage.attributedNotePercentage).toBeNull();
     expect(coverage.attributedDurationPercentage).toBeNull();
     expect(coverage.diagnostics.join(" ")).toMatch(/invalid|incomplete/i);
+  });
+
+  it("fails closed when route notes contain null or malformed entries", () => {
+    const coverage = evaluateRouteCoverage({ notes: [null, notes[0], { dur: 1 }] as never });
+    expect(coverage.totalNotes).toBe(1);
+    expect(coverage.attributedNotePercentage).toBeNull();
+    expect(coverage.diagnostics.join(" ")).toMatch(/note/i);
   });
 });
