@@ -43,6 +43,7 @@ export * from "./midi-corpus-roles.js";
 export * from "./midi-corpus.js";
 export * from "./midi-corpus-report.js";
 export * from "./direct-amt-evaluation.js";
+export * from "./upstream-attribution-runner.js";
 export * from "./external-retrieval.js";
 export * from "./shadow-corpus.js";
 // The local shadow modules intentionally have a few similarly named input
@@ -81,6 +82,7 @@ export type {
   ShadowCorpusAdapterErrorRecord,
 } from "./shadow-corpus-adapter.js";
 export * from "./shadow-alignment.js";
+export * from "./upstream-attribution.js";
 export {
   shadowItemToMetalStems,
   evaluateShadowItem,
