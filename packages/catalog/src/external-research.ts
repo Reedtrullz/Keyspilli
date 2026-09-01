@@ -203,7 +203,7 @@ function errorText(error: unknown): string {
 /** Redact physical locators while preserving logical refs and HTTP(S) URLs. */
 function redactPhysicalText(value: string): string {
   if (/^https?:\/\//i.test(value.trim())) return value;
-  const physical = /(?:file:\/\/(?:[A-Za-z]:[\\/]|[\\/]|~[\\/])|(?<![A-Za-z0-9])(?:[A-Za-z]:[\\/]|~[\\/]|\/(?:Users|private|tmp|var|home|Volumes|workspace|opt|root|srv|etc|mnt|data)(?:[\\/]|$)))[^\s,;)}\]]*/gi;
+  const physical = /(?:file:\/\/[^\s,;)}\]]+|\\\\[^\s,;)}\]]+|(?<![A-Za-z0-9:])(?:[A-Za-z]:[\\/]|~[\\/]|\/(?:Users|private|tmp|var|home|Volumes|workspace|opt|root|srv|etc|mnt|data)(?:[\\/]|$))[^\s,;)}\]]*|(?<![A-Za-z0-9:])\/[^\s,;)}\]]+\.(?:mid|midi|musicxml|mxl|mscz|wav|mp3|json)(?:[?#][^\s,;)}\]]*)?)/gi;
   return value.replace(physical, "[redacted-path]");
 }
 
@@ -468,8 +468,9 @@ export async function researchExternalCandidates(songInput: SongIdentityInput | 
     const requestedId = stableId(input.id, stableId(sourceRef, input.bytes !== undefined ? `local:${hashBytes(input.bytes).slice(0, 24)}` : `local:${index + 1}`));
     const baseByIdentity = records.get(requestedId)
       ?? (sourceRef ? [...records.values()].find((record) => record.discovery.sourceRef === sourceRef) : undefined);
+    const protectedDiscovery = baseByIdentity && (baseByIdentity.purpose === "BENCHMARK_REFERENCE" || baseByIdentity.evidenceClass === "BENCHMARK_REFERENCE");
     const ingestionInput = baseByIdentity
-      ? { ...input, purpose: input.purpose ?? baseByIdentity.purpose, evidenceClass: input.evidenceClass ?? baseByIdentity.evidenceClass }
+      ? { ...input, purpose: protectedDiscovery ? baseByIdentity.purpose : input.purpose ?? baseByIdentity.purpose, evidenceClass: protectedDiscovery ? baseByIdentity.evidenceClass : input.evidenceClass ?? baseByIdentity.evidenceClass }
       : input;
     const result = await ingestExternalSymbolicCandidate(ingestionInput);
     const contentHash = result.provenance?.sha256 ?? null;
@@ -483,11 +484,13 @@ export async function researchExternalCandidates(songInput: SongIdentityInput | 
       record.id = base.id;
       record.title = record.title === song.title ? base.title : record.title;
       record.provider = record.provider ?? base.provider;
-      record.evidenceClass = input.evidenceClass ?? base.evidenceClass;
-      record.purpose = input.purpose ?? base.purpose;
+      record.evidenceClass = protectedDiscovery ? base.evidenceClass : input.evidenceClass ?? base.evidenceClass;
+      record.purpose = protectedDiscovery ? base.purpose : input.purpose ?? base.purpose;
       record.discovery.sourceRef = record.discovery.sourceRef ?? base.discovery.sourceRef;
       record.discovery.sourcePage = record.discovery.sourcePage ?? base.discovery.sourcePage;
       if (record.purpose === "BENCHMARK_REFERENCE" && !record.rejectionReasons.some((reason) => /benchmark|reference/i.test(reason))) record.rejectionReasons.push("benchmark/reference evidence is evaluation-only");
+      if (protectedDiscovery && (input.purpose !== undefined || input.evidenceClass !== undefined)
+        && (input.purpose !== base.purpose || input.evidenceClass !== base.evidenceClass)) record.rejectionReasons.push("local metadata cannot override benchmark/reference discovery");
       record.generationUsable = record.generationUsable && record.purpose !== "BENCHMARK_REFERENCE";
       records.set(baseEntry[0], record);
     } else records.set(id, record);

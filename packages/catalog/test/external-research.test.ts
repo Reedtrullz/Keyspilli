@@ -141,12 +141,12 @@ describe("external symbolic research bridge", () => {
   it("preserves sanitized HTTP URLs while redacting physical roots and path-bearing errors", async () => {
     const inventory = await researchExternalCandidates(song, {
       discoveryRecords: [{ id: "url", title: "URL lead", provider: "Provider", sourceRef: "provider:url", sourcePage: "https://example.com/page?token=secret#section" }],
-      discoveryErrors: ["failed reading /opt/keyspilli/a.mid and /root/private/b.mid; see https://example.com/page"],
+      discoveryErrors: ["failed reading /opt/keyspilli/a.mid, /root/private/b.mid, /unknownroot/secret.mid, \\\\server\\share\\song.mid, and file://server/share/other.mid; see https://example.com/page"],
     });
     const json = serializeExternalResearchInventory(inventory);
     expect(json).toContain("https://example.com/page");
     expect(json).not.toContain("http[redacted-path]");
-    expect(json).not.toMatch(/\/opt\/|\/root\/|\/srv\/|\/etc\/|\/mnt\/|\/data\/|\$1/);
+    expect(json).not.toMatch(/\/opt\/|\/root\/|\/srv\/|\/etc\/|\/mnt\/|\/data\/|\/unknownroot\/|server\\share|file:\/\/server|\$1/);
     expect(json).toContain("[redacted-path]");
   });
 
@@ -170,6 +170,16 @@ describe("external symbolic research bridge", () => {
     });
     expect(inventory.records).toHaveLength(1);
     expect(inventory.records[0]).toMatchObject({ id: "discovery-id", provider: "Provider", parser: { status: "parsed" }, content: { sha256: expect.any(String) } });
+  });
+
+  it("keeps benchmark/reference discovery authoritative over a local purpose override", async () => {
+    const inventory = await researchExternalCandidates(song, {
+      discoveryRecords: [{ id: "protected", sourceRef: "provider:protected", purpose: "BENCHMARK_REFERENCE", evidenceClass: "BENCHMARK_REFERENCE" }],
+      localInputs: [{ sourceRef: "provider:protected", purpose: "GENERATION_CANDIDATE", evidenceClass: "VERIFIED_NATIVE_SYMBOLIC", bytes: midiBytes([{ midi: 60, start: 0, dur: 1, vel: 96, hand: "R" }]), format: "midi" }],
+    });
+    expect(inventory.records).toHaveLength(1);
+    expect(inventory.records[0]).toMatchObject({ purpose: "BENCHMARK_REFERENCE", evidenceClass: "BENCHMARK_REFERENCE", candidate: null, generationUsable: false });
+    expect(inventory.records[0]?.rejectionReasons.join(" ")).toMatch(/benchmark|override/i);
   });
 
   it("reports uncertain role evidence from register, monophony, density, and metadata", () => {
