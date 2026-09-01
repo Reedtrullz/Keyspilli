@@ -47,6 +47,15 @@ describe("external symbolic benchmark orchestration", () => {
     expect(row.output.availability).toBe("available");
   });
 
+  it("keeps local-only external evaluation modules out of the production barrel", async () => {
+    const catalog = await import("../src/index.js");
+    expect("assertGenerationEvidence" in catalog).toBe(false);
+    expect("adaptNativeSymbolicBytes" in catalog).toBe(false);
+    expect("researchExternalCandidates" in catalog).toBe(false);
+    expect("buildExternalSymbolicArrangement" in catalog).toBe(false);
+    expect("evaluateStageSurvival" in catalog).toBe(false);
+  });
+
   it("validates explicit windows and human readiness fail-closed", async () => {
     await expect(buildExternalBenchmarkReport({ songs: [song(SEVEN_SONG_BENCHMARK_IDS[0]!, { windows: [{ id: "bad", candidate: [1, 1] as [number, number], reference: [0, 1] as [number, number] }] })] })).rejects.toThrow(/window/i);
     const one = await buildExternalBenchmarkReport({ songs: [song(SEVEN_SONG_BENCHMARK_IDS[0]!, { humanRaters: [{ raterId: "r1", decision: "accept" }] })] });

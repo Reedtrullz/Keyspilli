@@ -36,6 +36,32 @@ are aligned to it per role and section; their tempo maps are not silently
 substituted for the recording timeline. Unaligned or ambiguous regions remain
 conservative or fall back to `AUDIO_AMT_FALLBACK`.
 
+## Local evaluation commands
+
+The evidence and benchmark modules are intentionally direct local imports, not
+production catalog-barrel exports. Run them only with an explicit local
+manifest or stage set:
+
+```text
+npm run evaluate:external-symbolic -w @keyspilli/catalog -- \
+  --manifest /absolute/local/manifest.json \
+  --out /absolute/local/report.json
+
+npm run evaluate-red-baron-survival -w @keyspilli/catalog -- \
+  --stage raw=/absolute/local/raw.mid \
+  --stage decoder=/absolute/local/decoder.mid \
+  --stage semantic=/absolute/local/semantic.mid \
+  --stage canonical=/absolute/local/canonical.mid \
+  --stage easy=/absolute/local/easy.mid \
+  --reference /absolute/local/reference.mid \
+  --window solo:0:32:0:32
+```
+
+Inputs are read in place; commands do not download, upload, copy, or publish
+reference material. Reports redact physical paths and omit raw notes/bytes.
+Benchmark/reference records are evaluation-only, and automated metrics do not
+establish recognizability or human acceptance.
+
 ## Role and realization boundary
 
 Full-band symbolic sources are decomposed into semantic melody/lead,

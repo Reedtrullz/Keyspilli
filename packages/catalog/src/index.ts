@@ -42,8 +42,3 @@ export * from "./midi-corpus-roles.js";
 export * from "./midi-corpus.js";
 export * from "./midi-corpus-report.js";
 export * from "./direct-amt-evaluation.js";
-export * from "./external-evidence.js";
-export * from "./native-score-adapter.js";
-export * from "./external-research.js";
-export * from "./external-symbolic-pipeline.js";
-export * from "./red-baron-survival.js";
