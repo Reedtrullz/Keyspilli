@@ -51,4 +51,3 @@ Automated structural, alignment, pitch, onset, harmony, and playability
 metrics are diagnostics. Human recognizability and musical usefulness remain a
 separate gate requiring at least two raters. A passing parser, alignment, or
 CI run is not a claim that an arrangement sounds good.
-

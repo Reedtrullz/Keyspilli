@@ -23,8 +23,8 @@ export type EvidenceRole = (typeof EVIDENCE_ROLES)[number];
 export interface EvidenceProvenance {
   sourceRef: string;
   provider?: string;
-  acquiredVia?: string;
-  acquisition?: string;
+  acquiredVia?: unknown;
+  acquisition?: unknown;
   canonicalSourceRef?: string;
   /** Physical locators are accepted for input but never included in canonical metadata. */
   physicalPath?: string;
@@ -84,8 +84,8 @@ function normalize(value: unknown): unknown {
 }
 
 function canonicalMetadata(candidate: ExternalEvidenceCandidate): Record<string, unknown> {
-  const excluded = /(?:path|file|notes?|events?)/i;
-  const pathLike = /^(?:[A-Za-z]:[\\/]|[\\/]|~[\\/])|(?:[\\/]\S+\.(?:mid|midi|musicxml|mxl|wav|mp3|json))(?:$|[?#])/i;
+  const excluded = /(?:path|file|notes?|events?|artifact|locator)/i;
+  const pathLike = /^(?:file:\/\/|[A-Za-z]:[\\/]|[\\/]|~[\\/])|(?:[\\/]\S+\.(?:mid|midi|musicxml|mxl|wav|mp3|json))(?:$|[?#])/i;
   const strip = (value: unknown): unknown => {
     if (Array.isArray(value)) return value.map(strip);
     if (typeof value === "string" && pathLike.test(value)) return "[redacted-path]";
@@ -102,13 +102,15 @@ export function assertGenerationEvidence(candidate: ExternalEvidenceCandidate): 
   if (!isOneOf(candidate.purpose, EVIDENCE_PURPOSES) || candidate.purpose === "BENCHMARK_REFERENCE") throw new Error("benchmark evidence cannot enter generation");
   if (!isOneOf(candidate.status, CANDIDATE_STATUSES) || candidate.status === "parse-failed" || candidate.status === "rejected") throw new Error("candidate parse status is not generation-safe");
   if (!isRecord(candidate.provenance) || typeof candidate.provenance.sourceRef !== "string" || candidate.provenance.sourceRef.trim() === "") throw new Error("candidate requires a logical source reference");
-  const acquisitions = [candidate.provenance.acquisition, candidate.provenance.acquiredVia].filter((value): value is string => typeof value === "string");
-  if (acquisitions.length === 0 || acquisitions.some((value) => !/^local(?:-|$)/i.test(value) || /remote|benchmark|protected|download|provider-export/i.test(value))) throw new Error("candidate acquisition is not permitted for local analysis");
+  const suppliedAcquisions = [candidate.provenance.acquisition, candidate.provenance.acquiredVia].filter((value) => value !== undefined && value !== null);
+  const acquisitions = suppliedAcquisions.filter((value): value is string => typeof value === "string");
+  if (acquisitions.length !== suppliedAcquisions.length || acquisitions.length === 0 || acquisitions.some((value) => !/^local(?:-|$)/i.test(value) || /remote|benchmark|protected|download|provider-export/i.test(value))) throw new Error("candidate acquisition is not permitted for local analysis");
   if (!isRecord(candidate.content) || typeof candidate.content.sha256 !== "string" || !/^[a-f0-9]{64}$/i.test(candidate.content.sha256)) throw new Error("candidate requires a SHA-256 content hash");
   const protectedFields = [candidate.provenance, candidate.lineage, candidate.protectedMarker, candidate.benchmarkReferenceHash, candidate.benchmarkReferenceHashes];
   const containsProtectedMarker = (value: unknown, key = ""): boolean => {
+    if (/(?:path|file|artifact|locator)/i.test(key)) return false;
     if (/benchmark|reference|evaluation[-_ ]?only|protected/i.test(key)) return true;
-    if (typeof value === "string") return /benchmark|evaluation[-_ ]?only|protected/i.test(value) || /(?:^|[/:])reference(?:$|[/:])/i.test(value);
+    if (typeof value === "string") return /benchmark|reference|evaluation[-_ ]?only|protected/i.test(value);
     if (Array.isArray(value)) return value.some((item) => containsProtectedMarker(item));
     if (isRecord(value)) return Object.entries(value).some(([entryKey, entryValue]) => containsProtectedMarker(entryValue, entryKey));
     return false;

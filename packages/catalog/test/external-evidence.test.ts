@@ -40,6 +40,7 @@ describe("external evidence firewall", () => {
     expect(() => assertGenerationEvidence(candidate({ provenance: { sourceRef: "x", acquisition: "remote-only" } }))).toThrow(/acqui/i);
     expect(() => assertGenerationEvidence(candidate({ status: "parse-failed" }))).toThrow(/parse/i);
     expect(() => assertGenerationEvidence(candidate({ provenance: { sourceRef: "x", acquisition: "local-analysis", acquiredVia: "provider-export" } }))).toThrow(/acqui/i);
+    expect(() => assertGenerationEvidence(candidate({ provenance: { sourceRef: "x", acquisition: { remote: true }, acquiredVia: "local-import" } as never }))).toThrow(/acqui/i);
   });
 
   it("canonicalizes metadata without note arrays or physical paths", () => {
@@ -51,8 +52,8 @@ describe("external evidence firewall", () => {
 
   it("redacts nested and logical path-like values case-insensitively", () => {
     const [canonical] = canonicalEvidenceCandidateSet([candidate({
-      provenance: { sourceRef: "/tmp/source.mid", acquisition: "local-analysis", physical_path: "/tmp/source.mid" },
-      lineage: { localPath: "/tmp/lineage.mid", noteEvents: [{ pitch: 60 }], nested: { FILEPATH: "/tmp/nested.mid" } },
+      provenance: { sourceRef: "file:///Users/reidar/My Folder/source.xml", acquisition: "local-analysis", physical_path: "/tmp/source.mid", sourceArtifactRef: "/tmp/artifact.mid" },
+      lineage: { localPath: "/tmp/lineage.mid", rootFile: "file:///tmp/root file.mid", noteEvents: [{ pitch: 60 }], nested: { FILEPATH: "/tmp/nested.mid" } },
     })]);
     expect(JSON.stringify(canonical)).not.toContain("/tmp/");
     expect(JSON.stringify(canonical)).not.toContain("noteEvents");
@@ -62,6 +63,8 @@ describe("external evidence firewall", () => {
     expect(() => assertGenerationEvidence(candidate({ provenance: { sourceRef: "benchmark:fixture-1", acquisition: "local-analysis" } }))).toThrow(/benchmark/i);
     expect(() => assertGenerationEvidence(candidate({ lineage: { sourceRef: "evaluation-only/reference", stage: "reference" } }))).toThrow(/benchmark|reference|evaluation/i);
     expect(() => assertGenerationEvidence(candidate({ benchmarkReferenceHashes: ["a".repeat(64)] }))).toThrow(/benchmark|reference/i);
+    expect(() => assertGenerationEvidence(candidate({ provenance: { sourceRef: "fixture-reference", acquisition: "local-analysis" } }))).toThrow(/benchmark|reference/i);
+    expect(() => assertGenerationEvidence(candidate({ lineage: { id: "my_reference_id" } }))).toThrow(/benchmark|reference/i);
   });
 
   it("produces an order-invariant candidate-set digest", () => {
