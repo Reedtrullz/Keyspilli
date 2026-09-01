@@ -12,12 +12,14 @@
   `evaluate:external-symbolic` package script. The command accepts only an
   explicitly supplied absolute local manifest and optional output path. It does
   not download, upload, copy, stage, replay, or publish source/benchmark bytes.
-- Exported the pure API from `packages/catalog/src/index.ts` and added
-  synthetic tests covering inventory completeness, missing/metadata-only
+- Added synthetic tests covering inventory completeness, missing/metadata-only
   evidence, parsed local candidates, benchmark/reference exclusion,
   freeze-before-reference ordering, deterministic reordered-input hashes,
   explicit windows, missing evidence, human rater thresholds/conflicts, and
-  CLI local-path validation.
+  CLI local-path validation. Follow-up hardening adds role-filtered alignment,
+  malformed manifest fail-closed reporting, arbitrary POSIX/relative path
+  redaction, duplicate candidate/reference ID rejection, anonymous/duplicate
+  rater blocking, and keeps the module out of the public catalog barrel.
 
 ## Verification
 
@@ -25,10 +27,10 @@ Commands run from `/Users/reidar/Projectos/Keyspilli`:
 
 ```text
 ./node_modules/.bin/vitest run packages/catalog/test/external-benchmark.test.ts
-  1 file, 6 tests passed
+  1 file, 10 tests passed
 
 ./node_modules/.bin/vitest run packages/catalog/test/external-benchmark.test.ts packages/catalog/test/external-symbolic-pipeline.test.ts packages/catalog/test/external-research.test.ts packages/catalog/test/external-evidence.test.ts packages/catalog/test/arrangement-evaluation.test.ts packages/catalog/test/piano-section-builder.test.ts
-  6 files, 94 tests passed
+  6 files, 98 tests passed
 
 pnpm --filter @keyspilli/catalog exec tsc --noEmit
   passed (pnpm emitted the existing workspace-field warnings)

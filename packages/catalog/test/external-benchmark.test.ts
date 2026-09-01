@@ -69,6 +69,52 @@ describe("external symbolic benchmark orchestration", () => {
     await expect(buildExternalBenchmarkReport({ songs: [song(SEVEN_SONG_BENCHMARK_IDS[0], { candidateInputs: [{ path: "https://example.test/song.mid", format: "midi" }] })] })).rejects.toThrow(/local|url/i);
     expect(EXTERNAL_BENCHMARK_FAILURES).toContain("METADATA_ONLY");
   });
+
+  it("filters role-specific alignment windows instead of comparing every pitched part", async () => {
+    const mixed = writeMidi([
+      { midi: 60, start: 0, dur: 1, vel: 90, hand: "R" },
+      { midi: 48, start: 0, dur: 1, vel: 90, hand: "L" },
+    ], { tempoBpm: 120, tracks: [
+      { name: "Melody", notes: [{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }] },
+      { name: "Harmony", notes: [{ midi: 48, start: 0, dur: 1, vel: 90, hand: "L" }] },
+    ] });
+    const report = await buildExternalBenchmarkReport({ songs: [song(SEVEN_SONG_BENCHMARK_IDS[0]!, { candidateInputs: [{ id: "candidate", bytes: mixed, format: "midi" }], referenceInputs: [{ id: "reference", bytes: mixed, format: "midi" }] })] });
+    expect((report.songs[0]?.reference.alignment as any).roleFilteredWindows).toEqual([{ id: "main", role: "melody", candidatePitchedCount: 1, referencePitchedCount: 1 }]);
+  });
+
+  it("turns malformed manifest rows into an explicit invalid-input report", async () => {
+    const malformedRows: ExternalBenchmarkInput[] = [
+      { songs: [{ id: SEVEN_SONG_BENCHMARK_IDS[0], candidateInputs: [null as never] }] },
+      { songs: [{ id: SEVEN_SONG_BENCHMARK_IDS[0], referenceInputs: [null as never] }] },
+      { songs: [{ id: SEVEN_SONG_BENCHMARK_IDS[0], discoveryRecords: [null as never] }] },
+      { songs: [{ id: SEVEN_SONG_BENCHMARK_IDS[0], humanRaters: [null as never] }] },
+      { songs: [{ id: SEVEN_SONG_BENCHMARK_IDS[0], humanRaters: [{ raterId: "r1", decision: 1 } as never] }] },
+    ];
+    for (const input of malformedRows) {
+      const report = await buildExternalBenchmarkReport(input);
+      expect(report.songs[0]?.failures).toContain("INVALID_INPUT");
+      expect(report.songs[0]?.freeze.completed).toBe(false);
+      expect(report.songs[0]?.generation.status).toBe("unavailable");
+    }
+  });
+
+  it("does not treat anonymous or duplicate raters as independent agreement", async () => {
+    const anonymous = await buildExternalBenchmarkReport({ songs: [song(SEVEN_SONG_BENCHMARK_IDS[0]!, { humanRaters: [{ decision: "accept" }, { decision: "accept" }] })] });
+    expect(anonymous.songs[0]?.human.status).toBe("blocked");
+    expect(anonymous.songs[0]?.failures).toContain("HUMAN_REVIEW_CONFLICT");
+    const duplicate = await buildExternalBenchmarkReport({ songs: [song(SEVEN_SONG_BENCHMARK_IDS[0]!, { humanRaters: [{ raterId: "same", decision: "accept" }, { raterId: "same", decision: "accept" }] })] });
+    expect(duplicate.songs[0]?.human.status).toBe("blocked");
+    expect(duplicate.songs[0]?.failures).toContain("HUMAN_REVIEW_CONFLICT");
+  });
+
+  it("redacts arbitrary absolute and quoted relative paths while preserving URLs and logical refs", () => {
+    const report = { foo: "/foo/bar/baz.mid", discovery: { errors: ["/foo/bar/baz.mid", "\"./private/thing.mid\"", "https://example.test/a/b", "logical/A/B"] } };
+    const canonical = canonicalExternalBenchmarkJson(report as any);
+    expect(canonical).not.toContain("/foo/bar/baz.mid");
+    expect(canonical).not.toContain("./private/thing.mid");
+    expect(canonical).toContain("https://example.test/a/b");
+    expect(canonical).toContain("logical/A/B");
+  });
 });
 
 describe("external symbolic benchmark CLI", () => {

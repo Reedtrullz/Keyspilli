@@ -39,7 +39,7 @@ export const EXTERNAL_BENCHMARK_FAILURES = [
   "MISSING_INVENTORY_ID", "MISSING_DISCOVERY", "METADATA_ONLY", "LOCAL_ACQUISITION_MISSING",
   "UNSUPPORTED_FORMAT", "PARSE_FAILED", "MISSING_CONTENT_HASH", "IDENTITY_MISMATCH",
   "ALIGNMENT_UNAVAILABLE", "ALIGNMENT_PARTIAL", "ALIGNMENT_AMBIGUOUS", "NO_USABLE_GENERATION_CANDIDATE",
-  "GENERATION_FAILED", "OUTPUT_UNAVAILABLE", "MISSING_REFERENCE", "HUMAN_REVIEW_MISSING",
+  "GENERATION_FAILED", "OUTPUT_UNAVAILABLE", "MISSING_REFERENCE", "INVALID_INPUT", "HUMAN_REVIEW_MISSING",
   "HUMAN_REVIEW_INSUFFICIENT_RATERS", "HUMAN_REVIEW_CONFLICT",
 ] as const;
 export type ExternalBenchmarkFailure = (typeof EXTERNAL_BENCHMARK_FAILURES)[number];
@@ -99,6 +99,7 @@ export interface ExternalBenchmarkReferenceReport {
     confidence: number | null;
     coverage: { reference: number | null; candidate: number | null };
     diagnostics: string[];
+    roleFilteredWindows: Array<{ id: string; role: ExternalBenchmarkRole | null; candidatePitchedCount: number; referencePitchedCount: number }>;
   };
 }
 
@@ -156,10 +157,26 @@ function cleanText(value: unknown): string | null {
 
 function safeError(error: unknown): string {
   const text = error instanceof Error ? error.message : String(error);
-  return text
+  const urls: string[] = [];
+  const protectedText = text.replace(/https?:\/\/[^\s,;)}\]]+/gi, (url) => {
+    const marker = `__EXTERNAL_URL_${urls.length}__`;
+    urls.push(url);
+    return marker;
+  });
+  const redacted = protectedText
     .replace(/file:\/\/[^\s,;)}\]]+/gi, "[redacted-path]")
     .replace(/(?:[A-Za-z]:[\\/]|\/(?:Users|private|tmp|var|home|Volumes|root|opt|workspace|srv|etc|mnt|data)(?:[\\/]|$)|~[\\/])[^\s,;)}\]]*/gi, "[redacted-path]")
+    // Unknown-root absolute POSIX paths are still physical locators.
+    .replace(/(?<![A-Za-z0-9_])\/(?:[^\s"'<>;,)}\]]+\/)+[^\s"'<>;,)}\]]+/g, "[redacted-path]")
+    // Relative/quoted symbolic files are locators; logical refs such as A/B remain.
+    .replace(/(?<![A-Za-z0-9_])(?:\.{0,2}[\\/]|[^\s"'<>;,)}\]]+[\\/])[^\s"'<>;,)}\]]+\.(?:mid|midi|musicxml|mxl|json|wav|mp3)(?=$|[\s"'<>;,)}\]])/gi, "[redacted-path]");
+  return redacted.replace(/__EXTERNAL_URL_(\d+)__/g, (_match, index: string) => urls[Number(index)] ?? "[redacted-url]")
     .replace(/[\u0000\r\n]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 240);
+}
+
+/** Path-safe diagnostic redaction shared by the local CLI and canonicalizer. */
+export function redactExternalBenchmarkText(value: string): string {
+  return safeError(value);
 }
 
 function finite(value: unknown): value is number {
@@ -181,6 +198,16 @@ function validateLocalInput(input: ExternalResearchLocalInput, label: string): v
   if (input.bytes !== undefined && !(input.bytes instanceof Uint8Array || input.bytes instanceof ArrayBuffer)) throw new Error(`${label} bytes must be Uint8Array or ArrayBuffer`);
   if (input.bytes !== undefined && (input.bytes instanceof Uint8Array ? input.bytes.byteLength : input.bytes.byteLength) === 0) throw new Error(`${label} bytes are empty`);
   if (path !== undefined && path !== null && input.bytes !== undefined) throw new Error(`${label} must provide bytes or a local file, not both`);
+}
+
+function validateUniqueInputIds(inputs: readonly ExternalResearchLocalInput[], label: string): void {
+  const seen = new Set<string>();
+  for (const [index, input] of inputs.entries()) {
+    const id = cleanText(input.id);
+    if (id && seen.has(id)) throw new Error(`duplicate ${label} id: ${id}`);
+    if (id) seen.add(id);
+    if (input.id !== undefined && typeof input.id !== "string") throw new Error(`${label} ${index + 1} id must be a string`);
+  }
 }
 
 async function validateLocalFileInput(input: ExternalResearchLocalInput, label: string): Promise<void> {
@@ -222,13 +249,21 @@ function candidateInputsFor(song: ExternalBenchmarkSongInput): ExternalResearchL
   const singular = song.candidateInput ? [song.candidateInput] : song.candidate === undefined ? [] : Array.isArray(song.candidate) ? song.candidate : [song.candidate];
   const supplied = song.candidateInputs ?? song.candidates ?? song.localCandidates ?? singular;
   if (!Array.isArray(supplied)) throw new Error("candidate inputs must be an array");
-  return supplied.map((input) => ({ ...input, purpose: input.purpose ?? "GENERATION_CANDIDATE" }));
+  return supplied.map((input, index) => {
+    if (!isObject(input)) throw new Error(`candidate ${index + 1} input must be an object`);
+    const local = input as unknown as ExternalResearchLocalInput;
+    return { ...local, purpose: local.purpose ?? "GENERATION_CANDIDATE" };
+  });
 }
 
 function referenceInputsFor(song: ExternalBenchmarkSongInput): ExternalResearchLocalInput[] {
   const supplied: unknown = song.referenceInputs ?? song.references ?? (song.referenceInput ? [song.referenceInput] : song.reference === undefined ? [] : Array.isArray(song.reference) ? song.reference : [song.reference]);
   if (!Array.isArray(supplied)) throw new Error("reference inputs must be an array");
-  return supplied.map((input) => ({ ...input, purpose: "BENCHMARK_REFERENCE" as const, evidenceClass: "BENCHMARK_REFERENCE" as const }));
+  return supplied.map((input, index) => {
+    if (!isObject(input)) throw new Error(`reference ${index + 1} input must be an object`);
+    const local = input as unknown as ExternalResearchLocalInput;
+    return { ...local, purpose: "BENCHMARK_REFERENCE" as const, evidenceClass: "BENCHMARK_REFERENCE" as const };
+  });
 }
 
 function scoreNotes(score: ScoreLike | null | undefined): Note[] {
@@ -264,6 +299,46 @@ function alignmentSummary(result: SymbolicAlignmentResult): ExternalBenchmarkRef
     confidence: finite(result.confidence) ? result.confidence : null,
     coverage: { reference: finite(result.coverage.referenceRatio) ? result.coverage.referenceRatio : null, candidate: finite(result.coverage.candidateRatio) ? result.coverage.candidateRatio : null },
     diagnostics: [...new Set(result.diagnostics.map(safeError))].sort(),
+    roleFilteredWindows: [],
+  };
+}
+
+function notesForRole(notes: readonly Note[], role: ExternalBenchmarkRole | undefined): Note[] {
+  if (!role) return [...notes];
+  if (role === "timing-only") return [];
+  if (role === "melody") return notes.filter((note) => note.hand !== "L");
+  return notes.filter((note) => note.hand === "L");
+}
+
+function roleAwareAlignment(
+  referenceNotes: readonly Note[],
+  candidateNotes: readonly Note[],
+  windows: readonly ExternalBenchmarkWindow[],
+): ExternalBenchmarkReferenceReport["alignment"] {
+  const roleFilteredWindows = windows.map((window) => {
+    const reference = notesForRole(referenceNotes, window.role);
+    const candidate = notesForRole(candidateNotes, window.role);
+    return { id: window.id, role: window.role ?? null, candidatePitchedCount: candidate.filter((note) => note.start >= window.candidate[0] && note.start < window.candidate[1]).length, referencePitchedCount: reference.filter((note) => note.start >= window.reference[0] && note.start < window.reference[1]).length };
+  });
+  const alignments = windows.map((window) => alignSymbolicScores(
+    { notes: notesForRole(referenceNotes, window.role) },
+    { notes: notesForRole(candidateNotes, window.role) },
+    { windows: [{ id: window.id, candidate: window.candidate, reference: window.reference }] },
+  ));
+  if (!alignments.length) return { status: "unavailable", confidence: null, coverage: { reference: null, candidate: null }, diagnostics: [], roleFilteredWindows };
+  const priority: Record<ExternalBenchmarkReferenceReport["alignment"]["status"], number> = { "not-requested": 0, aligned: 1, partial: 2, unavailable: 3, ambiguous: 4 };
+  const summaries = alignments.map(alignmentSummary);
+  const worst = summaries.reduce((left, right) => priority[right.status] > priority[left.status] ? right : left);
+  const confidenceValues = summaries.map((summary) => summary.confidence).filter((value): value is number => value !== null);
+  const referenceCoverage = summaries.map((summary) => summary.coverage.reference).filter((value): value is number => value !== null);
+  const candidateCoverage = summaries.map((summary) => summary.coverage.candidate).filter((value): value is number => value !== null);
+  const average = (values: number[]) => values.length ? Math.round((values.reduce((sum, value) => sum + value, 0) / values.length) * 1_000_000) / 1_000_000 : null;
+  return {
+    status: worst.status,
+    confidence: average(confidenceValues),
+    coverage: { reference: average(referenceCoverage), candidate: average(candidateCoverage) },
+    diagnostics: [...new Set(summaries.flatMap((summary) => summary.diagnostics))].sort(),
+    roleFilteredWindows,
   };
 }
 
@@ -281,7 +356,7 @@ function emptySong(id: ExternalBenchmarkSongId): ExternalBenchmarkSongReport {
     generationStatus: "unavailable",
     output: { availability: "unavailable", status: "unavailable", structuralGate: "unavailable" },
     outputAvailability: "unavailable",
-    reference: { availability: "unavailable", recordIds: [], parsedCount: 0, validatedWindows: [], windows: [], alignment: { status: "unavailable", confidence: null, coverage: { reference: null, candidate: null }, diagnostics: [] } },
+    reference: { availability: "unavailable", recordIds: [], parsedCount: 0, validatedWindows: [], windows: [], alignment: { status: "unavailable", confidence: null, coverage: { reference: null, candidate: null }, diagnostics: [], roleFilteredWindows: [] } },
     referenceAvailability: "unavailable",
     human, humanReadiness: human,
     failures: ["MISSING_INVENTORY_ID", "MISSING_DISCOVERY", "NO_USABLE_GENERATION_CANDIDATE", "OUTPUT_UNAVAILABLE", "MISSING_REFERENCE", "HUMAN_REVIEW_MISSING"],
@@ -291,7 +366,7 @@ function emptySong(id: ExternalBenchmarkSongId): ExternalBenchmarkSongReport {
 function humanResult(raters: readonly ExternalBenchmarkHumanRater[] | undefined): { report: ExternalBenchmarkHumanReport; failures: ExternalBenchmarkFailure[] } {
   if (raters === undefined || !raters.length) return { report: { status: "blocked", raters: 0, agreeing: false, decision: null }, failures: ["HUMAN_REVIEW_MISSING"] };
   const raterIds = raters.map((rater) => cleanText(rater.raterId ?? rater.id)).filter((id): id is string => Boolean(id));
-  if (new Set(raterIds).size !== raterIds.length) return { report: { status: "blocked", raters: raters.length, agreeing: false, decision: null }, failures: ["HUMAN_REVIEW_CONFLICT"] };
+  if (raterIds.length !== raters.length || new Set(raterIds).size !== raterIds.length) return { report: { status: "blocked", raters: raters.length, agreeing: false, decision: null }, failures: ["HUMAN_REVIEW_CONFLICT"] };
   const decisions = raters.map((rater) => {
     const value = (rater.decision ?? rater.verdict ?? rater.status ?? "").trim().toLowerCase();
     if (["accept", "accepted", "approve", "approved", "pass", "yes", "ready"].includes(value)) return "accept" as const;
@@ -308,16 +383,38 @@ function addFailure(failures: ExternalBenchmarkFailure[], failure: ExternalBench
   if (!failures.includes(failure)) failures.push(failure);
 }
 
+function invalidSong(id: ExternalBenchmarkSongId, error: unknown): ExternalBenchmarkSongReport {
+  const row = emptySong(id);
+  row.present = true;
+  row.discovery = { status: "supplied", count: 0, metadataOnly: 0, errors: [safeError(error)] };
+  row.freeze = { completed: false, beforeReference: false, digest: null, selectedRecordIds: [], rejectedRecordIds: [] };
+  row.failures = ["INVALID_INPUT"];
+  return row;
+}
+
+function isMalformedRuntimeInput(error: unknown): boolean {
+  const message = safeError(error).toLowerCase();
+  return /must be an object|must contain objects|inputs must be an array|raters must be an array|decisions must be strings|callbacks are not allowed|duplicate (?:candidate|reference) id/.test(message);
+}
+
 async function evaluateSong(song: ExternalBenchmarkSongInput, windows: ExternalBenchmarkWindow[]): Promise<ExternalBenchmarkSongReport> {
   if (song.discover !== undefined || song.acquire !== undefined) throw new Error("external benchmark discovery/acquisition callbacks are not allowed");
   const candidates = candidateInputsFor(song);
   const references = referenceInputsFor(song);
+  validateUniqueInputIds(candidates, "candidate");
+  validateUniqueInputIds(references, "reference");
   candidates.forEach((input, index) => validateLocalInput(input, `candidate ${index + 1}`));
   references.forEach((input, index) => validateLocalInput(input, `reference ${index + 1}`));
   await Promise.all(candidates.map((input, index) => validateLocalFileInput(input, `candidate ${index + 1}`)));
   await Promise.all(references.map((input, index) => validateLocalFileInput(input, `reference ${index + 1}`)));
   const discoveryRecords = song.discoveryRecords ?? song.discovery ?? [];
   if (!Array.isArray(discoveryRecords)) throw new Error("discovery records must be an array");
+  if (discoveryRecords.some((record) => !isObject(record))) throw new Error("discovery records must contain objects");
+  const raters = song.humanRaters ?? song.raters;
+  if (song.humanRaters !== undefined && !Array.isArray(song.humanRaters)) throw new Error("human raters must be an array");
+  if (song.raters !== undefined && !Array.isArray(song.raters)) throw new Error("raters must be an array");
+  if (raters?.some((rater) => !isObject(rater))) throw new Error("human raters must contain objects");
+  if (raters?.some((rater) => [rater.decision, rater.verdict, rater.status].some((value) => value !== undefined && typeof value !== "string"))) throw new Error("human rater decisions must be strings");
 
   // This is intentionally two calls: no reference bytes or score can exist
   // until the immutable generation freeze has completed.
@@ -349,18 +446,15 @@ async function evaluateSong(song: ExternalBenchmarkSongInput, windows: ExternalB
   if (referenceRecords.some((record) => record.parser.status === "unsupported")) addFailure(failures, "UNSUPPORTED_FORMAT");
   if (referenceRecords.some((record) => record.parser.status === "invalid")) addFailure(failures, "PARSE_FAILED");
   const validatedWindows = windows;
-  let alignment: ExternalBenchmarkReferenceReport["alignment"] = { status: "unavailable", confidence: null, coverage: { reference: null, candidate: null }, diagnostics: [] };
+  let alignment: ExternalBenchmarkReferenceReport["alignment"] = { status: "unavailable", confidence: null, coverage: { reference: null, candidate: null }, diagnostics: [], roleFilteredWindows: [] };
   const outputNotes = generation.notes ? [...generation.notes] : [];
-  const selectedScore = selected[0]?.score;
   if (primaryReference?.score && outputNotes.length && windows.length) {
-    const result = alignSymbolicScores({ notes: scoreNotes(primaryReference.score as ScoreLike) }, { notes: outputNotes }, { windows: windows.map((window) => ({ id: window.id, candidate: window.candidate, reference: window.reference })) });
-    alignment = alignmentSummary(result);
+    alignment = roleAwareAlignment(scoreNotes(primaryReference.score as ScoreLike), outputNotes, windows);
     if (alignment.status === "partial") addFailure(failures, "ALIGNMENT_PARTIAL");
     if (alignment.status === "ambiguous") addFailure(failures, "ALIGNMENT_AMBIGUOUS");
     if (alignment.status === "unavailable") addFailure(failures, "ALIGNMENT_UNAVAILABLE");
   } else if (!primaryReference || !outputNotes.length || !windows.length) addFailure(failures, "ALIGNMENT_UNAVAILABLE");
-  void selectedScore;
-  const human = humanResult(song.humanRaters ?? song.raters);
+  const human = humanResult(raters);
   human.failures.forEach((failure) => addFailure(failures, failure));
   const structuralGate = generation.notes?.length ? (() => {
     const evaluation = evaluateArrangementNotes([...generation.notes!], { fixture: { id: song.id }, windows: windows.map((window): EvaluationWindow => ({ id: window.id, candidate: window.candidate, reference: window.reference })) });
@@ -429,7 +523,13 @@ export async function buildExternalBenchmarkReport(input: ExternalBenchmarkInput
   for (const id of SEVEN_SONG_BENCHMARK_IDS) {
     const song = byId.get(id);
     if (!song) rows.push(emptySong(id));
-    else rows.push(await evaluateSong(song, validateWindows(song.windows)));
+    else {
+      try { rows.push(await evaluateSong(song, validateWindows(song.windows))); }
+      catch (error) {
+        if (!isMalformedRuntimeInput(error)) throw error;
+        rows.push(invalidSong(id, error));
+      }
+    }
   }
   const presentIds = rows.filter((row) => row.present).map((row) => row.id);
   const reportWithoutHash = {

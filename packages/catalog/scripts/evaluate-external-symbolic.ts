@@ -5,6 +5,7 @@ import { basename, dirname, isAbsolute, resolve } from "node:path";
 import {
   buildExternalBenchmarkReport,
   canonicalExternalBenchmarkJson,
+  redactExternalBenchmarkText,
   type ExternalBenchmarkInput,
 } from "../src/external-benchmark.js";
 
@@ -59,10 +60,7 @@ export function parseExternalSymbolicArgs(argv: readonly string[]): ExternalSymb
 }
 
 function redact(value: string): string {
-  return value
-    .replace(/file:\/\/[^\s,;)}\]]+/gi, "[redacted-path]")
-    .replace(/(?:[A-Za-z]:[\\/]|\/(?:Users|private|tmp|var|home|Volumes|root|opt|workspace|srv|etc|mnt|data)(?:[\\/]|$)|~[\\/])[^\s,;)}\]]*/gi, "[redacted-path]")
-    .replace(/[\u0000\r\n]+/g, " ").slice(0, 500);
+  return redactExternalBenchmarkText(value).slice(0, 500);
 }
 
 async function readManifest(path: string): Promise<ExternalBenchmarkInput> {
