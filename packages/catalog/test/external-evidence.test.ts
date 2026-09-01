@@ -39,6 +39,7 @@ describe("external evidence firewall", () => {
     expect(() => assertGenerationEvidence(candidate({ content: { byteLength: 12 } }))).toThrow(/hash/i);
     expect(() => assertGenerationEvidence(candidate({ provenance: { sourceRef: "x", acquisition: "remote-only" } }))).toThrow(/acqui/i);
     expect(() => assertGenerationEvidence(candidate({ status: "parse-failed" }))).toThrow(/parse/i);
+    expect(() => assertGenerationEvidence(candidate({ status: "discovered" }))).toThrow(/parsed|status/i);
     expect(() => assertGenerationEvidence(candidate({ provenance: { sourceRef: "x", acquisition: "local-analysis", acquiredVia: "provider-export" } }))).toThrow(/acqui/i);
     expect(() => assertGenerationEvidence(candidate({ provenance: { sourceRef: "x", acquisition: { remote: true }, acquiredVia: "local-import" } as never }))).toThrow(/acqui/i);
   });
@@ -83,5 +84,14 @@ describe("external evidence firewall", () => {
     expect(() => assertGenerationEvidence(candidate({ provenance: { sourceRef: "/tmp/example.mid", acquisition: "local-analysis" } }))).toThrow(/logical|source/i);
     expect(() => assertGenerationEvidence(candidate({ provenance: { sourceRef: "file:///tmp/example.mid", acquisition: "local-analysis" } }))).toThrow(/logical|source/i);
     expect(() => assertGenerationEvidence(candidate({ provenance: { sourceRef: "youtube:abc", acquisition: null, acquiredVia: "local-import" } }))).toThrow(/acqui/i);
+    expect(() => assertGenerationEvidence(candidate({ provenance: { sourceRef: "youtube:abc", acquisition: "local-exfiltration" } }))).toThrow(/acqui/i);
+    expect(() => assertGenerationEvidence(candidate({ provenance: { sourceRef: "youtube:abc", acquisition: "unknown-local-policy" } }))).toThrow(/acqui/i);
+    expect(() => assertGenerationEvidence(candidate({ provenance: { sourceRef: "song.mid?x=1", acquisition: "local-import" } }))).toThrow(/logical|source/i);
+    expect(() => assertGenerationEvidence(candidate({ provenance: { sourceRef: "song.mid#section", acquisition: "local-import" } }))).toThrow(/logical|source/i);
+  });
+
+  it("redacts embedded physical paths while retaining surrounding logical text", () => {
+    const [canonical] = canonicalEvidenceCandidateSet([candidate({ description: "prefix /private/example.mid suffix" })]);
+    expect(canonical.description).toBe("prefix [redacted-path] suffix");
   });
 });
