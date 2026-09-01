@@ -104,5 +104,15 @@ describe("external evidence firewall", () => {
     expect(fileUrl!.description).toBe("prefix [redacted-path] suffix");
     const [backslash] = canonicalEvidenceCandidateSet([candidate({ description: "prefix C:\\\\My Folder\\\\example.MID suffix" })]);
     expect(backslash!.description).toBe("prefix [redacted-path] suffix");
+    const noExtension = [
+      "prefix file:///tmp/private suffix",
+      "prefix /tmp/private suffix",
+      "prefix C:\\\\Temp\\\\private suffix",
+      "prefix ~/private suffix",
+    ];
+    for (const description of noExtension) {
+      const [redacted] = canonicalEvidenceCandidateSet([candidate({ description })]);
+      expect(redacted!.description).toBe("prefix [redacted-path] suffix");
+    }
   });
 });

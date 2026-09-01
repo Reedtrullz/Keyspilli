@@ -87,11 +87,12 @@ function canonicalMetadata(candidate: ExternalEvidenceCandidate): Record<string,
   const excluded = /(?:path|file|notes?|events?|artifact|locator)/i;
   const pathLike = /^(?:file:\/\/|[A-Za-z]:[\\/]|[\\/]|~[\\/])|(?:[\\/]\S+\.(?:mid|midi|musicxml|mxl|wav|mp3|json))(?:$|[?#])/i;
   const pathLikeSubstring = /(?:file:\/\/|[A-Za-z]:[\\/]|~[\\/]|\/)[^,;)}\]]*?\.(?:musicxml|midi|mid|mxl|wav|mp3|json)(?:[?#][^\s,;)}\]]*)?/gi;
+  const pathPrefixSubstring = /(?:file:\/\/|[A-Za-z]:[\\/]|~[\\/]|\/)[^\s,;)}\]]+/gi;
   const strip = (value: unknown): unknown => {
     if (Array.isArray(value)) return value.map(strip);
     if (typeof value === "string") {
       if (pathLike.test(value)) return "[redacted-path]";
-      return value.replace(pathLikeSubstring, "[redacted-path]");
+      return value.replace(pathLikeSubstring, "[redacted-path]").replace(pathPrefixSubstring, "[redacted-path]");
     }
     if (!isRecord(value)) return finite(value);
     return Object.fromEntries(Object.keys(value).sort().filter((key) => !excluded.test(key)).map((key) => [key, key.toLowerCase() === "sha256" && typeof value[key] === "string" ? value[key].toLowerCase() : strip(value[key])]));
