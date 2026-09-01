@@ -205,6 +205,14 @@ export interface StageSurvivalReport {
   stages: Record<RedBaronSurvivalStage, StageDiagnosticSummary>;
   windows: readonly NormalizedSurvivalWindow[];
   transitions: readonly StageTransition[];
+  /**
+   * Optional EVAL_ONLY support labels for the supplied stage arrays.  This is
+   * intentionally computed after stage inputs are prepared and is never fed
+   * into a decoder, arranger, or any generation path.  The stage summaries
+   * cover the supplied arrays; window-scoped loss accounting remains in
+   * `transitions`.
+   */
+  referenceSupport?: ReferenceSupportReport;
   diagnostics: readonly string[];
   evidence?: DecoderFixEvidence;
   /** Alias for integrations that call the gate evidence bundle "gates". */
@@ -837,6 +845,7 @@ export function evaluateStageSurvival(stages: StageInputs, reference?: StageInpu
   }
   const stageSummaries = {} as Record<RedBaronSurvivalStage, StageDiagnosticSummary>;
   for (const stage of RED_BARON_SURVIVAL_STAGES) stageSummaries[stage] = prepared[stage].summary;
+  const referenceSupport = reference === undefined ? undefined : evaluateReferenceSupport(stages, reference);
   return {
     schemaVersion: 1,
     kind: "red-baron-stage-survival",
@@ -845,6 +854,7 @@ export function evaluateStageSurvival(stages: StageInputs, reference?: StageInpu
     stages: stageSummaries,
     windows: preparedWindows.windows,
     transitions,
+    ...(referenceSupport ? { referenceSupport } : {}),
     diagnostics: [...new Set([...diagnostics, ...preparedReference.summary.diagnostics, ...RED_BARON_SURVIVAL_STAGES.flatMap((stage) => prepared[stage].summary.diagnostics)])].sort(compareText),
   };
 }

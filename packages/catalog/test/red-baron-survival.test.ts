@@ -395,4 +395,22 @@ describe("red baron stage survival", () => {
     expect(report.stages.raw.supportedIn).toBe(0);
     expect(report.transitions[0]!.unknownIn).toBe(3);
   });
+
+  it("includes the reference-support funnel in the evaluator report without changing stages", () => {
+    const stages = fullStages();
+    const before = JSON.stringify(stages);
+    const report = evaluateStageSurvival(stages, reference, windows);
+    expect(report.referenceSupport?.status).toBe("available");
+    expect(report.referenceSupport?.stages.raw).toMatchObject({
+      supportedIn: 2,
+      unsupportedIn: 1,
+      unknownIn: 0,
+    });
+    expect(report.referenceSupport?.transitions[0]).toMatchObject({
+      from: "raw",
+      to: "decoder",
+      supportedIn: 2,
+    });
+    expect(JSON.stringify(stages)).toBe(before);
+  });
 });
