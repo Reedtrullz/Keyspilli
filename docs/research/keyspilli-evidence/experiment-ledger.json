@@ -298,6 +298,29 @@
       "reportHash": "7eceadb7bc0b560fd97c01135bc0d212c6192e04967116a492d85e9d050f9fa8",
       "reproducible": true,
       "rawArtifactRetention": "retain compact path-free summary, freeze/evaluation hashes, and manifests only; frozen media, references, checkpoints, and environments remain outside Git"
+    },
+    {
+      "id": "texture-amt-routing-oracle-2026-09-02",
+      "date": "2026-09-02",
+      "gitCommit": "283c7da3efe7235c6a2496b36e8a685e1c131a4b",
+      "purpose": "Test whether frozen Basic Pitch/GAPS candidate texture can support reference-independent regional backend routing",
+      "songs": ["Final Solution", "Gott Mit Uns", "The Red Baron"],
+      "route": "frozen Basic Pitch/GAPS MIDI -> candidate-only fixed-window features -> post-freeze selection oracle/reference diagnostics",
+      "criticalMetrics": {
+        "windowSeconds": 4,
+        "onsetToleranceSeconds": 0.08,
+        "materialGain": 0.03,
+        "oracleGainExactF1": {"finalSolution": 0.006707, "gottMitUns": 0.011333, "redBaron": 0.008221},
+        "oracleGainPitchClassF1": {"finalSolution": 0.008727, "gottMitUns": 0.007067, "redBaron": 0.007228},
+        "routingPlanSha256": "631ca3a0304a65f3409ab776d644a16c0dc06be8b143fc394a339ee126069071",
+        "reportSha256": "0b2af06b1397246950ba0e90f85e4a80e03e1a7a1e73130c906eef8612e26007",
+        "canonicalReportSha256": "15c30f88d40ace83699c684bddb6bb59a11bfe61052eb72f382718bed012afce"
+      },
+      "result": "The perfect reference-informed window oracle stayed below the preregistered 0.03 exact/pitch-class F1 gain on every song; note union was a separate higher-recall but low-precision ceiling.",
+      "decision": "ROUTING_CEILING_LOW; NO_PROMOTION; do not build a production router or union raw note clouds.",
+      "reportHash": "0b2af06b1397246950ba0e90f85e4a80e03e1a7a1e73130c906eef8612e26007",
+      "reproducible": true,
+      "rawArtifactRetention": "retain compact path-free report, manifests, preregistration, and hashes only; frozen MIDI, references, stems, model weights, and environments remain outside Git"
     }
   ]
 }

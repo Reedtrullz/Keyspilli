@@ -110,7 +110,8 @@ experiment history needed to continue later.
 * `texture-amt-routing-2026-09-02.md` — fixed-window, reference-gated AMT
   routing oracle and explicit no-router/no-promotion decision.
 * `texture-amt-routing-2026-09-02-metrics.json` — path-free routing metrics,
-  freeze/report hashes, candidate counts, and limits.
+  per-backend precision/recall, texture-class features, agreement/support
+  classes, freeze/report hashes, candidate counts, and limits.
 
 ## Cold-transfer boundary
 
