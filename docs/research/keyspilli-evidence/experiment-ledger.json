@@ -12,7 +12,7 @@
       "criticalMetrics": {"midiTests": 170, "easyMediumGuitarMinIoiBeats": 0.5, "section5GuitarLargeLeapCountApprox": 13},
       "result": "Structural cleanup passed, but residual contour and AMT evidence did not support recognizability.",
       "decision": "Keep bounded source-aware cleanup; do not claim musical success.",
-      "reportHash": null,
+      "reportHash": "9d70f8b6db05db231c3e992dd6a354faca93da400067506dd3d63d6a69aeb659",
       "reproducible": true,
       "rawArtifactRetention": "delete generated stems/renders after conclusions are recorded"
     },
@@ -346,6 +346,29 @@
       "reportHash": null,
       "reproducible": true,
       "rawArtifactRetention": "retain fixture, focused test, and compact report; no reference or private MIDI bytes"
+    },
+    {
+      "id": "beginner-sparse-lh-promotion-evidence-repair-2026-09-03",
+      "date": "2026-09-03",
+      "purpose": "Close the repaired Beginner sparse-LH promotion evidence boundary",
+      "songs": [],
+      "route": "frozen collision-aware sparse-LH evaluator -> broad review/closeout",
+      "criticalMetrics": {
+        "startingRevision": "29906dff7f454fb6120928a4f57906ee5c05ea02",
+        "evaluatedRevision": "641c7fe50b9902a9e2606b72bd55ace242ddef67",
+        "preregistrationSha256": "bb27ae45e6e042e934616d296dfbc259e6b7d4ccb0b5d91b9ec53382e6f465b9",
+        "controlSha256": "63f08d3dfce74ab9c8172572e99b1b8ae5a48785c7bec12bbe97aea202fd27d7",
+        "task4ReportSha256": "d8f0804c2f60e6800ea7c69a8315f907179f056bd0fad00920913b6813b7b690",
+        "workspaceTests": 1498,
+        "workspaceTypechecks": 6,
+        "caseAJustified": false,
+        "reviewBlockers": 5
+      },
+      "result": "The replacement control hash, validator, and synthetic safety reads passed, but the Task 4 trusted-fixture evaluation inherited legacy rows, parity and candidate checks were not independent, LH-filler coverage was tautological, candidate/ladder validation was incomplete, and a declared all-level maxSim gate was bypassed.",
+      "decision": "BEGINNER_SPARSE_TWO_HAND_EVIDENCE_STILL_INSUFFICIENT; NO_PRODUCTION_BEHAVIOR_CHANGE",
+      "reportHash": "9d70f8b6db05db231c3e992dd6a354faca93da400067506dd3d63d6a69aeb659",
+      "reproducible": true,
+      "rawArtifactRetention": "retain path-free results/review/hashes; no reference/audio/private inputs"
     }
   ]
 }
