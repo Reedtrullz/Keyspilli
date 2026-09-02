@@ -31,8 +31,8 @@ previously erased active windows, while Classical passed the mechanical gates.
 - Preregistered starting revision: `008ac14fb546557da7593c55cf27b225da138e27`.
 - Preregistration SHA-256: `931f1ef2510a0de2b5280c1a3b59999b245c868abb29760305cffe5b6af86b7f`.
 - Evaluator: `/private/tmp/keyspilli-lower-tier-eval-20260902-a1/evaluator.ts`.
-- Deterministic outputs: `run-1.json` and `run-2.json` were byte-identical.
-- Run canonical JSON SHA-256: `253ca3b66923c47b1977e3e39bc47500a013cdd0cf8d2711f8a089450b02ee01`.
+- Deterministic outputs: `/private/tmp/keyspilli-lower-tier-eval-20260902-a1/fixed-1.json` and `/private/tmp/keyspilli-lower-tier-eval-20260902-a1/fixed-2.json` were byte-identical.
+- Run canonical JSON SHA-256: `97fd0fef8f2b4cca289b683e15ca2c58d3e6e325c17c5efe2662f726498079ae`.
 - The evaluator used the exact preregistered rule: one lowest eligible LH
   onset per source-meter window, defer to an existing later onset on a
   collision, otherwise suppress; no RH mutation or retiming.

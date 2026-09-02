@@ -1,16 +1,16 @@
 # Task 2 — expanded isolated evaluator
 
-The evaluator is outside the repository at `<scratch>/evaluator.ts` (fresh bounded directory: `/private/tmp/keyspilli-lower-tier-eval-20260902-a1`) and writes only deterministic JSON there. It reuses the exact `COLLISION_AWARE_SPARSE_LH` rule: first eligible lowest LH onset per source-meter window, existing later onset on collision, otherwise suppression; no retiming or RH mutation.
+The evaluator is outside the repository at `/private/tmp/keyspilli-lower-tier-eval-20260902-a1/evaluator.ts` (fresh bounded directory) and writes only deterministic JSON there. It reuses the exact `COLLISION_AWARE_SPARSE_LH` rule: first eligible lowest LH onset per source-meter window, existing later onset on collision, otherwise suppression; no retiming or RH mutation.
 
 Commands:
 
 ```text
-node_modules/.bin/tsx <scratch>/evaluator.ts --out <scratch>/run-1.json
-node_modules/.bin/tsx <scratch>/evaluator.ts --out <scratch>/run-2.json
-cmp -s <scratch>/run-1.json <scratch>/run-2.json
+node_modules/.bin/tsx /private/tmp/keyspilli-lower-tier-eval-20260902-a1/evaluator.ts --out /private/tmp/keyspilli-lower-tier-eval-20260902-a1/fixed-1.json
+node_modules/.bin/tsx /private/tmp/keyspilli-lower-tier-eval-20260902-a1/evaluator.ts --out /private/tmp/keyspilli-lower-tier-eval-20260902-a1/fixed-2.json
+cmp -s /private/tmp/keyspilli-lower-tier-eval-20260902-a1/fixed-1.json /private/tmp/keyspilli-lower-tier-eval-20260902-a1/fixed-2.json
 ```
 
-Both runs were byte-identical. The output is `<scratch>/run-1.json`; its canonical JSON SHA-256 is `253ca3b66923c47b1977e3e39bc47500a013cdd0cf8d2711f8a089450b02ee01`. It records the preregistration SHA, source SHA, all six frozen level digests, baseline/candidate Beginner RH parity, all six level metrics, validation/density/IOI/grid/duration/span/voice checks, non-Beginner parity, provenance, active windows, anchor decisions, physical two-hand metrics, and synthetic regressions.
+Both corrected runs were byte-identical. The outputs are `/private/tmp/keyspilli-lower-tier-eval-20260902-a1/fixed-1.json` and `/private/tmp/keyspilli-lower-tier-eval-20260902-a1/fixed-2.json`; their canonical JSON SHA-256 is `97fd0fef8f2b4cca289b683e15ca2c58d3e6e325c17c5efe2662f726498079ae`. It records the preregistration SHA, source SHA, all six frozen level digests, baseline/candidate Beginner RH parity, all six level metrics, validation/density/IOI/grid/duration/span/voice checks, non-Beginner parity, provenance, active windows, anchor decisions, physical two-hand metrics, and synthetic regressions.
 
 | Fixture | Source SHA matches prereg | Six level digests | RH parity | Active windows: baseline erased → candidate erased / recovered | Anchors: emitted / deferred / suppressed | Candidate max sounding sim |
 | --- | --- | --- | --- | --- | --- | --- |
