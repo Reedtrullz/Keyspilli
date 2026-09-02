@@ -93,6 +93,114 @@ function emitDifficultyTrace(
   }
 }
 
+type LearnerTraceParent = { stage: MetalArrangementTraceEvent["stage"], notes: Note[] };
+
+function learnerTraceKey(
+  stage: MetalArrangementTraceEvent["stage"],
+  note: Note,
+  index: number,
+  state: "selected" | "rejected",
+): string {
+  return `learner:${stage}:${state}:${index}:${note.hand ?? "?"}:${note.start.toFixed(6)}:${note.midi}:${note.dur.toFixed(6)}:${note.vel}:${note.identitySource ?? "unknown"}`;
+}
+
+function learnerTraceNote(note: Note): MetalArrangementTraceEvent["note"] {
+  return {
+    midi: note.midi,
+    start: note.start,
+    dur: note.dur,
+    vel: note.vel,
+    ...(note.hand ? { hand: note.hand } : {}),
+  };
+}
+
+function learnerTraceDistance(a: Note, b: Note): number {
+  if (a.hand !== b.hand || a.identitySource !== b.identitySource) return Number.POSITIVE_INFINITY;
+  return Math.abs(a.start - b.start) * 100
+    + Math.abs(a.midi - b.midi) * 10
+    + Math.abs(a.dur - b.dur)
+    + Math.abs(a.vel - b.vel) / 127;
+}
+
+/** Emit deterministic source-to-Easy lineage only for an explicit trace sink. */
+function emitLearnerStageTrace(
+  sink: MetalArrangementTraceSink | undefined,
+  stage: MetalArrangementTraceEvent["stage"],
+  notes: Note[],
+  parents: LearnerTraceParent[],
+  selectionReason: string,
+): void {
+  if (!sink) return;
+  const ordered = [...notes].sort(
+    (a, b) => a.start - b.start
+      || a.midi - b.midi
+      || a.dur - b.dur
+      || a.vel - b.vel
+      || (a.hand ?? "").localeCompare(b.hand ?? "")
+      || (a.identitySource ?? "").localeCompare(b.identitySource ?? ""),
+  );
+  const parentPool = parents.flatMap(({ stage: parentStage, notes: parentNotes }) => {
+    const parentOrdered = [...parentNotes].sort(
+      (a, b) => a.start - b.start
+        || a.midi - b.midi
+        || a.dur - b.dur
+        || a.vel - b.vel
+        || (a.hand ?? "").localeCompare(b.hand ?? "")
+        || (a.identitySource ?? "").localeCompare(b.identitySource ?? ""),
+    );
+    return parentOrdered.map((note, index) => ({
+      stage: parentStage,
+      note,
+      index,
+      key: learnerTraceKey(parentStage, note, index, "selected"),
+    }));
+  });
+  const used = new Set<number>();
+  const matched = new Set<number>();
+  for (const [index, note] of ordered.entries()) {
+    let bestIndex = -1;
+    let bestDistance = Number.POSITIVE_INFINITY;
+    for (let parentIndex = 0; parentIndex < parentPool.length; parentIndex++) {
+      if (used.has(parentIndex)) continue;
+      const distance = learnerTraceDistance(note, parentPool[parentIndex]!.note);
+      if (distance < bestDistance - 1e-9) {
+        bestIndex = parentIndex;
+        bestDistance = distance;
+      }
+    }
+    const parent = bestIndex >= 0 ? parentPool[bestIndex] : undefined;
+    if (parent) {
+      used.add(bestIndex);
+      matched.add(bestIndex);
+    }
+    const exact = parent && bestDistance <= 1e-9;
+    sink.record({
+      key: learnerTraceKey(stage, note, index, "selected"),
+      stage,
+      parentKeys: parent ? [parent.key] : [],
+      source: note.identitySource ?? null,
+      sourceStem: note.identitySource ?? null,
+      note: learnerTraceNote(note),
+      selected: true,
+      selectionReason: `${selectionReason}-${exact ? "retained" : parent ? "transformed" : "generated"}`,
+    });
+  }
+  for (let index = 0; index < parentPool.length; index++) {
+    if (matched.has(index)) continue;
+    const parent = parentPool[index]!;
+    sink.record({
+      key: learnerTraceKey(stage, parent.note, index, "rejected"),
+      stage,
+      parentKeys: [parent.key],
+      source: parent.note.identitySource ?? null,
+      sourceStem: parent.note.identitySource ?? null,
+      note: learnerTraceNote(parent.note),
+      selected: false,
+      selectionReason: `${selectionReason}-rejected`,
+    });
+  }
+}
+
 export const SAFE_TEMPO_BPM = 120;
 
 /**
@@ -1577,6 +1685,83 @@ export function melodyOnly(notes: Note[], grid: number, minDur: number, pads?: S
   return out;
 }
 
+/**
+ * Choose the Easy RH voice without treating pitch alone as melody evidence.
+ * A short, quiet co-onset decoration is not allowed to displace a longer or
+ * louder principal event; otherwise `melodyOnly` can turn a two-voice score
+ * into the wrong (usually upper) line.  The fallback remains pitch-biased for
+ * ambiguous groups, and a small continuity bonus keeps the selected line
+ * stable across adjacent attacks without flattening real leaps.
+ * ponytail: this stays a greedy per-onset pass; use phrase DP only if a
+ * measured Easy contour regression survives this bounded selector.
+ */
+function selectEasyMelody(notes: Note[], grid: number, minDur: number, pads?: Set<number>): Note[] {
+  const bySlice = new Map<number, Note[]>();
+  for (const note of notes) {
+    const key = Math.round(note.start / grid);
+    const group = bySlice.get(key) ?? [];
+    group.push(note);
+    bySlice.set(key, group);
+  }
+  const slices = [...bySlice.keys()].sort((a, b) => a - b);
+  const candidates = slices.map((slice) => {
+    const group = bySlice.get(slice)!;
+    // A pad is a fallback voice, not a competing melody. Exclude it only when
+    // the slice also has credible non-pad evidence; a quiet short detector
+    // fragment should not displace a sustained pad that is the sole real voice.
+    const nonPad = pads ? group.filter((note) => !pads.has(note.midi)) : group;
+    const maxGroupVelocity = Math.max(...group.map((note) => note.vel), 1);
+    const credibleNonPad = nonPad.filter((note) => note.dur > 0.25 + 1e-9
+      || note.vel >= maxGroupVelocity * 0.7
+      || note.identitySource === "vocals");
+    const considered = credibleNonPad.length ? nonPad : group;
+    const credible = considered.filter((note) => !pads?.has(note.midi)
+      || note.vel >= maxGroupVelocity * 0.7
+      || note.dur >= 0.5
+      || note.identitySource === "vocals");
+    const pool = credible.length ? credible : considered;
+    const maxVelocity = Math.max(...pool.map((note) => note.vel), 1);
+    const meaningful = pool.filter((note) => {
+      // A short/quiet upper event is usually a decorative chord partial. Keep
+      // it when it is the only evidence, but let a credible co-onset voice win.
+      const decorative = note.dur <= 0.25 + 1e-9 && note.vel < maxVelocity * 0.75;
+      return !decorative || pool.every((other) => other === note || (
+        other.dur <= note.dur + 1e-9 && other.vel < note.vel
+      ));
+    });
+    return (meaningful.length ? meaningful : pool).sort(
+      (a, b) => a.midi - b.midi || b.vel - a.vel || b.dur - a.dur,
+    );
+  });
+  const chosen: Note[] = [];
+  let previous: Note | undefined;
+  for (const group of candidates) {
+    let best = group[0]!;
+    let bestScore = Number.NEGATIVE_INFINITY;
+    for (const note of group) {
+      const dynamic = Math.max(0, Math.min(1, note.vel / 127));
+      const duration = Math.max(0, Math.min(1, note.dur / 0.5));
+      const continuity = previous
+        ? (() => {
+          const gap = note.start - previous.start;
+          if (gap > 1.5 + 1e-9) return 0;
+          const leap = Math.abs(note.midi - previous.midi);
+          return (leap <= 5 ? 0.35 : leap <= 9 ? 0.1 : -0.2) + (leap === 0 ? 0.1 : 0);
+        })()
+        : 0;
+      const sourceBonus = note.identitySource === "vocals" ? 0.35 : 0;
+      const score = dynamic * 1.5 + duration * 0.9 + sourceBonus + note.midi * 0.002 + continuity;
+      if (score > bestScore + 1e-9) {
+        best = note;
+        bestScore = score;
+      }
+    }
+    chosen.push({ ...best });
+    previous = best;
+  }
+  return melodyOnly(chosen, grid, minDur);
+}
+
 /** Keep the highest `keep` voices per slice; pad pitches rank below real voices. */
 function topVoices(notes: Note[], grid: number, keep: number, pads?: Set<number>): Note[] {
   const bySlice = new Map<number, Note[]>();
@@ -2392,10 +2577,18 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   const easyRhSource = metalProfile ? reduceMetalRhRealism(mediumRh, tempo, 4, true, true) : mediumRh;
   const easyLhTexture = metalProfile
     ? metalLeftHandTexture(mediumLh, 0.75, 2)
-    : trimSamePitchOverlaps(thinChord(mediumLh, 2).map((n) => ({ ...n, midi: rootOf(n.midi, key) })));
+    : trimSamePitchOverlaps(thinChord(mediumLh, 2).map((n) => (
+      // Learner imports already carry the source voicing. Re-rooting every
+      // attack to the global key erases real harmonic changes; keep the
+      // historical tonic revoice for the default/source profile only.
+      learnerProfile ? { ...n } : { ...n, midi: rootOf(n.midi, key) }
+    )));
+  const easyMelody = !metalProfile && learnerProfile
+    ? selectEasyMelody(easyRhSource, 0.125, 0.5, pads)
+    : melodyOnly(easyRhSource, 0.125, 0.5, pads);
   const easy = capLevel("easy", trimSamePitchOverlaps(quantize(
     [
-      ...capSoundingSpan(melodyOnly(easyRhSource, 0.125, 0.5, pads), 12, "high"),
+      ...capSoundingSpan(easyMelody, 12, "high"),
       ...capSoundingSpan(
         easyLhTexture,
         innerVoiceArrangement ? 19 : 12,
@@ -2482,6 +2675,18 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
         ? preserveMetalLhLadder(ladderReduced, sets[harder]!, LADDER_TOL[easier] ?? 0.02)
         : ladderReduced,
     );
+  }
+  if (learnerProfile && opts.trace) {
+    // These are the real direct-piano boundaries: import cleanup, Easy input,
+    // Easy's one-voice decision, and the published Easy set. The optional
+    // sidecar remains path-free and has no effect on serialized variants.
+    emitLearnerStageTrace(opts.trace, "raw", src.notes, [], "learner-source");
+    emitLearnerStageTrace(opts.trace, "cleaned", imported, [{ stage: "raw", notes: src.notes }], "learner-cleaned");
+    const easyInput = [...easyRhSource, ...easyLhTexture];
+    emitLearnerStageTrace(opts.trace, "selector-input", easyInput, [{ stage: "cleaned", notes: imported }], "easy-input");
+    const easyDecision = [...easyMelody, ...easyLhTexture];
+    emitLearnerStageTrace(opts.trace, "decision", easyDecision, [{ stage: "selector-input", notes: easyInput }], "easy-selection");
+    emitLearnerStageTrace(opts.trace, "final", sets.easy!, [{ stage: "decision", notes: easyDecision }], "easy-final");
   }
   const scores: Record<DifficultyLevel, number> = {
     "very-beginner": 1,

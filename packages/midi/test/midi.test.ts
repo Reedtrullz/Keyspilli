@@ -442,6 +442,138 @@ describe("buildVariants", () => {
     expect(learner.notes.some((n) => n.hand !== "L" && n.midi >= 72)).toBe(true);
   });
 
+  it("keeps the lower principal melody when quiet high decorations alternate at the same Easy onsets", () => {
+    const principal = [68, 68, 70, 68, 72, 72, 74, 72, 68, 68, 70, 68, 72, 72, 74, 72];
+    const decorations = [76, 77, 76, 77, 76, 77, 76, 77, 76, 77, 76, 77, 76, 77, 76, 77];
+    const notes = Array.from({ length: 16 }, (_, i) => {
+      const start = i * 0.5;
+      return [
+        { midi: 40, start, dur: 0.4, vel: 90 },
+        { midi: principal[i]!, start, dur: 0.4, vel: 105 },
+        { midi: decorations[i]!, start, dur: 0.125, vel: 20 },
+      ];
+    }).flat();
+    const variants = buildVariants(
+      {
+        format: 0,
+        division: 480,
+        tempoBpm: 120,
+        keySig: 0,
+        keyMode: 0,
+        timeSig: [4, 4],
+        notes,
+        trackNames: ["Piano"],
+        durationBeats: 8,
+      },
+      { title: "Principal melody", artist: "Test" },
+      { arrangementProfile: "learner" },
+    );
+    const byLevel = new Map(variants.map((variant) => [variant.level, variant]));
+    const rh = (level: "easy" | "medium" | "advanced") =>
+      byLevel.get(level)!.notes.filter((note) => note.hand !== "L");
+    const richRh = principal.flatMap((midi, i) => [midi, decorations[i]!]);
+
+    expect(rh("advanced").map((note) => note.midi)).toEqual(richRh);
+    expect(rh("medium").map((note) => note.midi)).toEqual(richRh);
+    expect(rh("easy").map((note) => note.midi)).toEqual(principal);
+  });
+
+  it("does not let a sustained re-triggered pad displace a moving Easy melody", () => {
+    const melody = [66, 67, 68, 69, 71, 72, 73, 74];
+    const notes = melody.flatMap((midi, index) => [
+      { midi, start: index * 0.5, dur: 0.5, vel: 80, hand: "R" as const },
+      { midi: 70, start: index * 0.5, dur: 1, vel: 90, hand: "R" as const },
+    ]);
+    const variants = buildVariants(
+      {
+        format: 0,
+        division: 480,
+        tempoBpm: 120,
+        keySig: 0,
+        keyMode: 0,
+        timeSig: [4, 4],
+        notes,
+        trackNames: ["Piano"],
+        durationBeats: 4,
+      },
+      { title: "Moving melody and pad", artist: "Test" },
+      { arrangementProfile: "learner", maxDurBeats: null },
+    );
+    const easy = variants.find((variant) => variant.level === "easy")!;
+    expect(easy.notes.filter((note) => note.hand !== "L").map((note) => note.midi)).toEqual(melody);
+  });
+
+  it("preserves learner Easy harmonic pitch classes instead of collapsing every bass attack to the key", () => {
+    const notes: Note[] = [];
+    for (let i = 0; i < 16; i++) {
+      const start = i * 0.5;
+      notes.push({ midi: 72 + (i % 2), start, dur: 0.4, vel: 90, hand: "R" });
+      notes.push({ midi: i < 8 ? 48 : 55, start, dur: 0.4, vel: 70, hand: "L" });
+      notes.push({ midi: i < 8 ? 52 : 59, start, dur: 0.4, vel: 65, hand: "L" });
+    }
+    const src: ParsedMidi = {
+      format: 1,
+      division: 480,
+      tempoBpm: 120,
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes,
+      trackNames: ["RH", "LH"],
+      durationBeats: 8,
+    };
+    const variants = buildVariants(src, { title: "Learner harmony", artist: "Test", key: "C" }, {
+      arrangementProfile: "learner",
+      maxDurBeats: null,
+    });
+    const easy = variants.find((variant) => variant.level === "easy")!;
+    const medium = variants.find((variant) => variant.level === "medium")!;
+    const easyLh = easy.notes.filter((note) => note.hand === "L");
+    const mediumLh = medium.notes.filter((note) => note.hand === "L");
+    expect(new Set(easyLh.map((note) => note.midi % 12))).toEqual(new Set(mediumLh.map((note) => note.midi % 12)));
+    expect(new Set(easyLh.map((note) => note.midi % 12))).toEqual(new Set([0, 4, 7, 11]));
+    expect(easyLh.length).toBeGreaterThanOrEqual(16);
+  });
+
+  it("emits deterministic learner lineage at the actual Easy boundaries", () => {
+    const notes: Note[] = [
+      { midi: 40, start: 0, dur: 0.4, vel: 70, hand: "L" },
+      { midi: 68, start: 0, dur: 0.4, vel: 100, hand: "R" },
+      { midi: 76, start: 0, dur: 0.125, vel: 20, hand: "R" },
+      { midi: 70, start: 0.5, dur: 0.4, vel: 100, hand: "R" },
+      { midi: 78, start: 0.5, dur: 0.125, vel: 20, hand: "R" },
+    ];
+    const input = {
+      format: 0,
+      division: 480,
+      tempoBpm: 120,
+      keySig: 0,
+      keyMode: 0 as const,
+      timeSig: [4, 4] as [number, number],
+      notes,
+      trackNames: ["Piano"],
+      durationBeats: 2,
+    } satisfies ParsedMidi;
+    const collect = (source: ParsedMidi) => {
+      const trace: Array<{ key: string; stage: string; parentKeys: string[]; selected?: boolean }> = [];
+      buildVariants(source, { title: "Trace", artist: "Test" }, {
+        arrangementProfile: "learner",
+        trace: { record: (event) => trace.push(event) },
+      });
+      return trace;
+    };
+    const first = collect(input);
+    const second = collect({ ...input, notes: [...notes].reverse() });
+    expect(first).toEqual(second);
+    expect(new Set(first.map((event) => event.stage))).toEqual(
+      new Set(["raw", "cleaned", "selector-input", "decision", "final", "difficulty"]),
+    );
+    expect(first.some((event) => event.stage === "decision" && event.selected === false)).toBe(true);
+    const lineage = first.filter((event) => event.stage !== "difficulty");
+    const keys = new Set(lineage.map((event) => event.key));
+    expect(lineage.every((event) => event.parentKeys.every((parent) => keys.has(parent)))).toBe(true);
+  });
+
   it("keeps recurring mid-register accompaniment in the LH when the largest pitch gap is misleading", () => {
     const notes: Note[] = [];
     for (let i = 0; i < 24; i++) {
