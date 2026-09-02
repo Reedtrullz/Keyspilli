@@ -463,6 +463,21 @@ function productMetrics(variant: Variant): ProductSeparationMetrics {
   };
 }
 
+function productSeparationPass(metrics: ProductSeparationMetrics[]): boolean {
+  const byLevel = new Map(metrics.map((metric) => [metric.level, metric]));
+  const veryBeginner = byLevel.get("very-beginner");
+  const beginner = byLevel.get("beginner");
+  const veryEasy = byLevel.get("very-easy");
+  if (!veryBeginner || !beginner || !veryEasy) return false;
+  return beginner.notes > veryBeginner.notes
+    && beginner.notes < veryEasy.notes
+    && beginner.onsets > veryBeginner.onsets
+    && beginner.onsets < veryEasy.onsets
+    && beginner.lhAttacksPerMinute > 0
+    && beginner.lhAttacksPerMinute < veryEasy.lhAttacksPerMinute
+    && beginner.maxSimultaneity <= PLAYABILITY_LIMITS.beginner!.maxSim;
+}
+
 function recovery(source: ParsedMidi, baseline: Variant, candidate: Variant): CurrentFixtureEvaluation["structuralRecovery"] {
   const total = windowsFor(source);
   const activeWindows = Array.from({ length: total }, (_, index) => index).filter((index) => source.notes.some((note) => windowIndex(note.start, source) === index));
@@ -482,7 +497,7 @@ const gateDescription: Record<DeclaredReleaseGate, [string, DeclaredGateResult["
   "structural-recovery": ["candidate does not worsen active-window erasure", "candidate", "candidate erased windows <= baseline erased windows"],
   "lh-provenance": ["no unsafe or drum-derived LH output is emitted", "candidate", "unsafe and pitched-drum output counts are zero"],
   "synthetic-safety": ["synthetic control traverses rest, filler, collision, defer, and LH-only cases", "synthetic", "all required control phenomena are observed"],
-  "product-separation": ["neighbor metrics are freshly computed", "aggregate", "metrics exist for Very Beginner, Beginner, Very Easy"],
+  "product-separation": ["candidate occupies a meaningful Beginner middle region", "aggregate", "Beginner counts/onsets sit strictly between Very Beginner and Very Easy with sparse LH activity"],
 };
 
 export function evaluateDeclaredGates(observed: Partial<Record<DeclaredReleaseGate, boolean>>): DeclaredGateResult[] {
@@ -528,7 +543,7 @@ export function evaluateCurrentFixture(fixture: CurrentFixture): CurrentFixtureE
     "structural-recovery": structuralRecovery.candidateErasedWindows.length <= structuralRecovery.baselineErasedWindows.length,
     "lh-provenance": unsafe === 0 && application.pitchedDrumOutputs === 0,
     "synthetic-safety": !syntheticRequired || syntheticControl.pass,
-    "product-separation": separation.length === 3,
+    "product-separation": productSeparationPass(separation),
   });
   const predicateGateIds = DECLARED_RELEASE_GATES;
   return {

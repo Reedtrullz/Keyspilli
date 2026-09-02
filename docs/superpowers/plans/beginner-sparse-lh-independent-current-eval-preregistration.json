@@ -96,7 +96,7 @@
     {
       "id": "product-separation",
       "scope": "aggregate",
-      "predicate": "fresh Very Beginner/Beginner/Very Easy metrics are present"
+      "predicate": "fresh Beginner counts/onsets sit strictly between Very Beginner and Very Easy and include sparse LH activity"
     }
   ],
   "decision": {
