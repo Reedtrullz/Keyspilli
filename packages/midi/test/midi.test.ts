@@ -555,7 +555,7 @@ describe("buildVariants", () => {
       durationBeats: 2,
     } satisfies ParsedMidi;
     const collect = (source: ParsedMidi) => {
-      const trace: Array<{ key: string; stage: string; parentKeys: string[]; selected?: boolean }> = [];
+      const trace: Array<{ key: string; stage: string; parentKeys: string[]; selected?: boolean; operation?: string; selectionReason?: string }> = [];
       buildVariants(source, { title: "Trace", artist: "Test" }, {
         arrangementProfile: "learner",
         trace: { record: (event) => trace.push(event) },
@@ -566,14 +566,54 @@ describe("buildVariants", () => {
     const second = collect({ ...input, notes: [...notes].reverse() });
     expect(first).toEqual(second);
     expect(new Set(first.map((event) => event.stage))).toEqual(
-      new Set(["raw", "cleaned", "selector-input", "decision", "final", "difficulty"]),
+      new Set([
+        "raw", "cleaned", "learner-arranged", "advanced-candidates", "advanced-playable",
+        "medium-candidates", "medium-playable", "easy-rh-input", "easy-lh-input", "onset-group",
+        "selector-input", "easy-voice-selection", "decision", "easy-assembled", "easy-playable",
+        "easy-ladder", "final", "difficulty",
+      ]),
     );
-    expect(first.some((event) => event.stage === "decision" && event.selected === false)).toBe(true);
+    expect(first.some((event) => event.selected === false && event.stage !== "raw")).toBe(true);
+    expect(first.filter((event) => event.stage !== "difficulty").every((event) => event.operation)).toBe(true);
+    expect(first.filter((event) => event.selected === false).every((event) => event.selectionReason)).toBe(true);
     const lineage = first.filter((event) => event.stage !== "difficulty");
     const keys = new Set(lineage.map((event) => event.key));
     expect(lineage.every((event) => event.parentKeys.every((parent) => keys.has(parent)))).toBe(true);
     expect(first.filter((event) => event.stage === "difficulty")
       .every((event) => event.parentKeys.every((parent) => keys.has(parent)))).toBe(true);
+    const easy = buildVariants(input, { title: "Trace", artist: "Test" }, {
+      arrangementProfile: "learner",
+      trace: { record: () => undefined },
+    }).find((variant) => variant.level === "easy")!;
+    expect(easy.notes.every((note) => !(note as Note & { learnerTraceRefs?: unknown }).learnerTraceRefs)).toBe(true);
+  });
+
+  it("records a collapsed parent set when quantization merges duplicate source attacks", () => {
+    const input: ParsedMidi = {
+      format: 0,
+      division: 480,
+      tempoBpm: 120,
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes: [
+        { midi: 60, start: 0.01, dur: 0.4, vel: 70 },
+        { midi: 60, start: 0.02, dur: 0.8, vel: 80 },
+        { midi: 72, start: 0.5, dur: 0.4, vel: 100 },
+      ],
+      trackNames: ["Piano"],
+      durationBeats: 2,
+    };
+    const trace: Array<{ stage: string; parentKeys: string[]; operation?: string }> = [];
+    buildVariants(input, { title: "Duplicate trace", artist: "Test" }, {
+      arrangementProfile: "learner",
+      maxDurBeats: null,
+      trace: { record: (event) => trace.push(event) },
+    });
+    const merged = trace.find((event) => event.stage === "learner-arranged" && event.operation === "MERGED");
+    expect(merged).toBeDefined();
+    expect(merged!.parentKeys).toHaveLength(2);
+    expect(trace.filter((event) => event.stage === "raw")).toHaveLength(3);
   });
 
   it("keeps recurring mid-register accompaniment in the LH when the largest pitch gap is misleading", () => {

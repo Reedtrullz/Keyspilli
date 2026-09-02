@@ -34,6 +34,7 @@ export type {
   MetalArrangementIR,
   MetalArrangementResult,
   MetalArrangementTraceEvent,
+  MetalArrangementTraceOperation,
   MetalArrangementTraceSink,
   MetalArrangementTraceStage,
   MetalStem,

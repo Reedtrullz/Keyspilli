@@ -22,6 +22,17 @@ export interface MetalArrangementInput {
 export type MetalArrangementTraceStage =
   | "raw"
   | "cleaned"
+  | "learner-arranged"
+  | "advanced-candidates"
+  | "advanced-playable"
+  | "medium-candidates"
+  | "medium-playable"
+  | "easy-rh-input"
+  | "easy-lh-input"
+  | "easy-voice-selection"
+  | "easy-assembled"
+  | "easy-playable"
+  | "easy-ladder"
   | "eligibility"
   | "selector-input"
   | "onset-group"
@@ -34,6 +45,21 @@ export type MetalArrangementTraceStage =
   | "left-hand"
   | "difficulty"
   | "final";
+
+/** Deterministic operation recorded by an opt-in development trace. */
+export type MetalArrangementTraceOperation =
+  | "RETAINED"
+  | "REJECTED"
+  | "MERGED"
+  | "COLLAPSED"
+  | "REPLACED"
+  | "PITCH_CHANGED"
+  | "OCTAVE_SHIFTED"
+  | "TIMING_CHANGED"
+  | "DURATION_CHANGED"
+  | "ROLE_CHANGED"
+  | "HAND_CHANGED"
+  | "GENERATED";
 
 /**
  * A path-free, numeric provenance event.  This type is deliberately separate
@@ -49,6 +75,7 @@ export interface MetalArrangementTraceEvent {
   note?: { midi: number; rawMidi?: number; start: number; dur: number; vel: number; hand?: "R" | "L" };
   selected?: boolean;
   selectionReason?: string;
+  operation?: MetalArrangementTraceOperation;
   confidence?: number;
   semantic?: {
     rootPc: number;

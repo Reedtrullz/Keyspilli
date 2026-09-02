@@ -27,7 +27,20 @@ export function quantize(notes: Note[], opts: QuantizeOptions = {}): Note[] {
     const key = `${n.midi}:${start.toFixed(3)}`;
     const prev = out.get(key);
     if (prev) {
-      if (dur > prev.dur) out.set(key, { ...prev, dur, vel: Math.max(prev.vel, n.vel) });
+      const prevRefs = (prev as Note & { learnerTraceRefs?: readonly string[] }).learnerTraceRefs ?? [];
+      const nextRefs = (n as Note & { learnerTraceRefs?: readonly string[] }).learnerTraceRefs ?? [];
+      if (!prevRefs.length && !nextRefs.length) {
+        if (dur > prev.dur) out.set(key, { ...prev, dur, vel: Math.max(prev.vel, n.vel) });
+        continue;
+      }
+      const learnerTraceRefs = [...new Set([...prevRefs, ...nextRefs])].sort();
+      const merged = {
+        ...prev,
+        dur: Math.max(prev.dur, dur),
+        vel: Math.max(prev.vel, n.vel),
+        ...(learnerTraceRefs.length ? { learnerTraceRefs } : {}),
+      };
+      out.set(key, merged);
     } else {
       out.set(key, { ...n, start, dur });
     }

@@ -65,12 +65,13 @@ export interface ArrangementEvaluationReference {
 export interface ProvenanceTraceEvent {
   key: string;
   windowId?: string;
-  stage?: "raw" | "cleaned" | "eligibility" | "selector-input" | "onset-group" | "lead" | "residual" | "cluster" | "semantic" | "decision" | "chord" | "left-hand" | "difficulty" | "final";
+  stage?: "raw" | "cleaned" | "learner-arranged" | "advanced-candidates" | "advanced-playable" | "medium-candidates" | "medium-playable" | "easy-rh-input" | "easy-lh-input" | "easy-voice-selection" | "easy-assembled" | "easy-playable" | "easy-ladder" | "eligibility" | "selector-input" | "onset-group" | "lead" | "residual" | "cluster" | "semantic" | "decision" | "chord" | "left-hand" | "difficulty" | "final";
   parentKeys?: string[];
   source?: string | null;
   sourceStem?: string | null;
   note?: { midi: number; rawMidi?: number; start: number; dur: number; vel: number; hand?: "R" | "L" };
   selectionReason?: string;
+  operation?: "RETAINED" | "REJECTED" | "MERGED" | "COLLAPSED" | "REPLACED" | "PITCH_CHANGED" | "OCTAVE_SHIFTED" | "TIMING_CHANGED" | "DURATION_CHANGED" | "ROLE_CHANGED" | "HAND_CHANGED" | "GENERATED";
   rawCandidateCount?: number;
   selected?: boolean;
   confidence?: number;
@@ -974,7 +975,7 @@ function validateEvaluationWindows(raw: unknown, label: string): WindowValidatio
 }
 
 const TRACE_STAGES = new Set<NonNullable<ProvenanceTraceEvent["stage"]>>([
-  "raw", "cleaned", "eligibility", "selector-input", "onset-group", "lead", "residual", "cluster", "semantic", "decision", "chord", "left-hand", "difficulty", "final",
+  "raw", "cleaned", "learner-arranged", "advanced-candidates", "advanced-playable", "medium-candidates", "medium-playable", "easy-rh-input", "easy-lh-input", "easy-voice-selection", "easy-assembled", "easy-playable", "easy-ladder", "eligibility", "selector-input", "onset-group", "lead", "residual", "cluster", "semantic", "decision", "chord", "left-hand", "difficulty", "final",
 ]);
 
 function traceShapeFailures(trace: unknown): string[] {
@@ -1025,6 +1026,9 @@ function safeTraceEvent(raw: unknown): ProvenanceTraceEvent | undefined {
   if (typeof raw.sourceStem === "string") event.sourceStem = redactEmbeddedPaths(raw.sourceStem);
   else if (raw.sourceStem === null) event.sourceStem = null;
   if (typeof raw.selectionReason === "string") event.selectionReason = redactEmbeddedPaths(raw.selectionReason);
+  if (typeof raw.operation === "string" && ["RETAINED", "REJECTED", "MERGED", "COLLAPSED", "REPLACED", "PITCH_CHANGED", "OCTAVE_SHIFTED", "TIMING_CHANGED", "DURATION_CHANGED", "ROLE_CHANGED", "HAND_CHANGED", "GENERATED"].includes(raw.operation)) {
+    event.operation = raw.operation as NonNullable<ProvenanceTraceEvent["operation"]>;
+  }
   if (typeof raw.rawCandidateCount === "number" && Number.isFinite(raw.rawCandidateCount)) event.rawCandidateCount = raw.rawCandidateCount;
   if (typeof raw.selected === "boolean") event.selected = raw.selected;
   if (typeof raw.confidence === "number" && Number.isFinite(raw.confidence)) event.confidence = raw.confidence;
