@@ -1,7 +1,8 @@
 # Task 3 — Corpus evaluation and promotion decision
 
 Status: complete. The exact outcome is `BEGINNER_SPARSE_TWO_HAND_CONTRACT_PARTIAL`.
-Production source, tests, metadata, and public behavior were not changed.
+Task 3 made no production-source, metadata, or learner-behavior changes; Task 2
+intentionally added the isolated evaluator support/tests.
 
 ## Decision
 

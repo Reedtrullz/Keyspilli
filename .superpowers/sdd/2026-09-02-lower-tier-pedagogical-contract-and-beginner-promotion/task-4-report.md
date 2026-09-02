@@ -10,9 +10,9 @@ promotion is authorized.
 NO_PRODUCTION_BEHAVIOR_CHANGE
 ```
 
-No production source, tests, metadata, or learner behavior changed. The
-existing `COLLISION_AWARE_SPARSE_LH` candidate remains evaluation evidence
-only.
+Task 4 made no production-source, metadata, or learner-behavior changes; Task 2
+intentionally added the isolated evaluator support/tests. The existing
+`COLLISION_AWARE_SPARSE_LH` candidate remains evaluation evidence only.
 
 The synthetic source-hash freeze mismatch and the four-note candidate's
 validator failure remain hard corpus failures. The deferred concerns
