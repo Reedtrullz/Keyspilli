@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "revision": "3a2af9a4dc2894f47c3caace29d403df2a38b548",
+  "profile": "learner",
+  "options": {
+    "maxDurBeats": null,
+    "digest": "sha256(sorted [midi,start(6),dur(6),vel,hand,identitySource])"
+  },
+  "fixtures": [
+    {
+      "id": "classical",
+      "logicalRef": "data/artifacts/c-debussy-suite-bergamasque-clair-de-lune/a/notes.json",
+      "sourceFileSha256": "e7e0fd260e049e338120cc4ee35c1a998ef616c01529a4c1a79837d6bb914039",
+      "tempoBpm": 60,
+      "timeSig": [9, 8],
+      "key": "A#m",
+      "durationBeats": 322.5,
+      "source": {"notes": 1309, "onsets": 715, "rh": 740, "lh": 569},
+      "baseline": {
+        "advanced": {"notes": 1309, "rh": 740, "lh": 569, "digest": "8f56d7796a2059cb6663faf6961bcb78951dedc5b71df0309d0196bc5980d771"},
+        "medium": {"notes": 1283, "rh": 722, "lh": 561, "digest": "e74d4d660d624a6936706b3a36abf70bf5ca9c99ad24c8f8f8b85e7204b5d531"},
+        "easy": {"notes": 908, "rh": 433, "lh": 475, "digest": "bfcbfbeaedfd810877d58e75c3eb8100f24194f6cd17d519fe6bd6a7256c83d0"}
+      }
+    },
+    {
+      "id": "cover",
+      "logicalRef": "data/artifacts/paul-gassa-yiruma-river-flows-in-you-emotional-piano-cover-msl98ing/a/notes.json",
+      "sourceFileSha256": "eb8a1cf8f0076a548acaa206b67d19123814e1167d654496afa24c0458dc6f9d",
+      "tempoBpm": 144,
+      "timeSig": [4, 4],
+      "key": "A",
+      "durationBeats": 564.125,
+      "source": {"notes": 1400, "onsets": 938, "rh": 954, "lh": 446},
+      "baseline": {
+        "advanced": {"notes": 1400, "rh": 954, "lh": 446, "digest": "603b7bcf1121940f6fbe3ee56ad29f8e2b20c4030af62f3c80650389091c5e01"},
+        "medium": {"notes": 1371, "rh": 932, "lh": 439, "digest": "8f1324cccfbb4c29f2e73fda8fa03e03ffa2f0c6c05b7d6b805a50321afc9e1b"},
+        "easy": {"notes": 1197, "rh": 785, "lh": 412, "digest": "9c9a184a67db7ec7c2ce0e4341c90908d802e5d125f38857fcbd06f79d28ae27"}
+      }
+    },
+    {
+      "id": "pop",
+      "logicalRef": "data/artifacts/adele-hello/a/notes.json",
+      "sourceFileSha256": "87915f6b8dce035951af2ddc89c9c36ce105fde8e79ba6f936e31b7f80ef7fd6",
+      "tempoBpm": 79,
+      "timeSig": [4, 4],
+      "key": "Ab",
+      "durationBeats": 387.125,
+      "source": {"notes": 1016, "onsets": 555, "rh": 522, "lh": 494},
+      "baseline": {
+        "advanced": {"notes": 1016, "rh": 522, "lh": 494, "digest": "7c305096a427ecf311386e6df3beae522f89c9140fdf3e71fe4a1d8c878b0b03"},
+        "medium": {"notes": 1011, "rh": 517, "lh": 494, "digest": "c60482390183b41b3e89e451291639925857c0b9c34b2d7523345766617bef69"},
+        "easy": {"notes": 823, "rh": 374, "lh": 449, "digest": "a240bf9870dd5199c312bb9c17793749901ee9414de3a4f2fe9ac8cad55f82c8"}
+      }
+    }
+  ],
+  "shadow": {
+    "id": "synthetic-full-band",
+    "sourceMidiSha256": "c8672d6923c8701408d54cc2e4dde671fbc0e9f0ca635c033e6b3a2ab7325518",
+    "sourceNotes": 32,
+    "sourceOnsets": 12,
+    "sourceDurationBeats": 7.75,
+    "baseline": {"advanced": 27, "medium": 26, "easy": 16}
+  }
+}
