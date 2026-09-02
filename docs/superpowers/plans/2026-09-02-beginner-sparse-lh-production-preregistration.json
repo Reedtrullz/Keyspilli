@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "mission": "LOWER_TIER_PEDAGOGICAL_CONTRACT_AND_BEGINNER_PROMOTION",
+  "startingRevision": "008ac14fb546557da7593c55cf27b225da138e27",
+  "candidate": {
+    "id": "COLLISION_AWARE_SPARSE_LH",
+    "status": "single permitted candidate",
+    "semantics": {
+      "source": "existing Very Easy LH structural/root/bass evidence",
+      "window": "one source-meter window; beatsPerMeasure (4 beats in 4/4, 4.5 in 9/8)",
+      "selection": "lowest note at first meaningful eligible LH onset",
+      "collision": "if sounding-duration maxSim would exceed 2, try an existing later eligible LH onset in the same window; otherwise suppress",
+      "invariants": ["baseline Beginner RH event set byte-identical", "no RH retiming/replacement/removal", "no retiming", "no drum-derived note", "no decorative/arpeggio/repeated filler", "no Case-05 exception"],
+      "maxSimultaneity": 2
+    }
+  },
+  "contracts": {
+    "very-beginner": {
+      "displayName": "Very Beginner",
+      "id": "very-beginner",
+      "generationPath": "buildVariants learner -> beginner reduction -> very-beginner reduction",
+      "handPolicy": "generic learner RH-only; metal may retain sparse LH",
+      "limits": {"maxSim": 2, "maxDensityAttacksPerSecond": 5, "minMedianIoiSeconds": 0.15, "gridBeats": 0.5, "minMelodyDurationBeats": 1, "spanCapSemitones": 12, "voiceCap": "capSemanticBeginnerHands"},
+      "rolePolicy": "melody skeleton",
+      "lhPolicy": "none in generic learner; sparse anchors only in metal",
+      "proposedContract": "ONE_HAND_MELODY",
+      "alignment": "ALREADY_ALIGNED"
+    },
+    "beginner": {
+      "displayName": "Beginner",
+      "id": "beginner",
+      "generationPath": "buildVariants learner -> Very Easy RH -> melodyOnly -> capSoundingSpan -> quantize -> Beginner cap -> ladder preservation",
+      "handPolicy": "generic learner RH-only; metal additionally calls sparseLeftHandAnchors",
+      "limits": {"maxSim": 2, "maxDensityAttacksPerSecond": 6, "minMedianIoiSeconds": 0.08, "gridBeats": 0.25, "minMelodyDurationBeats": 0.5, "spanCapSemitones": 12, "voiceCap": "capSemanticBeginnerHands only for metal"},
+      "rolePolicy": "principal RH melody",
+      "lhPolicy": "none in generic learner; existing sparse structural anchors in metal",
+      "proposedContract": "PRIMARY_MELODY_PLUS_SPARSE_STRUCTURAL_LH",
+      "alignment": "NOT_ALIGNED"
+    },
+    "very-easy": {
+      "displayName": "Very Easy",
+      "id": "very-easy",
+      "generationPath": "buildVariants learner -> Easy RH/LH -> melodyOnly RH + retained LH -> quantize -> cap",
+      "handPolicy": "two-hand learner arrangement",
+      "limits": {"maxSim": 5, "maxDensityAttacksPerSecond": 12, "minMedianIoiSeconds": 0.08, "gridBeats": 0.25, "minMelodyDurationBeats": 0.5, "spanCapSemitones": 12, "voiceCap": "per-hand cap via source stages"},
+      "rolePolicy": "simplified melody plus harmony/texture",
+      "lhPolicy": "retained simplified LH texture; metal uses one-beat LH texture gap",
+      "proposedContract": "SIMPLIFIED_TWO_HAND_ARRANGEMENT",
+      "alignment": "PARTIALLY_ALIGNED"
+    }
+  },
+  "fixtureInventory": {
+    "GENERATION_DEV_ELIGIBLE": [
+      {"id": "classical", "logicalRef": "data/artifacts/c-debussy-suite-bergamasque-clair-de-lune/a/notes.json", "sha256": "e7e0fd260e049e338120cc4ee35c1a998ef616c01529a4c1a79837d6bb914039", "reason": "tracked trusted direct-piano development fixture"},
+      {"id": "cover", "logicalRef": "data/artifacts/paul-gassa-yiruma-river-flows-in-you-emotional-piano-cover-msl98ing/a/notes.json", "sha256": "eb8a1cf8f0076a548acaa206b67d19123814e1167d654496afa24c0458dc6f9d", "reason": "tracked trusted direct-piano development fixture"},
+      {"id": "pop", "logicalRef": "data/artifacts/adele-hello/a/notes.json", "sha256": "87915f6b8dce035951af2ddc89c9c36ce105fde8e79ba6f936e31b7f80ef7fd6", "reason": "tracked trusted direct-piano development fixture"},
+      {"id": "synthetic-full-band", "logicalRef": "synthetic:full-band", "sha256": "fba496e372f8962967b5e08903fa4883d6f4be1bde046f0eb3a06e1a1dcc8dc8", "reason": "existing project-owned inline synthetic shadow fixture"}
+    ],
+    "EVAL_ONLY": [
+      {"id": "1916", "reason": "private human-validated benchmark/reference material"},
+      {"id": "christmas-truce", "reason": "private human-validated benchmark/reference material"},
+      {"id": "the-final-solution", "reason": "private human-validated benchmark/reference material"},
+      {"id": "gott-mit-uns", "reason": "private human-validated benchmark/reference material"},
+      {"id": "the-red-baron", "reason": "private human-validated benchmark/reference material"},
+      {"id": "free-bird", "reason": "private human-validated benchmark/reference material"},
+      {"id": "the-caroleans-prayer", "reason": "private human-validated benchmark/reference material"}
+    ],
+    "EXCLUDED": [
+      {"id": "catalog-generated-artifacts", "reason": "457 local catalog manifests / generated song artifacts are product data, not declared calibration fixtures"},
+      {"id": "untracked-source-audit", "reason": "temporary audit material; not tracked or eligible"},
+      {"id": "external-or-protected-reference-material", "reason": "not read; prohibited by mission boundary"}
+    ]
+  },
+  "frozenOutputs": {
+    "profile": "learner",
+    "levels": ["very-beginner", "beginner", "very-easy", "easy", "medium", "advanced"],
+    "calibrationCommand": "npm run calibrate:ladder -w @keyspilli/catalog -- --out <logical-output-path>",
+    "fixtures": {
+      "classical": {"very-beginner": "d982f12aa89f37da110f9c23bf57264bd423bd4dc38004ad597e5b1894e4bd1d", "beginner": "c84eb5600d844fa17d2e45653fec0412b3d7a5f2ecc9b4054347600329d87635", "very-easy": "5bf7557f94d0de0daa852295ac11f1d3e695a7289750a354836319e1c99cc2b5", "easy": "510ca6179ab55ef3c6bafc9e6ba74dff818c25786835040db529b18bee31fd45", "medium": "a70a008da2afc6c5dc98fd9dc85a149e6d1bfaf3ad4c76dbd7af34b1654b011f", "advanced": "418b30bc1b21c54f3bb2bfa21720e735bea4aaae01d00703184f24b126338973"},
+      "cover": {"very-beginner": "6655f1e04fbd2602e6212142b5b02083b1b37c413a6fdf6aa0e9c65a42322d44", "beginner": "c54f3597db6228ba5f23cefa4cdc8bfb58f8979a04c35fbab9edce7ec02fd5aa", "very-easy": "32828cce160d50e69e882d043eda8a291d8bce7b5c15b76bf9cff5da8157260d", "easy": "5b53ac8695b7a93586e4bc775e661f327db1947f2d4af49dd04ec01aa0a765a0", "medium": "058d54eb0834ba913e976915f8e5b61f5cb65a3e78497abceb18e9fa48fa7365", "advanced": "4ceb199ac5fc94bb48c359999b9e8b0ef7723b4cc3b2d9d073edd9891c2fe92e"},
+      "pop": {"very-beginner": "69f225c56a2018e359f2aee915f94f4ddc3a1e5e9ba0ef5fcb0a69902a155996", "beginner": "7b49eac68cffc992e1f5e0a2381c38095957f38558a25f8fdf82275e798d979e", "very-easy": "e56d8308d0c943937dbcb76b23bdef85e58dede6b21fb6177e52c8ba4e288f49", "easy": "43505843112e1ba927a9ea9290b0013424b089ee93e409dd700d7bcd42744e48", "medium": "77412e3b62bca88e9aeee2d76a2193744c41cf121f5bfe54c66819207de4c5f6", "advanced": "6b12ee9feaf49b0fc0d69255a68eae4c5aa0dd7f4e7456239e25455a94ff550e"},
+      "synthetic-full-band": {"very-beginner": "992f16666694a2186b0914a0b218d20dc719476d4e460e58328a68623cb24a4d", "beginner": "082fb135ff670626de7e17e7cc3aad842e43b6164b28e147ead83921a3e05ea9", "very-easy": "d68df372510437928547d8ad4628705dcd84b5fc7ee42f5563a5fa5a994840b1", "easy": "d68df372510437928547d8ad4628705dcd84b5fc7ee42f5563a5fa5a994840b1", "medium": "b6f57d993b4ebfec56a6b25da86bf25b853e4ec05db48a068b949fbe7016e264", "advanced": "db0b111a5d6a2b6ca6b69f28b66fd61ebe9a48a66a876f4e8d46e35ff09e9493"}
+    }
+  },
+  "metrics": ["RH exact digest parity", "max sounding simultaneity", "Beginner density and median IOI", "grid/timing and duration validity", "span/range and voice limits", "active-window coverage and erased windows", "structural LH provenance", "LH attacks/minute and onset share", "collision/rest regressions", "six-level and non-Beginner digest parity", "deterministic rerun"],
+  "gates": {
+    "hard": ["candidate Beginner RH exactly equals frozen baseline", "max sounding simultaneity <= 2", "existing Beginner validation passes", "no RH timing/pitch/replacement/removal", "no decorative/filler/drum LH"],
+    "regression": ["Very Beginner, Very Easy, Easy, Medium, Advanced byte-identical", "genuine rests remain silent", "no collision exceeds maxSim 2", "unknown structural provenance fails closed"],
+    "promotion": "promote only if every eligible fixture passes hard and regression gates and the selected outcome is BEGINNER_SPARSE_TWO_HAND_CONTRACT_VALIDATED; otherwise production remains unchanged"
+  },
+  "deferred": ["COVER_RH_IDENTITY_CLIFF", "DIFFICULTY_DIFFERENTIATION_CONCERN"],
+  "scope": {"externalReferenceUsed": false, "audioGenerated": false, "productionReplay": false, "productionSourceChanged": false}
+}
