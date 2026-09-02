@@ -15,13 +15,13 @@ const readFixture = (): { bytes: Buffer; fixture: Fixture } => {
 
 const frozenSparseCandidate = (notes: FixtureNote[]): Note[] => {
   const melody = notes.filter((n) => n.role === "melody" && n.hand === "R");
-  const output = [...melody];
+  const output: Note[] = [...melody];
   for (const { alternatives } of selectAnchors(notes.filter((n) => n.hand === "L"), 4)) {
     const anchor = alternatives.find((candidate) => {
       const fixtureCandidate = candidate as FixtureNote;
       if (fixtureCandidate.role !== "structural-lh") return false;
       const soundingRh = notes.filter((n) => n.hand !== "L" && n.start <= candidate.start && n.start + n.dur > candidate.start);
-      return soundingRh.length < 2 && structuralClass(candidate, true) === "STRUCTURAL_LH";
+      return soundingRh.length < 2 && structuralClass(fixtureCandidate, true) === "STRUCTURAL_LH";
     });
     if (anchor) output.push(anchor as unknown as Note);
   }
