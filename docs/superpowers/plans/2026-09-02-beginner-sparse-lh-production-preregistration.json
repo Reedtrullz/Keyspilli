@@ -20,7 +20,7 @@
       "id": "very-beginner",
       "generationPath": "buildVariants learner -> beginner reduction -> very-beginner reduction",
       "handPolicy": "generic learner RH-only; metal may retain sparse LH",
-      "limits": {"maxSim": 2, "maxDensityAttacksPerSecond": 5, "minMedianIoiSeconds": 0.15, "gridBeats": 0.5, "minMelodyDurationBeats": 1, "spanCapSemitones": 12, "voiceCap": "capSemanticBeginnerHands"},
+      "limits": {"maxSim": 2, "maxDensityAttacksPerSecond": 5, "minMedianIoiSeconds": 0.15, "gridBeats": 0.5, "minMelodyDurationBeats": 1, "spanCapSemitones": 12, "voiceCap": "capSemanticBeginnerHands", "maxDurBeats": null, "durationPolicy": "unbounded/waived for frozen calibration; note duration validity remains a metric/regression check"},
       "rolePolicy": "melody skeleton",
       "lhPolicy": "none in generic learner; sparse anchors only in metal",
       "proposedContract": "ONE_HAND_MELODY",
@@ -31,7 +31,7 @@
       "id": "beginner",
       "generationPath": "buildVariants learner -> Very Easy RH -> melodyOnly -> capSoundingSpan -> quantize -> Beginner cap -> ladder preservation",
       "handPolicy": "generic learner RH-only; metal additionally calls sparseLeftHandAnchors",
-      "limits": {"maxSim": 2, "maxDensityAttacksPerSecond": 6, "minMedianIoiSeconds": 0.08, "gridBeats": 0.25, "minMelodyDurationBeats": 0.5, "spanCapSemitones": 12, "voiceCap": "capSemanticBeginnerHands only for metal"},
+      "limits": {"maxSim": 2, "maxDensityAttacksPerSecond": 6, "minMedianIoiSeconds": 0.08, "gridBeats": 0.25, "minMelodyDurationBeats": 0.5, "spanCapSemitones": 12, "voiceCap": "capSemanticBeginnerHands only for metal", "maxDurBeats": null, "durationPolicy": "unbounded/waived for frozen calibration; note duration validity remains a metric/regression check"},
       "rolePolicy": "principal RH melody",
       "lhPolicy": "none in generic learner; existing sparse structural anchors in metal",
       "proposedContract": "PRIMARY_MELODY_PLUS_SPARSE_STRUCTURAL_LH",
@@ -42,7 +42,7 @@
       "id": "very-easy",
       "generationPath": "buildVariants learner -> Easy RH/LH -> melodyOnly RH + retained LH -> quantize -> cap",
       "handPolicy": "two-hand learner arrangement",
-      "limits": {"maxSim": 5, "maxDensityAttacksPerSecond": 12, "minMedianIoiSeconds": 0.08, "gridBeats": 0.25, "minMelodyDurationBeats": 0.5, "spanCapSemitones": 12, "voiceCap": "per-hand cap via source stages"},
+      "limits": {"maxSim": 5, "maxDensityAttacksPerSecond": 12, "minMedianIoiSeconds": 0.08, "gridBeats": 0.25, "minMelodyDurationBeats": 0.5, "spanCapSemitones": 12, "voiceCap": "per-hand cap via source stages", "maxDurBeats": null, "durationPolicy": "unbounded/waived for frozen calibration; note duration validity remains a metric/regression check"},
       "rolePolicy": "simplified melody plus harmony/texture",
       "lhPolicy": "retained simplified LH texture; metal uses one-beat LH texture gap",
       "proposedContract": "SIMPLIFIED_TWO_HAND_ARRANGEMENT",
@@ -51,9 +51,9 @@
   },
   "fixtureInventory": {
     "GENERATION_DEV_ELIGIBLE": [
-      {"id": "classical", "logicalRef": "data/artifacts/c-debussy-suite-bergamasque-clair-de-lune/a/notes.json", "sha256": "e7e0fd260e049e338120cc4ee35c1a998ef616c01529a4c1a79837d6bb914039", "reason": "tracked trusted direct-piano development fixture"},
-      {"id": "cover", "logicalRef": "data/artifacts/paul-gassa-yiruma-river-flows-in-you-emotional-piano-cover-msl98ing/a/notes.json", "sha256": "eb8a1cf8f0076a548acaa206b67d19123814e1167d654496afa24c0458dc6f9d", "reason": "tracked trusted direct-piano development fixture"},
-      {"id": "pop", "logicalRef": "data/artifacts/adele-hello/a/notes.json", "sha256": "87915f6b8dce035951af2ddc89c9c36ce105fde8e79ba6f936e31b7f80ef7fd6", "reason": "tracked trusted direct-piano development fixture"},
+      {"id": "classical", "logicalRef": "data/artifacts/c-debussy-suite-bergamasque-clair-de-lune/a/notes.json", "sha256": "e7e0fd260e049e338120cc4ee35c1a998ef616c01529a4c1a79837d6bb914039", "reason": "frozen local trusted input; path is ignored/untracked, so reproducibility requires the same local file"},
+      {"id": "cover", "logicalRef": "data/artifacts/paul-gassa-yiruma-river-flows-in-you-emotional-piano-cover-msl98ing/a/notes.json", "sha256": "eb8a1cf8f0076a548acaa206b67d19123814e1167d654496afa24c0458dc6f9d", "reason": "frozen local trusted input; path is ignored/untracked, so reproducibility requires the same local file"},
+      {"id": "pop", "logicalRef": "data/artifacts/adele-hello/a/notes.json", "sha256": "87915f6b8dce035951af2ddc89c9c36ce105fde8e79ba6f936e31b7f80ef7fd6", "reason": "frozen local trusted input; path is ignored/untracked, so reproducibility requires the same local file"},
       {"id": "synthetic-full-band", "logicalRef": "synthetic:full-band", "sha256": "fba496e372f8962967b5e08903fa4883d6f4be1bde046f0eb3a06e1a1dcc8dc8", "reason": "existing project-owned inline synthetic shadow fixture"}
     ],
     "EVAL_ONLY": [
@@ -63,7 +63,9 @@
       {"id": "gott-mit-uns", "reason": "private human-validated benchmark/reference material"},
       {"id": "the-red-baron", "reason": "private human-validated benchmark/reference material"},
       {"id": "free-bird", "reason": "private human-validated benchmark/reference material"},
-      {"id": "the-caroleans-prayer", "reason": "private human-validated benchmark/reference material"}
+      {"id": "the-caroleans-prayer", "reason": "private human-validated benchmark/reference material"},
+      {"id": "dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo", "logicalRef": "data/seed-midi/dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo.mid", "reason": "tracked seed/product input, not a declared calibration fixture"},
+      {"id": "the-theorist-elton-john-your-song-piano-cover-jz6ugvghbt8", "logicalRef": "data/seed-midi/the-theorist-elton-john-your-song-piano-cover-jz6ugvghbt8.mid", "reason": "tracked seed/product input, not a declared calibration fixture"}
     ],
     "EXCLUDED": [
       {"id": "catalog-generated-artifacts", "reason": "457 local catalog manifests / generated song artifacts are product data, not declared calibration fixtures"},
