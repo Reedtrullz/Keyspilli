@@ -616,6 +616,30 @@ describe("buildVariants", () => {
     expect(trace.filter((event) => event.stage === "raw")).toHaveLength(3);
   });
 
+  it("classifies a learner range move as an octave shift", () => {
+    const trace: Array<{ stage: string; operation?: string; parentKeys: string[] }> = [];
+    const variants = buildVariants({
+      format: 0,
+      division: 480,
+      tempoBpm: 120,
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes: [
+        { midi: 9, start: 0, dur: 1, vel: 90, hand: "R" },
+        { midi: 60, start: 1, dur: 1, vel: 90, hand: "R" },
+      ],
+      trackNames: ["Range trace"],
+      durationBeats: 2,
+    }, { title: "Range trace", artist: "Test" }, {
+      arrangementProfile: "learner",
+      maxDurBeats: null,
+      trace: { record: (event) => trace.push(event) },
+    });
+    expect(trace.some((event) => event.operation === "OCTAVE_SHIFTED" && event.parentKeys.length > 0)).toBe(true);
+    expect(variants.every((variant) => variant.notes.every((note) => note.midi >= 21 && note.midi <= 108))).toBe(true);
+  });
+
   it("keeps recurring mid-register accompaniment in the LH when the largest pitch gap is misleading", () => {
     const notes: Note[] = [];
     for (let i = 0; i < 24; i++) {
