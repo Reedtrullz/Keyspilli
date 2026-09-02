@@ -278,6 +278,24 @@ describe("quantize", () => {
     expect(q.find((n) => n.midi === 62)!.start).toBe(0.25);
   });
 
+  it("keeps collision metadata deterministic when source notes are reordered", () => {
+    const notes: Note[] = [
+      { midi: 60, start: 0.01, dur: 0.4, vel: 72, hand: "R", identitySource: "guitar" },
+      { midi: 60, start: 0.02, dur: 0.8, vel: 84, hand: "L", identitySource: "vocals" },
+    ];
+    const forward = quantize(notes, { grid: 0.25 });
+    const reverse = quantize([...notes].reverse(), { grid: 0.25 });
+    expect(reverse).toEqual(forward);
+    expect(forward).toEqual([expect.objectContaining({
+      midi: 60,
+      start: 0,
+      dur: 0.75,
+      vel: 84,
+      hand: "L",
+      identitySource: "vocals",
+    })]);
+  });
+
   it("drops sub-minDur ghosts instead of inflating them", () => {
     const notes: Note[] = [
       { midi: 60, start: 0, dur: 0.05, vel: 80 },
@@ -638,6 +656,50 @@ describe("buildVariants", () => {
     });
     expect(trace.some((event) => event.operation === "OCTAVE_SHIFTED" && event.parentKeys.length > 0)).toBe(true);
     expect(variants.every((variant) => variant.notes.every((note) => note.midi >= 21 && note.midi <= 108))).toBe(true);
+  });
+
+  it("labels difficulty-stage timing changes and keeps all merged parents", () => {
+    const trace: Array<{ stage: string; operation?: string; parentKeys: string[]; key: string }> = [];
+    buildVariants({
+      format: 0,
+      division: 480,
+      tempoBpm: 120,
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes: [{ midi: 60, start: 0, dur: 0.41, vel: 80, hand: "R" }],
+      trackNames: ["Difficulty trace"],
+      durationBeats: 2,
+    }, { title: "Difficulty trace", artist: "Test" }, {
+      arrangementProfile: "learner",
+      trace: { record: (event) => trace.push(event) },
+    });
+    const changed = trace.find((event) => event.key.startsWith("difficulty:easy:"));
+    expect(changed?.operation).toBe("DURATION_CHANGED");
+    expect(changed?.parentKeys).toHaveLength(1);
+
+    const mergedTrace: typeof trace = [];
+    buildVariants({
+      format: 0,
+      division: 480,
+      tempoBpm: 120,
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes: [
+        { midi: 60, start: 0.01, dur: 0.4, vel: 70 },
+        { midi: 60, start: 0.02, dur: 0.8, vel: 80 },
+      ],
+      trackNames: ["Difficulty merge trace"],
+      durationBeats: 2,
+    }, { title: "Difficulty merge trace", artist: "Test" }, {
+      arrangementProfile: "learner",
+      maxDurBeats: null,
+      trace: { record: (event) => mergedTrace.push(event) },
+    });
+    const merged = mergedTrace.find((event) => event.key.startsWith("difficulty:easy:") && event.operation === "MERGED");
+    expect(merged).toBeDefined();
+    expect(merged?.parentKeys).toHaveLength(2);
   });
 
   it("keeps recurring mid-register accompaniment in the LH when the largest pitch gap is misleading", () => {

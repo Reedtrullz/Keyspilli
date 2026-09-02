@@ -100,27 +100,48 @@ function difficultyTraceKey(level: DifficultyLevel, note: Note, index: number): 
   return `difficulty:${level}:${index}:${note.hand ?? "?"}:${note.start.toFixed(6)}:${note.midi}:${note.dur.toFixed(6)}:${note.vel}:${note.identitySource ?? "unknown"}`;
 }
 
+/** Stable fallback key for metal arrangements whose parsed MIDI has no refs. */
 function canonicalTraceKey(note: Note): string {
   return `final:${note.hand ?? "?"}:${note.start.toFixed(6)}:${note.midi}:${note.dur.toFixed(6)}:${note.vel}:${note.identitySource ?? "unknown"}`;
 }
 
-function difficultyParent(note: Note, canonical: Note[], startTolerance: number): { key?: string; reason: "retained" | "revoiced" | "generated" } {
+interface DifficultyParentResult {
+  parents: Note[];
+  operation: MetalArrangementTraceOperation;
+  parentKeys?: string[];
+}
+
+function difficultyParent(note: Note, canonical: Note[], startTolerance: number): DifficultyParentResult {
   const refs = learnerTraceRefs(note);
   if (refs.length) {
-    const source = canonical.find((candidate) => learnerTraceRefs(candidate).some((ref) => ref === refs[0]));
-    return source
-      ? { key: learnerTraceKey("raw", source, 0, "selected"), reason: "retained" }
-      : { reason: "generated" };
+    const sources = canonical
+      .filter((candidate) => learnerTraceRefs(candidate).some((ref) => refs.includes(ref)))
+      .sort(compareLearnerNotes);
+    return sources.length
+      ? {
+        parents: sources,
+        operation: learnerOperation(note, sources) ?? "RETAINED",
+        parentKeys: sources.map((source) => learnerTraceKey("raw", source, 0, "selected")),
+      }
+      : { parents: [], operation: "GENERATED" };
   }
   const candidates = canonical
     .map((source) => ({ source, start: Math.abs(source.start - note.start), pitch: Math.abs(source.midi - note.midi), dur: Math.abs(source.dur - note.dur) }))
     .filter(({ source }) => source.hand === note.hand && source.identitySource === note.identitySource)
     .sort((a, b) => a.start - b.start || a.pitch - b.pitch || a.dur - b.dur || a.source.midi - b.source.midi);
   const exact = candidates.find(({ start, pitch }) => start <= startTolerance && pitch === 0);
-  if (exact) return { key: canonicalTraceKey(exact.source), reason: "retained" };
+  if (exact) return {
+    parents: [exact.source],
+    operation: learnerOperation(note, [exact.source]) ?? "RETAINED",
+    parentKeys: [canonicalTraceKey(exact.source)],
+  };
   const nearby = candidates.find(({ start }) => start <= startTolerance);
-  if (nearby) return { key: canonicalTraceKey(nearby.source), reason: "revoiced" };
-  return { reason: "generated" };
+  if (nearby) return {
+    parents: [nearby.source],
+    operation: learnerOperation(note, [nearby.source]) ?? "REPLACED",
+    parentKeys: [canonicalTraceKey(nearby.source)],
+  };
+  return { parents: [], operation: "GENERATED" };
 }
 
 function emitDifficultyTrace(
@@ -136,18 +157,19 @@ function emitDifficultyTrace(
   const startTolerance = level === "very-beginner" ? 0.5 : level === "beginner" || level === "very-easy" ? 0.25 : 0.125;
   for (const [index, note] of notes.entries()) {
     const parent = difficultyParent(note, canonical, startTolerance + 1e-9);
+    const parentKeys = parent.parentKeys ?? parent.parents.map((source) => learnerTraceKey("raw", source, 0, "selected"));
     const event: MetalArrangementTraceEvent = {
       key: difficultyTraceKey(level, note, index),
       stage: "difficulty",
-      parentKeys: parent.key ? [parent.key] : [],
+      parentKeys,
       source: note.identitySource ?? null,
       sourceStem: note.identitySource ?? null,
       note: {
         ...learnerTraceNote(note),
       },
       selected: true,
-      selectionReason: `difficulty-${level}-${parent.reason}`,
-      operation: parent.reason === "generated" ? "GENERATED" : parent.reason === "revoiced" ? "REPLACED" : "RETAINED",
+      selectionReason: `difficulty-${level}-${parent.operation.toLowerCase()}`,
+      operation: parent.operation,
     };
     sink.record(event);
   }
