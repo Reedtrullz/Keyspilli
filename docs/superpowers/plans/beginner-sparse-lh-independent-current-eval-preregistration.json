@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "mission": "INDEPENDENT_CURRENT_FIXTURE_BEGINNER_SPARSE_LH_PROMOTION_EVALUATION",
-  "startingRevision": "de2b4d18dc7b2d9a7a71177c2721e0da3f418dbd",
+  "startingRevision": "fab5fe43aba4bd0b811fa066acd559db900f12d1",
   "candidate": {
     "id": "COLLISION_AWARE_SPARSE_LH",
     "implementation": "test-local transformation over current learner buildVariants output",
