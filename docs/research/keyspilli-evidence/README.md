@@ -101,6 +101,10 @@ experiment history needed to continue later.
 * `storage-policy.md` — one artifact root, metadata, expiry, and disk guard.
 * `storage-inventory.json` — measured storage snapshot and disposition classes.
 
+* `cold-transfer-2026-09-02-rerun.md` — paired Basic Pitch/GAPS rerun,
+  freeze-before-reference hashes, diagnostic metrics, and the no-promotion
+  decision.
+
 ## Cold-transfer boundary
 
 `cold-transfer-preregistration.template.json` is a path-redacted template for

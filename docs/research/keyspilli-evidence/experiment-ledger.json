@@ -274,6 +274,30 @@
       "reportHash": "e286fe4f868ff62f294e5695d5ff3b347c71ba4ccc90af1a6478ddf5c3b49806",
       "reproducible": true,
       "rawArtifactRetention": "retain the path-free preregistration/report hashes only; keep reference media and model inputs outside the repository"
+    },
+    {
+      "id": "cold-metal-transfer-2026-09-02-rerun",
+      "date": "2026-09-02",
+      "gitCommit": "3724d0eb08aeaf8690d0852f842d76d75de3f591",
+      "purpose": "Rerun Basic Pitch and validated GAPS on common regenerated guitar stems before reference-only evaluation",
+      "songs": ["Final Solution", "Gott Mit Uns", "The Red Baron"],
+      "route": "exact-identity source recordings -> pinned Demucs guitar stems -> frozen Basic Pitch/GAPS predictions -> evaluator-only reference comparison",
+      "criticalMetrics": {
+        "commonStems": 3,
+        "predictionsFrozen": true,
+        "referencesReadAfterFreeze": true,
+        "basicPitchNotes": {"finalSolution": 2085, "gottMitUns": 1630, "redBaron": 1627},
+        "gapsNotes": {"finalSolution": 2132, "gottMitUns": 1068, "redBaron": 476},
+        "classification": "GAPS_COLD_TRANSFER_MIXED",
+        "architecture": "TEXTURE_DEPENDENT",
+        "reportSha256": "7eceadb7bc0b560fd97c01135bc0d212c6192e04967116a492d85e9d050f9fa8",
+        "canonicalReportSha256": "991e11b7e86287ab3fce2618955cc5073aef6ebcde5002eb0c170b3d244966aa"
+      },
+      "result": "GAPS lost on all metrics for Final Solution; gained only a small exact F1 amount on Gott Mit Uns while losing onset and pitch-class F1; and regressed substantially on The Red Baron. The paired result is reproducible but texture-dependent and not a global backend replacement signal.",
+      "decision": "NO_PROMOTION; keep GAPS research-only and require a separately scoped texture-specific experiment plus human listening before any downstream use.",
+      "reportHash": "7eceadb7bc0b560fd97c01135bc0d212c6192e04967116a492d85e9d050f9fa8",
+      "reproducible": true,
+      "rawArtifactRetention": "retain compact path-free summary, freeze/evaluation hashes, and manifests only; frozen media, references, checkpoints, and environments remain outside Git"
     }
   ]
 }
