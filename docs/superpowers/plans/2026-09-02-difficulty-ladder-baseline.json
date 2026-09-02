@@ -1,0 +1,2558 @@
+{
+  "schemaVersion": 1,
+  "mission": "difficulty-ladder-calibration",
+  "startingRevision": "d41ac4178817e75a8c7217768b8ac7779613100c",
+  "profile": "learner",
+  "scope": {
+    "behavioralFixes": 0,
+    "externalReferenceUsed": false,
+    "audioGenerated": false,
+    "productionReplay": false
+  },
+  "fixtures": [
+    {
+      "id": "classical",
+      "logicalRef": "data/artifacts/c-debussy-suite-bergamasque-clair-de-lune/a/notes.json",
+      "source": {
+        "sha256": "e7e0fd260e049e338120cc4ee35c1a998ef616c01529a4c1a79837d6bb914039",
+        "noteCount": 1309,
+        "onsetCount": 715,
+        "tempoBpm": 60,
+        "timeSig": [
+          9,
+          8
+        ],
+        "durationBeats": 322.5
+      },
+      "levels": {
+        "very-beginner": {
+          "digest": "d982f12aa89f37da110f9c23bf57264bd423bd4dc38004ad597e5b1894e4bd1d",
+          "noteCount": 368,
+          "rightHandCount": 368,
+          "leftHandCount": 0,
+          "onsetCount": 368,
+          "durationBeats": 324,
+          "maxSimultaneity": 2
+        },
+        "beginner": {
+          "digest": "c84eb5600d844fa17d2e45653fec0412b3d7a5f2ecc9b4054347600329d87635",
+          "noteCount": 435,
+          "rightHandCount": 435,
+          "leftHandCount": 0,
+          "onsetCount": 435,
+          "durationBeats": 324,
+          "maxSimultaneity": 2
+        },
+        "very-easy": {
+          "digest": "5bf7557f94d0de0daa852295ac11f1d3e695a7289750a354836319e1c99cc2b5",
+          "noteCount": 962,
+          "rightHandCount": 435,
+          "leftHandCount": 527,
+          "onsetCount": 714,
+          "durationBeats": 324,
+          "maxSimultaneity": 4
+        },
+        "easy": {
+          "digest": "510ca6179ab55ef3c6bafc9e6ba74dff818c25786835040db529b18bee31fd45",
+          "noteCount": 962,
+          "rightHandCount": 435,
+          "leftHandCount": 527,
+          "onsetCount": 714,
+          "durationBeats": 324,
+          "maxSimultaneity": 4
+        },
+        "medium": {
+          "digest": "a70a008da2afc6c5dc98fd9dc85a149e6d1bfaf3ad4c76dbd7af34b1654b011f",
+          "noteCount": 1283,
+          "rightHandCount": 722,
+          "leftHandCount": 561,
+          "onsetCount": 714,
+          "durationBeats": 324,
+          "maxSimultaneity": 6
+        },
+        "advanced": {
+          "digest": "418b30bc1b21c54f3bb2bfa21720e735bea4aaae01d00703184f24b126338973",
+          "noteCount": 1309,
+          "rightHandCount": 740,
+          "leftHandCount": 569,
+          "onsetCount": 715,
+          "durationBeats": 324,
+          "maxSimultaneity": 8
+        }
+      },
+      "ladder": {
+        "schemaVersion": 1,
+        "fixture": {
+          "id": "classical",
+          "label": "Clair de lune"
+        },
+        "order": [
+          "very-beginner",
+          "beginner",
+          "very-easy",
+          "easy",
+          "medium",
+          "advanced"
+        ],
+        "levels": {
+          "very-beginner": {
+            "level": "very-beginner",
+            "difficultyScore": 1,
+            "noteCount": 368,
+            "rightHandCount": 368,
+            "leftHandCount": 0,
+            "onsetCount": 368,
+            "rightHandOnsetCount": 368,
+            "leftHandOnsetCount": 0,
+            "durationBeats": 324,
+            "notesPerSecond": 1.136,
+            "attacksPerSecond": 1.136,
+            "maxSimultaneity": 2,
+            "medianSimultaneity": 1,
+            "p90Simultaneity": 2,
+            "rightHandSpan": 41,
+            "leftHandSpan": null,
+            "medianMelodicLeap": 3,
+            "p95MelodicLeap": 12,
+            "largeLeapRate": 0.185,
+            "repeatedAttackRate": 0.065,
+            "harmonicRootChanges": 0,
+            "harmonicRestrikes": 0,
+            "harmonicShapes": 0,
+            "phraseStarts": 34,
+            "phraseEnds": 34,
+            "anchors": 345,
+            "sourceRoleCounts": {
+              "vocals": 0,
+              "guitar": 0,
+              "bass": null,
+              "other": 0,
+              "generated": null,
+              "inferred": null,
+              "unknown": 368
+            },
+            "identity": {
+              "sourceRhOnsetCoverage": 0.838,
+              "sourcePitchClassCoverage": 0.838,
+              "sourceRepresentativeCoverage": 0.729,
+              "directionAgreement": 0.904,
+              "turnSurvival": 0.469,
+              "localExtremaSurvival": 0.469,
+              "repeatedAttackSurvival": 0.839,
+              "largeLeapEndpointSurvival": 0.333,
+              "phraseStartSurvival": 0.97,
+              "phraseEndSurvival": 0.97,
+              "anchorSurvival": 0.958,
+              "harmonicRootChangeSurvival": 0,
+              "harmonicChangeSurvival": 0
+            },
+            "lineage": {
+              "traceAvailable": true,
+              "sourceNotesMatched": 368,
+              "sourceNotesUnmatched": 941,
+              "operationCounts": {
+                "RETAINED": 92,
+                "DURATION_CHANGED": 273,
+                "REPLACED": 3
+              }
+            }
+          },
+          "beginner": {
+            "level": "beginner",
+            "difficultyScore": 1.4,
+            "noteCount": 435,
+            "rightHandCount": 435,
+            "leftHandCount": 0,
+            "onsetCount": 435,
+            "rightHandOnsetCount": 435,
+            "leftHandOnsetCount": 0,
+            "durationBeats": 324,
+            "notesPerSecond": 1.343,
+            "attacksPerSecond": 1.343,
+            "maxSimultaneity": 2,
+            "medianSimultaneity": 1,
+            "p90Simultaneity": 2,
+            "rightHandSpan": 41,
+            "leftHandSpan": null,
+            "medianMelodicLeap": 3,
+            "p95MelodicLeap": 12,
+            "largeLeapRate": 0.217,
+            "repeatedAttackRate": 0.06,
+            "harmonicRootChanges": 0,
+            "harmonicRestrikes": 0,
+            "harmonicShapes": 0,
+            "phraseStarts": 33,
+            "phraseEnds": 33,
+            "anchors": 176,
+            "sourceRoleCounts": {
+              "vocals": 0,
+              "guitar": 0,
+              "bass": null,
+              "other": 0,
+              "generated": null,
+              "inferred": null,
+              "unknown": 435
+            },
+            "identity": {
+              "sourceRhOnsetCoverage": 0.991,
+              "sourcePitchClassCoverage": 0.991,
+              "sourceRepresentativeCoverage": 0.882,
+              "directionAgreement": 0.928,
+              "turnSurvival": 0.865,
+              "localExtremaSurvival": 0.865,
+              "repeatedAttackSurvival": 0.935,
+              "largeLeapEndpointSurvival": 0.789,
+              "phraseStartSurvival": 1,
+              "phraseEndSurvival": 0.97,
+              "anchorSurvival": 0.984,
+              "harmonicRootChangeSurvival": 0,
+              "harmonicChangeSurvival": 0
+            },
+            "lineage": {
+              "traceAvailable": true,
+              "sourceNotesMatched": 435,
+              "sourceNotesUnmatched": 874,
+              "operationCounts": {
+                "RETAINED": 241,
+                "DURATION_CHANGED": 194
+              }
+            }
+          },
+          "very-easy": {
+            "level": "very-easy",
+            "difficultyScore": 2,
+            "noteCount": 962,
+            "rightHandCount": 435,
+            "leftHandCount": 527,
+            "onsetCount": 714,
+            "rightHandOnsetCount": 435,
+            "leftHandOnsetCount": 448,
+            "durationBeats": 324,
+            "notesPerSecond": 2.969,
+            "attacksPerSecond": 2.204,
+            "maxSimultaneity": 4,
+            "medianSimultaneity": 2,
+            "p90Simultaneity": 3,
+            "rightHandSpan": 41,
+            "leftHandSpan": 58,
+            "medianMelodicLeap": 3,
+            "p95MelodicLeap": 12,
+            "largeLeapRate": 0.217,
+            "repeatedAttackRate": 0.046,
+            "harmonicRootChanges": 419,
+            "harmonicRestrikes": 28,
+            "harmonicShapes": 36,
+            "phraseStarts": 33,
+            "phraseEnds": 33,
+            "anchors": 176,
+            "sourceRoleCounts": {
+              "vocals": 0,
+              "guitar": 0,
+              "bass": null,
+              "other": 0,
+              "generated": null,
+              "inferred": null,
+              "unknown": 962
+            },
+            "identity": {
+              "sourceRhOnsetCoverage": 0.991,
+              "sourcePitchClassCoverage": 0.991,
+              "sourceRepresentativeCoverage": 0.882,
+              "directionAgreement": 0.928,
+              "turnSurvival": 0.865,
+              "localExtremaSurvival": 0.865,
+              "repeatedAttackSurvival": 0.935,
+              "largeLeapEndpointSurvival": 0.789,
+              "phraseStartSurvival": 1,
+              "phraseEndSurvival": 0.97,
+              "anchorSurvival": 0.984,
+              "harmonicRootChangeSurvival": 1,
+              "harmonicChangeSurvival": 1
+            },
+            "lineage": {
+              "traceAvailable": true,
+              "sourceNotesMatched": 962,
+              "sourceNotesUnmatched": 347,
+              "operationCounts": {
+                "RETAINED": 768,
+                "DURATION_CHANGED": 194
+              }
+            }
+          },
+          "easy": {
+            "level": "easy",
+            "difficultyScore": 2.6,
+            "noteCount": 962,
+            "rightHandCount": 435,
+            "leftHandCount": 527,
+            "onsetCount": 714,
+            "rightHandOnsetCount": 435,
+            "leftHandOnsetCount": 448,
+            "durationBeats": 324,
+            "notesPerSecond": 2.969,
+            "attacksPerSecond": 2.204,
+            "maxSimultaneity": 4,
+            "medianSimultaneity": 2,
+            "p90Simultaneity": 3,
+            "rightHandSpan": 41,
+            "leftHandSpan": 58,
+            "medianMelodicLeap": 3,
+            "p95MelodicLeap": 12,
+            "largeLeapRate": 0.217,
+            "repeatedAttackRate": 0.046,
+            "harmonicRootChanges": 419,
+            "harmonicRestrikes": 28,
+            "harmonicShapes": 36,
+            "phraseStarts": 33,
+            "phraseEnds": 33,
+            "anchors": 174,
+            "sourceRoleCounts": {
+              "vocals": 0,
+              "guitar": 0,
+              "bass": null,
+              "other": 0,
+              "generated": null,
+              "inferred": null,
+              "unknown": 962
+            },
+            "identity": {
+              "sourceRhOnsetCoverage": 0.991,
+              "sourcePitchClassCoverage": 0.991,
+              "sourceRepresentativeCoverage": 0.882,
+              "directionAgreement": 0.928,
+              "turnSurvival": 0.865,
+              "localExtremaSurvival": 0.865,
+              "repeatedAttackSurvival": 0.935,
+              "largeLeapEndpointSurvival": 0.789,
+              "phraseStartSurvival": 1,
+              "phraseEndSurvival": 0.97,
+              "anchorSurvival": 0.984,
+              "harmonicRootChangeSurvival": 1,
+              "harmonicChangeSurvival": 1
+            },
+            "lineage": {
+              "traceAvailable": true,
+              "sourceNotesMatched": 962,
+              "sourceNotesUnmatched": 347,
+              "operationCounts": {
+                "RETAINED": 768,
+                "DURATION_CHANGED": 194
+              }
+            }
+          },
+          "medium": {
+            "level": "medium",
+            "difficultyScore": 3.4,
+            "noteCount": 1283,
+            "rightHandCount": 722,
+            "leftHandCount": 561,
+            "onsetCount": 714,
+            "rightHandOnsetCount": 438,
+            "leftHandOnsetCount": 448,
+            "durationBeats": 324,
+            "notesPerSecond": 3.96,
+            "attacksPerSecond": 2.204,
+            "maxSimultaneity": 6,
+            "medianSimultaneity": 3,
+            "p90Simultaneity": 4,
+            "rightHandSpan": 44,
+            "leftHandSpan": 58,
+            "medianMelodicLeap": 4,
+            "p95MelodicLeap": 12,
+            "largeLeapRate": 0.261,
+            "repeatedAttackRate": 0.053,
+            "harmonicRootChanges": 419,
+            "harmonicRestrikes": 28,
+            "harmonicShapes": 40,
+            "phraseStarts": 33,
+            "phraseEnds": 33,
+            "anchors": 189,
+            "sourceRoleCounts": {
+              "vocals": 0,
+              "guitar": 0,
+              "bass": null,
+              "other": 0,
+              "generated": null,
+              "inferred": null,
+              "unknown": 1283
+            },
+            "identity": {
+              "sourceRhOnsetCoverage": 0.998,
+              "sourcePitchClassCoverage": 0.998,
+              "sourceRepresentativeCoverage": 0.998,
+              "directionAgreement": 1,
+              "turnSurvival": 0.992,
+              "localExtremaSurvival": 0.992,
+              "repeatedAttackSurvival": 1,
+              "largeLeapEndpointSurvival": 1,
+              "phraseStartSurvival": 1,
+              "phraseEndSurvival": 1,
+              "anchorSurvival": 1,
+              "harmonicRootChangeSurvival": 1,
+              "harmonicChangeSurvival": 1
+            },
+            "lineage": {
+              "traceAvailable": true,
+              "sourceNotesMatched": 1283,
+              "sourceNotesUnmatched": 26,
+              "operationCounts": {
+                "RETAINED": 1283
+              }
+            }
+          },
+          "advanced": {
+            "level": "advanced",
+            "difficultyScore": 4.6,
+            "noteCount": 1309,
+            "rightHandCount": 740,
+            "leftHandCount": 569,
+            "onsetCount": 715,
+            "rightHandOnsetCount": 439,
+            "leftHandOnsetCount": 448,
+            "durationBeats": 324,
+            "notesPerSecond": 4.04,
+            "attacksPerSecond": 2.207,
+            "maxSimultaneity": 8,
+            "medianSimultaneity": 3,
+            "p90Simultaneity": 4,
+            "rightHandSpan": 44,
+            "leftHandSpan": 58,
+            "medianMelodicLeap": 4,
+            "p95MelodicLeap": 12,
+            "largeLeapRate": 0.26,
+            "repeatedAttackRate": 0.053,
+            "harmonicRootChanges": 419,
+            "harmonicRestrikes": 28,
+            "harmonicShapes": 43,
+            "phraseStarts": 33,
+            "phraseEnds": 33,
+            "anchors": 189,
+            "sourceRoleCounts": {
+              "vocals": 0,
+              "guitar": 0,
+              "bass": null,
+              "other": 0,
+              "generated": null,
+              "inferred": null,
+              "unknown": 1309
+            },
+            "identity": {
+              "sourceRhOnsetCoverage": 1,
+              "sourcePitchClassCoverage": 1,
+              "sourceRepresentativeCoverage": 1,
+              "directionAgreement": 1,
+              "turnSurvival": 1,
+              "localExtremaSurvival": 1,
+              "repeatedAttackSurvival": 1,
+              "largeLeapEndpointSurvival": 1,
+              "phraseStartSurvival": 1,
+              "phraseEndSurvival": 1,
+              "anchorSurvival": 1,
+              "harmonicRootChangeSurvival": 1,
+              "harmonicChangeSurvival": 1
+            },
+            "lineage": {
+              "traceAvailable": true,
+              "sourceNotesMatched": 1309,
+              "sourceNotesUnmatched": 0,
+              "operationCounts": {
+                "RETAINED": 1309
+              }
+            }
+          }
+        },
+        "transitions": [
+          {
+            "harder": "advanced",
+            "easier": "medium",
+            "identityDelta": {
+              "rhOnsetCoverage": 0.998,
+              "pitchClassCoverage": 0.998,
+              "directionAgreement": 1,
+              "turnSurvival": 0.992,
+              "localExtremaSurvival": 0.992,
+              "repeatedAttackSurvival": 1,
+              "largeLeapEndpointSurvival": 1,
+              "phraseAnchorSurvival": 1,
+              "harmonicChangeSurvival": 1
+            },
+            "complexityDelta": {
+              "noteReductionRatio": 0.02,
+              "onsetReductionRatio": 0.001,
+              "attackRateDelta": 0.003,
+              "attackRateReductionRatio": 0.001,
+              "maxSimultaneityReductionRatio": 0.25,
+              "maxSimultaneityDelta": 2,
+              "rightHandSpanDelta": 0,
+              "largeLeapRateDelta": -0.001,
+              "repeatedAttackRateDelta": 0
+            },
+            "lineage": {
+              "retained": 1283,
+              "rejected": 26,
+              "collapsed": 0,
+              "transformed": 0
+            },
+            "violations": [],
+            "classification": "HEALTHY_SIMPLIFICATION"
+          },
+          {
+            "harder": "medium",
+            "easier": "easy",
+            "identityDelta": {
+              "rhOnsetCoverage": 0.991,
+              "pitchClassCoverage": 0.991,
+              "directionAgreement": 0.928,
+              "turnSurvival": 0.865,
+              "localExtremaSurvival": 0.865,
+              "repeatedAttackSurvival": 0.935,
+              "largeLeapEndpointSurvival": 0.789,
+              "phraseAnchorSurvival": 0.984,
+              "harmonicChangeSurvival": 1
+            },
+            "complexityDelta": {
+              "noteReductionRatio": 0.25,
+              "onsetReductionRatio": 0,
+              "attackRateDelta": 0,
+              "attackRateReductionRatio": 0,
+              "maxSimultaneityReductionRatio": 0.333,
+              "maxSimultaneityDelta": 2,
+              "rightHandSpanDelta": 3,
+              "largeLeapRateDelta": 0.044,
+              "repeatedAttackRateDelta": 0.007
+            },
+            "lineage": {
+              "retained": 962,
+              "rejected": 321,
+              "collapsed": 0,
+              "transformed": 194
+            },
+            "violations": [],
+            "classification": "HEALTHY_SIMPLIFICATION"
+          },
+          {
+            "harder": "easy",
+            "easier": "very-easy",
+            "identityDelta": {
+              "rhOnsetCoverage": 0.991,
+              "pitchClassCoverage": 0.991,
+              "directionAgreement": 0.928,
+              "turnSurvival": 0.865,
+              "localExtremaSurvival": 0.865,
+              "repeatedAttackSurvival": 0.935,
+              "largeLeapEndpointSurvival": 0.789,
+              "phraseAnchorSurvival": 0.984,
+              "harmonicChangeSurvival": 1
+            },
+            "complexityDelta": {
+              "noteReductionRatio": 0,
+              "onsetReductionRatio": 0,
+              "attackRateDelta": 0,
+              "attackRateReductionRatio": 0,
+              "maxSimultaneityReductionRatio": 0,
+              "maxSimultaneityDelta": 0,
+              "rightHandSpanDelta": 0,
+              "largeLeapRateDelta": 0,
+              "repeatedAttackRateDelta": 0
+            },
+            "lineage": {
+              "retained": 962,
+              "rejected": 0,
+              "collapsed": 0,
+              "transformed": 194
+            },
+            "violations": [],
+            "classification": "REDUNDANT_LEVEL"
+          },
+          {
+            "harder": "very-easy",
+            "easier": "beginner",
+            "identityDelta": {
+              "rhOnsetCoverage": 0.991,
+              "pitchClassCoverage": 0.991,
+              "directionAgreement": 0.928,
+              "turnSurvival": 0.865,
+              "localExtremaSurvival": 0.865,
+              "repeatedAttackSurvival": 0.935,
+              "largeLeapEndpointSurvival": 0.789,
+              "phraseAnchorSurvival": 0.984,
+              "harmonicChangeSurvival": 0
+            },
+            "complexityDelta": {
+              "noteReductionRatio": 0.548,
+              "onsetReductionRatio": 0.391,
+              "attackRateDelta": 0.861,
+              "attackRateReductionRatio": 0.391,
+              "maxSimultaneityReductionRatio": 0.5,
+              "maxSimultaneityDelta": 2,
+              "rightHandSpanDelta": 0,
+              "largeLeapRateDelta": 0,
+              "repeatedAttackRateDelta": -0.014
+            },
+            "lineage": {
+              "retained": 435,
+              "rejected": 527,
+              "collapsed": 0,
+              "transformed": 194
+            },
+            "violations": [],
+            "classification": "INCONCLUSIVE"
+          },
+          {
+            "harder": "beginner",
+            "easier": "very-beginner",
+            "identityDelta": {
+              "rhOnsetCoverage": 0.838,
+              "pitchClassCoverage": 0.838,
+              "directionAgreement": 0.904,
+              "turnSurvival": 0.469,
+              "localExtremaSurvival": 0.469,
+              "repeatedAttackSurvival": 0.839,
+              "largeLeapEndpointSurvival": 0.333,
+              "phraseAnchorSurvival": 0.958,
+              "harmonicChangeSurvival": 0
+            },
+            "complexityDelta": {
+              "noteReductionRatio": 0.154,
+              "onsetReductionRatio": 0.154,
+              "attackRateDelta": 0.207,
+              "attackRateReductionRatio": 0.154,
+              "maxSimultaneityReductionRatio": 0,
+              "maxSimultaneityDelta": 0,
+              "rightHandSpanDelta": 0,
+              "largeLeapRateDelta": 0.032,
+              "repeatedAttackRateDelta": -0.005
+            },
+            "lineage": {
+              "retained": 368,
+              "rejected": 67,
+              "collapsed": 0,
+              "transformed": 276
+            },
+            "violations": [],
+            "classification": "IDENTITY_CLIFF"
+          }
+        ],
+        "thresholds": {
+          "onsetToleranceBeats": 0.08,
+          "phraseBreakBeats": 1.5,
+          "redundancyComplexityRatio": 0.02,
+          "identityCliffCoverage": 0.6,
+          "complexityCliffReduction": 0.35
+        }
+      },
+      "determinism": {
+        "canonicalSha256": "8761eed32444c48c6d8a27fbe830ccc7a0f0f50909066be4e46697f9394979d7"
+      }
+    },
+    {
+      "id": "cover",
+      "logicalRef": "data/artifacts/paul-gassa-yiruma-river-flows-in-you-emotional-piano-cover-msl98ing/a/notes.json",
+      "source": {
+        "sha256": "eb8a1cf8f0076a548acaa206b67d19123814e1167d654496afa24c0458dc6f9d",
+        "noteCount": 1400,
+        "onsetCount": 938,
+        "tempoBpm": 144,
+        "timeSig": [
+          4,
+          4
+        ],
+        "durationBeats": 564.125
+      },
+      "levels": {
+        "very-beginner": {
+          "digest": "6655f1e04fbd2602e6212142b5b02083b1b37c413a6fdf6aa0e9c65a42322d44",
+          "noteCount": 353,
+          "rightHandCount": 353,
+          "leftHandCount": 0,
+          "onsetCount": 353,
+          "durationBeats": 568,
+          "maxSimultaneity": 2
+        },
+        "beginner": {
+          "digest": "c54f3597db6228ba5f23cefa4cdc8bfb58f8979a04c35fbab9edce7ec02fd5aa",
+          "noteCount": 381,
+          "rightHandCount": 381,
+          "leftHandCount": 0,
+          "onsetCount": 381,
+          "durationBeats": 568,
+          "maxSimultaneity": 2
+        },
+        "very-easy": {
+          "digest": "32828cce160d50e69e882d043eda8a291d8bce7b5c15b76bf9cff5da8157260d",
+          "noteCount": 1213,
+          "rightHandCount": 779,
+          "leftHandCount": 434,
+          "onsetCount": 1022,
+          "durationBeats": 568,
+          "maxSimultaneity": 4
+        },
+        "easy": {
+          "digest": "5b53ac8695b7a93586e4bc775e661f327db1947f2d4af49dd04ec01aa0a765a0",
+          "noteCount": 1225,
+          "rightHandCount": 786,
+          "leftHandCount": 439,
+          "onsetCount": 921,
+          "durationBeats": 568,
+          "maxSimultaneity": 4
+        },
+        "medium": {
+          "digest": "058d54eb0834ba913e976915f8e5b61f5cb65a3e78497abceb18e9fa48fa7365",
+          "noteCount": 1371,
+          "rightHandCount": 932,
+          "leftHandCount": 439,
+          "onsetCount": 921,
+          "durationBeats": 568,
+          "maxSimultaneity": 6
+        },
+        "advanced": {
+          "digest": "4ceb199ac5fc94bb48c359999b9e8b0ef7723b4cc3b2d9d073edd9891c2fe92e",
+          "noteCount": 1400,
+          "rightHandCount": 954,
+          "leftHandCount": 446,
+          "onsetCount": 938,
+          "durationBeats": 568,
+          "maxSimultaneity": 6
+        }
+      },
+      "ladder": {
+        "schemaVersion": 1,
+        "fixture": {
+          "id": "cover",
+          "label": "River Flows in You"
+        },
+        "order": [
+          "very-beginner",
+          "beginner",
+          "very-easy",
+          "easy",
+          "medium",
+          "advanced"
+        ],
+        "levels": {
+          "very-beginner": {
+            "level": "very-beginner",
+            "difficultyScore": 1,
+            "noteCount": 353,
+            "rightHandCount": 353,
+            "leftHandCount": 0,
+            "onsetCount": 353,
+            "rightHandOnsetCount": 353,
+            "leftHandOnsetCount": 0,
+            "durationBeats": 568,
+            "notesPerSecond": 1.492,
+            "attacksPerSecond": 1.492,
+            "maxSimultaneity": 2,
+            "medianSimultaneity": 1,
+            "p90Simultaneity": 2,
+            "rightHandSpan": 32,
+            "leftHandSpan": null,
+            "medianMelodicLeap": 3,
+            "p95MelodicLeap": 12,
+            "largeLeapRate": 0.313,
+            "repeatedAttackRate": 0.045,
+            "harmonicRootChanges": 0,
+            "harmonicRestrikes": 0,
+            "harmonicShapes": 0,
+            "phraseStarts": 100,
+            "phraseEnds": 100,
+            "anchors": 330,
+            "sourceRoleCounts": {
+              "vocals": 0,
+              "guitar": 0,
+              "bass": null,
+              "other": 0,
+              "generated": null,
+              "inferred": null,
+              "unknown": 353
+            },
+            "identity": {
+              "sourceRhOnsetCoverage": 0.439,
+              "sourcePitchClassCoverage": 0.439,
+              "sourceRepresentativeCoverage": 0.414,
+              "directionAgreement": 0.92,
+              "turnSurvival": 0.128,
+              "localExtremaSurvival": 0.128,
+              "repeatedAttackSurvival": 0.227,
+              "largeLeapEndpointSurvival": 0.19,
+              "phraseStartSurvival": 0.52,
+              "phraseEndSurvival": 0.56,
+              "anchorSurvival": 0.444,
+              "harmonicRootChangeSurvival": 0,
+              "harmonicChangeSurvival": 0
+            },
+            "lineage": {
+              "traceAvailable": true,
+              "sourceNotesMatched": 353,
+              "sourceNotesUnmatched": 1047,
+              "operationCounts": {
+                "DURATION_CHANGED": 269,
+                "RETAINED": 75,
+                "REPLACED": 7,
+                "MERGED": 2
+              }
+            }
+          },
+          "beginner": {
+            "level": "beginner",
+            "difficultyScore": 1.4,
+            "noteCount": 381,
+            "rightHandCount": 381,
+            "leftHandCount": 0,
+            "onsetCount": 381,
+            "rightHandOnsetCount": 381,
+            "leftHandOnsetCount": 0,
+            "durationBeats": 568,
+            "notesPerSecond": 1.61,
+            "attacksPerSecond": 1.61,
+            "maxSimultaneity": 2,
+            "medianSimultaneity": 1,
+            "p90Simultaneity": 1,
+            "rightHandSpan": 32,
+            "leftHandSpan": null,
+            "medianMelodicLeap": 2,
+            "p95MelodicLeap": 12,
+            "largeLeapRate": 0.292,
+            "repeatedAttackRate": 0.053,
+            "harmonicRootChanges": 0,
+            "harmonicRestrikes": 0,
+            "harmonicShapes": 0,
+            "phraseStarts": 100,
+            "phraseEnds": 100,
+            "anchors": 166,
+            "sourceRoleCounts": {
+              "vocals": 0,
+              "guitar": 0,
+              "bass": null,
+              "other": 0,
+              "generated": null,
+              "inferred": null,
+              "unknown": 381
+            },
+            "identity": {
+              "sourceRhOnsetCoverage": 0.474,
+              "sourcePitchClassCoverage": 0.474,
+              "sourceRepresentativeCoverage": 0.445,
+              "directionAgreement": 0.927,
+              "turnSurvival": 0.137,
+              "localExtremaSurvival": 0.137,
+              "repeatedAttackSurvival": 0.25,
+              "largeLeapEndpointSurvival": 0.194,
+              "phraseStartSurvival": 0.52,
+              "phraseEndSurvival": 0.56,
+              "anchorSurvival": 0.473,
+              "harmonicRootChangeSurvival": 0,
+              "harmonicChangeSurvival": 0
+            },
+            "lineage": {
+              "traceAvailable": true,
+              "sourceNotesMatched": 381,
+              "sourceNotesUnmatched": 1019,
+              "operationCounts": {
+                "DURATION_CHANGED": 238,
+                "RETAINED": 143
+              }
+            }
+          },
+          "very-easy": {
+            "level": "very-easy",
+            "difficultyScore": 2,
+            "noteCount": 1213,
+            "rightHandCount": 779,
+            "leftHandCount": 434,
+            "onsetCount": 1022,
+            "rightHandOnsetCount": 779,
+            "leftHandOnsetCount": 384,
+            "durationBeats": 568,
+            "notesPerSecond": 5.125,
+            "attacksPerSecond": 4.318,
+            "maxSimultaneity": 4,
+            "medianSimultaneity": 1,
+            "p90Simultaneity": 3,
+            "rightHandSpan": 32,
+            "leftHandSpan": 26,
+            "medianMelodicLeap": 2,
+            "p95MelodicLeap": 12,
+            "largeLeapRate": 0.292,
+            "repeatedAttackRate": 0.057,
+            "harmonicRootChanges": 220,
+            "harmonicRestrikes": 163,
+            "harmonicShapes": 12,
+            "phraseStarts": 27,
+            "phraseEnds": 27,
+            "anchors": 279,
+            "sourceRoleCounts": {
+              "vocals": 0,
+              "guitar": 0,
+              "bass": null,
+              "other": 0,
+              "generated": null,
+              "inferred": null,
+              "unknown": 1213
+            },
+            "identity": {
+              "sourceRhOnsetCoverage": 0.969,
+              "sourcePitchClassCoverage": 0.969,
+              "sourceRepresentativeCoverage": 0.903,
+              "directionAgreement": 0.91,
+              "turnSurvival": 0.772,
+              "localExtremaSurvival": 0.772,
+              "repeatedAttackSurvival": 0.795,
+              "largeLeapEndpointSurvival": 0.766,
+              "phraseStartSurvival": 0.96,
+              "phraseEndSurvival": 1,
+              "anchorSurvival": 0.976,
+              "harmonicRootChangeSurvival": 0.482,
+              "harmonicChangeSurvival": 0.482
+            },
+            "lineage": {
+              "traceAvailable": true,
+              "sourceNotesMatched": 997,
+              "sourceNotesUnmatched": 403,
+              "operationCounts": {
+                "DURATION_CHANGED": 581,
+                "TIMING_CHANGED": 117,
+                "RETAINED": 416,
+                "REPLACED": 99
+              }
+            }
+          },
+          "easy": {
+            "level": "easy",
+            "difficultyScore": 2.6,
+            "noteCount": 1225,
+            "rightHandCount": 786,
+            "leftHandCount": 439,
+            "onsetCount": 921,
+            "rightHandOnsetCount": 786,
+            "leftHandOnsetCount": 384,
+            "durationBeats": 568,
+            "notesPerSecond": 5.176,
+            "attacksPerSecond": 3.892,
+            "maxSimultaneity": 4,
+            "medianSimultaneity": 1,
+            "p90Simultaneity": 3,
+            "rightHandSpan": 32,
+            "leftHandSpan": 26,
+            "medianMelodicLeap": 2,
+            "p95MelodicLeap": 12,
+            "largeLeapRate": 0.29,
+            "repeatedAttackRate": 0.083,
+            "harmonicRootChanges": 218,
+            "harmonicRestrikes": 165,
+            "harmonicShapes": 12,
+            "phraseStarts": 25,
+            "phraseEnds": 25,
+            "anchors": 257,
+            "sourceRoleCounts": {
+              "vocals": 0,
+              "guitar": 0,
+              "bass": null,
+              "other": 0,
+              "generated": null,
+              "inferred": null,
+              "unknown": 1225
+            },
+            "identity": {
+              "sourceRhOnsetCoverage": 0.978,
+              "sourcePitchClassCoverage": 0.978,
+              "sourceRepresentativeCoverage": 0.909,
+              "directionAgreement": 0.907,
+              "turnSurvival": 0.795,
+              "localExtremaSurvival": 0.795,
+              "repeatedAttackSurvival": 0.795,
+              "largeLeapEndpointSurvival": 0.782,
+              "phraseStartSurvival": 1,
+              "phraseEndSurvival": 1,
+              "anchorSurvival": 0.987,
+              "harmonicRootChangeSurvival": 0.973,
+              "harmonicChangeSurvival": 0.973
+            },
+            "lineage": {
+              "traceAvailable": true,
+              "sourceNotesMatched": 1225,
+              "sourceNotesUnmatched": 175,
+              "operationCounts": {
+                "RETAINED": 815,
+                "DURATION_CHANGED": 410
+              }
+            }
+          },
+          "medium": {
+            "level": "medium",
+            "difficultyScore": 3.4,
+            "noteCount": 1371,
+            "rightHandCount": 932,
+            "leftHandCount": 439,
+            "onsetCount": 921,
+            "rightHandOnsetCount": 786,
+            "leftHandOnsetCount": 384,
+            "durationBeats": 568,
+            "notesPerSecond": 5.793,
+            "attacksPerSecond": 3.892,
+            "maxSimultaneity": 6,
+            "medianSimultaneity": 2,
+            "p90Simultaneity": 3,
+            "rightHandSpan": 32,
+            "leftHandSpan": 26,
+            "medianMelodicLeap": 2,
+            "p95MelodicLeap": 12,
+            "largeLeapRate": 0.31,
+            "repeatedAttackRate": 0.095,
+            "harmonicRootChanges": 218,
+            "harmonicRestrikes": 165,
+            "harmonicShapes": 12,
+            "phraseStarts": 25,
+            "phraseEnds": 25,
+            "anchors": 449,
+            "sourceRoleCounts": {
+              "vocals": 0,
+              "guitar": 0,
+              "bass": null,
+              "other": 0,
+              "generated": null,
+              "inferred": null,
+              "unknown": 1371
+            },
+            "identity": {
+              "sourceRhOnsetCoverage": 0.978,
+              "sourcePitchClassCoverage": 0.978,
+              "sourceRepresentativeCoverage": 0.978,
+              "directionAgreement": 1,
+              "turnSurvival": 0.948,
+              "localExtremaSurvival": 0.948,
+              "repeatedAttackSurvival": 0.955,
+              "largeLeapEndpointSurvival": 0.96,
+              "phraseStartSurvival": 1,
+              "phraseEndSurvival": 1,
+              "anchorSurvival": 0.987,
+              "harmonicRootChangeSurvival": 0.973,
+              "harmonicChangeSurvival": 0.973
+            },
+            "lineage": {
+              "traceAvailable": true,
+              "sourceNotesMatched": 1371,
+              "sourceNotesUnmatched": 29,
+              "operationCounts": {
+                "RETAINED": 1371
+              }
+            }
+          },
+          "advanced": {
+            "level": "advanced",
+            "difficultyScore": 4.6,
+            "noteCount": 1400,
+            "rightHandCount": 954,
+            "leftHandCount": 446,
+            "onsetCount": 938,
+            "rightHandOnsetCount": 804,
+            "leftHandOnsetCount": 391,
+            "durationBeats": 568,
+            "notesPerSecond": 5.915,
+            "attacksPerSecond": 3.963,
+            "maxSimultaneity": 6,
+            "medianSimultaneity": 2,
+            "p90Simultaneity": 3,
+            "rightHandSpan": 32,
+            "leftHandSpan": 26,
+            "medianMelodicLeap": 2,
+            "p95MelodicLeap": 12,
+            "largeLeapRate": 0.309,
+            "repeatedAttackRate": 0.091,
+            "harmonicRootChanges": 222,
+            "harmonicRestrikes": 168,
+            "harmonicShapes": 12,
+            "phraseStarts": 25,
+            "phraseEnds": 25,
+            "anchors": 455,
+            "sourceRoleCounts": {
+              "vocals": 0,
+              "guitar": 0,
+              "bass": null,
+              "other": 0,
+              "generated": null,
+              "inferred": null,
+              "unknown": 1400
+            },
+            "identity": {
+              "sourceRhOnsetCoverage": 1,
+              "sourcePitchClassCoverage": 1,
+              "sourceRepresentativeCoverage": 1,
+              "directionAgreement": 1,
+              "turnSurvival": 1,
+              "localExtremaSurvival": 1,
+              "repeatedAttackSurvival": 1,
+              "largeLeapEndpointSurvival": 1,
+              "phraseStartSurvival": 1,
+              "phraseEndSurvival": 1,
+              "anchorSurvival": 1,
+              "harmonicRootChangeSurvival": 1,
+              "harmonicChangeSurvival": 1
+            },
+            "lineage": {
+              "traceAvailable": true,
+              "sourceNotesMatched": 1400,
+              "sourceNotesUnmatched": 0,
+              "operationCounts": {
+                "RETAINED": 1400
+              }
+            }
+          }
+        },
+        "transitions": [
+          {
+            "harder": "advanced",
+            "easier": "medium",
+            "identityDelta": {
+              "rhOnsetCoverage": 0.978,
+              "pitchClassCoverage": 0.978,
+              "directionAgreement": 1,
+              "turnSurvival": 0.948,
+              "localExtremaSurvival": 0.948,
+              "repeatedAttackSurvival": 0.955,
+              "largeLeapEndpointSurvival": 0.96,
+              "phraseAnchorSurvival": 0.987,
+              "harmonicChangeSurvival": 0.973
+            },
+            "complexityDelta": {
+              "noteReductionRatio": 0.021,
+              "onsetReductionRatio": 0.018,
+              "attackRateDelta": 0.071,
+              "attackRateReductionRatio": 0.018,
+              "maxSimultaneityReductionRatio": 0,
+              "maxSimultaneityDelta": 0,
+              "rightHandSpanDelta": 0,
+              "largeLeapRateDelta": -0.001,
+              "repeatedAttackRateDelta": -0.004
+            },
+            "lineage": {
+              "retained": 1371,
+              "rejected": 29,
+              "collapsed": 0,
+              "transformed": 0
+            },
+            "violations": [],
+            "classification": "HEALTHY_SIMPLIFICATION"
+          },
+          {
+            "harder": "medium",
+            "easier": "easy",
+            "identityDelta": {
+              "rhOnsetCoverage": 0.978,
+              "pitchClassCoverage": 0.978,
+              "directionAgreement": 0.907,
+              "turnSurvival": 0.795,
+              "localExtremaSurvival": 0.795,
+              "repeatedAttackSurvival": 0.795,
+              "largeLeapEndpointSurvival": 0.782,
+              "phraseAnchorSurvival": 0.987,
+              "harmonicChangeSurvival": 0.973
+            },
+            "complexityDelta": {
+              "noteReductionRatio": 0.106,
+              "onsetReductionRatio": 0,
+              "attackRateDelta": 0,
+              "attackRateReductionRatio": 0,
+              "maxSimultaneityReductionRatio": 0.333,
+              "maxSimultaneityDelta": 2,
+              "rightHandSpanDelta": 0,
+              "largeLeapRateDelta": 0.02,
+              "repeatedAttackRateDelta": 0.012
+            },
+            "lineage": {
+              "retained": 1225,
+              "rejected": 146,
+              "collapsed": 0,
+              "transformed": 410
+            },
+            "violations": [],
+            "classification": "HEALTHY_SIMPLIFICATION"
+          },
+          {
+            "harder": "easy",
+            "easier": "very-easy",
+            "identityDelta": {
+              "rhOnsetCoverage": 0.969,
+              "pitchClassCoverage": 0.969,
+              "directionAgreement": 0.91,
+              "turnSurvival": 0.772,
+              "localExtremaSurvival": 0.772,
+              "repeatedAttackSurvival": 0.795,
+              "largeLeapEndpointSurvival": 0.766,
+              "phraseAnchorSurvival": 0.976,
+              "harmonicChangeSurvival": 0.482
+            },
+            "complexityDelta": {
+              "noteReductionRatio": 0.01,
+              "onsetReductionRatio": -0.11,
+              "attackRateDelta": -0.426,
+              "attackRateReductionRatio": -0.109,
+              "maxSimultaneityReductionRatio": 0,
+              "maxSimultaneityDelta": 0,
+              "rightHandSpanDelta": 0,
+              "largeLeapRateDelta": -0.002,
+              "repeatedAttackRateDelta": 0.026
+            },
+            "lineage": {
+              "retained": 997,
+              "rejected": 228,
+              "collapsed": 0,
+              "transformed": 797
+            },
+            "violations": [
+              "onset count increased",
+              "attack rate increased"
+            ],
+            "classification": "NON_MONOTONIC"
+          },
+          {
+            "harder": "very-easy",
+            "easier": "beginner",
+            "identityDelta": {
+              "rhOnsetCoverage": 0.474,
+              "pitchClassCoverage": 0.474,
+              "directionAgreement": 0.927,
+              "turnSurvival": 0.137,
+              "localExtremaSurvival": 0.137,
+              "repeatedAttackSurvival": 0.25,
+              "largeLeapEndpointSurvival": 0.194,
+              "phraseAnchorSurvival": 0.473,
+              "harmonicChangeSurvival": 0
+            },
+            "complexityDelta": {
+              "noteReductionRatio": 0.686,
+              "onsetReductionRatio": 0.627,
+              "attackRateDelta": 2.708,
+              "attackRateReductionRatio": 0.627,
+              "maxSimultaneityReductionRatio": 0.5,
+              "maxSimultaneityDelta": 2,
+              "rightHandSpanDelta": 0,
+              "largeLeapRateDelta": 0,
+              "repeatedAttackRateDelta": 0.004
+            },
+            "lineage": {
+              "retained": 381,
+              "rejected": 832,
+              "collapsed": 0,
+              "transformed": 238
+            },
+            "violations": [],
+            "classification": "INCONCLUSIVE"
+          },
+          {
+            "harder": "beginner",
+            "easier": "very-beginner",
+            "identityDelta": {
+              "rhOnsetCoverage": 0.439,
+              "pitchClassCoverage": 0.439,
+              "directionAgreement": 0.92,
+              "turnSurvival": 0.128,
+              "localExtremaSurvival": 0.128,
+              "repeatedAttackSurvival": 0.227,
+              "largeLeapEndpointSurvival": 0.19,
+              "phraseAnchorSurvival": 0.444,
+              "harmonicChangeSurvival": 0
+            },
+            "complexityDelta": {
+              "noteReductionRatio": 0.073,
+              "onsetReductionRatio": 0.073,
+              "attackRateDelta": 0.118,
+              "attackRateReductionRatio": 0.073,
+              "maxSimultaneityReductionRatio": 0,
+              "maxSimultaneityDelta": 0,
+              "rightHandSpanDelta": 0,
+              "largeLeapRateDelta": -0.021,
+              "repeatedAttackRateDelta": 0.008
+            },
+            "lineage": {
+              "retained": 353,
+              "rejected": 28,
+              "collapsed": 2,
+              "transformed": 276
+            },
+            "violations": [],
+            "classification": "IDENTITY_CLIFF"
+          }
+        ],
+        "thresholds": {
+          "onsetToleranceBeats": 0.08,
+          "phraseBreakBeats": 1.5,
+          "redundancyComplexityRatio": 0.02,
+          "identityCliffCoverage": 0.6,
+          "complexityCliffReduction": 0.35
+        }
+      },
+      "determinism": {
+        "canonicalSha256": "a7e88d69eccc36f32b44a713e578438d6ba0b19ffcf94e3dfb7abc68d87f0385"
+      }
+    },
+    {
+      "id": "pop",
+      "logicalRef": "data/artifacts/adele-hello/a/notes.json",
+      "source": {
+        "sha256": "87915f6b8dce035951af2ddc89c9c36ce105fde8e79ba6f936e31b7f80ef7fd6",
+        "noteCount": 1016,
+        "onsetCount": 555,
+        "tempoBpm": 79,
+        "timeSig": [
+          4,
+          4
+        ],
+        "durationBeats": 387.125
+      },
+      "levels": {
+        "very-beginner": {
+          "digest": "69f225c56a2018e359f2aee915f94f4ddc3a1e5e9ba0ef5fcb0a69902a155996",
+          "noteCount": 327,
+          "rightHandCount": 327,
+          "leftHandCount": 0,
+          "onsetCount": 327,
+          "durationBeats": 388,
+          "maxSimultaneity": 2
+        },
+        "beginner": {
+          "digest": "7b49eac68cffc992e1f5e0a2381c38095957f38558a25f8fdf82275e798d979e",
+          "noteCount": 375,
+          "rightHandCount": 375,
+          "leftHandCount": 0,
+          "onsetCount": 375,
+          "durationBeats": 388,
+          "maxSimultaneity": 2
+        },
+        "very-easy": {
+          "digest": "e56d8308d0c943937dbcb76b23bdef85e58dede6b21fb6177e52c8ba4e288f49",
+          "noteCount": 847,
+          "rightHandCount": 375,
+          "leftHandCount": 472,
+          "onsetCount": 555,
+          "durationBeats": 388,
+          "maxSimultaneity": 4
+        },
+        "easy": {
+          "digest": "43505843112e1ba927a9ea9290b0013424b089ee93e409dd700d7bcd42744e48",
+          "noteCount": 847,
+          "rightHandCount": 375,
+          "leftHandCount": 472,
+          "onsetCount": 555,
+          "durationBeats": 388,
+          "maxSimultaneity": 4
+        },
+        "medium": {
+          "digest": "77412e3b62bca88e9aeee2d76a2193744c41cf121f5bfe54c66819207de4c5f6",
+          "noteCount": 1011,
+          "rightHandCount": 517,
+          "leftHandCount": 494,
+          "onsetCount": 555,
+          "durationBeats": 388,
+          "maxSimultaneity": 6
+        },
+        "advanced": {
+          "digest": "6b12ee9feaf49b0fc0d69255a68eae4c5aa0dd7f4e7456239e25455a94ff550e",
+          "noteCount": 1016,
+          "rightHandCount": 522,
+          "leftHandCount": 494,
+          "onsetCount": 555,
+          "durationBeats": 388,
+          "maxSimultaneity": 6
+        }
+      },
+      "ladder": {
+        "schemaVersion": 1,
+        "fixture": {
+          "id": "pop",
+          "label": "Hello"
+        },
+        "order": [
+          "very-beginner",
+          "beginner",
+          "very-easy",
+          "easy",
+          "medium",
+          "advanced"
+        ],
+        "levels": {
+          "very-beginner": {
+            "level": "very-beginner",
+            "difficultyScore": 1,
+            "noteCount": 327,
+            "rightHandCount": 327,
+            "leftHandCount": 0,
+            "onsetCount": 327,
+            "rightHandOnsetCount": 327,
+            "leftHandOnsetCount": 0,
+            "durationBeats": 388,
+            "notesPerSecond": 1.11,
+            "attacksPerSecond": 1.11,
+            "maxSimultaneity": 2,
+            "medianSimultaneity": 1,
+            "p90Simultaneity": 2,
+            "rightHandSpan": 26,
+            "leftHandSpan": null,
+            "medianMelodicLeap": 2,
+            "p95MelodicLeap": 8,
+            "largeLeapRate": 0.12,
+            "repeatedAttackRate": 0.169,
+            "harmonicRootChanges": 0,
+            "harmonicRestrikes": 0,
+            "harmonicShapes": 0,
+            "phraseStarts": 21,
+            "phraseEnds": 21,
+            "anchors": 284,
+            "sourceRoleCounts": {
+              "vocals": 0,
+              "guitar": 0,
+              "bass": null,
+              "other": 0,
+              "generated": null,
+              "inferred": null,
+              "unknown": 327
+            },
+            "identity": {
+              "sourceRhOnsetCoverage": 0.87,
+              "sourcePitchClassCoverage": 0.87,
+              "sourceRepresentativeCoverage": 0.814,
+              "directionAgreement": 0.929,
+              "turnSurvival": 0.49,
+              "localExtremaSurvival": 0.49,
+              "repeatedAttackSurvival": 0.673,
+              "largeLeapEndpointSurvival": 0.66,
+              "phraseStartSurvival": 1,
+              "phraseEndSurvival": 1,
+              "anchorSurvival": 0.873,
+              "harmonicRootChangeSurvival": 0,
+              "harmonicChangeSurvival": 0
+            },
+            "lineage": {
+              "traceAvailable": true,
+              "sourceNotesMatched": 327,
+              "sourceNotesUnmatched": 689,
+              "operationCounts": {
+                "DURATION_CHANGED": 303,
+                "REPLACED": 10,
+                "RETAINED": 14
+              }
+            }
+          },
+          "beginner": {
+            "level": "beginner",
+            "difficultyScore": 1.4,
+            "noteCount": 375,
+            "rightHandCount": 375,
+            "leftHandCount": 0,
+            "onsetCount": 375,
+            "rightHandOnsetCount": 375,
+            "leftHandOnsetCount": 0,
+            "durationBeats": 388,
+            "notesPerSecond": 1.273,
+            "attacksPerSecond": 1.273,
+            "maxSimultaneity": 2,
+            "medianSimultaneity": 1,
+            "p90Simultaneity": 1,
+            "rightHandSpan": 26,
+            "leftHandSpan": null,
+            "medianMelodicLeap": 2,
+            "p95MelodicLeap": 8,
+            "largeLeapRate": 0.115,
+            "repeatedAttackRate": 0.182,
+            "harmonicRootChanges": 0,
+            "harmonicRestrikes": 0,
+            "harmonicShapes": 0,
+            "phraseStarts": 18,
+            "phraseEnds": 18,
+            "anchors": 212,
+            "sourceRoleCounts": {
+              "vocals": 0,
+              "guitar": 0,
+              "bass": null,
+              "other": 0,
+              "generated": null,
+              "inferred": null,
+              "unknown": 375
+            },
+            "identity": {
+              "sourceRhOnsetCoverage": 0.997,
+              "sourcePitchClassCoverage": 0.997,
+              "sourceRepresentativeCoverage": 0.936,
+              "directionAgreement": 0.938,
+              "turnSurvival": 0.927,
+              "localExtremaSurvival": 0.927,
+              "repeatedAttackSurvival": 0.85,
+              "largeLeapEndpointSurvival": 0.787,
+              "phraseStartSurvival": 1,
+              "phraseEndSurvival": 1,
+              "anchorSurvival": 0.995,
+              "harmonicRootChangeSurvival": 0,
+              "harmonicChangeSurvival": 0
+            },
+            "lineage": {
+              "traceAvailable": true,
+              "sourceNotesMatched": 375,
+              "sourceNotesUnmatched": 641,
+              "operationCounts": {
+                "DURATION_CHANGED": 341,
+                "RETAINED": 34
+              }
+            }
+          },
+          "very-easy": {
+            "level": "very-easy",
+            "difficultyScore": 2,
+            "noteCount": 847,
+            "rightHandCount": 375,
+            "leftHandCount": 472,
+            "onsetCount": 555,
+            "rightHandOnsetCount": 375,
+            "leftHandOnsetCount": 333,
+            "durationBeats": 388,
+            "notesPerSecond": 2.874,
+            "attacksPerSecond": 1.883,
+            "maxSimultaneity": 4,
+            "medianSimultaneity": 1,
+            "p90Simultaneity": 2,
+            "rightHandSpan": 26,
+            "leftHandSpan": 35,
+            "medianMelodicLeap": 2,
+            "p95MelodicLeap": 8,
+            "largeLeapRate": 0.115,
+            "repeatedAttackRate": 0.139,
+            "harmonicRootChanges": 298,
+            "harmonicRestrikes": 34,
+            "harmonicShapes": 15,
+            "phraseStarts": 18,
+            "phraseEnds": 18,
+            "anchors": 212,
+            "sourceRoleCounts": {
+              "vocals": 0,
+              "guitar": 0,
+              "bass": null,
+              "other": 0,
+              "generated": null,
+              "inferred": null,
+              "unknown": 847
+            },
+            "identity": {
+              "sourceRhOnsetCoverage": 0.997,
+              "sourcePitchClassCoverage": 0.997,
+              "sourceRepresentativeCoverage": 0.936,
+              "directionAgreement": 0.938,
+              "turnSurvival": 0.927,
+              "localExtremaSurvival": 0.927,
+              "repeatedAttackSurvival": 0.85,
+              "largeLeapEndpointSurvival": 0.787,
+              "phraseStartSurvival": 1,
+              "phraseEndSurvival": 1,
+              "anchorSurvival": 0.995,
+              "harmonicRootChangeSurvival": 1,
+              "harmonicChangeSurvival": 1
+            },
+            "lineage": {
+              "traceAvailable": true,
+              "sourceNotesMatched": 847,
+              "sourceNotesUnmatched": 169,
+              "operationCounts": {
+                "RETAINED": 204,
+                "DURATION_CHANGED": 643
+              }
+            }
+          },
+          "easy": {
+            "level": "easy",
+            "difficultyScore": 2.6,
+            "noteCount": 847,
+            "rightHandCount": 375,
+            "leftHandCount": 472,
+            "onsetCount": 555,
+            "rightHandOnsetCount": 375,
+            "leftHandOnsetCount": 333,
+            "durationBeats": 388,
+            "notesPerSecond": 2.874,
+            "attacksPerSecond": 1.883,
+            "maxSimultaneity": 4,
+            "medianSimultaneity": 1,
+            "p90Simultaneity": 2,
+            "rightHandSpan": 26,
+            "leftHandSpan": 35,
+            "medianMelodicLeap": 2,
+            "p95MelodicLeap": 8,
+            "largeLeapRate": 0.115,
+            "repeatedAttackRate": 0.139,
+            "harmonicRootChanges": 298,
+            "harmonicRestrikes": 34,
+            "harmonicShapes": 15,
+            "phraseStarts": 18,
+            "phraseEnds": 18,
+            "anchors": 212,
+            "sourceRoleCounts": {
+              "vocals": 0,
+              "guitar": 0,
+              "bass": null,
+              "other": 0,
+              "generated": null,
+              "inferred": null,
+              "unknown": 847
+            },
+            "identity": {
+              "sourceRhOnsetCoverage": 0.997,
+              "sourcePitchClassCoverage": 0.997,
+              "sourceRepresentativeCoverage": 0.936,
+              "directionAgreement": 0.938,
+              "turnSurvival": 0.927,
+              "localExtremaSurvival": 0.927,
+              "repeatedAttackSurvival": 0.85,
+              "largeLeapEndpointSurvival": 0.787,
+              "phraseStartSurvival": 1,
+              "phraseEndSurvival": 1,
+              "anchorSurvival": 0.995,
+              "harmonicRootChangeSurvival": 1,
+              "harmonicChangeSurvival": 1
+            },
+            "lineage": {
+              "traceAvailable": true,
+              "sourceNotesMatched": 847,
+              "sourceNotesUnmatched": 169,
+              "operationCounts": {
+                "RETAINED": 513,
+                "DURATION_CHANGED": 334
+              }
+            }
+          },
+          "medium": {
+            "level": "medium",
+            "difficultyScore": 3.4,
+            "noteCount": 1011,
+            "rightHandCount": 517,
+            "leftHandCount": 494,
+            "onsetCount": 555,
+            "rightHandOnsetCount": 376,
+            "leftHandOnsetCount": 333,
+            "durationBeats": 388,
+            "notesPerSecond": 3.431,
+            "attacksPerSecond": 1.883,
+            "maxSimultaneity": 6,
+            "medianSimultaneity": 1,
+            "p90Simultaneity": 3,
+            "rightHandSpan": 26,
+            "leftHandSpan": 35,
+            "medianMelodicLeap": 2,
+            "p95MelodicLeap": 9.3,
+            "largeLeapRate": 0.125,
+            "repeatedAttackRate": 0.168,
+            "harmonicRootChanges": 298,
+            "harmonicRestrikes": 34,
+            "harmonicShapes": 15,
+            "phraseStarts": 18,
+            "phraseEnds": 18,
+            "anchors": 204,
+            "sourceRoleCounts": {
+              "vocals": 0,
+              "guitar": 0,
+              "bass": null,
+              "other": 0,
+              "generated": null,
+              "inferred": null,
+              "unknown": 1011
+            },
+            "identity": {
+              "sourceRhOnsetCoverage": 1,
+              "sourcePitchClassCoverage": 1,
+              "sourceRepresentativeCoverage": 1,
+              "directionAgreement": 1,
+              "turnSurvival": 1,
+              "localExtremaSurvival": 1,
+              "repeatedAttackSurvival": 1,
+              "largeLeapEndpointSurvival": 1,
+              "phraseStartSurvival": 1,
+              "phraseEndSurvival": 1,
+              "anchorSurvival": 1,
+              "harmonicRootChangeSurvival": 1,
+              "harmonicChangeSurvival": 1
+            },
+            "lineage": {
+              "traceAvailable": true,
+              "sourceNotesMatched": 1011,
+              "sourceNotesUnmatched": 5,
+              "operationCounts": {
+                "RETAINED": 1011
+              }
+            }
+          },
+          "advanced": {
+            "level": "advanced",
+            "difficultyScore": 4.6,
+            "noteCount": 1016,
+            "rightHandCount": 522,
+            "leftHandCount": 494,
+            "onsetCount": 555,
+            "rightHandOnsetCount": 376,
+            "leftHandOnsetCount": 333,
+            "durationBeats": 388,
+            "notesPerSecond": 3.448,
+            "attacksPerSecond": 1.883,
+            "maxSimultaneity": 6,
+            "medianSimultaneity": 1,
+            "p90Simultaneity": 3,
+            "rightHandSpan": 26,
+            "leftHandSpan": 35,
+            "medianMelodicLeap": 2,
+            "p95MelodicLeap": 9.3,
+            "largeLeapRate": 0.125,
+            "repeatedAttackRate": 0.168,
+            "harmonicRootChanges": 298,
+            "harmonicRestrikes": 34,
+            "harmonicShapes": 15,
+            "phraseStarts": 18,
+            "phraseEnds": 18,
+            "anchors": 204,
+            "sourceRoleCounts": {
+              "vocals": 0,
+              "guitar": 0,
+              "bass": null,
+              "other": 0,
+              "generated": null,
+              "inferred": null,
+              "unknown": 1016
+            },
+            "identity": {
+              "sourceRhOnsetCoverage": 1,
+              "sourcePitchClassCoverage": 1,
+              "sourceRepresentativeCoverage": 1,
+              "directionAgreement": 1,
+              "turnSurvival": 1,
+              "localExtremaSurvival": 1,
+              "repeatedAttackSurvival": 1,
+              "largeLeapEndpointSurvival": 1,
+              "phraseStartSurvival": 1,
+              "phraseEndSurvival": 1,
+              "anchorSurvival": 1,
+              "harmonicRootChangeSurvival": 1,
+              "harmonicChangeSurvival": 1
+            },
+            "lineage": {
+              "traceAvailable": true,
+              "sourceNotesMatched": 1016,
+              "sourceNotesUnmatched": 0,
+              "operationCounts": {
+                "RETAINED": 1016
+              }
+            }
+          }
+        },
+        "transitions": [
+          {
+            "harder": "advanced",
+            "easier": "medium",
+            "identityDelta": {
+              "rhOnsetCoverage": 1,
+              "pitchClassCoverage": 1,
+              "directionAgreement": 1,
+              "turnSurvival": 1,
+              "localExtremaSurvival": 1,
+              "repeatedAttackSurvival": 1,
+              "largeLeapEndpointSurvival": 1,
+              "phraseAnchorSurvival": 1,
+              "harmonicChangeSurvival": 1
+            },
+            "complexityDelta": {
+              "noteReductionRatio": 0.005,
+              "onsetReductionRatio": 0,
+              "attackRateDelta": 0,
+              "attackRateReductionRatio": 0,
+              "maxSimultaneityReductionRatio": 0,
+              "maxSimultaneityDelta": 0,
+              "rightHandSpanDelta": 0,
+              "largeLeapRateDelta": 0,
+              "repeatedAttackRateDelta": 0
+            },
+            "lineage": {
+              "retained": 1011,
+              "rejected": 5,
+              "collapsed": 0,
+              "transformed": 0
+            },
+            "violations": [],
+            "classification": "REDUNDANT_LEVEL"
+          },
+          {
+            "harder": "medium",
+            "easier": "easy",
+            "identityDelta": {
+              "rhOnsetCoverage": 0.997,
+              "pitchClassCoverage": 0.997,
+              "directionAgreement": 0.938,
+              "turnSurvival": 0.927,
+              "localExtremaSurvival": 0.927,
+              "repeatedAttackSurvival": 0.85,
+              "largeLeapEndpointSurvival": 0.787,
+              "phraseAnchorSurvival": 0.995,
+              "harmonicChangeSurvival": 1
+            },
+            "complexityDelta": {
+              "noteReductionRatio": 0.162,
+              "onsetReductionRatio": 0,
+              "attackRateDelta": 0,
+              "attackRateReductionRatio": 0,
+              "maxSimultaneityReductionRatio": 0.333,
+              "maxSimultaneityDelta": 2,
+              "rightHandSpanDelta": 0,
+              "largeLeapRateDelta": 0.01,
+              "repeatedAttackRateDelta": 0.029
+            },
+            "lineage": {
+              "retained": 847,
+              "rejected": 164,
+              "collapsed": 0,
+              "transformed": 334
+            },
+            "violations": [],
+            "classification": "HEALTHY_SIMPLIFICATION"
+          },
+          {
+            "harder": "easy",
+            "easier": "very-easy",
+            "identityDelta": {
+              "rhOnsetCoverage": 0.997,
+              "pitchClassCoverage": 0.997,
+              "directionAgreement": 0.938,
+              "turnSurvival": 0.927,
+              "localExtremaSurvival": 0.927,
+              "repeatedAttackSurvival": 0.85,
+              "largeLeapEndpointSurvival": 0.787,
+              "phraseAnchorSurvival": 0.995,
+              "harmonicChangeSurvival": 1
+            },
+            "complexityDelta": {
+              "noteReductionRatio": 0,
+              "onsetReductionRatio": 0,
+              "attackRateDelta": 0,
+              "attackRateReductionRatio": 0,
+              "maxSimultaneityReductionRatio": 0,
+              "maxSimultaneityDelta": 0,
+              "rightHandSpanDelta": 0,
+              "largeLeapRateDelta": 0,
+              "repeatedAttackRateDelta": 0
+            },
+            "lineage": {
+              "retained": 847,
+              "rejected": 0,
+              "collapsed": 0,
+              "transformed": 643
+            },
+            "violations": [],
+            "classification": "REDUNDANT_LEVEL"
+          },
+          {
+            "harder": "very-easy",
+            "easier": "beginner",
+            "identityDelta": {
+              "rhOnsetCoverage": 0.997,
+              "pitchClassCoverage": 0.997,
+              "directionAgreement": 0.938,
+              "turnSurvival": 0.927,
+              "localExtremaSurvival": 0.927,
+              "repeatedAttackSurvival": 0.85,
+              "largeLeapEndpointSurvival": 0.787,
+              "phraseAnchorSurvival": 0.995,
+              "harmonicChangeSurvival": 0
+            },
+            "complexityDelta": {
+              "noteReductionRatio": 0.557,
+              "onsetReductionRatio": 0.324,
+              "attackRateDelta": 0.61,
+              "attackRateReductionRatio": 0.324,
+              "maxSimultaneityReductionRatio": 0.5,
+              "maxSimultaneityDelta": 2,
+              "rightHandSpanDelta": 0,
+              "largeLeapRateDelta": 0,
+              "repeatedAttackRateDelta": -0.043
+            },
+            "lineage": {
+              "retained": 375,
+              "rejected": 472,
+              "collapsed": 0,
+              "transformed": 341
+            },
+            "violations": [],
+            "classification": "INCONCLUSIVE"
+          },
+          {
+            "harder": "beginner",
+            "easier": "very-beginner",
+            "identityDelta": {
+              "rhOnsetCoverage": 0.87,
+              "pitchClassCoverage": 0.87,
+              "directionAgreement": 0.929,
+              "turnSurvival": 0.49,
+              "localExtremaSurvival": 0.49,
+              "repeatedAttackSurvival": 0.673,
+              "largeLeapEndpointSurvival": 0.66,
+              "phraseAnchorSurvival": 0.873,
+              "harmonicChangeSurvival": 0
+            },
+            "complexityDelta": {
+              "noteReductionRatio": 0.128,
+              "onsetReductionRatio": 0.128,
+              "attackRateDelta": 0.163,
+              "attackRateReductionRatio": 0.128,
+              "maxSimultaneityReductionRatio": 0,
+              "maxSimultaneityDelta": 0,
+              "rightHandSpanDelta": 0,
+              "largeLeapRateDelta": -0.005,
+              "repeatedAttackRateDelta": 0.013
+            },
+            "lineage": {
+              "retained": 327,
+              "rejected": 48,
+              "collapsed": 0,
+              "transformed": 313
+            },
+            "violations": [],
+            "classification": "IDENTITY_CLIFF"
+          }
+        ],
+        "thresholds": {
+          "onsetToleranceBeats": 0.08,
+          "phraseBreakBeats": 1.5,
+          "redundancyComplexityRatio": 0.02,
+          "identityCliffCoverage": 0.6,
+          "complexityCliffReduction": 0.35
+        }
+      },
+      "determinism": {
+        "canonicalSha256": "a7d80e0f4ed4cf9501d0d0532792cb85f808aa6d84bcb93d9687bbe1b9a4f38a"
+      }
+    },
+    {
+      "id": "synthetic-full-band",
+      "logicalRef": "synthetic:full-band",
+      "source": {
+        "sha256": "fba496e372f8962967b5e08903fa4883d6f4be1bde046f0eb3a06e1a1dcc8dc6",
+        "noteCount": 20,
+        "onsetCount": 4,
+        "tempoBpm": 120,
+        "timeSig": [
+          4,
+          4
+        ],
+        "durationBeats": 8
+      },
+      "levels": {
+        "very-beginner": {
+          "digest": "992f16666694a2186b0914a0b218d20dc719476d4e460e58328a68623cb24a4d",
+          "noteCount": 4,
+          "rightHandCount": 4,
+          "leftHandCount": 0,
+          "onsetCount": 4,
+          "durationBeats": 8,
+          "maxSimultaneity": 1
+        },
+        "beginner": {
+          "digest": "082fb135ff670626de7e17e7cc3aad842e43b6164b28e147ead83921a3e05ea9",
+          "noteCount": 4,
+          "rightHandCount": 4,
+          "leftHandCount": 0,
+          "onsetCount": 4,
+          "durationBeats": 8,
+          "maxSimultaneity": 1
+        },
+        "very-easy": {
+          "digest": "d68df372510437928547d8ad4628705dcd84b5fc7ee42f5563a5fa5a994840b1",
+          "noteCount": 8,
+          "rightHandCount": 4,
+          "leftHandCount": 4,
+          "onsetCount": 4,
+          "durationBeats": 8,
+          "maxSimultaneity": 2
+        },
+        "easy": {
+          "digest": "d68df372510437928547d8ad4628705dcd84b5fc7ee42f5563a5fa5a994840b1",
+          "noteCount": 8,
+          "rightHandCount": 4,
+          "leftHandCount": 4,
+          "onsetCount": 4,
+          "durationBeats": 8,
+          "maxSimultaneity": 2
+        },
+        "medium": {
+          "digest": "b6f57d993b4ebfec56a6b25da86bf25b853e4ec05db48a068b949fbe7016e264",
+          "noteCount": 16,
+          "rightHandCount": 12,
+          "leftHandCount": 4,
+          "onsetCount": 4,
+          "durationBeats": 8,
+          "maxSimultaneity": 4
+        },
+        "advanced": {
+          "digest": "db0b111a5d6a2b6ca6b69f28b66fd61ebe9a48a66a876f4e8d46e35ff09e9493",
+          "noteCount": 18,
+          "rightHandCount": 14,
+          "leftHandCount": 4,
+          "onsetCount": 4,
+          "durationBeats": 8,
+          "maxSimultaneity": 5
+        }
+      },
+      "ladder": {
+        "schemaVersion": 1,
+        "fixture": {
+          "id": "synthetic-full-band",
+          "label": "Synthetic full-band"
+        },
+        "order": [
+          "very-beginner",
+          "beginner",
+          "very-easy",
+          "easy",
+          "medium",
+          "advanced"
+        ],
+        "levels": {
+          "very-beginner": {
+            "level": "very-beginner",
+            "difficultyScore": 1,
+            "noteCount": 4,
+            "rightHandCount": 4,
+            "leftHandCount": 0,
+            "onsetCount": 4,
+            "rightHandOnsetCount": 4,
+            "leftHandOnsetCount": 0,
+            "durationBeats": 8,
+            "notesPerSecond": 1,
+            "attacksPerSecond": 1,
+            "maxSimultaneity": 1,
+            "medianSimultaneity": 0.5,
+            "p90Simultaneity": 1,
+            "rightHandSpan": 8,
+            "leftHandSpan": null,
+            "medianMelodicLeap": 6,
+            "p95MelodicLeap": 7.8,
+            "largeLeapRate": 0.333,
+            "repeatedAttackRate": 0,
+            "harmonicRootChanges": 0,
+            "harmonicRestrikes": 0,
+            "harmonicShapes": 0,
+            "phraseStarts": 4,
+            "phraseEnds": 4,
+            "anchors": 4,
+            "sourceRoleCounts": {
+              "vocals": 1,
+              "guitar": 3,
+              "bass": null,
+              "other": 0,
+              "generated": null,
+              "inferred": null,
+              "unknown": 0
+            },
+            "identity": {
+              "sourceRhOnsetCoverage": 1,
+              "sourcePitchClassCoverage": 1,
+              "sourceRepresentativeCoverage": 0,
+              "directionAgreement": 0.333,
+              "turnSurvival": null,
+              "localExtremaSurvival": null,
+              "repeatedAttackSurvival": 0,
+              "largeLeapEndpointSurvival": null,
+              "phraseStartSurvival": 1,
+              "phraseEndSurvival": 1,
+              "anchorSurvival": 1,
+              "harmonicRootChangeSurvival": 0,
+              "harmonicChangeSurvival": 0
+            },
+            "lineage": {
+              "traceAvailable": true,
+              "sourceNotesMatched": 4,
+              "sourceNotesUnmatched": 16,
+              "operationCounts": {
+                "DURATION_CHANGED": 3,
+                "RETAINED": 1
+              }
+            }
+          },
+          "beginner": {
+            "level": "beginner",
+            "difficultyScore": 1.4,
+            "noteCount": 4,
+            "rightHandCount": 4,
+            "leftHandCount": 0,
+            "onsetCount": 4,
+            "rightHandOnsetCount": 4,
+            "leftHandOnsetCount": 0,
+            "durationBeats": 8,
+            "notesPerSecond": 1,
+            "attacksPerSecond": 1,
+            "maxSimultaneity": 1,
+            "medianSimultaneity": 0.5,
+            "p90Simultaneity": 1,
+            "rightHandSpan": 8,
+            "leftHandSpan": null,
+            "medianMelodicLeap": 6,
+            "p95MelodicLeap": 7.8,
+            "largeLeapRate": 0.333,
+            "repeatedAttackRate": 0,
+            "harmonicRootChanges": 0,
+            "harmonicRestrikes": 0,
+            "harmonicShapes": 0,
+            "phraseStarts": 4,
+            "phraseEnds": 4,
+            "anchors": 4,
+            "sourceRoleCounts": {
+              "vocals": 1,
+              "guitar": 3,
+              "bass": null,
+              "other": 0,
+              "generated": null,
+              "inferred": null,
+              "unknown": 0
+            },
+            "identity": {
+              "sourceRhOnsetCoverage": 1,
+              "sourcePitchClassCoverage": 1,
+              "sourceRepresentativeCoverage": 0,
+              "directionAgreement": 0.333,
+              "turnSurvival": null,
+              "localExtremaSurvival": null,
+              "repeatedAttackSurvival": 0,
+              "largeLeapEndpointSurvival": null,
+              "phraseStartSurvival": 1,
+              "phraseEndSurvival": 1,
+              "anchorSurvival": 1,
+              "harmonicRootChangeSurvival": 0,
+              "harmonicChangeSurvival": 0
+            },
+            "lineage": {
+              "traceAvailable": true,
+              "sourceNotesMatched": 4,
+              "sourceNotesUnmatched": 16,
+              "operationCounts": {
+                "RETAINED": 4
+              }
+            }
+          },
+          "very-easy": {
+            "level": "very-easy",
+            "difficultyScore": 2,
+            "noteCount": 8,
+            "rightHandCount": 4,
+            "leftHandCount": 4,
+            "onsetCount": 4,
+            "rightHandOnsetCount": 4,
+            "leftHandOnsetCount": 4,
+            "durationBeats": 8,
+            "notesPerSecond": 2,
+            "attacksPerSecond": 1,
+            "maxSimultaneity": 2,
+            "medianSimultaneity": 1,
+            "p90Simultaneity": 2,
+            "rightHandSpan": 8,
+            "leftHandSpan": 5,
+            "medianMelodicLeap": 6,
+            "p95MelodicLeap": 7.8,
+            "largeLeapRate": 0.333,
+            "repeatedAttackRate": 0,
+            "harmonicRootChanges": 3,
+            "harmonicRestrikes": 0,
+            "harmonicShapes": 3,
+            "phraseStarts": 4,
+            "phraseEnds": 4,
+            "anchors": 4,
+            "sourceRoleCounts": {
+              "vocals": 1,
+              "guitar": 7,
+              "bass": null,
+              "other": 0,
+              "generated": null,
+              "inferred": null,
+              "unknown": 0
+            },
+            "identity": {
+              "sourceRhOnsetCoverage": 1,
+              "sourcePitchClassCoverage": 1,
+              "sourceRepresentativeCoverage": 0,
+              "directionAgreement": 0.333,
+              "turnSurvival": null,
+              "localExtremaSurvival": null,
+              "repeatedAttackSurvival": 0,
+              "largeLeapEndpointSurvival": null,
+              "phraseStartSurvival": 1,
+              "phraseEndSurvival": 1,
+              "anchorSurvival": 1,
+              "harmonicRootChangeSurvival": 1,
+              "harmonicChangeSurvival": 1
+            },
+            "lineage": {
+              "traceAvailable": true,
+              "sourceNotesMatched": 8,
+              "sourceNotesUnmatched": 12,
+              "operationCounts": {
+                "RETAINED": 8
+              }
+            }
+          },
+          "easy": {
+            "level": "easy",
+            "difficultyScore": 2.6,
+            "noteCount": 8,
+            "rightHandCount": 4,
+            "leftHandCount": 4,
+            "onsetCount": 4,
+            "rightHandOnsetCount": 4,
+            "leftHandOnsetCount": 4,
+            "durationBeats": 8,
+            "notesPerSecond": 2,
+            "attacksPerSecond": 1,
+            "maxSimultaneity": 2,
+            "medianSimultaneity": 1,
+            "p90Simultaneity": 2,
+            "rightHandSpan": 8,
+            "leftHandSpan": 5,
+            "medianMelodicLeap": 6,
+            "p95MelodicLeap": 7.8,
+            "largeLeapRate": 0.333,
+            "repeatedAttackRate": 0,
+            "harmonicRootChanges": 3,
+            "harmonicRestrikes": 0,
+            "harmonicShapes": 3,
+            "phraseStarts": 4,
+            "phraseEnds": 4,
+            "anchors": 4,
+            "sourceRoleCounts": {
+              "vocals": 1,
+              "guitar": 7,
+              "bass": null,
+              "other": 0,
+              "generated": null,
+              "inferred": null,
+              "unknown": 0
+            },
+            "identity": {
+              "sourceRhOnsetCoverage": 1,
+              "sourcePitchClassCoverage": 1,
+              "sourceRepresentativeCoverage": 0,
+              "directionAgreement": 0.333,
+              "turnSurvival": null,
+              "localExtremaSurvival": null,
+              "repeatedAttackSurvival": 0,
+              "largeLeapEndpointSurvival": null,
+              "phraseStartSurvival": 1,
+              "phraseEndSurvival": 1,
+              "anchorSurvival": 1,
+              "harmonicRootChangeSurvival": 1,
+              "harmonicChangeSurvival": 1
+            },
+            "lineage": {
+              "traceAvailable": true,
+              "sourceNotesMatched": 8,
+              "sourceNotesUnmatched": 12,
+              "operationCounts": {
+                "RETAINED": 8
+              }
+            }
+          },
+          "medium": {
+            "level": "medium",
+            "difficultyScore": 3.4,
+            "noteCount": 16,
+            "rightHandCount": 12,
+            "leftHandCount": 4,
+            "onsetCount": 4,
+            "rightHandOnsetCount": 4,
+            "leftHandOnsetCount": 4,
+            "durationBeats": 8,
+            "notesPerSecond": 4,
+            "attacksPerSecond": 1,
+            "maxSimultaneity": 4,
+            "medianSimultaneity": 2,
+            "p90Simultaneity": 3.9,
+            "rightHandSpan": 17,
+            "leftHandSpan": 5,
+            "medianMelodicLeap": 1,
+            "p95MelodicLeap": 3.7,
+            "largeLeapRate": 0,
+            "repeatedAttackRate": 0,
+            "harmonicRootChanges": 3,
+            "harmonicRestrikes": 0,
+            "harmonicShapes": 3,
+            "phraseStarts": 4,
+            "phraseEnds": 4,
+            "anchors": 4,
+            "sourceRoleCounts": {
+              "vocals": 4,
+              "guitar": 12,
+              "bass": null,
+              "other": 0,
+              "generated": null,
+              "inferred": null,
+              "unknown": 0
+            },
+            "identity": {
+              "sourceRhOnsetCoverage": 1,
+              "sourcePitchClassCoverage": 1,
+              "sourceRepresentativeCoverage": 0.75,
+              "directionAgreement": 1,
+              "turnSurvival": null,
+              "localExtremaSurvival": null,
+              "repeatedAttackSurvival": 1,
+              "largeLeapEndpointSurvival": null,
+              "phraseStartSurvival": 1,
+              "phraseEndSurvival": 1,
+              "anchorSurvival": 1,
+              "harmonicRootChangeSurvival": 1,
+              "harmonicChangeSurvival": 1
+            },
+            "lineage": {
+              "traceAvailable": true,
+              "sourceNotesMatched": 16,
+              "sourceNotesUnmatched": 4,
+              "operationCounts": {
+                "RETAINED": 15,
+                "MERGED": 1
+              }
+            }
+          },
+          "advanced": {
+            "level": "advanced",
+            "difficultyScore": 4.6,
+            "noteCount": 18,
+            "rightHandCount": 14,
+            "leftHandCount": 4,
+            "onsetCount": 4,
+            "rightHandOnsetCount": 4,
+            "leftHandOnsetCount": 4,
+            "durationBeats": 8,
+            "notesPerSecond": 4.5,
+            "attacksPerSecond": 1,
+            "maxSimultaneity": 5,
+            "medianSimultaneity": 2,
+            "p90Simultaneity": 4,
+            "rightHandSpan": 17,
+            "leftHandSpan": 5,
+            "medianMelodicLeap": 2,
+            "p95MelodicLeap": 2.9,
+            "largeLeapRate": 0,
+            "repeatedAttackRate": 0,
+            "harmonicRootChanges": 3,
+            "harmonicRestrikes": 0,
+            "harmonicShapes": 3,
+            "phraseStarts": 4,
+            "phraseEnds": 4,
+            "anchors": 4,
+            "sourceRoleCounts": {
+              "vocals": 4,
+              "guitar": 14,
+              "bass": null,
+              "other": 0,
+              "generated": null,
+              "inferred": null,
+              "unknown": 0
+            },
+            "identity": {
+              "sourceRhOnsetCoverage": 1,
+              "sourcePitchClassCoverage": 1,
+              "sourceRepresentativeCoverage": 1,
+              "directionAgreement": 1,
+              "turnSurvival": null,
+              "localExtremaSurvival": null,
+              "repeatedAttackSurvival": 1,
+              "largeLeapEndpointSurvival": null,
+              "phraseStartSurvival": 1,
+              "phraseEndSurvival": 1,
+              "anchorSurvival": 1,
+              "harmonicRootChangeSurvival": 1,
+              "harmonicChangeSurvival": 1
+            },
+            "lineage": {
+              "traceAvailable": true,
+              "sourceNotesMatched": 18,
+              "sourceNotesUnmatched": 2,
+              "operationCounts": {
+                "RETAINED": 17,
+                "MERGED": 1
+              }
+            }
+          }
+        },
+        "transitions": [
+          {
+            "harder": "advanced",
+            "easier": "medium",
+            "identityDelta": {
+              "rhOnsetCoverage": 1,
+              "pitchClassCoverage": 1,
+              "directionAgreement": 1,
+              "turnSurvival": null,
+              "localExtremaSurvival": null,
+              "repeatedAttackSurvival": 1,
+              "largeLeapEndpointSurvival": null,
+              "phraseAnchorSurvival": 1,
+              "harmonicChangeSurvival": 1
+            },
+            "complexityDelta": {
+              "noteReductionRatio": 0.111,
+              "onsetReductionRatio": 0,
+              "attackRateDelta": 0,
+              "attackRateReductionRatio": 0,
+              "maxSimultaneityReductionRatio": 0.2,
+              "maxSimultaneityDelta": 1,
+              "rightHandSpanDelta": 0,
+              "largeLeapRateDelta": 0,
+              "repeatedAttackRateDelta": 0
+            },
+            "lineage": {
+              "retained": 16,
+              "rejected": 2,
+              "collapsed": 1,
+              "transformed": 0
+            },
+            "violations": [],
+            "classification": "HEALTHY_SIMPLIFICATION"
+          },
+          {
+            "harder": "medium",
+            "easier": "easy",
+            "identityDelta": {
+              "rhOnsetCoverage": 1,
+              "pitchClassCoverage": 1,
+              "directionAgreement": 0.333,
+              "turnSurvival": null,
+              "localExtremaSurvival": null,
+              "repeatedAttackSurvival": 0,
+              "largeLeapEndpointSurvival": null,
+              "phraseAnchorSurvival": 1,
+              "harmonicChangeSurvival": 1
+            },
+            "complexityDelta": {
+              "noteReductionRatio": 0.5,
+              "onsetReductionRatio": 0,
+              "attackRateDelta": 0,
+              "attackRateReductionRatio": 0,
+              "maxSimultaneityReductionRatio": 0.5,
+              "maxSimultaneityDelta": 2,
+              "rightHandSpanDelta": 9,
+              "largeLeapRateDelta": -0.333,
+              "repeatedAttackRateDelta": 0
+            },
+            "lineage": {
+              "retained": 8,
+              "rejected": 8,
+              "collapsed": 0,
+              "transformed": 0
+            },
+            "violations": [],
+            "classification": "INCONCLUSIVE"
+          },
+          {
+            "harder": "easy",
+            "easier": "very-easy",
+            "identityDelta": {
+              "rhOnsetCoverage": 1,
+              "pitchClassCoverage": 1,
+              "directionAgreement": 0.333,
+              "turnSurvival": null,
+              "localExtremaSurvival": null,
+              "repeatedAttackSurvival": 0,
+              "largeLeapEndpointSurvival": null,
+              "phraseAnchorSurvival": 1,
+              "harmonicChangeSurvival": 1
+            },
+            "complexityDelta": {
+              "noteReductionRatio": 0,
+              "onsetReductionRatio": 0,
+              "attackRateDelta": 0,
+              "attackRateReductionRatio": 0,
+              "maxSimultaneityReductionRatio": 0,
+              "maxSimultaneityDelta": 0,
+              "rightHandSpanDelta": 0,
+              "largeLeapRateDelta": 0,
+              "repeatedAttackRateDelta": 0
+            },
+            "lineage": {
+              "retained": 8,
+              "rejected": 0,
+              "collapsed": 0,
+              "transformed": 0
+            },
+            "violations": [],
+            "classification": "IDENTITY_CLIFF"
+          },
+          {
+            "harder": "very-easy",
+            "easier": "beginner",
+            "identityDelta": {
+              "rhOnsetCoverage": 1,
+              "pitchClassCoverage": 1,
+              "directionAgreement": 0.333,
+              "turnSurvival": null,
+              "localExtremaSurvival": null,
+              "repeatedAttackSurvival": 0,
+              "largeLeapEndpointSurvival": null,
+              "phraseAnchorSurvival": 1,
+              "harmonicChangeSurvival": 0
+            },
+            "complexityDelta": {
+              "noteReductionRatio": 0.5,
+              "onsetReductionRatio": 0,
+              "attackRateDelta": 0,
+              "attackRateReductionRatio": 0,
+              "maxSimultaneityReductionRatio": 0.5,
+              "maxSimultaneityDelta": 1,
+              "rightHandSpanDelta": 0,
+              "largeLeapRateDelta": 0,
+              "repeatedAttackRateDelta": 0
+            },
+            "lineage": {
+              "retained": 4,
+              "rejected": 4,
+              "collapsed": 0,
+              "transformed": 0
+            },
+            "violations": [],
+            "classification": "INCONCLUSIVE"
+          },
+          {
+            "harder": "beginner",
+            "easier": "very-beginner",
+            "identityDelta": {
+              "rhOnsetCoverage": 1,
+              "pitchClassCoverage": 1,
+              "directionAgreement": 0.333,
+              "turnSurvival": null,
+              "localExtremaSurvival": null,
+              "repeatedAttackSurvival": 0,
+              "largeLeapEndpointSurvival": null,
+              "phraseAnchorSurvival": 1,
+              "harmonicChangeSurvival": 0
+            },
+            "complexityDelta": {
+              "noteReductionRatio": 0,
+              "onsetReductionRatio": 0,
+              "attackRateDelta": 0,
+              "attackRateReductionRatio": 0,
+              "maxSimultaneityReductionRatio": 0,
+              "maxSimultaneityDelta": 0,
+              "rightHandSpanDelta": 0,
+              "largeLeapRateDelta": 0,
+              "repeatedAttackRateDelta": 0
+            },
+            "lineage": {
+              "retained": 4,
+              "rejected": 0,
+              "collapsed": 0,
+              "transformed": 3
+            },
+            "violations": [],
+            "classification": "IDENTITY_CLIFF"
+          }
+        ],
+        "thresholds": {
+          "onsetToleranceBeats": 0.08,
+          "phraseBreakBeats": 1.5,
+          "redundancyComplexityRatio": 0.02,
+          "identityCliffCoverage": 0.6,
+          "complexityCliffReduction": 0.35
+        }
+      },
+      "determinism": {
+        "canonicalSha256": "bcf1c7c893a14814dfa5ac275791a57b34176fb657598f54c25f7f1d5c79c15c"
+      }
+    }
+  ]
+}

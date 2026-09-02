@@ -1,5 +1,5 @@
 import { basename } from "node:path";
-import { validateVariants, verifyMonotonicity, type GuitarHarmonyDiagnostics, type Note, type ParsedMidi, type Variant } from "@keyspilli/midi";
+import { LEVEL_ORDER, validateVariants, verifyMonotonicity, type DifficultyLevel, type GuitarHarmonyDiagnostics, type Note, type ParsedMidi, type Variant } from "@keyspilli/midi";
 import { sha256Hex } from "./fixture-evidence.js";
 
 /** The thresholds are part of the report contract so a report can be reproduced. */
@@ -209,6 +209,119 @@ export interface VariantEvaluationMetrics {
   leftHand: LeftHandMetrics;
   guitar: GuitarEvaluationMetrics;
   source: SourceIntegrityMetrics;
+}
+
+/**
+ * Additive, source-agnostic calibration output for the complete learner
+ * ladder.  This deliberately reuses the metric definitions above and does
+ * not participate in publication or variant selection.
+ */
+export type DifficultyLadderClassification =
+  | "HEALTHY_SIMPLIFICATION"
+  | "REDUNDANT_LEVEL"
+  | "IDENTITY_CLIFF"
+  | "COMPLEXITY_CLIFF"
+  | "NON_MONOTONIC"
+  | "INCONCLUSIVE";
+
+export interface DifficultyLadderIdentityMetrics {
+  sourceRhOnsetCoverage: number | null;
+  sourcePitchClassCoverage: number | null;
+  sourceRepresentativeCoverage: number | null;
+  directionAgreement: number | null;
+  turnSurvival: number | null;
+  localExtremaSurvival: number | null;
+  repeatedAttackSurvival: number | null;
+  largeLeapEndpointSurvival: number | null;
+  phraseStartSurvival: number | null;
+  phraseEndSurvival: number | null;
+  anchorSurvival: number | null;
+  harmonicRootChangeSurvival: number | null;
+  harmonicChangeSurvival: number | null;
+}
+
+export interface DifficultyLadderLineageMetrics {
+  traceAvailable: boolean;
+  sourceNotesMatched: number;
+  sourceNotesUnmatched: number;
+  operationCounts: Record<string, number>;
+}
+
+export interface DifficultyLadderLevelMetrics {
+  level: DifficultyLevel;
+  difficultyScore: number;
+  noteCount: number;
+  rightHandCount: number;
+  leftHandCount: number;
+  onsetCount: number;
+  rightHandOnsetCount: number;
+  leftHandOnsetCount: number;
+  durationBeats: number;
+  notesPerSecond: number;
+  attacksPerSecond: number;
+  maxSimultaneity: number;
+  medianSimultaneity: number;
+  p90Simultaneity: number;
+  rightHandSpan: number | null;
+  leftHandSpan: number | null;
+  medianMelodicLeap: number | null;
+  p95MelodicLeap: number | null;
+  largeLeapRate: number;
+  repeatedAttackRate: number;
+  harmonicRootChanges: number;
+  harmonicRestrikes: number;
+  harmonicShapes: number;
+  phraseStarts: number;
+  phraseEnds: number;
+  anchors: number;
+  sourceRoleCounts: SourceCounts;
+  identity: DifficultyLadderIdentityMetrics;
+  lineage: DifficultyLadderLineageMetrics;
+}
+
+export interface DifficultyLadderTransitionMetrics {
+  harder: DifficultyLevel;
+  easier: DifficultyLevel;
+  identityDelta: {
+    rhOnsetCoverage: number | null;
+    pitchClassCoverage: number | null;
+    directionAgreement: number | null;
+    turnSurvival: number | null;
+    localExtremaSurvival: number | null;
+    repeatedAttackSurvival: number | null;
+    largeLeapEndpointSurvival: number | null;
+    phraseAnchorSurvival: number | null;
+    harmonicChangeSurvival: number | null;
+  };
+  complexityDelta: {
+    noteReductionRatio: number;
+    onsetReductionRatio: number;
+    attackRateDelta: number;
+    attackRateReductionRatio: number;
+    maxSimultaneityReductionRatio: number;
+    maxSimultaneityDelta: number;
+    rightHandSpanDelta: number | null;
+    largeLeapRateDelta: number;
+    repeatedAttackRateDelta: number;
+  };
+  lineage: { retained: number; rejected: number; collapsed: number; transformed: number };
+  violations: string[];
+  classification: DifficultyLadderClassification;
+}
+
+export interface DifficultyLadderEvaluation {
+  schemaVersion: 1;
+  fixture: { id: string; label?: string };
+  order: DifficultyLevel[];
+  levels: Record<string, DifficultyLadderLevelMetrics>;
+  transitions: DifficultyLadderTransitionMetrics[];
+  thresholds: {
+    onsetToleranceBeats: number;
+    phraseBreakBeats: number;
+    redundancyComplexityRatio: number;
+    identityCliffCoverage: number;
+    complexityCliffReduction: number;
+  };
 }
 
 export interface SourceCounts {
@@ -1775,4 +1888,436 @@ export function compareArrangementReference(candidate: Note[], reference: Note[]
     return empty(window);
   }
   return compareReferenceWindow(candidate, reference, window);
+}
+
+export interface DifficultyLadderEvaluationInput {
+  fixture: { id: string; label?: string };
+  sourceNotes: Note[];
+  variants: Variant[];
+  trace?: ProvenanceTraceEvent[];
+}
+
+const DIFFICULTY_LADDER_THRESHOLDS = {
+  onsetToleranceBeats: ARRANGEMENT_EVALUATION_CONFIG.onsetToleranceBeats,
+  phraseBreakBeats: 1.5,
+  redundancyComplexityRatio: 0.02,
+  identityCliffCoverage: 0.6,
+  complexityCliffReduction: 0.35,
+} as const;
+
+function handGroups(notes: Note[], hand: "L" | "R"): Array<{ start: number; notes: Note[] }> {
+  return onsetGroups(notes, hand).map((group) => ({ start: group.start, notes: group.notes }));
+}
+
+function representativePitches(notes: Note[], hand: "L" | "R"): number[] {
+  return handGroups(notes, hand).map((group) => Math.max(...group.notes.map((note) => note.midi)));
+}
+
+function groupPairs(easier: Note[], harder: Note[], hand: "L" | "R"): Array<{
+  easier: { start: number; notes: Note[] };
+  harder: { start: number; notes: Note[] };
+}> {
+  const left = handGroups(easier, hand);
+  const right = handGroups(harder, hand);
+  const used = new Set<number>();
+  const pairs: Array<{
+    easier: { start: number; notes: Note[] };
+    harder: { start: number; notes: Note[] };
+  }> = [];
+  for (const group of left) {
+    let best = -1;
+    let distance = Infinity;
+    for (let index = 0; index < right.length; index++) {
+      if (used.has(index)) continue;
+      const next = Math.abs(group.start - right[index]!.start);
+      if (next <= DIFFICULTY_LADDER_THRESHOLDS.onsetToleranceBeats + 1e-9 && next < distance) {
+        best = index;
+        distance = next;
+      }
+    }
+    if (best >= 0) {
+      used.add(best);
+      pairs.push({ easier: group, harder: right[best]! });
+    }
+  }
+  return pairs;
+}
+
+function phraseBoundaries(notes: Note[], hand: "L" | "R"): { starts: number[]; ends: number[] } {
+  const groups = handGroups(notes, hand);
+  if (!groups.length) return { starts: [], ends: [] };
+  const starts: number[] = [];
+  const ends: number[] = [];
+  for (let index = 0; index < groups.length; index++) {
+    const previous = groups[index - 1];
+    const current = groups[index]!;
+    if (!previous || current.start - previous.start > DIFFICULTY_LADDER_THRESHOLDS.phraseBreakBeats) starts.push(current.start);
+    const next = groups[index + 1];
+    if (!next || next.start - current.start > DIFFICULTY_LADDER_THRESHOLDS.phraseBreakBeats) ends.push(current.start);
+  }
+  return { starts, ends };
+}
+
+function matchedBoundaryRatio(easier: Note[], harder: Note[], boundary: "starts" | "ends"): number | null {
+  const harderBoundaries = phraseBoundaries(harder, "R")[boundary];
+  const easierBoundaries = phraseBoundaries(easier, "R")[boundary];
+  if (!harderBoundaries.length) return null;
+  const matched = harderBoundaries.filter((start) => easierBoundaries.some((candidate) =>
+    Math.abs(candidate - start) <= DIFFICULTY_LADDER_THRESHOLDS.onsetToleranceBeats + 1e-9)).length;
+  return round(matched / harderBoundaries.length);
+}
+
+function anchorStarts(notes: Note[]): number[] {
+  const groups = handGroups(notes, "R");
+  return groups.filter((group, index) => {
+    const firstOrLast = index === 0 || index === groups.length - 1;
+    const fourBeatStart = Math.abs(group.start / 4 - Math.round(group.start / 4)) <= 0.02;
+    const salient = group.notes.some((note) => note.vel >= 100 || note.dur >= 0.75);
+    return firstOrLast || fourBeatStart || salient;
+  }).map((group) => group.start);
+}
+
+function boundaryCoverage(easier: Note[], starts: number[]): number | null {
+  if (!starts.length) return null;
+  const easierGroups = handGroups(easier, "R");
+  return round(starts.filter((start) => easierGroups.some((group) =>
+    Math.abs(group.start - start) <= DIFFICULTY_LADDER_THRESHOLDS.onsetToleranceBeats + 1e-9)).length / starts.length);
+}
+
+function rootSequence(notes: Note[]): Array<{ start: number; root: number }> {
+  return handGroups(notes, "L").map((group) => ({
+    start: group.start,
+    root: ((Math.min(...group.notes.map((note) => note.midi)) % 12) + 12) % 12,
+  }));
+}
+
+function rootChanges(notes: Note[]): Array<{ start: number; root: number }> {
+  const sequence = rootSequence(notes);
+  return sequence.filter((entry, index) => index > 0 && entry.root !== sequence[index - 1]!.root);
+}
+
+function changeSurvival(easier: Note[], harder: Note[]): number | null {
+  const harderChanges = rootChanges(harder);
+  if (!harderChanges.length) return null;
+  const easierChanges = rootChanges(easier);
+  const matched = harderChanges.filter((change) => easierChanges.some((candidate) =>
+    Math.abs(candidate.start - change.start) <= DIFFICULTY_LADDER_THRESHOLDS.onsetToleranceBeats + 1e-9
+    && candidate.root === change.root)).length;
+  return round(matched / harderChanges.length);
+}
+
+function uniqueNoteMatchCount(notes: Note[], source: Note[]): number {
+  const remaining = source.map((note) => ({ note, used: false }));
+  let matched = 0;
+  for (const candidate of notes) {
+    const found = remaining.find((entry) => !entry.used
+      && entry.note.hand === candidate.hand
+      && entry.note.identitySource === candidate.identitySource
+      && entry.note.midi === candidate.midi
+      && Math.abs(entry.note.start - candidate.start) <= DIFFICULTY_LADDER_THRESHOLDS.onsetToleranceBeats + 1e-9);
+    if (found) {
+      found.used = true;
+      matched++;
+    }
+  }
+  return matched;
+}
+
+function signedInterval(from: number, to: number): number {
+  return Math.sign(to - from);
+}
+
+function matchedContourMetrics(
+  sourcePitches: number[],
+  matchedPitches: Array<number | null>,
+): Pick<DifficultyLadderIdentityMetrics, "turnSurvival" | "localExtremaSurvival" | "repeatedAttackSurvival" | "largeLeapEndpointSurvival"> {
+  const turns: number[] = [];
+  const repeated: number[] = [];
+  const largeLeaps: number[] = [];
+  for (let index = 1; index < sourcePitches.length; index++) {
+    if (sourcePitches[index] === sourcePitches[index - 1]) repeated.push(index);
+    if (Math.abs(sourcePitches[index]! - sourcePitches[index - 1]!) >= 7) largeLeaps.push(index);
+  }
+  for (let index = 1; index < sourcePitches.length - 1; index++) {
+    const into = signedInterval(sourcePitches[index - 1]!, sourcePitches[index]!);
+    const out = signedInterval(sourcePitches[index]!, sourcePitches[index + 1]!);
+    if (into !== 0 && out !== 0 && into !== out) turns.push(index);
+  }
+  const matchedTurnCount = turns.filter((index) => {
+    const previous = matchedPitches[index - 1];
+    const current = matchedPitches[index];
+    const next = matchedPitches[index + 1];
+    if (previous === undefined || current === undefined || next === undefined
+      || previous === null || current === null || next === null) return false;
+    return signedInterval(sourcePitches[index - 1]!, sourcePitches[index]!) === signedInterval(previous, current)
+      && signedInterval(sourcePitches[index]!, sourcePitches[index + 1]!) === signedInterval(current, next);
+  }).length;
+  const matchedRepeatedCount = repeated.filter((index) => matchedPitches[index] !== undefined
+    && matchedPitches[index] !== null
+    && matchedPitches[index - 1] !== undefined
+    && matchedPitches[index - 1] !== null
+    && matchedPitches[index] === matchedPitches[index - 1]).length;
+  const matchedLargeLeapCount = largeLeaps.filter((index) => {
+    const previous = matchedPitches[index - 1];
+    const current = matchedPitches[index];
+    if (previous === undefined || current === undefined || previous === null || current === null) return false;
+    return Math.abs(current - previous) >= 7
+      && signedInterval(sourcePitches[index - 1]!, sourcePitches[index]!) === signedInterval(previous, current);
+  }).length;
+  return {
+    turnSurvival: turns.length ? round(matchedTurnCount / turns.length) : null,
+    localExtremaSurvival: turns.length ? round(matchedTurnCount / turns.length) : null,
+    repeatedAttackSurvival: repeated.length ? round(matchedRepeatedCount / repeated.length) : null,
+    largeLeapEndpointSurvival: largeLeaps.length ? round(matchedLargeLeapCount / largeLeaps.length) : null,
+  };
+}
+
+function traceOperationCounts(level: DifficultyLevel, trace: ProvenanceTraceEvent[] | undefined): { available: boolean; counts: Record<string, number> } {
+  const events = (trace ?? []).filter((event) => event.stage === "difficulty" && event.key.startsWith(`difficulty:${level}:`));
+  const counts: Record<string, number> = {};
+  for (const event of events) {
+    const operation = event.operation ?? "UNKNOWN";
+    counts[operation] = (counts[operation] ?? 0) + 1;
+  }
+  return { available: Boolean(trace), counts };
+}
+
+function ladderIdentity(source: Note[], variant: Note[]): DifficultyLadderIdentityMetrics {
+  const sourceGroups = handGroups(source, "R");
+  if (!sourceGroups.length) {
+    return {
+      sourceRhOnsetCoverage: null,
+      sourcePitchClassCoverage: null,
+      sourceRepresentativeCoverage: null,
+      directionAgreement: null,
+      turnSurvival: null,
+      localExtremaSurvival: null,
+      repeatedAttackSurvival: null,
+      largeLeapEndpointSurvival: null,
+      phraseStartSurvival: null,
+      phraseEndSurvival: null,
+      anchorSurvival: null,
+      harmonicRootChangeSurvival: changeSurvival(variant, source),
+      harmonicChangeSurvival: changeSurvival(variant, source),
+    };
+  }
+  const pairs = groupPairs(variant, source, "R");
+  const sourceByStart = new Map(pairs.map((pair) => [pair.harder.start.toFixed(6), pair]));
+  const representativeMatch = pairs.filter((pair) => Math.max(...pair.easier.notes.map((note) => note.midi))
+    === Math.max(...pair.harder.notes.map((note) => note.midi))).length;
+  const pitchClassMatch = pairs.filter((pair) => {
+    const classes = new Set(pair.easier.notes.map((note) => ((note.midi % 12) + 12) % 12));
+    return pair.harder.notes.some((note) => classes.has(((note.midi % 12) + 12) % 12));
+  }).length;
+  const sourcePitches = representativePitches(source, "R");
+  const matchedPitches = sourceGroups.map((group) => {
+    const pair = sourceByStart.get(group.start.toFixed(6));
+    return pair ? Math.max(...pair.easier.notes.map((note) => note.midi)) : null;
+  });
+  let directions = 0;
+  let directionTotal = 0;
+  for (let index = 1; index < sourceGroups.length; index++) {
+    const previous = sourceByStart.get(sourceGroups[index - 1]!.start.toFixed(6));
+    const current = sourceByStart.get(sourceGroups[index]!.start.toFixed(6));
+    if (!previous || !current) continue;
+    const sourceDirection = Math.sign(sourcePitches[index]! - sourcePitches[index - 1]!);
+    const variantPrevious = Math.max(...previous.easier.notes.map((note) => note.midi));
+    const variantCurrent = Math.max(...current.easier.notes.map((note) => note.midi));
+    const variantDirection = Math.sign(variantCurrent - variantPrevious);
+    directionTotal++;
+    if (sourceDirection === variantDirection) directions++;
+  }
+  const contour = matchedContourMetrics(sourcePitches, matchedPitches);
+  return {
+    sourceRhOnsetCoverage: round(pairs.length / sourceGroups.length),
+    sourcePitchClassCoverage: round(pitchClassMatch / sourceGroups.length),
+    sourceRepresentativeCoverage: round(representativeMatch / sourceGroups.length),
+    directionAgreement: directionTotal ? round(directions / directionTotal) : null,
+    ...contour,
+    phraseStartSurvival: matchedBoundaryRatio(variant, source, "starts"),
+    phraseEndSurvival: matchedBoundaryRatio(variant, source, "ends"),
+    anchorSurvival: boundaryCoverage(variant, anchorStarts(source)),
+    harmonicRootChangeSurvival: changeSurvival(variant, source),
+    harmonicChangeSurvival: changeSurvival(variant, source),
+  };
+}
+
+function ladderLevelMetrics(
+  source: Note[],
+  variant: Variant,
+  input: ArrangementEvaluationInput,
+  trace: ProvenanceTraceEvent[] | undefined,
+): DifficultyLadderLevelMetrics {
+  const metric = variantMetrics(variant, input);
+  const op = traceOperationCounts(variant.level, trace);
+  const validSource = cleanNotes(source);
+  const validVariant = cleanNotes(variant.notes);
+  const matched = uniqueNoteMatchCount(validVariant, validSource);
+  const rhBoundaries = phraseBoundaries(validVariant, "R");
+  const rootChangesCount = rootChanges(validVariant).length;
+  const rootSeq = rootSequence(validVariant);
+  const restrikes = rootSeq.slice(1).filter((entry, index) => entry.root === rootSeq[index]!.root).length;
+  const shapes = new Set(handGroups(validVariant, "L").map((group) => [...new Set(group.notes.map((note) => ((note.midi % 12) + 12) % 12))].sort((a, b) => a - b).join(","))).size;
+  const anchors = anchorStarts(validVariant).length;
+  return {
+    level: variant.level,
+    difficultyScore: variant.difficultyScore,
+    noteCount: metric.global.noteCount,
+    rightHandCount: metric.rightHand.noteCount,
+    leftHandCount: metric.leftHand.noteCount,
+    onsetCount: metric.global.onsetCount,
+    rightHandOnsetCount: metric.rightHand.onsetCount,
+    leftHandOnsetCount: metric.leftHand.onsetCount,
+    durationBeats: metric.global.durationBeats,
+    notesPerSecond: metric.global.notesPerSecond,
+    attacksPerSecond: metric.global.onsetsPerSecond,
+    maxSimultaneity: metric.global.simultaneity.max,
+    medianSimultaneity: metric.global.simultaneity.p50,
+    p90Simultaneity: metric.global.simultaneity.p90,
+    rightHandSpan: metric.rightHand.range.span,
+    leftHandSpan: metric.leftHand.range.span,
+    medianMelodicLeap: metric.rightHand.interval.median,
+    p95MelodicLeap: metric.rightHand.interval.p95,
+    largeLeapRate: metric.rightHand.largeLeap.rate,
+    repeatedAttackRate: metric.global.repeatedAttackRate,
+    harmonicRootChanges: rootChangesCount,
+    harmonicRestrikes: restrikes,
+    harmonicShapes: shapes,
+    phraseStarts: rhBoundaries.starts.length,
+    phraseEnds: rhBoundaries.ends.length,
+    anchors,
+    sourceRoleCounts: metric.source.final.all,
+    identity: ladderIdentity(validSource, validVariant),
+    lineage: {
+      traceAvailable: op.available,
+      sourceNotesMatched: matched,
+      sourceNotesUnmatched: Math.max(0, validSource.length - matched),
+      operationCounts: op.counts,
+    },
+  };
+}
+
+function transitionLineage(easier: Variant, harder: Variant, trace: ProvenanceTraceEvent[] | undefined): DifficultyLadderTransitionMetrics["lineage"] {
+  const retained = uniqueNoteMatchCount(cleanNotes(easier.notes), cleanNotes(harder.notes));
+  const harderCount = cleanNotes(harder.notes).length;
+  const counts = traceOperationCounts(easier.level, trace).counts;
+  const collapsed = (counts.MERGED ?? 0) + (counts.COLLAPSED ?? 0);
+  const transformed = ["PITCH_CHANGED", "OCTAVE_SHIFTED", "TIMING_CHANGED", "DURATION_CHANGED", "HAND_CHANGED", "ROLE_CHANGED", "REPLACED"]
+    .reduce((sum, operation) => sum + (counts[operation] ?? 0), 0);
+  return { retained, rejected: Math.max(0, harderCount - retained), collapsed, transformed };
+}
+
+function classifyLadderTransition(
+  identity: DifficultyLadderTransitionMetrics["identityDelta"],
+  complexity: DifficultyLadderTransitionMetrics["complexityDelta"],
+  violations: string[],
+): DifficultyLadderClassification {
+  if (violations.length) return "NON_MONOTONIC";
+  const identityValues = [identity.rhOnsetCoverage, identity.pitchClassCoverage, identity.directionAgreement, identity.turnSurvival, identity.localExtremaSurvival, identity.repeatedAttackSurvival, identity.largeLeapEndpointSurvival, identity.phraseAnchorSurvival, identity.harmonicChangeSurvival]
+    .filter((value): value is number => value !== null);
+  if (!identityValues.length) return "INCONCLUSIVE";
+  const identityFloor = Math.min(...identityValues);
+  const reduction = Math.max(complexity.noteReductionRatio, complexity.onsetReductionRatio, complexity.attackRateReductionRatio, complexity.maxSimultaneityReductionRatio);
+  if (reduction >= DIFFICULTY_LADDER_THRESHOLDS.complexityCliffReduction && identityFloor >= DIFFICULTY_LADDER_THRESHOLDS.identityCliffCoverage) {
+    return "COMPLEXITY_CLIFF";
+  }
+  if (reduction < DIFFICULTY_LADDER_THRESHOLDS.complexityCliffReduction && identityFloor < DIFFICULTY_LADDER_THRESHOLDS.identityCliffCoverage) {
+    return "IDENTITY_CLIFF";
+  }
+  const complexityValues = [complexity.noteReductionRatio, complexity.onsetReductionRatio, complexity.attackRateReductionRatio, complexity.maxSimultaneityReductionRatio]
+    .map(Math.abs);
+  if (complexityValues.every((value) => value <= DIFFICULTY_LADDER_THRESHOLDS.redundancyComplexityRatio)) return "REDUNDANT_LEVEL";
+  if (identityFloor >= DIFFICULTY_LADDER_THRESHOLDS.identityCliffCoverage) return "HEALTHY_SIMPLIFICATION";
+  return "INCONCLUSIVE";
+}
+
+/** Evaluate all available learner levels and every adjacent harder→easier edge. */
+export function evaluateDifficultyLadder(input: DifficultyLadderEvaluationInput): DifficultyLadderEvaluation {
+  const byLevel = new Map<DifficultyLevel, Variant>();
+  for (const variant of input.variants) {
+    if (byLevel.has(variant.level)) throw new Error(`duplicate difficulty level: ${variant.level}`);
+    byLevel.set(variant.level, variant);
+  }
+  const source = cleanNotes(input.sourceNotes);
+  const first = input.variants.find((variant) => variant.level === "advanced") ?? input.variants[0];
+  const parser: ArrangementEvaluationInput = {
+    fixture: input.fixture,
+    candidate: {
+      selector: "difficulty-ladder",
+      notes: source,
+      tempoBpm: first?.tempoBpm ?? 120,
+      durationBeats: first ? variantDurationBeats(first) : Math.max(0, ...source.map((note) => note.start + note.dur)),
+      timeSig: first?.timeSig ?? [4, 4],
+    },
+  };
+  const levels: Record<string, DifficultyLadderLevelMetrics> = {};
+  for (const level of LEVEL_ORDER) {
+    const variant = byLevel.get(level);
+    if (!variant) continue;
+    setRecordValue(levels, level, ladderLevelMetrics(source, variant, parser, input.trace));
+  }
+  const transitions: DifficultyLadderTransitionMetrics[] = [];
+  for (let index = LEVEL_ORDER.length - 1; index > 0; index--) {
+    const harderLevel = LEVEL_ORDER[index]!;
+    const easierLevel = LEVEL_ORDER[index - 1]!;
+    const harder = byLevel.get(harderLevel);
+    const easier = byLevel.get(easierLevel);
+    const harderMetrics = levels[harderLevel];
+    const easierMetrics = levels[easierLevel];
+    if (!harder || !easier || !harderMetrics || !easierMetrics) continue;
+    const identityDelta = {
+      rhOnsetCoverage: easierMetrics.identity.sourceRhOnsetCoverage,
+      pitchClassCoverage: easierMetrics.identity.sourcePitchClassCoverage,
+      directionAgreement: easierMetrics.identity.directionAgreement,
+      turnSurvival: easierMetrics.identity.turnSurvival,
+      localExtremaSurvival: easierMetrics.identity.localExtremaSurvival,
+      repeatedAttackSurvival: easierMetrics.identity.repeatedAttackSurvival,
+      largeLeapEndpointSurvival: easierMetrics.identity.largeLeapEndpointSurvival,
+      phraseAnchorSurvival: easierMetrics.identity.anchorSurvival,
+      harmonicChangeSurvival: easierMetrics.identity.harmonicChangeSurvival,
+    };
+    const complexityDelta = {
+      noteReductionRatio: harderMetrics.noteCount ? round(1 - easierMetrics.noteCount / harderMetrics.noteCount) : 0,
+      onsetReductionRatio: harderMetrics.onsetCount ? round(1 - easierMetrics.onsetCount / harderMetrics.onsetCount) : 0,
+      attackRateDelta: round(harderMetrics.attacksPerSecond - easierMetrics.attacksPerSecond),
+      attackRateReductionRatio: harderMetrics.attacksPerSecond > 0
+        ? round(1 - easierMetrics.attacksPerSecond / harderMetrics.attacksPerSecond)
+        : 0,
+      maxSimultaneityReductionRatio: harderMetrics.maxSimultaneity > 0
+        ? round(1 - easierMetrics.maxSimultaneity / harderMetrics.maxSimultaneity)
+        : 0,
+      maxSimultaneityDelta: harderMetrics.maxSimultaneity - easierMetrics.maxSimultaneity,
+      rightHandSpanDelta: harderMetrics.rightHandSpan === null || easierMetrics.rightHandSpan === null ? null : harderMetrics.rightHandSpan - easierMetrics.rightHandSpan,
+      largeLeapRateDelta: round(harderMetrics.largeLeapRate - easierMetrics.largeLeapRate),
+      repeatedAttackRateDelta: round(harderMetrics.repeatedAttackRate - easierMetrics.repeatedAttackRate),
+    };
+    const violations: string[] = [];
+    if (easierMetrics.noteCount > harderMetrics.noteCount) violations.push("note count increased");
+    if (easierMetrics.onsetCount > harderMetrics.onsetCount) violations.push("onset count increased");
+    if (easierMetrics.attacksPerSecond > harderMetrics.attacksPerSecond + 1e-9) violations.push("attack rate increased");
+    if (easierMetrics.maxSimultaneity > harderMetrics.maxSimultaneity) violations.push("maximum simultaneity increased");
+    if (complexityDelta.rightHandSpanDelta !== null && complexityDelta.rightHandSpanDelta < -1e-9) violations.push("right-hand span increased");
+    transitions.push({
+      harder: harderLevel,
+      easier: easierLevel,
+      identityDelta,
+      complexityDelta,
+      lineage: transitionLineage(easier, harder, input.trace),
+      violations,
+      classification: classifyLadderTransition(identityDelta, complexityDelta, violations),
+    });
+  }
+  return {
+    schemaVersion: 1,
+    fixture: input.fixture,
+    order: LEVEL_ORDER.filter((level) => levels[level] !== undefined),
+    levels,
+    transitions,
+    thresholds: DIFFICULTY_LADDER_THRESHOLDS,
+  };
+}
+
+/** Stable JSON for calibration reruns; no timestamps or physical paths are included. */
+export function canonicalDifficultyLadderJson(report: DifficultyLadderEvaluation): string {
+  return JSON.stringify(canonicalize(report));
 }

@@ -59,7 +59,8 @@
     "evaluate:shadow-corpus": "tsx scripts/evaluate-shadow-corpus.ts",
     "evaluate:cold-transfer": "tsx scripts/evaluate-cold-transfer.ts",
     "evaluate:cold-routing": "tsx scripts/evaluate-cold-routing.ts",
-    "report:shadow-mission": "tsx scripts/report-shadow-mission.ts"
+    "report:shadow-mission": "tsx scripts/report-shadow-mission.ts",
+    "calibrate:ladder": "tsx scripts/calibrate-difficulty-ladder.ts"
   },
   "dependencies": {
     "@keyspilli/midi": "*",
