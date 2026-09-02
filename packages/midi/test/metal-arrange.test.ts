@@ -2657,6 +2657,7 @@ describe("metal piano arranger", () => {
     for (const stage of ["raw", "cleaned", "lead", "residual", "cluster", "semantic", "decision", "chord", "left-hand", "final"] as const) {
       expect(stages.has(stage), `trace should contain ${stage} events`).toBe(true);
     }
+    expect(firstTrace.every((event) => event.operation)).toBe(true);
     const byKey = new Map(firstTrace.map((event) => [event.key, event]));
     for (const event of firstTrace.filter((candidate) => candidate.stage === "cluster" || candidate.stage === "semantic" || candidate.stage === "final")) {
       expect(event.parentKeys.length, `${event.stage} event ${event.key} should have parents`).toBeGreaterThan(0);

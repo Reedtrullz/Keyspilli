@@ -160,8 +160,14 @@ function emitTrace(
   event: MetalArrangementTraceEvent,
 ): void {
   if (!sink) return;
+  const operation = event.operation ?? (event.selected === false
+    ? "REJECTED"
+    : event.stage === "raw" || event.stage === "chord" || event.stage === "left-hand"
+      ? "GENERATED"
+      : "RETAINED");
   sink.record({
     ...event,
+    operation,
     parentKeys: [...event.parentKeys].sort(),
   });
 }
