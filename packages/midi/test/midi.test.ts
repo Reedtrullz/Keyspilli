@@ -572,6 +572,8 @@ describe("buildVariants", () => {
     const lineage = first.filter((event) => event.stage !== "difficulty");
     const keys = new Set(lineage.map((event) => event.key));
     expect(lineage.every((event) => event.parentKeys.every((parent) => keys.has(parent)))).toBe(true);
+    expect(first.filter((event) => event.stage === "difficulty")
+      .every((event) => event.parentKeys.every((parent) => keys.has(parent)))).toBe(true);
   });
 
   it("keeps recurring mid-register accompaniment in the LH when the largest pitch gap is misleading", () => {

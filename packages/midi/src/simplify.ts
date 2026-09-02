@@ -101,6 +101,10 @@ function learnerTraceKey(
   index: number,
   state: "selected" | "rejected",
 ): string {
+  // Difficulty events already reference the canonical source key. Reuse that
+  // key for the raw learner stage so the optional lineage remains connected
+  // across both trace formats.
+  if (stage === "raw" && state === "selected") return canonicalTraceKey(note);
   return `learner:${stage}:${state}:${index}:${note.hand ?? "?"}:${note.start.toFixed(6)}:${note.midi}:${note.dur.toFixed(6)}:${note.vel}:${note.identitySource ?? "unknown"}`;
 }
 
