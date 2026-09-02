@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "experimentId": "cold-transfer-20260902-common-stems-rerun-evaluation",
+  "reportSha256": "7eceadb7bc0b560fd97c01135bc0d212c6192e04967116a492d85e9d050f9fa8",
+  "canonicalReportSha256": "991e11b7e86287ab3fce2618955cc5073aef6ebcde5002eb0c170b3d244966aa",
+  "global": {
+    "caseClassification": "GAPS_COLD_TRANSFER_MIXED",
+    "architectureClassification": "TEXTURE_DEPENDENT",
+    "availableSongs": 3,
+    "unavailableSongs": 0
+  },
+  "metricDefinition": "matches are deterministic one-to-one reference matches; octaveErrorRate is octave-mismatch matches divided by pitch-class matches; referenceSupport is truth-side Basic/GAPS/both/neither; predictionAgreement is candidate-side overlap.",
+  "songs": [
+    {
+      "id": "final-solution",
+      "classification": "no-transfer",
+      "basic": {
+        "candidateCount": 2085,
+        "octaveErrors": {"matches": 69, "errorRate": 0.6},
+        "onset": {"matches": 499, "precision": 0.239328537, "recall": 0.581585082, "f1": 0.339109752},
+        "exact": {"matches": 51, "precision": 0.024460432, "recall": 0.059440559, "f1": 0.034658512},
+        "pitchClass": {"matches": 115, "precision": 0.055155875, "recall": 0.134032634, "f1": 0.078151546}
+      },
+      "gaps": {
+        "candidateCount": 2132,
+        "octaveErrors": {"matches": 46, "errorRate": 0.516853933},
+        "onset": {"matches": 374, "precision": 0.175422139, "recall": 0.435897436, "f1": 0.250167224},
+        "exact": {"matches": 48, "precision": 0.022514071, "recall": 0.055944056, "f1": 0.032107023},
+        "pitchClass": {"matches": 89, "precision": 0.041744841, "recall": 0.103729604, "f1": 0.059531773}
+      },
+      "referenceSupport": {
+        "onset": {"both": 330, "basicOnly": 169, "gapsOnly": 44, "neither": 315},
+        "exact": {"both": 34, "basicOnly": 17, "gapsOnly": 14, "neither": 793},
+        "pitchClass": {"both": 61, "basicOnly": 54, "gapsOnly": 28, "neither": 715}
+      },
+      "predictionAgreement": {
+        "onset": {"matches": 1314, "basicCount": 2085, "gapsCount": 2132},
+        "exact": {"matches": 1112, "basicCount": 2085, "gapsCount": 2132},
+        "pitchClass": {"matches": 1215, "basicCount": 2085, "gapsCount": 2132}
+      },
+      "union": {
+        "onset": {"matches": 545, "predictedCount": 4217, "truthCount": 858, "precision": 0.129238795, "recall": 0.635198135, "f1": 0.214778325},
+        "exact": {"matches": 65, "predictedCount": 4217, "truthCount": 858, "precision": 0.015413801, "recall": 0.075757576, "f1": 0.025615764},
+        "pitchClass": {"matches": 142, "predictedCount": 4158, "truthCount": 858, "precision": 0.034151034, "recall": 0.165501166, "f1": 0.05661882}
+      }
+    },
+    {
+      "id": "gott-mit-uns",
+      "classification": "no-transfer",
+      "basic": {
+        "candidateCount": 1630,
+        "octaveErrors": {"matches": 168, "errorRate": 0.717948718},
+        "onset": {"matches": 745, "precision": 0.457055215, "recall": 0.598393574, "f1": 0.51826087},
+        "exact": {"matches": 79, "precision": 0.048466258, "recall": 0.063453815, "f1": 0.054956522},
+        "pitchClass": {"matches": 234, "precision": 0.143558282, "recall": 0.187951807, "f1": 0.162782609}
+      },
+      "gaps": {
+        "candidateCount": 1068,
+        "octaveErrors": {"matches": 110, "errorRate": 0.723684211},
+        "onset": {"matches": 520, "precision": 0.486891386, "recall": 0.417670683, "f1": 0.449632512},
+        "exact": {"matches": 75, "precision": 0.070224719, "recall": 0.060240964, "f1": 0.064850843},
+        "pitchClass": {"matches": 152, "precision": 0.142322097, "recall": 0.122088353, "f1": 0.131431042}
+      },
+      "referenceSupport": {
+        "onset": {"both": 405, "basicOnly": 340, "gapsOnly": 115, "neither": 385},
+        "exact": {"both": 23, "basicOnly": 56, "gapsOnly": 52, "neither": 1114},
+        "pitchClass": {"both": 86, "basicOnly": 148, "gapsOnly": 66, "neither": 945}
+      },
+      "predictionAgreement": {
+        "onset": {"matches": 669, "basicCount": 1630, "gapsCount": 1068},
+        "exact": {"matches": 452, "basicCount": 1630, "gapsCount": 1068},
+        "pitchClass": {"matches": 552, "basicCount": 1630, "gapsCount": 1068}
+      },
+      "union": {
+        "onset": {"matches": 927, "predictedCount": 2698, "truthCount": 1245, "precision": 0.343587843, "recall": 0.744578313, "f1": 0.470200355},
+        "exact": {"matches": 132, "predictedCount": 2698, "truthCount": 1245, "precision": 0.04892513, "recall": 0.106024096, "f1": 0.066954096},
+        "pitchClass": {"matches": 304, "predictedCount": 2665, "truthCount": 1245, "precision": 0.114071295, "recall": 0.244176707, "f1": 0.155498721}
+      }
+    },
+    {
+      "id": "red-baron",
+      "classification": "mixed",
+      "basic": {
+        "candidateCount": 1627,
+        "octaveErrors": {"matches": 368, "errorRate": 0.553383459},
+        "onset": {"matches": 1232, "precision": 0.757221881, "recall": 0.353819644, "f1": 0.482286162},
+        "exact": {"matches": 478, "precision": 0.293792256, "recall": 0.137277427, "f1": 0.187120767},
+        "pitchClass": {"matches": 665, "precision": 0.40872772, "recall": 0.190982194, "f1": 0.260324917}
+      },
+      "gaps": {
+        "candidateCount": 476,
+        "octaveErrors": {"matches": 68, "errorRate": 0.433121019},
+        "onset": {"matches": 364, "precision": 0.764705882, "recall": 0.104537622, "f1": 0.183931278},
+        "exact": {"matches": 112, "precision": 0.235294118, "recall": 0.032165422, "f1": 0.05659424},
+        "pitchClass": {"matches": 157, "precision": 0.329831933, "recall": 0.045089029, "f1": 0.079332996}
+      },
+      "referenceSupport": {
+        "onset": {"both": 250, "basicOnly": 982, "gapsOnly": 114, "neither": 2136},
+        "exact": {"both": 72, "basicOnly": 406, "gapsOnly": 40, "neither": 2964},
+        "pitchClass": {"both": 96, "basicOnly": 569, "gapsOnly": 61, "neither": 2756}
+      },
+      "predictionAgreement": {
+        "onset": {"matches": 341, "basicCount": 1627, "gapsCount": 476},
+        "exact": {"matches": 258, "basicCount": 1627, "gapsCount": 476},
+        "pitchClass": {"matches": 295, "basicCount": 1627, "gapsCount": 476}
+      },
+      "union": {
+        "onset": {"matches": 1489, "predictedCount": 2103, "truthCount": 3482, "precision": 0.708036139, "recall": 0.4276278, "f1": 0.533213966},
+        "exact": {"matches": 576, "predictedCount": 2103, "truthCount": 3482, "precision": 0.273894437, "recall": 0.165422171, "f1": 0.206266786},
+        "pitchClass": {"matches": 784, "predictedCount": 2084, "truthCount": 3482, "precision": 0.376199616, "recall": 0.225157955, "f1": 0.281710384}
+      }
+    }
+  ]
+}
