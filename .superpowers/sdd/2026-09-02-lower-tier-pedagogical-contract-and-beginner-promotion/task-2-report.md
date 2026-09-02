@@ -17,7 +17,7 @@ Both runs were byte-identical. The output is `<scratch>/run-1.json`; its canonic
 | classical | yes | 6/6 | yes | 0 → 0 / 0 | 51 / 21 / 0 | 2 |
 | cover | yes | 6/6 | yes | 11 → 0 / 11 | 127 / 2 / 0 | 2 |
 | pop | yes | 6/6 | yes | 28 → 0 / 28 | 84 / 11 / 0 | 2 |
-| synthetic-full-band | yes | 6/6 | yes | 0 → 0 / 0 | 2 / 0 / 0 | 2 |
+| synthetic-full-band | **no — failed freeze** | 6/6 | yes | 0 → 0 / 0 | 0 / 0 / 2 | 2 |
 
 Candidate Beginner physical metrics (`notes / onsets`, attacks/sec, median IOI sec, max/median attack-boundary simultaneity, LH attacks/min, LH-active onset %, simultaneous RH+LH onsets, hand alternations/min):
 
@@ -30,6 +30,6 @@ synthetic-full-band:  6/4, 1.185, 1.000, 2/1.5, 35.556, 50.000%,  2,  0.000
 
 Very Beginner is RH-only in all four rows (`LH-active onset % = 0`). Candidate Beginner is RH-dominant with sparse LH (14.724%, 27.505%, 22.459%, and 50% respectively); Very Easy is materially denser and more LH-active (62.745%, 37.573%, 60%, and 100%). The JSON preserves the prior comparison metadata unchanged: `beginner-budget-revision/report.json`, SHA `f125b9b496cbf1856dcc915cd526d7419c635780e2758106dea04b6cc9d9cd87`.
 
-Synthetic checks cover true full rest (0 emitted), RH rest with meaningful LH (1 emitted), LH-filler-only/unknown provenance (0 emitted and fail-closed), harmonic change during RH rest, sustained LH crossing a window, one-RH collision allowance, two-RH collision suppression, and defer-to-existing-later-onset (chosen start `2`). All emitted real-fixture anchors have trusted existing Very Easy LH evidence; root/bass/chroma lineage is `UNAVAILABLE`, never fabricated.
+Synthetic checks cover true full rest (0 emitted), RH rest with meaningful LH (1 emitted), LH-filler-only/unknown provenance (0 emitted and fail-closed), harmonic change during RH rest, sustained LH crossing a window, one-RH collision allowance, two-RH collision suppression, and defer-to-existing-later-onset (chosen start `2`). The synthetic preregistration source hash mismatches the generated inline fixture (`...c8` expected vs `...c6` actual), so this is a failed freeze and is not silently corrected; strict provenance suppresses its anchors. All emitted real-fixture anchors have trusted existing Very Easy LH evidence; root/bass/chroma lineage is `UNAVAILABLE`, never fabricated.
 
 Limitations: this is the four-fixture preregistered symbolic corpus only. It does not read EVAL_ONLY or excluded material, render audio, use network/source research, replay production, or decide the A/B/C/D outcome. `COVER_RH_IDENTITY_CLIFF` and `DIFFICULTY_DIFFERENTIATION_CONCERN` remain deferred. The tiny synthetic fixture retains the existing validator’s note-count warning because it is a regression shadow, not a publishable song. No production source or tests were changed.
