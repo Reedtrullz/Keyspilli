@@ -321,6 +321,31 @@
       "reportHash": "0b2af06b1397246950ba0e90f85e4a80e03e1a7a1e73130c906eef8612e26007",
       "reproducible": true,
       "rawArtifactRetention": "retain compact path-free report, manifests, preregistration, and hashes only; frozen MIDI, references, stems, model weights, and environments remain outside Git"
+    },
+    {
+      "id": "beginner-sparse-lh-promotion-control-2026-09-03",
+      "date": "2026-09-03",
+      "purpose": "Repair lower-tier promotion evidence with one deterministic sparse-LH project-owned control",
+      "songs": [],
+      "route": "project-owned symbolic JSON -> learner variants -> unchanged validateVariants and focused safety assertions",
+      "criticalMetrics": {
+        "fixtureId": "BEGINNER_SPARSE_LH_PROMOTION_CONTROL_V1",
+        "fixtureBytes": 3153,
+        "fixtureSha256": "63f08d3dfce74ab9c8172572e99b1b8ae5a48785c7bec12bbe97aea202fd27d7",
+        "sourceNotes": 20,
+        "sourceOnsets": 13,
+        "rhNotes": 12,
+        "lhNotes": 8,
+        "drumTimingEvents": 8,
+        "veryBeginnerNotes": 11,
+        "beginnerNotes": 11,
+        "validatorErrors": 0
+      },
+      "result": "Deterministic control passed normal learner validation and all synthetic collision, LH-only, rest, filler, harmonic, and drum-provenance assertions.",
+      "decision": "EVIDENCE_CONTROL_ADDED; NO_PROMOTION",
+      "reportHash": null,
+      "reproducible": true,
+      "rawArtifactRetention": "retain fixture, focused test, and compact report; no reference or private MIDI bytes"
     }
   ]
 }
