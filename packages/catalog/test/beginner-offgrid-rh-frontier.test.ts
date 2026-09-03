@@ -93,11 +93,51 @@ describe("Beginner off-grid RH frontier", () => {
     ];
     const report = evaluateBeginnerOffGridRhFrontier({
       ...input(source, [source[0]!]),
-      trace: [{ key: "lost", stage: "beginner-ladder", note: source[1], selected: false, operation: "REJECTED" }],
+      trace: [
+        { key: "raw-lost", stage: "raw", note: source[1], selected: true },
+        { key: "lost", stage: "beginner-ladder", parentKeys: ["raw-lost"], note: source[1], selected: false, operation: "REJECTED" },
+      ],
     });
     expect(report.lineage.traceAvailable).toBe(true);
     expect(report.lineage.rejectedEvents).toBe(1);
     expect(report.candidates["candidate-b"].eligible).toBe(1);
+  });
+
+  it("resolves a quantized rejection through its raw off-grid ancestor", () => {
+    const raw: Note = { midi: 64, start: 0.125, dur: 0.5, vel: 120, hand: "R" };
+    const quantized: Note = { ...raw, start: 0.25 };
+    const report = evaluateBeginnerOffGridRhFrontier({
+      ...input([raw, { midi: 67, start: 1, dur: 0.5, vel: 80, hand: "R" }], [{ midi: 60, start: 0, dur: 0.5, vel: 80, hand: "R" }]),
+      trace: [
+        { key: "raw-lead", stage: "raw", parentKeys: [], note: raw, selected: true },
+        { key: "beginner-rejection", stage: "beginner-ladder", parentKeys: ["raw-lead"], note: quantized, selected: false, operation: "REJECTED" },
+      ],
+    });
+    expect(report.candidates["candidate-a"].eligible).toBe(1);
+    expect(report.candidates["candidate-a"].emittedStarts).toEqual([0.125]);
+    expect(report.config.gridToleranceBeats).toBe(0.01);
+  });
+
+  it("fails closed for ambiguous ancestry and malformed trace notes", () => {
+    const source: Note[] = [
+      { midi: 60, start: 0, dur: 0.25, vel: 80, hand: "R" },
+      { midi: 62, start: 0.125, dur: 0.5, vel: 120, hand: "R" },
+      { midi: 64, start: 0.375, dur: 0.5, vel: 120, hand: "R" },
+    ];
+    const report = evaluateBeginnerOffGridRhFrontier({
+      ...input(source, [source[0]!]),
+      trace: [
+        { key: "raw-a", stage: "raw", note: source[1], selected: true },
+        { key: "raw-b", stage: "raw", note: source[2], selected: true },
+        { key: "ambiguous", stage: "beginner-ladder", parentKeys: ["raw-a", "raw-b"], note: source[1], selected: false, operation: "REJECTED" },
+        { key: "malformed", stage: "beginner-ladder", parentKeys: ["raw-a"], note: { ...source[1]!, midi: 128 }, selected: false, operation: "REJECTED" },
+        { key: "contradictory", stage: "beginner-ladder", parentKeys: ["raw-a"], note: source[1], selected: true, operation: "REJECTED" },
+      ],
+    });
+    expect(report.lineage.rejectedEvents).toBe(2);
+    expect(report.lineage.resolvedRejectedEvents).toBe(0);
+    expect(report.lineage.unresolvedRejectedEvents).toBe(2);
+    expect(report.candidates["candidate-a"].eligible).toBe(0);
   });
 
   it("fails closed without lineage or an explicit frozen rejection set", () => {

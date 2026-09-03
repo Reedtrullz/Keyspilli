@@ -8,7 +8,7 @@ export const BEGINNER_OFFGRID_RH_FRONTIER_CONFIG = {
   schemaVersion: 1,
   mission: "BEGINNER_OFF_GRID_INTERIOR_RH_BUDGET_FRONTIER",
   quarterGridBeats: COVER_RH_CLIFF_CONFIG.gridBeats,
-  gridToleranceBeats: 0.02,
+  gridToleranceBeats: 0.01,
   onsetToleranceBeats: COVER_RH_CLIFF_CONFIG.onsetToleranceBeats,
   phraseBreakBeats: COVER_RH_CLIFF_CONFIG.phraseBreakBeats,
   repeatedGapBeats: COVER_RH_CLIFF_CONFIG.repeatedGapBeats,
@@ -65,9 +65,12 @@ export interface OffGridIdentityMetrics {
 
 export interface FrontierCandidateReport {
   budget: number;
+  tempoBpm: number;
   eligible: number;
+  eligibleSourceKeys: string[];
   emitted: number;
   emittedStarts: number[];
+  emittedSourceKeys: string[];
   discardedByWindowBudget: number;
   structurallySignificantRejected: number;
   recoveredStructural: number;
@@ -92,6 +95,7 @@ export interface FrontierCandidateReport {
   };
   identity: OffGridIdentityMetrics;
   timing: OffGridTimingMetrics;
+  lhSignature: string;
 }
 
 export interface BeginnerOffGridRhFrontierReport {
@@ -101,28 +105,113 @@ export interface BeginnerOffGridRhFrontierReport {
   revision?: string;
   config: typeof BEGINNER_OFFGRID_RH_FRONTIER_CONFIG;
   sourceTiming: OffGridTimingMetrics & { structuralCategories: Record<OffGridStructuralSignal, number> };
-  lineage: { traceAvailable: boolean; rejectedEvents: number; explicitRejectionSet: boolean };
+  rejectedTiming: OffGridTimingMetrics;
+  eligibleStructuralCategories: Record<OffGridStructuralSignal, number>;
+  rejectedStructuralCategories: Record<OffGridStructuralSignal, number>;
+  lineage: { traceAvailable: boolean; rejectedEvents: number; resolvedRejectedEvents: number; unresolvedRejectedEvents: number; explicitRejectionSet: boolean };
   candidates: Record<BeginnerOffGridCandidate, FrontierCandidateReport>;
   easy: FrontierCandidateReport | null;
   beginnerToEasy: { notesDelta: number; onsetsDelta: number; attacksPerSecondDelta: number; offGridAttacksPerMinuteDelta: number; maxSimultaneityDelta: number } | null;
   publicSeparation: { candidateAbelowEasy: boolean; candidateBbelowEasy: boolean; candidateAMetrics: Record<string, number | null>; candidateBMetrics: Record<string, number | null>; easyMetrics: Record<string, number | null> };
-  controls: { lhUnchanged: boolean; noRetiming: boolean; maxSimLimit: boolean; nonBeginnerUnchanged: boolean };
+  controls: {
+    lhUnchanged: boolean;
+    noRetiming: boolean;
+    maxSimLimit: boolean;
+    densityLimit: boolean;
+    ioiLimit: boolean;
+    spanJumpLimit: boolean;
+    nonBeginnerUnchanged: boolean;
+    frozenPlayabilityConstraints: boolean;
+  };
   decision: BeginnerOffGridDecision;
   behavior: "NO_MUSICAL_BEHAVIOR_CHANGE";
 }
 
 type Group = { start: number; notes: Note[] };
+type TraceNote = NonNullable<ProvenanceTraceEvent["note"]>;
+type EligibleCandidate = { note: Note; signals: OffGridStructuralSignal[]; sourceKey: string; signalFlags: number };
+const SIGNAL_ORDER: OffGridStructuralSignal[] = ["phrase-anchor", "contour-extremum", "repeated-articulation", "large-leap-endpoint", "high-velocity", "long-duration"];
 const BLOCKERS: OffGridBlocker[] = ["BLOCKED_BY_WINDOW_BUDGET", "BLOCKED_BY_MAX_SIM", "BLOCKED_BY_DENSITY", "BLOCKED_BY_IOI", "BLOCKED_BY_SPAN_JUMP", "BLOCKED_BY_CURRENT_LH", "BLOCKED_BY_OTHER_CONSTRAINT"];
 function redactPath(value: string): string {
   return value.replace(/(?:file:\/\/)?(?:\/Users\/|\/private\/tmp\/|[A-Za-z]:[\\/])[^\s"']+/g, "<redacted-path>");
 }
 
 function valid(note: Note): boolean {
-  return Number.isInteger(note.midi) && Number.isFinite(note.start) && Number.isFinite(note.dur) && Number.isFinite(note.vel) && note.start >= 0 && note.dur > 0;
+  return Boolean(note && typeof note === "object")
+    && Number.isInteger(note.midi) && note.midi >= 0 && note.midi <= 127
+    && Number.isFinite(note.start) && Number.isFinite(note.dur) && Number.isFinite(note.vel)
+    && note.start >= 0 && note.dur > 0 && Number.isFinite(note.start + note.dur)
+    && note.vel >= 0 && note.vel <= 127
+    && (note.hand === undefined || note.hand === "L" || note.hand === "R");
 }
 
 function ordered(notes: Note[]): Note[] {
   return notes.filter(valid).map((note) => ({ ...note })).sort((a, b) => a.start - b.start || a.midi - b.midi || a.dur - b.dur || b.vel - a.vel);
+}
+
+function compareText(left: string, right: string): number { return left < right ? -1 : left > right ? 1 : 0; }
+
+function stableNoteKey(note: Note): string {
+  return `${note.hand ?? "R"}:${note.start.toFixed(9)}:${note.midi}:${note.dur.toFixed(9)}:${note.vel}:${note.identitySource ?? "unknown"}`;
+}
+
+function noteSetSignature(notes: Note[]): string {
+  return notes.map(stableNoteKey).sort(compareText).join("|");
+}
+
+function variantSignature(variant: Variant): string {
+  return JSON.stringify({ ...variant, notes: ordered(variant.notes) });
+}
+
+function traceMidi(note: TraceNote): number { return note.rawMidi ?? note.midi; }
+
+function traceRoots(
+  event: ProvenanceTraceEvent,
+  byKey: Map<string, ProvenanceTraceEvent>,
+  memo: Map<string, Set<string>>,
+  visiting = new Set<string>(),
+): Set<string> {
+  const cached = memo.get(event.key);
+  if (cached) return cached;
+  if (visiting.has(event.key)) return new Set();
+  visiting.add(event.key);
+  const result = new Set<string>();
+  if (event.parentKeys?.length) {
+    for (const parentKey of event.parentKeys) {
+      const parent = byKey.get(parentKey);
+      if (parent) for (const root of traceRoots(parent, byKey, memo, visiting)) result.add(root);
+      else result.add(parentKey);
+    }
+  } else result.add(event.key);
+  visiting.delete(event.key);
+  memo.set(event.key, result);
+  return result;
+}
+
+function resolveSourceNote(traceNote: TraceNote, sourceRh: Note[]): Note | null {
+  return sourceRh
+    .filter((note) => traceMidi(traceNote) === note.midi && Math.abs(traceNote.start - note.start) <= 1e-6)
+    .sort((left, right) => Math.abs(left.dur - traceNote.dur) - Math.abs(right.dur - traceNote.dur) || Math.abs(left.vel - traceNote.vel) - Math.abs(right.vel - traceNote.vel) || compareText(stableNoteKey(left), stableNoteKey(right)))[0] ?? null;
+}
+
+function resolvedRejection(
+  event: ProvenanceTraceEvent,
+  sourceRh: Note[],
+  byKey: Map<string, ProvenanceTraceEvent>,
+  memo: Map<string, Set<string>>,
+): { note: Note; sourceKey: string } | null {
+  // Trace-backed candidates must prove a single source ancestry. Synthetic
+  // callers can still use rejectedRhNotes as the explicit escape hatch.
+  if (!event.parentKeys?.length) return null;
+  if (!event.note || !valid({ ...event.note, hand: event.note.hand ?? "R" })) return null;
+  const rootKeys = [...traceRoots(event, byKey, memo)].sort(compareText);
+  if (rootKeys.length !== 1) return null;
+  if (event.parentKeys?.length && (!rootKeys.length || rootKeys.some((key) => !byKey.has(key)))) return null;
+  const roots = rootKeys.map((key) => byKey.get(key)?.note).filter((note): note is TraceNote => Boolean(note));
+  if (roots.length !== 1) return null;
+  const root = roots[0]!;
+  const sourceNote = resolveSourceNote(root, sourceRh);
+  return sourceNote ? { note: { ...sourceNote }, sourceKey: rootKeys[0] ?? event.key } : null;
 }
 
 function groups(notes: Note[]): Group[] {
@@ -270,7 +359,7 @@ function emptyBlockers(): Record<OffGridBlocker, number> {
   return Object.fromEntries(BLOCKERS.map((key) => [key, 0])) as Record<OffGridBlocker, number>;
 }
 
-function candidateReport(sourceRh: Note[], baseline: Variant, notes: Note[], budget: number, eligible: number, emittedStarts: number[], discardedByWindowBudget: number, blockers: Record<OffGridBlocker, number>, source: Note[]): FrontierCandidateReport {
+function candidateReport(sourceRh: Note[], baseline: Variant, notes: Note[], budget: number, eligible: EligibleCandidate[], emitted: EligibleCandidate[], discardedByWindowBudget: number, blockers: Record<OffGridBlocker, number>, source: Note[]): FrontierCandidateReport {
   const durationBeats = Math.max(0, ...notes.map((note) => note.start + note.dur), ...source.map((note) => note.start + note.dur));
   const evaluated = evaluateArrangement({ fixture: { id: "beginner-offgrid-rh-frontier" }, candidate: { selector: "diagnostic:beginner-offgrid", notes, tempoBpm: baseline.tempoBpm, durationBeats, timeSig: baseline.timeSig } });
   const metrics = evaluated.metrics;
@@ -279,12 +368,15 @@ function candidateReport(sourceRh: Note[], baseline: Variant, notes: Note[], bud
   const bothHandOnsets = groups(notes).filter((group) => group.notes.some((note) => note.hand !== "L") && group.notes.some((note) => note.hand === "L")).length;
   return {
     budget,
-    eligible,
-    emitted: emittedStarts.length,
-    emittedStarts: [...emittedStarts].sort((a, b) => a - b),
+    tempoBpm: baseline.tempoBpm,
+    eligible: eligible.length,
+    eligibleSourceKeys: eligible.map((candidate) => redactPath(candidate.sourceKey)).sort(compareText),
+    emitted: emitted.length,
+    emittedStarts: emitted.map((candidate) => candidate.note.start).sort((a, b) => a - b),
+    emittedSourceKeys: emitted.map((candidate) => redactPath(candidate.sourceKey)).sort(compareText),
     discardedByWindowBudget,
-    structurallySignificantRejected: eligible,
-    recoveredStructural: emittedStarts.length,
+    structurallySignificantRejected: eligible.length,
+    recoveredStructural: emitted.length,
     blockers,
     rhNotes: metrics.rightHand.noteCount,
     lhNotes: metrics.leftHand.noteCount,
@@ -306,6 +398,7 @@ function candidateReport(sourceRh: Note[], baseline: Variant, notes: Note[], bud
     },
     identity: identity(source, notes),
     timing: timing(notes, baseline.tempoBpm),
+    lhSignature: noteSetSignature(notes.filter((note) => note.hand === "L")),
   };
 }
 
@@ -327,33 +420,60 @@ export function evaluateBeginnerOffGridRhFrontier(input: BeginnerOffGridRhFronti
   const durations = sourceRh.map((note) => note.dur);
   const velocityCut = quantile(velocities, 0.75) ?? 127;
   const durationCut = quantile(durations, 0.75) ?? 0;
-  const tracedRejected = (input.trace ?? [])
-    .filter((event) => event.stage === "beginner-ladder" && (event.selected === false || event.operation === "REJECTED"))
-    .map((event) => event.note)
-    .filter((note): note is NonNullable<ProvenanceTraceEvent["note"]> => Boolean(note))
-    .map((note) => ({ ...note, hand: note.hand ?? "R" as const }));
-  const rejectionPool = tracedRejected.length ? ordered(tracedRejected) : input.rejectedRhNotes ? ordered(input.rejectedRhNotes) : [];
-  const eligible = rejectionPool.filter((note) => note.hand !== "L").flatMap((note) => {
+  const traceEvents = input.trace ?? [];
+  const traceProvided = input.trace !== undefined;
+  const traceByKey = new Map(traceEvents.map((event) => [event.key, event]));
+  const traceMemo = new Map<string, Set<string>>();
+  const rejectedTraceEvents = traceEvents
+    .filter((event) => event.stage === "beginner-ladder" && (event.selected === false || (event.operation === "REJECTED" && event.selected !== true)));
+  const tracedRejected = rejectedTraceEvents
+    .map((event) => resolvedRejection(event, sourceRh, traceByKey, traceMemo))
+    .filter((candidate): candidate is { note: Note; sourceKey: string } => Boolean(candidate));
+  const rejectionPool = [...new Map((traceProvided ? tracedRejected : (input.rejectedRhNotes ?? []).map((note) => ({ note: { ...note }, sourceKey: stableNoteKey(note) }))).map((candidate) => [candidate.sourceKey, candidate])).values()];
+  const eligible = rejectionPool.filter(({ note }) => note.hand !== "L").flatMap(({ note, sourceKey }) => {
     if (!isOffGrid(note.start) || baselineRh.some((current) => sameEvent(note, current))) return [];
     const groupIndex = sourceGroups.findIndex((group) => group.notes.some((member) => member.midi === note.midi && Math.abs(member.start - note.start) <= 1e-9));
+    if (groupIndex < 0) return [];
     const group = sourceGroups[groupIndex]!;
     const hasHigherSameOnset = group.notes.some((other) => other !== note && other.midi > note.midi);
     if (hasHigherSameOnset) return [];
     const signals = structuralSignals(sourceGroups, groupIndex, velocityCut, durationCut);
-    return signals.length ? [{ note, signals }] : [];
-  }).sort((left, right) => right.signals.length - left.signals.length || left.note.start - right.note.start || left.note.midi - right.note.midi);
-  const categoryCounts = Object.fromEntries(BEGINNER_OFFGRID_RH_FRONTIER_CONFIG.structuralSignals.map((signal) => [signal, eligible.filter((candidate) => candidate.signals.includes(signal)).length])) as Record<OffGridStructuralSignal, number>;
+    const signalFlags = signals.reduce((flags, signal) => flags | (1 << (SIGNAL_ORDER.length - 1 - SIGNAL_ORDER.indexOf(signal))), 0);
+    return signals.length ? [{ note, signals, sourceKey, signalFlags }] : [];
+  }).sort((left, right) => right.signals.length - left.signals.length || right.signalFlags - left.signalFlags || left.note.start - right.note.start || left.note.midi - right.note.midi || compareText(left.sourceKey, right.sourceKey));
+  const signalCounts = (notes: Note[]): Record<OffGridStructuralSignal, number> => {
+    const counts = Object.fromEntries(BEGINNER_OFFGRID_RH_FRONTIER_CONFIG.structuralSignals.map((signal) => [signal, 0])) as Record<OffGridStructuralSignal, number>;
+    const noteGroups = groups(notes.filter((note) => note.hand !== "L"));
+    for (let index = 0; index < noteGroups.length; index++) {
+      for (const signal of structuralSignals(noteGroups, index, velocityCut, durationCut)) counts[signal]++;
+    }
+    return counts;
+  };
+  const eligibleCategoryCounts = Object.fromEntries(BEGINNER_OFFGRID_RH_FRONTIER_CONFIG.structuralSignals.map((signal) => [signal, eligible.filter((candidate) => candidate.signals.includes(signal)).length])) as Record<OffGridStructuralSignal, number>;
+  const rejectedCategoryCounts = Object.fromEntries(BEGINNER_OFFGRID_RH_FRONTIER_CONFIG.structuralSignals.map((signal) => [signal, 0])) as Record<OffGridStructuralSignal, number>;
+  for (const { note } of rejectionPool) {
+    const groupIndex = sourceGroups.findIndex((group) => group.notes.some((member) => member.midi === note.midi && Math.abs(member.start - note.start) <= 1e-9));
+    if (groupIndex < 0) continue;
+    for (const signal of structuralSignals(sourceGroups, groupIndex, velocityCut, durationCut)) rejectedCategoryCounts[signal]++;
+  }
+  const sourceCategoryCounts = signalCounts(sourceRh);
+  const rejectedTiming = timing(rejectionPool.map((candidate) => candidate.note), beginner.tempoBpm);
   const limits = PLAYABILITY_LIMITS.beginner!;
   const evaluationDurationBeats = Math.max(0, ...source.map((note) => note.start + note.dur));
   const baselineEvaluation = evaluateArrangement({ fixture: { id: "beginner-offgrid-rh-frontier" }, candidate: { selector: "diagnostic:frontier-baseline", notes: baselineNotes, tempoBpm: beginner.tempoBpm, durationBeats: evaluationDurationBeats, timeSig: beginner.timeSig } }).metrics;
-  const run = (budget: number): { notes: Note[]; starts: number[]; discarded: number; blockers: Record<OffGridBlocker, number> } => {
+  const nonBeginnerBefore = input.variants.filter((variant) => variant.level !== "beginner").map(variantSignature);
+  const timeSigNumerator = Number.isFinite(beginner.timeSig?.[0]) && beginner.timeSig[0] > 0 ? beginner.timeSig[0] : 4;
+  const timeSigDenominator = Number.isFinite(beginner.timeSig?.[1]) && beginner.timeSig[1] > 0 ? beginner.timeSig[1] : 4;
+  const windowBeats = timeSigNumerator * 4 / timeSigDenominator;
+  const run = (budget: number): { notes: Note[]; emitted: EligibleCandidate[]; discarded: number; blockers: Record<OffGridBlocker, number> } => {
     const selected: Note[] = [...baselineNotes];
     const selectedStarts = new Map<number, number>();
-    const emittedStarts: number[] = [];
+    const emitted: EligibleCandidate[] = [];
     const blockers = emptyBlockers();
     let discarded = 0;
-    for (const { note } of eligible) {
-      const window = Math.floor(note.start / (beginner.timeSig[0] * 4 / beginner.timeSig[1])) * (beginner.timeSig[0] * 4 / beginner.timeSig[1]);
+    for (const candidate of eligible) {
+      const { note } = candidate;
+      const window = Math.floor(note.start / windowBeats) * windowBeats;
       if ((selectedStarts.get(window) ?? 0) >= budget) { blockers.BLOCKED_BY_WINDOW_BUDGET++; discarded++; continue; }
       const withCandidate = [...selected, { ...note }];
       const withoutLh = [...selected.filter((current) => current.hand !== "L"), { ...note }];
@@ -364,26 +484,36 @@ export function evaluateBeginnerOffGridRhFrontier(input: BeginnerOffGridRhFronti
       else if (evaluated.metrics.global.simultaneity.max > limits.maxSim && baselineEvaluation.global.simultaneity.max <= limits.maxSim) failures.push("BLOCKED_BY_MAX_SIM");
       if (evaluated.metrics.global.onsetsPerSecond > limits.maxDensity && baselineEvaluation.global.onsetsPerSecond <= limits.maxDensity) failures.push("BLOCKED_BY_DENSITY");
       if (evaluated.metrics.rightHand.melodicGap.p50 !== null && evaluated.metrics.rightHand.melodicGap.p50 * 60 / beginner.tempoBpm < limits.minMedianIoi && (baselineEvaluation.rightHand.melodicGap.p50 === null || baselineEvaluation.rightHand.melodicGap.p50 * 60 / beginner.tempoBpm >= limits.minMedianIoi)) failures.push("BLOCKED_BY_IOI");
-      if (((evaluated.metrics.rightHand.range.span ?? 0) > BEGINNER_OFFGRID_RH_FRONTIER_CONFIG.spanCapSemitones && (baselineEvaluation.rightHand.range.span ?? 0) <= BEGINNER_OFFGRID_RH_FRONTIER_CONFIG.spanCapSemitones) || (evaluated.metrics.global.handSpanViolations > baselineEvaluation.global.handSpanViolations)) failures.push("BLOCKED_BY_SPAN_JUMP");
-      if (failures.length) { for (const failure of failures) blockers[failure]++; continue; }
+      if (((evaluated.metrics.rightHand.range.span ?? 0) > BEGINNER_OFFGRID_RH_FRONTIER_CONFIG.spanCapSemitones && (baselineEvaluation.rightHand.range.span ?? 0) <= BEGINNER_OFFGRID_RH_FRONTIER_CONFIG.spanCapSemitones) || evaluated.metrics.global.handSpanViolations > baselineEvaluation.global.handSpanViolations) failures.push("BLOCKED_BY_SPAN_JUMP");
+      if (failures.length) { blockers[failures[0]!]++; continue; }
       selected.push({ ...note });
       selectedStarts.set(window, (selectedStarts.get(window) ?? 0) + 1);
-      emittedStarts.push(note.start);
+      emitted.push({ ...candidate });
     }
-    return { notes: selected, starts: emittedStarts, discarded, blockers };
+    return { notes: selected, emitted, discarded, blockers };
   };
-  const baseline = candidateReport(sourceRh, beginner, baselineNotes, 0, 0, [], 0, emptyBlockers(), sourceRh);
+  const baseline = candidateReport(sourceRh, beginner, baselineNotes, 0, [], [], 0, emptyBlockers(), sourceRh);
   const a = run(1);
   const b = run(2);
-  const candidateA = candidateReport(sourceRh, beginner, a.notes, 1, eligible.length, a.starts, a.discarded, a.blockers, sourceRh);
-  const candidateB = candidateReport(sourceRh, beginner, b.notes, 2, eligible.length, b.starts, b.discarded, b.blockers, sourceRh);
-  const easy = easyVariant ? candidateReport(sourceRh, beginner, ordered(easyVariant.notes), 0, 0, [], 0, emptyBlockers(), sourceRh) : null;
+  const candidateA = candidateReport(sourceRh, beginner, a.notes, 1, eligible, a.emitted, a.discarded, a.blockers, sourceRh);
+  const candidateB = candidateReport(sourceRh, beginner, b.notes, 2, eligible, b.emitted, b.discarded, b.blockers, sourceRh);
+  const easy = easyVariant ? candidateReport(sourceRh, beginner, ordered(easyVariant.notes), 0, [], [], 0, emptyBlockers(), sourceRh) : null;
+  const allCandidates = [baseline, candidateA, candidateB];
+  const densityLimit = allCandidates.every((candidate) => candidate.metrics.attacksPerSecond <= limits.maxDensity + 1e-9);
+  const ioiLimit = allCandidates.every((candidate) => candidate.metrics.medianIoiBeats === null || candidate.metrics.medianIoiBeats * 60 / beginner.tempoBpm >= limits.minMedianIoi - 1e-9);
+  const baselineSpan = baseline.metrics.rightHandSpan ?? 0;
+  const spanJumpLimit = allCandidates.every((candidate) => !(baselineSpan <= BEGINNER_OFFGRID_RH_FRONTIER_CONFIG.spanCapSemitones + 1e-9 && (candidate.metrics.rightHandSpan ?? 0) > BEGINNER_OFFGRID_RH_FRONTIER_CONFIG.spanCapSemitones + 1e-9));
   const controls = {
-    lhUnchanged: [candidateA, candidateB].every((candidate) => candidate.metrics.leftHandNotes === baseline.metrics.leftHandNotes),
-    noRetiming: [...candidateA.emittedStarts, ...candidateB.emittedStarts].every((start) => eligible.some((candidate) => candidate.note.start === start)),
-    maxSimLimit: [baseline, candidateA, candidateB].every((candidate) => candidate.metrics.maxSimultaneity <= limits.maxSim),
-    nonBeginnerUnchanged: true,
+    lhUnchanged: [candidateA, candidateB].every((candidate) => candidate.lhSignature === baseline.lhSignature),
+    noRetiming: [...a.emitted, ...b.emitted].every((candidate) => eligible.some((sourceCandidate) => sourceCandidate.sourceKey === candidate.sourceKey && stableNoteKey(sourceCandidate.note) === stableNoteKey(candidate.note))),
+    maxSimLimit: allCandidates.every((candidate) => candidate.metrics.maxSimultaneity <= limits.maxSim),
+    densityLimit,
+    ioiLimit,
+    spanJumpLimit,
+    nonBeginnerUnchanged: JSON.stringify(nonBeginnerBefore) === JSON.stringify(input.variants.filter((variant) => variant.level !== "beginner").map(variantSignature)),
+    frozenPlayabilityConstraints: false,
   };
+  controls.frozenPlayabilityConstraints = controls.lhUnchanged && controls.noRetiming && controls.maxSimLimit && controls.densityLimit && controls.ioiLimit && controls.spanJumpLimit && controls.nonBeginnerUnchanged;
   const candidateAbelowEasy = Boolean(easy && belowEasy(candidateA, easy));
   const candidateBbelowEasy = Boolean(easy && belowEasy(candidateB, easy));
   const blockerCount = Object.entries(candidateA.blockers).filter(([key]) => key !== "BLOCKED_BY_WINDOW_BUDGET").reduce((sum, [, value]) => sum + value, 0);
@@ -402,8 +532,11 @@ export function evaluateBeginnerOffGridRhFrontier(input: BeginnerOffGridRhFronti
     fixture: { ...input.fixture, ...(input.fixture.label ? { label: redactPath(input.fixture.label) } : {}) },
     ...(input.revision ? { revision: redactPath(input.revision) } : {}),
     config: BEGINNER_OFFGRID_RH_FRONTIER_CONFIG,
-    sourceTiming: { ...timing(sourceRh, beginner.tempoBpm), structuralCategories: categoryCounts },
-    lineage: { traceAvailable: Boolean(input.trace?.length), rejectedEvents: rejectionPool.length, explicitRejectionSet: Boolean(input.rejectedRhNotes?.length) },
+    sourceTiming: { ...timing(sourceRh, beginner.tempoBpm), structuralCategories: sourceCategoryCounts },
+    rejectedTiming,
+    eligibleStructuralCategories: eligibleCategoryCounts,
+    rejectedStructuralCategories: rejectedCategoryCounts,
+    lineage: { traceAvailable: Boolean(input.trace?.length), rejectedEvents: traceProvided ? rejectedTraceEvents.length : rejectionPool.length, resolvedRejectedEvents: rejectionPool.length, unresolvedRejectedEvents: traceProvided ? Math.max(0, rejectedTraceEvents.length - tracedRejected.length) : 0, explicitRejectionSet: Boolean(input.rejectedRhNotes?.length) },
     candidates: { baseline, "candidate-a": candidateA, "candidate-b": candidateB },
     easy,
     beginnerToEasy: easy ? { notesDelta: easy.metrics.notes - baseline.metrics.notes, onsetsDelta: easy.metrics.onsets - baseline.metrics.onsets, attacksPerSecondDelta: round(easy.metrics.attacksPerSecond - baseline.metrics.attacksPerSecond) ?? 0, offGridAttacksPerMinuteDelta: round(easy.timing.offGridAttacksPerMinute - baseline.timing.offGridAttacksPerMinute) ?? 0, maxSimultaneityDelta: easy.metrics.maxSimultaneity - baseline.metrics.maxSimultaneity } : null,
@@ -416,7 +549,7 @@ export function evaluateBeginnerOffGridRhFrontier(input: BeginnerOffGridRhFronti
 
 /** Stable path-free JSON for report reruns. */
 export function canonicalBeginnerOffGridRhFrontierJson(report: BeginnerOffGridRhFrontierReport): string {
-  const canonical = (value: unknown): unknown => Array.isArray(value) ? value.map(canonical) : typeof value === "string" ? redactPath(value) : value && typeof value === "object" ? Object.fromEntries(Object.entries(value as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b)).map(([key, item]) => [key, canonical(item)])) : value;
+  const canonical = (value: unknown): unknown => Array.isArray(value) ? value.map(canonical) : typeof value === "string" ? redactPath(value) : value && typeof value === "object" ? Object.fromEntries(Object.entries(value as Record<string, unknown>).sort(([a], [b]) => compareText(a, b)).map(([key, item]) => [key, canonical(item)])) : value;
   return JSON.stringify(canonical(report));
 }
 
