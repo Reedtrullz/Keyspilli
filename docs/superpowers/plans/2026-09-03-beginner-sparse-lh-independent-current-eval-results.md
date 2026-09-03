@@ -21,7 +21,8 @@ unchanged. The frozen candidate fingerprint remains
 - Final evidence checkpoint: `376106d` (role-safe eligibility, meter/tie-break
   parity, production-mode report, and results note; code/evaluator checkpoint
   `599ca06` and the preceding docs checkpoint `06a472e` contain the evidence).
-- Branch and origin match the final evidence checkpoint.
+- Branch and origin contain this checkpoint; the final branch head is a
+  docs-only descendant.
 - Production policy: keep finalized Beginner RH byte-for-byte; add at most one
   existing structural LH onset per meter window from finalized Very Easy
   evidence; defer to a later legal onset on a sounding collision; reject
