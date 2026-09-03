@@ -174,7 +174,8 @@ Decision: `SPARSE_LANDMARK_RETRIEVAL_INSUFFICIENT`, qualified as
 `RESOURCE_BLOCKED_BEFORE_EVALUATION`; this is not a claim about CLaMP3 retrieval
 quality. No production alignment code, candidate, downstream rerun, or
 deployment was created. The next single engineering task is
-`EXPLICIT_SCORE_REGION_ALIGNMENT_FALLBACK_CONTRACT`.
+`EXPLICIT_SCORE_REGION_ALIGNMENT_FALLBACK_CONTRACT`. This evidence checkpoint
+was recorded at `3b5769aabdcd8664ebaa62a3ec644c249c777347`.
 
 ### Prior Guitar-TECHS shadow pair
 

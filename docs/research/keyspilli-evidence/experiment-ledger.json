@@ -945,7 +945,8 @@
       "date": "2026-09-03",
       "startingRevision": "76a39cd53329286a4a494058fa6434515c982525",
       "checkpointRevisions": [
-        "76a39cd53329286a4a494058fa6434515c982525"
+        "76a39cd53329286a4a494058fa6434515c982525",
+        "3b5769aabdcd8664ebaa62a3ec644c249c777347"
       ],
       "purpose": "Evaluate one materially different sparse cross-modal landmark retrieval architecture without downloading an unbounded model footprint",
       "architecture": "SPARSE CROSS-MODAL LANDMARK RETRIEVAL + GLOBAL CONSENSUS + ROBUST MONOTONE TIMING MAP",
