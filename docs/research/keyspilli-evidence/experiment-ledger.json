@@ -454,6 +454,159 @@
       "nextTask": "GENERATION_CANDIDATE_AVAILABILITY_AND_SOURCE_INTAKE_HARDENING",
       "reproducible": true,
       "rawArtifactRetention": "retain compact path-free report and hashes only; no benchmark/reference bytes, production rows, or deployment"
+    },
+    {
+      "id": "generation-candidate-intake-2026-09-03",
+      "date": "2026-09-03",
+      "startingRevision": "d284b911b2a1ce3e22ce701f0ca02588f1f2b238",
+      "checkpointRevision": "d284b911b2a1ce3e22ce701f0ca02588f1f2b238",
+      "purpose": "Record the explicit generation-candidate intake and alignment decision before any real pair is evaluated",
+      "songs": ["1916", "Christmas Truce", "Final Solution", "Free Bird", "Gott Mit Uns", "The Red Baron", "The Carolean's Prayer"],
+      "route": "explicit permitted symbolic input -> retrieval/parser/provenance checks -> independent alignment gate",
+      "status": "blocked",
+      "criticalMetrics": {
+        "intakeStatus": "not-evaluated",
+        "alignmentStatus": "blocked-pending-explicit-pair",
+        "requiredAlignmentWindows": 3,
+        "requiredReferenceBars": 32,
+        "humanListening": "not-run"
+      },
+      "pairMetadata": {
+        "status": "placeholder-only",
+        "note": "Rows identify the real-song slots only; candidate/reference logical IDs, versions, bytes, hashes, license/access status, alignment windows, and coverage are all not recorded at this checkpoint.",
+        "rows": [
+          {
+            "song": "1916",
+            "candidate": {"status": "not-recorded", "logicalId": null, "version": null, "sha256": null, "bytes": null, "licenseStatus": "not-evaluated", "accessStatus": "not-evaluated"},
+            "reference": {"status": "not-recorded", "logicalId": null, "version": null, "sha256": null, "bytes": null, "licenseStatus": "not-evaluated", "accessStatus": "not-evaluated"},
+            "alignment": {"status": "not-evaluated", "windowCount": null, "coverageBars": null}
+          },
+          {
+            "song": "Christmas Truce",
+            "candidate": {"status": "not-recorded", "logicalId": null, "version": null, "sha256": null, "bytes": null, "licenseStatus": "not-evaluated", "accessStatus": "not-evaluated"},
+            "reference": {"status": "not-recorded", "logicalId": null, "version": null, "sha256": null, "bytes": null, "licenseStatus": "not-evaluated", "accessStatus": "not-evaluated"},
+            "alignment": {"status": "not-evaluated", "windowCount": null, "coverageBars": null}
+          },
+          {
+            "song": "Final Solution",
+            "candidate": {"status": "not-recorded", "logicalId": null, "version": null, "sha256": null, "bytes": null, "licenseStatus": "not-evaluated", "accessStatus": "not-evaluated"},
+            "reference": {"status": "not-recorded", "logicalId": null, "version": null, "sha256": null, "bytes": null, "licenseStatus": "not-evaluated", "accessStatus": "not-evaluated"},
+            "alignment": {"status": "not-evaluated", "windowCount": null, "coverageBars": null}
+          },
+          {
+            "song": "Free Bird",
+            "candidate": {"status": "not-recorded", "logicalId": null, "version": null, "sha256": null, "bytes": null, "licenseStatus": "not-evaluated", "accessStatus": "not-evaluated"},
+            "reference": {"status": "not-recorded", "logicalId": null, "version": null, "sha256": null, "bytes": null, "licenseStatus": "not-evaluated", "accessStatus": "not-evaluated"},
+            "alignment": {"status": "not-evaluated", "windowCount": null, "coverageBars": null}
+          },
+          {
+            "song": "Gott Mit Uns",
+            "candidate": {"status": "not-recorded", "logicalId": null, "version": null, "sha256": null, "bytes": null, "licenseStatus": "not-evaluated", "accessStatus": "not-evaluated"},
+            "reference": {"status": "not-recorded", "logicalId": null, "version": null, "sha256": null, "bytes": null, "licenseStatus": "not-evaluated", "accessStatus": "not-evaluated"},
+            "alignment": {"status": "not-evaluated", "windowCount": null, "coverageBars": null}
+          },
+          {
+            "song": "The Red Baron",
+            "candidate": {"status": "not-recorded", "logicalId": null, "version": null, "sha256": null, "bytes": null, "licenseStatus": "not-evaluated", "accessStatus": "not-evaluated"},
+            "reference": {"status": "not-recorded", "logicalId": null, "version": null, "sha256": null, "bytes": null, "licenseStatus": "not-evaluated", "accessStatus": "not-evaluated"},
+            "alignment": {"status": "not-evaluated", "windowCount": null, "coverageBars": null}
+          },
+          {
+            "song": "The Carolean's Prayer",
+            "candidate": {"status": "not-recorded", "logicalId": null, "version": null, "sha256": null, "bytes": null, "licenseStatus": "not-evaluated", "accessStatus": "not-evaluated"},
+            "reference": {"status": "not-recorded", "logicalId": null, "version": null, "sha256": null, "bytes": null, "licenseStatus": "not-evaluated", "accessStatus": "not-evaluated"},
+            "alignment": {"status": "not-evaluated", "windowCount": null, "coverageBars": null}
+          }
+        ]
+      },
+      "result": "No real candidate/reference pair was evaluated at this checkpoint; readiness and alignment remain unproven.",
+      "decision": "BLOCKED_PENDING_LEGITIMATE_CANDIDATE_AND_ALIGNMENT",
+      "behavior": "NO_PRODUCTION_BEHAVIOR_CHANGE",
+      "reportHash": null,
+      "humanListening": "NOT_RUN",
+      "reproducible": false,
+      "rawArtifactRetention": "historical pre-pair placeholder; superseded by the real-pair entry below"
+    },
+    {
+      "id": "generation-candidate-intake-and-real-alignment-v1-2026-09-03",
+      "date": "2026-09-03",
+      "startingRevision": "d284b911b2a1ce3e22ce701f0ca02588f1f2b238",
+      "checkpointRevision": "26f97d4",
+      "purpose": "Freeze one legitimate real audio+symbolic shadow pair and exercise the bounded intake, alignment, arrangement, and difficulty path",
+      "songs": [],
+      "route": "local/open Guitar-TECHS pair -> bounded parser/provenance intake -> independent audio onset evidence -> alignment probe -> shadow arrangement -> six physical levels",
+      "status": "partial",
+      "candidateIntake": {
+        "decision": "GENERATION_CANDIDATE_INTAKE_READY",
+        "localFormats": ["midi", "musicxml", "mxl"],
+        "unsupportedRecognizedFormat": "mscz",
+        "remoteFormats": ["midi", "musicxml", "mxl"],
+        "directUrlNetwork": "explicit opt-in only",
+        "contentSniffing": "MIDI/MusicXML/MXL magic and parser validation",
+        "htmlMasqueradeRejected": true,
+        "sizeBounded": true,
+        "provenanceClasses": ["PROJECT_OWNED", "OPEN_LICENSE", "USER_SUPPLIED_PRIVATE", "REMOTE_APPROVED", "UNKNOWN"],
+        "unknownGenerationBlocked": true,
+        "benchmarkFirewall": true
+      },
+      "realPair": {
+        "fixtureId": "guitar-techs:p3-music-08",
+        "dataset": "Guitar-TECHS",
+        "datasetVersion": "v1",
+        "license": "CC BY 4.0",
+        "recordId": "14963133",
+        "audioBytes": 7872690,
+        "symbolicBytes": 1496,
+        "audioSha256": "f58cd8dcd68eeec7c9e58839e7161671ba3af9963957e35f1f04a1f2644d3ff3",
+        "symbolicSha256": "329b128e6cb86cc2c43502ecdf8ae89e0049f69b564e29e41ef55b7b54411250",
+        "audioDurationSeconds": 27.333333,
+        "symbolicDurationBeats": 50.111458,
+        "symbolicNotes": 143,
+        "audioSource": "real Guitar-TECHS DI recording",
+        "symbolicSource": "supplied Guitar-TECHS performance MIDI truth"
+      },
+      "alignment": {
+        "decision": "REAL_SYMBOLIC_ALIGNMENT_BLOCKED",
+        "detectorOnsets": 121,
+        "deduplicatedAudioOnsets": 119,
+        "symbolicOnsetGroups": 94,
+        "matchedOnsets": 65,
+        "productionMethod": "duration-derived-seconds-per-beat",
+        "productionF1": 0.610328,
+        "productionMedianBeatError": 0.072174,
+        "productionP95BeatError": 0.116502,
+        "productionP95SecondsError": 0.06355,
+        "productionSymbolicCoverage": 0.691489,
+        "productionAudioCoverage": 0.546218,
+        "naiveMethod": "global-tempo",
+        "naiveF1": 0.610328,
+        "naiveP95BeatError": 0.116715,
+        "materialImprovement": false,
+        "driftPpm": 0,
+        "confidence": 0.628698,
+        "evidenceBoundary": "real recording onset detector paired with supplied truth MIDI; duration-derived map is a shadow timing probe, not target-song alignment authority"
+      },
+      "shadowPath": {
+        "decision": "REAL_SHADOW_BLOCKED_AT_ALIGNMENT",
+        "intake": "PASS",
+        "parseProvenance": "PASS",
+        "roles": "PASS_EXPLICIT_SINGLE_STEM_GUITAR_OVERRIDE",
+        "alignment": "BLOCKED_MISSING_INDEPENDENT_TIMING_AUTHORITY",
+        "arrangement": "PASS",
+        "difficulties": "PASS_SIX_PHYSICAL_LEVELS",
+        "validation": "PASS",
+        "artifacts": "PASS_IN_MEMORY_ROUNDTRIP",
+        "catalogPublic": "PASS_IN_MEMORY_GROUPED_FIVE_LEVELS",
+        "playerLinks": "NOT_EXERCISED_NO_PERSISTED_ROW"
+      },
+      "reportHash": "e5e7503c7b44414f06726b85a1ccb02ce509d952ac361c698f68dc8421bf785b",
+      "canonicalDeterminismHash": "51501cfc9362e161d6c48586251f1ea972ded4aa7434aba06a21532edac524dd",
+      "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+      "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+      "deployment": "NOT_DEPLOYED",
+      "reproducible": true,
+      "nextTask": "REAL_SYMBOLIC_TIMING_ALIGNMENT_HARDENING",
+      "rawArtifactRetention": "retain metadata-only report and hashes; real media remains outside Git"
     }
   ]
 }

@@ -2,85 +2,67 @@
 
 ## Current posture
 
-Candidate A (`BEGINNER_SPARSE_OFFGRID_RH_BUDGET_VALIDATED`) is the only
-promoted learner-policy change. Its production Cover output and the corrected
-one-pass diagnostic selector emit the same 110 normalized RH events
-(`110/110`, recovery ratio `0.5851063829787234`); Beginner LH, Classical,
-Pop, and all other physical levels are unchanged. Candidate B and the
-remaining Beginner/Very Easy tuning branches are closed.
+Candidate A (`BEGINNER_SPARSE_OFFGRID_RH_BUDGET_VALIDATED`) remains the only
+promoted learner-policy change. The semantic-harmony/source-lineage work and
+the candidate-intake work below are additive; no benchmark material entered
+generation and no production data was written.
 
-The redundant `calibrate:ladder` entrypoint was deleted. `review:ladder` is the
-single reusable ladder evaluator; historical reports and ledgers remain.
+Mission start revision: `d284b911b2a1ce3e22ce701f0ca02588f1f2b238`.
 
-Committed code checkpoint: `72eed97f0012b67e9b38098c325529068c4cfade`.
-
-## Proven product path
-
-```text
-input → evidence → parse → roles → alignment → arrangement → difficulties
-      → validation → MIDI/MusicXML artifacts → catalog grouping → public API/UI
-```
+## Stage status
 
 | Stage | Status | Evidence boundary |
 |---|---|---|
-| Source intake | PARTIAL | Four project-owned synthetic symbolic fixtures work; the seven-song cold inventory has 0 independently aligned generation candidates. |
-| Parse/provenance | VALIDATED | Native MIDI and MusicXML adapters reject malformed/unsupported input and preserve source hashes. |
-| Role inference | VALIDATED | Full-band synthetic rehearsal passed after exact MIDI-track percussion matching fix. |
-| Alignment | PARTIAL | Synthetic self-alignment passes; independent target-recording alignment is still required for real generation. |
-| Arrangement/semantic routing | VALIDATED | Direct piano and semantic-band synthetic routes pass; drums remain timing-only. |
-| Six physical difficulties | VALIDATED | All four rehearsal fixtures produced six validated levels. |
-| Public five-level projection | VALIDATED | `very-easy` is hidden and Easy is the stable representative. |
-| Artifact writing | VALIDATED | MIDI and MusicXML roundtrips passed for all rehearsal levels. |
-| Catalog/API projection | VALIDATED (in-memory) | Grouping and public projection passed without touching production data. |
-| Player entry links | NOT_EXERCISED | No publish/deploy was authorized in this sequence. |
+| Source intake | VALIDATED (local + approved direct URL seam) | Native MIDI/MusicXML/MXL parsing, bounded bytes, magic/content checks, HTML/error rejection, path-safe provenance, and candidate firewall tests pass. MSCZ is recognized but explicitly unsupported. |
+| Parse/provenance | VALIDATED | Native adapter records SHA-256/size/parser metadata; unknown provenance is not generation-eligible. |
+| Role inference | VALIDATED (shadow override) | The single-stem Guitar-TECHS MIDI is explicitly mapped to guitar for the shadow arrangement; no drum pitches reached output. |
+| Alignment | BLOCKED (real shadow measured, independent timing authority missing) | Independent audio onset detection ran on the real DI recording. The duration-derived diagnostic map produced F1 `0.610328`, p95 error `0.116502` beats / `0.063550` seconds, coverage `0.691489` symbolic and `0.546218` measured audio, but did not materially improve the naïve global-tempo baseline. No independently supplied beat anchors or tempo map were available, so this is not a production alignment validation. |
+| Arrangement | PASS (real shadow) | The real pair completed `buildMetalArrangement`; semantic guitar diagnostics and source-tagged output were produced in memory. |
+| Six physical difficulties | PASS (real shadow) | Advanced, Medium, Easy plus the remaining physical levels were generated and validated. |
+| Artifact writing | PASS (in-memory roundtrip) | All six physical variants produced MIDI and MusicXML bytes in memory; existing artifact validators and reparsers passed. No files were persisted. |
+| Catalog/public projection | PASS (in-memory) | One grouped shadow song and five public levels were projected from scratch rows without catalog writes. |
+| Player entry links | NOT_EXERCISED | Link resolution requires a persisted catalog item; this path performs no catalog writes and no deployment was authorized. |
 
-## External-symbolic shadow rehearsal
+## Real non-synthetic shadow pair
 
-Four project-owned deterministic fixtures (direct piano, melody plus
-accompaniment, full band, and guitar-structured) completed source intake,
-parse, provenance, role inference, explicit self-alignment, arrangement, six
-levels, artifact roundtrip, catalog grouping, and five-level projection.
-Repeated runs produced the same report hash
-`9298fc70c89ba850d25d9fa1ef82ed414fc0064312db9de34e4594e3f0905149` and the
-same per-artifact MIDI/XML hashes. The first rehearsal exposed a genuine role
-bug: a `Drums` track name was matched by `track-1` substring and relabeled all
-parts as percussion. The fix is covered by a regression test and the rerun is
-green.
+`guitar-techs:p3-music-08` is Guitar-TECHS v1 (Zenodo record `14963133`),
+licensed CC BY 4.0. The paired item is a real DI WAV plus its supplied MIDI
+performance truth, not a Keyspilli-rendered synthetic mix. Metadata-only
+evidence retained for the pair:
 
-This proves the plumbing on synthetic inputs only. Self-alignment is not a
-timing-authority claim for a real song, and no benchmark/reference material
-entered generation. The durable report is explicitly marked
-`VALIDATED_SYNTHETIC_ONLY` for source intake.
+- symbolic: 1,496 bytes, SHA-256 `329b128e6cb86cc2c43502ecdf8ae89e0049f69b564e29e41ef55b7b54411250`, 143 notes, 50.111458 beats;
+- audio: 7,872,690 bytes, SHA-256 `f58cd8dcd68eeec7c9e58839e7161671ba3af9963957e35f1f04a1f2644d3ff3`, 48 kHz stereo 24-bit, 27.333333 seconds;
+- onset detector: 121 measured onsets, 119 after the configured 0.02-second deduplication;
+- canonical report SHA-256 (excluding the determinism field): `51501cfc9362e161d6c48586251f1ea972ded4aa7434aba06a21532edac524dd`;
+- report bytes SHA-256: `e5e7503c7b44414f06726b85a1ccb02ce509d952ac361c698f68dc8421bf785b`.
 
-## Remaining blockers, ranked
+The real bytes remain outside the repository. The checked-in report contains
+no physical paths, note arrays, or source bytes.
 
-1. **Generation candidate availability / source intake (high impact).** The
-   real-song inventory has no independently aligned symbolic candidate. The
-   next task is to harden legitimate user-supplied, open-dataset, and approved
-   remote symbolic intake with parser, MIME/magic, size, provenance, license,
-   and alignment checks. Do not bypass access controls or use benchmark bytes.
-2. **Real-song musical quality (evidence-limited).** Audio-AMT arrangements
-   remain diagnostically weak; no generic threshold change is justified by the
-   current source evidence. This is not a pipeline-publication failure.
-3. **Player/public publication exercise (not authorized).** The pure catalog/API
-   projection works, but this sequence did not write production rows or deploy.
+## Decisions
 
-## Closed / retained
-
-Retained: shared Candidate-A selector/evaluator, source-aware metal routing,
-semantic harmony diagnostics, generic ladder evaluator, external evidence
-firewall, symbolic adapters, and historical reports/ledgers. Deleted:
-experiment-specific `calibrate:ladder` wrapper. Candidate B, Cover cliff
-tuning, Very Easy public-ladder changes, and direct-AMT model shopping remain
-closed.
+- `GENERATION_CANDIDATE_INTAKE_READY` for bounded local symbolic input and the
+  opt-in approved-direct-URL seam. A parsed candidate without known provenance
+  or aligned evidence remains explicitly ineligible for generation.
+- `REAL_SYMBOLIC_ALIGNMENT_BLOCKED`: the real recording was measured, but the
+  only available beat map was derived from duration. It is diagnostic evidence,
+  not independent timing authority.
+- `REAL_SHADOW_BLOCKED_AT_ALIGNMENT`: downstream arrangement, six-level
+  generation, artifact roundtrips, and five-level grouped public projection
+  all completed in memory, but the first product-path blocker remains real
+  alignment. Player links were not exercised because no catalog row was saved.
 
 ## Acceptance boundary
 
-Automated structural evidence is the active gate. Human listening is
-`NOT_REQUIRED_BY_DEFAULT` and was not requested; no recognizability claim is
-made from these results. Deployment is `NOT_DEPLOYED`. The next single
-engineering task is
-`GENERATION_CANDIDATE_AVAILABILITY_AND_SOURCE_INTAKE_HARDENING`; it is
-recorded here but intentionally not implemented in this checkpoint.
+Automated structural evidence is the active gate. `MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`.
+Human listening is `NOT_REQUESTED` / `NOT_REQUIRED_BY_DEFAULT`; no listening
+pack or rater gate was created. Deployment is `NOT_DEPLOYED`.
 
-Detailed rehearsal evidence: `external-symbolic-shadow-rehearsal-2026-09-03.json`.
+The next single engineering task is
+`REAL_SYMBOLIC_TIMING_ALIGNMENT_HARDENING`; it is recorded as a decision only
+and is not implemented in this checkpoint.
+
+Detailed machine evidence is recorded in the
+`generation-candidate-intake-and-real-alignment-v1-2026-09-03`
+`experiment-ledger.json` entry. The local runner is
+`packages/catalog/scripts/evaluate-real-shadow-pair.ts`.
