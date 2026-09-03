@@ -123,6 +123,7 @@ export interface RealShadowPairCliOptions {
   out?: string;
   allowedRoot?: string;
   python?: string;
+  nativeMidiTiming: boolean;
   help: boolean;
 }
 
@@ -137,6 +138,8 @@ export interface RealShadowPairOptions {
   repositoryRoot?: string;
   /** Test/local seam; the default runs the production onset script. */
   onsetRunner?: (audioPath: string) => Promise<readonly number[]>;
+  /** Opt in to the source MIDI tempo map as independent symbolic timing. */
+  nativeMidiTiming?: boolean;
   /** Independent timing evidence; candidate MIDI tempo remains the naive baseline. */
   alignment?: Pick<AudioSymbolicAlignmentInput, "anchors" | "secondsPerBeat" | "beatZeroAudioSeconds" | "onsetToleranceBeats" | "onsetDedupToleranceSeconds">;
 }
@@ -197,6 +200,10 @@ export interface RealShadowPairReport {
     parsedMidi: {
       tempoBpm: number;
       tempoSource: "midi-meta" | "parser-default";
+      format: number;
+      division: number;
+      tempoEventCount: number;
+      nativeTempoEvents: Array<{ tick: number; beat: number; bpm: number }>;
       durationBeats: number;
       noteCount: number;
       title: string | null;
@@ -287,7 +294,7 @@ export interface RealShadowPairReport {
       matchedAudioOnsetCount: number | null;
     };
     audioSymbolicAlignment: {
-      evidence: "explicit-independent-timing" | "manifest-independent-timing" | "duration-derived-audio-seconds-per-beat" | "none";
+      evidence: "explicit-independent-timing" | "manifest-independent-timing" | "native-midi-tempo-map" | "duration-derived-audio-seconds-per-beat" | "none";
       status: string;
       confidence: number;
       naive: { method: string; confidence: number; metrics: Record<string, unknown> } | null;
@@ -401,7 +408,7 @@ function nextValue(argv: readonly string[], index: number, flag: string): [strin
 }
 
 export function parseRealShadowPairArgs(argv: readonly string[]): RealShadowPairCliOptions {
-  const result: RealShadowPairCliOptions = { manifest: "", itemId: "", help: false };
+  const result: RealShadowPairCliOptions = { manifest: "", itemId: "", nativeMidiTiming: false, help: false };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index]!;
     const equals = arg.indexOf("=");
@@ -421,6 +428,7 @@ export function parseRealShadowPairArgs(argv: readonly string[]): RealShadowPair
       case "--out": result.out = localArgument(value(), "--out"); break;
       case "--allowed-root": result.allowedRoot = localArgument(value(), "--allowed-root"); break;
       case "--python": result.python = value(); break;
+      case "--native-midi": result.nativeMidiTiming = true; break;
       case "--help":
       case "-h": result.help = true; break;
       default: throw new Error(`unknown option: ${arg}`);
@@ -441,6 +449,7 @@ function usage(): string {
     "  --audio FILE        explicit local DI WAV override (otherwise manifest local.di)",
     "  --allowed-root DIR  optional local corpus root boundary",
     "  --python FILE       Python executable containing librosa",
+    "  --native-midi       use the parsed MIDI tempo map as explicit timing evidence",
     "  --out FILE          path-redacted report outside repo; default stdout",
     "",
     "The command is local-only. It runs the existing onset detector when",
@@ -1185,9 +1194,15 @@ export async function evaluateRealShadowPair(options: RealShadowPairOptions): Pr
     onsetError = redactText(error);
   }
   const suppliedTimingEvidence = alignmentEvidence(item, options);
+  const itemAlignment = recordObject(item.alignment);
+  const nativeMidiRequested = options.nativeMidiTiming === true || itemAlignment.timingAuthority === "native-midi";
+  const nativeTempoEvents = nativeMidiRequested
+    ? (parsedMidi.parsed.tempoEvents ?? []).map((event) => ({ beat: event.beat, bpm: event.bpm }))
+    : [];
   const hasIndependentTimingEvidence = Boolean(
     (suppliedTimingEvidence.anchors?.length ?? 0) >= 2
-      || (finite(suppliedTimingEvidence.secondsPerBeat) && suppliedTimingEvidence.secondsPerBeat > 0),
+      || (finite(suppliedTimingEvidence.secondsPerBeat) && suppliedTimingEvidence.secondsPerBeat > 0)
+      || nativeTempoEvents.length > 0,
   );
   // Guitar-TECHS pairs ship a real DI recording and a truth MIDI but no
   // annotated beat anchors.  A duration-derived map is useful as a bounded
@@ -1198,8 +1213,11 @@ export async function evaluateRealShadowPair(options: RealShadowPairOptions): Pr
     && parsedMidi.durationBeats > 0
     ? wave.durationSeconds / parsedMidi.durationBeats
     : null;
+  const nativeTimingEvidence = nativeTempoEvents.length
+    ? { ...suppliedTimingEvidence, nativeTempoEvents }
+    : suppliedTimingEvidence;
   const timingEvidence = hasIndependentTimingEvidence || durationDerivedSecondsPerBeat === null
-    ? suppliedTimingEvidence
+    ? nativeTimingEvidence
     : { ...suppliedTimingEvidence, secondsPerBeat: durationDerivedSecondsPerBeat, beatZeroAudioSeconds: 0 };
   const durationDerivedUntrusted = durationDerivedSecondsPerBeat !== null && !hasIndependentTimingEvidence;
   const alignment = evaluateAudioSymbolicAlignment({
@@ -1264,9 +1282,13 @@ export async function evaluateRealShadowPair(options: RealShadowPairOptions): Pr
       reason: text(item.reason),
       techniques: stringArray(item.techniques),
       manifestTruth: itemManifestTruth,
-      parsedMidi: {
+    parsedMidi: {
         tempoBpm: round(parsedMidi.tempoBpm),
         tempoSource: parsedMidi.parsed.tempoMetaPresent ? "midi-meta" : "parser-default",
+        format: parsedMidi.parsed.format,
+        division: parsedMidi.parsed.division,
+        tempoEventCount: parsedMidi.parsed.tempoEvents?.length ?? 0,
+        nativeTempoEvents: (parsedMidi.parsed.tempoEvents ?? []).map((event) => ({ tick: event.tick, beat: round(event.beat), bpm: round(event.bpm) })),
         durationBeats: round(parsedMidi.durationBeats),
         noteCount: parsedMidi.notes.length,
         title: parsedMidi.title,
@@ -1343,7 +1365,9 @@ export async function evaluateRealShadowPair(options: RealShadowPairOptions): Pr
       },
       audioSymbolicAlignment: timingAlignmentSummary(
         alignment,
-        options.alignment && (options.alignment.anchors?.length || options.alignment.secondsPerBeat !== undefined)
+        nativeTempoEvents.length
+          ? "native-midi-tempo-map"
+          : options.alignment && (options.alignment.anchors?.length || options.alignment.secondsPerBeat !== undefined)
           ? "explicit-independent-timing"
           : timingEvidence.anchors?.length || timingEvidence.secondsPerBeat !== undefined
             ? durationDerivedSecondsPerBeat !== null && !hasIndependentTimingEvidence

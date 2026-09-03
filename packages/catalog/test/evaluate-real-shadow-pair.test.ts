@@ -74,6 +74,7 @@ describe("real Guitar-TECHS shadow-pair evaluator", () => {
       "--truth", "/private/tmp/p3-music-08/midi_08.mid",
       "--audio", "/private/tmp/p3-music-08/directinput_08.wav",
       "--out", "/private/tmp/real-shadow/report.json",
+      "--native-midi",
     ]);
     expect(options).toMatchObject({
       manifest: "/private/tmp/guitar-techs-manifest.json",
@@ -81,6 +82,7 @@ describe("real Guitar-TECHS shadow-pair evaluator", () => {
       truth: "/private/tmp/p3-music-08/midi_08.mid",
       audio: "/private/tmp/p3-music-08/directinput_08.wav",
       out: "/private/tmp/real-shadow/report.json",
+      nativeMidiTiming: true,
     });
 
     const comparison = compareRealShadowOnsets(
@@ -198,6 +200,19 @@ describe("real Guitar-TECHS shadow-pair evaluator", () => {
       expect(serialized).not.toContain(root);
       expect(serialized).not.toMatch(/"(?:notes|parsed|canonical)"\s*:/i);
       expect(serialized).toContain("sha256");
+
+      const native = await evaluateRealShadowPair({
+        manifest: manifestPath,
+        itemId: "p3-music-08",
+        truth: truthPath,
+        audio: audioPath,
+        nativeMidiTiming: true,
+        onsetRunner: async () => [0.01, 0.51, 1.01],
+      });
+      expect(native.timing.audioSymbolicAlignment).toMatchObject({
+        evidence: "native-midi-tempo-map",
+        production: { method: "native-tempo-map" },
+      });
     } finally {
       await rm(root, { recursive: true, force: true });
     }

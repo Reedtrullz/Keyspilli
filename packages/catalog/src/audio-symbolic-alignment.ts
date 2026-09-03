@@ -746,7 +746,9 @@ export function evaluateAudioSymbolicAlignment(
   const status: AudioSymbolicAlignmentStatus = measured.matches.length >= 2 ? "aligned" : "insufficient-evidence";
   const diagnostics = [
     ...normalized.diagnostics,
-    `production mapping derived from ${productionMapping.method === "anchors" ? `${normalized.anchors.length} anchor${normalized.anchors.length === 1 ? "" : "s"}` : "explicit secondsPerBeat"}`,
+    `production mapping derived from ${productionMapping.method === "anchors"
+      ? `${normalized.anchors.length} anchor${normalized.anchors.length === 1 ? "" : "s"}`
+      : productionMapping.method === "native-tempo-map" ? "native MIDI tempo events" : "explicit secondsPerBeat"}`,
     `matched ${measured.matches.length} of ${normalized.audioOnsets.length} measured audio onset${normalized.audioOnsets.length === 1 ? "" : "s"} to ${symbolic.length} symbolic onset group${symbolic.length === 1 ? "" : "s"}`,
   ];
   return {
