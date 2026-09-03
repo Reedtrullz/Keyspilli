@@ -18,9 +18,9 @@ unchanged. The frozen candidate fingerprint remains
 - Evaluation starting revision: `fab5fe43aba4bd0b811fa066acd559db900f12d1`.
 - Preregistration correction checkpoint: `09b670a`.
 - Initial promotion commit: `1298037` (`feat(midi): promote sparse LH anchors to learner Beginner`).
-- Final evidence checkpoint: `06a472e` (role-safe eligibility, meter/tie-break
+- Final evidence checkpoint: `376106d` (role-safe eligibility, meter/tie-break
   parity, production-mode report, and results note; code/evaluator checkpoint
-  `599ca06` immediately preceded this docs update).
+  `599ca06` and the preceding docs checkpoint `06a472e` contain the evidence).
 - Branch and origin match the final evidence checkpoint.
 - Production policy: keep finalized Beginner RH byte-for-byte; add at most one
   existing structural LH onset per meter window from finalized Very Easy
