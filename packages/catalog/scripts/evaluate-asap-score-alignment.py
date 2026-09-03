@@ -326,6 +326,38 @@ def evaluate_naive(pairs: list[dict[str, Any]]) -> dict[str, Any]:
     return metric_block(pairs, predictions, len(pairs), {"segmentCount": 1, "dtwCost": None, "audioFrameCount": None, "symbolicFrameCount": None}, time.perf_counter() - begin, rss_mib())
 
 
+def rejected_metric(reason: Exception, started: float | None = None) -> dict[str, Any]:
+    """Represent a bounded alignment failure without aborting the batch."""
+    message = str(reason).replace("\n", " ").strip() or type(reason).__name__
+    return {
+        "status": "rejected",
+        "failure": message,
+        "coverage": 0.0,
+        "matchedBeats": 0,
+        "usableBeats": 0,
+        "absoluteErrorSeconds": quantiles([]),
+        "downbeatAbsoluteErrorSeconds": quantiles([]),
+        "positionAbsoluteErrorSeconds": {name: quantiles([]) for name in ("startQuarter", "middleHalf", "endQuarter")},
+        "monotonicViolations": 0,
+        "segmentCount": None,
+        "anchorCount": None,
+        "dtwCost": None,
+        "runtimeSeconds": rounded(time.perf_counter() - started) if started is not None else 0.0,
+        "peakRssMiB": rounded(rss_mib()),
+        "featureFrameCount": None,
+        "symbolicFrameCount": None,
+    }
+
+
+def safe_alignment(call: Any) -> dict[str, Any]:
+    """Run one method and fail closed to a deterministic metric block."""
+    started = time.perf_counter()
+    try:
+        return call()
+    except (OSError, ValueError, RuntimeError, MemoryError) as error:
+        return rejected_metric(error, started)
+
+
 def remove_inner_score_notes(notes: list[dict[str, Any]], pairs: list[dict[str, Any]]) -> list[dict[str, Any]]:
     anchors = [float(pair["scoreSeconds"]) for pair in pairs]
     result: list[dict[str, Any]] = []
@@ -335,6 +367,18 @@ def remove_inner_score_notes(notes: list[dict[str, Any]], pairs: list[dict[str, 
         if protected or index % 10 != 0:
             result.append(note)
     return result
+
+
+def _evaluate_mismatch(notes: list[dict[str, Any]], pairs: list[dict[str, Any]], audio_features: np.ndarray, audio_duration: float) -> dict[str, Any]:
+    started = time.perf_counter()
+    predictions, metadata = map_score_to_audio(notes, np.zeros((13, 1), dtype=np.float32), audio_features, audio_duration, [float(pair["scoreSeconds"]) for pair in pairs])
+    return metric_block(pairs, predictions, len(pairs), metadata, time.perf_counter() - started, rss_mib())
+
+
+def _evaluate_intro(notes: list[dict[str, Any]], pairs: list[dict[str, Any]], audio_features: np.ndarray, audio_duration: float) -> dict[str, Any]:
+    started = time.perf_counter()
+    predictions, metadata = map_score_to_audio(notes, np.zeros((13, 1), dtype=np.float32), audio_features, audio_duration, [float(pair["scoreSeconds"]) for pair in pairs])
+    return metric_block(pairs, predictions, len(pairs), metadata, time.perf_counter() - started, rss_mib())
 
 
 def run_fixture(root: pathlib.Path, annotation_data: dict[str, Any], definition: dict[str, Any]) -> dict[str, Any]:
@@ -359,22 +403,18 @@ def run_fixture(root: pathlib.Path, annotation_data: dict[str, Any], definition:
     if not isinstance(notes, list) or not notes:
         raise ValueError("score MIDI contains no notes")
     begin = time.perf_counter()
-    current = evaluate_current(notes, audio_features, audio_duration, pairs, begin)
-    production = evaluate_production(notes, audio_features, audio_duration, pairs)
+    current = safe_alignment(lambda: evaluate_current(notes, audio_features, audio_duration, pairs, begin))
+    production = safe_alignment(lambda: evaluate_production(notes, audio_features, audio_duration, pairs))
     naive = evaluate_naive(pairs)
     mismatch_notes = remove_inner_score_notes(notes, pairs)
-    mismatch_begin = time.perf_counter()
-    mismatch_predictions, mismatch_meta = map_score_to_audio(mismatch_notes, np.zeros((13, 1), dtype=np.float32), audio_features, audio_duration, [float(pair["scoreSeconds"]) for pair in pairs])
-    mismatch = metric_block(pairs, mismatch_predictions, len(pairs), mismatch_meta, time.perf_counter() - mismatch_begin, rss_mib())
+    mismatch = safe_alignment(lambda: _evaluate_mismatch(mismatch_notes, pairs, audio_features, audio_duration))
 
     # One controlled audio-only intro diagnostic; primary metrics remain untouched.
     intro_seconds = 3.0
     intro_audio = np.pad(audio, (int(intro_seconds * CAL.SAMPLE_RATE), 0))
     intro_features, intro_duration = feature_from_audio(intro_audio)
     intro_pairs = [dict(pair, performanceSeconds=float(pair["performanceSeconds"]) + intro_seconds) for pair in pairs]
-    intro_begin = time.perf_counter()
-    intro_predictions, intro_meta = map_score_to_audio(notes, np.zeros((13, 1), dtype=np.float32), intro_features, intro_duration, [float(pair["scoreSeconds"]) for pair in intro_pairs])
-    intro = metric_block(intro_pairs, intro_predictions, len(intro_pairs), intro_meta, time.perf_counter() - intro_begin, rss_mib())
+    intro = safe_alignment(lambda: _evaluate_intro(notes, intro_pairs, intro_features, intro_duration))
 
     all_score_times = [float(pair["scoreSeconds"]) for pair in pairs]
     repeated_score_groups = sum(abs(after - before) <= 1e-7 for before, after in zip(all_score_times, all_score_times[1:]))
@@ -430,14 +470,24 @@ def main() -> int:
     parser.add_argument("--root", required=True, type=pathlib.Path, help="private directory containing dev/, holdout-1/, holdout-2/")
     parser.add_argument("--annotations", required=True, type=pathlib.Path)
     parser.add_argument("--out", required=True, type=pathlib.Path)
+    parser.add_argument("--fixtures", type=pathlib.Path, help="optional JSON array replacing the built-in revealed fixture definitions")
     args = parser.parse_args()
     if not args.root.is_dir() or not args.annotations.is_file():
         raise SystemExit("--root and --annotations must point to existing local inputs")
     annotation_data = json.loads(args.annotations.read_text())
     if not isinstance(annotation_data, dict):
         raise SystemExit("ASAP annotation JSON must be an object")
+    fixture_definitions = FIXTURES
+    if args.fixtures:
+        supplied = json.loads(args.fixtures.read_text())
+        if not isinstance(supplied, list) or not supplied:
+            raise SystemExit("--fixtures must contain a non-empty JSON array")
+        required = {"id", "role", "folder", "annotationKey", "composer", "title", "metadataStartSeconds", "analysisPaddingSeconds"}
+        if any(not isinstance(item, dict) or not required.issubset(item) for item in supplied):
+            raise SystemExit("fixture definitions are missing required fields")
+        fixture_definitions = tuple(supplied)
     started = time.perf_counter()
-    fixtures = [run_fixture(args.root, annotation_data, definition) for definition in FIXTURES]
+    fixtures = [run_fixture(args.root, annotation_data, definition) for definition in fixture_definitions]
     current_pass = all(gate_fixture(fixture["methods"]["keyspilli-current-monotonic-dtw"]) for fixture in fixtures)
     production_pass = all(gate_fixture(fixture["methods"]["keyspilli-production-candidate-v1"]) for fixture in fixtures)
     report: dict[str, Any] = {
