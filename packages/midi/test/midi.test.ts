@@ -745,6 +745,32 @@ describe("buildVariants", () => {
     expect(curated.warnings ?? []).not.toContain("learner inner-voice redistribution applied (inferred staff assignment)");
   });
 
+  it("does not promote unsafe LH role evidence into generic learner Beginner", () => {
+    const notes: Array<Note & { role?: string }> = [
+      { midi: 72, start: 0, dur: 1, vel: 100, hand: "R" },
+      { midi: 74, start: 2, dur: 1, vel: 100, hand: "R" },
+      { midi: 76, start: 4, dur: 1, vel: 100, hand: "R" },
+      { midi: 78, start: 6, dur: 1, vel: 100, hand: "R" },
+      { midi: 40, start: 0, dur: 1, vel: 80, hand: "L", identitySource: "guitar", role: "structural-lh" },
+      { midi: 41, start: 2, dur: 1, vel: 80, hand: "L", identitySource: "guitar", role: "decorative" },
+      { midi: 42, start: 4, dur: 1, vel: 80, hand: "L", identitySource: "guitar", role: "repeated-filler" },
+      { midi: 43, start: 6, dur: 1, vel: 80, hand: "L", identitySource: "guitar", role: "structural-lh" },
+    ];
+    const variants = buildVariants({
+      format: 1,
+      division: 480,
+      tempoBpm: 120,
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes,
+      trackNames: ["role-aware"],
+      durationBeats: 8,
+    }, { title: "Role-aware", artist: "Test" }, { arrangementProfile: "learner", maxDurBeats: null });
+    const beginner = variants.find((variant) => variant.level === "beginner")!;
+    expect(beginner.notes.filter((note) => note.hand === "L").map((note) => [note.start, note.midi])).toEqual([[0, 40], [6, 43]]);
+  });
+
   it("keeps sparse semantic LH anchors in metal beginner levels without changing learner levels", () => {
     const notes: Note[] = [];
     const roots = [36, 43, 41, 48];
@@ -796,10 +822,23 @@ describe("buildVariants", () => {
     const beginner = byLevel.get("beginner")!;
     const veryBeginner = byLevel.get("very-beginner")!;
 
-    // Existing profiles remain melody-only at the first two levels.
-    for (const level of ["very-beginner", "beginner"] as const) {
-      expect(learner.find((variant) => variant.level === level)!.notes.every((note) => note.hand !== "L")).toBe(true);
-    }
+    // Generic learner keeps the simplest tier melody-only, while the
+    // promoted Beginner contract may add sparse structural LH anchors.
+    const learnerVeryBeginner = learner.find((variant) => variant.level === "very-beginner")!;
+    const learnerBeginner = learner.find((variant) => variant.level === "beginner")!;
+    const learnerVeryEasy = learner.find((variant) => variant.level === "very-easy")!;
+    expect(learnerVeryBeginner.notes.every((note) => note.hand !== "L")).toBe(true);
+    const learnerLh = learnerBeginner.notes.filter((note) => note.hand === "L");
+    expect(learnerLh).toHaveLength(8);
+    expect(new Set(learnerLh.map((note) => Math.floor(note.start / 4))).size).toBe(8);
+    expect(learnerLh.every((note) => learnerVeryEasy.notes.some((candidate) => (
+      candidate.hand === "L"
+      && candidate.start === note.start
+      && candidate.midi === note.midi
+      && candidate.dur === note.dur
+      && candidate.vel === note.vel
+    )))).toBe(true);
+    expect(learnerLh.every((note) => note.identitySource !== "other" && note.identitySource !== "vocals")).toBe(true);
     // Metal levels retain one playable harmonic task for the LH.
     for (const variant of [veryBeginner, beginner]) {
       expect(variant.notes.some((note) => note.hand === "L"), variant.level).toBe(true);

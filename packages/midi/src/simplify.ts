@@ -2337,6 +2337,82 @@ function sparseLeftHandAnchors(notes: Note[], windowBeats: number): Note[] {
     });
 }
 
+/**
+ * Apply the frozen generic-learner Beginner sparse-LH policy.  This remains
+ * separate from the metal anchor path so metal output is unchanged: use
+ * existing Very Easy LH evidence, choose at most one lowest attack per
+ * source-meter window, and skip an attack when its full sounding overlap
+ * would exceed the two-hand budget. Every emitted note is an existing event;
+ * no retiming or RH mutation is performed.
+ */
+function collisionAwareSparseLeftHandAnchors(
+  beginnerRh: Note[],
+  veryEasy: Note[],
+  windowBeats: number,
+): Note[] {
+  const width = Number.isFinite(windowBeats) && windowBeats > 0 ? windowBeats : 4;
+  const rejectedRoles = new Set([
+    "unknown",
+    "unsafe",
+    "decorative",
+    "arpeggio",
+    "arpeggio-filler",
+    "filler",
+    "repeated-filler",
+    "repeated_same_harmony_filler",
+    "drum",
+    "drums",
+  ]);
+  const eligible = veryEasy
+    .filter((note) => (
+      note.hand === "L"
+      && note.identitySource !== "vocals"
+      && note.identitySource !== "other"
+      && (note.identitySource as string | undefined) !== "drums"
+      && !rejectedRoles.has(String((note as Note & { role?: unknown }).role ?? "").toLowerCase())
+    ))
+    .sort((a, b) => a.start - b.start || a.midi - b.midi || b.vel - a.vel || a.dur - b.dur);
+  if (!eligible.length) return [];
+
+  const byWindow = new Map<number, Map<string, Note[]>>();
+  for (const note of eligible) {
+    const index = Math.floor((note.start + 1e-9) / width);
+    const groups = byWindow.get(index) ?? new Map<string, Note[]>();
+    const key = note.start.toFixed(6);
+    const group = groups.get(key) ?? [];
+    group.push(note);
+    groups.set(key, group);
+    byWindow.set(index, groups);
+  }
+
+  const maxSounding = (notes: Note[]): number => {
+    const events = notes
+      .flatMap((note) => [[note.start, 1], [note.start + note.dur, -1]] as [number, number][])
+      .sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    let active = 0;
+    let max = 0;
+    for (const [, delta] of events) {
+      active += delta;
+      max = Math.max(max, active);
+    }
+    return max;
+  };
+
+  const emitted: Note[] = [];
+  for (const [, groups] of [...byWindow.entries()].sort(([a], [b]) => a - b)) {
+    const ordered = [...groups.values()]
+      .map((group) => group[0]!)
+      .sort((a, b) => a.start - b.start || a.midi - b.midi || b.vel - a.vel);
+    for (const candidate of ordered) {
+      if (maxSounding([...beginnerRh, ...emitted, candidate]) <= 2) {
+        emitted.push({ ...candidate });
+        break;
+      }
+    }
+  }
+  return emitted;
+}
+
 /** Select a deterministic mixed-hand subset from a harder level. */
 function fallbackPlayableSubset(harder: Note[], maxSim: number, minNotes: number, existing: Note[]): Note[] {
   const byStart = new Map<number, Note[]>();
@@ -2839,6 +2915,25 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
         ? preserveMetalLhLadder(ladderReduced, sets[harder]!, LADDER_TOL[easier] ?? 0.02)
         : ladderReduced,
     );
+  }
+  // Promote the frozen collision-aware sparse-LH policy for the generic
+  // learner Beginner only. Applying it after the ladder is finalized makes
+  // the source of truth explicit: existing Beginner RH and finalized Very
+  // Easy LH are the inputs, while every other level (including metal) stays
+  // unchanged.
+  if (learnerProfile && !metalProfile) {
+    const beginner = sets.beginner!;
+    const beginnerRh = beginner.filter((note) => note.hand !== "L");
+    const sparseLh = collisionAwareSparseLeftHandAnchors(
+      beginnerRh,
+      sets["very-easy"]!,
+      beatsPerMeasure,
+    );
+    const existingKeys = new Set(beginner.map((note) => `${note.hand ?? "R"}:${note.start.toFixed(6)}:${note.midi}:${note.dur.toFixed(6)}:${note.vel}`));
+    sets.beginner = [...beginner, ...sparseLh.filter((note) => {
+      const key = `L:${note.start.toFixed(6)}:${note.midi}:${note.dur.toFixed(6)}:${note.vel}`;
+      return !existingKeys.has(key);
+    })].sort((a, b) => a.start - b.start || (a.hand === "L" ? 1 : -1) || a.midi - b.midi);
   }
   if (learnerTraceEnabled) {
     emitLearnerStageTrace(opts.trace, "easy-ladder", sets.easy!, [{ stage: "easy-playable", notes: easy }], "easy-ladder-preservation");
