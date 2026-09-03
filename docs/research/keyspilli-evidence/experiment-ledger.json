@@ -717,7 +717,7 @@
       "id": "score-to-recording-alignment-hardening-2026-09-03",
       "date": "2026-09-03",
       "startingRevision": "d284b911b2a1ce3e22ce701f0ca02588f1f2b238",
-      "checkpointRevisions": ["93127f1db268cf343ef76640af5e800795af4cd4"],
+      "checkpointRevisions": ["93127f1db268cf343ef76640af5e800795af4cd4", "af267640940b6c0cb910f4f18bc3ed0740d95c25"],
       "purpose": "Measure preregistered real ASAP score-to-recording alignment and route one real symbolic candidate through the downstream product path",
       "dataset": "ASAP v2.1.1 / MAESTRO carrier audio, CC BY-NC-SA 4.0",
       "fixtures": [

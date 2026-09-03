@@ -5,6 +5,7 @@
   "revisions": {
     "requestedMissionStart": "d284b911b2a1ce3e22ce701f0ca02588f1f2b238",
     "preregisteredCheckpoint": "93127f1db268cf343ef76640af5e800795af4cd4",
+    "evaluationCheckpoint": "af267640940b6c0cb910f4f18bc3ed0740d95c25",
     "preregistration": "asap-score-alignment-preregistration-2026-09-03.json"
   },
   "dataset": {
