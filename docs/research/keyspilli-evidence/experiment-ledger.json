@@ -753,7 +753,8 @@
       },
       "decisions": {
         "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
-        "realAlignment": "SCORE_ALIGNMENT_REFERENCE_PROVES_HEADROOM",
+        "realAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "referenceComparison": "SCORE_ALIGNMENT_REFERENCE_PROVES_HEADROOM",
         "realShadow": "REAL_SHADOW_BLOCKED_AT_ALIGNMENT",
         "firstBlocker": "current production-intended score-to-recording alignment remains partial on two held-out real recordings",
         "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED"

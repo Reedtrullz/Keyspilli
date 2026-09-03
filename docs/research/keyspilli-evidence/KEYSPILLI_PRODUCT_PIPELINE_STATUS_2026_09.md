@@ -102,11 +102,11 @@ alignment readiness.
 - `GENERATION_CANDIDATE_INTAKE_READY` for bounded local symbolic input and the
   opt-in approved-direct-URL seam. A parsed candidate without known provenance
   or aligned evidence remains explicitly ineligible for generation.
-- `SCORE_ALIGNMENT_REFERENCE_PROVES_HEADROOM`: the preregistered ASAP real-pair
-  comparison shows the official SyncToolbox reference materially outperforms
-  the current production-intended method on held-out recordings, although one
-  held-out p95 remains above the strict provisional threshold. This is evidence
-  for the next implementation slice, not a production-readiness claim.
+- `REAL_SYMBOLIC_ALIGNMENT_PARTIAL`: the current production-intended method is
+  partial on two held-out ASAP recordings. The official SyncToolbox comparison
+  materially outperforms it and proves headroom, although one held-out p95
+  remains above the strict provisional threshold. This is evidence for the
+  next implementation slice, not a production-readiness claim.
 - `REAL_SHADOW_BLOCKED_AT_ALIGNMENT`: the ASAP symbolic candidate completed the
   downstream arrangement, six-level generation, artifact roundtrips, and
   five-level grouped public projection in memory using independently annotated

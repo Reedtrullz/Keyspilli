@@ -141,7 +141,8 @@
   },
   "decisions": {
     "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
-    "alignment": "SCORE_ALIGNMENT_REFERENCE_PROVES_HEADROOM",
+    "alignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+    "referenceComparison": "SCORE_ALIGNMENT_REFERENCE_PROVES_HEADROOM",
     "realShadow": "REAL_SHADOW_BLOCKED_AT_ALIGNMENT",
     "firstBlocker": "the current production-intended score-to-recording method remains partial on two held-out pieces; the official reference method demonstrates headroom",
     "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED"
