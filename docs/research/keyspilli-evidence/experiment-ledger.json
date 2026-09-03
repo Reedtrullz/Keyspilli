@@ -895,7 +895,7 @@
       "id": "non-dtw-hidden-tempo-score-alignment-v1-2026-09-03",
       "date": "2026-09-03",
       "startingRevision": "97c3a780b511cfa01b1d44799d50b92ea57a085b",
-      "checkpointRevisions": ["97c3a780b511cfa01b1d44799d50b92ea57a085b"],
+      "checkpointRevisions": ["97c3a780b511cfa01b1d44799d50b92ea57a085b", "0b646c0"],
       "purpose": "Evaluate one pinned non-DTW hidden-tempo score follower against the four already-revealed ASAP development fixtures; no production tuning",
       "dataset": "ASAP v2.1.1 / MAESTRO carrier audio, revealed development fixtures only",
       "dtwClosure": {
