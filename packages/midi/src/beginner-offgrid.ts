@@ -66,6 +66,16 @@ function compareText(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
 }
 
+function compareNotes(left: Note, right: Note): number {
+  return left.start - right.start
+    || left.midi - right.midi
+    || left.dur - right.dur
+    || right.vel - left.vel
+    || compareText(left.hand ?? "", right.hand ?? "")
+    || compareText(left.identitySource ?? "", right.identitySource ?? "")
+    || compareText(left.lyrics ?? "", right.lyrics ?? "");
+}
+
 function valid(note: Note): boolean {
   return Boolean(note && typeof note === "object")
     && Number.isInteger(note.midi) && note.midi >= 0 && note.midi <= 127
@@ -77,15 +87,7 @@ function valid(note: Note): boolean {
 }
 
 function ordered(notes: Note[]): Note[] {
-  return notes.filter(valid).map((note) => ({ ...note })).sort(
-    (a, b) => a.start - b.start
-      || a.midi - b.midi
-      || a.dur - b.dur
-      || b.vel - a.vel
-      || compareText(a.hand ?? "", b.hand ?? "")
-      || compareText(a.identitySource ?? "", b.identitySource ?? "")
-      || compareText(a.lyrics ?? "", b.lyrics ?? ""),
-  );
+  return notes.filter(valid).map((note) => ({ ...note })).sort(compareNotes);
 }
 
 function groups(notes: Note[]): Group[] {
@@ -203,7 +205,7 @@ export function selectBeginnerOffGridRhCandidates(input: BeginnerOffGridSelectio
     selectedStarts.set(window, (selectedStarts.get(window) ?? 0) + 1);
     emitted.push({ ...candidate, note: { ...candidate.note } });
   }
-  return { selected, eligible, emitted, discardedByWindowBudget };
+  return { selected: selected.sort(compareNotes), eligible, emitted, discardedByWindowBudget };
 }
 
 export interface BeginnerOffGridConstraintMetrics {

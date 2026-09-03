@@ -64,6 +64,7 @@ describe("generic Beginner sparse off-grid RH budget", () => {
     expect(addedRh.filter((note) => Math.floor(note.start / 4) === 0)).toHaveLength(1);
     expect(addedRh.every((note) => note.start % 0.25 !== 0)).toBe(true);
     expect(addedRh.find((note) => note.start === 1.125)).toMatchObject({ midi: 67, dur: 0.5, vel: 120, hand: "R" });
+    expect(after.map((note) => note.start)).toEqual([...after].map((note) => note.start).sort((a, b) => a - b));
     expect(after.filter((note) => note.hand === "L").map(eventKey)).toEqual([]);
     expect(after.filter((note) => note.hand !== "L" && Number.isInteger(note.start)).map((note) => [note.midi, note.start]))
       .toEqual(grid.map((note) => [note.midi, note.start]));
@@ -137,5 +138,22 @@ describe("generic Beginner sparse off-grid RH budget", () => {
       const beginnerNotes = variants.find((variant) => variant.level === "beginner")!.notes;
       expect(beginnerNotes.some((note) => note.hand !== "L" && note.start === 1.125), arrangementProfile).toBe(false);
     }
+  });
+
+  it("returns the selected Beginner notes in playback order", () => {
+    const baseline: Note[] = [
+      { midi: 60, start: 4, dur: 0.5, vel: 80, hand: "R" },
+    ];
+    const candidate: Note = { midi: 67, start: 1.125, dur: 0.5, vel: 120, hand: "R" };
+    const selected = selectBeginnerOffGridRhCandidates({
+      sourceNotes: [...baseline, candidate],
+      baselineNotes: baseline,
+      rejected: [{ note: candidate, sourceKey: "early-candidate" }],
+      timeSig: [4, 4],
+      durationBeats: 8,
+      isLegal: () => true,
+    });
+
+    expect(selected.selected.map((note) => note.start)).toEqual([1.125, 4]);
   });
 });
