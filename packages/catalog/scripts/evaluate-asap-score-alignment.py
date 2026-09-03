@@ -33,10 +33,10 @@ if SPEC is None or SPEC.loader is None:
 CAL = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(CAL)
 
-# The existing feature representation and full three-step DTW are retained.
-# Raise only the safety ceiling for the frozen 117-second fixture; this is not
-# a feature or parameter change.
-CAL.MAX_FRAMES = 9_000
+# Keep the evaluator on the same frozen production V2 resource ceiling as the
+# runtime seam.  Diagnostic/current methods still fail closed at their own
+# dense-cell bound; production uses the bounded corridor implementation.
+CAL.MAX_FRAMES = int(CAL.PRODUCTION_CANDIDATE_CONFIG["maxFrames"])
 
 SCHEMA_VERSION = 1
 ASAP_REVISION = "4097b45757bed854818cf87e77b92323ebf90615"
@@ -49,7 +49,7 @@ FEATURE_CONFIG = {
     "nFft": CAL.N_FFT,
     "onsetWeight": 0.5,
     "chroma": "stft-12-bin-cosine",
-    "dtw": "monotonic-full-matrix-three-step",
+        "dtw": "monotonic-full-matrix-three-step",
     "mapAnchors": CAL.DTW_ANCHOR_COUNT,
 }
 PRODUCTION_FEATURE_CONFIG = dict(CAL.PRODUCTION_CANDIDATE_CONFIG) | {"fingerprint": CAL.PRODUCTION_CANDIDATE_FINGERPRINT}
@@ -252,9 +252,7 @@ def map_score_to_audio(notes: list[dict[str, Any]], score_features: np.ndarray, 
 
 
 def map_score_to_audio_production(notes: list[dict[str, Any]], audio_features: np.ndarray, audio_duration: float, score_times: list[float]) -> tuple[list[float], dict[str, Any]]:
-    note_times = [float(note["native_seconds"]) for note in notes]
-    symbolic = CAL.symbolic_features(notes, note_times, audio_duration)
-    path, cost = CAL.dtw(symbolic, audio_features)
+    path, cost, search_diagnostics = CAL.production_alignment_features(notes, audio_features, audio_duration)
     score_end = max((float(note["native_seconds"]) + float(note["duration_seconds"]) for note in notes), default=0.0) + 0.5
     mapper, anchors, approximation_error = CAL.adaptive_path_mapper(
         path,
@@ -268,8 +266,19 @@ def map_score_to_audio_production(notes: list[dict[str, Any]], audio_features: n
         "anchorCount": len(anchors),
         "compactApproximationErrorSeconds": rounded(float(approximation_error)),
         "dtwCost": rounded(float(cost)),
-        "symbolicFrameCount": int(symbolic.shape[1]),
-        "audioFrameCount": int(audio_features.shape[1]),
+        "symbolicFrameCount": int(search_diagnostics["fine"]["frames"][0]),
+        "audioFrameCount": int(search_diagnostics["fine"]["frames"][1]),
+        "alignmentMethod": search_diagnostics["method"],
+        "coarseEvaluatedCells": search_diagnostics["coarse"]["evaluatedCells"],
+        "coarseDenseEquivalentCells": search_diagnostics["coarse"]["denseEquivalentCells"],
+        "fineEvaluatedCells": search_diagnostics["fine"]["evaluatedCells"],
+        "fineDenseEquivalentCells": search_diagnostics["fine"]["denseEquivalentCells"],
+        "fineReductionRatio": search_diagnostics["fine"]["reductionRatio"],
+        "corridorEdgePressure": search_diagnostics["fine"].get("edgePressure"),
+        "regionalWeakZoneCount": search_diagnostics["fine"].get("weakRegionCount"),
+        "expansionPasses": search_diagnostics["fine"].get("expansionPasses"),
+        "peakActiveCells": search_diagnostics["memory"]["peakActiveCells"],
+        "estimatedDenseBytes": search_diagnostics["memory"]["estimatedDenseBytes"],
     }
 
 
@@ -292,12 +301,22 @@ def metric_block(pairs: list[dict[str, Any]], predicted: list[float], total_coun
         "positionAbsoluteErrorSeconds": {name: quantiles(values) for name, values in buckets.items()},
         "monotonicViolations": int(violations),
         "segmentCount": map_meta.get("segmentCount"),
-        "anchorCount": map_meta.get("segmentCount"),
+        "anchorCount": map_meta.get("anchorCount"),
         "dtwCost": map_meta.get("dtwCost"),
         "runtimeSeconds": rounded(runtime),
         "peakRssMiB": rounded(rss),
         "featureFrameCount": map_meta.get("audioFrameCount"),
         "symbolicFrameCount": map_meta.get("symbolicFrameCount"),
+        "alignmentMethod": map_meta.get("alignmentMethod"),
+        "coarseEvaluatedCells": map_meta.get("coarseEvaluatedCells"),
+        "fineEvaluatedCells": map_meta.get("fineEvaluatedCells"),
+        "fineDenseEquivalentCells": map_meta.get("fineDenseEquivalentCells"),
+        "fineReductionRatio": map_meta.get("fineReductionRatio"),
+        "corridorEdgePressure": map_meta.get("corridorEdgePressure"),
+        "regionalWeakZoneCount": map_meta.get("regionalWeakZoneCount"),
+        "expansionPasses": map_meta.get("expansionPasses"),
+        "peakActiveCells": map_meta.get("peakActiveCells"),
+        "estimatedDenseBytes": map_meta.get("estimatedDenseBytes"),
     }
 
 
@@ -429,7 +448,7 @@ def run_fixture(root: pathlib.Path, annotation_data: dict[str, Any], definition:
         "score": source_summary(score_path, score, xml_count),
         "performanceMidi": source_summary(performance_path, performance),
         "audio": {"bytes": audio_path.stat().st_size, "sha256": sha256(audio_path), "sourceDurationSeconds": rounded(source_audio_duration), "analysisStartSeconds": rounded(definition["metadataStartSeconds"]), "analysisPaddingSeconds": rounded(definition["analysisPaddingSeconds"]), "analysisDurationSeconds": rounded(audio_duration), "sampleRate": CAL.SAMPLE_RATE, "featureFrameCount": int(audio_features.shape[1])},
-        "methods": {"naive-global-tempo": naive, "keyspilli-current-monotonic-dtw": current, "keyspilli-production-candidate-v1": production},
+        "methods": {"naive-global-tempo": naive, "keyspilli-current-monotonic-dtw": current, "keyspilli-production-candidate-v2": production},
         "diagnostics": {
             "scoreInnerNotesRemoved": len(notes) - len(mismatch_notes),
             "scoreInnerNoteMismatch10pct": {"method": "keyspilli-current-monotonic-dtw", "metrics": mismatch},
@@ -489,7 +508,7 @@ def main() -> int:
     started = time.perf_counter()
     fixtures = [run_fixture(args.root, annotation_data, definition) for definition in fixture_definitions]
     current_pass = all(gate_fixture(fixture["methods"]["keyspilli-current-monotonic-dtw"]) for fixture in fixtures)
-    production_pass = all(gate_fixture(fixture["methods"]["keyspilli-production-candidate-v1"]) for fixture in fixtures)
+    production_pass = all(gate_fixture(fixture["methods"]["keyspilli-production-candidate-v2"]) for fixture in fixtures)
     report: dict[str, Any] = {
         "schemaVersion": SCHEMA_VERSION,
         "mission": "SCORE_TO_RECORDING_ALIGNMENT_HARDENING",
@@ -503,7 +522,7 @@ def main() -> int:
         "fixtures": fixtures,
         "decision": "SCORE_TO_RECORDING_ALIGNMENT_READY_CURRENT" if current_pass else "SCORE_ALIGNMENT_PARTIAL",
         "productionCandidateGate": production_pass,
-        "productionMethodStatus": {"currentKeyspilli": "DIAGNOSTIC_BASELINE", "productionCandidateV1": "PRODUCTION_CANDIDATE", "naiveGlobalTempo": "DIAGNOSTIC_ONLY", "durationDerivedMapping": "DIAGNOSTIC_ONLY", "synctoolbox": "NOT_YET_EVALUATED"},
+        "productionMethodStatus": {"currentKeyspilli": "DIAGNOSTIC_BASELINE", "productionCandidateV2": "PRODUCTION_CANDIDATE", "naiveGlobalTempo": "DIAGNOSTIC_ONLY", "durationDerivedMapping": "DIAGNOSTIC_ONLY", "synctoolbox": "NOT_YET_EVALUATED"},
         "runtimeSeconds": rounded(time.perf_counter() - started),
         "peakRssMiB": rss_mib(),
     }

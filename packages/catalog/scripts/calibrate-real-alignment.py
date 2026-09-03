@@ -31,25 +31,45 @@ FRAME_SECONDS = HOP_LENGTH / SAMPLE_RATE
 MAX_FRAMES = 5000
 DTW_ANCHOR_COUNT = 32
 MAX_DTW_CELLS = 32_000_000
+DENSE_CELL_BYTES = 17
 
-# Production candidate V1.  The candidate keeps the existing feature/search
-# responsibility and replaces the arbitrary fixed map cap with an explicit
-# approximation bound.  The cell ceiling is deliberately fail-closed: long
-# inputs must be chunked or moved to a banded search before this path is used.
-PRODUCTION_CANDIDATE_ID = "PRODUCTION_SCORE_ALIGNMENT_CANDIDATE_V1"
+# V2 keeps the feature representation but bounds the expensive search in two
+# explicit stages: a small dense coarse pass followed by a rolling-memory
+# corridor pass.  The values are frozen as part of the candidate fingerprint.
+V2_COARSE_FACTOR = 8
+V2_COARSE_MAX_CELLS = 4_000_000
+V2_COARSE_SMOOTHING = 3
+V2_FINE_CORRIDOR_HALF_WIDTH = 96
+V2_FINE_CORRIDOR_EXPANDED_HALF_WIDTH = 192
+V2_MAX_FINE_FRAMES = 40_000
+V2_MAX_FINE_EVALUATED_CELLS = 20_000_000
+V2_EDGE_PRESSURE_TRIGGER = 0.25
+V2_WEAK_COST_THRESHOLD = 0.70
+
+# Production candidate V2.  The representation and map remain compatible with
+# V1, while the search is coarse-to-fine and the fine stage never materializes
+# a rows-by-columns cost/backtrace matrix.
+PRODUCTION_CANDIDATE_ID = "PRODUCTION_SCORE_ALIGNMENT_CANDIDATE_V2"
 PRODUCTION_CANDIDATE_CONFIG = {
     "sampleRate": SAMPLE_RATE,
     "hopLength": HOP_LENGTH,
     "nFft": N_FFT,
     "features": "12-bin-stft-chroma-plus-normalized-onset",
     "onsetWeight": 0.5,
-    "search": "monotonic-three-step-dtw",
-    "maxFrames": 9000,
-    "maxDtwCells": MAX_DTW_CELLS,
+    "search": "coarse-to-fine-corridor-dtw",
+    "maxFrames": V2_MAX_FINE_FRAMES,
+    "coarseFactor": V2_COARSE_FACTOR,
+    "coarseSmoothing": V2_COARSE_SMOOTHING,
+    "coarseMaxDtwCells": V2_COARSE_MAX_CELLS,
+    "fineCorridorHalfWidth": V2_FINE_CORRIDOR_HALF_WIDTH,
+    "fineExpandedCorridorHalfWidth": V2_FINE_CORRIDOR_EXPANDED_HALF_WIDTH,
+    "maxFineEvaluatedCells": V2_MAX_FINE_EVALUATED_CELLS,
+    "edgePressureTrigger": V2_EDGE_PRESSURE_TRIGGER,
+    "weakCostThreshold": V2_WEAK_COST_THRESHOLD,
     "map": "adaptive-piecewise-linear",
     "mapApproximationBoundSeconds": 0.125,
     "maxMapAnchors": 129,
-    "confidence": "coverage+dtw-cost+map-approximation",
+    "confidence": "coverage+dtw-cost+map-approximation+corridor-health",
 }
 PRODUCTION_CANDIDATE_FINGERPRINT = hashlib.sha256(
     json.dumps(PRODUCTION_CANDIDATE_CONFIG, sort_keys=True, separators=(",", ":")).encode()
@@ -278,13 +298,18 @@ def symbolic_features(notes: list[dict[str, float | int]], times: list[float], a
     return output
 
 
-def dtw(path_features: np.ndarray, audio_features: np.ndarray) -> tuple[np.ndarray, float]:
+def _dense_dtw_with_metrics(
+    path_features: np.ndarray,
+    audio_features: np.ndarray,
+    max_cells: int = MAX_DTW_CELLS,
+) -> tuple[np.ndarray, float, dict[str, int | float]]:
     rows, columns = path_features.shape[1], audio_features.shape[1]
     if rows == 0 or columns == 0:
         raise ValueError("DTW requires non-empty feature matrices")
     if rows > MAX_FRAMES or columns > MAX_FRAMES:
         raise ValueError("DTW matrix exceeds bounded calibration frame limit")
-    if rows * columns > MAX_DTW_CELLS:
+    dense_cells = rows * columns
+    if dense_cells > max_cells:
         raise ValueError("DTW matrix exceeds bounded calibration cell limit")
     distance = np.nan_to_num(cdist(path_features.T, audio_features.T, metric="cosine"), nan=1.0, posinf=1.0, neginf=1.0)
     cost = np.full((rows, columns), np.inf, dtype=np.float64)
@@ -319,7 +344,245 @@ def dtw(path_features: np.ndarray, audio_features: np.ndarray) -> tuple[np.ndarr
         else:
             column -= 1
     result.reverse()
-    return np.asarray(result, dtype=np.int32), normalized(float(cost[-1, -1] / len(result)))
+    output_path = np.asarray(result, dtype=np.int32)
+    return output_path, normalized(float(cost[-1, -1] / len(result))), {
+        "evaluatedCells": dense_cells,
+        "denseEquivalentCells": dense_cells,
+        "peakActiveCells": dense_cells,
+        "estimatedDenseBytes": dense_cells * DENSE_CELL_BYTES,
+        "reductionRatio": 1.0,
+    }
+
+
+def dtw(path_features: np.ndarray, audio_features: np.ndarray) -> tuple[np.ndarray, float]:
+    """Compatibility wrapper for the existing diagnostic challenge harness."""
+    path, cost, _ = _dense_dtw_with_metrics(path_features, audio_features)
+    return path, cost
+
+
+def _pool_features(features: np.ndarray, factor: int, smoothing: int) -> np.ndarray:
+    if features.ndim != 2 or features.shape[1] == 0:
+        raise ValueError("feature pooling requires a non-empty two-dimensional matrix")
+    if factor < 1:
+        raise ValueError("feature pooling factor must be positive")
+    rows, columns = features.shape
+    pooled_columns = int(math.ceil(columns / factor))
+    padded_columns = pooled_columns * factor
+    pad = padded_columns - columns
+    source = np.pad(features.astype(np.float32), ((0, 0), (0, pad)), mode="edge") if pad else features.astype(np.float32)
+    pooled = source.reshape(rows, pooled_columns, factor).mean(axis=2)
+    width = min(max(1, int(smoothing)), pooled_columns)
+    if width > 1:
+        if width % 2 == 0:
+            width -= 1
+        if width > 1:
+            kernel = np.full(width, 1.0 / width, dtype=np.float32)
+            pooled = np.vstack([np.convolve(row, kernel, mode="same") for row in pooled])
+    chroma_norm = np.linalg.norm(pooled[:12], axis=0, keepdims=True)
+    pooled[:12] /= chroma_norm + 1e-8
+    pooled[12:] = np.nan_to_num(pooled[12:], nan=0.0, posinf=0.0, neginf=0.0)
+    return pooled.astype(np.float32)
+
+
+def _corridor_bounds(
+    coarse_path: np.ndarray,
+    fine_rows: int,
+    fine_columns: int,
+    factor: int,
+    half_width: int,
+) -> list[tuple[int, int]]:
+    if coarse_path.ndim != 2 or coarse_path.shape[1] != 2 or coarse_path.size == 0:
+        raise ValueError("coarse DTW path is invalid")
+    if fine_rows <= 0 or fine_columns <= 0 or half_width < 0:
+        raise ValueError("fine corridor dimensions are invalid")
+    coarse_score = coarse_path[:, 0].astype(float) * factor
+    coarse_audio = coarse_path[:, 1].astype(float) * factor
+    score_points, unique_indices = np.unique(coarse_score, return_index=True)
+    audio_points = coarse_audio[unique_indices]
+    if len(score_points) == 1:
+        centers = np.full(fine_rows, audio_points[0], dtype=float)
+    else:
+        centers = np.interp(np.arange(fine_rows, dtype=float), score_points, audio_points)
+    bounds: list[tuple[int, int]] = []
+    for center in centers:
+        lo = max(0, int(math.floor(float(center) - half_width)))
+        hi = min(fine_columns - 1, int(math.ceil(float(center) + half_width)))
+        bounds.append((lo, max(lo, hi)))
+    # Endpoint coverage is required for a complete monotonic alignment.
+    first_lo, first_hi = bounds[0]
+    bounds[0] = (0, max(0, first_hi))
+    last_lo, last_hi = bounds[-1]
+    bounds[-1] = (min(last_lo, fine_columns - 1), fine_columns - 1)
+    return bounds
+
+
+def corridor_dtw(
+    path_features: np.ndarray,
+    audio_features: np.ndarray,
+    bounds: list[tuple[int, int]],
+    max_evaluated_cells: int = V2_MAX_FINE_EVALUATED_CELLS,
+) -> tuple[np.ndarray, float, dict[str, int | float]]:
+    """Run three-step DTW in a variable-width corridor with rolling memory."""
+    rows, columns = path_features.shape[1], audio_features.shape[1]
+    if rows == 0 or columns == 0 or len(bounds) != rows:
+        raise ValueError("corridor DTW dimensions are invalid")
+    widths: list[int] = []
+    for lo, hi in bounds:
+        if not (isinstance(lo, (int, np.integer)) and isinstance(hi, (int, np.integer))):
+            raise ValueError("corridor bounds must be integer pairs")
+        if lo < 0 or hi < lo or hi >= columns:
+            raise ValueError("corridor bound is outside the audio feature matrix")
+        widths.append(int(hi - lo + 1))
+    if bounds[0][0] > 0 or bounds[0][1] < 0 or bounds[-1][0] > columns - 1 or bounds[-1][1] < columns - 1:
+        raise ValueError("corridor must include both DTW endpoints")
+    evaluated = int(sum(widths))
+    if evaluated > max_evaluated_cells:
+        raise ValueError("corridor DTW exceeds bounded evaluated-cell limit")
+
+    previous = np.full(widths[0], np.inf, dtype=np.float64)
+    previous_lo = int(bounds[0][0])
+    back_rows = np.full((rows, max(widths)), -1, dtype=np.int8)
+    for row in range(rows):
+        lo, hi = (int(bounds[row][0]), int(bounds[row][1]))
+        width = hi - lo + 1
+        current = np.full(width, np.inf, dtype=np.float64)
+        vector = np.nan_to_num(cdist(path_features[:, row : row + 1].T, audio_features[:, lo : hi + 1].T, metric="cosine")[0], nan=1.0, posinf=1.0, neginf=1.0)
+        for local, column in enumerate(range(lo, hi + 1)):
+            if row == 0:
+                if column == 0:
+                    current[local] = vector[local]
+                    continue
+                if local > 0 and math.isfinite(float(current[local - 1])):
+                    current[local] = vector[local] + current[local - 1]
+                    back_rows[row, local] = 2
+                continue
+            choices: list[tuple[float, int]] = []
+            if previous_lo <= column - 1 < previous_lo + len(previous):
+                choices.append((float(previous[column - 1 - previous_lo]), 0))
+            if previous_lo <= column < previous_lo + len(previous):
+                choices.append((float(previous[column - previous_lo]), 1))
+            if local > 0:
+                choices.append((float(current[local - 1]), 2))
+            if choices:
+                best, step = min(choices, key=lambda choice: (choice[0], choice[1]))
+                if math.isfinite(best):
+                    current[local] = vector[local] + best
+                    back_rows[row, local] = step
+        previous = current
+        previous_lo = lo
+
+    end_lo, end_hi = int(bounds[-1][0]), int(bounds[-1][1])
+    end_local = columns - 1 - end_lo
+    if end_local < 0 or end_local >= len(previous) or not math.isfinite(float(previous[end_local])):
+        raise ValueError("corridor DTW has no monotonic path")
+    row, column = rows - 1, columns - 1
+    result: list[tuple[int, int]] = []
+    while True:
+        result.append((row, column))
+        if row == 0 and column == 0:
+            break
+        lo = int(bounds[row][0])
+        local = column - lo
+        if local < 0 or local >= back_rows.shape[1]:
+            raise ValueError("corridor DTW backtrace escaped bounds")
+        step = int(back_rows[row, local])
+        if step == 0:
+            row -= 1
+            column -= 1
+        elif step == 1:
+            row -= 1
+        elif step == 2:
+            column -= 1
+        else:
+            raise ValueError("corridor DTW backtrace is incomplete")
+    result.reverse()
+    output_path = np.asarray(result, dtype=np.int32)
+    edge_cells = sum(1 for score, audio in result if audio in (bounds[score][0], bounds[score][1]))
+    dense_cells = rows * columns
+    return output_path, normalized(float(previous[end_local] / len(output_path))), {
+        "evaluatedCells": evaluated,
+        "denseEquivalentCells": dense_cells,
+        "peakActiveCells": max(widths) * 2,
+        "estimatedDenseBytes": dense_cells * DENSE_CELL_BYTES,
+        "reductionRatio": normalized(evaluated / dense_cells) if dense_cells else 1.0,
+        "edgePressure": normalized(edge_cells / len(output_path)) if output_path.size else 0.0,
+        "maxCorridorWidth": max(widths),
+    }
+
+
+def _path_costs(path: np.ndarray, path_features: np.ndarray, audio_features: np.ndarray) -> list[float]:
+    values: list[float] = []
+    for score_index, audio_index in path:
+        left = path_features[:, int(score_index)].astype(float)
+        right = audio_features[:, int(audio_index)].astype(float)
+        denominator = float(np.linalg.norm(left) * np.linalg.norm(right))
+        values.append(1.0 - float(np.dot(left, right) / denominator) if denominator > 1e-12 else 1.0)
+    return values
+
+
+def _weak_regions(values: list[float], threshold: float) -> int:
+    return sum(value > threshold and (index == 0 or values[index - 1] <= threshold) for index, value in enumerate(values))
+
+
+def production_alignment_features(
+    notes: list[dict[str, float | int]],
+    audio_features: np.ndarray,
+    audio_duration: float,
+) -> tuple[np.ndarray, float, dict[str, object]]:
+    """Return one bounded V2 path and its resource/health diagnostics."""
+    global MAX_FRAMES
+    MAX_FRAMES = max(MAX_FRAMES, V2_MAX_FINE_FRAMES)
+    if not notes:
+        raise ValueError("score MIDI contains no timed notes")
+    if audio_features.ndim != 2 or audio_features.shape[1] == 0:
+        raise ValueError("audio feature matrix is empty")
+    note_times = [float(note["native_seconds"]) for note in notes]
+    symbolic = symbolic_features(notes, note_times, audio_duration)
+    if audio_features.shape[0] != symbolic.shape[0]:
+        # Keep the pure mechanism helper useful with reduced synthetic feature
+        # channels; production audio uses the native 13-channel representation.
+        if audio_features.shape[0] < symbolic.shape[0]:
+            symbolic = symbolic[: audio_features.shape[0]]
+        else:
+            symbolic = np.pad(symbolic, ((0, audio_features.shape[0] - symbolic.shape[0]), (0, 0)))
+    coarse_symbolic = _pool_features(symbolic, V2_COARSE_FACTOR, V2_COARSE_SMOOTHING)
+    coarse_audio = _pool_features(audio_features, V2_COARSE_FACTOR, V2_COARSE_SMOOTHING)
+    coarse_path, coarse_cost, coarse_metrics = _dense_dtw_with_metrics(
+        coarse_symbolic,
+        coarse_audio,
+        max_cells=V2_COARSE_MAX_CELLS,
+    )
+    fine_rows, fine_columns = symbolic.shape[1], audio_features.shape[1]
+    try:
+        bounds = _corridor_bounds(coarse_path, fine_rows, fine_columns, V2_COARSE_FACTOR, V2_FINE_CORRIDOR_HALF_WIDTH)
+        fine_path, fine_cost, fine_metrics = corridor_dtw(symbolic, audio_features, bounds)
+        expansion_passes = 0
+    except ValueError:
+        bounds = _corridor_bounds(coarse_path, fine_rows, fine_columns, V2_COARSE_FACTOR, V2_FINE_CORRIDOR_EXPANDED_HALF_WIDTH)
+        fine_path, fine_cost, fine_metrics = corridor_dtw(symbolic, audio_features, bounds)
+        expansion_passes = 1
+    local_costs = _path_costs(fine_path, symbolic, audio_features)
+    weak_regions = _weak_regions(local_costs, V2_WEAK_COST_THRESHOLD)
+    if expansion_passes == 0 and (float(fine_metrics["edgePressure"]) > V2_EDGE_PRESSURE_TRIGGER or weak_regions > 0):
+        expanded_bounds = _corridor_bounds(coarse_path, fine_rows, fine_columns, V2_COARSE_FACTOR, V2_FINE_CORRIDOR_EXPANDED_HALF_WIDTH)
+        expanded_path, expanded_cost, expanded_metrics = corridor_dtw(symbolic, audio_features, expanded_bounds)
+        if expanded_cost <= fine_cost + 1e-12:
+            fine_path, fine_cost, fine_metrics = expanded_path, expanded_cost, expanded_metrics
+            local_costs = _path_costs(fine_path, symbolic, audio_features)
+            weak_regions = _weak_regions(local_costs, V2_WEAK_COST_THRESHOLD)
+        expansion_passes = 1
+    fine_metrics = dict(fine_metrics)
+    fine_metrics.update({"corridorHalfWidth": V2_FINE_CORRIDOR_HALF_WIDTH, "expansionPasses": expansion_passes})
+    edge_pressure = float(fine_metrics.get("edgePressure", 0.0))
+    confidence = _production_confidence(notes, fine_cost, 0.0, DTW_ANCHOR_COUNT, edge_pressure, weak_regions)
+    diagnostics: dict[str, object] = {
+        "method": "coarse-to-fine-corridor-dtw",
+        "coarse": dict(coarse_metrics) | {"frames": [int(coarse_symbolic.shape[1]), int(coarse_audio.shape[1])], "dtwCost": coarse_cost},
+        "fine": dict(fine_metrics) | {"frames": [int(fine_rows), int(fine_columns)], "dtwCost": fine_cost, "weakRegionCount": weak_regions, "maxLocalCost": normalized(max(local_costs, default=0.0))},
+        "memory": {"peakActiveCells": int(fine_metrics["peakActiveCells"]), "estimatedDenseBytes": int(fine_metrics["estimatedDenseBytes"])},
+        "confidence": confidence,
+    }
+    return fine_path, fine_cost, diagnostics
 
 
 def path_mapper(path: np.ndarray, candidate_start: float, candidate_end: float) -> tuple[Callable[[float], float], int]:
@@ -446,13 +709,17 @@ def _production_confidence(
     dtw_cost: float,
     map_error_seconds: float,
     anchor_count: int,
+    edge_pressure: float = 0.0,
+    weak_regions: int = 0,
 ) -> dict[str, float | str | list[str]]:
     """Compute transparent, non-learned confidence from structural signals."""
     coverage = 1.0 if notes else 0.0
     cost_quality = max(0.0, 1.0 - min(float(dtw_cost), 1.0))
     map_quality = max(0.0, 1.0 - min(float(map_error_seconds) / 0.125, 1.0))
     complexity_quality = max(0.0, 1.0 - max(0, anchor_count - 33) / 96)
-    score = 0.45 * coverage + 0.35 * cost_quality + 0.15 * map_quality + 0.05 * complexity_quality
+    edge_quality = max(0.0, 1.0 - min(float(edge_pressure), 1.0))
+    weak_quality = max(0.0, 1.0 - min(int(weak_regions) / 8, 1.0))
+    score = 0.40 * coverage + 0.30 * cost_quality + 0.15 * map_quality + 0.05 * complexity_quality + 0.05 * edge_quality + 0.05 * weak_quality
     signals: list[str] = []
     if not notes:
         signals.append("score has no timed notes")
@@ -462,6 +729,10 @@ def _production_confidence(
         signals.append("DTW feature agreement is weak")
     if anchor_count >= 129:
         signals.append("compact map reached anchor safety ceiling")
+    if edge_pressure > V2_EDGE_PRESSURE_TRIGGER:
+        signals.append("fine corridor path is near an edge")
+    if weak_regions > 0:
+        signals.append("fine path contains weak correspondence regions")
     state = "ALIGNED_HIGH_CONFIDENCE" if score >= 0.75 and not signals else "ALIGNED_PARTIAL" if score >= 0.40 else "ALIGNMENT_REJECTED"
     return {"state": state, "score": normalized(score), "coverage": normalized(coverage), "signals": signals}
 
@@ -480,9 +751,7 @@ def production_alignment_report(score_path: pathlib.Path, audio_path: pathlib.Pa
     if not isinstance(notes, list) or not notes:
         raise ValueError("score MIDI contains no notes")
     audio_features, _, audio_duration = load_features(audio_path)
-    note_times = [float(note["native_seconds"]) for note in notes]
-    symbolic = symbolic_features(notes, note_times, audio_duration)
-    path, cost = dtw(symbolic, audio_features)
+    path, cost, search_diagnostics = production_alignment_features(notes, audio_features, audio_duration)
     score_end_seconds = max(
         (float(note["native_seconds"]) + float(note["duration_seconds"]) for note in notes),
         default=float(score["duration_seconds"]),
@@ -503,13 +772,36 @@ def production_alignment_report(score_path: pathlib.Path, audio_path: pathlib.Pa
         }
         for seconds, value in anchors_seconds
     ]
-    confidence = _production_confidence(notes, float(cost), approximation_error, len(anchors))
+    fine_diagnostics = search_diagnostics.get("fine", {})
+    edge_pressure = float(fine_diagnostics.get("edgePressure", 0.0)) if isinstance(fine_diagnostics, dict) else 0.0
+    weak_regions = int(fine_diagnostics.get("weakRegionCount", 0)) if isinstance(fine_diagnostics, dict) else 0
+    confidence = _production_confidence(notes, float(cost), approximation_error, len(anchors), edge_pressure, weak_regions)
+    mapping_diagnostics = {
+        "method": "coarse-to-fine-corridor-dtw",
+        "anchors": anchors,
+        "segmentCount": max(0, len(anchors) - 1),
+        "rawPathFrames": int(len(path)),
+        "rawScoreFrames": int(len(np.unique(path[:, 0]))),
+        "compactApproximationErrorSeconds": normalized(approximation_error),
+        "dtwCost": normalized(float(cost)),
+        "coarseEvaluatedCells": int(search_diagnostics["coarse"]["evaluatedCells"]),
+        "coarseDenseEquivalentCells": int(search_diagnostics["coarse"]["denseEquivalentCells"]),
+        "fineEvaluatedCells": int(search_diagnostics["fine"]["evaluatedCells"]),
+        "fineDenseEquivalentCells": int(search_diagnostics["fine"]["denseEquivalentCells"]),
+        "fineReductionRatio": float(search_diagnostics["fine"]["reductionRatio"]),
+        "corridorHalfWidth": int(search_diagnostics["fine"]["corridorHalfWidth"]),
+        "expansionPasses": int(search_diagnostics["fine"]["expansionPasses"]),
+        "corridorEdgePressure": float(search_diagnostics["fine"].get("edgePressure", 0.0)),
+        "regionalWeakZoneCount": int(search_diagnostics["fine"].get("weakRegionCount", 0)),
+        "peakActiveCells": int(search_diagnostics["memory"]["peakActiveCells"]),
+        "estimatedDenseBytes": int(search_diagnostics["memory"]["estimatedDenseBytes"]),
+    }
     canonical = {
         "schemaVersion": SCHEMA_VERSION,
         "candidate": {"id": PRODUCTION_CANDIDATE_ID, "fingerprint": PRODUCTION_CANDIDATE_FINGERPRINT, "config": PRODUCTION_CANDIDATE_CONFIG},
         "score": {"sha256": sha256(score_path), "bytes": score_path.stat().st_size, "format": score["format"], "division": score["division"], "trackCount": score["track_count"], "noteCount": len(notes), "durationBeats": normalized(float(score["duration_beats"])), "durationSeconds": normalized(float(score["duration_seconds"]))},
         "audio": {"sha256": sha256(audio_path), "bytes": audio_path.stat().st_size, "sampleRate": SAMPLE_RATE, "frameCount": int(audio_features.shape[1]), "durationSeconds": normalized(audio_duration)},
-        "mapping": {"method": "monotonic-three-step-dtw-adaptive-map", "anchors": anchors, "segmentCount": max(0, len(anchors) - 1), "rawPathFrames": int(len(path)), "rawScoreFrames": int(len(np.unique(path[:, 0]))), "compactApproximationErrorSeconds": normalized(approximation_error), "dtwCost": normalized(float(cost))},
+        "mapping": mapping_diagnostics,
         "confidence": confidence,
     }
     report = dict(canonical)

@@ -2,7 +2,7 @@ import { stat } from "node:fs/promises";
 import type { RunnerExecFile, RunnerExecFileOptions } from "./upstream-attribution-runner.js";
 
 export const SCORE_AUDIO_ALIGNMENT_SCHEMA_VERSION = 1 as const;
-export const SCORE_AUDIO_ALIGNMENT_CANDIDATE_ID = "PRODUCTION_SCORE_ALIGNMENT_CANDIDATE_V1" as const;
+export const SCORE_AUDIO_ALIGNMENT_CANDIDATE_ID = "PRODUCTION_SCORE_ALIGNMENT_CANDIDATE_V2" as const;
 export const SCORE_AUDIO_ALIGNMENT_MAX_SCORE_BYTES = 16 * 1024 * 1024;
 export const SCORE_AUDIO_ALIGNMENT_MAX_AUDIO_BYTES = 2 * 1024 * 1024 * 1024;
 
@@ -45,6 +45,16 @@ export interface ScoreAudioAlignmentReport {
     rawScoreFrames: number;
     compactApproximationErrorSeconds: number;
     dtwCost: number;
+    coarseEvaluatedCells?: number;
+    coarseDenseEquivalentCells?: number;
+    fineEvaluatedCells?: number;
+    fineDenseEquivalentCells?: number;
+    fineReductionRatio?: number;
+    corridorEdgePressure?: number;
+    regionalWeakZoneCount?: number;
+    expansionPasses?: number;
+    peakActiveCells?: number;
+    estimatedDenseBytes?: number;
   };
   confidence: {
     state: ScoreAudioAlignmentConfidence;
