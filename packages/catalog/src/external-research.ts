@@ -8,6 +8,7 @@ import {
   type EvidenceRole,
   type ExternalEvidenceCandidate,
 } from "./external-evidence.js";
+import type { GenerationCandidateProvenanceClass } from "./generation-candidate-intake.js";
 import { createSongIdentity, type SongIdentity, type SongIdentityInput } from "./song-research.js";
 import type { CanonicalScore } from "./omr-canonical.js";
 import type { OmrEventInput, OmrPartInput, OmrRole, OmrScoreInput } from "./omr-consensus.js";
@@ -55,6 +56,8 @@ export interface ExternalResearchLocalInput {
   sourcePage?: string | null;
   purpose?: EvidencePurpose;
   evidenceClass?: EvidenceClass;
+  /** Explicit provenance class carried into the generation firewall. */
+  provenanceClass?: GenerationCandidateProvenanceClass;
   /** Explicit target-recording alignment evidence supplied by a trusted local aligner. */
   alignment?: {
     status?: ExternalResearchAlignmentStatus;
@@ -93,6 +96,8 @@ export interface ExternalResearchRecord {
   provider: string | null;
   evidenceClass: EvidenceClass;
   purpose: EvidencePurpose;
+  /** Provenance remains available even when the candidate firewall rejects the payload. */
+  provenanceClass?: GenerationCandidateProvenanceClass;
   identityStatus: ExternalResearchIdentityStatus;
   versionStatus: ExternalResearchVersionStatus;
   identityReasons: string[];
@@ -437,6 +442,7 @@ function buildCandidate(input: ExternalSymbolicCandidateInput, format: string, r
     purpose,
     provenance: {
       sourceRef,
+      ...(input.provenanceClass ? { provenanceClass: input.provenanceClass } : {}),
       ...(text(input.provider) ? { provider: text(input.provider)! } : {}),
       acquiredVia: result.provenance.accessMethod,
       ...(safePage(input.sourcePage) ? { sourcePage: safePage(input.sourcePage)! } : {}),
@@ -524,6 +530,7 @@ function recordFromDiscovery(song: SongIdentity, discovery: ExternalResearchDisc
     provider: text(discovery.provider),
     evidenceClass,
     purpose,
+    provenanceClass: "UNKNOWN",
     ...identity,
     discovery: { status: "metadata-only", sourceRef: logicalRef(discovery.sourceRef), sourcePage: safePage(discovery.sourcePage ?? discovery.url) },
     acquisition: { status: "not-supplied", method: null },
@@ -560,6 +567,7 @@ function recordFromIngestion(song: SongIdentity, input: ExternalResearchLocalInp
     provider: text(input.provider),
     evidenceClass,
     purpose,
+    provenanceClass: input.provenanceClass ?? "UNKNOWN",
     ...identity,
     discovery: { status: "local-supplied", sourceRef: logicalRef(input.sourceRef) ?? candidate?.provenance.sourceRef ?? null, sourcePage: safePage(input.sourcePage) },
     acquisition: { status: result.provenance?.accessMethod === "local-file" ? "local-file" : result.provenance?.accessMethod === "local-bytes" ? "local-bytes" : "rejected", method: result.provenance?.accessMethod === "local-file" || result.provenance?.accessMethod === "local-bytes" ? result.provenance.accessMethod : null },

@@ -54,6 +54,18 @@ describe("external symbolic research bridge", () => {
     expect(xml.score?.parts[0]?.name).toBe("Lead Voice");
   });
 
+  it("carries an explicit provenance class into the generation candidate", async () => {
+    const result = await ingestExternalSymbolicCandidate({
+      id: "private-performance",
+      sourceRef: "user:private-performance",
+      bytes: midiBytes([{ midi: 60, start: 0, dur: 1, vel: 96, hand: "R" }]),
+      format: "midi",
+      purpose: "GENERATION_CANDIDATE",
+      provenanceClass: "USER_SUPPLIED_PRIVATE",
+    });
+    expect(result.candidate?.provenance).toMatchObject({ provenanceClass: "USER_SUPPLIED_PRIVATE" });
+  });
+
   it("applies the protected-reference registry at symbolic ingestion", async () => {
     const baseline = await ingestExternalSymbolicCandidate({
       id: "registry-baseline",
@@ -175,9 +187,10 @@ describe("external symbolic research bridge", () => {
 
     const withReferenceBytes = await researchExternalCandidates(song, {
       discoveryRecords: [{ id: "benchmark", sourceRef: "provider-b:reference", purpose: "BENCHMARK_REFERENCE" }],
-      localInputs: [{ id: "benchmark", sourceRef: "provider-b:reference", purpose: "BENCHMARK_REFERENCE", bytes: midiBytes([{ midi: 60, start: 0, dur: 1, vel: 96, hand: "R" }]), format: "midi" }],
+      localInputs: [{ id: "benchmark", sourceRef: "provider-b:reference", purpose: "BENCHMARK_REFERENCE", provenanceClass: "OPEN_LICENSE", bytes: midiBytes([{ midi: 60, start: 0, dur: 1, vel: 96, hand: "R" }]), format: "midi" }],
     });
     expect(withReferenceBytes.records[0]?.candidate).toBeNull();
+    expect(withReferenceBytes.records[0]?.provenanceClass).toBe("OPEN_LICENSE");
     expect(withReferenceBytes.records[0]?.generationUsable).toBe(false);
     expect(withReferenceBytes.records[0]?.rejectionReasons.join(" ")).toMatch(/benchmark/i);
   });

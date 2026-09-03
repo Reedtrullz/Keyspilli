@@ -1075,6 +1075,66 @@
       },
       "nextTask": "REGION_AWARE_REAL_SHADOW_REHEARSAL",
       "reproducible": true
+    },
+    {
+      "id": "region-aware-real-shadow-rehearsal-2026-09-04",
+      "date": "2026-09-04",
+      "startingRevision": "e143c11cb0f89aa31b89ee1c83f58136a5aef1f8",
+      "checkpointRevision": null,
+      "purpose": "Exercise the region-ownership and fallback contract on a real user-supplied performance pair without benchmark generation",
+      "route": "local symbolic intake -> provenance/firewall -> region ownership -> native arrangement -> six physical levels -> MIDI/MusicXML artifacts -> five-level in-memory projection",
+      "candidateIntake": {
+        "decision": "GENERATION_CANDIDATE_INTAKE_READY",
+        "localFormats": ["midi", "musicxml", "mxl"],
+        "remoteFormats": ["midi", "musicxml", "mxl"],
+        "contentSniffing": "native magic/parser validation; HTML/error masquerade rejected",
+        "sizeBounded": true,
+        "provenanceClasses": ["PROJECT_OWNED", "OPEN_LICENSE", "USER_SUPPLIED_PRIVATE", "REMOTE_APPROVED", "UNKNOWN"],
+        "benchmarkFirewall": true
+      },
+      "lanes": {
+        "laneA": {
+          "fixtureId": "lane-a-native-performance",
+          "sourceClass": "GENERATION_CANDIDATE",
+          "provenanceClass": "USER_SUPPLIED_PRIVATE",
+          "symbolicSha256": "ec5010896c00a0541b34b0843a20f455707ac647ae4a222aee71e2ad43e8017e",
+          "symbolicBytes": 58204,
+          "symbolicNotes": 7266,
+          "symbolicDurationBeats": 360,
+          "audioSha256": "6113d800bbb5070181ff755f0a2973f09765a97b4f5c4f15362e7249bfa5658f",
+          "audioBytes": 4351097,
+          "audioDurationSeconds": 181.219,
+          "timingAuthority": "NATIVE_AUTHORITATIVE",
+          "ownership": {"candidate": 7266, "eligibleBeforeOwnership": 7266, "owned": 7266, "partial": 0, "withheld": 0},
+          "audioAlignment": {"status": "insufficient-evidence", "naiveF1": 0.496087, "naiveMedianErrorSeconds": 0.021042, "naiveP90ErrorSeconds": 0.053575, "naiveP95ErrorSeconds": 0.058046, "production": null},
+          "downstream": {"status": "blocked_at_validation", "canonicalNotes": 3843, "physicalLevels": {"very-beginner": 409, "beginner": 807, "very-easy": 2560, "easy": 2843, "medium": 3066, "advanced": 3560}, "artifactErrors": 0, "publicLevels": 5, "validationErrors": ["advanced/easy/medium median inter-onset 0.063s below 0.08s floor"]}
+        },
+        "laneB": {"fixtureId": "lane-b-partial-score", "dataset": "ASAP v2.1.1", "sourceClass": "BENCHMARK_REFERENCE", "provenanceClass": "OPEN_LICENSE", "symbolicNotes": 732, "owned": 0, "withheld": 732, "eventsEnteringArrangement": 0, "reasons": ["BENCHMARK_FIREWALL", "PARTIAL_ALIGNMENT", "NO_TARGET_TIMING"]},
+        "laneC": {"fixtureId": "lane-c-score-plus-performance", "dataset": "ASAP v2.1.1", "sourceClass": "BENCHMARK_REFERENCE", "provenanceClass": "OPEN_LICENSE", "symbolicNotes": {"score": 732, "performance": 739}, "owned": 0, "withheld": 1471, "eventsEnteringArrangement": 0, "orderIndependent": true, "reasons": ["BENCHMARK_FIREWALL", "MULTI_SOURCE_PRIORITY_NOT_GENERATION_EXERCISED"]}
+      },
+      "controlledPolicyTest": {"status": "pass", "ownedEvents": 3586, "withheldEvents": 3680, "canonicalNotes": 1960, "eventsBeyondWithheldRegion": 0, "variantsWithResurrection": 0},
+      "decisions": {
+        "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+        "realAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "realShadow": "REGION_AWARE_REAL_SHADOW_BLOCKED",
+        "boundedMvp": "BOUNDED_MVP_NOT_YET_FEASIBLE",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NOT_DEPLOYED"
+      },
+      "verification": {
+        "report": "region-aware-real-shadow-rehearsal-2026-09-04.json",
+        "reportCanonicalSha256": "9c32be1c1aa3d5b540977a3025750435623e48d09d68139a57d4de290ea2e7a6",
+        "repeatCanonicalEqual": true,
+        "workspaceTests": 1599,
+        "workspaceTestBreakdown": {"web": 89, "catalog": 1032, "engrave": 8, "midi": 336, "playerCore": 92, "transcribe": 42},
+        "workspaceTypechecks": 6,
+        "gitDiffCheck": true,
+        "diskFreeGiBAtClose": 85
+      },
+      "nextTask": "REAL_SYMBOLIC_TIMING_ALIGNMENT_HARDENING",
+      "reproducible": true,
+      "rawMediaRetention": "local only; metadata and hashes committed; no benchmark generation or tuning"
     }
   ]
 }

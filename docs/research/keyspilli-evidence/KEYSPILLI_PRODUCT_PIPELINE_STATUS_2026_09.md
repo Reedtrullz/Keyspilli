@@ -25,10 +25,10 @@ The CLaMP3 sparse-landmark investigation started from the remote-backed
 | Role inference | VALIDATED (shadow override) | The single-stem Guitar-TECHS MIDI is explicitly mapped to guitar for the shadow arrangement; no drum pitches reached output. |
 | Alignment | PARTIAL — V2 RESOURCE FIXED; NON-DTW SKF MIXED; CLaMP3 SPARSE RETRIEVAL RESOURCE-BLOCKED | Frozen V2 completes all four revealed ASAP/MAESTRO pairs but leaves regional accuracy unresolved. Matchmaker SKF is mixed and was not promoted. The one approved CLaMP3 reference was not evaluated because its pinned weights exceed the bounded footprint before download; no CLaMP3 production candidate was created. |
 | Region ownership / fallback | VALIDATED (deterministic contract) | Explicit source/target regions, role ownership, timing authority, alignment state, provenance/firewall, fallback precedence, overlap/merge behavior, and no-owner withholding are enforced before semantic-band arrangement. |
-| Arrangement | PASS (real shadow) | The real pair completed `buildMetalArrangement`; semantic guitar diagnostics and source-tagged output were produced in memory. |
-| Six physical difficulties | PASS (real shadow) | Advanced, Medium, Easy plus the remaining physical levels were generated and validated. |
+| Arrangement | PARTIAL (real native shadow) | A user-supplied native performance completed `buildMetalArrangement` and produced source-tagged output in memory; the selected dense source is blocked by existing downstream playability validation. |
+| Six physical difficulties | PARTIAL (generated; validation blocked) | All six physical variants and artifact bytes were produced, but Advanced/Easy/Medium fail the existing 0.08s median inter-onset floor on this dense source. |
 | Artifact writing | PASS (in-memory roundtrip) | All six physical variants produced MIDI and MusicXML bytes in memory; existing artifact validators and reparsers passed. No files were persisted. |
-| Catalog/public projection | PASS (in-memory) | One grouped shadow song and five public levels were projected from scratch rows without catalog writes. |
+| Catalog/public projection | PASS (in-memory; non-publishable) | One grouped shadow song and five public levels were projected from scratch rows; no catalog writes or publishability claim was made. |
 | Player entry links | NOT_EXERCISED | Link resolution requires a persisted catalog item; this path performs no catalog writes and no deployment was authorized. |
 
 ## Real non-synthetic shadow pair
@@ -226,12 +226,12 @@ alignment readiness.
   landmark reference was stopped before evaluation because its pinned model
   footprint exceeds the bounded download limit; its decision is
   `SPARSE_LANDMARK_RETRIEVAL_INSUFFICIENT` with a resource-blocked qualifier.
-- `REAL_SHADOW_BLOCKED_AT_ALIGNMENT`: the ASAP symbolic candidate completed the
-  downstream arrangement, six-level generation, artifact roundtrips, and
-  five-level grouped public projection in memory using independently annotated
-  alignment status. The current Keyspilli alignment method remains partial on
-  two held-outs, so the first blocker is production score-to-recording
-  alignment. Player links were not exercised because no catalog row was saved.
+- The prior ASAP route remains `REAL_SHADOW_BLOCKED_AT_ALIGNMENT`: its symbolic
+  candidate completed the downstream arrangement, six-level generation,
+  artifact roundtrips, and five-level grouped public projection in memory, but
+  production score-to-recording alignment remains partial. The current native
+  performance rehearsal and its downstream validation result are documented
+  below. Player links were not exercised because no catalog row was saved.
 
 ## Acceptance boundary
 
@@ -239,11 +239,10 @@ Automated structural evidence is the active gate. `MUSICAL_QUALITY_NOT_OBJECTIVE
 Human listening is `NOT_REQUESTED` / `NOT_REQUIRED_BY_DEFAULT`; no listening
 pack or rater gate was created. Deployment is `NOT_DEPLOYED`.
 
-The next single engineering task is
-`REGION_AWARE_REAL_SHADOW_REHEARSAL`; it should exercise explicit region
-ownership with a real shadow pair without pretending that full-song
-score-to-recording timing is solved. No further retrieval-model, classical-DTW,
-or state-space score-following work is authorized by this checkpoint.
+The region-aware real-shadow rehearsal is now recorded below. The next single
+engineering task is `REAL_SYMBOLIC_TIMING_ALIGNMENT_HARDENING`; no further
+retrieval-model, classical-DTW, or state-space score-following work is
+authorized by this checkpoint.
 
 ### Explicit score-region ownership / fallback contract
 
@@ -280,8 +279,9 @@ fallback rules. The contract emits stable reason codes including
 `DRUM_TIMING_ONLY`, `ROLE_NOT_ELIGIBLE`, and `INVALID_REGION`.
 
 Decision: `REGION_OWNERSHIP_FALLBACK_CONTRACT_VALIDATED`. The real alignment
-decision remains `REAL_SYMBOLIC_ALIGNMENT_PARTIAL`, so the real shadow remains
-`REAL_SHADOW_BLOCKED_AT_ALIGNMENT`. `MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`;
+decision remains `REAL_SYMBOLIC_ALIGNMENT_PARTIAL`; this contract checkpoint's
+prior ASAP shadow remains `REAL_SHADOW_BLOCKED_AT_ALIGNMENT`.
+`MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`;
 human listening remains `NOT_REQUIRED_BY_DEFAULT`; deployment remains
 `NOT_DEPLOYED`.
 
@@ -294,3 +294,52 @@ matching `experiment-ledger.json` entry. The local runners are
 `packages/catalog/scripts/evaluate-asap-score-alignment.py` and
 `packages/catalog/scripts/evaluate-asap-synctoolbox.py`, plus the local-only
 `packages/catalog/scripts/evaluate-matchmaker-skf.py` adapter.
+
+### Region-aware real shadow rehearsal — 2026-09-04
+
+The region-ownership contract was exercised with one real user-supplied pair,
+without copying its media into Git. The path-free report is
+`region-aware-real-shadow-rehearsal-2026-09-04.json`; the runner is
+`packages/catalog/scripts/evaluate-region-shadow-rehearsal.ts`.
+
+Lane A is a native performance-symbolic source (`USER_SUPPLIED_PRIVATE`) with
+7,266 parsed events, 360 beats, and symbolic timing marked
+`NATIVE_AUTHORITATIVE`. The paired audio is independently present
+(4,351,097 bytes, 181.219 seconds). A global-tempo onset probe matched 634 of
+649 detected audio onsets (precision 0.976888, recall 0.332459, F1 0.496087;
+median/p90/p95 error 0.021042/0.053575/0.058046 seconds), but no independent
+audio-to-beat anchors were supplied, so production alignment remains null and
+the result is `REAL_SYMBOLIC_ALIGNMENT_PARTIAL` rather than a synchronization
+claim. Region ownership still marked all 7,266 source events owned.
+
+The native source reached arrangement, all six physical difficulty builders,
+MIDI/MusicXML artifact validation, and five-level in-memory public projection.
+The route is blocked at the existing playability validator for this dense
+source: Advanced, Easy, and Medium report a 0.063-second median inter-onset
+against the 0.08-second floor. No artifact serialization errors occurred, and
+the controlled half-song withholding test retained zero events beyond the
+withheld boundary through canonical output and all variants.
+
+Lane B (732-event ASAP score plus its real audio) and Lane C (732-event score
+plus 739-event performance MIDI) remain benchmark/evaluation-only. Their
+provenance is recorded as `OPEN_LICENSE`, but the candidate class is
+`BENCHMARK_REFERENCE`; the firewall withheld every event (732 and 1,471
+respectively), emitted zero downstream events, and did not use these sources
+for generation or tuning. Lane C source ordering was deterministic, while
+native-vs-partial priority was intentionally not exercised outside the
+benchmark firewall.
+
+Decision: `GENERATION_CANDIDATE_INTAKE_READY`,
+`REAL_SYMBOLIC_ALIGNMENT_PARTIAL`, and
+`REGION_AWARE_REAL_SHADOW_BLOCKED` for this source because downstream
+playability validation is not green. The capability envelope is therefore
+partial for native performance-symbolic input, blocked for partial/rejected
+score timing, and not yet supported for arbitrary audio-only rock/metal.
+`MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`; human listening remains
+`NOT_REQUIRED_BY_DEFAULT`; deployment remains `NOT_DEPLOYED`.
+
+The rehearsal report canonical hash is
+`9c32be1c1aa3d5b540977a3025750435623e48d09d68139a57d4de290ea2e7a6` and was
+identical across two runs. The next single engineering task is
+`REAL_SYMBOLIC_TIMING_ALIGNMENT_HARDENING`; no timing-model or musical-policy
+change was made in this rehearsal.

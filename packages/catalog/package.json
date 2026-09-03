@@ -64,7 +64,8 @@
     "evaluate:independent-current": "tsx scripts/evaluate-independent-current.ts",
     "evaluate:cover-rh-cliff": "tsx scripts/evaluate-cover-rh-cliff.ts",
     "evaluate:beginner-offgrid-rh-frontier": "tsx scripts/evaluate-beginner-offgrid-rh-frontier.ts",
-    "evaluate:real-shadow-pair": "tsx scripts/evaluate-real-shadow-pair.ts"
+    "evaluate:real-shadow-pair": "tsx scripts/evaluate-real-shadow-pair.ts",
+    "evaluate:region-shadow": "tsx scripts/evaluate-region-shadow-rehearsal.ts"
   },
   "dependencies": {
     "@keyspilli/midi": "*",
