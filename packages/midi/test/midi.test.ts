@@ -753,6 +753,7 @@ describe("buildVariants", () => {
       { midi: 78, start: 6, dur: 1, vel: 100, hand: "R" },
       { midi: 40, start: 0, dur: 1, vel: 80, hand: "L", identitySource: "guitar", role: "structural-lh" },
       { midi: 41, start: 2, dur: 1, vel: 80, hand: "L", identitySource: "guitar", role: "decorative" },
+      { midi: 42, start: 2, dur: 1, vel: 80, hand: "L", identitySource: "bass" as unknown as Note["identitySource"] },
       { midi: 42, start: 4, dur: 1, vel: 80, hand: "L", identitySource: "guitar", role: "repeated-filler" },
       { midi: 43, start: 6, dur: 1, vel: 80, hand: "L", identitySource: "guitar", role: "structural-lh" },
     ];

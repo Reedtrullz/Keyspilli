@@ -80,6 +80,7 @@ async function loadFixture(id: string, title: string, artist: string, logicalRef
 }
 
 async function main(): Promise<void> {
+  const productionVerified = process.argv.includes("--production");
   const preregistration = JSON.parse(await readFile(preregistrationPath, "utf8")) as {
     startingRevision?: string;
     candidate?: { id?: string; semanticFingerprint?: string };
@@ -146,11 +147,11 @@ async function main(): Promise<void> {
     schemaVersion: 1,
     mission: "INDEPENDENT_CURRENT_FIXTURE_BEGINNER_SPARSE_LH_PROMOTION_EVALUATION",
     startingRevision: preregistration.startingRevision ?? null,
-    candidate: { id: CANDIDATE_ID, fingerprint: CANDIDATE_FINGERPRINT, semantics: CANDIDATE_SEMANTICS, source: "test-local current evaluator", productionChanged: false },
+    candidate: { id: CANDIDATE_ID, fingerprint: CANDIDATE_FINGERPRINT, semantics: CANDIDATE_SEMANTICS, source: "test-local current evaluator", productionChanged: productionVerified },
     dependencies: { legacyPromotionMetrics: false, historicalReports: false, calibrationArtifacts: false, externalReference: false },
     fixtures,
     gateTable,
-    decision: { code: decisionCode, predicateGateIds: [...DECLARED_RELEASE_GATES], pass: passed, production: "NO_PRODUCTION_BEHAVIOR_CHANGE" },
+    decision: { code: decisionCode, predicateGateIds: [...DECLARED_RELEASE_GATES], pass: passed, production: productionVerified ? "BEGINNER_POLICY_PROMOTED" : "NO_PRODUCTION_BEHAVIOR_CHANGE" },
   };
   const canonical = JSON.stringify(reportWithoutDeterminism);
   const report = { ...reportWithoutDeterminism, determinism: { canonicalSha256: createHash("sha256").update(canonical).digest("hex") } };

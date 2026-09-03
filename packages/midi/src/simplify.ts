@@ -2366,12 +2366,10 @@ function collisionAwareSparseLeftHandAnchors(
   const eligible = veryEasy
     .filter((note) => (
       note.hand === "L"
-      && note.identitySource !== "vocals"
-      && note.identitySource !== "other"
-      && (note.identitySource as string | undefined) !== "drums"
+      && (note.identitySource === undefined || note.identitySource === "guitar")
       && !rejectedRoles.has(String((note as Note & { role?: unknown }).role ?? "").toLowerCase())
     ))
-    .sort((a, b) => a.start - b.start || a.midi - b.midi || b.vel - a.vel || a.dur - b.dur);
+    .sort((a, b) => a.start - b.start || a.midi - b.midi || b.vel - a.vel);
   if (!eligible.length) return [];
 
   const byWindow = new Map<number, Map<string, Note[]>>();
@@ -2927,7 +2925,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     const sparseLh = collisionAwareSparseLeftHandAnchors(
       beginnerRh,
       sets["very-easy"]!,
-      beatsPerMeasure,
+      Math.max(1, beatsPerMeasure),
     );
     const existingKeys = new Set(beginner.map((note) => `${note.hand ?? "R"}:${note.start.toFixed(6)}:${note.midi}:${note.dur.toFixed(6)}:${note.vel}`));
     sets.beginner = [...beginner, ...sparseLh.filter((note) => {
