@@ -1024,7 +1024,7 @@
       "id": "explicit-score-region-ownership-fallback-contract-2026-09-03",
       "date": "2026-09-03",
       "startingRevision": "3453a51a3f73b47fb611d54bfea541bd53a19a96",
-      "checkpointRevisions": ["3453a51a3f73b47fb611d54bfea541bd53a19a96", "df44980eb4a29ffa507f6dc86d824892df4a2c44"],
+      "checkpointRevisions": ["3453a51a3f73b47fb611d54bfea541bd53a19a96", "df44980eb4a29ffa507f6dc86d824892df4a2c44", "32c17b346eb80bd468ef666e27a7294390f31a6e"],
       "purpose": "Make partial score/alignment evidence safe and deterministic at the catalog-to-arrangement boundary",
       "contract": {
         "schemaVersion": 1,
