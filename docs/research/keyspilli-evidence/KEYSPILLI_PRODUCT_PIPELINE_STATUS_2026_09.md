@@ -21,7 +21,7 @@ alignment mission was preregistered at checkpoint
 | Source intake | VALIDATED (local + approved direct URL seam) | Native MIDI/MusicXML/MXL parsing, bounded bytes, magic/content checks, HTML/error rejection, path-safe provenance, and candidate firewall tests pass. MSCZ is recognized but explicitly unsupported. |
 | Parse/provenance | VALIDATED | Native adapter records SHA-256/size/parser metadata; unknown provenance is not generation-eligible. |
 | Role inference | VALIDATED (shadow override) | The single-stem Guitar-TECHS MIDI is explicitly mapped to guitar for the shadow arrangement; no drum pitches reached output. |
-| Alignment | PARTIAL — REFERENCE HEADROOM PROVEN | Three real ASAP score/audio pairs were evaluated from original MAESTRO carrier bytes. The current Keyspilli monotonic-DTW method is partial on two held-outs; official SyncToolbox MrMsDTW reaches 100% annotated-beat coverage with median `0.009–0.018 s` and p95 `0.035–0.270 s`, materially beating the naïve global-tempo mapping. This proves headroom, not production readiness. |
+| Alignment | PARTIAL — FRESH CANDIDATE DID NOT PASS | The frozen `PRODUCTION_SCORE_ALIGNMENT_CANDIDATE_V1` was evaluated on four new ASAP/MAESTRO pairs. It materially beats naïve global tempo on the two runnable pairs, but misses the p95 gate (`0.320047 s` Schubert; `0.623680 s` Chopin) and fails closed on two pairs over the 32M-cell safety ceiling. This is not production readiness; the remaining blocker is regional score-to-recording path error plus bounded long-input support. |
 | Arrangement | PASS (real shadow) | The real pair completed `buildMetalArrangement`; semantic guitar diagnostics and source-tagged output were produced in memory. |
 | Six physical difficulties | PASS (real shadow) | Advanced, Medium, Easy plus the remaining physical levels were generated and validated. |
 | Artifact writing | PASS (in-memory roundtrip) | All six physical variants produced MIDI and MusicXML bytes in memory; existing artifact validators and reparsers passed. No files were persisted. |
@@ -58,8 +58,21 @@ The real-pair mission report records source hashes, deterministic rerun hashes,
 alignment metrics, and the route report hash. No benchmark material entered
 generation or tuning.
 
-Closeout verification: workspace `1,579/1,579` tests passed
-(web89/catalog1012/engrave8/midi336/player-core92/transcribe42), all six
+### Fresh production-candidate validation
+
+The candidate was frozen before any fresh result was inspected. The deterministic
+selection and metadata are in
+`asap-fresh-validation-selection-2026-09-03.json`; the result report is
+`asap-fresh-validation-results-2026-09-03.json` with canonical hash
+`3b4c7a3cd0cafe683804fd3e625c35e29ef5d220889b6a435bc9c5b6d6232c2f` (repeat
+run canonical-identical). Schubert and Chopin completed the candidate path with
+100% annotation coverage but failed the preregistered p95 threshold; Rachmaninoff
+and Bach were rejected before matrix allocation by the frozen 32M-cell bound.
+The resulting decision is `SCORE_ALIGNMENT_PRODUCTION_PARTIAL`; no fresh-result
+tuning, deployment, or shadow generation route was performed.
+
+Closeout verification: workspace `1,582/1,582` tests passed
+(web89/catalog1015/engrave8/midi336/player-core92/transcribe42), all six
 workspace typechecks passed, both alignment and downstream route reports were
 canonical-identical on repeat, JSON validation passed, and `git diff --check`
 passed. Disk free at close was 62 GiB.
@@ -102,11 +115,11 @@ alignment readiness.
 - `GENERATION_CANDIDATE_INTAKE_READY` for bounded local symbolic input and the
   opt-in approved-direct-URL seam. A parsed candidate without known provenance
   or aligned evidence remains explicitly ineligible for generation.
-- `REAL_SYMBOLIC_ALIGNMENT_PARTIAL`: the current production-intended method is
-  partial on two held-out ASAP recordings. The official SyncToolbox comparison
-  materially outperforms it and proves headroom, although one held-out p95
-  remains above the strict provisional threshold. This is evidence for the
-  next implementation slice, not a production-readiness claim.
+- `REAL_SYMBOLIC_ALIGNMENT_PARTIAL`: the frozen production candidate materially
+  improves over naïve global tempo on two fresh runnable ASAP recordings but
+  misses the p95 gate on both and fails closed on two longer pairs at the
+  resource ceiling. This is evidence for the next implementation slice, not a
+  production-readiness claim.
 - `REAL_SHADOW_BLOCKED_AT_ALIGNMENT`: the ASAP symbolic candidate completed the
   downstream arrangement, six-level generation, artifact roundtrips, and
   five-level grouped public projection in memory using independently annotated
@@ -121,8 +134,8 @@ Human listening is `NOT_REQUESTED` / `NOT_REQUIRED_BY_DEFAULT`; no listening
 pack or rater gate was created. Deployment is `NOT_DEPLOYED`.
 
 The next single engineering task is
-`IMPLEMENT_SCORE_ALIGNMENT_PRODUCTION_HARDENING`; it is a decision only and is
-not implemented in this checkpoint.
+`REAL_SYMBOLIC_TIMING_ALIGNMENT_HARDENING`; it targets the measured regional
+path error and bounded long-input support without changing musical policy.
 
 Detailed machine evidence is recorded in the
 `asap-score-alignment-2026-09-03.json` evidence file and the matching

@@ -771,6 +771,66 @@
       "nextTask": "IMPLEMENT_SCORE_ALIGNMENT_PRODUCTION_HARDENING",
       "reproducible": true,
       "rawMediaRetention": "local only; metadata and hashes committed"
+    },
+    {
+      "id": "score-alignment-production-hardening-2026-09-03",
+      "date": "2026-09-03",
+      "startingRevision": "a09ef286ea514ca172ac9ef07d5b0fbb3ab31fd3",
+      "checkpointRevisions": [
+        "2639241ff7b506a4ad0a09ed347a369a64ce4f78",
+        "628e77e87cd219e6b1f5458b9c04d6150fc9a663",
+        "d235295a657abbf8df429e31b6d9ad5cac8485ff"
+      ],
+      "purpose": "Freeze one production score-to-recording candidate and validate it on four fresh unseen real ASAP pairs before any downstream expansion",
+      "dataset": "ASAP v2.1.1 / MAESTRO carrier audio, CC BY-NC-SA 4.0",
+      "fixtures": [
+        "asap:fresh:schubert-moment-musical-3-tetzloff09m",
+        "asap:fresh:rachmaninoff-prelude-23-6-nikiforov14m",
+        "asap:fresh:chopin-etude-10-1-muna07m",
+        "asap:fresh:bach-prelude-854-lua01m"
+      ],
+      "candidate": {
+        "id": "PRODUCTION_SCORE_ALIGNMENT_CANDIDATE_V1",
+        "fingerprint": "73f1e6c73b76e140505b8f78cc609992c20a4219f95c2de2c2ad2bd5e947ba9b",
+        "frozenBeforeFreshScoring": true,
+        "maxDtwCells": 32000000,
+        "maxFrames": 9000
+      },
+      "results": {
+        "report": "asap-fresh-validation-results-2026-09-03.json",
+        "canonicalReportSha256": "3b4c7a3cd0cafe683804fd3e625c35e29ef5d220889b6a435bc9c5b6d6232c2f",
+        "repeatCanonicalEqual": true,
+        "schubert": {"coverage": 1.0, "medianSeconds": 0.048751, "p95Seconds": 0.320047, "status": "FAIL_P95_GATE"},
+        "chopin": {"coverage": 1.0, "medianSeconds": 0.044326, "p95Seconds": 0.62368, "status": "FAIL_P95_GATE"},
+        "rachmaninoff": {"status": "REJECTED_CELL_BOUND"},
+        "bach": {"status": "REJECTED_CELL_BOUND"},
+        "batchRuntimeSeconds": {"first": 139.191, "repeat": 139.061},
+        "maxRssMiB": {"first": 1933.672, "repeat": 1722.735}
+      },
+      "firewall": {
+        "benchmarkReferencesUsedForGeneration": false,
+        "benchmarkReferencesUsedForTuning": false,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NOT_DEPLOYED"
+      },
+      "decisions": {
+        "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+        "realAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "realShadow": "REAL_SHADOW_BLOCKED_AT_ALIGNMENT",
+        "firstBlocker": "regional score-to-recording path error on runnable fresh pairs plus the frozen long-input resource ceiling",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED"
+      },
+      "verification": {
+        "workspaceTests": 1582,
+        "workspaceTestBreakdown": {"web": 89, "catalog": 1015, "engrave": 8, "midi": 336, "playerCore": 92, "transcribe": 42},
+        "workspaceTypechecks": 6,
+        "gitDiffCheck": true,
+        "alignmentRepeatCanonicalEqual": true,
+        "diskFreeGiBAtClose": 62,
+        "rawMediaRetention": "local only; hashes and metadata committed"
+      },
+      "nextTask": "REAL_SYMBOLIC_TIMING_ALIGNMENT_HARDENING",
+      "reproducible": true
     }
   ]
 }

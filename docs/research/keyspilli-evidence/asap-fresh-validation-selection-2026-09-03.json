@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "mission": "IMPLEMENT_SCORE_ALIGNMENT_PRODUCTION_HARDENING",
   "status": "FROZEN_BEFORE_SCORING",
+  "evaluation": {"report": "asap-fresh-validation-results-2026-09-03.json", "canonicalSha256": "3b4c7a3cd0cafe683804fd3e625c35e29ef5d220889b6a435bc9c5b6d6232c2f", "decision": "SCORE_ALIGNMENT_PRODUCTION_PARTIAL"},
   "dataset": {"name": "ASAP", "release": "v2.1.1", "license": "CC BY-NC-SA 4.0", "audioCarrier": "MAESTRO v2.0.0"},
   "selection": {
     "seed": "asap-v2.1.1-sha256-composer-v1",

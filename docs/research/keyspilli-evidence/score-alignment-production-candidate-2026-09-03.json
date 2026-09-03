@@ -49,8 +49,12 @@
     "decisionBeforeFresh": "Use one bounded Strategy-A candidate; do not add SyncToolbox or tune against fresh outcomes"
   },
   "freshValidation": {
-    "selection": "pending candidate freeze; deterministic ASAP metadata/hash ordering, four composers, no prior three fixtures",
-    "metrics": "not inspected at freeze"
+    "selection": "asap-fresh-validation-selection-2026-09-03.json; four deterministic composer groups, no prior three fixtures",
+    "results": "asap-fresh-validation-results-2026-09-03.json",
+    "reportCanonicalSha256": "3b4c7a3cd0cafe683804fd3e625c35e29ef5d220889b6a435bc9c5b6d6232c2f",
+    "repeatCanonicalEqual": true,
+    "metrics": "candidate runs on Schubert and Chopin but misses p95 gate (0.320047s and 0.623680s); Rachmaninoff and Bach fail closed at the frozen 32M-cell ceiling",
+    "decision": "SCORE_ALIGNMENT_PRODUCTION_PARTIAL"
   },
   "firewall": {
     "benchmarkReferencesUsedForGeneration": false,
