@@ -1080,7 +1080,7 @@
       "id": "region-aware-real-shadow-rehearsal-2026-09-04",
       "date": "2026-09-04",
       "startingRevision": "e143c11cb0f89aa31b89ee1c83f58136a5aef1f8",
-      "checkpointRevision": null,
+      "checkpointRevision": "185a08b6778f0db894835a58c51168a663868083",
       "purpose": "Exercise the region-ownership and fallback contract on a real user-supplied performance pair without benchmark generation",
       "route": "local symbolic intake -> provenance/firewall -> region ownership -> native arrangement -> six physical levels -> MIDI/MusicXML artifacts -> five-level in-memory projection",
       "candidateIntake": {
@@ -1125,6 +1125,7 @@
       "verification": {
         "report": "region-aware-real-shadow-rehearsal-2026-09-04.json",
         "reportCanonicalSha256": "9c32be1c1aa3d5b540977a3025750435623e48d09d68139a57d4de290ea2e7a6",
+        "reportSha256": "6508e00e88fb1124ffa2914168a9ed855c9a2e4aa667748ddd61a3b367b4181b",
         "repeatCanonicalEqual": true,
         "workspaceTests": 1599,
         "workspaceTestBreakdown": {"web": 89, "catalog": 1032, "engrave": 8, "midi": 336, "playerCore": 92, "transcribe": 42},
