@@ -38,6 +38,7 @@
       "performanceAudio": "Bach/Fugue/bwv_854/LuA01M.wav",
       "maestroAudio": "2015/MIDI-Unprocessed_R1_D1-1-8_mid--AUDIO-from_mp3_04_R1_2015_wav--1.wav",
       "metadataStartSeconds": 91.77916666666668,
+      "analysisPaddingSeconds": 0.5,
       "scoreAndPerformanceAligned": true,
       "annotatedScoreBeats": 111,
       "annotatedPerformanceBeats": 111,
@@ -55,6 +56,7 @@
       "performanceAudio": "Chopin/Etudes_op_10/1/ChenW03M.wav",
       "maestroAudio": "2015/MIDI-Unprocessed_R1_D2-13-20_mid--AUDIO-from_mp3_20_R1_2015_wav--3.wav",
       "metadataStartSeconds": null,
+      "analysisPaddingSeconds": 0.0,
       "scoreAndPerformanceAligned": true,
       "annotatedScoreBeats": 313,
       "annotatedPerformanceBeats": 313,
@@ -72,6 +74,7 @@
       "performanceAudio": "Liszt/Transcendental_Etudes/1/LuoJ05M.wav",
       "maestroAudio": "2015/MIDI-Unprocessed_R1_D1-1-8_mid--AUDIO-from_mp3_06_R1_2015_wav--3.wav",
       "metadataStartSeconds": null,
+      "analysisPaddingSeconds": 0.0,
       "scoreAndPerformanceAligned": true,
       "annotatedScoreBeats": 92,
       "annotatedPerformanceBeats": 92,
@@ -82,7 +85,8 @@
     "source": "ASAP asap_annotations.json performance_beats and midi_score_beats",
     "use": "paired annotated score-domain times to performance audio seconds",
     "excluded": "beats marked bR in either score or performance annotation are excluded from timing error aggregates but retained in sanity counts",
-    "audioTruth": "no audio onset detector is used as ground truth"
+    "audioTruth": "no audio onset detector is used as ground truth",
+    "audioPreparation": "official ASAP initialize_dataset crop semantics: source start plus 0.5-second leading padding when a nonblank start is present"
   },
   "scoreFeatures": "KEYSPILLI_CURRENT_SCORE_FEATURES: score-MIDI chroma plus onset-strength evidence",
   "audioFeatures": {
@@ -92,7 +96,7 @@
     "onsetWeight": 0.5
   },
   "methods": [
-    "naive-global-affine",
+    "naive-global-tempo",
     "keyspilli-current-monotonic-dtw",
     "synctoolbox-official-default-if-required"
   ],

@@ -712,6 +712,64 @@
       "nextTask": "SCORE_TO_RECORDING_ALIGNMENT_HARDENING",
       "reproducible": true,
       "rawMediaRetention": "local only; metadata and hashes committed"
+    },
+    {
+      "id": "score-to-recording-alignment-hardening-2026-09-03",
+      "date": "2026-09-03",
+      "startingRevision": "d284b911b2a1ce3e22ce701f0ca02588f1f2b238",
+      "checkpointRevisions": ["93127f1db268cf343ef76640af5e800795af4cd4"],
+      "purpose": "Measure preregistered real ASAP score-to-recording alignment and route one real symbolic candidate through the downstream product path",
+      "dataset": "ASAP v2.1.1 / MAESTRO carrier audio, CC BY-NC-SA 4.0",
+      "fixtures": [
+        "asap:dev:bach-fugue-bwv854-lua01m",
+        "asap:holdout-1:chopin-etude-op10-1-chenw03m",
+        "asap:holdout-2:liszt-transcendental-etude-1-luoj05m"
+      ],
+      "firewall": {
+        "benchmarkReferencesUsedForGeneration": false,
+        "benchmarkReferencesUsedForTuning": false,
+        "realGenerationCandidateRouted": true,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NOT_DEPLOYED"
+      },
+      "methods": {
+        "keyspilliCurrent": {
+          "reportCanonicalSha256": "b4f4218599762a537289e9d9655623a785359d30d41bf2a304d39e180ced8749",
+          "decision": "SCORE_ALIGNMENT_PARTIAL"
+        },
+        "syncToolboxReference": {
+          "reportCanonicalSha256": "3eda69d4030dbdf53e2891bbeb6d524ba198c1d92889f320af8d913571b28ca2",
+          "decision": "SCORE_ALIGNMENT_REFERENCE_PROVES_HEADROOM",
+          "broadAllFixturesPass": true,
+          "strictAllFixturesPass": false
+        },
+        "deterministic": true
+      },
+      "shadow": {
+        "routeReportCanonicalSha256": "b8731dbd7b964f6db5c055d0ab691a730c5876e1175456d6b63ab5900fa40512",
+        "downstream": "arrangement + six physical levels + validated MIDI/MusicXML artifacts + five public levels in scratch",
+        "status": "REAL_SHADOW_BLOCKED_AT_ALIGNMENT",
+        "playerLinks": "NOT_EXERCISED_NO_PERSISTED_ROW"
+      },
+      "decisions": {
+        "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+        "realAlignment": "SCORE_ALIGNMENT_REFERENCE_PROVES_HEADROOM",
+        "realShadow": "REAL_SHADOW_BLOCKED_AT_ALIGNMENT",
+        "firstBlocker": "current production-intended score-to-recording alignment remains partial on two held-out real recordings",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED"
+      },
+      "verification": {
+        "workspaceTests": 1579,
+        "workspaceTestBreakdown": {"web": 89, "catalog": 1012, "engrave": 8, "midi": 336, "playerCore": 92, "transcribe": 42},
+        "workspaceTypechecks": 6,
+        "gitDiffCheck": true,
+        "alignmentRepeatCanonicalEqual": true,
+        "routeRepeatCanonicalEqual": true,
+        "diskFreeGiBAtClose": 62
+      },
+      "nextTask": "IMPLEMENT_SCORE_ALIGNMENT_PRODUCTION_HARDENING",
+      "reproducible": true,
+      "rawMediaRetention": "local only; metadata and hashes committed"
     }
   ]
 }

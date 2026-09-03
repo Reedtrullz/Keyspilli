@@ -1,0 +1,171 @@
+{
+  "schemaVersion": 1,
+  "mission": "SCORE_TO_RECORDING_ALIGNMENT_HARDENING",
+  "recordedAt": "2026-09-03",
+  "revisions": {
+    "requestedMissionStart": "d284b911b2a1ce3e22ce701f0ca02588f1f2b238",
+    "preregisteredCheckpoint": "93127f1db268cf343ef76640af5e800795af4cd4",
+    "preregistration": "asap-score-alignment-preregistration-2026-09-03.json"
+  },
+  "dataset": {
+    "name": "ASAP",
+    "release": "v2.1.1",
+    "revision": "4097b45757bed854818cf87e77b92323ebf90615",
+    "license": "CC BY-NC-SA 4.0",
+    "repository": "https://github.com/CPJKU/asap-dataset",
+    "metadataSha256": "5c6622cae9ae34643fc5b35150de5e2891fd8ffbddd1fd579fa6b984014e6924",
+    "annotationsSha256": "d04ad9c9d693487458b677fdc7428ea61284192ea0a3934e0df26c97c8262dc2",
+    "audioCarrier": "MAESTRO v2.0.0",
+    "audioPreparation": "official ASAP crop plus 0.5-second leading padding when metadata start is nonblank"
+  },
+  "fixtures": [
+    {
+      "id": "asap:dev:bach-fugue-bwv854-lua01m",
+      "role": "DEV",
+      "scoreSha256": "153f4bbb2a1cdbe7fde43a83e80e8b0aa8194e1c8180a6e2755778f2736f7807",
+      "performanceMidiSha256": "75bbd76bf557e4103a48436b67e9a82d31bb60efb70fc40a985a0fb56572951c",
+      "audioSha256": "1216c05f0532e6c3c81e299068d9d757709c8d3a71ad30277533705f41925a75",
+      "scoreNotes": 733,
+      "scoreDurationSeconds": 58.0,
+      "performanceDurationSeconds": 68.653125,
+      "audioSourceDurationSeconds": 160.758367,
+      "analysisDurationSeconds": 69.479184,
+      "analysisStartSeconds": 91.779167,
+      "analysisPaddingSeconds": 0.5,
+      "usableAnnotatedBeats": 111,
+      "annotatedDownbeats": 28
+    },
+    {
+      "id": "asap:holdout-1:chopin-etude-op10-1-chenw03m",
+      "role": "HOLDOUT",
+      "scoreSha256": "987eddc317acc021b42e9f16e10241b4dcb63420e5bbc681a1a2275fe30cc95b",
+      "performanceMidiSha256": "68aa614d33da3efcbeeb08f144f8133098364dab836fdd7ffce5f3c5bd05f5ee",
+      "audioSha256": "1ed9d6f4e417d229b6777fa708cf9f76a9dd316a0b421bf8b730f59c98932851",
+      "scoreNotes": 1337,
+      "scoreDurationSeconds": 107.727244,
+      "performanceDurationSeconds": 117.616667,
+      "audioSourceDurationSeconds": 117.702086,
+      "analysisDurationSeconds": 117.702086,
+      "analysisStartSeconds": null,
+      "analysisPaddingSeconds": 0.0,
+      "usableAnnotatedBeats": 313,
+      "annotatedDownbeats": 79
+    },
+    {
+      "id": "asap:holdout-2:liszt-transcendental-etude-1-luoj05m",
+      "role": "HOLDOUT",
+      "scoreSha256": "e351698d307e3ef124ff43843bd373176643a1a3e4ddbce2b0bceaea23169efd",
+      "performanceMidiSha256": "c72281527ca6588836bd1e109de848a8fd2ac246bbf06e25a58939d3168468fe",
+      "audioSha256": "040e85a32b576074dc3af60fa8175472d6584bd76fb6156808449df66ecfb77e",
+      "scoreNotes": 658,
+      "scoreDurationSeconds": 57.567049,
+      "performanceDurationSeconds": 45.161458,
+      "audioSourceDurationSeconds": 46.160408,
+      "analysisDurationSeconds": 46.160408,
+      "analysisStartSeconds": null,
+      "analysisPaddingSeconds": 0.0,
+      "usableAnnotatedBeats": 85,
+      "annotatedDownbeats": 22
+    }
+  ],
+  "alignment": {
+    "groundTruth": "independent ASAP score/performance beat annotations; audio onset detection is not ground truth",
+    "config": {
+      "onsetToleranceSeconds": 0.125,
+      "featureSampleRate": 22050,
+      "hopLength": 512,
+      "nFft": 4096,
+      "onsetWeight": 0.5,
+      "featureRate": 50,
+      "synctoolboxStepWeights": [1.5, 1.5, 2.0]
+    },
+    "methods": {
+      "keyspilliCurrentMonotonicDtw": {
+        "script": "packages/catalog/scripts/evaluate-asap-score-alignment.py",
+        "reportCanonicalSha256": "b4f4218599762a537289e9d9655623a785359d30d41bf2a304d39e180ced8749",
+        "decision": "SCORE_ALIGNMENT_PARTIAL",
+        "fixtures": {
+          "asap:dev:bach-fugue-bwv854-lua01m": {"coverage": 1.0, "medianSeconds": 0.020764, "p90Seconds": 0.050724, "p95Seconds": 0.059316, "maxSeconds": 0.607094, "monotonicViolations": 0, "segments": 32},
+          "asap:holdout-1:chopin-etude-op10-1-chenw03m": {"coverage": 1.0, "medianSeconds": 0.045278, "p90Seconds": 0.550648, "p95Seconds": 1.796573, "maxSeconds": 5.749666, "monotonicViolations": 0, "segments": 32},
+          "asap:holdout-2:liszt-transcendental-etude-1-luoj05m": {"coverage": 1.0, "medianSeconds": 0.053899, "p90Seconds": 0.622221, "p95Seconds": 0.99478, "maxSeconds": 1.315014, "monotonicViolations": 0, "segments": 32}
+        }
+      },
+      "naiveGlobalTempo": {
+        "script": "packages/catalog/scripts/evaluate-asap-score-alignment.py",
+        "decision": "DIAGNOSTIC_ONLY",
+        "fixtures": {
+          "asap:dev:bach-fugue-bwv854-lua01m": {"medianSeconds": 4.251389, "p95Seconds": 7.944097, "maxSeconds": 9.059896},
+          "asap:holdout-1:chopin-etude-op10-1-chenw03m": {"medianSeconds": 2.107212, "p95Seconds": 4.558342, "maxSeconds": 5.746809},
+          "asap:holdout-2:liszt-transcendental-etude-1-luoj05m": {"medianSeconds": 6.391146, "p95Seconds": 13.741592, "maxSeconds": 14.058997}
+        }
+      },
+      "syncToolboxOfficialMrmsdtw": {
+        "version": "1.4.2",
+        "commit": "49b1f128c719883e0b007f5948efde985445199f",
+        "license": "MIT",
+        "pipeline": "sync_audio_score_full.ipynb official/default CENS + DLNCO + MrMsDTW",
+        "reportCanonicalSha256": "3eda69d4030dbdf53e2891bbeb6d524ba198c1d92889f320af8d913571b28ca2",
+        "broadAllFixturesPass": true,
+        "strictAllFixturesPass": false,
+        "decision": "SCORE_ALIGNMENT_REFERENCE_PROVES_HEADROOM",
+        "fixtures": {
+          "asap:dev:bach-fugue-bwv854-lua01m": {"coverage": 1.0, "medianSeconds": 0.00875, "p90Seconds": 0.026528, "p95Seconds": 0.034896, "maxSeconds": 0.089375, "monotonicViolations": 0, "warpPathFrames": 2885},
+          "asap:holdout-1:chopin-etude-op10-1-chenw03m": {"coverage": 1.0, "medianSeconds": 0.014322, "p90Seconds": 0.034193, "p95Seconds": 0.071514, "maxSeconds": 2.360275, "monotonicViolations": 0, "warpPathFrames": 5234},
+          "asap:holdout-2:liszt-transcendental-etude-1-luoj05m": {"coverage": 1.0, "medianSeconds": 0.0175, "p90Seconds": 0.115791, "p95Seconds": 0.269892, "maxSeconds": 0.401458, "monotonicViolations": 0, "warpPathFrames": 2075}
+        }
+      }
+    },
+    "determinism": {
+      "keyspilliRepeatCanonicalEqual": true,
+      "keyspilliRepeatReportCanonicalSha256": "b4f4218599762a537289e9d9655623a785359d30d41bf2a304d39e180ced8749",
+      "synctoolboxRepeatCanonicalEqual": true,
+      "synctoolboxRepeatReportCanonicalSha256": "3eda69d4030dbdf53e2891bbeb6d524ba198c1d92889f320af8d913571b28ca2"
+    }
+  },
+  "shadowProductPath": {
+    "status": "REAL_SHADOW_BLOCKED_AT_ALIGNMENT",
+    "proofBoundary": "downstream path was exercised with the independently annotated ASAP aligned status; the current Keyspilli timing method remains partial",
+    "route": "EXTERNAL_SYMBOLIC_FIRST",
+    "mode": "semantic-band",
+    "freezeDigest": "db8bbc0e494f3f134bf5d68b702778239b9535860024f4ddf30d9afe5ba8be4f",
+    "routeReportCanonicalSha256": "b8731dbd7b964f6db5c055d0ab691a730c5876e1175456d6b63ab5900fa40512",
+    "canonicalNoteCount": 719,
+    "physicalLevels": ["very-beginner", "beginner", "very-easy", "easy", "medium", "advanced"],
+    "physicalVariantCounts": {"very-beginner": 122, "beginner": 151, "very-easy": 276, "easy": 369, "medium": 450, "advanced": 718},
+    "variantValidation": [],
+    "variantMonotonicity": [],
+    "artifacts": "six MIDI + six MusicXML files validated and reparsed in private scratch",
+    "catalogProjection": {"groupCount": 1, "publicGroupCount": 1, "publicLevels": ["very-beginner", "beginner", "easy", "medium", "advanced"], "representative": "easy"},
+    "playerLinks": "NOT_EXERCISED_NO_PERSISTED_ROW"
+  },
+  "decisions": {
+    "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+    "alignment": "SCORE_ALIGNMENT_REFERENCE_PROVES_HEADROOM",
+    "realShadow": "REAL_SHADOW_BLOCKED_AT_ALIGNMENT",
+    "firstBlocker": "the current production-intended score-to-recording method remains partial on two held-out pieces; the official reference method demonstrates headroom",
+    "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED"
+  },
+  "safety": {
+    "benchmarkReferencesUsedForGeneration": false,
+    "benchmarkReferencesUsedForTuning": false,
+    "sourceBytesCommitted": false,
+    "networkUsedDuringScoring": false,
+    "productionWrites": false,
+    "deployment": "NOT_DEPLOYED",
+    "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+    "referenceMediaRetention": "local only; metadata and hashes committed"
+  },
+  "verification": {
+    "workspaceTestsBeforeMissionScripts": 1579,
+    "workspaceTestsFinal": 1579,
+    "workspaceTestBreakdownFinal": {"web": 89, "catalog": 1012, "engrave": 8, "midi": 336, "playerCore": 92, "transcribe": 42},
+    "workspaceTypechecksBeforeMissionScripts": 6,
+    "workspaceTypechecksFinal": 6,
+    "pythonScriptsCompiled": true,
+    "diskFreeGiBAtEvaluation": 62,
+    "gitDiffCheck": true,
+    "alignmentRepeatCanonicalEqual": true,
+    "routeRepeatCanonicalEqual": true
+  },
+  "nextTask": "IMPLEMENT_SCORE_ALIGNMENT_PRODUCTION_HARDENING"
+}
