@@ -108,6 +108,8 @@ export interface ParsedMidi {
   tempoBpm: number;
   /** Whether the source carried an explicit tempo meta/direction. */
   tempoMetaPresent?: boolean;
+  /** Native MIDI tempo changes, in source ticks and quarter-note beats. */
+  tempoEvents?: MidiTempoEvent[];
   /** key signature in sharps (+n) / flats (-n) */
   keySig: number;
   /** key mode: 0 major, 1 minor */
@@ -117,6 +119,14 @@ export interface ParsedMidi {
   trackNames: string[];
   durationBeats: number;
   title?: string;
+}
+
+/** A MIDI Set Tempo event retained for native beat-to-second conversion. */
+export interface MidiTempoEvent {
+  tick: number;
+  beat: number;
+  microsecondsPerQuarter: number;
+  bpm: number;
 }
 
 export type DifficultyLevel =

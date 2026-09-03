@@ -83,6 +83,29 @@ describe("real audio to symbolic timing evidence", () => {
     expect(result.naive?.metrics.matchedOnsets).toBeLessThan(production.metrics.matchedOnsets);
   });
 
+  it("uses an explicitly supplied native tempo map without collapsing tempo changes", () => {
+    const result = evaluateAudioSymbolicAlignment(input({
+      anchors: undefined,
+      tempoBpm: 120,
+      nativeTempoEvents: [
+        { beat: 0, bpm: 120 },
+        { beat: 1, bpm: 60 },
+      ],
+      beatZeroAudioSeconds: 0,
+      audioOnsetSeconds: [0, 0.5, 1.5],
+      symbolicNotes: [
+        { midi: 60, start: 0, dur: 0.25, vel: 100 },
+        { midi: 62, start: 1, dur: 0.25, vel: 100 },
+        { midi: 64, start: 2, dur: 0.25, vel: 100 },
+      ],
+    }));
+
+    expect(result.status).toBe("aligned");
+    expect(result.production?.mapping.method).toBe("native-tempo-map");
+    expect(result.production?.mapping.segments).toHaveLength(2);
+    expect(result.production?.metrics.errorSeconds.p95).toBe(0);
+  });
+
   it("uses a single explicit beat anchor to phase-lock a seconds-per-beat map", () => {
     const result = evaluateAudioSymbolicAlignment(input({
       anchors: [{ id: "phase", audioSeconds: 0.75, beat: 1 }],

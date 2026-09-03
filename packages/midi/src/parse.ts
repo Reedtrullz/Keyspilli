@@ -1,4 +1,4 @@
-import { Hand, Note, ParsedMidi } from "./types.js";
+import { Hand, MidiTempoEvent, Note, ParsedMidi } from "./types.js";
 
 function inferTrackHand(names: string[]): Hand | undefined {
   const text = names.join(" ").toLowerCase();
@@ -46,12 +46,13 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
   const ntrks = (buf[10]! << 8) | buf[11]!;
   const division = (buf[12]! << 8) | buf[13]!;
   if (division & 0x8000) throw new Error("SMPTE timing not supported");
+  if (division === 0) throw new Error("invalid MIDI division: must be positive");
   if (ntrks === 0 || ntrks > 512) throw new Error("invalid track count");
   let pos = 8 + headerLen;
 
   const trackNotes: Note[][] = [];
   const trackNames: string[] = [];
-  const tempos: { beat: number; bpm: number }[] = [];
+  const tempos: MidiTempoEvent[] = [];
   let timeSig: [number, number] = [4, 4];
   let keySig = 0;
   let keyMode: 0 | 1 = 0;
@@ -100,7 +101,7 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
           if (pos + len2 > end) throw new Error(`truncated MIDI meta payload at pos=${pos} len=${len2} end=${end}`);
           if (type === 0x51 && len2 === 3) {
             const us = (buf[pos]! << 16) | (buf[pos + 1]! << 8) | buf[pos + 2]!;
-            if (us > 0) tempos.push({ beat: tick / division, bpm: 60_000_000 / us });
+            if (us > 0) tempos.push({ tick, beat: tick / division, microsecondsPerQuarter: us, bpm: 60_000_000 / us });
           } else if (type === 0x58 && len2 === 4) {
             timeSig = [buf[pos]!, 1 << buf[pos + 1]!];
           } else if (type === 0x59 && len2 === 2) {
@@ -123,6 +124,12 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
           pos = lenPos.v;
           if (pos + len2 > end) throw new Error(`truncated MIDI sysex payload at pos=${pos} len=${len2} end=${end}`);
           pos += len2;
+        } else if (status === 0xf1 || status === 0xf3) {
+          if (pos + 1 > end) throw new Error(`truncated MIDI system-common message at pos=${pos}`);
+          pos += 1;
+        } else if (status === 0xf2) {
+          if (pos + 2 > end) throw new Error(`truncated MIDI system-common message at pos=${pos}`);
+          pos += 2;
         }
         continue;
       }
@@ -209,6 +216,7 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
     division,
     tempoBpm,
     tempoMetaPresent: tempos.length > 0,
+    ...(tempos.length ? { tempoEvents: tempos.sort((a, b) => a.tick - b.tick || a.microsecondsPerQuarter - b.microsecondsPerQuarter) } : {}),
     keySig,
     keyMode,
     timeSig,
@@ -217,4 +225,34 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
     durationBeats,
     title,
   };
+}
+
+/** Convert a non-negative source MIDI tick to native elapsed seconds. */
+export function midiTickToNativeSeconds(
+  parsed: Pick<ParsedMidi, "division" | "tempoBpm" | "tempoEvents">,
+  tick: number,
+): number {
+  if (!Number.isFinite(tick) || tick < 0 || !Number.isFinite(parsed.division) || parsed.division <= 0) return Number.NaN;
+  const events = (parsed.tempoEvents ?? [])
+    .filter((event) => Number.isFinite(event.tick) && event.tick >= 0 && Number.isFinite(event.microsecondsPerQuarter) && event.microsecondsPerQuarter > 0)
+    .slice()
+    .sort((left, right) => left.tick - right.tick || left.microsecondsPerQuarter - right.microsecondsPerQuarter);
+  let currentUs = Number.isFinite(parsed.tempoBpm) && parsed.tempoBpm > 0 ? 60_000_000 / parsed.tempoBpm : 500_000;
+  let previousTick = 0;
+  let seconds = 0;
+  for (const event of events) {
+    if (event.tick > tick) break;
+    seconds += ((event.tick - previousTick) / parsed.division) * currentUs / 1_000_000;
+    previousTick = event.tick;
+    currentUs = event.microsecondsPerQuarter;
+  }
+  return seconds + ((tick - previousTick) / parsed.division) * currentUs / 1_000_000;
+}
+
+/** Convert a symbolic quarter-note beat to native MIDI seconds. */
+export function midiBeatToNativeSeconds(
+  parsed: Pick<ParsedMidi, "division" | "tempoBpm" | "tempoEvents">,
+  beat: number,
+): number {
+  return midiTickToNativeSeconds(parsed, beat * parsed.division);
 }

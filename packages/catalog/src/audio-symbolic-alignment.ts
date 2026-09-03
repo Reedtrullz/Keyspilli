@@ -10,6 +10,12 @@ export const AUDIO_SYMBOLIC_ALIGNMENT_SCHEMA_VERSION = 1 as const;
 
 export type AudioSymbolicAlignmentStatus = "aligned" | "insufficient-evidence" | "invalid";
 
+/** Native symbolic tempo evidence, retained separately from audio timing. */
+export interface AudioNativeTempoEvent {
+  beat: number;
+  bpm: number;
+}
+
 export interface AudioBeatAnchor {
   /** Time measured from the independent recording/onset extractor. */
   audioSeconds: number;
@@ -31,6 +37,10 @@ export interface AudioSymbolicAlignmentInput {
   secondsPerBeat?: number;
   /** Audio time corresponding to symbolic beat zero for secondsPerBeat evidence. */
   beatZeroAudioSeconds?: number;
+  /** Explicit tempo-map evidence from the symbolic source. It does not imply
+   * an audio/sample-zero latency; callers must provide beatZeroAudioSeconds
+   * when that offset is known. */
+  nativeTempoEvents?: readonly AudioNativeTempoEvent[];
   /** Candidate metadata is used only for the naïve global-tempo comparison. */
   tempoBpm?: number;
   onsetToleranceBeats?: number;
@@ -95,7 +105,7 @@ export interface AudioTimingDrift {
 }
 
 export interface AudioTimingMapping {
-  method: "anchors" | "seconds-per-beat" | "global-tempo";
+  method: "anchors" | "seconds-per-beat" | "global-tempo" | "native-tempo-map";
   beatZeroAudioSeconds: number;
   segments: AudioTimingMappingSegment[];
   drift: AudioTimingDrift;
@@ -134,6 +144,7 @@ interface ValidatedInput {
   secondsPerBeat: number | null;
   beatZeroAudioSeconds: number;
   beatZeroAudioSecondsExplicit: boolean;
+  nativeTempoEvents: AudioNativeTempoEvent[];
   tempoBpm: number | null;
   onsetToleranceBeats: number;
   onsetDedupToleranceSeconds: number;
@@ -231,6 +242,7 @@ function validateAndNormalize(input: AudioSymbolicAlignmentInput | null | undefi
     return {
       notes: [], audioOnsets: [], anchors: [], secondsPerBeat: null, beatZeroAudioSeconds: 0,
       beatZeroAudioSecondsExplicit: false,
+      nativeTempoEvents: [],
       tempoBpm: null, onsetToleranceBeats: DEFAULT_ONSET_TOLERANCE_BEATS,
       onsetDedupToleranceSeconds: DEFAULT_ONSET_DEDUP_SECONDS,
       diagnostics: ["alignment input must be an object"],
@@ -327,6 +339,29 @@ function validateAndNormalize(input: AudioSymbolicAlignmentInput | null | undefi
   const beatZeroAudioSeconds = rawBeatZero === undefined ? 0 : rawBeatZero;
   if (!finite(beatZeroAudioSeconds) || beatZeroAudioSeconds < 0) diagnostics.push("beatZeroAudioSeconds must be finite and non-negative");
 
+  const nativeTempoEvents: AudioNativeTempoEvent[] = [];
+  if (input.nativeTempoEvents !== undefined) {
+    if (!Array.isArray(input.nativeTempoEvents)) diagnostics.push("native tempo events must be an array");
+    else {
+      for (const value of input.nativeTempoEvents) {
+        if (!value || typeof value !== "object" || Array.isArray(value)) {
+          diagnostics.push("invalid native tempo event");
+          continue;
+        }
+        const event = value as Partial<AudioNativeTempoEvent>;
+        if (!finite(event.beat) || event.beat < 0 || !finite(event.bpm) || event.bpm <= 0 || event.bpm > 1000) {
+          diagnostics.push("native tempo events require finite non-negative beat and positive BPM");
+          continue;
+        }
+        nativeTempoEvents.push({ beat: event.beat, bpm: event.bpm });
+      }
+      nativeTempoEvents.sort((left, right) => left.beat - right.beat || left.bpm - right.bpm);
+      for (let index = 1; index < nativeTempoEvents.length; index += 1) {
+        if (nativeTempoEvents[index]!.beat < nativeTempoEvents[index - 1]!.beat) diagnostics.push("native tempo events must be monotonic");
+      }
+    }
+  }
+
   const rawTempo = input.tempoBpm;
   const tempoBpm = rawTempo === undefined
     ? null
@@ -340,6 +375,7 @@ function validateAndNormalize(input: AudioSymbolicAlignmentInput | null | undefi
     secondsPerBeat,
     beatZeroAudioSeconds: finite(beatZeroAudioSeconds) && beatZeroAudioSeconds >= 0 ? beatZeroAudioSeconds : 0,
     beatZeroAudioSecondsExplicit: rawBeatZero !== undefined,
+    nativeTempoEvents,
     tempoBpm,
     onsetToleranceBeats: finite(onsetToleranceBeats) && onsetToleranceBeats > 0 && onsetToleranceBeats <= 4 ? onsetToleranceBeats : DEFAULT_ONSET_TOLERANCE_BEATS,
     onsetDedupToleranceSeconds: finite(onsetDedupToleranceSeconds) && onsetDedupToleranceSeconds >= 0 && onsetDedupToleranceSeconds <= 1 ? onsetDedupToleranceSeconds : DEFAULT_ONSET_DEDUP_SECONDS,
@@ -480,6 +516,53 @@ function mappingFromTempo(
   }], phase);
 }
 
+function mappingFromNativeTempo(
+  events: readonly AudioNativeTempoEvent[],
+  beatZeroAudioSeconds: number,
+  maxBeat: number,
+): InternalMapping | null {
+  if (!events.length || !finite(beatZeroAudioSeconds) || beatZeroAudioSeconds < 0) return null;
+  const ordered = events.filter((event) => finite(event.beat) && event.beat >= 0 && finite(event.bpm) && event.bpm > 0).slice()
+    .sort((left, right) => left.beat - right.beat || left.bpm - right.bpm);
+  if (!ordered.length) return null;
+  const endBeat = Math.max(1, maxBeat, ordered.at(-1)!.beat + 1);
+  const segments: AudioTimingMappingSegment[] = [];
+  let currentBeat = 0;
+  let currentAudio = beatZeroAudioSeconds;
+  let currentBpm = ordered[0]!.beat > EPS ? 120 : ordered[0]!.bpm;
+  for (const event of ordered) {
+    if (event.beat > currentBeat + EPS) {
+      const secondsPerBeat = 60 / currentBpm;
+      const beatEnd = Math.min(event.beat, endBeat);
+      const audioEnd = currentAudio + (beatEnd - currentBeat) * secondsPerBeat;
+      segments.push({
+        audioStartSeconds: currentAudio,
+        audioEndSeconds: audioEnd,
+        beatStart: currentBeat,
+        beatEnd,
+        beatsPerSecond: 1 / secondsPerBeat,
+        secondsPerBeat,
+      });
+      currentAudio = audioEnd;
+      currentBeat = beatEnd;
+    }
+    if (event.beat <= endBeat + EPS) currentBpm = event.bpm;
+    if (currentBeat >= endBeat - EPS) break;
+  }
+  if (currentBeat < endBeat - EPS) {
+    const secondsPerBeat = 60 / currentBpm;
+    segments.push({
+      audioStartSeconds: currentAudio,
+      audioEndSeconds: currentAudio + (endBeat - currentBeat) * secondsPerBeat,
+      beatStart: currentBeat,
+      beatEnd: endBeat,
+      beatsPerSecond: 1 / secondsPerBeat,
+      secondsPerBeat,
+    });
+  }
+  return mappingFromSegments("native-tempo-map", segments, beatZeroAudioSeconds);
+}
+
 function mappingFromGlobalAnchors(anchors: readonly AudioBeatAnchor[]): InternalMapping | null {
   if (anchors.length < 2) return null;
   const first = anchors[0]!;
@@ -580,7 +663,7 @@ function comparisonConfidence(metrics: AudioSymbolicOnsetMetrics, mapping: Audio
   const errorScore = error === null ? 0 : Math.exp(-error / 0.25);
   const evidenceScore = mapping.method === "anchors"
     ? clamp(mapping.segments.length / 3, 0, 1)
-    : mapping.method === "seconds-per-beat" ? 0.7 : 0.3;
+    : mapping.method === "seconds-per-beat" ? 0.7 : mapping.method === "native-tempo-map" ? 0.8 : 0.3;
   return round(clamp(0.35 * metrics.coverage.audioRatio + 0.35 * metrics.coverage.symbolicRatio + 0.2 * errorScore + 0.1 * evidenceScore, 0, 1));
 }
 
@@ -619,6 +702,13 @@ export function evaluateAudioSymbolicAlignment(
   if (!symbolic.length) return emptyResult(normalized, "insufficient-evidence", ["no symbolic onset groups available"]);
 
   const productionMapping = mappingFromAnchors(normalized.anchors)
+    ?? (normalized.nativeTempoEvents.length
+      ? mappingFromNativeTempo(
+        normalized.nativeTempoEvents,
+        normalized.beatZeroAudioSeconds,
+        Math.max(1, ...symbolic.map((group) => group.start)),
+      )
+      : null)
     ?? (normalized.secondsPerBeat !== null
       ? mappingFromSecondsPerBeat(
         normalized.secondsPerBeat,

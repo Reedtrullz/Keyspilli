@@ -1,5 +1,5 @@
 export * from "./types.js";
-export { parseMidi } from "./parse.js";
+export { parseMidi, midiBeatToNativeSeconds, midiTickToNativeSeconds } from "./parse.js";
 export { quantize } from "./quantize.js";
 export { splitHands, detectKey, keyName, chordName, detectBassPattern, melodyFrom, keySignature } from "./analyze.js";
 export { buildVariants, reduceMediumRhythm, padPitches, melodyOnly, normalizeTempoBpm, SAFE_TEMPO_BPM } from "./simplify.js";

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   parseMidi,
+  midiBeatToNativeSeconds,
   quantize,
   splitHands,
   detectKey,
@@ -132,6 +133,57 @@ describe("parseMidi", () => {
     const m = parseMidi(buf);
     expect(m.tempoBpm).toBe(120);
     expect(m.tempoMetaPresent).toBe(false);
+  });
+
+  it("preserves native tempo events and converts beats through the tempo map", () => {
+    const payload = [
+      0x00, 0xff, 0x51, 0x03, 0x07, 0xa1, 0x20, // 120 BPM at beat 0
+      0x00, 0x90, 0x3c, 0x64,
+      0x83, 0x60, 0x80, 0x3c, 0x40,
+      0x00, 0xff, 0x51, 0x03, 0x0f, 0x42, 0x40, // 60 BPM at beat 1
+      0x00, 0x90, 0x3e, 0x64,
+      0x83, 0x60, 0x80, 0x3e, 0x40,
+      0x00, 0xff, 0x2f, 0x00,
+    ];
+    const bytes = new Uint8Array([
+      0x4d, 0x54, 0x68, 0x64, 0x00, 0x00, 0x00, 0x06, 0x00, 0x01, 0x00, 0x01, 0x01, 0xe0,
+      0x4d, 0x54, 0x72, 0x6b,
+      (payload.length >>> 24) & 0xff, (payload.length >>> 16) & 0xff, (payload.length >>> 8) & 0xff, payload.length & 0xff,
+      ...payload,
+    ]);
+    const parsed = parseMidi(bytes);
+    expect(parsed.tempoEvents).toEqual([
+      { tick: 0, beat: 0, microsecondsPerQuarter: 500_000, bpm: 120 },
+      { tick: 480, beat: 1, microsecondsPerQuarter: 1_000_000, bpm: 60 },
+    ]);
+    expect(midiBeatToNativeSeconds(parsed, 1)).toBeCloseTo(0.5, 8);
+    expect(midiBeatToNativeSeconds(parsed, 2)).toBeCloseTo(1.5, 8);
+  });
+
+  it("rejects a zero MIDI division instead of producing invalid beat coordinates", () => {
+    const bytes = new Uint8Array(SCALE_MIDI);
+    bytes[12] = 0;
+    bytes[13] = 0;
+    expect(() => parseMidi(bytes)).toThrow(/division/i);
+  });
+
+  it("consumes system-common messages before continuing with channel events", () => {
+    const payload = [
+      0x00, 0xf1, 0x7f,
+      0x00, 0xf2, 0x01, 0x02,
+      0x00, 0xf3, 0x01,
+      0x00, 0xf6,
+      0x00, 0x90, 0x3c, 0x64,
+      0x83, 0x60, 0x80, 0x3c, 0x40,
+      0x00, 0xff, 0x2f, 0x00,
+    ];
+    const bytes = new Uint8Array([
+      0x4d, 0x54, 0x68, 0x64, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0x01, 0x01, 0xe0,
+      0x4d, 0x54, 0x72, 0x6b,
+      (payload.length >>> 24) & 0xff, (payload.length >>> 16) & 0xff, (payload.length >>> 8) & 0xff, payload.length & 0xff,
+      ...payload,
+    ]);
+    expect(parseMidi(bytes).notes.map((note) => note.midi)).toEqual([60]);
   });
 
   it("preserves RH/LH track labels on parsed notes", () => {
