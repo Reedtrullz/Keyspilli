@@ -52,6 +52,7 @@ FEATURE_CONFIG = {
     "dtw": "monotonic-full-matrix-three-step",
     "mapAnchors": CAL.DTW_ANCHOR_COUNT,
 }
+PRODUCTION_FEATURE_CONFIG = dict(CAL.PRODUCTION_CANDIDATE_CONFIG) | {"fingerprint": CAL.PRODUCTION_CANDIDATE_FINGERPRINT}
 GATES = {
     "coverage": 0.95,
     "medianAbsoluteErrorSeconds": 0.100,
@@ -250,6 +251,28 @@ def map_score_to_audio(notes: list[dict[str, Any]], score_features: np.ndarray, 
     }
 
 
+def map_score_to_audio_production(notes: list[dict[str, Any]], audio_features: np.ndarray, audio_duration: float, score_times: list[float]) -> tuple[list[float], dict[str, Any]]:
+    note_times = [float(note["native_seconds"]) for note in notes]
+    symbolic = CAL.symbolic_features(notes, note_times, audio_duration)
+    path, cost = CAL.dtw(symbolic, audio_features)
+    score_end = max((float(note["native_seconds"]) + float(note["duration_seconds"]) for note in notes), default=0.0) + 0.5
+    mapper, anchors, approximation_error = CAL.adaptive_path_mapper(
+        path,
+        0.0,
+        score_end,
+        approximation_bound_seconds=float(CAL.PRODUCTION_CANDIDATE_CONFIG["mapApproximationBoundSeconds"]),
+        max_anchors=int(CAL.PRODUCTION_CANDIDATE_CONFIG["maxMapAnchors"]),
+    )
+    return [mapper(value) for value in score_times], {
+        "segmentCount": max(0, len(anchors) - 1),
+        "anchorCount": len(anchors),
+        "compactApproximationErrorSeconds": rounded(float(approximation_error)),
+        "dtwCost": rounded(float(cost)),
+        "symbolicFrameCount": int(symbolic.shape[1]),
+        "audioFrameCount": int(audio_features.shape[1]),
+    }
+
+
 def metric_block(pairs: list[dict[str, Any]], predicted: list[float], total_count: int, map_meta: dict[str, Any], runtime: float, rss: float) -> dict[str, Any]:
     errors = [abs(float(prediction) - float(pair["performanceSeconds"])) for prediction, pair in zip(predicted, pairs)]
     downbeat_errors = [error for error, pair in zip(errors, pairs) if pair["scoreKind"] == "db" and pair["performanceKind"] == "db"]
@@ -288,6 +311,12 @@ def evaluate_current(notes: list[dict[str, Any]], audio_features: np.ndarray, au
     score_times = [float(pair["scoreSeconds"]) for pair in pairs]
     begin = time.perf_counter() if started is None else started
     predictions, metadata = map_score_to_audio(notes, np.zeros((13, 1), dtype=np.float32), audio_features, audio_duration, score_times)
+    return metric_block(pairs, predictions, len(pairs), metadata, time.perf_counter() - begin, rss_mib())
+
+
+def evaluate_production(notes: list[dict[str, Any]], audio_features: np.ndarray, audio_duration: float, pairs: list[dict[str, Any]]) -> dict[str, Any]:
+    begin = time.perf_counter()
+    predictions, metadata = map_score_to_audio_production(notes, audio_features, audio_duration, [float(pair["scoreSeconds"]) for pair in pairs])
     return metric_block(pairs, predictions, len(pairs), metadata, time.perf_counter() - begin, rss_mib())
 
 
@@ -331,6 +360,7 @@ def run_fixture(root: pathlib.Path, annotation_data: dict[str, Any], definition:
         raise ValueError("score MIDI contains no notes")
     begin = time.perf_counter()
     current = evaluate_current(notes, audio_features, audio_duration, pairs, begin)
+    production = evaluate_production(notes, audio_features, audio_duration, pairs)
     naive = evaluate_naive(pairs)
     mismatch_notes = remove_inner_score_notes(notes, pairs)
     mismatch_begin = time.perf_counter()
@@ -359,7 +389,7 @@ def run_fixture(root: pathlib.Path, annotation_data: dict[str, Any], definition:
         "score": source_summary(score_path, score, xml_count),
         "performanceMidi": source_summary(performance_path, performance),
         "audio": {"bytes": audio_path.stat().st_size, "sha256": sha256(audio_path), "sourceDurationSeconds": rounded(source_audio_duration), "analysisStartSeconds": rounded(definition["metadataStartSeconds"]), "analysisPaddingSeconds": rounded(definition["analysisPaddingSeconds"]), "analysisDurationSeconds": rounded(audio_duration), "sampleRate": CAL.SAMPLE_RATE, "featureFrameCount": int(audio_features.shape[1])},
-        "methods": {"naive-global-tempo": naive, "keyspilli-current-monotonic-dtw": current},
+        "methods": {"naive-global-tempo": naive, "keyspilli-current-monotonic-dtw": current, "keyspilli-production-candidate-v1": production},
         "diagnostics": {
             "scoreInnerNotesRemoved": len(notes) - len(mismatch_notes),
             "scoreInnerNoteMismatch10pct": {"method": "keyspilli-current-monotonic-dtw", "metrics": mismatch},
@@ -409,6 +439,7 @@ def main() -> int:
     started = time.perf_counter()
     fixtures = [run_fixture(args.root, annotation_data, definition) for definition in FIXTURES]
     current_pass = all(gate_fixture(fixture["methods"]["keyspilli-current-monotonic-dtw"]) for fixture in fixtures)
+    production_pass = all(gate_fixture(fixture["methods"]["keyspilli-production-candidate-v1"]) for fixture in fixtures)
     report: dict[str, Any] = {
         "schemaVersion": SCHEMA_VERSION,
         "mission": "SCORE_TO_RECORDING_ALIGNMENT_HARDENING",
@@ -416,11 +447,13 @@ def main() -> int:
         "groundTruth": {"source": "ASAP supplied midi_score_beats/performance_beats annotations", "timingDomain": "score annotation seconds to performance recording seconds", "bRPolicy": "exclude a pair when either annotation is bR; retain counts", "audioOnsetsAsTruth": False},
         "scoreInput": "score.mid only; performance.mid is provenance/support and never alignment input",
         "featureConfig": FEATURE_CONFIG,
+        "productionCandidate": {"id": CAL.PRODUCTION_CANDIDATE_ID, "config": PRODUCTION_FEATURE_CONFIG},
         "gates": GATES,
         "fixturesFrozenBeforeScoring": True,
         "fixtures": fixtures,
         "decision": "SCORE_TO_RECORDING_ALIGNMENT_READY_CURRENT" if current_pass else "SCORE_ALIGNMENT_PARTIAL",
-        "productionMethodStatus": {"currentKeyspilli": "PRODUCTION_CANDIDATE", "naiveGlobalTempo": "DIAGNOSTIC_ONLY", "durationDerivedMapping": "DIAGNOSTIC_ONLY", "synctoolbox": "NOT_YET_EVALUATED"},
+        "productionCandidateGate": production_pass,
+        "productionMethodStatus": {"currentKeyspilli": "DIAGNOSTIC_BASELINE", "productionCandidateV1": "PRODUCTION_CANDIDATE", "naiveGlobalTempo": "DIAGNOSTIC_ONLY", "durationDerivedMapping": "DIAGNOSTIC_ONLY", "synctoolbox": "NOT_YET_EVALUATED"},
         "runtimeSeconds": rounded(time.perf_counter() - started),
         "peakRssMiB": rss_mib(),
     }

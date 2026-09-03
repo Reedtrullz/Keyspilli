@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-"""Bounded, deterministic real audio/MIDI alignment calibration.
+"""Bounded, deterministic real score-to-recording alignment.
 
-Research-only: this script does not render, download, publish, or alter MIDI.
-It uses native MIDI seconds as the MAESTRO performance truth and evaluates one
-chroma+onset monotonic-DTW candidate against fixed timing corruptions.  NumPy,
-SciPy, and librosa are intentionally isolated research dependencies; they are
-not catalog runtime dependencies.
+The ``--production`` mode is the single Keyspilli score-alignment candidate;
+the default mode remains a local calibration harness for fixed timing
+corruptions.  Neither mode downloads, renders, publishes, or alters MIDI.
+NumPy, SciPy, and librosa are the existing worker-side Python dependencies.
 """
 
 from __future__ import annotations
@@ -31,6 +30,30 @@ N_FFT = 4096
 FRAME_SECONDS = HOP_LENGTH / SAMPLE_RATE
 MAX_FRAMES = 5000
 DTW_ANCHOR_COUNT = 32
+MAX_DTW_CELLS = 32_000_000
+
+# Production candidate V1.  The candidate keeps the existing feature/search
+# responsibility and replaces the arbitrary fixed map cap with an explicit
+# approximation bound.  The cell ceiling is deliberately fail-closed: long
+# inputs must be chunked or moved to a banded search before this path is used.
+PRODUCTION_CANDIDATE_ID = "PRODUCTION_SCORE_ALIGNMENT_CANDIDATE_V1"
+PRODUCTION_CANDIDATE_CONFIG = {
+    "sampleRate": SAMPLE_RATE,
+    "hopLength": HOP_LENGTH,
+    "nFft": N_FFT,
+    "features": "12-bin-stft-chroma-plus-normalized-onset",
+    "onsetWeight": 0.5,
+    "search": "monotonic-three-step-dtw",
+    "maxFrames": 9000,
+    "maxDtwCells": MAX_DTW_CELLS,
+    "map": "adaptive-piecewise-linear",
+    "mapApproximationBoundSeconds": 0.125,
+    "maxMapAnchors": 129,
+    "confidence": "coverage+dtw-cost+map-approximation",
+}
+PRODUCTION_CANDIDATE_FINGERPRINT = hashlib.sha256(
+    json.dumps(PRODUCTION_CANDIDATE_CONFIG, sort_keys=True, separators=(",", ":")).encode()
+).hexdigest()
 
 # Frozen before calibration output is read.  The score-like case is deliberately
 # not used to change these values.
@@ -256,10 +279,14 @@ def symbolic_features(notes: list[dict[str, float | int]], times: list[float], a
 
 
 def dtw(path_features: np.ndarray, audio_features: np.ndarray) -> tuple[np.ndarray, float]:
-    distance = np.nan_to_num(cdist(path_features.T, audio_features.T, metric="cosine"), nan=1.0, posinf=1.0, neginf=1.0)
-    rows, columns = distance.shape
+    rows, columns = path_features.shape[1], audio_features.shape[1]
+    if rows == 0 or columns == 0:
+        raise ValueError("DTW requires non-empty feature matrices")
     if rows > MAX_FRAMES or columns > MAX_FRAMES:
         raise ValueError("DTW matrix exceeds bounded calibration frame limit")
+    if rows * columns > MAX_DTW_CELLS:
+        raise ValueError("DTW matrix exceeds bounded calibration cell limit")
+    distance = np.nan_to_num(cdist(path_features.T, audio_features.T, metric="cosine"), nan=1.0, posinf=1.0, neginf=1.0)
     cost = np.full((rows, columns), np.inf, dtype=np.float64)
     back = np.zeros((rows, columns), dtype=np.int8)
     cost[0, 0] = distance[0, 0]
@@ -313,6 +340,182 @@ def path_mapper(path: np.ndarray, candidate_start: float, candidate_end: float) 
         return float(np.interp(time_value, anchors, values, left=values[0], right=values[-1]))
 
     return mapped, DTW_ANCHOR_COUNT
+
+
+def _path_samples(path: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Collapse repeated DTW rows to a monotonic score-frame sample map."""
+    if path.size == 0:
+        raise ValueError("DTW path is empty")
+    score_frames = path[:, 0].astype(np.int64)
+    audio_frames = path[:, 1].astype(float) * FRAME_SECONDS
+    unique: list[int] = []
+    values: list[float] = []
+    index = 0
+    while index < len(score_frames):
+        frame = int(score_frames[index])
+        end = index + 1
+        while end < len(score_frames) and int(score_frames[end]) == frame:
+            end += 1
+        unique.append(frame)
+        values.append(float(np.median(audio_frames[index:end])))
+        index = end
+    return np.asarray(unique, dtype=float) * FRAME_SECONDS, np.maximum.accumulate(np.asarray(values, dtype=float))
+
+
+def adaptive_path_mapper(
+    path: np.ndarray,
+    candidate_start: float,
+    candidate_end: float,
+    approximation_bound_seconds: float = 0.125,
+    max_anchors: int = 129,
+) -> tuple[Callable[[float], float], list[tuple[float, float]], float]:
+    """Build a compact map with a measured error bound against the raw path.
+
+    The deterministic split only inserts a raw score-frame sample when its
+    deviation from the current line exceeds the frozen bound. ``max_anchors``
+    is a safety ceiling, not a target shape.
+    """
+    if not math.isfinite(approximation_bound_seconds) or approximation_bound_seconds <= 0:
+        raise ValueError("approximation bound must be positive and finite")
+    if max_anchors < 2:
+        raise ValueError("adaptive map requires at least two anchors")
+    if candidate_end <= candidate_start:
+        raise ValueError("adaptive map candidate bounds must be increasing")
+    sample_x, sample_y = _path_samples(path)
+
+    def raw(time_value: float) -> float:
+        return float(np.interp(time_value, sample_x, sample_y, left=sample_y[0], right=sample_y[-1]))
+
+    anchors: list[tuple[float, float]] = [
+        (float(candidate_start), raw(float(candidate_start))),
+        (float(candidate_end), raw(float(candidate_end))),
+    ]
+    samples = [(float(x), float(y)) for x, y in zip(sample_x, sample_y) if candidate_start < x < candidate_end]
+
+    while len(anchors) < max_anchors and samples:
+        anchors.sort(key=lambda pair: pair[0])
+        best_error = approximation_bound_seconds
+        best_sample: tuple[int, int, float, float] | None = None
+        for segment_index, ((left_x, left_y), (right_x, right_y)) in enumerate(zip(anchors, anchors[1:])):
+            segment_samples = [(i, x, y) for i, (x, y) in enumerate(samples) if left_x < x < right_x]
+            if not segment_samples:
+                continue
+            span = right_x - left_x
+            for sample_index, x, y in segment_samples:
+                expected = left_y + (right_y - left_y) * ((x - left_x) / span)
+                error = abs(y - expected)
+                if error > best_error + 1e-12:
+                    best_error = error
+                    best_sample = (segment_index, sample_index, x, y)
+        if best_sample is None:
+            break
+        _, sample_index, x, y = best_sample
+        anchors.append((x, y))
+        samples.pop(sample_index)
+
+    anchors.sort(key=lambda pair: pair[0])
+    anchor_times = np.asarray([pair[0] for pair in anchors], dtype=float)
+    anchor_values = np.maximum.accumulate(np.asarray([pair[1] for pair in anchors], dtype=float))
+    errors = [abs(float(y) - float(np.interp(x, anchor_times, anchor_values))) for x, y in zip(sample_x, sample_y)]
+    max_error = float(max(errors, default=0.0))
+
+    def mapped(time_value: float) -> float:
+        return float(np.interp(time_value, anchor_times, anchor_values, left=anchor_values[0], right=anchor_values[-1]))
+
+    return mapped, list(zip(anchor_times.tolist(), anchor_values.tolist())), max_error
+
+
+def _beat_samples(notes: list[dict[str, float | int]]) -> tuple[np.ndarray, np.ndarray]:
+    """Return a stable native-second to symbolic-beat interpolation table."""
+    pairs = sorted((float(note["native_seconds"]), float(note["beat"])) for note in notes)
+    unique: list[float] = []
+    beats: list[float] = []
+    for seconds, beat in pairs:
+        if unique and abs(seconds - unique[-1]) <= 1e-9:
+            beats[-1] = max(beats[-1], beat)
+        else:
+            unique.append(seconds)
+            beats.append(beat)
+    if not unique:
+        raise ValueError("score MIDI contains no timed notes")
+    return np.asarray(unique, dtype=float), np.asarray(beats, dtype=float)
+
+
+def _production_confidence(
+    notes: list[dict[str, float | int]],
+    dtw_cost: float,
+    map_error_seconds: float,
+    anchor_count: int,
+) -> dict[str, float | str | list[str]]:
+    """Compute transparent, non-learned confidence from structural signals."""
+    coverage = 1.0 if notes else 0.0
+    cost_quality = max(0.0, 1.0 - min(float(dtw_cost), 1.0))
+    map_quality = max(0.0, 1.0 - min(float(map_error_seconds) / 0.125, 1.0))
+    complexity_quality = max(0.0, 1.0 - max(0, anchor_count - 33) / 96)
+    score = 0.45 * coverage + 0.35 * cost_quality + 0.15 * map_quality + 0.05 * complexity_quality
+    signals: list[str] = []
+    if not notes:
+        signals.append("score has no timed notes")
+    if map_error_seconds > 0.125:
+        signals.append("compact map exceeds approximation bound")
+    if dtw_cost > 0.75:
+        signals.append("DTW feature agreement is weak")
+    if anchor_count >= 129:
+        signals.append("compact map reached anchor safety ceiling")
+    state = "ALIGNED_HIGH_CONFIDENCE" if score >= 0.75 and not signals else "ALIGNED_PARTIAL" if score >= 0.40 else "ALIGNMENT_REJECTED"
+    return {"state": state, "score": normalized(score), "coverage": normalized(coverage), "signals": signals}
+
+
+def production_alignment_report(score_path: pathlib.Path, audio_path: pathlib.Path) -> dict[str, object]:
+    """Run the single bounded score-to-recording production candidate."""
+    global MAX_FRAMES
+    MAX_FRAMES = max(MAX_FRAMES, int(PRODUCTION_CANDIDATE_CONFIG["maxFrames"]))
+    if not score_path.is_file() or score_path.stat().st_size == 0:
+        raise ValueError("score MIDI path must be a non-empty regular file")
+    if not audio_path.is_file() or audio_path.stat().st_size == 0:
+        raise ValueError("audio path must be a non-empty regular file")
+    started = time.perf_counter()
+    score = parse_midi(score_path)
+    notes = score["notes"]
+    if not isinstance(notes, list) or not notes:
+        raise ValueError("score MIDI contains no notes")
+    audio_features, _, audio_duration = load_features(audio_path)
+    note_times = [float(note["native_seconds"]) for note in notes]
+    symbolic = symbolic_features(notes, note_times, audio_duration)
+    path, cost = dtw(symbolic, audio_features)
+    score_end_seconds = max(
+        (float(note["native_seconds"]) + float(note["duration_seconds"]) for note in notes),
+        default=float(score["duration_seconds"]),
+    ) + 0.5
+    mapper, anchors_seconds, approximation_error = adaptive_path_mapper(
+        path,
+        0.0,
+        score_end_seconds,
+        approximation_bound_seconds=float(PRODUCTION_CANDIDATE_CONFIG["mapApproximationBoundSeconds"]),
+        max_anchors=int(PRODUCTION_CANDIDATE_CONFIG["maxMapAnchors"]),
+    )
+    beat_seconds, beat_values = _beat_samples(notes)
+    score_duration_beats = max((float(note["beat"]) + float(note["duration_beats"]) for note in notes), default=0.0)
+    anchors = [
+        {
+            "beat": normalized(float(np.interp(seconds, beat_seconds, beat_values, left=0.0, right=score_duration_beats))),
+            "audioSeconds": normalized(float(value)),
+        }
+        for seconds, value in anchors_seconds
+    ]
+    confidence = _production_confidence(notes, float(cost), approximation_error, len(anchors))
+    canonical = {
+        "schemaVersion": SCHEMA_VERSION,
+        "candidate": {"id": PRODUCTION_CANDIDATE_ID, "fingerprint": PRODUCTION_CANDIDATE_FINGERPRINT, "config": PRODUCTION_CANDIDATE_CONFIG},
+        "score": {"sha256": sha256(score_path), "bytes": score_path.stat().st_size, "format": score["format"], "division": score["division"], "trackCount": score["track_count"], "noteCount": len(notes), "durationBeats": normalized(float(score["duration_beats"])), "durationSeconds": normalized(float(score["duration_seconds"]))},
+        "audio": {"sha256": sha256(audio_path), "bytes": audio_path.stat().st_size, "sampleRate": SAMPLE_RATE, "frameCount": int(audio_features.shape[1]), "durationSeconds": normalized(audio_duration)},
+        "mapping": {"method": "monotonic-three-step-dtw-adaptive-map", "anchors": anchors, "segmentCount": max(0, len(anchors) - 1), "rawPathFrames": int(len(path)), "rawScoreFrames": int(len(np.unique(path[:, 0]))), "compactApproximationErrorSeconds": normalized(approximation_error), "dtwCost": normalized(float(cost))},
+        "confidence": confidence,
+    }
+    report = dict(canonical)
+    report["runtimeSeconds"] = normalized(time.perf_counter() - started)
+    report["determinismSha256"] = hashlib.sha256(json.dumps(canonical, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    return report
 
 
 def challenge_time(kind: str, value: float, duration: float) -> float:
@@ -388,8 +591,17 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--midi", required=True, type=pathlib.Path)
     parser.add_argument("--audio", required=True, type=pathlib.Path)
-    parser.add_argument("--out", required=True, type=pathlib.Path)
+    parser.add_argument("--out", required=False, type=pathlib.Path)
+    parser.add_argument("--production", action="store_true", help="run the frozen production score-to-recording candidate")
     args = parser.parse_args()
+    if args.production:
+        report = production_alignment_report(args.midi, args.audio)
+        if args.out:
+            args.out.write_text(json.dumps(report, sort_keys=True, indent=2) + "\n")
+        print(json.dumps(report, sort_keys=True, separators=(",", ":")))
+        return 0
+    if args.out is None:
+        parser.error("--out is required unless --production is used")
     started = time.perf_counter()
     midi = parse_midi(args.midi)
     audio_features, _, audio_duration = load_features(args.audio)

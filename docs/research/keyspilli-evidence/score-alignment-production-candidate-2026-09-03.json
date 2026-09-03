@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "mission": "IMPLEMENT_SCORE_ALIGNMENT_PRODUCTION_HARDENING",
+  "startingRevision": "a09ef286ea514ca172ac9ef07d5b0fbb3ab31fd3",
+  "candidate": {
+    "id": "PRODUCTION_SCORE_ALIGNMENT_CANDIDATE_V1",
+    "strategy": "A",
+    "status": "FROZEN_BEFORE_FRESH_VALIDATION",
+    "fingerprint": "73f1e6c73b76e140505b8f78cc609992c20a4219f95c2de2c2ad2bd5e947ba9b",
+    "runtimeOwner": "packages/catalog/scripts/calibrate-real-alignment.py --production, invoked through packages/catalog/src/score-audio-alignment.ts",
+    "productionDependenciesAdded": 0,
+    "features": {
+      "sampleRate": 22050,
+      "hopLength": 512,
+      "nFft": 4096,
+      "representation": "12-bin STFT chroma plus normalized onset strength",
+      "onsetWeight": 0.5
+    },
+    "search": {
+      "algorithm": "monotonic three-step DTW",
+      "maxFrames": 9000,
+      "maxDtwCells": 32000000,
+      "failureMode": "fail closed when either frame or cell bound is exceeded"
+    },
+    "map": {
+      "representation": "monotonic adaptive piecewise-linear score-native-seconds to audio-seconds",
+      "approximationBoundSeconds": 0.125,
+      "maxAnchors": 129,
+      "anchorPolicy": "deterministic largest raw-path deviation split; the bound is a target and the anchor limit is a safety ceiling"
+    },
+    "confidence": {
+      "signals": ["coverage", "DTW cost", "compact-map approximation error", "anchor complexity"],
+      "states": ["ALIGNED_HIGH_CONFIDENCE", "ALIGNED_PARTIAL", "ALIGNMENT_REJECTED"],
+      "learnedClassifier": false
+    }
+  },
+  "gates": {
+    "coverage": 0.95,
+    "medianAbsoluteErrorSeconds": 0.1,
+    "p95AbsoluteErrorSeconds": 0.25,
+    "maxFixtureP95Seconds": 0.5,
+    "maxMonotonicViolations": 0
+  },
+  "revealedDiagnosis": {
+    "rawPathVsCompactMap": "raw frame-path errors remain large on the two difficult revealed fixtures; 32-anchor compression adds only a small error increment, so map serialization is not the primary defect",
+    "ablationOne": "feature ablation: removing onset evidence materially worsens every fixture; chroma-only is mixed and does not remove held-out regional errors",
+    "ablationTwo": "multiscale downsampling alone does not remove the held-out regional errors; coarse paths remain ambiguous",
+    "referenceAttribution": "SyncToolbox's remaining headroom is consistent with richer CENS/DLNCO/MrMsDTW-style feature and search mechanisms, but its scipy>=1.15 dependency conflicts with the existing worker scipy<1.13 runtime",
+    "decisionBeforeFresh": "Use one bounded Strategy-A candidate; do not add SyncToolbox or tune against fresh outcomes"
+  },
+  "freshValidation": {
+    "selection": "pending candidate freeze; deterministic ASAP metadata/hash ordering, four composers, no prior three fixtures",
+    "metrics": "not inspected at freeze"
+  },
+  "firewall": {
+    "benchmarkReferencesUsedForGeneration": false,
+    "benchmarkReferencesUsedForTuning": false,
+    "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+    "deployment": "NOT_DEPLOYED"
+  }
+}

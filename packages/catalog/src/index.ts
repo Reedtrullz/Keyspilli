@@ -47,6 +47,7 @@ export * from "./midi-corpus.js";
 export * from "./midi-corpus-report.js";
 export * from "./direct-amt-evaluation.js";
 export * from "./audio-symbolic-alignment.js";
+export * from "./score-audio-alignment.js";
 export * from "./upstream-attribution-runner.js";
 export * from "./external-retrieval.js";
 export * from "./generation-candidate-intake.js";

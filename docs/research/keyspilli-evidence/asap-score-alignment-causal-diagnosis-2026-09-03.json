@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "mission": "IMPLEMENT_SCORE_ALIGNMENT_PRODUCTION_HARDENING",
+  "scope": "revealed ASAP development fixtures only; not fresh validation",
+  "fixtures": {
+    "asap:dev:bach-fugue-bwv854-lua01m": {
+      "currentCompact": {"median": 0.020764, "p90": 0.050724, "p95": 0.059316, "max": 0.607094, "segments": 32},
+      "naiveP95": 7.944097,
+      "rawPath": {"median": 0.012054, "p90": 0.033865, "p95": 0.041058, "max": 0.086458},
+      "typology": ["boundary/error-tail", "anchor-decimation-loss"]
+    },
+    "asap:holdout-1:chopin-etude-op10-1-chenw03m": {
+      "currentCompact": {"median": 0.045278, "p90": 0.550648, "p95": 1.796573, "max": 5.749666, "segments": 32},
+      "naiveP95": 4.558342,
+      "rawPath": {"median": 0.019983, "p90": 0.517594, "p95": 1.703688, "max": 5.923242},
+      "typology": ["feature-ambiguity", "wrong-repetition/path-stall", "local-path-recovery"]
+    },
+    "asap:holdout-2:liszt-transcendental-etude-1-luoj05m": {
+      "currentCompact": {"median": 0.053899, "p90": 0.622221, "p95": 0.99478, "max": 1.315014, "segments": 32},
+      "naiveP95": 13.741592,
+      "rawPath": {"median": 0.053556, "p90": 0.590659, "p95": 0.983212, "max": 1.295261},
+      "typology": ["feature-ambiguity", "path-jump", "regional-drift"]
+    }
+  },
+  "conclusion": {
+    "primaryFailure": "regional DTW path ambiguity on independent-score performances",
+    "notPrimary": ["candidate parsing", "coverage", "monotonicity", "fixed 32-anchor compression"],
+    "compressionAddedError": "small relative to raw-path residuals on both difficult fixtures",
+    "ablationBudget": 2,
+    "ablations": [
+      {"id": "feature-channel", "result": "onset removal is materially worse; chroma-only is not sufficient"},
+      {"id": "multiscale-downsample", "result": "coarse search alone does not resolve regional ambiguity"}
+    ],
+    "productionImplication": "Keep onset+chroma responsibility, add bounded adaptive map fidelity and explicit resource failure; a richer feature/search implementation remains a separate follow-up if fresh validation fails"
+  }
+}
