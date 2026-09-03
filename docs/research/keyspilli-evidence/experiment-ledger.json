@@ -939,6 +939,85 @@
       "firewall": {"benchmarkReferencesUsedForGeneration": false, "benchmarkReferencesUsedForTuning": false, "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT", "deployment": "NOT_DEPLOYED"},
       "verification": {"pythonEvaluatorTests": 4, "fullReferenceRuns": 3, "reportRepeatCanonicalEqual": true, "rawMediaRetention": "local only; hashes and metadata committed"},
       "reproducible": true
+    },
+    {
+      "id": "cross-modal-sparse-landmark-clamp3-stop-2026-09-03",
+      "date": "2026-09-03",
+      "startingRevision": "76a39cd53329286a4a494058fa6434515c982525",
+      "checkpointRevisions": [
+        "76a39cd53329286a4a494058fa6434515c982525"
+      ],
+      "purpose": "Evaluate one materially different sparse cross-modal landmark retrieval architecture without downloading an unbounded model footprint",
+      "architecture": "SPARSE CROSS-MODAL LANDMARK RETRIEVAL + GLOBAL CONSENSUS + ROBUST MONOTONE TIMING MAP",
+      "reference": {
+        "name": "CLaMP 3 SAAS",
+        "repository": "sanderwood/clamp3",
+        "repositoryCommit": "9016d2b0c8d12d1aa79c2e0ab201e6822bdc83a8",
+        "repositoryLicense": "MIT",
+        "modelRepository": "sander-wood/clamp3",
+        "modelRepositoryRevision": "355625cc1c6f73726bbcd0eb9276ac7152d56426",
+        "checkpoint": "weights_clamp3_saas_h_size_768_t_model_FacebookAI_xlm-roberta-base_t_length_128_a_size_768_a_layers_12_a_length_128_s_size_768_s_layers_12_p_size_64_p_length_512.pth",
+        "checkpointBytes": 2571027658,
+        "checkpointSha256": "5033f868e3977be3945ee416b5a1718d5589a173c7ba8982231d8c94a6441d80",
+        "audioDependency": "m-a-p/MERT-v1-95M@12af15fef9d0ac838c3f475bfbbf26d2060dd4f5",
+        "audioDependencyBytes": 377552987,
+        "textDependency": "FacebookAI/xlm-roberta-base@e73636d4f797dec63c3081bb6ed5c7b0bb3f2089",
+        "textDependencyBytes": 1115567652
+      },
+      "protocol": {
+        "symbolicWindowBeats": {"short": 4, "long": 8},
+        "landmarkSpacingBeats": 4,
+        "audioSearchWindowSeconds": {"short": 5, "long": 10},
+        "audioSearchStrideSeconds": 2.5,
+        "topK": 5,
+        "retrievalTolerancesSeconds": [0.25, 0.5, 1],
+        "confidenceSignals": ["top1CosineSimilarity", "top1Top2Margin", "shortLongAgreement"],
+        "consensus": "weighted monotone candidate-chain consensus",
+        "outlierMethod": "median absolute deviation",
+        "timingMap": "monotone piecewise-linear with explicit unaligned gaps"
+      },
+      "resourceGate": {
+        "preferredNewFootprintBytes": 2147483648,
+        "estimatedWeightBytes": 4064148297,
+        "estimatedWeightGiB": 3.785,
+        "knownModelCacheBytes": 0,
+        "status": "EXCEEDS_PREFERRED_BOUND_BEFORE_DOWNLOAD",
+        "weightsDownloaded": false,
+        "environmentCreated": false
+      },
+      "results": {
+        "status": "NOT_RUN_RESOURCE_BLOCKED",
+        "retrievalMetrics": null,
+        "anchorMetrics": null,
+        "timingMetrics": null,
+        "baselineComparison": null
+      },
+      "decisions": {
+        "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+        "architecture": "SPARSE_LANDMARK_RETRIEVAL_INSUFFICIENT",
+        "architectureQualification": "RESOURCE_BLOCKED_BEFORE_EVALUATION; not a measured retrieval-quality failure",
+        "realAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "realShadow": "REAL_SHADOW_BLOCKED_AT_ALIGNMENT",
+        "firstBlocker": "the only approved CLaMP3 reference exceeds the bounded model-footprint limit before evaluation",
+        "nextTask": "EXPLICIT_SCORE_REGION_ALIGNMENT_FALLBACK_CONTRACT",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED"
+      },
+      "firewall": {
+        "benchmarkReferencesUsedForGeneration": false,
+        "benchmarkReferencesUsedForTuning": false,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NOT_DEPLOYED"
+      },
+      "verification": {
+        "reportCanonicalSha256": "a39bef14ac587470d4fe7db1279acabb197716b79d935cefc184922b5e4c86a7",
+        "workspaceTests": 1582,
+        "workspaceTypechecks": 6,
+        "pythonEvaluatorTests": 4,
+        "gitDiffCheck": true,
+        "diskFreeGiBAtClose": 59,
+        "deterministicModelRerun": "not-run"
+      },
+      "reproducible": true
     }
   ]
 }

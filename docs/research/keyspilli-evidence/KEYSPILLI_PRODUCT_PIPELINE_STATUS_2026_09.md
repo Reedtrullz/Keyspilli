@@ -13,6 +13,8 @@ hardening slice started at
 `1ea2118675a2f75c17440a481a7dc8b55fcfca8f`; this score-to-recording
 alignment mission was preregistered at checkpoint
 `93127f1db268cf343ef76640af5e800795af4cd4`.
+The CLaMP3 sparse-landmark investigation started from the remote-backed
+`76a39cd53329286a4a494058fa6434515c982525` checkpoint.
 
 ## Stage status
 
@@ -21,7 +23,7 @@ alignment mission was preregistered at checkpoint
 | Source intake | VALIDATED (local + approved direct URL seam) | Native MIDI/MusicXML/MXL parsing, bounded bytes, magic/content checks, HTML/error rejection, path-safe provenance, and candidate firewall tests pass. MSCZ is recognized but explicitly unsupported. |
 | Parse/provenance | VALIDATED | Native adapter records SHA-256/size/parser metadata; unknown provenance is not generation-eligible. |
 | Role inference | VALIDATED (shadow override) | The single-stem Guitar-TECHS MIDI is explicitly mapped to guitar for the shadow arrangement; no drum pitches reached output. |
-| Alignment | PARTIAL — V2 RESOURCE FIXED; NON-DTW SKF REFERENCE MIXED, NOT PROMOTED | Frozen V2 completes all four revealed ASAP/MAESTRO pairs but leaves regional accuracy unresolved. The pinned official Matchmaker SKF reference improves Bach, but worsens Schubert, Rachmaninoff, and Chopin against V2 and has posterior score reversals; no state-space production candidate was created. |
+| Alignment | PARTIAL — V2 RESOURCE FIXED; NON-DTW SKF MIXED; CLaMP3 SPARSE RETRIEVAL RESOURCE-BLOCKED | Frozen V2 completes all four revealed ASAP/MAESTRO pairs but leaves regional accuracy unresolved. Matchmaker SKF is mixed and was not promoted. The one approved CLaMP3 reference was not evaluated because its pinned weights exceed the bounded footprint before download; no CLaMP3 production candidate was created. |
 | Arrangement | PASS (real shadow) | The real pair completed `buildMetalArrangement`; semantic guitar diagnostics and source-tagged output were produced in memory. |
 | Six physical difficulties | PASS (real shadow) | Advanced, Medium, Easy plus the remaining physical levels were generated and validated. |
 | Artifact writing | PASS (in-memory roundtrip) | All six physical variants produced MIDI and MusicXML bytes in memory; existing artifact validators and reparsers passed. No files were persisted. |
@@ -141,6 +143,39 @@ preregistered three-of-four headroom criterion. Decision:
 `NON_DTW_SCORE_ALIGNMENT_ARCHITECTURE_INSUFFICIENT`. No internal SKF port,
 fresh validation set, causal ablation, or downstream reroute was authorized.
 
+### CLaMP3 sparse-landmark reference stop
+
+The single cross-modal reference was frozen to the official CLaMP3 SAAS
+implementation at repository commit `9016d2b0c8d12d1aa79c2e0ab201e6822bdc83a8`
+(MIT). Its checkpoint was pinned to the Hugging Face `sander-wood/clamp3`
+revision `355625cc1c6f73726bbcd0eb9276ac7152d56426`, with the SAAS file hash
+`5033f868e3977be3945ee416b5a1718d5589a173c7ba8982231d8c94a6441d80` and size
+`2,571,027,658` bytes. The official implementation converts MIDI to MTF,
+MusicXML to interleaved ABC, extracts 24-kHz mono MERT features in five-second
+windows, and projects symbolic/audio globals into a shared 768-dimensional
+space scored by cosine similarity.
+
+The required MERT-v1-95M and XLM-R-base dependencies add `377,552,987` and
+`1,115,567,652` bytes respectively. The estimated weight footprint is therefore
+`4,064,148,297` bytes (`3.785 GiB`) before Python/PyTorch, tokenizer, cache, and
+temporary extraction overhead, exceeding the mission's `2 GiB` preferred bound.
+No model weights or runtime environment were downloaded or initialized. The
+four revealed ASAP fixtures consequently have no CLaMP3 retrieval, anchor-chain,
+timing-map, or resource measurements; nulls mean `not-run`, not zero quality.
+
+The preregistered protocol remains recorded for reproducibility: four- and
+eight-beat symbolic windows, four-beat landmark spacing, five- and ten-second
+audio search windows at 2.5-second stride, Top-5 retrieval, 0.25/0.5/1-second
+tolerances, three confidence signals, monotone candidate-chain consensus,
+median-absolute-deviation outlier rejection, and a monotone piecewise-linear
+map with explicit unaligned gaps.
+
+Decision: `SPARSE_LANDMARK_RETRIEVAL_INSUFFICIENT`, qualified as
+`RESOURCE_BLOCKED_BEFORE_EVALUATION`; this is not a claim about CLaMP3 retrieval
+quality. No production alignment code, candidate, downstream rerun, or
+deployment was created. The next single engineering task is
+`EXPLICIT_SCORE_REGION_ALIGNMENT_FALLBACK_CONTRACT`.
+
 ### Prior Guitar-TECHS shadow pair
 
 `guitar-techs:p3-music-08` is Guitar-TECHS v1 (Zenodo record `14963133`),
@@ -185,7 +220,10 @@ alignment readiness.
   reference is mixed and fails the preregistered headroom criterion, so no
   non-DTW production candidate was frozen. The V2 decision is
   `SCORE_ALIGNMENT_V2_ARCHITECTURE_INSUFFICIENT` and the non-DTW decision is
-  `NON_DTW_SCORE_ALIGNMENT_ARCHITECTURE_INSUFFICIENT`.
+  `NON_DTW_SCORE_ALIGNMENT_ARCHITECTURE_INSUFFICIENT`. The CLaMP3 sparse-
+  landmark reference was stopped before evaluation because its pinned model
+  footprint exceeds the bounded download limit; its decision is
+  `SPARSE_LANDMARK_RETRIEVAL_INSUFFICIENT` with a resource-blocked qualifier.
 - `REAL_SHADOW_BLOCKED_AT_ALIGNMENT`: the ASAP symbolic candidate completed the
   downstream arrangement, six-level generation, artifact roundtrips, and
   five-level grouped public projection in memory using independently annotated
@@ -200,15 +238,17 @@ Human listening is `NOT_REQUESTED` / `NOT_REQUIRED_BY_DEFAULT`; no listening
 pack or rater gate was created. Deployment is `NOT_DEPLOYED`.
 
 The next single engineering task is
-`CROSS_MODAL_SPARSE_LANDMARK_ALIGNMENT`; it must use a materially different
-sparse correspondence architecture before any further classical-DTW or
-state-space score-following work or source expansion.
+`EXPLICIT_SCORE_REGION_ALIGNMENT_FALLBACK_CONTRACT`; it should make partial,
+explicitly owned score regions usable without pretending that unaligned
+score-to-recording timing is solved. No further retrieval-model, classical-DTW,
+or state-space score-following work is authorized by this checkpoint.
 
 Detailed machine evidence is recorded in the
 `asap-score-alignment-2026-09-03.json`,
 `asap-revealed-v2-validation-2026-09-03.json`, and
-`asap-matchmaker-skf-reference-2026-09-03.json` evidence files and the matching
-`experiment-ledger.json` entry. The local runners are
+`asap-matchmaker-skf-reference-2026-09-03.json`, and
+`clamp3-sparse-landmark-reference-2026-09-03.json` evidence files and the
+matching `experiment-ledger.json` entry. The local runners are
 `packages/catalog/scripts/evaluate-asap-score-alignment.py` and
 `packages/catalog/scripts/evaluate-asap-synctoolbox.py`, plus the local-only
 `packages/catalog/scripts/evaluate-matchmaker-skf.py` adapter.
