@@ -17,8 +17,10 @@ unchanged. The frozen candidate fingerprint remains
 
 - Evaluation starting revision: `fab5fe43aba4bd0b811fa066acd559db900f12d1`.
 - Preregistration correction checkpoint: `09b670a`.
-- Promotion commit: `1298037` (`feat(midi): promote sparse LH anchors to learner Beginner`).
-- Branch and origin were pushed at the promotion checkpoint.
+- Initial promotion commit: `1298037` (`feat(midi): promote sparse LH anchors to learner Beginner`).
+- Final evidence checkpoint: `599ca06` (role-safe eligibility, meter/tie-break
+  parity, production-mode report, and results note).
+- Branch and origin match the final evidence checkpoint.
 - Production policy: keep finalized Beginner RH byte-for-byte; add at most one
   existing structural LH onset per meter window from finalized Very Easy
   evidence; defer to a later legal onset on a sounding collision; reject
@@ -46,7 +48,8 @@ The V2 control independently observed filler suppression, true-rest silence,
 LH-only passages, one-RH allowance, collision defer/suppression, drum
 provenance rejection, and harmonic change. Its post-promotion rerun was also
 byte-identical across two runs (SHA-256
-`5beac88718c3a1326a4c2a4dcdd8d6087f62d8f47107b0c7408f0e901e3612f9`), with
+`223daf924900dbe64f787a0a87ddd8b628d6584540d0c4748cda3d3be5ff8bbb`), using
+the evaluator's explicit `--production` mode, with
 the production output and frozen test-local policy agreeing on the role-safe
 synthetic Beginner event set.
 
