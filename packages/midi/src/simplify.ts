@@ -1,7 +1,7 @@
 import { splitHands, detectBassPattern, detectKey, chordName } from "./analyze.js";
 import { Note, ParsedMidi, SongMeta, Variant, DifficultyLevel, LEVEL_ORDER, ChordLabel } from "./types.js";
 import { quantize } from "./quantize.js";
-import { LADDER_TOL, PLAYABILITY_LIMITS } from "./validate.js";
+import { BEGINNER_OFFGRID_CANDIDATE, LADDER_TOL, PLAYABILITY_LIMITS } from "./validate.js";
 import { sanitizeImportedNotes } from "./clean.js";
 import { validateChordLabels } from "./chords.js";
 import {
@@ -10,6 +10,11 @@ import {
   type MetalArrangementTraceOperation,
   type MetalArrangementTraceSink,
 } from "./metal-arrange.js";
+import {
+  assessBeginnerOffGridCandidate,
+  selectBeginnerOffGridRhCandidates,
+  type BeginnerOffGridRejectedCandidate,
+} from "./beginner-offgrid.js";
 
 export interface VariantOptions {
   /** 16th-note grid (beats) used for note slicing */
@@ -94,6 +99,88 @@ function seedLearnerTrace(notes: Note[]): LearnerInternalNote[] {
 function stripLearnerTrace(note: Note): Note {
   const { learnerTraceRefs: _learnerTraceRefs, rawMidi: _rawMidi, ...publicNote } = note as LearnerInternalNote;
   return publicNote;
+}
+
+function traceRoots(
+  event: MetalArrangementTraceEvent,
+  byKey: Map<string, MetalArrangementTraceEvent>,
+  memo: Map<string, Set<string>>,
+  visiting = new Set<string>(),
+): Set<string> {
+  const cached = memo.get(event.key);
+  if (cached) return cached;
+  if (visiting.has(event.key)) return new Set();
+  visiting.add(event.key);
+  const roots = new Set<string>();
+  if (event.parentKeys.length) {
+    for (const parentKey of event.parentKeys) {
+      const parent = byKey.get(parentKey);
+      if (parent) for (const root of traceRoots(parent, byKey, memo, visiting)) roots.add(root);
+      else roots.add(parentKey);
+    }
+  } else roots.add(event.key);
+  visiting.delete(event.key);
+  memo.set(event.key, roots);
+  return roots;
+}
+
+function learnerSourceKey(note: Note): string {
+  return `${note.hand ?? "R"}:${note.start.toFixed(9)}:${note.midi}:${note.dur.toFixed(9)}:${note.vel}:${note.identitySource ?? "unknown"}`;
+}
+
+function resolveBeginnerOffGridRejections(
+  events: MetalArrangementTraceEvent[],
+  sourceNotes: Note[],
+): BeginnerOffGridRejectedCandidate[] {
+  const byKey = new Map(events.map((event) => [event.key, event]));
+  const memo = new Map<string, Set<string>>();
+  const result: BeginnerOffGridRejectedCandidate[] = [];
+  for (const event of events) {
+    if (event.stage !== "beginner-ladder" || event.selected !== false || !event.note || !event.parentKeys.length) continue;
+    const roots = [...traceRoots(event, byKey, memo)].sort((a, b) => a < b ? -1 : a > b ? 1 : 0);
+    if (roots.length !== 1) continue;
+    const raw = byKey.get(roots[0]!);
+    if (!raw?.note) continue;
+    const source = sourceNotes
+      .filter((note) => note.midi === raw.note!.midi && Math.abs(note.start - raw.note!.start) <= 1e-6)
+      .sort((left, right) => Math.abs(left.dur - raw.note!.dur) - Math.abs(right.dur - raw.note!.dur)
+        || Math.abs(left.vel - raw.note!.vel) - Math.abs(right.vel - raw.note!.vel)
+        || (() => {
+          const leftKey = learnerSourceKey(left);
+          const rightKey = learnerSourceKey(right);
+          return leftKey < rightKey ? -1 : leftKey > rightKey ? 1 : 0;
+        })())[0];
+    if (source) result.push({ note: { ...source }, sourceKey: roots[0]! });
+  }
+  return [...new Map(result.map((candidate) => [candidate.sourceKey, candidate])).values()];
+}
+
+/**
+ * Recover the same rejected source events without materializing the complete
+ * learner-stage trace. The full graph is reserved for explicit trace sinks;
+ * Candidate A only needs the single-ref parents that did not survive the
+ * Beginner ladder.
+ */
+function resolveBeginnerOffGridRejectionsFromLineage(
+  beforeLadder: Note[],
+  afterLadder: Note[],
+  sourceNotes: Note[],
+): BeginnerOffGridRejectedCandidate[] {
+  const selectedRefs = new Set(afterLadder.flatMap(learnerTraceRefs));
+  const sourceByRef = new Map<string, Note>();
+  for (const source of sourceNotes) {
+    for (const ref of learnerTraceRefs(source)) sourceByRef.set(ref, source);
+  }
+  const rejected = new Map<string, BeginnerOffGridRejectedCandidate>();
+  for (const note of beforeLadder) {
+    const refs = learnerTraceRefs(note);
+    // A merged parent is either retained as a whole or rejected as a whole in
+    // emitLearnerStageTrace; do not split its source IDs here.
+    if (refs.length !== 1 || refs.some((ref) => selectedRefs.has(ref))) continue;
+    const source = sourceByRef.get(refs[0]!);
+    if (source) rejected.set(refs[0]!, { note: { ...source }, sourceKey: refs[0]! });
+  }
+  return [...rejected.values()];
 }
 
 function difficultyTraceKey(level: DifficultyLevel, note: Note, index: number): string {
@@ -2629,14 +2716,19 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   // safety default) and an explicit null (human-authored source, no blanket
   // duration cap). Catalog ingestion always supplies one of these policies.
   if (opts.maxDurBeats !== undefined) sanitizeOptions.maxDurBeats = opts.maxDurBeats;
-  const learnerTraceEnabled = learnerProfile && opts.trace !== undefined;
-  const learnerTraceSource = learnerTraceEnabled ? seedLearnerTrace(src.notes) : src.notes;
+  const learnerTraceEvents: MetalArrangementTraceEvent[] = [];
+  const learnerLineageEnabled = learnerProfile;
+  const learnerTraceEnabled = learnerLineageEnabled && opts.trace !== undefined;
+  const learnerTraceSink: MetalArrangementTraceSink | undefined = learnerTraceEnabled
+    ? { record: (event) => { learnerTraceEvents.push(event); opts.trace?.record(event); } }
+    : opts.trace;
+  const learnerTraceSource = learnerLineageEnabled ? seedLearnerTrace(src.notes) : src.notes;
   if (learnerTraceEnabled) {
-    emitLearnerStageTrace(opts.trace, "raw", learnerTraceSource, [], "learner-source");
+    emitLearnerStageTrace(learnerTraceSink, "raw", learnerTraceSource, [], "learner-source");
   }
   const imported = sanitizeImportedNotes(learnerTraceSource, sanitizeOptions);
   if (learnerTraceEnabled) {
-    emitLearnerStageTrace(opts.trace, "cleaned", imported, [{ stage: "raw", notes: learnerTraceSource }], "sanitize-import");
+    emitLearnerStageTrace(learnerTraceSink, "cleaned", imported, [{ stage: "raw", notes: learnerTraceSource }], "sanitize-import");
   }
   // Run the gated learner voice pass before quantization so co-onset evidence
   // from the transcription is not erased by the later grid merge.
@@ -2676,7 +2768,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
         : splitHands(splitSource);
   const { rh, lh } = split;
   if (learnerTraceEnabled) {
-    emitLearnerStageTrace(opts.trace, "learner-arranged", [...rh, ...lh], [{ stage: "cleaned", notes: imported }], "range-and-hand-arrangement");
+    emitLearnerStageTrace(learnerTraceSink, "learner-arranged", [...rh, ...lh], [{ stage: "cleaned", notes: imported }], "range-and-hand-arrangement");
   }
   const key = meta.key ?? detectKey(imported).name;
   // Detect background pads before sustain capping; otherwise a long drone
@@ -2708,7 +2800,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     { grid: 0.125 },
   );
   if (learnerTraceEnabled) {
-    emitLearnerStageTrace(opts.trace, "advanced-candidates", advancedSource, [{ stage: "learner-arranged", notes: [...rh, ...lh] }], "advanced-candidate-construction");
+    emitLearnerStageTrace(learnerTraceSink, "advanced-candidates", advancedSource, [{ stage: "learner-arranged", notes: [...rh, ...lh] }], "advanced-candidate-construction");
   }
   // The source-level validator allows up to 13 simultaneous notes for
   // advanced material because some faithful arrangements use large chords.
@@ -2723,7 +2815,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
       : advancedSource,
   );
   if (learnerTraceEnabled) {
-    emitLearnerStageTrace(opts.trace, "advanced-playable", advanced, [{ stage: "advanced-candidates", notes: advancedSource }], "advanced-playability");
+    emitLearnerStageTrace(learnerTraceSink, "advanced-playable", advanced, [{ stage: "advanced-candidates", notes: advancedSource }], "advanced-playability");
   }
   const advancedRh = advanced.filter((n) => n.hand !== "L");
   const advancedLh = advanced.filter((n) => n.hand === "L");
@@ -2759,7 +2851,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     ...capSoundingSpan(mediumLhTexture, innerVoiceArrangement ? 19 : 12, "low"),
   ];
   if (learnerTraceEnabled) {
-    emitLearnerStageTrace(opts.trace, "medium-candidates", mediumTexture, [{ stage: "learner-arranged", notes: [...rh, ...lh] }], "medium-candidate-construction");
+    emitLearnerStageTrace(learnerTraceSink, "medium-candidates", mediumTexture, [{ stage: "learner-arranged", notes: [...rh, ...lh] }], "medium-candidate-construction");
   }
   // A role-aware RH carries the song identity, but detector articulation is
   // not piano fingering. Progressively reduce its local phrase rate while the
@@ -2779,7 +2871,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     { grid: 0.125 },
   )));
   if (learnerTraceEnabled) {
-    emitLearnerStageTrace(opts.trace, "medium-playable", medium, [{ stage: "medium-candidates", notes: mediumTexture }], "medium-playability");
+    emitLearnerStageTrace(learnerTraceSink, "medium-playable", medium, [{ stage: "medium-candidates", notes: mediumTexture }], "medium-playability");
   }
   const mediumRh = medium.filter((n) => n.hand !== "L");
   const mediumLh = medium.filter((n) => n.hand === "L");
@@ -2793,11 +2885,11 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
       learnerProfile ? { ...n } : { ...n, midi: rootOf(n.midi, key) }
     )));
   if (learnerTraceEnabled) {
-    emitLearnerStageTrace(opts.trace, "easy-rh-input", easyRhSource, [{
+    emitLearnerStageTrace(learnerTraceSink, "easy-rh-input", easyRhSource, [{
       stage: "medium-playable",
       notes: medium.filter((note) => note.hand !== "L"),
     }], "easy-rh-input");
-    emitLearnerStageTrace(opts.trace, "easy-lh-input", easyLhTexture, [{
+    emitLearnerStageTrace(learnerTraceSink, "easy-lh-input", easyLhTexture, [{
       stage: "medium-playable",
       notes: medium.filter((note) => note.hand === "L"),
     }], "easy-lh-input");
@@ -2806,12 +2898,12 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     ? selectEasyMelody(easyRhSource, 0.125, 0.5, pads)
     : melodyOnly(easyRhSource, 0.125, 0.5, pads);
   if (learnerTraceEnabled) {
-    emitLearnerStageTrace(opts.trace, "onset-group", easyRhSource, [{ stage: "easy-rh-input", notes: easyRhSource }], "easy-onset-grouping");
-    emitLearnerStageTrace(opts.trace, "selector-input", [...easyRhSource, ...easyLhTexture], [
+    emitLearnerStageTrace(learnerTraceSink, "onset-group", easyRhSource, [{ stage: "easy-rh-input", notes: easyRhSource }], "easy-onset-grouping");
+    emitLearnerStageTrace(learnerTraceSink, "selector-input", [...easyRhSource, ...easyLhTexture], [
       { stage: "easy-rh-input", notes: easyRhSource },
       { stage: "easy-lh-input", notes: easyLhTexture },
     ], "easy-selector-input");
-    emitLearnerStageTrace(opts.trace, "easy-voice-selection", easyMelody, [{ stage: "onset-group", notes: easyRhSource }], "easy-voice-selection");
+    emitLearnerStageTrace(learnerTraceSink, "easy-voice-selection", easyMelody, [{ stage: "onset-group", notes: easyRhSource }], "easy-voice-selection");
   }
   const easyAssembledSource = [
     ...capSoundingSpan(easyMelody, 12, "high"),
@@ -2828,12 +2920,12 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   const easy = capLevel("easy", easyUncapped);
   if (learnerTraceEnabled) {
     const easyDecision = [...easyMelody, ...easyLhTexture];
-    emitLearnerStageTrace(opts.trace, "decision", easyDecision, [
+    emitLearnerStageTrace(learnerTraceSink, "decision", easyDecision, [
       { stage: "easy-voice-selection", notes: easyMelody },
       { stage: "easy-lh-input", notes: easyLhTexture },
     ], "easy-selection");
-    emitLearnerStageTrace(opts.trace, "easy-assembled", easyUncapped, [{ stage: "decision", notes: easyDecision }], "easy-assembly");
-    emitLearnerStageTrace(opts.trace, "easy-playable", easy, [{ stage: "easy-assembled", notes: easyUncapped }], "easy-playability");
+    emitLearnerStageTrace(learnerTraceSink, "easy-assembled", easyUncapped, [{ stage: "decision", notes: easyDecision }], "easy-assembly");
+    emitLearnerStageTrace(learnerTraceSink, "easy-playable", easy, [{ stage: "easy-assembled", notes: easyUncapped }], "easy-playability");
   }
   // Each easier level is a reduction of the level above it, so the ladder
   // is a true subset (same melody, same moments) instead of a re-selection
@@ -2847,11 +2939,11 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     { grid: 0.25 },
   )));
   if (learnerTraceEnabled) {
-    emitLearnerStageTrace(opts.trace, "very-easy-rh-input", veryEasyRhSource, [{
+    emitLearnerStageTrace(learnerTraceSink, "very-easy-rh-input", veryEasyRhSource, [{
       stage: "easy-playable",
       notes: easy.filter((note) => note.hand !== "L"),
     }], "very-easy-rh-input");
-    emitLearnerStageTrace(opts.trace, "very-easy-playable", veryEasy, [{
+    emitLearnerStageTrace(learnerTraceSink, "very-easy-playable", veryEasy, [{
       stage: "easy-playable",
       notes: easy,
     }], "very-easy-playability");
@@ -2862,14 +2954,14 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     ? reduceMetalRhRealism(veryEasy.filter((n) => n.hand !== "L"), tempo, 2.5, true)
     : veryEasy.filter((n) => n.hand !== "L");
   if (learnerTraceEnabled) {
-    emitLearnerStageTrace(opts.trace, "beginner-rh-input", beginnerRhSource, [{
+    emitLearnerStageTrace(learnerTraceSink, "beginner-rh-input", beginnerRhSource, [{
       stage: "very-easy-playable",
       notes: veryEasy.filter((note) => note.hand !== "L"),
     }], "beginner-rh-input");
   }
   const beginnerRh = capSoundingSpan(melodyOnly(beginnerRhSource, 0.25, 0.5, pads), 12, "high");
   if (learnerTraceEnabled) {
-    emitLearnerStageTrace(opts.trace, "beginner-rh-selected", beginnerRh, [{
+    emitLearnerStageTrace(learnerTraceSink, "beginner-rh-selected", beginnerRh, [{
       stage: "beginner-rh-input",
       notes: beginnerRhSource,
     }], "beginner-principal-selection");
@@ -2882,7 +2974,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     { grid: 0.25 },
   );
   if (learnerTraceEnabled) {
-    emitLearnerStageTrace(opts.trace, "beginner-assembled", beginnerSource, [
+    emitLearnerStageTrace(learnerTraceSink, "beginner-assembled", beginnerSource, [
       { stage: "beginner-rh-selected", notes: beginnerRh },
       { stage: "very-easy-playable", notes: veryEasy.filter((note) => note.hand === "L") },
     ], "beginner-assembly");
@@ -2892,7 +2984,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     trimSamePitchOverlaps(metalProfile ? capSemanticBeginnerHands(beginnerSource) : beginnerSource),
   );
   if (learnerTraceEnabled) {
-    emitLearnerStageTrace(opts.trace, "beginner-playable", beginner, [{
+    emitLearnerStageTrace(learnerTraceSink, "beginner-playable", beginner, [{
       stage: "beginner-assembled",
       notes: beginnerSource,
     }], "beginner-playability");
@@ -2950,7 +3042,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   }
   const beginnerAfterLadder = sets.beginner!;
   if (learnerTraceEnabled) {
-    emitLearnerStageTrace(opts.trace, "beginner-ladder", beginnerAfterLadder, [{
+    emitLearnerStageTrace(learnerTraceSink, "beginner-ladder", beginnerAfterLadder, [{
       stage: "beginner-playable",
       notes: beginner,
     }], "beginner-ladder-preservation");
@@ -2974,15 +3066,57 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
       return !existingKeys.has(key);
     })].sort((a, b) => a.start - b.start || (a.hand === "L" ? 1 : -1) || a.midi - b.midi);
   }
+  // Frozen Candidate A: after the existing ladder and sparse-LH stages, admit
+  // at most one structurally supported source attack per meter window. The
+  // shared selector owns eligibility/order; this callback owns the current
+  // Beginner mechanical envelope. Candidate B is never callable here.
+  if (learnerProfile && !metalProfile) {
+    const beginnerBaseline = sets.beginner!;
+    const rejected = learnerTraceEnabled
+      ? resolveBeginnerOffGridRejections(learnerTraceEvents, src.notes)
+      : resolveBeginnerOffGridRejectionsFromLineage(beginner, beginnerAfterLadder, learnerTraceSource);
+    const durationBeats = Math.max(0, ...src.notes.map((note) => note.start + note.dur).filter(Number.isFinite));
+    const selection = selectBeginnerOffGridRhCandidates({
+      sourceNotes: src.notes,
+      baselineNotes: beginnerBaseline,
+      rejected,
+      timeSig: src.timeSig,
+      durationBeats,
+      budget: 1,
+      isLegal: (candidate, selected, baseline) => assessBeginnerOffGridCandidate(
+        candidate,
+        selected,
+        baseline,
+        {
+          tempoBpm: tempo,
+          durationBeats,
+          maxSimultaneity: PLAYABILITY_LIMITS.beginner!.maxSim,
+          maxDensity: PLAYABILITY_LIMITS.beginner!.maxDensity,
+          minMedianIoiSeconds: PLAYABILITY_LIMITS.beginner!.minMedianIoi,
+        },
+      ).legal,
+    });
+    const additions = new Map(selection.emitted.map((candidate) => [learnerSourceKey(candidate.note), candidate.sourceKey]));
+    sets.beginner = selection.selected.map((note) => {
+      const sourceKey = additions.get(learnerSourceKey(note));
+      if (!sourceKey) return note;
+      const marked = { ...note, learnerTraceRefs: [sourceKey] } as LearnerInternalNote;
+      Object.defineProperty(marked, BEGINNER_OFFGRID_CANDIDATE, { value: true, enumerable: true });
+      return marked;
+    });
+  }
   if (learnerTraceEnabled) {
-    emitLearnerStageTrace(opts.trace, "beginner-final", sets.beginner!, [{
+    emitLearnerStageTrace(learnerTraceSink, "beginner-final", sets.beginner!, [{
       stage: "beginner-ladder",
       notes: beginnerAfterLadder,
+    }, {
+      stage: "raw",
+      notes: learnerTraceSource,
     }], "beginner-finalization");
   }
   if (learnerTraceEnabled) {
-    emitLearnerStageTrace(opts.trace, "easy-ladder", sets.easy!, [{ stage: "easy-playable", notes: easy }], "easy-ladder-preservation");
-    emitLearnerStageTrace(opts.trace, "final", sets.easy!, [{ stage: "easy-ladder", notes: sets.easy! }], "easy-public-final");
+    emitLearnerStageTrace(learnerTraceSink, "easy-ladder", sets.easy!, [{ stage: "easy-playable", notes: easy }], "easy-ladder-preservation");
+    emitLearnerStageTrace(learnerTraceSink, "final", sets.easy!, [{ stage: "easy-ladder", notes: sets.easy! }], "easy-public-final");
   }
   const scores: Record<DifficultyLevel, number> = {
     "very-beginner": 1,
@@ -2996,7 +3130,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   return LEVEL_ORDER.map((level) => {
     const internalNotes = sets[level]!.map((n) => ({ ...n }));
     emitDifficultyTrace(opts.trace, level, internalNotes, learnerTraceSource);
-    const notes = learnerTraceEnabled ? internalNotes.map(stripLearnerTrace) : internalNotes;
+    const notes = learnerLineageEnabled ? internalNotes.map(stripLearnerTrace) : internalNotes;
     return {
       level,
       difficultyScore: scores[level]!,

@@ -28,6 +28,9 @@ export const LADDER_TOL: Record<string, number> = {
   medium: 0.02,
 };
 
+/** Internal, non-serialized marker for the frozen Beginner off-grid allowance. */
+export const BEGINNER_OFFGRID_CANDIDATE = Symbol.for("keyspilli.beginner-offgrid-rh-candidate");
+
 function rhStartsByMidi(notes: Note[]): Map<number, number[]> {
   const by = new Map<number, number[]>();
   for (const n of notes) {
@@ -160,6 +163,7 @@ export function validateVariants(variants: Variant[], opts: VariantValidationOpt
     for (const n of easier.notes) {
       if (n.hand === "L") continue;
       if (!hasNear(harderByMidi, n.midi, n.start, tol)) {
+        if (level === "beginner" && (n as Note & { [BEGINNER_OFFGRID_CANDIDATE]?: boolean })[BEGINNER_OFFGRID_CANDIDATE] === true) continue;
         errors.push(`${level}: note ${n.midi}@${n.start.toFixed(2)} missing from ${harder.level} (ladder broken)`);
       }
     }

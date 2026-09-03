@@ -67,6 +67,20 @@ export {
 export type { RhLhBalance, ArrangementQualityReport } from "./arrangement-quality.js";
 export { verifyMonotonicity } from "./validate.js";
 export {
+  BEGINNER_OFFGRID_RH_BUDGET_CONFIG,
+  assessBeginnerOffGridCandidate,
+  selectBeginnerOffGridRhCandidates,
+} from "./beginner-offgrid.js";
+export type {
+  BeginnerOffGridCandidate,
+  BeginnerOffGridConstraintMetrics,
+  BeginnerOffGridConstraintOptions,
+  BeginnerOffGridRejectedCandidate,
+  BeginnerOffGridSelectionInput,
+  BeginnerOffGridSelectionResult,
+  BeginnerOffGridStructuralSignal,
+} from "./beginner-offgrid.js";
+export {
   splitPianoRoles,
 } from "./piano-roles.js";
 export type {

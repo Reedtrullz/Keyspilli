@@ -1,4 +1,9 @@
-import { PLAYABILITY_LIMITS, type Note, type Variant } from "@keyspilli/midi";
+import {
+  BEGINNER_OFFGRID_RH_BUDGET_CONFIG,
+  PLAYABILITY_LIMITS,
+  type Note,
+  type Variant,
+} from "@keyspilli/midi";
 import { evaluateArrangement } from "./arrangement-evaluation.js";
 import type { ProvenanceTraceEvent } from "./arrangement-evaluation.js";
 import { COVER_RH_CLIFF_CONFIG } from "./cover-rh-cliff.js";
@@ -7,16 +12,16 @@ import { COVER_RH_CLIFF_CONFIG } from "./cover-rh-cliff.js";
 export const BEGINNER_OFFGRID_RH_FRONTIER_CONFIG = {
   schemaVersion: 1,
   mission: "BEGINNER_OFF_GRID_INTERIOR_RH_BUDGET_FRONTIER",
-  quarterGridBeats: COVER_RH_CLIFF_CONFIG.gridBeats,
-  gridToleranceBeats: 0.01,
-  onsetToleranceBeats: COVER_RH_CLIFF_CONFIG.onsetToleranceBeats,
-  phraseBreakBeats: COVER_RH_CLIFF_CONFIG.phraseBreakBeats,
+  quarterGridBeats: BEGINNER_OFFGRID_RH_BUDGET_CONFIG.quarterGridBeats,
+  gridToleranceBeats: BEGINNER_OFFGRID_RH_BUDGET_CONFIG.gridToleranceBeats,
+  onsetToleranceBeats: BEGINNER_OFFGRID_RH_BUDGET_CONFIG.onsetToleranceBeats,
+  phraseBreakBeats: BEGINNER_OFFGRID_RH_BUDGET_CONFIG.phraseBreakBeats,
   repeatedGapBeats: COVER_RH_CLIFF_CONFIG.repeatedGapBeats,
-  spanCapSemitones: 12,
-  largeLeapSemitones: 7,
+  spanCapSemitones: BEGINNER_OFFGRID_RH_BUDGET_CONFIG.spanCapSemitones,
+  largeLeapSemitones: BEGINNER_OFFGRID_RH_BUDGET_CONFIG.largeLeapSemitones,
   windowBudgets: { baseline: 0, "candidate-a": 1, "candidate-b": 2 },
   windowPolicy: "time-signature measure: 4 beats in 4/4; 4.5 beats in 9/8",
-  structuralSignals: ["contour-extremum", "repeated-articulation", "high-velocity", "long-duration", "phrase-anchor", "large-leap-endpoint"],
+  structuralSignals: BEGINNER_OFFGRID_RH_BUDGET_CONFIG.structuralSignals,
 } as const;
 
 export type BeginnerOffGridCandidate = "baseline" | "candidate-a" | "candidate-b";

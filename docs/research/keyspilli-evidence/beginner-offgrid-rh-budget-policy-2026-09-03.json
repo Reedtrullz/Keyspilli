@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "mission": "PROMOTE_BEGINNER_CANDIDATE_A_AND_PREPARE_HUMAN_ACCEPTANCE",
+  "startingRevision": "a980fafc39bb50e43e63f223508d7e833294b7b7",
+  "frontierReportSha256": "eadb2fe2cf48f31c3a18975f14fed4fb665b9538fafa739b04f3dcb44b62815a",
+  "policyFingerprintSha256": "8a411da29401ea28cf607249591bfdd695626f7e746064a338a96bf35ca6dc2c",
+  "policy": {
+    "name": "BEGINNER_SPARSE_OFFGRID_RH_BUDGET",
+    "budget": 1,
+    "candidateBImplemented": false,
+    "quarterGridBeats": 0.25,
+    "gridToleranceBeats": 0.01,
+    "onsetToleranceBeats": 0.08,
+    "phraseBreakBeats": 1.5,
+    "windowPolicy": "time-signature measure: 4 beats in 4/4; 4.5 beats in 9/8",
+    "structuralSignals": [
+      "contour-extremum",
+      "repeated-articulation",
+      "high-velocity",
+      "long-duration",
+      "phrase-anchor",
+      "large-leap-endpoint"
+    ],
+    "tieBreak": [
+      "signal-count-desc",
+      "signal-flags-desc",
+      "source-start-asc",
+      "source-midi-asc",
+      "source-key-codepoint-asc"
+    ],
+    "eligibility": [
+      "beginner-ladder-rejection",
+      "off-grid-start-over-0.01",
+      "one-to-one-source-ancestry",
+      "at-least-one-structural-signal",
+      "right-hand-only",
+      "not-higher-same-onset"
+    ],
+    "preservedConstraints": [
+      "max-sounding-simultaneity",
+      "density",
+      "median-ioi",
+      "range",
+      "span-jump",
+      "existing-rh-timing",
+      "existing-lh-event-set",
+      "no-retiming",
+      "no-baseline-deletion"
+    ],
+    "behavior": "ONLY_GENERIC_BEGINNER_RH"
+  }
+}
