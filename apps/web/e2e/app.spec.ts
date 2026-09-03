@@ -35,6 +35,16 @@ test("song library groups difficulty levels into one card per song", async ({ pa
   await expect(levels.getByRole("link", { name: "Open Beginner level" })).toBeVisible();
   await expect(levels.getByRole("link", { name: "Open Easy level" })).toBeVisible();
   await expect(levels.getByRole("link", { name: "Open Advanced level" })).toBeVisible();
+  await expect(levels.getByRole("link", { name: "Open Very Easy level" })).toHaveCount(0);
+  await expect(levels.getByRole("link")).toHaveCount(5);
+  await expect(levels.getByRole("link")).toHaveText(["VB", "B", "E", "M", "A"]);
+});
+
+test("explicit Very Easy player URLs keep the legacy level visible", async ({ page }) => {
+  await page.goto("/player/f-f-chopin-nocturne-ve");
+  const levels = page.getByRole("heading", { name: "Same song, other levels" }).locator("..");
+  await expect(levels.getByRole("link", { name: "Very Easy", exact: true })).toBeVisible();
+  await expect(levels.getByRole("link", { name: "Easy", exact: true })).toBeVisible();
   await expect(levels.getByRole("link")).toHaveCount(6);
 });
 

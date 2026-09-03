@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { loadJson } from "@keyspilli/player-core";
+import { PUBLIC_DIFFICULTY_ORDER, isPublicDifficultyLevel } from "@keyspilli/midi";
 import { LEVEL_LABEL, LEVEL_SHORT } from "./level-labels";
 
 interface GroupedSong {
@@ -11,9 +12,19 @@ interface GroupedSong {
   totalPlays: number;
 }
 
-const DIFFICULTIES = ["very-beginner", "beginner", "very-easy", "easy", "medium", "advanced"];
 const KEYS = ["C", "D", "E", "F", "G", "A", "B", "Bb", "Eb", "Ab", "Db", "F#", "C#"];
 const BASS = ["block", "octave", "oompah", "walking", "pedal", "arpeggio"];
+
+function publicLevelRows(levels: GroupedSong["levels"]): GroupedSong["levels"] {
+  const byDifficulty = new Map(
+    levels.filter((level) => isPublicDifficultyLevel(level.difficulty)).map((level) => [level.difficulty, level]),
+  );
+  return PUBLIC_DIFFICULTY_ORDER.flatMap((difficulty) => {
+    const level = byDifficulty.get(difficulty);
+    return level ? [level] : [];
+  });
+}
+
 export function SongBrowser() {
   const [songs, setSongs] = useState<GroupedSong[]>([]);
   const [input, setInput] = useState("");
@@ -82,7 +93,7 @@ export function SongBrowser() {
         <div id="song-library-filters" className="library-filters flex flex-wrap items-center gap-2" data-open={filtersOpen}>
           <select value={difficulty} onChange={(e) => setDifficulty(e.target.value)} className="form-control px-2 py-2 rounded-lg border border-zinc-300 text-sm" aria-label="Difficulty">
             <option value="">All difficulties</option>
-            {DIFFICULTIES.map((d) => (
+            {PUBLIC_DIFFICULTY_ORDER.map((d) => (
               <option key={d} value={d}>{LEVEL_LABEL[d] ?? d}</option>
             ))}
           </select>
@@ -117,6 +128,7 @@ export function SongBrowser() {
         {visible.map((s) => {
           const fav = s.levels.some((l) => favorites.includes(l.id));
           const done = s.levels.some((l) => learned.includes(l.id));
+          const publicLevels = publicLevelRows(s.levels);
           return (
             <li key={s.representative.id}>
               <div className="interactive-card rounded-xl border border-zinc-200 bg-white p-4 hover:border-zinc-400 transition-colors h-full">
@@ -136,7 +148,7 @@ export function SongBrowser() {
                 <div className="mt-3" role="group" aria-label={`Difficulty levels for ${s.representative.title}`}>
                   <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400">Levels</span>
                   <div className="flex flex-wrap gap-1">
-                  {s.levels.map((l) => (
+                  {publicLevels.map((l) => (
                     <Link
                       key={l.id}
                       href={`/player/${l.id}`}

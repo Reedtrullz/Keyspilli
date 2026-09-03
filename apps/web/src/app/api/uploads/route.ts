@@ -38,5 +38,6 @@ export async function POST(req: NextRequest) {
     acquiredVia: "upload",
   });
   if (result.error) return NextResponse.json({ error: result.error }, { status: 422 });
-  return NextResponse.json({ baseId: result.baseId, songIds: result.songIds });
+  const easySongId = result.songIds.find((id) => id.endsWith("-e")) ?? result.songIds[0] ?? null;
+  return NextResponse.json({ baseId: result.baseId, songIds: result.songIds, easySongId });
 }

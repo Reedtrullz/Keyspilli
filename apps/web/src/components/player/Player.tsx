@@ -30,6 +30,7 @@ import {
   type Section as SongSection,
 } from "@keyspilli/player-core";
 import type { SongRow } from "@keyspilli/catalog";
+import { PUBLIC_DIFFICULTY_ORDER, isPublicDifficultyLevel } from "@keyspilli/midi";
 import { FallingCanvas } from "./FallingCanvas";
 import { ChordStrip } from "./ChordStrip";
 import { ChordPracticePanel } from "./ChordPracticePanel";
@@ -68,6 +69,23 @@ const MODES: { id: ViewMode; label: string; hint: string }[] = [
   { id: "sheet", label: "Sheet Music", hint: "Engraved score" },
   { id: "leadsheet", label: "Lead Sheet", hint: "Lyrics + chords" },
 ];
+
+function playerVariantsForDisplay(song: Pick<SongRow, "difficulty">, variants: readonly SongRow[]): SongRow[] {
+  const byDifficulty = new Map(
+    variants.filter((variant) => isPublicDifficultyLevel(variant.difficulty)).map((variant) => [variant.difficulty, variant]),
+  );
+  const publicVariants = PUBLIC_DIFFICULTY_ORDER.flatMap((difficulty) => {
+    const variant = byDifficulty.get(difficulty);
+    return variant ? [variant] : [];
+  });
+  if (song.difficulty !== "very-easy") return publicVariants;
+
+  const legacy = variants.find((variant) => variant.difficulty === "very-easy");
+  if (!legacy) return publicVariants;
+  const easyIndex = publicVariants.findIndex((variant) => variant.difficulty === "easy");
+  publicVariants.splice(easyIndex < 0 ? publicVariants.length : easyIndex, 0, legacy);
+  return publicVariants;
+}
 
 /** Pressed keys drop if their noteOff was lost (common with USB-MIDI). */
 const GHOST_KEY_TIMEOUT_MS = 5000;
@@ -121,6 +139,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     return { startSec: loopBeats.startBeat * spb, endSec: loopBeats.endBeat * spb };
   }, [loopBeats, initial.data.tempoBpm, settings.speed]);
   const sections: SongSection[] = initial.data.sections ?? [];
+  const displayVariants = playerVariantsForDisplay(initial.song, initial.variants);
   const [showSettings, setShowSettings] = useState(false);
   const [showModeMenu, setShowModeMenu] = useState(false);
   const [showDownload, setShowDownload] = useState(false);
@@ -1135,11 +1154,11 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
         </div>
       </div>
 
-      {initial.variants.length > 1 && (
+      {displayVariants.length > 1 && (
         <section className="mb-6">
           <h2 className="text-sm font-semibold text-zinc-500 mb-2">Same song, other levels</h2>
           <div className="flex flex-wrap gap-2">
-            {initial.variants.map((v) => (
+            {displayVariants.map((v) => (
               <Link
                 key={v.id}
                 href={`/player/${v.id}`}
@@ -1363,6 +1382,7 @@ function PlayerShellView({ initial, mode }: { initial: PlayerShell; mode: ViewMo
   }, [detail, initial.song.id]);
 
   const activeMode = requestedMode === "sheet" ? "Sheet Music" : MODES.find((item) => item.id === requestedMode)?.label ?? requestedMode;
+  const displayVariants = playerVariantsForDisplay(initial.song, initial.variants);
 
   const shell = (
     <div className="page-shell player-page max-w-6xl mx-auto px-4 py-6">
@@ -1492,11 +1512,11 @@ function PlayerShellView({ initial, mode }: { initial: PlayerShell; mode: ViewMo
         </div>
       </div>
 
-      {initial.variants.length > 1 && (
+      {displayVariants.length > 1 && (
         <section className="mb-6">
           <h2 className="text-sm font-semibold text-zinc-500 mb-2">Same song, other levels</h2>
           <div className="flex flex-wrap gap-2">
-            {initial.variants.map((variant) => (
+            {displayVariants.map((variant) => (
               <Link
                 key={variant.id}
                 href={`/player/${variant.id}`}

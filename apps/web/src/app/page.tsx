@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { listSongsGrouped, countSongs, getDb, type GroupedSong } from "@keyspilli/catalog";
+import { listSongsGrouped, countSongs, getDb, projectPublicGroupedSongs, type GroupedSong } from "@keyspilli/catalog";
 import { LEVEL_LABEL, LEVEL_SHORT } from "../components/level-labels";
 
 export const dynamic = "force-dynamic";
 
 export default function HomePage() {
-  const popular = listSongsGrouped({ sort: "popular", limit: 12 });
-  const recent = listSongsGrouped({ limit: 200 }).sort((a, b) => (a.lastCreatedAt < b.lastCreatedAt ? 1 : -1)).slice(0, 12);
+  const popular = projectPublicGroupedSongs(listSongsGrouped({ sort: "popular", limit: 12 }));
+  const recent = projectPublicGroupedSongs(listSongsGrouped({ limit: 200 })).sort((a, b) => (a.lastCreatedAt < b.lastCreatedAt ? 1 : -1)).slice(0, 12);
   const plays = (getDb().prepare("SELECT COALESCE(SUM(plays),0) AS s FROM songs").get() as { s: number }).s;
   const total = countSongs();
 

@@ -9,7 +9,7 @@ export default function UploadsPage() {
   const [artist, setArtist] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState<"idle" | "uploading" | "done" | "error">("idle");
-  const [result, setResult] = useState<{ baseId: string; songIds: string[] } | null>(null);
+  const [result, setResult] = useState<{ baseId: string; songIds: string[]; easySongId?: string | null } | null>(null);
   const [error, setError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const filePickerButtonRef = useRef<HTMLButtonElement>(null);
@@ -84,7 +84,7 @@ export default function UploadsPage() {
     <div className="page-shell max-w-2xl mx-auto px-4 py-10">
       <h1 className="page-title text-2xl font-bold mb-2 motion-rise-in">Upload your own song</h1>
       <p className="text-zinc-600 text-sm mb-6 motion-rise-in">
-        Drop a MIDI or MusicXML file and it becomes a playable, color-coded lesson with all six difficulty levels. Max 10 MB.
+        Drop a MIDI or MusicXML file and it becomes a playable, color-coded lesson with all five difficulty levels. Max 10 MB.
       </p>
 
       <div className="dropzone rounded-2xl border-2 border-dashed border-zinc-300 p-8 text-center mb-5 motion-scale-in" onDragOver={(e) => e.preventDefault()} onDrop={(e) => {
@@ -136,7 +136,7 @@ export default function UploadsPage() {
             >
               Done! {result.songIds.length} arrangements created.
               <div className="mt-2">
-                <Link href={`/player/${result.songIds[0]}`} className="pressable text-indigo-700 font-medium underline">
+                <Link href={`/player/${result.easySongId ?? result.songIds[0]}`} className="pressable text-indigo-700 font-medium underline">
                   Open in the player →
                 </Link>
               </div>
