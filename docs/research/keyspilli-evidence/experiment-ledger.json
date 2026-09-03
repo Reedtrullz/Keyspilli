@@ -614,7 +614,9 @@
       "startingRevision": "1ea2118675a2f75c17440a481a7dc8b55fcfca8f",
       "checkpointRevisions": [
         "d1363491c19ef8169ade7434093013a897348227",
-        "3b32e9cf9fbfcdaa713eae3be1ab7e6dd67606fd"
+        "3b32e9cf9fbfcdaa713eae3be1ab7e6dd67606fd",
+        "9e4c3afd6940f86d4453dd46b9f821089bc8b141",
+        "217d9f9bd61da573f1227d1be507fa17b7fc624a"
       ],
       "purpose": "Harden native timing preservation and measure one bounded synchronization candidate on a legitimate real audio+symbolic pair",
       "firewall": {
