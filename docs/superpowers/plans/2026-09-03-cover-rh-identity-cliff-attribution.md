@@ -81,9 +81,9 @@
 **Files:**
 - Modify: `/Users/reidar/Obsidian/Hermes/Hermes/Personal/Projects/Keyspilli/Keyspilli.md` (external durable log)
 
-- [ ] **Step 1: Run focused MIDI/catalog tests, full workspace tests, all six typechecks, and `git diff --check`.**
-- [ ] **Step 2: Rerun the diagnostic CLI and compare canonical hashes byte-for-byte.**
-- [ ] **Step 3: Reconfirm public five-level/physical six-level outputs and unchanged variant digests.**
-- [ ] **Step 4: Verify local HEAD equals `origin/codex/metal-inference-lane-lock`, disk free remains at least 30 GiB, and only approved commits are pushed.**
-- [ ] **Step 5: Append a concise evidence-backed Obsidian entry naming the final SHA, decision, non-claims, and one follow-up task.**
-- [ ] **Step 6: Commit/push any final report changes and verify remote SHA parity.**
+- [x] **Step 1: Run focused MIDI/catalog tests, full workspace tests, all six typechecks, and `git diff --check`.**
+- [x] **Step 2: Rerun the diagnostic CLI and compare canonical hashes byte-for-byte.**
+- [x] **Step 3: Reconfirm public five-level/physical six-level outputs and unchanged variant digests.**
+- [x] **Step 4: Verify local HEAD equals `origin/codex/metal-inference-lane-lock`, disk free remains at least 30 GiB, and only approved commits are pushed.**
+- [x] **Step 5: Append a concise evidence-backed Obsidian entry naming the final SHA, decision, non-claims, and one follow-up task.**
+- [x] **Step 6: Commit/push any final report changes and verify remote SHA parity.**
