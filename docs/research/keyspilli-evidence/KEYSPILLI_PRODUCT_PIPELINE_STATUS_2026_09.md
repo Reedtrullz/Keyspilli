@@ -12,6 +12,8 @@ remaining Beginner/Very Easy tuning branches are closed.
 The redundant `calibrate:ladder` entrypoint was deleted. `review:ladder` is the
 single reusable ladder evaluator; historical reports and ledgers remain.
 
+Committed code checkpoint: `72eed97f0012b67e9b38098c325529068c4cfade`.
+
 ## Proven product path
 
 ```text

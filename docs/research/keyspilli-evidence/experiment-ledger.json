@@ -410,7 +410,7 @@
     {
       "id": "beginner-candidate-a-production-promotion-2026-09-03",
       "date": "2026-09-03",
-      "gitCommit": "d9c5b66d9395cb193c91af5b7db21f650e9ce824",
+      "gitCommit": "72eed97f0012b67e9b38098c325529068c4cfade",
       "purpose": "Promote the frozen generic Beginner Candidate-A off-grid RH budget after exact production equivalence",
       "songs": ["Clair de lune", "River Flows in You", "Hello"],
       "route": "shared Beginner off-grid selector -> learner Beginner finalization -> path-free frontier evaluator",
@@ -426,7 +426,7 @@
         "candidateBImplemented": false,
         "frontierReportSha256": "08e8f410f4ded20d143eac114dc2a327a33b1e0082fbf24883335e0e063a08d4",
         "frontierRerunSha256": "08e8f410f4ded20d143eac114dc2a327a33b1e0082fbf24883335e0e063a08d4",
-        "workspaceTests": 1529,
+        "workspaceTests": 1531,
         "workspaceTypechecks": 6
       },
       "result": "Candidate A is the only promoted off-grid policy; it adds at most one structurally supported source event per meter window without retiming or LH changes. Automated parity is structural evidence, not a recognizability claim.",
@@ -437,7 +437,7 @@
     {
       "id": "external-symbolic-shadow-rehearsal-2026-09-03",
       "date": "2026-09-03",
-      "gitCommit": "d9c5b66d9395cb193c91af5b7db21f650e9ce824",
+      "gitCommit": "72eed97f0012b67e9b38098c325529068c4cfade",
       "purpose": "Exercise the complete external-symbolic source-to-public pipeline on eligible development fixtures",
       "songs": [],
       "route": "project-owned MIDI -> native parse/provenance/roles/alignment -> arrangement -> six variants -> artifacts -> catalog/public projection",

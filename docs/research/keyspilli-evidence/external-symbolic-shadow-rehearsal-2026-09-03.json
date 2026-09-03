@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "mission": "EXTERNAL_SYMBOLIC_FIRST_END_TO_END_SHADOW_REHEARSAL",
-  "testedBaseRevision": "d9c5b66d9395cb193c91af5b7db21f650e9ce824",
+  "testedBaseRevision": "72eed97f0012b67e9b38098c325529068c4cfade",
   "decision": "SHADOW_END_TO_END_PIPELINE_READY",
   "scope": {
     "fixtures": 4,

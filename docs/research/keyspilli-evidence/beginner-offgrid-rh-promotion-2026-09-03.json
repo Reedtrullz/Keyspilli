@@ -4,8 +4,8 @@
   "status": "PRODUCTION_POLICY_PROMOTED",
   "humanAcceptanceStatus": "NOT_REQUIRED_BY_DEFAULT",
   "startingRevision": "a980fafc39bb50e43e63f223508d7e833294b7b7",
-  "implementationRevision": "d9c5b66d9395cb193c91af5b7db21f650e9ce824",
-  "verificationRevision": "d9c5b66d9395cb193c91af5b7db21f650e9ce824",
+  "implementationRevision": "72eed97f0012b67e9b38098c325529068c4cfade",
+  "verificationRevision": "72eed97f0012b67e9b38098c325529068c4cfade",
   "policyFingerprintSha256": "8a411da29401ea28cf607249591bfdd695626f7e746064a338a96bf35ca6dc2c",
   "candidateA": {
     "name": "BEGINNER_SPARSE_OFFGRID_RH_BUDGET",
@@ -75,7 +75,7 @@
       "exactEventSet": true,
       "frontierReportSha256": "08e8f410f4ded20d143eac114dc2a327a33b1e0082fbf24883335e0e063a08d4"
     },
-    "workspaceTests": { "web": 89, "catalog": 966, "engrave": 8, "midi": 332, "playerCore": 92, "transcribe": 42, "total": 1529 },
+    "workspaceTests": { "web": 89, "catalog": 968, "engrave": 8, "midi": 332, "playerCore": 92, "transcribe": 42, "total": 1531 },
     "workspaceTypechecks": { "web": "pass", "catalog": "pass", "engrave": "pass", "midi": "pass", "playerCore": "pass", "transcribe": "pass" },
     "diffCheck": "pass"
   },
