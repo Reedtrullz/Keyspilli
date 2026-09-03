@@ -61,6 +61,12 @@ export interface FrozenGenerationCandidateSet {
 }
 
 const ROLES = new Set<EvidenceRole>(["melody", "harmony", "bass-root", "rhythm", "timing-only"]);
+const GENERATION_PROVENANCE_CLASSES = new Set([
+  "PROJECT_OWNED",
+  "OPEN_LICENSE",
+  "USER_SUPPLIED_PRIVATE",
+  "REMOTE_APPROVED",
+]);
 const PHYSICAL_KEY = /(?:path|file|locator|artifact)$/i;
 const PATH_VALUE = /^(?:file:\/\/|[A-Za-z]:[\\/]|[\\/~])|\/(?:Users|private|tmp|var|home|Volumes|root|opt|workspace|srv|etc|mnt|data)(?:[\\/]|$)/i;
 
@@ -218,16 +224,24 @@ function hasUnsafeCandidateMetadata(value: unknown, key = ""): boolean {
   return Object.entries(value).some(([childKey, child]) => hasUnsafeCandidateMetadata(child, childKey));
 }
 
-function isFrozenCandidateSet(value: unknown): value is FrozenGenerationCandidateSet {
+/** Explicit provenance classes are part of the generation firewall contract. */
+function hasKnownGenerationProvenance(candidate: ExternalEvidenceCandidate): boolean {
+  const supplied = candidate.provenance?.provenanceClass;
+  return supplied === undefined
+    || (typeof supplied === "string" && GENERATION_PROVENANCE_CLASSES.has(supplied));
+}
+
+function isFrozenCandidateSet(value: unknown, firewall?: EvidenceFirewallOptions): value is FrozenGenerationCandidateSet {
   if (!isRecord(value) || value.schemaVersion !== 1 || !Array.isArray(value.selected) || !Array.isArray(value.rejected)
     || typeof value.digest !== "string" || !/^[a-f0-9]{64}$/i.test(value.digest)
     || !deeplyFrozen(value)) return false;
   if (value.selected.some((entry) => !isRecord(entry) || !Object.isFrozen(entry) || typeof entry.recordId !== "string"
     || !isRecord(entry.candidate) || !Object.isFrozen(entry.candidate) || hasUnsafeCandidateMetadata(entry.candidate)
+    || !hasKnownGenerationProvenance(entry.candidate as ExternalEvidenceCandidate)
     || !isRecord(entry.score) || !Object.isFrozen(entry.score) || !Array.isArray(entry.roles) || !Object.isFrozen(entry.roles)
     || entry.roles.some((role) => !isRecord(role) || !Object.isFrozen(role)))) return false;
   try {
-    for (const entry of value.selected) assertGenerationEvidence(entry.candidate as ExternalEvidenceCandidate);
+    for (const entry of value.selected) assertGenerationEvidence(entry.candidate as ExternalEvidenceCandidate, firewall);
     return value.digest.toLowerCase() === digest(value.selected as FrozenGenerationCandidate[]).toLowerCase();
   } catch {
     return false;
@@ -253,6 +267,7 @@ export function freezeGenerationCandidateSet(
     if (!record?.score) reasons.push("missing normalized score");
     const candidate = record?.candidate;
     if (candidate) {
+      if (!hasKnownGenerationProvenance(candidate)) reasons.push("candidate provenance class is unknown");
       try {
         assertGenerationEvidence(candidate, config);
       } catch (error) {
@@ -327,6 +342,8 @@ export interface ExternalSymbolicArrangementInput {
   /** Explicit beat maps from a candidate into the target recording domain. */
   alignmentMaps?: Readonly<Record<string, PianoSectionSource["alignment"]>>;
   fallbackEnabled?: boolean;
+  /** Protected benchmark/reference registry applied again at realization. */
+  firewall?: EvidenceFirewallOptions;
 }
 
 export interface ExternalRoleSelection {
@@ -833,7 +850,7 @@ function outputProvenance(
 /** Realize only already-frozen candidates; no benchmark/reference source reaches either branch. */
 export function buildExternalSymbolicArrangement(input: ExternalSymbolicArrangementInput): ExternalSymbolicArrangementResult {
   const set = input.candidateSet ?? input.frozen;
-  if (!isFrozenCandidateSet(set)) return fallbackResult(input, "an immutable, digest-consistent frozen candidate set is required");
+  if (!isFrozenCandidateSet(set, input.firewall)) return fallbackResult(input, "an immutable, digest-consistent, firewall-approved frozen candidate set is required");
   const selected = [...set.selected].filter((entry) => entry.candidate.purpose !== "BENCHMARK_REFERENCE" && entry.candidate.evidenceClass !== "BENCHMARK_REFERENCE");
   if (!selected.length) return fallbackResult(input, "no frozen generation candidate is available");
   const supplied = input.sources

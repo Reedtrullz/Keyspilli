@@ -46,8 +46,10 @@ export * from "./midi-corpus-roles.js";
 export * from "./midi-corpus.js";
 export * from "./midi-corpus-report.js";
 export * from "./direct-amt-evaluation.js";
+export * from "./audio-symbolic-alignment.js";
 export * from "./upstream-attribution-runner.js";
 export * from "./external-retrieval.js";
+export * from "./generation-candidate-intake.js";
 export * from "./shadow-corpus.js";
 // The local shadow modules intentionally have a few similarly named input
 // records.  Keep the public barrel explicit so consumers get one canonical

@@ -1,6 +1,13 @@
 import { createHash } from "node:crypto";
 import { adaptNativeSymbolicBytes, adaptNativeSymbolicFile, type NativeSymbolicAdapterResult } from "./native-score-adapter.js";
-import { assertGenerationEvidence, type EvidenceClass, type EvidencePurpose, type EvidenceRole, type ExternalEvidenceCandidate } from "./external-evidence.js";
+import {
+  assertGenerationEvidence,
+  type EvidenceClass,
+  type EvidenceFirewallOptions,
+  type EvidencePurpose,
+  type EvidenceRole,
+  type ExternalEvidenceCandidate,
+} from "./external-evidence.js";
 import { createSongIdentity, type SongIdentity, type SongIdentityInput } from "./song-research.js";
 import type { CanonicalScore } from "./omr-canonical.js";
 import type { OmrEventInput, OmrPartInput, OmrRole, OmrScoreInput } from "./omr-consensus.js";
@@ -126,6 +133,8 @@ export interface ExternalResearchInventory {
 
 export interface ExternalSymbolicCandidateInput extends ExternalResearchLocalInput {
   id?: string | null;
+  /** Protected benchmark/reference registry applied during ingestion. */
+  firewall?: EvidenceFirewallOptions;
 }
 
 export interface ExternalSymbolicIngestionResult {
@@ -156,6 +165,8 @@ export interface ExternalResearchOptions {
   localCandidates?: readonly ExternalResearchLocalInput[];
   localByteInputs?: readonly ExternalResearchLocalInput[];
   discoveryErrors?: readonly string[];
+  /** Protected benchmark/reference registry applied to all local inputs. */
+  firewall?: EvidenceFirewallOptions;
 }
 
 const NATIVE_FORMATS = new Set(["midi", "mid", "musicxml", "xml", "mxl", "mscz"]);
@@ -436,7 +447,7 @@ function buildCandidate(input: ExternalSymbolicCandidateInput, format: string, r
     status: "parsed",
   };
   try {
-    return { candidate: assertGenerationEvidence(candidate), rejectionReasons: [] };
+    return { candidate: assertGenerationEvidence(candidate, input.firewall), rejectionReasons: [] };
   } catch (error) {
     return { candidate: null, rejectionReasons: [errorText(error)] };
   }
@@ -582,7 +593,10 @@ export async function researchExternalCandidates(songInput: SongIdentityInput | 
     const ingestionInput = baseByIdentity
       ? { ...input, purpose: protectedDiscovery ? baseByIdentity.purpose : input.purpose ?? baseByIdentity.purpose, evidenceClass: protectedDiscovery ? baseByIdentity.evidenceClass : input.evidenceClass ?? baseByIdentity.evidenceClass }
       : input;
-    const result = await ingestExternalSymbolicCandidate(ingestionInput);
+    const result = await ingestExternalSymbolicCandidate({
+      ...ingestionInput,
+      ...(options.firewall ? { firewall: options.firewall } : {}),
+    });
     const contentHash = result.provenance?.sha256 ?? null;
     const id = stableId(input.id, stableId(sourceRef, contentHash ? `local:${contentHash.slice(0, 24)}` : `local:${index + 1}`));
     const baseEntry = baseByIdentity

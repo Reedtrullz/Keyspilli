@@ -94,6 +94,37 @@ describe("external symbolic generation boundary", () => {
     expect(frozen.rejected.flatMap((entry) => entry.reasons).join(" ")).toMatch(/protected benchmark reference manifest/i);
   });
 
+  it("revalidates a protected benchmark registry at the realization boundary", () => {
+    // A caller may receive a frozen set from another boundary.  The
+    // realization boundary must still apply its local protected registry;
+    // otherwise a digest-consistent set created without that registry can
+    // bypass the benchmark firewall.
+    const frozen = freezeGenerationCandidateSet([record()]);
+    const result = buildExternalSymbolicArrangement({
+      candidateSet: frozen,
+      firewall: { protectedSha256: ["a".repeat(64)] },
+      mode: "direct-piano",
+      windows: [{ id: "full", startBeat: 0, endBeat: 4, candidateId: "record-a" }],
+      fallbackEnabled: false,
+    });
+
+    expect(result.status).toBe("unavailable");
+    expect(result.fallbackReason).toMatch(/frozen|protected|benchmark/i);
+  });
+
+  it("does not freeze an intake candidate with explicitly unknown provenance", () => {
+    const unknown = record({
+      candidate: {
+        ...record().candidate!,
+        provenance: { ...record().candidate!.provenance, provenanceClass: "UNKNOWN" },
+      },
+    });
+    const frozen = freezeGenerationCandidateSet([unknown]);
+
+    expect(frozen.selected).toHaveLength(0);
+    expect(frozen.rejected[0]?.reasons.join(" ")).toMatch(/provenance.*unknown/i);
+  });
+
   it("is order invariant and freezes path-safe metadata with sections", () => {
     const first = record({ id: "first", candidate: { ...record().candidate!, id: "first", provenance: { sourceRef: "synthetic:first", acquiredVia: "local-bytes", physicalPath: "/Users/reidar/private/song.mid" }, notes: [{ midi: 1 }] } });
     const second = record({ id: "second", candidate: { ...record().candidate!, id: "second", provenance: { sourceRef: "synthetic:second", acquiredVia: "local-bytes" }, content: { sha256: "b".repeat(64) } } });

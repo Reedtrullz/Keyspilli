@@ -54,6 +54,43 @@ describe("external symbolic research bridge", () => {
     expect(xml.score?.parts[0]?.name).toBe("Lead Voice");
   });
 
+  it("applies the protected-reference registry at symbolic ingestion", async () => {
+    const baseline = await ingestExternalSymbolicCandidate({
+      id: "registry-baseline",
+      sourceRef: "external:registry-baseline",
+      bytes: midiBytes([{ midi: 60, start: 0, dur: 1, vel: 96, hand: "R" }]),
+      format: "midi",
+      purpose: "GENERATION_CANDIDATE",
+    });
+    const hash = baseline.candidate?.content.sha256;
+    expect(hash).toMatch(/^[a-f0-9]{64}$/);
+    const protectedResult = await ingestExternalSymbolicCandidate({
+      id: "registry-blocked",
+      sourceRef: "external:registry-entry-b",
+      bytes: midiBytes([{ midi: 60, start: 0, dur: 1, vel: 96, hand: "R" }]),
+      format: "midi",
+      purpose: "GENERATION_CANDIDATE",
+      firewall: { protectedSha256: hash ? [hash] : [] },
+    });
+
+    expect(protectedResult.status).toBe("parsed");
+    expect(protectedResult.candidate).toBeNull();
+    expect(protectedResult.rejectionReasons.join(" ")).toMatch(/protected benchmark reference manifest/i);
+
+    const inventory = await researchExternalCandidates(song, {
+      firewall: { protectedSha256: hash ? [hash] : [] },
+      localInputs: [{
+        id: "registry-inventory",
+        sourceRef: "external:registry-entry-c",
+        bytes: midiBytes([{ midi: 60, start: 0, dur: 1, vel: 96, hand: "R" }]),
+        format: "midi",
+        purpose: "GENERATION_CANDIDATE",
+      }],
+    });
+    expect(inventory.records[0]?.candidate).toBeNull();
+    expect(inventory.records[0]?.rejectionReasons.join(" ")).toMatch(/protected benchmark reference manifest/i);
+  });
+
   it("reports MXL and unsupported formats without inventing parsers", async () => {
     const mxl = await ingestExternalSymbolicCandidate({
       sourceRef: "external:invalid-mxl",

@@ -23,6 +23,7 @@ import {
   type ExternalRouteCoverageResult,
   freezeGenerationCandidateSet,
 } from "./external-symbolic-pipeline.js";
+import type { EvidenceFirewallOptions } from "./external-evidence.js";
 import type { Note } from "@keyspilli/midi";
 
 /** Inventory labels only. They are deliberately not used by evidence guards. */
@@ -174,6 +175,8 @@ export interface ExternalBenchmarkSongInput {
 
 export interface ExternalBenchmarkInput {
   songs: readonly ExternalBenchmarkSongInput[];
+  /** Protected benchmark/reference registry applied to candidate intake and realization. */
+  firewall?: EvidenceFirewallOptions;
 }
 
 export interface ExternalBenchmarkReferenceReport {
@@ -758,7 +761,7 @@ function isMalformedRuntimeInput(error: unknown): boolean {
   return /must be an object|must contain objects|inputs must be an array|raters must be an array|decisions must be strings|callbacks are not allowed|duplicate (?:candidate|reference|route descriptor) id|route descriptor .*unknown|route descriptor .*invalid|route descriptors? must be an array|attributions must be an array/.test(message);
 }
 
-async function evaluateSong(song: ExternalBenchmarkSongInput, windows: ExternalBenchmarkWindow[]): Promise<ExternalBenchmarkSongReport> {
+async function evaluateSong(song: ExternalBenchmarkSongInput, windows: ExternalBenchmarkWindow[], firewall?: EvidenceFirewallOptions): Promise<ExternalBenchmarkSongReport> {
   if (song.discover !== undefined || song.acquire !== undefined) throw new Error("external benchmark discovery/acquisition callbacks are not allowed");
   // Validate route descriptors before the candidate freeze. They are output
   // controls only, but malformed descriptors must never be allowed to defer
@@ -783,12 +786,16 @@ async function evaluateSong(song: ExternalBenchmarkSongInput, windows: ExternalB
 
   // This is intentionally two calls: no reference bytes or score can exist
   // until the immutable generation freeze has completed.
-  const candidateInventory = await researchExternalCandidates(identity(song.id), { discoveryRecords, localInputs: candidates });
+  const candidateInventory = await researchExternalCandidates(identity(song.id), {
+    discoveryRecords,
+    localInputs: candidates,
+    ...(firewall ? { firewall } : {}),
+  });
   // Benchmark generation is timing-authority-safe by construction: an
   // acquired candidate must carry an independently supplied aligned status
   // before it can enter the immutable generation freeze.  Reference bytes
   // are ingested only below this boundary and can never establish alignment.
-  const frozen = freezeGenerationCandidateSet(candidateInventory.records, { requireAlignment: true });
+  const frozen = freezeGenerationCandidateSet(candidateInventory.records, { requireAlignment: true, ...(firewall ?? {}) });
   const candidateRecords = candidateInventory.records;
   const selected = frozen.selected;
   const failures: ExternalBenchmarkFailure[] = [];
@@ -802,7 +809,11 @@ async function evaluateSong(song: ExternalBenchmarkSongInput, windows: ExternalB
   if (candidateRecords.some((record) => record.purpose === "GENERATION_CANDIDATE" && record.alignment.status !== "aligned")) addFailure(failures, "ALIGNMENT_UNAVAILABLE");
   if (!selected.length) addFailure(failures, "NO_USABLE_GENERATION_CANDIDATE");
 
-  const generation = buildExternalSymbolicArrangement({ candidateSet: frozen, windows: windows.map((window) => ({ id: window.id, startBeat: window.candidate[0], endBeat: window.candidate[1] })) });
+  const generation = buildExternalSymbolicArrangement({
+    candidateSet: frozen,
+    windows: windows.map((window) => ({ id: window.id, startBeat: window.candidate[0], endBeat: window.candidate[1] })),
+    ...(firewall ? { firewall } : {}),
+  });
   if (generation.status === "fallback") addFailure(failures, "GENERATION_FAILED");
   if (generation.status === "unavailable") addFailure(failures, "OUTPUT_UNAVAILABLE");
   if (generation.status !== "symbolic") addFailure(failures, "OUTPUT_UNAVAILABLE");
@@ -921,7 +932,7 @@ export async function buildExternalBenchmarkReport(input: ExternalBenchmarkInput
     const song = byId.get(id);
     if (!song) rows.push(emptySong(id));
     else {
-      try { rows.push(await evaluateSong(song, validateWindows(song.windows))); }
+      try { rows.push(await evaluateSong(song, validateWindows(song.windows), input.firewall)); }
       catch (error) {
         if (!isMalformedRuntimeInput(error)) throw error;
         rows.push(invalidSong(id, error));

@@ -72,6 +72,20 @@ describe("external symbolic benchmark orchestration", () => {
     expect(row.failures).toContain("NO_USABLE_GENERATION_CANDIDATE");
   });
 
+  it("applies the protected-reference firewall through benchmark candidate realization", async () => {
+    const protectedHash = createHash("sha256").update(midi()).digest("hex");
+    const report = await buildExternalBenchmarkReport({
+      firewall: { protectedSha256: [protectedHash] },
+      songs: [song(SEVEN_SONG_BENCHMARK_IDS[0]!)],
+    });
+    const row = report.songs[0]!;
+
+    expect(row.freeze.selectedRecordIds).toEqual([]);
+    expect(row.generation.status).toBe("fallback");
+    expect(row.output.availability).toBe("unavailable");
+    expect(row.failures).toContain("NO_USABLE_GENERATION_CANDIDATE");
+  });
+
   it("keeps local-only external evaluation modules out of the production barrel", async () => {
     const catalog = await import("../src/index.js");
     expect("assertGenerationEvidence" in catalog).toBe(false);

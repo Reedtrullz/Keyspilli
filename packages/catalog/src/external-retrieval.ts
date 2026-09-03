@@ -164,6 +164,8 @@ export interface ExternalRetrievalClassification {
   reasons: string[];
   warnings: string[];
   rejectionReasons: string[];
+  /** Available only when requested via retrieveExternalSource({ retainBytes: true }); never serialized. */
+  readonly bytes?: Uint8Array;
 }
 
 export type ExternalRetrievalResult = ExternalRetrievalClassification;
@@ -178,6 +180,8 @@ export interface ExternalRetrievalOptions {
   maxBytes?: number;
   maxRedirects?: number;
   signal?: AbortSignal;
+  /** Keep the bounded payload on the result for the parser/intake seam. */
+  retainBytes?: boolean;
 }
 
 export type ExternalRetrievalRequest = ExternalRetrievalInput;
@@ -248,6 +252,38 @@ function operationalUrl(value: unknown): string | null {
   }
 }
 
+function privateNetworkUrl(value: string): boolean {
+  try {
+    const hostname = new URL(value).hostname.toLowerCase().replace(/^\[|\]$/g, "");
+    if (hostname === "localhost" || hostname === "::1" || hostname === "0.0.0.0" || hostname === "::") return true;
+    if (/^(?:10|127)\./.test(hostname) || /^192\.168\./.test(hostname) || /^169\.254\./.test(hostname)) return true;
+    const ipv4 = hostname.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+    if (ipv4) {
+      const octets = ipv4.slice(1).map(Number);
+      if (octets.some((octet) => octet > 255)) return true;
+      if (octets[0] === 172 && octets[1]! >= 16 && octets[1]! <= 31) return true;
+    }
+    // Node exposes IPv4-mapped IPv6 literals as `::ffff:a.b.c.d`. Treat the
+    // mapped address as its IPv4 target so loopback/private destinations cannot
+    // bypass the egress guard with bracketed IPv6 syntax.
+    const mapped = hostname.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/i)?.[1];
+    if (mapped && privateNetworkUrl(`http://${mapped}/`)) return true;
+    // WHATWG URL normalizes the dotted spelling above to hexadecimal groups
+    // (for example `::ffff:127.0.0.1` becomes `::ffff:7f00:1`). Decode that
+    // representation before applying the same IPv4 policy.
+    const mappedHex = hostname.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i);
+    if (mappedHex) {
+      const high = Number.parseInt(mappedHex[1]!, 16);
+      const low = Number.parseInt(mappedHex[2]!, 16);
+      const dotted = `${high >>> 8}.${high & 0xff}.${low >>> 8}.${low & 0xff}`;
+      if (privateNetworkUrl(`http://${dotted}/`)) return true;
+    }
+    return /^(?:fc|fd|fe8|fe9|fea|feb)/i.test(hostname);
+  } catch {
+    return true;
+  }
+}
+
 /** Resolve a redirect for the next request while keeping signed query data. */
 function operationalRedirectUrl(value: string | ExternalRetrievalRedirect, base: string | null): string | null {
   const raw = typeof value === "string" ? value : value.url ?? value.location;
@@ -277,6 +313,7 @@ function logicalSourceRef(value: unknown): string | null {
   if (clean && hasSensitiveLogicalSourceRef(clean)) return null;
   const logicalScheme = clean ? /^[A-Za-z][A-Za-z0-9+.-]*:/.test(clean) : false;
   if (!clean || /^(?:file:\/\/|[A-Za-z]:[\\/]|[\\/]|~[\\/]|\.{1,2}[\\/])/.test(clean)
+    || (logicalScheme && /:\s*(?:[\\/]|~[\\/]|\.{1,2}[\\/])/.test(clean))
     || (!logicalScheme && /(?:^|[\\/])[^\\/]+\.(?:mid|midi|musicxml|xml|mxl|wav|mp3|json)(?:[?#].*)?$/i.test(clean))) return null;
   return clean;
 }
@@ -584,6 +621,12 @@ function mergedResponse(input: ExternalRetrievalInput): ExternalRetrievalRespons
   return input.response ?? {};
 }
 
+function retainBytes(result: ExternalRetrievalClassification, value: unknown): ExternalRetrievalClassification {
+  const bytes = asBytes(value);
+  if (result.parserEligible && bytes) Object.defineProperty(result, "bytes", { value: bytes, enumerable: false });
+  return result;
+}
+
 /**
  * Classify an already supplied response or local byte buffer. This function is
  * deliberately parser-free: only a bounded signature sniff can promote a
@@ -795,10 +838,37 @@ function maxBound(value: unknown, fallback: number, minimum: number, maximum: nu
  */
 export async function retrieveExternalSource(input: ExternalRetrievalInput | string, options: ExternalRetrievalOptions = {}): Promise<ExternalRetrievalClassification> {
   const request: ExternalRetrievalInput = typeof input === "string" ? { initialUrl: input } : input;
-  if (request.response || request.bytes !== undefined || request.body !== undefined || request.payload !== undefined || request.content !== undefined) return classifyExternalRetrieval(request);
+  if (request.response || request.bytes !== undefined || request.body !== undefined || request.payload !== undefined || request.content !== undefined) {
+    const supplied = request.bytes ?? request.body ?? request.payload ?? request.content
+      ?? request.response?.bytes ?? request.response?.body ?? request.response?.payload ?? request.response?.content;
+    const suppliedBytes = asBytes(supplied);
+    const maxBytes = maxBound(options.maxBytes, DEFAULT_MAX_BYTES, 1, 128 * 1024 * 1024);
+    if (suppliedBytes && suppliedBytes.byteLength > maxBytes) {
+      const response = request.response
+        ? { ...request.response, bytes: null, body: null, payload: null, content: null }
+        : undefined;
+      const result = classifyExternalRetrieval({
+        ...request,
+        bytes: null,
+        body: null,
+        payload: null,
+        content: null,
+        ...(response ? { response } : {}),
+        error: `response exceeded the ${maxBytes}-byte retrieval limit`,
+      });
+      result.reasons = uniqueSorted([...result.reasons, "response body exceeded the bounded retrieval limit"]);
+      result.rejectionReasons = uniqueSorted([...result.rejectionReasons, "response body was not retained because it exceeded the retrieval limit"]);
+      return result;
+    }
+    const result = classifyExternalRetrieval(request);
+    return options.retainBytes ? retainBytes(result, supplied) : result;
+  }
   const requestUrl = operationalUrl(request.initialUrl ?? request.url);
   if (!requestUrl || options.allowNetwork !== true) {
     return classifyExternalRetrieval({ ...request, error: requestUrl ? "network acquisition is disabled by default" : request.error });
+  }
+  if (privateNetworkUrl(requestUrl)) {
+    return classifyExternalRetrieval({ ...request, error: "network target is local or private and is blocked" });
   }
   if (protectedMarker(request)) return classifyExternalRetrieval(request);
   const fetchImpl = options.fetch ?? globalThis.fetch;
@@ -815,7 +885,7 @@ export async function retrieveExternalSource(input: ExternalRetrievalInput | str
       if (response.status >= 300 && response.status < 400 && location) {
         const next = operationalRedirectUrl(location, current);
         const diagnosticNext = next ? publicUrl(next) : null;
-        if (!next || !diagnosticNext || visitedOperationalUrls.has(next)) {
+        if (!next || privateNetworkUrl(next) || !diagnosticNext || visitedOperationalUrls.has(next)) {
           return classifyExternalRetrieval({ ...request, initialUrl: requestUrl, finalUrl: current, status: response.status, headers: response.headers, redirects, error: "redirect chain is invalid or cyclic" });
         }
         redirects.push(diagnosticNext);
@@ -838,7 +908,7 @@ export async function retrieveExternalSource(input: ExternalRetrievalInput | str
         result.reasons = uniqueSorted([...result.reasons, "response body exceeded the bounded retrieval limit"]);
         result.rejectionReasons = uniqueSorted([...result.rejectionReasons, "response body was not retained because it exceeded the retrieval limit"]);
       }
-      return result;
+      return options.retainBytes ? retainBytes(result, loaded.bytes) : result;
     }
     return classifyExternalRetrieval({ ...request, initialUrl: requestUrl, finalUrl: current, redirects, error: "redirect limit exceeded" });
   } catch (error) {

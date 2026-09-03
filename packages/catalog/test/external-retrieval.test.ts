@@ -309,6 +309,50 @@ describe("external retrieval classification", () => {
     expect(result.reasons.join(" ")).toMatch(/network|disabled/i);
   });
 
+  it("blocks IPv4-mapped IPv6 private targets and path-like logical references", async () => {
+    let calls = 0;
+    const result = await retrieveExternalSource({ initialUrl: "http://[::ffff:127.0.0.1]/score.mid" }, {
+      allowNetwork: true,
+      fetch: async () => { calls += 1; return new Response(Buffer.from(midiBytes())); },
+    });
+    expect(calls).toBe(0);
+    expect(result.parserEligible).toBe(false);
+    expect(result.reasons.join(" ")).toMatch(/private|local|blocked/i);
+
+    const opaque = classifyExternalRetrieval(page({ sourceRef: "provider:/Users/reidar/private/score.mid", bytes: midiBytes() }));
+    expect(opaque.sourceRef).toBeNull();
+  });
+
+  it("retains approved symbolic bytes out of serialized diagnostics", async () => {
+    const result = await retrieveExternalSource({ initialUrl: "https://provider.example/song.mid" }, {
+      allowNetwork: true,
+      retainBytes: true,
+      fetch: async () => new Response(Buffer.from(midiBytes()), {
+        status: 200,
+        headers: { "content-type": "text/plain" },
+      }),
+    });
+
+    expect(result.status).toBe("FOUND_ACCESSIBLE_SYMBOLIC");
+    expect(result.bytes).toEqual(midiBytes());
+    expect(Object.keys(result)).not.toContain("bytes");
+    expect(JSON.stringify(result)).not.toContain('"bytes"');
+  });
+
+  it("does not retain masquerading HTML for a parser", async () => {
+    const result = await retrieveExternalSource({ initialUrl: "https://provider.example/song.mid" }, {
+      allowNetwork: true,
+      retainBytes: true,
+      fetch: async () => new Response("<html>not midi</html>", {
+        status: 200,
+        headers: { "content-type": "audio/midi" },
+      }),
+    });
+
+    expect(result.parserEligible).toBe(false);
+    expect(result.bytes).toBeUndefined();
+  });
+
   it("bounds opt-in redirects and returns the final response diagnostics", async () => {
     const calls: string[] = [];
     const result = await retrieveExternalSource({ initialUrl: "https://provider.example/start.mid" }, {
@@ -448,10 +492,38 @@ describe("external retrieval classification", () => {
     expect(result.reasons.join(" ")).toMatch(/redirect|malformed|invalid/i);
   });
 
+  it("enforces the byte bound for already-supplied response bodies", async () => {
+    const result = await retrieveExternalSource({
+      initialUrl: "https://provider.example/song.mid",
+      status: 200,
+      bytes: midiBytes(),
+    }, { maxBytes: 1, retainBytes: true });
+    expect(result.parserEligible).toBe(false);
+    expect(result.rejectionReasons.join(" ")).toMatch(/limit|bound/i);
+    expect(result.bytes).toBeUndefined();
+  });
+
+  it("blocks opt-in fetches to local or private network targets", async () => {
+    let called = false;
+    const result = await retrieveExternalSource("http://127.0.0.1/score.mid", {
+      allowNetwork: true,
+      fetch: async () => { called = true; return new Response(Buffer.from(midiBytes())); },
+    });
+    expect(called).toBe(false);
+    expect(result.parserEligible).toBe(false);
+    expect(result.reasons.join(" ")).toMatch(/local|private|blocked/i);
+  });
+
   it("drops query-bearing opaque source references instead of persisting them", () => {
     const result = classifyExternalRetrieval(page({ sourceRef: "provider:catalog/song?token=secret" }));
     expect(result.sourceRef).toBeNull();
     expect(JSON.stringify(result)).not.toContain("secret");
+  });
+
+  it("does not persist opaque source references that embed a physical path", () => {
+    const result = classifyExternalRetrieval(page({ sourceRef: "provider:/Users/reidar/private/secret.mid" }));
+    expect(result.sourceRef).toBeNull();
+    expect(serializeExternalRetrieval(result)).not.toContain("/Users/reidar");
   });
 
   it("keeps the seven-song inventory metadata-only by default", async () => {
