@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "mission": "PROMOTE_BEGINNER_CANDIDATE_A_AND_PREPARE_HUMAN_ACCEPTANCE",
+  "status": "AUTOMATED_PROMOTION_COMPLETE",
+  "humanAcceptanceStatus": "AWAITING_HUMAN_LISTENING",
+  "startingRevision": "a980fafc39bb50e43e63f223508d7e833294b7b7",
+  "implementationRevision": "1e567e9a324e5ff55aac9ff648083b46a3fcf75c",
+  "policyFingerprintSha256": "8a411da29401ea28cf607249591bfdd695626f7e746064a338a96bf35ca6dc2c",
+  "candidateA": {
+    "name": "BEGINNER_SPARSE_OFFGRID_RH_BUDGET",
+    "budget": 1,
+    "quarterGridBeats": 0.25,
+    "gridToleranceBeats": 0.01,
+    "onsetToleranceBeats": 0.08,
+    "phraseBreakBeats": 1.5,
+    "windowPolicy": "4 beats in 4/4; 4.5 beats in 9/8",
+    "structuralSignals": [
+      "contour-extremum",
+      "repeated-articulation",
+      "high-velocity",
+      "long-duration",
+      "phrase-anchor",
+      "large-leap-endpoint"
+    ],
+    "candidateBImplemented": false,
+    "productionScope": "generic learner Beginner RH only"
+  },
+  "fixtures": {
+    "classical": {
+      "sourceSha256": "e7e0fd260e049e338120cc4ee35c1a998ef616c01529a4c1a79837d6bb914039",
+      "candidateA": { "eligible": 0, "emitted": 0 },
+      "beginner": { "notesPre": 507, "notesPost": 507, "rhPre": 435, "rhPost": 435, "lhPre": 72, "lhPost": 72, "attacksPerSecond": 1.516, "medianRhIoiBeats": 0.5, "offGridRhPre": 0, "offGridRhPost": 0, "maxSimultaneity": 2 },
+      "easyNotes": 962,
+      "exactFrozenCandidateAEventSet": true,
+      "nonBeginnerParity": true,
+      "beginnerBelowEasyByTotalNotes": true
+    },
+    "cover": {
+      "sourceSha256": "eb8a1cf8f0076a548acaa206b67d19123814e1167d654496afa24c0458dc6f9d",
+      "candidateA": { "eligible": 328, "emitted": 110 },
+      "beginner": { "notesPre": 510, "notesPost": 620, "rhPre": 381, "rhPost": 491, "lhPre": 129, "lhPost": 129, "attacksPerSecondPre": 2.003, "attacksPerSecondPost": 2.473, "medianRhIoiBeatsPre": 1, "medianRhIoiBeatsPost": 0.875, "offGridRhPre": 0, "offGridRhPost": 110, "maxSimultaneity": 2 },
+      "easyNotes": 1225,
+      "exactFrozenCandidateAEventSet": true,
+      "nonBeginnerParity": true,
+      "lhParity": true,
+      "beginnerBelowEasyByTotalNotes": true
+    },
+    "pop": {
+      "sourceSha256": "87915f6b8dce035951af2ddc89c9c36ce105fde8e79ba6f936e31b7f80ef7fd6",
+      "candidateA": { "eligible": 0, "emitted": 0 },
+      "beginner": { "notesPre": 470, "notesPost": 470, "rhPre": 375, "rhPost": 375, "lhPre": 95, "lhPost": 95, "attacksPerSecond": 1.438, "medianRhIoiBeats": 0.5, "offGridRhPre": 0, "offGridRhPost": 0, "maxSimultaneity": 2 },
+      "easyNotes": 847,
+      "exactFrozenCandidateAEventSet": true,
+      "nonBeginnerParity": true,
+      "beginnerBelowEasyByTotalNotes": true
+    }
+  },
+  "gates": {
+    "validatorErrors": [],
+    "monotonicityErrors": [],
+    "nonBeginnerParity": true,
+    "beginnerLeftHandParity": true,
+    "publicVisibleLevels": ["very-beginner", "beginner", "easy", "medium", "advanced"],
+    "physicalLevels": ["very-beginner", "beginner", "very-easy", "easy", "medium", "advanced"],
+    "legacyVeryEasyPreserved": true,
+    "candidateBImplemented": false,
+    "candidateAProductionBudget": 1,
+    "deterministicNoTraceParity": true,
+    "deterministicExplicitTraceParity": true,
+    "workspaceTests": { "web": 89, "catalog": 966, "engrave": 8, "midi": 331, "playerCore": 92, "transcribe": 42, "total": 1528 },
+    "workspaceTypechecks": "pass",
+    "diffCheck": "pass"
+  },
+  "listeningPack": {
+    "packId": "cover-beginner-ab-20260903",
+    "manifestSha256": "0e4274ba8fea597780c9c5fecee3fbb830444d68483680f257f0d522b7747f74",
+    "sha256SumsSha256": "9c348956620abf8ad2e7727dabefeceafb133afa33e642e2fb20b15d5bba8729",
+    "caseCount": 6,
+    "candidate": "Cover Beginner pre-change vs Candidate A post-change",
+    "renderer": "FluidSynth 2.6.0 / TimGM6mb / 44.1kHz stereo PCM16",
+    "audioIntegrity": "12/12 WAV hashes verified; full renders and all slices byte-identical on repeat",
+    "blindMappingWithheld": true,
+    "humanRatings": "pending"
+  },
+  "boundaries": [
+    "not deployed",
+    "no production replay",
+    "no supplied reference MIDI read, staged, uploaded, or compared",
+    "Candidate B not implemented, invoked, promoted, or retested",
+    "automated parity is not a musical recognizability judgment"
+  ]
+}
