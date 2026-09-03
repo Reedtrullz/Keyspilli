@@ -21,7 +21,7 @@ alignment mission was preregistered at checkpoint
 | Source intake | VALIDATED (local + approved direct URL seam) | Native MIDI/MusicXML/MXL parsing, bounded bytes, magic/content checks, HTML/error rejection, path-safe provenance, and candidate firewall tests pass. MSCZ is recognized but explicitly unsupported. |
 | Parse/provenance | VALIDATED | Native adapter records SHA-256/size/parser metadata; unknown provenance is not generation-eligible. |
 | Role inference | VALIDATED (shadow override) | The single-stem Guitar-TECHS MIDI is explicitly mapped to guitar for the shadow arrangement; no drum pitches reached output. |
-| Alignment | PARTIAL — FRESH CANDIDATE DID NOT PASS | The frozen `PRODUCTION_SCORE_ALIGNMENT_CANDIDATE_V1` was evaluated on four new ASAP/MAESTRO pairs. It materially beats naïve global tempo on the two runnable pairs, but misses the p95 gate (`0.320047 s` Schubert; `0.623680 s` Chopin) and fails closed on two pairs over the 32M-cell safety ceiling. This is not production readiness; the remaining blocker is regional score-to-recording path error plus bounded long-input support. |
+| Alignment | PARTIAL — V2 RESOURCE FIXED, REGIONAL ACCURACY UNRESOLVED | Frozen `PRODUCTION_SCORE_ALIGNMENT_CANDIDATE_V2` runs all four revealed ASAP/MAESTRO pairs without dense-cell or frame-limit rejection, reducing fine evaluation to 5.2–8.3% of dense-equivalent cells. It does not materially improve the diagnosed regional path errors: Schubert p95 remains `0.320047 s`, Chopin `0.623680 s`, and Bach is `1.281471 s`. The classical coarse-to-fine branch is therefore closed as architecture-insufficient, not production-ready. |
 | Arrangement | PASS (real shadow) | The real pair completed `buildMetalArrangement`; semantic guitar diagnostics and source-tagged output were produced in memory. |
 | Six physical difficulties | PASS (real shadow) | Advanced, Medium, Easy plus the remaining physical levels were generated and validated. |
 | Artifact writing | PASS (in-memory roundtrip) | All six physical variants produced MIDI and MusicXML bytes in memory; existing artifact validators and reparsers passed. No files were persisted. |
@@ -77,6 +77,32 @@ workspace typechecks passed, both alignment and downstream route reports were
 canonical-identical on repeat, JSON validation passed, and `git diff --check`
 passed. Disk free at close was 62 GiB.
 
+### Memory-bounded regional V2 stop
+
+`PRODUCTION_SCORE_ALIGNMENT_CANDIDATE_V2` was frozen and pushed at
+`2ee00f18c1b30b07bc7e814410e2efa22077e174`, with fingerprint
+`69df115d9c24fc3be3c5c1f8736fd73b80edd70ff57f62f3029d6f2fa05a231`. It keeps
+the existing chroma-plus-onset features and replaces the full fine matrix with
+an 8x coarse pass, a 96-frame corridor, and at most one deterministic 192-frame
+expansion. The fine pass uses rolling cost rows plus a bounded backtrace; it
+reports evaluated cells, dense-equivalent cells, edge pressure, weak regions,
+working-set estimates, and confidence signals.
+
+The four already-revealed development fixtures all completed: Rachmaninoff
+(`2,818,102` fine / `54,671,115` dense cells, p95 `0.255922 s`) and Bach
+(`2,644,962` / `48,094,104`, p95 `1.281471 s`) no longer hit V1's 32M-cell
+rejection. Schubert remained at p95 `0.320047 s` and Chopin at `0.623680 s`,
+with 56 and 69 weak regional runs respectively; all four retained 100% usable
+beat coverage and zero monotonic violations. The repeated evaluator report is
+canonical-identical (`ae1d6682164bd68d5c34bc36d6da4bf25ff5ebddaa56607e0f218617ab4533b4`).
+
+Because the diagnosed regional mechanism did not improve, the mission stop rule
+applies: no new unseen validation set, no downstream reroute, no alignment
+parameter tuning, and no deployment. Decision:
+`SCORE_ALIGNMENT_V2_ARCHITECTURE_INSUFFICIENT`. The resource ceiling is fixed
+for these lengths, but classical coarse-to-fine DTW is not an adequate next
+architecture for regional accuracy; the follow-up must be materially different.
+
 ### Prior Guitar-TECHS shadow pair
 
 `guitar-techs:p3-music-08` is Guitar-TECHS v1 (Zenodo record `14963133`),
@@ -115,11 +141,10 @@ alignment readiness.
 - `GENERATION_CANDIDATE_INTAKE_READY` for bounded local symbolic input and the
   opt-in approved-direct-URL seam. A parsed candidate without known provenance
   or aligned evidence remains explicitly ineligible for generation.
-- `REAL_SYMBOLIC_ALIGNMENT_PARTIAL`: the frozen production candidate materially
-  improves over naïve global tempo on two fresh runnable ASAP recordings but
-  misses the p95 gate on both and fails closed on two longer pairs at the
-  resource ceiling. This is evidence for the next implementation slice, not a
-  production-readiness claim.
+- `REAL_SYMBOLIC_ALIGNMENT_PARTIAL`: V2 removes the dense-cell rejection on all
+  four revealed real recordings, but coarse-to-fine corridor refinement leaves
+  the known regional p95 failures unchanged. The V2 decision is
+  `SCORE_ALIGNMENT_V2_ARCHITECTURE_INSUFFICIENT`; no new fresh set was selected.
 - `REAL_SHADOW_BLOCKED_AT_ALIGNMENT`: the ASAP symbolic candidate completed the
   downstream arrangement, six-level generation, artifact roundtrips, and
   five-level grouped public projection in memory using independently annotated
@@ -134,8 +159,9 @@ Human listening is `NOT_REQUESTED` / `NOT_REQUIRED_BY_DEFAULT`; no listening
 pack or rater gate was created. Deployment is `NOT_DEPLOYED`.
 
 The next single engineering task is
-`REAL_SYMBOLIC_TIMING_ALIGNMENT_HARDENING`; it targets the measured regional
-path error and bounded long-input support without changing musical policy.
+`REAL_SYMBOLIC_ALIGNMENT_NON_DTW_REGIONAL_TIMING_INVESTIGATION`; it must close
+the regional score-to-recording error with a materially different architecture
+before any further classical-DTW tuning or source expansion.
 
 Detailed machine evidence is recorded in the
 `asap-score-alignment-2026-09-03.json` evidence file and the matching

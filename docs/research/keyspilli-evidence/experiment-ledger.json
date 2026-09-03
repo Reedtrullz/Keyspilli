@@ -831,6 +831,65 @@
       },
       "nextTask": "REAL_SYMBOLIC_TIMING_ALIGNMENT_HARDENING",
       "reproducible": true
+    },
+    {
+      "id": "memory-bounded-regional-score-alignment-v2-2026-09-03",
+      "date": "2026-09-03",
+      "startingRevision": "d653a501f7a12c24f318fc202b4e3dd6def1f0f5",
+      "checkpointRevisions": [
+        "8452611b1ca70f9193519e917170a78f1460b4a2",
+        "2ee00f18c1b30b07bc7e814410e2efa22077e174"
+      ],
+      "purpose": "Replace full-resolution production score DTW with one deterministic memory-bounded coarse-to-fine corridor candidate and test the two established V1 blockers",
+      "dataset": "ASAP v2.1.1 / MAESTRO carrier audio, CC BY-NC-SA 4.0; revealed development evidence only",
+      "candidate": {
+        "id": "PRODUCTION_SCORE_ALIGNMENT_CANDIDATE_V2",
+        "fingerprint": "69df115d9c24fc3be3c5c1f8736fd73b80edd70ff57f62f3029d6f2fa05a231",
+        "frozenBeforeRevealedValidation": true,
+        "search": "8x smoothed coarse DTW -> 96-frame rolling corridor -> one optional 192-frame expansion",
+        "maxFrames": 40000,
+        "maxFineEvaluatedCells": 20000000
+      },
+      "results": {
+        "report": "asap-revealed-v2-validation-2026-09-03.json",
+        "sourceReportCanonicalSha256": "ae1d6682164bd68d5c34bc36d6da4bf25ff5ebddaa56607e0f218617ab4533b4",
+        "repeatCanonicalEqual": true,
+        "allFourCompletedWithoutDenseRejection": true,
+        "schubert": {"v1P95Seconds": 0.320047, "v2P95Seconds": 0.320047, "status": "FAIL_P95_GATE"},
+        "chopin": {"v1P95Seconds": 0.62368, "v2P95Seconds": 0.62368, "status": "FAIL_P95_GATE"},
+        "rachmaninoff": {"v1Status": "REJECTED_CELL_BOUND", "v2P95Seconds": 0.255922, "status": "FAIL_P95_GATE"},
+        "bach": {"v1Status": "REJECTED_CELL_BOUND", "v2P95Seconds": 1.281471, "status": "FAIL_P95_GATE"},
+        "fineReductionRatioRange": [0.051546, 0.083279],
+        "peakRssMiB": 1327.234375
+      },
+      "freshValidation": {"status": "NOT_RUN", "reason": "revealed regional mechanism did not materially improve; V2 stop rule"},
+      "decisions": {
+        "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+        "realAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "v2": "SCORE_ALIGNMENT_V2_ARCHITECTURE_INSUFFICIENT",
+        "realShadow": "REAL_SHADOW_BLOCKED_AT_ALIGNMENT",
+        "firstBlocker": "regional score-to-recording path error remains after bounded corridor refinement",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED"
+      },
+      "firewall": {
+        "benchmarkReferencesUsedForGeneration": false,
+        "benchmarkReferencesUsedForTuning": false,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NOT_DEPLOYED"
+      },
+      "verification": {
+        "mechanismTests": 2,
+        "workspaceTests": 1582,
+        "workspaceTestBreakdown": {"web": 89, "catalog": 1015, "engrave": 8, "midi": 336, "playerCore": 92, "transcribe": 42},
+        "workspaceTypechecks": 6,
+        "gitDiffCheck": true,
+        "pythonCompile": true,
+        "alignmentRepeatCanonicalEqual": true,
+        "diskFreeGiBAtClose": 63
+      },
+      "nextTask": "REAL_SYMBOLIC_ALIGNMENT_NON_DTW_REGIONAL_TIMING_INVESTIGATION",
+      "reproducible": true,
+      "rawMediaRetention": "local only; no new media selected or committed"
     }
   ]
 }

@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "mission": "MEMORY_BOUNDED_REGIONAL_SCORE_ALIGNMENT_V2",
+  "startingRevision": "d653a501f7a12c24f318fc202b4e3dd6def1f0f5",
+  "checkpointRevisions": [
+    "8452611b1ca70f9193519e917170a78f1460b4a2",
+    "2ee00f18c1b30b07bc7e814410e2efa22077e174"
+  ],
+  "candidate": {
+    "id": "PRODUCTION_SCORE_ALIGNMENT_CANDIDATE_V2",
+    "fingerprint": "69df115d9c24fc3be3c5c1f8736fd73b80edd70ff57f62f3029d6f2fa05a231",
+    "frozenBeforeRevealedValidation": true,
+    "search": "coarse-to-fine-corridor-dtw",
+    "coarseFactor": 8,
+    "coarseSmoothing": 3,
+    "fineCorridorHalfWidth": 96,
+    "expandedCorridorHalfWidth": 192,
+    "maxFineEvaluatedCells": 20000000,
+    "maxFrames": 40000,
+    "mapApproximationBoundSeconds": 0.125,
+    "maxMapAnchors": 129
+  },
+  "fixtures": [
+    {
+      "id": "asap:fresh:schubert-moment-musical-3-tetzloff09m",
+      "comparison": {"v1P95Seconds": 0.320047, "v2P95Seconds": 0.320047},
+      "v2": {"coverage": 1.0, "medianSeconds": 0.048751, "p95Seconds": 0.320047, "maxSeconds": 1.962235, "monotonicViolations": 0, "coarseEvaluatedCells": 334660, "coarseDenseEquivalentCells": 334660, "fineEvaluatedCells": 1750957, "fineDenseEquivalentCells": 21404370, "fineReductionRatio": 0.081804, "regionalWeakZoneCount": 56, "expansionPasses": 1, "corridorEdgePressure": 0.000395, "runtimeSeconds": 2.818595, "peakRssMiB": 1004.0625, "status": "FAIL_P95_GATE"}
+    },
+    {
+      "id": "asap:fresh:rachmaninoff-prelude-23-6-nikiforov14m",
+      "comparison": {"v1P95Seconds": null, "v2P95Seconds": 0.255922},
+      "v2": {"coverage": 1.0, "medianSeconds": 0.058932, "p95Seconds": 0.255922, "maxSeconds": 2.838687, "monotonicViolations": 0, "coarseEvaluatedCells": 854698, "coarseDenseEquivalentCells": 854698, "fineEvaluatedCells": 2818102, "fineDenseEquivalentCells": 54671115, "fineReductionRatio": 0.051546, "regionalWeakZoneCount": 7, "expansionPasses": 1, "corridorEdgePressure": 0.000232, "runtimeSeconds": 5.758656, "peakRssMiB": 1327.234375, "status": "FAIL_P95_GATE"}
+    },
+    {
+      "id": "asap:fresh:chopin-etude-10-1-muna07m",
+      "comparison": {"v1P95Seconds": 0.62368, "v2P95Seconds": 0.62368},
+      "v2": {"coverage": 1.0, "medianSeconds": 0.044326, "p95Seconds": 0.62368, "maxSeconds": 1.560515, "monotonicViolations": 0, "coarseEvaluatedCells": 330561, "coarseDenseEquivalentCells": 330561, "fineEvaluatedCells": 1761084, "fineDenseEquivalentCells": 21146832, "fineReductionRatio": 0.083279, "regionalWeakZoneCount": 69, "expansionPasses": 1, "corridorEdgePressure": 0.000405, "runtimeSeconds": 2.846068, "peakRssMiB": 1327.234375, "status": "FAIL_P95_GATE"}
+    },
+    {
+      "id": "asap:fresh:bach-prelude-854-lua01m",
+      "comparison": {"v1P95Seconds": null, "v2P95Seconds": 1.281471},
+      "v2": {"coverage": 1.0, "medianSeconds": 0.038569, "p95Seconds": 1.281471, "maxSeconds": 7.078786, "monotonicViolations": 0, "coarseEvaluatedCells": 752554, "coarseDenseEquivalentCells": 752554, "fineEvaluatedCells": 2644962, "fineDenseEquivalentCells": 48094104, "fineReductionRatio": 0.054996, "regionalWeakZoneCount": 3, "expansionPasses": 1, "corridorEdgePressure": 0.000265, "runtimeSeconds": 4.189512, "peakRssMiB": 1327.234375, "status": "FAIL_P95_GATE"}
+    }
+  ],
+  "resourceContract": {
+    "denseCellBytesEstimate": 17,
+    "allFourCompleted": true,
+    "denseCellRejections": 0,
+    "frameLimitRejections": 0,
+    "fineEvaluatedCellsRange": [1750957, 2818102],
+    "fineReductionRatioRange": [0.051546, 0.083279],
+    "peakRssMiBObserved": 1327.234375
+  },
+  "determinism": {
+    "sourceReportCanonicalSha256": "ae1d6682164bd68d5c34bc36d6da4bf25ff5ebddaa56607e0f218617ab4533b4",
+    "repeatSourceReportCanonicalSha256": "ae1d6682164bd68d5c34bc36d6da4bf25ff5ebddaa56607e0f218617ab4533b4",
+    "repeatCanonicalEqual": true
+  },
+  "freshValidation": {"status": "NOT_RUN", "reason": "V2 did not materially improve the revealed regional-error mechanism; mission stop rule applies"},
+  "decision": "SCORE_ALIGNMENT_V2_ARCHITECTURE_INSUFFICIENT",
+  "decisions": {
+    "resource": "SOLVED_FOR_REVEALED_3_TO_8_MINUTE_INPUTS",
+    "regionalAccuracy": "NOT_IMPROVED",
+    "nextTask": "REAL_SYMBOLIC_ALIGNMENT_NON_DTW_REGIONAL_TIMING_INVESTIGATION"
+  },
+  "firewall": {
+    "benchmarkReferencesUsedForGeneration": false,
+    "benchmarkReferencesUsedForTuning": false,
+    "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+    "deployment": "NOT_DEPLOYED"
+  }
+}
