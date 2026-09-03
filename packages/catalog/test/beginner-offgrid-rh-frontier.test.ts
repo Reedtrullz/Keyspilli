@@ -147,4 +147,28 @@ describe("Beginner off-grid RH frontier", () => {
     expect(report.lineage.rejectedEvents).toBe(0);
     expect(report.candidates["candidate-b"].eligible).toBe(0);
   });
+
+  it("uses a supplied pre-Candidate-A baseline instead of applying the policy twice", () => {
+    const baseline: Note[] = [
+      { midi: 60, start: 0, dur: 0.5, vel: 80, hand: "R" },
+      { midi: 62, start: 1, dur: 0.5, vel: 80, hand: "R" },
+    ];
+    const candidate: Note = { midi: 67, start: 1.125, dur: 0.5, vel: 120, hand: "R" };
+    const candidateTwo: Note = { midi: 69, start: 1.375, dur: 0.5, vel: 120, hand: "R" };
+    const finalBeginner = [...baseline, candidate];
+    const report = evaluateBeginnerOffGridRhFrontier({
+      ...input([...baseline, candidate, candidateTwo], finalBeginner),
+      baselineNotes: baseline,
+      rejectedRhNotes: [candidate, candidateTwo],
+    });
+    expect(report.candidates.baseline.rhNotes).toBe(2);
+    expect(report.candidates["candidate-a"].emitted).toBe(1);
+    expect(report.candidates["candidate-a"].rhNotes).toBe(3);
+    expect(report.candidates["candidate-b"].rhNotes).toBe(3);
+    const doubleApplied = evaluateBeginnerOffGridRhFrontier({
+      ...input([...baseline, candidate, candidateTwo], finalBeginner),
+      rejectedRhNotes: [candidate, candidateTwo],
+    });
+    expect(doubleApplied.candidates["candidate-a"].emitted).toBe(0);
+  });
 });

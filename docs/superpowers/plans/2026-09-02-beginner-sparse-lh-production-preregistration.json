@@ -76,7 +76,7 @@
   "frozenOutputs": {
     "profile": "learner",
     "levels": ["very-beginner", "beginner", "very-easy", "easy", "medium", "advanced"],
-    "calibrationCommand": "npm run calibrate:ladder -w @keyspilli/catalog -- --out <logical-output-path>",
+    "calibrationCommand": "npm run review:ladder -w @keyspilli/catalog -- --out <logical-output-path>",
     "fixtures": {
       "classical": {"very-beginner": "d982f12aa89f37da110f9c23bf57264bd423bd4dc38004ad597e5b1894e4bd1d", "beginner": "c84eb5600d844fa17d2e45653fec0412b3d7a5f2ecc9b4054347600329d87635", "very-easy": "5bf7557f94d0de0daa852295ac11f1d3e695a7289750a354836319e1c99cc2b5", "easy": "510ca6179ab55ef3c6bafc9e6ba74dff818c25786835040db529b18bee31fd45", "medium": "a70a008da2afc6c5dc98fd9dc85a149e6d1bfaf3ad4c76dbd7af34b1654b011f", "advanced": "418b30bc1b21c54f3bb2bfa21720e735bea4aaae01d00703184f24b126338973"},
       "cover": {"very-beginner": "6655f1e04fbd2602e6212142b5b02083b1b37c413a6fdf6aa0e9c65a42322d44", "beginner": "c54f3597db6228ba5f23cefa4cdc8bfb58f8979a04c35fbab9edce7ec02fd5aa", "very-easy": "32828cce160d50e69e882d043eda8a291d8bce7b5c15b76bf9cff5da8157260d", "easy": "5b53ac8695b7a93586e4bc775e661f327db1947f2d4af49dd04ec01aa0a765a0", "medium": "058d54eb0834ba913e976915f8e5b61f5cb65a3e78497abceb18e9fa48fa7365", "advanced": "4ceb199ac5fc94bb48c359999b9e8b0ef7723b4cc3b2d9d073edd9891c2fe92e"},

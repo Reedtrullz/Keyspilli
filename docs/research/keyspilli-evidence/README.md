@@ -10,7 +10,9 @@ remain private and disposable according to `storage-policy.md`.
 The target is a recognizable, playable piano arrangement: a coherent right-hand
 melody, useful left-hand harmony/bass, stable rhythm, and a sensible difficulty
 ladder. Source fidelity is secondary to learning value. Structural and automated
-metrics are diagnostics; recognizability and playability require human listening.
+metrics are the default engineering evidence. Subjective recognizability or
+playability claims remain explicitly unassessed unless the user requests human
+evaluation; they are never inferred from automated scores.
 
 The accepted source order is `EXTERNAL_SYMBOLIC_FIRST`, with audio AMT as a
 fallback. `BENCHMARK_REFERENCE` material is evaluation-only and cannot enter

@@ -356,7 +356,13 @@ export function classifyExternalRoles(score: OmrScoreInput): ExternalRoleDiagnos
     const density = totalDuration > 0 ? Math.round((events.length / totalDuration) * 1000) / 1000 : null;
     const named = nameSignal(part.name ?? "");
     const metadata = isRecord(score.metadata) ? score.metadata : {};
-    const metadataPercussion = Array.isArray(metadata.trackNames) && metadata.trackNames.some((item) => typeof item === "string" && /drum|percussion/i.test(item) && (part.name === item || part.id.includes(String(index + 1))));
+    const midiTrack = Array.isArray(metadata.midiTracks)
+      ? metadata.midiTracks.find((item) => isRecord(item) && item.index === index)
+      : undefined;
+    const metadataPercussion = Boolean(
+      (isRecord(midiTrack) && (midiTrack.percussion === true || (typeof midiTrack.name === "string" && /drum|percussion/i.test(midiTrack.name))))
+      || (Array.isArray(metadata.trackNames) && metadata.trackNames.some((item) => typeof item === "string" && /drum|percussion/i.test(item) && part.name === item)),
+    );
     const percussion = Boolean(named?.role === "timing-only" || metadataPercussion || (!events.length && /drum|percussion|kit/i.test(part.name ?? "")));
     let role: EvidenceRole = "timing-only";
     const signals: string[] = [];

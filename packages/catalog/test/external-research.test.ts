@@ -92,6 +92,34 @@ describe("external symbolic research bridge", () => {
     }
   });
 
+  it("does not let a later drums track relabel pitched tracks as percussion", () => {
+    const lead: Note[] = [
+      { midi: 69, start: 0, dur: 1, vel: 100 },
+      { midi: 71, start: 1, dur: 1, vel: 100 },
+    ];
+    const harmony: Note[] = [
+      { midi: 60, start: 0, dur: 2, vel: 84 },
+      { midi: 64, start: 0, dur: 2, vel: 84 },
+    ];
+    const low: Note[] = [{ midi: 40, start: 0, dur: 2, vel: 92 }];
+    const drumHits: Note[] = [{ midi: 36, start: 0, dur: 0.1, vel: 90 }];
+    const result = adaptNativeSymbolicBytes(midiBytes([...lead, ...harmony, ...low, ...drumHits], [
+      { name: "Lead Vocal", notes: lead },
+      { name: "Rhythm Guitar", notes: harmony },
+      { name: "Bass", notes: low },
+      { name: "Drums", notes: drumHits },
+    ]), "midi");
+    expect(result.status).toBe("parsed");
+    if (result.status !== "parsed") throw new Error("expected parsed score");
+    expect(classifyExternalRoles(result.score).map((role) => role.role)).toEqual([
+      "melody",
+      "harmony",
+      "bass-root",
+      "timing-only",
+    ]);
+    expect(classifyExternalRoles(result.score).slice(0, 3).every((role) => !role.percussion)).toBe(true);
+  });
+
   it("keeps discovery provider-neutral and metadata-only until local bytes are supplied", async () => {
     const inventory = await researchExternalCandidates(song, {
       discoveryRecords: [

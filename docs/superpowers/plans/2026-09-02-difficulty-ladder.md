@@ -58,7 +58,7 @@ classification. `canonicalDifficultyLadderJson()` supplies the rerun hash.
 The calibration CLI is:
 
 ```text
-npm run calibrate:ladder -w @keyspilli/catalog -- --out <logical-output-path>
+npm run review:ladder -w @keyspilli/catalog -- --out <logical-output-path>
 ```
 
 It reads only the four declared fixtures, emits logical IDs and hashes, and

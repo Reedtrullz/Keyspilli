@@ -406,6 +406,54 @@
       "reportHash": "9d70f8b6db05db231c3e992dd6a354faca93da400067506dd3d63d6a69aeb659",
       "reproducible": true,
       "rawArtifactRetention": "retain path-free results/review/hashes; no reference/audio/private inputs"
+    },
+    {
+      "id": "beginner-candidate-a-production-promotion-2026-09-03",
+      "date": "2026-09-03",
+      "gitCommit": "d9c5b66d9395cb193c91af5b7db21f650e9ce824",
+      "purpose": "Promote the frozen generic Beginner Candidate-A off-grid RH budget after exact production equivalence",
+      "songs": ["Clair de lune", "River Flows in You", "Hello"],
+      "route": "shared Beginner off-grid selector -> learner Beginner finalization -> path-free frontier evaluator",
+      "criticalMetrics": {
+        "candidateARecoveryRatio": 0.5851063829787234,
+        "coverProductionMarkedEvents": 110,
+        "coverDiagnosticEmittedEvents": 110,
+        "productionDiagnosticExactEventSet": true,
+        "classicalParity": true,
+        "popParity": true,
+        "beginnerLeftHandParity": true,
+        "nonBeginnerParity": true,
+        "candidateBImplemented": false,
+        "frontierReportSha256": "08e8f410f4ded20d143eac114dc2a327a33b1e0082fbf24883335e0e063a08d4",
+        "frontierRerunSha256": "08e8f410f4ded20d143eac114dc2a327a33b1e0082fbf24883335e0e063a08d4",
+        "workspaceTests": 1529,
+        "workspaceTypechecks": 6
+      },
+      "result": "Candidate A is the only promoted off-grid policy; it adds at most one structurally supported source event per meter window without retiming or LH changes. Automated parity is structural evidence, not a recognizability claim.",
+      "decision": "PRODUCTION_POLICY_PROMOTED",
+      "reproducible": true,
+      "rawArtifactRetention": "retain path-free report hashes only; no reference MIDI, audio, or generated listening pack"
+    },
+    {
+      "id": "external-symbolic-shadow-rehearsal-2026-09-03",
+      "date": "2026-09-03",
+      "gitCommit": "d9c5b66d9395cb193c91af5b7db21f650e9ce824",
+      "purpose": "Exercise the complete external-symbolic source-to-public pipeline on eligible development fixtures",
+      "songs": [],
+      "route": "project-owned MIDI -> native parse/provenance/roles/alignment -> arrangement -> six variants -> artifacts -> catalog/public projection",
+      "criticalMetrics": {
+        "fixtures": 4,
+        "physicalLevelsPerFixture": 6,
+        "publicLevelsPerFixture": 5,
+        "artifactRoundtripFailures": 0,
+        "drumDerivedPitchCount": 0,
+        "deterministicReportSha256": "9298fc70c89ba850d25d9fa1ef82ed414fc0064312db9de34e4594e3f0905149"
+      },
+      "result": "All four synthetic fixtures completed the full pure/in-memory path after fixing track-name percussion misclassification. The first attempt exposed ROLE_FAILURE; the exact-index/exact-name fix is regression-tested.",
+      "decision": "SHADOW_END_TO_END_PIPELINE_READY",
+      "nextTask": "GENERATION_CANDIDATE_AVAILABILITY_AND_SOURCE_INTAKE_HARDENING",
+      "reproducible": true,
+      "rawArtifactRetention": "retain compact path-free report and hashes only; no benchmark/reference bytes, production rows, or deployment"
     }
   ]
 }

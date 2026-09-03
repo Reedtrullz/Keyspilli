@@ -60,7 +60,6 @@
     "evaluate:cold-transfer": "tsx scripts/evaluate-cold-transfer.ts",
     "evaluate:cold-routing": "tsx scripts/evaluate-cold-routing.ts",
     "report:shadow-mission": "tsx scripts/report-shadow-mission.ts",
-    "calibrate:ladder": "tsx scripts/calibrate-difficulty-ladder.ts",
     "review:ladder": "tsx scripts/review-difficulty-ladder.ts",
     "evaluate:independent-current": "tsx scripts/evaluate-independent-current.ts",
     "evaluate:cover-rh-cliff": "tsx scripts/evaluate-cover-rh-cliff.ts",

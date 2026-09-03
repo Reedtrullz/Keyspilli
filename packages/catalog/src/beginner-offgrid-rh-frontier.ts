@@ -1,8 +1,11 @@
 import {
   BEGINNER_OFFGRID_RH_BUDGET_CONFIG,
   PLAYABILITY_LIMITS,
+  assessBeginnerOffGridCandidate,
   type Note,
   type Variant,
+  selectBeginnerOffGridRhCandidates,
+  type BeginnerOffGridCandidate as ProductionBeginnerOffGridCandidate,
 } from "@keyspilli/midi";
 import { evaluateArrangement } from "./arrangement-evaluation.js";
 import type { ProvenanceTraceEvent } from "./arrangement-evaluation.js";
@@ -39,6 +42,12 @@ export interface BeginnerOffGridRhFrontierInput {
   /** Raw/Very Easy RH source used to characterize rejected attacks. */
   sourceNotes: Note[];
   variants: Variant[];
+  /**
+   * Optional pre-Candidate-A Beginner output. Production callers that pass a
+   * post-promotion Beginner variant should provide this so the diagnostic
+   * frontier does not apply Candidate A twice.
+   */
+  baselineNotes?: Note[];
   /** Optional first-loss trace. When present, only beginner-ladder rejections are eligible. */
   trace?: ProvenanceTraceEvent[];
   /** Synthetic/test escape hatch for an explicitly frozen rejection set. */
@@ -134,8 +143,7 @@ export interface BeginnerOffGridRhFrontierReport {
 
 type Group = { start: number; notes: Note[] };
 type TraceNote = NonNullable<ProvenanceTraceEvent["note"]>;
-type EligibleCandidate = { note: Note; signals: OffGridStructuralSignal[]; sourceKey: string; signalFlags: number };
-const SIGNAL_ORDER: OffGridStructuralSignal[] = ["phrase-anchor", "contour-extremum", "repeated-articulation", "large-leap-endpoint", "high-velocity", "long-duration"];
+type EligibleCandidate = ProductionBeginnerOffGridCandidate;
 const BLOCKERS: OffGridBlocker[] = ["BLOCKED_BY_WINDOW_BUDGET", "BLOCKED_BY_MAX_SIM", "BLOCKED_BY_DENSITY", "BLOCKED_BY_IOI", "BLOCKED_BY_SPAN_JUMP", "BLOCKED_BY_CURRENT_LH", "BLOCKED_BY_OTHER_CONSTRAINT"];
 function redactPath(value: string): string {
   return value.replace(/(?:file:\/\/)?(?:\/Users\/|\/private\/tmp\/|[A-Za-z]:[\\/])[^\s"']+/g, "<redacted-path>");
@@ -418,8 +426,7 @@ export function evaluateBeginnerOffGridRhFrontier(input: BeginnerOffGridRhFronti
   const easyVariant = input.variants.find((variant) => variant.level === "easy");
   const source = ordered(input.sourceNotes);
   const sourceRh = source.filter((note) => note.hand !== "L");
-  const baselineNotes = ordered(beginner.notes);
-  const baselineRh = baselineNotes.filter((note) => note.hand !== "L");
+  const baselineNotes = ordered(input.baselineNotes ?? beginner.notes);
   const sourceGroups = groups(sourceRh);
   const velocities = sourceRh.map((note) => note.vel);
   const durations = sourceRh.map((note) => note.dur);
@@ -435,17 +442,28 @@ export function evaluateBeginnerOffGridRhFrontier(input: BeginnerOffGridRhFronti
     .map((event) => resolvedRejection(event, sourceRh, traceByKey, traceMemo))
     .filter((candidate): candidate is { note: Note; sourceKey: string } => Boolean(candidate));
   const rejectionPool = [...new Map((traceProvided ? tracedRejected : (input.rejectedRhNotes ?? []).map((note) => ({ note: { ...note }, sourceKey: stableNoteKey(note) }))).map((candidate) => [candidate.sourceKey, candidate])).values()];
-  const eligible = rejectionPool.filter(({ note }) => note.hand !== "L").flatMap(({ note, sourceKey }) => {
-    if (!isOffGrid(note.start) || baselineRh.some((current) => sameEvent(note, current))) return [];
-    const groupIndex = sourceGroups.findIndex((group) => group.notes.some((member) => member.midi === note.midi && Math.abs(member.start - note.start) <= 1e-9));
-    if (groupIndex < 0) return [];
-    const group = sourceGroups[groupIndex]!;
-    const hasHigherSameOnset = group.notes.some((other) => other !== note && other.midi > note.midi);
-    if (hasHigherSameOnset) return [];
-    const signals = structuralSignals(sourceGroups, groupIndex, velocityCut, durationCut);
-    const signalFlags = signals.reduce((flags, signal) => flags | (1 << (SIGNAL_ORDER.length - 1 - SIGNAL_ORDER.indexOf(signal))), 0);
-    return signals.length ? [{ note, signals, sourceKey, signalFlags }] : [];
-  }).sort((left, right) => right.signals.length - left.signals.length || right.signalFlags - left.signalFlags || left.note.start - right.note.start || left.note.midi - right.note.midi || compareText(left.sourceKey, right.sourceKey));
+  const evaluationDurationBeats = Math.max(0, ...source.map((note) => note.start + note.dur));
+  const legal = (candidate: Note, selected: Note[], baseline: Note[], budgetBlockers: Record<OffGridBlocker, number>): boolean => {
+    const assessed = assessBeginnerOffGridCandidate(candidate, selected, baseline, {
+      tempoBpm: beginner.tempoBpm,
+      durationBeats: evaluationDurationBeats,
+      maxSimultaneity: PLAYABILITY_LIMITS.beginner!.maxSim,
+      maxDensity: PLAYABILITY_LIMITS.beginner!.maxDensity,
+      minMedianIoiSeconds: PLAYABILITY_LIMITS.beginner!.minMedianIoi,
+    });
+    if (!assessed.legal) budgetBlockers[assessed.blocker ?? "BLOCKED_BY_OTHER_CONSTRAINT"]++;
+    return assessed.legal;
+  };
+  const eligibility = selectBeginnerOffGridRhCandidates({
+    sourceNotes: source,
+    baselineNotes,
+    rejected: rejectionPool,
+    timeSig: beginner.timeSig,
+    durationBeats: evaluationDurationBeats,
+    budget: 0,
+    isLegal: () => true,
+  });
+  const eligible = eligibility.eligible as EligibleCandidate[];
   const signalCounts = (notes: Note[]): Record<OffGridStructuralSignal, number> => {
     const counts = Object.fromEntries(BEGINNER_OFFGRID_RH_FRONTIER_CONFIG.structuralSignals.map((signal) => [signal, 0])) as Record<OffGridStructuralSignal, number>;
     const noteGroups = groups(notes.filter((note) => note.hand !== "L"));
@@ -464,38 +482,25 @@ export function evaluateBeginnerOffGridRhFrontier(input: BeginnerOffGridRhFronti
   const sourceCategoryCounts = signalCounts(sourceRh);
   const rejectedTiming = timing(rejectionPool.map((candidate) => candidate.note), beginner.tempoBpm);
   const limits = PLAYABILITY_LIMITS.beginner!;
-  const evaluationDurationBeats = Math.max(0, ...source.map((note) => note.start + note.dur));
-  const baselineEvaluation = evaluateArrangement({ fixture: { id: "beginner-offgrid-rh-frontier" }, candidate: { selector: "diagnostic:frontier-baseline", notes: baselineNotes, tempoBpm: beginner.tempoBpm, durationBeats: evaluationDurationBeats, timeSig: beginner.timeSig } }).metrics;
   const nonBeginnerBefore = input.variants.filter((variant) => variant.level !== "beginner").map(variantSignature);
-  const timeSigNumerator = Number.isFinite(beginner.timeSig?.[0]) && beginner.timeSig[0] > 0 ? beginner.timeSig[0] : 4;
-  const timeSigDenominator = Number.isFinite(beginner.timeSig?.[1]) && beginner.timeSig[1] > 0 ? beginner.timeSig[1] : 4;
-  const windowBeats = timeSigNumerator * 4 / timeSigDenominator;
   const run = (budget: number): { notes: Note[]; emitted: EligibleCandidate[]; discarded: number; blockers: Record<OffGridBlocker, number> } => {
-    const selected: Note[] = [...baselineNotes];
-    const selectedStarts = new Map<number, number>();
-    const emitted: EligibleCandidate[] = [];
     const blockers = emptyBlockers();
-    let discarded = 0;
-    for (const candidate of eligible) {
-      const { note } = candidate;
-      const window = Math.floor(note.start / windowBeats) * windowBeats;
-      if ((selectedStarts.get(window) ?? 0) >= budget) { blockers.BLOCKED_BY_WINDOW_BUDGET++; discarded++; continue; }
-      const withCandidate = [...selected, { ...note }];
-      const withoutLh = [...selected.filter((current) => current.hand !== "L"), { ...note }];
-      const evaluated = evaluateArrangement({ fixture: { id: "beginner-offgrid-rh-frontier" }, candidate: { selector: "diagnostic:frontier", notes: withCandidate, tempoBpm: beginner.tempoBpm, durationBeats: Math.max(0, ...source.map((current) => current.start + current.dur)), timeSig: beginner.timeSig } });
-      const withoutLhMetrics = evaluateArrangement({ fixture: { id: "beginner-offgrid-rh-frontier" }, candidate: { selector: "diagnostic:frontier-rh", notes: withoutLh, tempoBpm: beginner.tempoBpm, durationBeats: Math.max(0, ...source.map((current) => current.start + current.dur)), timeSig: beginner.timeSig } }).metrics;
-      const failures: OffGridBlocker[] = [];
-      if (evaluated.metrics.global.simultaneity.max > limits.maxSim && baselineEvaluation.global.simultaneity.max <= limits.maxSim && withoutLhMetrics.global.simultaneity.max <= limits.maxSim) failures.push("BLOCKED_BY_CURRENT_LH");
-      else if (evaluated.metrics.global.simultaneity.max > limits.maxSim && baselineEvaluation.global.simultaneity.max <= limits.maxSim) failures.push("BLOCKED_BY_MAX_SIM");
-      if (evaluated.metrics.global.onsetsPerSecond > limits.maxDensity && baselineEvaluation.global.onsetsPerSecond <= limits.maxDensity) failures.push("BLOCKED_BY_DENSITY");
-      if (evaluated.metrics.rightHand.melodicGap.p50 !== null && evaluated.metrics.rightHand.melodicGap.p50 * 60 / beginner.tempoBpm < limits.minMedianIoi && (baselineEvaluation.rightHand.melodicGap.p50 === null || baselineEvaluation.rightHand.melodicGap.p50 * 60 / beginner.tempoBpm >= limits.minMedianIoi)) failures.push("BLOCKED_BY_IOI");
-      if (((evaluated.metrics.rightHand.range.span ?? 0) > BEGINNER_OFFGRID_RH_FRONTIER_CONFIG.spanCapSemitones && (baselineEvaluation.rightHand.range.span ?? 0) <= BEGINNER_OFFGRID_RH_FRONTIER_CONFIG.spanCapSemitones) || evaluated.metrics.global.handSpanViolations > baselineEvaluation.global.handSpanViolations) failures.push("BLOCKED_BY_SPAN_JUMP");
-      if (failures.length) { blockers[failures[0]!]++; continue; }
-      selected.push({ ...note });
-      selectedStarts.set(window, (selectedStarts.get(window) ?? 0) + 1);
-      emitted.push({ ...candidate });
-    }
-    return { notes: selected, emitted, discarded, blockers };
+    const selection = selectBeginnerOffGridRhCandidates({
+      sourceNotes: source,
+      baselineNotes,
+      rejected: rejectionPool,
+      timeSig: beginner.timeSig,
+      durationBeats: evaluationDurationBeats,
+      budget,
+      isLegal: (candidate, selected, baseline) => legal(candidate, selected, baseline, blockers),
+    });
+    blockers.BLOCKED_BY_WINDOW_BUDGET += selection.discardedByWindowBudget;
+    return {
+      notes: selection.selected,
+      emitted: selection.emitted as EligibleCandidate[],
+      discarded: selection.discardedByWindowBudget,
+      blockers,
+    };
   };
   const baseline = candidateReport(sourceRh, beginner, baselineNotes, 0, [], [], 0, emptyBlockers(), sourceRh);
   const a = run(1);

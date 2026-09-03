@@ -40,12 +40,43 @@ function parsed(value: unknown): ParsedMidi {
   return { format: Number.isInteger(record.format) ? Number(record.format) : 1, division: Number.isInteger(record.division) ? Number(record.division) : 480, tempoBpm: numberOr(record.tempoBpm, 120), keySig: Number.isInteger(record.keySig) ? Number(record.keySig) : 0, keyMode: record.keyMode === 1 ? 1 : 0, timeSig, notes, trackNames: ["project-owned off-grid RH diagnostic"], durationBeats: Math.max(0, numberOr(record.durationBeats, 0), ...notes.map((note) => note.start + note.dur).filter(Number.isFinite)) };
 }
 
+const BEGINNER_OFFGRID_CANDIDATE = Symbol.for("keyspilli.beginner-offgrid-rh-candidate");
+
+function eventTuple(note: Note): string {
+  return JSON.stringify([
+    note.hand ?? "R",
+    note.midi,
+    note.start.toFixed(9),
+    note.dur.toFixed(9),
+    note.vel,
+    note.identitySource ?? "unknown",
+  ]);
+}
+
+function preCandidateABaseline(notes: Note[]): Note[] {
+  // The marker is development-only but remains enumerable through the
+  // learner variant copy. Strip exactly those events before handing the
+  // post-promotion variant to the counterfactual frontier evaluator.
+  const promoted = new Set(notes
+    .filter((note) => (note as Note & Record<symbol, unknown>)[BEGINNER_OFFGRID_CANDIDATE] === true)
+    .map(eventTuple));
+  return notes.filter((note) => !promoted.has(eventTuple(note)));
+}
+
 async function evaluateFixture(fixture: Fixture, revision: string): Promise<FixtureReport> {
   const bytes = await readFile(fixture.path);
   const source = parsed(JSON.parse(new TextDecoder().decode(bytes)));
   const trace: MetalArrangementTraceEvent[] = [];
   const variants = buildVariants(source, { title: fixture.label, artist: "project-owned diagnostic" }, { arrangementProfile: "learner", maxDurBeats: null, trace: { record: (event) => trace.push(event) } });
-  const report = evaluateBeginnerOffGridRhFrontier({ fixture: { id: fixture.id, label: fixture.label }, sourceNotes: source.notes, variants, trace, revision });
+  const beginner = variants.find((variant) => variant.level === "beginner");
+  const report = evaluateBeginnerOffGridRhFrontier({
+    fixture: { id: fixture.id, label: fixture.label },
+    sourceNotes: source.notes,
+    variants,
+    baselineNotes: beginner ? preCandidateABaseline(beginner.notes) : undefined,
+    trace,
+    revision,
+  });
   const sourceArtifact = { bytes: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex") };
   if (fixture.id !== "cover") return { ...report, logicalRef: fixture.logicalRef, sourceArtifact };
   const legacy = evaluateCoverRhIdentityCliff({ fixture: { id: fixture.id, label: fixture.label }, source: source.notes, variants, trace, revision });

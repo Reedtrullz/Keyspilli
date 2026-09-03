@@ -2,6 +2,7 @@
 
 ## Result
 
+- Historical diagnostic closeout. Candidate A was subsequently promoted and verified in `beginner-offgrid-rh-promotion-2026-09-03.json`; the statements below describe the pre-promotion run.
 - Decision: `BEGINNER_SPARSE_OFFGRID_RH_BUDGET_VALIDATED`.
 - Behavior: `NO_MUSICAL_BEHAVIOR_CHANGE`. Candidate A/B were evaluator-only counterfactuals; no arranger, learner ladder, public API, reference, audio, or deployment change was made.
 - Frozen generation revision: `76cfead64091c409cba4fd9772c2748903ebddda`.
@@ -47,4 +48,4 @@ The machine report was generated twice with the same fixtures/options and was by
 
 ## Follow-up
 
-One separately approved production experiment remains: implement the exact preregistered Candidate-A Beginner RH budget, then run human listening. Do not promote Candidate B. This closeout deliberately does not claim musical improvement or alter generated arrangements.
+The later promotion record implements the exact preregistered Candidate-A Beginner RH budget without a human-listening gate. Candidate B remains diagnostic-only. This closeout deliberately makes no musical-improvement claim.
