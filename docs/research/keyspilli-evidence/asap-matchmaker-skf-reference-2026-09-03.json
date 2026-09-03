@@ -1,0 +1,837 @@
+{
+  "canonicalSha256": "85bb94f33d78ce0b2599887ee9d9f9109979209310537f9e10603e53fc0fe544",
+  "dataset": {
+    "audioOnsetsAsTruth": false,
+    "carrier": "MAESTRO audio",
+    "groundTruth": "ASAP score/performance beat annotations used only for evaluation",
+    "name": "ASAP",
+    "release": "v2.1.1",
+    "role": "revealed development fixtures only"
+  },
+  "decision": {
+    "nextTask": "CROSS_MODAL_SPARSE_LANDMARK_ALIGNMENT",
+    "production": "NON_DTW_SCORE_ALIGNMENT_ARCHITECTURE_INSUFFICIENT",
+    "realShadow": "REAL_SHADOW_BLOCKED_AT_ALIGNMENT",
+    "reference": "HIDDEN_TEMPO_ARCHITECTURE_NO_HEADROOM"
+  },
+  "determinism": {
+    "runtimeExcludedFromCanonicalHash": true,
+    "firstRunCanonicalSha256": "b36531f9e17ae34b490114b20afdd954c694e327d2569eb77dde3d62cb49c1b4",
+    "repeatRunCanonicalSha256": "b36531f9e17ae34b490114b20afdd954c694e327d2569eb77dde3d62cb49c1b4",
+    "repeatCanonicalEqual": true
+  },
+  "dtwClosure": {
+    "durationDerived": "DIAGNOSTIC_ONLY",
+    "performanceSymbolic": "PRODUCTION_NATIVE_TIMING",
+    "status": "CLASSICAL_DTW_ALIGNMENT_BRANCH_CLOSED",
+    "syncToolbox": "REFERENCE_ONLY",
+    "v1": "DIAGNOSTIC_ONLY",
+    "v2": "DIAGNOSTIC_ONLY_CURRENT_FALLBACK_RESEARCH_BASELINE"
+  },
+  "firewall": {
+    "benchmarkReferencesUsedForGeneration": false,
+    "benchmarkReferencesUsedForTuning": false,
+    "deployment": "NOT_DEPLOYED",
+    "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT"
+  },
+  "fixtures": [
+    {
+      "audio": {
+        "bytes": 18902388,
+        "sha256": "7e1536c253ee1e2696b9f79f71c36b52f36d929d91de93e0f880edbe365e3bc7"
+      },
+      "composer": "Schubert",
+      "id": "asap:fresh:schubert-moment-musical-3-tetzloff09m",
+      "methods": {
+        "keyspilliProductionCandidateV2": {
+          "absoluteErrorSeconds": {
+            "p95": 0.320047
+          },
+          "coverage": 1.0,
+          "maxSeconds": 1.962235,
+          "p95Seconds": 0.320047,
+          "status": "FAIL_P95_GATE"
+        },
+        "matchmakerSkf": {
+          "absoluteErrorSeconds": {
+            "max": 0.717019,
+            "median": 0.039093,
+            "p75": 0.070628,
+            "p90": 0.233037,
+            "p95": 0.55926,
+            "p99": 0.68166
+          },
+          "axisScaleQuarterBeatsPerMatchmakerBeat": 1.0,
+          "confidence": "ALIGNED_PARTIAL",
+          "coverage": 1.0,
+          "downbeatAbsoluteErrorSeconds": {
+            "max": 0.676479,
+            "median": 0.03802,
+            "p75": 0.068831,
+            "p90": 0.290241,
+            "p95": 0.390935,
+            "p99": 0.670476
+          },
+          "largestContiguousErrorRegions": {
+            "over0_250Seconds": {
+              "count": 6,
+              "durationSamples": 6,
+              "endIndex": 5,
+              "startIndex": 0,
+              "thresholdSeconds": 0.25
+            },
+            "over0_500Seconds": {
+              "count": 6,
+              "durationSamples": 6,
+              "endIndex": 5,
+              "startIndex": 0,
+              "thresholdSeconds": 0.5
+            }
+          },
+          "matchedBeats": 155,
+          "monotonicScoreViolations": 106,
+          "pathFrames": 6434,
+          "peakRssMiB": 671.78125,
+          "positionAbsoluteErrorSeconds": {
+            "finalQuarter": {
+              "max": 0.355604,
+              "median": 0.028673,
+              "p75": 0.059442,
+              "p90": 0.21738,
+              "p95": 0.296066,
+              "p99": 0.333348
+            },
+            "firstQuarter": {
+              "max": 0.717019,
+              "median": 0.044938,
+              "p75": 0.082227,
+              "p90": 0.606653,
+              "p95": 0.677605,
+              "p99": 0.705894
+            },
+            "middleHalf": {
+              "max": 0.611406,
+              "median": 0.038237,
+              "p75": 0.069708,
+              "p90": 0.150206,
+              "p95": 0.317367,
+              "p99": 0.572183
+            }
+          },
+          "runtimeSeconds": 40.901968,
+          "scoreBeatRange": [
+            0.0256,
+            154.0
+          ],
+          "status": "measured",
+          "tempoDiagnostics": {
+            "groundTruthTempoBpm": {
+              "max": 115.056152,
+              "median": 92.299006,
+              "p75": 99.929468,
+              "p90": 104.018044,
+              "p95": 105.773166,
+              "p99": 109.384836
+            },
+            "observations": 6434,
+            "predictedTempoBpm": {
+              "max": 596.295802,
+              "median": 80.664435,
+              "p75": 85.47001,
+              "p90": 87.323953,
+              "p95": 151.499393,
+              "p99": 401.133493
+            },
+            "snapshotHypothesisCount": {
+              "max": 200.0,
+              "median": 200.0,
+              "p75": 200.0,
+              "p90": 200.0,
+              "p95": 200.0,
+              "p99": 200.0
+            },
+            "snapshotTempoBpm": {
+              "max": 98.669823,
+              "median": 88.097875,
+              "p75": 88.473042,
+              "p90": 88.88079,
+              "p95": 89.06938,
+              "p99": 96.221298
+            },
+            "stateUncertaintyAvailability": "follower-hypothesis-summary",
+            "stateUncertaintyTempoStdBpm": {
+              "max": 10.088675,
+              "median": 3.100586,
+              "p75": 3.918687,
+              "p90": 5.420266,
+              "p95": 6.35201,
+              "p99": 9.057374
+            },
+            "tempoAbsoluteErrorBpm": {
+              "max": 501.949607,
+              "median": 15.773892,
+              "p75": 30.380801,
+              "p90": 56.29862,
+              "p95": 86.449547,
+              "p99": 294.879835
+            }
+          },
+          "usableBeats": 155
+        },
+        "naiveGlobalScoreTempo": {
+          "absoluteErrorSeconds": {
+            "max": 6.382812,
+            "median": 2.335937,
+            "p75": 4.596029,
+            "p90": 5.480469,
+            "p95": 5.703776,
+            "p99": 6.114323
+          },
+          "coverage": 1.0,
+          "largestContiguousErrorRegions": {
+            "over0_250Seconds": {
+              "count": 148,
+              "durationSamples": 148,
+              "endIndex": 154,
+              "startIndex": 7,
+              "thresholdSeconds": 0.25
+            },
+            "over0_500Seconds": {
+              "count": 139,
+              "durationSamples": 139,
+              "endIndex": 154,
+              "startIndex": 16,
+              "thresholdSeconds": 0.5
+            }
+          },
+          "phaseSeconds": 0.591146,
+          "status": "measured"
+        }
+      },
+      "score": {
+        "bytes": 6530,
+        "sha256": "8519769d838fa5efca235e8cdff2e2f074ef956d2b7723dc0b01af8880641219"
+      },
+      "tempoBpm": 96.0,
+      "title": "Moment_musical_no_3",
+      "usableAnnotationBeats": 155
+    },
+    {
+      "audio": {
+        "bytes": 30237868,
+        "sha256": "a24c9c736ec5b1a43e9176e99fc94b777959282dcbbc431298ea9e45a709e7e6"
+      },
+      "composer": "Rachmaninoff",
+      "id": "asap:fresh:rachmaninoff-prelude-23-6-nikiforov14m",
+      "methods": {
+        "keyspilliProductionCandidateV2": {
+          "absoluteErrorSeconds": {
+            "p95": 0.255922
+          },
+          "coverage": 1.0,
+          "maxSeconds": 2.838687,
+          "p95Seconds": 0.255922,
+          "status": "FAIL_P95_GATE"
+        },
+        "matchmakerSkf": {
+          "absoluteErrorSeconds": {
+            "max": 1.502125,
+            "median": 0.075547,
+            "p75": 0.175396,
+            "p90": 0.348895,
+            "p95": 0.596664,
+            "p99": 1.120469
+          },
+          "axisScaleQuarterBeatsPerMatchmakerBeat": 1.0,
+          "confidence": "ALIGNED_PARTIAL",
+          "coverage": 1.0,
+          "downbeatAbsoluteErrorSeconds": {
+            "max": 0.84205,
+            "median": 0.10232,
+            "p75": 0.331138,
+            "p90": 0.603187,
+            "p95": 0.762253,
+            "p99": 0.827532
+          },
+          "largestContiguousErrorRegions": {
+            "over0_250Seconds": {
+              "count": 3,
+              "durationSamples": 3,
+              "endIndex": 52,
+              "startIndex": 50,
+              "thresholdSeconds": 0.25
+            },
+            "over0_500Seconds": {
+              "count": 2,
+              "durationSamples": 2,
+              "endIndex": 52,
+              "startIndex": 51,
+              "thresholdSeconds": 0.5
+            }
+          },
+          "matchedBeats": 169,
+          "monotonicScoreViolations": 162,
+          "pathFrames": 10116,
+          "peakRssMiB": 790.578125,
+          "positionAbsoluteErrorSeconds": {
+            "finalQuarter": {
+              "max": 1.146833,
+              "median": 0.04751,
+              "p75": 0.113046,
+              "p90": 0.353068,
+              "p95": 0.736828,
+              "p99": 1.018824
+            },
+            "firstQuarter": {
+              "max": 1.502125,
+              "median": 0.08501,
+              "p75": 0.17828,
+              "p90": 0.306802,
+              "p95": 0.414339,
+              "p99": 1.1997
+            },
+            "middleHalf": {
+              "max": 1.108062,
+              "median": 0.076019,
+              "p75": 0.199599,
+              "p90": 0.372158,
+              "p95": 0.57326,
+              "p99": 0.860895
+            }
+          },
+          "runtimeSeconds": 54.6503,
+          "scoreBeatRange": [
+            0.5192,
+            169.397919
+          ],
+          "status": "measured",
+          "tempoDiagnostics": {
+            "groundTruthTempoBpm": {
+              "max": 102.400087,
+              "median": 69.633628,
+              "p75": 80.78925,
+              "p90": 88.847435,
+              "p95": 93.274826,
+              "p99": 100.610142
+            },
+            "observations": 10116,
+            "predictedTempoBpm": {
+              "max": 598.5164,
+              "median": 60.849392,
+              "p75": 65.771469,
+              "p90": 70.007866,
+              "p95": 175.903617,
+              "p99": 432.208436
+            },
+            "snapshotHypothesisCount": {
+              "max": 200.0,
+              "median": 200.0,
+              "p75": 200.0,
+              "p90": 200.0,
+              "p95": 200.0,
+              "p99": 200.0
+            },
+            "snapshotTempoBpm": {
+              "max": 73.780255,
+              "median": 66.86787,
+              "p75": 70.407196,
+              "p90": 71.257236,
+              "p95": 71.510043,
+              "p99": 71.826122
+            },
+            "stateUncertaintyAvailability": "follower-hypothesis-summary",
+            "stateUncertaintyTempoStdBpm": {
+              "max": 7.833903,
+              "median": 2.561934,
+              "p75": 3.583233,
+              "p90": 4.663495,
+              "p95": 5.518812,
+              "p99": 6.271201
+            },
+            "tempoAbsoluteErrorBpm": {
+              "max": 531.364713,
+              "median": 16.580555,
+              "p75": 29.351356,
+              "p90": 53.589118,
+              "p95": 114.748949,
+              "p99": 370.705319
+            }
+          },
+          "usableBeats": 169
+        },
+        "naiveGlobalScoreTempo": {
+          "absoluteErrorSeconds": {
+            "max": 19.652394,
+            "median": 5.516955,
+            "p75": 12.477907,
+            "p90": 17.748102,
+            "p95": 18.890417,
+            "p99": 19.620209
+          },
+          "coverage": 1.0,
+          "largestContiguousErrorRegions": {
+            "over0_250Seconds": {
+              "count": 102,
+              "durationSamples": 102,
+              "endIndex": 168,
+              "startIndex": 67,
+              "thresholdSeconds": 0.25
+            },
+            "over0_500Seconds": {
+              "count": 102,
+              "durationSamples": 102,
+              "endIndex": 168,
+              "startIndex": 67,
+              "thresholdSeconds": 0.5
+            }
+          },
+          "phaseSeconds": 0.416667,
+          "status": "measured"
+        }
+      },
+      "score": {
+        "bytes": 7930,
+        "sha256": "8882b3f1d314d58d46de0c57834b2c8a978b53a00008f8257f9b15df1b225bde"
+      },
+      "tempoBpm": 72.00002880001152,
+      "title": "Preludes_op_23_6",
+      "usableAnnotationBeats": 169
+    },
+    {
+      "audio": {
+        "bytes": 18578272,
+        "sha256": "ef5d61309761166c3693a6b2a072ff055ce3e1d78f4c214849cd0422c07a87d1"
+      },
+      "composer": "Chopin",
+      "id": "asap:fresh:chopin-etude-10-1-muna07m",
+      "methods": {
+        "keyspilliProductionCandidateV2": {
+          "absoluteErrorSeconds": {
+            "p95": 0.62368
+          },
+          "coverage": 1.0,
+          "maxSeconds": 1.560515,
+          "p95Seconds": 0.62368,
+          "status": "FAIL_P95_GATE"
+        },
+        "matchmakerSkf": {
+          "absoluteErrorSeconds": {
+            "max": 1.718655,
+            "median": 0.114824,
+            "p75": 0.374208,
+            "p90": 0.648104,
+            "p95": 0.726767,
+            "p99": 1.33812
+          },
+          "axisScaleQuarterBeatsPerMatchmakerBeat": 1.0,
+          "confidence": "ALIGNED_PARTIAL",
+          "coverage": 1.0,
+          "downbeatAbsoluteErrorSeconds": {
+            "max": 1.718655,
+            "median": 0.052459,
+            "p75": 0.113145,
+            "p90": 0.223092,
+            "p95": 0.4982,
+            "p99": 1.567971
+          },
+          "largestContiguousErrorRegions": {
+            "over0_250Seconds": {
+              "count": 10,
+              "durationSamples": 10,
+              "endIndex": 9,
+              "startIndex": 0,
+              "thresholdSeconds": 0.25
+            },
+            "over0_500Seconds": {
+              "count": 10,
+              "durationSamples": 10,
+              "endIndex": 9,
+              "startIndex": 0,
+              "thresholdSeconds": 0.5
+            }
+          },
+          "matchedBeats": 313,
+          "monotonicScoreViolations": 327,
+          "pathFrames": 6437,
+          "peakRssMiB": 790.578125,
+          "positionAbsoluteErrorSeconds": {
+            "finalQuarter": {
+              "max": 0.724568,
+              "median": 0.083482,
+              "p75": 0.339885,
+              "p90": 0.459763,
+              "p95": 0.646766,
+              "p99": 0.708952
+            },
+            "firstQuarter": {
+              "max": 1.718655,
+              "median": 0.159732,
+              "p75": 0.579085,
+              "p90": 1.064699,
+              "p95": 1.262747,
+              "p99": 1.567971
+            },
+            "middleHalf": {
+              "max": 0.798263,
+              "median": 0.101932,
+              "p75": 0.350707,
+              "p90": 0.541441,
+              "p95": 0.6604,
+              "p99": 0.70223
+            }
+          },
+          "runtimeSeconds": 38.499038,
+          "scoreBeatRange": [
+            0.046933,
+            312.0
+          ],
+          "status": "measured",
+          "tempoDiagnostics": {
+            "groundTruthTempoBpm": {
+              "max": 229.482364,
+              "median": 188.852063,
+              "p75": 195.918367,
+              "p90": 204.255319,
+              "p95": 208.695652,
+              "p99": 219.6646
+            },
+            "observations": 6437,
+            "predictedTempoBpm": {
+              "max": 597.20872,
+              "median": 83.979058,
+              "p75": 135.169177,
+              "p90": 209.102583,
+              "p95": 324.700875,
+              "p99": 519.909502
+            },
+            "snapshotHypothesisCount": {
+              "max": 200.0,
+              "median": 200.0,
+              "p75": 200.0,
+              "p90": 200.0,
+              "p95": 200.0,
+              "p99": 200.0
+            },
+            "snapshotTempoBpm": {
+              "max": 201.432775,
+              "median": 178.252186,
+              "p75": 179.695682,
+              "p90": 180.756955,
+              "p95": 181.408062,
+              "p99": 187.508539
+            },
+            "stateUncertaintyAvailability": "follower-hypothesis-summary",
+            "stateUncertaintyTempoStdBpm": {
+              "max": 24.465253,
+              "median": 5.917581,
+              "p75": 7.646078,
+              "p90": 9.797066,
+              "p95": 11.434218,
+              "p99": 17.41122
+            },
+            "tempoAbsoluteErrorBpm": {
+              "max": 446.774237,
+              "median": 111.705711,
+              "p75": 144.496561,
+              "p90": 169.871064,
+              "p95": 184.093183,
+              "p99": 329.654295
+            }
+          },
+          "usableBeats": 313
+        },
+        "naiveGlobalScoreTempo": {
+          "absoluteErrorSeconds": {
+            "max": 4.323741,
+            "median": 2.473472,
+            "p75": 3.023842,
+            "p90": 3.869539,
+            "p95": 4.109689,
+            "p99": 4.278055
+          },
+          "coverage": 1.0,
+          "largestContiguousErrorRegions": {
+            "over0_250Seconds": {
+              "count": 302,
+              "durationSamples": 302,
+              "endIndex": 312,
+              "startIndex": 11,
+              "thresholdSeconds": 0.25
+            },
+            "over0_500Seconds": {
+              "count": 278,
+              "durationSamples": 278,
+              "endIndex": 312,
+              "startIndex": 35,
+              "thresholdSeconds": 0.5
+            }
+          },
+          "phaseSeconds": 1.0,
+          "status": "measured"
+        }
+      },
+      "score": {
+        "bytes": 8203,
+        "sha256": "987eddc317acc021b42e9f16e10241b4dcb63420e5bbc681a1a2275fe30cc95b"
+      },
+      "tempoBpm": 176.00004693334586,
+      "title": "Etudes_op_10_1",
+      "usableAnnotationBeats": 313
+    },
+    {
+      "audio": {
+        "bytes": 28357816,
+        "sha256": "1216c05f0532e6c3c81e299068d9d757709c8d3a71ad30277533705f41925a75"
+      },
+      "composer": "Bach",
+      "id": "asap:fresh:bach-prelude-854-lua01m",
+      "methods": {
+        "keyspilliProductionCandidateV2": {
+          "absoluteErrorSeconds": {
+            "p95": 1.281471
+          },
+          "coverage": 1.0,
+          "maxSeconds": 7.078786,
+          "p95Seconds": 1.281471,
+          "status": "FAIL_P95_GATE"
+        },
+        "matchmakerSkf": {
+          "absoluteErrorSeconds": {
+            "max": 1.152553,
+            "median": 0.01973,
+            "p75": 0.03871,
+            "p90": 0.067866,
+            "p95": 0.099203,
+            "p99": 1.144252
+          },
+          "axisScaleQuarterBeatsPerMatchmakerBeat": 0.5,
+          "confidence": "ALIGNED_PARTIAL",
+          "coverage": 1.0,
+          "downbeatAbsoluteErrorSeconds": {
+            "max": 1.14353,
+            "median": 0.01256,
+            "p75": 0.038811,
+            "p90": 0.090389,
+            "p95": 0.8799,
+            "p99": 1.114831
+          },
+          "largestContiguousErrorRegions": {
+            "over0_250Seconds": {
+              "count": 2,
+              "durationSamples": 2,
+              "endIndex": 1,
+              "startIndex": 0,
+              "thresholdSeconds": 0.25
+            },
+            "over0_500Seconds": {
+              "count": 2,
+              "durationSamples": 2,
+              "endIndex": 1,
+              "startIndex": 0,
+              "thresholdSeconds": 0.5
+            }
+          },
+          "matchedBeats": 93,
+          "monotonicScoreViolations": 19,
+          "pathFrames": 5214,
+          "peakRssMiB": 790.578125,
+          "positionAbsoluteErrorSeconds": {
+            "finalQuarter": {
+              "max": 1.14353,
+              "median": 0.019709,
+              "p75": 0.036411,
+              "p90": 0.059112,
+              "p95": 0.06773,
+              "p99": 0.896321
+            },
+            "firstQuarter": {
+              "max": 1.152553,
+              "median": 0.031593,
+              "p75": 0.05018,
+              "p90": 0.093886,
+              "p95": 0.880616,
+              "p99": 1.121778
+            },
+            "middleHalf": {
+              "max": 0.119583,
+              "median": 0.018595,
+              "p75": 0.026538,
+              "p90": 0.064052,
+              "p95": 0.091287,
+              "p99": 0.111504
+            }
+          },
+          "runtimeSeconds": 28.435011,
+          "scoreBeatRange": [
+            0.032,
+            276.0
+          ],
+          "status": "measured",
+          "tempoDiagnostics": {
+            "groundTruthTempoBpm": {
+              "max": 125.764192,
+              "median": 102.309059,
+              "p75": 106.436731,
+              "p90": 108.270664,
+              "p95": 110.478896,
+              "p99": 119.765722
+            },
+            "observations": 5214,
+            "predictedTempoBpm": {
+              "max": 597.654403,
+              "median": 96.489721,
+              "p75": 99.312778,
+              "p90": 101.565024,
+              "p95": 103.23385,
+              "p99": 370.8637
+            },
+            "snapshotHypothesisCount": {
+              "max": 200.0,
+              "median": 200.0,
+              "p75": 200.0,
+              "p90": 200.0,
+              "p95": 200.0,
+              "p99": 200.0
+            },
+            "snapshotTempoBpm": {
+              "max": 206.844004,
+              "median": 199.741994,
+              "p75": 202.814492,
+              "p90": 205.466723,
+              "p95": 206.090718,
+              "p99": 206.688354
+            },
+            "stateUncertaintyAvailability": "follower-hypothesis-summary",
+            "stateUncertaintyTempoStdBpm": {
+              "max": 32.356499,
+              "median": 4.77259,
+              "p75": 5.997715,
+              "p90": 8.25281,
+              "p95": 9.059789,
+              "p99": 12.344521
+            },
+            "tempoAbsoluteErrorBpm": {
+              "max": 486.012895,
+              "median": 8.10088,
+              "p75": 19.386209,
+              "p90": 41.048726,
+              "p95": 68.970568,
+              "p99": 265.868516
+            }
+          },
+          "usableBeats": 93
+        },
+        "naiveGlobalScoreTempo": {
+          "absoluteErrorSeconds": {
+            "max": 14.37278,
+            "median": 6.585937,
+            "p75": 8.970833,
+            "p90": 10.972187,
+            "p95": 11.83875,
+            "p99": 12.834781
+          },
+          "coverage": 1.0,
+          "largestContiguousErrorRegions": {
+            "over0_250Seconds": {
+              "count": 91,
+              "durationSamples": 91,
+              "endIndex": 92,
+              "startIndex": 2,
+              "thresholdSeconds": 0.25
+            },
+            "over0_500Seconds": {
+              "count": 89,
+              "durationSamples": 89,
+              "endIndex": 92,
+              "startIndex": 4,
+              "thresholdSeconds": 0.5
+            }
+          },
+          "phaseSeconds": 1.01875,
+          "status": "measured"
+        }
+      },
+      "score": {
+        "bytes": 3319,
+        "sha256": "7d87743b8a39064f8c46b1251bdff606f0e02fa707ba0403df2d5be7ef55e6af"
+      },
+      "tempoBpm": 120.0,
+      "title": "Prelude_bwv_854",
+      "usableAnnotationBeats": 93
+    }
+  ],
+  "gates": {
+    "coverage": 0.95,
+    "headroomP95ImprovementRatio": 0.2,
+    "maxFixtureP95Seconds": 0.5,
+    "maxMonotonicViolations": 0,
+    "medianAbsoluteErrorSeconds": 0.1,
+    "p95AbsoluteErrorSeconds": 0.25
+  },
+  "headroom": {
+    "decision": "HIDDEN_TEMPO_ARCHITECTURE_NO_HEADROOM",
+    "fixturesImprovedAtLeast20Percent": 1,
+    "newCatastrophicFailure": "Bach SKF p95 > 0.5s and monotonic posterior reversals",
+    "p95ImprovementRatio": [
+      -0.747431,
+      -1.331429,
+      -0.165288,
+      0.922587
+    ],
+    "regionalRequirement": "Bach or Chopin materially reduced",
+    "skfP95Seconds": [
+      0.55926,
+      0.596664,
+      0.726767,
+      0.099203
+    ],
+    "v2P95Seconds": [
+      0.320047,
+      0.255922,
+      0.62368,
+      1.281471
+    ]
+  },
+  "metricConfig": {
+    "errorUnits": "seconds",
+    "onsetToleranceSeconds": 0.125,
+    "quarterBeatAxisCorrection": "median onset_quarter/onset_beat from parsed score; Bach=0.5"
+  },
+  "mission": "NON_DTW_HIDDEN_TEMPO_SCORE_ALIGNMENT_V1",
+  "peakRssMiB": 790.578125,
+  "reference": {
+    "commit": "0d106d07d96f9def77de116b29690c262b51b9ee",
+    "config": {
+      "dependencyPolicy": "isolated local environment; no production dependency",
+      "hopLength": 128,
+      "initialScorePosition": "first parsed chord",
+      "initialTempoSource": "score tempo metadata",
+      "initialTempoVarianceScale": 0.1,
+      "maxHypotheses": 200,
+      "nFft": 512,
+      "sampleRate": 8000,
+      "sigmaEpsScale": 0.05,
+      "sigmaEtaScale": 0.01,
+      "unfoldScore": false
+    },
+    "license": "Apache-2.0",
+    "method": "skf",
+    "name": "Matchmaker",
+    "processor": "raw_spectrum",
+    "python": ">=3.10,<3.13",
+    "semantics": {
+      "backwardMovement": "posterior argmax can move backward even though transitions only advance",
+      "observation": "raw spectral cosine likelihood against synthesized score-chord templates",
+      "position": "partitura onset_beat plus within-chord interpolation",
+      "repeats": "strict linear score sequence; no repeat/jump graph",
+      "scoreStart": "starts at first parsed score chord; no manual anchor",
+      "state": "(chordIndex, age, Gaussian tempo mean/variance)",
+      "tempo": "seconds per whole note, Kalman-updated on chord advance",
+      "transition": "stay/advance Gaussian duration model with bounded 200-hypothesis beam"
+    },
+    "version": "0.3.0"
+  },
+  "runtimeSeconds": 163.840797,
+  "schemaVersion": 1,
+  "startingRevision": "97c3a780b511cfa01b1d44799d50b92ea57a085b"
+}

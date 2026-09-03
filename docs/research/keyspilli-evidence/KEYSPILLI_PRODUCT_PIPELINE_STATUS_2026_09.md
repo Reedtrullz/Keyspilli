@@ -21,7 +21,7 @@ alignment mission was preregistered at checkpoint
 | Source intake | VALIDATED (local + approved direct URL seam) | Native MIDI/MusicXML/MXL parsing, bounded bytes, magic/content checks, HTML/error rejection, path-safe provenance, and candidate firewall tests pass. MSCZ is recognized but explicitly unsupported. |
 | Parse/provenance | VALIDATED | Native adapter records SHA-256/size/parser metadata; unknown provenance is not generation-eligible. |
 | Role inference | VALIDATED (shadow override) | The single-stem Guitar-TECHS MIDI is explicitly mapped to guitar for the shadow arrangement; no drum pitches reached output. |
-| Alignment | PARTIAL — V2 RESOURCE FIXED, REGIONAL ACCURACY UNRESOLVED | Frozen `PRODUCTION_SCORE_ALIGNMENT_CANDIDATE_V2` runs all four revealed ASAP/MAESTRO pairs without dense-cell or frame-limit rejection, reducing fine evaluation to 5.2–8.3% of dense-equivalent cells. It does not materially improve the diagnosed regional path errors: Schubert p95 remains `0.320047 s`, Chopin `0.623680 s`, and Bach is `1.281471 s`. The classical coarse-to-fine branch is therefore closed as architecture-insufficient, not production-ready. |
+| Alignment | PARTIAL — V2 RESOURCE FIXED; NON-DTW SKF REFERENCE MIXED, NOT PROMOTED | Frozen V2 completes all four revealed ASAP/MAESTRO pairs but leaves regional accuracy unresolved. The pinned official Matchmaker SKF reference improves Bach, but worsens Schubert, Rachmaninoff, and Chopin against V2 and has posterior score reversals; no state-space production candidate was created. |
 | Arrangement | PASS (real shadow) | The real pair completed `buildMetalArrangement`; semantic guitar diagnostics and source-tagged output were produced in memory. |
 | Six physical difficulties | PASS (real shadow) | Advanced, Medium, Easy plus the remaining physical levels were generated and validated. |
 | Artifact writing | PASS (in-memory roundtrip) | All six physical variants produced MIDI and MusicXML bytes in memory; existing artifact validators and reparsers passed. No files were persisted. |
@@ -103,6 +103,44 @@ parameter tuning, and no deployment. Decision:
 for these lengths, but classical coarse-to-fine DTW is not an adequate next
 architecture for regional accuracy; the follow-up must be materially different.
 
+### Hidden-tempo SKF reference stop
+
+The single non-DTW reference was pinned to Matchmaker `v0.3.0`, commit
+`0d106d07d96f9def77de116b29690c262b51b9ee`, Apache-2.0, in an isolated local
+Python 3.11 environment. Only its official `audio`/`skf` path was evaluated:
+`raw_spectrum`, 8 kHz, 128-sample hop, 512-point FFT, 200 hypotheses,
+`sigma_eps_scale=0.05`, `sigma_eta_scale=0.01`, and `unfold_score=false`. The
+score axis correction is a parser-interface correction (`onset_quarter /
+onset_beat`, Bach `0.5`), not a fitted alignment parameter. The reference
+report is `asap-matchmaker-skf-reference-2026-09-03.json`, canonical SHA
+`85bb94f33d78ce0b2599887ee9d9f9109979209310537f9e10603e53fc0fe544`; its two
+full reruns were canonical-identical.
+
+Matchmaker models a switching `(chord, age)` state with a Gaussian hidden
+tempo (seconds per whole note), updates tempo on chord advances, and scores
+raw spectral observations against synthesized chord templates. It assumes a
+strict linear score sequence; repeats/jumps are not modeled. The official
+posterior argmax moved backward in 106/162/327/19 frames for
+Schubert/Rachmaninoff/Chopin/Bach respectively; the evaluator uses a
+deterministic monotone projection only for score-to-time inversion and reports
+the reversals separately.
+
+| Fixture | V2 p95 | SKF p95 | SKF median | SKF >.25 run | SKF >.5 run | Runtime | Peak RSS |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Schubert | 0.320047 s | 0.559260 s | 0.039093 s | 6 beats | 6 beats | 40.9 s | 672 MiB |
+| Rachmaninoff | 0.255922 s | 0.596664 s | 0.075547 s | 3 beats | 2 beats | 54.7 s | 791 MiB |
+| Chopin | 0.623680 s | 0.726767 s | 0.114824 s | 10 beats | 10 beats | 38.5 s | 791 MiB |
+| Bach | 1.281471 s | 0.099203 s | 0.019730 s | 2 beats | 2 beats | 28.4 s | 791 MiB |
+
+SKF therefore clears the existing `p95 <= 0.250 s` gate on none of the four,
+and improves V2 by at least 20% on only Bach (0.922587 improvement ratio). Its
+tempo-state summaries show large local excursions and increasing uncertainty
+around failures, but the mixed regional result does not satisfy the
+preregistered three-of-four headroom criterion. Decision:
+`HIDDEN_TEMPO_ARCHITECTURE_NO_HEADROOM`; production decision:
+`NON_DTW_SCORE_ALIGNMENT_ARCHITECTURE_INSUFFICIENT`. No internal SKF port,
+fresh validation set, causal ablation, or downstream reroute was authorized.
+
 ### Prior Guitar-TECHS shadow pair
 
 `guitar-techs:p3-music-08` is Guitar-TECHS v1 (Zenodo record `14963133`),
@@ -143,8 +181,11 @@ alignment readiness.
   or aligned evidence remains explicitly ineligible for generation.
 - `REAL_SYMBOLIC_ALIGNMENT_PARTIAL`: V2 removes the dense-cell rejection on all
   four revealed real recordings, but coarse-to-fine corridor refinement leaves
-  the known regional p95 failures unchanged. The V2 decision is
-  `SCORE_ALIGNMENT_V2_ARCHITECTURE_INSUFFICIENT`; no new fresh set was selected.
+  the known regional p95 failures unchanged. The official hidden-tempo SKF
+  reference is mixed and fails the preregistered headroom criterion, so no
+  non-DTW production candidate was frozen. The V2 decision is
+  `SCORE_ALIGNMENT_V2_ARCHITECTURE_INSUFFICIENT` and the non-DTW decision is
+  `NON_DTW_SCORE_ALIGNMENT_ARCHITECTURE_INSUFFICIENT`.
 - `REAL_SHADOW_BLOCKED_AT_ALIGNMENT`: the ASAP symbolic candidate completed the
   downstream arrangement, six-level generation, artifact roundtrips, and
   five-level grouped public projection in memory using independently annotated
@@ -159,12 +200,15 @@ Human listening is `NOT_REQUESTED` / `NOT_REQUIRED_BY_DEFAULT`; no listening
 pack or rater gate was created. Deployment is `NOT_DEPLOYED`.
 
 The next single engineering task is
-`REAL_SYMBOLIC_ALIGNMENT_NON_DTW_REGIONAL_TIMING_INVESTIGATION`; it must close
-the regional score-to-recording error with a materially different architecture
-before any further classical-DTW tuning or source expansion.
+`CROSS_MODAL_SPARSE_LANDMARK_ALIGNMENT`; it must use a materially different
+sparse correspondence architecture before any further classical-DTW or
+state-space score-following work or source expansion.
 
 Detailed machine evidence is recorded in the
-`asap-score-alignment-2026-09-03.json` evidence file and the matching
+`asap-score-alignment-2026-09-03.json`,
+`asap-revealed-v2-validation-2026-09-03.json`, and
+`asap-matchmaker-skf-reference-2026-09-03.json` evidence files and the matching
 `experiment-ledger.json` entry. The local runners are
 `packages/catalog/scripts/evaluate-asap-score-alignment.py` and
-`packages/catalog/scripts/evaluate-asap-synctoolbox.py`.
+`packages/catalog/scripts/evaluate-asap-synctoolbox.py`, plus the local-only
+`packages/catalog/scripts/evaluate-matchmaker-skf.py` adapter.

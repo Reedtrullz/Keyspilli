@@ -890,6 +890,55 @@
       "nextTask": "REAL_SYMBOLIC_ALIGNMENT_NON_DTW_REGIONAL_TIMING_INVESTIGATION",
       "reproducible": true,
       "rawMediaRetention": "local only; no new media selected or committed"
+    },
+    {
+      "id": "non-dtw-hidden-tempo-score-alignment-v1-2026-09-03",
+      "date": "2026-09-03",
+      "startingRevision": "97c3a780b511cfa01b1d44799d50b92ea57a085b",
+      "checkpointRevisions": ["97c3a780b511cfa01b1d44799d50b92ea57a085b"],
+      "purpose": "Evaluate one pinned non-DTW hidden-tempo score follower against the four already-revealed ASAP development fixtures; no production tuning",
+      "dataset": "ASAP v2.1.1 / MAESTRO carrier audio, revealed development fixtures only",
+      "dtwClosure": {
+        "status": "CLASSICAL_DTW_ALIGNMENT_BRANCH_CLOSED",
+        "v1": "DIAGNOSTIC_ONLY",
+        "v2": "DIAGNOSTIC_ONLY_CURRENT_FALLBACK_RESEARCH_BASELINE",
+        "syncToolbox": "REFERENCE_ONLY",
+        "durationDerived": "DIAGNOSTIC_ONLY",
+        "performanceSymbolic": "PRODUCTION_NATIVE_TIMING"
+      },
+      "reference": {
+        "name": "Matchmaker",
+        "version": "0.3.0",
+        "commit": "0d106d07d96f9def77de116b29690c262b51b9ee",
+        "license": "Apache-2.0",
+        "method": "skf",
+        "processor": "raw_spectrum",
+        "config": {"sampleRate": 8000, "hopLength": 128, "nFft": 512, "maxHypotheses": 200, "sigmaEpsScale": 0.05, "sigmaEtaScale": 0.01, "initialTempoVarianceScale": 0.1, "unfoldScore": false},
+        "productionDependency": false
+      },
+      "results": {
+        "report": "asap-matchmaker-skf-reference-2026-09-03.json",
+        "canonicalReportSha256": "85bb94f33d78ce0b2599887ee9d9f9109979209310537f9e10603e53fc0fe544",
+        "repeatCanonicalEqual": true,
+        "schubert": {"v2P95Seconds": 0.320047, "skfP95Seconds": 0.55926, "skfMedianSeconds": 0.039093, "skfMonotonicViolations": 106, "runtimeSeconds": 40.901968, "peakRssMiB": 671.78125},
+        "rachmaninoff": {"v2P95Seconds": 0.255922, "skfP95Seconds": 0.596664, "skfMedianSeconds": 0.075547, "skfMonotonicViolations": 162, "runtimeSeconds": 54.6503, "peakRssMiB": 790.578125},
+        "chopin": {"v2P95Seconds": 0.62368, "skfP95Seconds": 0.726767, "skfMedianSeconds": 0.114824, "skfMonotonicViolations": 327, "runtimeSeconds": 38.499038, "peakRssMiB": 790.578125},
+        "bach": {"v2P95Seconds": 1.281471, "skfP95Seconds": 0.099203, "skfMedianSeconds": 0.01973, "skfMonotonicViolations": 19, "runtimeSeconds": 28.435011, "peakRssMiB": 790.578125},
+        "improvedAtLeast20Percent": 1,
+        "referenceDecision": "HIDDEN_TEMPO_ARCHITECTURE_NO_HEADROOM"
+      },
+      "decisions": {
+        "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+        "realAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "production": "NON_DTW_SCORE_ALIGNMENT_ARCHITECTURE_INSUFFICIENT",
+        "realShadow": "REAL_SHADOW_BLOCKED_AT_ALIGNMENT",
+        "firstBlocker": "no alignment architecture met the preregistered regional accuracy gate",
+        "nextTask": "CROSS_MODAL_SPARSE_LANDMARK_ALIGNMENT",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED"
+      },
+      "firewall": {"benchmarkReferencesUsedForGeneration": false, "benchmarkReferencesUsedForTuning": false, "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT", "deployment": "NOT_DEPLOYED"},
+      "verification": {"pythonEvaluatorTests": 4, "fullReferenceRuns": 3, "reportRepeatCanonicalEqual": true, "rawMediaRetention": "local only; hashes and metadata committed"},
+      "reproducible": true
     }
   ]
 }
