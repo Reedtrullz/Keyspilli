@@ -150,5 +150,16 @@
     "referenceFilesOutsideRepository": true,
     "benchmarkSongsUsedForGeneration": false
   },
+  "verification": {
+    "workspaceTests": 1579,
+    "workspaceTestBreakdown": {"web": 89, "catalog": 1012, "engrave": 8, "midi": 336, "playerCore": 92, "transcribe": 42},
+    "midiFocusedTests": 336,
+    "catalogFocusedAlignmentTests": 17,
+    "workspaceTypechecks": 6,
+    "gitDiffCheck": true,
+    "calibrationRepeatCanonicalEqual": true,
+    "diskFreeGiBAtClose": 66,
+    "branchRemoteParity": "9e4c3afd6940f86d4453dd46b9f821089bc8b141"
+  },
   "nextTask": "SCORE_TO_RECORDING_ALIGNMENT_HARDENING"
 }
