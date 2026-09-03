@@ -134,7 +134,7 @@ export default function UploadsPage() {
               aria-hidden={status !== "done"}
               role="status"
             >
-              Done! {result.songIds.length} arrangements created.
+              Done! Your song is ready with five public levels.
               <div className="mt-2">
                 <Link href={`/player/${result.easySongId ?? result.songIds[0]}`} className="pressable text-indigo-700 font-medium underline">
                   Open in the player →
