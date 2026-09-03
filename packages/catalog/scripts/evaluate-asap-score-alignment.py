@@ -309,6 +309,7 @@ def metric_block(pairs: list[dict[str, Any]], predicted: list[float], total_coun
         "symbolicFrameCount": map_meta.get("symbolicFrameCount"),
         "alignmentMethod": map_meta.get("alignmentMethod"),
         "coarseEvaluatedCells": map_meta.get("coarseEvaluatedCells"),
+        "coarseDenseEquivalentCells": map_meta.get("coarseDenseEquivalentCells"),
         "fineEvaluatedCells": map_meta.get("fineEvaluatedCells"),
         "fineDenseEquivalentCells": map_meta.get("fineDenseEquivalentCells"),
         "fineReductionRatio": map_meta.get("fineReductionRatio"),

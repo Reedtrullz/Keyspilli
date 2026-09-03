@@ -46,9 +46,17 @@ class ProductionAlignmentV2Tests(unittest.TestCase):
             audio_features,
             audio_frames * CAL.FRAME_SECONDS,
         )
+        repeat_path, repeat_cost, repeat_diagnostics = CAL.production_alignment_features(
+            notes,
+            audio_features,
+            audio_frames * CAL.FRAME_SECONDS,
+        )
 
         self.assertGreater(len(path), 0)
         self.assertTrue(np.isfinite(cost))
+        np.testing.assert_array_equal(path, repeat_path)
+        self.assertEqual(cost, repeat_cost)
+        self.assertEqual(diagnostics, repeat_diagnostics)
         self.assertEqual(diagnostics["method"], "coarse-to-fine-corridor-dtw")
         self.assertGreater(diagnostics["coarse"]["evaluatedCells"], 0)
         self.assertGreater(diagnostics["fine"]["evaluatedCells"], 0)

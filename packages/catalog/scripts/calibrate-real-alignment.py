@@ -557,10 +557,12 @@ def production_alignment_features(
         bounds = _corridor_bounds(coarse_path, fine_rows, fine_columns, V2_COARSE_FACTOR, V2_FINE_CORRIDOR_HALF_WIDTH)
         fine_path, fine_cost, fine_metrics = corridor_dtw(symbolic, audio_features, bounds)
         expansion_passes = 0
+        selected_half_width = V2_FINE_CORRIDOR_HALF_WIDTH
     except ValueError:
         bounds = _corridor_bounds(coarse_path, fine_rows, fine_columns, V2_COARSE_FACTOR, V2_FINE_CORRIDOR_EXPANDED_HALF_WIDTH)
         fine_path, fine_cost, fine_metrics = corridor_dtw(symbolic, audio_features, bounds)
         expansion_passes = 1
+        selected_half_width = V2_FINE_CORRIDOR_EXPANDED_HALF_WIDTH
     local_costs = _path_costs(fine_path, symbolic, audio_features)
     weak_regions = _weak_regions(local_costs, V2_WEAK_COST_THRESHOLD)
     if expansion_passes == 0 and (float(fine_metrics["edgePressure"]) > V2_EDGE_PRESSURE_TRIGGER or weak_regions > 0):
@@ -570,9 +572,10 @@ def production_alignment_features(
             fine_path, fine_cost, fine_metrics = expanded_path, expanded_cost, expanded_metrics
             local_costs = _path_costs(fine_path, symbolic, audio_features)
             weak_regions = _weak_regions(local_costs, V2_WEAK_COST_THRESHOLD)
+            selected_half_width = V2_FINE_CORRIDOR_EXPANDED_HALF_WIDTH
         expansion_passes = 1
     fine_metrics = dict(fine_metrics)
-    fine_metrics.update({"corridorHalfWidth": V2_FINE_CORRIDOR_HALF_WIDTH, "expansionPasses": expansion_passes})
+    fine_metrics.update({"corridorHalfWidth": selected_half_width, "expansionPasses": expansion_passes})
     edge_pressure = float(fine_metrics.get("edgePressure", 0.0))
     confidence = _production_confidence(notes, fine_cost, 0.0, DTW_ANCHOR_COUNT, edge_pressure, weak_regions)
     diagnostics: dict[str, object] = {
