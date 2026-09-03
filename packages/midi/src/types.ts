@@ -136,6 +136,26 @@ export const LEVEL_ORDER: DifficultyLevel[] = [
   "advanced",
 ];
 
+/** Client-facing five-level roll-up; physical six-level generation is unchanged. */
+export type PublicDifficultyLevel =
+  | "very-beginner"
+  | "beginner"
+  | "easy"
+  | "medium"
+  | "advanced";
+
+export const PUBLIC_DIFFICULTY_ORDER = [
+  "very-beginner",
+  "beginner",
+  "easy",
+  "medium",
+  "advanced",
+] as const satisfies readonly PublicDifficultyLevel[];
+
+export function isPublicDifficultyLevel(value: unknown): value is PublicDifficultyLevel {
+  return typeof value === "string" && PUBLIC_DIFFICULTY_ORDER.includes(value as PublicDifficultyLevel);
+}
+
 export interface SongMeta {
   title: string;
   artist: string;

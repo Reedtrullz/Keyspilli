@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   buildVariants,
   LEVEL_ORDER,
+  parseMidi,
   verifyMonotonicity,
+  writeVariantArtifacts,
   type Note,
   type ParsedMidi,
   type Variant,
@@ -12,6 +14,7 @@ import {
   evaluateDifficultyLadder,
   type ProvenanceTraceEvent,
 } from "../src/arrangement-evaluation.js";
+import { sha256Hex } from "../src/fixture-evidence.js";
 
 function sourceNotes(): Note[] {
   const melody = [60, 60, 62, 64, 65, 64, 62, 60].map((midi, index) => ({
@@ -77,6 +80,17 @@ function sameNotesVariants(notes: Note[] = sourceNotes()): Variant[] {
   return LEVEL_ORDER.map((level, index) => manualVariant(level, notes, [1, 1.4, 2, 2.6, 3.4, 4.6][index]!));
 }
 
+function eventDigest(notes: Note[]): string {
+  const rows = notes
+    .map((note) => [note.midi, note.start, note.dur, note.vel, note.hand ?? ""])
+    .sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
+  return sha256Hex(new TextEncoder().encode(JSON.stringify(rows)));
+}
+
+function midiDigest(variant: Variant): string {
+  return sha256Hex(writeVariantArtifacts(variant, "Synthetic ladder", "Test").midi);
+}
+
 describe("difficulty ladder calibration", () => {
   it("uses the canonical six-level order and emits deterministic all-level diagnostics", () => {
     const first = learnerVariants();
@@ -104,6 +118,29 @@ describe("difficulty ladder calibration", () => {
     expect(firstReport.levels.easy?.lineage.operationCounts).toBeDefined();
     expect(canonicalDifficultyLadderJson(firstReport)).toBe(canonicalDifficultyLadderJson(secondReport));
     expect(verifyMonotonicity(first.variants)).toEqual([]);
+  });
+
+  it("keeps every synthetic ladder level stable through the canonical MIDI writer", () => {
+    const { variants } = learnerVariants();
+    const expectedWriterDigests: Record<Variant["level"], string> = {
+      "very-beginner": "b85b94214cbebc168b54f4898260b6301554c3eec7fa3be80bafb1b0f9d4d52c",
+      beginner: "6eca3c2220a658482130f130887145597887915b64132ffe2ede1d72f1e49b32",
+      "very-easy": "2e113869849a2a90ed676411973d5722e219c087b008b91e5965f27b248b4838",
+      easy: "2e113869849a2a90ed676411973d5722e219c087b008b91e5965f27b248b4838",
+      medium: "6676e7472f34c9f59df2fa9c0ed183b97d27446b0a089184ea654b9b723ec711",
+      advanced: "6676e7472f34c9f59df2fa9c0ed183b97d27446b0a089184ea654b9b723ec711",
+    };
+
+    expect(variants.map((variant) => variant.level)).toEqual(LEVEL_ORDER);
+    const actualWriterDigests: Record<Variant["level"], string> = {} as Record<Variant["level"], string>;
+    for (const variant of variants) {
+      const rendered = writeVariantArtifacts(variant, "Synthetic ladder", "Test");
+      const roundTripped = parseMidi(rendered.midi);
+      expect(eventDigest(roundTripped.notes), variant.level).toBe(eventDigest(variant.notes));
+      expect(roundTripped.tempoBpm, variant.level).toBeCloseTo(variant.tempoBpm, 2);
+      actualWriterDigests[variant.level] = midiDigest(variant);
+    }
+    expect(actualWriterDigests).toEqual(expectedWriterDigests);
   });
 
   it("counts difficulty operations and exposes a stable identity/harmony lineage", () => {
