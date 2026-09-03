@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "mission": "SCORE_TO_RECORDING_ALIGNMENT_HARDENING",
+  "dataset": {
+    "name": "ASAP",
+    "release": "v2.1.1",
+    "repository": "https://github.com/CPJKU/asap-dataset",
+    "revision": "4097b45757bed854818cf87e77b92323ebf90615",
+    "license": "CC BY-NC-SA 4.0",
+    "metadataSha256": "5c6622cae9ae34643fc5b35150de5e2891fd8ffbddd1fd579fa6b984014e6924",
+    "annotationSha256": "d04ad9c9d693487458b677fdc7428ea61284192ea0a3934e0df26c97c8262dc2",
+    "audioCarrier": {
+      "name": "MAESTRO",
+      "release": "v2.0.0",
+      "license": "CC BY-NC-SA 4.0",
+      "metadataSha256": "b29131ce89a49df044c54974d11d9977dc7bc53d35aeb39b4d3747f59a34092d"
+    }
+  },
+  "selectionRule": "Before evaluating any alignment result, select the first deterministic qualifying row for each of Bach, Chopin, and Liszt after filtering score_and_performance_aligned=true, audio available, score MIDI/XML available, at least 32 annotated beats, and MAESTRO duration between 30 and 180 seconds; sort by title then performance MIDI path.",
+  "qualification": {
+    "scoreAndPerformanceAligned": true,
+    "audioAvailable": true,
+    "scoreMidiAvailable": true,
+    "scoreMusicXmlAvailable": true,
+    "minimumAnnotatedBeats": 32,
+    "durationSeconds": [30, 180]
+  },
+  "fixtures": [
+    {
+      "id": "asap:dev:bach-fugue-bwv854-lua01m",
+      "role": "DEV",
+      "composer": "Bach",
+      "title": "Fugue_bwv_854",
+      "folder": "Bach/Fugue/bwv_854",
+      "scoreMidi": "Bach/Fugue/bwv_854/midi_score.mid",
+      "scoreMusicXml": "Bach/Fugue/bwv_854/xml_score.musicxml",
+      "performanceMidi": "Bach/Fugue/bwv_854/LuA01M.mid",
+      "performanceAudio": "Bach/Fugue/bwv_854/LuA01M.wav",
+      "maestroAudio": "2015/MIDI-Unprocessed_R1_D1-1-8_mid--AUDIO-from_mp3_04_R1_2015_wav--1.wav",
+      "metadataStartSeconds": 91.77916666666668,
+      "scoreAndPerformanceAligned": true,
+      "annotatedScoreBeats": 111,
+      "annotatedPerformanceBeats": 111,
+      "annotatedDownbeats": 28
+    },
+    {
+      "id": "asap:holdout-1:chopin-etude-op10-1-chenw03m",
+      "role": "HOLDOUT",
+      "composer": "Chopin",
+      "title": "Etudes_op_10_1",
+      "folder": "Chopin/Etudes_op_10/1",
+      "scoreMidi": "Chopin/Etudes_op_10/1/midi_score.mid",
+      "scoreMusicXml": "Chopin/Etudes_op_10/1/xml_score.musicxml",
+      "performanceMidi": "Chopin/Etudes_op_10/1/ChenW03M.mid",
+      "performanceAudio": "Chopin/Etudes_op_10/1/ChenW03M.wav",
+      "maestroAudio": "2015/MIDI-Unprocessed_R1_D2-13-20_mid--AUDIO-from_mp3_20_R1_2015_wav--3.wav",
+      "metadataStartSeconds": null,
+      "scoreAndPerformanceAligned": true,
+      "annotatedScoreBeats": 313,
+      "annotatedPerformanceBeats": 313,
+      "annotatedDownbeats": 79
+    },
+    {
+      "id": "asap:holdout-2:liszt-transcendental-etude-1-luoj05m",
+      "role": "HOLDOUT",
+      "composer": "Liszt",
+      "title": "Transcendental_Etudes_1",
+      "folder": "Liszt/Transcendental_Etudes/1",
+      "scoreMidi": "Liszt/Transcendental_Etudes/1/midi_score.mid",
+      "scoreMusicXml": "Liszt/Transcendental_Etudes/1/xml_score.musicxml",
+      "performanceMidi": "Liszt/Transcendental_Etudes/1/LuoJ05M.mid",
+      "performanceAudio": "Liszt/Transcendental_Etudes/1/LuoJ05M.wav",
+      "maestroAudio": "2015/MIDI-Unprocessed_R1_D1-1-8_mid--AUDIO-from_mp3_06_R1_2015_wav--3.wav",
+      "metadataStartSeconds": null,
+      "scoreAndPerformanceAligned": true,
+      "annotatedScoreBeats": 92,
+      "annotatedPerformanceBeats": 92,
+      "annotatedDownbeats": 22
+    }
+  ],
+  "groundTruth": {
+    "source": "ASAP asap_annotations.json performance_beats and midi_score_beats",
+    "use": "paired annotated score-domain times to performance audio seconds",
+    "excluded": "beats marked bR in either score or performance annotation are excluded from timing error aggregates but retained in sanity counts",
+    "audioTruth": "no audio onset detector is used as ground truth"
+  },
+  "scoreFeatures": "KEYSPILLI_CURRENT_SCORE_FEATURES: score-MIDI chroma plus onset-strength evidence",
+  "audioFeatures": {
+    "sampleRate": 22050,
+    "hopLength": 512,
+    "nFft": 4096,
+    "onsetWeight": 0.5
+  },
+  "methods": [
+    "naive-global-affine",
+    "keyspilli-current-monotonic-dtw",
+    "synctoolbox-official-default-if-required"
+  ],
+  "gates": {
+    "coverage": 0.95,
+    "medianAbsoluteErrorSeconds": 0.1,
+    "p95AbsoluteErrorSeconds": 0.25,
+    "maxMonotonicViolations": 0,
+    "maxFixtureP95Seconds": 0.5,
+    "referenceMaterialImprovementP95Seconds": 0.2,
+    "referenceMaxRegressedP95Seconds": 0.05
+  },
+  "firewall": {
+    "fixtureSelectionFrozenBeforeResults": true,
+    "developmentMayInformAtMostTwoAblations": true,
+    "heldOutResultsUsedForTuning": false,
+    "benchmarkGeneration": false,
+    "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT"
+  }
+}
