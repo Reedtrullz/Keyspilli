@@ -24,6 +24,7 @@ The CLaMP3 sparse-landmark investigation started from the remote-backed
 | Parse/provenance | VALIDATED | Native adapter records SHA-256/size/parser metadata; unknown provenance is not generation-eligible. |
 | Role inference | VALIDATED (shadow override) | The single-stem Guitar-TECHS MIDI is explicitly mapped to guitar for the shadow arrangement; no drum pitches reached output. |
 | Alignment | PARTIAL — V2 RESOURCE FIXED; NON-DTW SKF MIXED; CLaMP3 SPARSE RETRIEVAL RESOURCE-BLOCKED | Frozen V2 completes all four revealed ASAP/MAESTRO pairs but leaves regional accuracy unresolved. Matchmaker SKF is mixed and was not promoted. The one approved CLaMP3 reference was not evaluated because its pinned weights exceed the bounded footprint before download; no CLaMP3 production candidate was created. |
+| Region ownership / fallback | VALIDATED (deterministic contract) | Explicit source/target regions, role ownership, timing authority, alignment state, provenance/firewall, fallback precedence, overlap/merge behavior, and no-owner withholding are enforced before semantic-band arrangement. |
 | Arrangement | PASS (real shadow) | The real pair completed `buildMetalArrangement`; semantic guitar diagnostics and source-tagged output were produced in memory. |
 | Six physical difficulties | PASS (real shadow) | Advanced, Medium, Easy plus the remaining physical levels were generated and validated. |
 | Artifact writing | PASS (in-memory roundtrip) | All six physical variants produced MIDI and MusicXML bytes in memory; existing artifact validators and reparsers passed. No files were persisted. |
@@ -239,10 +240,50 @@ Human listening is `NOT_REQUESTED` / `NOT_REQUIRED_BY_DEFAULT`; no listening
 pack or rater gate was created. Deployment is `NOT_DEPLOYED`.
 
 The next single engineering task is
-`EXPLICIT_SCORE_REGION_ALIGNMENT_FALLBACK_CONTRACT`; it should make partial,
-explicitly owned score regions usable without pretending that unaligned
+`REGION_AWARE_REAL_SHADOW_REHEARSAL`; it should exercise explicit region
+ownership with a real shadow pair without pretending that full-song
 score-to-recording timing is solved. No further retrieval-model, classical-DTW,
 or state-space score-following work is authorized by this checkpoint.
+
+### Explicit score-region ownership / fallback contract
+
+This checkpoint adds `packages/catalog/src/region-ownership.ts` as the single
+pure ownership decision surface. Claims name a source/target region, semantic
+role, source class, timing authority, alignment state, confidence, and fallback
+eligibility. Benchmark/reference and diagnostic classes are always withheld;
+partial or rejected melody timing cannot become direct notes; semantic-only
+harmony/bass support is explicitly marked partial; drum evidence can own only
+`timing-only` regions. Primary generation candidates win deterministic overlaps,
+fallback candidates may own only uncovered regions, and adjacent compatible
+decisions merge without crossing owners or roles. Missing or invalid ownership
+is a valid `WITHHELD` result rather than an inferred timing map.
+
+`buildExternalSymbolicArrangement` applies the resolved contract before
+semantic-band notes are passed to `buildMetalArrangement` (and bounds direct
+piano source notes when claims are supplied). The resolution is retained in
+additive diagnostics; existing intake, frozen-candidate, difficulty, MIDI, and
+public-level contracts remain unchanged. The ASAP oracle report
+`region-ownership-asap-oracle-2026-09-03.json` is policy-only and diagnostic;
+it does not tune thresholds or authorize benchmark material for generation.
+
+Ownership inventory: `generation-candidate-intake.ts` remains responsible for
+format/provenance/firewall readiness; `external-symbolic-pipeline.ts` selects
+frozen candidates and routes semantic-band/direct-piano evidence; the piano
+section builder owns explicit window fusion; and `buildMetalArrangement` owns
+downstream semantic arrangement. Region claims are now resolved once at the
+catalog-to-arrangement boundary, so these existing owners do not each invent
+fallback rules. The contract emits stable reason codes including
+`NATIVE_TIMING_AUTHORITY`, `HIGH_CONFIDENCE_ALIGNMENT`,
+`PARTIAL_ALIGNMENT`, `ALIGNMENT_REJECTED`, `NO_TARGET_TIMING`,
+`FALLBACK_TIMING_AUTHORITY`, `FALLBACK_LOWER_PRIORITY`,
+`BENCHMARK_FIREWALL`, `DIAGNOSTIC_FIREWALL`, `PROVENANCE_BLOCKED`,
+`DRUM_TIMING_ONLY`, `ROLE_NOT_ELIGIBLE`, and `INVALID_REGION`.
+
+Decision: `REGION_OWNERSHIP_FALLBACK_CONTRACT_VALIDATED`. The real alignment
+decision remains `REAL_SYMBOLIC_ALIGNMENT_PARTIAL`, so the real shadow remains
+`REAL_SHADOW_BLOCKED_AT_ALIGNMENT`. `MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`;
+human listening remains `NOT_REQUIRED_BY_DEFAULT`; deployment remains
+`NOT_DEPLOYED`.
 
 Detailed machine evidence is recorded in the
 `asap-score-alignment-2026-09-03.json`,

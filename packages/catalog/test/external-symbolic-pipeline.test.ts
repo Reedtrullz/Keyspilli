@@ -7,6 +7,7 @@ import {
   freezeGenerationCandidateSet,
   type ExternalRouteCoverageAttribution,
 } from "../src/external-symbolic-pipeline.js";
+import type { RegionEvidenceClaim } from "../src/region-ownership.js";
 
 const score = (pitch = 60) => ({
   title: "Synthetic source",
@@ -656,5 +657,77 @@ describe("external symbolic realization routes", () => {
       selectedRecordIds: [],
     });
     expect(result.canonical).toBeUndefined();
+  });
+
+  it("filters semantic-band notes through explicit region ownership before arrangement", () => {
+    const primary = record({
+      id: "region-primary",
+      candidate: { ...record().candidate!, id: "region-primary" },
+      score: {
+        title: "Primary",
+        parts: [{ id: "vocals", name: "Lead vocals", role: "melody", measures: [{ id: "m1", startBeat: 0, durationBeats: 4, events: [{ onset: 0, duration: 1, pitch: 60 }] }] }],
+      },
+    });
+    const fallback = record({
+      id: "region-fallback",
+      candidate: { ...record().candidate!, id: "region-fallback", content: { sha256: "b".repeat(64), byteLength: 8, mediaType: "audio/midi" } },
+      content: { sha256: "b".repeat(64), byteLength: 8, mediaType: "audio/midi" },
+      score: {
+        title: "Fallback",
+        parts: [{ id: "vocals", name: "Lead vocals", role: "melody", measures: [{ id: "m1", startBeat: 0, durationBeats: 4, events: [{ onset: 0, duration: 1, pitch: 72 }] }] }],
+      },
+    });
+    const claims: RegionEvidenceClaim[] = [
+      { id: "primary-rejected", candidateId: "region-primary", sourceClass: "GENERATION_CANDIDATE", provenanceClass: "PROJECT_OWNED", role: "melody", timingAuthority: "ALIGNMENT_REJECTED", alignmentState: "ALIGNMENT_REJECTED", sourceRegion: { startBeat: 0, endBeat: 4 } },
+      { id: "fallback-owned", candidateId: "region-fallback", sourceClass: "FALLBACK_AMT", provenanceClass: "PROJECT_OWNED", role: "melody", timingAuthority: "NATIVE_AUTHORITATIVE", alignmentState: "NATIVE", sourceRegion: { startBeat: 0, endBeat: 4 } },
+    ];
+    const result = buildExternalSymbolicArrangement({
+      candidateSet: freezeGenerationCandidateSet([primary, fallback]),
+      mode: "semantic-band",
+      windows: [{ id: "full", startBeat: 0, endBeat: 4, candidateId: "region-primary" }],
+      regionEvidence: claims,
+    });
+
+    expect(result.status).toBe("symbolic");
+    expect(result.selectedRecordIds).toEqual(["region-fallback"]);
+    expect(result.semantic?.melody.some((note) => note.midi === 72)).toBe(true);
+    expect(result.semantic?.melody.some((note) => note.midi === 60)).toBe(false);
+    expect((result.diagnostics.regionOwnership as { readiness: string }).readiness).toBe("GENERATION_PARTIAL");
+  });
+
+  it("returns an explicit fallback when every claimed melody region is withheld", () => {
+    const candidate = record();
+    const result = buildExternalSymbolicArrangement({
+      candidateSet: freezeGenerationCandidateSet([candidate]),
+      mode: "semantic-band",
+      regionClaims: [{ id: "not-aligned", candidateId: "record-a", sourceClass: "GENERATION_CANDIDATE", provenanceClass: "PROJECT_OWNED", role: "melody", timingAuthority: "UNALIGNED", alignmentState: "UNALIGNED", sourceRegion: { startBeat: 0, endBeat: 4 } }],
+      fallbackEnabled: false,
+    });
+
+    expect(result.status).toBe("unavailable");
+    expect(result.route).toBe("AUDIO_AMT_FALLBACK");
+    expect(result.diagnostics.regionOwnership).toBeDefined();
+  });
+
+  it("applies owned source-region bounds on the direct-piano path", () => {
+    const candidate = record({
+      score: {
+        title: "Bounded piano",
+        parts: [{ id: "lead", name: "Lead Voice", role: "melody", measures: [{ id: "m1", startBeat: 0, durationBeats: 4, events: [
+          { onset: 0, duration: 1, pitch: 60 },
+          { onset: 2, duration: 1, pitch: 72 },
+        ] }] }],
+      },
+    });
+    const result = buildExternalSymbolicArrangement({
+      candidateSet: freezeGenerationCandidateSet([candidate]),
+      mode: "direct-piano",
+      windows: [{ id: "full", startBeat: 0, endBeat: 4, candidateId: "record-a" }],
+      regionEvidence: [{ id: "intro", candidateId: "record-a", sourceClass: "GENERATION_CANDIDATE", provenanceClass: "PROJECT_OWNED", role: "melody", timingAuthority: "NATIVE_AUTHORITATIVE", alignmentState: "NATIVE", sourceRegion: { startBeat: 0, endBeat: 1.5 } }],
+    });
+
+    expect(result.status).toBe("symbolic");
+    expect(result.canonical?.notes.some((note) => note.midi === 60)).toBe(true);
+    expect(result.canonical?.notes.some((note) => note.midi === 72)).toBe(false);
   });
 });

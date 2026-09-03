@@ -1019,6 +1019,62 @@
         "deterministicModelRerun": "not-run"
       },
       "reproducible": true
+    },
+    {
+      "id": "explicit-score-region-ownership-fallback-contract-2026-09-03",
+      "date": "2026-09-03",
+      "startingRevision": "3453a51a3f73b47fb611d54bfea541bd53a19a96",
+      "checkpointRevisions": ["3453a51a3f73b47fb611d54bfea541bd53a19a96"],
+      "purpose": "Make partial score/alignment evidence safe and deterministic at the catalog-to-arrangement boundary",
+      "contract": {
+        "schemaVersion": 1,
+        "timingAuthorities": ["NATIVE_AUTHORITATIVE", "ALIGNED_HIGH_CONFIDENCE", "ALIGNED_PARTIAL", "ALIGNMENT_REJECTED", "UNALIGNED"],
+        "alignmentStates": ["NATIVE", "NATIVE_AUTHORITATIVE", "ALIGNED_HIGH_CONFIDENCE", "ALIGNED_PARTIAL", "ALIGNMENT_REJECTED", "UNALIGNED"],
+        "ownershipStates": ["OWNED", "FALLBACK_OWNED", "PARTIAL_SUPPORT", "WITHHELD"],
+        "roles": ["melody", "harmony", "bass-root", "rhythm", "timing-only"],
+        "fallbackPriority": "generation-candidate-over-fallback; fallback-never-overrides-primary",
+        "unownedAction": "WITHHELD"
+      },
+      "integration": {
+        "module": "packages/catalog/src/region-ownership.ts",
+        "boundary": "buildExternalSymbolicArrangement before semantic-band/direct-piano realization",
+        "arrangementPolicyChanges": 0,
+        "difficultyPolicyChanges": 0,
+        "publicLadderChanges": 0,
+        "newProductionDependencies": 0
+      },
+      "oracle": {
+        "report": "region-ownership-asap-oracle-2026-09-03.json",
+        "reportSha256": "fd9cdf40be54ddabf8ec65c998c31f2c246f92d0a35f99267fe9f3252381ce9c",
+        "status": "ORACLE_DIAGNOSTIC_ONLY",
+        "benchmarkGenerationUse": false,
+        "thresholdTuning": false
+      },
+      "decisions": {
+        "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+        "regionOwnership": "REGION_OWNERSHIP_FALLBACK_CONTRACT_VALIDATED",
+        "realAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "realShadow": "REAL_SHADOW_BLOCKED_AT_ALIGNMENT",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED"
+      },
+      "verification": {
+        "focusedRegionAndExternalTests": 48,
+        "catalogTests": 1027,
+        "midiTests": 336,
+        "workspaceTests": 1594,
+        "workspaceTypechecks": 6,
+        "gitDiffCheck": true,
+        "deterministicCanonicalSha256": "20eba80fd6864a952ec3409abfd26f1bdec363dfe537e322f09d87c49c6b0ff7",
+        "diskFreeGiB": 59
+      },
+      "firewall": {
+        "benchmarkReferencesUsedForGeneration": false,
+        "benchmarkReferencesUsedForTuning": false,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NOT_DEPLOYED"
+      },
+      "nextTask": "REGION_AWARE_REAL_SHADOW_REHEARSAL",
+      "reproducible": true
     }
   ]
 }

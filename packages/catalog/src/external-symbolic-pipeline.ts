@@ -25,6 +25,13 @@ import {
   type PianoSectionSource,
   type PianoSectionWindow,
 } from "./piano-section-builder.js";
+import {
+  regionAllowsSourceEvent,
+  regionOwnsSourceRegion,
+  resolveRegionEvidence,
+  type RegionEvidenceClaim,
+  type RegionOwnershipResolution,
+} from "./region-ownership.js";
 
 export interface FrozenGenerationCandidate {
   recordId: string;
@@ -344,6 +351,10 @@ export interface ExternalSymbolicArrangementInput {
   fallbackEnabled?: boolean;
   /** Protected benchmark/reference registry applied again at realization. */
   firewall?: EvidenceFirewallOptions;
+  /** Optional explicit source-region ownership claims. Applied before realization. */
+  regionEvidence?: readonly RegionEvidenceClaim[];
+  /** Alias for adapters that call the same contract region claims. */
+  regionClaims?: readonly RegionEvidenceClaim[];
 }
 
 export interface ExternalRoleSelection {
@@ -440,11 +451,14 @@ function scorePartEvents(part: OmrScoreInput["parts"][number]): OmrEventInput[] 
   });
 }
 
-function scorePartNotes(part: OmrScoreInput["parts"][number], alignment?: PianoSectionSource["alignment"]): Note[] {
+function scorePartNotesWithSource(
+  part: OmrScoreInput["parts"][number],
+  alignment?: PianoSectionSource["alignment"],
+): Array<{ note: Note; sourceStart: number }> {
   const offset = finite(alignment?.offsetBeats) ? alignment!.offsetBeats! : 0;
   const scale = finite(alignment?.beatScale) && alignment!.beatScale! > 0 ? alignment!.beatScale! : 1;
   const transpose = finite(alignment?.transposeSemitones) ? alignment!.transposeSemitones! : 0;
-  const notes: Note[] = [];
+  const notes: Array<{ note: Note; sourceStart: number }> = [];
   let cursor = 0;
   for (const measure of part.measures ?? []) {
     const start = finite(measure.startBeat) ? measure.startBeat : cursor;
@@ -456,16 +470,23 @@ function scorePartNotes(part: OmrScoreInput["parts"][number], alignment?: PianoS
       const role = event.role ?? part.role;
       const hand = role === "melody" ? "R" : role === "harmony" ? "L" : undefined;
       notes.push({
-        midi: Math.max(0, Math.min(127, Math.round(event.pitch + transpose))),
-        start: Math.max(0, mappedStart),
-        dur: mappedEnd - Math.max(0, mappedStart),
-        vel: 96,
-        ...(hand ? { hand } : {}),
+        sourceStart: start + event.onset,
+        note: {
+          midi: Math.max(0, Math.min(127, Math.round(event.pitch + transpose))),
+          start: Math.max(0, mappedStart),
+          dur: mappedEnd - Math.max(0, mappedStart),
+          vel: 96,
+          ...(hand ? { hand } : {}),
+        },
       });
     }
     cursor = Math.max(cursor, start + (finite(measure.durationBeats) ? measure.durationBeats : 0));
   }
-  return notes.sort((a, b) => a.start - b.start || a.midi - b.midi);
+  return notes.sort((a, b) => a.note.start - b.note.start || a.note.midi - b.note.midi);
+}
+
+function scorePartNotes(part: OmrScoreInput["parts"][number], alignment?: PianoSectionSource["alignment"]): Note[] {
+  return scorePartNotesWithSource(part, alignment).map(({ note }) => note);
 }
 
 function clipNotesToWindows(notes: readonly Note[], windows: readonly PianoSectionWindow[]): Note[] {
@@ -701,12 +722,27 @@ function alignmentFor(entry: FrozenGenerationCandidate, input: ExternalSymbolicA
     ?? (entry.candidate.id ? input.alignmentMaps?.[entry.candidate.id] : undefined);
 }
 
-function directPianoSource(entry: FrozenGenerationCandidate, input: ExternalSymbolicArrangementInput): PianoSectionSource {
+function directPianoSource(
+  entry: FrozenGenerationCandidate,
+  input: ExternalSymbolicArrangementInput,
+  regionResolution?: RegionOwnershipResolution,
+): PianoSectionSource {
   const alignment = alignmentFor(entry, input);
   const offset = finite(alignment?.offsetBeats) ? alignment!.offsetBeats! : 0;
   const scale = finite(alignment?.beatScale) && alignment!.beatScale! > 0 ? alignment!.beatScale! : 1;
   const transpose = finite(alignment?.transposeSemitones) ? alignment!.transposeSemitones! : 0;
-  const notes = generationScoreNotes(entry).flatMap((note) => {
+  const sourceNotes = regionResolution
+    ? (entry.score.parts ?? []).flatMap((part) => {
+      const role = sourceRole(entry, part);
+      return scorePartNotesWithSource(part).filter(({ sourceStart }) => regionAllowsSourceEvent(
+        regionResolution,
+        [entry.recordId, entry.candidate.id ?? ""],
+        role,
+        sourceStart,
+      )).map(({ note }) => note);
+    })
+    : generationScoreNotes(entry);
+  const notes = sourceNotes.flatMap((note) => {
     const start = (note.start - offset) / scale;
     const end = start + note.dur / scale;
     if (end <= 0) return [];
@@ -727,8 +763,9 @@ function trustedPianoSource(
   entry: FrozenGenerationCandidate,
   input: ExternalSymbolicArrangementInput,
   overlay?: PianoSectionSource,
+  regionResolution?: RegionOwnershipResolution,
 ): PianoSectionSource {
-  const source = directPianoSource(entry, input);
+  const source = directPianoSource(entry, input, regionResolution);
   if (!overlay) return source;
   const alignment = alignmentFor(entry, input);
   return {
@@ -744,6 +781,7 @@ function semanticBandSources(
   entry: FrozenGenerationCandidate,
   input: ExternalSymbolicArrangementInput,
   windows: readonly PianoSectionWindow[] = [],
+  regionResolution?: RegionOwnershipResolution,
 ): {
   stems: Array<{ role: "vocals" | "bass" | "guitar" | "other" | "drums"; midi: ParsedMidi; confidence?: number }>;
   semantic: ExternalSemanticSong;
@@ -759,13 +797,28 @@ function semanticBandSources(
   for (const part of entry.score.parts ?? []) {
     const role = sourceRole(entry, part);
     const target = mapRole(role);
-    const mapped = scorePartNotes(part, input.alignmentMaps?.[entry.recordId]);
-    const entryWindows = windows.filter((window) => {
-      return entryAllowedForWindow(entry, window);
-    });
-    const notes = explicitWindows
+    const mappedWithSource = scorePartNotesWithSource(part, alignmentFor(entry, input));
+    const sourceAuthorized = regionResolution
+      ? mappedWithSource.filter(({ sourceStart }) => regionAllowsSourceEvent(
+        regionResolution,
+        [entry.recordId, entry.candidate.id ?? ""],
+        role,
+        sourceStart,
+      ))
+      : mappedWithSource;
+    const mapped = sourceAuthorized.map(({ note }) => note);
+    const entryWindows = windows.filter((window) => entryAllowedForWindow(entry, window)
+      || Boolean(regionResolution && regionOwnsSourceRegion(
+        regionResolution,
+        [entry.recordId, entry.candidate.id ?? ""],
+        role,
+        window.startBeat,
+        window.endBeat,
+      )));
+    const windowedNotes = explicitWindows
       ? entryWindows.length ? clipNotesToWindows(mapped, entryWindows) : []
       : mapped;
+    const notes = windowedNotes;
     if (target === "drums") timingOnly.push(...notes);
     else if (target === "vocals") melody.push(...notes);
     else if (target === "bass") bass.push(...notes);
@@ -782,7 +835,11 @@ function semanticBandSources(
   return { stems, semantic: { schemaVersion: 1, melody, harmony: [], bass, rhythm, timingOnly, sections } };
 }
 
-function fallbackResult(input: ExternalSymbolicArrangementInput, reason: string): ExternalSymbolicArrangementResult {
+function fallbackResult(
+  input: ExternalSymbolicArrangementInput,
+  reason: string,
+  regionResolution?: RegionOwnershipResolution,
+): ExternalSymbolicArrangementResult {
   const fallbackEnabled = input.fallbackEnabled !== false;
   return {
     status: fallbackEnabled ? "fallback" : "unavailable",
@@ -791,7 +848,7 @@ function fallbackResult(input: ExternalSymbolicArrangementInput, reason: string)
     evidenceClass: "AUDIO_AMT_FALLBACK",
     provenance: [],
     fallbackReason: reason,
-    diagnostics: { schemaVersion: 1, candidateCount: 0, fallbackEnabled, reason },
+    diagnostics: { schemaVersion: 1, candidateCount: 0, fallbackEnabled, reason, ...(regionResolution ? { regionOwnership: regionResolution } : {}) },
   };
 }
 
@@ -853,6 +910,11 @@ export function buildExternalSymbolicArrangement(input: ExternalSymbolicArrangem
   if (!isFrozenCandidateSet(set, input.firewall)) return fallbackResult(input, "an immutable, digest-consistent, firewall-approved frozen candidate set is required");
   const selected = [...set.selected].filter((entry) => entry.candidate.purpose !== "BENCHMARK_REFERENCE" && entry.candidate.evidenceClass !== "BENCHMARK_REFERENCE");
   if (!selected.length) return fallbackResult(input, "no frozen generation candidate is available");
+  const suppliedRegionClaims = input.regionEvidence ?? input.regionClaims;
+  const regionResolution = suppliedRegionClaims === undefined ? undefined : resolveRegionEvidence(suppliedRegionClaims);
+  if (regionResolution?.readiness === "GENERATION_BLOCKED") {
+    return fallbackResult(input, "no generation-eligible melody region has explicit timing ownership", regionResolution);
+  }
   const supplied = input.sources
     ? input.sources.flatMap((source) => {
       const entry = selectedEntryForId(selected, source.id);
@@ -887,7 +949,7 @@ export function buildExternalSymbolicArrangement(input: ExternalSymbolicArrangem
       const sourceEntries = [...new Map<string, FrozenGenerationCandidate>(selected.map((entry) => [entry.recordId, entry])).values()];
       const allStems: Array<{ role: "vocals" | "bass" | "guitar" | "other" | "drums"; midi: ParsedMidi; confidence?: number }> = [];
       const semanticByEntry = sourceEntries.map((entry) => {
-        const built = semanticBandSources(entry, input, windows);
+        const built = semanticBandSources(entry, input, windows, regionResolution);
         let included = false;
         for (const stem of built.stems) {
           const evidenceRole: EvidenceRole = stem.role === "vocals" ? "melody" : stem.role === "bass" ? "bass-root" : stem.role === "drums" ? "timing-only" : "harmony";
@@ -953,7 +1015,7 @@ export function buildExternalSymbolicArrangement(input: ExternalSymbolicArrangem
           ...outputProvenance(selected, windows, selectedRecordIds, "bass-root"),
           ...outputProvenance(selected, windows, selectedRecordIds, "timing-only"),
         ],
-        diagnostics: { schemaVersion: 1, candidateSetDigest: set.digest, builder: metal.stats, warnings: metal.warnings },
+        diagnostics: { schemaVersion: 1, candidateSetDigest: set.digest, builder: metal.stats, warnings: metal.warnings, ...(regionResolution ? { regionOwnership: regionResolution } : {}) },
       };
     } catch (error) {
       return fallbackResult(input, error instanceof Error ? error.message : "semantic-band realization failed");
@@ -965,14 +1027,14 @@ export function buildExternalSymbolicArrangement(input: ExternalSymbolicArrangem
   const primaryOverlay = input.primary && selectedEntryForId(selected, input.primary.id)?.recordId === selectedPrimary.recordId
     ? input.primary
     : supplied.find(({ entry }) => entry.recordId === selectedPrimary.recordId)?.source;
-  const primary = trustedPianoSource(selectedPrimary, input, primaryOverlay);
+  const primary = trustedPianoSource(selectedPrimary, input, primaryOverlay, regionResolution);
   const alternateRows = input.alternates
     ? input.alternates.flatMap((source) => {
       const entry = selectedEntryForId(selected, source.id);
       return entry && entry.recordId !== selectedPrimary.recordId ? [{ entry, source }] : [];
     })
     : supplied.filter(({ entry }) => entry.recordId !== selectedPrimary.recordId);
-  const alternates = alternateRows.map(({ entry, source }) => trustedPianoSource(entry, input, source));
+  const alternates = alternateRows.map(({ entry, source }) => trustedPianoSource(entry, input, source, regionResolution));
   const directWindows = windows;
   if (!directWindows.length && !input.builderInput) return fallbackResult(input, "explicit section windows are required for symbolic realization");
   const builderInput: PianoSectionBuildInput = input.builderInput
@@ -1003,7 +1065,7 @@ export function buildExternalSymbolicArrangement(input: ExternalSymbolicArrangem
       notes: variants.medium.notes,
       artifact: variants.medium,
       provenance: outputProvenance(selected, directWindows, directSelectedIds, "melody"),
-      diagnostics: { schemaVersion: 1, candidateSetDigest: set.digest, builder: built.diagnostics },
+      diagnostics: { schemaVersion: 1, candidateSetDigest: set.digest, builder: built.diagnostics, ...(regionResolution ? { regionOwnership: regionResolution } : {}) },
     };
   } catch (error) {
     return fallbackResult(input, error instanceof Error ? error.message : "symbolic realization failed");

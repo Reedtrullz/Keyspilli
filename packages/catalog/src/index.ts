@@ -51,6 +51,7 @@ export * from "./score-audio-alignment.js";
 export * from "./upstream-attribution-runner.js";
 export * from "./external-retrieval.js";
 export * from "./generation-candidate-intake.js";
+export * from "./region-ownership.js";
 export * from "./shadow-corpus.js";
 // The local shadow modules intentionally have a few similarly named input
 // records.  Keep the public barrel explicit so consumers get one canonical
