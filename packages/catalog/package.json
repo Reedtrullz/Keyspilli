@@ -61,6 +61,7 @@
     "evaluate:cold-routing": "tsx scripts/evaluate-cold-routing.ts",
     "report:shadow-mission": "tsx scripts/report-shadow-mission.ts",
     "calibrate:ladder": "tsx scripts/calibrate-difficulty-ladder.ts",
+    "review:ladder": "tsx scripts/review-difficulty-ladder.ts",
     "evaluate:independent-current": "tsx scripts/evaluate-independent-current.ts"
   },
   "dependencies": {
