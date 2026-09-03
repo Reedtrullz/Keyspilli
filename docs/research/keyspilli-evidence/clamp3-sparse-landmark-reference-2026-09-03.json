@@ -71,6 +71,7 @@
     "symbolicEncoder": "M3 patch encoder with 64-token patches and 512-token maximum sequence length",
     "sharedEmbedding": "separate audio and symbolic projections into a 768-dimensional shared space",
     "globalEmbedding": "masked average pooling followed by the modality projection",
+    "normalization": "CLaMP3 get_global returns the projected masked mean; the official retrieval example compares vectors with cosine similarity and does not apply an additional model-side L2 normalization",
     "retrievalSimilarity": "cosine similarity over global embeddings in the official search example",
     "temporalOutput": "global retrieval features only; no independently documented event-level alignment output"
   },
@@ -184,7 +185,7 @@
   },
   "determinism": {
     "status": "METADATA_REPORT_ONLY",
-    "canonicalSha256": "a39bef14ac587470d4fe7db1279acabb197716b79d935cefc184922b5e4c86a7",
+    "canonicalSha256": "ee1413f7bfa36165348afea1d5ece07065c839111081816c555c4b6bc3615547",
     "canonicalization": "sorted JSON keys, UTF-8, no runtime/path/timestamp fields; canonicalSha256 excluded from its own digest",
     "modelEvaluationRepeat": "not-run"
   },
