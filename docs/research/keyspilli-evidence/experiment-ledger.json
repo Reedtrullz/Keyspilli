@@ -607,6 +607,100 @@
       "reproducible": true,
       "nextTask": "REAL_SYMBOLIC_TIMING_ALIGNMENT_HARDENING",
       "rawArtifactRetention": "retain metadata-only report and hashes; real media remains outside Git"
+    },
+    {
+      "id": "real-symbolic-timing-alignment-hardening-2026-09-03",
+      "date": "2026-09-03",
+      "startingRevision": "1ea2118675a2f75c17440a481a7dc8b55fcfca8f",
+      "checkpointRevisions": [
+        "d1363491c19ef8169ade7434093013a897348227",
+        "3b32e9cf9fbfcdaa713eae3be1ab7e6dd67606fd"
+      ],
+      "purpose": "Harden native timing preservation and measure one bounded synchronization candidate on a legitimate real audio+symbolic pair",
+      "firewall": {
+        "benchmarkReferencesUsedForGeneration": false,
+        "benchmarkReferencesUsedForTuning": false,
+        "guitarTechsGenerationEligible": false,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NOT_DEPLOYED"
+      },
+      "guitarTechsForensics": {
+        "fixtureId": "guitar-techs:p3-music-08",
+        "decision": "GUITAR_TECHS_NATIVE_TIME_AUTHORITY_PARTIAL",
+        "symbolicSha256": "329b128e6cb86cc2c43502ecdf8ae89e0049f69b564e29e41ef55f7b54411250",
+        "audioSha256": "f58cd8dcd68eeec7c9e58839e7161671ba3af9963957e35f1f04a1f2644d3ff3",
+        "format": 1,
+        "division": 960,
+        "trackCount": 7,
+        "noteCount": 143,
+        "firstNoteOnTick": 36,
+        "lastNoteOnTick": 44654,
+        "lastNoteOffTick": 48107,
+        "tempoBpm": 109.999908,
+        "nativeDurationSeconds": 27.333546,
+        "pairedAudioDurationSeconds": 27.333333,
+        "durationDifferenceMilliseconds": 0.212,
+        "independentParser": "mido",
+        "independentParserAgreement": true,
+        "absoluteSampleZero": "unproven"
+      },
+      "calibrationPair": {
+        "fixtureId": "maestro:v3:2015-prelude-3",
+        "dataset": "MAESTRO v3.0.0",
+        "item": "2015 Liszt Transcendental Etude No. 1, Preludio",
+        "license": "CC BY-NC-SA 4.0",
+        "symbolicSha256": "c72281527ca6588836bd1e109de848a8fd2ac246bbf06e25a58939d3168468fe",
+        "symbolicBytes": 5920,
+        "audioSha256": "040e85a32b576074dc3af60fa8175472d6584bd76fb6156808449df66ecfb77e",
+        "audioBytes": 8142740,
+        "symbolicDurationSeconds": 45.161458,
+        "audioDurationSeconds": 46.160408,
+        "groundTruth": "native MIDI tempo-map seconds from synchronized performance",
+        "candidate": "12-bin chroma + onset-strength monotonic DTW with 32 map anchors",
+        "challenges": [
+          "offset +0.50 seconds",
+          "offset -0.75 seconds",
+          "global scale +4 percent",
+          "global scale -4 percent",
+          "piecewise +4/-4 percent",
+          "combined +0.35 seconds and +4 percent",
+          "score-like nearest 0.125-second grid"
+        ],
+        "results": {
+          "matchedPerformanceCoverage": 1,
+          "matchedPerformanceP95Seconds": [0.05136, 0.081886, 0.066367, 0.091279, 0.064579, 0.065468],
+          "matchedPerformanceMedianSeconds": [0.017467, 0.018245, 0.025654, 0.023364, 0.025886, 0.025044],
+          "monotonicViolations": 0,
+          "scoreLikeP95Seconds": 0.092786,
+          "scoreLikeBaselineP95Seconds": 0.059375,
+          "scoreLikeMateriallyBeatsBaseline": false,
+          "repeatRunEqual": true,
+          "canonicalReportSha256": "73f05f44a2e8809efcb9b4c259a437c65c74fbcafcd4e09c23c55249c081152d"
+        }
+      },
+      "guitarTechsTransfer": {
+        "reportCanonicalSha256": "9773b188cf0a7c430884147b1fd4b09dfd61f8b74eef468d4590255a9935e1d4",
+        "productionMapping": "native-tempo-map",
+        "matchedOnsets": 65,
+        "audioOnsetsAfterDedup": 119,
+        "symbolicOnsetGroups": 94,
+        "f1": 0.610328,
+        "productionP95Seconds": 0.063664,
+        "naiveF1": 0.610328,
+        "naiveP95Seconds": 0.063664,
+        "materialImprovement": false,
+        "downstream": "arrangement + six physical levels + artifact roundtrips + five public levels pass in memory; no catalog writes"
+      },
+      "decisions": {
+        "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+        "realAlignment": "REAL_ALIGNMENT_MATCHED_ONLY",
+        "realShadow": "REAL_SHADOW_BLOCKED_AT_ALIGNMENT",
+        "firstBlocker": "score-like external symbolic timing does not materially beat the naive baseline and Guitar-TECHS sample-zero latency is unproven",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED"
+      },
+      "nextTask": "SCORE_TO_RECORDING_ALIGNMENT_HARDENING",
+      "reproducible": true,
+      "rawMediaRetention": "local only; metadata and hashes committed"
     }
   ]
 }

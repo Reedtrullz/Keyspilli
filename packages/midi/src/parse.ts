@@ -209,7 +209,7 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
     }
   }
   valid.sort((a, b) => a.start - b.start || a.midi - b.midi);
-  const tempoBpm = tempos[0]?.bpm ?? 120;
+  const tempoBpm = tempos.find((event) => event.tick === 0)?.bpm ?? 120;
   const durationBeats = valid.reduce((m, n) => Math.max(m, n.start + n.dur), 0);
   return {
     format,
@@ -237,7 +237,15 @@ export function midiTickToNativeSeconds(
     .filter((event) => Number.isFinite(event.tick) && event.tick >= 0 && Number.isFinite(event.microsecondsPerQuarter) && event.microsecondsPerQuarter > 0)
     .slice()
     .sort((left, right) => left.tick - right.tick || left.microsecondsPerQuarter - right.microsecondsPerQuarter);
-  let currentUs = Number.isFinite(parsed.tempoBpm) && parsed.tempoBpm > 0 ? 60_000_000 / parsed.tempoBpm : 500_000;
+  // MIDI's default tempo is 120 BPM until the first tempo event.  A source
+  // may place its first Set Tempo event after beat zero, so do not use that
+  // later tempo for the preceding interval.
+  const firstAtZero = events.find((event) => event.tick === 0);
+  let currentUs = firstAtZero
+    ? firstAtZero.microsecondsPerQuarter
+    : events.length
+      ? 500_000
+      : Number.isFinite(parsed.tempoBpm) && parsed.tempoBpm > 0 ? 60_000_000 / parsed.tempoBpm : 500_000;
   let previousTick = 0;
   let seconds = 0;
   for (const event of events) {

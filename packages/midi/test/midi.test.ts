@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   parseMidi,
   midiBeatToNativeSeconds,
+  midiTickToNativeSeconds,
   quantize,
   splitHands,
   detectKey,
@@ -165,6 +166,24 @@ describe("parseMidi", () => {
     bytes[12] = 0;
     bytes[13] = 0;
     expect(() => parseMidi(bytes)).toThrow(/division/i);
+  });
+
+  it("uses MIDI's default 120 BPM before a tempo event that starts later", () => {
+    const parsed: ParsedMidi = {
+      format: 1,
+      division: 480,
+      tempoBpm: 60,
+      tempoMetaPresent: true,
+      tempoEvents: [{ tick: 480, beat: 1, microsecondsPerQuarter: 1_000_000, bpm: 60 }],
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes: [],
+      trackNames: [],
+      durationBeats: 0,
+    };
+    expect(midiTickToNativeSeconds(parsed, 240)).toBeCloseTo(0.25, 8);
+    expect(midiTickToNativeSeconds(parsed, 720)).toBeCloseTo(1, 8);
   });
 
   it("consumes system-common messages before continuing with channel events", () => {

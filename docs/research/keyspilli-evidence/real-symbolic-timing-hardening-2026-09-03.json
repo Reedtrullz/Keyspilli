@@ -1,0 +1,154 @@
+{
+  "schemaVersion": 1,
+  "mission": "REAL_SYMBOLIC_TIMING_ALIGNMENT_HARDENING",
+  "startingRevision": "1ea2118675a2f75c17440a481a7dc8b55fcfca8f",
+  "checkpointRevisions": [
+    "d1363491c19ef8169ade7434093013a897348227",
+    "3b32e9cf9fbfcdaa713eae3be1ab7e6dd67606fd"
+  ],
+  "timingAuthority": {
+    "fixtureId": "guitar-techs:p3-music-08",
+    "decision": "GUITAR_TECHS_NATIVE_TIME_AUTHORITY_PARTIAL",
+    "reason": "The supplied SMF contains a tempo map and its native MIDI duration agrees with the paired DI WAV within 0.212 ms; the files do not expose an independently documented sample-zero latency.",
+    "rawSmf": {
+      "format": 1,
+      "headerLength": 6,
+      "division": 960,
+      "divisionMode": "PPQ",
+      "trackCount": 7,
+      "tempoEvents": [
+        {"tick": 0, "microsecondsPerQuarter": 545455, "bpm": 109.999908}
+      ],
+      "timeSignatures": [{"tick": 0, "numerator": 4, "denominator": 4}],
+      "firstNoteOnTick": 36,
+      "lastNoteOnTick": 44654,
+      "lastNoteOffTick": 48107,
+      "declaredTrackEndTick": 48107,
+      "noteCount": 143,
+      "pitchRange": [45, 85]
+    },
+    "independentParserAgreement": {
+      "parser": "mido",
+      "format": 1,
+      "division": 960,
+      "trackCount": 7,
+      "noteCount": 143,
+      "firstNoteOnTick": 36,
+      "lastNoteOnTick": 44654,
+      "lastNoteOffTick": 48107,
+      "nativeLengthSeconds": 27.333546
+    },
+    "keyspilliNativeLengthSeconds": 27.333546,
+    "pairedAudioLengthSeconds": 27.333333,
+    "durationDifferenceMilliseconds": 0.212,
+    "caveat": "Native beat-to-second timing is source authority; absolute audio sample zero and pickup latency remain unproven."
+  },
+  "coordinateContract": {
+    "midiTick": "integer source SMF tick",
+    "symbolicBeat": "quarter-note beat = tick / PPQ",
+    "symbolicNativeSecond": "beat mapped through the source tempo map",
+    "targetAudioSecond": "seconds measured in the independent recording",
+    "alignedAudioSecond": "targetAudioSecond predicted by an explicitly selected alignment map",
+    "productionMappingPriority": ["anchors", "native-tempo-map", "seconds-per-beat", "global-tempo"]
+  },
+  "calibration": {
+    "fixtureId": "maestro:v3:2015-prelude-3",
+    "dataset": "MAESTRO v3.0.0",
+    "item": "2015 Liszt Transcendental Etude No. 1, Preludio",
+    "license": "CC BY-NC-SA 4.0",
+    "provenanceUrl": "https://magenta.tensorflow.org/datasets/maestro",
+    "groundTruth": "Native MIDI tick/tempo-map seconds from the synchronized MAESTRO performance; no duration-derived scaling.",
+    "symbolic": {
+      "bytes": 5920,
+      "sha256": "c72281527ca6588836bd1e109de848a8fd2ac246bbf06e25a58939d3168468fe",
+      "format": 1,
+      "division": 480,
+      "tempoBpm": 120,
+      "noteCount": 629,
+      "durationBeats": 90.310417,
+      "durationSeconds": 45.161458
+    },
+    "audio": {
+      "bytes": 8142740,
+      "sha256": "040e85a32b576074dc3af60fa8175472d6584bd76fb6156808449df66ecfb77e",
+      "durationSeconds": 46.160408,
+      "featureSampleRate": 22050
+    },
+    "preregistration": {
+      "candidate": "12-bin chroma plus onset-strength symbolic/audio features with full monotonic three-step DTW and 32 monotonic map anchors",
+      "sampleRate": 22050,
+      "hopLength": 512,
+      "nFft": 4096,
+      "onsetWeight": 0.5,
+      "challengeValues": {
+        "offsetPlusSeconds": 0.5,
+        "offsetMinusSeconds": -0.75,
+        "scalePlus": 1.04,
+        "scaleMinus": 0.96,
+        "piecewise": "1.04x through half native duration, then 0.96x",
+        "combined": "0.35 + native seconds * 1.04",
+        "scoreLikeGridSeconds": 0.125
+      },
+      "gates": {
+        "matchedPerformanceCoverage": 0.95,
+        "matchedPerformanceMedianSeconds": 0.1,
+        "matchedPerformanceP95Seconds": 0.25,
+        "maxMonotonicViolations": 0,
+        "maxSegments": 32,
+        "requiredMaterialImprovementRatio": 0.5,
+        "scoreLikeP95Seconds": 0.25,
+        "scoreLikeMaterialImprovementRatio": 0.9
+      }
+    },
+    "results": {
+      "native": {"coverage": 1, "medianSeconds": 0.026149, "p90Seconds": 0.04924, "p95Seconds": 0.052201, "baselineP95Seconds": 0, "segments": 32},
+      "offset-plus-0.50s": {"coverage": 1, "medianSeconds": 0.017467, "p90Seconds": 0.042843, "p95Seconds": 0.05136, "baselineP95Seconds": 0.5, "segments": 32},
+      "offset-minus-0.75s": {"coverage": 1, "medianSeconds": 0.018245, "p90Seconds": 0.045994, "p95Seconds": 0.081886, "baselineP95Seconds": 0.75, "segments": 32},
+      "scale-plus-4pct": {"coverage": 1, "medianSeconds": 0.025654, "p90Seconds": 0.052216, "p95Seconds": 0.066367, "baselineP95Seconds": 1.6135, "segments": 32},
+      "scale-minus-4pct": {"coverage": 1, "medianSeconds": 0.023364, "p90Seconds": 0.062813, "p95Seconds": 0.091279, "baselineP95Seconds": 1.6135, "segments": 32},
+      "piecewise-4pct-to-minus-4pct": {"coverage": 1, "medianSeconds": 0.025886, "p90Seconds": 0.055025, "p95Seconds": 0.064579, "baselineP95Seconds": 0.855675, "segments": 32},
+      "combined-plus-0.35s-plus-4pct": {"coverage": 1, "medianSeconds": 0.025044, "p90Seconds": 0.052264, "p95Seconds": 0.065468, "baselineP95Seconds": 1.9635, "segments": 32},
+      "score-like-quarter-eighth-grid": {"coverage": 1, "medianSeconds": 0.032091, "p90Seconds": 0.080171, "p95Seconds": 0.092786, "baselineP95Seconds": 0.059375, "segments": 32, "materiallyBeatsBaseline": false}
+    },
+    "determinismSha256": "73f05f44a2e8809efcb9b4c259a437c65c74fbcafcd4e09c23c55249c081152d",
+    "repeatRunEqual": true
+  },
+  "guitarTechsTransfer": {
+    "reportCanonicalSha256": "9773b188cf0a7c430884147b1fd4b09dfd61f8b74eef468d4590255a9935e1d4",
+    "nativeMapMethod": "native-tempo-map",
+    "matchedAudioOnsets": 65,
+    "audioOnsetCountAfterDedup": 119,
+    "symbolicOnsetGroups": 94,
+    "f1": 0.610328,
+    "precision": 0.546218,
+    "recall": 0.691489,
+    "errorSeconds": {"median": 0.039414, "p90": 0.062549, "p95": 0.063664},
+    "naiveGlobalTempo": {"f1": 0.610328, "p95Seconds": 0.063664},
+    "materialImprovement": false,
+    "downstream": {
+      "arrangement": "PASS",
+      "physicalVariants": 6,
+      "artifactRoundTrips": "PASS",
+      "publicLevels": 5,
+      "catalogWrites": false,
+      "playerLinks": "NOT_EXERCISED"
+    },
+    "interpretation": "The source-native map is preserved and the downstream shadow path completes, but detector agreement is unchanged from the naïve map and does not independently establish sample-zero alignment."
+  },
+  "decisions": {
+    "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+    "realAlignment": "REAL_ALIGNMENT_MATCHED_ONLY",
+    "realShadow": "REAL_SHADOW_BLOCKED_AT_ALIGNMENT",
+    "firstBlocker": "Score-like external symbolic timing still does not materially beat the naïve baseline; Guitar-TECHS native timing has no independent sample-zero anchor.",
+    "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+    "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+    "deployment": "NOT_DEPLOYED"
+  },
+  "retention": {
+    "mediaCommitted": false,
+    "metadataCommitted": true,
+    "referenceFilesOutsideRepository": true,
+    "benchmarkSongsUsedForGeneration": false
+  },
+  "nextTask": "SCORE_TO_RECORDING_ALIGNMENT_HARDENING"
+}
