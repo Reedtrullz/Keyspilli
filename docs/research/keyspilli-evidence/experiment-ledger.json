@@ -9,15 +9,33 @@
       "purpose": "Diagnostic-only test of generic structurally supported off-quarter-grid RH attacks in Beginner",
       "songs": ["Clair de lune", "River Flows in You", "Hello"],
       "route": "frozen Very Easy/Beginner/Easy variants -> pure RH frontier evaluator -> arrangement metrics",
+      "criticalMetrics": {
+        "fixtureSha256": {
+          "classical": "e7e0fd260e049e338120cc4ee35c1a998ef616c01529a4c1a79837d6bb914039",
+          "cover": "eb8a1cf8f0076a548acaa206b67d19123814e1167d654496afa24c0458dc6f9d",
+          "pop": "87915f6b8dce035951af2ddc89c9c36ce105fde8e79ba6f936e31b7f80ef7fd6"
+        },
+        "coverRejectedEvents": 398,
+        "coverStructurallySignificantLostEvents": 320,
+        "coverCandidateARecovered": 110,
+        "coverCandidateBRecovered": 188,
+        "candidateARecoveryRatio": 0.5851063829787234,
+        "exactBeginnerLh": true,
+        "frozenPlayability": true,
+        "classicalPopNoMaterialDensification": true,
+        "classicalPopNoIdentityRegression": true,
+        "deterministicReportSha256": "eadb2fe2cf48f31c3a18975f14fed4fb665b9538fafa739b04f3dcb44b62815a"
+      },
       "preregistration": {
         "budgets": {"baseline": 0, "candidateA": 1, "candidateB": 2},
         "windowBeats": {"4/4": 4, "9/8": 4.5},
         "eligibility": "rejected Beginner RH, off quarter-grid, and at least one generic structural signal",
         "frozenControls": ["Beginner LH", "maxSim <= 2", "density", "IOI", "span/jump", "all non-Beginner levels"]
       },
-      "result": "PREREGISTERED; implementation pending",
-      "decision": "NO_MUSICAL_BEHAVIOR_CHANGE",
-      "reportHash": null,
+      "result": "Candidate A recovered 110/188 Cover events, passed the frozen diagnostic gate, and remained evaluator-only; Candidate B was not promoted",
+      "decision": "BEGINNER_SPARSE_OFFGRID_RH_BUDGET_VALIDATED",
+      "behavior": "NO_MUSICAL_BEHAVIOR_CHANGE",
+      "reportHash": "eadb2fe2cf48f31c3a18975f14fed4fb665b9538fafa739b04f3dcb44b62815a",
       "reproducible": true,
       "rawArtifactRetention": "retain compact path-free report only; no generated MIDI or source-specific note lists"
     },
