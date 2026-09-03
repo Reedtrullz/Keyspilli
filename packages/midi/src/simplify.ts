@@ -2846,12 +2846,34 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     [...capSoundingSpan(melodyOnly(veryEasyRhSource, 0.25, 0.5, pads), 12, "high"), ...veryEasyLhTexture],
     { grid: 0.25 },
   )));
+  if (learnerTraceEnabled) {
+    emitLearnerStageTrace(opts.trace, "very-easy-rh-input", veryEasyRhSource, [{
+      stage: "easy-playable",
+      notes: easy.filter((note) => note.hand !== "L"),
+    }], "very-easy-rh-input");
+    emitLearnerStageTrace(opts.trace, "very-easy-playable", veryEasy, [{
+      stage: "easy-playable",
+      notes: easy,
+    }], "very-easy-playability");
+  }
   const meterBeats = src.timeSig[0] * (4 / src.timeSig[1]);
   const beatsPerMeasure = Number.isFinite(meterBeats) && meterBeats > 0 ? meterBeats : 4;
   const beginnerRhSource = metalProfile
     ? reduceMetalRhRealism(veryEasy.filter((n) => n.hand !== "L"), tempo, 2.5, true)
     : veryEasy.filter((n) => n.hand !== "L");
+  if (learnerTraceEnabled) {
+    emitLearnerStageTrace(opts.trace, "beginner-rh-input", beginnerRhSource, [{
+      stage: "very-easy-playable",
+      notes: veryEasy.filter((note) => note.hand !== "L"),
+    }], "beginner-rh-input");
+  }
   const beginnerRh = capSoundingSpan(melodyOnly(beginnerRhSource, 0.25, 0.5, pads), 12, "high");
+  if (learnerTraceEnabled) {
+    emitLearnerStageTrace(opts.trace, "beginner-rh-selected", beginnerRh, [{
+      stage: "beginner-rh-input",
+      notes: beginnerRhSource,
+    }], "beginner-principal-selection");
+  }
   const beginnerSource = quantize(
     [
       ...beginnerRh,
@@ -2859,10 +2881,22 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     ],
     { grid: 0.25 },
   );
+  if (learnerTraceEnabled) {
+    emitLearnerStageTrace(opts.trace, "beginner-assembled", beginnerSource, [
+      { stage: "beginner-rh-selected", notes: beginnerRh },
+      { stage: "very-easy-playable", notes: veryEasy.filter((note) => note.hand === "L") },
+    ], "beginner-assembly");
+  }
   const beginner = capLevel(
     "beginner",
     trimSamePitchOverlaps(metalProfile ? capSemanticBeginnerHands(beginnerSource) : beginnerSource),
   );
+  if (learnerTraceEnabled) {
+    emitLearnerStageTrace(opts.trace, "beginner-playable", beginner, [{
+      stage: "beginner-assembled",
+      notes: beginnerSource,
+    }], "beginner-playability");
+  }
   const veryBeginnerRhSource = metalProfile
     ? reduceMetalRhRealism(beginner.filter((n) => n.hand !== "L"), tempo, 2, true)
     : beginner.filter((n) => n.hand !== "L");
@@ -2914,6 +2948,13 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
         : ladderReduced,
     );
   }
+  const beginnerAfterLadder = sets.beginner!;
+  if (learnerTraceEnabled) {
+    emitLearnerStageTrace(opts.trace, "beginner-ladder", beginnerAfterLadder, [{
+      stage: "beginner-playable",
+      notes: beginner,
+    }], "beginner-ladder-preservation");
+  }
   // Promote the frozen collision-aware sparse-LH policy for the generic
   // learner Beginner only. Applying it after the ladder is finalized makes
   // the source of truth explicit: existing Beginner RH and finalized Very
@@ -2932,6 +2973,12 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
       const key = `L:${note.start.toFixed(6)}:${note.midi}:${note.dur.toFixed(6)}:${note.vel}`;
       return !existingKeys.has(key);
     })].sort((a, b) => a.start - b.start || (a.hand === "L" ? 1 : -1) || a.midi - b.midi);
+  }
+  if (learnerTraceEnabled) {
+    emitLearnerStageTrace(opts.trace, "beginner-final", sets.beginner!, [{
+      stage: "beginner-ladder",
+      notes: beginnerAfterLadder,
+    }], "beginner-finalization");
   }
   if (learnerTraceEnabled) {
     emitLearnerStageTrace(opts.trace, "easy-ladder", sets.easy!, [{ stage: "easy-playable", notes: easy }], "easy-ladder-preservation");

@@ -34,7 +34,8 @@
     "benchmark:score": "npm run benchmark:score -w @keyspilli/catalog --",
     "benchmark:scores": "npm run benchmark:scores -w @keyspilli/catalog --",
     "report:melody-review": "npm run report:melody-review -w @keyspilli/catalog --",
-    "build:midi-corpus": "npm run build:midi-corpus -w @keyspilli/catalog --"
+    "build:midi-corpus": "npm run build:midi-corpus -w @keyspilli/catalog --",
+    "evaluate:cover-rh-cliff": "npm run evaluate:cover-rh-cliff -w @keyspilli/catalog --"
   },
   "engines": {
     "node": ">=20"

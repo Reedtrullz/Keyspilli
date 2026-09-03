@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "mission": "CURRENT_COVER_RH_IDENTITY_CLIFF_ATTRIBUTION",
+  "revision": "b4cf1ce1690b6a7455bd8fd488cf77734abc47d8",
+  "behavior": "NO_MUSICAL_BEHAVIOR_CHANGE",
+  "decision": "COVER_RH_IDENTITY_CLIFF_CONSTRAINT_BOUND",
+  "fixtures": {
+    "classical": {
+      "sourceSha256": "e7e0fd260e049e338120cc4ee35c1a998ef616c01529a4c1a79837d6bb914039",
+      "source": { "notes": 1309, "rh": 740, "rhOnsets": 439, "tempoBpm": 60, "durationBeats": 322.5 },
+      "levels": { "veryEasy": { "rh": 435, "onsets": 435, "digest": "5bf7557f94d0de0daa852295ac11f1d3e695a7289750a354836319e1c99cc2b5" }, "beginner": { "rh": 435, "onsets": 435, "digest": "c55482be8391447df9ab1f3f230009cb94e58f391580b064513f60e612f8ff7a" } },
+      "firstLoss": {},
+      "identity": { "eventSurvival": 1, "onsetSurvival": 1, "pitchClassSurvival": 1, "anchorSurvival": 1, "turnSurvival": 1, "repeatedAttackSurvival": 1 }
+    },
+    "cover": {
+      "sourceSha256": "eb8a1cf8f0076a548acaa206b67d19123814e1167d654496afa24c0458dc6f9d",
+      "source": { "notes": 1400, "rh": 954, "rhOnsets": 804, "tempoBpm": 144, "durationBeats": 564.125 },
+      "levels": { "veryEasy": { "rh": 779, "onsets": 779, "digest": "32828cce160d50e69e882d043eda8a291d8bce7b5c15b76bf9cff5da8157260d" }, "beginner": { "rh": 381, "onsets": 381, "digest": "c3bf2e9cecfc4a4af01c2357e3204fcc14b41bd331c272b90d971f9d183e5d9a" }, "easy": { "rh": 786, "onsets": 786, "digest": "5b53ac8695b7a93586e4bc775e661f327db1947f2d4af49dd04ec01aa0a765a0" } },
+      "firstLoss": { "beginner-ladder": 398 },
+      "fates": { "RETAINED_1_TO_1": 367, "DURATION_CHANGED": 14, "REJECTED": 398 },
+      "identity": { "eventSurvival": 0.489, "onsetSurvival": 0.489, "pitchClassSurvival": 0.489, "anchorSurvival": 1, "turnSurvival": 0.236, "repeatedAttackSurvival": 0.625 },
+      "structure": { "source": { "events": 954, "onsets": 804, "multiEventRate": 0.163, "reattackRate": 0.055, "medianIoiBeats": 0.5, "quarterGridRate": 0.475 }, "veryEasy": { "events": 779, "onsets": 779, "multiEventRate": 0, "reattackRate": 0.093, "medianIoiBeats": 0.5, "quarterGridRate": 0.489 }, "beginner": { "events": 381, "onsets": 381, "multiEventRate": 0, "reattackRate": 0.118, "medianIoiBeats": 1, "quarterGridRate": 1 } },
+      "playability": { "structurallySignificantLostEvents": 320, "recoverableWithinCurrentEnvelope": 0, "constraintBound": 320 },
+      "oracle": { "baselineRh": 381, "upperBoundRh": 381, "recoverableEvents": 0, "complexityDelta": { "notes": 0, "onsets": 0, "attacksPerSecond": 0, "maxSimultaneity": 0, "rightHandSpan": 0 } },
+      "counterfactual": { "bypassedStage": "beginner-ladder", "candidateRh": 779, "baselineRh": 381, "candidateOnsets": 779, "baselineOnsets": 381, "violations": [ "maxSimultaneity 3 exceeds Beginner limit 2", "RH note budget increased", "RH onset budget increased" ] },
+      "beginnerToEasy": { "noteDelta": 715, "onsetDelta": 452, "attackRateDelta": 1.915, "maxSimultaneityDelta": 2 }
+    },
+    "pop": {
+      "sourceSha256": "87915f6b8dce035951af2ddc89c9c36ce105fde8e79ba6f936e31b7f80ef7fd6",
+      "source": { "notes": 1016, "rh": 522, "rhOnsets": 376, "tempoBpm": 79, "durationBeats": 387.125 },
+      "levels": { "veryEasy": { "rh": 375, "onsets": 375, "digest": "e56d8308d0c943937dbcb76b23bdef85e58dede6b21fb6177e52c8ba4e288f49" }, "beginner": { "rh": 375, "onsets": 375, "digest": "a03a77992c76cdc8a21388701528b61f7b14527ed235ad4c8aec739478d75304" } },
+      "firstLoss": {},
+      "identity": { "eventSurvival": 1, "onsetSurvival": 1, "pitchClassSurvival": 1, "anchorSurvival": 1, "turnSurvival": 1, "repeatedAttackSurvival": 1 }
+    }
+  },
+  "publicLadder": { "levels": 5, "physicalLevels": 6 },
+  "verification": { "deterministicReportSha256": "c12a7e782dfdfb1a9e9332995ebb017ba3a0adc1dacab7142c28e01d263628df", "trace": "available for fresh in-memory generation; not serialized into public MIDI", "reference": "not used", "audio": "not used" }
+}

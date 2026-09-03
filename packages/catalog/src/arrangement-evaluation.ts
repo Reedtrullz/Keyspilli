@@ -65,7 +65,7 @@ export interface ArrangementEvaluationReference {
 export interface ProvenanceTraceEvent {
   key: string;
   windowId?: string;
-  stage?: "raw" | "cleaned" | "learner-arranged" | "advanced-candidates" | "advanced-playable" | "medium-candidates" | "medium-playable" | "easy-rh-input" | "easy-lh-input" | "easy-voice-selection" | "easy-assembled" | "easy-playable" | "easy-ladder" | "eligibility" | "selector-input" | "onset-group" | "lead" | "residual" | "cluster" | "semantic" | "decision" | "chord" | "left-hand" | "difficulty" | "final";
+  stage?: "raw" | "cleaned" | "learner-arranged" | "advanced-candidates" | "advanced-playable" | "medium-candidates" | "medium-playable" | "easy-rh-input" | "easy-lh-input" | "easy-voice-selection" | "easy-assembled" | "easy-playable" | "easy-ladder" | "very-easy-rh-input" | "very-easy-playable" | "beginner-rh-input" | "beginner-rh-selected" | "beginner-assembled" | "beginner-playable" | "beginner-ladder" | "beginner-final" | "eligibility" | "selector-input" | "onset-group" | "lead" | "residual" | "cluster" | "semantic" | "decision" | "chord" | "left-hand" | "difficulty" | "final";
   parentKeys?: string[];
   source?: string | null;
   sourceStem?: string | null;
@@ -1088,7 +1088,7 @@ function validateEvaluationWindows(raw: unknown, label: string): WindowValidatio
 }
 
 const TRACE_STAGES = new Set<NonNullable<ProvenanceTraceEvent["stage"]>>([
-  "raw", "cleaned", "learner-arranged", "advanced-candidates", "advanced-playable", "medium-candidates", "medium-playable", "easy-rh-input", "easy-lh-input", "easy-voice-selection", "easy-assembled", "easy-playable", "easy-ladder", "eligibility", "selector-input", "onset-group", "lead", "residual", "cluster", "semantic", "decision", "chord", "left-hand", "difficulty", "final",
+  "raw", "cleaned", "learner-arranged", "advanced-candidates", "advanced-playable", "medium-candidates", "medium-playable", "easy-rh-input", "easy-lh-input", "easy-voice-selection", "easy-assembled", "easy-playable", "easy-ladder", "very-easy-rh-input", "very-easy-playable", "beginner-rh-input", "beginner-rh-selected", "beginner-assembled", "beginner-playable", "beginner-ladder", "beginner-final", "eligibility", "selector-input", "onset-group", "lead", "residual", "cluster", "semantic", "decision", "chord", "left-hand", "difficulty", "final",
 ]);
 
 function traceShapeFailures(trace: unknown): string[] {

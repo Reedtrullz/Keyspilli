@@ -18,6 +18,7 @@ export * from "./youtube-discovery.js";
 export * from "./recording-discovery.js";
 export * from "./fixture-evidence.js";
 export * from "./arrangement-evaluation.js";
+export * from "./cover-rh-cliff.js";
 export * from "./song-research.js";
 export * from "./symbolic-alignment.js";
 export * from "./piano-alignment.js";

@@ -588,7 +588,9 @@ describe("buildVariants", () => {
         "raw", "cleaned", "learner-arranged", "advanced-candidates", "advanced-playable",
         "medium-candidates", "medium-playable", "easy-rh-input", "easy-lh-input", "onset-group",
         "selector-input", "easy-voice-selection", "decision", "easy-assembled", "easy-playable",
-        "easy-ladder", "final", "difficulty",
+        "easy-ladder", "very-easy-rh-input", "very-easy-playable", "beginner-rh-input",
+        "beginner-rh-selected", "beginner-assembled", "beginner-playable", "beginner-ladder",
+        "beginner-final", "final", "difficulty",
       ]),
     );
     expect(first.some((event) => event.selected === false && event.stage !== "raw")).toBe(true);
