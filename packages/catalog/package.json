@@ -63,7 +63,8 @@
     "calibrate:ladder": "tsx scripts/calibrate-difficulty-ladder.ts",
     "review:ladder": "tsx scripts/review-difficulty-ladder.ts",
     "evaluate:independent-current": "tsx scripts/evaluate-independent-current.ts",
-    "evaluate:cover-rh-cliff": "tsx scripts/evaluate-cover-rh-cliff.ts"
+    "evaluate:cover-rh-cliff": "tsx scripts/evaluate-cover-rh-cliff.ts",
+    "evaluate:beginner-offgrid-rh-frontier": "tsx scripts/evaluate-beginner-offgrid-rh-frontier.ts"
   },
   "dependencies": {
     "@keyspilli/midi": "*",

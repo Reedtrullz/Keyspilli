@@ -3,6 +3,25 @@
   "purpose": "Durable path-free summary of Keyspilli evidence experiments",
   "entries": [
     {
+      "id": "beginner-offgrid-rh-budget-frontier-2026-09-03",
+      "date": "2026-09-03",
+      "gitCommit": "76cfead64091c409cba4fd9772c2748903ebddda",
+      "purpose": "Diagnostic-only test of generic structurally supported off-quarter-grid RH attacks in Beginner",
+      "songs": ["Clair de lune", "River Flows in You", "Hello"],
+      "route": "frozen Very Easy/Beginner/Easy variants -> pure RH frontier evaluator -> arrangement metrics",
+      "preregistration": {
+        "budgets": {"baseline": 0, "candidateA": 1, "candidateB": 2},
+        "windowBeats": {"4/4": 4, "9/8": 4.5},
+        "eligibility": "rejected Beginner RH, off quarter-grid, and at least one generic structural signal",
+        "frozenControls": ["Beginner LH", "maxSim <= 2", "density", "IOI", "span/jump", "all non-Beginner levels"]
+      },
+      "result": "PREREGISTERED; implementation pending",
+      "decision": "NO_MUSICAL_BEHAVIOR_CHANGE",
+      "reportHash": null,
+      "reproducible": true,
+      "rawArtifactRetention": "retain compact path-free report only; no generated MIDI or source-specific note lists"
+    },
+    {
       "id": "direct-metal-source-aware",
       "date": "2026-08-28",
       "gitCommit": "e1665e0",
