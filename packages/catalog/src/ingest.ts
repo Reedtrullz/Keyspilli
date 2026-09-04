@@ -276,6 +276,16 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
   if (parsed.notes.length < 8) return { baseId: "", songIds: [], error: "too few notes" };
 
   const baseId = inp.baseId ?? generatedBaseId(inp.artist, inp.title);
+  const candidate = inp.contentType === "upload"
+    ? {
+      candidateId: baseId,
+      candidateClass: "GENERATION_CANDIDATE" as const,
+      provenanceClass: "USER_SUPPLIED_PRIVATE" as const,
+      timingAuthority: "NATIVE_AUTHORITATIVE" as const,
+      alignmentState: "NATIVE_AUTHORITATIVE" as const,
+      generationEligibility: { eligible: true, code: "READY_FOR_GENERATION" as const },
+    }
+    : undefined;
   // Rebuild/restore callers often know only the stable base id. Preserve a
   // current semantic profile when they omit an explicit override so a
   // canonical metal artifact cannot silently fall back to the learner
@@ -381,6 +391,7 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
       };
       const provenance = {
         ...sourceProvenance,
+        ...(candidate ? { candidate } : {}),
         tempo: tempoProvenance,
         ...(transcription ? { transcription } : {}),
       };
@@ -456,6 +467,7 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
     configFingerprint,
     arrangementProfile,
     source: sourceProvenance,
+    ...(candidate ? { candidate } : {}),
     tempo: {
       calibration: { bpm: parsed.tempoBpm, source: calibrationSource, resolvedAt, role: "source-calibration" },
       playback: { bpm: parsed.tempoBpm, source: calibrationSource, resolvedAt, role: "playback" },

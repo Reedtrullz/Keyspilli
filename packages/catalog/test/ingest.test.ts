@@ -87,11 +87,31 @@ describe("ingestSource .mxl", () => {
       sourceArtifactHash: string;
       configFingerprint: string;
       tempo: { calibration: { bpm: number }; playback: { bpm: number } };
+      candidate: {
+        candidateId: string;
+        candidateClass: string;
+        provenanceClass: string;
+        timingAuthority: string;
+        alignmentState: string;
+        generationEligibility: { eligible: boolean; code: string };
+      };
     };
     expect(manifest.identityStatus).toBe("current");
     expect(manifest.sourceArtifactHash).toMatch(/^[0-9a-f]{64}$/);
     expect(manifest.configFingerprint).toMatch(/^[0-9a-f]{64}$/);
     expect(manifest.tempo.calibration.bpm).toBe(manifest.tempo.playback.bpm);
+    expect(manifest.candidate).toEqual({
+      candidateId: res.baseId,
+      candidateClass: "GENERATION_CANDIDATE",
+      provenanceClass: "USER_SUPPLIED_PRIVATE",
+      timingAuthority: "NATIVE_AUTHORITATIVE",
+      alignmentState: "NATIVE_AUTHORITATIVE",
+      generationEligibility: { eligible: true, code: "READY_FOR_GENERATION" },
+    });
+    const sidecar = JSON.parse(readFileSync(join(artifactsDir(res.baseId, "a"), "notes.json"), "utf8")) as {
+      provenance: { candidate: typeof manifest.candidate };
+    };
+    expect(sidecar.provenance.candidate).toEqual(manifest.candidate);
   });
 
   it("bounds generated ids when display metadata is empty or unusually long", async () => {

@@ -84,7 +84,7 @@ export default function UploadsPage() {
     <div className="page-shell max-w-2xl mx-auto px-4 py-10">
       <h1 className="page-title text-2xl font-bold mb-2 motion-rise-in">Upload your own song</h1>
       <p className="text-zinc-600 text-sm mb-6 motion-rise-in">
-        Drop a MIDI or MusicXML file and it becomes a playable, color-coded lesson with all five difficulty levels. Max 10 MB.
+        Drop a MIDI, MusicXML, or MXL file and it becomes a playable, color-coded lesson with all five public difficulty levels. The file's own timing is used. Max 10 MB.
       </p>
 
       <div className="dropzone rounded-2xl border-2 border-dashed border-zinc-300 p-8 text-center mb-5 motion-scale-in" onDragOver={(e) => e.preventDefault()} onDrop={(e) => {

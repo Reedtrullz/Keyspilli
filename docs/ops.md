@@ -39,6 +39,22 @@ The catalog must be built before the app is useful. Build it locally and copy
 docker compose run --rm web node --import tsx packages/catalog/scripts/pipeline.ts
 ```
 
+## Bounded symbolic uploads
+
+The private `/uploads` flow accepts `.mid`, `.midi`, `.musicxml`, and `.mxl`
+files up to 10 MB. The browser may submit same-origin bytes without exposing a
+token; machine callers must send `Authorization: Bearer $KEYSPILLI_API_TOKEN`.
+The route derives a stable `upload-<sha256>` base id, so retrying identical
+bytes replaces one six-level artifact set instead of creating duplicate rows.
+
+The file is parsed and validated by the normal catalog ingest pipeline before
+any artifact/SQLite publish. A native symbolic upload is a
+`GENERATION_CANDIDATE` with `USER_SUPPLIED_PRIVATE` provenance and
+`NATIVE_AUTHORITATIVE` timing: it is not an assertion that the score is
+aligned to unrelated audio. Source bytes are retained under `data/uploads/`
+and included in the existing bounded backup archive; malformed, unsupported,
+empty, and oversized content fails closed without catalog rows.
+
 ## Adding songs from the Ultimate Guitar list
 
 `catalog/ug-tabs.json` is the source list (82 songs from "My tabs @

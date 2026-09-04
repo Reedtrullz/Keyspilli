@@ -1451,6 +1451,63 @@
       "nextTask": "AUTHORITATIVE_SYMBOLIC_DENSITY_NORMALIZATION",
       "reproducible": true,
       "rawMediaRetention": "private local source only; path-free report and hashes committed; no benchmark generation or tuning"
+    },
+    {
+      "id": "bounded-mvp-productization-readiness-2026-09-04",
+      "date": "2026-09-04",
+      "startingRevision": "65a6f4c2b161435a780a0c4d0fc9a9991c95b938",
+      "purpose": "Exercise the private native-symbolic upload path through catalog, player, exports, and recovery without deployment or listening",
+      "route": "same-origin symbolic upload -> bounded ingest -> six physical artifacts -> five public levels -> player/export APIs",
+      "scope": {
+        "formats": ["midi", "musicxml", "mxl"],
+        "maxUploadBytes": 10485760,
+        "timingAuthority": "NATIVE_AUTHORITATIVE",
+        "candidateClass": "GENERATION_CANDIDATE",
+        "provenanceClass": "USER_SUPPLIED_PRIVATE",
+        "remoteSymbolic": "existing approved-direct catalog seam; no UI fetch added",
+        "benchmarkMaterialUsed": false,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NOT_DEPLOYED"
+      },
+      "results": {
+        "localIngestFormatsPass": true,
+        "sixPhysicalArtifacts": true,
+        "fivePublicLevels": true,
+        "legacyVeryEasyRoute": true,
+        "playerEasyLink": true,
+        "midiExport": true,
+        "musicXmlExport": true,
+        "malformedInputRejected": true,
+        "stableRetryNoDuplicateRows": true,
+        "candidateMetadataInManifestAndSidecars": true,
+        "sourceHashAndUploadRetention": true,
+        "backupRestoreRows": 6,
+        "browserScratchTests": 2,
+        "containerCompose": "not-run; docker compose plugin unavailable",
+        "alignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED"
+      },
+      "decisions": {
+        "boundedMvp": "BOUNDED_MVP_PRODUCTIZATION_READY",
+        "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "realShadow": "NATIVE_TIMED_SYMBOLIC_REAL_SHADOW_VALIDATED",
+        "playerLinks": "LOCAL_EXERCISED",
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NOT_DEPLOYED"
+      },
+      "verification": {
+        "workspaceTests": 1635,
+        "workspaceTestBreakdown": {"web": 97, "catalog": 1042, "engrave": 8, "midi": 354, "playerCore": 92, "transcribe": 42},
+        "scratchPlaywrightTests": 2,
+        "workspaceTypechecks": 6,
+        "gitDiffCheck": true,
+        "backupRestoreSmoke": true,
+        "deterministicRetry": true,
+        "diskFreeGiBAtClose": 88
+      },
+      "nextTask": "REAL_SYMBOLIC_TIMING_ALIGNMENT_HARDENING",
+      "reproducible": true,
+      "rawMediaRetention": "no media retained; scratch bytes and temporary catalog removed"
     }
   ]
 }

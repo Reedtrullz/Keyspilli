@@ -29,9 +29,9 @@ The CLaMP3 sparse-landmark investigation started from the remote-backed
 | Region ownership / fallback | VALIDATED (deterministic contract) | Explicit source/target regions, role ownership, timing authority, alignment state, provenance/firewall, fallback precedence, overlap/merge behavior, and no-owner withholding are enforced before semantic-band arrangement. |
 | Arrangement | PASS (real native symbolic lane) | The user-supplied native performance completed the existing canonical arrangement path in scratch; downstream learner normalization now clears the unchanged production playability gate without changing arrangement policy. |
 | Six physical difficulties | VALIDATED | All six physical variants are generated, serialized, independently validated, and round-trip through MIDI/MusicXML. Frozen density Candidate A changes only Easy/Medium/Advanced; Very Easy remains a legacy physical row. |
-| Artifact writing | PASS (in-memory roundtrip) | All six physical variants produced MIDI and MusicXML bytes in memory; existing artifact validators and reparsers passed. No files were persisted. |
-| Catalog/public projection | PASS (in-memory; non-publishable) | One grouped shadow song and five public levels were projected from scratch rows; no catalog writes or publishability claim was made. |
-| Player entry links | NOT_EXERCISED | Link resolution requires a persisted catalog item; this path performs no catalog writes and no deployment was authorized. |
+| Artifact writing | PASS (scratch persisted) | All six physical variants produced MIDI and MusicXML bytes, passed existing validators/reparsers, and were atomically persisted in an isolated temporary data directory. |
+| Catalog/public projection | PASS (scratch persisted; non-production) | One grouped scratch song and five public levels were read through the catalog API; no production catalog write or publishability claim was made. |
+| Player entry links | LOCAL_EXERCISED | Scratch-only browser flow resolved the Easy link, public five-level links, legacy Very Easy route, and MIDI/MusicXML exports against an isolated temporary catalog. |
 
 ## Real non-synthetic shadow pair
 
@@ -512,3 +512,41 @@ alignment remains `REAL_SYMBOLIC_ALIGNMENT_PARTIAL`, musical quality remains
 `NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT`, and deployment remains
 `NOT_DEPLOYED`. Player entry links remain not exercised because this run made
 no catalog writes.
+
+### Bounded MVP productization readiness — 2026-09-04
+
+The productization checkpoint keeps the existing catalog ingest and artifact
+publisher as the single native-symbolic generation owner. The `/uploads` route
+now accepts same-origin browser bytes without exposing the maintainer bearer
+token, retains bearer auth for machine callers, rejects cross-origin metadata,
+enforces a bounded 10 MB body (including streaming/chunked bodies), and uses a
+stable `upload-<sha256>` base id for retries. Native upload manifests and each
+level's `notes.json` provenance carry `GENERATION_CANDIDATE`,
+`USER_SUPPLIED_PRIVATE`, `NATIVE_AUTHORITATIVE`, and
+`READY_FOR_GENERATION`; the source hash and upload bytes remain local/private.
+
+The scratch product path was exercised end to end with valid MIDI, MusicXML,
+and MXL inputs: parsing, six physical artifacts, five public levels, Easy
+player link, legacy Very Easy route, MIDI/MusicXML exports, catalog rows, and
+malformed-input rejection all passed. A separate bounded browser run covered
+upload, player-level projection, exports, and malformed content against an
+empty temporary catalog. The existing catalog intake library remains the
+approved direct-remote symbolic seam; no remote URL textbox or network fetch
+was added to the private UI, and benchmark/reference classes remain fenced
+from generation.
+
+The backup script also passed an explicit scratch restore drill: the SQLite
+online backup and artifact/source archive restored six catalog rows. Docker
+Engine is available locally, but the Compose v2 plugin is not installed, so a
+Compose-stack restart/worker-independence check was not run. Artifact swaps
+remain atomic with the existing post-swap DB reconciliation boundary.
+
+Decision: `BOUNDED_MVP_PRODUCTIZATION_READY` for native authoritative symbolic
+uploads within the private single-user app. This does not upgrade independent
+audio↔symbolic alignment, which remains `REAL_SYMBOLIC_ALIGNMENT_PARTIAL`, and
+does not establish musical recognizability:
+`MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`. Human listening is
+`NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT`; deployment is `NOT_DEPLOYED`.
+Player links are `LOCAL_EXERCISED`. The next single engineering task is
+`REAL_SYMBOLIC_TIMING_ALIGNMENT_HARDENING`; no benchmark tuning, deployment,
+production write, or audio/listening task was performed.

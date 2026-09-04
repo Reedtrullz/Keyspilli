@@ -3,6 +3,12 @@ import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { dataDir } from "./paths.js";
 import type { SourceProvenance } from "./provenance.js";
+import type {
+  GenerationCandidateClass,
+  GenerationCandidateProvenanceClass,
+  GenerationCandidateReadinessCode,
+} from "./generation-candidate-intake.js";
+import type { RegionAlignmentState, RegionTimingAuthority } from "./region-ownership.js";
 
 export const ARRANGEMENT_MANIFEST_SCHEMA_VERSION = 1 as const;
 
@@ -201,6 +207,23 @@ export interface TempoProvenance {
   playback: ResolvedTempo;
 }
 
+/**
+ * Generation ownership for a native symbolic artifact. This is optional so
+ * legacy manifests remain readable; current user uploads write the explicit
+ * native-authoritative contract instead of relying on contentType alone.
+ */
+export interface ArrangementCandidateMetadata {
+  candidateId: string;
+  candidateClass: GenerationCandidateClass;
+  provenanceClass: GenerationCandidateProvenanceClass;
+  timingAuthority: RegionTimingAuthority;
+  alignmentState: RegionAlignmentState;
+  generationEligibility: {
+    eligible: boolean;
+    code: GenerationCandidateReadinessCode;
+  };
+}
+
 export interface ArrangementManifest {
   schemaVersion: typeof ARRANGEMENT_MANIFEST_SCHEMA_VERSION;
   baseId: string;
@@ -212,6 +235,8 @@ export interface ArrangementManifest {
   arrangementProfile?: string;
   /** Canonical logical source identity plus optional physical source locator. */
   source?: SourceProvenance;
+  /** Explicit generation-candidate ownership for native uploads. */
+  candidate?: ArrangementCandidateMetadata;
   tempo: TempoProvenance;
   /** Absent for standard MIDI/MusicXML uploads without an audio transcription. */
   transcription?: TranscriptionProvenance;
@@ -258,6 +283,49 @@ const AUDIO_ACQUISITIONS = new Set<NonNullable<TranscriptionProvenance["audioAcq
   "downloaded",
   "pre-seeded",
   "upload",
+]);
+const CANDIDATE_CLASSES = new Set<GenerationCandidateClass>([
+  "GENERATION_CANDIDATE",
+  "BENCHMARK_REFERENCE",
+  "DIAGNOSTIC_ONLY",
+  "FALLBACK_AMT",
+]);
+const CANDIDATE_PROVENANCE_CLASSES = new Set<GenerationCandidateProvenanceClass>([
+  "PROJECT_OWNED",
+  "OPEN_LICENSE",
+  "USER_SUPPLIED_PRIVATE",
+  "REMOTE_APPROVED",
+  "UNKNOWN",
+]);
+const CANDIDATE_TIMING_AUTHORITIES = new Set([
+  "NATIVE_AUTHORITATIVE",
+  "ALIGNED_HIGH_CONFIDENCE",
+  "ALIGNED_PARTIAL",
+  "ALIGNMENT_REJECTED",
+  "UNALIGNED",
+]);
+const CANDIDATE_ALIGNMENT_STATES = new Set([
+  "NATIVE",
+  "NATIVE_AUTHORITATIVE",
+  "ALIGNED_HIGH_CONFIDENCE",
+  "ALIGNED_PARTIAL",
+  "ALIGNMENT_REJECTED",
+  "UNALIGNED",
+]);
+const CANDIDATE_READINESS_CODES = new Set<GenerationCandidateReadinessCode>([
+  "READY",
+  "READY_FOR_ALIGNMENT",
+  "READY_FOR_GENERATION",
+  "MISSING_INPUT",
+  "BENCHMARK_PROTECTED",
+  "METADATA_ONLY",
+  "INVALID_SYMBOLIC",
+  "FIREWALL_REJECTED",
+  "UNSUPPORTED_CLASS",
+  "PROVENANCE_BLOCKED",
+  "NO_USABLE_MUSICAL_EVENTS",
+  "UNSUPPORTED_FORMAT",
+  "REMOTE_CONTENT_INVALID",
 ]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -570,6 +638,41 @@ function validateSourceProvenance(value: unknown, path: string, errors: string[]
   }
 }
 
+function validateCandidateMetadata(value: unknown, path: string, errors: string[]): void {
+  if (!isRecord(value)) {
+    errors.push(`${path} must be an object`);
+    return;
+  }
+  for (const key of ["candidateId", "candidateClass", "provenanceClass", "timingAuthority", "alignmentState", "generationEligibility"] as const) {
+    if (!(key in value)) errors.push(`${path}.${key} is required`);
+  }
+  if (typeof value.candidateId !== "string" || !BASE_ID_RE.test(value.candidateId)) {
+    errors.push(`${path}.candidateId must be a valid catalog base id`);
+  }
+  if (typeof value.candidateClass !== "string" || !CANDIDATE_CLASSES.has(value.candidateClass as GenerationCandidateClass)) {
+    errors.push(`${path}.candidateClass is not recognized`);
+  }
+  if (typeof value.provenanceClass !== "string" || !CANDIDATE_PROVENANCE_CLASSES.has(value.provenanceClass as GenerationCandidateProvenanceClass)) {
+    errors.push(`${path}.provenanceClass is not recognized`);
+  }
+  if (typeof value.timingAuthority !== "string" || !CANDIDATE_TIMING_AUTHORITIES.has(value.timingAuthority)) {
+    errors.push(`${path}.timingAuthority is not recognized`);
+  }
+  if (typeof value.alignmentState !== "string" || !CANDIDATE_ALIGNMENT_STATES.has(value.alignmentState)) {
+    errors.push(`${path}.alignmentState is not recognized`);
+  }
+  if (!isRecord(value.generationEligibility)) {
+    errors.push(`${path}.generationEligibility must be an object`);
+  } else {
+    if (typeof value.generationEligibility.eligible !== "boolean") {
+      errors.push(`${path}.generationEligibility.eligible must be a boolean`);
+    }
+    if (typeof value.generationEligibility.code !== "string" || !CANDIDATE_READINESS_CODES.has(value.generationEligibility.code as GenerationCandidateReadinessCode)) {
+      errors.push(`${path}.generationEligibility.code is not recognized`);
+    }
+  }
+}
+
 /** Validate the role-tagged tempo copy used by notes.json provenance. */
 export function validateTempoProvenance(value: unknown, path = "tempo"): string[] {
   const errors: string[] = [];
@@ -621,6 +724,7 @@ export function validateArrangementManifest(value: unknown): string[] {
     errors.push("arrangementProfile must be a non-empty string when present");
   }
   if (value.source !== undefined) validateSourceProvenance(value.source, "source", errors);
+  if (value.candidate !== undefined) validateCandidateMetadata(value.candidate, "candidate", errors);
   if (!isRecord(value.tempo)) {
     errors.push("tempo must be an object");
   } else {
