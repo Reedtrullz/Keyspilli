@@ -18,6 +18,7 @@ export * from "./youtube-discovery.js";
 export * from "./recording-discovery.js";
 export * from "./fixture-evidence.js";
 export * from "./arrangement-evaluation.js";
+export * from "./difficulty-contract-audit.js";
 export * from "./cover-rh-cliff.js";
 export * from "./beginner-offgrid-rh-frontier.js";
 export * from "./song-research.js";

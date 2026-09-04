@@ -404,3 +404,37 @@ SHA is `f1432f35a7ce5433c1f8cb0ea4905939811e44376bcba2bf5fee436fbc55c330`.
 The next task is `LEVEL_CONTRACT_REVIEW_FOR_AUTHORITATIVE_DENSITY`. Musical
 quality remains `MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`; human listening
 is `NOT_REQUIRED_BY_DEFAULT`; deployment is `NOT_DEPLOYED`.
+
+### Difficulty contract review — 2026-09-04
+
+The report-only audit
+`difficulty-contract-review-2026-09-04.json` compares the unchanged physical
+six-level validator with a public five-level diagnostic. Existing code/history
+confirm six physical artifacts remain required for storage and legacy access,
+while normal public navigation is Very Beginner → Beginner → Easy → Medium →
+Advanced with Easy as the representative. Very Easy is checked independently;
+the public diagnostic has no Very Easy → Easy ordering edge.
+
+Across the three production-owned fixtures (Clair de lune, River Flows in You,
+and Hello), every public edge passes individual validation, note-count nesting,
+RH ancestry, and difficulty-score ordering; Very Easy independently validates.
+The synthetic full-band control remains diagnostic-only because its VB/Beginner
+rows are below the existing eight-note minimum. Historical calibration records
+VE/E redundancy for Classical and Pop and a Cover attack-count non-monotonicity.
+
+The frozen Candidate A output remains unpromoted: its unchanged Easy/Medium/
+Advanced outputs pass the public-edge diagnostic and independent VE validation,
+but fail the six-level VE → Easy raw note-count edge (2,560 VE notes versus
+2,130 Easy notes). No playability limits, musical policy, artifacts, or
+catalog data changed.
+
+Decision: `PUBLIC_FIVE_LEVEL_CONTRACT_VALIDATED` (report-only). The timed
+symbolic consequence is `TIMED_SYMBOLIC_MVP_READY_FOR_NORMALIZATION_REEVALUATION`;
+normalization still requires a separate task. Real alignment remains
+`REAL_SYMBOLIC_ALIGNMENT_PARTIAL`, and the real shadow remains
+`REAL_SHADOW_BLOCKED_AT_DIFFICULTIES`. Human listening is
+`NOT_REQUIRED_BY_DEFAULT`; deployment is `NOT_DEPLOYED`.
+
+The next single engineering task is
+`IMPLEMENT_PUBLIC_FIVE_LEVEL_DIFFICULTY_CONTRACT`; no implementation is made
+in this checkpoint.

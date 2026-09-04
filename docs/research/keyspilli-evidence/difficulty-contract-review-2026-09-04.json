@@ -1,0 +1,4111 @@
+{
+  "schemaVersion": 1,
+  "mission": "LEVEL_CONTRACT_REVIEW_FOR_AUTHORITATIVE_DENSITY",
+  "startingRevision": "4d30f85e7212265604cefefef0d0d844c4a59e16",
+  "behavior": "REPORT_ONLY_NO_MUSICAL_BEHAVIOR_CHANGE",
+  "scope": {
+    "onsetToleranceBeats": 0.08,
+    "benchmarkMaterialUsed": false,
+    "playabilityLimitsChanged": false,
+    "densityNormalizationPromoted": false,
+    "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+    "deployment": "NOT_DEPLOYED"
+  },
+  "history": {
+    "physicalLevelsIntroduced": "Very Easy was added as a finer learner rung and retained in physical artifacts.",
+    "publicRollup": "The public surface later became Very Beginner, Beginner, Easy, Medium, Advanced; Very Easy remains a legacy physical ID and opt-in route.",
+    "evidence": [
+      {
+        "revision": "b983687",
+        "finding": "six-level calibration established physical order, scores, and read-only ladder diagnostics"
+      },
+      {
+        "revision": "4676fb4",
+        "finding": "public difficulty navigation rolled up to five levels while retaining six physical levels"
+      },
+      {
+        "revision": "b4cf1ce",
+        "finding": "upload completion copy follows the public Easy representative"
+      }
+    ],
+    "contractQuestions": {
+      "veOrderingAfterRollup": "Generation and physical validation were intentionally left on the six-level order; the public rollup did not establish that VE->Easy remains a learner-facing requirement.",
+      "legacyAccess": "Existing legacy VE access depends on the physical ID and route remaining available, not on a new Easy artifact being larger than VE."
+    },
+    "historicalVeToEasyEvidence": {
+      "source": "docs/superpowers/plans/2026-09-02-difficulty-ladder-results.md",
+      "classical": {
+        "veryEasyNotes": 962,
+        "veryEasyAttacks": 714,
+        "easyNotes": 962,
+        "easyAttacks": 714,
+        "classification": "REDUNDANT_LEVEL"
+      },
+      "cover": {
+        "veryEasyNotes": 1213,
+        "veryEasyAttacks": 1022,
+        "easyNotes": 1225,
+        "easyAttacks": 921,
+        "classification": "NON_MONOTONIC",
+        "detail": "Easy has more notes but fewer attacks; the easier direction increases attack rate."
+      },
+      "pop": {
+        "veryEasyNotes": 847,
+        "veryEasyAttacks": 555,
+        "easyNotes": 847,
+        "easyAttacks": 555,
+        "classification": "REDUNDANT_LEVEL"
+      },
+      "conclusion": "VE->Easy was already redundant on two fixtures and non-monotonic on the Cover attack dimension before Lane A."
+    }
+  },
+  "contracts": {
+    "physical": {
+      "order": [
+        "very-beginner",
+        "beginner",
+        "very-easy",
+        "easy",
+        "medium",
+        "advanced"
+      ],
+      "ownership": "PHYSICAL_ARTIFACT_REQUIRED + LEGACY_COMPATIBILITY_REQUIRED"
+    },
+    "public": {
+      "order": [
+        "very-beginner",
+        "beginner",
+        "easy",
+        "medium",
+        "advanced"
+      ],
+      "ownership": "PUBLIC_PRODUCT_REQUIRED"
+    },
+    "veryEasy": {
+      "ownership": "LEGACY_COMPATIBILITY_REQUIRED",
+      "orderingEdge": "not present in public diagnostic"
+    },
+    "criteria": [
+      "individual playability validation",
+      "public learner progression and difficultyScore ordering",
+      "RH ancestry over public edges",
+      "legacy Very Easy existence and individual validity",
+      "cross-fixture consistency without threshold changes"
+    ]
+  },
+  "productTruth": {
+    "normalPublicOrder": [
+      "very-beginner",
+      "beginner",
+      "easy",
+      "medium",
+      "advanced"
+    ],
+    "veryEasyVisibleInNormalFlow": false,
+    "easyRepresentative": true,
+    "legacyVeryEasyPhysicalIdRetained": true,
+    "physicalArtifactRowsRemainSix": true,
+    "dataMigrationPerformed": false
+  },
+  "controls": {
+    "A": "harder can have fewer notes while being faster, wider, more polyphonic, or harder to coordinate; raw count is therefore a coarse guardrail",
+    "B": "many repeated trivial notes can increase count without increasing useful learner difficulty",
+    "C": "melody can be retained while redundant accompaniment is removed and harmonic/technical complexity increases",
+    "D": "different arrangement strategies can be non-nested even when their public learner role is ordered",
+    "conclusion": "raw total note count is useful for the existing physical nesting guard, but is not sufficient as the sole public difficulty definition"
+  },
+  "fixtures": [
+    {
+      "id": "classical",
+      "label": "Clair de lune",
+      "logicalRef": "data/artifacts/c-debussy-suite-bergamasque-clair-de-lune/a/notes.json",
+      "source": {
+        "sha256": "e7e0fd260e049e338120cc4ee35c1a998ef616c01529a4c1a79837d6bb914039",
+        "bytes": 85364,
+        "notes": 1309,
+        "durationBeats": 322.5,
+        "tempoBpm": 60
+      },
+      "levels": {
+        "very-beginner": {
+          "notes": 368,
+          "attacks": 368,
+          "rightHandNotes": 368,
+          "leftHandNotes": 0,
+          "rightHandAttacks": 368,
+          "leftHandAttacks": 0,
+          "attacksPerSecond": 1.136,
+          "globalMedianIoiSeconds": 0.5,
+          "rightHandMedianIoiSeconds": 0.5,
+          "leftHandMedianIoiSeconds": null,
+          "maxSimultaneity": 2,
+          "difficultyScore": 1,
+          "publicVisibility": "public",
+          "sourceRoleCounts": {
+            "vocals": 0,
+            "guitar": 0,
+            "bass": null,
+            "other": 0,
+            "generated": null,
+            "inferred": null,
+            "unknown": 368
+          }
+        },
+        "beginner": {
+          "notes": 507,
+          "attacks": 489,
+          "rightHandNotes": 435,
+          "leftHandNotes": 72,
+          "rightHandAttacks": 435,
+          "leftHandAttacks": 72,
+          "attacksPerSecond": 1.509,
+          "globalMedianIoiSeconds": 0.5,
+          "rightHandMedianIoiSeconds": 0.5,
+          "leftHandMedianIoiSeconds": 4.5,
+          "maxSimultaneity": 2,
+          "difficultyScore": 1.4,
+          "publicVisibility": "public",
+          "sourceRoleCounts": {
+            "vocals": 0,
+            "guitar": 0,
+            "bass": null,
+            "other": 0,
+            "generated": null,
+            "inferred": null,
+            "unknown": 507
+          }
+        },
+        "very-easy": {
+          "notes": 962,
+          "attacks": 714,
+          "rightHandNotes": 435,
+          "leftHandNotes": 527,
+          "rightHandAttacks": 435,
+          "leftHandAttacks": 448,
+          "attacksPerSecond": 2.204,
+          "globalMedianIoiSeconds": 0.25,
+          "rightHandMedianIoiSeconds": 0.5,
+          "leftHandMedianIoiSeconds": 0.25,
+          "maxSimultaneity": 4,
+          "difficultyScore": 2,
+          "publicVisibility": "legacy-only",
+          "sourceRoleCounts": {
+            "vocals": 0,
+            "guitar": 0,
+            "bass": null,
+            "other": 0,
+            "generated": null,
+            "inferred": null,
+            "unknown": 962
+          }
+        },
+        "easy": {
+          "notes": 962,
+          "attacks": 714,
+          "rightHandNotes": 435,
+          "leftHandNotes": 527,
+          "rightHandAttacks": 435,
+          "leftHandAttacks": 448,
+          "attacksPerSecond": 2.204,
+          "globalMedianIoiSeconds": 0.25,
+          "rightHandMedianIoiSeconds": 0.5,
+          "leftHandMedianIoiSeconds": 0.25,
+          "maxSimultaneity": 4,
+          "difficultyScore": 2.6,
+          "publicVisibility": "public",
+          "sourceRoleCounts": {
+            "vocals": 0,
+            "guitar": 0,
+            "bass": null,
+            "other": 0,
+            "generated": null,
+            "inferred": null,
+            "unknown": 962
+          }
+        },
+        "medium": {
+          "notes": 1283,
+          "attacks": 714,
+          "rightHandNotes": 722,
+          "leftHandNotes": 561,
+          "rightHandAttacks": 438,
+          "leftHandAttacks": 448,
+          "attacksPerSecond": 2.204,
+          "globalMedianIoiSeconds": 0.25,
+          "rightHandMedianIoiSeconds": 0.5,
+          "leftHandMedianIoiSeconds": 0.25,
+          "maxSimultaneity": 6,
+          "difficultyScore": 3.4,
+          "publicVisibility": "public",
+          "sourceRoleCounts": {
+            "vocals": 0,
+            "guitar": 0,
+            "bass": null,
+            "other": 0,
+            "generated": null,
+            "inferred": null,
+            "unknown": 1283
+          }
+        },
+        "advanced": {
+          "notes": 1309,
+          "attacks": 715,
+          "rightHandNotes": 740,
+          "leftHandNotes": 569,
+          "rightHandAttacks": 439,
+          "leftHandAttacks": 448,
+          "attacksPerSecond": 2.207,
+          "globalMedianIoiSeconds": 0.25,
+          "rightHandMedianIoiSeconds": 0.5,
+          "leftHandMedianIoiSeconds": 0.25,
+          "maxSimultaneity": 8,
+          "difficultyScore": 4.6,
+          "publicVisibility": "public",
+          "sourceRoleCounts": {
+            "vocals": 0,
+            "guitar": 0,
+            "bass": null,
+            "other": 0,
+            "generated": null,
+            "inferred": null,
+            "unknown": 1309
+          }
+        }
+      },
+      "contract": {
+        "physical": {
+          "order": [
+            "very-beginner",
+            "beginner",
+            "very-easy",
+            "easy",
+            "medium",
+            "advanced"
+          ],
+          "available": [
+            "very-beginner",
+            "beginner",
+            "very-easy",
+            "easy",
+            "medium",
+            "advanced"
+          ],
+          "missing": [],
+          "pass": true,
+          "errors": [],
+          "individualValidationErrors": {
+            "very-beginner": [],
+            "beginner": [],
+            "very-easy": [],
+            "easy": [],
+            "medium": [],
+            "advanced": []
+          },
+          "edges": [
+            {
+              "key": "very-beginner->beginner",
+              "easier": "very-beginner",
+              "harder": "beginner",
+              "noteCount": {
+                "easier": 368,
+                "harder": 507,
+                "delta": 139
+              },
+              "onsetCount": {
+                "easier": 368,
+                "harder": 489,
+                "delta": 121
+              },
+              "rightHandCount": {
+                "easier": 368,
+                "harder": 435,
+                "delta": 67
+              },
+              "leftHandCount": {
+                "easier": 0,
+                "harder": 72,
+                "delta": 72
+              },
+              "difficultyScore": {
+                "easier": 1,
+                "harder": 1.4,
+                "delta": 0.3999999999999999
+              },
+              "rhPreservation": {
+                "matched": 368,
+                "total": 368,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            },
+            {
+              "key": "beginner->very-easy",
+              "easier": "beginner",
+              "harder": "very-easy",
+              "noteCount": {
+                "easier": 507,
+                "harder": 962,
+                "delta": 455
+              },
+              "onsetCount": {
+                "easier": 489,
+                "harder": 714,
+                "delta": 225
+              },
+              "rightHandCount": {
+                "easier": 435,
+                "harder": 435,
+                "delta": 0
+              },
+              "leftHandCount": {
+                "easier": 72,
+                "harder": 527,
+                "delta": 455
+              },
+              "difficultyScore": {
+                "easier": 1.4,
+                "harder": 2,
+                "delta": 0.6000000000000001
+              },
+              "rhPreservation": {
+                "matched": 435,
+                "total": 435,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            },
+            {
+              "key": "very-easy->easy",
+              "easier": "very-easy",
+              "harder": "easy",
+              "noteCount": {
+                "easier": 962,
+                "harder": 962,
+                "delta": 0
+              },
+              "onsetCount": {
+                "easier": 714,
+                "harder": 714,
+                "delta": 0
+              },
+              "rightHandCount": {
+                "easier": 435,
+                "harder": 435,
+                "delta": 0
+              },
+              "leftHandCount": {
+                "easier": 527,
+                "harder": 527,
+                "delta": 0
+              },
+              "difficultyScore": {
+                "easier": 2,
+                "harder": 2.6,
+                "delta": 0.6000000000000001
+              },
+              "rhPreservation": {
+                "matched": 435,
+                "total": 435,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            },
+            {
+              "key": "easy->medium",
+              "easier": "easy",
+              "harder": "medium",
+              "noteCount": {
+                "easier": 962,
+                "harder": 1283,
+                "delta": 321
+              },
+              "onsetCount": {
+                "easier": 714,
+                "harder": 714,
+                "delta": 0
+              },
+              "rightHandCount": {
+                "easier": 435,
+                "harder": 722,
+                "delta": 287
+              },
+              "leftHandCount": {
+                "easier": 527,
+                "harder": 561,
+                "delta": 34
+              },
+              "difficultyScore": {
+                "easier": 2.6,
+                "harder": 3.4,
+                "delta": 0.7999999999999998
+              },
+              "rhPreservation": {
+                "matched": 435,
+                "total": 435,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            },
+            {
+              "key": "medium->advanced",
+              "easier": "medium",
+              "harder": "advanced",
+              "noteCount": {
+                "easier": 1283,
+                "harder": 1309,
+                "delta": 26
+              },
+              "onsetCount": {
+                "easier": 714,
+                "harder": 715,
+                "delta": 1
+              },
+              "rightHandCount": {
+                "easier": 722,
+                "harder": 740,
+                "delta": 18
+              },
+              "leftHandCount": {
+                "easier": 561,
+                "harder": 569,
+                "delta": 8
+              },
+              "difficultyScore": {
+                "easier": 3.4,
+                "harder": 4.6,
+                "delta": 1.1999999999999997
+              },
+              "rhPreservation": {
+                "matched": 722,
+                "total": 722,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            }
+          ]
+        },
+        "public": {
+          "order": [
+            "very-beginner",
+            "beginner",
+            "easy",
+            "medium",
+            "advanced"
+          ],
+          "available": [
+            "very-beginner",
+            "beginner",
+            "easy",
+            "medium",
+            "advanced"
+          ],
+          "missing": [],
+          "pass": true,
+          "errors": [],
+          "individualValidationErrors": {
+            "very-beginner": [],
+            "beginner": [],
+            "very-easy": [],
+            "easy": [],
+            "medium": [],
+            "advanced": []
+          },
+          "edges": [
+            {
+              "key": "very-beginner->beginner",
+              "easier": "very-beginner",
+              "harder": "beginner",
+              "noteCount": {
+                "easier": 368,
+                "harder": 507,
+                "delta": 139
+              },
+              "onsetCount": {
+                "easier": 368,
+                "harder": 489,
+                "delta": 121
+              },
+              "rightHandCount": {
+                "easier": 368,
+                "harder": 435,
+                "delta": 67
+              },
+              "leftHandCount": {
+                "easier": 0,
+                "harder": 72,
+                "delta": 72
+              },
+              "difficultyScore": {
+                "easier": 1,
+                "harder": 1.4,
+                "delta": 0.3999999999999999
+              },
+              "rhPreservation": {
+                "matched": 368,
+                "total": 368,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            },
+            {
+              "key": "beginner->easy",
+              "easier": "beginner",
+              "harder": "easy",
+              "noteCount": {
+                "easier": 507,
+                "harder": 962,
+                "delta": 455
+              },
+              "onsetCount": {
+                "easier": 489,
+                "harder": 714,
+                "delta": 225
+              },
+              "rightHandCount": {
+                "easier": 435,
+                "harder": 435,
+                "delta": 0
+              },
+              "leftHandCount": {
+                "easier": 72,
+                "harder": 527,
+                "delta": 455
+              },
+              "difficultyScore": {
+                "easier": 1.4,
+                "harder": 2.6,
+                "delta": 1.2000000000000002
+              },
+              "rhPreservation": {
+                "matched": 435,
+                "total": 435,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            },
+            {
+              "key": "easy->medium",
+              "easier": "easy",
+              "harder": "medium",
+              "noteCount": {
+                "easier": 962,
+                "harder": 1283,
+                "delta": 321
+              },
+              "onsetCount": {
+                "easier": 714,
+                "harder": 714,
+                "delta": 0
+              },
+              "rightHandCount": {
+                "easier": 435,
+                "harder": 722,
+                "delta": 287
+              },
+              "leftHandCount": {
+                "easier": 527,
+                "harder": 561,
+                "delta": 34
+              },
+              "difficultyScore": {
+                "easier": 2.6,
+                "harder": 3.4,
+                "delta": 0.7999999999999998
+              },
+              "rhPreservation": {
+                "matched": 435,
+                "total": 435,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            },
+            {
+              "key": "medium->advanced",
+              "easier": "medium",
+              "harder": "advanced",
+              "noteCount": {
+                "easier": 1283,
+                "harder": 1309,
+                "delta": 26
+              },
+              "onsetCount": {
+                "easier": 714,
+                "harder": 715,
+                "delta": 1
+              },
+              "rightHandCount": {
+                "easier": 722,
+                "harder": 740,
+                "delta": 18
+              },
+              "leftHandCount": {
+                "easier": 561,
+                "harder": 569,
+                "delta": 8
+              },
+              "difficultyScore": {
+                "easier": 3.4,
+                "harder": 4.6,
+                "delta": 1.1999999999999997
+              },
+              "rhPreservation": {
+                "matched": 722,
+                "total": 722,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            }
+          ]
+        },
+        "veryEasyIndependent": {
+          "present": true,
+          "validationErrors": [],
+          "pass": true
+        }
+      },
+      "transitions": [
+        {
+          "harder": "advanced",
+          "easier": "medium",
+          "identityDelta": {
+            "rhOnsetCoverage": 0.998,
+            "pitchClassCoverage": 0.998,
+            "directionAgreement": 1,
+            "turnSurvival": 0.992,
+            "localExtremaSurvival": 0.992,
+            "repeatedAttackSurvival": 1,
+            "largeLeapEndpointSurvival": 1,
+            "phraseAnchorSurvival": 1,
+            "harmonicChangeSurvival": 1
+          },
+          "complexityDelta": {
+            "noteReductionRatio": 0.02,
+            "onsetReductionRatio": 0.001,
+            "attackRateDelta": 0.003,
+            "attackRateReductionRatio": 0.001,
+            "maxSimultaneityReductionRatio": 0.25,
+            "maxSimultaneityDelta": 2,
+            "rightHandSpanDelta": 0,
+            "largeLeapRateDelta": -0.001,
+            "repeatedAttackRateDelta": 0
+          },
+          "lineage": {
+            "retained": 1283,
+            "rejected": 26,
+            "collapsed": 0,
+            "transformed": 0
+          },
+          "violations": [],
+          "classification": "HEALTHY_SIMPLIFICATION"
+        },
+        {
+          "harder": "medium",
+          "easier": "easy",
+          "identityDelta": {
+            "rhOnsetCoverage": 0.991,
+            "pitchClassCoverage": 0.991,
+            "directionAgreement": 0.928,
+            "turnSurvival": 0.865,
+            "localExtremaSurvival": 0.865,
+            "repeatedAttackSurvival": 0.935,
+            "largeLeapEndpointSurvival": 0.789,
+            "phraseAnchorSurvival": 0.984,
+            "harmonicChangeSurvival": 1
+          },
+          "complexityDelta": {
+            "noteReductionRatio": 0.25,
+            "onsetReductionRatio": 0,
+            "attackRateDelta": 0,
+            "attackRateReductionRatio": 0,
+            "maxSimultaneityReductionRatio": 0.333,
+            "maxSimultaneityDelta": 2,
+            "rightHandSpanDelta": 3,
+            "largeLeapRateDelta": 0.044,
+            "repeatedAttackRateDelta": 0.007
+          },
+          "lineage": {
+            "retained": 962,
+            "rejected": 321,
+            "collapsed": 0,
+            "transformed": 0
+          },
+          "violations": [],
+          "classification": "HEALTHY_SIMPLIFICATION"
+        },
+        {
+          "harder": "easy",
+          "easier": "very-easy",
+          "identityDelta": {
+            "rhOnsetCoverage": 0.991,
+            "pitchClassCoverage": 0.991,
+            "directionAgreement": 0.928,
+            "turnSurvival": 0.865,
+            "localExtremaSurvival": 0.865,
+            "repeatedAttackSurvival": 0.935,
+            "largeLeapEndpointSurvival": 0.789,
+            "phraseAnchorSurvival": 0.984,
+            "harmonicChangeSurvival": 1
+          },
+          "complexityDelta": {
+            "noteReductionRatio": 0,
+            "onsetReductionRatio": 0,
+            "attackRateDelta": 0,
+            "attackRateReductionRatio": 0,
+            "maxSimultaneityReductionRatio": 0,
+            "maxSimultaneityDelta": 0,
+            "rightHandSpanDelta": 0,
+            "largeLeapRateDelta": 0,
+            "repeatedAttackRateDelta": 0
+          },
+          "lineage": {
+            "retained": 962,
+            "rejected": 0,
+            "collapsed": 0,
+            "transformed": 0
+          },
+          "violations": [],
+          "classification": "REDUNDANT_LEVEL"
+        },
+        {
+          "harder": "very-easy",
+          "easier": "beginner",
+          "identityDelta": {
+            "rhOnsetCoverage": 0.991,
+            "pitchClassCoverage": 0.991,
+            "directionAgreement": 0.928,
+            "turnSurvival": 0.865,
+            "localExtremaSurvival": 0.865,
+            "repeatedAttackSurvival": 0.935,
+            "largeLeapEndpointSurvival": 0.789,
+            "phraseAnchorSurvival": 0.984,
+            "harmonicChangeSurvival": 0.126
+          },
+          "complexityDelta": {
+            "noteReductionRatio": 0.473,
+            "onsetReductionRatio": 0.315,
+            "attackRateDelta": 0.695,
+            "attackRateReductionRatio": 0.315,
+            "maxSimultaneityReductionRatio": 0.5,
+            "maxSimultaneityDelta": 2,
+            "rightHandSpanDelta": 0,
+            "largeLeapRateDelta": 0,
+            "repeatedAttackRateDelta": -0.011
+          },
+          "lineage": {
+            "retained": 507,
+            "rejected": 455,
+            "collapsed": 0,
+            "transformed": 0
+          },
+          "violations": [],
+          "classification": "INCONCLUSIVE"
+        },
+        {
+          "harder": "beginner",
+          "easier": "very-beginner",
+          "identityDelta": {
+            "rhOnsetCoverage": 0.838,
+            "pitchClassCoverage": 0.838,
+            "directionAgreement": 0.904,
+            "turnSurvival": 0.469,
+            "localExtremaSurvival": 0.469,
+            "repeatedAttackSurvival": 0.839,
+            "largeLeapEndpointSurvival": 0.333,
+            "phraseAnchorSurvival": 0.958,
+            "harmonicChangeSurvival": 0
+          },
+          "complexityDelta": {
+            "noteReductionRatio": 0.274,
+            "onsetReductionRatio": 0.247,
+            "attackRateDelta": 0.373,
+            "attackRateReductionRatio": 0.247,
+            "maxSimultaneityReductionRatio": 0,
+            "maxSimultaneityDelta": 0,
+            "rightHandSpanDelta": 0,
+            "largeLeapRateDelta": 0.032,
+            "repeatedAttackRateDelta": -0.008
+          },
+          "lineage": {
+            "retained": 368,
+            "rejected": 139,
+            "collapsed": 0,
+            "transformed": 0
+          },
+          "violations": [],
+          "classification": "IDENTITY_CLIFF"
+        }
+      ]
+    },
+    {
+      "id": "cover",
+      "label": "River Flows in You",
+      "logicalRef": "data/artifacts/paul-gassa-yiruma-river-flows-in-you-emotional-piano-cover-msl98ing/a/notes.json",
+      "source": {
+        "sha256": "eb8a1cf8f0076a548acaa206b67d19123814e1167d654496afa24c0458dc6f9d",
+        "bytes": 94160,
+        "notes": 1400,
+        "durationBeats": 564.125,
+        "tempoBpm": 144
+      },
+      "levels": {
+        "very-beginner": {
+          "notes": 353,
+          "attacks": 353,
+          "rightHandNotes": 353,
+          "leftHandNotes": 0,
+          "rightHandAttacks": 353,
+          "leftHandAttacks": 0,
+          "attacksPerSecond": 1.492,
+          "globalMedianIoiSeconds": 0.417,
+          "rightHandMedianIoiSeconds": 0.417,
+          "leftHandMedianIoiSeconds": null,
+          "maxSimultaneity": 2,
+          "difficultyScore": 1,
+          "publicVisibility": "public",
+          "sourceRoleCounts": {
+            "vocals": 0,
+            "guitar": 0,
+            "bass": null,
+            "other": 0,
+            "generated": null,
+            "inferred": null,
+            "unknown": 353
+          }
+        },
+        "beginner": {
+          "notes": 620,
+          "attacks": 579,
+          "rightHandNotes": 491,
+          "leftHandNotes": 129,
+          "rightHandAttacks": 491,
+          "leftHandAttacks": 129,
+          "attacksPerSecond": 2.446,
+          "globalMedianIoiSeconds": 0.26,
+          "rightHandMedianIoiSeconds": 0.365,
+          "leftHandMedianIoiSeconds": 1.667,
+          "maxSimultaneity": 2,
+          "difficultyScore": 1.4,
+          "publicVisibility": "public",
+          "sourceRoleCounts": {
+            "vocals": 0,
+            "guitar": 0,
+            "bass": null,
+            "other": 0,
+            "generated": null,
+            "inferred": null,
+            "unknown": 620
+          }
+        },
+        "very-easy": {
+          "notes": 1213,
+          "attacks": 1022,
+          "rightHandNotes": 779,
+          "leftHandNotes": 434,
+          "rightHandAttacks": 779,
+          "leftHandAttacks": 384,
+          "attacksPerSecond": 4.318,
+          "globalMedianIoiSeconds": 0.208,
+          "rightHandMedianIoiSeconds": 0.208,
+          "leftHandMedianIoiSeconds": 0.417,
+          "maxSimultaneity": 4,
+          "difficultyScore": 2,
+          "publicVisibility": "legacy-only",
+          "sourceRoleCounts": {
+            "vocals": 0,
+            "guitar": 0,
+            "bass": null,
+            "other": 0,
+            "generated": null,
+            "inferred": null,
+            "unknown": 1213
+          }
+        },
+        "easy": {
+          "notes": 1225,
+          "attacks": 921,
+          "rightHandNotes": 786,
+          "leftHandNotes": 439,
+          "rightHandAttacks": 786,
+          "leftHandAttacks": 384,
+          "attacksPerSecond": 3.892,
+          "globalMedianIoiSeconds": 0.208,
+          "rightHandMedianIoiSeconds": 0.208,
+          "leftHandMedianIoiSeconds": 0.417,
+          "maxSimultaneity": 4,
+          "difficultyScore": 2.6,
+          "publicVisibility": "public",
+          "sourceRoleCounts": {
+            "vocals": 0,
+            "guitar": 0,
+            "bass": null,
+            "other": 0,
+            "generated": null,
+            "inferred": null,
+            "unknown": 1225
+          }
+        },
+        "medium": {
+          "notes": 1371,
+          "attacks": 921,
+          "rightHandNotes": 932,
+          "leftHandNotes": 439,
+          "rightHandAttacks": 786,
+          "leftHandAttacks": 384,
+          "attacksPerSecond": 3.892,
+          "globalMedianIoiSeconds": 0.208,
+          "rightHandMedianIoiSeconds": 0.208,
+          "leftHandMedianIoiSeconds": 0.417,
+          "maxSimultaneity": 6,
+          "difficultyScore": 3.4,
+          "publicVisibility": "public",
+          "sourceRoleCounts": {
+            "vocals": 0,
+            "guitar": 0,
+            "bass": null,
+            "other": 0,
+            "generated": null,
+            "inferred": null,
+            "unknown": 1371
+          }
+        },
+        "advanced": {
+          "notes": 1400,
+          "attacks": 938,
+          "rightHandNotes": 954,
+          "leftHandNotes": 446,
+          "rightHandAttacks": 804,
+          "leftHandAttacks": 391,
+          "attacksPerSecond": 3.963,
+          "globalMedianIoiSeconds": 0.208,
+          "rightHandMedianIoiSeconds": 0.208,
+          "leftHandMedianIoiSeconds": 0.417,
+          "maxSimultaneity": 6,
+          "difficultyScore": 4.6,
+          "publicVisibility": "public",
+          "sourceRoleCounts": {
+            "vocals": 0,
+            "guitar": 0,
+            "bass": null,
+            "other": 0,
+            "generated": null,
+            "inferred": null,
+            "unknown": 1400
+          }
+        }
+      },
+      "contract": {
+        "physical": {
+          "order": [
+            "very-beginner",
+            "beginner",
+            "very-easy",
+            "easy",
+            "medium",
+            "advanced"
+          ],
+          "available": [
+            "very-beginner",
+            "beginner",
+            "very-easy",
+            "easy",
+            "medium",
+            "advanced"
+          ],
+          "missing": [],
+          "pass": true,
+          "errors": [],
+          "individualValidationErrors": {
+            "very-beginner": [],
+            "beginner": [],
+            "very-easy": [],
+            "easy": [],
+            "medium": [],
+            "advanced": []
+          },
+          "edges": [
+            {
+              "key": "very-beginner->beginner",
+              "easier": "very-beginner",
+              "harder": "beginner",
+              "noteCount": {
+                "easier": 353,
+                "harder": 620,
+                "delta": 267
+              },
+              "onsetCount": {
+                "easier": 353,
+                "harder": 579,
+                "delta": 226
+              },
+              "rightHandCount": {
+                "easier": 353,
+                "harder": 491,
+                "delta": 138
+              },
+              "leftHandCount": {
+                "easier": 0,
+                "harder": 129,
+                "delta": 129
+              },
+              "difficultyScore": {
+                "easier": 1,
+                "harder": 1.4,
+                "delta": 0.3999999999999999
+              },
+              "rhPreservation": {
+                "matched": 353,
+                "total": 353,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            },
+            {
+              "key": "beginner->very-easy",
+              "easier": "beginner",
+              "harder": "very-easy",
+              "noteCount": {
+                "easier": 620,
+                "harder": 1213,
+                "delta": 593
+              },
+              "onsetCount": {
+                "easier": 579,
+                "harder": 1022,
+                "delta": 443
+              },
+              "rightHandCount": {
+                "easier": 491,
+                "harder": 779,
+                "delta": 288
+              },
+              "leftHandCount": {
+                "easier": 129,
+                "harder": 434,
+                "delta": 305
+              },
+              "difficultyScore": {
+                "easier": 1.4,
+                "harder": 2,
+                "delta": 0.6000000000000001
+              },
+              "rhPreservation": {
+                "matched": 491,
+                "total": 491,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            },
+            {
+              "key": "very-easy->easy",
+              "easier": "very-easy",
+              "harder": "easy",
+              "noteCount": {
+                "easier": 1213,
+                "harder": 1225,
+                "delta": 12
+              },
+              "onsetCount": {
+                "easier": 1022,
+                "harder": 921,
+                "delta": -101
+              },
+              "rightHandCount": {
+                "easier": 779,
+                "harder": 786,
+                "delta": 7
+              },
+              "leftHandCount": {
+                "easier": 434,
+                "harder": 439,
+                "delta": 5
+              },
+              "difficultyScore": {
+                "easier": 2,
+                "harder": 2.6,
+                "delta": 0.6000000000000001
+              },
+              "rhPreservation": {
+                "matched": 779,
+                "total": 779,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            },
+            {
+              "key": "easy->medium",
+              "easier": "easy",
+              "harder": "medium",
+              "noteCount": {
+                "easier": 1225,
+                "harder": 1371,
+                "delta": 146
+              },
+              "onsetCount": {
+                "easier": 921,
+                "harder": 921,
+                "delta": 0
+              },
+              "rightHandCount": {
+                "easier": 786,
+                "harder": 932,
+                "delta": 146
+              },
+              "leftHandCount": {
+                "easier": 439,
+                "harder": 439,
+                "delta": 0
+              },
+              "difficultyScore": {
+                "easier": 2.6,
+                "harder": 3.4,
+                "delta": 0.7999999999999998
+              },
+              "rhPreservation": {
+                "matched": 786,
+                "total": 786,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            },
+            {
+              "key": "medium->advanced",
+              "easier": "medium",
+              "harder": "advanced",
+              "noteCount": {
+                "easier": 1371,
+                "harder": 1400,
+                "delta": 29
+              },
+              "onsetCount": {
+                "easier": 921,
+                "harder": 938,
+                "delta": 17
+              },
+              "rightHandCount": {
+                "easier": 932,
+                "harder": 954,
+                "delta": 22
+              },
+              "leftHandCount": {
+                "easier": 439,
+                "harder": 446,
+                "delta": 7
+              },
+              "difficultyScore": {
+                "easier": 3.4,
+                "harder": 4.6,
+                "delta": 1.1999999999999997
+              },
+              "rhPreservation": {
+                "matched": 932,
+                "total": 932,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            }
+          ]
+        },
+        "public": {
+          "order": [
+            "very-beginner",
+            "beginner",
+            "easy",
+            "medium",
+            "advanced"
+          ],
+          "available": [
+            "very-beginner",
+            "beginner",
+            "easy",
+            "medium",
+            "advanced"
+          ],
+          "missing": [],
+          "pass": true,
+          "errors": [],
+          "individualValidationErrors": {
+            "very-beginner": [],
+            "beginner": [],
+            "very-easy": [],
+            "easy": [],
+            "medium": [],
+            "advanced": []
+          },
+          "edges": [
+            {
+              "key": "very-beginner->beginner",
+              "easier": "very-beginner",
+              "harder": "beginner",
+              "noteCount": {
+                "easier": 353,
+                "harder": 620,
+                "delta": 267
+              },
+              "onsetCount": {
+                "easier": 353,
+                "harder": 579,
+                "delta": 226
+              },
+              "rightHandCount": {
+                "easier": 353,
+                "harder": 491,
+                "delta": 138
+              },
+              "leftHandCount": {
+                "easier": 0,
+                "harder": 129,
+                "delta": 129
+              },
+              "difficultyScore": {
+                "easier": 1,
+                "harder": 1.4,
+                "delta": 0.3999999999999999
+              },
+              "rhPreservation": {
+                "matched": 353,
+                "total": 353,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            },
+            {
+              "key": "beginner->easy",
+              "easier": "beginner",
+              "harder": "easy",
+              "noteCount": {
+                "easier": 620,
+                "harder": 1225,
+                "delta": 605
+              },
+              "onsetCount": {
+                "easier": 579,
+                "harder": 921,
+                "delta": 342
+              },
+              "rightHandCount": {
+                "easier": 491,
+                "harder": 786,
+                "delta": 295
+              },
+              "leftHandCount": {
+                "easier": 129,
+                "harder": 439,
+                "delta": 310
+              },
+              "difficultyScore": {
+                "easier": 1.4,
+                "harder": 2.6,
+                "delta": 1.2000000000000002
+              },
+              "rhPreservation": {
+                "matched": 491,
+                "total": 491,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            },
+            {
+              "key": "easy->medium",
+              "easier": "easy",
+              "harder": "medium",
+              "noteCount": {
+                "easier": 1225,
+                "harder": 1371,
+                "delta": 146
+              },
+              "onsetCount": {
+                "easier": 921,
+                "harder": 921,
+                "delta": 0
+              },
+              "rightHandCount": {
+                "easier": 786,
+                "harder": 932,
+                "delta": 146
+              },
+              "leftHandCount": {
+                "easier": 439,
+                "harder": 439,
+                "delta": 0
+              },
+              "difficultyScore": {
+                "easier": 2.6,
+                "harder": 3.4,
+                "delta": 0.7999999999999998
+              },
+              "rhPreservation": {
+                "matched": 786,
+                "total": 786,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            },
+            {
+              "key": "medium->advanced",
+              "easier": "medium",
+              "harder": "advanced",
+              "noteCount": {
+                "easier": 1371,
+                "harder": 1400,
+                "delta": 29
+              },
+              "onsetCount": {
+                "easier": 921,
+                "harder": 938,
+                "delta": 17
+              },
+              "rightHandCount": {
+                "easier": 932,
+                "harder": 954,
+                "delta": 22
+              },
+              "leftHandCount": {
+                "easier": 439,
+                "harder": 446,
+                "delta": 7
+              },
+              "difficultyScore": {
+                "easier": 3.4,
+                "harder": 4.6,
+                "delta": 1.1999999999999997
+              },
+              "rhPreservation": {
+                "matched": 932,
+                "total": 932,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            }
+          ]
+        },
+        "veryEasyIndependent": {
+          "present": true,
+          "validationErrors": [],
+          "pass": true
+        }
+      },
+      "transitions": [
+        {
+          "harder": "advanced",
+          "easier": "medium",
+          "identityDelta": {
+            "rhOnsetCoverage": 0.978,
+            "pitchClassCoverage": 0.978,
+            "directionAgreement": 1,
+            "turnSurvival": 0.948,
+            "localExtremaSurvival": 0.948,
+            "repeatedAttackSurvival": 0.955,
+            "largeLeapEndpointSurvival": 0.96,
+            "phraseAnchorSurvival": 0.987,
+            "harmonicChangeSurvival": 0.973
+          },
+          "complexityDelta": {
+            "noteReductionRatio": 0.021,
+            "onsetReductionRatio": 0.018,
+            "attackRateDelta": 0.071,
+            "attackRateReductionRatio": 0.018,
+            "maxSimultaneityReductionRatio": 0,
+            "maxSimultaneityDelta": 0,
+            "rightHandSpanDelta": 0,
+            "largeLeapRateDelta": -0.001,
+            "repeatedAttackRateDelta": -0.004
+          },
+          "lineage": {
+            "retained": 1371,
+            "rejected": 29,
+            "collapsed": 0,
+            "transformed": 0
+          },
+          "violations": [],
+          "classification": "HEALTHY_SIMPLIFICATION"
+        },
+        {
+          "harder": "medium",
+          "easier": "easy",
+          "identityDelta": {
+            "rhOnsetCoverage": 0.978,
+            "pitchClassCoverage": 0.978,
+            "directionAgreement": 0.907,
+            "turnSurvival": 0.795,
+            "localExtremaSurvival": 0.795,
+            "repeatedAttackSurvival": 0.795,
+            "largeLeapEndpointSurvival": 0.782,
+            "phraseAnchorSurvival": 0.987,
+            "harmonicChangeSurvival": 0.973
+          },
+          "complexityDelta": {
+            "noteReductionRatio": 0.106,
+            "onsetReductionRatio": 0,
+            "attackRateDelta": 0,
+            "attackRateReductionRatio": 0,
+            "maxSimultaneityReductionRatio": 0.333,
+            "maxSimultaneityDelta": 2,
+            "rightHandSpanDelta": 0,
+            "largeLeapRateDelta": 0.02,
+            "repeatedAttackRateDelta": 0.012
+          },
+          "lineage": {
+            "retained": 1225,
+            "rejected": 146,
+            "collapsed": 0,
+            "transformed": 0
+          },
+          "violations": [],
+          "classification": "HEALTHY_SIMPLIFICATION"
+        },
+        {
+          "harder": "easy",
+          "easier": "very-easy",
+          "identityDelta": {
+            "rhOnsetCoverage": 0.969,
+            "pitchClassCoverage": 0.969,
+            "directionAgreement": 0.91,
+            "turnSurvival": 0.772,
+            "localExtremaSurvival": 0.772,
+            "repeatedAttackSurvival": 0.795,
+            "largeLeapEndpointSurvival": 0.766,
+            "phraseAnchorSurvival": 0.976,
+            "harmonicChangeSurvival": 0.482
+          },
+          "complexityDelta": {
+            "noteReductionRatio": 0.01,
+            "onsetReductionRatio": -0.11,
+            "attackRateDelta": -0.426,
+            "attackRateReductionRatio": -0.109,
+            "maxSimultaneityReductionRatio": 0,
+            "maxSimultaneityDelta": 0,
+            "rightHandSpanDelta": 0,
+            "largeLeapRateDelta": -0.002,
+            "repeatedAttackRateDelta": 0.026
+          },
+          "lineage": {
+            "retained": 997,
+            "rejected": 228,
+            "collapsed": 0,
+            "transformed": 0
+          },
+          "violations": [
+            "onset count increased",
+            "attack rate increased"
+          ],
+          "classification": "NON_MONOTONIC"
+        },
+        {
+          "harder": "very-easy",
+          "easier": "beginner",
+          "identityDelta": {
+            "rhOnsetCoverage": 0.611,
+            "pitchClassCoverage": 0.611,
+            "directionAgreement": 0.943,
+            "turnSurvival": 0.235,
+            "localExtremaSurvival": 0.235,
+            "repeatedAttackSurvival": 0.409,
+            "largeLeapEndpointSurvival": 0.343,
+            "phraseAnchorSurvival": 0.646,
+            "harmonicChangeSurvival": 0.149
+          },
+          "complexityDelta": {
+            "noteReductionRatio": 0.489,
+            "onsetReductionRatio": 0.433,
+            "attackRateDelta": 1.872,
+            "attackRateReductionRatio": 0.434,
+            "maxSimultaneityReductionRatio": 0.5,
+            "maxSimultaneityDelta": 2,
+            "rightHandSpanDelta": 0,
+            "largeLeapRateDelta": -0.03,
+            "repeatedAttackRateDelta": 0.015
+          },
+          "lineage": {
+            "retained": 620,
+            "rejected": 593,
+            "collapsed": 0,
+            "transformed": 0
+          },
+          "violations": [],
+          "classification": "INCONCLUSIVE"
+        },
+        {
+          "harder": "beginner",
+          "easier": "very-beginner",
+          "identityDelta": {
+            "rhOnsetCoverage": 0.439,
+            "pitchClassCoverage": 0.439,
+            "directionAgreement": 0.92,
+            "turnSurvival": 0.128,
+            "localExtremaSurvival": 0.128,
+            "repeatedAttackSurvival": 0.227,
+            "largeLeapEndpointSurvival": 0.19,
+            "phraseAnchorSurvival": 0.444,
+            "harmonicChangeSurvival": 0
+          },
+          "complexityDelta": {
+            "noteReductionRatio": 0.431,
+            "onsetReductionRatio": 0.39,
+            "attackRateDelta": 0.954,
+            "attackRateReductionRatio": 0.39,
+            "maxSimultaneityReductionRatio": 0,
+            "maxSimultaneityDelta": 0,
+            "rightHandSpanDelta": 0,
+            "largeLeapRateDelta": 0.009,
+            "repeatedAttackRateDelta": -0.003
+          },
+          "lineage": {
+            "retained": 353,
+            "rejected": 267,
+            "collapsed": 0,
+            "transformed": 0
+          },
+          "violations": [],
+          "classification": "INCONCLUSIVE"
+        }
+      ]
+    },
+    {
+      "id": "pop",
+      "label": "Hello",
+      "logicalRef": "data/artifacts/adele-hello/a/notes.json",
+      "source": {
+        "sha256": "87915f6b8dce035951af2ddc89c9c36ce105fde8e79ba6f936e31b7f80ef7fd6",
+        "bytes": 68384,
+        "notes": 1016,
+        "durationBeats": 387.125,
+        "tempoBpm": 79
+      },
+      "levels": {
+        "very-beginner": {
+          "notes": 327,
+          "attacks": 327,
+          "rightHandNotes": 327,
+          "leftHandNotes": 0,
+          "rightHandAttacks": 327,
+          "leftHandAttacks": 0,
+          "attacksPerSecond": 1.11,
+          "globalMedianIoiSeconds": 0.38,
+          "rightHandMedianIoiSeconds": 0.38,
+          "leftHandMedianIoiSeconds": null,
+          "maxSimultaneity": 2,
+          "difficultyScore": 1,
+          "publicVisibility": "public",
+          "sourceRoleCounts": {
+            "vocals": 0,
+            "guitar": 0,
+            "bass": null,
+            "other": 0,
+            "generated": null,
+            "inferred": null,
+            "unknown": 327
+          }
+        },
+        "beginner": {
+          "notes": 470,
+          "attacks": 423,
+          "rightHandNotes": 375,
+          "leftHandNotes": 95,
+          "rightHandAttacks": 375,
+          "leftHandAttacks": 95,
+          "attacksPerSecond": 1.435,
+          "globalMedianIoiSeconds": 0.38,
+          "rightHandMedianIoiSeconds": 0.38,
+          "leftHandMedianIoiSeconds": 3.038,
+          "maxSimultaneity": 2,
+          "difficultyScore": 1.4,
+          "publicVisibility": "public",
+          "sourceRoleCounts": {
+            "vocals": 0,
+            "guitar": 0,
+            "bass": null,
+            "other": 0,
+            "generated": null,
+            "inferred": null,
+            "unknown": 470
+          }
+        },
+        "very-easy": {
+          "notes": 847,
+          "attacks": 555,
+          "rightHandNotes": 375,
+          "leftHandNotes": 472,
+          "rightHandAttacks": 375,
+          "leftHandAttacks": 333,
+          "attacksPerSecond": 1.883,
+          "globalMedianIoiSeconds": 0.38,
+          "rightHandMedianIoiSeconds": 0.38,
+          "leftHandMedianIoiSeconds": 0.759,
+          "maxSimultaneity": 4,
+          "difficultyScore": 2,
+          "publicVisibility": "legacy-only",
+          "sourceRoleCounts": {
+            "vocals": 0,
+            "guitar": 0,
+            "bass": null,
+            "other": 0,
+            "generated": null,
+            "inferred": null,
+            "unknown": 847
+          }
+        },
+        "easy": {
+          "notes": 847,
+          "attacks": 555,
+          "rightHandNotes": 375,
+          "leftHandNotes": 472,
+          "rightHandAttacks": 375,
+          "leftHandAttacks": 333,
+          "attacksPerSecond": 1.883,
+          "globalMedianIoiSeconds": 0.38,
+          "rightHandMedianIoiSeconds": 0.38,
+          "leftHandMedianIoiSeconds": 0.759,
+          "maxSimultaneity": 4,
+          "difficultyScore": 2.6,
+          "publicVisibility": "public",
+          "sourceRoleCounts": {
+            "vocals": 0,
+            "guitar": 0,
+            "bass": null,
+            "other": 0,
+            "generated": null,
+            "inferred": null,
+            "unknown": 847
+          }
+        },
+        "medium": {
+          "notes": 1011,
+          "attacks": 555,
+          "rightHandNotes": 517,
+          "leftHandNotes": 494,
+          "rightHandAttacks": 376,
+          "leftHandAttacks": 333,
+          "attacksPerSecond": 1.883,
+          "globalMedianIoiSeconds": 0.38,
+          "rightHandMedianIoiSeconds": 0.38,
+          "leftHandMedianIoiSeconds": 0.759,
+          "maxSimultaneity": 6,
+          "difficultyScore": 3.4,
+          "publicVisibility": "public",
+          "sourceRoleCounts": {
+            "vocals": 0,
+            "guitar": 0,
+            "bass": null,
+            "other": 0,
+            "generated": null,
+            "inferred": null,
+            "unknown": 1011
+          }
+        },
+        "advanced": {
+          "notes": 1016,
+          "attacks": 555,
+          "rightHandNotes": 522,
+          "leftHandNotes": 494,
+          "rightHandAttacks": 376,
+          "leftHandAttacks": 333,
+          "attacksPerSecond": 1.883,
+          "globalMedianIoiSeconds": 0.38,
+          "rightHandMedianIoiSeconds": 0.38,
+          "leftHandMedianIoiSeconds": 0.759,
+          "maxSimultaneity": 6,
+          "difficultyScore": 4.6,
+          "publicVisibility": "public",
+          "sourceRoleCounts": {
+            "vocals": 0,
+            "guitar": 0,
+            "bass": null,
+            "other": 0,
+            "generated": null,
+            "inferred": null,
+            "unknown": 1016
+          }
+        }
+      },
+      "contract": {
+        "physical": {
+          "order": [
+            "very-beginner",
+            "beginner",
+            "very-easy",
+            "easy",
+            "medium",
+            "advanced"
+          ],
+          "available": [
+            "very-beginner",
+            "beginner",
+            "very-easy",
+            "easy",
+            "medium",
+            "advanced"
+          ],
+          "missing": [],
+          "pass": true,
+          "errors": [],
+          "individualValidationErrors": {
+            "very-beginner": [],
+            "beginner": [],
+            "very-easy": [],
+            "easy": [],
+            "medium": [],
+            "advanced": []
+          },
+          "edges": [
+            {
+              "key": "very-beginner->beginner",
+              "easier": "very-beginner",
+              "harder": "beginner",
+              "noteCount": {
+                "easier": 327,
+                "harder": 470,
+                "delta": 143
+              },
+              "onsetCount": {
+                "easier": 327,
+                "harder": 423,
+                "delta": 96
+              },
+              "rightHandCount": {
+                "easier": 327,
+                "harder": 375,
+                "delta": 48
+              },
+              "leftHandCount": {
+                "easier": 0,
+                "harder": 95,
+                "delta": 95
+              },
+              "difficultyScore": {
+                "easier": 1,
+                "harder": 1.4,
+                "delta": 0.3999999999999999
+              },
+              "rhPreservation": {
+                "matched": 327,
+                "total": 327,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            },
+            {
+              "key": "beginner->very-easy",
+              "easier": "beginner",
+              "harder": "very-easy",
+              "noteCount": {
+                "easier": 470,
+                "harder": 847,
+                "delta": 377
+              },
+              "onsetCount": {
+                "easier": 423,
+                "harder": 555,
+                "delta": 132
+              },
+              "rightHandCount": {
+                "easier": 375,
+                "harder": 375,
+                "delta": 0
+              },
+              "leftHandCount": {
+                "easier": 95,
+                "harder": 472,
+                "delta": 377
+              },
+              "difficultyScore": {
+                "easier": 1.4,
+                "harder": 2,
+                "delta": 0.6000000000000001
+              },
+              "rhPreservation": {
+                "matched": 375,
+                "total": 375,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            },
+            {
+              "key": "very-easy->easy",
+              "easier": "very-easy",
+              "harder": "easy",
+              "noteCount": {
+                "easier": 847,
+                "harder": 847,
+                "delta": 0
+              },
+              "onsetCount": {
+                "easier": 555,
+                "harder": 555,
+                "delta": 0
+              },
+              "rightHandCount": {
+                "easier": 375,
+                "harder": 375,
+                "delta": 0
+              },
+              "leftHandCount": {
+                "easier": 472,
+                "harder": 472,
+                "delta": 0
+              },
+              "difficultyScore": {
+                "easier": 2,
+                "harder": 2.6,
+                "delta": 0.6000000000000001
+              },
+              "rhPreservation": {
+                "matched": 375,
+                "total": 375,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            },
+            {
+              "key": "easy->medium",
+              "easier": "easy",
+              "harder": "medium",
+              "noteCount": {
+                "easier": 847,
+                "harder": 1011,
+                "delta": 164
+              },
+              "onsetCount": {
+                "easier": 555,
+                "harder": 555,
+                "delta": 0
+              },
+              "rightHandCount": {
+                "easier": 375,
+                "harder": 517,
+                "delta": 142
+              },
+              "leftHandCount": {
+                "easier": 472,
+                "harder": 494,
+                "delta": 22
+              },
+              "difficultyScore": {
+                "easier": 2.6,
+                "harder": 3.4,
+                "delta": 0.7999999999999998
+              },
+              "rhPreservation": {
+                "matched": 375,
+                "total": 375,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            },
+            {
+              "key": "medium->advanced",
+              "easier": "medium",
+              "harder": "advanced",
+              "noteCount": {
+                "easier": 1011,
+                "harder": 1016,
+                "delta": 5
+              },
+              "onsetCount": {
+                "easier": 555,
+                "harder": 555,
+                "delta": 0
+              },
+              "rightHandCount": {
+                "easier": 517,
+                "harder": 522,
+                "delta": 5
+              },
+              "leftHandCount": {
+                "easier": 494,
+                "harder": 494,
+                "delta": 0
+              },
+              "difficultyScore": {
+                "easier": 3.4,
+                "harder": 4.6,
+                "delta": 1.1999999999999997
+              },
+              "rhPreservation": {
+                "matched": 517,
+                "total": 517,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            }
+          ]
+        },
+        "public": {
+          "order": [
+            "very-beginner",
+            "beginner",
+            "easy",
+            "medium",
+            "advanced"
+          ],
+          "available": [
+            "very-beginner",
+            "beginner",
+            "easy",
+            "medium",
+            "advanced"
+          ],
+          "missing": [],
+          "pass": true,
+          "errors": [],
+          "individualValidationErrors": {
+            "very-beginner": [],
+            "beginner": [],
+            "very-easy": [],
+            "easy": [],
+            "medium": [],
+            "advanced": []
+          },
+          "edges": [
+            {
+              "key": "very-beginner->beginner",
+              "easier": "very-beginner",
+              "harder": "beginner",
+              "noteCount": {
+                "easier": 327,
+                "harder": 470,
+                "delta": 143
+              },
+              "onsetCount": {
+                "easier": 327,
+                "harder": 423,
+                "delta": 96
+              },
+              "rightHandCount": {
+                "easier": 327,
+                "harder": 375,
+                "delta": 48
+              },
+              "leftHandCount": {
+                "easier": 0,
+                "harder": 95,
+                "delta": 95
+              },
+              "difficultyScore": {
+                "easier": 1,
+                "harder": 1.4,
+                "delta": 0.3999999999999999
+              },
+              "rhPreservation": {
+                "matched": 327,
+                "total": 327,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            },
+            {
+              "key": "beginner->easy",
+              "easier": "beginner",
+              "harder": "easy",
+              "noteCount": {
+                "easier": 470,
+                "harder": 847,
+                "delta": 377
+              },
+              "onsetCount": {
+                "easier": 423,
+                "harder": 555,
+                "delta": 132
+              },
+              "rightHandCount": {
+                "easier": 375,
+                "harder": 375,
+                "delta": 0
+              },
+              "leftHandCount": {
+                "easier": 95,
+                "harder": 472,
+                "delta": 377
+              },
+              "difficultyScore": {
+                "easier": 1.4,
+                "harder": 2.6,
+                "delta": 1.2000000000000002
+              },
+              "rhPreservation": {
+                "matched": 375,
+                "total": 375,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            },
+            {
+              "key": "easy->medium",
+              "easier": "easy",
+              "harder": "medium",
+              "noteCount": {
+                "easier": 847,
+                "harder": 1011,
+                "delta": 164
+              },
+              "onsetCount": {
+                "easier": 555,
+                "harder": 555,
+                "delta": 0
+              },
+              "rightHandCount": {
+                "easier": 375,
+                "harder": 517,
+                "delta": 142
+              },
+              "leftHandCount": {
+                "easier": 472,
+                "harder": 494,
+                "delta": 22
+              },
+              "difficultyScore": {
+                "easier": 2.6,
+                "harder": 3.4,
+                "delta": 0.7999999999999998
+              },
+              "rhPreservation": {
+                "matched": 375,
+                "total": 375,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            },
+            {
+              "key": "medium->advanced",
+              "easier": "medium",
+              "harder": "advanced",
+              "noteCount": {
+                "easier": 1011,
+                "harder": 1016,
+                "delta": 5
+              },
+              "onsetCount": {
+                "easier": 555,
+                "harder": 555,
+                "delta": 0
+              },
+              "rightHandCount": {
+                "easier": 517,
+                "harder": 522,
+                "delta": 5
+              },
+              "leftHandCount": {
+                "easier": 494,
+                "harder": 494,
+                "delta": 0
+              },
+              "difficultyScore": {
+                "easier": 3.4,
+                "harder": 4.6,
+                "delta": 1.1999999999999997
+              },
+              "rhPreservation": {
+                "matched": 517,
+                "total": 517,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            }
+          ]
+        },
+        "veryEasyIndependent": {
+          "present": true,
+          "validationErrors": [],
+          "pass": true
+        }
+      },
+      "transitions": [
+        {
+          "harder": "advanced",
+          "easier": "medium",
+          "identityDelta": {
+            "rhOnsetCoverage": 1,
+            "pitchClassCoverage": 1,
+            "directionAgreement": 1,
+            "turnSurvival": 1,
+            "localExtremaSurvival": 1,
+            "repeatedAttackSurvival": 1,
+            "largeLeapEndpointSurvival": 1,
+            "phraseAnchorSurvival": 1,
+            "harmonicChangeSurvival": 1
+          },
+          "complexityDelta": {
+            "noteReductionRatio": 0.005,
+            "onsetReductionRatio": 0,
+            "attackRateDelta": 0,
+            "attackRateReductionRatio": 0,
+            "maxSimultaneityReductionRatio": 0,
+            "maxSimultaneityDelta": 0,
+            "rightHandSpanDelta": 0,
+            "largeLeapRateDelta": 0,
+            "repeatedAttackRateDelta": 0
+          },
+          "lineage": {
+            "retained": 1011,
+            "rejected": 5,
+            "collapsed": 0,
+            "transformed": 0
+          },
+          "violations": [],
+          "classification": "REDUNDANT_LEVEL"
+        },
+        {
+          "harder": "medium",
+          "easier": "easy",
+          "identityDelta": {
+            "rhOnsetCoverage": 0.997,
+            "pitchClassCoverage": 0.997,
+            "directionAgreement": 0.938,
+            "turnSurvival": 0.927,
+            "localExtremaSurvival": 0.927,
+            "repeatedAttackSurvival": 0.85,
+            "largeLeapEndpointSurvival": 0.787,
+            "phraseAnchorSurvival": 0.995,
+            "harmonicChangeSurvival": 1
+          },
+          "complexityDelta": {
+            "noteReductionRatio": 0.162,
+            "onsetReductionRatio": 0,
+            "attackRateDelta": 0,
+            "attackRateReductionRatio": 0,
+            "maxSimultaneityReductionRatio": 0.333,
+            "maxSimultaneityDelta": 2,
+            "rightHandSpanDelta": 0,
+            "largeLeapRateDelta": 0.01,
+            "repeatedAttackRateDelta": 0.029
+          },
+          "lineage": {
+            "retained": 847,
+            "rejected": 164,
+            "collapsed": 0,
+            "transformed": 0
+          },
+          "violations": [],
+          "classification": "HEALTHY_SIMPLIFICATION"
+        },
+        {
+          "harder": "easy",
+          "easier": "very-easy",
+          "identityDelta": {
+            "rhOnsetCoverage": 0.997,
+            "pitchClassCoverage": 0.997,
+            "directionAgreement": 0.938,
+            "turnSurvival": 0.927,
+            "localExtremaSurvival": 0.927,
+            "repeatedAttackSurvival": 0.85,
+            "largeLeapEndpointSurvival": 0.787,
+            "phraseAnchorSurvival": 0.995,
+            "harmonicChangeSurvival": 1
+          },
+          "complexityDelta": {
+            "noteReductionRatio": 0,
+            "onsetReductionRatio": 0,
+            "attackRateDelta": 0,
+            "attackRateReductionRatio": 0,
+            "maxSimultaneityReductionRatio": 0,
+            "maxSimultaneityDelta": 0,
+            "rightHandSpanDelta": 0,
+            "largeLeapRateDelta": 0,
+            "repeatedAttackRateDelta": 0
+          },
+          "lineage": {
+            "retained": 847,
+            "rejected": 0,
+            "collapsed": 0,
+            "transformed": 0
+          },
+          "violations": [],
+          "classification": "REDUNDANT_LEVEL"
+        },
+        {
+          "harder": "very-easy",
+          "easier": "beginner",
+          "identityDelta": {
+            "rhOnsetCoverage": 0.997,
+            "pitchClassCoverage": 0.997,
+            "directionAgreement": 0.938,
+            "turnSurvival": 0.927,
+            "localExtremaSurvival": 0.927,
+            "repeatedAttackSurvival": 0.85,
+            "largeLeapEndpointSurvival": 0.787,
+            "phraseAnchorSurvival": 0.995,
+            "harmonicChangeSurvival": 0.272
+          },
+          "complexityDelta": {
+            "noteReductionRatio": 0.445,
+            "onsetReductionRatio": 0.238,
+            "attackRateDelta": 0.448,
+            "attackRateReductionRatio": 0.238,
+            "maxSimultaneityReductionRatio": 0.5,
+            "maxSimultaneityDelta": 2,
+            "rightHandSpanDelta": 0,
+            "largeLeapRateDelta": 0,
+            "repeatedAttackRateDelta": -0.022
+          },
+          "lineage": {
+            "retained": 470,
+            "rejected": 377,
+            "collapsed": 0,
+            "transformed": 0
+          },
+          "violations": [],
+          "classification": "INCONCLUSIVE"
+        },
+        {
+          "harder": "beginner",
+          "easier": "very-beginner",
+          "identityDelta": {
+            "rhOnsetCoverage": 0.87,
+            "pitchClassCoverage": 0.87,
+            "directionAgreement": 0.929,
+            "turnSurvival": 0.49,
+            "localExtremaSurvival": 0.49,
+            "repeatedAttackSurvival": 0.673,
+            "largeLeapEndpointSurvival": 0.66,
+            "phraseAnchorSurvival": 0.873,
+            "harmonicChangeSurvival": 0
+          },
+          "complexityDelta": {
+            "noteReductionRatio": 0.304,
+            "onsetReductionRatio": 0.227,
+            "attackRateDelta": 0.325,
+            "attackRateReductionRatio": 0.226,
+            "maxSimultaneityReductionRatio": 0,
+            "maxSimultaneityDelta": 0,
+            "rightHandSpanDelta": 0,
+            "largeLeapRateDelta": -0.005,
+            "repeatedAttackRateDelta": -0.008
+          },
+          "lineage": {
+            "retained": 327,
+            "rejected": 143,
+            "collapsed": 0,
+            "transformed": 0
+          },
+          "violations": [],
+          "classification": "IDENTITY_CLIFF"
+        }
+      ]
+    },
+    {
+      "id": "synthetic-full-band",
+      "label": "Synthetic full-band",
+      "logicalRef": "synthetic:full-band",
+      "source": {
+        "sha256": "2b4a0804ada873b3b577b6c103de441adf645ac4f6069fd1a2eac0ddfd3771c4",
+        "bytes": 0,
+        "notes": 20,
+        "durationBeats": 8,
+        "tempoBpm": 120
+      },
+      "levels": {
+        "very-beginner": {
+          "notes": 4,
+          "attacks": 4,
+          "rightHandNotes": 4,
+          "leftHandNotes": 0,
+          "rightHandAttacks": 4,
+          "leftHandAttacks": 0,
+          "attacksPerSecond": 1,
+          "globalMedianIoiSeconds": 1,
+          "rightHandMedianIoiSeconds": 1,
+          "leftHandMedianIoiSeconds": null,
+          "maxSimultaneity": 1,
+          "difficultyScore": 1,
+          "publicVisibility": "public",
+          "sourceRoleCounts": {
+            "vocals": 1,
+            "guitar": 3,
+            "bass": null,
+            "other": 0,
+            "generated": null,
+            "inferred": null,
+            "unknown": 0
+          }
+        },
+        "beginner": {
+          "notes": 6,
+          "attacks": 4,
+          "rightHandNotes": 4,
+          "leftHandNotes": 2,
+          "rightHandAttacks": 4,
+          "leftHandAttacks": 2,
+          "attacksPerSecond": 1,
+          "globalMedianIoiSeconds": 1,
+          "rightHandMedianIoiSeconds": 1,
+          "leftHandMedianIoiSeconds": 2,
+          "maxSimultaneity": 2,
+          "difficultyScore": 1.4,
+          "publicVisibility": "public",
+          "sourceRoleCounts": {
+            "vocals": 1,
+            "guitar": 5,
+            "bass": null,
+            "other": 0,
+            "generated": null,
+            "inferred": null,
+            "unknown": 0
+          }
+        },
+        "very-easy": {
+          "notes": 8,
+          "attacks": 4,
+          "rightHandNotes": 4,
+          "leftHandNotes": 4,
+          "rightHandAttacks": 4,
+          "leftHandAttacks": 4,
+          "attacksPerSecond": 1,
+          "globalMedianIoiSeconds": 1,
+          "rightHandMedianIoiSeconds": 1,
+          "leftHandMedianIoiSeconds": 1,
+          "maxSimultaneity": 2,
+          "difficultyScore": 2,
+          "publicVisibility": "legacy-only",
+          "sourceRoleCounts": {
+            "vocals": 1,
+            "guitar": 7,
+            "bass": null,
+            "other": 0,
+            "generated": null,
+            "inferred": null,
+            "unknown": 0
+          }
+        },
+        "easy": {
+          "notes": 8,
+          "attacks": 4,
+          "rightHandNotes": 4,
+          "leftHandNotes": 4,
+          "rightHandAttacks": 4,
+          "leftHandAttacks": 4,
+          "attacksPerSecond": 1,
+          "globalMedianIoiSeconds": 1,
+          "rightHandMedianIoiSeconds": 1,
+          "leftHandMedianIoiSeconds": 1,
+          "maxSimultaneity": 2,
+          "difficultyScore": 2.6,
+          "publicVisibility": "public",
+          "sourceRoleCounts": {
+            "vocals": 1,
+            "guitar": 7,
+            "bass": null,
+            "other": 0,
+            "generated": null,
+            "inferred": null,
+            "unknown": 0
+          }
+        },
+        "medium": {
+          "notes": 16,
+          "attacks": 4,
+          "rightHandNotes": 12,
+          "leftHandNotes": 4,
+          "rightHandAttacks": 4,
+          "leftHandAttacks": 4,
+          "attacksPerSecond": 1,
+          "globalMedianIoiSeconds": 1,
+          "rightHandMedianIoiSeconds": 1,
+          "leftHandMedianIoiSeconds": 1,
+          "maxSimultaneity": 4,
+          "difficultyScore": 3.4,
+          "publicVisibility": "public",
+          "sourceRoleCounts": {
+            "vocals": 4,
+            "guitar": 12,
+            "bass": null,
+            "other": 0,
+            "generated": null,
+            "inferred": null,
+            "unknown": 0
+          }
+        },
+        "advanced": {
+          "notes": 18,
+          "attacks": 4,
+          "rightHandNotes": 14,
+          "leftHandNotes": 4,
+          "rightHandAttacks": 4,
+          "leftHandAttacks": 4,
+          "attacksPerSecond": 1,
+          "globalMedianIoiSeconds": 1,
+          "rightHandMedianIoiSeconds": 1,
+          "leftHandMedianIoiSeconds": 1,
+          "maxSimultaneity": 5,
+          "difficultyScore": 4.6,
+          "publicVisibility": "public",
+          "sourceRoleCounts": {
+            "vocals": 4,
+            "guitar": 14,
+            "bass": null,
+            "other": 0,
+            "generated": null,
+            "inferred": null,
+            "unknown": 0
+          }
+        }
+      },
+      "contract": {
+        "physical": {
+          "order": [
+            "very-beginner",
+            "beginner",
+            "very-easy",
+            "easy",
+            "medium",
+            "advanced"
+          ],
+          "available": [
+            "very-beginner",
+            "beginner",
+            "very-easy",
+            "easy",
+            "medium",
+            "advanced"
+          ],
+          "missing": [],
+          "pass": false,
+          "errors": [
+            "very-beginner: only 4 notes",
+            "beginner: only 6 notes"
+          ],
+          "individualValidationErrors": {
+            "very-beginner": [
+              "very-beginner: only 4 notes"
+            ],
+            "beginner": [
+              "beginner: only 6 notes"
+            ],
+            "very-easy": [],
+            "easy": [],
+            "medium": [],
+            "advanced": []
+          },
+          "edges": [
+            {
+              "key": "very-beginner->beginner",
+              "easier": "very-beginner",
+              "harder": "beginner",
+              "noteCount": {
+                "easier": 4,
+                "harder": 6,
+                "delta": 2
+              },
+              "onsetCount": {
+                "easier": 4,
+                "harder": 4,
+                "delta": 0
+              },
+              "rightHandCount": {
+                "easier": 4,
+                "harder": 4,
+                "delta": 0
+              },
+              "leftHandCount": {
+                "easier": 0,
+                "harder": 2,
+                "delta": 2
+              },
+              "difficultyScore": {
+                "easier": 1,
+                "harder": 1.4,
+                "delta": 0.3999999999999999
+              },
+              "rhPreservation": {
+                "matched": 4,
+                "total": 4,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            },
+            {
+              "key": "beginner->very-easy",
+              "easier": "beginner",
+              "harder": "very-easy",
+              "noteCount": {
+                "easier": 6,
+                "harder": 8,
+                "delta": 2
+              },
+              "onsetCount": {
+                "easier": 4,
+                "harder": 4,
+                "delta": 0
+              },
+              "rightHandCount": {
+                "easier": 4,
+                "harder": 4,
+                "delta": 0
+              },
+              "leftHandCount": {
+                "easier": 2,
+                "harder": 4,
+                "delta": 2
+              },
+              "difficultyScore": {
+                "easier": 1.4,
+                "harder": 2,
+                "delta": 0.6000000000000001
+              },
+              "rhPreservation": {
+                "matched": 4,
+                "total": 4,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            },
+            {
+              "key": "very-easy->easy",
+              "easier": "very-easy",
+              "harder": "easy",
+              "noteCount": {
+                "easier": 8,
+                "harder": 8,
+                "delta": 0
+              },
+              "onsetCount": {
+                "easier": 4,
+                "harder": 4,
+                "delta": 0
+              },
+              "rightHandCount": {
+                "easier": 4,
+                "harder": 4,
+                "delta": 0
+              },
+              "leftHandCount": {
+                "easier": 4,
+                "harder": 4,
+                "delta": 0
+              },
+              "difficultyScore": {
+                "easier": 2,
+                "harder": 2.6,
+                "delta": 0.6000000000000001
+              },
+              "rhPreservation": {
+                "matched": 4,
+                "total": 4,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            },
+            {
+              "key": "easy->medium",
+              "easier": "easy",
+              "harder": "medium",
+              "noteCount": {
+                "easier": 8,
+                "harder": 16,
+                "delta": 8
+              },
+              "onsetCount": {
+                "easier": 4,
+                "harder": 4,
+                "delta": 0
+              },
+              "rightHandCount": {
+                "easier": 4,
+                "harder": 12,
+                "delta": 8
+              },
+              "leftHandCount": {
+                "easier": 4,
+                "harder": 4,
+                "delta": 0
+              },
+              "difficultyScore": {
+                "easier": 2.6,
+                "harder": 3.4,
+                "delta": 0.7999999999999998
+              },
+              "rhPreservation": {
+                "matched": 4,
+                "total": 4,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            },
+            {
+              "key": "medium->advanced",
+              "easier": "medium",
+              "harder": "advanced",
+              "noteCount": {
+                "easier": 16,
+                "harder": 18,
+                "delta": 2
+              },
+              "onsetCount": {
+                "easier": 4,
+                "harder": 4,
+                "delta": 0
+              },
+              "rightHandCount": {
+                "easier": 12,
+                "harder": 14,
+                "delta": 2
+              },
+              "leftHandCount": {
+                "easier": 4,
+                "harder": 4,
+                "delta": 0
+              },
+              "difficultyScore": {
+                "easier": 3.4,
+                "harder": 4.6,
+                "delta": 1.1999999999999997
+              },
+              "rhPreservation": {
+                "matched": 12,
+                "total": 12,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            }
+          ]
+        },
+        "public": {
+          "order": [
+            "very-beginner",
+            "beginner",
+            "easy",
+            "medium",
+            "advanced"
+          ],
+          "available": [
+            "very-beginner",
+            "beginner",
+            "easy",
+            "medium",
+            "advanced"
+          ],
+          "missing": [],
+          "pass": false,
+          "errors": [
+            "very-beginner: only 4 notes",
+            "beginner: only 6 notes"
+          ],
+          "individualValidationErrors": {
+            "very-beginner": [
+              "very-beginner: only 4 notes"
+            ],
+            "beginner": [
+              "beginner: only 6 notes"
+            ],
+            "very-easy": [],
+            "easy": [],
+            "medium": [],
+            "advanced": []
+          },
+          "edges": [
+            {
+              "key": "very-beginner->beginner",
+              "easier": "very-beginner",
+              "harder": "beginner",
+              "noteCount": {
+                "easier": 4,
+                "harder": 6,
+                "delta": 2
+              },
+              "onsetCount": {
+                "easier": 4,
+                "harder": 4,
+                "delta": 0
+              },
+              "rightHandCount": {
+                "easier": 4,
+                "harder": 4,
+                "delta": 0
+              },
+              "leftHandCount": {
+                "easier": 0,
+                "harder": 2,
+                "delta": 2
+              },
+              "difficultyScore": {
+                "easier": 1,
+                "harder": 1.4,
+                "delta": 0.3999999999999999
+              },
+              "rhPreservation": {
+                "matched": 4,
+                "total": 4,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            },
+            {
+              "key": "beginner->easy",
+              "easier": "beginner",
+              "harder": "easy",
+              "noteCount": {
+                "easier": 6,
+                "harder": 8,
+                "delta": 2
+              },
+              "onsetCount": {
+                "easier": 4,
+                "harder": 4,
+                "delta": 0
+              },
+              "rightHandCount": {
+                "easier": 4,
+                "harder": 4,
+                "delta": 0
+              },
+              "leftHandCount": {
+                "easier": 2,
+                "harder": 4,
+                "delta": 2
+              },
+              "difficultyScore": {
+                "easier": 1.4,
+                "harder": 2.6,
+                "delta": 1.2000000000000002
+              },
+              "rhPreservation": {
+                "matched": 4,
+                "total": 4,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            },
+            {
+              "key": "easy->medium",
+              "easier": "easy",
+              "harder": "medium",
+              "noteCount": {
+                "easier": 8,
+                "harder": 16,
+                "delta": 8
+              },
+              "onsetCount": {
+                "easier": 4,
+                "harder": 4,
+                "delta": 0
+              },
+              "rightHandCount": {
+                "easier": 4,
+                "harder": 12,
+                "delta": 8
+              },
+              "leftHandCount": {
+                "easier": 4,
+                "harder": 4,
+                "delta": 0
+              },
+              "difficultyScore": {
+                "easier": 2.6,
+                "harder": 3.4,
+                "delta": 0.7999999999999998
+              },
+              "rhPreservation": {
+                "matched": 4,
+                "total": 4,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            },
+            {
+              "key": "medium->advanced",
+              "easier": "medium",
+              "harder": "advanced",
+              "noteCount": {
+                "easier": 16,
+                "harder": 18,
+                "delta": 2
+              },
+              "onsetCount": {
+                "easier": 4,
+                "harder": 4,
+                "delta": 0
+              },
+              "rightHandCount": {
+                "easier": 12,
+                "harder": 14,
+                "delta": 2
+              },
+              "leftHandCount": {
+                "easier": 4,
+                "harder": 4,
+                "delta": 0
+              },
+              "difficultyScore": {
+                "easier": 3.4,
+                "harder": 4.6,
+                "delta": 1.1999999999999997
+              },
+              "rhPreservation": {
+                "matched": 12,
+                "total": 12,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            }
+          ]
+        },
+        "veryEasyIndependent": {
+          "present": true,
+          "validationErrors": [],
+          "pass": true
+        }
+      },
+      "transitions": [
+        {
+          "harder": "advanced",
+          "easier": "medium",
+          "identityDelta": {
+            "rhOnsetCoverage": 1,
+            "pitchClassCoverage": 1,
+            "directionAgreement": 1,
+            "turnSurvival": null,
+            "localExtremaSurvival": null,
+            "repeatedAttackSurvival": 1,
+            "largeLeapEndpointSurvival": null,
+            "phraseAnchorSurvival": 1,
+            "harmonicChangeSurvival": 1
+          },
+          "complexityDelta": {
+            "noteReductionRatio": 0.111,
+            "onsetReductionRatio": 0,
+            "attackRateDelta": 0,
+            "attackRateReductionRatio": 0,
+            "maxSimultaneityReductionRatio": 0.2,
+            "maxSimultaneityDelta": 1,
+            "rightHandSpanDelta": 0,
+            "largeLeapRateDelta": 0,
+            "repeatedAttackRateDelta": 0
+          },
+          "lineage": {
+            "retained": 16,
+            "rejected": 2,
+            "collapsed": 0,
+            "transformed": 0
+          },
+          "violations": [],
+          "classification": "HEALTHY_SIMPLIFICATION"
+        },
+        {
+          "harder": "medium",
+          "easier": "easy",
+          "identityDelta": {
+            "rhOnsetCoverage": 1,
+            "pitchClassCoverage": 1,
+            "directionAgreement": 0.333,
+            "turnSurvival": null,
+            "localExtremaSurvival": null,
+            "repeatedAttackSurvival": 0,
+            "largeLeapEndpointSurvival": null,
+            "phraseAnchorSurvival": 1,
+            "harmonicChangeSurvival": 1
+          },
+          "complexityDelta": {
+            "noteReductionRatio": 0.5,
+            "onsetReductionRatio": 0,
+            "attackRateDelta": 0,
+            "attackRateReductionRatio": 0,
+            "maxSimultaneityReductionRatio": 0.5,
+            "maxSimultaneityDelta": 2,
+            "rightHandSpanDelta": 9,
+            "largeLeapRateDelta": -0.333,
+            "repeatedAttackRateDelta": 0
+          },
+          "lineage": {
+            "retained": 8,
+            "rejected": 8,
+            "collapsed": 0,
+            "transformed": 0
+          },
+          "violations": [],
+          "classification": "INCONCLUSIVE"
+        },
+        {
+          "harder": "easy",
+          "easier": "very-easy",
+          "identityDelta": {
+            "rhOnsetCoverage": 1,
+            "pitchClassCoverage": 1,
+            "directionAgreement": 0.333,
+            "turnSurvival": null,
+            "localExtremaSurvival": null,
+            "repeatedAttackSurvival": 0,
+            "largeLeapEndpointSurvival": null,
+            "phraseAnchorSurvival": 1,
+            "harmonicChangeSurvival": 1
+          },
+          "complexityDelta": {
+            "noteReductionRatio": 0,
+            "onsetReductionRatio": 0,
+            "attackRateDelta": 0,
+            "attackRateReductionRatio": 0,
+            "maxSimultaneityReductionRatio": 0,
+            "maxSimultaneityDelta": 0,
+            "rightHandSpanDelta": 0,
+            "largeLeapRateDelta": 0,
+            "repeatedAttackRateDelta": 0
+          },
+          "lineage": {
+            "retained": 8,
+            "rejected": 0,
+            "collapsed": 0,
+            "transformed": 0
+          },
+          "violations": [],
+          "classification": "IDENTITY_CLIFF"
+        },
+        {
+          "harder": "very-easy",
+          "easier": "beginner",
+          "identityDelta": {
+            "rhOnsetCoverage": 1,
+            "pitchClassCoverage": 1,
+            "directionAgreement": 0.333,
+            "turnSurvival": null,
+            "localExtremaSurvival": null,
+            "repeatedAttackSurvival": 0,
+            "largeLeapEndpointSurvival": null,
+            "phraseAnchorSurvival": 1,
+            "harmonicChangeSurvival": 0.333
+          },
+          "complexityDelta": {
+            "noteReductionRatio": 0.25,
+            "onsetReductionRatio": 0,
+            "attackRateDelta": 0,
+            "attackRateReductionRatio": 0,
+            "maxSimultaneityReductionRatio": 0,
+            "maxSimultaneityDelta": 0,
+            "rightHandSpanDelta": 0,
+            "largeLeapRateDelta": 0,
+            "repeatedAttackRateDelta": 0
+          },
+          "lineage": {
+            "retained": 6,
+            "rejected": 2,
+            "collapsed": 0,
+            "transformed": 0
+          },
+          "violations": [],
+          "classification": "IDENTITY_CLIFF"
+        },
+        {
+          "harder": "beginner",
+          "easier": "very-beginner",
+          "identityDelta": {
+            "rhOnsetCoverage": 1,
+            "pitchClassCoverage": 1,
+            "directionAgreement": 0.333,
+            "turnSurvival": null,
+            "localExtremaSurvival": null,
+            "repeatedAttackSurvival": 0,
+            "largeLeapEndpointSurvival": null,
+            "phraseAnchorSurvival": 1,
+            "harmonicChangeSurvival": 0
+          },
+          "complexityDelta": {
+            "noteReductionRatio": 0.333,
+            "onsetReductionRatio": 0,
+            "attackRateDelta": 0,
+            "attackRateReductionRatio": 0,
+            "maxSimultaneityReductionRatio": 0.5,
+            "maxSimultaneityDelta": 1,
+            "rightHandSpanDelta": 0,
+            "largeLeapRateDelta": 0,
+            "repeatedAttackRateDelta": 0
+          },
+          "lineage": {
+            "retained": 4,
+            "rejected": 2,
+            "collapsed": 0,
+            "transformed": 0
+          },
+          "violations": [],
+          "classification": "INCONCLUSIVE"
+        }
+      ]
+    }
+  ],
+  "laneA": {
+    "source": {
+      "logicalId": "user-supplied-private-lane-a",
+      "sha256": "ec5010896c00a0541b34b0843a20f455707ac647ae4a222aee71e2ad43e8017e",
+      "bytes": 58204,
+      "notes": 7266,
+      "durationBeats": 358.469,
+      "tempoBpm": 120
+    },
+    "baseline": {
+      "levels": {
+        "very-beginner": {
+          "notes": 409,
+          "attacks": 409,
+          "rightHandNotes": 409,
+          "leftHandNotes": 0,
+          "rightHandAttacks": 409,
+          "leftHandAttacks": 0,
+          "attacksPerSecond": 2.272,
+          "globalMedianIoiSeconds": 0.375,
+          "rightHandMedianIoiSeconds": 0.375,
+          "leftHandMedianIoiSeconds": null,
+          "maxSimultaneity": 2,
+          "difficultyScore": 1,
+          "publicVisibility": "public",
+          "sourceRoleCounts": {
+            "vocals": 0,
+            "guitar": 0,
+            "bass": null,
+            "other": 0,
+            "generated": null,
+            "inferred": null,
+            "unknown": 409
+          }
+        },
+        "beginner": {
+          "notes": 807,
+          "attacks": 773,
+          "rightHandNotes": 717,
+          "leftHandNotes": 90,
+          "rightHandAttacks": 717,
+          "leftHandAttacks": 90,
+          "attacksPerSecond": 4.294,
+          "globalMedianIoiSeconds": 0.178,
+          "rightHandMedianIoiSeconds": 0.201,
+          "leftHandMedianIoiSeconds": 2,
+          "maxSimultaneity": 2,
+          "difficultyScore": 1.4,
+          "publicVisibility": "public",
+          "sourceRoleCounts": {
+            "vocals": 0,
+            "guitar": 0,
+            "bass": null,
+            "other": 0,
+            "generated": null,
+            "inferred": null,
+            "unknown": 807
+          }
+        },
+        "very-easy": {
+          "notes": 2560,
+          "attacks": 1553,
+          "rightHandNotes": 1047,
+          "leftHandNotes": 1513,
+          "rightHandAttacks": 1047,
+          "leftHandAttacks": 1019,
+          "attacksPerSecond": 8.628,
+          "globalMedianIoiSeconds": 0.125,
+          "rightHandMedianIoiSeconds": 0.125,
+          "leftHandMedianIoiSeconds": 0.125,
+          "maxSimultaneity": 5,
+          "difficultyScore": 2,
+          "publicVisibility": "legacy-only",
+          "sourceRoleCounts": {
+            "vocals": 0,
+            "guitar": 0,
+            "bass": null,
+            "other": 0,
+            "generated": null,
+            "inferred": null,
+            "unknown": 2560
+          }
+        },
+        "easy": {
+          "notes": 2843,
+          "attacks": 1666,
+          "rightHandNotes": 1054,
+          "leftHandNotes": 1789,
+          "rightHandAttacks": 1054,
+          "leftHandAttacks": 1181,
+          "attacksPerSecond": 9.256,
+          "globalMedianIoiSeconds": 0.063,
+          "rightHandMedianIoiSeconds": 0.125,
+          "leftHandMedianIoiSeconds": 0.125,
+          "maxSimultaneity": 5,
+          "difficultyScore": 2.6,
+          "publicVisibility": "public",
+          "sourceRoleCounts": {
+            "vocals": 0,
+            "guitar": 0,
+            "bass": null,
+            "other": 0,
+            "generated": null,
+            "inferred": null,
+            "unknown": 2843
+          }
+        },
+        "medium": {
+          "notes": 3066,
+          "attacks": 1715,
+          "rightHandNotes": 1152,
+          "leftHandNotes": 1914,
+          "rightHandAttacks": 1139,
+          "leftHandAttacks": 1193,
+          "attacksPerSecond": 9.528,
+          "globalMedianIoiSeconds": 0.063,
+          "rightHandMedianIoiSeconds": 0.125,
+          "leftHandMedianIoiSeconds": 0.125,
+          "maxSimultaneity": 5,
+          "difficultyScore": 3.4,
+          "publicVisibility": "public",
+          "sourceRoleCounts": {
+            "vocals": 0,
+            "guitar": 0,
+            "bass": null,
+            "other": 0,
+            "generated": null,
+            "inferred": null,
+            "unknown": 3066
+          }
+        },
+        "advanced": {
+          "notes": 3560,
+          "attacks": 1911,
+          "rightHandNotes": 1420,
+          "leftHandNotes": 2140,
+          "rightHandAttacks": 1407,
+          "leftHandAttacks": 1316,
+          "attacksPerSecond": 10.617,
+          "globalMedianIoiSeconds": 0.063,
+          "rightHandMedianIoiSeconds": 0.125,
+          "leftHandMedianIoiSeconds": 0.125,
+          "maxSimultaneity": 6,
+          "difficultyScore": 4.6,
+          "publicVisibility": "public",
+          "sourceRoleCounts": {
+            "vocals": 0,
+            "guitar": 0,
+            "bass": null,
+            "other": 0,
+            "generated": null,
+            "inferred": null,
+            "unknown": 3560
+          }
+        }
+      },
+      "contract": {
+        "physical": {
+          "order": [
+            "very-beginner",
+            "beginner",
+            "very-easy",
+            "easy",
+            "medium",
+            "advanced"
+          ],
+          "available": [
+            "very-beginner",
+            "beginner",
+            "very-easy",
+            "easy",
+            "medium",
+            "advanced"
+          ],
+          "missing": [],
+          "pass": false,
+          "errors": [
+            "easy: median inter-onset 0.063s below floor 0.08s",
+            "medium: median inter-onset 0.063s below floor 0.08s",
+            "advanced: median inter-onset 0.063s below floor 0.08s"
+          ],
+          "individualValidationErrors": {
+            "very-beginner": [],
+            "beginner": [],
+            "very-easy": [],
+            "easy": [
+              "easy: median inter-onset 0.063s below floor 0.08s"
+            ],
+            "medium": [
+              "medium: median inter-onset 0.063s below floor 0.08s"
+            ],
+            "advanced": [
+              "advanced: median inter-onset 0.063s below floor 0.08s"
+            ]
+          },
+          "edges": [
+            {
+              "key": "very-beginner->beginner",
+              "easier": "very-beginner",
+              "harder": "beginner",
+              "noteCount": {
+                "easier": 409,
+                "harder": 807,
+                "delta": 398
+              },
+              "onsetCount": {
+                "easier": 409,
+                "harder": 773,
+                "delta": 364
+              },
+              "rightHandCount": {
+                "easier": 409,
+                "harder": 717,
+                "delta": 308
+              },
+              "leftHandCount": {
+                "easier": 0,
+                "harder": 90,
+                "delta": 90
+              },
+              "difficultyScore": {
+                "easier": 1,
+                "harder": 1.4,
+                "delta": 0.3999999999999999
+              },
+              "rhPreservation": {
+                "matched": 409,
+                "total": 409,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            },
+            {
+              "key": "beginner->very-easy",
+              "easier": "beginner",
+              "harder": "very-easy",
+              "noteCount": {
+                "easier": 807,
+                "harder": 2560,
+                "delta": 1753
+              },
+              "onsetCount": {
+                "easier": 773,
+                "harder": 1553,
+                "delta": 780
+              },
+              "rightHandCount": {
+                "easier": 717,
+                "harder": 1047,
+                "delta": 330
+              },
+              "leftHandCount": {
+                "easier": 90,
+                "harder": 1513,
+                "delta": 1423
+              },
+              "difficultyScore": {
+                "easier": 1.4,
+                "harder": 2,
+                "delta": 0.6000000000000001
+              },
+              "rhPreservation": {
+                "matched": 717,
+                "total": 717,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            },
+            {
+              "key": "very-easy->easy",
+              "easier": "very-easy",
+              "harder": "easy",
+              "noteCount": {
+                "easier": 2560,
+                "harder": 2843,
+                "delta": 283
+              },
+              "onsetCount": {
+                "easier": 1553,
+                "harder": 1666,
+                "delta": 113
+              },
+              "rightHandCount": {
+                "easier": 1047,
+                "harder": 1054,
+                "delta": 7
+              },
+              "leftHandCount": {
+                "easier": 1513,
+                "harder": 1789,
+                "delta": 276
+              },
+              "difficultyScore": {
+                "easier": 2,
+                "harder": 2.6,
+                "delta": 0.6000000000000001
+              },
+              "rhPreservation": {
+                "matched": 1047,
+                "total": 1047,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            },
+            {
+              "key": "easy->medium",
+              "easier": "easy",
+              "harder": "medium",
+              "noteCount": {
+                "easier": 2843,
+                "harder": 3066,
+                "delta": 223
+              },
+              "onsetCount": {
+                "easier": 1666,
+                "harder": 1715,
+                "delta": 49
+              },
+              "rightHandCount": {
+                "easier": 1054,
+                "harder": 1152,
+                "delta": 98
+              },
+              "leftHandCount": {
+                "easier": 1789,
+                "harder": 1914,
+                "delta": 125
+              },
+              "difficultyScore": {
+                "easier": 2.6,
+                "harder": 3.4,
+                "delta": 0.7999999999999998
+              },
+              "rhPreservation": {
+                "matched": 1054,
+                "total": 1054,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            },
+            {
+              "key": "medium->advanced",
+              "easier": "medium",
+              "harder": "advanced",
+              "noteCount": {
+                "easier": 3066,
+                "harder": 3560,
+                "delta": 494
+              },
+              "onsetCount": {
+                "easier": 1715,
+                "harder": 1911,
+                "delta": 196
+              },
+              "rightHandCount": {
+                "easier": 1152,
+                "harder": 1420,
+                "delta": 268
+              },
+              "leftHandCount": {
+                "easier": 1914,
+                "harder": 2140,
+                "delta": 226
+              },
+              "difficultyScore": {
+                "easier": 3.4,
+                "harder": 4.6,
+                "delta": 1.1999999999999997
+              },
+              "rhPreservation": {
+                "matched": 1152,
+                "total": 1152,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            }
+          ]
+        },
+        "public": {
+          "order": [
+            "very-beginner",
+            "beginner",
+            "easy",
+            "medium",
+            "advanced"
+          ],
+          "available": [
+            "very-beginner",
+            "beginner",
+            "easy",
+            "medium",
+            "advanced"
+          ],
+          "missing": [],
+          "pass": false,
+          "errors": [
+            "easy: median inter-onset 0.063s below floor 0.08s",
+            "medium: median inter-onset 0.063s below floor 0.08s",
+            "advanced: median inter-onset 0.063s below floor 0.08s"
+          ],
+          "individualValidationErrors": {
+            "very-beginner": [],
+            "beginner": [],
+            "very-easy": [],
+            "easy": [
+              "easy: median inter-onset 0.063s below floor 0.08s"
+            ],
+            "medium": [
+              "medium: median inter-onset 0.063s below floor 0.08s"
+            ],
+            "advanced": [
+              "advanced: median inter-onset 0.063s below floor 0.08s"
+            ]
+          },
+          "edges": [
+            {
+              "key": "very-beginner->beginner",
+              "easier": "very-beginner",
+              "harder": "beginner",
+              "noteCount": {
+                "easier": 409,
+                "harder": 807,
+                "delta": 398
+              },
+              "onsetCount": {
+                "easier": 409,
+                "harder": 773,
+                "delta": 364
+              },
+              "rightHandCount": {
+                "easier": 409,
+                "harder": 717,
+                "delta": 308
+              },
+              "leftHandCount": {
+                "easier": 0,
+                "harder": 90,
+                "delta": 90
+              },
+              "difficultyScore": {
+                "easier": 1,
+                "harder": 1.4,
+                "delta": 0.3999999999999999
+              },
+              "rhPreservation": {
+                "matched": 409,
+                "total": 409,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            },
+            {
+              "key": "beginner->easy",
+              "easier": "beginner",
+              "harder": "easy",
+              "noteCount": {
+                "easier": 807,
+                "harder": 2843,
+                "delta": 2036
+              },
+              "onsetCount": {
+                "easier": 773,
+                "harder": 1666,
+                "delta": 893
+              },
+              "rightHandCount": {
+                "easier": 717,
+                "harder": 1054,
+                "delta": 337
+              },
+              "leftHandCount": {
+                "easier": 90,
+                "harder": 1789,
+                "delta": 1699
+              },
+              "difficultyScore": {
+                "easier": 1.4,
+                "harder": 2.6,
+                "delta": 1.2000000000000002
+              },
+              "rhPreservation": {
+                "matched": 717,
+                "total": 717,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            },
+            {
+              "key": "easy->medium",
+              "easier": "easy",
+              "harder": "medium",
+              "noteCount": {
+                "easier": 2843,
+                "harder": 3066,
+                "delta": 223
+              },
+              "onsetCount": {
+                "easier": 1666,
+                "harder": 1715,
+                "delta": 49
+              },
+              "rightHandCount": {
+                "easier": 1054,
+                "harder": 1152,
+                "delta": 98
+              },
+              "leftHandCount": {
+                "easier": 1789,
+                "harder": 1914,
+                "delta": 125
+              },
+              "difficultyScore": {
+                "easier": 2.6,
+                "harder": 3.4,
+                "delta": 0.7999999999999998
+              },
+              "rhPreservation": {
+                "matched": 1054,
+                "total": 1054,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            },
+            {
+              "key": "medium->advanced",
+              "easier": "medium",
+              "harder": "advanced",
+              "noteCount": {
+                "easier": 3066,
+                "harder": 3560,
+                "delta": 494
+              },
+              "onsetCount": {
+                "easier": 1715,
+                "harder": 1911,
+                "delta": 196
+              },
+              "rightHandCount": {
+                "easier": 1152,
+                "harder": 1420,
+                "delta": 268
+              },
+              "leftHandCount": {
+                "easier": 1914,
+                "harder": 2140,
+                "delta": 226
+              },
+              "difficultyScore": {
+                "easier": 3.4,
+                "harder": 4.6,
+                "delta": 1.1999999999999997
+              },
+              "rhPreservation": {
+                "matched": 1152,
+                "total": 1152,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            }
+          ]
+        },
+        "veryEasyIndependent": {
+          "present": true,
+          "validationErrors": [],
+          "pass": true
+        }
+      }
+    },
+    "candidateA": {
+      "policy": "frozen Candidate A: one protected semantic local thinning pass; no retiming or new events",
+      "source": "authoritative-symbolic-density-normalization-2026-09-04.json",
+      "promoted": false,
+      "contract": {
+        "physical": {
+          "order": [
+            "very-beginner",
+            "beginner",
+            "very-easy",
+            "easy",
+            "medium",
+            "advanced"
+          ],
+          "available": [
+            "very-beginner",
+            "beginner",
+            "very-easy",
+            "easy",
+            "medium",
+            "advanced"
+          ],
+          "missing": [],
+          "pass": false,
+          "errors": [
+            "note count increased (2560 > 2130)",
+            "very-easy has 2560 notes but easy has 2130 (easier should not have more)"
+          ],
+          "individualValidationErrors": {
+            "very-beginner": [],
+            "beginner": [],
+            "very-easy": [],
+            "easy": [],
+            "medium": [],
+            "advanced": []
+          },
+          "edges": [
+            {
+              "key": "very-beginner->beginner",
+              "easier": "very-beginner",
+              "harder": "beginner",
+              "noteCount": {
+                "easier": 409,
+                "harder": 807,
+                "delta": 398
+              },
+              "onsetCount": {
+                "easier": 409,
+                "harder": 773,
+                "delta": 364
+              },
+              "rightHandCount": {
+                "easier": 409,
+                "harder": 717,
+                "delta": 308
+              },
+              "leftHandCount": {
+                "easier": 0,
+                "harder": 90,
+                "delta": 90
+              },
+              "difficultyScore": {
+                "easier": 1,
+                "harder": 1.4,
+                "delta": 0.3999999999999999
+              },
+              "rhPreservation": {
+                "matched": 409,
+                "total": 409,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            },
+            {
+              "key": "beginner->very-easy",
+              "easier": "beginner",
+              "harder": "very-easy",
+              "noteCount": {
+                "easier": 807,
+                "harder": 2560,
+                "delta": 1753
+              },
+              "onsetCount": {
+                "easier": 773,
+                "harder": 1553,
+                "delta": 780
+              },
+              "rightHandCount": {
+                "easier": 717,
+                "harder": 1047,
+                "delta": 330
+              },
+              "leftHandCount": {
+                "easier": 90,
+                "harder": 1513,
+                "delta": 1423
+              },
+              "difficultyScore": {
+                "easier": 1.4,
+                "harder": 2,
+                "delta": 0.6000000000000001
+              },
+              "rhPreservation": {
+                "matched": 717,
+                "total": 717,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            },
+            {
+              "key": "very-easy->easy",
+              "easier": "very-easy",
+              "harder": "easy",
+              "noteCount": {
+                "easier": 2560,
+                "harder": 2130,
+                "delta": -430
+              },
+              "onsetCount": {
+                "easier": 1553,
+                "harder": 1195,
+                "delta": -358
+              },
+              "rightHandCount": {
+                "easier": 1047,
+                "harder": 1054,
+                "delta": 7
+              },
+              "leftHandCount": {
+                "easier": 1513,
+                "harder": 1076,
+                "delta": -437
+              },
+              "difficultyScore": {
+                "easier": 2,
+                "harder": 2.6,
+                "delta": 0.6000000000000001
+              },
+              "rhPreservation": {
+                "matched": 1047,
+                "total": 1047,
+                "ratio": 1
+              },
+              "errors": [
+                "note count increased (2560 > 2130)"
+              ],
+              "pass": false
+            },
+            {
+              "key": "easy->medium",
+              "easier": "easy",
+              "harder": "medium",
+              "noteCount": {
+                "easier": 2130,
+                "harder": 2269,
+                "delta": 139
+              },
+              "onsetCount": {
+                "easier": 1195,
+                "harder": 1235,
+                "delta": 40
+              },
+              "rightHandCount": {
+                "easier": 1054,
+                "harder": 1152,
+                "delta": 98
+              },
+              "leftHandCount": {
+                "easier": 1076,
+                "harder": 1117,
+                "delta": 41
+              },
+              "difficultyScore": {
+                "easier": 2.6,
+                "harder": 3.4,
+                "delta": 0.7999999999999998
+              },
+              "rhPreservation": {
+                "matched": 1054,
+                "total": 1054,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            },
+            {
+              "key": "medium->advanced",
+              "easier": "medium",
+              "harder": "advanced",
+              "noteCount": {
+                "easier": 2269,
+                "harder": 2846,
+                "delta": 577
+              },
+              "onsetCount": {
+                "easier": 1235,
+                "harder": 1490,
+                "delta": 255
+              },
+              "rightHandCount": {
+                "easier": 1152,
+                "harder": 1420,
+                "delta": 268
+              },
+              "leftHandCount": {
+                "easier": 1117,
+                "harder": 1426,
+                "delta": 309
+              },
+              "difficultyScore": {
+                "easier": 3.4,
+                "harder": 4.6,
+                "delta": 1.1999999999999997
+              },
+              "rhPreservation": {
+                "matched": 1152,
+                "total": 1152,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            }
+          ]
+        },
+        "public": {
+          "order": [
+            "very-beginner",
+            "beginner",
+            "easy",
+            "medium",
+            "advanced"
+          ],
+          "available": [
+            "very-beginner",
+            "beginner",
+            "easy",
+            "medium",
+            "advanced"
+          ],
+          "missing": [],
+          "pass": true,
+          "errors": [],
+          "individualValidationErrors": {
+            "very-beginner": [],
+            "beginner": [],
+            "very-easy": [],
+            "easy": [],
+            "medium": [],
+            "advanced": []
+          },
+          "edges": [
+            {
+              "key": "very-beginner->beginner",
+              "easier": "very-beginner",
+              "harder": "beginner",
+              "noteCount": {
+                "easier": 409,
+                "harder": 807,
+                "delta": 398
+              },
+              "onsetCount": {
+                "easier": 409,
+                "harder": 773,
+                "delta": 364
+              },
+              "rightHandCount": {
+                "easier": 409,
+                "harder": 717,
+                "delta": 308
+              },
+              "leftHandCount": {
+                "easier": 0,
+                "harder": 90,
+                "delta": 90
+              },
+              "difficultyScore": {
+                "easier": 1,
+                "harder": 1.4,
+                "delta": 0.3999999999999999
+              },
+              "rhPreservation": {
+                "matched": 409,
+                "total": 409,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            },
+            {
+              "key": "beginner->easy",
+              "easier": "beginner",
+              "harder": "easy",
+              "noteCount": {
+                "easier": 807,
+                "harder": 2130,
+                "delta": 1323
+              },
+              "onsetCount": {
+                "easier": 773,
+                "harder": 1195,
+                "delta": 422
+              },
+              "rightHandCount": {
+                "easier": 717,
+                "harder": 1054,
+                "delta": 337
+              },
+              "leftHandCount": {
+                "easier": 90,
+                "harder": 1076,
+                "delta": 986
+              },
+              "difficultyScore": {
+                "easier": 1.4,
+                "harder": 2.6,
+                "delta": 1.2000000000000002
+              },
+              "rhPreservation": {
+                "matched": 717,
+                "total": 717,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            },
+            {
+              "key": "easy->medium",
+              "easier": "easy",
+              "harder": "medium",
+              "noteCount": {
+                "easier": 2130,
+                "harder": 2269,
+                "delta": 139
+              },
+              "onsetCount": {
+                "easier": 1195,
+                "harder": 1235,
+                "delta": 40
+              },
+              "rightHandCount": {
+                "easier": 1054,
+                "harder": 1152,
+                "delta": 98
+              },
+              "leftHandCount": {
+                "easier": 1076,
+                "harder": 1117,
+                "delta": 41
+              },
+              "difficultyScore": {
+                "easier": 2.6,
+                "harder": 3.4,
+                "delta": 0.7999999999999998
+              },
+              "rhPreservation": {
+                "matched": 1054,
+                "total": 1054,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            },
+            {
+              "key": "medium->advanced",
+              "easier": "medium",
+              "harder": "advanced",
+              "noteCount": {
+                "easier": 2269,
+                "harder": 2846,
+                "delta": 577
+              },
+              "onsetCount": {
+                "easier": 1235,
+                "harder": 1490,
+                "delta": 255
+              },
+              "rightHandCount": {
+                "easier": 1152,
+                "harder": 1420,
+                "delta": 268
+              },
+              "leftHandCount": {
+                "easier": 1117,
+                "harder": 1426,
+                "delta": 309
+              },
+              "difficultyScore": {
+                "easier": 3.4,
+                "harder": 4.6,
+                "delta": 1.1999999999999997
+              },
+              "rhPreservation": {
+                "matched": 1152,
+                "total": 1152,
+                "ratio": 1
+              },
+              "errors": [],
+              "pass": true
+            }
+          ]
+        },
+        "veryEasyIndependent": {
+          "present": true,
+          "validationErrors": [],
+          "pass": true
+        }
+      },
+      "levels": {
+        "very-beginner": {
+          "notes": 409,
+          "attacks": 409,
+          "removedAttacks": 0
+        },
+        "beginner": {
+          "notes": 807,
+          "attacks": 773,
+          "removedAttacks": 0
+        },
+        "very-easy": {
+          "notes": 2560,
+          "attacks": 1553,
+          "removedAttacks": 0
+        },
+        "easy": {
+          "notes": 2130,
+          "attacks": 1195,
+          "removedAttacks": 471
+        },
+        "medium": {
+          "notes": 2269,
+          "attacks": 1235,
+          "removedAttacks": 480
+        },
+        "advanced": {
+          "notes": 2846,
+          "attacks": 1490,
+          "removedAttacks": 421
+        }
+      },
+      "invariants": {
+        "retimedEvents": 0,
+        "createdEvents": 0,
+        "protectedMelodyDeleted": 0,
+        "protectedAnchorsDeleted": 0,
+        "veryEasyChanged": false,
+        "beginnerChanged": false,
+        "veryBeginnerChanged": false,
+        "difficultyScoresChanged": false
+      }
+    }
+  },
+  "decisions": {
+    "contract": "PUBLIC_FIVE_LEVEL_CONTRACT_VALIDATED",
+    "contractBasis": {
+      "productionFixtures": [
+        "classical",
+        "cover",
+        "pop"
+      ],
+      "productionFixturesPublicPass": true,
+      "legacyVeryEasyIndependentPass": true,
+      "syntheticFullBand": "diagnostic-only fixture is intentionally below the validator's eight-note minimum for VB/B; it is not used to overturn the contract decision",
+      "candidateA": "public edges and independent VE validation pass; physical VE->E note-count edge fails as expected"
+    },
+    "timedSymbolicMvp": "TIMED_SYMBOLIC_MVP_READY_FOR_NORMALIZATION_REEVALUATION",
+    "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+    "realShadow": "REAL_SHADOW_BLOCKED_AT_DIFFICULTIES",
+    "candidateA": "DIAGNOSTIC_ONLY_NOT_PROMOTED",
+    "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+    "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+    "deployment": "NOT_DEPLOYED"
+  },
+  "nextTask": "IMPLEMENT_PUBLIC_FIVE_LEVEL_DIFFICULTY_CONTRACT",
+  "determinism": {
+    "canonicalSha256": "3e18f4c8369e8ad9e91f5bc741ced07baf38eff7fd9743a25df4310b71be2f70"
+  }
+}

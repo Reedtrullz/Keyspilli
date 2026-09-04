@@ -63,6 +63,7 @@
     "evaluate:cold-routing": "tsx scripts/evaluate-cold-routing.ts",
     "report:shadow-mission": "tsx scripts/report-shadow-mission.ts",
     "review:ladder": "tsx scripts/review-difficulty-ladder.ts",
+    "audit:difficulty-contract": "tsx scripts/audit-difficulty-contract.ts",
     "evaluate:independent-current": "tsx scripts/evaluate-independent-current.ts",
     "evaluate:cover-rh-cliff": "tsx scripts/evaluate-cover-rh-cliff.ts",
     "evaluate:beginner-offgrid-rh-frontier": "tsx scripts/evaluate-beginner-offgrid-rh-frontier.ts",

@@ -491,7 +491,15 @@ async function readTrustedFixture(path: string): Promise<{ bytes: Uint8Array; pa
   return { bytes, parsed: parsedArtifact(JSON.parse(new TextDecoder().decode(bytes)) as Record<string, unknown>) };
 }
 
-export async function laneAStages(path: string, includeDensityNormalization = false): Promise<Record<string, unknown>> {
+export interface LaneAVariantSet {
+  bytes: Uint8Array;
+  source: ParsedMidi;
+  canonical: ParsedMidi;
+  variants: Variant[];
+}
+
+/** Build the private Lane A source through the same canonical product path. */
+export async function laneAVariantSet(path: string): Promise<LaneAVariantSet> {
   const bytes = new Uint8Array(await readFile(path));
   const source = parseMidi(bytes);
   const inventory = await researchExternalCandidates({ title: "Local real performance shadow", artist: "Keyspilli" }, {
@@ -526,6 +534,11 @@ export async function laneAStages(path: string, includeDensityNormalization = fa
     artist: "Keyspilli playability audit",
     tempo: canonical.tempoBpm,
   }, { arrangementProfile: "learner", audioDerived: false, maxDurBeats: null });
+  return { bytes, source, canonical, variants };
+}
+
+export async function laneAStages(path: string, includeDensityNormalization = false): Promise<Record<string, unknown>> {
+  const { bytes, source, canonical, variants } = await laneAVariantSet(path);
   const byLevel = Object.fromEntries(variants.map((variant) => [
     variant.level,
     stage(variant.level, variant.notes, variant.tempoBpm, Math.max(canonical.durationBeats, maxEnd(variant.notes)), variant.level),
@@ -557,8 +570,8 @@ export async function laneAStages(path: string, includeDensityNormalization = fa
     },
     stages: stageMap,
     arrangementStats: {
-      identityNotes: output.canonical.notes.filter((note) => note.hand !== "L").length,
-      leftHandNotes: output.canonical.notes.filter((note) => note.hand === "L").length,
+      identityNotes: canonical.notes.filter((note) => note.hand !== "L").length,
+      leftHandNotes: canonical.notes.filter((note) => note.hand === "L").length,
     },
     validationErrors,
     interactions: Object.fromEntries(variants.map((variant) => [variant.level, interaction(

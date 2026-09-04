@@ -3,6 +3,60 @@
   "purpose": "Durable path-free summary of Keyspilli evidence experiments",
   "entries": [
     {
+      "id": "difficulty-contract-review-2026-09-04",
+      "date": "2026-09-04",
+      "startingRevision": "4d30f85e7212265604cefefef0d0d844c4a59e16",
+      "purpose": "Audit whether hidden physical Very Easy must constrain the public difficulty ladder",
+      "route": "existing trusted fixtures + private Lane A -> existing buildVariants/validateVariants -> report-only physical/public contract diagnostic",
+      "scope": {
+        "physicalOrder": ["very-beginner", "beginner", "very-easy", "easy", "medium", "advanced"],
+        "publicOrder": ["very-beginner", "beginner", "easy", "medium", "advanced"],
+        "veryEasy": "individually validated legacy physical artifact; not a public ordering edge",
+        "playabilityLimitsChanged": false,
+        "densityNormalizationPromoted": false,
+        "benchmarkMaterialUsed": false,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NOT_DEPLOYED"
+      },
+      "fixtures": {
+        "productionOwned": ["classical", "cover", "pop"],
+        "diagnosticOnly": ["synthetic-full-band"],
+        "laneA": {
+          "sourceClass": "GENERATION_CANDIDATE",
+          "provenanceClass": "USER_SUPPLIED_PRIVATE",
+          "symbolicSha256": "ec5010896c00a0541b34b0843a20f455707ac647ae4a222aee71e2ad43e8017e",
+          "symbolicBytes": 58204,
+          "symbolicNotes": 7266,
+          "durationBeats": 358.46875,
+          "tempoBpm": 120
+        }
+      },
+      "historicalEvidence": {
+        "classicalVeToEasy": "REDUNDANT_LEVEL",
+        "coverVeToEasy": "NON_MONOTONIC",
+        "popVeToEasy": "REDUNDANT_LEVEL"
+      },
+      "results": {
+        "productionFixturePublicEdgesPass": true,
+        "productionFixtureVeryEasyIndependentPass": true,
+        "candidateAPublicEdgesPass": true,
+        "candidateAVeryEasyIndependentPass": true,
+        "candidateAPhysicalContractPass": false,
+        "candidateAPhysicalFailure": "very-easy has 2560 notes but easy has 2130"
+      },
+      "decision": "PUBLIC_FIVE_LEVEL_CONTRACT_VALIDATED",
+      "timedSymbolicMvp": "TIMED_SYMBOLIC_MVP_READY_FOR_NORMALIZATION_REEVALUATION",
+      "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+      "realShadow": "REAL_SHADOW_BLOCKED_AT_DIFFICULTIES",
+      "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+      "behavior": "REPORT_ONLY_NO_MUSICAL_BEHAVIOR_CHANGE",
+      "report": {
+        "path": "difficulty-contract-review-2026-09-04.json",
+        "canonicalSha256": "3e18f4c8369e8ad9e91f5bc741ced07baf38eff7fd9743a25df4310b71be2f70"
+      },
+      "nextTask": "IMPLEMENT_PUBLIC_FIVE_LEVEL_DIFFICULTY_CONTRACT"
+    },
+    {
       "id": "authoritative-symbolic-density-normalization-2026-09-04",
       "date": "2026-09-04",
       "startingRevision": "5a5e25fd3b8b2727af8e3da3887ccfa3662f519c",
