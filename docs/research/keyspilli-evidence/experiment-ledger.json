@@ -1885,6 +1885,7 @@
       "id": "generic-real-song-source-discovery-and-ranking-2026-09-04",
       "date": "2026-09-05",
       "startingRevision": "d63e013ea99a8ca6155243f862ab3525d36f0c57",
+      "checkpointRevision": "26f3175",
       "purpose": "Cold public metadata discovery and deterministic ranking for the exact 20-song non-benchmark sample",
       "scope": {
         "provider": "web/Jina Reader search",
