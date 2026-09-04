@@ -2,7 +2,6 @@ import {
   LEVEL_ORDER,
   PUBLIC_DIFFICULTY_ORDER,
   validateVariants,
-  verifyMonotonicity,
   type DifficultyLevel,
   type Note,
   type PublicDifficultyLevel,
@@ -167,7 +166,6 @@ function duplicateErrors(variants: readonly Variant[]): string[] {
 function evaluateOrder(
   variants: readonly Variant[],
   order: readonly DifficultyLevel[],
-  physical: boolean,
   options: DifficultyContractAuditOptions,
 ): DifficultyContractResult {
   const byLevel = new Map<DifficultyLevel, Variant>();
@@ -188,9 +186,6 @@ function evaluateOrder(
     ...order.flatMap((level) => individual[level] ?? []),
     ...edges.flatMap((edge) => edge.errors),
   ];
-  if (physical) {
-    errors.push(...validateVariants([...variants], options), ...verifyMonotonicity([...variants]));
-  }
   return {
     order,
     available,
@@ -212,8 +207,11 @@ export function evaluateDifficultyContract(
   variants: readonly Variant[],
   options: DifficultyContractAuditOptions = { maxDurBeats: null },
 ): DifficultyContractComparison {
-  const physical = evaluateOrder(variants, LEVEL_ORDER, true, options);
-  const publicContract = evaluateOrder(variants, PUBLIC_DIFFICULTY_ORDER as readonly PublicDifficultyLevel[], false, options);
+  // Both reports use the same individual validator, while the physical report
+  // deliberately computes its six-level edges locally so it remains a
+  // truthful historical diagnostic after production adopts public adjacency.
+  const physical = evaluateOrder(variants, LEVEL_ORDER, options);
+  const publicContract = evaluateOrder(variants, PUBLIC_DIFFICULTY_ORDER as readonly PublicDifficultyLevel[], options);
   const veryEasy = variants.find((variant) => variant.level === "very-easy");
   const validationErrors = veryEasy ? [...new Set(validateVariants([veryEasy], options))] : ["missing required level very-easy"];
   return {

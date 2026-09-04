@@ -1,4 +1,4 @@
-import { LEVEL_ORDER, Note, Variant } from "./types.js";
+import { PUBLIC_DIFFICULTY_ORDER, Note, Variant } from "./types.js";
 import { maxDurationBeatsForTempo } from "./clean.js";
 
 /**
@@ -148,15 +148,23 @@ function validateVariant(v: Variant, opts: VariantValidationOptions): string[] {
   return out;
 }
 
-/** Fail-closed gate: every issue returned must be fixed before a song goes live. */
+/**
+ * Fail-closed gate: every issue returned must be fixed before a song goes live.
+ * All physical rows are checked individually; cross-level ancestry follows
+ * the public five-level order so legacy Very Easy stays available without
+ * becoming a learner-facing edge.
+ */
 export function validateVariants(variants: Variant[], opts: VariantValidationOptions = {}): string[] {
   const errors: string[] = [];
   const byLevel = new Map(variants.map((v) => [v.level, v]));
   for (const v of variants) errors.push(...validateVariant(v, opts));
-  for (let i = 0; i < LEVEL_ORDER.length - 1; i++) {
-    const level = LEVEL_ORDER[i]!;
+  // Physical generation still emits six rows, but the normative learner
+  // ancestry is the public five-level order. Very Easy is validated above as
+  // an ordinary physical variant and intentionally has no public edge.
+  for (let i = 0; i < PUBLIC_DIFFICULTY_ORDER.length - 1; i++) {
+    const level = PUBLIC_DIFFICULTY_ORDER[i]!;
     const easier = byLevel.get(level);
-    const harder = byLevel.get(LEVEL_ORDER[i + 1]!);
+    const harder = byLevel.get(PUBLIC_DIFFICULTY_ORDER[i + 1]!);
     if (!easier || !harder) continue;
     const harderByMidi = rhStartsByMidi(harder.notes);
     const tol = LADDER_TOL[level] ?? 0.02;
@@ -172,9 +180,11 @@ export function validateVariants(variants: Variant[], opts: VariantValidationOpt
 }
 
 /**
- * Verify monotonicity across difficulty levels: each level should be a
- * strict simplification of the level above it (note count non-increasing,
- * difficulty scores monotonically non-decreasing when moving to harder levels).
+ * Verify monotonicity across the public difficulty levels: each public level
+ * should be a strict simplification of the level above it (note count
+ * non-increasing, difficulty scores monotonically non-decreasing when moving
+ * to harder levels). Very Easy remains individually validated but is not an
+ * ordering edge.
  *
  * Returns an array of error strings; empty means all checks passed.
  */
@@ -182,9 +192,9 @@ export function verifyMonotonicity(variants: Variant[]): string[] {
   const errors: string[] = [];
   const byLevel = new Map(variants.map((v) => [v.level, v]));
 
-  for (let i = 0; i < LEVEL_ORDER.length - 1; i++) {
-    const easierName = LEVEL_ORDER[i]!;
-    const harderName = LEVEL_ORDER[i + 1]!;
+  for (let i = 0; i < PUBLIC_DIFFICULTY_ORDER.length - 1; i++) {
+    const easierName = PUBLIC_DIFFICULTY_ORDER[i]!;
+    const harderName = PUBLIC_DIFFICULTY_ORDER[i + 1]!;
     const easier = byLevel.get(easierName);
     const harder = byLevel.get(harderName);
     if (!easier || !harder) continue;

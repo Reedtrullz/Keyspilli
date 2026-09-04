@@ -438,3 +438,34 @@ normalization still requires a separate task. Real alignment remains
 The next single engineering task is
 `IMPLEMENT_PUBLIC_FIVE_LEVEL_DIFFICULTY_CONTRACT`; no implementation is made
 in this checkpoint.
+
+### Public five-level difficulty contract implementation — 2026-09-04
+
+Revision `971974231016bded91769fc938850fce38ea7827` implements the validated
+public/physical split in production validation only. Six physical rows remain
+generated, serialized, individually validated, and legacy-accessible. The
+normative cross-level edges are now Very Beginner → Beginner → Easy → Medium →
+Advanced; Very Easy has no public ordering edge. The generation ladder and all
+playability/density limits are unchanged.
+
+The existing `LADDER_TOL` values remain authoritative (`.26`, `.02`, `.02`,
+`.02` on the public edges). The audit's `.08` onset matching tolerance remains
+diagnostic-only. Trusted Classical, Cover, and Pop fixtures pass the production
+validator, and their six-level note sets are byte-identical to the starting
+checkpoint. Lane A remains blocked by the existing Easy/Medium/Advanced
+individual median-IOI floor; Candidate A remains diagnostic-only and
+unpromoted.
+
+Decision: `PUBLIC_FIVE_LEVEL_CONTRACT_IMPLEMENTED`. Timed symbolic status is
+`TIMED_SYMBOLIC_MVP_READY_FOR_NORMALIZATION_REEVALUATION`; real alignment is
+`REAL_SYMBOLIC_ALIGNMENT_PARTIAL`; the real shadow remains
+`REAL_SHADOW_BLOCKED_AT_DIFFICULTIES`. Musical quality is
+`MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`, human listening is
+`NOT_REQUIRED_BY_DEFAULT`, and deployment is `NOT_DEPLOYED`.
+
+The deterministic implementation report is
+`difficulty-contract-implementation-2026-09-04.json` (canonical SHA
+`b4285e94b984bbd1445f818313533293dabadeee3bacd70c56967bbed2f69f03`; bytes
+SHA `4a80c3279efe31382c0d1581fa62ee216b7c1406d1f995a1cf88c2fb862af18b`).
+The next task is
+`REEVALUATE_FROZEN_DENSITY_NORMALIZATION_UNDER_PUBLIC_CONTRACT`.
