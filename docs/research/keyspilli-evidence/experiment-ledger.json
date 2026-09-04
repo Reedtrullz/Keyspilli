@@ -3,6 +3,74 @@
   "purpose": "Durable path-free summary of Keyspilli evidence experiments",
   "entries": [
     {
+      "id": "frozen-density-normalization-public-contract-2026-09-04",
+      "date": "2026-09-04",
+      "startingRevision": "ab654e12c14c9d6eb67e04862b30f6a16c539dbb",
+      "checkpointRevision": "eb23129",
+      "purpose": "Re-evaluate the exact frozen density Candidate A against the production public five-level contract",
+      "route": "private native Lane A MIDI -> existing learner ladder -> shared protected semantic thinning selector -> production validation -> six artifacts/public projection",
+      "scope": {
+        "candidate": "Candidate A",
+        "candidateSourceRevision": "a68fd1e0caa837ed4de868d4be31483c19b75c0c",
+        "candidateFunction": "selectProtectedSemanticLocalThinning",
+        "candidatePolicyChanged": false,
+        "validatorChanged": false,
+        "publicContractChanged": false,
+        "benchmarkMaterialUsed": false,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NOT_DEPLOYED"
+      },
+      "fixture": {
+        "id": "lane-a-native-performance",
+        "sourceClass": "GENERATION_CANDIDATE",
+        "provenanceClass": "USER_SUPPLIED_PRIVATE",
+        "symbolicSha256": "ec5010896c00a0541b34b0843a20f455707ac647ae4a222aee71e2ad43e8017e",
+        "symbolicBytes": 58204,
+        "symbolicNotes": 7266,
+        "durationBeats": 358.46875,
+        "tempoBpm": 120
+      },
+      "results": {
+        "allSixIndividualValidatorsPass": true,
+        "publicNoteCountOrderingPass": true,
+        "publicRhAncestryPass": true,
+        "publicDifficultyScoreOrderingPass": true,
+        "veryEasyIndependentPass": true,
+        "veryEasyBeginnerVeryBeginnerParity": true,
+        "protectedMelodyAndAnchorsDeleted": 0,
+        "retimedEvents": 0,
+        "newEventsCreated": 0,
+        "withheldEventsResurrected": 0,
+        "artifactRoundtripsPass": true,
+        "rapidFractionAfter": {"easy": 0.161642, "medium": 0.182334, "advanced": 0.394896},
+        "removedAttacks": {"easy": 471, "medium": 480, "advanced": 421},
+        "removedNotes": {"easy": 713, "medium": 797, "advanced": 714},
+        "trustedFixturesExactNoOp": true,
+        "deterministicRerun": true
+      },
+      "decision": "FROZEN_DENSITY_NORMALIZATION_VALIDATED",
+      "timedSymbolicMvp": "TIMED_SYMBOLIC_MVP_READY",
+      "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+      "realShadow": "NATIVE_TIMED_SYMBOLIC_REAL_SHADOW_VALIDATED",
+      "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+      "report": {
+        "path": "frozen-density-normalization-public-contract-2026-09-04.json",
+        "canonicalSha256": "9a95a6e67827de2ee2c6472161451dd45f9aca3fd3f696fe2ab9de6a642bea0f",
+        "sha256": "f1c83004bf51d53054fbbe8a140423dfe1a6c0b634e24e282e886b350cf35060"
+      },
+      "verification": {
+        "focusedPlayabilityTests": 12,
+        "midiTests": 354,
+        "catalogTests": 1037,
+        "workspaceTests": 1622,
+        "workspaceTypechecks": 6,
+        "gitDiffCheck": true
+      },
+      "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+      "deployment": "NOT_DEPLOYED",
+      "nextTask": "BOUNDED_MVP_PRODUCTIZATION_READINESS"
+    },
+    {
       "id": "public-five-level-difficulty-contract-implementation-2026-09-04",
       "date": "2026-09-04",
       "startingRevision": "971974231016bded91769fc938850fce38ea7827",

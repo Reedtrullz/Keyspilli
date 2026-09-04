@@ -1,9 +1,11 @@
-# Keyspilli product pipeline status — 2026-09-03
+# Keyspilli product pipeline status — 2026-09-04
 
 ## Current posture
 
-Candidate A (`BEGINNER_SPARSE_OFFGRID_RH_BUDGET_VALIDATED`) remains the only
-promoted learner-policy change. The semantic-harmony/source-lineage work and
+Candidate A (`BEGINNER_SPARSE_OFFGRID_RH_BUDGET_VALIDATED`) remains the
+promoted off-grid learner-policy change, and the separately frozen density
+Candidate A is now validated under the public five-level contract and wired in
+the learner production ladder. The semantic-harmony/source-lineage work and
 the candidate-intake work below are additive; no benchmark material entered
 generation and no production data was written.
 
@@ -25,8 +27,8 @@ The CLaMP3 sparse-landmark investigation started from the remote-backed
 | Role inference | VALIDATED (shadow override) | The single-stem Guitar-TECHS MIDI is explicitly mapped to guitar for the shadow arrangement; no drum pitches reached output. |
 | Alignment | PARTIAL — V2 RESOURCE FIXED; NON-DTW SKF MIXED; CLaMP3 SPARSE RETRIEVAL RESOURCE-BLOCKED | Frozen V2 completes all four revealed ASAP/MAESTRO pairs but leaves regional accuracy unresolved. Matchmaker SKF is mixed and was not promoted. The one approved CLaMP3 reference was not evaluated because its pinned weights exceed the bounded footprint before download; no CLaMP3 production candidate was created. |
 | Region ownership / fallback | VALIDATED (deterministic contract) | Explicit source/target regions, role ownership, timing authority, alignment state, provenance/firewall, fallback precedence, overlap/merge behavior, and no-owner withholding are enforced before semantic-band arrangement. |
-| Arrangement | PARTIAL (real native shadow) | A user-supplied native performance completed `buildMetalArrangement` and produced source-tagged output in memory; the selected dense source is blocked by existing downstream playability validation. The report-only playability audit confirms the canonical attack stream remains dense after arrangement. |
-| Six physical difficulties | PARTIAL (generated; validation blocked) | All six physical variants and artifact bytes were produced, but Advanced/Easy/Medium fail the existing 0.08s median inter-onset floor on this dense source; Very Easy/Beginner/Very Beginner pass. |
+| Arrangement | PASS (real native symbolic lane) | The user-supplied native performance completed the existing canonical arrangement path in scratch; downstream learner normalization now clears the unchanged production playability gate without changing arrangement policy. |
+| Six physical difficulties | VALIDATED | All six physical variants are generated, serialized, independently validated, and round-trip through MIDI/MusicXML. Frozen density Candidate A changes only Easy/Medium/Advanced; Very Easy remains a legacy physical row. |
 | Artifact writing | PASS (in-memory roundtrip) | All six physical variants produced MIDI and MusicXML bytes in memory; existing artifact validators and reparsers passed. No files were persisted. |
 | Catalog/public projection | PASS (in-memory; non-publishable) | One grouped shadow song and five public levels were projected from scratch rows; no catalog writes or publishability claim was made. |
 | Player entry links | NOT_EXERCISED | Link resolution requires a persisted catalog item; this path performs no catalog writes and no deployment was authorized. |
@@ -468,4 +470,45 @@ The deterministic implementation report is
 `b4285e94b984bbd1445f818313533293dabadeee3bacd70c56967bbed2f69f03`; bytes
 SHA `4a80c3279efe31382c0d1581fa62ee216b7c1406d1f995a1cf88c2fb862af18b`).
 The next task is
-`REEVALUATE_FROZEN_DENSITY_NORMALIZATION_UNDER_PUBLIC_CONTRACT`.
+`BOUNDED_MVP_PRODUCTIZATION_READINESS`.
+
+### Frozen density normalization under the public contract — 2026-09-04
+
+The exact frozen Candidate A from `a68fd1e0caa837ed4de868d4be31483c19b75c0c`
+was re-evaluated against the production five-level order
+`Very Beginner → Beginner → Easy → Medium → Advanced`. The production
+checkpoint is `eb23129`; the shared implementation is the single
+`selectProtectedSemanticLocalThinning` selector in
+`packages/midi/src/density-normalization-audit.ts`, called once after the
+learner ladder in `packages/midi/src/simplify.ts` for Easy, Medium, and
+Advanced. No validator limit, difficulty score, public edge, retiming rule, or
+Candidate-A tie-break changed.
+
+On the private Lane A native MIDI (7,266 notes; source SHA-256
+`ec5010896c00a0541b34b0843a20f455707ac647ae4a222aee71e2ad43e8017e`), the
+frozen output is exact: Easy 2,130 notes / 1,195 attacks, Medium 2,269 / 1,235,
+Advanced 2,846 / 1,490. The pass removes 471 / 480 / 421 support attacks and
+713 / 797 / 714 notes respectively, raises global median IOI to 0.125 seconds,
+and reduces rapid fractions to 0.161642 / 0.182334 / 0.394896. Individual
+validation, public note-count ordering, public RH ancestry, and difficulty
+score ordering all pass with the production tolerances. Very Easy, Beginner,
+and Very Beginner are exact no-ops. The old physical Very Easy → Easy count
+edge remains non-normative by contract.
+
+Trusted Classical, Cover, and Pop fixtures are exact six-level no-ops. All six
+Lane A MIDI and MusicXML artifacts round-trip with zero errors; repeated lane
+and artifact runs are byte-identical; withheld-event resurrection is zero.
+The canonical report is
+`frozen-density-normalization-public-contract-2026-09-04.json` with SHA-256
+`f1c83004bf51d53054fbbe8a140423dfe1a6c0b634e24e282e886b350cf35060` and
+canonical digest
+`9a95a6e67827de2ee2c6472161451dd45f9aca3fd3f696fe2ab9de6a642bea0f`.
+
+Decision: `FROZEN_DENSITY_NORMALIZATION_VALIDATED`. Timed-symbolic status is
+`TIMED_SYMBOLIC_MVP_READY`; native authoritative symbolic shadow status is
+`NATIVE_TIMED_SYMBOLIC_REAL_SHADOW_VALIDATED`. Independent audio↔symbolic
+alignment remains `REAL_SYMBOLIC_ALIGNMENT_PARTIAL`, musical quality remains
+`MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`, human listening is
+`NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT`, and deployment remains
+`NOT_DEPLOYED`. Player entry links remain not exercised because this run made
+no catalog writes.
