@@ -194,7 +194,12 @@ export function createBraveSourceCandidateProvider(options: BraveSourceCandidate
 function configuredProductionProvider(): SourceCandidateProvider | null {
   if (process.env.KEYSPILLI_SOURCE_SEARCH_PROVIDER?.trim().toLowerCase() !== "brave") return null;
   const apiKey = process.env.KEYSPILLI_SOURCE_SEARCH_API_KEY;
-  return apiKey?.trim() ? createBraveSourceCandidateProvider({ apiKey }) : null;
+  if (!apiKey?.trim()) return null;
+  try {
+    return createBraveSourceCandidateProvider({ apiKey });
+  } catch {
+    return null;
+  }
 }
 
 export function setSourceCandidateProviderForTests(next: SourceCandidateProvider | null): void {
