@@ -151,4 +151,30 @@ describe("upload route", () => {
 
     expect(ingestSource.mock.calls[0]?.[0].baseId).toBe(ingestSource.mock.calls[1]?.[0].baseId);
   });
+
+  it("logs bounded upload lifecycle events without credentials or user metadata", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
+    try {
+      ingestSource.mockResolvedValueOnce({ baseId: "upload", songIds: ["upload-e"] });
+      const response = await POST(new NextRequest("https://keys.reidar.tech/api/uploads", {
+        method: "POST",
+        headers: { authorization: "Bearer test-token" },
+        body: new Uint8Array([1, 2, 3]),
+      }));
+
+      expect(response.status).toBe(200);
+      const events = info.mock.calls.map(([label, payload]) => ({ label, payload }));
+      expect(events.map((entry) => (entry.payload as { event?: string })?.event)).toEqual([
+        "start",
+        "received",
+        "ingest-start",
+        "complete",
+      ]);
+      expect(JSON.stringify(events)).toContain("sourceHash");
+      expect(JSON.stringify(events)).not.toContain("test-token");
+      expect(JSON.stringify(events)).not.toContain("Untitled Upload");
+    } finally {
+      info.mockRestore();
+    }
+  });
 });

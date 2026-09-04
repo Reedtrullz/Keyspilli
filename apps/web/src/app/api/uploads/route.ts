@@ -89,27 +89,46 @@ function checkAuth(req: Request): Response | null {
 export async function POST(req: NextRequest) {
   const authResponse = checkAuth(req);
   if (authResponse) return authResponse;
+  const startedAt = Date.now();
+  const logUpload = (event: string, fields: Record<string, unknown> = {}) => {
+    console.info("[upload]", { event, elapsedMs: Date.now() - startedAt, ...fields });
+  };
+  logUpload("start");
   let buf: Buffer;
   try {
     buf = await readBoundedBody(req);
   } catch (error) {
     const status = error instanceof UploadTooLargeError ? 400 : 422;
+    logUpload("failed", { category: error instanceof UploadTooLargeError ? "too-large" : "invalid-body" });
     return NextResponse.json({ error: error instanceof Error ? error.message : "invalid upload body" }, { status });
   }
   const title = req.nextUrl.searchParams.get("title") ?? "Untitled Upload";
   const artist = req.nextUrl.searchParams.get("artist") ?? "Unknown";
   const sourceHash = createHash("sha256").update(buf).digest("hex");
-  const result = await ingestSource({
-    buf,
-    baseId: `upload-${sourceHash}`,
-    title,
-    artist,
-    category: "Upload",
-    contentType: "upload",
-    acquiredVia: "upload",
-    sourceRef: `upload:${sourceHash}`,
-  });
-  if (result.error) return NextResponse.json({ error: result.error }, { status: 422 });
+  const baseId = `upload-${sourceHash}`;
+  logUpload("received", { sourceHash, bytes: buf.byteLength, baseId });
+  let result: Awaited<ReturnType<typeof ingestSource>>;
+  try {
+    logUpload("ingest-start", { sourceHash, baseId });
+    result = await ingestSource({
+      buf,
+      baseId,
+      title,
+      artist,
+      category: "Upload",
+      contentType: "upload",
+      acquiredVia: "upload",
+      sourceRef: `upload:${sourceHash}`,
+    });
+  } catch (error) {
+    logUpload("failed", { sourceHash, baseId, category: "ingest-error" });
+    throw error;
+  }
+  if (result.error) {
+    logUpload("failed", { sourceHash, baseId, category: "ingest-rejected" });
+    return NextResponse.json({ error: result.error }, { status: 422 });
+  }
   const easySongId = result.songIds.find((id) => id.endsWith("-e")) ?? result.songIds[0] ?? null;
+  logUpload("complete", { sourceHash, baseId: result.baseId, songCount: result.songIds.length, easySongId });
   return NextResponse.json({ baseId: result.baseId, songIds: result.songIds, easySongId });
 }
