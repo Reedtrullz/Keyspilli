@@ -639,3 +639,47 @@ and exports. Independent audio↔symbolic alignment remains
 `NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT`. The next single task is
 `BOUNDED_MVP_DEPLOYMENT_CANARY`, which requires explicit owner deployment
 authorization and was not executed.
+
+### Bounded MVP deployment canary — 2026-09-04
+
+The owner-authorized canary deployed web release
+`03d19473aea27b8a7dbe494826a27f0b4870d900` with immutable image
+`ghcr.io/reedtrullz/keyspilli:03d19473aea2` (manifest digest
+`sha256:9de9d7904b9ecea2502576e310140b72327b5eef43344561885ce9e7d87ca6a9`).
+The deployment configuration/verifier checkpoint is `3b5bac5`; it also forces
+SSH public-key authentication and uses a binary-safe PDF signature check. The
+first deployment attempt rolled back cleanly when Ansible's URI verifier tried
+to decode a PDF as UTF-8. The corrected retry completed successfully
+(`ok=32 changed=7 failed=0`), with the existing worker image
+`ghcr.io/reedtrullz/keyspilli-worker:17f997600b9f` intentionally unchanged.
+
+The live domain remains internet-routable, but Caddy Basic Auth now protects
+the complete HTTPS edge. Anonymous `/api/health` returns HTTP 401; authenticated
+health is healthy and reports the exact release revision. The application stays
+single-user with its existing bearer/custom-header machine contract; the edge
+credential is stored in the operator's macOS Keychain and no plaintext or hash
+is retained in the repository.
+
+The worker was off for the bounded canary. A deterministic MIDI upload exercised
+six physical rows, five public levels, Easy and legacy Very Easy player routes,
+MIDI/MusicXML/PDF exports, retry idempotency, container-restart durability, and
+cleanup. A deliberately over-dense fixture was rejected with HTTP 422 before
+publication, confirming the playability failure path. The final catalog count
+returned to 2760 and no canary source bytes remain. The backup timer is enabled
+and active; a manual backup completed and its SQLite/artifact archives validated.
+
+Docker evidence is split accurately: local Docker Engine is available, but the
+local Compose plugin was unavailable (`COMPOSE_LOCAL_SMOKE_NOT_EXECUTED`). The
+remote deployment host has Docker Compose 5.1.3 and its Compose topology passed.
+The VPS retained at least 34 GiB free after deployment. No musical policy,
+generated musical bytes, benchmark/reference material, or alignment behavior
+changed in this operations canary.
+
+Decision: `BOUNDED_MVP_RELEASE_CANDIDATE_READY` and
+`DEPLOYED_CANARY_VERIFIED`. This is an owner-authorized canary, not a claim of
+unrestricted production readiness beyond the now-applied private edge. Native
+symbolic intake remains the bounded capability; independent audio↔symbolic
+alignment remains `REAL_SYMBOLIC_ALIGNMENT_PARTIAL`, and musical quality remains
+`MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`. Human listening is
+`NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT`. Deployment is recorded as completed
+for this authorized canary; no further deployment action was performed.

@@ -97,11 +97,37 @@ store and running a normal immutable-image deploy; Ansible regenerates the
 bcrypt hash and reloads Caddy. Do not copy the hash into Git or hand-edit the
 live Caddyfile.
 
-The boundary checkpoint is local-only until explicitly deployed: the current
-VPS/domain remains unchanged and must be treated as publicly reachable. Do not
-describe the live service as private or deployment-ready until the authenticated
-Ansible run has applied the Caddy block and the anonymous-401/authenticated-
-version verifier has passed.
+The boundary checkpoint was local-only before owner authorization. On
+2026-09-04 the authenticated Ansible run applied the Caddy block and the
+anonymous-401/authenticated-version verifier passed; the current live posture
+is documented below. Preserve the historical pre-deployment evidence as
+historical, and do not describe same-origin checks alone as a private boundary.
+
+### Bounded MVP deployment canary — 2026-09-04
+
+The owner-authorized canary deployed the exact web release
+`03d19473aea27b8a7dbe494826a27f0b4870d900` as
+`ghcr.io/reedtrullz/keyspilli:03d19473aea2` (manifest digest
+`sha256:9de9d7904b9ecea2502576e310140b72327b5eef43344561885ce9e7d87ca6a9`).
+The worker remained on its existing image
+`ghcr.io/reedtrullz/keyspilli-worker:17f997600b9f`. Caddy Basic Auth protects
+the full `keys.reidar.tech` HTTPS edge; anonymous health is HTTP 401 and
+authenticated health reports the exact release SHA. The edge credential is
+held in the operator secret store, not in this repository.
+
+The first deploy attempt rolled back when the Ansible PDF verifier decoded a
+binary response as UTF-8. Checkpoint `3b5bac58c7fd989e5f7d8595019f61875c2cd6b6`
+made the verifier stream the PDF signature instead; the retry completed with
+`ok=32 changed=7 failed=0`. The bounded worker-off canary then passed MIDI,
+MusicXML, MXL, six physical rows, five public levels, player routes, exports,
+retry idempotency, restart durability, cleanup, and manual backup validation.
+The remote Compose topology passed; local Compose was not run because the
+local plugin is unavailable. No generated musical bytes or policy changed.
+
+For a future deploy, use the release manifest
+`docs/research/keyspilli-evidence/bounded-mvp-deployment-canary-2026-09-04.json`
+and the evidence entry in
+`docs/research/keyspilli-evidence/KEYSPILLI_PRODUCT_PIPELINE_STATUS_2026_09.md`.
 
 Future explicitly authorized deployment checklist:
 

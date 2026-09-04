@@ -1690,6 +1690,92 @@
       "nextTaskRequiresOwnerAuthorization": true,
       "reproducible": true,
       "rawMediaRetention": "no canary media retained; only path-free metadata is committed"
+    },
+    {
+      "id": "bounded-mvp-deployment-canary-2026-09-04",
+      "date": "2026-09-04",
+      "startingRevision": "03d19473aea27b8a7dbe494826a27f0b4870d900",
+      "checkpointRevision": "3b5bac58c7fd989e5f7d8595019f61875c2cd6b6",
+      "purpose": "Owner-authorized bounded MVP deployment canary with the validated Caddy private edge boundary",
+      "scope": {
+        "product": "private single-user symbolic-upload piano learner",
+        "formats": ["midi", "musicxml", "mxl"],
+        "timingAuthority": "NATIVE_AUTHORITATIVE",
+        "benchmarkMaterialUsed": false,
+        "musicalBehaviorChanges": 0,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT"
+      },
+      "runtime": {
+        "node": "22.22.3",
+        "npm": "10.9.8",
+        "localDocker": "29.7.1 client / 29.5.2 server",
+        "localCompose": "COMPOSE_LOCAL_SMOKE_NOT_EXECUTED; plugin unavailable",
+        "remoteDocker": "29.4.2",
+        "remoteCompose": "5.1.3",
+        "caddy": "2.6.2"
+      },
+      "docker": {
+        "webImageTag": "ghcr.io/reedtrullz/keyspilli:03d19473aea2",
+        "webImageDigest": "sha256:9de9d7904b9ecea2502576e310140b72327b5eef43344561885ce9e7d87ca6a9",
+        "workerImageTag": "ghcr.io/reedtrullz/keyspilli-worker:17f997600b9f",
+        "workerChanged": false,
+        "webImageBuild": "PASS",
+        "webContainerSmoke": "PASS",
+        "localComposeSmoke": "NOT_EXECUTED",
+        "remoteComposeTopology": "PASS"
+      },
+      "accessPosture": {
+        "domain": "keys.reidar.tech",
+        "reachability": "internet-routable",
+        "edge": "Caddy Basic Auth over HTTPS",
+        "anonymousHealth": "HTTP 401",
+        "authenticatedHealth": "healthy on exact release revision",
+        "applicationAuth": "single-user bearer/custom-header contract unchanged",
+        "credentialStorage": "macOS Keychain; no plaintext or hash retained in repository"
+      },
+      "failureAndFix": {
+        "firstAttempt": "ROLLED_BACK; Ansible URI verifier attempted to decode binary PDF as UTF-8",
+        "fix": "3b5bac58c7fd989e5f7d8595019f61875c2cd6b6",
+        "successfulRetry": "PASS"
+      },
+      "canary": {
+        "freshVolume": true,
+        "workerOff": true,
+        "midi": true,
+        "musicxml": true,
+        "mxl": true,
+        "sixPhysicalRows": true,
+        "fivePublicLevels": true,
+        "playerEasy": true,
+        "playerLegacyVeryEasy": true,
+        "exports": {"midi": true, "musicxml": true, "pdf": true},
+        "retryIdempotency": true,
+        "restartDurability": true,
+        "cleanup": true,
+        "finalCatalogCount": 2760,
+        "manualBackup": true,
+        "backupArchiveValidation": true
+      },
+      "security": {
+        "sameOrigin": "PASS",
+        "anonymousEdgeHealth401": true,
+        "wrongEdgeCredential401": true,
+        "crossOriginRejected": true,
+        "malformedAndOversizedInputsRejected": true,
+        "browserTokenExposure": "NOT_OBSERVED",
+        "privatePathLeak": "NOT_OBSERVED"
+      },
+      "decisions": {
+        "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+        "releaseCandidate": "BOUNDED_MVP_RELEASE_CANDIDATE_READY",
+        "deployment": "DEPLOYED_CANARY_VERIFIED",
+        "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT"
+      },
+      "nextTask": "BOUNDED_MVP_POST_DEPLOY_OPERATIONS",
+      "reproducible": true,
+      "rawMediaRetention": "no canary media retained; only path-free metadata and hashes are committed"
     }
   ]
 }
