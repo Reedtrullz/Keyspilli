@@ -629,7 +629,7 @@ public internet with no deployed edge restriction until an owner-authorized
 deployment applies this checkpoint.
 
 Decision: `PRIVATE_DEPLOYMENT_ACCESS_BOUNDARY_VALIDATED_LOCALLY` and
-`BOUNDED_MVP_RELEASE_CANDIDATE_READY_FOR_PRIVATE_DEPLOY`. Deployment decision:
+`BOUNDED_MVP_RELEASE_CANDIDATE_READY`. Deployment decision:
 `DEPLOYMENT_READY_NOT_DEPLOYED` (the live domain remains unchanged). The bounded
 capability is private MIDI/MusicXML/MXL upload with native symbolic timing,
 validated six physical variants, five public levels, persistence, player entry,
