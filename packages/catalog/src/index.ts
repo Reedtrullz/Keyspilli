@@ -29,6 +29,7 @@ export * from "./midi-renderer.js";
 export * from "./research-report.js";
 export * from "./research-cache.js";
 export * from "./generic-source-ranking.js";
+export * from "./source-candidate-handoff.js";
 export * from "./listening-manifest.js";
 export * from "./piano-candidate-diagnostics.js";
 export * from "./piano-section-builder.js";

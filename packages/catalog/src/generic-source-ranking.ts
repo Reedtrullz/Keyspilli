@@ -242,6 +242,35 @@ function safeUrl(value: string): string {
   }
 }
 
+/**
+ * Return a path-free HTTP(S) source URL suitable for an owner-facing handoff.
+ * Query strings, fragments, credentials, and local/private hosts are never
+ * carried into durable metadata. Opaque logical source refs intentionally do
+ * not qualify as an "Open source" link.
+ */
+export function sanitizeGenericExternalUrl(value: unknown): string | null {
+  if (typeof value !== "string" || !value.trim()) return null;
+  let url: URL;
+  try {
+    url = new URL(value.trim());
+  } catch {
+    return null;
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+  const hostname = url.hostname.toLowerCase().replace(/^\[|\]$/g, "").replace(/\.$/, "");
+  if (
+    hostname === "localhost" || hostname.endsWith(".local") || hostname === "::1" ||
+    hostname === "0.0.0.0" || hostname === "127.0.0.1" || hostname === "169.254.169.254" ||
+    /^10\./.test(hostname) || /^192\.168\./.test(hostname) ||
+    /^172\.(?:1[6-9]|2\d|3[0-1])\./.test(hostname)
+  ) return null;
+  url.username = "";
+  url.password = "";
+  url.search = "";
+  url.hash = "";
+  return url.toString();
+}
+
 function isHtml(input: GenericSourceCandidateInput): boolean {
   return Boolean(/^text\/html(?:;|$)/i.test(text(input.mediaType)) || /<!doctype\s+html|<html[\s>]/i.test(text(input.bodyPrefix)));
 }

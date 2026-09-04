@@ -9,6 +9,7 @@ import type {
   GenerationCandidateReadinessCode,
 } from "./generation-candidate-intake.js";
 import type { RegionAlignmentState, RegionTimingAuthority } from "./region-ownership.js";
+import { validateSourceCandidateHandoffLink, type SourceCandidateHandoffLink } from "./source-candidate-handoff.js";
 
 export const ARRANGEMENT_MANIFEST_SCHEMA_VERSION = 1 as const;
 
@@ -237,6 +238,8 @@ export interface ArrangementManifest {
   source?: SourceProvenance;
   /** Explicit generation-candidate ownership for native uploads. */
   candidate?: ArrangementCandidateMetadata;
+  /** Optional user-mediated discovery lineage; never changes upload timing authority. */
+  sourceCandidateHandoff?: SourceCandidateHandoffLink;
   tempo: TempoProvenance;
   /** Absent for standard MIDI/MusicXML uploads without an audio transcription. */
   transcription?: TranscriptionProvenance;
@@ -725,6 +728,9 @@ export function validateArrangementManifest(value: unknown): string[] {
   }
   if (value.source !== undefined) validateSourceProvenance(value.source, "source", errors);
   if (value.candidate !== undefined) validateCandidateMetadata(value.candidate, "candidate", errors);
+  if (value.sourceCandidateHandoff !== undefined) {
+    errors.push(...validateSourceCandidateHandoffLink(value.sourceCandidateHandoff));
+  }
   if (!isRecord(value.tempo)) {
     errors.push("tempo must be an object");
   } else {

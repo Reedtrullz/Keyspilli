@@ -209,6 +209,14 @@ export function getDb(): Database.Database {
       created_at TEXT NOT NULL,
       finished_at TEXT
     );
+    CREATE TABLE IF NOT EXISTS source_candidate_handoffs (
+      id TEXT PRIMARY KEY,
+      state TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      payload TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_source_candidate_handoffs_expiry ON source_candidate_handoffs(expires_at);
   `);
   migrateColumn(conn, "conversion_jobs", "attempts", "INTEGER NOT NULL DEFAULT 0");
   migrateColumn(conn, "conversion_jobs", "started_at", "TEXT");

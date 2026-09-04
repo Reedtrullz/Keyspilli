@@ -1,7 +1,16 @@
 import { createHash } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { ingestSource } from "@keyspilli/catalog";
-import { apiAuthorization } from "../../../lib/api-auth";
+import { inferIngestFormat, ingestSource } from "@keyspilli/catalog";
+import {
+  acceptSourceCandidateHandoff,
+  bindSourceCandidateUpload,
+  getSourceCandidateHandoff,
+  rejectSourceCandidateHandoff,
+  saveSourceCandidateHandoff,
+  type SourceCandidateHandoff,
+  type SourceCandidateHandoffLink,
+} from "@keyspilli/catalog";
+import { checkMutationAuth } from "../../../lib/mutation-auth";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -37,58 +46,8 @@ async function readBoundedBody(req: Request): Promise<Buffer> {
   return Buffer.concat(chunks, total);
 }
 
-function sameOriginBrowser(req: Request): boolean {
-  const origin = req.headers.get("origin");
-  if (!origin) return req.headers.get("sec-fetch-site") === "same-origin";
-  let originUrl: URL;
-  let requestUrl: URL;
-  try {
-    originUrl = new URL(origin);
-    requestUrl = new URL(req.url);
-  } catch {
-    return false;
-  }
-  const forwardedProto = req.headers.get("x-forwarded-proto")?.split(",", 1)[0]?.trim();
-  const forwardedHost = req.headers.get("x-forwarded-host")?.split(",", 1)[0]?.trim();
-  const requestHost = forwardedHost ?? req.headers.get("host");
-  if (forwardedProto) requestUrl.protocol = forwardedProto.endsWith(":") ? forwardedProto : `${forwardedProto}:`;
-  if (requestHost) requestUrl.host = requestHost;
-  return originUrl.origin === requestUrl.origin;
-}
-
-function sameOriginGuard(req: Request): Response | null {
-  const fetchSite = req.headers.get("sec-fetch-site");
-  if (fetchSite === "cross-site" || fetchSite === "same-site") {
-    return NextResponse.json({ error: "cross-origin request rejected" }, { status: 403 });
-  }
-  const origin = req.headers.get("origin");
-  if (origin && !sameOriginBrowser(req)) {
-    return NextResponse.json({ error: "cross-origin request rejected" }, { status: 403 });
-  }
-  return null;
-}
-
-function checkAuth(req: Request): Response | null {
-  const token = process.env.KEYSPILLI_API_TOKEN;
-  const auth = apiAuthorization(req);
-  if (token && auth === `Bearer ${token}`) return null;
-
-  const originResponse = sameOriginGuard(req);
-  if (originResponse) return originResponse;
-  if (!auth && sameOriginBrowser(req)) return null;
-
-  if (!token) {
-    console.error("KEYSPILLI_API_TOKEN is not configured; rejecting mutation request");
-    return NextResponse.json(
-      { error: "server authentication is not configured" },
-      { status: 503 },
-    );
-  }
-  return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-}
-
 export async function POST(req: NextRequest) {
-  const authResponse = checkAuth(req);
+  const authResponse = checkMutationAuth(req);
   if (authResponse) return authResponse;
   const startedAt = Date.now();
   const logUpload = (event: string, fields: Record<string, unknown> = {}) => {
@@ -107,6 +66,31 @@ export async function POST(req: NextRequest) {
   const artist = req.nextUrl.searchParams.get("artist") ?? "Unknown";
   const sourceHash = createHash("sha256").update(buf).digest("hex");
   const baseId = `upload-${sourceHash}`;
+  const handoffId = req.nextUrl.searchParams.get("handoffId");
+  let handoff: SourceCandidateHandoff | null = null;
+  let handoffLink: SourceCandidateHandoffLink | null = null;
+  if (handoffId !== null) {
+    handoff = getSourceCandidateHandoff(handoffId);
+    if (!handoff) return NextResponse.json({ error: "source candidate handoff not found or expired" }, { status: 404 });
+    if (handoff.state === "EXPIRED") return NextResponse.json({ error: "source candidate handoff not found or expired" }, { status: 404 });
+    const affirmed = req.nextUrl.searchParams.get("userAffirmedTarget");
+    if (affirmed !== "true" && affirmed !== "1") {
+      return NextResponse.json({ error: "user target confirmation is required" }, { status: 400 });
+    }
+    if (!handoff.userAffirmedTarget) return NextResponse.json({ error: "source candidate handoff is not affirmed" }, { status: 403 });
+    try {
+      const binding = bindSourceCandidateUpload(handoff, {
+        uploadedSourceSha256: sourceHash,
+        uploadedFormat: inferIngestFormat(buf),
+        intakeCandidateId: baseId,
+      });
+      handoff = binding.handoff;
+      handoffLink = binding.link;
+      saveSourceCandidateHandoff(handoff);
+    } catch (error) {
+      return NextResponse.json({ error: error instanceof Error ? error.message : "source handoff binding failed" }, { status: 400 });
+    }
+  }
   logUpload("received", { sourceHash, bytes: buf.byteLength, baseId });
   let result: Awaited<ReturnType<typeof ingestSource>>;
   try {
@@ -120,15 +104,21 @@ export async function POST(req: NextRequest) {
       contentType: "upload",
       acquiredVia: "upload",
       sourceRef: `upload:${sourceHash}`,
+      ...(handoffLink ? { sourceCandidateHandoff: handoffLink } : {}),
     });
   } catch (error) {
+    if (handoff) {
+      saveSourceCandidateHandoff(rejectSourceCandidateHandoff(handoff, "ingest failed"));
+    }
     logUpload("failed", { sourceHash, baseId, category: "ingest-error" });
     throw error;
   }
   if (result.error) {
+    if (handoff) saveSourceCandidateHandoff(rejectSourceCandidateHandoff(handoff, result.error));
     logUpload("failed", { sourceHash, baseId, category: "ingest-rejected" });
     return NextResponse.json({ error: result.error }, { status: 422 });
   }
+  if (handoff) saveSourceCandidateHandoff(acceptSourceCandidateHandoff(handoff));
   const easySongId = result.songIds.find((id) => id.endsWith("-e")) ?? result.songIds[0] ?? null;
   logUpload("complete", { sourceHash, baseId: result.baseId, songCount: result.songIds.length, easySongId });
   return NextResponse.json({ baseId: result.baseId, songIds: result.songIds, easySongId });
