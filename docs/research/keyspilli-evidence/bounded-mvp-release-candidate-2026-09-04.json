@@ -80,7 +80,7 @@
     "workspaceTypechecks": 6,
     "gitDiffCheck": true,
     "deterministicRetry": true,
-    "diskFreeGiB": 71
+    "diskFreeGiB": 70
   },
   "decisions": {
     "releaseCandidate": "BOUNDED_MVP_RELEASE_CANDIDATE_PARTIAL",

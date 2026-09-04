@@ -1588,7 +1588,7 @@
         "backupRestoreSmoke": true,
         "deterministicRetry": true,
         "gitDiffCheck": true,
-        "diskFreeGiBAtClose": 71,
+        "diskFreeGiBAtClose": 70,
         "ciExactShaObserved": false
       },
       "rollback": {
