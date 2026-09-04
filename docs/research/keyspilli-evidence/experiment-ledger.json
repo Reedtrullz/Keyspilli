@@ -1674,7 +1674,8 @@
         "productionBuild": true,
         "ansibleSyntax": true,
         "gitDiffCheck": true,
-        "diskFreeGiB": 72,
+        "startingDiskFreeGiB": 72,
+        "diskFreeGiB": 66,
         "exactShaCiObserved": false
       },
       "decisions": {

@@ -80,7 +80,8 @@
     "ansibleSyntax": "PASS",
     "gitDiffCheck": "PASS",
     "determinism": "stable source-hash retry and fixed configuration; no generated report bytes retained",
-    "diskFreeGiB": 72,
+    "startingDiskFreeGiB": 72,
+    "diskFreeGiB": 66,
     "exactShaCiObserved": false
   },
   "decisions": {
