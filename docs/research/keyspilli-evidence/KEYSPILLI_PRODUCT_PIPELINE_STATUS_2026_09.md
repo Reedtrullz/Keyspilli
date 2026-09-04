@@ -7,7 +7,8 @@ promoted off-grid learner-policy change, and the separately frozen density
 Candidate A is now validated under the public five-level contract and wired in
 the learner production ladder. The semantic-harmony/source-lineage work and
 the candidate-intake work below are additive; no benchmark material entered
-generation and no production data was written.
+generation. The authorized live canary temporarily wrote and then removed its
+test rows/source bytes; no canary content was retained.
 
 The preceding intake/shadow mission started at
 `d284b911b2a1ce3e22ce701f0ca02588f1f2b238`. The current real-timing
@@ -685,3 +686,55 @@ alignment remains `REAL_SYMBOLIC_ALIGNMENT_PARTIAL`, and musical quality remains
 `MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`. Human listening is
 `NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT`. Deployment is recorded as completed
 for this authorized canary; no further deployment action was performed.
+
+### Bounded MVP post-deploy operations — 2026-09-04
+
+The read-only post-deploy audit started from documentation checkpoint
+`d6948b414d04bc93105346823a6010c812966065`, which matches the remote branch.
+The live web container remains the exact deployed release
+`03d19473aea27b8a7dbe494826a27f0b4870d900` (`ghcr.io/reedtrullz/keyspilli:03d19473aea2`,
+manifest digest `sha256:9de9d7904b9ecea2502576e310140b72327b5eef43344561885ce9e7d87ca6a9`,
+image id `sha256:1f392903a7d08bc8887985e42fc9d49e946eb9872f6b661dcf30de434cdf2538`).
+Authenticated health is healthy on that exact revision; the web container has
+zero restarts and no OOM kill. The worker remains unchanged on
+`ghcr.io/reedtrullz/keyspilli-worker:17f997600b9f`, with zero restarts.
+
+The private boundary is active: anonymous HTTPS health returns 401, wrong
+credentials return 401, authenticated `/uploads` and the read-only player/export
+flow succeed, and a cross-origin upload attempt returns 403. Caddy 2.6.2 is
+active with a valid Let's Encrypt certificate through 2026-10-17. The VPS
+firewall exposes only SSH/HTTP/HTTPS; Keyspilli listens on loopback
+`127.0.0.1:3008`. The operator credential is recoverable from macOS Keychain;
+no plaintext credential, hash, token, private path, or source bytes were found
+in repository/report/API payload checks.
+
+The read-only SQLite check returned `integrity_check = ok`: 463 base groups have
+six rows each, all 2,778 artifact note files are present, and no upload-like
+deployment-canary base remains. The public projection reports 2,760 songs while
+the internal database contains 2,778 complete rows, a known projection
+difference. The backup timer is enabled/active, its last automatic run and the
+manual run both succeeded, and the latest artifact archive validated. The
+existing scratch restore evidence remains passing.
+
+The host has 33.3 GiB free, above the 30 GiB hard floor but below the 34 GiB
+preferred floor, and swap is nearly full. No cleanup or restart was performed;
+reclaimable Docker build cache (1.787 GB) and image space (818.3 MB) are
+recorded as explicit future candidates only. Caddy access logs and external
+uptime/disk/backup/certificate/container alerting are not configured, so exact
+HTTP 5xx totals and proactive alerts are unavailable; current evidence is
+limited to container health, journal/log scans, timer state, and direct probes.
+
+Rollback prerequisites remain intact: current and rollback image tags exist,
+the Compose file validates, the persistent data volume is preserved by the
+rescue path, and no orphan Keyspilli containers were found. The local Compose
+plugin remains unavailable, while remote Compose 5.1.3 validation is passing.
+
+Decision: `BOUNDED_MVP_POST_DEPLOY_OPERATIONS_VALIDATED`, with storage decision
+`VPS_STORAGE_NEAR_HARD_FLOOR` and release posture
+`PRIVATE_BOUNDED_MVP_LIVE_VERIFIED`. This closes the bounded symbolic MVP
+operations audit without changing generated musical bytes or research
+conclusions. Independent score/audio alignment remains
+`REAL_SYMBOLIC_ALIGNMENT_PARTIAL`; musical quality remains
+`MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`; human listening remains
+`NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT`. No new deployment or VPS mutation was
+performed. The single next task is `METAL_TO_MIDI_RELEASE_GAP_REASSESSMENT`.

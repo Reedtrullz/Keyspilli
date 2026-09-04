@@ -153,6 +153,52 @@ Compose v2 was unavailable on the audit host, so local Compose smoke is
 `COMPOSE_LOCAL_SMOKE_NOT_EXECUTED`, not a pass. The private-edge canary runs a
 disposable Caddy 2.6.2 container and does not change the live VPS.
 
+### Post-deploy operations audit — 2026-09-04
+
+The live bounded MVP is the immutable web image
+`ghcr.io/reedtrullz/keyspilli:03d19473aea2` at release revision
+`03d19473aea27b8a7dbe494826a27f0b4870d900`. For a read-only operator check,
+recover the edge password directly into a process environment and do not print
+it:
+
+```bash
+export KEYSPILLI_ACCESS_PASSWORD="$(security find-generic-password -a keyspilli-owner -s keyspilli-production-basic-auth -w)"
+curl --fail --silent --user "reidar:$KEYSPILLI_ACCESS_PASSWORD" https://keys.reidar.tech/api/health
+unset KEYSPILLI_ACCESS_PASSWORD
+```
+
+The expected response is `healthy` with the exact release revision and image.
+Anonymous HTTPS health must be HTTP 401; HTTP is only a 308 redirect. The web
+container should remain healthy with zero restarts, and the worker image should
+remain unchanged unless a separately authorized deployment says otherwise.
+The app is loopback-bound on the VPS (`127.0.0.1:3008`); Caddy is the HTTPS
+Basic Auth boundary. Do not treat same-origin checks as the private boundary.
+
+Read-only host checks:
+
+```bash
+docker ps --filter name=keyspilli
+docker system df
+df -h /
+systemctl status keyspilli-backup.timer
+systemctl list-timers keyspilli-backup.timer
+journalctl -u keyspilli-backup.service --since today
+caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+```
+
+The 2026-09-04 audit found a coherent SQLite/artifact set, valid rollback image
+tags, and successful automatic/manual backup validation. The host had 33.3 GiB
+free (above the 30 GiB hard floor, below the 34 GiB preferred floor) and nearly
+full swap. Do not prune or restart during an audit; record the exact reclaimable
+Docker cache/image candidates and obtain separate authorization before cleanup.
+The host has no retained Caddy access log or external uptime/disk/backup/cert/
+container alerting, so proactive monitoring and exact HTTP 5xx totals are not
+available; container health, journal scans, timer state, and direct probes are
+the current evidence boundary.
+
+The path-free audit record is
+`docs/research/keyspilli-evidence/bounded-mvp-post-deploy-operations-2026-09-04.json`.
+
 ## Adding songs from the Ultimate Guitar list
 
 `catalog/ug-tabs.json` is the source list (82 songs from "My tabs @

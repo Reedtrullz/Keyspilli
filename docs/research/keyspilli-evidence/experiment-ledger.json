@@ -1776,6 +1776,62 @@
       "nextTask": "BOUNDED_MVP_POST_DEPLOY_OPERATIONS",
       "reproducible": true,
       "rawMediaRetention": "no canary media retained; only path-free metadata and hashes are committed"
+    },
+    {
+      "id": "bounded-mvp-post-deploy-operations-2026-09-04",
+      "date": "2026-09-04",
+      "startingRevision": "d6948b414d04bc93105346823a6010c812966065",
+      "purpose": "Read-only verification of the owner-authorized bounded MVP live deployment",
+      "scope": {
+        "product": "private single-user symbolic-upload piano learner",
+        "liveReleaseRevision": "03d19473aea27b8a7dbe494826a27f0b4870d900",
+        "webImage": "ghcr.io/reedtrullz/keyspilli:03d19473aea2",
+        "workerImageUnchanged": true,
+        "mutations": "none",
+        "musicalBehaviorChanges": 0,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT"
+      },
+      "operations": {
+        "identity": "PASS; authenticated health exact release revision/image",
+        "privateBoundary": "PASS; Caddy Basic Auth, anonymous 401, wrong credential 401, cross-origin upload 403",
+        "tls": "PASS; Let's Encrypt wildcard certificate through 2026-10-17",
+        "listeners": "PASS; only 22/80/443 public, Keyspilli loopback-bound",
+        "logs": "PASS within retained evidence; no structured 5xx/error/OOM/restart tokens; Caddy access log not retained",
+        "catalog": "PASS; SQLite integrity ok, 463 complete six-row groups, 2,778 note files, no canary base",
+        "backup": "PASS; timer active, automatic/manual runs successful, archive validated",
+        "rollback": "PASS; current/rollback tags and persistent data volume present, Compose validates",
+        "credentialRecovery": "PASS via macOS Keychain; no secret emitted",
+        "sourcePrivacy": "PASS; no repository/API/player path leak observed",
+        "monitoring": "PARTIAL; no external uptime/disk/backup/certificate/container alerting observed"
+      },
+      "storage": {
+        "decision": "VPS_STORAGE_NEAR_HARD_FLOOR",
+        "freeGiB": 33.3,
+        "hardFloorGiB": 30,
+        "preferredGiB": 34,
+        "reclaimableCandidates": ["Docker build cache 1.787GB", "unused image space 818.3MB"],
+        "cleanupPerformed": false,
+        "swap": "approximately 1.0GiB used of 1.0GiB"
+      },
+      "verification": {
+        "workspaceTests": 1637,
+        "workspaceTypechecks": 6,
+        "gitDiffCheck": true,
+        "localCompose": "COMPOSE_LOCAL_SMOKE_NOT_EXECUTED",
+        "remoteCompose": "5.1.3 config validation passed",
+        "exactShaCiChecks": "none returned by GitHub check-run query",
+        "deterministicReport": "path-free JSON; validated after commit"
+      },
+      "decisions": {
+        "operations": "BOUNDED_MVP_POST_DEPLOY_OPERATIONS_VALIDATED",
+        "releasePosture": "PRIVATE_BOUNDED_MVP_LIVE_VERIFIED",
+        "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT"
+      },
+      "nextTask": "METAL_TO_MIDI_RELEASE_GAP_REASSESSMENT",
+      "reproducible": true,
+      "rawMediaRetention": "no canary source bytes retained; only path-free metadata and hashes are committed"
     }
   ]
 }
