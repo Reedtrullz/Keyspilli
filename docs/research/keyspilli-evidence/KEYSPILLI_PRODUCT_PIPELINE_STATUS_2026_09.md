@@ -776,3 +776,38 @@ confidence fields, then fail closed when evidence is insufficient. Independent
 score/audio alignment remains `REAL_SYMBOLIC_ALIGNMENT_PARTIAL`; musical
 quality remains `MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`; human listening
 is `NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT`; deployment status is unchanged.
+
+## 2026-09-05 — Generic real-song source discovery and ranking
+
+The exact 20-song non-benchmark sample was searched through one public web
+metadata provider using one frozen query family. The compact snapshot is
+`generic-real-song-source-discovery-and-ranking-2026-09-04.json`, with a
+concise companion at
+`generic-real-song-source-discovery-and-ranking-2026-09-04.md`. The search
+captured one top result per query (20 calls, 17 URLs), fetched no pages, and
+downloaded no source bytes. The seven protected benchmark songs remained
+excluded.
+
+The new pure metadata ranker in
+`packages/catalog/src/generic-source-ranking.ts` reuses the existing candidate
+class/firewall vocabulary and SHA helper. It records evidence format, identity
+and version confidence, timing authority, rights, access, roles, region,
+parser status, eligibility, and deterministic ranking reasons. It keeps the
+best relevant lead separate from the best automatically eligible candidate;
+the control corpus produced zero identity/version/firewall/HTML-masquerade
+violations and stable repeated digests.
+
+Cold coverage is 13/20 strong structured MIDI leads, 0/20 automatic-acquisition
+eligible leads, and 13/20 user-mediated structured leads. No structured lead
+had independently justified native/performance timing; timing is unknown for
+13/13 structured leads. The pre-registered automatic gate (6/20) therefore
+fails, while the user-mediated gate (10/20) and structured-discovery floor
+(10/20) pass.
+
+Decision: `USER_MEDIATED_SOURCE_DISCOVERY_HEADROOM_PROVEN`; strategic
+consequence `NARROWED_TO_USER_MEDIATED`; near-term scope
+`DISCOVERY_ASSISTED_USER_UPLOAD_PRIVATE_ALPHA`; exactly one next task
+`USER_MEDIATED_SOURCE_CANDIDATE_HANDOFF`. The external-symbolic-first route is
+narrowed, not abandoned. `REAL_SYMBOLIC_ALIGNMENT_PARTIAL`,
+`MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`,
+`NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT`, and `NO_DEPLOYMENT` remain unchanged.

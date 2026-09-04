@@ -1880,6 +1880,62 @@
       "reproducible": true,
       "nextTask": "GENERIC_REAL_SONG_SOURCE_DISCOVERY_AND_CANDIDATE_RANKING",
       "rawMediaRetention": "no source bytes retained or committed; public URLs only in report"
+    },
+    {
+      "id": "generic-real-song-source-discovery-and-ranking-2026-09-04",
+      "date": "2026-09-05",
+      "startingRevision": "d63e013ea99a8ca6155243f862ab3525d36f0c57",
+      "purpose": "Cold public metadata discovery and deterministic ranking for the exact 20-song non-benchmark sample",
+      "scope": {
+        "provider": "web/Jina Reader search",
+        "queryFamily": "<artist> \"<title>\" MIDI",
+        "queryCalls": 20,
+        "capturedUrls": 17,
+        "pageMetadataFetches": 0,
+        "bytesDownloaded": 0,
+        "benchmarkMaterialUsed": false,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NO_DEPLOYMENT"
+      },
+      "coverage": {
+        "songs": 20,
+        "structuredLeads": 13,
+        "midiLeads": 13,
+        "musicXmlOrMxlLeads": 0,
+        "guitarProLeads": 0,
+        "pianoCoverLeads": 1,
+        "semanticTabOrChordOnly": 2,
+        "noUsefulEvidence": 3,
+        "automaticAcquisitionEligible": 0,
+        "userMediatedStructured": 13,
+        "nativeOrPerformanceTimingPotential": 0,
+        "unknownTimingStructured": 13
+      },
+      "controls": {
+        "count": 8,
+        "firewallViolations": 0,
+        "wrongVersionAutomatic": 0,
+        "rightsBlockedAutomatic": 0,
+        "benchmarkDiagnosticAutomatic": 0,
+        "htmlMasqueradeAccepted": 0,
+        "deterministic": true
+      },
+      "report": {
+        "json": "generic-real-song-source-discovery-and-ranking-2026-09-04.json",
+        "jsonSha256": "d6c77057a1cc13da55b6cac9c16f3a0de52b2350bea55cf24d1dc1d810c52e08",
+        "markdown": "generic-real-song-source-discovery-and-ranking-2026-09-04.md",
+        "rankerDigest": "657342bdbffd20b10872f3a32e6f3e7d8c9aa08ac485af8ca0ef838da51de483"
+      },
+      "decisions": {
+        "primary": "USER_MEDIATED_SOURCE_DISCOVERY_HEADROOM_PROVEN",
+        "strategicConsequence": "NARROWED_TO_USER_MEDIATED",
+        "nearTermScope": "DISCOVERY_ASSISTED_USER_UPLOAD_PRIVATE_ALPHA",
+        "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED"
+      },
+      "nextTask": "USER_MEDIATED_SOURCE_CANDIDATE_HANDOFF",
+      "reproducible": true,
+      "rawMediaRetention": "no source bytes downloaded or retained; path-free metadata only"
     }
   ]
 }
