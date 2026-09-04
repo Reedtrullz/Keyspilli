@@ -8,15 +8,32 @@ export type { VariantValidationOptions } from "./validate.js";
 export {
   measurePlayability,
   assessPlayability,
+  groupPlayabilityAttacks,
   PLAYABILITY_AUDIT_CONFIG,
 } from "./playability-audit.js";
 export type {
+  PlayabilityAttack,
   PlayabilityIoiSummary,
   PlayabilityHandMetrics,
   PlayabilityRapidRegion,
   PlayabilityAuditMetrics,
   PlayabilityAssessment,
 } from "./playability-audit.js";
+export {
+  DENSITY_NORMALIZATION_AUDIT_CONFIG,
+  analyzeDensityAttacks,
+  boundedDensityDeletionOracle,
+  compareDensityAttackSets,
+  selectProtectedSemanticLocalThinning,
+} from "./density-normalization-audit.js";
+export type {
+  DensityAttackAnalysis,
+  DensityAttackSemantics,
+  DensityDifferentialRow,
+  DensityOracleResult,
+  DensitySelectionResult,
+  DensitySemanticPriority,
+} from "./density-normalization-audit.js";
 export {
   cleanTranscription,
   sanitizeImportedNotes,

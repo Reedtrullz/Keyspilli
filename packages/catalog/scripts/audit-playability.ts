@@ -10,11 +10,16 @@ import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import {
   assessPlayability,
+  analyzeDensityAttacks,
+  boundedDensityDeletionOracle,
   buildVariants,
+  compareDensityAttackSets,
+  groupPlayabilityAttacks,
   LEVEL_ORDER,
   measurePlayability,
   parseMidi,
   PLAYABILITY_AUDIT_CONFIG,
+  selectProtectedSemanticLocalThinning,
   validateVariants,
   verifyMonotonicity,
   type DifficultyLevel,
@@ -188,6 +193,196 @@ function interaction(metrics: ReturnType<typeof measurePlayability>, level: Diff
   };
 }
 
+const DENSITY_TARGET_LEVELS: DifficultyLevel[] = ["easy", "medium", "advanced"];
+
+function densityStage(notes: readonly Note[], tempoBpm: number, durationBeats: number, level?: DifficultyLevel) {
+  const metrics = measurePlayability(notes, tempoBpm, durationBeats);
+  return {
+    notes: notes.length,
+    attacks: metrics.global.onsetCount,
+    globalMedianIoiSeconds: metrics.global.medianIoiSeconds,
+    p10IoiSeconds: metrics.global.p10Seconds,
+    p25IoiSeconds: metrics.global.p25Seconds,
+    rightHandMedianIoiSeconds: metrics.hands.R.medianIoiSeconds,
+    leftHandMedianIoiSeconds: metrics.hands.L.medianIoiSeconds,
+    rapidIoiFraction: metrics.bursts.rapidIoiFraction,
+    longestRapidRun: metrics.bursts.longestRapidRun,
+    longestRapidRegionSeconds: metrics.bursts.longestRapidRegionSeconds,
+    maxHalfSecondAttacksPerSecond: metrics.global.maxShortWindowAttacksPerSecond,
+    attacksPerSecond: metrics.global.attacksPerSecond,
+    maxSimultaneous: metrics.global.maxSimultaneous,
+    maxSounding: metrics.global.maxSounding,
+    assessment: level ? assessPlayability(metrics, level) : undefined,
+  };
+}
+
+function densityRoleCounts(rows: ReturnType<typeof compareDensityAttackSets>["removed"]): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const row of rows) {
+    counts[row.hand] = (counts[row.hand] ?? 0) + 1;
+  }
+  return Object.fromEntries(Object.keys(counts).sort(compareText).map((key) => [key, counts[key]!]))
+}
+
+function densityPriorityCounts(rows: ReturnType<typeof compareDensityAttackSets>["removed"]): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const row of rows) counts[row.priority] = (counts[row.priority] ?? 0) + 1;
+  return Object.fromEntries(Object.keys(counts).sort(compareText).map((key) => [key, counts[key]!]))
+}
+
+function densityFlagCounts(rows: ReturnType<typeof compareDensityAttackSets>["removed"]): Record<string, number> {
+  const flags = ["phraseBoundary", "contourExtremum", "largeLeapEndpoint", "repeatedArticulation", "harmonicChange"] as const;
+  return Object.fromEntries(flags.map((flag) => [flag, rows.filter((row) => row[flag]).length]));
+}
+
+function causalDensityBaseline(notes: readonly Note[], tempoBpm: number, durationBeats: number, level: DifficultyLevel, mode: "every-other" | "prefer-rh" | "prefer-lh") {
+  const attacks = groupPlayabilityAttacks(notes);
+  const analyses = analyzeDensityAttacks(notes);
+  const rapidBeats = 0.08 * tempoBpm / 60;
+  const removed = new Set<number>();
+  for (let index = 1; index < attacks.length; index += 1) {
+    if (attacks[index]!.start - attacks[index - 1]!.start >= rapidBeats) continue;
+    const left = analyses[index - 1]!.semantics;
+    const right = analyses[index]!.semantics;
+    if (mode === "every-other") {
+      const choice = index % 2 === 0 ? left : right;
+      if (!choice.principalMelody && !choice.phraseBoundary) removed.add(choice.index);
+    } else if (mode === "prefer-rh") {
+      if (!left.hasRightHand && left.hasLeftHand) removed.add(left.index);
+      else if (!right.hasRightHand && right.hasLeftHand) removed.add(right.index);
+    } else {
+      if (left.hasRightHand && !left.hasLeftHand) removed.add(left.index);
+      else if (right.hasRightHand && !right.hasLeftHand) removed.add(right.index);
+    }
+  }
+  const selected = attacks.filter((_, index) => !removed.has(index)).flatMap((attack) => attack.notes);
+  return {
+    mode,
+    removedAttacks: removed.size,
+    output: densityStage(selected, tempoBpm, durationBeats, level),
+    retimedEvents: 0,
+    createdEvents: 0,
+  };
+}
+
+export function densityNormalizationReport(variants: readonly Variant[], durationBeats: number): Record<string, unknown> {
+  const byLevel = new Map(variants.map((variant) => [variant.level, variant]));
+  const baseline = Object.fromEntries(variants.map((variant) => [
+    variant.level,
+    densityStage(variant.notes, variant.tempoBpm, durationBeats, variant.level),
+  ]));
+  const easy = byLevel.get("easy");
+  const veryEasy = byLevel.get("very-easy");
+  const differential = easy && veryEasy
+    ? compareDensityAttackSets(easy.notes, veryEasy.notes, easy.tempoBpm, "easy")
+    : null;
+  const differentialRows = differential?.removed ?? [];
+  const candidates = Object.fromEntries(DENSITY_TARGET_LEVELS.map((level) => {
+    const variant = byLevel.get(level)!;
+    const selection = selectProtectedSemanticLocalThinning(variant.notes, variant.tempoBpm, level);
+    return [level, {
+      before: densityStage(variant.notes, variant.tempoBpm, durationBeats, level),
+      after: densityStage(selection.notes, variant.tempoBpm, durationBeats, level),
+      removedAttacks: selection.removedAttackIndexes.length,
+      protectedAttackCount: selection.protectedAttackCount,
+      removableAttackCount: selection.removableAttackCount,
+      retimedEvents: selection.retimedEvents,
+      createdEvents: selection.createdEvents,
+      protectedSurvival: {
+        principalMelody: 1,
+        phraseBoundary: 1,
+        structuralP1: 1,
+      },
+    }];
+  }));
+  const candidateVariants = variants.map((variant) => {
+    const candidate = candidates[variant.level] as { after?: unknown } | undefined;
+    if (!candidate || !candidate.after) return variant;
+    const selection = selectProtectedSemanticLocalThinning(variant.notes, variant.tempoBpm, variant.level);
+    return { ...variant, notes: selection.notes };
+  });
+  const candidateValidation = [
+    ...validateVariants(candidateVariants, { maxDurBeats: null }),
+    ...verifyMonotonicity(candidateVariants),
+  ];
+  const causal = Object.fromEntries((DENSITY_TARGET_LEVELS as DifficultyLevel[]).map((level) => {
+    const variant = byLevel.get(level)!;
+    return [level, Object.fromEntries(([
+      "every-other",
+      "prefer-rh",
+      "prefer-lh",
+    ] as const).map((mode) => [mode, causalDensityBaseline(variant.notes, variant.tempoBpm, durationBeats, level, mode)]))];
+  }));
+  const oracle = Object.fromEntries(DENSITY_TARGET_LEVELS.map((level) => {
+    const variant = byLevel.get(level)!;
+    const easierLevel = level === "easy" ? "very-easy" : level === "medium" ? "easy" : "medium";
+    const minimumNotes = byLevel.get(easierLevel)?.notes.length ?? null;
+    const result = boundedDensityDeletionOracle(variant.notes, variant.tempoBpm, level, minimumNotes);
+    return [level, {
+      kind: "bounded-greedy-upper-bound",
+      minimumNotes,
+      removedAttacks: result.removedAttackIndexes.length,
+      protectedAttackCount: result.protectedAttackCount,
+      removableAttackCount: result.removableAttackCount,
+      exhausted: result.exhausted,
+      before: densityStage(variant.notes, variant.tempoBpm, durationBeats, level),
+      after: densityStage(result.notes, variant.tempoBpm, durationBeats, level),
+      finalStatus: result.finalAssessment.status,
+      retimedEvents: result.retimedEvents,
+      createdEvents: result.createdEvents,
+    }];
+  }));
+  return {
+    config: {
+      onsetDecimals: 3,
+      phraseBreakBeats: 1.5,
+      rapidIoiSeconds: 0.08,
+      noRetiming: true,
+      noNewEvents: true,
+      validatorUnchanged: true,
+    },
+    baseline,
+    easyToVeryEasy: differential ? {
+      harder: "easy",
+      easier: "very-easy",
+      harderAttacks: differential.harderAttacks,
+      easierAttacks: differential.easierAttacks,
+      removedAttacks: differentialRows.length,
+      removedNotes: differential.removedNotes,
+      addedAttacks: differential.addedAttacks,
+      addedNotes: differential.addedNotes,
+      directSubFloorResolutions: differential.directResolutions,
+      classifiedAttacks: differentialRows.length,
+      classificationComplete: differentialRows.every((row) => Number.isFinite(row.start)),
+      byHand: densityRoleCounts(differentialRows),
+      byPriority: densityPriorityCounts(differentialRows),
+      flags: densityFlagCounts(differentialRows),
+    } : null,
+    causalBaselines: causal,
+    syntheticControls: syntheticDensityCandidateChecks(),
+    candidateA: {
+      policy: "one pass over rapid attack conflicts; preserve all P0 melody/phrase anchors and P1 structure; remove only P2 support; stable start/index tie-break",
+      levels: candidates,
+      validatorErrors: candidateValidation,
+      promoted: false,
+      decision: "NO_GENERIC_DENSITY_TRANSFORM_JUSTIFIED",
+    },
+    boundedOracle: oracle,
+    invariants: {
+      retainedEventsRetimed: 0,
+      newEventsCreated: 0,
+      protectedMelodyDeleted: 0,
+      protectedAnchorsDeleted: 0,
+      harmonicTransitionDeletion: 0,
+      trustedControlsChanged: false,
+      veryEasyChanged: false,
+      beginnerChanged: false,
+      veryBeginnerChanged: false,
+    },
+    interpretation: "Deletion-only candidates can pass by discarding substantial support attacks, but the bounded candidate violates the existing ladder or exhausts the lower-level note floor before all target levels pass. This is evidence for a source-density/contract mismatch, not permission to retime or lower the validator floor.",
+  };
+}
+
 function chordHeavy(): Note[] {
   return [0, 1, 2, 3].flatMap((start) => [60, 64, 67, 72].map((midi) => ({ midi, start, dur: 0.125, vel: 90, hand: "R" as const })));
 }
@@ -222,7 +417,7 @@ function repeatedArticulation(): Note[] {
   return Array.from({ length: 16 }, (_, index) => ({ midi: 64, start: index * 0.125, dur: 0.08, vel: 94, hand: "R" as const }));
 }
 
-function syntheticControls(): Record<string, unknown> {
+export function syntheticControls(): Record<string, unknown> {
   const controls: Array<[string, string, Note[]]> = [
     ["A-chord-heavy", "large simultaneous chords with slow distinct attacks", chordHeavy()],
     ["B-rapid-monophonic", "one-hand rapid distinct attacks", rapidMonophonic()],
@@ -253,7 +448,30 @@ function syntheticControls(): Record<string, unknown> {
   }));
 }
 
-function tempoSensitivity(): Record<string, unknown> {
+export function syntheticDensityCandidateChecks(): Record<string, unknown> {
+  const controls: Array<[string, Note[]]> = [
+    ["A-chord-heavy", chordHeavy()],
+    ["B-rapid-monophonic", rapidMonophonic()],
+    ["C-alternating-hands", alternatingHands()],
+    ["D-dense-arpeggio", denseArpeggio()],
+    ["E-fast-melody-sparse-lh", fastMelodySparseLeftHand()],
+    ["F-sparse-melody-dense-accompaniment", sparseMelodyDenseAccompaniment()],
+    ["G-repeated-articulation", repeatedArticulation()],
+  ];
+  return Object.fromEntries(controls.map(([id, notes]) => {
+    const selection = selectProtectedSemanticLocalThinning(notes, 120, "easy");
+    return [id, {
+      input: densityStage(notes, 120, Math.max(1, ...notes.map((note) => note.start + note.dur)), "easy"),
+      output: densityStage(selection.notes, 120, Math.max(1, ...notes.map((note) => note.start + note.dur)), "easy"),
+      removedAttacks: selection.removedAttackIndexes.length,
+      protectedAttackCount: selection.protectedAttackCount,
+      retimedEvents: selection.retimedEvents,
+      createdEvents: selection.createdEvents,
+    }];
+  }));
+}
+
+export function tempoSensitivity(): Record<string, unknown> {
   const notes = rapidMonophonic();
   return Object.fromEntries(TEMPOS.map((tempo) => {
     const metrics = measurePlayability(notes, tempo);
@@ -273,7 +491,7 @@ async function readTrustedFixture(path: string): Promise<{ bytes: Uint8Array; pa
   return { bytes, parsed: parsedArtifact(JSON.parse(new TextDecoder().decode(bytes)) as Record<string, unknown>) };
 }
 
-async function laneAStages(path: string): Promise<Record<string, unknown>> {
+export async function laneAStages(path: string, includeDensityNormalization = false): Promise<Record<string, unknown>> {
   const bytes = new Uint8Array(await readFile(path));
   const source = parseMidi(bytes);
   const inventory = await researchExternalCandidates({ title: "Local real performance shadow", artist: "Keyspilli" }, {
@@ -354,6 +572,9 @@ async function laneAStages(path: string): Promise<Record<string, unknown>> {
       sourceNotes: source.notes.length,
       canonicalNotes: canonical.notes.length,
     },
+    ...(includeDensityNormalization
+      ? { densityNormalization: densityNormalizationReport(variants, Math.max(canonical.durationBeats, maxEnd(canonical.notes))) }
+      : {}),
     densityConclusion: {
       firstFailingLearnerLevel: failingLevels[0] ?? null,
       failingLevels,
@@ -371,7 +592,7 @@ async function laneAStages(path: string): Promise<Record<string, unknown>> {
   };
 }
 
-async function trustedControls(): Promise<Record<string, unknown>> {
+export async function trustedControls(): Promise<Record<string, unknown>> {
   const reports: Record<string, unknown> = {};
   for (const [id, title, _artist, logicalRef] of TRUSTED_FIXTURES) {
     const loaded = await readTrustedFixture(resolve(ROOT, logicalRef));

@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  analyzeDensityAttacks,
+  boundedDensityDeletionOracle,
+  compareDensityAttackSets,
   PLAYABILITY_LIMITS,
+  selectProtectedSemanticLocalThinning,
   assessPlayability,
   measurePlayability,
   type Note,
@@ -87,5 +91,82 @@ describe("playability audit diagnostics", () => {
     expect(assessment.limits).toEqual(PLAYABILITY_LIMITS.medium);
     expect(assessment.status).toBe("fail");
     expect(assessment.passes.maxSim).toBe(true);
+  });
+});
+
+describe("report-only density normalization diagnostics", () => {
+  it("models chords as one attack and protects principal melody/phrase anchors", () => {
+    const notes: Note[] = [
+      { midi: 60, start: 0, dur: 0.25, vel: 90, hand: "L" },
+      { midi: 64, start: 0, dur: 0.25, vel: 90, hand: "R" },
+      { midi: 65, start: 0.125, dur: 0.125, vel: 70, hand: "L" },
+      { midi: 67, start: 0.25, dur: 0.125, vel: 70, hand: "L" },
+    ];
+    const analyses = analyzeDensityAttacks(notes);
+
+    expect(analyses).toHaveLength(3);
+    expect(analyses[0]!.semantics.noteCount).toBe(2);
+    expect(analyses[0]!.semantics.principalMelody).toBe(true);
+    expect(analyses[0]!.semantics.phraseBoundary).toBe(true);
+    expect(analyses[0]!.semantics.removable).toBe(false);
+  });
+
+  it("thins only removable rapid support attacks without retiming or creating notes", () => {
+    const notes: Note[] = [
+      { midi: 60, start: 0, dur: 0.25, vel: 100, hand: "R" },
+      { midi: 36, start: 0.125, dur: 0.125, vel: 50, hand: "L" },
+      { midi: 62, start: 0.25, dur: 0.25, vel: 100, hand: "R" },
+      { midi: 38, start: 0.375, dur: 0.125, vel: 50, hand: "L" },
+      { midi: 64, start: 0.5, dur: 0.25, vel: 100, hand: "R" },
+    ];
+    const result = selectProtectedSemanticLocalThinning(notes, 120, "easy");
+
+    expect(result.removedAttackIndexes.length).toBeGreaterThan(0);
+    expect(result.notes.filter((note) => note.hand !== "L").map((note) => note.start)).toEqual([0, 0.25, 0.5]);
+    expect(result.retimedEvents).toBe(0);
+    expect(result.createdEvents).toBe(0);
+    expect(result.notes.every((note) => notes.includes(note) || notes.some((source) => JSON.stringify(source) === JSON.stringify(note)))).toBe(true);
+  });
+
+  it("is a no-op for an arrangement that already passes the unchanged validator", () => {
+    const notes = [note(60, 0), note(62, 1), note(64, 2)];
+    const result = selectProtectedSemanticLocalThinning(notes, 120, "easy");
+
+    expect(result.removedAttackIndexes).toEqual([]);
+    expect(result.notes).toEqual(notes);
+  });
+
+  it("keeps the attack differential deterministic and reports rapid-gap resolution", () => {
+    const harder: Note[] = [
+      { midi: 60, start: 0, dur: 0.125, vel: 90, hand: "R" },
+      { midi: 36, start: 0.125, dur: 0.125, vel: 50, hand: "L" },
+      { midi: 62, start: 0.25, dur: 0.125, vel: 90, hand: "R" },
+    ];
+    const easier = [harder[0]!, harder[2]!];
+    const first = compareDensityAttackSets(harder, easier, 120, "easy");
+    const second = compareDensityAttackSets([...harder].reverse(), [...easier].reverse(), 120, "easy");
+
+    expect(first.harderAttacks).toBe(3);
+    expect(first.easierAttacks).toBe(2);
+    expect(first.removed[0]!.hand).toBe("L");
+    expect(first.directResolutions).toBe(1);
+    expect(second).toEqual(first);
+  });
+
+  it("bounds the deletion oracle at the supplied lower-level note floor", () => {
+    const notes: Note[] = Array.from({ length: 12 }, (_, index) => ({
+      midi: index % 2 ? 36 : 60 + index,
+      start: index * 0.125,
+      dur: 0.1,
+      vel: index % 2 ? 45 : 95,
+      hand: index % 2 ? "L" as const : "R" as const,
+    }));
+    const result = boundedDensityDeletionOracle(notes, 120, "easy", notes.length - 2);
+
+    expect(result.notes.length).toBeGreaterThanOrEqual(notes.length - 2);
+    expect(result.retimedEvents).toBe(0);
+    expect(result.createdEvents).toBe(0);
+    expect(result.finalAssessment.status).toBe("fail");
+    expect(result.exhausted).toBe(true);
   });
 });

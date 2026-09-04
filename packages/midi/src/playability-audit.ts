@@ -48,6 +48,15 @@ export interface PlayabilityRapidRegion {
   sources: string[];
 }
 
+/**
+ * One validator-compatible rhythmic attack. Chord members remain atomic so
+ * report-only density experiments cannot mistake a chord for several attacks.
+ */
+export interface PlayabilityAttack {
+  start: number;
+  notes: Note[];
+}
+
 export interface PlayabilityAuditMetrics {
   noteCount: number;
   validNoteCount: number;
@@ -128,6 +137,14 @@ function notesByExactStart(notes: readonly Note[]): Note[][] {
   return [...groups.entries()]
     .sort(([left], [right]) => Number(left) - Number(right))
     .map(([, group]) => group);
+}
+
+/** Group valid notes using the exact three-decimal attack semantics used by the validator. */
+export function groupPlayabilityAttacks(notes: readonly Note[]): PlayabilityAttack[] {
+  return notesByExactStart(validNotes(notes)).map((members) => ({
+    start: members[0]!.start,
+    notes: [...members],
+  }));
 }
 
 function maxSounding(notes: readonly Note[]): number {

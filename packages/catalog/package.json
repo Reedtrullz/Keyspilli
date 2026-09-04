@@ -20,6 +20,7 @@
     "reingest-catalog": "tsx scripts/reingest-catalog.ts",
     "calibrate": "tsx scripts/calibrate-limits.ts",
     "audit:playability": "tsx scripts/audit-playability.ts",
+    "audit:density-normalization": "tsx scripts/audit-density-normalization.ts",
     "reingest-uploads": "tsx scripts/reingest-uploads.ts",
     "reingest-midi-pack": "tsx scripts/reingest-midi-pack.ts",
     "seed": "tsx scripts/seed.ts",
