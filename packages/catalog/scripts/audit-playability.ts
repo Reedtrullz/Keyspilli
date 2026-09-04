@@ -478,6 +478,7 @@ async function main(argv = process.argv.slice(2)): Promise<void> {
       primary: "AUTHORITATIVE_SOURCE_DENSITY_REQUIRES_TRANSFORM",
       timedSymbolicMvp: "TIMED_SYMBOLIC_MVP_CONDITIONAL",
       realSymbolicAlignment: "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+      realShadow: "REAL_SHADOW_BLOCKED_AT_DIFFICULTIES",
       musicalQuality: "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
     },
   };
