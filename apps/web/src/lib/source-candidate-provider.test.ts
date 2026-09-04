@@ -137,6 +137,17 @@ describe("Brave source candidate provider", () => {
     expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 
+  it("replays a frozen provider response to the same normalized candidates", async () => {
+    const provider = createBraveSourceCandidateProvider({
+      apiKey: "test-key",
+      fetchImpl: async () => response({ web: { results: [{ title: "Open Band - Open Song MIDI", url: "https://example.test/song.mid", description: "structured" }] } }),
+      retryDelayMs: 0,
+    });
+    const first = await provider(target);
+    const second = await provider(target);
+    expect(second).toEqual(first);
+  });
+
   it("is disabled without explicit production configuration while direct provider injection remains testable", async () => {
     expect(hasSourceCandidateProvider()).toBe(false);
     setSourceCandidateProviderForTests(() => []);
