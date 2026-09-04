@@ -1503,7 +1503,7 @@
         "gitDiffCheck": true,
         "backupRestoreSmoke": true,
         "deterministicRetry": true,
-        "diskFreeGiBAtClose": 88
+        "diskFreeGiBAtClose": 84
       },
       "nextTask": "REAL_SYMBOLIC_TIMING_ALIGNMENT_HARDENING",
       "reproducible": true,
