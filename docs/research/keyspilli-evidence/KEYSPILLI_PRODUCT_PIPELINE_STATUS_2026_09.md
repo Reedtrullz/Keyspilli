@@ -382,5 +382,25 @@ The deterministic report canonical SHA is
 bytes SHA is
 `7807a641be94aad899ec1d60ff7678d2c8261587ed8bdbd4640a998fb6344324`.
 The next single engineering task is
-`AUTHORITATIVE_SYMBOLIC_DENSITY_NORMALIZATION`; no alignment research,
+`LEVEL_CONTRACT_REVIEW_FOR_AUTHORITATIVE_DENSITY`; no alignment research,
 benchmark tuning, listening, deployment, or production write occurred.
+
+### Authoritative symbolic density normalization — 2026-09-04
+
+The report-only checkpoint `a68fd1e0caa837ed4de868d4be31483c19b75c0c` evaluates
+the unchanged six-level contract on the frozen Lane A native performance
+symbolic source. Easy, Medium, and Advanced fail only the existing global
+0.08-second median inter-onset floor; Very Easy, Beginner, and Very Beginner
+pass. A protected semantic deletion pass clears the local validator but
+removes 471/480/421 attacks and breaks the Very Easy → Easy ladder. The
+bounded P2-only oracle reaches the median while leaving roughly half of all
+gaps rapid, so it is diagnostic rather than a production policy.
+
+Decision: `NO_GENERIC_DENSITY_TRANSFORM_JUSTIFIED`. No validator limits,
+retiming, note creation, arrangement policy, alignment, or catalog behavior
+changed. The deterministic report is
+`authoritative-symbolic-density-normalization-2026-09-04.json`; its canonical
+SHA is `f1432f35a7ce5433c1f8cb0ea4905939811e44376bcba2bf5fee436fbc55c330`.
+The next task is `LEVEL_CONTRACT_REVIEW_FOR_AUTHORITATIVE_DENSITY`. Musical
+quality remains `MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`; human listening
+is `NOT_REQUIRED_BY_DEFAULT`; deployment is `NOT_DEPLOYED`.

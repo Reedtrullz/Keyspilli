@@ -3,6 +3,60 @@
   "purpose": "Durable path-free summary of Keyspilli evidence experiments",
   "entries": [
     {
+      "id": "authoritative-symbolic-density-normalization-2026-09-04",
+      "date": "2026-09-04",
+      "startingRevision": "5a5e25fd3b8b2727af8e3da3887ccfa3662f519c",
+      "checkpointRevision": "a68fd1e0caa837ed4de868d4be31483c19b75c0c",
+      "purpose": "Evaluate generic deletion-only normalization against the unchanged authoritative Lane A playability contract",
+      "route": "native authoritative symbolic MIDI -> existing direct-piano arrangement -> six variants -> report-only density diagnostics",
+      "fixture": {
+        "id": "lane-a-native-performance",
+        "sourceClass": "GENERATION_CANDIDATE",
+        "provenanceClass": "USER_SUPPLIED_PRIVATE",
+        "symbolicSha256": "ec5010896c00a0541b34b0843a20f455707ac647ae4a222aee71e2ad43e8017e",
+        "symbolicBytes": 58204,
+        "symbolicNotes": 7266,
+        "durationBeats": 358.46875,
+        "tempoBpm": 120
+      },
+      "baseline": {
+        "veryEasy": {"notes": 2560, "attacks": 1553, "medianIoiSeconds": 0.125, "rapidFraction": 0.399485},
+        "easy": {"notes": 2843, "attacks": 1666, "medianIoiSeconds": 0.0625, "rapidFraction": 0.516517},
+        "medium": {"notes": 3066, "attacks": 1715, "medianIoiSeconds": 0.0625, "rapidFraction": 0.53909},
+        "advanced": {"notes": 3560, "attacks": 1911, "medianIoiSeconds": 0.0625, "rapidFraction": 0.65445}
+      },
+      "differential": {
+        "easyOnlyAttacks": 346,
+        "easyOnlyNotes": 536,
+        "veryEasyOnlyAttacks": 233,
+        "veryEasyOnlyNotes": 342,
+        "directSubFloorResolutions": 318
+      },
+      "candidateA": {
+        "removedAttacks": {"easy": 471, "medium": 480, "advanced": 421},
+        "rapidFraction": {"easy": 0.161642, "medium": 0.182334, "advanced": 0.394896},
+        "ladderValid": false,
+        "protectedMelodyDeleted": 0
+      },
+      "boundedOracle": {
+        "easy": {"removedAttacks": 21, "notes": 2822, "medianIoiSeconds": 0.09375, "rapidFraction": 0.5},
+        "medium": {"removedAttacks": 48, "notes": 3018, "medianIoiSeconds": 0.125, "rapidFraction": 0.4994},
+        "advanced": {"removedAttacks": 204, "notes": 3245, "medianIoiSeconds": 0.09375, "rapidFraction": 0.5},
+        "rapidFractionRemainsAroundHalf": true
+      },
+      "decision": "NO_GENERIC_DENSITY_TRANSFORM_JUSTIFIED",
+      "behavior": "NO_MUSICAL_BEHAVIOR_CHANGE",
+      "timedSymbolicMvp": "TIMED_SYMBOLIC_MVP_CONDITIONAL",
+      "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+      "realShadow": "REAL_SHADOW_BLOCKED_AT_DIFFICULTIES",
+      "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+      "deployment": "NOT_DEPLOYED",
+      "reportCanonicalSha256": "f1432f35a7ce5433c1f8cb0ea4905939811e44376bcba2bf5fee436fbc55c330",
+      "reportSha256": "bdf7ae7f4f108d424ea24e092edd84b8dce9fa0fd116488ff066ca64bdd7c94a",
+      "deterministicRerun": true,
+      "nextTask": "LEVEL_CONTRACT_REVIEW_FOR_AUTHORITATIVE_DENSITY"
+    },
+    {
       "id": "beginner-offgrid-rh-budget-frontier-2026-09-03",
       "date": "2026-09-03",
       "gitCommit": "76cfead64091c409cba4fd9772c2748903ebddda",
