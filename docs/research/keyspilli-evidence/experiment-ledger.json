@@ -1832,6 +1832,54 @@
       "nextTask": "METAL_TO_MIDI_RELEASE_GAP_REASSESSMENT",
       "reproducible": true,
       "rawMediaRetention": "no canary source bytes retained; only path-free metadata and hashes are committed"
+    },
+    {
+      "id": "metal-to-midi-release-gap-reassessment-2026-09-04",
+      "date": "2026-09-04",
+      "startingRevision": "35bc648551de210d8806c82137bd18f53f247a4e",
+      "purpose": "Reassess the remaining upstream gap for arbitrary metal URL/audio to useful piano MIDI without reopening closed research lanes",
+      "scope": {
+        "productBoundary": "private bounded symbolic MIDI/MusicXML/MXL upload with native authoritative timing",
+        "benchmarkTuning": false,
+        "musicalPolicyChanges": 0,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NOT_PERFORMED"
+      },
+      "historicalEvidence": {
+        "nativeSymbolicMvp": "operationally validated",
+        "audioAmtAndStems": "raw timing exists but pitch/role fidelity is insufficient for release authority",
+        "gapsGuitarTechs": "component validated; cold metal transfer mixed",
+        "scoreAudioAlignment": "partial; existing V2/SKF evidence mixed and no independent real anchors",
+        "clamp3": "resource blocked before evaluation",
+        "protectedBenchmarkCandidates": "0 independent aligned generation candidates; eval-only"
+      },
+      "technologyScan": {
+        "date": "2026-09-04",
+        "sources": ["U-MuST", "TriScore", "CLaMP3", "MuScriptor", "2025 AMT Challenge"],
+        "downloads": false,
+        "newAmtCandidate": "MuScriptor; real-recording/heavy-metal claim, non-commercial weights, no Keyspilli cold transfer"
+      },
+      "sourceAvailability": {
+        "method": "metadata-only deterministic non-benchmark sample",
+        "sampleSize": 20,
+        "tabChordOnly": 20,
+        "structuredSymbolicConfirmed": 0,
+        "pianoCoverConfirmed": 0,
+        "copyrightedBytesDownloaded": false
+      },
+      "decisions": {
+        "crossModalAlignment": "CROSS_MODAL_ALIGNMENT_REOPEN_NOT_JUSTIFIED",
+        "audioAmt": "AUDIO_AMT_REOPEN_JUSTIFIED",
+        "strategicRoute": "EXTERNAL_SYMBOLIC_FIRST_RELEASE_PATH",
+        "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+        "deployment": "NO_DEPLOYMENT"
+      },
+      "report": "metal-to-midi-release-gap-reassessment-2026-09-04.json",
+      "reportSha256": "5c23c167ad3ec586d59e51b9b55ee875270d09b42eba5a4231ad50b4746a2a93",
+      "reproducible": true,
+      "nextTask": "GENERIC_REAL_SONG_SOURCE_DISCOVERY_AND_CANDIDATE_RANKING",
+      "rawMediaRetention": "no source bytes retained or committed; public URLs only in report"
     }
   ]
 }

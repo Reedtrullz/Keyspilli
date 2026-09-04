@@ -738,3 +738,41 @@ conclusions. Independent score/audio alignment remains
 `MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`; human listening remains
 `NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT`. No new deployment or VPS mutation was
 performed. The single next task is `METAL_TO_MIDI_RELEASE_GAP_REASSESSMENT`.
+
+## 2026-09-04 — Metal-to-MIDI release-gap reassessment
+
+The bounded symbolic MVP remains the validated product boundary: private MIDI,
+MusicXML or MXL with `NATIVE_AUTHORITATIVE` timing can pass intake, provenance,
+validation, six physical difficulty generation, five-level public projection,
+player and export paths. This does not establish the original promise of
+arbitrary metal URL/audio to useful recognizable piano MIDI without symbolic
+material.
+
+The full evidence record is
+`metal-to-midi-release-gap-reassessment-2026-09-04.json`, with a concise
+companion at
+`metal-to-midi-release-gap-reassessment-2026-09-04.md`. The deterministic
+report SHA-256 is
+`5c23c167ad3ec586d59e51b9b55ee875270d09b42eba5a4231ad50b4746a2a93`.
+non-benchmark metadata scan found 20/20 tab-or-chord leads but 0 provenance-safe
+machine-readable structured candidates; this is not an internet-wide absence
+claim. The protected seven-song benchmark inventory remains evaluation-only and
+was not used for generation or tuning.
+
+The bounded official-source scan found no demonstrated new continuous timing
+authority: U-MuST is cross-modal translation with classical/piano-heavy
+evidence, TriScore and CLaMP3 are retrieval systems (CLaMP3 remained resource
+blocked), and existing score-alignment evidence is mixed. Therefore the
+alignment decision is `CROSS_MODAL_ALIGNMENT_REOPEN_NOT_JUSTIFIED`. MuScriptor
+is a materially newer audio-to-MIDI research candidate with a heavy-metal
+training claim, but its non-commercial weights, distorted-guitar caveat and
+absent Keyspilli cold-transfer result limit it to
+`AUDIO_AMT_REOPEN_JUSTIFIED` for one future bounded evaluation.
+
+Strategic decision: `EXTERNAL_SYMBOLIC_FIRST_RELEASE_PATH`. The next task is
+exactly `GENERIC_REAL_SONG_SOURCE_DISCOVERY_AND_CANDIDATE_RANKING`: populate
+identity/version, rights, parser/hash, role, timing, region and deterministic
+confidence fields, then fail closed when evidence is insufficient. Independent
+score/audio alignment remains `REAL_SYMBOLIC_ALIGNMENT_PARTIAL`; musical
+quality remains `MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`; human listening
+is `NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT`; deployment status is unchanged.

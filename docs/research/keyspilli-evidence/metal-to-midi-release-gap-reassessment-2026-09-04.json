@@ -1,0 +1,157 @@
+{
+  "schemaVersion": 1,
+  "mission": "METAL_TO_MIDI_RELEASE_GAP_REASSESSMENT",
+  "date": "2026-09-04",
+  "startingRevision": "35bc648551de210d8806c82137bd18f53f247a4e",
+  "branch": "codex/metal-inference-lane-lock",
+  "scope": {
+    "question": "Can Keyspilli turn an arbitrary metal song URL or recording into useful recognizable piano MIDI without user-supplied symbolic material?",
+    "mode": "PRODUCT_ARCHITECTURE_DECISION",
+    "benchmarkTuning": false,
+    "musicalPolicyChanges": 0,
+    "deployment": "NOT_PERFORMED",
+    "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT"
+  },
+  "boundedProductBoundary": {
+    "status": "BOUNDED_SYMBOLIC_MVP_OPERATIONALLY_VALIDATED",
+    "input": ["MIDI", "MusicXML", "MXL"],
+    "timingAuthority": "NATIVE_AUTHORITATIVE",
+    "physicalLevels": ["very-beginner", "beginner", "very-easy", "easy", "medium", "advanced"],
+    "publicLevels": ["very-beginner", "beginner", "easy", "medium", "advanced"],
+    "workerRequired": false,
+    "playerAndExports": "validated in scratch and live bounded-MVP operations",
+    "notIncluded": ["independent score/audio alignment", "arbitrary YouTube metal quality", "automatic recognizable transcription from arbitrary audio"]
+  },
+  "originalPromise": {
+    "status": "NOT_ESTABLISHED",
+    "firstMissingCapability": "generation-grade upstream evidence for arbitrary metal",
+    "failureMode": "If no trusted symbolic candidate owns timing and roles, AMT/stem evidence is too noisy for the current arrangement path; fail closed rather than publish junk."
+  },
+  "historicalEvidence": [
+    {"id":"basic-pitch-full-mix-stems","date":"2026-08","classification":"QUALITY_INCONCLUSIVE","route":"Demucs/Basic Pitch full mix and stems","result":"raw evidence contains timing but pitch/role fidelity and downstream retention are weak","decision":"not generation authority","notRuledOut":"better independent AMT or source evidence"},
+    {"id":"direct-metal-source-aware","date":"2026-08-28","classification":"VALIDATED_COMPONENT","route":"source-aware metal selector and learner variants","result":"rhythm-wall/source cleanup and structural tests pass; residual contour did not support recognizability","decision":"retain cleanup; no musical success claim","notRuledOut":"richer upstream evidence"},
+    {"id":"semantic-guitar-harmony","date":"2026-08-29","classification":"VALIDATED_COMPONENT","route":"guitar harmonic clusters to semantic roots/LH","result":"synthetic stacks, jitter, source lock, and variants pass; real-song quality remained poor","decision":"diagnostics retained; contour work deferred","notRuledOut":"better source evidence"},
+    {"id":"audio-amt-oracle","date":"2026-08-31","classification":"QUALITY_INCONCLUSIVE","route":"raw stem onset oracle versus human references","result":"raw onset recall 0.648/0.755/0.698 for Final Solution/Gott Mit Uns/Red Baron; current Easy 0.087/0.171/0.119","decision":"arranger broadening cannot recover absent/incorrect evidence","notRuledOut":"new AMT"},
+    {"id":"gaps-guitar-techs","date":"2026-09-02","classification":"VALIDATED_COMPONENT","route":"GAPS Guitar-TECHS v1","result":"isolated DI/amp-mic guitar exact/pitch-class F1 improved materially","decision":"guitar-specific component only; cold metal transfer mixed","notRuledOut":"bounded cold evaluation"},
+    {"id":"cold-metal-transfer","date":"2026-09-02","classification":"QUALITY_INCONCLUSIVE","route":"GAPS cold transfer rerun","result":"small gain on Gott Mit Uns, losses on Final Solution and Red Baron; no consistent promotion","decision":"research-only; no router/union","notRuledOut":"new source or model"},
+    {"id":"texture-amt-routing-oracle","date":"2026-09-02","classification":"VALIDATED_COMPONENT","route":"reference-informed texture/AMT routing oracle","result":"gain below 0.03 on every tested song","decision":"routing ceiling low; no production router","notRuledOut":"independent higher-quality AMT"},
+    {"id":"external-symbolic-inventory","date":"2026-09-01","classification":"DIAGNOSTIC_ONLY","route":"seven protected benchmark songs","result":"independently aligned generation candidates 0/7; human-ready 0/7","decision":"benchmark references remain eval-only and fail-closed","notRuledOut":"generic cold source discovery"},
+    {"id":"cold-seven-song-research","date":"2026-09-01","classification":"DIAGNOSTIC_ONLY","route":"metadata-only public evidence audit","result":"7/7 had piano-cover or structured-harmony aids, 0 machine-readable generation candidates","decision":"metadata leads are not candidate bytes","notRuledOut":"rights-aware acquisition"},
+    {"id":"shadow-corpus-feasibility","date":"2026-09-01","classification":"DIAGNOSTIC_ONLY","route":"bounded open-data shadow attempt","result":"8 synthetic items completed, 0 real items; partial archive invalid and not consumed","decision":"no real-corpus claim","notRuledOut":"small licensed pair"},
+    {"id":"alignment-calibration","date":"2026-09-01","classification":"VALIDATED_COMPONENT","route":"symbolic alignment on deterministic corruptions","result":"global transforms recovered 6/6; section/bar evidence insufficient for the 32-bar gate","decision":"independent alignment remains partial","notRuledOut":"real paired timing evidence"},
+    {"id":"asap-v2-score-alignment","date":"2026-09-03","classification":"QUALITY_INCONCLUSIVE","route":"ASAP/MAESTRO score-to-performance alignment","result":"DEV acceptable-ish; held-out p95 errors 1.796573s and 0.994780s versus reference 0.071514s and 0.269892s","decision":"production alignment candidate not promoted","notRuledOut":"alignment hardening"},
+    {"id":"asap-matchmaker-skf","date":"2026-09-03","classification":"QUALITY_INCONCLUSIVE","route":"non-DTW SKF/Matchmaker comparison","result":"mixed, no reliable headroom on the required regional gates","decision":"not promoted","notRuledOut":"new independently demonstrated method"},
+    {"id":"clamp3","date":"2026-09-03","classification":"RESOURCE_BLOCKED","route":"CLaMP3 sparse-landmark retrieval reference","result":"pinned footprint about 4.064GB; weights were not downloaded/evaluated","decision":"not a quality failure and not a production candidate","notRuledOut":"later offline research service"},
+    {"id":"region-aware-real-shadow","date":"2026-09-04","classification":"VALIDATED_COMPONENT","route":"real user-supplied native performance pair through region ownership and downstream path","result":"native timing and lineage worked; naive audio onset probe F1 0.496; downstream dense source blocked by playability; benchmark lanes withheld","decision":"real shadow proves plumbing, not arbitrary metal alignment or quality","notRuledOut":"real independent pair"},
+    {"id":"native-symbolic-product","date":"2026-09-04","classification":"PRODUCTION_BOUNDARY","route":"private symbolic upload to six physical/five public learner artifacts","result":"intake, validation, persistence, player, exports, restart, backup and private edge boundary validated","decision":"bounded MVP is the current release path","notRuledOut":"generic source discovery for metal"}
+  ],
+  "releaseGaps": [
+    {"capability":"URL/audio ingestion for original promise","status":"PARTIAL","evidence":"YouTube path is experimental; bounded symbolic upload is validated","firstBlocker":"no trusted generation candidate from arbitrary audio/URL"},
+    {"capability":"song identification and version matching","status":"PARTIAL","evidence":"metadata/provider seams exist; no generic cold ranking proof","firstBlocker":"identity/version confidence is not an owned generation gate"},
+    {"capability":"external symbolic discovery","status":"PARTIAL","evidence":"metadata leads exist; current 20-song non-benchmark sample had 0 provenance-safe structured candidates","firstBlocker":"rights-aware acquisition and parser evidence"},
+    {"capability":"candidate ranking","status":"PARTIAL","evidence":"intake/provenance/firewall and provider-neutral cache exist","firstBlocker":"generic identity/version/role/timing/risk ranker is missing"},
+    {"capability":"candidate provenance/firewall","status":"READY_FOR_BOUNDED_INPUT","evidence":"generation, benchmark, diagnostic and fallback classes are explicit","firstBlocker":"discovery must populate the contract"},
+    {"capability":"same-performance symbolic timing","status":"READY","evidence":"native authoritative timing is validated","firstBlocker":"none for user-supplied native symbolic input"},
+    {"capability":"independent score/audio alignment","status":"PARTIAL","evidence":"V2 and SKF are mixed; real shadow has no independent anchors","firstBlocker":"regional timing confidence/coverage"},
+    {"capability":"audio-only AMT for dense metal","status":"BLOCKED_FOR_RELEASE","evidence":"existing AMT/stem oracle and cold transfer are insufficient","firstBlocker":"no evaluated, rights-safe, reproducible transfer result"},
+    {"capability":"region ownership and fallback","status":"VALIDATED_COMPONENT","evidence":"explicit ownership/withholding contract passes synthetic and real plumbing checks","firstBlocker":"producers still need trustworthy candidates"},
+    {"capability":"melody/harmony extraction from arbitrary metal","status":"PARTIAL_WEAK","evidence":"source-aware and semantic cleanup are bounded components, not a reliable upstream","firstBlocker":"candidate evidence quality"},
+    {"capability":"arrangement/difficulties/artifacts/player","status":"READY_FOR_NATIVE_SYMBOLIC","evidence":"bounded MVP path validated","firstBlocker":"upstream evidence ownership"}
+  ],
+  "technologyScan": {
+    "date":"2026-09-04",
+    "method":"official primary pages only via GitHub/arXiv/Jina/web; no model installs or downloads",
+    "exa":"UNAVAILABLE_LOCAL_NODE_SHIM; not material to the bounded primary-source scan",
+    "systems":[
+      {"name":"U-MuST","official":"https://arxiv.org/abs/2505.12863","code":"https://github.com/MALerLab/U-MusT","license":"MIT code; dataset metadata CC BY-NC-SA 4.0; videos not redistributed","footprint":"not downloaded","capability":"unified score/image/MIDI/audio tokenization with I2A/A2I Transformers","evidence":"1,300+ hours paired YouTube score-image/audio; AMT results reported on MusicNet/MAESTRO","denseMetalEvidence":"none demonstrated; focus is Western/classical and piano-heavy","classification":"CROSS_MODAL_TRANSLATION_NOT_TIMING_AUTHORITY"},
+      {"name":"TriScore","official":"https://github.com/lemur-project/triscore-code","paper":"https://www.sciencedirect.com/science/article/pii/S0031320326008915","license":"MIT code; source data on request","footprint":"not downloaded","capability":"frozen audio/symbolic/sheet-image encoders for retrieval/classification","evidence":"reported Top-5/Top-10 retrieval 88.29/92.43","denseMetalEvidence":"none demonstrated","classification":"RETRIEVAL_NOT_CONTINUOUS_ALIGNMENT"},
+      {"name":"CLaMP3","official":"https://github.com/sanderwood/clamp3","paper":"https://arxiv.org/abs/2502.10362","license":"MIT code; checkpoint terms retained in local evidence","footprint":"about 4.064GB pinned dependencies/checkpoint; not downloaded","capability":"cross-modal retrieval with unaligned modality embeddings","evidence":"local pinned-resource audit only","denseMetalEvidence":"not evaluated because resource bound was hit","classification":"RESOURCE_BLOCKED_BEFORE_EVALUATION"},
+      {"name":"MuScriptor","official":"https://github.com/muscriptor/muscriptor","paper":"https://arxiv.org/abs/2607.08168","license":"MIT code; weights CC BY-NC 4.0, non-commercial","footprint":"small/medium/large variants 103M/307M/1.4B; not downloaded","capability":"multi-instrument audio-to-MIDI; real recordings including heavy metal; velocity not preserved","evidence":"170k real recordings and heavy-metal training claim; official README warns distorted electric-guitar generalization and stem drift can be weak","denseMetalEvidence":"training coverage is promising, Keyspilli cold transfer is unmeasured","classification":"AUDIO_AMT_RESEARCH_CANDIDATE_NOT_RELEASE_AUTHORITY"},
+      {"name":"2025 AMT Challenge","official":"https://arxiv.org/abs/2603.27528","license":"paper/report only","footprint":"not applicable","capability":"benchmark of current multi-instrument AMT systems","evidence":"8 teams, 2 above MT3; remaining polyphony/timbre issues","denseMetalEvidence":"no production-ready checkpoint identified","classification":"BENCHMARK_CONTEXT_ONLY"}
+    ],
+    "resourceDecision":"Do not enlarge VPS/runtime bounds or install models in this mission. MuScriptor is the only scan result strong enough to justify a bounded future AMT evaluation, subject to non-commercial rights and cold-transfer evidence."
+  },
+  "sourceAvailability": {
+    "method":"deterministic metadata-only sample from the repository's catalog/ug-tabs.json, preserving repo order and excluding the seven protected benchmark songs; no copyrighted bytes downloaded",
+    "sampleSize":20,
+    "protectedBenchmarkExcluded":true,
+    "categories":{"tabChordOnly":20,"structuredSymbolicConfirmed":0,"pianoCoverConfirmed":0,"none":0},
+    "interpretation":"0 structured candidates means none was provenance-safe and machine-readable in this metadata-only scan; it is not proof of absence on the internet.",
+    "sample":[
+      {"id":"rammstein-mein-herz-brennt","artist":"Rammstein","title":"Mein Herz Brennt","class":"tabChordOnly"},
+      {"id":"the-killers-human","artist":"The Killers","title":"Human","class":"tabChordOnly"},
+      {"id":"ozzy-osbourne-mr-crowley","artist":"Ozzy Osbourne","title":"Mr Crowley","class":"tabChordOnly"},
+      {"id":"ozzy-osbourne-crazy-train","artist":"Ozzy Osbourne","title":"Crazy Train","class":"tabChordOnly"},
+      {"id":"bon-jovi-bed-of-roses","artist":"Bon Jovi","title":"Bed Of Roses","class":"tabChordOnly"},
+      {"id":"bon-jovi-always","artist":"Bon Jovi","title":"Always","class":"tabChordOnly"},
+      {"id":"queen-somebody-to-love","artist":"Queen","title":"Somebody To Love","class":"tabChordOnly"},
+      {"id":"status-quo-whatever-you-want","artist":"Status Quo","title":"Whatever You Want","class":"tabChordOnly"},
+      {"id":"status-quo-in-the-army-now","artist":"Status Quo","title":"In The Army Now","class":"tabChordOnly"},
+      {"id":"status-quo-rockin-all-over-the-world","artist":"Status Quo","title":"Rockin All Over The World","class":"tabChordOnly"},
+      {"id":"the-warning-hell-you-call-a-dream","artist":"The Warning","title":"Hell You Call A Dream","class":"tabChordOnly"},
+      {"id":"ozzy-osbourne-dreamer","artist":"Ozzy Osbourne","title":"Dreamer","class":"tabChordOnly"},
+      {"id":"ozzy-osbourne-mama-im-coming-home","artist":"Ozzy Osbourne","title":"Mama Im Coming Home","class":"tabChordOnly"},
+      {"id":"sabaton-carolus-rex","artist":"Sabaton","title":"Carolus Rex","class":"tabChordOnly"},
+      {"id":"sabaton-82nd-all-the-way","artist":"Sabaton","title":"82Nd All The Way","class":"tabChordOnly"},
+      {"id":"sabaton-a-lifetime-of-war","artist":"Sabaton","title":"A Lifetime Of War","class":"tabChordOnly"},
+      {"id":"sabaton-en-livstid-i-krig","artist":"Sabaton","title":"En Livstid I Krig","class":"tabChordOnly"},
+      {"id":"sabaton-the-last-stand","artist":"Sabaton","title":"The Last Stand","class":"tabChordOnly"},
+      {"id":"journey-separate-ways","artist":"Journey","title":"Separate Ways","class":"tabChordOnly"},
+      {"id":"journey-dont-stop-believin","artist":"Journey","title":"Dont Stop Believin","class":"tabChordOnly"}
+    ],
+    "protectedMetadataContext":{"songs":7,"pianoCoverOrStructuredHarmonyAids":7,"independentAlignedSymbolicCandidates":0,"use":"diagnostic-only; never generation or tuning"}
+  },
+  "candidateRankingGap": {
+    "status":"MISSING_GENERIC_DISCOVERY_RANKER",
+    "existingPieces":["generation-candidate-intake","external-research metadata","research-cache","external-symbolic-pipeline","region-ownership"],
+    "requiredRecord":["normalized identity","version match","source reputation/access","format/role","parser/hash","duration/key/structure","timing authority/alignment","region coverage","rights/provenance","deterministic confidence","firewall class"],
+    "failurePolicy":"withhold when identity, rights, parser, timing or role evidence is insufficient"
+  },
+  "timingDistribution": {
+    "scope":"observed source-availability evidence, not a universal prevalence estimate",
+    "metadataSample20":{"nativeAuthoritative":0,"scoreOrPerformanceAligned":0,"semanticTabChordOnly":20,"pianoCoverConfirmed":0},
+    "priorProtectedMetadata7":{"nativeAuthoritative":0,"independentAlignedSymbolic":0,"pianoCoverOrStructuredHarmonyAids":7},
+    "architectureInterpretation":{"nativeAuthoritative":"rare; user-supplied or same-performance source","scoreSymbolicRequiresAlignment":"not confirmed in either bounded metadata sample","semanticOnly":"common lead shape, insufficient timing/rights for generation"}
+  },
+  "alignmentDecision":"CROSS_MODAL_ALIGNMENT_REOPEN_NOT_JUSTIFIED",
+  "alignmentRationale":"U-MuST and TriScore are translation/retrieval systems rather than demonstrated continuous timing aligners; CLaMP3 was resource-blocked; existing V2/SKF evidence remains mixed and real independent anchors are absent.",
+  "amtDecision":"AUDIO_AMT_REOPEN_JUSTIFIED",
+  "amtRationale":"MuScriptor is a materially newer official open-code candidate trained on real recordings including heavy metal, but non-commercial weights, no Keyspilli cold transfer, weak distorted-guitar warning and no velocity mean this is a bounded research evaluation only.",
+  "routeComparison": [
+    {"route":"EXTERNAL_SYMBOLIC_FIRST","evidence":"MEDIUM","coverage":"MEDIUM","fidelity":"HIGH_IF_CORRECT_SOURCE","timing":"MEDIUM","effort":"MEDIUM","runtime":"LOW","storage":"LOW","dependency":"MEDIUM","provenance":"MEDIUM_HIGH","failureDetectability":"HIGH","failClosed":"HIGH","pipelineReuse":"HIGH","validatedArchitecture":"HIGH","unresolved":"MEDIUM_HIGH"},
+    {"route":"CROSS_MODAL_ALIGNMENT","evidence":"LOW_MEDIUM","coverage":"MEDIUM","fidelity":"MEDIUM","timing":"LOW_MEDIUM","effort":"HIGH","runtime":"HIGH","storage":"HIGH","dependency":"HIGH","provenance":"MEDIUM","failureDetectability":"MEDIUM","failClosed":"MEDIUM","pipelineReuse":"MEDIUM","validatedArchitecture":"LOW_MEDIUM","unresolved":"HIGH"},
+    {"route":"HYBRID_REGION_EVIDENCE","evidence":"MEDIUM_LOW","coverage":"MEDIUM","fidelity":"MEDIUM","timing":"LOW_MEDIUM","effort":"HIGH","runtime":"MEDIUM_HIGH","storage":"MEDIUM","dependency":"HIGH","provenance":"HIGH","failureDetectability":"HIGH","failClosed":"HIGH","pipelineReuse":"MEDIUM_HIGH","validatedArchitecture":"MEDIUM","unresolved":"HIGH"},
+    {"route":"AUDIO_ONLY_AMT","evidence":"LOW_MEDIUM","coverage":"UNKNOWN_HIGH","fidelity":"LOW_MEDIUM","timing":"MEDIUM","effort":"HIGH","runtime":"HIGH","storage":"HIGH","dependency":"HIGH","provenance":"LOW_MEDIUM","failureDetectability":"LOW_MEDIUM","failClosed":"MEDIUM","pipelineReuse":"MEDIUM","validatedArchitecture":"LOW","unresolved":"HIGH"}
+  ],
+  "bottleneckGraph":[
+    "URL_AUDIO_INGESTION_PARTIAL",
+    "IDENTIFY_VERSION_MATCH_PARTIAL",
+    "EXTERNAL_DISCOVERY_PARTIAL",
+    "NATIVE_SYMBOLIC_READY",
+    "INDEPENDENT_SCORE_ALIGNMENT_PARTIAL",
+    "SEMANTIC_TAB_CHORD_ONLY_PARTIAL",
+    "AUDIO_AMT_BLOCKED_FOR_RELEASE",
+    "CANDIDATE_RANK_PROVENANCE_PARTIAL",
+    "ARRANGEMENT_DIFFICULTIES_ARTIFACTS_READY_WHEN_TIMING_IS_OWNED"
+  ],
+  "objectiveGates": {
+    "sourceProvenance":"generation class, known rights/provenance, parser valid, not benchmark or diagnostic",
+    "identity":"artist/title/version/structure confidence must own the requested region",
+    "timing":"native authoritative OR independent alignment pass with at least 3 windows and 32 bars",
+    "region":"explicit owner, role confidence and coverage; otherwise withheld",
+    "pipeline":"arrangement, six levels, validators, artifacts, player and deterministic bytes",
+    "failure":"insufficient evidence is a normal outcome; never publish junk",
+    "determinism":"canonical report and artifact hashes repeat",
+    "humanQuality":"null; no subjective gate requested"
+  },
+  "strategicDecision":"EXTERNAL_SYMBOLIC_FIRST_RELEASE_PATH",
+  "achievableScope":"PRIVATE_ALPHA for evidence-augmented metal only after candidate identity, provenance, timing and region gates pass; the full arbitrary-metal URL/audio promise remains research-only.",
+  "claimBoundary":"Keyspilli can accept a private MIDI, MusicXML or MXL whose symbolic timeline is authoritative, generate validated learner variants, persist them, open the player and export artifacts. It has not established that arbitrary metal URL/audio input becomes useful recognizable piano MIDI without symbolic evidence.",
+  "musicalQuality":"MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+  "humanListening":{"status":"NOT_REQUESTED","policy":"NOT_REQUIRED_BY_DEFAULT"},
+  "deployment":{"status":"NO_DEPLOYMENT","vpsMutation":false},
+  "protectedBenchmarks":{"count":7,"classification":"BENCHMARK_REFERENCE","usedForGeneration":false,"usedForTuning":false},
+  "verification":{"repoHead":"35bc648551de210d8806c82137bd18f53f247a4e","remoteParity":true,"diskFreeGiB":59,"docker":{"client":"29.7.1","server":"29.5.2","compose":"unavailable-locally"},"checks":"documentation/evidence-only; no musical bytes changed"},
+  "nextTask":"GENERIC_REAL_SONG_SOURCE_DISCOVERY_AND_CANDIDATE_RANKING",
+  "nonClaims":["not an arbitrary-song source availability census","not a cross-modal timing validation","not an AMT quality promotion","not a musical recognizability claim","not a deployment authorization"]
+}
