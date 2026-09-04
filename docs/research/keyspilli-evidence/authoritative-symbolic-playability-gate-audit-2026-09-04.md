@@ -19,12 +19,12 @@ repository. The path-free machine report is
 | Item | Value |
 |---|---|
 | Starting revision | `bd94008dded51d87b640b322f7afeff69433bb2f` |
-| Implementation checkpoint | `b96e05ce9f13ccb20eaac601af609e36be11d29a` |
+| Implementation checkpoints | `b96e05ce9f13ccb20eaac601af609e36be11d29a`, `2f1a6cf1794d200ca2224d6953dcfd261891edbf` |
 | Branch | `codex/metal-inference-lane-lock` |
 | Remote parity at checkpoint | exact |
-| Report canonical SHA (excludes determinism field) | `6f476b233008f9491785d7520073fa29255b06e9191aa6bd02ed32da0992700c` |
-| Report bytes SHA | `a1234db2c9e700fe9fbe44eb9eb4641972f692a2f321622f3e19e6fc3e686238` |
-| Deterministic rerun | byte-identical; repeat bytes SHA `a1234db2c9e700fe9fbe44eb9eb4641972f692a2f321622f3e19e6fc3e686238` |
+| Report canonical SHA (excludes determinism field) | `4094e7fc12a78e2c4f387080f9f233a3e8bcda426505c7ae4ff5f9d791086bd8` |
+| Report bytes SHA | `7807a641be94aad899ec1d60ff7678d2c8261587ed8bdbd4640a998fb6344324` |
+| Deterministic rerun | byte-identical; repeat bytes SHA `7807a641be94aad899ec1d60ff7678d2c8261587ed8bdbd4640a998fb6344324` |
 
 ## Existing validator contract
 
@@ -230,6 +230,12 @@ existing playability gate. The Lane A source is not inside that envelope until
 a generic density-normalization task exists. `REAL_SYMBOLIC_ALIGNMENT_PARTIAL`
 remains unchanged; this audit did not conduct alignment research. The original
 arbitrary-YouTube vision remains outside this capability envelope.
+
+Real shadow product path: intake, provenance/firewall, region ownership,
+arrangement, artifact roundtrips, and five-level in-memory projection passed.
+The first blocker is the six-level validation gate, so the exact mission
+decision is `REAL_SHADOW_BLOCKED_AT_DIFFICULTIES`. Player entry links were not
+exercised because no catalog row was persisted.
 
 ## Verification
 

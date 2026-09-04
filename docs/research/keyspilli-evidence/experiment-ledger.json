@@ -1141,7 +1141,7 @@
       "id": "authoritative-symbolic-playability-gate-audit-2026-09-04",
       "date": "2026-09-04",
       "startingRevision": "bd94008dded51d87b640b322f7afeff69433bb2f",
-      "checkpointRevision": "b96e05ce9f13ccb20eaac601af609e36be11d29a",
+      "checkpointRevision": "2f1a6cf1794d200ca2224d6953dcfd261891edbf",
       "purpose": "Audit the first real product-lane playability blocker without changing validator limits or musical policy",
       "route": "frozen native performance-symbolic MIDI -> existing direct-piano arrangement -> six physical learner variants -> report-only playability diagnostics",
       "fixture": {
@@ -1182,6 +1182,7 @@
       "decisions": {
         "timedSymbolicMvp": "TIMED_SYMBOLIC_MVP_CONDITIONAL",
         "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "realShadow": "REAL_SHADOW_BLOCKED_AT_DIFFICULTIES",
         "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
         "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
         "deployment": "NOT_DEPLOYED"
@@ -1192,8 +1193,8 @@
         "module": "packages/midi/src/playability-audit.ts",
         "runner": "packages/catalog/scripts/audit-playability.ts",
         "thresholdChanged": false,
-        "reportCanonicalSha256": "6f476b233008f9491785d7520073fa29255b06e9191aa6bd02ed32da0992700c",
-        "reportSha256": "a1234db2c9e700fe9fbe44eb9eb4641972f692a2f321622f3e19e6fc3e686238"
+        "reportCanonicalSha256": "4094e7fc12a78e2c4f387080f9f233a3e8bcda426505c7ae4ff5f9d791086bd8",
+        "reportSha256": "7807a641be94aad899ec1d60ff7678d2c8261587ed8bdbd4640a998fb6344324"
       },
       "verification": {
         "focusedPlayabilityTests": 6,

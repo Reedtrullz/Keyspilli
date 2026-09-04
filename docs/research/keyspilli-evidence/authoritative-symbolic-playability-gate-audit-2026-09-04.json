@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "authoritative-symbolic-playability-gate-audit",
   "mission": "AUTHORITATIVE_SYMBOLIC_PLAYABILITY_GATE_AUDIT",
-  "revision": "b96e05c",
+  "revision": "2f1a6cf",
   "scope": {
     "onsetToleranceBeats": 0.08,
     "rapidIoiSeconds": 0.08,
@@ -5628,9 +5628,10 @@
     "primary": "AUTHORITATIVE_SOURCE_DENSITY_REQUIRES_TRANSFORM",
     "timedSymbolicMvp": "TIMED_SYMBOLIC_MVP_CONDITIONAL",
     "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+    "realShadow": "REAL_SHADOW_BLOCKED_AT_DIFFICULTIES",
     "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED"
   },
   "determinism": {
-    "canonicalSha256": "6f476b233008f9491785d7520073fa29255b06e9191aa6bd02ed32da0992700c"
+    "canonicalSha256": "4094e7fc12a78e2c4f387080f9f233a3e8bcda426505c7ae4ff5f9d791086bd8"
   }
 }

@@ -348,7 +348,8 @@ change was made in this rehearsal.
 
 The first downstream blocker was audited against the frozen Lane A native
 performance-symbolic source (7,266 notes, `USER_SUPPLIED_PRIVATE`, 120 BPM) at
-implementation checkpoint `b96e05ce9f13ccb20eaac601af609e36be11d29a`. The
+implementation checkpoints `b96e05ce9f13ccb20eaac601af609e36be11d29a` and
+`2f1a6cf1794d200ca2224d6953dcfd261891edbf`. The
 report-only diagnostic is
 `authoritative-symbolic-playability-gate-audit-2026-09-04.json`, with companion
 method/report notes in
@@ -370,14 +371,16 @@ adds no musical-policy change and does not lower the 0.08-second threshold;
 Lane-A-specific logic is `NONE`. Product decision:
 `TIMED_SYMBOLIC_MVP_CONDITIONAL` for native authoritative timed symbolic input
 whose generated variants pass the existing gate. Alignment remains
-`REAL_SYMBOLIC_ALIGNMENT_PARTIAL`, musical quality remains
+`REAL_SYMBOLIC_ALIGNMENT_PARTIAL`; the exact shadow decision is
+`REAL_SHADOW_BLOCKED_AT_DIFFICULTIES` because validation is the first failed
+downstream stage. Musical quality remains
 `MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`, human listening remains
 `NOT_REQUIRED_BY_DEFAULT`, and deployment remains `NOT_DEPLOYED`.
 
 The deterministic report canonical SHA is
-`6f476b233008f9491785d7520073fa29255b06e9191aa6bd02ed32da0992700c`; report
+`4094e7fc12a78e2c4f387080f9f233a3e8bcda426505c7ae4ff5f9d791086bd8`; report
 bytes SHA is
-`a1234db2c9e700fe9fbe44eb9eb4641972f692a2f321622f3e19e6fc3e686238`.
+`7807a641be94aad899ec1d60ff7678d2c8261587ed8bdbd4640a998fb6344324`.
 The next single engineering task is
 `AUTHORITATIVE_SYMBOLIC_DENSITY_NORMALIZATION`; no alignment research,
 benchmark tuning, listening, deployment, or production write occurred.
