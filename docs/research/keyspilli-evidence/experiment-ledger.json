@@ -2001,6 +2001,79 @@
       "nextTask": "PRODUCTION_GENERIC_SOURCE_SEARCH_PROVIDER",
       "reproducible": true,
       "rawMediaRetention": "no third-party source bytes downloaded or committed; only sanitized metadata and lineage schema are retained"
+    },
+    {
+      "id": "production-generic-source-search-provider-2026-09-05",
+      "date": "2026-09-05",
+      "startingRevision": "b78dfc0cd2a87820318f7dc19ce7676a2cadf1a9",
+      "checkpointRevisions": [
+        "7c8c3c0a9689fdeb29948080334352e60ee87551",
+        "adbedfdd1d0c4238c297961c5ddb68e6ba4d5083"
+      ],
+      "purpose": "Select and implement one production-safe metadata search provider without automatic source-byte acquisition",
+      "scope": {
+        "shortlist": ["BRAVE_SEARCH_API", "EXA_SEARCH_API"],
+        "providerToBeat": "BRAVE_SEARCH_API",
+        "selectedProvider": "BRAVE_SEARCH_PROVIDER_SELECTED",
+        "queriesPerSong": 4,
+        "resultsPerQuery": 10,
+        "maxUniqueResults": 40,
+        "maxDisplayed": 3,
+        "timeoutMs": 5000,
+        "maxRetries": 1,
+        "cache": "disabled; transient-only provider operation state",
+        "automaticSourceByteAcquisition": false,
+        "musicalPolicyChanges": 0,
+        "benchmarkTuning": false,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NO_DEPLOYMENT"
+      },
+      "controls": {
+        "rankerRemainsAuthoritative": true,
+        "rightsDefaultUnknown": true,
+        "timingDefaultUnknown": true,
+        "providerKeyServerOnly": true,
+        "queryInputLimitedToArtistTitleAndFormat": true,
+        "urlCredentialsAndQueryStripped": true,
+        "privateAndMappedIpv6HostsRejected": true,
+        "providerResultPagesFetched": 0,
+        "sourceBytesDownloaded": 0,
+        "benchmarkFirewallViolations": 0,
+        "automaticRightsPromotions": 0,
+        "liveCredentialPresent": false
+      },
+      "verification": {
+        "providerTests": 7,
+        "sourceCandidateRouteTests": 3,
+        "sourceHandoffRouteTests": 3,
+        "uploadHandoffTests": 3,
+        "catalogUrlSafetyTests": 9,
+        "workspaceTests": 1670,
+        "workspaceTestBreakdown": {"web": 115, "catalog": 1059, "engrave": 8, "midi": 354, "playerCore": 92, "transcribe": 42},
+        "workspaceTypechecks": 6,
+        "webBuild": true,
+        "deterministicMockReplay": true,
+        "directUploadFallback": true,
+        "clientBundleCredentialValueMatches": 0,
+        "liveProviderCanary": "NOT_RUN_NO_CREDENTIAL",
+        "frozen20SongReplay": "NOT_RUN_NO_CREDENTIAL",
+        "diffCheck": true
+      },
+      "decisions": {
+        "provider": "BRAVE_SEARCH_PROVIDER_SELECTED",
+        "implementation": "PRODUCTION_PROVIDER_IMPLEMENTED_AWAITING_API_CREDENTIAL",
+        "privateAlpha": "DISCOVERY_ASSISTED_PRIVATE_ALPHA_NEEDS_PROVIDER_CREDENTIAL",
+        "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+        "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED"
+      },
+      "report": {
+        "json": "production-generic-source-search-provider-2026-09-05.json",
+        "jsonSha256": "120f391661b22d7a60dff5b29d5c785203436217512eb8cf1be673d4d69b0adb"
+      },
+      "nextTask": "PRODUCTION_SEARCH_PROVIDER_CREDENTIAL_CANARY",
+      "reproducible": true,
+      "rawMediaRetention": "no third-party source bytes downloaded or retained; metadata-only adapter"
     }
   ]
 }

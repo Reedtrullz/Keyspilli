@@ -848,3 +848,50 @@ and no deployment was performed. `REAL_SYMBOLIC_ALIGNMENT_PARTIAL`,
 
 Green implementation checkpoint: `59df7a0343ef5debd10068450307270dba7b2b64`.
 Exactly one next task: `PRODUCTION_GENERIC_SOURCE_SEARCH_PROVIDER`.
+
+## 2026-09-05 — Production generic source-search provider
+
+The provider requirements were frozen before comparison: server-side ordinary
+web search returning URL/title/snippet metadata, bounded deterministic query
+fan-out, API-key authentication, no page crawling, no source-byte acquisition,
+and the existing generic ranker/firewall as the authority. The comparison was
+limited to the preregistered `BRAVE_SEARCH_API` and `EXA_SEARCH_API` candidates.
+
+Decision: `BRAVE_SEARCH_PROVIDER_SELECTED`. Brave directly exposes the raw
+metadata needed by the handoff UI, works through a small plain-HTTP adapter,
+and publishes the lower $5/1,000 Search price. Exa would need the
+preregistered material retrieval/safety headroom to displace it; no provider
+credential was available for a live comparison. The frozen policy is four
+queries per song, at most 10 results per query, 40 normalized unique URLs, and
+three displayed cards, with a five-second timeout and one retry for transient
+failures. Search results remain metadata-only with `UNKNOWN_RIGHTS` and
+`UNKNOWN_TIMING`; direct owner upload is still the byte and generation
+authority. A durable cache is intentionally absent because the selected
+provider terms permit only transient Search Result storage.
+
+The production adapter is implemented in
+`apps/web/src/lib/source-candidate-provider.ts` and is enabled only by the
+server variables `KEYSPILLI_SOURCE_SEARCH_PROVIDER=brave` and
+`KEYSPILLI_SOURCE_SEARCH_API_KEY`. Missing configuration leaves direct
+MIDI/MusicXML/MXL upload available. URL sanitization rejects credentials,
+query/fragment data, non-HTTP(S), local/private hosts, and mapped/private IPv6
+hosts. No provider key, page content, or music bytes are stored in the
+repository or sent to the browser.
+
+Path-free evidence is recorded in
+`production-generic-source-search-provider-2026-09-05.json` (SHA-256
+`120f391661b22d7a60dff5b29d5c785203436217512eb8cf1be673d4d69b0adb`). Mocked
+provider/route tests, deterministic replay, URL safety, the catalog suite,
+web build, and six workspace typechecks pass. The workspace total is 1,670
+passing tests (web 115, catalog 1,059, engrave 8, MIDI 354, player-core 92,
+transcribe 42). No API credential is present, so live provider validation and
+the frozen 20-song replay are `NOT_RUN_NO_CREDENTIAL`; no coverage claim is
+made.
+
+The implementation decision is
+`PRODUCTION_PROVIDER_IMPLEMENTED_AWAITING_API_CREDENTIAL`; private-alpha
+status remains `DISCOVERY_ASSISTED_PRIVATE_ALPHA_NEEDS_PROVIDER_CREDENTIAL`.
+`GENERATION_CANDIDATE_INTAKE_READY`, `REAL_SYMBOLIC_ALIGNMENT_PARTIAL`,
+`MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`,
+`NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT`, and `NO_DEPLOYMENT` remain unchanged.
+Exactly one next task: `PRODUCTION_SEARCH_PROVIDER_CREDENTIAL_CANARY`.

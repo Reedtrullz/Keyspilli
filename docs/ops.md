@@ -70,6 +70,45 @@ aligned to unrelated audio. Source bytes are retained under `data/uploads/`
 and included in the existing bounded backup archive; malformed, unsupported,
 empty, and oversized content fails closed without catalog rows.
 
+### Optional generic source-search metadata
+
+The source-lead button has one production provider: Brave Search API. It is
+metadata discovery only; Keyspilli does not fetch result pages or third-party
+music bytes. Each request sends four bounded queries (`MIDI`, `MusicXML`,
+`Guitar Pro`, and `piano MIDI`), asks for at most 10 results per query, keeps at
+most 40 sanitized unique URLs, and displays at most three ranker-approved
+metadata cards. Results start with `UNKNOWN_RIGHTS` and `UNKNOWN_TIMING` and
+remain user-mediated until the owner supplies and uploads an authorized file.
+
+Obtain a Search API key from the [Brave API dashboard](https://brave.com/search/api/)
+and install it only in the server/deployment secret store:
+
+```bash
+export KEYSPILLI_SOURCE_SEARCH_PROVIDER=brave
+export KEYSPILLI_SOURCE_SEARCH_API_KEY='(operator secret; never print or commit)'
+```
+
+The application reads the key only on the server. Do not use a `NEXT_PUBLIC_`
+variable, browser request, shell-history literal, report, or repository file.
+To disable discovery, omit either variable; direct MIDI, MusicXML, and MXL
+upload remains fully available. Provider failures, quota responses, and
+timeouts return a bounded error state rather than blocking upload. The adapter
+uses a five-second timeout and one retry for 429/5xx/network failures. It does
+not persist a search cache because the [Brave API terms](https://api-dashboard.search.brave.com/documentation/resources/terms-of-service)
+allow only transient Search Result storage; no zero-retention claim is made.
+
+The published Search price is $5/1,000 requests, so the frozen four-query
+policy costs about $0.02 per song request before a retry (up to $0.04 in the
+worst retry case). Brave's [rate-limit guidance](https://api-dashboard.search.brave.com/documentation/guides/rate-limiting)
+and response headers remain authoritative. Search metadata has no implied
+license; the owner must inspect the source and provide a permitted file.
+
+The current checkout has no provider credential, so live Brave coverage and a
+20-song replay are `NOT_RUN_NO_CREDENTIAL`; the implementation decision is
+`PRODUCTION_PROVIDER_IMPLEMENTED_AWAITING_API_CREDENTIAL`. The provider
+comparison and path-free evidence are recorded in
+`docs/research/keyspilli-evidence/production-generic-source-search-provider-2026-09-05.json`.
+
 ### Bounded MVP release-candidate scope and deployment gate
 
 The bounded release candidate is a private, single-user symbolic product:
