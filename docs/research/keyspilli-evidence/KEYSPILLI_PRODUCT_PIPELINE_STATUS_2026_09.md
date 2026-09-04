@@ -812,3 +812,39 @@ narrowed, not abandoned. `REAL_SYMBOLIC_ALIGNMENT_PARTIAL`,
 `MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`,
 `NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT`, and `NO_DEPLOYMENT` remain unchanged.
 Green checkpoint: `26f3175` (pushed on `codex/metal-inference-lane-lock`).
+
+## 2026-09-05 — User-mediated source candidate handoff
+
+Implemented the bounded handoff from metadata-only discovery to an explicitly
+user-supplied symbolic upload. The server now owns a short-lived handoff
+record, candidate identity, target, sanitized source URL, discovery rights and
+timing metadata, and the upload route binds a separate uploaded SHA and intake
+candidate ID. The existing parser, size limits, provenance transition and
+atomic ingest remain authoritative; discovery bytes are never fetched.
+
+The path-free evidence report is
+`user-mediated-source-candidate-handoff-2026-09-05.json` (SHA-256
+`2738ffe9fce7db33ac9059b47608cd95224df50b645b27c2e1c2f2a9809d931f`). The
+handoff contract, tamper rejection, URL sanitization, format-advisory behavior,
+retry identity, expiration cleanup, provider failure behavior and lineage
+tests pass. The web production build and two existing bounded scratch
+Playwright tests also pass.
+
+The production discovery provider remains intentionally absent. The UI reports
+that state and still permits direct symbolic upload; an injected provider seam
+is limited to three deterministic metadata cards and never downloads a lead.
+Therefore the handoff decision is `USER_MEDIATED_SOURCE_HANDOFF_VALIDATED`,
+while private-alpha readiness remains
+`DISCOVERY_ASSISTED_PRIVATE_ALPHA_NEEDS_PRODUCTION_SEARCH_PROVIDER` and
+provider availability is `PRODUCTION_GENERIC_SOURCE_SEARCH_PROVIDER_MISSING`.
+
+Workspace verification is 1,663 passing tests (web 108, catalog 1,059,
+engrave 8, MIDI 354, player-core 92, transcribe 42), six typechecks, web
+build, focused handoff tests, and `git diff --check`. No source bytes were
+downloaded or committed, no benchmark material or musical policy was touched,
+and no deployment was performed. `REAL_SYMBOLIC_ALIGNMENT_PARTIAL`,
+`MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`, and
+`NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT` remain unchanged.
+
+Green implementation checkpoint: `59df7a0343ef5debd10068450307270dba7b2b64`.
+Exactly one next task: `PRODUCTION_GENERIC_SOURCE_SEARCH_PROVIDER`.

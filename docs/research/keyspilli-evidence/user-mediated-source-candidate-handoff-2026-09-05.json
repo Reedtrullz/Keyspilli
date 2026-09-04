@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 1,
+  "mission": "USER_MEDIATED_SOURCE_CANDIDATE_HANDOFF",
+  "date": "2026-09-05",
+  "startingRevision": "8e20c721e6aa4611b5353aa5506bf7f5578a10c6",
+  "implementationRevision": "59df7a0343ef5debd10068450307270dba7b2b64",
+  "scope": {
+    "route": "discovery metadata -> owner opens source -> owner supplies symbolic file -> existing bounded intake -> generation",
+    "supportedUploadFormats": ["midi", "musicxml", "mxl"],
+    "timingMode": "uploaded symbolic timeline remains authoritative for symbolic arrangement mode; discovery timing is never promoted",
+    "recordingFaithfulMode": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+    "benchmarkMaterialUsed": false,
+    "musicalPolicyChanges": 0,
+    "networkSourceBytesDownloaded": 0,
+    "deployment": "NO_DEPLOYMENT"
+  },
+  "intakeContract": {
+    "existingOwner": "packages/catalog/src/generation-candidate-intake.ts + ingestSource",
+    "handoffExtension": "packages/catalog/src/source-candidate-handoff.ts",
+    "formats": {
+      "midi": "magic/parser validated by existing intake",
+      "musicxml": "content/parser validated by existing intake",
+      "mxl": "bounded ZIP safety/parser validated by existing intake"
+    },
+    "limits": { "uploadBytes": 10485760, "handoffJsonBytes": 65536 },
+    "hash": "SHA-256 of uploaded bytes; selected candidate ID remains separate",
+    "provenanceAfterUpload": "USER_SUPPLIED_PRIVATE",
+    "timingAfterUpload": "NATIVE_AUTHORITATIVE only for the bounded symbolic arrangement mode; discovery timing is retained separately"
+  },
+  "handoff": {
+    "schemaVersion": 1,
+    "states": [
+      "AWAITING_USER_FILE", "FILE_RECEIVED", "FORMAT_MISMATCH", "GENERATION_ACCEPTED",
+      "FILE_REJECTED", "EXPIRED"
+    ],
+    "serverOwnedFields": [
+      "handoffId", "selectedCandidateId", "targetSongId", "candidateUrl", "rights",
+      "eligibility", "discoveryTiming", "uploadedSourceSha256", "uploadedFormat", "intakeCandidateId"
+    ],
+    "ttl": { "defaultHours": 24, "maximumDays": 7, "cleanup": "explicit cleanupExpiredSourceCandidateHandoffs" },
+    "formatDifference": "advisory FORMAT_MISMATCH state; actual uploaded format comes from magic/content/parser intake",
+    "retry": "same SHA/format/intake ID may repeat a GENERATION_ACCEPTED handoff; a different file is rejected",
+    "lineage": "selectedCandidateId -> handoffId -> uploadedSourceSha256 -> intakeCandidateId -> generated base/artifacts",
+    "rightsInherited": false,
+    "identityVerifiedAgainstCandidate": false
+  },
+  "candidateFirewall": {
+    "allowedHandoffClass": "GENERATION_CANDIDATE",
+    "rejectedClasses": ["BENCHMARK_REFERENCE", "DIAGNOSTIC_ONLY"],
+    "rejectedRights": ["BENCHMARK_REFERENCE", "DIAGNOSTIC_ONLY"],
+    "unknownRights": "may be shown as a user-mediated lead but never auto-acquired",
+    "autoDownload": false,
+    "clientCandidateJsonTrusted": false
+  },
+  "urlHandling": {
+    "displayLabel": "Open source",
+    "allowedSchemes": ["http", "https"],
+    "stripped": ["credentials", "query", "fragment"],
+    "rejected": ["javascript", "data", "file", "localhost", "loopback", "private IPv4"],
+    "backendFetch": false
+  },
+  "provider": {
+    "interface": "apps/web/src/lib/source-candidate-provider.ts",
+    "productionProviderConfigured": false,
+    "defaultBehavior": "provider-missing with empty candidate list; direct upload remains available",
+    "rankedLeadCap": 3,
+    "researchProviderProductionized": false,
+    "decision": "PRODUCTION_GENERIC_SOURCE_SEARCH_PROVIDER_MISSING"
+  },
+  "verification": {
+    "focused": {
+      "catalogSourceCandidateHandoff": { "testFiles": 1, "tests": 9, "status": "pass" },
+      "webHandoffAndCandidateRoutes": { "testFiles": 3, "tests": 9, "status": "pass" },
+      "webExistingUploadRoute": { "tests": 11, "status": "pass" },
+      "webPlaywrightScratch": { "tests": 2, "status": "pass" }
+    },
+    "workspaceTests": {
+      "status": "pass",
+      "total": 1663,
+      "packages": {
+        "web": 108,
+        "catalog": 1059,
+        "engrave": 8,
+        "midi": 354,
+        "playerCore": 92,
+        "transcribe": 42
+      }
+    },
+    "typechecks": { "status": "pass", "packages": ["web", "catalog", "engrave", "midi", "player-core", "transcribe"] },
+    "webProductionBuild": { "status": "pass", "next": "15.5.23" },
+    "gitDiffCheck": "pass",
+    "determinism": {
+      "fixedHandoffReplay": "pass",
+      "rankerReorderedInputs": "pass",
+      "sourceHash": "pass",
+      "artifactHashReplay": "not claimed; generated manifests include runtime timestamps"
+    },
+    "disk": { "freeGiBApprox": 60, "hardFloorGiB": 30, "status": "pass" }
+  },
+  "scratchCanary": {
+    "fixture": "project test MIDI; no third-party source bytes",
+    "candidatePresentation": "route tests pass; default provider state is explicit",
+    "userAffirmation": "required before handoff upload",
+    "atomicIntakeLineage": "catalog ingest test pass",
+    "sixPhysicalLevels": "existing bounded ingest/e2e pass",
+    "fivePublicLevels": "existing bounded e2e pass",
+    "player": "existing bounded e2e pass",
+    "exports": "existing bounded e2e pass",
+    "failedUploadState": "handoff remains retryable and no generated result is published",
+    "persistence": "not newly exercised by this metadata-only slice",
+    "backupRestore": "not newly exercised by this metadata-only slice",
+    "playerLinkLocalExercise": "existing bounded e2e path exercised; handoff-specific UI path awaits provider"
+  },
+  "decisions": {
+    "handoff": "USER_MEDIATED_SOURCE_HANDOFF_VALIDATED",
+    "privateAlpha": "DISCOVERY_ASSISTED_PRIVATE_ALPHA_NEEDS_PRODUCTION_SEARCH_PROVIDER",
+    "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+    "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+    "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+    "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+    "deployment": "NO_DEPLOYMENT",
+    "nextTask": "PRODUCTION_GENERIC_SOURCE_SEARCH_PROVIDER"
+  },
+  "nonClaims": [
+    "A metadata lead is not trusted source bytes and is not proof that the upload equals the discovered candidate.",
+    "No production generic search provider is configured; this slice does not productionize the research web provider.",
+    "User upload provenance does not inherit discovery rights or discovery timing.",
+    "No independent score/audio alignment or arbitrary YouTube quality claim is made.",
+    "No human listening or benchmark tuning was performed."
+  ]
+}

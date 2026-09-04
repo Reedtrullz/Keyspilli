@@ -1937,6 +1937,70 @@
       "nextTask": "USER_MEDIATED_SOURCE_CANDIDATE_HANDOFF",
       "reproducible": true,
       "rawMediaRetention": "no source bytes downloaded or retained; path-free metadata only"
+    },
+    {
+      "id": "user-mediated-source-candidate-handoff-2026-09-05",
+      "date": "2026-09-05",
+      "startingRevision": "8e20c721e6aa4611b5353aa5506bf7f5578a10c6",
+      "checkpointRevision": "59df7a0343ef5debd10068450307270dba7b2b64",
+      "purpose": "Bind metadata-only source leads to explicit owner-supplied symbolic uploads without automatic acquisition or timing promotion",
+      "scope": {
+        "supportedFormats": ["midi", "musicxml", "mxl"],
+        "providerNeutral": true,
+        "productionProviderConfigured": false,
+        "rankedLeadCap": 3,
+        "autoDownload": false,
+        "benchmarkMaterialUsed": false,
+        "musicalPolicyChanges": 0,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NO_DEPLOYMENT"
+      },
+      "handoff": {
+        "states": ["AWAITING_USER_FILE", "FILE_RECEIVED", "FORMAT_MISMATCH", "GENERATION_ACCEPTED", "FILE_REJECTED", "EXPIRED"],
+        "serverOwnedBinding": true,
+        "selectedCandidateSeparateFromUploadedSha": true,
+        "uploadedProvenance": "USER_SUPPLIED_PRIVATE",
+        "discoveryRightsInherited": false,
+        "discoveryTimingPromoted": false,
+        "ttlDefaultHours": 24,
+        "ttlMaximumDays": 7
+      },
+      "controls": {
+        "urlCredentialsAndQueryStripped": true,
+        "localPrivateUrlsRejected": true,
+        "protectedCandidateClassesRejected": true,
+        "clientCandidateTamperRejected": true,
+        "providerFailureFailsClosed": true,
+        "failedUploadRetryable": true,
+        "sameUploadRetryStable": true,
+        "networkBytesDownloaded": 0
+      },
+      "verification": {
+        "catalogHandoffTests": 9,
+        "webHandoffRouteTests": 9,
+        "webUploadRouteTests": 11,
+        "playwrightScratchTests": 2,
+        "workspaceTests": 1663,
+        "workspaceTestBreakdown": {"web": 108, "catalog": 1059, "engrave": 8, "midi": 354, "playerCore": 92, "transcribe": 42},
+        "workspaceTypechecks": 6,
+        "webBuild": true,
+        "diffCheck": true,
+        "deterministicFixedHandoffReplay": true
+      },
+      "decisions": {
+        "handoff": "USER_MEDIATED_SOURCE_HANDOFF_VALIDATED",
+        "privateAlpha": "DISCOVERY_ASSISTED_PRIVATE_ALPHA_NEEDS_PRODUCTION_SEARCH_PROVIDER",
+        "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+        "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED"
+      },
+      "report": {
+        "json": "user-mediated-source-candidate-handoff-2026-09-05.json",
+        "jsonSha256": "2738ffe9fce7db33ac9059b47608cd95224df50b645b27c2e1c2f2a9809d931f"
+      },
+      "nextTask": "PRODUCTION_GENERIC_SOURCE_SEARCH_PROVIDER",
+      "reproducible": true,
+      "rawMediaRetention": "no third-party source bytes downloaded or committed; only sanitized metadata and lineage schema are retained"
     }
   ]
 }
