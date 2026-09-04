@@ -880,7 +880,7 @@ repository or sent to the browser.
 
 Path-free evidence is recorded in
 `production-generic-source-search-provider-2026-09-05.json` (SHA-256
-`120f391661b22d7a60dff5b29d5c785203436217512eb8cf1be673d4d69b0adb`). Mocked
+`6895c63f29f49234d8dbf0a1dc86458b45d4029684490f3b1c009d5841890411`). Mocked
 provider/route tests, deterministic replay, URL safety, the catalog suite,
 web build, and six workspace typechecks pass. The workspace total is 1,670
 passing tests (web 115, catalog 1,059, engrave 8, MIDI 354, player-core 92,

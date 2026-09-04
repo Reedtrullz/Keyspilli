@@ -5,7 +5,8 @@
   "startingRevision": "b78dfc0cd2a87820318f7dc19ce7676a2cadf1a9",
   "checkpointRevisions": [
     "7c8c3c0a9689fdeb29948080334352e60ee87551",
-    "adbedfdd1d0c4238c297961c5ddb68e6ba4d5083"
+    "adbedfdd1d0c4238c297961c5ddb68e6ba4d5083",
+    "8f21f0c589c3c0f1cfaa3e5a1b8bd6e2af2cb703"
   ],
   "requirements": {
     "providerToBeat": "BRAVE_SEARCH_API",
