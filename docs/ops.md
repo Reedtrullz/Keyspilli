@@ -55,6 +55,42 @@ aligned to unrelated audio. Source bytes are retained under `data/uploads/`
 and included in the existing bounded backup archive; malformed, unsupported,
 empty, and oversized content fails closed without catalog rows.
 
+### Bounded MVP release-candidate scope and deployment gate
+
+The bounded release candidate is a private, single-user symbolic product:
+MIDI, MusicXML, and MXL are accepted with their own symbolic timeline as the
+authoritative timing, six physical variants are persisted, and five public
+levels are exposed. YouTube conversion and independent score↔audio alignment
+remain separate experimental/partial capabilities; no recognizability or
+musical-quality guarantee is implied.
+
+The repository Caddy configuration currently has no basic auth, forward-auth,
+IP allow-list, VPN restriction, or other perimeter boundary. Because the live
+domain is internet-reachable and same-origin browser uploads intentionally do
+not require the bearer token, this posture is `PUBLIC_WRITE_SURFACE_WITHOUT_PRIVATE_ACCESS_BOUNDARY`.
+Do not mark a deployment ready until an owner-approved private boundary is in
+place. Do not add application accounts as a workaround in this release.
+
+Future explicitly authorized deployment checklist:
+
+1. Verify a clean release SHA and matching immutable image tags.
+2. Verify CI status for that exact SHA.
+3. Build or pull the immutable web (and required worker) image.
+4. Back up the current production volume and verify the archive.
+5. Verify host free disk and Docker space.
+6. Verify the private access boundary from an unauthorized network path.
+7. Deploy the exact image with Ansible/Compose.
+8. Check `/api/health` for `healthy` and the exact release SHA.
+9. Run the bounded MIDI/MusicXML/MXL upload canary with the worker off.
+10. Open the Easy player link and confirm the five public levels plus legacy Very Easy.
+11. Verify MIDI, MusicXML, and PDF exports.
+12. Check backup timer/state and the latest successful backup.
+13. If health/version or the canary fails, stop and use the documented immutable-image rollback; preserve the data volume.
+
+Local release-candidate evidence used Docker Engine/container smoke. Docker
+Compose v2 was unavailable on the audit host, so local Compose smoke is
+`COMPOSE_LOCAL_SMOKE_NOT_EXECUTED`, not a pass.
+
 ## Adding songs from the Ultimate Guitar list
 
 `catalog/ug-tabs.json` is the source list (82 songs from "My tabs @

@@ -1508,6 +1508,97 @@
       "nextTask": "REAL_SYMBOLIC_TIMING_ALIGNMENT_HARDENING",
       "reproducible": true,
       "rawMediaRetention": "no media retained; scratch bytes and temporary catalog removed"
+    },
+    {
+      "id": "bounded-mvp-release-candidate-2026-09-04",
+      "date": "2026-09-04",
+      "startingRevision": "89e2b6767b0cebe7e4248dba4513ec6992519a65",
+      "checkpointRevision": "ff3f39e2be4926e1f4aeffb8bbe7f401838a3b69",
+      "purpose": "Certify the bounded native-symbolic MVP as a reproducible release candidate without deployment or musical-policy changes",
+      "scope": {
+        "formats": ["midi", "musicxml", "mxl"],
+        "timingAuthority": "NATIVE_AUTHORITATIVE",
+        "physicalDifficultyLevels": ["very-beginner", "beginner", "very-easy", "easy", "medium", "advanced"],
+        "publicDifficultyLevels": ["very-beginner", "beginner", "easy", "medium", "advanced"],
+        "youtube": "experimental-separate-capability",
+        "benchmarkMaterialUsed": false,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NOT_DEPLOYED"
+      },
+      "docker": {
+        "client": "Docker version 29.7.1, build e9452d6e78",
+        "server": "Docker Engine 29.5.2, build 568f755",
+        "context": "colima",
+        "webImageBuild": "PASS",
+        "webImageTag": "keyspilli:web-rc-ff3f39e",
+        "webImageDigest": "sha256:d8c416090e4ddf7f4843917bea833af4e07b2cf09aec197cfbecd235c4ce03e",
+        "webImageBytes": 458002486,
+        "webContainerSmoke": "PASS",
+        "composeSmoke": "NOT_RUN; docker compose plugin unavailable",
+        "worker": "OFF"
+      },
+      "accessPosture": {
+        "classification": "PUBLIC_WRITE_SURFACE_WITHOUT_PRIVATE_ACCESS_BOUNDARY",
+        "domain": "public-internet",
+        "applicationAuth": "same-origin-browser-upload-bypasses-bearer; machine-mutations-require-bearer",
+        "edgeRestriction": "none-in-repository-caddy-config",
+        "blocker": "PRIVATE_ACCESS_BOUNDARY_REQUIRED"
+      },
+      "canary": {
+        "freshVolume": true,
+        "midi": true,
+        "musicxml": true,
+        "mxl": true,
+        "sixPhysicalRows": true,
+        "fivePublicLevels": true,
+        "playerEasyAndLegacyVeryEasy": true,
+        "exports": {"midi": true, "musicxml": true, "pdf": true},
+        "restartDurability": true,
+        "backupRestore": true,
+        "failureAtomicity": true,
+        "retryIdempotency": true,
+        "uploadLifecycleLogging": true
+      },
+      "security": {
+        "sameOriginBrowser": "PASS",
+        "crossOriginRejected": "PASS",
+        "wrongBearerRejected": "PASS",
+        "htmlAndMalformedSymbolicRejected": "PASS",
+        "oversizedStreamingBodyRejected": "PASS",
+        "mxlArchiveSafety": "UNIT_COVERED",
+        "browserTokenExposure": "NOT_OBSERVED",
+        "privatePathLeak": "NOT_OBSERVED"
+      },
+      "decisions": {
+        "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+        "releaseCandidate": "BOUNDED_MVP_RELEASE_CANDIDATE_PARTIAL",
+        "firstBlocker": "PRIVATE_ACCESS_BOUNDARY_REQUIRED",
+        "deployment": "DEPLOYMENT_NOT_READY_PRIVATE_ACCESS_BOUNDARY",
+        "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT"
+      },
+      "verification": {
+        "workspaceTests": 1636,
+        "workspaceTestBreakdown": {"web": 98, "catalog": 1042, "engrave": 8, "midi": 354, "playerCore": 92, "transcribe": 42},
+        "boundedPlaywrightTests": 2,
+        "workspaceTypechecks": 6,
+        "cleanInstall": true,
+        "productionBuild": true,
+        "backupRestoreSmoke": true,
+        "deterministicRetry": true,
+        "gitDiffCheck": true,
+        "diskFreeGiBAtClose": 71,
+        "ciExactShaObserved": false
+      },
+      "rollback": {
+        "staticContract": "PASS; previous image IDs are tagged before Compose swap and the data volume is preserved",
+        "executed": false
+      },
+      "musicalBehaviorChanges": 0,
+      "nextTask": "ESTABLISH_PRIVATE_DEPLOYMENT_ACCESS_BOUNDARY",
+      "reproducible": true,
+      "rawMediaRetention": "no canary media retained; only path-free release metadata and hashes are committed"
     }
   ]
 }

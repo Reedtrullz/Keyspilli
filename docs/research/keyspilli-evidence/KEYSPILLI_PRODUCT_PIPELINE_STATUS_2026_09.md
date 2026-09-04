@@ -550,3 +550,49 @@ does not establish musical recognizability:
 Player links are `LOCAL_EXERCISED`. The next single engineering task is
 `REAL_SYMBOLIC_TIMING_ALIGNMENT_HARDENING`; no benchmark tuning, deployment,
 production write, or audio/listening task was performed.
+
+### Bounded MVP release candidate — 2026-09-04
+
+This release-candidate audit starts from `89e2b6767b0cebe7e4248dba4513ec6992519a65`.
+The code/image checkpoint is `ff3f39e2be4926e1f4aeffb8bbe7f401838a3b69`;
+the immutable local web image is `keyspilli:web-rc-ff3f39e` with digest
+`sha256:d8c416090e4ddf7f4843917bea833af4e07b2cf09aec197cfbecd235c4ce03e`
+and size 458002486 bytes. A clean Node 22.22.3/npm 10.9.8 install, production
+build, workspace tests/typechecks, and the two bounded Playwright tests passed.
+
+The Docker evidence is intentionally split: the production web image build and
+worker-off web-container smoke both passed, while local Docker Compose smoke was
+not run because this host has no `docker compose` plugin. The earlier
+productization ledger statement that Compose was not run remains factual; it is
+not a Compose pass. The final container used an empty scratch data directory,
+`HOSTNAME=0.0.0.0`, and reported the exact checkpoint through `/api/health`.
+MIDI, MusicXML, and MXL uploads each persisted six physical rows and five public
+levels; Easy/legacy Very Easy/player routes and MIDI/MusicXML/PDF exports passed.
+Malformed/HTML-masquerading symbolic bodies, malformed MXL, and an 11 MB body
+failed closed without new rows. Same-origin browser metadata, cross-origin
+rejection, wrong bearer rejection, stable SHA retry behavior, restart durability,
+and the scratch backup/restore drill passed. The worker, Demucs, Basic Pitch,
+and yt-dlp were not needed for this bounded path.
+
+Static deployment review and a read-only live check classify the configured
+posture as public internet with no application-account system and no Caddy
+edge/network restriction. Same-origin upload checks are CSRF protection, not a
+private access boundary: an arbitrary visitor can reach `/uploads` and submit a
+valid symbolic file. The live domain was healthy on a newer production revision,
+so it was not treated as evidence for this candidate. This is the first release
+blocker: `PUBLIC_WRITE_SURFACE_WITHOUT_PRIVATE_ACCESS_BOUNDARY` /
+`PRIVATE_ACCESS_BOUNDARY_REQUIRED`. The Ansible playbook does retain immutable
+previous image tags and the data volume during rollback, but no deployment or
+rollback was executed.
+
+Release scope is frozen to private single-user MIDI/MusicXML/MXL upload with
+`NATIVE_AUTHORITATIVE` symbolic timing, six physical levels, and five public
+levels. YouTube/audio conversion remains a separate experimental capability;
+independent score↔audio alignment remains `REAL_SYMBOLIC_ALIGNMENT_PARTIAL`, and
+musical quality remains `MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`.
+
+Decision: `BOUNDED_MVP_RELEASE_CANDIDATE_PARTIAL`, first blocker
+`PRIVATE_ACCESS_BOUNDARY_REQUIRED`. Deployment decision:
+`DEPLOYMENT_NOT_READY_PRIVATE_ACCESS_BOUNDARY`. Human listening is
+`NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT`; deployment is `NOT_DEPLOYED`. The next
+single task is `ESTABLISH_PRIVATE_DEPLOYMENT_ACCESS_BOUNDARY`.

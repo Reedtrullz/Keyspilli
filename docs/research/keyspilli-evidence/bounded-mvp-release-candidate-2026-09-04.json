@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "bounded-mvp-release-candidate-2026-09-04",
+  "releaseSha": "ff3f39e2be4926e1f4aeffb8bbe7f401838a3b69",
+  "scope": {
+    "product": "private single-user symbolic-upload piano learner",
+    "formats": ["midi", "musicxml", "mxl"],
+    "timingAuthority": "NATIVE_AUTHORITATIVE",
+    "publicDifficultyOrder": ["very-beginner", "beginner", "easy", "medium", "advanced"],
+    "physicalDifficultySet": ["very-beginner", "beginner", "very-easy", "easy", "medium", "advanced"],
+    "legacyPhysicalLevels": ["very-easy"],
+    "youtube": "experimental-separate-capability",
+    "independentAudioAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL"
+  },
+  "runtime": {
+    "node": "22.22.3",
+    "npm": "10.9.8",
+    "lockfileSha256": "27e4e140cc03c5eac2e592cb300426110a15c0404bf366d499e1f453d297fb3d4",
+    "dockerClient": "29.7.1",
+    "dockerServer": "29.5.2",
+    "dockerContext": "colima",
+    "dockerCompose": "unavailable-locally"
+  },
+  "image": {
+    "tag": "keyspilli:web-rc-ff3f39e",
+    "digest": "sha256:d8c416090e4ddf7f4843917bea833af4e07b2cf09aec197cfbecd235c4ce03e",
+    "bytes": 458002486,
+    "build": "PASS",
+    "embeddedVersion": "ff3f39e2be4926e1f4aeffb8bbe7f401838a3b69"
+  },
+  "health": {
+    "path": "/api/health",
+    "expectedStatus": "healthy",
+    "expectedCommit": "ff3f39e2be4926e1f4aeffb8bbe7f401838a3b69",
+    "expectedImage": "keyspilli:web-rc-ff3f39e"
+  },
+  "data": {
+    "freshVolume": "PASS",
+    "seedCatalogRequired": false,
+    "schemaMigration": "none-observed",
+    "backupContract": "SQLite online backup plus validated artifacts/source archive"
+  },
+  "canary": {
+    "worker": "OFF",
+    "midi": "PASS",
+    "musicxml": "PASS",
+    "mxl": "PASS",
+    "physicalRows": 6,
+    "publicLevels": 5,
+    "player": "PASS",
+    "exports": {"midi": "PASS", "musicxml": "PASS", "pdf": "PASS"},
+    "restart": "PASS",
+    "backupRestore": "PASS",
+    "atomicFailures": "PASS",
+    "retryIdempotency": "PASS"
+  },
+  "security": {
+    "sameOriginBrowser": "PASS",
+    "crossOriginBrowser": "PASS",
+    "wrongBearer": "PASS",
+    "htmlAndMalformedSymbolicRejected": "PASS",
+    "oversizedStreamingBodyRejected": "PASS",
+    "mxlArchiveSafety": "UNIT_COVERED",
+    "browserTokenExposure": "NOT_OBSERVED",
+    "privatePathLeak": "NOT_OBSERVED"
+  },
+  "access": {
+    "domainPosture": "public-internet",
+    "applicationAuth": "same-origin-browser-upload-bypasses-bearer; machine-mutations-require-bearer",
+    "edgeRestriction": "none-in-repository-caddy-config",
+    "liveDomainHealth": "healthy-on-newer-production-revision",
+    "deploymentGate": "PRIVATE_ACCESS_BOUNDARY_REQUIRED"
+  },
+  "verification": {
+    "webImageBuild": "PASS",
+    "webContainerSmoke": "PASS",
+    "dockerComposeSmoke": "NOT_RUN; docker compose plugin unavailable",
+    "boundedPlaywright": 2,
+    "workspaceTests": 1636,
+    "workspaceTypechecks": 6,
+    "gitDiffCheck": true,
+    "deterministicRetry": true,
+    "diskFreeGiB": 71
+  },
+  "decisions": {
+    "releaseCandidate": "BOUNDED_MVP_RELEASE_CANDIDATE_PARTIAL",
+    "firstBlocker": "PRIVATE_ACCESS_BOUNDARY_REQUIRED",
+    "deployment": "DEPLOYMENT_NOT_READY_PRIVATE_ACCESS_BOUNDARY",
+    "alignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+    "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+    "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+    "deploymentPerformed": false
+  },
+  "nextTask": "ESTABLISH_PRIVATE_DEPLOYMENT_ACCESS_BOUNDARY"
+}
