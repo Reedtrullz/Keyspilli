@@ -6,6 +6,18 @@ export { buildVariants, reduceMediumRhythm, padPitches, melodyOnly, normalizeTem
 export { validateVariants, PLAYABILITY_LIMITS } from "./validate.js";
 export type { VariantValidationOptions } from "./validate.js";
 export {
+  measurePlayability,
+  assessPlayability,
+  PLAYABILITY_AUDIT_CONFIG,
+} from "./playability-audit.js";
+export type {
+  PlayabilityIoiSummary,
+  PlayabilityHandMetrics,
+  PlayabilityRapidRegion,
+  PlayabilityAuditMetrics,
+  PlayabilityAssessment,
+} from "./playability-audit.js";
+export {
   cleanTranscription,
   sanitizeImportedNotes,
   maxDurationBeatsForTempo,

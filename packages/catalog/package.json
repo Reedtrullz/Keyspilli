@@ -19,6 +19,7 @@
     "migrate-artifacts": "tsx scripts/migrate-artifacts.ts",
     "reingest-catalog": "tsx scripts/reingest-catalog.ts",
     "calibrate": "tsx scripts/calibrate-limits.ts",
+    "audit:playability": "tsx scripts/audit-playability.ts",
     "reingest-uploads": "tsx scripts/reingest-uploads.ts",
     "reingest-midi-pack": "tsx scripts/reingest-midi-pack.ts",
     "seed": "tsx scripts/seed.ts",
