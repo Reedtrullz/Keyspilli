@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   analyzeDensityAttacks,
   boundedDensityDeletionOracle,
+  buildVariants,
   compareDensityAttackSets,
   PLAYABILITY_LIMITS,
   selectProtectedSemanticLocalThinning,
   assessPlayability,
   measurePlayability,
+  validateVariants,
   type Note,
 } from "../src/index.js";
 
@@ -168,5 +170,42 @@ describe("report-only density normalization diagnostics", () => {
     expect(result.createdEvents).toBe(0);
     expect(result.finalAssessment.status).toBe("fail");
     expect(result.exhausted).toBe(true);
+  });
+
+  it("applies the frozen semantic thinning pass to failing learner levels", () => {
+    const notes: Note[] = Array.from({ length: 32 }, (_, index) => ({
+      midi: index % 2 ? 40 + (index % 3) : 72 + (index % 5),
+      start: index * 0.125,
+      dur: 0.125,
+      vel: index % 2 ? 45 : 105,
+      hand: index % 2 ? "L" as const : "R" as const,
+    }));
+    const variants = buildVariants({
+      format: 1,
+      division: 480,
+      tempoBpm: 120,
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes,
+      trackNames: ["Frozen density fixture"],
+      durationBeats: 4,
+    }, { title: "Frozen density fixture", artist: "Keyspilli" }, {
+      arrangementProfile: "learner",
+      maxDurBeats: null,
+    });
+
+    expect(validateVariants(variants, { maxDurBeats: null })).toEqual([]);
+    expect(variants.find((variant) => variant.level === "very-beginner")!.notes.length).toBe(9);
+    expect(variants.find((variant) => variant.level === "beginner")!.notes.length).toBe(12);
+    expect(variants.find((variant) => variant.level === "very-easy")!.notes.length).toBe(13);
+    expect(variants.find((variant) => variant.level === "easy")!.notes.length).toBe(17);
+    expect(variants.find((variant) => variant.level === "medium")!.notes.length).toBe(17);
+    expect(variants.find((variant) => variant.level === "advanced")!.notes.length).toBe(17);
+    const learnerLevels = variants.filter((candidate) => ["easy", "medium", "advanced"].includes(candidate.level));
+    const rhKeys = new Set(learnerLevels[0]!.notes.filter((note) => note.hand !== "L").map((note) => `${note.midi}@${note.start}`));
+    for (const variant of learnerLevels) {
+      expect(new Set(variant.notes.filter((note) => note.hand !== "L").map((note) => `${note.midi}@${note.start}`))).toEqual(rhKeys);
+    }
   });
 });

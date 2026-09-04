@@ -15,6 +15,7 @@ import {
   selectBeginnerOffGridRhCandidates,
   type BeginnerOffGridRejectedCandidate,
 } from "./beginner-offgrid.js";
+import { selectProtectedSemanticLocalThinning } from "./density-normalization-audit.js";
 
 export interface VariantOptions {
   /** 16th-note grid (beats) used for note slicing */
@@ -3104,6 +3105,15 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
       Object.defineProperty(marked, BEGINNER_OFFGRID_CANDIDATE, { value: true, enumerable: true });
       return marked;
     });
+  }
+  // Frozen Candidate A: one protected semantic thinning pass over the final
+  // learner ladder. The selector is shared with the audit so promotion cannot
+  // drift into a second implementation; its own pass is a no-op for levels
+  // that already satisfy the unchanged validator.
+  if (learnerProfile && !metalProfile) {
+    for (const level of ["easy", "medium", "advanced"] as const) {
+      sets[level] = selectProtectedSemanticLocalThinning(sets[level]!, tempo, level).notes;
+    }
   }
   if (learnerTraceEnabled) {
     emitLearnerStageTrace(learnerTraceSink, "beginner-final", sets.beginner!, [{

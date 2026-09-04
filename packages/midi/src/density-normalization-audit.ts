@@ -190,8 +190,9 @@ function chooseRemoval(left: DensityAttackAnalysis, right: DensityAttackAnalysis
 
 /**
  * Candidate A diagnostic: one deterministic local thinning pass over rapid
- * attack conflicts.  It preserves P0/P1 attacks, retains original note
- * objects/times, and is never called from buildVariants.
+ * attack conflicts. It preserves P0/P1 attacks and retains original note
+ * objects/times. The same selector is used by the learner production ladder
+ * and the catalog audit so the frozen policy cannot drift.
  */
 export function selectProtectedSemanticLocalThinning(
   notes: readonly Note[],
