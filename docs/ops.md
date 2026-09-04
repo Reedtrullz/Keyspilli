@@ -118,7 +118,9 @@ held in the operator secret store, not in this repository.
 The first deploy attempt rolled back when the Ansible PDF verifier decoded a
 binary response as UTF-8. Checkpoint `3b5bac58c7fd989e5f7d8595019f61875c2cd6b6`
 made the verifier stream the PDF signature instead; the retry completed with
-`ok=32 changed=7 failed=0`. The bounded worker-off canary then passed MIDI,
+`ok=32 changed=7 failed=0`. The separate disposable worker-off canary proved
+the bounded path does not depend on the ML worker; the live deployment kept the
+existing worker image unchanged and running. The canary then passed MIDI,
 MusicXML, MXL, six physical rows, five public levels, player routes, exports,
 retry idempotency, restart durability, cleanup, and manual backup validation.
 The remote Compose topology passed; local Compose was not run because the

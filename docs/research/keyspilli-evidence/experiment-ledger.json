@@ -1643,7 +1643,8 @@
       },
       "canary": {
         "freshVolume": true,
-        "workerOff": true,
+        "workerOff": "PASS in disposable RC canary; live worker image unchanged",
+        "liveWorkerImageUnchanged": true,
         "midi": true,
         "musicxml": true,
         "mxl": true,

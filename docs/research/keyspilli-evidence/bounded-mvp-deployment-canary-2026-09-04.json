@@ -44,7 +44,8 @@
   },
   "canary": {
     "freshVolume": "PASS",
-    "workerOff": "PASS",
+    "workerOff": "PASS in disposable RC canary; live worker image unchanged",
+    "liveWorkerImageUnchanged": true,
     "midi": "PASS",
     "musicxml": "PASS",
     "mxl": "PASS",

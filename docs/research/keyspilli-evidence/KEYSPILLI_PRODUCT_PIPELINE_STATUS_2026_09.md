@@ -660,8 +660,10 @@ single-user with its existing bearer/custom-header machine contract; the edge
 credential is stored in the operator's macOS Keychain and no plaintext or hash
 is retained in the repository.
 
-The worker was off for the bounded canary. A deterministic MIDI upload exercised
-six physical rows, five public levels, Easy and legacy Very Easy player routes,
+The earlier disposable RC canary proved the bounded symbolic path with the ML
+worker off; the live deployment kept the existing worker image unchanged and
+running. A deterministic MIDI upload exercised six physical rows, five public
+levels, Easy and legacy Very Easy player routes,
 MIDI/MusicXML/PDF exports, retry idempotency, container-restart durability, and
 cleanup. A deliberately over-dense fixture was rejected with HTTP 422 before
 publication, confirming the playability failure path. The final catalog count
