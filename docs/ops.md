@@ -8,7 +8,9 @@ CI publishes immutable `ghcr.io/reedtrullz/keyspilli:sha-<12>` (web) and
 (or a manual run from this machine) applies `deploy/playbook.yml`, which
 verifies the images/version, starts the compose stack on the VPS, checks
 `/api/health` locally and publicly, manages the host Caddy block, and rolls
-back to the previous images on failure.
+back to the previous images on failure. Production Caddy protects the entire
+domain with operator Basic Auth; the application bearer token remains a
+separate machine-mutation credential.
 
 Manual deploy (equivalent to the CI job):
 
@@ -26,14 +28,22 @@ Preconditions (matching the other projects):
 - VPS: Docker, Docker Compose v2, Caddy; GHCR pull access (`docker login ghcr.io` if the images are private).
 - Domain: the inventory defaults to `keys.reidar.tech` — add a Caddy
   block for any other domain to `deploy/playbook.yml` vars or the inventory.
+- Production edge credentials: export `KEYSPILLI_ACCESS_USERNAME` and
+  `KEYSPILLI_ACCESS_PASSWORD` from the operator/CI secret store. The username
+  must match the safe slug policy and the password must be at least 20
+  characters; Ansible refuses to render the production block when either is
+  missing. The password is hashed with bcrypt by the target Caddy binary and
+  is never written to the repository or Ansible output.
 - CI additionally needs the `production` GitHub environment and secrets
-  `VPS_SSH_PRIVATE_KEY` + `VPS_SSH_HOST_KEY` (see the Configure SSH key step in
-  `.github/workflows/ci.yml`).
+  `VPS_SSH_PRIVATE_KEY` + `VPS_SSH_HOST_KEY`, `KEYSPILLI_API_TOKEN`,
+  `KEYSPILLI_ACCESS_USERNAME`, and `KEYSPILLI_ACCESS_PASSWORD` (see the
+  Configure SSH key and deploy steps in `.github/workflows/ci.yml`).
 
-## First run on a fresh volume (catalog)
+## Optional seed catalog on a fresh volume
 
-The catalog must be built before the app is useful. Build it locally and copy
-`data/` contents into the VPS volume, or run inside the container:
+The bounded upload MVP bootstraps its schema on an empty `/data` volume; a
+historic seed catalog is not required to upload, play, or export a symbolic
+lesson. Build and copy `data/` only when the owner wants the curated catalog:
 
 ```bash
 docker compose run --rm web node --import tsx packages/catalog/scripts/pipeline.ts
@@ -43,7 +53,12 @@ docker compose run --rm web node --import tsx packages/catalog/scripts/pipeline.
 
 The private `/uploads` flow accepts `.mid`, `.midi`, `.musicxml`, and `.mxl`
 files up to 10 MB. The browser may submit same-origin bytes without exposing a
-token; machine callers must send `Authorization: Bearer $KEYSPILLI_API_TOKEN`.
+token after the production edge has authenticated the owner. Direct callers
+inside the app network may send `Authorization: Bearer $KEYSPILLI_API_TOKEN`.
+Through the production Caddy edge, send Basic Auth plus
+`X-Keyspilli-Api-Token: Bearer $KEYSPILLI_API_TOKEN`: Caddy consumes and strips
+the Basic `Authorization` header, while the application treats the custom
+header as a transport alias for its unchanged bearer check.
 The route derives a stable `upload-<sha256>` base id, so retrying identical
 bytes replaces one six-level artifact set instead of creating duplicate rows.
 
@@ -64,12 +79,23 @@ levels are exposed. YouTube conversion and independent score↔audio alignment
 remain separate experimental/partial capabilities; no recognizability or
 musical-quality guarantee is implied.
 
-The repository Caddy configuration currently has no basic auth, forward-auth,
-IP allow-list, VPN restriction, or other perimeter boundary. Because the live
-domain is internet-reachable and same-origin browser uploads intentionally do
-not require the bearer token, this posture is `PUBLIC_WRITE_SURFACE_WITHOUT_PRIVATE_ACCESS_BOUNDARY`.
-Do not mark a deployment ready until an owner-approved private boundary is in
-place. Do not add application accounts as a workaround in this release.
+The production Ansible playbook installs a Caddy `basicauth` block for the
+entire `app_domain`. The bcrypt hash is generated in memory from
+`KEYSPILLI_ACCESS_PASSWORD`; no plaintext password is rendered or logged. The
+local root `docker-compose.yml`/`deploy/Caddyfile` remain developer-only and
+are intentionally not the production perimeter. This is a single-user edge
+boundary, not an application account system: there is no signup, OAuth, or
+multi-user authorization.
+
+The deploy verifier requires anonymous public health to return HTTP 401, then
+checks authenticated health/version and both authenticated PDF signatures.
+The local `deploy/test/access-boundary.sh` canary also proves that Basic Auth
+is stripped before the app and that a machine bearer can cross the edge via
+`X-Keyspilli-Api-Token`. A missing edge credential fails the Ansible run before
+any Caddy or Compose mutation. Rotate the edge password by updating the secret
+store and running a normal immutable-image deploy; Ansible regenerates the
+bcrypt hash and reloads Caddy. Do not copy the hash into Git or hand-edit the
+live Caddyfile.
 
 Future explicitly authorized deployment checklist:
 
@@ -89,7 +115,8 @@ Future explicitly authorized deployment checklist:
 
 Local release-candidate evidence used Docker Engine/container smoke. Docker
 Compose v2 was unavailable on the audit host, so local Compose smoke is
-`COMPOSE_LOCAL_SMOKE_NOT_EXECUTED`, not a pass.
+`COMPOSE_LOCAL_SMOKE_NOT_EXECUTED`, not a pass. The private-edge canary runs a
+disposable Caddy 2.6.2 container and does not change the live VPS.
 
 ## Adding songs from the Ultimate Guitar list
 

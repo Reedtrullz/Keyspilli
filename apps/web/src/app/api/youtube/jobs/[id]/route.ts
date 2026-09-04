@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@keyspilli/catalog";
+import { apiAuthorization } from "../../../../../lib/api-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,7 @@ function checkAuth(req: Request): Response | null {
       { status: 503 },
     );
   }
-  const auth = req.headers.get("authorization");
+  const auth = apiAuthorization(req);
   if (auth !== `Bearer ${token}`) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }

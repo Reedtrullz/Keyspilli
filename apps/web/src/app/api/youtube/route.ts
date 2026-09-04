@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { canonicalYoutubeUrl, insertJob, getSongsByBase } from "@keyspilli/catalog";
 import { applySongMetadata, resolveBaseId, SongUpdateError, type SongPatch } from "@/lib/song-update";
 import { parseTempoRequest, TempoRequestError, type TempoRequestPatch } from "@/lib/tempo-request";
+import { apiAuthorization } from "../../../lib/api-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ function checkAuth(req: Request): Response | null {
       { status: 503 },
     );
   }
-  const auth = req.headers.get("authorization") ?? "";
+  const auth = apiAuthorization(req);
   const provided = Buffer.from(auth);
   const expected = Buffer.from(`Bearer ${token}`);
   if (provided.length !== expected.length || !timingSafeEqual(provided, expected)) {

@@ -88,6 +88,9 @@ jobs:
         run: node scripts/verify-playwright-runtime.mjs
         working-directory: apps/web
 
+      - name: Validate private edge boundary
+        run: bash deploy/test/access-boundary.sh
+
       - name: End-to-end tests
         run: npx playwright test
         working-directory: apps/web
@@ -233,6 +236,8 @@ jobs:
           APP_VERSION: ${{ github.sha }}
           ANSIBLE_CONFIG: deploy/ansible.cfg
           KEYSPILLI_API_TOKEN: ${{ secrets.KEYSPILLI_API_TOKEN }}
+          KEYSPILLI_ACCESS_USERNAME: ${{ secrets.KEYSPILLI_ACCESS_USERNAME }}
+          KEYSPILLI_ACCESS_PASSWORD: ${{ secrets.KEYSPILLI_ACCESS_PASSWORD }}
           # Optional: a trusted non-credential proxy endpoint and an absolute
           # cookie-file path that already exists on the VPS. The playbook
           # mounts the latter read-only; cookie contents never enter CI.
@@ -247,17 +252,22 @@ jobs:
 
       - name: Verify public deployment version
         shell: bash
+        env:
+          KEYSPILLI_ACCESS_USERNAME: ${{ secrets.KEYSPILLI_ACCESS_USERNAME }}
+          KEYSPILLI_ACCESS_PASSWORD: ${{ secrets.KEYSPILLI_ACCESS_PASSWORD }}
         run: |
           python3 - <<'PY'
+          import base64
           import json
           import os
           import sys
           import time
+          import urllib.error
           import urllib.request
 
           expected = os.environ['GITHUB_SHA']
           url = 'https://keys.reidar.tech/api/health'
-          last = None
+          anonymous_ok = False
           for _ in range(12):
               try:
                   request = urllib.request.Request(
@@ -268,15 +278,43 @@ jobs:
                       },
                   )
                   with urllib.request.urlopen(request, timeout=10) as response:
-                      last = response.read().decode('utf-8')
-                      payload = json.loads(last)
+                      if response.status != 401:
+                          raise RuntimeError(f'anonymous health returned HTTP {response.status}')
+              except urllib.error.HTTPError as exc:
+                  if exc.code == 401:
+                      anonymous_ok = True
+                      break
+              except Exception:
+                  pass
+              time.sleep(5)
+
+          if not anonymous_ok:
+              print('Anonymous public health check did not return HTTP 401.', file=sys.stderr)
+              sys.exit(1)
+
+          credentials = f"{os.environ['KEYSPILLI_ACCESS_USERNAME']}:{os.environ['KEYSPILLI_ACCESS_PASSWORD']}".encode()
+          auth = base64.b64encode(credentials).decode()
+          last_error = None
+          for _ in range(12):
+              try:
+                  request = urllib.request.Request(
+                      url,
+                      headers={
+                          'Accept': 'application/json',
+                          'User-Agent': 'Keyspilli CI deploy verifier',
+                          'Authorization': f'Basic {auth}',
+                      },
+                  )
+                  with urllib.request.urlopen(request, timeout=10) as response:
+                      payload = json.loads(response.read().decode('utf-8'))
                       if payload.get('status') == 'healthy' and payload.get('version') == expected:
                           print(json.dumps(payload, indent=2))
                           sys.exit(0)
+                      last_error = f"unexpected health payload status={payload.get('status')} version={payload.get('version')}"
               except Exception as exc:
-                  last = repr(exc)
+                  last_error = type(exc).__name__
               time.sleep(5)
-          print(f'Public health check did not expose expected version {expected}. Last response: {last}', file=sys.stderr)
+          print(f'Authenticated public health check did not expose expected version {expected}. Last response type: {last_error}', file=sys.stderr)
           sys.exit(1)
 
   reingest-youtube-catalog:

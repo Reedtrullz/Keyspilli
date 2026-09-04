@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { ingestSource } from "@keyspilli/catalog";
+import { apiAuthorization } from "../../../lib/api-auth";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -69,7 +70,7 @@ function sameOriginGuard(req: Request): Response | null {
 
 function checkAuth(req: Request): Response | null {
   const token = process.env.KEYSPILLI_API_TOKEN;
-  const auth = req.headers.get("authorization");
+  const auth = apiAuthorization(req);
   if (token && auth === `Bearer ${token}`) return null;
 
   const originResponse = sameOriginGuard(req);

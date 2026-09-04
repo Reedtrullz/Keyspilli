@@ -18,6 +18,9 @@
 #   - allow_mutable_tag: set true only for an intentional latest/manual
 #     recovery deploy
 #   - app_domain: public domain (inventory default keys.reidar.tech)
+#   - KEYSPILLI_API_TOKEN: application bearer secret (>=32 characters)
+#   - KEYSPILLI_ACCESS_USERNAME/PASSWORD: operator edge credentials (password
+#     >=20 characters; Ansible hashes it with bcrypt and never logs plaintext)
 # Usage:
 #   APP_VERSION=$(git rev-parse HEAD) ansible-playbook \
 #     -i deploy/inventory/hosts.yml deploy/playbook.yml \
@@ -47,6 +50,11 @@
     rollback_image: "{{ app_name }}:rollback"
     rollback_worker_image: "{{ app_name }}-worker:rollback"
     keyspilli_api_token: "{{ lookup('ansible.builtin.env', 'KEYSPILLI_API_TOKEN') | default('', true) }}"
+    # Production access is supplied by the operator/CI secret store. The
+    # plaintext password is used only as stdin to caddy hash-password and is
+    # never rendered into the Caddyfile.
+    keyspilli_access_username: "{{ lookup('ansible.builtin.env', 'KEYSPILLI_ACCESS_USERNAME') | default('', true) }}"
+    keyspilli_access_password: "{{ lookup('ansible.builtin.env', 'KEYSPILLI_ACCESS_PASSWORD') | default('', true) }}"
     # Optional YouTube acquisition escapes. The proxy value is deliberately
     # limited to a non-credential endpoint; cookie material stays on the VPS
     # and is mounted read-only by the rendered Compose file.
@@ -82,6 +90,20 @@
         fail_msg: >-
           keyspilli_api_token must be set in Ansible Vault with at least 32 characters.
           The application rejects all mutation requests without it (fail-closed auth).
+
+    - name: Assert private access credentials are configured for production
+      ansible.builtin.assert:
+        that:
+          - keyspilli_access_username is match('^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$')
+          - keyspilli_access_password | length >= 20
+          - "'\\n' not in keyspilli_access_password"
+          - "'\\r' not in keyspilli_access_password"
+        fail_msg: >-
+          KEYSPILLI_ACCESS_USERNAME must be a safe non-empty operator username and
+          KEYSPILLI_ACCESS_PASSWORD must contain at least 20 characters without
+          newline characters. Production deployment refuses to render a public
+          Caddy block when these secrets are absent.
+      no_log: true
 
     - name: Validate optional YouTube acquisition settings
       ansible.builtin.assert:
@@ -138,6 +160,27 @@
       register: caddy_version
       changed_when: false
       check_mode: false
+      tags: [always]
+
+    - name: Generate Caddy Basic Auth password hash
+      ansible.builtin.command:
+        argv:
+          - caddy
+          - hash-password
+          - --algorithm
+          - bcrypt
+        stdin: "{{ keyspilli_access_password }}"
+        stdin_add_newline: true
+      register: keyspilli_access_password_hash_result
+      changed_when: false
+      check_mode: false
+      no_log: true
+      tags: [always]
+
+    - name: Keep generated Basic Auth hash in memory only
+      ansible.builtin.set_fact:
+        keyspilli_access_password_hash: "{{ keyspilli_access_password_hash_result.stdout | trim }}"
+      no_log: true
       tags: [always]
 
   tasks:
@@ -331,57 +374,11 @@
           ansible.builtin.blockinfile:
             path: /etc/caddy/Caddyfile
             marker: "# {mark} ANSIBLE MANAGED - {{ caddy_marker_name }}"
-            block: |
-              {{ app_domain }} {
-                # Caddy's default response matcher excludes the vendor
-                # MusicXML MIME, so keep the standard encodings and add it
-                # explicitly for /api/v1/sheet responses.
-                encode zstd gzip {
-                  match {
-                    header Content-Type application/atom+xml*
-                    header Content-Type application/eot*
-                    header Content-Type application/font*
-                    header Content-Type application/geo+json*
-                    header Content-Type application/graphql+json*
-                    header Content-Type application/javascript*
-                    header Content-Type application/json*
-                    header Content-Type application/ld+json*
-                    header Content-Type application/manifest+json*
-                    header Content-Type application/opentype*
-                    header Content-Type application/otf*
-                    header Content-Type application/rss+xml*
-                    header Content-Type application/truetype*
-                    header Content-Type application/ttf*
-                    header Content-Type application/vnd.api+json*
-                    header Content-Type application/vnd.ms-fontobject*
-                    header Content-Type application/vnd.recordare.musicxml+xml*
-                    header Content-Type application/wasm*
-                    header Content-Type application/x-httpd-cgi*
-                    header Content-Type application/x-javascript*
-                    header Content-Type application/x-opentype*
-                    header Content-Type application/x-otf*
-                    header Content-Type application/x-perl*
-                    header Content-Type application/x-protobuf*
-                    header Content-Type application/x-ttf*
-                    header Content-Type application/xhtml+xml*
-                    header Content-Type application/xml*
-                    header Content-Type font/*
-                    header Content-Type image/svg+xml*
-                    header Content-Type image/vnd.microsoft.icon*
-                    header Content-Type image/x-icon*
-                    header Content-Type multipart/bag*
-                    header Content-Type multipart/mixed*
-                    header Content-Type text/*
-                  }
-                }
-                reverse_proxy {{ app_bind_address }}:{{ app_host_port }} {
-                  header_up X-Real-IP {remote_host}
-                  header_up X-Forwarded-For {remote_host}
-                }
-              }
+            block: "{{ lookup('ansible.builtin.template', 'templates/keyspilli-caddy-block.j2') }}"
             backup: true
             mode: '0644'
             validate: caddy validate --config %s --adapter caddyfile
+          no_log: true
           notify: Reload Caddy
           tags: [caddy]
 
@@ -394,12 +391,38 @@
           ansible.builtin.meta: flush_handlers
           tags: [caddy]
 
-        - name: Verify public deployment version
+        - name: Verify anonymous public access is denied
+          ansible.builtin.uri:
+            url: "{{ public_health_url }}"
+            return_content: false
+            status_code: [401]
+            timeout: 10
+          register: public_anonymous
+          until: public_anonymous.status | default(0) == 401
+          retries: 12
+          delay: 5
+          failed_when: false
+          delegate_to: localhost
+          become: false
+          tags: [verify]
+
+        - name: Fail if anonymous public access is not denied
+          ansible.builtin.fail:
+            msg: >-
+              Anonymous public access check failed for {{ public_health_url }}:
+              expected HTTP 401, got {{ public_anonymous.status | default(0) }}.
+          when: public_anonymous.status | default(0) != 401
+          tags: [verify]
+
+        - name: Verify authenticated public deployment version
           ansible.builtin.uri:
             url: "{{ public_health_url }}"
             return_content: true
             status_code: 200
             timeout: 10
+            url_username: "{{ keyspilli_access_username }}"
+            url_password: "{{ keyspilli_access_password }}"
+            force_basic_auth: true
           register: public_health
           until: >-
             public_health.status == 200
@@ -410,45 +433,53 @@
           failed_when: false
           delegate_to: localhost
           become: false
+          no_log: true
           tags: [verify]
 
-        - name: Fail if public deployment version is not healthy
+        - name: Fail if authenticated public deployment version is not healthy
           ansible.builtin.fail:
             msg: "Public health check failed for {{ public_health_url }}: {{ public_health }}"
           when: >-
             public_health.status | default(0) != 200
             or (public_health.json.status | default('')) != 'healthy'
             or (public_health.json.version | default('')) != app_version
+          no_log: true
           tags: [verify]
 
-        - name: Verify public simplify PDF export signature
-          ansible.builtin.shell: |
-            set -eu
-            tmp="$(mktemp)"
-            trap 'rm -f "$tmp"' EXIT
-            curl --fail --silent --show-error --location --max-time 180 \
-              --range 0-4 --header 'Accept: application/pdf' \
-              --output "$tmp" \
-              "https://{{ app_domain }}/api/song/{{ pdf_smoke_song_id }}/export?type=pdf&layout=simplify"
-            test "$(LC_ALL=C head -c 5 "$tmp")" = '%PDF-'
-          changed_when: false
+        - name: Verify authenticated public simplify PDF export signature
+          ansible.builtin.uri:
+            url: "https://{{ app_domain }}/api/song/{{ pdf_smoke_song_id }}/export?type=pdf&layout=simplify"
+            return_content: true
+            status_code: 200
+            timeout: 180
+            url_username: "{{ keyspilli_access_username }}"
+            url_password: "{{ keyspilli_access_password }}"
+            force_basic_auth: true
+          register: public_simplify_pdf
+          failed_when: >-
+            public_simplify_pdf.status | default(0) != 200
+            or (public_simplify_pdf.content | default(''))[0:5] != '%PDF-'
           delegate_to: localhost
           become: false
+          no_log: true
           tags: [verify]
 
-        - name: Verify public classic PDF export signature
-          ansible.builtin.shell: |
-            set -eu
-            tmp="$(mktemp)"
-            trap 'rm -f "$tmp"' EXIT
-            curl --fail --silent --show-error --location --max-time 180 \
-              --range 0-4 --header 'Accept: application/pdf' \
-              --output "$tmp" \
-              "https://{{ app_domain }}/api/song/{{ pdf_smoke_song_id }}/export?type=pdf&layout=classic"
-            test "$(LC_ALL=C head -c 5 "$tmp")" = '%PDF-'
-          changed_when: false
+        - name: Verify authenticated public classic PDF export signature
+          ansible.builtin.uri:
+            url: "https://{{ app_domain }}/api/song/{{ pdf_smoke_song_id }}/export?type=pdf&layout=classic"
+            return_content: true
+            status_code: 200
+            timeout: 180
+            url_username: "{{ keyspilli_access_username }}"
+            url_password: "{{ keyspilli_access_password }}"
+            force_basic_auth: true
+          register: public_classic_pdf
+          failed_when: >-
+            public_classic_pdf.status | default(0) != 200
+            or (public_classic_pdf.content | default(''))[0:5] != '%PDF-'
           delegate_to: localhost
           become: false
+          no_log: true
           tags: [verify]
 
         - name: Report successful deployment

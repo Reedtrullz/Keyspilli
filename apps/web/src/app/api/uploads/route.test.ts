@@ -39,6 +39,19 @@ describe("upload route", () => {
     });
   });
 
+  it("accepts the existing bearer contract from the authenticated edge transport header", async () => {
+    ingestSource.mockResolvedValueOnce({ baseId: "upload", songIds: ["upload-e"] });
+
+    const response = await POST(new NextRequest("https://keys.reidar.tech/api/uploads", {
+      method: "POST",
+      headers: { "x-keyspilli-api-token": "Bearer test-token" },
+      body: new Uint8Array([1, 2, 3]),
+    }));
+
+    expect(response.status).toBe(200);
+    expect(ingestSource).toHaveBeenCalledOnce();
+  });
+
   it("accepts a same-origin browser upload without exposing the bearer token", async () => {
     ingestSource.mockResolvedValueOnce({ baseId: "upload", songIds: ["upload-e"] });
 
