@@ -1599,6 +1599,96 @@
       "nextTask": "ESTABLISH_PRIVATE_DEPLOYMENT_ACCESS_BOUNDARY",
       "reproducible": true,
       "rawMediaRetention": "no canary media retained; only path-free release metadata and hashes are committed"
+    },
+    {
+      "id": "private-deployment-access-boundary-2026-09-04",
+      "date": "2026-09-04",
+      "startingRevision": "89e2b6767b0cebe7e4248dba4513ec6992519a65",
+      "checkpointRevision": "155d8964ba31a8de729629b5fa3bd8bcd896d8f2",
+      "purpose": "Establish and verify the smallest private edge boundary for the bounded symbolic MVP without deployment",
+      "scope": {
+        "product": "private single-user symbolic-upload piano learner",
+        "formats": ["midi", "musicxml", "mxl"],
+        "timingAuthority": "NATIVE_AUTHORITATIVE",
+        "benchmarkMaterialUsed": false,
+        "musicalBehaviorChanges": 0,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NOT_DEPLOYED"
+      },
+      "runtime": {
+        "node": "22.22.3",
+        "npm": "10.9.8",
+        "dockerClient": "29.7.1",
+        "dockerServer": "29.5.2",
+        "dockerContext": "colima",
+        "dockerCompose": "unavailable-locally",
+        "caddyCanary": "2.6.2"
+      },
+      "docker": {
+        "webImageBuild": "PASS",
+        "webImageTag": "keyspilli:web-rc-155d896",
+        "webImageDigest": "sha256:5baadcbe87c103f78f4cb16332376c1033e23378309b56b5424ab6d5007da5db",
+        "webImageBytes": 465821245,
+        "webContainerSmoke": "PASS",
+        "composeSmoke": "COMPOSE_LOCAL_SMOKE_NOT_EXECUTED",
+        "worker": "OFF"
+      },
+      "accessPosture": {
+        "configuredBoundary": "Caddy basicauth over HTTPS; bcrypt generated at deploy time",
+        "applicationAuth": "existing bearer token remains required for direct machine mutations",
+        "browserTransport": "edge Basic Auth; Authorization stripped upstream; same-origin checks preserved",
+        "machineTransport": "X-Keyspilli-Api-Token carries the unchanged bearer value through the edge",
+        "liveDomainBeforeDeployment": "public-internet without deployed edge restriction",
+        "productionDeployment": false
+      },
+      "canary": {
+        "freshVolume": true,
+        "workerOff": true,
+        "midi": true,
+        "musicxml": true,
+        "mxl": true,
+        "sixPhysicalRows": true,
+        "fivePublicLevels": true,
+        "playerAndLegacyVeryEasy": true,
+        "exports": {"midi": true, "musicxml": true, "pdf": true},
+        "restartDurability": true,
+        "retryIdempotency": true,
+        "failureAtomicity": true,
+        "crossOriginRejected": true
+      },
+      "security": {
+        "anonymousEdgeHealth401": true,
+        "wrongEdgePassword401": true,
+        "authenticatedExactVersion": true,
+        "htmlAndMalformedSymbolicRejected": true,
+        "oversizedBodyRejected": true,
+        "playabilityRejected": true,
+        "browserTokenExposure": "NOT_OBSERVED",
+        "privatePathLeak": "NOT_OBSERVED"
+      },
+      "verification": {
+        "workspaceTests": 1637,
+        "workspaceTestBreakdown": {"web": 99, "catalog": 1042, "engrave": 8, "midi": 354, "playerCore": 92, "transcribe": 42},
+        "workspaceTypechecks": 6,
+        "focusedUploadTests": 11,
+        "productionBuild": true,
+        "ansibleSyntax": true,
+        "gitDiffCheck": true,
+        "diskFreeGiB": 72,
+        "exactShaCiObserved": false
+      },
+      "decisions": {
+        "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+        "privateBoundary": "PRIVATE_DEPLOYMENT_ACCESS_BOUNDARY_VALIDATED_LOCALLY",
+        "releaseCandidate": "BOUNDED_MVP_RELEASE_CANDIDATE_READY_FOR_PRIVATE_DEPLOY",
+        "deployment": "DEPLOYMENT_READY_NOT_DEPLOYED",
+        "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED"
+      },
+      "nextTask": "BOUNDED_MVP_DEPLOYMENT_CANARY",
+      "nextTaskRequiresOwnerAuthorization": true,
+      "reproducible": true,
+      "rawMediaRetention": "no canary media retained; only path-free metadata is committed"
     }
   ]
 }

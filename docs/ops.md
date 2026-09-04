@@ -97,6 +97,12 @@ store and running a normal immutable-image deploy; Ansible regenerates the
 bcrypt hash and reloads Caddy. Do not copy the hash into Git or hand-edit the
 live Caddyfile.
 
+The boundary checkpoint is local-only until explicitly deployed: the current
+VPS/domain remains unchanged and must be treated as publicly reachable. Do not
+describe the live service as private or deployment-ready until the authenticated
+Ansible run has applied the Caddy block and the anonymous-401/authenticated-
+version verifier has passed.
+
 Future explicitly authorized deployment checklist:
 
 1. Verify a clean release SHA and matching immutable image tags.

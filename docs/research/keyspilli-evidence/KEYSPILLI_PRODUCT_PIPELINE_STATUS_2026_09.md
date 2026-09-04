@@ -596,3 +596,46 @@ Decision: `BOUNDED_MVP_RELEASE_CANDIDATE_PARTIAL`, first blocker
 `DEPLOYMENT_NOT_READY_PRIVATE_ACCESS_BOUNDARY`. Human listening is
 `NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT`; deployment is `NOT_DEPLOYED`. The next
 single task is `ESTABLISH_PRIVATE_DEPLOYMENT_ACCESS_BOUNDARY`.
+
+### Private deployment access boundary — 2026-09-04
+
+The boundary implementation is checkpoint `155d8964ba31a8de729629b5fa3bd8bcd896d8f2`.
+Production Ansible now renders a Caddy 2.6.2 `basicauth` block for the complete
+application domain, generates a bcrypt hash from operator-provided environment
+secrets, strips the edge `Authorization` header before the web container, and
+keeps the existing bearer token available through the explicit
+`X-Keyspilli-Api-Token` transport header for machine callers. Missing or unsafe
+edge credentials fail before any deployment mutation. No plaintext password or
+hash is committed or logged.
+
+The immutable local image `keyspilli:web-rc-155d896` built successfully with
+digest `sha256:5baadcbe87c103f78f4cb16332376c1033e23378309b56b5424ab6d5007da5db`.
+A fresh-data, worker-off disposable Caddy canary passed anonymous HTTP 401,
+wrong-password rejection, authenticated exact-version health, same-origin
+MIDI/MusicXML/MXL upload, six physical rows/five public levels, Easy and legacy
+Very Easy player routes, MIDI/MusicXML/PDF exports, restart durability, stable
+SHA retry behavior, cross-origin rejection, and atomic malformed/oversized/
+playability failures. The app bearer contract and browser token non-exposure
+were preserved. The canary used no benchmark material and retained no source
+bytes. The full path-free manifest is
+`private-deployment-access-boundary-2026-09-04.json`.
+
+Evidence is intentionally split: Docker web-image/container smoke passed;
+Docker Compose smoke was not executed because the local Compose v2 plugin is
+unavailable (`COMPOSE_LOCAL_SMOKE_NOT_EXECUTED`). The prior ledger's
+Compose-not-run statement is therefore reconciled, not rewritten as a pass.
+The production VPS/domain was not changed; its current read-only posture remains
+public internet with no deployed edge restriction until an owner-authorized
+deployment applies this checkpoint.
+
+Decision: `PRIVATE_DEPLOYMENT_ACCESS_BOUNDARY_VALIDATED_LOCALLY` and
+`BOUNDED_MVP_RELEASE_CANDIDATE_READY_FOR_PRIVATE_DEPLOY`. Deployment decision:
+`DEPLOYMENT_READY_NOT_DEPLOYED` (the live domain remains unchanged). The bounded
+capability is private MIDI/MusicXML/MXL upload with native symbolic timing,
+validated six physical variants, five public levels, persistence, player entry,
+and exports. Independent audio↔symbolic alignment remains
+`REAL_SYMBOLIC_ALIGNMENT_PARTIAL`; musical quality remains
+`MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`. Human listening is
+`NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT`. The next single task is
+`BOUNDED_MVP_DEPLOYMENT_CANARY`, which requires explicit owner deployment
+authorization and was not executed.

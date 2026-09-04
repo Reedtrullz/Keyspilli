@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "mission": "PRIVATE_DEPLOYMENT_ACCESS_BOUNDARY",
+  "startingRevision": "89e2b6767b0cebe7e4248dba4513ec6992519a65",
+  "checkpointRevision": "155d8964ba31a8de729629b5fa3bd8bcd896d8f2",
+  "releaseScope": {
+    "product": "private single-user symbolic-upload piano learner",
+    "formats": ["midi", "musicxml", "mxl"],
+    "timingAuthority": "NATIVE_AUTHORITATIVE",
+    "physicalDifficultyLevels": ["very-beginner", "beginner", "very-easy", "easy", "medium", "advanced"],
+    "publicDifficultyLevels": ["very-beginner", "beginner", "easy", "medium", "advanced"],
+    "youtube": "experimental-separate-capability",
+    "independentAudioAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+    "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED"
+  },
+  "runtime": {
+    "node": "22.22.3",
+    "npm": "10.9.8",
+    "lockfileSha256": "27e4e140cc03c5eac2e592cb300426110a15c0404bf366d499e1f453d297fb3d4",
+    "dockerClient": "29.7.1",
+    "dockerServer": "29.5.2",
+    "dockerContext": "colima",
+    "dockerCompose": "unavailable-locally",
+    "caddyCanary": "2.6.2"
+  },
+  "image": {
+    "tag": "keyspilli:web-rc-155d896",
+    "digest": "sha256:5baadcbe87c103f78f4cb16332376c1033e23378309b56b5424ab6d5007da5db",
+    "bytes": 465821245,
+    "embeddedVersion": "155d8964ba31a8de729629b5fa3bd8bcd896d8f2",
+    "build": "PASS"
+  },
+  "ingress": {
+    "maxBytes": 10485760,
+    "contentValidation": ["midi-parser", "musicxml-parser", "mxl-zip-safety-and-parser", "html-masquerade-rejection"],
+    "provenance": "GENERATION_CANDIDATE/USER_SUPPLIED_PRIVATE",
+    "firewall": "benchmark-reference-and-diagnostic-only-inputs-cannot-enter-generation"
+  },
+  "accessBoundary": {
+    "mechanism": "Caddy basicauth over the production HTTPS edge",
+    "applicationAuth": "existing bearer token remains required for direct machine mutations",
+    "browserTransport": "Caddy Basic Auth plus same-origin metadata; Basic Authorization is stripped upstream",
+    "machineTransport": "X-Keyspilli-Api-Token carries the unchanged Bearer token through the authenticated edge",
+    "credentials": "operator-provided environment secrets; bcrypt generated at deploy time; plaintext/hash not retained",
+    "localCanary": "PASS",
+    "liveProduction": "not changed; owner-authorized deployment required"
+  },
+  "canary": {
+    "freshDataVolume": true,
+    "worker": "OFF",
+    "midiUpload": "PASS",
+    "musicxmlUpload": "PASS",
+    "mxlUpload": "PASS",
+    "physicalRows": 6,
+    "publicLevels": 5,
+    "legacyVeryEasy": "PASS",
+    "player": "PASS",
+    "exports": {"midi": "PASS", "musicxml": "PASS", "pdf": "PASS"},
+    "restartDurability": "PASS",
+    "retryIdempotency": "PASS",
+    "atomicFailures": {"malformedMidi": "PASS", "htmlMusicxml": "PASS", "malformedMxl": "PASS", "oversizedBody": "PASS", "playabilityRejected": "PASS"},
+    "crossOriginRejection": "PASS"
+  },
+  "deploymentEvidence": {
+    "webImageBuild": "PASS",
+    "webContainerSmoke": "PASS",
+    "dockerComposeSmoke": "COMPOSE_LOCAL_SMOKE_NOT_EXECUTED",
+    "deploymentVerifier": "anonymous health 401 plus authenticated exact version/PDF checks",
+    "liveDomain": "public edge remained unauthenticated before this un-deployed checkpoint",
+    "productionDeployment": false,
+    "rollback": "static contract pass; immutable previous image tags and data volume preserved"
+  },
+  "verification": {
+    "workspaceTests": 1637,
+    "workspaceTestBreakdown": {"web": 99, "catalog": 1042, "engrave": 8, "midi": 354, "playerCore": 92, "transcribe": 42},
+    "workspaceTypechecks": 6,
+    "focusedUploadTests": 11,
+    "boundedLocalEdgeCanary": "PASS",
+    "productionBuild": "PASS",
+    "ansibleSyntax": "PASS",
+    "gitDiffCheck": "PASS",
+    "determinism": "stable source-hash retry and fixed configuration; no generated report bytes retained",
+    "diskFreeGiB": 72,
+    "exactShaCiObserved": false
+  },
+  "decisions": {
+    "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+    "privateBoundary": "PRIVATE_DEPLOYMENT_ACCESS_BOUNDARY_VALIDATED_LOCALLY",
+    "releaseCandidate": "BOUNDED_MVP_RELEASE_CANDIDATE_READY_FOR_PRIVATE_DEPLOY",
+    "deployment": "DEPLOYMENT_READY_NOT_DEPLOYED",
+    "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+    "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+    "musicalBehaviorChanges": 0
+  },
+  "nextTask": "BOUNDED_MVP_DEPLOYMENT_CANARY",
+  "nextTaskRequiresOwnerAuthorization": true,
+  "rawMediaRetention": "no canary media retained; only path-free release metadata is committed"
+}
