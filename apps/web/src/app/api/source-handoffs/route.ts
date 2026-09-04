@@ -3,6 +3,7 @@ import {
   createSourceCandidateHandoff,
   handoffClientView,
   saveSourceCandidateHandoff,
+  type GenericSourceCandidate,
 } from "@keyspilli/catalog";
 import { checkMutationAuth } from "../../../lib/mutation-auth";
 import { discoverSourceCandidates, hasSourceCandidateProvider } from "../../../lib/source-candidate-provider";
@@ -40,9 +41,9 @@ export async function POST(req: NextRequest) {
   if (!target.id || !target.artist || !target.title || !candidateId) {
     return NextResponse.json({ error: "targetId, targetArtist, targetTitle, and candidateId are required" }, { status: 400 });
   }
-  let candidate: ReturnType<typeof discoverSourceCandidates>[number] | undefined;
+  let candidate: GenericSourceCandidate | undefined;
   try {
-    candidate = discoverSourceCandidates(target).find((item) => item.candidateId === candidateId);
+    candidate = (await discoverSourceCandidates(target)).find((item) => item.candidateId === candidateId);
   } catch {
     return NextResponse.json({ error: "source candidate provider failed" }, { status: 503 });
   }

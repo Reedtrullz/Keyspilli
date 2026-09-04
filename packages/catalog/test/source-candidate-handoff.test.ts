@@ -58,6 +58,8 @@ describe("source candidate handoff", () => {
   it("sanitizes public URLs and rejects local/private destinations", () => {
     expect(sanitizeGenericExternalUrl("https://user:secret@example.test/a.mid?token=x#frag")).toBe("https://example.test/a.mid");
     expect(sanitizeGenericExternalUrl("http://127.0.0.1/a.mid")).toBeNull();
+    expect(sanitizeGenericExternalUrl("http://[::ffff:127.0.0.1]/a.mid")).toBeNull();
+    expect(sanitizeGenericExternalUrl("http://[fc00::1]/a.mid")).toBeNull();
     expect(sanitizeGenericExternalUrl("file:///tmp/a.mid")).toBeNull();
   });
 

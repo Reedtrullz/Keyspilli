@@ -260,9 +260,19 @@ export function sanitizeGenericExternalUrl(value: unknown): string | null {
   const hostname = url.hostname.toLowerCase().replace(/^\[|\]$/g, "").replace(/\.$/, "");
   if (
     hostname === "localhost" || hostname.endsWith(".local") || hostname === "::1" ||
-    hostname === "0.0.0.0" || hostname === "127.0.0.1" || hostname === "169.254.169.254" ||
+    hostname === "::" || hostname === "0.0.0.0" || hostname === "127.0.0.1" || hostname === "169.254.169.254" ||
     /^10\./.test(hostname) || /^192\.168\./.test(hostname) ||
-    /^172\.(?:1[6-9]|2\d|3[0-1])\./.test(hostname)
+    /^172\.(?:1[6-9]|2\d|3[0-1])\./.test(hostname) ||
+    /^(?:fc|fd|fe8|fe9|fea|feb)/i.test(hostname) ||
+    /^::ffff:(?:127\.|10\.|169\.254\.|192\.168\.|172\.(?:1[6-9]|2\d|3[0-1])\.)/i.test(hostname) ||
+    /^::ffff:(?:[0-9a-f]{1,4}):(?:[0-9a-f]{1,4})$/i.test(hostname) && (() => {
+      const match = hostname.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i);
+      if (!match) return false;
+      const high = Number.parseInt(match[1]!, 16);
+      const first = high >>> 8;
+      const second = high & 0xff;
+      return first === 0 || first === 10 || first === 127 || first === 169 && second === 254 || first === 192 && second === 168 || first === 172 && second >= 16 && second <= 31;
+    })()
   ) return null;
   url.username = "";
   url.password = "";

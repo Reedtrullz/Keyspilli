@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sanitizeGenericExternalUrl, type GenericSongTarget } from "@keyspilli/catalog";
+import { sanitizeGenericExternalUrl, type GenericSongTarget, type GenericSourceCandidate } from "@keyspilli/catalog";
 import { discoverSourceCandidates, hasSourceCandidateProvider } from "../../../lib/source-candidate-provider";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +15,7 @@ function targetFromRequest(req: NextRequest): GenericSongTarget | null {
   return id && artist && title ? { id, artist, title } : null;
 }
 
-function card(candidate: ReturnType<typeof discoverSourceCandidates>[number]) {
+function card(candidate: GenericSourceCandidate) {
   return {
     candidateId: candidate.candidateId,
     targetId: candidate.targetId,
@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
   if (!target) return NextResponse.json({ error: "targetId, artist, and title are required" }, { status: 400 });
   if (!hasSourceCandidateProvider()) return NextResponse.json({ status: "provider-missing", candidates: [] });
   try {
-    const candidates = discoverSourceCandidates(target)
+    const candidates = (await discoverSourceCandidates(target))
       .filter((candidate) => candidate.candidateClass === "GENERATION_CANDIDATE" && !["BENCHMARK_REFERENCE", "DIAGNOSTIC_ONLY"].includes(candidate.rights))
       .map(card)
       .filter((candidate) => candidate.candidateUrl !== null);
