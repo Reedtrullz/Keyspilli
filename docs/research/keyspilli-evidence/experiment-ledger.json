@@ -1136,6 +1136,79 @@
       "nextTask": "REAL_SYMBOLIC_TIMING_ALIGNMENT_HARDENING",
       "reproducible": true,
       "rawMediaRetention": "local only; metadata and hashes committed; no benchmark generation or tuning"
+    },
+    {
+      "id": "authoritative-symbolic-playability-gate-audit-2026-09-04",
+      "date": "2026-09-04",
+      "startingRevision": "bd94008dded51d87b640b322f7afeff69433bb2f",
+      "checkpointRevision": "b96e05ce9f13ccb20eaac601af609e36be11d29a",
+      "purpose": "Audit the first real product-lane playability blocker without changing validator limits or musical policy",
+      "route": "frozen native performance-symbolic MIDI -> existing direct-piano arrangement -> six physical learner variants -> report-only playability diagnostics",
+      "fixture": {
+        "id": "lane-a-native-performance",
+        "sourceClass": "GENERATION_CANDIDATE",
+        "provenanceClass": "USER_SUPPLIED_PRIVATE",
+        "symbolicSha256": "ec5010896c00a0541b34b0843a20f455707ac647ae4a222aee71e2ad43e8017e",
+        "symbolicBytes": 58204,
+        "symbolicNotes": 7266,
+        "symbolicDurationBeats": 358.46875,
+        "tempoBpm": 120,
+        "handLabelsAvailable": false
+      },
+      "validator": {
+        "limits": {
+          "very-beginner": {"maxSim": 2, "maxDensity": 5, "minMedianIoi": 0.15},
+          "beginner": {"maxSim": 2, "maxDensity": 6, "minMedianIoi": 0.08},
+          "very-easy": {"maxSim": 5, "maxDensity": 12, "minMedianIoi": 0.08},
+          "easy": {"maxSim": 5, "maxDensity": 12, "minMedianIoi": 0.08},
+          "medium": {"maxSim": 12, "maxDensity": 16, "minMedianIoi": 0.08},
+          "advanced": {"maxSim": 13, "maxDensity": 18, "minMedianIoi": 0.08}
+        },
+        "semantics": "three-decimal distinct onset groups; chord members count as one attack; beat gaps converted to seconds at variant tempo",
+        "calibration": "catalog P99/P1 plus headroom; no Lane-A threshold tuning"
+      },
+      "stages": {
+        "source": {"notes": 7266, "attacks": 5180, "globalMedianIoiSeconds": 0.023, "rightMedianIoiSeconds": 0.023, "leftMedianIoiSeconds": null, "attacksPerSecond": 28.900706, "maxSim": 6},
+        "owned": {"notes": 7266, "attacks": 5180, "globalMedianIoiSeconds": 0.023, "rightMedianIoiSeconds": 0.023, "leftMedianIoiSeconds": null, "attacksPerSecond": 28.900706, "maxSim": 6},
+        "canonical": {"notes": 3843, "attacks": 2653, "globalMedianIoiSeconds": 0.0585, "rightMedianIoiSeconds": 0.104, "leftMedianIoiSeconds": 0.1045, "attacksPerSecond": 14.801848, "maxSim": 3},
+        "advanced": {"notes": 3560, "attacks": 1911, "globalMedianIoiSeconds": 0.0625, "rightMedianIoiSeconds": 0.125, "leftMedianIoiSeconds": 0.125, "status": "fail-median-ioi-only"},
+        "medium": {"notes": 3066, "attacks": 1715, "globalMedianIoiSeconds": 0.0625, "rightMedianIoiSeconds": 0.125, "leftMedianIoiSeconds": 0.125, "status": "fail-median-ioi-only"},
+        "easy": {"notes": 2843, "attacks": 1666, "globalMedianIoiSeconds": 0.0625, "rightMedianIoiSeconds": 0.125, "leftMedianIoiSeconds": 0.125, "status": "fail-median-ioi-only"},
+        "very-easy": {"notes": 2560, "attacks": 1553, "globalMedianIoiSeconds": 0.125, "rightMedianIoiSeconds": 0.125, "leftMedianIoiSeconds": 0.125, "status": "pass"},
+        "beginner": {"notes": 807, "attacks": 775, "globalMedianIoiSeconds": 0.1775, "rightMedianIoiSeconds": 0.2005, "leftMedianIoiSeconds": 2, "status": "pass"},
+        "very-beginner": {"notes": 409, "attacks": 409, "globalMedianIoiSeconds": 0.375, "rightMedianIoiSeconds": 0.375, "leftMedianIoiSeconds": null, "status": "pass"}
+      },
+      "diagnosis": "AUTHORITATIVE_SOURCE_DENSITY_REQUIRES_TRANSFORM",
+      "decisions": {
+        "timedSymbolicMvp": "TIMED_SYMBOLIC_MVP_CONDITIONAL",
+        "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NOT_DEPLOYED"
+      },
+      "implementation": {
+        "behaviorChange": false,
+        "laneASpecificLogic": false,
+        "module": "packages/midi/src/playability-audit.ts",
+        "runner": "packages/catalog/scripts/audit-playability.ts",
+        "thresholdChanged": false,
+        "reportCanonicalSha256": "6f476b233008f9491785d7520073fa29255b06e9191aa6bd02ed32da0992700c",
+        "reportSha256": "a1234db2c9e700fe9fbe44eb9eb4641972f692a2f321622f3e19e6fc3e686238"
+      },
+      "verification": {
+        "focusedPlayabilityTests": 6,
+        "midiTests": 342,
+        "catalogTests": 1032,
+        "workspaceTests": 1605,
+        "workspaceTestBreakdown": {"web": 89, "catalog": 1032, "engrave": 8, "midi": 342, "playerCore": 92, "transcribe": 42},
+        "workspaceTypechecks": 6,
+        "gitDiffCheck": true,
+        "deterministicRerun": true,
+        "diskFreeGiBAtClose": 88
+      },
+      "nextTask": "AUTHORITATIVE_SYMBOLIC_DENSITY_NORMALIZATION",
+      "reproducible": true,
+      "rawMediaRetention": "private local source only; path-free report and hashes committed; no benchmark generation or tuning"
     }
   ]
 }

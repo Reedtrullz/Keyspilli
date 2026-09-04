@@ -25,8 +25,8 @@ The CLaMP3 sparse-landmark investigation started from the remote-backed
 | Role inference | VALIDATED (shadow override) | The single-stem Guitar-TECHS MIDI is explicitly mapped to guitar for the shadow arrangement; no drum pitches reached output. |
 | Alignment | PARTIAL — V2 RESOURCE FIXED; NON-DTW SKF MIXED; CLaMP3 SPARSE RETRIEVAL RESOURCE-BLOCKED | Frozen V2 completes all four revealed ASAP/MAESTRO pairs but leaves regional accuracy unresolved. Matchmaker SKF is mixed and was not promoted. The one approved CLaMP3 reference was not evaluated because its pinned weights exceed the bounded footprint before download; no CLaMP3 production candidate was created. |
 | Region ownership / fallback | VALIDATED (deterministic contract) | Explicit source/target regions, role ownership, timing authority, alignment state, provenance/firewall, fallback precedence, overlap/merge behavior, and no-owner withholding are enforced before semantic-band arrangement. |
-| Arrangement | PARTIAL (real native shadow) | A user-supplied native performance completed `buildMetalArrangement` and produced source-tagged output in memory; the selected dense source is blocked by existing downstream playability validation. |
-| Six physical difficulties | PARTIAL (generated; validation blocked) | All six physical variants and artifact bytes were produced, but Advanced/Easy/Medium fail the existing 0.08s median inter-onset floor on this dense source. |
+| Arrangement | PARTIAL (real native shadow) | A user-supplied native performance completed `buildMetalArrangement` and produced source-tagged output in memory; the selected dense source is blocked by existing downstream playability validation. The report-only playability audit confirms the canonical attack stream remains dense after arrangement. |
+| Six physical difficulties | PARTIAL (generated; validation blocked) | All six physical variants and artifact bytes were produced, but Advanced/Easy/Medium fail the existing 0.08s median inter-onset floor on this dense source; Very Easy/Beginner/Very Beginner pass. |
 | Artifact writing | PASS (in-memory roundtrip) | All six physical variants produced MIDI and MusicXML bytes in memory; existing artifact validators and reparsers passed. No files were persisted. |
 | Catalog/public projection | PASS (in-memory; non-publishable) | One grouped shadow song and five public levels were projected from scratch rows; no catalog writes or publishability claim was made. |
 | Player entry links | NOT_EXERCISED | Link resolution requires a persisted catalog item; this path performs no catalog writes and no deployment was authorized. |
@@ -343,3 +343,41 @@ The rehearsal report canonical hash is
 identical across two runs. The next single engineering task is
 `REAL_SYMBOLIC_TIMING_ALIGNMENT_HARDENING`; no timing-model or musical-policy
 change was made in this rehearsal.
+
+### Authoritative symbolic playability-gate audit — 2026-09-04
+
+The first downstream blocker was audited against the frozen Lane A native
+performance-symbolic source (7,266 notes, `USER_SUPPLIED_PRIVATE`, 120 BPM) at
+implementation checkpoint `b96e05ce9f13ccb20eaac601af609e36be11d29a`. The
+report-only diagnostic is
+`authoritative-symbolic-playability-gate-audit-2026-09-04.json`, with companion
+method/report notes in
+`authoritative-symbolic-playability-gate-audit-2026-09-04.md`.
+
+The existing validator's semantics were left unchanged: distinct onset groups,
+seconds-based median IOI, max simultaneous/sounding notes, and attacks/sec.
+Lane A fell from 7,266 source notes to 3,843 canonical notes and passed the
+density and simultaneity limits at every learner level. Advanced, Medium, and
+Easy still report a 0.0625-second global median IOI against the 0.08-second
+floor; their RH/LH medians are both 0.125 seconds. Very Easy, Beginner, and
+Very Beginner pass. Trusted Clair de Lune, River Flows in You, Hello, and the
+synthetic full-band control pass all measured levels. Seven synthetic causal
+controls and a 60/90/120/150/180 BPM matrix separate global coordination,
+same-hand rapid lines, localized bursts, and average-density effects.
+
+Primary diagnosis: `AUTHORITATIVE_SOURCE_DENSITY_REQUIRES_TRANSFORM`. The audit
+adds no musical-policy change and does not lower the 0.08-second threshold;
+Lane-A-specific logic is `NONE`. Product decision:
+`TIMED_SYMBOLIC_MVP_CONDITIONAL` for native authoritative timed symbolic input
+whose generated variants pass the existing gate. Alignment remains
+`REAL_SYMBOLIC_ALIGNMENT_PARTIAL`, musical quality remains
+`MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`, human listening remains
+`NOT_REQUIRED_BY_DEFAULT`, and deployment remains `NOT_DEPLOYED`.
+
+The deterministic report canonical SHA is
+`6f476b233008f9491785d7520073fa29255b06e9191aa6bd02ed32da0992700c`; report
+bytes SHA is
+`a1234db2c9e700fe9fbe44eb9eb4641972f692a2f321622f3e19e6fc3e686238`.
+The next single engineering task is
+`AUTHORITATIVE_SYMBOLIC_DENSITY_NORMALIZATION`; no alignment research,
+benchmark tuning, listening, deployment, or production write occurred.
