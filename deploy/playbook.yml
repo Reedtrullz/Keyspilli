@@ -447,36 +447,43 @@
           tags: [verify]
 
         - name: Verify authenticated public simplify PDF export signature
-          ansible.builtin.uri:
-            url: "https://{{ app_domain }}/api/song/{{ pdf_smoke_song_id }}/export?type=pdf&layout=simplify"
-            return_content: true
-            status_code: 200
-            timeout: 180
-            url_username: "{{ keyspilli_access_username }}"
-            url_password: "{{ keyspilli_access_password }}"
-            force_basic_auth: true
+          # PDF is binary; ansible.builtin.uri tries to decode return_content
+          # as UTF-8. Stream only its ASCII signature instead.
+          ansible.builtin.shell: >-
+            curl --fail --silent --show-error --location
+            --user "$KEYSPILLI_CURL_USER:$KEYSPILLI_CURL_PASSWORD"
+            --output -
+            "https://{{ app_domain }}/api/song/{{ pdf_smoke_song_id }}/export?type=pdf&layout=simplify"
+            | head -c 5
+          args:
+            executable: /bin/sh
+          environment:
+            KEYSPILLI_CURL_USER: "{{ keyspilli_access_username }}"
+            KEYSPILLI_CURL_PASSWORD: "{{ keyspilli_access_password }}"
           register: public_simplify_pdf
-          failed_when: >-
-            public_simplify_pdf.status | default(0) != 200
-            or (public_simplify_pdf.content | default(''))[0:5] != '%PDF-'
+          changed_when: false
+          failed_when: (public_simplify_pdf.stdout | default('')) != '%PDF-'
           delegate_to: localhost
           become: false
           no_log: true
           tags: [verify]
 
         - name: Verify authenticated public classic PDF export signature
-          ansible.builtin.uri:
-            url: "https://{{ app_domain }}/api/song/{{ pdf_smoke_song_id }}/export?type=pdf&layout=classic"
-            return_content: true
-            status_code: 200
-            timeout: 180
-            url_username: "{{ keyspilli_access_username }}"
-            url_password: "{{ keyspilli_access_password }}"
-            force_basic_auth: true
+          # Keep this binary-safe for the same reason as the simplify check.
+          ansible.builtin.shell: >-
+            curl --fail --silent --show-error --location
+            --user "$KEYSPILLI_CURL_USER:$KEYSPILLI_CURL_PASSWORD"
+            --output -
+            "https://{{ app_domain }}/api/song/{{ pdf_smoke_song_id }}/export?type=pdf&layout=classic"
+            | head -c 5
+          args:
+            executable: /bin/sh
+          environment:
+            KEYSPILLI_CURL_USER: "{{ keyspilli_access_username }}"
+            KEYSPILLI_CURL_PASSWORD: "{{ keyspilli_access_password }}"
           register: public_classic_pdf
-          failed_when: >-
-            public_classic_pdf.status | default(0) != 200
-            or (public_classic_pdf.content | default(''))[0:5] != '%PDF-'
+          changed_when: false
+          failed_when: (public_classic_pdf.stdout | default('')) != '%PDF-'
           delegate_to: localhost
           become: false
           no_log: true
