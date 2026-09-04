@@ -3,6 +3,71 @@
   "purpose": "Durable path-free summary of Keyspilli evidence experiments",
   "entries": [
     {
+      "id": "public-five-level-difficulty-contract-implementation-2026-09-04",
+      "date": "2026-09-04",
+      "startingRevision": "971974231016bded91769fc938850fce38ea7827",
+      "checkpointRevision": "a0a8dc5f35fa6bd18cc87b82b4d5c48e765d519f",
+      "purpose": "Implement production validation for the public five-level ladder while retaining six physical artifacts and legacy Very Easy",
+      "route": "existing buildVariants -> public-edge validateVariants/verifyMonotonicity -> exact six-level note-set parity report",
+      "scope": {
+        "physicalOrder": ["very-beginner", "beginner", "very-easy", "easy", "medium", "advanced"],
+        "publicOrder": ["very-beginner", "beginner", "easy", "medium", "advanced"],
+        "veryEasy": "individually validated, serialized, round-trippable, legacy-accessible, not a public ordering edge",
+        "productionPublicEdgeToleranceBeats": {"very-beginner": 0.26, "beginner": 0.02, "easy": 0.02, "medium": 0.02},
+        "auditMatchingToleranceBeats": 0.08,
+        "generationPolicyChanged": false,
+        "playabilityLimitsChanged": false,
+        "densityNormalizationPromoted": false,
+        "benchmarkMaterialUsed": false,
+        "humanListening": "NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NOT_DEPLOYED"
+      },
+      "fixtures": {
+        "trustedProduction": ["classical", "cover", "pop"],
+        "trustedProductionValidationPass": true,
+        "trustedSixLevelParityPass": true,
+        "laneA": {
+          "sourceClass": "GENERATION_CANDIDATE",
+          "provenanceClass": "USER_SUPPLIED_PRIVATE",
+          "symbolicSha256": "ec5010896c00a0541b34b0843a20f455707ac647ae4a222aee71e2ad43e8017e",
+          "symbolicBytes": 58204,
+          "symbolicNotes": 7266,
+          "productionValidationPass": false,
+          "blockingErrors": [
+            "easy: median inter-onset 0.063s below floor 0.08s",
+            "medium: median inter-onset 0.063s below floor 0.08s",
+            "advanced: median inter-onset 0.063s below floor 0.08s"
+          ],
+          "sixLevelParityPass": true
+        },
+        "syntheticFullBand": "diagnostic-only; not used for the production decision"
+      },
+      "parity": {
+        "baselineRevision": "971974231016bded91769fc938850fce38ea7827",
+        "comparison": "sorted [midi,start,duration,velocity,hand,identitySource] note-set SHA per physical level",
+        "allTrustedAndLaneALevelsEqual": true
+      },
+      "decision": "PUBLIC_FIVE_LEVEL_CONTRACT_IMPLEMENTED",
+      "timedSymbolicMvp": "TIMED_SYMBOLIC_MVP_READY_FOR_NORMALIZATION_REEVALUATION",
+      "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+      "realShadow": "REAL_SHADOW_BLOCKED_AT_DIFFICULTIES",
+      "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+      "report": {
+        "path": "difficulty-contract-implementation-2026-09-04.json",
+        "canonicalSha256": "b4285e94b984bbd1445f818313533293dabadeee3bacd70c56967bbed2f69f03",
+        "sha256": "4a80c3279efe31382c0d1581fa62ee216b7c1406d1f995a1cf88c2fb862af18b"
+      },
+      "verification": {
+        "workspaceTests": 1621,
+        "workspaceTypechecks": 6,
+        "deterministicRerun": true,
+        "gitDiffCheck": true
+      },
+      "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+      "deployment": "NOT_DEPLOYED",
+      "nextTask": "REEVALUATE_FROZEN_DENSITY_NORMALIZATION_UNDER_PUBLIC_CONTRACT"
+    },
+    {
       "id": "difficulty-contract-review-2026-09-04",
       "date": "2026-09-04",
       "startingRevision": "4d30f85e7212265604cefefef0d0d844c4a59e16",
