@@ -2684,6 +2684,37 @@
         "The historical benchmark remains rights-blocked and was not opened.",
         "The non-commercial weight license is not production approval."
       ]
+    },
+    {
+      "id": "rights-cleared-dense-metal-amt-eval-corpus-2026-09-05",
+      "date": "2026-09-05",
+      "startingRevision": "a98dc1a4bd0a3e9cc5921ae8189518ecf9ec9db3",
+      "checkpointRevision": "f2e0b06f4d923b802f6351b71acec5d2b3b46292",
+      "purpose": "Freeze a rights-cleared dense-metal corpus before the first MuScriptor cold evaluation",
+      "externalSurvey": {
+        "datasets": ["HiMMP", "MedleyDB", "Slakh2100", "E-GMD", "DREANSS"],
+        "decision": "REAL_PARTIAL_REFERENCE_METAL_CORPUS_FOUND",
+        "himmpDecision": "HIMMP_PARTIAL_REFERENCE_USABLE",
+        "scorableRealRole": "drums:kick"
+      },
+      "syntheticCorpus": {
+        "id": "dense-metal-amt-eval-corpus-v1",
+        "evidenceClass": "SYNTHETIC_DOMAIN_FULL_REFERENCE",
+        "fixtures": ["METAL_A_TIGHT_RIFF", "METAL_B_DENSE_EXTREME", "METAL_C_LAYERED_MELODIC"],
+        "durationSeconds": 96,
+        "manifestCanonicalSha256": "5c51f0575f6ca2ca33c2f186704d82682e00c99ff333fe4b1b455a34a9c4c5b8",
+        "alignmentAuthority": "SYMBOLIC_RENDER_NATIVE_ALIGNMENT",
+        "firewall": "EVAL_ONLY"
+      },
+      "decision": "RIGHTS_CLEARED_REAL_PLUS_SYNTHETIC_METAL_CORPUS_READY",
+      "muscriptor": "NOT_RUN_ON_FINAL_FROZEN_CORPUS",
+      "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+      "deployment": "NO_DEPLOYMENT_NO_VPS_MUTATION",
+      "report": {
+        "path": "rights-cleared-dense-metal-amt-eval-corpus-2026-09-05.json",
+        "sha256": "2b6fddbe44167289bc2035dcae3cfcbf791fc96006e48b4f62d294d0f84f1d13"
+      },
+      "nextTask": "MUSCRIPTOR_FROZEN_DENSE_METAL_COLD_EVALUATION"
     }
   ]
 }

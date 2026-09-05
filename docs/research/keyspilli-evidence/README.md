@@ -127,6 +127,12 @@ experiment history needed to continue later.
   browser/device flow authenticated the local research cache, the exact
   frozen weights loaded on MPS, and a project-owned sanity transcription was
   deterministic; dense-metal evaluation remains out of scope.
+* `rights-cleared-dense-metal-amt-eval-corpus-2026-09-05.json` — bounded
+  official-source survey, HiMMP partial-reference freeze, rights and claim
+  boundaries, deterministic corpus verification, and the corpus decision.
+* `dense-metal-amt-eval-corpus-v1-manifest.json` — path-free hashes, objective
+  complexity metrics, renderer contract, and EVAL_ONLY firewall for the three
+  project-owned full-reference pieces.
 
 ## Cold-transfer boundary
 
