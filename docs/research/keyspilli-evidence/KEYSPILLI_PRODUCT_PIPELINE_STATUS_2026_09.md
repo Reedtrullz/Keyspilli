@@ -935,3 +935,38 @@ credential was not installed in production; alignment remains
 `MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`, human listening remains
 `NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT`, and deployment remains
 `NO_DEPLOYMENT`. Exactly one next task: `USER_MEDIATED_SOURCE_CANDIDATE_HANDOFF`.
+
+## 2026-09-05 — Brave provider canary closeout
+
+The prior successful canary retained only aggregate counts, so the permitted
+single fresh replay used the same `generic-real-song-cold-20-v1` corpus, four
+queries per song, ten results per query, 40-result bound, and unchanged ranker.
+It normalized 565 metadata candidates across 20/20 targets (10–35 each), with
+80 HTTP 200 responses and one recoverable HTTP 429. The ranker classified
+strong structured evidence for 20/20 songs: MIDI 20/20, MusicXML 20/20, MXL
+0/20, Guitar Pro 20/20, and piano-symbolic 0/20. These format counts are
+metadata/query-hint classifications only; no source file was fetched or
+parser-validated. Eligibility counts were AUTO_ACQUISITION_ELIGIBLE 0/20,
+USER_MEDIATED_CANDIDATE 20/20, SCORE_ALIGNMENT_REQUIRED 0/20,
+SEMANTIC_SUPPORT_ONLY 0/20, RESEARCH_LEAD_ONLY 0/20, and REJECTED_ONLY 0/20.
+This is `PARITY_OR_BETTER` against the historical 13/20 structured result.
+
+One genuine Brave result reached the existing server-owned
+`USER_MEDIATED_CANDIDATE` handoff contract (`AWAITING_USER_FILE`,
+`UNKNOWN_RIGHTS`, `UNKNOWN_TIMING`) without a candidate-page or byte fetch;
+generation did not start. Snapshot replay hashes matched:
+`7cf345dce43a7d4e7c0e0e74b0c6c44368b4db585984f1946f8d62fba54771d4`.
+The path-free report is
+`production-search-provider-canary-closeout-2026-09-05.json` (SHA-256
+`f3b6e537df536abebade9d388cf79164041b299191329a3b809d66292cfe353b`).
+
+Provider status is `PRODUCTION_GENERIC_SOURCE_SEARCH_PROVIDER_VALIDATED` and
+private-alpha status is
+`DISCOVERY_ASSISTED_PRIVATE_ALPHA_RELEASE_CANDIDATE_READY`. The stale handoff
+next task is reconciled; next task is
+`DISCOVERY_ASSISTED_PRIVATE_ALPHA_DEPLOYMENT_CANARY` (requires explicit owner
+authorization). Source intake remains `GENERATION_CANDIDATE_INTAKE_READY`,
+alignment remains `REAL_SYMBOLIC_ALIGNMENT_PARTIAL`, musical quality remains
+`MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`, human listening remains
+`NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT`, and deployment remains
+`NO_DEPLOYMENT`.

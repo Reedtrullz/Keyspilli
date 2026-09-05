@@ -2208,6 +2208,99 @@
         "The live replay was not repeated; deterministic ranker behavior remains covered by the existing mocked replay test.",
         "No provider/query tuning, Exa evaluation, musical change, deployment, or human listening occurred."
       ]
+    },
+    {
+      "id": "production-search-provider-canary-closeout-2026-09-05",
+      "date": "2026-09-05",
+      "startingRevision": "4771a4f86d7fe2608a426529ef1c4c8bc9468be6",
+      "purpose": "Close the production Brave provider evidence gaps without changing provider or ranker behavior",
+      "provider": "BRAVE_SEARCH_API",
+      "corpus": {
+        "id": "generic-real-song-cold-20-v1",
+        "songs": 20,
+        "benchmarkExcluded": true,
+        "sameAsPriorCanary": true
+      },
+      "policy": {
+        "queriesPerSong": 4,
+        "resultsPerQuery": 10,
+        "maxUniqueResults": 40,
+        "maxDisplayed": 3,
+        "rankerUnchanged": true
+      },
+      "replay": {
+        "status": "COMPLETED_METADATA_ONLY",
+        "providerRequests": 81,
+        "statusCounts": {"200": 80, "429": 1},
+        "retries": 1,
+        "candidateCountTotal": 565,
+        "candidateCountRange": [10, 35],
+        "songsWithAnyResults": 20,
+        "sourcePageFetches": 0,
+        "sourceByteDownloads": 0,
+        "externalHosts": ["api.search.brave.com"]
+      },
+      "classification": {
+        "strongStructuredLeads": 20,
+        "midiLeads": 20,
+        "musicXmlLeads": 20,
+        "mxlLeads": 0,
+        "guitarProLeads": 20,
+        "pianoSymbolicLeads": 0,
+        "tabChordSemanticOnly": 0,
+        "noUsefulEvidence": 0,
+        "AUTO_ACQUISITION_ELIGIBLE": 0,
+        "USER_MEDIATED_CANDIDATE": 20,
+        "SCORE_ALIGNMENT_REQUIRED": 0,
+        "SEMANTIC_SUPPORT_ONLY": 0,
+        "RESEARCH_LEAD_ONLY": 0,
+        "REJECTED_ONLY": 0,
+        "historicalResearchStructuredLeads": 13,
+        "historicalComparison": "PARITY_OR_BETTER",
+        "basis": "ranker metadata/query-hint classification; not file or license validation"
+      },
+      "handoff": {
+        "status": "USER_MEDIATED_CANDIDATE_HANDOFF_REACHED",
+        "state": "AWAITING_USER_FILE",
+        "rights": "UNKNOWN_RIGHTS",
+        "timing": "UNKNOWN_TIMING",
+        "candidatePageFetched": false,
+        "candidateBytesFetched": false,
+        "generationStarted": false,
+        "persistentDbWrite": false
+      },
+      "determinism": {
+        "snapshotReplayHash1": "7cf345dce43a7d4e7c0e0e74b0c6c44368b4db585984f1946f8d62fba54771d4",
+        "snapshotReplayHash2": "7cf345dce43a7d4e7c0e0e74b0c6c44368b4db585984f1946f8d62fba54771d4",
+        "identical": true,
+        "snapshotSha256": "b67182d1597d6997daf8e9f950b11fe988419cf3a939f0b933c4e404da09091e"
+      },
+      "safety": {
+        "rightsAutoPromotions": 0,
+        "nativeTimingAutoPromotions": 0,
+        "benchmarkFirewallViolations": 0,
+        "sourcePageFetches": 0,
+        "sourceByteDownloads": 0,
+        "secretMatches": 0,
+        "providerPolicyChanged": false,
+        "deployment": "NO_DEPLOYMENT",
+        "musicalBehaviorChanges": 0
+      },
+      "decisions": {
+        "provider": "PRODUCTION_GENERIC_SOURCE_SEARCH_PROVIDER_VALIDATED",
+        "privateAlpha": "DISCOVERY_ASSISTED_PRIVATE_ALPHA_RELEASE_CANDIDATE_READY",
+        "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+        "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NO_DEPLOYMENT",
+        "nextTask": "DISCOVERY_ASSISTED_PRIVATE_ALPHA_DEPLOYMENT_CANARY"
+      },
+      "nonClaims": [
+        "Metadata format classes are not parser or licensing proof.",
+        "No provider result page or third-party symbolic bytes were fetched.",
+        "No provider tuning, Exa evaluation, alignment, musical change, deployment, or human listening occurred."
+      ]
     }
   ]
 }

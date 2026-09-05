@@ -121,6 +121,19 @@ the local provider canary only; the credential remains out of production, and
 all remote metadata remains user-mediated. See
 `docs/research/keyspilli-evidence/production-search-provider-credential-canary-rerun-2026-09-05.json`.
 
+The closeout replay was required because the earlier successful canary retained
+aggregate counts but not per-result metadata. One unchanged-policy replay
+normalized 565 Brave candidates for the same 20-song corpus (10–35 per song),
+with 80 HTTP 200 responses and one recoverable HTTP 429. Ranker-classified
+strong structured coverage was 20/20 (MIDI 20/20, MusicXML 20/20, MXL 0/20,
+Guitar Pro 20/20, piano-symbolic 0/20); these are metadata/query-hint classes,
+not proof that a file exists or is licensed. All 20 had a
+`USER_MEDIATED_CANDIDATE`; automatic acquisition remained 0/20. One real Brave
+candidate reached the existing server-owned handoff contract in
+`AWAITING_USER_FILE` state with `UNKNOWN_RIGHTS` and `UNKNOWN_TIMING`. No
+candidate page or byte was fetched. The closeout report is
+`docs/research/keyspilli-evidence/production-search-provider-canary-closeout-2026-09-05.json`.
+
 ### Bounded MVP release-candidate scope and deployment gate
 
 The bounded release candidate is a private, single-user symbolic product:
