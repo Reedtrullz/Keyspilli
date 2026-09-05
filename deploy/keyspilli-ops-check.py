@@ -63,8 +63,9 @@ def http_json(url: str) -> dict[str, Any]:
 
 
 def anonymous_status(url: str) -> int:
+    request = urllib.request.Request(url, headers={"User-Agent": "Keyspilli-Ops/1"})
     try:
-        with urllib.request.urlopen(url, timeout=10) as response:
+        with urllib.request.urlopen(request, timeout=10) as response:
             return response.status
     except urllib.error.HTTPError as error:
         return error.code
