@@ -3080,6 +3080,36 @@
         "sha256": "3f5fbd4c951a8f51315cb0da38cbb1ce055f022eac5224f4b0e6ecacfe85ed52"
       },
       "nextTask": "OWNER_PRIVATE_ALPHA_USAGE_TRIAL"
+    },
+    {
+      "id": "owner-private-alpha-access-restoration-2026-09-05",
+      "date": "2026-09-05",
+      "repositoryRevision": "4e335ca80b53c1cd785368b8b7410075fbb4a900",
+      "deployedRevision": "e9dd13a672e9d252b6441076e3ff99c3937cecd9",
+      "rootCause": "VALID_CREDENTIAL_NOT_DOMAIN_DISCOVERABLE_IN_KEYCHAIN",
+      "verification": {
+        "anonymous": "BLOCKED_401",
+        "wrongCredential": "BLOCKED_401",
+        "ownerBrowser": "PASS",
+        "uploads": "PASS",
+        "catalogPlayer": "PASS",
+        "liveDatabaseIntegrity": "ok",
+        "monitoring": "PASS_WITH_DISK_WARNING"
+      },
+      "scope": {
+        "credentialRotated": false,
+        "serverChanged": false,
+        "deployments": 0,
+        "productionWrites": 0,
+        "musicalBehaviorChanged": false,
+        "secretRecorded": false
+      },
+      "decision": "OWNER_PRIVATE_ALPHA_ACCESS_VALIDATED",
+      "report": {
+        "path": "owner-private-alpha-access-restoration-2026-09-05.json",
+        "sha256": "4e5e0ef6798098afad0ba3c23c469053d03af60b0d246f224c9e22f970bc146b"
+      },
+      "nextTask": "OWNER_PRIVATE_ALPHA_USAGE_TRIAL"
     }
   ]
 }

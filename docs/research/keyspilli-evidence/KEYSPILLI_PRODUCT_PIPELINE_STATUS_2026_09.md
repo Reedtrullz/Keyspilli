@@ -1415,3 +1415,23 @@ human listening occurred. Musical quality remains
 `MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`. The next task is
 `OWNER_PRIVATE_ALPHA_USAGE_TRIAL`; owner use is natural product use, not an
 assigned listening or QA exercise.
+
+## 2026-09-05 — Owner private-alpha access restored
+
+The live Caddy Basic Auth boundary and approved owner credential were healthy;
+there is no second application login. The access blocker was credential
+usability: the password existed only under the project's generic Keychain
+service and was not discoverable by the production domain. The same credential
+now also has a domain-scoped macOS Keychain Access entry for
+`keys.reidar.tech`. No password was rotated or recorded, and no server,
+container, database, worker, Brave, bearer-token, or monitoring configuration
+changed.
+
+A real Chromium session verified anonymous and wrong-password HTTP 401,
+authenticated homepage, Add a song navigation, `/uploads`, source leads,
+symbolic file input, catalog, player, and credential persistence. The live and
+backup SQLite integrity checks remain `ok`; monitoring is healthy except for
+the existing preferred-disk warning (32.409 GiB, above the 30 GiB hard floor).
+
+Decision: `OWNER_PRIVATE_ALPHA_ACCESS_VALIDATED`. Next task:
+`OWNER_PRIVATE_ALPHA_USAGE_TRIAL`.

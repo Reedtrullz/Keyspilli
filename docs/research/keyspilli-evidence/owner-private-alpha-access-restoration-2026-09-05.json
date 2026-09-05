@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "id": "owner-private-alpha-access-restoration-2026-09-05",
+  "date": "2026-09-05",
+  "repositoryRevision": "4e335ca80b53c1cd785368b8b7410075fbb4a900",
+  "deployedRevision": "e9dd13a672e9d252b6441076e3ff99c3937cecd9",
+  "rootCause": "The approved edge credential was valid but existed only as an opaque generic Keychain service, with no domain-scoped entry for normal owner recovery.",
+  "accessStack": {
+    "edge": "Caddy Basic Auth over the complete HTTPS domain",
+    "applicationLogin": false,
+    "stackedOwnerLogin": false,
+    "applicationBearerContractChanged": false
+  },
+  "remediation": {
+    "credentialRotated": false,
+    "serverChanged": false,
+    "deployed": false,
+    "domainKeychainEntryCreated": true,
+    "passwordRecorded": false
+  },
+  "browserVerification": {
+    "engine": "Chromium via Playwright",
+    "anonymousRootStatus": 401,
+    "wrongCredentialStatus": 401,
+    "authenticatedRootStatus": 200,
+    "homepageToUploadsNavigation": "PASS",
+    "uploads": "PASS",
+    "sourceLeads": "PASS",
+    "symbolicFileInput": "PASS",
+    "catalog": "PASS",
+    "player": "PASS",
+    "credentialPersistenceWithinBrowserContext": "PASS",
+    "productionWrites": 0
+  },
+  "nonRegression": {
+    "health": "healthy",
+    "symbolicUpload": true,
+    "sourceDiscoveryConfigured": true,
+    "directAudioAmt": false,
+    "workerImage": "ghcr.io/reedtrullz/keyspilli-worker:17f997600b9f",
+    "workerRestartCount": 0,
+    "webRestartCount": 0,
+    "liveDatabaseIntegrity": "ok",
+    "backupDatabaseIntegrity": "ok",
+    "caddy": "healthy",
+    "monitoring": "PASS_WITH_DISK_WARNING",
+    "diskFreeGiB": 32.409,
+    "musicalBehaviorChanged": false
+  },
+  "decision": "OWNER_PRIVATE_ALPHA_ACCESS_VALIDATED",
+  "nextTask": "OWNER_PRIVATE_ALPHA_USAGE_TRIAL"
+}

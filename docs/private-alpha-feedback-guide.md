@@ -3,6 +3,20 @@
 Use Keyspilli normally with symbolic files you are authorized to use. This is
 not a listening assignment or test script.
 
+## Open Keyspilli
+
+1. Open `https://keys.reidar.tech` in the browser.
+2. When the browser asks for credentials, use username `reidar` and the
+   password stored in macOS Keychain Access under `keys.reidar.tech`.
+3. Allow the browser to remember the login if desired, then use **Add a song**.
+
+If the browser remembers a wrong password and does not ask again, quit the
+browser completely, reopen it, and enter the Keychain credential. To recover
+the password without developer tools, open **Keychain Access**, search for
+`keys.reidar.tech`, open the Internet password entry, and choose **Show
+password**; macOS will ask for owner authentication. The password is never
+stored in this repository.
+
 If something gets in your way, send any convenient subset of:
 
 - what you were trying to do;

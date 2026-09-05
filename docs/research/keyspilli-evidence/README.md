@@ -168,6 +168,9 @@ not been retried.
   light/deep operations checker, thresholds, negative fixtures, and live status.
 * `private-alpha-operational-readiness-closeout-2026-09-05.json` — consolidated
   live, recovery, operations, limitation, and next-goal decision.
+* `owner-private-alpha-access-restoration-2026-09-05.json` — owner-usable
+  Keychain recovery, live Basic Auth browser matrix, and unchanged-runtime
+  evidence without credential material.
 
 ## Cold-transfer boundary
 
