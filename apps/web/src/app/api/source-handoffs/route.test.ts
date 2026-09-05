@@ -5,6 +5,7 @@ import { rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { GenericSourceCandidate } from "@keyspilli/catalog";
+import { listSourceCandidateHandoffs } from "@keyspilli/catalog";
 import { POST } from "./route";
 import { POST as confirm } from "./[id]/confirm/route";
 import { setSourceCandidateProviderForTests } from "../../../lib/source-candidate-provider";
@@ -72,6 +73,52 @@ afterAll(async () => {
 });
 
 describe("source handoff routes", () => {
+  it("accepts a handoff through the production reverse-proxy header contract", async () => {
+    const response = await POST(new NextRequest("http://internal-web:3000/api/source-handoffs", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        host: "keys.reidar.tech",
+        origin: "https://keys.reidar.tech",
+        "sec-fetch-site": "same-origin",
+        "x-forwarded-host": "keys.reidar.tech",
+        "x-forwarded-proto": "https",
+      },
+      body: JSON.stringify({
+        targetId: "target-route-song",
+        targetArtist: "Route Band",
+        targetTitle: "Route Song",
+        candidateId: "lead-route",
+      }),
+    }));
+
+    expect(response.status).toBe(201);
+  });
+
+  it("rejects a cross-origin proxied handoff without creating durable state", async () => {
+    const before = listSourceCandidateHandoffs().length;
+    const response = await POST(new NextRequest("http://internal-web:3000/api/source-handoffs", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        host: "keys.reidar.tech",
+        origin: "https://attacker.example",
+        "sec-fetch-site": "cross-site",
+        "x-forwarded-host": "keys.reidar.tech",
+        "x-forwarded-proto": "https",
+      },
+      body: JSON.stringify({
+        targetId: "target-route-song",
+        targetArtist: "Route Band",
+        targetTitle: "Route Song",
+        candidateId: "lead-route",
+      }),
+    }));
+
+    expect(response.status).toBe(403);
+    expect(listSourceCandidateHandoffs()).toHaveLength(before);
+  });
+
   it("creates a server-owned handoff and requires explicit confirmation", async () => {
     const response = await POST(request({
       targetId: "target-route-song",

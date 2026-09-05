@@ -1,23 +1,53 @@
 import { NextResponse } from "next/server";
 import { apiAuthorization } from "./api-auth";
 
+function firstForwardedValue(value: string): string | null {
+  const first = value.split(",", 1)[0]?.trim();
+  return first || null;
+}
+
+function originFrom(protocol: string, host: string): string | null {
+  const scheme = protocol.replace(/:$/, "").toLowerCase();
+  if (scheme !== "http" && scheme !== "https") return null;
+  try {
+    const url = new URL(`${scheme}://${host}`);
+    if (url.username || url.password || url.pathname !== "/" || url.search || url.hash) return null;
+    return url.origin;
+  } catch {
+    return null;
+  }
+}
+
+function effectiveRequestOrigin(req: Request): string | null {
+  const forwardedProtoHeader = req.headers.get("x-forwarded-proto");
+  const forwardedHostHeader = req.headers.get("x-forwarded-host");
+  if ((forwardedProtoHeader === null) !== (forwardedHostHeader === null)) return null;
+  if (forwardedProtoHeader !== null && forwardedHostHeader !== null) {
+    const protocol = firstForwardedValue(forwardedProtoHeader);
+    const host = firstForwardedValue(forwardedHostHeader);
+    return protocol && host ? originFrom(protocol, host) : null;
+  }
+  try {
+    const requestUrl = new URL(req.url);
+    return originFrom(requestUrl.protocol, req.headers.get("host") ?? requestUrl.host);
+  } catch {
+    return null;
+  }
+}
+
 function sameOriginBrowser(req: Request): boolean {
   const origin = req.headers.get("origin");
-  if (!origin) return req.headers.get("sec-fetch-site") === "same-origin";
+  if (!origin) {
+    return req.headers.get("sec-fetch-site") === "same-origin" && effectiveRequestOrigin(req) !== null;
+  }
   let originUrl: URL;
-  let requestUrl: URL;
   try {
     originUrl = new URL(origin);
-    requestUrl = new URL(req.url);
   } catch {
     return false;
   }
-  const forwardedProto = req.headers.get("x-forwarded-proto")?.split(",", 1)[0]?.trim();
-  const forwardedHost = req.headers.get("x-forwarded-host")?.split(",", 1)[0]?.trim();
-  const requestHost = forwardedHost ?? req.headers.get("host");
-  if (forwardedProto) requestUrl.protocol = forwardedProto.endsWith(":") ? forwardedProto : `${forwardedProto}:`;
-  if (requestHost) requestUrl.host = requestHost;
-  return originUrl.origin === requestUrl.origin;
+  if (origin !== originUrl.origin) return false;
+  return originUrl.origin === effectiveRequestOrigin(req);
 }
 
 function sameOriginGuard(req: Request): Response | null {

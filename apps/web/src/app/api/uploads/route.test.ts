@@ -67,6 +67,25 @@ describe("upload route", () => {
     expect(response.status).toBe(200);
   });
 
+  it("accepts a browser upload through the production reverse-proxy header contract", async () => {
+    ingestSource.mockResolvedValueOnce({ baseId: "upload", songIds: ["upload-e"] });
+
+    const response = await POST(new NextRequest("http://internal-web:3000/api/uploads", {
+      method: "POST",
+      headers: {
+        host: "keys.reidar.tech",
+        origin: "https://keys.reidar.tech",
+        "sec-fetch-site": "same-origin",
+        "x-forwarded-host": "keys.reidar.tech",
+        "x-forwarded-proto": "https",
+      },
+      body: new Uint8Array([1, 2, 3]),
+    }));
+
+    expect(response.status).toBe(200);
+    expect(ingestSource).toHaveBeenCalledOnce();
+  });
+
   it("still accepts a same-origin browser upload when no server token is configured", async () => {
     delete process.env.KEYSPILLI_API_TOKEN;
     ingestSource.mockResolvedValueOnce({ baseId: "upload", songIds: ["upload-e"] });
@@ -84,11 +103,14 @@ describe("upload route", () => {
   });
 
   it("rejects a cross-origin browser upload before ingest", async () => {
-    const response = await POST(new NextRequest("https://keys.reidar.tech/api/uploads", {
+    const response = await POST(new NextRequest("http://internal-web:3000/api/uploads", {
       method: "POST",
       headers: {
+        host: "keys.reidar.tech",
         origin: "https://attacker.example",
         "sec-fetch-site": "cross-site",
+        "x-forwarded-host": "keys.reidar.tech",
+        "x-forwarded-proto": "https",
       },
       body: new Uint8Array([1, 2, 3]),
     }));
