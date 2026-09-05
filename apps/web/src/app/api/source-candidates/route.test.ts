@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { GenericSourceCandidate } from "@keyspilli/catalog";
 import { GET } from "./route";
 import { setSourceCandidateProviderForTests } from "../../../lib/source-candidate-provider";
+import { SourceCandidateProviderError } from "../../../lib/source-candidate-provider";
 
 const candidate = {
   schemaVersion: 1,
@@ -54,7 +55,7 @@ describe("source candidate route", () => {
   it("reports the honest provider-missing state", async () => {
     const response = await GET(new NextRequest(url));
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ status: "provider-missing", candidates: [] });
+    await expect(response.json()).resolves.toEqual({ status: "provider-not-configured", candidates: [] });
   });
 
   it("returns at most ranked metadata cards without downloading bytes", async () => {
@@ -62,16 +63,36 @@ describe("source candidate route", () => {
     const response = await GET(new NextRequest(url));
     expect(response.status).toBe(200);
     const body = await response.json();
-    expect(body.status).toBe("ready");
+    expect(body.status).toBe("candidates-found");
     expect(body.candidates).toHaveLength(1);
     expect(body.candidates[0]).toMatchObject({ candidateId: "lead-1", candidateUrl: "https://example.test/open-song.mid" });
     expect(body.candidates[0]).not.toHaveProperty("sourceSHA256");
+  });
+
+  it("distinguishes a successful bounded search with no candidates", async () => {
+    setSourceCandidateProviderForTests(() => []);
+    const response = await GET(new NextRequest(url));
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ status: "no-candidates", candidates: [] });
   });
 
   it("fails closed when the provider throws", async () => {
     setSourceCandidateProviderForTests(() => { throw new Error("provider unavailable"); });
     const response = await GET(new NextRequest(url));
     expect(response.status).toBe(503);
-    await expect(response.json()).resolves.toEqual({ error: "source candidate provider failed" });
+    await expect(response.json()).resolves.toEqual({
+      error: "Source search is temporarily unavailable.",
+      code: "SOURCE_SEARCH_UNAVAILABLE",
+    });
+  });
+
+  it("reports provider rate limits separately from an empty search", async () => {
+    setSourceCandidateProviderForTests(() => { throw new SourceCandidateProviderError("SOURCE_SEARCH_RATE_LIMITED"); });
+    const response = await GET(new NextRequest(url));
+    expect(response.status).toBe(429);
+    await expect(response.json()).resolves.toEqual({
+      error: "Source search is temporarily rate limited. Try again shortly.",
+      code: "SOURCE_SEARCH_RATE_LIMITED",
+    });
   });
 });

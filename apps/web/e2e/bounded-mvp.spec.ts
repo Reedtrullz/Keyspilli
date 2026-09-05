@@ -75,3 +75,74 @@ test("scratch upload reports malformed symbolic content without publishing", asy
   const catalog = await request.get("/api/songs?limit=20");
   expect((await catalog.json()).songs).toHaveLength(6);
 });
+
+test("creation surfaces consistently lead to symbolic discovery and upload", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("main").getByRole("link", { name: "Add a song" })).toHaveAttribute("href", "/uploads");
+  await expect(page.getByText(/YouTube → sheet music/i)).toHaveCount(0);
+
+  await page.goto("/youtube");
+  await expect(page.getByRole("heading", { name: "Create a lesson from a symbolic file" })).toBeVisible();
+  await expect(page.getByRole("main").getByRole("link", { name: "Add a song" })).toHaveAttribute("href", "/uploads");
+  await expect(page.getByRole("button", { name: /convert/i })).toHaveCount(0);
+
+  await page.goto("/uploads");
+  const details = page.getByRole("heading", { name: "1. Song details" });
+  const discovery = page.getByRole("heading", { name: "2. Find source leads (optional)" });
+  const file = page.getByRole("heading", { name: "3. Choose a symbolic file" });
+  expect(await details.boundingBox()).not.toBeNull();
+  expect((await details.boundingBox())!.y).toBeLessThan((await discovery.boundingBox())!.y);
+  expect((await discovery.boundingBox())!.y).toBeLessThan((await file.boundingBox())!.y);
+
+  await page.getByLabel("Title (optional)").fill("No Provider Song");
+  await page.getByLabel("Artist (optional)").fill("No Provider Artist");
+  await page.getByRole("button", { name: "Find source leads" }).click();
+  await expect(page.getByText(/Source search is not configured.*upload.*directly/i)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Browse files" })).toBeEnabled();
+});
+
+test("source discovery distinguishes no results, rate limits, and metadata-only leads", async ({ page }) => {
+  let mode: "none" | "rate" | "candidate" = "none";
+  await page.route("**/api/source-candidates?**", async (route) => {
+    if (mode === "none") return route.fulfill({ json: { status: "no-candidates", candidates: [] } });
+    if (mode === "rate") return route.fulfill({ status: 429, json: { code: "SOURCE_SEARCH_RATE_LIMITED", error: "Source search is temporarily rate limited. Try again shortly." } });
+    return route.fulfill({ json: { status: "candidates-found", candidates: [{
+      candidateId: "lead-1",
+      resultTitle: "Open Band – Open Song MIDI",
+      resultSnippet: "A possible symbolic source",
+      provider: "brave-search-api",
+      candidateUrl: "https://example.test/song.mid",
+      symbolicFormat: "midi",
+      identity: "IDENTITY_EXACT",
+      rights: "UNKNOWN_RIGHTS",
+      timing: "UNKNOWN_TIMING",
+    }] } });
+  });
+  await page.route("**/api/source-handoffs", (route) => route.fulfill({ status: 201, json: { handoff: {
+    handoffId: "handoff-1", candidateId: "lead-1", provider: "brave-search-api", expectedFormat: "midi", userAffirmedTarget: false,
+  } } }));
+
+  await page.goto("/uploads");
+  await page.getByLabel("Title (optional)").fill("Open Song");
+  await page.getByLabel("Artist (optional)").fill("Open Band");
+  await page.getByRole("button", { name: "Find source leads" }).click();
+  await expect(page.getByText(/couldn't find a usable symbolic source lead/i)).toBeVisible();
+
+  mode = "rate";
+  await page.getByRole("button", { name: "Try source search again" }).click();
+  await expect(page.getByText(/Source search is temporarily rate limited/i)).toBeVisible();
+
+  mode = "candidate";
+  await page.getByRole("button", { name: "Try source search again" }).click();
+  await expect(page.getByText("Open Band – Open Song MIDI")).toBeVisible();
+  await expect(page.getByText(/Search results are leads only/i)).toBeVisible();
+  await expect(page.getByText(/Permission: you must verify/i)).toBeVisible();
+  await expect(page.getByText(/Timing: unverified/i)).toBeVisible();
+  await page.getByRole("button", { name: "Use as a lead" }).click();
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "different.musicxml",
+    mimeType: "application/vnd.recordare.musicxml+xml",
+    buffer: Buffer.from(MUSIC_XML),
+  });
+  await expect(page.getByText(/lead expected a MIDI file.*actual file contents decide/i)).toBeVisible();
+});

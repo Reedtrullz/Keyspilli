@@ -3,6 +3,7 @@ import {
   createBraveSourceCandidateProvider,
   discoverSourceCandidates,
   hasSourceCandidateProvider,
+  SourceCandidateProviderError,
   setSourceCandidateProviderForTests,
 } from "./source-candidate-provider";
 
@@ -160,6 +161,19 @@ describe("Brave source candidate provider", () => {
     });
     await expect(unauthorized(target)).rejects.toThrow("status 401");
     expect(calls).toBe(1);
+  });
+
+  it("classifies exhausted Brave rate limits without exposing provider details", async () => {
+    const provider = createBraveSourceCandidateProvider({
+      apiKey: "test-key",
+      fetchImpl: async () => response({ error: "limit" }, 429),
+      retryDelayMs: 0,
+    });
+
+    await expect(provider(target)).rejects.toMatchObject({
+      name: "SourceCandidateProviderError",
+      code: "SOURCE_SEARCH_RATE_LIMITED",
+    } satisfies Partial<SourceCandidateProviderError>);
   });
 
   it("bounds aborts and rejects an empty search identity before making a request", async () => {

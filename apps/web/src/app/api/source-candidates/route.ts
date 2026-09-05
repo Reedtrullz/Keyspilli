@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sanitizeGenericExternalUrl, type GenericSongTarget, type GenericSourceCandidate } from "@keyspilli/catalog";
-import { discoverSourceCandidates, hasSourceCandidateProvider } from "../../../lib/source-candidate-provider";
+import { discoverSourceCandidates, hasSourceCandidateProvider, SourceCandidateProviderError } from "../../../lib/source-candidate-provider";
 
 export const dynamic = "force-dynamic";
 
@@ -38,16 +38,30 @@ function card(candidate: GenericSourceCandidate) {
 }
 
 export async function GET(req: NextRequest) {
+  const startedAt = Date.now();
   const target = targetFromRequest(req);
   if (!target) return NextResponse.json({ error: "targetId, artist, and title are required" }, { status: 400 });
-  if (!hasSourceCandidateProvider()) return NextResponse.json({ status: "provider-missing", candidates: [] });
+  if (!hasSourceCandidateProvider()) {
+    console.info("[source-discovery]", { event: "provider-not-configured", elapsedMs: Date.now() - startedAt });
+    return NextResponse.json({ status: "provider-not-configured", candidates: [] });
+  }
   try {
     const candidates = (await discoverSourceCandidates(target))
       .filter((candidate) => candidate.candidateClass === "GENERATION_CANDIDATE" && !["BENCHMARK_REFERENCE", "DIAGNOSTIC_ONLY"].includes(candidate.rights))
       .map(card)
       .filter((candidate) => candidate.candidateUrl !== null);
-    return NextResponse.json({ status: "ready", candidates });
-  } catch {
-    return NextResponse.json({ error: "source candidate provider failed" }, { status: 503 });
+    const status = candidates.length ? "candidates-found" : "no-candidates";
+    console.info("[source-discovery]", { event: status, candidateCount: candidates.length, elapsedMs: Date.now() - startedAt });
+    return NextResponse.json({ status, candidates });
+  } catch (error) {
+    if (error instanceof SourceCandidateProviderError && error.code === "SOURCE_SEARCH_RATE_LIMITED") {
+      console.info("[source-discovery]", { event: "rate-limited", elapsedMs: Date.now() - startedAt });
+      return NextResponse.json(
+        { error: "Source search is temporarily rate limited. Try again shortly.", code: error.code },
+        { status: 429 },
+      );
+    }
+    console.info("[source-discovery]", { event: "provider-unavailable", elapsedMs: Date.now() - startedAt });
+    return NextResponse.json({ error: "Source search is temporarily unavailable.", code: "SOURCE_SEARCH_UNAVAILABLE" }, { status: 503 });
   }
 }

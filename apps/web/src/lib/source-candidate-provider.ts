@@ -40,6 +40,13 @@ const RETRIES = 1 as const;
 const DEFAULT_RETRY_DELAY_MS = 1_100 as const;
 const QUERY_SUFFIXES = ["MIDI", "MusicXML", "Guitar Pro", "piano MIDI"] as const;
 
+export class SourceCandidateProviderError extends Error {
+  constructor(public readonly code: "SOURCE_SEARCH_RATE_LIMITED" | "SOURCE_SEARCH_UNAVAILABLE") {
+    super(code);
+    this.name = "SourceCandidateProviderError";
+  }
+}
+
 let testProvider: SourceCandidateProvider | null | undefined;
 
 function cleanText(value: unknown, max = 500): string {
@@ -157,7 +164,10 @@ async function braveQuery(
       await options.sleep(options.retryDelayMs * (attempt + 1));
       continue;
     }
-    if (!response.ok) throw new Error(`Brave request failed with status ${response.status}`);
+    if (!response.ok) {
+      if (response.status === 429) throw new SourceCandidateProviderError("SOURCE_SEARCH_RATE_LIMITED");
+      throw new Error(`Brave request failed with status ${response.status}`);
+    }
     let body: unknown;
     try {
       body = await response.json();
