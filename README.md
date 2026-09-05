@@ -81,3 +81,4 @@ transcribe Dockerfile or manually: python3.12 -m venv + pip install
 - Master plan: `docs/superpowers/plans/2026-08-09-keyspilli-mvp.md`
 - Reference analysis: `supersimplepiano-analysis.md`
 - Ops (deploy/backup): `docs/ops.md`
+- Private-alpha feedback: `docs/private-alpha-feedback-guide.md`

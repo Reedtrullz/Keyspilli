@@ -1385,3 +1385,33 @@ quality remains `MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`; human listening
 was not requested and is not required by default. Operations and recovery
 evidence are in `private-alpha-operations-monitoring-hardening-2026-09-05.json`
 and `private-alpha-operational-readiness-closeout-2026-09-05.json`.
+
+## 2026-09-05 — Private-alpha usage and feedback baseline
+
+The exact deployed `linux/amd64` image ran in a disposable worker-free local
+lab behind the same-origin proxy. Seven Chromium usage tests passed: three MIDI
+and three MusicXML product runs, player and symbolic exports, a deterministic
+metadata-discovery handoff, no-result/provider-unavailable recovery, malformed
+input plus corrected retry, and desktop/narrow/tablet/mobile accessibility.
+The measured median upload-to-result time was 836 ms; median player first
+render was 500 ms. All four viewports had reachable labeled controls, no
+horizontal overflow, correct keyboard/focus behavior, reduced-motion handling,
+and announced status/error states. Thirty-six generated rows survived a local
+container restart.
+
+Simplify PDF could not be timed in this specific Apple-host lab because the
+amd64 image's nested Chromium segfaults under QEMU; the route returned its
+bounded 503 and the app stayed healthy. This is classified as a local
+environment limitation, not a product regression, because native linux/amd64
+PDF export already passed the live deployment canary. A short two-snapshot
+read-only production observation found the exact live revision, web/worker
+restart counts at zero, healthy private edge/backups/Caddy, and no provider
+error events; it is not represented as a long-duration soak. VPS disk remained
+above the 30 GiB floor and below the preferred 34 GiB level.
+
+Decision: `PRIVATE_ALPHA_READY_FOR_OWNER_USAGE`. No production write, deploy,
+Brave request, third-party fetch, music-policy change, AMT/alignment change, or
+human listening occurred. Musical quality remains
+`MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`. The next task is
+`OWNER_PRIVATE_ALPHA_USAGE_TRIAL`; owner use is natural product use, not an
+assigned listening or QA exercise.

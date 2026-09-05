@@ -769,3 +769,12 @@ so the checker reports a warning while exiting successfully. The immutable
 `67827050a695` image and pre-retry Compose file remain available for rollback.
 The latest SQLite backup restored into scratch with integrity `ok`; production
 was not restored or otherwise modified.
+
+### Private-alpha owner usage
+
+Normal owner use is the next product stage. It is not a QA script or listening
+exercise. Report blocking, confusing, failed, or unexpectedly slow product
+interactions using `docs/private-alpha-feedback-guide.md`; do not include
+credentials, private paths, or source bytes by default. The objective local
+usage matrix and short read-only live baseline are recorded in
+`docs/research/keyspilli-evidence/private-alpha-usage-feedback-phase-2026-09-05.json`.

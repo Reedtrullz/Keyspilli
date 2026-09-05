@@ -3049,6 +3049,37 @@
         "sha256": "8d6e5292a543595091ae34199695aa589c71b059447886d3584106ccbbc35f4b"
       },
       "nextTask": "PRIVATE_ALPHA_USAGE_AND_FEEDBACK_PHASE"
+    },
+    {
+      "id": "private-alpha-usage-feedback-phase-2026-09-05",
+      "date": "2026-09-05",
+      "startingRevision": "03948127320a477442c87e2065be0399d45d5c64",
+      "preregistrationRevision": "98b4d90a98dd804ad467ac9f87e2ea3f8f1f1fc4",
+      "deployedRevision": "e9dd13a672e9d252b6441076e3ff99c3937cecd9",
+      "verification": {
+        "usageBrowserMatrix": "PASS_7_OF_7",
+        "existingBoundedProxy": "PASS_4_OF_4",
+        "viewports": "PASS_4_OF_4",
+        "directMidiRuns": 3,
+        "directMusicXmlRuns": 3,
+        "restartPersistence": "PASS_36_OF_36_ROWS",
+        "productionObservation": "SHORT_READ_ONLY_TWO_SNAPSHOTS"
+      },
+      "scope": {
+        "productionWrites": 0,
+        "deployments": 0,
+        "braveRequests": 0,
+        "thirdPartyFetches": 0,
+        "musicalBehaviorChanged": false,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT"
+      },
+      "localEnvironmentLimitation": "PDF_RENDERER_UNAVAILABLE_UNDER_AMD64_QEMU; NATIVE_LIVE_CANARY_PREVIOUSLY_PASS",
+      "decision": "PRIVATE_ALPHA_READY_FOR_OWNER_USAGE",
+      "report": {
+        "path": "private-alpha-usage-feedback-phase-2026-09-05.json",
+        "sha256": "3f5fbd4c951a8f51315cb0da38cbb1ce055f022eac5224f4b0e6ecacfe85ed52"
+      },
+      "nextTask": "OWNER_PRIVATE_ALPHA_USAGE_TRIAL"
     }
   ]
 }
