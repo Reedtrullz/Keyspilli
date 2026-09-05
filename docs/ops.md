@@ -568,3 +568,32 @@ docker compose run --rm web node --import tsx packages/catalog/scripts/pipeline.
 - Positional base ids restrict the run: `npx tsx ... reingest-all-youtube.ts <baseId>...`
 - VPS: trigger the "Rebuild YouTube catalog on VPS" job via GitHub Actions
   workflow dispatch (runs inside the worker container with `--keep-existing-tempo`).
+
+### Discovery-assisted private alpha deployment canary — 2026-09-05
+
+The owner-authorized canary now runs the immutable web release
+`67827050a695e54609f6cf3f064e4fdaaabbb65b` as
+`ghcr.io/reedtrullz/keyspilli:67827050a695` (manifest digest
+`sha256:9520812e80f70d7ede4faa8ab0f34f9060371a80748e9a7957da9cecafedc094`).
+The worker remains on `ghcr.io/reedtrullz/keyspilli-worker:17f997600b9f`.
+Ansible used the VPS Docker Compose 5.1.3 topology; the local workstation
+still has no Compose plugin, so local Compose smoke is
+`COMPOSE_LOCAL_SMOKE_NOT_EXECUTED`.
+
+The Brave Search credential is installed only in the root-owned
+`/etc/keyspilli/source-search.env` (`0600`) and is injected server-side. It is
+not in Git, the rendered Compose file, browser assets, or recent logs. Caddy
+Basic Auth protects the complete HTTPS edge; anonymous health is 401 and
+authenticated health reports the exact release revision. The source-search
+route is user-mediated metadata discovery: a positive probe returned three
+candidates, while a valid Brave no-result response returns an empty set. No
+result pages or source bytes are fetched.
+
+The adapter honors the Brave free-plan request window with a 1.1-second retry
+delay and accepts the provider's valid `mixed`-only empty response while still
+rejecting malformed result arrays. After restart, `/uploads`, player, MIDI,
+MusicXML, and both PDF exports returned 200 with valid content. Under Node
+22.22.3/npm 10.9.8, focused provider tests (9/9), the workspace suite (1,672
+tests), six typechecks, and `git diff --check` passed. This canary changes no
+musical behavior or source-generation policy; independent alignment remains
+partial and musical quality is not objectively established.

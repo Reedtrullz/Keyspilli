@@ -970,3 +970,48 @@ alignment remains `REAL_SYMBOLIC_ALIGNMENT_PARTIAL`, musical quality remains
 `MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`, human listening remains
 `NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT`, and deployment remains
 `NO_DEPLOYMENT`.
+
+## 2026-09-05 — Discovery-assisted private alpha deployment canary
+
+The owner-authorized canary deployed release
+`67827050a695e54609f6cf3f064e4fdaaabbb65b` as the immutable web image
+`ghcr.io/reedtrullz/keyspilli:67827050a695`. The pushed manifest digest is
+`sha256:9520812e80f70d7ede4faa8ab0f34f9060371a80748e9a7957da9cecafedc094`,
+and the image config id is
+`sha256:ad8ce11168713c1151d43cca965f15cc14e3147dc3cbe9a6ec79f039c3b9ab99`.
+The worker image remained
+`ghcr.io/reedtrullz/keyspilli-worker:17f997600b9f`.
+
+The dedicated Brave Search credential was installed only through the
+root-owned `/etc/keyspilli/source-search.env` (`root:root`, mode `0600`) and
+is available to the web container as a server-only variable. It is absent from
+Git, the Compose manifest, browser assets, and recent container logs. Caddy
+Basic Auth protects the complete HTTPS domain; anonymous health is HTTP 401,
+while authenticated health reports `healthy` and the exact release revision.
+
+The live source-search route returned HTTP 200 with three candidates for a
+positive metadata query and HTTP 200 with an empty candidate set for a valid
+Brave no-result envelope. The latter exposed and fixed a provider parser bug:
+Brave can return a valid 200 response with `mixed` but no `web.results`. The
+adapter now treats that shape as an empty search while continuing to reject
+malformed result arrays. The earlier free-plan pacing fix remains active with
+an 1.1-second retry delay. This is metadata discovery only; no page or source
+bytes are fetched and candidate generation remains explicitly user-mediated.
+
+After a container restart, authenticated uploads/player/MIDI/MusicXML and
+both PDF exports returned HTTP 200 with valid signatures. The remote Docker
+Compose 5.1.3 topology was used by Ansible and passed; local Compose remains
+`COMPOSE_LOCAL_SMOKE_NOT_EXECUTED` because the workstation plugin is absent.
+The web image build, focused provider tests (9/9), full workspace tests
+(1,672 passing: web 117, catalog 1,059, engrave 8, MIDI 354, player-core 92,
+transcribe 42), six typechecks, and `git diff --check` passed under Node
+22.22.3/npm 10.9.8. No musical bytes, difficulty policy, alignment behavior,
+benchmark material, or worker behavior changed.
+
+Decision: `DISCOVERY_ASSISTED_PRIVATE_ALPHA_DEPLOYMENT_CANARY_VERIFIED`.
+Source intake remains `GENERATION_CANDIDATE_INTAKE_READY`; independent
+score/audio alignment remains `REAL_SYMBOLIC_ALIGNMENT_PARTIAL`; musical
+quality remains `MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`; human listening
+remains `NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT`; deployment is an authorized
+canary and not a claim of unrestricted public operation. The next task is
+`USER_MEDIATED_SOURCE_HANDOFF_LIVE_CANARY`.

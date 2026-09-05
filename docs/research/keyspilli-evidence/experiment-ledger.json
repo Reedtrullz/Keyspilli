@@ -2301,6 +2301,74 @@
         "No provider result page or third-party symbolic bytes were fetched.",
         "No provider tuning, Exa evaluation, alignment, musical change, deployment, or human listening occurred."
       ]
+    },
+    {
+      "id": "discovery-assisted-private-alpha-deployment-canary-2026-09-05",
+      "date": "2026-09-05",
+      "startingRevision": "f977fb23447df4f0dbd4f24584b1ae983299143d",
+      "checkpointRevision": "67827050a695e54609f6cf3f064e4fdaaabbb65b",
+      "purpose": "Owner-authorized live canary for server-side Brave metadata discovery behind the private single-user edge",
+      "release": {
+        "image": "ghcr.io/reedtrullz/keyspilli:67827050a695",
+        "imageDigest": "sha256:9520812e80f70d7ede4faa8ab0f34f9060371a80748e9a7957da9cecafedc094",
+        "imageId": "sha256:ad8ce11168713c1151d43cca965f15cc14e3147dc3cbe9a6ec79f039c3b9ab99",
+        "workerImage": "ghcr.io/reedtrullz/keyspilli-worker:17f997600b9f",
+        "node": "22.22.3",
+        "npm": "10.9.8"
+      },
+      "access": {
+        "edge": "CADDY_BASIC_AUTH",
+        "anonymousHealth": 401,
+        "authenticatedHealth": 200,
+        "sourceSearchRequiresAuth": true,
+        "singleUser": true,
+        "applicationAccounts": false
+      },
+      "provider": {
+        "name": "BRAVE_SEARCH_API",
+        "status": "LIVE_CANARY_VERIFIED",
+        "credentialStorage": "root-owned /etc/keyspilli/source-search.env mode 0600",
+        "serverOnly": true,
+        "metadataOnly": true,
+        "positiveProbe": {"status": 200, "candidateCount": 3},
+        "noResultProbe": {"status": 200, "candidateCount": 0},
+        "requestPacingFix": "1.1-second retry delay for the free-plan request window",
+        "emptyEnvelopeFix": "valid mixed-only 200 responses return an empty candidate set"
+      },
+      "canary": {
+        "restartHealth": "PASS",
+        "uploads": "PASS",
+        "player": "PASS",
+        "midiExport": "PASS",
+        "musicXmlExport": "PASS",
+        "pdfSimplifyExport": "PASS",
+        "pdfClassicExport": "PASS",
+        "composeRemote": "PASS_DOCKER_COMPOSE_5_1_3",
+        "composeLocal": "COMPOSE_LOCAL_SMOKE_NOT_EXECUTED",
+        "secretLogMatches": 0,
+        "clientSecretBundleMatches": 0
+      },
+      "verification": {
+        "providerFocusedTests": "9/9",
+        "workspaceTests": "1672/1672",
+        "workspaceBreakdown": {"web": 117, "catalog": 1059, "engrave": 8, "midi": 354, "playerCore": 92, "transcribe": 42},
+        "typechecks": "6/6",
+        "gitDiffCheck": "PASS",
+        "musicalBehaviorChanges": 0
+      },
+      "decisions": {
+        "deployment": "DISCOVERY_ASSISTED_PRIVATE_ALPHA_DEPLOYMENT_CANARY_VERIFIED",
+        "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+        "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "nextTask": "USER_MEDIATED_SOURCE_HANDOFF_LIVE_CANARY"
+      },
+      "nonClaims": [
+        "Discovery returns metadata only; it does not fetch candidate pages or symbolic bytes.",
+        "The canary does not establish independent score/audio alignment or musical quality.",
+        "No benchmark material, musical policy, or worker behavior changed; no deployment beyond this authorized canary occurred."
+      ]
     }
   ]
 }
