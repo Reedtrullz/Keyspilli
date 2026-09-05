@@ -1242,3 +1242,37 @@ other credentials, and the cached frozen weights remain hash-identical. No new
 inference, benchmark, alignment, downstream arrangement, deployment, VPS, or
 musical-policy work occurred. The single next task is
 `DISCOVERY_ASSISTED_PRIVATE_ALPHA_PRODUCT_HARDENING`.
+
+## 2026-09-05 — Discovery-assisted private-alpha product hardening
+
+The learner contract now consistently follows `EXTERNAL_SYMBOLIC_FIRST`.
+Homepage and navigation use one “Add a song” entry point, `/uploads` presents
+identity before optional discovery and user-supplied symbolic upload, and the
+old `/youtube` URL is a transition page. The public
+`POST /api/youtube/import` boundary returns HTTP 410 with
+`DIRECT_AUDIO_AMT_DISABLED` for every request shape and cannot insert a
+conversion job. Historical bearer-protected operator maintenance routes remain
+available but are not linked as a learner workflow.
+
+Discovery now distinguishes candidates found, no candidates, provider absent,
+rate limiting, and provider failure. Candidate cards retain rights and timing
+uncertainty; selecting a lead records metadata only, still requires explicit
+affirmation, and never fetches the candidate page or bytes. Direct MIDI,
+MusicXML, or MXL upload remains independent of the provider. Health reports
+non-secret capability flags without a Brave request, including
+`directAudioAmt: false`.
+
+A local production image from checkpoint `b280c81fec1603d3a53d3fa7f8283054765f3173`
+passed exact-version health, provider-disabled behavior, direct MusicXML ingest,
+six physical variants, five public levels, Easy and legacy Very Easy player
+routes, MIDI/MusicXML/PDF exports, malformed-input atomicity, cross-origin
+rejection, idempotent retry, and restart durability. The canary data and
+container were removed afterward. Local Docker Compose was not run because the
+plugin is unavailable. No provider policy, source ranking, musical output,
+alignment, AMT, live deployment, VPS state, or credentials changed.
+
+Decision: `DISCOVERY_ASSISTED_PRIVATE_ALPHA_PRODUCT_HARDENING_READY`. Live
+status remains `DISCOVERY_ASSISTED_PRIVATE_ALPHA_LIVE_VERIFIED`; this mission
+did not deploy. The only next task is
+`DISCOVERY_ASSISTED_PRIVATE_ALPHA_HARDENING_DEPLOYMENT_CANARY`, requiring
+explicit owner authorization.

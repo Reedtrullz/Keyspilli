@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "id": "discovery-assisted-private-alpha-product-hardening-2026-09-05",
+  "date": "2026-09-05",
+  "startingRevision": "ea2d94cf422e76b6209bd77db5ef657f6b6e6a9f",
+  "checkpoints": [
+    "d28570e610be9e559ba5ce35cf7bd7dcd87a8f26",
+    "b280c81fec1603d3a53d3fa7f8283054765f3173"
+  ],
+  "strategy": "EXTERNAL_SYMBOLIC_FIRST",
+  "productContract": {
+    "canonicalEntry": "/uploads",
+    "discovery": "optional metadata-only user-mediated leads",
+    "sourceBytes": "user-supplied MIDI, MusicXML, or MXL",
+    "publicDirectAudioAmt": "DISABLED",
+    "noSource": "NO_TRUSTWORTHY_SYMBOLIC_SOURCE_AVAILABLE",
+    "operatorMaintenance": "retained behind existing bearer authorization and not linked as learner workflow"
+  },
+  "searchStates": {
+    "candidatesFound": "candidates-found",
+    "noCandidates": "no-candidates",
+    "providerDisabled": "provider-not-configured",
+    "rateLimited": "SOURCE_SEARCH_RATE_LIMITED",
+    "providerUnavailable": "SOURCE_SEARCH_UNAVAILABLE"
+  },
+  "trustBoundary": {
+    "candidatePageFetches": 0,
+    "candidateByteFetches": 0,
+    "rightsPromotions": 0,
+    "timingPromotions": 0,
+    "uploadedBytesParserAuthoritative": true,
+    "userAffirmationRequiredForLinkedUpload": true
+  },
+  "localProductionImage": {
+    "checkpointRevision": "b280c81fec1603d3a53d3fa7f8283054765f3173",
+    "tag": "keyspilli:web-hardening-b280c81",
+    "imageId": "sha256:216e64564999b9799b541d76ee6bde7be3610ee1379656bffe07da73af30b46e",
+    "bytes": 465837766,
+    "dockerCompose": "COMPOSE_LOCAL_SMOKE_NOT_EXECUTED",
+    "providerConfigured": false,
+    "healthExactRevision": true,
+    "directAudioAmt": false,
+    "physicalVariants": 6,
+    "publicLevels": 5,
+    "canonicalLevel": "easy",
+    "legacyVeryEasyReachable": true,
+    "playerHttpStatus": 200,
+    "midiExportHttpStatus": 200,
+    "musicXmlExportHttpStatus": 200,
+    "pdfExportHttpStatus": 200,
+    "malformedUploadHttpStatus": 422,
+    "crossOriginUploadHttpStatus": 403,
+    "retryRowCount": 6,
+    "restartDurable": true,
+    "scratchRemoved": true
+  },
+  "scope": {
+    "providerPolicyChanged": false,
+    "sourceRankingChanged": false,
+    "musicalBehaviorChanged": false,
+    "alignmentChanged": false,
+    "amtResearch": false,
+    "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+    "deployment": "NO_DEPLOYMENT_NO_VPS_MUTATION"
+  },
+  "verification": {
+    "focusedContractTests": "30/30",
+    "workspaceTests": "1685/1685",
+    "workspaceTypechecks": "6/6",
+    "playwrightScratch": "4/4",
+    "webProductionBuild": "PASS",
+    "productionImageBuild": "PASS",
+    "containerCanary": "PASS",
+    "jsonValidation": "PASS",
+    "gitDiffCheck": "PASS",
+    "diskFreeGiBAtClose": 90
+  },
+  "decisions": {
+    "product": "DISCOVERY_ASSISTED_PRIVATE_ALPHA_PRODUCT_HARDENING_READY",
+    "live": "DISCOVERY_ASSISTED_PRIVATE_ALPHA_LIVE_VERIFIED",
+    "audioAmt": "AUDIO_AMT_BRANCH_CLOSED_FOR_CURRENT_PRODUCT_ARCHITECTURE",
+    "alignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+    "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+    "nextTask": "DISCOVERY_ASSISTED_PRIVATE_ALPHA_HARDENING_DEPLOYMENT_CANARY"
+  }
+}

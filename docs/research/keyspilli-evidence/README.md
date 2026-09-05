@@ -14,8 +14,8 @@ metrics are the default engineering evidence. Subjective recognizability or
 playability claims remain explicitly unassessed unless the user requests human
 evaluation; they are never inferred from automated scores.
 
-The accepted source order is `EXTERNAL_SYMBOLIC_FIRST`, with audio AMT as a
-fallback. `BENCHMARK_REFERENCE` material is evaluation-only and cannot enter
+The accepted product path is `EXTERNAL_SYMBOLIC_FIRST`; audio AMT remains
+unsupported as a source authority or automatic fallback. `BENCHMARK_REFERENCE` material is evaluation-only and cannot enter
 candidate discovery, generation, fusion, or arrangement. A candidate needs an
 independent `alignment.status = aligned` attestation before it can be treated as
 generation evidence. Strict reference scoring is null/fail-closed without at
@@ -91,8 +91,9 @@ hashes are summarized in the machine ledger.
 Direct dense-metal AMT is `AUDIO_AMT_BRANCH_CLOSED_FOR_CURRENT_PRODUCT_ARCHITECTURE`.
 It must not act as source authority or automatic fallback without one of the
 material reopening triggers frozen in the closeout report. The current product
-path is `EXTERNAL_SYMBOLIC_FIRST` and the next task is
-`DISCOVERY_ASSISTED_PRIVATE_ALPHA_PRODUCT_HARDENING`.
+path is `EXTERNAL_SYMBOLIC_FIRST`. Product hardening is complete locally; the
+next task is `DISCOVERY_ASSISTED_PRIVATE_ALPHA_HARDENING_DEPLOYMENT_CANARY`,
+which requires explicit owner authorization.
 
 ## Durable companion files
 
@@ -142,6 +143,9 @@ path is `EXTERNAL_SYMBOLIC_FIRST` and the next task is
 * `audio-amt-branch-closeout-2026-09-05.json` — chronological AMT inventory,
   separated failure modes, immutable closure decisions, and material reopening
   conditions.
+* `discovery-assisted-private-alpha-product-hardening-2026-09-05.json` —
+  learner-surface contract reconciliation, fail-closed public AMT retirement,
+  discovery/upload state matrix, and local production-container canary.
 
 ## Cold-transfer boundary
 

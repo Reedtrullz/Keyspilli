@@ -2816,6 +2816,59 @@
         "sha256": "4f9ba9ed01e8bc59d38430ed39f1f9d9c4be2c95eeec373a458c8066f43ffcf5"
       },
       "nextTask": "DISCOVERY_ASSISTED_PRIVATE_ALPHA_PRODUCT_HARDENING"
+    },
+    {
+      "id": "discovery-assisted-private-alpha-product-hardening-2026-09-05",
+      "date": "2026-09-05",
+      "startingRevision": "ea2d94cf422e76b6209bd77db5ef657f6b6e6a9f",
+      "checkpointRevisions": [
+        "d28570e610be9e559ba5ce35cf7bd7dcd87a8f26",
+        "b280c81fec1603d3a53d3fa7f8283054765f3173"
+      ],
+      "purpose": "Make the live discovery-assisted private alpha match the frozen external-symbolic-first product contract",
+      "contract": {
+        "canonicalEntry": "/uploads",
+        "publicYouTubeImport": "DIRECT_AUDIO_AMT_DISABLED",
+        "conversionJobMutations": 0,
+        "automaticAmtFallbacks": 0,
+        "candidatePageFetches": 0,
+        "candidateByteFetches": 0,
+        "directUploadWithoutProvider": true
+      },
+      "localProductionCanary": {
+        "imageId": "sha256:216e64564999b9799b541d76ee6bde7be3610ee1379656bffe07da73af30b46e",
+        "providerConfigured": false,
+        "healthExactRevision": true,
+        "directAudioAmt": false,
+        "physicalVariants": 6,
+        "publicLevels": 5,
+        "playerAndExports": "PASS",
+        "restartDurable": true,
+        "scratchRemoved": true
+      },
+      "scope": {
+        "providerPolicyChanged": false,
+        "sourceRankingChanged": false,
+        "musicalBehaviorChanged": false,
+        "alignmentChanged": false,
+        "amtResearch": false,
+        "deployment": "NO_DEPLOYMENT_NO_VPS_MUTATION",
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT"
+      },
+      "verification": {
+        "focusedContractTests": "30/30",
+        "workspaceTests": "1685/1685",
+        "workspaceTypechecks": "6/6",
+        "playwrightScratch": "4/4",
+        "webProductionBuild": "PASS",
+        "productionImageBuild": "PASS",
+        "containerCanary": "PASS",
+        "gitDiffCheck": "PASS",
+        "diskFreeGiBAtClose": 90
+      },
+      "decision": "DISCOVERY_ASSISTED_PRIVATE_ALPHA_PRODUCT_HARDENING_READY",
+      "report": "discovery-assisted-private-alpha-product-hardening-2026-09-05.json",
+      "nextTask": "DISCOVERY_ASSISTED_PRIVATE_ALPHA_HARDENING_DEPLOYMENT_CANARY"
     }
   ]
 }

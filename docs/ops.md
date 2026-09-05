@@ -373,13 +373,36 @@ when available. A missing or partial chart falls back to generated chords and
 is labelled in the player. Do not check in copied lyrics, raw tab text, or
 provider page bodies; retain only normalized chord events and provenance.
 
-## YouTube conversion notes
+## Canonical lesson-creation path
 
-- The learner-facing `/youtube` page enqueues through `POST /api/youtube/import`.
-  That endpoint deliberately accepts only `{ "url": "https://..." }`, checks
-  same-origin browser metadata, limits active work and repeat requests, and
-  rejects duplicate URLs. It exists so the no-login single-user page does not
-  need the server-only `KEYSPILLI_API_TOKEN` in browser JavaScript.
+The current learner product is `EXTERNAL_SYMBOLIC_FIRST`:
+
+1. Enter artist and title on `/uploads`.
+2. Optionally request metadata-only source leads from Brave Search.
+3. Open a candidate independently and, if useful, select it as a metadata lead.
+4. Affirm the song identity and authorization.
+5. Upload the authorized MIDI, MusicXML, or MXL bytes.
+6. Keyspilli validates those bytes and creates the lesson, player, and exports.
+
+Discovery never fetches a candidate page or symbolic file. It is optional, and
+direct symbolic upload remains available when Brave is absent or unavailable.
+If the bounded search has no eligible result, the product reports that no usable
+source lead was found; it does not start audio transcription.
+
+`POST /api/youtube/import` is a retired learner endpoint. It returns HTTP 410
+with `DIRECT_AUDIO_AMT_DISABLED` and never inserts a conversion job. `/youtube`
+is a compatibility page that sends old bookmarks to `/uploads`.
+
+`GET /api/health` reports the release identity, DB status, song count, and only
+these non-secret capabilities: symbolic upload availability, whether source
+discovery is configured, and `directAudioAmt: false`. It does not contact Brave.
+Check local disk separately with `df -h /System/Volumes/Data`; 30 GiB is the hard
+engineering floor and 34 GiB the preferred floor.
+
+## Legacy operator-only YouTube conversion notes
+
+- The former learner-facing `POST /api/youtube/import` endpoint is disabled as
+  described above. It must not be used to enqueue maintenance work.
 - `POST /api/youtube` remains the bearer-protected maintainer endpoint for
   metadata overrides and re-transcription. Never expose `KEYSPILLI_API_TOKEN`
   through `NEXT_PUBLIC_*` variables or embed it in the page bundle.
