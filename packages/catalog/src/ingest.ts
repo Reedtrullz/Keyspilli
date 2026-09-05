@@ -30,7 +30,7 @@ import {
   type TranscriptionProvenance,
 } from "./artifact-manifest.js";
 import { canonicalizeSourceProvenance } from "./provenance.js";
-import { AUDIO_ONSET_DETECTOR_CONFIG, ONSET_MATCH_SEC, TRANSCRIPTION_FILTER_VERSION } from "./transcribe.js";
+import { AUDIO_ONSET_DETECTOR_CONFIG, ONSET_MATCH_SEC, TRANSCRIPTION_FILTER_VERSION, TRANSCRIPTION_MAX_RECONSTRUCTED_DUR_BEATS } from "./transcribe.js";
 import { publishBaseArtifact } from "./publish.js";
 import { validateSourceCandidateHandoffLink, type SourceCandidateHandoffLink } from "./source-candidate-handoff.js";
 
@@ -48,7 +48,7 @@ const LEVEL_CODE: Record<string, string> = {
 // a 2–4 second falling bar and masks the next melody attack.  Keep the
 // transcription path conservative while leaving human-authored MIDI uploads
 // free to contain legitimate longer holds.
-export const MAX_YOUTUBE_IMPORT_DUR_BEATS = 1.5;
+export const MAX_YOUTUBE_IMPORT_DUR_BEATS = TRANSCRIPTION_MAX_RECONSTRUCTED_DUR_BEATS;
 
 // These identifiers are part of the rebuild identity. Bumping one when its
 // corresponding transformation changes makes an old fingerprint stale even

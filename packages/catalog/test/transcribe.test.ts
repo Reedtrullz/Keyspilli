@@ -39,10 +39,10 @@ describe("collapseUnsupportedSamePitchRetriggers", () => {
   const fragment = (start: number) => ({ midi: 64, start, dur: 0.2, vel: 80, hand: "R" as const });
 
   it("merges close continuation fragments without independent audio attacks", () => {
-    const notes = [fragment(0), fragment(0.25), fragment(0.5)];
+    const notes = [fragment(0), fragment(0.25), fragment(0.5), fragment(0.75), fragment(1)];
     const collapsed = collapseUnsupportedSamePitchRetriggers(notes, [0], 120);
 
-    expect(collapsed).toEqual([{ ...fragment(0), dur: 0.7 }]);
+    expect(collapsed).toEqual([{ ...fragment(0), dur: 1.2 }]);
   });
 
   it("preserves repeated attacks supported by independent audio onsets", () => {
@@ -50,6 +50,16 @@ describe("collapseUnsupportedSamePitchRetriggers", () => {
     const collapsed = collapseUnsupportedSamePitchRetriggers(notes, [0, 0.125, 0.25], 120);
 
     expect(collapsed).toEqual(notes);
+  });
+
+  it("bounds reconstructed sustains to the learner transcription ceiling", () => {
+    const notes = Array.from({ length: 9 }, (_, index) => fragment(index * 0.25));
+
+    const collapsed = collapseUnsupportedSamePitchRetriggers(notes, [0], 120);
+    expect(collapsed).toHaveLength(2);
+    expect(collapsed.map((note) => note.start)).toEqual([0, 1.5]);
+    expect(collapsed[0]!.dur).toBeCloseTo(1.45);
+    expect(collapsed[1]!.dur).toBeCloseTo(0.7);
   });
 
   it("is deterministic for reordered notes and does not merge different pitches", () => {

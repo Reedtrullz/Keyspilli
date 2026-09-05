@@ -29,6 +29,7 @@ export const ONSET_MATCH_SEC = Number(process.env.KEYSPILLI_ONSET_MATCH_SEC ?? 0
 const RETRIGGER_ONSET_SEC = 0.06;
 const RETRIGGER_ATTACK_GAP_BEATS = 0.75;
 const RETRIGGER_SOUNDING_GAP_BEATS = 0.125;
+export const TRANSCRIPTION_MAX_RECONSTRUCTED_DUR_BEATS = 1.5;
 
 /** Join Basic Pitch fragments only when audio does not support a new attack. */
 export function collapseUnsupportedSamePitchRetriggers(
@@ -50,16 +51,20 @@ export function collapseUnsupportedSamePitchRetriggers(
   for (const pitch of byPitch.values()) {
     let current = pitch[0];
     if (!current) continue;
+    let previousFragmentStart = current.start;
     for (const note of pitch.slice(1)) {
-      const attackGap = note.start - current.start;
+      const attackGap = note.start - previousFragmentStart;
       const soundingGap = note.start - (current.start + current.dur);
+      const mergedDuration = Math.max(current.start + current.dur, note.start + note.dur) - current.start;
       const independentAttack = audioOnsetsSec.some((onset) => Math.abs(onset - note.start * secPerBeat) <= RETRIGGER_ONSET_SEC);
-      if (attackGap <= RETRIGGER_ATTACK_GAP_BEATS && soundingGap <= RETRIGGER_SOUNDING_GAP_BEATS && !independentAttack) {
-        current.dur = Math.max(current.start + current.dur, note.start + note.dur) - current.start;
+      if (attackGap <= RETRIGGER_ATTACK_GAP_BEATS && soundingGap <= RETRIGGER_SOUNDING_GAP_BEATS && mergedDuration <= TRANSCRIPTION_MAX_RECONSTRUCTED_DUR_BEATS && !independentAttack) {
+        current.dur = mergedDuration;
         current.vel = Math.max(current.vel, note.vel);
+        previousFragmentStart = note.start;
       } else {
         merged.push(current);
         current = note;
+        previousFragmentStart = note.start;
       }
     }
     merged.push(current);

@@ -16,11 +16,11 @@ Evidence-gated repair of the live Advanced audit queue. Production was read-only
 
 | Fixture | Advanced before | Advanced after v2 | Decision |
 |---|---|---|---|
-| Dear God | 2,323 notes; retrigger 26.9%; median 0.400 s | 2,261 notes; retrigger 24.8%; median 0.400 s | clears retrigger gate; keep |
-| The Emptiness Machine | 1,107 notes; retrigger 34.6%; median 0.245 s | 962 notes; retrigger 23.3%; median 0.326 s | clears fragmentation gates; rebuild eligible |
-| The Last Stand | 1,420 notes; retrigger 36.4%; median 0.218 s | 1,276 notes; retrigger 27.3%; median 0.218 s | still fails; keep hidden |
+| Dear God | 2,323 notes; retrigger 26.9%; median 0.400 s | 2,264 notes; retrigger 24.8%; median 0.400 s | clears retrigger gate; keep |
+| The Emptiness Machine | 1,107 notes; retrigger 34.6%; median 0.245 s | 950 notes; retrigger 22.9%; median 0.326 s | clears fragmentation gates; rebuild eligible |
+| The Last Stand | 1,420 notes; retrigger 36.4%; median 0.218 s | 1,273 notes; retrigger 27.4%; median 0.218 s | still fails; keep hidden |
 
-The rebuild used the existing retained audio/transcription pairs and production onset detector in scratch storage. No production rows or artifacts changed.
+The rebuild used the existing retained audio/transcription pairs and production onset detector in scratch storage. Reconstructed sustains are capped at 1.5 beats so the repair cannot bypass learner-duration validation. No production rows or artifacts changed.
 
 ## Missing-source fail-closed set
 
