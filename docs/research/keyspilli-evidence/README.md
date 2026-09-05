@@ -133,6 +133,12 @@ experiment history needed to continue later.
 * `dense-metal-amt-eval-corpus-v1-manifest.json` — path-free hashes, objective
   complexity metrics, renderer contract, and EVAL_ONLY firewall for the three
   project-owned full-reference pieces.
+* `muscriptor-dense-metal-basic-pitch-baseline-2026-09-05.json` — frozen Basic
+  Pitch 0.4.0 primary-comparator outputs and metrics captured before MuScriptor
+  corpus inference.
+* `muscriptor-dense-metal-cold-evaluation-2026-09-05.json` — preregistered
+  MuScriptor synthetic full-reference and real kick-only results, raw hashes,
+  exact gate decision, and downstream skip.
 
 ## Cold-transfer boundary
 

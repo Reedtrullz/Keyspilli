@@ -2715,6 +2715,55 @@
         "sha256": "2b6fddbe44167289bc2035dcae3cfcbf791fc96006e48b4f62d294d0f84f1d13"
       },
       "nextTask": "MUSCRIPTOR_FROZEN_DENSE_METAL_COLD_EVALUATION"
+    },
+    {
+      "id": "muscriptor-frozen-dense-metal-cold-evaluation-2026-09-05",
+      "date": "2026-09-05",
+      "startingRevision": "913e6c94508c3b8c025bdde62d66d8e494707bed",
+      "purpose": "Cold-evaluate frozen MuScriptor medium against the frozen dense-metal corpus and primary comparator",
+      "corpus": {
+        "id": "dense-metal-amt-eval-corpus-v1",
+        "manifestCanonicalSha256": "5c51f0575f6ca2ca33c2f186704d82682e00c99ff333fe4b1b455a34a9c4c5b8",
+        "unchanged": true,
+        "firewall": "EVAL_ONLY_NO_TUNING"
+      },
+      "primaryComparator": {
+        "id": "basic-pitch",
+        "version": "0.4.0",
+        "macroExactF1": 0.490897
+      },
+      "muscriptor": {
+        "packageVersion": "0.3.0",
+        "repositoryRevision": "7f213afecf23bd6a1b8672aa223690ee9807cefb",
+        "modelRevision": "f32236969308476e01fd3aae67357de5feb05a2d",
+        "weightSha256": "ac80adbdf85d87231735fd948af7013441c0afced316c4e9067fd5d8a7fb97ec",
+        "macroExactF1": 0.820139,
+        "wins": 2,
+        "fixtureCount": 3,
+        "absoluteDelta": 0.329242,
+        "catastrophicRegressions": 1
+      },
+      "rawDecision": "MUSCRIPTOR_SYNTHETIC_DENSE_METAL_HEADROOM_NOT_PROVEN",
+      "realPartial": {
+        "reference": "REAL_METAL_KICK_ONSET_PARTIAL_REFERENCE",
+        "kickCount": 200,
+        "precision": 0.6820512820512821,
+        "recall": 0.665,
+        "f1": 0.6734177215189874,
+        "medianOnsetErrorSeconds": 0.034646,
+        "p95OnsetErrorSeconds": 0.04653,
+        "decision": "REAL_METAL_KICK_REFERENCE_SIGNAL_PRESENT"
+      },
+      "downstream": "NOT_RUN_RAW_GATE_FAILED",
+      "audioAmtConsequence": "AUDIO_AMT_FALLBACK_REMAINS_UNSUPPORTED",
+      "license": "MUSCRIPTOR_WEIGHTS_NONCOMMERCIAL_RESEARCH_ONLY",
+      "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+      "deployment": "NO_DEPLOYMENT_NO_VPS_MUTATION",
+      "report": {
+        "path": "muscriptor-dense-metal-cold-evaluation-2026-09-05.json",
+        "sha256": "67a69e113b664c033a8e2b9d264531f645f705db44a6c7678a4701c82ef940ba"
+      },
+      "nextTask": "AUDIO_AMT_BRANCH_CLOSEOUT"
     }
   ]
 }

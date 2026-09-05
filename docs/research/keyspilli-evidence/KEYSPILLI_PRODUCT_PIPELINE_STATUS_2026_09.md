@@ -1190,3 +1190,26 @@ quality remains `MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`; human listening
 remains `NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT`. No deployment, VPS, catalog,
 or live-product mutation occurred. The single next task is
 `MUSCRIPTOR_FROZEN_DENSE_METAL_COLD_EVALUATION`.
+
+## 2026-09-05 — Frozen MuScriptor dense-metal cold evaluation
+
+The first frozen MuScriptor-medium run on `dense-metal-amt-eval-corpus-v1`
+completed without retries or parameter changes. MuScriptor beat the frozen
+Basic Pitch comparator on two of three project-owned synthetic fixtures and
+improved macro exact-pitch/onset F1 from `0.490897` to `0.820139`. It did not
+pass the preregistered all-conditions gate: `METAL_C_LAYERED_MELODIC` regressed
+by `0.110241`, exceeding the frozen `0.10` catastrophic-regression limit.
+
+The raw decision is `MUSCRIPTOR_SYNTHETIC_DENSE_METAL_HEADROOM_NOT_PROVEN` and
+downstream arrangement evaluation is `NOT_RUN_RAW_GATE_FAILED`. The separate
+HiMMP kick-only partial reference produced precision `0.682051`, recall `0.665`,
+F1 `0.673418`, median onset error `0.034646` seconds, and p95 `0.04653` seconds,
+so `REAL_METAL_KICK_REFERENCE_SIGNAL_PRESENT` is established for kick onsets
+only. Real full pitched-metal headroom and musical quality remain not
+established. MuScriptor weights remain non-commercial research-only.
+
+The exact report is `muscriptor-dense-metal-cold-evaluation-2026-09-05.json`
+(SHA-256 `67a69e113b664c033a8e2b9d264531f645f705db44a6c7678a4701c82ef940ba`).
+No human listening, deployment, VPS mutation, catalog write, benchmark tuning,
+or commercial benchmark access occurred. The single next task is
+`AUDIO_AMT_BRANCH_CLOSEOUT`; no model shopping is authorized.
