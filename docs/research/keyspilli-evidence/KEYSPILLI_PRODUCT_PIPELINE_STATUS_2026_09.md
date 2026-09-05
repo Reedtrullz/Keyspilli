@@ -1435,3 +1435,23 @@ the existing preferred-disk warning (32.409 GiB, above the 30 GiB hard floor).
 
 Decision: `OWNER_PRIVATE_ALPHA_ACCESS_VALIDATED`. Next task:
 `OWNER_PRIVATE_ALPHA_USAGE_TRIAL`.
+
+## 2026-09-06 — Blocked Advanced source recovery remained gate-closed
+
+The source-recovery inventory reduced 12 blocked Advanced rows to four
+canonical source needs. No third-party page or unknown-rights source bytes were
+fetched, and no AMT, alignment, arrangement-policy, deployment, production, or
+human-listening work occurred. Metadata-only leads exist for Red Sun in the Sky
+and The Last Stand; Livgardet still has no trustworthy reusable source.
+
+One owner-authorized private Defence of Moscow audio/stem lineage was recovered
+and rebuilt once for all nine historical experiment IDs. The current six-level
+pipeline was deterministic for MIDI/MusicXML bytes and removed the original
+fragmentation blocker (9.6% contiguous retriggers; median duration 0.804 s), but
+the frozen audit still reported a 29.5-beat RH melody gap. Therefore no item was
+promoted and every blocked row remains hidden.
+
+Decision: `BLOCKED_ADVANCED_SOURCE_RECOVERY_NO_PROGRESS`. Musical quality is
+`MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`; human listening is
+`NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT`; deployment is unchanged. The one next
+task is `OWNER_MEDIATED_BLOCKED_SYMBOLIC_SOURCE_SUPPLY`.

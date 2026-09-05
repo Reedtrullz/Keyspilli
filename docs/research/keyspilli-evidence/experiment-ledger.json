@@ -3146,6 +3146,49 @@
         "sha256": "722ebfde62417d32b40adf6f7274004cb587ec9bfcf997f991f397ed785ec888"
       },
       "nextTask": "REACQUIRE_BLOCKED_SOURCE_MATERIAL"
+    },
+    {
+      "id": "blocked-advanced-source-recovery-2026-09-06",
+      "date": "2026-09-06",
+      "startingRevision": "a942240e4873cf4902a3f71d8e784740cc35475b",
+      "inventoryRevision": "99f4b8cbce15d7a00022becbf6c66b5088a146c8",
+      "inventory": {
+        "canonicalSourceNeeds": 4,
+        "blockedCases": 12,
+        "defenceExperimentAliases": 9
+      },
+      "recovery": {
+        "authorizedSourcesRecovered": 1,
+        "metadataOnlyCandidates": 2,
+        "noTrustworthySource": 1,
+        "promotedCases": 0,
+        "blockedCasesRemaining": 12,
+        "defenceRebuild": "PASS_SOURCE_BACKED_GATE_FAILED_RH_GAP"
+      },
+      "verification": {
+        "defenceCanonicalAuditSha256": "e7267e95359088c788e6d6b80f4d6db587eba4d1d4135caf7e1a49b8e55968e8",
+        "defenceArtifactDigestListSha256": "592abcd3fe1ef073116f06128f640f639b132e7fcae2b2f27c90980eaaa66918",
+        "determinism": "PASS_MIDI_MUSICXML_AND_CANONICAL_AUDIT",
+        "originalFragmentationGate": "CLEARED",
+        "promotionGate": "FAILED_RH_MELODY_GAP_29_5_BEATS"
+      },
+      "scope": {
+        "productionWrites": 0,
+        "deployments": 0,
+        "amtRuns": 0,
+        "alignmentRuns": 0,
+        "benchmarkTuning": false,
+        "unknownRightsByteDownloads": 0,
+        "advancedPolicyChanged": false,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT"
+      },
+      "decision": "BLOCKED_ADVANCED_SOURCE_RECOVERY_NO_PROGRESS",
+      "quality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+      "report": {
+        "path": "blocked-advanced-source-recovery-2026-09-06.json",
+        "sha256": "2b48b9732875d280cb0bb872779dfb3c74676d8c437f4a4e1c180d565ced3b57"
+      },
+      "nextTask": "OWNER_MEDIATED_BLOCKED_SYMBOLIC_SOURCE_SUPPLY"
     }
   ]
 }

@@ -33,6 +33,16 @@ or external service. Current decision:
 
 ## Chronological conclusions
 
+### Blocked Advanced source recovery
+
+The 12 blocked Advanced rows reduce to four canonical source needs. Metadata-only
+leads for Red Sun in the Sky and The Last Stand require owner-mediated authorized
+bytes; Livgardet has no trustworthy reusable source. One authorized private
+Defence of Moscow lineage covers nine historical experiment IDs and rebuilt
+deterministically, clearing its old fragmentation symptom but failing the frozen
+promotion gate on a 29.5-beat RH melody gap. No rows were promoted; decision:
+`BLOCKED_ADVANCED_SOURCE_RECOVERY_NO_PROGRESS`.
+
 ### Direct metal and semantic guitar work
 
 The direct metal path, source-aware lane locking, semantic guitar harmony, low
