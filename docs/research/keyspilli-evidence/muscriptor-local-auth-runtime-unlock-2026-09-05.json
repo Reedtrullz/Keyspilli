@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "kind": "muscriptor-local-auth-runtime-unlock",
+  "experimentId": "muscriptor-local-auth-runtime-unlock-2026-09-05",
+  "status": "blocked",
+  "startingRevision": "0be2a6eb56daa380d77e4da41930ed2be2f8e71e",
+  "frozenReference": {
+    "repositoryRevision": "7f213afecf23bd6a1b8672aa223690ee9807cefb",
+    "model": "MuScriptor/muscriptor-medium",
+    "modelRevision": "f32236969308476e01fd3aae67357de5feb05a2d",
+    "weightFilename": "model.safetensors",
+    "recordedWeightBytes": 1228144472,
+    "codeLicense": "MIT",
+    "weightLicense": "CC-BY-NC-4.0"
+  },
+  "access": {
+    "browserEntitlement": "GRANTED",
+    "browserEvidence": "official model page displayed You have been granted access to this model",
+    "authenticationMethod": "official hf auth login",
+    "authentication": "FAIL",
+    "cliResult": "installed huggingface_hub 1.9.2 requested a token and offered no browser/device flow",
+    "tokenValueRecorded": false,
+    "tokenValueEntered": false,
+    "credentialFileCreated": false,
+    "decision": "MUSCRIPTOR_HF_LOCAL_AUTHENTICATION_FAILED"
+  },
+  "researchCache": {
+    "locationClass": "external user-only research cache",
+    "directoryCreated": true,
+    "bytes": 0,
+    "weightsRetained": false,
+    "credentialRetained": false
+  },
+  "download": {
+    "status": "NOT_RUN_AUTH_FAILED",
+    "modelSha256": null,
+    "downloadedBytes": null,
+    "expectedWeightBytes": 1228144472
+  },
+  "runtime": {
+    "status": "NOT_RUN_AUTH_FAILED",
+    "python": null,
+    "torch": null,
+    "device": null,
+    "dtype": null,
+    "modelLoadSeconds": null,
+    "peakRssBytes": null
+  },
+  "sanityFixture": {
+    "status": "NOT_RUN_AUTH_FAILED",
+    "fixtureId": null,
+    "rightsBasis": null,
+    "inputOpened": false,
+    "outputSha256": null,
+    "determinism": null
+  },
+  "denseMetalInventory": {
+    "historicalBenchmarkRights": "MUSCRIPTOR_HISTORICAL_BENCHMARK_RIGHTS_BLOCKED",
+    "historicalFixturesOpened": false,
+    "rightsClearedDenseMetalCorpus": "MISSING",
+    "knownOpenPairs": [
+      {"fixtureId": "guitar-techs:p3-music-08", "license": "CC BY 4.0", "scope": "single guitar"},
+      {"fixtureId": "maestro:v3:2015-prelude-3", "license": "CC BY-NC-SA 4.0", "scope": "solo piano"}
+    ],
+    "substitutedForMetal": false
+  },
+  "decisions": {
+    "localAuthentication": "MUSCRIPTOR_HF_LOCAL_AUTHENTICATION_FAILED",
+    "runtime": "NOT_RUN_AUTH_FAILED",
+    "weights": "MUSCRIPTOR_FROZEN_WEIGHTS_NOT_ACQUIRED",
+    "sanity": "NOT_RUN_AUTH_FAILED",
+    "rawMetalHeadroom": "MUSCRIPTOR_RAW_METAL_HEADROOM_UNEVALUATED",
+    "downstream": "NOT_RUN_NO_VALID_DENSE_METAL_RAW_EVIDENCE",
+    "weightLicense": "MUSCRIPTOR_WEIGHTS_NONCOMMERCIAL_RESEARCH_ONLY",
+    "historicalBenchmarkRights": "MUSCRIPTOR_HISTORICAL_BENCHMARK_RIGHTS_BLOCKED",
+    "denseMetalCorpus": "RIGHTS_CLEARED_DENSE_METAL_AMT_CORPUS_MISSING",
+    "liveProduct": "UNCHANGED",
+    "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+    "deployment": "NO_DEPLOYMENT",
+    "nextTask": "MUSCRIPTOR_HF_LOCAL_AUTHENTICATION_FAILED"
+  },
+  "verification": {
+    "existingMuScriptorEvaluatorTests": "17/17",
+    "existingWorkspaceBaseline": "1672/1672",
+    "existingWorkspaceTypechecks": "6/6",
+    "jsonValid": true,
+    "gitDiffCheck": true,
+    "diskFreeGiB": 100,
+    "branchRemoteParityBeforeCheckpoint": true
+  },
+  "safety": {
+    "protectedAudioRead": false,
+    "protectedReferenceRead": false,
+    "weightsDownloaded": false,
+    "generatedMidi": false,
+    "productionPathChanged": false,
+    "vpsTouched": false,
+    "catalogWritten": false,
+    "benchmarkTuning": false,
+    "humanListening": false
+  },
+  "nonClaims": [
+    "Browser entitlement does not establish a usable local inference credential.",
+    "No MuScriptor model load, transcription, alignment, or metal score exists.",
+    "No historical benchmark or substitute audio was opened.",
+    "No production license is implied by account access or the CC-BY-NC-4.0 weight terms."
+  ]
+}

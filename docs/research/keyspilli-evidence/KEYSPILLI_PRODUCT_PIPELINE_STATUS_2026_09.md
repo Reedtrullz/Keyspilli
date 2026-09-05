@@ -1099,3 +1099,29 @@ authentication, `MUSCRIPTOR_HISTORICAL_BENCHMARK_RIGHTS_BLOCKED` for the frozen
 benchmark, `MUSCRIPTOR_REFERENCE_EXECUTION_BLOCKED` for raw headroom, and
 `AUDIO_AMT_FALLBACK_EVIDENCE_BLOCKED` for the existing AMT fallback. The single
 next task is `MUSCRIPTOR_HF_ACCESS_PENDING`.
+
+## 2026-09-05 — MuScriptor local authentication/runtime unlock
+
+The official `hf auth login` command was started with a dedicated external
+user-only cache. The installed `huggingface_hub` CLI (1.9.2) offered only a
+hidden token prompt, not the browser/device flow described in the continuation
+brief. It was cancelled without entering, creating, printing, or storing a
+credential.
+
+The browser entitlement remains granted, but local authentication is
+`MUSCRIPTOR_HF_LOCAL_AUTHENTICATION_FAILED`. No weights were downloaded, no
+runtime was installed or loaded, and no sanity audio or protected benchmark was
+opened. The historical benchmark remains
+`MUSCRIPTOR_HISTORICAL_BENCHMARK_RIGHTS_BLOCKED`. Existing rights-cleared
+metadata pairs (Guitar-TECHS single guitar and MAESTRO solo piano) are not a
+dense-metal substitute; no such corpus is present in the local/repository
+inventory.
+
+The exact resume report is
+`muscriptor-local-auth-runtime-unlock-2026-09-05.json` (SHA-256
+`874c42868a97cb8071651ed51ca9a9a68603d0b01abd8a9fd0cc923348f97b29`; see the
+evidence README). Decisions are `NOT_RUN_AUTH_FAILED` for runtime/sanity,
+`MUSCRIPTOR_FROZEN_WEIGHTS_NOT_ACQUIRED` for weights,
+`MUSCRIPTOR_RAW_METAL_HEADROOM_UNEVALUATED` for raw evidence, and
+`NOT_RUN_NO_VALID_DENSE_METAL_RAW_EVIDENCE` downstream. The single next task is
+`MUSCRIPTOR_HF_LOCAL_AUTHENTICATION_FAILED`.

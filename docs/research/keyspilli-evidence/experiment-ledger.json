@@ -2548,6 +2548,62 @@
         "No MuScriptor inference or protected benchmark evaluation was performed.",
         "No dense-metal rights-cleared substitute was found in the local/repository inventory."
       ]
+    },
+    {
+      "id": "muscriptor-local-auth-runtime-unlock-2026-09-05",
+      "date": "2026-09-05",
+      "startingRevision": "0be2a6eb56daa380d77e4da41930ed2be2f8e71e",
+      "checkpointRevision": "0be2a6eb56daa380d77e4da41930ed2be2f8e71e",
+      "purpose": "Establish local Hugging Face authentication and frozen MuScriptor runtime access",
+      "scope": {
+        "model": "MuScriptor medium",
+        "modelRevision": "f32236969308476e01fd3aae67357de5feb05a2d",
+        "repositoryRevision": "7f213afecf23bd6a1b8672aa223690ee9807cefb",
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NO_DEPLOYMENT"
+      },
+      "status": "blocked",
+      "access": {
+        "browserEntitlement": "GRANTED",
+        "cliAuthentication": "FAIL_NOT_LOGGED_IN",
+        "tokenValueRecorded": false,
+        "weightsDownloaded": false,
+        "decision": "MUSCRIPTOR_HF_LOCAL_AUTHENTICATION_FAILED"
+      },
+      "runtime": {
+        "download": "NOT_RUN_AUTH_FAILED",
+        "modelLoad": "NOT_RUN_AUTH_FAILED",
+        "sanity": "NOT_RUN_AUTH_FAILED"
+      },
+      "rights": {
+        "historicalBenchmark": "MUSCRIPTOR_HISTORICAL_BENCHMARK_RIGHTS_BLOCKED",
+        "denseMetalCorpus": "RIGHTS_CLEARED_DENSE_METAL_AMT_CORPUS_MISSING",
+        "openInventory": ["guitar-techs:p3-music-08: CC BY 4.0, single guitar", "maestro:v3:2015-prelude-3: CC BY-NC-SA 4.0, solo piano"]
+      },
+      "report": {
+        "path": "muscriptor-local-auth-runtime-unlock-2026-09-05.json",
+        "sha256": "874c42868a97cb8071651ed51ca9a9a68603d0b01abd8a9fd0cc923348f97b29"
+      },
+      "verification": {
+        "existingMuScriptorEvaluatorTests": "17/17",
+        "existingWorkspaceTests": "1672/1672",
+        "existingWorkspaceTypechecks": "6/6",
+        "diskFreeGiB": 100
+      },
+      "decisions": {
+        "localAuthentication": "MUSCRIPTOR_HF_LOCAL_AUTHENTICATION_FAILED",
+        "runtime": "NOT_RUN_AUTH_FAILED",
+        "weights": "MUSCRIPTOR_FROZEN_WEIGHTS_NOT_ACQUIRED",
+        "rawMetalHeadroom": "MUSCRIPTOR_RAW_METAL_HEADROOM_UNEVALUATED",
+        "downstream": "NOT_RUN_NO_VALID_DENSE_METAL_RAW_EVIDENCE",
+        "weightLicense": "MUSCRIPTOR_WEIGHTS_NONCOMMERCIAL_RESEARCH_ONLY",
+        "nextTask": "MUSCRIPTOR_HF_LOCAL_AUTHENTICATION_FAILED"
+      },
+      "nonClaims": [
+        "No model load or inference occurred.",
+        "No protected audio/reference was read and no production path changed.",
+        "Account entitlement does not establish production licensing."
+      ]
     }
   ]
 }

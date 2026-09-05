@@ -120,6 +120,9 @@ experiment history needed to continue later.
 * `muscriptor-hf-access-resume-2026-09-05.json` — browser entitlement was
   granted, but the local CLI remained unauthenticated; historical benchmark
   rights were not established and no protected bytes were opened.
+* `muscriptor-local-auth-runtime-unlock-2026-09-05.json` — the installed
+  official CLI offered token-only login, so no credential, weights, runtime,
+  or audio evaluation was started.
 
 ## Cold-transfer boundary
 
