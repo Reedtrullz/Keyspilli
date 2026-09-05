@@ -3025,7 +3025,7 @@
       "decision": "PRIVATE_ALPHA_OPERATIONS_MONITORING_DEPLOYED_VERIFIED",
       "report": {
         "path": "private-alpha-operations-monitoring-hardening-2026-09-05.json",
-        "sha256": "8ba6a209f63a611d02190c0e203d2041e57ba170b92ad9396fb9a9821296d5ac"
+        "sha256": "e7222b76a13959bf5d5494e5bc60c302bf20249bc999e65d0304c044abe6e77d"
       },
       "nextTask": "PRIVATE_ALPHA_OPERATIONAL_READINESS_CLOSEOUT"
     },

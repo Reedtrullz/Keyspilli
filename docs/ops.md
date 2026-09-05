@@ -341,6 +341,15 @@ Disk is healthy at 34 GiB or more, warning from 30–34 GiB, and failed below
 systemd unit failed and visible in the journal. The checker never prunes Docker
 or deletes user data.
 
+The checker is additive and carries no application state. To roll back only
+the monitoring installation, stop and disable
+`keyspilli-ops-check.timer` and `keyspilli-ops-check-deep.timer`, remove their
+two timer units, two one-shot service units, and
+`/usr/local/sbin/keyspilli-ops-check`, then run `systemctl daemon-reload`.
+This does not stop or recreate the web, worker, Caddy, backup timer, or data
+volume. Re-running the current deployment monitoring tasks restores the exact
+committed units and checker.
+
 ## Backups
 
 The deployment installs and enables `keyspilli-backup.timer`, scheduled around

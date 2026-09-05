@@ -49,6 +49,25 @@
       "notConfigured": 0
     }
   },
+  "visibilityInventory": {
+    "webHealth": "VISIBLE",
+    "workerHealth": "VISIBLE",
+    "containerRestarts": "VISIBLE",
+    "diskFree": "VISIBLE",
+    "dockerDiskUsage": "PARTIAL_MANUAL_DOCKER_SYSTEM_DF",
+    "sqliteIntegrity": "VISIBLE_DAILY_DEEP",
+    "backupService": "VISIBLE",
+    "backupTimer": "VISIBLE",
+    "backupAge": "VISIBLE",
+    "backupArchiveValidity": "VISIBLE_DAILY_DEEP",
+    "tlsExpiry": "VISIBLE",
+    "caddyConfigValidity": "VISIBLE",
+    "sourceDiscoveryConfigured": "VISIBLE",
+    "sourceProviderFailures": "VISIBLE_BOUNDED_JOURNAL_COUNTS",
+    "sourceProviderRateLimiting": "VISIBLE_BOUNDED_JOURNAL_COUNTS",
+    "uploadFailures": "PARTIAL_STRUCTURED_JOURNAL_EVENTS_NOT_AGGREGATED",
+    "handoffFailures": "PARTIAL_STRUCTURED_HTTP_AND_JOURNAL_EVENTS_NOT_AGGREGATED"
+  },
   "tests": {
     "healthyFixture": "PASS",
     "lowDiskFixture": "PASS_FAILED_CLOSED",
