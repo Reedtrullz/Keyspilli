@@ -1,0 +1,179 @@
+{
+  "schemaVersion": 1,
+  "kind": "muscriptor-dense-metal-cold-eval-preregistration",
+  "experimentId": "muscriptor-frozen-dense-metal-cold-evaluation-2026-09-05",
+  "status": "frozen-before-inference",
+  "git": {
+    "startingRevision": "913e6c94508c3b8c025bdde62d66d8e494707bed"
+  },
+  "corpus": {
+    "id": "dense-metal-amt-eval-corpus-v1",
+    "manifest": "dense-metal-amt-eval-corpus-v1-manifest.json",
+    "manifestCanonicalSha256": "5c51f0575f6ca2ca33c2f186704d82682e00c99ff333fe4b1b455a34a9c4c5b8",
+    "syntheticFixtures": [
+      "METAL_A_TIGHT_RIFF",
+      "METAL_B_DENSE_EXTREME",
+      "METAL_C_LAYERED_MELODIC"
+    ],
+    "realPartialFixture": "HIMMP_IN_SOLITUDE_KICK_252_282",
+    "firewall": "EVAL_ONLY_NO_TUNING"
+  },
+  "primaryComparator": {
+    "designation": "PRIMARY_EXISTING_AMT_BASELINE",
+    "backend": "basic-pitch",
+    "version": "0.4.0",
+    "modelSerialization": "onnx",
+    "configuration": {
+      "onsetThreshold": 0.45,
+      "frameThreshold": 0.3,
+      "postProcessing": "none",
+      "input": "full-mix",
+      "tempoBpm": 120
+    },
+    "historicalEvidence": {
+      "report": "cold-transfer-2026-09-02-rerun-metrics.json",
+      "metric": "exact-pitch-onset-f1",
+      "basicPitchMacroF1": 0.092245267,
+      "gapsMacroF1": 0.05118403533333333,
+      "basicPitchWins": 2,
+      "fixtureCount": 3,
+      "selectionRule": "highest comparable historical cold-transfer macro exact-pitch-onset F1"
+    }
+  },
+  "secondaryComparator": null,
+  "muscriptor": {
+    "repositoryRevision": "7f213afecf23bd6a1b8672aa223690ee9807cefb",
+    "packageVersion": "0.3.0",
+    "model": "MuScriptor/muscriptor-medium",
+    "modelRevision": "f32236969308476e01fd3aae67357de5feb05a2d",
+    "weightBytes": 1228144472,
+    "weightSha256": "ac80adbdf85d87231735fd948af7013441c0afced316c4e9067fd5d8a7fb97ec",
+    "inference": {
+      "decode": "greedy",
+      "sampling": false,
+      "cfgCoefficient": 1,
+      "beamSize": 1,
+      "chunkSeconds": 5,
+      "batchSize": 1,
+      "preludeForcing": true,
+      "instrumentConditioning": null,
+      "tempoDetection": "best-effort",
+      "device": "auto",
+      "dtype": "upstream"
+    }
+  },
+  "metrics": {
+    "timebase": "absolute-seconds",
+    "matching": "deterministic-maximum-cardinality-one-to-one",
+    "pitched": {
+      "primary": "EXACT_PITCH_ONSET_F1_PITCHED",
+      "onsetToleranceSeconds": 0.08,
+      "pitchToleranceSemitones": 0,
+      "offsetTreatment": "ignored-for-primary",
+      "aggregate": "macro-mean-across-three-synthetic-fixtures"
+    },
+    "secondary": [
+      "pitch-class-onset-precision-recall-f1",
+      "onset-only-recall",
+      "prediction-reference-density-ratio",
+      "median-ioi-seconds",
+      "maximum-simultaneity"
+    ],
+    "percussion": {
+      "onsetToleranceSeconds": 0.05,
+      "pitchClasses": {
+        "kick": [35, 36],
+        "snare": [38, 40]
+      },
+      "metrics": [
+        "kick-onset-precision-recall-f1",
+        "snare-onset-precision-recall-f1",
+        "all-percussion-onset-precision-recall-f1"
+      ]
+    }
+  },
+  "familyMapping": {
+    "reference": {
+      "rhythm-guitar": "GUITAR",
+      "lead": "GUITAR",
+      "bass": "BASS",
+      "harmony": "OTHER_PITCHED",
+      "drums": "PERCUSSION"
+    },
+    "prediction": {
+      "channel10": "PERCUSSION",
+      "gmPrograms24Through31": "GUITAR",
+      "gmPrograms32Through39": "BASS",
+      "remainingPitchedPrograms": "OTHER_PITCHED",
+      "unclassifiable": "UNKNOWN"
+    },
+    "guitarSubrolesPooled": true,
+    "postResultRemapping": false
+  },
+  "headroomGate": {
+    "winsRequired": 2,
+    "fixtureCount": 3,
+    "minimumMacroF1AbsoluteImprovement": 0.05,
+    "catastrophicFixtureRegressionAbsolute": 0.1,
+    "passRequires": [
+      "MuScriptor exact-pitch-onset F1 exceeds the primary comparator on at least two synthetic fixtures",
+      "MuScriptor macro exact-pitch-onset F1 improvement is at least 0.05 absolute",
+      "MuScriptor has no catastrophic fixture regression or execution failure"
+    ]
+  },
+  "failureRules": {
+    "severeUndertranscriptionDensityRatioBelow": 0.2,
+    "severeOvertranscriptionDensityRatioAbove": 5,
+    "roleExplosionTrackCountAbove": 128,
+    "perFixtureRuntimeHardStopSeconds": 1800,
+    "diskHardStopGiB": 30,
+    "executionFailures": [
+      "INVALID_MIDI",
+      "EMPTY_OUTPUT",
+      "EVENT_EXPLOSION",
+      "NON_MONOTONIC_TIMING",
+      "UNBOUNDED_RESOURCE_FAILURE"
+    ]
+  },
+  "realPartialGate": {
+    "label": "REAL_METAL_KICK_ONSET_PARTIAL_REFERENCE",
+    "referenceKickCount": 200,
+    "present": {
+      "minimumF1": 0.6,
+      "minimumRecall": 0.6
+    },
+    "weak": {
+      "minimumF1": 0.25
+    },
+    "claimBoundary": "kick onset only; never full pitched metal transcription"
+  },
+  "downstream": {
+    "trigger": "MUSCRIPTOR_SYNTHETIC_DENSE_METAL_HEADROOM_PROVEN",
+    "otherwise": "NOT_RUN_RAW_GATE_FAILED",
+    "inputs": "three synthetic MuScriptor outputs only",
+    "target": "current canonical Easy arrangement",
+    "musicalChangeBudget": 0,
+    "retentionGate": {
+      "minimumMedianRetentionRatio": 0.7,
+      "minimumFixtureRetentionRatio": 0.5,
+      "requireObjectivePlayabilityValidation": true,
+      "requireLineageCompleteness": true
+    }
+  },
+  "claimBoundaries": {
+    "syntheticHeadroomMayBeEstablished": true,
+    "realKickPartialSignalMayBeEstablished": true,
+    "realFullPitchedMetalHeadroomMayBeEstablished": false,
+    "musicalQualityMayBeEstablished": false,
+    "productionIntegrationAuthorized": false
+  },
+  "safety": {
+    "corpusImmutable": true,
+    "modelImmutable": true,
+    "oneRunPerFrozenCase": true,
+    "humanListening": false,
+    "deployment": false,
+    "vpsMutation": false,
+    "commercialBenchmarksOpened": false
+  }
+}
