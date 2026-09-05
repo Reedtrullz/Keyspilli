@@ -25,9 +25,10 @@ export async function GET(req: NextRequest) {
     const { songs, total } = listSongsGroupedWithTotal(f);
     const groups = includesLegacyVeryEasy(sp) ? songs : projectPublicGroupedSongs(songs);
     return NextResponse.json({
-      songs: groups.map(({ representative, levels, totalPlays }) => ({
+      songs: groups.map(({ representative, levels, totalPlays, lastCreatedAt }) => ({
         representative: {
           id: representative.id,
+          baseId: representative.baseId,
           title: representative.title,
           artist: representative.artist,
           key: representative.key,
@@ -35,6 +36,7 @@ export async function GET(req: NextRequest) {
         },
         levels: levels.map(({ id, difficulty }) => ({ id, difficulty })),
         totalPlays,
+        lastCreatedAt,
       })),
       total: groups.length === songs.length ? total : groups.length,
     });

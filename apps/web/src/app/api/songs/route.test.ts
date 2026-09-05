@@ -123,9 +123,17 @@ describe("grouped songs route", () => {
     await expect(response.json()).resolves.toEqual({
       songs: [
         {
-          representative: { id: "song-e", title: "Test Song", artist: "Test Artist", key: "C", tempo: 120 },
+          representative: {
+            id: "song-e",
+            baseId: "song",
+            title: "Test Song",
+            artist: "Test Artist",
+            key: "C",
+            tempo: 120,
+          },
           levels: [{ id: "song-b", difficulty: "beginner" }],
           totalPlays: 4,
+          lastCreatedAt: "2026-08-25T00:00:00.000Z",
         },
       ],
       total: 1,
@@ -159,7 +167,14 @@ describe("grouped songs route", () => {
 
     await expect(response.json()).resolves.toEqual({
       songs: [{
-        representative: { id: "song-e", title: "Test Song", artist: "Test Artist", key: "C", tempo: 120 },
+        representative: {
+          id: "song-e",
+          baseId: "song",
+          title: "Test Song",
+          artist: "Test Artist",
+          key: "C",
+          tempo: 120,
+        },
         levels: [
           { id: "song-vb", difficulty: "very-beginner" },
           { id: "song-b", difficulty: "beginner" },
@@ -168,6 +183,7 @@ describe("grouped songs route", () => {
           { id: "song-a", difficulty: "advanced" },
         ],
         totalPlays: 5,
+        lastCreatedAt: "2026-08-25T00:00:00.000Z",
       }],
       total: 1,
     });
@@ -193,7 +209,14 @@ describe("grouped songs route", () => {
 
     await expect(response.json()).resolves.toEqual({
       songs: [{
-        representative: { id: "song-ve", title: "Test Song", artist: "Test Artist", key: "C", tempo: 120 },
+        representative: {
+          id: "song-ve",
+          baseId: "song",
+          title: "Test Song",
+          artist: "Test Artist",
+          key: "C",
+          tempo: 120,
+        },
         levels: [
           { id: "song-vb", difficulty: "very-beginner" },
           { id: "song-b", difficulty: "beginner" },
@@ -203,6 +226,7 @@ describe("grouped songs route", () => {
           { id: "song-a", difficulty: "advanced" },
         ],
         totalPlays: 6,
+        lastCreatedAt: "2026-08-25T00:00:00.000Z",
       }],
       total: 1,
     });
