@@ -31,9 +31,16 @@ function field(body: Record<string, unknown>, key: string, max = 160): string {
 }
 
 export async function POST(req: NextRequest) {
+  const startedAt = Date.now();
   const authResponse = checkMutationAuth(req);
   if (authResponse) return authResponse;
-  if (!hasSourceCandidateProvider()) return NextResponse.json({ error: "source candidate provider is not configured" }, { status: 503 });
+  if (!hasSourceCandidateProvider()) {
+    console.info("[source-handoff]", { event: "provider-not-configured", elapsedMs: Date.now() - startedAt });
+    return NextResponse.json(
+      { error: "source candidate provider is not configured", code: "SOURCE_SEARCH_NOT_CONFIGURED" },
+      { status: 503 },
+    );
+  }
   const body = await jsonBody(req);
   if (!body) return NextResponse.json({ error: "invalid handoff request" }, { status: 400 });
   const target = { id: field(body, "targetId", 120), artist: field(body, "targetArtist"), title: field(body, "targetTitle") };
@@ -45,9 +52,16 @@ export async function POST(req: NextRequest) {
   try {
     candidate = (await discoverSourceCandidates(target)).find((item) => item.candidateId === candidateId);
   } catch {
-    return NextResponse.json({ error: "source candidate provider failed" }, { status: 503 });
+    console.info("[source-handoff]", { event: "provider-unavailable", elapsedMs: Date.now() - startedAt });
+    return NextResponse.json({ error: "source candidate provider failed", code: "SOURCE_SEARCH_UNAVAILABLE" }, { status: 503 });
   }
-  if (!candidate) return NextResponse.json({ error: "candidate is not available for this target" }, { status: 404 });
+  if (!candidate) {
+    console.info("[source-handoff]", { event: "candidate-unavailable", elapsedMs: Date.now() - startedAt });
+    return NextResponse.json(
+      { error: "candidate is not available for this target", code: "SOURCE_CANDIDATE_UNAVAILABLE" },
+      { status: 404 },
+    );
+  }
   try {
     const handoff = createSourceCandidateHandoff(candidate, {
       targetSongId: target.id,
@@ -55,8 +69,10 @@ export async function POST(req: NextRequest) {
       targetTitle: target.title,
     });
     saveSourceCandidateHandoff(handoff);
+    console.info("[source-handoff]", { event: "created", elapsedMs: Date.now() - startedAt });
     return NextResponse.json({ handoff: handoffClientView(handoff) }, { status: 201 });
   } catch (error) {
+    console.info("[source-handoff]", { event: "rejected", elapsedMs: Date.now() - startedAt });
     return NextResponse.json({ error: error instanceof Error ? error.message : "candidate handoff rejected" }, { status: 422 });
   }
 }

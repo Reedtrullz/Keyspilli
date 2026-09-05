@@ -87,6 +87,7 @@ describe("source handoff routes", () => {
 
     const missingConfirmation = await confirm(request({ userAffirmedTarget: false }, `https://keys.reidar.tech/api/source-handoffs/${id}/confirm`), { params: Promise.resolve({ id }) });
     expect(missingConfirmation.status).toBe(400);
+    await expect(missingConfirmation.json()).resolves.toMatchObject({ code: "SOURCE_HANDOFF_AFFIRMATION_REQUIRED" });
     const confirmed = await confirm(request({ userAffirmedTarget: true }, `https://keys.reidar.tech/api/source-handoffs/${id}/confirm`), { params: Promise.resolve({ id }) });
     expect(confirmed.status).toBe(200);
     await expect(confirmed.json()).resolves.toMatchObject({ handoff: { handoffId: id, userAffirmedTarget: true, state: "AWAITING_USER_FILE" } });
@@ -101,6 +102,21 @@ describe("source handoff routes", () => {
     expect(response.status).toBe(401);
   });
 
+  it("reports provider configuration failure separately", async () => {
+    setSourceCandidateProviderForTests(null);
+    const response = await POST(request({
+      targetId: "target-route-song",
+      targetArtist: "Route Band",
+      targetTitle: "Route Song",
+      candidateId: "lead-route",
+    }));
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toEqual({
+      error: "source candidate provider is not configured",
+      code: "SOURCE_SEARCH_NOT_CONFIGURED",
+    });
+  });
+
   it("fails closed when the provider throws", async () => {
     setSourceCandidateProviderForTests(() => { throw new Error("provider unavailable"); });
     const response = await POST(request({
@@ -110,6 +126,30 @@ describe("source handoff routes", () => {
       candidateId: "lead-route",
     }));
     expect(response.status).toBe(503);
-    await expect(response.json()).resolves.toEqual({ error: "source candidate provider failed" });
+    await expect(response.json()).resolves.toEqual({ error: "source candidate provider failed", code: "SOURCE_SEARCH_UNAVAILABLE" });
+  });
+
+  it("distinguishes an unavailable candidate from provider failure", async () => {
+    setSourceCandidateProviderForTests(() => []);
+    const response = await POST(request({
+      targetId: "target-route-song",
+      targetArtist: "Route Band",
+      targetTitle: "Route Song",
+      candidateId: "lead-route",
+    }));
+    expect(response.status).toBe(404);
+    await expect(response.json()).resolves.toEqual({
+      error: "candidate is not available for this target",
+      code: "SOURCE_CANDIDATE_UNAVAILABLE",
+    });
+  });
+
+  it("reports a missing or expired handoff with a stable code", async () => {
+    const response = await confirm(request({ userAffirmedTarget: true }, "https://keys.reidar.tech/api/source-handoffs/missing/confirm"), { params: Promise.resolve({ id: "missing" }) });
+    expect(response.status).toBe(404);
+    await expect(response.json()).resolves.toEqual({
+      error: "source candidate handoff not found or expired",
+      code: "SOURCE_HANDOFF_EXPIRED",
+    });
   });
 });
