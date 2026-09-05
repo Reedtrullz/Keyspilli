@@ -56,6 +56,7 @@
     "benchmark:harmony": "tsx scripts/benchmark-harmony.ts",
     "report:melody-review": "tsx scripts/report-melody-review.ts",
     "build:midi-corpus": "tsx scripts/build-midi-corpus.ts",
+    "build:dense-metal-eval-corpus": "tsx scripts/build-dense-metal-eval-corpus.ts",
     "build:shadow-corpus": "tsx scripts/build-shadow-corpus.ts",
     "calibrate:shadow-alignment": "tsx scripts/calibrate-shadow-alignment.ts",
     "evaluate:shadow-corpus": "tsx scripts/evaluate-shadow-corpus.ts",

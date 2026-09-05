@@ -333,6 +333,22 @@ describe("writeMidi roundtrip", () => {
     const bytes = writeMidi([{ midi: 60, start: 0, dur: 1, vel: 0 }], { tempoBpm: 120 });
     expect(parseMidi(bytes).notes).toHaveLength(0);
   });
+
+  it("writes explicit instrument programs and channel-10 percussion tracks", () => {
+    const guitar: Note[] = [{ midi: 52, start: 0, dur: 0.5, vel: 100 }];
+    const drums: Note[] = [{ midi: 36, start: 0, dur: 0.125, vel: 110 }];
+    const bytes = writeMidi([...guitar, ...drums], {
+      tempoBpm: 160,
+      tracks: [
+        { name: "Rhythm Guitar", notes: guitar, channel: 1, program: 30 },
+        { name: "Drums", notes: drums, percussion: true },
+      ],
+    });
+    const parsed = parseMidi(bytes);
+    expect(parsed.notes.map((note) => note.midi)).toEqual([52]);
+    expect(parsed.trackNames).toEqual(["Rhythm Guitar", "Drums"]);
+    expect([...bytes]).toEqual(expect.arrayContaining([0xc1, 30, 0x99, 36, 110]));
+  });
 });
 
 describe("quantize", () => {
