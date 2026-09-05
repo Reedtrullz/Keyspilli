@@ -2433,6 +2433,65 @@
         "No independent score/audio alignment or musical-quality claim is made.",
         "No musical behavior, difficulty policy, source-generation policy, or worker behavior changed."
       ]
+    },
+    {
+      "id": "muscriptor-cold-metal-reference-evaluation-2026-09-05",
+      "date": "2026-09-05",
+      "startingRevision": "0a6d7fa907bfdc80e5e189b4c8efd56019032311",
+      "checkpointRevision": "0a6d7fa907bfdc80e5e189b4c8efd56019032311",
+      "purpose": "Bounded frozen MuScriptor medium reference evaluation against existing cold dense-metal evidence",
+      "scope": {
+        "model": "MuScriptor medium",
+        "repositoryRevision": "7f213afecf23bd6a1b8672aa223690ee9807cefb",
+        "modelRevision": "f32236969308476e01fd3aae67357de5feb05a2d",
+        "packageVersion": "0.3.0",
+        "codeLicense": "MIT",
+        "weightLicense": "CC-BY-NC-4.0",
+        "inferenceConfigFrozen": true,
+        "modelShopping": false,
+        "benchmarkTuning": false,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NO_DEPLOYMENT"
+      },
+      "status": "unavailable",
+      "blocker": "MUSCRIPTOR_HF_ACCESS_REQUIRED",
+      "access": {
+        "modelGated": true,
+        "authorizedCredentialAvailable": false,
+        "modelDownloaded": false,
+        "protectedReferencesRead": false
+      },
+      "results": {
+        "sanityFixture": "not_run_access_blocked",
+        "rawDenseMetal": "not_run_access_blocked",
+        "downstream": "NOT_RUN_RAW_GATE_FAILED",
+        "rawHeadroomDecision": "MUSCRIPTOR_REFERENCE_EXECUTION_BLOCKED",
+        "weightProductionDecision": "MUSCRIPTOR_WEIGHTS_NONCOMMERCIAL_RESEARCH_ONLY",
+        "audioAmtFallbackDecision": "AUDIO_AMT_FALLBACK_EVIDENCE_BLOCKED"
+      },
+      "report": {
+        "path": "muscriptor-cold-metal-reference-evaluation-2026-09-05.json",
+        "sha256": "c864d3a84dc5ad841f822f2e1f6791ec1c0f7e90cc030caf61cf8271fc4f7478"
+      },
+      "verification": {
+        "focusedEvaluatorTests": "17/17",
+        "catalogTypecheck": true,
+        "gitDiffCheck": true,
+        "workspaceTests": "1672/1672",
+        "workspaceTypechecks": "6/6",
+        "diskFreeGiB": 107
+      },
+      "decisions": {
+        "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+        "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+        "nextTask": "MUSCRIPTOR_HF_ACCESS_REQUIRED"
+      },
+      "nonClaims": [
+        "No MuScriptor inference, cold-metal metric, or downstream retention result exists.",
+        "No protected audio/reference was read, no weight was downloaded, and no production path changed.",
+        "The frozen model weight license remains non-commercial research/evaluation only."
+      ]
     }
   ]
 }

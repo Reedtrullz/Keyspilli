@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "kind": "muscriptor-cold-metal-reference-evaluation",
+  "experimentId": "muscriptor-cold-metal-reference-evaluation-2026-09-05",
+  "status": "blocked",
+  "startingRevision": "0a6d7fa907bfdc80e5e189b4c8efd56019032311",
+  "checkpointRevision": "0a6d7fa907bfdc80e5e189b4c8efd56019032311",
+  "upstream": {
+    "repository": "https://github.com/muscriptor/muscriptor",
+    "repositoryRevision": "7f213afecf23bd6a1b8672aa223690ee9807cefb",
+    "repositoryRevisionDate": "2026-09-04T09:17:44Z",
+    "package": "muscriptor",
+    "packageVersion": "0.3.0",
+    "model": "muscriptor-medium",
+    "modelRepository": "https://huggingface.co/MuScriptor/muscriptor-medium",
+    "modelRevision": "f32236969308476e01fd3aae67357de5feb05a2d",
+    "modelRevisionDate": "2026-07-10T11:01:20Z",
+    "weightFilename": "model.safetensors",
+    "weightBytes": 1228144472,
+    "weightSha256": null,
+    "weightSha256Status": "unavailable_without_authorized_gated_download",
+    "codeLicense": "MIT",
+    "weightLicense": "CC-BY-NC-4.0",
+    "licenseEvidence": "official model card requires accepting the CC BY-NC 4.0 terms and sharing contact information before file access"
+  },
+  "inference": {
+    "frozen": true,
+    "model": "medium",
+    "device": "auto (local accelerator resolves to Apple MPS when available)",
+    "dtype": "upstream default (float16 on MPS, float32 otherwise)",
+    "decode": "greedy",
+    "sampling": false,
+    "cfgCoef": 1,
+    "tempoDetection": "best-effort",
+    "instrumentConditioning": null,
+    "chunkSeconds": 5,
+    "batchSize": 1,
+    "preludeForcing": true,
+    "beamSize": 1,
+    "songSpecificOverrides": false
+  },
+  "preflight": {
+    "remoteRevision": "0a6d7fa907bfdc80e5e189b4c8efd56019032311",
+    "remoteParity": true,
+    "diskFreeGiB": 107,
+    "diskFloorGiB": 30,
+    "preferredDiskFreeGiB": 34,
+    "vpsMutation": false,
+    "productionCatalogWrites": false
+  },
+  "access": {
+    "huggingFaceModelGated": true,
+    "huggingFaceAuth": "not_logged_in",
+    "authorizedCredentialAvailable": false,
+    "modelCachePresent": false,
+    "decision": "MUSCRIPTOR_HF_ACCESS_REQUIRED"
+  },
+  "resources": {
+    "platform": "macOS Apple M1 Pro",
+    "memoryGiB": 16,
+    "mpsAvailable": true,
+    "modelFootprintBytes": 1228144472,
+    "dependencyInstall": "not_started",
+    "modelDownload": "not_started",
+    "peakMemoryBytes": null,
+    "runtimePerSongSeconds": null
+  },
+  "sanityFixture": {
+    "status": "not_run_access_blocked",
+    "input": null,
+    "outputSha256": null,
+    "midiParsed": null,
+    "noteCount": null,
+    "determinism": "not_run"
+  },
+  "denseMetalEvaluation": {
+    "status": "not_run_access_blocked",
+    "fixtures": ["the-final-solution", "gott-mit-uns", "red-baron"],
+    "fixtureClass": "BENCHMARK_REFERENCE / EVAL_ONLY",
+    "referencesRead": false,
+    "inferenceInvoked": false,
+    "benchmarkTuning": false,
+    "rawMetrics": null,
+    "historicalComparableBaseline": {
+      "report": "cold-transfer-2026-09-02-rerun-metrics.json",
+      "recordedReportSha256": "7eceadb7bc0b560fd97c01135bc0d212c6192e04967116a492d85e9d050f9fa8",
+      "sha256Basis": "hash recorded inside the historical report; not recomputed in this mission",
+      "use": "metadata pointer only; no protected reference was opened in this mission"
+    }
+  },
+  "downstream": {
+    "status": "NOT_RUN_RAW_GATE_FAILED",
+    "arrangerInvoked": false,
+    "difficultyInvoked": false,
+    "artifactWritten": false,
+    "catalogWritten": false
+  },
+  "decisions": {
+    "rawMetalHeadroom": "MUSCRIPTOR_REFERENCE_EXECUTION_BLOCKED",
+    "blocker": "MUSCRIPTOR_HF_ACCESS_REQUIRED",
+    "downstream": "NOT_RUN_RAW_GATE_FAILED",
+    "weightProductionLicense": "MUSCRIPTOR_WEIGHTS_NONCOMMERCIAL_RESEARCH_ONLY",
+    "audioAmtFallback": "AUDIO_AMT_FALLBACK_EVIDENCE_BLOCKED",
+    "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+    "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+    "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+    "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+    "deployment": "NO_DEPLOYMENT",
+    "nextTask": "MUSCRIPTOR_HF_ACCESS_REQUIRED"
+  },
+  "safety": {
+    "protectedAudioRead": false,
+    "protectedReferenceRead": false,
+    "protectedOutputWritten": false,
+    "weightsRetained": false,
+    "productionDependencyChanged": false,
+    "productionWorkerChanged": false,
+    "vpsTouched": false,
+    "benchmarkTuning": false,
+    "humanListening": false
+  },
+  "verification": {
+    "focusedEvaluatorTests": "17/17",
+    "catalogTypecheck": true,
+    "gitDiffCheck": true,
+    "workspaceSuite": "1672/1672",
+    "workspaceBreakdown": {
+      "web": "117/117",
+      "catalog": "1059/1059",
+      "engrave": "8/8",
+      "midi": "354/354",
+      "playerCore": "92/92",
+      "transcribe": "42/42"
+    },
+    "workspaceTypechecks": "6/6",
+    "reportPathFree": true
+  },
+  "nonClaims": [
+    "No MuScriptor inference or cold-metal score was obtained.",
+    "No technical headroom, downstream retention, alignment, or musical-quality conclusion is claimed.",
+    "The CC-BY-NC weights are research/evaluation-only under the frozen official evidence; no production use is authorized.",
+    "The live Keyspilli product and discovery-assisted private-alpha lane were not changed."
+  ]
+}

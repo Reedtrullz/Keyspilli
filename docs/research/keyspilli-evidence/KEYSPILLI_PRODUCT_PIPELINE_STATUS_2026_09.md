@@ -1038,3 +1038,40 @@ alignment, or musical quality; no musical behavior or generation policy
 changed. The next task remains
 `USER_MEDIATED_SOURCE_HANDOFF_LIVE_CANARY` (repeat only when an owner-supplied
 real symbolic file is intentionally available).
+
+## 2026-09-05 — MuScriptor cold-metal reference evaluation
+
+The stale handoff frontier is superseded by the bounded MuScriptor reference
+evaluation. The discovery-assisted private-alpha lane remains
+`DISCOVERY_ASSISTED_PRIVATE_ALPHA_LIVE_VERIFIED` with its existing metadata-only,
+user-mediated, rights and alignment non-claims; no handoff canary was repeated.
+
+The frozen reference is the official MuScriptor repository at commit
+`7f213afecf23bd6a1b8672aa223690ee9807cefb` (package `0.3.0`) and exactly one
+checkpoint, `muscriptor-medium`, at Hugging Face revision
+`f32236969308476e01fd3aae67357de5feb05a2d`. The official model card identifies
+the code as MIT and the model weights as CC-BY-NC-4.0; the medium
+`model.safetensors` file is 1,228,144,472 bytes. The inference defaults were
+frozen before any protected evaluation: greedy decode, CFG 1, auto device,
+upstream dtype, five-second chunks, batch size 1, prelude forcing, no
+instrument conditioning, and best-effort tempo detection.
+
+The checkpoint is gated and this workstation is not authenticated to
+Hugging Face; no authorized credential or local weight cache was available.
+The mission therefore stopped before downloading weights, installing an
+isolated runtime, reading the open sanity fixture, opening any protected
+cold-metal audio/reference, or invoking downstream arrangement. The
+machine-readable report is
+`muscriptor-cold-metal-reference-evaluation-2026-09-05.json` (SHA-256
+`c864d3a84dc5ad841f822f2e1f6791ec1c0f7e90cc030caf61cf8271fc4f7478`).
+
+Decision: `MUSCRIPTOR_REFERENCE_EXECUTION_BLOCKED`, blocker
+`MUSCRIPTOR_HF_ACCESS_REQUIRED`; downstream is
+`NOT_RUN_RAW_GATE_FAILED`; weights are
+`MUSCRIPTOR_WEIGHTS_NONCOMMERCIAL_RESEARCH_ONLY`; the original AMT consequence
+is `AUDIO_AMT_FALLBACK_EVIDENCE_BLOCKED`. No technical headroom, alignment,
+downstream retention, or musical-quality claim is made. Existing
+`GENERATION_CANDIDATE_INTAKE_READY`, `REAL_SYMBOLIC_ALIGNMENT_PARTIAL`,
+`MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`,
+`NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT`, and live-product status remain
+unchanged. Exactly one next task is `MUSCRIPTOR_HF_ACCESS_REQUIRED`.

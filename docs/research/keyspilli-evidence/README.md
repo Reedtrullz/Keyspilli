@@ -114,6 +114,9 @@ experiment history needed to continue later.
 * `texture-amt-routing-2026-09-02-metrics.json` — path-free routing metrics,
   per-backend precision/recall, texture-class features, agreement/support
   classes, freeze/report hashes, candidate counts, and limits.
+* `muscriptor-cold-metal-reference-evaluation-2026-09-05.json` — frozen
+  single-checkpoint MuScriptor reference evaluation; stopped before gated
+  weight access, with no protected reference reads or production changes.
 
 ## Cold-transfer boundary
 
