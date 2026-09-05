@@ -74,6 +74,30 @@ describe("Brave source candidate provider", () => {
     expect(fetchImpl).toHaveBeenCalledTimes(5);
   });
 
+  it("waits through the free-plan request window between transient queries", async () => {
+    let now = 0;
+    let lastSuccessfulRequest = -Infinity;
+    const sleeps: number[] = [];
+    const fetchImpl = vi.fn(async () => {
+      if (now - lastSuccessfulRequest < 1_000) return response({ error: "rate limited" }, 429);
+      lastSuccessfulRequest = now;
+      return response({ web: { results: [] } });
+    });
+    const provider = createBraveSourceCandidateProvider({
+      apiKey: "test-key",
+      fetchImpl,
+      sleep: async (milliseconds) => {
+        sleeps.push(milliseconds);
+        now += milliseconds;
+      },
+    });
+
+    await expect(provider(target)).resolves.toEqual([]);
+    expect(fetchImpl).toHaveBeenCalledTimes(7);
+    expect(sleeps).toEqual([expect.any(Number), expect.any(Number), expect.any(Number)]);
+    expect(sleeps.every((milliseconds) => milliseconds >= 1_000)).toBe(true);
+  });
+
   it("bounds and sanitizes provider results before ranking them", async () => {
     let request = 0;
     const provider = createBraveSourceCandidateProvider({

@@ -37,6 +37,7 @@ interface BraveResponse {
 }
 
 const RETRIES = 1 as const;
+const DEFAULT_RETRY_DELAY_MS = 1_100 as const;
 const QUERY_SUFFIXES = ["MIDI", "MusicXML", "Guitar Pro", "piano MIDI"] as const;
 
 let testProvider: SourceCandidateProvider | null | undefined;
@@ -166,9 +167,9 @@ export function createBraveSourceCandidateProvider(options: BraveSourceCandidate
   const apiKey = cleanText(options.apiKey, 256);
   if (!apiKey) throw new Error("Brave API key is required");
   const timeoutMs = options.timeoutMs ?? BRAVE_SOURCE_TIMEOUT_MS;
-  const retryDelayMs = options.retryDelayMs ?? 100;
+  const retryDelayMs = options.retryDelayMs ?? DEFAULT_RETRY_DELAY_MS;
   if (!Number.isFinite(timeoutMs) || timeoutMs < 100 || timeoutMs > 30_000) throw new Error("Brave timeout is invalid");
-  if (!Number.isFinite(retryDelayMs) || retryDelayMs < 0 || retryDelayMs > 1_000) throw new Error("Brave retry delay is invalid");
+  if (!Number.isFinite(retryDelayMs) || retryDelayMs < 0 || retryDelayMs > 2_000) throw new Error("Brave retry delay is invalid");
   const configured = {
     apiKey,
     fetchImpl: options.fetchImpl ?? globalThis.fetch,
