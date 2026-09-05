@@ -2604,6 +2604,86 @@
         "No protected audio/reference was read and no production path changed.",
         "Account entitlement does not establish production licensing."
       ]
+    },
+    {
+      "id": "muscriptor-hf-browser-auth-runtime-unlock-2026-09-05",
+      "date": "2026-09-05",
+      "startingRevision": "6a7198d55b6b619d03c24be04f715a577992e6cc",
+      "checkpointRevision": "6a7198d55b6b619d03c24be04f715a577992e6cc",
+      "purpose": "Authenticate the frozen MuScriptor checkpoint through the official browser/device flow and run a rights-cleared runtime sanity check",
+      "scope": {
+        "model": "MuScriptor medium",
+        "modelRevision": "f32236969308476e01fd3aae67357de5feb05a2d",
+        "repositoryRevision": "7f213afecf23bd6a1b8672aa223690ee9807cefb",
+        "inference": "greedy, sampling false, CFG 1, beam 1, five-second chunks, batch 1, prelude forcing, no instrument conditioning, best-effort tempo",
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NO_DEPLOYMENT"
+      },
+      "status": "completed-sanity-only",
+      "access": {
+        "cli": "uvx hf 1.30.0",
+        "browserEntitlement": "GRANTED",
+        "browserDeviceAuth": "PASS",
+        "tokenManuallyCreated": false,
+        "tokenManuallyEntered": false,
+        "credentialStoredByOfficialFlow": true,
+        "tokenValueRecorded": false,
+        "decision": "MUSCRIPTOR_HF_LOCAL_AUTHENTICATION_VALIDATED"
+      },
+      "weights": {
+        "status": "MUSCRIPTOR_FROZEN_WEIGHTS_ACQUIRED",
+        "bytes": 1228144472,
+        "sha256": "ac80adbdf85d87231735fd948af7013441c0afced316c4e9067fd5d8a7fb97ec",
+        "cache": "external user-only research cache",
+        "retained": true
+      },
+      "runtime": {
+        "status": "MUSCRIPTOR_RUNTIME_SANITY_VALIDATED",
+        "python": "3.13.12",
+        "torch": "2.13.0",
+        "device": "mps",
+        "dtype": "torch.float32",
+        "modelLoadSeconds": 4.598,
+        "peakRssBytes": 1642889216,
+        "isolated": true
+      },
+      "sanity": {
+        "fixtureId": "project-owned-synthetic-melody-5s-2026-09-05",
+        "rightsBasis": "PROJECT_OWNED_SYNTHETIC",
+        "audioBytes": 160044,
+        "audioSha256": "58038438323c9784fe8370179202a0c9851f070cdfa707b4e732cc8673f20961",
+        "midiBytes": 154,
+        "midiSha256": "ebe42e3952c8e1ac4a1c01fb76c65c8a2236930cd78707682f321db11fef6d69",
+        "runs": 2,
+        "determinism": "DETERMINISTIC_SYMBOLIC_OUTPUT",
+        "midiParse": "PASS",
+        "noteCount": 8,
+        "trackCount": 2,
+        "ppq": 480,
+        "tempoBpm": [120, 120]
+      },
+      "rights": {
+        "historicalBenchmark": "MUSCRIPTOR_HISTORICAL_BENCHMARK_RIGHTS_BLOCKED",
+        "historicalFixturesOpened": false,
+        "denseMetalCorpus": "RIGHTS_CLEARED_DENSE_METAL_AMT_CORPUS_MISSING",
+        "openInventory": ["guitar-techs:p3-music-08: CC BY 4.0, single guitar", "maestro:v3:2015-prelude-3: CC BY-NC-SA 4.0, piano"]
+      },
+      "report": {
+        "path": "muscriptor-hf-browser-auth-runtime-unlock-2026-09-05.json",
+        "sha256": "946c3c9944d002bcb2320f519c8669d38d19828e3e4991ca1143d518976fe917"
+      },
+      "decisions": {
+        "rawMetalHeadroom": "MUSCRIPTOR_RAW_METAL_HEADROOM_UNEVALUATED",
+        "downstream": "NOT_RUN_NO_VALID_DENSE_METAL_RAW_EVIDENCE",
+        "weightLicense": "MUSCRIPTOR_WEIGHTS_NONCOMMERCIAL_RESEARCH_ONLY",
+        "nextTask": "RIGHTS_CLEARED_DENSE_METAL_AMT_EVAL_CORPUS"
+      },
+      "nonClaims": [
+        "Sanity inference proves runtime access and deterministic symbolic emission, not transcription quality.",
+        "No dense-metal raw headroom, alignment, downstream arrangement, or musical-quality claim exists.",
+        "The historical benchmark remains rights-blocked and was not opened.",
+        "The non-commercial weight license is not production approval."
+      ]
     }
   ]
 }

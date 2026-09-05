@@ -1125,3 +1125,36 @@ evidence README). Decisions are `NOT_RUN_AUTH_FAILED` for runtime/sanity,
 `MUSCRIPTOR_RAW_METAL_HEADROOM_UNEVALUATED` for raw evidence, and
 `NOT_RUN_NO_VALID_DENSE_METAL_RAW_EVIDENCE` downstream. The single next task is
 `MUSCRIPTOR_HF_LOCAL_AUTHENTICATION_FAILED`.
+
+## 2026-09-05 — MuScriptor browser-auth runtime unlock
+
+The current official `uvx hf` CLI (1.30.0) authenticated through the Hugging
+Face device flow after browser entitlement was granted. The exact frozen
+MuScriptor medium checkpoint at revision
+`f32236969308476e01fd3aae67357de5feb05a2d` was downloaded and verified at
+1,228,144,472 bytes (SHA-256
+`ac80adbdf85d87231735fd948af7013441c0afced316c4e9067fd5d8a7fb97ec`). The
+credential and weights remain only in an external user-only research cache;
+neither is in the repository or reports.
+
+The pinned MuScriptor source (`7f213afecf23bd6a1b8672aa223690ee9807cefb`) and
+locked isolated runtime loaded successfully on Apple MPS (Python 3.13.12,
+torch 2.13.0, float32). A project-owned synthetic five-second WAV produced a
+parsing MIDI output twice with identical bytes (`ebe42e3952c8e1ac4a1c01fb76c65c8a2236930cd78707682f321db11fef6d69`);
+this is runtime/determinism evidence only.
+
+No historical benchmark or protected audio was opened. No dense-metal
+rights-cleared corpus was found, so raw metal headroom remains
+`MUSCRIPTOR_RAW_METAL_HEADROOM_UNEVALUATED`, downstream remains
+`NOT_RUN_NO_VALID_DENSE_METAL_RAW_EVIDENCE`, and the weight license remains
+`MUSCRIPTOR_WEIGHTS_NONCOMMERCIAL_RESEARCH_ONLY`. Live product status,
+production paths, and human-listening status are unchanged.
+
+The exact report is
+`muscriptor-hf-browser-auth-runtime-unlock-2026-09-05.json` (SHA-256
+`946c3c9944d002bcb2320f519c8669d38d19828e3e4991ca1143d518976fe917`). Decisions:
+`MUSCRIPTOR_HF_LOCAL_AUTHENTICATION_VALIDATED`,
+`MUSCRIPTOR_FROZEN_WEIGHTS_ACQUIRED`,
+`MUSCRIPTOR_RUNTIME_SANITY_VALIDATED`, and
+`DETERMINISTIC_SYMBOLIC_OUTPUT`; the single next task is
+`RIGHTS_CLEARED_DENSE_METAL_AMT_EVAL_CORPUS`.

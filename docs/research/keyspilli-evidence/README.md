@@ -123,6 +123,10 @@ experiment history needed to continue later.
 * `muscriptor-local-auth-runtime-unlock-2026-09-05.json` — the installed
   official CLI offered token-only login, so no credential, weights, runtime,
   or audio evaluation was started.
+* `muscriptor-hf-browser-auth-runtime-unlock-2026-09-05.json` — the official
+  browser/device flow authenticated the local research cache, the exact
+  frozen weights loaded on MPS, and a project-owned sanity transcription was
+  deterministic; dense-metal evaluation remains out of scope.
 
 ## Cold-transfer boundary
 
