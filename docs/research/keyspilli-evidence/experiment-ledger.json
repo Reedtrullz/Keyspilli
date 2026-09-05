@@ -2492,6 +2492,62 @@
         "No protected audio/reference was read, no weight was downloaded, and no production path changed.",
         "The frozen model weight license remains non-commercial research/evaluation only."
       ]
+    },
+    {
+      "id": "muscriptor-hf-access-resume-2026-09-05",
+      "date": "2026-09-05",
+      "startingRevision": "84eeab3114ea32aa171cbcacdc8f3a787bd88f4a",
+      "checkpointRevision": "84eeab3114ea32aa171cbcacdc8f3a787bd88f4a",
+      "purpose": "Resume the frozen MuScriptor medium evaluation after owner browser-side gated access",
+      "scope": {
+        "model": "MuScriptor medium",
+        "modelRevision": "f32236969308476e01fd3aae67357de5feb05a2d",
+        "repositoryRevision": "7f213afecf23bd6a1b8672aa223690ee9807cefb",
+        "benchmarkTuning": false,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NO_DEPLOYMENT"
+      },
+      "status": "blocked",
+      "access": {
+        "browserEntitlement": "GRANTED",
+        "cliAuthentication": "FAIL_NOT_LOGGED_IN",
+        "weightsDownloaded": false,
+        "protectedReferencesRead": false,
+        "decision": "MUSCRIPTOR_HF_ACCESS_PENDING"
+      },
+      "rights": {
+        "historicalBenchmarkDecision": "MUSCRIPTOR_HISTORICAL_BENCHMARK_RIGHTS_BLOCKED",
+        "openCorpusInventory": ["guitar-techs:p3-music-08: CC BY 4.0, single guitar", "maestro:v3:2015-prelude-3: CC BY-NC-SA 4.0, piano"],
+        "denseMetalRightsClearedCorpusFound": false
+      },
+      "results": {
+        "sanityFixture": "NOT_RUN_ACCESS_BLOCKED",
+        "historicalColdMetal": "NOT_RUN_RIGHTS_BLOCKED",
+        "rawHeadroomDecision": "MUSCRIPTOR_REFERENCE_EXECUTION_BLOCKED",
+        "downstream": "NOT_RUN_RAW_GATE_FAILED",
+        "weightLicenseDecision": "MUSCRIPTOR_WEIGHTS_NONCOMMERCIAL_RESEARCH_ONLY"
+      },
+      "report": {
+        "path": "muscriptor-hf-access-resume-2026-09-05.json",
+        "sha256": "4ef254d119ddd05105061f38fb7e88aac907e6ab8635a4ace54b9c38c714faeb"
+      },
+      "verification": {
+        "workspaceTests": "1672/1672",
+        "workspaceTypechecks": "6/6",
+        "focusedEvaluatorTests": "17/17",
+        "diskFreeGiB": 106
+      },
+      "decisions": {
+        "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+        "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+        "nextTask": "MUSCRIPTOR_HF_ACCESS_PENDING"
+      },
+      "nonClaims": [
+        "Browser entitlement is not a local inference credential.",
+        "No MuScriptor inference or protected benchmark evaluation was performed.",
+        "No dense-metal rights-cleared substitute was found in the local/repository inventory."
+      ]
     }
   ]
 }

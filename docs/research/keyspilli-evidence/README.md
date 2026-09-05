@@ -117,6 +117,9 @@ experiment history needed to continue later.
 * `muscriptor-cold-metal-reference-evaluation-2026-09-05.json` — frozen
   single-checkpoint MuScriptor reference evaluation; stopped before gated
   weight access, with no protected reference reads or production changes.
+* `muscriptor-hf-access-resume-2026-09-05.json` — browser entitlement was
+  granted, but the local CLI remained unauthenticated; historical benchmark
+  rights were not established and no protected bytes were opened.
 
 ## Cold-transfer boundary
 

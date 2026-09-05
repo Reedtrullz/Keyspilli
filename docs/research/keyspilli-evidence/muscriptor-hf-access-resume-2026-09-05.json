@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "kind": "muscriptor-hf-access-resume",
+  "experimentId": "muscriptor-hf-access-resume-2026-09-05",
+  "status": "blocked",
+  "startingRevision": "84eeab3114ea32aa171cbcacdc8f3a787bd88f4a",
+  "frozenReference": {
+    "repositoryRevision": "7f213afecf23bd6a1b8672aa223690ee9807cefb",
+    "model": "muscriptor-medium",
+    "modelRevision": "f32236969308476e01fd3aae67357de5feb05a2d",
+    "codeLicense": "MIT",
+    "weightLicense": "CC-BY-NC-4.0",
+    "weightBytes": 1228144472
+  },
+  "access": {
+    "modelEntitlement": "GRANTED_BROWSER",
+    "browserEvidence": "official model page displayed You have been granted access to this model",
+    "cliAuthentication": "FAIL_NOT_LOGGED_IN",
+    "authorizedTokenAvailableToRuntime": false,
+    "tokenRequestedOrPrinted": false,
+    "decision": "MUSCRIPTOR_HF_ACCESS_PENDING"
+  },
+  "download": {
+    "status": "NOT_RUN",
+    "reason": "official CLI runtime has no authenticated session; no token was created, requested, or exposed",
+    "modelSha256": null,
+    "downloadedBytes": null,
+    "weightsRetained": false
+  },
+  "rights": {
+    "historicalBenchmarkDecision": "MUSCRIPTOR_HISTORICAL_BENCHMARK_RIGHTS_BLOCKED",
+    "historicalFixtures": ["the-final-solution", "gott-mit-uns", "red-baron"],
+    "historicalClassification": "BENCHMARK_REFERENCE / EVAL_ONLY",
+    "historicalBasis": "repository evidence provides benchmark/evaluation classification but no explicit rights clearance for MuScriptor transcription terms",
+    "protectedBytesOpened": false,
+    "inventory": [
+      {
+        "fixtureId": "guitar-techs:p3-music-08",
+        "dataset": "Guitar-TECHS v1",
+        "license": "CC BY 4.0",
+        "modalities": "real DI recording plus supplied performance MIDI",
+        "status": "metadata_only",
+        "suitability": "rights-cleared open single-instrument guitar sanity candidate; not dense multi-instrument metal"
+      },
+      {
+        "fixtureId": "maestro:v3:2015-prelude-3",
+        "dataset": "MAESTRO v3.0.0",
+        "license": "CC BY-NC-SA 4.0",
+        "modalities": "real Disklavier recording plus synchronized performance MIDI",
+        "status": "metadata_only",
+        "suitability": "rights-cleared open piano timing candidate; not dense multi-instrument metal"
+      }
+    ],
+    "rightsClearedDenseMetalCorpusFound": false,
+    "nextCorpusTaskIfNeeded": "RIGHTS_CLEARED_DENSE_METAL_AMT_EVAL_CORPUS"
+  },
+  "sanityFixture": {
+    "status": "NOT_RUN_ACCESS_BLOCKED",
+    "modelLoad": null,
+    "transcription": null,
+    "midiParse": null,
+    "determinism": null
+  },
+  "historicalEvaluation": {
+    "status": "NOT_RUN",
+    "reason": "MUSCRIPTOR_HISTORICAL_BENCHMARK_RIGHTS_BLOCKED and runtime authentication unavailable",
+    "inferenceInvoked": false,
+    "benchmarkTuning": false,
+    "rawDecision": "MUSCRIPTOR_REFERENCE_EXECUTION_BLOCKED",
+    "downstream": "NOT_RUN_RAW_GATE_FAILED"
+  },
+  "decisions": {
+    "hfAccess": "GRANTED",
+    "authentication": "FAIL",
+    "weightDownload": "NOT_RUN",
+    "historicalBenchmarkRights": "MUSCRIPTOR_HISTORICAL_BENCHMARK_RIGHTS_BLOCKED",
+    "rawMetalHeadroom": "MUSCRIPTOR_REFERENCE_EXECUTION_BLOCKED",
+    "downstream": "NOT_RUN_RAW_GATE_FAILED",
+    "weightLicense": "MUSCRIPTOR_WEIGHTS_NONCOMMERCIAL_RESEARCH_ONLY",
+    "audioAmtFallback": "AUDIO_AMT_FALLBACK_EVIDENCE_BLOCKED",
+    "liveProduct": "UNCHANGED",
+    "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+    "deployment": "NO_DEPLOYMENT",
+    "nextTask": "MUSCRIPTOR_HF_ACCESS_PENDING"
+  },
+  "verification": {
+    "workspaceSuite": "1672/1672",
+    "workspaceTypechecks": "6/6",
+    "focusedEvaluatorTests": "17/17",
+    "jsonValid": true,
+    "gitDiffCheck": true,
+    "diskFreeGiB": 106,
+    "branchRemoteParity": true
+  },
+  "safety": {
+    "protectedAudioRead": false,
+    "protectedReferenceRead": false,
+    "weightsDownloaded": false,
+    "productionPathChanged": false,
+    "vpsTouched": false,
+    "catalogWritten": false,
+    "benchmarkTuning": false,
+    "humanListening": false
+  },
+  "nonClaims": [
+    "Browser entitlement does not establish a usable local inference credential.",
+    "No MuScriptor inference, cold-metal metric, alignment result, or downstream retention result exists.",
+    "Historical benchmark fixtures were not opened because MuScriptor-use rights were not established.",
+    "The open Guitar-TECHS and MAESTRO pairs are not direct evidence for dense multi-instrument metal headroom.",
+    "CC-BY-NC weights remain research/evaluation-only and are not production-compatible."
+  ]
+}

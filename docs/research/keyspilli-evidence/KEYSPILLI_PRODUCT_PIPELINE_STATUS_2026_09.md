@@ -1075,3 +1075,27 @@ downstream retention, or musical-quality claim is made. Existing
 `MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`,
 `NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT`, and live-product status remain
 unchanged. Exactly one next task is `MUSCRIPTOR_HF_ACCESS_REQUIRED`.
+
+## 2026-09-05 — MuScriptor access resume
+
+The owner’s Hugging Face model page now visibly reports that access to the
+frozen `MuScriptor/muscriptor-medium` checkpoint was granted. The official local
+CLI nevertheless reports `Not logged in`; no token was created, requested,
+printed, or stored by this run, so the research runtime could not download the
+frozen weights.
+
+The historical cold-metal items remain `BENCHMARK_REFERENCE / EVAL_ONLY` with
+no explicit MuScriptor-use rights clearance. They were not opened. Existing
+metadata records two rights-cleared open pairs—Guitar-TECHS (single guitar) and
+MAESTRO (piano)—but neither is a dense multi-instrument metal corpus, so neither
+was substituted for the frozen comparison.
+
+The resume report is
+`muscriptor-hf-access-resume-2026-09-05.json` (SHA-256
+`4ef254d119ddd05105061f38fb7e88aac907e6ab8635a4ace54b9c38c714faeb`; see the evidence README). The
+resume stopped before weight download, sanity inference, protected evaluation,
+and downstream generation. Decision: `MUSCRIPTOR_HF_ACCESS_PENDING` for local
+authentication, `MUSCRIPTOR_HISTORICAL_BENCHMARK_RIGHTS_BLOCKED` for the frozen
+benchmark, `MUSCRIPTOR_REFERENCE_EXECUTION_BLOCKED` for raw headroom, and
+`AUDIO_AMT_FALLBACK_EVIDENCE_BLOCKED` for the existing AMT fallback. The single
+next task is `MUSCRIPTOR_HF_ACCESS_PENDING`.
