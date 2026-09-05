@@ -107,7 +107,13 @@ function candidateInput(
 
 function responseResults(value: unknown): BraveWebResult[] {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Brave response is malformed");
-  const results = (value as BraveResponse).web?.results;
+  const response = value as BraveResponse;
+  const results = response.web?.results;
+  if (results === undefined) {
+    const mixed = (value as { mixed?: unknown }).mixed;
+    if (mixed && typeof mixed === "object" && !Array.isArray(mixed)) return [];
+    throw new Error("Brave response has no web results");
+  }
   if (!Array.isArray(results)) throw new Error("Brave response has no web results");
   return results.filter((result): result is BraveWebResult => Boolean(result && typeof result === "object" && !Array.isArray(result)));
 }

@@ -98,6 +98,20 @@ describe("Brave source candidate provider", () => {
     expect(sleeps.every((milliseconds) => milliseconds >= 1_000)).toBe(true);
   });
 
+  it("treats a valid Brave no-result envelope without web results as empty", async () => {
+    const provider = createBraveSourceCandidateProvider({
+      apiKey: "test-key",
+      fetchImpl: async () => response({
+        type: "search",
+        query: { original: "no matching source" },
+        mixed: { type: "mixed", main: {}, top: [], side: [] },
+      }),
+      retryDelayMs: 0,
+    });
+
+    await expect(provider(target)).resolves.toEqual([]);
+  });
+
   it("bounds and sanitizes provider results before ranking them", async () => {
     let request = 0;
     const provider = createBraveSourceCandidateProvider({
