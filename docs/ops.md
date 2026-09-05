@@ -112,6 +112,15 @@ performed. See the fail-closed report
 The provider comparison and implementation evidence are recorded in
 `docs/research/keyspilli-evidence/production-generic-source-search-provider-2026-09-05.json`.
 
+A later operator credential update was accepted by the same Brave endpoint:
+the probe returned HTTP 200 with 10 results, and the frozen 20-song metadata
+replay returned candidates for 20/20 targets. It used 82 provider requests
+(80 successful responses and two 429 responses recovered by the existing
+one-retry policy). No result pages or source bytes were fetched. This validates
+the local provider canary only; the credential remains out of production, and
+all remote metadata remains user-mediated. See
+`docs/research/keyspilli-evidence/production-search-provider-credential-canary-rerun-2026-09-05.json`.
+
 ### Bounded MVP release-candidate scope and deployment gate
 
 The bounded release candidate is a private, single-user symbolic product:

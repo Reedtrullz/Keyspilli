@@ -915,3 +915,23 @@ alpha is `DISCOVERY_ASSISTED_PRIVATE_ALPHA_BLOCKED`, and the only next task is
 `GENERATION_CANDIDATE_INTAKE_READY`, `REAL_SYMBOLIC_ALIGNMENT_PARTIAL`,
 `MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`,
 `NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT`, and `NO_DEPLOYMENT` statuses remain.
+
+## 2026-09-05 — Brave credential canary rerun
+
+After an operator credential update, the same bounded Brave probe returned HTTP
+200 with a valid 10-result response. The frozen four-query policy was then run
+against all 20 non-benchmark cold targets: 20/20 returned metadata candidates,
+with 80 successful responses and two 429 responses recovered by the existing
+one-retry policy (82 provider requests total). No pages or source bytes were
+fetched, and no result was promoted to automatic generation. The path-free
+report is
+`production-search-provider-credential-canary-rerun-2026-09-05.json` (SHA-256
+`51dea006feb7de2a5f608d429e7b9018c83de50bef25bbffbcbbbeb5ecf1c514`).
+
+Current provider status is `PRODUCTION_SEARCH_PROVIDER_LIVE_CANARY_PASS` and
+the discovery-assisted private alpha is metadata-only/user-mediated. The local
+credential was not installed in production; alignment remains
+`REAL_SYMBOLIC_ALIGNMENT_PARTIAL`, musical quality remains
+`MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`, human listening remains
+`NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT`, and deployment remains
+`NO_DEPLOYMENT`. Exactly one next task: `USER_MEDIATED_SOURCE_CANDIDATE_HANDOFF`.
