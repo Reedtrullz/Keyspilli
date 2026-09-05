@@ -17,6 +17,8 @@ ENV VERSION=$VERSION
 RUN npm run build -w @keyspilli/web
 
 FROM build AS browser-assets
+ARG BUILDPLATFORM
+ARG TARGETPLATFORM
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 # Install the browser from the exact Playwright package resolved by package-lock.json.
 RUN npx --no-install playwright install chromium
@@ -27,7 +29,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
     libgbm1 libpango-1.0-0 libcairo2 libasound2 fonts-liberation \
     && rm -rf /var/lib/apt/lists/*
-RUN node apps/web/scripts/verify-playwright-runtime.mjs
+RUN if [ "$BUILDPLATFORM" = "$TARGETPLATFORM" ]; then \
+      node apps/web/scripts/verify-playwright-runtime.mjs; \
+    else \
+      echo "Skipping Chromium launch under cross-architecture emulation"; \
+    fi
 
 FROM node:22-slim AS runtime
 WORKDIR /app
