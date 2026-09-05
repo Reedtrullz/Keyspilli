@@ -597,3 +597,24 @@ MusicXML, and both PDF exports returned 200 with valid content. Under Node
 tests), six typechecks, and `git diff --check` passed. This canary changes no
 musical behavior or source-generation policy; independent alignment remains
 partial and musical quality is not objectively established.
+
+### User-mediated source handoff live canary — 2026-09-05
+
+The owner-authorized live canary exercised metadata-only discovery, explicit
+owner affirmation, and the existing symbolic upload/generation path on the
+`67827050a695e54609f6cf3f064e4fdaaabbb65b` web release. Brave returned three
+metadata candidates and one MIDI lead was selected. The uploaded file was a
+320-byte project-owned synthetic MIDI; no discovered page or third-party
+symbolic bytes were fetched or uploaded.
+
+Normal ingest generated six physical variants and five public levels. The Easy
+player and sheet routes plus MIDI, MusicXML, and simplify-PDF exports returned
+valid responses. A web-container restart preserved the item and exports.
+Cleanup then removed the exact temporary base, source upload, artifacts,
+transcription data, and handoff row; all temporary API rows and the grouped
+projection are absent afterward. Path-free evidence is recorded in
+`user-mediated-source-handoff-live-canary-2026-09-05.json`.
+
+This is a lineage/operations canary only. Discovery remains metadata-only and
+user-mediated; independent alignment remains partial and musical quality is
+not objectively established.

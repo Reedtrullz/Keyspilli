@@ -1015,3 +1015,26 @@ quality remains `MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`; human listening
 remains `NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT`; deployment is an authorized
 canary and not a claim of unrestricted public operation. The next task is
 `USER_MEDIATED_SOURCE_HANDOFF_LIVE_CANARY`.
+
+## 2026-09-05 — User-mediated source handoff live canary
+
+The owner-authorized live canary exercised the deployed Brave metadata route,
+explicit owner affirmation, and the existing symbolic upload/generation path
+using a project-owned synthetic MIDI. Brave returned three metadata candidates;
+one MIDI lead was selected. No discovered page or third-party symbolic bytes
+were fetched or uploaded. The handoff lineage reached generation acceptance,
+with six physical variants, five public levels, Easy/player and sheet routes,
+and MIDI, MusicXML, and simplify-PDF exports all passing.
+
+After a web-container restart, the temporary API item and exports remained
+available. Cleanup removed the exact temporary song base, upload, artifact
+tree, transcription data, and handoff database row; all six variant APIs and
+the temporary group are absent afterward. Evidence is recorded in
+`user-mediated-source-handoff-live-canary-2026-09-05.json`.
+
+This canary validates user-mediated lineage and operational cleanup only. It
+does not verify discovered-source identity/rights, independent score/audio
+alignment, or musical quality; no musical behavior or generation policy
+changed. The next task remains
+`USER_MEDIATED_SOURCE_HANDOFF_LIVE_CANARY` (repeat only when an owner-supplied
+real symbolic file is intentionally available).

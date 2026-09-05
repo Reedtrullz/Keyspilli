@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "id": "user-mediated-source-handoff-live-canary-2026-09-05",
+  "date": "2026-09-05",
+  "authorization": "OWNER_AUTHORIZED",
+  "release": {
+    "webRevision": "67827050a695e54609f6cf3f064e4fdaaabbb65b",
+    "webImage": "ghcr.io/reedtrullz/keyspilli:67827050a695",
+    "workerChanged": false
+  },
+  "scope": {
+    "purpose": "Exercise metadata discovery -> owner affirmation -> synthetic symbolic upload -> normal learner generation",
+    "sourceClass": "PROJECT_OWNED_SYNTHETIC",
+    "metadataDiscoveryOnly": true,
+    "thirdPartyPagesFetched": false,
+    "thirdPartySymbolicBytesFetched": false,
+    "thirdPartyBytesUploaded": false
+  },
+  "discovery": {
+    "provider": "BRAVE_SEARCH_API",
+    "status": "PASS",
+    "metadataCandidateCount": 3,
+    "selectedCandidateFormat": "midi",
+    "handoff": {
+      "created": true,
+      "ownerAffirmed": true,
+      "uploadedFormat": "midi",
+      "generationAccepted": true
+    }
+  },
+  "generation": {
+    "uploadedSourceSha256": "0e54751b3e4a9f80a101ae5db06d6f3603a83bf508b8ae7e998298aeffbaeb23",
+    "uploadedSourceBytes": 320,
+    "physicalVariantCount": 6,
+    "publicLevelCount": 5,
+    "player": "PASS",
+    "exports": {
+      "midi": "PASS",
+      "musicxml": "PASS",
+      "pdfSimplify": "PASS"
+    }
+  },
+  "restart": {
+    "health": "PASS",
+    "playerApi": "PASS",
+    "artifactApi": "PASS"
+  },
+  "cleanup": {
+    "temporarySongRowsAbsent": true,
+    "temporaryArtifactTreeAbsent": true,
+    "temporaryUploadAbsent": true,
+    "temporaryTranscriptionDataAbsent": true,
+    "temporaryHandoffRowAbsent": true,
+    "completed": true
+  },
+  "nonClaims": [
+    "The handoff proves user-mediated lineage only; it does not verify the discovered source identity or rights.",
+    "No independent score/audio alignment or musical-quality claim is made.",
+    "No production musical behavior, difficulty policy, or worker behavior changed."
+  ]
+}

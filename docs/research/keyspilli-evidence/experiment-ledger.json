@@ -2369,6 +2369,70 @@
         "The canary does not establish independent score/audio alignment or musical quality.",
         "No benchmark material, musical policy, or worker behavior changed; no deployment beyond this authorized canary occurred."
       ]
+    },
+    {
+      "id": "user-mediated-source-handoff-live-canary-2026-09-05",
+      "date": "2026-09-05",
+      "authorization": "OWNER_AUTHORIZED",
+      "startingRevision": "85464bd34ca7c079571af3c1cabcad65691aa449",
+      "purpose": "Exercise metadata-only discovery, owner affirmation, synthetic symbolic upload, normal learner generation, restart persistence, and cleanup",
+      "release": {
+        "webRevision": "67827050a695e54609f6cf3f064e4fdaaabbb65b",
+        "webImage": "ghcr.io/reedtrullz/keyspilli:67827050a695",
+        "workerChanged": false
+      },
+      "discovery": {
+        "provider": "BRAVE_SEARCH_API",
+        "status": "PASS_METADATA_ONLY",
+        "metadataCandidateCount": 3,
+        "selectedCandidateFormat": "midi",
+        "thirdPartyPagesFetched": false,
+        "thirdPartySymbolicBytesFetched": false,
+        "thirdPartyBytesUploaded": false,
+        "handoff": {
+          "created": true,
+          "ownerAffirmed": true,
+          "generationAccepted": true
+        }
+      },
+      "syntheticUpload": {
+        "provenanceClass": "PROJECT_OWNED_SYNTHETIC",
+        "bytes": 320,
+        "sha256": "0e54751b3e4a9f80a101ae5db06d6f3603a83bf508b8ae7e998298aeffbaeb23",
+        "format": "midi"
+      },
+      "productPath": {
+        "physicalVariants": 6,
+        "publicLevels": 5,
+        "player": "PASS",
+        "sheetRoute": "PASS",
+        "midiExport": "PASS",
+        "musicXmlExport": "PASS",
+        "pdfSimplifyExport": "PASS",
+        "restartPersistence": "PASS"
+      },
+      "cleanup": {
+        "songRows": "ABSENT",
+        "playerData": "NOT_FOUND_CONTENT",
+        "artifactTree": "ABSENT",
+        "sourceUpload": "ABSENT",
+        "transcriptionData": "ABSENT",
+        "handoffRow": "ABSENT"
+      },
+      "decisions": {
+        "handoff": "USER_MEDIATED_SOURCE_HANDOFF_LIVE_CANARY_VERIFIED",
+        "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+        "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NO_ADDITIONAL_DEPLOYMENT",
+        "nextTask": "USER_MEDIATED_SOURCE_HANDOFF_LIVE_CANARY"
+      },
+      "nonClaims": [
+        "This proves user-mediated lineage and cleanup only; discovered source identity and rights were not verified.",
+        "No independent score/audio alignment or musical-quality claim is made.",
+        "No musical behavior, difficulty policy, source-generation policy, or worker behavior changed."
+      ]
     }
   ]
 }
