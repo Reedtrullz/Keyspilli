@@ -103,10 +103,13 @@ worst retry case). Brave's [rate-limit guidance](https://api-dashboard.search.br
 and response headers remain authoritative. Search metadata has no implied
 license; the owner must inspect the source and provide a permitted file.
 
-The current checkout has no provider credential, so live Brave coverage and a
-20-song replay are `NOT_RUN_NO_CREDENTIAL`; the implementation decision is
-`PRODUCTION_PROVIDER_IMPLEMENTED_AWAITING_API_CREDENTIAL`. The provider
-comparison and path-free evidence are recorded in
+At the implementation checkpoint no provider credential was available, so live
+coverage and the 20-song replay were not run. The subsequent local credential
+canary found the designated Keychain item, but its single Brave probe returned
+non-transient HTTP 422; the frozen replay was withheld and no retry/tuning was
+performed. See the fail-closed report
+`docs/research/keyspilli-evidence/production-search-provider-credential-canary-2026-09-05.json`.
+The provider comparison and implementation evidence are recorded in
 `docs/research/keyspilli-evidence/production-generic-source-search-provider-2026-09-05.json`.
 
 ### Bounded MVP release-candidate scope and deployment gate

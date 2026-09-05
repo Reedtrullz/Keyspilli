@@ -895,3 +895,23 @@ status remains `DISCOVERY_ASSISTED_PRIVATE_ALPHA_NEEDS_PROVIDER_CREDENTIAL`.
 `MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`,
 `NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT`, and `NO_DEPLOYMENT` remain unchanged.
 Exactly one next task: `PRODUCTION_SEARCH_PROVIDER_CREDENTIAL_CANARY`.
+
+## 2026-09-05 — Brave credential canary
+
+The designated local Keychain item was found without recording its value. One
+minimal request to the frozen Brave endpoint returned HTTP 422 in 639.78 ms,
+with no valid Brave result shape or rate-limit headers. This is recorded as
+`PRODUCTION_SEARCH_PROVIDER_LIVE_CANARY_BLOCKED`; the non-transient response
+was not retried and the frozen 20-song replay was not run. No candidate pages or
+source bytes were fetched, no provider/query policy changed, and the temporary
+credential environment was unset and clipboard cleared afterward.
+
+The path-free report is
+`production-search-provider-credential-canary-2026-09-05.json` (SHA-256
+`0772573ec8462b9000e386acaf4efa97aabefd1424ecee51d07ef14f1e65ef5a`). The
+provider decision is `PRODUCTION_SEARCH_PROVIDER_LIVE_CANARY_BLOCKED`, private
+alpha is `DISCOVERY_ASSISTED_PRIVATE_ALPHA_BLOCKED`, and the only next task is
+`BRAVE_SEARCH_API_CREDENTIAL_REMEDIATION`. Existing
+`GENERATION_CANDIDATE_INTAKE_READY`, `REAL_SYMBOLIC_ALIGNMENT_PARTIAL`,
+`MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`,
+`NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT`, and `NO_DEPLOYMENT` statuses remain.
