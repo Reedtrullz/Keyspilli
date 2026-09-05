@@ -3115,12 +3115,12 @@
       "id": "advanced-catalog-repair-2026-09-06",
       "date": "2026-09-06",
       "startingRevision": "4aac736259f5d2748becdc88b0332a2f48fa7222",
-      "implementationRevision": "83295de51e54cbbefc911acda38528cdb54186f8",
+      "implementationRevision": "38fa8045ff18b68b9531208e9569bdb9a0c74a27",
       "filterVersion": "audio-onset-filter-v2",
       "verification": {
-        "focusedCatalogTests": "PASS_28",
-        "catalogTests": "PASS_1069",
-        "workspaceTests": "PASS_1710",
+        "focusedCatalogTests": "PASS_30",
+        "catalogTests": "PASS_1070",
+        "workspaceTests": "PASS_1711",
         "workspaceTypechecks": "PASS_6_OF_6",
         "canonicalAuditSha256": "02188e1f9ef9efeb5181d2dfc5c85c5063686e98dc409153f5d594fa19d32439",
         "scratchSourceBackedRebuilds": "PASS_3"
@@ -3143,7 +3143,7 @@
       "quality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
       "report": {
         "path": "advanced-catalog-repair-2026-09-06.md",
-        "sha256": "a1fb13e93e3bcb720603ec7fc34db53ef0d346ce3d0a058ea3ccf99924d198a0"
+        "sha256": "722ebfde62417d32b40adf6f7274004cb587ec9bfcf997f991f397ed785ec888"
       },
       "nextTask": "REACQUIRE_BLOCKED_SOURCE_MATERIAL"
     }
