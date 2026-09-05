@@ -9,6 +9,14 @@
     "branch": "codex/metal-inference-lane-lock",
     "remoteParityAtDeployment": true
   },
+  "releaseReconciliation": {
+    "validatedImplementationRevision": "c3a7e50ca621ac2b0ea943a474a8c6af572e19b7",
+    "startingEvidenceRevision": "af2c2bbe1c8282fc65c5d2cdea1838e1d5d98fe0",
+    "interveningScope": "PROXY_TEST_CONFIGURATION_AND_EVIDENCE_DOCUMENTATION_ONLY",
+    "classification": "RUNTIME_EQUIVALENT",
+    "releaseBuildRevision": "e9dd13a672e9d252b6441076e3ff99c3937cecd9",
+    "releaseBuildDelta": "DOCKERFILE_CROSS_ARCH_BUILD_BEHAVIOR_ONLY"
+  },
   "releaseArtifact": {
     "tag": "ghcr.io/reedtrullz/keyspilli:e9dd13a672e9",
     "registryDigest": "sha256:8f29dee0bd2c28d27128eeaedb2118447024a4bd2779b787e0f2489a5adcfcdc",

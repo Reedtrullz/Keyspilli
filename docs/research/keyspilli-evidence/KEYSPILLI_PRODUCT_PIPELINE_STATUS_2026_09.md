@@ -1364,7 +1364,7 @@ page or source bytes were fetched.
 
 Decision: `DISCOVERY_ASSISTED_PRIVATE_ALPHA_HARDENED_LIVE_VERIFIED`. Evidence:
 `discovery-assisted-private-alpha-hardening-deployment-canary-retry-2026-09-05.json`
-(SHA-256 `f690550c0fba900aea8194adf642c94c2ac62263c7ef67b89a1b93f6a314cf34`).
+(SHA-256 `4c00e3fc3fd0640f84024460545685131cfd7ad727c43c826f8689409f52edbf`).
 
 ## 2026-09-05 — Private-alpha operations monitoring deployed
 
