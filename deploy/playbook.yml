@@ -286,6 +286,41 @@
         daemon_reload: true
       tags: [backup]
 
+    - name: Install Keyspilli operations check
+      ansible.builtin.copy:
+        src: keyspilli-ops-check.py
+        dest: /usr/local/sbin/keyspilli-ops-check
+        owner: root
+        group: root
+        mode: '0750'
+      tags: [monitoring]
+
+    - name: Install Keyspilli operations monitoring units
+      ansible.builtin.template:
+        src: "templates/{{ item }}.j2"
+        dest: "/etc/systemd/system/{{ item }}"
+        owner: root
+        group: root
+        mode: '0644'
+      loop:
+        - keyspilli-ops-check.service
+        - keyspilli-ops-check.timer
+        - keyspilli-ops-check-deep.service
+        - keyspilli-ops-check-deep.timer
+      notify: Reload systemd
+      tags: [monitoring]
+
+    - name: Enable and start Keyspilli operations monitoring timers
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        enabled: true
+        state: started
+        daemon_reload: true
+      loop:
+        - keyspilli-ops-check.timer
+        - keyspilli-ops-check-deep.timer
+      tags: [monitoring]
+
     - name: Free disk by pruning all unused Docker images
       # `docker_prune(images: true)` only removes dangling layers. Immutable
       # GHCR tags from previous deploys (and a failed pull) remain tagged but
@@ -628,7 +663,7 @@
         daemon_reload: true
       become: true
       listen: "Reload systemd"
-      tags: [backup]
+      tags: [backup, monitoring]
 
     - name: Reload Caddy
       ansible.builtin.systemd:

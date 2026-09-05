@@ -1,0 +1,12 @@
+[Unit]
+Description=Run Keyspilli lightweight operations check every 30 minutes
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=30min
+Persistent=true
+Unit=keyspilli-ops-check.service
+
+[Install]
+WantedBy=timers.target
+

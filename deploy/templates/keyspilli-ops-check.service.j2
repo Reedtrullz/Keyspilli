@@ -1,0 +1,8 @@
+[Unit]
+Description=Keyspilli lightweight operations check
+After=docker.service caddy.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/keyspilli-ops-check --mode light
+

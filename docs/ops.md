@@ -261,10 +261,10 @@ tags, and successful automatic/manual backup validation. The host had 33.3 GiB
 free (above the 30 GiB hard floor, below the 34 GiB preferred floor) and nearly
 full swap. Do not prune or restart during an audit; record the exact reclaimable
 Docker cache/image candidates and obtain separate authorization before cleanup.
-The host has no retained Caddy access log or external uptime/disk/backup/cert/
-container alerting, so proactive monitoring and exact HTTP 5xx totals are not
-available; container health, journal scans, timer state, and direct probes are
-the current evidence boundary.
+The host has no external monitoring service or retained Caddy access log, so
+exact HTTP 5xx totals and off-host alerts are not available. The Keyspilli-owned
+operations checker below makes local failures visible through systemd and the
+journal without adding another credential or service.
 
 The path-free audit record is
 `docs/research/keyspilli-evidence/bounded-mvp-post-deploy-operations-2026-09-04.json`.
@@ -311,6 +311,35 @@ report the expected song count.
 
 `/api/health` returns `{status: "healthy", version, commit, image}`. The
 playbook refuses to deploy unless the container reports the exact git SHA.
+
+Every release that changes a browser mutation must also run real Chromium
+through the reverse proxy and exact production image, then perform an actual
+same-origin mutation. A curl request with forged `Sec-Fetch-Site` metadata is
+not sufficient evidence for this gate.
+
+## Operations monitoring
+
+The deployment installs `/usr/local/sbin/keyspilli-ops-check`. Its compact JSON
+report covers live revision/image consistency, web health, worker state,
+`directAudioAmt=false`, source-discovery configuration, private-edge HTTP 401,
+disk, backup state/age, TLS expiry, Caddy validity, container restart counts,
+and recent source-provider outcome counts. It never calls Brave or prints a
+credential.
+
+```bash
+sudo /usr/local/sbin/keyspilli-ops-check --mode light
+sudo /usr/local/sbin/keyspilli-ops-check --mode deep
+systemctl list-timers 'keyspilli-ops-check*'
+journalctl -u keyspilli-ops-check.service -u keyspilli-ops-check-deep.service
+```
+
+The light timer runs every 30 minutes. The daily deep timer additionally checks
+the live and latest-backup SQLite databases plus basic archive readability.
+Disk is healthy at 34 GiB or more, warning from 30–34 GiB, and failed below
+30 GiB. Backups warn after 30 hours and fail after 48 hours. TLS warns below
+21 days and fails below 7 days. Warnings exit zero; failures leave the one-shot
+systemd unit failed and visible in the journal. The checker never prunes Docker
+or deletes user data.
 
 ## Backups
 
