@@ -186,8 +186,8 @@ export function evaluateDenseMetalFixture(input: {
   const densityRatio = referencePitched.length > 0 ? predictedPitched.length / referencePitched.length : 0;
   const failureStates = [
     ...(predictedPitched.length === 0 && referencePitched.length > 0 ? ["EMPTY_OUTPUT"] : []),
-    ...(densityRatio < 0.2 ? ["SEVERE_UNDERTRANSCRIPTION"] : []),
-    ...(densityRatio > 5 ? ["SEVERE_OVERTRANSCRIPTION"] : []),
+    ...(referencePitched.length > 0 && densityRatio < 0.2 ? ["SEVERE_UNDERTRANSCRIPTION"] : []),
+    ...(referencePitched.length > 0 && densityRatio > 5 ? ["SEVERE_OVERTRANSCRIPTION"] : []),
   ];
   return {
     schemaVersion: DENSE_METAL_AMT_EVALUATION_SCHEMA_VERSION,

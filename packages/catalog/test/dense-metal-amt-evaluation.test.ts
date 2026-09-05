@@ -55,6 +55,17 @@ describe("dense metal AMT evaluation", () => {
     expect(second).toEqual(first);
   });
 
+  it("does not diagnose pitched under-transcription when the reference is percussion-only", () => {
+    const result = evaluateDenseMetalFixture({
+      id: "kick-only",
+      bpm: 120,
+      durationSeconds: 2,
+      reference: [{ role: "drums", midi: 36, startBeat: 0, durationBeats: 0.1, velocity: 100 }],
+      prediction: [{ family: "PERCUSSION", midi: 36, onsetSeconds: 0, offsetSeconds: 0.05, percussion: true }],
+    });
+    expect(result.diagnostics.failureStates).toEqual([]);
+  });
+
   it("applies the frozen headroom and real-kick gates exactly", () => {
     expect(evaluateHeadroom([0.4, 0.4, 0.3], [0.3, 0.34, 0.31])).toMatchObject({
       decision: "MUSCRIPTOR_SYNTHETIC_DENSE_METAL_HEADROOM_PROVEN",
