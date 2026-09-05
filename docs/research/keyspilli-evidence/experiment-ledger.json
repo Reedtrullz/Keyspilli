@@ -3110,6 +3110,42 @@
         "sha256": "317ce455a1d7f53d8f44c73e89fbcf984c7c1ff94442d3a03dcbf3b07bff2c04"
       },
       "nextTask": "OWNER_PRIVATE_ALPHA_USAGE_TRIAL"
+    },
+    {
+      "id": "advanced-catalog-repair-2026-09-06",
+      "date": "2026-09-06",
+      "startingRevision": "4aac736259f5d2748becdc88b0332a2f48fa7222",
+      "implementationRevision": "83295de51e54cbbefc911acda38528cdb54186f8",
+      "filterVersion": "audio-onset-filter-v2",
+      "verification": {
+        "focusedCatalogTests": "PASS_28",
+        "catalogTests": "PASS_1069",
+        "workspaceTests": "PASS_1710",
+        "workspaceTypechecks": "PASS_6_OF_6",
+        "canonicalAuditSha256": "02188e1f9ef9efeb5181d2dfc5c85c5063686e98dc409153f5d594fa19d32439",
+        "scratchSourceBackedRebuilds": "PASS_3"
+      },
+      "repair": {
+        "unsupportedRetriggerCollapse": "IMPLEMENTED_AUDIO_EVIDENCE_GATED",
+        "artifactDurationTruth": "IMPLEMENTED",
+        "missingSourceArtifacts": "BLOCKED_FAIL_CLOSED",
+        "authoredAmbiguities": "TRACED_UNCHANGED",
+        "lastStand": "BLOCKED_AFTER_V2_GATE_FAILURE"
+      },
+      "scope": {
+        "productionWrites": 0,
+        "deployments": 0,
+        "benchmarkTuning": false,
+        "authoredMidiChanged": false,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT"
+      },
+      "decision": "ADVANCED_CATALOG_REPAIR_EVIDENCE_GATED",
+      "quality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+      "report": {
+        "path": "advanced-catalog-repair-2026-09-06.md",
+        "sha256": "a1fb13e93e3bcb720603ec7fc34db53ef0d346ce3d0a058ea3ccf99924d198a0"
+      },
+      "nextTask": "REACQUIRE_BLOCKED_SOURCE_MATERIAL"
     }
   ]
 }
