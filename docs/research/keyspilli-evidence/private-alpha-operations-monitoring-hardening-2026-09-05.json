@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "id": "private-alpha-operations-monitoring-hardening-2026-09-05",
+  "date": "2026-09-05",
+  "implementationRevisions": [
+    "b9d4a3ca880fa7b67ab54cc73ae91969d1187109",
+    "914dba3824d6c86bb38e3cd535884f7858d013cf"
+  ],
+  "implementation": {
+    "checker": "/usr/local/sbin/keyspilli-ops-check",
+    "dependencies": "PYTHON_STDLIB_ONLY",
+    "externalService": false,
+    "newSecret": false,
+    "schemaMigration": false,
+    "lightCadence": "30 minutes",
+    "deepCadence": "daily with randomized delay up to 1 hour",
+    "failureVisibility": ["systemd failed state", "journal", "operator JSON command"]
+  },
+  "thresholds": {
+    "diskHealthyGiB": 34,
+    "diskFailBelowGiB": 30,
+    "backupWarnHours": 30,
+    "backupFailHours": 48,
+    "tlsWarnDays": 21,
+    "tlsFailDays": 7
+  },
+  "coverage": {
+    "liveRevisionAndImage": "PASS",
+    "webHealth": "PASS",
+    "workerRunning": "PASS",
+    "directAudioAmtFalse": "PASS",
+    "sourceDiscoveryConfigured": "PASS",
+    "disk": "WARNING_32_407_GIB_ABOVE_HARD_FLOOR",
+    "backupTimer": "PASS_ENABLED_ACTIVE",
+    "backupAgeAndResult": "PASS",
+    "sqliteLiveIntegrity": "ok",
+    "sqliteBackupIntegrity": "ok",
+    "backupArchiveReadability": "PASS",
+    "tlsDaysRemaining": 42.368,
+    "caddyValidity": "PASS",
+    "privateBoundaryAnonymousStatus": 401,
+    "webRestarts": 0,
+    "workerRestarts": 0,
+    "providerOutcomeCounts24h": {
+      "candidatesFound": 2,
+      "noCandidates": 1,
+      "rateLimited": 0,
+      "unavailable": 0,
+      "notConfigured": 0
+    }
+  },
+  "tests": {
+    "healthyFixture": "PASS",
+    "lowDiskFixture": "PASS_FAILED_CLOSED",
+    "staleBackupFixture": "PASS_FAILED_CLOSED",
+    "ansibleSyntax": "PASS",
+    "systemdUnitVerification": "PASS",
+    "liveLight": "PASS_WITH_DISK_WARNING",
+    "liveDeep": "PASS_WITH_DISK_WARNING"
+  },
+  "bugFixed": {
+    "symptom": "Cloudflare returned 403 to Python urllib's default user agent during the anonymous boundary probe",
+    "rootCause": "The provider edge filtered the generic urllib user agent before Caddy could return Basic Auth 401",
+    "fix": "Use a stable non-secret Keyspilli-Ops user agent",
+    "productionApplicationImpact": false
+  },
+  "alertingBoundary": {
+    "externalAlerts": "NOT_CONFIGURED",
+    "reason": "No new external service or credential was authorized",
+    "automaticDeletionOrPrune": false
+  },
+  "decision": "PRIVATE_ALPHA_OPERATIONS_MONITORING_DEPLOYED_VERIFIED"
+}

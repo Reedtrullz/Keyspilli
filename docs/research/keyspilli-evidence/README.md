@@ -21,12 +21,15 @@ independent `alignment.status = aligned` attestation before it can be treated as
 generation evidence. Strict reference scoring is null/fail-closed without at
 least three aligned windows and 32 comparable bars.
 
-The hardened private-alpha deployment candidate was rolled back after a real
-browser exposed a pre-existing same-origin reconstruction defect behind the
-reverse proxy. The shared guard is now fixed and validated locally with a real
-Chromium browser through the proxy into the exact production image. Production
-remains on the rollback revision; the next task is the separately authorized
-`DISCOVERY_ASSISTED_PRIVATE_ALPHA_HARDENING_DEPLOYMENT_CANARY_RETRY`.
+The repaired private-alpha release is now live at immutable revision
+`e9dd13a672e9d252b6441076e3ff99c3937cecd9`. A real Chromium browser completed
+the authenticated same-origin upload through the live reverse proxy; cross-site
+mutation remained blocked. The deployment also passed discovery/handoff,
+generation, exports, restart, atomic failure, idempotency, and scoped cleanup.
+Keyspilli-owned light/deep systemd monitoring now exposes health, disk, backup,
+TLS, Caddy, container, database, and provider-event state without a new secret
+or external service. Current decision:
+`PRIVATE_ALPHA_OPERATIONALLY_HARDENED_LIVE_VERIFIED`.
 
 ## Chronological conclusions
 
@@ -158,6 +161,13 @@ not been retried.
 * `discovery-assisted-private-alpha-hardening-deployment-canary-2026-09-05.json`
   — exact live candidate artifact, discovery/handoff/symbolic canaries,
   browser-origin failure, cleanup, and verified rollback evidence.
+* `discovery-assisted-private-alpha-hardening-deployment-canary-retry-2026-09-05.json`
+  — immutable retry artifact, real-browser live upload, security boundaries,
+  durability, cleanup, and retained rollback evidence.
+* `private-alpha-operations-monitoring-hardening-2026-09-05.json` — deployed
+  light/deep operations checker, thresholds, negative fixtures, and live status.
+* `private-alpha-operational-readiness-closeout-2026-09-05.json` — consolidated
+  live, recovery, operations, limitation, and next-goal decision.
 
 ## Cold-transfer boundary
 

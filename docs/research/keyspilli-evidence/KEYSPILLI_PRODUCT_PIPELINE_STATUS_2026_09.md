@@ -10,17 +10,15 @@ the candidate-intake work below are additive; no benchmark material entered
 generation. The authorized live canary temporarily wrote and then removed its
 test rows/source bytes; no canary content was retained.
 
-The 2026-09-05 hardened private-alpha candidate was subsequently deployed only
-long enough to run its authorized canaries, then rolled back. Its health,
-discovery, metadata handoff, worker-off symbolic pipeline, restart, cleanup,
-and immutable rollback passed. A real browser upload mutation failed with 403
-because reverse-proxy origin reconstruction retained the internal web port.
-The defect also reproduces on the restored prior release, so it is pre-existing.
-The shared mutation guard is now fixed and validated locally through a real
-Chromium browser, a reverse proxy that exposes an internal web port, and the
-exact production image. Production remains on revision
-`67827050a695e54609f6cf3f064e4fdaaabbb65b`; a new deployment canary has not
-been authorized or run.
+The reverse-proxy browser-origin defect was fixed, rebuilt as immutable
+`linux/amd64` image `e9dd13a672e9`, and verified through a real Chromium upload
+on the authenticated live domain. Production now runs revision
+`e9dd13a672e9d252b6441076e3ff99c3937cecd9`; the worker and persistent data
+volume were unchanged. Discovery/handoff, direct-AMT disablement, six physical
+and five public levels, players, exports, retry, restart, failure atomicity, and
+complete canary cleanup passed. Light/deep systemd operations monitoring is
+also deployed. Current decision:
+`PRIVATE_ALPHA_OPERATIONALLY_HARDENED_LIVE_VERIFIED`.
 
 The preceding intake/shadow mission started at
 `d284b911b2a1ce3e22ce701f0ca02588f1f2b238`. The current real-timing
@@ -36,7 +34,7 @@ The CLaMP3 sparse-landmark investigation started from the remote-backed
 | Stage | Status | Evidence boundary |
 |---|---|---|
 | Source intake | VALIDATED (local + approved direct URL seam) | Native MIDI/MusicXML/MXL parsing, bounded bytes, magic/content checks, HTML/error rejection, path-safe provenance, and candidate firewall tests pass. MSCZ is recognized but explicitly unsupported. |
-| Live browser symbolic upload | LOCAL FIX VALIDATED — DEPLOYMENT RETRY REQUIRED | Fresh-origin reconstruction removes the internal port for default public HTTPS, preserves explicit public ports, fails closed on malformed/partial metadata, and passed browser-to-proxy upload against the exact production image. Production remains rolled back pending a separately authorized canary. |
+| Live browser symbolic upload | LIVE VERIFIED | Real Chromium completed an authenticated same-origin symbolic upload through Caddy/Cloudflare into the immutable production image; cross-origin and metadata-free mutations remained rejected. |
 | Parse/provenance | VALIDATED | Native adapter records SHA-256/size/parser metadata; unknown provenance is not generation-eligible. |
 | Role inference | VALIDATED (shadow override) | The single-stem Guitar-TECHS MIDI is explicitly mapped to guitar for the shadow arrangement; no drum pitches reached output. |
 | Alignment | PARTIAL — V2 RESOURCE FIXED; NON-DTW SKF MIXED; CLaMP3 SPARSE RETRIEVAL RESOURCE-BLOCKED | Frozen V2 completes all four revealed ASAP/MAESTRO pairs but leaves regional accuracy unresolved. Matchmaker SKF is mixed and was not promoted. The one approved CLaMP3 reference was not evaluated because its pinned weights exceed the bounded footprint before download; no CLaMP3 production candidate was created. |
@@ -46,6 +44,7 @@ The CLaMP3 sparse-landmark investigation started from the remote-backed
 | Artifact writing | PASS (scratch persisted) | All six physical variants produced MIDI and MusicXML bytes, passed existing validators/reparsers, and were atomically persisted in an isolated temporary data directory. |
 | Catalog/public projection | PASS (scratch persisted; non-production) | One grouped scratch song and five public levels were read through the catalog API; no production catalog write or publishability claim was made. |
 | Player entry links | LOCAL_EXERCISED | Scratch-only browser flow resolved the Easy link, public five-level links, legacy Very Easy route, and MIDI/MusicXML exports against an isolated temporary catalog. |
+| Operations visibility | LIVE VERIFIED | Light/deep systemd checks cover revision, containers, capability flags, private edge, disk, backups, TLS, Caddy, SQLite, archive readability, restart counts, and provider outcomes. |
 
 ## Real non-synthetic shadow pair
 
@@ -1346,3 +1345,43 @@ ranking, musical, AMT, alignment, deployment, or VPS change occurred. Production
 remains at the rollback revision according to existing evidence. The single next
 task is `DISCOVERY_ASSISTED_PRIVATE_ALPHA_HARDENING_DEPLOYMENT_CANARY_RETRY`,
 which requires explicit owner authorization.
+
+## 2026-09-05 — Hardened private-alpha deployment retry passed
+
+The immutable `linux/amd64` web image for runtime revision
+`e9dd13a672e9d252b6441076e3ff99c3937cecd9` was deployed by recreating only the
+web service. The previous `67827050a695` image and Compose configuration remain
+available for rollback; the worker, Caddy, secrets, and persistent volume were
+unchanged. A fresh predeployment backup passed SQLite and archive validation.
+
+Real Chromium through the authenticated live domain completed metadata-only
+Brave discovery, an affirmed handoff, and a project-owned MIDI mutation. The
+result produced six physical variants, five public levels, both player entry
+paths, and MIDI/MusicXML/simplify-PDF/classic-PDF exports. Identical retry,
+restart persistence, malformed-input atomicity, cross-origin rejection, AMT
+HTTP 410 with no new job, and complete scoped cleanup passed. No third-party
+page or source bytes were fetched.
+
+Decision: `DISCOVERY_ASSISTED_PRIVATE_ALPHA_HARDENED_LIVE_VERIFIED`. Evidence:
+`discovery-assisted-private-alpha-hardening-deployment-canary-retry-2026-09-05.json`
+(SHA-256 `f690550c0fba900aea8194adf642c94c2ac62263c7ef67b89a1b93f6a314cf34`).
+
+## 2026-09-05 — Private-alpha operations monitoring deployed
+
+A Keyspilli-owned stdlib checker now runs every 30 minutes, with a daily deep
+check. It reports live revision/image consistency, web/worker state, capability
+flags, anonymous edge behavior, disk, backup result/age, TLS expiry, Caddy
+validity, restart counts, provider outcome counts, live/backup SQLite integrity,
+and archive readability. It neither calls Brave nor uses a new secret or
+external service. Synthetic low-disk and stale-backup fixtures fail closed.
+
+Both live checks pass with one expected warning: 32.407 GiB free is above the
+30 GiB hard floor and below the 34 GiB preferred floor. The latest backup DB
+also restored into scratch with integrity `ok`, 2778 song rows, 86 jobs, and no
+handoffs; scratch was removed without touching production.
+
+Final decision: `PRIVATE_ALPHA_OPERATIONALLY_HARDENED_LIVE_VERIFIED`. Musical
+quality remains `MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`; human listening
+was not requested and is not required by default. Operations and recovery
+evidence are in `private-alpha-operations-monitoring-hardening-2026-09-05.json`
+and `private-alpha-operational-readiness-closeout-2026-09-05.json`.

@@ -2955,6 +2955,100 @@
       "decision": "LIVE_SAME_ORIGIN_BROWSER_MUTATION_FIX_VALIDATED",
       "report": "live-same-origin-browser-mutation-port-fix-2026-09-05.json",
       "nextTask": "DISCOVERY_ASSISTED_PRIVATE_ALPHA_HARDENING_DEPLOYMENT_CANARY_RETRY"
+    },
+    {
+      "id": "discovery-assisted-private-alpha-hardening-deployment-canary-retry-2026-09-05",
+      "date": "2026-09-05",
+      "startingRevision": "af2c2bbe1c8282fc65c5d2cdea1838e1d5d98fe0",
+      "deployedRevision": "e9dd13a672e9d252b6441076e3ff99c3937cecd9",
+      "artifact": {
+        "tag": "ghcr.io/reedtrullz/keyspilli:e9dd13a672e9",
+        "digest": "sha256:8f29dee0bd2c28d27128eeaedb2118447024a4bd2779b787e0f2489a5adcfcdc",
+        "platform": "linux/amd64",
+        "nativeVpsChromium": "PASS"
+      },
+      "canary": {
+        "realBrowserSameOriginUpload": "PASS",
+        "crossOriginRejected": "PASS",
+        "discoveryMetadataOnly": "PASS_3_CANDIDATES",
+        "handoffAffirmed": "PASS",
+        "directAudioAmtDisabled": "PASS_410_NO_NEW_JOBS",
+        "physicalVariants": 6,
+        "publicLevels": 5,
+        "playerAndExports": "PASS",
+        "idempotentRetry": "PASS",
+        "restartPersistence": "PASS",
+        "atomicMalformedInput": "PASS",
+        "cleanup": "PASS"
+      },
+      "scope": {
+        "workerChanged": false,
+        "credentialsChanged": false,
+        "caddyChanged": false,
+        "candidatePageFetches": 0,
+        "candidateByteFetches": 0,
+        "musicalBehaviorChanged": false,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT"
+      },
+      "decision": "DISCOVERY_ASSISTED_PRIVATE_ALPHA_HARDENED_LIVE_VERIFIED",
+      "report": {
+        "path": "discovery-assisted-private-alpha-hardening-deployment-canary-retry-2026-09-05.json",
+        "sha256": "f690550c0fba900aea8194adf642c94c2ac62263c7ef67b89a1b93f6a314cf34"
+      },
+      "nextTask": "PRIVATE_ALPHA_OPERATIONS_MONITORING_HARDENING"
+    },
+    {
+      "id": "private-alpha-operations-monitoring-hardening-2026-09-05",
+      "date": "2026-09-05",
+      "implementationRevisions": [
+        "b9d4a3ca880fa7b67ab54cc73ae91969d1187109",
+        "914dba3824d6c86bb38e3cd535884f7858d013cf"
+      ],
+      "verification": {
+        "fixtureTests": "PASS",
+        "ansibleSyntax": "PASS",
+        "systemdUnits": "PASS",
+        "liveLight": "PASS_WITH_DISK_WARNING",
+        "liveDeep": "PASS_WITH_DISK_WARNING",
+        "sqlite": "ok",
+        "backup": "PASS",
+        "tls": "PASS",
+        "caddy": "PASS"
+      },
+      "scope": {
+        "externalService": false,
+        "newSecret": false,
+        "schemaMigration": false,
+        "applicationContainerRecreated": false,
+        "musicalBehaviorChanged": false
+      },
+      "decision": "PRIVATE_ALPHA_OPERATIONS_MONITORING_DEPLOYED_VERIFIED",
+      "report": {
+        "path": "private-alpha-operations-monitoring-hardening-2026-09-05.json",
+        "sha256": "8ba6a209f63a611d02190c0e203d2041e57ba170b92ad9396fb9a9821296d5ac"
+      },
+      "nextTask": "PRIVATE_ALPHA_OPERATIONAL_READINESS_CLOSEOUT"
+    },
+    {
+      "id": "private-alpha-operational-readiness-closeout-2026-09-05",
+      "date": "2026-09-05",
+      "deployedRevision": "e9dd13a672e9d252b6441076e3ff99c3937cecd9",
+      "operationsRevision": "914dba3824d6c86bb38e3cd535884f7858d013cf",
+      "recovery": {
+        "rollbackRevision": "67827050a695e54609f6cf3f064e4fdaaabbb65b",
+        "latestBackupIntegrity": "ok",
+        "scratchRestore": "PASS",
+        "productionRestore": false
+      },
+      "warning": "DISK_BELOW_PREFERRED_34_GIB_ABOVE_HARD_30_GIB",
+      "decision": "PRIVATE_ALPHA_OPERATIONALLY_HARDENED_LIVE_VERIFIED",
+      "quality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+      "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+      "report": {
+        "path": "private-alpha-operational-readiness-closeout-2026-09-05.json",
+        "sha256": "8d6e5292a543595091ae34199695aa589c71b059447886d3584106ccbbc35f4b"
+      },
+      "nextTask": "PRIVATE_ALPHA_USAGE_AND_FEEDBACK_PHASE"
     }
   ]
 }

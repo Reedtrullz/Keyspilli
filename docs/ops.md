@@ -735,3 +735,28 @@ origins remained rejected, while six physical variants, five public levels,
 player/export routes, and malformed-input atomicity passed in disposable state.
 This is local release evidence only: production was not accessed or changed and
 remains on the prior rollback revision according to existing evidence.
+
+### Private-alpha deployment retry and monitoring — 2026-09-05
+
+The same-origin fix is live as immutable web image
+`ghcr.io/reedtrullz/keyspilli:e9dd13a672e9` (registry digest
+`sha256:8f29dee0bd2c28d27128eeaedb2118447024a4bd2779b787e0f2489a5adcfcdc`).
+Only the web service was recreated. The worker stayed on
+`ghcr.io/reedtrullz/keyspilli-worker:17f997600b9f`; Caddy, secrets, data, and
+the volume were unchanged.
+
+A real Chromium browser completed metadata discovery, affirmed handoff, and a
+project-owned MIDI upload through the authenticated live domain. Six physical
+variants, five public levels, Easy and legacy Very Easy routes, MIDI/MusicXML
+and both PDF exports, identical retry, restart persistence, malformed-input
+atomicity, and complete scoped cleanup passed. Anonymous access remains 401,
+cross-origin mutation 403, metadata-free mutation 401, and direct audio AMT
+410. No third-party page or symbolic bytes were fetched.
+
+The light and deep operations timers are deployed as documented above. At the
+deployment closeout, disk was above the 30 GiB hard floor but below the
+preferred 34 GiB threshold,
+so the checker reports a warning while exiting successfully. The immutable
+`67827050a695` image and pre-retry Compose file remain available for rollback.
+The latest SQLite backup restored into scratch with integrity `ok`; production
+was not restored or otherwise modified.
