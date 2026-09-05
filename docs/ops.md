@@ -656,3 +656,34 @@ failed. Historical small audio-derived diagnostics are unaffected. Reopening
 full-song AMT requires a material trigger recorded in
 `audio-amt-branch-closeout-2026-09-05.json`, not a new model listing, leaderboard
 change, recommendation, or minor version bump.
+
+### Hardened private-alpha deployment canary — failed and rolled back — 2026-09-05
+
+The owner-authorized `4f87c05d25e175446ce05ceac6031fadab3f8892`
+candidate was built natively as `linux/amd64`, passed exact-version container
+health, and was temporarily installed by recreating only the web service in the
+existing remote Compose topology. Ansible was not run because its required
+local application/provider secret inputs were unavailable; replaying it would
+have risked overwriting the validated server-side secret configuration. Caddy,
+the worker, persistent data, and all existing credentials remained unchanged.
+
+Discovery, metadata-only handoff, direct-AMT disablement, a project-owned
+worker-off symbolic upload, all six physical and five public levels, player and
+exports, retry idempotency, restart persistence, malformed-input atomicity, and
+scoped cleanup passed. No discovered page or third-party source bytes were
+fetched.
+
+A real browser request from the authenticated `/uploads` page failed at the
+mutation boundary with HTTP 403. The origin helper reconstructed the forwarded
+HTTPS origin while retaining the internal container port, producing an origin
+that cannot equal the browser's public origin. A curl request carrying only
+`Sec-Fetch-Site: same-origin` did not expose this defect and is not an adequate
+browser-upload canary. The browser failure also reproduced after restoring the
+previous release, proving the bug is pre-existing.
+
+The candidate was rolled back. Live health again reports revision
+`67827050a695e54609f6cf3f064e4fdaaabbb65b`; database integrity, existing
+content, worker identity, Caddy, secrets, and complete canary cleanup were
+verified. Decision: `HARDENING_DEPLOYMENT_CANARY_FAILED_ROLLED_BACK`. Do not
+retry deployment until `FIX_LIVE_SAME_ORIGIN_BROWSER_MUTATION_PORT_RECONSTRUCTION`
+is implemented and covered by a reverse-proxy browser regression.

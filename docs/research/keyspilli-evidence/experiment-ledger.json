@@ -2869,6 +2869,58 @@
       "decision": "DISCOVERY_ASSISTED_PRIVATE_ALPHA_PRODUCT_HARDENING_READY",
       "report": "discovery-assisted-private-alpha-product-hardening-2026-09-05.json",
       "nextTask": "DISCOVERY_ASSISTED_PRIVATE_ALPHA_HARDENING_DEPLOYMENT_CANARY"
+    },
+    {
+      "id": "discovery-assisted-private-alpha-hardening-deployment-canary-2026-09-05",
+      "date": "2026-09-05",
+      "startingRevision": "4f87c05d25e175446ce05ceac6031fadab3f8892",
+      "authorization": "EXPLICIT_OWNER_AUTHORIZATION",
+      "purpose": "Deploy the hardened discovery-assisted private alpha long enough to verify its live boundary, then retain or roll back from objective canary evidence",
+      "artifact": {
+        "tag": "ghcr.io/reedtrullz/keyspilli:4f87c05d25e1",
+        "digest": "sha256:5c8d9050a7d226cc7550db7a8df6d3823d8bdc44d7a91508a6a83afab4df19c3",
+        "platform": "linux/amd64",
+        "exactRevisionHealth": true
+      },
+      "deployment": {
+        "ansible": "NOT_RUN",
+        "remoteCompose": "PASS_WEB_ONLY_EXACT_IMMUTABLE_RECREATION",
+        "workerChanged": false,
+        "credentialsChanged": false,
+        "caddyChanged": false,
+        "rolledBack": true,
+        "restoredRevision": "67827050a695e54609f6cf3f064e4fdaaabbb65b"
+      },
+      "canary": {
+        "discoveryMetadata": "PASS",
+        "handoffNoFetch": "PASS",
+        "directAudioAmtDisabled": "PASS",
+        "projectOwnedSymbolicUpload": "PASS",
+        "physicalVariants": 6,
+        "publicLevels": 5,
+        "playerAndExports": "PASS",
+        "idempotentRetry": "PASS",
+        "restartPersistence": "PASS",
+        "atomicMalformedInput": "PASS",
+        "cleanup": "PASS",
+        "realBrowserSameOriginUpload": "FAIL_403"
+      },
+      "blocker": {
+        "id": "LIVE_SAME_ORIGIN_BROWSER_MUTATION_PORT_RECONSTRUCTION",
+        "preExisting": true,
+        "cause": "Forwarded HTTPS origin reconstruction retains the internal container port and rejects the genuine public browser Origin."
+      },
+      "scope": {
+        "candidatePageFetches": 0,
+        "candidateByteFetches": 0,
+        "newConversionJobs": 0,
+        "workerInvocations": 0,
+        "musicalBehaviorChanged": false,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT"
+      },
+      "decision": "HARDENING_DEPLOYMENT_CANARY_FAILED_ROLLED_BACK",
+      "report": "discovery-assisted-private-alpha-hardening-deployment-canary-2026-09-05.json",
+      "nextTask": "FIX_LIVE_SAME_ORIGIN_BROWSER_MUTATION_PORT_RECONSTRUCTION"
     }
   ]
 }

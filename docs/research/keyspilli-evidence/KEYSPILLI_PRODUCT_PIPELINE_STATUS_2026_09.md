@@ -10,6 +10,15 @@ the candidate-intake work below are additive; no benchmark material entered
 generation. The authorized live canary temporarily wrote and then removed its
 test rows/source bytes; no canary content was retained.
 
+The 2026-09-05 hardened private-alpha candidate was subsequently deployed only
+long enough to run its authorized canaries, then rolled back. Its health,
+discovery, metadata handoff, worker-off symbolic pipeline, restart, cleanup,
+and immutable rollback passed. A real browser upload mutation failed with 403
+because reverse-proxy origin reconstruction retained the internal web port.
+The defect also reproduces on the restored prior release, so it is pre-existing,
+but it remains a live product blocker. Production is back on revision
+`67827050a695e54609f6cf3f064e4fdaaabbb65b`.
+
 The preceding intake/shadow mission started at
 `d284b911b2a1ce3e22ce701f0ca02588f1f2b238`. The current real-timing
 hardening slice started at
@@ -24,6 +33,7 @@ The CLaMP3 sparse-landmark investigation started from the remote-backed
 | Stage | Status | Evidence boundary |
 |---|---|---|
 | Source intake | VALIDATED (local + approved direct URL seam) | Native MIDI/MusicXML/MXL parsing, bounded bytes, magic/content checks, HTML/error rejection, path-safe provenance, and candidate firewall tests pass. MSCZ is recognized but explicitly unsupported. |
+| Live browser symbolic upload | BLOCKED — PRE-EXISTING REVERSE-PROXY ORIGIN RECONSTRUCTION | The authenticated `/uploads` page loads, but a genuine same-origin browser mutation receives 403 because the reconstructed request origin retains the internal port. Curl metadata probes are not sufficient evidence. |
 | Parse/provenance | VALIDATED | Native adapter records SHA-256/size/parser metadata; unknown provenance is not generation-eligible. |
 | Role inference | VALIDATED (shadow override) | The single-stem Guitar-TECHS MIDI is explicitly mapped to guitar for the shadow arrangement; no drum pitches reached output. |
 | Alignment | PARTIAL — V2 RESOURCE FIXED; NON-DTW SKF MIXED; CLaMP3 SPARSE RETRIEVAL RESOURCE-BLOCKED | Frozen V2 completes all four revealed ASAP/MAESTRO pairs but leaves regional accuracy unresolved. Matchmaker SKF is mixed and was not promoted. The one approved CLaMP3 reference was not evaluated because its pinned weights exceed the bounded footprint before download; no CLaMP3 production candidate was created. |
@@ -1276,3 +1286,34 @@ status remains `DISCOVERY_ASSISTED_PRIVATE_ALPHA_LIVE_VERIFIED`; this mission
 did not deploy. The only next task is
 `DISCOVERY_ASSISTED_PRIVATE_ALPHA_HARDENING_DEPLOYMENT_CANARY`, requiring
 explicit owner authorization.
+
+## 2026-09-05 — Hardened private-alpha deployment canary rolled back
+
+The explicitly authorized release `4f87c05d25e175446ce05ceac6031fadab3f8892`
+was built natively for `linux/amd64` on the VPS and temporarily deployed by
+recreating only the web service from the existing remote Compose topology.
+Ansible was not run because the required local secret values were unavailable
+and replaying the playbook risked replacing the validated server-side secret
+configuration. The existing Caddy Basic Auth, Brave, application bearer, data,
+and worker configuration remained unchanged.
+
+Exact-version health, Basic Auth, Brave metadata discovery, the no-page/no-byte
+handoff boundary, HTTP 410 AMT disablement, a project-owned worker-off MIDI
+upload, six physical/five public variants, Easy and legacy Very Easy players,
+MIDI/MusicXML/PDF exports, retry idempotency, restart persistence, malformed
+input atomicity, and complete scoped cleanup passed. No third-party candidate
+page or bytes were fetched. The worker was neither rebuilt nor restarted.
+
+A genuine browser request from `/uploads` then exposed a release blocker:
+`POST /api/uploads` returned 403 `cross-origin request rejected`. The shared
+mutation-auth helper reconstructs the public HTTPS origin while retaining the
+internal container port, so it compares the browser origin against an origin
+such as `https://keys.reidar.tech:3000`. The same browser failure reproduced
+after restoring the previous release, confirming that it is pre-existing rather
+than introduced by this candidate. The candidate was nevertheless rolled back
+immediately, and post-rollback health, database integrity, production content,
+worker identity, Caddy, credentials, and scoped cleanup were verified.
+
+Decision: `HARDENING_DEPLOYMENT_CANARY_FAILED_ROLLED_BACK`. Human listening was
+not requested or required; musical behavior changed by zero. The single next
+task is `FIX_LIVE_SAME_ORIGIN_BROWSER_MUTATION_PORT_RECONSTRUCTION`.

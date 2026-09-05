@@ -21,6 +21,13 @@ independent `alignment.status = aligned` attestation before it can be treated as
 generation evidence. Strict reference scoring is null/fail-closed without at
 least three aligned windows and 32 comparable bars.
 
+The hardened private-alpha deployment candidate was rolled back after a real
+browser exposed a pre-existing same-origin reconstruction defect behind the
+reverse proxy. Discovery, metadata-only handoff, worker-off symbolic ingestion,
+restart, cleanup, and rollback passed; the browser upload mutation itself was
+rejected because the internal port leaked into the reconstructed public origin.
+The next task is `FIX_LIVE_SAME_ORIGIN_BROWSER_MUTATION_PORT_RECONSTRUCTION`.
+
 ## Chronological conclusions
 
 ### Direct metal and semantic guitar work
@@ -92,8 +99,9 @@ Direct dense-metal AMT is `AUDIO_AMT_BRANCH_CLOSED_FOR_CURRENT_PRODUCT_ARCHITECT
 It must not act as source authority or automatic fallback without one of the
 material reopening triggers frozen in the closeout report. The current product
 path is `EXTERNAL_SYMBOLIC_FIRST`. Product hardening is complete locally; the
-next task is `DISCOVERY_ASSISTED_PRIVATE_ALPHA_HARDENING_DEPLOYMENT_CANARY`,
-which requires explicit owner authorization.
+authorized deployment candidate was rolled back after its real browser upload
+mutation failed at the reverse-proxy origin boundary. The next task is
+`FIX_LIVE_SAME_ORIGIN_BROWSER_MUTATION_PORT_RECONSTRUCTION`.
 
 ## Durable companion files
 
@@ -146,6 +154,9 @@ which requires explicit owner authorization.
 * `discovery-assisted-private-alpha-product-hardening-2026-09-05.json` —
   learner-surface contract reconciliation, fail-closed public AMT retirement,
   discovery/upload state matrix, and local production-container canary.
+* `discovery-assisted-private-alpha-hardening-deployment-canary-2026-09-05.json`
+  — exact live candidate artifact, discovery/handoff/symbolic canaries,
+  browser-origin failure, cleanup, and verified rollback evidence.
 
 ## Cold-transfer boundary
 
