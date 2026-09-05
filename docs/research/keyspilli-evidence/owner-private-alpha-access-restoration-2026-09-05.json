@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "owner-private-alpha-access-restoration-2026-09-05",
   "date": "2026-09-05",
-  "repositoryRevision": "4e335ca80b53c1cd785368b8b7410075fbb4a900",
+  "startingRepositoryRevision": "4e335ca80b53c1cd785368b8b7410075fbb4a900",
   "deployedRevision": "e9dd13a672e9d252b6441076e3ff99c3937cecd9",
   "rootCause": "The approved edge credential was valid but existed only as an opaque generic Keychain service, with no domain-scoped entry for normal owner recovery.",
   "accessStack": {

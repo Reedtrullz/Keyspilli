@@ -3084,7 +3084,7 @@
     {
       "id": "owner-private-alpha-access-restoration-2026-09-05",
       "date": "2026-09-05",
-      "repositoryRevision": "4e335ca80b53c1cd785368b8b7410075fbb4a900",
+      "startingRevision": "4e335ca80b53c1cd785368b8b7410075fbb4a900",
       "deployedRevision": "e9dd13a672e9d252b6441076e3ff99c3937cecd9",
       "rootCause": "VALID_CREDENTIAL_NOT_DOMAIN_DISCOVERABLE_IN_KEYCHAIN",
       "verification": {
@@ -3107,7 +3107,7 @@
       "decision": "OWNER_PRIVATE_ALPHA_ACCESS_VALIDATED",
       "report": {
         "path": "owner-private-alpha-access-restoration-2026-09-05.json",
-        "sha256": "4e5e0ef6798098afad0ba3c23c469053d03af60b0d246f224c9e22f970bc146b"
+        "sha256": "317ce455a1d7f53d8f44c73e89fbcf984c7c1ff94442d3a03dcbf3b07bff2c04"
       },
       "nextTask": "OWNER_PRIVATE_ALPHA_USAGE_TRIAL"
     }
