@@ -2921,6 +2921,40 @@
       "decision": "HARDENING_DEPLOYMENT_CANARY_FAILED_ROLLED_BACK",
       "report": "discovery-assisted-private-alpha-hardening-deployment-canary-2026-09-05.json",
       "nextTask": "FIX_LIVE_SAME_ORIGIN_BROWSER_MUTATION_PORT_RECONSTRUCTION"
+    },
+    {
+      "id": "live-same-origin-browser-mutation-port-fix-2026-09-05",
+      "date": "2026-09-05",
+      "startingRevision": "ce1c4efae5658669634d2413b168d4d7e5656a73",
+      "implementationRevision": "c3a7e50ca621ac2b0ea943a474a8c6af572e19b7",
+      "purpose": "Fix the shared browser mutation origin reconstruction without weakening bearer or cross-origin protection",
+      "rootCause": "Assigning protocol and then a forwarded host without a port to the internal URL retained its explicit internal port.",
+      "verification": {
+        "redReproduction": "CONFIRMED",
+        "mutationAuthTests": "16_OF_16",
+        "focusedWebTests": "44_OF_44",
+        "workspaceTests": "1704_OF_1704",
+        "workspaceTypechecks": "6_OF_6",
+        "browserProxyDevelopment": "PASS_4_OF_4",
+        "browserProxyExactImage": "PASS_4_OF_4",
+        "productionBuild": "PASS",
+        "productionImage": "sha256:5f8ea1551b5b418b181bbe374e0623eadd8edac386174a72039f7274b8426f19",
+        "exactRevisionHealth": true
+      },
+      "scope": {
+        "caddyChanges": 0,
+        "providerOrRankingChanges": 0,
+        "musicalBehaviorChanged": false,
+        "amtChanges": 0,
+        "alignmentChanges": 0,
+        "deployment": "NO_DEPLOYMENT",
+        "vpsMutation": "NO_VPS_MUTATION",
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT"
+      },
+      "productionAccordingToExistingRollbackEvidence": "67827050a695e54609f6cf3f064e4fdaaabbb65b",
+      "decision": "LIVE_SAME_ORIGIN_BROWSER_MUTATION_FIX_VALIDATED",
+      "report": "live-same-origin-browser-mutation-port-fix-2026-09-05.json",
+      "nextTask": "DISCOVERY_ASSISTED_PRIVATE_ALPHA_HARDENING_DEPLOYMENT_CANARY_RETRY"
     }
   ]
 }

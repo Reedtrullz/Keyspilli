@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 
 const scratchDataDir = mkdtempSync(join(tmpdir(), "keyspilli-web-e2e-proxy-"));
 process.env.KEYSPILLI_E2E_SCRATCH_DIR = scratchDataDir;
+const externalTarget = process.env.KEYSPILLI_PROXY_EXTERNAL_TARGET === "1";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -13,18 +14,20 @@ export default defineConfig({
   timeout: 120_000,
   globalTeardown: "./e2e/scratch-global-teardown.ts",
   webServer: [
-    {
-      command: "npm run dev -- --port 3201",
-      url: "http://127.0.0.1:3201",
-      reuseExistingServer: false,
-      timeout: 120_000,
-      env: {
-        KEYSPILLI_DATA_DIR: scratchDataDir,
-        KEYSPILLI_E2E_SCRATCH_DIR: scratchDataDir,
-        KEYSPILLI_API_TOKEN: "test-token-for-e2e",
-        NEXT_TELEMETRY_DISABLED: "1",
-      },
-    },
+    ...(externalTarget
+      ? []
+      : [{
+          command: "npm run dev -- --port 3201",
+          url: "http://127.0.0.1:3201",
+          reuseExistingServer: false,
+          timeout: 120_000,
+          env: {
+            KEYSPILLI_DATA_DIR: scratchDataDir,
+            KEYSPILLI_E2E_SCRATCH_DIR: scratchDataDir,
+            KEYSPILLI_API_TOKEN: "test-token-for-e2e",
+            NEXT_TELEMETRY_DISABLED: "1",
+          },
+        }]),
     {
       command: "node scripts/reverse-proxy.mjs",
       url: "http://127.0.0.1:3200",

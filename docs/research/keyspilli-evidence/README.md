@@ -23,10 +23,10 @@ least three aligned windows and 32 comparable bars.
 
 The hardened private-alpha deployment candidate was rolled back after a real
 browser exposed a pre-existing same-origin reconstruction defect behind the
-reverse proxy. Discovery, metadata-only handoff, worker-off symbolic ingestion,
-restart, cleanup, and rollback passed; the browser upload mutation itself was
-rejected because the internal port leaked into the reconstructed public origin.
-The next task is `FIX_LIVE_SAME_ORIGIN_BROWSER_MUTATION_PORT_RECONSTRUCTION`.
+reverse proxy. The shared guard is now fixed and validated locally with a real
+Chromium browser through the proxy into the exact production image. Production
+remains on the rollback revision; the next task is the separately authorized
+`DISCOVERY_ASSISTED_PRIVATE_ALPHA_HARDENING_DEPLOYMENT_CANARY_RETRY`.
 
 ## Chronological conclusions
 
@@ -100,8 +100,9 @@ It must not act as source authority or automatic fallback without one of the
 material reopening triggers frozen in the closeout report. The current product
 path is `EXTERNAL_SYMBOLIC_FIRST`. Product hardening is complete locally; the
 authorized deployment candidate was rolled back after its real browser upload
-mutation failed at the reverse-proxy origin boundary. The next task is
-`FIX_LIVE_SAME_ORIGIN_BROWSER_MUTATION_PORT_RECONSTRUCTION`.
+mutation failed at the reverse-proxy origin boundary. The defect is now covered
+by `live-same-origin-browser-mutation-port-fix-2026-09-05.json`; deployment has
+not been retried.
 
 ## Durable companion files
 

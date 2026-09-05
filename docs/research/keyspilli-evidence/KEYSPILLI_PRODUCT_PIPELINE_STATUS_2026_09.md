@@ -15,9 +15,12 @@ long enough to run its authorized canaries, then rolled back. Its health,
 discovery, metadata handoff, worker-off symbolic pipeline, restart, cleanup,
 and immutable rollback passed. A real browser upload mutation failed with 403
 because reverse-proxy origin reconstruction retained the internal web port.
-The defect also reproduces on the restored prior release, so it is pre-existing,
-but it remains a live product blocker. Production is back on revision
-`67827050a695e54609f6cf3f064e4fdaaabbb65b`.
+The defect also reproduces on the restored prior release, so it is pre-existing.
+The shared mutation guard is now fixed and validated locally through a real
+Chromium browser, a reverse proxy that exposes an internal web port, and the
+exact production image. Production remains on revision
+`67827050a695e54609f6cf3f064e4fdaaabbb65b`; a new deployment canary has not
+been authorized or run.
 
 The preceding intake/shadow mission started at
 `d284b911b2a1ce3e22ce701f0ca02588f1f2b238`. The current real-timing
@@ -33,7 +36,7 @@ The CLaMP3 sparse-landmark investigation started from the remote-backed
 | Stage | Status | Evidence boundary |
 |---|---|---|
 | Source intake | VALIDATED (local + approved direct URL seam) | Native MIDI/MusicXML/MXL parsing, bounded bytes, magic/content checks, HTML/error rejection, path-safe provenance, and candidate firewall tests pass. MSCZ is recognized but explicitly unsupported. |
-| Live browser symbolic upload | BLOCKED — PRE-EXISTING REVERSE-PROXY ORIGIN RECONSTRUCTION | The authenticated `/uploads` page loads, but a genuine same-origin browser mutation receives 403 because the reconstructed request origin retains the internal port. Curl metadata probes are not sufficient evidence. |
+| Live browser symbolic upload | LOCAL FIX VALIDATED — DEPLOYMENT RETRY REQUIRED | Fresh-origin reconstruction removes the internal port for default public HTTPS, preserves explicit public ports, fails closed on malformed/partial metadata, and passed browser-to-proxy upload against the exact production image. Production remains rolled back pending a separately authorized canary. |
 | Parse/provenance | VALIDATED | Native adapter records SHA-256/size/parser metadata; unknown provenance is not generation-eligible. |
 | Role inference | VALIDATED (shadow override) | The single-stem Guitar-TECHS MIDI is explicitly mapped to guitar for the shadow arrangement; no drum pitches reached output. |
 | Alignment | PARTIAL — V2 RESOURCE FIXED; NON-DTW SKF MIXED; CLaMP3 SPARSE RETRIEVAL RESOURCE-BLOCKED | Frozen V2 completes all four revealed ASAP/MAESTRO pairs but leaves regional accuracy unresolved. Matchmaker SKF is mixed and was not promoted. The one approved CLaMP3 reference was not evaluated because its pinned weights exceed the bounded footprint before download; no CLaMP3 production candidate was created. |
@@ -1317,3 +1320,29 @@ worker identity, Caddy, credentials, and scoped cleanup were verified.
 Decision: `HARDENING_DEPLOYMENT_CANARY_FAILED_ROLLED_BACK`. Human listening was
 not requested or required; musical behavior changed by zero. The single next
 task is `FIX_LIVE_SAME_ORIGIN_BROWSER_MUTATION_PORT_RECONSTRUCTION`.
+
+## 2026-09-05 — Live same-origin browser mutation fix validated locally
+
+The shared mutation guard now constructs a fresh effective public origin from a
+complete forwarded protocol/host pair instead of mutating the internal request
+URL. The former `URL.protocol` then `URL.host` assignment retained the internal
+`:3000` port when the forwarded host omitted a port, producing
+`https://keys.reidar.tech:3000` rather than the browser origin. Default ports
+are now canonicalized, explicit public non-default ports are preserved, the
+first forwarded hop is used deterministically, and malformed or partial
+forwarded metadata fails closed. Bearer authorization remains unchanged.
+
+The exact production proxy header contract passed unit and route tests for
+uploads and source handoffs. A real Chromium browser then completed the bounded
+upload flow through a local reverse proxy into both the development server and
+the exact production image. The image reported the exact implementation
+revision and produced six physical variants, five public levels, an Easy player
+entry, and exports; malformed content remained atomic. Cross-origin and
+same-site/different-origin mutations remained rejected, and the scratch state
+was removed.
+
+Decision: `LIVE_SAME_ORIGIN_BROWSER_MUTATION_FIX_VALIDATED`. No Caddy, provider,
+ranking, musical, AMT, alignment, deployment, or VPS change occurred. Production
+remains at the rollback revision according to existing evidence. The single next
+task is `DISCOVERY_ASSISTED_PRIVATE_ALPHA_HARDENING_DEPLOYMENT_CANARY_RETRY`,
+which requires explicit owner authorization.

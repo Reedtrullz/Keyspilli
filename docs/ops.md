@@ -687,3 +687,22 @@ content, worker identity, Caddy, secrets, and complete canary cleanup were
 verified. Decision: `HARDENING_DEPLOYMENT_CANARY_FAILED_ROLLED_BACK`. Do not
 retry deployment until `FIX_LIVE_SAME_ORIGIN_BROWSER_MUTATION_PORT_RECONSTRUCTION`
 is implemented and covered by a reverse-proxy browser regression.
+
+### Live same-origin browser mutation port fix — locally validated — 2026-09-05
+
+The mutation guard must derive an effective public origin from a complete
+`X-Forwarded-Proto` and `X-Forwarded-Host` pair by constructing a fresh URL.
+Do not mutate the internal request URL's protocol and host independently: when
+the forwarded host has no port, the URL host setter retains the internal
+explicit port. Use the first trimmed forwarded values, accept only HTTP(S),
+canonicalize default ports, preserve explicit public non-default ports, and fail
+closed on a partial or malformed pair. Direct requests use their URL protocol
+with the Host header. Bearer authorization remains the machine-mutation path.
+
+The contract passed a real Chromium upload through a local reverse proxy into
+the exact production image for revision
+`c3a7e50ca621ac2b0ea943a474a8c6af572e19b7`. Cross-origin and same-site other
+origins remained rejected, while six physical variants, five public levels,
+player/export routes, and malformed-input atomicity passed in disposable state.
+This is local release evidence only: production was not accessed or changed and
+remains on the prior rollback revision according to existing evidence.
