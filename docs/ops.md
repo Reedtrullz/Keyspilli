@@ -618,3 +618,18 @@ projection are absent afterward. Path-free evidence is recorded in
 This is a lineage/operations canary only. Discovery remains metadata-only and
 user-mediated; independent alignment remains partial and musical quality is
 not objectively established.
+
+### Audio AMT product boundary — 2026-09-05
+
+The production strategy is `EXTERNAL_SYMBOLIC_FIRST`. Direct dense-metal AMT
+is `AUDIO_AMT_BRANCH_CLOSED_FOR_CURRENT_PRODUCT_ARCHITECTURE` and must not be
+used as source authority or a silent fallback. When discovery and owner upload
+cannot provide trustworthy symbolic bytes, return
+`NO_TRUSTWORTHY_SYMBOLIC_SOURCE_AVAILABLE`.
+
+Do not install MuScriptor weights in production: the frozen weights are
+non-commercial research-only, and the preregistered dense-metal robustness gate
+failed. Historical small audio-derived diagnostics are unaffected. Reopening
+full-song AMT requires a material trigger recorded in
+`audio-amt-branch-closeout-2026-09-05.json`, not a new model listing, leaderboard
+change, recommendation, or minor version bump.

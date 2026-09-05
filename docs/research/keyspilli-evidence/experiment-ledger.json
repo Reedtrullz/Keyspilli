@@ -2764,6 +2764,58 @@
         "sha256": "67a69e113b664c033a8e2b9d264531f645f705db44a6c7678a4701c82ef940ba"
       },
       "nextTask": "AUDIO_AMT_BRANCH_CLOSEOUT"
+    },
+    {
+      "id": "audio-amt-branch-closeout-2026-09-05",
+      "date": "2026-09-05",
+      "startingRevision": "5c8a4af0012a2085c9f6ef574f34481807a4187f",
+      "purpose": "Consolidate the complete audio-AMT evidence and close direct dense-metal AMT for the current product architecture",
+      "strongestCandidate": {
+        "model": "MuScriptor medium",
+        "macroExactF1": 0.820139,
+        "basicPitchMacroExactF1": 0.490897,
+        "absoluteDelta": 0.329242,
+        "wins": 2,
+        "fixtureCount": 3
+      },
+      "frozenFailure": {
+        "fixture": "METAL_C_LAYERED_MELODIC",
+        "delta": -0.1102410800385729,
+        "catastrophicLimit": -0.1,
+        "decision": "MUSCRIPTOR_SYNTHETIC_DENSE_METAL_HEADROOM_NOT_PROVEN"
+      },
+      "realPartial": {
+        "f1": 0.673418,
+        "decision": "REAL_METAL_KICK_REFERENCE_SIGNAL_PRESENT",
+        "fullPitchedMetal": "REAL_DENSE_METAL_FULL_TRANSCRIPTION_HEADROOM_NOT_ESTABLISHED"
+      },
+      "decisions": {
+        "fallback": "AUDIO_AMT_FALLBACK_REMAINS_UNSUPPORTED",
+        "branch": "AUDIO_AMT_BRANCH_CLOSED_FOR_CURRENT_PRODUCT_ARCHITECTURE",
+        "downstream": "NOT_RUN_RAW_GATE_FAILED",
+        "license": "MUSCRIPTOR_WEIGHTS_NONCOMMERCIAL_RESEARCH_ONLY",
+        "strategy": "EXTERNAL_SYMBOLIC_FIRST",
+        "noSource": "NO_TRUSTWORTHY_SYMBOLIC_SOURCE_AVAILABLE"
+      },
+      "authentication": {
+        "dedicatedResearchHfHome": "LOGGED_OUT",
+        "unrelatedCredentialsTouched": false,
+        "frozenWeightCacheRetained": true,
+        "frozenWeightSha256": "ac80adbdf85d87231735fd948af7013441c0afced316c4e9067fd5d8a7fb97ec"
+      },
+      "scope": {
+        "newModelEvaluations": 0,
+        "newBenchmarkRuns": 0,
+        "amtInferenceRuns": 0,
+        "alignmentRuns": 0,
+        "deployment": "NO_DEPLOYMENT_NO_VPS_MUTATION",
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT"
+      },
+      "report": {
+        "path": "audio-amt-branch-closeout-2026-09-05.json",
+        "sha256": "4f9ba9ed01e8bc59d38430ed39f1f9d9c4be2c95eeec373a458c8066f43ffcf5"
+      },
+      "nextTask": "DISCOVERY_ASSISTED_PRIVATE_ALPHA_PRODUCT_HARDENING"
     }
   ]
 }

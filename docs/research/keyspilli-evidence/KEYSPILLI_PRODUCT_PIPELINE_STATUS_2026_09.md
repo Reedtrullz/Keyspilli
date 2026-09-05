@@ -1213,3 +1213,32 @@ The exact report is `muscriptor-dense-metal-cold-evaluation-2026-09-05.json`
 No human listening, deployment, VPS mutation, catalog write, benchmark tuning,
 or commercial benchmark access occurred. The single next task is
 `AUDIO_AMT_BRANCH_CLOSEOUT`; no model shopping is authorized.
+
+## 2026-09-05 — Audio AMT branch closeout
+
+The complete audio-AMT history is consolidated in
+`audio-amt-branch-closeout-2026-09-05.json` (SHA-256
+`4f9ba9ed01e8bc59d38430ed39f1f9d9c4be2c95eeec373a458c8066f43ffcf5`).
+MuScriptor medium remains the strongest raw candidate evaluated: macro exact
+F1 `0.820139` versus Basic Pitch `0.490897`, delta `+0.329242`, wins `2/3`.
+The frozen decision remains `MUSCRIPTOR_SYNTHETIC_DENSE_METAL_HEADROOM_NOT_PROVEN`
+because Layered Melodic regressed by `0.110241`, beyond the preregistered `0.10`
+catastrophic limit. HiMMP establishes `REAL_METAL_KICK_REFERENCE_SIGNAL_PRESENT`
+only; real full pitched-metal headroom is not established.
+
+Current decisions are `AUDIO_AMT_FALLBACK_REMAINS_UNSUPPORTED` and
+`AUDIO_AMT_BRANCH_CLOSED_FOR_CURRENT_PRODUCT_ARCHITECTURE`. Reopening requires
+materially new commercial-license-compatible dense-metal evidence, a new
+architecture addressing the layered-texture failure, or a substantially better
+rights-cleared real full-reference benchmark. New listings, leaderboard scores,
+recommendations, or minor versions are insufficient.
+
+The surviving product strategy is `EXTERNAL_SYMBOLIC_FIRST` and live status
+remains `DISCOVERY_ASSISTED_PRIVATE_ALPHA_LIVE_VERIFIED`. If discovery and user
+upload provide no trustworthy symbolic source, the honest state is
+`NO_TRUSTWORTHY_SYMBOLIC_SOURCE_AVAILABLE`; no AMT backend is silently used.
+The dedicated Hugging Face research credential was logged out without touching
+other credentials, and the cached frozen weights remain hash-identical. No new
+inference, benchmark, alignment, downstream arrangement, deployment, VPS, or
+musical-policy work occurred. The single next task is
+`DISCOVERY_ASSISTED_PRIVATE_ALPHA_PRODUCT_HARDENING`.

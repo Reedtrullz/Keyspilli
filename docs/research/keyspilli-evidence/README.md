@@ -84,15 +84,15 @@ hashes are summarized in the machine ledger.
 * `DIRECT_AMT_FIRST` was rejected as the default authority because pitch
   fidelity and melody continuity were not dependable.
 * `EXTERNAL_SYMBOLIC_FIRST` was selected, with strict provenance, identity,
-  role, alignment, and human gates; AMT remains a conservative fallback.
+  role, alignment, and objective validation gates.
 
 ## Current blocker and next boundary
 
-The blocker is trustworthy, independently aligned lead evidence for real songs,
-not another broad learner-rate tweak. The next musical task must start only
-after an explicit new decision; this storage mission intentionally does not
-resume it. The current branch and checkpoint preserve the implementation and
-experiment history needed to continue later.
+Direct dense-metal AMT is `AUDIO_AMT_BRANCH_CLOSED_FOR_CURRENT_PRODUCT_ARCHITECTURE`.
+It must not act as source authority or automatic fallback without one of the
+material reopening triggers frozen in the closeout report. The current product
+path is `EXTERNAL_SYMBOLIC_FIRST` and the next task is
+`DISCOVERY_ASSISTED_PRIVATE_ALPHA_PRODUCT_HARDENING`.
 
 ## Durable companion files
 
@@ -139,6 +139,9 @@ experiment history needed to continue later.
 * `muscriptor-dense-metal-cold-evaluation-2026-09-05.json` — preregistered
   MuScriptor synthetic full-reference and real kick-only results, raw hashes,
   exact gate decision, and downstream skip.
+* `audio-amt-branch-closeout-2026-09-05.json` — chronological AMT inventory,
+  separated failure modes, immutable closure decisions, and material reopening
+  conditions.
 
 ## Cold-transfer boundary
 
