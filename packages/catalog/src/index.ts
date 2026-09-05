@@ -49,6 +49,7 @@ export * from "./midi-corpus-roles.js";
 export * from "./midi-corpus.js";
 export * from "./midi-corpus-report.js";
 export * from "./direct-amt-evaluation.js";
+export * from "./dense-metal-amt-evaluation.js";
 export * from "./audio-symbolic-alignment.js";
 export * from "./score-audio-alignment.js";
 export * from "./upstream-attribution-runner.js";
