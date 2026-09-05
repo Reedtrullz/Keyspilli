@@ -60,6 +60,11 @@
     # and is mounted read-only by the rendered Compose file.
     keyspilli_yt_proxy: "{{ lookup('ansible.builtin.env', 'KEYSPILLI_YT_PROXY') | default('', true) }}"
     keyspilli_yt_cookies_path: "{{ lookup('ansible.builtin.env', 'KEYSPILLI_YT_COOKIES_PATH') | default('', true) }}"
+    # Discovery metadata is server-only. Keep the credential in a root-owned
+    # env file rather than rendering it into the Compose manifest.
+    source_search_env_file: /etc/keyspilli/source-search.env
+    keyspilli_source_search_provider: "{{ lookup('ansible.builtin.env', 'KEYSPILLI_SOURCE_SEARCH_PROVIDER') | default('', true) }}"
+    keyspilli_source_search_api_key: "{{ lookup('ansible.builtin.env', 'KEYSPILLI_SOURCE_SEARCH_API_KEY') | default('', true) }}"
 
   pre_tasks:
     - name: Validate deployment variables
@@ -122,6 +127,18 @@
           KEYSPILLI_YT_PROXY must be a non-credential proxy endpoint and
           KEYSPILLI_YT_COOKIES_PATH must be an absolute path on the VPS.
           Keep browser cookies out of environment values and repository files.
+      no_log: true
+
+    - name: Validate optional source search settings
+      ansible.builtin.assert:
+        that:
+          - keyspilli_source_search_provider in ['', 'brave']
+          - keyspilli_source_search_provider != 'brave' or keyspilli_source_search_api_key | length >= 20
+          - "'\n' not in keyspilli_source_search_api_key"
+          - "'\r' not in keyspilli_source_search_api_key"
+        fail_msg: >-
+          KEYSPILLI_SOURCE_SEARCH_PROVIDER must be empty or brave; brave requires
+          a non-empty server-side API key without newline characters.
       no_log: true
 
     - name: Check optional YouTube cookie file
@@ -191,6 +208,27 @@
         owner: deploy
         group: deploy
         mode: '0755'
+      tags: [deploy]
+
+    - name: Ensure Keyspilli secret directory exists
+      ansible.builtin.file:
+        path: "{{ source_search_env_file | dirname }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0700'
+      tags: [deploy]
+
+    - name: Install server-only source search settings
+      ansible.builtin.copy:
+        content: |
+          KEYSPILLI_SOURCE_SEARCH_PROVIDER={{ keyspilli_source_search_provider }}
+          KEYSPILLI_SOURCE_SEARCH_API_KEY={{ keyspilli_source_search_api_key }}
+        dest: "{{ source_search_env_file }}"
+        owner: root
+        group: root
+        mode: '0600'
+      no_log: true
       tags: [deploy]
 
     - name: Ensure local backup directory exists

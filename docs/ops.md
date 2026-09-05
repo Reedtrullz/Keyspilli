@@ -97,6 +97,12 @@ uses a five-second timeout and one retry for 429/5xx/network failures. It does
 not persist a search cache because the [Brave API terms](https://api-dashboard.search.brave.com/documentation/resources/terms-of-service)
 allow only transient Search Result storage; no zero-retention claim is made.
 
+On production deploy, Ansible writes these two settings to the root-owned
+`/etc/keyspilli/source-search.env` (`0700` directory, `0600` file) and mounts
+that file into the web service. The rendered Compose manifest contains only
+the path, never the credential. A deploy with no provider settings writes an
+empty file and leaves discovery disabled.
+
 The published Search price is $5/1,000 requests, so the frozen four-query
 policy costs about $0.02 per song request before a retry (up to $0.04 in the
 worst retry case). Brave's [rate-limit guidance](https://api-dashboard.search.brave.com/documentation/guides/rate-limiting)

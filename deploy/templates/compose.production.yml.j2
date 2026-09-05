@@ -3,6 +3,8 @@ services:
     image: "{{ compose_image | default(docker_image) }}"
     container_name: "{{ container_name }}"
     restart: unless-stopped
+    env_file:
+      - "{{ source_search_env_file }}"
     ports:
       - "{{ app_bind_address }}:{{ app_host_port }}:3000"
     environment:
