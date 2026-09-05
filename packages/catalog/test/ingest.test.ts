@@ -163,6 +163,29 @@ describe("ingestSource .mxl", () => {
     expect(Math.abs(fastDur - slowDur / 2)).toBeLessThanOrEqual(1);
   });
 
+  it("stores each generated artifact duration instead of a removed transcription tail", async () => {
+    const notes = [
+      ...Array.from({ length: 12 }, (_, index) => ({ midi: 60 + index % 5, start: index * 0.5, dur: 0.5, vel: 80 })),
+      { midi: 36, start: 20, dur: 0.5, vel: 1 },
+    ];
+    const result = await ingestSource({
+      buf: writeMidi(notes, { tempoBpm: 120 }),
+      title: "Removed tail",
+      artist: "Tester",
+      contentType: "youtube",
+      cleanTranscription: true,
+    });
+    expect(result.error).toBeUndefined();
+    for (const row of getSongsByBase(result.baseId)) {
+      const artifact = JSON.parse(readFileSync(join(artifactsDir(result.baseId, row.level), "notes.json"), "utf8")) as {
+        notes: Array<{ start: number; dur: number }>;
+        tempoBpm: number;
+      };
+      const duration = Math.round(Math.max(...artifact.notes.map((note) => note.start + note.dur)) * 60 / artifact.tempoBpm);
+      expect(row.duration).toBe(duration);
+    }
+  });
+
   it("keeps the generated MIDI tempo when replacing an existing transcription", async () => {
     const notes = Array.from({ length: 12 }, (_, i) => ({
       midi: 60 + i,

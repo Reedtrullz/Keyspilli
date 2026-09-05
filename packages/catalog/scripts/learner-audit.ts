@@ -58,6 +58,7 @@ interface LevelMetric {
   pctLong4: number;
   pctOver1_5: number;
   p50Dur: number;
+  p50DurSec: number;
   p90Dur: number;
   p99Dur: number;
   velocityP50: number;
@@ -91,6 +92,8 @@ interface LevelMetric {
   left: HandRange;
   right: HandRange;
   samePitchOverlaps: number;
+  contiguousRetriggers: number;
+  retriggerRate: number;
   warnings: string[];
   melodyKeys: string[];
 }
@@ -204,6 +207,30 @@ function samePitchOverlaps(notes: Note[]): number {
   return overlaps;
 }
 
+function retriggers(notes: Note[]): { contiguousRetriggers: number; retriggerRate: number } {
+  const groups = new Map<string, Note[]>();
+  for (const note of notes) {
+    const key = `${note.hand === "L" ? "L" : "R"}:${note.midi}`;
+    const group = groups.get(key) ?? [];
+    group.push(note);
+    groups.set(key, group);
+  }
+  let pairs = 0;
+  let contiguousRetriggers = 0;
+  for (const group of groups.values()) {
+    group.sort((a, b) => a.start - b.start || a.dur - b.dur);
+    for (let index = 1; index < group.length; index++) {
+      const previous = group[index - 1]!;
+      const current = group[index]!;
+      pairs++;
+      if (current.start - previous.start <= 0.75 && current.start - (previous.start + previous.dur) <= 0.125) {
+        contiguousRetriggers++;
+      }
+    }
+  }
+  return { contiguousRetriggers, retriggerRate: contiguousRetriggers / Math.max(1, pairs) };
+}
+
 function readMetric(variant: VariantJson): LevelMetric {
   const notes = variant.notes;
   const tempoBpm = Number.isFinite(variant.tempoBpm) && variant.tempoBpm > 0 ? variant.tempoBpm : 120;
@@ -231,6 +258,7 @@ function readMetric(variant: VariantJson): LevelMetric {
   const durations = notes.map((note) => note.dur).filter(Number.isFinite);
   const velocities = notes.map((note) => note.vel).filter(Number.isFinite);
   const melodyKeys = melody.map(([start, note]) => `${note.midi}@${start.toFixed(3)}`);
+  const articulation = retriggers(notes);
   return {
     notes: notes.length,
     tempoBpm,
@@ -242,6 +270,7 @@ function readMetric(variant: VariantJson): LevelMetric {
     pctLong4: (100 * durations.filter((duration) => duration > 4).length) / Math.max(1, durations.length),
     pctOver1_5: (100 * durations.filter((duration) => duration > 1.5).length) / Math.max(1, durations.length),
     p50Dur: quantile(durations, 0.5),
+    p50DurSec: quantile(durations, 0.5) * 60 / tempoBpm,
     p90Dur: quantile(durations, 0.9),
     p99Dur: quantile(durations, 0.99),
     velocityP50: quantile(velocities, 0.5),
@@ -275,6 +304,7 @@ function readMetric(variant: VariantJson): LevelMetric {
     left: handL,
     right: handR,
     samePitchOverlaps: samePitchOverlaps(notes),
+    ...articulation,
     warnings: variant.warnings ?? [],
     melodyKeys,
   };
@@ -387,6 +417,9 @@ function compact(report: LearnerReport) {
           density: round(a.density),
           maxSimultaneous: a.maxSimultaneous,
           samePitchOverlaps: a.samePitchOverlaps,
+          contiguousRetriggers: a.contiguousRetriggers,
+          retriggerRate: round(a.retriggerRate),
+          p50DurSec: round(a.p50DurSec),
           maxDur: round(a.maxDur),
         }
       : null,
@@ -398,11 +431,12 @@ function compact(report: LearnerReport) {
   };
 }
 
-function parseArgs(): { all: boolean; top: number } {
+function parseArgs(): { all: boolean; canonical: boolean; top: number } {
   const all = process.argv.includes("--all");
+  const canonical = process.argv.includes("--canonical");
   const topText = process.argv.find((arg) => arg.startsWith("--top="))?.slice("--top=".length);
   const top = topText === undefined ? TOP_DEFAULT : Number(topText);
-  return { all, top: Number.isFinite(top) && top >= 0 ? Math.floor(top) : TOP_DEFAULT };
+  return { all, canonical, top: Number.isFinite(top) && top >= 0 ? Math.floor(top) : TOP_DEFAULT };
 }
 
 const args = parseArgs();
@@ -466,6 +500,7 @@ const baseResults = await mapLimit(rows, 24, async (row): Promise<LearnerReport>
     score += points;
   };
   const syntheticFixture = row.baseId.startsWith("keyspilli-upload-test-") || (row.title === "Upload Test" && row.artist === "Keyspilli");
+  const transcriptionDerived = row.contentType === "youtube" || row.acquiredVia === "youtube" || row.category.toLowerCase() === "youtube";
   if (syntheticFixture) {
     return {
       baseId: row.baseId,
@@ -507,6 +542,12 @@ const baseResults = await mapLimit(rows, 24, async (row): Promise<LearnerReport>
     if (advanced.density > 6) add(`attack density ${round(advanced.density)} attacks/sec`, 8);
     if (advanced.samePitchOverlaps > 20) add(`${advanced.samePitchOverlaps} same-pitch overlaps`, 8);
     if (advanced.maxDur > 8) add(`long sustain ${round(advanced.maxDur)} beats`, 10);
+    if (transcriptionDerived && advanced.p50DurSec <= 0.25 && advanced.pctOver1_5 <= 30 && advanced.density >= 3) {
+      add(`transcription articulation fragmented (median ${round(advanced.p50DurSec)}s)`, 12);
+    }
+    if (transcriptionDerived && advanced.contiguousRetriggers >= 50 && advanced.retriggerRate >= 0.25) {
+      add(`${round(100 * advanced.retriggerRate, 1)}% contiguous transcription retriggers`, 12);
+    }
     if (retention.beginnerRhMelody < 0.5) add(`beginner RH melody retention ${round(100 * retention.beginnerRhMelody, 1)}%`, 12);
     if (retention.veryBeginnerRhMelody < 0.25) add(`very-beginner RH melody retention ${round(100 * retention.veryBeginnerRhMelody, 1)}%`, 8);
   }
@@ -545,13 +586,13 @@ const baseResults = await mapLimit(rows, 24, async (row): Promise<LearnerReport>
   const recommendedAction = sourceIssue
     ? "Audit source track/provenance mapping before changing notes; preserve explicit RH/LH labels."
     : melodyIssue && lhIssue
-      ? "Manual arrangement review: restore a clear RH melody while supplying usable LH bass/chord support."
+      ? "Trace source-to-artifact lineage before restoring RH melody or LH support."
       : melodyIssue
-        ? "Manual melody review or source re-transcription; keep attacks recognizable in beginner levels."
+        ? "Trace melody survival or use a source-backed re-transcription; preserve supported attacks."
         : lhIssue
-          ? "Manual accompaniment review; make LH bass/chord events intentional and playable."
+          ? "Trace accompaniment evidence before changing LH bass or chord events."
           : playabilityIssue
-            ? "Apply targeted automatic cleanup, then manually verify the musical result."
+            ? "Apply only a source-backed automatic cleanup and rerun structural evidence gates."
             : findings.length
               ? "Review the variant ladder and confirm the simplification is intentional."
               : "No learner-facing issue detected by these structural heuristics.";
@@ -615,8 +656,7 @@ const byContentType = Object.fromEntries(
 
 const compactFindings = args.all ? ranked : ranked.slice(0, args.top);
 const report = {
-  generatedAt: new Date().toISOString(),
-  dataDir: dataDir(),
+  ...(args.canonical ? {} : { generatedAt: new Date().toISOString(), dataDir: dataDir() }),
   grain: "one DB base with six difficulty variants; advanced metrics are used for ranking",
   coverage: {
     dbBases: baseResults.length,
@@ -630,6 +670,7 @@ const report = {
     lhSingleOnly: ">90% single-note LH onsets",
     denseTexture: ">8 sounding notes or >6 attacks/sec",
     samePitchOverlap: ">20 advanced pairs",
+    transcriptionRetriggers: ">=50 same-pitch restarts and >=25% of same-pitch transitions",
     sourceBalanceDrift: ">40 percentage points versus explicit source hand share",
   },
   severityCounts,

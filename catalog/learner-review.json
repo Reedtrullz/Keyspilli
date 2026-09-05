@@ -86,11 +86,83 @@
       "feedback": "Does not sound good.",
       "action": "source-aware re-transcription or replacement; do not polish blindly"
     },
+    "red-sun-in-the-sky": {
+      "rating": "bad",
+      "blocked": true,
+      "feedback": "Advanced has only 63 right-hand attacks and a 113.5-beat right-hand gap; the original source is unavailable.",
+      "action": "keep hidden until the authored source is reacquired and lineage can be verified"
+    },
+    "sabaton-livgardet-organ-pianopaul05-dxhpyinsbdw": {
+      "rating": "bad",
+      "blocked": true,
+      "feedback": "Advanced contains high-confidence same-pitch retrigger fragmentation; the original transcription source is unavailable.",
+      "action": "keep hidden until the audio/transcription source is reacquired for deterministic rebuild"
+    },
+    "sheet-music-boss-sabaton-the-last-stand-piano-tutorial-mslzz1c3": {
+      "rating": "bad",
+      "blocked": true,
+      "feedback": "The source-backed v2 rebuild still has 27.3% contiguous retriggers and a 0.218-second median note duration in Advanced.",
+      "action": "keep hidden until a source-backed rhythm repair passes the frozen articulation gate"
+    },
+    "sabaton-sabaton-defence-of-moscow-official-music-video-mtd717qw": {
+      "rating": "bad",
+      "blocked": true,
+      "feedback": "Advanced contains high-confidence articulation and retrigger fragmentation; the original transcription source is unavailable.",
+      "action": "keep hidden until the audio/transcription source is reacquired for deterministic rebuild"
+    },
+    "sabaton-sabaton-defence-of-moscow-official-music-video-mtdq7vdx": {
+      "rating": "bad",
+      "blocked": true,
+      "feedback": "Advanced contains high-confidence articulation and retrigger fragmentation; the original transcription source is unavailable.",
+      "action": "keep hidden until the audio/transcription source is reacquired for deterministic rebuild"
+    },
+    "sabaton-sabaton-defence-of-moscow-official-music-video-mtdu6jt7": {
+      "rating": "bad",
+      "blocked": true,
+      "feedback": "Advanced contains high-confidence articulation and retrigger fragmentation; the original transcription source is unavailable.",
+      "action": "keep hidden until the audio/transcription source is reacquired for deterministic rebuild"
+    },
+    "sabaton-sabaton-defence-of-moscow-official-music-video-mtdwmc2y": {
+      "rating": "bad",
+      "blocked": true,
+      "feedback": "Advanced contains high-confidence articulation and retrigger fragmentation; the original transcription source is unavailable.",
+      "action": "keep hidden until the audio/transcription source is reacquired for deterministic rebuild"
+    },
+    "sabaton-sabaton-defence-of-moscow-official-music-video-mtdyy3n2": {
+      "rating": "bad",
+      "blocked": true,
+      "feedback": "Advanced contains high-confidence articulation and retrigger fragmentation; the original transcription source is unavailable.",
+      "action": "keep hidden until the audio/transcription source is reacquired for deterministic rebuild"
+    },
+    "sabaton-sabaton-defence-of-moscow-official-music-video-mte172p8": {
+      "rating": "bad",
+      "blocked": true,
+      "feedback": "Advanced contains high-confidence articulation and retrigger fragmentation; the original transcription source is unavailable.",
+      "action": "keep hidden until the audio/transcription source is reacquired for deterministic rebuild"
+    },
+    "sabaton-sabaton-defence-of-moscow-official-music-video-mte6ttgh": {
+      "rating": "bad",
+      "blocked": true,
+      "feedback": "Advanced contains high-confidence articulation and retrigger fragmentation; the original transcription source is unavailable.",
+      "action": "keep hidden until the audio/transcription source is reacquired for deterministic rebuild"
+    },
+    "sabaton-sabaton-defence-of-moscow-official-music-video-mtebf9i2": {
+      "rating": "bad",
+      "blocked": true,
+      "feedback": "Advanced contains high-confidence articulation and retrigger fragmentation; the original transcription source is unavailable.",
+      "action": "keep hidden until the audio/transcription source is reacquired for deterministic rebuild"
+    },
+    "sabaton-sabaton-defence-of-moscow-official-music-video-mtept7vy": {
+      "rating": "bad",
+      "blocked": true,
+      "feedback": "Advanced contains high-confidence articulation and retrigger fragmentation; the original transcription source is unavailable.",
+      "action": "keep hidden until the audio/transcription source is reacquired for deterministic rebuild"
+    },
     "piano-free-sheet-music-sabaton-the-final-solution-mslzzcr5": {
       "rating": "polish",
       "blocked": false,
       "feedback": "Earlier version was recognizable but rough; strict-source rebuild is now published for a fresh listening check.",
-      "action": "human listening gate before final acceptance"
+      "action": "retain as a polish item until automated source and playability gates pass"
     }
   }
 }

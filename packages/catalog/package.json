@@ -13,6 +13,7 @@
     "quality-report": "tsx scripts/quality-report.ts",
     "learner-report": "tsx scripts/learner-report.ts",
     "learner-audit": "tsx scripts/learner-audit.ts",
+    "learner-audit:canonical": "tsx scripts/learner-audit.ts --all --canonical",
     "verify-chord-sources": "tsx scripts/verify-chord-sources.ts",
     "validate-chords": "tsx scripts/verify-chord-sources.ts",
     "repair-artifacts": "tsx scripts/repair-artifacts.ts",

@@ -6,14 +6,14 @@
 import { execFile } from "node:child_process";
 import { join } from "node:path";
 import { promisify } from "node:util";
-import { parseMidi, writeMidi } from "@keyspilli/midi";
+import { parseMidi, writeMidi, type Note } from "@keyspilli/midi";
 import { ROOT } from "./paths.js";
 
 const execFileP = promisify(execFile);
 const PYTHON = process.env.KEYSPILLI_PYTHON ?? join(ROOT, "services", "transcribe", ".venv", "bin", "python");
 
 /** Bump when the audio-onset filtering algorithm or its Python contract changes. */
-export const TRANSCRIPTION_FILTER_VERSION = "audio-onset-filter-v1";
+export const TRANSCRIPTION_FILTER_VERSION = "audio-onset-filter-v2";
 
 /** Effective onset detector settings in services/transcribe/src/audio_onsets.py. */
 export const AUDIO_ONSET_DETECTOR_CONFIG = {
@@ -25,6 +25,47 @@ export const AUDIO_ONSET_DETECTOR_CONFIG = {
 
 /** Maximum distance between an audio onset and a Basic Pitch note onset. */
 export const ONSET_MATCH_SEC = Number(process.env.KEYSPILLI_ONSET_MATCH_SEC ?? 0.15);
+
+const RETRIGGER_ONSET_SEC = 0.06;
+const RETRIGGER_ATTACK_GAP_BEATS = 0.75;
+const RETRIGGER_SOUNDING_GAP_BEATS = 0.125;
+
+/** Join Basic Pitch fragments only when audio does not support a new attack. */
+export function collapseUnsupportedSamePitchRetriggers(
+  notes: readonly Note[],
+  audioOnsetsSec: readonly number[],
+  tempoBpm: number,
+): Note[] {
+  const secPerBeat = 60 / tempoBpm;
+  const sorted = notes.map((note) => ({ ...note })).sort((a, b) => a.start - b.start || a.midi - b.midi || a.dur - b.dur);
+  const byPitch = new Map<string, Note[]>();
+  for (const note of sorted) {
+    const key = `${note.hand ?? ""}:${note.identitySource ?? ""}:${note.midi}`;
+    const pitch = byPitch.get(key);
+    if (pitch) pitch.push(note);
+    else byPitch.set(key, [note]);
+  }
+
+  const merged: Note[] = [];
+  for (const pitch of byPitch.values()) {
+    let current = pitch[0];
+    if (!current) continue;
+    for (const note of pitch.slice(1)) {
+      const attackGap = note.start - current.start;
+      const soundingGap = note.start - (current.start + current.dur);
+      const independentAttack = audioOnsetsSec.some((onset) => Math.abs(onset - note.start * secPerBeat) <= RETRIGGER_ONSET_SEC);
+      if (attackGap <= RETRIGGER_ATTACK_GAP_BEATS && soundingGap <= RETRIGGER_SOUNDING_GAP_BEATS && !independentAttack) {
+        current.dur = Math.max(current.start + current.dur, note.start + note.dur) - current.start;
+        current.vel = Math.max(current.vel, note.vel);
+      } else {
+        merged.push(current);
+        current = note;
+      }
+    }
+    merged.push(current);
+  }
+  return merged.sort((a, b) => a.start - b.start || a.midi - b.midi || a.dur - b.dur);
+}
 
 export async function filterTranscription(
   rawMidi: Uint8Array,
@@ -51,6 +92,7 @@ export async function filterTranscription(
     if (kept.length < raw.notes.length * 0.2) {
       throw new Error(`onset filter dropped too much (${kept.length}/${raw.notes.length})`);
     }
+    kept = collapseUnsupportedSamePitchRetriggers(kept, audioOnsets, raw.tempoBpm);
   }
   // Bass guitar and rhythm-guitar roots transcribe as octave-doubled low
   // clusters that read as mud on piano. Keep the lowest note of each bass
