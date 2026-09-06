@@ -1,4 +1,4 @@
-import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mkdtempSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -51,8 +51,14 @@ function candidate(overrides: Partial<GenericSourceCandidateInput> = {}) {
 
 describe("source candidate handoff", () => {
   beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-05T12:00:00.000Z"));
     // Keep the persistence assertions independent of prior handoff ids.
     getDb().prepare("DELETE FROM source_candidate_handoffs").run();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("sanitizes public URLs and rejects local/private destinations", () => {
