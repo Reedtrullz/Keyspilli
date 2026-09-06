@@ -113,3 +113,27 @@ test("organ sound controls persist across reload", async ({ page }) => {
   await expect(page.getByLabel("Organ drive")).toHaveValue("67");
   expect(consoleErrors).toEqual([]);
 });
+
+test("switching sound modes preserves active transport", async ({ page }) => {
+  const consoleErrors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") consoleErrors.push(message.text());
+  });
+  await page.goto(`/player/${SONG}`);
+  await page.getByRole("button", { name: "Play", exact: true }).click();
+  await page.waitForTimeout(500);
+  const seek = page.getByLabel("Seek");
+  let previous = Number(await seek.inputValue());
+
+  for (const sound of ["Organ", "Synth Piano", "Organ"]) {
+    await page.getByRole("button", { name: "Open settings" }).click();
+    await page.getByRole("radio", { name: sound }).click();
+    await page.getByRole("button", { name: "Done", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+    await page.waitForTimeout(500);
+    const current = Number(await seek.inputValue());
+    expect(current).toBeGreaterThan(previous);
+    previous = current;
+  }
+  expect(consoleErrors).toEqual([]);
+});

@@ -39,7 +39,10 @@ class FakeOscillator extends FakeNode {
   onended: (() => void) | null = null;
   setPeriodicWave(wave: PeriodicWave) { this.wave = wave; }
   start(time = 0) { this.starts.push(time); }
-  stop(time = 0) { this.stops.push(time); }
+  stop(time = 0) {
+    if (this.starts.length === 0) throw new DOMException("cannot call stop without calling start first", "InvalidStateError");
+    this.stops.push(time);
+  }
 }
 
 class FakeGain extends FakeNode { gain = new FakeParam(); }
@@ -176,6 +179,10 @@ describe("OrganAudioEngine", () => {
     const ctx = FakeAudioContext.instances[0]!;
     engine.setOrganControls("fast", 0.8);
 
+    expect(ctx.gains[3]!.gain.value).toBeGreaterThan(0);
+    expect(ctx.gains[3]!.gain.value).toBeLessThan(0.5);
+    expect(ctx.gains[4]!.gain.value).toBeGreaterThan(ctx.gains[3]!.gain.value);
+    expect(ctx.gains[4]!.gain.value).toBeLessThanOrEqual(0.5);
     expect(ctx.oscillators[0]!.frequency.targets.at(-1)).toEqual([ROTARY_SPEEDS.fast.lowHz, 10, 0.45]);
     expect(ctx.oscillators[1]!.frequency.targets.at(-1)).toEqual([ROTARY_SPEEDS.fast.highHz, 10, 0.45]);
     expect(ctx.shapers[0]!.curve!.every((value) => Number.isFinite(value) && Math.abs(value) <= 1)).toBe(true);

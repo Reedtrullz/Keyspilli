@@ -220,6 +220,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   }
 
   const engineRef = useRef<PlaybackEngine | null>(null);
+  const audioSwapStateRef = useRef<{ time: number; playing: boolean } | null>(null);
   const chordPracticeRef = useRef<ChordGrader | null>(null);
   const modeMenuRef = useRef<HTMLDivElement>(null);
   const chordPracticeActiveRef = useRef(chordPracticeActive);
@@ -330,6 +331,8 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
 
   // Engine lifecycle: one PlaybackEngine per mount, disposed on unmount.
   useEffect(() => {
+    const previous = audioSwapStateRef.current;
+    audioSwapStateRef.current = null;
     const audio = settings.soundSource === "sampled"
       ? new SamplerAudioEngine()
       : settings.soundSource === "organ"
@@ -352,7 +355,14 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     };
     engine.audio.sustainPedal = settings.sustainPedal;
     engineRef.current = engine;
+    if (previous) {
+      engine.seek(previous.time);
+      if (previous.playing) engine.start();
+      setTime(engine.time);
+      setPlaying(engine.playing);
+    }
     return () => {
+      audioSwapStateRef.current = { time: engine.time, playing: engine.playing };
       engineRef.current = null;
       engine.audio.dispose();
     };
