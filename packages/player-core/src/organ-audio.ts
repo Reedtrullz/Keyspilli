@@ -1,3 +1,7 @@
+import { AudioEngine } from "./audio.js";
+import type { AudioLike } from "./engine.js";
+import type { TimedNote } from "./timeline.js";
+
 const DRAWBAR_RATIOS = [0.5, 1.5, 1, 2, 3, 4, 5, 6, 8] as const;
 const DRAWBAR_HARMONICS = [1, 3, 2, 4, 6, 8, 10, 12, 16] as const;
 
@@ -75,6 +79,7 @@ export class OrganAudioEngine implements AudioLike {
   private lowLfoDepth: GainNode | null = null;
   private highLfoDepth: GainNode | null = null;
   private wave: PeriodicWave | null = null;
+  private fallback: AudioEngine | null = null;
   private active = new Map<number, Voice[]>();
   private clicks = new Set<Click>();
   private rotary: RotarySpeed;
@@ -91,7 +96,19 @@ export class OrganAudioEngine implements AudioLike {
   }
 
   ensure(): AudioContext {
-    if (!this.ctx || this.ctx.state === "closed") this.createGraph();
+    if (this.fallback) return this.fallback.ensure();
+    if (!this.ctx || this.ctx.state === "closed") {
+      try {
+        this.createGraph();
+      } catch (error) {
+        console.warn("[OrganAudioEngine] native organ initialization failed; falling back to oscillator mode", error);
+        this.disposeNativeGraph();
+        this.fallback = new AudioEngine();
+        this.fallback.sustainPedal = false;
+        this.fallback.setGains(this.voiceGain, this.pianoGain);
+        return this.fallback.ensure();
+      }
+    }
     if (!this.ctx) throw new Error("Organ audio initialization failed");
     if (this.ctx.state === "suspended") void this.ctx.resume();
     return this.ctx;
@@ -159,6 +176,7 @@ export class OrganAudioEngine implements AudioLike {
     this.voiceGain = voice;
     this.pianoGain = piano;
     this.applyGains();
+    this.fallback?.setGains(voice, piano);
   }
 
   private applyGains(): void {
@@ -187,6 +205,11 @@ export class OrganAudioEngine implements AudioLike {
 
   noteOn(note: TimedNote, when = 0): void {
     const ctx = this.ensure();
+    if (this.fallback) {
+      this.fallback.sustainPedal = false;
+      this.fallback.noteOn(note, when);
+      return;
+    }
     const bus = note.hand === "L" ? this.pianoGainNode : this.voiceGainNode;
     if (!bus) return;
     this.startVoice(note.midi, note.vel, note.fromInput ?? false, bus, ctx.currentTime + when, note.fromInput ? null : note.durSec);
@@ -229,6 +252,10 @@ export class OrganAudioEngine implements AudioLike {
   }
 
   noteOff(midi: number): void {
+    if (this.fallback) {
+      this.fallback.noteOff(midi);
+      return;
+    }
     const voices = this.active.get(midi);
     if (!voices || !this.ctx) return;
     const now = this.ctx.currentTime;
@@ -247,6 +274,11 @@ export class OrganAudioEngine implements AudioLike {
 
   playChord(midiNotes: number[], when: number, durationSec: number): void {
     const ctx = this.ensure();
+    if (this.fallback) {
+      this.fallback.sustainPedal = false;
+      this.fallback.playChord(midiNotes, when, durationSec);
+      return;
+    }
     if (!this.pianoGainNode) return;
     const start = ctx.currentTime + when;
     const duration = Math.max(0.2, Math.min(8, durationSec));
@@ -257,6 +289,10 @@ export class OrganAudioEngine implements AudioLike {
 
   metronomeClick(beat: number, when = 0): void {
     const ctx = this.ensure();
+    if (this.fallback) {
+      this.fallback.metronomeClick(beat, when);
+      return;
+    }
     if (!this.master) return;
     const start = ctx.currentTime + when;
     const osc = ctx.createOscillator();
@@ -278,6 +314,7 @@ export class OrganAudioEngine implements AudioLike {
   }
 
   cancelAll(): void {
+    this.fallback?.cancelAll();
     const now = this.ctx?.currentTime ?? 0;
     for (const voices of this.active.values()) {
       for (const voice of voices) {
@@ -298,6 +335,12 @@ export class OrganAudioEngine implements AudioLike {
 
   dispose(): void {
     this.cancelAll();
+    this.fallback?.dispose();
+    this.fallback = null;
+    this.disposeNativeGraph();
+  }
+
+  private disposeNativeGraph(): void {
     for (const lfo of [this.lowLfo, this.highLfo]) {
       if (!lfo) continue;
       try { lfo.stop(); } catch {}
@@ -313,7 +356,16 @@ export class OrganAudioEngine implements AudioLike {
     this.wave = null;
     this.lowLfo = null;
     this.highLfo = null;
+    this.voiceGainNode = null;
+    this.pianoGainNode = null;
+    this.driveNode = null;
+    this.lowFilter = null;
+    this.highFilter = null;
+    this.lowPanner = null;
+    this.highPanner = null;
+    this.lowLfoDepth = null;
+    this.highLfoDepth = null;
+    this.master = null;
+    this.compressor = null;
   }
 }
-import type { AudioLike } from "./engine.js";
-import type { TimedNote } from "./timeline.js";
