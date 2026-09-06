@@ -24,6 +24,7 @@ export interface AudioLike {
   playChord?(midiNotes: number[], when: number, durationSec: number): void;
   cancelAll(): void;
   setGains(voice: number, piano: number): void;
+  setOrganControls?(rotary: "slow" | "fast", drive: number): void;
   dispose(): void;
   sustainPedal: boolean;
 }
