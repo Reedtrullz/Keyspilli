@@ -14,7 +14,7 @@
  *   npx tsx packages/catalog/scripts/chord-diagnostic.ts --base=<id>
  */
 import { readFile, readdir, access } from "node:fs/promises";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { tryParseChordSymbol } from "@keyspilli/midi";
 import { dataDir } from "../src/paths.js";
 
@@ -190,4 +190,4 @@ async function main() {
   if (report.summary.errors > 0) process.exit(1);
 }
 
-main();
+if (process.argv[1] && import.meta.url.endsWith(`/${basename(process.argv[1])}`)) await main();

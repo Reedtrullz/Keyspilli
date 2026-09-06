@@ -126,7 +126,7 @@ describe("chord contract end to end", () => {
 
     engine.start();
     expect(audio.playedChords).toEqual([
-      { midiNotes: [43, 50, 55], when: 0, durationSec: beatToSec(2, 120, speed) },
+      { midiNotes: [43, 50, 55], when: 0, durationSec: beatToSec(2, variant!.tempoBpm, speed) },
     ]);
   });
 

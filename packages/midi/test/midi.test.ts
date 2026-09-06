@@ -1248,6 +1248,21 @@ describe("buildVariants", () => {
     expect(reversed.chords).toEqual(forward.chords);
   });
 
+  it("does not use short RH notes to complete a short LH chord stack", () => {
+    const notes: Note[] = [0, 0.5, 1, 1.5].flatMap((start) => [
+      { midi: 43, start, dur: 0.125, vel: 78, hand: "L" },
+      { midi: 50, start, dur: 0.125, vel: 78, hand: "R" },
+      { midi: 55, start, dur: 0.125, vel: 78, hand: "R" },
+    ]);
+    const advanced = buildVariants(
+      shortLhStackSource(notes),
+      { title: "Mixed hands", artist: "Test" },
+      { arrangementProfile: "learner", audioDerived: false, maxDurBeats: null },
+    ).find((variant) => variant.level === "advanced")!;
+
+    expect(advanced.chords).toEqual([]);
+  });
+
   it("roots easy-variant bass notes to the song key", () => {
     const src: ParsedMidi = {
       format: 0,
