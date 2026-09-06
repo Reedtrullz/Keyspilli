@@ -3029,6 +3029,13 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     medium,
     advanced,
   };
+  // Thin harder learner levels before canonicalizing the public ladder. A
+  // post-ladder deletion can leave an easier note with no surviving parent.
+  if (learnerProfile && !metalProfile) {
+    for (const level of ["easy", "medium", "advanced"] as const) {
+      rawSets[level] = selectProtectedSemanticLocalThinning(rawSets[level]!, tempo, level).notes;
+    }
+  }
   // The levels were density-capped top-down so every reduction sees the same
   // playable attack stream as its next harder neighbor. Intersect easier RH
   // material with that neighbor once more to canonicalize quantized starts.
@@ -3051,6 +3058,20 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
         ? preserveMetalLhLadder(ladderReduced, sets[harder]!, LADDER_TOL[easier] ?? 0.02)
         : ladderReduced,
     );
+  }
+  if (learnerProfile && !metalProfile) {
+    sets.beginner = trimSamePitchOverlaps(preserveRhLadder(
+      sets.beginner!,
+      sets.easy!,
+      LADDER_TOL.beginner ?? 0.02,
+      PLAYABILITY_LIMITS.beginner!.maxSim,
+    ));
+    sets["very-beginner"] = trimSamePitchOverlaps(preserveRhLadder(
+      sets["very-beginner"]!,
+      sets.beginner!,
+      LADDER_TOL["very-beginner"] ?? 0.26,
+      PLAYABILITY_LIMITS["very-beginner"]!.maxSim,
+    ));
   }
   const beginnerAfterLadder = sets.beginner!;
   if (learnerTraceEnabled) {
@@ -3116,15 +3137,6 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
       Object.defineProperty(marked, BEGINNER_OFFGRID_CANDIDATE, { value: true, enumerable: true });
       return marked;
     });
-  }
-  // Frozen Candidate A: one protected semantic thinning pass over the final
-  // learner ladder. The selector is shared with the audit so promotion cannot
-  // drift into a second implementation; its own pass is a no-op for levels
-  // that already satisfy the unchanged validator.
-  if (learnerProfile && !metalProfile) {
-    for (const level of ["easy", "medium", "advanced"] as const) {
-      sets[level] = selectProtectedSemanticLocalThinning(sets[level]!, tempo, level).notes;
-    }
   }
   if (learnerTraceEnabled) {
     emitLearnerStageTrace(learnerTraceSink, "beginner-final", sets.beginner!, [{
