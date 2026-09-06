@@ -8,7 +8,9 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "e2e:scratch": "playwright test --config=playwright.scratch.config.ts",
+    "e2e:proxy": "playwright test --config=playwright.proxy.config.ts"
   },
   "dependencies": {
     "@keyspilli/catalog": "*",

@@ -1,0 +1,5637 @@
+{
+  "schemaVersion": 1,
+  "kind": "authoritative-symbolic-playability-gate-audit",
+  "mission": "AUTHORITATIVE_SYMBOLIC_PLAYABILITY_GATE_AUDIT",
+  "revision": "2f1a6cf",
+  "scope": {
+    "onsetToleranceBeats": 0.08,
+    "rapidIoiSeconds": 0.08,
+    "shortWindowSeconds": 0.5,
+    "benchmarkMaterialUsed": false,
+    "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+    "deployment": "NOT_DEPLOYED",
+    "musicalPolicyChanged": false
+  },
+  "laneA": {
+    "source": {
+      "bytes": 58204,
+      "sha256": "ec5010896c00a0541b34b0843a20f455707ac647ae4a222aee71e2ad43e8017e",
+      "noteCount": 7266,
+      "durationBeats": 358.46875,
+      "tempoBpm": 120,
+      "timeSig": [
+        4,
+        4
+      ],
+      "handLabelsAvailable": false,
+      "sourceCounts": {
+        "unknown": 7266
+      }
+    },
+    "stages": {
+      "source": {
+        "noteCount": 7266,
+        "eventHash": "bff9c0a9e33b522c9cfd42f4cb32084f94722e1644c8fb33f4e9501534fa5444",
+        "handLabelsAvailable": false,
+        "tempoBpm": 120,
+        "durationBeats": 358.46875,
+        "metrics": {
+          "noteCount": 7266,
+          "validNoteCount": 7266,
+          "invalidNoteCount": 0,
+          "durationBeats": 358.46875,
+          "durationSeconds": 179.234375,
+          "global": {
+            "noteCount": 7266,
+            "onsetCount": 5180,
+            "medianIoiSeconds": 0.023,
+            "p01Seconds": 0.011,
+            "p05Seconds": 0.0115,
+            "p10Seconds": 0.0115,
+            "p25Seconds": 0.0115,
+            "p75Seconds": 0.047,
+            "p90Seconds": 0.07,
+            "p95Seconds": 0.0925,
+            "minSeconds": 0.001,
+            "meanSeconds": 0.034457,
+            "attacksPerSecond": 28.900706,
+            "maxShortWindowAttacksPerSecond": 56,
+            "rapidIoiCount": 4752,
+            "rapidIoiFraction": 0.917552,
+            "maxSimultaneous": 6,
+            "maxSounding": 13
+          },
+          "rightHand": {
+            "noteCount": 7266,
+            "onsetCount": 5180,
+            "medianIoiSeconds": 0.023,
+            "p01Seconds": 0.011,
+            "p05Seconds": 0.0115,
+            "p10Seconds": 0.0115,
+            "p25Seconds": 0.0115,
+            "p75Seconds": 0.047,
+            "p90Seconds": 0.07,
+            "p95Seconds": 0.0925,
+            "minSeconds": 0.001,
+            "meanSeconds": 0.034457,
+            "attacksPerSecond": 28.900706,
+            "maxShortWindowAttacksPerSecond": 56,
+            "rapidIoiCount": 4752,
+            "rapidIoiFraction": 0.917552,
+            "maxSimultaneous": 6,
+            "maxSounding": 13
+          },
+          "leftHand": {
+            "noteCount": 0,
+            "onsetCount": 0,
+            "medianIoiSeconds": null,
+            "p01Seconds": null,
+            "p05Seconds": null,
+            "p10Seconds": null,
+            "p25Seconds": null,
+            "p75Seconds": null,
+            "p90Seconds": null,
+            "p95Seconds": null,
+            "minSeconds": null,
+            "meanSeconds": null,
+            "attacksPerSecond": 0,
+            "maxShortWindowAttacksPerSecond": 0,
+            "rapidIoiCount": 0,
+            "rapidIoiFraction": 0,
+            "maxSimultaneous": 0,
+            "maxSounding": 0
+          },
+          "toleranceOnsetCount": 2459,
+          "simultaneousChordAttacks": 1498,
+          "samePitchRearticulationOnsets": 255,
+          "alternatingHandAttacks": 0,
+          "bursts": {
+            "rapidIoiCount": 4752,
+            "rapidIoiFraction": 0.917552,
+            "longestRapidRun": 115,
+            "longestRapidRegionSeconds": 3.276042,
+            "rapidRegionCount": 390,
+            "worstRegions": [
+              {
+                "startBeat": 299.49791666666664,
+                "endBeat": 306.05,
+                "durationSeconds": 3.276042,
+                "rapidIoiCount": 115,
+                "rightHandAttacks": 116,
+                "leftHandAttacks": 0,
+                "sources": [
+                  "unknown"
+                ]
+              },
+              {
+                "startBeat": 98.42083333333333,
+                "endBeat": 103.1375,
+                "durationSeconds": 2.358333,
+                "rapidIoiCount": 96,
+                "rightHandAttacks": 97,
+                "leftHandAttacks": 0,
+                "sources": [
+                  "unknown"
+                ]
+              },
+              {
+                "startBeat": 327.70416666666665,
+                "endBeat": 331.60833333333335,
+                "durationSeconds": 1.952083,
+                "rapidIoiCount": 80,
+                "rightHandAttacks": 81,
+                "leftHandAttacks": 0,
+                "sources": [
+                  "unknown"
+                ]
+              }
+            ]
+          },
+          "rapidSourceEdges": {
+            "unknown": 4752
+          }
+        },
+        "name": "source"
+      },
+      "owned": {
+        "noteCount": 7266,
+        "eventHash": "bff9c0a9e33b522c9cfd42f4cb32084f94722e1644c8fb33f4e9501534fa5444",
+        "handLabelsAvailable": false,
+        "tempoBpm": 120,
+        "durationBeats": 358.46875,
+        "metrics": {
+          "noteCount": 7266,
+          "validNoteCount": 7266,
+          "invalidNoteCount": 0,
+          "durationBeats": 358.46875,
+          "durationSeconds": 179.234375,
+          "global": {
+            "noteCount": 7266,
+            "onsetCount": 5180,
+            "medianIoiSeconds": 0.023,
+            "p01Seconds": 0.011,
+            "p05Seconds": 0.0115,
+            "p10Seconds": 0.0115,
+            "p25Seconds": 0.0115,
+            "p75Seconds": 0.047,
+            "p90Seconds": 0.07,
+            "p95Seconds": 0.0925,
+            "minSeconds": 0.001,
+            "meanSeconds": 0.034457,
+            "attacksPerSecond": 28.900706,
+            "maxShortWindowAttacksPerSecond": 56,
+            "rapidIoiCount": 4752,
+            "rapidIoiFraction": 0.917552,
+            "maxSimultaneous": 6,
+            "maxSounding": 13
+          },
+          "rightHand": {
+            "noteCount": 7266,
+            "onsetCount": 5180,
+            "medianIoiSeconds": 0.023,
+            "p01Seconds": 0.011,
+            "p05Seconds": 0.0115,
+            "p10Seconds": 0.0115,
+            "p25Seconds": 0.0115,
+            "p75Seconds": 0.047,
+            "p90Seconds": 0.07,
+            "p95Seconds": 0.0925,
+            "minSeconds": 0.001,
+            "meanSeconds": 0.034457,
+            "attacksPerSecond": 28.900706,
+            "maxShortWindowAttacksPerSecond": 56,
+            "rapidIoiCount": 4752,
+            "rapidIoiFraction": 0.917552,
+            "maxSimultaneous": 6,
+            "maxSounding": 13
+          },
+          "leftHand": {
+            "noteCount": 0,
+            "onsetCount": 0,
+            "medianIoiSeconds": null,
+            "p01Seconds": null,
+            "p05Seconds": null,
+            "p10Seconds": null,
+            "p25Seconds": null,
+            "p75Seconds": null,
+            "p90Seconds": null,
+            "p95Seconds": null,
+            "minSeconds": null,
+            "meanSeconds": null,
+            "attacksPerSecond": 0,
+            "maxShortWindowAttacksPerSecond": 0,
+            "rapidIoiCount": 0,
+            "rapidIoiFraction": 0,
+            "maxSimultaneous": 0,
+            "maxSounding": 0
+          },
+          "toleranceOnsetCount": 2459,
+          "simultaneousChordAttacks": 1498,
+          "samePitchRearticulationOnsets": 255,
+          "alternatingHandAttacks": 0,
+          "bursts": {
+            "rapidIoiCount": 4752,
+            "rapidIoiFraction": 0.917552,
+            "longestRapidRun": 115,
+            "longestRapidRegionSeconds": 3.276042,
+            "rapidRegionCount": 390,
+            "worstRegions": [
+              {
+                "startBeat": 299.49791666666664,
+                "endBeat": 306.05,
+                "durationSeconds": 3.276042,
+                "rapidIoiCount": 115,
+                "rightHandAttacks": 116,
+                "leftHandAttacks": 0,
+                "sources": [
+                  "unknown"
+                ]
+              },
+              {
+                "startBeat": 98.42083333333333,
+                "endBeat": 103.1375,
+                "durationSeconds": 2.358333,
+                "rapidIoiCount": 96,
+                "rightHandAttacks": 97,
+                "leftHandAttacks": 0,
+                "sources": [
+                  "unknown"
+                ]
+              },
+              {
+                "startBeat": 327.70416666666665,
+                "endBeat": 331.60833333333335,
+                "durationSeconds": 1.952083,
+                "rapidIoiCount": 80,
+                "rightHandAttacks": 81,
+                "leftHandAttacks": 0,
+                "sources": [
+                  "unknown"
+                ]
+              }
+            ]
+          },
+          "rapidSourceEdges": {
+            "unknown": 4752
+          }
+        },
+        "name": "owned"
+      },
+      "canonical": {
+        "noteCount": 3843,
+        "eventHash": "07e6fff95a65a36935c6a63c8d67b7ea0b17eb5c381e790427b4d9ab464915a1",
+        "handLabelsAvailable": true,
+        "tempoBpm": 120,
+        "durationBeats": 358.46875,
+        "metrics": {
+          "noteCount": 3843,
+          "validNoteCount": 3843,
+          "invalidNoteCount": 0,
+          "durationBeats": 358.46875,
+          "durationSeconds": 179.234375,
+          "global": {
+            "noteCount": 3843,
+            "onsetCount": 2653,
+            "medianIoiSeconds": 0.0585,
+            "p01Seconds": 0.011,
+            "p05Seconds": 0.0115,
+            "p10Seconds": 0.0115,
+            "p25Seconds": 0.0345,
+            "p75Seconds": 0.0825,
+            "p90Seconds": 0.127,
+            "p95Seconds": 0.152,
+            "minSeconds": 0.001,
+            "meanSeconds": 0.067291,
+            "attacksPerSecond": 14.801848,
+            "maxShortWindowAttacksPerSecond": 26,
+            "rapidIoiCount": 1769,
+            "rapidIoiFraction": 0.667044,
+            "maxSimultaneous": 3,
+            "maxSounding": 9
+          },
+          "rightHand": {
+            "noteCount": 1542,
+            "onsetCount": 1542,
+            "medianIoiSeconds": 0.104,
+            "p01Seconds": 0.046,
+            "p05Seconds": 0.047,
+            "p10Seconds": 0.0585,
+            "p25Seconds": 0.07,
+            "p75Seconds": 0.1395,
+            "p90Seconds": 0.1855,
+            "p95Seconds": 0.231,
+            "minSeconds": 0.0455,
+            "meanSeconds": 0.115805,
+            "attacksPerSecond": 8.60326,
+            "maxShortWindowAttacksPerSecond": 16,
+            "rapidIoiCount": 392,
+            "rapidIoiFraction": 0.25438,
+            "maxSimultaneous": 1,
+            "maxSounding": 5
+          },
+          "leftHand": {
+            "noteCount": 2301,
+            "onsetCount": 1386,
+            "medianIoiSeconds": 0.1045,
+            "p01Seconds": 0.046,
+            "p05Seconds": 0.047,
+            "p10Seconds": 0.0585,
+            "p25Seconds": 0.081,
+            "p75Seconds": 0.151,
+            "p90Seconds": 0.2208,
+            "p95Seconds": 0.267,
+            "minSeconds": 0.0455,
+            "meanSeconds": 0.128806,
+            "attacksPerSecond": 7.732892,
+            "maxShortWindowAttacksPerSecond": 16,
+            "rapidIoiCount": 302,
+            "rapidIoiFraction": 0.218051,
+            "maxSimultaneous": 2,
+            "maxSounding": 8
+          },
+          "toleranceOnsetCount": 1865,
+          "simultaneousChordAttacks": 1024,
+          "samePitchRearticulationOnsets": 488,
+          "alternatingHandAttacks": 1733,
+          "bursts": {
+            "rapidIoiCount": 1769,
+            "rapidIoiFraction": 0.667044,
+            "longestRapidRun": 16,
+            "longestRapidRegionSeconds": 0.766667,
+            "rapidRegionCount": 657,
+            "worstRegions": [
+              {
+                "startBeat": 216.525,
+                "endBeat": 218.05833333333334,
+                "durationSeconds": 0.766667,
+                "rapidIoiCount": 16,
+                "rightHandAttacks": 10,
+                "leftHandAttacks": 9,
+                "sources": [
+                  "unknown"
+                ]
+              },
+              {
+                "startBeat": 58.68958333333333,
+                "endBeat": 59.96875,
+                "durationSeconds": 0.639583,
+                "rapidIoiCount": 12,
+                "rightHandAttacks": 8,
+                "leftHandAttacks": 6,
+                "sources": [
+                  "unknown"
+                ]
+              },
+              {
+                "startBeat": 88.57083333333334,
+                "endBeat": 89.68541666666667,
+                "durationSeconds": 0.557292,
+                "rapidIoiCount": 13,
+                "rightHandAttacks": 8,
+                "leftHandAttacks": 8,
+                "sources": [
+                  "unknown"
+                ]
+              }
+            ]
+          },
+          "rapidSourceEdges": {
+            "unknown": 1769
+          }
+        },
+        "name": "canonical"
+      },
+      "advanced": {
+        "level": "advanced",
+        "noteCount": 3560,
+        "eventHash": "f5d4aa685ef981b79b1c3901715857a2147eba887e7a6e3615c29107ba793296",
+        "handLabelsAvailable": true,
+        "tempoBpm": 120,
+        "durationBeats": 358.5,
+        "metrics": {
+          "noteCount": 3560,
+          "validNoteCount": 3560,
+          "invalidNoteCount": 0,
+          "durationBeats": 358.5,
+          "durationSeconds": 179.25,
+          "global": {
+            "noteCount": 3560,
+            "onsetCount": 1911,
+            "medianIoiSeconds": 0.0625,
+            "p01Seconds": 0.0625,
+            "p05Seconds": 0.0625,
+            "p10Seconds": 0.0625,
+            "p25Seconds": 0.0625,
+            "p75Seconds": 0.125,
+            "p90Seconds": 0.125,
+            "p95Seconds": 0.1875,
+            "minSeconds": 0.0625,
+            "meanSeconds": 0.093423,
+            "attacksPerSecond": 10.661088,
+            "maxShortWindowAttacksPerSecond": 16,
+            "rapidIoiCount": 1250,
+            "rapidIoiFraction": 0.65445,
+            "maxSimultaneous": 4,
+            "maxSounding": 6
+          },
+          "rightHand": {
+            "noteCount": 1420,
+            "onsetCount": 1407,
+            "medianIoiSeconds": 0.125,
+            "p01Seconds": 0.0625,
+            "p05Seconds": 0.0625,
+            "p10Seconds": 0.0625,
+            "p25Seconds": 0.0625,
+            "p75Seconds": 0.125,
+            "p90Seconds": 0.1875,
+            "p95Seconds": 0.25,
+            "minSeconds": 0.0625,
+            "meanSeconds": 0.126911,
+            "attacksPerSecond": 7.849372,
+            "maxShortWindowAttacksPerSecond": 14,
+            "rapidIoiCount": 511,
+            "rapidIoiFraction": 0.363442,
+            "maxSimultaneous": 2,
+            "maxSounding": 3
+          },
+          "leftHand": {
+            "noteCount": 2140,
+            "onsetCount": 1316,
+            "medianIoiSeconds": 0.125,
+            "p01Seconds": 0.0625,
+            "p05Seconds": 0.0625,
+            "p10Seconds": 0.0625,
+            "p25Seconds": 0.0625,
+            "p75Seconds": 0.1875,
+            "p90Seconds": 0.25,
+            "p95Seconds": 0.25,
+            "minSeconds": 0.0625,
+            "meanSeconds": 0.135646,
+            "attacksPerSecond": 7.341702,
+            "maxShortWindowAttacksPerSecond": 16,
+            "rapidIoiCount": 476,
+            "rapidIoiFraction": 0.361977,
+            "maxSimultaneous": 3,
+            "maxSounding": 4
+          },
+          "toleranceOnsetCount": 1911,
+          "simultaneousChordAttacks": 1169,
+          "samePitchRearticulationOnsets": 866,
+          "alternatingHandAttacks": 552,
+          "bursts": {
+            "rapidIoiCount": 1250,
+            "rapidIoiFraction": 0.65445,
+            "longestRapidRun": 21,
+            "longestRapidRegionSeconds": 1.3125,
+            "rapidRegionCount": 435,
+            "worstRegions": [
+              {
+                "startBeat": 40.625,
+                "endBeat": 43.25,
+                "durationSeconds": 1.3125,
+                "rapidIoiCount": 21,
+                "rightHandAttacks": 16,
+                "leftHandAttacks": 12,
+                "sources": [
+                  "unknown"
+                ]
+              },
+              {
+                "startBeat": 33.75,
+                "endBeat": 36,
+                "durationSeconds": 1.125,
+                "rapidIoiCount": 18,
+                "rightHandAttacks": 11,
+                "leftHandAttacks": 12,
+                "sources": [
+                  "unknown"
+                ]
+              },
+              {
+                "startBeat": 22.5,
+                "endBeat": 24.375,
+                "durationSeconds": 0.9375,
+                "rapidIoiCount": 15,
+                "rightHandAttacks": 9,
+                "leftHandAttacks": 10,
+                "sources": [
+                  "unknown"
+                ]
+              }
+            ]
+          },
+          "rapidSourceEdges": {
+            "unknown": 1250
+          }
+        },
+        "assessment": {
+          "level": "advanced",
+          "status": "fail",
+          "limits": {
+            "maxSim": 13,
+            "maxDensity": 18,
+            "minMedianIoi": 0.08
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": true,
+            "medianIoi": false
+          },
+          "failures": [
+            "advanced: median inter-onset below floor 0.08s"
+          ]
+        },
+        "name": "advanced"
+      },
+      "medium": {
+        "level": "medium",
+        "noteCount": 3066,
+        "eventHash": "c997de1e63c187d5d16a305466a6277413f15f8c5291c9b98d505f2d0cffddd3",
+        "handLabelsAvailable": true,
+        "tempoBpm": 120,
+        "durationBeats": 358.5,
+        "metrics": {
+          "noteCount": 3066,
+          "validNoteCount": 3066,
+          "invalidNoteCount": 0,
+          "durationBeats": 358.5,
+          "durationSeconds": 179.25,
+          "global": {
+            "noteCount": 3066,
+            "onsetCount": 1715,
+            "medianIoiSeconds": 0.0625,
+            "p01Seconds": 0.0625,
+            "p05Seconds": 0.0625,
+            "p10Seconds": 0.0625,
+            "p25Seconds": 0.0625,
+            "p75Seconds": 0.125,
+            "p90Seconds": 0.1875,
+            "p95Seconds": 0.1875,
+            "minSeconds": 0.0625,
+            "meanSeconds": 0.104106,
+            "attacksPerSecond": 9.567643,
+            "maxShortWindowAttacksPerSecond": 16,
+            "rapidIoiCount": 924,
+            "rapidIoiFraction": 0.53909,
+            "maxSimultaneous": 4,
+            "maxSounding": 5
+          },
+          "rightHand": {
+            "noteCount": 1152,
+            "onsetCount": 1139,
+            "medianIoiSeconds": 0.125,
+            "p01Seconds": 0.0625,
+            "p05Seconds": 0.0625,
+            "p10Seconds": 0.0625,
+            "p25Seconds": 0.125,
+            "p75Seconds": 0.1875,
+            "p90Seconds": 0.25,
+            "p95Seconds": 0.3125,
+            "minSeconds": 0.0625,
+            "meanSeconds": 0.156799,
+            "attacksPerSecond": 6.354254,
+            "maxShortWindowAttacksPerSecond": 10,
+            "rapidIoiCount": 174,
+            "rapidIoiFraction": 0.1529,
+            "maxSimultaneous": 2,
+            "maxSounding": 3
+          },
+          "leftHand": {
+            "noteCount": 1914,
+            "onsetCount": 1193,
+            "medianIoiSeconds": 0.125,
+            "p01Seconds": 0.0625,
+            "p05Seconds": 0.0625,
+            "p10Seconds": 0.0625,
+            "p25Seconds": 0.0625,
+            "p75Seconds": 0.1875,
+            "p90Seconds": 0.25,
+            "p95Seconds": 0.3125,
+            "minSeconds": 0.0625,
+            "meanSeconds": 0.149643,
+            "attacksPerSecond": 6.655509,
+            "maxShortWindowAttacksPerSecond": 14,
+            "rapidIoiCount": 315,
+            "rapidIoiFraction": 0.264262,
+            "maxSimultaneous": 3,
+            "maxSounding": 4
+          },
+          "toleranceOnsetCount": 1715,
+          "simultaneousChordAttacks": 1007,
+          "samePitchRearticulationOnsets": 724,
+          "alternatingHandAttacks": 624,
+          "bursts": {
+            "rapidIoiCount": 924,
+            "rapidIoiFraction": 0.53909,
+            "longestRapidRun": 14,
+            "longestRapidRegionSeconds": 0.875,
+            "rapidRegionCount": 426,
+            "worstRegions": [
+              {
+                "startBeat": 33.75,
+                "endBeat": 35.5,
+                "durationSeconds": 0.875,
+                "rapidIoiCount": 14,
+                "rightHandAttacks": 6,
+                "leftHandAttacks": 9,
+                "sources": [
+                  "unknown"
+                ]
+              },
+              {
+                "startBeat": 339.875,
+                "endBeat": 341.5,
+                "durationSeconds": 0.8125,
+                "rapidIoiCount": 13,
+                "rightHandAttacks": 7,
+                "leftHandAttacks": 8,
+                "sources": [
+                  "unknown"
+                ]
+              },
+              {
+                "startBeat": 283.75,
+                "endBeat": 285.25,
+                "durationSeconds": 0.75,
+                "rapidIoiCount": 12,
+                "rightHandAttacks": 6,
+                "leftHandAttacks": 9,
+                "sources": [
+                  "unknown"
+                ]
+              }
+            ]
+          },
+          "rapidSourceEdges": {
+            "unknown": 924
+          }
+        },
+        "assessment": {
+          "level": "medium",
+          "status": "fail",
+          "limits": {
+            "maxSim": 12,
+            "maxDensity": 16,
+            "minMedianIoi": 0.08
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": true,
+            "medianIoi": false
+          },
+          "failures": [
+            "medium: median inter-onset below floor 0.08s"
+          ]
+        },
+        "name": "medium"
+      },
+      "easy": {
+        "level": "easy",
+        "noteCount": 2843,
+        "eventHash": "faafcb0b1256eee13d04a292e074f55940b8459b6d4b31df8beb6116d2c77dff",
+        "handLabelsAvailable": true,
+        "tempoBpm": 120,
+        "durationBeats": 358.5,
+        "metrics": {
+          "noteCount": 2843,
+          "validNoteCount": 2843,
+          "invalidNoteCount": 0,
+          "durationBeats": 358.5,
+          "durationSeconds": 179.25,
+          "global": {
+            "noteCount": 2843,
+            "onsetCount": 1666,
+            "medianIoiSeconds": 0.0625,
+            "p01Seconds": 0.0625,
+            "p05Seconds": 0.0625,
+            "p10Seconds": 0.0625,
+            "p25Seconds": 0.0625,
+            "p75Seconds": 0.125,
+            "p90Seconds": 0.1875,
+            "p95Seconds": 0.1875,
+            "minSeconds": 0.0625,
+            "meanSeconds": 0.10717,
+            "attacksPerSecond": 9.294282,
+            "maxShortWindowAttacksPerSecond": 16,
+            "rapidIoiCount": 860,
+            "rapidIoiFraction": 0.516517,
+            "maxSimultaneous": 3,
+            "maxSounding": 5
+          },
+          "rightHand": {
+            "noteCount": 1054,
+            "onsetCount": 1054,
+            "medianIoiSeconds": 0.125,
+            "p01Seconds": 0.0625,
+            "p05Seconds": 0.0625,
+            "p10Seconds": 0.0625,
+            "p25Seconds": 0.125,
+            "p75Seconds": 0.1875,
+            "p90Seconds": 0.25,
+            "p95Seconds": 0.3125,
+            "minSeconds": 0.0625,
+            "meanSeconds": 0.169456,
+            "attacksPerSecond": 5.880056,
+            "maxShortWindowAttacksPerSecond": 10,
+            "rapidIoiCount": 144,
+            "rapidIoiFraction": 0.136752,
+            "maxSimultaneous": 1,
+            "maxSounding": 3
+          },
+          "leftHand": {
+            "noteCount": 1789,
+            "onsetCount": 1181,
+            "medianIoiSeconds": 0.125,
+            "p01Seconds": 0.0625,
+            "p05Seconds": 0.0625,
+            "p10Seconds": 0.0625,
+            "p25Seconds": 0.0625,
+            "p75Seconds": 0.1875,
+            "p90Seconds": 0.25,
+            "p95Seconds": 0.3125,
+            "minSeconds": 0.0625,
+            "meanSeconds": 0.151165,
+            "attacksPerSecond": 6.588563,
+            "maxShortWindowAttacksPerSecond": 14,
+            "rapidIoiCount": 298,
+            "rapidIoiFraction": 0.252542,
+            "maxSimultaneous": 2,
+            "maxSounding": 4
+          },
+          "toleranceOnsetCount": 1666,
+          "simultaneousChordAttacks": 897,
+          "samePitchRearticulationOnsets": 710,
+          "alternatingHandAttacks": 610,
+          "bursts": {
+            "rapidIoiCount": 860,
+            "rapidIoiFraction": 0.516517,
+            "longestRapidRun": 14,
+            "longestRapidRegionSeconds": 0.875,
+            "rapidRegionCount": 416,
+            "worstRegions": [
+              {
+                "startBeat": 33.75,
+                "endBeat": 35.5,
+                "durationSeconds": 0.875,
+                "rapidIoiCount": 14,
+                "rightHandAttacks": 6,
+                "leftHandAttacks": 9,
+                "sources": [
+                  "unknown"
+                ]
+              },
+              {
+                "startBeat": 339.875,
+                "endBeat": 341.5,
+                "durationSeconds": 0.8125,
+                "rapidIoiCount": 13,
+                "rightHandAttacks": 7,
+                "leftHandAttacks": 8,
+                "sources": [
+                  "unknown"
+                ]
+              },
+              {
+                "startBeat": 283.75,
+                "endBeat": 285.25,
+                "durationSeconds": 0.75,
+                "rapidIoiCount": 12,
+                "rightHandAttacks": 6,
+                "leftHandAttacks": 9,
+                "sources": [
+                  "unknown"
+                ]
+              }
+            ]
+          },
+          "rapidSourceEdges": {
+            "unknown": 860
+          }
+        },
+        "assessment": {
+          "level": "easy",
+          "status": "fail",
+          "limits": {
+            "maxSim": 5,
+            "maxDensity": 12,
+            "minMedianIoi": 0.08
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": true,
+            "medianIoi": false
+          },
+          "failures": [
+            "easy: median inter-onset below floor 0.08s"
+          ]
+        },
+        "name": "easy"
+      },
+      "very-easy": {
+        "level": "very-easy",
+        "noteCount": 2560,
+        "eventHash": "4ed2137c3e76d7af4f746c3a8cc453da223aac79425c84f14e8567fe8b399575",
+        "handLabelsAvailable": true,
+        "tempoBpm": 120,
+        "durationBeats": 358.5,
+        "metrics": {
+          "noteCount": 2560,
+          "validNoteCount": 2560,
+          "invalidNoteCount": 0,
+          "durationBeats": 358.5,
+          "durationSeconds": 179.25,
+          "global": {
+            "noteCount": 2560,
+            "onsetCount": 1553,
+            "medianIoiSeconds": 0.125,
+            "p01Seconds": 0.0625,
+            "p05Seconds": 0.0625,
+            "p10Seconds": 0.0625,
+            "p25Seconds": 0.0625,
+            "p75Seconds": 0.125,
+            "p90Seconds": 0.1875,
+            "p95Seconds": 0.25,
+            "minSeconds": 0.0625,
+            "meanSeconds": 0.114973,
+            "attacksPerSecond": 8.663877,
+            "maxShortWindowAttacksPerSecond": 16,
+            "rapidIoiCount": 620,
+            "rapidIoiFraction": 0.399485,
+            "maxSimultaneous": 3,
+            "maxSounding": 5
+          },
+          "rightHand": {
+            "noteCount": 1047,
+            "onsetCount": 1047,
+            "medianIoiSeconds": 0.125,
+            "p01Seconds": 0.0625,
+            "p05Seconds": 0.0625,
+            "p10Seconds": 0.0625,
+            "p25Seconds": 0.125,
+            "p75Seconds": 0.1875,
+            "p90Seconds": 0.25,
+            "p95Seconds": 0.3125,
+            "minSeconds": 0.0625,
+            "meanSeconds": 0.17059,
+            "attacksPerSecond": 5.841004,
+            "maxShortWindowAttacksPerSecond": 10,
+            "rapidIoiCount": 142,
+            "rapidIoiFraction": 0.135755,
+            "maxSimultaneous": 1,
+            "maxSounding": 3
+          },
+          "leftHand": {
+            "noteCount": 1513,
+            "onsetCount": 1019,
+            "medianIoiSeconds": 0.125,
+            "p01Seconds": 0.125,
+            "p05Seconds": 0.125,
+            "p10Seconds": 0.125,
+            "p25Seconds": 0.125,
+            "p75Seconds": 0.25,
+            "p90Seconds": 0.25,
+            "p95Seconds": 0.375,
+            "minSeconds": 0.125,
+            "meanSeconds": 0.175221,
+            "attacksPerSecond": 5.684798,
+            "maxShortWindowAttacksPerSecond": 8,
+            "rapidIoiCount": 0,
+            "rapidIoiFraction": 0,
+            "maxSimultaneous": 2,
+            "maxSounding": 4
+          },
+          "toleranceOnsetCount": 1553,
+          "simultaneousChordAttacks": 760,
+          "samePitchRearticulationOnsets": 589,
+          "alternatingHandAttacks": 594,
+          "bursts": {
+            "rapidIoiCount": 620,
+            "rapidIoiFraction": 0.399485,
+            "longestRapidRun": 11,
+            "longestRapidRegionSeconds": 0.6875,
+            "rapidRegionCount": 285,
+            "worstRegions": [
+              {
+                "startBeat": 333.375,
+                "endBeat": 334.75,
+                "durationSeconds": 0.6875,
+                "rapidIoiCount": 11,
+                "rightHandAttacks": 6,
+                "leftHandAttacks": 6,
+                "sources": [
+                  "unknown"
+                ]
+              },
+              {
+                "startBeat": 18.5,
+                "endBeat": 19.375,
+                "durationSeconds": 0.4375,
+                "rapidIoiCount": 7,
+                "rightHandAttacks": 5,
+                "leftHandAttacks": 4,
+                "sources": [
+                  "unknown"
+                ]
+              },
+              {
+                "startBeat": 60,
+                "endBeat": 60.875,
+                "durationSeconds": 0.4375,
+                "rapidIoiCount": 7,
+                "rightHandAttacks": 5,
+                "leftHandAttacks": 4,
+                "sources": [
+                  "unknown"
+                ]
+              }
+            ]
+          },
+          "rapidSourceEdges": {
+            "unknown": 620
+          }
+        },
+        "assessment": {
+          "level": "very-easy",
+          "status": "pass",
+          "limits": {
+            "maxSim": 5,
+            "maxDensity": 12,
+            "minMedianIoi": 0.08
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": true,
+            "medianIoi": true
+          },
+          "failures": []
+        },
+        "name": "very-easy"
+      },
+      "beginner": {
+        "level": "beginner",
+        "noteCount": 807,
+        "eventHash": "9db42d4fe92922812e492f76d5864ec9d360a27d94c69962bd0604b9df9780f5",
+        "handLabelsAvailable": true,
+        "tempoBpm": 120,
+        "durationBeats": 358.5,
+        "metrics": {
+          "noteCount": 807,
+          "validNoteCount": 807,
+          "invalidNoteCount": 0,
+          "durationBeats": 358.5,
+          "durationSeconds": 179.25,
+          "global": {
+            "noteCount": 807,
+            "onsetCount": 775,
+            "medianIoiSeconds": 0.1775,
+            "p01Seconds": 0.054745,
+            "p05Seconds": 0.125,
+            "p10Seconds": 0.125,
+            "p25Seconds": 0.125,
+            "p75Seconds": 0.25,
+            "p90Seconds": 0.40125,
+            "p95Seconds": 0.5,
+            "minSeconds": 0.0365,
+            "meanSeconds": 0.230523,
+            "attacksPerSecond": 4.32357,
+            "maxShortWindowAttacksPerSecond": 10,
+            "rapidIoiCount": 27,
+            "rapidIoiFraction": 0.034884,
+            "maxSimultaneous": 2,
+            "maxSounding": 2
+          },
+          "rightHand": {
+            "noteCount": 717,
+            "onsetCount": 717,
+            "medianIoiSeconds": 0.2005,
+            "p01Seconds": 0.06365,
+            "p05Seconds": 0.125,
+            "p10Seconds": 0.125,
+            "p25Seconds": 0.125,
+            "p75Seconds": 0.306125,
+            "p90Seconds": 0.5,
+            "p95Seconds": 0.625,
+            "minSeconds": 0.0405,
+            "meanSeconds": 0.249197,
+            "attacksPerSecond": 4,
+            "maxShortWindowAttacksPerSecond": 10,
+            "rapidIoiCount": 18,
+            "rapidIoiFraction": 0.02514,
+            "maxSimultaneous": 1,
+            "maxSounding": 2
+          },
+          "leftHand": {
+            "noteCount": 90,
+            "onsetCount": 90,
+            "medianIoiSeconds": 2,
+            "p01Seconds": 1.47,
+            "p05Seconds": 1.625,
+            "p10Seconds": 1.75,
+            "p25Seconds": 1.875,
+            "p75Seconds": 2.125,
+            "p90Seconds": 2.25,
+            "p95Seconds": 2.375,
+            "minSeconds": 1.25,
+            "meanSeconds": 2.004213,
+            "attacksPerSecond": 0.502092,
+            "maxShortWindowAttacksPerSecond": 2,
+            "rapidIoiCount": 0,
+            "rapidIoiFraction": 0,
+            "maxSimultaneous": 1,
+            "maxSounding": 1
+          },
+          "toleranceOnsetCount": 773,
+          "simultaneousChordAttacks": 32,
+          "samePitchRearticulationOnsets": 237,
+          "alternatingHandAttacks": 116,
+          "bursts": {
+            "rapidIoiCount": 26,
+            "rapidIoiFraction": 0.033592,
+            "longestRapidRun": 2,
+            "longestRapidRegionSeconds": 0.125,
+            "rapidRegionCount": 24,
+            "worstRegions": [
+              {
+                "startBeat": 216.25,
+                "endBeat": 216.5,
+                "durationSeconds": 0.125,
+                "rapidIoiCount": 2,
+                "rightHandAttacks": 2,
+                "leftHandAttacks": 1,
+                "sources": [
+                  "unknown"
+                ]
+              },
+              {
+                "startBeat": 43.91458333333333,
+                "endBeat": 44.077083333333334,
+                "durationSeconds": 0.08125,
+                "rapidIoiCount": 2,
+                "rightHandAttacks": 2,
+                "leftHandAttacks": 1,
+                "sources": [
+                  "unknown"
+                ]
+              },
+              {
+                "startBeat": 123.5,
+                "endBeat": 123.65625,
+                "durationSeconds": 0.078125,
+                "rapidIoiCount": 1,
+                "rightHandAttacks": 2,
+                "leftHandAttacks": 0,
+                "sources": [
+                  "unknown"
+                ]
+              }
+            ]
+          },
+          "rapidSourceEdges": {
+            "unknown": 26
+          }
+        },
+        "assessment": {
+          "level": "beginner",
+          "status": "pass",
+          "limits": {
+            "maxSim": 2,
+            "maxDensity": 6,
+            "minMedianIoi": 0.08
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": true,
+            "medianIoi": true
+          },
+          "failures": []
+        },
+        "name": "beginner"
+      },
+      "very-beginner": {
+        "level": "very-beginner",
+        "noteCount": 409,
+        "eventHash": "cb0a04737174ab9d11c1aca6e9e0048675663f7976f6a56d8567f58672208144",
+        "handLabelsAvailable": true,
+        "tempoBpm": 120,
+        "durationBeats": 358.5,
+        "metrics": {
+          "noteCount": 409,
+          "validNoteCount": 409,
+          "invalidNoteCount": 0,
+          "durationBeats": 358.5,
+          "durationSeconds": 179.25,
+          "global": {
+            "noteCount": 409,
+            "onsetCount": 409,
+            "medianIoiSeconds": 0.375,
+            "p01Seconds": 0.125,
+            "p05Seconds": 0.125,
+            "p10Seconds": 0.125,
+            "p25Seconds": 0.25,
+            "p75Seconds": 0.5,
+            "p90Seconds": 0.875,
+            "p95Seconds": 1.125,
+            "minSeconds": 0.125,
+            "meanSeconds": 0.436275,
+            "attacksPerSecond": 2.281729,
+            "maxShortWindowAttacksPerSecond": 6,
+            "rapidIoiCount": 0,
+            "rapidIoiFraction": 0,
+            "maxSimultaneous": 1,
+            "maxSounding": 2
+          },
+          "rightHand": {
+            "noteCount": 409,
+            "onsetCount": 409,
+            "medianIoiSeconds": 0.375,
+            "p01Seconds": 0.125,
+            "p05Seconds": 0.125,
+            "p10Seconds": 0.125,
+            "p25Seconds": 0.25,
+            "p75Seconds": 0.5,
+            "p90Seconds": 0.875,
+            "p95Seconds": 1.125,
+            "minSeconds": 0.125,
+            "meanSeconds": 0.436275,
+            "attacksPerSecond": 2.281729,
+            "maxShortWindowAttacksPerSecond": 6,
+            "rapidIoiCount": 0,
+            "rapidIoiFraction": 0,
+            "maxSimultaneous": 1,
+            "maxSounding": 2
+          },
+          "leftHand": {
+            "noteCount": 0,
+            "onsetCount": 0,
+            "medianIoiSeconds": null,
+            "p01Seconds": null,
+            "p05Seconds": null,
+            "p10Seconds": null,
+            "p25Seconds": null,
+            "p75Seconds": null,
+            "p90Seconds": null,
+            "p95Seconds": null,
+            "minSeconds": null,
+            "meanSeconds": null,
+            "attacksPerSecond": 0,
+            "maxShortWindowAttacksPerSecond": 0,
+            "rapidIoiCount": 0,
+            "rapidIoiFraction": 0,
+            "maxSimultaneous": 0,
+            "maxSounding": 0
+          },
+          "toleranceOnsetCount": 409,
+          "simultaneousChordAttacks": 0,
+          "samePitchRearticulationOnsets": 124,
+          "alternatingHandAttacks": 0,
+          "bursts": {
+            "rapidIoiCount": 0,
+            "rapidIoiFraction": 0,
+            "longestRapidRun": 0,
+            "longestRapidRegionSeconds": 0,
+            "rapidRegionCount": 0,
+            "worstRegions": []
+          },
+          "rapidSourceEdges": {}
+        },
+        "assessment": {
+          "level": "very-beginner",
+          "status": "pass",
+          "limits": {
+            "maxSim": 2,
+            "maxDensity": 5,
+            "minMedianIoi": 0.15
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": true,
+            "medianIoi": true
+          },
+          "failures": []
+        },
+        "name": "very-beginner"
+      }
+    },
+    "arrangementStats": {
+      "identityNotes": 1542,
+      "leftHandNotes": 2301
+    },
+    "validationErrors": [
+      "easy: median inter-onset 0.063s below floor 0.08s",
+      "medium: median inter-onset 0.063s below floor 0.08s",
+      "advanced: median inter-onset 0.063s below floor 0.08s"
+    ],
+    "interactions": {
+      "very-beginner": {
+        "level": "very-beginner",
+        "status": "pass",
+        "densityPass": true,
+        "medianIoiPass": true,
+        "maxSimPass": true,
+        "class": "neither"
+      },
+      "beginner": {
+        "level": "beginner",
+        "status": "pass",
+        "densityPass": true,
+        "medianIoiPass": true,
+        "maxSimPass": true,
+        "class": "neither"
+      },
+      "very-easy": {
+        "level": "very-easy",
+        "status": "pass",
+        "densityPass": true,
+        "medianIoiPass": true,
+        "maxSimPass": true,
+        "class": "neither"
+      },
+      "easy": {
+        "level": "easy",
+        "status": "fail",
+        "densityPass": true,
+        "medianIoiPass": false,
+        "maxSimPass": true,
+        "class": "ioi-only"
+      },
+      "medium": {
+        "level": "medium",
+        "status": "fail",
+        "densityPass": true,
+        "medianIoiPass": false,
+        "maxSimPass": true,
+        "class": "ioi-only"
+      },
+      "advanced": {
+        "level": "advanced",
+        "status": "fail",
+        "densityPass": true,
+        "medianIoiPass": false,
+        "maxSimPass": true,
+        "class": "ioi-only"
+      }
+    },
+    "sourceToCanonical": {
+      "sourceEventHash": "bff9c0a9e33b522c9cfd42f4cb32084f94722e1644c8fb33f4e9501534fa5444",
+      "ownedEventHash": "bff9c0a9e33b522c9cfd42f4cb32084f94722e1644c8fb33f4e9501534fa5444",
+      "canonicalEventHash": "07e6fff95a65a36935c6a63c8d67b7ea0b17eb5c381e790427b4d9ab464915a1",
+      "sourceNotes": 7266,
+      "canonicalNotes": 3843
+    },
+    "densityConclusion": {
+      "firstFailingLearnerLevel": "easy",
+      "failingLevels": [
+        "easy",
+        "medium",
+        "advanced"
+      ],
+      "failureKind": "median-ioi-only",
+      "maxDensityPassesAtFailingLevels": true,
+      "sameHandMediansRemainAboveFloor": true,
+      "interpretation": "canonical selection remains dense; learner levels preserve rapid global attacks while average density and max simultaneity stay within configured limits"
+    }
+  },
+  "trustedControls": {
+    "classical": {
+      "title": "Clair de lune",
+      "logicalRef": "data/artifacts/c-debussy-suite-bergamasque-clair-de-lune/a/notes.json",
+      "source": {
+        "bytes": 85364,
+        "sha256": "e7e0fd260e049e338120cc4ee35c1a998ef616c01529a4c1a79837d6bb914039",
+        "noteCount": 1309,
+        "durationBeats": 322.5,
+        "tempoBpm": 60,
+        "handLabelsAvailable": true
+      },
+      "levels": {
+        "very-beginner": {
+          "level": "very-beginner",
+          "noteCount": 368,
+          "eventHash": "af0d7b13979230489a00478a24234e3b6d1a18e7d13b4a7d3b78d804b485137a",
+          "handLabelsAvailable": true,
+          "tempoBpm": 60,
+          "durationBeats": 322.5,
+          "metrics": {
+            "noteCount": 368,
+            "validNoteCount": 368,
+            "invalidNoteCount": 0,
+            "durationBeats": 322.5,
+            "durationSeconds": 322.5,
+            "global": {
+              "noteCount": 368,
+              "onsetCount": 368,
+              "medianIoiSeconds": 0.5,
+              "p01Seconds": 0.25,
+              "p05Seconds": 0.25,
+              "p10Seconds": 0.5,
+              "p25Seconds": 0.5,
+              "p75Seconds": 1,
+              "p90Seconds": 1.5,
+              "p95Seconds": 2,
+              "minSeconds": 0.25,
+              "meanSeconds": 0.867847,
+              "attacksPerSecond": 1.141085,
+              "maxShortWindowAttacksPerSecond": 4,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 1,
+              "maxSounding": 2
+            },
+            "rightHand": {
+              "noteCount": 368,
+              "onsetCount": 368,
+              "medianIoiSeconds": 0.5,
+              "p01Seconds": 0.25,
+              "p05Seconds": 0.25,
+              "p10Seconds": 0.5,
+              "p25Seconds": 0.5,
+              "p75Seconds": 1,
+              "p90Seconds": 1.5,
+              "p95Seconds": 2,
+              "minSeconds": 0.25,
+              "meanSeconds": 0.867847,
+              "attacksPerSecond": 1.141085,
+              "maxShortWindowAttacksPerSecond": 4,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 1,
+              "maxSounding": 2
+            },
+            "leftHand": {
+              "noteCount": 0,
+              "onsetCount": 0,
+              "medianIoiSeconds": null,
+              "p01Seconds": null,
+              "p05Seconds": null,
+              "p10Seconds": null,
+              "p25Seconds": null,
+              "p75Seconds": null,
+              "p90Seconds": null,
+              "p95Seconds": null,
+              "minSeconds": null,
+              "meanSeconds": null,
+              "attacksPerSecond": 0,
+              "maxShortWindowAttacksPerSecond": 0,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 0,
+              "maxSounding": 0
+            },
+            "toleranceOnsetCount": 368,
+            "simultaneousChordAttacks": 0,
+            "samePitchRearticulationOnsets": 42,
+            "alternatingHandAttacks": 0,
+            "bursts": {
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "longestRapidRun": 0,
+              "longestRapidRegionSeconds": 0,
+              "rapidRegionCount": 0,
+              "worstRegions": []
+            },
+            "rapidSourceEdges": {}
+          },
+          "assessment": {
+            "level": "very-beginner",
+            "status": "pass",
+            "limits": {
+              "maxSim": 2,
+              "maxDensity": 5,
+              "minMedianIoi": 0.15
+            },
+            "passes": {
+              "maxSim": true,
+              "maxDensity": true,
+              "medianIoi": true
+            },
+            "failures": []
+          },
+          "name": "very-beginner"
+        },
+        "beginner": {
+          "level": "beginner",
+          "noteCount": 507,
+          "eventHash": "14151edc230a016e2a4a6a63a659e70d8319f1cf450661732b1458382523df56",
+          "handLabelsAvailable": true,
+          "tempoBpm": 60,
+          "durationBeats": 322.5,
+          "metrics": {
+            "noteCount": 507,
+            "validNoteCount": 507,
+            "invalidNoteCount": 0,
+            "durationBeats": 322.5,
+            "durationSeconds": 322.5,
+            "global": {
+              "noteCount": 507,
+              "onsetCount": 489,
+              "medianIoiSeconds": 0.5,
+              "p01Seconds": 0.25,
+              "p05Seconds": 0.25,
+              "p10Seconds": 0.25,
+              "p25Seconds": 0.25,
+              "p75Seconds": 0.75,
+              "p90Seconds": 1.5,
+              "p95Seconds": 1.5,
+              "minSeconds": 0.25,
+              "meanSeconds": 0.653689,
+              "attacksPerSecond": 1.516279,
+              "maxShortWindowAttacksPerSecond": 4,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 2,
+              "maxSounding": 2
+            },
+            "rightHand": {
+              "noteCount": 435,
+              "onsetCount": 435,
+              "medianIoiSeconds": 0.5,
+              "p01Seconds": 0.25,
+              "p05Seconds": 0.25,
+              "p10Seconds": 0.25,
+              "p25Seconds": 0.25,
+              "p75Seconds": 1,
+              "p90Seconds": 1.5,
+              "p95Seconds": 2,
+              "minSeconds": 0.25,
+              "meanSeconds": 0.733871,
+              "attacksPerSecond": 1.348837,
+              "maxShortWindowAttacksPerSecond": 4,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 1,
+              "maxSounding": 2
+            },
+            "leftHand": {
+              "noteCount": 72,
+              "onsetCount": 72,
+              "medianIoiSeconds": 4.5,
+              "p01Seconds": 3.25,
+              "p05Seconds": 4.25,
+              "p10Seconds": 4.5,
+              "p25Seconds": 4.5,
+              "p75Seconds": 4.5,
+              "p90Seconds": 4.5,
+              "p95Seconds": 4.75,
+              "minSeconds": 1.5,
+              "meanSeconds": 4.492958,
+              "attacksPerSecond": 0.223256,
+              "maxShortWindowAttacksPerSecond": 2,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 1,
+              "maxSounding": 1
+            },
+            "toleranceOnsetCount": 489,
+            "simultaneousChordAttacks": 18,
+            "samePitchRearticulationOnsets": 37,
+            "alternatingHandAttacks": 107,
+            "bursts": {
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "longestRapidRun": 0,
+              "longestRapidRegionSeconds": 0,
+              "rapidRegionCount": 0,
+              "worstRegions": []
+            },
+            "rapidSourceEdges": {}
+          },
+          "assessment": {
+            "level": "beginner",
+            "status": "pass",
+            "limits": {
+              "maxSim": 2,
+              "maxDensity": 6,
+              "minMedianIoi": 0.08
+            },
+            "passes": {
+              "maxSim": true,
+              "maxDensity": true,
+              "medianIoi": true
+            },
+            "failures": []
+          },
+          "name": "beginner"
+        },
+        "very-easy": {
+          "level": "very-easy",
+          "noteCount": 962,
+          "eventHash": "d54f457c423702fb85934e58e0bb79d0648cd66e5bde50710def23aed7ee1221",
+          "handLabelsAvailable": true,
+          "tempoBpm": 60,
+          "durationBeats": 322.5,
+          "metrics": {
+            "noteCount": 962,
+            "validNoteCount": 962,
+            "invalidNoteCount": 0,
+            "durationBeats": 322.5,
+            "durationSeconds": 322.5,
+            "global": {
+              "noteCount": 962,
+              "onsetCount": 714,
+              "medianIoiSeconds": 0.25,
+              "p01Seconds": 0.25,
+              "p05Seconds": 0.25,
+              "p10Seconds": 0.25,
+              "p25Seconds": 0.25,
+              "p75Seconds": 0.5,
+              "p90Seconds": 0.75,
+              "p95Seconds": 1.5,
+              "minSeconds": 0.25,
+              "meanSeconds": 0.447405,
+              "attacksPerSecond": 2.213953,
+              "maxShortWindowAttacksPerSecond": 4,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 3,
+              "maxSounding": 4
+            },
+            "rightHand": {
+              "noteCount": 435,
+              "onsetCount": 435,
+              "medianIoiSeconds": 0.5,
+              "p01Seconds": 0.25,
+              "p05Seconds": 0.25,
+              "p10Seconds": 0.25,
+              "p25Seconds": 0.25,
+              "p75Seconds": 1,
+              "p90Seconds": 1.5,
+              "p95Seconds": 2,
+              "minSeconds": 0.25,
+              "meanSeconds": 0.733871,
+              "attacksPerSecond": 1.348837,
+              "maxShortWindowAttacksPerSecond": 4,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 1,
+              "maxSounding": 2
+            },
+            "leftHand": {
+              "noteCount": 527,
+              "onsetCount": 448,
+              "medianIoiSeconds": 0.25,
+              "p01Seconds": 0.25,
+              "p05Seconds": 0.25,
+              "p10Seconds": 0.25,
+              "p25Seconds": 0.25,
+              "p75Seconds": 1,
+              "p90Seconds": 1.5,
+              "p95Seconds": 3,
+              "minSeconds": 0.25,
+              "meanSeconds": 0.713647,
+              "attacksPerSecond": 1.389147,
+              "maxShortWindowAttacksPerSecond": 4,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 2,
+              "maxSounding": 3
+            },
+            "toleranceOnsetCount": 714,
+            "simultaneousChordAttacks": 192,
+            "samePitchRearticulationOnsets": 44,
+            "alternatingHandAttacks": 123,
+            "bursts": {
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "longestRapidRun": 0,
+              "longestRapidRegionSeconds": 0,
+              "rapidRegionCount": 0,
+              "worstRegions": []
+            },
+            "rapidSourceEdges": {}
+          },
+          "assessment": {
+            "level": "very-easy",
+            "status": "pass",
+            "limits": {
+              "maxSim": 5,
+              "maxDensity": 12,
+              "minMedianIoi": 0.08
+            },
+            "passes": {
+              "maxSim": true,
+              "maxDensity": true,
+              "medianIoi": true
+            },
+            "failures": []
+          },
+          "name": "very-easy"
+        },
+        "easy": {
+          "level": "easy",
+          "noteCount": 962,
+          "eventHash": "2b7ce60e6971ed030942c2cf5ca028d9221a742801739c8d3b4519466541b49d",
+          "handLabelsAvailable": true,
+          "tempoBpm": 60,
+          "durationBeats": 322.5,
+          "metrics": {
+            "noteCount": 962,
+            "validNoteCount": 962,
+            "invalidNoteCount": 0,
+            "durationBeats": 322.5,
+            "durationSeconds": 322.5,
+            "global": {
+              "noteCount": 962,
+              "onsetCount": 714,
+              "medianIoiSeconds": 0.25,
+              "p01Seconds": 0.25,
+              "p05Seconds": 0.25,
+              "p10Seconds": 0.25,
+              "p25Seconds": 0.25,
+              "p75Seconds": 0.5,
+              "p90Seconds": 0.75,
+              "p95Seconds": 1.5,
+              "minSeconds": 0.25,
+              "meanSeconds": 0.447405,
+              "attacksPerSecond": 2.213953,
+              "maxShortWindowAttacksPerSecond": 4,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 3,
+              "maxSounding": 4
+            },
+            "rightHand": {
+              "noteCount": 435,
+              "onsetCount": 435,
+              "medianIoiSeconds": 0.5,
+              "p01Seconds": 0.25,
+              "p05Seconds": 0.25,
+              "p10Seconds": 0.25,
+              "p25Seconds": 0.25,
+              "p75Seconds": 1,
+              "p90Seconds": 1.5,
+              "p95Seconds": 2,
+              "minSeconds": 0.25,
+              "meanSeconds": 0.733871,
+              "attacksPerSecond": 1.348837,
+              "maxShortWindowAttacksPerSecond": 4,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 1,
+              "maxSounding": 2
+            },
+            "leftHand": {
+              "noteCount": 527,
+              "onsetCount": 448,
+              "medianIoiSeconds": 0.25,
+              "p01Seconds": 0.25,
+              "p05Seconds": 0.25,
+              "p10Seconds": 0.25,
+              "p25Seconds": 0.25,
+              "p75Seconds": 1,
+              "p90Seconds": 1.5,
+              "p95Seconds": 3,
+              "minSeconds": 0.25,
+              "meanSeconds": 0.713647,
+              "attacksPerSecond": 1.389147,
+              "maxShortWindowAttacksPerSecond": 4,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 2,
+              "maxSounding": 3
+            },
+            "toleranceOnsetCount": 714,
+            "simultaneousChordAttacks": 192,
+            "samePitchRearticulationOnsets": 44,
+            "alternatingHandAttacks": 123,
+            "bursts": {
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "longestRapidRun": 0,
+              "longestRapidRegionSeconds": 0,
+              "rapidRegionCount": 0,
+              "worstRegions": []
+            },
+            "rapidSourceEdges": {}
+          },
+          "assessment": {
+            "level": "easy",
+            "status": "pass",
+            "limits": {
+              "maxSim": 5,
+              "maxDensity": 12,
+              "minMedianIoi": 0.08
+            },
+            "passes": {
+              "maxSim": true,
+              "maxDensity": true,
+              "medianIoi": true
+            },
+            "failures": []
+          },
+          "name": "easy"
+        },
+        "medium": {
+          "level": "medium",
+          "noteCount": 1283,
+          "eventHash": "a155d7f1da8d4221ef25bce33750e863a226f26ea54510a92f02c5d553a2273c",
+          "handLabelsAvailable": true,
+          "tempoBpm": 60,
+          "durationBeats": 322.5,
+          "metrics": {
+            "noteCount": 1283,
+            "validNoteCount": 1283,
+            "invalidNoteCount": 0,
+            "durationBeats": 322.5,
+            "durationSeconds": 322.5,
+            "global": {
+              "noteCount": 1283,
+              "onsetCount": 714,
+              "medianIoiSeconds": 0.25,
+              "p01Seconds": 0.25,
+              "p05Seconds": 0.25,
+              "p10Seconds": 0.25,
+              "p25Seconds": 0.25,
+              "p75Seconds": 0.5,
+              "p90Seconds": 0.75,
+              "p95Seconds": 1.5,
+              "minSeconds": 0.25,
+              "meanSeconds": 0.447405,
+              "attacksPerSecond": 2.213953,
+              "maxShortWindowAttacksPerSecond": 4,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 6,
+              "maxSounding": 6
+            },
+            "rightHand": {
+              "noteCount": 722,
+              "onsetCount": 438,
+              "medianIoiSeconds": 0.5,
+              "p01Seconds": 0.25,
+              "p05Seconds": 0.25,
+              "p10Seconds": 0.25,
+              "p25Seconds": 0.25,
+              "p75Seconds": 1,
+              "p90Seconds": 1.5,
+              "p95Seconds": 2,
+              "minSeconds": 0.25,
+              "meanSeconds": 0.728833,
+              "attacksPerSecond": 1.35814,
+              "maxShortWindowAttacksPerSecond": 4,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 3,
+              "maxSounding": 4
+            },
+            "leftHand": {
+              "noteCount": 561,
+              "onsetCount": 448,
+              "medianIoiSeconds": 0.25,
+              "p01Seconds": 0.25,
+              "p05Seconds": 0.25,
+              "p10Seconds": 0.25,
+              "p25Seconds": 0.25,
+              "p75Seconds": 1,
+              "p90Seconds": 1.5,
+              "p95Seconds": 3,
+              "minSeconds": 0.25,
+              "meanSeconds": 0.713647,
+              "attacksPerSecond": 1.389147,
+              "maxShortWindowAttacksPerSecond": 4,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 3,
+              "maxSounding": 3
+            },
+            "toleranceOnsetCount": 714,
+            "simultaneousChordAttacks": 276,
+            "samePitchRearticulationOnsets": 64,
+            "alternatingHandAttacks": 120,
+            "bursts": {
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "longestRapidRun": 0,
+              "longestRapidRegionSeconds": 0,
+              "rapidRegionCount": 0,
+              "worstRegions": []
+            },
+            "rapidSourceEdges": {}
+          },
+          "assessment": {
+            "level": "medium",
+            "status": "pass",
+            "limits": {
+              "maxSim": 12,
+              "maxDensity": 16,
+              "minMedianIoi": 0.08
+            },
+            "passes": {
+              "maxSim": true,
+              "maxDensity": true,
+              "medianIoi": true
+            },
+            "failures": []
+          },
+          "name": "medium"
+        },
+        "advanced": {
+          "level": "advanced",
+          "noteCount": 1309,
+          "eventHash": "3950ad93be1bb1b9798aadc0ca9cbf9b6c7d49517990c52c6373fe0705414214",
+          "handLabelsAvailable": true,
+          "tempoBpm": 60,
+          "durationBeats": 322.5,
+          "metrics": {
+            "noteCount": 1309,
+            "validNoteCount": 1309,
+            "invalidNoteCount": 0,
+            "durationBeats": 322.5,
+            "durationSeconds": 322.5,
+            "global": {
+              "noteCount": 1309,
+              "onsetCount": 715,
+              "medianIoiSeconds": 0.25,
+              "p01Seconds": 0.25,
+              "p05Seconds": 0.25,
+              "p10Seconds": 0.25,
+              "p25Seconds": 0.25,
+              "p75Seconds": 0.5,
+              "p90Seconds": 0.75,
+              "p95Seconds": 1.5,
+              "minSeconds": 0.125,
+              "meanSeconds": 0.446779,
+              "attacksPerSecond": 2.217054,
+              "maxShortWindowAttacksPerSecond": 4,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 8,
+              "maxSounding": 8
+            },
+            "rightHand": {
+              "noteCount": 740,
+              "onsetCount": 439,
+              "medianIoiSeconds": 0.5,
+              "p01Seconds": 0.25,
+              "p05Seconds": 0.25,
+              "p10Seconds": 0.25,
+              "p25Seconds": 0.25,
+              "p75Seconds": 0.9375,
+              "p90Seconds": 1.5,
+              "p95Seconds": 2,
+              "minSeconds": 0.125,
+              "meanSeconds": 0.727169,
+              "attacksPerSecond": 1.36124,
+              "maxShortWindowAttacksPerSecond": 4,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 4,
+              "maxSounding": 4
+            },
+            "leftHand": {
+              "noteCount": 569,
+              "onsetCount": 448,
+              "medianIoiSeconds": 0.25,
+              "p01Seconds": 0.25,
+              "p05Seconds": 0.25,
+              "p10Seconds": 0.25,
+              "p25Seconds": 0.25,
+              "p75Seconds": 1,
+              "p90Seconds": 1.5,
+              "p95Seconds": 3,
+              "minSeconds": 0.25,
+              "meanSeconds": 0.713647,
+              "attacksPerSecond": 1.389147,
+              "maxShortWindowAttacksPerSecond": 4,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 5,
+              "maxSounding": 5
+            },
+            "toleranceOnsetCount": 715,
+            "simultaneousChordAttacks": 276,
+            "samePitchRearticulationOnsets": 63,
+            "alternatingHandAttacks": 120,
+            "bursts": {
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "longestRapidRun": 0,
+              "longestRapidRegionSeconds": 0,
+              "rapidRegionCount": 0,
+              "worstRegions": []
+            },
+            "rapidSourceEdges": {}
+          },
+          "assessment": {
+            "level": "advanced",
+            "status": "pass",
+            "limits": {
+              "maxSim": 13,
+              "maxDensity": 18,
+              "minMedianIoi": 0.08
+            },
+            "passes": {
+              "maxSim": true,
+              "maxDensity": true,
+              "medianIoi": true
+            },
+            "failures": []
+          },
+          "name": "advanced"
+        }
+      }
+    },
+    "cover": {
+      "title": "River Flows in You",
+      "logicalRef": "data/artifacts/paul-gassa-yiruma-river-flows-in-you-emotional-piano-cover-msl98ing/a/notes.json",
+      "source": {
+        "bytes": 94160,
+        "sha256": "eb8a1cf8f0076a548acaa206b67d19123814e1167d654496afa24c0458dc6f9d",
+        "noteCount": 1400,
+        "durationBeats": 564.125,
+        "tempoBpm": 144,
+        "handLabelsAvailable": true
+      },
+      "levels": {
+        "very-beginner": {
+          "level": "very-beginner",
+          "noteCount": 353,
+          "eventHash": "187184d6bb4ca5c6e46463479bc932fa63c2b8ba908b4a58a3fba9ce2e364fbf",
+          "handLabelsAvailable": true,
+          "tempoBpm": 144,
+          "durationBeats": 564.125,
+          "metrics": {
+            "noteCount": 353,
+            "validNoteCount": 353,
+            "invalidNoteCount": 0,
+            "durationBeats": 564.125,
+            "durationSeconds": 235.052083,
+            "global": {
+              "noteCount": 353,
+              "onsetCount": 353,
+              "medianIoiSeconds": 0.416667,
+              "p01Seconds": 0.104167,
+              "p05Seconds": 0.208333,
+              "p10Seconds": 0.208333,
+              "p25Seconds": 0.208333,
+              "p75Seconds": 0.833333,
+              "p90Seconds": 1.458333,
+              "p95Seconds": 2.130208,
+              "minSeconds": 0.104167,
+              "meanSeconds": 0.658736,
+              "attacksPerSecond": 1.501795,
+              "maxShortWindowAttacksPerSecond": 8,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 1,
+              "maxSounding": 2
+            },
+            "rightHand": {
+              "noteCount": 353,
+              "onsetCount": 353,
+              "medianIoiSeconds": 0.416667,
+              "p01Seconds": 0.104167,
+              "p05Seconds": 0.208333,
+              "p10Seconds": 0.208333,
+              "p25Seconds": 0.208333,
+              "p75Seconds": 0.833333,
+              "p90Seconds": 1.458333,
+              "p95Seconds": 2.130208,
+              "minSeconds": 0.104167,
+              "meanSeconds": 0.658736,
+              "attacksPerSecond": 1.501795,
+              "maxShortWindowAttacksPerSecond": 8,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 1,
+              "maxSounding": 2
+            },
+            "leftHand": {
+              "noteCount": 0,
+              "onsetCount": 0,
+              "medianIoiSeconds": null,
+              "p01Seconds": null,
+              "p05Seconds": null,
+              "p10Seconds": null,
+              "p25Seconds": null,
+              "p75Seconds": null,
+              "p90Seconds": null,
+              "p95Seconds": null,
+              "minSeconds": null,
+              "meanSeconds": null,
+              "attacksPerSecond": 0,
+              "maxShortWindowAttacksPerSecond": 0,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 0,
+              "maxSounding": 0
+            },
+            "toleranceOnsetCount": 353,
+            "simultaneousChordAttacks": 0,
+            "samePitchRearticulationOnsets": 42,
+            "alternatingHandAttacks": 0,
+            "bursts": {
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "longestRapidRun": 0,
+              "longestRapidRegionSeconds": 0,
+              "rapidRegionCount": 0,
+              "worstRegions": []
+            },
+            "rapidSourceEdges": {}
+          },
+          "assessment": {
+            "level": "very-beginner",
+            "status": "pass",
+            "limits": {
+              "maxSim": 2,
+              "maxDensity": 5,
+              "minMedianIoi": 0.15
+            },
+            "passes": {
+              "maxSim": true,
+              "maxDensity": true,
+              "medianIoi": true
+            },
+            "failures": []
+          },
+          "name": "very-beginner"
+        },
+        "beginner": {
+          "level": "beginner",
+          "noteCount": 620,
+          "eventHash": "2e68590120a014ada1c3e5f35b5cd081d63188cec82c7531200b7447a76629f8",
+          "handLabelsAvailable": true,
+          "tempoBpm": 144,
+          "durationBeats": 564.125,
+          "metrics": {
+            "noteCount": 620,
+            "validNoteCount": 620,
+            "invalidNoteCount": 0,
+            "durationBeats": 564.125,
+            "durationSeconds": 235.052083,
+            "global": {
+              "noteCount": 620,
+              "onsetCount": 579,
+              "medianIoiSeconds": 0.260417,
+              "p01Seconds": 0.052083,
+              "p05Seconds": 0.104167,
+              "p10Seconds": 0.104167,
+              "p25Seconds": 0.208333,
+              "p75Seconds": 0.46875,
+              "p90Seconds": 0.833333,
+              "p95Seconds": 0.989583,
+              "minSeconds": 0.052083,
+              "meanSeconds": 0.401528,
+              "attacksPerSecond": 2.463284,
+              "maxShortWindowAttacksPerSecond": 8,
+              "rapidIoiCount": 24,
+              "rapidIoiFraction": 0.041522,
+              "maxSimultaneous": 2,
+              "maxSounding": 2
+            },
+            "rightHand": {
+              "noteCount": 491,
+              "onsetCount": 491,
+              "medianIoiSeconds": 0.364583,
+              "p01Seconds": 0.104167,
+              "p05Seconds": 0.15625,
+              "p10Seconds": 0.15625,
+              "p25Seconds": 0.208333,
+              "p75Seconds": 0.572917,
+              "p90Seconds": 0.885417,
+              "p95Seconds": 1.145833,
+              "minSeconds": 0.052083,
+              "meanSeconds": 0.473533,
+              "attacksPerSecond": 2.088899,
+              "maxShortWindowAttacksPerSecond": 8,
+              "rapidIoiCount": 4,
+              "rapidIoiFraction": 0.008163,
+              "maxSimultaneous": 1,
+              "maxSounding": 2
+            },
+            "leftHand": {
+              "noteCount": 129,
+              "onsetCount": 129,
+              "medianIoiSeconds": 1.666667,
+              "p01Seconds": 0.416667,
+              "p05Seconds": 0.520833,
+              "p10Seconds": 0.833333,
+              "p25Seconds": 1.354167,
+              "p75Seconds": 1.979167,
+              "p90Seconds": 2.770833,
+              "p95Seconds": 3.4375,
+              "minSeconds": 0.3125,
+              "meanSeconds": 1.813151,
+              "attacksPerSecond": 0.548815,
+              "maxShortWindowAttacksPerSecond": 4,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 1,
+              "maxSounding": 1
+            },
+            "toleranceOnsetCount": 579,
+            "simultaneousChordAttacks": 41,
+            "samePitchRearticulationOnsets": 51,
+            "alternatingHandAttacks": 159,
+            "bursts": {
+              "rapidIoiCount": 24,
+              "rapidIoiFraction": 0.041522,
+              "longestRapidRun": 1,
+              "longestRapidRegionSeconds": 0.052083,
+              "rapidRegionCount": 24,
+              "worstRegions": [
+                {
+                  "startBeat": 23.375,
+                  "endBeat": 23.5,
+                  "durationSeconds": 0.052083,
+                  "rapidIoiCount": 1,
+                  "rightHandAttacks": 1,
+                  "leftHandAttacks": 1,
+                  "sources": [
+                    "unknown"
+                  ]
+                },
+                {
+                  "startBeat": 28.625,
+                  "endBeat": 28.75,
+                  "durationSeconds": 0.052083,
+                  "rapidIoiCount": 1,
+                  "rightHandAttacks": 1,
+                  "leftHandAttacks": 1,
+                  "sources": [
+                    "unknown"
+                  ]
+                },
+                {
+                  "startBeat": 53,
+                  "endBeat": 53.125,
+                  "durationSeconds": 0.052083,
+                  "rapidIoiCount": 1,
+                  "rightHandAttacks": 2,
+                  "leftHandAttacks": 0,
+                  "sources": [
+                    "unknown"
+                  ]
+                }
+              ]
+            },
+            "rapidSourceEdges": {
+              "unknown": 24
+            }
+          },
+          "assessment": {
+            "level": "beginner",
+            "status": "pass",
+            "limits": {
+              "maxSim": 2,
+              "maxDensity": 6,
+              "minMedianIoi": 0.08
+            },
+            "passes": {
+              "maxSim": true,
+              "maxDensity": true,
+              "medianIoi": true
+            },
+            "failures": []
+          },
+          "name": "beginner"
+        },
+        "very-easy": {
+          "level": "very-easy",
+          "noteCount": 1213,
+          "eventHash": "159517ae53b89b6f2573179bb0a84e0171d264154d431cef8e87d597aa98b33a",
+          "handLabelsAvailable": true,
+          "tempoBpm": 144,
+          "durationBeats": 564.25,
+          "metrics": {
+            "noteCount": 1213,
+            "validNoteCount": 1213,
+            "invalidNoteCount": 0,
+            "durationBeats": 564.25,
+            "durationSeconds": 235.104167,
+            "global": {
+              "noteCount": 1213,
+              "onsetCount": 1022,
+              "medianIoiSeconds": 0.208333,
+              "p01Seconds": 0.052083,
+              "p05Seconds": 0.052083,
+              "p10Seconds": 0.052083,
+              "p25Seconds": 0.104167,
+              "p75Seconds": 0.260417,
+              "p90Seconds": 0.416667,
+              "p95Seconds": 0.520833,
+              "minSeconds": 0.052083,
+              "meanSeconds": 0.228228,
+              "attacksPerSecond": 4.347009,
+              "maxShortWindowAttacksPerSecond": 12,
+              "rapidIoiCount": 207,
+              "rapidIoiFraction": 0.202742,
+              "maxSimultaneous": 3,
+              "maxSounding": 4
+            },
+            "rightHand": {
+              "noteCount": 779,
+              "onsetCount": 779,
+              "medianIoiSeconds": 0.208333,
+              "p01Seconds": 0.052083,
+              "p05Seconds": 0.104167,
+              "p10Seconds": 0.15625,
+              "p25Seconds": 0.208333,
+              "p75Seconds": 0.364583,
+              "p90Seconds": 0.46875,
+              "p95Seconds": 0.625,
+              "minSeconds": 0.052083,
+              "meanSeconds": 0.299446,
+              "attacksPerSecond": 3.313425,
+              "maxShortWindowAttacksPerSecond": 10,
+              "rapidIoiCount": 23,
+              "rapidIoiFraction": 0.029563,
+              "maxSimultaneous": 1,
+              "maxSounding": 3
+            },
+            "leftHand": {
+              "noteCount": 434,
+              "onsetCount": 384,
+              "medianIoiSeconds": 0.416667,
+              "p01Seconds": 0.104167,
+              "p05Seconds": 0.104167,
+              "p10Seconds": 0.208333,
+              "p25Seconds": 0.3125,
+              "p75Seconds": 0.625,
+              "p90Seconds": 1.145833,
+              "p95Seconds": 1.770833,
+              "minSeconds": 0.104167,
+              "meanSeconds": 0.608409,
+              "attacksPerSecond": 1.633319,
+              "maxShortWindowAttacksPerSecond": 8,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 2,
+              "maxSounding": 3
+            },
+            "toleranceOnsetCount": 1022,
+            "simultaneousChordAttacks": 166,
+            "samePitchRearticulationOnsets": 89,
+            "alternatingHandAttacks": 406,
+            "bursts": {
+              "rapidIoiCount": 207,
+              "rapidIoiFraction": 0.202742,
+              "longestRapidRun": 2,
+              "longestRapidRegionSeconds": 0.104167,
+              "rapidRegionCount": 197,
+              "worstRegions": [
+                {
+                  "startBeat": 28.625,
+                  "endBeat": 28.875,
+                  "durationSeconds": 0.104167,
+                  "rapidIoiCount": 2,
+                  "rightHandAttacks": 2,
+                  "leftHandAttacks": 1,
+                  "sources": [
+                    "unknown"
+                  ]
+                },
+                {
+                  "startBeat": 71.75,
+                  "endBeat": 72,
+                  "durationSeconds": 0.104167,
+                  "rapidIoiCount": 2,
+                  "rightHandAttacks": 2,
+                  "leftHandAttacks": 1,
+                  "sources": [
+                    "unknown"
+                  ]
+                },
+                {
+                  "startBeat": 89.5,
+                  "endBeat": 89.75,
+                  "durationSeconds": 0.104167,
+                  "rapidIoiCount": 2,
+                  "rightHandAttacks": 2,
+                  "leftHandAttacks": 1,
+                  "sources": [
+                    "unknown"
+                  ]
+                }
+              ]
+            },
+            "rapidSourceEdges": {
+              "unknown": 207
+            }
+          },
+          "assessment": {
+            "level": "very-easy",
+            "status": "pass",
+            "limits": {
+              "maxSim": 5,
+              "maxDensity": 12,
+              "minMedianIoi": 0.08
+            },
+            "passes": {
+              "maxSim": true,
+              "maxDensity": true,
+              "medianIoi": true
+            },
+            "failures": []
+          },
+          "name": "very-easy"
+        },
+        "easy": {
+          "level": "easy",
+          "noteCount": 1225,
+          "eventHash": "1f0c94ed0e8a76ed159414ed1776ec57b0c6ec2b3b71a9010312058550490a40",
+          "handLabelsAvailable": true,
+          "tempoBpm": 144,
+          "durationBeats": 564.125,
+          "metrics": {
+            "noteCount": 1225,
+            "validNoteCount": 1225,
+            "invalidNoteCount": 0,
+            "durationBeats": 564.125,
+            "durationSeconds": 235.052083,
+            "global": {
+              "noteCount": 1225,
+              "onsetCount": 921,
+              "medianIoiSeconds": 0.208333,
+              "p01Seconds": 0.052083,
+              "p05Seconds": 0.052083,
+              "p10Seconds": 0.052083,
+              "p25Seconds": 0.15625,
+              "p75Seconds": 0.260417,
+              "p90Seconds": 0.416667,
+              "p95Seconds": 0.520833,
+              "minSeconds": 0.052083,
+              "meanSeconds": 0.253227,
+              "attacksPerSecond": 3.918281,
+              "maxShortWindowAttacksPerSecond": 12,
+              "rapidIoiCount": 126,
+              "rapidIoiFraction": 0.136957,
+              "maxSimultaneous": 3,
+              "maxSounding": 4
+            },
+            "rightHand": {
+              "noteCount": 786,
+              "onsetCount": 786,
+              "medianIoiSeconds": 0.208333,
+              "p01Seconds": 0.052083,
+              "p05Seconds": 0.104167,
+              "p10Seconds": 0.15625,
+              "p25Seconds": 0.208333,
+              "p75Seconds": 0.364583,
+              "p90Seconds": 0.46875,
+              "p95Seconds": 0.625,
+              "minSeconds": 0.052083,
+              "meanSeconds": 0.296775,
+              "attacksPerSecond": 3.34394,
+              "maxShortWindowAttacksPerSecond": 10,
+              "rapidIoiCount": 27,
+              "rapidIoiFraction": 0.034395,
+              "maxSimultaneous": 1,
+              "maxSounding": 3
+            },
+            "leftHand": {
+              "noteCount": 439,
+              "onsetCount": 384,
+              "medianIoiSeconds": 0.416667,
+              "p01Seconds": 0.052083,
+              "p05Seconds": 0.15625,
+              "p10Seconds": 0.208333,
+              "p25Seconds": 0.3125,
+              "p75Seconds": 0.625,
+              "p90Seconds": 1.1875,
+              "p95Seconds": 1.817708,
+              "minSeconds": 0.052083,
+              "meanSeconds": 0.608273,
+              "attacksPerSecond": 1.63368,
+              "maxShortWindowAttacksPerSecond": 8,
+              "rapidIoiCount": 7,
+              "rapidIoiFraction": 0.018277,
+              "maxSimultaneous": 2,
+              "maxSounding": 3
+            },
+            "toleranceOnsetCount": 921,
+            "simultaneousChordAttacks": 259,
+            "samePitchRearticulationOnsets": 117,
+            "alternatingHandAttacks": 195,
+            "bursts": {
+              "rapidIoiCount": 126,
+              "rapidIoiFraction": 0.136957,
+              "longestRapidRun": 2,
+              "longestRapidRegionSeconds": 0.104167,
+              "rapidRegionCount": 121,
+              "worstRegions": [
+                {
+                  "startBeat": 55.125,
+                  "endBeat": 55.375,
+                  "durationSeconds": 0.104167,
+                  "rapidIoiCount": 2,
+                  "rightHandAttacks": 2,
+                  "leftHandAttacks": 1,
+                  "sources": [
+                    "unknown"
+                  ]
+                },
+                {
+                  "startBeat": 203.5,
+                  "endBeat": 203.75,
+                  "durationSeconds": 0.104167,
+                  "rapidIoiCount": 2,
+                  "rightHandAttacks": 2,
+                  "leftHandAttacks": 1,
+                  "sources": [
+                    "unknown"
+                  ]
+                },
+                {
+                  "startBeat": 439.5,
+                  "endBeat": 439.75,
+                  "durationSeconds": 0.104167,
+                  "rapidIoiCount": 2,
+                  "rightHandAttacks": 2,
+                  "leftHandAttacks": 1,
+                  "sources": [
+                    "unknown"
+                  ]
+                }
+              ]
+            },
+            "rapidSourceEdges": {
+              "unknown": 126
+            }
+          },
+          "assessment": {
+            "level": "easy",
+            "status": "pass",
+            "limits": {
+              "maxSim": 5,
+              "maxDensity": 12,
+              "minMedianIoi": 0.08
+            },
+            "passes": {
+              "maxSim": true,
+              "maxDensity": true,
+              "medianIoi": true
+            },
+            "failures": []
+          },
+          "name": "easy"
+        },
+        "medium": {
+          "level": "medium",
+          "noteCount": 1371,
+          "eventHash": "e78b58eda8e3463ac70bcfde14c84fa633234492098cc1de6e4e8de4995d06d6",
+          "handLabelsAvailable": true,
+          "tempoBpm": 144,
+          "durationBeats": 564.125,
+          "metrics": {
+            "noteCount": 1371,
+            "validNoteCount": 1371,
+            "invalidNoteCount": 0,
+            "durationBeats": 564.125,
+            "durationSeconds": 235.052083,
+            "global": {
+              "noteCount": 1371,
+              "onsetCount": 921,
+              "medianIoiSeconds": 0.208333,
+              "p01Seconds": 0.052083,
+              "p05Seconds": 0.052083,
+              "p10Seconds": 0.052083,
+              "p25Seconds": 0.15625,
+              "p75Seconds": 0.260417,
+              "p90Seconds": 0.416667,
+              "p95Seconds": 0.520833,
+              "minSeconds": 0.052083,
+              "meanSeconds": 0.253227,
+              "attacksPerSecond": 3.918281,
+              "maxShortWindowAttacksPerSecond": 12,
+              "rapidIoiCount": 126,
+              "rapidIoiFraction": 0.136957,
+              "maxSimultaneous": 5,
+              "maxSounding": 6
+            },
+            "rightHand": {
+              "noteCount": 932,
+              "onsetCount": 786,
+              "medianIoiSeconds": 0.208333,
+              "p01Seconds": 0.052083,
+              "p05Seconds": 0.104167,
+              "p10Seconds": 0.15625,
+              "p25Seconds": 0.208333,
+              "p75Seconds": 0.364583,
+              "p90Seconds": 0.46875,
+              "p95Seconds": 0.625,
+              "minSeconds": 0.052083,
+              "meanSeconds": 0.296775,
+              "attacksPerSecond": 3.34394,
+              "maxShortWindowAttacksPerSecond": 10,
+              "rapidIoiCount": 27,
+              "rapidIoiFraction": 0.034395,
+              "maxSimultaneous": 3,
+              "maxSounding": 5
+            },
+            "leftHand": {
+              "noteCount": 439,
+              "onsetCount": 384,
+              "medianIoiSeconds": 0.416667,
+              "p01Seconds": 0.052083,
+              "p05Seconds": 0.15625,
+              "p10Seconds": 0.208333,
+              "p25Seconds": 0.3125,
+              "p75Seconds": 0.625,
+              "p90Seconds": 1.1875,
+              "p95Seconds": 1.817708,
+              "minSeconds": 0.052083,
+              "meanSeconds": 0.608273,
+              "attacksPerSecond": 1.63368,
+              "maxShortWindowAttacksPerSecond": 8,
+              "rapidIoiCount": 7,
+              "rapidIoiFraction": 0.018277,
+              "maxSimultaneous": 2,
+              "maxSounding": 3
+            },
+            "toleranceOnsetCount": 921,
+            "simultaneousChordAttacks": 347,
+            "samePitchRearticulationOnsets": 146,
+            "alternatingHandAttacks": 195,
+            "bursts": {
+              "rapidIoiCount": 126,
+              "rapidIoiFraction": 0.136957,
+              "longestRapidRun": 2,
+              "longestRapidRegionSeconds": 0.104167,
+              "rapidRegionCount": 121,
+              "worstRegions": [
+                {
+                  "startBeat": 55.125,
+                  "endBeat": 55.375,
+                  "durationSeconds": 0.104167,
+                  "rapidIoiCount": 2,
+                  "rightHandAttacks": 2,
+                  "leftHandAttacks": 1,
+                  "sources": [
+                    "unknown"
+                  ]
+                },
+                {
+                  "startBeat": 203.5,
+                  "endBeat": 203.75,
+                  "durationSeconds": 0.104167,
+                  "rapidIoiCount": 2,
+                  "rightHandAttacks": 2,
+                  "leftHandAttacks": 1,
+                  "sources": [
+                    "unknown"
+                  ]
+                },
+                {
+                  "startBeat": 439.5,
+                  "endBeat": 439.75,
+                  "durationSeconds": 0.104167,
+                  "rapidIoiCount": 2,
+                  "rightHandAttacks": 2,
+                  "leftHandAttacks": 1,
+                  "sources": [
+                    "unknown"
+                  ]
+                }
+              ]
+            },
+            "rapidSourceEdges": {
+              "unknown": 126
+            }
+          },
+          "assessment": {
+            "level": "medium",
+            "status": "pass",
+            "limits": {
+              "maxSim": 12,
+              "maxDensity": 16,
+              "minMedianIoi": 0.08
+            },
+            "passes": {
+              "maxSim": true,
+              "maxDensity": true,
+              "medianIoi": true
+            },
+            "failures": []
+          },
+          "name": "medium"
+        },
+        "advanced": {
+          "level": "advanced",
+          "noteCount": 1400,
+          "eventHash": "44210957ecf36ed1f5a98e79d29704b215edc0976fc64da291dc1430b90480da",
+          "handLabelsAvailable": true,
+          "tempoBpm": 144,
+          "durationBeats": 564.125,
+          "metrics": {
+            "noteCount": 1400,
+            "validNoteCount": 1400,
+            "invalidNoteCount": 0,
+            "durationBeats": 564.125,
+            "durationSeconds": 235.052083,
+            "global": {
+              "noteCount": 1400,
+              "onsetCount": 938,
+              "medianIoiSeconds": 0.208333,
+              "p01Seconds": 0.052083,
+              "p05Seconds": 0.052083,
+              "p10Seconds": 0.052083,
+              "p25Seconds": 0.15625,
+              "p75Seconds": 0.260417,
+              "p90Seconds": 0.416667,
+              "p95Seconds": 0.520833,
+              "minSeconds": 0.052083,
+              "meanSeconds": 0.248633,
+              "attacksPerSecond": 3.990605,
+              "maxShortWindowAttacksPerSecond": 12,
+              "rapidIoiCount": 144,
+              "rapidIoiFraction": 0.153682,
+              "maxSimultaneous": 5,
+              "maxSounding": 6
+            },
+            "rightHand": {
+              "noteCount": 954,
+              "onsetCount": 804,
+              "medianIoiSeconds": 0.208333,
+              "p01Seconds": 0.052083,
+              "p05Seconds": 0.052083,
+              "p10Seconds": 0.104167,
+              "p25Seconds": 0.15625,
+              "p75Seconds": 0.364583,
+              "p90Seconds": 0.46875,
+              "p95Seconds": 0.619792,
+              "minSeconds": 0.052083,
+              "meanSeconds": 0.290123,
+              "attacksPerSecond": 3.420519,
+              "maxShortWindowAttacksPerSecond": 10,
+              "rapidIoiCount": 46,
+              "rapidIoiFraction": 0.057285,
+              "maxSimultaneous": 4,
+              "maxSounding": 5
+            },
+            "leftHand": {
+              "noteCount": 446,
+              "onsetCount": 391,
+              "medianIoiSeconds": 0.416667,
+              "p01Seconds": 0.052083,
+              "p05Seconds": 0.104167,
+              "p10Seconds": 0.15625,
+              "p25Seconds": 0.3125,
+              "p75Seconds": 0.625,
+              "p90Seconds": 1.151042,
+              "p95Seconds": 1.799479,
+              "minSeconds": 0.052083,
+              "meanSeconds": 0.597356,
+              "attacksPerSecond": 1.663461,
+              "maxShortWindowAttacksPerSecond": 8,
+              "rapidIoiCount": 14,
+              "rapidIoiFraction": 0.035897,
+              "maxSimultaneous": 2,
+              "maxSounding": 3
+            },
+            "toleranceOnsetCount": 938,
+            "simultaneousChordAttacks": 352,
+            "samePitchRearticulationOnsets": 144,
+            "alternatingHandAttacks": 186,
+            "bursts": {
+              "rapidIoiCount": 144,
+              "rapidIoiFraction": 0.153682,
+              "longestRapidRun": 2,
+              "longestRapidRegionSeconds": 0.104167,
+              "rapidRegionCount": 136,
+              "worstRegions": [
+                {
+                  "startBeat": 55.125,
+                  "endBeat": 55.375,
+                  "durationSeconds": 0.104167,
+                  "rapidIoiCount": 2,
+                  "rightHandAttacks": 2,
+                  "leftHandAttacks": 1,
+                  "sources": [
+                    "unknown"
+                  ]
+                },
+                {
+                  "startBeat": 100.875,
+                  "endBeat": 101.125,
+                  "durationSeconds": 0.104167,
+                  "rapidIoiCount": 2,
+                  "rightHandAttacks": 2,
+                  "leftHandAttacks": 1,
+                  "sources": [
+                    "unknown"
+                  ]
+                },
+                {
+                  "startBeat": 203.5,
+                  "endBeat": 203.75,
+                  "durationSeconds": 0.104167,
+                  "rapidIoiCount": 2,
+                  "rightHandAttacks": 2,
+                  "leftHandAttacks": 1,
+                  "sources": [
+                    "unknown"
+                  ]
+                }
+              ]
+            },
+            "rapidSourceEdges": {
+              "unknown": 144
+            }
+          },
+          "assessment": {
+            "level": "advanced",
+            "status": "pass",
+            "limits": {
+              "maxSim": 13,
+              "maxDensity": 18,
+              "minMedianIoi": 0.08
+            },
+            "passes": {
+              "maxSim": true,
+              "maxDensity": true,
+              "medianIoi": true
+            },
+            "failures": []
+          },
+          "name": "advanced"
+        }
+      }
+    },
+    "pop": {
+      "title": "Hello",
+      "logicalRef": "data/artifacts/adele-hello/a/notes.json",
+      "source": {
+        "bytes": 68384,
+        "sha256": "87915f6b8dce035951af2ddc89c9c36ce105fde8e79ba6f936e31b7f80ef7fd6",
+        "noteCount": 1016,
+        "durationBeats": 387.125,
+        "tempoBpm": 79,
+        "handLabelsAvailable": true
+      },
+      "levels": {
+        "very-beginner": {
+          "level": "very-beginner",
+          "noteCount": 327,
+          "eventHash": "642f3f5e00db390404689d4ca782918a505fcab83b8bf0e1badf7d28bd3ba2bc",
+          "handLabelsAvailable": true,
+          "tempoBpm": 79,
+          "durationBeats": 387.125,
+          "metrics": {
+            "noteCount": 327,
+            "validNoteCount": 327,
+            "invalidNoteCount": 0,
+            "durationBeats": 387.125,
+            "durationSeconds": 294.018987,
+            "global": {
+              "noteCount": 327,
+              "onsetCount": 327,
+              "medianIoiSeconds": 0.379747,
+              "p01Seconds": 0.189873,
+              "p05Seconds": 0.189873,
+              "p10Seconds": 0.379747,
+              "p25Seconds": 0.379747,
+              "p75Seconds": 0.759494,
+              "p90Seconds": 1.139241,
+              "p95Seconds": 1.329114,
+              "minSeconds": 0.189873,
+              "meanSeconds": 0.700085,
+              "attacksPerSecond": 1.112173,
+              "maxShortWindowAttacksPerSecond": 4,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 1,
+              "maxSounding": 2
+            },
+            "rightHand": {
+              "noteCount": 327,
+              "onsetCount": 327,
+              "medianIoiSeconds": 0.379747,
+              "p01Seconds": 0.189873,
+              "p05Seconds": 0.189873,
+              "p10Seconds": 0.379747,
+              "p25Seconds": 0.379747,
+              "p75Seconds": 0.759494,
+              "p90Seconds": 1.139241,
+              "p95Seconds": 1.329114,
+              "minSeconds": 0.189873,
+              "meanSeconds": 0.700085,
+              "attacksPerSecond": 1.112173,
+              "maxShortWindowAttacksPerSecond": 4,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 1,
+              "maxSounding": 2
+            },
+            "leftHand": {
+              "noteCount": 0,
+              "onsetCount": 0,
+              "medianIoiSeconds": null,
+              "p01Seconds": null,
+              "p05Seconds": null,
+              "p10Seconds": null,
+              "p25Seconds": null,
+              "p75Seconds": null,
+              "p90Seconds": null,
+              "p95Seconds": null,
+              "minSeconds": null,
+              "meanSeconds": null,
+              "attacksPerSecond": 0,
+              "maxShortWindowAttacksPerSecond": 0,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 0,
+              "maxSounding": 0
+            },
+            "toleranceOnsetCount": 327,
+            "simultaneousChordAttacks": 0,
+            "samePitchRearticulationOnsets": 84,
+            "alternatingHandAttacks": 0,
+            "bursts": {
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "longestRapidRun": 0,
+              "longestRapidRegionSeconds": 0,
+              "rapidRegionCount": 0,
+              "worstRegions": []
+            },
+            "rapidSourceEdges": {}
+          },
+          "assessment": {
+            "level": "very-beginner",
+            "status": "pass",
+            "limits": {
+              "maxSim": 2,
+              "maxDensity": 5,
+              "minMedianIoi": 0.15
+            },
+            "passes": {
+              "maxSim": true,
+              "maxDensity": true,
+              "medianIoi": true
+            },
+            "failures": []
+          },
+          "name": "very-beginner"
+        },
+        "beginner": {
+          "level": "beginner",
+          "noteCount": 470,
+          "eventHash": "e07deb5ab8d5b538191a2f2e9b16a01f6827b1506cbfac584e859f0490abdeb3",
+          "handLabelsAvailable": true,
+          "tempoBpm": 79,
+          "durationBeats": 387.25,
+          "metrics": {
+            "noteCount": 470,
+            "validNoteCount": 470,
+            "invalidNoteCount": 0,
+            "durationBeats": 387.25,
+            "durationSeconds": 294.113924,
+            "global": {
+              "noteCount": 470,
+              "onsetCount": 423,
+              "medianIoiSeconds": 0.379747,
+              "p01Seconds": 0.189873,
+              "p05Seconds": 0.189873,
+              "p10Seconds": 0.189873,
+              "p25Seconds": 0.379747,
+              "p75Seconds": 0.759494,
+              "p90Seconds": 1.518987,
+              "p95Seconds": 3.037975,
+              "minSeconds": 0.189873,
+              "meanSeconds": 0.676705,
+              "attacksPerSecond": 1.438218,
+              "maxShortWindowAttacksPerSecond": 6,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 2,
+              "maxSounding": 2
+            },
+            "rightHand": {
+              "noteCount": 375,
+              "onsetCount": 375,
+              "medianIoiSeconds": 0.379747,
+              "p01Seconds": 0.189873,
+              "p05Seconds": 0.189873,
+              "p10Seconds": 0.189873,
+              "p25Seconds": 0.379747,
+              "p75Seconds": 0.759494,
+              "p90Seconds": 0.759494,
+              "p95Seconds": 1.139241,
+              "minSeconds": 0.189873,
+              "meanSeconds": 0.610235,
+              "attacksPerSecond": 1.275016,
+              "maxShortWindowAttacksPerSecond": 6,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 1,
+              "maxSounding": 2
+            },
+            "leftHand": {
+              "noteCount": 95,
+              "onsetCount": 95,
+              "medianIoiSeconds": 3.037975,
+              "p01Seconds": 1.872152,
+              "p05Seconds": 2.14557,
+              "p10Seconds": 2.278481,
+              "p25Seconds": 3.037975,
+              "p75Seconds": 3.037975,
+              "p90Seconds": 3.797468,
+              "p95Seconds": 3.93038,
+              "minSeconds": 1.518987,
+              "meanSeconds": 3.037975,
+              "attacksPerSecond": 0.323004,
+              "maxShortWindowAttacksPerSecond": 2,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 1,
+              "maxSounding": 1
+            },
+            "toleranceOnsetCount": 423,
+            "simultaneousChordAttacks": 47,
+            "samePitchRearticulationOnsets": 97,
+            "alternatingHandAttacks": 39,
+            "bursts": {
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "longestRapidRun": 0,
+              "longestRapidRegionSeconds": 0,
+              "rapidRegionCount": 0,
+              "worstRegions": []
+            },
+            "rapidSourceEdges": {}
+          },
+          "assessment": {
+            "level": "beginner",
+            "status": "pass",
+            "limits": {
+              "maxSim": 2,
+              "maxDensity": 6,
+              "minMedianIoi": 0.08
+            },
+            "passes": {
+              "maxSim": true,
+              "maxDensity": true,
+              "medianIoi": true
+            },
+            "failures": []
+          },
+          "name": "beginner"
+        },
+        "very-easy": {
+          "level": "very-easy",
+          "noteCount": 847,
+          "eventHash": "e74e55fb9a6132f2acda21a2129a0070183110d3f153a18b03733c98a4160c8d",
+          "handLabelsAvailable": true,
+          "tempoBpm": 79,
+          "durationBeats": 387.25,
+          "metrics": {
+            "noteCount": 847,
+            "validNoteCount": 847,
+            "invalidNoteCount": 0,
+            "durationBeats": 387.25,
+            "durationSeconds": 294.113924,
+            "global": {
+              "noteCount": 847,
+              "onsetCount": 555,
+              "medianIoiSeconds": 0.379747,
+              "p01Seconds": 0.189873,
+              "p05Seconds": 0.189873,
+              "p10Seconds": 0.189873,
+              "p25Seconds": 0.379747,
+              "p75Seconds": 0.56962,
+              "p90Seconds": 1.139241,
+              "p95Seconds": 1.518987,
+              "minSeconds": 0.189873,
+              "meanSeconds": 0.515469,
+              "attacksPerSecond": 1.887024,
+              "maxShortWindowAttacksPerSecond": 6,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 3,
+              "maxSounding": 4
+            },
+            "rightHand": {
+              "noteCount": 375,
+              "onsetCount": 375,
+              "medianIoiSeconds": 0.379747,
+              "p01Seconds": 0.189873,
+              "p05Seconds": 0.189873,
+              "p10Seconds": 0.189873,
+              "p25Seconds": 0.379747,
+              "p75Seconds": 0.759494,
+              "p90Seconds": 0.759494,
+              "p95Seconds": 1.139241,
+              "minSeconds": 0.189873,
+              "meanSeconds": 0.610235,
+              "attacksPerSecond": 1.275016,
+              "maxShortWindowAttacksPerSecond": 6,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 1,
+              "maxSounding": 2
+            },
+            "leftHand": {
+              "noteCount": 472,
+              "onsetCount": 333,
+              "medianIoiSeconds": 0.759494,
+              "p01Seconds": 0.189873,
+              "p05Seconds": 0.379747,
+              "p10Seconds": 0.379747,
+              "p25Seconds": 0.379747,
+              "p75Seconds": 1.139241,
+              "p90Seconds": 1.518987,
+              "p95Seconds": 1.898734,
+              "minSeconds": 0.189873,
+              "meanSeconds": 0.860149,
+              "attacksPerSecond": 1.132214,
+              "maxShortWindowAttacksPerSecond": 6,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 2,
+              "maxSounding": 3
+            },
+            "toleranceOnsetCount": 555,
+            "simultaneousChordAttacks": 225,
+            "samePitchRearticulationOnsets": 102,
+            "alternatingHandAttacks": 50,
+            "bursts": {
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "longestRapidRun": 0,
+              "longestRapidRegionSeconds": 0,
+              "rapidRegionCount": 0,
+              "worstRegions": []
+            },
+            "rapidSourceEdges": {}
+          },
+          "assessment": {
+            "level": "very-easy",
+            "status": "pass",
+            "limits": {
+              "maxSim": 5,
+              "maxDensity": 12,
+              "minMedianIoi": 0.08
+            },
+            "passes": {
+              "maxSim": true,
+              "maxDensity": true,
+              "medianIoi": true
+            },
+            "failures": []
+          },
+          "name": "very-easy"
+        },
+        "easy": {
+          "level": "easy",
+          "noteCount": 847,
+          "eventHash": "432db2c5a13b969db04e40801091c71b7275432b3b12d3a488db4b53e18176cb",
+          "handLabelsAvailable": true,
+          "tempoBpm": 79,
+          "durationBeats": 387.125,
+          "metrics": {
+            "noteCount": 847,
+            "validNoteCount": 847,
+            "invalidNoteCount": 0,
+            "durationBeats": 387.125,
+            "durationSeconds": 294.018987,
+            "global": {
+              "noteCount": 847,
+              "onsetCount": 555,
+              "medianIoiSeconds": 0.379747,
+              "p01Seconds": 0.189873,
+              "p05Seconds": 0.189873,
+              "p10Seconds": 0.189873,
+              "p25Seconds": 0.379747,
+              "p75Seconds": 0.56962,
+              "p90Seconds": 1.139241,
+              "p95Seconds": 1.518987,
+              "minSeconds": 0.189873,
+              "meanSeconds": 0.515469,
+              "attacksPerSecond": 1.887633,
+              "maxShortWindowAttacksPerSecond": 6,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 3,
+              "maxSounding": 4
+            },
+            "rightHand": {
+              "noteCount": 375,
+              "onsetCount": 375,
+              "medianIoiSeconds": 0.379747,
+              "p01Seconds": 0.189873,
+              "p05Seconds": 0.189873,
+              "p10Seconds": 0.189873,
+              "p25Seconds": 0.379747,
+              "p75Seconds": 0.759494,
+              "p90Seconds": 0.759494,
+              "p95Seconds": 1.139241,
+              "minSeconds": 0.189873,
+              "meanSeconds": 0.610235,
+              "attacksPerSecond": 1.275428,
+              "maxShortWindowAttacksPerSecond": 6,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 1,
+              "maxSounding": 2
+            },
+            "leftHand": {
+              "noteCount": 472,
+              "onsetCount": 333,
+              "medianIoiSeconds": 0.759494,
+              "p01Seconds": 0.189873,
+              "p05Seconds": 0.379747,
+              "p10Seconds": 0.379747,
+              "p25Seconds": 0.379747,
+              "p75Seconds": 1.139241,
+              "p90Seconds": 1.518987,
+              "p95Seconds": 1.898734,
+              "minSeconds": 0.189873,
+              "meanSeconds": 0.860149,
+              "attacksPerSecond": 1.13258,
+              "maxShortWindowAttacksPerSecond": 6,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 2,
+              "maxSounding": 3
+            },
+            "toleranceOnsetCount": 555,
+            "simultaneousChordAttacks": 225,
+            "samePitchRearticulationOnsets": 102,
+            "alternatingHandAttacks": 50,
+            "bursts": {
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "longestRapidRun": 0,
+              "longestRapidRegionSeconds": 0,
+              "rapidRegionCount": 0,
+              "worstRegions": []
+            },
+            "rapidSourceEdges": {}
+          },
+          "assessment": {
+            "level": "easy",
+            "status": "pass",
+            "limits": {
+              "maxSim": 5,
+              "maxDensity": 12,
+              "minMedianIoi": 0.08
+            },
+            "passes": {
+              "maxSim": true,
+              "maxDensity": true,
+              "medianIoi": true
+            },
+            "failures": []
+          },
+          "name": "easy"
+        },
+        "medium": {
+          "level": "medium",
+          "noteCount": 1011,
+          "eventHash": "c11fa20fb46f892252903121108c2086ff7b4318d1d5abad3b0d2889aba85a0f",
+          "handLabelsAvailable": true,
+          "tempoBpm": 79,
+          "durationBeats": 387.125,
+          "metrics": {
+            "noteCount": 1011,
+            "validNoteCount": 1011,
+            "invalidNoteCount": 0,
+            "durationBeats": 387.125,
+            "durationSeconds": 294.018987,
+            "global": {
+              "noteCount": 1011,
+              "onsetCount": 555,
+              "medianIoiSeconds": 0.379747,
+              "p01Seconds": 0.189873,
+              "p05Seconds": 0.189873,
+              "p10Seconds": 0.189873,
+              "p25Seconds": 0.379747,
+              "p75Seconds": 0.56962,
+              "p90Seconds": 1.139241,
+              "p95Seconds": 1.518987,
+              "minSeconds": 0.189873,
+              "meanSeconds": 0.515469,
+              "attacksPerSecond": 1.887633,
+              "maxShortWindowAttacksPerSecond": 6,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 5,
+              "maxSounding": 6
+            },
+            "rightHand": {
+              "noteCount": 517,
+              "onsetCount": 376,
+              "medianIoiSeconds": 0.379747,
+              "p01Seconds": 0.189873,
+              "p05Seconds": 0.189873,
+              "p10Seconds": 0.189873,
+              "p25Seconds": 0.379747,
+              "p75Seconds": 0.759494,
+              "p90Seconds": 0.759494,
+              "p95Seconds": 1.139241,
+              "minSeconds": 0.189873,
+              "meanSeconds": 0.608608,
+              "attacksPerSecond": 1.278829,
+              "maxShortWindowAttacksPerSecond": 6,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 3,
+              "maxSounding": 4
+            },
+            "leftHand": {
+              "noteCount": 494,
+              "onsetCount": 333,
+              "medianIoiSeconds": 0.759494,
+              "p01Seconds": 0.189873,
+              "p05Seconds": 0.379747,
+              "p10Seconds": 0.379747,
+              "p25Seconds": 0.379747,
+              "p75Seconds": 1.139241,
+              "p90Seconds": 1.518987,
+              "p95Seconds": 1.898734,
+              "minSeconds": 0.189873,
+              "meanSeconds": 0.860149,
+              "attacksPerSecond": 1.13258,
+              "maxShortWindowAttacksPerSecond": 6,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 3,
+              "maxSounding": 3
+            },
+            "toleranceOnsetCount": 555,
+            "simultaneousChordAttacks": 258,
+            "samePitchRearticulationOnsets": 129,
+            "alternatingHandAttacks": 49,
+            "bursts": {
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "longestRapidRun": 0,
+              "longestRapidRegionSeconds": 0,
+              "rapidRegionCount": 0,
+              "worstRegions": []
+            },
+            "rapidSourceEdges": {}
+          },
+          "assessment": {
+            "level": "medium",
+            "status": "pass",
+            "limits": {
+              "maxSim": 12,
+              "maxDensity": 16,
+              "minMedianIoi": 0.08
+            },
+            "passes": {
+              "maxSim": true,
+              "maxDensity": true,
+              "medianIoi": true
+            },
+            "failures": []
+          },
+          "name": "medium"
+        },
+        "advanced": {
+          "level": "advanced",
+          "noteCount": 1016,
+          "eventHash": "d0d2a5e30a68cfd03d7f5d5e93d9137f969629b59b638c660650a587f315817d",
+          "handLabelsAvailable": true,
+          "tempoBpm": 79,
+          "durationBeats": 387.125,
+          "metrics": {
+            "noteCount": 1016,
+            "validNoteCount": 1016,
+            "invalidNoteCount": 0,
+            "durationBeats": 387.125,
+            "durationSeconds": 294.018987,
+            "global": {
+              "noteCount": 1016,
+              "onsetCount": 555,
+              "medianIoiSeconds": 0.379747,
+              "p01Seconds": 0.189873,
+              "p05Seconds": 0.189873,
+              "p10Seconds": 0.189873,
+              "p25Seconds": 0.379747,
+              "p75Seconds": 0.56962,
+              "p90Seconds": 1.139241,
+              "p95Seconds": 1.518987,
+              "minSeconds": 0.189873,
+              "meanSeconds": 0.515469,
+              "attacksPerSecond": 1.887633,
+              "maxShortWindowAttacksPerSecond": 6,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 6,
+              "maxSounding": 6
+            },
+            "rightHand": {
+              "noteCount": 522,
+              "onsetCount": 376,
+              "medianIoiSeconds": 0.379747,
+              "p01Seconds": 0.189873,
+              "p05Seconds": 0.189873,
+              "p10Seconds": 0.189873,
+              "p25Seconds": 0.379747,
+              "p75Seconds": 0.759494,
+              "p90Seconds": 0.759494,
+              "p95Seconds": 1.139241,
+              "minSeconds": 0.189873,
+              "meanSeconds": 0.608608,
+              "attacksPerSecond": 1.278829,
+              "maxShortWindowAttacksPerSecond": 6,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 4,
+              "maxSounding": 4
+            },
+            "leftHand": {
+              "noteCount": 494,
+              "onsetCount": 333,
+              "medianIoiSeconds": 0.759494,
+              "p01Seconds": 0.189873,
+              "p05Seconds": 0.379747,
+              "p10Seconds": 0.379747,
+              "p25Seconds": 0.379747,
+              "p75Seconds": 1.139241,
+              "p90Seconds": 1.518987,
+              "p95Seconds": 1.898734,
+              "minSeconds": 0.189873,
+              "meanSeconds": 0.860149,
+              "attacksPerSecond": 1.13258,
+              "maxShortWindowAttacksPerSecond": 6,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 3,
+              "maxSounding": 3
+            },
+            "toleranceOnsetCount": 555,
+            "simultaneousChordAttacks": 258,
+            "samePitchRearticulationOnsets": 130,
+            "alternatingHandAttacks": 49,
+            "bursts": {
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "longestRapidRun": 0,
+              "longestRapidRegionSeconds": 0,
+              "rapidRegionCount": 0,
+              "worstRegions": []
+            },
+            "rapidSourceEdges": {}
+          },
+          "assessment": {
+            "level": "advanced",
+            "status": "pass",
+            "limits": {
+              "maxSim": 13,
+              "maxDensity": 18,
+              "minMedianIoi": 0.08
+            },
+            "passes": {
+              "maxSim": true,
+              "maxDensity": true,
+              "medianIoi": true
+            },
+            "failures": []
+          },
+          "name": "advanced"
+        }
+      }
+    },
+    "synthetic-full-band": {
+      "title": "Synthetic full-band",
+      "logicalRef": "synthetic:full-band",
+      "source": {
+        "bytes": 0,
+        "sha256": "31399aa67231b4a66cb791e9a2487a25ad31925b1f2965b1e845e33578ead81c",
+        "noteCount": 20,
+        "durationBeats": 8,
+        "tempoBpm": 120,
+        "handLabelsAvailable": true
+      },
+      "levels": {
+        "very-beginner": {
+          "level": "very-beginner",
+          "noteCount": 4,
+          "eventHash": "cf4b86fb441fa07c4aeea1a3ff140017d994bd2f4a4b9f5601627f7464978a9d",
+          "handLabelsAvailable": true,
+          "tempoBpm": 120,
+          "durationBeats": 8,
+          "metrics": {
+            "noteCount": 4,
+            "validNoteCount": 4,
+            "invalidNoteCount": 0,
+            "durationBeats": 8,
+            "durationSeconds": 4,
+            "global": {
+              "noteCount": 4,
+              "onsetCount": 4,
+              "medianIoiSeconds": 1,
+              "p01Seconds": 1,
+              "p05Seconds": 1,
+              "p10Seconds": 1,
+              "p25Seconds": 1,
+              "p75Seconds": 1,
+              "p90Seconds": 1,
+              "p95Seconds": 1,
+              "minSeconds": 1,
+              "meanSeconds": 1,
+              "attacksPerSecond": 1,
+              "maxShortWindowAttacksPerSecond": 2,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 1,
+              "maxSounding": 1
+            },
+            "rightHand": {
+              "noteCount": 4,
+              "onsetCount": 4,
+              "medianIoiSeconds": 1,
+              "p01Seconds": 1,
+              "p05Seconds": 1,
+              "p10Seconds": 1,
+              "p25Seconds": 1,
+              "p75Seconds": 1,
+              "p90Seconds": 1,
+              "p95Seconds": 1,
+              "minSeconds": 1,
+              "meanSeconds": 1,
+              "attacksPerSecond": 1,
+              "maxShortWindowAttacksPerSecond": 2,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 1,
+              "maxSounding": 1
+            },
+            "leftHand": {
+              "noteCount": 0,
+              "onsetCount": 0,
+              "medianIoiSeconds": null,
+              "p01Seconds": null,
+              "p05Seconds": null,
+              "p10Seconds": null,
+              "p25Seconds": null,
+              "p75Seconds": null,
+              "p90Seconds": null,
+              "p95Seconds": null,
+              "minSeconds": null,
+              "meanSeconds": null,
+              "attacksPerSecond": 0,
+              "maxShortWindowAttacksPerSecond": 0,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 0,
+              "maxSounding": 0
+            },
+            "toleranceOnsetCount": 4,
+            "simultaneousChordAttacks": 0,
+            "samePitchRearticulationOnsets": 0,
+            "alternatingHandAttacks": 0,
+            "bursts": {
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "longestRapidRun": 0,
+              "longestRapidRegionSeconds": 0,
+              "rapidRegionCount": 0,
+              "worstRegions": []
+            },
+            "rapidSourceEdges": {}
+          },
+          "assessment": {
+            "level": "very-beginner",
+            "status": "pass",
+            "limits": {
+              "maxSim": 2,
+              "maxDensity": 5,
+              "minMedianIoi": 0.15
+            },
+            "passes": {
+              "maxSim": true,
+              "maxDensity": true,
+              "medianIoi": true
+            },
+            "failures": []
+          },
+          "name": "very-beginner"
+        },
+        "beginner": {
+          "level": "beginner",
+          "noteCount": 6,
+          "eventHash": "13e63601c21d0d2731cef569f2f7d80ff68a730a806da7cfb80ef508d6138d4d",
+          "handLabelsAvailable": true,
+          "tempoBpm": 120,
+          "durationBeats": 8,
+          "metrics": {
+            "noteCount": 6,
+            "validNoteCount": 6,
+            "invalidNoteCount": 0,
+            "durationBeats": 8,
+            "durationSeconds": 4,
+            "global": {
+              "noteCount": 6,
+              "onsetCount": 4,
+              "medianIoiSeconds": 1,
+              "p01Seconds": 1,
+              "p05Seconds": 1,
+              "p10Seconds": 1,
+              "p25Seconds": 1,
+              "p75Seconds": 1,
+              "p90Seconds": 1,
+              "p95Seconds": 1,
+              "minSeconds": 1,
+              "meanSeconds": 1,
+              "attacksPerSecond": 1,
+              "maxShortWindowAttacksPerSecond": 2,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 2,
+              "maxSounding": 2
+            },
+            "rightHand": {
+              "noteCount": 4,
+              "onsetCount": 4,
+              "medianIoiSeconds": 1,
+              "p01Seconds": 1,
+              "p05Seconds": 1,
+              "p10Seconds": 1,
+              "p25Seconds": 1,
+              "p75Seconds": 1,
+              "p90Seconds": 1,
+              "p95Seconds": 1,
+              "minSeconds": 1,
+              "meanSeconds": 1,
+              "attacksPerSecond": 1,
+              "maxShortWindowAttacksPerSecond": 2,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 1,
+              "maxSounding": 1
+            },
+            "leftHand": {
+              "noteCount": 2,
+              "onsetCount": 2,
+              "medianIoiSeconds": 2,
+              "p01Seconds": 2,
+              "p05Seconds": 2,
+              "p10Seconds": 2,
+              "p25Seconds": 2,
+              "p75Seconds": 2,
+              "p90Seconds": 2,
+              "p95Seconds": 2,
+              "minSeconds": 2,
+              "meanSeconds": 2,
+              "attacksPerSecond": 0.5,
+              "maxShortWindowAttacksPerSecond": 2,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 1,
+              "maxSounding": 1
+            },
+            "toleranceOnsetCount": 4,
+            "simultaneousChordAttacks": 2,
+            "samePitchRearticulationOnsets": 0,
+            "alternatingHandAttacks": 0,
+            "bursts": {
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "longestRapidRun": 0,
+              "longestRapidRegionSeconds": 0,
+              "rapidRegionCount": 0,
+              "worstRegions": []
+            },
+            "rapidSourceEdges": {}
+          },
+          "assessment": {
+            "level": "beginner",
+            "status": "pass",
+            "limits": {
+              "maxSim": 2,
+              "maxDensity": 6,
+              "minMedianIoi": 0.08
+            },
+            "passes": {
+              "maxSim": true,
+              "maxDensity": true,
+              "medianIoi": true
+            },
+            "failures": []
+          },
+          "name": "beginner"
+        },
+        "very-easy": {
+          "level": "very-easy",
+          "noteCount": 8,
+          "eventHash": "bf69ec5fcaf0a3bfa2eb668e7ba4b18415bdfca0a2624c07d143d8a0a138d622",
+          "handLabelsAvailable": true,
+          "tempoBpm": 120,
+          "durationBeats": 8,
+          "metrics": {
+            "noteCount": 8,
+            "validNoteCount": 8,
+            "invalidNoteCount": 0,
+            "durationBeats": 8,
+            "durationSeconds": 4,
+            "global": {
+              "noteCount": 8,
+              "onsetCount": 4,
+              "medianIoiSeconds": 1,
+              "p01Seconds": 1,
+              "p05Seconds": 1,
+              "p10Seconds": 1,
+              "p25Seconds": 1,
+              "p75Seconds": 1,
+              "p90Seconds": 1,
+              "p95Seconds": 1,
+              "minSeconds": 1,
+              "meanSeconds": 1,
+              "attacksPerSecond": 1,
+              "maxShortWindowAttacksPerSecond": 2,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 2,
+              "maxSounding": 2
+            },
+            "rightHand": {
+              "noteCount": 4,
+              "onsetCount": 4,
+              "medianIoiSeconds": 1,
+              "p01Seconds": 1,
+              "p05Seconds": 1,
+              "p10Seconds": 1,
+              "p25Seconds": 1,
+              "p75Seconds": 1,
+              "p90Seconds": 1,
+              "p95Seconds": 1,
+              "minSeconds": 1,
+              "meanSeconds": 1,
+              "attacksPerSecond": 1,
+              "maxShortWindowAttacksPerSecond": 2,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 1,
+              "maxSounding": 1
+            },
+            "leftHand": {
+              "noteCount": 4,
+              "onsetCount": 4,
+              "medianIoiSeconds": 1,
+              "p01Seconds": 1,
+              "p05Seconds": 1,
+              "p10Seconds": 1,
+              "p25Seconds": 1,
+              "p75Seconds": 1,
+              "p90Seconds": 1,
+              "p95Seconds": 1,
+              "minSeconds": 1,
+              "meanSeconds": 1,
+              "attacksPerSecond": 1,
+              "maxShortWindowAttacksPerSecond": 2,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 1,
+              "maxSounding": 1
+            },
+            "toleranceOnsetCount": 4,
+            "simultaneousChordAttacks": 4,
+            "samePitchRearticulationOnsets": 0,
+            "alternatingHandAttacks": 0,
+            "bursts": {
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "longestRapidRun": 0,
+              "longestRapidRegionSeconds": 0,
+              "rapidRegionCount": 0,
+              "worstRegions": []
+            },
+            "rapidSourceEdges": {}
+          },
+          "assessment": {
+            "level": "very-easy",
+            "status": "pass",
+            "limits": {
+              "maxSim": 5,
+              "maxDensity": 12,
+              "minMedianIoi": 0.08
+            },
+            "passes": {
+              "maxSim": true,
+              "maxDensity": true,
+              "medianIoi": true
+            },
+            "failures": []
+          },
+          "name": "very-easy"
+        },
+        "easy": {
+          "level": "easy",
+          "noteCount": 8,
+          "eventHash": "bf69ec5fcaf0a3bfa2eb668e7ba4b18415bdfca0a2624c07d143d8a0a138d622",
+          "handLabelsAvailable": true,
+          "tempoBpm": 120,
+          "durationBeats": 8,
+          "metrics": {
+            "noteCount": 8,
+            "validNoteCount": 8,
+            "invalidNoteCount": 0,
+            "durationBeats": 8,
+            "durationSeconds": 4,
+            "global": {
+              "noteCount": 8,
+              "onsetCount": 4,
+              "medianIoiSeconds": 1,
+              "p01Seconds": 1,
+              "p05Seconds": 1,
+              "p10Seconds": 1,
+              "p25Seconds": 1,
+              "p75Seconds": 1,
+              "p90Seconds": 1,
+              "p95Seconds": 1,
+              "minSeconds": 1,
+              "meanSeconds": 1,
+              "attacksPerSecond": 1,
+              "maxShortWindowAttacksPerSecond": 2,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 2,
+              "maxSounding": 2
+            },
+            "rightHand": {
+              "noteCount": 4,
+              "onsetCount": 4,
+              "medianIoiSeconds": 1,
+              "p01Seconds": 1,
+              "p05Seconds": 1,
+              "p10Seconds": 1,
+              "p25Seconds": 1,
+              "p75Seconds": 1,
+              "p90Seconds": 1,
+              "p95Seconds": 1,
+              "minSeconds": 1,
+              "meanSeconds": 1,
+              "attacksPerSecond": 1,
+              "maxShortWindowAttacksPerSecond": 2,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 1,
+              "maxSounding": 1
+            },
+            "leftHand": {
+              "noteCount": 4,
+              "onsetCount": 4,
+              "medianIoiSeconds": 1,
+              "p01Seconds": 1,
+              "p05Seconds": 1,
+              "p10Seconds": 1,
+              "p25Seconds": 1,
+              "p75Seconds": 1,
+              "p90Seconds": 1,
+              "p95Seconds": 1,
+              "minSeconds": 1,
+              "meanSeconds": 1,
+              "attacksPerSecond": 1,
+              "maxShortWindowAttacksPerSecond": 2,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 1,
+              "maxSounding": 1
+            },
+            "toleranceOnsetCount": 4,
+            "simultaneousChordAttacks": 4,
+            "samePitchRearticulationOnsets": 0,
+            "alternatingHandAttacks": 0,
+            "bursts": {
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "longestRapidRun": 0,
+              "longestRapidRegionSeconds": 0,
+              "rapidRegionCount": 0,
+              "worstRegions": []
+            },
+            "rapidSourceEdges": {}
+          },
+          "assessment": {
+            "level": "easy",
+            "status": "pass",
+            "limits": {
+              "maxSim": 5,
+              "maxDensity": 12,
+              "minMedianIoi": 0.08
+            },
+            "passes": {
+              "maxSim": true,
+              "maxDensity": true,
+              "medianIoi": true
+            },
+            "failures": []
+          },
+          "name": "easy"
+        },
+        "medium": {
+          "level": "medium",
+          "noteCount": 16,
+          "eventHash": "28adc1a02d470b4f470d7377d5db7b779eab939d91970ea65d33186578a42829",
+          "handLabelsAvailable": true,
+          "tempoBpm": 120,
+          "durationBeats": 8,
+          "metrics": {
+            "noteCount": 16,
+            "validNoteCount": 16,
+            "invalidNoteCount": 0,
+            "durationBeats": 8,
+            "durationSeconds": 4,
+            "global": {
+              "noteCount": 16,
+              "onsetCount": 4,
+              "medianIoiSeconds": 1,
+              "p01Seconds": 1,
+              "p05Seconds": 1,
+              "p10Seconds": 1,
+              "p25Seconds": 1,
+              "p75Seconds": 1,
+              "p90Seconds": 1,
+              "p95Seconds": 1,
+              "minSeconds": 1,
+              "meanSeconds": 1,
+              "attacksPerSecond": 1,
+              "maxShortWindowAttacksPerSecond": 2,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 4,
+              "maxSounding": 4
+            },
+            "rightHand": {
+              "noteCount": 12,
+              "onsetCount": 4,
+              "medianIoiSeconds": 1,
+              "p01Seconds": 1,
+              "p05Seconds": 1,
+              "p10Seconds": 1,
+              "p25Seconds": 1,
+              "p75Seconds": 1,
+              "p90Seconds": 1,
+              "p95Seconds": 1,
+              "minSeconds": 1,
+              "meanSeconds": 1,
+              "attacksPerSecond": 1,
+              "maxShortWindowAttacksPerSecond": 2,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 3,
+              "maxSounding": 3
+            },
+            "leftHand": {
+              "noteCount": 4,
+              "onsetCount": 4,
+              "medianIoiSeconds": 1,
+              "p01Seconds": 1,
+              "p05Seconds": 1,
+              "p10Seconds": 1,
+              "p25Seconds": 1,
+              "p75Seconds": 1,
+              "p90Seconds": 1,
+              "p95Seconds": 1,
+              "minSeconds": 1,
+              "meanSeconds": 1,
+              "attacksPerSecond": 1,
+              "maxShortWindowAttacksPerSecond": 2,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 1,
+              "maxSounding": 1
+            },
+            "toleranceOnsetCount": 4,
+            "simultaneousChordAttacks": 4,
+            "samePitchRearticulationOnsets": 1,
+            "alternatingHandAttacks": 0,
+            "bursts": {
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "longestRapidRun": 0,
+              "longestRapidRegionSeconds": 0,
+              "rapidRegionCount": 0,
+              "worstRegions": []
+            },
+            "rapidSourceEdges": {}
+          },
+          "assessment": {
+            "level": "medium",
+            "status": "pass",
+            "limits": {
+              "maxSim": 12,
+              "maxDensity": 16,
+              "minMedianIoi": 0.08
+            },
+            "passes": {
+              "maxSim": true,
+              "maxDensity": true,
+              "medianIoi": true
+            },
+            "failures": []
+          },
+          "name": "medium"
+        },
+        "advanced": {
+          "level": "advanced",
+          "noteCount": 18,
+          "eventHash": "616751009192a13bcfbaa28185f993ef2f39c0cf1ffa4982cfab26a4d79af4f0",
+          "handLabelsAvailable": true,
+          "tempoBpm": 120,
+          "durationBeats": 8,
+          "metrics": {
+            "noteCount": 18,
+            "validNoteCount": 18,
+            "invalidNoteCount": 0,
+            "durationBeats": 8,
+            "durationSeconds": 4,
+            "global": {
+              "noteCount": 18,
+              "onsetCount": 4,
+              "medianIoiSeconds": 1,
+              "p01Seconds": 1,
+              "p05Seconds": 1,
+              "p10Seconds": 1,
+              "p25Seconds": 1,
+              "p75Seconds": 1,
+              "p90Seconds": 1,
+              "p95Seconds": 1,
+              "minSeconds": 1,
+              "meanSeconds": 1,
+              "attacksPerSecond": 1,
+              "maxShortWindowAttacksPerSecond": 2,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 5,
+              "maxSounding": 5
+            },
+            "rightHand": {
+              "noteCount": 14,
+              "onsetCount": 4,
+              "medianIoiSeconds": 1,
+              "p01Seconds": 1,
+              "p05Seconds": 1,
+              "p10Seconds": 1,
+              "p25Seconds": 1,
+              "p75Seconds": 1,
+              "p90Seconds": 1,
+              "p95Seconds": 1,
+              "minSeconds": 1,
+              "meanSeconds": 1,
+              "attacksPerSecond": 1,
+              "maxShortWindowAttacksPerSecond": 2,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 4,
+              "maxSounding": 4
+            },
+            "leftHand": {
+              "noteCount": 4,
+              "onsetCount": 4,
+              "medianIoiSeconds": 1,
+              "p01Seconds": 1,
+              "p05Seconds": 1,
+              "p10Seconds": 1,
+              "p25Seconds": 1,
+              "p75Seconds": 1,
+              "p90Seconds": 1,
+              "p95Seconds": 1,
+              "minSeconds": 1,
+              "meanSeconds": 1,
+              "attacksPerSecond": 1,
+              "maxShortWindowAttacksPerSecond": 2,
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "maxSimultaneous": 1,
+              "maxSounding": 1
+            },
+            "toleranceOnsetCount": 4,
+            "simultaneousChordAttacks": 4,
+            "samePitchRearticulationOnsets": 2,
+            "alternatingHandAttacks": 0,
+            "bursts": {
+              "rapidIoiCount": 0,
+              "rapidIoiFraction": 0,
+              "longestRapidRun": 0,
+              "longestRapidRegionSeconds": 0,
+              "rapidRegionCount": 0,
+              "worstRegions": []
+            },
+            "rapidSourceEdges": {}
+          },
+          "assessment": {
+            "level": "advanced",
+            "status": "pass",
+            "limits": {
+              "maxSim": 13,
+              "maxDensity": 18,
+              "minMedianIoi": 0.08
+            },
+            "passes": {
+              "maxSim": true,
+              "maxDensity": true,
+              "medianIoi": true
+            },
+            "failures": []
+          },
+          "name": "advanced"
+        }
+      }
+    }
+  },
+  "syntheticControls": {
+    "A-chord-heavy": {
+      "mechanism": "large simultaneous chords with slow distinct attacks",
+      "eventHash": "5c0aa4e89bb9ef2b62c70915a1868810414c49efe7f6cb078caf8350b288bd55",
+      "metrics": {
+        "noteCount": 16,
+        "validNoteCount": 16,
+        "invalidNoteCount": 0,
+        "durationBeats": 3.125,
+        "durationSeconds": 1.5625,
+        "global": {
+          "count": 3,
+          "minSeconds": 0.5,
+          "p01Seconds": 0.5,
+          "p05Seconds": 0.5,
+          "p10Seconds": 0.5,
+          "p25Seconds": 0.5,
+          "medianIoiSeconds": 0.5,
+          "p75Seconds": 0.5,
+          "p90Seconds": 0.5,
+          "p95Seconds": 0.5,
+          "meanSeconds": 0.5,
+          "rapidIoiCount": 0,
+          "rapidIoiFraction": 0,
+          "attacksPerSecond": 2.56,
+          "maxShortWindowAttacksPerSecond": 2,
+          "noteCount": 16,
+          "onsetCount": 4,
+          "maxSimultaneous": 4,
+          "maxSounding": 4
+        },
+        "hands": {
+          "R": {
+            "count": 3,
+            "minSeconds": 0.5,
+            "p01Seconds": 0.5,
+            "p05Seconds": 0.5,
+            "p10Seconds": 0.5,
+            "p25Seconds": 0.5,
+            "medianIoiSeconds": 0.5,
+            "p75Seconds": 0.5,
+            "p90Seconds": 0.5,
+            "p95Seconds": 0.5,
+            "meanSeconds": 0.5,
+            "rapidIoiCount": 0,
+            "rapidIoiFraction": 0,
+            "attacksPerSecond": 2.56,
+            "maxShortWindowAttacksPerSecond": 2,
+            "noteCount": 16,
+            "onsetCount": 4,
+            "maxSimultaneous": 4,
+            "maxSounding": 4
+          },
+          "L": {
+            "count": 0,
+            "minSeconds": null,
+            "p01Seconds": null,
+            "p05Seconds": null,
+            "p10Seconds": null,
+            "p25Seconds": null,
+            "medianIoiSeconds": null,
+            "p75Seconds": null,
+            "p90Seconds": null,
+            "p95Seconds": null,
+            "meanSeconds": null,
+            "rapidIoiCount": 0,
+            "rapidIoiFraction": 0,
+            "attacksPerSecond": 0,
+            "maxShortWindowAttacksPerSecond": 0,
+            "noteCount": 0,
+            "onsetCount": 0,
+            "maxSimultaneous": 0,
+            "maxSounding": 0
+          }
+        },
+        "toleranceOnsetCount": 4,
+        "simultaneousChordAttacks": 4,
+        "samePitchRearticulationOnsets": 3,
+        "alternatingHandAttacks": 0,
+        "bursts": {
+          "rapidIoiCount": 0,
+          "rapidIoiFraction": 0,
+          "longestRapidRun": 0,
+          "longestRapidRegionSeconds": 0,
+          "rapidRegions": []
+        },
+        "rapidSourceEdges": {}
+      },
+      "assessments": {
+        "very-beginner": {
+          "level": "very-beginner",
+          "status": "fail",
+          "limits": {
+            "maxSim": 2,
+            "maxDensity": 5,
+            "minMedianIoi": 0.15
+          },
+          "passes": {
+            "maxSim": false,
+            "maxDensity": true,
+            "medianIoi": true
+          },
+          "failures": [
+            "very-beginner: simultaneous/sounding notes exceed limit 2"
+          ]
+        },
+        "beginner": {
+          "level": "beginner",
+          "status": "fail",
+          "limits": {
+            "maxSim": 2,
+            "maxDensity": 6,
+            "minMedianIoi": 0.08
+          },
+          "passes": {
+            "maxSim": false,
+            "maxDensity": true,
+            "medianIoi": true
+          },
+          "failures": [
+            "beginner: simultaneous/sounding notes exceed limit 2"
+          ]
+        },
+        "very-easy": {
+          "level": "very-easy",
+          "status": "pass",
+          "limits": {
+            "maxSim": 5,
+            "maxDensity": 12,
+            "minMedianIoi": 0.08
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": true,
+            "medianIoi": true
+          },
+          "failures": []
+        },
+        "easy": {
+          "level": "easy",
+          "status": "pass",
+          "limits": {
+            "maxSim": 5,
+            "maxDensity": 12,
+            "minMedianIoi": 0.08
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": true,
+            "medianIoi": true
+          },
+          "failures": []
+        },
+        "medium": {
+          "level": "medium",
+          "status": "pass",
+          "limits": {
+            "maxSim": 12,
+            "maxDensity": 16,
+            "minMedianIoi": 0.08
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": true,
+            "medianIoi": true
+          },
+          "failures": []
+        },
+        "advanced": {
+          "level": "advanced",
+          "status": "pass",
+          "limits": {
+            "maxSim": 13,
+            "maxDensity": 18,
+            "minMedianIoi": 0.08
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": true,
+            "medianIoi": true
+          },
+          "failures": []
+        }
+      },
+      "handAware": {
+        "globalMedianSeconds": 0.5,
+        "rightMedianSeconds": 0.5,
+        "leftMedianSeconds": null,
+        "interpretation": "no inter-hand-only speedup detected"
+      }
+    },
+    "B-rapid-monophonic": {
+      "mechanism": "one-hand rapid distinct attacks",
+      "eventHash": "dee0ac2ae30caf4da48eccaa57979c636f07d4bff6434fe3ff4f4399f50299ba",
+      "metrics": {
+        "noteCount": 10,
+        "validNoteCount": 10,
+        "invalidNoteCount": 0,
+        "durationBeats": 1.25,
+        "durationSeconds": 0.625,
+        "global": {
+          "count": 9,
+          "minSeconds": 0.0625,
+          "p01Seconds": 0.0625,
+          "p05Seconds": 0.0625,
+          "p10Seconds": 0.0625,
+          "p25Seconds": 0.0625,
+          "medianIoiSeconds": 0.0625,
+          "p75Seconds": 0.0625,
+          "p90Seconds": 0.0625,
+          "p95Seconds": 0.0625,
+          "meanSeconds": 0.0625,
+          "rapidIoiCount": 9,
+          "rapidIoiFraction": 1,
+          "attacksPerSecond": 16,
+          "maxShortWindowAttacksPerSecond": 16,
+          "noteCount": 10,
+          "onsetCount": 10,
+          "maxSimultaneous": 1,
+          "maxSounding": 1
+        },
+        "hands": {
+          "R": {
+            "count": 9,
+            "minSeconds": 0.0625,
+            "p01Seconds": 0.0625,
+            "p05Seconds": 0.0625,
+            "p10Seconds": 0.0625,
+            "p25Seconds": 0.0625,
+            "medianIoiSeconds": 0.0625,
+            "p75Seconds": 0.0625,
+            "p90Seconds": 0.0625,
+            "p95Seconds": 0.0625,
+            "meanSeconds": 0.0625,
+            "rapidIoiCount": 9,
+            "rapidIoiFraction": 1,
+            "attacksPerSecond": 16,
+            "maxShortWindowAttacksPerSecond": 16,
+            "noteCount": 10,
+            "onsetCount": 10,
+            "maxSimultaneous": 1,
+            "maxSounding": 1
+          },
+          "L": {
+            "count": 0,
+            "minSeconds": null,
+            "p01Seconds": null,
+            "p05Seconds": null,
+            "p10Seconds": null,
+            "p25Seconds": null,
+            "medianIoiSeconds": null,
+            "p75Seconds": null,
+            "p90Seconds": null,
+            "p95Seconds": null,
+            "meanSeconds": null,
+            "rapidIoiCount": 0,
+            "rapidIoiFraction": 0,
+            "attacksPerSecond": 0,
+            "maxShortWindowAttacksPerSecond": 0,
+            "noteCount": 0,
+            "onsetCount": 0,
+            "maxSimultaneous": 0,
+            "maxSounding": 0
+          }
+        },
+        "toleranceOnsetCount": 10,
+        "simultaneousChordAttacks": 0,
+        "samePitchRearticulationOnsets": 0,
+        "alternatingHandAttacks": 0,
+        "bursts": {
+          "rapidIoiCount": 9,
+          "rapidIoiFraction": 1,
+          "longestRapidRun": 9,
+          "longestRapidRegionSeconds": 0.5625,
+          "rapidRegions": [
+            {
+              "startBeat": 0,
+              "endBeat": 1.125,
+              "durationSeconds": 0.5625,
+              "rapidIoiCount": 9,
+              "rightHandAttacks": 10,
+              "leftHandAttacks": 0,
+              "sources": [
+                "unknown"
+              ]
+            }
+          ]
+        },
+        "rapidSourceEdges": {
+          "unknown": 9
+        }
+      },
+      "assessments": {
+        "very-beginner": {
+          "level": "very-beginner",
+          "status": "fail",
+          "limits": {
+            "maxSim": 2,
+            "maxDensity": 5,
+            "minMedianIoi": 0.15
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": false,
+            "medianIoi": false
+          },
+          "failures": [
+            "very-beginner: attacks/sec exceed limit 5",
+            "very-beginner: median inter-onset below floor 0.15s"
+          ]
+        },
+        "beginner": {
+          "level": "beginner",
+          "status": "fail",
+          "limits": {
+            "maxSim": 2,
+            "maxDensity": 6,
+            "minMedianIoi": 0.08
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": false,
+            "medianIoi": false
+          },
+          "failures": [
+            "beginner: attacks/sec exceed limit 6",
+            "beginner: median inter-onset below floor 0.08s"
+          ]
+        },
+        "very-easy": {
+          "level": "very-easy",
+          "status": "fail",
+          "limits": {
+            "maxSim": 5,
+            "maxDensity": 12,
+            "minMedianIoi": 0.08
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": false,
+            "medianIoi": false
+          },
+          "failures": [
+            "very-easy: attacks/sec exceed limit 12",
+            "very-easy: median inter-onset below floor 0.08s"
+          ]
+        },
+        "easy": {
+          "level": "easy",
+          "status": "fail",
+          "limits": {
+            "maxSim": 5,
+            "maxDensity": 12,
+            "minMedianIoi": 0.08
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": false,
+            "medianIoi": false
+          },
+          "failures": [
+            "easy: attacks/sec exceed limit 12",
+            "easy: median inter-onset below floor 0.08s"
+          ]
+        },
+        "medium": {
+          "level": "medium",
+          "status": "fail",
+          "limits": {
+            "maxSim": 12,
+            "maxDensity": 16,
+            "minMedianIoi": 0.08
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": true,
+            "medianIoi": false
+          },
+          "failures": [
+            "medium: median inter-onset below floor 0.08s"
+          ]
+        },
+        "advanced": {
+          "level": "advanced",
+          "status": "fail",
+          "limits": {
+            "maxSim": 13,
+            "maxDensity": 18,
+            "minMedianIoi": 0.08
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": true,
+            "medianIoi": false
+          },
+          "failures": [
+            "advanced: median inter-onset below floor 0.08s"
+          ]
+        }
+      },
+      "handAware": {
+        "globalMedianSeconds": 0.0625,
+        "rightMedianSeconds": 0.0625,
+        "leftMedianSeconds": null,
+        "interpretation": "no inter-hand-only speedup detected"
+      }
+    },
+    "C-alternating-hands": {
+      "mechanism": "RH/LH alternation at rapid global spacing",
+      "eventHash": "8f624dde9fbba24211b62f1f15254a4fccb1a992d3bf94a353c2f77b576f7527",
+      "metrics": {
+        "noteCount": 10,
+        "validNoteCount": 10,
+        "invalidNoteCount": 0,
+        "durationBeats": 1.25,
+        "durationSeconds": 0.625,
+        "global": {
+          "count": 9,
+          "minSeconds": 0.0625,
+          "p01Seconds": 0.0625,
+          "p05Seconds": 0.0625,
+          "p10Seconds": 0.0625,
+          "p25Seconds": 0.0625,
+          "medianIoiSeconds": 0.0625,
+          "p75Seconds": 0.0625,
+          "p90Seconds": 0.0625,
+          "p95Seconds": 0.0625,
+          "meanSeconds": 0.0625,
+          "rapidIoiCount": 9,
+          "rapidIoiFraction": 1,
+          "attacksPerSecond": 16,
+          "maxShortWindowAttacksPerSecond": 16,
+          "noteCount": 10,
+          "onsetCount": 10,
+          "maxSimultaneous": 1,
+          "maxSounding": 1
+        },
+        "hands": {
+          "R": {
+            "count": 4,
+            "minSeconds": 0.125,
+            "p01Seconds": 0.125,
+            "p05Seconds": 0.125,
+            "p10Seconds": 0.125,
+            "p25Seconds": 0.125,
+            "medianIoiSeconds": 0.125,
+            "p75Seconds": 0.125,
+            "p90Seconds": 0.125,
+            "p95Seconds": 0.125,
+            "meanSeconds": 0.125,
+            "rapidIoiCount": 0,
+            "rapidIoiFraction": 0,
+            "attacksPerSecond": 8,
+            "maxShortWindowAttacksPerSecond": 8,
+            "noteCount": 5,
+            "onsetCount": 5,
+            "maxSimultaneous": 1,
+            "maxSounding": 1
+          },
+          "L": {
+            "count": 4,
+            "minSeconds": 0.125,
+            "p01Seconds": 0.125,
+            "p05Seconds": 0.125,
+            "p10Seconds": 0.125,
+            "p25Seconds": 0.125,
+            "medianIoiSeconds": 0.125,
+            "p75Seconds": 0.125,
+            "p90Seconds": 0.125,
+            "p95Seconds": 0.125,
+            "meanSeconds": 0.125,
+            "rapidIoiCount": 0,
+            "rapidIoiFraction": 0,
+            "attacksPerSecond": 8,
+            "maxShortWindowAttacksPerSecond": 8,
+            "noteCount": 5,
+            "onsetCount": 5,
+            "maxSimultaneous": 1,
+            "maxSounding": 1
+          }
+        },
+        "toleranceOnsetCount": 10,
+        "simultaneousChordAttacks": 0,
+        "samePitchRearticulationOnsets": 0,
+        "alternatingHandAttacks": 9,
+        "bursts": {
+          "rapidIoiCount": 9,
+          "rapidIoiFraction": 1,
+          "longestRapidRun": 9,
+          "longestRapidRegionSeconds": 0.5625,
+          "rapidRegions": [
+            {
+              "startBeat": 0,
+              "endBeat": 1.125,
+              "durationSeconds": 0.5625,
+              "rapidIoiCount": 9,
+              "rightHandAttacks": 5,
+              "leftHandAttacks": 5,
+              "sources": [
+                "unknown"
+              ]
+            }
+          ]
+        },
+        "rapidSourceEdges": {
+          "unknown": 9
+        }
+      },
+      "assessments": {
+        "very-beginner": {
+          "level": "very-beginner",
+          "status": "fail",
+          "limits": {
+            "maxSim": 2,
+            "maxDensity": 5,
+            "minMedianIoi": 0.15
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": false,
+            "medianIoi": false
+          },
+          "failures": [
+            "very-beginner: attacks/sec exceed limit 5",
+            "very-beginner: median inter-onset below floor 0.15s"
+          ]
+        },
+        "beginner": {
+          "level": "beginner",
+          "status": "fail",
+          "limits": {
+            "maxSim": 2,
+            "maxDensity": 6,
+            "minMedianIoi": 0.08
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": false,
+            "medianIoi": false
+          },
+          "failures": [
+            "beginner: attacks/sec exceed limit 6",
+            "beginner: median inter-onset below floor 0.08s"
+          ]
+        },
+        "very-easy": {
+          "level": "very-easy",
+          "status": "fail",
+          "limits": {
+            "maxSim": 5,
+            "maxDensity": 12,
+            "minMedianIoi": 0.08
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": false,
+            "medianIoi": false
+          },
+          "failures": [
+            "very-easy: attacks/sec exceed limit 12",
+            "very-easy: median inter-onset below floor 0.08s"
+          ]
+        },
+        "easy": {
+          "level": "easy",
+          "status": "fail",
+          "limits": {
+            "maxSim": 5,
+            "maxDensity": 12,
+            "minMedianIoi": 0.08
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": false,
+            "medianIoi": false
+          },
+          "failures": [
+            "easy: attacks/sec exceed limit 12",
+            "easy: median inter-onset below floor 0.08s"
+          ]
+        },
+        "medium": {
+          "level": "medium",
+          "status": "fail",
+          "limits": {
+            "maxSim": 12,
+            "maxDensity": 16,
+            "minMedianIoi": 0.08
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": true,
+            "medianIoi": false
+          },
+          "failures": [
+            "medium: median inter-onset below floor 0.08s"
+          ]
+        },
+        "advanced": {
+          "level": "advanced",
+          "status": "fail",
+          "limits": {
+            "maxSim": 13,
+            "maxDensity": 18,
+            "minMedianIoi": 0.08
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": true,
+            "medianIoi": false
+          },
+          "failures": [
+            "advanced: median inter-onset below floor 0.08s"
+          ]
+        }
+      },
+      "handAware": {
+        "globalMedianSeconds": 0.0625,
+        "rightMedianSeconds": 0.125,
+        "leftMedianSeconds": 0.125,
+        "interpretation": "global alternation is faster than either hand"
+      }
+    },
+    "D-dense-arpeggio": {
+      "mechanism": "one-hand rapid moving arpeggio",
+      "eventHash": "b78278b4e910fc17e892334075ab2d4ed4f32445daad786d4b98517b24379158",
+      "metrics": {
+        "noteCount": 32,
+        "validNoteCount": 32,
+        "invalidNoteCount": 0,
+        "durationBeats": 4.075,
+        "durationSeconds": 2.0375,
+        "global": {
+          "count": 31,
+          "minSeconds": 0.0625,
+          "p01Seconds": 0.0625,
+          "p05Seconds": 0.0625,
+          "p10Seconds": 0.0625,
+          "p25Seconds": 0.0625,
+          "medianIoiSeconds": 0.0625,
+          "p75Seconds": 0.0625,
+          "p90Seconds": 0.0625,
+          "p95Seconds": 0.0625,
+          "meanSeconds": 0.0625,
+          "rapidIoiCount": 31,
+          "rapidIoiFraction": 1,
+          "attacksPerSecond": 15.705521,
+          "maxShortWindowAttacksPerSecond": 16,
+          "noteCount": 32,
+          "onsetCount": 32,
+          "maxSimultaneous": 1,
+          "maxSounding": 2
+        },
+        "hands": {
+          "R": {
+            "count": 31,
+            "minSeconds": 0.0625,
+            "p01Seconds": 0.0625,
+            "p05Seconds": 0.0625,
+            "p10Seconds": 0.0625,
+            "p25Seconds": 0.0625,
+            "medianIoiSeconds": 0.0625,
+            "p75Seconds": 0.0625,
+            "p90Seconds": 0.0625,
+            "p95Seconds": 0.0625,
+            "meanSeconds": 0.0625,
+            "rapidIoiCount": 31,
+            "rapidIoiFraction": 1,
+            "attacksPerSecond": 15.705521,
+            "maxShortWindowAttacksPerSecond": 16,
+            "noteCount": 32,
+            "onsetCount": 32,
+            "maxSimultaneous": 1,
+            "maxSounding": 2
+          },
+          "L": {
+            "count": 0,
+            "minSeconds": null,
+            "p01Seconds": null,
+            "p05Seconds": null,
+            "p10Seconds": null,
+            "p25Seconds": null,
+            "medianIoiSeconds": null,
+            "p75Seconds": null,
+            "p90Seconds": null,
+            "p95Seconds": null,
+            "meanSeconds": null,
+            "rapidIoiCount": 0,
+            "rapidIoiFraction": 0,
+            "attacksPerSecond": 0,
+            "maxShortWindowAttacksPerSecond": 0,
+            "noteCount": 0,
+            "onsetCount": 0,
+            "maxSimultaneous": 0,
+            "maxSounding": 0
+          }
+        },
+        "toleranceOnsetCount": 32,
+        "simultaneousChordAttacks": 0,
+        "samePitchRearticulationOnsets": 0,
+        "alternatingHandAttacks": 0,
+        "bursts": {
+          "rapidIoiCount": 31,
+          "rapidIoiFraction": 1,
+          "longestRapidRun": 31,
+          "longestRapidRegionSeconds": 1.9375,
+          "rapidRegions": [
+            {
+              "startBeat": 0,
+              "endBeat": 3.875,
+              "durationSeconds": 1.9375,
+              "rapidIoiCount": 31,
+              "rightHandAttacks": 32,
+              "leftHandAttacks": 0,
+              "sources": [
+                "unknown"
+              ]
+            }
+          ]
+        },
+        "rapidSourceEdges": {
+          "unknown": 31
+        }
+      },
+      "assessments": {
+        "very-beginner": {
+          "level": "very-beginner",
+          "status": "fail",
+          "limits": {
+            "maxSim": 2,
+            "maxDensity": 5,
+            "minMedianIoi": 0.15
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": false,
+            "medianIoi": false
+          },
+          "failures": [
+            "very-beginner: attacks/sec exceed limit 5",
+            "very-beginner: median inter-onset below floor 0.15s"
+          ]
+        },
+        "beginner": {
+          "level": "beginner",
+          "status": "fail",
+          "limits": {
+            "maxSim": 2,
+            "maxDensity": 6,
+            "minMedianIoi": 0.08
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": false,
+            "medianIoi": false
+          },
+          "failures": [
+            "beginner: attacks/sec exceed limit 6",
+            "beginner: median inter-onset below floor 0.08s"
+          ]
+        },
+        "very-easy": {
+          "level": "very-easy",
+          "status": "fail",
+          "limits": {
+            "maxSim": 5,
+            "maxDensity": 12,
+            "minMedianIoi": 0.08
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": false,
+            "medianIoi": false
+          },
+          "failures": [
+            "very-easy: attacks/sec exceed limit 12",
+            "very-easy: median inter-onset below floor 0.08s"
+          ]
+        },
+        "easy": {
+          "level": "easy",
+          "status": "fail",
+          "limits": {
+            "maxSim": 5,
+            "maxDensity": 12,
+            "minMedianIoi": 0.08
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": false,
+            "medianIoi": false
+          },
+          "failures": [
+            "easy: attacks/sec exceed limit 12",
+            "easy: median inter-onset below floor 0.08s"
+          ]
+        },
+        "medium": {
+          "level": "medium",
+          "status": "fail",
+          "limits": {
+            "maxSim": 12,
+            "maxDensity": 16,
+            "minMedianIoi": 0.08
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": true,
+            "medianIoi": false
+          },
+          "failures": [
+            "medium: median inter-onset below floor 0.08s"
+          ]
+        },
+        "advanced": {
+          "level": "advanced",
+          "status": "fail",
+          "limits": {
+            "maxSim": 13,
+            "maxDensity": 18,
+            "minMedianIoi": 0.08
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": true,
+            "medianIoi": false
+          },
+          "failures": [
+            "advanced: median inter-onset below floor 0.08s"
+          ]
+        }
+      },
+      "handAware": {
+        "globalMedianSeconds": 0.0625,
+        "rightMedianSeconds": 0.0625,
+        "leftMedianSeconds": null,
+        "interpretation": "no inter-hand-only speedup detected"
+      }
+    },
+    "E-fast-melody-sparse-lh": {
+      "mechanism": "fast RH melody with sparse LH",
+      "eventHash": "eb7f3734cec75e980a4885ef0170d9c8af4cdbb01051bc8c4dc84b59629ccc38",
+      "metrics": {
+        "noteCount": 20,
+        "validNoteCount": 20,
+        "invalidNoteCount": 0,
+        "durationBeats": 13.5,
+        "durationSeconds": 6.75,
+        "global": {
+          "count": 18,
+          "minSeconds": 0.0625,
+          "p01Seconds": 0.0625,
+          "p05Seconds": 0.0625,
+          "p10Seconds": 0.0625,
+          "p25Seconds": 0.0625,
+          "medianIoiSeconds": 0.0625,
+          "p75Seconds": 0.0625,
+          "p90Seconds": 1.34375,
+          "p95Seconds": 2,
+          "meanSeconds": 0.333333,
+          "rapidIoiCount": 15,
+          "rapidIoiFraction": 0.833333,
+          "attacksPerSecond": 2.814815,
+          "maxShortWindowAttacksPerSecond": 16,
+          "noteCount": 20,
+          "onsetCount": 19,
+          "maxSimultaneous": 2,
+          "maxSounding": 2
+        },
+        "hands": {
+          "R": {
+            "count": 15,
+            "minSeconds": 0.0625,
+            "p01Seconds": 0.0625,
+            "p05Seconds": 0.0625,
+            "p10Seconds": 0.0625,
+            "p25Seconds": 0.0625,
+            "medianIoiSeconds": 0.0625,
+            "p75Seconds": 0.0625,
+            "p90Seconds": 0.0625,
+            "p95Seconds": 0.0625,
+            "meanSeconds": 0.0625,
+            "rapidIoiCount": 15,
+            "rapidIoiFraction": 1,
+            "attacksPerSecond": 2.37037,
+            "maxShortWindowAttacksPerSecond": 16,
+            "noteCount": 16,
+            "onsetCount": 16,
+            "maxSimultaneous": 1,
+            "maxSounding": 1
+          },
+          "L": {
+            "count": 3,
+            "minSeconds": 2,
+            "p01Seconds": 2,
+            "p05Seconds": 2,
+            "p10Seconds": 2,
+            "p25Seconds": 2,
+            "medianIoiSeconds": 2,
+            "p75Seconds": 2,
+            "p90Seconds": 2,
+            "p95Seconds": 2,
+            "meanSeconds": 2,
+            "rapidIoiCount": 0,
+            "rapidIoiFraction": 0,
+            "attacksPerSecond": 0.592593,
+            "maxShortWindowAttacksPerSecond": 2,
+            "noteCount": 4,
+            "onsetCount": 4,
+            "maxSimultaneous": 1,
+            "maxSounding": 1
+          }
+        },
+        "toleranceOnsetCount": 19,
+        "simultaneousChordAttacks": 1,
+        "samePitchRearticulationOnsets": 2,
+        "alternatingHandAttacks": 1,
+        "bursts": {
+          "rapidIoiCount": 15,
+          "rapidIoiFraction": 0.833333,
+          "longestRapidRun": 15,
+          "longestRapidRegionSeconds": 0.9375,
+          "rapidRegions": [
+            {
+              "startBeat": 0,
+              "endBeat": 1.875,
+              "durationSeconds": 0.9375,
+              "rapidIoiCount": 15,
+              "rightHandAttacks": 16,
+              "leftHandAttacks": 1,
+              "sources": [
+                "unknown"
+              ]
+            }
+          ]
+        },
+        "rapidSourceEdges": {
+          "unknown": 15
+        }
+      },
+      "assessments": {
+        "very-beginner": {
+          "level": "very-beginner",
+          "status": "fail",
+          "limits": {
+            "maxSim": 2,
+            "maxDensity": 5,
+            "minMedianIoi": 0.15
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": true,
+            "medianIoi": false
+          },
+          "failures": [
+            "very-beginner: median inter-onset below floor 0.15s"
+          ]
+        },
+        "beginner": {
+          "level": "beginner",
+          "status": "fail",
+          "limits": {
+            "maxSim": 2,
+            "maxDensity": 6,
+            "minMedianIoi": 0.08
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": true,
+            "medianIoi": false
+          },
+          "failures": [
+            "beginner: median inter-onset below floor 0.08s"
+          ]
+        },
+        "very-easy": {
+          "level": "very-easy",
+          "status": "fail",
+          "limits": {
+            "maxSim": 5,
+            "maxDensity": 12,
+            "minMedianIoi": 0.08
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": true,
+            "medianIoi": false
+          },
+          "failures": [
+            "very-easy: median inter-onset below floor 0.08s"
+          ]
+        },
+        "easy": {
+          "level": "easy",
+          "status": "fail",
+          "limits": {
+            "maxSim": 5,
+            "maxDensity": 12,
+            "minMedianIoi": 0.08
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": true,
+            "medianIoi": false
+          },
+          "failures": [
+            "easy: median inter-onset below floor 0.08s"
+          ]
+        },
+        "medium": {
+          "level": "medium",
+          "status": "fail",
+          "limits": {
+            "maxSim": 12,
+            "maxDensity": 16,
+            "minMedianIoi": 0.08
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": true,
+            "medianIoi": false
+          },
+          "failures": [
+            "medium: median inter-onset below floor 0.08s"
+          ]
+        },
+        "advanced": {
+          "level": "advanced",
+          "status": "fail",
+          "limits": {
+            "maxSim": 13,
+            "maxDensity": 18,
+            "minMedianIoi": 0.08
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": true,
+            "medianIoi": false
+          },
+          "failures": [
+            "advanced: median inter-onset below floor 0.08s"
+          ]
+        }
+      },
+      "handAware": {
+        "globalMedianSeconds": 0.0625,
+        "rightMedianSeconds": 0.0625,
+        "leftMedianSeconds": 2,
+        "interpretation": "no inter-hand-only speedup detected"
+      }
+    },
+    "F-sparse-melody-dense-accompaniment": {
+      "mechanism": "long sparse melody with localized LH burst",
+      "eventHash": "a33a8c231f7a336283301cb0639e80715b118349c141ae06af78f24a7cb4ec72",
+      "metrics": {
+        "noteCount": 15,
+        "validNoteCount": 15,
+        "invalidNoteCount": 0,
+        "durationBeats": 33,
+        "durationSeconds": 16.5,
+        "global": {
+          "count": 13,
+          "minSeconds": 0.0625,
+          "p01Seconds": 0.0625,
+          "p05Seconds": 0.0625,
+          "p10Seconds": 0.0625,
+          "p25Seconds": 0.0625,
+          "medianIoiSeconds": 0.0625,
+          "p75Seconds": 3.4375,
+          "p90Seconds": 4,
+          "p95Seconds": 4,
+          "meanSeconds": 1.230769,
+          "rapidIoiCount": 9,
+          "rapidIoiFraction": 0.692308,
+          "attacksPerSecond": 0.848485,
+          "maxShortWindowAttacksPerSecond": 16,
+          "noteCount": 15,
+          "onsetCount": 14,
+          "maxSimultaneous": 2,
+          "maxSounding": 2
+        },
+        "hands": {
+          "R": {
+            "count": 4,
+            "minSeconds": 4,
+            "p01Seconds": 4,
+            "p05Seconds": 4,
+            "p10Seconds": 4,
+            "p25Seconds": 4,
+            "medianIoiSeconds": 4,
+            "p75Seconds": 4,
+            "p90Seconds": 4,
+            "p95Seconds": 4,
+            "meanSeconds": 4,
+            "rapidIoiCount": 0,
+            "rapidIoiFraction": 0,
+            "attacksPerSecond": 0.30303,
+            "maxShortWindowAttacksPerSecond": 2,
+            "noteCount": 5,
+            "onsetCount": 5,
+            "maxSimultaneous": 1,
+            "maxSounding": 1
+          },
+          "L": {
+            "count": 9,
+            "minSeconds": 0.0625,
+            "p01Seconds": 0.0625,
+            "p05Seconds": 0.0625,
+            "p10Seconds": 0.0625,
+            "p25Seconds": 0.0625,
+            "medianIoiSeconds": 0.0625,
+            "p75Seconds": 0.0625,
+            "p90Seconds": 0.0625,
+            "p95Seconds": 0.0625,
+            "meanSeconds": 0.0625,
+            "rapidIoiCount": 9,
+            "rapidIoiFraction": 1,
+            "attacksPerSecond": 0.606061,
+            "maxShortWindowAttacksPerSecond": 16,
+            "noteCount": 10,
+            "onsetCount": 10,
+            "maxSimultaneous": 1,
+            "maxSounding": 1
+          }
+        },
+        "toleranceOnsetCount": 14,
+        "simultaneousChordAttacks": 1,
+        "samePitchRearticulationOnsets": 0,
+        "alternatingHandAttacks": 1,
+        "bursts": {
+          "rapidIoiCount": 9,
+          "rapidIoiFraction": 0.692308,
+          "longestRapidRun": 9,
+          "longestRapidRegionSeconds": 0.5625,
+          "rapidRegions": [
+            {
+              "startBeat": 0,
+              "endBeat": 1.125,
+              "durationSeconds": 0.5625,
+              "rapidIoiCount": 9,
+              "rightHandAttacks": 1,
+              "leftHandAttacks": 10,
+              "sources": [
+                "unknown"
+              ]
+            }
+          ]
+        },
+        "rapidSourceEdges": {
+          "unknown": 9
+        }
+      },
+      "assessments": {
+        "very-beginner": {
+          "level": "very-beginner",
+          "status": "fail",
+          "limits": {
+            "maxSim": 2,
+            "maxDensity": 5,
+            "minMedianIoi": 0.15
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": true,
+            "medianIoi": false
+          },
+          "failures": [
+            "very-beginner: median inter-onset below floor 0.15s"
+          ]
+        },
+        "beginner": {
+          "level": "beginner",
+          "status": "fail",
+          "limits": {
+            "maxSim": 2,
+            "maxDensity": 6,
+            "minMedianIoi": 0.08
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": true,
+            "medianIoi": false
+          },
+          "failures": [
+            "beginner: median inter-onset below floor 0.08s"
+          ]
+        },
+        "very-easy": {
+          "level": "very-easy",
+          "status": "fail",
+          "limits": {
+            "maxSim": 5,
+            "maxDensity": 12,
+            "minMedianIoi": 0.08
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": true,
+            "medianIoi": false
+          },
+          "failures": [
+            "very-easy: median inter-onset below floor 0.08s"
+          ]
+        },
+        "easy": {
+          "level": "easy",
+          "status": "fail",
+          "limits": {
+            "maxSim": 5,
+            "maxDensity": 12,
+            "minMedianIoi": 0.08
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": true,
+            "medianIoi": false
+          },
+          "failures": [
+            "easy: median inter-onset below floor 0.08s"
+          ]
+        },
+        "medium": {
+          "level": "medium",
+          "status": "fail",
+          "limits": {
+            "maxSim": 12,
+            "maxDensity": 16,
+            "minMedianIoi": 0.08
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": true,
+            "medianIoi": false
+          },
+          "failures": [
+            "medium: median inter-onset below floor 0.08s"
+          ]
+        },
+        "advanced": {
+          "level": "advanced",
+          "status": "fail",
+          "limits": {
+            "maxSim": 13,
+            "maxDensity": 18,
+            "minMedianIoi": 0.08
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": true,
+            "medianIoi": false
+          },
+          "failures": [
+            "advanced: median inter-onset below floor 0.08s"
+          ]
+        }
+      },
+      "handAware": {
+        "globalMedianSeconds": 0.0625,
+        "rightMedianSeconds": 4,
+        "leftMedianSeconds": 0.0625,
+        "interpretation": "no inter-hand-only speedup detected"
+      }
+    },
+    "G-repeated-articulation": {
+      "mechanism": "same-pitch repeated attacks",
+      "eventHash": "85c6be60553b368a838f87ae6cf40fbf446209b974240658efb2b817426f6ca1",
+      "metrics": {
+        "noteCount": 16,
+        "validNoteCount": 16,
+        "invalidNoteCount": 0,
+        "durationBeats": 1.955,
+        "durationSeconds": 0.9775,
+        "global": {
+          "count": 15,
+          "minSeconds": 0.0625,
+          "p01Seconds": 0.0625,
+          "p05Seconds": 0.0625,
+          "p10Seconds": 0.0625,
+          "p25Seconds": 0.0625,
+          "medianIoiSeconds": 0.0625,
+          "p75Seconds": 0.0625,
+          "p90Seconds": 0.0625,
+          "p95Seconds": 0.0625,
+          "meanSeconds": 0.0625,
+          "rapidIoiCount": 15,
+          "rapidIoiFraction": 1,
+          "attacksPerSecond": 16.368286,
+          "maxShortWindowAttacksPerSecond": 16,
+          "noteCount": 16,
+          "onsetCount": 16,
+          "maxSimultaneous": 1,
+          "maxSounding": 1
+        },
+        "hands": {
+          "R": {
+            "count": 15,
+            "minSeconds": 0.0625,
+            "p01Seconds": 0.0625,
+            "p05Seconds": 0.0625,
+            "p10Seconds": 0.0625,
+            "p25Seconds": 0.0625,
+            "medianIoiSeconds": 0.0625,
+            "p75Seconds": 0.0625,
+            "p90Seconds": 0.0625,
+            "p95Seconds": 0.0625,
+            "meanSeconds": 0.0625,
+            "rapidIoiCount": 15,
+            "rapidIoiFraction": 1,
+            "attacksPerSecond": 16.368286,
+            "maxShortWindowAttacksPerSecond": 16,
+            "noteCount": 16,
+            "onsetCount": 16,
+            "maxSimultaneous": 1,
+            "maxSounding": 1
+          },
+          "L": {
+            "count": 0,
+            "minSeconds": null,
+            "p01Seconds": null,
+            "p05Seconds": null,
+            "p10Seconds": null,
+            "p25Seconds": null,
+            "medianIoiSeconds": null,
+            "p75Seconds": null,
+            "p90Seconds": null,
+            "p95Seconds": null,
+            "meanSeconds": null,
+            "rapidIoiCount": 0,
+            "rapidIoiFraction": 0,
+            "attacksPerSecond": 0,
+            "maxShortWindowAttacksPerSecond": 0,
+            "noteCount": 0,
+            "onsetCount": 0,
+            "maxSimultaneous": 0,
+            "maxSounding": 0
+          }
+        },
+        "toleranceOnsetCount": 16,
+        "simultaneousChordAttacks": 0,
+        "samePitchRearticulationOnsets": 15,
+        "alternatingHandAttacks": 0,
+        "bursts": {
+          "rapidIoiCount": 15,
+          "rapidIoiFraction": 1,
+          "longestRapidRun": 15,
+          "longestRapidRegionSeconds": 0.9375,
+          "rapidRegions": [
+            {
+              "startBeat": 0,
+              "endBeat": 1.875,
+              "durationSeconds": 0.9375,
+              "rapidIoiCount": 15,
+              "rightHandAttacks": 16,
+              "leftHandAttacks": 0,
+              "sources": [
+                "unknown"
+              ]
+            }
+          ]
+        },
+        "rapidSourceEdges": {
+          "unknown": 15
+        }
+      },
+      "assessments": {
+        "very-beginner": {
+          "level": "very-beginner",
+          "status": "fail",
+          "limits": {
+            "maxSim": 2,
+            "maxDensity": 5,
+            "minMedianIoi": 0.15
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": false,
+            "medianIoi": false
+          },
+          "failures": [
+            "very-beginner: attacks/sec exceed limit 5",
+            "very-beginner: median inter-onset below floor 0.15s"
+          ]
+        },
+        "beginner": {
+          "level": "beginner",
+          "status": "fail",
+          "limits": {
+            "maxSim": 2,
+            "maxDensity": 6,
+            "minMedianIoi": 0.08
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": false,
+            "medianIoi": false
+          },
+          "failures": [
+            "beginner: attacks/sec exceed limit 6",
+            "beginner: median inter-onset below floor 0.08s"
+          ]
+        },
+        "very-easy": {
+          "level": "very-easy",
+          "status": "fail",
+          "limits": {
+            "maxSim": 5,
+            "maxDensity": 12,
+            "minMedianIoi": 0.08
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": false,
+            "medianIoi": false
+          },
+          "failures": [
+            "very-easy: attacks/sec exceed limit 12",
+            "very-easy: median inter-onset below floor 0.08s"
+          ]
+        },
+        "easy": {
+          "level": "easy",
+          "status": "fail",
+          "limits": {
+            "maxSim": 5,
+            "maxDensity": 12,
+            "minMedianIoi": 0.08
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": false,
+            "medianIoi": false
+          },
+          "failures": [
+            "easy: attacks/sec exceed limit 12",
+            "easy: median inter-onset below floor 0.08s"
+          ]
+        },
+        "medium": {
+          "level": "medium",
+          "status": "fail",
+          "limits": {
+            "maxSim": 12,
+            "maxDensity": 16,
+            "minMedianIoi": 0.08
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": false,
+            "medianIoi": false
+          },
+          "failures": [
+            "medium: attacks/sec exceed limit 16",
+            "medium: median inter-onset below floor 0.08s"
+          ]
+        },
+        "advanced": {
+          "level": "advanced",
+          "status": "fail",
+          "limits": {
+            "maxSim": 13,
+            "maxDensity": 18,
+            "minMedianIoi": 0.08
+          },
+          "passes": {
+            "maxSim": true,
+            "maxDensity": true,
+            "medianIoi": false
+          },
+          "failures": [
+            "advanced: median inter-onset below floor 0.08s"
+          ]
+        }
+      },
+      "handAware": {
+        "globalMedianSeconds": 0.0625,
+        "rightMedianSeconds": 0.0625,
+        "leftMedianSeconds": null,
+        "interpretation": "no inter-hand-only speedup detected"
+      }
+    }
+  },
+  "tempoSensitivity": {
+    "60": {
+      "tempoBpm": 60,
+      "globalMedianSeconds": 0.125,
+      "rightMedianSeconds": 0.125,
+      "attacksPerSecond": 8,
+      "easy": {
+        "level": "easy",
+        "status": "pass",
+        "densityPass": true,
+        "medianIoiPass": true,
+        "maxSimPass": true,
+        "class": "neither"
+      },
+      "medium": {
+        "level": "medium",
+        "status": "pass",
+        "densityPass": true,
+        "medianIoiPass": true,
+        "maxSimPass": true,
+        "class": "neither"
+      }
+    },
+    "90": {
+      "tempoBpm": 90,
+      "globalMedianSeconds": 0.083333,
+      "rightMedianSeconds": 0.083333,
+      "attacksPerSecond": 12,
+      "easy": {
+        "level": "easy",
+        "status": "pass",
+        "densityPass": true,
+        "medianIoiPass": true,
+        "maxSimPass": true,
+        "class": "neither"
+      },
+      "medium": {
+        "level": "medium",
+        "status": "pass",
+        "densityPass": true,
+        "medianIoiPass": true,
+        "maxSimPass": true,
+        "class": "neither"
+      }
+    },
+    "120": {
+      "tempoBpm": 120,
+      "globalMedianSeconds": 0.0625,
+      "rightMedianSeconds": 0.0625,
+      "attacksPerSecond": 16,
+      "easy": {
+        "level": "easy",
+        "status": "fail",
+        "densityPass": false,
+        "medianIoiPass": false,
+        "maxSimPass": true,
+        "class": "both-density-and-ioi"
+      },
+      "medium": {
+        "level": "medium",
+        "status": "fail",
+        "densityPass": true,
+        "medianIoiPass": false,
+        "maxSimPass": true,
+        "class": "ioi-only"
+      }
+    },
+    "150": {
+      "tempoBpm": 150,
+      "globalMedianSeconds": 0.05,
+      "rightMedianSeconds": 0.05,
+      "attacksPerSecond": 20,
+      "easy": {
+        "level": "easy",
+        "status": "fail",
+        "densityPass": false,
+        "medianIoiPass": false,
+        "maxSimPass": true,
+        "class": "both-density-and-ioi"
+      },
+      "medium": {
+        "level": "medium",
+        "status": "fail",
+        "densityPass": false,
+        "medianIoiPass": false,
+        "maxSimPass": true,
+        "class": "both-density-and-ioi"
+      }
+    },
+    "180": {
+      "tempoBpm": 180,
+      "globalMedianSeconds": 0.041667,
+      "rightMedianSeconds": 0.041667,
+      "attacksPerSecond": 24,
+      "easy": {
+        "level": "easy",
+        "status": "fail",
+        "densityPass": false,
+        "medianIoiPass": false,
+        "maxSimPass": true,
+        "class": "both-density-and-ioi"
+      },
+      "medium": {
+        "level": "medium",
+        "status": "fail",
+        "densityPass": false,
+        "medianIoiPass": false,
+        "maxSimPass": true,
+        "class": "both-density-and-ioi"
+      }
+    }
+  },
+  "diagnosis": "AUTHORITATIVE_SOURCE_DENSITY_REQUIRES_TRANSFORM",
+  "implementation": {
+    "behaviorChange": false,
+    "change": "report-only playability metrics; validator limits and note selection unchanged",
+    "laneASpecificLogic": false
+  },
+  "decisions": {
+    "primary": "AUTHORITATIVE_SOURCE_DENSITY_REQUIRES_TRANSFORM",
+    "timedSymbolicMvp": "TIMED_SYMBOLIC_MVP_CONDITIONAL",
+    "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+    "realShadow": "REAL_SHADOW_BLOCKED_AT_DIFFICULTIES",
+    "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED"
+  },
+  "determinism": {
+    "canonicalSha256": "4094e7fc12a78e2c4f387080f9f233a3e8bcda426505c7ae4ff5f9d791086bd8"
+  }
+}

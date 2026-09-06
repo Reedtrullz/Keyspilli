@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "mission": "IMPLEMENT_SCORE_ALIGNMENT_PRODUCTION_HARDENING",
+  "selection": "asap-fresh-validation-selection-2026-09-03.json",
+  "candidate": {
+    "id": "PRODUCTION_SCORE_ALIGNMENT_CANDIDATE_V1",
+    "fingerprint": "73f1e6c73b76e140505b8f78cc609992c20a4219f95c2de2c2ad2bd5e947ba9b",
+    "frozenBeforeScoring": true
+  },
+  "report": {
+    "canonicalSha256": "3b4c7a3cd0cafe683804fd3e625c35e29ef5d220889b6a435bc9c5b6d6232c2f",
+    "repeatCanonicalEqual": true,
+    "firstReportSha256": "e837627ece86a8399e4719171b148dfbd469d4f62c454cac94f558b128f434a3",
+    "repeatReportSha256": "5788f97e15b0e942e1d0ac696505cbbbc29b78dae14155e048ded5aa826a967a",
+    "runtimeSeconds": {"first": 139.191, "repeat": 139.061},
+    "decision": "SCORE_ALIGNMENT_PARTIAL"
+  },
+  "resourceBoundary": {
+    "measured": {
+      "firstRunMaxRssMiB": 1933.672,
+      "repeatRunMaxRssMiB": 1722.735,
+      "batchRuntimeSeconds": {"first": 139.191, "repeat": 139.061}
+    },
+    "candidate": {"maxFrames": 9000, "maxDtwCells": 32000000},
+    "projection": [
+      {"audioMinutes": 3, "featureFrames": 7753, "dtwCells": 60109009, "status": "REJECTED_CELL_BOUND"},
+      {"audioMinutes": 5, "featureFrames": 12921, "dtwCells": 166952241, "status": "REJECTED_FRAME_BOUND"},
+      {"audioMinutes": 8, "featureFrames": 20673, "dtwCells": 427372929, "status": "REJECTED_FRAME_BOUND"}
+    ]
+  },
+  "gates": {
+    "coverage": 0.95,
+    "medianAbsoluteErrorSeconds": 0.1,
+    "p95AbsoluteErrorSeconds": 0.25,
+    "maxFixtureP95Seconds": 0.5,
+    "maxMonotonicViolations": 0,
+    "allFreshFixturesPass": false
+  },
+  "fixtures": [
+    {
+      "id": "asap:fresh:schubert-moment-musical-3-tetzloff09m",
+      "composer": "Schubert",
+      "symbolicSha256": "8519769d838fa5efca235e8cdff2e2f074ef956d2b7723dc0b01af8880641219",
+      "performanceMidiSha256": "b13217d92a22dc0e3c54b22dc1027f3edcb132037af8dc891a0bffbdc8131d7c",
+      "audioSha256": "7e1536c253ee1e2696b9f79f71c36b52f36d929d91de93e0f880edbe365e3bc7",
+      "audioBytes": 18902388,
+      "scoreBytes": 6530,
+      "methods": {
+        "naiveGlobalTempo": {"status": "PASS_COVERAGE_ONLY", "coverage": 1.0, "medianSeconds": 2.335937, "p90Seconds": 5.480469, "p95Seconds": 5.703776, "monotonicViolations": 0},
+        "currentKeyspilli": {"status": "FAIL", "coverage": 1.0, "medianSeconds": 0.070242, "p90Seconds": 0.261863, "p95Seconds": 0.32176, "monotonicViolations": 0},
+        "productionCandidateV1": {"status": "FAIL", "coverage": 1.0, "medianSeconds": 0.048751, "p90Seconds": 0.188277, "p95Seconds": 0.320047, "monotonicViolations": 0, "segments": 69}
+      }
+    },
+    {
+      "id": "asap:fresh:rachmaninoff-prelude-23-6-nikiforov14m",
+      "composer": "Rachmaninoff",
+      "symbolicSha256": "8882b3f1d314d58d46de0c57834b2c8a978b53a00008f8257f9b15df1b225bde",
+      "performanceMidiSha256": "6a989d306a3670cd0ba141bf3df3904b14d1fcb5244810af17934589bf280ec1",
+      "audioSha256": "a24c9c736ec5b1a43e9176e99fc94b777959282dcbbc431298ea9e45a709e7e6",
+      "audioBytes": 30237868,
+      "scoreBytes": 7930,
+      "methods": {
+        "naiveGlobalTempo": {"status": "PASS_COVERAGE_ONLY", "coverage": 1.0, "medianSeconds": 5.516955, "p90Seconds": 17.748102, "p95Seconds": 18.890417, "monotonicViolations": 0},
+        "currentKeyspilli": {"status": "REJECTED", "coverage": 0.0, "failure": "DTW matrix exceeds bounded calibration cell limit"},
+        "productionCandidateV1": {"status": "REJECTED", "coverage": 0.0, "failure": "DTW matrix exceeds bounded calibration cell limit"}
+      }
+    },
+    {
+      "id": "asap:fresh:chopin-etude-10-1-muna07m",
+      "composer": "Chopin",
+      "symbolicSha256": "987eddc317acc021b42e9f16e10241b4dcb63420e5bbc681a1a2275fe30cc95b",
+      "performanceMidiSha256": "e84d21145d0e68fe49769d442667cb4f32e26b2c46bee7a56243de1b7b57a618",
+      "audioSha256": "ef5d61309761166c3693a6b2a072ff055ce3e1d78f4c214849cd0422c07a87d1",
+      "audioBytes": 18578272,
+      "scoreBytes": 8203,
+      "methods": {
+        "naiveGlobalTempo": {"status": "PASS_COVERAGE_ONLY", "coverage": 1.0, "medianSeconds": 2.473472, "p90Seconds": 3.869539, "p95Seconds": 4.109689, "monotonicViolations": 0},
+        "currentKeyspilli": {"status": "FAIL", "coverage": 1.0, "medianSeconds": 0.058804, "p90Seconds": 0.345809, "p95Seconds": 0.490276, "monotonicViolations": 0},
+        "productionCandidateV1": {"status": "FAIL", "coverage": 1.0, "medianSeconds": 0.044326, "p90Seconds": 0.336669, "p95Seconds": 0.62368, "monotonicViolations": 0, "segments": 69}
+      }
+    },
+    {
+      "id": "asap:fresh:bach-prelude-854-lua01m",
+      "composer": "Bach",
+      "symbolicSha256": "7d87743b8a39064f8c46b1251bdff606f0e02fa707ba0403df2d5be7ef55e6af",
+      "performanceMidiSha256": "15831064171554f6eea441e453f0f43a31d8687bc3bddeb396b5e566f02863bf",
+      "audioSha256": "1216c05f0532e6c3c81e299068d9d757709c8d3a71ad30277533705f41925a75",
+      "audioBytes": 28357816,
+      "scoreBytes": 3319,
+      "methods": {
+        "naiveGlobalTempo": {"status": "PASS_COVERAGE_ONLY", "coverage": 1.0, "medianSeconds": 6.585937, "p90Seconds": 10.972187, "p95Seconds": 11.83875, "monotonicViolations": 0},
+        "currentKeyspilli": {"status": "REJECTED", "coverage": 0.0, "failure": "DTW matrix exceeds bounded calibration cell limit"},
+        "productionCandidateV1": {"status": "REJECTED", "coverage": 0.0, "failure": "DTW matrix exceeds bounded calibration cell limit"}
+      }
+    }
+  ],
+  "interpretation": {
+    "materialNaiveImprovement": true,
+    "productionGate": "FAIL",
+    "confidenceGate": "FAIL_CLOSED_ON_REJECTION_AND_PARTIAL_ON_RESIDUAL",
+    "remainingFailure": "regional score-to-recording path error plus long-input resource ceiling",
+    "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+    "nextTask": "REAL_SYMBOLIC_TIMING_ALIGNMENT_HARDENING"
+  },
+  "firewall": {"benchmarkReferencesUsedForGeneration": false, "benchmarkReferencesUsedForTuning": false, "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT", "deployment": "NOT_DEPLOYED"}
+}

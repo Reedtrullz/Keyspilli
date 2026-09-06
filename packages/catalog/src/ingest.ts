@@ -13,6 +13,7 @@ import {
   validateArtifactFiles,
   LEVEL_ORDER,
   validateVariants,
+  BEGINNER_OFFGRID_CANDIDATE,
   TRANSCRIPTION_CLEANUP_CONFIG as MIDI_TRANSCRIPTION_CLEANUP_CONFIG,
   DEFAULT_IMPORTED_MAX_SOUNDING,
   type ChordLabel,
@@ -30,8 +31,9 @@ import {
   type TranscriptionProvenance,
 } from "./artifact-manifest.js";
 import { canonicalizeSourceProvenance } from "./provenance.js";
-import { AUDIO_ONSET_DETECTOR_CONFIG, ONSET_MATCH_SEC, TRANSCRIPTION_FILTER_VERSION } from "./transcribe.js";
+import { AUDIO_ONSET_DETECTOR_CONFIG, ONSET_MATCH_SEC, TRANSCRIPTION_FILTER_VERSION, TRANSCRIPTION_MAX_RECONSTRUCTED_DUR_BEATS } from "./transcribe.js";
 import { publishBaseArtifact } from "./publish.js";
+import { validateSourceCandidateHandoffLink, type SourceCandidateHandoffLink } from "./source-candidate-handoff.js";
 
 const LEVEL_CODE: Record<string, string> = {
   "very-beginner": "vb",
@@ -47,7 +49,7 @@ const LEVEL_CODE: Record<string, string> = {
 // a 2–4 second falling bar and masks the next melody attack.  Keep the
 // transcription path conservative while leaving human-authored MIDI uploads
 // free to contain legitimate longer holds.
-export const MAX_YOUTUBE_IMPORT_DUR_BEATS = 1.5;
+export const MAX_YOUTUBE_IMPORT_DUR_BEATS = TRANSCRIPTION_MAX_RECONSTRUCTED_DUR_BEATS;
 
 // These identifiers are part of the rebuild identity. Bumping one when its
 // corresponding transformation changes makes an old fingerprint stale even
@@ -108,8 +110,10 @@ export interface IngestInput {
    * Effective audio-transcription settings. Standard MIDI/MusicXML uploads
    * omit this block; Basic Pitch workers persist it on the base manifest and
    * in every level's notes.json provenance.
-   */
+  */
   transcription?: TranscriptionProvenance;
+  /** Server-created lineage for an explicitly selected discovery lead. */
+  sourceCandidateHandoff?: SourceCandidateHandoffLink;
 }
 
 /** Optional deterministic hook used by integration tests to exercise rollback. */
@@ -150,6 +154,12 @@ function looksLikeXml(buf: Uint8Array): boolean {
 
 function isZip(buf: Uint8Array): boolean {
   return buf.length >= 4 && buf[0] === 0x50 && buf[1] === 0x4b && buf[2] === 0x03 && buf[3] === 0x04;
+}
+
+/** The same bounded format dispatch used by ingestSource, exposed to routes
+ * that need to bind provenance before the atomic ingest completes. */
+export function inferIngestFormat(buf: Uint8Array): "midi" | "musicxml" | "mxl" {
+  return isZip(buf) ? "mxl" : looksLikeXml(buf) ? "musicxml" : "midi";
 }
 
 const MAX_MXL_ENTRIES = 200;
@@ -276,6 +286,27 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
   if (parsed.notes.length < 8) return { baseId: "", songIds: [], error: "too few notes" };
 
   const baseId = inp.baseId ?? generatedBaseId(inp.artist, inp.title);
+  const sourceArtifactHash = inp.sourceArtifactHash ?? createHash("sha256").update(inp.buf).digest("hex");
+  if (inp.sourceCandidateHandoff) {
+    const handoffErrors = validateSourceCandidateHandoffLink(inp.sourceCandidateHandoff);
+    if (handoffErrors.length) return { baseId: "", songIds: [], error: `invalid source candidate handoff: ${handoffErrors.join("; ")}` };
+    if (inp.sourceCandidateHandoff.uploadedSourceSha256 !== sourceArtifactHash) {
+      return { baseId: "", songIds: [], error: "source candidate handoff hash does not match uploaded bytes" };
+    }
+    if (inp.sourceCandidateHandoff.intakeCandidateId !== baseId) {
+      return { baseId: "", songIds: [], error: "source candidate handoff intake id does not match upload" };
+    }
+  }
+  const candidate = inp.contentType === "upload"
+    ? {
+      candidateId: baseId,
+      candidateClass: "GENERATION_CANDIDATE" as const,
+      provenanceClass: "USER_SUPPLIED_PRIVATE" as const,
+      timingAuthority: "NATIVE_AUTHORITATIVE" as const,
+      alignmentState: "NATIVE_AUTHORITATIVE" as const,
+      generationEligibility: { eligible: true, code: "READY_FOR_GENERATION" as const },
+    }
+    : undefined;
   // Rebuild/restore callers often know only the stable base id. Preserve a
   // current semantic profile when they omit an explicit override so a
   // canonical metal artifact cannot silently fall back to the learner
@@ -354,7 +385,7 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
       const artifacts = writeVariantArtifacts(v, inp.title, inp.artist);
       const issues = validateArtifactFiles(v, artifacts);
       if (issues.length) artifactErrors.push(`${v.level}: ${issues.join("; ")}`);
-      const durationSec = Math.round((parsed.durationBeats * 60) / v.tempoBpm);
+      const durationSec = Math.round(Math.max(...v.notes.map((note) => note.start + note.dur)) * 60 / v.tempoBpm);
       const previous = existingRows.find((row) => row.difficulty === v.level);
       const row: SongRow = {
         id: `${baseId}-${code}`,
@@ -381,11 +412,21 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
       };
       const provenance = {
         ...sourceProvenance,
+        ...(candidate ? { candidate } : {}),
+        ...(inp.sourceCandidateHandoff ? { sourceCandidateHandoff: inp.sourceCandidateHandoff } : {}),
         tempo: tempoProvenance,
         ...(transcription ? { transcription } : {}),
       };
+      const beginnerOffGridRh = v.level === "beginner"
+        ? v.notes.flatMap((note) => (
+          (note as typeof note & { [BEGINNER_OFFGRID_CANDIDATE]?: boolean })[BEGINNER_OFFGRID_CANDIDATE] === true
+            ? [[note.midi, note.start] as [number, number]]
+            : []
+        ))
+        : [];
       prepared.push({ code, row, midi: artifacts.midi, xml: artifacts.xml, notesJson: JSON.stringify({
         notes: v.notes,
+        ...(beginnerOffGridRh.length ? { beginnerOffGridRh } : {}),
         warnings: v.warnings,
         chords: v.chords,
         measures: v.measures,
@@ -411,7 +452,6 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
   const backupUpload = join(uploadRoot, `.${baseId}.backup-${token}.${uploadExt}`);
   let movedUploadBackup = false;
   let movedStageUpload = false;
-  const sourceArtifactHash = inp.sourceArtifactHash ?? createHash("sha256").update(inp.buf).digest("hex");
   const configFingerprint = createHash("sha256")
     .update(JSON.stringify({
       pipeline: "ingest-v2",
@@ -456,6 +496,8 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
     configFingerprint,
     arrangementProfile,
     source: sourceProvenance,
+    ...(candidate ? { candidate } : {}),
+    ...(inp.sourceCandidateHandoff ? { sourceCandidateHandoff: inp.sourceCandidateHandoff } : {}),
     tempo: {
       calibration: { bpm: parsed.tempoBpm, source: calibrationSource, resolvedAt, role: "source-calibration" },
       playback: { bpm: parsed.tempoBpm, source: calibrationSource, resolvedAt, role: "playback" },

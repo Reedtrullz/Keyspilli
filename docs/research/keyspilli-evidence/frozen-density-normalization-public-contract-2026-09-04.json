@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "kind": "frozen-density-normalization-public-contract",
+  "mission": "REEVALUATE_FROZEN_DENSITY_NORMALIZATION_UNDER_PUBLIC_CONTRACT",
+  "startingRevision": "ab654e12c14c9d6eb67e04862b30f6a16c539dbb",
+  "checkpointRevision": "eb23129",
+  "candidate": {
+    "id": "Candidate A",
+    "sourceRevision": "a68fd1e0caa837ed4de868d4be31483c19b75c0c",
+    "sourceFile": "packages/midi/src/density-normalization-audit.ts",
+    "frozenSourceFileSha256": "1f3fe6c33c77384c7bd1f8876a3c32e3400f5e2ea6c05f992fc51620571eef9f",
+    "implementation": "selectProtectedSemanticLocalThinning",
+    "exactHistoricalOutputMatch": true,
+    "currentDocOnlySourceDelta": true,
+    "policy": "one protected semantic local thinning pass; preserve P0 melody/phrase anchors and P1 contour/leap/rearticulation/harmonic events; remove only P2 support in rapid local pairs; stable priority/note-count/velocity/start/index tie-break",
+    "config": {
+      "onsetDecimals": 3,
+      "phraseBreakBeats": 1.5,
+      "largeLeapSemitones": 7,
+      "rapidIoiSeconds": 0.08,
+      "oracleKind": "bounded-greedy-upper-bound"
+    },
+    "scope": "learner arrangementProfile only; Easy, Medium, Advanced after the final ladder; Very Beginner, Beginner, and Very Easy unchanged"
+  },
+  "laneA": {
+    "fixture": {
+      "id": "lane-a-native-performance",
+      "class": "GENERATION_CANDIDATE",
+      "provenance": "USER_SUPPLIED_PRIVATE",
+      "logicalSource": "private local native MIDI; path intentionally omitted",
+      "bytes": 58204,
+      "sha256": "ec5010896c00a0541b34b0843a20f455707ac647ae4a222aee71e2ad43e8017e",
+      "notes": 7266,
+      "durationBeats": 358.46875,
+      "tempoBpm": 120,
+      "timeSig": [4, 4]
+    },
+    "levels": {
+      "very-beginner": {
+        "baseline": {"notes": 409, "attacks": 409, "medianIoiSeconds": 0.375, "attacksPerSecond": 2.272, "maxSimultaneity": 2, "rapidFraction": 0, "longestRapidRun": 0, "eventSha256": "cb0a04737174ab9d11c1aca6e9e0048675663f7976f6a56d8567f58672208144"},
+        "candidate": {"notes": 409, "attacks": 409, "medianIoiSeconds": 0.375, "attacksPerSecond": 2.272, "maxSimultaneity": 2, "rapidFraction": 0, "longestRapidRun": 0, "eventSha256": "cb0a04737174ab9d11c1aca6e9e0048675663f7976f6a56d8567f58672208144"},
+        "removedAttacks": 0,
+        "removedNotes": 0,
+        "validator": "pass"
+      },
+      "beginner": {
+        "baseline": {"notes": 807, "attacks": 773, "medianIoiSeconds": 0.178, "attacksPerSecond": 4.294, "maxSimultaneity": 2, "rapidFraction": 0.033592, "longestRapidRun": 2, "eventSha256": "9db42d4fe92922812e492f76d5864ec9d360a27d94c69962bd0604b9df9780f5"},
+        "candidate": {"notes": 807, "attacks": 773, "medianIoiSeconds": 0.178, "attacksPerSecond": 4.294, "maxSimultaneity": 2, "rapidFraction": 0.033592, "longestRapidRun": 2, "eventSha256": "9db42d4fe92922812e492f76d5864ec9d360a27d94c69962bd0604b9df9780f5"},
+        "removedAttacks": 0,
+        "removedNotes": 0,
+        "validator": "pass"
+      },
+      "very-easy": {
+        "baseline": {"notes": 2560, "attacks": 1553, "medianIoiSeconds": 0.125, "attacksPerSecond": 8.628, "maxSimultaneity": 5, "rapidFraction": 0.399485, "longestRapidRun": 11, "eventSha256": "4ed2137c3e76d7af4f746c3a8cc453da223aac79425c84f14e8567fe8b399575"},
+        "candidate": {"notes": 2560, "attacks": 1553, "medianIoiSeconds": 0.125, "attacksPerSecond": 8.628, "maxSimultaneity": 5, "rapidFraction": 0.399485, "longestRapidRun": 11, "eventSha256": "4ed2137c3e76d7af4f746c3a8cc453da223aac79425c84f14e8567fe8b399575"},
+        "removedAttacks": 0,
+        "removedNotes": 0,
+        "validator": "pass"
+      },
+      "easy": {
+        "baseline": {"notes": 2843, "attacks": 1666, "medianIoiSeconds": 0.063, "attacksPerSecond": 9.256, "maxSimultaneity": 5, "rapidFraction": 0.516517, "longestRapidRun": 14, "eventSha256": "faafcb0b1256eee13d04a292e074f55940b8459b6d4b31df8beb6116d2c77dff"},
+        "candidate": {"notes": 2130, "attacks": 1195, "medianIoiSeconds": 0.125, "attacksPerSecond": 6.639, "maxSimultaneity": 5, "rapidFraction": 0.161642, "longestRapidRun": 3, "eventSha256": "1f4f2ae3e9213066339c8adffc5e7d738088b84b8c0599087b855d2b98070508"},
+        "removedAttacks": 471,
+        "removedNotes": 713,
+        "validator": "pass"
+      },
+      "medium": {
+        "baseline": {"notes": 3066, "attacks": 1715, "medianIoiSeconds": 0.063, "attacksPerSecond": 9.528, "maxSimultaneity": 5, "rapidFraction": 0.53909, "longestRapidRun": 14, "eventSha256": "c997de1e63c187d5d16a305466a6277413f15f8c5291c9b98d505f2d0cffddd3"},
+        "candidate": {"notes": 2269, "attacks": 1235, "medianIoiSeconds": 0.125, "attacksPerSecond": 6.861, "maxSimultaneity": 5, "rapidFraction": 0.182334, "longestRapidRun": 3, "eventSha256": "3ce3948e19912853bebc8d988f608c08df00f49e82aed4dd94d518264343b7bb"},
+        "removedAttacks": 480,
+        "removedNotes": 797,
+        "validator": "pass"
+      },
+      "advanced": {
+        "baseline": {"notes": 3560, "attacks": 1911, "medianIoiSeconds": 0.063, "attacksPerSecond": 10.617, "maxSimultaneity": 6, "rapidFraction": 0.65445, "longestRapidRun": 21, "eventSha256": "f5d4aa685ef981b79b1c3901715857a2147eba887e7a6e3615c29107ba793296"},
+        "candidate": {"notes": 2846, "attacks": 1490, "medianIoiSeconds": 0.125, "attacksPerSecond": 8.278, "maxSimultaneity": 6, "rapidFraction": 0.394896, "longestRapidRun": 6, "eventSha256": "2c947df2fac5526a2182a4eb401667589f893d1c6f61738d10e076b82c3eabef"},
+        "removedAttacks": 421,
+        "removedNotes": 714,
+        "validator": "pass"
+      }
+    },
+    "publicContract": {
+      "order": ["very-beginner", "beginner", "easy", "medium", "advanced"],
+      "noteCounts": {"very-beginner": 409, "beginner": 807, "easy": 2130, "medium": 2269, "advanced": 2846},
+      "difficultyScores": {"very-beginner": 1, "beginner": 1.4, "easy": 2.6, "medium": 3.4, "advanced": 4.6},
+      "edges": {
+        "very-beginner->beginner": {"noteCounts": [409, 807], "difficultyScores": [1, 1.4], "rhAncestry": 1, "toleranceBeats": 0.26, "pass": true},
+        "beginner->easy": {"noteCounts": [807, 2130], "difficultyScores": [1.4, 2.6], "rhAncestry": 1, "toleranceBeats": 0.02, "pass": true},
+        "easy->medium": {"noteCounts": [2130, 2269], "difficultyScores": [2.6, 3.4], "rhAncestry": 1, "toleranceBeats": 0.02, "pass": true},
+        "medium->advanced": {"noteCounts": [2269, 2846], "difficultyScores": [3.4, 4.6], "rhAncestry": 1, "toleranceBeats": 0.02, "pass": true}
+      },
+      "productionValidation": {"individualLevels": ["very-beginner", "beginner", "very-easy", "easy", "medium", "advanced"], "validationErrors": [], "monotonicityErrors": [], "pass": true},
+      "legacyVeryEasy": {"present": true, "unchanged": true, "individuallyValid": true, "publicOrderingEdge": false},
+      "obsoletePhysicalEdge": {"edge": "very-easy->easy", "noteCounts": [2560, 2130], "pass": false, "normative": false, "reason": "Very Easy is a legacy physical row and is intentionally excluded from the public five-level order"}
+    },
+    "preservation": {"retimedEvents": 0, "newEventsCreated": 0, "protectedMelodyDeleted": 0, "protectedAnchorsDeleted": 0, "p0Survival": 1, "p1StructuralSurvival": 1, "phraseAnchorSurvival": 1, "contourExtremaSurvival": 1, "largeLeapEndpointSurvival": 1, "harmonicChangeSurvival": 1, "withheldEventsResurrected": 0},
+    "trustedFixtures": {
+      "classical": {"exactNoOp": true, "changedLevels": [], "eventSha256": {"very-beginner": "af0d7b13979230489a00478a24234e3b6d1a18e7d13b4a7d3b78d804b485137a", "beginner": "14151edc230a016e2a4a6a63a659e70d8319f1cf450661732b1458382523df56", "very-easy": "d54f457c423702fb85934e58e0bb79d0648cd66e5bde50710def23aed7ee1221", "easy": "2b7ce60e6971ed030942c2cf5ca028d9221a742801739c8d3b4519466541b49d", "medium": "a155d7f1da8d4221ef25bce33750e863a226f26ea54510a92f02c5d553a2273c", "advanced": "3950ad93be1bb1b9798aadc0ca9cbf9b6c7d49517990c52c6373fe0705414214"}},
+      "cover": {"exactNoOp": true, "changedLevels": [], "eventSha256": {"very-beginner": "187184d6bb4ca5c6e46463479bc932fa63c2b8ba908b4a58a3fba9ce2e364fbf", "beginner": "2e68590120a014ada1c3e5f35b5cd081d63188cec82c7531200b7447a76629f8", "very-easy": "159517ae53b89b6f2573179bb0a84e0171d264154d431cef8e87d597aa98b33a", "easy": "1f0c94ed0e8a76ed159414ed1776ec57b0c6ec2b3b71a9010312058550490a40", "medium": "e78b58eda8e3463ac70bcfde14c84fa633234492098cc1de6e4e8de4995d06d6", "advanced": "44210957ecf36ed1f5a98e79d29704b215edc0976fc64da291dc1430b90480da"}},
+      "pop": {"exactNoOp": true, "changedLevels": [], "eventSha256": {"very-beginner": "642f3f5e00db390404689d4ca782918a505fcab83b8bf0e1badf7d28bd3ba2bc", "beginner": "e07deb5ab8d5b538191a2f2e9b16a01f6827b1506cbfac584e859f0490abdeb3", "very-easy": "e74e55fb9a6132f2acda21a2129a0070183110d3f153a18b03733c98a4160c8d", "easy": "432db2c5a13b969db04e40801091c71b7275432b3b12d3a488db4b53e18176cb", "medium": "c11fa20fb46f892252903121108c2086ff7b4318d1d5abad3b0d2889aba85a0f", "advanced": "d0d2a5e30a68cfd03d7f5d5e93d9137f969629b59b638c660650a587f315817d"}}
+    },
+    "syntheticControls": {"slowChordHeavy": "no-op", "fastOneHandMelody": "fail-closed", "alternatingHands": "support-only normalization", "denseArpeggio": "protected principal structure", "fastMelodySparseLh": "protected principal structure", "sparseMelodyDenseLh": "eligible support only", "repeatedArticulation": "protected articulation"}
+  },
+  "artifacts": {
+    "roundtripErrors": {"very-beginner": [], "beginner": [], "very-easy": [], "easy": [], "medium": [], "advanced": []},
+    "midiSha256": {"very-beginner": "52e6e866134fb99458fb876d3fc3cbf25643c79052566814148078874e0068a6", "beginner": "5896b3e3683a89a8e37321345ad0bd9f28487a86d439b3b998e0b36b84d61de3", "very-easy": "9bbcf1ee8c2e70269a32f028827f112d09c8881e319e9686f93480f5c2938dcd", "easy": "4adaebf447af9aa0e11b9384c5729089a3f94fee3e13509d7cea00da3a41b375", "medium": "cd3a158758d746cc9e69a405b0320c1b2b6163a1398fa6724628de3fe13a740c", "advanced": "e6091f079306a753809662b83ac97758e455b1c8419b895ec0b502f317b41af7"},
+    "xmlSha256": {"very-beginner": "c798b7f7a9f21b36ae9176d895c61e55c7471b01d57a65324b04211a26d5eef5", "beginner": "4557fb236a2c2efa7285299eeba8e5ecba9e7217a064600e7712e9c7cb87acb6", "very-easy": "884f13bc1ce712b272aeb622f3bc98eeeed3d4343e9c988416a2c452b7f9ac70", "easy": "ece9003622f8fc87206962631cb6fc0ebb0d1b37aca8013fb947331ea19594d1", "medium": "382ce44fbe9870fcf8e823376d624d1649b4c0a0e547b26a770d63a305d2fc2e", "advanced": "b56b85cdc2caffd61f469df528688035d4bac3e97dc8c7ab128608582139bb9d"},
+    "deterministicRepeat": true
+  },
+  "productionIntegration": {"file": "packages/midi/src/simplify.ts", "responsibility": "post-ladder learner normalization", "levels": ["easy", "medium", "advanced"], "metalProfileExcluded": true, "validatorChanged": false, "publicContractChanged": false, "newDependencies": 0},
+  "decisions": {"primary": "FROZEN_DENSITY_NORMALIZATION_VALIDATED", "timedSymbolicMvp": "TIMED_SYMBOLIC_MVP_READY", "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL", "realShadow": "NATIVE_TIMED_SYMBOLIC_REAL_SHADOW_VALIDATED", "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED", "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT", "deployment": "NOT_DEPLOYED"},
+  "verification": {"focusedPlayabilityTests": 12, "midiTests": 354, "catalogTests": 1037, "workspaceTests": 1622, "workspaceTypechecks": 6, "gitDiffCheck": true, "laneARunDeterministic": true, "artifactRunDeterministic": true, "diskFreeGiBAtClose": 87, "catalogPersistence": false, "productionReplay": false, "benchmarkMaterial": false},
+  "determinism": {"canonicalReportExcludesPrivatePaths": true, "canonicalSha256": "9a95a6e67827de2ee2c6472161451dd45f9aca3fd3f696fe2ab9de6a642bea0f"}
+}

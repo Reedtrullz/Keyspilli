@@ -88,7 +88,7 @@ export interface WriteMidiOptions {
   keyMode?: 0 | 1;
   title?: string;
   /** notes grouped by hand; if empty, all notes go to one track */
-  tracks?: { name: string; notes: Note[] }[];
+  tracks?: { name: string; notes: Note[]; channel?: number; program?: number; percussion?: boolean }[];
   division?: number;
 }
 
@@ -114,10 +114,19 @@ export function writeMidi(notes: Note[], opts: WriteMidiOptions): Uint8Array {
         { tick: 0, bytes: [0xff, 0x59, 0x02, opts.keySig ?? 0, opts.keyMode ?? 0] },
       );
     }
-    const channels = allocateChannels(track.notes);
+    const explicitChannel = track.percussion ? 9 : track.channel;
+    if (explicitChannel !== undefined && (!Number.isInteger(explicitChannel) || explicitChannel < 0 || explicitChannel > 15)) {
+      throw new Error(`invalid MIDI channel ${String(explicitChannel)}`);
+    }
+    if (track.program !== undefined && (!Number.isInteger(track.program) || track.program < 0 || track.program > 127)) {
+      throw new Error(`invalid MIDI program ${String(track.program)}`);
+    }
+    const channels = explicitChannel === undefined
+      ? allocateChannels(track.notes)
+      : new Map(track.notes.map((note) => [note, explicitChannel]));
     const usedChannels = [...new Set(channels.values())].sort((a, b) => a - b);
     for (const channel of usedChannels) {
-      events.push({ tick: 0, order: 1, bytes: [0xc0 | channel, 0] }); // acoustic grand
+      if (channel !== 9) events.push({ tick: 0, order: 1, bytes: [0xc0 | channel, track.program ?? 0] });
     }
     for (const n of [...track.notes].sort((a, b) => a.start - b.start || a.midi - b.midi)) {
       const t = Math.round(n.start * division);

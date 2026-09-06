@@ -1,0 +1,161 @@
+{
+  "schemaVersion": 1,
+  "mission": "PRODUCTION_GENERIC_SOURCE_SEARCH_PROVIDER",
+  "date": "2026-09-05",
+  "startingRevision": "b78dfc0cd2a87820318f7dc19ce7676a2cadf1a9",
+  "checkpointRevisions": [
+    "7c8c3c0a9689fdeb29948080334352e60ee87551",
+    "adbedfdd1d0c4238c297961c5ddb68e6ba4d5083",
+    "8f21f0c589c3c0f1cfaa3e5a1b8bd6e2af2cb703"
+  ],
+  "requirements": {
+    "providerToBeat": "BRAVE_SEARCH_API",
+    "shortlist": ["BRAVE_SEARCH_API", "EXA_SEARCH_API"],
+    "metadataOnly": true,
+    "automaticSourceByteAcquisition": false,
+    "serverSideCredential": true,
+    "ranker": "packages/catalog/src/generic-source-ranking.ts",
+    "displayCap": 3
+  },
+  "comparison": {
+    "brave": {
+      "genericWebSearch": true,
+      "resultMetadata": ["url", "title", "description/snippet", "rank"],
+      "resultLimit": 20,
+      "selectedRequestLimit": 10,
+      "rateLimit": "Published Search capacity 50 QPS; one-second sliding-window guidance and response headers are authoritative",
+      "priceUsdPerThousand": 5,
+      "freeAllowance": "$5 monthly Search credits",
+      "auth": "X-Subscription-Token",
+      "privacy": "Search Results may not be stored or cached except transient storage required for operation; no zero-retention claim",
+      "serverSideUse": true,
+      "commercialUse": "Search API plan and terms",
+      "status": "https://status.brave.app/",
+      "sdkRequired": false,
+      "plainHttp": true,
+      "officialSources": [
+        "https://api-dashboard.search.brave.com/api-reference/web/search/get",
+        "https://api-dashboard.search.brave.com/documentation/guides/rate-limiting",
+        "https://brave.com/search/api/",
+        "https://api-dashboard.search.brave.com/documentation/resources/terms-of-service"
+      ]
+    },
+    "exa": {
+      "genericWebSearch": true,
+      "resultMetadata": ["url", "title", "publishedDate", "author", "optional highlights/text"],
+      "resultLimit": 100,
+      "selectedRequestLimit": 10,
+      "rateLimit": "Starter 5 QPS; PAYG up to 25 QPS",
+      "priceUsdPerThousand": 7,
+      "freeAllowance": "$20 signup credit plus $10 monthly credits as published",
+      "auth": "x-api-key or Authorization Bearer",
+      "privacy": "Privacy policy permits query use to improve products and train/fine-tune models; enterprise zero-retention is plan-specific",
+      "serverSideUse": true,
+      "commercialUse": "API terms and plan limits",
+      "status": "https://status.exa.ai/",
+      "sdkRequired": false,
+      "plainHttp": true,
+      "officialSources": [
+        "https://exa.ai/docs/reference/search",
+        "https://exa.ai/pricing?tab=api",
+        "https://exa.ai/privacy-policy",
+        "https://exa.ai/assets/Exa_Labs_Terms_of_Service.pdf"
+      ]
+    },
+    "coldCoverage": {
+      "brave": "NOT_RUN_NO_CREDENTIAL",
+      "exa": "NOT_RUN_NO_CREDENTIAL",
+      "historicalStructuredFloor": "10/20 viability floor retained as preregistered gate",
+      "materialExaHeadroom": "+3/20 strong structured songs, not evaluated"
+    }
+  },
+  "selection": {
+    "decision": "BRAVE_SEARCH_PROVIDER_SELECTED",
+    "reason": "Brave directly supplies the raw URL/title/snippet metadata needed by the existing deterministic ranker, uses a small plain-HTTP adapter, and publishes the lower $5/1000 Search price. Exa would require material retrieval or safety headroom to displace the preregistered provider; no credential was available for that comparison.",
+    "implementation": "PRODUCTION_PROVIDER_IMPLEMENTED_AWAITING_API_CREDENTIAL",
+    "privateAlpha": "DISCOVERY_ASSISTED_PRIVATE_ALPHA_NEEDS_PROVIDER_CREDENTIAL"
+  },
+  "queryPolicy": {
+    "templates": [
+      "\"<artist>\" \"<title>\" MIDI",
+      "\"<artist>\" \"<title>\" MusicXML",
+      "\"<artist>\" \"<title>\" Guitar Pro",
+      "\"<artist>\" \"<title>\" piano MIDI"
+    ],
+    "queriesPerSong": 4,
+    "resultsPerQuery": 10,
+    "maxUniqueResults": 40,
+    "maxDisplayed": 3,
+    "timeoutMs": 5000,
+    "maxRetries": 1,
+    "retryStatuses": [429, "5xx", "network reset"],
+    "cache": "disabled; Brave terms allow only transient operational storage",
+    "baseCostUsdPerSong": 0.02,
+    "baseCostUsdPer100Songs": 2,
+    "baseCostUsdPer1000Songs": 20,
+    "retryWorstCaseCostUsdPerSong": 0.04
+  },
+  "dataMinimization": {
+    "sent": ["artist", "title", "format keywords"],
+    "neverSent": ["uploaded bytes", "private filenames", "credentials", "Basic Auth secrets", "filesystem paths", "catalog private data"],
+    "resultHandling": "sanitized URL/title/snippet/rank only; no result-page crawling and no candidate-byte fetch",
+    "rightsDefault": "UNKNOWN_RIGHTS",
+    "timingDefault": "UNKNOWN_TIMING",
+    "handoff": "user-mediated source opening and explicit upload remain authoritative"
+  },
+  "implementation": {
+    "adapter": "apps/web/src/lib/source-candidate-provider.ts",
+    "productionProvider": "brave-search-api",
+    "configuration": "KEYSPILLI_SOURCE_SEARCH_PROVIDER=brave and KEYSPILLI_SOURCE_SEARCH_API_KEY (server environment only)",
+    "normalization": "Brave metadata becomes GenericSourceCandidateInput and is classified/ranked by the existing catalog ranker",
+    "firewall": "benchmark/diagnostic classes remain rejected; metadata-only remote results are user-mediated and never generation-ready",
+    "fallback": "missing key, timeout, quota, or provider failure leaves direct MIDI/MusicXML/MXL upload available",
+    "cache": "intentionally omitted because selected-provider terms prohibit durable Search Result caching",
+    "urlSafety": "existing sanitizer rejects non-HTTP(S), credentials, query/fragment data, local/private hosts, mapped/private IPv6 hosts",
+    "musicalBehaviorChanges": 0
+  },
+  "verification": {
+    "providerAndRouteFocusedTests": 16,
+    "workspaceTests": 1670,
+    "workspaceTestBreakdown": {
+      "web": 115,
+      "catalog": 1059,
+      "engrave": 8,
+      "midi": 354,
+      "playerCore": 92,
+      "transcribe": 42
+    },
+    "workspaceTypechecks": 6,
+    "webBuild": true,
+    "catalogTests": true,
+    "urlSanitizerTests": true,
+    "mockRetryTimeoutBounds": true,
+    "deterministicProviderReplay": true,
+    "directUploadFallback": true,
+    "clientBundleCredentialValueMatches": 0,
+    "productionCredentialConfigured": false,
+    "liveProviderCanary": "NOT_RUN_NO_CREDENTIAL",
+    "frozen20SongReplay": "NOT_RUN_NO_CREDENTIAL",
+    "providerLatencyAndErrorCoverage": "mocked contract only; live unavailable",
+    "sourceByteDownloads": 0,
+    "benchmarkFirewallViolations": 0,
+    "automaticRightsPromotions": 0,
+    "gitDiffCheck": true
+  },
+  "decisions": {
+    "provider": "BRAVE_SEARCH_PROVIDER_SELECTED",
+    "implementation": "PRODUCTION_PROVIDER_IMPLEMENTED_AWAITING_API_CREDENTIAL",
+    "privateAlpha": "DISCOVERY_ASSISTED_PRIVATE_ALPHA_NEEDS_PROVIDER_CREDENTIAL",
+    "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+    "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+    "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+    "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+    "deployment": "NO_DEPLOYMENT",
+    "nextTask": "PRODUCTION_SEARCH_PROVIDER_CREDENTIAL_CANARY"
+  },
+  "nonClaims": [
+    "No live provider coverage or 20-song result count is claimed without an operator credential.",
+    "Search metadata is not a license, validated symbolic file, timing authority, or generation authorization.",
+    "No provider fallback, AI reranking, page crawling, source-byte acquisition, musical tuning, benchmark tuning, or deployment occurred."
+  ]
+}

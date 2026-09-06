@@ -84,6 +84,10 @@ describe("semantic guitar harmony", () => {
     });
     expect(result.chords[0]?.name).toBe(expected);
     expect(harmonyStats(result).qualityCounts[_label]).toBeGreaterThan(0);
+    // A triad/suspension fifth is chord evidence, not an octave/fifth
+    // detector duplicate. The diagnostic should reserve +7 collapse for
+    // power-style stacks.
+    expect(harmonyStats(result).collapsedUnisonOctaveFifth).toBe(0);
   });
 
   it("does not let an isolated third override a repeated power attack", () => {
@@ -148,6 +152,45 @@ describe("semantic guitar harmony", () => {
       harmonyBeats: 4,
     });
     expect(afterPhraseBreak.chords.map((chord) => chord.name)).toEqual(["C5", "G5"]);
+  });
+
+  it("holds one-off third qualities but accepts repeated quality changes", () => {
+    const stack = (quality: "major" | "minor", start: number) => [
+      { midi: 48, start, dur: 0.8, vel: 100 },
+      { midi: quality === "major" ? 52 : 51, start: start + 0.01, dur: 0.8, vel: 100 },
+      { midi: 55, start: start + 0.02, dur: 0.8, vel: 96 },
+    ];
+    const oneOff = buildMetalArrangement({
+      stems: [{ role: "guitar", midi: midi([
+        ...stack("major", 0), ...stack("minor", 1), ...stack("major", 2), ...stack("major", 3),
+      ], 4) }],
+      harmonyBeats: 1,
+    });
+    expect(oneOff.chords.slice(0, 4).map((chord) => chord.name)).toEqual(["C", "C", "C", "C"]);
+    expect(harmonyStats(oneOff).qualityCounts).toMatchObject({ major: 4, minor: 0 });
+
+    const suspensionOneOff = buildMetalArrangement({
+      stems: [{ role: "guitar", midi: midi([
+        ...stack("major", 0),
+        { midi: 48, start: 1, dur: 0.8, vel: 100 },
+        { midi: 50, start: 1.01, dur: 0.8, vel: 100 },
+        { midi: 55, start: 1.02, dur: 0.8, vel: 96 },
+        ...stack("major", 2), ...stack("major", 3),
+      ], 4) }],
+      harmonyBeats: 1,
+    });
+    expect(suspensionOneOff.chords.slice(0, 4).map((chord) => chord.name)).toEqual(["C", "C", "C", "C"]);
+    expect(harmonyStats(suspensionOneOff).qualityCounts).toMatchObject({ major: 4, sus2: 0 });
+
+    const repeated = buildMetalArrangement({
+      stems: [{ role: "guitar", midi: midi([
+        ...stack("major", 0), ...stack("minor", 1), ...stack("minor", 2), ...stack("major", 3), ...stack("major", 4),
+      ], 5) }],
+      harmonyBeats: 1,
+    });
+    expect(repeated.chords.slice(0, 5).map((chord) => chord.name)).toEqual(["C", "Cm", "Cm", "C", "C"]);
+    expect(harmonyStats(repeated).qualityCounts).toMatchObject({ major: 3, minor: 2 });
+    expect(harmonyStats(oneOff).stabilizedTransitions).toBeGreaterThan(0);
   });
 
   it("preserves single and unknown semantic qualities without invalid labels", () => {

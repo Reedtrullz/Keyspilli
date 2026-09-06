@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "id": "bounded-mvp-post-deploy-operations-2026-09-04",
+  "date": "2026-09-04",
+  "auditRevision": "d6948b414d04bc93105346823a6010c812966065",
+  "remoteParity": true,
+  "scope": {
+    "product": "private single-user bounded symbolic-upload MVP",
+    "mutations": "none; read-only VPS audit",
+    "musicalBehaviorChanges": 0,
+    "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT"
+  },
+  "live": {
+    "domain": "keys.reidar.tech",
+    "webImageTag": "ghcr.io/reedtrullz/keyspilli:03d19473aea2",
+    "webImageManifestDigest": "sha256:9de9d7904b9ecea2502576e310140b72327b5eef43344561885ce9e7d87ca6a9",
+    "webImageId": "sha256:1f392903a7d08bc8887985e42fc9d49e946eb9872f6b661dcf30de434cdf2538",
+    "releaseRevision": "03d19473aea27b8a7dbe494826a27f0b4870d900",
+    "health": "healthy; authenticated /api/health reports exact release revision",
+    "webContainer": {"status": "running", "health": "healthy", "restarts": 0, "oomKilled": false},
+    "worker": {
+      "imageTag": "ghcr.io/reedtrullz/keyspilli-worker:17f997600b9f",
+      "imageId": "sha256:17b373d74a9fe75f827d6e7259bd30280875516faabca0f5b2c148670c3c6db7",
+      "status": "running",
+      "changed": false,
+      "restarts": 0,
+      "oomKilled": false,
+      "healthcheck": "none"
+    },
+    "compose": {"remote": "5.1.3; config validation passed", "local": "COMPOSE_LOCAL_SMOKE_NOT_EXECUTED; plugin unavailable"}
+  },
+  "access": {
+    "reachability": "internet-routable",
+    "edge": "Caddy 2.6.2 Basic Auth over HTTPS",
+    "anonymousHttpHealth": "308 redirect to HTTPS",
+    "anonymousHttpsHealth": 401,
+    "wrongCredential": 401,
+    "authenticatedUploadsPage": 200,
+    "crossOriginUploadAttempt": 403,
+    "applicationAuth": "single-user bearer/custom-header contract unchanged",
+    "listeners": "public 22/tcp, 80/tcp, 443/tcp only; Keyspilli 127.0.0.1:3008",
+    "firewall": "UFW default deny incoming; 22/80/443 allowed",
+    "tls": {"issuer": "Let's Encrypt YE1", "san": ["*.reidar.tech", "reidar.tech"], "notAfter": "2026-10-17", "daysRemainingAtAudit": 43.0}
+  },
+  "runtime": {
+    "docker": "29.4.2",
+    "caddyService": "active; config validation passed with non-fatal formatting/header warnings",
+    "webLogs": {"linesSinceAuditWindow": 120, "structured5xxTokens": 0, "exceptionTokens": 0, "dbErrorTokens": 0, "oomTokens": 0, "restartCount": 0, "accessLogRetained": false},
+    "workerLogs": {"linesSinceAuditWindow": 2, "errorTokens": 0, "oomTokens": 0, "restartCount": 0},
+    "expectedCanaryFailures": "2 ingest-rejected events from the completed failure canary; no runtime incident indicated",
+    "kernel": {"oomEvents": 0, "diskErrorEvents": 0},
+    "readOnlyPlayerFlow": {"songsTotal": 2760, "player": 200, "midiExport": 200, "musicxmlExport": 200, "pdfExport": 200, "payloadPathLeakMatches": 0}
+  },
+  "storage": {
+    "rootFreeGiB": 33.3,
+    "hardFloorGiB": 30,
+    "preferredGiB": 34,
+    "decision": "VPS_STORAGE_NEAR_HARD_FLOOR",
+    "dockerSystemDf": {"images": "9.472GB total; 818.3MB reclaimable", "volumes": "5.689GB total", "buildCache": "2.014GB total; 1.787GB reclaimable", "containers": "51.32MB"},
+    "keyspilliDataVolume": "1.1G",
+    "backups": "5.0G",
+    "journal": "54.5M",
+    "swap": "1.0GiB used of 1.0GiB; 248KiB free",
+    "availableMemory": "2.3GiB",
+    "cleanup": "not performed; reclaimable Docker cache/image space recorded as candidate only"
+  },
+  "backup": {
+    "timer": "enabled/active",
+    "lastAutomatic": "2026-09-04 03:00:30 UTC",
+    "nextScheduled": "2026-09-05 03:05:20 UTC",
+    "manualRun": "PASS at 2026-09-04 20:43:59 UTC",
+    "archiveValidation": "PASS",
+    "retention": "15 daily DB snapshots + 15 daily artifact archives, plus one manual pair; script retention is 14 days",
+    "offHostCopy": false,
+    "scratchRestore": "PASS in prior authorized canary evidence"
+  },
+  "catalog": {
+    "publicProjectedRows": 2760,
+    "internalRows": 2778,
+    "baseGroups": 463,
+    "rowsPerBase": 6,
+    "incompleteBaseGroups": 0,
+    "artifactNoteFiles": 2778,
+    "missingArtifactNoteFiles": 0,
+    "sqliteIntegrity": "ok",
+    "existingUploadBases": 18,
+    "uploadLikeCanaryBases": 0,
+    "canarySourceBytes": "not present after cleanup",
+    "conversionJobs": {"done": 84, "error": 2}
+  },
+  "security": {
+    "edgeCredentialRecovery": "PASS via macOS Keychain; secret not emitted",
+    "repositorySecretRetention": "NO_SECRET_RETENTION_OBSERVED",
+    "apiAndPlayerPathLeak": "NOT_OBSERVED",
+    "browserTokenExposure": "NOT_OBSERVED",
+    "sourceBytesInLogs": "NOT_OBSERVED"
+  },
+  "rollback": {
+    "currentImageAndTag": "present",
+    "previousWebTag": "keyspilli:rollback; image retained",
+    "previousWorkerTag": "keyspilli-worker:rollback; image retained",
+    "composeConfig": "validated",
+    "dataVolume": "keyspilli_keyspilli_data preserved by rollback path",
+    "healthRollbackCheck": "static playbook rescue path present",
+    "orphanKeyspilliContainers": 0
+  },
+  "monitoring": {
+    "externalUptime": "not configured/observed",
+    "diskAlerting": "not configured/observed",
+    "backupAlerting": "not configured/observed",
+    "certificateAlerting": "not configured/observed",
+    "containerAlerting": "Docker healthcheck and manual/systemd checks only",
+    "caddyAccessLog": "not retained; exact HTTP 5xx total unavailable"
+  },
+  "verification": {
+    "workspaceTests": 1637,
+    "workspaceTypechecks": 6,
+    "gitDiffCheck": true,
+    "exactShaCiChecks": "no retained GitHub check-runs returned for audit/deployed SHAs",
+    "deterministicDocsJson": "PASS; repeated key-sorted serialization is identical"
+  },
+  "decisions": {
+    "operations": "BOUNDED_MVP_POST_DEPLOY_OPERATIONS_VALIDATED",
+    "storage": "VPS_STORAGE_NEAR_HARD_FLOOR",
+    "releasePosture": "PRIVATE_BOUNDED_MVP_LIVE_VERIFIED",
+    "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+    "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+    "deployment": "LIVE_CANARY_ALREADY_AUTHORIZED; NO_NEW_DEPLOYMENT_IN_AUDIT",
+    "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT"
+  },
+  "nextTask": "METAL_TO_MIDI_RELEASE_GAP_REASSESSMENT"
+}

@@ -3,17 +3,44 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { loadJson } from "@keyspilli/player-core";
+import { PUBLIC_DIFFICULTY_ORDER, isPublicDifficultyLevel } from "@keyspilli/midi";
 import { LEVEL_LABEL, LEVEL_SHORT } from "./level-labels";
 
 interface GroupedSong {
-  representative: { id: string; title: string; artist: string; key: string; tempo: number };
+  representative: { id: string; baseId: string; title: string; artist: string; key: string; tempo: number };
   levels: { id: string; difficulty: string }[];
   totalPlays: number;
+  lastCreatedAt: string;
 }
 
-const DIFFICULTIES = ["very-beginner", "beginner", "very-easy", "easy", "medium", "advanced"];
 const KEYS = ["C", "D", "E", "F", "G", "A", "B", "Bb", "Eb", "Ab", "Db", "F#", "C#"];
 const BASS = ["block", "octave", "oompah", "walking", "pedal", "arpeggio"];
+
+function publicLevelRows(levels: GroupedSong["levels"]): GroupedSong["levels"] {
+  const byDifficulty = new Map(
+    levels.filter((level) => isPublicDifficultyLevel(level.difficulty)).map((level) => [level.difficulty, level]),
+  );
+  return PUBLIC_DIFFICULTY_ORDER.flatMap((difficulty) => {
+    const level = byDifficulty.get(difficulty);
+    return level ? [level] : [];
+  });
+}
+
+export function experimentLabelsForSongs(songs: GroupedSong[]): Map<string, string> {
+  const identity = ({ representative }: GroupedSong) =>
+    `${representative.artist.trim().toLowerCase()}\u0000${representative.title.trim().toLowerCase()}`;
+  const counts = new Map<string, number>();
+  for (const song of songs) counts.set(identity(song), (counts.get(identity(song)) ?? 0) + 1);
+
+  return new Map(songs.flatMap((song) => {
+    if ((counts.get(identity(song)) ?? 0) < 2) return [];
+    const token = song.representative.baseId.split("-").at(-1) || song.representative.baseId;
+    const runId = token.slice(-8);
+    const timestamp = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.exec(song.lastCreatedAt)?.[0]?.replace("T", " ");
+    return [[song.representative.id, `Experiment ${runId} · ${timestamp ?? "unknown time"} UTC`]];
+  }));
+}
+
 export function SongBrowser() {
   const [songs, setSongs] = useState<GroupedSong[]>([]);
   const [input, setInput] = useState("");
@@ -58,6 +85,7 @@ export function SongBrowser() {
         : songs,
     [songs, favoritesOnly, favorites],
   );
+  const experimentLabels = useMemo(() => experimentLabelsForSongs(visible), [visible]);
   const activeFilterCount = [difficulty, key, bass, sort !== "popular" ? sort : "", favoritesOnly ? "favorites" : ""].filter(Boolean).length;
 
   return (
@@ -82,7 +110,7 @@ export function SongBrowser() {
         <div id="song-library-filters" className="library-filters flex flex-wrap items-center gap-2" data-open={filtersOpen}>
           <select value={difficulty} onChange={(e) => setDifficulty(e.target.value)} className="form-control px-2 py-2 rounded-lg border border-zinc-300 text-sm" aria-label="Difficulty">
             <option value="">All difficulties</option>
-            {DIFFICULTIES.map((d) => (
+            {PUBLIC_DIFFICULTY_ORDER.map((d) => (
               <option key={d} value={d}>{LEVEL_LABEL[d] ?? d}</option>
             ))}
           </select>
@@ -117,6 +145,8 @@ export function SongBrowser() {
         {visible.map((s) => {
           const fav = s.levels.some((l) => favorites.includes(l.id));
           const done = s.levels.some((l) => learned.includes(l.id));
+          const publicLevels = publicLevelRows(s.levels);
+          const experimentLabel = experimentLabels.get(s.representative.id);
           return (
             <li key={s.representative.id}>
               <div className="interactive-card rounded-xl border border-zinc-200 bg-white p-4 hover:border-zinc-400 transition-colors h-full">
@@ -133,10 +163,15 @@ export function SongBrowser() {
                   {fav && <span className="text-rose-500">♥</span>}
                   {done && <span className="text-green-600">✓ learned</span>}
                 </div>
+                {experimentLabel && (
+                  <div className="mt-1 text-xs font-mono text-zinc-500" title={`Full run ID: ${s.representative.baseId}`}>
+                    {experimentLabel}
+                  </div>
+                )}
                 <div className="mt-3" role="group" aria-label={`Difficulty levels for ${s.representative.title}`}>
                   <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400">Levels</span>
                   <div className="flex flex-wrap gap-1">
-                  {s.levels.map((l) => (
+                  {publicLevels.map((l) => (
                     <Link
                       key={l.id}
                       href={`/player/${l.id}`}

@@ -1,0 +1,138 @@
+{
+  "schemaVersion": 1,
+  "id": "discovery-assisted-private-alpha-hardening-deployment-canary-retry-2026-09-05",
+  "date": "2026-09-05",
+  "authorization": "EXPLICIT_OWNER_AUTHORIZATION",
+  "git": {
+    "startingRevision": "af2c2bbe1c8282fc65c5d2cdea1838e1d5d98fe0",
+    "deployedRuntimeRevision": "e9dd13a672e9d252b6441076e3ff99c3937cecd9",
+    "branch": "codex/metal-inference-lane-lock",
+    "remoteParityAtDeployment": true
+  },
+  "releaseReconciliation": {
+    "validatedImplementationRevision": "c3a7e50ca621ac2b0ea943a474a8c6af572e19b7",
+    "startingEvidenceRevision": "af2c2bbe1c8282fc65c5d2cdea1838e1d5d98fe0",
+    "interveningScope": "PROXY_TEST_CONFIGURATION_AND_EVIDENCE_DOCUMENTATION_ONLY",
+    "classification": "RUNTIME_EQUIVALENT",
+    "releaseBuildRevision": "e9dd13a672e9d252b6441076e3ff99c3937cecd9",
+    "releaseBuildDelta": "DOCKERFILE_CROSS_ARCH_BUILD_BEHAVIOR_ONLY"
+  },
+  "releaseArtifact": {
+    "tag": "ghcr.io/reedtrullz/keyspilli:e9dd13a672e9",
+    "registryDigest": "sha256:8f29dee0bd2c28d27128eeaedb2118447024a4bd2779b787e0f2489a5adcfcdc",
+    "imageId": "sha256:3e3a09c44ba0e20dd8873c2d2e1dd1e46430607046745b02e014e03d676255ea",
+    "sizeBytes": 1062070148,
+    "platform": "linux/amd64",
+    "crossBuild": "PASS_CHROMIUM_LAUNCH_SKIPPED_ONLY_UNDER_QEMU",
+    "nativeVpsHealth": "PASS",
+    "nativeVpsChromiumLaunch": "PASS"
+  },
+  "predeployment": {
+    "liveRevision": "67827050a695e54609f6cf3f064e4fdaaabbb65b",
+    "liveImageDigest": "sha256:9520812e80f70d7ede4faa8ab0f34f9060371a80748e9a7957da9cecafedc094",
+    "workerImageDigest": "sha256:fd7970bc3ae9c89d8097ca29119f138b75e8fe63f577b0861baacfd65f540215",
+    "databaseIntegrity": "ok",
+    "physicalSongRows": 2778,
+    "conversionJobs": 86,
+    "handoffs": 0,
+    "groupedSongs": 2760,
+    "diskFreeGiBReported": 34,
+    "backup": {
+      "database": "db-2026-09-05-124603.sqlite",
+      "databaseBytes": 1236992,
+      "databaseIntegrity": "ok",
+      "archive": "artifacts-2026-09-05-124603.tar.gz",
+      "archiveBytes": 438245896,
+      "archiveIntegrity": "PASS"
+    }
+  },
+  "deployment": {
+    "method": "REMOTE_COMPOSE_WEB_ONLY_EXACT_IMMUTABLE_RECREATION",
+    "ansible": "NOT_RUN_TO_PRESERVE_EXISTING_SECRET_BEARING_CONFIGURATION",
+    "webRecreated": true,
+    "workerRecreated": false,
+    "workerImageChanged": false,
+    "dataVolumeChanged": false,
+    "secretFilesChanged": false,
+    "caddyChanged": false,
+    "rollbackImageRetained": true,
+    "rollbackComposeRetained": true,
+    "rollbackNeeded": false
+  },
+  "liveHealth": {
+    "exactRevision": true,
+    "symbolicUpload": true,
+    "sourceDiscoveryConfigured": true,
+    "directAudioAmt": false,
+    "anonymousEdgeStatus": 401,
+    "authenticatedEdgeStatus": 200,
+    "tlsValid": true,
+    "caddyValid": true
+  },
+  "browserCanary": {
+    "realChromiumLiveDomain": "PASS",
+    "sameOriginMutation": "PASS",
+    "crossOriginMutation": "REJECTED_403",
+    "metadataFreeMutation": "REJECTED_401",
+    "wrongBasicAuth": "REJECTED_401",
+    "discovery": {
+      "provider": "brave-search-api",
+      "status": "candidates-found",
+      "candidateCount": 3,
+      "selectedFormat": "midi",
+      "candidatePageFetches": 0,
+      "candidateByteFetches": 0,
+      "rightsPromotions": 0,
+      "timingPromotions": 0
+    },
+    "handoff": {
+      "created": true,
+      "affirmed": true,
+      "thirdPartyBytesUploaded": false,
+      "removedAfterCanary": true
+    },
+    "projectOwnedSymbolic": {
+      "format": "MIDI",
+      "sourceBytes": 203,
+      "sourceSha256": "521a980b1d93c6762e06082930ae06e9dacf3d924833109d302f2b80d164e775",
+      "physicalVariants": 6,
+      "publicLevels": 5,
+      "easyPlayer": "PASS",
+      "legacyVeryEasyPlayer": "PASS",
+      "midiExportBytes": 238,
+      "musicXmlExportBytes": 5982,
+      "pdfSimplifyBytes": 25105,
+      "pdfClassicBytes": 47243,
+      "idempotentRetry": "PASS_IDENTICAL_IDS",
+      "malformedInput": "REJECTED_422_ATOMIC",
+      "restartPersistence": "PASS"
+    }
+  },
+  "amtBoundary": {
+    "endpointStatus": 410,
+    "code": "DIRECT_AUDIO_AMT_DISABLED",
+    "conversionJobsBefore": 86,
+    "conversionJobsAfter": 86,
+    "workerInvocations": 0
+  },
+  "cleanup": {
+    "physicalSongRows": 2778,
+    "groupedSongs": 2760,
+    "conversionJobs": 86,
+    "handoffs": 0,
+    "canarySongs": 0,
+    "canaryArtifacts": 0,
+    "canaryUploads": 0,
+    "canaryScratch": 0,
+    "databaseIntegrity": "ok"
+  },
+  "boundaries": {
+    "musicalBehaviorChanges": 0,
+    "amtChanges": 0,
+    "alignmentChanges": 0,
+    "sourceRankingChanges": 0,
+    "automaticThirdPartySourceBytes": 0,
+    "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT"
+  },
+  "decision": "DISCOVERY_ASSISTED_PRIVATE_ALPHA_HARDENED_LIVE_VERIFIED"
+}

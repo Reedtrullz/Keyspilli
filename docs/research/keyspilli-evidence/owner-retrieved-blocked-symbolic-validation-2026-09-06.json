@@ -1,0 +1,230 @@
+{
+  "schemaVersion": 1,
+  "mission": "VALIDATE_OWNER_RETRIEVED_BLOCKED_SYMBOLIC_CANDIDATES",
+  "startingRevision": "583cbee63885e01c128afdfa65112cdab022815e",
+  "candidatePolicy": {
+    "provenanceClass": "USER_SUPPLIED_PRIVATE",
+    "rightsStatus": "OWNER_RETRIEVED_PRIVATE_RESEARCH_CANDIDATE",
+    "publicationAllowed": false,
+    "sourceBytesCommitted": false,
+    "generationRequiresAlignmentStatus": "aligned"
+  },
+  "candidates": [
+    {
+      "id": "red-sun-in-the-sky--online-sequencer-3017239",
+      "canonicalCatalogId": "red-sun-in-the-sky",
+      "retrievalPage": "https://onlinesequencer.net/3017239",
+      "source": {
+        "sha256": "0ac7e6e585193cc01b71f9249c1ef48c698e4d85a204959a246a541bf56c9582",
+        "byteLength": 14602,
+        "midiFormat": 1,
+        "division": 384,
+        "trackCount": 8,
+        "pitchedNoteCount": 1129,
+        "percussionNoteCount": 508,
+        "pitchedOnsetCount": 529,
+        "tempoEvents": [{ "beat": 0, "bpm": 130.00013 }],
+        "timeSignatureEvents": [{ "beat": 0, "numerator": 4, "denominator": 4 }],
+        "firstPitchedNoteBeat": 0,
+        "lastPitchedNoteEndBeat": 256,
+        "musicalDurationBeats": 256,
+        "adapterTrackEndDurationBeats": 260,
+        "pitchedRange": [36, 91],
+        "maxPitchedSimultaneity": 5,
+        "medianPitchedOnsetGapBeats": 0.5,
+        "largestPitchedOnsetGapBeats": 1.5,
+        "tracks": [
+          { "name": "Slap Bass", "channel": 0, "program": 36, "noteOns": 168 },
+          { "name": "Church Organ (Classic)", "channel": 1, "program": 19, "noteOns": 182 },
+          { "name": "Synth Bass (Classic)", "channel": 2, "program": 38, "noteOns": 412 },
+          { "name": "Violin (Classic)", "channel": 3, "program": 40, "noteOns": 63 },
+          { "name": "Electric Guitar", "channel": 4, "program": 27, "noteOns": 207 },
+          { "name": "Drum Kit", "channel": 9, "program": 0, "noteOns": 508 },
+          { "name": "Muted E-Guitar", "channel": 5, "program": 28, "noteOns": 28 },
+          { "name": "Dist. Guitar (Classic)", "channel": 6, "program": 30, "noteOns": 69 }
+        ],
+        "textMetadata": "track names only"
+      },
+      "contentValidation": {
+        "midiMagic": "PASS",
+        "boundedSize": "PASS_16_MIB_LIMIT",
+        "parser": "PASS",
+        "eventTicksMonotonic": true,
+        "noteOns": 1637,
+        "noteOffs": 1637,
+        "unmatchedNoteOns": 0,
+        "unmatchedNoteOffs": 0,
+        "trailingBytes": 0,
+        "htmlMasquerade": false,
+        "intakeReadiness": "READY_FOR_ALIGNMENT"
+      },
+      "catalogIdentity": {
+        "title": "Red Sun in the Sky",
+        "artist": "Unknown",
+        "tempoBpm": 130,
+        "durationSeconds": 118,
+        "legacySourceArtifactHash": "393b3dfcb28282913c3fd0089fa55c76230e7b9cfa0264aedef5955bc7d6e6e3",
+        "retrievedBytesMatchLegacySourceHash": false,
+        "existingAdvancedArtifactSha256": "fc95984b94daca37728dc0be08af93e825497935319c991f91c371ade95a68f0",
+        "referenceClass": "EXISTING_CATALOG_DERIVED_ARTIFACT_NOT_INDEPENDENT_GROUND_TRUTH"
+      },
+      "identity": {
+        "status": "IDENTITY_CONFIRMED",
+        "basis": "The candidate and existing Advanced artifact use the same 130 BPM, 256-beat timeline; every one of the artifact's 401 notes matches candidate pitch and onset, and 388 also match duration and velocity. This confirms the catalog source lineage but is not an independent song-quality reference."
+      },
+      "alignment": {
+        "algorithm": "alignSymbolicScores",
+        "status": "partial",
+        "offsetBeats": 0,
+        "beatScale": 1,
+        "transpositionSemitones": 0,
+        "confidence": 0.747185,
+        "coverage": { "referenceRatio": 1, "candidateRatio": 0.355182 },
+        "matchedNotes": 401,
+        "exactPitch": { "precision": 0.355182, "recall": 1, "f1": 0.524183 },
+        "onset": { "precision": 0.727788, "recall": 1, "f1": 0.842451, "matched": 385 },
+        "chromaCosine": 0.982301,
+        "contourDirectionAgreement": 1,
+        "resultSha256": "2c2455729dcc541f678b77555e0a015e96e811e3f5b627aa758d9f81d5ad7d21",
+        "deterministicRepeat": true,
+        "reason": "The existing intake contract requires aligned status. Full one-sided artifact coverage does not waive the candidate-coverage requirement."
+      },
+      "rightsStatus": "OWNER_RETRIEVED_PRIVATE_RESEARCH_CANDIDATE",
+      "generationEligibility": false,
+      "advancedRebuild": "NOT_RUN_ALIGNMENT_PRECONDITION_FAILED",
+      "decision": "PRIVATE_RESEARCH_CANDIDATE_ALIGNMENT_UNRESOLVED"
+    },
+    {
+      "id": "sabaton-the-last-stand--online-sequencer-3937701",
+      "canonicalCatalogId": "sheet-music-boss-sabaton-the-last-stand-piano-tutorial-mslzz1c3",
+      "retrievalPage": "https://onlinesequencer.net/3937701",
+      "source": {
+        "sha256": "93154d97afa8a01a80c140fbc9e447ee833cd2e982a934414b27760fcba8f41a",
+        "byteLength": 20205,
+        "midiFormat": 0,
+        "division": 384,
+        "trackCount": 1,
+        "pitchedNoteCount": 2466,
+        "percussionNoteCount": 0,
+        "pitchedOnsetCount": 826,
+        "tempoEvents": [{ "beat": 0, "bpm": 104.000014 }],
+        "timeSignatureEvents": [{ "beat": 0, "numerator": 4, "denominator": 4 }],
+        "firstPitchedNoteBeat": 0,
+        "lastPitchedNoteEndBeat": 370.5,
+        "musicalDurationBeats": 370.5,
+        "adapterTrackEndDurationBeats": 372,
+        "pitchedRange": [33, 79],
+        "maxPitchedSimultaneity": 10,
+        "medianPitchedOnsetGapBeats": 0.5,
+        "largestPitchedOnsetGapBeats": 4,
+        "tracks": [
+          { "name": "Elec. Piano (Classic)", "channel": 0, "program": 4, "noteOns": 2466 }
+        ],
+        "textMetadata": "track name only"
+      },
+      "contentValidation": {
+        "midiMagic": "PASS",
+        "boundedSize": "PASS_16_MIB_LIMIT",
+        "parser": "PASS",
+        "eventTicksMonotonic": true,
+        "noteOns": 2466,
+        "noteOffs": 2466,
+        "unmatchedNoteOns": 0,
+        "unmatchedNoteOffs": 0,
+        "trailingBytes": 0,
+        "htmlMasquerade": false,
+        "intakeReadiness": "READY_FOR_ALIGNMENT"
+      },
+      "catalogIdentity": {
+        "title": "SABATON - THE LAST STAND - Piano Tutorial",
+        "artist": "Sheet Music Boss",
+        "tempoBpm": 103,
+        "durationSeconds": 237,
+        "existingSourceLineage": "youtube:LnwenVY6r6I",
+        "legacySourceArtifactHash": "904ec30018dc7c119e7873ca1fa19aadbaeec8a0b72b7c3817cc9b1ec4a285d4",
+        "retrievedBytesMatchLegacySourceHash": false,
+        "existingAdvancedArtifactSha256": "be494bebfe2d396ce6485a5a89d4c0d040985009272d179a6709f4f44adaf7f7",
+        "referenceClass": "EXISTING_CATALOG_DERIVED_ARTIFACT_NOT_INDEPENDENT_GROUND_TRUTH"
+      },
+      "identity": {
+        "status": "IDENTITY_AMBIGUOUS",
+        "basis": "The candidate contains no title, artist, or Sheet Music Boss lineage metadata. Its single electric-piano track, 104 BPM, and approximately 213.75-second duration do not establish identity with the 103 BPM, 237-second Sheet Music Boss catalog arrangement."
+      },
+      "alignment": {
+        "algorithm": "alignSymbolicScores",
+        "status": "insufficient-evidence",
+        "offsetBeats": -0.5,
+        "beatScale": 0.9,
+        "transpositionSemitones": 5,
+        "confidence": 0.162512,
+        "coverage": { "referenceRatio": 0.311268, "candidateRatio": 0.179238 },
+        "matchedNotes": 442,
+        "exactPitch": { "precision": 0.024736, "recall": 0.042958, "f1": 0.031395 },
+        "pitchClass": { "precision": 0.039335, "recall": 0.06831, "f1": 0.049923 },
+        "onset": { "precision": 0.342615, "recall": 0.357323, "f1": 0.349815, "matched": 283 },
+        "chromaCosine": 0.908203,
+        "contourDirectionAgreement": 0.567376,
+        "resultSha256": "7f5d619f78c8d4f6fed7a7f51d3f95258e0c91eeddf43ade968f734aef492bd0",
+        "deterministicRepeat": true,
+        "reason": "The frozen search selected a bounded 0.9 beat scale and +5 semitone diagnostic hypothesis, but support and exact-pitch agreement remain insufficient."
+      },
+      "rightsStatus": "OWNER_RETRIEVED_PRIVATE_RESEARCH_CANDIDATE",
+      "generationEligibility": false,
+      "advancedRebuild": "NOT_RUN_IDENTITY_AND_ALIGNMENT_PRECONDITIONS_FAILED",
+      "decision": "PRIVATE_RESEARCH_CANDIDATE_IDENTITY_UNRESOLVED"
+    }
+  ],
+  "defenceFirewall": {
+    "id": "sabaton-defence-of-moscow--online-sequencer-2134136",
+    "retrievalPage": "https://onlinesequencer.net/2134136",
+    "sha256": "2d3ccad7864b7e97bba76022ce20043d50e4df11015c4b9305f7bd6a8bacf413",
+    "byteLength": 15807,
+    "byteIdenticalProtectedReferenceSha256": "2d3ccad7864b7e97bba76022ce20043d50e4df11015c4b9305f7bd6a8bacf413",
+    "alternateProtectedNearDuplicateSha256": "a52980366131029b425dd5819394e1ef2baeb8fc0e2895fb30b638bb3ebcb30a",
+    "classification": "BENCHMARK_REFERENCE_EVAL_ONLY",
+    "generationAuthority": false,
+    "promotionEligibility": false,
+    "catalogPromotion": false,
+    "result": "DEFENCE_BENCHMARK_FIREWALL_PASS"
+  },
+  "livgardet": {
+    "status": "ADVANCED_AWAITING_USER_SOURCE",
+    "technicalWork": "NOT_RUN"
+  },
+  "catalogSafety": {
+    "databaseSha256": "e63fbbc26be07ba961eb0dcb2ca7533fdafda55063f62d5943c78a16e7641cb9",
+    "learnerReviewSha256": "aa5006175b22ed6bb4b214b7720d5a490334c240c599f9dc8dd973b8e1fd3022",
+    "redSunRemainsHidden": true,
+    "lastStandRemainsHidden": true,
+    "livgardetRemainsHidden": true,
+    "defenceHistoricalRowsRemainHidden": 9,
+    "dearGodChanged": false,
+    "emptinessMachineChanged": false,
+    "authoritativeCatalogWrites": 0
+  },
+  "boundaries": {
+    "arrangerChanges": 0,
+    "gateChanges": 0,
+    "amtRuns": 0,
+    "newAlignmentResearch": 0,
+    "automaticSourceDownloads": 0,
+    "sourceMidiCommitted": 0,
+    "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+    "deployment": "NO_DEPLOYMENT",
+    "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED"
+  },
+  "verification": {
+    "candidateHashesStableAfterEvaluation": true,
+    "alignmentRunsDeterministic": true,
+    "advancedRebuildsRun": 0,
+    "focusedCandidateAlignmentProvenanceTests": "PASS_88",
+    "catalogTests": "PASS_1070",
+    "workspaceTests": "PASS_1711",
+    "workspaceTypechecks": "PASS_6_OF_6",
+    "gitDiffCheck": "PASS",
+    "finalFreeGiB": 45
+  },
+  "decision": "OWNER_RETRIEVED_SYMBOLIC_VALIDATION_NO_PROMOTION",
+  "decisionBasis": "Both owner-retrieved files are valid private symbolic candidates, but neither has the required aligned status. Red Sun's catalog lineage is confirmed while candidate coverage remains partial; The Last Stand's arrangement identity and alignment remain unresolved. Defence is a protected benchmark duplicate and Livgardet has no source.",
+  "nextTask": "OWNER_MEDIATED_BLOCKED_SYMBOLIC_SOURCE_SUPPLY"
+}

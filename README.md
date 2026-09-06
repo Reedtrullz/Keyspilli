@@ -2,8 +2,8 @@
 
 Personal browser-based piano-learning app (private, single-user). Color-coded
 interactive player with 4 view modes, a ~167-song catalogue (444 difficulty
-variants), MIDI uploads, YouTube conversion, live practice grading, and free
-PDF/MIDI/MusicXML export.
+variants), symbolic source discovery, MIDI/MusicXML/MXL lesson creation, live
+practice grading, and free PDF/MIDI/MusicXML export.
 
 ## Quick start
 
@@ -13,7 +13,16 @@ npm run pipeline   # build catalog artifacts + sqlite db from data/seed-midi + c
 npm run dev        # http://localhost:3000
 ```
 
-## YouTube conversion (optional worker)
+## Legacy audio worker (operator/research only)
+
+The learner product does not create lessons directly from YouTube or other
+audio. Its supported creation path is `/uploads`: optional metadata-only source
+discovery followed by a user-supplied MIDI, MusicXML, or MXL file. The public
+`POST /api/youtube/import` endpoint is disabled and does not enqueue work.
+
+The worker below remains for historical catalog maintenance and explicit
+operator research only. It is not a production source authority or automatic
+fallback.
 
 ```bash
 KEYSPILLI_IMPORT_MODE=auto KEYSPILLI_BP_SERIALIZATION=coreml \
@@ -72,3 +81,4 @@ transcribe Dockerfile or manually: python3.12 -m venv + pip install
 - Master plan: `docs/superpowers/plans/2026-08-09-keyspilli-mvp.md`
 - Reference analysis: `supersimplepiano-analysis.md`
 - Ops (deploy/backup): `docs/ops.md`
+- Private-alpha feedback: `docs/private-alpha-feedback-guide.md`

@@ -1,0 +1,199 @@
+{
+  "schemaVersion": 1,
+  "id": "discovery-assisted-private-alpha-hardening-deployment-canary-2026-09-05",
+  "date": "2026-09-05",
+  "authorization": "EXPLICIT_OWNER_AUTHORIZATION",
+  "git": {
+    "startingRevision": "4f87c05d25e175446ce05ceac6031fadab3f8892",
+    "testedRuntimeCheckpoint": "b280c81fec1603d3a53d3fa7f8283054765f3173",
+    "runtimeDifference": "DOCUMENTATION_ONLY",
+    "runtimeEquivalentToTestedCheckpoint": true,
+    "branch": "codex/metal-inference-lane-lock"
+  },
+  "releaseArtifact": {
+    "tag": "ghcr.io/reedtrullz/keyspilli:4f87c05d25e1",
+    "registryDigest": "sha256:5c8d9050a7d226cc7550db7a8df6d3823d8bdc44d7a91508a6a83afab4df19c3",
+    "imageId": "sha256:78f893290744cb42255babf4fb56766a9798d63c04390cbd426ee513858fdac8",
+    "sizeBytes": 1045714923,
+    "platform": "linux/amd64",
+    "nodeVersion": "v22.23.2",
+    "npmVersion": "10.9.8",
+    "nativeVpsBuild": "PASS",
+    "chromiumRuntimeSmoke": "PASS",
+    "scratchVolumeExactRevisionHealth": "PASS"
+  },
+  "predeployment": {
+    "liveRevision": "67827050a695e54609f6cf3f064e4fdaaabbb65b",
+    "liveImageDigest": "sha256:9520812e80f70d7ede4faa8ab0f34f9060371a80748e9a7957da9cecafedc094",
+    "workerImageDigest": "sha256:fd7970bc3ae9c89d8097ca29119f138b75e8fe63f577b0861baacfd65f540215",
+    "databaseIntegrity": "ok",
+    "physicalSongRows": 2778,
+    "conversionJobs": 86,
+    "handoffs": 0,
+    "groupedSongs": 2760,
+    "backup": {
+      "service": "PASS",
+      "databaseBytes": 1236992,
+      "artifactsBytes": 438246096,
+      "databaseIntegrity": "ok",
+      "archiveIntegrity": "PASS"
+    }
+  },
+  "credentials": {
+    "basicAuth": "SECURE_EXISTING_SOURCE",
+    "braveSearch": "SECURE_EXISTING_SOURCE",
+    "applicationBearer": "SECURE_EXISTING_SOURCE",
+    "valuesRecorded": false,
+    "serverSecretMode": "0600",
+    "serverSecretDirectoryMode": "0700",
+    "temporaryRegistryCredentialRemoved": true
+  },
+  "deploymentMethod": {
+    "ansible": "NOT_RUN",
+    "remoteCompose": "PASS_WEB_ONLY_EXACT_IMMUTABLE_RECREATION",
+    "candidateWasTransient": true,
+    "workerRecreated": false,
+    "workerImageChanged": false,
+    "secretFilesChanged": false,
+    "caddyChanged": false,
+    "reasonAnsibleNotRun": "Running the playbook without locally available application and provider secrets risked overwriting the validated existing secret-bearing configuration."
+  },
+  "candidateHealth": {
+    "exactRevision": true,
+    "symbolicUpload": true,
+    "sourceDiscoveryConfigured": true,
+    "directAudioAmt": false,
+    "anonymousEdgeStatus": 401,
+    "authenticatedEdgeStatus": 200,
+    "homepageStatus": 200,
+    "uploadsStatus": 200,
+    "youtubeCompatibilityStatus": 200
+  },
+  "discovery": {
+    "provider": "brave-search-api",
+    "requestStatus": 200,
+    "resultState": "candidates-found",
+    "candidateCount": 3,
+    "candidateClass": "USER_MEDIATED_CANDIDATE",
+    "rights": "UNKNOWN_RIGHTS",
+    "timing": "UNKNOWN_TIMING",
+    "candidatePageFetches": 0,
+    "candidateByteFetches": 0,
+    "rightsPromotions": 0,
+    "timingPromotions": 0,
+    "targetClass": "ORDINARY_NONBENCHMARK_PUBLIC_DOMAIN_COMPOSITION"
+  },
+  "handoff": {
+    "created": true,
+    "confirmed": true,
+    "state": "AWAITING_USER_FILE",
+    "userAffirmedTarget": true,
+    "thirdPartyUpload": false,
+    "persistedAcrossRestart": true,
+    "removedAfterCanary": true
+  },
+  "amtDisablement": {
+    "endpointStatus": 410,
+    "code": "DIRECT_AUDIO_AMT_DISABLED",
+    "newConversionJobs": 0,
+    "workerInvocations": 0
+  },
+  "projectOwnedSymbolicCanary": {
+    "sourceClass": "PROJECT_OWNED_SYNTHETIC",
+    "sourceSha256": "0b1b8924789f21f4d695a8ae05612e608d6bfeef737b0b7702685924c97e4e4e",
+    "sourceBytes": 274,
+    "format": "MIDI",
+    "physicalVariants": 6,
+    "publicLevels": 5,
+    "easyPlayer": "PASS",
+    "legacyVeryEasyPlayer": "PASS",
+    "midiExport": "PASS",
+    "musicXmlExport": "PASS",
+    "pdfSimplifyExport": "PASS",
+    "pdfClassicExport": "PASS",
+    "idempotentRetry": "PASS_IDENTICAL_IDS_SIX_ROWS",
+    "restartPersistence": "PASS",
+    "malformedHtmlAsMidi": "REJECTED_422_ATOMIC",
+    "removedAfterCanary": true
+  },
+  "browserBoundary": {
+    "uploadsPage": "PASS_200",
+    "realBrowserSameOriginMutation": "FAIL_403_CROSS_ORIGIN_REQUEST_REJECTED",
+    "curlSecFetchSameOriginProbe": "PASS_BUT_INSUFFICIENT",
+    "rootCause": "Mutation origin reconstruction changes the internal request URL protocol before assigning the forwarded host, retaining the internal port and comparing https://keys.reidar.tech:internal-port against the browser Origin https://keys.reidar.tech.",
+    "preExisting": true,
+    "confirmedOnRolledBackRevision": true
+  },
+  "security": {
+    "anonymousBasicAuth": "BLOCKED_401",
+    "wrongBasicAuth": "BLOCKED_401",
+    "crossOriginMutation": "BLOCKED_403",
+    "metadataFreeMutation": "BLOCKED_401",
+    "browserBundleCredentialHits": 0,
+    "trackedRepositoryCredentialHits": 0,
+    "basicAuthPlaintextRepositoryHits": 0,
+    "logCredentialHits": 0,
+    "logErrors": 0,
+    "sourceBytesFetched": 0,
+    "sourcePagesFetched": 0
+  },
+  "cleanup": {
+    "databaseIntegrity": "ok",
+    "physicalSongRows": 2778,
+    "conversionJobs": 86,
+    "handoffs": 0,
+    "canaryRows": 0,
+    "canaryArtifactsPresent": false,
+    "canaryUploads": 0,
+    "canaryTranscribedArtifacts": 0,
+    "existingProductionItemApi": "PASS",
+    "existingProductionItemPlayer": "PASS",
+    "existingProductionItemMidiExport": "PASS"
+  },
+  "postCleanupIntegrity": {
+    "sqlite": "ok",
+    "productionCatalog": "COHERENT",
+    "backupTimer": "ENABLED_ACTIVE_LAST_RESULT_SUCCESS",
+    "caddy": "VALID",
+    "tls": "VALID"
+  },
+  "rollback": {
+    "status": "PASS",
+    "liveRevision": "67827050a695e54609f6cf3f064e4fdaaabbb65b",
+    "liveImageDigest": "sha256:9520812e80f70d7ede4faa8ab0f34f9060371a80748e9a7957da9cecafedc094",
+    "health": "PASS",
+    "groupedSongs": 2760,
+    "workerUnchanged": true,
+    "secretsUnchanged": true,
+    "caddyUnchanged": true
+  },
+  "verification": {
+    "reusedWorkspaceTests": "1685/1685",
+    "reusedWorkspaceTypechecks": "6/6",
+    "reusedPlaywrightScratch": "4/4",
+    "productionImageBuild": "PASS",
+    "containerSmoke": "PASS",
+    "liveDiscoveryCanary": "PASS",
+    "liveHandoffCanary": "PASS",
+    "liveProjectOwnedSymbolicCanary": "PASS",
+    "restartPersistence": "PASS",
+    "cleanup": "PASS",
+    "realBrowserMutation": "FAIL",
+    "rollback": "PASS",
+    "musicalBehaviorChanges": 0,
+    "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT"
+  },
+  "storage": {
+    "localFreeGiBAtStart": 90,
+    "localFreeGiBAtClose": 81,
+    "vpsFreeGiBAtPredeploy": 35,
+    "vpsFreeGiBAtClose": 34,
+    "exactBuildSourceRemoved": true,
+    "builderCachePruned": true,
+    "temporaryComposeBackupRemoved": true
+  },
+  "decision": "HARDENING_DEPLOYMENT_CANARY_FAILED_ROLLED_BACK",
+  "deployment": "ROLLED_BACK_NOT_DEPLOYED",
+  "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+  "nextTask": "FIX_LIVE_SAME_ORIGIN_BROWSER_MUTATION_PORT_RECONSTRUCTION"
+}

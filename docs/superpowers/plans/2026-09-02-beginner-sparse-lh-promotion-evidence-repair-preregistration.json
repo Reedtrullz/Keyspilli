@@ -1,0 +1,212 @@
+{
+  "schemaVersion": 1,
+  "mission": "BEGINNER_SPARSE_LH_PROMOTION_EVIDENCE_REPAIR",
+  "experimentId": "beginner-sparse-lh-promotion-evidence-repair-20260902",
+  "startingRevision": "2faadbf57afe79e8a617a056edad5f66d81a664d",
+  "historicalExperiment": {
+    "outcome": "BEGINNER_SPARSE_TWO_HAND_CONTRACT_PARTIAL",
+    "productionDecision": "NO_PRODUCTION_BEHAVIOR_CHANGE",
+    "reasonForFreshExperiment": "evidence-control repair only; the trusted real fixtures passed and the prior synthetic control was mis-hashed and too small",
+    "oldPreregistration": {
+      "logicalRef": "docs/superpowers/plans/2026-09-02-beginner-sparse-lh-production-preregistration.json",
+      "sha256": "26af25998344d3c1c1740a46765d5af9669528c233c7a8f89affadc12b8133a3",
+      "immutable": true
+    },
+    "syntheticHashRuling": {
+      "cause": "SYNTHETIC_HASH_TRANSCRIPTION_ERROR",
+      "oldExpectedSha256": "fba496e372f8962967b5e08903fa4883d6f4be1bde046f0eb3a06e1a1dcc8dc8",
+      "trackedActualSha256": "fba496e372f8962967b5e08903fa4883d6f4be1bde046f0eb3a06e1a1dcc8dc6",
+      "evidence": "tracked syntheticFullBandNotes/inlineBytes bytes are unchanged from b983687; the first bad value was copied into the old preregistration at 3397e80de6ebdd0a67f34c2df867538aaff14b41 line 52",
+      "ruling": "the old preregistration remains historically invalid as frozen; this fresh experiment uses a newly frozen control and does not edit history"
+    },
+    "priorValidatorErrors": [
+      {
+        "exact": "beginner: only 4 notes",
+        "rule": "ordinary validateVariant minimum note count",
+        "observed": 4,
+        "required": 8,
+        "classification": "MINIMUM_MUSICAL_CONTENT",
+        "interpretation": "fixture/corpus inadequacy, not mechanical policy safety"
+      },
+      {
+        "exact": "very-beginner: only 4 notes",
+        "rule": "ordinary minimum note count in the full ladder",
+        "observed": 4,
+        "required": 8,
+        "classification": "MINIMUM_MUSICAL_CONTENT",
+        "interpretation": "fixture/corpus inadequacy, not mechanical policy safety"
+      }
+    ],
+    "historicalSafetyRuling": "all recorded mechanical safety, monotonicity, grid, density, IOI, duration, span, voice, and simultaneity checks passed; the two errors were minimum musical content/corpus adequacy failures"
+  },
+  "candidate": {
+    "id": "COLLISION_AWARE_SPARSE_LH",
+    "status": "frozen existing candidate; no production-policy change",
+    "semanticIdentity": {
+      "source": "existing Very Easy LH structural/root/bass evidence",
+      "window": "one source-meter window; beatsPerMeasure is 4 in 4/4 and 4.5 in 9/8",
+      "selection": "lowest note at the first meaningful eligible LH onset",
+      "collision": "if sounding-duration maxSim would exceed 2, try an existing later eligible LH onset in the same window; otherwise suppress",
+      "invariants": [
+        "baseline Beginner RH event set byte-identical",
+        "no RH retiming, replacement, or removal",
+        "no retiming",
+        "no drum-derived note",
+        "no decorative, arpeggio, or repeated filler note",
+        "no Case-05 exception",
+        "max sounding simultaneity is 2"
+      ]
+    },
+    "implementationIdentity": {
+      "revision": "2faadbf57afe79e8a617a056edad5f66d81a664d",
+      "implementation": "packages/midi/src/simplify.ts:sparseLeftHandAnchors",
+      "sourceHashSha1": "74a054c196f3869c3eec6cd6f7607af389b081d0",
+      "validator": "packages/midi/src/validate.ts:validateVariant",
+      "validatorSourceHashSha1": "c73892c9f3b337014cdd82cb865ca1b696d781e1",
+      "policyChangeAllowed": false
+    },
+    "frozenDifficultyBehavior": [
+      "Very Beginner unchanged",
+      "Beginner budgets and RH selection unchanged",
+      "Very Easy unchanged",
+      "Easy unchanged",
+      "Medium unchanged",
+      "Advanced unchanged",
+      "maxSim, density, timing/grid, LH eligibility, defer, and suppress behavior unchanged"
+    ]
+  },
+  "fixtures": {
+    "trusted": [
+      {
+        "id": "classical",
+        "logicalRef": "data/artifacts/c-debussy-suite-bergamasque-clair-de-lune/a/notes.json",
+        "sha256": "e7e0fd260e049e338120cc4ee35c1a998ef616c01529a4c1a79837d6bb914039"
+      },
+      {
+        "id": "cover",
+        "logicalRef": "data/artifacts/paul-gassa-yiruma-river-flows-in-you-emotional-piano-cover-msl98ing/a/notes.json",
+        "sha256": "eb8a1cf8f0076a548acaa206b67d19123814e1167d654496afa24c0458dc6f9d"
+      },
+      {
+        "id": "pop",
+        "logicalRef": "data/artifacts/adele-hello/a/notes.json",
+        "sha256": "87915f6b8dce035951af2ddc89c9c36ce105fde8e79ba6f936e31b7f80ef7fd6"
+      }
+    ],
+    "syntheticControl": {
+      "id": "BEGINNER_SPARSE_LH_PROMOTION_CONTROL_V1",
+      "logicalRef": "packages/catalog/test/fixtures/beginner-sparse-lh-promotion-control.json",
+      "sha256": "63f08d3dfce74ab9c8172572e99b1b8ae5a48785c7bec12bbe97aea202fd27d7",
+      "bytes": 3153,
+      "notes": 20,
+      "onsets": 13,
+      "durationBeats": 32,
+      "tempoBpm": 100,
+      "timeSignature": [4, 4],
+      "hands": {"right": 12, "left": 8},
+      "roles": {"melody": 8, "structural-lh": 8, "filler": 4},
+      "sidecarDrumTimingEvents": 8,
+      "drumDerivedPitchedNotes": 0,
+      "hashReads": 2,
+      "hashReadsEqual": true
+    }
+  },
+  "gates": {
+    "hardValidation": [
+      "ordinary validateVariants passes without threshold or exception changes",
+      "candidate and every tested variant is finite, monotonic, valid RH/LH, and max sounding simultaneity <= 2",
+      "density, median IOI, duration, span/range, voice, grid/timing, and note-duration validity pass",
+      "no drum-derived pitched note and no unsafe unknown provenance",
+      "no RH displacement, retiming, replacement, or removal"
+    ],
+    "rhParity": [
+      "Candidate Beginner RH exactly equals the frozen baseline RH event set on Classical, Cover, Pop, and the synthetic control",
+      "RH event identity is compared by deterministic start/pitch/duration/source representation, not a nearest-neighbor approximation"
+    ],
+    "nonBeginnerParity": [
+      "Very Beginner, Very Easy, Easy, Medium, and Advanced remain byte-identical to the frozen candidate on Classical, Cover, and Pop",
+      "No non-Beginner level is changed by the evidence repair"
+    ],
+    "structuralRecovery": [
+      "active source-meter windows are not fully erased when a legal structural anchor exists",
+      "true source rest emits no invented LH event",
+      "LH-only active passage retains at least one legal structural Beginner event where mechanically possible",
+      "recovery does not exceed maxSim or introduce retiming"
+    ],
+    "neighborSeparation": [
+      "reconfirm Very Beginner, Beginner, and Very Easy notes, onsets, attack rate, max/median simultaneity, LH-active onset percentage, simultaneous RH+LH percentage, and hand alternations",
+      "Beginner remains a distinct middle tier on the trusted real fixtures",
+      "synthetic control is evidence for invariants, not a product-level difficulty claim"
+    ],
+    "syntheticSafety": [
+      "RH melody anchors are preserved",
+      "one RH plus one LH sounding collision is allowed at maxSim 2",
+      "two RH notes plus an LH candidate that would exceed maxSim suppresses or defers the LH candidate",
+      "later eligible LH onset is used when a first-window onset collides",
+      "active LH-only material survives when legal",
+      "true rest remains silent",
+      "harmonic changes remain represented",
+      "repeated/decorative filler is excluded from ordinary accompaniment",
+      "sidecar drums never become pitched notes",
+      "reordered input and repeated evaluation are deterministic"
+    ],
+    "provenance": [
+      "trusted fixture IDs and hashes match the frozen values",
+      "control bytes and SHA-256 match on two fresh reads",
+      "old preregistration SHA-256 remains unchanged",
+      "no production-policy file changes in this mission",
+      "no EVAL_ONLY corpus or external reference material is evaluated"
+    ],
+    "determinism": [
+      "same bytes/options produce identical canonical output twice",
+      "stable ordering and hashes are recorded",
+      "local and remote branch SHA match before Task 4 evaluation"
+    ]
+  },
+  "evaluationProtocol": {
+    "levels": ["very-beginner", "beginner", "very-easy", "easy", "medium", "advanced"],
+    "trustedFixtures": ["classical", "cover", "pop"],
+    "normalValidator": "packages/catalog/scripts/lower-tier-task2-evaluator.js and unchanged @keyspilli/midi validateVariants",
+    "beforeEvaluation": [
+      "push this preregistration and all in-scope evidence changes",
+      "verify origin/codex/metal-inference-lane-lock equals the local checkpoint",
+      "prove policy identity is semantically unchanged"
+    ],
+    "excluded": [
+      "reference MIDI",
+      "EVAL_ONLY benchmark MIDI",
+      "audio render",
+      "human audit",
+      "production replay",
+      "deploy",
+      "production behavior change"
+    ]
+  },
+  "decision": {
+    "allowedOutcomes": [
+      "BEGINNER_SPARSE_TWO_HAND_PROMOTION_EVIDENCE_CLEAN",
+      "BEGINNER_SPARSE_TWO_HAND_SYNTHETIC_SAFETY_FAILURE",
+      "BEGINNER_SPARSE_TWO_HAND_EVIDENCE_STILL_INSUFFICIENT",
+      "BEGINNER_SPARSE_TWO_HAND_REAL_REGRESSION"
+    ],
+    "rules": {
+      "BEGINNER_SPARSE_TWO_HAND_PROMOTION_EVIDENCE_CLEAN": "only if hash/provenance is resolved, the fresh control is frozen and validator-clean, every synthetic safety gate passes, Classical/Cover/Pop candidate gates pass, RH parity is exact, non-Beginner parity is exact, and neighbor separation remains valid; this is the only outcome that authorizes a later production promotion",
+      "BEGINNER_SPARSE_TWO_HAND_SYNTHETIC_SAFETY_FAILURE": "genuine candidate defect on the corrected control; no promotion and NO_PRODUCTION_BEHAVIOR_CHANGE",
+      "BEGINNER_SPARSE_TWO_HAND_EVIDENCE_STILL_INSUFFICIENT": "control, provenance, or evidence hygiene remains unresolved; no promotion and NO_PRODUCTION_BEHAVIOR_CHANGE",
+      "BEGINNER_SPARSE_TWO_HAND_REAL_REGRESSION": "trusted fixture gate or parity failure; no promotion and NO_PRODUCTION_BEHAVIOR_CHANGE"
+    },
+    "defaultProductionDecisionUnlessClean": "NO_PRODUCTION_BEHAVIOR_CHANGE",
+    "humanStatus": "HUMAN_AUDIT_INCONCLUSIVE"
+  },
+  "deferred": ["COVER_RH_IDENTITY_CLIFF", "DIFFICULTY_DIFFERENTIATION_CONCERN"],
+  "scope": {
+    "productionPolicyChanged": false,
+    "validatorsChanged": false,
+    "oldPreregistrationEdited": false,
+    "externalReferenceUsed": false,
+    "audioGenerated": false,
+    "humanAuditRun": false,
+    "productionReplay": false,
+    "deployed": false
+  }
+}

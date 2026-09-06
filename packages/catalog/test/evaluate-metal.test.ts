@@ -127,6 +127,7 @@ describe("evaluate-metal CLI", () => {
       expect(trace.events).toEqual(expect.arrayContaining([
         expect.objectContaining({ stage: "raw", source: "guitar" }),
         expect.objectContaining({ stage: "lead", source: "guitar" }),
+        expect.objectContaining({ stage: "difficulty" }),
         expect.objectContaining({ stage: "final" }),
       ]));
       const orderedKeys = trace.events.map((event: { key: string }) => event.key);
@@ -161,6 +162,17 @@ describe("evaluate-metal CLI", () => {
         "--stems", join(directory, "missing-stems"),
         "--reference", join(repoRoot, "package.json"),
       ])).toThrow(/reference must be outside the repository/);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects ambiguous candidate and stem input modes", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "keyspilli-evaluate-metal-exclusive-"));
+    try {
+      const candidate = join(directory, "candidate.mid");
+      await midiFile(candidate, [{ midi: 64, start: 0, dur: 1, vel: 100, hand: "R" }]);
+      expect(() => runCli(["--candidate", candidate, "--stems", directory])).toThrow(/mutually exclusive/);
     } finally {
       await rm(directory, { recursive: true, force: true });
     }

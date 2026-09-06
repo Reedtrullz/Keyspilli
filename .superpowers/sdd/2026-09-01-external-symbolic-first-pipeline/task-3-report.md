@@ -1,0 +1,84 @@
+# Task 3 report: frozen symbolic generation candidates and route coverage
+
+## Delivered
+
+- Added `packages/catalog/src/external-symbolic-pipeline.ts` with a pure
+  generation freeze boundary, immutable selected/rejected records, deterministic
+  order and metadata-only digest, explicit identity/hash/local-acquisition
+  checks, parser/generation/alignment/confidence gates, and section metadata.
+- Benchmark/reference records are rejected before selection and are filtered
+  again at the realization seam. Candidate metadata is path-safe and strips raw
+  note/event/byte fields; normalized score events remain available only as the
+  local realization input.
+- Added an optional realization adapter around the existing section-aware
+  piano builder. It consumes only frozen sources, requires explicit windows (or
+  frozen primary sections), and returns symbolic, fallback, or unavailable
+  without fabricating notes.
+- Added explicit evidence-class route coverage. Note attribution is accepted
+  only through class/index records supplied by the caller; `Note.identitySource`
+  is never interpreted as an evidence class. Missing or incomplete attribution
+  returns null percentages and deterministic diagnostics.
+- Review hardening requires realization to receive a deeply immutable,
+  schema-1, digest-consistent frozen set; the `candidates` alias cannot bypass
+  this boundary. Frozen candidate metadata now removes compound raw
+  note/event/byte payload keys, record content hashes must be valid and match
+  candidate hashes, malformed section rows reject without throwing, and route
+  coverage rejects malformed, negative, or non-finite totals/attributions.
+- Follow-up review hardening guards non-array section-map values, redacts
+  unknown-root physical path fragments, keeps normalized score data deeply
+  frozen but non-enumerable in JSON, sanitizes score metadata, and filters
+  malformed route notes before duration calculations. Route coverage also
+  validates the complete Note range contract (MIDI 0..127, non-negative start,
+  positive duration, integer velocity 1..127, and valid hand) and redacts
+  single-component absolute path fragments such as `/secret` while preserving
+  logical `A/B` references and HTTPS URLs.
+- Raw candidate metadata detection normalizes key spelling and strips any
+  note/event/byte token with arbitrary separators, plurals, or suffixes (for
+  example `note_payloads`, `eventRows2`, and `rawNoteBlob2`); only required
+  `byteLength` and structural score `events` are allowlisted.
+- Added the boundary as a direct local evaluation import and added synthetic
+  in-memory tests covering benchmark exclusion, order-invariant
+  digest, roles/sections, malformed/non-parsed/low-confidence/misaligned
+  rejection, path-safe immutability, symbolic realization/fallback, and route
+  coverage with and without attribution.
+
+## Verification
+
+Commands run from the repository root:
+
+```text
+./node_modules/.bin/vitest run packages/catalog/test/external-symbolic-pipeline.test.ts
+  1 file, 18 tests passed
+
+./node_modules/.bin/vitest run packages/catalog/test/external-symbolic-pipeline.test.ts packages/catalog/test/external-evidence.test.ts packages/catalog/test/external-research.test.ts packages/catalog/test/piano-section-builder.test.ts packages/catalog/test/route-funnel.test.ts packages/catalog/test/arrangement-evaluation.test.ts
+  6 files, 92 tests passed
+
+pnpm --filter @keyspilli/catalog exec tsc --noEmit
+  passed
+
+./node_modules/.bin/vitest run packages/catalog/test
+  79 files; 715 passed, 6 failed (pre-existing environment failures)
+
+git diff --check
+  passed
+```
+
+The initial focused test was run before implementation and failed as expected
+because `../src/external-symbolic-pipeline.js` did not exist. The six full-suite
+failures are unchanged subprocess-environment failures in
+`restore-curated.test.ts` and `verify-catalog.test.ts`: the Hermes subprocess
+runtime cannot resolve the workspace `tsx` package. No changed test or
+neighboring research, builder, route, or arrangement test failed.
+
+## Boundaries and caveats
+
+This task is local and pure. It does not acquire external media, access
+benchmark/reference files, perform network requests, alter the production
+worker, change `Note`/IR/public payload contracts, or claim musical
+recognizability. Symbolic output remains an automated structural candidate;
+human listening and acceptance are separate gates. The fallback result is an
+explicit route status, not generated audio or fabricated notes.
+
+## Commit
+
+Implementation commit: `93e5398`; hardening range ends at `5b2bddd`.

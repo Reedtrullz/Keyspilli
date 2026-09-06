@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { listSongs } from "@keyspilli/catalog";
+import { listSongs, projectPublicSongRows, PUBLIC_DIFFICULTY_ORDER } from "@keyspilli/catalog";
 import { notFound } from "next/navigation";
 import { levelLabel } from "../../../components/level-labels";
 
@@ -8,10 +8,10 @@ export const dynamic = "force-dynamic";
 export default async function ArtistPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const artist = decodeURIComponent(slug);
-  const songs = listSongs({ artist, sort: "popular", limit: 200 });
+  const songs = projectPublicSongRows(listSongs({ artist, sort: "popular", limit: 200 }));
   if (songs.length === 0) notFound();
   const keys = [...new Set(songs.map((s) => s.key))].slice(0, 8);
-  const difficulties = [...new Set(songs.map((s) => s.difficulty))];
+  const difficulties = PUBLIC_DIFFICULTY_ORDER.filter((difficulty) => songs.some((song) => song.difficulty === difficulty)).map(levelLabel);
   return (
     <div className="page-shell max-w-6xl mx-auto px-4 py-8">
       <h1 className="page-title text-2xl font-bold motion-rise-in">{artist}</h1>

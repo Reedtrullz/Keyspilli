@@ -1,0 +1,228 @@
+{
+  "schemaVersion": 1,
+  "mission": "RIGHTS_CLEARED_DENSE_METAL_AMT_EVAL_CORPUS",
+  "date": "2026-09-05",
+  "startingRevision": "a98dc1a4bd0a3e9cc5921ae8189518ecf9ec9db3",
+  "corpusBuilderRevision": "f2e0b06f4d923b802f6351b71acec5d2b3b46292",
+  "requirements": {
+    "pieceCount": 3,
+    "pieceDurationSeconds": [20, 45],
+    "hardMinimumTotalSeconds": 60,
+    "preferredMinimumTotalSeconds": 90,
+    "textureClasses": ["tight-riff-chug", "dense-extreme-rapid", "layered-melodic-harmonic"],
+    "evidenceTiers": {
+      "A": "REAL_DOMAIN_FULL_REFERENCE",
+      "B": "REAL_DOMAIN_PARTIAL_REFERENCE",
+      "C": "SYNTHETIC_DOMAIN_FULL_REFERENCE"
+    }
+  },
+  "externalSurvey": [
+    {
+      "dataset": "HiMMP / In Solitude",
+      "realMetal": true,
+      "multiInstrument": true,
+      "fullSymbolic": false,
+      "partialSymbolic": true,
+      "rights": "CC BY; attribution required; sharing, adaptation, and commercial use permitted",
+      "officialSources": [
+        "https://himmp.net/about.html",
+        "https://himmp.net/faq.html",
+        "https://huddersfield.app.box.com/s/8gren2ma4kesvf5vwip2axzz1v8sawur"
+      ],
+      "decision": "HIMMP_PARTIAL_REFERENCE_USABLE"
+    },
+    {
+      "dataset": "MedleyDB / MedleyDB 2.0",
+      "realMetal": false,
+      "multiInstrument": true,
+      "fullSymbolic": false,
+      "partialSymbolic": true,
+      "rights": "CC BY-NC-SA 4.0 audio; non-commercial research",
+      "officialSources": [
+        "https://medleydb.weebly.com/",
+        "https://zenodo.org/records/1649325",
+        "https://zenodo.org/records/1715175"
+      ],
+      "decision": "REJECT_NO_DENSE_METAL_TRACK_WITH_FULL_PITCHED_TRUTH",
+      "notes": "The closest official metadata inspected was rock/grunge with predominant-melody annotations, not full symbolic truth."
+    },
+    {
+      "dataset": "Slakh2100",
+      "realMetal": false,
+      "multiInstrument": true,
+      "fullSymbolic": true,
+      "partialSymbolic": true,
+      "rights": "CC BY 4.0",
+      "officialSources": ["https://www.slakh.com/"],
+      "decision": "SYNTHETIC_MULTITRACK_CONTROL_ONLY",
+      "notes": "Official metadata supports instrument-family filtering but does not establish a metal genre label."
+    },
+    {
+      "dataset": "E-GMD",
+      "realMetal": false,
+      "multiInstrument": false,
+      "fullSymbolic": false,
+      "partialSymbolic": true,
+      "rights": "CC BY 4.0",
+      "officialSources": ["https://magenta.withgoogle.com/datasets/e-gmd"],
+      "decision": "DRUM_REFERENCE_SUPPLEMENT",
+      "notes": "Exact drum MIDI/audio only; official style metadata includes rock families but no metal label."
+    },
+    {
+      "dataset": "DREANSS",
+      "realMetal": true,
+      "multiInstrument": true,
+      "fullSymbolic": false,
+      "partialSymbolic": true,
+      "rights": "Internal non-commercial research only; redistribution/public communication/modification restricted",
+      "officialSources": [
+        "https://www.upf.edu/web/mtg/dreanss",
+        "https://zenodo.org/records/1290739"
+      ],
+      "decision": "REAL_METAL_DRUM_REFERENCE_SUPPLEMENT_NOT_FROZEN",
+      "notes": "The current official archive contains drum annotations only; legacy audio acquisition is not sufficiently self-contained for this frozen corpus."
+    }
+  ],
+  "externalDecision": "REAL_PARTIAL_REFERENCE_METAL_CORPUS_FOUND",
+  "himmp": {
+    "rightsDecision": "RIGHTS_CLEARED_FOR_NONCOMMERCIAL_AMT_EVAL",
+    "license": "CC BY",
+    "attributionRequired": true,
+    "decision": "HIMMP_PARTIAL_REFERENCE_USABLE",
+    "availableAudioAssets": [
+      "reference mix",
+      "44-file multitrack",
+      "four guitar DI files",
+      "bass DI and amp tracks",
+      "drum multitracks and samples",
+      "orchestration and vocal stems"
+    ],
+    "availableProjectAssets": [
+      "Pro Tools project",
+      "tempo-map resource",
+      "work-in-progress PDF score parts",
+      "multitrack input list"
+    ],
+    "symbolicAssets": {
+      "kickMidi": {
+        "bytes": 10633,
+        "sha256": "6d9ec45adefdebc67f644803533a99d726d02332eccb7ef5cc91261eef0fef65",
+        "noteCount": 1138
+      },
+      "snareMidi": "listed in official multitrack metadata but not frozen in this bounded acquisition",
+      "orchestrationMidi": [
+        { "role": "violin-mid", "bytes": 1432, "sha256": "1acace15ec873df69b0f82e3ebb13fed66e528dba7db7c34161d5dca46441a6e" },
+        { "role": "violin-upper", "bytes": 3450, "sha256": "983448e49337c2da5d73595bd432f20f8fd4e3210046387af4cbdedcd84ef95a" }
+      ],
+      "orchestrationMidiAdditionalHashes": {
+        "viola": "1be166228aa922cf518f499659a2ce3195f210709238702087d6bd87508fcff0",
+        "brass1": "d13a4e57083201e8617e7a225e23732baab193b85f03c909399b592bb0d70eb3",
+        "brass2": "d6f3a07879dab7a868cf9db3d1420a476e6bef5529e574a71b71d21c5a96acf1",
+        "synth": "46d2e7b75b77fd7ac558bdb273638cdd015ec5be1356bcb3d1ab66231e06f8c1",
+        "piano": "1f79d5da963f2baca60a68841e4d9b52e1479fa757c14cd8ce0a4975fcda7ad5",
+        "violinLower": "ad5e9dd4bfd71f0056b92791feb78699e66ee51d9552e6fc79841459e554d585"
+      }
+    },
+    "roleCoverage": {
+      "drums": "PARTIAL_KICK_FROZEN_SNARE_LISTED_ONLY",
+      "rhythmGuitar": "NONE",
+      "leadGuitar": "NONE",
+      "bass": "NONE",
+      "orchestration": "PARTIAL",
+      "otherPitched": "PARTIAL"
+    },
+    "timingAuthority": {
+      "kick": "NATIVE_PROJECT_TIMING",
+      "orchestration": "UNKNOWN_TIMING_NOT_SCORED",
+      "evidence": "The kick MIDI carries the native 200/240 BPM tempo map and ends at 295.205188 seconds; the official reference mix is 296.135692 seconds."
+    }
+  },
+  "realPartialFixture": {
+    "id": "HIMMP_IN_SOLITUDE_KICK_252_282",
+    "evidenceClass": "REAL_DOMAIN_PARTIAL_REFERENCE",
+    "scorableRole": "drums:kick",
+    "claimBoundary": "Kick-onset metrics only; never full pitched-note transcription accuracy.",
+    "acquisition": {
+      "officialBoxSharedName": "8gren2ma4kesvf5vwip2axzz1v8sawur",
+      "referenceMixFileId": "1569814151199",
+      "kickMidiFileId": "996975078971",
+      "orchestrationMidiFolderId": "268341476787",
+      "excerptRecipe": "decode official reference mix; select seconds 252 through 282; write stereo 44.1 kHz PCM16 WAV"
+    },
+    "windowSeconds": [252, 282],
+    "referenceMix": {
+      "bytes": 78773930,
+      "durationSeconds": 296.135692,
+      "sampleRate": 44100,
+      "channels": 2,
+      "sha256": "d9738088bff35e4f809eb1a38a255b97549165e1be096b375527b30fe5e477e3"
+    },
+    "excerpt": {
+      "bytes": 5292116,
+      "durationSeconds": 30,
+      "sampleRate": 44100,
+      "channels": 2,
+      "sha256": "b315a28c732b5512db717b9715d23674124cf63ee5534240c9d5604e9b78d9bf",
+      "canonicalPcmSha256": "db69776925f542225a96b119cf32564ada30cf9221db0347f241da5cd8e02806"
+    },
+    "kickReferenceEventsInWindow": 200,
+    "storage": "external user cache; paths omitted",
+    "firewall": "EVAL_ONLY"
+  },
+  "syntheticCorpus": {
+    "evidenceClass": "SYNTHETIC_DOMAIN_FULL_REFERENCE",
+    "manifest": "dense-metal-amt-eval-corpus-v1-manifest.json",
+    "manifestCanonicalSha256": "5c51f0575f6ca2ca33c2f186704d82682e00c99ff333fe4b1b455a34a9c4c5b8",
+    "builderSourceSha256": "543c049633565daa06c14f2ae8723276309770ca97c854b9ca1ca21901ccfd4a",
+    "pieceCount": 3,
+    "totalDurationSeconds": 96,
+    "rights": "PROJECT_OWNED",
+    "rendering": "keyspilli-procedural-metal-v1; no third-party samples, plugins, models, or SoundFonts",
+    "storage": "canonical manifest in Git; reproducible JSON/MIDI/WAV artifacts in external user cache"
+  },
+  "corpusDecision": "RIGHTS_CLEARED_REAL_PLUS_SYNTHETIC_METAL_CORPUS_READY",
+  "verification": {
+    "symbolicBuilds": 2,
+    "byteIdenticalManifests": true,
+    "byteIdenticalAudio": true,
+    "midiParse": "PASS_ALL_THREE",
+    "wavDecode": "PASS_ALL_THREE",
+    "durationContract": "PASS_32_SECONDS_EACH",
+    "complexityGates": "PASS",
+    "workspaceTests": {
+      "total": 1674,
+      "web": 117,
+      "catalog": 1060,
+      "engrave": 8,
+      "midi": 355,
+      "playerCore": 92,
+      "transcribe": 42
+    },
+    "typechecks": "PASS_ALL_SIX_PACKAGES",
+    "gitDiffCheck": "PASS",
+    "diskFloor": "PASS"
+  },
+  "muscriptor": {
+    "finalFrozenCorpusRun": false,
+    "status": "MUSCRIPTOR_RAW_METAL_HEADROOM_UNEVALUATED",
+    "nextTask": "MUSCRIPTOR_FROZEN_DENSE_METAL_COLD_EVALUATION"
+  },
+  "unchangedStatuses": [
+    "MUSCRIPTOR_HF_LOCAL_AUTHENTICATION_VALIDATED",
+    "MUSCRIPTOR_FROZEN_WEIGHTS_ACQUIRED",
+    "MUSCRIPTOR_RUNTIME_SANITY_VALIDATED",
+    "MUSCRIPTOR_RAW_METAL_HEADROOM_UNEVALUATED",
+    "MUSCRIPTOR_WEIGHTS_NONCOMMERCIAL_RESEARCH_ONLY",
+    "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+    "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+    "DISCOVERY_ASSISTED_PRIVATE_ALPHA_LIVE_VERIFIED",
+    "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT"
+  ],
+  "deployment": "NO_DEPLOYMENT_NO_VPS_MUTATION",
+  "nonClaims": [
+    "The HiMMP evidence can score only explicitly frozen partial roles.",
+    "Procedurally rendered full-reference fixtures do not establish real-recording cold-transfer headroom.",
+    "Auth/runtime validation does not establish MuScriptor transcription quality.",
+    "No subjective musical-quality claim is made."
+  ]
+}

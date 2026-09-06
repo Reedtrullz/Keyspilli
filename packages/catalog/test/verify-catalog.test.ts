@@ -5,7 +5,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { promisify } from "node:util";
-import { writeMidi } from "@keyspilli/midi";
+import { writeMidi, writeMusicXml } from "@keyspilli/midi";
 
 const execFile = promisify(execFileCb);
 const root = resolve(process.cwd(), "../..");
@@ -14,6 +14,7 @@ const baseId = "verify-row-integrity";
 const repairBaseId = "verify-tempo-repair";
 const mismatchBaseId = "verify-tempo-mismatch";
 const metalDurationBaseId = "verify-metal-duration";
+const offGridBaseId = "verify-beginner-offgrid";
 
 afterAll(() => rmSync(dataDir, { recursive: true, force: true }));
 
@@ -73,6 +74,53 @@ describe("verify-catalog read-model integrity gate", () => {
         sourceYoutubeUrl: "https://www.youtube.com/watch?v=metalVerify01",
         arrangementProfile: "metal",
         cleanTranscription: false,
+        baseId: "${id}",
+      });
+      if (result.error) throw new Error(result.error);
+    `;
+    await execFile(process.execPath, ["--import", "tsx", "--input-type=module", "-e", ingestScript], {
+      cwd: root,
+      env: { ...process.env, KEYSPILLI_DATA_DIR: dataDir },
+      maxBuffer: 2 * 1024 * 1024,
+    });
+  }
+
+  async function ingestOffGridFixture(id: string): Promise<void> {
+    const sourcePath = join(dataDir, `${id}.musicxml`);
+    const notes = Array.from({ length: 48 }, (_, index) => ({
+      midi: 60 + (index % 7),
+      start: index / 3,
+      dur: 0.8 / 3,
+      vel: 70 + (index % 5) * 10,
+      hand: "R" as const,
+    }));
+    writeFileSync(
+      sourcePath,
+      writeMusicXml({
+        level: "advanced",
+        difficultyScore: 0,
+        notes,
+        chords: [],
+        bassPattern: "none",
+        key: "C",
+        tempoBpm: 120,
+        timeSig: [4, 4],
+        measures: [
+          { index: 0, startBeat: 0, endBeat: 4 },
+          { index: 1, startBeat: 4, endBeat: 8 },
+          { index: 2, startBeat: 8, endBeat: 12 },
+          { index: 3, startBeat: 12, endBeat: 16 },
+        ],
+      }, "Off-grid fixture", "Keyspilli"),
+    );
+    const ingestScript = `
+      import { readFile } from "node:fs/promises";
+      import { ingestSource } from "${root}/packages/catalog/src/ingest.ts";
+      const result = await ingestSource({
+        buf: new Uint8Array(await readFile(${JSON.stringify(sourcePath)})),
+        title: "Off-grid fixture",
+        artist: "Keyspilli",
+        contentType: "standard",
         baseId: "${id}",
       });
       if (result.error) throw new Error(result.error);
@@ -171,6 +219,20 @@ describe("verify-catalog read-model integrity gate", () => {
     const result = await execFile(
       process.execPath,
       ["--import", "tsx", "packages/catalog/scripts/verify-catalog.ts", metalDurationBaseId],
+      {
+        cwd: root,
+        env: { ...process.env, KEYSPILLI_DATA_DIR: dataDir },
+        maxBuffer: 2 * 1024 * 1024,
+      },
+    );
+    expect(result.stdout).toContain("verify-catalog: 0 of 1 songs failed");
+  });
+
+  it("preserves the frozen Beginner off-grid exception through artifact verification", async () => {
+    await ingestOffGridFixture(offGridBaseId);
+    const result = await execFile(
+      process.execPath,
+      ["--import", "tsx", "packages/catalog/scripts/verify-catalog.ts", offGridBaseId],
       {
         cwd: root,
         env: { ...process.env, KEYSPILLI_DATA_DIR: dataDir },

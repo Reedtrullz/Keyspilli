@@ -1,0 +1,209 @@
+{
+  "schemaVersion": 1,
+  "mission": "CROSS_MODAL_SPARSE_LANDMARK_ALIGNMENT_V1",
+  "date": "2026-09-03",
+  "startingRevision": "76a39cd53329286a4a494058fa6434515c982525",
+  "architecture": {
+    "name": "SPARSE CROSS-MODAL LANDMARK RETRIEVAL + GLOBAL CONSENSUS + ROBUST MONOTONE TIMING MAP",
+    "classicalDtw": "CLOSED",
+    "hiddenTempoSequential": "CLOSED",
+    "productionCodeCreated": false,
+    "benchmarkTuning": false
+  },
+  "reference": {
+    "count": 1,
+    "repository": "sanderwood/clamp3",
+    "repositoryUrl": "https://github.com/sanderwood/clamp3",
+    "repositoryCommit": "9016d2b0c8d12d1aa79c2e0ab201e6822bdc83a8",
+    "repositoryLicense": "MIT",
+    "modelRepository": "sander-wood/clamp3",
+    "modelRepositoryUrl": "https://huggingface.co/sander-wood/clamp3",
+    "modelRepositoryRevision": "355625cc1c6f73726bbcd0eb9276ac7152d56426",
+    "modelRepositoryLicense": "NOT_DECLARED_BY_HF_METADATA",
+    "checkpoint": {
+      "id": "weights_clamp3_saas_h_size_768_t_model_FacebookAI_xlm-roberta-base_t_length_128_a_size_768_a_layers_12_a_length_128_s_size_768_s_layers_12_p_size_64_p_length_512.pth",
+      "purpose": "audio retrieval (official README recommendation)",
+      "bytes": 2571027658,
+      "sha256": "5033f868e3977be3945ee416b5a1718d5589a173c7ba8982231d8c94a6441d80",
+      "downloaded": false
+    },
+    "dependencies": {
+      "audioEncoder": {
+        "name": "MERT-v1-95M",
+        "repository": "m-a-p/MERT-v1-95M",
+        "repositoryUrl": "https://huggingface.co/m-a-p/MERT-v1-95M",
+        "revision": "12af15fef9d0ac838c3f475bfbbf26d2060dd4f5",
+        "licenseMetadata": "CC-BY-NC-4.0",
+        "checkpoint": "pytorch_model.bin",
+        "bytes": 377552987,
+        "sha256": "a2b8b747f72c06e0595aeae41ae5473f4364938c6b39b2c58be38c48e6bd3fcd",
+        "downloaded": false
+      },
+      "textModel": {
+        "name": "XLM-RoBERTa-base",
+        "repository": "FacebookAI/xlm-roberta-base",
+        "repositoryUrl": "https://huggingface.co/FacebookAI/xlm-roberta-base",
+        "revision": "e73636d4f797dec63c3081bb6ed5c7b0bb3f2089",
+        "licenseMetadata": "MIT",
+        "checkpoint": "model.safetensors",
+        "bytes": 1115567652,
+        "sha256": "6fd4797bc397c3b8b55d6bb5740366b57e6a3ce91c04c77f22aafc0c128e6feb",
+        "downloaded": false,
+        "role": "CLaMP3 text dependency; not a second retrieval reference"
+      }
+    },
+    "runtime": {
+      "python": "3.11 planned isolated environment; not created",
+      "pytorch": "not initialized",
+      "device": "CPU-only planned; not evaluated",
+      "keyPackages": {
+        "transformers": "4.40.0",
+        "accelerate": "0.34.0",
+        "nnAudio": "0.3.3",
+        "numpy": "1.26.4"
+      }
+    }
+  },
+  "implementationSemantics": {
+    "audioInput": "raw audio is resampled to 24000 Hz mono, split into 5-second non-overlapping windows, and reduced to MERT mean features",
+    "symbolicInput": "MIDI is converted to MTF with --m3_compatible; MusicXML is converted to standard then interleaved ABC",
+    "audioEncoder": "12-layer 768-wide transformer over MERT features with maximum audio length 128",
+    "symbolicEncoder": "M3 patch encoder with 64-token patches and 512-token maximum sequence length",
+    "sharedEmbedding": "separate audio and symbolic projections into a 768-dimensional shared space",
+    "globalEmbedding": "masked average pooling followed by the modality projection",
+    "normalization": "CLaMP3 get_global returns the projected masked mean; the official retrieval example compares vectors with cosine similarity and does not apply an additional model-side L2 normalization",
+    "retrievalSimilarity": "cosine similarity over global embeddings in the official search example",
+    "temporalOutput": "global retrieval features only; no independently documented event-level alignment output"
+  },
+  "resourceGate": {
+    "preferredNewFootprintBytes": 2147483648,
+    "estimatedWeightBytes": 4064148297,
+    "estimatedWeightGiB": 3.785,
+    "components": {
+      "clamp3Saas": 2571027658,
+      "mert": 377552987,
+      "xlmRoberta": 1115567652
+    },
+    "knownModelCacheBytes": 0,
+    "researchCheckoutKiB": 2132,
+    "status": "EXCEEDS_PREFERRED_BOUND_BEFORE_DOWNLOAD",
+    "action": "STOP_BEFORE_DOWNLOAD",
+    "reason": "The one approved CLaMP3 SAAS reference requires approximately 4.06 GB of model weights before PyTorch, tokenizer, cache, and temporary extraction overhead."
+  },
+  "frozenProtocol": {
+    "symbolicWindowBeats": {
+      "short": 4,
+      "long": 8
+    },
+    "landmarkSpacingBeats": 4,
+    "audioSearchWindowSeconds": {
+      "short": 5,
+      "long": 10
+    },
+    "audioSearchStrideSeconds": 2.5,
+    "topK": 5,
+    "retrievalTolerancesSeconds": [
+      0.25,
+      0.5,
+      1
+    ],
+    "confidenceSignals": [
+      "top1CosineSimilarity",
+      "top1Top2Margin",
+      "shortLongAgreement"
+    ],
+    "consensus": "weighted monotone candidate-chain consensus over accepted Top-K landmarks",
+    "outlierMethod": "median absolute deviation of landmark residuals",
+    "timingMap": "monotone piecewise-linear score-beat to audio-second map fitted only from accepted anchors",
+    "ambiguityPolicy": "reject regions without a unique, monotone, high-confidence candidate; leave them explicitly unaligned",
+    "groundTruthUse": "ASAP annotations are evaluation-only and are not supplied to retrieval or parameter selection"
+  },
+  "evaluation": {
+    "status": "NOT_RUN_RESOURCE_BLOCKED",
+    "fixtures": [
+      "asap:revealed:schubert-moment-musical-3-tetzloff09m",
+      "asap:revealed:rachmaninoff-prelude-23-6-nikiforov14m",
+      "asap:revealed:chopin-etude-10-1-muna07m",
+      "asap:revealed:bach-prelude-854-lua01m"
+    ],
+    "retrieval": {
+      "top1HitRate": null,
+      "top3HitRate": null,
+      "trueRank": null,
+      "margin": null,
+      "acceptedAnchors": null,
+      "anchorPrecision": null,
+      "ambiguityRate": null,
+      "coverage": null,
+      "highConfidenceSubset": null,
+      "falseHighConfidenceOverHalfSecond": null,
+      "availability": "not-run"
+    },
+    "alignment": {
+      "medianAbsoluteTimingErrorSeconds": null,
+      "p90TimingErrorSeconds": null,
+      "p95TimingErrorSeconds": null,
+      "driftSeconds": null,
+      "piecewiseSegments": null,
+      "unmatchedSymbolicEvents": null,
+      "unmatchedTimingAnchors": null,
+      "regionalConfidence": null,
+      "availability": "not-run"
+    },
+    "baselineComparison": {
+      "naiveGlobalTiming": null,
+      "productionSparseLandmarkTiming": null,
+      "availability": "not-run"
+    },
+    "resourceReason": "CLaMP3, MERT, and XLM-R weights were not downloaded because the estimated new footprint exceeded the preferred bound. No retrieval or timing result was fabricated."
+  },
+  "downstream": {
+    "candidateCreated": false,
+    "arrangementRerun": false,
+    "difficultyRerun": false,
+    "artifactRerun": false,
+    "catalogProjection": false,
+    "playerLinkExercise": false,
+    "reason": "The architecture stop rule precedes production-path changes; existing real-shadow downstream evidence remains valid but is not CLaMP3 evidence."
+  },
+  "decision": {
+    "architecture": "SPARSE_LANDMARK_RETRIEVAL_INSUFFICIENT",
+    "architectureQualification": "RESOURCE_BLOCKED_BEFORE_EVALUATION; this is not a measured retrieval-quality failure",
+    "production": "NO_PRODUCTION_CANDIDATE_CREATED",
+    "realAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+    "realShadow": "REAL_SHADOW_BLOCKED_AT_ALIGNMENT",
+    "firstBlocker": "No bounded local evaluation can be run for the sole approved CLaMP3 reference without exceeding the model-footprint limit.",
+    "nextTask": "EXPLICIT_SCORE_REGION_ALIGNMENT_FALLBACK_CONTRACT",
+    "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED"
+  },
+  "firewall": {
+    "benchmarkReferencesUsedForGeneration": false,
+    "benchmarkReferencesUsedForTuning": false,
+    "referenceUsedForGeneration": false,
+    "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+    "deployment": "NOT_DEPLOYED"
+  },
+  "determinism": {
+    "status": "METADATA_REPORT_ONLY",
+    "canonicalSha256": "ee1413f7bfa36165348afea1d5ece07065c839111081816c555c4b6bc3615547",
+    "canonicalization": "sorted JSON keys, UTF-8, no runtime/path/timestamp fields; canonicalSha256 excluded from its own digest",
+    "modelEvaluationRepeat": "not-run"
+  },
+  "verification": {
+    "modelEvaluation": "not-run by resource gate",
+    "reportJsonValidation": true,
+    "workspaceTests": 1582,
+    "workspaceTypechecks": 6,
+    "pythonEvaluatorTests": 4,
+    "gitDiffCheck": true,
+    "diskFreeGiBAtClose": 59,
+    "remoteParityAtStart": true,
+    "rawMediaRetention": "no new media or model weights downloaded; source checkout and metadata remained local"
+  },
+  "reproducibility": {
+    "reportContainsPrivatePaths": false,
+    "reportContainsModelWeights": false,
+    "reportContainsAudioOrSymbolicBytes": false,
+    "sourceMetadataOnly": true
+  }
+}

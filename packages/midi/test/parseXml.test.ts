@@ -90,6 +90,28 @@ describe("parseMusicXmlNotes", () => {
     ]);
   });
 
+  it("merges a cross-measure tie whose onset and duration round to adjacent ticks", () => {
+    const variant: Variant = {
+      level: "advanced",
+      difficultyScore: 0,
+      notes: [{ midi: 75, start: 3.9140625, dur: 1, vel: 80, hand: "R" }],
+      chords: [],
+      bassPattern: "block",
+      key: "C",
+      tempoBpm: 120,
+      timeSig: [4, 4],
+      measures: [
+        { index: 0, startBeat: 0, endBeat: 4 },
+        { index: 1, startBeat: 4, endBeat: 8 },
+      ],
+    };
+
+    const parsed = parseMusicXmlNotes(writeMusicXml(variant, "Rounded tie", "Test"));
+    expect(parsed.notes).toHaveLength(1);
+    expect(parsed.notes[0]).toMatchObject({ midi: 75, hand: "R" });
+    expect(parsed.notes[0]!.dur).toBeCloseTo(1, 3);
+  });
+
   it("pads both grand-staff streams to the measure boundary", () => {
     const variant: Variant = {
       level: "advanced",

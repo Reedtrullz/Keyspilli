@@ -1,0 +1,138 @@
+{
+  "schemaVersion": 1,
+  "mission": "CONTROLLED_BEGINNER_ROLE_BUDGET_REVISION",
+  "startingRevision": "663adcd97c4ebbc1c37f3d0ec49375faa5d839ff",
+  "created": "2026-09-02",
+  "humanAudit": {
+    "status": "HUMAN_AUDIT_INCONCLUSIVE",
+    "evidence": "SINGLE_RATER_EVIDENCE",
+    "closed": true,
+    "secondRaterPlanned": false
+  },
+  "fixtures": {
+    "classical": {
+      "logicalRef": "data/artifacts/c-debussy-suite-bergamasque-clair-de-lune/a/notes.json",
+      "sha256": "e7e0fd260e049e338120cc4ee35c1a998ef616c01529a4c1a79837d6bb914039"
+    },
+    "cover": {
+      "logicalRef": "data/artifacts/paul-gassa-yiruma-river-flows-in-you-emotional-piano-cover-msl98ing/a/notes.json",
+      "sha256": "eb8a1cf8f0076a548acaa206b67d19123814e1167d654496afa24c0458dc6f9d"
+    },
+    "pop": {
+      "logicalRef": "data/artifacts/adele-hello/a/notes.json",
+      "sha256": "87915f6b8dce035951af2ddc89c9c36ce105fde8e79ba6f936e31b7f80ef7fd6"
+    },
+    "synthetic-full-band": {
+      "logicalRef": "synthetic:full-band",
+      "sha256": "fba496e372f8962967b5e08903fa4883d6f4be1bde046f0eb3a06e1a1dcc8dc6"
+    }
+  },
+  "baseline": {
+    "profile": "learner",
+    "beginner": {
+      "rolePolicy": "RH-only",
+      "gridBeats": 0.25,
+      "melodyMinDurationBeats": 0.5,
+      "ladderToleranceBeats": 0.02,
+      "playability": {
+        "maxSimultaneity": 2,
+        "maxAttackRatePerSecond": 6,
+        "minMedianIoiSeconds": 0.08
+      },
+      "rhSoundingSpanSemitones": 12,
+      "jumpAndRegister": "inherited from Very Easy RH; no extra Beginner revoice"
+    },
+    "neighbors": {
+      "very-beginner": {
+        "gridBeats": 0.5,
+        "melodyMinDurationBeats": 1,
+        "ladderToleranceBeats": 0.26,
+        "maxSimultaneity": 2,
+        "maxAttackRatePerSecond": 5,
+        "rolePolicy": "RH-only for generic learner profile"
+      },
+      "very-easy": {
+        "gridBeats": 0.25,
+        "melodyMinDurationBeats": 0.5,
+        "ladderToleranceBeats": 0.13,
+        "maxSimultaneity": 5,
+        "maxAttackRatePerSecond": 12,
+        "rolePolicy": "RH + reduced LH"
+      }
+    }
+  },
+  "candidates": {
+    "A": {
+      "name": "midpoint-ladder-tolerance",
+      "changedConstraint": "Beginner ladder preservation onset tolerance",
+      "owningCode": "packages/midi/src/validate.ts LADDER_TOL / simplify.ts preserveRhLadder",
+      "exactChange": {
+        "ladderToleranceBeats": {
+          "from": 0.02,
+          "to": 0.075
+        }
+      },
+      "derivation": "midpoint between Beginner 0.02 and Very Easy 0.13; no other value changes",
+      "rolePolicy": "RH-only",
+      "purpose": "test whether Cover's RH loss is primarily a timing-ladder cliff"
+    },
+    "B": {
+      "name": "one-lh-anchor-per-measure",
+      "changedConstraint": "Beginner RH-only role policy",
+      "owningCode": "packages/midi/src/simplify.ts sparseLeftHandAnchors semantics",
+      "exactChange": {
+        "lhPolicy": "add at most one lowest VE LH note from the first LH onset in each source measure-sized window",
+        "windowBeats": "source beatsPerMeasure (4 beats for 4/4)",
+        "maxLhAttacks": "ceil(durationBeats / windowBeats)",
+        "chordExpansion": false
+      },
+      "derivation": "smallest existing sparse-anchor representation; no scalar budget changes",
+      "purpose": "test whether RH-only policy causes active LH-only passages such as Case 05 to disappear"
+    },
+    "C": {
+      "name": "midpoint-plus-one-lh-anchor",
+      "changedConstraint": "A + B only",
+      "owningCode": "A and B owning code",
+      "exactChange": "combine candidates A and B without any additional tuning",
+      "purpose": "test whether the two independently demonstrated binders need both minimal relaxations"
+    }
+  },
+  "metrics": {
+    "identity": [
+      "RH onset coverage",
+      "RH pitch-class coverage",
+      "phrase starts/ends",
+      "anchors",
+      "turn/extrema/repeated/large-leap endpoint survival",
+      "active source windows with zero output",
+      "root/bass/chroma change survival where represented"
+    ],
+    "complexity": [
+      "notes",
+      "RH/LH notes",
+      "onsets",
+      "attacksPerSecond",
+      "max and median polyphony",
+      "RH/LH span",
+      "median and large jumps",
+      "LH attacks per minute",
+      "simultaneous RH+LH attacks"
+    ]
+  },
+  "successCriteria": {
+    "materialIdentityGain": "at least +0.10 RH onset coverage or recovery of at least 10% of the fixture's lost RH proxy events, plus reduced active-passage erasure",
+    "playability": "no maxSimultaneity or span/jump violation; candidate attack rate may rise only within its preregistered envelope",
+    "neighborSeparation": "candidate remains below Very Easy on notes/onsets/attack rate and above Very Beginner on at least one complexity dimension",
+    "crossFixture": "no structural identity or playability regression on Classical, Pop, or Synthetic shadow",
+    "promotion": "one candidate satisfies all gates; otherwise no production change"
+  },
+  "failureCriteria": [
+    "no material identity gain",
+    "active passage remains erased",
+    "candidate violates playability/monotonicity",
+    "candidate collapses into Very Easy or Very Beginner",
+    "cross-fixture regression"
+  ],
+  "promotionState": "pre-registered-before-generation",
+  "productionChange": "none unless exactly one candidate passes all promotion criteria"
+}

@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "mission": "EXPLICIT_SCORE_REGION_ALIGNMENT_FALLBACK_CONTRACT",
+  "purpose": "ORACLE_DIAGNOSTIC_ONLY",
+  "sourceReports": [
+    {
+      "id": "asap-score-alignment-2026-09-03",
+      "sha256": "b4f4218599762a537289e9d9655623a785359d30d41bf2a304d39e180ced8749",
+      "role": "alignment-policy-oracle"
+    },
+    {
+      "id": "asap-revealed-v2-validation-2026-09-03",
+      "sha256": "ae1d6682164bd68d5c34bc36d6da4bf25ff5ebddaa56607e0f218617ab4533b4",
+      "role": "alignment-policy-oracle"
+    }
+  ],
+  "firewall": {
+    "benchmarkReferenceSourceClass": "BENCHMARK_REFERENCE",
+    "benchmarkMayOwnGenerationRegion": false,
+    "diagnosticMayOwnGenerationRegion": false,
+    "fallbackMayOverridePrimary": false,
+    "unownedRegionAction": "WITHHELD"
+  },
+  "fixtures": [
+    {
+      "id": "asap:dev:bach-fugue-bwv854-lua01m",
+      "scoreEvidence": {"sourceClass": "BENCHMARK_REFERENCE", "ownership": "WITHHELD", "reason": "BENCHMARK_FIREWALL"},
+      "performanceTiming": {"sourceClass": "DIAGNOSTIC_ONLY", "ownership": "WITHHELD", "reason": "DIAGNOSTIC_FIREWALL"},
+      "generationRegions": "not-authorized"
+    },
+    {
+      "id": "asap:holdout-1:chopin-etude-op10-1-chenw03m",
+      "scoreEvidence": {"sourceClass": "BENCHMARK_REFERENCE", "ownership": "WITHHELD", "reason": "BENCHMARK_FIREWALL"},
+      "performanceTiming": {"sourceClass": "DIAGNOSTIC_ONLY", "ownership": "WITHHELD", "reason": "DIAGNOSTIC_FIREWALL"},
+      "generationRegions": "not-authorized"
+    },
+    {
+      "id": "asap:holdout-2:liszt-transcendental-etude-1-luoj05m",
+      "scoreEvidence": {"sourceClass": "BENCHMARK_REFERENCE", "ownership": "WITHHELD", "reason": "BENCHMARK_FIREWALL"},
+      "performanceTiming": {"sourceClass": "DIAGNOSTIC_ONLY", "ownership": "WITHHELD", "reason": "DIAGNOSTIC_FIREWALL"},
+      "generationRegions": "not-authorized"
+    }
+  ],
+  "interpretation": "This oracle confirms policy behavior only: the revealed ASAP material remains evaluation-only and cannot supply generation ownership. It contains no candidate notes, alignment parameters, thresholds, or generated output, and must not be used to tune or select production regions.",
+  "determinism": {"canonicalRepeatEqual": true}
+}

@@ -1,10 +1,39 @@
 export * from "./types.js";
-export { parseMidi } from "./parse.js";
+export { parseMidi, midiBeatToNativeSeconds, midiTickToNativeSeconds } from "./parse.js";
 export { quantize } from "./quantize.js";
 export { splitHands, detectKey, keyName, chordName, detectBassPattern, melodyFrom, keySignature } from "./analyze.js";
 export { buildVariants, reduceMediumRhythm, padPitches, melodyOnly, normalizeTempoBpm, SAFE_TEMPO_BPM } from "./simplify.js";
-export { validateVariants, PLAYABILITY_LIMITS } from "./validate.js";
+export { BEGINNER_OFFGRID_CANDIDATE, LADDER_TOL, validateVariants, PLAYABILITY_LIMITS } from "./validate.js";
 export type { VariantValidationOptions } from "./validate.js";
+export {
+  measurePlayability,
+  assessPlayability,
+  groupPlayabilityAttacks,
+  PLAYABILITY_AUDIT_CONFIG,
+} from "./playability-audit.js";
+export type {
+  PlayabilityAttack,
+  PlayabilityIoiSummary,
+  PlayabilityHandMetrics,
+  PlayabilityRapidRegion,
+  PlayabilityAuditMetrics,
+  PlayabilityAssessment,
+} from "./playability-audit.js";
+export {
+  DENSITY_NORMALIZATION_AUDIT_CONFIG,
+  analyzeDensityAttacks,
+  boundedDensityDeletionOracle,
+  compareDensityAttackSets,
+  selectProtectedSemanticLocalThinning,
+} from "./density-normalization-audit.js";
+export type {
+  DensityAttackAnalysis,
+  DensityAttackSemantics,
+  DensityDifferentialRow,
+  DensityOracleResult,
+  DensitySelectionResult,
+  DensitySemanticPriority,
+} from "./density-normalization-audit.js";
 export {
   cleanTranscription,
   sanitizeImportedNotes,
@@ -16,17 +45,25 @@ export {
 } from "./clean.js";
 export { writeMidi } from "./writeMidi.js";
 export { writeMusicXml } from "./writeXml.js";
-export { buildMetalArrangement, selectGuitarLeadPath } from "./metal-arrange.js";
+export { buildMetalArrangement, rescueGuitarPreSelectorCandidates, selectGuitarLeadPath } from "./metal-arrange.js";
 export type {
   GuitarLeadPathDiagnostics,
+  GuitarLeadPreSelectorDiagnostics,
+  GuitarLeadPreSelectorRejectionReason,
+  GuitarLeadPreSelectorReasons,
+  GuitarLeadRejectionReason,
+  GuitarLeadRejectionReasons,
   GuitarLeadPathOptions,
   GuitarLeadPathResult,
   GuitarHarmonyDiagnostics,
+  GuitarLeadPreSelectorRescueDiagnostics,
+  GuitarLeadPreSelectorRescueResult,
   MetalArrangementInput,
   MetalArrangementDebugOptions,
   MetalArrangementIR,
   MetalArrangementResult,
   MetalArrangementTraceEvent,
+  MetalArrangementTraceOperation,
   MetalArrangementTraceSink,
   MetalArrangementTraceStage,
   MetalStem,
@@ -58,3 +95,68 @@ export {
 } from "./arrangement-quality.js";
 export type { RhLhBalance, ArrangementQualityReport } from "./arrangement-quality.js";
 export { verifyMonotonicity } from "./validate.js";
+export {
+  BEGINNER_OFFGRID_RH_BUDGET_CONFIG,
+  assessBeginnerOffGridCandidate,
+  selectBeginnerOffGridRhCandidates,
+} from "./beginner-offgrid.js";
+export type {
+  BeginnerOffGridCandidate,
+  BeginnerOffGridConstraintMetrics,
+  BeginnerOffGridConstraintOptions,
+  BeginnerOffGridRejectedCandidate,
+  BeginnerOffGridSelectionInput,
+  BeginnerOffGridSelectionResult,
+  BeginnerOffGridStructuralSignal,
+} from "./beginner-offgrid.js";
+export {
+  splitPianoRoles,
+} from "./piano-roles.js";
+export type {
+  PianoRoleOptions,
+  PianoNoteRole,
+  ProtectedMelodyNote,
+  PianoRoleSplit,
+} from "./piano-roles.js";
+export {
+  groupAttackClusters,
+  groupPianoAttackClusters,
+  inferPianoHarmony,
+  realizePianoAccompaniment,
+  simplifyPianoAccompaniment,
+  DEFAULT_PIANO_ACCOMPANIMENT_CONFIG,
+} from "./piano-accompaniment.js";
+export type {
+  PianoHarmonyQuality,
+  PianoAttackCluster,
+  PianoHarmonyEvidence,
+  PianoAccompanimentConfig,
+  PianoSemanticHarmony,
+  PianoAccompanimentDiagnostics,
+  PianoAccompanimentOptions,
+  PianoAttackInput,
+  PianoAttackCollection,
+  PianoBassEvidence,
+  PianoSemanticQuality,
+  PianoHarmony,
+} from "./piano-accompaniment.js";
+export {
+  assessPianoRegionCoverage,
+  selectPianoMelodyRegions,
+  clipRegionNotes,
+  scorePianoRegion,
+} from "./piano-region-selector.js";
+export type {
+  PianoRegionRole,
+  CandidateCoverageWindow,
+  RoleCoverage,
+  PianoRegionCoverageGateOptions,
+  CandidateRegion,
+  PianoRegionWindow,
+  PianoRegionCandidate,
+  PianoRegionScoreWeights,
+  PianoRegionScore,
+  PianoRegionSelectionOptions,
+  PianoRegionSelectionDiagnostics,
+  PianoRegionSelection,
+} from "./piano-region-selector.js";

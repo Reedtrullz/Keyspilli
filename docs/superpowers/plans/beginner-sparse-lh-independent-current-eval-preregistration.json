@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "mission": "INDEPENDENT_CURRENT_FIXTURE_BEGINNER_SPARSE_LH_PROMOTION_EVALUATION",
+  "startingRevision": "fab5fe43aba4bd0b811fa066acd559db900f12d1",
+  "candidate": {
+    "id": "COLLISION_AWARE_SPARSE_LH",
+    "implementation": "test-local transformation over current learner buildVariants output",
+    "semanticFingerprint": "73be10c67756be84694e2ea56b3fae763e997cebb0b38ba2cc83de8c83e18682",
+    "productionPolicyChanged": false
+  },
+  "fixtures": [
+    {
+      "id": "classical",
+      "logicalRef": "data/artifacts/c-debussy-suite-bergamasque-clair-de-lune/a/notes.json",
+      "sha256": "e7e0fd260e049e338120cc4ee35c1a998ef616c01529a4c1a79837d6bb914039",
+      "bytes": 85364
+    },
+    {
+      "id": "cover",
+      "logicalRef": "data/artifacts/paul-gassa-yiruma-river-flows-in-you-emotional-piano-cover-msl98ing/a/notes.json",
+      "sha256": "eb8a1cf8f0076a548acaa206b67d19123814e1167d654496afa24c0458dc6f9d",
+      "bytes": 94160
+    },
+    {
+      "id": "pop",
+      "logicalRef": "data/artifacts/adele-hello/a/notes.json",
+      "sha256": "87915f6b8dce035951af2ddc89c9c36ce105fde8e79ba6f936e31b7f80ef7fd6",
+      "bytes": 68384
+    },
+    {
+      "id": "BEGINNER_SPARSE_LH_PROMOTION_CONTROL_V2",
+      "logicalRef": "packages/catalog/test/fixtures/beginner-sparse-lh-promotion-control-v2.json",
+      "sha256": "151c25d7a9bef208e34bde45cffb5f843535416c24b099c2b8510ca974ac13da",
+      "bytes": 3384
+    }
+  ],
+  "levels": [
+    "very-beginner",
+    "beginner",
+    "very-easy",
+    "easy",
+    "medium",
+    "advanced"
+  ],
+  "generation": {
+    "profile": "learner",
+    "maxDurBeats": null,
+    "source": "current fixture bytes -> current buildVariants"
+  },
+  "declaredReleaseGates": [
+    {
+      "id": "fixture-bytes-fresh",
+      "scope": "fixture",
+      "predicate": "two reads have identical bytes and preregistered SHA-256 matches"
+    },
+    {
+      "id": "candidate-validation",
+      "scope": "candidate",
+      "predicate": "current candidate Beginner passes validateVariants"
+    },
+    {
+      "id": "candidate-ladder-validation",
+      "scope": "ladder",
+      "predicate": "actual six-level candidate ladder passes validateVariants"
+    },
+    {
+      "id": "candidate-adjacent-monotonicity",
+      "scope": "ladder",
+      "predicate": "all five adjacent transitions pass verifyMonotonicity"
+    },
+    {
+      "id": "beginner-rh-parity",
+      "scope": "candidate",
+      "predicate": "actual baseline/candidate Beginner RH event sets and digests equal"
+    },
+    {
+      "id": "non-beginner-parity",
+      "scope": "ladder",
+      "predicate": "actual event sets and digests equal for all unaffected levels"
+    },
+    {
+      "id": "structural-recovery",
+      "scope": "candidate",
+      "predicate": "candidate active-window erasure does not exceed baseline"
+    },
+    {
+      "id": "lh-provenance",
+      "scope": "candidate",
+      "predicate": "no unsafe or drum-derived event is emitted"
+    },
+    {
+      "id": "synthetic-safety",
+      "scope": "synthetic",
+      "predicate": "V2 filler/rest/LH-only/collision/defer/drum probes pass"
+    },
+    {
+      "id": "product-separation",
+      "scope": "aggregate",
+      "predicate": "fresh Beginner counts/onsets sit strictly between Very Beginner and Very Easy and include sparse LH activity"
+    }
+  ],
+  "decision": {
+    "predicate": "AND(all declaredReleaseGates)",
+    "allowed": [
+      "BEGINNER_SPARSE_TWO_HAND_CURRENT_EVIDENCE_VALIDATED",
+      "BEGINNER_SPARSE_TWO_HAND_CURRENT_EVIDENCE_FAILS",
+      "BEGINNER_SPARSE_TWO_HAND_CURRENT_EVIDENCE_INSUFFICIENT"
+    ]
+  },
+  "excludedInputs": [
+    "legacy-eval.json",
+    "calibration artifacts",
+    "previous candidate reports",
+    "previous promotion reports",
+    "EVAL_ONLY references",
+    "audio",
+    "reference MIDI"
+  ]
+}

@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "id": "private-alpha-usage-feedback-preregistration-2026-09-05",
+  "date": "2026-09-05",
+  "startingRevision": "03948127320a477442c87e2065be0399d45d5c64",
+  "deployedRuntimeRevision": "e9dd13a672e9d252b6441076e3ff99c3937cecd9",
+  "purpose": "Freeze objective private-alpha usage measures before running the local browser matrix",
+  "productionBoundary": "READ_ONLY",
+  "fixturePolicy": "PROJECT_OWNED_OR_OPEN_SYMBOLIC_ONLY",
+  "creationFunnel": [
+    "creation-page-reachable",
+    "artist-title-entered",
+    "discovery-attempted-or-skipped",
+    "candidate-result-state",
+    "candidate-selected",
+    "handoff-affirmed",
+    "symbolic-file-selected",
+    "upload-accepted",
+    "generation-completed",
+    "player-reached",
+    "export-reached"
+  ],
+  "flows": [
+    "direct-midi",
+    "direct-musicxml",
+    "discovery-assisted",
+    "no-candidates",
+    "provider-unavailable",
+    "malformed-input",
+    "retry",
+    "responsive-accessibility"
+  ],
+  "objectiveMeasures": [
+    "page-interactive-ms",
+    "candidate-search-response-ms",
+    "upload-submit-to-lesson-ready-ms",
+    "lesson-ready-to-player-ms",
+    "player-first-render-ms",
+    "midi-export-ms",
+    "musicxml-export-ms",
+    "pdf-export-ms",
+    "generation-result",
+    "http-status",
+    "error-state",
+    "retry-required",
+    "user-action-count",
+    "unexpected-navigation-count",
+    "browser-console-error-count",
+    "failed-network-request-count"
+  ],
+  "timingMethod": {
+    "clock": "browser-performance-now",
+    "runs": 3,
+    "summary": ["median", "min", "max"],
+    "singleRunAllowedFor": ["destructive-or-stateful-error-recovery"],
+    "performanceBudget": null
+  },
+  "responsiveViewports": {
+    "desktop": [1440, 900],
+    "narrowLaptop": [1024, 768],
+    "tablet": [768, 1024],
+    "mobile": [390, 844]
+  },
+  "accessibilityChecks": [
+    "critical-controls-reachable",
+    "no-clipped-critical-actions",
+    "labels-associated",
+    "keyboard-navigation",
+    "focus-behavior",
+    "status-announcements",
+    "error-announcements",
+    "disabled-controls-understandable",
+    "reduced-motion",
+    "file-removal-reset",
+    "second-song-reset"
+  ],
+  "errorClassifications": [
+    "ACTIONABLE",
+    "TECHNICAL_BUT_UNDERSTANDABLE",
+    "AMBIGUOUS",
+    "MISLEADING"
+  ],
+  "findingSeverities": [
+    "BLOCKER",
+    "HIGH_FRICTION",
+    "MINOR_FRICTION",
+    "COSMETIC",
+    "NO_ISSUE"
+  ],
+  "releaseDecisionOptions": [
+    "PRIVATE_ALPHA_READY_FOR_OWNER_USAGE",
+    "PRIVATE_ALPHA_USAGE_BLOCKER_FOUND",
+    "PRIVATE_ALPHA_USAGE_PHASE_INCONCLUSIVE"
+  ],
+  "forbidden": {
+    "productionWrites": true,
+    "productionDeployment": true,
+    "braveQuotaForSyntheticActivity": true,
+    "thirdPartyByteFetch": true,
+    "musicalPolicyChange": true,
+    "humanListening": true,
+    "compositeUxScore": true
+  }
+}

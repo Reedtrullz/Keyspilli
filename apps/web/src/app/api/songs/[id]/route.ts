@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSongDetail } from "@/lib/catalog-api";
+import { apiAuthorization } from "../../../../lib/api-auth";
 import { applySongMetadata, resolveBaseId, SongUpdateError, type SongPatch } from "@/lib/song-update";
 import { parseTempoRequest, TempoRequestError, type TempoRequestPatch } from "@/lib/tempo-request";
 import { readdir, rm } from "node:fs/promises";
@@ -23,7 +24,7 @@ function checkAuth(req: Request): Response | null {
       { status: 503 },
     );
   }
-  const auth = req.headers.get("authorization");
+  const auth = apiAuthorization(req);
   if (auth !== `Bearer ${token}`) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }

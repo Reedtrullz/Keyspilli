@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "id": "private-alpha-operational-readiness-closeout-2026-09-05",
+  "date": "2026-09-05",
+  "startingRevision": "af2c2bbe1c8282fc65c5d2cdea1838e1d5d98fe0",
+  "deployedReleaseRevision": "e9dd13a672e9d252b6441076e3ff99c3937cecd9",
+  "operationsRevision": "914dba3824d6c86bb38e3cd535884f7858d013cf",
+  "liveVerified": [
+    "EXTERNAL_SYMBOLIC_FIRST learner flow",
+    "Brave metadata discovery",
+    "metadata-only affirmed handoff",
+    "MIDI/MusicXML/MXL upload capability",
+    "real-browser same-origin mutation",
+    "six physical and five public levels",
+    "Easy and legacy Very Easy player routes",
+    "MIDI, MusicXML, simplify PDF, and classic PDF exports",
+    "restart persistence",
+    "Caddy Basic Auth",
+    "direct AMT disabled",
+    "scoped canary cleanup"
+  ],
+  "operationsVerified": [
+    "live revision and container health",
+    "disk floors",
+    "backup timer, result, and age",
+    "TLS expiry",
+    "Caddy validation",
+    "container state and restart counts",
+    "live and backup SQLite integrity",
+    "backup archive readability",
+    "source-provider outcome visibility"
+  ],
+  "recovery": {
+    "liveImageDigest": "sha256:8f29dee0bd2c28d27128eeaedb2118447024a4bd2779b787e0f2489a5adcfcdc",
+    "rollbackRevision": "67827050a695e54609f6cf3f064e4fdaaabbb65b",
+    "rollbackImageDigest": "sha256:9520812e80f70d7ede4faa8ab0f34f9060371a80748e9a7957da9cecafedc094",
+    "workerImageDigest": "sha256:fd7970bc3ae9c89d8097ca29119f138b75e8fe63f577b0861baacfd65f540215",
+    "latestBackupDatabase": "db-2026-09-05-124603.sqlite",
+    "latestBackupArchive": "artifacts-2026-09-05-124603.tar.gz",
+    "scratchDatabaseRestore": "PASS_INTEGRITY_OK_2778_SONG_ROWS_86_JOBS_0_HANDOFFS",
+    "scratchCleanup": "PASS",
+    "productionRestorePerformed": false
+  },
+  "boundedConditional": [
+    "external source availability",
+    "external source rights",
+    "score/audio alignment",
+    "symbolic-source coverage"
+  ],
+  "closedUnsupported": [
+    "direct dense-metal AMT fallback",
+    "MuScriptor production integration",
+    "automatic third-party source-byte acquisition"
+  ],
+  "currentWarning": {
+    "diskFreeGiB": 32.407,
+    "classification": "WARNING_ABOVE_30_GIB_HARD_FLOOR_BELOW_34_GIB_PREFERRED",
+    "automaticCleanup": false
+  },
+  "quality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+  "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+  "decision": "PRIVATE_ALPHA_OPERATIONALLY_HARDENED_LIVE_VERIFIED",
+  "nextGoal": "PRIVATE_ALPHA_USAGE_AND_FEEDBACK_PHASE"
+}

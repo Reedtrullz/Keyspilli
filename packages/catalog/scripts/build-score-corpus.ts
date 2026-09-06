@@ -1,0 +1,923 @@
+#!/usr/bin/env node
+/**
+ * Build a local, provenance-first score benchmark corpus from PDFs.
+ *
+ * This is intentionally an orchestration layer around benchmark-score.ts:
+ * every input PDF is read only from the local filesystem, every derived file
+ * is written below the caller's output directory, and no result is uploaded,
+ * published, or copied into the repository.  The command continues after a
+ * per-score failure so a batch report can show the complete corpus state.
+ *
+ * Example:
+ *   npm run benchmark:scores -- -w @keyspilli/catalog -- \
+ *     --out /private/tmp/keyspilli-score-corpus.run \
+ *     --pdf "/Users/reidar/Downloads/The Pretty Reckless - Kill Me.pdf" \
+ *     --pdf "/Users/reidar/Downloads/Sleep Token - Take Me Back To Eden.pdf"
+ */
+import { mkdir, readFile, realpath, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
+import { basename, dirname, extname, join, resolve } from "node:path";
+import {
+  alignSymbolicScores,
+  parseSymbolicCandidate,
+  type SymbolicAlignmentResult,
+} from "../src/symbolic-alignment.js";
+import { runResearch, type ResearchReport } from "../src/research-report.js";
+import {
+  discoverOriginalRecordings,
+  type OriginalRecordingDiscoveryReport,
+} from "../src/recording-discovery.js";
+import {
+  SCORE_BENCHMARK_SCHEMA_VERSION,
+  canonicalBenchmarkCorpusJson,
+  createBenchmarkCorpusManifest,
+  scoreCorpusManifestHash,
+  type BenchmarkCorpusSong,
+} from "../src/score-benchmark.js";
+import {
+  SCORE_LISTENING_PACK_SCHEMA_VERSION,
+  selectRotatingScoreListeningPack,
+  writeRotatingScoreListeningPackBundle,
+  type ScoreCorpusSong,
+  type ScoreListeningPack,
+} from "../src/score-listening-pack.js";
+import { sha256Hex } from "../src/fixture-evidence.js";
+import {
+  runBenchmarkScore,
+  assertOutsideRepository,
+  assertSafeOutputPath,
+  safeError,
+  type ScoreBenchmarkResult,
+  type ScoreValidationReport,
+} from "./benchmark-score.js";
+
+const EPSILON = 1e-9;
+
+interface ScoreDescriptor {
+  pdf: string;
+  id: string;
+  title: string;
+  artist: string;
+}
+
+interface ScoreCorpusBatchOptions {
+  pdfs: string[];
+  pdfDir?: string;
+  out: string;
+  audiveris?: string;
+  musescore?: string;
+  fluidsynth?: string;
+  soundfont?: string;
+  timeoutMs?: number;
+  noAudio: boolean;
+  noNotation: boolean;
+  noResearch: boolean;
+  discoverRecordings: boolean;
+  includeReview: boolean;
+  seed: string;
+  targetSeconds: number;
+  minSeconds: number;
+  maxSeconds: number;
+}
+
+interface BatchScoreResult {
+  descriptor: ScoreDescriptor;
+  result: ScoreBenchmarkResult | null;
+  error?: string;
+  research?: ResearchReport;
+  recordingDiscovery?: OriginalRecordingDiscoveryReport;
+  alignment?: SymbolicAlignmentResult;
+  sourceMetadata?: Record<string, unknown>;
+}
+
+function finite(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function round(value: number, digits = 3): number {
+  const factor = 10 ** digits;
+  const result = Math.round(value * factor) / factor;
+  return Object.is(result, -0) ? 0 : result;
+}
+
+function compareText(left: string, right: string): number {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
+function stableValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(stableValue);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .filter(([, item]) => item !== undefined)
+        .sort(([left], [right]) => compareText(left, right))
+        .map(([key, item]) => [key, stableValue(item)]),
+    );
+  }
+  return value;
+}
+
+async function writeScoreCorpusText(path: string, contents: string, root?: string): Promise<void> {
+  if (root) {
+    await assertSafeOutputPath(dirname(path), root, "output directory");
+    await mkdir(dirname(path), { recursive: true });
+    await assertSafeOutputPath(dirname(path), root, "output directory");
+    await assertSafeOutputPath(path, root, "output artifact");
+  } else {
+    await mkdir(dirname(path), { recursive: true });
+  }
+  const temporary = join(dirname(path), `.${basename(path)}.${process.pid}.${Math.random().toString(36).slice(2)}.tmp`);
+  try {
+    await writeFile(temporary, contents, { encoding: "utf8", flag: "wx" });
+    await rename(temporary, path);
+  } finally {
+    await rm(temporary, { force: true }).catch(() => undefined);
+  }
+}
+
+export async function writeScoreCorpusJson(path: string, value: unknown, root?: string): Promise<void> {
+  await writeScoreCorpusText(path, `${JSON.stringify(stableValue(value), null, 2)}\n`, root);
+}
+
+function slugify(value: string): string {
+  return value
+    .normalize("NFKD")
+    .replace(/[^\x00-\x7f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 100) || "score";
+}
+
+function optionValue(argv: readonly string[], index: number, flag: string): [string, number] {
+  const value = argv[index + 1];
+  if (!value || value.startsWith("--")) throw new Error(`${flag} requires a value`);
+  return [value, index + 1];
+}
+
+function positiveNumber(value: string, flag: string): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) throw new Error(`${flag} must be a positive finite number`);
+  return parsed;
+}
+
+function defaultMetadata(filePath: string): Omit<ScoreDescriptor, "pdf"> {
+  const name = basename(filePath).replace(/\.pdf$/i, "");
+  const lower = name.toLowerCase().replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+  let artist = "Unknown";
+  let title = name;
+  if (lower.includes("pretty reckless") && lower.includes("kill me")) {
+    artist = "The Pretty Reckless";
+    title = "Kill Me";
+  } else if (lower.includes("sleep token") && lower.includes("take me back to eden")) {
+    artist = "Sleep Token";
+    title = "Take Me Back To Eden";
+  } else if (/free bird/.test(lower)) {
+    title = "Free Bird";
+  } else if (lower.includes("gott mit uns")) {
+    artist = "Sabaton";
+    title = "Gott Mit Uns";
+  } else if (lower.includes("lifetime of war")) {
+    artist = "Sabaton";
+    title = "A Lifetime of War";
+  } else if (lower.includes("the final solution")) {
+    artist = "Sabaton";
+    title = "The Final Solution";
+  } else if (lower.includes("caroleans prayer")) {
+    artist = "Sabaton";
+    title = "The Caroleans Prayer";
+  } else if (lower.includes("christmas truce")) {
+    artist = "Sabaton";
+    title = "Christmas Truce";
+  } else if (/\b1916\b/.test(lower)) {
+    artist = "Sabaton";
+    title = "1916";
+  }
+  return { id: slugify(`${artist}-${title}`), title, artist };
+}
+
+function describePdf(pdf: string): ScoreDescriptor {
+  const metadata = defaultMetadata(pdf);
+  return { pdf, ...metadata };
+}
+
+async function expandPdfInputs(options: ScoreCorpusBatchOptions): Promise<string[]> {
+  const values = [...options.pdfs];
+  if (options.pdfDir) {
+    const root = await realpath(resolve(options.pdfDir));
+    await assertOutsideRepository(root, "PDF directory");
+    const entries = await readdir(root, { withFileTypes: true });
+    values.push(...entries.filter((entry) => entry.isFile() && extname(entry.name).toLowerCase() === ".pdf").map((entry) => join(root, entry.name)));
+  }
+  const unique = [...new Set(values.map((value) => resolve(value)))].sort(compareText);
+  if (!unique.length) throw new Error("at least one --pdf or --pdf-dir input is required");
+  const descriptors = unique.map(describePdf);
+  const ids = new Map<string, string>();
+  for (const descriptor of descriptors) {
+    const previous = ids.get(descriptor.id);
+    if (previous && previous !== descriptor.pdf) throw new Error(`PDF inputs produce duplicate logical id ${descriptor.id}`);
+    ids.set(descriptor.id, descriptor.pdf);
+  }
+  return unique;
+}
+
+function usage(): string {
+  return [
+    "Usage: build-score-corpus.ts --out DIR --pdf FILE [--pdf FILE ...] [options]",
+    "  --out DIR              local output root (must be outside the repository)",
+    "  --pdf FILE             local PDF outside the repository (repeatable)",
+    "  --pdf-dir DIR          local directory; direct .pdf files are included",
+    "  --audiveris FILE       Audiveris executable (or KEYSPILLI_AUDIVERIS)",
+    "  --musescore FILE       optional MuseScore executable",
+    "  --fluidsynth FILE      optional FluidSynth executable",
+    "  --soundfont FILE       optional SoundFont (or KEYSPILLI_SOUNDFONT)",
+    "  --timeout-ms N         per-score backend timeout (default 600000)",
+    "  --no-audio             skip FluidSynth renders",
+    "  --no-notation          skip MuseScore renders",
+    "  --no-research          skip local no-network song research metadata",
+    "  --discover-recordings  search public recording metadata only (opt-in; never downloads media)",
+    "  --exclude-review       do not include REVIEW_REQUIRED scores in the listening pack",
+    "  --seed TEXT            deterministic listening-pack seed",
+    "  --target-seconds N     listening-pack target (default 120)",
+    "  --min-seconds N        listening-pack minimum (default 90)",
+    "  --max-seconds N        listening-pack maximum (default 180)",
+  ].join("\n");
+}
+
+export function parseBatchArgs(argv: readonly string[]): ScoreCorpusBatchOptions {
+  const result: ScoreCorpusBatchOptions = {
+    pdfs: [],
+    out: "",
+    noAudio: false,
+    noNotation: false,
+    noResearch: false,
+    discoverRecordings: false,
+    includeReview: true,
+    seed: "score-corpus",
+    targetSeconds: 120,
+    minSeconds: 90,
+    maxSeconds: 180,
+  };
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index]!;
+    const equal = arg.indexOf("=");
+    const flag = equal >= 0 ? arg.slice(0, equal) : arg;
+    const inline = equal >= 0 ? arg.slice(equal + 1) : undefined;
+    const value = (): string => {
+      if (inline !== undefined) return inline;
+      const pair = optionValue(argv, index, flag);
+      index = pair[1];
+      return pair[0];
+    };
+    switch (flag) {
+      case "--pdf": result.pdfs.push(value()); break;
+      case "--pdf-dir": result.pdfDir = value(); break;
+      case "--out": result.out = value(); break;
+      case "--audiveris": result.audiveris = value(); break;
+      case "--musescore": result.musescore = value(); break;
+      case "--fluidsynth": result.fluidsynth = value(); break;
+      case "--soundfont": result.soundfont = value(); break;
+      case "--timeout-ms": result.timeoutMs = positiveNumber(value(), flag); break;
+      case "--no-audio": result.noAudio = true; break;
+      case "--no-notation": result.noNotation = true; break;
+      case "--no-research": result.noResearch = true; break;
+      case "--discover-recordings": result.discoverRecordings = true; break;
+      case "--exclude-review": result.includeReview = false; break;
+      case "--seed": result.seed = value(); break;
+      case "--target-seconds": result.targetSeconds = positiveNumber(value(), flag); break;
+      case "--min-seconds": result.minSeconds = positiveNumber(value(), flag); break;
+      case "--max-seconds": result.maxSeconds = positiveNumber(value(), flag); break;
+      case "--help": case "-h": throw new Error(usage());
+      default: throw new Error(`unknown option: ${arg}\n${usage()}`);
+    }
+  }
+  if (!result.out) throw new Error(`--out is required\n${usage()}`);
+  if (result.minSeconds > result.targetSeconds + EPSILON || result.targetSeconds > result.maxSeconds + EPSILON) {
+    throw new Error("expected --min-seconds <= --target-seconds <= --max-seconds");
+  }
+  return result;
+}
+
+function logicalArtifactPath(id: string, value: string | null | undefined): string | undefined {
+  if (!value) return undefined;
+  return `scores/${id}/${value.replaceAll("\\", "/").replace(/^\.\//, "")}`;
+}
+
+function scoreDurationSeconds(report: ScoreValidationReport): number | null {
+  const beats = report.metrics?.parsedDurationBeats;
+  const tempo = report.structure?.tempoBpm;
+  if (!finite(beats) || beats <= 0 || !finite(tempo) || tempo <= 0) return null;
+  return round((beats * 60) / tempo, 3);
+}
+
+async function readHash(path: string | undefined): Promise<{ bytes: number; sha256: string } | null> {
+  if (!path) return null;
+  try {
+    const bytes = new Uint8Array(await readFile(path));
+    return { bytes: bytes.byteLength, sha256: sha256Hex(bytes) };
+  } catch {
+    return null;
+  }
+}
+
+async function writeResearchArtifacts(
+  songOut: string,
+  descriptor: ScoreDescriptor,
+  report: ScoreValidationReport,
+): Promise<ResearchReport | undefined> {
+  const midiPath = report.artifacts.midi ? join(songOut, report.artifacts.midi) : undefined;
+  if (!midiPath) {
+    await writeScoreCorpusJson(join(songOut, "recording", "candidates.json"), {
+      schemaVersion: 1,
+      status: "unavailable",
+      mode: "metadata-only-no-network",
+      recommendation: null,
+      reason: "normalized MIDI is unavailable",
+      originalRecordingCandidates: [],
+    }, songOut);
+    return undefined;
+  }
+  try {
+    const midiBytes = new Uint8Array(await readFile(midiPath));
+    const durationSeconds = scoreDurationSeconds(report);
+    const research = await runResearch({
+      song: {
+        artist: descriptor.artist,
+        title: descriptor.title,
+        durationSeconds,
+        sourceYoutubeUrl: null,
+        version: null,
+      },
+      localCandidates: [{
+        bytes: midiBytes,
+        format: "midi",
+        id: `${descriptor.id}-normalized-midi`,
+        title: descriptor.title,
+        sourceType: "midi",
+        durationSeconds,
+      }],
+      noNetwork: true,
+    });
+    await writeScoreCorpusText(join(songOut, "recording", "research.json"), research.json, songOut);
+    await writeScoreCorpusJson(join(songOut, "recording", "candidates.json"), {
+      schemaVersion: 1,
+      status: "metadata-only-no-network",
+      mode: "metadata-only-no-network",
+      recommendation: null,
+      reason: "No online recording discovery was performed; local symbolic metadata is not an original-recording claim.",
+      originalRecordingCandidates: [],
+      localSymbolicCandidates: research.report.symbolicArtifacts.map((artifact) => ({
+        id: artifact.id,
+        format: artifact.format,
+        sha256: artifact.sha256,
+        bytes: artifact.bytes,
+        parser: artifact.parser ?? null,
+      })),
+    }, songOut);
+    return research.report;
+  } catch (error) {
+    await writeScoreCorpusJson(join(songOut, "recording", "candidates.json"), {
+      schemaVersion: 1,
+      status: "failed",
+      mode: "metadata-only-no-network",
+      recommendation: null,
+      reason: safeError(error, "local research unavailable"),
+      originalRecordingCandidates: [],
+    }, songOut);
+    return undefined;
+  }
+}
+
+/**
+ * Run the explicitly opted-in original-recording search and persist only its
+ * path-free metadata report.  This is intentionally separate from the local
+ * arrangement research artifact: the latter is always no-network, while this
+ * function is called only for --discover-recordings and uses yt-dlp flat
+ * search metadata (never an audio/video download).
+ */
+async function writeOriginalRecordingArtifacts(
+  songOut: string,
+  descriptor: ScoreDescriptor,
+  report: ScoreValidationReport,
+): Promise<OriginalRecordingDiscoveryReport> {
+  const durationSeconds = scoreDurationSeconds(report);
+  const discovery = await discoverOriginalRecordings({
+    artist: descriptor.artist,
+    title: descriptor.title,
+    durationSeconds,
+    sourceYoutubeUrl: null,
+  });
+  await writeScoreCorpusJson(
+    join(songOut, "recording", "original-recording-candidates.json"),
+    discovery,
+    songOut,
+  );
+  return discovery;
+}
+
+async function writeRoundtripAlignment(
+  songOut: string,
+  report: ScoreValidationReport,
+): Promise<SymbolicAlignmentResult | undefined> {
+  const xmlPath = report.artifacts.musicxml ? join(songOut, report.artifacts.musicxml) : undefined;
+  const midiPath = report.artifacts.midi ? join(songOut, report.artifacts.midi) : undefined;
+  if (!xmlPath || !midiPath) {
+    await writeScoreCorpusJson(join(songOut, "alignment", "roundtrip.json"), {
+      schemaVersion: 1,
+      status: "unavailable",
+      basis: "normalized MusicXML to generated MIDI roundtrip",
+      reason: "normalized MusicXML or MIDI is unavailable",
+    }, songOut);
+    return undefined;
+  }
+  try {
+    const [xml, midi] = await Promise.all([readFile(xmlPath, "utf8"), readFile(midiPath)]);
+    const reference = parseSymbolicCandidate(xml, "musicxml");
+    const candidate = parseSymbolicCandidate(new Uint8Array(midi), "midi");
+    const alignment = alignSymbolicScores(reference, candidate, {
+      offsetsBeats: [0],
+      transpositions: [0],
+      beatScales: [1],
+      allowOffset: false,
+      allowTranspose: false,
+      allowTempoStretch: false,
+      minMatchedOnsets: 1,
+    });
+    await writeScoreCorpusJson(join(songOut, "alignment", "roundtrip.json"), {
+      schemaVersion: 1,
+      status: "diagnostic-only",
+      basis: "normalized MusicXML to generated MIDI roundtrip",
+      alignment,
+    }, songOut);
+    return alignment;
+  } catch (error) {
+    await writeScoreCorpusJson(join(songOut, "alignment", "roundtrip.json"), {
+      schemaVersion: 1,
+      status: "unavailable",
+      basis: "normalized MusicXML to generated MIDI roundtrip",
+      reason: safeError(error, "roundtrip alignment unavailable"),
+    }, songOut);
+    return undefined;
+  }
+}
+
+function record(value: unknown): Record<string, unknown> | undefined {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : undefined;
+}
+
+async function corpusEntry(
+  descriptor: ScoreDescriptor,
+  result: ScoreBenchmarkResult,
+  sourceMetadata: Record<string, unknown> | undefined,
+  recordingDiscovery?: OriginalRecordingDiscoveryReport,
+): Promise<BenchmarkCorpusSong | null> {
+  const report = result.report;
+  if (!report.source.sha256) return null;
+  const references = {
+    fullScore: logicalArtifactPath(descriptor.id, report.artifacts.musicxml),
+    piano: logicalArtifactPath(descriptor.id, report.artifacts.midi),
+    harmony: logicalArtifactPath(descriptor.id, report.artifacts.notes),
+  };
+  if (!Object.values(references).some((reference) => reference !== undefined)) return null;
+  const roles = report.structure
+    ? Object.fromEntries(
+      report.structure.parts
+        .map((part) => ({ name: part.name, role: part.role }))
+        .sort((left, right) => compareText(left.name, right.name))
+        .map((part) => [part.name, part.role] as const),
+    )
+    : undefined;
+  const durationSeconds = scoreDurationSeconds(report);
+  const sourcePdf = record(sourceMetadata?.sourcePdf);
+  const provenance = record(sourceMetadata?.provenance) as BenchmarkCorpusSong["provenance"] | undefined;
+  const selectedRecording = recordingDiscovery?.recommendation
+    ? recordingDiscovery.candidates.find((candidate) => candidate.id === recordingDiscovery.recommendation)
+    : undefined;
+  const recordingVersion = recordingDiscovery?.versionAmbiguity
+    ?? "metadata-only-no-network; no original recording candidate selected";
+  return {
+    id: descriptor.id,
+    artist: descriptor.artist,
+    title: descriptor.title,
+    score: {
+      sha256: report.source.sha256,
+      ...(finite(sourcePdf?.bytes) ? { bytes: sourcePdf.bytes } : {}),
+      pages: report.source.pages ?? undefined,
+      omrStatus: report.omr.status,
+    },
+    references,
+    validation: {
+      status: report.status,
+      warnings: report.warnings.map((warning) => `${warning.code}: ${warning.message}`),
+    },
+    ...(roles && Object.keys(roles).length ? { roles } : {}),
+    ...(provenance ? { provenance } : {}),
+    recording: {
+      title: selectedRecording?.title ?? descriptor.title,
+      ...(selectedRecording?.durationSeconds !== undefined
+        ? { durationSeconds: selectedRecording.durationSeconds }
+        : durationSeconds === null ? {} : { durationSeconds }),
+      ...(selectedRecording?.id ? { selector: selectedRecording.id } : {}),
+      ...(selectedRecording ? { confidence: selectedRecording.confidence } : {}),
+      versionAmbiguity: recordingVersion,
+    },
+  };
+}
+
+function listeningSong(descriptor: ScoreDescriptor, report: ScoreValidationReport): ScoreCorpusSong | null {
+  const midi = logicalArtifactPath(descriptor.id, report.artifacts.midi);
+  if (!midi) return null;
+  const durationSeconds = scoreDurationSeconds(report);
+  if (!durationSeconds || durationSeconds <= 0) return null;
+  const wav = report.artifacts.audio.status === "PASS" ? logicalArtifactPath(descriptor.id, report.artifacts.audio.path) : undefined;
+  return {
+    id: descriptor.id,
+    artist: descriptor.artist,
+    title: descriptor.title,
+    validation: { status: report.status },
+    durationSeconds,
+    references: {
+      midi,
+      ...(wav ? { wav } : {}),
+    },
+    sections: [{
+      id: "full",
+      label: "Full normalized score",
+      role: "score-reference",
+      startSeconds: 0,
+      endSeconds: durationSeconds,
+      references: {
+        midi,
+        ...(wav ? { wav } : {}),
+      },
+    }],
+  };
+}
+
+async function runOne(
+  root: string,
+  descriptor: ScoreDescriptor,
+  options: ScoreCorpusBatchOptions,
+): Promise<BatchScoreResult> {
+  const songOut = join(root, "scores", descriptor.id);
+  try {
+    await assertSafeOutputPath(songOut, root, "score output directory");
+    const result = await runBenchmarkScore({
+      pdf: descriptor.pdf,
+      out: songOut,
+      id: descriptor.id,
+      title: descriptor.title,
+      artist: descriptor.artist,
+      ...(options.audiveris ? { audiveris: options.audiveris } : {}),
+      ...(options.musescore ? { musescore: options.musescore } : {}),
+      ...(options.fluidsynth ? { fluidsynth: options.fluidsynth } : {}),
+      ...(options.soundfont ? { soundfont: options.soundfont } : {}),
+      ...(options.timeoutMs ? { timeoutMs: options.timeoutMs } : {}),
+      noAudio: options.noAudio,
+      noNotation: options.noNotation,
+      noCorpus: true,
+    });
+    const research = options.noResearch ? undefined : await writeResearchArtifacts(songOut, descriptor, result.report);
+    const recordingDiscovery = options.discoverRecordings
+      ? await writeOriginalRecordingArtifacts(songOut, descriptor, result.report)
+      : undefined;
+    const alignment = await writeRoundtripAlignment(songOut, result.report);
+    let sourceMetadata: Record<string, unknown> | undefined;
+    try {
+      sourceMetadata = record(JSON.parse(await readFile(join(songOut, "source-metadata.json"), "utf8")));
+    } catch {
+      sourceMetadata = undefined;
+    }
+    return { descriptor, result, research, recordingDiscovery, alignment, sourceMetadata };
+  } catch (error) {
+    await writeScoreCorpusJson(join(songOut, "batch-error.json"), {
+      schemaVersion: 1,
+      status: "FAILED",
+      reason: safeError(error),
+    }, songOut);
+    return { descriptor, result: null, error: safeError(error) };
+  }
+}
+
+interface ScoreCorpusTableRow {
+  id: string;
+  artist: string;
+  title: string;
+  status: string;
+  manualReview: string;
+  sourcePdf: string | null;
+  sourceSha256: string | null;
+  omr: { status: string; backend: string | null; version: string | null };
+  musicXml: { status: string; ref: string | null };
+  midi: { status: string; ref: string | null };
+  audio: {
+    status: string;
+    ref: string | null;
+    renderer: ScoreValidationReport["artifacts"]["audio"]["renderer"] | null;
+  };
+  notation: {
+    status: string;
+    ref: string | null;
+    renderer: ScoreValidationReport["artifacts"]["notation"]["renderer"] | null;
+  };
+  structure: {
+    measures: number | null;
+    notes: number | null;
+    parts: number | null;
+    staves: number | null;
+    voices: number | null;
+    tempoBpm: number | null;
+    timeSignatures: Array<[number, number]>;
+    keySignatures: Array<{ fifths: number; mode: string }>;
+    roles: Array<{
+      id: string;
+      name: string;
+      role: string;
+      roleConfidence: string;
+      staves: number[];
+      voices: number;
+      measures: number;
+    }>;
+  };
+  warnings: string[];
+  warningCodes: string[];
+  errors: string[];
+  report: string;
+  alignment: { status: string; confidence: number | null };
+  recording: string;
+}
+
+function scoreCorpusTableRow(entry: BatchScoreResult): ScoreCorpusTableRow {
+  const report = entry.result?.report;
+  const status = report?.status ?? "FAILED";
+  const warningRecords = report?.warnings ?? [];
+  const warnings = warningRecords.map((warning) => `${warning.code}: ${warning.message}`);
+  const warningCodes = [...new Set(warningRecords.map((warning) => warning.code))].sort(compareText);
+  const structure = report?.structure;
+  const metrics = report?.metrics;
+  const artifact = (
+    path: string | null | undefined,
+    artifactStatus?: string,
+    renderer?: ScoreValidationReport["artifacts"]["audio"]["renderer"],
+  ) => ({
+    status: path ? "PASS" : artifactStatus ?? "UNAVAILABLE",
+    ref: path ? `scores/${entry.descriptor.id}/${path.replaceAll("\\", "/").replace(/^\.\//, "")}` : null,
+    renderer: renderer ?? null,
+  });
+  return {
+    id: entry.descriptor.id,
+    artist: entry.descriptor.artist,
+    title: entry.descriptor.title,
+    status,
+    manualReview: report?.manualReview ?? "not-reviewed",
+    sourcePdf: report?.source.fileName ?? null,
+    sourceSha256: report?.source.sha256 ?? null,
+    omr: {
+      status: report?.omr.status ?? "FAILED",
+      backend: report?.omr.backend ?? null,
+      version: report?.omr.version ?? null,
+    },
+    musicXml: artifact(report?.artifacts.musicxml),
+    midi: artifact(report?.artifacts.midi),
+    audio: artifact(report?.artifacts.audio?.path, report?.artifacts.audio?.status, report?.artifacts.audio?.renderer),
+    notation: artifact(report?.artifacts.notation?.path, report?.artifacts.notation?.status, report?.artifacts.notation?.renderer),
+    structure: {
+      measures: structure?.measureCount ?? null,
+      notes: metrics?.parsedNotes ?? null,
+      parts: structure?.partCount ?? null,
+      staves: structure?.staffCount ?? null,
+      voices: structure?.voiceCount ?? null,
+      tempoBpm: structure?.tempoBpm ?? null,
+      timeSignatures: structure?.timeSignatures ?? [],
+      keySignatures: structure?.keySignatures ?? [],
+      roles: (structure?.parts ?? []).map((part) => ({
+        id: part.id,
+        name: part.name,
+        role: part.role,
+        roleConfidence: part.roleConfidence,
+        staves: [...part.staves],
+        voices: part.voiceCount,
+        measures: part.measureCount,
+      })),
+    },
+    warnings,
+    warningCodes,
+    errors: report?.errors ?? (entry.error ? [entry.error] : []),
+    report: `scores/${entry.descriptor.id}/validation/report.md`,
+    alignment: entry.alignment
+      ? { status: entry.alignment.status, confidence: finite(entry.alignment.confidence) ? entry.alignment.confidence : null }
+      : { status: "unavailable", confidence: null },
+    recording: entry.recordingDiscovery
+      ? `metadata-only-discovery:${entry.recordingDiscovery.status}`
+      : "metadata-only-no-network",
+  };
+}
+
+function markdownCell(value: unknown): string {
+  return String(value ?? "—").replaceAll("|", "\\|").replaceAll("\n", " ");
+}
+
+function scoreCorpusSummaryMarkdown(rows: readonly ScoreCorpusTableRow[]): string {
+  const lines = [
+    "# Score corpus conversion table",
+    "",
+    "This table is local benchmark evidence. OMR output is not ground truth; every score remains unreviewed until a human checks the notation.",
+    "",
+    "| Song | OMR | MusicXML | MIDI | Validation | Warnings |",
+    "| --- | --- | --- | --- | --- | ---: |",
+  ];
+  for (const row of rows) {
+    const label = `${row.artist} — ${row.title}`;
+    const warnings = row.warningCodes.length
+      ? `${row.warnings.length} (${row.warningCodes.slice(0, 4).join(", ")}${row.warningCodes.length > 4 ? ", …" : ""})`
+      : "0";
+    lines.push(
+      `| [${markdownCell(label)}](${row.report}) | ${markdownCell(`${row.omr.status}${row.omr.version ? ` ${row.omr.version}` : ""}`)} | ${markdownCell(row.musicXml.status)} | ${markdownCell(row.midi.status)} | ${markdownCell(`${row.status} / ${row.manualReview}`)} | ${markdownCell(warnings)} |`,
+    );
+  }
+  lines.push(
+    "",
+    "## Per-score structure",
+    "",
+    "| Song | Measures | Notes | Parts | Staves | Voices | Tempo | Time signatures | Key signatures | Roles |",
+    "| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- | --- |",
+  );
+  for (const row of rows) {
+    const roles = row.structure.roles.length
+      ? row.structure.roles.map((part) => `${part.name}: ${part.role} (${part.roleConfidence}), staff ${part.staves.join(",")}`).join("; ")
+      : "—";
+    const times = row.structure.timeSignatures.length ? row.structure.timeSignatures.map((time) => time.join("/")).join(", ") : "—";
+    const keys = row.structure.keySignatures.length ? row.structure.keySignatures.map((key) => `${key.fifths}/${key.mode}`).join(", ") : "—";
+    lines.push(`| ${markdownCell(`${row.artist} — ${row.title}`)} | ${markdownCell(row.structure.measures)} | ${markdownCell(row.structure.notes)} | ${markdownCell(row.structure.parts)} | ${markdownCell(row.structure.staves)} | ${markdownCell(row.structure.voices)} | ${markdownCell(row.structure.tempoBpm)} | ${markdownCell(times)} | ${markdownCell(keys)} | ${markdownCell(roles)} |`);
+  }
+  lines.push(
+    "",
+    "Full warning text, source hashes, role metadata, and artifact references are in each linked validation report and `score-table.json`.",
+    "",
+  );
+  return lines.join("\n");
+}
+
+function emptyListeningPack(
+  seed: string,
+  reason: string,
+  options: Pick<ScoreCorpusBatchOptions, "targetSeconds" | "minSeconds" | "maxSeconds">,
+): ScoreListeningPack {
+  return {
+    schemaVersion: SCORE_LISTENING_PACK_SCHEMA_VERSION,
+    kind: "score-rotating-listening-pack",
+    packId: `score-pack-${slugify(seed)}`,
+    seed,
+    targetSeconds: options.targetSeconds,
+    minSeconds: options.minSeconds,
+    maxSeconds: options.maxSeconds,
+    totalSeconds: 0,
+    status: "insufficient",
+    songs: [],
+    excerpts: [],
+    warnings: [reason],
+  };
+}
+
+async function buildBatch(options: ScoreCorpusBatchOptions): Promise<Record<string, unknown>> {
+  const output = resolve(options.out);
+  await assertSafeOutputPath(output, output, "output directory");
+  await mkdir(output, { recursive: true });
+  await assertSafeOutputPath(output, output, "output directory");
+  const pdfPaths = await expandPdfInputs(options);
+  const descriptors = pdfPaths.map(describePdf).sort((left, right) => compareText(left.id, right.id));
+  const results: BatchScoreResult[] = [];
+  for (const descriptor of descriptors) {
+    // Deliberately sequential: Audiveris and FluidSynth are CPU/memory heavy,
+    // and a batch should not change the machine's resource profile by default.
+    results.push(await runOne(output, descriptor, options));
+  }
+
+  const corpusSongs = (await Promise.all(results
+    .filter((entry): entry is BatchScoreResult & { result: ScoreBenchmarkResult } => entry.result !== null)
+    .map((entry) => corpusEntry(entry.descriptor, entry.result, entry.sourceMetadata, entry.recordingDiscovery))))
+    .filter((entry): entry is BenchmarkCorpusSong => entry !== null)
+    .sort((left, right) => compareText(left.id, right.id));
+  const corpus = createBenchmarkCorpusManifest({ songs: corpusSongs });
+  await writeScoreCorpusJson(join(output, "benchmark-corpus.json"), JSON.parse(`${canonicalBenchmarkCorpusJson(corpus)}\n`), output);
+  const scoreTable = results
+    .map(scoreCorpusTableRow)
+    .sort((left, right) => compareText(left.id, right.id));
+  await writeScoreCorpusJson(join(output, "score-table.json"), {
+    schemaVersion: 1,
+    rows: scoreTable,
+  }, output);
+  const summary = {
+    schemaVersion: SCORE_BENCHMARK_SCHEMA_VERSION,
+    status: results.every((entry) => entry.result?.status === "PASS" || entry.result?.status === "PASS_WITH_WARNINGS") ? "complete" : "review-required",
+    corpusManifestSha256: scoreCorpusManifestHash(corpus),
+    scoreTable: "score-table.json",
+    scoreTableMarkdown: "corpus-summary.md",
+    scores: results.map((entry) => ({
+      id: entry.descriptor.id,
+      artist: entry.descriptor.artist,
+      title: entry.descriptor.title,
+      status: entry.result?.status ?? "FAILED",
+      sourceSha256: entry.result?.report.source.sha256 ?? null,
+      report: `scores/${entry.descriptor.id}/validation/report.json`,
+      alignment: entry.alignment ? { status: entry.alignment.status, confidence: entry.alignment.confidence } : { status: "unavailable" },
+      recording: entry.recordingDiscovery
+        ? {
+          status: entry.recordingDiscovery.status,
+          recommendation: entry.recordingDiscovery.recommendation,
+          report: `scores/${entry.descriptor.id}/recording/original-recording-candidates.json`,
+        }
+        : { status: "metadata-only-no-network", recommendation: null },
+      error: entry.error ?? null,
+      warnings: entry.result?.report.warnings.map((warning) => `${warning.code}: ${warning.message}`) ?? [],
+    })).sort((left, right) => compareText(left.id, right.id)),
+    nonClaims: [
+      "OMR output is not ground truth; no score was manually corrected in this batch.",
+      options.discoverRecordings
+        ? "Original-recording discovery was metadata-only and opt-in; no audio/video was downloaded. Selection remains fail-closed when versions are ambiguous."
+        : "Recording research was metadata-only and no-network; no original recording was selected or fetched.",
+      "Roundtrip alignment is diagnostic-only and is not evidence of musical correctness.",
+      "All paths in this manifest are logical local-corpus references; source PDFs remain outside the repository.",
+    ],
+  };
+  await writeScoreCorpusJson(join(output, "corpus-summary.json"), summary, output);
+  await writeScoreCorpusText(join(output, "corpus-summary.md"), `${scoreCorpusSummaryMarkdown(scoreTable)}\n`, output);
+
+  const listeningSongs = results
+    .filter((entry): entry is BatchScoreResult & { result: ScoreBenchmarkResult } => entry.result !== null)
+    .map((entry) => listeningSong(entry.descriptor, entry.result.report))
+    .filter((entry): entry is ScoreCorpusSong => entry !== null)
+    .sort((left, right) => compareText(left.id, right.id));
+  await writeScoreCorpusJson(join(output, "listening-pack-input.json"), {
+    schemaVersion: 1,
+    selection: {
+      seed: options.seed,
+      targetSeconds: options.targetSeconds,
+      minSeconds: options.minSeconds,
+      maxSeconds: options.maxSeconds,
+      includeReviewRequired: options.includeReview,
+    },
+    songs: listeningSongs,
+  }, output);
+  let pack: ScoreListeningPack;
+  try {
+    pack = selectRotatingScoreListeningPack(listeningSongs, {
+      seed: options.seed,
+      targetSeconds: options.targetSeconds,
+      minSeconds: options.minSeconds,
+      maxSeconds: options.maxSeconds,
+      includeReviewRequired: options.includeReview,
+    });
+  } catch (error) {
+    pack = emptyListeningPack(options.seed, safeError(error, "not enough usable score sections for a listening pack"), options);
+  }
+  await assertSafeOutputPath(join(output, "listening-pack"), output, "listening-pack output directory");
+  await writeRotatingScoreListeningPackBundle(join(output, "listening-pack"), pack);
+  await assertSafeOutputPath(join(output, "listening-pack"), output, "listening-pack output directory");
+
+  const roundtrips = results.map((entry) => ({
+    id: entry.descriptor.id,
+    status: entry.alignment ? "diagnostic-only" : "unavailable",
+    alignmentStatus: entry.alignment?.status ?? null,
+    confidence: entry.alignment?.confidence ?? null,
+  })).sort((left, right) => compareText(left.id, right.id));
+  await writeScoreCorpusJson(join(output, "alignment", "coverage-summary.json"), {
+    schemaVersion: 1,
+    referenceStatus: "alignment-required",
+    referenceReason: "No trusted external symbolic reference and no explicit beat/bar anchors were supplied to this batch.",
+    roundtrips,
+  }, output);
+  return {
+    status: summary.status,
+    output,
+    corpusManifest: "benchmark-corpus.json",
+    listeningPack: "listening-pack/manifest.json",
+    scoreTable: "score-table.json",
+    scoreTableMarkdown: "corpus-summary.md",
+    listeningPackWorksheet: "listening-pack/LISTENING.md",
+    scoreCount: descriptors.length,
+    reviewRequiredCount: results.filter((entry) => entry.result?.status === "REVIEW_REQUIRED").length,
+    failedCount: results.filter((entry) => !entry.result || entry.result.status === "FAILED").length,
+  };
+}
+
+export async function runScoreCorpusBatch(argv: readonly string[]): Promise<number> {
+  let options: ScoreCorpusBatchOptions;
+  try {
+    options = parseBatchArgs(argv);
+  } catch (error) {
+    process.stderr.write(`${safeError(error, usage())}\n`);
+    return 2;
+  }
+  try {
+    const result = await buildBatch(options);
+    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    return result.failedCount === 0 ? 0 : 1;
+  } catch (error) {
+    process.stderr.write(`${safeError(error)}\n`);
+    return 1;
+  }
+}
+
+if (process.argv[1] && (process.argv[1].endsWith("build-score-corpus.ts") || process.argv[1].endsWith("build-score-corpus.js"))) {
+  void runScoreCorpusBatch(process.argv.slice(2)).then((code) => { process.exitCode = code; });
+}

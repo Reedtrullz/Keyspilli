@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   parseMidi,
+  midiBeatToNativeSeconds,
+  midiTickToNativeSeconds,
   quantize,
   splitHands,
   detectKey,
@@ -134,6 +136,75 @@ describe("parseMidi", () => {
     expect(m.tempoMetaPresent).toBe(false);
   });
 
+  it("preserves native tempo events and converts beats through the tempo map", () => {
+    const payload = [
+      0x00, 0xff, 0x51, 0x03, 0x07, 0xa1, 0x20, // 120 BPM at beat 0
+      0x00, 0x90, 0x3c, 0x64,
+      0x83, 0x60, 0x80, 0x3c, 0x40,
+      0x00, 0xff, 0x51, 0x03, 0x0f, 0x42, 0x40, // 60 BPM at beat 1
+      0x00, 0x90, 0x3e, 0x64,
+      0x83, 0x60, 0x80, 0x3e, 0x40,
+      0x00, 0xff, 0x2f, 0x00,
+    ];
+    const bytes = new Uint8Array([
+      0x4d, 0x54, 0x68, 0x64, 0x00, 0x00, 0x00, 0x06, 0x00, 0x01, 0x00, 0x01, 0x01, 0xe0,
+      0x4d, 0x54, 0x72, 0x6b,
+      (payload.length >>> 24) & 0xff, (payload.length >>> 16) & 0xff, (payload.length >>> 8) & 0xff, payload.length & 0xff,
+      ...payload,
+    ]);
+    const parsed = parseMidi(bytes);
+    expect(parsed.tempoEvents).toEqual([
+      { tick: 0, beat: 0, microsecondsPerQuarter: 500_000, bpm: 120 },
+      { tick: 480, beat: 1, microsecondsPerQuarter: 1_000_000, bpm: 60 },
+    ]);
+    expect(midiBeatToNativeSeconds(parsed, 1)).toBeCloseTo(0.5, 8);
+    expect(midiBeatToNativeSeconds(parsed, 2)).toBeCloseTo(1.5, 8);
+  });
+
+  it("rejects a zero MIDI division instead of producing invalid beat coordinates", () => {
+    const bytes = new Uint8Array(SCALE_MIDI);
+    bytes[12] = 0;
+    bytes[13] = 0;
+    expect(() => parseMidi(bytes)).toThrow(/division/i);
+  });
+
+  it("uses MIDI's default 120 BPM before a tempo event that starts later", () => {
+    const parsed: ParsedMidi = {
+      format: 1,
+      division: 480,
+      tempoBpm: 60,
+      tempoMetaPresent: true,
+      tempoEvents: [{ tick: 480, beat: 1, microsecondsPerQuarter: 1_000_000, bpm: 60 }],
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes: [],
+      trackNames: [],
+      durationBeats: 0,
+    };
+    expect(midiTickToNativeSeconds(parsed, 240)).toBeCloseTo(0.25, 8);
+    expect(midiTickToNativeSeconds(parsed, 720)).toBeCloseTo(1, 8);
+  });
+
+  it("consumes system-common messages before continuing with channel events", () => {
+    const payload = [
+      0x00, 0xf1, 0x7f,
+      0x00, 0xf2, 0x01, 0x02,
+      0x00, 0xf3, 0x01,
+      0x00, 0xf6,
+      0x00, 0x90, 0x3c, 0x64,
+      0x83, 0x60, 0x80, 0x3c, 0x40,
+      0x00, 0xff, 0x2f, 0x00,
+    ];
+    const bytes = new Uint8Array([
+      0x4d, 0x54, 0x68, 0x64, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0x01, 0x01, 0xe0,
+      0x4d, 0x54, 0x72, 0x6b,
+      (payload.length >>> 24) & 0xff, (payload.length >>> 16) & 0xff, (payload.length >>> 8) & 0xff, payload.length & 0xff,
+      ...payload,
+    ]);
+    expect(parseMidi(bytes).notes.map((note) => note.midi)).toEqual([60]);
+  });
+
   it("preserves RH/LH track labels on parsed notes", () => {
     const bytes = writeMidi(
       [
@@ -262,6 +333,22 @@ describe("writeMidi roundtrip", () => {
     const bytes = writeMidi([{ midi: 60, start: 0, dur: 1, vel: 0 }], { tempoBpm: 120 });
     expect(parseMidi(bytes).notes).toHaveLength(0);
   });
+
+  it("writes explicit instrument programs and channel-10 percussion tracks", () => {
+    const guitar: Note[] = [{ midi: 52, start: 0, dur: 0.5, vel: 100 }];
+    const drums: Note[] = [{ midi: 36, start: 0, dur: 0.125, vel: 110 }];
+    const bytes = writeMidi([...guitar, ...drums], {
+      tempoBpm: 160,
+      tracks: [
+        { name: "Rhythm Guitar", notes: guitar, channel: 1, program: 30 },
+        { name: "Drums", notes: drums, percussion: true },
+      ],
+    });
+    const parsed = parseMidi(bytes);
+    expect(parsed.notes.map((note) => note.midi)).toEqual([52]);
+    expect(parsed.trackNames).toEqual(["Rhythm Guitar", "Drums"]);
+    expect([...bytes]).toEqual(expect.arrayContaining([0xc1, 30, 0x99, 36, 110]));
+  });
 });
 
 describe("quantize", () => {
@@ -276,6 +363,24 @@ describe("quantize", () => {
     expect(q[0]!.start).toBe(0);
     expect(q.find((n) => n.midi === 60)!.dur).toBeGreaterThanOrEqual(0.48);
     expect(q.find((n) => n.midi === 62)!.start).toBe(0.25);
+  });
+
+  it("keeps collision metadata deterministic when source notes are reordered", () => {
+    const notes: Note[] = [
+      { midi: 60, start: 0.01, dur: 0.4, vel: 72, hand: "R", identitySource: "guitar" },
+      { midi: 60, start: 0.02, dur: 0.8, vel: 84, hand: "L", identitySource: "vocals" },
+    ];
+    const forward = quantize(notes, { grid: 0.25 });
+    const reverse = quantize([...notes].reverse(), { grid: 0.25 });
+    expect(reverse).toEqual(forward);
+    expect(forward).toEqual([expect.objectContaining({
+      midi: 60,
+      start: 0,
+      dur: 0.75,
+      vel: 84,
+      hand: "L",
+      identitySource: "vocals",
+    })]);
   });
 
   it("drops sub-minDur ghosts instead of inflating them", () => {
@@ -442,6 +547,250 @@ describe("buildVariants", () => {
     expect(learner.notes.some((n) => n.hand !== "L" && n.midi >= 72)).toBe(true);
   });
 
+  it("keeps the lower principal melody when quiet high decorations alternate at the same Easy onsets", () => {
+    const principal = [68, 68, 70, 68, 72, 72, 74, 72, 68, 68, 70, 68, 72, 72, 74, 72];
+    const decorations = [76, 77, 76, 77, 76, 77, 76, 77, 76, 77, 76, 77, 76, 77, 76, 77];
+    const notes = Array.from({ length: 16 }, (_, i) => {
+      const start = i * 0.5;
+      return [
+        { midi: 40, start, dur: 0.4, vel: 90 },
+        { midi: principal[i]!, start, dur: 0.4, vel: 105 },
+        { midi: decorations[i]!, start, dur: 0.125, vel: 20 },
+      ];
+    }).flat();
+    const variants = buildVariants(
+      {
+        format: 0,
+        division: 480,
+        tempoBpm: 120,
+        keySig: 0,
+        keyMode: 0,
+        timeSig: [4, 4],
+        notes,
+        trackNames: ["Piano"],
+        durationBeats: 8,
+      },
+      { title: "Principal melody", artist: "Test" },
+      { arrangementProfile: "learner" },
+    );
+    const byLevel = new Map(variants.map((variant) => [variant.level, variant]));
+    const rh = (level: "easy" | "medium" | "advanced") =>
+      byLevel.get(level)!.notes.filter((note) => note.hand !== "L");
+    const richRh = principal.flatMap((midi, i) => [midi, decorations[i]!]);
+
+    expect(rh("advanced").map((note) => note.midi)).toEqual(richRh);
+    expect(rh("medium").map((note) => note.midi)).toEqual(richRh);
+    expect(rh("easy").map((note) => note.midi)).toEqual(principal);
+  });
+
+  it("does not let a sustained re-triggered pad displace a moving Easy melody", () => {
+    const melody = [66, 67, 68, 69, 71, 72, 73, 74];
+    const notes = melody.flatMap((midi, index) => [
+      { midi, start: index * 0.5, dur: 0.5, vel: 80, hand: "R" as const },
+      { midi: 70, start: index * 0.5, dur: 1, vel: 90, hand: "R" as const },
+    ]);
+    const variants = buildVariants(
+      {
+        format: 0,
+        division: 480,
+        tempoBpm: 120,
+        keySig: 0,
+        keyMode: 0,
+        timeSig: [4, 4],
+        notes,
+        trackNames: ["Piano"],
+        durationBeats: 4,
+      },
+      { title: "Moving melody and pad", artist: "Test" },
+      { arrangementProfile: "learner", maxDurBeats: null },
+    );
+    const easy = variants.find((variant) => variant.level === "easy")!;
+    expect(easy.notes.filter((note) => note.hand !== "L").map((note) => note.midi)).toEqual(melody);
+  });
+
+  it("preserves learner Easy harmonic pitch classes instead of collapsing every bass attack to the key", () => {
+    const notes: Note[] = [];
+    for (let i = 0; i < 16; i++) {
+      const start = i * 0.5;
+      notes.push({ midi: 72 + (i % 2), start, dur: 0.4, vel: 90, hand: "R" });
+      notes.push({ midi: i < 8 ? 48 : 55, start, dur: 0.4, vel: 70, hand: "L" });
+      notes.push({ midi: i < 8 ? 52 : 59, start, dur: 0.4, vel: 65, hand: "L" });
+    }
+    const src: ParsedMidi = {
+      format: 1,
+      division: 480,
+      tempoBpm: 120,
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes,
+      trackNames: ["RH", "LH"],
+      durationBeats: 8,
+    };
+    const variants = buildVariants(src, { title: "Learner harmony", artist: "Test", key: "C" }, {
+      arrangementProfile: "learner",
+      maxDurBeats: null,
+    });
+    const easy = variants.find((variant) => variant.level === "easy")!;
+    const medium = variants.find((variant) => variant.level === "medium")!;
+    const easyLh = easy.notes.filter((note) => note.hand === "L");
+    const mediumLh = medium.notes.filter((note) => note.hand === "L");
+    expect(new Set(easyLh.map((note) => note.midi % 12))).toEqual(new Set(mediumLh.map((note) => note.midi % 12)));
+    expect(new Set(easyLh.map((note) => note.midi % 12))).toEqual(new Set([0, 4, 7, 11]));
+    expect(easyLh.length).toBeGreaterThanOrEqual(16);
+  });
+
+  it("emits deterministic learner lineage at the actual Easy boundaries", () => {
+    const notes: Note[] = [
+      { midi: 40, start: 0, dur: 0.4, vel: 70, hand: "L" },
+      { midi: 68, start: 0, dur: 0.4, vel: 100, hand: "R" },
+      { midi: 76, start: 0, dur: 0.125, vel: 20, hand: "R" },
+      { midi: 70, start: 0.5, dur: 0.4, vel: 100, hand: "R" },
+      { midi: 78, start: 0.5, dur: 0.125, vel: 20, hand: "R" },
+    ];
+    const input = {
+      format: 0,
+      division: 480,
+      tempoBpm: 120,
+      keySig: 0,
+      keyMode: 0 as const,
+      timeSig: [4, 4] as [number, number],
+      notes,
+      trackNames: ["Piano"],
+      durationBeats: 2,
+    } satisfies ParsedMidi;
+    const collect = (source: ParsedMidi) => {
+      const trace: Array<{ key: string; stage: string; parentKeys: string[]; selected?: boolean; operation?: string; selectionReason?: string }> = [];
+      buildVariants(source, { title: "Trace", artist: "Test" }, {
+        arrangementProfile: "learner",
+        trace: { record: (event) => trace.push(event) },
+      });
+      return trace;
+    };
+    const first = collect(input);
+    const second = collect({ ...input, notes: [...notes].reverse() });
+    expect(first).toEqual(second);
+    expect(new Set(first.map((event) => event.stage))).toEqual(
+      new Set([
+        "raw", "cleaned", "learner-arranged", "advanced-candidates", "advanced-playable",
+        "medium-candidates", "medium-playable", "easy-rh-input", "easy-lh-input", "onset-group",
+        "selector-input", "easy-voice-selection", "decision", "easy-assembled", "easy-playable",
+        "easy-ladder", "very-easy-rh-input", "very-easy-playable", "beginner-rh-input",
+        "beginner-rh-selected", "beginner-assembled", "beginner-playable", "beginner-ladder",
+        "beginner-final", "final", "difficulty",
+      ]),
+    );
+    expect(first.some((event) => event.selected === false && event.stage !== "raw")).toBe(true);
+    expect(first.filter((event) => event.stage !== "difficulty").every((event) => event.operation)).toBe(true);
+    expect(first.filter((event) => event.selected === false).every((event) => event.selectionReason)).toBe(true);
+    const lineage = first.filter((event) => event.stage !== "difficulty");
+    const keys = new Set(lineage.map((event) => event.key));
+    expect(lineage.every((event) => event.parentKeys.every((parent) => keys.has(parent)))).toBe(true);
+    expect(first.filter((event) => event.stage === "difficulty")
+      .every((event) => event.parentKeys.every((parent) => keys.has(parent)))).toBe(true);
+    const easy = buildVariants(input, { title: "Trace", artist: "Test" }, {
+      arrangementProfile: "learner",
+      trace: { record: () => undefined },
+    }).find((variant) => variant.level === "easy")!;
+    expect(easy.notes.every((note) => !(note as Note & { learnerTraceRefs?: unknown }).learnerTraceRefs)).toBe(true);
+  });
+
+  it("records a collapsed parent set when quantization merges duplicate source attacks", () => {
+    const input: ParsedMidi = {
+      format: 0,
+      division: 480,
+      tempoBpm: 120,
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes: [
+        { midi: 60, start: 0.01, dur: 0.4, vel: 70 },
+        { midi: 60, start: 0.02, dur: 0.8, vel: 80 },
+        { midi: 72, start: 0.5, dur: 0.4, vel: 100 },
+      ],
+      trackNames: ["Piano"],
+      durationBeats: 2,
+    };
+    const trace: Array<{ stage: string; parentKeys: string[]; operation?: string }> = [];
+    buildVariants(input, { title: "Duplicate trace", artist: "Test" }, {
+      arrangementProfile: "learner",
+      maxDurBeats: null,
+      trace: { record: (event) => trace.push(event) },
+    });
+    const merged = trace.find((event) => event.stage === "learner-arranged" && event.operation === "MERGED");
+    expect(merged).toBeDefined();
+    expect(merged!.parentKeys).toHaveLength(2);
+    expect(trace.filter((event) => event.stage === "raw")).toHaveLength(3);
+  });
+
+  it("classifies a learner range move as an octave shift", () => {
+    const trace: Array<{ stage: string; operation?: string; parentKeys: string[] }> = [];
+    const variants = buildVariants({
+      format: 0,
+      division: 480,
+      tempoBpm: 120,
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes: [
+        { midi: 9, start: 0, dur: 1, vel: 90, hand: "R" },
+        { midi: 60, start: 1, dur: 1, vel: 90, hand: "R" },
+      ],
+      trackNames: ["Range trace"],
+      durationBeats: 2,
+    }, { title: "Range trace", artist: "Test" }, {
+      arrangementProfile: "learner",
+      maxDurBeats: null,
+      trace: { record: (event) => trace.push(event) },
+    });
+    expect(trace.some((event) => event.operation === "OCTAVE_SHIFTED" && event.parentKeys.length > 0)).toBe(true);
+    expect(variants.every((variant) => variant.notes.every((note) => note.midi >= 21 && note.midi <= 108))).toBe(true);
+  });
+
+  it("labels difficulty-stage timing changes and keeps all merged parents", () => {
+    const trace: Array<{ stage: string; operation?: string; parentKeys: string[]; key: string }> = [];
+    buildVariants({
+      format: 0,
+      division: 480,
+      tempoBpm: 120,
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes: [{ midi: 60, start: 0, dur: 0.41, vel: 80, hand: "R" }],
+      trackNames: ["Difficulty trace"],
+      durationBeats: 2,
+    }, { title: "Difficulty trace", artist: "Test" }, {
+      arrangementProfile: "learner",
+      trace: { record: (event) => trace.push(event) },
+    });
+    const changed = trace.find((event) => event.key.startsWith("difficulty:easy:"));
+    expect(changed?.operation).toBe("DURATION_CHANGED");
+    expect(changed?.parentKeys).toHaveLength(1);
+
+    const mergedTrace: typeof trace = [];
+    buildVariants({
+      format: 0,
+      division: 480,
+      tempoBpm: 120,
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes: [
+        { midi: 60, start: 0.01, dur: 0.4, vel: 70 },
+        { midi: 60, start: 0.02, dur: 0.8, vel: 80 },
+      ],
+      trackNames: ["Difficulty merge trace"],
+      durationBeats: 2,
+    }, { title: "Difficulty merge trace", artist: "Test" }, {
+      arrangementProfile: "learner",
+      maxDurBeats: null,
+      trace: { record: (event) => mergedTrace.push(event) },
+    });
+    const merged = mergedTrace.find((event) => event.key.startsWith("difficulty:easy:") && event.operation === "MERGED");
+    expect(merged).toBeDefined();
+    expect(merged?.parentKeys).toHaveLength(2);
+  });
+
   it("keeps recurring mid-register accompaniment in the LH when the largest pitch gap is misleading", () => {
     const notes: Note[] = [];
     for (let i = 0; i < 24; i++) {
@@ -483,6 +832,33 @@ describe("buildVariants", () => {
     const curated = buildVariants(input, { title: "Curated", artist: "Test" }, { arrangementProfile: "learner" })
       .find((v) => v.level === "advanced")!;
     expect(curated.warnings ?? []).not.toContain("learner inner-voice redistribution applied (inferred staff assignment)");
+  });
+
+  it("does not promote unsafe LH role evidence into generic learner Beginner", () => {
+    const notes: Array<Note & { role?: string }> = [
+      { midi: 72, start: 0, dur: 1, vel: 100, hand: "R" },
+      { midi: 74, start: 2, dur: 1, vel: 100, hand: "R" },
+      { midi: 76, start: 4, dur: 1, vel: 100, hand: "R" },
+      { midi: 78, start: 6, dur: 1, vel: 100, hand: "R" },
+      { midi: 40, start: 0, dur: 1, vel: 80, hand: "L", identitySource: "guitar", role: "structural-lh" },
+      { midi: 41, start: 2, dur: 1, vel: 80, hand: "L", identitySource: "guitar", role: "decorative" },
+      { midi: 42, start: 2, dur: 1, vel: 80, hand: "L", identitySource: "bass" as unknown as Note["identitySource"] },
+      { midi: 42, start: 4, dur: 1, vel: 80, hand: "L", identitySource: "guitar", role: "repeated-filler" },
+      { midi: 43, start: 6, dur: 1, vel: 80, hand: "L", identitySource: "guitar", role: "structural-lh" },
+    ];
+    const variants = buildVariants({
+      format: 1,
+      division: 480,
+      tempoBpm: 120,
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes,
+      trackNames: ["role-aware"],
+      durationBeats: 8,
+    }, { title: "Role-aware", artist: "Test" }, { arrangementProfile: "learner", maxDurBeats: null });
+    const beginner = variants.find((variant) => variant.level === "beginner")!;
+    expect(beginner.notes.filter((note) => note.hand === "L").map((note) => [note.start, note.midi])).toEqual([[0, 40], [6, 43]]);
   });
 
   it("keeps sparse semantic LH anchors in metal beginner levels without changing learner levels", () => {
@@ -536,10 +912,23 @@ describe("buildVariants", () => {
     const beginner = byLevel.get("beginner")!;
     const veryBeginner = byLevel.get("very-beginner")!;
 
-    // Existing profiles remain melody-only at the first two levels.
-    for (const level of ["very-beginner", "beginner"] as const) {
-      expect(learner.find((variant) => variant.level === level)!.notes.every((note) => note.hand !== "L")).toBe(true);
-    }
+    // Generic learner keeps the simplest tier melody-only, while the
+    // promoted Beginner contract may add sparse structural LH anchors.
+    const learnerVeryBeginner = learner.find((variant) => variant.level === "very-beginner")!;
+    const learnerBeginner = learner.find((variant) => variant.level === "beginner")!;
+    const learnerVeryEasy = learner.find((variant) => variant.level === "very-easy")!;
+    expect(learnerVeryBeginner.notes.every((note) => note.hand !== "L")).toBe(true);
+    const learnerLh = learnerBeginner.notes.filter((note) => note.hand === "L");
+    expect(learnerLh).toHaveLength(8);
+    expect(new Set(learnerLh.map((note) => Math.floor(note.start / 4))).size).toBe(8);
+    expect(learnerLh.every((note) => learnerVeryEasy.notes.some((candidate) => (
+      candidate.hand === "L"
+      && candidate.start === note.start
+      && candidate.midi === note.midi
+      && candidate.dur === note.dur
+      && candidate.vel === note.vel
+    )))).toBe(true);
+    expect(learnerLh.every((note) => note.identitySource !== "other" && note.identitySource !== "vocals")).toBe(true);
     // Metal levels retain one playable harmonic task for the LH.
     for (const variant of [veryBeginner, beginner]) {
       expect(variant.notes.some((note) => note.hand === "L"), variant.level).toBe(true);
@@ -788,6 +1177,90 @@ describe("buildVariants", () => {
     // event or its absolute MIDI voicing.
     const reordered = makeVariants([...input].reverse()).map((variant) => variant.chords);
     expect(reordered).toEqual(variants.map((variant) => variant.chords));
+  });
+
+  const shortLhStackSource = (notes: Note[]): ParsedMidi => ({
+    format: 1,
+    division: 480,
+    tempoBpm: 120,
+    keySig: 0,
+    keyMode: 0,
+    timeSig: [4, 4],
+    notes,
+    trackNames: ["Piano LH"],
+    durationBeats: 2,
+  });
+
+  const repeatedShortG5 = [0, 0.5, 1, 1.5].flatMap((start) => [
+    { midi: 43, start, dur: 0.125, vel: 82, hand: "L" as const },
+    { midi: 50, start, dur: 0.125, vel: 78, hand: "L" as const },
+    { midi: 55, start, dur: 0.125, vel: 76, hand: "L" as const },
+  ]);
+
+  it("keeps stable short LH chord stacks for symbolic sources", () => {
+    const advanced = buildVariants(
+      shortLhStackSource(repeatedShortG5),
+      { title: "Short stacks", artist: "Test" },
+      { arrangementProfile: "learner", audioDerived: false, maxDurBeats: null },
+    ).find((variant) => variant.level === "advanced")!;
+
+    expect(advanced.chords).toEqual([
+      expect.objectContaining({
+        beat: 0,
+        name: "G5",
+        notes: [43, 50, 55],
+        sourceKind: "generated",
+        durationBeats: 2,
+      }),
+    ]);
+  });
+
+  it("does not promote short LH detector stacks into generated chords", () => {
+    const advanced = buildVariants(
+      shortLhStackSource(repeatedShortG5),
+      { title: "Detector stacks", artist: "Test" },
+      { arrangementProfile: "learner", audioDerived: true },
+    ).find((variant) => variant.level === "advanced")!;
+
+    expect(advanced.chords).toEqual([]);
+  });
+
+  it("does not combine short isolated LH notes into chord churn", () => {
+    const passing: Note[] = [0, 0.5, 1, 1.5].map((start, index) => ({
+      midi: index % 2 ? 50 : 43,
+      start,
+      dur: 0.125,
+      vel: 76,
+      hand: "L",
+    }));
+    const forward = buildVariants(
+      shortLhStackSource(passing),
+      { title: "Passing tones", artist: "Test" },
+      { arrangementProfile: "learner", audioDerived: false, maxDurBeats: null },
+    ).find((variant) => variant.level === "advanced")!;
+    const reversed = buildVariants(
+      shortLhStackSource([...passing].reverse()),
+      { title: "Passing tones", artist: "Test" },
+      { arrangementProfile: "learner", audioDerived: false, maxDurBeats: null },
+    ).find((variant) => variant.level === "advanced")!;
+
+    expect(forward.chords).toEqual([]);
+    expect(reversed.chords).toEqual(forward.chords);
+  });
+
+  it("does not use short RH notes to complete a short LH chord stack", () => {
+    const notes: Note[] = [0, 0.5, 1, 1.5].flatMap((start) => [
+      { midi: 43, start, dur: 0.125, vel: 78, hand: "L" },
+      { midi: 50, start, dur: 0.125, vel: 78, hand: "R" },
+      { midi: 55, start, dur: 0.125, vel: 78, hand: "R" },
+    ]);
+    const advanced = buildVariants(
+      shortLhStackSource(notes),
+      { title: "Mixed hands", artist: "Test" },
+      { arrangementProfile: "learner", audioDerived: false, maxDurBeats: null },
+    ).find((variant) => variant.level === "advanced")!;
+
+    expect(advanced.chords).toEqual([]);
   });
 
   it("roots easy-variant bass notes to the song key", () => {

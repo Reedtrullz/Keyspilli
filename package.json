@@ -23,7 +23,20 @@
     "calibrate": "npm run calibrate -w @keyspilli/catalog",
     "pipeline": "npm run pipeline -w @keyspilli/catalog",
     "seed": "npm run seed -w @keyspilli/catalog",
-    "evaluate-metal": "npm run evaluate-metal -w @keyspilli/catalog --"
+    "evaluate-metal": "npm run evaluate-metal -w @keyspilli/catalog --",
+    "evaluate:upstream-guitar": "npm run evaluate:upstream-guitar -w @keyspilli/catalog --",
+    "research:song": "npm run research:song -w @keyspilli/catalog --",
+    "render:midi": "npm run render:midi -w @keyspilli/catalog --",
+    "build:listening": "npm run build:listening -w @keyspilli/catalog --",
+    "build:rotating-listening": "npm run build:rotating-listening -w @keyspilli/catalog --",
+    "diagnose:piano-candidates": "npm run diagnose:piano-candidates -w @keyspilli/catalog --",
+    "build:piano-section-listening": "npm run build:piano-section-listening -w @keyspilli/catalog --",
+    "benchmark:score": "npm run benchmark:score -w @keyspilli/catalog --",
+    "benchmark:scores": "npm run benchmark:scores -w @keyspilli/catalog --",
+    "report:melody-review": "npm run report:melody-review -w @keyspilli/catalog --",
+    "build:midi-corpus": "npm run build:midi-corpus -w @keyspilli/catalog --",
+    "evaluate:cover-rh-cliff": "npm run evaluate:cover-rh-cliff -w @keyspilli/catalog --",
+    "evaluate:beginner-offgrid-rh-frontier": "npm run evaluate:beginner-offgrid-rh-frontier -w @keyspilli/catalog --"
   },
   "engines": {
     "node": ">=20"

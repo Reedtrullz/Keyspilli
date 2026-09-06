@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { countSongs } from "@keyspilli/catalog";
+import { hasSourceCandidateProvider } from "../../../lib/source-candidate-provider";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,11 @@ export async function GET() {
       version,
       commit: version,
       image: process.env.IMAGE_REF ?? null,
+      capabilities: {
+        symbolicUpload: true,
+        sourceDiscoveryConfigured: hasSourceCandidateProvider(),
+        directAudioAmt: false,
+      },
       ...(songCount !== null ? { songs: songCount } : {}),
     },
     { status: dbHealthy ? 200 : 503 },

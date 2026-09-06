@@ -1,0 +1,264 @@
+{
+  "schemaVersion": 1,
+  "mission": "REACQUIRE_BLOCKED_SOURCE_MATERIAL",
+  "startingRevision": "a942240e4873cf4902a3f71d8e784740cc35475b",
+  "frozenAdvancedAuditSha256": "02188e1f9ef9efeb5181d2dfc5c85c5063686e98dc409153f5d594fa19d32439",
+  "searchBoundary": {
+    "projectLocationsChecked": [
+      "repository-history",
+      "catalog-seeds",
+      "catalog-uploads",
+      "catalog-artifact-manifests",
+      "known-keyspilli-worktrees",
+      "known-keyspilli-output"
+    ],
+    "externalMode": "metadata-only",
+    "candidatePageFetches": 0,
+    "unknownRightsByteDownloads": 0,
+    "amtRuns": 0,
+    "alignmentRuns": 0
+  },
+  "canonicalSourceNeeds": [
+    {
+      "canonicalId": "red-sun-in-the-sky",
+      "artist": "Unknown",
+      "title": "Red Sun in the Sky",
+      "originalBlocker": "SOURCE_FILE_MISSING",
+      "existingSource": {
+        "state": "missing",
+        "sha256": "393b3dfcb28282913c3fd0089fa55c76230e7b9cfa0264aedef5955bc7d6e6e3",
+        "provenance": "legacy-midi-file",
+        "timing": "NATIVE_SYMBOLIC_TIMING"
+      },
+      "recoverySearch": {
+        "local": "no source bytes found",
+        "backups": "no source bytes found in known project worktrees or repository history",
+        "external": [
+          {
+            "sourceRef": "https://www.midishow.com/en/midi/red-sun-in-the-sky-midi-download-182032",
+            "description": "Eight-track 130 BPM MIDI, 1:59 duration and 1,637 notes",
+            "format": "midi",
+            "identity": "IDENTITY_PROBABLE",
+            "rights": "UNKNOWN_RIGHTS",
+            "access": "SEARCH_RESULT_ONLY"
+          },
+          {
+            "sourceRef": "https://www.vgmusic.com/file/5893f76c5357e0f68a8085dbad9db86a.html",
+            "description": "Piano-only single-track MIDI sequenced by Xixing ping",
+            "format": "midi",
+            "identity": "IDENTITY_PROBABLE",
+            "rights": "UNKNOWN_RIGHTS",
+            "access": "SEARCH_RESULT_ONLY"
+          },
+          {
+            "sourceRef": "https://www.vgmusic.com/file/f378463e22eb65419e62d37d358afba2.html",
+            "description": "Ten-track FL Studio MIDI described as a medley",
+            "format": "midi",
+            "identity": "IDENTITY_AMBIGUOUS",
+            "rights": "UNKNOWN_RIGHTS",
+            "access": "SEARCH_RESULT_ONLY"
+          }
+        ]
+      },
+      "bestCandidate": {
+        "class": "USER_MEDIATED_CANDIDATE",
+        "identity": "IDENTITY_PROBABLE",
+        "rights": "UNKNOWN_RIGHTS",
+        "timing": "NATIVE_SYMBOLIC_TIMING",
+        "format": "midi",
+        "sha256": null
+      },
+      "recoveryDecision": "USER_MEDIATED_SOURCE_CANDIDATE_FOUND"
+    },
+    {
+      "canonicalId": "sabaton-livgardet-organ-pianopaul05-dxhpyinsbdw",
+      "artist": "PianoPaul05",
+      "title": "Sabaton: Livgardet / The Royal Guard (Organ)",
+      "originalBlocker": "SOURCE_BYTES_UNAVAILABLE",
+      "existingSource": {
+        "state": "derived-artifact-only",
+        "sha256": null,
+        "provenance": "youtube:dXHPYINsBdw",
+        "timing": "AUTHORITATIVE_PERFORMANCE_TIMING"
+      },
+      "recoverySearch": {
+        "local": "only the derived Advanced artifact snapshot remains",
+        "backups": "no audio/transcription or symbolic source found in known project locations",
+        "external": [
+          {
+            "sourceRef": "https://www.youtube.com/watch?v=dXHPYINsBdw",
+            "description": "Exact PianoPaul05 organ performance identity; no reusable symbolic source located",
+            "format": "audio-video",
+            "identity": "IDENTITY_CONFIRMED",
+            "rights": "UNKNOWN_RIGHTS",
+            "access": "METADATA_ONLY"
+          }
+        ]
+      },
+      "bestCandidate": null,
+      "recoveryDecision": "NO_TRUSTWORTHY_SOURCE_RECOVERED"
+    },
+    {
+      "canonicalId": "sheet-music-boss-sabaton-the-last-stand-piano-tutorial-mslzz1c3",
+      "artist": "Sheet Music Boss",
+      "title": "SABATON - THE LAST STAND - Piano Tutorial",
+      "originalBlocker": "SOURCE_TOO_FRAGMENTED",
+      "existingSource": {
+        "state": "known-source-backed-v2-gate-failure",
+        "sha256": "904ec30018dc7c119e7873ca1fa19aadbaeec8a0b72b7c3817cc9b1ec4a285d4",
+        "provenance": "youtube:LnwenVY6r6I",
+        "timing": "AUTHORITATIVE_PERFORMANCE_TIMING"
+      },
+      "recoverySearch": {
+        "local": "generated artifacts remain; stronger source bytes are not present",
+        "backups": "no stronger symbolic source found in known project locations",
+        "external": [
+          {
+            "sourceRef": "https://www.musicnotes.com/sheetmusic/sheet-music-boss/the-last-stand/MN0183783",
+            "description": "Signature Artist piano arrangement by Andrew Wrangell, G minor, quarter note = 104",
+            "format": "commercial-digital-sheet",
+            "identity": "IDENTITY_CONFIRMED",
+            "rights": "UNKNOWN_RIGHTS",
+            "access": "USER_MEDIATED_ONLY"
+          }
+        ]
+      },
+      "bestCandidate": {
+        "class": "USER_MEDIATED_CANDIDATE",
+        "identity": "IDENTITY_CONFIRMED",
+        "rights": "UNKNOWN_RIGHTS",
+        "timing": "DERIVED_SCORE_TIMING",
+        "format": "unsupported-commercial-digital-sheet",
+        "sha256": null
+      },
+      "recoveryDecision": "USER_MEDIATED_SOURCE_CANDIDATE_FOUND"
+    },
+    {
+      "canonicalId": "sabaton-defence-of-moscow",
+      "artist": "Sabaton",
+      "title": "Defence of Moscow",
+      "originalBlocker": "SOURCE_BYTES_UNAVAILABLE",
+      "existingSource": {
+        "state": "recovered-local-private-source-pair",
+        "sha256": "efd4c143eb3fa335ccfc928f904c4836c084ce7c1854ef12915b6935becbdc4c",
+        "symbolicSha256": "9eaebadfda184d2914648589032f71b4b928df57f640f37ba0bd99eec56cbb62",
+        "byteLength": 10231805,
+        "symbolicByteLength": 9361,
+        "provenance": "user-supplied-private:retained-metal-canary-v2",
+        "timing": "AUTHORITATIVE_PERFORMANCE_TIMING"
+      },
+      "recoverySearch": {
+        "local": "audio plus previously derived current-format arranged MIDI recovered in known project output",
+        "backups": "not needed after local recovery",
+        "external": []
+      },
+      "bestCandidate": {
+        "class": "USABLE_AUTHORIZED_SOURCE",
+        "identity": "IDENTITY_CONFIRMED",
+        "rights": "USER_SUPPLIED_PRIVATE",
+        "timing": "AUTHORITATIVE_PERFORMANCE_TIMING",
+        "format": "audio-plus-midi",
+        "sha256": "efd4c143eb3fa335ccfc928f904c4836c084ce7c1854ef12915b6935becbdc4c"
+      },
+      "recoveryDecision": "USABLE_AUTHORIZED_SOURCE_RECOVERED"
+    }
+  ],
+  "blockedCases": [
+    {
+      "songId": "red-sun-in-the-sky",
+      "artist": "Unknown",
+      "title": "Red Sun in the Sky",
+      "canonicalSourceId": "red-sun-in-the-sky",
+      "primaryBlocker": "SOURCE_FILE_MISSING",
+      "recoveryDecision": "USER_MEDIATED_SOURCE_CANDIDATE_FOUND"
+    },
+    {
+      "songId": "sabaton-livgardet-organ-pianopaul05-dxhpyinsbdw",
+      "artist": "PianoPaul05",
+      "title": "Sabaton: Livgardet / The Royal Guard (Organ)",
+      "canonicalSourceId": "sabaton-livgardet-organ-pianopaul05-dxhpyinsbdw",
+      "primaryBlocker": "SOURCE_BYTES_UNAVAILABLE",
+      "recoveryDecision": "NO_TRUSTWORTHY_SOURCE_RECOVERED"
+    },
+    {
+      "songId": "sheet-music-boss-sabaton-the-last-stand-piano-tutorial-mslzz1c3",
+      "artist": "Sheet Music Boss",
+      "title": "SABATON - THE LAST STAND - Piano Tutorial",
+      "canonicalSourceId": "sheet-music-boss-sabaton-the-last-stand-piano-tutorial-mslzz1c3",
+      "primaryBlocker": "SOURCE_TOO_FRAGMENTED",
+      "recoveryDecision": "USER_MEDIATED_SOURCE_CANDIDATE_FOUND"
+    },
+    {
+      "songId": "sabaton-sabaton-defence-of-moscow-official-music-video-mtd717qw",
+      "artist": "Sabaton",
+      "title": "SABATON - Defence Of Moscow (Official Music Video)",
+      "canonicalSourceId": "sabaton-defence-of-moscow",
+      "primaryBlocker": "SOURCE_BYTES_UNAVAILABLE",
+      "recoveryDecision": "USABLE_AUTHORIZED_SOURCE_RECOVERED"
+    },
+    {
+      "songId": "sabaton-sabaton-defence-of-moscow-official-music-video-mtdq7vdx",
+      "artist": "Sabaton",
+      "title": "SABATON - Defence Of Moscow (Official Music Video)",
+      "canonicalSourceId": "sabaton-defence-of-moscow",
+      "primaryBlocker": "SOURCE_BYTES_UNAVAILABLE",
+      "recoveryDecision": "USABLE_AUTHORIZED_SOURCE_RECOVERED"
+    },
+    {
+      "songId": "sabaton-sabaton-defence-of-moscow-official-music-video-mtdu6jt7",
+      "artist": "Sabaton",
+      "title": "SABATON - Defence Of Moscow (Official Music Video)",
+      "canonicalSourceId": "sabaton-defence-of-moscow",
+      "primaryBlocker": "SOURCE_BYTES_UNAVAILABLE",
+      "recoveryDecision": "USABLE_AUTHORIZED_SOURCE_RECOVERED"
+    },
+    {
+      "songId": "sabaton-sabaton-defence-of-moscow-official-music-video-mtdwmc2y",
+      "artist": "Sabaton",
+      "title": "SABATON - Defence Of Moscow (Official Music Video)",
+      "canonicalSourceId": "sabaton-defence-of-moscow",
+      "primaryBlocker": "SOURCE_BYTES_UNAVAILABLE",
+      "recoveryDecision": "USABLE_AUTHORIZED_SOURCE_RECOVERED"
+    },
+    {
+      "songId": "sabaton-sabaton-defence-of-moscow-official-music-video-mtdyy3n2",
+      "artist": "Sabaton",
+      "title": "SABATON - Defence Of Moscow (Official Music Video)",
+      "canonicalSourceId": "sabaton-defence-of-moscow",
+      "primaryBlocker": "SOURCE_BYTES_UNAVAILABLE",
+      "recoveryDecision": "USABLE_AUTHORIZED_SOURCE_RECOVERED"
+    },
+    {
+      "songId": "sabaton-sabaton-defence-of-moscow-official-music-video-mte172p8",
+      "artist": "Sabaton",
+      "title": "SABATON - Defence Of Moscow (Official Music Video)",
+      "canonicalSourceId": "sabaton-defence-of-moscow",
+      "primaryBlocker": "SOURCE_BYTES_UNAVAILABLE",
+      "recoveryDecision": "USABLE_AUTHORIZED_SOURCE_RECOVERED"
+    },
+    {
+      "songId": "sabaton-sabaton-defence-of-moscow-official-music-video-mte6ttgh",
+      "artist": "Sabaton",
+      "title": "SABATON - Defence Of Moscow (Official Music Video)",
+      "canonicalSourceId": "sabaton-defence-of-moscow",
+      "primaryBlocker": "SOURCE_BYTES_UNAVAILABLE",
+      "recoveryDecision": "USABLE_AUTHORIZED_SOURCE_RECOVERED"
+    },
+    {
+      "songId": "sabaton-sabaton-defence-of-moscow-official-music-video-mtebf9i2",
+      "artist": "Sabaton",
+      "title": "SABATON - Defence Of Moscow (Official Music Video)",
+      "canonicalSourceId": "sabaton-defence-of-moscow",
+      "primaryBlocker": "SOURCE_BYTES_UNAVAILABLE",
+      "recoveryDecision": "USABLE_AUTHORIZED_SOURCE_RECOVERED"
+    },
+    {
+      "songId": "sabaton-sabaton-defence-of-moscow-official-music-video-mtept7vy",
+      "artist": "Sabaton",
+      "title": "SABATON - Defence Of Moscow (Official Music Video)",
+      "canonicalSourceId": "sabaton-defence-of-moscow",
+      "primaryBlocker": "SOURCE_BYTES_UNAVAILABLE",
+      "recoveryDecision": "USABLE_AUTHORIZED_SOURCE_RECOVERED"
+    }
+  ]
+}

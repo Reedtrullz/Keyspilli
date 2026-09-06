@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "mission": "EXTERNAL_SYMBOLIC_FIRST_END_TO_END_SHADOW_REHEARSAL",
+  "testedBaseRevision": "72eed97f0012b67e9b38098c325529068c4cfade",
+  "decision": "SHADOW_END_TO_END_PIPELINE_READY",
+  "scope": {
+    "fixtures": 4,
+    "sourceClassCoverage": ["direct-piano-symbolic", "full-band-symbolic", "guitar-structured-symbolic", "melody-accompaniment-symbolic"],
+    "inputs": "project-owned deterministic synthetic MIDI only",
+    "alignment": "self-aligned by construction; not independent target-recording evidence",
+    "benchmarkInputsUsed": false,
+    "privateReferencesUsed": false,
+    "productionDataChanged": false,
+    "deployed": false,
+    "humanListening": "NOT_REQUIRED_BY_DEFAULT"
+  },
+  "historicalFirstAttempt": {
+    "stage": "ROLE_FAILURE",
+    "reason": "track-name substring matching let a later Drums track relabel pitched tracks as percussion",
+    "fix": "metadata percussion now uses the matching MIDI track index and exact part-name fallback",
+    "regressionTest": "does not let a later drums track relabel pitched tracks as percussion"
+  },
+  "stages": {
+    "sourceIntake": "VALIDATED_SYNTHETIC_ONLY",
+    "parse": "VALIDATED",
+    "provenance": "VALIDATED",
+    "candidateClassification": "VALIDATED",
+    "roleInference": "VALIDATED_AFTER_ROLE_FIX",
+    "alignment": "VALIDATED_SELF_ALIGNED_ONLY",
+    "semanticFusion": "VALIDATED_ON_SEMANTIC_BAND_FIXTURES",
+    "pianoArrangement": "VALIDATED",
+    "physicalVariants": "VALIDATED_SIX_LEVELS",
+    "validation": "VALIDATED",
+    "artifactWriting": "VALIDATED_MIDI_AND_MUSICXML",
+    "catalogGrouping": "VALIDATED_IN_MEMORY",
+    "publicProjection": "VALIDATED_FIVE_LEVELS",
+    "playerEntryLink": "NOT_EXERCISED"
+  },
+  "fixtures": [
+    {"id": "shadow-direct-piano", "sourceClass": "direct-piano-symbolic", "bytes": 276, "sha256": "3b5cb2bb35aa78c1fdc11a0de240c166098314c82d1c377dccf2029c5b8af0f4", "notes": 20, "roles": {"melody": 8, "harmony": 12}, "physicalLevels": 6, "publicLevels": 5, "variantFailures": 0, "artifactFailures": 0},
+    {"id": "shadow-full-band", "sourceClass": "full-band-symbolic", "bytes": 494, "sha256": "444a4844f42d698ef6f529b89f253a8ced347a8528ab068724ac8e13c6dc159c", "notes": 31, "roles": {"melody": 7, "harmony": 12, "bass-root": 4, "timing-only": 8}, "semanticEvents": {"melody": 8, "harmony": 4, "bass": 4, "rhythm": 12, "timingOnly": 16}, "physicalLevels": 6, "publicLevels": 5, "variantFailures": 0, "artifactFailures": 0, "drumPitchCount": 0},
+    {"id": "shadow-guitar-structured", "sourceClass": "guitar-structured-symbolic", "bytes": 328, "sha256": "82680670d4cda11915aa3ec98a39956bf413a368b252e443f1de8d4404e954df", "notes": 24, "roles": {"melody": 8, "bass-root": 16}, "semanticEvents": {"melody": 8, "harmony": 4, "bass": 4, "rhythm": 12, "timingOnly": 0}, "physicalLevels": 6, "publicLevels": 5, "variantFailures": 0, "artifactFailures": 0, "drumPitchCount": 0},
+    {"id": "shadow-melody-accompaniment", "sourceClass": "melody-accompaniment-symbolic", "bytes": 258, "sha256": "8b695e7b723d0382f18064ff9be37ebebd18e3138e0fb94c209983d7f3605d45", "notes": 20, "roles": {"melody": 8, "harmony": 12}, "physicalLevels": 6, "publicLevels": 5, "variantFailures": 0, "artifactFailures": 0}
+  ],
+  "determinism": {
+    "reportSha256": "9298fc70c89ba850d25d9fa1ef82ed414fc0064312db9de34e4594e3f0905149",
+    "repeatReportSha256": "9298fc70c89ba850d25d9fa1ef82ed414fc0064312db9de34e4594e3f0905149",
+    "identicalOnRepeat": true,
+    "artifactBytesHashed": true
+  },
+  "nextTask": "GENERATION_CANDIDATE_AVAILABILITY_AND_SOURCE_INTAKE_HARDENING",
+  "nonClaims": [
+    "Self-alignment proves only the development plumbing, not real-song timing authority.",
+    "Synthetic roles and output validity do not establish musical recognizability.",
+    "No production replay, deployment, reference upload, or listening assignment was performed."
+  ]
+}

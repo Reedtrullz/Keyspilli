@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 1,
+  "id": "private-alpha-usage-feedback-phase-2026-09-05",
+  "date": "2026-09-05",
+  "startingRevision": "03948127320a477442c87e2065be0399d45d5c64",
+  "preregistrationRevision": "98b4d90a98dd804ad467ac9f87e2ea3f8f1f1fc4",
+  "deployedRuntimeRevision": "e9dd13a672e9d252b6441076e3ff99c3937cecd9",
+  "productionBoundary": "READ_ONLY",
+  "localLab": {
+    "image": "ghcr.io/reedtrullz/keyspilli:e9dd13a672e9",
+    "imageId": "sha256:8f29dee0bd2c28d27128eeaedb2118447024a4bd2779b787e0f2489a5adcfcdc",
+    "imageBytes": 428706085,
+    "imagePlatform": "linux/amd64",
+    "hostPlatform": "macOS arm64",
+    "hostNode": "v22.22.3",
+    "imageNode": "v22.23.2",
+    "npm": "10.9.8",
+    "playwright": "1.62.1",
+    "data": "disposable empty Docker volume",
+    "worker": "absent",
+    "directAudioAmt": false
+  },
+  "browserMatrix": {
+    "result": "PASS_7_OF_7",
+    "browser": "chromium",
+    "viewports": {
+      "desktop": [1440, 900],
+      "narrowLaptop": [1024, 768],
+      "tablet": [768, 1024],
+      "mobile": [390, 844]
+    },
+    "flows": {
+      "directMidi": "PASS_3_RUNS_WITH_PLAYER_AND_MIDI_EXPORT",
+      "directMusicXml": "PASS_3_RUNS_WITH_MUSICXML_EXPORT",
+      "discoveryAssisted": "PASS_DETERMINISTIC_BROWSER_SEAM_PLUS_EXACT_IMAGE_USER_BYTES",
+      "noCandidates": "EXPECTED_FAILURE_CLEAR_DIRECT_UPLOAD_RECOVERY",
+      "providerUnavailable": "EXPECTED_FAILURE_ANNOUNCED_WITH_RETRY",
+      "malformedInput": "EXPECTED_FAILURE_ANNOUNCED",
+      "correctedRetry": "PASS_WITHOUT_PAGE_RELOAD",
+      "responsiveAccessibility": "PASS_4_VIEWPORTS"
+    },
+    "accessibility": {
+      "criticalControlsReachable": true,
+      "horizontalOverflow": 0,
+      "labelsAssociated": true,
+      "keyboardOrder": "PASS",
+      "disabledInitialActions": "PASS",
+      "statusAndErrorAnnouncements": "PASS",
+      "reducedMotion": "PASS_1MS",
+      "fileRemovalFocusRestoration": "PASS",
+      "secondSongReset": "PASS_TITLE_ARTIST_DISCOVERY_AND_FOCUS"
+    },
+    "unexpectedNavigationCount": 0,
+    "unexpectedBrowserErrors": 0,
+    "expectedBrowserResponses": [
+      "HTTP 422 malformed symbolic input",
+      "HTTP 503 emulated-container PDF renderer unavailable"
+    ],
+    "abortedPrefetchOrNavigationRequests": "OBSERVED_AND_NON_BLOCKING"
+  },
+  "discoveryTestBoundary": "The browser-facing provider, handoff, and confirmation responses were deterministic route interceptions. The supplied MIDI bytes then used the exact release upload/generation route with the synthetic handoff query removed; server-owned handoff binding is covered separately by the 28 focused route tests.",
+  "timingsMs": {
+    "pageInteractive": { "runs": 12, "min": 55, "median": 163, "max": 426 },
+    "uploadToResult": { "runs": 6, "min": 817, "median": 836, "max": 1384 },
+    "playerFirstRender": { "runs": 3, "min": 455, "median": 500, "max": 662 },
+    "midiExport": { "runs": 3, "min": 41, "median": 44, "max": 89 },
+    "musicXmlExport": { "runs": 3, "min": 51, "median": 77, "max": 78 },
+    "pdfExport": { "runs": 0, "availability": "LOCAL_ENVIRONMENT_LIMITED" },
+    "sourceSearchUiResponse": { "runs": 3, "min": 36, "median": 39, "max": 402 },
+    "budget": null
+  },
+  "persistence": {
+    "songsBeforeRestart": 36,
+    "songsAfterRestart": 36,
+    "healthAfterRestart": "healthy exact release revision"
+  },
+  "pdfEnvironmentFinding": {
+    "classification": "TECHNICAL_BUT_UNDERSTANDABLE",
+    "severity": "MINOR_FRICTION_LOCAL_LAB_ONLY",
+    "cause": "The amd64 image's nested headless Chromium segfaults under Apple-host QEMU emulation.",
+    "routeBehavior": "bounded HTTP 503; web process remained healthy",
+    "productionEvidence": "native linux/amd64 PDF export already passed in the hardened live deployment canary",
+    "productBug": false
+  },
+  "errorComprehension": [
+    { "state": "no candidates", "classification": "ACTIONABLE", "recovery": "upload an authorized file directly" },
+    { "state": "provider unavailable", "classification": "ACTIONABLE", "recovery": "retry or use direct upload" },
+    { "state": "malformed symbolic input", "classification": "TECHNICAL_BUT_UNDERSTANDABLE", "recovery": "remove and choose a valid symbolic file" },
+    { "state": "PDF unavailable in emulated lab", "classification": "TECHNICAL_BUT_UNDERSTANDABLE", "recovery": "not a production-native failure" }
+  ],
+  "liveReadOnlyObservation": {
+    "duration": "SHORT_WITHIN_SESSION_NOT_A_LONG_DURATION_SOAK",
+    "snapshots": 2,
+    "web": "healthy exact e9dd13a revision; zero restarts",
+    "worker": "healthy unchanged 17f997600b9f; zero restarts",
+    "privateBoundary": "healthy anonymous HTTP 401",
+    "backup": "healthy timer active and enabled; latest result success",
+    "caddy": "healthy",
+    "tlsDaysRemainingApprox": 42.0,
+    "providerEvents24h": { "candidatesFound": 2, "noCandidates": 1, "rateLimited": 0, "unavailable": 0, "notConfigured": 0 },
+    "applicationEvents24h": { "uploadsCompleted": 2, "uploadsFailed": 1, "handoffsCreated": 1, "handoffsConfirmed": 1 },
+    "httpStatusVisibility": "PARTIAL_APPLICATION_LOGS_ONLY"
+  },
+  "storage": {
+    "localFreeGiBApprox": 58,
+    "vpsFreeGiBApprox": 33,
+    "vpsDocker": { "images": "11.11GB", "containers": "51.32MB", "volumes": "5.721GB", "buildCache": "818.4MB" },
+    "warning": "DISK_BELOW_PREFERRED_34_GIB_ABOVE_HARD_30_GIB",
+    "cleanup": "only the named local usage container and volume"
+  },
+  "findings": [
+    { "severity": "NO_ISSUE", "area": "core symbolic creation", "evidence": "MIDI and MusicXML completed generation, player, exports, and restart persistence" },
+    { "severity": "NO_ISSUE", "area": "discovery fallback", "evidence": "candidate, empty, unavailable, and corrected-retry states were understandable and recoverable" },
+    { "severity": "NO_ISSUE", "area": "responsive accessibility", "evidence": "four frozen viewport classes passed objective controls, focus, announcement, overflow, and reduced-motion checks" },
+    { "severity": "MINOR_FRICTION", "area": "local exact-image PDF measurement", "evidence": "environment-specific nested Chromium crash under amd64 emulation; production-native path previously passed" }
+  ],
+  "scope": {
+    "productionWrites": 0,
+    "deployments": 0,
+    "braveRequests": 0,
+    "thirdPartyFetches": 0,
+    "musicalBehaviorChanges": 0,
+    "amtChanges": 0,
+    "alignmentChanges": 0,
+    "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+    "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED"
+  },
+  "verification": {
+    "usagePlaywright": "PASS_7_OF_7",
+    "existingBoundedProxyPlaywright": "PASS_4_OF_4",
+    "focusedUploadDiscoveryHandoff": "PASS_28_OF_28",
+    "workspaceTests": {
+      "total": 1704,
+      "web": 143,
+      "catalog": 1064,
+      "engrave": 8,
+      "midi": 355,
+      "playerCore": 92,
+      "transcribe": 42
+    },
+    "workspaceTypechecks": "PASS_6_OF_6",
+    "jsonValidation": "PASS",
+    "gitDiffCheck": "PASS"
+  },
+  "decision": "PRIVATE_ALPHA_READY_FOR_OWNER_USAGE",
+  "nextTask": "OWNER_PRIVATE_ALPHA_USAGE_TRIAL"
+}

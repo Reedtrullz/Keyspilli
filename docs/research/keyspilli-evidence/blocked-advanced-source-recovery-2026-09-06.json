@@ -1,0 +1,129 @@
+{
+  "schemaVersion": 1,
+  "mission": "REACQUIRE_BLOCKED_SOURCE_MATERIAL",
+  "startingRevision": "a942240e4873cf4902a3f71d8e784740cc35475b",
+  "inventoryRevision": "99f4b8cbce15d7a00022becbf6c66b5088a146c8",
+  "inventory": {
+    "path": "blocked-advanced-source-recovery-manifest-2026-09-06.json",
+    "sha256": "0b823172258d79831532d36d64e5e79f4a5011ee465519baf5cf57e0bda22355",
+    "canonicalSourceNeeds": 4,
+    "blockedCases": 12,
+    "defenceExperimentAliases": 9
+  },
+  "boundaries": {
+    "advancedPolicyChanges": 0,
+    "amtRuns": 0,
+    "alignmentRuns": 0,
+    "benchmarkInputsUsed": 0,
+    "thirdPartyPageFetches": 0,
+    "unknownRightsByteDownloads": 0,
+    "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+    "deployment": "NOT_DEPLOYED"
+  },
+  "outcomes": [
+    {
+      "canonicalId": "red-sun-in-the-sky",
+      "cases": 1,
+      "sourceOutcome": "USER_MEDIATED_SOURCE_CANDIDATE_FOUND",
+      "generationOutcome": "NOT_RUN_SOURCE_BYTES_UNAVAILABLE",
+      "promotion": "BLOCKED",
+      "reason": "Three metadata-only MIDI leads were identified, but all have unknown rights and no authorized bytes were acquired."
+    },
+    {
+      "canonicalId": "sabaton-livgardet-organ-pianopaul05-dxhpyinsbdw",
+      "cases": 1,
+      "sourceOutcome": "NO_TRUSTWORTHY_SOURCE_RECOVERED",
+      "generationOutcome": "NOT_RUN_SOURCE_BYTES_UNAVAILABLE",
+      "promotion": "BLOCKED",
+      "reason": "Only the performance identity and a derived artifact snapshot remain; no reusable symbolic or transcription source was found."
+    },
+    {
+      "canonicalId": "sheet-music-boss-sabaton-the-last-stand-piano-tutorial-mslzz1c3",
+      "cases": 1,
+      "sourceOutcome": "USER_MEDIATED_SOURCE_CANDIDATE_FOUND",
+      "generationOutcome": "NOT_RUN_NO_SUPPORTED_AUTHORIZED_BYTES",
+      "promotion": "BLOCKED",
+      "reason": "An exact commercial digital-sheet identity was found, but no supported authorized MIDI or MusicXML bytes were available. The existing v2 source remains gate-failed."
+    },
+    {
+      "canonicalId": "sabaton-defence-of-moscow",
+      "cases": 9,
+      "sourceOutcome": "USABLE_AUTHORIZED_SOURCE_RECOVERED",
+      "generationOutcome": "SOURCE_BACKED_REBUILD_COMPLETED_GATE_FAILED",
+      "promotion": "BLOCKED",
+      "reason": "One authorized private source lineage replaced nine duplicate experiment source needs. The current arranger removed the original fragmentation blocker but the frozen audit found a 29.5-beat RH melody gap.",
+      "source": {
+        "rights": "USER_SUPPLIED_PRIVATE",
+        "audioSha256": "efd4c143eb3fa335ccfc928f904c4836c084ce7c1854ef12915b6935becbdc4c",
+        "stemSha256": {
+          "vocals": "de45ff6b0b3d36a94ac35a88a9aef1806b288db68c0f357cb245ab2a1817e9ba",
+          "bass": "211a0444d83cde2057b5393443a828ce8464f24a7bc2787fbb9fa38c0cc10a96",
+          "guitar": "43329c8d70e50a820150fe82f27730da1369e0bc4be8f5afccf75ebb1909b29a",
+          "drums": "4f69e11bb10d1a357696ba1afd8c4871534fb77dce0b1cec516fb7e5b3cfbffd"
+        },
+        "stemNoteCounts": {
+          "vocals": 92,
+          "bass": 302,
+          "guitar": 549,
+          "drums": 982
+        }
+      },
+      "arrangement": {
+        "midiSha256": "292376ca5ee5767f07d53b26662f0fc80e8e44cc118bbd9c00541f0f46a15140",
+        "notes": 800,
+        "identityNotes": 152,
+        "leftHandNotes": 648,
+        "chordEvents": 237,
+        "warnings": []
+      },
+      "levels": {
+        "very-beginner": { "notes": 190, "rightHand": 71, "leftHand": 119 },
+        "beginner": { "notes": 310, "rightHand": 73, "leftHand": 237 },
+        "very-easy": { "notes": 717, "rightHand": 136, "leftHand": 581 },
+        "easy": { "notes": 727, "rightHand": 137, "leftHand": 590 },
+        "medium": { "notes": 743, "rightHand": 137, "leftHand": 606 },
+        "advanced": { "notes": 782, "rightHand": 141, "leftHand": 641 }
+      },
+      "advancedAudit": {
+        "score": 18,
+        "severity": "medium",
+        "findings": ["RH melody gap 29.5 beats"],
+        "melodyOnsets": 141,
+        "melodyGapMaxBeats": 29.5,
+        "contiguousRetriggers": 72,
+        "contiguousRetriggerRate": 0.096,
+        "medianDurationSeconds": 0.804,
+        "maxSimultaneous": 5,
+        "samePitchOverlaps": 0,
+        "variantIssues": []
+      },
+      "determinism": {
+        "canonicalAuditRunsEqual": true,
+        "canonicalAuditSha256": "e7267e95359088c788e6d6b80f4d6db587eba4d1d4135caf7e1a49b8e55968e8",
+        "midiAndMusicXmlArtifactRunsEqual": true,
+        "artifactDigestListSha256": "592abcd3fe1ef073116f06128f640f639b132e7fcae2b2f27c90980eaaa66918",
+        "notesJsonByteEquality": false,
+        "notesJsonDifferenceBasis": "run-time tempo resolvedAt metadata only"
+      }
+    }
+  ],
+  "visibility": {
+    "promotedCases": 0,
+    "blockedCasesRemaining": 12,
+    "defenceCanonicalSources": 1,
+    "defenceHistoricalExperimentRowsRemainBlocked": 9,
+    "learnerReviewSha256BeforeAndAfter": "aa5006175b22ed6bb4b214b7720d5a490334c240c599f9dc8dd973b8e1fd3022",
+    "dearGodChanged": false,
+    "emptinessMachineChanged": false
+  },
+  "storage": {
+    "startingFreeGiB": 51,
+    "finalFreeGiB": 51,
+    "temporaryScratchDeletedBytesApprox": 365953024,
+    "authorizedPrivateSourceRetained": true
+  },
+  "decision": "BLOCKED_ADVANCED_SOURCE_RECOVERY_NO_PROGRESS",
+  "decisionBasis": "A legitimate Defence source was recovered and rebuilt, but no blocked case cleared the unchanged promotion gate. The other three canonical needs remain unavailable or require owner-mediated authorized source bytes.",
+  "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+  "nextTask": "OWNER_MEDIATED_BLOCKED_SYMBOLIC_SOURCE_SUPPLY"
+}

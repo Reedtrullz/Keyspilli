@@ -138,6 +138,7 @@ function parseArgs(argv: string[]): CliOptions {
       default: throw new Error(`unknown option: ${arg}\n${usage()}`);
     }
   }
+  if (result.stems && result.candidate) throw new Error("--stems and --candidate are mutually exclusive; choose one\n" + usage());
   if (!result.stems && !result.candidate) throw new Error("one of --stems or --candidate is required\n" + usage());
   if (result.mode === "reference" && !result.reference) throw new Error("--mode=reference requires --reference");
   return result;
@@ -269,6 +270,7 @@ async function run(options: CliOptions): Promise<string> {
       arrangementProfile: "metal",
       normalizeRange: false,
       chords: arrangement.chords,
+      ...(traceSink ? { trace: traceSink } : {}),
     });
   }
 

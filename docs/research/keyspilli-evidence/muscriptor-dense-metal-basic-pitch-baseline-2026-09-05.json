@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "kind": "muscriptor-dense-metal-primary-comparator-freeze",
+  "experimentId": "muscriptor-frozen-dense-metal-cold-evaluation-2026-09-05",
+  "corpusManifestCanonicalSha256": "5c51f0575f6ca2ca33c2f186704d82682e00c99ff333fe4b1b455a34a9c4c5b8",
+  "system": {
+    "id": "basic-pitch",
+    "version": "0.4.0",
+    "serialization": "onnx",
+    "onsetThreshold": 0.45,
+    "frameThreshold": 0.3,
+    "midiTempo": 120,
+    "input": "full-mix"
+  },
+  "runtimeCompatibility": {
+    "python": "3.11",
+    "extras": ["onnx"],
+    "setuptools": "<81",
+    "effectOnFrozenModelOrThresholds": "none"
+  },
+  "fixtures": [
+    {
+      "id": "METAL_A_TIGHT_RIFF",
+      "prediction": {"bytes": 2377, "sha256": "bd3142766a90fad3db1a659cb5c4c558793cd879f68347c6ab03677b9d39022b"},
+      "runtimeSeconds": 9.87,
+      "maxResidentBytes": 476708864,
+      "exact": {"predictedCount": 342, "referenceCount": 704, "matches": 305, "precision": 0.8918128654970761, "recall": 0.43323863636363635, "f1": 0.5831739961759083},
+      "pitchClass": {"matches": 322, "precision": 0.9415204678362573, "recall": 0.45738636363636365, "f1": 0.6156787762906311},
+      "onset": {"matches": 342, "precision": 1, "recall": 0.48579545454545453, "f1": 0.6539196940726577},
+      "diagnostics": {"densityRatio": 0.485795, "predictedMedianIoiSeconds": 0.115909, "predictedMaxSimultaneity": 5, "failureStates": []}
+    },
+    {
+      "id": "METAL_B_DENSE_EXTREME",
+      "prediction": {"bytes": 1226, "sha256": "4ff08532d521ac16fddea36f9f99740901cc316318e9d071d46b9f1852dc4014"},
+      "runtimeSeconds": 2.24,
+      "maxResidentBytes": 343949312,
+      "exact": {"predictedCount": 25, "referenceCount": 1488, "matches": 25, "precision": 1, "recall": 0.016801075268817203, "f1": 0.033046926635822864},
+      "pitchClass": {"matches": 25, "precision": 1, "recall": 0.016801075268817203, "f1": 0.033046926635822864},
+      "onset": {"matches": 25, "precision": 1, "recall": 0.016801075268817203, "f1": 0.033046926635822864},
+      "diagnostics": {"densityRatio": 0.016801, "predictedMedianIoiSeconds": 1.289773, "predictedMaxSimultaneity": 2, "failureStates": ["SEVERE_UNDERTRANSCRIPTION"]}
+    },
+    {
+      "id": "METAL_C_LAYERED_MELODIC",
+      "prediction": {"bytes": 3747, "sha256": "47cbec943b784b840689c018c4111b4b186f36d61eaecf04aa8737bc75ce83c9"},
+      "runtimeSeconds": 2.29,
+      "maxResidentBytes": 349241344,
+      "exact": {"predictedCount": 615, "referenceCount": 660, "matches": 546, "precision": 0.8878048780487805, "recall": 0.8272727272727273, "f1": 0.8564705882352942},
+      "pitchClass": {"matches": 557, "precision": 0.9056910569105691, "recall": 0.843939393939394, "f1": 0.8737254901960785},
+      "onset": {"matches": 558, "precision": 0.9073170731707317, "recall": 0.8454545454545455, "f1": 0.8752941176470588},
+      "diagnostics": {"densityRatio": 0.931818, "predictedMedianIoiSeconds": 0.025, "predictedMaxSimultaneity": 5, "failureStates": []}
+    }
+  ],
+  "macroExactF1": 0.4908971703490084,
+  "familyAttribution": "unavailable: Basic Pitch emits a generic pitched program",
+  "percussion": "not emitted",
+  "safety": {
+    "singleInferencePerFixture": true,
+    "humanListening": false,
+    "benchmarkTuning": false
+  }
+}

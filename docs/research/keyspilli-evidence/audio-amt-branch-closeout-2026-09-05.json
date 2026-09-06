@@ -1,0 +1,204 @@
+{
+  "schemaVersion": 1,
+  "kind": "audio-amt-branch-closeout",
+  "date": "2026-09-05",
+  "startingRevision": "5c8a4af0012a2085c9f6ef574f34481807a4187f",
+  "scope": {
+    "newModelEvaluations": 0,
+    "newBenchmarkRuns": 0,
+    "amtInferenceRuns": 0,
+    "alignmentRuns": 0,
+    "webProviderExperiments": 0,
+    "musicalPolicyExperiments": 0,
+    "deployment": "NO_DEPLOYMENT",
+    "vpsMutation": "NO_VPS_MUTATION"
+  },
+  "history": [
+    {
+      "experimentId": "basic-pitch-full-mix-stems",
+      "date": "2026-08",
+      "inputClass": "dense-metal full mixes and Demucs stems",
+      "backend": "Basic Pitch",
+      "contract": "raw timing, pitch/role fidelity, and downstream survival",
+      "result": "timing evidence existed, but pitch/role fidelity and downstream retention were weak",
+      "decision": "NOT_GENERATION_AUTHORITY",
+      "limits": ["MODEL_CAPABILITY_LIMIT", "DOMAIN_TRANSFER_LIMIT", "DOWNSTREAM_LIMIT"]
+    },
+    {
+      "experimentId": "direct-metal-source-aware",
+      "date": "2026-08-28",
+      "inputClass": "Demucs and Basic Pitch metal stems",
+      "backend": "source-aware metal selector and learner variants",
+      "contract": "source-lock, rhythm-wall cleanup, structural validation",
+      "result": "structural cleanup passed; residual contour and AMT evidence did not support recognizability",
+      "decision": "RETAIN_BOUNDED_CLEANUP_NO_MUSICAL_SUCCESS_CLAIM",
+      "limits": ["EVIDENCE_LIMIT", "DOWNSTREAM_LIMIT"]
+    },
+    {
+      "experimentId": "audio-amt-oracle",
+      "date": "2026-08-31",
+      "inputClass": "three protected dense-metal evaluation songs",
+      "backend": "Demucs, Basic Pitch, and alternate AMT stems",
+      "contract": "raw versus decoded versus Easy onset survival",
+      "result": "raw onset recall was 0.648/0.755/0.698 while Easy retained 0.087/0.171/0.119",
+      "decision": "DO_NOT_BROADEN_ARRANGER_WITHOUT_NEW_EVIDENCE",
+      "limits": ["MODEL_CAPABILITY_LIMIT", "DOWNSTREAM_LIMIT", "RIGHTS_LIMIT"]
+    },
+    {
+      "experimentId": "gaps-guitar-techs-tiebreaker-2026-09-02",
+      "date": "2026-09-02",
+      "inputClass": "14 rights-cleared isolated-guitar items, DI and amp/mic",
+      "backend": "GAPS versus Basic Pitch",
+      "contract": "frozen one-to-one onset/exact-pitch/pitch-class evaluation",
+      "result": "GAPS materially improved isolated-guitar exact and pitch-class F1",
+      "decision": "GUITAR_SPECIFIC_AMT_VALIDATED",
+      "limits": ["DOMAIN_TRANSFER_LIMIT"]
+    },
+    {
+      "experimentId": "cold-metal-transfer-2026-09-02-rerun",
+      "date": "2026-09-02",
+      "inputClass": "three dense-metal guitar stems",
+      "backend": "GAPS versus Basic Pitch",
+      "contract": "predictions frozen before evaluator-only reference comparison",
+      "result": "GAPS lost on Final Solution, had a small mixed gain on Gott Mit Uns, and regressed on Red Baron",
+      "decision": "NO_PROMOTION_RESEARCH_ONLY",
+      "limits": ["DOMAIN_TRANSFER_LIMIT", "ROBUSTNESS_LIMIT"]
+    },
+    {
+      "experimentId": "texture-amt-routing-oracle-2026-09-02",
+      "date": "2026-09-02",
+      "inputClass": "frozen Basic Pitch and GAPS candidate MIDI",
+      "backend": "reference-informed four-second routing oracle",
+      "contract": "0.03 material exact/pitch-class F1 gain",
+      "result": "even the perfect reference-informed selector stayed below 0.03 on every song",
+      "decision": "ROUTING_CEILING_LOW_NO_PROMOTION",
+      "limits": ["MODEL_CAPABILITY_LIMIT", "ROBUSTNESS_LIMIT"]
+    },
+    {
+      "experimentId": "metal-to-midi-release-gap-reassessment-2026-09-04",
+      "date": "2026-09-04",
+      "inputClass": "durable evidence plus official technology metadata",
+      "backend": "MuScriptor technology reassessment",
+      "contract": "bounded candidate selection without downloads or benchmark tuning",
+      "result": "MuScriptor was the only candidate warranting one frozen cold evaluation; CLaMP3 was resource-blocked",
+      "decision": "AUDIO_AMT_REOPEN_JUSTIFIED_FOR_ONE_BOUNDED_EVALUATION",
+      "limits": ["EVIDENCE_LIMIT", "LICENSE_LIMIT", "RESOURCE_LIMIT"]
+    },
+    {
+      "experimentId": "muscriptor-hf-browser-auth-runtime-unlock-2026-09-05",
+      "date": "2026-09-05",
+      "inputClass": "project-owned five-second sanity WAV",
+      "backend": "MuScriptor medium at frozen source/model revisions",
+      "contract": "gated access, weight hash, runtime load, parse, determinism",
+      "result": "dedicated browser authentication, frozen weight acquisition, MPS runtime, and deterministic MIDI were validated",
+      "decision": "MUSCRIPTOR_RUNTIME_SANITY_VALIDATED",
+      "limits": ["LICENSE_LIMIT", "EVIDENCE_LIMIT"]
+    },
+    {
+      "experimentId": "rights-cleared-dense-metal-amt-eval-corpus-2026-09-05",
+      "date": "2026-09-05",
+      "inputClass": "three project-owned synthetic full-reference fixtures plus HiMMP kick-only real partial reference",
+      "backend": "deterministic corpus builder",
+      "contract": "rights, hashes, role-aware truth, EVAL_ONLY firewall",
+      "result": "synthetic full reference and real kick-only partial reference were frozen; no real full pitched-metal truth exists",
+      "decision": "RIGHTS_CLEARED_REAL_PLUS_SYNTHETIC_METAL_CORPUS_READY",
+      "limits": ["EVIDENCE_LIMIT"]
+    },
+    {
+      "experimentId": "muscriptor-frozen-dense-metal-cold-evaluation-2026-09-05",
+      "date": "2026-09-05",
+      "inputClass": "frozen dense-metal corpus",
+      "backend": "MuScriptor medium versus Basic Pitch 0.4.0",
+      "contract": "three-fixture exact-pitch/onset headroom gate plus independent real kick partial",
+      "result": "MuScriptor won 2/3 and improved macro F1 by 0.329242, but Layered Melodic regressed by 0.110241 beyond the frozen 0.10 limit; real kick F1 was 0.673418",
+      "decision": "MUSCRIPTOR_SYNTHETIC_DENSE_METAL_HEADROOM_NOT_PROVEN",
+      "limits": ["ROBUSTNESS_LIMIT", "LICENSE_LIMIT", "EVIDENCE_LIMIT"]
+    }
+  ],
+  "failureModes": {
+    "MODEL_CAPABILITY_LIMIT": "Earlier direct and separated Basic Pitch evidence lacked reliable pitch/role authority; routing could not recover missing evidence.",
+    "DOMAIN_TRANSFER_LIMIT": "GAPS improved isolated guitar but did not transfer consistently to dense metal.",
+    "ROBUSTNESS_LIMIT": "MuScriptor's strong aggregate gain was not robust to the frozen layered-melodic texture.",
+    "EVIDENCE_LIMIT": "HiMMP establishes real kick timing only; no rights-cleared real full pitched-metal reference was available.",
+    "RIGHTS_LIMIT": "Protected commercial references remained evaluation-only and were never generation or tuning inputs.",
+    "LICENSE_LIMIT": "MuScriptor weights are CC-BY-NC-4.0 and cannot enter the production product.",
+    "DOWNSTREAM_LIMIT": "Earlier learner outputs lost much of the available evidence; MuScriptor downstream was not evaluated because its raw contract failed.",
+    "RESOURCE_LIMIT": "CLaMP3 was stopped before evaluation at its bounded resource gate; this was not a quality result."
+  },
+  "strongestCandidate": {
+    "model": "MuScriptor medium",
+    "macroExactF1": 0.820139,
+    "basicPitchMacroExactF1": 0.490897,
+    "absoluteDelta": 0.329242,
+    "wins": 2,
+    "fixtureCount": 3,
+    "positiveFixtures": ["METAL_A_TIGHT_RIFF", "METAL_B_DENSE_EXTREME"]
+  },
+  "frozenFailure": {
+    "fixture": "METAL_C_LAYERED_MELODIC",
+    "basicPitchExactF1": 0.8564705882352942,
+    "muscriptorExactF1": 0.7462295081967213,
+    "delta": -0.1102410800385729,
+    "catastrophicLimit": -0.1,
+    "decision": "MUSCRIPTOR_SYNTHETIC_DENSE_METAL_HEADROOM_NOT_PROVEN"
+  },
+  "realPartial": {
+    "reference": "REAL_METAL_KICK_ONSET_PARTIAL_REFERENCE",
+    "precision": 0.682051,
+    "recall": 0.665,
+    "f1": 0.673418,
+    "medianOnsetErrorSeconds": 0.034646,
+    "p95OnsetErrorSeconds": 0.04653,
+    "decision": "REAL_METAL_KICK_REFERENCE_SIGNAL_PRESENT",
+    "claim": "REAL_METAL_PERCUSSION_PARTIAL_SIGNAL",
+    "realFullPitchedMetalHeadroom": "REAL_DENSE_METAL_FULL_TRANSCRIPTION_HEADROOM_NOT_ESTABLISHED"
+  },
+  "downstream": {
+    "status": "NOT_RUN_RAW_GATE_FAILED",
+    "interpretation": "NOT_EVALUATED_BECAUSE_RAW_CONTRACT_FAILED"
+  },
+  "finalDecisions": [
+    "AUDIO_AMT_FALLBACK_REMAINS_UNSUPPORTED",
+    "AUDIO_AMT_BRANCH_CLOSED_FOR_CURRENT_PRODUCT_ARCHITECTURE",
+    "MUSCRIPTOR_SYNTHETIC_DENSE_METAL_HEADROOM_NOT_PROVEN",
+    "REAL_METAL_KICK_REFERENCE_SIGNAL_PRESENT",
+    "REAL_DENSE_METAL_FULL_TRANSCRIPTION_HEADROOM_NOT_ESTABLISHED",
+    "MUSCRIPTOR_WEIGHTS_NONCOMMERCIAL_RESEARCH_ONLY",
+    "NOT_RUN_RAW_GATE_FAILED"
+  ],
+  "reopeningPolicy": {
+    "default": "DO_NOT_REOPEN",
+    "materialTriggers": [
+      "A commercially usable model publishes multi-instrument dense-rock or dense-metal evidence materially beyond the frozen MuScriptor result.",
+      "MuScriptor or a successor becomes production-license compatible and a new frozen architecture or version addresses layered-texture regression.",
+      "A fundamentally different transcription architecture presents credible real-recording dense-metal evidence.",
+      "Keyspilli obtains a substantially stronger rights-cleared real-metal full-reference benchmark."
+    ],
+    "insufficientTriggers": ["new Hugging Face model", "leaderboard improvement", "third-party recommendation", "minor MuScriptor version bump"]
+  },
+  "product": {
+    "strategy": "EXTERNAL_SYMBOLIC_FIRST",
+    "liveStatus": "DISCOVERY_ASSISTED_PRIVATE_ALPHA_LIVE_VERIFIED",
+    "noSourceState": "NO_TRUSTWORTHY_SYMBOLIC_SOURCE_AVAILABLE",
+    "generationCandidateIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+    "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+    "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+    "humanListening": ["NOT_REQUESTED", "NOT_REQUIRED_BY_DEFAULT"]
+  },
+  "productFrontier": {
+    "solvedLive": ["symbolic candidate intake", "five public and six physical difficulty levels", "arrangement/export/player pipeline", "Basic Auth private deployment", "Brave metadata discovery", "user-mediated handoff", "live symbolic-upload generation", "restart durability", "cleanup and atomicity"],
+    "boundedConditional": ["external source identity", "external source rights", "score/audio alignment", "symbolic source coverage"],
+    "closedUnsupported": ["generic dense-metal direct AMT fallback", "MuScriptor production integration", "automatic acquisition of third-party source bytes"]
+  },
+  "researchAssets": {
+    "retained": ["dense-metal corpus manifest", "project-owned corpus builder", "MuScriptor evaluator", "metric contracts", "preregistration", "cold-evaluation reports", "hashes", "frozen model cache"],
+    "dedicatedHuggingFaceAuthentication": "LOGGED_OUT",
+    "frozenWeightSha256AfterLogout": "ac80adbdf85d87231735fd948af7013441c0afced316c4e9067fd5d8a7fb97ec"
+  },
+  "supersedes": {
+    "historicalStatus": "AUDIO_AMT_REOPEN_JUSTIFIED",
+    "currentStatus": "AUDIO_AMT_BRANCH_CLOSED_FOR_CURRENT_PRODUCT_ARCHITECTURE",
+    "historicalFactsPreserved": true
+  },
+  "nextTask": "DISCOVERY_ASSISTED_PRIVATE_ALPHA_PRODUCT_HARDENING"
+}

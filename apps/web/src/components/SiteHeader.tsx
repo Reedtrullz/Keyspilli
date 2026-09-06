@@ -9,8 +9,7 @@ const NAV = [
   ["/", "Home"],
   ["/songs", "Songs"],
   ["/artists", "Artists"],
-  ["/uploads", "Upload"],
-  ["/youtube", "YouTube"],
+  ["/uploads", "Add a song"],
 ] as const;
 
 export function SiteHeader() {

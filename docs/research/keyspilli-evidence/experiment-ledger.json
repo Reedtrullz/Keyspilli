@@ -1,0 +1,3399 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Durable path-free summary of Keyspilli evidence experiments",
+  "entries": [
+    {
+      "id": "frozen-density-normalization-public-contract-2026-09-04",
+      "date": "2026-09-04",
+      "startingRevision": "ab654e12c14c9d6eb67e04862b30f6a16c539dbb",
+      "checkpointRevision": "eb23129",
+      "purpose": "Re-evaluate the exact frozen density Candidate A against the production public five-level contract",
+      "route": "private native Lane A MIDI -> existing learner ladder -> shared protected semantic thinning selector -> production validation -> six artifacts/public projection",
+      "scope": {
+        "candidate": "Candidate A",
+        "candidateSourceRevision": "a68fd1e0caa837ed4de868d4be31483c19b75c0c",
+        "candidateFunction": "selectProtectedSemanticLocalThinning",
+        "candidatePolicyChanged": false,
+        "validatorChanged": false,
+        "publicContractChanged": false,
+        "benchmarkMaterialUsed": false,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NOT_DEPLOYED"
+      },
+      "fixture": {
+        "id": "lane-a-native-performance",
+        "sourceClass": "GENERATION_CANDIDATE",
+        "provenanceClass": "USER_SUPPLIED_PRIVATE",
+        "symbolicSha256": "ec5010896c00a0541b34b0843a20f455707ac647ae4a222aee71e2ad43e8017e",
+        "symbolicBytes": 58204,
+        "symbolicNotes": 7266,
+        "durationBeats": 358.46875,
+        "tempoBpm": 120
+      },
+      "results": {
+        "allSixIndividualValidatorsPass": true,
+        "publicNoteCountOrderingPass": true,
+        "publicRhAncestryPass": true,
+        "publicDifficultyScoreOrderingPass": true,
+        "veryEasyIndependentPass": true,
+        "veryEasyBeginnerVeryBeginnerParity": true,
+        "protectedMelodyAndAnchorsDeleted": 0,
+        "retimedEvents": 0,
+        "newEventsCreated": 0,
+        "withheldEventsResurrected": 0,
+        "artifactRoundtripsPass": true,
+        "rapidFractionAfter": {"easy": 0.161642, "medium": 0.182334, "advanced": 0.394896},
+        "removedAttacks": {"easy": 471, "medium": 480, "advanced": 421},
+        "removedNotes": {"easy": 713, "medium": 797, "advanced": 714},
+        "trustedFixturesExactNoOp": true,
+        "deterministicRerun": true
+      },
+      "decision": "FROZEN_DENSITY_NORMALIZATION_VALIDATED",
+      "timedSymbolicMvp": "TIMED_SYMBOLIC_MVP_READY",
+      "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+      "realShadow": "NATIVE_TIMED_SYMBOLIC_REAL_SHADOW_VALIDATED",
+      "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+      "report": {
+        "path": "frozen-density-normalization-public-contract-2026-09-04.json",
+        "canonicalSha256": "9a95a6e67827de2ee2c6472161451dd45f9aca3fd3f696fe2ab9de6a642bea0f",
+        "sha256": "f1c83004bf51d53054fbbe8a140423dfe1a6c0b634e24e282e886b350cf35060"
+      },
+      "verification": {
+        "focusedPlayabilityTests": 12,
+        "midiTests": 354,
+        "catalogTests": 1037,
+        "workspaceTests": 1622,
+        "workspaceTypechecks": 6,
+        "gitDiffCheck": true
+      },
+      "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+      "deployment": "NOT_DEPLOYED",
+      "nextTask": "BOUNDED_MVP_PRODUCTIZATION_READINESS"
+    },
+    {
+      "id": "public-five-level-difficulty-contract-implementation-2026-09-04",
+      "date": "2026-09-04",
+      "startingRevision": "971974231016bded91769fc938850fce38ea7827",
+      "checkpointRevision": "a0a8dc5f35fa6bd18cc87b82b4d5c48e765d519f",
+      "purpose": "Implement production validation for the public five-level ladder while retaining six physical artifacts and legacy Very Easy",
+      "route": "existing buildVariants -> public-edge validateVariants/verifyMonotonicity -> exact six-level note-set parity report",
+      "scope": {
+        "physicalOrder": ["very-beginner", "beginner", "very-easy", "easy", "medium", "advanced"],
+        "publicOrder": ["very-beginner", "beginner", "easy", "medium", "advanced"],
+        "veryEasy": "individually validated, serialized, round-trippable, legacy-accessible, not a public ordering edge",
+        "productionPublicEdgeToleranceBeats": {"very-beginner": 0.26, "beginner": 0.02, "easy": 0.02, "medium": 0.02},
+        "auditMatchingToleranceBeats": 0.08,
+        "generationPolicyChanged": false,
+        "playabilityLimitsChanged": false,
+        "densityNormalizationPromoted": false,
+        "benchmarkMaterialUsed": false,
+        "humanListening": "NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NOT_DEPLOYED"
+      },
+      "fixtures": {
+        "trustedProduction": ["classical", "cover", "pop"],
+        "trustedProductionValidationPass": true,
+        "trustedSixLevelParityPass": true,
+        "laneA": {
+          "sourceClass": "GENERATION_CANDIDATE",
+          "provenanceClass": "USER_SUPPLIED_PRIVATE",
+          "symbolicSha256": "ec5010896c00a0541b34b0843a20f455707ac647ae4a222aee71e2ad43e8017e",
+          "symbolicBytes": 58204,
+          "symbolicNotes": 7266,
+          "productionValidationPass": false,
+          "blockingErrors": [
+            "easy: median inter-onset 0.063s below floor 0.08s",
+            "medium: median inter-onset 0.063s below floor 0.08s",
+            "advanced: median inter-onset 0.063s below floor 0.08s"
+          ],
+          "sixLevelParityPass": true
+        },
+        "syntheticFullBand": "diagnostic-only; not used for the production decision"
+      },
+      "parity": {
+        "baselineRevision": "971974231016bded91769fc938850fce38ea7827",
+        "comparison": "sorted [midi,start,duration,velocity,hand,identitySource] note-set SHA per physical level",
+        "allTrustedAndLaneALevelsEqual": true
+      },
+      "decision": "PUBLIC_FIVE_LEVEL_CONTRACT_IMPLEMENTED",
+      "timedSymbolicMvp": "TIMED_SYMBOLIC_MVP_READY_FOR_NORMALIZATION_REEVALUATION",
+      "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+      "realShadow": "REAL_SHADOW_BLOCKED_AT_DIFFICULTIES",
+      "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+      "report": {
+        "path": "difficulty-contract-implementation-2026-09-04.json",
+        "canonicalSha256": "b4285e94b984bbd1445f818313533293dabadeee3bacd70c56967bbed2f69f03",
+        "sha256": "4a80c3279efe31382c0d1581fa62ee216b7c1406d1f995a1cf88c2fb862af18b"
+      },
+      "verification": {
+        "workspaceTests": 1621,
+        "workspaceTypechecks": 6,
+        "deterministicRerun": true,
+        "gitDiffCheck": true
+      },
+      "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+      "deployment": "NOT_DEPLOYED",
+      "nextTask": "REEVALUATE_FROZEN_DENSITY_NORMALIZATION_UNDER_PUBLIC_CONTRACT"
+    },
+    {
+      "id": "difficulty-contract-review-2026-09-04",
+      "date": "2026-09-04",
+      "startingRevision": "4d30f85e7212265604cefefef0d0d844c4a59e16",
+      "purpose": "Audit whether hidden physical Very Easy must constrain the public difficulty ladder",
+      "route": "existing trusted fixtures + private Lane A -> existing buildVariants/validateVariants -> report-only physical/public contract diagnostic",
+      "scope": {
+        "physicalOrder": ["very-beginner", "beginner", "very-easy", "easy", "medium", "advanced"],
+        "publicOrder": ["very-beginner", "beginner", "easy", "medium", "advanced"],
+        "veryEasy": "individually validated legacy physical artifact; not a public ordering edge",
+        "playabilityLimitsChanged": false,
+        "densityNormalizationPromoted": false,
+        "benchmarkMaterialUsed": false,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NOT_DEPLOYED"
+      },
+      "fixtures": {
+        "productionOwned": ["classical", "cover", "pop"],
+        "diagnosticOnly": ["synthetic-full-band"],
+        "laneA": {
+          "sourceClass": "GENERATION_CANDIDATE",
+          "provenanceClass": "USER_SUPPLIED_PRIVATE",
+          "symbolicSha256": "ec5010896c00a0541b34b0843a20f455707ac647ae4a222aee71e2ad43e8017e",
+          "symbolicBytes": 58204,
+          "symbolicNotes": 7266,
+          "durationBeats": 358.46875,
+          "tempoBpm": 120
+        }
+      },
+      "historicalEvidence": {
+        "classicalVeToEasy": "REDUNDANT_LEVEL",
+        "coverVeToEasy": "NON_MONOTONIC",
+        "popVeToEasy": "REDUNDANT_LEVEL"
+      },
+      "results": {
+        "productionFixturePublicEdgesPass": true,
+        "productionFixtureVeryEasyIndependentPass": true,
+        "candidateAPublicEdgesPass": true,
+        "candidateAVeryEasyIndependentPass": true,
+        "candidateAPhysicalContractPass": false,
+        "candidateAPhysicalFailure": "very-easy has 2560 notes but easy has 2130"
+      },
+      "decision": "PUBLIC_FIVE_LEVEL_CONTRACT_VALIDATED",
+      "timedSymbolicMvp": "TIMED_SYMBOLIC_MVP_READY_FOR_NORMALIZATION_REEVALUATION",
+      "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+      "realShadow": "REAL_SHADOW_BLOCKED_AT_DIFFICULTIES",
+      "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+      "behavior": "REPORT_ONLY_NO_MUSICAL_BEHAVIOR_CHANGE",
+      "report": {
+        "path": "difficulty-contract-review-2026-09-04.json",
+        "canonicalSha256": "3e18f4c8369e8ad9e91f5bc741ced07baf38eff7fd9743a25df4310b71be2f70"
+      },
+      "nextTask": "IMPLEMENT_PUBLIC_FIVE_LEVEL_DIFFICULTY_CONTRACT"
+    },
+    {
+      "id": "authoritative-symbolic-density-normalization-2026-09-04",
+      "date": "2026-09-04",
+      "startingRevision": "5a5e25fd3b8b2727af8e3da3887ccfa3662f519c",
+      "checkpointRevision": "a68fd1e0caa837ed4de868d4be31483c19b75c0c",
+      "purpose": "Evaluate generic deletion-only normalization against the unchanged authoritative Lane A playability contract",
+      "route": "native authoritative symbolic MIDI -> existing direct-piano arrangement -> six variants -> report-only density diagnostics",
+      "fixture": {
+        "id": "lane-a-native-performance",
+        "sourceClass": "GENERATION_CANDIDATE",
+        "provenanceClass": "USER_SUPPLIED_PRIVATE",
+        "symbolicSha256": "ec5010896c00a0541b34b0843a20f455707ac647ae4a222aee71e2ad43e8017e",
+        "symbolicBytes": 58204,
+        "symbolicNotes": 7266,
+        "durationBeats": 358.46875,
+        "tempoBpm": 120
+      },
+      "baseline": {
+        "veryEasy": {"notes": 2560, "attacks": 1553, "medianIoiSeconds": 0.125, "rapidFraction": 0.399485},
+        "easy": {"notes": 2843, "attacks": 1666, "medianIoiSeconds": 0.0625, "rapidFraction": 0.516517},
+        "medium": {"notes": 3066, "attacks": 1715, "medianIoiSeconds": 0.0625, "rapidFraction": 0.53909},
+        "advanced": {"notes": 3560, "attacks": 1911, "medianIoiSeconds": 0.0625, "rapidFraction": 0.65445}
+      },
+      "differential": {
+        "easyOnlyAttacks": 346,
+        "easyOnlyNotes": 536,
+        "veryEasyOnlyAttacks": 233,
+        "veryEasyOnlyNotes": 342,
+        "directSubFloorResolutions": 318
+      },
+      "candidateA": {
+        "removedAttacks": {"easy": 471, "medium": 480, "advanced": 421},
+        "rapidFraction": {"easy": 0.161642, "medium": 0.182334, "advanced": 0.394896},
+        "ladderValid": false,
+        "protectedMelodyDeleted": 0
+      },
+      "boundedOracle": {
+        "easy": {"removedAttacks": 21, "notes": 2822, "medianIoiSeconds": 0.09375, "rapidFraction": 0.5},
+        "medium": {"removedAttacks": 48, "notes": 3018, "medianIoiSeconds": 0.125, "rapidFraction": 0.4994},
+        "advanced": {"removedAttacks": 204, "notes": 3245, "medianIoiSeconds": 0.09375, "rapidFraction": 0.5},
+        "rapidFractionRemainsAroundHalf": true
+      },
+      "decision": "NO_GENERIC_DENSITY_TRANSFORM_JUSTIFIED",
+      "behavior": "NO_MUSICAL_BEHAVIOR_CHANGE",
+      "timedSymbolicMvp": "TIMED_SYMBOLIC_MVP_CONDITIONAL",
+      "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+      "realShadow": "REAL_SHADOW_BLOCKED_AT_DIFFICULTIES",
+      "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+      "deployment": "NOT_DEPLOYED",
+      "reportCanonicalSha256": "f1432f35a7ce5433c1f8cb0ea4905939811e44376bcba2bf5fee436fbc55c330",
+      "reportSha256": "bdf7ae7f4f108d424ea24e092edd84b8dce9fa0fd116488ff066ca64bdd7c94a",
+      "deterministicRerun": true,
+      "nextTask": "LEVEL_CONTRACT_REVIEW_FOR_AUTHORITATIVE_DENSITY"
+    },
+    {
+      "id": "beginner-offgrid-rh-budget-frontier-2026-09-03",
+      "date": "2026-09-03",
+      "gitCommit": "76cfead64091c409cba4fd9772c2748903ebddda",
+      "purpose": "Diagnostic-only test of generic structurally supported off-quarter-grid RH attacks in Beginner",
+      "songs": ["Clair de lune", "River Flows in You", "Hello"],
+      "route": "frozen Very Easy/Beginner/Easy variants -> pure RH frontier evaluator -> arrangement metrics",
+      "criticalMetrics": {
+        "fixtureSha256": {
+          "classical": "e7e0fd260e049e338120cc4ee35c1a998ef616c01529a4c1a79837d6bb914039",
+          "cover": "eb8a1cf8f0076a548acaa206b67d19123814e1167d654496afa24c0458dc6f9d",
+          "pop": "87915f6b8dce035951af2ddc89c9c36ce105fde8e79ba6f936e31b7f80ef7fd6"
+        },
+        "coverRejectedEvents": 398,
+        "coverStructurallySignificantLostEvents": 320,
+        "coverCandidateARecovered": 110,
+        "coverCandidateBRecovered": 188,
+        "candidateARecoveryRatio": 0.5851063829787234,
+        "exactBeginnerLh": true,
+        "frozenPlayability": true,
+        "classicalPopNoMaterialDensification": true,
+        "classicalPopNoIdentityRegression": true,
+        "deterministicReportSha256": "eadb2fe2cf48f31c3a18975f14fed4fb665b9538fafa739b04f3dcb44b62815a"
+      },
+      "preregistration": {
+        "budgets": {"baseline": 0, "candidateA": 1, "candidateB": 2},
+        "windowBeats": {"4/4": 4, "9/8": 4.5},
+        "eligibility": "rejected Beginner RH, off quarter-grid, and at least one generic structural signal",
+        "frozenControls": ["Beginner LH", "maxSim <= 2", "density", "IOI", "span/jump", "all non-Beginner levels"]
+      },
+      "result": "Candidate A recovered 110/188 Cover events, passed the frozen diagnostic gate, and remained evaluator-only; Candidate B was not promoted",
+      "decision": "BEGINNER_SPARSE_OFFGRID_RH_BUDGET_VALIDATED",
+      "behavior": "NO_MUSICAL_BEHAVIOR_CHANGE",
+      "reportHash": "eadb2fe2cf48f31c3a18975f14fed4fb665b9538fafa739b04f3dcb44b62815a",
+      "reproducible": true,
+      "rawArtifactRetention": "retain compact path-free report only; no generated MIDI or source-specific note lists"
+    },
+    {
+      "id": "direct-metal-source-aware",
+      "date": "2026-08-28",
+      "gitCommit": "e1665e0",
+      "purpose": "Reduce metal rhythm-wall contamination and source handoffs while preserving vocals and lead detail",
+      "songs": ["Defence of Moscow"],
+      "route": "Demucs/Basic Pitch stems -> source-aware metal arrangement -> learner variants",
+      "criticalMetrics": {"midiTests": 170, "easyMediumGuitarMinIoiBeats": 0.5, "section5GuitarLargeLeapCountApprox": 13},
+      "result": "Structural cleanup passed, but residual contour and AMT evidence did not support recognizability.",
+      "decision": "Keep bounded source-aware cleanup; do not claim musical success.",
+      "reportHash": "9d70f8b6db05db231c3e992dd6a354faca93da400067506dd3d63d6a69aeb659",
+      "reproducible": true,
+      "rawArtifactRetention": "delete generated stems/renders after conclusions are recorded"
+    },
+    {
+      "id": "semantic-guitar-harmony",
+      "date": "2026-08-29",
+      "gitCommit": "52a6541",
+      "purpose": "Collapse guitar harmonic detector stacks into semantic attacks and route rhythm roots to LH",
+      "songs": ["Defence of Moscow", "Final Solution", "Gott Mit Uns", "The Red Baron"],
+      "route": "source-locked guitar selector -> harmonic clusters -> root/quality stabilization -> chord/LH construction",
+      "criticalMetrics": {"sourceLock": true, "drumDerivedPitchCount": 0, "humanRecognizability": null},
+      "result": "Synthetic harmonic, jitter, root-stability, source-lock, and variant gates passed; real-song listening remained poor.",
+      "decision": "Preserve implementation and diagnostics; defer further contour research.",
+      "reportHash": null,
+      "reproducible": true,
+      "rawArtifactRetention": "retain summaries only; generated raw outputs are ephemeral"
+    },
+    {
+      "id": "defence-reference-audit",
+      "date": "2026-08-28",
+      "gitCommit": "28e4e9f",
+      "purpose": "Compare a private human MIDI reference to generated Defence of Moscow structure",
+      "songs": ["Defence of Moscow"],
+      "route": "private reference MIDI -> local feature/alignment diagnostics only",
+      "criticalMetrics": {"referenceDurationBeats": 332, "referenceUpperSoloOnsets": 100, "implicitFullSongAlignment": false},
+      "result": "Human reference sounded good; generated direct-metal output was not recognizable. Candidate/reference timing was not silently warped.",
+      "decision": "Keep references private and evaluation-only; require explicit aligned windows.",
+      "reportHash": "a52980366131029b425dd5819394e1ef2baeb8fc0e2895fb30b638bb3ebcb30a",
+      "reproducible": true,
+      "rawArtifactRetention": "private source retained; no repository copy"
+    },
+    {
+      "id": "omr-dual-engine",
+      "date": "2026-08-30",
+      "gitCommit": "3d315fb",
+      "purpose": "Test Audiveris/HOMR and canonical-spine score extraction as a symbolic alternative",
+      "songs": ["1916", "Christmas Truce", "Final Solution", "Gott Mit Uns", "The Red Baron", "Free Bird", "The Carolean's Prayer"],
+      "route": "private score/PDF -> Audiveris/HOMR -> MusicXML/MIDI -> role/alignment diagnostics",
+      "criticalMetrics": {"dualEngineAgreement": null, "independentAlignedCandidates": 0},
+      "result": "Useful engineering diagnostics, insufficient stable coverage/alignment for generation.",
+      "decision": "Deprioritize OMR as production authority; retain optional local adapter.",
+      "reportHash": null,
+      "reproducible": true,
+      "rawArtifactRetention": "retain compact manifests/reports, delete raster/intermediate output"
+    },
+    {
+      "id": "audio-amt-oracle",
+      "date": "2026-08-31",
+      "gitCommit": "3c4bd97",
+      "purpose": "Measure raw stem evidence against human references before blaming learner simplification",
+      "songs": ["Final Solution", "Gott Mit Uns", "The Red Baron"],
+      "route": "Demucs/Basic Pitch and alternate AMT stems -> raw/decoded/current Easy oracle",
+      "criticalMetrics": {"rawOnsetRecall": {"finalSolution": 0.648, "gottMitUns": 0.755, "redBaron": 0.698}, "currentEasyOnsetRecall": {"finalSolution": 0.087, "gottMitUns": 0.171, "redBaron": 0.119}},
+      "result": "Timing evidence exists, but pitch fidelity and downstream retention are weak; raw evidence is the limiting oracle.",
+      "decision": "Do not broaden arranger thresholds without a new evidence source.",
+      "reportHash": null,
+      "reproducible": true,
+      "rawArtifactRetention": "delete WAV/stems after hashes are recorded"
+    },
+    {
+      "id": "external-symbolic-inventory",
+      "date": "2026-09-01",
+      "gitCommit": "52a6541",
+      "purpose": "Freeze provenance and alignment status for seven private benchmark songs",
+      "songs": ["1916", "Christmas Truce", "Final Solution", "Gott Mit Uns", "The Red Baron", "Free Bird", "The Carolean's Prayer"],
+      "route": "provider-neutral metadata and permitted local symbolic inputs; benchmark bytes evaluation-only",
+      "criticalMetrics": {"independentlyAlignedCandidates": 0, "humanReadySongs": 0, "inventorySize": 7},
+      "result": "Submitted-local references are musically useful but do not establish independent acquisition or aligned generation evidence.",
+      "decision": "Keep EXTERNAL_SYMBOLIC_FIRST fail-closed until a candidate has independent alignment.",
+      "reportHash": null,
+      "reproducible": true,
+      "rawArtifactRetention": "retain private originals; delete duplicate downloaded/derived bundles"
+    },
+    {
+      "id": "storage-recovery",
+      "date": "2026-09-01",
+      "gitCommit": "52a6541",
+      "purpose": "Back up local history, preserve conclusions, and reclaim ephemeral experiment storage",
+      "songs": [],
+      "route": "Git/secret audit -> path-free ledgers -> remote branch/tag -> classified cleanup",
+      "criticalMetrics": {"localCommitsMissingAtStart": 153, "initialFreeGiB": 15.4, "preferredFreeGiB": 40},
+      "result": "No protected binaries or credentials found in unpublished history; cleanup is limited to verified generated outputs.",
+      "decision": "Push topic history and checkpoint tag; retain private sources and unknown/active data.",
+      "reportHash": null,
+      "reproducible": true,
+      "rawArtifactRetention": "see storage-inventory.json and ignored local retention manifest"
+    },
+    {
+      "id": "shadow-corpus-feasibility-2026-09-01",
+      "date": "2026-09-01",
+      "gitCommit": "1a37e19c108da3ac7c520239ee9972042d706a82",
+      "purpose": "Assess whether a bounded open-data symbolic shadow corpus can prove EXTERNAL_SYMBOLIC_FIRST",
+      "songs": [],
+      "route": "synthetic aligned shadow fixtures; bounded BabySlakh acquisition attempt kept separate from benchmark data",
+      "criticalMetrics": {"syntheticItemsCompleted": 8, "realItemsCompleted": 0, "downloadedPartialBytes": 428348768, "downloadValid": false, "license": "CC BY 4.0"},
+      "result": "The full route is deterministic on synthetic aligned data; the official archive was only partially acquired and was not consumed.",
+      "decision": "Do not claim a real open-data corpus result or retain the invalid partial archive.",
+      "reportHash": null,
+      "reproducible": true,
+      "rawArtifactRetention": "retain compact synthetic reports only; remove invalid partial media after handle check"
+    },
+    {
+      "id": "alignment-calibration-2026-09-01",
+      "date": "2026-09-01",
+      "gitCommit": "1a37e19c108da3ac7c520239ee9972042d706a82",
+      "purpose": "Calibrate symbolic alignment against hidden deterministic corruptions",
+      "songs": [],
+      "route": "aligned synthetic symbolic input -> offset/tempo/transpose/section corruption -> symbolic aligner",
+      "criticalMetrics": {"cases": 10, "globalTransformRecovery": "6/6", "windowMinimumCases": 9, "barMinimumCases": 0, "thresholdsChanged": false},
+      "result": "Global transforms recovered exactly; section edits are partial/diagnostic and the 32-bar gate is not classifiable from eight-bar fixtures.",
+      "decision": "Keep the existing three-window/32-bar gate and report independent-evidence insufficiency.",
+      "reportHash": null,
+      "reproducible": true,
+      "rawArtifactRetention": "retain compact JSON calibration summaries"
+    },
+    {
+      "id": "direct-piano-preservation-2026-09-01",
+      "date": "2026-09-01",
+      "gitCommit": "1a37e19c108da3ac7c520239ee9972042d706a82",
+      "purpose": "Measure whether the direct-piano route damages trusted symbolic material",
+      "songs": [],
+      "route": "trusted synthetic/role-tagged piano -> canonical -> Advanced/Medium/Easy",
+      "criticalMetrics": {"advancedNoteSurvival": 1, "mediumNoteSurvivalRange": [0.98, 1], "easyNoteSurvivalRange": [0.70, 0.86], "easyOctaveFlipRateApprox": [0.08, 0.18]},
+      "result": "Advanced and Medium preserve the tested material; Easy simplifies materially but remains structurally coherent in the bounded fixtures.",
+      "decision": "No generic direct-piano arranger change in this mission.",
+      "reportHash": null,
+      "reproducible": true,
+      "rawArtifactRetention": "retain compact report only"
+    },
+    {
+      "id": "cold-seven-song-research-2026-09-01",
+      "date": "2026-09-01",
+      "gitCommit": "1a37e19c108da3ac7c520239ee9972042d706a82",
+      "purpose": "Recheck legitimate external symbolic, piano-cover, and structured-harmony evidence for all seven cold songs",
+      "songs": ["1916", "Christmas Truce", "Final Solution", "Free Bird", "Gott Mit Uns", "The Red Baron", "The Carolean's Prayer"],
+      "route": "provider retrieval and metadata audit; HTML/auth/paywall responses fail closed",
+      "criticalMetrics": {"songsReviewed": 7, "independentAlignedSymbolicCandidates": 0, "pianoCoverOrStructuredHarmonyAids": 7, "generationReady": 0},
+      "result": "Piano-cover and structured-harmony aids exist, but no symbolic bytes with independent target-recording alignment were acquired.",
+      "decision": "Keep all seven out of generation and human-readiness gates.",
+      "reportHash": null,
+      "reproducible": true,
+      "rawArtifactRetention": "retain compact research report; no downloaded media"
+    },
+    {
+      "id": "difficulty-lineage-2026-09-01",
+      "date": "2026-09-01",
+      "gitCommit": "1a37e19c108da3ac7c520239ee9972042d706a82",
+      "purpose": "Close the raw-to-difficulty provenance gap with an optional development trace",
+      "songs": ["synthetic-full-band", "retained-stem-smoke", "The Red Baron"],
+      "route": "raw -> cleaned/lead/residual/cluster/semantic/decision/chord/left-hand/final -> difficulty",
+      "criticalMetrics": {"retainedStemTraceEvents": 21281, "difficultyEventsWithoutParents": 0, "redBaronRawGuitar": 1599, "redBaronSemantic": 352, "redBaronCanonicalGuitar": 1229, "redBaronEasyGuitar": 460},
+      "result": "The optional trace links retained difficulty events to canonical final keys and exposes the first downstream loss for a cold Red Baron run; public MIDI/API shapes remain unchanged.",
+      "decision": "Keep tracing diagnostics-only; do not tune the decoder from the cold reference.",
+      "reportHash": null,
+      "reproducible": true,
+      "rawArtifactRetention": "retain compact reports and path-free trace only while diagnosing; no reference bytes staged"
+    },
+    {
+      "id": "lead-contour-cold-audit-2026-09-01",
+      "date": "2026-09-01",
+      "gitCommit": "1a37e19c108da3ac7c520239ee9972042d706a82",
+      "purpose": "Separate raw pitch/onset support from decoder and learner contour loss",
+      "songs": ["Final Solution", "Gott Mit Uns", "The Red Baron"],
+      "route": "cold raw guitar oracle -> source-aware lead/semantic/canonical/Easy diagnostics",
+      "criticalMetrics": {"rawOnsetRecall": {"finalSolution": 0.648, "gottMitUns": 0.755, "redBaron": 0.698}, "easyOnsetRecall": {"finalSolution": 0.087, "gottMitUns": 0.171, "redBaron": 0.119}, "rawPitchClassRecallRedBaron": 0.310},
+      "result": "Timing evidence is present, but pitch support is weak and downstream loss is large; no generic threshold change is justified.",
+      "decision": "Defer richer source-aware learner contour work until a trustworthy symbolic generation candidate exists.",
+      "reportHash": null,
+      "reproducible": true,
+      "rawArtifactRetention": "retain compact metrics only"
+    },
+    {
+      "id": "listening-gate-2026-09-01",
+      "date": "2026-09-01",
+      "gitCommit": "1a37e19c108da3ac7c520239ee9972042d706a82",
+      "purpose": "Determine whether a cold-song A/B listening pack is justified",
+      "songs": ["1916", "Christmas Truce", "Final Solution", "Free Bird", "Gott Mit Uns", "The Red Baron", "The Carolean's Prayer"],
+      "route": "independent symbolic alignment -> three windows/32 bars -> human readiness",
+      "criticalMetrics": {"readySongs": 0, "listeningPackGenerated": false},
+      "result": "No cold song satisfies the independent evidence and alignment gate; existing controlled audio remains pre-gate.",
+      "decision": "Do not generate or publish a listening pack; await a qualifying external candidate and human review.",
+      "reportHash": null,
+      "reproducible": true,
+      "rawArtifactRetention": "retain no new listening media"
+    },
+    {
+      "id": "raw-ceiling-and-selector-survival-2026-09-01",
+      "date": "2026-09-01",
+      "gitCommit": "b9f8f636d32a63dd96adb1a0eca9d5e8b5c32bcd",
+      "purpose": "Separate upstream pitch availability from pre-decoder filtering and selector loss on cold guitar stems",
+      "songs": ["Final Solution", "Gott Mit Uns", "The Red Baron"],
+      "route": "raw guitar oracle -> source-filtered selector -> lead diagnostics",
+      "criticalMetrics": {"rawOnsetRecall": {"finalSolution": 0.648, "gottMitUns": 0.756, "redBaron": 0.698}, "selectorInput": {"finalSolution": 901, "gottMitUns": 883, "redBaron": 820}, "selectorSelected": {"finalSolution": 896, "gottMitUns": 864, "redBaron": 780}},
+      "result": "The raw ceiling retains timing evidence but weak exact pitch; pre-selector role/rhythm filters dominate raw-to-selector loss while the candidate cap removes none in the audited runs.",
+      "decision": "Do not broaden noisy candidates or tune a global score; pursue a richer source-aware decoder only as a separate experiment.",
+      "reportHash": "bb155290498fb7340c1528182729caf8c10cae70d8aacd9179e12b6f893607fd",
+      "reproducible": true,
+      "rawArtifactRetention": "retain compact metrics and delete duplicate generated media"
+    },
+    {
+      "id": "semantic-lineage-and-reference-support-2026-09-01",
+      "date": "2026-09-01",
+      "gitCommit": "824ea3d",
+      "purpose": "Make semantic harmony and stage-reference diagnostics traceable without changing public MIDI/API payloads",
+      "songs": ["synthetic-full-band", "The Red Baron"],
+      "route": "validated raw -> lead/residual/semantic/chord/LH/final trace; post-generation reference-support evaluator",
+      "criticalMetrics": {"invalidRawEventsRejected": true, "rhythmAndFallbackParents": true, "referenceSupportIsEvaluationOnly": true, "midiTests": 310, "catalogTests": 891},
+      "result": "Invalid source events are excluded before tracing, routed rhythm/fallback harmony retain raw ancestry, and reference-support labels are attached only to the evaluator report; harmonic fifth diagnostics no longer count legitimate triad fifths as duplicates.",
+      "decision": "Keep lineage and support accounting diagnostics-only; do not feed reference labels into generation or claim musical recognizability.",
+      "reportHash": null,
+      "reproducible": true,
+      "rawArtifactRetention": "retain compact path-free reports only; reference media remains outside the repository"
+    },
+    {
+      "id": "gaps-guitar-techs-tiebreaker-2026-09-02",
+      "date": "2026-09-02",
+      "gitCommit": "957fa371f70e63d3c3f517ffcc613ff73db178d0",
+      "purpose": "Run the single pre-registered isolated Guitar-TECHS A/B tie-breaker for a guitar-specific AMT backend",
+      "songs": [],
+      "route": "frozen Guitar-TECHS v1 (14 items, DI and amp/mic) -> pinned GAPS guitar AMT -> shared upstream evaluator against frozen Basic Pitch",
+      "criticalMetrics": {
+        "backendCodeCommit": "96f6797881e9497cbfc8f8e5deccea9c1f2f7adc",
+        "checkpointSha256": "65483e7c0e340a90415b15b520687587698c8c728f5fa470a205f13ee45c6513",
+        "selectionDigest": "fa354513c6b57ec07c223b57b85c5a64eed548b0fb770d09323af3053f6d1062",
+        "baselineReportSha256": "44b8dec04526c6cd04421abc8198ab66fa6509d40a663ea69a18deb04f754adc",
+        "preRegistrationSha256": "d821ec8dd829e6d1a90af5b337afbbbe7e49c661df34b6a4d4fd56cd0c8d49e4",
+        "selectedItems": 14,
+        "completedItems": 14,
+        "completedRoutes": 28,
+        "diExactGain": 0.238746,
+        "diPcGain": 0.232105,
+        "ampMicExactGain": 0.27114,
+        "ampMicPcGain": 0.267984,
+        "gapsUnsupportedPerSecond": 0,
+        "reportSha256": "cd5c2e9a126f4391eccc88f33d927fe8c04b44225ff85f3512463f68d563cad4",
+        "canonicalReportSha256": "d6f1c048587cc262fd6a438dfa15737bfdb196606b61a9aff2f0466f6222b106"
+      },
+      "result": "GAPS materially improved onset, exact-pitch, and pitch-class F1 on both isolated modalities, increased exact precision while reducing note-count overproduction, and cleared five nontrivial technique families on both modalities; pinch-harmonics regressed.",
+      "decision": "GUITAR_SPECIFIC_AMT_VALIDATED",
+      "reportHash": "cd5c2e9a126f4391eccc88f33d927fe8c04b44225ff85f3512463f68d563cad4",
+      "reproducible": true,
+      "rawArtifactRetention": "retain compact path-free report, pre-registration, run manifest, and hashes only; delete reacquirable benchmark audio, checkpoint, environment, and feature/cache material"
+    },
+    {
+      "id": "cold-metal-transfer-2026-09-02",
+      "date": "2026-09-02",
+      "gitCommit": "ae4b46a2aa798a397546d966d1143dd0f25ee0fa",
+      "purpose": "Test whether the validated GAPS guitar AMT advantage transfers to three dense-metal guitar stems",
+      "songs": ["Final Solution", "Gott Mit Uns", "The Red Baron"],
+      "route": "frozen guitar stem -> Basic Pitch/GAPS raw comparison; reference evaluation held behind input freeze",
+      "criticalMetrics": {
+        "exactFrozenStemsAvailable": 0,
+        "songsRequested": 3,
+        "referencesRead": false,
+        "reportSha256": "e286fe4f868ff62f294e5695d5ff3b347c71ba4ccc90af1a6478ddf5c3b49806"
+      },
+      "result": "The exact frozen guitar-stem provenance was unavailable, so no cold GAPS inference or reference scoring was run. The fail-closed evaluator returned GAPS_COLD_TRANSFER_UNAVAILABLE.",
+      "decision": "NO_PROMOTION; reacquire the exact frozen stems before deciding replace, complement, or research-only.",
+      "reportHash": "e286fe4f868ff62f294e5695d5ff3b347c71ba4ccc90af1a6478ddf5c3b49806",
+      "reproducible": true,
+      "rawArtifactRetention": "retain the path-free preregistration/report hashes only; keep reference media and model inputs outside the repository"
+    },
+    {
+      "id": "cold-metal-transfer-2026-09-02-rerun",
+      "date": "2026-09-02",
+      "gitCommit": "3724d0eb08aeaf8690d0852f842d76d75de3f591",
+      "purpose": "Rerun Basic Pitch and validated GAPS on common regenerated guitar stems before reference-only evaluation",
+      "songs": ["Final Solution", "Gott Mit Uns", "The Red Baron"],
+      "route": "exact-identity source recordings -> pinned Demucs guitar stems -> frozen Basic Pitch/GAPS predictions -> evaluator-only reference comparison",
+      "criticalMetrics": {
+        "commonStems": 3,
+        "predictionsFrozen": true,
+        "referencesReadAfterFreeze": true,
+        "basicPitchNotes": {"finalSolution": 2085, "gottMitUns": 1630, "redBaron": 1627},
+        "gapsNotes": {"finalSolution": 2132, "gottMitUns": 1068, "redBaron": 476},
+        "classification": "GAPS_COLD_TRANSFER_MIXED",
+        "architecture": "TEXTURE_DEPENDENT",
+        "reportSha256": "7eceadb7bc0b560fd97c01135bc0d212c6192e04967116a492d85e9d050f9fa8",
+        "canonicalReportSha256": "991e11b7e86287ab3fce2618955cc5073aef6ebcde5002eb0c170b3d244966aa"
+      },
+      "result": "GAPS lost on all metrics for Final Solution; gained only a small exact F1 amount on Gott Mit Uns while losing onset and pitch-class F1; and regressed substantially on The Red Baron. The paired result is reproducible but texture-dependent and not a global backend replacement signal.",
+      "decision": "NO_PROMOTION; keep GAPS research-only and require a separately scoped texture-specific experiment plus human listening before any downstream use.",
+      "reportHash": "7eceadb7bc0b560fd97c01135bc0d212c6192e04967116a492d85e9d050f9fa8",
+      "reproducible": true,
+      "rawArtifactRetention": "retain compact path-free summary, freeze/evaluation hashes, and manifests only; frozen media, references, checkpoints, and environments remain outside Git"
+    },
+    {
+      "id": "texture-amt-routing-oracle-2026-09-02",
+      "date": "2026-09-02",
+      "gitCommit": "283c7da3efe7235c6a2496b36e8a685e1c131a4b",
+      "purpose": "Test whether frozen Basic Pitch/GAPS candidate texture can support reference-independent regional backend routing",
+      "songs": ["Final Solution", "Gott Mit Uns", "The Red Baron"],
+      "route": "frozen Basic Pitch/GAPS MIDI -> candidate-only fixed-window features -> post-freeze selection oracle/reference diagnostics",
+      "criticalMetrics": {
+        "windowSeconds": 4,
+        "onsetToleranceSeconds": 0.08,
+        "materialGain": 0.03,
+        "oracleGainExactF1": {"finalSolution": 0.006707, "gottMitUns": 0.011333, "redBaron": 0.008221},
+        "oracleGainPitchClassF1": {"finalSolution": 0.008727, "gottMitUns": 0.007067, "redBaron": 0.007228},
+        "routingPlanSha256": "631ca3a0304a65f3409ab776d644a16c0dc06be8b143fc394a339ee126069071",
+        "reportSha256": "0b2af06b1397246950ba0e90f85e4a80e03e1a7a1e73130c906eef8612e26007",
+        "canonicalReportSha256": "15c30f88d40ace83699c684bddb6bb59a11bfe61052eb72f382718bed012afce"
+      },
+      "result": "The perfect reference-informed window oracle stayed below the preregistered 0.03 exact/pitch-class F1 gain on every song; note union was a separate higher-recall but low-precision ceiling.",
+      "decision": "ROUTING_CEILING_LOW; NO_PROMOTION; do not build a production router or union raw note clouds.",
+      "reportHash": "0b2af06b1397246950ba0e90f85e4a80e03e1a7a1e73130c906eef8612e26007",
+      "reproducible": true,
+      "rawArtifactRetention": "retain compact path-free report, manifests, preregistration, and hashes only; frozen MIDI, references, stems, model weights, and environments remain outside Git"
+    },
+    {
+      "id": "beginner-sparse-lh-promotion-control-2026-09-03",
+      "date": "2026-09-03",
+      "purpose": "Repair lower-tier promotion evidence with one deterministic sparse-LH project-owned control",
+      "songs": [],
+      "route": "project-owned symbolic JSON -> learner variants -> unchanged validateVariants and focused safety assertions",
+      "criticalMetrics": {
+        "fixtureId": "BEGINNER_SPARSE_LH_PROMOTION_CONTROL_V1",
+        "fixtureBytes": 3153,
+        "fixtureSha256": "63f08d3dfce74ab9c8172572e99b1b8ae5a48785c7bec12bbe97aea202fd27d7",
+        "sourceNotes": 20,
+        "sourceOnsets": 13,
+        "rhNotes": 12,
+        "lhNotes": 8,
+        "drumTimingEvents": 8,
+        "veryBeginnerNotes": 11,
+        "beginnerNotes": 11,
+        "validatorErrors": 0
+      },
+      "result": "Deterministic control passed normal learner validation and all synthetic collision, LH-only, rest, filler, harmonic, and drum-provenance assertions.",
+      "decision": "EVIDENCE_CONTROL_ADDED; NO_PROMOTION",
+      "reportHash": null,
+      "reproducible": true,
+      "rawArtifactRetention": "retain fixture, focused test, and compact report; no reference or private MIDI bytes"
+    },
+    {
+      "id": "beginner-sparse-lh-promotion-evidence-repair-2026-09-03",
+      "date": "2026-09-03",
+      "purpose": "Close the repaired Beginner sparse-LH promotion evidence boundary",
+      "songs": [],
+      "route": "frozen collision-aware sparse-LH evaluator -> broad review/closeout",
+      "criticalMetrics": {
+        "startingRevision": "29906dff7f454fb6120928a4f57906ee5c05ea02",
+        "evaluatedRevision": "641c7fe50b9902a9e2606b72bd55ace242ddef67",
+        "preregistrationSha256": "bb27ae45e6e042e934616d296dfbc259e6b7d4ccb0b5d91b9ec53382e6f465b9",
+        "controlSha256": "63f08d3dfce74ab9c8172572e99b1b8ae5a48785c7bec12bbe97aea202fd27d7",
+        "task4ReportSha256": "d8f0804c2f60e6800ea7c69a8315f907179f056bd0fad00920913b6813b7b690",
+        "workspaceTests": 1498,
+        "workspaceTypechecks": 6,
+        "caseAJustified": false,
+        "reviewBlockers": 5
+      },
+      "result": "The replacement control hash, validator, and synthetic safety reads passed, but the Task 4 trusted-fixture evaluation inherited legacy rows, parity and candidate checks were not independent, LH-filler coverage was tautological, candidate/ladder validation was incomplete, and a declared all-level maxSim gate was bypassed.",
+      "decision": "BEGINNER_SPARSE_TWO_HAND_EVIDENCE_STILL_INSUFFICIENT; NO_PRODUCTION_BEHAVIOR_CHANGE",
+      "reportHash": "9d70f8b6db05db231c3e992dd6a354faca93da400067506dd3d63d6a69aeb659",
+      "reproducible": true,
+      "rawArtifactRetention": "retain path-free results/review/hashes; no reference/audio/private inputs"
+    },
+    {
+      "id": "beginner-candidate-a-production-promotion-2026-09-03",
+      "date": "2026-09-03",
+      "gitCommit": "72eed97f0012b67e9b38098c325529068c4cfade",
+      "purpose": "Promote the frozen generic Beginner Candidate-A off-grid RH budget after exact production equivalence",
+      "songs": ["Clair de lune", "River Flows in You", "Hello"],
+      "route": "shared Beginner off-grid selector -> learner Beginner finalization -> path-free frontier evaluator",
+      "criticalMetrics": {
+        "candidateARecoveryRatio": 0.5851063829787234,
+        "coverProductionMarkedEvents": 110,
+        "coverDiagnosticEmittedEvents": 110,
+        "productionDiagnosticExactEventSet": true,
+        "classicalParity": true,
+        "popParity": true,
+        "beginnerLeftHandParity": true,
+        "nonBeginnerParity": true,
+        "candidateBImplemented": false,
+        "frontierReportSha256": "08e8f410f4ded20d143eac114dc2a327a33b1e0082fbf24883335e0e063a08d4",
+        "frontierRerunSha256": "08e8f410f4ded20d143eac114dc2a327a33b1e0082fbf24883335e0e063a08d4",
+        "workspaceTests": 1531,
+        "workspaceTypechecks": 6
+      },
+      "result": "Candidate A is the only promoted off-grid policy; it adds at most one structurally supported source event per meter window without retiming or LH changes. Automated parity is structural evidence, not a recognizability claim.",
+      "decision": "PRODUCTION_POLICY_PROMOTED",
+      "reproducible": true,
+      "rawArtifactRetention": "retain path-free report hashes only; no reference MIDI, audio, or generated listening pack"
+    },
+    {
+      "id": "external-symbolic-shadow-rehearsal-2026-09-03",
+      "date": "2026-09-03",
+      "gitCommit": "72eed97f0012b67e9b38098c325529068c4cfade",
+      "purpose": "Exercise the complete external-symbolic source-to-public pipeline on eligible development fixtures",
+      "songs": [],
+      "route": "project-owned MIDI -> native parse/provenance/roles/alignment -> arrangement -> six variants -> artifacts -> catalog/public projection",
+      "criticalMetrics": {
+        "fixtures": 4,
+        "physicalLevelsPerFixture": 6,
+        "publicLevelsPerFixture": 5,
+        "artifactRoundtripFailures": 0,
+        "drumDerivedPitchCount": 0,
+        "deterministicReportSha256": "9298fc70c89ba850d25d9fa1ef82ed414fc0064312db9de34e4594e3f0905149"
+      },
+      "result": "All four synthetic fixtures completed the full pure/in-memory path after fixing track-name percussion misclassification. The first attempt exposed ROLE_FAILURE; the exact-index/exact-name fix is regression-tested.",
+      "decision": "SHADOW_END_TO_END_PIPELINE_READY",
+      "nextTask": "GENERATION_CANDIDATE_AVAILABILITY_AND_SOURCE_INTAKE_HARDENING",
+      "reproducible": true,
+      "rawArtifactRetention": "retain compact path-free report and hashes only; no benchmark/reference bytes, production rows, or deployment"
+    },
+    {
+      "id": "generation-candidate-intake-2026-09-03",
+      "date": "2026-09-03",
+      "startingRevision": "d284b911b2a1ce3e22ce701f0ca02588f1f2b238",
+      "checkpointRevision": "d284b911b2a1ce3e22ce701f0ca02588f1f2b238",
+      "purpose": "Record the explicit generation-candidate intake and alignment decision before any real pair is evaluated",
+      "songs": ["1916", "Christmas Truce", "Final Solution", "Free Bird", "Gott Mit Uns", "The Red Baron", "The Carolean's Prayer"],
+      "route": "explicit permitted symbolic input -> retrieval/parser/provenance checks -> independent alignment gate",
+      "status": "blocked",
+      "criticalMetrics": {
+        "intakeStatus": "not-evaluated",
+        "alignmentStatus": "blocked-pending-explicit-pair",
+        "requiredAlignmentWindows": 3,
+        "requiredReferenceBars": 32,
+        "humanListening": "not-run"
+      },
+      "pairMetadata": {
+        "status": "placeholder-only",
+        "note": "Rows identify the real-song slots only; candidate/reference logical IDs, versions, bytes, hashes, license/access status, alignment windows, and coverage are all not recorded at this checkpoint.",
+        "rows": [
+          {
+            "song": "1916",
+            "candidate": {"status": "not-recorded", "logicalId": null, "version": null, "sha256": null, "bytes": null, "licenseStatus": "not-evaluated", "accessStatus": "not-evaluated"},
+            "reference": {"status": "not-recorded", "logicalId": null, "version": null, "sha256": null, "bytes": null, "licenseStatus": "not-evaluated", "accessStatus": "not-evaluated"},
+            "alignment": {"status": "not-evaluated", "windowCount": null, "coverageBars": null}
+          },
+          {
+            "song": "Christmas Truce",
+            "candidate": {"status": "not-recorded", "logicalId": null, "version": null, "sha256": null, "bytes": null, "licenseStatus": "not-evaluated", "accessStatus": "not-evaluated"},
+            "reference": {"status": "not-recorded", "logicalId": null, "version": null, "sha256": null, "bytes": null, "licenseStatus": "not-evaluated", "accessStatus": "not-evaluated"},
+            "alignment": {"status": "not-evaluated", "windowCount": null, "coverageBars": null}
+          },
+          {
+            "song": "Final Solution",
+            "candidate": {"status": "not-recorded", "logicalId": null, "version": null, "sha256": null, "bytes": null, "licenseStatus": "not-evaluated", "accessStatus": "not-evaluated"},
+            "reference": {"status": "not-recorded", "logicalId": null, "version": null, "sha256": null, "bytes": null, "licenseStatus": "not-evaluated", "accessStatus": "not-evaluated"},
+            "alignment": {"status": "not-evaluated", "windowCount": null, "coverageBars": null}
+          },
+          {
+            "song": "Free Bird",
+            "candidate": {"status": "not-recorded", "logicalId": null, "version": null, "sha256": null, "bytes": null, "licenseStatus": "not-evaluated", "accessStatus": "not-evaluated"},
+            "reference": {"status": "not-recorded", "logicalId": null, "version": null, "sha256": null, "bytes": null, "licenseStatus": "not-evaluated", "accessStatus": "not-evaluated"},
+            "alignment": {"status": "not-evaluated", "windowCount": null, "coverageBars": null}
+          },
+          {
+            "song": "Gott Mit Uns",
+            "candidate": {"status": "not-recorded", "logicalId": null, "version": null, "sha256": null, "bytes": null, "licenseStatus": "not-evaluated", "accessStatus": "not-evaluated"},
+            "reference": {"status": "not-recorded", "logicalId": null, "version": null, "sha256": null, "bytes": null, "licenseStatus": "not-evaluated", "accessStatus": "not-evaluated"},
+            "alignment": {"status": "not-evaluated", "windowCount": null, "coverageBars": null}
+          },
+          {
+            "song": "The Red Baron",
+            "candidate": {"status": "not-recorded", "logicalId": null, "version": null, "sha256": null, "bytes": null, "licenseStatus": "not-evaluated", "accessStatus": "not-evaluated"},
+            "reference": {"status": "not-recorded", "logicalId": null, "version": null, "sha256": null, "bytes": null, "licenseStatus": "not-evaluated", "accessStatus": "not-evaluated"},
+            "alignment": {"status": "not-evaluated", "windowCount": null, "coverageBars": null}
+          },
+          {
+            "song": "The Carolean's Prayer",
+            "candidate": {"status": "not-recorded", "logicalId": null, "version": null, "sha256": null, "bytes": null, "licenseStatus": "not-evaluated", "accessStatus": "not-evaluated"},
+            "reference": {"status": "not-recorded", "logicalId": null, "version": null, "sha256": null, "bytes": null, "licenseStatus": "not-evaluated", "accessStatus": "not-evaluated"},
+            "alignment": {"status": "not-evaluated", "windowCount": null, "coverageBars": null}
+          }
+        ]
+      },
+      "result": "No real candidate/reference pair was evaluated at this checkpoint; readiness and alignment remain unproven.",
+      "decision": "BLOCKED_PENDING_LEGITIMATE_CANDIDATE_AND_ALIGNMENT",
+      "behavior": "NO_PRODUCTION_BEHAVIOR_CHANGE",
+      "reportHash": null,
+      "humanListening": "NOT_RUN",
+      "reproducible": false,
+      "rawArtifactRetention": "historical pre-pair placeholder; superseded by the real-pair entry below"
+    },
+    {
+      "id": "generation-candidate-intake-and-real-alignment-v1-2026-09-03",
+      "date": "2026-09-03",
+      "startingRevision": "d284b911b2a1ce3e22ce701f0ca02588f1f2b238",
+      "checkpointRevision": "26f97d4",
+      "purpose": "Freeze one legitimate real audio+symbolic shadow pair and exercise the bounded intake, alignment, arrangement, and difficulty path",
+      "songs": [],
+      "route": "local/open Guitar-TECHS pair -> bounded parser/provenance intake -> independent audio onset evidence -> alignment probe -> shadow arrangement -> six physical levels",
+      "status": "partial",
+      "candidateIntake": {
+        "decision": "GENERATION_CANDIDATE_INTAKE_READY",
+        "localFormats": ["midi", "musicxml", "mxl"],
+        "unsupportedRecognizedFormat": "mscz",
+        "remoteFormats": ["midi", "musicxml", "mxl"],
+        "directUrlNetwork": "explicit opt-in only",
+        "contentSniffing": "MIDI/MusicXML/MXL magic and parser validation",
+        "htmlMasqueradeRejected": true,
+        "sizeBounded": true,
+        "provenanceClasses": ["PROJECT_OWNED", "OPEN_LICENSE", "USER_SUPPLIED_PRIVATE", "REMOTE_APPROVED", "UNKNOWN"],
+        "unknownGenerationBlocked": true,
+        "benchmarkFirewall": true
+      },
+      "realPair": {
+        "fixtureId": "guitar-techs:p3-music-08",
+        "dataset": "Guitar-TECHS",
+        "datasetVersion": "v1",
+        "license": "CC BY 4.0",
+        "recordId": "14963133",
+        "audioBytes": 7872690,
+        "symbolicBytes": 1496,
+        "audioSha256": "f58cd8dcd68eeec7c9e58839e7161671ba3af9963957e35f1f04a1f2644d3ff3",
+        "symbolicSha256": "329b128e6cb86cc2c43502ecdf8ae89e0049f69b564e29e41ef55b7b54411250",
+        "audioDurationSeconds": 27.333333,
+        "symbolicDurationBeats": 50.111458,
+        "symbolicNotes": 143,
+        "audioSource": "real Guitar-TECHS DI recording",
+        "symbolicSource": "supplied Guitar-TECHS performance MIDI truth"
+      },
+      "alignment": {
+        "decision": "REAL_SYMBOLIC_ALIGNMENT_BLOCKED",
+        "detectorOnsets": 121,
+        "deduplicatedAudioOnsets": 119,
+        "symbolicOnsetGroups": 94,
+        "matchedOnsets": 65,
+        "productionMethod": "duration-derived-seconds-per-beat",
+        "productionF1": 0.610328,
+        "productionMedianBeatError": 0.072174,
+        "productionP95BeatError": 0.116502,
+        "productionP95SecondsError": 0.06355,
+        "productionSymbolicCoverage": 0.691489,
+        "productionAudioCoverage": 0.546218,
+        "naiveMethod": "global-tempo",
+        "naiveF1": 0.610328,
+        "naiveP95BeatError": 0.116715,
+        "materialImprovement": false,
+        "driftPpm": 0,
+        "confidence": 0.628698,
+        "evidenceBoundary": "real recording onset detector paired with supplied truth MIDI; duration-derived map is a shadow timing probe, not target-song alignment authority"
+      },
+      "shadowPath": {
+        "decision": "REAL_SHADOW_BLOCKED_AT_ALIGNMENT",
+        "intake": "PASS",
+        "parseProvenance": "PASS",
+        "roles": "PASS_EXPLICIT_SINGLE_STEM_GUITAR_OVERRIDE",
+        "alignment": "BLOCKED_MISSING_INDEPENDENT_TIMING_AUTHORITY",
+        "arrangement": "PASS",
+        "difficulties": "PASS_SIX_PHYSICAL_LEVELS",
+        "validation": "PASS",
+        "artifacts": "PASS_IN_MEMORY_ROUNDTRIP",
+        "catalogPublic": "PASS_IN_MEMORY_GROUPED_FIVE_LEVELS",
+        "playerLinks": "NOT_EXERCISED_NO_PERSISTED_ROW"
+      },
+      "reportHash": "e5e7503c7b44414f06726b85a1ccb02ce509d952ac361c698f68dc8421bf785b",
+      "canonicalDeterminismHash": "51501cfc9362e161d6c48586251f1ea972ded4aa7434aba06a21532edac524dd",
+      "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+      "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+      "deployment": "NOT_DEPLOYED",
+      "reproducible": true,
+      "nextTask": "REAL_SYMBOLIC_TIMING_ALIGNMENT_HARDENING",
+      "rawArtifactRetention": "retain metadata-only report and hashes; real media remains outside Git"
+    },
+    {
+      "id": "real-symbolic-timing-alignment-hardening-2026-09-03",
+      "date": "2026-09-03",
+      "startingRevision": "1ea2118675a2f75c17440a481a7dc8b55fcfca8f",
+      "checkpointRevisions": [
+        "d1363491c19ef8169ade7434093013a897348227",
+        "3b32e9cf9fbfcdaa713eae3be1ab7e6dd67606fd",
+        "9e4c3afd6940f86d4453dd46b9f821089bc8b141",
+        "217d9f9bd61da573f1227d1be507fa17b7fc624a"
+      ],
+      "purpose": "Harden native timing preservation and measure one bounded synchronization candidate on a legitimate real audio+symbolic pair",
+      "firewall": {
+        "benchmarkReferencesUsedForGeneration": false,
+        "benchmarkReferencesUsedForTuning": false,
+        "guitarTechsGenerationEligible": false,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NOT_DEPLOYED"
+      },
+      "guitarTechsForensics": {
+        "fixtureId": "guitar-techs:p3-music-08",
+        "decision": "GUITAR_TECHS_NATIVE_TIME_AUTHORITY_PARTIAL",
+        "symbolicSha256": "329b128e6cb86cc2c43502ecdf8ae89e0049f69b564e29e41ef55f7b54411250",
+        "audioSha256": "f58cd8dcd68eeec7c9e58839e7161671ba3af9963957e35f1f04a1f2644d3ff3",
+        "format": 1,
+        "division": 960,
+        "trackCount": 7,
+        "noteCount": 143,
+        "firstNoteOnTick": 36,
+        "lastNoteOnTick": 44654,
+        "lastNoteOffTick": 48107,
+        "tempoBpm": 109.999908,
+        "nativeDurationSeconds": 27.333546,
+        "pairedAudioDurationSeconds": 27.333333,
+        "durationDifferenceMilliseconds": 0.212,
+        "independentParser": "mido",
+        "independentParserAgreement": true,
+        "absoluteSampleZero": "unproven"
+      },
+      "calibrationPair": {
+        "fixtureId": "maestro:v3:2015-prelude-3",
+        "dataset": "MAESTRO v3.0.0",
+        "item": "2015 Liszt Transcendental Etude No. 1, Preludio",
+        "license": "CC BY-NC-SA 4.0",
+        "symbolicSha256": "c72281527ca6588836bd1e109de848a8fd2ac246bbf06e25a58939d3168468fe",
+        "symbolicBytes": 5920,
+        "audioSha256": "040e85a32b576074dc3af60fa8175472d6584bd76fb6156808449df66ecfb77e",
+        "audioBytes": 8142740,
+        "symbolicDurationSeconds": 45.161458,
+        "audioDurationSeconds": 46.160408,
+        "groundTruth": "native MIDI tempo-map seconds from synchronized performance",
+        "candidate": "12-bin chroma + onset-strength monotonic DTW with 32 map anchors",
+        "challenges": [
+          "offset +0.50 seconds",
+          "offset -0.75 seconds",
+          "global scale +4 percent",
+          "global scale -4 percent",
+          "piecewise +4/-4 percent",
+          "combined +0.35 seconds and +4 percent",
+          "score-like nearest 0.125-second grid"
+        ],
+        "results": {
+          "matchedPerformanceCoverage": 1,
+          "matchedPerformanceP95Seconds": [0.05136, 0.081886, 0.066367, 0.091279, 0.064579, 0.065468],
+          "matchedPerformanceMedianSeconds": [0.017467, 0.018245, 0.025654, 0.023364, 0.025886, 0.025044],
+          "monotonicViolations": 0,
+          "scoreLikeP95Seconds": 0.092786,
+          "scoreLikeBaselineP95Seconds": 0.059375,
+          "scoreLikeMateriallyBeatsBaseline": false,
+          "repeatRunEqual": true,
+          "canonicalReportSha256": "73f05f44a2e8809efcb9b4c259a437c65c74fbcafcd4e09c23c55249c081152d"
+        }
+      },
+      "guitarTechsTransfer": {
+        "reportCanonicalSha256": "9773b188cf0a7c430884147b1fd4b09dfd61f8b74eef468d4590255a9935e1d4",
+        "productionMapping": "native-tempo-map",
+        "matchedOnsets": 65,
+        "audioOnsetsAfterDedup": 119,
+        "symbolicOnsetGroups": 94,
+        "f1": 0.610328,
+        "productionP95Seconds": 0.063664,
+        "naiveF1": 0.610328,
+        "naiveP95Seconds": 0.063664,
+        "materialImprovement": false,
+        "downstream": "arrangement + six physical levels + artifact roundtrips + five public levels pass in memory; no catalog writes"
+      },
+      "decisions": {
+        "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+        "realAlignment": "REAL_ALIGNMENT_MATCHED_ONLY",
+        "realShadow": "REAL_SHADOW_BLOCKED_AT_ALIGNMENT",
+        "firstBlocker": "score-like external symbolic timing does not materially beat the naive baseline and Guitar-TECHS sample-zero latency is unproven",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED"
+      },
+      "verification": {
+        "workspaceTests": 1579,
+        "workspaceTestBreakdown": {"web": 89, "catalog": 1012, "engrave": 8, "midi": 336, "playerCore": 92, "transcribe": 42},
+        "workspaceTypechecks": 6,
+        "gitDiffCheck": true,
+        "calibrationRepeatCanonicalEqual": true,
+        "diskFreeGiBAtClose": 66,
+        "branchRemoteParity": "9e4c3afd6940f86d4453dd46b9f821089bc8b141"
+      },
+      "nextTask": "SCORE_TO_RECORDING_ALIGNMENT_HARDENING",
+      "reproducible": true,
+      "rawMediaRetention": "local only; metadata and hashes committed"
+    },
+    {
+      "id": "score-to-recording-alignment-hardening-2026-09-03",
+      "date": "2026-09-03",
+      "startingRevision": "d284b911b2a1ce3e22ce701f0ca02588f1f2b238",
+      "checkpointRevisions": ["93127f1db268cf343ef76640af5e800795af4cd4", "af267640940b6c0cb910f4f18bc3ed0740d95c25"],
+      "purpose": "Measure preregistered real ASAP score-to-recording alignment and route one real symbolic candidate through the downstream product path",
+      "dataset": "ASAP v2.1.1 / MAESTRO carrier audio, CC BY-NC-SA 4.0",
+      "fixtures": [
+        "asap:dev:bach-fugue-bwv854-lua01m",
+        "asap:holdout-1:chopin-etude-op10-1-chenw03m",
+        "asap:holdout-2:liszt-transcendental-etude-1-luoj05m"
+      ],
+      "firewall": {
+        "benchmarkReferencesUsedForGeneration": false,
+        "benchmarkReferencesUsedForTuning": false,
+        "realGenerationCandidateRouted": true,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NOT_DEPLOYED"
+      },
+      "methods": {
+        "keyspilliCurrent": {
+          "reportCanonicalSha256": "b4f4218599762a537289e9d9655623a785359d30d41bf2a304d39e180ced8749",
+          "decision": "SCORE_ALIGNMENT_PARTIAL"
+        },
+        "syncToolboxReference": {
+          "reportCanonicalSha256": "3eda69d4030dbdf53e2891bbeb6d524ba198c1d92889f320af8d913571b28ca2",
+          "decision": "SCORE_ALIGNMENT_REFERENCE_PROVES_HEADROOM",
+          "broadAllFixturesPass": true,
+          "strictAllFixturesPass": false
+        },
+        "deterministic": true
+      },
+      "shadow": {
+        "routeReportCanonicalSha256": "b8731dbd7b964f6db5c055d0ab691a730c5876e1175456d6b63ab5900fa40512",
+        "downstream": "arrangement + six physical levels + validated MIDI/MusicXML artifacts + five public levels in scratch",
+        "status": "REAL_SHADOW_BLOCKED_AT_ALIGNMENT",
+        "playerLinks": "NOT_EXERCISED_NO_PERSISTED_ROW"
+      },
+      "decisions": {
+        "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+        "realAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "referenceComparison": "SCORE_ALIGNMENT_REFERENCE_PROVES_HEADROOM",
+        "realShadow": "REAL_SHADOW_BLOCKED_AT_ALIGNMENT",
+        "firstBlocker": "current production-intended score-to-recording alignment remains partial on two held-out real recordings",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED"
+      },
+      "verification": {
+        "workspaceTests": 1579,
+        "workspaceTestBreakdown": {"web": 89, "catalog": 1012, "engrave": 8, "midi": 336, "playerCore": 92, "transcribe": 42},
+        "workspaceTypechecks": 6,
+        "gitDiffCheck": true,
+        "alignmentRepeatCanonicalEqual": true,
+        "routeRepeatCanonicalEqual": true,
+        "diskFreeGiBAtClose": 62
+      },
+      "nextTask": "IMPLEMENT_SCORE_ALIGNMENT_PRODUCTION_HARDENING",
+      "reproducible": true,
+      "rawMediaRetention": "local only; metadata and hashes committed"
+    },
+    {
+      "id": "score-alignment-production-hardening-2026-09-03",
+      "date": "2026-09-03",
+      "startingRevision": "a09ef286ea514ca172ac9ef07d5b0fbb3ab31fd3",
+      "checkpointRevisions": [
+        "2639241ff7b506a4ad0a09ed347a369a64ce4f78",
+        "628e77e87cd219e6b1f5458b9c04d6150fc9a663",
+        "d235295a657abbf8df429e31b6d9ad5cac8485ff"
+      ],
+      "purpose": "Freeze one production score-to-recording candidate and validate it on four fresh unseen real ASAP pairs before any downstream expansion",
+      "dataset": "ASAP v2.1.1 / MAESTRO carrier audio, CC BY-NC-SA 4.0",
+      "fixtures": [
+        "asap:fresh:schubert-moment-musical-3-tetzloff09m",
+        "asap:fresh:rachmaninoff-prelude-23-6-nikiforov14m",
+        "asap:fresh:chopin-etude-10-1-muna07m",
+        "asap:fresh:bach-prelude-854-lua01m"
+      ],
+      "candidate": {
+        "id": "PRODUCTION_SCORE_ALIGNMENT_CANDIDATE_V1",
+        "fingerprint": "73f1e6c73b76e140505b8f78cc609992c20a4219f95c2de2c2ad2bd5e947ba9b",
+        "frozenBeforeFreshScoring": true,
+        "maxDtwCells": 32000000,
+        "maxFrames": 9000
+      },
+      "results": {
+        "report": "asap-fresh-validation-results-2026-09-03.json",
+        "canonicalReportSha256": "3b4c7a3cd0cafe683804fd3e625c35e29ef5d220889b6a435bc9c5b6d6232c2f",
+        "repeatCanonicalEqual": true,
+        "schubert": {"coverage": 1.0, "medianSeconds": 0.048751, "p95Seconds": 0.320047, "status": "FAIL_P95_GATE"},
+        "chopin": {"coverage": 1.0, "medianSeconds": 0.044326, "p95Seconds": 0.62368, "status": "FAIL_P95_GATE"},
+        "rachmaninoff": {"status": "REJECTED_CELL_BOUND"},
+        "bach": {"status": "REJECTED_CELL_BOUND"},
+        "batchRuntimeSeconds": {"first": 139.191, "repeat": 139.061},
+        "maxRssMiB": {"first": 1933.672, "repeat": 1722.735}
+      },
+      "firewall": {
+        "benchmarkReferencesUsedForGeneration": false,
+        "benchmarkReferencesUsedForTuning": false,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NOT_DEPLOYED"
+      },
+      "decisions": {
+        "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+        "realAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "realShadow": "REAL_SHADOW_BLOCKED_AT_ALIGNMENT",
+        "firstBlocker": "regional score-to-recording path error on runnable fresh pairs plus the frozen long-input resource ceiling",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED"
+      },
+      "verification": {
+        "workspaceTests": 1582,
+        "workspaceTestBreakdown": {"web": 89, "catalog": 1015, "engrave": 8, "midi": 336, "playerCore": 92, "transcribe": 42},
+        "workspaceTypechecks": 6,
+        "gitDiffCheck": true,
+        "alignmentRepeatCanonicalEqual": true,
+        "diskFreeGiBAtClose": 62,
+        "rawMediaRetention": "local only; hashes and metadata committed"
+      },
+      "nextTask": "REAL_SYMBOLIC_TIMING_ALIGNMENT_HARDENING",
+      "reproducible": true
+    },
+    {
+      "id": "memory-bounded-regional-score-alignment-v2-2026-09-03",
+      "date": "2026-09-03",
+      "startingRevision": "d653a501f7a12c24f318fc202b4e3dd6def1f0f5",
+      "checkpointRevisions": [
+        "8452611b1ca70f9193519e917170a78f1460b4a2",
+        "2ee00f18c1b30b07bc7e814410e2efa22077e174"
+      ],
+      "purpose": "Replace full-resolution production score DTW with one deterministic memory-bounded coarse-to-fine corridor candidate and test the two established V1 blockers",
+      "dataset": "ASAP v2.1.1 / MAESTRO carrier audio, CC BY-NC-SA 4.0; revealed development evidence only",
+      "candidate": {
+        "id": "PRODUCTION_SCORE_ALIGNMENT_CANDIDATE_V2",
+        "fingerprint": "69df115d9c24fc3be3c5c1f8736fd73b80edd70ff57f62f3029d6f2fa05a231",
+        "frozenBeforeRevealedValidation": true,
+        "search": "8x smoothed coarse DTW -> 96-frame rolling corridor -> one optional 192-frame expansion",
+        "maxFrames": 40000,
+        "maxFineEvaluatedCells": 20000000
+      },
+      "results": {
+        "report": "asap-revealed-v2-validation-2026-09-03.json",
+        "sourceReportCanonicalSha256": "ae1d6682164bd68d5c34bc36d6da4bf25ff5ebddaa56607e0f218617ab4533b4",
+        "repeatCanonicalEqual": true,
+        "allFourCompletedWithoutDenseRejection": true,
+        "schubert": {"v1P95Seconds": 0.320047, "v2P95Seconds": 0.320047, "status": "FAIL_P95_GATE"},
+        "chopin": {"v1P95Seconds": 0.62368, "v2P95Seconds": 0.62368, "status": "FAIL_P95_GATE"},
+        "rachmaninoff": {"v1Status": "REJECTED_CELL_BOUND", "v2P95Seconds": 0.255922, "status": "FAIL_P95_GATE"},
+        "bach": {"v1Status": "REJECTED_CELL_BOUND", "v2P95Seconds": 1.281471, "status": "FAIL_P95_GATE"},
+        "fineReductionRatioRange": [0.051546, 0.083279],
+        "peakRssMiB": 1327.234375
+      },
+      "freshValidation": {"status": "NOT_RUN", "reason": "revealed regional mechanism did not materially improve; V2 stop rule"},
+      "decisions": {
+        "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+        "realAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "v2": "SCORE_ALIGNMENT_V2_ARCHITECTURE_INSUFFICIENT",
+        "realShadow": "REAL_SHADOW_BLOCKED_AT_ALIGNMENT",
+        "firstBlocker": "regional score-to-recording path error remains after bounded corridor refinement",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED"
+      },
+      "firewall": {
+        "benchmarkReferencesUsedForGeneration": false,
+        "benchmarkReferencesUsedForTuning": false,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NOT_DEPLOYED"
+      },
+      "verification": {
+        "mechanismTests": 2,
+        "workspaceTests": 1582,
+        "workspaceTestBreakdown": {"web": 89, "catalog": 1015, "engrave": 8, "midi": 336, "playerCore": 92, "transcribe": 42},
+        "workspaceTypechecks": 6,
+        "gitDiffCheck": true,
+        "pythonCompile": true,
+        "alignmentRepeatCanonicalEqual": true,
+        "diskFreeGiBAtClose": 63
+      },
+      "nextTask": "REAL_SYMBOLIC_ALIGNMENT_NON_DTW_REGIONAL_TIMING_INVESTIGATION",
+      "reproducible": true,
+      "rawMediaRetention": "local only; no new media selected or committed"
+    },
+    {
+      "id": "non-dtw-hidden-tempo-score-alignment-v1-2026-09-03",
+      "date": "2026-09-03",
+      "startingRevision": "97c3a780b511cfa01b1d44799d50b92ea57a085b",
+      "checkpointRevisions": ["97c3a780b511cfa01b1d44799d50b92ea57a085b", "0b646c0e2d0fb66a4a64ece057b6a7b5a828fda2", "b4869142c0377a59b74b6d5cf28b6b59a60818ee"],
+      "purpose": "Evaluate one pinned non-DTW hidden-tempo score follower against the four already-revealed ASAP development fixtures; no production tuning",
+      "dataset": "ASAP v2.1.1 / MAESTRO carrier audio, revealed development fixtures only",
+      "dtwClosure": {
+        "status": "CLASSICAL_DTW_ALIGNMENT_BRANCH_CLOSED",
+        "v1": "DIAGNOSTIC_ONLY",
+        "v2": "DIAGNOSTIC_ONLY_CURRENT_FALLBACK_RESEARCH_BASELINE",
+        "syncToolbox": "REFERENCE_ONLY",
+        "durationDerived": "DIAGNOSTIC_ONLY",
+        "performanceSymbolic": "PRODUCTION_NATIVE_TIMING"
+      },
+      "reference": {
+        "name": "Matchmaker",
+        "version": "0.3.0",
+        "commit": "0d106d07d96f9def77de116b29690c262b51b9ee",
+        "license": "Apache-2.0",
+        "method": "skf",
+        "processor": "raw_spectrum",
+        "config": {"sampleRate": 8000, "hopLength": 128, "nFft": 512, "maxHypotheses": 200, "sigmaEpsScale": 0.05, "sigmaEtaScale": 0.01, "initialTempoVarianceScale": 0.1, "unfoldScore": false},
+        "productionDependency": false
+      },
+      "results": {
+        "report": "asap-matchmaker-skf-reference-2026-09-03.json",
+        "canonicalReportSha256": "85bb94f33d78ce0b2599887ee9d9f9109979209310537f9e10603e53fc0fe544",
+        "repeatCanonicalEqual": true,
+        "schubert": {"v2P95Seconds": 0.320047, "skfP95Seconds": 0.55926, "skfMedianSeconds": 0.039093, "skfMonotonicViolations": 106, "runtimeSeconds": 40.901968, "peakRssMiB": 671.78125},
+        "rachmaninoff": {"v2P95Seconds": 0.255922, "skfP95Seconds": 0.596664, "skfMedianSeconds": 0.075547, "skfMonotonicViolations": 162, "runtimeSeconds": 54.6503, "peakRssMiB": 790.578125},
+        "chopin": {"v2P95Seconds": 0.62368, "skfP95Seconds": 0.726767, "skfMedianSeconds": 0.114824, "skfMonotonicViolations": 327, "runtimeSeconds": 38.499038, "peakRssMiB": 790.578125},
+        "bach": {"v2P95Seconds": 1.281471, "skfP95Seconds": 0.099203, "skfMedianSeconds": 0.01973, "skfMonotonicViolations": 19, "runtimeSeconds": 28.435011, "peakRssMiB": 790.578125},
+        "improvedAtLeast20Percent": 1,
+        "referenceDecision": "HIDDEN_TEMPO_ARCHITECTURE_NO_HEADROOM"
+      },
+      "decisions": {
+        "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+        "realAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "production": "NON_DTW_SCORE_ALIGNMENT_ARCHITECTURE_INSUFFICIENT",
+        "realShadow": "REAL_SHADOW_BLOCKED_AT_ALIGNMENT",
+        "firstBlocker": "no alignment architecture met the preregistered regional accuracy gate",
+        "nextTask": "CROSS_MODAL_SPARSE_LANDMARK_ALIGNMENT",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED"
+      },
+      "firewall": {"benchmarkReferencesUsedForGeneration": false, "benchmarkReferencesUsedForTuning": false, "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT", "deployment": "NOT_DEPLOYED"},
+      "verification": {"pythonEvaluatorTests": 4, "fullReferenceRuns": 3, "reportRepeatCanonicalEqual": true, "rawMediaRetention": "local only; hashes and metadata committed"},
+      "reproducible": true
+    },
+    {
+      "id": "cross-modal-sparse-landmark-clamp3-stop-2026-09-03",
+      "date": "2026-09-03",
+      "startingRevision": "76a39cd53329286a4a494058fa6434515c982525",
+      "checkpointRevisions": [
+        "76a39cd53329286a4a494058fa6434515c982525",
+        "3b5769aabdcd8664ebaa62a3ec644c249c777347"
+      ],
+      "purpose": "Evaluate one materially different sparse cross-modal landmark retrieval architecture without downloading an unbounded model footprint",
+      "architecture": "SPARSE CROSS-MODAL LANDMARK RETRIEVAL + GLOBAL CONSENSUS + ROBUST MONOTONE TIMING MAP",
+      "reference": {
+        "name": "CLaMP 3 SAAS",
+        "repository": "sanderwood/clamp3",
+        "repositoryCommit": "9016d2b0c8d12d1aa79c2e0ab201e6822bdc83a8",
+        "repositoryLicense": "MIT",
+        "modelRepository": "sander-wood/clamp3",
+        "modelRepositoryRevision": "355625cc1c6f73726bbcd0eb9276ac7152d56426",
+        "checkpoint": "weights_clamp3_saas_h_size_768_t_model_FacebookAI_xlm-roberta-base_t_length_128_a_size_768_a_layers_12_a_length_128_s_size_768_s_layers_12_p_size_64_p_length_512.pth",
+        "checkpointBytes": 2571027658,
+        "checkpointSha256": "5033f868e3977be3945ee416b5a1718d5589a173c7ba8982231d8c94a6441d80",
+        "audioDependency": "m-a-p/MERT-v1-95M@12af15fef9d0ac838c3f475bfbbf26d2060dd4f5",
+        "audioDependencyBytes": 377552987,
+        "textDependency": "FacebookAI/xlm-roberta-base@e73636d4f797dec63c3081bb6ed5c7b0bb3f2089",
+        "textDependencyBytes": 1115567652
+      },
+      "protocol": {
+        "symbolicWindowBeats": {"short": 4, "long": 8},
+        "landmarkSpacingBeats": 4,
+        "audioSearchWindowSeconds": {"short": 5, "long": 10},
+        "audioSearchStrideSeconds": 2.5,
+        "topK": 5,
+        "retrievalTolerancesSeconds": [0.25, 0.5, 1],
+        "confidenceSignals": ["top1CosineSimilarity", "top1Top2Margin", "shortLongAgreement"],
+        "consensus": "weighted monotone candidate-chain consensus",
+        "outlierMethod": "median absolute deviation",
+        "timingMap": "monotone piecewise-linear with explicit unaligned gaps"
+      },
+      "resourceGate": {
+        "preferredNewFootprintBytes": 2147483648,
+        "estimatedWeightBytes": 4064148297,
+        "estimatedWeightGiB": 3.785,
+        "knownModelCacheBytes": 0,
+        "status": "EXCEEDS_PREFERRED_BOUND_BEFORE_DOWNLOAD",
+        "weightsDownloaded": false,
+        "environmentCreated": false
+      },
+      "results": {
+        "status": "NOT_RUN_RESOURCE_BLOCKED",
+        "retrievalMetrics": null,
+        "anchorMetrics": null,
+        "timingMetrics": null,
+        "baselineComparison": null
+      },
+      "decisions": {
+        "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+        "architecture": "SPARSE_LANDMARK_RETRIEVAL_INSUFFICIENT",
+        "architectureQualification": "RESOURCE_BLOCKED_BEFORE_EVALUATION; not a measured retrieval-quality failure",
+        "realAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "realShadow": "REAL_SHADOW_BLOCKED_AT_ALIGNMENT",
+        "firstBlocker": "the only approved CLaMP3 reference exceeds the bounded model-footprint limit before evaluation",
+        "nextTask": "EXPLICIT_SCORE_REGION_ALIGNMENT_FALLBACK_CONTRACT",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED"
+      },
+      "firewall": {
+        "benchmarkReferencesUsedForGeneration": false,
+        "benchmarkReferencesUsedForTuning": false,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NOT_DEPLOYED"
+      },
+      "verification": {
+        "reportCanonicalSha256": "ee1413f7bfa36165348afea1d5ece07065c839111081816c555c4b6bc3615547",
+        "workspaceTests": 1582,
+        "workspaceTypechecks": 6,
+        "pythonEvaluatorTests": 4,
+        "gitDiffCheck": true,
+        "diskFreeGiBAtClose": 59,
+        "deterministicModelRerun": "not-run"
+      },
+      "reproducible": true
+    },
+    {
+      "id": "explicit-score-region-ownership-fallback-contract-2026-09-03",
+      "date": "2026-09-03",
+      "startingRevision": "3453a51a3f73b47fb611d54bfea541bd53a19a96",
+      "checkpointRevisions": ["3453a51a3f73b47fb611d54bfea541bd53a19a96", "df44980eb4a29ffa507f6dc86d824892df4a2c44", "32c17b346eb80bd468ef666e27a7294390f31a6e"],
+      "purpose": "Make partial score/alignment evidence safe and deterministic at the catalog-to-arrangement boundary",
+      "contract": {
+        "schemaVersion": 1,
+        "timingAuthorities": ["NATIVE_AUTHORITATIVE", "ALIGNED_HIGH_CONFIDENCE", "ALIGNED_PARTIAL", "ALIGNMENT_REJECTED", "UNALIGNED"],
+        "alignmentStates": ["NATIVE", "NATIVE_AUTHORITATIVE", "ALIGNED_HIGH_CONFIDENCE", "ALIGNED_PARTIAL", "ALIGNMENT_REJECTED", "UNALIGNED"],
+        "ownershipStates": ["OWNED", "FALLBACK_OWNED", "PARTIAL_SUPPORT", "WITHHELD"],
+        "roles": ["melody", "harmony", "bass-root", "rhythm", "timing-only"],
+        "fallbackPriority": "generation-candidate-over-fallback; fallback-never-overrides-primary",
+        "unownedAction": "WITHHELD"
+      },
+      "integration": {
+        "module": "packages/catalog/src/region-ownership.ts",
+        "boundary": "buildExternalSymbolicArrangement before semantic-band/direct-piano realization",
+        "arrangementPolicyChanges": 0,
+        "difficultyPolicyChanges": 0,
+        "publicLadderChanges": 0,
+        "newProductionDependencies": 0
+      },
+      "oracle": {
+        "report": "region-ownership-asap-oracle-2026-09-03.json",
+        "reportSha256": "fd9cdf40be54ddabf8ec65c998c31f2c246f92d0a35f99267fe9f3252381ce9c",
+        "status": "ORACLE_DIAGNOSTIC_ONLY",
+        "benchmarkGenerationUse": false,
+        "thresholdTuning": false
+      },
+      "decisions": {
+        "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+        "regionOwnership": "REGION_OWNERSHIP_FALLBACK_CONTRACT_VALIDATED",
+        "realAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "realShadow": "REAL_SHADOW_BLOCKED_AT_ALIGNMENT",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED"
+      },
+      "verification": {
+        "focusedRegionAndExternalTests": 49,
+        "catalogTests": 1029,
+        "midiTests": 336,
+        "workspaceTests": 1594,
+        "workspaceTypechecks": 6,
+        "gitDiffCheck": true,
+        "deterministicCanonicalSha256": "20eba80fd6864a952ec3409abfd26f1bdec363dfe537e322f09d87c49c6b0ff7",
+        "diskFreeGiB": 59
+      },
+      "firewall": {
+        "benchmarkReferencesUsedForGeneration": false,
+        "benchmarkReferencesUsedForTuning": false,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NOT_DEPLOYED"
+      },
+      "nextTask": "REGION_AWARE_REAL_SHADOW_REHEARSAL",
+      "reproducible": true
+    },
+    {
+      "id": "region-aware-real-shadow-rehearsal-2026-09-04",
+      "date": "2026-09-04",
+      "startingRevision": "e143c11cb0f89aa31b89ee1c83f58136a5aef1f8",
+      "checkpointRevision": "185a08b6778f0db894835a58c51168a663868083",
+      "purpose": "Exercise the region-ownership and fallback contract on a real user-supplied performance pair without benchmark generation",
+      "route": "local symbolic intake -> provenance/firewall -> region ownership -> native arrangement -> six physical levels -> MIDI/MusicXML artifacts -> five-level in-memory projection",
+      "candidateIntake": {
+        "decision": "GENERATION_CANDIDATE_INTAKE_READY",
+        "localFormats": ["midi", "musicxml", "mxl"],
+        "remoteFormats": ["midi", "musicxml", "mxl"],
+        "contentSniffing": "native magic/parser validation; HTML/error masquerade rejected",
+        "sizeBounded": true,
+        "provenanceClasses": ["PROJECT_OWNED", "OPEN_LICENSE", "USER_SUPPLIED_PRIVATE", "REMOTE_APPROVED", "UNKNOWN"],
+        "benchmarkFirewall": true
+      },
+      "lanes": {
+        "laneA": {
+          "fixtureId": "lane-a-native-performance",
+          "sourceClass": "GENERATION_CANDIDATE",
+          "provenanceClass": "USER_SUPPLIED_PRIVATE",
+          "symbolicSha256": "ec5010896c00a0541b34b0843a20f455707ac647ae4a222aee71e2ad43e8017e",
+          "symbolicBytes": 58204,
+          "symbolicNotes": 7266,
+          "symbolicDurationBeats": 360,
+          "audioSha256": "6113d800bbb5070181ff755f0a2973f09765a97b4f5c4f15362e7249bfa5658f",
+          "audioBytes": 4351097,
+          "audioDurationSeconds": 181.219,
+          "timingAuthority": "NATIVE_AUTHORITATIVE",
+          "ownership": {"candidate": 7266, "eligibleBeforeOwnership": 7266, "owned": 7266, "partial": 0, "withheld": 0},
+          "audioAlignment": {"status": "insufficient-evidence", "naiveF1": 0.496087, "naiveMedianErrorSeconds": 0.021042, "naiveP90ErrorSeconds": 0.053575, "naiveP95ErrorSeconds": 0.058046, "production": null},
+          "downstream": {"status": "blocked_at_validation", "canonicalNotes": 3843, "physicalLevels": {"very-beginner": 409, "beginner": 807, "very-easy": 2560, "easy": 2843, "medium": 3066, "advanced": 3560}, "artifactErrors": 0, "publicLevels": 5, "validationErrors": ["advanced/easy/medium median inter-onset 0.063s below 0.08s floor"]}
+        },
+        "laneB": {"fixtureId": "lane-b-partial-score", "dataset": "ASAP v2.1.1", "sourceClass": "BENCHMARK_REFERENCE", "provenanceClass": "OPEN_LICENSE", "symbolicNotes": 732, "owned": 0, "withheld": 732, "eventsEnteringArrangement": 0, "reasons": ["BENCHMARK_FIREWALL", "PARTIAL_ALIGNMENT", "NO_TARGET_TIMING"]},
+        "laneC": {"fixtureId": "lane-c-score-plus-performance", "dataset": "ASAP v2.1.1", "sourceClass": "BENCHMARK_REFERENCE", "provenanceClass": "OPEN_LICENSE", "symbolicNotes": {"score": 732, "performance": 739}, "owned": 0, "withheld": 1471, "eventsEnteringArrangement": 0, "orderIndependent": true, "reasons": ["BENCHMARK_FIREWALL", "MULTI_SOURCE_PRIORITY_NOT_GENERATION_EXERCISED"]}
+      },
+      "controlledPolicyTest": {"status": "pass", "ownedEvents": 3586, "withheldEvents": 3680, "canonicalNotes": 1960, "eventsBeyondWithheldRegion": 0, "variantsWithResurrection": 0},
+      "decisions": {
+        "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+        "realAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "realShadow": "REGION_AWARE_REAL_SHADOW_BLOCKED",
+        "boundedMvp": "BOUNDED_MVP_NOT_YET_FEASIBLE",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NOT_DEPLOYED"
+      },
+      "verification": {
+        "report": "region-aware-real-shadow-rehearsal-2026-09-04.json",
+        "reportCanonicalSha256": "9c32be1c1aa3d5b540977a3025750435623e48d09d68139a57d4de290ea2e7a6",
+        "reportSha256": "6508e00e88fb1124ffa2914168a9ed855c9a2e4aa667748ddd61a3b367b4181b",
+        "repeatCanonicalEqual": true,
+        "workspaceTests": 1599,
+        "workspaceTestBreakdown": {"web": 89, "catalog": 1032, "engrave": 8, "midi": 336, "playerCore": 92, "transcribe": 42},
+        "workspaceTypechecks": 6,
+        "gitDiffCheck": true,
+        "diskFreeGiBAtClose": 85
+      },
+      "nextTask": "REAL_SYMBOLIC_TIMING_ALIGNMENT_HARDENING",
+      "reproducible": true,
+      "rawMediaRetention": "local only; metadata and hashes committed; no benchmark generation or tuning"
+    },
+    {
+      "id": "authoritative-symbolic-playability-gate-audit-2026-09-04",
+      "date": "2026-09-04",
+      "startingRevision": "bd94008dded51d87b640b322f7afeff69433bb2f",
+      "checkpointRevision": "2f1a6cf1794d200ca2224d6953dcfd261891edbf",
+      "purpose": "Audit the first real product-lane playability blocker without changing validator limits or musical policy",
+      "route": "frozen native performance-symbolic MIDI -> existing direct-piano arrangement -> six physical learner variants -> report-only playability diagnostics",
+      "fixture": {
+        "id": "lane-a-native-performance",
+        "sourceClass": "GENERATION_CANDIDATE",
+        "provenanceClass": "USER_SUPPLIED_PRIVATE",
+        "symbolicSha256": "ec5010896c00a0541b34b0843a20f455707ac647ae4a222aee71e2ad43e8017e",
+        "symbolicBytes": 58204,
+        "symbolicNotes": 7266,
+        "symbolicDurationBeats": 358.46875,
+        "tempoBpm": 120,
+        "handLabelsAvailable": false
+      },
+      "validator": {
+        "limits": {
+          "very-beginner": {"maxSim": 2, "maxDensity": 5, "minMedianIoi": 0.15},
+          "beginner": {"maxSim": 2, "maxDensity": 6, "minMedianIoi": 0.08},
+          "very-easy": {"maxSim": 5, "maxDensity": 12, "minMedianIoi": 0.08},
+          "easy": {"maxSim": 5, "maxDensity": 12, "minMedianIoi": 0.08},
+          "medium": {"maxSim": 12, "maxDensity": 16, "minMedianIoi": 0.08},
+          "advanced": {"maxSim": 13, "maxDensity": 18, "minMedianIoi": 0.08}
+        },
+        "semantics": "three-decimal distinct onset groups; chord members count as one attack; beat gaps converted to seconds at variant tempo",
+        "calibration": "catalog P99/P1 plus headroom; no Lane-A threshold tuning"
+      },
+      "stages": {
+        "source": {"notes": 7266, "attacks": 5180, "globalMedianIoiSeconds": 0.023, "rightMedianIoiSeconds": 0.023, "leftMedianIoiSeconds": null, "attacksPerSecond": 28.900706, "maxSim": 6},
+        "owned": {"notes": 7266, "attacks": 5180, "globalMedianIoiSeconds": 0.023, "rightMedianIoiSeconds": 0.023, "leftMedianIoiSeconds": null, "attacksPerSecond": 28.900706, "maxSim": 6},
+        "canonical": {"notes": 3843, "attacks": 2653, "globalMedianIoiSeconds": 0.0585, "rightMedianIoiSeconds": 0.104, "leftMedianIoiSeconds": 0.1045, "attacksPerSecond": 14.801848, "maxSim": 3},
+        "advanced": {"notes": 3560, "attacks": 1911, "globalMedianIoiSeconds": 0.0625, "rightMedianIoiSeconds": 0.125, "leftMedianIoiSeconds": 0.125, "status": "fail-median-ioi-only"},
+        "medium": {"notes": 3066, "attacks": 1715, "globalMedianIoiSeconds": 0.0625, "rightMedianIoiSeconds": 0.125, "leftMedianIoiSeconds": 0.125, "status": "fail-median-ioi-only"},
+        "easy": {"notes": 2843, "attacks": 1666, "globalMedianIoiSeconds": 0.0625, "rightMedianIoiSeconds": 0.125, "leftMedianIoiSeconds": 0.125, "status": "fail-median-ioi-only"},
+        "very-easy": {"notes": 2560, "attacks": 1553, "globalMedianIoiSeconds": 0.125, "rightMedianIoiSeconds": 0.125, "leftMedianIoiSeconds": 0.125, "status": "pass"},
+        "beginner": {"notes": 807, "attacks": 775, "globalMedianIoiSeconds": 0.1775, "rightMedianIoiSeconds": 0.2005, "leftMedianIoiSeconds": 2, "status": "pass"},
+        "very-beginner": {"notes": 409, "attacks": 409, "globalMedianIoiSeconds": 0.375, "rightMedianIoiSeconds": 0.375, "leftMedianIoiSeconds": null, "status": "pass"}
+      },
+      "diagnosis": "AUTHORITATIVE_SOURCE_DENSITY_REQUIRES_TRANSFORM",
+      "decisions": {
+        "timedSymbolicMvp": "TIMED_SYMBOLIC_MVP_CONDITIONAL",
+        "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "realShadow": "REAL_SHADOW_BLOCKED_AT_DIFFICULTIES",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NOT_DEPLOYED"
+      },
+      "implementation": {
+        "behaviorChange": false,
+        "laneASpecificLogic": false,
+        "module": "packages/midi/src/playability-audit.ts",
+        "runner": "packages/catalog/scripts/audit-playability.ts",
+        "thresholdChanged": false,
+        "reportCanonicalSha256": "4094e7fc12a78e2c4f387080f9f233a3e8bcda426505c7ae4ff5f9d791086bd8",
+        "reportSha256": "7807a641be94aad899ec1d60ff7678d2c8261587ed8bdbd4640a998fb6344324"
+      },
+      "verification": {
+        "focusedPlayabilityTests": 6,
+        "midiTests": 342,
+        "catalogTests": 1032,
+        "workspaceTests": 1605,
+        "workspaceTestBreakdown": {"web": 89, "catalog": 1032, "engrave": 8, "midi": 342, "playerCore": 92, "transcribe": 42},
+        "workspaceTypechecks": 6,
+        "gitDiffCheck": true,
+        "deterministicRerun": true,
+        "diskFreeGiBAtClose": 88
+      },
+      "nextTask": "AUTHORITATIVE_SYMBOLIC_DENSITY_NORMALIZATION",
+      "reproducible": true,
+      "rawMediaRetention": "private local source only; path-free report and hashes committed; no benchmark generation or tuning"
+    },
+    {
+      "id": "bounded-mvp-productization-readiness-2026-09-04",
+      "date": "2026-09-04",
+      "startingRevision": "65a6f4c2b161435a780a0c4d0fc9a9991c95b938",
+      "purpose": "Exercise the private native-symbolic upload path through catalog, player, exports, and recovery without deployment or listening",
+      "route": "same-origin symbolic upload -> bounded ingest -> six physical artifacts -> five public levels -> player/export APIs",
+      "scope": {
+        "formats": ["midi", "musicxml", "mxl"],
+        "maxUploadBytes": 10485760,
+        "timingAuthority": "NATIVE_AUTHORITATIVE",
+        "candidateClass": "GENERATION_CANDIDATE",
+        "provenanceClass": "USER_SUPPLIED_PRIVATE",
+        "remoteSymbolic": "existing approved-direct catalog seam; no UI fetch added",
+        "benchmarkMaterialUsed": false,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NOT_DEPLOYED"
+      },
+      "results": {
+        "localIngestFormatsPass": true,
+        "sixPhysicalArtifacts": true,
+        "fivePublicLevels": true,
+        "legacyVeryEasyRoute": true,
+        "playerEasyLink": true,
+        "midiExport": true,
+        "musicXmlExport": true,
+        "malformedInputRejected": true,
+        "stableRetryNoDuplicateRows": true,
+        "candidateMetadataInManifestAndSidecars": true,
+        "sourceHashAndUploadRetention": true,
+        "backupRestoreRows": 6,
+        "browserScratchTests": 2,
+        "containerCompose": "not-run; docker compose plugin unavailable",
+        "alignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED"
+      },
+      "decisions": {
+        "boundedMvp": "BOUNDED_MVP_PRODUCTIZATION_READY",
+        "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "realShadow": "NATIVE_TIMED_SYMBOLIC_REAL_SHADOW_VALIDATED",
+        "playerLinks": "LOCAL_EXERCISED",
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NOT_DEPLOYED"
+      },
+      "verification": {
+        "workspaceTests": 1635,
+        "workspaceTestBreakdown": {"web": 97, "catalog": 1042, "engrave": 8, "midi": 354, "playerCore": 92, "transcribe": 42},
+        "scratchPlaywrightTests": 2,
+        "workspaceTypechecks": 6,
+        "gitDiffCheck": true,
+        "backupRestoreSmoke": true,
+        "deterministicRetry": true,
+        "diskFreeGiBAtClose": 84
+      },
+      "nextTask": "REAL_SYMBOLIC_TIMING_ALIGNMENT_HARDENING",
+      "reproducible": true,
+      "rawMediaRetention": "no media retained; scratch bytes and temporary catalog removed"
+    },
+    {
+      "id": "bounded-mvp-release-candidate-2026-09-04",
+      "date": "2026-09-04",
+      "startingRevision": "89e2b6767b0cebe7e4248dba4513ec6992519a65",
+      "checkpointRevision": "ff3f39e2be4926e1f4aeffb8bbe7f401838a3b69",
+      "purpose": "Certify the bounded native-symbolic MVP as a reproducible release candidate without deployment or musical-policy changes",
+      "scope": {
+        "formats": ["midi", "musicxml", "mxl"],
+        "timingAuthority": "NATIVE_AUTHORITATIVE",
+        "physicalDifficultyLevels": ["very-beginner", "beginner", "very-easy", "easy", "medium", "advanced"],
+        "publicDifficultyLevels": ["very-beginner", "beginner", "easy", "medium", "advanced"],
+        "youtube": "experimental-separate-capability",
+        "benchmarkMaterialUsed": false,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NOT_DEPLOYED"
+      },
+      "docker": {
+        "client": "Docker version 29.7.1, build e9452d6e78",
+        "server": "Docker Engine 29.5.2, build 568f755",
+        "context": "colima",
+        "webImageBuild": "PASS",
+        "webImageTag": "keyspilli:web-rc-ff3f39e",
+        "webImageDigest": "sha256:d8c416090e4ddf7f4843917bea833af4e07b2cf09aec197cfbecd235c4ce03e",
+        "webImageBytes": 458002486,
+        "webContainerSmoke": "PASS",
+        "composeSmoke": "NOT_RUN; docker compose plugin unavailable",
+        "worker": "OFF"
+      },
+      "accessPosture": {
+        "classification": "PUBLIC_WRITE_SURFACE_WITHOUT_PRIVATE_ACCESS_BOUNDARY",
+        "domain": "public-internet",
+        "applicationAuth": "same-origin-browser-upload-bypasses-bearer; machine-mutations-require-bearer",
+        "edgeRestriction": "none-in-repository-caddy-config",
+        "blocker": "PRIVATE_ACCESS_BOUNDARY_REQUIRED"
+      },
+      "canary": {
+        "freshVolume": true,
+        "midi": true,
+        "musicxml": true,
+        "mxl": true,
+        "sixPhysicalRows": true,
+        "fivePublicLevels": true,
+        "playerEasyAndLegacyVeryEasy": true,
+        "exports": {"midi": true, "musicxml": true, "pdf": true},
+        "restartDurability": true,
+        "backupRestore": true,
+        "failureAtomicity": true,
+        "retryIdempotency": true,
+        "uploadLifecycleLogging": true
+      },
+      "security": {
+        "sameOriginBrowser": "PASS",
+        "crossOriginRejected": "PASS",
+        "wrongBearerRejected": "PASS",
+        "htmlAndMalformedSymbolicRejected": "PASS",
+        "oversizedStreamingBodyRejected": "PASS",
+        "mxlArchiveSafety": "UNIT_COVERED",
+        "browserTokenExposure": "NOT_OBSERVED",
+        "privatePathLeak": "NOT_OBSERVED"
+      },
+      "decisions": {
+        "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+        "releaseCandidate": "BOUNDED_MVP_RELEASE_CANDIDATE_PARTIAL",
+        "firstBlocker": "PRIVATE_ACCESS_BOUNDARY_REQUIRED",
+        "deployment": "DEPLOYMENT_NOT_READY_PRIVATE_ACCESS_BOUNDARY",
+        "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT"
+      },
+      "verification": {
+        "workspaceTests": 1636,
+        "workspaceTestBreakdown": {"web": 98, "catalog": 1042, "engrave": 8, "midi": 354, "playerCore": 92, "transcribe": 42},
+        "boundedPlaywrightTests": 2,
+        "workspaceTypechecks": 6,
+        "cleanInstall": true,
+        "productionBuild": true,
+        "backupRestoreSmoke": true,
+        "deterministicRetry": true,
+        "gitDiffCheck": true,
+        "diskFreeGiBAtClose": 70,
+        "ciExactShaObserved": false
+      },
+      "rollback": {
+        "staticContract": "PASS; previous image IDs are tagged before Compose swap and the data volume is preserved",
+        "executed": false
+      },
+      "musicalBehaviorChanges": 0,
+      "nextTask": "ESTABLISH_PRIVATE_DEPLOYMENT_ACCESS_BOUNDARY",
+      "reproducible": true,
+      "rawMediaRetention": "no canary media retained; only path-free release metadata and hashes are committed"
+    },
+    {
+      "id": "private-deployment-access-boundary-2026-09-04",
+      "date": "2026-09-04",
+      "startingRevision": "89e2b6767b0cebe7e4248dba4513ec6992519a65",
+      "checkpointRevision": "155d8964ba31a8de729629b5fa3bd8bcd896d8f2",
+      "purpose": "Establish and verify the smallest private edge boundary for the bounded symbolic MVP without deployment",
+      "scope": {
+        "product": "private single-user symbolic-upload piano learner",
+        "formats": ["midi", "musicxml", "mxl"],
+        "timingAuthority": "NATIVE_AUTHORITATIVE",
+        "benchmarkMaterialUsed": false,
+        "musicalBehaviorChanges": 0,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NOT_DEPLOYED"
+      },
+      "runtime": {
+        "node": "22.22.3",
+        "npm": "10.9.8",
+        "dockerClient": "29.7.1",
+        "dockerServer": "29.5.2",
+        "dockerContext": "colima",
+        "dockerCompose": "unavailable-locally",
+        "caddyCanary": "2.6.2"
+      },
+      "docker": {
+        "webImageBuild": "PASS",
+        "webImageTag": "keyspilli:web-rc-155d896",
+        "webImageDigest": "sha256:5baadcbe87c103f78f4cb16332376c1033e23378309b56b5424ab6d5007da5db",
+        "webImageBytes": 465821245,
+        "webContainerSmoke": "PASS",
+        "composeSmoke": "COMPOSE_LOCAL_SMOKE_NOT_EXECUTED",
+        "worker": "OFF"
+      },
+      "accessPosture": {
+        "configuredBoundary": "Caddy basicauth over HTTPS; bcrypt generated at deploy time",
+        "applicationAuth": "existing bearer token remains required for direct machine mutations",
+        "browserTransport": "edge Basic Auth; Authorization stripped upstream; same-origin checks preserved",
+        "machineTransport": "X-Keyspilli-Api-Token carries the unchanged bearer value through the edge",
+        "liveDomainBeforeDeployment": "public-internet without deployed edge restriction",
+        "productionDeployment": false
+      },
+      "canary": {
+        "freshVolume": true,
+        "workerOff": "PASS in disposable RC canary for MIDI/MusicXML/MXL; live worker image unchanged",
+        "liveWorkerImageUnchanged": true,
+        "liveMIDI": true,
+        "disposableWorkerOffFormats": ["midi", "musicxml", "mxl"],
+        "sixPhysicalRows": true,
+        "fivePublicLevels": true,
+        "playerAndLegacyVeryEasy": true,
+        "exports": {"midi": true, "musicxml": true, "pdf": true},
+        "restartDurability": true,
+        "retryIdempotency": true,
+        "failureAtomicity": true,
+        "crossOriginRejected": true
+      },
+      "security": {
+        "anonymousEdgeHealth401": true,
+        "wrongEdgePassword401": true,
+        "authenticatedExactVersion": true,
+        "htmlAndMalformedSymbolicRejected": true,
+        "oversizedBodyRejected": true,
+        "playabilityRejected": true,
+        "browserTokenExposure": "NOT_OBSERVED",
+        "privatePathLeak": "NOT_OBSERVED"
+      },
+      "verification": {
+        "workspaceTests": 1637,
+        "workspaceTestBreakdown": {"web": 99, "catalog": 1042, "engrave": 8, "midi": 354, "playerCore": 92, "transcribe": 42},
+        "workspaceTypechecks": 6,
+        "focusedUploadTests": 11,
+        "productionBuild": true,
+        "ansibleSyntax": true,
+        "gitDiffCheck": true,
+        "startingDiskFreeGiB": 72,
+        "diskFreeGiB": 66,
+        "exactShaCiObserved": false
+      },
+      "decisions": {
+        "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+        "privateBoundary": "PRIVATE_DEPLOYMENT_ACCESS_BOUNDARY_VALIDATED_LOCALLY",
+        "releaseCandidate": "BOUNDED_MVP_RELEASE_CANDIDATE_READY",
+        "deployment": "DEPLOYMENT_READY_NOT_DEPLOYED",
+        "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED"
+      },
+      "nextTask": "BOUNDED_MVP_DEPLOYMENT_CANARY",
+      "nextTaskRequiresOwnerAuthorization": true,
+      "reproducible": true,
+      "rawMediaRetention": "no canary media retained; only path-free metadata is committed"
+    },
+    {
+      "id": "bounded-mvp-deployment-canary-2026-09-04",
+      "date": "2026-09-04",
+      "startingRevision": "03d19473aea27b8a7dbe494826a27f0b4870d900",
+      "checkpointRevision": "3b5bac58c7fd989e5f7d8595019f61875c2cd6b6",
+      "purpose": "Owner-authorized bounded MVP deployment canary with the validated Caddy private edge boundary",
+      "scope": {
+        "product": "private single-user symbolic-upload piano learner",
+        "formats": ["midi", "musicxml", "mxl"],
+        "timingAuthority": "NATIVE_AUTHORITATIVE",
+        "benchmarkMaterialUsed": false,
+        "musicalBehaviorChanges": 0,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT"
+      },
+      "runtime": {
+        "node": "22.22.3",
+        "npm": "10.9.8",
+        "localDocker": "29.7.1 client / 29.5.2 server",
+        "localCompose": "COMPOSE_LOCAL_SMOKE_NOT_EXECUTED; plugin unavailable",
+        "remoteDocker": "29.4.2",
+        "remoteCompose": "5.1.3",
+        "caddy": "2.6.2"
+      },
+      "docker": {
+        "webImageTag": "ghcr.io/reedtrullz/keyspilli:03d19473aea2",
+        "webImageDigest": "sha256:9de9d7904b9ecea2502576e310140b72327b5eef43344561885ce9e7d87ca6a9",
+        "workerImageTag": "ghcr.io/reedtrullz/keyspilli-worker:17f997600b9f",
+        "workerChanged": false,
+        "webImageBuild": "PASS",
+        "webContainerSmoke": "PASS",
+        "localComposeSmoke": "NOT_EXECUTED",
+        "remoteComposeTopology": "PASS"
+      },
+      "accessPosture": {
+        "domain": "keys.reidar.tech",
+        "reachability": "internet-routable",
+        "edge": "Caddy Basic Auth over HTTPS",
+        "anonymousHealth": "HTTP 401",
+        "authenticatedHealth": "healthy on exact release revision",
+        "applicationAuth": "single-user bearer/custom-header contract unchanged",
+        "credentialStorage": "macOS Keychain; no plaintext or hash retained in repository"
+      },
+      "failureAndFix": {
+        "firstAttempt": "ROLLED_BACK; Ansible URI verifier attempted to decode binary PDF as UTF-8",
+        "fix": "3b5bac58c7fd989e5f7d8595019f61875c2cd6b6",
+        "successfulRetry": "PASS"
+      },
+      "canary": {
+        "freshVolume": true,
+        "workerOff": true,
+        "midi": true,
+        "musicxml": true,
+        "mxl": true,
+        "sixPhysicalRows": true,
+        "fivePublicLevels": true,
+        "playerEasy": true,
+        "playerLegacyVeryEasy": true,
+        "exports": {"midi": true, "musicxml": true, "pdf": true},
+        "retryIdempotency": true,
+        "restartDurability": true,
+        "cleanup": true,
+        "finalCatalogCount": 2760,
+        "manualBackup": true,
+        "backupArchiveValidation": true
+      },
+      "security": {
+        "sameOrigin": "PASS",
+        "anonymousEdgeHealth401": true,
+        "wrongEdgeCredential401": true,
+        "crossOriginRejected": true,
+        "malformedAndOversizedInputsRejected": true,
+        "browserTokenExposure": "NOT_OBSERVED",
+        "privatePathLeak": "NOT_OBSERVED"
+      },
+      "decisions": {
+        "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+        "releaseCandidate": "BOUNDED_MVP_RELEASE_CANDIDATE_READY",
+        "deployment": "DEPLOYED_CANARY_VERIFIED",
+        "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT"
+      },
+      "nextTask": "BOUNDED_MVP_POST_DEPLOY_OPERATIONS",
+      "reproducible": true,
+      "rawMediaRetention": "no canary media retained; only path-free metadata and hashes are committed"
+    },
+    {
+      "id": "bounded-mvp-post-deploy-operations-2026-09-04",
+      "date": "2026-09-04",
+      "startingRevision": "d6948b414d04bc93105346823a6010c812966065",
+      "purpose": "Read-only verification of the owner-authorized bounded MVP live deployment",
+      "scope": {
+        "product": "private single-user symbolic-upload piano learner",
+        "liveReleaseRevision": "03d19473aea27b8a7dbe494826a27f0b4870d900",
+        "webImage": "ghcr.io/reedtrullz/keyspilli:03d19473aea2",
+        "workerImageUnchanged": true,
+        "mutations": "none",
+        "musicalBehaviorChanges": 0,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT"
+      },
+      "operations": {
+        "identity": "PASS; authenticated health exact release revision/image",
+        "privateBoundary": "PASS; Caddy Basic Auth, anonymous 401, wrong credential 401, cross-origin upload 403",
+        "tls": "PASS; Let's Encrypt wildcard certificate through 2026-10-17",
+        "listeners": "PASS; only 22/80/443 public, Keyspilli loopback-bound",
+        "logs": "PASS within retained evidence; no structured 5xx/error/OOM/restart tokens; Caddy access log not retained",
+        "catalog": "PASS; SQLite integrity ok, 463 complete six-row groups, 2,778 note files, no canary base",
+        "backup": "PASS; timer active, automatic/manual runs successful, archive validated",
+        "rollback": "PASS; current/rollback tags and persistent data volume present, Compose validates",
+        "credentialRecovery": "PASS via macOS Keychain; no secret emitted",
+        "sourcePrivacy": "PASS; no repository/API/player path leak observed",
+        "monitoring": "PARTIAL; no external uptime/disk/backup/certificate/container alerting observed"
+      },
+      "storage": {
+        "decision": "VPS_STORAGE_NEAR_HARD_FLOOR",
+        "freeGiB": 33.3,
+        "hardFloorGiB": 30,
+        "preferredGiB": 34,
+        "reclaimableCandidates": ["Docker build cache 1.787GB", "unused image space 818.3MB"],
+        "cleanupPerformed": false,
+        "swap": "approximately 1.0GiB used of 1.0GiB"
+      },
+      "verification": {
+        "workspaceTests": 1637,
+        "workspaceTypechecks": 6,
+        "gitDiffCheck": true,
+        "localCompose": "COMPOSE_LOCAL_SMOKE_NOT_EXECUTED",
+        "remoteCompose": "5.1.3 config validation passed",
+        "exactShaCiChecks": "none returned by GitHub check-run query",
+        "deterministicReport": "path-free JSON; validated after commit"
+      },
+      "decisions": {
+        "operations": "BOUNDED_MVP_POST_DEPLOY_OPERATIONS_VALIDATED",
+        "releasePosture": "PRIVATE_BOUNDED_MVP_LIVE_VERIFIED",
+        "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT"
+      },
+      "nextTask": "METAL_TO_MIDI_RELEASE_GAP_REASSESSMENT",
+      "reproducible": true,
+      "rawMediaRetention": "no canary source bytes retained; only path-free metadata and hashes are committed"
+    },
+    {
+      "id": "metal-to-midi-release-gap-reassessment-2026-09-04",
+      "date": "2026-09-04",
+      "startingRevision": "35bc648551de210d8806c82137bd18f53f247a4e",
+      "purpose": "Reassess the remaining upstream gap for arbitrary metal URL/audio to useful piano MIDI without reopening closed research lanes",
+      "scope": {
+        "productBoundary": "private bounded symbolic MIDI/MusicXML/MXL upload with native authoritative timing",
+        "benchmarkTuning": false,
+        "musicalPolicyChanges": 0,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NOT_PERFORMED"
+      },
+      "historicalEvidence": {
+        "nativeSymbolicMvp": "operationally validated",
+        "audioAmtAndStems": "raw timing exists but pitch/role fidelity is insufficient for release authority",
+        "gapsGuitarTechs": "component validated; cold metal transfer mixed",
+        "scoreAudioAlignment": "partial; existing V2/SKF evidence mixed and no independent real anchors",
+        "clamp3": "resource blocked before evaluation",
+        "protectedBenchmarkCandidates": "0 independent aligned generation candidates; eval-only"
+      },
+      "technologyScan": {
+        "date": "2026-09-04",
+        "sources": ["U-MuST", "TriScore", "CLaMP3", "MuScriptor", "2025 AMT Challenge"],
+        "downloads": false,
+        "newAmtCandidate": "MuScriptor; real-recording/heavy-metal claim, non-commercial weights, no Keyspilli cold transfer"
+      },
+      "sourceAvailability": {
+        "method": "metadata-only deterministic non-benchmark sample",
+        "sampleSize": 20,
+        "tabChordOnly": 20,
+        "structuredSymbolicConfirmed": 0,
+        "pianoCoverConfirmed": 0,
+        "copyrightedBytesDownloaded": false
+      },
+      "decisions": {
+        "crossModalAlignment": "CROSS_MODAL_ALIGNMENT_REOPEN_NOT_JUSTIFIED",
+        "audioAmt": "AUDIO_AMT_REOPEN_JUSTIFIED",
+        "strategicRoute": "EXTERNAL_SYMBOLIC_FIRST_RELEASE_PATH",
+        "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+        "deployment": "NO_DEPLOYMENT"
+      },
+      "report": "metal-to-midi-release-gap-reassessment-2026-09-04.json",
+      "reportSha256": "5c23c167ad3ec586d59e51b9b55ee875270d09b42eba5a4231ad50b4746a2a93",
+      "reproducible": true,
+      "nextTask": "GENERIC_REAL_SONG_SOURCE_DISCOVERY_AND_CANDIDATE_RANKING",
+      "rawMediaRetention": "no source bytes retained or committed; public URLs only in report"
+    },
+    {
+      "id": "generic-real-song-source-discovery-and-ranking-2026-09-04",
+      "date": "2026-09-05",
+      "startingRevision": "d63e013ea99a8ca6155243f862ab3525d36f0c57",
+      "checkpointRevision": "26f3175",
+      "purpose": "Cold public metadata discovery and deterministic ranking for the exact 20-song non-benchmark sample",
+      "scope": {
+        "provider": "web/Jina Reader search",
+        "queryFamily": "<artist> \"<title>\" MIDI",
+        "queryCalls": 20,
+        "capturedUrls": 17,
+        "pageMetadataFetches": 0,
+        "bytesDownloaded": 0,
+        "benchmarkMaterialUsed": false,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NO_DEPLOYMENT"
+      },
+      "coverage": {
+        "songs": 20,
+        "structuredLeads": 13,
+        "midiLeads": 13,
+        "musicXmlOrMxlLeads": 0,
+        "guitarProLeads": 0,
+        "pianoCoverLeads": 1,
+        "semanticTabOrChordOnly": 2,
+        "noUsefulEvidence": 3,
+        "automaticAcquisitionEligible": 0,
+        "userMediatedStructured": 13,
+        "nativeOrPerformanceTimingPotential": 0,
+        "unknownTimingStructured": 13
+      },
+      "controls": {
+        "count": 8,
+        "firewallViolations": 0,
+        "wrongVersionAutomatic": 0,
+        "rightsBlockedAutomatic": 0,
+        "benchmarkDiagnosticAutomatic": 0,
+        "htmlMasqueradeAccepted": 0,
+        "deterministic": true
+      },
+      "report": {
+        "json": "generic-real-song-source-discovery-and-ranking-2026-09-04.json",
+        "jsonSha256": "d6c77057a1cc13da55b6cac9c16f3a0de52b2350bea55cf24d1dc1d810c52e08",
+        "markdown": "generic-real-song-source-discovery-and-ranking-2026-09-04.md",
+        "rankerDigest": "657342bdbffd20b10872f3a32e6f3e7d8c9aa08ac485af8ca0ef838da51de483"
+      },
+      "decisions": {
+        "primary": "USER_MEDIATED_SOURCE_DISCOVERY_HEADROOM_PROVEN",
+        "strategicConsequence": "NARROWED_TO_USER_MEDIATED",
+        "nearTermScope": "DISCOVERY_ASSISTED_USER_UPLOAD_PRIVATE_ALPHA",
+        "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED"
+      },
+      "nextTask": "USER_MEDIATED_SOURCE_CANDIDATE_HANDOFF",
+      "reproducible": true,
+      "rawMediaRetention": "no source bytes downloaded or retained; path-free metadata only"
+    },
+    {
+      "id": "user-mediated-source-candidate-handoff-2026-09-05",
+      "date": "2026-09-05",
+      "startingRevision": "8e20c721e6aa4611b5353aa5506bf7f5578a10c6",
+      "checkpointRevision": "59df7a0343ef5debd10068450307270dba7b2b64",
+      "purpose": "Bind metadata-only source leads to explicit owner-supplied symbolic uploads without automatic acquisition or timing promotion",
+      "scope": {
+        "supportedFormats": ["midi", "musicxml", "mxl"],
+        "providerNeutral": true,
+        "productionProviderConfigured": false,
+        "rankedLeadCap": 3,
+        "autoDownload": false,
+        "benchmarkMaterialUsed": false,
+        "musicalPolicyChanges": 0,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NO_DEPLOYMENT"
+      },
+      "handoff": {
+        "states": ["AWAITING_USER_FILE", "FILE_RECEIVED", "FORMAT_MISMATCH", "GENERATION_ACCEPTED", "FILE_REJECTED", "EXPIRED"],
+        "serverOwnedBinding": true,
+        "selectedCandidateSeparateFromUploadedSha": true,
+        "uploadedProvenance": "USER_SUPPLIED_PRIVATE",
+        "discoveryRightsInherited": false,
+        "discoveryTimingPromoted": false,
+        "ttlDefaultHours": 24,
+        "ttlMaximumDays": 7
+      },
+      "controls": {
+        "urlCredentialsAndQueryStripped": true,
+        "localPrivateUrlsRejected": true,
+        "protectedCandidateClassesRejected": true,
+        "clientCandidateTamperRejected": true,
+        "providerFailureFailsClosed": true,
+        "failedUploadRetryable": true,
+        "sameUploadRetryStable": true,
+        "networkBytesDownloaded": 0
+      },
+      "verification": {
+        "catalogHandoffTests": 9,
+        "webHandoffRouteTests": 9,
+        "webUploadRouteTests": 11,
+        "playwrightScratchTests": 2,
+        "workspaceTests": 1663,
+        "workspaceTestBreakdown": {"web": 108, "catalog": 1059, "engrave": 8, "midi": 354, "playerCore": 92, "transcribe": 42},
+        "workspaceTypechecks": 6,
+        "webBuild": true,
+        "diffCheck": true,
+        "deterministicFixedHandoffReplay": true
+      },
+      "decisions": {
+        "handoff": "USER_MEDIATED_SOURCE_HANDOFF_VALIDATED",
+        "privateAlpha": "DISCOVERY_ASSISTED_PRIVATE_ALPHA_NEEDS_PRODUCTION_SEARCH_PROVIDER",
+        "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+        "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED"
+      },
+      "report": {
+        "json": "user-mediated-source-candidate-handoff-2026-09-05.json",
+        "jsonSha256": "2738ffe9fce7db33ac9059b47608cd95224df50b645b27c2e1c2f2a9809d931f"
+      },
+      "nextTask": "PRODUCTION_GENERIC_SOURCE_SEARCH_PROVIDER",
+      "reproducible": true,
+      "rawMediaRetention": "no third-party source bytes downloaded or committed; only sanitized metadata and lineage schema are retained"
+    },
+    {
+      "id": "production-generic-source-search-provider-2026-09-05",
+      "date": "2026-09-05",
+      "startingRevision": "b78dfc0cd2a87820318f7dc19ce7676a2cadf1a9",
+      "checkpointRevisions": [
+        "7c8c3c0a9689fdeb29948080334352e60ee87551",
+        "adbedfdd1d0c4238c297961c5ddb68e6ba4d5083",
+        "8f21f0c589c3c0f1cfaa3e5a1b8bd6e2af2cb703"
+      ],
+      "purpose": "Select and implement one production-safe metadata search provider without automatic source-byte acquisition",
+      "scope": {
+        "shortlist": ["BRAVE_SEARCH_API", "EXA_SEARCH_API"],
+        "providerToBeat": "BRAVE_SEARCH_API",
+        "selectedProvider": "BRAVE_SEARCH_PROVIDER_SELECTED",
+        "queriesPerSong": 4,
+        "resultsPerQuery": 10,
+        "maxUniqueResults": 40,
+        "maxDisplayed": 3,
+        "timeoutMs": 5000,
+        "maxRetries": 1,
+        "cache": "disabled; transient-only provider operation state",
+        "automaticSourceByteAcquisition": false,
+        "musicalPolicyChanges": 0,
+        "benchmarkTuning": false,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NO_DEPLOYMENT"
+      },
+      "controls": {
+        "rankerRemainsAuthoritative": true,
+        "rightsDefaultUnknown": true,
+        "timingDefaultUnknown": true,
+        "providerKeyServerOnly": true,
+        "queryInputLimitedToArtistTitleAndFormat": true,
+        "urlCredentialsAndQueryStripped": true,
+        "privateAndMappedIpv6HostsRejected": true,
+        "providerResultPagesFetched": 0,
+        "sourceBytesDownloaded": 0,
+        "benchmarkFirewallViolations": 0,
+        "automaticRightsPromotions": 0,
+        "liveCredentialPresent": false
+      },
+      "verification": {
+        "providerTests": 7,
+        "sourceCandidateRouteTests": 3,
+        "sourceHandoffRouteTests": 3,
+        "uploadHandoffTests": 3,
+        "catalogUrlSafetyTests": 9,
+        "workspaceTests": 1670,
+        "workspaceTestBreakdown": {"web": 115, "catalog": 1059, "engrave": 8, "midi": 354, "playerCore": 92, "transcribe": 42},
+        "workspaceTypechecks": 6,
+        "webBuild": true,
+        "deterministicMockReplay": true,
+        "directUploadFallback": true,
+        "clientBundleCredentialValueMatches": 0,
+        "liveProviderCanary": "NOT_RUN_NO_CREDENTIAL",
+        "frozen20SongReplay": "NOT_RUN_NO_CREDENTIAL",
+        "diffCheck": true
+      },
+      "decisions": {
+        "provider": "BRAVE_SEARCH_PROVIDER_SELECTED",
+        "implementation": "PRODUCTION_PROVIDER_IMPLEMENTED_AWAITING_API_CREDENTIAL",
+        "privateAlpha": "DISCOVERY_ASSISTED_PRIVATE_ALPHA_NEEDS_PROVIDER_CREDENTIAL",
+        "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+        "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED"
+      },
+      "report": {
+        "json": "production-generic-source-search-provider-2026-09-05.json",
+        "jsonSha256": "6895c63f29f49234d8dbf0a1dc86458b45d4029684490f3b1c009d5841890411"
+      },
+      "nextTask": "PRODUCTION_SEARCH_PROVIDER_CREDENTIAL_CANARY",
+      "reproducible": true,
+      "rawMediaRetention": "no third-party source bytes downloaded or retained; metadata-only adapter"
+    },
+    {
+      "id": "production-search-provider-credential-canary-2026-09-05",
+      "date": "2026-09-05",
+      "startingRevision": "84b74b9d2b2a594a6a6aad049accb88e770bf4c4",
+      "purpose": "Validate the implemented Brave metadata provider with one operator-controlled credential probe without source acquisition or deployment",
+      "provider": "BRAVE_SEARCH_API",
+      "credential": {
+        "source": "KEYCHAIN",
+        "valueRecorded": false,
+        "productionInstalled": false
+      },
+      "probe": {
+        "httpStatus": 422,
+        "latencyMs": 639.78,
+        "resultShape": false,
+        "rateLimitHeaders": "none",
+        "retryCount": 0,
+        "decision": "PRODUCTION_SEARCH_PROVIDER_LIVE_CANARY_BLOCKED"
+      },
+      "frozenReplay": {
+        "corpus": "generic-real-song-cold-20-v1",
+        "plannedRequests": 80,
+        "actualReplayRequests": 0,
+        "status": "NOT_RUN_PROBE_BLOCKED",
+        "historicalStructuredLeads": "13/20",
+        "coverage": "NOT_EVALUATED"
+      },
+      "controls": {
+        "rightsAutoPromotions": 0,
+        "nativeTimingAutoPromotions": 0,
+        "benchmarkFirewallViolations": 0,
+        "sourceBytesDownloaded": 0,
+        "candidatePagesFetched": 0,
+        "providerQueryPolicyChanged": false,
+        "exAOrOtherProviderEvaluated": false,
+        "musicalBehaviorChanges": 0,
+        "deployment": "NO_DEPLOYMENT"
+      },
+      "verification": {
+        "secretRepoMatches": 0,
+        "secretReportMatches": 0,
+        "secretClientBundleMatches": 0,
+        "environmentUnset": true,
+        "clipboardCleared": true,
+        "existingWorkspaceTests": 1670,
+        "existingWorkspaceTypechecks": 6,
+        "reportJsonSha256": "0772573ec8462b9000e386acaf4efa97aabefd1424ecee51d07ef14f1e65ef5a",
+        "gitDiffCheck": true
+      },
+      "decisions": {
+        "provider": "PRODUCTION_SEARCH_PROVIDER_LIVE_CANARY_BLOCKED",
+        "privateAlpha": "DISCOVERY_ASSISTED_PRIVATE_ALPHA_BLOCKED",
+        "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+        "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "nextTask": "BRAVE_SEARCH_API_CREDENTIAL_REMEDIATION"
+      },
+      "nonClaims": [
+        "HTTP 422 is recorded as a sanitized provider-request blocker, not a 401/403 credential rejection.",
+        "No live 20-song coverage, handoff, source download, deployment, provider tuning, or human listening occurred."
+      ]
+    },
+    {
+      "id": "production-search-provider-credential-canary-rerun-2026-09-05",
+      "date": "2026-09-05",
+      "startingRevision": "5351c2b69d76a8f36ad52fc9fba22fb31278689d",
+      "purpose": "Re-run the bounded Brave metadata canary after an operator credential update",
+      "provider": "BRAVE_SEARCH_API",
+      "credential": {
+        "source": "KEYCHAIN",
+        "valueRecorded": false,
+        "productionInstalled": false
+      },
+      "probe": {
+        "httpStatus": 200,
+        "resultCount": 10,
+        "resultShape": true,
+        "latencyMs": 1050.09,
+        "rateLimitHeaders": "present",
+        "retryCount": 0,
+        "decision": "PRODUCTION_SEARCH_PROVIDER_LIVE_CANARY_PASS"
+      },
+      "frozenReplay": {
+        "corpus": "generic-real-song-cold-20-v1",
+        "songs": 20,
+        "songsWithAnyResults": 20,
+        "candidateCountTotal": 567,
+        "candidateCountRange": [10, 35],
+        "plannedRequests": 80,
+        "actualProviderRequests": 82,
+        "statusCounts": {"200": 80, "429": 2},
+        "retries": 2,
+        "coverage": "LIVE_METADATA_COVERAGE_20_OF_20",
+        "formatBreakdown": "not retained by bounded replay summary"
+      },
+      "controls": {
+        "rightsAutoPromotions": 0,
+        "nativeTimingAutoPromotions": 0,
+        "benchmarkFirewallViolations": 0,
+        "sourceBytesDownloaded": 0,
+        "candidatePagesFetched": 0,
+        "providerQueryPolicyChanged": false,
+        "exAOrOtherProviderEvaluated": false,
+        "musicalPolicyChanges": 0,
+        "deployment": "NO_DEPLOYMENT"
+      },
+      "verification": {
+        "secretRepoMatches": 0,
+        "secretReportMatches": 0,
+        "secretClientBundleMatches": 0,
+        "environmentUnset": true,
+        "clipboardCleared": true,
+        "temporaryProbeServersClosed": true,
+        "reportJsonSha256": "51dea006feb7de2a5f608d429e7b9018c83de50bef25bbffbcbbbeb5ecf1c514"
+      },
+      "decisions": {
+        "provider": "PRODUCTION_SEARCH_PROVIDER_LIVE_CANARY_PASS",
+        "privateAlpha": "DISCOVERY_ASSISTED_PRIVATE_ALPHA_METADATA_ONLY",
+        "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+        "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NO_DEPLOYMENT",
+        "nextTask": "USER_MEDIATED_SOURCE_CANDIDATE_HANDOFF"
+      },
+      "nonClaims": [
+        "The probe and replay validate metadata access only; rights, timing authority, and source quality remain unknown.",
+        "No candidate pages or source bytes were fetched, and no metadata was promoted to automatic generation.",
+        "The live replay was not repeated; deterministic ranker behavior remains covered by the existing mocked replay test.",
+        "No provider/query tuning, Exa evaluation, musical change, deployment, or human listening occurred."
+      ]
+    },
+    {
+      "id": "production-search-provider-canary-closeout-2026-09-05",
+      "date": "2026-09-05",
+      "startingRevision": "4771a4f86d7fe2608a426529ef1c4c8bc9468be6",
+      "purpose": "Close the production Brave provider evidence gaps without changing provider or ranker behavior",
+      "provider": "BRAVE_SEARCH_API",
+      "corpus": {
+        "id": "generic-real-song-cold-20-v1",
+        "songs": 20,
+        "benchmarkExcluded": true,
+        "sameAsPriorCanary": true
+      },
+      "policy": {
+        "queriesPerSong": 4,
+        "resultsPerQuery": 10,
+        "maxUniqueResults": 40,
+        "maxDisplayed": 3,
+        "rankerUnchanged": true
+      },
+      "replay": {
+        "status": "COMPLETED_METADATA_ONLY",
+        "providerRequests": 81,
+        "statusCounts": {"200": 80, "429": 1},
+        "retries": 1,
+        "candidateCountTotal": 565,
+        "candidateCountRange": [10, 35],
+        "songsWithAnyResults": 20,
+        "sourcePageFetches": 0,
+        "sourceByteDownloads": 0,
+        "externalHosts": ["api.search.brave.com"]
+      },
+      "classification": {
+        "strongStructuredLeads": 20,
+        "midiLeads": 20,
+        "musicXmlLeads": 20,
+        "mxlLeads": 0,
+        "guitarProLeads": 20,
+        "pianoSymbolicLeads": 0,
+        "tabChordSemanticOnly": 0,
+        "noUsefulEvidence": 0,
+        "AUTO_ACQUISITION_ELIGIBLE": 0,
+        "USER_MEDIATED_CANDIDATE": 20,
+        "SCORE_ALIGNMENT_REQUIRED": 0,
+        "SEMANTIC_SUPPORT_ONLY": 0,
+        "RESEARCH_LEAD_ONLY": 0,
+        "REJECTED_ONLY": 0,
+        "historicalResearchStructuredLeads": 13,
+        "historicalComparison": "PARITY_OR_BETTER",
+        "basis": "ranker metadata/query-hint classification; not file or license validation"
+      },
+      "handoff": {
+        "status": "USER_MEDIATED_CANDIDATE_HANDOFF_REACHED",
+        "state": "AWAITING_USER_FILE",
+        "rights": "UNKNOWN_RIGHTS",
+        "timing": "UNKNOWN_TIMING",
+        "candidatePageFetched": false,
+        "candidateBytesFetched": false,
+        "generationStarted": false,
+        "persistentDbWrite": false
+      },
+      "determinism": {
+        "snapshotReplayHash1": "7cf345dce43a7d4e7c0e0e74b0c6c44368b4db585984f1946f8d62fba54771d4",
+        "snapshotReplayHash2": "7cf345dce43a7d4e7c0e0e74b0c6c44368b4db585984f1946f8d62fba54771d4",
+        "identical": true,
+        "snapshotSha256": "b67182d1597d6997daf8e9f950b11fe988419cf3a939f0b933c4e404da09091e"
+      },
+      "safety": {
+        "rightsAutoPromotions": 0,
+        "nativeTimingAutoPromotions": 0,
+        "benchmarkFirewallViolations": 0,
+        "sourcePageFetches": 0,
+        "sourceByteDownloads": 0,
+        "secretMatches": 0,
+        "providerPolicyChanged": false,
+        "deployment": "NO_DEPLOYMENT",
+        "musicalBehaviorChanges": 0
+      },
+      "decisions": {
+        "provider": "PRODUCTION_GENERIC_SOURCE_SEARCH_PROVIDER_VALIDATED",
+        "privateAlpha": "DISCOVERY_ASSISTED_PRIVATE_ALPHA_RELEASE_CANDIDATE_READY",
+        "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+        "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NO_DEPLOYMENT",
+        "nextTask": "DISCOVERY_ASSISTED_PRIVATE_ALPHA_DEPLOYMENT_CANARY"
+      },
+      "nonClaims": [
+        "Metadata format classes are not parser or licensing proof.",
+        "No provider result page or third-party symbolic bytes were fetched.",
+        "No provider tuning, Exa evaluation, alignment, musical change, deployment, or human listening occurred."
+      ]
+    },
+    {
+      "id": "discovery-assisted-private-alpha-deployment-canary-2026-09-05",
+      "date": "2026-09-05",
+      "startingRevision": "f977fb23447df4f0dbd4f24584b1ae983299143d",
+      "checkpointRevision": "67827050a695e54609f6cf3f064e4fdaaabbb65b",
+      "purpose": "Owner-authorized live canary for server-side Brave metadata discovery behind the private single-user edge",
+      "release": {
+        "image": "ghcr.io/reedtrullz/keyspilli:67827050a695",
+        "imageDigest": "sha256:9520812e80f70d7ede4faa8ab0f34f9060371a80748e9a7957da9cecafedc094",
+        "imageId": "sha256:ad8ce11168713c1151d43cca965f15cc14e3147dc3cbe9a6ec79f039c3b9ab99",
+        "workerImage": "ghcr.io/reedtrullz/keyspilli-worker:17f997600b9f",
+        "node": "22.22.3",
+        "npm": "10.9.8"
+      },
+      "access": {
+        "edge": "CADDY_BASIC_AUTH",
+        "anonymousHealth": 401,
+        "authenticatedHealth": 200,
+        "sourceSearchRequiresAuth": true,
+        "singleUser": true,
+        "applicationAccounts": false
+      },
+      "provider": {
+        "name": "BRAVE_SEARCH_API",
+        "status": "LIVE_CANARY_VERIFIED",
+        "credentialStorage": "root-owned /etc/keyspilli/source-search.env mode 0600",
+        "serverOnly": true,
+        "metadataOnly": true,
+        "positiveProbe": {"status": 200, "candidateCount": 3},
+        "noResultProbe": {"status": 200, "candidateCount": 0},
+        "requestPacingFix": "1.1-second retry delay for the free-plan request window",
+        "emptyEnvelopeFix": "valid mixed-only 200 responses return an empty candidate set"
+      },
+      "canary": {
+        "restartHealth": "PASS",
+        "uploads": "PASS",
+        "player": "PASS",
+        "midiExport": "PASS",
+        "musicXmlExport": "PASS",
+        "pdfSimplifyExport": "PASS",
+        "pdfClassicExport": "PASS",
+        "composeRemote": "PASS_DOCKER_COMPOSE_5_1_3",
+        "composeLocal": "COMPOSE_LOCAL_SMOKE_NOT_EXECUTED",
+        "secretLogMatches": 0,
+        "clientSecretBundleMatches": 0
+      },
+      "verification": {
+        "providerFocusedTests": "9/9",
+        "workspaceTests": "1672/1672",
+        "workspaceBreakdown": {"web": 117, "catalog": 1059, "engrave": 8, "midi": 354, "playerCore": 92, "transcribe": 42},
+        "typechecks": "6/6",
+        "gitDiffCheck": "PASS",
+        "musicalBehaviorChanges": 0
+      },
+      "decisions": {
+        "deployment": "DISCOVERY_ASSISTED_PRIVATE_ALPHA_DEPLOYMENT_CANARY_VERIFIED",
+        "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+        "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "nextTask": "USER_MEDIATED_SOURCE_HANDOFF_LIVE_CANARY"
+      },
+      "nonClaims": [
+        "Discovery returns metadata only; it does not fetch candidate pages or symbolic bytes.",
+        "The canary does not establish independent score/audio alignment or musical quality.",
+        "No benchmark material, musical policy, or worker behavior changed; no deployment beyond this authorized canary occurred."
+      ]
+    },
+    {
+      "id": "user-mediated-source-handoff-live-canary-2026-09-05",
+      "date": "2026-09-05",
+      "authorization": "OWNER_AUTHORIZED",
+      "startingRevision": "85464bd34ca7c079571af3c1cabcad65691aa449",
+      "purpose": "Exercise metadata-only discovery, owner affirmation, synthetic symbolic upload, normal learner generation, restart persistence, and cleanup",
+      "release": {
+        "webRevision": "67827050a695e54609f6cf3f064e4fdaaabbb65b",
+        "webImage": "ghcr.io/reedtrullz/keyspilli:67827050a695",
+        "workerChanged": false
+      },
+      "discovery": {
+        "provider": "BRAVE_SEARCH_API",
+        "status": "PASS_METADATA_ONLY",
+        "metadataCandidateCount": 3,
+        "selectedCandidateFormat": "midi",
+        "thirdPartyPagesFetched": false,
+        "thirdPartySymbolicBytesFetched": false,
+        "thirdPartyBytesUploaded": false,
+        "handoff": {
+          "created": true,
+          "ownerAffirmed": true,
+          "generationAccepted": true
+        }
+      },
+      "syntheticUpload": {
+        "provenanceClass": "PROJECT_OWNED_SYNTHETIC",
+        "bytes": 320,
+        "sha256": "0e54751b3e4a9f80a101ae5db06d6f3603a83bf508b8ae7e998298aeffbaeb23",
+        "format": "midi"
+      },
+      "productPath": {
+        "physicalVariants": 6,
+        "publicLevels": 5,
+        "player": "PASS",
+        "sheetRoute": "PASS",
+        "midiExport": "PASS",
+        "musicXmlExport": "PASS",
+        "pdfSimplifyExport": "PASS",
+        "restartPersistence": "PASS"
+      },
+      "cleanup": {
+        "songRows": "ABSENT",
+        "playerData": "NOT_FOUND_CONTENT",
+        "artifactTree": "ABSENT",
+        "sourceUpload": "ABSENT",
+        "transcriptionData": "ABSENT",
+        "handoffRow": "ABSENT"
+      },
+      "decisions": {
+        "handoff": "USER_MEDIATED_SOURCE_HANDOFF_LIVE_CANARY_VERIFIED",
+        "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+        "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NO_ADDITIONAL_DEPLOYMENT",
+        "nextTask": "USER_MEDIATED_SOURCE_HANDOFF_LIVE_CANARY"
+      },
+      "nonClaims": [
+        "This proves user-mediated lineage and cleanup only; discovered source identity and rights were not verified.",
+        "No independent score/audio alignment or musical-quality claim is made.",
+        "No musical behavior, difficulty policy, source-generation policy, or worker behavior changed."
+      ]
+    },
+    {
+      "id": "muscriptor-cold-metal-reference-evaluation-2026-09-05",
+      "date": "2026-09-05",
+      "startingRevision": "0a6d7fa907bfdc80e5e189b4c8efd56019032311",
+      "checkpointRevision": "0a6d7fa907bfdc80e5e189b4c8efd56019032311",
+      "purpose": "Bounded frozen MuScriptor medium reference evaluation against existing cold dense-metal evidence",
+      "scope": {
+        "model": "MuScriptor medium",
+        "repositoryRevision": "7f213afecf23bd6a1b8672aa223690ee9807cefb",
+        "modelRevision": "f32236969308476e01fd3aae67357de5feb05a2d",
+        "packageVersion": "0.3.0",
+        "codeLicense": "MIT",
+        "weightLicense": "CC-BY-NC-4.0",
+        "inferenceConfigFrozen": true,
+        "modelShopping": false,
+        "benchmarkTuning": false,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NO_DEPLOYMENT"
+      },
+      "status": "unavailable",
+      "blocker": "MUSCRIPTOR_HF_ACCESS_REQUIRED",
+      "access": {
+        "modelGated": true,
+        "authorizedCredentialAvailable": false,
+        "modelDownloaded": false,
+        "protectedReferencesRead": false
+      },
+      "results": {
+        "sanityFixture": "not_run_access_blocked",
+        "rawDenseMetal": "not_run_access_blocked",
+        "downstream": "NOT_RUN_RAW_GATE_FAILED",
+        "rawHeadroomDecision": "MUSCRIPTOR_REFERENCE_EXECUTION_BLOCKED",
+        "weightProductionDecision": "MUSCRIPTOR_WEIGHTS_NONCOMMERCIAL_RESEARCH_ONLY",
+        "audioAmtFallbackDecision": "AUDIO_AMT_FALLBACK_EVIDENCE_BLOCKED"
+      },
+      "report": {
+        "path": "muscriptor-cold-metal-reference-evaluation-2026-09-05.json",
+        "sha256": "c864d3a84dc5ad841f822f2e1f6791ec1c0f7e90cc030caf61cf8271fc4f7478"
+      },
+      "verification": {
+        "focusedEvaluatorTests": "17/17",
+        "catalogTypecheck": true,
+        "gitDiffCheck": true,
+        "workspaceTests": "1672/1672",
+        "workspaceTypechecks": "6/6",
+        "diskFreeGiB": 107
+      },
+      "decisions": {
+        "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+        "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+        "nextTask": "MUSCRIPTOR_HF_ACCESS_REQUIRED"
+      },
+      "nonClaims": [
+        "No MuScriptor inference, cold-metal metric, or downstream retention result exists.",
+        "No protected audio/reference was read, no weight was downloaded, and no production path changed.",
+        "The frozen model weight license remains non-commercial research/evaluation only."
+      ]
+    },
+    {
+      "id": "muscriptor-hf-access-resume-2026-09-05",
+      "date": "2026-09-05",
+      "startingRevision": "84eeab3114ea32aa171cbcacdc8f3a787bd88f4a",
+      "checkpointRevision": "84eeab3114ea32aa171cbcacdc8f3a787bd88f4a",
+      "purpose": "Resume the frozen MuScriptor medium evaluation after owner browser-side gated access",
+      "scope": {
+        "model": "MuScriptor medium",
+        "modelRevision": "f32236969308476e01fd3aae67357de5feb05a2d",
+        "repositoryRevision": "7f213afecf23bd6a1b8672aa223690ee9807cefb",
+        "benchmarkTuning": false,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NO_DEPLOYMENT"
+      },
+      "status": "blocked",
+      "access": {
+        "browserEntitlement": "GRANTED",
+        "cliAuthentication": "FAIL_NOT_LOGGED_IN",
+        "weightsDownloaded": false,
+        "protectedReferencesRead": false,
+        "decision": "MUSCRIPTOR_HF_ACCESS_PENDING"
+      },
+      "rights": {
+        "historicalBenchmarkDecision": "MUSCRIPTOR_HISTORICAL_BENCHMARK_RIGHTS_BLOCKED",
+        "openCorpusInventory": ["guitar-techs:p3-music-08: CC BY 4.0, single guitar", "maestro:v3:2015-prelude-3: CC BY-NC-SA 4.0, piano"],
+        "denseMetalRightsClearedCorpusFound": false
+      },
+      "results": {
+        "sanityFixture": "NOT_RUN_ACCESS_BLOCKED",
+        "historicalColdMetal": "NOT_RUN_RIGHTS_BLOCKED",
+        "rawHeadroomDecision": "MUSCRIPTOR_REFERENCE_EXECUTION_BLOCKED",
+        "downstream": "NOT_RUN_RAW_GATE_FAILED",
+        "weightLicenseDecision": "MUSCRIPTOR_WEIGHTS_NONCOMMERCIAL_RESEARCH_ONLY"
+      },
+      "report": {
+        "path": "muscriptor-hf-access-resume-2026-09-05.json",
+        "sha256": "4ef254d119ddd05105061f38fb7e88aac907e6ab8635a4ace54b9c38c714faeb"
+      },
+      "verification": {
+        "workspaceTests": "1672/1672",
+        "workspaceTypechecks": "6/6",
+        "focusedEvaluatorTests": "17/17",
+        "diskFreeGiB": 106
+      },
+      "decisions": {
+        "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+        "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+        "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+        "nextTask": "MUSCRIPTOR_HF_ACCESS_PENDING"
+      },
+      "nonClaims": [
+        "Browser entitlement is not a local inference credential.",
+        "No MuScriptor inference or protected benchmark evaluation was performed.",
+        "No dense-metal rights-cleared substitute was found in the local/repository inventory."
+      ]
+    },
+    {
+      "id": "muscriptor-local-auth-runtime-unlock-2026-09-05",
+      "date": "2026-09-05",
+      "startingRevision": "0be2a6eb56daa380d77e4da41930ed2be2f8e71e",
+      "checkpointRevision": "0be2a6eb56daa380d77e4da41930ed2be2f8e71e",
+      "purpose": "Establish local Hugging Face authentication and frozen MuScriptor runtime access",
+      "scope": {
+        "model": "MuScriptor medium",
+        "modelRevision": "f32236969308476e01fd3aae67357de5feb05a2d",
+        "repositoryRevision": "7f213afecf23bd6a1b8672aa223690ee9807cefb",
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NO_DEPLOYMENT"
+      },
+      "status": "blocked",
+      "access": {
+        "browserEntitlement": "GRANTED",
+        "cliAuthentication": "FAIL_NOT_LOGGED_IN",
+        "tokenValueRecorded": false,
+        "weightsDownloaded": false,
+        "decision": "MUSCRIPTOR_HF_LOCAL_AUTHENTICATION_FAILED"
+      },
+      "runtime": {
+        "download": "NOT_RUN_AUTH_FAILED",
+        "modelLoad": "NOT_RUN_AUTH_FAILED",
+        "sanity": "NOT_RUN_AUTH_FAILED"
+      },
+      "rights": {
+        "historicalBenchmark": "MUSCRIPTOR_HISTORICAL_BENCHMARK_RIGHTS_BLOCKED",
+        "denseMetalCorpus": "RIGHTS_CLEARED_DENSE_METAL_AMT_CORPUS_MISSING",
+        "openInventory": ["guitar-techs:p3-music-08: CC BY 4.0, single guitar", "maestro:v3:2015-prelude-3: CC BY-NC-SA 4.0, solo piano"]
+      },
+      "report": {
+        "path": "muscriptor-local-auth-runtime-unlock-2026-09-05.json",
+        "sha256": "874c42868a97cb8071651ed51ca9a9a68603d0b01abd8a9fd0cc923348f97b29"
+      },
+      "verification": {
+        "existingMuScriptorEvaluatorTests": "17/17",
+        "existingWorkspaceTests": "1672/1672",
+        "existingWorkspaceTypechecks": "6/6",
+        "diskFreeGiB": 100
+      },
+      "decisions": {
+        "localAuthentication": "MUSCRIPTOR_HF_LOCAL_AUTHENTICATION_FAILED",
+        "runtime": "NOT_RUN_AUTH_FAILED",
+        "weights": "MUSCRIPTOR_FROZEN_WEIGHTS_NOT_ACQUIRED",
+        "rawMetalHeadroom": "MUSCRIPTOR_RAW_METAL_HEADROOM_UNEVALUATED",
+        "downstream": "NOT_RUN_NO_VALID_DENSE_METAL_RAW_EVIDENCE",
+        "weightLicense": "MUSCRIPTOR_WEIGHTS_NONCOMMERCIAL_RESEARCH_ONLY",
+        "nextTask": "MUSCRIPTOR_HF_LOCAL_AUTHENTICATION_FAILED"
+      },
+      "nonClaims": [
+        "No model load or inference occurred.",
+        "No protected audio/reference was read and no production path changed.",
+        "Account entitlement does not establish production licensing."
+      ]
+    },
+    {
+      "id": "muscriptor-hf-browser-auth-runtime-unlock-2026-09-05",
+      "date": "2026-09-05",
+      "startingRevision": "6a7198d55b6b619d03c24be04f715a577992e6cc",
+      "checkpointRevision": "6a7198d55b6b619d03c24be04f715a577992e6cc",
+      "purpose": "Authenticate the frozen MuScriptor checkpoint through the official browser/device flow and run a rights-cleared runtime sanity check",
+      "scope": {
+        "model": "MuScriptor medium",
+        "modelRevision": "f32236969308476e01fd3aae67357de5feb05a2d",
+        "repositoryRevision": "7f213afecf23bd6a1b8672aa223690ee9807cefb",
+        "inference": "greedy, sampling false, CFG 1, beam 1, five-second chunks, batch 1, prelude forcing, no instrument conditioning, best-effort tempo",
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+        "deployment": "NO_DEPLOYMENT"
+      },
+      "status": "completed-sanity-only",
+      "access": {
+        "cli": "uvx hf 1.30.0",
+        "browserEntitlement": "GRANTED",
+        "browserDeviceAuth": "PASS",
+        "tokenManuallyCreated": false,
+        "tokenManuallyEntered": false,
+        "credentialStoredByOfficialFlow": true,
+        "tokenValueRecorded": false,
+        "decision": "MUSCRIPTOR_HF_LOCAL_AUTHENTICATION_VALIDATED"
+      },
+      "weights": {
+        "status": "MUSCRIPTOR_FROZEN_WEIGHTS_ACQUIRED",
+        "bytes": 1228144472,
+        "sha256": "ac80adbdf85d87231735fd948af7013441c0afced316c4e9067fd5d8a7fb97ec",
+        "cache": "external user-only research cache",
+        "retained": true
+      },
+      "runtime": {
+        "status": "MUSCRIPTOR_RUNTIME_SANITY_VALIDATED",
+        "python": "3.13.12",
+        "torch": "2.13.0",
+        "device": "mps",
+        "dtype": "torch.float32",
+        "modelLoadSeconds": 4.598,
+        "peakRssBytes": 1642889216,
+        "isolated": true
+      },
+      "sanity": {
+        "fixtureId": "project-owned-synthetic-melody-5s-2026-09-05",
+        "rightsBasis": "PROJECT_OWNED_SYNTHETIC",
+        "audioBytes": 160044,
+        "audioSha256": "58038438323c9784fe8370179202a0c9851f070cdfa707b4e732cc8673f20961",
+        "midiBytes": 154,
+        "midiSha256": "ebe42e3952c8e1ac4a1c01fb76c65c8a2236930cd78707682f321db11fef6d69",
+        "runs": 2,
+        "determinism": "DETERMINISTIC_SYMBOLIC_OUTPUT",
+        "midiParse": "PASS",
+        "noteCount": 8,
+        "trackCount": 2,
+        "ppq": 480,
+        "tempoBpm": [120, 120]
+      },
+      "rights": {
+        "historicalBenchmark": "MUSCRIPTOR_HISTORICAL_BENCHMARK_RIGHTS_BLOCKED",
+        "historicalFixturesOpened": false,
+        "denseMetalCorpus": "RIGHTS_CLEARED_DENSE_METAL_AMT_CORPUS_MISSING",
+        "openInventory": ["guitar-techs:p3-music-08: CC BY 4.0, single guitar", "maestro:v3:2015-prelude-3: CC BY-NC-SA 4.0, piano"]
+      },
+      "report": {
+        "path": "muscriptor-hf-browser-auth-runtime-unlock-2026-09-05.json",
+        "sha256": "946c3c9944d002bcb2320f519c8669d38d19828e3e4991ca1143d518976fe917"
+      },
+      "decisions": {
+        "rawMetalHeadroom": "MUSCRIPTOR_RAW_METAL_HEADROOM_UNEVALUATED",
+        "downstream": "NOT_RUN_NO_VALID_DENSE_METAL_RAW_EVIDENCE",
+        "weightLicense": "MUSCRIPTOR_WEIGHTS_NONCOMMERCIAL_RESEARCH_ONLY",
+        "nextTask": "RIGHTS_CLEARED_DENSE_METAL_AMT_EVAL_CORPUS"
+      },
+      "nonClaims": [
+        "Sanity inference proves runtime access and deterministic symbolic emission, not transcription quality.",
+        "No dense-metal raw headroom, alignment, downstream arrangement, or musical-quality claim exists.",
+        "The historical benchmark remains rights-blocked and was not opened.",
+        "The non-commercial weight license is not production approval."
+      ]
+    },
+    {
+      "id": "rights-cleared-dense-metal-amt-eval-corpus-2026-09-05",
+      "date": "2026-09-05",
+      "startingRevision": "a98dc1a4bd0a3e9cc5921ae8189518ecf9ec9db3",
+      "checkpointRevision": "f2e0b06f4d923b802f6351b71acec5d2b3b46292",
+      "purpose": "Freeze a rights-cleared dense-metal corpus before the first MuScriptor cold evaluation",
+      "externalSurvey": {
+        "datasets": ["HiMMP", "MedleyDB", "Slakh2100", "E-GMD", "DREANSS"],
+        "decision": "REAL_PARTIAL_REFERENCE_METAL_CORPUS_FOUND",
+        "himmpDecision": "HIMMP_PARTIAL_REFERENCE_USABLE",
+        "scorableRealRole": "drums:kick"
+      },
+      "syntheticCorpus": {
+        "id": "dense-metal-amt-eval-corpus-v1",
+        "evidenceClass": "SYNTHETIC_DOMAIN_FULL_REFERENCE",
+        "fixtures": ["METAL_A_TIGHT_RIFF", "METAL_B_DENSE_EXTREME", "METAL_C_LAYERED_MELODIC"],
+        "durationSeconds": 96,
+        "manifestCanonicalSha256": "5c51f0575f6ca2ca33c2f186704d82682e00c99ff333fe4b1b455a34a9c4c5b8",
+        "alignmentAuthority": "SYMBOLIC_RENDER_NATIVE_ALIGNMENT",
+        "firewall": "EVAL_ONLY"
+      },
+      "decision": "RIGHTS_CLEARED_REAL_PLUS_SYNTHETIC_METAL_CORPUS_READY",
+      "muscriptor": "NOT_RUN_ON_FINAL_FROZEN_CORPUS",
+      "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+      "deployment": "NO_DEPLOYMENT_NO_VPS_MUTATION",
+      "report": {
+        "path": "rights-cleared-dense-metal-amt-eval-corpus-2026-09-05.json",
+        "sha256": "2b6fddbe44167289bc2035dcae3cfcbf791fc96006e48b4f62d294d0f84f1d13"
+      },
+      "nextTask": "MUSCRIPTOR_FROZEN_DENSE_METAL_COLD_EVALUATION"
+    },
+    {
+      "id": "muscriptor-frozen-dense-metal-cold-evaluation-2026-09-05",
+      "date": "2026-09-05",
+      "startingRevision": "913e6c94508c3b8c025bdde62d66d8e494707bed",
+      "purpose": "Cold-evaluate frozen MuScriptor medium against the frozen dense-metal corpus and primary comparator",
+      "corpus": {
+        "id": "dense-metal-amt-eval-corpus-v1",
+        "manifestCanonicalSha256": "5c51f0575f6ca2ca33c2f186704d82682e00c99ff333fe4b1b455a34a9c4c5b8",
+        "unchanged": true,
+        "firewall": "EVAL_ONLY_NO_TUNING"
+      },
+      "primaryComparator": {
+        "id": "basic-pitch",
+        "version": "0.4.0",
+        "macroExactF1": 0.490897
+      },
+      "muscriptor": {
+        "packageVersion": "0.3.0",
+        "repositoryRevision": "7f213afecf23bd6a1b8672aa223690ee9807cefb",
+        "modelRevision": "f32236969308476e01fd3aae67357de5feb05a2d",
+        "weightSha256": "ac80adbdf85d87231735fd948af7013441c0afced316c4e9067fd5d8a7fb97ec",
+        "macroExactF1": 0.820139,
+        "wins": 2,
+        "fixtureCount": 3,
+        "absoluteDelta": 0.329242,
+        "catastrophicRegressions": 1
+      },
+      "rawDecision": "MUSCRIPTOR_SYNTHETIC_DENSE_METAL_HEADROOM_NOT_PROVEN",
+      "realPartial": {
+        "reference": "REAL_METAL_KICK_ONSET_PARTIAL_REFERENCE",
+        "kickCount": 200,
+        "precision": 0.6820512820512821,
+        "recall": 0.665,
+        "f1": 0.6734177215189874,
+        "medianOnsetErrorSeconds": 0.034646,
+        "p95OnsetErrorSeconds": 0.04653,
+        "decision": "REAL_METAL_KICK_REFERENCE_SIGNAL_PRESENT"
+      },
+      "downstream": "NOT_RUN_RAW_GATE_FAILED",
+      "audioAmtConsequence": "AUDIO_AMT_FALLBACK_REMAINS_UNSUPPORTED",
+      "license": "MUSCRIPTOR_WEIGHTS_NONCOMMERCIAL_RESEARCH_ONLY",
+      "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+      "deployment": "NO_DEPLOYMENT_NO_VPS_MUTATION",
+      "report": {
+        "path": "muscriptor-dense-metal-cold-evaluation-2026-09-05.json",
+        "sha256": "67a69e113b664c033a8e2b9d264531f645f705db44a6c7678a4701c82ef940ba"
+      },
+      "nextTask": "AUDIO_AMT_BRANCH_CLOSEOUT"
+    },
+    {
+      "id": "audio-amt-branch-closeout-2026-09-05",
+      "date": "2026-09-05",
+      "startingRevision": "5c8a4af0012a2085c9f6ef574f34481807a4187f",
+      "purpose": "Consolidate the complete audio-AMT evidence and close direct dense-metal AMT for the current product architecture",
+      "strongestCandidate": {
+        "model": "MuScriptor medium",
+        "macroExactF1": 0.820139,
+        "basicPitchMacroExactF1": 0.490897,
+        "absoluteDelta": 0.329242,
+        "wins": 2,
+        "fixtureCount": 3
+      },
+      "frozenFailure": {
+        "fixture": "METAL_C_LAYERED_MELODIC",
+        "delta": -0.1102410800385729,
+        "catastrophicLimit": -0.1,
+        "decision": "MUSCRIPTOR_SYNTHETIC_DENSE_METAL_HEADROOM_NOT_PROVEN"
+      },
+      "realPartial": {
+        "f1": 0.673418,
+        "decision": "REAL_METAL_KICK_REFERENCE_SIGNAL_PRESENT",
+        "fullPitchedMetal": "REAL_DENSE_METAL_FULL_TRANSCRIPTION_HEADROOM_NOT_ESTABLISHED"
+      },
+      "decisions": {
+        "fallback": "AUDIO_AMT_FALLBACK_REMAINS_UNSUPPORTED",
+        "branch": "AUDIO_AMT_BRANCH_CLOSED_FOR_CURRENT_PRODUCT_ARCHITECTURE",
+        "downstream": "NOT_RUN_RAW_GATE_FAILED",
+        "license": "MUSCRIPTOR_WEIGHTS_NONCOMMERCIAL_RESEARCH_ONLY",
+        "strategy": "EXTERNAL_SYMBOLIC_FIRST",
+        "noSource": "NO_TRUSTWORTHY_SYMBOLIC_SOURCE_AVAILABLE"
+      },
+      "authentication": {
+        "dedicatedResearchHfHome": "LOGGED_OUT",
+        "unrelatedCredentialsTouched": false,
+        "frozenWeightCacheRetained": true,
+        "frozenWeightSha256": "ac80adbdf85d87231735fd948af7013441c0afced316c4e9067fd5d8a7fb97ec"
+      },
+      "scope": {
+        "newModelEvaluations": 0,
+        "newBenchmarkRuns": 0,
+        "amtInferenceRuns": 0,
+        "alignmentRuns": 0,
+        "deployment": "NO_DEPLOYMENT_NO_VPS_MUTATION",
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT"
+      },
+      "report": {
+        "path": "audio-amt-branch-closeout-2026-09-05.json",
+        "sha256": "4f9ba9ed01e8bc59d38430ed39f1f9d9c4be2c95eeec373a458c8066f43ffcf5"
+      },
+      "nextTask": "DISCOVERY_ASSISTED_PRIVATE_ALPHA_PRODUCT_HARDENING"
+    },
+    {
+      "id": "discovery-assisted-private-alpha-product-hardening-2026-09-05",
+      "date": "2026-09-05",
+      "startingRevision": "ea2d94cf422e76b6209bd77db5ef657f6b6e6a9f",
+      "checkpointRevisions": [
+        "d28570e610be9e559ba5ce35cf7bd7dcd87a8f26",
+        "b280c81fec1603d3a53d3fa7f8283054765f3173"
+      ],
+      "purpose": "Make the live discovery-assisted private alpha match the frozen external-symbolic-first product contract",
+      "contract": {
+        "canonicalEntry": "/uploads",
+        "publicYouTubeImport": "DIRECT_AUDIO_AMT_DISABLED",
+        "conversionJobMutations": 0,
+        "automaticAmtFallbacks": 0,
+        "candidatePageFetches": 0,
+        "candidateByteFetches": 0,
+        "directUploadWithoutProvider": true
+      },
+      "localProductionCanary": {
+        "imageId": "sha256:216e64564999b9799b541d76ee6bde7be3610ee1379656bffe07da73af30b46e",
+        "providerConfigured": false,
+        "healthExactRevision": true,
+        "directAudioAmt": false,
+        "physicalVariants": 6,
+        "publicLevels": 5,
+        "playerAndExports": "PASS",
+        "restartDurable": true,
+        "scratchRemoved": true
+      },
+      "scope": {
+        "providerPolicyChanged": false,
+        "sourceRankingChanged": false,
+        "musicalBehaviorChanged": false,
+        "alignmentChanged": false,
+        "amtResearch": false,
+        "deployment": "NO_DEPLOYMENT_NO_VPS_MUTATION",
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT"
+      },
+      "verification": {
+        "focusedContractTests": "30/30",
+        "workspaceTests": "1685/1685",
+        "workspaceTypechecks": "6/6",
+        "playwrightScratch": "4/4",
+        "webProductionBuild": "PASS",
+        "productionImageBuild": "PASS",
+        "containerCanary": "PASS",
+        "gitDiffCheck": "PASS",
+        "diskFreeGiBAtClose": 90
+      },
+      "decision": "DISCOVERY_ASSISTED_PRIVATE_ALPHA_PRODUCT_HARDENING_READY",
+      "report": "discovery-assisted-private-alpha-product-hardening-2026-09-05.json",
+      "nextTask": "DISCOVERY_ASSISTED_PRIVATE_ALPHA_HARDENING_DEPLOYMENT_CANARY"
+    },
+    {
+      "id": "discovery-assisted-private-alpha-hardening-deployment-canary-2026-09-05",
+      "date": "2026-09-05",
+      "startingRevision": "4f87c05d25e175446ce05ceac6031fadab3f8892",
+      "authorization": "EXPLICIT_OWNER_AUTHORIZATION",
+      "purpose": "Deploy the hardened discovery-assisted private alpha long enough to verify its live boundary, then retain or roll back from objective canary evidence",
+      "artifact": {
+        "tag": "ghcr.io/reedtrullz/keyspilli:4f87c05d25e1",
+        "digest": "sha256:5c8d9050a7d226cc7550db7a8df6d3823d8bdc44d7a91508a6a83afab4df19c3",
+        "platform": "linux/amd64",
+        "exactRevisionHealth": true
+      },
+      "deployment": {
+        "ansible": "NOT_RUN",
+        "remoteCompose": "PASS_WEB_ONLY_EXACT_IMMUTABLE_RECREATION",
+        "workerChanged": false,
+        "credentialsChanged": false,
+        "caddyChanged": false,
+        "rolledBack": true,
+        "restoredRevision": "67827050a695e54609f6cf3f064e4fdaaabbb65b"
+      },
+      "canary": {
+        "discoveryMetadata": "PASS",
+        "handoffNoFetch": "PASS",
+        "directAudioAmtDisabled": "PASS",
+        "projectOwnedSymbolicUpload": "PASS",
+        "physicalVariants": 6,
+        "publicLevels": 5,
+        "playerAndExports": "PASS",
+        "idempotentRetry": "PASS",
+        "restartPersistence": "PASS",
+        "atomicMalformedInput": "PASS",
+        "cleanup": "PASS",
+        "realBrowserSameOriginUpload": "FAIL_403"
+      },
+      "blocker": {
+        "id": "LIVE_SAME_ORIGIN_BROWSER_MUTATION_PORT_RECONSTRUCTION",
+        "preExisting": true,
+        "cause": "Forwarded HTTPS origin reconstruction retains the internal container port and rejects the genuine public browser Origin."
+      },
+      "scope": {
+        "candidatePageFetches": 0,
+        "candidateByteFetches": 0,
+        "newConversionJobs": 0,
+        "workerInvocations": 0,
+        "musicalBehaviorChanged": false,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT"
+      },
+      "decision": "HARDENING_DEPLOYMENT_CANARY_FAILED_ROLLED_BACK",
+      "report": "discovery-assisted-private-alpha-hardening-deployment-canary-2026-09-05.json",
+      "nextTask": "FIX_LIVE_SAME_ORIGIN_BROWSER_MUTATION_PORT_RECONSTRUCTION"
+    },
+    {
+      "id": "live-same-origin-browser-mutation-port-fix-2026-09-05",
+      "date": "2026-09-05",
+      "startingRevision": "ce1c4efae5658669634d2413b168d4d7e5656a73",
+      "implementationRevision": "c3a7e50ca621ac2b0ea943a474a8c6af572e19b7",
+      "purpose": "Fix the shared browser mutation origin reconstruction without weakening bearer or cross-origin protection",
+      "rootCause": "Assigning protocol and then a forwarded host without a port to the internal URL retained its explicit internal port.",
+      "verification": {
+        "redReproduction": "CONFIRMED",
+        "mutationAuthTests": "16_OF_16",
+        "focusedWebTests": "44_OF_44",
+        "workspaceTests": "1704_OF_1704",
+        "workspaceTypechecks": "6_OF_6",
+        "browserProxyDevelopment": "PASS_4_OF_4",
+        "browserProxyExactImage": "PASS_4_OF_4",
+        "productionBuild": "PASS",
+        "productionImage": "sha256:5f8ea1551b5b418b181bbe374e0623eadd8edac386174a72039f7274b8426f19",
+        "exactRevisionHealth": true
+      },
+      "scope": {
+        "caddyChanges": 0,
+        "providerOrRankingChanges": 0,
+        "musicalBehaviorChanged": false,
+        "amtChanges": 0,
+        "alignmentChanges": 0,
+        "deployment": "NO_DEPLOYMENT",
+        "vpsMutation": "NO_VPS_MUTATION",
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT"
+      },
+      "productionAccordingToExistingRollbackEvidence": "67827050a695e54609f6cf3f064e4fdaaabbb65b",
+      "decision": "LIVE_SAME_ORIGIN_BROWSER_MUTATION_FIX_VALIDATED",
+      "report": "live-same-origin-browser-mutation-port-fix-2026-09-05.json",
+      "nextTask": "DISCOVERY_ASSISTED_PRIVATE_ALPHA_HARDENING_DEPLOYMENT_CANARY_RETRY"
+    },
+    {
+      "id": "discovery-assisted-private-alpha-hardening-deployment-canary-retry-2026-09-05",
+      "date": "2026-09-05",
+      "startingRevision": "af2c2bbe1c8282fc65c5d2cdea1838e1d5d98fe0",
+      "deployedRevision": "e9dd13a672e9d252b6441076e3ff99c3937cecd9",
+      "artifact": {
+        "tag": "ghcr.io/reedtrullz/keyspilli:e9dd13a672e9",
+        "digest": "sha256:8f29dee0bd2c28d27128eeaedb2118447024a4bd2779b787e0f2489a5adcfcdc",
+        "platform": "linux/amd64",
+        "nativeVpsChromium": "PASS"
+      },
+      "canary": {
+        "realBrowserSameOriginUpload": "PASS",
+        "crossOriginRejected": "PASS",
+        "discoveryMetadataOnly": "PASS_3_CANDIDATES",
+        "handoffAffirmed": "PASS",
+        "directAudioAmtDisabled": "PASS_410_NO_NEW_JOBS",
+        "physicalVariants": 6,
+        "publicLevels": 5,
+        "playerAndExports": "PASS",
+        "idempotentRetry": "PASS",
+        "restartPersistence": "PASS",
+        "atomicMalformedInput": "PASS",
+        "cleanup": "PASS"
+      },
+      "scope": {
+        "workerChanged": false,
+        "credentialsChanged": false,
+        "caddyChanged": false,
+        "candidatePageFetches": 0,
+        "candidateByteFetches": 0,
+        "musicalBehaviorChanged": false,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT"
+      },
+      "decision": "DISCOVERY_ASSISTED_PRIVATE_ALPHA_HARDENED_LIVE_VERIFIED",
+      "report": {
+        "path": "discovery-assisted-private-alpha-hardening-deployment-canary-retry-2026-09-05.json",
+        "sha256": "4c00e3fc3fd0640f84024460545685131cfd7ad727c43c826f8689409f52edbf"
+      },
+      "nextTask": "PRIVATE_ALPHA_OPERATIONS_MONITORING_HARDENING"
+    },
+    {
+      "id": "private-alpha-operations-monitoring-hardening-2026-09-05",
+      "date": "2026-09-05",
+      "implementationRevisions": [
+        "b9d4a3ca880fa7b67ab54cc73ae91969d1187109",
+        "914dba3824d6c86bb38e3cd535884f7858d013cf"
+      ],
+      "verification": {
+        "fixtureTests": "PASS",
+        "ansibleSyntax": "PASS",
+        "systemdUnits": "PASS",
+        "liveLight": "PASS_WITH_DISK_WARNING",
+        "liveDeep": "PASS_WITH_DISK_WARNING",
+        "sqlite": "ok",
+        "backup": "PASS",
+        "tls": "PASS",
+        "caddy": "PASS"
+      },
+      "scope": {
+        "externalService": false,
+        "newSecret": false,
+        "schemaMigration": false,
+        "applicationContainerRecreated": false,
+        "musicalBehaviorChanged": false
+      },
+      "decision": "PRIVATE_ALPHA_OPERATIONS_MONITORING_DEPLOYED_VERIFIED",
+      "report": {
+        "path": "private-alpha-operations-monitoring-hardening-2026-09-05.json",
+        "sha256": "e7222b76a13959bf5d5494e5bc60c302bf20249bc999e65d0304c044abe6e77d"
+      },
+      "nextTask": "PRIVATE_ALPHA_OPERATIONAL_READINESS_CLOSEOUT"
+    },
+    {
+      "id": "private-alpha-operational-readiness-closeout-2026-09-05",
+      "date": "2026-09-05",
+      "deployedRevision": "e9dd13a672e9d252b6441076e3ff99c3937cecd9",
+      "operationsRevision": "914dba3824d6c86bb38e3cd535884f7858d013cf",
+      "recovery": {
+        "rollbackRevision": "67827050a695e54609f6cf3f064e4fdaaabbb65b",
+        "latestBackupIntegrity": "ok",
+        "scratchRestore": "PASS",
+        "productionRestore": false
+      },
+      "warning": "DISK_BELOW_PREFERRED_34_GIB_ABOVE_HARD_30_GIB",
+      "decision": "PRIVATE_ALPHA_OPERATIONALLY_HARDENED_LIVE_VERIFIED",
+      "quality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+      "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+      "report": {
+        "path": "private-alpha-operational-readiness-closeout-2026-09-05.json",
+        "sha256": "8d6e5292a543595091ae34199695aa589c71b059447886d3584106ccbbc35f4b"
+      },
+      "nextTask": "PRIVATE_ALPHA_USAGE_AND_FEEDBACK_PHASE"
+    },
+    {
+      "id": "private-alpha-usage-feedback-phase-2026-09-05",
+      "date": "2026-09-05",
+      "startingRevision": "03948127320a477442c87e2065be0399d45d5c64",
+      "preregistrationRevision": "98b4d90a98dd804ad467ac9f87e2ea3f8f1f1fc4",
+      "deployedRevision": "e9dd13a672e9d252b6441076e3ff99c3937cecd9",
+      "verification": {
+        "usageBrowserMatrix": "PASS_7_OF_7",
+        "existingBoundedProxy": "PASS_4_OF_4",
+        "viewports": "PASS_4_OF_4",
+        "directMidiRuns": 3,
+        "directMusicXmlRuns": 3,
+        "restartPersistence": "PASS_36_OF_36_ROWS",
+        "productionObservation": "SHORT_READ_ONLY_TWO_SNAPSHOTS"
+      },
+      "scope": {
+        "productionWrites": 0,
+        "deployments": 0,
+        "braveRequests": 0,
+        "thirdPartyFetches": 0,
+        "musicalBehaviorChanged": false,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT"
+      },
+      "localEnvironmentLimitation": "PDF_RENDERER_UNAVAILABLE_UNDER_AMD64_QEMU; NATIVE_LIVE_CANARY_PREVIOUSLY_PASS",
+      "decision": "PRIVATE_ALPHA_READY_FOR_OWNER_USAGE",
+      "report": {
+        "path": "private-alpha-usage-feedback-phase-2026-09-05.json",
+        "sha256": "3f5fbd4c951a8f51315cb0da38cbb1ce055f022eac5224f4b0e6ecacfe85ed52"
+      },
+      "nextTask": "OWNER_PRIVATE_ALPHA_USAGE_TRIAL"
+    },
+    {
+      "id": "owner-private-alpha-access-restoration-2026-09-05",
+      "date": "2026-09-05",
+      "startingRevision": "4e335ca80b53c1cd785368b8b7410075fbb4a900",
+      "deployedRevision": "e9dd13a672e9d252b6441076e3ff99c3937cecd9",
+      "rootCause": "VALID_CREDENTIAL_NOT_DOMAIN_DISCOVERABLE_IN_KEYCHAIN",
+      "verification": {
+        "anonymous": "BLOCKED_401",
+        "wrongCredential": "BLOCKED_401",
+        "ownerBrowser": "PASS",
+        "uploads": "PASS",
+        "catalogPlayer": "PASS",
+        "liveDatabaseIntegrity": "ok",
+        "monitoring": "PASS_WITH_DISK_WARNING"
+      },
+      "scope": {
+        "credentialRotated": false,
+        "serverChanged": false,
+        "deployments": 0,
+        "productionWrites": 0,
+        "musicalBehaviorChanged": false,
+        "secretRecorded": false
+      },
+      "decision": "OWNER_PRIVATE_ALPHA_ACCESS_VALIDATED",
+      "report": {
+        "path": "owner-private-alpha-access-restoration-2026-09-05.json",
+        "sha256": "317ce455a1d7f53d8f44c73e89fbcf984c7c1ff94442d3a03dcbf3b07bff2c04"
+      },
+      "nextTask": "OWNER_PRIVATE_ALPHA_USAGE_TRIAL"
+    },
+    {
+      "id": "advanced-catalog-repair-2026-09-06",
+      "date": "2026-09-06",
+      "startingRevision": "4aac736259f5d2748becdc88b0332a2f48fa7222",
+      "implementationRevision": "38fa8045ff18b68b9531208e9569bdb9a0c74a27",
+      "filterVersion": "audio-onset-filter-v2",
+      "verification": {
+        "focusedCatalogTests": "PASS_30",
+        "catalogTests": "PASS_1070",
+        "workspaceTests": "PASS_1711",
+        "workspaceTypechecks": "PASS_6_OF_6",
+        "canonicalAuditSha256": "02188e1f9ef9efeb5181d2dfc5c85c5063686e98dc409153f5d594fa19d32439",
+        "scratchSourceBackedRebuilds": "PASS_3"
+      },
+      "repair": {
+        "unsupportedRetriggerCollapse": "IMPLEMENTED_AUDIO_EVIDENCE_GATED",
+        "artifactDurationTruth": "IMPLEMENTED",
+        "missingSourceArtifacts": "BLOCKED_FAIL_CLOSED",
+        "authoredAmbiguities": "TRACED_UNCHANGED",
+        "lastStand": "BLOCKED_AFTER_V2_GATE_FAILURE"
+      },
+      "scope": {
+        "productionWrites": 0,
+        "deployments": 0,
+        "benchmarkTuning": false,
+        "authoredMidiChanged": false,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT"
+      },
+      "decision": "ADVANCED_CATALOG_REPAIR_EVIDENCE_GATED",
+      "quality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+      "report": {
+        "path": "advanced-catalog-repair-2026-09-06.md",
+        "sha256": "722ebfde62417d32b40adf6f7274004cb587ec9bfcf997f991f397ed785ec888"
+      },
+      "nextTask": "REACQUIRE_BLOCKED_SOURCE_MATERIAL"
+    },
+    {
+      "id": "blocked-advanced-source-recovery-2026-09-06",
+      "date": "2026-09-06",
+      "startingRevision": "a942240e4873cf4902a3f71d8e784740cc35475b",
+      "inventoryRevision": "99f4b8cbce15d7a00022becbf6c66b5088a146c8",
+      "inventory": {
+        "canonicalSourceNeeds": 4,
+        "blockedCases": 12,
+        "defenceExperimentAliases": 9
+      },
+      "recovery": {
+        "authorizedSourcesRecovered": 1,
+        "metadataOnlyCandidates": 2,
+        "noTrustworthySource": 1,
+        "promotedCases": 0,
+        "blockedCasesRemaining": 12,
+        "defenceRebuild": "PASS_SOURCE_BACKED_GATE_FAILED_RH_GAP"
+      },
+      "verification": {
+        "defenceCanonicalAuditSha256": "e7267e95359088c788e6d6b80f4d6db587eba4d1d4135caf7e1a49b8e55968e8",
+        "defenceArtifactDigestListSha256": "592abcd3fe1ef073116f06128f640f639b132e7fcae2b2f27c90980eaaa66918",
+        "determinism": "PASS_MIDI_MUSICXML_AND_CANONICAL_AUDIT",
+        "originalFragmentationGate": "CLEARED",
+        "promotionGate": "FAILED_RH_MELODY_GAP_29_5_BEATS"
+      },
+      "scope": {
+        "productionWrites": 0,
+        "deployments": 0,
+        "amtRuns": 0,
+        "alignmentRuns": 0,
+        "benchmarkTuning": false,
+        "unknownRightsByteDownloads": 0,
+        "advancedPolicyChanged": false,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT"
+      },
+      "decision": "BLOCKED_ADVANCED_SOURCE_RECOVERY_NO_PROGRESS",
+      "quality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+      "report": {
+        "path": "blocked-advanced-source-recovery-2026-09-06.json",
+        "sha256": "2b48b9732875d280cb0bb872779dfb3c74676d8c437f4a4e1c180d565ced3b57"
+      },
+      "nextTask": "OWNER_MEDIATED_BLOCKED_SYMBOLIC_SOURCE_SUPPLY"
+    },
+    {
+      "id": "owner-retrieved-blocked-symbolic-validation-2026-09-06",
+      "date": "2026-09-06",
+      "startingRevision": "583cbee63885e01c128afdfa65112cdab022815e",
+      "candidates": {
+        "redSun": {
+          "sha256": "0ac7e6e585193cc01b71f9249c1ef48c698e4d85a204959a246a541bf56c9582",
+          "identity": "IDENTITY_CONFIRMED",
+          "alignment": "partial",
+          "decision": "PRIVATE_RESEARCH_CANDIDATE_ALIGNMENT_UNRESOLVED"
+        },
+        "lastStand": {
+          "sha256": "93154d97afa8a01a80c140fbc9e447ee833cd2e982a934414b27760fcba8f41a",
+          "identity": "IDENTITY_AMBIGUOUS",
+          "alignment": "insufficient-evidence",
+          "decision": "PRIVATE_RESEARCH_CANDIDATE_IDENTITY_UNRESOLVED"
+        },
+        "defence": {
+          "sha256": "2d3ccad7864b7e97bba76022ce20043d50e4df11015c4b9305f7bd6a8bacf413",
+          "decision": "BENCHMARK_REFERENCE_EVAL_ONLY"
+        },
+        "livgardet": {
+          "decision": "ADVANCED_AWAITING_USER_SOURCE"
+        }
+      },
+      "verification": {
+        "focusedTests": "PASS_88",
+        "catalogTests": "PASS_1070",
+        "workspaceTests": "PASS_1711",
+        "workspaceTypechecks": "PASS_6_OF_6",
+        "alignmentDeterminism": "PASS",
+        "sourceHashImmutability": "PASS",
+        "gitDiffCheck": "PASS"
+      },
+      "scope": {
+        "advancedRebuilds": 0,
+        "catalogWrites": 0,
+        "arrangerChanges": 0,
+        "gateChanges": 0,
+        "sourceMidiCommitted": 0,
+        "automaticSourceDownloads": 0,
+        "deployments": 0,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT"
+      },
+      "decision": "OWNER_RETRIEVED_SYMBOLIC_VALIDATION_NO_PROMOTION",
+      "quality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+      "report": {
+        "path": "owner-retrieved-blocked-symbolic-validation-2026-09-06.json",
+        "sha256": "82912779977679913ad23d79f146228007ba41057331dc65c2bc943c32919cf4"
+      },
+      "nextTask": "OWNER_MEDIATED_BLOCKED_SYMBOLIC_SOURCE_SUPPLY"
+    },
+    {
+      "id": "autonomous-blocked-symbolic-source-recovery-2026-09-06",
+      "date": "2026-09-06",
+      "startingRevision": "c1f267cc91497bfbbfb795499262267cee5f2c59",
+      "search": {
+        "songsInvestigated": 4,
+        "seriousLeads": 70,
+        "newlyAcquiredFiles": 9,
+        "candidateByteRecordsEvaluated": 11,
+        "supportedSymbolicFilesParsed": 10,
+        "unsupportedContainers": 1,
+        "htmlMasqueradesRejected": 1
+      },
+      "songDecisions": {
+        "redSun": "VALID_SOURCE_ALIGNMENT_UNRESOLVED",
+        "lastStand": "VALID_SOURCE_IDENTITY_UNRESOLVED",
+        "livgardet": "AUTONOMOUS_SOURCE_EXHAUSTED_HUMAN_ACTION_REQUIRED",
+        "defence": "VALID_SOURCE_ALIGNMENT_UNRESOLVED"
+      },
+      "firewall": {
+        "benchmarkAliasesQuarantined": 1,
+        "benchmarkGenerationUse": 0,
+        "unknownRightsPromoted": 0
+      },
+      "scope": {
+        "advancedRebuilds": 0,
+        "catalogWrites": 0,
+        "arrangerChanges": 0,
+        "alignmentThresholdChanges": 0,
+        "sourceBytesCommitted": 0,
+        "purchases": 0,
+        "creatorMessages": 0,
+        "deployments": 0,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT"
+      },
+      "decision": "AUTONOMOUS_BLOCKED_SOURCE_RECOVERY_EXHAUSTED",
+      "quality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+      "report": {
+        "path": "autonomous-blocked-symbolic-source-recovery-2026-09-06.json",
+        "sha256": "d5c2278584bcc6b9cd3edf6051a0f96fea8520eef2691f563bf4ade52b9f4d9e"
+      },
+      "nextTask": "BLOCKED_SOURCE_HUMAN_ACTION_DECISION"
+    },
+    {
+      "id": "blocked-source-human-action-decision-2026-09-06",
+      "date": "2026-09-06",
+      "startingRevision": "ae39bcaf393f788aaece451671f2aa3e81cb2e05",
+      "ownerDecision": "LIVGARDET_SOURCE_RECOVERY_DEFERRED",
+      "acceptedBlockedStates": {
+        "redSun": "VALID_SOURCE_ALIGNMENT_UNRESOLVED",
+        "lastStand": "VALID_SOURCE_IDENTITY_UNRESOLVED",
+        "livgardet": "LIVGARDET_SOURCE_RECOVERY_DEFERRED",
+        "defence": "VALID_SOURCE_ALIGNMENT_UNRESOLVED"
+      },
+      "scope": {
+        "webSearches": 0,
+        "downloads": 0,
+        "purchases": 0,
+        "creatorMessages": 0,
+        "advancedRebuilds": 0,
+        "promotions": 0,
+        "catalogWrites": 0,
+        "deployments": 0,
+        "vpsMutations": 0,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT"
+      },
+      "decision": "LIVGARDET_SOURCE_RECOVERY_DEFERRED",
+      "quality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+      "report": {
+        "path": "blocked-source-human-action-decision-2026-09-06.json",
+        "sha256": "6f315de39507abd2f4a51dd8bc97743ecccda3128d853e1063cccb0c1032809f"
+      },
+      "nextTask": "ADVANCED_SOURCE_RECOVERY_LIMIT_CLOSEOUT"
+    },
+    {
+      "id": "chord-mode-short-lh-stacks-2026-09-06",
+      "date": "2026-09-06",
+      "startingRevision": "910951e7391fcdea9f9193ee2d7d82839e2894ff",
+      "checkpointRevision": "6f2a85d5fadfdef2ba7aa03cdd228893ebe4027f",
+      "implementationCommits": [
+        "022267f9e32637cfa90da9fb4d71e0ff10493c9f",
+        "aedb74054c112dbcf8bde04107f23b776294a9e0",
+        "6f2a85d5fadfdef2ba7aa03cdd228893ebe4027f"
+      ],
+      "purpose": "Preserve stable short multi-pitch left-hand chord evidence for human-authored symbolic sources without changing normal piano-note generation or audio-derived detector behavior",
+      "route": "existing chordsAt -> source-aware short-LH eligibility -> existing one-beat run gate -> catalog/player normalization",
+      "scope": {
+        "productionFilesChanged": ["packages/midi/src/simplify.ts"],
+        "testFilesChanged": [
+          "packages/midi/test/midi.test.ts",
+          "apps/web/src/components/player/end-to-end-contract.test.ts"
+        ],
+        "normalPianoNoteBehaviorChanged": 0,
+        "playerDedupeChanged": false,
+        "difficultyPolicyChanged": false,
+        "audioDerivedPolicyChanged": false,
+        "productionArtifactsRegenerated": false,
+        "deployment": "NOT_DEPLOYED",
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT"
+      },
+      "queen": {
+        "baselineRevision": "022267f9e32637cfa90da9fb4d71e0ff10493c9f",
+        "currentRevision": "6f2a85d5fadfdef2ba7aa03cdd228893ebe4027f",
+        "advancedNoteArraySha256": "2790539feec487ee74723c75116341eebb6dbd068086a82a2e49bdd00e2e1be1",
+        "advancedNoteArraySha256Unchanged": true,
+        "advancedNotes": {"baseline": 2364, "current": 2364},
+        "advancedLeftHandNotes": {"baseline": 1140, "current": 1140},
+        "generatedChords": {"baseline": 144, "current": 149},
+        "chordGapBeats": {
+          "median": {"baseline": 2, "current": 2},
+          "p90": {"baseline": 6, "current": 6},
+          "maximum": {"baseline": 60, "current": 44}
+        },
+        "firstChordStrictlyAfterBeat288": {"baseline": 348, "current": 332, "currentName": "G5"},
+        "reversedInputChordArrayDeepEqual": true
+      },
+      "catalogScan": {
+        "filesFound": 464,
+        "evaluatedBaseline": 464,
+        "evaluatedCurrent": 464,
+        "parseErrorsBaseline": 0,
+        "parseErrorsCurrent": 0,
+        "proposedBaselineRatioMedian": 1,
+        "proposedBaselineRatioP90": 1.010752688172043,
+        "zeroZeroRows": 4,
+        "zeroBaselinePositiveProposedRows": 0,
+        "exactAdvancedNoteArrayParity": 464,
+        "exactLeftHandArrayParity": 464
+      },
+      "audioDerivedFirewall": {
+        "fixtureNoteSha256": "6b63a7d6c7483e0348dbe2fb04767aaa481a903a19ea4274514c405f82004a8a",
+        "advancedNotes": 12,
+        "leftHandNotes": 12,
+        "generatedChordsBaseline": 0,
+        "generatedChordsCurrent": 0,
+        "focusedMidiFileTests": "PASS_113"
+      },
+      "verification": {
+        "focusedMidiPackageTests": "PASS_358",
+        "focusedPlayerCoreTests": "PASS_109",
+        "focusedWebTests": "PASS_145",
+        "workspaceTests": {"passed": 1065, "failed": 5, "errors": 1, "total": 1070, "status": "FAIL_PRE_EXISTING_UNRELATED"},
+        "workspaceTypechecks": "PASS_6_OF_6",
+        "gitDiffCheck": true,
+        "workspaceFailureScope": "date-expired source-candidate-handoff fixtures plus no-manifest/no-artifacts chord-diagnostic path"
+      },
+      "decision": "CHORD_MODE_SHORT_LH_STACKS_VERIFIED_NOT_DEPLOYED",
+      "report": {
+        "path": ".superpowers/sdd/2026-09-06-chord-mode-short-lh-stacks/task-5-report.md",
+        "sha256": "17eb1c817998d6f3674b2449c284bebab089eef9354d514297513b3c67680361"
+      },
+      "nextTask": "AUTHORIZED_TARGETED_QUEEN_REGENERATION"
+    }
+  ]
+}

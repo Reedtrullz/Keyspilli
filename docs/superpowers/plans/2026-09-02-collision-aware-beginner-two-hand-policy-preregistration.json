@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "mission": "COLLISION_AWARE_BEGINNER_TWO_HAND_POLICY_EXPERIMENT",
+  "startingRevision": "1998bd6f60ddebd8b5b02a8e6200413647c82328",
+  "priorEvidence": {
+    "report": "docs/superpowers/plans/2026-09-02-beginner-budget-revision-results.md",
+    "decision": "BEGINNER_TWO_HAND_SKELETON_PROMISING_NOT_VALIDATED",
+    "productionChange": "NO_PRODUCTION_BEHAVIOR_CHANGE"
+  },
+  "humanAudit": {
+    "status": "HUMAN_AUDIT_INCONCLUSIVE",
+    "evidence": "SINGLE_RATER_EVIDENCE",
+    "closed": true,
+    "secondRaterPlanned": false
+  },
+  "candidate": {
+    "id": "COLLISION_AWARE_SPARSE_LH",
+    "status": "pre-registered-before-generation",
+    "source": "current Very Easy LH notes only",
+    "selection": "existing sparseLeftHandAnchors semantics: lowest note at first meaningful LH onset per source-measure window",
+    "windowBeats": "source beatsPerMeasure (4 beats for 4/4)",
+    "collisionPolicy": {
+      "maxSimultaneity": 2,
+      "measurement": "sounding-duration overlap, not same-start count",
+      "safeInsert": "retain anchor when resulting sounding count is <=2",
+      "defer": "try an existing later Very Easy LH onset in the same window when it is legal; never retime",
+      "suppress": "drop the anchor when no existing legal onset remains",
+      "rhPriority": "RH baseline is immutable; never remove or replace RH to make room"
+    },
+    "eligibility": {
+      "allowed": "existing Very Easy LH structural/root/bass evidence",
+      "excluded": "drum-derived notes, decorative/arpeggio/repeated filler unless already selected as the existing sparse structural anchor",
+      "case05": "regression probe only; no special-case boundary or threshold"
+    },
+    "scope": "scratch evaluator only; no production Beginner or other-level changes"
+  },
+  "fixtures": {
+    "classical": {
+      "logicalRef": "data/artifacts/c-debussy-suite-bergamasque-clair-de-lune/a/notes.json",
+      "sha256": "e7e0fd260e049e338120cc4ee35c1a998ef616c01529a4c1a79837d6bb914039"
+    },
+    "cover": {
+      "logicalRef": "data/artifacts/paul-gassa-yiruma-river-flows-in-you-emotional-piano-cover-msl98ing/a/notes.json",
+      "sha256": "eb8a1cf8f0076a548acaa206b67d19123814e1167d654496afa24c0458dc6f9d"
+    },
+    "pop": {
+      "logicalRef": "data/artifacts/adele-hello/a/notes.json",
+      "sha256": "87915f6b8dce035951af2ddc89c9c36ce105fde8e79ba6f936e31b7f80ef7fd6"
+    },
+    "synthetic-full-band": {
+      "logicalRef": "synthetic:full-band",
+      "sha256": "fba496e372f8962967b5e08903fa4883d6f4be1bde046f0eb3a06e1a1dcc8dc8"
+    }
+  },
+  "baselineContract": {
+    "rolePolicy": "generic Beginner RH-only",
+    "maxSimultaneity": 2,
+    "maxDensityAttacksPerSecond": 6,
+    "minMedianIoiSeconds": 0.08,
+    "gridBeats": 0.25,
+    "melodyMinDurationBeats": 0.5,
+    "ladderToleranceBeats": 0.02
+  },
+  "controls": ["very-beginner", "beginner", "very-easy"],
+  "metrics": [
+    "RH exact digest parity",
+    "active-source-window coverage and fully erased windows",
+    "root/bass/chroma change survival where represented",
+    "notes, onsets, attack rate, median IOI",
+    "LH structural anchors and attacks per minute",
+    "RH+LH simultaneous attacks, max/median sounding simultaneity",
+    "hand alternations and percentage of onsets containing LH",
+    "validation and monotonicity",
+    "pitched drum count and deterministic rerun"
+  ],
+  "gates": {
+    "rhParity": "candidate Beginner RH event set must equal baseline Beginner RH event set exactly",
+    "playability": "maxSimultaneity <=2 and all existing Beginner validation checks pass",
+    "identity": "structural passage coverage improves without RH loss",
+    "neighborSeparation": "candidate remains below Very Easy and above Very Beginner on at least one complexity dimension",
+    "promotion": "one named outcome only; even a mechanical pass is a policy option, not a production change"
+  },
+  "outcomes": [
+    "COLLISION_AWARE_TWO_HAND_BEGINNER_MECHANICALLY_VALID",
+    "TWO_HAND_BEGINNER_REQUIRES_COMPLEXITY_RELAXATION",
+    "SPARSE_LH_GAIN_TOO_SMALL",
+    "TWO_HAND_BEGINNER_COLLAPSES_LEVEL_DIFFERENTIATION"
+  ],
+  "boundaries": {
+    "doNotRun": ["parameter sweep", "human audit", "production replay", "deploy", "audio render", "reference MIDI upload"],
+    "deferred": ["COVER_RH_IDENTITY_CLIFF", "DIFFICULTY_DIFFERENTIATION_CONCERN"]
+  }
+}

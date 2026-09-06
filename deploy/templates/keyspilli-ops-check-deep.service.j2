@@ -1,0 +1,8 @@
+[Unit]
+Description=Keyspilli deep data-integrity operations check
+After=docker.service caddy.service keyspilli-backup.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/keyspilli-ops-check --mode deep
+

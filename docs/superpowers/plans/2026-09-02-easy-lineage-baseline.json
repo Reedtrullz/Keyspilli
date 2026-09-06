@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "mission": "easy-lineage-contour-attribution",
+  "startingRevision": "e3737cf6460906f28c49840708fc01e297d56ecd",
+  "implementationRevision": "51f2995",
+  "profile": "learner",
+  "options": {
+    "maxDurBeats": null,
+    "onsetGroupingBeats": 0.08,
+    "phraseBreakBeats": 1.5,
+    "digest": "sha256(sorted [midi,start(6),dur(6),vel,hand,identitySource])"
+  },
+  "scope": {
+    "behavioralFixes": 0,
+    "advancedAndMediumFrozen": true,
+    "externalReferenceUsed": false,
+    "audioGenerated": false,
+    "productionReplay": false
+  },
+  "fixtures": [
+    {
+      "id": "classical",
+      "logicalRef": "data/artifacts/c-debussy-suite-bergamasque-clair-de-lune/a/notes.json",
+      "sourceSha256": "e7e0fd260e049e338120cc4ee35c1a998ef616c01529a4c1a79837d6bb914039",
+      "tempoBpm": 60,
+      "timeSig": [9, 8],
+      "source": {"notes": 1309, "onsets": 715, "rh": 740, "lh": 569, "durationBeats": 324},
+      "levels": {
+        "very-beginner": {"digest": "29d066b9422e3bf44e336c85085bc838c0a98493badb5669db0aeb2802626bf0"},
+        "beginner": {"digest": "44288b0f0217cae4f7d11bbcf742e079520001ec8130443aae8b6d2d0c9fae94"},
+        "very-easy": {"digest": "35afa5041a9c66d208eb29596c9d1057c750db4d64af6755b4060b6a2966e3e8"},
+        "advanced": {"notes": 1309, "rh": 740, "lh": 569, "maxSimultaneity": 8, "digest": "e4fdbd65b8fa90c20c3535e5d4b58d680b992aa2c87ff9ddfd0cbbf2a0e2cbf3"},
+        "medium": {"notes": 1283, "rh": 722, "lh": 561, "maxSimultaneity": 6, "digest": "beeef91977ef62c2646864b49fcd5812a3a5d075a9bfe1e5d359961412d12f95"},
+        "easy": {"notes": 962, "rh": 435, "lh": 527, "maxSimultaneity": 3, "digest": "f691ae0a09169c833910651c7a83e10ccf466099844684d9edd500f7984cd157"}
+      },
+      "rhFunnel": {"medium": 722, "easyRhInput": 722, "voiceSelection": 438, "final": 435},
+      "lhFunnel": {"medium": 561, "easyLhInput": 527, "final": 527},
+      "firstLoss": {"mediumCandidates": 25, "mediumPlayable": 1, "easyLhInput": 34, "easyVoiceSelection": 284, "easyAssembly": 3},
+      "operations": {"generated": 1309, "retained": 20534, "rejected": 347, "durationChanged": 1056, "replaced": 3},
+      "contour": {"mediumRhOnsets": 438, "easyRhOnsets": 435, "onsetSurvival": 0.993, "pitchClassSurvival": 0.906, "directionAgreement": 0.928, "mediumTurns": 245, "easyTurns": 233, "turnSurvival": 0.996, "mediumLargeLeaps": 114, "easyLargeLeaps": 94, "repeatedAttacks": {"medium": 35, "selector": 27, "final": 27}},
+      "anchors": {"phraseStarts": 33, "phraseStartsSurvived": 33, "phraseEnds": 33, "phraseEndsSurvived": 32, "anchors": 174, "anchorsSurvived": 171},
+      "harmony": {"mediumRhOnsets": 448, "easyRhOnsets": 448, "rootChanges": 419, "rootChangesSurvived": 419, "sameHarmonyRestrikes": {"medium": 20, "easy": 17}, "uniqueShapes": {"medium": 40, "easy": 36}},
+      "octave": {"octaveOperations": 0, "pingPong": 0, "rangeOracleAlternativeChoices": 0},
+      "playability": {"verifyMonotonicity": [], "validationWarnings": true}
+    },
+    {
+      "id": "cover",
+      "logicalRef": "data/artifacts/paul-gassa-yiruma-river-flows-in-you-emotional-piano-cover-msl98ing/a/notes.json",
+      "sourceSha256": "eb8a1cf8f0076a548acaa206b67d19123814e1167d654496afa24c0458dc6f9d",
+      "tempoBpm": 144,
+      "timeSig": [4, 4],
+      "source": {"notes": 1400, "onsets": 938, "rh": 954, "lh": 446, "durationBeats": 568},
+      "levels": {
+        "very-beginner": {"digest": "2de24edf059ec6d2a43cf2184c8fd89b830d4a33e609203a14fbde655ff548fa"},
+        "beginner": {"digest": "f6d130a74bce4cefc88a994cb5a7ea229270f1646f7d7a0d44d8781a49cdfbbb"},
+        "very-easy": {"digest": "62d230673e64cdfbe37ead59c1bd76371a52568ce649393eceb5938597978b6b"},
+        "advanced": {"notes": 1400, "rh": 954, "lh": 446, "maxSimultaneity": 5, "digest": "79a61ade9b71336336bf755a5d91a962176d2d828bfb78a42f58442999f2f301"},
+        "medium": {"notes": 1371, "rh": 932, "lh": 439, "maxSimultaneity": 5, "digest": "694b91ee5f5e6bc9b42befb1b31a14ee74ea4d15bae223c90357a60dc2c28899"},
+        "easy": {"notes": 1225, "rh": 786, "lh": 439, "maxSimultaneity": 3, "digest": "68a71e04b2adf6aaae0ed5c0040d8a0f936a20523e875fbb45340723e25a4d9b"}
+      },
+      "rhFunnel": {"medium": 932, "easyRhInput": 932, "voiceSelection": 786, "final": 786},
+      "lhFunnel": {"medium": 439, "easyLhInput": 439, "final": 439},
+      "firstLoss": {"mediumCandidates": 2, "mediumPlayable": 27, "easyVoiceSelection": 146},
+      "operations": {"generated": 1400, "retained": 22734, "rejected": 175, "durationChanged": 1938, "replaced": 106, "merged": 2, "timingChanged": 117},
+      "contour": {"mediumRhOnsets": 786, "easyRhOnsets": 786, "onsetSurvival": 1, "pitchClassSurvival": 0.966, "directionAgreement": 0.913, "mediumTurns": 426, "easyTurns": 384, "turnSurvival": 1, "mediumLargeLeaps": 243, "easyLargeLeaps": 228, "repeatedAttacks": {"medium": 52, "selector": 45, "final": 45}},
+      "anchors": {"phraseStarts": 25, "phraseStartsSurvived": 25, "phraseEnds": 25, "phraseEndsSurvived": 25, "anchors": 427, "anchorsSurvived": 427},
+      "harmony": {"mediumRhOnsets": 384, "easyRhOnsets": 384, "rootChanges": 218, "rootChangesSurvived": 218, "sameHarmonyRestrikes": {"medium": 135, "easy": 135}, "uniqueShapes": {"medium": 12, "easy": 12}},
+      "octave": {"octaveOperations": 0, "pingPong": 0, "rangeOracleAlternativeChoices": 0},
+      "playability": {"verifyMonotonicity": [], "validationWarnings": true}
+    },
+    {
+      "id": "pop",
+      "logicalRef": "data/artifacts/adele-hello/a/notes.json",
+      "sourceSha256": "87915f6b8dce035951af2ddc89c9c36ce105fde8e79ba6f936e31b7f80ef7fd6",
+      "tempoBpm": 79,
+      "timeSig": [4, 4],
+      "source": {"notes": 1016, "onsets": 555, "rh": 522, "lh": 494, "durationBeats": 388},
+      "levels": {
+        "very-beginner": {"digest": "b7e1d009c285f2c0f30ea202b621963be0b12d77b2540166458537f7f0ee2ff2"},
+        "beginner": {"digest": "a4676c1b46529e1cf9fbeea7eeb64181e870556c6ca4f079f7bb4770662c606a"},
+        "very-easy": {"digest": "bc49fc5eafdcaa4cebdb336625fe9ee0f30693bacf46b185a580ce35d8d26619"},
+        "advanced": {"notes": 1016, "rh": 522, "lh": 494, "maxSimultaneity": 6, "digest": "9d23b142008c1d7f9640ad17987452c2cf03e619eb807edc09869a0e32a78585"},
+        "medium": {"notes": 1011, "rh": 517, "lh": 494, "maxSimultaneity": 5, "digest": "408b818a24ea1370269b7e33b978e2a37f31b1782fb391a0aabefb921777be74"},
+        "easy": {"notes": 847, "rh": 375, "lh": 472, "maxSimultaneity": 3, "digest": "b74e8a661b3f903b66a12e0bdb958553bfcd708803fe00d088323ba0263b85fb"}
+      },
+      "rhFunnel": {"medium": 517, "easyRhInput": 517, "voiceSelection": 376, "final": 375},
+      "lhFunnel": {"medium": 494, "easyLhInput": 472, "final": 472},
+      "firstLoss": {"mediumCandidates": 5, "easyLhInput": 22, "easyVoiceSelection": 141, "easyAssembly": 1},
+      "operations": {"generated": 1016, "retained": 15629, "rejected": 169, "durationChanged": 1977, "replaced": 10},
+      "contour": {"mediumRhOnsets": 376, "easyRhOnsets": 375, "onsetSurvival": 0.997, "pitchClassSurvival": 0.955, "directionAgreement": 0.977, "mediumTurns": 96, "easyTurns": 115, "turnSurvival": 0.99, "mediumLargeLeaps": 47, "easyLargeLeaps": 43, "repeatedAttacks": {"medium": 138, "selector": 123, "final": 123}},
+      "anchors": {"phraseStarts": 18, "phraseStartsSurvived": 18, "phraseEnds": 18, "phraseEndsSurvived": 18, "anchors": 193, "anchorsSurvived": 192},
+      "harmony": {"mediumRhOnsets": 333, "easyRhOnsets": 333, "rootChanges": 298, "rootChangesSurvived": 298, "sameHarmonyRestrikes": {"medium": 18, "easy": 18}, "uniqueShapes": {"medium": 15, "easy": 15}},
+      "octave": {"octaveOperations": 0, "pingPong": 0, "rangeOracleAlternativeChoices": 0},
+      "playability": {"verifyMonotonicity": [], "validationWarnings": true}
+    }
+  ],
+  "shadow": {
+    "id": "synthetic-full-band",
+    "sourceNotes": 28,
+    "sourceOnsets": 12,
+    "sourceDurationBeats": 7.75,
+    "output": {"notes": 12, "onsets": 4, "maxSimultaneity": 3, "vocalNotes": 4, "semanticRoots": 4, "leftHandRoots": 4, "collapsedStacks": 8, "sameHarmonyRestrikeReduction": 2, "pitchedDrums": 0},
+    "variants": {"advanced": 12, "medium": 12, "easy": 12},
+    "verifyMonotonicity": [],
+    "digest": "bcb0e053aca20c4147a1d337eaa3e921b9fe65650a7b456ad9c93b751e0b03f9"
+  },
+  "verification": {
+    "focusedMidiTests": "226/226 (midi.test.ts + metal-arrange.test.ts)",
+    "fullMidiTests": "324/324",
+    "workspaceTests": "1485/1485 (web85/catalog934/engrave8/midi324/player-core92/transcribe42)",
+    "workspaceTypechecks": "pass (all six workspaces)",
+    "gitDiffCheck": "pass",
+    "determinism": "current outputs equal starting e3737cf on all trusted fixtures and levels",
+    "reference": "not used",
+    "diskFloorGiB": 59
+  }
+}

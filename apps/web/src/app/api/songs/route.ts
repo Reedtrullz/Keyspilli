@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listSongs, listSongsGroupedWithTotal, countSongs, SongFilters } from "@keyspilli/catalog";
+import { listSongs, listSongsGroupedWithTotal, countSongs, projectPublicGroupedSongs, type SongFilters } from "@keyspilli/catalog";
 
 export const dynamic = "force-dynamic";
+
+function includesLegacyVeryEasy(sp: URLSearchParams): boolean {
+  return sp.get("legacy") === "1" || sp.get("legacy") === "true" || sp.get("difficulty") === "very-easy";
+}
 
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
@@ -19,10 +23,12 @@ export async function GET(req: NextRequest) {
   };
   if (sp.get("group") === "1") {
     const { songs, total } = listSongsGroupedWithTotal(f);
+    const groups = includesLegacyVeryEasy(sp) ? songs : projectPublicGroupedSongs(songs);
     return NextResponse.json({
-      songs: songs.map(({ representative, levels, totalPlays }) => ({
+      songs: groups.map(({ representative, levels, totalPlays, lastCreatedAt }) => ({
         representative: {
           id: representative.id,
+          baseId: representative.baseId,
           title: representative.title,
           artist: representative.artist,
           key: representative.key,
@@ -30,8 +36,9 @@ export async function GET(req: NextRequest) {
         },
         levels: levels.map(({ id, difficulty }) => ({ id, difficulty })),
         totalPlays,
+        lastCreatedAt,
       })),
-      total,
+      total: groups.length === songs.length ? total : groups.length,
     });
   }
   return NextResponse.json({ songs: listSongs(f), total: countSongs() });

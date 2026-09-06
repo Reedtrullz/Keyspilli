@@ -1,0 +1,168 @@
+{
+  "schemaVersion": 1,
+  "kind": "muscriptor-hf-browser-auth-runtime-unlock",
+  "experimentId": "muscriptor-hf-browser-auth-runtime-unlock-2026-09-05",
+  "status": "completed-sanity-only",
+  "startingRevision": "6a7198d55b6b619d03c24be04f715a577992e6cc",
+  "frozenReference": {
+    "repositoryRevision": "7f213afecf23bd6a1b8672aa223690ee9807cefb",
+    "model": "MuScriptor/muscriptor-medium",
+    "modelRevision": "f32236969308476e01fd3aae67357de5feb05a2d",
+    "weightFilename": "model.safetensors",
+    "recordedWeightBytes": 1228144472,
+    "codeLicense": "MIT",
+    "weightLicense": "CC-BY-NC-4.0"
+  },
+  "inferenceConfig": {
+    "sampling": false,
+    "cfgCoefficient": 1,
+    "beamSize": 1,
+    "chunkSeconds": 5,
+    "batchSize": 1,
+    "preludeForcing": true,
+    "instrumentConditioning": null,
+    "tempoDetection": "best-effort",
+    "deviceSelection": "auto",
+    "dtypeSelection": "upstream"
+  },
+  "access": {
+    "cli": "uvx hf 1.30.0",
+    "browserEntitlement": "GRANTED",
+    "browserDeviceAuth": "PASS",
+    "accountAccess": "accessible",
+    "tokenManuallyCreated": false,
+    "tokenManuallyEntered": false,
+    "credentialStoredByOfficialFlow": true,
+    "tokenValueRecorded": false,
+    "credentialCache": "external user-only research cache",
+    "decision": "MUSCRIPTOR_HF_LOCAL_AUTHENTICATION_VALIDATED"
+  },
+  "download": {
+    "status": "MUSCRIPTOR_FROZEN_WEIGHTS_ACQUIRED",
+    "files": [".gitattributes", "README.md", "config.json", "model.safetensors"],
+    "modelSha256": "ac80adbdf85d87231735fd948af7013441c0afced316c4e9067fd5d8a7fb97ec",
+    "modelBytes": 1228144472,
+    "expectedWeightBytes": 1228144472,
+    "revisionVerified": true
+  },
+  "runtime": {
+    "status": "MUSCRIPTOR_RUNTIME_SANITY_VALIDATED",
+    "python": "3.13.12",
+    "torch": "2.13.0",
+    "device": "mps",
+    "dtype": "torch.float32",
+    "modelLoadSeconds": 4.598,
+    "peakRssBytes": 1642889216,
+    "sourceRevisionVerified": true,
+    "isolatedEnvironment": true
+  },
+  "sanityFixture": {
+    "status": "DETERMINISTIC_SYMBOLIC_OUTPUT",
+    "fixtureId": "project-owned-synthetic-melody-5s-2026-09-05",
+    "rightsBasis": "PROJECT_OWNED_SYNTHETIC",
+    "audioBytes": 160044,
+    "audioSha256": "58038438323c9784fe8370179202a0c9851f070cdfa707b4e732cc8673f20961",
+    "audioSeconds": 5,
+    "runs": [
+      {
+        "run": 1,
+        "seconds": 1.686,
+        "midiBytes": 154,
+        "midiSha256": "ebe42e3952c8e1ac4a1c01fb76c65c8a2236930cd78707682f321db11fef6d69",
+        "format": 1,
+        "trackCount": 2,
+        "ppq": 480,
+        "noteCount": 8,
+        "programs": [24],
+        "tempoBpm": [120, 120],
+        "onsetRangeBeats": [1, 8.979],
+        "durationRangeBeats": [0.021, 2]
+      },
+      {
+        "run": 2,
+        "seconds": 1.299,
+        "midiBytes": 154,
+        "midiSha256": "ebe42e3952c8e1ac4a1c01fb76c65c8a2236930cd78707682f321db11fef6d69",
+        "format": 1,
+        "trackCount": 2,
+        "ppq": 480,
+        "noteCount": 8,
+        "programs": [24],
+        "tempoBpm": [120, 120],
+        "onsetRangeBeats": [1, 8.979],
+        "durationRangeBeats": [0.021, 2]
+      }
+    ],
+    "determinism": {
+      "classification": "DETERMINISTIC_SYMBOLIC_OUTPUT",
+      "byteEqual": true,
+      "canonicalStatsEqual": true
+    },
+    "beatGrid": {
+      "bpm": 120,
+      "beatsPerBar": 2,
+      "onsetDelay": 0,
+      "subdivision": null
+    }
+  },
+  "denseMetalInventory": {
+    "historicalBenchmarkRights": "MUSCRIPTOR_HISTORICAL_BENCHMARK_RIGHTS_BLOCKED",
+    "historicalFixturesOpened": false,
+    "rightsClearedDenseMetalCorpus": "MISSING",
+    "knownOpenPairs": [
+      {"fixtureId": "guitar-techs:p3-music-08", "license": "CC BY 4.0", "scope": "single guitar"},
+      {"fixtureId": "maestro:v3:2015-prelude-3", "license": "CC BY-NC-SA 4.0", "scope": "solo piano"}
+    ],
+    "substitutedForMetal": false
+  },
+  "cache": {
+    "locationClass": "external user-only research cache",
+    "footprintBytes": 2549395456,
+    "weightsRetained": true,
+    "credentialRetained": true,
+    "freeDiskGiBAfterRun": 100
+  },
+  "decisions": {
+    "localAuthentication": "MUSCRIPTOR_HF_LOCAL_AUTHENTICATION_VALIDATED",
+    "weights": "MUSCRIPTOR_FROZEN_WEIGHTS_ACQUIRED",
+    "runtime": "MUSCRIPTOR_RUNTIME_SANITY_VALIDATED",
+    "sanity": "DETERMINISTIC_SYMBOLIC_OUTPUT",
+    "rawMetalHeadroom": "MUSCRIPTOR_RAW_METAL_HEADROOM_UNEVALUATED",
+    "downstream": "NOT_RUN_NO_VALID_DENSE_METAL_RAW_EVIDENCE",
+    "weightLicense": "MUSCRIPTOR_WEIGHTS_NONCOMMERCIAL_RESEARCH_ONLY",
+    "historicalBenchmarkRights": "MUSCRIPTOR_HISTORICAL_BENCHMARK_RIGHTS_BLOCKED",
+    "denseMetalCorpus": "RIGHTS_CLEARED_DENSE_METAL_AMT_CORPUS_MISSING",
+    "liveProduct": "UNCHANGED",
+    "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+    "deployment": "NO_DEPLOYMENT",
+    "nextTask": "RIGHTS_CLEARED_DENSE_METAL_AMT_EVAL_CORPUS"
+  },
+  "verification": {
+    "metadataAccessProbe": "PASS",
+    "weightByteAndShaCheck": "PASS",
+    "modelLoadGate": "PASS",
+    "midiParseValidation": "PASS",
+    "sanityDeterminism": "PASS",
+    "existingMuScriptorEvaluatorTests": "17/17",
+    "existingWorkspaceBaseline": "1672/1672",
+    "existingWorkspaceTypechecks": "6/6",
+    "jsonValid": true,
+    "gitDiffCheck": true
+  },
+  "safety": {
+    "protectedAudioRead": false,
+    "protectedReferenceRead": false,
+    "benchmarkTuning": false,
+    "productionPathChanged": false,
+    "vpsTouched": false,
+    "catalogWritten": false,
+    "downstreamGeneration": false,
+    "humanListening": false
+  },
+  "nonClaims": [
+    "Sanity inference proves runtime access and deterministic symbolic emission, not transcription quality.",
+    "No dense-metal raw headroom, alignment, downstream arrangement, or musical-quality claim exists.",
+    "The historical benchmark remains rights-blocked and was not opened.",
+    "CC-BY-NC-4.0 weights are research-only and are not approved for commercial production."
+  ]
+}

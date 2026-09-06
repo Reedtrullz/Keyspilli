@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "kind": "region-aware-real-shadow-rehearsal",
+  "mission": "REGION_AWARE_REAL_SHADOW_REHEARSAL",
+  "startingRevision": "e143c11cb0f89aa31b89ee1c83f58136a5aef1f8",
+  "fixture": {
+    "id": "lane-a-native-performance",
+    "sourceClass": "GENERATION_CANDIDATE",
+    "provenanceClass": "USER_SUPPLIED_PRIVATE",
+    "symbolic": {
+      "bytes": 58204,
+      "sha256": "ec5010896c00a0541b34b0843a20f455707ac647ae4a222aee71e2ad43e8017e",
+      "format": "midi",
+      "notes": 7266,
+      "durationBeats": 360,
+      "tempoBpm": null
+    },
+    "audio": {
+      "bytes": 4351097,
+      "sha256": "6113d800bbb5070181ff755f0a2973f09765a97b4f5c4f15362e7249bfa5658f",
+      "durationSeconds": 181.219
+    },
+    "license": "USER_SUPPLIED_PRIVATE"
+  },
+  "lanes": {
+    "laneA": {
+      "status": "blocked_at_downstream_validation",
+      "timingAuthority": "NATIVE_AUTHORITATIVE",
+      "alignment": {
+        "status": "insufficient-evidence",
+        "production": null,
+        "naive": {
+          "method": "global-tempo",
+          "matchedOnsets": 634,
+          "audioOnsetCount": 649,
+          "symbolicOnsetCount": 1907,
+          "precision": 0.976888,
+          "recall": 0.332459,
+          "f1": 0.496087,
+          "medianErrorSeconds": 0.021042,
+          "p90ErrorSeconds": 0.053575,
+          "p95ErrorSeconds": 0.058046
+        },
+        "reason": "independent audio-to-beat anchors were not supplied"
+      },
+      "ownership": {
+        "readiness": "GENERATION_READY",
+        "candidateEvents": 7266,
+        "eligibleBeforeOwnership": 7266,
+        "owned": 7266,
+        "partial": 0,
+        "withheld": 0
+      },
+      "downstream": {
+        "canonicalNotes": 3843,
+        "physicalLevels": {
+          "very-beginner": 409,
+          "beginner": 807,
+          "very-easy": 2560,
+          "easy": 2843,
+          "medium": 3066,
+          "advanced": 3560
+        },
+        "artifactErrors": 0,
+        "publicLevels": ["advanced", "beginner", "easy", "medium", "very-beginner"],
+        "validationErrors": [
+          "advanced: median inter-onset 0.063s below floor 0.08s",
+          "easy: median inter-onset 0.063s below floor 0.08s",
+          "medium: median inter-onset 0.063s below floor 0.08s"
+        ],
+        "withheldEventsResurrected": 0,
+        "playerLinks": "NOT_EXERCISED"
+      }
+    },
+    "laneB": {
+      "status": "blocked",
+      "dataset": "ASAP v2.1.1",
+      "license": "CC BY-NC-SA-4.0; evaluation-only",
+      "sourceClass": "BENCHMARK_REFERENCE",
+      "provenanceClass": "OPEN_LICENSE",
+      "symbolicNotes": 732,
+      "audioSha256": "1216c05f0532e6c3c81e299068d9d757709c8d3a71ad30277533705f41925a75",
+      "ownership": {"eligibleBeforeOwnership": 732, "owned": 0, "partial": 0, "withheld": 732},
+      "reasons": ["BENCHMARK_FIREWALL", "PARTIAL_ALIGNMENT", "NO_TARGET_TIMING"],
+      "eventsEnteringArrangement": 0
+    },
+    "laneC": {
+      "status": "partial",
+      "dataset": "ASAP v2.1.1",
+      "license": "CC BY-NC-SA-4.0; evaluation-only",
+      "sourceClass": "BENCHMARK_REFERENCE",
+      "provenanceClass": "OPEN_LICENSE",
+      "sources": {"scoreNotes": 732, "performanceNotes": 739},
+      "ownership": {"eligibleBeforeOwnership": 0, "owned": 0, "partial": 0, "withheld": 1471},
+      "orderIndependent": true,
+      "reasons": ["BENCHMARK_FIREWALL", "MULTI_SOURCE_PRIORITY_NOT_GENERATION_EXERCISED"],
+      "eventsEnteringArrangement": 0
+    }
+  },
+  "controlledPolicyTest": {
+    "status": "pass",
+    "sourceRecordId": "lane-a-native-performance",
+    "withheldStartBeat": 180,
+    "ownedEvents": 3586,
+    "withheldEvents": 3680,
+    "canonicalNotes": 1960,
+    "eventsBeyondWithheldRegion": 0,
+    "variantsWithResurrection": 0
+  },
+  "decisions": {
+    "sourceIntake": "GENERATION_CANDIDATE_INTAKE_READY",
+    "realAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+    "realShadow": "REGION_AWARE_REAL_SHADOW_BLOCKED",
+    "boundedMvp": "BOUNDED_MVP_NOT_YET_FEASIBLE",
+    "originalVision": "NOT_YET_SUPPORTED",
+    "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+    "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+    "deployment": "NOT_DEPLOYED"
+  },
+  "determinism": {
+    "canonicalSha256": "9c32be1c1aa3d5b540977a3025750435623e48d09d68139a57d4de290ea2e7a6",
+    "repeatEqual": true
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "mission": "IMPLEMENT_SCORE_ALIGNMENT_PRODUCTION_HARDENING",
+  "status": "FROZEN_BEFORE_SCORING",
+  "evaluation": {"report": "asap-fresh-validation-results-2026-09-03.json", "canonicalSha256": "3b4c7a3cd0cafe683804fd3e625c35e29ef5d220889b6a435bc9c5b6d6232c2f", "decision": "SCORE_ALIGNMENT_PRODUCTION_PARTIAL"},
+  "dataset": {"name": "ASAP", "release": "v2.1.1", "license": "CC BY-NC-SA 4.0", "audioCarrier": "MAESTRO v2.0.0"},
+  "selection": {
+    "seed": "asap-v2.1.1-sha256-composer-v1",
+    "eligibility": [
+      "score_and_performance_aligned=true",
+      "robust_note_alignment=1.0",
+      "score MIDI, score MusicXML, MAESTRO audio and MAESTRO performance MIDI are indexed",
+      "MAESTRO duration between 30 and 180 seconds",
+      "at least 64 paired score/performance beat annotations",
+      "exclude the three previously revealed development fixtures"
+    ],
+    "ordering": "group eligible rows by composer ordered by sha256(composer); within each composer choose the row with the smallest sha256(midi_performance); take the first four composer groups",
+    "replacementPolicy": "none; these four IDs remain the frozen validation set even if a gate fails"
+  },
+  "fixtures": [
+    {
+      "id": "asap:fresh:schubert-moment-musical-3-tetzloff09m",
+      "composer": "Schubert",
+      "title": "Moment_musical_no_3",
+      "annotationKey": "Schubert/Moment_musical_no_3/Tetzloff09M.mid",
+      "scorePath": "Schubert/Moment_musical_no_3/midi_score.mid",
+      "performancePath": "Schubert/Moment_musical_no_3/Tetzloff09M.mid",
+      "audioPath": "2008/MIDI-Unprocessed_15_R2_2008_01-04_ORIG_MID--AUDIO_15_R2_2008_wav--2.wav",
+      "annotationBeatCount": 155,
+      "carrierDurationSeconds": 106.156411,
+      "sourceHashes": null,
+      "metrics": null
+    },
+    {
+      "id": "asap:fresh:rachmaninoff-prelude-23-6-nikiforov14m",
+      "composer": "Rachmaninoff",
+      "title": "Preludes_op_23_6",
+      "annotationKey": "Rachmaninoff/Preludes_op_23/6/Nikiforov14M.mid",
+      "scorePath": "Rachmaninoff/Preludes_op_23/6/midi_score.mid",
+      "performancePath": "Rachmaninoff/Preludes_op_23/6/Nikiforov14M.mid",
+      "audioPath": "2008/MIDI-Unprocessed_12_R3_2008_01-04_ORIG_MID--AUDIO_12_R3_2008_wav--3.wav",
+      "annotationBeatCount": 169,
+      "carrierDurationSeconds": 167.493155,
+      "sourceHashes": null,
+      "metrics": null
+    },
+    {
+      "id": "asap:fresh:chopin-etude-10-1-muna07m",
+      "composer": "Chopin",
+      "title": "Etudes_op_10_1",
+      "annotationKey": "Chopin/Etudes_op_10/1/MunA07M.mid",
+      "scorePath": "Chopin/Etudes_op_10/1/midi_score.mid",
+      "performancePath": "Chopin/Etudes_op_10/1/MunA07M.mid",
+      "audioPath": "2015/MIDI-Unprocessed_R1_D1-9-12_mid--AUDIO-from_mp3_12_R1_2015_wav--4.wav",
+      "annotationBeatCount": 313,
+      "carrierDurationSeconds": 104.165625,
+      "sourceHashes": null,
+      "metrics": null
+    },
+    {
+      "id": "asap:fresh:bach-prelude-854-lua01m",
+      "composer": "Bach",
+      "title": "Prelude_bwv_854",
+      "annotationKey": "Bach/Prelude/bwv_854/LuA01M.mid",
+      "scorePath": "Bach/Prelude/bwv_854/midi_score.mid",
+      "performancePath": "Bach/Prelude/bwv_854/LuA01M.mid",
+      "audioPath": "2015/MIDI-Unprocessed_R1_D1-1-8_mid--AUDIO-from_mp3_04_R1_2015_wav--1.wav",
+      "annotationBeatCount": 93,
+      "carrierDurationSeconds": 159.4875,
+      "sourceHashes": null,
+      "metrics": null
+    }
+  ],
+  "firewall": {"benchmarkReferencesUsedForGeneration": false, "benchmarkReferencesUsedForTuning": false, "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT", "deployment": "NOT_DEPLOYED"}
+}

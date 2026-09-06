@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildMetalArrangement, buildVariants, parseChordSymbol, selectGuitarLeadPath, validateVariants, verifyMonotonicity } from "../src/index.js";
+import { buildMetalArrangement, buildVariants, parseChordSymbol, rescueGuitarPreSelectorCandidates, selectGuitarLeadPath, validateVariants, verifyMonotonicity } from "../src/index.js";
 import type { MetalArrangementTraceEvent, Note, ParsedMidi } from "../src/index.js";
 
 function midi(notes: Note[], durationBeats = 16): ParsedMidi {
@@ -2403,6 +2403,67 @@ describe("metal piano arranger", () => {
     expect(result.diagnostics.harmonicRejectedCount).toBeGreaterThan(0);
   });
 
+  it("clusters transitive onset jitter into one harmonic attack", () => {
+    const notes = [
+      { midi: 64, start: 0, dur: 0.3, vel: 90, identitySource: "guitar" as const },
+      { midi: 76, start: 0.07, dur: 0.06, vel: 120, identitySource: "guitar" as const },
+      { midi: 71, start: 0.13, dur: 0.06, vel: 115, identitySource: "guitar" as const },
+    ];
+    const result = selectGuitarLeadPath(notes, { groupToleranceBeats: 0.08, minimumSpacingBeats: 0.08 });
+
+    expect(result.diagnostics.harmonicGroupCount).toBe(1);
+    expect(result.notes).toHaveLength(1);
+
+    const boundary = selectGuitarLeadPath([
+      notes[0]!,
+      notes[1]!,
+      { midi: 68, start: 0.17, dur: 0.06, vel: 115, identitySource: "guitar" as const },
+    ], { groupToleranceBeats: 0.08, minimumSpacingBeats: 0.08 });
+    expect(boundary.diagnostics.harmonicGroupCount).toBe(2);
+
+    const reordered = selectGuitarLeadPath([...notes].reverse(), { groupToleranceBeats: 0.08, minimumSpacingBeats: 0.08 });
+    expect(reordered).toEqual(result);
+  });
+
+  it("reports deterministic, stage-oriented guitar selector rejection reasons", () => {
+    const contour = [64, 65, 67, 69, 71, 72, 74, 76];
+    const candidates = contour.flatMap((pitch, index) => {
+      const start = index * 0.5;
+      return [
+        { midi: pitch, start, dur: 0.45, vel: 72, identitySource: "guitar" as const },
+        { midi: pitch, start, dur: 0.05, vel: 38, identitySource: "guitar" as const },
+        { midi: pitch + 12, start: start + 0.03, dur: 0.06, vel: 118, identitySource: "guitar" as const },
+        { midi: pitch + 7, start: start + 0.06, dur: 0.06, vel: 110, identitySource: "guitar" as const },
+      ];
+    });
+
+    const first = selectGuitarLeadPath(candidates, { minimumSpacingBeats: 0.45 });
+    const second = selectGuitarLeadPath([...candidates].reverse(), { minimumSpacingBeats: 0.45 });
+    const reasons = first.diagnostics.rejectionReasons;
+    const labels = [
+      "selected-primary",
+      "harmonic-stack-suppressed",
+      "duplicate-onset",
+      "register-rejected",
+      "leap-rejected",
+      "density-rejected",
+      "spacing-rejected",
+      "continuity-rejected",
+      "confidence-rejected",
+      "cleanup-rejected",
+      "other",
+    ] as const;
+
+    expect(reasons).toBeDefined();
+    expect(Object.keys(reasons ?? {}).sort()).toEqual([...labels].sort());
+    expect(reasons?.["selected-primary"]).toBe(first.diagnostics.selectedCount);
+    expect(reasons?.["harmonic-stack-suppressed"]).toBeGreaterThan(0);
+    expect(reasons?.["duplicate-onset"]).toBeGreaterThan(0);
+    expect(Object.values(reasons ?? {}).reduce((sum, count) => sum + count, 0))
+      .toBe(first.diagnostics.rawCandidateCount);
+    expect(second).toEqual(first);
+  });
+
   it("keeps an articulated expressive leap and a fast scalar run", () => {
     const leap = selectGuitarLeadPath([
       { midi: 64, start: 0, dur: 0.5, vel: 100, identitySource: "guitar" as const },
@@ -2458,6 +2519,101 @@ describe("metal piano arranger", () => {
     expect(first.notes.some((note) => note.midi === 36 || note.midi === 35 || note.midi === 84 || note.midi === 76)).toBe(false);
   });
 
+  it("rescues only bounded connected low guitar contours from rhythm-only input", () => {
+    const contour: Note[] = [55, 57, 59, 60].map((midi, index) => ({
+      midi,
+      start: index * 0.5,
+      dur: 0.4,
+      vel: 86,
+      identitySource: "guitar" as const,
+    }));
+    const wall: Note[] = Array.from({ length: 8 }, (_, index) => ({
+      midi: 57,
+      start: 4 + index * 0.5,
+      dur: 0.2,
+      vel: 118,
+      identitySource: "guitar" as const,
+    }));
+    const stack: Note[] = [
+      { midi: 58, start: 9, dur: 0.4, vel: 90, identitySource: "guitar" },
+      { midi: 60, start: 9.04, dur: 0.4, vel: 90, identitySource: "guitar" },
+    ];
+    const lowDrone: Note = { midi: 48, start: 12, dur: 0.4, vel: 90, identitySource: "guitar" };
+    const result = rescueGuitarPreSelectorCandidates(
+      [...contour, ...wall, ...stack, lowDrone],
+      [],
+    );
+
+    expect(result.notes.map((note) => [note.start, note.midi])).toEqual(
+      contour.map((note) => [note.start, note.midi]),
+    );
+    expect(result.diagnostics.consideredCount).toBe(14);
+    expect(result.diagnostics.qualifyingGroupCount).toBe(4);
+    expect(result.diagnostics.rescuedCount).toBe(4);
+    expect(result.diagnostics.maxRescuedEvents).toBe(64);
+  });
+
+  it("keeps bounded rescue deterministic under reordering and never rescues non-guitar notes", () => {
+    const notes: Note[] = Array.from({ length: 12 }, (_, phrase) =>
+      [55, 57, 59, 60].map((midi, index) => ({
+        midi,
+        start: phrase * 2 + index * 0.5,
+        dur: 0.35,
+        vel: 80 + (index % 2) * 8,
+        identitySource: "guitar" as const,
+      })),
+    ).flat();
+    notes.push({ midi: 72, start: 0, dur: 0.5, vel: 100, identitySource: "other" });
+    const first = rescueGuitarPreSelectorCandidates(notes, []);
+    const second = rescueGuitarPreSelectorCandidates([...notes].reverse(), []);
+    expect(second).toEqual(first);
+    expect(first.notes.every((note) => note.identitySource === "guitar")).toBe(true);
+    expect(first.notes.length).toBeLessThanOrEqual(64);
+  });
+
+  it("integrates the opt-in rescue through variants without changing vocal anchors", () => {
+    const vocals: Note[] = [
+      { midi: 72, start: 5, dur: 0.5, vel: 104 },
+      { midi: 74, start: 7, dur: 0.5, vel: 100 },
+    ];
+    const contour: Note[] = [55, 57, 59, 60].map((midi, index) => ({
+      midi,
+      start: index * 0.5,
+      dur: 0.25,
+      vel: 80,
+    }));
+    const wall: Note[] = Array.from({ length: 4 }, (_, index) => ({
+      midi: 57,
+      start: 2 + index * 0.5,
+      dur: 0.2,
+      vel: 118,
+    }));
+    const input = {
+      stems: [
+        { role: "vocals" as const, midi: midi(vocals, 16) },
+        { role: "guitar" as const, midi: midi([...contour, ...wall], 16) },
+      ],
+    };
+    const baseline = buildMetalArrangement(input);
+    const rescued = buildMetalArrangement(input, { preSelectorRescue: true });
+    expect(rescued.stats.guitarPreSelector?.rescue).toEqual(expect.objectContaining({
+      consideredCount: 1,
+      rescuedCount: 1,
+    }));
+    expect(rescued.parsed.notes.some((note) => note.hand === "R" && note.identitySource === "guitar" && note.start === 3.5 && note.midi === 57)).toBe(true);
+    for (const anchor of vocals) {
+      expect(rescued.parsed.notes.some((note) => note.hand === "R" && note.identitySource === "vocals" && note.start === anchor.start && note.midi === anchor.midi)).toBe(true);
+      expect(baseline.parsed.notes.some((note) => note.hand === "R" && note.identitySource === "vocals" && note.start === anchor.start && note.midi === anchor.midi)).toBe(true);
+    }
+    const variants = buildVariants(rescued.parsed, { title: "Rescue fixture", artist: "Fixture" }, {
+      arrangementProfile: "metal",
+      audioDerived: false,
+      chords: rescued.chords,
+    });
+    expect(validateVariants(variants)).toEqual([]);
+    expect(verifyMonotonicity(variants)).toEqual([]);
+  });
+
   it("keeps the optional provenance trace private, linked, and deterministic", () => {
     const input = {
       stems: [
@@ -2501,6 +2657,7 @@ describe("metal piano arranger", () => {
     for (const stage of ["raw", "cleaned", "lead", "residual", "cluster", "semantic", "decision", "chord", "left-hand", "final"] as const) {
       expect(stages.has(stage), `trace should contain ${stage} events`).toBe(true);
     }
+    expect(firstTrace.every((event) => event.operation)).toBe(true);
     const byKey = new Map(firstTrace.map((event) => [event.key, event]));
     for (const event of firstTrace.filter((candidate) => candidate.stage === "cluster" || candidate.stage === "semantic" || candidate.stage === "final")) {
       expect(event.parentKeys.length, `${event.stage} event ${event.key} should have parents`).toBeGreaterThan(0);
@@ -2529,5 +2686,201 @@ describe("metal piano arranger", () => {
     const reorderedResult = buildMetalArrangement(reordered, { trace: { record: (event) => secondTrace.push(event) } });
     expect(reorderedResult).toEqual(plain);
     expect(canonicalTrace(secondTrace)).toEqual(canonicalTrace(firstTrace));
+  });
+
+  it("does not trace raw events that cannot survive MIDI serialization", () => {
+    const trace: MetalArrangementTraceEvent[] = [];
+    buildMetalArrangement(
+      {
+        stems: [{ role: "guitar", midi: midi([
+          { midi: 60.5, start: 0, dur: 0.5, vel: 90 },
+          { midi: 61, start: -1, dur: 0.5, vel: 90 },
+          { midi: 62, start: 1, dur: 0.5, vel: Number.NaN },
+          { midi: 63, start: 2, dur: 0.5, vel: 0 },
+          { midi: 64, start: 3, dur: 0.5, vel: 90 },
+        ], 4) }],
+      },
+      { trace: { record: (event) => trace.push(event) } },
+    );
+
+    const raw = trace.filter((event) => event.stage === "raw");
+    expect(raw).toHaveLength(1);
+    expect(raw[0]?.note).toMatchObject({ midi: 64, start: 3, vel: 90 });
+    expect(raw.every((event) => event.note
+      && Number.isInteger(event.note.midi)
+      && event.note.midi >= 0
+      && event.note.midi <= 127
+      && Number.isFinite(event.note.start)
+      && event.note.start >= 0
+      && Number.isFinite(event.note.vel)
+      && event.note.vel >= 1
+      && event.note.vel <= 127)).toBe(true);
+  });
+
+  it("preserves raw provenance on routed rhythm LH final events", () => {
+    const lowPulse = Array.from({ length: 16 }, (_, index) => ({
+      midi: 57,
+      start: index * 0.5,
+      dur: 0.25,
+      vel: index % 4 === 0 ? 86 : 72,
+    }));
+    const highLead = Array.from({ length: 8 }, (_, index) => ({
+      midi: 72 + (index % 4),
+      start: index,
+      dur: 0.5,
+      vel: 92,
+    }));
+    const trace: MetalArrangementTraceEvent[] = [];
+    buildMetalArrangement(
+      { stems: [{ role: "guitar", midi: midi([...lowPulse, ...highLead], 8) }] },
+      { trace: { record: (event) => trace.push(event) } },
+    );
+
+    const byKey = new Map(trace.map((event) => [event.key, event]));
+    const rhythmFinal = trace.filter((event) => event.stage === "final"
+      && event.note?.hand === "L" && event.source === "guitar"
+      && event.note.dur <= 0.25 + 1e-9);
+    expect(rhythmFinal.length).toBeGreaterThan(0);
+    for (const event of rhythmFinal) {
+      expect(event.parentKeys.length, `${event.key} should retain a raw parent`).toBeGreaterThan(0);
+      expect(event.parentKeys.every((parentKey) => byKey.has(parentKey))).toBe(true);
+      expect(event.parentKeys.some((parentKey) => byKey.get(parentKey)?.stage === "raw")).toBe(true);
+    }
+  });
+
+  it("links raw harmony fallback chords to source evidence", () => {
+    const trace: MetalArrangementTraceEvent[] = [];
+    buildMetalArrangement(
+      { stems: [{ role: "guitar", midi: midi([{ midi: 60, start: 0, dur: 1, vel: 90 }], 2) }] },
+      { trace: { record: (event) => trace.push(event) } },
+    );
+    const byKey = new Map(trace.map((event) => [event.key, event]));
+    const fallback = trace.find((event) => event.stage === "chord" && event.selectionReason === "raw-harmony-fallback");
+    expect(fallback).toBeDefined();
+    expect(fallback?.parentKeys.length).toBeGreaterThan(0);
+    expect(fallback?.parentKeys.every((parentKey) => byKey.has(parentKey))).toBe(true);
+    expect(fallback?.parentKeys.some((parentKey) => byKey.get(parentKey)?.stage === "raw")).toBe(true);
+  });
+
+  it("links difficulty variants back to canonical trace events when requested", () => {
+    const trace: MetalArrangementTraceEvent[] = [];
+    const traced = buildMetalArrangement(
+      {
+        stems: [
+          ...[
+            { role: "vocals" as const, midi: midi([{ midi: 72, start: 0, dur: 0.5, vel: 104 }, { midi: 74, start: 2, dur: 0.5, vel: 100 }], 4) },
+            { role: "guitar" as const, midi: midi([{ midi: 48, start: 0, dur: 0.5, vel: 96 }, { midi: 55, start: 0.01, dur: 0.45, vel: 88 }, { midi: 72, start: 0, dur: 0.5, vel: 108 }, { midi: 50, start: 2, dur: 0.5, vel: 96 }, { midi: 57, start: 2.01, dur: 0.45, vel: 88 }, { midi: 74, start: 2, dur: 0.5, vel: 104 }], 4) },
+            { role: "bass" as const, midi: midi([{ midi: 36, start: 0, dur: 4, vel: 100 }], 4) },
+          ],
+        ],
+      },
+      { trace: { record: (event) => trace.push(event) } },
+    );
+    const variants = buildVariants(traced.parsed, { title: "Trace ladder", artist: "Fixture" }, {
+      arrangementProfile: "metal",
+      chords: traced.chords,
+      trace: { record: (event) => trace.push(event) },
+    });
+    const finalKeys = new Set(trace.filter((event) => event.stage === "final").map((event) => event.key));
+    const difficulty = trace.filter((event) => event.stage === "difficulty");
+    expect(difficulty.length).toBe(variants.reduce((sum, variant) => sum + variant.notes.length, 0));
+    expect(difficulty.every((event) => event.selected === true && event.parentKeys.some((key) => finalKeys.has(key)))).toBe(true);
+    expect(new Set(difficulty.map((event) => event.key)).size).toBe(difficulty.length);
+  });
+
+  it("accounts for every valid raw guitar event at the pre-selector boundary", () => {
+    const input = {
+      stems: [{ role: "guitar" as const, midi: midi([
+        { midi: 40, start: 0, dur: 0.5, vel: 90 },
+        { midi: 86, start: 0, dur: 0.1, vel: 30 },
+        { midi: 52, start: 1, dur: 0.5, vel: 90 },
+        { midi: 72, start: 3, dur: 0.5, vel: 100 },
+        { midi: 79, start: 3.04, dur: 0.5, vel: 96 },
+        { midi: 85, start: 6, dur: 0.1, vel: 30 },
+        { midi: 60.5, start: 7, dur: 0.5, vel: 90 },
+      ], 8) }],
+    };
+    const plain = buildMetalArrangement(input);
+    const trace: MetalArrangementTraceEvent[] = [];
+    const traced = buildMetalArrangement(input, { trace: { record: (event) => trace.push(event) } });
+
+    expect(traced).toEqual(plain);
+    expect(traced.stats.guitarPreSelector).toEqual({
+      rawSourceCount: 7,
+      validRawCount: 6,
+      selectorInputCount: 2,
+      removedCount: 4,
+      reasons: {
+        "selector-input": 2,
+        "invalid-raw": 1,
+        "rhythm-only": 2,
+        "register-rejected": 0,
+        "confidence-rejected": 2,
+        "source-not-melodic": 0,
+        other: 0,
+      },
+    });
+    const diagnostics = traced.stats.guitarPreSelector!;
+    expect(Object.entries(diagnostics.reasons)
+      .filter(([reason]) => reason !== "invalid-raw")
+      .reduce((sum, [, count]) => sum + count, 0)).toBe(diagnostics.validRawCount);
+    expect(Object.values(diagnostics.reasons).reduce((sum, count) => sum + count, 0))
+      .toBe(diagnostics.rawSourceCount);
+
+    const preSelector = trace.filter((event) =>
+      event.stage === "eligibility" || event.stage === "onset-group" || event.stage === "selector-input");
+    expect(trace.filter((event) => event.stage === "eligibility")).toHaveLength(6);
+    expect(trace.filter((event) => event.stage === "selector-input")).toHaveLength(2);
+    expect(trace.filter((event) => event.stage === "onset-group")).toHaveLength(1);
+    const byKey = new Map(trace.map((event) => [event.key, event]));
+    for (const event of preSelector) {
+      expect(event.parentKeys.every((parentKey) => byKey.has(parentKey))).toBe(true);
+    }
+    expect(trace.filter((event) => event.stage === "eligibility").map((event) => event.selectionReason))
+      .toEqual(["rhythm-only", "confidence-rejected", "rhythm-only", "selector-input", "selector-input", "confidence-rejected"]);
+    expect(trace.filter((event) => event.stage === "selector-input")
+      .every((event) => event.parentKeys.length === 1
+        && byKey.get(event.parentKeys[0]!)?.stage === "eligibility")).toBe(true);
+    expect(trace.filter((event) => event.stage === "onset-group")
+      .every((event) => event.parentKeys.length > 0
+        && event.parentKeys.every((parentKey) => byKey.get(parentKey)?.stage === "eligibility"))).toBe(true);
+  });
+
+  it("keeps duplicate in-memory raw guitar objects independently traceable", () => {
+    const repeated = { midi: 72, start: 0, dur: 0.5, vel: 90 };
+    const trace: MetalArrangementTraceEvent[] = [];
+    buildMetalArrangement({ stems: [{ role: "guitar", midi: midi([repeated, repeated], 2) }] }, {
+      trace: { record: (event) => trace.push(event) },
+    });
+    const raw = trace.filter((event) => event.stage === "raw");
+    expect(raw).toHaveLength(2);
+    expect(new Set(raw.map((event) => event.key)).size).toBe(2);
+  });
+
+  it("keeps hand-marked LH raw guitar events out of selector input", () => {
+    const input = {
+      stems: [{ role: "guitar" as const, midi: midi([
+        { midi: 72, start: 0, dur: 0.5, vel: 90, hand: "L" as const },
+      ], 2) }],
+    };
+    const trace: MetalArrangementTraceEvent[] = [];
+    const result = buildMetalArrangement(input, { trace: { record: (event) => trace.push(event) } });
+    expect(result.stats.guitarPreSelector).toEqual({
+      rawSourceCount: 1,
+      validRawCount: 1,
+      selectorInputCount: 0,
+      removedCount: 1,
+      reasons: {
+        "selector-input": 0,
+        "invalid-raw": 0,
+        "rhythm-only": 0,
+        "register-rejected": 0,
+        "confidence-rejected": 0,
+        "source-not-melodic": 1,
+        other: 0,
+      },
+    });
+    expect(trace.filter((event) => event.stage === "selector-input")).toHaveLength(0);
+    expect(trace.find((event) => event.stage === "eligibility")?.selectionReason).toBe("source-not-melodic");
   });
 });

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   AudioEngine,
+  OrganAudioEngine,
   SamplerAudioEngine,
   ChordGrader,
   completeChordDurations,
@@ -30,6 +31,7 @@ import {
   type Section as SongSection,
 } from "@keyspilli/player-core";
 import type { SongRow } from "@keyspilli/catalog";
+import { PUBLIC_DIFFICULTY_ORDER, isPublicDifficultyLevel } from "@keyspilli/midi";
 import { FallingCanvas } from "./FallingCanvas";
 import { ChordStrip } from "./ChordStrip";
 import { ChordPracticePanel } from "./ChordPracticePanel";
@@ -68,6 +70,23 @@ const MODES: { id: ViewMode; label: string; hint: string }[] = [
   { id: "sheet", label: "Sheet Music", hint: "Engraved score" },
   { id: "leadsheet", label: "Lead Sheet", hint: "Lyrics + chords" },
 ];
+
+function playerVariantsForDisplay(song: Pick<SongRow, "difficulty">, variants: readonly SongRow[]): SongRow[] {
+  const byDifficulty = new Map(
+    variants.filter((variant) => isPublicDifficultyLevel(variant.difficulty)).map((variant) => [variant.difficulty, variant]),
+  );
+  const publicVariants = PUBLIC_DIFFICULTY_ORDER.flatMap((difficulty) => {
+    const variant = byDifficulty.get(difficulty);
+    return variant ? [variant] : [];
+  });
+  if (song.difficulty !== "very-easy") return publicVariants;
+
+  const legacy = variants.find((variant) => variant.difficulty === "very-easy");
+  if (!legacy) return publicVariants;
+  const easyIndex = publicVariants.findIndex((variant) => variant.difficulty === "easy");
+  publicVariants.splice(easyIndex < 0 ? publicVariants.length : easyIndex, 0, legacy);
+  return publicVariants;
+}
 
 /** Pressed keys drop if their noteOff was lost (common with USB-MIDI). */
 const GHOST_KEY_TIMEOUT_MS = 5000;
@@ -121,6 +140,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     return { startSec: loopBeats.startBeat * spb, endSec: loopBeats.endBeat * spb };
   }, [loopBeats, initial.data.tempoBpm, settings.speed]);
   const sections: SongSection[] = initial.data.sections ?? [];
+  const displayVariants = playerVariantsForDisplay(initial.song, initial.variants);
   const [showSettings, setShowSettings] = useState(false);
   const [showModeMenu, setShowModeMenu] = useState(false);
   const [showDownload, setShowDownload] = useState(false);
@@ -200,6 +220,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   }
 
   const engineRef = useRef<PlaybackEngine | null>(null);
+  const audioSwapStateRef = useRef<{ time: number; playing: boolean } | null>(null);
   const chordPracticeRef = useRef<ChordGrader | null>(null);
   const modeMenuRef = useRef<HTMLDivElement>(null);
   const chordPracticeActiveRef = useRef(chordPracticeActive);
@@ -310,8 +331,15 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
 
   // Engine lifecycle: one PlaybackEngine per mount, disposed on unmount.
   useEffect(() => {
+    const previous = audioSwapStateRef.current;
+    audioSwapStateRef.current = null;
+    const audio = settings.soundSource === "sampled"
+      ? new SamplerAudioEngine()
+      : settings.soundSource === "organ"
+        ? new OrganAudioEngine(settings.organDrive, settings.organRotary, settings.organStyle, settings.organSpace)
+        : new AudioEngine();
     const engine = new PlaybackEngine(
-      settings.soundSource === "sampled" ? new SamplerAudioEngine() : new AudioEngine(),
+      audio,
       notes,
       duration,
       { tempoBpm: initial.data.tempoBpm, timeSig: initial.data.timeSig },
@@ -327,12 +355,19 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     };
     engine.audio.sustainPedal = settings.sustainPedal;
     engineRef.current = engine;
+    if (previous) {
+      engine.seek(previous.time);
+      if (previous.playing) engine.start();
+      setTime(engine.time);
+      setPlaying(engine.playing);
+    }
     return () => {
+      audioSwapStateRef.current = { time: engine.time, playing: engine.playing };
       engineRef.current = null;
       engine.audio.dispose();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings.soundSource]);
+  }, [settings.soundSource, settings.organStyle]);
 
   useEffect(() => {
     engineRef.current?.setSettings(settings);
@@ -1135,11 +1170,11 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
         </div>
       </div>
 
-      {initial.variants.length > 1 && (
+      {displayVariants.length > 1 && (
         <section className="mb-6">
           <h2 className="text-sm font-semibold text-zinc-500 mb-2">Same song, other levels</h2>
           <div className="flex flex-wrap gap-2">
-            {initial.variants.map((v) => (
+            {displayVariants.map((v) => (
               <Link
                 key={v.id}
                 href={`/player/${v.id}`}
@@ -1363,6 +1398,7 @@ function PlayerShellView({ initial, mode }: { initial: PlayerShell; mode: ViewMo
   }, [detail, initial.song.id]);
 
   const activeMode = requestedMode === "sheet" ? "Sheet Music" : MODES.find((item) => item.id === requestedMode)?.label ?? requestedMode;
+  const displayVariants = playerVariantsForDisplay(initial.song, initial.variants);
 
   const shell = (
     <div className="page-shell player-page max-w-6xl mx-auto px-4 py-6">
@@ -1492,11 +1528,11 @@ function PlayerShellView({ initial, mode }: { initial: PlayerShell; mode: ViewMo
         </div>
       </div>
 
-      {initial.variants.length > 1 && (
+      {displayVariants.length > 1 && (
         <section className="mb-6">
           <h2 className="text-sm font-semibold text-zinc-500 mb-2">Same song, other levels</h2>
           <div className="flex flex-wrap gap-2">
-            {initial.variants.map((variant) => (
+            {displayVariants.map((variant) => (
               <Link
                 key={variant.id}
                 href={`/player/${variant.id}`}

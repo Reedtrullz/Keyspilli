@@ -8,7 +8,9 @@ CI publishes immutable `ghcr.io/reedtrullz/keyspilli:sha-<12>` (web) and
 (or a manual run from this machine) applies `deploy/playbook.yml`, which
 verifies the images/version, starts the compose stack on the VPS, checks
 `/api/health` locally and publicly, manages the host Caddy block, and rolls
-back to the previous images on failure.
+back to the previous images on failure. Production Caddy protects the entire
+domain with operator Basic Auth; the application bearer token remains a
+separate machine-mutation credential.
 
 Manual deploy (equivalent to the CI job):
 
@@ -26,18 +28,246 @@ Preconditions (matching the other projects):
 - VPS: Docker, Docker Compose v2, Caddy; GHCR pull access (`docker login ghcr.io` if the images are private).
 - Domain: the inventory defaults to `keys.reidar.tech` — add a Caddy
   block for any other domain to `deploy/playbook.yml` vars or the inventory.
+- Production edge credentials: export `KEYSPILLI_ACCESS_USERNAME` and
+  `KEYSPILLI_ACCESS_PASSWORD` from the operator/CI secret store. The username
+  must match the safe slug policy and the password must be at least 20
+  characters; Ansible refuses to render the production block when either is
+  missing. The password is hashed with bcrypt by the target Caddy binary and
+  is never written to the repository or Ansible output.
 - CI additionally needs the `production` GitHub environment and secrets
-  `VPS_SSH_PRIVATE_KEY` + `VPS_SSH_HOST_KEY` (see the Configure SSH key step in
-  `.github/workflows/ci.yml`).
+  `VPS_SSH_PRIVATE_KEY` + `VPS_SSH_HOST_KEY`, `KEYSPILLI_API_TOKEN`,
+  `KEYSPILLI_ACCESS_USERNAME`, and `KEYSPILLI_ACCESS_PASSWORD` (see the
+  Configure SSH key and deploy steps in `.github/workflows/ci.yml`).
 
-## First run on a fresh volume (catalog)
+## Optional seed catalog on a fresh volume
 
-The catalog must be built before the app is useful. Build it locally and copy
-`data/` contents into the VPS volume, or run inside the container:
+The bounded upload MVP bootstraps its schema on an empty `/data` volume; a
+historic seed catalog is not required to upload, play, or export a symbolic
+lesson. Build and copy `data/` only when the owner wants the curated catalog:
 
 ```bash
 docker compose run --rm web node --import tsx packages/catalog/scripts/pipeline.ts
 ```
+
+## Bounded symbolic uploads
+
+The private `/uploads` flow accepts `.mid`, `.midi`, `.musicxml`, and `.mxl`
+files up to 10 MB. The browser may submit same-origin bytes without exposing a
+token after the production edge has authenticated the owner. Direct callers
+inside the app network may send `Authorization: Bearer $KEYSPILLI_API_TOKEN`.
+Through the production Caddy edge, send Basic Auth plus
+`X-Keyspilli-Api-Token: Bearer $KEYSPILLI_API_TOKEN`: Caddy consumes and strips
+the Basic `Authorization` header, while the application treats the custom
+header as a transport alias for its unchanged bearer check.
+The route derives a stable `upload-<sha256>` base id, so retrying identical
+bytes replaces one six-level artifact set instead of creating duplicate rows.
+
+The file is parsed and validated by the normal catalog ingest pipeline before
+any artifact/SQLite publish. A native symbolic upload is a
+`GENERATION_CANDIDATE` with `USER_SUPPLIED_PRIVATE` provenance and
+`NATIVE_AUTHORITATIVE` timing: it is not an assertion that the score is
+aligned to unrelated audio. Source bytes are retained under `data/uploads/`
+and included in the existing bounded backup archive; malformed, unsupported,
+empty, and oversized content fails closed without catalog rows.
+
+### Optional generic source-search metadata
+
+The source-lead button has one production provider: Brave Search API. It is
+metadata discovery only; Keyspilli does not fetch result pages or third-party
+music bytes. Each request sends four bounded queries (`MIDI`, `MusicXML`,
+`Guitar Pro`, and `piano MIDI`), asks for at most 10 results per query, keeps at
+most 40 sanitized unique URLs, and displays at most three ranker-approved
+metadata cards. Results start with `UNKNOWN_RIGHTS` and `UNKNOWN_TIMING` and
+remain user-mediated until the owner supplies and uploads an authorized file.
+
+Obtain a Search API key from the [Brave API dashboard](https://brave.com/search/api/)
+and install it only in the server/deployment secret store:
+
+```bash
+export KEYSPILLI_SOURCE_SEARCH_PROVIDER=brave
+export KEYSPILLI_SOURCE_SEARCH_API_KEY='(operator secret; never print or commit)'
+```
+
+The application reads the key only on the server. Do not use a `NEXT_PUBLIC_`
+variable, browser request, shell-history literal, report, or repository file.
+To disable discovery, omit either variable; direct MIDI, MusicXML, and MXL
+upload remains fully available. Provider failures, quota responses, and
+timeouts return a bounded error state rather than blocking upload. The adapter
+uses a five-second timeout and one retry for 429/5xx/network failures. It does
+not persist a search cache because the [Brave API terms](https://api-dashboard.search.brave.com/documentation/resources/terms-of-service)
+allow only transient Search Result storage; no zero-retention claim is made.
+
+On production deploy, Ansible writes these two settings to the root-owned
+`/etc/keyspilli/source-search.env` (`0700` directory, `0600` file) and mounts
+that file into the web service. The rendered Compose manifest contains only
+the path, never the credential. A deploy with no provider settings writes an
+empty file and leaves discovery disabled.
+
+The published Search price is $5/1,000 requests, so the frozen four-query
+policy costs about $0.02 per song request before a retry (up to $0.04 in the
+worst retry case). Brave's [rate-limit guidance](https://api-dashboard.search.brave.com/documentation/guides/rate-limiting)
+and response headers remain authoritative. Search metadata has no implied
+license; the owner must inspect the source and provide a permitted file.
+
+At the implementation checkpoint no provider credential was available, so live
+coverage and the 20-song replay were not run. The subsequent local credential
+canary found the designated Keychain item, but its single Brave probe returned
+non-transient HTTP 422; the frozen replay was withheld and no retry/tuning was
+performed. See the fail-closed report
+`docs/research/keyspilli-evidence/production-search-provider-credential-canary-2026-09-05.json`.
+The provider comparison and implementation evidence are recorded in
+`docs/research/keyspilli-evidence/production-generic-source-search-provider-2026-09-05.json`.
+
+A later operator credential update was accepted by the same Brave endpoint:
+the probe returned HTTP 200 with 10 results, and the frozen 20-song metadata
+replay returned candidates for 20/20 targets. It used 82 provider requests
+(80 successful responses and two 429 responses recovered by the existing
+one-retry policy). No result pages or source bytes were fetched. This validates
+the local provider canary only; the credential remains out of production, and
+all remote metadata remains user-mediated. See
+`docs/research/keyspilli-evidence/production-search-provider-credential-canary-rerun-2026-09-05.json`.
+
+The closeout replay was required because the earlier successful canary retained
+aggregate counts but not per-result metadata. One unchanged-policy replay
+normalized 565 Brave candidates for the same 20-song corpus (10–35 per song),
+with 80 HTTP 200 responses and one recoverable HTTP 429. Ranker-classified
+strong structured coverage was 20/20 (MIDI 20/20, MusicXML 20/20, MXL 0/20,
+Guitar Pro 20/20, piano-symbolic 0/20); these are metadata/query-hint classes,
+not proof that a file exists or is licensed. All 20 had a
+`USER_MEDIATED_CANDIDATE`; automatic acquisition remained 0/20. One real Brave
+candidate reached the existing server-owned handoff contract in
+`AWAITING_USER_FILE` state with `UNKNOWN_RIGHTS` and `UNKNOWN_TIMING`. No
+candidate page or byte was fetched. The closeout report is
+`docs/research/keyspilli-evidence/production-search-provider-canary-closeout-2026-09-05.json`.
+
+### Bounded MVP release-candidate scope and deployment gate
+
+The bounded release candidate is a private, single-user symbolic product:
+MIDI, MusicXML, and MXL are accepted with their own symbolic timeline as the
+authoritative timing, six physical variants are persisted, and five public
+levels are exposed. YouTube conversion and independent score↔audio alignment
+remain separate experimental/partial capabilities; no recognizability or
+musical-quality guarantee is implied.
+
+The production Ansible playbook installs a Caddy `basicauth` block for the
+entire `app_domain`. The bcrypt hash is generated in memory from
+`KEYSPILLI_ACCESS_PASSWORD`; no plaintext password is rendered or logged. The
+local root `docker-compose.yml`/`deploy/Caddyfile` remain developer-only and
+are intentionally not the production perimeter. This is a single-user edge
+boundary, not an application account system: there is no signup, OAuth, or
+multi-user authorization.
+
+The deploy verifier requires anonymous public health to return HTTP 401, then
+checks authenticated health/version and both authenticated PDF signatures.
+The local `deploy/test/access-boundary.sh` canary also proves that Basic Auth
+is stripped before the app and that a machine bearer can cross the edge via
+`X-Keyspilli-Api-Token`. A missing edge credential fails the Ansible run before
+any Caddy or Compose mutation. Rotate the edge password by updating the secret
+store and running a normal immutable-image deploy; Ansible regenerates the
+bcrypt hash and reloads Caddy. Do not copy the hash into Git or hand-edit the
+live Caddyfile.
+
+The boundary checkpoint was local-only before owner authorization. On
+2026-09-04 the authenticated Ansible run applied the Caddy block and the
+anonymous-401/authenticated-version verifier passed; the current live posture
+is documented below. Preserve the historical pre-deployment evidence as
+historical, and do not describe same-origin checks alone as a private boundary.
+
+### Bounded MVP deployment canary — 2026-09-04
+
+The owner-authorized canary deployed the exact web release
+`03d19473aea27b8a7dbe494826a27f0b4870d900` as
+`ghcr.io/reedtrullz/keyspilli:03d19473aea2` (manifest digest
+`sha256:9de9d7904b9ecea2502576e310140b72327b5eef43344561885ce9e7d87ca6a9`).
+The worker remained on its existing image
+`ghcr.io/reedtrullz/keyspilli-worker:17f997600b9f`. Caddy Basic Auth protects
+the full `keys.reidar.tech` HTTPS edge; anonymous health is HTTP 401 and
+authenticated health reports the exact release SHA. The edge credential is
+held in the operator secret store, not in this repository.
+
+The first deploy attempt rolled back when the Ansible PDF verifier decoded a
+binary response as UTF-8. Checkpoint `3b5bac58c7fd989e5f7d8595019f61875c2cd6b6`
+made the verifier stream the PDF signature instead; the retry completed with
+`ok=32 changed=7 failed=0`. The separate disposable worker-off canary proved
+the bounded path does not depend on the ML worker; the live deployment kept the
+existing worker image unchanged and running. The live canary then passed a
+deterministic MIDI upload; the disposable RC canary covered MusicXML and MXL as
+well, plus six physical rows, five public levels, player routes, exports,
+retry idempotency, restart durability, cleanup, and manual backup validation.
+The remote Compose topology passed; local Compose was not run because the
+local plugin is unavailable. No generated musical bytes or policy changed.
+
+For a future deploy, use the release manifest
+`docs/research/keyspilli-evidence/bounded-mvp-deployment-canary-2026-09-04.json`
+and the evidence entry in
+`docs/research/keyspilli-evidence/KEYSPILLI_PRODUCT_PIPELINE_STATUS_2026_09.md`.
+
+Future explicitly authorized deployment checklist:
+
+1. Verify a clean release SHA and matching immutable image tags.
+2. Verify CI status for that exact SHA.
+3. Build or pull the immutable web (and required worker) image.
+4. Back up the current production volume and verify the archive.
+5. Verify host free disk and Docker space.
+6. Verify the private access boundary from an unauthorized network path.
+7. Deploy the exact image with Ansible/Compose.
+8. Check `/api/health` for `healthy` and the exact release SHA.
+9. Run the bounded MIDI/MusicXML/MXL upload canary with the worker off.
+10. Open the Easy player link and confirm the five public levels plus legacy Very Easy.
+11. Verify MIDI, MusicXML, and PDF exports.
+12. Check backup timer/state and the latest successful backup.
+13. If health/version or the canary fails, stop and use the documented immutable-image rollback; preserve the data volume.
+
+Local release-candidate evidence used Docker Engine/container smoke. Docker
+Compose v2 was unavailable on the audit host, so local Compose smoke is
+`COMPOSE_LOCAL_SMOKE_NOT_EXECUTED`, not a pass. The private-edge canary runs a
+disposable Caddy 2.6.2 container and does not change the live VPS.
+
+### Post-deploy operations audit — 2026-09-04
+
+The live bounded MVP is the immutable web image
+`ghcr.io/reedtrullz/keyspilli:03d19473aea2` at release revision
+`03d19473aea27b8a7dbe494826a27f0b4870d900`. For a read-only operator check,
+recover the edge password directly into a process environment and do not print
+it:
+
+```bash
+export KEYSPILLI_ACCESS_PASSWORD="$(security find-generic-password -a keyspilli-owner -s keyspilli-production-basic-auth -w)"
+curl --fail --silent --user "reidar:$KEYSPILLI_ACCESS_PASSWORD" https://keys.reidar.tech/api/health
+unset KEYSPILLI_ACCESS_PASSWORD
+```
+
+The expected response is `healthy` with the exact release revision and image.
+Anonymous HTTPS health must be HTTP 401; HTTP is only a 308 redirect. The web
+container should remain healthy with zero restarts, and the worker image should
+remain unchanged unless a separately authorized deployment says otherwise.
+The app is loopback-bound on the VPS (`127.0.0.1:3008`); Caddy is the HTTPS
+Basic Auth boundary. Do not treat same-origin checks as the private boundary.
+
+Read-only host checks:
+
+```bash
+docker ps --filter name=keyspilli
+docker system df
+df -h /
+systemctl status keyspilli-backup.timer
+systemctl list-timers keyspilli-backup.timer
+journalctl -u keyspilli-backup.service --since today
+caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+```
+
+The 2026-09-04 audit found a coherent SQLite/artifact set, valid rollback image
+tags, and successful automatic/manual backup validation. The host had 33.3 GiB
+free (above the 30 GiB hard floor, below the 34 GiB preferred floor) and nearly
+full swap. Do not prune or restart during an audit; record the exact reclaimable
+Docker cache/image candidates and obtain separate authorization before cleanup.
+The host has no external monitoring service or retained Caddy access log, so
+exact HTTP 5xx totals and off-host alerts are not available. The Keyspilli-owned
+operations checker below makes local failures visible through systemd and the
+journal without adding another credential or service.
+
+The path-free audit record is
+`docs/research/keyspilli-evidence/bounded-mvp-post-deploy-operations-2026-09-04.json`.
 
 ## Adding songs from the Ultimate Guitar list
 
@@ -81,6 +311,44 @@ report the expected song count.
 
 `/api/health` returns `{status: "healthy", version, commit, image}`. The
 playbook refuses to deploy unless the container reports the exact git SHA.
+
+Every release that changes a browser mutation must also run real Chromium
+through the reverse proxy and exact production image, then perform an actual
+same-origin mutation. A curl request with forged `Sec-Fetch-Site` metadata is
+not sufficient evidence for this gate.
+
+## Operations monitoring
+
+The deployment installs `/usr/local/sbin/keyspilli-ops-check`. Its compact JSON
+report covers live revision/image consistency, web health, worker state,
+`directAudioAmt=false`, source-discovery configuration, private-edge HTTP 401,
+disk, backup state/age, TLS expiry, Caddy validity, container restart counts,
+and recent source-provider outcome counts. It never calls Brave or prints a
+credential.
+
+```bash
+sudo /usr/local/sbin/keyspilli-ops-check --mode light
+sudo /usr/local/sbin/keyspilli-ops-check --mode deep
+systemctl list-timers 'keyspilli-ops-check*'
+journalctl -u keyspilli-ops-check.service -u keyspilli-ops-check-deep.service
+```
+
+The light timer runs every 30 minutes. The daily deep timer additionally checks
+the live and latest-backup SQLite databases plus basic archive readability.
+Disk is healthy at 34 GiB or more, warning from 30–34 GiB, and failed below
+30 GiB. Backups warn after 30 hours and fail after 48 hours. TLS warns below
+21 days and fails below 7 days. Warnings exit zero; failures leave the one-shot
+systemd unit failed and visible in the journal. The checker never prunes Docker
+or deletes user data.
+
+The checker is additive and carries no application state. To roll back only
+the monitoring installation, stop and disable
+`keyspilli-ops-check.timer` and `keyspilli-ops-check-deep.timer`, remove their
+two timer units, two one-shot service units, and
+`/usr/local/sbin/keyspilli-ops-check`, then run `systemctl daemon-reload`.
+This does not stop or recreate the web, worker, Caddy, backup timer, or data
+volume. Re-running the current deployment monitoring tasks restores the exact
+committed units and checker.
 
 ## Backups
 
@@ -143,13 +411,36 @@ when available. A missing or partial chart falls back to generated chords and
 is labelled in the player. Do not check in copied lyrics, raw tab text, or
 provider page bodies; retain only normalized chord events and provenance.
 
-## YouTube conversion notes
+## Canonical lesson-creation path
 
-- The learner-facing `/youtube` page enqueues through `POST /api/youtube/import`.
-  That endpoint deliberately accepts only `{ "url": "https://..." }`, checks
-  same-origin browser metadata, limits active work and repeat requests, and
-  rejects duplicate URLs. It exists so the no-login single-user page does not
-  need the server-only `KEYSPILLI_API_TOKEN` in browser JavaScript.
+The current learner product is `EXTERNAL_SYMBOLIC_FIRST`:
+
+1. Enter artist and title on `/uploads`.
+2. Optionally request metadata-only source leads from Brave Search.
+3. Open a candidate independently and, if useful, select it as a metadata lead.
+4. Affirm the song identity and authorization.
+5. Upload the authorized MIDI, MusicXML, or MXL bytes.
+6. Keyspilli validates those bytes and creates the lesson, player, and exports.
+
+Discovery never fetches a candidate page or symbolic file. It is optional, and
+direct symbolic upload remains available when Brave is absent or unavailable.
+If the bounded search has no eligible result, the product reports that no usable
+source lead was found; it does not start audio transcription.
+
+`POST /api/youtube/import` is a retired learner endpoint. It returns HTTP 410
+with `DIRECT_AUDIO_AMT_DISABLED` and never inserts a conversion job. `/youtube`
+is a compatibility page that sends old bookmarks to `/uploads`.
+
+`GET /api/health` reports the release identity, DB status, song count, and only
+these non-secret capabilities: symbolic upload availability, whether source
+discovery is configured, and `directAudioAmt: false`. It does not contact Brave.
+Check local disk separately with `df -h /System/Volumes/Data`; 30 GiB is the hard
+engineering floor and 34 GiB the preferred floor.
+
+## Legacy operator-only YouTube conversion notes
+
+- The former learner-facing `POST /api/youtube/import` endpoint is disabled as
+  described above. It must not be used to enqueue maintenance work.
 - `POST /api/youtube` remains the bearer-protected maintainer endpoint for
   metadata overrides and re-transcription. Never expose `KEYSPILLI_API_TOKEN`
   through `NEXT_PUBLIC_*` variables or embed it in the page bundle.
@@ -338,3 +629,152 @@ docker compose run --rm web node --import tsx packages/catalog/scripts/pipeline.
 - Positional base ids restrict the run: `npx tsx ... reingest-all-youtube.ts <baseId>...`
 - VPS: trigger the "Rebuild YouTube catalog on VPS" job via GitHub Actions
   workflow dispatch (runs inside the worker container with `--keep-existing-tempo`).
+
+### Discovery-assisted private alpha deployment canary — 2026-09-05
+
+The owner-authorized canary now runs the immutable web release
+`67827050a695e54609f6cf3f064e4fdaaabbb65b` as
+`ghcr.io/reedtrullz/keyspilli:67827050a695` (manifest digest
+`sha256:9520812e80f70d7ede4faa8ab0f34f9060371a80748e9a7957da9cecafedc094`).
+The worker remains on `ghcr.io/reedtrullz/keyspilli-worker:17f997600b9f`.
+Ansible used the VPS Docker Compose 5.1.3 topology; the local workstation
+still has no Compose plugin, so local Compose smoke is
+`COMPOSE_LOCAL_SMOKE_NOT_EXECUTED`.
+
+The Brave Search credential is installed only in the root-owned
+`/etc/keyspilli/source-search.env` (`0600`) and is injected server-side. It is
+not in Git, the rendered Compose file, browser assets, or recent logs. Caddy
+Basic Auth protects the complete HTTPS edge; anonymous health is 401 and
+authenticated health reports the exact release revision. The source-search
+route is user-mediated metadata discovery: a positive probe returned three
+candidates, while a valid Brave no-result response returns an empty set. No
+result pages or source bytes are fetched.
+
+The adapter honors the Brave free-plan request window with a 1.1-second retry
+delay and accepts the provider's valid `mixed`-only empty response while still
+rejecting malformed result arrays. After restart, `/uploads`, player, MIDI,
+MusicXML, and both PDF exports returned 200 with valid content. Under Node
+22.22.3/npm 10.9.8, focused provider tests (9/9), the workspace suite (1,672
+tests), six typechecks, and `git diff --check` passed. This canary changes no
+musical behavior or source-generation policy; independent alignment remains
+partial and musical quality is not objectively established.
+
+### User-mediated source handoff live canary — 2026-09-05
+
+The owner-authorized live canary exercised metadata-only discovery, explicit
+owner affirmation, and the existing symbolic upload/generation path on the
+`67827050a695e54609f6cf3f064e4fdaaabbb65b` web release. Brave returned three
+metadata candidates and one MIDI lead was selected. The uploaded file was a
+320-byte project-owned synthetic MIDI; no discovered page or third-party
+symbolic bytes were fetched or uploaded.
+
+Normal ingest generated six physical variants and five public levels. The Easy
+player and sheet routes plus MIDI, MusicXML, and simplify-PDF exports returned
+valid responses. A web-container restart preserved the item and exports.
+Cleanup then removed the exact temporary base, source upload, artifacts,
+transcription data, and handoff row; all temporary API rows and the grouped
+projection are absent afterward. Path-free evidence is recorded in
+`user-mediated-source-handoff-live-canary-2026-09-05.json`.
+
+This is a lineage/operations canary only. Discovery remains metadata-only and
+user-mediated; independent alignment remains partial and musical quality is
+not objectively established.
+
+### Audio AMT product boundary — 2026-09-05
+
+The production strategy is `EXTERNAL_SYMBOLIC_FIRST`. Direct dense-metal AMT
+is `AUDIO_AMT_BRANCH_CLOSED_FOR_CURRENT_PRODUCT_ARCHITECTURE` and must not be
+used as source authority or a silent fallback. When discovery and owner upload
+cannot provide trustworthy symbolic bytes, return
+`NO_TRUSTWORTHY_SYMBOLIC_SOURCE_AVAILABLE`.
+
+Do not install MuScriptor weights in production: the frozen weights are
+non-commercial research-only, and the preregistered dense-metal robustness gate
+failed. Historical small audio-derived diagnostics are unaffected. Reopening
+full-song AMT requires a material trigger recorded in
+`audio-amt-branch-closeout-2026-09-05.json`, not a new model listing, leaderboard
+change, recommendation, or minor version bump.
+
+### Hardened private-alpha deployment canary — failed and rolled back — 2026-09-05
+
+The owner-authorized `4f87c05d25e175446ce05ceac6031fadab3f8892`
+candidate was built natively as `linux/amd64`, passed exact-version container
+health, and was temporarily installed by recreating only the web service in the
+existing remote Compose topology. Ansible was not run because its required
+local application/provider secret inputs were unavailable; replaying it would
+have risked overwriting the validated server-side secret configuration. Caddy,
+the worker, persistent data, and all existing credentials remained unchanged.
+
+Discovery, metadata-only handoff, direct-AMT disablement, a project-owned
+worker-off symbolic upload, all six physical and five public levels, player and
+exports, retry idempotency, restart persistence, malformed-input atomicity, and
+scoped cleanup passed. No discovered page or third-party source bytes were
+fetched.
+
+A real browser request from the authenticated `/uploads` page failed at the
+mutation boundary with HTTP 403. The origin helper reconstructed the forwarded
+HTTPS origin while retaining the internal container port, producing an origin
+that cannot equal the browser's public origin. A curl request carrying only
+`Sec-Fetch-Site: same-origin` did not expose this defect and is not an adequate
+browser-upload canary. The browser failure also reproduced after restoring the
+previous release, proving the bug is pre-existing.
+
+The candidate was rolled back. Live health again reports revision
+`67827050a695e54609f6cf3f064e4fdaaabbb65b`; database integrity, existing
+content, worker identity, Caddy, secrets, and complete canary cleanup were
+verified. Decision: `HARDENING_DEPLOYMENT_CANARY_FAILED_ROLLED_BACK`. Do not
+retry deployment until `FIX_LIVE_SAME_ORIGIN_BROWSER_MUTATION_PORT_RECONSTRUCTION`
+is implemented and covered by a reverse-proxy browser regression.
+
+### Live same-origin browser mutation port fix — locally validated — 2026-09-05
+
+The mutation guard must derive an effective public origin from a complete
+`X-Forwarded-Proto` and `X-Forwarded-Host` pair by constructing a fresh URL.
+Do not mutate the internal request URL's protocol and host independently: when
+the forwarded host has no port, the URL host setter retains the internal
+explicit port. Use the first trimmed forwarded values, accept only HTTP(S),
+canonicalize default ports, preserve explicit public non-default ports, and fail
+closed on a partial or malformed pair. Direct requests use their URL protocol
+with the Host header. Bearer authorization remains the machine-mutation path.
+
+The contract passed a real Chromium upload through a local reverse proxy into
+the exact production image for revision
+`c3a7e50ca621ac2b0ea943a474a8c6af572e19b7`. Cross-origin and same-site other
+origins remained rejected, while six physical variants, five public levels,
+player/export routes, and malformed-input atomicity passed in disposable state.
+This is local release evidence only: production was not accessed or changed and
+remains on the prior rollback revision according to existing evidence.
+
+### Private-alpha deployment retry and monitoring — 2026-09-05
+
+The same-origin fix is live as immutable web image
+`ghcr.io/reedtrullz/keyspilli:e9dd13a672e9` (registry digest
+`sha256:8f29dee0bd2c28d27128eeaedb2118447024a4bd2779b787e0f2489a5adcfcdc`).
+Only the web service was recreated. The worker stayed on
+`ghcr.io/reedtrullz/keyspilli-worker:17f997600b9f`; Caddy, secrets, data, and
+the volume were unchanged.
+
+A real Chromium browser completed metadata discovery, affirmed handoff, and a
+project-owned MIDI upload through the authenticated live domain. Six physical
+variants, five public levels, Easy and legacy Very Easy routes, MIDI/MusicXML
+and both PDF exports, identical retry, restart persistence, malformed-input
+atomicity, and complete scoped cleanup passed. Anonymous access remains 401,
+cross-origin mutation 403, metadata-free mutation 401, and direct audio AMT
+410. No third-party page or symbolic bytes were fetched.
+
+The light and deep operations timers are deployed as documented above. At the
+deployment closeout, disk was above the 30 GiB hard floor but below the
+preferred 34 GiB threshold,
+so the checker reports a warning while exiting successfully. The immutable
+`67827050a695` image and pre-retry Compose file remain available for rollback.
+The latest SQLite backup restored into scratch with integrity `ok`; production
+was not restored or otherwise modified.
+
+### Private-alpha owner usage
+
+Normal owner use is the next product stage. It is not a QA script or listening
+exercise. Report blocking, confusing, failed, or unexpectedly slow product
+interactions using `docs/private-alpha-feedback-guide.md`; do not include
+credentials, private paths, or source bytes by default. The objective local
+usage matrix and short read-only live baseline are recorded in
+`docs/research/keyspilli-evidence/private-alpha-usage-feedback-phase-2026-09-05.json`.

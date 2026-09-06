@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "kind": "metal-guitar-amt-transfer-preregistration",
+  "experimentId": "metal-guitar-amt-transfer-2026-09-02",
+  "git": {
+    "revision": "ae4b46a2aa798a397546d966d1143dd0f25ee0fa"
+  },
+  "evaluation": {
+    "timebase": "absolute-seconds",
+    "onsetToleranceSeconds": 0.08,
+    "matching": "deterministic-maximum-cardinality-one-to-one",
+    "materialGain": 0.03,
+    "catastrophicLoss": 0.1,
+    "meaningfulPrecisionGain": 0.1,
+    "autoAlignment": false,
+    "transposition": 0
+  },
+  "backends": {
+    "basicPitch": {
+      "engine": "basic-pitch",
+      "modelSerialization": "onnx",
+      "onsetThreshold": 0.45,
+      "frameThreshold": 0.3,
+      "postProcessing": "none",
+      "configHash": "fa0c798525cacacf635d890d88a573be6604419ef77f4bf4d176add33ed430c2"
+    },
+    "gaps": {
+      "engine": "xavriley/hf_midi_transcription",
+      "codeSha": "96f6797881e9497cbfc8f8e5deccea9c1f2f7adc",
+      "checkpointSha256": "65483e7c0e340a90415b15b520687587698c8c728f5fa470a205f13ee45c6513",
+      "device": "mps",
+      "batchSize": 8,
+      "sampleRate": 16000,
+      "segmentSeconds": 10,
+      "overlap": 0.5,
+      "onsetThreshold": 0.3,
+      "offsetThreshold": 0.3,
+      "frameThreshold": 0.1,
+      "pedalOffsetThreshold": 0.2,
+      "writerTempoBpm": 120,
+      "writerDivision": 384
+    }
+  },
+  "songs": [
+    {
+      "id": "final-solution",
+      "stem": { "status": "unavailable", "logicalId": "final-solution-exact-frozen-guitar-stem" },
+      "basicPitch": { "status": "unavailable", "logicalId": "final-solution-basic-pitch-output", "recordedSha256": "88f7b226940e8129f7f3c33e388c8d04f368a493554efb9de95808570a763a78" },
+      "gaps": { "status": "unavailable", "logicalId": "final-solution-gaps-output" },
+      "reference": { "status": "unavailable", "logicalId": "final-solution-eval-reference-deferred" }
+    },
+    {
+      "id": "gott-mit-uns",
+      "stem": { "status": "unavailable", "logicalId": "gott-mit-uns-exact-frozen-guitar-stem" },
+      "basicPitch": { "status": "unavailable", "logicalId": "gott-mit-uns-basic-pitch-output", "recordedSha256": "1dc3eb852d0cbdc775b10151b735b53e730a18543d6cb53132ce9c67c780329d" },
+      "gaps": { "status": "unavailable", "logicalId": "gott-mit-uns-gaps-output" },
+      "reference": { "status": "unavailable", "logicalId": "gott-mit-uns-eval-reference-deferred" }
+    },
+    {
+      "id": "red-baron",
+      "stem": { "status": "unavailable", "logicalId": "red-baron-exact-frozen-guitar-stem" },
+      "basicPitch": { "status": "unavailable", "logicalId": "red-baron-basic-pitch-output", "recordedSha256": "396e157b8043a3505aac16ff5ee9f05854b1c2e8e4f8f228dd82a7c8c3d2efb9" },
+      "gaps": { "status": "unavailable", "logicalId": "red-baron-gaps-output" },
+      "reference": { "status": "unavailable", "logicalId": "red-baron-eval-reference-deferred" }
+    }
+  ]
+}

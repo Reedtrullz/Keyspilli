@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "id": "bounded-mvp-deployment-canary-2026-09-04",
+  "date": "2026-09-04",
+  "authorization": "owner-authorized deployment canary",
+  "release": {
+    "sourceRevision": "03d19473aea27b8a7dbe494826a27f0b4870d900",
+    "deploymentCheckpoint": "3b5bac58c7fd989e5f7d8595019f61875c2cd6b6",
+    "webImage": "ghcr.io/reedtrullz/keyspilli:03d19473aea2",
+    "webImageDigest": "sha256:9de9d7904b9ecea2502576e310140b72327b5eef43344561885ce9e7d87ca6a9",
+    "workerImage": "ghcr.io/reedtrullz/keyspilli-worker:17f997600b9f",
+    "workerChanged": false,
+    "supportedFormats": ["midi", "musicxml", "mxl"],
+    "timingAuthority": "NATIVE_AUTHORITATIVE",
+    "publicLevels": ["Very Beginner", "Beginner", "Easy", "Medium", "Advanced"],
+    "physicalLevels": ["Very Easy", "Very Beginner", "Beginner", "Easy", "Medium", "Advanced"]
+  },
+  "runtime": {
+    "node": "22.22.3",
+    "npm": "10.9.8",
+    "localDocker": "29.7.1 client / 29.5.2 server",
+    "localCompose": "COMPOSE_LOCAL_SMOKE_NOT_EXECUTED; plugin unavailable",
+    "remoteDocker": "29.4.2",
+    "remoteCompose": "5.1.3",
+    "caddy": "2.6.2"
+  },
+  "evidenceReconciliation": {
+    "webImageBuild": "PASS",
+    "webContainerSmoke": "PASS",
+    "localComposeSmoke": "NOT_EXECUTED",
+    "remoteComposeTopology": "PASS",
+    "firstDeploymentAttempt": "ROLLED_BACK; binary PDF verifier used Ansible URI UTF-8 decoding",
+    "verifierFix": "3b5bac58c7fd989e5f7d8595019f61875c2cd6b6",
+    "successfulRetry": "PASS"
+  },
+  "accessPosture": {
+    "domain": "keys.reidar.tech",
+    "reachability": "internet-routable",
+    "edge": "Caddy Basic Auth over HTTPS",
+    "anonymousHealth": "HTTP 401",
+    "authenticatedHealth": "healthy; exact release revision",
+    "applicationAuth": "single-user bearer/custom-header contract unchanged",
+    "credentialStorage": "operator credential stored in macOS Keychain; no plaintext or hash retained"
+  },
+  "canary": {
+    "freshVolume": "PASS",
+    "workerOff": "PASS in disposable RC canary for MIDI/MusicXML/MXL; live worker image unchanged",
+    "liveWorkerImageUnchanged": true,
+    "liveMIDI": "PASS",
+    "disposableWorkerOffFormats": ["midi", "musicxml", "mxl"],
+    "physicalRows": 6,
+    "publicLevels": 5,
+    "playerEasy": "PASS",
+    "playerLegacyVeryEasy": "PASS",
+    "exports": {"midi": "PASS", "musicxml": "PASS", "pdf": "PASS"},
+    "retryIdempotency": "PASS; same SHA reused the same base/easy ids",
+    "restartDurability": "PASS; six variants remained after container restart",
+    "cleanup": "PASS; canary rows and source bytes removed",
+    "finalCatalogCount": 2760
+  },
+  "backup": {
+    "timer": "enabled and active",
+    "manualRun": "PASS",
+    "archiveValidation": "PASS",
+    "scope": "scratch verification only; no canary media retained"
+  },
+  "security": {
+    "sameOrigin": "PASS",
+    "anonymousWriteBoundary": "PASS; edge authentication required",
+    "wrongEdgeCredential": "HTTP 401",
+    "crossOriginRejected": "PASS",
+    "malformedAndOversizedInputs": "PASS; fail closed",
+    "privatePathLeak": "NOT_OBSERVED",
+    "browserTokenExposure": "NOT_OBSERVED"
+  },
+  "decisions": {
+    "releaseCandidate": "BOUNDED_MVP_RELEASE_CANDIDATE_READY",
+    "deployment": "DEPLOYED_CANARY_VERIFIED",
+    "realSymbolicAlignment": "REAL_SYMBOLIC_ALIGNMENT_PARTIAL",
+    "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+    "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+    "musicalBehaviorChanges": 0,
+    "deploymentStatus": "OWNER_AUTHORIZED_CANARY_DEPLOYED"
+  },
+  "retention": "no canary source bytes retained; only path-free metadata and hashes are committed"
+}

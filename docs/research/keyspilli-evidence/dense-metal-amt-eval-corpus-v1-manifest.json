@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "corpusId": "dense-metal-amt-eval-corpus-v1",
+  "evidenceClass": "SYNTHETIC_DENSE_METAL_FULL_REFERENCE",
+  "alignmentAuthority": "SYMBOLIC_RENDER_NATIVE_ALIGNMENT",
+  "rights": {
+    "composition": "PROJECT_OWNED",
+    "renderer": "PROJECT_OWNED_PROCEDURAL_SYNTH",
+    "thirdPartyAssets": false
+  },
+  "firewall": {
+    "classification": "EVAL_ONLY",
+    "generation": false,
+    "training": false,
+    "tuning": false
+  },
+  "renderer": {
+    "id": "keyspilli-procedural-metal-v1",
+    "sampleRate": 44100,
+    "channels": 2,
+    "bitsPerSample": 16,
+    "targetPeak": 0.92,
+    "externalAssets": []
+  },
+  "fixtures": [
+    {
+      "id": "METAL_A_TIGHT_RIFF",
+      "texture": "tight-riff-chug",
+      "bpm": 120,
+      "meter": [4, 4],
+      "durationBeats": 64,
+      "durationSeconds": 32,
+      "roles": ["rhythm-guitar", "bass", "lead", "drums"],
+      "noteCount": 1056,
+      "metrics": {
+        "medianIoiBeats": 0.25,
+        "p10IoiBeats": 0.25,
+        "maxSimultaneousPitchedNotes": 5,
+        "notesPerSecond": 33,
+        "roleCount": 4
+      },
+      "artifacts": {
+        "canonicalEvents": {
+          "logicalRef": "METAL_A_TIGHT_RIFF/events.json",
+          "sha256": "6cc73309ec6c08254468e296c53b436870f3242f8c5daa870106bf36bbab777e"
+        },
+        "midi": {
+          "logicalRef": "METAL_A_TIGHT_RIFF/ground-truth.mid",
+          "sha256": "a15e981b1098855c8d43677a65fa79db5d84f3ad202f339e006c51e4f76f6268",
+          "bytes": 8752
+        },
+        "fullMix": {
+          "logicalRef": "METAL_A_TIGHT_RIFF/full-mix.wav",
+          "sha256": "67df1197d5dca9df222bb071271d9468fbbb9e6d04096e59e29f83a3ebc30701",
+          "canonicalPcmSha256": "1a72e796b1419d7d87301f1e15d2c91abb90cdb7fd73e834f326adf06822f822",
+          "bytes": 5644844
+        }
+      }
+    },
+    {
+      "id": "METAL_B_DENSE_EXTREME",
+      "texture": "dense-extreme-rapid",
+      "bpm": 180,
+      "meter": [4, 4],
+      "durationBeats": 96,
+      "durationSeconds": 32,
+      "roles": ["rhythm-guitar", "bass", "lead", "drums"],
+      "noteCount": 3024,
+      "metrics": {
+        "medianIoiBeats": 0.25,
+        "p10IoiBeats": 0.25,
+        "maxSimultaneousPitchedNotes": 5,
+        "notesPerSecond": 94.5,
+        "roleCount": 4
+      },
+      "artifacts": {
+        "canonicalEvents": {
+          "logicalRef": "METAL_B_DENSE_EXTREME/events.json",
+          "sha256": "8221085ac375ae97efea55b7f4ce2903b974463c3fc6b1833935c731f2eeab72"
+        },
+        "midi": {
+          "logicalRef": "METAL_B_DENSE_EXTREME/ground-truth.mid",
+          "sha256": "d9557a4fc433f71c1c4984bc2f739a597c2408e1cde147c7924a7b142a648ad7",
+          "bytes": 24672
+        },
+        "fullMix": {
+          "logicalRef": "METAL_B_DENSE_EXTREME/full-mix.wav",
+          "sha256": "d53217b5438bc30d062ddcdc594974f071fe5664526e85147fd2e960a62fe069",
+          "canonicalPcmSha256": "74a14e62f2b9b59344a210ea9428ed46d7b830c9858e4a5e3bfa735962785cb3",
+          "bytes": 5644844
+        }
+      }
+    },
+    {
+      "id": "METAL_C_LAYERED_MELODIC",
+      "texture": "layered-melodic-harmonic",
+      "bpm": 150,
+      "meter": [4, 4],
+      "durationBeats": 80,
+      "durationSeconds": 32,
+      "roles": ["rhythm-guitar", "bass", "lead", "harmony", "drums"],
+      "noteCount": 1100,
+      "metrics": {
+        "medianIoiBeats": 0.5,
+        "p10IoiBeats": 0.5,
+        "maxSimultaneousPitchedNotes": 8,
+        "notesPerSecond": 34.375,
+        "roleCount": 5
+      },
+      "artifacts": {
+        "canonicalEvents": {
+          "logicalRef": "METAL_C_LAYERED_MELODIC/events.json",
+          "sha256": "a481c9c639db8a9ef67eaf952cc29a83e9a59dbb250f28d9bf9ca08463f75ddf"
+        },
+        "midi": {
+          "logicalRef": "METAL_C_LAYERED_MELODIC/ground-truth.mid",
+          "sha256": "c79f2672b06bb3f95ba924395197c4a7c485a3ad78ca321936174cf0eff7a9c5",
+          "bytes": 9408
+        },
+        "fullMix": {
+          "logicalRef": "METAL_C_LAYERED_MELODIC/full-mix.wav",
+          "sha256": "5dae81438d13b914ff0def3264d72665e45d681bfe1dfc614ce52077495d8dfb",
+          "canonicalPcmSha256": "0347440e4bbf9ba527706169a8c766f5d527a57a6bdd488ad1134df9c66f278d",
+          "bytes": 5644844
+        }
+      }
+    }
+  ],
+  "determinism": {
+    "canonicalSha256": "5c51f0575f6ca2ca33c2f186704d82682e00c99ff333fe4b1b455a34a9c4c5b8"
+  }
+}

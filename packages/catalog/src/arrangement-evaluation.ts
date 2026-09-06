@@ -1,5 +1,5 @@
 import { basename } from "node:path";
-import { validateVariants, verifyMonotonicity, type GuitarHarmonyDiagnostics, type Note, type ParsedMidi, type Variant } from "@keyspilli/midi";
+import { LEVEL_ORDER, validateVariants, verifyMonotonicity, type DifficultyLevel, type GuitarHarmonyDiagnostics, type Note, type ParsedMidi, type Variant } from "@keyspilli/midi";
 import { sha256Hex } from "./fixture-evidence.js";
 
 /** The thresholds are part of the report contract so a report can be reproduced. */
@@ -65,12 +65,13 @@ export interface ArrangementEvaluationReference {
 export interface ProvenanceTraceEvent {
   key: string;
   windowId?: string;
-  stage?: "raw" | "cleaned" | "lead" | "residual" | "cluster" | "semantic" | "decision" | "chord" | "left-hand" | "final";
+  stage?: "raw" | "cleaned" | "learner-arranged" | "advanced-candidates" | "advanced-playable" | "medium-candidates" | "medium-playable" | "easy-rh-input" | "easy-lh-input" | "easy-voice-selection" | "easy-assembled" | "easy-playable" | "easy-ladder" | "very-easy-rh-input" | "very-easy-playable" | "beginner-rh-input" | "beginner-rh-selected" | "beginner-assembled" | "beginner-playable" | "beginner-ladder" | "beginner-final" | "eligibility" | "selector-input" | "onset-group" | "lead" | "residual" | "cluster" | "semantic" | "decision" | "chord" | "left-hand" | "difficulty" | "final";
   parentKeys?: string[];
   source?: string | null;
   sourceStem?: string | null;
   note?: { midi: number; rawMidi?: number; start: number; dur: number; vel: number; hand?: "R" | "L" };
   selectionReason?: string;
+  operation?: "RETAINED" | "REJECTED" | "MERGED" | "COLLAPSED" | "REPLACED" | "PITCH_CHANGED" | "OCTAVE_SHIFTED" | "TIMING_CHANGED" | "DURATION_CHANGED" | "ROLE_CHANGED" | "HAND_CHANGED" | "GENERATED";
   rawCandidateCount?: number;
   selected?: boolean;
   confidence?: number;
@@ -148,7 +149,8 @@ export interface GlobalMetrics {
   pitchMin: number | null;
   pitchMax: number | null;
   pitchSpan: number | null;
-  simultaneity: { max: number; p50: number; p90: number; p99: number; basis: "sounding-sweep" };
+  /** Quantiles are sampled at note start/end boundaries; max is the sweep maximum. */
+  simultaneity: { max: number; p50: number; p90: number; p99: number; basis: "event-boundary" };
   chromaticOutlier: { value: number | null; basis: "explicit-key" | "reference" | "unavailable"; count: number | null; total: number | null };
   isolatedShortCount: number;
   veryShortCount: number;
@@ -207,6 +209,119 @@ export interface VariantEvaluationMetrics {
   leftHand: LeftHandMetrics;
   guitar: GuitarEvaluationMetrics;
   source: SourceIntegrityMetrics;
+}
+
+/**
+ * Additive, source-agnostic calibration output for the complete learner
+ * ladder.  This deliberately reuses the metric definitions above and does
+ * not participate in publication or variant selection.
+ */
+export type DifficultyLadderClassification =
+  | "HEALTHY_SIMPLIFICATION"
+  | "REDUNDANT_LEVEL"
+  | "IDENTITY_CLIFF"
+  | "COMPLEXITY_CLIFF"
+  | "NON_MONOTONIC"
+  | "INCONCLUSIVE";
+
+export interface DifficultyLadderIdentityMetrics {
+  sourceRhOnsetCoverage: number | null;
+  sourcePitchClassCoverage: number | null;
+  sourceRepresentativeCoverage: number | null;
+  directionAgreement: number | null;
+  turnSurvival: number | null;
+  localExtremaSurvival: number | null;
+  repeatedAttackSurvival: number | null;
+  largeLeapEndpointSurvival: number | null;
+  phraseStartSurvival: number | null;
+  phraseEndSurvival: number | null;
+  anchorSurvival: number | null;
+  harmonicRootChangeSurvival: number | null;
+  harmonicChangeSurvival: number | null;
+}
+
+export interface DifficultyLadderLineageMetrics {
+  traceAvailable: boolean;
+  sourceNotesMatched: number;
+  sourceNotesUnmatched: number;
+  operationCounts: Record<string, number>;
+}
+
+export interface DifficultyLadderLevelMetrics {
+  level: DifficultyLevel;
+  difficultyScore: number;
+  noteCount: number;
+  rightHandCount: number;
+  leftHandCount: number;
+  onsetCount: number;
+  rightHandOnsetCount: number;
+  leftHandOnsetCount: number;
+  durationBeats: number;
+  notesPerSecond: number;
+  attacksPerSecond: number;
+  maxSimultaneity: number;
+  medianSimultaneity: number;
+  p90Simultaneity: number;
+  rightHandSpan: number | null;
+  leftHandSpan: number | null;
+  medianMelodicLeap: number | null;
+  p95MelodicLeap: number | null;
+  largeLeapRate: number;
+  repeatedAttackRate: number;
+  harmonicRootChanges: number;
+  harmonicRestrikes: number;
+  harmonicShapes: number;
+  phraseStarts: number;
+  phraseEnds: number;
+  anchors: number;
+  sourceRoleCounts: SourceCounts;
+  identity: DifficultyLadderIdentityMetrics;
+  lineage: DifficultyLadderLineageMetrics;
+}
+
+export interface DifficultyLadderTransitionMetrics {
+  harder: DifficultyLevel;
+  easier: DifficultyLevel;
+  identityDelta: {
+    rhOnsetCoverage: number | null;
+    pitchClassCoverage: number | null;
+    directionAgreement: number | null;
+    turnSurvival: number | null;
+    localExtremaSurvival: number | null;
+    repeatedAttackSurvival: number | null;
+    largeLeapEndpointSurvival: number | null;
+    phraseAnchorSurvival: number | null;
+    harmonicChangeSurvival: number | null;
+  };
+  complexityDelta: {
+    noteReductionRatio: number;
+    onsetReductionRatio: number;
+    attackRateDelta: number;
+    attackRateReductionRatio: number;
+    maxSimultaneityReductionRatio: number;
+    maxSimultaneityDelta: number;
+    rightHandSpanDelta: number | null;
+    largeLeapRateDelta: number;
+    repeatedAttackRateDelta: number;
+  };
+  lineage: { retained: number; rejected: number; collapsed: number; transformed: number };
+  violations: string[];
+  classification: DifficultyLadderClassification;
+}
+
+export interface DifficultyLadderEvaluation {
+  schemaVersion: 1;
+  fixture: { id: string; label?: string };
+  order: DifficultyLevel[];
+  levels: Record<string, DifficultyLadderLevelMetrics>;
+  transitions: DifficultyLadderTransitionMetrics[];
+  thresholds: {
+    onsetToleranceBeats: number;
+    phraseBreakBeats: number;
+    redundancyComplexityRatio: number;
+    identityCliffCoverage: number;
+    complexityCliffReduction: number;
+  };
 }
 
 export interface SourceCounts {
@@ -348,6 +463,12 @@ function finiteNote(note: Note): boolean {
     && Number.isInteger(midi) && Number.isFinite(start) && Number.isFinite(dur)
     && Number.isFinite(vel) && vel >= 0 && vel <= 127
     && start >= 0 && dur > 0 && midi >= 0 && midi <= 127
+    // Keep derived end times in the exact, bounded range used by the
+    // evaluator.  A pair of individually finite values can still overflow
+    // when added (for example MAX_VALUE + MAX_VALUE), which otherwise leaks
+    // Infinity into duration/coverage metrics and can make a malformed
+    // runtime payload appear structurally valid.
+    && Number.isFinite(start + dur) && start + dur <= Number.MAX_SAFE_INTEGER
     && validHand && validSource;
 }
 
@@ -603,7 +724,7 @@ function globalMetrics(
     pitchMin: low,
     pitchMax: high,
     pitchSpan: range.span,
-    simultaneity: { max: sweep.max, p50: sweep.quantiles[0]!, p90: sweep.quantiles[1]!, p99: sweep.quantiles[2]!, basis: "sounding-sweep" },
+    simultaneity: { max: sweep.max, p50: sweep.quantiles[0]!, p90: sweep.quantiles[1]!, p99: sweep.quantiles[2]!, basis: "event-boundary" },
     chromaticOutlier: { value: null, basis: "unavailable", count: null, total: null },
     isolatedShortCount: isolated,
     veryShortCount: valid.filter((note) => note.dur <= ARRANGEMENT_EVALUATION_CONFIG.veryShortBeats).length,
@@ -692,22 +813,198 @@ function parserFor(candidate: ArrangementEvaluationCandidate, notes: Note[]): Ar
 }
 
 function parserMetadataValid(candidate: ArrangementEvaluationCandidate): boolean {
-  const parsed = candidate.parsed;
-  const tempo = candidate.tempoBpm ?? parsed?.tempoBpm;
-  const duration = candidate.durationBeats ?? parsed?.durationBeats;
-  const division = parsed?.division;
-  const format = parsed?.format;
-  const timeSig = parsed?.timeSig ?? candidate.timeSig;
-  return (tempo === undefined || (Number.isFinite(tempo) && tempo > 0))
-    && (duration === undefined || (Number.isFinite(duration) && duration >= 0))
-    && (division === undefined || (Number.isInteger(division) && division > 0))
-    && (format === undefined || (Number.isInteger(format) && format >= 0))
-    && (timeSig === undefined || (Array.isArray(timeSig) && timeSig.length === 2
-      && Number.isInteger(timeSig[0]) && timeSig[0] > 0 && Number.isInteger(timeSig[1]) && timeSig[1] > 0));
+  return parserMetadataFailures(candidate, "candidate").length === 0;
 }
 
-function notesFor(source: { parsed?: ParsedMidi; notes?: Note[] }): Note[] {
-  return source.notes ?? source.parsed?.notes ?? [];
+function hasOwn(value: Record<string, unknown>, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(value, key);
+}
+
+function validTimeSignature(value: unknown): value is [number, number] {
+  return Array.isArray(value)
+    && value.length === 2
+    && value.every((part) => typeof part === "number" && Number.isInteger(part) && part > 0);
+}
+
+/**
+ * Validate every explicitly supplied parser field, including null overrides.
+ * Nullish coalescing is useful for optional fallbacks when parsing, but it
+ * must not make a malformed field look absent to the structural gate.
+ */
+function parserMetadataFailures(source: unknown, label: string): string[] {
+  if (!isRecord(source)) return [`${label} parsed metadata must be an object`];
+  const failures: string[] = [];
+  const inspect = (record: Record<string, unknown>, prefix: string, includeContainerFields: boolean): void => {
+    if (hasOwn(record, "tempoBpm")
+      && !(typeof record.tempoBpm === "number" && Number.isFinite(record.tempoBpm) && record.tempoBpm > 0)) {
+      failures.push(`${prefix} tempoBpm must be a finite positive number`);
+    }
+    if (hasOwn(record, "durationBeats")
+      && !(typeof record.durationBeats === "number" && Number.isFinite(record.durationBeats) && record.durationBeats >= 0)) {
+      failures.push(`${prefix} durationBeats must be a finite non-negative number`);
+    }
+    if (hasOwn(record, "timeSig") && !validTimeSignature(record.timeSig)) {
+      failures.push(`${prefix} timeSig must be an array of two positive integers`);
+    }
+    if (includeContainerFields && hasOwn(record, "division")
+      && !(typeof record.division === "number" && Number.isInteger(record.division) && record.division > 0)) {
+      failures.push(`${prefix} division must be a positive integer`);
+    }
+    if (includeContainerFields && hasOwn(record, "format")
+      && !(typeof record.format === "number" && Number.isInteger(record.format) && record.format >= 0)) {
+      failures.push(`${prefix} format must be a non-negative integer`);
+    }
+  };
+  inspect(source, label, false);
+  const parsed = source.parsed;
+  if (hasOwn(source, "parsed") && parsed === null) {
+    failures.push(`${label} parsed metadata must be an object`);
+  } else if (parsed !== undefined) {
+    if (!isRecord(parsed)) failures.push(`${label} parsed metadata must be an object`);
+    else inspect(parsed, `${label} parsed`, true);
+  }
+  return failures;
+}
+
+interface NoteSourceShape {
+  parsed?: ParsedMidi;
+  notes?: unknown;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function notesFor(source: NoteSourceShape | unknown): Note[] {
+  // A nullish explicit value retains the existing fallback behavior, while a
+  // non-array value is treated as malformed rather than reaching `.filter()`
+  // in the metric helpers.
+  if (!isRecord(source)) return [];
+  const explicit = source.notes;
+  if (explicit !== undefined && explicit !== null) return Array.isArray(explicit) ? explicit as Note[] : [];
+  const parsedNotes = isRecord(source.parsed) ? source.parsed.notes as unknown : undefined;
+  return Array.isArray(parsedNotes) ? parsedNotes as Note[] : [];
+}
+
+function noteShapeFailures(source: NoteSourceShape | unknown, label: string): string[] {
+  const failures: string[] = [];
+  if (!isRecord(source)) return [`${label} must be an object`];
+  const explicit = source.notes;
+  if (explicit === null || (explicit !== undefined && !Array.isArray(explicit))) {
+    failures.push(`${label} notes are not an array`);
+  }
+  const parsedRecord = isRecord(source.parsed) ? source.parsed : undefined;
+  const parsedNotes = parsedRecord?.notes as unknown;
+  if (parsedRecord
+    && (parsedNotes === null || (parsedNotes !== undefined && !Array.isArray(parsedNotes)))) {
+    failures.push(`${label} parsed notes are not an array`);
+  }
+  const noteArrays = [
+    ...(Array.isArray(explicit) ? [{ label, notes: explicit }] : []),
+    ...(Array.isArray(parsedNotes) ? [{ label: `${label} parsed`, notes: parsedNotes }] : []),
+  ];
+  for (const entry of noteArrays) {
+    const invalid = entry.notes.filter((note) => !finiteNote(note as Note)).length;
+    if (invalid) failures.push(`${entry.label}: ${invalid} non-finite or invalid MIDI notes`);
+  }
+  return failures;
+}
+
+function byteHash(value: unknown): string | null {
+  return value instanceof Uint8Array ? sha256Hex(value) : null;
+}
+
+function fixtureShapeFailures(value: unknown): string[] {
+  if (!isRecord(value)) return ["fixture must be an object"];
+  const failures: string[] = [];
+  if (typeof value.id !== "string" || !value.id.trim()) failures.push("fixture id must be a non-empty string");
+  if (value.label !== undefined && value.label !== null && typeof value.label !== "string") {
+    failures.push("fixture label must be a string");
+  }
+  return failures;
+}
+
+function safeFixture(value: unknown): { id: string; label?: string } {
+  if (!isRecord(value)) return { id: "invalid-fixture" };
+  return {
+    id: typeof value.id === "string" && value.id.trim() ? value.id : "invalid-fixture",
+    ...(typeof value.label === "string" ? { label: value.label } : {}),
+  };
+}
+
+const EVALUATION_MODES = new Set<NonNullable<ArrangementEvaluationInput["mode"]>>(["structural", "reference", "human"]);
+
+function safeMode(value: unknown): { mode: ArrangementEvaluationInput["mode"]; failures: string[] } {
+  if (value === undefined) return { mode: undefined, failures: [] };
+  if (typeof value === "string" && EVALUATION_MODES.has(value as NonNullable<ArrangementEvaluationInput["mode"]>)) {
+    return { mode: value as NonNullable<ArrangementEvaluationInput["mode"]>, failures: [] };
+  }
+  return { mode: undefined, failures: ["mode must be structural, reference, or human"] };
+}
+
+function metadataShapeFailures(source: unknown, label: string, selectorRequired: boolean): string[] {
+  if (!isRecord(source)) return [`${label} must be an object`];
+  const failures: string[] = [];
+  const selector = source.selector;
+  if (selectorRequired && (typeof selector !== "string" || !selector.trim())) {
+    failures.push(`${label} selector must be a non-empty string`);
+  } else if (!selectorRequired && selector !== undefined && selector !== null && typeof selector !== "string") {
+    failures.push(`${label} selector must be a string`);
+  }
+  const bytes = source.bytes;
+  if (bytes !== undefined && bytes !== null && !(bytes instanceof Uint8Array)) {
+    failures.push(`${label} bytes must be a Uint8Array`);
+  }
+  if (source.revision !== undefined && source.revision !== null && typeof source.revision !== "string") {
+    failures.push(`${label} revision must be a string`);
+  }
+  if (source.aliasOf !== undefined && source.aliasOf !== null && typeof source.aliasOf !== "string") {
+    failures.push(`${label} aliasOf must be a string`);
+  }
+  failures.push(...parserMetadataFailures(source, label));
+  return failures;
+}
+
+function safeSelector(value: unknown, fallback: string): string {
+  return typeof value === "string" && value.trim() ? selectorLeaf(value, fallback) : fallback;
+}
+
+function safeOptionalSelector(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? selectorLeaf(value, "") || null : null;
+}
+
+function safeOptionalMetadataString(value: unknown): string | null {
+  return typeof value === "string" && value.length ? redactEmbeddedPaths(value) : null;
+}
+
+/**
+ * Selectors are diagnostic labels, never transport URLs.  Keep only the
+ * final path component and discard URL credentials/query/fragment material so
+ * a signed download URL cannot be echoed into an evaluation report.
+ */
+function selectorLeaf(value: string, fallback: string): string {
+  const normalized = value.trim().replaceAll("\\", "/");
+  try {
+    const parsed = new URL(normalized);
+    if (parsed.protocol === "http:" || parsed.protocol === "https:" || parsed.protocol === "file:") {
+      return basename(parsed.pathname) || parsed.hostname || fallback;
+    }
+  } catch {
+    // Treat non-URL logical selectors and Windows paths below.
+  }
+  return basename(normalized.split(/[?#]/, 1)[0] ?? "") || fallback;
+}
+
+function setRecordValue<T>(record: Record<string, T>, key: string, value: T): void {
+  // Assignment to `__proto__` invokes the legacy prototype setter on an
+  // ordinary object. Define an enumerable own property so untrusted logical
+  // identifiers remain data rather than changing the report's prototype.
+  Object.defineProperty(record, key, {
+    configurable: true,
+    enumerable: true,
+    value,
+    writable: true,
+  });
 }
 
 function orderedWindows(windows: EvaluationWindow[]): EvaluationWindow[] {
@@ -716,16 +1013,185 @@ function orderedWindows(windows: EvaluationWindow[]): EvaluationWindow[] {
     || (a.reference?.[0] ?? -1) - (b.reference?.[0] ?? -1));
 }
 
-function orderedTrace(trace: ProvenanceTraceInput | undefined): ArrangementEvaluationReport["trace"] {
-  if (trace?.status !== "available") return { status: "unavailable" };
+interface WindowValidation {
+  windows: EvaluationWindow[];
+  failures: string[];
+}
+
+function validWindowBounds(value: unknown): value is [number, number] {
+  return Array.isArray(value)
+    && value.length === 2
+    && value.every((part) => typeof part === "number" && Number.isFinite(part))
+    && value[0] >= 0
+    && value[1] > value[0];
+}
+
+function validateEvaluationWindows(raw: unknown, label: string): WindowValidation {
+  if (raw === undefined) return { windows: [], failures: [] };
+  if (!Array.isArray(raw)) return { windows: [], failures: [`${label} must be an array`] };
+
+  const failures: string[] = [];
+  const windows: EvaluationWindow[] = [];
+  const ids = new Set<string>();
+  for (const [index, value] of raw.entries()) {
+    if (!value || typeof value !== "object") {
+      failures.push(`${label}: window ${index} must be an object`);
+      continue;
+    }
+    const candidate = value as { id?: unknown; label?: unknown; candidate?: unknown; reference?: unknown; anchorId?: unknown };
+    const id = typeof candidate.id === "string" && candidate.id.length ? candidate.id : `#${index}`;
+    if (typeof candidate.id !== "string" || !candidate.id.length) {
+      failures.push(`${label}: window ${index} must have a non-empty string id`);
+    } else if (ids.has(candidate.id)) {
+      failures.push(`${label}: duplicate window id ${candidate.id}`);
+    } else {
+      ids.add(candidate.id);
+    }
+    if (!validWindowBounds(candidate.candidate)) {
+      failures.push(`${label}: ${id} candidate bounds must be finite, non-negative, and end after start`);
+      continue;
+    }
+    if (candidate.reference !== undefined && !validWindowBounds(candidate.reference)) {
+      failures.push(`${label}: ${id} reference bounds must be finite, non-negative, and end after start`);
+      continue;
+    }
+    windows.push({
+      id,
+      ...(typeof candidate.label === "string" ? { label: candidate.label } : {}),
+      candidate: [candidate.candidate[0], candidate.candidate[1]],
+      ...(candidate.reference === undefined || candidate.reference === null
+        ? {}
+        : { reference: [candidate.reference[0], candidate.reference[1]] }),
+      ...(typeof candidate.anchorId === "string" ? { anchorId: candidate.anchorId } : {}),
+    });
+  }
+
+  const byPosition = [...windows].sort((a, b) => a.candidate[0] - b.candidate[0] || a.candidate[1] - b.candidate[1] || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  for (let index = 1; index < byPosition.length; index++) {
+    const previous = byPosition[index - 1]!;
+    const current = byPosition[index]!;
+    if (current.candidate[0] < previous.candidate[1]) {
+      failures.push(`${label}: overlapping windows ${previous.id} and ${current.id}`);
+    }
+  }
+  const byReferencePosition = windows
+    .filter((window): window is EvaluationWindow & { reference: [number, number] } => Boolean(window.reference))
+    .sort((a, b) => a.reference[0] - b.reference[0] || a.reference[1] - b.reference[1] || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  for (let index = 1; index < byReferencePosition.length; index++) {
+    const previous = byReferencePosition[index - 1]!;
+    const current = byReferencePosition[index]!;
+    if (current.reference[0] < previous.reference[1]) {
+      failures.push(`${label}: overlapping reference windows ${previous.id} and ${current.id}`);
+    }
+  }
+  return failures.length ? { windows: [], failures } : { windows: orderedWindows(windows), failures: [] };
+}
+
+const TRACE_STAGES = new Set<NonNullable<ProvenanceTraceEvent["stage"]>>([
+  "raw", "cleaned", "learner-arranged", "advanced-candidates", "advanced-playable", "medium-candidates", "medium-playable", "easy-rh-input", "easy-lh-input", "easy-voice-selection", "easy-assembled", "easy-playable", "easy-ladder", "very-easy-rh-input", "very-easy-playable", "beginner-rh-input", "beginner-rh-selected", "beginner-assembled", "beginner-playable", "beginner-ladder", "beginner-final", "eligibility", "selector-input", "onset-group", "lead", "residual", "cluster", "semantic", "decision", "chord", "left-hand", "difficulty", "final",
+]);
+
+function traceShapeFailures(trace: unknown): string[] {
+  if (trace === undefined || trace === null) return [];
+  if (!isRecord(trace)) return ["trace must be an object"];
+  const failures: string[] = [];
+  if (trace.status !== "available" && trace.status !== "unavailable") {
+    failures.push("trace status must be available or unavailable");
+  }
+  const inspectEvents = (events: unknown, label: string): void => {
+    if (events === undefined || events === null) return;
+    if (!Array.isArray(events)) {
+      failures.push(`${label} must be an array`);
+      return;
+    }
+    for (const [index, event] of events.entries()) {
+      if (!isRecord(event)) {
+        failures.push(`${label}[${index}] must be an object`);
+      } else if (typeof event.key !== "string" || !event.key.length) {
+        failures.push(`${label}[${index}] key must be a non-empty string`);
+      }
+      if (isRecord(event) && event.parentKeys !== undefined && event.parentKeys !== null
+        && (!Array.isArray(event.parentKeys) || event.parentKeys.some((key) => typeof key !== "string"))) {
+        failures.push(`${label}[${index}] parentKeys must be an array of strings`);
+      }
+    }
+  };
+  inspectEvents(trace.events, "trace events");
+  if (trace.windows !== undefined && trace.windows !== null) {
+    if (!isRecord(trace.windows)) failures.push("trace windows must be an object");
+    else for (const [windowId, events] of Object.entries(trace.windows)) inspectEvents(events, `trace windows.${windowId}`);
+  }
+  return failures;
+}
+
+function safeTraceEvent(raw: unknown): ProvenanceTraceEvent | undefined {
+  if (!isRecord(raw) || typeof raw.key !== "string" || !raw.key.length) return undefined;
+  const event: ProvenanceTraceEvent = { key: redactEmbeddedPaths(raw.key) };
+  if (typeof raw.windowId === "string") event.windowId = redactEmbeddedPaths(raw.windowId);
+  if (typeof raw.stage === "string" && TRACE_STAGES.has(raw.stage as NonNullable<ProvenanceTraceEvent["stage"]>)) {
+    event.stage = raw.stage as NonNullable<ProvenanceTraceEvent["stage"]>;
+  }
+  if (Array.isArray(raw.parentKeys) && raw.parentKeys.every((key) => typeof key === "string")) {
+    event.parentKeys = raw.parentKeys.map((key) => redactEmbeddedPaths(key)).sort();
+  }
+  if (typeof raw.source === "string") event.source = redactEmbeddedPaths(raw.source);
+  else if (raw.source === null) event.source = null;
+  if (typeof raw.sourceStem === "string") event.sourceStem = redactEmbeddedPaths(raw.sourceStem);
+  else if (raw.sourceStem === null) event.sourceStem = null;
+  if (typeof raw.selectionReason === "string") event.selectionReason = redactEmbeddedPaths(raw.selectionReason);
+  if (typeof raw.operation === "string" && ["RETAINED", "REJECTED", "MERGED", "COLLAPSED", "REPLACED", "PITCH_CHANGED", "OCTAVE_SHIFTED", "TIMING_CHANGED", "DURATION_CHANGED", "ROLE_CHANGED", "HAND_CHANGED", "GENERATED"].includes(raw.operation)) {
+    event.operation = raw.operation as NonNullable<ProvenanceTraceEvent["operation"]>;
+  }
+  if (typeof raw.rawCandidateCount === "number" && Number.isFinite(raw.rawCandidateCount)) event.rawCandidateCount = raw.rawCandidateCount;
+  if (typeof raw.selected === "boolean") event.selected = raw.selected;
+  if (typeof raw.confidence === "number" && Number.isFinite(raw.confidence)) event.confidence = raw.confidence;
+  if (isRecord(raw.note)
+    && typeof raw.note.midi === "number" && Number.isInteger(raw.note.midi)
+    && typeof raw.note.start === "number" && Number.isFinite(raw.note.start)
+    && typeof raw.note.dur === "number" && Number.isFinite(raw.note.dur)
+    && typeof raw.note.vel === "number" && Number.isFinite(raw.note.vel)) {
+    event.note = {
+      midi: raw.note.midi,
+      start: raw.note.start,
+      dur: raw.note.dur,
+      vel: raw.note.vel,
+      ...(typeof raw.note.rawMidi === "number" && Number.isFinite(raw.note.rawMidi)
+        ? { rawMidi: raw.note.rawMidi }
+        : {}),
+      ...(raw.note.hand === "R" || raw.note.hand === "L" ? { hand: raw.note.hand } : {}),
+    };
+  }
+  if (isRecord(raw.semantic)
+    && typeof raw.semantic.rootPc === "number" && Number.isFinite(raw.semantic.rootPc)
+    && typeof raw.semantic.quality === "string"
+    && typeof raw.semantic.bassSupported === "boolean"
+    && typeof raw.semantic.memberCount === "number" && Number.isFinite(raw.semantic.memberCount)) {
+    event.semantic = {
+      rootPc: raw.semantic.rootPc,
+      quality: raw.semantic.quality,
+      bassSupported: raw.semantic.bassSupported,
+      memberCount: raw.semantic.memberCount,
+    };
+  }
+  return event;
+}
+
+function orderedTrace(trace: ProvenanceTraceInput | unknown): ArrangementEvaluationReport["trace"] {
+  if (!isRecord(trace) || trace.status !== "available") return { status: "unavailable" };
   const sortText = (a: string, b: string): number => a < b ? -1 : a > b ? 1 : 0;
-  const sortEvents = (events: ProvenanceTraceEvent[] | undefined): ProvenanceTraceEvent[] | undefined => events
-    ? [...events]
-      .map((event) => ({ ...event, ...(event.parentKeys ? { parentKeys: [...event.parentKeys].sort() } : {}) }))
-      .sort((a, b) => sortText(a.key, b.key) || sortText(a.stage ?? "", b.stage ?? "") || sortText(a.source ?? "", b.source ?? ""))
+  const sortEvents = (events: unknown): ProvenanceTraceEvent[] | undefined => Array.isArray(events)
+    ? events.map(safeTraceEvent).filter((event): event is ProvenanceTraceEvent => Boolean(event))
+      .sort((a, b) => sortText(a.key, b.key)
+        || sortText(a.stage ?? "", b.stage ?? "")
+        || sortText(a.source ?? "", b.source ?? "")
+        // Keys are normally unique, but retaining the full canonical event as
+        // a tie-breaker keeps duplicate-key traces permutation-stable too.
+        || sortText(JSON.stringify(canonicalize(a)), JSON.stringify(canonicalize(b))))
     : undefined;
-  const windows = trace.windows
-    ? Object.fromEntries(Object.entries(trace.windows).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0).map(([id, events]) => [id, sortEvents(events)!]))
+  const windows = isRecord(trace.windows)
+    ? Object.fromEntries(Object.entries(trace.windows)
+      .sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
+      .map(([id, events]) => [redactEmbeddedPaths(id), sortEvents(events)!]))
     : undefined;
   return { status: "available", events: sortEvents(trace.events), windows };
 }
@@ -789,33 +1255,96 @@ function metricBundle(
 }
 
 function variantDurationBeats(variant: Variant): number {
-  const measureEnd = variant.measures.reduce((max, measure) => Math.max(max, measure.endBeat), 0);
+  const measures = Array.isArray(variant.measures) ? variant.measures : [];
+  const measureEnd = measures.reduce((max, measure) => {
+    const endBeat = (measure as unknown as { endBeat?: unknown } | null)?.endBeat;
+    return typeof endBeat === "number" && Number.isFinite(endBeat) ? Math.max(max, endBeat) : max;
+  }, 0);
   if (Number.isFinite(measureEnd) && measureEnd > 0) return measureEnd;
   const notes = Array.isArray(variant.notes) ? variant.notes : [];
   return Math.max(0, ...notes.filter(finiteNote).map((note) => note.start + note.dur));
 }
 
+const VARIANT_LEVELS = new Set<Variant["level"]>([
+  "very-beginner", "beginner", "very-easy", "easy", "medium", "advanced",
+]);
+
+interface GuardedVariant {
+  label: string;
+  variant: Variant;
+  metadataFailures: string[];
+}
+
+function guardVariant(raw: unknown): GuardedVariant {
+  const value = raw && typeof raw === "object" ? raw as Record<string, unknown> : {};
+  const label = typeof value.level === "string" && value.level.length ? value.level : "unknown";
+  const metadataFailures: string[] = [];
+  const level = VARIANT_LEVELS.has(value.level as Variant["level"])
+    ? value.level as Variant["level"]
+    : "advanced";
+  if (level !== value.level) metadataFailures.push(`${label}: invalid difficulty level`);
+
+  const rawMeasures = value.measures;
+  const measures = Array.isArray(rawMeasures) ? rawMeasures as Variant["measures"] : [];
+  if (!Array.isArray(rawMeasures)) metadataFailures.push(`${label}: measures must be an array`);
+
+  const rawTimeSig = value.timeSig;
+  const validTimeSig = Array.isArray(rawTimeSig)
+    && rawTimeSig.length === 2
+    && rawTimeSig.every((part) => typeof part === "number" && Number.isInteger(part) && part > 0);
+  const timeSig: [number, number] = validTimeSig
+    ? [Number(rawTimeSig[0]), Number(rawTimeSig[1])]
+    : [4, 4];
+  if (!validTimeSig) metadataFailures.push(`${label}: timeSig must be an array of two positive integers`);
+
+  const rawTempo = value.tempoBpm;
+  const tempoBpm = typeof rawTempo === "number" && Number.isFinite(rawTempo) && rawTempo > 0 ? rawTempo : 120;
+  if (!(typeof rawTempo === "number" && Number.isFinite(rawTempo) && rawTempo > 0)) {
+    metadataFailures.push(`${label}: tempoBpm must be a finite positive number`);
+  }
+
+  const rawDifficulty = value.difficultyScore;
+  const difficultyScore = typeof rawDifficulty === "number" && Number.isFinite(rawDifficulty) ? rawDifficulty : 0;
+  if (!(typeof rawDifficulty === "number" && Number.isFinite(rawDifficulty))) {
+    metadataFailures.push(`${label}: difficultyScore must be a finite number`);
+  }
+
+  const rawNotes = value.notes;
+  const notes = Array.isArray(rawNotes) ? rawNotes.filter((note): note is Note => finiteNote(note as Note)) : [];
+  const variant = {
+    ...value,
+    level,
+    difficultyScore,
+    notes,
+    tempoBpm,
+    timeSig,
+    measures,
+  } as unknown as Variant;
+  return { label, variant, metadataFailures };
+}
+
 function variantMetrics(variant: Variant, input: ArrangementEvaluationInput): VariantEvaluationMetrics {
-  const validNotes = Array.isArray(variant.notes) ? variant.notes.filter(finiteNote) : [];
-  const durationBeats = variantDurationBeats({ ...variant, notes: validNotes });
+  const guarded = guardVariant(variant).variant;
+  const validNotes = Array.isArray(guarded.notes) ? guarded.notes.filter(finiteNote) : [];
+  const durationBeats = variantDurationBeats({ ...guarded, notes: validNotes });
   // A semantic guitar pass is performed before variant construction.  Do not
   // repeat its canonical diagnostics for every learner level; the per-level
   // guitar bundle below reports final tagged RH/LH counts and nulls the
   // unavailable upstream fields.
   const candidate: ArrangementEvaluationCandidate = {
-    selector: `variant:${variant.level}`,
+    selector: `variant:${guarded.level}`,
     notes: validNotes,
-    tempoBpm: variant.tempoBpm,
+    tempoBpm: guarded.tempoBpm,
     durationBeats,
-    timeSig: variant.timeSig,
+    timeSig: guarded.timeSig,
   };
   const variantInput: ArrangementEvaluationInput = { ...input, candidate, guitarDiagnostics: undefined };
-  const bundle = metricBundle(validNotes, variant.tempoBpm, durationBeats, candidate, variantInput);
+  const bundle = metricBundle(validNotes, guarded.tempoBpm, durationBeats, candidate, variantInput);
   return {
-    level: variant.level,
-    difficultyScore: variant.difficultyScore,
-    tempoBpm: variant.tempoBpm,
-    timeSig: [...variant.timeSig] as [number, number],
+    level: guarded.level,
+    difficultyScore: guarded.difficultyScore,
+    tempoBpm: guarded.tempoBpm,
+    timeSig: [...guarded.timeSig] as [number, number],
     ...bundle,
   };
 }
@@ -919,10 +1448,10 @@ function compareReferenceWindow(candidate: Note[], reference: Note[], window: Ev
 function referenceEvaluation(candidate: Note[], reference: ArrangementEvaluationReference | undefined, candidateParser: ArrangementEvaluationReport["candidate"]["parser"], windows: EvaluationWindow[]): ReferenceEvaluation | undefined {
   if (!reference) return undefined;
   const refNotes = notesFor(reference);
-  const referenceWindows = orderedWindows(reference.windows ?? windows);
+  const referenceWindows = orderedWindows(windows);
   if (!referenceWindows.length || referenceWindows.some((window) => !window.reference)) return {
-    status: "alignment-required", referenceHash: reference.bytes ? sha256Hex(reference.bytes) : null, referenceSelector: reference.selector ? basename(reference.selector) : null,
-    aliasOf: reference.aliasOf ?? null,
+    status: "alignment-required", referenceHash: byteHash(reference.bytes), referenceSelector: safeOptionalSelector(reference.selector),
+    aliasOf: safeOptionalMetadataString(reference.aliasOf),
     windows: [], matchedOnsets: 0, exactPitch: { precision: null, recall: null, f1: null }, pitchClass: { precision: null, recall: null, f1: null }, alignmentCoverageBars: 0,
     diagnostics: ["explicit candidate/reference windows are required; no automatic offset or time scaling was applied"],
   };
@@ -950,9 +1479,9 @@ function referenceEvaluation(candidate: Note[], reference: ArrangementEvaluation
   const enough = resultWindows.length >= ARRANGEMENT_EVALUATION_CONFIG.minimumReferenceWindows && bars >= ARRANGEMENT_EVALUATION_CONFIG.minimumReferenceBars;
   return {
     status: enough ? "aligned" : "insufficient-coverage",
-    referenceHash: reference.bytes ? sha256Hex(reference.bytes) : null,
-    referenceSelector: reference.selector ? basename(reference.selector) : null,
-    aliasOf: reference.aliasOf ?? null,
+    referenceHash: byteHash(reference.bytes),
+    referenceSelector: safeOptionalSelector(reference.selector),
+    aliasOf: safeOptionalMetadataString(reference.aliasOf),
     windows: resultWindows,
     matchedOnsets: matched,
     exactPitch: { precision: exactPrecision, recall: exactRecall, f1: f1(exactPrecision, exactRecall) },
@@ -970,10 +1499,11 @@ function qualityGate(
   parserValid = true,
   referenceStatus?: ReferenceEvaluation["status"],
   expectedDurationBeats?: number,
+  inputFailures: string[] = [],
 ): GateResult {
-  const failures: string[] = [];
+  const failures: string[] = [...inputFailures];
   const warnings: string[] = [];
-  const evaluated = ["finite MIDI notes", "finite parser metadata", "sounding simultaneity", "piano range", "drum-derived pitch count"];
+  const evaluated = ["finite MIDI notes", "finite parser metadata", "event-boundary simultaneity", "piano range", "drum-derived pitch count"];
   const invalid = notes.filter((note) => !finiteNote(note)).length;
   if (invalid) failures.push(`${invalid} non-finite or invalid MIDI notes`);
   if (!parserValid) failures.push("parser metadata contains non-finite or invalid values");
@@ -1009,21 +1539,36 @@ function qualityGate(
       warnings.push(`candidate duration differs from expected by ${round(difference)} beats`);
     }
   }
-  if (variants) {
+  if (variants !== undefined) {
     evaluated.push("variant validation", "variant monotonicity");
-    if (!variants.length) failures.push("variant list is empty");
+    if (!Array.isArray(variants)) {
+      failures.push("variant list is not an array");
+    } else if (!variants.length) failures.push("variant list is empty");
     const safeVariants: Variant[] = [];
-    for (const variant of variants) {
-      const rawNotes = (variant as unknown as { notes?: unknown }).notes;
+    const seenVariantLevels = new Set<Variant["level"]>();
+    for (const rawVariant of Array.isArray(variants) ? variants : []) {
+      const guarded = guardVariant(rawVariant);
+      failures.push(...guarded.metadataFailures);
+      // A duplicate valid difficulty level would overwrite the earlier
+      // entry in the report's level-keyed map and make validation depend on
+      // input order. Treat it as malformed metadata instead of guessing
+      // which learner level the caller intended.
+      const rawLevel = isRecord(rawVariant) ? rawVariant.level : undefined;
+      if (VARIANT_LEVELS.has(rawLevel as Variant["level"])) {
+        const level = rawLevel as Variant["level"];
+        if (seenVariantLevels.has(level)) failures.push(`${level}: duplicate difficulty level`);
+        else seenVariantLevels.add(level);
+      }
+      const rawNotes = (rawVariant as unknown as { notes?: unknown } | null)?.notes;
       if (!Array.isArray(rawNotes)) {
-        failures.push(`${variant.level}: variant notes are not an array`);
+        failures.push(`${guarded.label}: variant notes are not an array`);
         continue;
       }
       const invalidVariantNotes = rawNotes.filter((note) => !finiteNote(note as Note)).length;
-      if (invalidVariantNotes) failures.push(`${variant.level}: ${invalidVariantNotes} non-finite or invalid MIDI notes`);
+      if (invalidVariantNotes) failures.push(`${guarded.label}: ${invalidVariantNotes} non-finite or invalid MIDI notes`);
       const validVariantNotes = rawNotes.filter((note): note is Note => finiteNote(note as Note));
-      if (!validVariantNotes.length) failures.push(`${variant.level} variant has no valid notes`);
-      safeVariants.push({ ...variant, notes: validVariantNotes });
+      if (!validVariantNotes.length) failures.push(`${guarded.label} variant has no valid notes`);
+      safeVariants.push({ ...guarded.variant, notes: validVariantNotes });
     }
     // Validators assume note-shaped objects. Run them against the guarded
     // view so malformed input produces a gate failure instead of a crash.
@@ -1057,18 +1602,93 @@ function qualityGate(
       warningWallRate: ARRANGEMENT_EVALUATION_CONFIG.warningWallRate,
       warningDurationMismatchBeats: ARRANGEMENT_EVALUATION_CONFIG.warningDurationMismatchBeats,
     },
-    availability: { variants: variants ? "evaluated" : "unavailable" },
+    availability: { variants: variants !== undefined ? "evaluated" : "unavailable" },
   };
 }
 
+// Drop path-bearing metadata keys instead of relying only on value heuristics.
+// Camel-case keys such as sourcePath/filePath are common in trace payloads and
+// can contain extension-less paths that are otherwise indistinguishable from
+// ordinary labels.
+const CANONICAL_PATH_KEY = /path$|filename$|file$/i;
+
+function redactEmbeddedPaths(value: string): string {
+  const roots = "(?:Users|private|tmp|var|home|root|opt|mnt|workspace|etc|srv|data|app)";
+  const boundary = "(^|[\\s(\"'=,;\\[\\]])";
+  const endBoundary = "(?=$|[\\s\"'<>;,\\)\\]\\.!?])";
+  const extensions = "(?:mid|midi|json|wav|mp3|txt|pdf|xml|mxl|csv|log)";
+  const trimmed = value.trim();
+  const pathOnlyPatterns = [
+    new RegExp(`^/(?:${roots})(?:[\\\\/][^\"'<>;,)]*)*$`, "i"),
+    new RegExp(`^[A-Za-z]:[\\\\/][^\"'<>;,)]*$`, "i"),
+    /^\\\\[^\"'<>;,)]*$/,
+    new RegExp(`^file:/{2,}(?:/?(?:${roots})(?:[\\\\/][^\"'<>;,)]*)*|[A-Za-z]:[\\\\/][^\"'<>;,)]*)$`, "i"),
+  ];
+  if (pathOnlyPatterns.some((pattern) => pattern.test(trimmed))) {
+    const start = value.indexOf(trimmed);
+    return `${value.slice(0, start)}[redacted-path]${value.slice(start + trimmed.length)}`;
+  }
+  return redactEmbeddedUrls(value)
+    // A path can contain spaces, so the short root-only replacements below
+    // must not run first: they would redact only `/Users/reidar/Private` and
+    // leave the rest of the filename visible.  Consume through a known file
+    // extension in one pass for both POSIX and drive-qualified paths.
+    .replace(new RegExp(`${boundary}file:/{2,}((?:/?${roots})[^\\s\"'<>;,)]*?(?:\\s+[^\\s\"'<>;,)]*)*\\.${extensions})${endBoundary}`, "gi"), "$1[redacted-path]")
+    .replace(new RegExp(`${boundary}(/(?:${roots})[^\\s\"'<>;,)]*?(?:\\s+[^\\s\"'<>;,)]*)*\\.${extensions})${endBoundary}`, "gi"), "$1[redacted-path]")
+    .replace(new RegExp(`${boundary}([A-Za-z]:[\\\\/][^\\s\"'<>;,)]*?(?:\\s+[^\\s\"'<>;,)]*)*\\.${extensions})${endBoundary}`, "gi"), "$1[redacted-path]")
+    .replace(new RegExp(`${boundary}(\\\\[^\"'<>;,)]*?(?:\\s+[^\\s\"'<>;,)]*)*\\.${extensions})${endBoundary}`, "gi"), "$1[redacted-path]")
+    // Extension-less paths are common for temporary working files.  These
+    // patterns only start at an absolute/drive/UNC path boundary, avoiding
+    // ordinary URL and logical-label values.
+    .replace(new RegExp(`${boundary}(/(?:${roots})(?:[\\\\/][^\"'<>;,)]*)*)${endBoundary}`, "gi"), "$1[redacted-path]")
+    .replace(new RegExp(`${boundary}([A-Za-z]:[\\\\/][^\"'<>;,)]*)${endBoundary}`, "gi"), "$1[redacted-path]")
+    .replace(new RegExp(`${boundary}(\\\\[^\"'<>;,)]*)${endBoundary}`, "gi"), "$1[redacted-path]")
+    // Exact extension-less absolute paths are safe to redact as a whole.  A
+    // prose fragment is intentionally left to the conservative token rules
+    // below, preventing ordinary labels from being swallowed.
+    .replace(new RegExp(`^(\\s*)(/(?:${roots})(?:[\\\\/][^\"'<>;,)]*)+|[A-Za-z]:[\\\\/][^\"'<>;,)]*)\\s*$`, "gi"), "$1[redacted-path]")
+    // Handle file URIs before ordinary absolute paths.
+    .replace(new RegExp(`file:///?${roots}(?:/[^\\s\"'<>;,)]*)?`, "gi"), "[redacted-path]")
+    // Require a non-URL boundary before POSIX paths so https://host/root is
+    // not mistaken for a local path.
+    .replace(new RegExp(`(^|[\\s(\"'=,;\\[\\]])/${roots}(?:/[^\\s\"'<>;,)]*)?`, "gi"), "$1[redacted-path]")
+    .replace(/(^|[\s(\"'=,;\[\]])\/(?:[A-Za-z0-9._-]+\/)+[^\s\"'<>;,)]*/g, "$1[redacted-path]")
+    .replace(/(^|[\s(\"'=,;\[\]])[A-Za-z]:[\\/][^\s\"'<>;,)]*/g, "$1[redacted-path]")
+    // A single-segment absolute filename (for example /score.mid) is still a
+    // local path, even though it does not contain a directory component.
+    .replace(/(^|[\s(\"'=,;\[\]])\/(?:[A-Za-z0-9._-]+\.[A-Za-z0-9_-]+)(?=$|[\s\"'<>;,\)])/g, "$1[redacted-path]")
+    // Also cover extension-less relative paths.  Require two path segments
+    // so ordinary logical labels such as "guitar/lead" are less likely to be
+    // mistaken for a path, while values such as Users/reidar/private/source
+    // are still removed from reports.
+    .replace(/(^|[\s\"'=,;([\]])(?!(?:[A-Za-z][A-Za-z0-9+.-]*:)?\/\/)(?:\.\.?\/|[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+\/)[^\s\"'<>;,\)]*(?=$|[\s\"'<>;,\)])/gi, "$1[redacted-path]")
+    // Relative paths are redacted while URL schemes remain useful labels.
+    .replace(/(^|[\s\"'=,;([\]])(?!(?:[A-Za-z][A-Za-z0-9+.-]*:)?\/\/)(\.\.?\/|[^\s/]+\/)[^\s\"']+\.(?:mid|midi|json|wav|mp3|txt|pdf|xml|mxl|csv|log)(?=$|[\s\"'<>;,\)])/gi, "$1[redacted-path]");
+}
+
+/** Remove credentials and query/fragment tokens from URL-shaped text. */
+function redactEmbeddedUrls(value: string): string {
+  return value.replace(
+    /([A-Za-z][A-Za-z0-9+.-]*:\/\/)([^\/\s"'<>;,)\]]*)(\/[^\s"'<>;,)\]]*)?/g,
+    (_match, prefix: string, authority: string, path = "") => {
+      const safeAuthority = authority.replace(/^[^@]*@/, "").split(/[?#]/, 1)[0] ?? "";
+      const safePath = String(path).split(/[?#]/, 1)[0] ?? "";
+      return `${prefix}${safeAuthority}${safePath}`;
+    },
+  );
+}
+
 function canonicalize(value: unknown, key?: string): unknown {
-  if (key === "generatedAt" || key === "path" || key === "absolutePath") return undefined;
+  if (key === "generatedAt" || CANONICAL_PATH_KEY.test(key ?? "")) return undefined;
+  if (typeof value === "bigint") return value.toString();
+  if (typeof value === "number" && !Number.isFinite(value)) return null;
+  if (typeof value === "string") return redactEmbeddedPaths(value);
   if (Array.isArray(value)) return value.map((item) => canonicalize(item)).filter((item) => item !== undefined);
   if (value && typeof value === "object") {
     const result: Record<string, unknown> = {};
     for (const objectKey of Object.keys(value as Record<string, unknown>).sort()) {
       const item = canonicalize((value as Record<string, unknown>)[objectKey], objectKey);
-      if (item !== undefined) result[objectKey] = item;
+      if (item !== undefined) setRecordValue(result, redactEmbeddedPaths(objectKey), item);
     }
     return result;
   }
@@ -1080,27 +1700,83 @@ export function canonicalEvaluationJson(report: ArrangementEvaluationReport): st
   return JSON.stringify(canonicalize(report));
 }
 
-export function evaluateArrangement(input: ArrangementEvaluationInput): ArrangementEvaluationReport {
-  const candidateNotes = notesFor(input.candidate);
-  const parser = parserFor(input.candidate, candidateNotes);
-  const windows = orderedWindows(input.windows ?? input.reference?.windows ?? []);
-  const referenceDuration = input.reference?.durationBeats ?? input.reference?.parsed?.durationBeats;
+export function evaluateArrangement(rawInput: ArrangementEvaluationInput): ArrangementEvaluationReport {
+  // The public TypeScript signature is intentionally narrow, but this
+  // evaluator is also used by local CLIs that consume untrusted JSON.  Keep a
+  // safe view for all downstream metric helpers so malformed runtime values
+  // become explicit gate failures rather than exceptions.
+  const rawInputRecord = isRecord(rawInput) ? rawInput : undefined;
+  const rawCandidate = rawInputRecord?.candidate;
+  const rawReference = rawInputRecord?.reference;
+  const fixture = safeFixture(rawInputRecord?.fixture);
+  const mode = safeMode(rawInputRecord?.mode);
+  const candidate: ArrangementEvaluationCandidate = isRecord(rawCandidate)
+    ? rawCandidate as ArrangementEvaluationCandidate
+    : { selector: "invalid-candidate", notes: [] };
+  const reference: ArrangementEvaluationReference | undefined = isRecord(rawReference)
+    ? rawReference as ArrangementEvaluationReference
+    : undefined;
+  const input = {
+    ...(rawInputRecord ?? {}),
+    fixture,
+    candidate,
+    reference,
+    mode: mode.mode,
+  } as unknown as ArrangementEvaluationInput;
+  const candidateNotes = notesFor(candidate);
+  const parser = parserFor(candidate, candidateNotes);
+  const candidateWindowInput = input.windows !== undefined ? input.windows : reference?.windows;
+  const windowValidation = validateEvaluationWindows(candidateWindowInput, "evaluation windows");
+  const referenceWindowValidation = reference?.windows !== undefined && input.windows !== undefined
+    ? validateEvaluationWindows(reference.windows, "reference windows")
+    : windowValidation;
+  const windows = windowValidation.windows;
+  const referenceWindows = referenceWindowValidation.windows;
+  const noteFailures = (isRecord(rawCandidate)
+    ? noteShapeFailures(rawCandidate, "candidate")
+    : ["candidate must be an object"])
+    .concat(rawReference !== undefined && rawReference !== null
+      ? (isRecord(rawReference) ? noteShapeFailures(rawReference, "reference") : ["reference must be an object"])
+      : []);
+  const metadataFailures = (isRecord(rawCandidate) ? metadataShapeFailures(rawCandidate, "candidate", true) : [])
+    .concat(rawReference !== undefined && rawReference !== null && isRecord(rawReference)
+      ? metadataShapeFailures(rawReference, "reference", false)
+      : []);
+  const traceFailures = traceShapeFailures(input.trace);
+  const rootInputFailures = rawInputRecord ? [] : ["evaluation input must be an object"];
+  const rawExpectedDuration = input.expectedDurationBeats;
+  const expectedDurationValid = rawExpectedDuration === undefined
+    || (typeof rawExpectedDuration === "number" && Number.isFinite(rawExpectedDuration) && rawExpectedDuration >= 0);
+  const referenceDuration = reference?.durationBeats ?? reference?.parsed?.durationBeats;
   const hasReferenceDuration = referenceDuration !== undefined && Number.isFinite(referenceDuration) && referenceDuration >= 0;
-  const expectedDurationBeats = input.expectedDurationBeats ?? (hasReferenceDuration ? referenceDuration : undefined);
-  const durationMismatchBasis: GlobalMetrics["durationMismatch"]["basis"] = input.expectedDurationBeats !== undefined
+  const expectedDurationBeats = expectedDurationValid
+    ? rawExpectedDuration ?? (hasReferenceDuration ? referenceDuration : undefined)
+    : undefined;
+  const durationMismatchBasis: GlobalMetrics["durationMismatch"]["basis"] = expectedDurationValid && rawExpectedDuration !== undefined
     ? "expected"
     : hasReferenceDuration ? "reference" : "unavailable";
+  const inputFailures = [
+    ...rootInputFailures,
+    ...fixtureShapeFailures(rawInputRecord?.fixture),
+    ...mode.failures,
+    ...metadataFailures,
+    ...noteFailures,
+    ...traceFailures,
+    ...windowValidation.failures,
+    ...(referenceWindowValidation === windowValidation ? [] : referenceWindowValidation.failures),
+    ...(expectedDurationValid ? [] : ["expected duration must be a finite non-negative number"]),
+  ];
   const bundle = metricBundle(
     candidateNotes,
     parser.tempoBpm,
     parser.durationBeats,
-    input.candidate,
+    candidate,
     input,
     expectedDurationBeats,
     0,
     durationMismatchBasis,
   );
-  const referenceDurationBeats = input.reference?.durationBeats ?? input.reference?.parsed?.durationBeats;
+  const referenceDurationBeats = reference?.durationBeats ?? reference?.parsed?.durationBeats;
   if (input.expectedDurationBeats === undefined
     && referenceDurationBeats !== undefined
     && Number.isFinite(referenceDurationBeats)
@@ -1111,7 +1787,10 @@ export function evaluateArrangement(input: ArrangementEvaluationInput): Arrangem
     };
   }
   const variants: Record<string, VariantEvaluationMetrics> = {};
-  for (const variant of input.variants ?? []) variants[variant.level] = variantMetrics(variant, input);
+  for (const rawVariant of Array.isArray(input.variants) ? input.variants : []) {
+    const guarded = guardVariant(rawVariant);
+    setRecordValue(variants, guarded.label, variantMetrics(guarded.variant, input));
+  }
   const sections: Record<string, SectionEvaluationMetrics> = {};
   for (const window of windows) {
     const sectionNotes = cleanNotes(candidateNotes).filter((note) => note.start >= window.candidate[0] && note.start < window.candidate[1]);
@@ -1119,24 +1798,32 @@ export function evaluateArrangement(input: ArrangementEvaluationInput): Arrangem
       sectionNotes,
       parser.tempoBpm,
       window.candidate[1] - window.candidate[0],
-      input.candidate,
+      candidate,
       input,
       undefined,
       window.candidate[0],
     );
-    sections[window.id] = {
+    setRecordValue(sections, window.id, {
       startBeat: window.candidate[0], endBeat: window.candidate[1], coverage: sectionBundle.global.coverage, global: sectionBundle.global, rightHand: sectionBundle.rightHand, leftHand: sectionBundle.leftHand,
       source: sectionBundle.source.final.all, guitar: { finalRightHandCount: sectionBundle.guitar.finalRightHandCount, finalLeftHandCount: sectionBundle.guitar.finalLeftHandCount },
-      ...(input.reference && window.reference ? { reference: compareReferenceWindow(candidateNotes, notesFor(input.reference), window) } : {}),
-    };
+      ...(reference && window.reference ? { reference: compareReferenceWindow(candidateNotes, notesFor(reference), window) } : {}),
+    });
   }
-  for (const [id, section] of Object.entries(sections)) bundle.source.sectionSourceCounts[id] = section.source;
-  const referenceReport = input.reference ? referenceEvaluation(candidateNotes, input.reference, parser, windows) : undefined;
+  for (const [id, section] of Object.entries(sections)) setRecordValue(bundle.source.sectionSourceCounts, id, section.source);
+  const referenceReport = reference ? referenceEvaluation(candidateNotes, reference, parser, referenceWindows) : undefined;
   const reportWithoutDeterminism: Omit<ArrangementEvaluationReport, "determinism"> = {
     schemaVersion: 1,
     config: ARRANGEMENT_EVALUATION_CONFIG,
     fixture: input.fixture,
-    candidate: { selector: basename(input.candidate.selector), ...(input.candidate.revision ? { revision: input.candidate.revision } : {}), bytes: input.candidate.bytes?.byteLength ?? null, sha256: input.candidate.bytes ? sha256Hex(input.candidate.bytes) : null, parser },
+    candidate: {
+      selector: safeSelector(candidate.selector, "invalid-candidate"),
+      ...(typeof candidate.revision === "string" && candidate.revision.length
+        ? { revision: redactEmbeddedPaths(candidate.revision) }
+        : {}),
+      bytes: candidate.bytes instanceof Uint8Array ? candidate.bytes.byteLength : null,
+      sha256: byteHash(candidate.bytes),
+      parser,
+    },
     metrics: { ...bundle, sections, variants },
     ...(referenceReport ? { reference: referenceReport } : {}),
     trace: orderedTrace(input.trace),
@@ -1145,9 +1832,10 @@ export function evaluateArrangement(input: ArrangementEvaluationInput): Arrangem
       parser,
       input.variants,
       input.mode,
-      parserMetadataValid(input.candidate),
+      parserMetadataValid(candidate),
       referenceReport?.status,
       expectedDurationBeats,
+      inputFailures,
     ),
   };
   const canonical = canonicalEvaluationJson(reportWithoutDeterminism as ArrangementEvaluationReport);
@@ -1163,5 +1851,473 @@ export function evaluateArrangementNotes(
 }
 
 export function compareArrangementReference(candidate: Note[], reference: Note[], window: EvaluationWindow): ReferenceWindowMetrics {
+  const empty = (rawWindow: unknown): ReferenceWindowMetrics => {
+    const record = isRecord(rawWindow) ? rawWindow : undefined;
+    const safeBounds = (value: unknown): [number, number] => validWindowBounds(value)
+      ? [value[0], value[1]]
+      : [0, 0];
+    return {
+      candidateBounds: safeBounds(record?.candidate),
+      referenceBounds: safeBounds(record?.reference),
+      candidateOnsetCount: 0,
+      referenceOnsetCount: 0,
+      candidateNoteCount: 0,
+      referenceNoteCount: 0,
+      matchedOnsets: 0,
+      exactPitchMatches: 0,
+      pitchClassMatches: 0,
+      onsetErrorBeats: { median: null, p90: null },
+      exactPitch: { precision: null, recall: null, f1: null },
+      pitchClass: { precision: null, recall: null, f1: null },
+      contour: { p95Leap: null, directionAgreement: null },
+      ioi: { candidateMedian: null, referenceMedian: null },
+      density: { candidate: 0, reference: 0 },
+    };
+  };
+
+  // This convenience export is also called by local diagnostics with JSON
+  // values that bypass TypeScript.  Fail closed on malformed containers,
+  // notes, or bounds instead of allowing `.filter()`/arithmetic exceptions
+  // (or Infinity) to escape to a CLI caller.
+  if (!Array.isArray(candidate) || !Array.isArray(reference)
+    || candidate.some((note) => !finiteNote(note))
+    || reference.some((note) => !finiteNote(note))
+    || !isRecord(window)
+    || !validWindowBounds(window.candidate)
+    || !validWindowBounds(window.reference)) {
+    return empty(window);
+  }
   return compareReferenceWindow(candidate, reference, window);
+}
+
+export interface DifficultyLadderEvaluationInput {
+  fixture: { id: string; label?: string };
+  sourceNotes: Note[];
+  variants: Variant[];
+  trace?: ProvenanceTraceEvent[];
+}
+
+const DIFFICULTY_LADDER_THRESHOLDS = {
+  onsetToleranceBeats: ARRANGEMENT_EVALUATION_CONFIG.onsetToleranceBeats,
+  phraseBreakBeats: 1.5,
+  redundancyComplexityRatio: 0.02,
+  identityCliffCoverage: 0.6,
+  complexityCliffReduction: 0.35,
+} as const;
+
+function handGroups(notes: Note[], hand: "L" | "R"): Array<{ start: number; notes: Note[] }> {
+  return onsetGroups(notes, hand).map((group) => ({ start: group.start, notes: group.notes }));
+}
+
+function representativePitches(notes: Note[], hand: "L" | "R"): number[] {
+  return handGroups(notes, hand).map((group) => Math.max(...group.notes.map((note) => note.midi)));
+}
+
+function groupPairs(easier: Note[], harder: Note[], hand: "L" | "R"): Array<{
+  easier: { start: number; notes: Note[] };
+  harder: { start: number; notes: Note[] };
+}> {
+  const left = handGroups(easier, hand);
+  const right = handGroups(harder, hand);
+  const used = new Set<number>();
+  const pairs: Array<{
+    easier: { start: number; notes: Note[] };
+    harder: { start: number; notes: Note[] };
+  }> = [];
+  for (const group of left) {
+    let best = -1;
+    let distance = Infinity;
+    for (let index = 0; index < right.length; index++) {
+      if (used.has(index)) continue;
+      const next = Math.abs(group.start - right[index]!.start);
+      if (next <= DIFFICULTY_LADDER_THRESHOLDS.onsetToleranceBeats + 1e-9 && next < distance) {
+        best = index;
+        distance = next;
+      }
+    }
+    if (best >= 0) {
+      used.add(best);
+      pairs.push({ easier: group, harder: right[best]! });
+    }
+  }
+  return pairs;
+}
+
+function phraseBoundaries(notes: Note[], hand: "L" | "R"): { starts: number[]; ends: number[] } {
+  const groups = handGroups(notes, hand);
+  if (!groups.length) return { starts: [], ends: [] };
+  const starts: number[] = [];
+  const ends: number[] = [];
+  for (let index = 0; index < groups.length; index++) {
+    const previous = groups[index - 1];
+    const current = groups[index]!;
+    if (!previous || current.start - previous.start > DIFFICULTY_LADDER_THRESHOLDS.phraseBreakBeats) starts.push(current.start);
+    const next = groups[index + 1];
+    if (!next || next.start - current.start > DIFFICULTY_LADDER_THRESHOLDS.phraseBreakBeats) ends.push(current.start);
+  }
+  return { starts, ends };
+}
+
+function matchedBoundaryRatio(easier: Note[], harder: Note[], boundary: "starts" | "ends"): number | null {
+  const harderBoundaries = phraseBoundaries(harder, "R")[boundary];
+  const easierBoundaries = phraseBoundaries(easier, "R")[boundary];
+  if (!harderBoundaries.length) return null;
+  const matched = harderBoundaries.filter((start) => easierBoundaries.some((candidate) =>
+    Math.abs(candidate - start) <= DIFFICULTY_LADDER_THRESHOLDS.onsetToleranceBeats + 1e-9)).length;
+  return round(matched / harderBoundaries.length);
+}
+
+function anchorStarts(notes: Note[]): number[] {
+  const groups = handGroups(notes, "R");
+  return groups.filter((group, index) => {
+    const firstOrLast = index === 0 || index === groups.length - 1;
+    const fourBeatStart = Math.abs(group.start / 4 - Math.round(group.start / 4)) <= 0.02;
+    const salient = group.notes.some((note) => note.vel >= 100 || note.dur >= 0.75);
+    return firstOrLast || fourBeatStart || salient;
+  }).map((group) => group.start);
+}
+
+function boundaryCoverage(easier: Note[], starts: number[]): number | null {
+  if (!starts.length) return null;
+  const easierGroups = handGroups(easier, "R");
+  return round(starts.filter((start) => easierGroups.some((group) =>
+    Math.abs(group.start - start) <= DIFFICULTY_LADDER_THRESHOLDS.onsetToleranceBeats + 1e-9)).length / starts.length);
+}
+
+function rootSequence(notes: Note[]): Array<{ start: number; root: number }> {
+  return handGroups(notes, "L").map((group) => ({
+    start: group.start,
+    root: ((Math.min(...group.notes.map((note) => note.midi)) % 12) + 12) % 12,
+  }));
+}
+
+function rootChanges(notes: Note[]): Array<{ start: number; root: number }> {
+  const sequence = rootSequence(notes);
+  return sequence.filter((entry, index) => index > 0 && entry.root !== sequence[index - 1]!.root);
+}
+
+function changeSurvival(easier: Note[], harder: Note[]): number | null {
+  const harderChanges = rootChanges(harder);
+  if (!harderChanges.length) return null;
+  const easierChanges = rootChanges(easier);
+  const matched = harderChanges.filter((change) => easierChanges.some((candidate) =>
+    Math.abs(candidate.start - change.start) <= DIFFICULTY_LADDER_THRESHOLDS.onsetToleranceBeats + 1e-9
+    && candidate.root === change.root)).length;
+  return round(matched / harderChanges.length);
+}
+
+function uniqueNoteMatchCount(notes: Note[], source: Note[]): number {
+  const remaining = source.map((note) => ({ note, used: false }));
+  let matched = 0;
+  for (const candidate of notes) {
+    const found = remaining.find((entry) => !entry.used
+      && entry.note.hand === candidate.hand
+      && entry.note.identitySource === candidate.identitySource
+      && entry.note.midi === candidate.midi
+      && Math.abs(entry.note.start - candidate.start) <= DIFFICULTY_LADDER_THRESHOLDS.onsetToleranceBeats + 1e-9);
+    if (found) {
+      found.used = true;
+      matched++;
+    }
+  }
+  return matched;
+}
+
+function signedInterval(from: number, to: number): number {
+  return Math.sign(to - from);
+}
+
+function matchedContourMetrics(
+  sourcePitches: number[],
+  matchedPitches: Array<number | null>,
+): Pick<DifficultyLadderIdentityMetrics, "turnSurvival" | "localExtremaSurvival" | "repeatedAttackSurvival" | "largeLeapEndpointSurvival"> {
+  const turns: number[] = [];
+  const repeated: number[] = [];
+  const largeLeaps: number[] = [];
+  for (let index = 1; index < sourcePitches.length; index++) {
+    if (sourcePitches[index] === sourcePitches[index - 1]) repeated.push(index);
+    if (Math.abs(sourcePitches[index]! - sourcePitches[index - 1]!) >= 7) largeLeaps.push(index);
+  }
+  for (let index = 1; index < sourcePitches.length - 1; index++) {
+    const into = signedInterval(sourcePitches[index - 1]!, sourcePitches[index]!);
+    const out = signedInterval(sourcePitches[index]!, sourcePitches[index + 1]!);
+    if (into !== 0 && out !== 0 && into !== out) turns.push(index);
+  }
+  const matchedTurnCount = turns.filter((index) => {
+    const previous = matchedPitches[index - 1];
+    const current = matchedPitches[index];
+    const next = matchedPitches[index + 1];
+    if (previous === undefined || current === undefined || next === undefined
+      || previous === null || current === null || next === null) return false;
+    return signedInterval(sourcePitches[index - 1]!, sourcePitches[index]!) === signedInterval(previous, current)
+      && signedInterval(sourcePitches[index]!, sourcePitches[index + 1]!) === signedInterval(current, next);
+  }).length;
+  const matchedRepeatedCount = repeated.filter((index) => matchedPitches[index] !== undefined
+    && matchedPitches[index] !== null
+    && matchedPitches[index - 1] !== undefined
+    && matchedPitches[index - 1] !== null
+    && matchedPitches[index] === matchedPitches[index - 1]).length;
+  const matchedLargeLeapCount = largeLeaps.filter((index) => {
+    const previous = matchedPitches[index - 1];
+    const current = matchedPitches[index];
+    if (previous === undefined || current === undefined || previous === null || current === null) return false;
+    return Math.abs(current - previous) >= 7
+      && signedInterval(sourcePitches[index - 1]!, sourcePitches[index]!) === signedInterval(previous, current);
+  }).length;
+  return {
+    turnSurvival: turns.length ? round(matchedTurnCount / turns.length) : null,
+    localExtremaSurvival: turns.length ? round(matchedTurnCount / turns.length) : null,
+    repeatedAttackSurvival: repeated.length ? round(matchedRepeatedCount / repeated.length) : null,
+    largeLeapEndpointSurvival: largeLeaps.length ? round(matchedLargeLeapCount / largeLeaps.length) : null,
+  };
+}
+
+function traceOperationCounts(level: DifficultyLevel, trace: ProvenanceTraceEvent[] | undefined): { available: boolean; counts: Record<string, number> } {
+  const events = (trace ?? []).filter((event) => event.stage === "difficulty" && event.key.startsWith(`difficulty:${level}:`));
+  const counts: Record<string, number> = {};
+  for (const event of events) {
+    const operation = event.operation ?? "UNKNOWN";
+    counts[operation] = (counts[operation] ?? 0) + 1;
+  }
+  return { available: Boolean(trace), counts };
+}
+
+function ladderIdentity(source: Note[], variant: Note[]): DifficultyLadderIdentityMetrics {
+  const sourceGroups = handGroups(source, "R");
+  if (!sourceGroups.length) {
+    return {
+      sourceRhOnsetCoverage: null,
+      sourcePitchClassCoverage: null,
+      sourceRepresentativeCoverage: null,
+      directionAgreement: null,
+      turnSurvival: null,
+      localExtremaSurvival: null,
+      repeatedAttackSurvival: null,
+      largeLeapEndpointSurvival: null,
+      phraseStartSurvival: null,
+      phraseEndSurvival: null,
+      anchorSurvival: null,
+      harmonicRootChangeSurvival: changeSurvival(variant, source),
+      harmonicChangeSurvival: changeSurvival(variant, source),
+    };
+  }
+  const pairs = groupPairs(variant, source, "R");
+  const sourceByStart = new Map(pairs.map((pair) => [pair.harder.start.toFixed(6), pair]));
+  const representativeMatch = pairs.filter((pair) => Math.max(...pair.easier.notes.map((note) => note.midi))
+    === Math.max(...pair.harder.notes.map((note) => note.midi))).length;
+  const pitchClassMatch = pairs.filter((pair) => {
+    const classes = new Set(pair.easier.notes.map((note) => ((note.midi % 12) + 12) % 12));
+    return pair.harder.notes.some((note) => classes.has(((note.midi % 12) + 12) % 12));
+  }).length;
+  const sourcePitches = representativePitches(source, "R");
+  const matchedPitches = sourceGroups.map((group) => {
+    const pair = sourceByStart.get(group.start.toFixed(6));
+    return pair ? Math.max(...pair.easier.notes.map((note) => note.midi)) : null;
+  });
+  let directions = 0;
+  let directionTotal = 0;
+  for (let index = 1; index < sourceGroups.length; index++) {
+    const previous = sourceByStart.get(sourceGroups[index - 1]!.start.toFixed(6));
+    const current = sourceByStart.get(sourceGroups[index]!.start.toFixed(6));
+    if (!previous || !current) continue;
+    const sourceDirection = Math.sign(sourcePitches[index]! - sourcePitches[index - 1]!);
+    const variantPrevious = Math.max(...previous.easier.notes.map((note) => note.midi));
+    const variantCurrent = Math.max(...current.easier.notes.map((note) => note.midi));
+    const variantDirection = Math.sign(variantCurrent - variantPrevious);
+    directionTotal++;
+    if (sourceDirection === variantDirection) directions++;
+  }
+  const contour = matchedContourMetrics(sourcePitches, matchedPitches);
+  return {
+    sourceRhOnsetCoverage: round(pairs.length / sourceGroups.length),
+    sourcePitchClassCoverage: round(pitchClassMatch / sourceGroups.length),
+    sourceRepresentativeCoverage: round(representativeMatch / sourceGroups.length),
+    directionAgreement: directionTotal ? round(directions / directionTotal) : null,
+    ...contour,
+    phraseStartSurvival: matchedBoundaryRatio(variant, source, "starts"),
+    phraseEndSurvival: matchedBoundaryRatio(variant, source, "ends"),
+    anchorSurvival: boundaryCoverage(variant, anchorStarts(source)),
+    harmonicRootChangeSurvival: changeSurvival(variant, source),
+    harmonicChangeSurvival: changeSurvival(variant, source),
+  };
+}
+
+function ladderLevelMetrics(
+  source: Note[],
+  variant: Variant,
+  input: ArrangementEvaluationInput,
+  trace: ProvenanceTraceEvent[] | undefined,
+): DifficultyLadderLevelMetrics {
+  const metric = variantMetrics(variant, input);
+  const op = traceOperationCounts(variant.level, trace);
+  const validSource = cleanNotes(source);
+  const validVariant = cleanNotes(variant.notes);
+  const matched = uniqueNoteMatchCount(validVariant, validSource);
+  const rhBoundaries = phraseBoundaries(validVariant, "R");
+  const rootChangesCount = rootChanges(validVariant).length;
+  const rootSeq = rootSequence(validVariant);
+  const restrikes = rootSeq.slice(1).filter((entry, index) => entry.root === rootSeq[index]!.root).length;
+  const shapes = new Set(handGroups(validVariant, "L").map((group) => [...new Set(group.notes.map((note) => ((note.midi % 12) + 12) % 12))].sort((a, b) => a - b).join(","))).size;
+  const anchors = anchorStarts(validVariant).length;
+  return {
+    level: variant.level,
+    difficultyScore: variant.difficultyScore,
+    noteCount: metric.global.noteCount,
+    rightHandCount: metric.rightHand.noteCount,
+    leftHandCount: metric.leftHand.noteCount,
+    onsetCount: metric.global.onsetCount,
+    rightHandOnsetCount: metric.rightHand.onsetCount,
+    leftHandOnsetCount: metric.leftHand.onsetCount,
+    durationBeats: metric.global.durationBeats,
+    notesPerSecond: metric.global.notesPerSecond,
+    attacksPerSecond: metric.global.onsetsPerSecond,
+    maxSimultaneity: metric.global.simultaneity.max,
+    medianSimultaneity: metric.global.simultaneity.p50,
+    p90Simultaneity: metric.global.simultaneity.p90,
+    rightHandSpan: metric.rightHand.range.span,
+    leftHandSpan: metric.leftHand.range.span,
+    medianMelodicLeap: metric.rightHand.interval.median,
+    p95MelodicLeap: metric.rightHand.interval.p95,
+    largeLeapRate: metric.rightHand.largeLeap.rate,
+    repeatedAttackRate: metric.global.repeatedAttackRate,
+    harmonicRootChanges: rootChangesCount,
+    harmonicRestrikes: restrikes,
+    harmonicShapes: shapes,
+    phraseStarts: rhBoundaries.starts.length,
+    phraseEnds: rhBoundaries.ends.length,
+    anchors,
+    sourceRoleCounts: metric.source.final.all,
+    identity: ladderIdentity(validSource, validVariant),
+    lineage: {
+      traceAvailable: op.available,
+      sourceNotesMatched: matched,
+      sourceNotesUnmatched: Math.max(0, validSource.length - matched),
+      operationCounts: op.counts,
+    },
+  };
+}
+
+function transitionLineage(easier: Variant, harder: Variant, trace: ProvenanceTraceEvent[] | undefined): DifficultyLadderTransitionMetrics["lineage"] {
+  const retained = uniqueNoteMatchCount(cleanNotes(easier.notes), cleanNotes(harder.notes));
+  const harderCount = cleanNotes(harder.notes).length;
+  const counts = traceOperationCounts(easier.level, trace).counts;
+  const collapsed = (counts.MERGED ?? 0) + (counts.COLLAPSED ?? 0);
+  const transformed = ["PITCH_CHANGED", "OCTAVE_SHIFTED", "TIMING_CHANGED", "DURATION_CHANGED", "HAND_CHANGED", "ROLE_CHANGED", "REPLACED"]
+    .reduce((sum, operation) => sum + (counts[operation] ?? 0), 0);
+  return { retained, rejected: Math.max(0, harderCount - retained), collapsed, transformed };
+}
+
+function classifyLadderTransition(
+  identity: DifficultyLadderTransitionMetrics["identityDelta"],
+  complexity: DifficultyLadderTransitionMetrics["complexityDelta"],
+  violations: string[],
+): DifficultyLadderClassification {
+  if (violations.length) return "NON_MONOTONIC";
+  const identityValues = [identity.rhOnsetCoverage, identity.pitchClassCoverage, identity.directionAgreement, identity.turnSurvival, identity.localExtremaSurvival, identity.repeatedAttackSurvival, identity.largeLeapEndpointSurvival, identity.phraseAnchorSurvival, identity.harmonicChangeSurvival]
+    .filter((value): value is number => value !== null);
+  if (!identityValues.length) return "INCONCLUSIVE";
+  const identityFloor = Math.min(...identityValues);
+  const reduction = Math.max(complexity.noteReductionRatio, complexity.onsetReductionRatio, complexity.attackRateReductionRatio, complexity.maxSimultaneityReductionRatio);
+  if (reduction >= DIFFICULTY_LADDER_THRESHOLDS.complexityCliffReduction && identityFloor >= DIFFICULTY_LADDER_THRESHOLDS.identityCliffCoverage) {
+    return "COMPLEXITY_CLIFF";
+  }
+  if (reduction < DIFFICULTY_LADDER_THRESHOLDS.complexityCliffReduction && identityFloor < DIFFICULTY_LADDER_THRESHOLDS.identityCliffCoverage) {
+    return "IDENTITY_CLIFF";
+  }
+  const complexityValues = [complexity.noteReductionRatio, complexity.onsetReductionRatio, complexity.attackRateReductionRatio, complexity.maxSimultaneityReductionRatio]
+    .map(Math.abs);
+  if (complexityValues.every((value) => value <= DIFFICULTY_LADDER_THRESHOLDS.redundancyComplexityRatio)) return "REDUNDANT_LEVEL";
+  if (identityFloor >= DIFFICULTY_LADDER_THRESHOLDS.identityCliffCoverage) return "HEALTHY_SIMPLIFICATION";
+  return "INCONCLUSIVE";
+}
+
+/** Evaluate all available learner levels and every adjacent harder→easier edge. */
+export function evaluateDifficultyLadder(input: DifficultyLadderEvaluationInput): DifficultyLadderEvaluation {
+  const byLevel = new Map<DifficultyLevel, Variant>();
+  for (const variant of input.variants) {
+    if (byLevel.has(variant.level)) throw new Error(`duplicate difficulty level: ${variant.level}`);
+    byLevel.set(variant.level, variant);
+  }
+  const source = cleanNotes(input.sourceNotes);
+  const first = input.variants.find((variant) => variant.level === "advanced") ?? input.variants[0];
+  const parser: ArrangementEvaluationInput = {
+    fixture: input.fixture,
+    candidate: {
+      selector: "difficulty-ladder",
+      notes: source,
+      tempoBpm: first?.tempoBpm ?? 120,
+      durationBeats: first ? variantDurationBeats(first) : Math.max(0, ...source.map((note) => note.start + note.dur)),
+      timeSig: first?.timeSig ?? [4, 4],
+    },
+  };
+  const levels: Record<string, DifficultyLadderLevelMetrics> = {};
+  for (const level of LEVEL_ORDER) {
+    const variant = byLevel.get(level);
+    if (!variant) continue;
+    setRecordValue(levels, level, ladderLevelMetrics(source, variant, parser, input.trace));
+  }
+  const transitions: DifficultyLadderTransitionMetrics[] = [];
+  for (let index = LEVEL_ORDER.length - 1; index > 0; index--) {
+    const harderLevel = LEVEL_ORDER[index]!;
+    const easierLevel = LEVEL_ORDER[index - 1]!;
+    const harder = byLevel.get(harderLevel);
+    const easier = byLevel.get(easierLevel);
+    const harderMetrics = levels[harderLevel];
+    const easierMetrics = levels[easierLevel];
+    if (!harder || !easier || !harderMetrics || !easierMetrics) continue;
+    const identityDelta = {
+      rhOnsetCoverage: easierMetrics.identity.sourceRhOnsetCoverage,
+      pitchClassCoverage: easierMetrics.identity.sourcePitchClassCoverage,
+      directionAgreement: easierMetrics.identity.directionAgreement,
+      turnSurvival: easierMetrics.identity.turnSurvival,
+      localExtremaSurvival: easierMetrics.identity.localExtremaSurvival,
+      repeatedAttackSurvival: easierMetrics.identity.repeatedAttackSurvival,
+      largeLeapEndpointSurvival: easierMetrics.identity.largeLeapEndpointSurvival,
+      phraseAnchorSurvival: easierMetrics.identity.anchorSurvival,
+      harmonicChangeSurvival: easierMetrics.identity.harmonicChangeSurvival,
+    };
+    const complexityDelta = {
+      noteReductionRatio: harderMetrics.noteCount ? round(1 - easierMetrics.noteCount / harderMetrics.noteCount) : 0,
+      onsetReductionRatio: harderMetrics.onsetCount ? round(1 - easierMetrics.onsetCount / harderMetrics.onsetCount) : 0,
+      attackRateDelta: round(harderMetrics.attacksPerSecond - easierMetrics.attacksPerSecond),
+      attackRateReductionRatio: harderMetrics.attacksPerSecond > 0
+        ? round(1 - easierMetrics.attacksPerSecond / harderMetrics.attacksPerSecond)
+        : 0,
+      maxSimultaneityReductionRatio: harderMetrics.maxSimultaneity > 0
+        ? round(1 - easierMetrics.maxSimultaneity / harderMetrics.maxSimultaneity)
+        : 0,
+      maxSimultaneityDelta: harderMetrics.maxSimultaneity - easierMetrics.maxSimultaneity,
+      rightHandSpanDelta: harderMetrics.rightHandSpan === null || easierMetrics.rightHandSpan === null ? null : harderMetrics.rightHandSpan - easierMetrics.rightHandSpan,
+      largeLeapRateDelta: round(harderMetrics.largeLeapRate - easierMetrics.largeLeapRate),
+      repeatedAttackRateDelta: round(harderMetrics.repeatedAttackRate - easierMetrics.repeatedAttackRate),
+    };
+    const violations: string[] = [];
+    if (easierMetrics.noteCount > harderMetrics.noteCount) violations.push("note count increased");
+    if (easierMetrics.onsetCount > harderMetrics.onsetCount) violations.push("onset count increased");
+    if (easierMetrics.attacksPerSecond > harderMetrics.attacksPerSecond + 1e-9) violations.push("attack rate increased");
+    if (easierMetrics.maxSimultaneity > harderMetrics.maxSimultaneity) violations.push("maximum simultaneity increased");
+    if (complexityDelta.rightHandSpanDelta !== null && complexityDelta.rightHandSpanDelta < -1e-9) violations.push("right-hand span increased");
+    transitions.push({
+      harder: harderLevel,
+      easier: easierLevel,
+      identityDelta,
+      complexityDelta,
+      lineage: transitionLineage(easier, harder, input.trace),
+      violations,
+      classification: classifyLadderTransition(identityDelta, complexityDelta, violations),
+    });
+  }
+  return {
+    schemaVersion: 1,
+    fixture: input.fixture,
+    order: LEVEL_ORDER.filter((level) => levels[level] !== undefined),
+    levels,
+    transitions,
+    thresholds: DIFFICULTY_LADDER_THRESHOLDS,
+  };
+}
+
+/** Stable JSON for calibration reruns; no timestamps or physical paths are included. */
+export function canonicalDifficultyLadderJson(report: DifficultyLadderEvaluation): string {
+  return JSON.stringify(canonicalize(report));
 }

@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { listSongsGrouped, countSongs, getDb, type GroupedSong } from "@keyspilli/catalog";
+import { listSongsGrouped, countSongs, getDb, projectPublicGroupedSongs, type GroupedSong } from "@keyspilli/catalog";
 import { LEVEL_LABEL, LEVEL_SHORT } from "../components/level-labels";
 
 export const dynamic = "force-dynamic";
 
 export default function HomePage() {
-  const popular = listSongsGrouped({ sort: "popular", limit: 12 });
-  const recent = listSongsGrouped({ limit: 200 }).sort((a, b) => (a.lastCreatedAt < b.lastCreatedAt ? 1 : -1)).slice(0, 12);
+  const popular = projectPublicGroupedSongs(listSongsGrouped({ sort: "popular", limit: 12 }));
+  const recent = projectPublicGroupedSongs(listSongsGrouped({ limit: 200 })).sort((a, b) => (a.lastCreatedAt < b.lastCreatedAt ? 1 : -1)).slice(0, 12);
   const plays = (getDb().prepare("SELECT COALESCE(SUM(plays),0) AS s FROM songs").get() as { s: number }).s;
   const total = countSongs();
 
@@ -22,10 +22,7 @@ export default function HomePage() {
             Browse songs
           </Link>
           <Link href="/uploads" className="pressable px-5 py-2.5 rounded-full border border-zinc-300 text-sm font-medium hover:bg-zinc-100">
-            Upload your own MIDI
-          </Link>
-          <Link href="/youtube" className="pressable px-5 py-2.5 rounded-full border border-zinc-300 text-sm font-medium hover:bg-zinc-100">
-            YouTube → sheet music
+            Add a song
           </Link>
         </div>
         <p className="mt-6 text-sm text-zinc-500">
