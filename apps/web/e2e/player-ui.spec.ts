@@ -101,16 +101,26 @@ test("organ sound controls persist across reload", async ({ page }) => {
   await page.getByRole("radio", { name: "Organ" }).click();
   await expect(page.getByRole("radio", { name: "Organ" })).toHaveAttribute("aria-checked", "true");
   await expect(page.getByLabel("Sustain pedal")).toHaveCount(0);
+  await expect(page.getByRole("radio", { name: "Rock", exact: true })).toHaveAttribute("aria-checked", "true");
   await page.getByRole("radio", { name: "Fast" }).click();
   await page.getByLabel("Organ drive").fill("67");
+  await page.getByRole("radio", { name: "Cathedral", exact: true }).click();
+  await expect(page.getByLabel("Organ drive")).toHaveCount(0);
+  await expect(page.getByRole("radiogroup", { name: "Rotary" })).toHaveCount(0);
+  await page.getByLabel("Organ space").fill("78");
   await page.getByRole("button", { name: "Done", exact: true }).click();
   await page.keyboard.press("a");
 
   await page.reload();
   await page.getByRole("button", { name: "Open settings" }).click();
   await expect(page.getByRole("radio", { name: "Organ" })).toHaveAttribute("aria-checked", "true");
+  await expect(page.getByRole("radio", { name: "Cathedral", exact: true })).toHaveAttribute("aria-checked", "true");
+  await expect(page.getByLabel("Organ space")).toHaveValue("78");
+  await page.getByRole("radio", { name: "Rock", exact: true }).click();
   await expect(page.getByRole("radio", { name: "Fast" })).toHaveAttribute("aria-checked", "true");
   await expect(page.getByLabel("Organ drive")).toHaveValue("67");
+  await page.getByRole("radio", { name: "Cathedral", exact: true }).click();
+  await expect(page.getByLabel("Organ space")).toHaveValue("78");
   expect(consoleErrors).toEqual([]);
 });
 
@@ -136,4 +146,26 @@ test("switching sound modes preserves active transport", async ({ page }) => {
     previous = current;
   }
   expect(consoleErrors).toEqual([]);
+});
+
+test("switching Organ styles preserves active transport", async ({ page }) => {
+  await page.goto(`/player/${SONG}`);
+  await page.getByRole("button", { name: "Open settings" }).click();
+  await page.getByRole("radio", { name: "Organ" }).click();
+  await page.getByRole("button", { name: "Done", exact: true }).click();
+  await page.getByRole("button", { name: "Play", exact: true }).click();
+  await page.waitForTimeout(500);
+  const seek = page.getByLabel("Seek");
+  let previous = Number(await seek.inputValue());
+
+  for (const style of ["Cathedral", "Rock", "Cathedral"]) {
+    await page.getByRole("button", { name: "Open settings" }).click();
+    await page.getByRole("radio", { name: style, exact: true }).click();
+    await page.getByRole("button", { name: "Done", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+    await page.waitForTimeout(500);
+    const current = Number(await seek.inputValue());
+    expect(current).toBeGreaterThan(previous);
+    previous = current;
+  }
 });
