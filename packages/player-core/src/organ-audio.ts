@@ -224,15 +224,17 @@ export class OrganAudioEngine implements AudioLike {
     osc.setPeriodicWave(this.wave);
     gain.gain.setValueAtTime(0, start);
     gain.gain.linearRampToValueAtTime(peak, start + ATTACK_SEC);
+    let stopAt: number | null = null;
     if (duration !== null) {
       const releaseAt = start + Math.max(0, duration);
       gain.gain.setValueAtTime(peak, releaseAt);
       gain.gain.setTargetAtTime(0, releaseAt, RELEASE_SEC);
-      osc.stop(releaseAt + RELEASE_STOP_SEC);
+      stopAt = releaseAt + RELEASE_STOP_SEC;
     }
     osc.connect(gain);
     gain.connect(bus);
     osc.start(start);
+    if (stopAt !== null) osc.stop(stopAt);
     const voice = { osc, gain, fromInput };
     const voices = this.active.get(midi) ?? [];
     voices.push(voice);
