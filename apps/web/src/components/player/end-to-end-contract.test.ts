@@ -68,6 +68,68 @@ function syntheticMidi(): ParsedMidi {
 }
 
 describe("chord contract end to end", () => {
+  it("carries short symbolic LH stacks through catalog and chord playback", () => {
+    const variant = buildVariants(
+      {
+        format: 1,
+        division: 480,
+        tempoBpm: 120,
+        keySig: 0,
+        keyMode: 0,
+        timeSig: [4, 4],
+        notes: [0, 0.5, 1, 1.5].flatMap((beat) => [
+          { midi: 43, start: beat, dur: 0.125, vel: 82, hand: "L" as const },
+          { midi: 50, start: beat, dur: 0.125, vel: 78, hand: "L" as const },
+          { midi: 55, start: beat, dur: 0.125, vel: 76, hand: "L" as const },
+        ]),
+        trackNames: ["Piano LH"],
+        durationBeats: 2,
+      },
+      { title: "Short stack contract", artist: "Keyspilli" },
+      { arrangementProfile: "learner", audioDerived: false, maxDurBeats: null },
+    ).find((candidate) => candidate.level === "advanced");
+    expect(variant).toBeDefined();
+    expect(variant!.chords).toEqual([
+      expect.objectContaining({ beat: 0, name: "G5", notes: [43, 50, 55], durationBeats: 2 }),
+    ]);
+
+    const catalogTimeline = normalizeCatalogChordTimeline({
+      schemaVersion: 1,
+      baseId: "short-stack-contract",
+      title: "Short stack contract",
+      artist: "Keyspilli",
+      tempoBpm: variant!.tempoBpm,
+      timeSig: variant!.timeSig,
+      durationBeats: 2,
+      chords: variant!.chords,
+      provenance: {
+        sourceId: "short-stack-fixture",
+        provider: "keyspilli-test",
+        kind: "midi-derived",
+        sourceRef: "test://short-stack-contract",
+        confidence: "high",
+      },
+    });
+    const playerChords = normalizePlayerChordTimeline(catalogTimeline);
+    expect(playerChords).toEqual(catalogTimeline.chords);
+
+    const audio = new ContractAudio();
+    const speed = 1.25;
+    const engine = new PlaybackEngine(
+      audio,
+      [],
+      beatToSec(catalogTimeline.durationBeats, variant!.tempoBpm, speed),
+      { tempoBpm: variant!.tempoBpm, timeSig: variant!.timeSig },
+      { ...DEFAULT_SETTINGS, backgroundMode: "chord", speed },
+      playerChords,
+    );
+
+    engine.start();
+    expect(audio.playedChords).toEqual([
+      { midiNotes: [43, 50, 55], when: 0, durationSec: beatToSec(2, 120, speed) },
+    ]);
+  });
+
   it("carries chordsAt voicings and provenance through catalog/web normalization into playback", () => {
     const variant = buildVariants(
       syntheticMidi(),
