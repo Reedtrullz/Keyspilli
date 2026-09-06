@@ -74,6 +74,15 @@ unknown-rights direct files remain research evidence, not generation authority.
 Decision: `AUTONOMOUS_BLOCKED_SOURCE_RECOVERY_EXHAUSTED`. The detailed path-free
 record is `autonomous-blocked-symbolic-source-recovery-2026-09-06.json`.
 
+### Blocked-source owner decision
+
+The owner chose to skip Livgardet rather than acquire a MuseScore export.
+Livgardet source recovery is frozen as `LIVGARDET_SOURCE_RECOVERY_DEFERRED`;
+Red Sun, The Last Stand, and Defence retain their accepted fail-closed states
+with `NO_OWNER_ACTION_RECOMMENDED`. Hidden historical rows do not block private
+alpha usefulness. No source search, download, purchase, rebuild, promotion, or
+deployment followed. Next task: `ADVANCED_SOURCE_RECOVERY_LIMIT_CLOSEOUT`.
+
 ### Direct metal and semantic guitar work
 
 The direct metal path, source-aware lane locking, semantic guitar harmony, low

@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "mission": "BLOCKED_SOURCE_HUMAN_ACTION_DECISION",
+  "startingRevision": "ae39bcaf393f788aaece451671f2aa3e81cb2e05",
+  "ownerDecision": {
+    "song": "Sabaton — Livgardet / The Royal Guard",
+    "decision": "LIVGARDET_SOURCE_RECOVERY_DEFERRED",
+    "instruction": "skip Livgardet"
+  },
+  "acceptedBlockedStates": {
+    "redSun": {
+      "state": "VALID_SOURCE_ALIGNMENT_UNRESOLVED",
+      "ownerAction": "NO_OWNER_ACTION_RECOMMENDED"
+    },
+    "lastStand": {
+      "state": "VALID_SOURCE_IDENTITY_UNRESOLVED",
+      "ownerAction": "NO_OWNER_ACTION_RECOMMENDED"
+    },
+    "livgardet": {
+      "state": "LIVGARDET_SOURCE_RECOVERY_DEFERRED",
+      "ownerAction": "SKIPPED_BY_OWNER"
+    },
+    "defence": {
+      "state": "VALID_SOURCE_ALIGNMENT_UNRESOLVED",
+      "ownerAction": "NO_OWNER_ACTION_RECOMMENDED",
+      "benchmarkClassification": "BENCHMARK_REFERENCE_EVAL_ONLY"
+    }
+  },
+  "productEffect": {
+    "hiddenHistoricalRowsAccepted": true,
+    "privateAlphaReadinessPenalized": false,
+    "advancedRebuilds": 0,
+    "promotions": 0,
+    "catalogWrites": 0
+  },
+  "boundaries": {
+    "webSearches": 0,
+    "downloads": 0,
+    "purchases": 0,
+    "creatorMessages": 0,
+    "arrangerChanges": 0,
+    "gateChanges": 0,
+    "deployments": 0,
+    "vpsMutations": 0,
+    "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+    "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED"
+  },
+  "decision": "LIVGARDET_SOURCE_RECOVERY_DEFERRED",
+  "nextTask": "ADVANCED_SOURCE_RECOVERY_LIMIT_CLOSEOUT"
+}

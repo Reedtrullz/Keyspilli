@@ -3284,6 +3284,37 @@
         "sha256": "d5c2278584bcc6b9cd3edf6051a0f96fea8520eef2691f563bf4ade52b9f4d9e"
       },
       "nextTask": "BLOCKED_SOURCE_HUMAN_ACTION_DECISION"
+    },
+    {
+      "id": "blocked-source-human-action-decision-2026-09-06",
+      "date": "2026-09-06",
+      "startingRevision": "ae39bcaf393f788aaece451671f2aa3e81cb2e05",
+      "ownerDecision": "LIVGARDET_SOURCE_RECOVERY_DEFERRED",
+      "acceptedBlockedStates": {
+        "redSun": "VALID_SOURCE_ALIGNMENT_UNRESOLVED",
+        "lastStand": "VALID_SOURCE_IDENTITY_UNRESOLVED",
+        "livgardet": "LIVGARDET_SOURCE_RECOVERY_DEFERRED",
+        "defence": "VALID_SOURCE_ALIGNMENT_UNRESOLVED"
+      },
+      "scope": {
+        "webSearches": 0,
+        "downloads": 0,
+        "purchases": 0,
+        "creatorMessages": 0,
+        "advancedRebuilds": 0,
+        "promotions": 0,
+        "catalogWrites": 0,
+        "deployments": 0,
+        "vpsMutations": 0,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT"
+      },
+      "decision": "LIVGARDET_SOURCE_RECOVERY_DEFERRED",
+      "quality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+      "report": {
+        "path": "blocked-source-human-action-decision-2026-09-06.json",
+        "sha256": "6f315de39507abd2f4a51dd8bc97743ecccda3128d853e1063cccb0c1032809f"
+      },
+      "nextTask": "ADVANCED_SOURCE_RECOVERY_LIMIT_CLOSEOUT"
     }
   ]
 }
