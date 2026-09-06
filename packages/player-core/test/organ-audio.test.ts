@@ -1,10 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  CATHEDRAL_ENVELOPE,
+  CATHEDRAL_IR_SECONDS,
   ROCK_REGISTRATION,
   ROTARY_SPEEDS,
   OrganAudioEngine,
+  buildCathedralFoundationCoefficients,
+  buildCathedralImpulseResponse,
+  buildCathedralManualCoefficients,
   buildDriveCurve,
   buildTonewheelCoefficients,
+  cathedralRankFrequencies,
+  cathedralSpaceMix,
+  cathedralVelocityLevel,
   drawbarAmplitude,
   organVelocityLevel,
   tonewheelFrequencies,
@@ -53,16 +61,26 @@ class FakeCompressor extends FakeNode {
   threshold = new FakeParam(); knee = new FakeParam(); ratio = new FakeParam();
   attack = new FakeParam(); release = new FakeParam();
 }
+class FakeConvolver extends FakeNode { buffer: AudioBuffer | null = null; }
+class FakeBuffer {
+  channels: Float32Array[];
+  constructor(public length: number, public sampleRate: number) {
+    this.channels = [new Float32Array(length), new Float32Array(length)];
+  }
+  copyToChannel(source: Float32Array, channel: number) { this.channels[channel]!.set(source); }
+}
 
 class FakeAudioContext {
   static instances: FakeAudioContext[] = [];
   state: AudioContextState = "running";
   currentTime = 10;
+  sampleRate = 48_000;
   destination = new FakeNode() as unknown as AudioDestinationNode;
   oscillators: FakeOscillator[] = [];
   gains: FakeGain[] = [];
   panners: FakePanner[] = [];
   shapers: FakeWaveShaper[] = [];
+  convolvers: FakeConvolver[] = [];
   waves: { real: Float32Array; imag: Float32Array }[] = [];
   closeCalls = 0;
 
@@ -73,6 +91,8 @@ class FakeAudioContext {
   createStereoPanner() { const node = new FakePanner(); this.panners.push(node); return node as unknown as StereoPannerNode; }
   createWaveShaper() { const node = new FakeWaveShaper(); this.shapers.push(node); return node as unknown as WaveShaperNode; }
   createDynamicsCompressor() { return new FakeCompressor() as unknown as DynamicsCompressorNode; }
+  createConvolver() { const node = new FakeConvolver(); this.convolvers.push(node); return node as unknown as ConvolverNode; }
+  createBuffer(_channels: number, length: number, sampleRate: number) { return new FakeBuffer(length, sampleRate) as unknown as AudioBuffer; }
   createPeriodicWave(real: Float32Array, imag: Float32Array) { const wave = {} as PeriodicWave; this.waves.push({ real, imag }); return wave; }
   resume() { return Promise.resolve(); }
   close() { this.closeCalls++; this.state = "closed"; return Promise.resolve(); }
@@ -101,6 +121,61 @@ describe("tonewheel math", () => {
     expect(organVelocityLevel(1)).toBeCloseTo(0.752, 3);
     expect(organVelocityLevel(64)).toBeCloseTo(0.876, 3);
     expect(organVelocityLevel(127)).toBe(1);
+  });
+});
+
+describe("cathedral spectrum", () => {
+  it("freezes distinct safe manual and foundation pipe-rank spectra", () => {
+    const manual = buildCathedralManualCoefficients().real;
+    const foundation = buildCathedralFoundationCoefficients().real;
+    expect([...manual].map((value) => Number(value.toFixed(3)))).toEqual([0, 0.08, 0.36, 0.04, 0.22, 0.04, 0.1, 0, 0.08, 0, 0.04, 0, 0.04]);
+    expect([...foundation].map((value) => Number(value.toFixed(3)))).toEqual([0, 0.34, 0.32, 0.05, 0.16, 0.03, 0.05, 0, 0.025, 0, 0.015, 0, 0.01]);
+    expect([...manual, ...foundation].every((value) => Number.isFinite(value) && value >= 0 && value <= 1)).toBe(true);
+    expect(manual[2]).toBeGreaterThan(foundation[2]!);
+    expect(manual.slice(4).reduce((sum, value) => sum + value, 0)).toBeGreaterThan(foundation.slice(4).reduce((sum, value) => sum + value, 0));
+    expect(foundation[1]).toBeGreaterThan(manual[1]!);
+    expect([...manual]).not.toEqual([...buildTonewheelCoefficients(ROCK_REGISTRATION).real]);
+  });
+
+  it("maps A4 rank relationships from the 16-foot oscillator base", () => {
+    expect(cathedralRankFrequencies(69)).toMatchObject({ sixteen: 220, eight: 440, four: 880, mutation: 1320, two: 1760 });
+  });
+
+  it("keeps Cathedral articulation and velocity shallow", () => {
+    expect(CATHEDRAL_ENVELOPE).toEqual({ attackSec: 0.015, releaseSec: 0.11, stopSec: 0.55 });
+    expect(cathedralVelocityLevel(1)).toBeCloseTo(0.851, 3);
+    expect(cathedralVelocityLevel(64)).toBeCloseTo(0.926, 3);
+    expect(cathedralVelocityLevel(127)).toBe(1);
+  });
+});
+
+describe("cathedral acoustics", () => {
+  for (const sampleRate of [44_100, 48_000]) {
+    it(`builds deterministic bounded stereo decay at ${sampleRate} Hz`, () => {
+      const a = buildCathedralImpulseResponse(sampleRate);
+      const b = buildCathedralImpulseResponse(sampleRate);
+      expect(a.left).toEqual(b.left);
+      expect(a.right).toEqual(b.right);
+      expect(a.left).toHaveLength(Math.round(sampleRate * CATHEDRAL_IR_SECONDS));
+      expect(a.left).not.toEqual(a.right);
+      expect([...a.left, ...a.right].every((sample) => Number.isFinite(sample) && Math.abs(sample) <= 1)).toBe(true);
+      expect(Math.sqrt(a.left.reduce((sum, sample) => sum + sample * sample, 0))).toBeLessThanOrEqual(1.001);
+      expect(Math.sqrt(a.right.reduce((sum, sample) => sum + sample * sample, 0))).toBeLessThanOrEqual(1.001);
+      const rms = (samples: Float32Array) => Math.sqrt(samples.reduce((sum, value) => sum + value * value, 0) / samples.length);
+      const window = Math.floor(sampleRate * 0.5);
+      const early = rms(a.left.slice(Math.floor(sampleRate * 0.02), Math.floor(sampleRate * 0.02) + window));
+      const middle = rms(a.left.slice(Math.floor(sampleRate * 2.5), Math.floor(sampleRate * 2.5) + window));
+      const late = rms(a.left.slice(-window));
+      expect(early).toBeGreaterThan(middle);
+      expect(middle).toBeGreaterThan(late);
+      expect(late).toBeGreaterThan(0);
+    });
+  }
+
+  it("maps Space to an intelligible dry mix and at most 75% wet", () => {
+    expect(cathedralSpaceMix(0)).toEqual({ dry: 1, wet: 0 });
+    expect(cathedralSpaceMix(1)).toEqual({ dry: 0.65, wet: 0.75 });
+    expect(cathedralSpaceMix(2)).toEqual({ dry: 0.65, wet: 0.75 });
   });
 });
 
@@ -149,6 +224,50 @@ describe("OrganAudioEngine", () => {
     expect(envelope.setValues.at(-1)).toEqual([organVelocityLevel(64) * 0.22, 11]);
     expect(envelope.targets.at(-1)).toEqual([0, 11, 0.06]);
     expect(voice.stops).toEqual([11.3]);
+  });
+
+  it("uses Cathedral manual/foundation waves through convolution without Rock rotary or drive", () => {
+    const engine = new OrganAudioEngine(0.9, "fast", "cathedral", 0.65);
+    engine.noteOn({ midi: 69, startSec: 0, durSec: 1, vel: 64, hand: "R" });
+    engine.noteOn({ midi: 45, startSec: 0, durSec: 1, vel: 64, hand: "L" });
+    const ctx = FakeAudioContext.instances[0]!;
+    expect(ctx.waves).toHaveLength(2);
+    expect(ctx.convolvers).toHaveLength(1);
+    expect(ctx.shapers).toHaveLength(0);
+    expect(ctx.panners).toHaveLength(0);
+    expect(ctx.oscillators).toHaveLength(2);
+    expect(ctx.oscillators[0]!.wave).not.toBe(ctx.oscillators[1]!.wave);
+    expect(ctx.gains.at(-2)!.gain.linearRamps[0]).toEqual([cathedralVelocityLevel(64) * 0.22, 10 + CATHEDRAL_ENVELOPE.attackSec]);
+    expect(ctx.gains.at(-2)!.gain.targets.at(-1)).toEqual([0, 11, CATHEDRAL_ENVELOPE.releaseSec]);
+  });
+
+  it("updates Cathedral Space without rebuilding its deterministic IR", () => {
+    const engine = new OrganAudioEngine(0.2, "slow", "cathedral", 0.65);
+    engine.ensure();
+    const ctx = FakeAudioContext.instances[0]!;
+    const buffer = ctx.convolvers[0]!.buffer;
+    engine.setOrganControls("fast", 1, 0.9);
+    expect(ctx.convolvers[0]!.buffer).toBe(buffer);
+    const mix = cathedralSpaceMix(0.9);
+    expect(ctx.gains[3]!.gain.targets.at(-1)?.[0]).toBeCloseTo(mix.dry);
+    expect(ctx.gains[4]!.gain.targets.at(-1)?.[0]).toBeCloseTo(mix.wet);
+  });
+
+  it("uses the Cathedral release for input notes and disposes its IR graph", () => {
+    const engine = new OrganAudioEngine(0.2, "slow", "cathedral", 0.65);
+    for (let midi = 48; midi < 80; midi++) {
+      engine.noteOn({ midi, startSec: 0, durSec: 1, vel: 100, fromInput: true, hand: midi < 60 ? "L" : "R" });
+    }
+    const ctx = FakeAudioContext.instances[0]!;
+    const convolver = ctx.convolvers[0]!;
+    engine.noteOff(60);
+    expect(ctx.oscillators[12]!.stops).toEqual([10 + CATHEDRAL_ENVELOPE.stopSec]);
+    expect(ctx.gains[17]!.gain.targets.at(-1)).toEqual([0, 10, CATHEDRAL_ENVELOPE.releaseSec]);
+    engine.dispose();
+    expect(convolver.buffer).toBeNull();
+    expect(convolver.disconnected).toBe(true);
+    expect(ctx.oscillators.every((voice) => voice.stops.length === 1)).toBe(true);
+    expect(ctx.closeCalls).toBe(1);
   });
 
   it("keeps input notes alive until noteOff without stealing a scheduled same-pitch voice", () => {

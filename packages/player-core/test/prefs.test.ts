@@ -57,13 +57,14 @@ describe("loadSettings", () => {
   });
 
   it("rejects unknown enum values", () => {
-    store.set(KEY, JSON.stringify({ mode: "bogus", hand: "X", backgroundMode: "flute", soundSource: "flute", organRotary: "warp" }));
+    store.set(KEY, JSON.stringify({ mode: "bogus", hand: "X", backgroundMode: "flute", soundSource: "flute", organRotary: "warp", organStyle: "chapel" }));
     const s = loadSettings();
     expect(s.mode).toBe("falling");
     expect(s.hand).toBe("both");
     expect(s.backgroundMode).toBe("piano");
     expect(s.soundSource).toBe(DEFAULT_SETTINGS.soundSource);
     expect(s.organRotary).toBe("slow");
+    expect(s.organStyle).toBe("rock");
   });
 
   it("truncates fractional transpose", () => {
@@ -72,18 +73,32 @@ describe("loadSettings", () => {
   });
 
   it("preserves organ sound and controls", () => {
-    store.set(KEY, JSON.stringify({ soundSource: "organ", organRotary: "fast", organDrive: 0.73 }));
+    store.set(KEY, JSON.stringify({ soundSource: "organ", organStyle: "cathedral", organRotary: "fast", organDrive: 0.73, organSpace: 0.81 }));
     expect(loadSettings()).toEqual({
       ...DEFAULT_SETTINGS,
       soundSource: "organ",
+      organStyle: "cathedral",
       organRotary: "fast",
       organDrive: 0.73,
+      organSpace: 0.81,
     });
   });
 
   it("clamps persisted organ drive", () => {
-    store.set(KEY, JSON.stringify({ organDrive: 4 }));
+    store.set(KEY, JSON.stringify({ organDrive: 4, organSpace: -2 }));
     expect(loadSettings().organDrive).toBe(1);
+    expect(loadSettings().organSpace).toBe(0);
+  });
+
+  it("migrates legacy organ preferences to Rock without losing its controls", () => {
+    store.set(KEY, JSON.stringify({ soundSource: "organ", organRotary: "fast", organDrive: 0.41 }));
+    expect(loadSettings()).toMatchObject({
+      soundSource: "organ",
+      organStyle: "rock",
+      organRotary: "fast",
+      organDrive: 0.41,
+      organSpace: 0.65,
+    });
   });
 });
 

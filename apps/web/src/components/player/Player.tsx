@@ -336,7 +336,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     const audio = settings.soundSource === "sampled"
       ? new SamplerAudioEngine()
       : settings.soundSource === "organ"
-        ? new OrganAudioEngine(settings.organDrive, settings.organRotary)
+        ? new OrganAudioEngine(settings.organDrive, settings.organRotary, settings.organStyle, settings.organSpace)
         : new AudioEngine();
     const engine = new PlaybackEngine(
       audio,
@@ -367,7 +367,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       engine.audio.dispose();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings.soundSource]);
+  }, [settings.soundSource, settings.organStyle]);
 
   useEffect(() => {
     engineRef.current?.setSettings(settings);
