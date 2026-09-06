@@ -61,8 +61,11 @@ export interface PlayerSettings {
   voiceGain: number;
   pianoGain: number;
   backgroundMode: "piano" | "chord";
-  /** "synth" = oscillator fallback, "sampled" = smplr SplendidGrandPiano. */
-  soundSource: "synth" | "sampled";
+  /** Realtime playback timbre; this never changes the underlying notes. */
+  soundSource: "synth" | "sampled" | "organ";
+  organRotary: "slow" | "fast";
+  /** Normalized native-organ preamp drive. */
+  organDrive: number;
   metronome: boolean;
   chordKeys: boolean;
   sustainPedal: boolean;

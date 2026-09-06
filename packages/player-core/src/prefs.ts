@@ -5,13 +5,16 @@ const KEY = "keyspilli.prefs.v1";
 const VIEW_MODES = ["falling", "beginner", "sheet", "leadsheet"] as const;
 const HANDS = ["L", "R", "both"] as const;
 const BACKGROUNDS = ["piano", "chord"] as const;
-const SOUND_SOURCES = ["synth", "sampled"] as const;
+const SOUND_SOURCES = ["synth", "sampled", "organ"] as const;
+const ORGAN_ROTARY_SPEEDS = ["slow", "fast"] as const;
 
 export const DEFAULT_SETTINGS: PlayerSettings = {
   voiceGain: 1,
   pianoGain: 0.4,
   backgroundMode: "piano",
   soundSource: "sampled",
+  organRotary: "slow",
+  organDrive: 0.2,
   metronome: false,
   chordKeys: true,
   sustainPedal: true,
@@ -53,6 +56,8 @@ export function loadSettings(): PlayerSettings {
       pianoGain: clampNum(raw.pianoGain, 0, 2, DEFAULT_SETTINGS.pianoGain),
       backgroundMode: pickEnum(raw.backgroundMode, BACKGROUNDS, DEFAULT_SETTINGS.backgroundMode),
       soundSource: pickEnum(raw.soundSource, SOUND_SOURCES, DEFAULT_SETTINGS.soundSource),
+      organRotary: pickEnum(raw.organRotary, ORGAN_ROTARY_SPEEDS, DEFAULT_SETTINGS.organRotary),
+      organDrive: clampNum(raw.organDrive, 0, 1, DEFAULT_SETTINGS.organDrive),
       metronome: pickBool(raw.metronome, DEFAULT_SETTINGS.metronome),
       chordKeys: pickBool(raw.chordKeys, DEFAULT_SETTINGS.chordKeys),
       sustainPedal: pickBool(raw.sustainPedal, DEFAULT_SETTINGS.sustainPedal),
