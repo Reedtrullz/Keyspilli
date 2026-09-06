@@ -9,6 +9,10 @@ COPY packages/engrave/package.json packages/engrave/package.json
 COPY packages/midi/package.json packages/midi/package.json
 COPY packages/player-core/package.json packages/player-core/package.json
 COPY services/transcribe/package.json services/transcribe/package.json
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 make g++ \
+    && rm -rf /var/lib/apt/lists/*
+ENV npm_config_python=/usr/bin/python3
 RUN npm ci --no-audit --no-fund
 COPY packages packages
 COPY services services
