@@ -465,26 +465,37 @@ export function padPitches(notes: Note[]): Set<number> {
   return pads;
 }
 
-function chordsAt(notes: Note[], grid: number, arrangementEnd?: number): ChordLabel[] {
-  const bySlice = new Map<number, { all: number[]; lh: number[]; rh: number[] }>();
-  for (const n of notes) {
-    if (n.dur < 0.25) continue; // passing tones are not harmony
-    const k = Math.round(n.start / grid) * grid;
-    const slice = bySlice.get(k) ?? { all: [], lh: [], rh: [] };
-    slice.all.push(n.midi);
-    if (n.hand === "L") slice.lh.push(n.midi);
-    else if (n.hand === "R") slice.rh.push(n.midi);
-    bySlice.set(k, slice);
+function chordsAt(
+  notes: Note[],
+  grid: number,
+  arrangementEnd?: number,
+  preserveShortLhStacks = false,
+): ChordLabel[] {
+  const bySlice = new Map<number, { all: Note[]; lh: Note[]; rh: Note[] }>();
+  for (const note of notes) {
+    const beat = Math.round(note.start / grid) * grid;
+    const slice = bySlice.get(beat) ?? { all: [], lh: [], rh: [] };
+    slice.all.push(note);
+    if (note.hand === "L") slice.lh.push(note);
+    else if (note.hand === "R") slice.rh.push(note);
+    bySlice.set(beat, slice);
   }
   const out: ChordLabel[] = [];
   for (const [beat, slice] of [...bySlice.entries()].sort((a, b) => a[0] - b[0])) {
+    const longNotes = slice.all.filter((note) => note.dur >= 0.25);
+    const shortStackPitchClasses = new Set(slice.lh.map((note) => note.midi % 12));
+    const eligibleShortLh = preserveShortLhStacks && shortStackPitchClasses.size >= 2
+      ? slice.lh.filter((note) => note.dur < 0.25)
+      : [];
+    const eligible = [...longNotes, ...eligibleShortLh];
     // The left hand is the most reliable harmonic evidence in a piano
     // arrangement. If it has at least two distinct pitch classes, keep that
     // voicing and avoid allowing the highest melody note to rename the chord.
     // For melody-only/legacy material, use the full cluster minus its top
     // voice where possible, then fall back to the complete cluster.
-    const lh = [...new Set(slice.lh)].sort((a, b) => a - b);
-    const all = [...new Set(slice.all)].sort((a, b) => a - b);
+    const lh = [...new Set(eligible.filter((note) => note.hand === "L").map((note) => note.midi))]
+      .sort((a, b) => a - b);
+    const all = [...new Set(eligible.map((note) => note.midi))].sort((a, b) => a - b);
     const lhPitchClasses = new Set(lh.map((midi) => midi % 12));
     const harmonic = lhPitchClasses.size >= 2
       ? lh
@@ -3148,7 +3159,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
       ...(warnings.length ? { warnings } : {}),
       chords: opts.chords
         ? opts.chords.map((chord) => ({ ...chord, notes: [...chord.notes] }))
-        : chordsAt(notes, grid, src.durationBeats),
+        : chordsAt(notes, grid, src.durationBeats, opts.audioDerived !== true),
       bassPattern: level === "advanced" || level === "medium"
         ? lhPattern
         : level === "very-easy" || level === "easy" || (metalProfile && notes.some((note) => note.hand === "L"))
