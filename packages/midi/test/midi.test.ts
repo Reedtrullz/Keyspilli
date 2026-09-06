@@ -1179,6 +1179,75 @@ describe("buildVariants", () => {
     expect(reordered).toEqual(variants.map((variant) => variant.chords));
   });
 
+  const shortLhStackSource = (notes: Note[]): ParsedMidi => ({
+    format: 1,
+    division: 480,
+    tempoBpm: 120,
+    keySig: 0,
+    keyMode: 0,
+    timeSig: [4, 4],
+    notes,
+    trackNames: ["Piano LH"],
+    durationBeats: 2,
+  });
+
+  const repeatedShortG5 = [0, 0.5, 1, 1.5].flatMap((start) => [
+    { midi: 43, start, dur: 0.125, vel: 82, hand: "L" as const },
+    { midi: 50, start, dur: 0.125, vel: 78, hand: "L" as const },
+    { midi: 55, start, dur: 0.125, vel: 76, hand: "L" as const },
+  ]);
+
+  it("keeps stable short LH chord stacks for symbolic sources", () => {
+    const advanced = buildVariants(
+      shortLhStackSource(repeatedShortG5),
+      { title: "Short stacks", artist: "Test" },
+      { arrangementProfile: "learner", audioDerived: false, maxDurBeats: null },
+    ).find((variant) => variant.level === "advanced")!;
+
+    expect(advanced.chords).toEqual([
+      expect.objectContaining({
+        beat: 0,
+        name: "G5",
+        notes: [43, 50, 55],
+        sourceKind: "generated",
+        durationBeats: 2,
+      }),
+    ]);
+  });
+
+  it("does not promote short LH detector stacks into generated chords", () => {
+    const advanced = buildVariants(
+      shortLhStackSource(repeatedShortG5),
+      { title: "Detector stacks", artist: "Test" },
+      { arrangementProfile: "learner", audioDerived: true },
+    ).find((variant) => variant.level === "advanced")!;
+
+    expect(advanced.chords).toEqual([]);
+  });
+
+  it("does not combine short isolated LH notes into chord churn", () => {
+    const passing: Note[] = [0, 0.5, 1, 1.5].map((start, index) => ({
+      midi: index % 2 ? 50 : 43,
+      start,
+      dur: 0.125,
+      vel: 76,
+      hand: "L",
+    }));
+    const forward = buildVariants(
+      shortLhStackSource(passing),
+      { title: "Passing tones", artist: "Test" },
+      { arrangementProfile: "learner", audioDerived: false, maxDurBeats: null },
+    ).find((variant) => variant.level === "advanced")!;
+    const reversed = buildVariants(
+      shortLhStackSource([...passing].reverse()),
+      { title: "Passing tones", artist: "Test" },
+      { arrangementProfile: "learner", audioDerived: false, maxDurBeats: null },
+    ).find((variant) => variant.level === "advanced")!;
+
+    expect(forward.chords).toEqual([]);
+    expect(reversed.chords).toEqual(forward.chords);
+  });
+
   it("roots easy-variant bass notes to the song key", () => {
     const src: ParsedMidi = {
       format: 0,
