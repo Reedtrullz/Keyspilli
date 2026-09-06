@@ -220,7 +220,7 @@ export class OrganAudioEngine implements AudioLike {
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     const peak = organVelocityLevel(velocity) * 0.22;
-    osc.frequency.value = 440 * Math.pow(2, (midi - 69) / 12) * 0.5;
+    osc.frequency.value = tonewheelFrequencies(midi)[0]!;
     osc.setPeriodicWave(this.wave);
     gain.gain.setValueAtTime(0, start);
     gain.gain.linearRampToValueAtTime(peak, start + ATTACK_SEC);

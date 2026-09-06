@@ -11,6 +11,7 @@ class FakeAudio implements AudioLike {
   cancelled = 0;
   clicks: number[] = [];
   playedChords: { midiNotes: number[]; when: number; durationSec: number }[] = [];
+  organControls: { rotary: "slow" | "fast"; drive: number }[] = [];
   ensure(): unknown {
     this.ensured++;
     return {};
@@ -31,6 +32,9 @@ class FakeAudio implements AudioLike {
     this.cancelled++;
   }
   setGains(): void {}
+  setOrganControls(rotary: "slow" | "fast", drive: number): void {
+    this.organControls.push({ rotary, drive });
+  }
   dispose(): void {}
   sustainPedal = true;
 }
@@ -159,6 +163,12 @@ describe("PlaybackEngine", () => {
     const afterMetronome = audio.cancelled;
     eng.setSettings({ ...eng.settings, sustainPedal: !eng.settings.sustainPedal });
     expect(audio.cancelled).toBeGreaterThan(afterMetronome);
+  });
+
+  it("forwards organ controls through the existing settings path", () => {
+    const { eng, audio } = engine();
+    eng.setSettings({ ...eng.settings, organRotary: "fast", organDrive: 0.65 });
+    expect(audio.organControls).toEqual([{ rotary: "fast", drive: 0.65 }]);
   });
 
   it("grades input through the engine and finishes with a result", () => {
