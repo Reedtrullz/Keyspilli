@@ -57,16 +57,33 @@ describe("loadSettings", () => {
   });
 
   it("rejects unknown enum values", () => {
-    store.set(KEY, JSON.stringify({ mode: "bogus", hand: "X", backgroundMode: "flute" }));
+    store.set(KEY, JSON.stringify({ mode: "bogus", hand: "X", backgroundMode: "flute", soundSource: "flute", organRotary: "warp" }));
     const s = loadSettings();
     expect(s.mode).toBe("falling");
     expect(s.hand).toBe("both");
     expect(s.backgroundMode).toBe("piano");
+    expect(s.soundSource).toBe(DEFAULT_SETTINGS.soundSource);
+    expect(s.organRotary).toBe("slow");
   });
 
   it("truncates fractional transpose", () => {
     store.set(KEY, JSON.stringify({ transpose: 2.9 }));
     expect(loadSettings().transpose).toBe(2);
+  });
+
+  it("preserves organ sound and controls", () => {
+    store.set(KEY, JSON.stringify({ soundSource: "organ", organRotary: "fast", organDrive: 0.73 }));
+    expect(loadSettings()).toEqual({
+      ...DEFAULT_SETTINGS,
+      soundSource: "organ",
+      organRotary: "fast",
+      organDrive: 0.73,
+    });
+  });
+
+  it("clamps persisted organ drive", () => {
+    store.set(KEY, JSON.stringify({ organDrive: 4 }));
+    expect(loadSettings().organDrive).toBe(1);
   });
 });
 
