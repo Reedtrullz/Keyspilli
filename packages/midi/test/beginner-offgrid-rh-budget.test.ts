@@ -140,6 +140,44 @@ describe("generic Beginner sparse off-grid RH budget", () => {
     }
   });
 
+  it("keeps recovered Candidate-A sustains inside the configured import ceiling", () => {
+    const source: Note[] = [
+      ...Array.from({ length: 8 }, (_, index) => ({
+        midi: 60 + (index % 4), start: index, dur: 0.5, vel: 80, hand: "R" as const,
+      })),
+      { midi: 67, start: 1.125, dur: 4, vel: 120, hand: "R" },
+    ];
+
+    const variants = buildVariants(parsed(source), { title: "Capped recovery", artist: "Keyspilli" }, {
+      arrangementProfile: "learner",
+      maxDurBeats: 1.5,
+    });
+    const recovered = variants.find((variant) => variant.level === "beginner")!.notes
+      .find((note) => note.start === 1.125);
+
+    expect(recovered?.dur).toBeLessThanOrEqual(1.5);
+    expect(validateVariants(variants, { maxDurBeats: 1.5 })).toEqual([]);
+  });
+
+  it("does not let sparse LH recovery exceed the final Beginner attack budget", () => {
+    const source: Note[] = [
+      ...Array.from({ length: 32 }, (_, index) => ({
+        midi: 72 + (index % 7), start: index * 0.25, dur: 0.25, vel: 90, hand: "R" as const,
+      })),
+      { midi: 36, start: 0.125, dur: 0.25, vel: 70, hand: "L" },
+      { midi: 41, start: 4.125, dur: 0.25, vel: 70, hand: "L" },
+    ];
+    const input = parsed(source);
+    input.tempoBpm = 180;
+
+    const variants = buildVariants(input, { title: "Dense Beginner", artist: "Keyspilli" }, {
+      arrangementProfile: "learner",
+      maxDurBeats: null,
+    });
+
+    expect(validateVariants(variants, { maxDurBeats: null })).toEqual([]);
+  });
+
   it("returns the selected Beginner notes in playback order", () => {
     const baseline: Note[] = [
       { midi: 60, start: 4, dur: 0.5, vel: 80, hand: "R" },

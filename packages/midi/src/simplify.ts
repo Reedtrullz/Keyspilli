@@ -2448,6 +2448,8 @@ function collisionAwareSparseLeftHandAnchors(
   beginnerRh: Note[],
   veryEasy: Note[],
   windowBeats: number,
+  tempoBpm: number,
+  maxDensity: number,
 ): Note[] {
   const width = Number.isFinite(windowBeats) && windowBeats > 0 ? windowBeats : 4;
   const rejectedRoles = new Set([
@@ -2501,7 +2503,10 @@ function collisionAwareSparseLeftHandAnchors(
       .map((group) => group[0]!)
       .sort((a, b) => a.start - b.start || a.midi - b.midi || b.vel - a.vel);
     for (const candidate of ordered) {
-      if (maxSounding([...beginnerRh, ...emitted, candidate]) <= 2) {
+      const combined = [...beginnerRh, ...emitted, candidate];
+      const spanSeconds = maxNoteEnd(combined) * 60 / tempoBpm;
+      const attackDensity = new Set(combined.map((note) => note.start.toFixed(3))).size / spanSeconds;
+      if (maxSounding(combined) <= 2 && attackDensity <= maxDensity + 1e-9) {
         emitted.push({ ...candidate });
         break;
       }
@@ -3092,6 +3097,8 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
       beginnerRh,
       sets["very-easy"]!,
       Math.max(1, beatsPerMeasure),
+      tempo,
+      PLAYABILITY_LIMITS.beginner!.maxDensity,
     );
     const existingKeys = new Set(beginner.map((note) => `${note.hand ?? "R"}:${note.start.toFixed(6)}:${note.midi}:${note.dur.toFixed(6)}:${note.vel}`));
     sets.beginner = [...beginner, ...sparseLh.filter((note) => {
@@ -3106,11 +3113,11 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   if (learnerProfile && !metalProfile) {
     const beginnerBaseline = sets.beginner!;
     const rejected = learnerTraceEnabled
-      ? resolveBeginnerOffGridRejections(learnerTraceEvents, src.notes)
-      : resolveBeginnerOffGridRejectionsFromLineage(beginner, beginnerAfterLadder, learnerTraceSource);
-    const durationBeats = Math.max(0, ...src.notes.map((note) => note.start + note.dur).filter(Number.isFinite));
+      ? resolveBeginnerOffGridRejections(learnerTraceEvents, imported)
+      : resolveBeginnerOffGridRejectionsFromLineage(beginner, beginnerAfterLadder, imported);
+    const durationBeats = Math.max(0, ...imported.map((note) => note.start + note.dur).filter(Number.isFinite));
     const selection = selectBeginnerOffGridRhCandidates({
-      sourceNotes: src.notes,
+      sourceNotes: imported,
       baselineNotes: beginnerBaseline,
       rejected,
       timeSig: src.timeSig,
