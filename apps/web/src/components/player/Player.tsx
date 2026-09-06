@@ -361,7 +361,6 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
 
   useEffect(() => {
     engineRef.current?.setSettings(settings);
-    engineRef.current?.audio.setOrganControls?.(settings.organRotary, settings.organDrive);
   }, [settings]);
 
   // Discrete events (play/pause/seek) still update React state so buttons
@@ -658,7 +657,6 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     const next = { ...settings, ...p };
     setSettings(next);
     engineRef.current?.audio.setGains(next.voiceGain, next.pianoGain);
-    engineRef.current?.audio.setOrganControls?.(next.organRotary, next.organDrive);
     if (engineRef.current) engineRef.current.audio.sustainPedal = next.sustainPedal;
     saveSettings(next);
     // Persist practice-relevant settings per song so switching songs restores them.

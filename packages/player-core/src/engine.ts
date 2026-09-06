@@ -194,6 +194,7 @@ export class PlaybackEngine {
     const sustainChanged = this.settings.sustainPedal !== settings.sustainPedal;
     this.settings = settings;
     this.audio.sustainPedal = settings.sustainPedal;
+    this.audio.setOrganControls?.(settings.organRotary, settings.organDrive);
     if (backgroundChanged && this.playing) {
       this.audio.cancelAll();
       this.lastScheduled = this.time;
