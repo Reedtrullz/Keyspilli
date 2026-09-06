@@ -1455,3 +1455,23 @@ Decision: `BLOCKED_ADVANCED_SOURCE_RECOVERY_NO_PROGRESS`. Musical quality is
 `MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`; human listening is
 `NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT`; deployment is unchanged. The one next
 task is `OWNER_MEDIATED_BLOCKED_SYMBOLIC_SOURCE_SUPPLY`.
+
+## 2026-09-06 — Owner-retrieved blocked symbolic validation
+
+The owner-retrieved Red Sun and Last Stand MIDI files are valid bounded private
+symbolic candidates, but neither clears the unchanged `aligned` generation
+prerequisite. Red Sun's 130 BPM, 256-beat candidate contains every pitch/onset
+event in the current 401-note Advanced artifact; the frozen comparison is still
+`partial` because the artifact covers only 35.5% of the richer candidate. Its
+catalog lineage is confirmed, but its timing/source contract is unresolved.
+The Last Stand comparison is `insufficient-evidence`; its anonymous one-track,
+104 BPM arrangement must not inherit the existing Sheet Music Boss lineage.
+
+No Advanced rebuild or catalog write ran. The retrieved Defence file is an
+exact protected benchmark duplicate and remains
+`BENCHMARK_REFERENCE_EVAL_ONLY`; all nine Defence rows remain hidden.
+Livgardet remains `ADVANCED_AWAITING_USER_SOURCE`, and Dear God and The
+Emptiness Machine are unchanged. Decision:
+`OWNER_RETRIEVED_SYMBOLIC_VALIDATION_NO_PROMOTION`. Human listening is
+`NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT`; deployment is `NO_DEPLOYMENT`; musical
+quality remains `MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`.

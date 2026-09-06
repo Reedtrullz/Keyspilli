@@ -3189,6 +3189,58 @@
         "sha256": "2b48b9732875d280cb0bb872779dfb3c74676d8c437f4a4e1c180d565ced3b57"
       },
       "nextTask": "OWNER_MEDIATED_BLOCKED_SYMBOLIC_SOURCE_SUPPLY"
+    },
+    {
+      "id": "owner-retrieved-blocked-symbolic-validation-2026-09-06",
+      "date": "2026-09-06",
+      "startingRevision": "583cbee63885e01c128afdfa65112cdab022815e",
+      "candidates": {
+        "redSun": {
+          "sha256": "0ac7e6e585193cc01b71f9249c1ef48c698e4d85a204959a246a541bf56c9582",
+          "identity": "IDENTITY_CONFIRMED",
+          "alignment": "partial",
+          "decision": "PRIVATE_RESEARCH_CANDIDATE_ALIGNMENT_UNRESOLVED"
+        },
+        "lastStand": {
+          "sha256": "93154d97afa8a01a80c140fbc9e447ee833cd2e982a934414b27760fcba8f41a",
+          "identity": "IDENTITY_AMBIGUOUS",
+          "alignment": "insufficient-evidence",
+          "decision": "PRIVATE_RESEARCH_CANDIDATE_IDENTITY_UNRESOLVED"
+        },
+        "defence": {
+          "sha256": "2d3ccad7864b7e97bba76022ce20043d50e4df11015c4b9305f7bd6a8bacf413",
+          "decision": "BENCHMARK_REFERENCE_EVAL_ONLY"
+        },
+        "livgardet": {
+          "decision": "ADVANCED_AWAITING_USER_SOURCE"
+        }
+      },
+      "verification": {
+        "focusedTests": "PASS_88",
+        "catalogTests": "PASS_1070",
+        "workspaceTests": "PASS_1711",
+        "workspaceTypechecks": "PASS_6_OF_6",
+        "alignmentDeterminism": "PASS",
+        "sourceHashImmutability": "PASS",
+        "gitDiffCheck": "PASS"
+      },
+      "scope": {
+        "advancedRebuilds": 0,
+        "catalogWrites": 0,
+        "arrangerChanges": 0,
+        "gateChanges": 0,
+        "sourceMidiCommitted": 0,
+        "automaticSourceDownloads": 0,
+        "deployments": 0,
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT"
+      },
+      "decision": "OWNER_RETRIEVED_SYMBOLIC_VALIDATION_NO_PROMOTION",
+      "quality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED",
+      "report": {
+        "path": "owner-retrieved-blocked-symbolic-validation-2026-09-06.json",
+        "sha256": "82912779977679913ad23d79f146228007ba41057331dc65c2bc943c32919cf4"
+      },
+      "nextTask": "OWNER_MEDIATED_BLOCKED_SYMBOLIC_SOURCE_SUPPLY"
     }
   ]
 }

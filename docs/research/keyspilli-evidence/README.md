@@ -43,6 +43,22 @@ deterministically, clearing its old fragmentation symptom but failing the frozen
 promotion gate on a 29.5-beat RH melody gap. No rows were promoted; decision:
 `BLOCKED_ADVANCED_SOURCE_RECOVERY_NO_PROGRESS`.
 
+### Owner-retrieved blocked symbolic candidates
+
+The Red Sun and Last Stand MIDI files passed bounded parsing and structural
+checks; the Defence file was separately verified by hash and benchmark
+firewall. Red Sun exactly contains the existing catalog Advanced artifact's 401-note
+pitch/onset set, confirming that catalog lineage, but the frozen aligner remains
+`partial` because the artifact covers only 35.5% of the richer candidate. The
+Last Stand comparison is `insufficient-evidence` and does not establish the
+Sheet Music Boss arrangement identity. Neither file reached the unchanged
+`aligned` generation prerequisite, so neither was rebuilt or promoted.
+
+The retrieved Defence file is byte-identical to a protected benchmark alias and
+remains `BENCHMARK_REFERENCE_EVAL_ONLY`. Livgardet remains
+`ADVANCED_AWAITING_USER_SOURCE`. Decision:
+`OWNER_RETRIEVED_SYMBOLIC_VALIDATION_NO_PROMOTION`.
+
 ### Direct metal and semantic guitar work
 
 The direct metal path, source-aware lane locking, semantic guitar harmony, low
@@ -181,6 +197,9 @@ not been retried.
 * `owner-private-alpha-access-restoration-2026-09-05.json` — owner-usable
   Keychain recovery, live Basic Auth browser matrix, and unchanged-runtime
   evidence without credential material.
+* `owner-retrieved-blocked-symbolic-validation-2026-09-06.json` — path-free
+  hashes, parser diagnostics, frozen symbolic comparisons, rights separation,
+  Defence benchmark quarantine, and the no-promotion decision.
 
 ## Cold-transfer boundary
 
