@@ -3315,6 +3315,85 @@
         "sha256": "6f315de39507abd2f4a51dd8bc97743ecccda3128d853e1063cccb0c1032809f"
       },
       "nextTask": "ADVANCED_SOURCE_RECOVERY_LIMIT_CLOSEOUT"
+    },
+    {
+      "id": "chord-mode-short-lh-stacks-2026-09-06",
+      "date": "2026-09-06",
+      "startingRevision": "910951e7391fcdea9f9193ee2d7d82839e2894ff",
+      "checkpointRevision": "6f2a85d5fadfdef2ba7aa03cdd228893ebe4027f",
+      "implementationCommits": [
+        "022267f9e32637cfa90da9fb4d71e0ff10493c9f",
+        "aedb74054c112dbcf8bde04107f23b776294a9e0",
+        "6f2a85d5fadfdef2ba7aa03cdd228893ebe4027f"
+      ],
+      "purpose": "Preserve stable short multi-pitch left-hand chord evidence for human-authored symbolic sources without changing normal piano-note generation or audio-derived detector behavior",
+      "route": "existing chordsAt -> source-aware short-LH eligibility -> existing one-beat run gate -> catalog/player normalization",
+      "scope": {
+        "productionFilesChanged": ["packages/midi/src/simplify.ts"],
+        "testFilesChanged": [
+          "packages/midi/test/midi.test.ts",
+          "apps/web/src/components/player/end-to-end-contract.test.ts"
+        ],
+        "normalPianoNoteBehaviorChanged": 0,
+        "playerDedupeChanged": false,
+        "difficultyPolicyChanged": false,
+        "audioDerivedPolicyChanged": false,
+        "productionArtifactsRegenerated": false,
+        "deployment": "NOT_DEPLOYED",
+        "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT"
+      },
+      "queen": {
+        "baselineRevision": "022267f9e32637cfa90da9fb4d71e0ff10493c9f",
+        "currentRevision": "6f2a85d5fadfdef2ba7aa03cdd228893ebe4027f",
+        "advancedNoteArraySha256": "2790539feec487ee74723c75116341eebb6dbd068086a82a2e49bdd00e2e1be1",
+        "advancedNoteArraySha256Unchanged": true,
+        "advancedNotes": {"baseline": 2364, "current": 2364},
+        "advancedLeftHandNotes": {"baseline": 1140, "current": 1140},
+        "generatedChords": {"baseline": 144, "current": 149},
+        "chordGapBeats": {
+          "median": {"baseline": 2, "current": 2},
+          "p90": {"baseline": 6, "current": 6},
+          "maximum": {"baseline": 60, "current": 44}
+        },
+        "firstChordStrictlyAfterBeat288": {"baseline": 348, "current": 332, "currentName": "G5"},
+        "reversedInputChordArrayDeepEqual": true
+      },
+      "catalogScan": {
+        "filesFound": 464,
+        "evaluatedBaseline": 464,
+        "evaluatedCurrent": 464,
+        "parseErrorsBaseline": 0,
+        "parseErrorsCurrent": 0,
+        "proposedBaselineRatioMedian": 1,
+        "proposedBaselineRatioP90": 1.010752688172043,
+        "zeroZeroRows": 4,
+        "zeroBaselinePositiveProposedRows": 0,
+        "exactAdvancedNoteArrayParity": 464,
+        "exactLeftHandArrayParity": 464
+      },
+      "audioDerivedFirewall": {
+        "fixtureNoteSha256": "6b63a7d6c7483e0348dbe2fb04767aaa481a903a19ea4274514c405f82004a8a",
+        "advancedNotes": 12,
+        "leftHandNotes": 12,
+        "generatedChordsBaseline": 0,
+        "generatedChordsCurrent": 0,
+        "focusedMidiFileTests": "PASS_113"
+      },
+      "verification": {
+        "focusedMidiPackageTests": "PASS_358",
+        "focusedPlayerCoreTests": "PASS_109",
+        "focusedWebTests": "PASS_145",
+        "workspaceTests": {"passed": 1065, "failed": 5, "errors": 1, "total": 1070, "status": "FAIL_PRE_EXISTING_UNRELATED"},
+        "workspaceTypechecks": "PASS_6_OF_6",
+        "gitDiffCheck": true,
+        "workspaceFailureScope": "date-expired source-candidate-handoff fixtures plus no-manifest/no-artifacts chord-diagnostic path"
+      },
+      "decision": "CHORD_MODE_SHORT_LH_STACKS_VERIFIED_NOT_DEPLOYED",
+      "report": {
+        "path": ".superpowers/sdd/2026-09-06-chord-mode-short-lh-stacks/task-5-report.md",
+        "sha256": "17eb1c817998d6f3674b2449c284bebab089eef9354d514297513b3c67680361"
+      },
+      "nextTask": "AUTHORIZED_TARGETED_QUEEN_REGENERATION"
     }
   ]
 }
