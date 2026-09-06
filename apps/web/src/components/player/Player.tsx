@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   AudioEngine,
+  OrganAudioEngine,
   SamplerAudioEngine,
   ChordGrader,
   completeChordDurations,
@@ -329,8 +330,13 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
 
   // Engine lifecycle: one PlaybackEngine per mount, disposed on unmount.
   useEffect(() => {
+    const audio = settings.soundSource === "sampled"
+      ? new SamplerAudioEngine()
+      : settings.soundSource === "organ"
+        ? new OrganAudioEngine(settings.organDrive, settings.organRotary)
+        : new AudioEngine();
     const engine = new PlaybackEngine(
-      settings.soundSource === "sampled" ? new SamplerAudioEngine() : new AudioEngine(),
+      audio,
       notes,
       duration,
       { tempoBpm: initial.data.tempoBpm, timeSig: initial.data.timeSig },
@@ -355,6 +361,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
 
   useEffect(() => {
     engineRef.current?.setSettings(settings);
+    engineRef.current?.audio.setOrganControls?.(settings.organRotary, settings.organDrive);
   }, [settings]);
 
   // Discrete events (play/pause/seek) still update React state so buttons
@@ -651,6 +658,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     const next = { ...settings, ...p };
     setSettings(next);
     engineRef.current?.audio.setGains(next.voiceGain, next.pianoGain);
+    engineRef.current?.audio.setOrganControls?.(next.organRotary, next.organDrive);
     if (engineRef.current) engineRef.current.audio.sustainPedal = next.sustainPedal;
     saveSettings(next);
     // Persist practice-relevant settings per song so switching songs restores them.

@@ -216,4 +216,21 @@ describe("OrganAudioEngine", () => {
     expect(click.frequency.value).toBe(1760);
     expect(click.stops).toEqual([10.06]);
   });
+
+  it("falls back to the existing synth when native rotary graph creation fails", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    class BrokenRotaryContext extends FakeAudioContext {
+      override createStereoPanner(): StereoPannerNode {
+        throw new Error("stereo panner unavailable");
+      }
+    }
+    vi.stubGlobal("AudioContext", BrokenRotaryContext);
+    const engine = new OrganAudioEngine();
+
+    expect(() => engine.noteOn({ midi: 60, startSec: 0, durSec: 1, vel: 100 })).not.toThrow();
+    expect(FakeAudioContext.instances).toHaveLength(2);
+    expect(FakeAudioContext.instances[0]!.closeCalls).toBe(1);
+    expect(FakeAudioContext.instances[1]!.oscillators).toHaveLength(3);
+    engine.dispose();
+  });
 });
