@@ -1475,3 +1475,27 @@ Emptiness Machine are unchanged. Decision:
 `OWNER_RETRIEVED_SYMBOLIC_VALIDATION_NO_PROMOTION`. Human listening is
 `NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT`; deployment is `NO_DEPLOYMENT`; musical
 quality remains `MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`.
+
+## 2026-09-06 — Autonomous blocked symbolic-source recovery exhausted
+
+The four canonical blocked source needs received a bounded public-web search of
+70 serious leads. Nine new files were acquired through intentionally public
+downloads, with no login, paywall, CAPTCHA, DRM, or anti-bot bypass. Ten
+supported symbolic files including the two existing owner-retrieved candidates
+parsed; one Guitar Pro archive remained unsupported. The Defence benchmark hash
+was detected and stayed `BENCHMARK_REFERENCE_EVAL_ONLY`.
+
+Red Sun remains `VALID_SOURCE_ALIGNMENT_UNRESOLVED`; the richer-candidate gate
+is behaving fail-closed and was not changed. The Last Stand remains
+`VALID_SOURCE_IDENTITY_UNRESOLVED`. Defence has a distinct exact-title full-band
+MIDI but remains `VALID_SOURCE_ALIGNMENT_UNRESOLVED` under unknown rights and no
+independent alignment attestation. Livgardet is
+`AUTONOMOUS_SOURCE_EXHAUSTED_HUMAN_ACTION_REQUIRED`; the one bounded next action
+is a normal authenticated export of MuseScore score 6682572 if the account has
+download rights.
+
+No Advanced rebuild, catalog write, threshold change, deployment, benchmark
+generation use, or human listening occurred. Overall decision:
+`AUTONOMOUS_BLOCKED_SOURCE_RECOVERY_EXHAUSTED`. Musical quality remains
+`MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED`. Next task:
+`BLOCKED_SOURCE_HUMAN_ACTION_DECISION`.

@@ -59,6 +59,21 @@ remains `BENCHMARK_REFERENCE_EVAL_ONLY`. Livgardet remains
 `ADVANCED_AWAITING_USER_SOURCE`. Decision:
 `OWNER_RETRIEVED_SYMBOLIC_VALIDATION_NO_PROMOTION`.
 
+### Autonomous blocked-source recovery
+
+Seventy serious public leads were checked across Red Sun in the Sky, The Last
+Stand, Livgardet, and Defence of Moscow. Nine new files were acquired without
+bypassing access controls; ten supported symbolic files, including two existing
+owner-retrieved candidates, parsed under the current intake contract. All hashes
+were unique, and the protected Defence benchmark alias remained quarantined.
+
+The additional files did not satisfy the frozen identity, provenance, and
+alignment prerequisites. No Advanced rebuild or catalog write ran. Livgardet's
+best remaining free lead requires a normal authenticated MuseScore export;
+unknown-rights direct files remain research evidence, not generation authority.
+Decision: `AUTONOMOUS_BLOCKED_SOURCE_RECOVERY_EXHAUSTED`. The detailed path-free
+record is `autonomous-blocked-symbolic-source-recovery-2026-09-06.json`.
+
 ### Direct metal and semantic guitar work
 
 The direct metal path, source-aware lane locking, semantic guitar harmony, low

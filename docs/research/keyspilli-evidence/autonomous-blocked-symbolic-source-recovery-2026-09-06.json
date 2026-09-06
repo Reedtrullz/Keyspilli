@@ -1,0 +1,313 @@
+{
+  "schemaVersion": 1,
+  "mission": "AUTONOMOUS_BLOCKED_SYMBOLIC_SOURCE_RECOVERY",
+  "startingRevision": "c1f267cc91497bfbbfb795499262267cee5f2c59",
+  "method": {
+    "discoveryBudgetPerSong": 20,
+    "searchMode": "PUBLIC_WEB_AUTONOMOUS",
+    "acquisitionRule": "Only intentionally public direct symbolic downloads were fetched; no login, paywall, CAPTCHA, DRM, or anti-bot controls were bypassed.",
+    "rightsRule": "UNKNOWN_RIGHTS was not promoted to an open or publishable license.",
+    "identityStatuses": [
+      "IDENTITY_CONFIRMED",
+      "IDENTITY_PROBABLE",
+      "IDENTITY_AMBIGUOUS",
+      "IDENTITY_MISMATCH"
+    ],
+    "alignmentContract": "FROZEN_ALIGN_SYMBOLIC_SCORES",
+    "alignmentThresholdChanges": 0,
+    "arrangementPolicyChanges": 0
+  },
+  "protectedBenchmarks": {
+    "defenceOfMoscow": [
+      "2d3ccad7864b7e97bba76022ce20043d50e4df11015c4b9305f7bd6a8bacf413",
+      "a52980366131029b425dd5819394e1ef2baeb8fc0e2895fb30b638bb3ebcb30a"
+    ],
+    "classification": "BENCHMARK_REFERENCE_EVAL_ONLY",
+    "generationAuthority": false
+  },
+  "songs": [
+    {
+      "canonicalId": "red-sun-in-the-sky",
+      "title": "Red Sun in the Sky",
+      "queriesAttempted": [
+        "Red Sun in the Sky MIDI",
+        "Red Sun in the Sky .mid",
+        "Red Sun in the Sky MusicXML MXL",
+        "Red Sun in the Sky piano MIDI",
+        "Red Sun in the Sky Synthesia MIDI download",
+        "Red Sun in the Sky MuseScore",
+        "Red Sun in the Sky OnlineSequencer",
+        "Red Sun in the Sky VGMusic",
+        "Red Sun in the Sky GitHub midi",
+        "Red Sun in the Sky archive score",
+        "OnlineSequencer 3017239 author source mirror",
+        "Red Sun in the Sky creator MIDI download"
+      ],
+      "candidateCount": 20,
+      "leads": [
+        { "url": "https://www.midishow.com/en/midi/red-sun-in-the-sky-midi-download-182032", "class": "PUBLIC_REPOSITORY", "access": "LOGIN_POINTS_REQUIRED", "identity": "IDENTITY_CONFIRMED" },
+        { "url": "https://onlinesequencer.net/3017239", "class": "PUBLIC_SEQUENCER", "access": "OWNER_RETRIEVED_BYTES_EXIST", "identity": "IDENTITY_CONFIRMED" },
+        { "url": "https://onlinesequencer.net/2766856", "class": "PUBLIC_SEQUENCER_LINEAGE", "access": "METADATA_ONLY", "identity": "IDENTITY_PROBABLE" },
+        { "url": "https://onlinesequencer.net/2635941", "class": "PUBLIC_SEQUENCER_LINEAGE", "access": "METADATA_ONLY", "identity": "IDENTITY_PROBABLE" },
+        { "url": "https://onlinesequencer.net/2635940", "class": "PUBLIC_SEQUENCER_LINEAGE", "access": "METADATA_ONLY", "identity": "IDENTITY_PROBABLE" },
+        { "url": "https://onlinesequencer.net/2635938", "class": "PUBLIC_SEQUENCER_LINEAGE", "access": "METADATA_ONLY", "identity": "IDENTITY_PROBABLE" },
+        { "url": "https://onlinesequencer.net/2427279", "class": "PUBLIC_SEQUENCER_ORIGIN", "access": "METADATA_ONLY", "identity": "IDENTITY_PROBABLE", "author": "RuleEmpire" },
+        { "url": "https://onlinesequencer.net/3076999", "class": "PUBLIC_SEQUENCER_INDEPENDENT", "access": "METADATA_ONLY", "identity": "IDENTITY_PROBABLE", "author": "ivreoke" },
+        { "url": "https://onlinesequencer.net/3105155", "class": "PUBLIC_SEQUENCER_DERIVATIVE", "access": "METADATA_ONLY", "identity": "IDENTITY_PROBABLE" },
+        { "url": "https://onlinesequencer.net/3494490", "class": "PUBLIC_SEQUENCER_DERIVATIVE", "access": "METADATA_ONLY", "identity": "IDENTITY_PROBABLE" },
+        { "url": "https://onlinesequencer.net/3097989", "class": "PUBLIC_SEQUENCER_DERIVATIVE", "access": "METADATA_ONLY", "identity": "IDENTITY_PROBABLE" },
+        { "url": "https://onlinesequencer.net/4024396", "class": "PUBLIC_SEQUENCER_DERIVATIVE", "access": "METADATA_ONLY", "identity": "IDENTITY_PROBABLE" },
+        { "url": "https://onlinesequencer.net/4440420", "class": "PUBLIC_SEQUENCER_DERIVATIVE", "access": "METADATA_ONLY", "identity": "IDENTITY_PROBABLE" },
+        { "url": "https://onlinesequencer.net/4271076", "class": "PUBLIC_SEQUENCER_INDEPENDENT", "access": "METADATA_ONLY", "identity": "IDENTITY_PROBABLE" },
+        { "url": "https://onlinesequencer.net/4297144", "class": "PUBLIC_SEQUENCER_DERIVATIVE", "access": "METADATA_ONLY", "identity": "IDENTITY_PROBABLE" },
+        { "url": "https://onlinesequencer.net/4494246", "class": "PUBLIC_SEQUENCER_DERIVATIVE", "access": "METADATA_ONLY", "identity": "IDENTITY_PROBABLE" },
+        { "url": "https://onlinesequencer.net/4563655", "class": "PUBLIC_SEQUENCER_DERIVATIVE", "access": "METADATA_ONLY", "identity": "IDENTITY_PROBABLE" },
+        { "url": "https://onlinesequencer.net/4609128", "class": "PUBLIC_SEQUENCER_DERIVATIVE", "access": "METADATA_ONLY", "identity": "IDENTITY_PROBABLE" },
+        { "url": "https://www.vgmusic.com/file/5893f76c5357e0f68a8085dbad9db86a.html", "class": "PUBLIC_DIRECT_MIDI", "access": "ACQUIRED", "identity": "IDENTITY_MISMATCH" },
+        { "url": "https://www.vgmusic.com/file/f378463e22eb65419e62d37d358afba2.html", "class": "PUBLIC_DIRECT_MIDI", "access": "ACQUIRED", "identity": "IDENTITY_MISMATCH" }
+      ],
+      "acquired": [
+        {
+          "source": "OnlineSequencer 3017239 owner-retrieved candidate",
+          "sha256": "0ac7e6e585193cc01b71f9249c1ef48c698e4d85a204959a246a541bf56c9582",
+          "byteLength": 14602,
+          "format": "midi",
+          "validation": { "parse": "PASS", "notes": 1129, "tracks": 8, "tempoBpm": 130.00013, "durationBeats": 256 },
+          "rights": "OWNER_RETRIEVED_PRIVATE_RESEARCH_CANDIDATE",
+          "duplicateRelationship": "MidiShow 182032 has matching public metadata but bytes were not available without login/points"
+        },
+        {
+          "source": "VGMusic Xixing ping piano sequence",
+          "sha256": "ac35a21b1706b45013da4d4a6f08e2c7f5d5ee94c42a3e2a1a8a82c7fc4034b0",
+          "byteLength": 261516,
+          "format": "midi",
+          "validation": { "parse": "PASS", "notes": 32685, "tracks": 1, "tempoBpm": 120, "durationBeats": 732.813953 },
+          "rights": "UNKNOWN_RIGHTS",
+          "duplicateRelationship": "unique hash"
+        },
+        {
+          "source": "VGMusic pigeon city chicken medley",
+          "sha256": "d02a862264415858e2dc07766a18effe57cdc993864c2d0044a23dba2e556132",
+          "byteLength": 14269,
+          "format": "midi",
+          "validation": { "parse": "PASS", "notes": 948, "tracks": 10, "tempoBpm": 150, "durationBeats": 186 },
+          "rights": "UNKNOWN_RIGHTS",
+          "duplicateRelationship": "unique hash"
+        }
+      ],
+      "rejectedDownloads": [
+        { "source": "MidiShow download endpoint", "contentType": "text/html", "intakeCode": "METADATA_ONLY", "reason": "HTML landing/login response; parser not invoked" }
+      ],
+      "alignment": [
+        { "sourceSha256": "0ac7e6e585193cc01b71f9249c1ef48c698e4d85a204959a246a541bf56c9582", "status": "partial", "offsetBeats": 0, "beatScale": 1, "transpose": 0, "confidence": 0.747185, "referenceCoverage": 1, "candidateCoverage": 0.355182, "onsetF1": 0.842451, "exactPitchF1": 0.524183 },
+        { "sourceSha256": "ac35a21b1706b45013da4d4a6f08e2c7f5d5ee94c42a3e2a1a8a82c7fc4034b0", "status": "mismatch", "offsetBeats": 0.227, "beatScale": 1, "transpose": -12, "confidence": 0.316159, "referenceCoverage": 0.982544, "candidateCoverage": 0.012054, "onsetF1": 0.111405, "exactPitchF1": 0.002962 },
+        { "sourceSha256": "d02a862264415858e2dc07766a18effe57cdc993864c2d0044a23dba2e556132", "status": "mismatch", "offsetBeats": 0, "beatScale": 1, "transpose": 12, "confidence": 0.336217, "referenceCoverage": 0.698254, "candidateCoverage": 0.295359, "onsetF1": 0.706507, "exactPitchF1": 0.071164 }
+      ],
+      "comparisonDirectionAudit": {
+        "result": "INTENDED_FAIL_CLOSED_POLICY",
+        "reason": "The old 401-note artifact is a reduced derivative, not independent full-source truth. One-sided subset survival establishes lineage but cannot waive the frozen symmetric candidate-coverage requirement.",
+        "codeChanges": 0
+      },
+      "advancedResult": "NOT_RUN_ALIGNMENT_PRECONDITION_FAILED",
+      "decision": "VALID_SOURCE_ALIGNMENT_UNRESOLVED"
+    },
+    {
+      "canonicalId": "sheet-music-boss-sabaton-the-last-stand-piano-tutorial-mslzz1c3",
+      "title": "Sabaton — The Last Stand",
+      "queriesAttempted": [
+        "Sabaton The Last Stand MIDI",
+        "Sabaton The Last Stand .mid",
+        "Sabaton The Last Stand MusicXML MXL",
+        "Sabaton The Last Stand piano MIDI",
+        "Sabaton The Last Stand piano cover MIDI",
+        "Sabaton The Last Stand Synthesia download",
+        "Sabaton The Last Stand MuseScore",
+        "Sabaton The Last Stand OnlineSequencer",
+        "Sabaton The Last Stand GitHub midi",
+        "Sabaton The Last Stand archive score",
+        "Sheet Music Boss The Last Stand MIDI",
+        "Andrew Wrangell The Last Stand sheet MIDI"
+      ],
+      "candidateCount": 19,
+      "leads": [
+        { "url": "https://drive.google.com/drive/folders/0B68VgNwE1pYHLWVDUlR6V25FbkE?resourcekey=0-7XwdE-GzOsBCFVOF8KCOLA", "class": "CREATOR_LINKED_PUBLIC_MIDI", "access": "ACQUIRED", "identity": "IDENTITY_CONFIRMED", "author": "Ginger Smit" },
+        { "url": "https://robloxpianosheet.com/api/midi/the-last-stand-sabaton", "class": "PUBLIC_DIRECT_MIDI", "access": "ACQUIRED", "identity": "IDENTITY_PROBABLE" },
+        { "url": "https://songparts.com/songs/sabaton/the-last-stand", "class": "PUBLIC_DIRECT_MIDI", "access": "ACQUIRED", "identity": "IDENTITY_CONFIRMED" },
+        { "url": "https://onlinesequencer.net/3937701", "class": "PUBLIC_SEQUENCER", "access": "OWNER_RETRIEVED_BYTES_EXIST", "identity": "IDENTITY_AMBIGUOUS" },
+        { "url": "https://onlinesequencer.net/1653469", "class": "PUBLIC_SEQUENCER", "access": "CLOUDFLARE_BLOCKED", "identity": "IDENTITY_PROBABLE" },
+        { "url": "https://onlinesequencer.net/1555178", "class": "PUBLIC_SEQUENCER_LINEAGE", "access": "CLOUDFLARE_BLOCKED", "identity": "IDENTITY_PROBABLE" },
+        { "url": "https://onlinesequencer.net/2588433", "class": "PUBLIC_SEQUENCER", "access": "CLOUDFLARE_BLOCKED", "identity": "IDENTITY_PROBABLE" },
+        { "url": "https://onlinesequencer.net/4091340", "class": "PUBLIC_SEQUENCER", "access": "CLOUDFLARE_BLOCKED", "identity": "IDENTITY_PROBABLE" },
+        { "url": "https://onlinesequencer.net/3949934", "class": "PUBLIC_SEQUENCER", "access": "CLOUDFLARE_BLOCKED", "identity": "IDENTITY_PROBABLE" },
+        { "url": "https://onlinesequencer.net/2800356", "class": "PUBLIC_SEQUENCER", "access": "CLOUDFLARE_BLOCKED", "identity": "IDENTITY_PROBABLE" },
+        { "url": "https://onlinesequencer.net/5421070", "class": "PUBLIC_SEQUENCER", "access": "CLOUDFLARE_BLOCKED", "identity": "IDENTITY_PROBABLE" },
+        { "url": "https://onlinesequencer.net/4012517", "class": "PUBLIC_SEQUENCER", "access": "CLOUDFLARE_BLOCKED", "identity": "IDENTITY_PROBABLE" },
+        { "url": "https://onlinesequencer.net/3447122", "class": "PUBLIC_SEQUENCER", "access": "CLOUDFLARE_BLOCKED", "identity": "IDENTITY_PROBABLE" },
+        { "url": "https://musescore.com/user/53820804/scores/10562065", "class": "MUSESCORE_METADATA", "access": "LOGIN_OR_SUBSCRIPTION_UNRESOLVED", "identity": "IDENTITY_CONFIRMED" },
+        { "url": "https://musescore.com/jonnymusic/the-last-stand-sabaton-organ-cover", "class": "MUSESCORE_METADATA", "access": "LOGIN_OR_SUBSCRIPTION_UNRESOLVED", "identity": "IDENTITY_CONFIRMED" },
+        { "url": "https://www.musicnotes.com/sheetmusic/sheet-music-boss/the-last-stand/MN0183783", "class": "COMMERCIAL_DIGITAL_SHEET", "access": "PURCHASE_REQUIRED", "identity": "IDENTITY_CONFIRMED" },
+        { "url": "https://paidtabs.com/search/the_last_stand_sabaton_0bU_chords_tabs_sheet_music", "class": "COMMERCIAL_TRANSCRIPTION", "access": "PURCHASE_REQUIRED", "identity": "IDENTITY_CONFIRMED" },
+        { "url": "https://www.youtube.com/watch?v=MKiZ9bPwt1g", "class": "CREATOR_MEDIATED", "access": "CREATOR_CONTACT_REQUIRED", "identity": "IDENTITY_CONFIRMED" },
+        { "url": "https://www.youtube.com/watch?v=DIOwYycrRv8", "class": "CREATOR_MEDIATED", "access": "CREATOR_CONTACT_REQUIRED", "identity": "IDENTITY_CONFIRMED" }
+      ],
+      "acquired": [
+        { "source": "Ginger Smit creator-linked MIDI", "sha256": "808a584b2bd93445767db65c0552fb6aa3ea63c44f54c7a2a93ee92d52f0186e", "byteLength": 20344, "format": "midi", "validation": { "parse": "PASS", "notes": 2466, "tracks": 5, "tempoBpm": 104.000014, "durationBeats": 370.5 }, "rights": "UNKNOWN_RIGHTS" },
+        { "source": "Roblox Piano Sheet MIDI", "sha256": "8c33784a535ba0bd7d17dc78e603d72840e232a9ac163a05b200f4ed95f922bb", "byteLength": 20669, "format": "midi", "validation": { "parse": "PASS", "notes": 2466, "tracks": 3, "tempoBpm": 104.000014, "durationBeats": 370.5 }, "rights": "UNKNOWN_RIGHTS" },
+        { "source": "Songparts full-band MIDI", "sha256": "2c065b8276fa883d7216882ee18354c59a53e69cbbba5a67e89fbc2438ff1b96", "byteLength": 57548, "format": "midi", "validation": { "parse": "PASS", "notes": 5718, "tracks": 12, "tempoBpm": 104.000014, "durationBeats": 403.25 }, "rights": "UNKNOWN_RIGHTS" },
+        { "source": "OnlineSequencer 3937701 owner-retrieved candidate", "sha256": "93154d97afa8a01a80c140fbc9e447ee833cd2e982a934414b27760fcba8f41a", "byteLength": 20205, "format": "midi", "validation": { "parse": "PASS", "notes": 2466, "tracks": 1, "tempoBpm": 104.000014, "durationBeats": 370.5 }, "rights": "OWNER_RETRIEVED_PRIVATE_RESEARCH_CANDIDATE" }
+      ],
+      "duplicateRelationships": [
+        "Ginger, Roblox, and OnlineSequencer candidates share 2466 notes, 104 BPM, and 370.5 beats.",
+        "Ginger and Roblox differ in only two short-note durations after pitch/start/duration canonicalization; byte hashes, velocities, divisions, and track containers differ.",
+        "The shared arrangement family is not proven to be the Sheet Music Boss/Andrew Wrangell catalog arrangement."
+      ],
+      "alignment": [
+        { "sourceSha256": "808a584b2bd93445767db65c0552fb6aa3ea63c44f54c7a2a93ee92d52f0186e", "status": "insufficient-evidence", "offsetBeats": -0.5, "beatScale": 0.9, "transpose": 5, "confidence": 0.162512, "referenceCoverage": 0.311268, "candidateCoverage": 0.179238, "onsetF1": 0.349815, "exactPitchF1": 0.031395 },
+        { "sourceSha256": "8c33784a535ba0bd7d17dc78e603d72840e232a9ac163a05b200f4ed95f922bb", "status": "insufficient-evidence", "offsetBeats": -0.5, "beatScale": 0.9, "transpose": 5, "confidence": 0.162512, "referenceCoverage": 0.311268, "candidateCoverage": 0.179238, "onsetF1": 0.349815, "exactPitchF1": 0.031395 },
+        { "sourceSha256": "93154d97afa8a01a80c140fbc9e447ee833cd2e982a934414b27760fcba8f41a", "status": "insufficient-evidence", "offsetBeats": -0.5, "beatScale": 0.9, "transpose": 5, "confidence": 0.162512, "referenceCoverage": 0.311268, "candidateCoverage": 0.179238, "onsetF1": 0.349815, "exactPitchF1": 0.031395 },
+        { "sourceSha256": "2c065b8276fa883d7216882ee18354c59a53e69cbbba5a67e89fbc2438ff1b96", "status": "mismatch", "offsetBeats": 5, "beatScale": 0.9, "transpose": -12, "confidence": 0.207978, "referenceCoverage": 0.432394, "candidateCoverage": 0.10738, "onsetF1": 0.379389, "exactPitchF1": 0.027178 }
+      ],
+      "catalogIdentity": "IDENTITY_AMBIGUOUS",
+      "advancedResult": "NOT_RUN_IDENTITY_AND_ALIGNMENT_PRECONDITIONS_FAILED",
+      "decision": "VALID_SOURCE_IDENTITY_UNRESOLVED"
+    },
+    {
+      "canonicalId": "sabaton-livgardet-organ-pianopaul05-dxhpyinsbdw",
+      "title": "Sabaton — Livgardet / The Royal Guard",
+      "queriesAttempted": [
+        "Sabaton Livgardet MIDI",
+        "Sabaton Livgardet .mid",
+        "Sabaton Livgardet MusicXML MXL",
+        "Sabaton Livgardet piano MIDI",
+        "Sabaton Livgardet Synthesia download",
+        "Sabaton Livgardet MuseScore",
+        "Sabaton Livgardet OnlineSequencer",
+        "Sabaton Livgardet GitHub midi",
+        "Sabaton Livgardet archive score",
+        "Sabaton The Royal Guard MIDI",
+        "Sabaton The Royal Guard MusicXML",
+        "Sabaton The Royal Guard piano cover MIDI",
+        "PianoPaul05 Livgardet MIDI sheet",
+        "HotMelody The Royal Guard MIDI sheets"
+      ],
+      "candidateCount": 18,
+      "leads": [
+        { "url": "https://musescore.com/user/30830305/scores/6682572", "class": "MUSESCORE_SYMBOLIC", "access": "LOGIN_OR_CLOUDFLARE_BLOCKED", "identity": "IDENTITY_CONFIRMED", "author": "Dj3ntPickle" },
+        { "url": "https://onlinesequencer.net/3551899", "class": "PUBLIC_SEQUENCER", "access": "CLOUDFLARE_BLOCKED", "identity": "IDENTITY_CONFIRMED", "author": "Lobotomy88nakh" },
+        { "url": "https://www.youtube.com/watch?v=ibAJFHsR0-s", "class": "CREATOR_MEDIATED", "access": "CREATOR_CONTACT_REQUIRED", "identity": "IDENTITY_CONFIRMED", "author": "HotMelody" },
+        { "url": "https://www.youtube.com/watch?v=1o0fpTxPp54", "class": "PIANO_COVER_METADATA", "access": "NO_SYMBOLIC_LINK", "identity": "IDENTITY_CONFIRMED", "author": "Pøsle The Goat" },
+        { "url": "https://www.youtube.com/watch?v=-tOhALk2zX8", "class": "PIANO_COVER_METADATA", "access": "NO_SYMBOLIC_LINK", "identity": "IDENTITY_CONFIRMED", "author": "PianoPaul05" },
+        { "url": "https://note-store.com/notes/sabaton/the-royal-guard/piano-easy/", "class": "COMMERCIAL_PIANO_MIDI", "access": "PURCHASE_REQUIRED", "identity": "IDENTITY_CONFIRMED", "priceUsd": 25 },
+        { "url": "https://note-store.com/notes/sabaton/the-royal-guard/piano-solo/", "class": "COMMERCIAL_PIANO_MIDI", "access": "PURCHASE_REQUIRED", "identity": "IDENTITY_CONFIRMED", "priceUsd": 23.5 },
+        { "url": "https://note-store.com/notes/sabaton/the-royal-guard/piano-vocal/", "class": "COMMERCIAL_PIANO_MIDI", "access": "PURCHASE_REQUIRED", "identity": "IDENTITY_CONFIRMED", "priceUsd": 26.2 },
+        { "url": "https://chordu.com/chords-tabs-sabaton-livgardet-lyrics-english-svenska--id_auRM6g693k8", "class": "GENERATED_CHORD_REFERENCE", "access": "REFERENCE_ONLY", "identity": "IDENTITY_CONFIRMED" },
+        { "url": "https://chordu.com/chords-tabs-the-royal-guard-id_5KNCpHCRINY", "class": "GENERATED_CHORD_REFERENCE", "access": "REFERENCE_ONLY", "identity": "IDENTITY_CONFIRMED" },
+        { "url": "https://chordify.net/es/chords/sabaton-livgardet-the-royal-guard-piano-posle-the-goat", "class": "COVER_CHORD_REFERENCE", "access": "REFERENCE_ONLY", "identity": "IDENTITY_CONFIRMED" },
+        { "url": "https://chordify.net/chords/sabaton-livgardet-official-music-video-sabaton", "class": "GENERATED_CHORD_REFERENCE", "access": "REFERENCE_ONLY", "identity": "IDENTITY_CONFIRMED" },
+        { "url": "https://chordify.net/chords/sabaton-songs/the-royal-guard-chords", "class": "GENERATED_CHORD_REFERENCE", "access": "REFERENCE_ONLY", "identity": "IDENTITY_CONFIRMED" },
+        { "url": "https://www.songsterr.com/a/wsa/sabaton-livgardet-tab-s719346", "class": "TAB_METADATA", "access": "NO_SUPPORTED_SYMBOLIC_DOWNLOAD", "identity": "IDENTITY_CONFIRMED" },
+        { "url": "https://www.songsterr.com/a/wsa/sabaton-royal-guard-tab-s719345", "class": "TAB_METADATA", "access": "NO_SUPPORTED_SYMBOLIC_DOWNLOAD", "identity": "IDENTITY_CONFIRMED" },
+        { "url": "https://www.supreme-network.com/midis/browse/S/4242-sabaton", "class": "MIDI_VENDOR_CATALOG", "access": "NO_EXACT_TARGET_VERIFIED", "identity": "IDENTITY_AMBIGUOUS" },
+        { "url": "https://pisnicky-akordy.cz/sabaton/the-royal-guard?format=pdf", "class": "CHORD_PDF_REFERENCE", "access": "REFERENCE_ONLY", "identity": "IDENTITY_CONFIRMED" },
+        { "url": "https://guitartwitt.com/sabaton-livgardet-chords/", "class": "CHORD_REFERENCE", "access": "REFERENCE_ONLY", "identity": "IDENTITY_CONFIRMED" }
+      ],
+      "acquired": [],
+      "alignment": [],
+      "advancedResult": "NOT_RUN_NO_VALIDATED_SOURCE_BYTES",
+      "humanOnlyAction": {
+        "category": "LOGIN_REQUIRED",
+        "bestCandidate": "https://musescore.com/user/30830305/scores/6682572",
+        "format": "MIDI_OR_MUSICXML_EXPORT_ADVERTISED",
+        "instruction": "Use MuseScore's normal authenticated download control only; stop if the account lacks download rights."
+      },
+      "decision": "AUTONOMOUS_SOURCE_EXHAUSTED_HUMAN_ACTION_REQUIRED"
+    },
+    {
+      "canonicalId": "sabaton-defence-of-moscow",
+      "title": "Sabaton — Defence of Moscow",
+      "queriesAttempted": [
+        "Sabaton Defence of Moscow MIDI",
+        "Sabaton Defence of Moscow .mid",
+        "Sabaton Defence of Moscow MusicXML MXL",
+        "Sabaton Defence of Moscow piano MIDI",
+        "Sabaton Defence of Moscow Synthesia download",
+        "Sabaton Defence of Moscow MuseScore",
+        "Sabaton Defence of Moscow OnlineSequencer",
+        "Sabaton Defence of Moscow GitHub midi",
+        "Sabaton Defence of Moscow archive score",
+        "Radio Tapok Bitva za Moskvu MIDI",
+        "Defence of Moscow Songsterr MIDI",
+        "Defence of Moscow sheet MIDI download"
+      ],
+      "candidateCount": 13,
+      "leads": [
+        { "url": "https://songparts.com/songs/sabaton/defence-of-moscow", "class": "PUBLIC_DIRECT_MIDI_MUSICXML", "access": "ACQUIRED", "identity": "IDENTITY_CONFIRMED" },
+        { "url": "https://www.gtp-tabs.ru/n/tabs/18/radio-tapok/bitva-za-moskvu.html", "class": "PUBLIC_GUITAR_PRO", "access": "ACQUIRED_UNSUPPORTED_FORMAT", "identity": "IDENTITY_PROBABLE" },
+        { "url": "https://midifind.com/files/r/radio_tapok/radio_tapok_bitva_za_moskvu/2003-1-0-74086", "class": "PUBLIC_DIRECT_MIDI", "access": "ACQUIRED", "identity": "IDENTITY_PROBABLE" },
+        { "url": "https://onlinesequencer.net/2134136", "class": "PUBLIC_SEQUENCER", "access": "PROTECTED_BYTES_ALREADY_KNOWN", "identity": "IDENTITY_CONFIRMED" },
+        { "url": "https://musescore.com/user/53142789/scores/14949013", "class": "MUSESCORE_SYMBOLIC", "access": "LOGIN_OR_SUBSCRIPTION_UNRESOLVED", "identity": "IDENTITY_CONFIRMED" },
+        { "url": "https://www.songsterr.com/a/wsa/sabaton-defence-of-moscow-tab-s484052", "class": "TAB_METADATA", "access": "NO_SUPPORTED_SYMBOLIC_DOWNLOAD", "identity": "IDENTITY_CONFIRMED" },
+        { "url": "https://note-store.com/notes/sabaton/defence-of-moscow/", "class": "COMMERCIAL_ARRANGEMENT_FAMILY", "access": "PURCHASE_REQUIRED", "identity": "IDENTITY_CONFIRMED" },
+        { "url": "https://www.sheetmusicgo.com/en/pianoletters/177457996028558", "class": "LETTER_NOTE_REFERENCE", "access": "UNSUPPORTED_SYMBOLIC_FORMAT", "identity": "IDENTITY_CONFIRMED" },
+        { "url": "https://yallemedia.com/chords-sabaton-defence-of-moscow-chords-on-piano-ukulele/", "class": "CHORD_REFERENCE", "access": "REFERENCE_ONLY", "identity": "IDENTITY_CONFIRMED" },
+        { "url": "https://chordu.com/chords-tabs-sabaton-defence-of-moscow-official-lyric-video--id_i7K4v1HBYKA", "class": "GENERATED_CHORD_REFERENCE", "access": "REFERENCE_ONLY", "identity": "IDENTITY_CONFIRMED" },
+        { "url": "https://drumnet.ru/drumless.php?ids=2026&lng=en", "class": "AUDIO_BACKING_TRACK", "access": "NOT_SYMBOLIC", "identity": "IDENTITY_CONFIRMED" },
+        { "url": "https://www.sabaton.net/discography/the-war-to-end-all-wars/defence-of-moscow/", "class": "OFFICIAL_METADATA", "access": "NOT_SYMBOLIC", "identity": "IDENTITY_CONFIRMED" },
+        { "url": "https://sabaton.bandcamp.com/", "class": "OFFICIAL_AUDIO_METADATA", "access": "NOT_SYMBOLIC", "identity": "IDENTITY_CONFIRMED" }
+      ],
+      "acquired": [
+        { "source": "Songparts full-band MIDI", "sha256": "4894a6ade95f97c682b110a7533ee5948bb20f7a11d2d01d4859ff4156630501", "byteLength": 53887, "format": "midi", "validation": { "parse": "PASS", "notes": 4605, "tracks": 19, "tempoBpm": 110.00011, "durationBeats": 445.5, "trackTitle": "Sabaton - Defence of Moscow" }, "rights": "UNKNOWN_RIGHTS", "benchmarkRelationship": "hash differs from both protected references" },
+        { "source": "Songparts alternate MusicXML export", "sha256": "49475bd575f5201d109b170e6c244d8ae5329704d424f9523044c37e377b06d8", "byteLength": 2363976, "format": "musicxml", "validation": { "parse": "SYNTACTIC_PASS_STRUCTURAL_REJECT", "notes": 4926, "parts": 18, "tempoBpm": 110, "reportedDurationBeats": 1339.666667, "reason": "paired same-version MIDI is 445.5 beats and XML contains overfull measure timelines" }, "rights": "UNKNOWN_RIGHTS", "benchmarkRelationship": "hash differs from both protected references" },
+        { "source": "Midifind Radio Tapok Bitva za Moskvu MIDI", "sha256": "05c4eae5fe46bb19b3ee78e1082832a2e59e61f610f7f081947829bb5e701d4e", "byteLength": 16309, "format": "midi", "validation": { "parse": "PASS", "notes": 1889, "tracks": 3, "tempoBpm": 104.166667, "durationBeats": 324 }, "rights": "UNKNOWN_RIGHTS", "benchmarkRelationship": "hash differs from both protected references" },
+        { "source": "GTP-Tabs Radio Tapok archive", "sha256": "c17d60ebbbe85ea02d25611b633a32227a9fc4618d43338382b2b76a9db9be3e", "byteLength": 14053, "format": "guitar-pro-archive", "validation": { "container": "PASS", "supportedByIntake": false }, "rights": "UNKNOWN_RIGHTS", "benchmarkRelationship": "hash differs from both protected references" }
+      ],
+      "firewall": {
+        "onlineSequencer2134136Sha256": "2d3ccad7864b7e97bba76022ce20043d50e4df11015c4b9305f7bd6a8bacf413",
+        "classification": "BENCHMARK_REFERENCE_EVAL_ONLY",
+        "generationAuthority": false,
+        "result": "PASS"
+      },
+      "alignment": {
+        "status": "not-attempted",
+        "reason": "No independent nonbenchmark alignment attestation is available; protected reference bytes were not used to authorize generation."
+      },
+      "advancedResult": "NOT_RUN_PROVENANCE_AND_ALIGNMENT_PRECONDITIONS_FAILED",
+      "decision": "VALID_SOURCE_ALIGNMENT_UNRESOLVED"
+    }
+  ],
+  "searchNegatives": {
+    "githubCode": "No target MIDI/MusicXML source found for the four songs.",
+    "internetArchive": "No independent exact-title supported symbolic file established.",
+    "midifindSabatonCatalog": "The indexed 16-song Sabaton catalog contained none of the four targets.",
+    "flatNoteflight": "No accessible exact-target supported symbolic export established."
+  },
+  "results": {
+    "songsInvestigated": 4,
+    "seriousLeads": 70,
+    "candidateByteRecordsEvaluated": 11,
+    "newlyAcquiredFiles": 9,
+    "supportedSymbolicFilesParsed": 10,
+    "unsupportedContainers": 1,
+    "uniqueAcquiredHashes": 11,
+    "benchmarkAliasesQuarantined": 1,
+    "htmlMasqueradesRejected": 1,
+    "promotionReadySongs": 0,
+    "advancedRebuildsRun": 0
+  },
+  "boundaries": {
+    "sourceBytesCommitted": 0,
+    "copyrightedNoteArraysCommitted": 0,
+    "purchases": 0,
+    "creatorMessages": 0,
+    "loginBypass": 0,
+    "captchaBypass": 0,
+    "benchmarkGenerationUse": 0,
+    "catalogWrites": 0,
+    "deployments": 0,
+    "humanListening": "NOT_REQUESTED_NOT_REQUIRED_BY_DEFAULT",
+    "musicalQuality": "MUSICAL_QUALITY_NOT_OBJECTIVELY_ESTABLISHED"
+  },
+  "decision": "AUTONOMOUS_BLOCKED_SOURCE_RECOVERY_EXHAUSTED",
+  "decisionBasis": "Autonomous public discovery found and validated additional symbolic files, including a creator-linked Last Stand family and a nonbenchmark Defence full-band MIDI. Frozen identity, provenance, and alignment gates still prevent every Advanced rebuild. Livgardet requires a normal authenticated source export or purchase. No source or gate was forced through.",
+  "nextTask": "BLOCKED_SOURCE_HUMAN_ACTION_DECISION"
+}
