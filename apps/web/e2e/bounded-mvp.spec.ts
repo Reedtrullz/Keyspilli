@@ -17,11 +17,12 @@ const MUSIC_XML = `<?xml version="1.0" encoding="UTF-8"?>
     <note><pitch><step>C</step><octave>5</octave></pitch><duration>1</duration><voice>1</voice><type>quarter</type></note>
   </measure></part>
 </score-partwise>`;
+const UPLOAD_QUERY = "/api/songs?q=Scratch%20MusicXML&limit=20";
 
 test("scratch upload creates an Easy player with public levels and exports", async ({ page, request }) => {
-  const initialCatalog = await request.get("/api/songs?group=1&limit=1");
+  const initialCatalog = await request.get(UPLOAD_QUERY);
   expect(initialCatalog.status()).toBe(200);
-  expect((await initialCatalog.json()).total).toBe(0);
+  expect((await initialCatalog.json()).songs).toHaveLength(0);
 
   await page.goto("/uploads");
   await expect(page.getByText(/MIDI, MusicXML, or MXL/)).toBeVisible();
@@ -39,7 +40,7 @@ test("scratch upload creates an Easy player with public levels and exports", asy
   await expect(playerLink).toBeVisible();
   const easyHref = await playerLink.getAttribute("href");
   expect(easyHref).toMatch(/^\/player\/[^/]+-e$/);
-  const uploadResponse = await request.get("/api/songs?limit=20");
+  const uploadResponse = await request.get(UPLOAD_QUERY);
   const uploadedSongs = (await uploadResponse.json()).songs as Array<{ id: string; difficulty: string }>;
   expect(uploadedSongs).toHaveLength(6);
   const veryEasyId = uploadedSongs.find((song) => song.difficulty === "very-easy")?.id;
@@ -72,7 +73,7 @@ test("scratch upload reports malformed symbolic content without publishing", asy
   });
   await page.getByRole("button", { name: "Upload & create lesson" }).click();
   await expect(page.locator('p[role="alert"]')).toContainText(/parse failed|too few notes|invalid/i);
-  const catalog = await request.get("/api/songs?limit=20");
+  const catalog = await request.get(UPLOAD_QUERY);
   expect((await catalog.json()).songs).toHaveLength(6);
 });
 
