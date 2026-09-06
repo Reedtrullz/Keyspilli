@@ -13,6 +13,7 @@ import {
   validateArtifactFiles,
   LEVEL_ORDER,
   validateVariants,
+  BEGINNER_OFFGRID_CANDIDATE,
   TRANSCRIPTION_CLEANUP_CONFIG as MIDI_TRANSCRIPTION_CLEANUP_CONFIG,
   DEFAULT_IMPORTED_MAX_SOUNDING,
   type ChordLabel,
@@ -416,8 +417,16 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
         tempo: tempoProvenance,
         ...(transcription ? { transcription } : {}),
       };
+      const beginnerOffGridRh = v.level === "beginner"
+        ? v.notes.flatMap((note) => (
+          (note as typeof note & { [BEGINNER_OFFGRID_CANDIDATE]?: boolean })[BEGINNER_OFFGRID_CANDIDATE] === true
+            ? [[note.midi, note.start] as [number, number]]
+            : []
+        ))
+        : [];
       prepared.push({ code, row, midi: artifacts.midi, xml: artifacts.xml, notesJson: JSON.stringify({
         notes: v.notes,
+        ...(beginnerOffGridRh.length ? { beginnerOffGridRh } : {}),
         warnings: v.warnings,
         chords: v.chords,
         measures: v.measures,

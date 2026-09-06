@@ -3,7 +3,7 @@ export { parseMidi, midiBeatToNativeSeconds, midiTickToNativeSeconds } from "./p
 export { quantize } from "./quantize.js";
 export { splitHands, detectKey, keyName, chordName, detectBassPattern, melodyFrom, keySignature } from "./analyze.js";
 export { buildVariants, reduceMediumRhythm, padPitches, melodyOnly, normalizeTempoBpm, SAFE_TEMPO_BPM } from "./simplify.js";
-export { LADDER_TOL, validateVariants, PLAYABILITY_LIMITS } from "./validate.js";
+export { BEGINNER_OFFGRID_CANDIDATE, LADDER_TOL, validateVariants, PLAYABILITY_LIMITS } from "./validate.js";
 export type { VariantValidationOptions } from "./validate.js";
 export {
   measurePlayability,
