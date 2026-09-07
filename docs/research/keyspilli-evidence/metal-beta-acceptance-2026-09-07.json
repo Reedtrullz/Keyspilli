@@ -1,0 +1,1308 @@
+{
+  "schemaVersion": 1,
+  "status": "VERIFIED_NO_RELEASE_CANDIDATE",
+  "decisionDate": "2026-09-07",
+  "codeCommit": "104d156edb595804589e52f0797669d6902b03f9",
+  "pullRequest": "https://github.com/Reedtrullz/Keyspilli/pull/82",
+  "strongMusicalCertification": "pending",
+  "enabledBetaRoutes": [],
+  "eligibleProductionIndexEntries": 0,
+  "qualifyingFullSongCases": {
+    "passed": 0,
+    "required": 6,
+    "sourceFamiliesQualified": 0,
+    "note": "Six researched composition leads yielded no eligible source. Synthetic worker/API fixtures and twelve cached experimental replays do not count."
+  },
+  "routes": {
+    "indexedNativeMidi": "implemented and tested; disabled, zero eligible production entries",
+    "automaticWebDiscovery": "not enabled; free provider quota unverified",
+    "tutorial": "unsupported; no general calibration qualified",
+    "pianoAudio": "experimental; strict challenger passes 2 of 3 clean-control gates",
+    "directMetalAudio": "experimental; independent real reference coverage insufficient",
+    "muscriptor": "noncommercial weights excluded"
+  },
+  "objectiveReferences": {
+    "realSongTargets": 6,
+    "fullyAlignedEligibleRealPairs": 0,
+    "cleanControls": 3,
+    "fixedGate": {
+      "precision": 0.95,
+      "recall": 0.9,
+      "onsetToleranceMs": 80,
+      "matching": "one-to-one exact pitch and onset",
+      "criticalPhraseErrorsAllowed": 0
+    },
+    "basicPitchControlPrecision": [
+      0.8453,
+      0.743,
+      0.6903
+    ],
+    "strictPianoChallengerPrecision": [
+      0.982456,
+      0.987342,
+      0.887681
+    ],
+    "strictPianoChallengerRecall": [
+      0.989399,
+      0.975,
+      0.98
+    ],
+    "note": "Clean rendered piano controls do not establish dense-metal accuracy; Debussy precision fails. Full exact results are in metal-upstream-comparison and reference manifests."
+  },
+  "developmentRows": [
+    {
+      "id": "htKY2oD85rs",
+      "title": "Hearts on Fire",
+      "artist": "HammerFall",
+      "structural": {
+        "mode": "structural",
+        "status": "pass",
+        "failures": [],
+        "warnings": [],
+        "evaluated": [
+          "finite MIDI notes",
+          "finite parser metadata",
+          "event-boundary simultaneity",
+          "piano range",
+          "drum-derived pitch count",
+          "variant validation",
+          "variant monotonicity"
+        ],
+        "thresholds": {
+          "maxSimultaneity": 8,
+          "pianoMin": 21,
+          "pianoMax": 108,
+          "onsetToleranceBeats": 0.08,
+          "warningOnsetsPerSecond": 12,
+          "warningVeryShortRate": 0.8,
+          "warningMinimumVeryShortNotes": 16,
+          "warningWallMinimumRun": 8,
+          "warningWallRate": 0.4,
+          "warningDurationMismatchBeats": 4
+        },
+        "availability": {
+          "variants": "evaluated"
+        }
+      },
+      "qualifiesForBeta": false,
+      "sourceNoteAccuracy": "unverified",
+      "humanAcceptance": "pending",
+      "replay": "output/metal-development/replay-merged-final/htKY2oD85rs/1a08b86fc8b40eead6c89da7362c9952ca8988dd4a4b67bf3573e1138311ef40",
+      "replayManifestSha256": "5ff1ba50013a844bb1c11a7e831115575632df06f5779baee9b6ed770fee09f4",
+      "sourceSha256": "b0c6bca2002d893505601397f1142977718c62e57b067fe9e43732450bdf9ea9",
+      "codeSha256": "693ff9d8fd4d56a74a3f1d77cbb1c9cb3dd95f181ca480b9eeb81ebd2485fb29",
+      "config": {
+        "mode": "auto",
+        "python": "python3",
+        "basicPitch": "basic-pitch",
+        "separatorScript": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/services/transcribe/src/separate_stems.py",
+        "drumOnsetScript": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/services/transcribe/src/audio_onsets.py",
+        "demucsModel": "htdemucs_6s",
+        "demucsDevice": "cpu",
+        "separatorTimeoutMs": 1200000,
+        "basicPitchTimeoutMs": 600000,
+        "minFreeBytes": 32212254720,
+        "onsetThreshold": 0.65,
+        "frameThreshold": 0.45,
+        "modelSerialization": ""
+      },
+      "modelIdentity": {
+        "mode": "cached-stem-replay-no-inference"
+      },
+      "artifacts": {
+        "candidate.mid": "20ee582048645b04d6795828b1c3c008a02843bb505e4ce1fdb65eb213592dd5",
+        "report.json": "da2a42ccaabcee442648a139e634ceb55db2876ed2caabc299c0bcb99ad89487",
+        "very-beginner.mid": "eb19d4e047db26a6207d3fc5d0b331a2340a7d25274868dba90662afc3ccea41",
+        "very-beginner.json": "9df7d25a838615b617aa0571fbb8fe3bec232ef85e161f5520655898228746db",
+        "beginner.mid": "3b56b26215adba2c85f3b080344fd9dd6f7277407e025ce6d9ed66d377e88a38",
+        "beginner.json": "ac9b871bef23b27f9c9128d06e19c61b505ce0b1d505717cdc46a92255c2d782",
+        "very-easy.mid": "b0026e167303fda6bdab48d10a1517c5213d135198efd3fc23ac2041bf66dad2",
+        "very-easy.json": "cc6a4e65e08dba9e0f87747a23baf8ef6fdada8495eed2a054ddc280630b2ce1",
+        "easy.mid": "9ec28324c6882f6337633fe402b7fa719a9e2c1da8702d308ecb040543a80430",
+        "easy.json": "9df836a6c67cdec1410ec38251fc2f434a13042aa89dd56c36624e8f6407d2e5",
+        "medium.mid": "4802f3a9812be49d04086faef876fbd27265a190ad8b091900393a4cbbf7465e",
+        "medium.json": "0865a764acb073da156bd6c70869348c0248bc93592938e8b723486b10aa3875",
+        "advanced.mid": "5bc8cdd02db31bf998b68565bdfd1bd513195b2536e95a354bfaa44ab1e00289",
+        "advanced.json": "8afc4155381baae8943c1b267b3509f1b3fb49a00c8c04103dbb5123dc45f363"
+      }
+    },
+    {
+      "id": "1zN7J64IeBo",
+      "title": "Army of the Night",
+      "artist": "Powerwolf",
+      "structural": {
+        "mode": "structural",
+        "status": "pass",
+        "failures": [],
+        "warnings": [],
+        "evaluated": [
+          "finite MIDI notes",
+          "finite parser metadata",
+          "event-boundary simultaneity",
+          "piano range",
+          "drum-derived pitch count",
+          "variant validation",
+          "variant monotonicity"
+        ],
+        "thresholds": {
+          "maxSimultaneity": 8,
+          "pianoMin": 21,
+          "pianoMax": 108,
+          "onsetToleranceBeats": 0.08,
+          "warningOnsetsPerSecond": 12,
+          "warningVeryShortRate": 0.8,
+          "warningMinimumVeryShortNotes": 16,
+          "warningWallMinimumRun": 8,
+          "warningWallRate": 0.4,
+          "warningDurationMismatchBeats": 4
+        },
+        "availability": {
+          "variants": "evaluated"
+        }
+      },
+      "qualifiesForBeta": false,
+      "sourceNoteAccuracy": "unverified",
+      "humanAcceptance": "pending",
+      "replay": "output/metal-development/replay-merged-final/1zN7J64IeBo/af2553a317f46bbfed9a518e4622f65db29130183372f4988f47ddc4ff792add",
+      "replayManifestSha256": "1925f31664ab1048bb7232508d717df9df5ac313b6ee4d6adf7c7e94449b1b2d",
+      "sourceSha256": "3512264f6bc578769bcdff1ff5c605179c115f602c48563c7ef9ddc2e6a3a89c",
+      "codeSha256": "693ff9d8fd4d56a74a3f1d77cbb1c9cb3dd95f181ca480b9eeb81ebd2485fb29",
+      "config": {
+        "mode": "auto",
+        "python": "python3",
+        "basicPitch": "basic-pitch",
+        "separatorScript": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/services/transcribe/src/separate_stems.py",
+        "drumOnsetScript": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/services/transcribe/src/audio_onsets.py",
+        "demucsModel": "htdemucs_6s",
+        "demucsDevice": "cpu",
+        "separatorTimeoutMs": 1200000,
+        "basicPitchTimeoutMs": 600000,
+        "minFreeBytes": 32212254720,
+        "onsetThreshold": 0.65,
+        "frameThreshold": 0.45,
+        "modelSerialization": ""
+      },
+      "modelIdentity": {
+        "mode": "cached-stem-replay-no-inference"
+      },
+      "artifacts": {
+        "candidate.mid": "30339207965e905be967fc54188ef980cdb046125a33a1284a5431105c25ebd6",
+        "report.json": "bbacafa5230b5dff9cd1470ebb9d6db9b4f411c68883cff523549cd26346bca2",
+        "very-beginner.mid": "7b2bc51595760919f2d9dea64b2c84eb2bfa4317dd02da42b848afe3eae67486",
+        "very-beginner.json": "c0b8fca63aef145ae822a3b9befde473508b211035a71c815a3ff8a062020322",
+        "beginner.mid": "309fcb0ababb7d6c47662d864f9f30adb90b8ad4cd7b4c0a828db75e3b877b57",
+        "beginner.json": "2c28368e5c49d80c3232ce5b6110e2fa2ca4b50cb685e08f9ffdbeec0875bb6c",
+        "very-easy.mid": "c539bf30a099a9619cec7c0581dbf29b6d34e1aea61a179ea8f007cd8c7240a4",
+        "very-easy.json": "ded4f95c98bc35ef52cee40a337c2a22034a9443b654c9b51e988922c2ac2db3",
+        "easy.mid": "b40cd34390c901fe61a45436927081af4129cd22af555dc5edede8e9f9029935",
+        "easy.json": "456246b8611990ef7c8fcb6b2e398ea931f60831d7ab815a4272602fe0c7dc67",
+        "medium.mid": "27eb5140379e710371851ed70d82eba25d8a2ec0acfbc1e76eed0064e7563980",
+        "medium.json": "b34743059456c7f86360a0d85ca2d7d86f3cc939e9d828531d60c5a8ec3fb06b",
+        "advanced.mid": "d79b7e1e1577e84206202266ff1d57b34190b69bc8b93154b4e32880d7eb0649",
+        "advanced.json": "421853eb943e0970eb5341cd9043614cf10e50ddc6fc2b702a1d5b134b6742f1"
+      }
+    },
+    {
+      "id": "_hzssKb9940",
+      "title": "Eden",
+      "artist": "Battle Beast",
+      "structural": {
+        "mode": "structural",
+        "status": "pass",
+        "failures": [],
+        "warnings": [],
+        "evaluated": [
+          "finite MIDI notes",
+          "finite parser metadata",
+          "event-boundary simultaneity",
+          "piano range",
+          "drum-derived pitch count",
+          "variant validation",
+          "variant monotonicity"
+        ],
+        "thresholds": {
+          "maxSimultaneity": 8,
+          "pianoMin": 21,
+          "pianoMax": 108,
+          "onsetToleranceBeats": 0.08,
+          "warningOnsetsPerSecond": 12,
+          "warningVeryShortRate": 0.8,
+          "warningMinimumVeryShortNotes": 16,
+          "warningWallMinimumRun": 8,
+          "warningWallRate": 0.4,
+          "warningDurationMismatchBeats": 4
+        },
+        "availability": {
+          "variants": "evaluated"
+        }
+      },
+      "qualifiesForBeta": false,
+      "sourceNoteAccuracy": "unverified",
+      "humanAcceptance": "pending",
+      "replay": "output/metal-development/replay-merged-final/_hzssKb9940/2cb973f0494aa6c0bd36dde5b1fd4141769b2bb788dea31a632ce5e47aa0062e",
+      "replayManifestSha256": "b5b68d37fb2633f9bb662d968d07649f1b889827f929d558f51187e1ca204734",
+      "sourceSha256": "5c5b4b68a2297e6a1a93cad39913cf5b28f9fe0112606e01cd8bf7e531b376f6",
+      "codeSha256": "693ff9d8fd4d56a74a3f1d77cbb1c9cb3dd95f181ca480b9eeb81ebd2485fb29",
+      "config": {
+        "mode": "auto",
+        "python": "python3",
+        "basicPitch": "basic-pitch",
+        "separatorScript": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/services/transcribe/src/separate_stems.py",
+        "drumOnsetScript": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/services/transcribe/src/audio_onsets.py",
+        "demucsModel": "htdemucs_6s",
+        "demucsDevice": "cpu",
+        "separatorTimeoutMs": 1200000,
+        "basicPitchTimeoutMs": 600000,
+        "minFreeBytes": 32212254720,
+        "onsetThreshold": 0.65,
+        "frameThreshold": 0.45,
+        "modelSerialization": ""
+      },
+      "modelIdentity": {
+        "mode": "cached-stem-replay-no-inference"
+      },
+      "artifacts": {
+        "candidate.mid": "29389a88f492c1699a2663bd9d80ad4378bc15b111ed2c45dddd625183d852a9",
+        "report.json": "e734a6a4c07ee187260e5dd56b86bd9f86d07dece1d3b6ce2d354b9ecb10d93e",
+        "very-beginner.mid": "1c0f930a69ed89dbc14e9c425498e30e4f3c7de9623a7aa9b93170e99e268567",
+        "very-beginner.json": "543a1d707157b1275e7b09df7f9de892ae5f88d70049d6685c161dab44342535",
+        "beginner.mid": "90ed84f536ad992270b5096698fd2d157f802c1e32e494aad28eae716eef1dcb",
+        "beginner.json": "f2735ceb54106bedf2b619fcbd8acd75c50c6e5756162a2596c574f21bc7efb5",
+        "very-easy.mid": "e7e8402e9ab9bf1ca174c74e6dc88969211245bf8dc3cc12b36074a23e6e9327",
+        "very-easy.json": "27f4d3ad3b70ce7f68cd72f7cd0b68cda971361b84c03f11f170a47c870d3ad9",
+        "easy.mid": "5208f48b7563421fb21b6346ea71000f4106056e440b4e7dfc762b7db6006849",
+        "easy.json": "9d017e8eb629d5be9f850aad3d72545e42d562fbf257339a2bf2e3dcaf52f54c",
+        "medium.mid": "89010eda511ece3879a3329c64742ed6de01a57bb75cc55e581d93356be8342a",
+        "medium.json": "c829e4320297bcb79430bee6ef167daa73cd290466e8fae88904391b71e16a75",
+        "advanced.mid": "9da0000e4a0dcfdc4a776a8a50dbd4dc402914106338a97f86bac116cf7696b9",
+        "advanced.json": "d7ba895ed35e0690fb89274cf1495e1961a315f46e9dcb6f2daac82fa8c08d58"
+      }
+    },
+    {
+      "id": "kG4uQ6Tk7fY",
+      "title": "Hunting High and Low",
+      "artist": "Stratovarius",
+      "structural": {
+        "mode": "structural",
+        "status": "pass",
+        "failures": [],
+        "warnings": [],
+        "evaluated": [
+          "finite MIDI notes",
+          "finite parser metadata",
+          "event-boundary simultaneity",
+          "piano range",
+          "drum-derived pitch count",
+          "variant validation",
+          "variant monotonicity"
+        ],
+        "thresholds": {
+          "maxSimultaneity": 8,
+          "pianoMin": 21,
+          "pianoMax": 108,
+          "onsetToleranceBeats": 0.08,
+          "warningOnsetsPerSecond": 12,
+          "warningVeryShortRate": 0.8,
+          "warningMinimumVeryShortNotes": 16,
+          "warningWallMinimumRun": 8,
+          "warningWallRate": 0.4,
+          "warningDurationMismatchBeats": 4
+        },
+        "availability": {
+          "variants": "evaluated"
+        }
+      },
+      "qualifiesForBeta": false,
+      "sourceNoteAccuracy": "unverified",
+      "humanAcceptance": "pending",
+      "replay": "output/metal-development/replay-merged-final/kG4uQ6Tk7fY/32a945864488d7b501fdc1026c458ce9868dacdb9fbd5e88d70c8bddca40854a",
+      "replayManifestSha256": "b857d566e364cf14a4c7569b02a9a801d588259aae2fc6f1472c551188338de7",
+      "sourceSha256": "cb8ff22e7d49569f1cf2be080f93dead47dcc364ab96d9b66e7d6c44bbb6df4d",
+      "codeSha256": "693ff9d8fd4d56a74a3f1d77cbb1c9cb3dd95f181ca480b9eeb81ebd2485fb29",
+      "config": {
+        "mode": "auto",
+        "python": "python3",
+        "basicPitch": "basic-pitch",
+        "separatorScript": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/services/transcribe/src/separate_stems.py",
+        "drumOnsetScript": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/services/transcribe/src/audio_onsets.py",
+        "demucsModel": "htdemucs_6s",
+        "demucsDevice": "cpu",
+        "separatorTimeoutMs": 1200000,
+        "basicPitchTimeoutMs": 600000,
+        "minFreeBytes": 32212254720,
+        "onsetThreshold": 0.65,
+        "frameThreshold": 0.45,
+        "modelSerialization": ""
+      },
+      "modelIdentity": {
+        "mode": "cached-stem-replay-no-inference"
+      },
+      "artifacts": {
+        "candidate.mid": "001125afee99dba2c7b8df8968bdbbedc0e721b096195afe13d94966203b01c9",
+        "report.json": "96804a2e096196e18cd5f523f0cc50e2ee56aec012cdf1e7dc123f8cfb1c5c36",
+        "very-beginner.mid": "ed0bcedf777c374c49b4ac9687661210a8b88ef5e8edc99c986c77ea91d77e26",
+        "very-beginner.json": "488e6c549aef43ab607aaa8848e078ed19a18b29d88b08be9ae3d981ce4121da",
+        "beginner.mid": "c454767fb73972ce670757cf9c8ff3c72a81a12f9652806a70c4bdb587dae936",
+        "beginner.json": "25b0f1092105b978c66ba909c2712fcc537222fb797f972661ae4d69b90c4fdb",
+        "very-easy.mid": "ab75d85a1d4299fe76c8aff0428a3497b976f7e153782ab1fba65f90a9e3539e",
+        "very-easy.json": "455bd1c250af967a1a7ec65ce389cc39b9045bbe47217155586ffcc89b492ff9",
+        "easy.mid": "2fd13218b800539b68bfed87eb50b25749a9a671541e48ed8e52f96b3317ad4d",
+        "easy.json": "af1f53bf280a0d33d7227bb5a1b4553621cacfe4a71296181dcf3eafb7a3d7b2",
+        "medium.mid": "1ce3f1440f802cb0425eeb4b7e5277377049f143a326de602b1dfd11123e6d30",
+        "medium.json": "519f6ed5fe4d84806914391339c9a8b8b9230995dcfdb6cf0a71ec5ff5bd27ed",
+        "advanced.mid": "b04520ad3bfff44396c57022a23251969d1d2c6d5488021560bdb9ed0fd48a10",
+        "advanced.json": "502ce1798435d7eb31e14cee88e3fd70df0cc2e9d04c7915feab3674cff30a87"
+      }
+    },
+    {
+      "id": "IrwXSfcJmnU",
+      "title": "Balls to the Wall",
+      "artist": "Accept",
+      "structural": {
+        "mode": "structural",
+        "status": "pass",
+        "failures": [],
+        "warnings": [],
+        "evaluated": [
+          "finite MIDI notes",
+          "finite parser metadata",
+          "event-boundary simultaneity",
+          "piano range",
+          "drum-derived pitch count",
+          "variant validation",
+          "variant monotonicity"
+        ],
+        "thresholds": {
+          "maxSimultaneity": 8,
+          "pianoMin": 21,
+          "pianoMax": 108,
+          "onsetToleranceBeats": 0.08,
+          "warningOnsetsPerSecond": 12,
+          "warningVeryShortRate": 0.8,
+          "warningMinimumVeryShortNotes": 16,
+          "warningWallMinimumRun": 8,
+          "warningWallRate": 0.4,
+          "warningDurationMismatchBeats": 4
+        },
+        "availability": {
+          "variants": "evaluated"
+        }
+      },
+      "qualifiesForBeta": false,
+      "sourceNoteAccuracy": "unverified",
+      "humanAcceptance": "pending",
+      "replay": "output/metal-development/replay-merged-final/IrwXSfcJmnU/04bec9200f6f75a6c50440efecd113a324da251989bcff0ba39bafa88935cc65",
+      "replayManifestSha256": "bdc7f039f90482e359ae3ffbf5d1441ca7730b37b41a8d94a7a26e9327323bb0",
+      "sourceSha256": "ce153f3566b4975db4bebe977e9de906adba8fcc86e281e8bb685336c49802c8",
+      "codeSha256": "693ff9d8fd4d56a74a3f1d77cbb1c9cb3dd95f181ca480b9eeb81ebd2485fb29",
+      "config": {
+        "mode": "auto",
+        "python": "python3",
+        "basicPitch": "basic-pitch",
+        "separatorScript": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/services/transcribe/src/separate_stems.py",
+        "drumOnsetScript": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/services/transcribe/src/audio_onsets.py",
+        "demucsModel": "htdemucs_6s",
+        "demucsDevice": "cpu",
+        "separatorTimeoutMs": 1200000,
+        "basicPitchTimeoutMs": 600000,
+        "minFreeBytes": 32212254720,
+        "onsetThreshold": 0.65,
+        "frameThreshold": 0.45,
+        "modelSerialization": ""
+      },
+      "modelIdentity": {
+        "mode": "cached-stem-replay-no-inference"
+      },
+      "artifacts": {
+        "candidate.mid": "7346eaf74521535ec3eb08ebbc006a7c075fd22289e4ff1c0be69ee00838f44b",
+        "report.json": "5ac56bb1a26677717d61e2bbb0236eed37a50a374357ed475570f963f73d4a4b",
+        "very-beginner.mid": "1cfff9cf4c823ac80fbb3bf0209f5e2f11b0086a8d8cfc4859f4fe4b29885135",
+        "very-beginner.json": "6ff5f42badfae1c9eb70e5114d96e1edd80eeeae2b8f9fae3d8916f0944eb08a",
+        "beginner.mid": "57a23aacd3483724acf8d913329b662c118015edba7b0dd45a819cd752082561",
+        "beginner.json": "edf49d10d4d2a146cbc3deb5897d0155517c726e198828be730a67c4e0fd8307",
+        "very-easy.mid": "fb63711dfd866896c3f3baf9f58725a054c674b8da3205611da6e6b84bbf4a6e",
+        "very-easy.json": "bd5fe188dbdb3990a3e0f75bb256755004c1096c08aca0a56d2ee48b08703ad7",
+        "easy.mid": "ef5d0551911a38e2f9d955ecc19193d7dadd1abb3b331cab130757e68dc68017",
+        "easy.json": "31859bd6d8fdbd65e9302afc6b21c1ca50a18943b41f39747b980be13e1433b1",
+        "medium.mid": "cec613e427d66bf724d08e078841bbef1c6740d868a8a03a3bf9466965058427",
+        "medium.json": "e93bc56857ee35355971ff7aa294708dc5f8344b88ac86411149394a284f9e66",
+        "advanced.mid": "389d41649652a07b428981259444c677a8412482247f5ad9bd6373d52c1ae098",
+        "advanced.json": "da022ca09fe65e79de0880bb3d508444df55defb434973225f3fe2a3d3121d94"
+      }
+    },
+    {
+      "id": "L397TWLwrUU",
+      "title": "Breaking the Law",
+      "artist": "Judas Priest",
+      "structural": {
+        "mode": "structural",
+        "status": "pass",
+        "failures": [],
+        "warnings": [],
+        "evaluated": [
+          "finite MIDI notes",
+          "finite parser metadata",
+          "event-boundary simultaneity",
+          "piano range",
+          "drum-derived pitch count",
+          "variant validation",
+          "variant monotonicity"
+        ],
+        "thresholds": {
+          "maxSimultaneity": 8,
+          "pianoMin": 21,
+          "pianoMax": 108,
+          "onsetToleranceBeats": 0.08,
+          "warningOnsetsPerSecond": 12,
+          "warningVeryShortRate": 0.8,
+          "warningMinimumVeryShortNotes": 16,
+          "warningWallMinimumRun": 8,
+          "warningWallRate": 0.4,
+          "warningDurationMismatchBeats": 4
+        },
+        "availability": {
+          "variants": "evaluated"
+        }
+      },
+      "qualifiesForBeta": false,
+      "sourceNoteAccuracy": "unverified",
+      "humanAcceptance": "pending",
+      "replay": "output/metal-development/replay-merged-final/L397TWLwrUU/5b519a429417b2d0c8ab510b4929dd6bcade88277969d989241ad67b05e4238c",
+      "replayManifestSha256": "bc57b533e28dcac3b222841ea6dc5dc7c29fcd7faefb9d1ba570d60f6c98bc58",
+      "sourceSha256": "92d595377e881870cbd54b318abc87acb41a5ba6ab8d2c56ca0b684d7761818f",
+      "codeSha256": "693ff9d8fd4d56a74a3f1d77cbb1c9cb3dd95f181ca480b9eeb81ebd2485fb29",
+      "config": {
+        "mode": "auto",
+        "python": "python3",
+        "basicPitch": "basic-pitch",
+        "separatorScript": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/services/transcribe/src/separate_stems.py",
+        "drumOnsetScript": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/services/transcribe/src/audio_onsets.py",
+        "demucsModel": "htdemucs_6s",
+        "demucsDevice": "cpu",
+        "separatorTimeoutMs": 1200000,
+        "basicPitchTimeoutMs": 600000,
+        "minFreeBytes": 32212254720,
+        "onsetThreshold": 0.65,
+        "frameThreshold": 0.45,
+        "modelSerialization": ""
+      },
+      "modelIdentity": {
+        "mode": "cached-stem-replay-no-inference"
+      },
+      "artifacts": {
+        "candidate.mid": "67cf314d9f635e7b074adfcce3e6963fa97730f4f5396c1143713552ea17a660",
+        "report.json": "a174dcba9afa5ce28fa88ee16bf58aad5a3f8aa06409d86d6aaea6a7a459e9ad",
+        "very-beginner.mid": "0889c8f637f98ebaa68371535f6291b67d58f8efdbe88a81b3f148944ec10f92",
+        "very-beginner.json": "1ceb969879bee45b3585857b1d764aeca1b3f9008a7da28c2cc3091e01a3312c",
+        "beginner.mid": "cdd2c99f9d307902ff69056e54911195cd602ea84f3e032664507d547816ad61",
+        "beginner.json": "07baf03ea671ead320367aca256e67e4f44ce5e297935a7516f2cd3b550904b7",
+        "very-easy.mid": "581e7d89867e06902ea984adcf99a7e42494cdda1d7ba92a7c06a479203dad7f",
+        "very-easy.json": "f52f39cd582fa7ec0a8c4ac913543f42aa0ea20ba49d81205853f73a17694698",
+        "easy.mid": "a872bcd7d5a3d8c2ce4ef588950b19a747559f398480f9a392ec9c7093d65fe4",
+        "easy.json": "327a09b2448cec96d09cda2fda9870498d58ec6ab0d4289e419f827f9f8ec76a",
+        "medium.mid": "f9784832d0cfaa3ae53ddf648d4e10cedeb4ffd1927a475de576159b365f3f04",
+        "medium.json": "472e63d2ebef692e37fbd95bbc4de9ba7953116420bbb10c1fdc24a9b111e3e9",
+        "advanced.mid": "aef1fea465c6a65a4a03601bc313797bd287e2dfcf2fd7f0a3caa7808c100c74",
+        "advanced.json": "1baa14a22e542c05c00a8fa71e26070ee897318d727d4d8cc39c6ede321d1000"
+      }
+    },
+    {
+      "id": "2lvs2FzF64o",
+      "title": "Holy Diver",
+      "artist": "Dio",
+      "structural": {
+        "mode": "structural",
+        "status": "pass",
+        "failures": [],
+        "warnings": [],
+        "evaluated": [
+          "finite MIDI notes",
+          "finite parser metadata",
+          "event-boundary simultaneity",
+          "piano range",
+          "drum-derived pitch count",
+          "variant validation",
+          "variant monotonicity"
+        ],
+        "thresholds": {
+          "maxSimultaneity": 8,
+          "pianoMin": 21,
+          "pianoMax": 108,
+          "onsetToleranceBeats": 0.08,
+          "warningOnsetsPerSecond": 12,
+          "warningVeryShortRate": 0.8,
+          "warningMinimumVeryShortNotes": 16,
+          "warningWallMinimumRun": 8,
+          "warningWallRate": 0.4,
+          "warningDurationMismatchBeats": 4
+        },
+        "availability": {
+          "variants": "evaluated"
+        }
+      },
+      "qualifiesForBeta": false,
+      "sourceNoteAccuracy": "unverified",
+      "humanAcceptance": "pending",
+      "replay": "output/metal-development/replay-merged-final/2lvs2FzF64o/b1a51b54637bd238fc1a4d0823e39828f405fa79a02338c4966c4e9b98c6aac2",
+      "replayManifestSha256": "d21e980d631855a1de47407bd9809561fc3b5113c33be01379a6d9b931843a61",
+      "sourceSha256": "66c80073cc358e0c9c187dbaa948f92308b41daae3476661c52da968a00f2e71",
+      "codeSha256": "693ff9d8fd4d56a74a3f1d77cbb1c9cb3dd95f181ca480b9eeb81ebd2485fb29",
+      "config": {
+        "mode": "auto",
+        "python": "python3",
+        "basicPitch": "basic-pitch",
+        "separatorScript": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/services/transcribe/src/separate_stems.py",
+        "drumOnsetScript": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/services/transcribe/src/audio_onsets.py",
+        "demucsModel": "htdemucs_6s",
+        "demucsDevice": "cpu",
+        "separatorTimeoutMs": 1200000,
+        "basicPitchTimeoutMs": 600000,
+        "minFreeBytes": 32212254720,
+        "onsetThreshold": 0.65,
+        "frameThreshold": 0.45,
+        "modelSerialization": ""
+      },
+      "modelIdentity": {
+        "mode": "cached-stem-replay-no-inference"
+      },
+      "artifacts": {
+        "candidate.mid": "e82787b3505040d114fa5a4d9a03549d7883dbdbc7488683cd6728066bf6100e",
+        "report.json": "6df5195910a43294983303f61ade44dff838239da0f1b54ae6be06441f3a3f9b",
+        "very-beginner.mid": "109bb2975a13557180ea9e5df8808f8301873c2b9514154bcc04d0a898354149",
+        "very-beginner.json": "4106916d79b33c1848282846e24a3b0d5f5217e3eb90bc0fb799d6cc1e6ee6c7",
+        "beginner.mid": "35b6e25284554ecf76fcc2b19f894f70356b020259f32f205ddeab6c22f2c64a",
+        "beginner.json": "fd89a9578f6b09b2faac300bf12fd57111c9c14a45cc8e3c7923c34b91900720",
+        "very-easy.mid": "0ec275b6c78cc73354fcc438f730e0f9897bffc8428c9057d86293290fa33452",
+        "very-easy.json": "7c3ea5fef5b9ab7a4acba5cc87326787748c0b24906b9476d77e5bcbbde90759",
+        "easy.mid": "497fe866c2b96b0f4739b56ae4f20bbbfb734f84997c99e2eb3184a9872c0ae4",
+        "easy.json": "cb4ecbf3207bbee5a73bc602de1c4d8c3f9a429c30a054aad55e24b426b56c22",
+        "medium.mid": "ba968423a32d0cbb0c7b2df94b6151565274877a88410e24fa13fba17b925691",
+        "medium.json": "4a84b1809954634389159bd624d942d3c9d8cb735f93b992ad13afb79b1657c0",
+        "advanced.mid": "1631543001848da8fbe1257a4e41cbec8ebd0da0331a4051c65a832614302a5f",
+        "advanced.json": "0b5a183a1450495039574d4718fedda6187bf0ec4311f694844d033dd1de0661"
+      }
+    },
+    {
+      "id": "vfpgpf6QVnI",
+      "title": "Symphony of Destruction",
+      "artist": "Megadeth",
+      "structural": {
+        "mode": "structural",
+        "status": "pass",
+        "failures": [],
+        "warnings": [],
+        "evaluated": [
+          "finite MIDI notes",
+          "finite parser metadata",
+          "event-boundary simultaneity",
+          "piano range",
+          "drum-derived pitch count",
+          "variant validation",
+          "variant monotonicity"
+        ],
+        "thresholds": {
+          "maxSimultaneity": 8,
+          "pianoMin": 21,
+          "pianoMax": 108,
+          "onsetToleranceBeats": 0.08,
+          "warningOnsetsPerSecond": 12,
+          "warningVeryShortRate": 0.8,
+          "warningMinimumVeryShortNotes": 16,
+          "warningWallMinimumRun": 8,
+          "warningWallRate": 0.4,
+          "warningDurationMismatchBeats": 4
+        },
+        "availability": {
+          "variants": "evaluated"
+        }
+      },
+      "qualifiesForBeta": false,
+      "sourceNoteAccuracy": "unverified",
+      "humanAcceptance": "pending",
+      "replay": "output/metal-development/replay-merged-final/vfpgpf6QVnI/09413f1aa3ff3396272365096dcf80485d9b263e2647267505cadd32b54c1530",
+      "replayManifestSha256": "36ef2223ede575e42c178047cf50409795cb07f5186634956d8a059d44a3e713",
+      "sourceSha256": "fa7d78eaa5618370a37bda42ad6c85b1291036772b7d2ee532cdd786b4760137",
+      "codeSha256": "693ff9d8fd4d56a74a3f1d77cbb1c9cb3dd95f181ca480b9eeb81ebd2485fb29",
+      "config": {
+        "mode": "auto",
+        "python": "python3",
+        "basicPitch": "basic-pitch",
+        "separatorScript": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/services/transcribe/src/separate_stems.py",
+        "drumOnsetScript": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/services/transcribe/src/audio_onsets.py",
+        "demucsModel": "htdemucs_6s",
+        "demucsDevice": "cpu",
+        "separatorTimeoutMs": 1200000,
+        "basicPitchTimeoutMs": 600000,
+        "minFreeBytes": 32212254720,
+        "onsetThreshold": 0.65,
+        "frameThreshold": 0.45,
+        "modelSerialization": ""
+      },
+      "modelIdentity": {
+        "mode": "cached-stem-replay-no-inference"
+      },
+      "artifacts": {
+        "candidate.mid": "df97e08e11ff30d4dc0f190b3d107688aeeaff0338fbe5100e538f19f437f669",
+        "report.json": "85a010273087a3766479de7cd06d10368b4cefa03f653995127a435660d8ca0b",
+        "very-beginner.mid": "4bb94e5d78e425c5bbf1227b67aae129c9ecc39d8346ea5120e13e4c7b31e9f5",
+        "very-beginner.json": "41c2ffd33348066768410d1b3f64ce7e5f53a99e28e5f3f8dcce6dfa3492be35",
+        "beginner.mid": "f442722fa3e99906fef237581075cbd7b9cdf3d66830488d4a7adcefd5432453",
+        "beginner.json": "15a1657ce90cccaf4656e65f2f00ec41ed9b35b5341e467ddfc9f995426fee39",
+        "very-easy.mid": "92b5d40425545a3ddd439af037aa9dcc305020bcb5f404aa065f7bfb73f17de4",
+        "very-easy.json": "0607e5dde64822367a8f3fe63ebc392c87691367a56feda51f751e66f6548886",
+        "easy.mid": "bfbc73b58ba86a94221d8005111bbcf0151688dbb89b2ba9c5b6ec71a67692ab",
+        "easy.json": "4295d73299fa369120f20d23fcfafa4083d157e5f2a0249a55437ca6c78acb98",
+        "medium.mid": "21692ec0e606f3228688dda27ba47dfc218e2095a006e9c37e7819bc58d8e092",
+        "medium.json": "888cedd962ec754adc7049501f3cbf99355878107fe2eecd3dc271997f3c56ce",
+        "advanced.mid": "a08ee4995b5ed810ceb1f2e7e4c30e82f8e4c0ceef6bf7bb1acc2f38422af978",
+        "advanced.json": "6339b33a0ae32f3bb2504041a14827783797c35a66d7dcd45082b3f5c3dfa402"
+      }
+    },
+    {
+      "id": "kIBdpFJyFkc",
+      "title": "Nemo",
+      "artist": "Nightwish",
+      "structural": {
+        "mode": "structural",
+        "status": "pass",
+        "failures": [],
+        "warnings": [],
+        "evaluated": [
+          "finite MIDI notes",
+          "finite parser metadata",
+          "event-boundary simultaneity",
+          "piano range",
+          "drum-derived pitch count",
+          "variant validation",
+          "variant monotonicity"
+        ],
+        "thresholds": {
+          "maxSimultaneity": 8,
+          "pianoMin": 21,
+          "pianoMax": 108,
+          "onsetToleranceBeats": 0.08,
+          "warningOnsetsPerSecond": 12,
+          "warningVeryShortRate": 0.8,
+          "warningMinimumVeryShortNotes": 16,
+          "warningWallMinimumRun": 8,
+          "warningWallRate": 0.4,
+          "warningDurationMismatchBeats": 4
+        },
+        "availability": {
+          "variants": "evaluated"
+        }
+      },
+      "qualifiesForBeta": false,
+      "sourceNoteAccuracy": "unverified",
+      "humanAcceptance": "pending",
+      "replay": "output/metal-development/replay-merged-final/kIBdpFJyFkc/7bae18a520e3149e60911d5308c70512292fe39c0e74dd7ce3ad3137ae323227",
+      "replayManifestSha256": "84a19f46a3b54027947e52fb8dddf1c046dafb7cef79591830103ff19d9596c0",
+      "sourceSha256": "04be96c8b2ab08fd2fbfc606fb604232138b639cd0cbe44984b3e677198f29b8",
+      "codeSha256": "693ff9d8fd4d56a74a3f1d77cbb1c9cb3dd95f181ca480b9eeb81ebd2485fb29",
+      "config": {
+        "mode": "auto",
+        "python": "python3",
+        "basicPitch": "basic-pitch",
+        "separatorScript": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/services/transcribe/src/separate_stems.py",
+        "drumOnsetScript": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/services/transcribe/src/audio_onsets.py",
+        "demucsModel": "htdemucs_6s",
+        "demucsDevice": "cpu",
+        "separatorTimeoutMs": 1200000,
+        "basicPitchTimeoutMs": 600000,
+        "minFreeBytes": 32212254720,
+        "onsetThreshold": 0.65,
+        "frameThreshold": 0.45,
+        "modelSerialization": ""
+      },
+      "modelIdentity": {
+        "mode": "cached-stem-replay-no-inference"
+      },
+      "artifacts": {
+        "candidate.mid": "f4f90b8e75413fe510df7b8ea6482cd3b54743774eade33e7d0ed64161662908",
+        "report.json": "700ca21bebc5463bf6a2a2c25fbb0f1a6a529955f76b2bfdd56c59ccfeb2e26c",
+        "very-beginner.mid": "300bfa5bd89ca074f96ef5e758bdeb675cd2b6efeeedd1a102168940c629afd6",
+        "very-beginner.json": "a81c1227e00804c1eacf08c868f519c9b3c15813f3c0ed4a3b20e3c20aa6f0b3",
+        "beginner.mid": "a99a5c238c9d4d51a215018120a3166b9cfb59b04c42d42c0f3fc02ca1047020",
+        "beginner.json": "050a2b38c3bed5d74824c090aab6359b454f819f2cc94741de84b08e00c3494d",
+        "very-easy.mid": "14793c8cf4e262c8abcf24c1fd1236fa45e6e1427eeabf0a2b3427904f9c5313",
+        "very-easy.json": "4a97cd2c4606f327a1f4811736085c626072839da05a38e3c623f3f52337cd83",
+        "easy.mid": "b696c8eb6c5d4023717e96a41927f10c2228844560aa810962cea4ccfcb6a64c",
+        "easy.json": "8f70f8c070d2bc34d329fc1ebd072f98673f2ac94e825c7bb144af8db96d2927",
+        "medium.mid": "fa2fd9a224163c02eefc88584984d8a18bb9f6134551199953ab35e46f37a82f",
+        "medium.json": "6a88ae675866e45bf6f712174262aadb2e1d58f5d13cb428d78a342810470b76",
+        "advanced.mid": "5034d8f84cffc42942000cc9020bfb16c8eb09b2b20b03cbe565c0e02f2e5b82",
+        "advanced.json": "c59ef4e1c6a15aaf441d4edce1bcee0e4dca30fab71349353c2ab7278dae3f18"
+      }
+    },
+    {
+      "id": "98xh5Hb9QAM",
+      "title": "Stand My Ground",
+      "artist": "Within Temptation",
+      "structural": {
+        "mode": "structural",
+        "status": "pass",
+        "failures": [],
+        "warnings": [],
+        "evaluated": [
+          "finite MIDI notes",
+          "finite parser metadata",
+          "event-boundary simultaneity",
+          "piano range",
+          "drum-derived pitch count",
+          "variant validation",
+          "variant monotonicity"
+        ],
+        "thresholds": {
+          "maxSimultaneity": 8,
+          "pianoMin": 21,
+          "pianoMax": 108,
+          "onsetToleranceBeats": 0.08,
+          "warningOnsetsPerSecond": 12,
+          "warningVeryShortRate": 0.8,
+          "warningMinimumVeryShortNotes": 16,
+          "warningWallMinimumRun": 8,
+          "warningWallRate": 0.4,
+          "warningDurationMismatchBeats": 4
+        },
+        "availability": {
+          "variants": "evaluated"
+        }
+      },
+      "qualifiesForBeta": false,
+      "sourceNoteAccuracy": "unverified",
+      "humanAcceptance": "pending",
+      "replay": "output/metal-development/replay-merged-final/98xh5Hb9QAM/4a35956fe9d3cad7111bf5254963fb5aac5e08fed1c4544f29e0882bdd11db96",
+      "replayManifestSha256": "06bd12336e592416f68d80210ba30c2885403d1efb320595735b775bf49e01af",
+      "sourceSha256": "35f0c982e5b315e10b14b242cf4057a7cb153aa575183b484e60bec3075f7502",
+      "codeSha256": "693ff9d8fd4d56a74a3f1d77cbb1c9cb3dd95f181ca480b9eeb81ebd2485fb29",
+      "config": {
+        "mode": "auto",
+        "python": "python3",
+        "basicPitch": "basic-pitch",
+        "separatorScript": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/services/transcribe/src/separate_stems.py",
+        "drumOnsetScript": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/services/transcribe/src/audio_onsets.py",
+        "demucsModel": "htdemucs_6s",
+        "demucsDevice": "cpu",
+        "separatorTimeoutMs": 1200000,
+        "basicPitchTimeoutMs": 600000,
+        "minFreeBytes": 32212254720,
+        "onsetThreshold": 0.65,
+        "frameThreshold": 0.45,
+        "modelSerialization": ""
+      },
+      "modelIdentity": {
+        "mode": "cached-stem-replay-no-inference"
+      },
+      "artifacts": {
+        "candidate.mid": "4460f4923fa6542d4626c2ed916a90e1b6c6a6c91645f12aeed9f5b9ebcd1a13",
+        "report.json": "93113964da848a9b1bec6e373a1c04d93dd2cf9fbebcc30e411b891222ad01a1",
+        "very-beginner.mid": "80d6fcad75ae0b960200a8243f7db11323f5d3c5419c055c8b0a5bad16c69d13",
+        "very-beginner.json": "971448b8b0778482a94db964f5ce50b3416d1510f68a155793e7b78fbb6d699d",
+        "beginner.mid": "9b6acac0f33ae8447dfe154176fd5933872930db35270d9eb79994726831d396",
+        "beginner.json": "089b13f35eac5be2f199e843d137eb6ccea0c7b2493c6c0a9b22b1165d3812dd",
+        "very-easy.mid": "490cde5a75717d69bf6e0b9539bc930cdcb1b2230a39c5bfc74828e2e101e179",
+        "very-easy.json": "c2b2e32ae8004cbe4ddc8b93d63027d47a66564b47c2968e30758130b1d31e85",
+        "easy.mid": "828669a02e75827039e461ec33ac654eea1fd0604c11ae96118ed2e4d8397df9",
+        "easy.json": "f837e046dfed32a3eeacb9656e591c2688ebeedf0c307b2a38fca7a78193ec78",
+        "medium.mid": "3c9b8b0570ac9df0c39196108f11b8d9b24f1f79a4b403d1aac43e3d34f9127a",
+        "medium.json": "9e32fdb15e34ab816d6106d01b50c5176b925fe0875b22bb01c2ee1e5a5cb132",
+        "advanced.mid": "19bf42dcb35799705ff3c6bc566c416abd226325f4c84709c8497b28cd041b2b",
+        "advanced.json": "7d6e63b72ef35974ad7924f5a9b2450c7bbb5a975cfb47d18e601f20df894443"
+      }
+    },
+    {
+      "id": "7pOr3dBFAeY",
+      "title": "Still Loving You",
+      "artist": "Scorpions",
+      "structural": {
+        "mode": "structural",
+        "status": "pass",
+        "failures": [],
+        "warnings": [],
+        "evaluated": [
+          "finite MIDI notes",
+          "finite parser metadata",
+          "event-boundary simultaneity",
+          "piano range",
+          "drum-derived pitch count",
+          "variant validation",
+          "variant monotonicity"
+        ],
+        "thresholds": {
+          "maxSimultaneity": 8,
+          "pianoMin": 21,
+          "pianoMax": 108,
+          "onsetToleranceBeats": 0.08,
+          "warningOnsetsPerSecond": 12,
+          "warningVeryShortRate": 0.8,
+          "warningMinimumVeryShortNotes": 16,
+          "warningWallMinimumRun": 8,
+          "warningWallRate": 0.4,
+          "warningDurationMismatchBeats": 4
+        },
+        "availability": {
+          "variants": "evaluated"
+        }
+      },
+      "qualifiesForBeta": false,
+      "sourceNoteAccuracy": "unverified",
+      "humanAcceptance": "pending",
+      "replay": "output/metal-development/replay-merged-final/7pOr3dBFAeY/dd917806189379a39136b72cefa6836bac7f4cacee3804226aa8a2e0c0e4a1cf",
+      "replayManifestSha256": "8825e0bf620847ac1fb389450badf8d65370a4b9bb732c281c4f16e3ba8eff60",
+      "sourceSha256": "a2ad490f8d56ccc4ca0e180571fca24c4dc5aa7bc472ae1c56d3e2714b210a02",
+      "codeSha256": "693ff9d8fd4d56a74a3f1d77cbb1c9cb3dd95f181ca480b9eeb81ebd2485fb29",
+      "config": {
+        "mode": "auto",
+        "python": "python3",
+        "basicPitch": "basic-pitch",
+        "separatorScript": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/services/transcribe/src/separate_stems.py",
+        "drumOnsetScript": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/services/transcribe/src/audio_onsets.py",
+        "demucsModel": "htdemucs_6s",
+        "demucsDevice": "cpu",
+        "separatorTimeoutMs": 1200000,
+        "basicPitchTimeoutMs": 600000,
+        "minFreeBytes": 32212254720,
+        "onsetThreshold": 0.65,
+        "frameThreshold": 0.45,
+        "modelSerialization": ""
+      },
+      "modelIdentity": {
+        "mode": "cached-stem-replay-no-inference"
+      },
+      "artifacts": {
+        "candidate.mid": "7f2f823fbeca41159c75ec4777b9ba33d6dab848413e7bde4e577dc60bc6429d",
+        "report.json": "ced4e4b42390c2d20ec6b22e574c7354832d4c1bd6b986170dbfd8c7a5f47003",
+        "very-beginner.mid": "9014afc6df7bcf09cd2ca9cacbbef631a0636c0a386ca8b7aa84a4ab2f2f7de1",
+        "very-beginner.json": "77a39520c61c9effd57018585bec66f0e1f6c93653ecfcd7ed8e469eeb214c1e",
+        "beginner.mid": "fd7b9c74d36a09a61edecaa5358c3b9b3b2d7732419abb910f8f6cce1579ed9a",
+        "beginner.json": "bde8f4af67d876835e564f7930841e3b1e9ff2900ceb5f95d0837b0f7cca3b25",
+        "very-easy.mid": "c6d021ba30f00a669ea62f2764848cbddf0d51d4675eaa6f318990e26b4eb38e",
+        "very-easy.json": "4c61832991c6aace77c3044f12e9958378690512421691d5dcaa88da973df686",
+        "easy.mid": "dfc92d6d9844916318376a63110f08d7e1f7d0d98fbda0ff189699d80c5034a4",
+        "easy.json": "396c679c93135ff1f45ce2863f6e96d837d0293114347177c14736bd4ea766ed",
+        "medium.mid": "c77834fef6a2df4842e75968a33c99c7a4d92a05e24ab50e6f47c163a834f70d",
+        "medium.json": "71e9ed1ed079e7bc76eb0fd0c19fcdfa9742ad28eb841111973190e0cbd6ff19",
+        "advanced.mid": "c9f06aebf08aeaea3bb0de5abca6a65022515c5adbab413e1cc430bfc8a4a8c8",
+        "advanced.json": "799896fb440a4ac648bbe8353d5ea3183266e010145ad90c4f251d35352867dd"
+      }
+    },
+    {
+      "id": "jhat-xUQ6dw",
+      "title": "Silent Lucidity",
+      "artist": "Queensryche",
+      "structural": {
+        "mode": "structural",
+        "status": "pass",
+        "failures": [],
+        "warnings": [],
+        "evaluated": [
+          "finite MIDI notes",
+          "finite parser metadata",
+          "event-boundary simultaneity",
+          "piano range",
+          "drum-derived pitch count",
+          "variant validation",
+          "variant monotonicity"
+        ],
+        "thresholds": {
+          "maxSimultaneity": 8,
+          "pianoMin": 21,
+          "pianoMax": 108,
+          "onsetToleranceBeats": 0.08,
+          "warningOnsetsPerSecond": 12,
+          "warningVeryShortRate": 0.8,
+          "warningMinimumVeryShortNotes": 16,
+          "warningWallMinimumRun": 8,
+          "warningWallRate": 0.4,
+          "warningDurationMismatchBeats": 4
+        },
+        "availability": {
+          "variants": "evaluated"
+        }
+      },
+      "qualifiesForBeta": false,
+      "sourceNoteAccuracy": "unverified",
+      "humanAcceptance": "pending",
+      "replay": "output/metal-development/replay-merged-final/jhat-xUQ6dw/c434f8ec3a63dee69bdb011a3a2131c6b585f284347b9721f7d8b4d488c50b02",
+      "replayManifestSha256": "4a50e09061daf3e10531b37e236c84ad3a3550503d68ea89d87f2defb6503f18",
+      "sourceSha256": "521914039772622c2f55c02f18afc1997426cd6bff51259f2fe9d07d7f0dbcef",
+      "codeSha256": "693ff9d8fd4d56a74a3f1d77cbb1c9cb3dd95f181ca480b9eeb81ebd2485fb29",
+      "config": {
+        "mode": "auto",
+        "python": "python3",
+        "basicPitch": "basic-pitch",
+        "separatorScript": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/services/transcribe/src/separate_stems.py",
+        "drumOnsetScript": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/services/transcribe/src/audio_onsets.py",
+        "demucsModel": "htdemucs_6s",
+        "demucsDevice": "cpu",
+        "separatorTimeoutMs": 1200000,
+        "basicPitchTimeoutMs": 600000,
+        "minFreeBytes": 32212254720,
+        "onsetThreshold": 0.65,
+        "frameThreshold": 0.45,
+        "modelSerialization": ""
+      },
+      "modelIdentity": {
+        "mode": "cached-stem-replay-no-inference"
+      },
+      "artifacts": {
+        "candidate.mid": "8a7691da12fe501fbd197c4facf9c1288bc19f36937aa156512f480c3bd045cc",
+        "report.json": "80af962504bdff88dc43b98fd579ad33c19e9a7e64129bfab3d8deba1f6ecb5e",
+        "very-beginner.mid": "3333dcd84e520fc593c79d44359c676363b31205c6144884cfa4ddd24e658a6a",
+        "very-beginner.json": "10332d6753919636ceab3f6ff60a55040746680838cd463debd0343404dad863",
+        "beginner.mid": "d17e52141eec61b0dd0b0016d078d9e9deb8ea8a3a18f0a1c54a4dc30d5612f0",
+        "beginner.json": "364d4493cd2b91733e3efa1573e17c3aa626d16a7ebdc59bd4f2128d83bb5f05",
+        "very-easy.mid": "7fc1a8c26ed07c48d38427cdee59a9165a39c5a49c892719ceea87f0f6b4dbbb",
+        "very-easy.json": "c307ab76763e064aab09983fc7bbd8711d89e7364787b39c322568d927417eff",
+        "easy.mid": "f377c3fc4d460f57752706d97c1b0d7a83bdaf14a1d11e306b2c0a6b71ed22f2",
+        "easy.json": "01e5b39707e53e4efb504ea4b34de25f029194002d29aa51f785e6bbfb7b4c9b",
+        "medium.mid": "62fb64612c7760d2a6ba69e3343c78dcfaa10d6200f88138c01186daab816cd2",
+        "medium.json": "f9551c5a2b361a5b1c31ab561a889dfa5a61bb03988103398021b80c56bf6142",
+        "advanced.mid": "58530219b43a53c06a641712f34a37554d70caad709a51c97a3699eaef36a2ed",
+        "advanced.json": "99b839cdc1f4c05425308188f42a23e4434e5e24ead168392dd0482cf721c0a5"
+      }
+    }
+  ],
+  "holdouts": {
+    "supported": 20,
+    "challenge": 6,
+    "predictionsGenerated": 0,
+    "generationOutputDirectoriesChecked": [
+      "runs",
+      "replay-merged-final",
+      "replay-task4-final"
+    ],
+    "ids": [
+      "IOmMZBZGBps",
+      "GpxFUo7oxWM",
+      "SZzhUPe-Bck",
+      "UGJV6cJkFcc",
+      "sQghSEl0hHQ",
+      "FjV8SHjHvHk",
+      "OOWakf4hc9k",
+      "2N4tXf3Ensw",
+      "YkVGDywoGrc",
+      "9VVFNgbsDC4",
+      "PrBUjXaRSUQ",
+      "iEyOwLY3rV4",
+      "xOypOdFForA",
+      "kgAyiQgBL88",
+      "zhwJBgw6gDo",
+      "Z9MsW1b0QAA",
+      "4ifTjdKrTPw",
+      "1UUYjd2rjsE",
+      "_E1WDuPjIAM",
+      "KmWE9UBFwtY",
+      "qc98u-eGzlc",
+      "FNdC_3LR2AI",
+      "MDBykpSXsSE",
+      "d3-ITn0e00U",
+      "mipc-JxrhRk",
+      "TDNtBn_1elc"
+    ]
+  },
+  "checks": {
+    "allPublicLevels": [
+      "very-beginner",
+      "beginner",
+      "easy",
+      "medium",
+      "advanced"
+    ],
+    "actualHttpApiRoundTrips": {
+      "scope": "actual HTTP API: five-level player note events versus MIDI/MusicXML; synthetic integration fixture, not musical acceptance",
+      "rows": [
+        {
+          "id": "metal-beta-ui-fixture-vb",
+          "midiBytes": 234,
+          "xmlBytes": 6817,
+          "notes": 16,
+          "issues": []
+        },
+        {
+          "id": "metal-beta-ui-fixture-b",
+          "midiBytes": 234,
+          "xmlBytes": 6040,
+          "notes": 16,
+          "issues": []
+        },
+        {
+          "id": "metal-beta-ui-fixture-e",
+          "midiBytes": 396,
+          "xmlBytes": 9540,
+          "notes": 32,
+          "issues": []
+        },
+        {
+          "id": "metal-beta-ui-fixture-m",
+          "midiBytes": 411,
+          "xmlBytes": 9369,
+          "notes": 32,
+          "issues": []
+        },
+        {
+          "id": "metal-beta-ui-fixture-a",
+          "midiBytes": 411,
+          "xmlBytes": 9369,
+          "notes": 32,
+          "issues": []
+        }
+      ]
+    },
+    "workerFailureCategories": 14,
+    "serviceTests": 60,
+    "playerCoreTests": 120,
+    "focusedSourceUiTests": 23,
+    "githubCi": {
+      "runId": 34153439558,
+      "codeHead": "104d156edb595804589e52f0797669d6902b03f9",
+      "result": "success",
+      "playwrightPassed": 42,
+      "url": "https://github.com/Reedtrullz/Keyspilli/actions/runs/34153439558",
+      "finalDocumentationHead": "Exact final-head status retained by PR checks; checked again before final handoff."
+    },
+    "localExactCommands": [
+      {
+        "name": "install",
+        "command": [
+          "npm",
+          "ci",
+          "--no-audit",
+          "--no-fund"
+        ],
+        "cwd": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-ci",
+        "exitCode": 0,
+        "seconds": 6.91
+      },
+      {
+        "name": "seed",
+        "command": [
+          "npx",
+          "tsx",
+          "packages/catalog/scripts/fetch-seed.ts"
+        ],
+        "cwd": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-ci",
+        "exitCode": 0,
+        "seconds": 25.0
+      },
+      {
+        "name": "pipeline",
+        "command": [
+          "npm",
+          "run",
+          "pipeline"
+        ],
+        "cwd": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-ci",
+        "exitCode": 0,
+        "seconds": 13.87
+      },
+      {
+        "name": "verify-catalog",
+        "command": [
+          "npm",
+          "run",
+          "verify-catalog"
+        ],
+        "cwd": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-ci",
+        "exitCode": 0,
+        "seconds": 2.79
+      },
+      {
+        "name": "verify-chords",
+        "command": [
+          "npm",
+          "run",
+          "verify-chord-sources",
+          "--",
+          "--require-catalog"
+        ],
+        "cwd": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-ci",
+        "exitCode": 0,
+        "seconds": 0.77
+      },
+      {
+        "name": "calibrate",
+        "command": [
+          "npm",
+          "run",
+          "calibrate"
+        ],
+        "cwd": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-ci",
+        "exitCode": 0,
+        "seconds": 0.94
+      },
+      {
+        "name": "typecheck",
+        "command": [
+          "npm",
+          "run",
+          "typecheck"
+        ],
+        "cwd": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-ci",
+        "exitCode": 0,
+        "seconds": 21.71
+      },
+      {
+        "name": "vitest",
+        "command": [
+          "npm",
+          "test"
+        ],
+        "cwd": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-ci",
+        "exitCode": 0,
+        "seconds": 24.39
+      },
+      {
+        "name": "build",
+        "command": [
+          "npm",
+          "run",
+          "build"
+        ],
+        "cwd": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-ci",
+        "exitCode": 0,
+        "seconds": 30.42
+      },
+      {
+        "name": "chromium",
+        "command": [
+          "npx",
+          "--no-install",
+          "playwright",
+          "install",
+          "--with-deps",
+          "chromium"
+        ],
+        "cwd": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-ci/apps/web",
+        "exitCode": 0,
+        "seconds": 0.95
+      },
+      {
+        "name": "browser-runtime",
+        "command": [
+          "node",
+          "scripts/verify-playwright-runtime.mjs"
+        ],
+        "cwd": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-ci/apps/web",
+        "exitCode": 0,
+        "seconds": 1.0
+      },
+      {
+        "name": "edge-boundary",
+        "command": [
+          "bash",
+          "deploy/test/access-boundary.sh"
+        ],
+        "cwd": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-ci",
+        "exitCode": 0,
+        "seconds": 4.57
+      },
+      {
+        "name": "playwright",
+        "command": [
+          "npx",
+          "playwright",
+          "test"
+        ],
+        "cwd": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-ci/apps/web",
+        "exitCode": 1,
+        "seconds": 36.91
+      }
+    ],
+    "localBrowserRetry": {
+      "result": "exit 0; 42 passed",
+      "reason": "reset only disposable test catalog after previous upload fixture persisted",
+      "log": "output/metal-development/ci-429c697/playwright-clean-retry.log"
+    },
+    "previousFailures": [
+      "f26a068: 12 pre-browser commands exit 0, browser 30 pass/3 fail/9 not run; cold dev-server requests and first PDF export",
+      "429c697: browser 38 pass/1 fail/3 not run; retained test upload in disposable catalog",
+      "80195e1 GitHub: browser 41 pass/1 fail; immediate class assertion sampled pre-hydration preference. Fixed with retrying assertion at104d156."
+    ],
+    "browser": "Actual full and direct-sheet source labels rendered; Piano/Organ/Cathedral controls inspected; player Play clicked. Gain/scheduling correctness tested with real PlaybackEngine and fake WebAudio boundary. No hardware listening acceptance."
+  },
+  "review": {
+    "url": "http://127.0.0.1:8874/final-review/index.html",
+    "path": "output/metal-development/final-review/index.html",
+    "songs": 12,
+    "previews": 72,
+    "scope": "Revised experimental selected identity and five full-song levels; prior rejected A/B retained separately, no reapproval requested. Not release candidates.",
+    "verification": "72 MIDI hashes matched; all source/MIDI/audio targets exist; 72 ffprobe duration checks pass; one browser audio element played with readyState4 and no audio error; feedback survives reload and exports JSON; automated test feedback cleared. Only favicon404 observed.",
+    "humanListening": "pending; no score or approval inferred"
+  },
+  "production": {
+    "mutationsPerformed": false,
+    "mergePerformed": false,
+    "deploymentPerformed": false,
+    "privateCanary": "not run: no route eligible",
+    "backupRollback": "not executed: no deployment authorized by failed gate; existing image retained",
+    "imageCommit": "c36680100de9",
+    "workerImageDigest": "sha256:867c6f9908926a49576d4cc1bed2150e67897e8a848a7fa7cca63a7cf3943ab2",
+    "before": {
+      "capturedAt": "2026-09-07T18:49:05.626200+00:00",
+      "songs": 2688,
+      "bases": 448,
+      "plays": 272,
+      "rowsSha256": "72b6ce6c298cea4eac70cc1e3a783b482d094f1c96a779ecd5d9195e4fb4957f",
+      "rowsWithoutPlaysSha256": "d22872700c8995250ba2a7a3db07714b50eb691449437eebdf77cbb154cb47f0",
+      "artifactFiles": 8998,
+      "artifactInventorySha256": "944a32541f023a70d2c6c4bc45f8afa260ea63915fbbfcee45da0d65d7b6f1b3",
+      "approvedBases": {
+        "sabaton-sabaton-livgardet-official-music-video-mt9zuznc": "ba0645d1b689c1ab0f2f3fbd44f9fc8b9595e36ffadf068cb588d40969e18f63",
+        "abba-the-winner-takes-it-all": "1bb00d1fdbfdd6d79efcad79dcbe462b6e9fe149ae474db4085f9d9189bdf2fc"
+      }
+    },
+    "after": {
+      "capturedAt": "2026-09-07T19:01:09.074144+00:00",
+      "songs": 2688,
+      "bases": 448,
+      "plays": 272,
+      "rowsSha256": "72b6ce6c298cea4eac70cc1e3a783b482d094f1c96a779ecd5d9195e4fb4957f",
+      "rowsWithoutPlaysSha256": "d22872700c8995250ba2a7a3db07714b50eb691449437eebdf77cbb154cb47f0",
+      "artifactFiles": 8998,
+      "artifactInventorySha256": "944a32541f023a70d2c6c4bc45f8afa260ea63915fbbfcee45da0d65d7b6f1b3",
+      "approvedBases": {
+        "abba-the-winner-takes-it-all": "1bb00d1fdbfdd6d79efcad79dcbe462b6e9fe149ae474db4085f9d9189bdf2fc",
+        "sabaton-sabaton-livgardet-official-music-video-mt9zuznc": "ba0645d1b689c1ab0f2f3fbd44f9fc8b9595e36ffadf068cb588d40969e18f63"
+      }
+    },
+    "comparison": "all captured counts and hashes equal",
+    "scopeLimit": "Snapshots bracket final verification only, not the entire goal. Earlier image identity and absence of production mutation are separate evidence; no whole-goal initial artifact hash is claimed."
+  },
+  "resourceLimits": {
+    "newPaidResources": 0,
+    "challengersUsed": 2,
+    "configurationsPerChallenger": 2,
+    "selectorIterations": 3,
+    "privateTaskStorageGiB": 2.7,
+    "freeDiskGiBAtFreeze": 36
+  },
+  "privateArtifactSha256": {
+    "output/metal-development/build-final-review.mts": "0cf70da667c4bf3613eb77c2c25b44f223531276031e215f76ebfe7e06574325",
+    "output/metal-development/verify-api-exports.mts": "fa23d6649e9f78782306bbf12af0c81a7db3c0f78ebd67045053da65f614c602",
+    "output/metal-development/production-snapshot.py": "2920cba1c9d334a08a290c9be2208799819c622db0f76892bbcc8d987082cf0d",
+    "output/metal-development/run-ci.py": "2e49cc042395590843a6c1524d1121f28a58e7f9cab7012127d289f70a7df25c",
+    "output/metal-development/piano-challenger/run.py": "5863b65f6646cf1a1ddf97d8927a88086d2873f2e0d30f8cb66e76d02c7943c3",
+    "output/metal-development/piano-challenger/postprocess.py": "ab60589e0683d41af49a0408d5b2396a40b8686a02d633327babebbf7b9d86ac",
+    "output/metal-development/pyin-trial.py": "e9d901fc5c6b5c221fd0d41862f1ee1edbc7357014ed6284b95ebfedb5dc8b36",
+    "output/metal-development/pyin-trial-long-window.py": "634874281a8558d31fffa9b605b7321d40e6beea8b4c22473bc2bdbb4dec113f",
+    "output/metal-development/mono-real/track.py": "89e6cd1b09405fad4cdf82c49f050f72aabbe2cb551ecb1d3455b160559dea59",
+    "output/metal-development/role-previews/render.mts": "f38ecdd25bd00f597df2365bc3e77c6d832801a5df09b9cf9b69ca4237f60bdd",
+    "output/metal-development/final-review/index.html": "4b0802c93ddcfe0e3a9070f2cce62c30d0f8eb85121c525b91319841e2f8ece1",
+    "output/metal-development/final-review/manifest.json": "bd5ea40dbd6448231e571d95968237ef2205684225b9f70799970744344e3037",
+    "output/metal-development/review-file-verification.json": "0fcf9b9645542344fdc86b2eeb6cf6ef64da59abb3b048da3109b5e5b443917d",
+    "output/metal-development/review-media-probe.json": "8a0fbe1bacf3af377028c94d9345be2acce8da4c650c85247bd5718e620c6d24",
+    "output/metal-development/task7-api-exports.json": "64f4bb063a1912bb2133bcc52adfe0a9ac998272c44de23471d6870d4f3c77f3",
+    "output/metal-development/production-final-before.json": "96cf303e34a85a7bf467c6c33d65abc075baac3a3549a594c6517b4930458602",
+    "output/metal-development/production-final-after.json": "39593c916d4935cb660d0042d55a9fd0abe3fbedfb0962221e9eb4dedb424890",
+    "output/metal-development/pr82-ci-104d156.log": "4f6db5f12f05f86cd892366e11571c818f63b427c3987930810b3d8cdcb0a59f",
+    "output/metal-development/ci-429c697/playwright-clean-retry.log": "0c149255f9258f9743bcb2df9d1bb6390b878723da0e58138db7b97f723cb0ac"
+  },
+  "relatedReports": [
+    "metal-recovery-reference-manifest-2026-09-07.json",
+    "metal-upstream-comparison-2026-09-07.json",
+    "metal-identity-preservation-2026-09-07.json",
+    "metal-source-route-decision-2026-09-07.json",
+    "metal-worker-safety-2026-09-07.json"
+  ]
+}

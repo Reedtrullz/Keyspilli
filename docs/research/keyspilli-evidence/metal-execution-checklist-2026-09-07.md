@@ -2,17 +2,17 @@
 
 Objective: execute `2026-09-07-autonomous-metal-piano-delivery.md`; approval supplied in attachment `d4b0e1e8-d6f0-4abc-b65b-1e5195f2a969/pasted-text-1.txt`.
 
-Previous goal turn: initial activation; prior planning yielded authoritative plan `e4e4f04`. Current turn is implementation progress, not a wait.
+Final no-release audit is in `metal-final-report-2026-09-07.md`; frozen results in `metal-beta-acceptance-2026-09-07.json`. Historical checkpoints below retain their original status and are superseded by this checklist.
 
 - [x] Task1: bounded reproducible development runner — COMPLETE.12 tests pass (runner3/evaluator9), catalog typecheck passes; all12 development cached stems replayed,11 structural pass and Silent Lucidity remains failed; second run12 cache hits. No inference or holdout invocation.
 - [x] Task2: COMPLETE via explicit no-promotion branch: six development targets inspected, zero fully qualified real reference pairs; three independent native piano controls rendered/scored. Exact Basic Pitch precision 0.690–0.845 fails the fixed0.95 gate. References remain outside generation inputs.
 - [x] Task3: COMPLETE via no-promotion branch. Two algorithms, two configurations each: piano specialist improves controls but fails Debussy precision; pyin passes invented upper line but fails bass timing. Real separated vocal/bass confidence diagnostic and12 cached-role previews retained.18 service tests and typecheck pass. No production adapter enabled.
 - [x] Task4: COMPLETE. Paired identity and physical-key overlap regressions pass; all-level synthetic lineage checked.363 MIDI/55 catalog tests and three typechecks pass. Final12 cached replays all structural pass (Silent Lucidity9→7). Third/final selector iteration retained; no audio promotion.
-- [ ] Task5: automatic honest source assistance — IN PROGRESS.
-- [ ] Task6: IN PROGRESS — owned lease and no-silent-fallback implemented; remaining failure matrix/idempotency/UI/player proof pending.
-- [ ] Task7: all-level/API/player verification, full CI and frozen evidence/review bundle.
-- [ ] Task8: PR and gated canary/merge/release or verified no-release outcome.
-- [ ] Final deliverables and requirement-by-requirement completion audit.
+- [x] Task5: indexed native implementation verified; real full-song release exit FAILED (zero eligible sources), carried to authorized no-release branch.
+- [x] Task6: owned lease, duplicate/cancellation/retry preservation,14 failure categories, source UI and Cathedral/player checks complete.
+- [x] Task7:5/5 actual API round trips, exact code-head CI42/42 browser, frozen12-song/72-preview bundle. Musical release gates remain failed.
+- [x] Task8: PR82 no-release candidate; no canary/merge/deploy because zero routes qualify. Final documentation-head CI checked on PR before handoff.
+- [x] Final deliverables: report and acceptance JSON enumerate every task, failed gates, preservation interval and runnable artifacts. Strong musical certification pending.
 
 Starting state verified: clean `codex/metal-delivery` at `e4e4f04`; Node22.22.3;56GiB free. Original workspace has unrelated catalog/report WIP and remains untouched. No active inference/build found; existing listening HTTP server PID25107 is live. Deployment identity read requested; output retained privately. Holdout sources remain unrun.
 

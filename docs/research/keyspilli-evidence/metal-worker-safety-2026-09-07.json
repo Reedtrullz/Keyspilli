@@ -1,6 +1,6 @@
 {
   "commit": "f26a068",
-  "status": "engineering checks pass; browser/full CI pending",
+  "status": "engineering checks pass; no musical release eligibility",
   "failureMatrix": [
     {
       "case": "source404",
@@ -76,7 +76,7 @@
   "scope": "Synthetic controlled failures on actual processJob/database/parser/publication; network, disk and separator faults injected. Unsupported tutorial is rejected input/metadata, not a validated video extractor. No full-song musical success inferred.",
   "preservation": "Actual worker duplicate retains manifest bytes; changed source publishes distinct base; cancellation/stale ownership publish no base; retry after prior success leaves catalog rows and prior notes/MIDI/XML hashes unchanged. Corrupt prior manifest returns review without overwrite.",
   "leases": "Fake clock proves 20-minute renewable ownership, expired reclaim and stale-token renewal/finalization rejection; legacy started_at migration supported.",
-  "player": "Production PlaybackEngine with Cathedral OrganAudioEngine schedules RH/LH in piano background into distinct nonzero gain buses. Full and sheet-only APIs expose source metadata; static render verifies labels. Browser tests in progress.",
+  "player": "Actual full and direct-sheet source labels rendered; Piano/Organ/Cathedral controls inspected; player Play clicked. Gain/scheduling correctness tested with real PlaybackEngine and fake WebAudio boundary. No hardware listening acceptance.",
   "tests": {
     "service": 60,
     "playerCore": 120,
@@ -86,10 +86,17 @@
     "checkout": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-ci",
     "firstHead": "f26a068",
     "firstResult": "12 commands pass; Playwright 30 pass, 3 fail, 9 not run",
-    "failureEvidence": "Cold dev-server requests pending at timeout and slow first PDF export; traces retained in CI checkout. No timeout weakened.",
+    "failureEvidence": "First-run logs retained; first traces overwritten by later run. Second-run failed artifacts retained in ci-429c697/failed-browser-artifacts.",
     "retryHead": "429c697",
     "retryLogs": "output/metal-development/ci-429c697",
-    "retryStatus": "running with CI=true, production server, two browser workers"
+    "retryStatus": "12 pre-browser commands exit0; clean disposable-catalog browser retry42/42 exit0",
+    "githubExactCodeHead": {
+      "commit": "104d156edb595804589e52f0797669d6902b03f9",
+      "runId": 34153439558,
+      "result": "success",
+      "playwrightPassed": 42
+    }
   },
-  "productionMutations": false
+  "productionMutations": false,
+  "finalCodeCommit": "104d156edb595804589e52f0797669d6902b03f9"
 }
