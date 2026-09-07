@@ -42,9 +42,35 @@ class TutorialKeysTest(unittest.TestCase):
   rows=np.zeros((20,3,3),dtype=np.uint8);rows[5:12]=[240,20,30]
   with self.assertRaisesRegex(ValueError,'Unsupported key color'):
    m.key_events(rows,60,64)
+ def test_muted_purple_black_keys_are_preserved(self):
+  rows=np.zeros((20,3,3),dtype=np.uint8);rows[4:14]=[134,107,139]
+  self.assertEqual(m.key_events(rows,30,51),[{'midi':51,'startSec':4/30,'durationSec':10/30,'color':'purple'}])
+ def test_acoustic_octave_mapping_and_ambiguous_audio(self):
+  rate=22050;notes=[];audio=np.zeros(rate*24)
+  for i in range(24):
+   pitch=36+i%12;notes.append(dict(midi=pitch,startSec=float(i),durationSec=.7))
+   t=np.arange(int(rate*.7))/rate;f=440*2**((pitch+12-69)/12)
+   audio[i*rate:i*rate+len(t)]=np.sin(2*np.pi*f*t)+.3*np.sin(4*np.pi*f*t)
+  evidence=m.acoustic_octave(notes,audio,rate)
+  self.assertEqual(evidence['semitones'],12)
+  with self.assertRaisesRegex(ValueError,'octave'):
+   m.acoustic_octave(notes,np.zeros_like(audio),rate)
+  # Two equally strong octaves must not become a confident mapping.
+  ambiguous=audio.copy()
+  for i,n in enumerate(notes):
+   t=np.arange(int(rate*.7))/rate;f=440*2**((n['midi']-69)/12)
+   ambiguous[i*rate:i*rate+len(t)]+=np.sin(2*np.pi*f*t)
+  with self.assertRaisesRegex(ValueError,'octave'):
+   m.acoustic_octave(notes,ambiguous,rate)
  def test_ambiguous_pitch_range_rejected(self):
   with self.assertRaisesRegex(ValueError,'88'):
    m.validate_geometry({'keys':[{'midi_num':n} for n in range(24,101)],'bounds':[0,580,1280,140],'edges':[]},1280,720)
+ def test_relative_geometry_requires_explicit_opt_in(self):
+  pitches=list(range(24,78))
+  c={'keys':[{'midi_num':n,'color':'b' if n%12 in [1,3,6,8,10] else 'w'} for n in pitches],
+     'bounds':[0,400,1280,300],'edges':[[i*20,i*20+18] for i in range(len(pitches))]}
+  with self.assertRaises(ValueError):m.validate_geometry(c,1280,720)
+  m.validate_geometry(c,1280,720,allow_relative=True)
  def test_out_of_frame_geometry_rejected(self):
   c={'keys':[{'midi_num':n} for n in range(21,109)],'bounds':[0,580,1280,140],'edges':[[0,1281]]*88}
   with self.assertRaises(ValueError):m.validate_geometry(c,1280,720)

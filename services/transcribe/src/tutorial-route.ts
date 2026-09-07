@@ -9,6 +9,9 @@ import {parseMidi,buildVariants,validateVariants,writeVariantArtifacts,validateA
 // Prefer recording metadata, then explicit Artist - Song titles; channels are not artists.
 export function tutorialIdentity(meta: Record<string, unknown>) {
  if (typeof meta.title !== 'string') throw Error('SOURCE_REVIEW_REQUIRED: unresolved song identity');
+ const described=typeof meta.description==='string' ? meta.description.match(/learn how to play (.+?) by (.+?) on (?:the )?piano/i) : null;
+ if (!meta.artist && described && meta.title.toLowerCase().includes(described[1]!.toLowerCase()) && meta.title.toLowerCase().includes(described[2]!.toLowerCase()))
+  return {baseId:'private-proof',title:described[1]!.trim(),artist:described[2]!.trim()};
  const segments=meta.title.split(/\s+[-–—|]\s+/).map(s=>s.trim()).filter(Boolean);
  const artist=typeof meta.artist==='string' && meta.artist.trim() ? meta.artist.trim() : segments.length>1 ? segments[0]!.replace(/\s*\([^()]*\)/g,'').trim() : null;
  if (!artist) throw Error('SOURCE_REVIEW_REQUIRED: unresolved song identity');
@@ -38,7 +41,7 @@ for(const c of candidates){
  const dir=join(out,c.videoId);await mkdir(dir);
  try{
   console.log('Trying',c.url,c.title);
-  await call('yt-dlp',['--no-playlist','--max-filesize','250M','--match-filters','duration <= 600','-f','bv[height<=720][ext=mp4]/b[height<=720][ext=mp4]','-o',join(dir,'video.mp4'),'--',c.url],300000);
+  await call('yt-dlp',['--no-playlist','--max-filesize','250M','--match-filters','duration <= 600','-f','bv[height<=720][ext=mp4]+ba[ext=m4a]/b[height<=720][ext=mp4]','--merge-output-format','mp4','-o',join(dir,'video.mp4'),'--',c.url],300000);
   await call(process.env.KEYSPILLI_TUTORIAL_PYTHON ?? resolve('output/tutorial-recovery/venv/bin/python'),[resolve('services/transcribe/src/tutorial_keys.py'),join(dir,'video.mp4'),'--output',join(dir,'extracted.json')],600000);
   const midi=await readFile(join(dir,'extracted.mid'));
   const variants=buildVariants(parseMidi(midi),{title,artist},{arrangementProfile:'source',maxDurBeats:null});
