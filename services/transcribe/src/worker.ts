@@ -10,6 +10,7 @@ import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
 import { mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
+import { pathToFileURL } from "node:url";
 import {
   claimJob,
   getDb,
@@ -198,7 +199,7 @@ async function fetchYoutubeMeta(jobId: string, dir: string, youtubeUrl: string):
   return { title: title || "YouTube conversion", uploader: uploader || "YouTube", durationSec: duration, acquisition: "downloaded" };
 }
 
-async function processJob(jobId: string): Promise<void> {
+export async function processJob(jobId: string): Promise<void> {
   const job = getJob(jobId);
   if (!job) return;
   // Atomic claim: another worker may have taken it while we read metadata.
@@ -558,4 +559,4 @@ async function loop(): Promise<void> {
   }
 }
 
-void loop();
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) void loop();
