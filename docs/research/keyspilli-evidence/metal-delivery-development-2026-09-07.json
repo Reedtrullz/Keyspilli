@@ -1,0 +1,470 @@
+{
+  "status": "development-measurement-only-not-release-ready",
+  "developmentCount": 12,
+  "supportedHoldoutsRun": 0,
+  "challengeHoldoutsRun": 0,
+  "structuralPasses": 22,
+  "candidateCount": 24,
+  "localElapsedSeconds": {
+    "median": 61.486999999999995,
+    "max": 110.086
+  },
+  "vpsDiagnostic": {
+    "image": "ghcr.io/reedtrullz/keyspilli-worker:c36680100de9",
+    "scope": "isolated pipeline through MIDI/variants; not worker queue/API/publication",
+    "elapsedSecondsIncludingTempo": 912.871321217969,
+    "stages": {
+      "stage-06.json": {
+        "seconds": 32.01586604490876,
+        "maxResidentKiB": 466404,
+        "exitCode": 0
+      },
+      "stage-04.json": {
+        "seconds": 24.465585120022297,
+        "maxResidentKiB": 465072,
+        "exitCode": 0
+      },
+      "stage-03.json": {
+        "seconds": 28.497904060408473,
+        "maxResidentKiB": 463872,
+        "exitCode": 0
+      },
+      "stage-01.json": {
+        "seconds": 45.14332121796906,
+        "maxResidentKiB": 519064,
+        "exitCode": 0
+      },
+      "stage-02.json": {
+        "seconds": 745.085406018421,
+        "maxResidentKiB": 2303692,
+        "exitCode": 0
+      },
+      "stage-07.json": {
+        "seconds": 7.865411031991243,
+        "maxResidentKiB": 397560,
+        "exitCode": 0
+      },
+      "stage-05.json": {
+        "seconds": 27.630509139969945,
+        "maxResidentKiB": 465876,
+        "exitCode": 0
+      }
+    },
+    "variantErrors": []
+  },
+  "rows": [
+    {
+      "id": "1zN7J64IeBo",
+      "title": "Army of the Night",
+      "sourceSha": "3512264f6bc578769bcdff1ff5c605179c115f602c48563c7ef9ddc2e6a3a89c",
+      "tempo": 172.3,
+      "elapsedSeconds": 56.896,
+      "candidates": {
+        "baseline": {
+          "midiSha256": "45865d7fa08375f13f354e8c6bb30c0855a381783c7fe86a4db4088a176c941b",
+          "notes": 2116,
+          "rh": 598,
+          "structuralStatus": "pass",
+          "structuralFailures": [],
+          "maxRhInterAttackGapSeconds": 4.356,
+          "rhLargeLeaps": 185,
+          "lhLargeLeaps": 345,
+          "sourceAccuracy": "unavailable",
+          "musicalAcceptance": "pending-human-review"
+        },
+        "piano-preserved": {
+          "midiSha256": "223ca0b5f1bffa431e8df1ab865f3eabb170b31087f0d0dba3f1755391e54744",
+          "notes": 2134,
+          "rh": 604,
+          "structuralStatus": "pass",
+          "structuralFailures": [],
+          "maxRhInterAttackGapSeconds": 4.356,
+          "rhLargeLeaps": 178,
+          "lhLargeLeaps": 346,
+          "sourceAccuracy": "unavailable",
+          "musicalAcceptance": "pending-human-review"
+        }
+      }
+    },
+    {
+      "id": "2lvs2FzF64o",
+      "title": "Holy Diver",
+      "sourceSha": "66c80073cc358e0c9c187dbaa948f92308b41daae3476661c52da968a00f2e71",
+      "tempo": 92.3,
+      "elapsedSeconds": 63.409,
+      "candidates": {
+        "baseline": {
+          "midiSha256": "84891412954eda11577c47264aa8c0dd710fdc02876711ea71a715aefaff9993",
+          "notes": 1706,
+          "rh": 551,
+          "structuralStatus": "pass",
+          "structuralFailures": [],
+          "maxRhInterAttackGapSeconds": 5.517,
+          "rhLargeLeaps": 77,
+          "lhLargeLeaps": 245,
+          "sourceAccuracy": "unavailable",
+          "musicalAcceptance": "pending-human-review"
+        },
+        "piano-preserved": {
+          "midiSha256": "7dc1bea05b7e3d134c62241d21ee53830cec5f61d7f7adfe8fbb82a6b5522a7e",
+          "notes": 1789,
+          "rh": 552,
+          "structuralStatus": "pass",
+          "structuralFailures": [],
+          "maxRhInterAttackGapSeconds": 5.517,
+          "rhLargeLeaps": 82,
+          "lhLargeLeaps": 288,
+          "sourceAccuracy": "unavailable",
+          "musicalAcceptance": "pending-human-review"
+        }
+      }
+    },
+    {
+      "id": "7pOr3dBFAeY",
+      "title": "Still Loving You",
+      "sourceSha": "a2ad490f8d56ccc4ca0e180571fca24c4dc5aa7bc472ae1c56d3e2714b210a02",
+      "tempo": 103.4,
+      "elapsedSeconds": 71.805,
+      "candidates": {
+        "baseline": {
+          "midiSha256": "13a4a64b0e5d75415f2513dd352b593cbb0a7657868355fcdc1ad233f5467c08",
+          "notes": 1140,
+          "rh": 539,
+          "structuralStatus": "pass",
+          "structuralFailures": [],
+          "maxRhInterAttackGapSeconds": 3.371,
+          "rhLargeLeaps": 102,
+          "lhLargeLeaps": 48,
+          "sourceAccuracy": "unavailable",
+          "musicalAcceptance": "pending-human-review"
+        },
+        "piano-preserved": {
+          "midiSha256": "cf43aecd63ee0307c9b161fa90ca7a5bbca7b742a747ad62cf0336f5413851f3",
+          "notes": 1141,
+          "rh": 534,
+          "structuralStatus": "pass",
+          "structuralFailures": [],
+          "maxRhInterAttackGapSeconds": 3.613,
+          "rhLargeLeaps": 98,
+          "lhLargeLeaps": 62,
+          "sourceAccuracy": "unavailable",
+          "musicalAcceptance": "pending-human-review"
+        }
+      }
+    },
+    {
+      "id": "98xh5Hb9QAM",
+      "title": "Stand My Ground",
+      "sourceSha": "35f0c982e5b315e10b14b242cf4057a7cb153aa575183b484e60bec3075f7502",
+      "tempo": 117.5,
+      "elapsedSeconds": 57.851,
+      "candidates": {
+        "baseline": {
+          "midiSha256": "b231a5ca54e9381678bdfc8b2503a4edc0564105cefef5d078ac61b471dac120",
+          "notes": 2399,
+          "rh": 753,
+          "structuralStatus": "pass",
+          "structuralFailures": [],
+          "maxRhInterAttackGapSeconds": 1.671,
+          "rhLargeLeaps": 114,
+          "lhLargeLeaps": 477,
+          "sourceAccuracy": "unavailable",
+          "musicalAcceptance": "pending-human-review"
+        },
+        "piano-preserved": {
+          "midiSha256": "b43df480a72d93902ecf7ccacd2421bc0b111592dcec3069a7428a7da8716d45",
+          "notes": 2385,
+          "rh": 747,
+          "structuralStatus": "pass",
+          "structuralFailures": [],
+          "maxRhInterAttackGapSeconds": 1.534,
+          "rhLargeLeaps": 110,
+          "lhLargeLeaps": 476,
+          "sourceAccuracy": "unavailable",
+          "musicalAcceptance": "pending-human-review"
+        }
+      }
+    },
+    {
+      "id": "IrwXSfcJmnU",
+      "title": "Balls to the Wall",
+      "sourceSha": "ce153f3566b4975db4bebe977e9de906adba8fcc86e281e8bb685336c49802c8",
+      "tempo": 117.5,
+      "elapsedSeconds": 64.307,
+      "candidates": {
+        "baseline": {
+          "midiSha256": "37da4252b6dce73d9d6705d32ced767b9f1f935b4ec2a608169d90173936e7f5",
+          "notes": 992,
+          "rh": 270,
+          "structuralStatus": "pass",
+          "structuralFailures": [],
+          "maxRhInterAttackGapSeconds": 10.86,
+          "rhLargeLeaps": 66,
+          "lhLargeLeaps": 148,
+          "sourceAccuracy": "unavailable",
+          "musicalAcceptance": "pending-human-review"
+        },
+        "piano-preserved": {
+          "midiSha256": "6453235129f6ad1e70de4cc3e7aa4bfd7d90045d91142a540a59a7de3be0e1d3",
+          "notes": 996,
+          "rh": 266,
+          "structuralStatus": "pass",
+          "structuralFailures": [],
+          "maxRhInterAttackGapSeconds": 11.721,
+          "rhLargeLeaps": 64,
+          "lhLargeLeaps": 138,
+          "sourceAccuracy": "unavailable",
+          "musicalAcceptance": "pending-human-review"
+        }
+      }
+    },
+    {
+      "id": "L397TWLwrUU",
+      "title": "Breaking the Law",
+      "sourceSha": "92d595377e881870cbd54b318abc87acb41a5ba6ab8d2c56ca0b684d7761818f",
+      "tempo": 161.5,
+      "elapsedSeconds": 44.165,
+      "candidates": {
+        "baseline": {
+          "midiSha256": "63f968a164376569ce9886a01b00240ec1de854da32477470eb3d555bec4c4fc",
+          "notes": 1410,
+          "rh": 272,
+          "structuralStatus": "pass",
+          "structuralFailures": [],
+          "maxRhInterAttackGapSeconds": 4.055,
+          "rhLargeLeaps": 28,
+          "lhLargeLeaps": 327,
+          "sourceAccuracy": "unavailable",
+          "musicalAcceptance": "pending-human-review"
+        },
+        "piano-preserved": {
+          "midiSha256": "661c9525a4660272861b904b64557475b0fb35b06ff75d3de42dff01b56b9126",
+          "notes": 1425,
+          "rh": 282,
+          "structuralStatus": "pass",
+          "structuralFailures": [],
+          "maxRhInterAttackGapSeconds": 4.531,
+          "rhLargeLeaps": 29,
+          "lhLargeLeaps": 338,
+          "sourceAccuracy": "unavailable",
+          "musicalAcceptance": "pending-human-review"
+        }
+      }
+    },
+    {
+      "id": "_hzssKb9940",
+      "title": "Eden",
+      "sourceSha": "5c5b4b68a2297e6a1a93cad39913cf5b28f9fe0112606e01cd8bf7e531b376f6",
+      "tempo": 161.5,
+      "elapsedSeconds": 64.337,
+      "candidates": {
+        "baseline": {
+          "midiSha256": "cab4a3591d5dc7fcefedb39713156026215e2d453d59ca8f8c0567c8b8d82796",
+          "notes": 2413,
+          "rh": 763,
+          "structuralStatus": "pass",
+          "structuralFailures": [],
+          "maxRhInterAttackGapSeconds": 1.998,
+          "rhLargeLeaps": 143,
+          "lhLargeLeaps": 341,
+          "sourceAccuracy": "unavailable",
+          "musicalAcceptance": "pending-human-review"
+        },
+        "piano-preserved": {
+          "midiSha256": "7d0a66861f5e88170480d86ba5940eea828381de3b2c7e4e5e6d5ea6619f50d7",
+          "notes": 2478,
+          "rh": 756,
+          "structuralStatus": "pass",
+          "structuralFailures": [],
+          "maxRhInterAttackGapSeconds": 2.15,
+          "rhLargeLeaps": 142,
+          "lhLargeLeaps": 373,
+          "sourceAccuracy": "unavailable",
+          "musicalAcceptance": "pending-human-review"
+        }
+      }
+    },
+    {
+      "id": "htKY2oD85rs",
+      "title": "Hearts on Fire",
+      "sourceSha": "b0c6bca2002d893505601397f1142977718c62e57b067fe9e43732450bdf9ea9",
+      "tempo": 92.3,
+      "elapsedSeconds": 110.086,
+      "candidates": {
+        "baseline": {
+          "midiSha256": "fe60338e68649884c2f3218c0258aebd6acc61e060e848079018e97410d0afa7",
+          "notes": 1504,
+          "rh": 497,
+          "structuralStatus": "pass",
+          "structuralFailures": [],
+          "maxRhInterAttackGapSeconds": 2.949,
+          "rhLargeLeaps": 75,
+          "lhLargeLeaps": 215,
+          "sourceAccuracy": "unavailable",
+          "musicalAcceptance": "pending-human-review"
+        },
+        "piano-preserved": {
+          "midiSha256": "1b1bc3e3900fb0530de3620f772bc14dcf464769cd6e4ec801793c64e46c38c3",
+          "notes": 1510,
+          "rh": 495,
+          "structuralStatus": "pass",
+          "structuralFailures": [],
+          "maxRhInterAttackGapSeconds": 4.098,
+          "rhLargeLeaps": 69,
+          "lhLargeLeaps": 215,
+          "sourceAccuracy": "unavailable",
+          "musicalAcceptance": "pending-human-review"
+        }
+      }
+    },
+    {
+      "id": "jhat-xUQ6dw",
+      "title": "Silent Lucidity",
+      "sourceSha": "521914039772622c2f55c02f18afc1997426cd6bff51259f2fe9d07d7f0dbcef",
+      "tempo": 143.6,
+      "elapsedSeconds": 84.668,
+      "candidates": {
+        "baseline": {
+          "midiSha256": "5004d2694c5bd5176c027f9df02d85bd3a3bf748fe5632417f21645f55dbb81c",
+          "notes": 4286,
+          "rh": 1208,
+          "structuralStatus": "fail",
+          "structuralFailures": [
+            "max sounding simultaneity 9 exceeds 8"
+          ],
+          "maxRhInterAttackGapSeconds": 1.789,
+          "rhLargeLeaps": 244,
+          "lhLargeLeaps": 833,
+          "sourceAccuracy": "unavailable",
+          "musicalAcceptance": "pending-human-review"
+        },
+        "piano-preserved": {
+          "midiSha256": "1021aea8c2ea0bf8c2fc7929912545a0cca3d3dea3bd5be36e485115a68c3934",
+          "notes": 4262,
+          "rh": 1210,
+          "structuralStatus": "fail",
+          "structuralFailures": [
+            "max sounding simultaneity 9 exceeds 8"
+          ],
+          "maxRhInterAttackGapSeconds": 1.789,
+          "rhLargeLeaps": 239,
+          "lhLargeLeaps": 821,
+          "sourceAccuracy": "unavailable",
+          "musicalAcceptance": "pending-human-review"
+        }
+      }
+    },
+    {
+      "id": "kG4uQ6Tk7fY",
+      "title": "Hunting High and Low",
+      "sourceSha": "cb8ff22e7d49569f1cf2be080f93dead47dcc364ab96d9b66e7d6c44bbb6df4d",
+      "tempo": 123,
+      "elapsedSeconds": 59.565,
+      "candidates": {
+        "baseline": {
+          "midiSha256": "87507e9a05b307b69a912b880cb80f1f6756f83853e107e3ce35ae985c538b27",
+          "notes": 2243,
+          "rh": 755,
+          "structuralStatus": "pass",
+          "structuralFailures": [],
+          "maxRhInterAttackGapSeconds": 5.53,
+          "rhLargeLeaps": 134,
+          "lhLargeLeaps": 387,
+          "sourceAccuracy": "unavailable",
+          "musicalAcceptance": "pending-human-review"
+        },
+        "piano-preserved": {
+          "midiSha256": "682d2c4ec4bec25717b2f80b9dde17f219cc9ebb109ee8fae4ff075b71baea74",
+          "notes": 2261,
+          "rh": 755,
+          "structuralStatus": "pass",
+          "structuralFailures": [],
+          "maxRhInterAttackGapSeconds": 3.543,
+          "rhLargeLeaps": 130,
+          "lhLargeLeaps": 391,
+          "sourceAccuracy": "unavailable",
+          "musicalAcceptance": "pending-human-review"
+        }
+      }
+    },
+    {
+      "id": "kIBdpFJyFkc",
+      "title": "Nemo",
+      "sourceSha": "04be96c8b2ab08fd2fbfc606fb604232138b639cd0cbe44984b3e677198f29b8",
+      "tempo": 123,
+      "elapsedSeconds": 57.507,
+      "candidates": {
+        "baseline": {
+          "midiSha256": "de4897dfb2ebaa3c5b6bd1509e364c8e4641ea12378c7e5583ca6000e00c91d1",
+          "notes": 2430,
+          "rh": 762,
+          "structuralStatus": "pass",
+          "structuralFailures": [],
+          "maxRhInterAttackGapSeconds": 4.867,
+          "rhLargeLeaps": 129,
+          "lhLargeLeaps": 448,
+          "sourceAccuracy": "unavailable",
+          "musicalAcceptance": "pending-human-review"
+        },
+        "piano-preserved": {
+          "midiSha256": "dd301e83a6d8ebb4918e64f71fff2fc2181293f1727771dacc130a94b673d610",
+          "notes": 2470,
+          "rh": 773,
+          "structuralStatus": "pass",
+          "structuralFailures": [],
+          "maxRhInterAttackGapSeconds": 4.867,
+          "rhLargeLeaps": 135,
+          "lhLargeLeaps": 453,
+          "sourceAccuracy": "unavailable",
+          "musicalAcceptance": "pending-human-review"
+        }
+      }
+    },
+    {
+      "id": "vfpgpf6QVnI",
+      "title": "Symphony of Destruction",
+      "sourceSha": "fa7d78eaa5618370a37bda42ad6c85b1291036772b7d2ee532cdd786b4760137",
+      "tempo": 143.6,
+      "elapsedSeconds": 57.629,
+      "candidates": {
+        "baseline": {
+          "midiSha256": "e2c519e5f3656866827809e2e3f2449cb32c3f5570be6688581a9e9fa44f802c",
+          "notes": 1831,
+          "rh": 579,
+          "structuralStatus": "pass",
+          "structuralFailures": [],
+          "maxRhInterAttackGapSeconds": 4.915,
+          "rhLargeLeaps": 142,
+          "lhLargeLeaps": 355,
+          "sourceAccuracy": "unavailable",
+          "musicalAcceptance": "pending-human-review"
+        },
+        "piano-preserved": {
+          "midiSha256": "cacfa17610f5734b13ae3190fc7f7703628ff4c4afb46405519c84676855c9f2",
+          "notes": 1809,
+          "rh": 580,
+          "structuralStatus": "pass",
+          "structuralFailures": [],
+          "maxRhInterAttackGapSeconds": 4.915,
+          "rhLargeLeaps": 140,
+          "lhLargeLeaps": 334,
+          "sourceAccuracy": "unavailable",
+          "musicalAcceptance": "pending-human-review"
+        }
+      }
+    }
+  ],
+  "limitations": [
+    "No independently verified full-song reference scores or musician approval yet.",
+    "Gap/leap counts are review signals, not incorrect-note or playability verdicts.",
+    "Both A/B candidates include timeline repair; isolated variable is residual piano preservation.",
+    "All six internal difficulty exports parsed with expected normalized tempo; five public levels have not been musically accepted.",
+    "All 38 sources acquired and hashed; only 12 development sources inferred."
+  ],
+  "musicalPromotionDecision": {
+    "status": "rejected",
+    "reviewer": "Reidar",
+    "scope": "short listening to initial A/B previews; not exhaustive per-song or per-level review",
+    "feedback": "Initial A/B previews are far away from good enough."
+  }
+}

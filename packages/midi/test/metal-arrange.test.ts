@@ -18,6 +18,32 @@ function midi(notes: Note[], durationBeats = 16): ParsedMidi {
 }
 
 describe("metal piano arranger", () => {
+  it("aligns differently encoded stem tempos by elapsed time without mutating inputs", () => {
+    const vocals = midi(Array.from({ length: 16 }, (_, i) => ({ midi: 67 + i % 4, start: i, dur: 0.75, vel: 100 })));
+    const bass = midi([0, 4, 8, 12].map((start, i) => ({ midi: [36, 41, 43, 38][i]!, start, dur: 2, vel: 80 })));
+    const expected = buildMetalArrangement({ stems: [{ role: "vocals", midi: vocals }, { role: "bass", midi: bass }] });
+    const slower = { ...bass, tempoBpm: 60, durationBeats: 8, notes: bass.notes.map(n => ({ ...n, start: n.start / 2, dur: n.dur / 2 })) };
+    const before = structuredClone(slower);
+    const actual = buildMetalArrangement({ stems: [{ role: "vocals", midi: vocals }, { role: "bass", midi: slower }] });
+    expect(actual.parsed.notes).toEqual(expected.parsed.notes);
+    expect(actual.chords).toEqual(expected.chords);
+    expect(actual.ir.durationBeats).toBe(expected.ir.durationBeats);
+    expect(slower).toEqual(before);
+  });
+
+  it("respects native tempo changes across note boundaries", () => {
+    const lead = midi(Array.from({ length: 16 }, (_, i) => ({ midi: 67 + i % 4, start: i, dur: 0.75, vel: 100 })));
+    const native = midi([{ midi: 36, start: 3, dur: 3, vel: 80 }, { midi: 43, start: 6, dur: 2, vel: 80 }], 8);
+    native.tempoEvents = [
+      { tick: 0, beat: 0, microsecondsPerQuarter: 500000, bpm: 120 },
+      { tick: 1920, beat: 4, microsecondsPerQuarter: 1000000, bpm: 60 },
+    ];
+    const aligned = midi([{ midi: 36, start: 3, dur: 5, vel: 80 }, { midi: 43, start: 8, dur: 4, vel: 80 }], 12);
+    const run = (bass: ParsedMidi) => buildMetalArrangement({ stems: [{ role: "vocals", midi: lead }, { role: "bass", midi: bass }] });
+    expect(run(native).parsed.notes).toEqual(run(aligned).parsed.notes);
+    expect(run(native).chords).toEqual(run(aligned).chords);
+  });
+
   it("selects vocals then a guitar riff, infers power chords, and never pitches drums", () => {
     const vocals = Array.from({ length: 8 }, (_, i) => ({ midi: 67 + (i % 3), start: i, dur: 0.8, vel: 100 }));
     const guitar: Note[] = [

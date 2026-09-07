@@ -36,10 +36,10 @@ Critical defects: wrong song/version, missing or plainly wrong main theme, omitt
 
 **Files:** `packages/catalog/scripts/evaluate-metal.ts`, `packages/catalog/src/arrangement-evaluation.ts`, their existing tests; `services/transcribe/src/separate_stems.py` and `services/transcribe/test/test_separate_stems.py`; audit report above. Store new private run evidence under one bounded `output/metal-development/` directory.
 
-- [ ] Review and retain the two local audit repairs. Run the documented 253 TypeScript checks, Python waveform regression and package typechecks. Do not bundle the unrelated catalog policy change into a code patch.
-- [ ] Replay identical cached stems through baseline and corrected evaluators. Record role mappings, source hashes, MIDI hashes and effective variant settings. Evaluation corrections must not be represented as musical improvements.
+- [x] Review and retain the two local audit repairs. Run the documented 253 TypeScript checks, Python waveform regression and package typechecks. Do not bundle the unrelated catalog policy change into a code patch.
+- [x] Replay identical cached stems through baseline and corrected evaluators. Record role mappings, source hashes, MIDI hashes and effective variant settings. Evaluation corrections must not be represented as musical improvements.
 - [ ] Capture the currently deployed model/config/source identities and one full conversion's stage timings, peak memory, disk use and failure path. Never log credentials.
-- [ ] Separate report conclusions into operational, structural, source-accuracy and musical-acceptance fields; a structural pass must not be labelled overall musical success.
+- [x] Separate report conclusions into operational, structural, source-accuracy and musical-acceptance fields; a structural pass must not be labelled overall musical success.
 
 **Exit:** reproducible baseline artifacts and matching worker/evaluator semantics; every claimed pass names what was measured. The existing 15.8-second RH-gap canary remains a diagnostic example, not a new tuning target.
 
@@ -47,8 +47,8 @@ Critical defects: wrong song/version, missing or plainly wrong main theme, omitt
 
 **Files:** reuse `packages/catalog/src/arrangement-evaluation.ts`, `packages/catalog/src/dense-metal-amt-evaluation.ts`, `packages/catalog/src/cold-metal-transfer.ts`, existing listening/export tools. Add one versioned private-source manifest and one acceptance worksheet beside the audit report, with no copyrighted media embedded.
 
-- [ ] Select 12 development full songs: four clean-vocal melodic/power, four riff-led heavy/thrash, four ballad/keyboard-layered. Include already known failures here; they cannot later count as unseen proof.
-- [ ] Freeze 20 unfamiliar supported-class songs and at least six challenge songs before tuning. Record source/recording identity and exact hashes. Keep scoring references inaccessible to generation/tuning. Any exposed holdout becomes development material and must be replaced before final evaluation.
+- [x] Select 12 development full songs: four clean-vocal melodic/power, four riff-led heavy/thrash, four ballad/keyboard-layered. Include already known failures here; they cannot later count as unseen proof.
+- [x] Freeze 20 unfamiliar supported-class songs and at least six challenge songs before tuning. Record source/recording identity and exact hashes. Keep scoring references inaccessible to generation/tuning. Any exposed holdout becomes development material and must be replaced before final evaluation.
 - [ ] For each development song, annotate opening, verse, chorus, instrumental/solo where present, transitions and ending. Obtain independently checked lead/riff and bass/harmony references for representative sections; do not use the candidate's own MIDI as ground truth.
 - [ ] Produce comparable source and piano previews with consistent gain, plus full-song playback. Assign a musician to judge note/phrase correctness and playability. Reidar's recognizable/useful judgment is product acceptance, not a substitute for ground-truth transcription scoring.
 - [ ] Record lead pitch/onset errors, extra-note rate, source-supported rests, section coverage, drift, hand balance, hand-span/leap issues and levels' retained theme. Report each song separately, plus medians and worst cases.
@@ -61,7 +61,7 @@ Critical defects: wrong song/version, missing or plainly wrong main theme, omitt
 
 - [ ] A/B the piano-preservation repair on development recordings with identical baseline settings. Check both recovered musical material and extra bleed. Preserve the old configuration/artifacts for comparison.
 - [ ] Inspect vocal, guitar/residual and bass predictions separately before arrangement. Locate whether false/missing notes originate in separation, transcription or selection.
-- [ ] Reproduce and fix timeline disagreement: all role events must share an explicit seconds/beat interpretation. Test half/double-tempo representation and stem mismatch; do not simply relabel BPM while leaving note times wrong.
+- [x] Reproduce and fix timeline disagreement: all role events must share an explicit seconds/beat interpretation. Test half/double-tempo representation and stem mismatch; do not simply relabel BPM while leaving note times wrong.
 - [ ] Reproduce any source-to-arrangement drop with a small synthetic regression; fix the shared boundary rather than adding title-specific overrides.
 - [ ] Compare all 12 development songs after each meaningful change. Reject gains that introduce a critical regression elsewhere.
 
@@ -131,3 +131,7 @@ If no tested route recovers sufficiently correct notes, stop feature expansion. 
 - Each work package has an observable exit and can be rejected independently.
 - No promise of universal recognition, no arbitrary release date, no benchmark leakage, and no masking failures by withholding them from the denominator.
 - This is a gated delivery plan. Exact code patches for research-dependent packages follow their measured decisions; inventing them before selecting a successful route would create false implementation certainty.
+
+## Execution checkpoint — 7 September 2026
+
+See `docs/research/keyspilli-evidence/metal-delivery-progress-2026-09-07.md` and its development scorecard.12 full-song A/B pairs generated;22/24 structural passes, musical/source-accuracy gate incomplete. Reidar rejected the initial A/B previews as far below acceptable quality. Independent reference coverage remains incomplete; musical promotion failed. No release holdout predictions or deployment. Unchecked tasks remain open even where generation is finished.

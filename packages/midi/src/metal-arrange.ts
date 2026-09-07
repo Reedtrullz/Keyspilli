@@ -1,4 +1,5 @@
 import type { ChordLabel, Note, ParsedMidi } from "./types.js";
+import { midiBeatToNativeSeconds } from "./parse.js";
 
 export type MetalStemRole = "vocals" | "bass" | "guitar" | "other" | "drums";
 
@@ -3318,6 +3319,23 @@ export function buildMetalArrangement(
   if (!input.stems.length) throw new Error("Metal arrangement requires at least one stem");
   const reference = input.stems.find((stem) => stem.role !== "drums")?.midi ?? input.stems[0]!.midi;
   const tempoBpm = reference.tempoBpm;
+  if (!Number.isFinite(tempoBpm) || tempoBpm <= 0) throw new Error("metal arrangement requires a positive reference tempo");
+  let normalizedTimelines = 0;
+  input = { ...input, stems: input.stems.map((stem) => {
+    const source = stem.midi;
+    if (!Number.isFinite(source.tempoBpm) || source.tempoBpm <= 0) throw new Error(`invalid ${stem.role} stem tempo`);
+    const events = source.tempoEvents ?? [];
+    const differs = Math.abs(source.tempoBpm - tempoBpm) > 1e-6
+      || (events.length > 0 && !events.some(event => event.tick === 0))
+      || events.some(event => Math.abs(60_000_000 / event.microsecondsPerQuarter - tempoBpm) > 1e-6);
+    if (!differs) return stem;
+    normalizedTimelines += 1;
+    const beat = (value: number): number => midiBeatToNativeSeconds(source, value) * tempoBpm / 60;
+    return { ...stem, midi: { ...source, tempoBpm, tempoEvents: undefined,
+      durationBeats: beat(source.durationBeats),
+      notes: validNotes(stem).map(note => ({ ...note, start: beat(note.start), dur: beat(note.start + note.dur) - beat(note.start) })),
+    } };
+  }) };
   const timeSig = reference.timeSig;
   const durationBeats = input.stems.reduce((duration, stem) => {
     let result = Number.isFinite(stem.midi.durationBeats) ? Math.max(duration, stem.midi.durationBeats) : duration;
@@ -4020,8 +4038,7 @@ export function buildMetalArrangement(
     .map((note) => `${note.identitySource}:${note.midi}:${note.start.toFixed(4)}`));
   const emittedSemanticLeftHandEvents = semanticLeftHand.filter((note) => emittedSemanticKeys.has(`${note.identitySource}:${note.midi}:${note.start.toFixed(4)}`)).length;
   const warnings: string[] = [];
-  const mismatchedTempo = input.stems.filter((stem) => Math.abs(stem.midi.tempoBpm - tempoBpm) > 0.5);
-  if (mismatchedTempo.length) warnings.push(`${mismatchedTempo.length} stems had mismatched tempo metadata; beat positions were used unchanged`);
+  if (normalizedTimelines) warnings.push(`${normalizedTimelines} stem timelines normalized through native seconds to ${tempoBpm} BPM`);
   if (!publicIdentity.length) warnings.push("no reliable vocal, guitar, or other identity line was found");
   if (inferredTopLineSections) {
     warnings.push(`conservative upper harmonic evidence filled ${inferredTopLineSections} sparse section${inferredTopLineSections === 1 ? "" : "s"}`);
