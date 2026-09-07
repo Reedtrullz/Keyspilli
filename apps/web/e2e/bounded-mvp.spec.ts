@@ -48,13 +48,13 @@ test("scratch upload creates an Easy player with public levels and exports", asy
 
   await page.goto(easyHref!);
   const levels = page.getByRole("heading", { name: "Same song, other levels" }).locator("..");
-  await expect(levels.getByRole("link")).toHaveCount(5);
-  await expect(levels.getByRole("link")).toHaveText(["Very Beginner", "Beginner", "Easy", "Medium", "Advanced"]);
+  await expect(levels.getByRole("link")).toHaveCount(4);
+  await expect(levels.getByRole("link")).toHaveText(["Beginner", "Easy", "Medium", "Advanced"]);
   await expect(levels.getByRole("link", { name: "Very Easy", exact: true })).toHaveCount(0);
 
   await page.goto(`/player/${veryEasyId}`);
   const legacyLevels = page.getByRole("heading", { name: "Same song, other levels" }).locator("..");
-  await expect(legacyLevels.getByRole("link")).toHaveCount(6);
+  await expect(legacyLevels.getByRole("link")).toHaveCount(5);
   await expect(legacyLevels.getByRole("link", { name: "Very Easy", exact: true })).toBeVisible();
 
   for (const type of ["midi", "musicxml"] as const) {

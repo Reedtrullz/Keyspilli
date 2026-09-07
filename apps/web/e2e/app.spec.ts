@@ -31,13 +31,13 @@ test("song library groups difficulty levels into one card per song", async ({ pa
   const vocalise = page.getByText("Vocalise № 1", { exact: true });
   await expect(vocalise).toHaveCount(1);
   const levels = page.getByRole("group", { name: /Difficulty levels for Vocalise/ });
-  await expect(levels.getByRole("link", { name: "Open Very Beginner level" })).toBeVisible();
+  await expect(levels.getByRole("link", { name: "Open Very Beginner level" })).toHaveCount(0);
   await expect(levels.getByRole("link", { name: "Open Beginner level" })).toBeVisible();
   await expect(levels.getByRole("link", { name: "Open Easy level" })).toBeVisible();
   await expect(levels.getByRole("link", { name: "Open Advanced level" })).toBeVisible();
   await expect(levels.getByRole("link", { name: "Open Very Easy level" })).toHaveCount(0);
-  await expect(levels.getByRole("link")).toHaveCount(5);
-  await expect(levels.getByRole("link")).toHaveText(["VB", "B", "E", "M", "A"]);
+  await expect(levels.getByRole("link")).toHaveCount(4);
+  await expect(levels.getByRole("link")).toHaveText(["B", "E", "M", "A"]);
 });
 
 test("explicit Very Easy player URLs keep the legacy level visible", async ({ page }) => {
@@ -45,7 +45,7 @@ test("explicit Very Easy player URLs keep the legacy level visible", async ({ pa
   const levels = page.getByRole("heading", { name: "Same song, other levels" }).locator("..");
   await expect(levels.getByRole("link", { name: "Very Easy", exact: true })).toBeVisible();
   await expect(levels.getByRole("link", { name: "Easy", exact: true })).toBeVisible();
-  await expect(levels.getByRole("link")).toHaveCount(6);
+  await expect(levels.getByRole("link")).toHaveCount(5);
 });
 
 test("catalog API reports the full grouped total independently of page size", async ({ request }) => {
