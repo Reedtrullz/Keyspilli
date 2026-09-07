@@ -10,6 +10,10 @@ export function publicJobError(error: unknown): string | null {
     return "YouTube blocked server-side extraction (bot check); configure a trusted proxy or cookie session, or pre-seed the audio file.";
   }
   const withoutAttempt = message.replace(/^attempt\s+\d+:\s*/i, "");
+  if (withoutAttempt.startsWith("SOURCE_REVIEW_REQUIRED:")) {
+    if (withoutAttempt.includes("insufficient free disk space")) return "Import paused because server storage is low. Retry after storage is available.";
+    return "This source needs review; no new arrangement was published. Try another source or import a MIDI you have permission to use.";
+  }
   if (/^video longer than \d+(?:\.\d+)?s \(/i.test(withoutAttempt)) return withoutAttempt;
   if (/^audio file too small \(/i.test(withoutAttempt)) return "the downloaded audio was invalid or incomplete";
   if (/^no audio file produced$/i.test(withoutAttempt)) return "no playable audio was produced";

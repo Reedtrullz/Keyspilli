@@ -4,13 +4,22 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY tsconfig.base.json ./
 COPY apps/web/package.json apps/web/package.json
+COPY packages/catalog/package.json packages/catalog/package.json
+COPY packages/engrave/package.json packages/engrave/package.json
+COPY packages/midi/package.json packages/midi/package.json
+COPY packages/player-core/package.json packages/player-core/package.json
+COPY services/transcribe/package.json services/transcribe/package.json
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 make g++ \
+    && rm -rf /var/lib/apt/lists/*
+ENV npm_config_python=/usr/bin/python3
+RUN npm ci --no-audit --no-fund
 COPY packages packages
 COPY services services
 COPY catalog/manifest.json catalog/manifest.json
 COPY catalog/learner-review.json catalog/learner-review.json
 COPY catalog/chord-sources.json catalog/chord-sources.json
 COPY catalog/chord-timelines catalog/chord-timelines
-RUN npm ci --no-audit --no-fund
 COPY apps/web apps/web
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV VERSION=$VERSION

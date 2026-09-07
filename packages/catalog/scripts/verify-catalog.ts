@@ -5,7 +5,7 @@
  */
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
-import { LEVEL_ORDER, validateArtifactFiles, validateVariants, Variant } from "@keyspilli/midi";
+import { BEGINNER_OFFGRID_CANDIDATE, LEVEL_ORDER, validateArtifactFiles, validateVariants, Variant } from "@keyspilli/midi";
 import { getDb } from "../src/db.js";
 import { MAX_YOUTUBE_IMPORT_DUR_BEATS } from "../src/ingest.js";
 import { disabledManifestBases } from "../src/manifest.js";
@@ -211,7 +211,26 @@ for (const song of linkedBases) {
   for (const level of LEVEL_ORDER) {
     const path = join(artifactsRoot, song, LEVEL_CODE[level]!, "notes.json");
     try {
-      const v = JSON.parse(await readFile(path, "utf8")) as Variant;
+      const v = JSON.parse(await readFile(path, "utf8")) as Variant & { beginnerOffGridRh?: unknown };
+      if (v.beginnerOffGridRh !== undefined) {
+        const validMarkers = level === "beginner"
+          && Array.isArray(v.beginnerOffGridRh)
+          && v.beginnerOffGridRh.every((entry) => (
+            Array.isArray(entry)
+            && entry.length === 2
+            && Number.isInteger(entry[0])
+            && Number.isFinite(entry[1])
+          ));
+        if (!validMarkers) {
+          issues.push(`${level}: invalid Beginner off-grid metadata`);
+        } else {
+          for (const [midi, start] of v.beginnerOffGridRh as [number, number][]) {
+            const note = v.notes.find((candidate) => candidate.hand !== "L" && candidate.midi === midi && candidate.start === start);
+            if (!note) issues.push(`${level}: Beginner off-grid metadata points to a missing note`);
+            else Object.defineProperty(note, BEGINNER_OFFGRID_CANDIDATE, { value: true, enumerable: false });
+          }
+        }
+      }
       variants.push({ ...v, level });
     } catch {
       issues.push(`${level}: missing or invalid notes.json`);

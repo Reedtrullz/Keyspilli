@@ -13,6 +13,7 @@
  */
 import { mkdir, readFile, realpath, stat, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
+import { tmpdir } from "node:os";
 import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { evaluateRouteFunnel, type RouteFunnelInput, type RouteFunnelReferenceInput, type RouteFunnelRouteInput, type RouteId } from "../src/route-funnel.js";
@@ -20,7 +21,7 @@ import { parseMidi } from "@keyspilli/midi";
 import { canonicalRouteFunnelJson } from "../src/route-funnel.js";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
-const PRIVATE_TMP = "/private/tmp";
+const TEMP_ROOT = tmpdir();
 const SHA256 = /^[0-9a-f]{64}$/i;
 const ROUTE_ID_SET = new Set<RouteId>(["A", "B", "C"]);
 
@@ -41,7 +42,7 @@ interface Manifest {
 }
 
 function usage(): string {
-  return "Usage: route-funnel.ts --manifest FILE --out /private/tmp/REPORT.json";
+  return `Usage: route-funnel.ts --manifest FILE --out ${TEMP_ROOT}/REPORT.json`;
 }
 
 function argValue(args: readonly string[], name: string, required = true): string | undefined {
@@ -190,7 +191,7 @@ function hashBytes(value: Uint8Array): string {
 export async function runRouteFunnelCli(argv: readonly string[]): Promise<{ path: string; json: string }> {
   const manifestPath = await regularFile(argValue(argv, "--manifest")!, "manifest");
   const out = resolve(argValue(argv, "--out")!);
-  if (!pathInside(out, PRIVATE_TMP)) throw new Error("--out must be under /private/tmp");
+  if (!pathInside(out, TEMP_ROOT)) throw new Error("--out must be under the system temp directory");
   await assertOutsideRepository(out, "--out");
   const manifest = parseManifest(JSON.parse(await readFile(manifestPath, "utf8")));
   const routes = await Promise.all(manifest.routes.map(routeInput));

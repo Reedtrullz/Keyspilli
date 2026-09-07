@@ -199,41 +199,78 @@ export function SettingsDialog({
             {settings.soundSource === "sampled"
               ? "Realistic multi-layer piano samples (loads on first play)"
               : settings.soundSource === "organ"
-                ? "Native tonewheel organ with rotary speaker"
+                ? settings.organStyle === "rock"
+                  ? "Native tonewheel organ with rotary speaker"
+                  : "Native pipe organ with large cathedral acoustics"
                 : "Lightweight oscillator tone; works instantly on slow connections"}
           </p>
         </div>
 
         {settings.soundSource === "organ" && (
           <div className="mb-4 rounded-xl border border-zinc-200 p-3">
-            <h3 className="text-sm font-medium mb-2">Rotary</h3>
-            <div className="flex gap-2 mb-3" role="radiogroup" aria-label="Rotary">
-              {(["slow", "fast"] as const).map((speed) => (
+            <h3 className="text-sm font-medium mb-2">Organ Style</h3>
+            <div className="flex gap-2 mb-3" role="radiogroup" aria-label="Organ Style">
+              {(["rock", "cathedral"] as const).map((style) => (
                 <button
-                  key={speed}
-                  onClick={() => onChange({ organRotary: speed })}
+                  key={style}
+                  onClick={() => onChange({ organStyle: style })}
                   role="radio"
-                  aria-checked={settings.organRotary === speed}
-                  className={`flex-1 px-3 py-2 rounded-xl text-sm border ${settings.organRotary === speed ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300"}`}
+                  aria-checked={settings.organStyle === style}
+                  className={`flex-1 px-3 py-2 rounded-xl text-sm border ${settings.organStyle === style ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300"}`}
                 >
-                  {speed === "slow" ? "Slow" : "Fast"}
+                  {style === "rock" ? "Rock" : "Cathedral"}
                 </button>
               ))}
             </div>
-            <label className="flex justify-between text-sm mb-1" htmlFor="organ-drive">
-              <span>Drive</span>
-              <span className="font-mono text-xs">{Math.round(settings.organDrive * 100)}%</span>
-            </label>
-            <input
-              id="organ-drive"
-              type="range"
-              min={0}
-              max={100}
-              value={Math.round(settings.organDrive * 100)}
-              onChange={(e) => onChange({ organDrive: Number(e.target.value) / 100 })}
-              className="w-full"
-              aria-label="Organ drive"
-            />
+            {settings.organStyle === "rock" ? (
+              <>
+                <h3 className="text-sm font-medium mb-2">Rotary</h3>
+                <div className="flex gap-2 mb-3" role="radiogroup" aria-label="Rotary">
+                  {(["slow", "fast"] as const).map((speed) => (
+                    <button
+                      key={speed}
+                      onClick={() => onChange({ organRotary: speed })}
+                      role="radio"
+                      aria-checked={settings.organRotary === speed}
+                      className={`flex-1 px-3 py-2 rounded-xl text-sm border ${settings.organRotary === speed ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300"}`}
+                    >
+                      {speed === "slow" ? "Slow" : "Fast"}
+                    </button>
+                  ))}
+                </div>
+                <label className="flex justify-between text-sm mb-1" htmlFor="organ-drive">
+                  <span>Drive</span>
+                  <span className="font-mono text-xs">{Math.round(settings.organDrive * 100)}%</span>
+                </label>
+                <input
+                  id="organ-drive"
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={Math.round(settings.organDrive * 100)}
+                  onChange={(e) => onChange({ organDrive: Number(e.target.value) / 100 })}
+                  className="w-full"
+                  aria-label="Organ drive"
+                />
+              </>
+            ) : (
+              <>
+                <label className="flex justify-between text-sm mb-1" htmlFor="organ-space">
+                  <span>Space</span>
+                  <span className="font-mono text-xs">{Math.round(settings.organSpace * 100)}%</span>
+                </label>
+                <input
+                  id="organ-space"
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={Math.round(settings.organSpace * 100)}
+                  onChange={(e) => onChange({ organSpace: Number(e.target.value) / 100 })}
+                  className="w-full"
+                  aria-label="Organ space"
+                />
+              </>
+            )}
           </div>
         )}
 

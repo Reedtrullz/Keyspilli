@@ -28,7 +28,7 @@ function firstMatch(s: string, re: RegExp): string {
 /** Merge tied MusicXML segments back into one playable note. Multiple
  * same-pitch ties can overlap, so keep a FIFO-style queue and match the
  * continuation whose previous segment ends exactly at the current onset. */
-function mergeTiedNotes(notes: ParsedXmlNote[]): Note[] {
+function mergeTiedNotes(notes: ParsedXmlNote[], tolerance: number): Note[] {
   // When multiple tied segments share an onset (common for overlapping
   // same-pitch notes rendered as a chord), process the longest segment first.
   // The writer emits continuation segments in descending duration order, so
@@ -43,7 +43,7 @@ function mergeTiedNotes(notes: ParsedXmlNote[]): Note[] {
     const queue = chains.get(key) ?? [];
     let merged = false;
     if (note.tieStop) {
-      const index = queue.findIndex((previous) => Math.abs(previous.start + previous.dur - note.start) <= 0.001);
+      const index = queue.findIndex((previous) => Math.abs(previous.start + previous.dur - note.start) <= tolerance);
       if (index >= 0) {
         const previous = queue[index]!;
         previous.dur = note.start + note.dur - previous.start;
@@ -132,7 +132,10 @@ export function parseMusicXmlNotes(xml: string): ParsedMidi {
       });
     }
   }
-  const mergedNotes = mergeTiedNotes(notes).sort((a, b) => a.start - b.start || a.midi - b.midi);
+  // A writer may round the onset and duration independently, so a tied
+  // segment can end one division tick past its continuation onset.
+  const mergedNotes = mergeTiedNotes(notes, 1 / divisions + 1e-9)
+    .sort((a, b) => a.start - b.start || a.midi - b.midi);
   const durationBeats = mergedNotes.reduce((m, n) => Math.max(m, n.start + n.dur), 0);
   return {
     format: 0,

@@ -208,4 +208,50 @@ describe("report-only density normalization diagnostics", () => {
       expect(new Set(variant.notes.filter((note) => note.hand !== "L").map((note) => `${note.midi}@${note.start}`))).toEqual(rhKeys);
     }
   });
+
+  it("keeps the public ladder valid when upper-level density thinning removes attacks", () => {
+    let state = 1;
+    const random = () => ((state = (state * 1664525 + 1013904223) >>> 0) / 2 ** 32);
+    const notes: Note[] = [];
+    for (let bar = 0; bar < 4; bar += 1) {
+      const start = bar * 4;
+      const root = 36 + Math.floor(random() * 12);
+      const chordSize = 4 + Math.floor(random() * 5);
+      for (let voice = 0; voice < chordSize; voice += 1) {
+        notes.push({
+          midi: root + [0, 4, 7, 12, 16, 19, 24, 28][voice]!,
+          start: start + (random() < 0.35 ? 0.041667 : 0),
+          dur: 0.2 + random() * 3,
+          vel: 50 + Math.floor(random() * 78),
+        });
+      }
+      for (let beat = 0; beat < 4; beat += 0.25) {
+        if (random() >= 0.7) continue;
+        notes.push({
+          midi: 60 + Math.floor(random() * 24),
+          start: start + beat + (random() < 0.15 ? 0.125 : 0),
+          dur: 0.125 + random(),
+          vel: 60 + Math.floor(random() * 68),
+        });
+      }
+    }
+
+    const variants = buildVariants({
+      format: 1,
+      division: 480,
+      tempoBpm: 120,
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes,
+      trackNames: ["Synthetic"],
+      durationBeats: 16,
+    }, { title: "Fixture", artist: "Keyspilli" }, {
+      arrangementProfile: "learner",
+      audioDerived: false,
+      maxDurBeats: null,
+    });
+
+    expect(validateVariants(variants, { maxDurBeats: null })).toEqual([]);
+  });
 });

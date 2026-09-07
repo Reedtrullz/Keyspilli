@@ -24,7 +24,7 @@ export interface AudioLike {
   playChord?(midiNotes: number[], when: number, durationSec: number): void;
   cancelAll(): void;
   setGains(voice: number, piano: number): void;
-  setOrganControls?(rotary: "slow" | "fast", drive: number): void;
+  setOrganControls?(rotary: "slow" | "fast", drive: number, space: number): void;
   dispose(): void;
   sustainPedal: boolean;
 }
@@ -194,7 +194,7 @@ export class PlaybackEngine {
     const sustainChanged = this.settings.sustainPedal !== settings.sustainPedal;
     this.settings = settings;
     this.audio.sustainPedal = settings.sustainPedal;
-    this.audio.setOrganControls?.(settings.organRotary, settings.organDrive);
+    this.audio.setOrganControls?.(settings.organRotary, settings.organDrive, settings.organSpace);
     if (backgroundChanged && this.playing) {
       this.audio.cancelAll();
       this.lastScheduled = this.time;

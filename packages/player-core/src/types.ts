@@ -63,9 +63,13 @@ export interface PlayerSettings {
   backgroundMode: "piano" | "chord";
   /** Realtime playback timbre; this never changes the underlying notes. */
   soundSource: "synth" | "sampled" | "organ";
+  /** Native organ voicing. Rock remains the backward-compatible default. */
+  organStyle: "rock" | "cathedral";
   organRotary: "slow" | "fast";
   /** Normalized native-organ preamp drive. */
   organDrive: number;
+  /** Normalized Cathedral dry/wet control. */
+  organSpace: number;
   metronome: boolean;
   chordKeys: boolean;
   sustainPedal: boolean;

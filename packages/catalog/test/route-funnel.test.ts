@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { parseMidi, writeMidi, type Note, type ParsedMidi } from "@keyspilli/midi";
@@ -68,7 +69,7 @@ describe("local A/B/C route funnel", () => {
   });
 
   it("writes a deterministic path-free report from synthetic local MIDIs", async () => {
-    const dir = await mkdtemp(join("/private/tmp", "keyspilli-route-funnel-test-"));
+    const dir = await mkdtemp(join(tmpdir(), "keyspilli-route-funnel-test-"));
     try {
       const bytes = writeMidi([note(60, 0), note(62, 1)], { tempoBpm: 120, tracks: [{ name: "Piano", notes: [note(60, 0), note(62, 1)] }] });
       const midiPath = join(dir, "candidate.mid");
@@ -96,8 +97,8 @@ describe("local A/B/C route funnel", () => {
     }
   });
 
-  it("rejects source paths resolving into this repository and keeps output under /private/tmp", async () => {
-    const dir = await mkdtemp(join("/private/tmp", "keyspilli-route-funnel-path-"));
+  it("rejects source paths resolving into this repository and keeps output under the system temp directory", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "keyspilli-route-funnel-path-"));
     try {
       const manifestPath = join(dir, "manifest.json");
       const out = join(dir, "report.json");
@@ -107,7 +108,7 @@ describe("local A/B/C route funnel", () => {
         routes: [{ id: "A", path: join(process.cwd(), "package.json") }],
       }), "utf8");
       await expect(runRouteFunnelCli(["--manifest", manifestPath, "--out", out])).rejects.toThrow(/inside repository/i);
-      await expect(runRouteFunnelCli(["--manifest", manifestPath, "--out", join("/tmp", "route-report.json")])).rejects.toThrow(/under \/private\/tmp/i);
+      await expect(runRouteFunnelCli(["--manifest", manifestPath, "--out", join(process.cwd(), "route-report.json")])).rejects.toThrow(/under the system temp directory/i);
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

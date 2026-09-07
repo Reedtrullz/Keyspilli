@@ -7,14 +7,17 @@ const HANDS = ["L", "R", "both"] as const;
 const BACKGROUNDS = ["piano", "chord"] as const;
 const SOUND_SOURCES = ["synth", "sampled", "organ"] as const;
 const ORGAN_ROTARY_SPEEDS = ["slow", "fast"] as const;
+const ORGAN_STYLES = ["rock", "cathedral"] as const;
 
 export const DEFAULT_SETTINGS: PlayerSettings = {
   voiceGain: 1,
   pianoGain: 0.4,
   backgroundMode: "piano",
   soundSource: "sampled",
+  organStyle: "rock",
   organRotary: "slow",
   organDrive: 0.2,
+  organSpace: 0.65,
   metronome: false,
   chordKeys: true,
   sustainPedal: true,
@@ -56,8 +59,10 @@ export function loadSettings(): PlayerSettings {
       pianoGain: clampNum(raw.pianoGain, 0, 2, DEFAULT_SETTINGS.pianoGain),
       backgroundMode: pickEnum(raw.backgroundMode, BACKGROUNDS, DEFAULT_SETTINGS.backgroundMode),
       soundSource: pickEnum(raw.soundSource, SOUND_SOURCES, DEFAULT_SETTINGS.soundSource),
+      organStyle: pickEnum(raw.organStyle, ORGAN_STYLES, DEFAULT_SETTINGS.organStyle),
       organRotary: pickEnum(raw.organRotary, ORGAN_ROTARY_SPEEDS, DEFAULT_SETTINGS.organRotary),
       organDrive: clampNum(raw.organDrive, 0, 1, DEFAULT_SETTINGS.organDrive),
+      organSpace: clampNum(raw.organSpace, 0, 1, DEFAULT_SETTINGS.organSpace),
       metronome: pickBool(raw.metronome, DEFAULT_SETTINGS.metronome),
       chordKeys: pickBool(raw.chordKeys, DEFAULT_SETTINGS.chordKeys),
       sustainPedal: pickBool(raw.sustainPedal, DEFAULT_SETTINGS.sustainPedal),

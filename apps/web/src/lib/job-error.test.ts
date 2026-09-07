@@ -7,6 +7,14 @@ describe("public conversion errors", () => {
     expect(publicJobError("attempt 2: Command failed: yt-dlp --proxy https://user:secret@example.test\nERROR: LOGIN_REQUIRED")).not.toContain("secret");
   });
 
+  it("labels source review without leaking source diagnostics or suggesting blind retry", () => {
+    const message = publicJobError("attempt 1: SOURCE_REVIEW_REQUIRED: wrong source https://user:secret@example.test");
+    expect(message).toContain("needs review");
+    expect(message).not.toContain("secret");
+    expect(message).not.toContain("retry the import");
+    expect(publicJobError("attempt 1: SOURCE_REVIEW_REQUIRED: insufficient free disk space")).toContain("storage");
+  });
+
   it("does not expose arbitrary worker diagnostics", () => {
     expect(publicJobError("Error: /data/transcribed/job/audio.mp3 failed with internal detail")).toBe("conversion failed; retry the import or check the worker logs");
   });

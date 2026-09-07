@@ -2448,6 +2448,8 @@ function collisionAwareSparseLeftHandAnchors(
   beginnerRh: Note[],
   veryEasy: Note[],
   windowBeats: number,
+  tempoBpm: number,
+  maxDensity: number,
 ): Note[] {
   const width = Number.isFinite(windowBeats) && windowBeats > 0 ? windowBeats : 4;
   const rejectedRoles = new Set([
@@ -2501,7 +2503,10 @@ function collisionAwareSparseLeftHandAnchors(
       .map((group) => group[0]!)
       .sort((a, b) => a.start - b.start || a.midi - b.midi || b.vel - a.vel);
     for (const candidate of ordered) {
-      if (maxSounding([...beginnerRh, ...emitted, candidate]) <= 2) {
+      const combined = [...beginnerRh, ...emitted, candidate];
+      const spanSeconds = maxNoteEnd(combined) * 60 / tempoBpm;
+      const attackDensity = new Set(combined.map((note) => note.start.toFixed(3))).size / spanSeconds;
+      if (maxSounding(combined) <= 2 && attackDensity <= maxDensity + 1e-9) {
         emitted.push({ ...candidate });
         break;
       }
@@ -3029,6 +3034,13 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     medium,
     advanced,
   };
+  // Thin harder learner levels before canonicalizing the public ladder. A
+  // post-ladder deletion can leave an easier note with no surviving parent.
+  if (learnerProfile && !metalProfile) {
+    for (const level of ["easy", "medium", "advanced"] as const) {
+      rawSets[level] = selectProtectedSemanticLocalThinning(rawSets[level]!, tempo, level).notes;
+    }
+  }
   // The levels were density-capped top-down so every reduction sees the same
   // playable attack stream as its next harder neighbor. Intersect easier RH
   // material with that neighbor once more to canonicalize quantized starts.
@@ -3052,6 +3064,20 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
         : ladderReduced,
     );
   }
+  if (learnerProfile && !metalProfile) {
+    sets.beginner = trimSamePitchOverlaps(preserveRhLadder(
+      sets.beginner!,
+      sets.easy!,
+      LADDER_TOL.beginner ?? 0.02,
+      PLAYABILITY_LIMITS.beginner!.maxSim,
+    ));
+    sets["very-beginner"] = trimSamePitchOverlaps(preserveRhLadder(
+      sets["very-beginner"]!,
+      sets.beginner!,
+      LADDER_TOL["very-beginner"] ?? 0.26,
+      PLAYABILITY_LIMITS["very-beginner"]!.maxSim,
+    ));
+  }
   const beginnerAfterLadder = sets.beginner!;
   if (learnerTraceEnabled) {
     emitLearnerStageTrace(learnerTraceSink, "beginner-ladder", beginnerAfterLadder, [{
@@ -3071,6 +3097,8 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
       beginnerRh,
       sets["very-easy"]!,
       Math.max(1, beatsPerMeasure),
+      tempo,
+      PLAYABILITY_LIMITS.beginner!.maxDensity,
     );
     const existingKeys = new Set(beginner.map((note) => `${note.hand ?? "R"}:${note.start.toFixed(6)}:${note.midi}:${note.dur.toFixed(6)}:${note.vel}`));
     sets.beginner = [...beginner, ...sparseLh.filter((note) => {
@@ -3085,11 +3113,11 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   if (learnerProfile && !metalProfile) {
     const beginnerBaseline = sets.beginner!;
     const rejected = learnerTraceEnabled
-      ? resolveBeginnerOffGridRejections(learnerTraceEvents, src.notes)
-      : resolveBeginnerOffGridRejectionsFromLineage(beginner, beginnerAfterLadder, learnerTraceSource);
-    const durationBeats = Math.max(0, ...src.notes.map((note) => note.start + note.dur).filter(Number.isFinite));
+      ? resolveBeginnerOffGridRejections(learnerTraceEvents, imported)
+      : resolveBeginnerOffGridRejectionsFromLineage(beginner, beginnerAfterLadder, imported);
+    const durationBeats = Math.max(0, ...imported.map((note) => note.start + note.dur).filter(Number.isFinite));
     const selection = selectBeginnerOffGridRhCandidates({
-      sourceNotes: src.notes,
+      sourceNotes: imported,
       baselineNotes: beginnerBaseline,
       rejected,
       timeSig: src.timeSig,
@@ -3116,15 +3144,6 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
       Object.defineProperty(marked, BEGINNER_OFFGRID_CANDIDATE, { value: true, enumerable: true });
       return marked;
     });
-  }
-  // Frozen Candidate A: one protected semantic thinning pass over the final
-  // learner ladder. The selector is shared with the audit so promotion cannot
-  // drift into a second implementation; its own pass is a no-op for levels
-  // that already satisfy the unchanged validator.
-  if (learnerProfile && !metalProfile) {
-    for (const level of ["easy", "medium", "advanced"] as const) {
-      sets[level] = selectProtectedSemanticLocalThinning(sets[level]!, tempo, level).notes;
-    }
   }
   if (learnerTraceEnabled) {
     emitLearnerStageTrace(learnerTraceSink, "beginner-final", sets.beginner!, [{
