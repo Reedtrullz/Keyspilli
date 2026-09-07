@@ -1,9 +1,9 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import Database from "better-sqlite3";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { claimJob, deleteBaseRows, getDb, getJob, getQueuedJobs, insertJob, requeueOrphaned, updateJob, upsertSong } from "../src/db.js";
+import { claimJob, renewJobLease, ownsJobLease, deleteBaseRows, getDb, getJob, getQueuedJobs, insertJob, requeueOrphaned, updateJob, upsertSong } from "../src/db.js";
 import type { JobRow, SongRow } from "../src/db.js";
 
 // Fresh data dir per test run; db.ts caches its connection, so this must be
@@ -40,18 +40,20 @@ afterAll(() => {
 });
 
 describe("conversion jobs", () => {
-  it("migrates an existing db by adding the attempts and started_at columns", () => {
+  it("migrates an existing db by adding attempts, started_at and owned lease columns", () => {
     const cols = getDb().prepare("PRAGMA table_info(conversion_jobs)").all() as { name: string }[];
     expect(cols.some((c) => c.name === "attempts")).toBe(true);
     expect(cols.some((c) => c.name === "started_at")).toBe(true);
+    expect(cols.some((c) => c.name === "lease_owner")).toBe(true);
+    expect(cols.some((c) => c.name === "lease_expires_at")).toBe(true);
     // Idempotent: a second open must not fail.
     getDb();
   });
 
   it("claimJob claims a queued job exactly once and stamps started_at", () => {
     insertJob(job("claim-1", "queued"));
-    expect(claimJob("claim-1")).toBe(true);
-    expect(claimJob("claim-1")).toBe(false);
+    expect(claimJob("claim-1")).toBeTruthy();
+    expect(claimJob("claim-1")).toBeUndefined();
     expect(getJob("claim-1")!.status).toBe("processing");
     expect(getJob("claim-1")!.startedAt).toBeTruthy();
     expect(getQueuedJobs().map((j) => j.id)).not.toContain("claim-1");
@@ -59,7 +61,7 @@ describe("conversion jobs", () => {
 
   it("requeueOrphaned leaves freshly claimed jobs alone", () => {
     insertJob(job("fresh-1", "queued"));
-    expect(claimJob("fresh-1")).toBe(true);
+    expect(claimJob("fresh-1")).toBeTruthy();
     expect(requeueOrphaned()).toBe(0);
     expect(getJob("fresh-1")!.status).toBe("processing");
   });
@@ -67,14 +69,42 @@ describe("conversion jobs", () => {
   it("requeueOrphaned reclaims only unstarted and stale processing rows", () => {
     insertJob(job("unstarted-1", "processing", 1));
     insertJob(job("stale-1", "queued"));
-    expect(claimJob("stale-1")).toBe(true);
-    getDb().prepare("UPDATE conversion_jobs SET started_at = datetime('now', '-30 minutes') WHERE id = 'stale-1'").run();
+    expect(claimJob("stale-1")).toBeTruthy();
+    getDb().prepare("UPDATE conversion_jobs SET lease_expires_at = 0, started_at = datetime('now', '-30 minutes') WHERE id = 'stale-1'").run();
     // fresh-1 from the previous test is still running and must not be stolen.
     expect(requeueOrphaned()).toBe(2);
     expect(getJob("unstarted-1")!.status).toBe("queued");
     expect(getJob("stale-1")!.status).toBe("queued");
     expect(getJob("fresh-1")!.status).toBe("processing");
     expect(requeueOrphaned()).toBe(0);
+  });
+
+  it("keeps a healthy 20-minute lease and rejects stale ownership after crash/reclaim", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2030-01-01T00:00:00Z"));
+    try {
+      insertJob(job("owned-1", "queued"));
+      const owner = claimJob("owned-1");
+      expect(typeof owner).toBe("string");
+      if (!owner) throw new Error("claim failed");
+      for (let minute = 1; minute <= 20; minute++) {
+        vi.setSystemTime(new Date(`2030-01-01T00:${String(minute).padStart(2, "0")}:00Z`));
+        expect(renewJobLease("owned-1", owner)).toBe(true);
+        requeueOrphaned();
+        expect(getJob("owned-1")!.status).toBe("processing");
+      }
+      vi.setSystemTime(new Date("2030-01-01T00:36:00Z"));
+      expect(ownsJobLease("owned-1", owner)).toBe(false);
+      requeueOrphaned();
+      expect(getJob("owned-1")!.status).toBe("queued");
+      const next = claimJob("owned-1");
+      expect(next).not.toBe(owner);
+      expect(renewJobLease("owned-1", owner)).toBe(false);
+      expect(updateJob("owned-1", { status: "done" }, owner)).toBe(false);
+      expect(getJob("owned-1")!.status).toBe("processing");
+      expect(updateJob("owned-1", { status: "done" }, next!)).toBe(true);
+      expect(getJob("owned-1")!.status).toBe("done");
+    } finally { vi.useRealTimers(); }
   });
 
   it("updateJob persists attempts", () => {

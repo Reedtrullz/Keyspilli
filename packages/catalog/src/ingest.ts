@@ -516,9 +516,6 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
           writeFile(join(dir, "notes.json"), item.notesJson),
         ]);
       }
-      // Keep the existing failure-injection hook before the commit marker is
-      // written. A failed preparation therefore cannot swap a partial tree.
-      options.beforeReplace?.();
       if (inp.contentType === "upload") {
         await mkdir(uploadRoot, { recursive: true });
         await writeFile(stageUpload, inp.buf);
@@ -530,6 +527,7 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
     }, {
       artifactsRoot,
       semanticValidation: "strict",
+      beforeSwap: options.beforeReplace,
       afterSwap: async () => {
         if (inp.contentType === "upload") {
           if (existsSync(finalUpload)) {

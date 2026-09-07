@@ -7,13 +7,14 @@ import { loadAutomaticSourceIndex, resolveAutomaticSymbolic } from "./automatic-
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
-import { mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 import { pathToFileURL } from "node:url";
 import {
   claimJob,
-  getDb,
+  renewJobLease,
+  ownsJobLease,
   getQueuedJobs,
   requeueOrphaned,
   updateJob,
@@ -203,24 +204,19 @@ export async function processJob(jobId: string): Promise<void> {
   const job = getJob(jobId);
   if (!job) return;
   // Atomic claim: another worker may have taken it while we read metadata.
-  if (!claimJob(jobId)) return;
+  const owner = claimJob(jobId);
+  if (!owner) return;
+  const updateOwnedJob = (patch: Parameters<typeof updateJob>[1]) => updateJob(jobId, patch, owner);
   const existing = job.songId ? getSong(job.songId) : undefined;
   if (existing && existsSync(join(seedMidiDir(), `${existing.baseId}.mid`))) {
-    updateJob(jobId, { status: "done", songId: existing.id, finishedAt: new Date().toISOString() });
+    updateOwnedJob({ status: "done", songId: existing.id, finishedAt: new Date().toISOString() });
     console.log(`[worker] ${jobId} curated base (${existing.baseId}), kept existing artifacts`);
     return;
   }
   const dir = join(transcribedDir(), jobId);
-  // Separation plus three pitched-stem transcriptions can legitimately run
-  // much longer than the database's orphan threshold. Refresh the existing
-  // started_at lease so a worker restart cannot requeue and duplicate an
-  // active job. The status guard prevents this timer from reviving a job that
-  // has already transitioned to queued/error/done.
   const heartbeat = setInterval(() => {
     try {
-      getDb()
-        .prepare("UPDATE conversion_jobs SET started_at = datetime('now') WHERE id = ? AND status = 'processing'")
-        .run(jobId);
+      if (!renewJobLease(jobId, owner)) console.warn(`[worker] ${jobId} lost job lease; publication is disabled`);
     } catch (error) {
       console.warn(`[worker] ${jobId} heartbeat failed: ${(error as Error).message}`);
     }
@@ -240,7 +236,7 @@ export async function processJob(jobId: string): Promise<void> {
       const baseId = `beta-native-${native.provenance.sourceSha256.slice(0, 24)}`;
       const prior = getSongsByBase(baseId);
       if (prior.length) {
-        updateJob(jobId, { status: "done", songId: prior.find((song) => song.id.endsWith("-e"))?.id ?? prior[0]!.id, finishedAt: new Date().toISOString() });
+        updateOwnedJob({ status: "done", songId: prior.find((song) => song.id.endsWith("-e"))?.id ?? prior[0]!.id, finishedAt: new Date().toISOString() });
         return;
       }
       await writeFile(join(dir, "selected-source.mid"), native.sourceBytes);
@@ -253,10 +249,10 @@ export async function processJob(jobId: string): Promise<void> {
         cleanTranscription: false, maxDurBeats: null, arrangementProfile: "source", sourceArrangement: native.provenance,
       }, { beforeReplace: () => {
         const latest = getJob(jobId);
-        if (!latest || latest.status !== "processing" || latest.songId !== job.songId || getSongsByBase(baseId).length) throw new Error("native publication cancelled or already exists");
+        if (!ownsJobLease(jobId, owner) || !latest || latest.status !== "processing" || latest.songId !== job.songId || getSongsByBase(baseId).length) throw new Error("native publication cancelled or already exists");
       } });
       if (imported.error) throw new Error(imported.error);
-      updateJob(jobId, { status: "done", songId: imported.songIds.find((id) => id.endsWith("-e")) ?? imported.songIds[0]!, finishedAt: new Date().toISOString() });
+      updateOwnedJob({ status: "done", songId: imported.songIds.find((id) => id.endsWith("-e")) ?? imported.songIds[0]!, finishedAt: new Date().toISOString() });
       return;
     }
 
@@ -329,8 +325,7 @@ export async function processJob(jobId: string): Promise<void> {
           title: existing?.title ?? meta.title,
         });
         // A bass-only or bleed-only result is structurally valid MIDI but not
-        // a recognizable cover. In auto mode this gate deliberately falls
-        // back to the established full-mix path instead of publishing it.
+        // a recognizable cover. Reject it without silently switching sources.
         if (arranged.stats.identityNotes < 8 || arranged.parsed.notes.length < 16) {
           throw new Error(
             `metal arranger produced too little identity (${arranged.stats.identityNotes} identity, `
@@ -390,27 +385,10 @@ export async function processJob(jobId: string): Promise<void> {
           + `${arranged.stats.leftHandNotes} LH, ${arranged.stats.chordEvents} chords`,
         );
       } catch (error) {
-        if (STEM_PIPELINE_CONFIG.mode === "metal") throw error;
-        // transcribePitchedStems publishes its small diagnostic MIDIs before
-        // the musical routing gate runs. Remove them (and any arrangement
-        // from a prior failed attempt) when auto mode selects the legacy
-        // result, so rebuild code cannot mistake stale stem output for the
-        // source that was actually published.
-        await Promise.all([
-          rm(join(dir, "stem-midi"), { recursive: true, force: true }),
-          rm(join(dir, "arranged"), { recursive: true, force: true }),
-        ]);
-        stemRoleThresholds = undefined;
         const detail = error instanceof Error ? error.message : String(error);
-        const warning = "automatic metal stem route was unavailable or unsuitable; published legacy full-mix transcription";
-        console.warn(`[worker] ${jobId} ${warning}: ${detail}`);
-        metalArrangement = {
-          arranger: "keyspilli-metal-arranger",
-          version: "1",
-          strategy: "legacy-full-mix-fallback",
-          identitySource: "fallback-full-mix",
-          warnings: [warning],
-        };
+        // No full-mix fallback has passed the musical route gate. Preserve
+        // diagnostics and surface review instead of silently publishing it.
+        throw new Error(`SOURCE_REVIEW_REQUIRED: stem transcription unavailable or unsuitable: ${detail}. Use a verified native arrangement or supported source.`);
       }
     }
 
@@ -508,7 +486,7 @@ export async function processJob(jobId: string): Promise<void> {
       // after deletion has completed.
       beforeReplace: () => {
         const latest = getJob(jobId);
-        if (!latest || latest.status !== "processing" || latest.songId !== job.songId) {
+        if (!ownsJobLease(jobId, owner) || !latest || latest.status !== "processing" || latest.songId !== job.songId) {
           throw new Error("conversion job was deleted or cancelled before publication");
         }
       },
@@ -517,9 +495,13 @@ export async function processJob(jobId: string): Promise<void> {
     // Keep the conversion job pointed at the stable easy variant by its
     // level suffix; array order is an implementation detail of the ladder.
     const songId = result.songIds.find((id) => id.endsWith("-e")) ?? result.songIds[0]!;
-    updateJob(jobId, { status: "done", songId, finishedAt: new Date().toISOString() });
+    updateOwnedJob({ status: "done", songId, finishedAt: new Date().toISOString() });
     console.log(`[worker] ${jobId} done → ${songId}`);
   } catch (e) {
+    if (!ownsJobLease(jobId, owner)) {
+      console.warn(`[worker] ${jobId} no longer owns the job; retained current owner and status`);
+      return;
+    }
     const attempts = (job.attempts ?? 0) + 1;
     const detail = e instanceof Error ? e.message : String(e);
     const msg = `attempt ${attempts}: ${detail}`;
@@ -527,10 +509,10 @@ export async function processJob(jobId: string): Promise<void> {
     // the same URL immediately with another attempt only hammers the blocked
     // IP, so surface an actionable terminal error instead.
     if (!detail.startsWith("SOURCE_REVIEW_REQUIRED:") && !isYoutubeBotChallenge(e) && attempts < MAX_ATTEMPTS) {
-      updateJob(jobId, { status: "queued", error: msg, attempts });
+      updateOwnedJob({ status: "queued", error: msg, attempts });
       console.warn(`[worker] ${jobId} attempt ${attempts}/${MAX_ATTEMPTS} failed, requeued: ${detail}`);
     } else {
-      updateJob(jobId, { status: "error", error: msg, attempts, finishedAt: new Date().toISOString() });
+      updateOwnedJob({ status: "error", error: msg, attempts, finishedAt: new Date().toISOString() });
       console.error(`[worker] ${jobId} failed after ${attempts} attempts: ${detail}`);
     }
   } finally {
@@ -550,6 +532,7 @@ async function loop(): Promise<void> {
   console.log(`[worker] polling every ${POLL_MS}ms`);
   for (;;) {
     try {
+      requeueOrphaned();
       const jobs = getQueuedJobs();
       for (const j of jobs) await processJob(j.id);
     } catch (e) {
