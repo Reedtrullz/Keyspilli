@@ -3178,7 +3178,14 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     emitLearnerStageTrace(learnerTraceSink, "easy-ladder", sets.easy!, [{ stage: "easy-playable", notes: easy }], "easy-ladder-preservation");
     emitLearnerStageTrace(learnerTraceSink, "final", sets.easy!, [{ stage: "easy-ladder", notes: sets.easy! }], "easy-public-final");
   }
-  if (opts.arrangementProfile === "source") sets.beginner = spaceBeginnerAttacks(sets.beginner!, tempo);
+  if (opts.arrangementProfile === "source") {
+    // A piano arrangement can finish in the bass after the RH part ends.
+    // Keep that actual ending as a single LH line, rather than silent bars.
+    const rhEnd = maxNoteEnd(sets.easy.filter(note => note.hand !== "L"));
+    const tail = onsetGroups(sets.easy.filter(note => note.hand === "L" && note.start >= rhEnd))
+      .map(group => group.reduce((a, b) => a.midi < b.midi ? a : b));
+    sets.beginner = spaceBeginnerAttacks([...sets.beginner!, ...tail], tempo);
+  }
   const scores: Record<DifficultyLevel, number> = {
     "very-beginner": 1,
     beginner: 1.4,

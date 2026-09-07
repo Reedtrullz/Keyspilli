@@ -29,6 +29,19 @@ class TutorialKeysTest(unittest.TestCase):
     time+=msg.time
     if msg.type in ['note_on','note_off']:events.append((msg.note,msg.type,round(time,6)))
   self.assertEqual(events,[(61,'note_on',5.0),(64,'note_on',5.125),(61,'note_off',5.25),(64,'note_off',5.625)])
+ def test_yellow_notes_are_not_lost_or_confused_with_ivory_keys(self):
+  rows=np.full((20,3,3),[250,240,200],dtype=np.uint8)
+  rows[5:12]=[255,230,60]
+  notes=m.key_events(rows,60,64)
+  self.assertEqual(notes,[{'midi':64,'startSec':5/60,'durationSec':7/60,'color':'yellow'}])
+  import tempfile,mido
+  with tempfile.TemporaryDirectory() as d:
+   path=Path(d)/'out.mid';m.save_midi(notes,path)
+   self.assertEqual([n.note for n in mido.MidiFile(path) if n.type=='note_on'],[64])
+ def test_unrecognized_saturated_key_is_rejected_not_silently_omitted(self):
+  rows=np.zeros((20,3,3),dtype=np.uint8);rows[5:12]=[240,20,30]
+  with self.assertRaisesRegex(ValueError,'Unsupported key color'):
+   m.key_events(rows,60,64)
  def test_ambiguous_pitch_range_rejected(self):
   with self.assertRaisesRegex(ValueError,'88'):
    m.validate_geometry({'keys':[{'midi_num':n} for n in range(24,101)],'bounds':[0,580,1280,140],'edges':[]},1280,720)

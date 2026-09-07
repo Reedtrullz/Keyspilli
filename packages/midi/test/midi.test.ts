@@ -1263,6 +1263,20 @@ describe("buildVariants", () => {
     expect(advanced.chords).toEqual([]);
   });
 
+  it("preserves an accompaniment-only source ending in Beginner", () => {
+    const notes: Note[] = [
+      ...Array.from({ length: 16 }, (_, i) => ({ midi: 72, start: i * 2, dur: 1, vel: 80, hand: "R" as const })),
+      ...[48, 43, 40].map((midi, i) => ({ midi, start: 34 + i * 2, dur: i === 2 ? 4 : 1, vel: 80, hand: "L" as const })),
+    ];
+    const source: ParsedMidi = { format: 1, division: 480, tempoBpm: 120, keySig: 0, keyMode: 0,
+      timeSig: [4, 4], trackNames: ["Right Hand", "Left Hand"], durationBeats: 42, notes };
+    const variants = buildVariants(source, { title: "Accompaniment ending", artist: "Test" },
+      { arrangementProfile: "source", maxDurBeats: null });
+    const beginner = variants.find(v => v.level === "beginner")!;
+    expect(beginner.notes.some(n => n.midi === 40 && n.start === 38 && n.hand === "L")).toBe(true);
+    expect(validateVariants(variants, { maxDurBeats: null })).toEqual([]);
+  });
+
   it("limits local Beginner bursts even in an otherwise sparse source", () => {
     const notes: Note[] = [...Array.from({ length: 16 }, (_, i) => ({ midi: 72, start: i * 4, dur: 1, vel: 80, hand: "R" as const })),
       ...Array.from({ length: 12 }, (_, i) => ({ midi: 72 + i % 5, start: 64 + i * 0.25, dur: i === 11 ? 2 : 0.25, vel: 80, hand: "R" as const }))];

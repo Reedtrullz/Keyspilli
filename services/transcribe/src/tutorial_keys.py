@@ -18,12 +18,18 @@ def key_events(rgb, fps, pitch):
     a=rgb.astype('int16')
     blue=(a[:,:,2]-a[:,:,0]>35)&(a[:,:,1]-a[:,:,0]>12)&(a[:,:,2]>85)
     green=(a[:,:,1]-a[:,:,0]>35)&(a[:,:,1]-a[:,:,2]>25)&(a[:,:,1]>85)
-    active=(blue|green).sum(axis=1)>=2
+    yellow=(a[:,:,0]-a[:,:,2]>70)&(a[:,:,1]-a[:,:,2]>55)&(a[:,:,0]>120)&(a[:,:,1]>100)
+    colors={'blue':blue,'green':green,'yellow':yellow}
+    supported=blue|green|yellow
+    unknown=((a.max(axis=2)-a.min(axis=2)>80)&(a.max(axis=2)>100)&~supported).sum(axis=1)>=2
+    for start,end in np.flatnonzero(np.diff(np.r_[False,unknown,False])).reshape(-1,2):
+        if (end-start)/fps>=.06:raise ValueError(f'Unsupported key color at pitch {pitch}, {start/fps:.3f}s')
+    active=supported.sum(axis=1)>=2
     notes=[]
     for start,end in np.flatnonzero(np.diff(np.r_[False,active,False])).reshape(-1,2):
         if (end-start)/fps>=.06:
             notes.append({'midi':pitch,'startSec':float(start/fps),'durationSec':float((end-start)/fps),
-                          'color':'blue' if blue[start:end].sum()>green[start:end].sum() else 'green'})
+                          'color':max(colors,key=lambda color:colors[color][start:end].sum())})
     return notes
 
 
@@ -90,7 +96,7 @@ def extract(video,c,meta):
         if center<1 or center+1>=width:raise ValueError('Key sampling falls outside frame')
         rgb=rows[0 if key['color']=='b' else 1][:,center-1:center+2]
         notes.extend(key_events(rgb,fps,key['midi_num']))
-    if not notes:raise ValueError('No supported blue/green key lights detected')
+    if not notes:raise ValueError('No supported blue/green/yellow key lights detected')
     return sorted(notes,key=lambda n:(n['startSec'],n['midi'])),scanlines
 
 
@@ -98,7 +104,7 @@ def save_midi(notes,path):
     import mido
     mid=mido.MidiFile(ticks_per_beat=960)
     # Color is provenance, not a claim about left/right hand or vocal melody.
-    for channel,color in enumerate(['blue','green']):
+    for channel,color in enumerate(sorted({n['color'] for n in notes})):
         track=mido.MidiTrack();mid.tracks.append(track)
         track.append(mido.MetaMessage('track_name',name=color+' keys'))
         track.append(mido.MetaMessage('set_tempo',tempo=500000))

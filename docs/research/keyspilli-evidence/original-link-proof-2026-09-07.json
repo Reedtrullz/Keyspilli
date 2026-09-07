@@ -1,0 +1,84 @@
+{
+  "scope": "Local CLI discovery and extraction; not production worker, independent musical identity, or listening acceptance proof",
+  "runs": [
+    {
+      "inputUrl": "https://www.youtube.com/watch?v=vabnZ9-ex7o",
+      "identity": {
+        "baseId": "private-proof",
+        "title": "Come As You Are",
+        "artist": "Nirvana"
+      },
+      "identityEvidence": "YouTube metadata and title matching; not independent musical identification",
+      "selectedUrl": "https://www.youtube.com/watch?v=2oX_g5RdU6w",
+      "status": "local-listening-candidate",
+      "sourceRights": "unverified",
+      "published": false,
+      "attempts": [
+        {
+          "url": "https://www.youtube.com/watch?v=11YH-8qg3Pw",
+          "status": "failed"
+        },
+        {
+          "url": "https://www.youtube.com/watch?v=A4byXHb8J2w",
+          "status": "failed"
+        },
+        {
+          "url": "https://www.youtube.com/watch?v=2oX_g5RdU6w",
+          "status": "extracted-and-structurally-validated",
+          "notes": 1140
+        }
+      ]
+    },
+    {
+      "inputUrl": "https://www.youtube.com/watch?v=pAgnJDJN4VA",
+      "identity": {
+        "baseId": "private-proof",
+        "title": "Back In Black",
+        "artist": "AC/DC"
+      },
+      "identityEvidence": "YouTube metadata and title matching; not independent musical identification",
+      "selectedUrl": "https://www.youtube.com/watch?v=vo2EKse1FUM",
+      "status": "local-listening-candidate",
+      "sourceRights": "unverified",
+      "published": false,
+      "attempts": [
+        {
+          "url": "https://www.youtube.com/watch?v=vo2EKse1FUM",
+          "status": "extracted-and-structurally-validated",
+          "notes": 886
+        }
+      ]
+    },
+    {
+      "inputUrl": "https://www.youtube.com/watch?v=tAGnKpE4NCI",
+      "identity": {
+        "baseId": "private-proof",
+        "title": "Metallica: Nothing Else Matters",
+        "artist": "Metallica"
+      },
+      "identityEvidence": "YouTube metadata and title matching; not independent musical identification",
+      "selectedUrl": "https://www.youtube.com/watch?v=DzAGQbvDpns",
+      "status": "local-listening-candidate",
+      "sourceRights": "unverified",
+      "published": false,
+      "attempts": [
+        {
+          "url": "https://www.youtube.com/watch?v=DzAGQbvDpns",
+          "status": "extracted-and-structurally-validated",
+          "notes": 1714
+        }
+      ]
+    }
+  ],
+  "colorRegression": {
+    "oldAcDcNotes": 251,
+    "correctedAcDcNotes": 886,
+    "queenEventsUnchanged": 2374,
+    "nirvanaEventsUnchanged": 1140
+  },
+  "beginnerEnding": {
+    "metallicaEndSeconds": 378.875,
+    "rightHandUnchanged": true,
+    "higherLevelsUnchanged": true
+  }
+}
