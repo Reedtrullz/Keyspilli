@@ -1,6 +1,8 @@
+import TutorialImport from "./TutorialImport";
 import Link from "next/link";
 
 export default function YoutubePage() {
+  if (process.env.KEYSPILLI_TUTORIAL_PREVIEW === "1" && process.env.NODE_ENV === "development" && process.env.KEYSPILLI_DATA_DIR) return <TutorialImport/>;
   return (
     <div className="page-shell max-w-2xl mx-auto px-4 py-10">
       <h1 className="page-title text-2xl font-bold mb-2 motion-rise-in">Create a lesson from a symbolic file</h1>

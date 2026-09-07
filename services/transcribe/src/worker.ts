@@ -3,9 +3,10 @@
  * yt-dlp, transcribes with Basic Pitch (python venv), ingests the resulting
  * MIDI into the catalog, and marks the job done/error.
  */
+import { resolveTutorialLink } from "./tutorial-route.js";
 import { loadAutomaticSourceIndex, resolveAutomaticSymbolic } from "./automatic-symbolic.js";
 import { execFile } from "node:child_process";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
 import { mkdir, readFile, rename, stat, statfs, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
@@ -230,6 +231,36 @@ export async function processJob(jobId: string): Promise<void> {
     const disk = await statfs(dir);
     if (disk.bavail * disk.bsize < STEM_PIPELINE_CONFIG.minFreeBytes) {
       throw new Error("SOURCE_REVIEW_REQUIRED: insufficient free disk space; reclaim space before retrying");
+    }
+    if (process.env.KEYSPILLI_TUTORIAL_PREVIEW === "1") {
+      if (process.env.NODE_ENV !== "development" || !process.env.KEYSPILLI_DATA_DIR)
+        throw new Error("SOURCE_REVIEW_REQUIRED: tutorial preview requires development mode and an isolated data directory");
+      if (existing) throw new Error("SOURCE_REVIEW_REQUIRED: tutorial preview cannot replace existing songs");
+      const candidate = await resolveTutorialLink(normalizeYoutubeImportUrl(job.youtubeUrl), join(dir, "tutorial-" + randomUUID()));
+      if (candidate.status !== "local-listening-candidate") throw new Error("SOURCE_REVIEW_REQUIRED: no supported tutorial found");
+      const buf = await readFile(candidate.midiPath);
+      const evidence = JSON.parse(await readFile(candidate.midiPath.replace(/\.mid$/, ".json"), "utf8"));
+      const baseId = "preview-" + jobId;
+      const sourceArrangement = {
+        beta: true as const, requestedUrl: job.youtubeUrl, actualSourceUrl: candidate.selectedUrl,
+        sourceSha256: evidence.sourceSha256, realizationSha256: createHash("sha256").update(buf).digest("hex"),
+        sourceKind: "tutorial-preview" as const, arrangementTitle: candidate.candidates.find((c: {url: string}) => c.url === candidate.selectedUrl)!.title,
+        artist: candidate.identity.artist, title: candidate.identity.title, timingOwner: "selected-arrangement" as const,
+        containsMelody: null, license: "unverified", licenseEvidenceUrl: "", verificationEvidenceUrl: candidate.selectedUrl,
+        candidateSetDigest: createHash("sha256").update(JSON.stringify(candidate.candidates)).digest("hex"),
+      };
+      const imported = await ingestSource({buf, baseId, title: candidate.identity.title, artist: candidate.identity.artist,
+        category: "Tutorial preview", contentType: "youtube", acquiredVia: "colored-keyboard-video",
+        sourceRef: candidate.selectedUrl, sourceArtifactHash: evidence.sourceSha256, sourceArrangement,
+        cleanTranscription: false, maxDurBeats: null, arrangementProfile: "source",
+      }, {beforeReplace: () => {
+        if (!ownsJobLease(jobId, owner) || getJob(jobId)?.status !== "processing" || getSongsByBase(baseId).length)
+          throw new Error("tutorial publication cancelled or already exists");
+      }});
+      if (imported.error) throw new Error(imported.error);
+      updateOwnedJob({status: "done", songId: imported.songIds.find(id => id.endsWith("-e"))!,
+        finishedAt: new Date().toISOString()});
+      return;
     }
     if (process.env.KEYSPILLI_SOURCE_ASSISTED_BETA === "1") {
       if (existing) throw new Error("SOURCE_REVIEW_REQUIRED: beta imports cannot replace an existing song");

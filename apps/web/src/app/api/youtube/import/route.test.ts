@@ -1,7 +1,10 @@
 import { NextRequest } from "next/server";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 const insertJob = vi.hoisted(() => vi.fn());
+const queue = vi.hoisted(() => vi.fn(async (_request: Request) => new Response(JSON.stringify({jobId:"preview-job"}),{status:200})));
+vi.mock("../route",()=>({POST:queue}));
+afterEach(()=>{vi.unstubAllEnvs();queue.mockClear();});
 
 vi.mock("@keyspilli/catalog", () => ({ insertJob }));
 
@@ -33,4 +36,29 @@ describe("public YouTube import route", () => {
     });
     expect(insertJob).not.toHaveBeenCalled();
   });
+});
+
+
+describe("development tutorial preview",()=>{
+ function enable(){
+  vi.stubEnv("NODE_ENV","development");vi.stubEnv("KEYSPILLI_TUTORIAL_PREVIEW","1");
+  vi.stubEnv("KEYSPILLI_DATA_DIR","/tmp/isolated-preview");vi.stubEnv("KEYSPILLI_API_TOKEN","fixture-token");
+ }
+ it("queues a same-origin URL through the existing authenticated route",async()=>{
+  enable();
+  const response=await POST(requestFor({url:"https://youtu.be/abcdefghijk"},{origin:"https://keys.reidar.tech"}));
+  expect(response.status).toBe(200);expect(queue).toHaveBeenCalledOnce();
+  expect(await queue.mock.calls[0]![0].json()).toEqual({url:"https://youtu.be/abcdefghijk"});
+ });
+ it("rejects cross-origin requests and existing-song overrides",async()=>{
+  enable();
+  expect((await POST(requestFor({url:"https://youtu.be/abcdefghijk"},{origin:"https://attacker.example"}))).status).toBe(403);
+  expect((await POST(requestFor({url:"https://youtu.be/abcdefghijk",songId:"existing"},{origin:"https://keys.reidar.tech"}))).status).toBe(400);
+  expect(queue).not.toHaveBeenCalled();
+ });
+ it("stays disabled in production even when the preview flag is present",async()=>{
+  enable();vi.stubEnv("NODE_ENV","production");
+  expect((await POST(requestFor({url:"https://youtu.be/abcdefghijk"},{origin:"https://keys.reidar.tech"}))).status).toBe(410);
+  expect(queue).not.toHaveBeenCalled();
+ });
 });
