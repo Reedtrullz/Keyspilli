@@ -6,8 +6,8 @@ Previous goal turn: initial activation; prior planning yielded authoritative pla
 
 - [x] Task1: bounded reproducible development runner — COMPLETE.12 tests pass (runner3/evaluator9), catalog typecheck passes; all12 development cached stems replayed,11 structural pass and Silent Lucidity remains failed; second run12 cache hits. No inference or holdout invocation.
 - [x] Task2: COMPLETE via explicit no-promotion branch: six development targets inspected, zero fully qualified real reference pairs; three independent native piano controls rendered/scored. Exact Basic Pitch precision 0.690–0.845 fails the fixed0.95 gate. References remain outside generation inputs.
-- [ ] Task3: eligible upstream route comparison or explicit no-promotion decision — IN PROGRESS.
-- [ ] Task4: identity preservation and overlap regression/fix.
+- [x] Task3: COMPLETE via no-promotion branch. Two algorithms, two configurations each: piano specialist improves controls but fails Debussy precision; pyin passes invented upper line but fails bass timing. Real separated vocal/bass confidence diagnostic and12 cached-role previews retained.18 service tests and typecheck pass. No production adapter enabled.
+- [ ] Task4: identity preservation and overlap regression/fix — IN PROGRESS.
 - [ ] Task5: automatic honest source assistance.
 - [ ] Task6: owned job lease, retry/publication safety and beta UI.
 - [ ] Task7: all-level/API/player verification, full CI and frozen evidence/review bundle.
