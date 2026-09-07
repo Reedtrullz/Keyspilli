@@ -1,0 +1,68 @@
+{
+  "listeningAndPitchEvidence": [
+    {
+      "candidate": "bohemian",
+      "beforeEasyBassWithoutMatchingMediumPitchAtOnset": 525,
+      "afterEasyBassWithoutMatchingMediumPitchAtOnset": 0
+    },
+    {
+      "candidate": "nothing-else-matters",
+      "beforeEasyBassWithoutMatchingMediumPitchAtOnset": 671,
+      "afterEasyBassWithoutMatchingMediumPitchAtOnset": 0
+    },
+    {
+      "candidate": "in-my-mind",
+      "beforeEasyBassWithoutMatchingMediumPitchAtOnset": 148,
+      "afterEasyBassWithoutMatchingMediumPitchAtOnset": 0
+    },
+    {
+      "candidate": "bohemian",
+      "userFeedback": "Every extracted MIDI sounds good!",
+      "scope": "Raw extracted MIDI listening only",
+      "midiSha256": "4020a69639254678c8b687d56de60c23c77040252b07e46b91898b5890a959f3"
+    },
+    {
+      "candidate": "nothing-else-matters",
+      "userFeedback": "Every extracted MIDI sounds good!",
+      "scope": "Raw extracted MIDI listening only",
+      "midiSha256": "ff2ab9d93e23e2c7f55cbbee5ff0fd0735926cf472e02a601db4840c60139539"
+    },
+    {
+      "candidate": "in-my-mind",
+      "userFeedback": "Every extracted MIDI sounds good!",
+      "scope": "Raw extracted MIDI listening only",
+      "midiSha256": "1fce85cc09e5213da136419163f5952b9ea019d0a10a0e4e1ceb3b25e7889aa5"
+    }
+  ],
+  "isolatedIngest": {
+    "scope": "isolated local ingest and persistence; not HTTP/worker or production",
+    "data": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/output/tutorial-recovery/isolated-ingest",
+    "results": [
+      {
+        "baseId": "private-bohemian",
+        "rows": 6,
+        "manifestStatus": "valid",
+        "profile": "source"
+      },
+      {
+        "baseId": "private-nothing-else-matters",
+        "rows": 6,
+        "manifestStatus": "valid",
+        "profile": "source"
+      },
+      {
+        "baseId": "private-in-my-mind",
+        "rows": 6,
+        "manifestStatus": "valid",
+        "profile": "source"
+      }
+    ],
+    "integrity": "ok"
+  },
+  "localTests": {
+    "midi": 368,
+    "catalog": 1085,
+    "midiTypecheck": "passed"
+  },
+  "productionChanged": false
+}

@@ -1263,6 +1263,23 @@ describe("buildVariants", () => {
     expect(advanced.chords).toEqual([]);
   });
 
+  it("preserves source-profile harmonic changes in easy reductions", () => {
+    const bass = [48, 43, 45, 41].map((midi, i) => ({ midi, start: i * 2, dur: 1, vel: 80, hand: "L" as const }));
+    const source: ParsedMidi = {
+      format: 1, division: 480, tempoBpm: 120, keySig: 0, keyMode: 0, timeSig: [4, 4],
+      trackNames: ["Left Hand", "Right Hand"], durationBeats: 8,
+      notes: [...bass, ...bass.map((n) => ({ ...n, midi: 72, hand: "R" as const }))],
+    };
+    const variants = buildVariants(source, { title: "Changing harmony", artist: "Test", key: "C" },
+      { arrangementProfile: "source", maxDurBeats: null });
+    for (const level of ["easy", "very-easy"] as const) {
+      const v = variants.find((v) => v.level === level)!;
+      expect(v.notes.filter((n) => n.hand === "L").map((n) => [n.start, n.midi]))
+        .toEqual(bass.map((n) => [n.start, n.midi]));
+      expect(validateArtifactFiles(v, writeVariantArtifacts(v, "Changing harmony", "Test"))).toEqual([]);
+    }
+  });
+
   it("roots easy-variant bass notes to the song key", () => {
     const src: ParsedMidi = {
       format: 0,

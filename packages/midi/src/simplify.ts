@@ -32,7 +32,7 @@ export interface VariantOptions {
   maxDurBeats?: number | null;
   /**
    * Arrangement intent. `source` keeps the imported staff assignment as
-   * faithfully as possible (the historical direct-call behaviour). `learner`
+   * faithfully as possible, including retained bass pitches. `learner`
    * applies conservative two-hand, melody-over-chords shaping. `metal` uses
    * the same learner safety gates but treats the supplied RH/LH roles as a
    * semantic piano cover, retaining sparse harmonic anchors at every level.
@@ -2896,10 +2896,9 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   const easyLhTexture = metalProfile
     ? metalLeftHandTexture(mediumLh, 0.75, 2)
     : trimSamePitchOverlaps(thinChord(mediumLh, 2).map((n) => (
-      // Learner imports already carry the source voicing. Re-rooting every
-      // attack to the global key erases real harmonic changes; keep the
-      // historical tonic revoice for the default/source profile only.
-      learnerProfile ? { ...n } : { ...n, midi: rootOf(n.midi, key) }
+      // Explicit source/learner imports already carry harmonic changes.
+      // Keep the historical tonic revoice only for the unspecified profile.
+      learnerProfile || opts.arrangementProfile === "source" ? { ...n } : { ...n, midi: rootOf(n.midi, key) }
     )));
   if (learnerTraceEnabled) {
     emitLearnerStageTrace(learnerTraceSink, "easy-rh-input", easyRhSource, [{
