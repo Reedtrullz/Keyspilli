@@ -12,3 +12,8 @@ it('uses a title-supported description to resolve Song - Artist tutorials',()=>{
  expect(tutorialIdentity({title:'Just Tonight - The Pretty Reckless | PIANO tutorial',description:'Learn how to play Just Tonight by The Pretty Reckless on the piano.'})).toMatchObject({artist:'The Pretty Reckless',title:'Just Tonight'});
  expect(tutorialIdentity({title:'Artist - Song',description:'Learn how to play Something Else by Someone Else on the piano.'})).toMatchObject({artist:'Artist',title:'Song'});
 });
+
+it('recognizes double separators and quoted songs in broadcast titles',()=>{
+ for(const title of ['The Pretty Reckless || For I Am Death || (Lyrics)','The Pretty Reckless "For I Am Death", live at Hellfest Open Air 2026 – ARTE Concert'])
+  expect(tutorialIdentity({title})).toMatchObject({artist:'The Pretty Reckless',title:'For I Am Death'});
+});

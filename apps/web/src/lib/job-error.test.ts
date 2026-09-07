@@ -13,6 +13,7 @@ describe("public conversion errors", () => {
     expect(message).not.toContain("secret");
     expect(message).not.toContain("retry the import");
     expect(publicJobError("attempt 1: SOURCE_REVIEW_REQUIRED: insufficient free disk space")).toContain("storage");
+    expect(publicJobError("attempt 2: Less than 30GiB free")).toContain("storage");
   });
 
   it("distinguishes identification, discovery and extraction failures", () => {

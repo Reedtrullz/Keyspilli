@@ -171,7 +171,7 @@ def main():
         'stream=width,height,avg_frame_rate:format=duration','-of','json',str(video)],timeout=30))
     stream=probe['streams'][0];num,den=map(int,stream['avg_frame_rate'].split('/'))
     meta={'width':stream['width'],'height':stream['height'],'fps':num/den,'duration':float(probe['format']['duration'])}
-    if not (0<meta['duration']<=600 and 640<=meta['width']<=1920 and 360<=meta['height']<=1080 and 25<=meta['fps']<=60.01):
+    if not (0<meta['duration']<=600 and 640<=meta['width']<=1920 and 360<=meta['height']<=1080 and 24<=meta['fps']<=60.01):
         raise ValueError('Unsupported duration, resolution or frame rate')
     geometry=asyncio.run(calibrate(video,meta['width'],meta['height'],allow_relative=True))
     notes,scanlines=extract(video,geometry,meta)

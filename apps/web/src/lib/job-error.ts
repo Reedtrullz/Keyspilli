@@ -10,6 +10,7 @@ export function publicJobError(error: unknown): string | null {
     return "YouTube blocked server-side extraction (bot check); configure a trusted proxy or cookie session, or pre-seed the audio file.";
   }
   const withoutAttempt = message.replace(/^attempt\s+\d+:\s*/i, "");
+  if (withoutAttempt === "Less than 30GiB free") return "Import paused because server storage is low. Retry after storage is available.";
   if (withoutAttempt.startsWith("SOURCE_REVIEW_REQUIRED:")) {
     if (withoutAttempt.includes("insufficient free disk space")) return "Import paused because server storage is low. Retry after storage is available.";
     if (withoutAttempt.includes("unresolved song identity")) return "The song could not be identified from this video's title. Try its official recording or a tutorial titled Artist - Song.";

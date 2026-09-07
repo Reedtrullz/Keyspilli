@@ -16,6 +16,9 @@ class TutorialKeysTest(unittest.TestCase):
   rows=np.full((20,3,3),[80,30,90],dtype=np.uint8)
   rows[3:8]=[240,240,240];rows[10]=[20,120,210]
   self.assertEqual(m.key_events(rows,60,60),[])
+ def test_24fps_key_lights_keep_native_timing(self):
+  rows=np.zeros((12,3,3),dtype=np.uint8);rows[3:5]=[245,164,0]
+  self.assertEqual(m.key_events(rows,24,60),[{'midi':60,'startSec':3/24,'durationSec':2/24,'color':'yellow'}])
  def test_green_key_at_end_is_closed_without_losing_onset(self):
   rows=np.zeros((12,3,3),dtype=np.uint8);rows[6:]=[20,210,80]
   self.assertEqual(m.key_events(rows,60,60),[{'midi':60,'startSec':.1,'durationSec':.1,'color':'green'}])
