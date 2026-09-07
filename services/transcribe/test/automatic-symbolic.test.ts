@@ -47,11 +47,22 @@ describe("automatic verified native source", () => {
     expect(protectedResult.attempts[0]?.reason).toMatch(/benchmark|protected/);
     expect((await resolveAutomaticSymbolic(requestUrl, [{ ...source, containsMelody: false }], { fetch })).status).toBe("review");
   });
+  it("blocks frozen reference hashes before acquisition even without caller firewall", async () => {
+    const unused = vi.fn();
+    const protectedSource = { ...source, sourceSha256: "9b689a9b3f178e7bb2b5899d0559e223e9d8de7081d83fc087760ac2b4d378e1" };
+    for (const firewall of [undefined, { protectedSha256: [] }]) {
+      const result = await resolveAutomaticSymbolic(requestUrl, [protectedSource], { fetch: unused, firewall });
+      expect(result.status).toBe("review");
+      expect(result.attempts[0]?.reason).toMatch(/benchmark|protected/);
+    }
+    expect(unused).not.toHaveBeenCalled();
+  });
   it("does not acquire wrong-song or ambiguous index entries, and rejects unknown rights", async () => {
     const unused = vi.fn();
     expect((await resolveAutomaticSymbolic(requestUrl, [{ ...source, recordingIds: ["lmnopqrstuv"] }], { fetch: unused })).status).toBe("review");
     expect((await resolveAutomaticSymbolic(requestUrl, [source, { ...source, id: "other" }], { fetch: unused })).status).toBe("review");
     expect(unused).not.toHaveBeenCalled();
+    expect(() => parseAutomaticSourceIndex([{ ...source, purpose: "BENCHMARK_REFERENCE" }])).toThrow();
     expect(() => parseAutomaticSourceIndex([{ ...source, license: "unknown" }])).toThrow();
   });
 });

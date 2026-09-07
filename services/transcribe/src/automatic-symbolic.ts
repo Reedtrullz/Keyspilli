@@ -29,6 +29,7 @@ export function parseAutomaticSourceIndex(value: unknown): AutomaticSymbolicSour
   return value.map((raw) => {
     if (!raw || typeof raw !== "object") throw new Error("invalid source record");
     const r = raw as AutomaticSymbolicSource;
+    if ("purpose" in raw || "candidateClass" in raw || "evidenceClass" in raw) throw new Error("Evidence records cannot be imported as source index entries");
     if (typeof r.id !== "string" || !/^[a-zA-Z0-9_-]{1,100}$/.test(r.id) || ids.has(r.id)
       || !Array.isArray(r.recordingIds) || !r.recordingIds.length || r.recordingIds.some((id) => typeof id !== "string" || !/^[A-Za-z0-9_-]{11}$/.test(id))
       || [r.artist, r.title, r.arrangementTitle].some((s) => typeof s !== "string" || !s.trim() || s.length > 500)
@@ -57,6 +58,10 @@ export async function resolveAutomaticSymbolic(
   index: readonly AutomaticSymbolicSource[],
   options: { fetch?: typeof fetch; firewall?: EvidenceFirewallOptions; accompanimentOnly?: boolean } = {},
 ) {
+  // Hash metadata only: reference notes never enter generation. Caller options cannot disable this boundary.
+  const protectedHashes: unknown = JSON.parse(await readFile(new URL("./protected-reference-hashes.json", import.meta.url), "utf8"));
+  if (!Array.isArray(protectedHashes) || !protectedHashes.length || protectedHashes.some((hash) => typeof hash !== "string" || !/^[a-f0-9]{64}$/.test(hash))) throw new Error("Invalid protected reference registry");
+  const firewall: EvidenceFirewallOptions = { ...options.firewall, protectedSha256: [...protectedHashes, ...(options.firewall?.protectedSha256 ?? [])] };
   const id = extractYoutubeVideoId(requestedUrl);
   if (!id) throw new Error("invalid requested YouTube identity");
   const candidates = parseAutomaticSourceIndex(index).filter((r) => r.recordingIds.includes(id));
@@ -65,14 +70,14 @@ export async function resolveAutomaticSymbolic(
   for (const source of candidates.slice(0, 3)) {
     try {
       if (!source.containsMelody && !options.accompanimentOnly) throw new Error("Available source is accompaniment only");
+      // Reject the pinned original hash before acquisition or timing normalization.
+      assertGenerationEvidence({ id: source.id, purpose: "GENERATION_CANDIDATE", evidenceClass: "VERIFIED_NATIVE_SYMBOLIC", status: "parsed", provenance: { sourceRef: `indexed:${source.id}`, acquisition: "local-bytes" }, content: { sha256: source.sourceSha256 } }, firewall);
       const loaded = await retrieveExternalSource({ initialUrl: source.sourceUrl }, {
         allowNetwork: true, retainBytes: true, maxBytes: 16 * 1024 * 1024,
         signal: AbortSignal.timeout(120000), ...(options.fetch ? { fetch: options.fetch } : {}),
       });
       if (!loaded.parserEligible || loaded.detectedFormat !== "midi" || !loaded.bytes) throw new Error(loaded.rejectionReasons.join("; ") || "A verified native MIDI is required");
       if (sha256Hex(loaded.bytes) !== source.sourceSha256) throw new Error("Source hash changed; verification required");
-      // Check original bytes before a timing-normalized hash can conceal a protected source.
-      assertGenerationEvidence({ id: source.id, purpose: "GENERATION_CANDIDATE", evidenceClass: "VERIFIED_NATIVE_SYMBOLIC", status: "parsed", provenance: { sourceRef: `indexed:${source.id}`, acquisition: "local-bytes" }, content: { sha256: source.sourceSha256 } }, options.firewall);
       const parsed = parseMidi(loaded.bytes);
       const endSeconds = midiBeatToNativeSeconds(parsed, parsed.durationBeats);
       if (!Number.isFinite(endSeconds) || endSeconds <= 0 || endSeconds > 600 || !parsed.notes.length) throw new Error("Source duration or notes are invalid");
@@ -81,14 +86,14 @@ export async function resolveAutomaticSymbolic(
       const normalized = writeMidi(notes, { tempoBpm: 120, timeSig: parsed.timeSig, title: source.arrangementTitle,
         tracks: [{ name: "Right Hand", notes: notes.filter((n) => n.hand !== "L") }, { name: "Left Hand", notes: notes.filter((n) => n.hand === "L") }] });
       const inventory = await researchExternalCandidates({ title: source.title, artist: source.artist, sourceYoutubeUrl: requestedUrl }, {
-        firewall: options.firewall,
+        firewall,
         localInputs: [{ id: source.id, bytes: normalized, format: "midi", title: source.title, artist: source.artist,
           sourceRef: `indexed:${source.id}`, sourcePage: source.sourceUrl, version: source.sourceSha256,
           provenanceClass: "OPEN_LICENSE", evidenceClass: "PIANO_COVER_SYMBOLIC", purpose: "GENERATION_CANDIDATE",
           alignment: { status: "aligned", reason: "Selected arrangement owns timing; not aligned to the requested recording" } }],
       });
-      const frozen = freezeGenerationCandidateSet(inventory.records, { ...options.firewall, requireAlignment: true });
-      const arrangement = buildExternalSymbolicArrangement({ candidateSet: frozen, mode: "direct-piano", fallbackEnabled: false, firewall: options.firewall });
+      const frozen = freezeGenerationCandidateSet(inventory.records, { ...firewall, requireAlignment: true });
+      const arrangement = buildExternalSymbolicArrangement({ candidateSet: frozen, mode: "direct-piano", fallbackEnabled: false, firewall });
       if (arrangement.status !== "symbolic" || !arrangement.canonical?.notes.length) throw new Error(arrangement.fallbackReason || "Native arrangement rejected");
       return { status: "candidate" as const, arrangement, sourceBytes: loaded.bytes, attempts,
         provenance: { beta: true as const, requestedUrl, actualSourceUrl: source.sourceUrl, sourceSha256: source.sourceSha256,
