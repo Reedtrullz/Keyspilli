@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "status": "frozen-insufficient-real-reference-coverage",
+  "policy": {
+    "frozenBeforeChallengerInference": true,
+    "onsetToleranceSeconds": 0.08,
+    "matching": "one-to-one",
+    "minimumPrecision": 0.95,
+    "minimumRecall": 0.9,
+    "criticalPhraseErrorsAllowed": 0,
+    "pitchPolicy": "exact plus separately reported octave-tolerant pitch-class",
+    "uncertainReference": "excluded with coverage reported; cannot justify promotion"
+  },
+  "controls": [
+    {
+      "id": "burgmuller",
+      "scope": "30-second rendered piano control; not metal accuracy",
+      "referenceNotes": 283,
+      "sourceSha256": "9b689a9b3f178e7bb2b5899d0559e223e9d8de7081d83fc087760ac2b4d378e1",
+      "midiSha256": "7c1b25feb7a170f6a24590f7a93c78af573c6ff011c44d5bd784ae39cd9067d9",
+      "wavSha256": "07c5f8a83eb255c3feb9901f2266f5ce0dc4c4a8a4a2a80627db713cc4616201",
+      "rights": "Public Domain per source RDF",
+      "rightsEvidenceSha256": "69efe65779923730eefcd2996d9507fd87b88f776f379b6272c98c348c5502a2"
+    },
+    {
+      "id": "haydn",
+      "scope": "30-second rendered piano control; not metal accuracy",
+      "referenceNotes": 160,
+      "sourceSha256": "37b97075c873529760c96539f9894ec6eb99cc1065d76344f7b1fc397d6b63d4",
+      "midiSha256": "add9f060d432baa7cba21b1304e96d4c4c7b8bd8a2f16c0e549b8f758540a567",
+      "wavSha256": "f2e32e57e0d1db61bef56d2e741f960cb7488ca033d20e7b9c244e816b1cd0b7",
+      "rights": "Public Domain per source RDF",
+      "rightsEvidenceSha256": "4dd9b8be1eeaf485646afa87690b6ca399a19b9e69e3856af0f3609c210f0772"
+    },
+    {
+      "id": "debussy",
+      "scope": "30-second rendered piano control; not metal accuracy",
+      "referenceNotes": 250,
+      "sourceSha256": "6732dc10799ec0af47d19d9095562d0671864a750129e0279901def169a34757",
+      "midiSha256": "731a78e79280ec7f03cae7b2fe062a55100cddf5cdecac1eacb5937e42c54636",
+      "wavSha256": "f0ee6998682c2798db7696cd0e214f88d979bced4c68a131f3d1d651a0b6e3f1",
+      "rights": "Public Domain per source RDF",
+      "rightsEvidenceSha256": "293b92f235c4b5cad52ad7b63c9f8f48049db0c2ba77efdd6f0550f2628d0fba"
+    }
+  ],
+  "realReferences": [],
+  "generationMayReadReferences": false,
+  "policySha256": "598d2f9ce665390a1ea2447fbb2f07d30efef9c2ae14faf18a9c1a87d47cd15f",
+  "directAudioPromotion": "withheld: fewer than three independently aligned real melody references",
+  "referenceCoverage": {
+    "qualifiedRealTargets": 0,
+    "targetsInspected": 6,
+    "reason": "No three defensible 20\u201330 second theme plus transition references aligned at beginning, middle and end. Candidate predictions never used as ground truth."
+  },
+  "searchOutcomes": [
+    {
+      "song": "Breaking the Law",
+      "source": "https://judaspriest.com/tabs/images/breakingthelaw_1.jpg",
+      "outcome": "Artist-hosted opening tab supports riff pitch inspection, but no qualified complete theme and transition alignment; research-only."
+    },
+    {
+      "song": "Hearts on Fire",
+      "source": "https://bitmidi.com/hammerfall-hearts-on-fire-mid",
+      "outcome": "MIDI acquisition HTTP403; additional score lead unavailable; unverified versions rejected."
+    },
+    {
+      "song": "Nemo",
+      "source": "https://freemidi.org/getter-12408",
+      "outcome": "HTTP500. Hooktheory metadata corroborates song but does not supply independently inspected timed note reference."
+    },
+    {
+      "song": "Holy Diver",
+      "source": "https://www.hooktheory.com/theorytab/view/dio/holy-diver",
+      "outcome": "Composition metadata available; independently inspected timed note sequence unavailable."
+    },
+    {
+      "song": "Stand My Ground",
+      "source": "https://www.poppiano.org/en/sheet/?id=48947",
+      "outcome": "Preview acquisition HTTP403; full score member-gated. No new account or purchase."
+    },
+    {
+      "song": "Still Loving You",
+      "source": "https://lasolsheet.com/piano-sheet-music/still-loving-you-scorpions/",
+      "outcome": "First-page piano score acquired and visually inspected. Different simplified form/tempo; alignment to original and full transition unverified, rights unclear. Research-only."
+    }
+  ],
+  "controlTimingBoundary": "Reference is the exact derived native MIDI rendered to WAV. pretty_midi warned about tempo metadata in original nonzero tracks; these controls do not certify original score timing or metal accuracy."
+}

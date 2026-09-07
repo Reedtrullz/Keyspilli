@@ -5,8 +5,8 @@ Objective: execute `2026-09-07-autonomous-metal-piano-delivery.md`; approval sup
 Previous goal turn: initial activation; prior planning yielded authoritative plan `e4e4f04`. Current turn is implementation progress, not a wait.
 
 - [x] Task1: bounded reproducible development runner — COMPLETE.12 tests pass (runner3/evaluator9), catalog typecheck passes; all12 development cached stems replayed,11 structural pass and Silent Lucidity remains failed; second run12 cache hits. No inference or holdout invocation.
-- [ ] Task2: independent reference targets and3 source-assisted controls — IN PROGRESS.
-- [ ] Task3: eligible upstream route comparison or explicit no-promotion decision.
+- [x] Task2: COMPLETE via explicit no-promotion branch: six development targets inspected, zero fully qualified real reference pairs; three independent native piano controls rendered/scored. Exact Basic Pitch precision 0.690–0.845 fails the fixed0.95 gate. References remain outside generation inputs.
+- [ ] Task3: eligible upstream route comparison or explicit no-promotion decision — IN PROGRESS.
 - [ ] Task4: identity preservation and overlap regression/fix.
 - [ ] Task5: automatic honest source assistance.
 - [ ] Task6: owned job lease, retry/publication safety and beta UI.
