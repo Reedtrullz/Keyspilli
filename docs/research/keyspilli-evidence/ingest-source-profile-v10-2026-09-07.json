@@ -1,0 +1,131 @@
+{
+  "scope": "Actual isolated ingest with YouTube content type and source profile; not HTTP/worker integration",
+  "result": [
+    {
+      "name": "queen",
+      "levels": [
+        {
+          "level": "beginner",
+          "notes": 600
+        },
+        {
+          "level": "easy",
+          "notes": 1060
+        },
+        {
+          "level": "medium",
+          "notes": 2084
+        },
+        {
+          "level": "advanced",
+          "notes": 2120
+        }
+      ]
+    },
+    {
+      "name": "metallica-old",
+      "levels": [
+        {
+          "level": "beginner",
+          "notes": 399
+        },
+        {
+          "level": "easy",
+          "notes": 775
+        },
+        {
+          "level": "medium",
+          "notes": 1888
+        },
+        {
+          "level": "advanced",
+          "notes": 1900
+        }
+      ]
+    },
+    {
+      "name": "in-my-mind",
+      "levels": [
+        {
+          "level": "beginner",
+          "notes": 236
+        },
+        {
+          "level": "easy",
+          "notes": 398
+        },
+        {
+          "level": "medium",
+          "notes": 514
+        },
+        {
+          "level": "advanced",
+          "notes": 514
+        }
+      ]
+    },
+    {
+      "name": "nirvana",
+      "levels": [
+        {
+          "level": "beginner",
+          "notes": 171
+        },
+        {
+          "level": "easy",
+          "notes": 520
+        },
+        {
+          "level": "medium",
+          "notes": 1108
+        },
+        {
+          "level": "advanced",
+          "notes": 1119
+        }
+      ]
+    },
+    {
+      "name": "acdc-fixed",
+      "levels": [
+        {
+          "level": "beginner",
+          "notes": 138
+        },
+        {
+          "level": "easy",
+          "notes": 348
+        },
+        {
+          "level": "medium",
+          "notes": 797
+        },
+        {
+          "level": "advanced",
+          "notes": 803
+        }
+      ]
+    },
+    {
+      "name": "metallica",
+      "levels": [
+        {
+          "level": "beginner",
+          "notes": 435
+        },
+        {
+          "level": "easy",
+          "notes": 665
+        },
+        {
+          "level": "medium",
+          "notes": 1508
+        },
+        {
+          "level": "advanced",
+          "notes": 1541
+        }
+      ]
+    }
+  ]
+}
