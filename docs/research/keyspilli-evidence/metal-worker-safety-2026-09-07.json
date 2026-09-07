@@ -1,0 +1,95 @@
+{
+  "commit": "f26a068",
+  "status": "engineering checks pass; browser/full CI pending",
+  "failureMatrix": [
+    {
+      "case": "source404",
+      "result": "pass",
+      "evidence": "services/transcribe/test/worker-native.test.ts"
+    },
+    {
+      "case": "timeout",
+      "result": "pass",
+      "evidence": "services/transcribe/test/worker-native.test.ts"
+    },
+    {
+      "case": "separator failure",
+      "result": "pass",
+      "evidence": "services/transcribe/test/worker-native.test.ts"
+    },
+    {
+      "case": "unsupported tutorial source",
+      "result": "pass",
+      "evidence": "services/transcribe/test/worker-native.test.ts"
+    },
+    {
+      "case": "wrong-song candidate",
+      "result": "pass",
+      "evidence": "services/transcribe/test/worker-native.test.ts"
+    },
+    {
+      "case": "corrupt MIDI",
+      "result": "pass",
+      "evidence": "services/transcribe/test/worker-native.test.ts"
+    },
+    {
+      "case": "invalid duration",
+      "result": "pass",
+      "evidence": "services/transcribe/test/worker-native.test.ts"
+    },
+    {
+      "case": "no melody",
+      "result": "pass",
+      "evidence": "services/transcribe/test/worker-native.test.ts"
+    },
+    {
+      "case": "unavailable source backend",
+      "result": "pass",
+      "evidence": "services/transcribe/test/worker-native.test.ts"
+    },
+    {
+      "case": "low disk",
+      "result": "pass",
+      "evidence": "services/transcribe/test/worker-native.test.ts"
+    },
+    {
+      "case": "lease expiration",
+      "result": "pass",
+      "evidence": "packages/catalog/test/jobs.test.ts"
+    },
+    {
+      "case": "duplicate job",
+      "result": "pass",
+      "evidence": "services/transcribe/test/worker-native.test.ts"
+    },
+    {
+      "case": "cancellation",
+      "result": "pass",
+      "evidence": "services/transcribe/test/worker-native.test.ts"
+    },
+    {
+      "case": "retry after prior good result",
+      "result": "pass",
+      "evidence": "services/transcribe/test/worker-native.test.ts"
+    }
+  ],
+  "scope": "Synthetic controlled failures on actual processJob/database/parser/publication; network, disk and separator faults injected. Unsupported tutorial is rejected input/metadata, not a validated video extractor. No full-song musical success inferred.",
+  "preservation": "Actual worker duplicate retains manifest bytes; changed source publishes distinct base; cancellation/stale ownership publish no base; retry after prior success leaves catalog rows and prior notes/MIDI/XML hashes unchanged. Corrupt prior manifest returns review without overwrite.",
+  "leases": "Fake clock proves 20-minute renewable ownership, expired reclaim and stale-token renewal/finalization rejection; legacy started_at migration supported.",
+  "player": "Production PlaybackEngine with Cathedral OrganAudioEngine schedules RH/LH in piano background into distinct nonzero gain buses. Full and sheet-only APIs expose source metadata; static render verifies labels. Browser tests in progress.",
+  "tests": {
+    "service": 60,
+    "playerCore": 120,
+    "focusedSourceUi": 23
+  },
+  "ci": {
+    "checkout": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-ci",
+    "firstHead": "f26a068",
+    "firstResult": "12 commands pass; Playwright 30 pass, 3 fail, 9 not run",
+    "failureEvidence": "Cold dev-server requests pending at timeout and slow first PDF export; traces retained in CI checkout. No timeout weakened.",
+    "retryHead": "429c697",
+    "retryLogs": "output/metal-development/ci-429c697",
+    "retryStatus": "running with CI=true, production server, two browser workers"
+  },
+  "productionMutations": false
+}
