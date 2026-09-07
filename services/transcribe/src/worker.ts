@@ -7,7 +7,7 @@ import { loadAutomaticSourceIndex, resolveAutomaticSymbolic } from "./automatic-
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
-import { mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, stat, statfs, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 import { pathToFileURL } from "node:url";
@@ -227,6 +227,10 @@ export async function processJob(jobId: string): Promise<void> {
   heartbeat.unref();
   try {
     await mkdir(dir, { recursive: true });
+    const disk = await statfs(dir);
+    if (disk.bavail * disk.bsize < STEM_PIPELINE_CONFIG.minFreeBytes) {
+      throw new Error("SOURCE_REVIEW_REQUIRED: insufficient free disk space; reclaim space before retrying");
+    }
     if (process.env.KEYSPILLI_SOURCE_ASSISTED_BETA === "1") {
       if (existing) throw new Error("SOURCE_REVIEW_REQUIRED: beta imports cannot replace an existing song");
       const indexPath = process.env.KEYSPILLI_VERIFIED_SOURCE_INDEX;
