@@ -56,6 +56,24 @@ def main() -> None:
     if guitar.is_file() and guitar.stat().st_size > 0:
         stem_paths["guitar"] = str(guitar)
 
+    # Six-source Demucs removes piano from `other`. Restore it to that
+    # existing keyboard/residual lane before transcription, without changing
+    # time or independently normalizing blocks. Float WAV avoids clipping
+    # overlapping peaks; block reads bound memory for long recordings.
+    piano = track_dir / "piano.wav"
+    if piano.is_file() and piano.stat().st_size > 0:
+        import soundfile as sf
+
+        combined = track_dir / "other-with-piano.wav"
+        with sf.SoundFile(stem_paths["other"]) as other, sf.SoundFile(piano) as keys:
+            if (other.samplerate, other.channels, len(other)) != (keys.samplerate, keys.channels, len(keys)):
+                raise RuntimeError("piano and other stems have mismatched audio timelines")
+            with sf.SoundFile(combined, "w", samplerate=other.samplerate, channels=other.channels, subtype="FLOAT") as target:
+                while other.tell() < len(other):
+                    target.write(other.read(65536, dtype="float32", always_2d=True)
+                                 + keys.read(65536, dtype="float32", always_2d=True))
+        stem_paths["other"] = str(combined)
+
     print("KEYSPILLI_STEMS_JSON:" + json.dumps({
         "version": importlib.metadata.version("demucs"),
         "model": args.model,
