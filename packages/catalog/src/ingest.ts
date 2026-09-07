@@ -1,3 +1,4 @@
+import { validateSourceArrangement, type SourceArrangement } from "./source-arrangement.js";
 import { createHash } from "node:crypto";
 import { mkdir, rename, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
@@ -113,6 +114,7 @@ export interface IngestInput {
   transcription?: TranscriptionProvenance;
   /** Server-created lineage for an explicitly selected discovery lead. */
   sourceCandidateHandoff?: SourceCandidateHandoffLink;
+  sourceArrangement?: SourceArrangement;
 }
 
 /** Optional deterministic hook used by integration tests to exercise rollback. */
@@ -286,6 +288,11 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
 
   const baseId = inp.baseId ?? generatedBaseId(inp.artist, inp.title);
   const sourceArtifactHash = inp.sourceArtifactHash ?? createHash("sha256").update(inp.buf).digest("hex");
+  if (inp.sourceArrangement) {
+    const errors = validateSourceArrangement(inp.sourceArrangement);
+    if (inp.sourceArrangement.sourceSha256 !== sourceArtifactHash) errors.push("source arrangement hash mismatch");
+    if (errors.length) return { baseId: "", songIds: [], error: errors.join("; ") };
+  }
   if (inp.sourceCandidateHandoff) {
     const handoffErrors = validateSourceCandidateHandoffLink(inp.sourceCandidateHandoff);
     if (handoffErrors.length) return { baseId: "", songIds: [], error: `invalid source candidate handoff: ${handoffErrors.join("; ")}` };
@@ -413,6 +420,7 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
         ...sourceProvenance,
         ...(candidate ? { candidate } : {}),
         ...(inp.sourceCandidateHandoff ? { sourceCandidateHandoff: inp.sourceCandidateHandoff } : {}),
+    ...(inp.sourceArrangement ? { sourceArrangement: inp.sourceArrangement } : {}),
         tempo: tempoProvenance,
         ...(transcription ? { transcription } : {}),
       };
@@ -489,6 +497,7 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
     source: sourceProvenance,
     ...(candidate ? { candidate } : {}),
     ...(inp.sourceCandidateHandoff ? { sourceCandidateHandoff: inp.sourceCandidateHandoff } : {}),
+    ...(inp.sourceArrangement ? { sourceArrangement: inp.sourceArrangement } : {}),
     tempo: {
       calibration: { bpm: parsed.tempoBpm, source: calibrationSource, resolvedAt, role: "source-calibration" },
       playback: { bpm: parsed.tempoBpm, source: calibrationSource, resolvedAt, role: "playback" },

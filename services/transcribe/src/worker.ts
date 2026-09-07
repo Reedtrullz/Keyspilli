@@ -3,6 +3,7 @@
  * yt-dlp, transcribes with Basic Pitch (python venv), ingests the resulting
  * MIDI into the catalog, and marks the job done/error.
  */
+import { loadAutomaticSourceIndex, resolveAutomaticSymbolic } from "./automatic-symbolic.js";
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
@@ -17,6 +18,7 @@ import {
   updateJob,
   getJob,
   getSong,
+  getSongsByBase,
   resolveYoutubeAudio,
   transcribedDir,
   ROOT,
@@ -77,6 +79,7 @@ async function persistMetalArrangement(dir: string, midi: Uint8Array): Promise<v
  * Values are optional and fall back to the global env defaults. */
 interface TranscriptionOverride {
   denseBand?: boolean;
+  accompanimentOnly?: boolean;
   onsetThreshold?: number;
   frameThreshold?: number;
   skipOnsetFilter?: boolean;
@@ -224,6 +227,38 @@ async function processJob(jobId: string): Promise<void> {
   heartbeat.unref();
   try {
     await mkdir(dir, { recursive: true });
+    if (process.env.KEYSPILLI_SOURCE_ASSISTED_BETA === "1") {
+      if (existing) throw new Error("SOURCE_REVIEW_REQUIRED: beta imports cannot replace an existing song");
+      const indexPath = process.env.KEYSPILLI_VERIFIED_SOURCE_INDEX;
+      if (!indexPath) throw new Error("SOURCE_REVIEW_REQUIRED: no verified source index is configured");
+      const native = await resolveAutomaticSymbolic(normalizeYoutubeImportUrl(job.youtubeUrl), await loadAutomaticSourceIndex(indexPath), { accompanimentOnly: getOverride(jobId).accompanimentOnly === true });
+      await writeFile(join(dir, "source-route.json"), JSON.stringify(native.status === "candidate"
+        ? { status: native.status, provenance: native.provenance, attempts: native.attempts }
+        : native, null, 2));
+      if (native.status !== "candidate") throw new Error(`SOURCE_REVIEW_REQUIRED: ${native.reason}; ${native.attempts.map((a) => a.reason).join("; ")}`);
+      const baseId = `beta-native-${native.provenance.sourceSha256.slice(0, 24)}`;
+      const prior = getSongsByBase(baseId);
+      if (prior.length) {
+        updateJob(jobId, { status: "done", songId: prior.find((song) => song.id.endsWith("-e"))?.id ?? prior[0]!.id, finishedAt: new Date().toISOString() });
+        return;
+      }
+      await writeFile(join(dir, "selected-source.mid"), native.sourceBytes);
+      const canonical = native.arrangement.canonical!;
+      const buf = writeMidi(canonical.notes, { tempoBpm: canonical.tempoBpm, timeSig: canonical.timeSig,
+        tracks: metalArrangementTracks(canonical.notes) });
+      const imported = await ingestSource({ buf, baseId, sourceArtifactHash: native.provenance.sourceSha256,
+        title: native.provenance.arrangementTitle, artist: native.provenance.artist, category: "Source-assisted beta",
+        contentType: "youtube", acquiredVia: "verified-native-midi", sourceRef: `indexed:${native.provenance.sourceSha256}`,
+        cleanTranscription: false, maxDurBeats: null, arrangementProfile: "source", sourceArrangement: native.provenance,
+      }, { beforeReplace: () => {
+        const latest = getJob(jobId);
+        if (!latest || latest.status !== "processing" || latest.songId !== job.songId || getSongsByBase(baseId).length) throw new Error("native publication cancelled or already exists");
+      } });
+      if (imported.error) throw new Error(imported.error);
+      updateJob(jobId, { status: "done", songId: imported.songIds.find((id) => id.endsWith("-e")) ?? imported.songIds[0]!, finishedAt: new Date().toISOString() });
+      return;
+    }
+
     const ov = getOverride(jobId);
     const dense = ov.denseBand === true;
     const onsetTh = requirePositiveFloat("override.onsetThreshold", String(ov.onsetThreshold ?? (dense ? 0.4 : ONSET_THRESHOLD)));
@@ -490,7 +525,7 @@ async function processJob(jobId: string): Promise<void> {
     // A YouTube bot challenge is tied to the worker's egress/session. Retrying
     // the same URL immediately with another attempt only hammers the blocked
     // IP, so surface an actionable terminal error instead.
-    if (!isYoutubeBotChallenge(e) && attempts < MAX_ATTEMPTS) {
+    if (!detail.startsWith("SOURCE_REVIEW_REQUIRED:") && !isYoutubeBotChallenge(e) && attempts < MAX_ATTEMPTS) {
       updateJob(jobId, { status: "queued", error: msg, attempts });
       console.warn(`[worker] ${jobId} attempt ${attempts}/${MAX_ATTEMPTS} failed, requeued: ${detail}`);
     } else {

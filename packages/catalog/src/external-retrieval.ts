@@ -1,3 +1,7 @@
+import { lookup } from "node:dns/promises";
+import { request as httpRequest } from "node:http";
+import { request as httpsRequest } from "node:https";
+import { Readable } from "node:stream";
 import { sha256Hex } from "./fixture-evidence.js";
 import type { ExternalResearchDiscoveryRecord } from "./external-research.js";
 
@@ -283,6 +287,43 @@ function privateNetworkUrl(value: string): boolean {
     return true;
   }
 }
+
+/** Resolve once and connect to that checked address; redirects re-enter this guard. */
+const publicSourceFetch: typeof globalThis.fetch = async (input, init) => {
+  const url = new URL(typeof input === "string" || input instanceof URL ? input : input.url);
+  if (!["http:", "https:"].includes(url.protocol) || privateNetworkUrl(url.href)) throw new Error("source target is private or unsupported");
+  const signal = init?.signal
+    ? AbortSignal.any([init.signal, AbortSignal.timeout(120_000)])
+    : AbortSignal.timeout(120_000);
+  signal.throwIfAborted();
+  const addresses = await Promise.race([
+    lookup(url.hostname.replace(/^\[|\]$/g, ""), { all: true }),
+    new Promise<never>((_, reject) => signal.addEventListener("abort", () => reject(signal.reason), { once: true })),
+  ]);
+  if (!addresses.length || addresses.some(({ address, family }) => privateNetworkUrl(`http://${family === 6 ? `[${address}]` : address}/`))) {
+    throw new Error("source hostname must resolve only to public addresses");
+  }
+  const address = addresses[0]!;
+  return new Promise<Response>((resolve, reject) => {
+    const request = url.protocol === "https:" ? httpsRequest : httpRequest;
+    const req = request(url, {
+      hostname: address.address, family: address.family, agent: false,
+      servername: url.hostname, headers: { Host: url.host, Accept: "audio/midi, application/xml, application/octet-stream" },
+      signal,
+    }, (response) => {
+      const headers = new Headers();
+      for (const [key, value] of Object.entries(response.headers)) {
+        if (value !== undefined) headers.set(key, Array.isArray(value) ? value.join(", ") : value);
+      }
+      const status = response.statusCode ?? 502;
+      const noBody = status === 204 || status === 304;
+      if (noBody) response.resume();
+      resolve(new Response(noBody ? null : Readable.toWeb(response) as ReadableStream<Uint8Array>, { status, headers }));
+    });
+    req.on("error", reject);
+    req.end();
+  });
+};
 
 /** Resolve a redirect for the next request while keeping signed query data. */
 function operationalRedirectUrl(value: string | ExternalRetrievalRedirect, base: string | null): string | null {
@@ -871,7 +912,7 @@ export async function retrieveExternalSource(input: ExternalRetrievalInput | str
     return classifyExternalRetrieval({ ...request, error: "network target is local or private and is blocked" });
   }
   if (protectedMarker(request)) return classifyExternalRetrieval(request);
-  const fetchImpl = options.fetch ?? globalThis.fetch;
+  const fetchImpl = options.fetch ?? publicSourceFetch;
   if (typeof fetchImpl !== "function") return classifyExternalRetrieval({ ...request, error: "network fetch implementation is unavailable" });
   const maxBytes = maxBound(options.maxBytes, DEFAULT_MAX_BYTES, 1, 128 * 1024 * 1024);
   const maxRedirects = maxBound(options.maxRedirects, DEFAULT_MAX_REDIRECTS, 0, 10);
@@ -888,6 +929,7 @@ export async function retrieveExternalSource(input: ExternalRetrievalInput | str
         if (!next || privateNetworkUrl(next) || !diagnosticNext || visitedOperationalUrls.has(next)) {
           return classifyExternalRetrieval({ ...request, initialUrl: requestUrl, finalUrl: current, status: response.status, headers: response.headers, redirects, error: "redirect chain is invalid or cyclic" });
         }
+        await response.body?.cancel();
         redirects.push(diagnosticNext);
         visitedOperationalUrls.add(next);
         current = next;
