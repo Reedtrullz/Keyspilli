@@ -124,7 +124,7 @@ describe("generic Beginner sparse off-grid RH budget", () => {
 
   it("keeps Candidate A confined to the learner arrangement profile", () => {
     const notes: Note[] = [
-      ...Array.from({ length: 8 }, (_, index) => ({
+      ...Array.from({ length: 16 }, (_, index) => ({
         midi: 60 + (index % 4), start: index, dur: 0.5, vel: 80, hand: "R" as const,
       })),
       { midi: 67, start: 1.125, dur: 0.5, vel: 120, hand: "R" },

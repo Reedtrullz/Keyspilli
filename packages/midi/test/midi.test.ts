@@ -1263,6 +1263,23 @@ describe("buildVariants", () => {
     expect(advanced.chords).toEqual([]);
   });
 
+  it("limits each hand's local runs in source Easy", () => {
+    const notes: Note[] = [
+      ...Array.from({length:16},(_,i)=>({midi:72,start:i*4,dur:1,vel:80,hand:"R" as const})),
+      ...Array.from({length:16},(_,i)=>({midi:64+i%5,start:64+i*.25,dur:i===15?2:.25,vel:80,hand:"R" as const})),
+      ...Array.from({length:16},(_,i)=>({midi:40+i%3*7,start:64+i*.25,dur:.25,vel:80,hand:"L" as const})),
+    ];
+    const source: ParsedMidi = {format:1,division:480,tempoBpm:120,keySig:0,keyMode:0,timeSig:[4,4],
+      trackNames:["Right Hand","Left Hand"],durationBeats:70,notes};
+    const variants=buildVariants(source,{title:"Fast two-hand fill",artist:"Test"},{arrangementProfile:"source",maxDurBeats:null});
+    const easy=variants.find(v=>v.level==="easy")!;
+    for(const hand of ["R","L"] as const){
+      const starts=[...new Set(easy.notes.filter(n=>n.hand===hand).map(n=>n.start))].sort((a,b)=>a-b);
+      expect(Math.min(...starts.slice(1).map((s,i)=>(s-starts[i]!)*.5))).toBeGreaterThanOrEqual(hand==="R"?.375:.5);
+    }
+    expect(validateVariants(variants,{maxDurBeats:null})).toEqual([]);
+  });
+
   it("preserves an accompaniment-only source ending in Beginner", () => {
     const notes: Note[] = [
       ...Array.from({ length: 16 }, (_, i) => ({ midi: 72, start: i * 2, dur: 1, vel: 80, hand: "R" as const })),

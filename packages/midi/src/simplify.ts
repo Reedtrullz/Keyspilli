@@ -2150,8 +2150,8 @@ function trimSamePitchOverlaps(notes: Note[], minDur = 0.125): Note[] {
  * source pitches intact and makes the result eligible for the RH ladder.
  */
 /** Limit short bursts without letting the rest of a sparse song hide them. */
-function spaceBeginnerAttacks(notes: Note[], tempoBpm: number): Note[] {
-  const spacing = 0.375 * tempoBpm / 60;
+function spaceHandAttacks(notes: Note[], tempoBpm: number, minimumSeconds = 0.375): Note[] {
+  const spacing = minimumSeconds * tempoBpm / 60;
   const kept: Note[][] = [];
   for (const group of onsetGroups(notes)) {
     const previous = kept.at(-1);
@@ -2952,7 +2952,10 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     easyAssembledSource,
     { grid: 0.125 },
   ));
-  const easy = capLevel("easy", easyUncapped);
+  const easy = capLevel("easy", opts.arrangementProfile === "source" ? [
+    ...spaceHandAttacks(easyUncapped.filter(note => note.hand !== "L"), tempo),
+    ...spaceHandAttacks(easyUncapped.filter(note => note.hand === "L"), tempo, 0.5),
+  ].sort((a, b) => a.start - b.start || a.midi - b.midi) : easyUncapped);
   if (learnerTraceEnabled) {
     const easyDecision = [...easyMelody, ...easyLhTexture];
     emitLearnerStageTrace(learnerTraceSink, "decision", easyDecision, [
@@ -3184,7 +3187,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     const rhEnd = maxNoteEnd(sets.easy.filter(note => note.hand !== "L"));
     const tail = onsetGroups(sets.easy.filter(note => note.hand === "L" && note.start >= rhEnd))
       .map(group => group.reduce((a, b) => a.midi < b.midi ? a : b));
-    sets.beginner = spaceBeginnerAttacks([...sets.beginner!, ...tail], tempo);
+    sets.beginner = spaceHandAttacks([...sets.beginner!, ...tail], tempo);
   }
   const scores: Record<DifficultyLevel, number> = {
     "very-beginner": 1,
