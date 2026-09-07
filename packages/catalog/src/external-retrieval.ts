@@ -265,6 +265,9 @@ function privateNetworkUrl(value: string): boolean {
     if (ipv4) {
       const octets = ipv4.slice(1).map(Number);
       if (octets.some((octet) => octet > 255)) return true;
+      if (octets[0] === 0 || octets[0]! >= 224
+        || (octets[0] === 100 && octets[1]! >= 64 && octets[1]! <= 127)
+        || (octets[0] === 198 && (octets[1] === 18 || octets[1] === 19))) return true;
       if (octets[0] === 172 && octets[1]! >= 16 && octets[1]! <= 31) return true;
     }
     // Node exposes IPv4-mapped IPv6 literals as `::ffff:a.b.c.d`. Treat the
@@ -282,7 +285,7 @@ function privateNetworkUrl(value: string): boolean {
       const dotted = `${high >>> 8}.${high & 0xff}.${low >>> 8}.${low & 0xff}`;
       if (privateNetworkUrl(`http://${dotted}/`)) return true;
     }
-    return /^(?:fc|fd|fe8|fe9|fea|feb)/i.test(hostname);
+    return hostname.includes(":") && /^(?:fc|fd|fe[89a-f]|ff)/i.test(hostname);
   } catch {
     return true;
   }
@@ -311,14 +314,16 @@ const publicSourceFetch: typeof globalThis.fetch = async (input, init) => {
       servername: url.hostname, headers: { Host: url.host, Accept: "audio/midi, application/xml, application/octet-stream" },
       signal,
     }, (response) => {
-      const headers = new Headers();
-      for (const [key, value] of Object.entries(response.headers)) {
-        if (value !== undefined) headers.set(key, Array.isArray(value) ? value.join(", ") : value);
-      }
-      const status = response.statusCode ?? 502;
-      const noBody = status === 204 || status === 304;
-      if (noBody) response.resume();
-      resolve(new Response(noBody ? null : Readable.toWeb(response) as ReadableStream<Uint8Array>, { status, headers }));
+      try {
+        const headers = new Headers();
+        for (const [key, value] of Object.entries(response.headers)) {
+          if (value !== undefined) headers.set(key, Array.isArray(value) ? value.join(", ") : value);
+        }
+        const status = response.statusCode ?? 502;
+        const noBody = status === 204 || status === 205 || status === 304;
+        if (noBody) response.resume();
+        resolve(new Response(noBody ? null : Readable.toWeb(response) as ReadableStream<Uint8Array>, { status, headers }));
+      } catch (error) { response.destroy(); reject(error); }
     });
     req.on("error", reject);
     req.end();
