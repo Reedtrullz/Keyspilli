@@ -237,7 +237,7 @@ export async function processJob(jobId: string): Promise<void> {
         throw new Error("SOURCE_REVIEW_REQUIRED: tutorial preview requires development mode and an isolated data directory");
       if (existing) throw new Error("SOURCE_REVIEW_REQUIRED: tutorial preview cannot replace existing songs");
       const candidate = await resolveTutorialLink(normalizeYoutubeImportUrl(job.youtubeUrl), join(dir, "tutorial-" + randomUUID()));
-      if (candidate.status !== "local-listening-candidate") throw new Error("SOURCE_REVIEW_REQUIRED: no supported tutorial found");
+      if (candidate.status !== "local-listening-candidate") throw new Error(candidate.attempts?.length ? "SOURCE_REVIEW_REQUIRED: tutorial extraction failed" : "SOURCE_REVIEW_REQUIRED: no matching tutorial found");
       const buf = await readFile(candidate.midiPath);
       const evidence = JSON.parse(await readFile(candidate.midiPath.replace(/\.mid$/, ".json"), "utf8"));
       const baseId = "preview-" + jobId;

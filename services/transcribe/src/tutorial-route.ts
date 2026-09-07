@@ -6,6 +6,16 @@ import {normalizeYoutubeImportUrl} from './youtube-url.js';
 import {cleanCatalogTitle,searchYoutubeCandidates,scoreCandidate} from '../../../packages/catalog/src/youtube-discovery.js';
 import {parseMidi,buildVariants,validateVariants,writeVariantArtifacts,validateArtifactFiles,PUBLIC_DIFFICULTY_ORDER} from '../../../packages/midi/src/index.js';
 
+// Prefer recording metadata, then explicit Artist - Song titles; channels are not artists.
+export function tutorialIdentity(meta: Record<string, unknown>) {
+ if (typeof meta.title !== 'string') throw Error('SOURCE_REVIEW_REQUIRED: unresolved song identity');
+ const segments=meta.title.split(/\s+[-–—|]\s+/).map(s=>s.trim()).filter(Boolean);
+ const artist=typeof meta.artist==='string' && meta.artist.trim() ? meta.artist.trim() : segments.length>1 ? segments[0]!.replace(/\s*\([^()]*\)/g,'').trim() : null;
+ if (!artist) throw Error('SOURCE_REVIEW_REQUIRED: unresolved song identity');
+ const title=typeof meta.track==='string' && meta.track.trim() ? meta.track.trim() : cleanCatalogTitle(segments.length>1 && segments[0]!.replace(/\s*\([^()]*\)/g,'').trim().toLowerCase()===artist.toLowerCase() ? segments[1]! : meta.title,artist);
+ return {baseId:'private-proof',title,artist};
+}
+
 export async function resolveTutorialLink(inputUrl: string, outputDirectory: string) {
 const run=promisify(execFile);
 const url=normalizeYoutubeImportUrl(inputUrl);
@@ -14,14 +24,14 @@ await mkdir(out,{recursive:false});
 const disk=await statfs(out);if(disk.bavail*disk.bsize<30*1024**3)throw Error('Less than 30GiB free');
 const call=async(cmd:string,args:string[],timeout=120000)=>(await run(cmd,args,{timeout,maxBuffer:16*1024**2})).stdout;
 const meta=JSON.parse(await call('yt-dlp',['--no-playlist','--skip-download','--dump-json','--',url]));
-const artist=typeof meta.artist==='string'?meta.artist:meta.uploader;
-if(typeof artist!=='string'||typeof meta.title!=='string')throw Error('Unresolved song identity');
-const title=typeof meta.track==='string'?meta.track:cleanCatalogTitle(meta.title,artist);
-const target={baseId:'private-proof',title,artist};
-const candidates=(await searchYoutubeCandidates(artist+' '+title+' piano tutorial synthesia',8))
+const target=tutorialIdentity(meta);
+const {artist,title}=target;
+const discovered=await searchYoutubeCandidates(artist+' '+title+' piano tutorial',12);
+const direct=/tutorial|synthesia/i.test(meta.title)?[{videoId:meta.id,url,title:meta.title,uploader:meta.uploader??'',durationSeconds:meta.duration??0,isLive:!!meta.is_live}]:[];
+const candidates=[...direct,...discovered.filter(c=>!direct.some(d=>d.videoId===c.videoId))]
  .map(c=>scoreCandidate(c,target,{maxDurationSeconds:600}))
- .filter(c=>c.score>-100 && /tutorial|synthesia/i.test(c.title) && c.title.toLowerCase().includes(artist.toLowerCase()))
- .sort((a,b)=>b.score-a.score||a.videoId.localeCompare(b.videoId)).slice(0,3);
+ .filter(c=>c.score>-100 && /tutorial|synthesia/i.test(c.title) && c.title.toLowerCase().includes(artist.toLowerCase().replace(/^the /,'')))
+ .sort((a,b)=>Number(b.url===url)-Number(a.url===url)||b.score-a.score||a.videoId.localeCompare(b.videoId)).slice(0,3);
 const receipt:any={inputUrl:url,identity:target,identityEvidence:'YouTube metadata and title matching; not independent musical identification',candidates,attempts:[],status:'no-supported-source',sourceRights:'unverified',published:false};
 await writeFile(join(out,'receipt.json'),JSON.stringify(receipt,null,2));
 for(const c of candidates){

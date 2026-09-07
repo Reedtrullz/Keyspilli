@@ -12,6 +12,9 @@ export function publicJobError(error: unknown): string | null {
   const withoutAttempt = message.replace(/^attempt\s+\d+:\s*/i, "");
   if (withoutAttempt.startsWith("SOURCE_REVIEW_REQUIRED:")) {
     if (withoutAttempt.includes("insufficient free disk space")) return "Import paused because server storage is low. Retry after storage is available.";
+    if (withoutAttempt.includes("unresolved song identity")) return "The song could not be identified from this video's title. Try its official recording or a tutorial titled Artist - Song.";
+    if (withoutAttempt.includes("no matching tutorial found")) return "No matching piano tutorial was found for this song. No arrangement was published.";
+    if (withoutAttempt.includes("tutorial extraction failed")) return "Matching piano tutorials were found, but their notes could not be extracted reliably. No arrangement was published.";
     return "This source needs review; no new arrangement was published. Try another source or import a MIDI you have permission to use.";
   }
   if (/^video longer than \d+(?:\.\d+)?s \(/i.test(withoutAttempt)) return withoutAttempt;

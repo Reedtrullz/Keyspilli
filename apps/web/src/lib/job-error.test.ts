@@ -15,6 +15,12 @@ describe("public conversion errors", () => {
     expect(publicJobError("attempt 1: SOURCE_REVIEW_REQUIRED: insufficient free disk space")).toContain("storage");
   });
 
+  it("distinguishes identification, discovery and extraction failures", () => {
+    expect(publicJobError("SOURCE_REVIEW_REQUIRED: unresolved song identity")).toContain("could not be identified");
+    expect(publicJobError("SOURCE_REVIEW_REQUIRED: no matching tutorial found")).toContain("No matching piano tutorial");
+    expect(publicJobError("SOURCE_REVIEW_REQUIRED: tutorial extraction failed /private/path")).toBe("Matching piano tutorials were found, but their notes could not be extracted reliably. No arrangement was published.");
+  });
+
   it("does not expose arbitrary worker diagnostics", () => {
     expect(publicJobError("Error: /data/transcribed/job/audio.mp3 failed with internal detail")).toBe("conversion failed; retry the import or check the worker logs");
   });
