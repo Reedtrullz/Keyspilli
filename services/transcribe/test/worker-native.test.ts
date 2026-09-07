@@ -43,6 +43,16 @@ it("runs a queued requested recording through native resolution and publishes al
     expect(notes.provenance.sourceArrangement.sourceSha256).toBe(hash);
     expect(notes.notes.length).toBeGreaterThan(0);
   }
+  const manifestPath = join(dir, "artifacts", base, "manifest.json");
+  const original = readFileSync(manifestPath, "utf8");
+  for (const id of ["duplicate-native", "corrupt-prior"]) {
+    if (id === "corrupt-prior") writeFileSync(manifestPath, "{}");
+    insertJob({ id, youtubeUrl: "https://www.youtube.com/watch?v=abcdefghijk", status: "queued", songId: null, error: null, createdAt: new Date().toISOString(), finishedAt: null });
+    await processJob(id);
+    expect(getJob(id)?.status).toBe(id === "corrupt-prior" ? "error" : "done");
+    expect(readFileSync(manifestPath, "utf8")).toBe(id === "corrupt-prior" ? "{}" : original);
+  }
+  writeFileSync(manifestPath, original);
 });
 
 it("does not publish or finalize when another worker owns the reclaimed job", async () => {

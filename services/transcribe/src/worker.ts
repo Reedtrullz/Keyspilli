@@ -21,6 +21,9 @@ import {
   getJob,
   getSong,
   getSongsByBase,
+  readArrangementManifest,
+  validateStagedArtifactTree,
+  artifactsDir,
   resolveYoutubeAudio,
   transcribedDir,
   ROOT,
@@ -236,6 +239,13 @@ export async function processJob(jobId: string): Promise<void> {
       const baseId = `beta-native-${native.provenance.sourceSha256.slice(0, 24)}`;
       const prior = getSongsByBase(baseId);
       if (prior.length) {
+        const saved = await readArrangementManifest(baseId);
+        if (saved.status !== "valid" || saved.manifest.sourceArrangement?.sourceSha256 !== native.provenance.sourceSha256
+          || saved.manifest.sourceArrangement?.realizationSha256 !== native.provenance.realizationSha256
+          || ["vb", "b", "e", "m", "a"].some((level) => !prior.some((song) => song.level === level))
+          || (await validateStagedArtifactTree(artifactsDir(baseId, ""), saved.manifest)).length) {
+          throw new Error("SOURCE_REVIEW_REQUIRED: existing source artifacts are incomplete or inconsistent; retained for review");
+        }
         updateOwnedJob({ status: "done", songId: prior.find((song) => song.id.endsWith("-e"))?.id ?? prior[0]!.id, finishedAt: new Date().toISOString() });
         return;
       }

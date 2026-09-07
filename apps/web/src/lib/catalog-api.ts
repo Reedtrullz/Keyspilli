@@ -1,3 +1,4 @@
+import type { SourceArrangement } from "@keyspilli/catalog/src/source-arrangement.js";
 import { readFile } from "node:fs/promises";
 import { statSync } from "node:fs";
 import { createHash } from "node:crypto";
@@ -217,6 +218,7 @@ export function buildAutoChordSource(
 }
 
 export interface SongDetail {
+  sourceArrangement?: SourceArrangement;
   song: SongRow;
   data: SongData | null;
   variants: SongRow[];
@@ -232,6 +234,7 @@ export interface SongDetail {
  * `SongData` object back into the sheet route's RSC payload.
  */
 export interface SongDetailShell {
+  sourceArrangement?: SourceArrangement;
   song: SongRow;
   variants: SongRow[];
 }
@@ -467,7 +470,8 @@ async function loadSongDetailUncached(id: string): Promise<SongDetail | null> {
     }
   }
   const variants = getSongsByBase(song.baseId);
-  return { song, data, variants, artifact: loaded.artifact };
+  const sourceArrangement = loaded.artifact.manifest?.sourceArrangement;
+  return { song, data, variants, artifact: loaded.artifact, ...(sourceArrangement ? { sourceArrangement } : {}) };
 }
 
 /**
@@ -482,7 +486,9 @@ export const getSongDetail = cache(loadSongDetailUncached);
 async function loadSongDetailShellUncached(id: string): Promise<SongDetailShell | null> {
   const song = getSong(id);
   if (!song) return null;
-  return { song, variants: getSongsByBase(song.baseId) };
+  const saved = await readArrangementManifest(song.baseId);
+  const sourceArrangement = saved.status === "valid" ? saved.manifest.sourceArrangement : undefined;
+  return { song, variants: getSongsByBase(song.baseId), ...(sourceArrangement ? { sourceArrangement } : {}) };
 }
 
 /** Request-local metadata-only loader for direct sheet pages. */

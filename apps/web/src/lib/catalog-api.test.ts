@@ -141,6 +141,18 @@ describe("catalog artifact manifest read boundary", () => {
     expect(loaded.data?.tempoBpm).toBe(120);
   });
 
+  it("exposes selected source metadata in both full and sheet-only player payloads", async () => {
+    const manifest = createLegacyBootstrapManifest("catalog-api-song", 120);
+    manifest.sourceArrangement = { beta: true, sourceKind: "verified-native-midi", title: "Test", artist: "Fixture", arrangementTitle: "Test Piano", requestedUrl: "https://youtube.com/watch?v=abcdefghijk", actualSourceUrl: "https://scores.example/test.mid", sourceSha256: "a".repeat(64), realizationSha256: "b".repeat(64), candidateSetDigest: "c".repeat(64), timingOwner: "selected-arrangement", containsMelody: false, license: "CC0-1.0", licenseEvidenceUrl: "https://scores.example/license", verificationEvidenceUrl: "https://scores.example/test" };
+    upsertSong(song());
+    await writeNotes();
+    await writeArrangementManifestFile(arrangementManifestPath(song().baseId), manifest);
+    expect((await getSongDetail(song().id))?.sourceArrangement).toEqual(manifest.sourceArrangement);
+    const shell = await getSongDetailShell(song().id);
+    expect(shell?.sourceArrangement).toEqual(manifest.sourceArrangement);
+    expect(shell).not.toHaveProperty("data");
+  });
+
   it("uses a valid manifest as tempo authority and preserves its provenance", async () => {
     const manifest = createLegacyBootstrapManifest("catalog-api-song", 120, "2026-08-16T17:30:00.000Z");
     await writeArrangementManifestFile(arrangementManifestPath("catalog-api-song"), manifest);

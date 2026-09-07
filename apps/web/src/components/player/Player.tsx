@@ -30,6 +30,8 @@ import {
   type SongData,
   type Section as SongSection,
 } from "@keyspilli/player-core";
+import { SourceArrangementNotice } from "./SourceArrangementNotice";
+import type { SourceArrangement } from "@keyspilli/catalog/src/source-arrangement.js";
 import type { SongRow } from "@keyspilli/catalog";
 import { PUBLIC_DIFFICULTY_ORDER, isPublicDifficultyLevel } from "@keyspilli/midi";
 import { FallingCanvas } from "./FallingCanvas";
@@ -51,6 +53,7 @@ import {
 } from "./chord-sources";
 
 export interface PlayerDetail {
+  sourceArrangement?: SourceArrangement;
   song: SongRow;
   data: SongData;
   variants: SongRow[];
@@ -58,6 +61,7 @@ export interface PlayerDetail {
 
 /** Metadata-only payload used while a direct sheet route loads its player data. */
 export interface PlayerShell {
+  sourceArrangement?: SourceArrangement;
   song: SongRow;
   variants: SongRow[];
 }
@@ -824,6 +828,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
         <div>
           <h1 className="text-xl font-bold leading-tight truncate max-w-[70vw]" title={initial.song.title}>{initial.song.title}</h1>
           <div className="text-sm text-zinc-500">by {initial.song.artist}</div>
+          <SourceArrangementNotice source={initial.sourceArrangement} />
         </div>
         <div className="ml-auto flex gap-2 text-xs">
           <span className="px-2 py-1 rounded-full bg-zinc-100 text-zinc-700 font-medium">{initial.song.key}</span>
@@ -1406,6 +1411,7 @@ function PlayerShellView({ initial, mode }: { initial: PlayerShell; mode: ViewMo
         <div>
           <h1 className="text-xl font-bold leading-tight truncate max-w-[70vw]" title={initial.song.title}>{initial.song.title}</h1>
           <div className="text-sm text-zinc-500">by {initial.song.artist}</div>
+          <SourceArrangementNotice source={initial.sourceArrangement} />
         </div>
         <div className="ml-auto flex gap-2 text-xs">
           <span className="px-2 py-1 rounded-full bg-zinc-100 text-zinc-700 font-medium">{initial.song.key}</span>
