@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   assessBeginnerOffGridCandidate,
+  BEGINNER_OFFGRID_CANDIDATE,
   buildVariants,
   selectBeginnerOffGridRhCandidates,
   validateVariants,
@@ -136,7 +137,16 @@ describe("generic Beginner sparse off-grid RH budget", () => {
         maxDurBeats: null,
       });
       const beginnerNotes = variants.find((variant) => variant.level === "beginner")!.notes;
-      expect(beginnerNotes.some((note) => note.hand !== "L" && note.start === 1.125), arrangementProfile).toBe(false);
+      expect(beginnerNotes.some((note) => (note as Note & { [BEGINNER_OFFGRID_CANDIDATE]?: boolean })[BEGINNER_OFFGRID_CANDIDATE]), arrangementProfile).toBe(false);
+      if (arrangementProfile === "metal") {
+        expect(beginnerNotes.some((note) => note.hand !== "L" && note.start === 1.125)).toBe(false);
+      } else {
+        // Source-profile rounding recovery is an exact harder-level subset,
+        // not the learner-only Candidate A admission/ladder exception.
+        expect(beginnerNotes.some((note) => note.hand !== "L" && note.start === 1.125)).toBe(true);
+        expect(verifyMonotonicity(variants)).toEqual([]);
+        expect(validateVariants(variants)).toEqual([]);
+      }
     }
   });
 

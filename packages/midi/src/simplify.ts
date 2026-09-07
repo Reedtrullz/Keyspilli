@@ -3052,7 +3052,9 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     const ladderReduced = preserveRhLadder(
       sets[easier]!,
       sets[harder]!,
-      LADDER_TOL[easier] ?? 0.02,
+      // Source timing can sit halfway between the coarser Beginner grid.
+      // Match that rounding distance, then snap back to the harder onset.
+      opts.arrangementProfile === "source" && easier === "beginner" ? 0.13 : LADDER_TOL[easier] ?? 0.02,
       PLAYABILITY_LIMITS[easier]!.maxSim,
       pathologicalWall || metalBeginnerFallback,
       metalBeginnerFallback,

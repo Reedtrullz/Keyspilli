@@ -1263,6 +1263,16 @@ describe("buildVariants", () => {
     expect(advanced.chords).toEqual([]);
   });
 
+  it("keeps a source ending through coarse-grid beginner matching", () => {
+    const notes: Note[] = [...Array.from({ length: 12 }, (_, i) => ({ midi: 72, start: i * 2, dur: 1, vel: 80, hand: "R" as const })),
+      { midi: 74, start: 24.125, dur: 1, vel: 80, hand: "R" }];
+    const source: ParsedMidi = { format: 1, division: 480, tempoBpm: 120, keySig: 0, keyMode: 0,
+      timeSig: [4, 4], trackNames: ["Right Hand"], durationBeats: 26, notes };
+    const variants = buildVariants(source, { title: "Off-grid ending", artist: "Test" }, { arrangementProfile: "source", maxDurBeats: null });
+    expect(variants.find((v) => v.level === "beginner")!.notes.some((n) => n.midi === 74 && n.start === 24.125)).toBe(true);
+    expect(validateVariants(variants)).toEqual([]);
+  });
+
   it("preserves source-profile harmonic changes in easy reductions", () => {
     const bass = [48, 43, 45, 41].map((midi, i) => ({ midi, start: i * 2, dur: 1, vel: 80, hand: "L" as const }));
     const source: ParsedMidi = {

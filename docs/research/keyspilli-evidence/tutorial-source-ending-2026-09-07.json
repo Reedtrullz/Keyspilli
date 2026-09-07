@@ -1,0 +1,141 @@
+{
+  "policy": "learner-variant-ladder-v7-source-timing",
+  "tests": {
+    "midi": 369,
+    "catalog": 1085,
+    "midiTypecheck": "passed"
+  },
+  "cases": {
+    "bohemian": {
+      "scope": "local existing variant pipeline; not API or musical identity proof",
+      "rows": [
+        {
+          "level": "very-beginner",
+          "notes": 519,
+          "durationSeconds": 353.75,
+          "issues": []
+        },
+        {
+          "level": "beginner",
+          "notes": 786,
+          "durationSeconds": 353.75,
+          "issues": []
+        },
+        {
+          "level": "easy",
+          "notes": 1598,
+          "durationSeconds": 360.125,
+          "issues": []
+        },
+        {
+          "level": "medium",
+          "notes": 2084,
+          "durationSeconds": 360.125,
+          "issues": []
+        },
+        {
+          "level": "advanced",
+          "notes": 2120,
+          "durationSeconds": 360.125,
+          "issues": []
+        }
+      ]
+    },
+    "nothing-else-matters": {
+      "scope": "local existing variant pipeline; not API or musical identity proof",
+      "rows": [
+        {
+          "level": "very-beginner",
+          "notes": 406,
+          "durationSeconds": 370,
+          "issues": []
+        },
+        {
+          "level": "beginner",
+          "notes": 560,
+          "durationSeconds": 370,
+          "issues": []
+        },
+        {
+          "level": "easy",
+          "notes": 1614,
+          "durationSeconds": 378.875,
+          "issues": []
+        },
+        {
+          "level": "medium",
+          "notes": 1888,
+          "durationSeconds": 378.9375,
+          "issues": []
+        },
+        {
+          "level": "advanced",
+          "notes": 1900,
+          "durationSeconds": 378.9375,
+          "issues": []
+        }
+      ]
+    },
+    "in-my-mind": {
+      "scope": "local existing variant pipeline; not API or musical identity proof",
+      "rows": [
+        {
+          "level": "very-beginner",
+          "notes": 217,
+          "durationSeconds": 173.625,
+          "issues": []
+        },
+        {
+          "level": "beginner",
+          "notes": 304,
+          "durationSeconds": 175.4375,
+          "issues": []
+        },
+        {
+          "level": "easy",
+          "notes": 514,
+          "durationSeconds": 175.4375,
+          "issues": []
+        },
+        {
+          "level": "medium",
+          "notes": 514,
+          "durationSeconds": 175.4375,
+          "issues": []
+        },
+        {
+          "level": "advanced",
+          "notes": 514,
+          "durationSeconds": 175.4375,
+          "issues": []
+        }
+      ]
+    }
+  },
+  "ingest": {
+    "scope": "isolated local ingest and persistence; not HTTP/worker or production",
+    "data": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/output/tutorial-recovery/isolated-ingest-final",
+    "results": [
+      {
+        "baseId": "private-bohemian",
+        "rows": 6,
+        "manifestStatus": "valid",
+        "profile": "source"
+      },
+      {
+        "baseId": "private-nothing-else-matters",
+        "rows": 6,
+        "manifestStatus": "valid",
+        "profile": "source"
+      },
+      {
+        "baseId": "private-in-my-mind",
+        "rows": 6,
+        "manifestStatus": "valid",
+        "profile": "source"
+      }
+    ],
+    "integrity": "ok"
+  },
+  "productionChanged": false
+}
