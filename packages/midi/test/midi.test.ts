@@ -1263,6 +1263,19 @@ describe("buildVariants", () => {
     expect(advanced.chords).toEqual([]);
   });
 
+  it("limits local Beginner bursts even in an otherwise sparse source", () => {
+    const notes: Note[] = [...Array.from({ length: 16 }, (_, i) => ({ midi: 72, start: i * 4, dur: 1, vel: 80, hand: "R" as const })),
+      ...Array.from({ length: 12 }, (_, i) => ({ midi: 72 + i % 5, start: 64 + i * 0.25, dur: i === 11 ? 2 : 0.25, vel: 80, hand: "R" as const }))];
+    const source: ParsedMidi = { format: 1, division: 480, tempoBpm: 120, keySig: 0, keyMode: 0,
+      timeSig: [4, 4], trackNames: ["Right Hand"], durationBeats: 70, notes };
+    const variants = buildVariants(source, { title: "Sparse then fast", artist: "Test" }, { arrangementProfile: "source", maxDurBeats: null });
+    const beginner = variants.find(v => v.level === "beginner")!.notes;
+    const starts = [...new Set(beginner.map(n => n.start))].sort((a,b)=>a-b);
+    expect(Math.min(...starts.slice(1).map((s,i)=>(s-starts[i]!)*.5))).toBeGreaterThanOrEqual(.375);
+    expect(beginner.some(n=>n.midi===73 && n.start===66.75)).toBe(true);
+    expect(validateVariants(variants,{maxDurBeats:null})).toEqual([]);
+  });
+
   it("keeps a source ending through coarse-grid beginner matching", () => {
     const notes: Note[] = [...Array.from({ length: 12 }, (_, i) => ({ midi: 72, start: i * 2, dur: 1, vel: 80, hand: "R" as const })),
       { midi: 74, start: 24.125, dur: 1, vel: 80, hand: "R" }];

@@ -141,9 +141,9 @@ describe("generic Beginner sparse off-grid RH budget", () => {
       if (arrangementProfile === "metal") {
         expect(beginnerNotes.some((note) => note.hand !== "L" && note.start === 1.125)).toBe(false);
       } else {
-        // Source-profile rounding recovery is an exact harder-level subset,
-        // not the learner-only Candidate A admission/ladder exception.
-        expect(beginnerNotes.some((note) => note.hand !== "L" && note.start === 1.125)).toBe(true);
+        // Source recovery stays a harder-level subset; its final spacing pass
+        // removes this attack only 62.5ms after its preceding note.
+        expect(beginnerNotes.some((note) => note.hand !== "L" && note.start === 1.125)).toBe(false);
         expect(verifyMonotonicity(variants)).toEqual([]);
         expect(validateVariants(variants)).toEqual([]);
       }

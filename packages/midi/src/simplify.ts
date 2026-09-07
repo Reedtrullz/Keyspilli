@@ -2149,6 +2149,25 @@ function trimSamePitchOverlaps(notes: Note[], minDur = 0.125): Note[] {
  * than its playability budget. Selection-only (no start shifting) keeps the
  * source pitches intact and makes the result eligible for the RH ladder.
  */
+/** Limit short bursts without letting the rest of a sparse song hide them. */
+function spaceBeginnerAttacks(notes: Note[], tempoBpm: number): Note[] {
+  const spacing = 0.375 * tempoBpm / 60;
+  const kept: Note[][] = [];
+  for (const group of onsetGroups(notes)) {
+    const previous = kept.at(-1);
+    if (!previous || group[0]!.start - previous[0]!.start >= spacing - 1e-9) {
+      kept.push(group);
+    } else if (Math.max(...group.map(n => n.dur)) > Math.max(...previous.map(n => n.dur)) + 1e-9) {
+      // Favor a held landing over a short ornament; moving it later preserves spacing.
+      kept[kept.length - 1] = group;
+    }
+  }
+  return trimSamePitchOverlaps(kept.flatMap((group, i) => group.map(note => ({
+    ...note,
+    dur: Math.min(note.dur, kept[i + 1] ? kept[i + 1]![0]!.start - note.start : note.dur),
+  }))));
+}
+
 function capAttackDensity(notes: Note[], tempoBpm: number, maxDensity: number, minMedianIoi: number): Note[] {
   if (!notes.length || !Number.isFinite(tempoBpm) || tempoBpm <= 0) return notes;
   const span = maxNoteEnd(notes);
@@ -3159,6 +3178,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     emitLearnerStageTrace(learnerTraceSink, "easy-ladder", sets.easy!, [{ stage: "easy-playable", notes: easy }], "easy-ladder-preservation");
     emitLearnerStageTrace(learnerTraceSink, "final", sets.easy!, [{ stage: "easy-ladder", notes: sets.easy! }], "easy-public-final");
   }
+  if (opts.arrangementProfile === "source") sets.beginner = spaceBeginnerAttacks(sets.beginner!, tempo);
   const scores: Record<DifficultyLevel, number> = {
     "very-beginner": 1,
     beginner: 1.4,
