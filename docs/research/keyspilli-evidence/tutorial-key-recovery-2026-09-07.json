@@ -1,0 +1,90 @@
+{
+  "status": "EXPERIMENTAL_TUTORIAL_ROUTE_PROGRESS_NOT_RELEASED",
+  "date": "2026-09-07",
+  "parentNoReleaseCommit": "ada6caca7465e58cfd5f614544b70e374159876c",
+  "code": "services/transcribe/src/tutorial_keys.py",
+  "codeSha256": "02b76cbdc90b7a9c9b4533d69ff350d2a463e9b29af695fecfe09804fbd90c1f",
+  "tool": "lumachords==0.1.4",
+  "toolCodeLicense": "Apache-2.0",
+  "productionDependencyAdded": false,
+  "productionMutations": false,
+  "holdoutsUsed": 0,
+  "localRegressionTestsPassed": 6,
+  "cases": [
+    {
+      "name": "ABBA full",
+      "referenceType": "prior accepted key-light extraction",
+      "matched": 1533,
+      "predicted": 1533,
+      "reference": 1533,
+      "exactOnsetAndDuration": true,
+      "qualifyingReleaseCase": false
+    },
+    {
+      "name": "ABBA640px excerpt",
+      "matched": 157,
+      "predicted": 157,
+      "reference": 157,
+      "independentSong": false,
+      "qualifyingReleaseCase": false
+    },
+    {
+      "name": "Queen Bohemian Rhapsody",
+      "sourceUrl": "https://www.youtube.com/watch?v=a7vqHDWG8y0",
+      "notes": 2374,
+      "scope": "piano accompaniment",
+      "musicalAccuracy": "unscored",
+      "rights": "unverified",
+      "qualifyingReleaseCase": false
+    },
+    {
+      "name": "Livgardet",
+      "status": "rejected calibration; no output"
+    },
+    {
+      "name": "Alphaville Forever Young",
+      "sourceUrl": "https://www.youtube.com/watch?v=kf3Y6efbYP4",
+      "status": "rejected by inspection; filmed hands, different palette,23.976fps"
+    }
+  ],
+  "midiRoundTrips": [
+    {
+      "case": "abba-maintained",
+      "notes": 1533,
+      "maxTimingErrorSeconds": 5.306866057708248e-14,
+      "calibrationFramesSeconds": [
+        4,
+        8
+      ]
+    },
+    {
+      "case": "bohemian-keys",
+      "notes": 2374,
+      "maxTimingErrorSeconds": 5.306866057708248e-14,
+      "calibrationFramesSeconds": [
+        8,
+        12
+      ]
+    }
+  ],
+  "privateArtifacts": {
+    "output/tutorial-recovery/abba-maintained.json": "6b2c84f937b8242fbcb3c50d9d071baeea907a0fdb70181b374d7ed3749f3aff",
+    "output/tutorial-recovery/abba-maintained.mid": "9ef303d6640724a2818ad012d44680b2bbbd224a87a85b439e391d5f902d5659",
+    "output/tutorial-recovery/abba-640-maintained.json": "88266d8f87dce201d8890e8af44cd1886fbeac86168a96d1ec8cfd897f0c75c1",
+    "output/tutorial-recovery/bohemian-keys.json": "1236e8c330096eb27c91bb21feb679fc1b39bb8e5e97aa79ad4cbef79da69420",
+    "output/tutorial-recovery/bohemian-keys.mid": "4020a69639254678c8b687d56de60c23c77040252b07e46b91898b5890a959f3",
+    "output/tutorial-recovery/requirements-frozen.txt": "81b8c361c6c58021d3511255fdc2d5b40a144b0de49078b4978d67d54dba6f7b",
+    "output/tutorial-recovery/midi-roundtrips.json": "270df29d272913bcc14b90038b5e5180e2614cd8221c833d7a449f670f76f6f5",
+    "output/tutorial-recovery/regression-red.log": "23cc519c8b02864d2da9a866fb842ac9645a82dc5fe139caaab180cf75534f32",
+    "output/tutorial-recovery/regression-final.log": "d8086ec9a48996dc722ca6809152d557251bca3841c9ff370723f401ed866500",
+    "output/tutorial-recovery/run_visual.py": "9c31c441b80c3b75569749c838ace4772b8931105ad88153c1b4a84b59a7a251",
+    "output/tutorial-recovery/abba-agreement.json": "cc6ea2f5626b45f3f036dabf285530c49248234f65c1d47dc5a4fa9446a0b2b8",
+    "output/tutorial-recovery/livgardet-agreement.json": "984a624483fcc60d18db3d3cf875391a7950fd909e0eaf85c64028dfffe8143f",
+    "output/tutorial-recovery/render.mts": "34fac183fa101044a5b431a6ab1db576e9fce06a777ac4beeb345cb22dcd790d"
+  },
+  "newSourceFiles": {
+    "bohemian.mp4": "f1b313d51955d5d214b3eb963ee72abe2d6a9879da465751e3eed45dd79e8570",
+    "forever-young.mp4": "d44643c1762ef795673b0fcde962c553400b7f91eacd17e35d98ec556850adf4"
+  },
+  "reviewUrl": "http://127.0.0.1:8874/tutorial-recovery/review.html"
+}
