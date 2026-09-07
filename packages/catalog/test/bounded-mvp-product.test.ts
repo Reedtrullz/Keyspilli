@@ -75,18 +75,18 @@ describe("bounded symbolic upload product path", () => {
     ["midi", "upload-mvp-midi", () => midiSource()],
     ["musicxml", "upload-mvp-musicxml", () => scoreXml()],
     ["mxl", "upload-mvp-mxl", () => mxlSource(scoreXml())],
-  ] as const)("publishes six physical levels and five public levels for %s", async (format, baseId, makeBytes) => {
+  ] as const)("publishes six physical levels and four public levels for %s", async (format, baseId, makeBytes) => {
     const bytes = makeBytes();
     const result = await ingestUpload(baseId, bytes);
 
     expect(result).toEqual({ baseId, songIds: levels.map((level) => `${baseId}-${level}`) });
     const rows = getSongsByBase(baseId);
     expect(rows).toHaveLength(6);
-    expect(projectPublicSongRows(rows).map((row) => row.level)).toEqual(["vb", "b", "e", "m", "a"]);
+    expect(projectPublicSongRows(rows).map((row) => row.level)).toEqual(["b", "e", "m", "a"]);
     const publicGroup = projectPublicGroupedSongs(groupSongs(rows));
     expect(publicGroup).toHaveLength(1);
     expect(publicGroup[0]!.representative.level).toBe("e");
-    expect(publicGroup[0]!.levels.map((row) => row.level)).toEqual(["vb", "b", "e", "m", "a"]);
+    expect(publicGroup[0]!.levels.map((row) => row.level)).toEqual(["b", "e", "m", "a"]);
 
     for (const level of levels) {
       const dir = artifactsDir(baseId, level);

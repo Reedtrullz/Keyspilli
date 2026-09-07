@@ -14,7 +14,7 @@ export function projectPublicSongRow(row: SongRow): SongRow | undefined {
   return isPublicDifficultyLevel(row.difficulty) ? row : undefined;
 }
 
-/** Hide the physical Very Easy alias without rewriting the remaining rows. */
+/** Hide deprecated physical levels without rewriting the remaining rows. */
 export function projectPublicSongRows(rows: readonly SongRow[]): SongRow[] {
   return rows
     .filter((row) => projectPublicSongRow(row) !== undefined)
@@ -29,7 +29,7 @@ export function selectPublicRepresentative(rows: readonly SongRow[]): SongRow | 
   return publicRows.find((row) => row.difficulty === "easy") ?? publicRows[0];
 }
 
-/** Hide Very Easy from a grouped read model and select the Easy cover row. */
+/** Hide deprecated levels from a grouped read model and select the Easy cover row. */
 export function projectPublicGroupedSong(group: GroupedSong): GroupedSong | undefined {
   const levels = projectPublicSongRows(group.levels);
   const representative = selectPublicRepresentative(levels);

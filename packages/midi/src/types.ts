@@ -146,16 +146,14 @@ export const LEVEL_ORDER: DifficultyLevel[] = [
   "advanced",
 ];
 
-/** Client-facing five-level roll-up; physical six-level generation is unchanged. */
+/** Client-facing four-level roll-up; physical six-level generation is unchanged. */
 export type PublicDifficultyLevel =
-  | "very-beginner"
   | "beginner"
   | "easy"
   | "medium"
   | "advanced";
 
 export const PUBLIC_DIFFICULTY_ORDER = [
-  "very-beginner",
   "beginner",
   "easy",
   "medium",

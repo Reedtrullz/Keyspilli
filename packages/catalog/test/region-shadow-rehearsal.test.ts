@@ -36,7 +36,7 @@ describe("region-aware real shadow rehearsal", () => {
       expect(first.lanes.laneA.sources[0]).toMatchObject({ purpose: "GENERATION_CANDIDATE", provenanceClass: "USER_SUPPLIED_PRIVATE", parser: "parsed" });
       expect(first.lanes.laneA.ownership.eventCounts.owned).toBeGreaterThan(0);
       expect(first.lanes.laneA.downstream?.physicalLevels).toHaveLength(6);
-      expect(first.lanes.laneA.downstream?.publicLevels).toHaveLength(5);
+      expect(first.lanes.laneA.downstream?.publicLevels).toHaveLength(4);
       expect(first.controlledPolicyTest.status).toBe("pass");
       expect(first.determinism.canonicalSha256).toBe(second.determinism.canonicalSha256);
       expect(canonicalRegionShadowRehearsalJson(first)).toBe(canonicalRegionShadowRehearsalJson(second));

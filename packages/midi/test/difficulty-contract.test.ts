@@ -39,7 +39,7 @@ function sixLevelSet(): Variant[] {
     variant("very-beginner", 8, 1),
     variant("beginner", 9, 1.4),
     // Deliberately larger than Easy: this is a valid legacy physical row but
-    // it must not constrain the public five-level ordering.
+    // it must not constrain the public four-level ordering.
     variant("very-easy", 20, 3),
     variant("easy", 10, 2.6),
     variant("medium", 11, 3.4),
@@ -48,12 +48,11 @@ function sixLevelSet(): Variant[] {
 }
 
 describe("production difficulty contract", () => {
-  it("keeps six physical rows while validating public five-level ancestry", () => {
+  it("keeps six physical rows while validating public four-level ancestry", () => {
     const variants = sixLevelSet();
 
     expect(variants.map((item) => item.level)).toEqual(LEVEL_ORDER);
     expect(PUBLIC_DIFFICULTY_ORDER).toEqual([
-      "very-beginner",
       "beginner",
       "easy",
       "medium",

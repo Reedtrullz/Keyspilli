@@ -35,7 +35,7 @@ test("scratch upload creates an Easy player with public levels and exports", asy
   });
   await page.getByRole("button", { name: "Upload & create lesson" }).click();
 
-  await expect(page.getByRole("status")).toContainText("five public levels");
+  await expect(page.getByRole("status")).toContainText("four public levels");
   const playerLink = page.getByRole("link", { name: /Open in the player/ });
   await expect(playerLink).toBeVisible();
   const easyHref = await playerLink.getAttribute("href");

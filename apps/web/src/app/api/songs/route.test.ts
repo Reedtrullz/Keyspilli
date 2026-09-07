@@ -140,7 +140,7 @@ describe("grouped songs route", () => {
     });
   });
 
-  it("projects the public five-level ladder and chooses the physical Easy representative", async () => {
+  it("projects the public four-level ladder and chooses the physical Easy representative", async () => {
     const levels = [
       groupedRow("song-vb", "very-beginner", "vb", 1),
       groupedRow("song-b", "beginner", "b", 1.4),
@@ -156,8 +156,8 @@ describe("grouped songs route", () => {
     });
     projectPublicGroupedSongs.mockReturnValueOnce([{
       representative: levels[3],
-      levels: [levels[0], levels[1], levels[3], levels[4], levels[5]],
-      totalPlays: 5,
+      levels: [levels[1], levels[3], levels[4], levels[5]],
+      totalPlays: 4,
       lastCreatedAt: levels[0]!.createdAt,
     }]);
 
@@ -176,13 +176,12 @@ describe("grouped songs route", () => {
           tempo: 120,
         },
         levels: [
-          { id: "song-vb", difficulty: "very-beginner" },
           { id: "song-b", difficulty: "beginner" },
           { id: "song-e", difficulty: "easy" },
           { id: "song-m", difficulty: "medium" },
           { id: "song-a", difficulty: "advanced" },
         ],
-        totalPlays: 5,
+        totalPlays: 4,
         lastCreatedAt: "2026-08-25T00:00:00.000Z",
       }],
       total: 1,
