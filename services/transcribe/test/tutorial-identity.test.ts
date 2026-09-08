@@ -76,3 +76,19 @@ it('keeps a validated matching snapshot ahead of fresh candidates while honoring
  expect([...fresh,cached].sort((a,b)=>compareTutorialCandidates(a,b,'original',snapshots)).slice(0,6)[0]).toBe(cached);
  expect([cached,fresh[0]!].sort((a,b)=>compareTutorialCandidates(a,b,fresh[0]!.url,snapshots))[0]).toBe(fresh[0]);
 });
+
+it('matches explicit collaboration credits in either order without dropping an artist',()=>{
+ const target=tutorialIdentity({title:'OZZY OSBOURNE with Post Malone - "Take What You Want" (Live Video)'});
+ for(const candidate of [
+  'Post Malone - Take What You Want (Piano Tutorial) ft Ozzy Osbourne & Travis Scott',
+  'TAKE WHAT YOU WANT - Post Malone and Ozzy Osbourne - EASY Piano Tutorial with SHEET MUSIC',
+ ])expect(matchesTutorialIdentity(candidate,target)).toBe(true);
+ for(const candidate of [
+  'Post Malone - Take What You Want piano tutorial',
+  'Ozzy Osbourne - Take What You Want piano tutorial',
+  'Post Malone ft NotOzzy Osbourne - Take What You Want piano tutorial',
+  'Post Malone ft Ozzy Osbourne - Take What You Need piano tutorial',
+  'Post Malone ft Ozzy Osbourne - Take What You Want chorus only piano tutorial',
+ ])expect(matchesTutorialIdentity(candidate,target)).toBe(false);
+ expect(matchesTutorialIdentity('Wind Earth Fire - September piano',{artist:'Earth Wind & Fire',title:'September'})).toBe(false);
+});
