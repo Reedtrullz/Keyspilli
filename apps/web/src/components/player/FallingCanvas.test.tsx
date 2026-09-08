@@ -16,10 +16,11 @@ afterEach(() => { vi.unstubAllGlobals(); hooks.effects = []; hooks.refs = 0; });
 
 it("redraws a paused height-only resize in CSS pixels with a DPR backing store", () => {
   const fillText = vi.fn();
+  const fillRect = vi.fn();
   const strokeRect = vi.fn();
   const measureText = vi.fn((text: string) => ({ width: text.length * 7 }));
   const timeRef = { current: 0 };
-  const ctx = new Proxy({ fillText, strokeRect, measureText }, {
+  const ctx = new Proxy({ fillText, fillRect, strokeRect, measureText }, {
     get: (target, key) => key in target ? target[key as keyof typeof target] : vi.fn(),
   });
   hooks.canvas = { clientWidth: 390, clientHeight: 400, width: 0, height: 0, getContext: () => ctx };
@@ -55,8 +56,9 @@ it("redraws a paused height-only resize in CSS pixels with a DPR backing store",
   expect(hooks.canvas.height).toBe(1040);
   expect(raf).not.toHaveBeenCalled();
   expect(fillText.mock.calls.some(([label]) => /^\d+\.\ds$/.test(label))).toBe(false);
-  // The narrow 88-key lane cannot hold a label; the separate cue identifies it.
-  expect(fillText.mock.calls.some(([label]) => label.startsWith("R C#"))).toBe(true);
+  // Narrow lanes omit labels instead of painting an opaque readout across notes.
+  expect(fillText.mock.calls.some(([label]) => label.startsWith("R C#"))).toBe(false);
+  expect(fillRect.mock.calls.some(([, y, width, height]) => y === 24 && width > 200 && height === 18)).toBe(false);
   for (const cleanup of cleanups) cleanup?.();
   expect(disconnect).toHaveBeenCalledOnce();
 });

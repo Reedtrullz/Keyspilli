@@ -398,7 +398,6 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
       }
 
       // Hand styling stays inside each pitch lane so dense chords do not overlap.
-      const currentLabels = new Set<string>();
       for (const b of bars) {
         const bx = Math.max(LEFT_MARGIN, b.x + LEFT_MARGIN);
         const width = Math.max(0, Math.min(b.width, W - RIGHT_MARGIN - bx));
@@ -426,20 +425,7 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
           ctx.fillRect(bx + (width - labelWidth) / 2 - 2, labelY - 7, labelWidth + 4, 14);
           ctx.fillStyle = "#18181b";
           ctx.fillText(b.label, bx + width / 2, labelY);
-        } else if (b.y + b.height >= areaHeight - 24 && b.y <= areaHeight) {
-          currentLabels.add(`${isLeft ? "L" : "R"} ${b.label}`);
         }
-      }
-      if (currentLabels.size) {
-        let cue = [...currentLabels].join(" · ");
-        ctx.font = "600 12px system-ui, sans-serif";
-        ctx.textAlign = "left";
-        ctx.textBaseline = "top";
-        ctx.fillStyle = "#fafafa";
-        ctx.fillRect(LEFT_MARGIN, 24, KEYBOARD_W, 18);
-        ctx.fillStyle = "#18181b";
-        while (cue.length > 1 && ctx.measureText(cue).width > KEYBOARD_W - 8) cue = cue.slice(0, -2).trimEnd() + "…";
-        ctx.fillText(cue, LEFT_MARGIN + 4, 26);
       }
       if (playingRef.current) rafRef.current = requestAnimationFrame(draw);
     };
