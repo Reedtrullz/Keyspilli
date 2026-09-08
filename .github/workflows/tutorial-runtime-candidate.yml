@@ -1,0 +1,37 @@
+name: Tutorial runtime candidate
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tutorial-runtime-candidate-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  container-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - name: Require build disk headroom
+        run: test "$(df -B1 --output=avail . | tail -1)" -ge 32212254720
+      - name: Build candidate (includes real geometry import and synthetic tests)
+        run: docker build --platform linux/amd64 -f services/transcribe/Dockerfile.tutorial -t keyspilli-tutorial:candidate .
+      - name: Verify isolated CLI and dependency consistency
+        run: |
+          docker run --rm --network none keyspilli-tutorial:candidate --help
+          docker run --rm --network none --entrypoint python keyspilli-tutorial:candidate -m pip check
+      - name: Verify non-root geometry initialization
+        run: |
+          docker run --rm --network none --read-only --tmpfs /tmp:rw,size=128m --entrypoint python keyspilli-tutorial:candidate -c "from lumachords.keybed_detector import KeybedDetector; from lumachords.image_input import ImagePreprocessor; from lumachords.preferences import Preferences; from lumachords.runtime_config import RuntimeConfig, AppMode, ProdMode, LogLevel; KeybedDetector(Preferences(), RuntimeConfig(AppMode.HEADLESS, ProdMode.PROD, LogLevel.LOGLEVEL_NONE)).init_state()"
+      - name: Verify synthetic extraction and timing tests
+        run: docker run --rm --network none --read-only --tmpfs /tmp:rw,size=128m --entrypoint python keyspilli-tutorial:candidate -m unittest discover -s /app/test -p 'test_tutorial_*.py'
+      - name: Record resolved image and native package evidence
+        run: |
+          docker image inspect keyspilli-tutorial:candidate --format '{{.Id}}'
+          docker run --rm --network none --entrypoint python keyspilli-tutorial:candidate -m pip freeze
+          docker run --rm --network none --entrypoint dpkg-query keyspilli-tutorial:candidate -W

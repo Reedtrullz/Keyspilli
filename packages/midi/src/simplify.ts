@@ -1,6 +1,8 @@
+import { inferSourceHandLanes } from "./source-hand-lanes.js";
 import { splitHands, detectBassPattern, detectKey, chordName } from "./analyze.js";
 import { Note, ParsedMidi, SongMeta, Variant, DifficultyLevel, LEVEL_ORDER, ChordLabel } from "./types.js";
 import { quantize } from "./quantize.js";
+import { midiBeatToNativeSeconds } from "./parse.js";
 import { BEGINNER_OFFGRID_CANDIDATE, LADDER_TOL, PLAYABILITY_LIMITS } from "./validate.js";
 import { sanitizeImportedNotes } from "./clean.js";
 import { validateChordLabels } from "./chords.js";
@@ -22,6 +24,8 @@ export interface VariantOptions {
   grid?: number;
   /** octave-shift notes outside the piano range (21-108) into it */
   normalizeRange?: boolean;
+  /** Opt-in tutorial lane inference for source profile; uncertain lanes abstain. */
+  inferSourceHands?: boolean;
   /**
    * Optional hard ceiling for imported note sustains, in beats.  Audio
    * transcriptions often inherit a detector's tail (or a pedal resonance)
@@ -2739,6 +2743,24 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     const chordErrors = validateChordLabels(opts.chords);
     if (chordErrors.length) throw new Error(`invalid supplied chords: ${chordErrors.join("; ")}`);
   }
+  // Variants use a constant clock. Integrate source tempo changes before any
+  // reduction; otherwise later scalar-BPM playback stretches the wrong notes.
+  const sourceTempo = normalizeTempoBpm(src.tempoBpm);
+  if (src.tempoEvents?.length && (
+    !src.tempoEvents.some(event => event.tick === 0)
+    || src.tempoEvents.some(event => Math.abs(60_000_000 / event.microsecondsPerQuarter - sourceTempo) > 1e-6)
+  )) {
+    const source = src;
+    const beat = (value: number): number => midiBeatToNativeSeconds(source, value) * sourceTempo / 60;
+    src = { ...source, tempoBpm: sourceTempo, tempoEvents: undefined,
+      durationBeats: beat(source.durationBeats),
+      notes: source.notes.map(note => ({ ...note, start: beat(note.start), dur: beat(note.start + note.dur) - beat(note.start) })),
+    };
+    if (opts.chords) opts = { ...opts, chords: opts.chords.map(chord => ({ ...chord,
+      beat: beat(chord.beat),
+      ...(chord.durationBeats === undefined ? {} : { durationBeats: beat(chord.beat + chord.durationBeats) - beat(chord.beat) }),
+    })) };
+  }
   const grid = opts.grid ?? 0.25;
   const metalProfile = opts.arrangementProfile === "metal";
   const learnerProfile = opts.arrangementProfile === "learner";
@@ -2772,7 +2794,9 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   // the generic one-staff rebalance would undo that semantic separation.
   const innerVoiceArrangement = learnerProfile && opts.audioDerived === true && shouldRedistributeInnerVoices(imported);
   const arrangedImported = innerVoiceArrangement ? redistributeInnerVoices(imported) : imported;
-  const base = quantize(arrangedImported, { grid: 0.125, minDur: 0.125 });
+  const sourceHandInference = opts.arrangementProfile === "source" && opts.inferSourceHands
+    ? inferSourceHandLanes(arrangedImported) : undefined;
+  const base = quantize(sourceHandInference?.notes ?? arrangedImported, { grid: 0.125, minDur: 0.125 });
   const normalized = opts.normalizeRange === false ? base : normalizePianoRange(base);
   const shifted = base.filter((n, i) => normalized[i]!.midi !== n.midi);
   const sourceWarnings = shifted.length
@@ -2781,7 +2805,9 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   const arrangementWarnings = innerVoiceArrangement
     ? ["learner inner-voice redistribution applied (inferred staff assignment)"]
     : [];
-  const warnings = [...sourceWarnings, ...arrangementWarnings];
+  const warnings = [...sourceWarnings, ...arrangementWarnings,
+    ...(sourceHandInference ? [`tutorial source hand inference: ${sourceHandInference.reason} (not verified staff assignment)`] : []),
+  ];
   const splitSource = normalized;
   const hasExplicitHands = splitSource.some((n) => n.hand !== undefined);
   const unlabeledSource = splitSource.filter((n) => n.hand === undefined);

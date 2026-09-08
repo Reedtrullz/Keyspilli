@@ -7,7 +7,7 @@ import { resolveTutorialLink } from "./tutorial-route.js";
 import { loadAutomaticSourceIndex, resolveAutomaticSymbolic } from "./automatic-symbolic.js";
 import { execFile } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
-import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
+import { createReadStream, existsSync, readFileSync, statSync, writeFileSync, renameSync } from "node:fs";
 import { mkdir, readFile, rename, stat, statfs, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
@@ -236,7 +236,16 @@ export async function processJob(jobId: string): Promise<void> {
       if (process.env.NODE_ENV !== "development" || !process.env.KEYSPILLI_DATA_DIR)
         throw new Error("SOURCE_REVIEW_REQUIRED: tutorial preview requires development mode and an isolated data directory");
       if (existing) throw new Error("SOURCE_REVIEW_REQUIRED: tutorial preview cannot replace existing songs");
-      const candidate = await resolveTutorialLink(normalizeYoutubeImportUrl(job.youtubeUrl), join(dir, "tutorial-" + randomUUID()));
+      const checkActive = () => {
+        if (!ownsJobLease(jobId, owner) || getJob(jobId)?.status !== "processing") throw new Error("tutorial job cancelled");
+      };
+      const onProgress = (stage: string) => {
+        checkActive();
+        const progressPath = join(dir, "progress.json");
+        writeFileSync(progressPath + ".tmp", JSON.stringify({stage}));
+        renameSync(progressPath + ".tmp", progressPath);
+      };
+      const candidate = await resolveTutorialLink(normalizeYoutubeImportUrl(job.youtubeUrl), join(dir, "tutorial-" + randomUUID()), {checkActive,onProgress});
       if (candidate.status !== "local-listening-candidate") throw new Error(candidate.attempts?.length ? "SOURCE_REVIEW_REQUIRED: tutorial extraction failed" : "SOURCE_REVIEW_REQUIRED: no matching tutorial found");
       const buf = await readFile(candidate.midiPath);
       const evidence = JSON.parse(await readFile(candidate.midiPath.replace(/\.mid$/, ".json"), "utf8"));
@@ -249,6 +258,7 @@ export async function processJob(jobId: string): Promise<void> {
         containsMelody: null, license: "unverified", licenseEvidenceUrl: "", verificationEvidenceUrl: candidate.selectedUrl,
         candidateSetDigest: createHash("sha256").update(JSON.stringify(candidate.candidates)).digest("hex"),
       };
+      onProgress("publishing");
       const imported = await ingestSource({buf, baseId, title: candidate.identity.title, artist: candidate.identity.artist,
         category: "Tutorial preview", contentType: "youtube", acquiredVia: "colored-keyboard-video",
         sourceRef: candidate.selectedUrl, sourceArtifactHash: evidence.sourceSha256, sourceArrangement,

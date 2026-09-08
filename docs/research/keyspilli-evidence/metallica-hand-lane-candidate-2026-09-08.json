@@ -1,0 +1,1943 @@
+{
+  "scope": "Read-only hand-lane hypothesis, not approved note replacement. Color is not globally authoritative hand metadata.",
+  "inputs": {
+    "midiSha256": "a3c55cdb4f26ff55c2d4ffe1965b217ad52fad15557e540912fe956d5a8b0809",
+    "jsonSha256": "654193bbc7e86a4b5b8a825268f02009f654c057c399b9852f4c22098351573c"
+  },
+  "baselineSplit": {
+    "lhMaxMidi": 59,
+    "rhMinMidi": 60
+  },
+  "rawPassage": [
+    {
+      "midi": 67,
+      "startSec": 229.21666666666667,
+      "durationSec": 0.06666666666666667,
+      "color": "blue"
+    },
+    {
+      "midi": 84,
+      "startSec": 229.38333333333333,
+      "durationSec": 0.48333333333333334,
+      "color": "green"
+    },
+    {
+      "midi": 76,
+      "startSec": 229.4,
+      "durationSec": 0.31666666666666665,
+      "color": "green"
+    },
+    {
+      "midi": 79,
+      "startSec": 229.4,
+      "durationSec": 0.38333333333333336,
+      "color": "green"
+    },
+    {
+      "midi": 60,
+      "startSec": 229.41666666666666,
+      "durationSec": 0.18333333333333332,
+      "color": "blue"
+    },
+    {
+      "midi": 72,
+      "startSec": 229.78333333333333,
+      "durationSec": 0.13333333333333333,
+      "color": "blue"
+    },
+    {
+      "midi": 79,
+      "startSec": 230.16666666666666,
+      "durationSec": 0.11666666666666667,
+      "color": "blue"
+    },
+    {
+      "midi": 64,
+      "startSec": 230.53333333333333,
+      "durationSec": 0.21666666666666667,
+      "color": "blue"
+    },
+    {
+      "midi": 71,
+      "startSec": 230.71666666666667,
+      "durationSec": 0.08333333333333333,
+      "color": "blue"
+    },
+    {
+      "midi": 76,
+      "startSec": 230.91666666666666,
+      "durationSec": 0.18333333333333332,
+      "color": "blue"
+    },
+    {
+      "midi": 91,
+      "startSec": 230.91666666666666,
+      "durationSec": 0.13333333333333333,
+      "color": "green"
+    },
+    {
+      "midi": 95,
+      "startSec": 230.93333333333334,
+      "durationSec": 0.18333333333333332,
+      "color": "green"
+    },
+    {
+      "midi": 78,
+      "startSec": 231.11666666666667,
+      "durationSec": 0.06666666666666667,
+      "color": "blue"
+    },
+    {
+      "midi": 90,
+      "startSec": 231.3,
+      "durationSec": 0.15,
+      "color": "green"
+    },
+    {
+      "midi": 93,
+      "startSec": 231.31666666666666,
+      "durationSec": 0.23333333333333334,
+      "color": "green"
+    },
+    {
+      "midi": 76,
+      "startSec": 231.5,
+      "durationSec": 0.11666666666666667,
+      "color": "blue"
+    },
+    {
+      "midi": 64,
+      "startSec": 231.68333333333334,
+      "durationSec": 0.21666666666666667,
+      "color": "blue"
+    },
+    {
+      "midi": 88,
+      "startSec": 231.7,
+      "durationSec": 0.13333333333333333,
+      "color": "green"
+    },
+    {
+      "midi": 91,
+      "startSec": 231.7,
+      "durationSec": 0.21666666666666667,
+      "color": "green"
+    },
+    {
+      "midi": 71,
+      "startSec": 231.88333333333333,
+      "durationSec": 0.06666666666666667,
+      "color": "blue"
+    },
+    {
+      "midi": 76,
+      "startSec": 232.06666666666666,
+      "durationSec": 0.25,
+      "color": "blue"
+    },
+    {
+      "midi": 90,
+      "startSec": 232.26666666666668,
+      "durationSec": 0.21666666666666667,
+      "color": "green"
+    },
+    {
+      "midi": 79,
+      "startSec": 232.31666666666666,
+      "durationSec": 0.06666666666666667,
+      "color": "blue"
+    },
+    {
+      "midi": 88,
+      "startSec": 232.46666666666667,
+      "durationSec": 0.1,
+      "color": "green"
+    },
+    {
+      "midi": 76,
+      "startSec": 232.51666666666668,
+      "durationSec": 0.06666666666666667,
+      "color": "blue"
+    },
+    {
+      "midi": 90,
+      "startSec": 232.85,
+      "durationSec": 0.6166666666666667,
+      "color": "green"
+    },
+    {
+      "midi": 62,
+      "startSec": 232.86666666666667,
+      "durationSec": 0.2,
+      "color": "blue"
+    },
+    {
+      "midi": 86,
+      "startSec": 232.86666666666667,
+      "durationSec": 0.15,
+      "color": "green"
+    }
+  ],
+  "rows": [
+    {
+      "level": "beginner",
+      "beforeNotes": 435,
+      "afterNotes": 354,
+      "before": {
+        "notes": [
+          {
+            "midi": 67,
+            "start": 458.375,
+            "dur": 1.25,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 72,
+            "start": 459.625,
+            "dur": 0.75,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 79,
+            "start": 460.375,
+            "dur": 0.75,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 64,
+            "start": 461.125,
+            "dur": 0.75,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 95,
+            "start": 461.875,
+            "dur": 0.75,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 93,
+            "start": 462.625,
+            "dur": 0.75,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 91,
+            "start": 463.375,
+            "dur": 0.75,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 76,
+            "start": 464.125,
+            "dur": 0.75,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 76,
+            "start": 465,
+            "dur": 0.75,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 90,
+            "start": 465.75,
+            "dur": 1.125,
+            "vel": 80,
+            "hand": "R"
+          }
+        ],
+        "hands": {
+          "R": {
+            "count": 9,
+            "minSeconds": 0.375,
+            "p01Seconds": 0.375,
+            "p05Seconds": 0.375,
+            "p10Seconds": 0.375,
+            "p25Seconds": 0.375,
+            "medianIoiSeconds": 0.375,
+            "p75Seconds": 0.375,
+            "p90Seconds": 0.475,
+            "p95Seconds": 0.55,
+            "meanSeconds": 0.409722,
+            "rapidIoiCount": 0,
+            "rapidIoiFraction": 0,
+            "attacksPerSecond": 0.042838,
+            "maxShortWindowAttacksPerSecond": 4,
+            "noteCount": 10,
+            "onsetCount": 10,
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "worstAttackWindow": {
+              "startSeconds": 229.8125,
+              "endSeconds": 230.3125,
+              "attacks": 2
+            },
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 230.9375,
+              "semitones": 31,
+              "gapSeconds": 0.375
+            }
+          },
+          "L": {
+            "count": 0,
+            "minSeconds": null,
+            "p01Seconds": null,
+            "p05Seconds": null,
+            "p10Seconds": null,
+            "p25Seconds": null,
+            "medianIoiSeconds": null,
+            "p75Seconds": null,
+            "p90Seconds": null,
+            "p95Seconds": null,
+            "meanSeconds": null,
+            "rapidIoiCount": 0,
+            "rapidIoiFraction": 0,
+            "attacksPerSecond": 0,
+            "maxShortWindowAttacksPerSecond": 0,
+            "noteCount": 0,
+            "onsetCount": 0,
+            "maxSimultaneous": 0,
+            "maxSounding": 0,
+            "worstAttackWindow": null,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": null
+          }
+        }
+      },
+      "after": {
+        "notes": [
+          {
+            "midi": 84,
+            "start": 458.75,
+            "dur": 1,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 95,
+            "start": 461.875,
+            "dur": 0.75,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 93,
+            "start": 462.625,
+            "dur": 0.75,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 91,
+            "start": 463.375,
+            "dur": 1.5,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 88,
+            "start": 464.875,
+            "dur": 0.75,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 90,
+            "start": 465.75,
+            "dur": 1.125,
+            "vel": 80,
+            "hand": "R"
+          }
+        ],
+        "hands": {
+          "R": {
+            "count": 5,
+            "minSeconds": 0.375,
+            "p01Seconds": 0.375,
+            "p05Seconds": 0.375,
+            "p10Seconds": 0.375,
+            "p25Seconds": 0.375,
+            "medianIoiSeconds": 0.4375,
+            "p75Seconds": 0.75,
+            "p90Seconds": 1.2375,
+            "p95Seconds": 1.4,
+            "meanSeconds": 0.7,
+            "rapidIoiCount": 0,
+            "rapidIoiFraction": 0,
+            "attacksPerSecond": 0.025703,
+            "maxShortWindowAttacksPerSecond": 4,
+            "noteCount": 6,
+            "onsetCount": 6,
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "worstAttackWindow": {
+              "startSeconds": 230.9375,
+              "endSeconds": 231.4375,
+              "attacks": 2
+            },
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 230.9375,
+              "semitones": 11,
+              "gapSeconds": 1.5625
+            }
+          },
+          "L": {
+            "count": 0,
+            "minSeconds": null,
+            "p01Seconds": null,
+            "p05Seconds": null,
+            "p10Seconds": null,
+            "p25Seconds": null,
+            "medianIoiSeconds": null,
+            "p75Seconds": null,
+            "p90Seconds": null,
+            "p95Seconds": null,
+            "meanSeconds": null,
+            "rapidIoiCount": 0,
+            "rapidIoiFraction": 0,
+            "attacksPerSecond": 0,
+            "maxShortWindowAttacksPerSecond": 0,
+            "noteCount": 0,
+            "onsetCount": 0,
+            "maxSimultaneous": 0,
+            "maxSounding": 0,
+            "worstAttackWindow": null,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": null
+          }
+        }
+      },
+      "wholeSongAfter": {
+        "R": {
+          "count": 347,
+          "minSeconds": 0.375,
+          "p01Seconds": 0.375,
+          "p05Seconds": 0.375,
+          "p10Seconds": 0.375,
+          "p25Seconds": 0.375,
+          "medianIoiSeconds": 0.4375,
+          "p75Seconds": 0.75,
+          "p90Seconds": 1.15,
+          "p95Seconds": 1.60625,
+          "meanSeconds": 0.699568,
+          "rapidIoiCount": 0,
+          "rapidIoiFraction": 0,
+          "attacksPerSecond": 1.301543,
+          "maxShortWindowAttacksPerSecond": 4,
+          "noteCount": 348,
+          "onsetCount": 348,
+          "maxSimultaneous": 1,
+          "maxSounding": 1,
+          "worstAttackWindow": {
+            "startSeconds": 19,
+            "endSeconds": 19.5,
+            "attacks": 2
+          },
+          "maxChordSpanSemitones": 0,
+          "maxSoundingSpanSemitones": 0,
+          "worstTopVoiceLeap": {
+            "startSeconds": 242.3125,
+            "semitones": 17,
+            "gapSeconds": 4.375
+          }
+        },
+        "L": {
+          "count": 5,
+          "minSeconds": 0.5,
+          "p01Seconds": 0.5025,
+          "p05Seconds": 0.5125,
+          "p10Seconds": 0.525,
+          "p25Seconds": 0.5625,
+          "medianIoiSeconds": 0.625,
+          "p75Seconds": 0.6875,
+          "p90Seconds": 0.875,
+          "p95Seconds": 0.9375,
+          "meanSeconds": 0.675,
+          "rapidIoiCount": 0,
+          "rapidIoiFraction": 0,
+          "attacksPerSecond": 0.02244,
+          "maxShortWindowAttacksPerSecond": 2,
+          "noteCount": 6,
+          "onsetCount": 6,
+          "maxSimultaneous": 1,
+          "maxSounding": 1,
+          "worstAttackWindow": {
+            "startSeconds": 258.75,
+            "endSeconds": 259.25,
+            "attacks": 1
+          },
+          "maxChordSpanSemitones": 0,
+          "maxSoundingSpanSemitones": 0,
+          "worstTopVoiceLeap": {
+            "startSeconds": 259.25,
+            "semitones": 15,
+            "gapSeconds": 0.5
+          }
+        }
+      }
+    },
+    {
+      "level": "easy",
+      "beforeNotes": 665,
+      "afterNotes": 665,
+      "before": {
+        "notes": [
+          {
+            "midi": 67,
+            "start": 458.375,
+            "dur": 0.5,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 72,
+            "start": 459.625,
+            "dur": 0.75,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 79,
+            "start": 460.375,
+            "dur": 0.75,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 64,
+            "start": 461.125,
+            "dur": 0.5,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 95,
+            "start": 461.875,
+            "dur": 0.5,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 93,
+            "start": 462.625,
+            "dur": 0.75,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 91,
+            "start": 463.375,
+            "dur": 0.75,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 76,
+            "start": 464.125,
+            "dur": 0.5,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 76,
+            "start": 465,
+            "dur": 0.75,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 90,
+            "start": 465.75,
+            "dur": 1.125,
+            "vel": 80,
+            "hand": "R"
+          }
+        ],
+        "hands": {
+          "R": {
+            "count": 9,
+            "minSeconds": 0.375,
+            "p01Seconds": 0.375,
+            "p05Seconds": 0.375,
+            "p10Seconds": 0.375,
+            "p25Seconds": 0.375,
+            "medianIoiSeconds": 0.375,
+            "p75Seconds": 0.375,
+            "p90Seconds": 0.475,
+            "p95Seconds": 0.55,
+            "meanSeconds": 0.409722,
+            "rapidIoiCount": 0,
+            "rapidIoiFraction": 0,
+            "attacksPerSecond": 0.042838,
+            "maxShortWindowAttacksPerSecond": 4,
+            "noteCount": 10,
+            "onsetCount": 10,
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "worstAttackWindow": {
+              "startSeconds": 229.8125,
+              "endSeconds": 230.3125,
+              "attacks": 2
+            },
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 230.9375,
+              "semitones": 31,
+              "gapSeconds": 0.375
+            }
+          },
+          "L": {
+            "count": 0,
+            "minSeconds": null,
+            "p01Seconds": null,
+            "p05Seconds": null,
+            "p10Seconds": null,
+            "p25Seconds": null,
+            "medianIoiSeconds": null,
+            "p75Seconds": null,
+            "p90Seconds": null,
+            "p95Seconds": null,
+            "meanSeconds": null,
+            "rapidIoiCount": 0,
+            "rapidIoiFraction": 0,
+            "attacksPerSecond": 0,
+            "maxShortWindowAttacksPerSecond": 0,
+            "noteCount": 0,
+            "onsetCount": 0,
+            "maxSimultaneous": 0,
+            "maxSounding": 0,
+            "worstAttackWindow": null,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": null
+          }
+        }
+      },
+      "after": {
+        "notes": [
+          {
+            "midi": 84,
+            "start": 458.75,
+            "dur": 1,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 60,
+            "start": 458.875,
+            "dur": 0.375,
+            "vel": 80,
+            "hand": "L"
+          },
+          {
+            "midi": 64,
+            "start": 461.125,
+            "dur": 0.375,
+            "vel": 80,
+            "hand": "L"
+          },
+          {
+            "midi": 95,
+            "start": 461.875,
+            "dur": 0.75,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 93,
+            "start": 462.625,
+            "dur": 0.75,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 91,
+            "start": 463.375,
+            "dur": 1.125,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 76,
+            "start": 464.125,
+            "dur": 0.5,
+            "vel": 80,
+            "hand": "L"
+          },
+          {
+            "midi": 88,
+            "start": 464.875,
+            "dur": 0.875,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 62,
+            "start": 465.75,
+            "dur": 0.375,
+            "vel": 80,
+            "hand": "L"
+          },
+          {
+            "midi": 90,
+            "start": 465.75,
+            "dur": 1.125,
+            "vel": 80,
+            "hand": "R"
+          }
+        ],
+        "hands": {
+          "R": {
+            "count": 5,
+            "minSeconds": 0.375,
+            "p01Seconds": 0.375,
+            "p05Seconds": 0.375,
+            "p10Seconds": 0.375,
+            "p25Seconds": 0.375,
+            "medianIoiSeconds": 0.4375,
+            "p75Seconds": 0.75,
+            "p90Seconds": 1.2375,
+            "p95Seconds": 1.4,
+            "meanSeconds": 0.7,
+            "rapidIoiCount": 0,
+            "rapidIoiFraction": 0,
+            "attacksPerSecond": 0.025703,
+            "maxShortWindowAttacksPerSecond": 4,
+            "noteCount": 6,
+            "onsetCount": 6,
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "worstAttackWindow": {
+              "startSeconds": 230.9375,
+              "endSeconds": 231.4375,
+              "attacks": 2
+            },
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 230.9375,
+              "semitones": 11,
+              "gapSeconds": 1.5625
+            }
+          },
+          "L": {
+            "count": 3,
+            "minSeconds": 0.8125,
+            "p01Seconds": 0.81875,
+            "p05Seconds": 0.84375,
+            "p10Seconds": 0.875,
+            "p25Seconds": 0.96875,
+            "medianIoiSeconds": 1.125,
+            "p75Seconds": 1.3125,
+            "p90Seconds": 1.425,
+            "p95Seconds": 1.4625,
+            "meanSeconds": 1.145833,
+            "rapidIoiCount": 0,
+            "rapidIoiFraction": 0,
+            "attacksPerSecond": 0.017135,
+            "maxShortWindowAttacksPerSecond": 2,
+            "noteCount": 4,
+            "onsetCount": 4,
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "worstAttackWindow": {
+              "startSeconds": 229.4375,
+              "endSeconds": 229.9375,
+              "attacks": 1
+            },
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 232.875,
+              "semitones": 14,
+              "gapSeconds": 0.8125
+            }
+          }
+        }
+      },
+      "wholeSongAfter": {
+        "R": {
+          "count": 349,
+          "minSeconds": 0.375,
+          "p01Seconds": 0.375,
+          "p05Seconds": 0.375,
+          "p10Seconds": 0.375,
+          "p25Seconds": 0.375,
+          "medianIoiSeconds": 0.4375,
+          "p75Seconds": 0.75,
+          "p90Seconds": 1.125,
+          "p95Seconds": 1.6,
+          "meanSeconds": 0.695559,
+          "rapidIoiCount": 0,
+          "rapidIoiFraction": 0,
+          "attacksPerSecond": 1.309023,
+          "maxShortWindowAttacksPerSecond": 4,
+          "noteCount": 350,
+          "onsetCount": 350,
+          "maxSimultaneous": 1,
+          "maxSounding": 1,
+          "worstAttackWindow": {
+            "startSeconds": 19,
+            "endSeconds": 19.5,
+            "attacks": 2
+          },
+          "maxChordSpanSemitones": 0,
+          "maxSoundingSpanSemitones": 0,
+          "worstTopVoiceLeap": {
+            "startSeconds": 242.3125,
+            "semitones": 17,
+            "gapSeconds": 4.375
+          }
+        },
+        "L": {
+          "count": 294,
+          "minSeconds": 0.5,
+          "p01Seconds": 0.5,
+          "p05Seconds": 0.5625,
+          "p10Seconds": 0.5625,
+          "p25Seconds": 0.5625,
+          "medianIoiSeconds": 0.75,
+          "p75Seconds": 1.125,
+          "p90Seconds": 1.25,
+          "p95Seconds": 1.584375,
+          "meanSeconds": 0.871386,
+          "rapidIoiCount": 0,
+          "rapidIoiFraction": 0,
+          "attacksPerSecond": 1.103319,
+          "maxShortWindowAttacksPerSecond": 2,
+          "noteCount": 315,
+          "onsetCount": 295,
+          "maxSimultaneous": 2,
+          "maxSounding": 2,
+          "worstAttackWindow": {
+            "startSeconds": 5.9375,
+            "endSeconds": 6.4375,
+            "attacks": 1
+          },
+          "maxChordSpanSemitones": 12,
+          "maxSoundingSpanSemitones": 12,
+          "worstTopVoiceLeap": {
+            "startSeconds": 92.9375,
+            "semitones": 22,
+            "gapSeconds": 0.5625
+          }
+        }
+      }
+    },
+    {
+      "level": "medium",
+      "beforeNotes": 1508,
+      "afterNotes": 1673,
+      "before": {
+        "notes": [
+          {
+            "midi": 67,
+            "start": 458.375,
+            "dur": 0.25,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 76,
+            "start": 458.75,
+            "dur": 0.625,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 79,
+            "start": 458.75,
+            "dur": 0.875,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 84,
+            "start": 458.75,
+            "dur": 1,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 72,
+            "start": 459.625,
+            "dur": 0.25,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 79,
+            "start": 460.375,
+            "dur": 0.25,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 64,
+            "start": 461.125,
+            "dur": 0.375,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 71,
+            "start": 461.375,
+            "dur": 0.25,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 91,
+            "start": 461.875,
+            "dur": 0.25,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 95,
+            "start": 461.875,
+            "dur": 0.375,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 78,
+            "start": 462.25,
+            "dur": 0.125,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 90,
+            "start": 462.625,
+            "dur": 0.25,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 93,
+            "start": 462.625,
+            "dur": 0.5,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 88,
+            "start": 463.375,
+            "dur": 0.25,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 91,
+            "start": 463.375,
+            "dur": 0.5,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 76,
+            "start": 464.125,
+            "dur": 0.5,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 79,
+            "start": 464.625,
+            "dur": 0.125,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 76,
+            "start": 465,
+            "dur": 0.125,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 86,
+            "start": 465.75,
+            "dur": 0.25,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 90,
+            "start": 465.75,
+            "dur": 1.125,
+            "vel": 80,
+            "hand": "R"
+          }
+        ],
+        "hands": {
+          "R": {
+            "count": 13,
+            "minSeconds": 0.125,
+            "p01Seconds": 0.1325,
+            "p05Seconds": 0.1625,
+            "p10Seconds": 0.1875,
+            "p25Seconds": 0.1875,
+            "medianIoiSeconds": 0.25,
+            "p75Seconds": 0.375,
+            "p90Seconds": 0.375,
+            "p95Seconds": 0.4,
+            "meanSeconds": 0.283654,
+            "rapidIoiCount": 0,
+            "rapidIoiFraction": 0,
+            "attacksPerSecond": 0.059973,
+            "maxShortWindowAttacksPerSecond": 6,
+            "noteCount": 20,
+            "onsetCount": 14,
+            "maxSimultaneous": 3,
+            "maxSounding": 3,
+            "worstAttackWindow": {
+              "startSeconds": 230.5625,
+              "endSeconds": 231.0625,
+              "attacks": 3
+            },
+            "maxChordSpanSemitones": 8,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 230.9375,
+              "semitones": 24,
+              "gapSeconds": 0.25
+            }
+          },
+          "L": {
+            "count": 0,
+            "minSeconds": null,
+            "p01Seconds": null,
+            "p05Seconds": null,
+            "p10Seconds": null,
+            "p25Seconds": null,
+            "medianIoiSeconds": null,
+            "p75Seconds": null,
+            "p90Seconds": null,
+            "p95Seconds": null,
+            "meanSeconds": null,
+            "rapidIoiCount": 0,
+            "rapidIoiFraction": 0,
+            "attacksPerSecond": 0,
+            "maxShortWindowAttacksPerSecond": 0,
+            "noteCount": 0,
+            "onsetCount": 0,
+            "maxSimultaneous": 0,
+            "maxSounding": 0,
+            "worstAttackWindow": null,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": null
+          }
+        }
+      },
+      "after": {
+        "notes": [
+          {
+            "midi": 67,
+            "start": 458.375,
+            "dur": 0.25,
+            "vel": 80,
+            "hand": "L"
+          },
+          {
+            "midi": 76,
+            "start": 458.75,
+            "dur": 0.625,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 79,
+            "start": 458.75,
+            "dur": 0.875,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 84,
+            "start": 458.75,
+            "dur": 1,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 60,
+            "start": 458.875,
+            "dur": 0.375,
+            "vel": 80,
+            "hand": "L"
+          },
+          {
+            "midi": 72,
+            "start": 459.625,
+            "dur": 0.25,
+            "vel": 80,
+            "hand": "L"
+          },
+          {
+            "midi": 79,
+            "start": 460.375,
+            "dur": 0.25,
+            "vel": 80,
+            "hand": "L"
+          },
+          {
+            "midi": 64,
+            "start": 461.125,
+            "dur": 0.375,
+            "vel": 80,
+            "hand": "L"
+          },
+          {
+            "midi": 71,
+            "start": 461.375,
+            "dur": 0.25,
+            "vel": 80,
+            "hand": "L"
+          },
+          {
+            "midi": 76,
+            "start": 461.875,
+            "dur": 0.375,
+            "vel": 80,
+            "hand": "L"
+          },
+          {
+            "midi": 91,
+            "start": 461.875,
+            "dur": 0.25,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 95,
+            "start": 461.875,
+            "dur": 0.375,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 78,
+            "start": 462.25,
+            "dur": 0.125,
+            "vel": 80,
+            "hand": "L"
+          },
+          {
+            "midi": 90,
+            "start": 462.625,
+            "dur": 0.25,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 93,
+            "start": 462.625,
+            "dur": 0.5,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 76,
+            "start": 463,
+            "dur": 0.25,
+            "vel": 80,
+            "hand": "L"
+          },
+          {
+            "midi": 64,
+            "start": 463.375,
+            "dur": 0.375,
+            "vel": 80,
+            "hand": "L"
+          },
+          {
+            "midi": 88,
+            "start": 463.375,
+            "dur": 0.25,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 91,
+            "start": 463.375,
+            "dur": 0.5,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 71,
+            "start": 463.75,
+            "dur": 0.125,
+            "vel": 80,
+            "hand": "L"
+          },
+          {
+            "midi": 76,
+            "start": 464.125,
+            "dur": 0.5,
+            "vel": 80,
+            "hand": "L"
+          },
+          {
+            "midi": 90,
+            "start": 464.5,
+            "dur": 0.5,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 79,
+            "start": 464.625,
+            "dur": 0.125,
+            "vel": 80,
+            "hand": "L"
+          },
+          {
+            "midi": 88,
+            "start": 464.875,
+            "dur": 0.25,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 76,
+            "start": 465,
+            "dur": 0.125,
+            "vel": 80,
+            "hand": "L"
+          },
+          {
+            "midi": 62,
+            "start": 465.75,
+            "dur": 0.375,
+            "vel": 80,
+            "hand": "L"
+          },
+          {
+            "midi": 86,
+            "start": 465.75,
+            "dur": 0.25,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 90,
+            "start": 465.75,
+            "dur": 1.125,
+            "vel": 80,
+            "hand": "R"
+          }
+        ],
+        "hands": {
+          "R": {
+            "count": 6,
+            "minSeconds": 0.1875,
+            "p01Seconds": 0.196875,
+            "p05Seconds": 0.234375,
+            "p10Seconds": 0.28125,
+            "p25Seconds": 0.375,
+            "medianIoiSeconds": 0.40625,
+            "p75Seconds": 0.53125,
+            "p90Seconds": 1.0625,
+            "p95Seconds": 1.3125,
+            "meanSeconds": 0.583333,
+            "rapidIoiCount": 0,
+            "rapidIoiFraction": 0,
+            "attacksPerSecond": 0.029987,
+            "maxShortWindowAttacksPerSecond": 4,
+            "noteCount": 13,
+            "onsetCount": 7,
+            "maxSimultaneous": 3,
+            "maxSounding": 3,
+            "worstAttackWindow": {
+              "startSeconds": 230.9375,
+              "endSeconds": 231.4375,
+              "attacks": 2
+            },
+            "maxChordSpanSemitones": 8,
+            "maxSoundingSpanSemitones": 8,
+            "worstTopVoiceLeap": {
+              "startSeconds": 230.9375,
+              "semitones": 11,
+              "gapSeconds": 1.5625
+            }
+          },
+          "L": {
+            "count": 14,
+            "minSeconds": 0.125,
+            "p01Seconds": 0.133125,
+            "p05Seconds": 0.165625,
+            "p10Seconds": 0.1875,
+            "p25Seconds": 0.1875,
+            "medianIoiSeconds": 0.25,
+            "p75Seconds": 0.375,
+            "p90Seconds": 0.375,
+            "p95Seconds": 0.375,
+            "meanSeconds": 0.263393,
+            "rapidIoiCount": 0,
+            "rapidIoiFraction": 0,
+            "attacksPerSecond": 0.064257,
+            "maxShortWindowAttacksPerSecond": 6,
+            "noteCount": 15,
+            "onsetCount": 15,
+            "maxSimultaneous": 1,
+            "maxSounding": 2,
+            "worstAttackWindow": {
+              "startSeconds": 230.5625,
+              "endSeconds": 231.0625,
+              "attacks": 3
+            },
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 7,
+            "worstTopVoiceLeap": {
+              "startSeconds": 230.5625,
+              "semitones": 15,
+              "gapSeconds": 0.375
+            }
+          }
+        }
+      },
+      "wholeSongAfter": {
+        "R": {
+          "count": 530,
+          "minSeconds": 0.0625,
+          "p01Seconds": 0.0625,
+          "p05Seconds": 0.0625,
+          "p10Seconds": 0.125,
+          "p25Seconds": 0.1875,
+          "medianIoiSeconds": 0.375,
+          "p75Seconds": 0.5,
+          "p90Seconds": 0.8125,
+          "p95Seconds": 1.06875,
+          "meanSeconds": 0.458019,
+          "rapidIoiCount": 39,
+          "rapidIoiFraction": 0.073585,
+          "attacksPerSecond": 1.985975,
+          "maxShortWindowAttacksPerSecond": 10,
+          "noteCount": 777,
+          "onsetCount": 531,
+          "maxSimultaneous": 3,
+          "maxSounding": 4,
+          "worstAttackWindow": {
+            "startSeconds": 107.875,
+            "endSeconds": 108.375,
+            "attacks": 5
+          },
+          "maxChordSpanSemitones": 12,
+          "maxSoundingSpanSemitones": 12,
+          "worstTopVoiceLeap": {
+            "startSeconds": 57,
+            "semitones": 21,
+            "gapSeconds": 5.4375
+          }
+        },
+        "L": {
+          "count": 862,
+          "minSeconds": 0.0625,
+          "p01Seconds": 0.125,
+          "p05Seconds": 0.1875,
+          "p10Seconds": 0.1875,
+          "p25Seconds": 0.1875,
+          "medianIoiSeconds": 0.1875,
+          "p75Seconds": 0.375,
+          "p90Seconds": 0.4375,
+          "p95Seconds": 0.746875,
+          "meanSeconds": 0.297926,
+          "rapidIoiCount": 7,
+          "rapidIoiFraction": 0.008121,
+          "attacksPerSecond": 3.227676,
+          "maxShortWindowAttacksPerSecond": 8,
+          "noteCount": 896,
+          "onsetCount": 863,
+          "maxSimultaneous": 2,
+          "maxSounding": 4,
+          "worstAttackWindow": {
+            "startSeconds": 237.125,
+            "endSeconds": 237.625,
+            "attacks": 4
+          },
+          "maxChordSpanSemitones": 12,
+          "maxSoundingSpanSemitones": 12,
+          "worstTopVoiceLeap": {
+            "startSeconds": 69.8125,
+            "semitones": 21,
+            "gapSeconds": 0.375
+          }
+        }
+      }
+    },
+    {
+      "level": "advanced",
+      "beforeNotes": 1541,
+      "afterNotes": 1704,
+      "before": {
+        "notes": [
+          {
+            "midi": 67,
+            "start": 458.375,
+            "dur": 0.25,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 76,
+            "start": 458.75,
+            "dur": 0.625,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 79,
+            "start": 458.75,
+            "dur": 0.875,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 84,
+            "start": 458.75,
+            "dur": 1,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 72,
+            "start": 459.625,
+            "dur": 0.25,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 79,
+            "start": 460.375,
+            "dur": 0.25,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 64,
+            "start": 461.125,
+            "dur": 0.375,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 71,
+            "start": 461.375,
+            "dur": 0.25,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 91,
+            "start": 461.875,
+            "dur": 0.25,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 95,
+            "start": 461.875,
+            "dur": 0.375,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 78,
+            "start": 462.25,
+            "dur": 0.125,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 90,
+            "start": 462.625,
+            "dur": 0.25,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 93,
+            "start": 462.625,
+            "dur": 0.5,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 88,
+            "start": 463.375,
+            "dur": 0.25,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 91,
+            "start": 463.375,
+            "dur": 0.5,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 76,
+            "start": 464.125,
+            "dur": 0.5,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 79,
+            "start": 464.625,
+            "dur": 0.125,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 88,
+            "start": 464.875,
+            "dur": 0.25,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 76,
+            "start": 465,
+            "dur": 0.125,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 86,
+            "start": 465.75,
+            "dur": 0.25,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 90,
+            "start": 465.75,
+            "dur": 1.125,
+            "vel": 80,
+            "hand": "R"
+          }
+        ],
+        "hands": {
+          "R": {
+            "count": 14,
+            "minSeconds": 0.0625,
+            "p01Seconds": 0.070625,
+            "p05Seconds": 0.103125,
+            "p10Seconds": 0.125,
+            "p25Seconds": 0.1875,
+            "medianIoiSeconds": 0.25,
+            "p75Seconds": 0.375,
+            "p90Seconds": 0.375,
+            "p95Seconds": 0.396875,
+            "meanSeconds": 0.263393,
+            "rapidIoiCount": 1,
+            "rapidIoiFraction": 0.071429,
+            "attacksPerSecond": 0.064257,
+            "maxShortWindowAttacksPerSecond": 8,
+            "noteCount": 21,
+            "onsetCount": 15,
+            "maxSimultaneous": 3,
+            "maxSounding": 3,
+            "worstAttackWindow": {
+              "startSeconds": 232.0625,
+              "endSeconds": 232.5625,
+              "attacks": 4
+            },
+            "maxChordSpanSemitones": 8,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 230.9375,
+              "semitones": 24,
+              "gapSeconds": 0.25
+            }
+          },
+          "L": {
+            "count": 0,
+            "minSeconds": null,
+            "p01Seconds": null,
+            "p05Seconds": null,
+            "p10Seconds": null,
+            "p25Seconds": null,
+            "medianIoiSeconds": null,
+            "p75Seconds": null,
+            "p90Seconds": null,
+            "p95Seconds": null,
+            "meanSeconds": null,
+            "rapidIoiCount": 0,
+            "rapidIoiFraction": 0,
+            "attacksPerSecond": 0,
+            "maxShortWindowAttacksPerSecond": 0,
+            "noteCount": 0,
+            "onsetCount": 0,
+            "maxSimultaneous": 0,
+            "maxSounding": 0,
+            "worstAttackWindow": null,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": null
+          }
+        }
+      },
+      "after": {
+        "notes": [
+          {
+            "midi": 67,
+            "start": 458.375,
+            "dur": 0.25,
+            "vel": 80,
+            "hand": "L"
+          },
+          {
+            "midi": 76,
+            "start": 458.75,
+            "dur": 0.625,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 79,
+            "start": 458.75,
+            "dur": 0.875,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 84,
+            "start": 458.75,
+            "dur": 1,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 60,
+            "start": 458.875,
+            "dur": 0.375,
+            "vel": 80,
+            "hand": "L"
+          },
+          {
+            "midi": 72,
+            "start": 459.625,
+            "dur": 0.25,
+            "vel": 80,
+            "hand": "L"
+          },
+          {
+            "midi": 79,
+            "start": 460.375,
+            "dur": 0.25,
+            "vel": 80,
+            "hand": "L"
+          },
+          {
+            "midi": 64,
+            "start": 461.125,
+            "dur": 0.375,
+            "vel": 80,
+            "hand": "L"
+          },
+          {
+            "midi": 71,
+            "start": 461.375,
+            "dur": 0.25,
+            "vel": 80,
+            "hand": "L"
+          },
+          {
+            "midi": 76,
+            "start": 461.875,
+            "dur": 0.375,
+            "vel": 80,
+            "hand": "L"
+          },
+          {
+            "midi": 91,
+            "start": 461.875,
+            "dur": 0.25,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 95,
+            "start": 461.875,
+            "dur": 0.375,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 78,
+            "start": 462.25,
+            "dur": 0.125,
+            "vel": 80,
+            "hand": "L"
+          },
+          {
+            "midi": 90,
+            "start": 462.625,
+            "dur": 0.25,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 93,
+            "start": 462.625,
+            "dur": 0.5,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 76,
+            "start": 463,
+            "dur": 0.25,
+            "vel": 80,
+            "hand": "L"
+          },
+          {
+            "midi": 64,
+            "start": 463.375,
+            "dur": 0.375,
+            "vel": 80,
+            "hand": "L"
+          },
+          {
+            "midi": 88,
+            "start": 463.375,
+            "dur": 0.25,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 91,
+            "start": 463.375,
+            "dur": 0.5,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 71,
+            "start": 463.75,
+            "dur": 0.125,
+            "vel": 80,
+            "hand": "L"
+          },
+          {
+            "midi": 76,
+            "start": 464.125,
+            "dur": 0.5,
+            "vel": 80,
+            "hand": "L"
+          },
+          {
+            "midi": 90,
+            "start": 464.5,
+            "dur": 0.5,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 79,
+            "start": 464.625,
+            "dur": 0.125,
+            "vel": 80,
+            "hand": "L"
+          },
+          {
+            "midi": 88,
+            "start": 464.875,
+            "dur": 0.25,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 76,
+            "start": 465,
+            "dur": 0.125,
+            "vel": 80,
+            "hand": "L"
+          },
+          {
+            "midi": 62,
+            "start": 465.75,
+            "dur": 0.375,
+            "vel": 80,
+            "hand": "L"
+          },
+          {
+            "midi": 86,
+            "start": 465.75,
+            "dur": 0.25,
+            "vel": 80,
+            "hand": "R"
+          },
+          {
+            "midi": 90,
+            "start": 465.75,
+            "dur": 1.125,
+            "vel": 80,
+            "hand": "R"
+          }
+        ],
+        "hands": {
+          "R": {
+            "count": 6,
+            "minSeconds": 0.1875,
+            "p01Seconds": 0.196875,
+            "p05Seconds": 0.234375,
+            "p10Seconds": 0.28125,
+            "p25Seconds": 0.375,
+            "medianIoiSeconds": 0.40625,
+            "p75Seconds": 0.53125,
+            "p90Seconds": 1.0625,
+            "p95Seconds": 1.3125,
+            "meanSeconds": 0.583333,
+            "rapidIoiCount": 0,
+            "rapidIoiFraction": 0,
+            "attacksPerSecond": 0.029987,
+            "maxShortWindowAttacksPerSecond": 4,
+            "noteCount": 13,
+            "onsetCount": 7,
+            "maxSimultaneous": 3,
+            "maxSounding": 3,
+            "worstAttackWindow": {
+              "startSeconds": 230.9375,
+              "endSeconds": 231.4375,
+              "attacks": 2
+            },
+            "maxChordSpanSemitones": 8,
+            "maxSoundingSpanSemitones": 8,
+            "worstTopVoiceLeap": {
+              "startSeconds": 230.9375,
+              "semitones": 11,
+              "gapSeconds": 1.5625
+            }
+          },
+          "L": {
+            "count": 14,
+            "minSeconds": 0.125,
+            "p01Seconds": 0.133125,
+            "p05Seconds": 0.165625,
+            "p10Seconds": 0.1875,
+            "p25Seconds": 0.1875,
+            "medianIoiSeconds": 0.25,
+            "p75Seconds": 0.375,
+            "p90Seconds": 0.375,
+            "p95Seconds": 0.375,
+            "meanSeconds": 0.263393,
+            "rapidIoiCount": 0,
+            "rapidIoiFraction": 0,
+            "attacksPerSecond": 0.064257,
+            "maxShortWindowAttacksPerSecond": 6,
+            "noteCount": 15,
+            "onsetCount": 15,
+            "maxSimultaneous": 1,
+            "maxSounding": 2,
+            "worstAttackWindow": {
+              "startSeconds": 230.5625,
+              "endSeconds": 231.0625,
+              "attacks": 3
+            },
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 7,
+            "worstTopVoiceLeap": {
+              "startSeconds": 230.5625,
+              "semitones": 15,
+              "gapSeconds": 0.375
+            }
+          }
+        }
+      },
+      "wholeSongAfter": {
+        "R": {
+          "count": 555,
+          "minSeconds": 0.0625,
+          "p01Seconds": 0.0625,
+          "p05Seconds": 0.0625,
+          "p10Seconds": 0.0625,
+          "p25Seconds": 0.1875,
+          "medianIoiSeconds": 0.375,
+          "p75Seconds": 0.4375,
+          "p90Seconds": 0.8125,
+          "p95Seconds": 1,
+          "meanSeconds": 0.437387,
+          "rapidIoiCount": 67,
+          "rapidIoiFraction": 0.120721,
+          "attacksPerSecond": 2.079476,
+          "maxShortWindowAttacksPerSecond": 10,
+          "noteCount": 805,
+          "onsetCount": 556,
+          "maxSimultaneous": 4,
+          "maxSounding": 4,
+          "worstAttackWindow": {
+            "startSeconds": 29.9375,
+            "endSeconds": 30.4375,
+            "attacks": 5
+          },
+          "maxChordSpanSemitones": 12,
+          "maxSoundingSpanSemitones": 12,
+          "worstTopVoiceLeap": {
+            "startSeconds": 57,
+            "semitones": 21,
+            "gapSeconds": 5.4375
+          }
+        },
+        "L": {
+          "count": 865,
+          "minSeconds": 0.0625,
+          "p01Seconds": 0.0625,
+          "p05Seconds": 0.1375,
+          "p10Seconds": 0.1875,
+          "p25Seconds": 0.1875,
+          "medianIoiSeconds": 0.1875,
+          "p75Seconds": 0.375,
+          "p90Seconds": 0.4375,
+          "p95Seconds": 0.7375,
+          "meanSeconds": 0.296893,
+          "rapidIoiCount": 10,
+          "rapidIoiFraction": 0.011561,
+          "attacksPerSecond": 3.238897,
+          "maxShortWindowAttacksPerSecond": 8,
+          "noteCount": 899,
+          "onsetCount": 866,
+          "maxSimultaneous": 2,
+          "maxSounding": 4,
+          "worstAttackWindow": {
+            "startSeconds": 101.1875,
+            "endSeconds": 101.6875,
+            "attacks": 4
+          },
+          "maxChordSpanSemitones": 12,
+          "maxSoundingSpanSemitones": 12,
+          "worstTopVoiceLeap": {
+            "startSeconds": 69.8125,
+            "semitones": 21,
+            "gapSeconds": 0.375
+          }
+        }
+      }
+    }
+  ],
+  "validation": "Both complete variant ladders validate; exact raw input notes preserved except proposed explicit hand labels."
+}

@@ -1,0 +1,48 @@
+{
+  "scope": "Eight linked WAV controls, decodable non-silent PCM within one sample of four seconds; no browser/user listening acceptance.",
+  "files": [
+    {
+      "file": "metallica-new-before.wav",
+      "durationSeconds": 4.0,
+      "rms": 0.17583564325316958
+    },
+    {
+      "file": "metallica-new-candidate.wav",
+      "durationSeconds": 4.0,
+      "rms": 0.10921140549717318
+    },
+    {
+      "file": "metallica-accepted-before.wav",
+      "durationSeconds": 4.000045351473923,
+      "rms": 0.10653441951573632
+    },
+    {
+      "file": "metallica-accepted-candidate.wav",
+      "durationSeconds": 4.000045351473923,
+      "rms": 0.16113320854538984
+    },
+    {
+      "file": "queen-before.wav",
+      "durationSeconds": 4.0,
+      "rms": 0.1748969166497891
+    },
+    {
+      "file": "queen-candidate.wav",
+      "durationSeconds": 4.0,
+      "rms": 0.17594471122954028
+    },
+    {
+      "file": "acdc-before.wav",
+      "durationSeconds": 4.0,
+      "rms": 0.11862574667866092
+    },
+    {
+      "file": "acdc-candidate.wav",
+      "durationSeconds": 4.000045351473923,
+      "rms": 0.11577102034540963
+    }
+  ],
+  "bytes": 2838992,
+  "httpVerification": "Localhost returned HTTP200 and exact file bytes for review.html, metrics.json and all8 WAV files.",
+  "browserVerification": "Attempt blocked by another Chrome extension UI; browser playback and listening acceptance not claimed."
+}

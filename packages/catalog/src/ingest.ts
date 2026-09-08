@@ -378,7 +378,7 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
   const calibrationSource: TempoSource = inp.tempo !== undefined
     ? "override"
     : transcription?.tempoSource
-      ?? (inp.contentType === "youtube" ? "detected" : "midi-meta");
+      ?? (inp.sourceArrangement?.sourceKind === "tutorial-preview" ? "default" : inp.contentType === "youtube" ? "detected" : "midi-meta");
   const tempoProvenance = {
     calibration: { bpm: parsed.tempoBpm, source: calibrationSource, resolvedAt, role: "source-calibration" as const },
     playback: { bpm: parsed.tempoBpm, source: calibrationSource, resolvedAt, role: "playback" as const },

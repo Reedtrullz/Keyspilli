@@ -3,7 +3,7 @@ import Database from "better-sqlite3";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { claimJob, renewJobLease, ownsJobLease, deleteBaseRows, getDb, getJob, getQueuedJobs, insertJob, requeueOrphaned, updateJob, upsertSong } from "../src/db.js";
+import { claimJob, renewJobLease, ownsJobLease, deleteBaseRows, getDb, getJob, getQueuedJobs, insertJob, enqueueImportJob, requeueOrphaned, updateJob, upsertSong } from "../src/db.js";
 import type { JobRow, SongRow } from "../src/db.js";
 
 // Fresh data dir per test run; db.ts caches its connection, so this must be
@@ -148,4 +148,19 @@ describe("conversion jobs", () => {
     expect(getJob("job-keep-1")).toBeDefined();
     expect(getDb().prepare("SELECT id FROM songs WHERE base_id = ?").all("del-base")).toEqual([]);
   });
+});
+
+it("coalesces queued and processing new imports but preserves retries and existing-song jobs", () => {
+  const base = { ...job("dedup-first", "queued"), youtubeUrl: "https://www.youtube.com/watch?v=abcdefghijk" };
+  expect(enqueueImportJob(base)).toBe(base.id);
+  expect(enqueueImportJob({ ...base, id: "dedup-second" })).toBe(base.id);
+  expect(getJob("dedup-second")).toBeUndefined();
+  claimJob(base.id);
+  expect(enqueueImportJob({ ...base, id: "dedup-third" })).toBe(base.id);
+  updateJob(base.id, { status: "error" });
+  expect(enqueueImportJob({ ...base, id: "dedup-retry" })).toBe("dedup-retry");
+  updateJob("dedup-retry", { status: "done", songId: "new-song-e" });
+  insertJob({ ...base, id: "existing-song-job", songId: "existing-e" });
+  expect(enqueueImportJob({ ...base, id: "dedup-fresh" })).toBe("dedup-fresh");
+  expect(() => enqueueImportJob({ ...base, songId: "existing-e" })).toThrow("new import");
 });

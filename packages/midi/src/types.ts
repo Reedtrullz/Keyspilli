@@ -10,6 +10,8 @@ export interface Note {
   /** 0-127 */
   vel: number;
   hand?: Hand;
+  /** Neutral tutorial track label, retained for opt-in source hand inference. */
+  sourceLane?: string;
   /** Source lane for role-aware learner arrangement; absent on legacy notes. */
   identitySource?: "vocals" | "guitar" | "other";
   /** optional lyric syllable for this note */

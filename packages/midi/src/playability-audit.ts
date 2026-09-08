@@ -36,6 +36,12 @@ export interface PlayabilityHandMetrics extends PlayabilityIoiSummary {
   onsetCount: number;
   maxSimultaneous: number;
   maxSounding: number;
+  /** Half-open 0.5s window, earliest maximum; chords count as one attack. */
+  worstAttackWindow: { startSeconds: number; endSeconds: number; attacks: number } | null;
+  maxChordSpanSemitones: number;
+  maxSoundingSpanSemitones: number;
+  /** Adjacent highest-note movement, not a fingering or hand-position claim. */
+  worstTopVoiceLeap: { startSeconds: number; semitones: number; gapSeconds: number } | null;
 }
 
 export interface PlayabilityRapidRegion {
@@ -160,17 +166,21 @@ function maxSounding(notes: readonly Note[]): number {
   return maximum;
 }
 
-function maxShortWindowAttacksPerSecond(starts: readonly number[], tempoBpm: number): number {
-  if (!starts.length || !Number.isFinite(tempoBpm) || tempoBpm <= 0) return 0;
+function worstAttackWindow(starts: readonly number[], tempoBpm: number): PlayabilityHandMetrics["worstAttackWindow"] {
+  if (!starts.length || !Number.isFinite(tempoBpm) || tempoBpm <= 0) return null;
   const seconds = starts.map((start) => start * 60 / tempoBpm);
   const window = PLAYABILITY_AUDIT_CONFIG.shortWindowSeconds;
   let right = 0;
   let maximum = 0;
+  let startSeconds = 0;
   for (let left = 0; left < seconds.length; left++) {
     while (right < seconds.length && seconds[right]! - seconds[left]! < window - 1e-9) right++;
-    maximum = Math.max(maximum, right - left);
+    if (right - left > maximum) {
+      maximum = right - left;
+      startSeconds = seconds[left]!;
+    }
   }
-  return round(maximum / window);
+  return { startSeconds: round(startSeconds), endSeconds: round(startSeconds + window), attacks: maximum };
 }
 
 function ioiSummary(notes: readonly Note[], tempoBpm: number, durationSeconds: number): PlayabilityIoiSummary {
@@ -193,19 +203,46 @@ function ioiSummary(notes: readonly Note[], tempoBpm: number, durationSeconds: n
     rapidIoiCount,
     rapidIoiFraction: count ? round(rapidIoiCount / count) : 0,
     attacksPerSecond: durationSeconds > 0 ? round(starts.length / durationSeconds) : 0,
-    maxShortWindowAttacksPerSecond: maxShortWindowAttacksPerSecond(starts, tempoBpm),
+    maxShortWindowAttacksPerSecond: round((worstAttackWindow(starts, tempoBpm)?.attacks ?? 0) / PLAYABILITY_AUDIT_CONFIG.shortWindowSeconds),
   };
 }
 
 function handMetrics(notes: readonly Note[], tempoBpm: number, durationSeconds: number): PlayabilityHandMetrics {
   const groups = notesByExactStart(notes);
   const summary = ioiSummary(notes, tempoBpm, durationSeconds);
+  const span = (members: readonly Note[]) => members.length
+    ? Math.max(...members.map((note) => note.midi)) - Math.min(...members.map((note) => note.midi)) : 0;
+  let maxSoundingSpanSemitones = 0;
+  // ponytail: scan held notes; use a pitch-count sweep if dense sustained imports make this costly.
+  let active: Note[] = [];
+  for (const note of [...notes].sort((a, b) => a.start - b.start)) {
+    active = active.filter((held) => held.start + held.dur > note.start);
+    active.push(note);
+    maxSoundingSpanSemitones = Math.max(maxSoundingSpanSemitones, span(active));
+  }
+  let worstTopVoiceLeap: PlayabilityHandMetrics["worstTopVoiceLeap"] = null;
+  for (let index = 1; index < groups.length; index++) {
+    const previous = groups[index - 1]!;
+    const current = groups[index]!;
+    const semitones = Math.abs(Math.max(...current.map((note) => note.midi)) - Math.max(...previous.map((note) => note.midi)));
+    if (worstTopVoiceLeap === null || semitones > worstTopVoiceLeap.semitones) {
+      worstTopVoiceLeap = {
+        startSeconds: round(Number(current[0]!.start.toFixed(3)) * 60 / tempoBpm),
+        semitones,
+        gapSeconds: round((Number(current[0]!.start.toFixed(3)) - Number(previous[0]!.start.toFixed(3))) * 60 / tempoBpm),
+      };
+    }
+  }
   return {
     ...summary,
     noteCount: notes.length,
     onsetCount: groups.length,
     maxSimultaneous: Math.max(0, ...groups.map((group) => group.length)),
     maxSounding: maxSounding(notes),
+    worstAttackWindow: worstAttackWindow(exactOnsetStarts(notes), tempoBpm),
+    maxChordSpanSemitones: Math.max(0, ...groups.map(span)),
+    maxSoundingSpanSemitones,
+    worstTopVoiceLeap,
   };
 }
 

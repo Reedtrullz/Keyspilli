@@ -34,6 +34,7 @@ it("runs queued preview through ingest with honest source provenance",async()=>{
  expect(getSongsByBase("preview-preview-success")).toHaveLength(6);
  const manifest=await readArrangementManifest("preview-preview-success");
  expect(manifest.status).toBe("valid");
+ if(manifest.status==="valid")expect(manifest.manifest.tempo?.playback.source).toBe("default");
  if(manifest.status==="valid")expect(manifest.manifest.sourceArrangement).toMatchObject({sourceKind:"tutorial-preview",license:"unverified",containsMelody:null});
 });
 it("does not ingest an unsupported tutorial",async()=>{

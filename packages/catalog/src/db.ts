@@ -496,6 +496,19 @@ export function insertJob(j: JobRow): void {
     .run({ ...j, attempts: j.attempts ?? 0 });
 }
 
+/** Atomically reuse an active new import across web processes. Existing-song jobs stay separate. */
+export function enqueueImportJob(j: JobRow): string {
+  if (j.status !== "queued" || j.songId !== null) throw new Error("expected a queued new import");
+  const db = getDb();
+  return db.transaction(() => {
+    const active = db.prepare("SELECT id FROM conversion_jobs WHERE youtube_url = ? AND song_id IS NULL AND status IN ('queued','processing') ORDER BY created_at DESC LIMIT 1")
+      .get(j.youtubeUrl) as { id: string } | undefined;
+    if (active) return active.id;
+    insertJob(j);
+    return j.id;
+  }).immediate();
+}
+
 export function updateJob(id: string, patch: Partial<Pick<JobRow, "status" | "songId" | "error" | "attempts" | "finishedAt">>, owner?: string): boolean {
   const sets: string[] = [];
   const params: Record<string, unknown> = { id };

@@ -1,0 +1,18 @@
+# Separate extraction candidate; does not run or enable the production worker.
+FROM python:3.12-slim-bookworm@sha256:782412e85d0f0984994c290652577d4018aff08145c85b262bb63dc0c7522254
+WORKDIR /app
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 \
+    MPLBACKEND=Agg SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy HOME=/tmp
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg libfluidsynth3 libgl1 libegl1 libasound2 libjack-jackd2-0 \
+    && rm -rf /var/lib/apt/lists/*
+COPY services/transcribe/requirements-tutorial.txt /app/requirements.txt
+# Resolve declared dependencies, then fail on inconsistency: never conceal gaps with --no-deps.
+RUN pip install --no-cache-dir --require-hashes -r /app/requirements.txt && pip check
+COPY services/transcribe/src/tutorial_keys.py services/transcribe/src/tutorial_timing.py /app/src/
+COPY services/transcribe/test/test_tutorial_keys.py services/transcribe/test/test_tutorial_timing.py /app/test/
+RUN python -c "from lumachords.keybed_detector import KeybedDetector; from lumachords.image_input import ImagePreprocessor; from lumachords.preferences import Preferences; from lumachords.runtime_config import RuntimeConfig, AppMode, ProdMode, LogLevel; KeybedDetector(Preferences(), RuntimeConfig(AppMode.HEADLESS, ProdMode.PROD, LogLevel.LOGLEVEL_NONE)).init_state()"
+RUN python -m unittest discover -s /app/test -p 'test_tutorial_*.py'
+USER 65532:65532
+ENTRYPOINT ["python", "/app/src/tutorial_keys.py"]
+CMD ["--help"]

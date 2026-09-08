@@ -1,0 +1,81 @@
+{
+  "scope": "Existing original extracted raw source MIDI; includes three HTTP structural candidates and five prior raw artifacts. No layout-check regeneration. Musical user acceptance is not inferred from structural validity.",
+  "hashDefinition": "SHA256 of JSON.stringify(parseMidi(bytes).notes) using repository parser; byte hash independently freezes source.",
+  "rows": [
+    {
+      "name": "metallica",
+      "inputUrl": "https://www.youtube.com/watch?v=tAGnKpE4NCI",
+      "selectedUrl": "https://www.youtube.com/watch?v=DzAGQbvDpns",
+      "path": "output/tutorial-recovery/complete-pipeline/transcribed/job-029f5d64-1975-4469-8aee-c64d5c6323c8/tutorial/DzAGQbvDpns/extracted.mid",
+      "sha256": "a3c55cdb4f26ff55c2d4ffe1965b217ad52fad15557e540912fe956d5a8b0809",
+      "notes": 1714,
+      "noteEventsSha256": "b3718617f48d01ddea1b2823adb5614fd3bf3b211cd6a6e126318bb3f6eeed43",
+      "acceptance": "prior-http-structural-only; human listening acceptance unknown"
+    },
+    {
+      "name": "acdc",
+      "inputUrl": "https://www.youtube.com/watch?v=pAgnJDJN4VA",
+      "selectedUrl": "https://www.youtube.com/watch?v=vo2EKse1FUM",
+      "path": "output/tutorial-recovery/complete-pipeline/transcribed/job-d7e123bf-ee97-441e-b226-0cc84e55bc65/tutorial/vo2EKse1FUM/extracted.mid",
+      "sha256": "073d25991b988a486aab6dd9b6140cae8fe3ffd770600808d346aa36b7160b3f",
+      "notes": 886,
+      "noteEventsSha256": "c9f3f489dfdeaa69f03dc64e459057fb5279a26da3c6a9f7f5264fe5166dbf31",
+      "acceptance": "prior-http-structural-only; human listening acceptance unknown"
+    },
+    {
+      "name": "nirvana",
+      "inputUrl": "https://www.youtube.com/watch?v=vabnZ9-ex7o",
+      "selectedUrl": "https://www.youtube.com/watch?v=YbCciu_p9VA",
+      "path": "output/tutorial-recovery/complete-pipeline/transcribed/job-b7d20eff-acde-4e64-8bdc-0cbfe9f31a16/tutorial/YbCciu_p9VA/extracted.mid",
+      "sha256": "a3050c33367106580d00af5e68bca9e3d781c01afc920b21aa6444d4dc58d3fa",
+      "notes": 1523,
+      "noteEventsSha256": "39ac8beabcc58e3d647a2b9e58837462604b28ef3d5da473a8812b1836e8387d",
+      "acceptance": "prior-http-structural-only; human listening acceptance unknown"
+    },
+    {
+      "name": "bohemian-keys",
+      "path": "output/tutorial-recovery/bohemian-keys.mid",
+      "sha256": "4020a69639254678c8b687d56de60c23c77040252b07e46b91898b5890a959f3",
+      "notes": 2374,
+      "noteEventsSha256": "eab38ef8532b2d702a789cd04fd6835488a63735a43020de16a4849137274143",
+      "acceptance": "existing raw baseline requested for preservation; user musical acceptance unknown",
+      "partial": false
+    },
+    {
+      "name": "nothing-else-matters",
+      "path": "output/tutorial-recovery/nothing-else-matters.mid",
+      "sha256": "ff2ab9d93e23e2c7f55cbbee5ff0fd0735926cf472e02a601db4840c60139539",
+      "notes": 1989,
+      "noteEventsSha256": "5cc39e8152600d44dddd79363ea26e708e8358237ea123ecb4b2a3c8264c0dca",
+      "acceptance": "existing raw baseline requested for preservation; user musical acceptance unknown",
+      "partial": false
+    },
+    {
+      "name": "in-my-mind",
+      "path": "output/tutorial-recovery/in-my-mind.mid",
+      "sha256": "1fce85cc09e5213da136419163f5952b9ea019d0a10a0e4e1ceb3b25e7889aa5",
+      "notes": 514,
+      "noteEventsSha256": "e12abd03535957dd35f2fec8fc6d009d63b0973335083a8a7341db789677e76f",
+      "acceptance": "existing raw baseline requested for preservation; user musical acceptance unknown",
+      "partial": false
+    },
+    {
+      "name": "just-tonight-partial-v1",
+      "path": "output/tutorial-recovery/just-tonight-partial-v1.mid",
+      "sha256": "7fd99f54c33f7902715312f2e4dca45d790471107876c0cd27406921debd22bf",
+      "notes": 915,
+      "noteEventsSha256": "2a849cde0d9c012332bb4a7fa3b856414b3ea5b43cb800834bb6ccc07fb0026c",
+      "acceptance": "existing raw baseline requested for preservation; user musical acceptance unknown",
+      "partial": true
+    },
+    {
+      "name": "for-i-am-death-pipeline/khDfiL16CTg/extracted",
+      "path": "output/tutorial-recovery/for-i-am-death-pipeline/khDfiL16CTg/extracted.mid",
+      "sha256": "4531d908fcf33e4e31028558a70f72e4340e041ac637c0a531903919e46f7bf7",
+      "notes": 999,
+      "noteEventsSha256": "0c05ba1dba3b6a3843dc9780dab3b007326483975e4b08a215cfcfb973192f4c",
+      "acceptance": "existing raw baseline requested for preservation; user musical acceptance unknown",
+      "partial": false
+    }
+  ]
+}

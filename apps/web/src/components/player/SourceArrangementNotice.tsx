@@ -7,6 +7,7 @@ export function SourceArrangementNotice({ source }: { source?: SourceArrangement
     <span className="font-semibold">Source-assisted beta</span>
     {" · "}{source.sourceKind === "tutorial-preview" ? "Tutorial preview — melody inclusion and source rights unverified" : source.containsMelody ? "Melody included" : "Accompaniment only — no vocal melody"}
     <div>Arrangement: {source.arrangementTitle}. Timing follows this arrangement.</div>
+    {source.sourceKind === "tutorial-preview" && <div>Beat and measure positions are provisional. The displayed BPM has not been musically verified.</div>}
     <div className="flex flex-wrap gap-x-3">
       <a className="underline" href={source.actualSourceUrl} target="_blank" rel="noreferrer">Selected arrangement source</a>
       <a className="underline" href={source.requestedUrl} target="_blank" rel="noreferrer">Requested recording</a>

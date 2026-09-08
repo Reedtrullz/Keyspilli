@@ -1,0 +1,10 @@
+**
+!services/
+!services/transcribe/
+!services/transcribe/requirements-tutorial.txt
+!services/transcribe/src/
+!services/transcribe/src/tutorial_keys.py
+!services/transcribe/src/tutorial_timing.py
+!services/transcribe/test/
+!services/transcribe/test/test_tutorial_keys.py
+!services/transcribe/test/test_tutorial_timing.py
