@@ -406,8 +406,23 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   }, [settings.soundSource, settings.organStyle]);
 
   useEffect(() => {
-    engineRef.current?.setSettings(settings);
-  }, [settings]);
+    const engine = engineRef.current;
+    if (!engine) return;
+    const speedChanged = engine.settings.speed !== settings.speed;
+    const position = engine.time * engine.settings.speed / settings.speed;
+    const wasPlaying = engine.playing;
+    // Seconds change with speed; the musical beat must not. Install the new
+    // timeline before seeking so the old duration cannot clamp the position.
+    if (speedChanged) engine.stop();
+    engine.setSettings(settings);
+    if (speedChanged) {
+      engine.setNotes(notes, duration);
+      engine.setLoop(loop);
+      engine.seek(position);
+      if (wasPlaying) engine.start();
+      syncTransportState();
+    }
+  }, [settings, notes, duration, loop]);
 
   // Discrete events (play/pause/seek) still update React state so buttons
   // and progress bar re-render; per-frame engine ticks only touch refs.

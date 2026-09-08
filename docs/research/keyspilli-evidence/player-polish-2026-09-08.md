@@ -43,3 +43,9 @@ The accepted live review is the primary before-state; [local integration baselin
 - Chord practice truthfully describes its existing window of up to four bars, independently of the scored loop scope. Shift+H hears the chord; H remains the A-note key.
 - Dense note-letter circles can still overlap because the underlying arrangement/notation layout is unchanged. Repeated clef changes and arrangement simplification remain a separate engraving/learning-quality investigation.
 - No merge or deployment performed. The original checkout and its unrelated catalogue/transcription WIP were preserved. Private preview data stays local and ignored by Git.
+
+## Follow-up: preserve the bar when changing speed
+
+Reproduced the reported jump in both paused and playing states: at 20 seconds, choosing 50% changed bar 4 to bar 2. Notes and loop seconds were rescaled, but transport seconds stayed fixed. The shared Player settings synchronization now preserves `oldTime * oldSpeed / newSpeed`, installing the new duration and loop before seeking and restoring the prior playback state.
+
+Added two browser regressions cycling 50%, 75%, and 100%. Both failed before the fix. Afterward all 22 player UI browser checks passed against the rebuilt production app; all 175 web tests and web typecheck/build passed. Local preview rebuilt and restarted; existing browser tabs need a reload to load the fix. No deployment.

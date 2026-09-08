@@ -331,3 +331,21 @@ test("practice remains keyboard accessible with reduced motion and 200% CSS zoom
   await expect(page.getByRole("dialog", { name: "Set up practice" })).toHaveCount(0);
   await expect(practice).toBeFocused();
 });
+
+for (const playing of [false, true]) {
+  test(`speed preserves the musical position while ${playing ? "playing" : "paused"}`, async ({ page }) => {
+    await page.goto(`/player/${SONG}`);
+    await page.getByLabel("Seek").fill("20");
+    if (playing) await page.getByRole("button", { name: "Play", exact: true }).click();
+    const bar = page.getByRole("spinbutton", { name: "Bar", exact: true });
+    const originalBar = await bar.inputValue();
+    for (const [label, speed] of [["50%", 0.5], ["75%", 0.75], ["100%", 1]] as const) {
+      await page.getByRole("button", { name: label, exact: true }).click();
+      await expect(bar).toHaveValue(originalBar);
+      const musicalSeconds = Number(await page.getByLabel("Seek").inputValue()) * speed;
+      expect(musicalSeconds).toBeGreaterThanOrEqual(19.99);
+      expect(musicalSeconds).toBeLessThan(22);
+      await expect(page.getByRole("button", { name: playing ? "Pause" : "Play", exact: true })).toBeVisible();
+    }
+  });
+}
