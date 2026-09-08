@@ -68,22 +68,24 @@ export function matchesIdentity(actual: {title?:string;artist?:string}, expected
  const normalize=(s:string)=>s.normalize('NFKD').toLowerCase().replace(/^the /,'').replace(/[^a-z0-9]/g,'');
  return typeof actual.title==='string' && typeof actual.artist==='string' && normalize(actual.title)===normalize(expected.expectedTitle) && normalize(actual.artist)===normalize(expected.expectedArtist);
 }
+export async function loadSealedManifest(path=resolve(repoRoot,'docs/research/keyspilli-evidence/tutorial-evaluation-manifest.json')) {
+ if(!path.endsWith('.json')) throw Error('manifest must be a JSON file');
+ const manifestBytes=await readFile(path);
+ const frozenHash=(await readFile(path.slice(0,-5)+'.sha256','utf8')).split(/\s/)[0]!;
+ if(hash(manifestBytes)!==frozenHash) throw Error('MANIFEST_CHANGED: frozen hash mismatch');
+ return {manifestBytes,frozenHash};
+}
 export async function main() {
  const [originArg, outputArg, limitArg='1', split='development',candidatePath]=process.argv.slice(2);
+ const {manifestBytes,frozenHash}=await loadSealedManifest(process.env.KEYSPILLI_EVALUATION_MANIFEST);
  if(originArg==='--freeze-candidate') {
   if(!outputArg) throw Error('candidate artifact path required');
-  const manifest=await readFile(new URL('../../../docs/research/keyspilli-evidence/tutorial-evaluation-manifest.json',import.meta.url));
-  const seal=(await readFile(new URL('../../../docs/research/keyspilli-evidence/tutorial-evaluation-manifest.sha256',import.meta.url),'utf8')).split(/\s/)[0];
-  if(hash(manifest)!==seal) throw Error('MANIFEST_CHANGED');
-  await writeFile(resolve(outputArg),JSON.stringify({version:1,createdAt:new Date().toISOString(),manifestSha256:seal,files:await candidateHashes()},null,2)+'\n',{flag:'wx'});return;
+  await writeFile(resolve(outputArg),JSON.stringify({version:1,createdAt:new Date().toISOString(),manifestSha256:frozenHash,files:await candidateHashes()},null,2)+'\n',{flag:'wx'});return;
  }
  if(!originArg || !outputArg) throw Error('Usage: tsx evaluate-tutorial-pipeline.ts LOCAL_ORIGIN NEW_OUTPUT_DIR [limit|ids=01,02] [development|heldout] [CANDIDATE_FREEZE.json]');
  if(split==='heldout' && !candidatePath) throw Error('HELDOUT_SEALED: candidate freeze artifact required');
  const origin=new URL(originArg);
  if(!['127.0.0.1','localhost','[::1]'].includes(origin.hostname) || origin.protocol!=='http:') throw Error('local isolated preview required');
- const manifestBytes=await readFile(new URL('../../../docs/research/keyspilli-evidence/tutorial-evaluation-manifest.json',import.meta.url));
- const frozenHash=(await readFile(new URL('../../../docs/research/keyspilli-evidence/tutorial-evaluation-manifest.sha256',import.meta.url),'utf8')).split(/\s/)[0];
- if(hash(manifestBytes)!==frozenHash) throw Error('MANIFEST_CHANGED: frozen hash mismatch');
  const manifest=JSON.parse(manifestBytes.toString());
  const selected=selectSources(manifest.sources,limitArg,split);
  const candidateBytes=candidatePath?await readFile(resolve(candidatePath)):null;

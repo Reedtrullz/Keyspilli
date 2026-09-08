@@ -52,3 +52,18 @@ it('removes recording edition suffixes from track metadata without stripping son
   expect(tutorialIdentity({title,artist:'Metallica',track:'For Whom The Bell Tolls (Remastered)'})).toMatchObject({title:'For Whom The Bell Tolls',artist:'Metallica'});
  expect(tutorialIdentity({title:'Artist - Song',artist:'Artist',track:'Song (Part 2)'}).title).toBe('Song (Part 2)');
 });
+
+it('accepts compact slash-separated artist spelling without accepting artist substrings',()=>{
+ const target={artist:'AC/DC',title:'Thunderstruck'};
+ expect(matchesTutorialIdentity('ACDC - Thunderstruck (EASY Piano Tutorial) [Synthesia]',target)).toBe(true);
+ expect(matchesTutorialIdentity('NotACDC - Thunderstruck piano tutorial',target)).toBe(false);
+ expect(matchesTutorialIdentity('ACDC - Back In Black piano tutorial',target)).toBe(false);
+});
+
+it('tries an explicit visual tutorial before a more popular plain piano cover',async()=>{
+ const {compareTutorialCandidates}=await import('../src/tutorial-route.js');
+ const cover={videoId:'cover123456',url:'https://youtu.be/cover123456',title:'Artist - Song (Piano cover)',uploader:'Artist',durationSeconds:200,isLive:false,score:75,reasons:[]};
+ const tutorial={...cover,videoId:'tutor123456',url:'https://youtu.be/tutor123456',title:'Artist - Song Piano Tutorial',score:60};
+ expect([cover,tutorial].sort((a,b)=>compareTutorialCandidates(a,b,'original'))[0]).toBe(tutorial);
+ expect([tutorial,cover].sort((a,b)=>compareTutorialCandidates(a,b,cover.url))[0]).toBe(cover);
+});

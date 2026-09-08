@@ -32,6 +32,28 @@ class TutorialKeysTest(unittest.TestCase):
   note=m.key_events(rows,24000/1001,60)[0]
   self.assertAlmostEqual(note['startSec'],3*1001/24000)
   self.assertAlmostEqual(note['durationSec'],2*1001/24000)
+ def test_dim_red_key_is_not_rejected_as_an_unknown_color(self):
+  rows=np.zeros((20,3,3),dtype=np.uint8);rows[5:12]=[111,30,47]
+  self.assertEqual(m.key_events(rows,60,75),[{'midi':75,'startSec':5/60,'durationSec':7/60,'color':'red'}])
+ def test_dark_red_activations_require_an_observed_neutral_key(self):
+  for color in [[33,0,11],[41,2,11],[52,1,13],[53,3,13]]:
+   rows=np.full((30,3,3),[130,130,130],dtype=np.uint8);rows[10:20]=color
+   self.assertEqual(m.key_events(rows,60,60),[{'midi':60,'startSec':10/60,'durationSec':10/60,'color':'red'}])
+   self.assertEqual(m.key_events(np.full((30,3,3),color,dtype=np.uint8),60,60),[])
+ def test_geometry_color_fallback_keeps_the_original_frame_unchanged(self):
+  import asyncio
+  frame=np.full((10,10,3),[20,140,210],dtype=np.uint8);original=frame.copy()
+  async def detector(image,*args):
+   if not np.all(image==20):raise ValueError('lit black key width outlier')
+   self.assertTrue(np.all(image==20))
+   return {'bounds':[0,1,10,9]}
+  with patch.object(m,'_detect_geometry',new=detector,create=True):
+   result=asyncio.run(m.detect_geometry(frame,10,10,True))
+  self.assertEqual(result['colorMode'],'blue-channel')
+  np.testing.assert_array_equal(frame,original)
+ def test_warm_ivory_is_not_a_dark_red_note_after_a_neutral_flash(self):
+  rows=np.full((30,3,3),[250,220,200],dtype=np.uint8);rows[:6]=[240,240,240];rows[10:20]=[20,120,210]
+  self.assertEqual(m.key_events(rows,60,60),[{'midi':60,'startSec':10/60,'durationSec':10/60,'color':'blue'}])
  def test_green_key_at_end_is_closed_without_losing_onset(self):
   rows=np.zeros((12,3,3),dtype=np.uint8);rows[6:]=[20,210,80]
   self.assertEqual(m.key_events(rows,60,60),[{'midi':60,'startSec':.1,'durationSec':.1,'color':'green'}])
@@ -90,6 +112,15 @@ class TutorialKeysTest(unittest.TestCase):
  def test_missing_or_silent_audio_cannot_pass_completeness(self):
   for audio in [np.array([]),np.zeros(22050)]:
    with self.assertRaisesRegex(ValueError,'audio required'):m.audio_coverage([{'startSec':0,'durationSec':1}],audio)
+ def test_edge_width_noise_does_not_imply_key_movement(self):
+  import copy
+  c={'bounds':[0,500,1280,200],'keys':[{'midi_num':n} for n in range(21,109)],'edges':[[i*14,i*14+12] for i in range(88)]}
+  noisy=copy.deepcopy(c);noisy['edges'][32][1]-=3
+  self.assertTrue(m.geometry_matches(c,noisy,1280))
+  shifted=copy.deepcopy(c);shifted['edges'][32]=[v+3 for v in shifted['edges'][32]]
+  self.assertFalse(m.geometry_matches(c,shifted,1280))
+  distorted=copy.deepcopy(c);distorted['edges'][32][1]-=5
+  self.assertFalse(m.geometry_matches(c,distorted,1280))
  def test_geometry_comparison_rejects_movement_and_different_key_counts(self):
   import copy
   c={'bounds':[0,500,1280,200],'keys':[{'midi_num':n} for n in range(21,109)],'edges':[[i*10,i*10+8] for i in range(88)]}
@@ -105,7 +136,7 @@ class TutorialKeysTest(unittest.TestCase):
   a={'bounds':[0,560,1280,159],'keys':[{'midi_num':n} for n in range(21,24)],'edges':[[0,20],[10,25],[25,1276]]}
   b=copy.deepcopy(a);b['edges'][-1][1]=1279
   self.assertTrue(m.geometry_matches(a,b,1280))
-  b['edges'][1][1]+=3
+  b['edges'][1]=[v+3 for v in b['edges'][1]]
   self.assertFalse(m.geometry_matches(a,b,1280))
   b=copy.deepcopy(a);b['edges'][-1][1]=1270
   self.assertFalse(m.geometry_matches(a,b,1280))

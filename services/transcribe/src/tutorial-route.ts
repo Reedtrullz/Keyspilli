@@ -38,8 +38,14 @@ export function matchesTutorialIdentity(candidateTitle:string,target:{artist:str
  const excerptMarkers=candidateTitle.match(/\b(?:excerpt|snippet|chorus only|intro only|short version|part\s+\d+)\b/gi) ?? [];
  if(excerptMarkers.some(marker=>!words(target.title).includes(words(marker))))return false;
  const hay=' '+words(candidateTitle)+' ';
- return [target.artist.replace(/^the /i,''),cleanCatalogTitle(target.title,target.artist)]
-  .every(value=>{const phrase=words(value);return !!phrase && hay.includes(' '+phrase+' ');});
+ const artist=target.artist.replace(/^the /i,'');
+ const artistPhrases=[artist,artist.replace(/\//g,'')].map(words);
+ const title=words(cleanCatalogTitle(target.title,target.artist));
+ return artistPhrases.some(phrase=>!!phrase && hay.includes(' '+phrase+' ')) && !!title && hay.includes(' '+title+' ');
+}
+export function compareTutorialCandidates(a:ReturnType<typeof scoreCandidate>,b:ReturnType<typeof scoreCandidate>,requestedUrl:string) {
+ const visual=(title:string)=>Number(/tutorial|synthesia/i.test(title));
+ return Number(b.url===requestedUrl)-Number(a.url===requestedUrl) || visual(b.title)-visual(a.title) || b.score-a.score || a.videoId.localeCompare(b.videoId);
 }
 const tutorialSignal=/tutorial|synthesia|piano sheet music|piano (?:cover|transcription|arrangement)/i;
 
@@ -135,7 +141,7 @@ const candidates=[...direct,...discovered.filter(c=>!direct.some(d=>d.videoId===
   return ranked;
  })
  .filter(c=>c.score>-100 && !/reaction|mashup|remix|nightcore|sped up|slowed/i.test(c.title) && tutorialSignal.test(c.title) && matchesTutorialIdentity(c.title,target))
- .sort((a,b)=>Number(b.url===url)-Number(a.url===url)||b.score-a.score||a.videoId.localeCompare(b.videoId)).slice(0,6);
+ .sort((a,b)=>compareTutorialCandidates(a,b,url)).slice(0,6);
 Object.assign(receipt,{identity:target,identityEvidence:'YouTube metadata and title matching; not independent musical identification',candidates,status:'no-supported-source'});
 await writeFile(join(out,'receipt.json'),JSON.stringify(receipt,null,2));
 for(const c of candidates){

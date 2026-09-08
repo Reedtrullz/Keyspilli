@@ -20,7 +20,12 @@ def key_events(rgb, fps, pitch):
     green=(a[:,:,1]-a[:,:,0]>35)&(a[:,:,1]-a[:,:,2]>25)&(a[:,:,1]>85)
     yellow=(a[:,:,0]-a[:,:,2]>70)&(a[:,:,1]-a[:,:,2]>55)&(a[:,:,0]>120)&(a[:,:,1]>100)
     purple=(a[:,:,0]-a[:,:,1]>18)&(a[:,:,2]-a[:,:,1]>18)&(a[:,:,0]>100)&(a[:,:,2]>110)&(a[:,:,1]>60)
-    red=(a[:,:,0]>120)&(a[:,:,0]-a[:,:,1]>50)&(a[:,:,0]-a[:,:,2]>50)
+    red=(a[:,:,0]>100)&(a[:,:,0]-a[:,:,1]>50)&(a[:,:,0]-a[:,:,2]>50)
+    # Below the normal color floor, require a neutral inactive state and all three pixels.
+    neutral=((a.max(axis=2)-a.min(axis=2))<15).all(axis=1)
+    if neutral.sum()>=max(3,math.ceil(fps*.1)):
+        dark_red=(a[:,:,0]>25)&(a[:,:,0]<=100)&(a[:,:,0]-a[:,:,1]>25)&(a[:,:,0]-a[:,:,2]>20)
+        red=red|np.broadcast_to(dark_red.all(axis=1)[:,None],red.shape)
     colors={'blue':blue,'green':green,'yellow':yellow,'purple':purple,'red':red}
     supported=blue|green|yellow|purple|red
     unknown=((a.max(axis=2)-a.min(axis=2)>80)&(a.max(axis=2)>100)&~supported).sum(axis=1)>=2
@@ -61,7 +66,9 @@ def geometry_matches(a,b,width):
     # Strike-line glow can extend the detected top; columns and the bottom must stay fixed.
     return (max(abs(ax-bx),abs(aw-bw),abs(ay+ah-by-bh))<=tolerance
             and abs(ay-by)<=max(tolerance,min(12,.15*ah))
-            and np.max(difference)<=tolerance)
+            # Edge-width noise must not move a key's sampling centre.
+            and np.max(abs(edge_a.mean(axis=1)-edge_b.mean(axis=1)))<=tolerance
+            and np.max(difference)<=2*tolerance)
 
 
 def clip_boundary_keys(edges,width):
@@ -77,6 +84,23 @@ def clip_boundary_keys(edges,width):
 
 
 async def detect_geometry(frame,width,height,allow_relative):
+    try:
+        return await _detect_geometry(frame,width,height,allow_relative)
+    except ValueError:
+        # A lit black key can merge with its neighbours in weighted grayscale.
+        # Individual color channels retain contrast; every geometry check still applies.
+        import cv2
+        for channel,name in [(2,'red'),(1,'green'),(0,'blue')]:
+            neutral=cv2.cvtColor(frame[:,:,channel],cv2.COLOR_GRAY2BGR)
+            try:
+                result=await _detect_geometry(neutral,width,height,allow_relative)
+                return {**result,'colorMode':name+'-channel'}
+            except ValueError as error:
+                failure=error
+        raise failure
+
+
+async def _detect_geometry(frame,width,height,allow_relative):
     import cv2
     from lumachords.keybed_detector import KeybedDetector
     from lumachords.image_input import ImagePreprocessor

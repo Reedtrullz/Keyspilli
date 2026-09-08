@@ -78,3 +78,10 @@ Candidate frozen in output/tutorial-recovery/candidate-freeze-v1.json after fina
 ## Frozen candidate result — not releasable
 
 All10 held-out original links completed evaluation:4 structural candidates,6 terminal failures,0 invalid publications. Candidate hashes verified before and after the run. The8/10 gate failed. Musical acceptance remains pending, so successful exports are not counted as listening approval. Immutable receipt and candidate fingerprint copied into docs/research/keyspilli-evidence/tutorial-heldout-v1-2026-09-08.json and tutorial-candidate-freeze-v1-2026-09-08.json. Do not alter these receipts or tune against their sources. Further development must remain separate and cannot claim a fresh held-out score from this used cohort. No release.
+
+
+## Development repairs and fresh prospective freeze — 8 September 2026
+
+All20 original development links now have four-level structural candidates across repair runs, not a single frozen20/20 score. Fixed stationary keyboard edge-width noise, RGB-channel geometry fallback, bounded dim-red activation with neutral-state evidence, slashless AC/DC identity and explicit-tutorial ranking. Review caught warm-ivory false activation; bounded red intensity and regression now preserve blue events. Existing octave, unknown-colour and audio-gap vetoes remain.
+
+Validation:1841 workspace tests,32 Python checks,5 evaluator checks and workspace typechecks pass. Regeneration preserves24 accepted difficulty note files. Fresh prospective10 selected deterministically from a declared20-song pool excluding prior30 identities, with no replacements after execution. Metadata-only original-link selection and manifest sealed under output/tutorial-recovery/prospective-v2; candidate freeze verified before HTTP run. Evaluation active, no new result claimed. Original4/10 held-out receipt remains immutable. No Docker, merge or deploy.

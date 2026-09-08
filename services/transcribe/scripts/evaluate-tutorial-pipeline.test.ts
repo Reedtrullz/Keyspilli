@@ -41,3 +41,20 @@ test('eight candidates cannot pass when another input published the wrong identi
  expect(score(rows,10,cohort)).toMatchObject({completed:8,invalidPublications:1,releaseGate:false});
  expect(score(rows.map(r=>({...r,failureCode:'OTHER',invalidPublication:r.id==='8'})),10,cohort).releaseGate).toBe(false);
 });
+
+test('an additional corpus requires its own matching immutable seal',async()=>{
+ const {mkdtemp,writeFile,rm}=await import('node:fs/promises');
+ const {tmpdir}=await import('node:os');
+ const {join}=await import('node:path');
+ const {loadSealedManifest,hash}=await import('./evaluate-tutorial-pipeline.js');
+ const root=await mkdtemp(join(tmpdir(),'keyspilli-cohort-'));
+ try{
+  const path=join(root,'corpus.json');const bytes=JSON.stringify({sources:[]});
+  await writeFile(path,bytes);await writeFile(join(root,'corpus.sha256'),'wrong');
+  await expect(loadSealedManifest(path)).rejects.toThrow('MANIFEST_CHANGED');
+  await writeFile(join(root,'corpus.sha256'),hash(bytes));
+  expect((await loadSealedManifest(path)).frozenHash).toBe(hash(bytes));
+  await writeFile(path,bytes+' ');
+  await expect(loadSealedManifest(path)).rejects.toThrow('MANIFEST_CHANGED');
+ }finally{await rm(root,{recursive:true,force:true});}
+});
