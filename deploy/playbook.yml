@@ -345,14 +345,15 @@
       check_mode: false
       tags: [deploy, rollback]
 
-    - name: Align existing uploads with the shared application owner
+    - name: Align active file stores with the shared application owner
       ansible.builtin.file:
-        path: "{{ (current_containers.results[0].container.Mounts | selectattr('Destination', 'equalto', '/data') | first).Source }}/uploads"
+        path: "{{ (current_containers.results[0].container.Mounts | selectattr('Destination', 'equalto', '/data') | first).Source }}/{{ item }}"
         state: directory
         owner: "1000"
         group: "1000"
         recurse: true
         follow: false
+      loop: [uploads, artifacts]
       when: current_containers.results[0].exists | default(false)
       tags: [deploy]
 
