@@ -39,9 +39,12 @@ export function matchesTutorialIdentity(candidateTitle:string,target:{artist:str
  if(excerptMarkers.some(marker=>!words(target.title).includes(words(marker))))return false;
  const hay=' '+words(candidateTitle)+' ';
  const artist=target.artist.replace(/^the /i,'');
- const artistPhrases=[artist,artist.replace(/\//g,'')].map(words);
+ // Explicit collaboration markers permit reordered credits, but every full name is required.
+ // Do not split band names on commas, ampersands, or 'and'.
+ const artists=artist.split(/\s+(?:with|feat\.?|ft\.?|featuring)\s+/i);
+ const artistMatches=(name:string)=>[name,name.replace(/\//g,'')].map(words).some(phrase=>!!phrase && hay.includes(' '+phrase+' '));
  const title=words(cleanCatalogTitle(target.title,target.artist));
- return artistPhrases.some(phrase=>!!phrase && hay.includes(' '+phrase+' ')) && !!title && hay.includes(' '+title+' ');
+ return (artistMatches(artist) || artists.length>1 && artists.every(artistMatches)) && !!title && hay.includes(' '+title+' ');
 }
 export function compareTutorialCandidates(a:ReturnType<typeof scoreCandidate>,b:ReturnType<typeof scoreCandidate>,requestedUrl:string,snapshots:ReadonlySet<string>=new Set()) {
  const visual=(title:string)=>Number(/tutorial|synthesia/i.test(title));
