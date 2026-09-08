@@ -68,6 +68,7 @@ COPY --from=build /app/catalog/learner-review.json ./catalog/learner-review.json
 COPY --from=build /app/catalog/manifest.json ./catalog/manifest.json
 COPY --from=build /app/catalog/chord-sources.json ./catalog/chord-sources.json
 COPY --from=build /app/catalog/chord-timelines ./catalog/chord-timelines
+RUN mkdir -p /data/uploads && chown -R 1000:1000 /data
 VOLUME /data
 EXPOSE 3000
 CMD ["node", "apps/web/server.js"]
