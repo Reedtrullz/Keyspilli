@@ -413,3 +413,20 @@ test("loop shortcuts retain their musical range and respect the last bar", async
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await expect(page.getByLabel("Seek")).toHaveAttribute("aria-valuetext", new RegExp(`Bar ${max} of ${max}`));
 });
+
+test("chord guide explains its markers and preserves the existing preference", async ({ page }) => {
+  await page.goto(`/player/${SONG}`);
+  await page.getByRole("button", { name: "Adjust", exact: true }).click();
+  const guide = page.getByRole("button", { name: "Chord guide", exact: true });
+  await expect(guide).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("#chord-guide-description")).toContainText("not notes to press now");
+  await guide.click();
+  await expect(guide).toHaveAttribute("aria-pressed", "false");
+  await page.reload();
+  await page.getByRole("button", { name: "Adjust", exact: true }).click();
+  await expect(guide).toHaveAttribute("aria-pressed", "false");
+  await expect(page.locator(".falling-canvas")).not.toContainText("Chord guide");
+  await expect(page.locator(".falling-canvas")).toContainText("Top strip: next note");
+  await guide.click();
+  await expect(page.locator(".falling-canvas")).toContainText("Chord guide");
+});

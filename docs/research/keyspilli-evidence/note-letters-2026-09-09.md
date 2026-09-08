@@ -21,3 +21,11 @@ Added current-bar and next-four-bars loop shortcuts, a full-width loop editor, a
 Verified:175 web tests; production build/type validation;46 player/navigation browser checks. The new phone-width regression failed before implementation and now covers presets, final-bar clipping, stable loop-marker proportions after a speed change, and no horizontal page overflow. Desktop screenshot captured and reopened. The preceding note-letter commit's CI34284140678 passed; this follow-up is locally verified, not deployed.
 
 ![Loop editor](note-letters-2026-09-09/loop-editor-after.png)
+
+## Chord guide clarification and timing fix
+
+Renamed Chord Keys to Chord guide, preserving the existing preference key. Replaced full-key chord tinting with small indigo/white dots on exact voicing pitches; pressed-note colors and upcoming strips stay distinct. Added an overlay legend and explanation beside adjustments, including inferred-harmony guidance.
+
+Canvas active-chord selection now honors durationBeats exactly like ChordStrip, clearing cached voicing markers through explicit gaps. Legacy events still last until the next event. Actual draw-call regression covers white/black markers, exact duration end, next-event restoration and disabled guide; it failed before the change.176 web tests, production build/type validation and47 browser checks passed. Browser coverage verifies explanation and persisted toggle. Focus-mode screenshot at Chopin Advanced bar4 captured and reopened. No production deployment in this follow-up.
+
+![Chord guide](note-letters-2026-09-09/chord-guide-after.png)

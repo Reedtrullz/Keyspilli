@@ -1233,9 +1233,10 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
             hidden={settings.mode !== "falling"}
             onClick={() => updateSettings({ chordKeys: !settings.chordKeys })}
             aria-pressed={settings.chordKeys}
+            aria-describedby="chord-guide-description"
             className={`pressable min-h-11 px-3 py-2 rounded-full text-sm border ${settings.chordKeys ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300"}`}
           >
-            Chord Keys
+            Chord guide
           </button>
           <button
             onClick={() => updateSettings({ metronome: !settings.metronome })}
@@ -1271,6 +1272,10 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
               </button>
             )}
           </div>
+
+          {settings.mode === "falling" && <p id="chord-guide-description" className="order-last w-full text-xs text-zinc-600">
+            Chord guide dots show the current chord’s voicing in its assigned octaves, not notes to press now. Check the chord label for inferred harmony. Colored strips at the top of keys show upcoming notes.
+          </p>}
 
           <div className="player-secondary-actions ml-auto flex flex-wrap justify-end gap-2 text-sm">
             <button ref={settingsTriggerRef} disabled={grading} onClick={() => setShowSettings(true)} className="pressable min-h-11 px-4 py-2 rounded-full border border-zinc-300 font-medium hover:bg-zinc-100" aria-label="Open settings">

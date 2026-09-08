@@ -30,7 +30,7 @@ interface Props {
   playing: boolean;
   settings: PlayerSettings;
   pressedKeys: Map<number, number>;
-  chords: { beat: number; name: string; notes: number[] }[];
+  chords: { beat: number; name: string; notes: number[]; durationBeats?: number }[];
   tempoBpm: number;
   timeSig?: [number, number];
   lowMidi: number;
@@ -183,7 +183,13 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
 
       // --- Determine current chord ---
       const currentBeat = now / beatSec;
-      const activeChordEventIndex = lastFallingChordIndex(chordIndex, currentBeat);
+      const previousChordIndex = lastFallingChordIndex(chordIndex, currentBeat);
+      const previousChord = chordIndex.events[previousChordIndex];
+      // Match the chord strip: legacy events last until the next event, but
+      // explicit durations can leave a gap with no active harmony.
+      const activeChordEventIndex = previousChord && (previousChord.durationBeats === undefined
+        || (Number.isFinite(previousChord.durationBeats) && currentBeat < previousChord.beat + previousChord.durationBeats))
+        ? previousChordIndex : -1;
       if (chordIndex !== activeChordIndexSource || activeChordEventIndex !== activeChordIndex) {
         activeChordNotes.clear();
         if (activeChordEventIndex >= 0) {
@@ -268,23 +274,16 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
          ctx.lineWidth = 3;
          ctx.strokeRect(kx + 1, H - KB_H, w.w - 3, KB_H);
          ctx.fillStyle = "#78350f";
-       } else if (isChord) {
-         // Chord key: tinted body + thick colored strip + border
-          ctx.globalAlpha = 0.4;
-          ctx.fillStyle = pitchColor(w.midi);
-          ctx.fillRect(kx, H - KB_H, w.w - 1, KB_H);
-          ctx.globalAlpha = 1;
-          ctx.fillStyle = pitchColor(w.midi);
-          ctx.fillRect(kx, H - 44, w.w - 1, 44);
-          ctx.fillStyle = "#ffffff";
-          ctx.font = "700 13px system-ui, sans-serif";
-          ctx.strokeStyle = pitchColor(w.midi);
-          ctx.lineWidth = 2;
-          ctx.strokeRect(kx + 1, H - KB_H, w.w - 3, KB_H);
-        } else {
+       } else {
           ctx.fillStyle = pk.has(w.midi) ? "#ffffff" : "#52525b";
         }
         if (ctx.measureText(noteLabel(w.midi)).width + 4 <= w.w) ctx.fillText(noteLabel(w.midi), kx + w.w / 2, H - 18);
+        if (isChord && !isWait) {
+          ctx.beginPath();
+          ctx.arc(kx + w.w / 2, H - 36, Math.min(4, w.w / 4), 0, Math.PI * 2);
+          ctx.fillStyle = "#6366f1"; ctx.fill();
+          ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 1.5; ctx.stroke();
+        }
       }
      for (const b of kb.blacks) {
        const kx = b.x + LEFT_MARGIN;
@@ -298,18 +297,18 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
          ctx.strokeStyle = "#b45309";
          ctx.lineWidth = 3;
          ctx.strokeRect(kx, H - KB_H, b.w, KB_H * 0.62);
-       } else if (isChordB) {
-         ctx.fillStyle = pitchColor(b.midi);
-          ctx.fillRect(kx, H - KB_H, b.w, KB_H * 0.62);
-          ctx.strokeStyle = pitchColor(b.midi);
-          ctx.lineWidth = 2;
-          ctx.strokeRect(kx, H - KB_H, b.w, KB_H * 0.62);
+       }
+        if (isChordB && !isWaitB) {
+          ctx.beginPath();
+          ctx.arc(kx + b.w / 2, H - KB_H * 0.38 - 25, Math.min(4, b.w / 4), 0, Math.PI * 2);
+          ctx.fillStyle = "#6366f1"; ctx.fill();
+          ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 1.5; ctx.stroke();
         }
         if (b.w >= 17) {
           ctx.font = "600 11px system-ui, sans-serif";
           ctx.textAlign = "center";
           ctx.textBaseline = "alphabetic";
-          ctx.fillStyle = pk.has(b.midi) || isChordB ? "#ffffff" : "#d4d4d8";
+          ctx.fillStyle = pk.has(b.midi) ? "#ffffff" : "#d4d4d8";
           if (ctx.measureText(noteLabel(b.midi)).width + 4 <= b.w) ctx.fillText(noteLabel(b.midi), kx + b.w / 2, H - KB_H * 0.38 - 8);
         }
       }
@@ -474,7 +473,7 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
   return (
     <div className="falling-canvas relative">
       <canvas ref={canvasRef} aria-label="Falling notes player" className="block h-full w-full" />
-      <div className="absolute top-1 right-3 bg-white/90 px-1 text-[11px] text-zinc-700 pointer-events-none">LH: pale · RH: solid</div>
+      <div className="absolute top-1 right-3 bg-white/90 px-1 text-[11px] text-zinc-700 pointer-events-none">LH: pale · RH: solid{settings.chordKeys && <span> · <span className="text-indigo-500" aria-hidden="true">●</span> Chord guide</span>} · Top strip: next note</div>
     </div>
   );
 }
