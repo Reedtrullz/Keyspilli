@@ -17,7 +17,7 @@ import {
   loadSettings,
   loadSongPrefs,
   measureIndex,
-  measureMidiRange,
+  passageMidiRange,
   resolveTimedNotes,
   saveJson,
   saveSettings,
@@ -337,25 +337,13 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     setChordPracticeSnapshot(session.snapshot());
   }, [chordPracticeActive, chordPracticeTargets]);
 
-  // Keyboard range is stable per measure so the piano doesn't re-center every
-  // frame; empty measures keep the previous range.
-  const lastMidiRangeRef = useRef({ lowMidi: 45, highMidi: 99 });
-  const midiRange = useMemo<{ lowMidi: number; highMidi: number }>(() => {
-    if (settings.showAllKeys) {
-      return { lowMidi: 21, highMidi: 108 };
-    }
-    const r = measureMidiRange(
-      notes,
-      initial.data.measures,
-      initial.data.tempoBpm,
-      settings.speed,
-      currentMeasure,
-      lastMidiRangeRef.current,
-    );
-    lastMidiRangeRef.current = r;
-    return r;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [notes, settings.speed, currentMeasure, settings.showAllKeys]);
+  // Fit the full arrangement once; seeking, speed and hand changes keep keys in place.
+  const midiRange = useMemo(
+    () => settings.showAllKeys
+      ? { lowMidi: 21, highMidi: 108 }
+      : passageMidiRange(resolveTimedNotes(initial.data, 1, settings.transpose)),
+    [initial.data, settings.transpose, settings.showAllKeys],
+  );
 
   // Engine lifecycle: one PlaybackEngine per mount, disposed on unmount.
   useEffect(() => {
@@ -766,9 +754,14 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       setLoopBeats(null);
       return;
     }
-    const startBeat = initial.data.measures[currentMeasure]?.startBeat ?? 0;
-    const measureBeats = initial.data.timeSig[0] * (4 / initial.data.timeSig[1]);
-    setLoopBeats({ startBeat, endBeat: Math.min(initial.data.measures.at(-1)?.endBeat ?? startBeat + 4 * measureBeats, startBeat + 4 * measureBeats) });
+    loopCurrentBars(4);
+  }
+
+  function loopCurrentBars(count: number) {
+    if (gradingRef.current) return;
+    const start = initial.data.measures[currentMeasure];
+    const end = initial.data.measures[Math.min(initial.data.measures.length - 1, currentMeasure + count - 1)];
+    if (start && end) setLoopBeats({ startBeat: start.startBeat, endBeat: end.endBeat });
   }
 
   function seekToSection(s: SongSection) {
@@ -1084,6 +1077,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
 
   return (
     <div className={`${fullWidth ? "w-full px-4 py-6" : "max-w-6xl mx-auto px-4 py-6"} page-shell player-page ${focusMode ? "player-focus" : ""}`}>
+      <div className="player-workspace" data-falling={settings.mode === "falling" && !chordPracticeActive}>
       <div className="player-song-header mb-3 flex items-center gap-2 flex-wrap">
         <div>
           <h1 className="text-xl font-bold leading-tight truncate max-w-[70vw]" title={initial.song.title}>{initial.song.title}</h1>
@@ -1106,7 +1100,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
           )}
           {midiConnected && <span className="px-2 py-1 rounded-full bg-green-100 text-green-800">MIDI connected</span>}
         </div>
-        <div className="player-song-actions flex flex-wrap gap-2 w-full text-xs">            <button ref={downloadTriggerRef} onClick={() => setShowDownload(true)} className="pressable min-h-11 px-4 py-2 rounded-full border border-zinc-300 font-medium hover:bg-zinc-100" aria-label="Download sheet music and MIDI">
+        <div className="player-song-actions flex flex-wrap gap-2 text-xs">            <button ref={downloadTriggerRef} onClick={() => setShowDownload(true)} className="pressable min-h-11 px-4 py-2 rounded-full border border-zinc-300 font-medium hover:bg-zinc-100" aria-label="Download sheet music and MIDI">
               Download
             </button>
             <button
@@ -1150,6 +1144,39 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
 
       {focusMode && <SourceArrangementNotice source={initial.sourceArrangement} />}
       {!focusMode && isNarrowViewport && settings.showAllKeys && settings.mode === "falling" && <p className="text-xs text-zinc-600 mb-2">88 keys selected. <button disabled={grading} className="underline min-h-11" onClick={() => updateSettings({ showAllKeys: false })}>Fit passage</button> for larger keys.</p>}
+      <div className="player-surface rounded-2xl border border-zinc-200 bg-white mb-4">
+        <div className="player-control-strip flex items-center gap-3 px-4 py-3 border-b border-zinc-100 flex-wrap">
+          <button onClick={togglePlay} disabled={chordPracticeActive || countIn !== null || (grading && waitMode)} className="pressable w-12 h-12 rounded-full bg-zinc-900 text-white text-lg shadow-sm hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed" aria-label={playing ? "Pause" : "Play"} title={chordPracticeActive ? "Exit chord practice to play the arrangement" : undefined}>
+            {playing ? "❚❚" : "▶"}
+          </button>
+          <button
+            ref={practiceTriggerRef}
+            onClick={() => grading ? finishGrading() : openPracticeSetup()}
+            className={`pressable player-practice-button min-h-11 px-3 py-1.5 rounded-full border font-medium text-sm ${grading ? "bg-amber-100 border-amber-300" : "border-zinc-300 hover:bg-zinc-100"}`}
+          >
+            {grading ? "Finish practice" : "Practice"}
+          </button>
+          <div className="flex gap-1" role="group" aria-label="Hands">
+          {(["L", "R", "both"] as const).map((h) => (
+            <button
+              key={h}
+              disabled={grading} onClick={() => updateSettings({ hand: h })}
+              aria-pressed={settings.hand === h}
+              aria-label={h === "L" ? "Left hand" : h === "R" ? "Right hand" : "Both hands"}
+              className={`pressable min-w-11 min-h-11 px-3 py-2 rounded-full text-sm border ${settings.hand === h ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300"}`}
+            >
+              {h === "both" ? "All" : h}
+            </button>
+          ))}
+          </div>
+          <div className="player-speed-controls flex items-center gap-1" aria-label="Practice speed">
+            <span className="text-xs text-zinc-600">Speed</span>
+            <button disabled={grading || settings.speed <= 0.25} onClick={() => updateSettings({ speed: Math.max(0.25, +(settings.speed - 0.1).toFixed(2)) })} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Decrease speed">−</button>
+            <span className="px-2 text-xs font-medium" title="Practice speed">{Math.round(settings.speed * 100)}%</span>
+            <button disabled={grading || settings.speed >= 2} onClick={() => updateSettings({ speed: Math.min(2, +(settings.speed + 0.1).toFixed(2)) })} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Increase speed">+</button>
+            <div className="player-speed-presets flex gap-1">{[0.5, 0.75, 1].map((speed) => <button key={speed} disabled={grading} aria-pressed={settings.speed === speed} className={`min-h-11 px-2 rounded-lg text-xs ${settings.speed === speed ? "bg-zinc-100 font-semibold" : "text-zinc-600 hover:bg-zinc-100"}`} onClick={() => updateSettings({ speed })}>{speed * 100}%</button>)}</div>
+          </div>
+
       <div className="player-options flex flex-wrap items-center gap-2 mb-4">
         <div className="player-primary-controls flex flex-wrap items-center gap-2">
           <div className="relative" ref={modeMenuRef}>
@@ -1228,9 +1255,10 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
             hidden={settings.mode !== "falling"}
             onClick={() => updateSettings({ chordKeys: !settings.chordKeys })}
             aria-pressed={settings.chordKeys}
+            aria-describedby="chord-guide-description"
             className={`pressable min-h-11 px-3 py-2 rounded-full text-sm border ${settings.chordKeys ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300"}`}
           >
-            Chord Keys
+            Chord guide
           </button>
           <button
             onClick={() => updateSettings({ metronome: !settings.metronome })}
@@ -1267,6 +1295,10 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
             )}
           </div>
 
+          {settings.mode === "falling" && <p id="chord-guide-description" className="order-last w-full text-xs text-zinc-600">
+            Chord guide dots show the current chord’s voicing in its assigned octaves, not notes to press now. Check the chord label for inferred harmony. Colored strips at the top of keys show upcoming notes.
+          </p>}
+
           <div className="player-secondary-actions ml-auto flex flex-wrap justify-end gap-2 text-sm">
             <button ref={settingsTriggerRef} disabled={grading} onClick={() => setShowSettings(true)} className="pressable min-h-11 px-4 py-2 rounded-full border border-zinc-300 font-medium hover:bg-zinc-100" aria-label="Open settings">
               Settings
@@ -1284,62 +1316,38 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
         </div>
       </div>
 
-      <div className="player-surface rounded-2xl border border-zinc-200 bg-white mb-4">
-        <div className="player-control-strip flex items-center gap-3 px-4 py-3 border-b border-zinc-100 flex-wrap">
-          <button onClick={togglePlay} disabled={chordPracticeActive || countIn !== null || (grading && waitMode)} className="pressable w-12 h-12 rounded-full bg-zinc-900 text-white text-lg shadow-sm hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed" aria-label={playing ? "Pause" : "Play"} title={chordPracticeActive ? "Exit chord practice to play the arrangement" : undefined}>
-            {playing ? "❚❚" : "▶"}
-          </button>
-          <button
-            ref={practiceTriggerRef}
-            onClick={() => grading ? finishGrading() : openPracticeSetup()}
-            className={`pressable player-practice-button min-h-11 px-3 py-1.5 rounded-full border font-medium text-sm ${grading ? "bg-amber-100 border-amber-300" : "border-zinc-300 hover:bg-zinc-100"}`}
-          >
-            {grading ? "Finish practice" : "Practice"}
-          </button>
-          <div className="flex gap-1" role="group" aria-label="Hands">
-          {(["L", "R", "both"] as const).map((h) => (
-            <button
-              key={h}
-              disabled={grading} onClick={() => updateSettings({ hand: h })}
-              aria-pressed={settings.hand === h}
-              aria-label={h === "L" ? "Left hand" : h === "R" ? "Right hand" : "Both hands"}
-              className={`pressable min-w-11 min-h-11 px-3 py-2 rounded-full text-sm border ${settings.hand === h ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300"}`}
-            >
-              {h === "both" ? "All" : h}
-            </button>
-          ))}
-          </div>
-          <div className="player-speed-controls flex items-center gap-1" aria-label="Practice speed">
-            <span className="text-xs text-zinc-600">Speed</span>
-            <button disabled={grading} onClick={() => updateSettings({ speed: Math.max(0.25, +(settings.speed - 0.1).toFixed(2)) })} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Decrease speed">−</button>
-            <span className="px-2 text-xs font-medium" title="Practice speed">{Math.round(settings.speed * 100)}%</span>
-            <button disabled={grading} onClick={() => updateSettings({ speed: Math.min(2, +(settings.speed + 0.1).toFixed(2)) })} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Increase speed">+</button>
-            <div className="player-speed-presets flex gap-1">{[0.5, 0.75, 1].map((speed) => <button key={speed} disabled={grading} aria-pressed={settings.speed === speed} className={`min-h-11 px-2 rounded-lg text-xs ${settings.speed === speed ? "bg-zinc-100 font-semibold" : "text-zinc-600 hover:bg-zinc-100"}`} onClick={() => updateSettings({ speed })}>{speed * 100}%</button>)}</div>
-          </div>
-
         </div>
 
         <div className="player-timeline">          <div className="player-measure-controls flex items-center gap-1">
-            <button disabled={grading} onClick={() => seekToMeasure(Math.max(0, currentMeasure - 1))} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Previous measure">‹</button>
+            <button disabled={grading || currentMeasure === 0} onClick={() => seekToMeasure(Math.max(0, currentMeasure - 1))} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Previous measure">‹</button>
             <label className="flex items-center gap-1 text-xs">Bar <input key={currentMeasure} type="number" aria-label="Bar" min={1} max={initial.data.measures.length} step={1} defaultValue={currentMeasure + 1} disabled={grading}
               onBlur={(event) => commitBar(event.currentTarget)} onKeyDown={(event) => { if (event.key === "Enter") commitBar(event.currentTarget); }} /></label>
             <span className="text-xs text-zinc-500">/ {initial.data.measures.length}</span>
-            <button disabled={grading} onClick={() => seekToMeasure(Math.min(initial.data.measures.length - 1, currentMeasure + 1))} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Next measure">›</button>
+            <button disabled={grading || currentMeasure >= initial.data.measures.length - 1} onClick={() => seekToMeasure(Math.min(initial.data.measures.length - 1, currentMeasure + 1))} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Next measure">›</button>
           </div>
           <output role="timer" aria-label="Elapsed time" className="ml-auto text-xs text-zinc-500 font-mono tabular-nums text-right select-none flex items-center gap-1.5">
             <span>{fmtTime(time)}</span>
             <span className="text-zinc-300">/</span>
             <span>{fmtTime(duration)}</span>
             <span className="text-zinc-500">(-{fmtTime(Math.max(0, duration - time))})</span>
-          </output><details className="player-loop-controls text-xs">
+          </output><details className="player-loop-controls text-xs" data-active={!!loop}>
           <summary className="cursor-pointer min-h-11 flex items-center rounded-full border border-zinc-300 px-3">{loopBeats ? `Loop · Bars ${loopStartBar}–${loopEndBar}` : "Loop"}</summary>
-          <div className="flex flex-wrap items-center gap-2 py-2">
+          <div className="player-loop-editor">
+            <p className="w-full text-sm text-zinc-600">Repeat a small passage until it feels comfortable.</p>
+            <div className="flex flex-wrap gap-2 w-full">
+              <button disabled={grading} onClick={() => loopCurrentBars(1)} className="min-h-11 rounded-lg border border-zinc-300 px-3">Loop current bar</button>
+              <button disabled={grading} onClick={() => loopCurrentBars(4)} className="min-h-11 rounded-lg border border-zinc-300 px-3">Loop next 4 bars</button>
+            </div>
             <label>Start bar <input key={`start-${loopStartBar}`} type="number" aria-label="Loop start bar" min={1} max={initial.data.measures.length} defaultValue={loopStartBar} disabled={grading} onBlur={(e) => commitLoopBar(e.currentTarget, "start")} onKeyDown={(e) => { if (e.key === "Enter") commitLoopBar(e.currentTarget, "start"); }} /></label>
             <label>End bar <input key={`end-${loopEndBar}`} type="number" aria-label="Loop end bar" min={1} max={initial.data.measures.length} defaultValue={loopEndBar} disabled={grading} onBlur={(e) => commitLoopBar(e.currentTarget, "end")} onKeyDown={(e) => { if (e.key === "Enter") commitLoopBar(e.currentTarget, "end"); }} /></label>
             <button disabled={grading} onClick={toggleLoop} className="min-h-11 rounded-lg border border-zinc-300 px-3">{loop ? "Clear loop" : "Enable loop"}</button>
           </div>
         </details></div>
         <div className="px-4 pb-3 border-b border-zinc-100">
+          {loop && <div className="player-loop-track">
+            <div role="img" aria-label={`Loop range: bars ${loopStartBar}–${loopEndBar}`} className="player-loop-range"
+              style={{ left: `${loop.startSec / Math.max(1, duration) * 100}%`, width: `${(loop.endSec - loop.startSec) / Math.max(1, duration) * 100}%` }} />
+          </div>}
           <input
             type="range"
             min={0}
@@ -1347,12 +1355,13 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
             step={0.01}
             value={Math.min(time, duration)}
             onChange={(e) => seek(Number(e.target.value))}
-            className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-zinc-900"
+            className="block w-full h-2 rounded-lg appearance-none cursor-pointer accent-zinc-900"
             style={{
               background: `linear-gradient(to right, #18181b 0%, #18181b ${(time / Math.max(1, duration)) * 100}%, #e4e4e7 ${(time / Math.max(1, duration)) * 100}%, #e4e4e7 100%)`,
             }}
             disabled={!engineReady || grading}
             aria-label="Seek"
+            aria-valuetext={`Bar ${currentMeasure + 1} of ${initial.data.measures.length}, ${fmtTime(time)} of ${fmtTime(duration)}`}
           />
         </div>
         {sections.length > 1 && (
@@ -1437,6 +1446,8 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
           </p>
           <p className="sr-only">When playback is active, press Enter or Space on the stage to pause. Computer keyboard A through K plays notes.</p>
         </div>
+      </div>
+
       </div>
 
       {displayVariants.length > 1 && (
