@@ -2,6 +2,8 @@ services:
   web:
     image: "{{ compose_image | default(docker_image) }}"
     container_name: "{{ container_name }}"
+    # Both SQLite writers must create journal files with the same owner.
+    user: "1000:1000"
     restart: unless-stopped
     env_file:
       - "{{ source_search_env_file }}"

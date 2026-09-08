@@ -71,3 +71,16 @@ if python3 "$repo_root/deploy/keyspilli-ops-check.py" --fixture "$scratch/beta-m
   echo "beta capability mismatch unexpectedly passed" >&2
   exit 1
 fi
+
+python3 - "$scratch/healthy.json" "$scratch/optional-discovery.json" "$scratch/discovery-mismatch.json" <<'PYTEST'
+import json,sys
+value=json.load(open(sys.argv[1]));value["web"].update(sourceDiscoveryConfigured=False, sourceDiscoveryMatches=True)
+json.dump(value,open(sys.argv[2],"w"))
+value["web"]["sourceDiscoveryMatches"]=False
+json.dump(value,open(sys.argv[3],"w"))
+PYTEST
+python3 "$repo_root/deploy/keyspilli-ops-check.py" --fixture "$scratch/optional-discovery.json" > /dev/null
+if python3 "$repo_root/deploy/keyspilli-ops-check.py" --fixture "$scratch/discovery-mismatch.json" > /dev/null; then
+  echo "discovery capability mismatch unexpectedly passed" >&2
+  exit 1
+fi
