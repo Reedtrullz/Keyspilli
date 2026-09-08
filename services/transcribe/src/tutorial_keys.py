@@ -83,9 +83,12 @@ def clip_boundary_keys(edges,width):
     return result.tolist()
 
 
-async def detect_geometry(frame,width,height,allow_relative):
+async def detect_geometry(frame,width,height,allow_relative,reference=None):
     try:
-        return await _detect_geometry(frame,width,height,allow_relative)
+        result=await _detect_geometry(frame,width,height,allow_relative)
+        if reference is not None and not geometry_matches(reference,result,width):
+            raise ValueError('Keyboard geometry changed')
+        return result
     except ValueError:
         # A lit black key can merge with its neighbours in weighted grayscale.
         # Individual color channels retain contrast; every geometry check still applies.
@@ -94,6 +97,8 @@ async def detect_geometry(frame,width,height,allow_relative):
             neutral=cv2.cvtColor(frame[:,:,channel],cv2.COLOR_GRAY2BGR)
             try:
                 result=await _detect_geometry(neutral,width,height,allow_relative)
+                if reference is not None and not geometry_matches(reference,result,width):
+                    raise ValueError('Keyboard geometry changed')
                 return {**result,'colorMode':name+'-channel'}
             except ValueError as error:
                 failure=error
@@ -155,13 +160,20 @@ async def verify_layout(video,c,meta,notes):
                 when=min(second+offset,end-.01)
                 cap.set(cv2.CAP_PROP_POS_MSEC,when*1000);ok,frame=cap.read()
                 if not ok:continue
-                try:observed=await detect_geometry(frame,meta['width'],meta['height'],True)
+                try:observed=await detect_geometry(frame,meta['width'],meta['height'],True,reference=c)
                 except ValueError as e:failures.append(str(e));continue
                 if geometry_matches(c,observed,meta['width']):matched=True;checked.append(float(when));break
                 failures.append('Keyboard geometry changed')
             if not matched:raise ValueError(f'Unstable keyboard layout at {second:.2f}s: '+str(failures))
     finally:cap.release()
     return {'sampleSeconds':checked,'maxSampleGapSeconds':10,'status':'sampled-stable','coverageOwner':'audio' if 'audioActiveBounds' in meta else 'extracted-notes-only'}
+
+
+def scanline_filter(width,height,row):
+    # Keep chroma alignment and neighbouring rows, but avoid full-frame RGB conversion.
+    top=max(0,(row-4)//2*2)
+    band=min(12,height-top)
+    return f'crop={width}:{band}:0:{top}:exact=1,format=rgb24,crop={width}:1:0:{row-top}'
 
 
 def extract(video,c,meta):
@@ -172,7 +184,7 @@ def extract(video,c,meta):
     if max_frames*width*3*2>256*1024**2:raise ValueError('Scan data exceeds 256MiB budget')
     for row in scanlines:
         raw=subprocess.check_output(['ffmpeg','-nostdin','-v','error','-i',str(video),'-vf',
-            f'setpts=PTS-STARTPTS,fps={fps},format=rgb24,crop={width}:1:0:{row}',
+            f'setpts=PTS-STARTPTS,fps={fps},'+scanline_filter(width,meta['height'],row),
             '-frames:v',str(max_frames),'-f','rawvideo','-'],timeout=120)
         rows.append(np.frombuffer(raw,np.uint8).reshape(-1,width,3))
     if len(rows[0])!=len(rows[1]):raise ValueError('Scan frame counts differ')

@@ -8,6 +8,29 @@ import numpy as np
 spec=importlib.util.spec_from_file_location('tutorial_keys',Path(__file__).parents[1]/'src/tutorial_keys.py')
 m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
 class TutorialKeysTest(unittest.TestCase):
+ def test_layout_color_fallback_must_match_the_reference_geometry(self):
+  import copy
+  frame=np.full((10,10,3),[20,140,210],dtype=np.uint8)
+  base={'bounds':[0,507,1280,157],'keys':[{'midi_num':n} for n in range(21,109)],'edges':[[i*14,i*14+12] for i in range(88)]}
+  changed=copy.deepcopy(base);changed['bounds'][3]+=11
+  async def detector(image,*args):return base if np.all(image==20) else changed
+  with patch.object(m,'_detect_geometry',new=detector):
+   self.assertEqual(asyncio.run(m.detect_geometry(frame,1280,720,True)),changed)
+   result=asyncio.run(m.detect_geometry(frame,1280,720,True,reference=base))
+   self.assertEqual(result['colorMode'],'blue-channel')
+  with patch.object(m,'_detect_geometry',new=AsyncMock(return_value=changed)):
+   with self.assertRaises(ValueError):asyncio.run(m.detect_geometry(frame,1280,720,True,reference=base))
+ def test_early_crop_preserves_scanline_pixels_including_frame_edges(self):
+  import subprocess
+  width,height=640,360
+  raw=np.random.default_rng(42).integers(0,256,width*height*3,dtype=np.uint8).tobytes()
+  base=['ffmpeg','-nostdin','-v','error','-f','rawvideo','-pixel_format','yuv420p','-video_size',f'{width}x{height}','-i','pipe:0']
+  for row in [0,1,180,181,358,359]:
+   old=f'format=rgb24,crop={width}:1:0:{row}'
+   new=m.scanline_filter(width,height,row)
+   expected=subprocess.check_output(base+['-vf',old,'-f','rawvideo','-'],input=raw,timeout=30)
+   actual=subprocess.check_output(base+['-vf',new,'-f','rawvideo','-'],input=raw,timeout=30)
+   self.assertEqual(actual,expected,f'row {row}')
  def test_measured_red_keys_and_short_flash(self):
   for color in ([236,118,117],[233,97,88],[216,28,51]):
    rows=np.zeros((20,3,3),dtype=np.uint8);rows[3:9]=color;rows[12]=color
