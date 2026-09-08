@@ -14,7 +14,7 @@ export function DownloadDialog({
   const items = [
     { label: "Simplify PDF", desc: "Color-coded notes + letters, ready to print", href: `/api/song/${songId}/export?type=pdf&layout=simplify`, enabled: true },
     { label: "Sheet Music PDF", desc: "Engraved two-staff score", href: `/api/song/${songId}/export?type=pdf&layout=classic`, enabled: hasSheetXml },
-    { label: "MIDI", desc: "Full arrangement for any DAW or keyboard", href: `/api/song/${songId}/export?type=midi`, enabled: true },
+    { label: "MIDI", desc: "Current difficulty for a DAW or keyboard", href: `/api/song/${songId}/export?type=midi`, enabled: true },
     { label: "MusicXML", desc: "Edit in MuseScore or any notation app", href: `/api/song/${songId}/export?type=musicxml`, enabled: true },
   ];
 
@@ -92,7 +92,7 @@ export function DownloadDialog({
           <h2 className="font-semibold">Download</h2>
           <button autoFocus onClick={requestClose} className="px-2 py-1 rounded-lg hover:bg-zinc-100" aria-label="Close">×</button>
         </div>
-        <p className="text-xs text-zinc-500 mb-4">Everything is free — yours to keep.</p>
+        <p className="text-xs text-zinc-500 mb-4">Download this arrangement for practice. Source rights still apply.</p>
         <div className="space-y-2">
           {items.map((it) => (
             <a

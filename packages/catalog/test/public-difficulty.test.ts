@@ -50,7 +50,7 @@ function row(id: string, level: string, plays = 0): SongRow {
 }
 
 describe("public difficulty projection", () => {
-  it("keeps six physical levels and exposes the five-level public order", () => {
+  it("keeps six physical levels and exposes the four-level public order", () => {
     expect(LEVEL_ORDER).toEqual([
       "very-beginner",
       "beginner",
@@ -60,7 +60,6 @@ describe("public difficulty projection", () => {
       "advanced",
     ]);
     expect(PUBLIC_DIFFICULTY_ORDER).toEqual([
-      "very-beginner",
       "beginner",
       "easy",
       "medium",
@@ -68,11 +67,11 @@ describe("public difficulty projection", () => {
     ]);
 
     const publicLevels: PublicDifficultyLevel[] = [...PUBLIC_DIFFICULTY_ORDER];
-    expect(publicLevels).toHaveLength(5);
+    expect(publicLevels).toHaveLength(4);
   });
 
-  it("guards only the five public difficulty values", () => {
-    expect(isPublicDifficultyLevel("very-beginner")).toBe(true);
+  it("guards only the four public difficulty values", () => {
+    expect(isPublicDifficultyLevel("very-beginner")).toBe(false);
     expect(isPublicDifficultyLevel("advanced")).toBe(true);
     expect(isPublicDifficultyLevel("very-easy")).toBe(false);
     expect(isPublicDifficultyLevel(undefined)).toBe(false);
@@ -84,7 +83,6 @@ describe("public difficulty projection", () => {
     const projected = projectPublicSongRows(arbitraryOrder);
 
     expect(projected.map((entry) => entry.difficulty)).toEqual([
-      "very-beginner",
       "beginner",
       "easy",
       "medium",
@@ -98,6 +96,7 @@ describe("public difficulty projection", () => {
       "beginner",
       "very-beginner",
     ]);
+    expect(projectPublicSongRow(rows[0]!)).toBeUndefined();
     expect(projectPublicSongRow(rows[2]!)).toBeUndefined();
     expect(projectPublicSongRow(rows[3]!)).toBe(rows[3]);
     expect(projected.map((entry) => entry.id)).not.toContain("song-ve");
@@ -122,7 +121,6 @@ describe("public difficulty projection", () => {
     expect(projected).toHaveLength(1);
     expect(projected[0]!.representative.id).toBe("song-e");
     expect(projected[0]!.levels.map((entry) => entry.difficulty)).toEqual([
-      "very-beginner",
       "beginner",
       "easy",
       "medium",

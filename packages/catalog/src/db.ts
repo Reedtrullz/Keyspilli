@@ -1,4 +1,5 @@
 import Database from "better-sqlite3";
+import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { ROOT, dataDir, dbPath } from "./paths.js";
@@ -220,6 +221,8 @@ export function getDb(): Database.Database {
   `);
   migrateColumn(conn, "conversion_jobs", "attempts", "INTEGER NOT NULL DEFAULT 0");
   migrateColumn(conn, "conversion_jobs", "started_at", "TEXT");
+  migrateColumn(conn, "conversion_jobs", "lease_owner", "TEXT");
+  migrateColumn(conn, "conversion_jobs", "lease_expires_at", "INTEGER");
   db = conn;
   return db;
 }
@@ -493,7 +496,20 @@ export function insertJob(j: JobRow): void {
     .run({ ...j, attempts: j.attempts ?? 0 });
 }
 
-export function updateJob(id: string, patch: Partial<Pick<JobRow, "status" | "songId" | "error" | "attempts" | "finishedAt">>): void {
+/** Atomically reuse an active new import across web processes. Existing-song jobs stay separate. */
+export function enqueueImportJob(j: JobRow): string {
+  if (j.status !== "queued" || j.songId !== null) throw new Error("expected a queued new import");
+  const db = getDb();
+  return db.transaction(() => {
+    const active = db.prepare("SELECT id FROM conversion_jobs WHERE youtube_url = ? AND song_id IS NULL AND status IN ('queued','processing') ORDER BY created_at DESC LIMIT 1")
+      .get(j.youtubeUrl) as { id: string } | undefined;
+    if (active) return active.id;
+    insertJob(j);
+    return j.id;
+  }).immediate();
+}
+
+export function updateJob(id: string, patch: Partial<Pick<JobRow, "status" | "songId" | "error" | "attempts" | "finishedAt">>, owner?: string): boolean {
   const sets: string[] = [];
   const params: Record<string, unknown> = { id };
   if (patch.status !== undefined) {
@@ -516,24 +532,36 @@ export function updateJob(id: string, patch: Partial<Pick<JobRow, "status" | "so
     sets.push("attempts = @attempts");
     params.attempts = patch.attempts;
   }
-  if (sets.length) getDb().prepare(`UPDATE conversion_jobs SET ${sets.join(", ")} WHERE id = @id`).run(params);
+  if (!sets.length) return false;
+  if (owner !== undefined) { params.owner = owner; params.now = Date.now(); }
+  if (patch.status !== undefined && patch.status !== "processing") sets.push("lease_owner = NULL", "lease_expires_at = NULL");
+  return getDb().prepare(`UPDATE conversion_jobs SET ${sets.join(", ")} WHERE id = @id${owner === undefined ? "" : " AND status = 'processing' AND lease_owner = @owner AND lease_expires_at > @now"}`).run(params).changes === 1;
 }
 
-export function claimJob(id: string): boolean {
-  const r = getDb()
-    .prepare("UPDATE conversion_jobs SET status = 'processing', started_at = datetime('now') WHERE id = ? AND status = 'queued'")
-    .run(id);
-  return r.changes === 1;
+const JOB_LEASE_MS = 15 * 60 * 1000;
+
+export function claimJob(id: string): string | undefined {
+  const owner = randomUUID();
+  const now = Date.now();
+  const result = getDb().prepare("UPDATE conversion_jobs SET status = 'processing', started_at = ?, lease_owner = ?, lease_expires_at = ? WHERE id = ? AND status = 'queued'")
+    .run(new Date(now).toISOString(), owner, now + JOB_LEASE_MS, id);
+  return result.changes === 1 ? owner : undefined;
+}
+
+export function ownsJobLease(id: string, owner: string): boolean {
+  return !!getDb().prepare("SELECT 1 FROM conversion_jobs WHERE id = ? AND status = 'processing' AND lease_owner = ? AND lease_expires_at > ?").get(id, owner, Date.now());
+}
+
+export function renewJobLease(id: string, owner: string): boolean {
+  const now = Date.now();
+  return getDb().prepare("UPDATE conversion_jobs SET lease_expires_at = ? WHERE id = ? AND status = 'processing' AND lease_owner = ? AND lease_expires_at > ?")
+    .run(now + JOB_LEASE_MS, id, owner, now).changes === 1;
 }
 
 export function requeueOrphaned(): number {
-  // Only reclaim jobs a worker has been stuck on for 15+ minutes; a fresh
-  // started_at means another worker is legitimately running it.
-  return getDb()
-    .prepare(
-      "UPDATE conversion_jobs SET status = 'queued' WHERE status = 'processing' AND (started_at IS NULL OR started_at < datetime('now', '-15 minutes'))",
-    )
-    .run().changes;
+  // Legacy rows have no lease; use their old started_at until reclaimed once.
+  return getDb().prepare("UPDATE conversion_jobs SET status = 'queued', lease_owner = NULL, lease_expires_at = NULL WHERE status = 'processing' AND ((lease_expires_at IS NOT NULL AND lease_expires_at <= ?) OR (lease_expires_at IS NULL AND (started_at IS NULL OR julianday(started_at) <= julianday(?))))")
+    .run(Date.now(), new Date(Date.now() - JOB_LEASE_MS).toISOString()).changes;
 }
 
 export function deleteSongsByBase(baseId: string): number {

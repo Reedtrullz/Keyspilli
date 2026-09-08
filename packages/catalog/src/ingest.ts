@@ -1,3 +1,4 @@
+import { validateSourceArrangement, type SourceArrangement } from "./source-arrangement.js";
 import { createHash } from "node:crypto";
 import { mkdir, rename, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
@@ -56,7 +57,7 @@ export const MAX_YOUTUBE_IMPORT_DUR_BEATS = TRANSCRIPTION_MAX_RECONSTRUCTED_DUR_
 // when the input bytes and user-facing ingest options are unchanged.
 export const INGEST_NORMALIZER_ID = "midi-normalizer-v2";
 export const INGEST_GRID_POLICY_ID = "beat-grid-v2";
-export const INGEST_VARIANT_POLICY_ID = "learner-variant-ladder-v5-metal-piano-realism";
+export const INGEST_VARIANT_POLICY_ID = "learner-variant-ladder-v10-source-easy-spacing";
 
 /**
  * Versioned processing identities used by audio transcription provenance and
@@ -114,6 +115,7 @@ export interface IngestInput {
   transcription?: TranscriptionProvenance;
   /** Server-created lineage for an explicitly selected discovery lead. */
   sourceCandidateHandoff?: SourceCandidateHandoffLink;
+  sourceArrangement?: SourceArrangement;
 }
 
 /** Optional deterministic hook used by integration tests to exercise rollback. */
@@ -287,6 +289,11 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
 
   const baseId = inp.baseId ?? generatedBaseId(inp.artist, inp.title);
   const sourceArtifactHash = inp.sourceArtifactHash ?? createHash("sha256").update(inp.buf).digest("hex");
+  if (inp.sourceArrangement) {
+    const errors = validateSourceArrangement(inp.sourceArrangement);
+    if (inp.sourceArrangement.sourceSha256 !== sourceArtifactHash) errors.push("source arrangement hash mismatch");
+    if (errors.length) return { baseId: "", songIds: [], error: errors.join("; ") };
+  }
   if (inp.sourceCandidateHandoff) {
     const handoffErrors = validateSourceCandidateHandoffLink(inp.sourceCandidateHandoff);
     if (handoffErrors.length) return { baseId: "", songIds: [], error: `invalid source candidate handoff: ${handoffErrors.join("; ")}` };
@@ -371,7 +378,7 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
   const calibrationSource: TempoSource = inp.tempo !== undefined
     ? "override"
     : transcription?.tempoSource
-      ?? (inp.contentType === "youtube" ? "detected" : "midi-meta");
+      ?? (inp.sourceArrangement?.sourceKind === "tutorial-preview" ? "default" : inp.contentType === "youtube" ? "detected" : "midi-meta");
   const tempoProvenance = {
     calibration: { bpm: parsed.tempoBpm, source: calibrationSource, resolvedAt, role: "source-calibration" as const },
     playback: { bpm: parsed.tempoBpm, source: calibrationSource, resolvedAt, role: "playback" as const },
@@ -414,6 +421,7 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
         ...sourceProvenance,
         ...(candidate ? { candidate } : {}),
         ...(inp.sourceCandidateHandoff ? { sourceCandidateHandoff: inp.sourceCandidateHandoff } : {}),
+    ...(inp.sourceArrangement ? { sourceArrangement: inp.sourceArrangement } : {}),
         tempo: tempoProvenance,
         ...(transcription ? { transcription } : {}),
       };
@@ -498,6 +506,7 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
     source: sourceProvenance,
     ...(candidate ? { candidate } : {}),
     ...(inp.sourceCandidateHandoff ? { sourceCandidateHandoff: inp.sourceCandidateHandoff } : {}),
+    ...(inp.sourceArrangement ? { sourceArrangement: inp.sourceArrangement } : {}),
     tempo: {
       calibration: { bpm: parsed.tempoBpm, source: calibrationSource, resolvedAt, role: "source-calibration" },
       playback: { bpm: parsed.tempoBpm, source: calibrationSource, resolvedAt, role: "playback" },
@@ -516,9 +525,6 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
           writeFile(join(dir, "notes.json"), item.notesJson),
         ]);
       }
-      // Keep the existing failure-injection hook before the commit marker is
-      // written. A failed preparation therefore cannot swap a partial tree.
-      options.beforeReplace?.();
       if (inp.contentType === "upload") {
         await mkdir(uploadRoot, { recursive: true });
         await writeFile(stageUpload, inp.buf);
@@ -530,6 +536,7 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
     }, {
       artifactsRoot,
       semanticValidation: "strict",
+      beforeSwap: options.beforeReplace,
       afterSwap: async () => {
         if (inp.contentType === "upload") {
           if (existsSync(finalUpload)) {

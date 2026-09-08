@@ -1,0 +1,132 @@
+{
+  "extractorCommit": "8874d0d7d99a911f19c71ca4e1833a8c7ed85bfc",
+  "productionChanged": false,
+  "feedback": {
+    "date": "2026-09-07T22:09:45.043208",
+    "candidate": "bohemian-keys",
+    "feedback": "The extracted MIDI sounds pretty good!",
+    "scope": "Positive user listening feedback on this rendered raw MIDI only; not all five difficulties or general route acceptance",
+    "midiSha256": "4020a69639254678c8b687d56de60c23c77040252b07e46b91898b5890a959f3",
+    "audioSha256": "518e48519494fb04fe524e3df0955d1cfe6208b8191684920481b9651275e418"
+  },
+  "cases": [
+    {
+      "candidate": "nothing-else-matters",
+      "noteCount": 1989,
+      "sourceSha256": "634a5eaef1117e9752181eebeddd91c7aa9b6b81289de1ba0e61cef7e8dff47a",
+      "calibrationSeconds": [
+        4,
+        8
+      ],
+      "nativeVideo": {
+        "width": 1280,
+        "height": 720,
+        "fps": 60.0,
+        "duration": 398.954
+      },
+      "resizedExcerpt": {
+        "noteCount": 213,
+        "exactEvents": 213,
+        "maxOnsetDeltaSeconds": 0.0,
+        "maxDurationDeltaSeconds": 0.0
+      },
+      "fiveLevelChecks": {
+        "scope": "local existing variant pipeline; not API or musical identity proof",
+        "rows": [
+          {
+            "level": "very-beginner",
+            "notes": 245,
+            "durationSeconds": 370,
+            "issues": []
+          },
+          {
+            "level": "beginner",
+            "notes": 263,
+            "durationSeconds": 370,
+            "issues": []
+          },
+          {
+            "level": "easy",
+            "notes": 1555,
+            "durationSeconds": 378.875,
+            "issues": []
+          },
+          {
+            "level": "medium",
+            "notes": 1888,
+            "durationSeconds": 378.9375,
+            "issues": []
+          },
+          {
+            "level": "advanced",
+            "notes": 1900,
+            "durationSeconds": 378.9375,
+            "issues": []
+          }
+        ]
+      },
+      "musicalAcceptance": "pending",
+      "sourceRights": "unverified",
+      "midiSha256": "ff2ab9d93e23e2c7f55cbbee5ff0fd0735926cf472e02a601db4840c60139539"
+    },
+    {
+      "candidate": "in-my-mind",
+      "noteCount": 514,
+      "sourceSha256": "66edb6e462ab54bf8e49420fce8eca0386d908d60f5018dc3b8bb13762886377",
+      "calibrationSeconds": [
+        4,
+        8
+      ],
+      "nativeVideo": {
+        "width": 1280,
+        "height": 720,
+        "fps": 59.94005994005994,
+        "duration": 189.774
+      },
+      "resizedExcerpt": {
+        "noteCount": 143,
+        "exactEvents": 115,
+        "maxOnsetDeltaSeconds": 0.016683333333333827,
+        "maxDurationDeltaSeconds": 0.033366666666666656
+      },
+      "fiveLevelChecks": {
+        "scope": "local existing variant pipeline; not API or musical identity proof",
+        "rows": [
+          {
+            "level": "very-beginner",
+            "notes": 129,
+            "durationSeconds": 173.625,
+            "issues": []
+          },
+          {
+            "level": "beginner",
+            "notes": 129,
+            "durationSeconds": 173.625,
+            "issues": []
+          },
+          {
+            "level": "easy",
+            "notes": 501,
+            "durationSeconds": 175.4375,
+            "issues": []
+          },
+          {
+            "level": "medium",
+            "notes": 514,
+            "durationSeconds": 175.4375,
+            "issues": []
+          },
+          {
+            "level": "advanced",
+            "notes": 514,
+            "durationSeconds": 175.4375,
+            "issues": []
+          }
+        ]
+      },
+      "musicalAcceptance": "pending",
+      "sourceRights": "unverified",
+      "midiSha256": "1fce85cc09e5213da136419163f5952b9ea019d0a10a0e4e1ceb3b25e7889aa5"
+    }
+  ]
+}

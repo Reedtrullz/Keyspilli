@@ -170,7 +170,6 @@ describe("real Guitar-TECHS shadow-pair evaluator", () => {
               status: "complete",
               method: "projectPublicSongRows",
               levels: expect.arrayContaining([
-                expect.objectContaining({ level: "very-beginner" }),
                 expect.objectContaining({ level: "beginner" }),
                 expect.objectContaining({ level: "easy" }),
                 expect.objectContaining({ level: "medium" }),
@@ -181,7 +180,7 @@ describe("real Guitar-TECHS shadow-pair evaluator", () => {
               status: "validated",
               groupedSongCount: 1,
               publicGroupedSongCount: 1,
-              publicLevelCount: 5,
+              publicLevelCount: 4,
               representativeLevel: "easy",
             },
             player: {
@@ -281,18 +280,18 @@ describe("real Guitar-TECHS shadow-pair evaluator", () => {
       expect(report.shadow.downstream.publicProjection).toMatchObject({
         status: "complete",
         method: "projectPublicSongRows",
-        expectedLevelCount: 5,
+        expectedLevelCount: 4,
       });
       expect(report.shadow.downstream.catalog).toMatchObject({
         status: "validated",
         groupedSongCount: 1,
         publicGroupedSongCount: 1,
-        publicLevelCount: 5,
+        publicLevelCount: 4,
         representativeLevel: "easy",
       });
       expect(report.shadow.downstream.player.status).toBe("NOT_EXERCISED");
       expect(report.shadow.downstream.publicProjection.levels.map((level) => level.level)).toEqual([
-        "very-beginner", "beginner", "easy", "medium", "advanced",
+        "beginner", "easy", "medium", "advanced",
       ]);
     } finally {
       await rm(root, { recursive: true, force: true });

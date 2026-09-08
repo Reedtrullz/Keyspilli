@@ -1,0 +1,79 @@
+{
+  "startedAt": "2026-09-08T02:32:27.845Z",
+  "origin": "http://127.0.0.1:3103",
+  "manifestSha256": "e589511bc5395c39e5829417db6b9389b12d842b7cfad7710f6766c8dcad2593",
+  "split": "development",
+  "cohortSize": 20,
+  "selectedCount": 1,
+  "selectedIds": [
+    "12"
+  ],
+  "rows": [
+    {
+      "id": "12",
+      "url": "https://www.youtube.com/watch?v=HaTn3oRPtzg",
+      "status": "structural-candidate",
+      "attempted": true,
+      "startedAt": "2026-09-08T02:32:27.849Z",
+      "exports": [
+        {
+          "songId": "preview-job-6ceb141b-ca4d-4f33-85cf-95337f814b8b-b",
+          "bytes": 1910,
+          "sha256": "7fec38b1aa88530190c680fbf6cd325c96ad2d5298d8ec6a6dba3d1d16cf7622",
+          "notes": 193,
+          "noteEventsSha256": "afeb110752a651fbaee4e8f0960188389b3af04a5d9b919575733fce3c38d72b"
+        },
+        {
+          "songId": "preview-job-6ceb141b-ca4d-4f33-85cf-95337f814b8b-e",
+          "bytes": 6019,
+          "sha256": "c9629a337c77dc9a2e6b73ad38c9743f2bda3a9c0f0f67ed35cb548c60a219c7",
+          "notes": 637,
+          "noteEventsSha256": "67055e2dcaf93905ffe8dcec3073952146e65e9a58fb686c29b4964ce7911de8"
+        },
+        {
+          "songId": "preview-job-6ceb141b-ca4d-4f33-85cf-95337f814b8b-m",
+          "bytes": 13509,
+          "sha256": "00c0b739df9b485a906a03522ac3b380431b42415451031623acd55a585f758f",
+          "notes": 1574,
+          "noteEventsSha256": "816e34c6209f4c1cd77d5250863a857b93c2edfbadc64302f0c2a9b46dca0779"
+        },
+        {
+          "songId": "preview-job-6ceb141b-ca4d-4f33-85cf-95337f814b8b-a",
+          "bytes": 14407,
+          "sha256": "8e40bb3fe617a29b144fec16dbbaebd56f475c1276ec166ad19caf66f7788656",
+          "notes": 1688,
+          "noteEventsSha256": "abd64bf49b97413b2df9eb63d5231da7ceecdf4f71efb7dc9e4454a5c5850902"
+        }
+      ],
+      "jobId": "job-6ceb141b-ca4d-4f33-85cf-95337f814b8b",
+      "jobStatus": "done",
+      "jobError": null,
+      "songId": "preview-job-6ceb141b-ca4d-4f33-85cf-95337f814b8b-e",
+      "resolvedIdentity": {
+        "title": "The Last Stand",
+        "artist": "Sabaton"
+      },
+      "selectedSource": "https://www.youtube.com/watch?v=jXSKKKH8NX0",
+      "finishedAt": "2026-09-08T02:32:34.249Z"
+    }
+  ],
+  "musicalAcceptance": "pending-listening",
+  "heldoutExecuted": false,
+  "candidateFreezeSha256": null,
+  "candidateBeforeVerified": false,
+  "verificationScope": "Local source hashes only; operator must start preview and worker from this checkout. Does not attest deployed runtime.",
+  "candidateAfterVerified": false,
+  "unattemptedIds": [],
+  "summary": {
+    "completed": 1,
+    "denominator": 1,
+    "attempted": 1,
+    "unattempted": 0,
+    "failed": 0,
+    "invalidPublications": 0,
+    "releaseGate": false,
+    "musicalAcceptance": "pending-listening",
+    "usable": false
+  },
+  "finishedAt": "2026-09-08T02:32:34.251Z"
+}

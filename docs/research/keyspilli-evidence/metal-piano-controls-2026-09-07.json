@@ -1,0 +1,2023 @@
+{
+  "scope": "rendered native piano control, not dense metal or full-song acceptance",
+  "onsetThreshold": 0.5,
+  "frameThreshold": 0.3,
+  "rows": [
+    {
+      "schemaVersion": 1,
+      "fixtureId": "burgmuller",
+      "pitched": {
+        "schemaVersion": 1,
+        "windowId": "full",
+        "predictedNoteCount": 278,
+        "referenceNoteCount": 283,
+        "predictedTrackCount": 1,
+        "referenceTrackCount": 1,
+        "roles": [
+          "events"
+        ],
+        "byRole": {
+          "events": {
+            "exact": {
+              "predictedCount": 278,
+              "referenceCount": 283,
+              "matches": 235,
+              "precision": 0.8453237410071942,
+              "recall": 0.8303886925795053,
+              "f1": 0.8377896613190732
+            },
+            "exactPitch": {
+              "predictedCount": 278,
+              "referenceCount": 283,
+              "matches": 235,
+              "precision": 0.8453237410071942,
+              "recall": 0.8303886925795053,
+              "f1": 0.8377896613190732
+            },
+            "pitchClass": {
+              "predictedCount": 278,
+              "referenceCount": 283,
+              "matches": 242,
+              "precision": 0.8705035971223022,
+              "recall": 0.8551236749116607,
+              "f1": 0.8627450980392156
+            },
+            "onset": {
+              "predictedCount": 278,
+              "referenceCount": 283,
+              "matches": 249,
+              "precision": 0.89568345323741,
+              "recall": 0.8798586572438163,
+              "f1": 0.8877005347593583
+            },
+            "contour": {
+              "directionAgreement": 0.35080645161290325,
+              "matchedTransitions": 87,
+              "referenceTransitions": 247,
+              "predictedTransitions": 247,
+              "comparableTransitions": 248
+            },
+            "unsupportedDensity": {
+              "count": 0,
+              "total": 278,
+              "rate": 0
+            }
+          }
+        },
+        "byTrack": [
+          {
+            "role": "events",
+            "referenceTrackId": "events",
+            "predictionTrackId": "events",
+            "metrics": {
+              "exact": {
+                "predictedCount": 278,
+                "referenceCount": 283,
+                "matches": 235,
+                "precision": 0.8453237410071942,
+                "recall": 0.8303886925795053,
+                "f1": 0.8377896613190732
+              },
+              "exactPitch": {
+                "predictedCount": 278,
+                "referenceCount": 283,
+                "matches": 235,
+                "precision": 0.8453237410071942,
+                "recall": 0.8303886925795053,
+                "f1": 0.8377896613190732
+              },
+              "pitchClass": {
+                "predictedCount": 278,
+                "referenceCount": 283,
+                "matches": 242,
+                "precision": 0.8705035971223022,
+                "recall": 0.8551236749116607,
+                "f1": 0.8627450980392156
+              },
+              "onset": {
+                "predictedCount": 278,
+                "referenceCount": 283,
+                "matches": 249,
+                "precision": 0.89568345323741,
+                "recall": 0.8798586572438163,
+                "f1": 0.8877005347593583
+              },
+              "contour": {
+                "directionAgreement": 0.35080645161290325,
+                "matchedTransitions": 87,
+                "referenceTransitions": 247,
+                "predictedTransitions": 247,
+                "comparableTransitions": 248
+              },
+              "unsupportedDensity": {
+                "count": 0,
+                "total": 278,
+                "rate": 0
+              }
+            }
+          }
+        ],
+        "exact": {
+          "predictedCount": 278,
+          "referenceCount": 283,
+          "matches": 235,
+          "precision": 0.8453237410071942,
+          "recall": 0.8303886925795053,
+          "f1": 0.8377896613190732
+        },
+        "exactPitch": {
+          "predictedCount": 278,
+          "referenceCount": 283,
+          "matches": 235,
+          "precision": 0.8453237410071942,
+          "recall": 0.8303886925795053,
+          "f1": 0.8377896613190732
+        },
+        "pitchClass": {
+          "predictedCount": 278,
+          "referenceCount": 283,
+          "matches": 242,
+          "precision": 0.8705035971223022,
+          "recall": 0.8551236749116607,
+          "f1": 0.8627450980392156
+        },
+        "onset": {
+          "predictedCount": 278,
+          "referenceCount": 283,
+          "matches": 249,
+          "precision": 0.89568345323741,
+          "recall": 0.8798586572438163,
+          "f1": 0.8877005347593583
+        },
+        "contour": {
+          "directionAgreement": 0.35080645161290325,
+          "matchedTransitions": 87,
+          "referenceTransitions": 247,
+          "predictedTransitions": 247,
+          "comparableTransitions": 248
+        },
+        "unsupportedDensity": {
+          "count": 0,
+          "total": 278,
+          "rate": 0
+        }
+      },
+      "families": {
+        "GUITAR": {
+          "schemaVersion": 1,
+          "windowId": "full",
+          "predictedNoteCount": 0,
+          "referenceNoteCount": 0,
+          "predictedTrackCount": 1,
+          "referenceTrackCount": 1,
+          "roles": [
+            "events"
+          ],
+          "byRole": {
+            "events": {
+              "exact": {
+                "predictedCount": 0,
+                "referenceCount": 0,
+                "matches": 0,
+                "precision": null,
+                "recall": null,
+                "f1": null
+              },
+              "exactPitch": {
+                "predictedCount": 0,
+                "referenceCount": 0,
+                "matches": 0,
+                "precision": null,
+                "recall": null,
+                "f1": null
+              },
+              "pitchClass": {
+                "predictedCount": 0,
+                "referenceCount": 0,
+                "matches": 0,
+                "precision": null,
+                "recall": null,
+                "f1": null
+              },
+              "onset": {
+                "predictedCount": 0,
+                "referenceCount": 0,
+                "matches": 0,
+                "precision": null,
+                "recall": null,
+                "f1": null
+              },
+              "contour": {
+                "directionAgreement": null,
+                "matchedTransitions": 0,
+                "referenceTransitions": 0,
+                "predictedTransitions": 0,
+                "comparableTransitions": 0
+              },
+              "unsupportedDensity": {
+                "count": 0,
+                "total": 0,
+                "rate": 0
+              }
+            }
+          },
+          "byTrack": [
+            {
+              "role": "events",
+              "referenceTrackId": "events",
+              "predictionTrackId": "events",
+              "metrics": {
+                "exact": {
+                  "predictedCount": 0,
+                  "referenceCount": 0,
+                  "matches": 0,
+                  "precision": null,
+                  "recall": null,
+                  "f1": null
+                },
+                "exactPitch": {
+                  "predictedCount": 0,
+                  "referenceCount": 0,
+                  "matches": 0,
+                  "precision": null,
+                  "recall": null,
+                  "f1": null
+                },
+                "pitchClass": {
+                  "predictedCount": 0,
+                  "referenceCount": 0,
+                  "matches": 0,
+                  "precision": null,
+                  "recall": null,
+                  "f1": null
+                },
+                "onset": {
+                  "predictedCount": 0,
+                  "referenceCount": 0,
+                  "matches": 0,
+                  "precision": null,
+                  "recall": null,
+                  "f1": null
+                },
+                "contour": {
+                  "directionAgreement": null,
+                  "matchedTransitions": 0,
+                  "referenceTransitions": 0,
+                  "predictedTransitions": 0,
+                  "comparableTransitions": 0
+                },
+                "unsupportedDensity": {
+                  "count": 0,
+                  "total": 0,
+                  "rate": 0
+                }
+              }
+            }
+          ],
+          "exact": {
+            "predictedCount": 0,
+            "referenceCount": 0,
+            "matches": 0,
+            "precision": null,
+            "recall": null,
+            "f1": null
+          },
+          "exactPitch": {
+            "predictedCount": 0,
+            "referenceCount": 0,
+            "matches": 0,
+            "precision": null,
+            "recall": null,
+            "f1": null
+          },
+          "pitchClass": {
+            "predictedCount": 0,
+            "referenceCount": 0,
+            "matches": 0,
+            "precision": null,
+            "recall": null,
+            "f1": null
+          },
+          "onset": {
+            "predictedCount": 0,
+            "referenceCount": 0,
+            "matches": 0,
+            "precision": null,
+            "recall": null,
+            "f1": null
+          },
+          "contour": {
+            "directionAgreement": null,
+            "matchedTransitions": 0,
+            "referenceTransitions": 0,
+            "predictedTransitions": 0,
+            "comparableTransitions": 0
+          },
+          "unsupportedDensity": {
+            "count": 0,
+            "total": 0,
+            "rate": 0
+          }
+        },
+        "BASS": {
+          "schemaVersion": 1,
+          "windowId": "full",
+          "predictedNoteCount": 0,
+          "referenceNoteCount": 0,
+          "predictedTrackCount": 1,
+          "referenceTrackCount": 1,
+          "roles": [
+            "events"
+          ],
+          "byRole": {
+            "events": {
+              "exact": {
+                "predictedCount": 0,
+                "referenceCount": 0,
+                "matches": 0,
+                "precision": null,
+                "recall": null,
+                "f1": null
+              },
+              "exactPitch": {
+                "predictedCount": 0,
+                "referenceCount": 0,
+                "matches": 0,
+                "precision": null,
+                "recall": null,
+                "f1": null
+              },
+              "pitchClass": {
+                "predictedCount": 0,
+                "referenceCount": 0,
+                "matches": 0,
+                "precision": null,
+                "recall": null,
+                "f1": null
+              },
+              "onset": {
+                "predictedCount": 0,
+                "referenceCount": 0,
+                "matches": 0,
+                "precision": null,
+                "recall": null,
+                "f1": null
+              },
+              "contour": {
+                "directionAgreement": null,
+                "matchedTransitions": 0,
+                "referenceTransitions": 0,
+                "predictedTransitions": 0,
+                "comparableTransitions": 0
+              },
+              "unsupportedDensity": {
+                "count": 0,
+                "total": 0,
+                "rate": 0
+              }
+            }
+          },
+          "byTrack": [
+            {
+              "role": "events",
+              "referenceTrackId": "events",
+              "predictionTrackId": "events",
+              "metrics": {
+                "exact": {
+                  "predictedCount": 0,
+                  "referenceCount": 0,
+                  "matches": 0,
+                  "precision": null,
+                  "recall": null,
+                  "f1": null
+                },
+                "exactPitch": {
+                  "predictedCount": 0,
+                  "referenceCount": 0,
+                  "matches": 0,
+                  "precision": null,
+                  "recall": null,
+                  "f1": null
+                },
+                "pitchClass": {
+                  "predictedCount": 0,
+                  "referenceCount": 0,
+                  "matches": 0,
+                  "precision": null,
+                  "recall": null,
+                  "f1": null
+                },
+                "onset": {
+                  "predictedCount": 0,
+                  "referenceCount": 0,
+                  "matches": 0,
+                  "precision": null,
+                  "recall": null,
+                  "f1": null
+                },
+                "contour": {
+                  "directionAgreement": null,
+                  "matchedTransitions": 0,
+                  "referenceTransitions": 0,
+                  "predictedTransitions": 0,
+                  "comparableTransitions": 0
+                },
+                "unsupportedDensity": {
+                  "count": 0,
+                  "total": 0,
+                  "rate": 0
+                }
+              }
+            }
+          ],
+          "exact": {
+            "predictedCount": 0,
+            "referenceCount": 0,
+            "matches": 0,
+            "precision": null,
+            "recall": null,
+            "f1": null
+          },
+          "exactPitch": {
+            "predictedCount": 0,
+            "referenceCount": 0,
+            "matches": 0,
+            "precision": null,
+            "recall": null,
+            "f1": null
+          },
+          "pitchClass": {
+            "predictedCount": 0,
+            "referenceCount": 0,
+            "matches": 0,
+            "precision": null,
+            "recall": null,
+            "f1": null
+          },
+          "onset": {
+            "predictedCount": 0,
+            "referenceCount": 0,
+            "matches": 0,
+            "precision": null,
+            "recall": null,
+            "f1": null
+          },
+          "contour": {
+            "directionAgreement": null,
+            "matchedTransitions": 0,
+            "referenceTransitions": 0,
+            "predictedTransitions": 0,
+            "comparableTransitions": 0
+          },
+          "unsupportedDensity": {
+            "count": 0,
+            "total": 0,
+            "rate": 0
+          }
+        },
+        "OTHER_PITCHED": {
+          "schemaVersion": 1,
+          "windowId": "full",
+          "predictedNoteCount": 278,
+          "referenceNoteCount": 283,
+          "predictedTrackCount": 1,
+          "referenceTrackCount": 1,
+          "roles": [
+            "events"
+          ],
+          "byRole": {
+            "events": {
+              "exact": {
+                "predictedCount": 278,
+                "referenceCount": 283,
+                "matches": 235,
+                "precision": 0.8453237410071942,
+                "recall": 0.8303886925795053,
+                "f1": 0.8377896613190732
+              },
+              "exactPitch": {
+                "predictedCount": 278,
+                "referenceCount": 283,
+                "matches": 235,
+                "precision": 0.8453237410071942,
+                "recall": 0.8303886925795053,
+                "f1": 0.8377896613190732
+              },
+              "pitchClass": {
+                "predictedCount": 278,
+                "referenceCount": 283,
+                "matches": 242,
+                "precision": 0.8705035971223022,
+                "recall": 0.8551236749116607,
+                "f1": 0.8627450980392156
+              },
+              "onset": {
+                "predictedCount": 278,
+                "referenceCount": 283,
+                "matches": 249,
+                "precision": 0.89568345323741,
+                "recall": 0.8798586572438163,
+                "f1": 0.8877005347593583
+              },
+              "contour": {
+                "directionAgreement": 0.35080645161290325,
+                "matchedTransitions": 87,
+                "referenceTransitions": 247,
+                "predictedTransitions": 247,
+                "comparableTransitions": 248
+              },
+              "unsupportedDensity": {
+                "count": 0,
+                "total": 278,
+                "rate": 0
+              }
+            }
+          },
+          "byTrack": [
+            {
+              "role": "events",
+              "referenceTrackId": "events",
+              "predictionTrackId": "events",
+              "metrics": {
+                "exact": {
+                  "predictedCount": 278,
+                  "referenceCount": 283,
+                  "matches": 235,
+                  "precision": 0.8453237410071942,
+                  "recall": 0.8303886925795053,
+                  "f1": 0.8377896613190732
+                },
+                "exactPitch": {
+                  "predictedCount": 278,
+                  "referenceCount": 283,
+                  "matches": 235,
+                  "precision": 0.8453237410071942,
+                  "recall": 0.8303886925795053,
+                  "f1": 0.8377896613190732
+                },
+                "pitchClass": {
+                  "predictedCount": 278,
+                  "referenceCount": 283,
+                  "matches": 242,
+                  "precision": 0.8705035971223022,
+                  "recall": 0.8551236749116607,
+                  "f1": 0.8627450980392156
+                },
+                "onset": {
+                  "predictedCount": 278,
+                  "referenceCount": 283,
+                  "matches": 249,
+                  "precision": 0.89568345323741,
+                  "recall": 0.8798586572438163,
+                  "f1": 0.8877005347593583
+                },
+                "contour": {
+                  "directionAgreement": 0.35080645161290325,
+                  "matchedTransitions": 87,
+                  "referenceTransitions": 247,
+                  "predictedTransitions": 247,
+                  "comparableTransitions": 248
+                },
+                "unsupportedDensity": {
+                  "count": 0,
+                  "total": 278,
+                  "rate": 0
+                }
+              }
+            }
+          ],
+          "exact": {
+            "predictedCount": 278,
+            "referenceCount": 283,
+            "matches": 235,
+            "precision": 0.8453237410071942,
+            "recall": 0.8303886925795053,
+            "f1": 0.8377896613190732
+          },
+          "exactPitch": {
+            "predictedCount": 278,
+            "referenceCount": 283,
+            "matches": 235,
+            "precision": 0.8453237410071942,
+            "recall": 0.8303886925795053,
+            "f1": 0.8377896613190732
+          },
+          "pitchClass": {
+            "predictedCount": 278,
+            "referenceCount": 283,
+            "matches": 242,
+            "precision": 0.8705035971223022,
+            "recall": 0.8551236749116607,
+            "f1": 0.8627450980392156
+          },
+          "onset": {
+            "predictedCount": 278,
+            "referenceCount": 283,
+            "matches": 249,
+            "precision": 0.89568345323741,
+            "recall": 0.8798586572438163,
+            "f1": 0.8877005347593583
+          },
+          "contour": {
+            "directionAgreement": 0.35080645161290325,
+            "matchedTransitions": 87,
+            "referenceTransitions": 247,
+            "predictedTransitions": 247,
+            "comparableTransitions": 248
+          },
+          "unsupportedDensity": {
+            "count": 0,
+            "total": 278,
+            "rate": 0
+          }
+        }
+      },
+      "percussion": {
+        "kick": {
+          "predictedCount": 0,
+          "referenceCount": 0,
+          "matches": 0,
+          "precision": null,
+          "recall": null,
+          "f1": null,
+          "medianOnsetErrorSeconds": null,
+          "p95OnsetErrorSeconds": null
+        },
+        "snare": {
+          "predictedCount": 0,
+          "referenceCount": 0,
+          "matches": 0,
+          "precision": null,
+          "recall": null,
+          "f1": null,
+          "medianOnsetErrorSeconds": null,
+          "p95OnsetErrorSeconds": null
+        },
+        "all": {
+          "predictedCount": 0,
+          "referenceCount": 0,
+          "matches": 0,
+          "precision": null,
+          "recall": null,
+          "f1": null,
+          "medianOnsetErrorSeconds": null,
+          "p95OnsetErrorSeconds": null
+        }
+      },
+      "diagnostics": {
+        "referencePitchedNotes": 283,
+        "predictedPitchedNotes": 278,
+        "densityRatio": 0.982332,
+        "referenceMedianIoiSeconds": 0.098684,
+        "predictedMedianIoiSeconds": 0.104546,
+        "referenceMaxSimultaneity": 4,
+        "predictedMaxSimultaneity": 7,
+        "failureStates": []
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "fixtureId": "haydn",
+      "pitched": {
+        "schemaVersion": 1,
+        "windowId": "full",
+        "predictedNoteCount": 214,
+        "referenceNoteCount": 160,
+        "predictedTrackCount": 1,
+        "referenceTrackCount": 1,
+        "roles": [
+          "events"
+        ],
+        "byRole": {
+          "events": {
+            "exact": {
+              "predictedCount": 214,
+              "referenceCount": 160,
+              "matches": 159,
+              "precision": 0.7429906542056075,
+              "recall": 0.99375,
+              "f1": 0.8502673796791443
+            },
+            "exactPitch": {
+              "predictedCount": 214,
+              "referenceCount": 160,
+              "matches": 159,
+              "precision": 0.7429906542056075,
+              "recall": 0.99375,
+              "f1": 0.8502673796791443
+            },
+            "pitchClass": {
+              "predictedCount": 214,
+              "referenceCount": 160,
+              "matches": 160,
+              "precision": 0.7476635514018691,
+              "recall": 1,
+              "f1": 0.8556149732620321
+            },
+            "onset": {
+              "predictedCount": 214,
+              "referenceCount": 160,
+              "matches": 160,
+              "precision": 0.7476635514018691,
+              "recall": 1,
+              "f1": 0.8556149732620321
+            },
+            "contour": {
+              "directionAgreement": 0.41509433962264153,
+              "matchedTransitions": 66,
+              "referenceTransitions": 158,
+              "predictedTransitions": 149,
+              "comparableTransitions": 159
+            },
+            "unsupportedDensity": {
+              "count": 0,
+              "total": 214,
+              "rate": 0
+            }
+          }
+        },
+        "byTrack": [
+          {
+            "role": "events",
+            "referenceTrackId": "events",
+            "predictionTrackId": "events",
+            "metrics": {
+              "exact": {
+                "predictedCount": 214,
+                "referenceCount": 160,
+                "matches": 159,
+                "precision": 0.7429906542056075,
+                "recall": 0.99375,
+                "f1": 0.8502673796791443
+              },
+              "exactPitch": {
+                "predictedCount": 214,
+                "referenceCount": 160,
+                "matches": 159,
+                "precision": 0.7429906542056075,
+                "recall": 0.99375,
+                "f1": 0.8502673796791443
+              },
+              "pitchClass": {
+                "predictedCount": 214,
+                "referenceCount": 160,
+                "matches": 160,
+                "precision": 0.7476635514018691,
+                "recall": 1,
+                "f1": 0.8556149732620321
+              },
+              "onset": {
+                "predictedCount": 214,
+                "referenceCount": 160,
+                "matches": 160,
+                "precision": 0.7476635514018691,
+                "recall": 1,
+                "f1": 0.8556149732620321
+              },
+              "contour": {
+                "directionAgreement": 0.41509433962264153,
+                "matchedTransitions": 66,
+                "referenceTransitions": 158,
+                "predictedTransitions": 149,
+                "comparableTransitions": 159
+              },
+              "unsupportedDensity": {
+                "count": 0,
+                "total": 214,
+                "rate": 0
+              }
+            }
+          }
+        ],
+        "exact": {
+          "predictedCount": 214,
+          "referenceCount": 160,
+          "matches": 159,
+          "precision": 0.7429906542056075,
+          "recall": 0.99375,
+          "f1": 0.8502673796791443
+        },
+        "exactPitch": {
+          "predictedCount": 214,
+          "referenceCount": 160,
+          "matches": 159,
+          "precision": 0.7429906542056075,
+          "recall": 0.99375,
+          "f1": 0.8502673796791443
+        },
+        "pitchClass": {
+          "predictedCount": 214,
+          "referenceCount": 160,
+          "matches": 160,
+          "precision": 0.7476635514018691,
+          "recall": 1,
+          "f1": 0.8556149732620321
+        },
+        "onset": {
+          "predictedCount": 214,
+          "referenceCount": 160,
+          "matches": 160,
+          "precision": 0.7476635514018691,
+          "recall": 1,
+          "f1": 0.8556149732620321
+        },
+        "contour": {
+          "directionAgreement": 0.41509433962264153,
+          "matchedTransitions": 66,
+          "referenceTransitions": 158,
+          "predictedTransitions": 149,
+          "comparableTransitions": 159
+        },
+        "unsupportedDensity": {
+          "count": 0,
+          "total": 214,
+          "rate": 0
+        }
+      },
+      "families": {
+        "GUITAR": {
+          "schemaVersion": 1,
+          "windowId": "full",
+          "predictedNoteCount": 0,
+          "referenceNoteCount": 0,
+          "predictedTrackCount": 1,
+          "referenceTrackCount": 1,
+          "roles": [
+            "events"
+          ],
+          "byRole": {
+            "events": {
+              "exact": {
+                "predictedCount": 0,
+                "referenceCount": 0,
+                "matches": 0,
+                "precision": null,
+                "recall": null,
+                "f1": null
+              },
+              "exactPitch": {
+                "predictedCount": 0,
+                "referenceCount": 0,
+                "matches": 0,
+                "precision": null,
+                "recall": null,
+                "f1": null
+              },
+              "pitchClass": {
+                "predictedCount": 0,
+                "referenceCount": 0,
+                "matches": 0,
+                "precision": null,
+                "recall": null,
+                "f1": null
+              },
+              "onset": {
+                "predictedCount": 0,
+                "referenceCount": 0,
+                "matches": 0,
+                "precision": null,
+                "recall": null,
+                "f1": null
+              },
+              "contour": {
+                "directionAgreement": null,
+                "matchedTransitions": 0,
+                "referenceTransitions": 0,
+                "predictedTransitions": 0,
+                "comparableTransitions": 0
+              },
+              "unsupportedDensity": {
+                "count": 0,
+                "total": 0,
+                "rate": 0
+              }
+            }
+          },
+          "byTrack": [
+            {
+              "role": "events",
+              "referenceTrackId": "events",
+              "predictionTrackId": "events",
+              "metrics": {
+                "exact": {
+                  "predictedCount": 0,
+                  "referenceCount": 0,
+                  "matches": 0,
+                  "precision": null,
+                  "recall": null,
+                  "f1": null
+                },
+                "exactPitch": {
+                  "predictedCount": 0,
+                  "referenceCount": 0,
+                  "matches": 0,
+                  "precision": null,
+                  "recall": null,
+                  "f1": null
+                },
+                "pitchClass": {
+                  "predictedCount": 0,
+                  "referenceCount": 0,
+                  "matches": 0,
+                  "precision": null,
+                  "recall": null,
+                  "f1": null
+                },
+                "onset": {
+                  "predictedCount": 0,
+                  "referenceCount": 0,
+                  "matches": 0,
+                  "precision": null,
+                  "recall": null,
+                  "f1": null
+                },
+                "contour": {
+                  "directionAgreement": null,
+                  "matchedTransitions": 0,
+                  "referenceTransitions": 0,
+                  "predictedTransitions": 0,
+                  "comparableTransitions": 0
+                },
+                "unsupportedDensity": {
+                  "count": 0,
+                  "total": 0,
+                  "rate": 0
+                }
+              }
+            }
+          ],
+          "exact": {
+            "predictedCount": 0,
+            "referenceCount": 0,
+            "matches": 0,
+            "precision": null,
+            "recall": null,
+            "f1": null
+          },
+          "exactPitch": {
+            "predictedCount": 0,
+            "referenceCount": 0,
+            "matches": 0,
+            "precision": null,
+            "recall": null,
+            "f1": null
+          },
+          "pitchClass": {
+            "predictedCount": 0,
+            "referenceCount": 0,
+            "matches": 0,
+            "precision": null,
+            "recall": null,
+            "f1": null
+          },
+          "onset": {
+            "predictedCount": 0,
+            "referenceCount": 0,
+            "matches": 0,
+            "precision": null,
+            "recall": null,
+            "f1": null
+          },
+          "contour": {
+            "directionAgreement": null,
+            "matchedTransitions": 0,
+            "referenceTransitions": 0,
+            "predictedTransitions": 0,
+            "comparableTransitions": 0
+          },
+          "unsupportedDensity": {
+            "count": 0,
+            "total": 0,
+            "rate": 0
+          }
+        },
+        "BASS": {
+          "schemaVersion": 1,
+          "windowId": "full",
+          "predictedNoteCount": 0,
+          "referenceNoteCount": 0,
+          "predictedTrackCount": 1,
+          "referenceTrackCount": 1,
+          "roles": [
+            "events"
+          ],
+          "byRole": {
+            "events": {
+              "exact": {
+                "predictedCount": 0,
+                "referenceCount": 0,
+                "matches": 0,
+                "precision": null,
+                "recall": null,
+                "f1": null
+              },
+              "exactPitch": {
+                "predictedCount": 0,
+                "referenceCount": 0,
+                "matches": 0,
+                "precision": null,
+                "recall": null,
+                "f1": null
+              },
+              "pitchClass": {
+                "predictedCount": 0,
+                "referenceCount": 0,
+                "matches": 0,
+                "precision": null,
+                "recall": null,
+                "f1": null
+              },
+              "onset": {
+                "predictedCount": 0,
+                "referenceCount": 0,
+                "matches": 0,
+                "precision": null,
+                "recall": null,
+                "f1": null
+              },
+              "contour": {
+                "directionAgreement": null,
+                "matchedTransitions": 0,
+                "referenceTransitions": 0,
+                "predictedTransitions": 0,
+                "comparableTransitions": 0
+              },
+              "unsupportedDensity": {
+                "count": 0,
+                "total": 0,
+                "rate": 0
+              }
+            }
+          },
+          "byTrack": [
+            {
+              "role": "events",
+              "referenceTrackId": "events",
+              "predictionTrackId": "events",
+              "metrics": {
+                "exact": {
+                  "predictedCount": 0,
+                  "referenceCount": 0,
+                  "matches": 0,
+                  "precision": null,
+                  "recall": null,
+                  "f1": null
+                },
+                "exactPitch": {
+                  "predictedCount": 0,
+                  "referenceCount": 0,
+                  "matches": 0,
+                  "precision": null,
+                  "recall": null,
+                  "f1": null
+                },
+                "pitchClass": {
+                  "predictedCount": 0,
+                  "referenceCount": 0,
+                  "matches": 0,
+                  "precision": null,
+                  "recall": null,
+                  "f1": null
+                },
+                "onset": {
+                  "predictedCount": 0,
+                  "referenceCount": 0,
+                  "matches": 0,
+                  "precision": null,
+                  "recall": null,
+                  "f1": null
+                },
+                "contour": {
+                  "directionAgreement": null,
+                  "matchedTransitions": 0,
+                  "referenceTransitions": 0,
+                  "predictedTransitions": 0,
+                  "comparableTransitions": 0
+                },
+                "unsupportedDensity": {
+                  "count": 0,
+                  "total": 0,
+                  "rate": 0
+                }
+              }
+            }
+          ],
+          "exact": {
+            "predictedCount": 0,
+            "referenceCount": 0,
+            "matches": 0,
+            "precision": null,
+            "recall": null,
+            "f1": null
+          },
+          "exactPitch": {
+            "predictedCount": 0,
+            "referenceCount": 0,
+            "matches": 0,
+            "precision": null,
+            "recall": null,
+            "f1": null
+          },
+          "pitchClass": {
+            "predictedCount": 0,
+            "referenceCount": 0,
+            "matches": 0,
+            "precision": null,
+            "recall": null,
+            "f1": null
+          },
+          "onset": {
+            "predictedCount": 0,
+            "referenceCount": 0,
+            "matches": 0,
+            "precision": null,
+            "recall": null,
+            "f1": null
+          },
+          "contour": {
+            "directionAgreement": null,
+            "matchedTransitions": 0,
+            "referenceTransitions": 0,
+            "predictedTransitions": 0,
+            "comparableTransitions": 0
+          },
+          "unsupportedDensity": {
+            "count": 0,
+            "total": 0,
+            "rate": 0
+          }
+        },
+        "OTHER_PITCHED": {
+          "schemaVersion": 1,
+          "windowId": "full",
+          "predictedNoteCount": 214,
+          "referenceNoteCount": 160,
+          "predictedTrackCount": 1,
+          "referenceTrackCount": 1,
+          "roles": [
+            "events"
+          ],
+          "byRole": {
+            "events": {
+              "exact": {
+                "predictedCount": 214,
+                "referenceCount": 160,
+                "matches": 159,
+                "precision": 0.7429906542056075,
+                "recall": 0.99375,
+                "f1": 0.8502673796791443
+              },
+              "exactPitch": {
+                "predictedCount": 214,
+                "referenceCount": 160,
+                "matches": 159,
+                "precision": 0.7429906542056075,
+                "recall": 0.99375,
+                "f1": 0.8502673796791443
+              },
+              "pitchClass": {
+                "predictedCount": 214,
+                "referenceCount": 160,
+                "matches": 160,
+                "precision": 0.7476635514018691,
+                "recall": 1,
+                "f1": 0.8556149732620321
+              },
+              "onset": {
+                "predictedCount": 214,
+                "referenceCount": 160,
+                "matches": 160,
+                "precision": 0.7476635514018691,
+                "recall": 1,
+                "f1": 0.8556149732620321
+              },
+              "contour": {
+                "directionAgreement": 0.41509433962264153,
+                "matchedTransitions": 66,
+                "referenceTransitions": 158,
+                "predictedTransitions": 149,
+                "comparableTransitions": 159
+              },
+              "unsupportedDensity": {
+                "count": 0,
+                "total": 214,
+                "rate": 0
+              }
+            }
+          },
+          "byTrack": [
+            {
+              "role": "events",
+              "referenceTrackId": "events",
+              "predictionTrackId": "events",
+              "metrics": {
+                "exact": {
+                  "predictedCount": 214,
+                  "referenceCount": 160,
+                  "matches": 159,
+                  "precision": 0.7429906542056075,
+                  "recall": 0.99375,
+                  "f1": 0.8502673796791443
+                },
+                "exactPitch": {
+                  "predictedCount": 214,
+                  "referenceCount": 160,
+                  "matches": 159,
+                  "precision": 0.7429906542056075,
+                  "recall": 0.99375,
+                  "f1": 0.8502673796791443
+                },
+                "pitchClass": {
+                  "predictedCount": 214,
+                  "referenceCount": 160,
+                  "matches": 160,
+                  "precision": 0.7476635514018691,
+                  "recall": 1,
+                  "f1": 0.8556149732620321
+                },
+                "onset": {
+                  "predictedCount": 214,
+                  "referenceCount": 160,
+                  "matches": 160,
+                  "precision": 0.7476635514018691,
+                  "recall": 1,
+                  "f1": 0.8556149732620321
+                },
+                "contour": {
+                  "directionAgreement": 0.41509433962264153,
+                  "matchedTransitions": 66,
+                  "referenceTransitions": 158,
+                  "predictedTransitions": 149,
+                  "comparableTransitions": 159
+                },
+                "unsupportedDensity": {
+                  "count": 0,
+                  "total": 214,
+                  "rate": 0
+                }
+              }
+            }
+          ],
+          "exact": {
+            "predictedCount": 214,
+            "referenceCount": 160,
+            "matches": 159,
+            "precision": 0.7429906542056075,
+            "recall": 0.99375,
+            "f1": 0.8502673796791443
+          },
+          "exactPitch": {
+            "predictedCount": 214,
+            "referenceCount": 160,
+            "matches": 159,
+            "precision": 0.7429906542056075,
+            "recall": 0.99375,
+            "f1": 0.8502673796791443
+          },
+          "pitchClass": {
+            "predictedCount": 214,
+            "referenceCount": 160,
+            "matches": 160,
+            "precision": 0.7476635514018691,
+            "recall": 1,
+            "f1": 0.8556149732620321
+          },
+          "onset": {
+            "predictedCount": 214,
+            "referenceCount": 160,
+            "matches": 160,
+            "precision": 0.7476635514018691,
+            "recall": 1,
+            "f1": 0.8556149732620321
+          },
+          "contour": {
+            "directionAgreement": 0.41509433962264153,
+            "matchedTransitions": 66,
+            "referenceTransitions": 158,
+            "predictedTransitions": 149,
+            "comparableTransitions": 159
+          },
+          "unsupportedDensity": {
+            "count": 0,
+            "total": 214,
+            "rate": 0
+          }
+        }
+      },
+      "percussion": {
+        "kick": {
+          "predictedCount": 0,
+          "referenceCount": 0,
+          "matches": 0,
+          "precision": null,
+          "recall": null,
+          "f1": null,
+          "medianOnsetErrorSeconds": null,
+          "p95OnsetErrorSeconds": null
+        },
+        "snare": {
+          "predictedCount": 0,
+          "referenceCount": 0,
+          "matches": 0,
+          "precision": null,
+          "recall": null,
+          "f1": null,
+          "medianOnsetErrorSeconds": null,
+          "p95OnsetErrorSeconds": null
+        },
+        "all": {
+          "predictedCount": 0,
+          "referenceCount": 0,
+          "matches": 0,
+          "precision": null,
+          "recall": null,
+          "f1": null,
+          "medianOnsetErrorSeconds": null,
+          "p95OnsetErrorSeconds": null
+        }
+      },
+      "diagnostics": {
+        "referencePitchedNotes": 160,
+        "predictedPitchedNotes": 214,
+        "densityRatio": 1.3375,
+        "referenceMedianIoiSeconds": 0.217391,
+        "predictedMedianIoiSeconds": 0.209091,
+        "referenceMaxSimultaneity": 3,
+        "predictedMaxSimultaneity": 6,
+        "failureStates": []
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "fixtureId": "debussy",
+      "pitched": {
+        "schemaVersion": 1,
+        "windowId": "full",
+        "predictedNoteCount": 352,
+        "referenceNoteCount": 250,
+        "predictedTrackCount": 1,
+        "referenceTrackCount": 1,
+        "roles": [
+          "events"
+        ],
+        "byRole": {
+          "events": {
+            "exact": {
+              "predictedCount": 352,
+              "referenceCount": 250,
+              "matches": 243,
+              "precision": 0.6903409090909091,
+              "recall": 0.972,
+              "f1": 0.8073089700996677
+            },
+            "exactPitch": {
+              "predictedCount": 352,
+              "referenceCount": 250,
+              "matches": 243,
+              "precision": 0.6903409090909091,
+              "recall": 0.972,
+              "f1": 0.8073089700996677
+            },
+            "pitchClass": {
+              "predictedCount": 352,
+              "referenceCount": 250,
+              "matches": 243,
+              "precision": 0.6903409090909091,
+              "recall": 0.972,
+              "f1": 0.8073089700996677
+            },
+            "onset": {
+              "predictedCount": 352,
+              "referenceCount": 250,
+              "matches": 246,
+              "precision": 0.6988636363636364,
+              "recall": 0.984,
+              "f1": 0.8172757475083057
+            },
+            "contour": {
+              "directionAgreement": 0.5469387755102041,
+              "matchedTransitions": 134,
+              "referenceTransitions": 244,
+              "predictedTransitions": 222,
+              "comparableTransitions": 245
+            },
+            "unsupportedDensity": {
+              "count": 0,
+              "total": 352,
+              "rate": 0
+            }
+          }
+        },
+        "byTrack": [
+          {
+            "role": "events",
+            "referenceTrackId": "events",
+            "predictionTrackId": "events",
+            "metrics": {
+              "exact": {
+                "predictedCount": 352,
+                "referenceCount": 250,
+                "matches": 243,
+                "precision": 0.6903409090909091,
+                "recall": 0.972,
+                "f1": 0.8073089700996677
+              },
+              "exactPitch": {
+                "predictedCount": 352,
+                "referenceCount": 250,
+                "matches": 243,
+                "precision": 0.6903409090909091,
+                "recall": 0.972,
+                "f1": 0.8073089700996677
+              },
+              "pitchClass": {
+                "predictedCount": 352,
+                "referenceCount": 250,
+                "matches": 243,
+                "precision": 0.6903409090909091,
+                "recall": 0.972,
+                "f1": 0.8073089700996677
+              },
+              "onset": {
+                "predictedCount": 352,
+                "referenceCount": 250,
+                "matches": 246,
+                "precision": 0.6988636363636364,
+                "recall": 0.984,
+                "f1": 0.8172757475083057
+              },
+              "contour": {
+                "directionAgreement": 0.5469387755102041,
+                "matchedTransitions": 134,
+                "referenceTransitions": 244,
+                "predictedTransitions": 222,
+                "comparableTransitions": 245
+              },
+              "unsupportedDensity": {
+                "count": 0,
+                "total": 352,
+                "rate": 0
+              }
+            }
+          }
+        ],
+        "exact": {
+          "predictedCount": 352,
+          "referenceCount": 250,
+          "matches": 243,
+          "precision": 0.6903409090909091,
+          "recall": 0.972,
+          "f1": 0.8073089700996677
+        },
+        "exactPitch": {
+          "predictedCount": 352,
+          "referenceCount": 250,
+          "matches": 243,
+          "precision": 0.6903409090909091,
+          "recall": 0.972,
+          "f1": 0.8073089700996677
+        },
+        "pitchClass": {
+          "predictedCount": 352,
+          "referenceCount": 250,
+          "matches": 243,
+          "precision": 0.6903409090909091,
+          "recall": 0.972,
+          "f1": 0.8073089700996677
+        },
+        "onset": {
+          "predictedCount": 352,
+          "referenceCount": 250,
+          "matches": 246,
+          "precision": 0.6988636363636364,
+          "recall": 0.984,
+          "f1": 0.8172757475083057
+        },
+        "contour": {
+          "directionAgreement": 0.5469387755102041,
+          "matchedTransitions": 134,
+          "referenceTransitions": 244,
+          "predictedTransitions": 222,
+          "comparableTransitions": 245
+        },
+        "unsupportedDensity": {
+          "count": 0,
+          "total": 352,
+          "rate": 0
+        }
+      },
+      "families": {
+        "GUITAR": {
+          "schemaVersion": 1,
+          "windowId": "full",
+          "predictedNoteCount": 0,
+          "referenceNoteCount": 0,
+          "predictedTrackCount": 1,
+          "referenceTrackCount": 1,
+          "roles": [
+            "events"
+          ],
+          "byRole": {
+            "events": {
+              "exact": {
+                "predictedCount": 0,
+                "referenceCount": 0,
+                "matches": 0,
+                "precision": null,
+                "recall": null,
+                "f1": null
+              },
+              "exactPitch": {
+                "predictedCount": 0,
+                "referenceCount": 0,
+                "matches": 0,
+                "precision": null,
+                "recall": null,
+                "f1": null
+              },
+              "pitchClass": {
+                "predictedCount": 0,
+                "referenceCount": 0,
+                "matches": 0,
+                "precision": null,
+                "recall": null,
+                "f1": null
+              },
+              "onset": {
+                "predictedCount": 0,
+                "referenceCount": 0,
+                "matches": 0,
+                "precision": null,
+                "recall": null,
+                "f1": null
+              },
+              "contour": {
+                "directionAgreement": null,
+                "matchedTransitions": 0,
+                "referenceTransitions": 0,
+                "predictedTransitions": 0,
+                "comparableTransitions": 0
+              },
+              "unsupportedDensity": {
+                "count": 0,
+                "total": 0,
+                "rate": 0
+              }
+            }
+          },
+          "byTrack": [
+            {
+              "role": "events",
+              "referenceTrackId": "events",
+              "predictionTrackId": "events",
+              "metrics": {
+                "exact": {
+                  "predictedCount": 0,
+                  "referenceCount": 0,
+                  "matches": 0,
+                  "precision": null,
+                  "recall": null,
+                  "f1": null
+                },
+                "exactPitch": {
+                  "predictedCount": 0,
+                  "referenceCount": 0,
+                  "matches": 0,
+                  "precision": null,
+                  "recall": null,
+                  "f1": null
+                },
+                "pitchClass": {
+                  "predictedCount": 0,
+                  "referenceCount": 0,
+                  "matches": 0,
+                  "precision": null,
+                  "recall": null,
+                  "f1": null
+                },
+                "onset": {
+                  "predictedCount": 0,
+                  "referenceCount": 0,
+                  "matches": 0,
+                  "precision": null,
+                  "recall": null,
+                  "f1": null
+                },
+                "contour": {
+                  "directionAgreement": null,
+                  "matchedTransitions": 0,
+                  "referenceTransitions": 0,
+                  "predictedTransitions": 0,
+                  "comparableTransitions": 0
+                },
+                "unsupportedDensity": {
+                  "count": 0,
+                  "total": 0,
+                  "rate": 0
+                }
+              }
+            }
+          ],
+          "exact": {
+            "predictedCount": 0,
+            "referenceCount": 0,
+            "matches": 0,
+            "precision": null,
+            "recall": null,
+            "f1": null
+          },
+          "exactPitch": {
+            "predictedCount": 0,
+            "referenceCount": 0,
+            "matches": 0,
+            "precision": null,
+            "recall": null,
+            "f1": null
+          },
+          "pitchClass": {
+            "predictedCount": 0,
+            "referenceCount": 0,
+            "matches": 0,
+            "precision": null,
+            "recall": null,
+            "f1": null
+          },
+          "onset": {
+            "predictedCount": 0,
+            "referenceCount": 0,
+            "matches": 0,
+            "precision": null,
+            "recall": null,
+            "f1": null
+          },
+          "contour": {
+            "directionAgreement": null,
+            "matchedTransitions": 0,
+            "referenceTransitions": 0,
+            "predictedTransitions": 0,
+            "comparableTransitions": 0
+          },
+          "unsupportedDensity": {
+            "count": 0,
+            "total": 0,
+            "rate": 0
+          }
+        },
+        "BASS": {
+          "schemaVersion": 1,
+          "windowId": "full",
+          "predictedNoteCount": 0,
+          "referenceNoteCount": 0,
+          "predictedTrackCount": 1,
+          "referenceTrackCount": 1,
+          "roles": [
+            "events"
+          ],
+          "byRole": {
+            "events": {
+              "exact": {
+                "predictedCount": 0,
+                "referenceCount": 0,
+                "matches": 0,
+                "precision": null,
+                "recall": null,
+                "f1": null
+              },
+              "exactPitch": {
+                "predictedCount": 0,
+                "referenceCount": 0,
+                "matches": 0,
+                "precision": null,
+                "recall": null,
+                "f1": null
+              },
+              "pitchClass": {
+                "predictedCount": 0,
+                "referenceCount": 0,
+                "matches": 0,
+                "precision": null,
+                "recall": null,
+                "f1": null
+              },
+              "onset": {
+                "predictedCount": 0,
+                "referenceCount": 0,
+                "matches": 0,
+                "precision": null,
+                "recall": null,
+                "f1": null
+              },
+              "contour": {
+                "directionAgreement": null,
+                "matchedTransitions": 0,
+                "referenceTransitions": 0,
+                "predictedTransitions": 0,
+                "comparableTransitions": 0
+              },
+              "unsupportedDensity": {
+                "count": 0,
+                "total": 0,
+                "rate": 0
+              }
+            }
+          },
+          "byTrack": [
+            {
+              "role": "events",
+              "referenceTrackId": "events",
+              "predictionTrackId": "events",
+              "metrics": {
+                "exact": {
+                  "predictedCount": 0,
+                  "referenceCount": 0,
+                  "matches": 0,
+                  "precision": null,
+                  "recall": null,
+                  "f1": null
+                },
+                "exactPitch": {
+                  "predictedCount": 0,
+                  "referenceCount": 0,
+                  "matches": 0,
+                  "precision": null,
+                  "recall": null,
+                  "f1": null
+                },
+                "pitchClass": {
+                  "predictedCount": 0,
+                  "referenceCount": 0,
+                  "matches": 0,
+                  "precision": null,
+                  "recall": null,
+                  "f1": null
+                },
+                "onset": {
+                  "predictedCount": 0,
+                  "referenceCount": 0,
+                  "matches": 0,
+                  "precision": null,
+                  "recall": null,
+                  "f1": null
+                },
+                "contour": {
+                  "directionAgreement": null,
+                  "matchedTransitions": 0,
+                  "referenceTransitions": 0,
+                  "predictedTransitions": 0,
+                  "comparableTransitions": 0
+                },
+                "unsupportedDensity": {
+                  "count": 0,
+                  "total": 0,
+                  "rate": 0
+                }
+              }
+            }
+          ],
+          "exact": {
+            "predictedCount": 0,
+            "referenceCount": 0,
+            "matches": 0,
+            "precision": null,
+            "recall": null,
+            "f1": null
+          },
+          "exactPitch": {
+            "predictedCount": 0,
+            "referenceCount": 0,
+            "matches": 0,
+            "precision": null,
+            "recall": null,
+            "f1": null
+          },
+          "pitchClass": {
+            "predictedCount": 0,
+            "referenceCount": 0,
+            "matches": 0,
+            "precision": null,
+            "recall": null,
+            "f1": null
+          },
+          "onset": {
+            "predictedCount": 0,
+            "referenceCount": 0,
+            "matches": 0,
+            "precision": null,
+            "recall": null,
+            "f1": null
+          },
+          "contour": {
+            "directionAgreement": null,
+            "matchedTransitions": 0,
+            "referenceTransitions": 0,
+            "predictedTransitions": 0,
+            "comparableTransitions": 0
+          },
+          "unsupportedDensity": {
+            "count": 0,
+            "total": 0,
+            "rate": 0
+          }
+        },
+        "OTHER_PITCHED": {
+          "schemaVersion": 1,
+          "windowId": "full",
+          "predictedNoteCount": 352,
+          "referenceNoteCount": 250,
+          "predictedTrackCount": 1,
+          "referenceTrackCount": 1,
+          "roles": [
+            "events"
+          ],
+          "byRole": {
+            "events": {
+              "exact": {
+                "predictedCount": 352,
+                "referenceCount": 250,
+                "matches": 243,
+                "precision": 0.6903409090909091,
+                "recall": 0.972,
+                "f1": 0.8073089700996677
+              },
+              "exactPitch": {
+                "predictedCount": 352,
+                "referenceCount": 250,
+                "matches": 243,
+                "precision": 0.6903409090909091,
+                "recall": 0.972,
+                "f1": 0.8073089700996677
+              },
+              "pitchClass": {
+                "predictedCount": 352,
+                "referenceCount": 250,
+                "matches": 243,
+                "precision": 0.6903409090909091,
+                "recall": 0.972,
+                "f1": 0.8073089700996677
+              },
+              "onset": {
+                "predictedCount": 352,
+                "referenceCount": 250,
+                "matches": 246,
+                "precision": 0.6988636363636364,
+                "recall": 0.984,
+                "f1": 0.8172757475083057
+              },
+              "contour": {
+                "directionAgreement": 0.5469387755102041,
+                "matchedTransitions": 134,
+                "referenceTransitions": 244,
+                "predictedTransitions": 222,
+                "comparableTransitions": 245
+              },
+              "unsupportedDensity": {
+                "count": 0,
+                "total": 352,
+                "rate": 0
+              }
+            }
+          },
+          "byTrack": [
+            {
+              "role": "events",
+              "referenceTrackId": "events",
+              "predictionTrackId": "events",
+              "metrics": {
+                "exact": {
+                  "predictedCount": 352,
+                  "referenceCount": 250,
+                  "matches": 243,
+                  "precision": 0.6903409090909091,
+                  "recall": 0.972,
+                  "f1": 0.8073089700996677
+                },
+                "exactPitch": {
+                  "predictedCount": 352,
+                  "referenceCount": 250,
+                  "matches": 243,
+                  "precision": 0.6903409090909091,
+                  "recall": 0.972,
+                  "f1": 0.8073089700996677
+                },
+                "pitchClass": {
+                  "predictedCount": 352,
+                  "referenceCount": 250,
+                  "matches": 243,
+                  "precision": 0.6903409090909091,
+                  "recall": 0.972,
+                  "f1": 0.8073089700996677
+                },
+                "onset": {
+                  "predictedCount": 352,
+                  "referenceCount": 250,
+                  "matches": 246,
+                  "precision": 0.6988636363636364,
+                  "recall": 0.984,
+                  "f1": 0.8172757475083057
+                },
+                "contour": {
+                  "directionAgreement": 0.5469387755102041,
+                  "matchedTransitions": 134,
+                  "referenceTransitions": 244,
+                  "predictedTransitions": 222,
+                  "comparableTransitions": 245
+                },
+                "unsupportedDensity": {
+                  "count": 0,
+                  "total": 352,
+                  "rate": 0
+                }
+              }
+            }
+          ],
+          "exact": {
+            "predictedCount": 352,
+            "referenceCount": 250,
+            "matches": 243,
+            "precision": 0.6903409090909091,
+            "recall": 0.972,
+            "f1": 0.8073089700996677
+          },
+          "exactPitch": {
+            "predictedCount": 352,
+            "referenceCount": 250,
+            "matches": 243,
+            "precision": 0.6903409090909091,
+            "recall": 0.972,
+            "f1": 0.8073089700996677
+          },
+          "pitchClass": {
+            "predictedCount": 352,
+            "referenceCount": 250,
+            "matches": 243,
+            "precision": 0.6903409090909091,
+            "recall": 0.972,
+            "f1": 0.8073089700996677
+          },
+          "onset": {
+            "predictedCount": 352,
+            "referenceCount": 250,
+            "matches": 246,
+            "precision": 0.6988636363636364,
+            "recall": 0.984,
+            "f1": 0.8172757475083057
+          },
+          "contour": {
+            "directionAgreement": 0.5469387755102041,
+            "matchedTransitions": 134,
+            "referenceTransitions": 244,
+            "predictedTransitions": 222,
+            "comparableTransitions": 245
+          },
+          "unsupportedDensity": {
+            "count": 0,
+            "total": 352,
+            "rate": 0
+          }
+        }
+      },
+      "percussion": {
+        "kick": {
+          "predictedCount": 0,
+          "referenceCount": 0,
+          "matches": 0,
+          "precision": null,
+          "recall": null,
+          "f1": null,
+          "medianOnsetErrorSeconds": null,
+          "p95OnsetErrorSeconds": null
+        },
+        "snare": {
+          "predictedCount": 0,
+          "referenceCount": 0,
+          "matches": 0,
+          "precision": null,
+          "recall": null,
+          "f1": null,
+          "medianOnsetErrorSeconds": null,
+          "p95OnsetErrorSeconds": null
+        },
+        "all": {
+          "predictedCount": 0,
+          "referenceCount": 0,
+          "matches": 0,
+          "precision": null,
+          "recall": null,
+          "f1": null,
+          "medianOnsetErrorSeconds": null,
+          "p95OnsetErrorSeconds": null
+        }
+      },
+      "diagnostics": {
+        "referencePitchedNotes": 250,
+        "predictedPitchedNotes": 352,
+        "densityRatio": 1.408,
+        "referenceMedianIoiSeconds": 0.138889,
+        "predictedMedianIoiSeconds": 0.138636,
+        "referenceMaxSimultaneity": 4,
+        "predictedMaxSimultaneity": 6,
+        "failureStates": []
+      }
+    }
+  ]
+}

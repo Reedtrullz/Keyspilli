@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   assessBeginnerOffGridCandidate,
+  BEGINNER_OFFGRID_CANDIDATE,
   buildVariants,
   selectBeginnerOffGridRhCandidates,
   validateVariants,
@@ -123,7 +124,7 @@ describe("generic Beginner sparse off-grid RH budget", () => {
 
   it("keeps Candidate A confined to the learner arrangement profile", () => {
     const notes: Note[] = [
-      ...Array.from({ length: 8 }, (_, index) => ({
+      ...Array.from({ length: 16 }, (_, index) => ({
         midi: 60 + (index % 4), start: index, dur: 0.5, vel: 80, hand: "R" as const,
       })),
       { midi: 67, start: 1.125, dur: 0.5, vel: 120, hand: "R" },
@@ -136,7 +137,16 @@ describe("generic Beginner sparse off-grid RH budget", () => {
         maxDurBeats: null,
       });
       const beginnerNotes = variants.find((variant) => variant.level === "beginner")!.notes;
-      expect(beginnerNotes.some((note) => note.hand !== "L" && note.start === 1.125), arrangementProfile).toBe(false);
+      expect(beginnerNotes.some((note) => (note as Note & { [BEGINNER_OFFGRID_CANDIDATE]?: boolean })[BEGINNER_OFFGRID_CANDIDATE]), arrangementProfile).toBe(false);
+      if (arrangementProfile === "metal") {
+        expect(beginnerNotes.some((note) => note.hand !== "L" && note.start === 1.125)).toBe(false);
+      } else {
+        // Source recovery stays a harder-level subset; its final spacing pass
+        // removes this attack only 62.5ms after its preceding note.
+        expect(beginnerNotes.some((note) => note.hand !== "L" && note.start === 1.125)).toBe(false);
+        expect(verifyMonotonicity(variants)).toEqual([]);
+        expect(validateVariants(variants)).toEqual([]);
+      }
     }
   });
 

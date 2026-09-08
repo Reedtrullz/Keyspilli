@@ -71,7 +71,7 @@ async function upload(page: Page, input: { name: string; mimeType: string; buffe
   await page.locator('input[type="file"]').setInputFiles(input);
   const started = await page.evaluate(() => performance.now());
   await page.getByRole("button", { name: "Upload & create lesson" }).click();
-  await expect(page.getByRole("status")).toContainText("five public levels", { timeout: 120_000 });
+  await expect(page.getByRole("status")).toContainText("four public levels", { timeout: 120_000 });
   timings.uploadToResult.push(await page.evaluate((value) => performance.now() - value, started));
   const href = await page.getByRole("link", { name: /Open in the player/ }).getAttribute("href");
   expect(href).toMatch(/^\/player\/[^/]+-e$/);
@@ -173,7 +173,7 @@ test("discovery states stay understandable and a mediated file completes generat
   await page.getByRole("checkbox").check();
   await page.locator('input[type="file"]').setInputFiles({ name: "usage-discovery.mid", mimeType: "audio/midi", buffer: midiFixture(9) });
   await page.getByRole("button", { name: "Upload & create lesson" }).click();
-  await expect(page.getByRole("status")).toContainText("five public levels", { timeout: 120_000 });
+  await expect(page.getByRole("status")).toContainText("four public levels", { timeout: 120_000 });
 
   mode = "none";
   await page.getByRole("button", { name: "Add another song" }).click();
@@ -207,7 +207,7 @@ test("malformed upload is announced and corrected retry succeeds", async ({ page
   await expect(page.getByRole("button", { name: "Browse files" })).toBeFocused();
   await page.locator('input[type="file"]').setInputFiles({ name: "corrected.mid", mimeType: "audio/midi", buffer: midiFixture(20) });
   await page.getByRole("button", { name: "Upload & create lesson" }).click();
-  await expect(page.getByRole("status")).toContainText("five public levels", { timeout: 120_000 });
+  await expect(page.getByRole("status")).toContainText("four public levels", { timeout: 120_000 });
   findings.push({ flow: "malformed-input", outcome: "expected-failure", detail: "alert identifies invalid symbolic content", actions: 2 });
   findings.push({ flow: "corrected-retry", outcome: "pass", detail: "Remove, Browse, and replacement upload succeed without page reload", actions: 3 });
 });

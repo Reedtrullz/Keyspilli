@@ -39,6 +39,8 @@
     app_dir: /opt/apps/keyspilli
     docker_image: ghcr.io/reedtrullz/keyspilli:latest
     worker_image: ghcr.io/reedtrullz/keyspilli-worker:latest
+    # Owner-authorized private beta; set false to disable new tutorial imports.
+    keyspilli_tutorial_beta: true
     app_version: "{{ lookup('ansible.builtin.env', 'APP_VERSION') | default('latest', true) }}"
     allow_mutable_tag: false
     health_url: "http://{{ app_bind_address }}:{{ app_host_port }}/api/health"
@@ -429,6 +431,7 @@
             local_health.status == 200
             and (local_health.json.status | default('')) == 'healthy'
             and (local_health.json.version | default('')) == app_version
+            and (local_health.json.capabilities.tutorialImportsEnabled | default(false)) == (keyspilli_tutorial_beta | bool)
           retries: 12
           delay: 5
           failed_when: false
@@ -441,6 +444,7 @@
             local_health.status | default(0) != 200
             or (local_health.json.status | default('')) != 'healthy'
             or (local_health.json.version | default('')) != app_version
+            or (local_health.json.capabilities.tutorialImportsEnabled | default(false)) != (keyspilli_tutorial_beta | bool)
           tags: [verify]
 
         - name: Manage Caddy reverse proxy block
@@ -501,6 +505,7 @@
             public_health.status == 200
             and (public_health.json.status | default('')) == 'healthy'
             and (public_health.json.version | default('')) == app_version
+            and (public_health.json.capabilities.tutorialImportsEnabled | default(false)) == (keyspilli_tutorial_beta | bool)
           retries: 12
           delay: 5
           failed_when: false
@@ -516,6 +521,7 @@
             public_health.status | default(0) != 200
             or (public_health.json.status | default('')) != 'healthy'
             or (public_health.json.version | default('')) != app_version
+            or (public_health.json.capabilities.tutorialImportsEnabled | default(false)) != (keyspilli_tutorial_beta | bool)
           no_log: true
           tags: [verify]
 
@@ -601,6 +607,7 @@
             compose_image: "{{ rollback_image }}"
             compose_worker_image: "{{ rollback_worker_image }}"
             compose_app_version: "{{ previous_app_version }}"
+            compose_tutorial_beta: false
           tags: [rollback]
 
         - name: Restore previous Keyspilli containers

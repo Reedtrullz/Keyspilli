@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { countSongs } from "@keyspilli/catalog";
+import { countSongs, tutorialImportsEnabled } from "@keyspilli/catalog";
 import { hasSourceCandidateProvider } from "../../../lib/source-candidate-provider";
 
 export const dynamic = "force-dynamic";
@@ -23,6 +23,7 @@ export async function GET() {
       image: process.env.IMAGE_REF ?? null,
       capabilities: {
         symbolicUpload: true,
+        tutorialImportsEnabled: tutorialImportsEnabled(),
         sourceDiscoveryConfigured: hasSourceCandidateProvider(),
         directAudioAmt: false,
       },

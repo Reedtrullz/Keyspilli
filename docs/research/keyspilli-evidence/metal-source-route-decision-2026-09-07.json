@@ -1,0 +1,55 @@
+{
+  "status": "no-production-source-route-qualified",
+  "nativeImplementation": "Indexed requested YouTube identity through verified hash-pinned source, parser, timing normalization, frozen builder and actual worker publication. Isolated synthetic fixture only; transport mocked, no full-song musical success claimed.",
+  "checks": {
+    "serviceTestsPassed": 48,
+    "transcribeTypecheck": "exit 0",
+    "publicLevelsPublished": [
+      "vb",
+      "b",
+      "e",
+      "m",
+      "a"
+    ]
+  },
+  "eligibleProductionSources": 0,
+  "nativeScope": "MIDI only; no unverified web result promoted into operator index",
+  "sourceResearch": [
+    {
+      "song": "Breaking the Law",
+      "source": "https://www.musicnotes.com/sheetmusic/judas-priest/breaking-the-law/MN0113671",
+      "outcome": "Paid score; skipped under free-only constraint."
+    },
+    {
+      "song": "Hearts on Fire",
+      "source": "https://midifind.com/files/h/hammerfall/hammerfall_hearts_on_fire/1053-1-0-30549",
+      "outcome": "Download listing found, uploader/composition rights not verified. Not production eligible."
+    },
+    {
+      "song": "Nemo",
+      "source": "https://bitmidi.com/nightwish-nemo-mid",
+      "outcome": "Download listing found, production redistribution rights not verified."
+    },
+    {
+      "song": "Holy Diver",
+      "source": "https://note-store.com/notes/dio/holy-diver/piano-solo/",
+      "outcome": "Paid MIDI/score; skipped."
+    },
+    {
+      "song": "Stand My Ground",
+      "source": "https://www.musicnotes.com/sheetmusic/within-temptation/stand-my-ground/MN0080959",
+      "outcome": "Paid score; skipped."
+    },
+    {
+      "song": "Still Loving You",
+      "source": "https://note-store.com/notes/scorpions/still-loving-you/piano-vocal/",
+      "outcome": "Paid MIDI/score; skipped. Earlier private preview remains research-only."
+    }
+  ],
+  "researchBoundary": "Search outcomes are bounded candidate leads, not universal unavailability claims. No purchase, account or paid API. Unknown rights remain unknown.",
+  "tutorialDecision": "Unsupported. Prior two extractors depend on song-specific fixed pixel centers and delay. They do not establish recurring calibrated keyboard geometry, two-scanline timing and audio-onset agreement. No validated layout exists to promote; conditional production extractor not added.",
+  "pianoAudioDecision": "Excluded by Task3 fixed precision gate.",
+  "directAudioDecision": "Experimental only, insufficient real reference coverage.",
+  "releaseGate": "Six qualifying full-song cases not achieved; zero eligible sources. Continue job safety, complete verification and reviewable no-release branch.",
+  "holdoutsUsed": 0
+}

@@ -18,3 +18,10 @@ backups
 **/*.log
 coverage
 **/coverage
+
+output
+**/__pycache__
+.env
+.env.*
+**/.env
+**/.env.*

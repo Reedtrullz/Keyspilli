@@ -1,4 +1,5 @@
 import type { ChordLabel, Note, ParsedMidi } from "./types.js";
+import { midiBeatToNativeSeconds } from "./parse.js";
 
 export type MetalStemRole = "vocals" | "bass" | "guitar" | "other" | "drums";
 
@@ -3289,7 +3290,7 @@ function chordFor(rootPc: number, pcs: Set<number>, semanticQuality?: GuitarHarm
 
 function uniqueSorted(notes: Note[]): Note[] {
   const seen = new Set<string>();
-  return notes
+  const result = notes
     .sort((a, b) => a.start - b.start
       || a.midi - b.midi
       // When a routed rhythm/root event lands on the same pitch as the
@@ -3304,6 +3305,16 @@ function uniqueSorted(notes: Note[]): Note[] {
       seen.add(key);
       return true;
     });
+  // Different stems can retrigger one physical key. End its previous sustain
+  // before splitting source tracks, so MIDI channels cannot multiply voices.
+  const previous = new Map<string, Note>();
+  for (const note of result) {
+    const key = `${note.hand}:${note.midi}`;
+    const prior = previous.get(key);
+    if (prior) prior.dur = Math.min(prior.dur, note.start - prior.start);
+    previous.set(key, note);
+  }
+  return result;
 }
 
 /**
@@ -3318,6 +3329,23 @@ export function buildMetalArrangement(
   if (!input.stems.length) throw new Error("Metal arrangement requires at least one stem");
   const reference = input.stems.find((stem) => stem.role !== "drums")?.midi ?? input.stems[0]!.midi;
   const tempoBpm = reference.tempoBpm;
+  if (!Number.isFinite(tempoBpm) || tempoBpm <= 0) throw new Error("metal arrangement requires a positive reference tempo");
+  let normalizedTimelines = 0;
+  input = { ...input, stems: input.stems.map((stem) => {
+    const source = stem.midi;
+    if (!Number.isFinite(source.tempoBpm) || source.tempoBpm <= 0) throw new Error(`invalid ${stem.role} stem tempo`);
+    const events = source.tempoEvents ?? [];
+    const differs = Math.abs(source.tempoBpm - tempoBpm) > 1e-6
+      || (events.length > 0 && !events.some(event => event.tick === 0))
+      || events.some(event => Math.abs(60_000_000 / event.microsecondsPerQuarter - tempoBpm) > 1e-6);
+    if (!differs) return stem;
+    normalizedTimelines += 1;
+    const beat = (value: number): number => midiBeatToNativeSeconds(source, value) * tempoBpm / 60;
+    return { ...stem, midi: { ...source, tempoBpm, tempoEvents: undefined,
+      durationBeats: beat(source.durationBeats),
+      notes: validNotes(stem).map(note => ({ ...note, start: beat(note.start), dur: beat(note.start + note.dur) - beat(note.start) })),
+    } };
+  }) };
   const timeSig = reference.timeSig;
   const durationBeats = input.stems.reduce((duration, stem) => {
     let result = Number.isFinite(stem.midi.durationBeats) ? Math.max(duration, stem.midi.durationBeats) : duration;
@@ -3390,9 +3418,21 @@ export function buildMetalArrangement(
     }
   }
   const trustedVocals = trustworthyVocalNotes(vocals);
-  const guitarUpperRaw = supportedUpperRawNotes(guitarRaw);
+  // Compare the raw phrase before an upper harmonic can route its own
+  // fundamental out as rhythm. Only a longer selected co-onset fundamental
+  // invalidates that partial; a genuine upper lead above short rhythm stays.
+  const rawGuitarPhrase = selectGuitarLeadPathInternal(guitarRaw.map((note) => ({ ...note, identitySource: "guitar" as const })), {
+    minimumSpacingBeats: 0.08, skipPenalty: 30, minimumPhraseGroups: 4,
+  }).notes;
+  const guitarMelodicRaw = guitarRaw.filter((note) =>
+    !rawGuitarPhrase.some((selected) => selected.midi < note.midi
+      && harmonicCloneDistance(note.midi - selected.midi)
+      && Math.abs(selected.start - note.start) <= 0.08 + EPS
+      && selected.dur >= note.dur + 0.15
+      && selected.vel >= note.vel * 0.5));
+  const guitarUpperRaw = supportedUpperRawNotes(guitarMelodicRaw);
   const otherUpperRaw = supportedUpperRawNotes(otherRaw);
-  const guitarUpperEvidence = upperHarmonicPath(guitarRaw, "guitar");
+  const guitarUpperEvidence = upperHarmonicPath(guitarMelodicRaw, "guitar");
   // Residual `other` is often full-mix-like and can contain a high partial on
   // every detector frame. Decode it to a single coherent upper contour before
   // source fusion; dedicated guitar remains on the richer path below.
@@ -3406,14 +3446,14 @@ export function buildMetalArrangement(
     .map((note) => ({ ...note, rawMidi: note.midi, identitySource: "guitar" as const }));
   const otherRawUpperContext: IdentityNote[] = otherUpperRaw
     .map((note) => ({ ...note, rawMidi: note.midi, identitySource: "other" as const }));
-  const guitarRawRhythm = rawLowRhythmEvents(guitarRaw, "guitar", guitarRawUpperContext);
+  const guitarRawRhythm = rawLowRhythmEvents(guitarMelodicRaw, "guitar", guitarRawUpperContext);
   const otherRawRhythm = rawLowRhythmEvents(otherRaw, "other", otherRawUpperContext);
   const isRoutedRawLow = (note: Note, routed: IdentityNote[]): boolean =>
     note.midi <= 60 && routed.some((candidate) => Math.abs(candidate.start - note.start) <= 0.08 + EPS);
   // Split raw low material before octave registration. Otherwise MIDI 50–54
   // can become a false RH 62–66 line and the later pulse pass cannot recover
   // which detector event was really accompaniment.
-  const guitarEligibleRaw = guitarRaw
+  const guitarEligibleRaw = guitarMelodicRaw
     .filter((note) => note.hand !== "L"
       && (note.midi < 61 || guitarUpperRaw.includes(note))
       && note.midi >= 45
@@ -3557,7 +3597,7 @@ export function buildMetalArrangement(
     });
   }
   const dedicatedGuitarHarmony = guitarStem
-    ? inferSemanticGuitarHarmony(guitarRaw, guitarPath, bass, "guitar", guitarStem.confidence)
+    ? inferSemanticGuitarHarmony(guitarMelodicRaw, guitarPath, bass, "guitar", guitarStem.confidence)
     : { attacks: [], diagnostics: freshGuitarHarmonyDiagnostics() };
   const residualHarmonyWindows = guitarStem ? [] : strictResidualHarmonyPhraseWindows(otherUpperEvidence);
   const residualFallbackPhrases = residualHarmonyWindows.length;
@@ -4020,8 +4060,7 @@ export function buildMetalArrangement(
     .map((note) => `${note.identitySource}:${note.midi}:${note.start.toFixed(4)}`));
   const emittedSemanticLeftHandEvents = semanticLeftHand.filter((note) => emittedSemanticKeys.has(`${note.identitySource}:${note.midi}:${note.start.toFixed(4)}`)).length;
   const warnings: string[] = [];
-  const mismatchedTempo = input.stems.filter((stem) => Math.abs(stem.midi.tempoBpm - tempoBpm) > 0.5);
-  if (mismatchedTempo.length) warnings.push(`${mismatchedTempo.length} stems had mismatched tempo metadata; beat positions were used unchanged`);
+  if (normalizedTimelines) warnings.push(`${normalizedTimelines} stem timelines normalized through native seconds to ${tempoBpm} BPM`);
   if (!publicIdentity.length) warnings.push("no reliable vocal, guitar, or other identity line was found");
   if (inferredTopLineSections) {
     warnings.push(`conservative upper harmonic evidence filled ${inferredTopLineSections} sparse section${inferredTopLineSections === 1 ? "" : "s"}`);

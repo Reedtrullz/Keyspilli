@@ -60,19 +60,17 @@ test("full width mode expands the player and persists across reload", async ({ p
   const root = page.locator("main > div").first();
   await expect(root).toBeVisible();
 
-  const defaultClass = await root.getAttribute("class");
-  expect(defaultClass).toContain("max-w-6xl");
+  await expect(root).toHaveClass(/max-w-6xl/);
 
   await page.getByRole("button", { name: "Full width" }).click();
-  const expandedClass = await root.getAttribute("class");
-  expect(expandedClass).toContain("w-full");
-  expect(expandedClass).not.toContain("max-w-6xl");
+  await expect(root).toHaveClass(/w-full/);
+  await expect(root).not.toHaveClass(/max-w-6xl/);
 
   await page.reload();
   const rootAfterReload = page.locator("main > div").first();
-  const persistedClass = await rootAfterReload.getAttribute("class");
-  expect(persistedClass).toContain("w-full");
-  expect(persistedClass).not.toContain("max-w-6xl");
+  // Saved preferences are applied after hydration; wait for the rendered state.
+  await expect(rootAfterReload).toHaveClass(/w-full/);
+  await expect(rootAfterReload).not.toHaveClass(/max-w-6xl/);
 });
 
 test("full width player fits the 390px mobile viewport without horizontal scroll", async ({ browser }) => {

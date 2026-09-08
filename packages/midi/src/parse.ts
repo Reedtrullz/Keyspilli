@@ -1,3 +1,4 @@
+import { tutorialSourceLane } from "./source-hand-lanes.js";
 import { Hand, MidiTempoEvent, Note, ParsedMidi } from "./types.js";
 
 function inferTrackHand(names: string[]): Hand | undefined {
@@ -175,8 +176,9 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
     }
     const hand = inferTrackHand(namesInTrack);
     const identitySource = inferTrackIdentitySource(namesInTrack);
-    trackNotes.push(hand || identitySource
-      ? notes.map((n) => ({ ...n, ...(hand ? { hand } : {}), ...(identitySource ? { identitySource } : {}) }))
+    const sourceLane = namesInTrack.length === 1 ? tutorialSourceLane(namesInTrack[0]!) : undefined;
+    trackNotes.push(hand || identitySource || sourceLane
+      ? notes.map((n) => ({ ...n, ...(hand ? { hand } : {}), ...(identitySource ? { identitySource } : {}), ...(sourceLane ? { sourceLane } : {}) }))
       : notes);
   }
 

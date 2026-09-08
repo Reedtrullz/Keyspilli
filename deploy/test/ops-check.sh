@@ -61,3 +61,13 @@ assert "latest_db_backup_older_than_48h" in result["failures"], result
 PY
 
 echo "ops check fixtures passed"
+
+python3 - "$scratch/healthy.json" "$scratch/beta-mismatch.json" <<'PYTEST'
+import json,sys
+value=json.load(open(sys.argv[1])); value["web"]["tutorialImportsMatch"]=False
+json.dump(value,open(sys.argv[2],"w"))
+PYTEST
+if python3 "$repo_root/deploy/keyspilli-ops-check.py" --fixture "$scratch/beta-mismatch.json" > /dev/null; then
+  echo "beta capability mismatch unexpectedly passed" >&2
+  exit 1
+fi

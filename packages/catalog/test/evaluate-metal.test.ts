@@ -4,7 +4,9 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { writeMidi, type Note } from "@keyspilli/midi";
+import { buildMetalArrangement, buildVariants, parseMidi, writeMidi, type Note } from "@keyspilli/midi";
+
+import { evaluateArrangement } from "../src/arrangement-evaluation.js";
 
 const repoRoot = resolveRepoRoot();
 const cli = join(repoRoot, "packages/catalog/scripts/evaluate-metal.ts");
@@ -89,6 +91,54 @@ describe("evaluate-metal CLI", () => {
       expect(report.metrics.variants.easy?.global.noteCount).toEqual(expect.any(Number));
       expect(report.gate.evaluated).toContain("variant validation");
       expect(report.gate.evaluated).toContain("variant monotonicity");
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("preserves four-stem residual provenance and production variant settings", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "keyspilli-evaluate-metal-production-"));
+    try {
+      const notes: Note[] = Array.from({ length: 24 }, (_, index) => ({
+        midi: 64 + index % 5, start: index * 0.731, dur: 0.617, vel: 92,
+      }));
+      const path = join(directory, "guitar.mid");
+      await midiFile(path, notes);
+      await writeFile(join(directory, "report.json"), JSON.stringify({ stems: [{ role: "guitar", sourceStem: "other" }] }));
+      const arrangement = buildMetalArrangement({
+        stems: [{ role: "guitar", sourceStem: "other", midi: parseMidi(new Uint8Array(await readFile(path))) }],
+        title: "production-parity",
+      });
+      const tracks = ["R", "L"].flatMap((hand) => ["vocals", "guitar", "other", undefined].map((source) => ({
+        name: `${hand === "R" ? "Right Hand" : "Left Hand"} ${source ?? ""}`,
+        notes: arrangement.parsed.notes.filter((note) => note.hand === hand && note.identitySource === source),
+      })));
+      const bytes = writeMidi([], { ...arrangement.parsed, tracks });
+      const parsed = parseMidi(bytes);
+      const variants = buildVariants(parsed, { title: "production-parity", artist: "Local evaluator" }, {
+        arrangementProfile: "metal", audioDerived: true, maxDurBeats: null, chords: arrangement.chords,
+      });
+      const expected = evaluateArrangement({
+        fixture: { id: "production-parity" }, candidate: { selector: "expected.mid", bytes, parsed }, variants, mode: "structural",
+      });
+      const report = JSON.parse(runCli(["--stems", directory, "--fixture-id", "production-parity"]));
+      expect(report.metrics.variants).toEqual(expected.metrics.variants);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects malformed stem provenance rather than changing the evidence role", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "keyspilli-evaluate-metal-report-"));
+    try {
+      await midiFile(join(directory, "guitar.mid"), [{ midi: 64, start: 0, dur: 1, vel: 90 }]);
+      for (const stems of [
+        [{ role: "guitar", sourceStem: "vocals" }],
+        [{ role: "guitar", sourceStem: "other" }, { role: "guitar", sourceStem: "guitar" }],
+      ]) {
+        await writeFile(join(directory, "report.json"), JSON.stringify({ stems }));
+        expect(() => runCli(["--stems", directory])).toThrow("invalid or duplicate stem provenance");
+      }
     } finally {
       await rm(directory, { recursive: true, force: true });
     }

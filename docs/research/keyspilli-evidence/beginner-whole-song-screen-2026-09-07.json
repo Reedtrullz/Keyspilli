@@ -1,0 +1,310 @@
+{
+  "scope": "Whole-song structural screening of accepted local source-profile artifacts, not musical certification. Empty windows compare sustained activity, not melody identity.",
+  "rows": [
+    {
+      "song": "bohemian",
+      "notes": 601,
+      "minimumAttackGapSeconds": 0.375,
+      "jumpsLargerThanOctave": [
+        {
+          "timeSeconds": 54.0,
+          "semitones": 13,
+          "gapSeconds": 1.375
+        },
+        {
+          "timeSeconds": 55.625,
+          "semitones": 17,
+          "gapSeconds": 0.375
+        },
+        {
+          "timeSeconds": 57.312,
+          "semitones": 15,
+          "gapSeconds": 0.812
+        },
+        {
+          "timeSeconds": 59.0,
+          "semitones": 17,
+          "gapSeconds": 0.438
+        },
+        {
+          "timeSeconds": 60.625,
+          "semitones": 15,
+          "gapSeconds": 0.812
+        },
+        {
+          "timeSeconds": 63.125,
+          "semitones": 15,
+          "gapSeconds": 1.25
+        },
+        {
+          "timeSeconds": 64.0,
+          "semitones": 15,
+          "gapSeconds": 0.875
+        },
+        {
+          "timeSeconds": 65.625,
+          "semitones": 19,
+          "gapSeconds": 0.375
+        },
+        {
+          "timeSeconds": 69.0,
+          "semitones": 19,
+          "gapSeconds": 0.438
+        },
+        {
+          "timeSeconds": 70.688,
+          "semitones": 24,
+          "gapSeconds": 0.875
+        },
+        {
+          "timeSeconds": 75.625,
+          "semitones": 17,
+          "gapSeconds": 0.375
+        },
+        {
+          "timeSeconds": 77.312,
+          "semitones": 15,
+          "gapSeconds": 0.812
+        },
+        {
+          "timeSeconds": 79.0,
+          "semitones": 19,
+          "gapSeconds": 0.438
+        },
+        {
+          "timeSeconds": 80.625,
+          "semitones": 16,
+          "gapSeconds": 0.812
+        },
+        {
+          "timeSeconds": 93.125,
+          "semitones": 17,
+          "gapSeconds": 1.25
+        },
+        {
+          "timeSeconds": 93.938,
+          "semitones": 16,
+          "gapSeconds": 0.812
+        },
+        {
+          "timeSeconds": 113.562,
+          "semitones": 13,
+          "gapSeconds": 1.688
+        },
+        {
+          "timeSeconds": 113.938,
+          "semitones": 17,
+          "gapSeconds": 0.375
+        },
+        {
+          "timeSeconds": 115.625,
+          "semitones": 15,
+          "gapSeconds": 0.812
+        },
+        {
+          "timeSeconds": 118.125,
+          "semitones": 15,
+          "gapSeconds": 1.25
+        },
+        {
+          "timeSeconds": 119.0,
+          "semitones": 15,
+          "gapSeconds": 0.875
+        },
+        {
+          "timeSeconds": 120.625,
+          "semitones": 17,
+          "gapSeconds": 0.375
+        },
+        {
+          "timeSeconds": 122.312,
+          "semitones": 15,
+          "gapSeconds": 0.875
+        },
+        {
+          "timeSeconds": 123.938,
+          "semitones": 19,
+          "gapSeconds": 0.375
+        },
+        {
+          "timeSeconds": 128.125,
+          "semitones": 17,
+          "gapSeconds": 1.25
+        },
+        {
+          "timeSeconds": 129.0,
+          "semitones": 14,
+          "gapSeconds": 0.875
+        },
+        {
+          "timeSeconds": 134.0,
+          "semitones": 17,
+          "gapSeconds": 0.438
+        },
+        {
+          "timeSeconds": 135.625,
+          "semitones": 15,
+          "gapSeconds": 0.812
+        },
+        {
+          "timeSeconds": 138.125,
+          "semitones": 17,
+          "gapSeconds": 1.25
+        },
+        {
+          "timeSeconds": 139.0,
+          "semitones": 16,
+          "gapSeconds": 0.875
+        },
+        {
+          "timeSeconds": 150.625,
+          "semitones": 19,
+          "gapSeconds": 0.375
+        },
+        {
+          "timeSeconds": 152.312,
+          "semitones": 16,
+          "gapSeconds": 0.812
+        },
+        {
+          "timeSeconds": 164.0,
+          "semitones": 19,
+          "gapSeconds": 0.438
+        },
+        {
+          "timeSeconds": 176.5,
+          "semitones": 21,
+          "gapSeconds": 1.25
+        },
+        {
+          "timeSeconds": 181.5,
+          "semitones": 14,
+          "gapSeconds": 0.375
+        },
+        {
+          "timeSeconds": 181.875,
+          "semitones": 15,
+          "gapSeconds": 0.375
+        },
+        {
+          "timeSeconds": 185.625,
+          "semitones": 21,
+          "gapSeconds": 0.625
+        },
+        {
+          "timeSeconds": 186.438,
+          "semitones": 24,
+          "gapSeconds": 0.812
+        },
+        {
+          "timeSeconds": 290.25,
+          "semitones": 16,
+          "gapSeconds": 0.562
+        }
+      ],
+      "eightSecondWindowsWithEasyButNoBeginner": []
+    },
+    {
+      "song": "nothing-else-matters",
+      "notes": 390,
+      "minimumAttackGapSeconds": 0.375,
+      "jumpsLargerThanOctave": [
+        {
+          "timeSeconds": 146.5,
+          "semitones": 14,
+          "gapSeconds": 2.312
+        },
+        {
+          "timeSeconds": 149.875,
+          "semitones": 15,
+          "gapSeconds": 2.062
+        },
+        {
+          "timeSeconds": 172.562,
+          "semitones": 18,
+          "gapSeconds": 3.375
+        },
+        {
+          "timeSeconds": 184.375,
+          "semitones": 15,
+          "gapSeconds": 1.062
+        },
+        {
+          "timeSeconds": 198.188,
+          "semitones": 44,
+          "gapSeconds": 5.0
+        },
+        {
+          "timeSeconds": 203.438,
+          "semitones": 14,
+          "gapSeconds": 0.625
+        },
+        {
+          "timeSeconds": 212.062,
+          "semitones": 13,
+          "gapSeconds": 0.875
+        },
+        {
+          "timeSeconds": 212.5,
+          "semitones": 13,
+          "gapSeconds": 0.438
+        },
+        {
+          "timeSeconds": 267.312,
+          "semitones": 16,
+          "gapSeconds": 2.562
+        },
+        {
+          "timeSeconds": 275.25,
+          "semitones": 17,
+          "gapSeconds": 1.25
+        },
+        {
+          "timeSeconds": 277.812,
+          "semitones": 24,
+          "gapSeconds": 1.062
+        },
+        {
+          "timeSeconds": 279.875,
+          "semitones": 24,
+          "gapSeconds": 0.812
+        },
+        {
+          "timeSeconds": 282.812,
+          "semitones": 26,
+          "gapSeconds": 0.812
+        },
+        {
+          "timeSeconds": 285.312,
+          "semitones": 29,
+          "gapSeconds": 1.25
+        },
+        {
+          "timeSeconds": 287.875,
+          "semitones": 26,
+          "gapSeconds": 1.062
+        },
+        {
+          "timeSeconds": 289.938,
+          "semitones": 28,
+          "gapSeconds": 0.812
+        },
+        {
+          "timeSeconds": 296.688,
+          "semitones": 13,
+          "gapSeconds": 1.062
+        }
+      ],
+      "eightSecondWindowsWithEasyButNoBeginner": [
+        376
+      ]
+    },
+    {
+      "song": "in-my-mind",
+      "notes": 236,
+      "minimumAttackGapSeconds": 0.4375,
+      "jumpsLargerThanOctave": [],
+      "eightSecondWindowsWithEasyButNoBeginner": []
+    }
+  ]
+}

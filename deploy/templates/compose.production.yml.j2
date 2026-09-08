@@ -15,6 +15,7 @@ services:
       IMAGE_REF: "{{ compose_image | default(docker_image) }}"
       KEYSPILLI_API_TOKEN: "{{ keyspilli_api_token | default('') }}"
       KEYSPILLI_DATA_DIR: /data
+      KEYSPILLI_TUTORIAL_BETA: "{{ '1' if (compose_tutorial_beta | default(keyspilli_tutorial_beta)) | bool else '0' }}"
       # PDF rendering runs Chromium inside this container. The host-mapped
       # port is not reachable from the container namespace, so keep the
       # internal origin on the application listener.
@@ -40,9 +41,14 @@ services:
     image: "{{ compose_worker_image | default(worker_image) }}"
     container_name: "{{ worker_container_name }}"
     restart: unless-stopped
+    # The SSH download relay listens only on host loopback.
+    network_mode: host
+    # Match the existing managed volume owner without changing catalogue files.
+    user: "1000:1000"
     environment:
       NODE_ENV: production
       KEYSPILLI_DATA_DIR: /data
+      KEYSPILLI_TUTORIAL_BETA: "{{ '1' if (compose_tutorial_beta | default(keyspilli_tutorial_beta)) | bool else '0' }}"
       KEYSPILLI_BP_SERIALIZATION: onnx
       KEYSPILLI_YT_PROXY: "{{ keyspilli_yt_proxy | default('') }}"
       KEYSPILLI_YT_COOKIES: "{{ '/run/secrets/keyspilli_youtube_cookies' if (keyspilli_yt_cookies_path | default('') | length > 0) else '' }}"

@@ -1,0 +1,2204 @@
+{
+  "scope": "Read-only persisted source-profile audit. Existing global limits are catalog-calibrated structural gates, not a learner difficulty certificate. Window, per-hand spans and leaps are report-only; no thresholds or notes changed.",
+  "window": "Half-open 0.5 seconds; earliest maximum. Highest-voice leap is adjacent attack-top movement, not fingering. Nearby passage timestamps are relative to its stated start and exclude prior held notes.",
+  "rows": [
+    {
+      "source": "output/tutorial-recovery/isolated-ingest-v10-checked/artifacts/proof-queen/b/notes.json",
+      "sha256": "b3c99f062b0a44cb127a6631b17dde2a611b4a38c9be51ed677bdc71e66f5222",
+      "name": "queen",
+      "level": "beginner",
+      "assessment": {
+        "level": "beginner",
+        "status": "pass",
+        "limits": {
+          "maxSim": 2,
+          "maxDensity": 6,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "metrics": {
+        "noteCount": 600,
+        "durationSeconds": 353.75,
+        "global": {
+          "attacksPerSecond": 1.696113,
+          "medianIoiSeconds": 0.4375,
+          "maxShortWindowAttacksPerSecond": 4,
+          "worstAttackWindow": {
+            "startSeconds": 5.5625,
+            "endSeconds": 6.0625,
+            "attacks": 2
+          },
+          "maxSimultaneous": 1,
+          "maxSounding": 1,
+          "maxChordSpanSemitones": 0,
+          "maxSoundingSpanSemitones": 0,
+          "worstTopVoiceLeap": {
+            "startSeconds": 70.6875,
+            "semitones": 24,
+            "gapSeconds": 0.875
+          }
+        },
+        "hands": {
+          "R": {
+            "attacksPerSecond": 1.696113,
+            "medianIoiSeconds": 0.4375,
+            "maxShortWindowAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 5.5625,
+              "endSeconds": 6.0625,
+              "attacks": 2
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 70.6875,
+              "semitones": 24,
+              "gapSeconds": 0.875
+            }
+          },
+          "L": {
+            "attacksPerSecond": 0,
+            "medianIoiSeconds": null,
+            "maxShortWindowAttacksPerSecond": 0,
+            "worstAttackWindow": null,
+            "maxSimultaneous": 0,
+            "maxSounding": 0,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": null
+          }
+        }
+      },
+      "nearby": {
+        "startSeconds": 166,
+        "endSeconds": 170,
+        "metrics": {
+          "noteCount": 8,
+          "durationSeconds": 4,
+          "global": {
+            "attacksPerSecond": 2,
+            "medianIoiSeconds": 0.4375,
+            "maxShortWindowAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 0.0625,
+              "endSeconds": 0.5625,
+              "attacks": 2
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 1.3125,
+              "semitones": 9,
+              "gapSeconds": 0.8125
+            }
+          },
+          "hands": {
+            "R": {
+              "attacksPerSecond": 2,
+              "medianIoiSeconds": 0.4375,
+              "maxShortWindowAttacksPerSecond": 4,
+              "worstAttackWindow": {
+                "startSeconds": 0.0625,
+                "endSeconds": 0.5625,
+                "attacks": 2
+              },
+              "maxSimultaneous": 1,
+              "maxSounding": 1,
+              "maxChordSpanSemitones": 0,
+              "maxSoundingSpanSemitones": 0,
+              "worstTopVoiceLeap": {
+                "startSeconds": 1.3125,
+                "semitones": 9,
+                "gapSeconds": 0.8125
+              }
+            },
+            "L": {
+              "attacksPerSecond": 0,
+              "medianIoiSeconds": null,
+              "maxShortWindowAttacksPerSecond": 0,
+              "worstAttackWindow": null,
+              "maxSimultaneous": 0,
+              "maxSounding": 0,
+              "maxChordSpanSemitones": 0,
+              "maxSoundingSpanSemitones": 0,
+              "worstTopVoiceLeap": null
+            }
+          }
+        }
+      }
+    },
+    {
+      "source": "output/tutorial-recovery/isolated-ingest-v10-checked/artifacts/proof-queen/e/notes.json",
+      "sha256": "c52388f1734fc1ac7c8c57aba3a53b896da8c779d6d16cda8c8beaf32190fa29",
+      "name": "queen",
+      "level": "easy",
+      "assessment": {
+        "level": "easy",
+        "status": "pass",
+        "limits": {
+          "maxSim": 5,
+          "maxDensity": 12,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "metrics": {
+        "noteCount": 1060,
+        "durationSeconds": 360.125,
+        "global": {
+          "attacksPerSecond": 1.924332,
+          "medianIoiSeconds": 0.4375,
+          "maxShortWindowAttacksPerSecond": 6,
+          "worstAttackWindow": {
+            "startSeconds": 18.3125,
+            "endSeconds": 18.8125,
+            "attacks": 3
+          },
+          "maxSimultaneous": 3,
+          "maxSounding": 3,
+          "maxChordSpanSemitones": 55,
+          "maxSoundingSpanSemitones": 55,
+          "worstTopVoiceLeap": {
+            "startSeconds": 170.875,
+            "semitones": 40,
+            "gapSeconds": 0.25
+          }
+        },
+        "hands": {
+          "R": {
+            "attacksPerSecond": 1.685526,
+            "medianIoiSeconds": 0.4375,
+            "maxShortWindowAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 5.5625,
+              "endSeconds": 6.0625,
+              "attacks": 2
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 70.6875,
+              "semitones": 24,
+              "gapSeconds": 0.875
+            }
+          },
+          "L": {
+            "attacksPerSecond": 0.721972,
+            "medianIoiSeconds": 0.875,
+            "maxShortWindowAttacksPerSecond": 2,
+            "worstAttackWindow": {
+              "startSeconds": 11.1875,
+              "endSeconds": 11.6875,
+              "attacks": 1
+            },
+            "maxSimultaneous": 2,
+            "maxSounding": 2,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 271.8125,
+              "semitones": 24,
+              "gapSeconds": 0.6875
+            }
+          }
+        }
+      },
+      "nearby": null
+    },
+    {
+      "source": "output/tutorial-recovery/isolated-ingest-v10-checked/artifacts/proof-queen/m/notes.json",
+      "sha256": "ab4704a5c5b7da896d7f44d60fa0ba70f17d60c82903be8fc1088b17c676ab64",
+      "name": "queen",
+      "level": "medium",
+      "assessment": {
+        "level": "medium",
+        "status": "pass",
+        "limits": {
+          "maxSim": 12,
+          "maxDensity": 16,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "metrics": {
+        "noteCount": 2084,
+        "durationSeconds": 360.125,
+        "global": {
+          "attacksPerSecond": 2.70184,
+          "medianIoiSeconds": 0.375,
+          "maxShortWindowAttacksPerSecond": 12,
+          "worstAttackWindow": {
+            "startSeconds": 169.375,
+            "endSeconds": 169.875,
+            "attacks": 6
+          },
+          "maxSimultaneous": 5,
+          "maxSounding": 8,
+          "maxChordSpanSemitones": 55,
+          "maxSoundingSpanSemitones": 55,
+          "worstTopVoiceLeap": {
+            "startSeconds": 169.5,
+            "semitones": 46,
+            "gapSeconds": 0.0625
+          }
+        },
+        "hands": {
+          "R": {
+            "attacksPerSecond": 2.207567,
+            "medianIoiSeconds": 0.375,
+            "maxShortWindowAttacksPerSecond": 10,
+            "worstAttackWindow": {
+              "startSeconds": 169.375,
+              "endSeconds": 169.875,
+              "attacks": 5
+            },
+            "maxSimultaneous": 3,
+            "maxSounding": 4,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 186.0625,
+              "semitones": 24,
+              "gapSeconds": 0.4375
+            }
+          },
+          "L": {
+            "attacksPerSecond": 1.3773,
+            "medianIoiSeconds": 0.375,
+            "maxShortWindowAttacksPerSecond": 8,
+            "worstAttackWindow": {
+              "startSeconds": 245.25,
+              "endSeconds": 245.75,
+              "attacks": 4
+            },
+            "maxSimultaneous": 3,
+            "maxSounding": 4,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 156.3125,
+              "semitones": 24,
+              "gapSeconds": 0.6875
+            }
+          }
+        }
+      },
+      "nearby": null
+    },
+    {
+      "source": "output/tutorial-recovery/isolated-ingest-v10-checked/artifacts/proof-queen/a/notes.json",
+      "sha256": "2197697e14afc0eab350c26d9e0c4c23cc29bdbf673ea5baebacfaaed3e8536e",
+      "name": "queen",
+      "level": "advanced",
+      "assessment": {
+        "level": "advanced",
+        "status": "pass",
+        "limits": {
+          "maxSim": 13,
+          "maxDensity": 18,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "metrics": {
+        "noteCount": 2120,
+        "durationSeconds": 360.125,
+        "global": {
+          "attacksPerSecond": 2.721277,
+          "medianIoiSeconds": 0.375,
+          "maxShortWindowAttacksPerSecond": 14,
+          "worstAttackWindow": {
+            "startSeconds": 169.375,
+            "endSeconds": 169.875,
+            "attacks": 7
+          },
+          "maxSimultaneous": 6,
+          "maxSounding": 8,
+          "maxChordSpanSemitones": 55,
+          "maxSoundingSpanSemitones": 55,
+          "worstTopVoiceLeap": {
+            "startSeconds": 169.5,
+            "semitones": 46,
+            "gapSeconds": 0.0625
+          }
+        },
+        "hands": {
+          "R": {
+            "attacksPerSecond": 2.229781,
+            "medianIoiSeconds": 0.375,
+            "maxShortWindowAttacksPerSecond": 12,
+            "worstAttackWindow": {
+              "startSeconds": 169.375,
+              "endSeconds": 169.875,
+              "attacks": 6
+            },
+            "maxSimultaneous": 4,
+            "maxSounding": 4,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 186.0625,
+              "semitones": 24,
+              "gapSeconds": 0.4375
+            }
+          },
+          "L": {
+            "attacksPerSecond": 1.38563,
+            "medianIoiSeconds": 0.375,
+            "maxShortWindowAttacksPerSecond": 8,
+            "worstAttackWindow": {
+              "startSeconds": 23.5625,
+              "endSeconds": 24.0625,
+              "attacks": 4
+            },
+            "maxSimultaneous": 4,
+            "maxSounding": 5,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 156.3125,
+              "semitones": 24,
+              "gapSeconds": 0.6875
+            }
+          }
+        }
+      },
+      "nearby": null
+    },
+    {
+      "source": "output/tutorial-recovery/isolated-ingest-v10-checked/artifacts/proof-metallica-old/b/notes.json",
+      "sha256": "7a35cbecc6e0f4e86e864f52dd54ab26c8d231b46ecc377fd56c6f32d2837762",
+      "name": "metallica-old",
+      "level": "beginner",
+      "assessment": {
+        "level": "beginner",
+        "status": "pass",
+        "limits": {
+          "maxSim": 2,
+          "maxDensity": 6,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "metrics": {
+        "noteCount": 399,
+        "durationSeconds": 378.875,
+        "global": {
+          "attacksPerSecond": 1.053118,
+          "medianIoiSeconds": 0.625,
+          "maxShortWindowAttacksPerSecond": 4,
+          "worstAttackWindow": {
+            "startSeconds": 14.5625,
+            "endSeconds": 15.0625,
+            "attacks": 2
+          },
+          "maxSimultaneous": 1,
+          "maxSounding": 1,
+          "maxChordSpanSemitones": 0,
+          "maxSoundingSpanSemitones": 0,
+          "worstTopVoiceLeap": {
+            "startSeconds": 198.1875,
+            "semitones": 44,
+            "gapSeconds": 5
+          }
+        },
+        "hands": {
+          "R": {
+            "attacksPerSecond": 1.034642,
+            "medianIoiSeconds": 0.625,
+            "maxShortWindowAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 14.5625,
+              "endSeconds": 15.0625,
+              "attacks": 2
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 198.1875,
+              "semitones": 44,
+              "gapSeconds": 5
+            }
+          },
+          "L": {
+            "attacksPerSecond": 0.018476,
+            "medianIoiSeconds": 0.78125,
+            "maxShortWindowAttacksPerSecond": 2,
+            "worstAttackWindow": {
+              "startSeconds": 370,
+              "endSeconds": 370.5,
+              "attacks": 1
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 370.8125,
+              "semitones": 8,
+              "gapSeconds": 0.8125
+            }
+          }
+        }
+      },
+      "nearby": null
+    },
+    {
+      "source": "output/tutorial-recovery/isolated-ingest-v10-checked/artifacts/proof-metallica-old/e/notes.json",
+      "sha256": "cce92aff1bf7f18babdc2ed9adb4b8e4b1e77e309439a8783fbe71ba2d78a3bc",
+      "name": "metallica-old",
+      "level": "easy",
+      "assessment": {
+        "level": "easy",
+        "status": "pass",
+        "limits": {
+          "maxSim": 5,
+          "maxDensity": 12,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "metrics": {
+        "noteCount": 775,
+        "durationSeconds": 378.875,
+        "global": {
+          "attacksPerSecond": 1.65226,
+          "medianIoiSeconds": 0.4375,
+          "maxShortWindowAttacksPerSecond": 6,
+          "worstAttackWindow": {
+            "startSeconds": 75.4375,
+            "endSeconds": 75.9375,
+            "attacks": 3
+          },
+          "maxSimultaneous": 3,
+          "maxSounding": 3,
+          "maxChordSpanSemitones": 52,
+          "maxSoundingSpanSemitones": 55,
+          "worstTopVoiceLeap": {
+            "startSeconds": 186.4375,
+            "semitones": 55,
+            "gapSeconds": 0.375
+          }
+        },
+        "hands": {
+          "R": {
+            "attacksPerSecond": 1.037281,
+            "medianIoiSeconds": 0.5625,
+            "maxShortWindowAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 14.5625,
+              "endSeconds": 15.0625,
+              "attacks": 2
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 198.1875,
+              "semitones": 44,
+              "gapSeconds": 5
+            }
+          },
+          "L": {
+            "attacksPerSecond": 0.889475,
+            "medianIoiSeconds": 0.875,
+            "maxShortWindowAttacksPerSecond": 2,
+            "worstAttackWindow": {
+              "startSeconds": 4.875,
+              "endSeconds": 5.375,
+              "attacks": 1
+            },
+            "maxSimultaneous": 2,
+            "maxSounding": 2,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 133.875,
+              "semitones": 21,
+              "gapSeconds": 0.8125
+            }
+          }
+        }
+      },
+      "nearby": {
+        "startSeconds": 58,
+        "endSeconds": 62,
+        "metrics": {
+          "noteCount": 6,
+          "durationSeconds": 4,
+          "global": {
+            "attacksPerSecond": 1,
+            "medianIoiSeconds": 1.25,
+            "maxShortWindowAttacksPerSecond": 2,
+            "worstAttackWindow": {
+              "startSeconds": 0.375,
+              "endSeconds": 0.875,
+              "attacks": 1
+            },
+            "maxSimultaneous": 2,
+            "maxSounding": 3,
+            "maxChordSpanSemitones": 15,
+            "maxSoundingSpanSemitones": 24,
+            "worstTopVoiceLeap": {
+              "startSeconds": 1.1875,
+              "semitones": 14,
+              "gapSeconds": 0.8125
+            }
+          },
+          "hands": {
+            "R": {
+              "attacksPerSecond": 0.5,
+              "medianIoiSeconds": 2.0625,
+              "maxShortWindowAttacksPerSecond": 2,
+              "worstAttackWindow": {
+                "startSeconds": 0.375,
+                "endSeconds": 0.875,
+                "attacks": 1
+              },
+              "maxSimultaneous": 1,
+              "maxSounding": 1,
+              "maxChordSpanSemitones": 0,
+              "maxSoundingSpanSemitones": 0,
+              "worstTopVoiceLeap": {
+                "startSeconds": 2.4375,
+                "semitones": 2,
+                "gapSeconds": 2.0625
+              }
+            },
+            "L": {
+              "attacksPerSecond": 0.75,
+              "medianIoiSeconds": 1.65625,
+              "maxShortWindowAttacksPerSecond": 2,
+              "worstAttackWindow": {
+                "startSeconds": 0.375,
+                "endSeconds": 0.875,
+                "attacks": 1
+              },
+              "maxSimultaneous": 2,
+              "maxSounding": 2,
+              "maxChordSpanSemitones": 12,
+              "maxSoundingSpanSemitones": 12,
+              "worstTopVoiceLeap": {
+                "startSeconds": 1.1875,
+                "semitones": 1,
+                "gapSeconds": 0.8125
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "source": "output/tutorial-recovery/isolated-ingest-v10-checked/artifacts/proof-metallica-old/m/notes.json",
+      "sha256": "bcb9696a8b6c03dae47f8a898e49a116f83cac417aa47d935fb056a1125cc6ca",
+      "name": "metallica-old",
+      "level": "medium",
+      "assessment": {
+        "level": "medium",
+        "status": "pass",
+        "limits": {
+          "maxSim": 12,
+          "maxDensity": 16,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "metrics": {
+        "noteCount": 1888,
+        "durationSeconds": 378.9375,
+        "global": {
+          "attacksPerSecond": 2.868547,
+          "medianIoiSeconds": 0.375,
+          "maxShortWindowAttacksPerSecond": 10,
+          "worstAttackWindow": {
+            "startSeconds": 227.25,
+            "endSeconds": 227.75,
+            "attacks": 5
+          },
+          "maxSimultaneous": 5,
+          "maxSounding": 6,
+          "maxChordSpanSemitones": 66,
+          "maxSoundingSpanSemitones": 66,
+          "worstTopVoiceLeap": {
+            "startSeconds": 186.0625,
+            "semitones": 53,
+            "gapSeconds": 0.4375
+          }
+        },
+        "hands": {
+          "R": {
+            "attacksPerSecond": 1.480455,
+            "medianIoiSeconds": 0.375,
+            "maxShortWindowAttacksPerSecond": 10,
+            "worstAttackWindow": {
+              "startSeconds": 227.25,
+              "endSeconds": 227.75,
+              "attacks": 5
+            },
+            "maxSimultaneous": 3,
+            "maxSounding": 4,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 198.1875,
+              "semitones": 44,
+              "gapSeconds": 5
+            }
+          },
+          "L": {
+            "attacksPerSecond": 2.417285,
+            "medianIoiSeconds": 0.4375,
+            "maxShortWindowAttacksPerSecond": 6,
+            "worstAttackWindow": {
+              "startSeconds": 41.9375,
+              "endSeconds": 42.4375,
+              "attacks": 3
+            },
+            "maxSimultaneous": 3,
+            "maxSounding": 3,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 140.375,
+              "semitones": 23,
+              "gapSeconds": 0.1875
+            }
+          }
+        }
+      },
+      "nearby": null
+    },
+    {
+      "source": "output/tutorial-recovery/isolated-ingest-v10-checked/artifacts/proof-metallica-old/a/notes.json",
+      "sha256": "cb2cd73dc091a7331b16fb305f77a70d31404f9589d15e77fd3ba74f391698a6",
+      "name": "metallica-old",
+      "level": "advanced",
+      "assessment": {
+        "level": "advanced",
+        "status": "pass",
+        "limits": {
+          "maxSim": 13,
+          "maxDensity": 18,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "metrics": {
+        "noteCount": 1900,
+        "durationSeconds": 378.9375,
+        "global": {
+          "attacksPerSecond": 2.88702,
+          "medianIoiSeconds": 0.375,
+          "maxShortWindowAttacksPerSecond": 10,
+          "worstAttackWindow": {
+            "startSeconds": 227.25,
+            "endSeconds": 227.75,
+            "attacks": 5
+          },
+          "maxSimultaneous": 6,
+          "maxSounding": 6,
+          "maxChordSpanSemitones": 66,
+          "maxSoundingSpanSemitones": 66,
+          "worstTopVoiceLeap": {
+            "startSeconds": 186.0625,
+            "semitones": 53,
+            "gapSeconds": 0.4375
+          }
+        },
+        "hands": {
+          "R": {
+            "attacksPerSecond": 1.501567,
+            "medianIoiSeconds": 0.375,
+            "maxShortWindowAttacksPerSecond": 10,
+            "worstAttackWindow": {
+              "startSeconds": 227.25,
+              "endSeconds": 227.75,
+              "attacks": 5
+            },
+            "maxSimultaneous": 4,
+            "maxSounding": 4,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 198.1875,
+              "semitones": 44,
+              "gapSeconds": 5
+            }
+          },
+          "L": {
+            "attacksPerSecond": 2.419924,
+            "medianIoiSeconds": 0.4375,
+            "maxShortWindowAttacksPerSecond": 6,
+            "worstAttackWindow": {
+              "startSeconds": 41.9375,
+              "endSeconds": 42.4375,
+              "attacks": 3
+            },
+            "maxSimultaneous": 3,
+            "maxSounding": 3,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 140.375,
+              "semitones": 23,
+              "gapSeconds": 0.1875
+            }
+          }
+        }
+      },
+      "nearby": null
+    },
+    {
+      "source": "output/tutorial-recovery/isolated-ingest-v10-checked/artifacts/proof-in-my-mind/b/notes.json",
+      "sha256": "631b66b5b30a374a7b77ccb8bd7fd4612efc07928ffa84af1af287be1957b55c",
+      "name": "in-my-mind",
+      "level": "beginner",
+      "assessment": {
+        "level": "beginner",
+        "status": "pass",
+        "limits": {
+          "maxSim": 2,
+          "maxDensity": 6,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "metrics": {
+        "noteCount": 236,
+        "durationSeconds": 175.4375,
+        "global": {
+          "attacksPerSecond": 1.345208,
+          "medianIoiSeconds": 0.5,
+          "maxShortWindowAttacksPerSecond": 4,
+          "worstAttackWindow": {
+            "startSeconds": 8.875,
+            "endSeconds": 9.375,
+            "attacks": 2
+          },
+          "maxSimultaneous": 1,
+          "maxSounding": 1,
+          "maxChordSpanSemitones": 0,
+          "maxSoundingSpanSemitones": 0,
+          "worstTopVoiceLeap": {
+            "startSeconds": 14.0625,
+            "semitones": 8,
+            "gapSeconds": 0.9375
+          }
+        },
+        "hands": {
+          "R": {
+            "attacksPerSecond": 1.345208,
+            "medianIoiSeconds": 0.5,
+            "maxShortWindowAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 8.875,
+              "endSeconds": 9.375,
+              "attacks": 2
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 14.0625,
+              "semitones": 8,
+              "gapSeconds": 0.9375
+            }
+          },
+          "L": {
+            "attacksPerSecond": 0,
+            "medianIoiSeconds": null,
+            "maxShortWindowAttacksPerSecond": 0,
+            "worstAttackWindow": null,
+            "maxSimultaneous": 0,
+            "maxSounding": 0,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": null
+          }
+        }
+      },
+      "nearby": null
+    },
+    {
+      "source": "output/tutorial-recovery/isolated-ingest-v10-checked/artifacts/proof-in-my-mind/e/notes.json",
+      "sha256": "f9974c7eec208162b09aa189b2a3843c2a03e5d8ed6807735eed6ff750f7bfe7",
+      "name": "in-my-mind",
+      "level": "easy",
+      "assessment": {
+        "level": "easy",
+        "status": "pass",
+        "limits": {
+          "maxSim": 5,
+          "maxDensity": 12,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "metrics": {
+        "noteCount": 398,
+        "durationSeconds": 175.4375,
+        "global": {
+          "attacksPerSecond": 1.886712,
+          "medianIoiSeconds": 0.5,
+          "maxShortWindowAttacksPerSecond": 6,
+          "worstAttackWindow": {
+            "startSeconds": 37.1875,
+            "endSeconds": 37.6875,
+            "attacks": 3
+          },
+          "maxSimultaneous": 3,
+          "maxSounding": 3,
+          "maxChordSpanSemitones": 19,
+          "maxSoundingSpanSemitones": 24,
+          "worstTopVoiceLeap": {
+            "startSeconds": 6.4375,
+            "semitones": 24,
+            "gapSeconds": 0.9375
+          }
+        },
+        "hands": {
+          "R": {
+            "attacksPerSecond": 1.345208,
+            "medianIoiSeconds": 0.5,
+            "maxShortWindowAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 8.875,
+              "endSeconds": 9.375,
+              "attacks": 2
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 14.0625,
+              "semitones": 8,
+              "gapSeconds": 0.9375
+            }
+          },
+          "L": {
+            "attacksPerSecond": 0.798005,
+            "medianIoiSeconds": 1.125,
+            "maxShortWindowAttacksPerSecond": 2,
+            "worstAttackWindow": {
+              "startSeconds": 5.5,
+              "endSeconds": 6,
+              "attacks": 1
+            },
+            "maxSimultaneous": 2,
+            "maxSounding": 2,
+            "maxChordSpanSemitones": 5,
+            "maxSoundingSpanSemitones": 5,
+            "worstTopVoiceLeap": {
+              "startSeconds": 159.75,
+              "semitones": 9,
+              "gapSeconds": 3.4375
+            }
+          }
+        }
+      },
+      "nearby": null
+    },
+    {
+      "source": "output/tutorial-recovery/isolated-ingest-v10-checked/artifacts/proof-in-my-mind/m/notes.json",
+      "sha256": "19149127b0c00b81faf29576345599099a981ea0a0493574b137c12a463fd935",
+      "name": "in-my-mind",
+      "level": "medium",
+      "assessment": {
+        "level": "medium",
+        "status": "pass",
+        "limits": {
+          "maxSim": 12,
+          "maxDensity": 16,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "metrics": {
+        "noteCount": 514,
+        "durationSeconds": 175.4375,
+        "global": {
+          "attacksPerSecond": 2.490916,
+          "medianIoiSeconds": 0.375,
+          "maxShortWindowAttacksPerSecond": 6,
+          "worstAttackWindow": {
+            "startSeconds": 36.9375,
+            "endSeconds": 37.4375,
+            "attacks": 3
+          },
+          "maxSimultaneous": 3,
+          "maxSounding": 3,
+          "maxChordSpanSemitones": 24,
+          "maxSoundingSpanSemitones": 24,
+          "worstTopVoiceLeap": {
+            "startSeconds": 37.375,
+            "semitones": 24,
+            "gapSeconds": 0.1875
+          }
+        },
+        "hands": {
+          "R": {
+            "attacksPerSecond": 1.732811,
+            "medianIoiSeconds": 0.5,
+            "maxShortWindowAttacksPerSecond": 6,
+            "worstAttackWindow": {
+              "startSeconds": 50.5,
+              "endSeconds": 51,
+              "attacks": 3
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 6.4375,
+              "semitones": 8,
+              "gapSeconds": 0.1875
+            }
+          },
+          "L": {
+            "attacksPerSecond": 1.065907,
+            "medianIoiSeconds": 0.5,
+            "maxShortWindowAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 43.625,
+              "endSeconds": 44.125,
+              "attacks": 2
+            },
+            "maxSimultaneous": 2,
+            "maxSounding": 2,
+            "maxChordSpanSemitones": 5,
+            "maxSoundingSpanSemitones": 5,
+            "worstTopVoiceLeap": {
+              "startSeconds": 159.75,
+              "semitones": 9,
+              "gapSeconds": 3.0625
+            }
+          }
+        }
+      },
+      "nearby": null
+    },
+    {
+      "source": "output/tutorial-recovery/isolated-ingest-v10-checked/artifacts/proof-in-my-mind/a/notes.json",
+      "sha256": "19149127b0c00b81faf29576345599099a981ea0a0493574b137c12a463fd935",
+      "name": "in-my-mind",
+      "level": "advanced",
+      "assessment": {
+        "level": "advanced",
+        "status": "pass",
+        "limits": {
+          "maxSim": 13,
+          "maxDensity": 18,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "metrics": {
+        "noteCount": 514,
+        "durationSeconds": 175.4375,
+        "global": {
+          "attacksPerSecond": 2.490916,
+          "medianIoiSeconds": 0.375,
+          "maxShortWindowAttacksPerSecond": 6,
+          "worstAttackWindow": {
+            "startSeconds": 36.9375,
+            "endSeconds": 37.4375,
+            "attacks": 3
+          },
+          "maxSimultaneous": 3,
+          "maxSounding": 3,
+          "maxChordSpanSemitones": 24,
+          "maxSoundingSpanSemitones": 24,
+          "worstTopVoiceLeap": {
+            "startSeconds": 37.375,
+            "semitones": 24,
+            "gapSeconds": 0.1875
+          }
+        },
+        "hands": {
+          "R": {
+            "attacksPerSecond": 1.732811,
+            "medianIoiSeconds": 0.5,
+            "maxShortWindowAttacksPerSecond": 6,
+            "worstAttackWindow": {
+              "startSeconds": 50.5,
+              "endSeconds": 51,
+              "attacks": 3
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 6.4375,
+              "semitones": 8,
+              "gapSeconds": 0.1875
+            }
+          },
+          "L": {
+            "attacksPerSecond": 1.065907,
+            "medianIoiSeconds": 0.5,
+            "maxShortWindowAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 43.625,
+              "endSeconds": 44.125,
+              "attacks": 2
+            },
+            "maxSimultaneous": 2,
+            "maxSounding": 2,
+            "maxChordSpanSemitones": 5,
+            "maxSoundingSpanSemitones": 5,
+            "worstTopVoiceLeap": {
+              "startSeconds": 159.75,
+              "semitones": 9,
+              "gapSeconds": 3.0625
+            }
+          }
+        }
+      },
+      "nearby": null
+    },
+    {
+      "source": "output/tutorial-recovery/isolated-ingest-v10-checked/artifacts/proof-nirvana/b/notes.json",
+      "sha256": "c59e3c36d74cb74f53ed1ad8fc23d9b5d7c72528c0cf40aba0d2bedba110ef69",
+      "name": "nirvana",
+      "level": "beginner",
+      "assessment": {
+        "level": "beginner",
+        "status": "pass",
+        "limits": {
+          "maxSim": 2,
+          "maxDensity": 6,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "metrics": {
+        "noteCount": 171,
+        "durationSeconds": 220.5625,
+        "global": {
+          "attacksPerSecond": 0.77529,
+          "medianIoiSeconds": 0.75,
+          "maxShortWindowAttacksPerSecond": 4,
+          "worstAttackWindow": {
+            "startSeconds": 108.875,
+            "endSeconds": 109.375,
+            "attacks": 2
+          },
+          "maxSimultaneous": 1,
+          "maxSounding": 1,
+          "maxChordSpanSemitones": 0,
+          "maxSoundingSpanSemitones": 0,
+          "worstTopVoiceLeap": {
+            "startSeconds": 213.8125,
+            "semitones": 26,
+            "gapSeconds": 1.75
+          }
+        },
+        "hands": {
+          "R": {
+            "attacksPerSecond": 0.766223,
+            "medianIoiSeconds": 0.75,
+            "maxShortWindowAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 108.875,
+              "endSeconds": 109.375,
+              "attacks": 2
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 201.3125,
+              "semitones": 11,
+              "gapSeconds": 4.1875
+            }
+          },
+          "L": {
+            "attacksPerSecond": 0.009068,
+            "medianIoiSeconds": 0.5,
+            "maxShortWindowAttacksPerSecond": 2,
+            "worstAttackWindow": {
+              "startSeconds": 213.8125,
+              "endSeconds": 214.3125,
+              "attacks": 1
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 214.3125,
+              "semitones": 2,
+              "gapSeconds": 0.5
+            }
+          }
+        }
+      },
+      "nearby": null
+    },
+    {
+      "source": "output/tutorial-recovery/isolated-ingest-v10-checked/artifacts/proof-nirvana/e/notes.json",
+      "sha256": "8446dd3e78218c36e1c6da4bf9b2e493acc444c6f7b5e61a80188dea5f5ac671",
+      "name": "nirvana",
+      "level": "easy",
+      "assessment": {
+        "level": "easy",
+        "status": "pass",
+        "limits": {
+          "maxSim": 5,
+          "maxDensity": 12,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "metrics": {
+        "noteCount": 520,
+        "durationSeconds": 220.5625,
+        "global": {
+          "attacksPerSecond": 1.908756,
+          "medianIoiSeconds": 0.5,
+          "maxShortWindowAttacksPerSecond": 6,
+          "worstAttackWindow": {
+            "startSeconds": 114.375,
+            "endSeconds": 114.875,
+            "attacks": 3
+          },
+          "maxSimultaneous": 3,
+          "maxSounding": 3,
+          "maxChordSpanSemitones": 40,
+          "maxSoundingSpanSemitones": 40,
+          "worstTopVoiceLeap": {
+            "startSeconds": 29.1875,
+            "semitones": 40,
+            "gapSeconds": 0.8125
+          }
+        },
+        "hands": {
+          "R": {
+            "attacksPerSecond": 0.766223,
+            "medianIoiSeconds": 0.75,
+            "maxShortWindowAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 108.875,
+              "endSeconds": 109.375,
+              "attacks": 2
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 201.3125,
+              "semitones": 11,
+              "gapSeconds": 4.1875
+            }
+          },
+          "L": {
+            "attacksPerSecond": 1.296685,
+            "medianIoiSeconds": 0.5625,
+            "maxShortWindowAttacksPerSecond": 2,
+            "worstAttackWindow": {
+              "startSeconds": 5.625,
+              "endSeconds": 6.125,
+              "attacks": 1
+            },
+            "maxSimultaneous": 2,
+            "maxSounding": 2,
+            "maxChordSpanSemitones": 7,
+            "maxSoundingSpanSemitones": 7,
+            "worstTopVoiceLeap": {
+              "startSeconds": 197.5625,
+              "semitones": 17,
+              "gapSeconds": 1
+            }
+          }
+        }
+      },
+      "nearby": null
+    },
+    {
+      "source": "output/tutorial-recovery/isolated-ingest-v10-checked/artifacts/proof-nirvana/m/notes.json",
+      "sha256": "c7baedb8c1c1953cb1e6b171b97feceb1d703fd3ac22fe3e36b2efbc0e2f07df",
+      "name": "nirvana",
+      "level": "medium",
+      "assessment": {
+        "level": "medium",
+        "status": "pass",
+        "limits": {
+          "maxSim": 12,
+          "maxDensity": 16,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "metrics": {
+        "noteCount": 1108,
+        "durationSeconds": 220.5625,
+        "global": {
+          "attacksPerSecond": 3.56815,
+          "medianIoiSeconds": 0.25,
+          "maxShortWindowAttacksPerSecond": 8,
+          "worstAttackWindow": {
+            "startSeconds": 23.875,
+            "endSeconds": 24.375,
+            "attacks": 4
+          },
+          "maxSimultaneous": 5,
+          "maxSounding": 5,
+          "maxChordSpanSemitones": 40,
+          "maxSoundingSpanSemitones": 40,
+          "worstTopVoiceLeap": {
+            "startSeconds": 29.125,
+            "semitones": 38,
+            "gapSeconds": 0.25
+          }
+        },
+        "hands": {
+          "R": {
+            "attacksPerSecond": 1.292151,
+            "medianIoiSeconds": 0.3125,
+            "maxShortWindowAttacksPerSecond": 8,
+            "worstAttackWindow": {
+              "startSeconds": 107.125,
+              "endSeconds": 107.625,
+              "attacks": 4
+            },
+            "maxSimultaneous": 2,
+            "maxSounding": 2,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 104.875,
+              "semitones": 12,
+              "gapSeconds": 0.5
+            }
+          },
+          "L": {
+            "attacksPerSecond": 2.924341,
+            "medianIoiSeconds": 0.25,
+            "maxShortWindowAttacksPerSecond": 8,
+            "worstAttackWindow": {
+              "startSeconds": 53.6875,
+              "endSeconds": 54.1875,
+              "attacks": 4
+            },
+            "maxSimultaneous": 3,
+            "maxSounding": 3,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 53.125,
+              "semitones": 19,
+              "gapSeconds": 0.25
+            }
+          }
+        }
+      },
+      "nearby": null
+    },
+    {
+      "source": "output/tutorial-recovery/isolated-ingest-v10-checked/artifacts/proof-nirvana/a/notes.json",
+      "sha256": "51aa9701caa1ccfa479dba23d1380725dae41a99a2e9e2900e733b071680e3a3",
+      "name": "nirvana",
+      "level": "advanced",
+      "assessment": {
+        "level": "advanced",
+        "status": "pass",
+        "limits": {
+          "maxSim": 13,
+          "maxDensity": 18,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "metrics": {
+        "noteCount": 1119,
+        "durationSeconds": 220.5625,
+        "global": {
+          "attacksPerSecond": 3.618022,
+          "medianIoiSeconds": 0.25,
+          "maxShortWindowAttacksPerSecond": 8,
+          "worstAttackWindow": {
+            "startSeconds": 23.875,
+            "endSeconds": 24.375,
+            "attacks": 4
+          },
+          "maxSimultaneous": 5,
+          "maxSounding": 5,
+          "maxChordSpanSemitones": 40,
+          "maxSoundingSpanSemitones": 40,
+          "worstTopVoiceLeap": {
+            "startSeconds": 29.125,
+            "semitones": 38,
+            "gapSeconds": 0.25
+          }
+        },
+        "hands": {
+          "R": {
+            "attacksPerSecond": 1.342023,
+            "medianIoiSeconds": 0.3125,
+            "maxShortWindowAttacksPerSecond": 8,
+            "worstAttackWindow": {
+              "startSeconds": 107.125,
+              "endSeconds": 107.625,
+              "attacks": 4
+            },
+            "maxSimultaneous": 2,
+            "maxSounding": 2,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 104.875,
+              "semitones": 12,
+              "gapSeconds": 0.5
+            }
+          },
+          "L": {
+            "attacksPerSecond": 2.924341,
+            "medianIoiSeconds": 0.25,
+            "maxShortWindowAttacksPerSecond": 8,
+            "worstAttackWindow": {
+              "startSeconds": 53.6875,
+              "endSeconds": 54.1875,
+              "attacks": 4
+            },
+            "maxSimultaneous": 3,
+            "maxSounding": 3,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 53.125,
+              "semitones": 19,
+              "gapSeconds": 0.25
+            }
+          }
+        }
+      },
+      "nearby": null
+    },
+    {
+      "source": "output/tutorial-recovery/isolated-ingest-v10-checked/artifacts/proof-acdc-fixed/b/notes.json",
+      "sha256": "807f0d4f2308b363b41485e250dcd550f11c30f9187f5b4a87963ee599cadd56",
+      "name": "acdc-fixed",
+      "level": "beginner",
+      "assessment": {
+        "level": "beginner",
+        "status": "pass",
+        "limits": {
+          "maxSim": 2,
+          "maxDensity": 6,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "metrics": {
+        "noteCount": 138,
+        "durationSeconds": 129.9375,
+        "global": {
+          "attacksPerSecond": 1.062049,
+          "medianIoiSeconds": 0.75,
+          "maxShortWindowAttacksPerSecond": 4,
+          "worstAttackWindow": {
+            "startSeconds": 14.9375,
+            "endSeconds": 15.4375,
+            "attacks": 2
+          },
+          "maxSimultaneous": 1,
+          "maxSounding": 1,
+          "maxChordSpanSemitones": 0,
+          "maxSoundingSpanSemitones": 0,
+          "worstTopVoiceLeap": {
+            "startSeconds": 102.1875,
+            "semitones": 17,
+            "gapSeconds": 1.875
+          }
+        },
+        "hands": {
+          "R": {
+            "attacksPerSecond": 1.062049,
+            "medianIoiSeconds": 0.75,
+            "maxShortWindowAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 14.9375,
+              "endSeconds": 15.4375,
+              "attacks": 2
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 102.1875,
+              "semitones": 17,
+              "gapSeconds": 1.875
+            }
+          },
+          "L": {
+            "attacksPerSecond": 0,
+            "medianIoiSeconds": null,
+            "maxShortWindowAttacksPerSecond": 0,
+            "worstAttackWindow": null,
+            "maxSimultaneous": 0,
+            "maxSounding": 0,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": null
+          }
+        }
+      },
+      "nearby": null
+    },
+    {
+      "source": "output/tutorial-recovery/isolated-ingest-v10-checked/artifacts/proof-acdc-fixed/e/notes.json",
+      "sha256": "c2f7402bae4a74b171fdf9fd90fa28d18b92ff7ca01a8c384860c37a7e8b0e63",
+      "name": "acdc-fixed",
+      "level": "easy",
+      "assessment": {
+        "level": "easy",
+        "status": "pass",
+        "limits": {
+          "maxSim": 5,
+          "maxDensity": 12,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "metrics": {
+        "noteCount": 348,
+        "durationSeconds": 131.25,
+        "global": {
+          "attacksPerSecond": 1.379048,
+          "medianIoiSeconds": 0.625,
+          "maxShortWindowAttacksPerSecond": 4,
+          "worstAttackWindow": {
+            "startSeconds": 14.9375,
+            "endSeconds": 15.4375,
+            "attacks": 2
+          },
+          "maxSimultaneous": 3,
+          "maxSounding": 3,
+          "maxChordSpanSemitones": 36,
+          "maxSoundingSpanSemitones": 36,
+          "worstTopVoiceLeap": {
+            "startSeconds": 68.375,
+            "semitones": 36,
+            "gapSeconds": 0.625
+          }
+        },
+        "hands": {
+          "R": {
+            "attacksPerSecond": 1.059048,
+            "medianIoiSeconds": 0.75,
+            "maxShortWindowAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 14.9375,
+              "endSeconds": 15.4375,
+              "attacks": 2
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 102.1875,
+              "semitones": 17,
+              "gapSeconds": 1.875
+            }
+          },
+          "L": {
+            "attacksPerSecond": 0.937143,
+            "medianIoiSeconds": 0.9375,
+            "maxShortWindowAttacksPerSecond": 2,
+            "worstAttackWindow": {
+              "startSeconds": 5.5,
+              "endSeconds": 6,
+              "attacks": 1
+            },
+            "maxSimultaneous": 2,
+            "maxSounding": 2,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 103,
+              "semitones": 14,
+              "gapSeconds": 0.8125
+            }
+          }
+        }
+      },
+      "nearby": null
+    },
+    {
+      "source": "output/tutorial-recovery/isolated-ingest-v10-checked/artifacts/proof-acdc-fixed/m/notes.json",
+      "sha256": "9feb2f84793a0230df9407f64c26af1756d3a22f9193ab1e08f53ca7ffaa7dc3",
+      "name": "acdc-fixed",
+      "level": "medium",
+      "assessment": {
+        "level": "medium",
+        "status": "pass",
+        "limits": {
+          "maxSim": 12,
+          "maxDensity": 16,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "metrics": {
+        "noteCount": 797,
+        "durationSeconds": 131.25,
+        "global": {
+          "attacksPerSecond": 2.598095,
+          "medianIoiSeconds": 0.3125,
+          "maxShortWindowAttacksPerSecond": 8,
+          "worstAttackWindow": {
+            "startSeconds": 14.625,
+            "endSeconds": 15.125,
+            "attacks": 4
+          },
+          "maxSimultaneous": 5,
+          "maxSounding": 6,
+          "maxChordSpanSemitones": 36,
+          "maxSoundingSpanSemitones": 36,
+          "worstTopVoiceLeap": {
+            "startSeconds": 68.0625,
+            "semitones": 36,
+            "gapSeconds": 0.3125
+          }
+        },
+        "hands": {
+          "R": {
+            "attacksPerSecond": 1.851429,
+            "medianIoiSeconds": 0.3125,
+            "maxShortWindowAttacksPerSecond": 8,
+            "worstAttackWindow": {
+              "startSeconds": 14.625,
+              "endSeconds": 15.125,
+              "attacks": 4
+            },
+            "maxSimultaneous": 3,
+            "maxSounding": 4,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 102.0625,
+              "semitones": 16,
+              "gapSeconds": 1.75
+            }
+          },
+          "L": {
+            "attacksPerSecond": 1.84381,
+            "medianIoiSeconds": 0.3125,
+            "maxShortWindowAttacksPerSecond": 6,
+            "worstAttackWindow": {
+              "startSeconds": 19.5625,
+              "endSeconds": 20.0625,
+              "attacks": 3
+            },
+            "maxSimultaneous": 3,
+            "maxSounding": 3,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 56.5625,
+              "semitones": 19,
+              "gapSeconds": 0.3125
+            }
+          }
+        }
+      },
+      "nearby": null
+    },
+    {
+      "source": "output/tutorial-recovery/isolated-ingest-v10-checked/artifacts/proof-acdc-fixed/a/notes.json",
+      "sha256": "cf6c98406981e7e31efdbfb2543b76b8d0f1f4c01c59a4fd6075bfbb4036f829",
+      "name": "acdc-fixed",
+      "level": "advanced",
+      "assessment": {
+        "level": "advanced",
+        "status": "pass",
+        "limits": {
+          "maxSim": 13,
+          "maxDensity": 18,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "metrics": {
+        "noteCount": 803,
+        "durationSeconds": 131.25,
+        "global": {
+          "attacksPerSecond": 2.598095,
+          "medianIoiSeconds": 0.3125,
+          "maxShortWindowAttacksPerSecond": 8,
+          "worstAttackWindow": {
+            "startSeconds": 14.625,
+            "endSeconds": 15.125,
+            "attacks": 4
+          },
+          "maxSimultaneous": 6,
+          "maxSounding": 6,
+          "maxChordSpanSemitones": 36,
+          "maxSoundingSpanSemitones": 36,
+          "worstTopVoiceLeap": {
+            "startSeconds": 68.0625,
+            "semitones": 36,
+            "gapSeconds": 0.3125
+          }
+        },
+        "hands": {
+          "R": {
+            "attacksPerSecond": 1.851429,
+            "medianIoiSeconds": 0.3125,
+            "maxShortWindowAttacksPerSecond": 8,
+            "worstAttackWindow": {
+              "startSeconds": 14.625,
+              "endSeconds": 15.125,
+              "attacks": 4
+            },
+            "maxSimultaneous": 4,
+            "maxSounding": 4,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 102.0625,
+              "semitones": 16,
+              "gapSeconds": 1.75
+            }
+          },
+          "L": {
+            "attacksPerSecond": 1.84381,
+            "medianIoiSeconds": 0.3125,
+            "maxShortWindowAttacksPerSecond": 6,
+            "worstAttackWindow": {
+              "startSeconds": 19.5625,
+              "endSeconds": 20.0625,
+              "attacks": 3
+            },
+            "maxSimultaneous": 3,
+            "maxSounding": 3,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 56.5625,
+              "semitones": 19,
+              "gapSeconds": 0.3125
+            }
+          }
+        }
+      },
+      "nearby": null
+    },
+    {
+      "source": "output/tutorial-recovery/isolated-ingest-v10-checked/artifacts/proof-metallica/b/notes.json",
+      "sha256": "8db0801942014d89bac012e03086c9d16b29797b6e4aaf0b1977ef264ba6f30c",
+      "name": "metallica",
+      "level": "beginner",
+      "assessment": {
+        "level": "beginner",
+        "status": "pass",
+        "limits": {
+          "maxSim": 2,
+          "maxDensity": 6,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "metrics": {
+        "noteCount": 435,
+        "durationSeconds": 263.5625,
+        "global": {
+          "attacksPerSecond": 1.650462,
+          "medianIoiSeconds": 0.4375,
+          "maxShortWindowAttacksPerSecond": 4,
+          "worstAttackWindow": {
+            "startSeconds": 19,
+            "endSeconds": 19.5,
+            "attacks": 2
+          },
+          "maxSimultaneous": 1,
+          "maxSounding": 1,
+          "maxChordSpanSemitones": 0,
+          "maxSoundingSpanSemitones": 0,
+          "worstTopVoiceLeap": {
+            "startSeconds": 230.9375,
+            "semitones": 31,
+            "gapSeconds": 0.375
+          }
+        },
+        "hands": {
+          "R": {
+            "attacksPerSecond": 1.650462,
+            "medianIoiSeconds": 0.4375,
+            "maxShortWindowAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 19,
+              "endSeconds": 19.5,
+              "attacks": 2
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 230.9375,
+              "semitones": 31,
+              "gapSeconds": 0.375
+            }
+          },
+          "L": {
+            "attacksPerSecond": 0,
+            "medianIoiSeconds": null,
+            "maxShortWindowAttacksPerSecond": 0,
+            "worstAttackWindow": null,
+            "maxSimultaneous": 0,
+            "maxSounding": 0,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": null
+          }
+        }
+      },
+      "nearby": null
+    },
+    {
+      "source": "output/tutorial-recovery/isolated-ingest-v10-checked/artifacts/proof-metallica/e/notes.json",
+      "sha256": "c1e6aaf765deb8348328c3a8f5325dec1adaaf36c1222d7b6b46c0e6ed8457e6",
+      "name": "metallica",
+      "level": "easy",
+      "assessment": {
+        "level": "easy",
+        "status": "pass",
+        "limits": {
+          "maxSim": 5,
+          "maxDensity": 12,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "metrics": {
+        "noteCount": 665,
+        "durationSeconds": 263.5625,
+        "global": {
+          "attacksPerSecond": 2.166469,
+          "medianIoiSeconds": 0.375,
+          "maxShortWindowAttacksPerSecond": 6,
+          "worstAttackWindow": {
+            "startSeconds": 20.125,
+            "endSeconds": 20.625,
+            "attacks": 3
+          },
+          "maxSimultaneous": 3,
+          "maxSounding": 3,
+          "maxChordSpanSemitones": 43,
+          "maxSoundingSpanSemitones": 43,
+          "worstTopVoiceLeap": {
+            "startSeconds": 195.8125,
+            "semitones": 43,
+            "gapSeconds": 0.0625
+          }
+        },
+        "hands": {
+          "R": {
+            "attacksPerSecond": 1.68461,
+            "medianIoiSeconds": 0.4375,
+            "maxShortWindowAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 19,
+              "endSeconds": 19.5,
+              "attacks": 2
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 230.9375,
+              "semitones": 31,
+              "gapSeconds": 0.375
+            }
+          },
+          "L": {
+            "attacksPerSecond": 0.770216,
+            "medianIoiSeconds": 1.09375,
+            "maxShortWindowAttacksPerSecond": 2,
+            "worstAttackWindow": {
+              "startSeconds": 5.9375,
+              "endSeconds": 6.4375,
+              "attacks": 1
+            },
+            "maxSimultaneous": 2,
+            "maxSounding": 2,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 182.625,
+              "semitones": 21,
+              "gapSeconds": 0.625
+            }
+          }
+        }
+      },
+      "nearby": {
+        "startSeconds": 58,
+        "endSeconds": 62,
+        "metrics": {
+          "noteCount": 12,
+          "durationSeconds": 4,
+          "global": {
+            "attacksPerSecond": 2.25,
+            "medianIoiSeconds": 0.4375,
+            "maxShortWindowAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 0.125,
+              "endSeconds": 0.625,
+              "attacks": 2
+            },
+            "maxSimultaneous": 2,
+            "maxSounding": 2,
+            "maxChordSpanSemitones": 28,
+            "maxSoundingSpanSemitones": 28,
+            "worstTopVoiceLeap": {
+              "startSeconds": 1.25,
+              "semitones": 14,
+              "gapSeconds": 0.6875
+            }
+          },
+          "hands": {
+            "R": {
+              "attacksPerSecond": 2,
+              "medianIoiSeconds": 0.4375,
+              "maxShortWindowAttacksPerSecond": 4,
+              "worstAttackWindow": {
+                "startSeconds": 0.125,
+                "endSeconds": 0.625,
+                "attacks": 2
+              },
+              "maxSimultaneous": 1,
+              "maxSounding": 1,
+              "maxChordSpanSemitones": 0,
+              "maxSoundingSpanSemitones": 0,
+              "worstTopVoiceLeap": {
+                "startSeconds": 1.25,
+                "semitones": 14,
+                "gapSeconds": 0.6875
+              }
+            },
+            "L": {
+              "attacksPerSecond": 1,
+              "medianIoiSeconds": 1.125,
+              "maxShortWindowAttacksPerSecond": 2,
+              "worstAttackWindow": {
+                "startSeconds": 0.5625,
+                "endSeconds": 1.0625,
+                "attacks": 1
+              },
+              "maxSimultaneous": 1,
+              "maxSounding": 1,
+              "maxChordSpanSemitones": 0,
+              "maxSoundingSpanSemitones": 0,
+              "worstTopVoiceLeap": {
+                "startSeconds": 2.75,
+                "semitones": 4,
+                "gapSeconds": 1.0625
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "source": "output/tutorial-recovery/isolated-ingest-v10-checked/artifacts/proof-metallica/m/notes.json",
+      "sha256": "75862ca13523e69ce06cfabc36952c9cad3a03cfe2f6792481a8392fb080e6a5",
+      "name": "metallica",
+      "level": "medium",
+      "assessment": {
+        "level": "medium",
+        "status": "pass",
+        "limits": {
+          "maxSim": 12,
+          "maxDensity": 16,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "metrics": {
+        "noteCount": 1508,
+        "durationSeconds": 267.375,
+        "global": {
+          "attacksPerSecond": 4.02057,
+          "medianIoiSeconds": 0.1875,
+          "maxShortWindowAttacksPerSecond": 10,
+          "worstAttackWindow": {
+            "startSeconds": 20.9375,
+            "endSeconds": 21.4375,
+            "attacks": 5
+          },
+          "maxSimultaneous": 4,
+          "maxSounding": 6,
+          "maxChordSpanSemitones": 50,
+          "maxSoundingSpanSemitones": 50,
+          "worstTopVoiceLeap": {
+            "startSeconds": 195.8125,
+            "semitones": 43,
+            "gapSeconds": 0.0625
+          }
+        },
+        "hands": {
+          "R": {
+            "attacksPerSecond": 2.733988,
+            "medianIoiSeconds": 0.1875,
+            "maxShortWindowAttacksPerSecond": 10,
+            "worstAttackWindow": {
+              "startSeconds": 107.875,
+              "endSeconds": 108.375,
+              "attacks": 5
+            },
+            "maxSimultaneous": 3,
+            "maxSounding": 4,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 235,
+              "semitones": 29,
+              "gapSeconds": 0.1875
+            }
+          },
+          "L": {
+            "attacksPerSecond": 1.937354,
+            "medianIoiSeconds": 0.25,
+            "maxShortWindowAttacksPerSecond": 8,
+            "worstAttackWindow": {
+              "startSeconds": 189,
+              "endSeconds": 189.5,
+              "attacks": 4
+            },
+            "maxSimultaneous": 3,
+            "maxSounding": 3,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 182.625,
+              "semitones": 21,
+              "gapSeconds": 0.25
+            }
+          }
+        }
+      },
+      "nearby": null
+    },
+    {
+      "source": "output/tutorial-recovery/isolated-ingest-v10-checked/artifacts/proof-metallica/a/notes.json",
+      "sha256": "3bf7703b065f9277b3adb449040becde9b76adebf5ec00a9a0bb98f860fdbedf",
+      "name": "metallica",
+      "level": "advanced",
+      "assessment": {
+        "level": "advanced",
+        "status": "pass",
+        "limits": {
+          "maxSim": 13,
+          "maxDensity": 18,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "metrics": {
+        "noteCount": 1541,
+        "durationSeconds": 267.375,
+        "global": {
+          "attacksPerSecond": 4.110332,
+          "medianIoiSeconds": 0.1875,
+          "maxShortWindowAttacksPerSecond": 10,
+          "worstAttackWindow": {
+            "startSeconds": 19.8125,
+            "endSeconds": 20.3125,
+            "attacks": 5
+          },
+          "maxSimultaneous": 5,
+          "maxSounding": 6,
+          "maxChordSpanSemitones": 50,
+          "maxSoundingSpanSemitones": 50,
+          "worstTopVoiceLeap": {
+            "startSeconds": 195.8125,
+            "semitones": 43,
+            "gapSeconds": 0.0625
+          }
+        },
+        "hands": {
+          "R": {
+            "attacksPerSecond": 2.827489,
+            "medianIoiSeconds": 0.1875,
+            "maxShortWindowAttacksPerSecond": 10,
+            "worstAttackWindow": {
+              "startSeconds": 29.9375,
+              "endSeconds": 30.4375,
+              "attacks": 5
+            },
+            "maxSimultaneous": 4,
+            "maxSounding": 4,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 235,
+              "semitones": 29,
+              "gapSeconds": 0.1875
+            }
+          },
+          "L": {
+            "attacksPerSecond": 1.956054,
+            "medianIoiSeconds": 0.25,
+            "maxShortWindowAttacksPerSecond": 8,
+            "worstAttackWindow": {
+              "startSeconds": 101.1875,
+              "endSeconds": 101.6875,
+              "attacks": 4
+            },
+            "maxSimultaneous": 3,
+            "maxSounding": 3,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 182.625,
+              "semitones": 21,
+              "gapSeconds": 0.25
+            }
+          }
+        }
+      },
+      "nearby": null
+    }
+  ]
+}

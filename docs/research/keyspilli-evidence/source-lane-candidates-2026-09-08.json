@@ -1,0 +1,3717 @@
+{
+  "scope": "Opt-in generic tutorial source-lane candidates; accepted raw MIDI and 24 persisted note files unchanged. Structural checks only; hand inference and musical acceptance remain unverified.",
+  "rows": [
+    {
+      "name": "queen",
+      "level": "beginner",
+      "inference": {
+        "applied": true,
+        "reason": "inferred"
+      },
+      "sourceSha256": "4020a69639254678c8b687d56de60c23c77040252b07e46b91898b5890a959f3",
+      "acceptedSha256": "b3c99f062b0a44cb127a6631b17dde2a611b4a38c9be51ed677bdc71e66f5222",
+      "acceptedEventsUnchanged": true,
+      "candidatePath": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/output/tutorial-recovery/source-lane-candidates-v1/queen/b",
+      "beforeCount": 600,
+      "candidateCount": 667,
+      "assessment": {
+        "level": "beginner",
+        "status": "pass",
+        "limits": {
+          "maxSim": 2,
+          "maxDensity": 6,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "before": {
+        "global": {
+          "peakAttacksPerSecond": 4,
+          "worstAttackWindow": {
+            "startSeconds": 5.5625,
+            "endSeconds": 6.0625,
+            "attacks": 2
+          },
+          "maxSimultaneous": 1,
+          "maxSounding": 1,
+          "maxChordSpanSemitones": 0,
+          "maxSoundingSpanSemitones": 0,
+          "worstTopVoiceLeap": {
+            "startSeconds": 70.6875,
+            "semitones": 24,
+            "gapSeconds": 0.875
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 5.5625,
+              "endSeconds": 6.0625,
+              "attacks": 2
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 70.6875,
+              "semitones": 24,
+              "gapSeconds": 0.875
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 0,
+            "worstAttackWindow": null,
+            "maxSimultaneous": 0,
+            "maxSounding": 0,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": null
+          }
+        }
+      },
+      "candidate": {
+        "global": {
+          "peakAttacksPerSecond": 4,
+          "worstAttackWindow": {
+            "startSeconds": 5.5625,
+            "endSeconds": 6.0625,
+            "attacks": 2
+          },
+          "maxSimultaneous": 1,
+          "maxSounding": 1,
+          "maxChordSpanSemitones": 0,
+          "maxSoundingSpanSemitones": 0,
+          "worstTopVoiceLeap": {
+            "startSeconds": 186.4375,
+            "semitones": 24,
+            "gapSeconds": 0.8125
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 5.5625,
+              "endSeconds": 6.0625,
+              "attacks": 2
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 186.4375,
+              "semitones": 24,
+              "gapSeconds": 0.8125
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 0,
+            "worstAttackWindow": null,
+            "maxSimultaneous": 0,
+            "maxSounding": 0,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": null
+          }
+        }
+      },
+      "flaggedPassage": {
+        "startSeconds": 166,
+        "endSeconds": 170,
+        "before": {
+          "global": {
+            "peakAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 166.0625,
+              "endSeconds": 166.5625,
+              "attacks": 2
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 167.3125,
+              "semitones": 9,
+              "gapSeconds": 0.8125
+            }
+          },
+          "hands": {
+            "R": {
+              "peakAttacksPerSecond": 4,
+              "worstAttackWindow": {
+                "startSeconds": 166.0625,
+                "endSeconds": 166.5625,
+                "attacks": 2
+              },
+              "maxSimultaneous": 1,
+              "maxSounding": 1,
+              "maxChordSpanSemitones": 0,
+              "maxSoundingSpanSemitones": 0,
+              "worstTopVoiceLeap": {
+                "startSeconds": 167.3125,
+                "semitones": 9,
+                "gapSeconds": 0.8125
+              }
+            },
+            "L": {
+              "peakAttacksPerSecond": 0,
+              "worstAttackWindow": null,
+              "maxSimultaneous": 0,
+              "maxSounding": 0,
+              "maxChordSpanSemitones": 0,
+              "maxSoundingSpanSemitones": 0,
+              "worstTopVoiceLeap": null
+            }
+          }
+        },
+        "candidate": {
+          "global": {
+            "peakAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 166.0625,
+              "endSeconds": 166.5625,
+              "attacks": 2
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 167.3125,
+              "semitones": 9,
+              "gapSeconds": 0.8125
+            }
+          },
+          "hands": {
+            "R": {
+              "peakAttacksPerSecond": 4,
+              "worstAttackWindow": {
+                "startSeconds": 166.0625,
+                "endSeconds": 166.5625,
+                "attacks": 2
+              },
+              "maxSimultaneous": 1,
+              "maxSounding": 1,
+              "maxChordSpanSemitones": 0,
+              "maxSoundingSpanSemitones": 0,
+              "worstTopVoiceLeap": {
+                "startSeconds": 167.3125,
+                "semitones": 9,
+                "gapSeconds": 0.8125
+              }
+            },
+            "L": {
+              "peakAttacksPerSecond": 0,
+              "worstAttackWindow": null,
+              "maxSimultaneous": 0,
+              "maxSounding": 0,
+              "maxChordSpanSemitones": 0,
+              "maxSoundingSpanSemitones": 0,
+              "worstTopVoiceLeap": null
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "queen",
+      "level": "easy",
+      "inference": {
+        "applied": true,
+        "reason": "inferred"
+      },
+      "sourceSha256": "4020a69639254678c8b687d56de60c23c77040252b07e46b91898b5890a959f3",
+      "acceptedSha256": "c52388f1734fc1ac7c8c57aba3a53b896da8c779d6d16cda8c8beaf32190fa29",
+      "acceptedEventsUnchanged": true,
+      "candidatePath": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/output/tutorial-recovery/source-lane-candidates-v1/queen/e",
+      "beforeCount": 1060,
+      "candidateCount": 1163,
+      "assessment": {
+        "level": "easy",
+        "status": "pass",
+        "limits": {
+          "maxSim": 5,
+          "maxDensity": 12,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "before": {
+        "global": {
+          "peakAttacksPerSecond": 6,
+          "worstAttackWindow": {
+            "startSeconds": 18.3125,
+            "endSeconds": 18.8125,
+            "attacks": 3
+          },
+          "maxSimultaneous": 3,
+          "maxSounding": 3,
+          "maxChordSpanSemitones": 55,
+          "maxSoundingSpanSemitones": 55,
+          "worstTopVoiceLeap": {
+            "startSeconds": 170.875,
+            "semitones": 40,
+            "gapSeconds": 0.25
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 5.5625,
+              "endSeconds": 6.0625,
+              "attacks": 2
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 70.6875,
+              "semitones": 24,
+              "gapSeconds": 0.875
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 2,
+            "worstAttackWindow": {
+              "startSeconds": 11.1875,
+              "endSeconds": 11.6875,
+              "attacks": 1
+            },
+            "maxSimultaneous": 2,
+            "maxSounding": 2,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 271.8125,
+              "semitones": 24,
+              "gapSeconds": 0.6875
+            }
+          }
+        }
+      },
+      "candidate": {
+        "global": {
+          "peakAttacksPerSecond": 6,
+          "worstAttackWindow": {
+            "startSeconds": 18.3125,
+            "endSeconds": 18.8125,
+            "attacks": 3
+          },
+          "maxSimultaneous": 3,
+          "maxSounding": 3,
+          "maxChordSpanSemitones": 55,
+          "maxSoundingSpanSemitones": 55,
+          "worstTopVoiceLeap": {
+            "startSeconds": 170.875,
+            "semitones": 40,
+            "gapSeconds": 0.25
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 5.5625,
+              "endSeconds": 6.0625,
+              "attacks": 2
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 186.0625,
+              "semitones": 24,
+              "gapSeconds": 0.4375
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 2,
+            "worstAttackWindow": {
+              "startSeconds": 5.9375,
+              "endSeconds": 6.4375,
+              "attacks": 1
+            },
+            "maxSimultaneous": 2,
+            "maxSounding": 2,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 65.625,
+              "semitones": 38,
+              "gapSeconds": 1.625
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "queen",
+      "level": "medium",
+      "inference": {
+        "applied": true,
+        "reason": "inferred"
+      },
+      "sourceSha256": "4020a69639254678c8b687d56de60c23c77040252b07e46b91898b5890a959f3",
+      "acceptedSha256": "ab4704a5c5b7da896d7f44d60fa0ba70f17d60c82903be8fc1088b17c676ab64",
+      "acceptedEventsUnchanged": true,
+      "candidatePath": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/output/tutorial-recovery/source-lane-candidates-v1/queen/m",
+      "beforeCount": 2084,
+      "candidateCount": 2327,
+      "assessment": {
+        "level": "medium",
+        "status": "pass",
+        "limits": {
+          "maxSim": 12,
+          "maxDensity": 16,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "before": {
+        "global": {
+          "peakAttacksPerSecond": 12,
+          "worstAttackWindow": {
+            "startSeconds": 169.375,
+            "endSeconds": 169.875,
+            "attacks": 6
+          },
+          "maxSimultaneous": 5,
+          "maxSounding": 8,
+          "maxChordSpanSemitones": 55,
+          "maxSoundingSpanSemitones": 55,
+          "worstTopVoiceLeap": {
+            "startSeconds": 169.5,
+            "semitones": 46,
+            "gapSeconds": 0.0625
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 10,
+            "worstAttackWindow": {
+              "startSeconds": 169.375,
+              "endSeconds": 169.875,
+              "attacks": 5
+            },
+            "maxSimultaneous": 3,
+            "maxSounding": 4,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 186.0625,
+              "semitones": 24,
+              "gapSeconds": 0.4375
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 8,
+            "worstAttackWindow": {
+              "startSeconds": 245.25,
+              "endSeconds": 245.75,
+              "attacks": 4
+            },
+            "maxSimultaneous": 3,
+            "maxSounding": 4,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 156.3125,
+              "semitones": 24,
+              "gapSeconds": 0.6875
+            }
+          }
+        }
+      },
+      "candidate": {
+        "global": {
+          "peakAttacksPerSecond": 12,
+          "worstAttackWindow": {
+            "startSeconds": 169.375,
+            "endSeconds": 169.875,
+            "attacks": 6
+          },
+          "maxSimultaneous": 5,
+          "maxSounding": 8,
+          "maxChordSpanSemitones": 55,
+          "maxSoundingSpanSemitones": 55,
+          "worstTopVoiceLeap": {
+            "startSeconds": 169.5,
+            "semitones": 46,
+            "gapSeconds": 0.0625
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 12,
+            "worstAttackWindow": {
+              "startSeconds": 228.25,
+              "endSeconds": 228.75,
+              "attacks": 6
+            },
+            "maxSimultaneous": 3,
+            "maxSounding": 4,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 186.0625,
+              "semitones": 24,
+              "gapSeconds": 0.4375
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 8,
+            "worstAttackWindow": {
+              "startSeconds": 262.125,
+              "endSeconds": 262.625,
+              "attacks": 4
+            },
+            "maxSimultaneous": 2,
+            "maxSounding": 4,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 65.625,
+              "semitones": 38,
+              "gapSeconds": 1.625
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "queen",
+      "level": "advanced",
+      "inference": {
+        "applied": true,
+        "reason": "inferred"
+      },
+      "sourceSha256": "4020a69639254678c8b687d56de60c23c77040252b07e46b91898b5890a959f3",
+      "acceptedSha256": "2197697e14afc0eab350c26d9e0c4c23cc29bdbf673ea5baebacfaaed3e8536e",
+      "acceptedEventsUnchanged": true,
+      "candidatePath": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/output/tutorial-recovery/source-lane-candidates-v1/queen/a",
+      "beforeCount": 2120,
+      "candidateCount": 2372,
+      "assessment": {
+        "level": "advanced",
+        "status": "pass",
+        "limits": {
+          "maxSim": 13,
+          "maxDensity": 18,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "before": {
+        "global": {
+          "peakAttacksPerSecond": 14,
+          "worstAttackWindow": {
+            "startSeconds": 169.375,
+            "endSeconds": 169.875,
+            "attacks": 7
+          },
+          "maxSimultaneous": 6,
+          "maxSounding": 8,
+          "maxChordSpanSemitones": 55,
+          "maxSoundingSpanSemitones": 55,
+          "worstTopVoiceLeap": {
+            "startSeconds": 169.5,
+            "semitones": 46,
+            "gapSeconds": 0.0625
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 12,
+            "worstAttackWindow": {
+              "startSeconds": 169.375,
+              "endSeconds": 169.875,
+              "attacks": 6
+            },
+            "maxSimultaneous": 4,
+            "maxSounding": 4,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 186.0625,
+              "semitones": 24,
+              "gapSeconds": 0.4375
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 8,
+            "worstAttackWindow": {
+              "startSeconds": 23.5625,
+              "endSeconds": 24.0625,
+              "attacks": 4
+            },
+            "maxSimultaneous": 4,
+            "maxSounding": 5,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 156.3125,
+              "semitones": 24,
+              "gapSeconds": 0.6875
+            }
+          }
+        }
+      },
+      "candidate": {
+        "global": {
+          "peakAttacksPerSecond": 14,
+          "worstAttackWindow": {
+            "startSeconds": 169.375,
+            "endSeconds": 169.875,
+            "attacks": 7
+          },
+          "maxSimultaneous": 6,
+          "maxSounding": 8,
+          "maxChordSpanSemitones": 55,
+          "maxSoundingSpanSemitones": 55,
+          "worstTopVoiceLeap": {
+            "startSeconds": 169.5,
+            "semitones": 46,
+            "gapSeconds": 0.0625
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 12,
+            "worstAttackWindow": {
+              "startSeconds": 169.375,
+              "endSeconds": 169.875,
+              "attacks": 6
+            },
+            "maxSimultaneous": 4,
+            "maxSounding": 4,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 186.0625,
+              "semitones": 24,
+              "gapSeconds": 0.4375
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 8,
+            "worstAttackWindow": {
+              "startSeconds": 262.125,
+              "endSeconds": 262.625,
+              "attacks": 4
+            },
+            "maxSimultaneous": 2,
+            "maxSounding": 4,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 65.625,
+              "semitones": 38,
+              "gapSeconds": 1.625
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "metallica-old",
+      "level": "beginner",
+      "inference": {
+        "applied": true,
+        "reason": "inferred"
+      },
+      "sourceSha256": "ff2ab9d93e23e2c7f55cbbee5ff0fd0735926cf472e02a601db4840c60139539",
+      "acceptedSha256": "7a35cbecc6e0f4e86e864f52dd54ab26c8d231b46ecc377fd56c6f32d2837762",
+      "acceptedEventsUnchanged": true,
+      "candidatePath": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/output/tutorial-recovery/source-lane-candidates-v1/metallica-old/b",
+      "beforeCount": 399,
+      "candidateCount": 444,
+      "assessment": {
+        "level": "beginner",
+        "status": "pass",
+        "limits": {
+          "maxSim": 2,
+          "maxDensity": 6,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "before": {
+        "global": {
+          "peakAttacksPerSecond": 4,
+          "worstAttackWindow": {
+            "startSeconds": 14.5625,
+            "endSeconds": 15.0625,
+            "attacks": 2
+          },
+          "maxSimultaneous": 1,
+          "maxSounding": 1,
+          "maxChordSpanSemitones": 0,
+          "maxSoundingSpanSemitones": 0,
+          "worstTopVoiceLeap": {
+            "startSeconds": 198.1875,
+            "semitones": 44,
+            "gapSeconds": 5
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 14.5625,
+              "endSeconds": 15.0625,
+              "attacks": 2
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 198.1875,
+              "semitones": 44,
+              "gapSeconds": 5
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 2,
+            "worstAttackWindow": {
+              "startSeconds": 370,
+              "endSeconds": 370.5,
+              "attacks": 1
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 370.8125,
+              "semitones": 8,
+              "gapSeconds": 0.8125
+            }
+          }
+        }
+      },
+      "candidate": {
+        "global": {
+          "peakAttacksPerSecond": 4,
+          "worstAttackWindow": {
+            "startSeconds": 4.875,
+            "endSeconds": 5.375,
+            "attacks": 2
+          },
+          "maxSimultaneous": 1,
+          "maxSounding": 1,
+          "maxChordSpanSemitones": 0,
+          "maxSoundingSpanSemitones": 0,
+          "worstTopVoiceLeap": {
+            "startSeconds": 198.1875,
+            "semitones": 44,
+            "gapSeconds": 5
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 4.875,
+              "endSeconds": 5.375,
+              "attacks": 2
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 198.1875,
+              "semitones": 44,
+              "gapSeconds": 5
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 2,
+            "worstAttackWindow": {
+              "startSeconds": 370,
+              "endSeconds": 370.5,
+              "attacks": 1
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 370.8125,
+              "semitones": 8,
+              "gapSeconds": 0.8125
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "metallica-old",
+      "level": "easy",
+      "inference": {
+        "applied": true,
+        "reason": "inferred"
+      },
+      "sourceSha256": "ff2ab9d93e23e2c7f55cbbee5ff0fd0735926cf472e02a601db4840c60139539",
+      "acceptedSha256": "cce92aff1bf7f18babdc2ed9adb4b8e4b1e77e309439a8783fbe71ba2d78a3bc",
+      "acceptedEventsUnchanged": true,
+      "candidatePath": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/output/tutorial-recovery/source-lane-candidates-v1/metallica-old/e",
+      "beforeCount": 775,
+      "candidateCount": 806,
+      "assessment": {
+        "level": "easy",
+        "status": "pass",
+        "limits": {
+          "maxSim": 5,
+          "maxDensity": 12,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "before": {
+        "global": {
+          "peakAttacksPerSecond": 6,
+          "worstAttackWindow": {
+            "startSeconds": 75.4375,
+            "endSeconds": 75.9375,
+            "attacks": 3
+          },
+          "maxSimultaneous": 3,
+          "maxSounding": 3,
+          "maxChordSpanSemitones": 52,
+          "maxSoundingSpanSemitones": 55,
+          "worstTopVoiceLeap": {
+            "startSeconds": 186.4375,
+            "semitones": 55,
+            "gapSeconds": 0.375
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 14.5625,
+              "endSeconds": 15.0625,
+              "attacks": 2
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 198.1875,
+              "semitones": 44,
+              "gapSeconds": 5
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 2,
+            "worstAttackWindow": {
+              "startSeconds": 4.875,
+              "endSeconds": 5.375,
+              "attacks": 1
+            },
+            "maxSimultaneous": 2,
+            "maxSounding": 2,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 133.875,
+              "semitones": 21,
+              "gapSeconds": 0.8125
+            }
+          }
+        }
+      },
+      "candidate": {
+        "global": {
+          "peakAttacksPerSecond": 6,
+          "worstAttackWindow": {
+            "startSeconds": 75.4375,
+            "endSeconds": 75.9375,
+            "attacks": 3
+          },
+          "maxSimultaneous": 3,
+          "maxSounding": 3,
+          "maxChordSpanSemitones": 52,
+          "maxSoundingSpanSemitones": 55,
+          "worstTopVoiceLeap": {
+            "startSeconds": 186.4375,
+            "semitones": 55,
+            "gapSeconds": 0.375
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 4.875,
+              "endSeconds": 5.375,
+              "attacks": 2
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 198.1875,
+              "semitones": 44,
+              "gapSeconds": 5
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 2,
+            "worstAttackWindow": {
+              "startSeconds": 4.875,
+              "endSeconds": 5.375,
+              "attacks": 1
+            },
+            "maxSimultaneous": 2,
+            "maxSounding": 2,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 198.1875,
+              "semitones": 28,
+              "gapSeconds": 0.8125
+            }
+          }
+        }
+      },
+      "flaggedPassage": {
+        "startSeconds": 58,
+        "endSeconds": 62,
+        "before": {
+          "global": {
+            "peakAttacksPerSecond": 2,
+            "worstAttackWindow": {
+              "startSeconds": 58.375,
+              "endSeconds": 58.875,
+              "attacks": 1
+            },
+            "maxSimultaneous": 2,
+            "maxSounding": 3,
+            "maxChordSpanSemitones": 15,
+            "maxSoundingSpanSemitones": 24,
+            "worstTopVoiceLeap": {
+              "startSeconds": 59.1875,
+              "semitones": 14,
+              "gapSeconds": 0.8125
+            }
+          },
+          "hands": {
+            "R": {
+              "peakAttacksPerSecond": 2,
+              "worstAttackWindow": {
+                "startSeconds": 58.375,
+                "endSeconds": 58.875,
+                "attacks": 1
+              },
+              "maxSimultaneous": 1,
+              "maxSounding": 1,
+              "maxChordSpanSemitones": 0,
+              "maxSoundingSpanSemitones": 0,
+              "worstTopVoiceLeap": {
+                "startSeconds": 60.4375,
+                "semitones": 2,
+                "gapSeconds": 2.0625
+              }
+            },
+            "L": {
+              "peakAttacksPerSecond": 2,
+              "worstAttackWindow": {
+                "startSeconds": 58.375,
+                "endSeconds": 58.875,
+                "attacks": 1
+              },
+              "maxSimultaneous": 2,
+              "maxSounding": 2,
+              "maxChordSpanSemitones": 12,
+              "maxSoundingSpanSemitones": 12,
+              "worstTopVoiceLeap": {
+                "startSeconds": 59.1875,
+                "semitones": 1,
+                "gapSeconds": 0.8125
+              }
+            }
+          }
+        },
+        "candidate": {
+          "global": {
+            "peakAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 58.375,
+              "endSeconds": 58.875,
+              "attacks": 2
+            },
+            "maxSimultaneous": 2,
+            "maxSounding": 2,
+            "maxChordSpanSemitones": 15,
+            "maxSoundingSpanSemitones": 24,
+            "worstTopVoiceLeap": {
+              "startSeconds": 58.75,
+              "semitones": 7,
+              "gapSeconds": 0.375
+            }
+          },
+          "hands": {
+            "R": {
+              "peakAttacksPerSecond": 4,
+              "worstAttackWindow": {
+                "startSeconds": 58.375,
+                "endSeconds": 58.875,
+                "attacks": 2
+              },
+              "maxSimultaneous": 1,
+              "maxSounding": 1,
+              "maxChordSpanSemitones": 0,
+              "maxSoundingSpanSemitones": 0,
+              "worstTopVoiceLeap": {
+                "startSeconds": 58.75,
+                "semitones": 7,
+                "gapSeconds": 0.375
+              }
+            },
+            "L": {
+              "peakAttacksPerSecond": 2,
+              "worstAttackWindow": {
+                "startSeconds": 58.375,
+                "endSeconds": 58.875,
+                "attacks": 1
+              },
+              "maxSimultaneous": 1,
+              "maxSounding": 1,
+              "maxChordSpanSemitones": 0,
+              "maxSoundingSpanSemitones": 0,
+              "worstTopVoiceLeap": {
+                "startSeconds": 59.1875,
+                "semitones": 11,
+                "gapSeconds": 0.8125
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "metallica-old",
+      "level": "medium",
+      "inference": {
+        "applied": true,
+        "reason": "inferred"
+      },
+      "sourceSha256": "ff2ab9d93e23e2c7f55cbbee5ff0fd0735926cf472e02a601db4840c60139539",
+      "acceptedSha256": "bcb9696a8b6c03dae47f8a898e49a116f83cac417aa47d935fb056a1125cc6ca",
+      "acceptedEventsUnchanged": true,
+      "candidatePath": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/output/tutorial-recovery/source-lane-candidates-v1/metallica-old/m",
+      "beforeCount": 1888,
+      "candidateCount": 1975,
+      "assessment": {
+        "level": "medium",
+        "status": "pass",
+        "limits": {
+          "maxSim": 12,
+          "maxDensity": 16,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "before": {
+        "global": {
+          "peakAttacksPerSecond": 10,
+          "worstAttackWindow": {
+            "startSeconds": 227.25,
+            "endSeconds": 227.75,
+            "attacks": 5
+          },
+          "maxSimultaneous": 5,
+          "maxSounding": 6,
+          "maxChordSpanSemitones": 66,
+          "maxSoundingSpanSemitones": 66,
+          "worstTopVoiceLeap": {
+            "startSeconds": 186.0625,
+            "semitones": 53,
+            "gapSeconds": 0.4375
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 10,
+            "worstAttackWindow": {
+              "startSeconds": 227.25,
+              "endSeconds": 227.75,
+              "attacks": 5
+            },
+            "maxSimultaneous": 3,
+            "maxSounding": 4,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 198.1875,
+              "semitones": 44,
+              "gapSeconds": 5
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 6,
+            "worstAttackWindow": {
+              "startSeconds": 41.9375,
+              "endSeconds": 42.4375,
+              "attacks": 3
+            },
+            "maxSimultaneous": 3,
+            "maxSounding": 3,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 140.375,
+              "semitones": 23,
+              "gapSeconds": 0.1875
+            }
+          }
+        }
+      },
+      "candidate": {
+        "global": {
+          "peakAttacksPerSecond": 10,
+          "worstAttackWindow": {
+            "startSeconds": 227.25,
+            "endSeconds": 227.75,
+            "attacks": 5
+          },
+          "maxSimultaneous": 5,
+          "maxSounding": 6,
+          "maxChordSpanSemitones": 66,
+          "maxSoundingSpanSemitones": 66,
+          "worstTopVoiceLeap": {
+            "startSeconds": 186.0625,
+            "semitones": 53,
+            "gapSeconds": 0.4375
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 10,
+            "worstAttackWindow": {
+              "startSeconds": 227.25,
+              "endSeconds": 227.75,
+              "attacks": 5
+            },
+            "maxSimultaneous": 3,
+            "maxSounding": 4,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 198.1875,
+              "semitones": 44,
+              "gapSeconds": 5
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 6,
+            "worstAttackWindow": {
+              "startSeconds": 65.0625,
+              "endSeconds": 65.5625,
+              "attacks": 3
+            },
+            "maxSimultaneous": 3,
+            "maxSounding": 3,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 188.125,
+              "semitones": 27,
+              "gapSeconds": 0.8125
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "metallica-old",
+      "level": "advanced",
+      "inference": {
+        "applied": true,
+        "reason": "inferred"
+      },
+      "sourceSha256": "ff2ab9d93e23e2c7f55cbbee5ff0fd0735926cf472e02a601db4840c60139539",
+      "acceptedSha256": "cb2cd73dc091a7331b16fb305f77a70d31404f9589d15e77fd3ba74f391698a6",
+      "acceptedEventsUnchanged": true,
+      "candidatePath": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/output/tutorial-recovery/source-lane-candidates-v1/metallica-old/a",
+      "beforeCount": 1900,
+      "candidateCount": 1986,
+      "assessment": {
+        "level": "advanced",
+        "status": "pass",
+        "limits": {
+          "maxSim": 13,
+          "maxDensity": 18,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "before": {
+        "global": {
+          "peakAttacksPerSecond": 10,
+          "worstAttackWindow": {
+            "startSeconds": 227.25,
+            "endSeconds": 227.75,
+            "attacks": 5
+          },
+          "maxSimultaneous": 6,
+          "maxSounding": 6,
+          "maxChordSpanSemitones": 66,
+          "maxSoundingSpanSemitones": 66,
+          "worstTopVoiceLeap": {
+            "startSeconds": 186.0625,
+            "semitones": 53,
+            "gapSeconds": 0.4375
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 10,
+            "worstAttackWindow": {
+              "startSeconds": 227.25,
+              "endSeconds": 227.75,
+              "attacks": 5
+            },
+            "maxSimultaneous": 4,
+            "maxSounding": 4,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 198.1875,
+              "semitones": 44,
+              "gapSeconds": 5
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 6,
+            "worstAttackWindow": {
+              "startSeconds": 41.9375,
+              "endSeconds": 42.4375,
+              "attacks": 3
+            },
+            "maxSimultaneous": 3,
+            "maxSounding": 3,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 140.375,
+              "semitones": 23,
+              "gapSeconds": 0.1875
+            }
+          }
+        }
+      },
+      "candidate": {
+        "global": {
+          "peakAttacksPerSecond": 10,
+          "worstAttackWindow": {
+            "startSeconds": 227.25,
+            "endSeconds": 227.75,
+            "attacks": 5
+          },
+          "maxSimultaneous": 6,
+          "maxSounding": 6,
+          "maxChordSpanSemitones": 66,
+          "maxSoundingSpanSemitones": 66,
+          "worstTopVoiceLeap": {
+            "startSeconds": 186.0625,
+            "semitones": 53,
+            "gapSeconds": 0.4375
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 10,
+            "worstAttackWindow": {
+              "startSeconds": 227.25,
+              "endSeconds": 227.75,
+              "attacks": 5
+            },
+            "maxSimultaneous": 4,
+            "maxSounding": 4,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 198.1875,
+              "semitones": 44,
+              "gapSeconds": 5
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 6,
+            "worstAttackWindow": {
+              "startSeconds": 65.0625,
+              "endSeconds": 65.5625,
+              "attacks": 3
+            },
+            "maxSimultaneous": 3,
+            "maxSounding": 3,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 188.125,
+              "semitones": 27,
+              "gapSeconds": 0.8125
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "in-my-mind",
+      "level": "beginner",
+      "inference": {
+        "applied": true,
+        "reason": "inferred"
+      },
+      "sourceSha256": "1fce85cc09e5213da136419163f5952b9ea019d0a10a0e4e1ceb3b25e7889aa5",
+      "acceptedSha256": "631b66b5b30a374a7b77ccb8bd7fd4612efc07928ffa84af1af287be1957b55c",
+      "acceptedEventsUnchanged": true,
+      "candidatePath": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/output/tutorial-recovery/source-lane-candidates-v1/in-my-mind/b",
+      "beforeCount": 236,
+      "candidateCount": 236,
+      "assessment": {
+        "level": "beginner",
+        "status": "pass",
+        "limits": {
+          "maxSim": 2,
+          "maxDensity": 6,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "before": {
+        "global": {
+          "peakAttacksPerSecond": 4,
+          "worstAttackWindow": {
+            "startSeconds": 8.875,
+            "endSeconds": 9.375,
+            "attacks": 2
+          },
+          "maxSimultaneous": 1,
+          "maxSounding": 1,
+          "maxChordSpanSemitones": 0,
+          "maxSoundingSpanSemitones": 0,
+          "worstTopVoiceLeap": {
+            "startSeconds": 14.0625,
+            "semitones": 8,
+            "gapSeconds": 0.9375
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 8.875,
+              "endSeconds": 9.375,
+              "attacks": 2
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 14.0625,
+              "semitones": 8,
+              "gapSeconds": 0.9375
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 0,
+            "worstAttackWindow": null,
+            "maxSimultaneous": 0,
+            "maxSounding": 0,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": null
+          }
+        }
+      },
+      "candidate": {
+        "global": {
+          "peakAttacksPerSecond": 4,
+          "worstAttackWindow": {
+            "startSeconds": 8.875,
+            "endSeconds": 9.375,
+            "attacks": 2
+          },
+          "maxSimultaneous": 1,
+          "maxSounding": 1,
+          "maxChordSpanSemitones": 0,
+          "maxSoundingSpanSemitones": 0,
+          "worstTopVoiceLeap": {
+            "startSeconds": 14.0625,
+            "semitones": 8,
+            "gapSeconds": 0.9375
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 8.875,
+              "endSeconds": 9.375,
+              "attacks": 2
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 14.0625,
+              "semitones": 8,
+              "gapSeconds": 0.9375
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 0,
+            "worstAttackWindow": null,
+            "maxSimultaneous": 0,
+            "maxSounding": 0,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": null
+          }
+        }
+      }
+    },
+    {
+      "name": "in-my-mind",
+      "level": "easy",
+      "inference": {
+        "applied": true,
+        "reason": "inferred"
+      },
+      "sourceSha256": "1fce85cc09e5213da136419163f5952b9ea019d0a10a0e4e1ceb3b25e7889aa5",
+      "acceptedSha256": "f9974c7eec208162b09aa189b2a3843c2a03e5d8ed6807735eed6ff750f7bfe7",
+      "acceptedEventsUnchanged": true,
+      "candidatePath": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/output/tutorial-recovery/source-lane-candidates-v1/in-my-mind/e",
+      "beforeCount": 398,
+      "candidateCount": 398,
+      "assessment": {
+        "level": "easy",
+        "status": "pass",
+        "limits": {
+          "maxSim": 5,
+          "maxDensity": 12,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "before": {
+        "global": {
+          "peakAttacksPerSecond": 6,
+          "worstAttackWindow": {
+            "startSeconds": 37.1875,
+            "endSeconds": 37.6875,
+            "attacks": 3
+          },
+          "maxSimultaneous": 3,
+          "maxSounding": 3,
+          "maxChordSpanSemitones": 19,
+          "maxSoundingSpanSemitones": 24,
+          "worstTopVoiceLeap": {
+            "startSeconds": 6.4375,
+            "semitones": 24,
+            "gapSeconds": 0.9375
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 8.875,
+              "endSeconds": 9.375,
+              "attacks": 2
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 14.0625,
+              "semitones": 8,
+              "gapSeconds": 0.9375
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 2,
+            "worstAttackWindow": {
+              "startSeconds": 5.5,
+              "endSeconds": 6,
+              "attacks": 1
+            },
+            "maxSimultaneous": 2,
+            "maxSounding": 2,
+            "maxChordSpanSemitones": 5,
+            "maxSoundingSpanSemitones": 5,
+            "worstTopVoiceLeap": {
+              "startSeconds": 159.75,
+              "semitones": 9,
+              "gapSeconds": 3.4375
+            }
+          }
+        }
+      },
+      "candidate": {
+        "global": {
+          "peakAttacksPerSecond": 6,
+          "worstAttackWindow": {
+            "startSeconds": 37.1875,
+            "endSeconds": 37.6875,
+            "attacks": 3
+          },
+          "maxSimultaneous": 3,
+          "maxSounding": 3,
+          "maxChordSpanSemitones": 19,
+          "maxSoundingSpanSemitones": 24,
+          "worstTopVoiceLeap": {
+            "startSeconds": 6.4375,
+            "semitones": 24,
+            "gapSeconds": 0.9375
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 8.875,
+              "endSeconds": 9.375,
+              "attacks": 2
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 14.0625,
+              "semitones": 8,
+              "gapSeconds": 0.9375
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 2,
+            "worstAttackWindow": {
+              "startSeconds": 5.5,
+              "endSeconds": 6,
+              "attacks": 1
+            },
+            "maxSimultaneous": 2,
+            "maxSounding": 2,
+            "maxChordSpanSemitones": 5,
+            "maxSoundingSpanSemitones": 5,
+            "worstTopVoiceLeap": {
+              "startSeconds": 159.75,
+              "semitones": 9,
+              "gapSeconds": 3.4375
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "in-my-mind",
+      "level": "medium",
+      "inference": {
+        "applied": true,
+        "reason": "inferred"
+      },
+      "sourceSha256": "1fce85cc09e5213da136419163f5952b9ea019d0a10a0e4e1ceb3b25e7889aa5",
+      "acceptedSha256": "19149127b0c00b81faf29576345599099a981ea0a0493574b137c12a463fd935",
+      "acceptedEventsUnchanged": true,
+      "candidatePath": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/output/tutorial-recovery/source-lane-candidates-v1/in-my-mind/m",
+      "beforeCount": 514,
+      "candidateCount": 514,
+      "assessment": {
+        "level": "medium",
+        "status": "pass",
+        "limits": {
+          "maxSim": 12,
+          "maxDensity": 16,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "before": {
+        "global": {
+          "peakAttacksPerSecond": 6,
+          "worstAttackWindow": {
+            "startSeconds": 36.9375,
+            "endSeconds": 37.4375,
+            "attacks": 3
+          },
+          "maxSimultaneous": 3,
+          "maxSounding": 3,
+          "maxChordSpanSemitones": 24,
+          "maxSoundingSpanSemitones": 24,
+          "worstTopVoiceLeap": {
+            "startSeconds": 37.375,
+            "semitones": 24,
+            "gapSeconds": 0.1875
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 6,
+            "worstAttackWindow": {
+              "startSeconds": 50.5,
+              "endSeconds": 51,
+              "attacks": 3
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 6.4375,
+              "semitones": 8,
+              "gapSeconds": 0.1875
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 43.625,
+              "endSeconds": 44.125,
+              "attacks": 2
+            },
+            "maxSimultaneous": 2,
+            "maxSounding": 2,
+            "maxChordSpanSemitones": 5,
+            "maxSoundingSpanSemitones": 5,
+            "worstTopVoiceLeap": {
+              "startSeconds": 159.75,
+              "semitones": 9,
+              "gapSeconds": 3.0625
+            }
+          }
+        }
+      },
+      "candidate": {
+        "global": {
+          "peakAttacksPerSecond": 6,
+          "worstAttackWindow": {
+            "startSeconds": 36.9375,
+            "endSeconds": 37.4375,
+            "attacks": 3
+          },
+          "maxSimultaneous": 3,
+          "maxSounding": 3,
+          "maxChordSpanSemitones": 24,
+          "maxSoundingSpanSemitones": 24,
+          "worstTopVoiceLeap": {
+            "startSeconds": 37.375,
+            "semitones": 24,
+            "gapSeconds": 0.1875
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 6,
+            "worstAttackWindow": {
+              "startSeconds": 50.5,
+              "endSeconds": 51,
+              "attacks": 3
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 6.4375,
+              "semitones": 8,
+              "gapSeconds": 0.1875
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 43.625,
+              "endSeconds": 44.125,
+              "attacks": 2
+            },
+            "maxSimultaneous": 2,
+            "maxSounding": 2,
+            "maxChordSpanSemitones": 5,
+            "maxSoundingSpanSemitones": 5,
+            "worstTopVoiceLeap": {
+              "startSeconds": 159.75,
+              "semitones": 9,
+              "gapSeconds": 3.0625
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "in-my-mind",
+      "level": "advanced",
+      "inference": {
+        "applied": true,
+        "reason": "inferred"
+      },
+      "sourceSha256": "1fce85cc09e5213da136419163f5952b9ea019d0a10a0e4e1ceb3b25e7889aa5",
+      "acceptedSha256": "19149127b0c00b81faf29576345599099a981ea0a0493574b137c12a463fd935",
+      "acceptedEventsUnchanged": true,
+      "candidatePath": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/output/tutorial-recovery/source-lane-candidates-v1/in-my-mind/a",
+      "beforeCount": 514,
+      "candidateCount": 514,
+      "assessment": {
+        "level": "advanced",
+        "status": "pass",
+        "limits": {
+          "maxSim": 13,
+          "maxDensity": 18,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "before": {
+        "global": {
+          "peakAttacksPerSecond": 6,
+          "worstAttackWindow": {
+            "startSeconds": 36.9375,
+            "endSeconds": 37.4375,
+            "attacks": 3
+          },
+          "maxSimultaneous": 3,
+          "maxSounding": 3,
+          "maxChordSpanSemitones": 24,
+          "maxSoundingSpanSemitones": 24,
+          "worstTopVoiceLeap": {
+            "startSeconds": 37.375,
+            "semitones": 24,
+            "gapSeconds": 0.1875
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 6,
+            "worstAttackWindow": {
+              "startSeconds": 50.5,
+              "endSeconds": 51,
+              "attacks": 3
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 6.4375,
+              "semitones": 8,
+              "gapSeconds": 0.1875
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 43.625,
+              "endSeconds": 44.125,
+              "attacks": 2
+            },
+            "maxSimultaneous": 2,
+            "maxSounding": 2,
+            "maxChordSpanSemitones": 5,
+            "maxSoundingSpanSemitones": 5,
+            "worstTopVoiceLeap": {
+              "startSeconds": 159.75,
+              "semitones": 9,
+              "gapSeconds": 3.0625
+            }
+          }
+        }
+      },
+      "candidate": {
+        "global": {
+          "peakAttacksPerSecond": 6,
+          "worstAttackWindow": {
+            "startSeconds": 36.9375,
+            "endSeconds": 37.4375,
+            "attacks": 3
+          },
+          "maxSimultaneous": 3,
+          "maxSounding": 3,
+          "maxChordSpanSemitones": 24,
+          "maxSoundingSpanSemitones": 24,
+          "worstTopVoiceLeap": {
+            "startSeconds": 37.375,
+            "semitones": 24,
+            "gapSeconds": 0.1875
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 6,
+            "worstAttackWindow": {
+              "startSeconds": 50.5,
+              "endSeconds": 51,
+              "attacks": 3
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 6.4375,
+              "semitones": 8,
+              "gapSeconds": 0.1875
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 43.625,
+              "endSeconds": 44.125,
+              "attacks": 2
+            },
+            "maxSimultaneous": 2,
+            "maxSounding": 2,
+            "maxChordSpanSemitones": 5,
+            "maxSoundingSpanSemitones": 5,
+            "worstTopVoiceLeap": {
+              "startSeconds": 159.75,
+              "semitones": 9,
+              "gapSeconds": 3.0625
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "nirvana",
+      "level": "beginner",
+      "inference": {
+        "applied": true,
+        "reason": "inferred"
+      },
+      "sourceSha256": "49a105c3679d77cadfb7afacb51af4253c493fea5ad45a715c2ff19d6948c73f",
+      "acceptedSha256": "c59e3c36d74cb74f53ed1ad8fc23d9b5d7c72528c0cf40aba0d2bedba110ef69",
+      "acceptedEventsUnchanged": true,
+      "candidatePath": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/output/tutorial-recovery/source-lane-candidates-v1/nirvana/b",
+      "beforeCount": 171,
+      "candidateCount": 146,
+      "assessment": {
+        "level": "beginner",
+        "status": "pass",
+        "limits": {
+          "maxSim": 2,
+          "maxDensity": 6,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "before": {
+        "global": {
+          "peakAttacksPerSecond": 4,
+          "worstAttackWindow": {
+            "startSeconds": 108.875,
+            "endSeconds": 109.375,
+            "attacks": 2
+          },
+          "maxSimultaneous": 1,
+          "maxSounding": 1,
+          "maxChordSpanSemitones": 0,
+          "maxSoundingSpanSemitones": 0,
+          "worstTopVoiceLeap": {
+            "startSeconds": 213.8125,
+            "semitones": 26,
+            "gapSeconds": 1.75
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 108.875,
+              "endSeconds": 109.375,
+              "attacks": 2
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 201.3125,
+              "semitones": 11,
+              "gapSeconds": 4.1875
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 2,
+            "worstAttackWindow": {
+              "startSeconds": 213.8125,
+              "endSeconds": 214.3125,
+              "attacks": 1
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 214.3125,
+              "semitones": 2,
+              "gapSeconds": 0.5
+            }
+          }
+        }
+      },
+      "candidate": {
+        "global": {
+          "peakAttacksPerSecond": 4,
+          "worstAttackWindow": {
+            "startSeconds": 109.3125,
+            "endSeconds": 109.8125,
+            "attacks": 2
+          },
+          "maxSimultaneous": 1,
+          "maxSounding": 1,
+          "maxChordSpanSemitones": 0,
+          "maxSoundingSpanSemitones": 0,
+          "worstTopVoiceLeap": {
+            "startSeconds": 213.8125,
+            "semitones": 26,
+            "gapSeconds": 1.75
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 109.3125,
+              "endSeconds": 109.8125,
+              "attacks": 2
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 43.625,
+              "semitones": 10,
+              "gapSeconds": 0.5
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 2,
+            "worstAttackWindow": {
+              "startSeconds": 213.8125,
+              "endSeconds": 214.3125,
+              "attacks": 1
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 214.3125,
+              "semitones": 2,
+              "gapSeconds": 0.5
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "nirvana",
+      "level": "easy",
+      "inference": {
+        "applied": true,
+        "reason": "inferred"
+      },
+      "sourceSha256": "49a105c3679d77cadfb7afacb51af4253c493fea5ad45a715c2ff19d6948c73f",
+      "acceptedSha256": "8446dd3e78218c36e1c6da4bf9b2e493acc444c6f7b5e61a80188dea5f5ac671",
+      "acceptedEventsUnchanged": true,
+      "candidatePath": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/output/tutorial-recovery/source-lane-candidates-v1/nirvana/e",
+      "beforeCount": 520,
+      "candidateCount": 521,
+      "assessment": {
+        "level": "easy",
+        "status": "pass",
+        "limits": {
+          "maxSim": 5,
+          "maxDensity": 12,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "before": {
+        "global": {
+          "peakAttacksPerSecond": 6,
+          "worstAttackWindow": {
+            "startSeconds": 114.375,
+            "endSeconds": 114.875,
+            "attacks": 3
+          },
+          "maxSimultaneous": 3,
+          "maxSounding": 3,
+          "maxChordSpanSemitones": 40,
+          "maxSoundingSpanSemitones": 40,
+          "worstTopVoiceLeap": {
+            "startSeconds": 29.1875,
+            "semitones": 40,
+            "gapSeconds": 0.8125
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 108.875,
+              "endSeconds": 109.375,
+              "attacks": 2
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 201.3125,
+              "semitones": 11,
+              "gapSeconds": 4.1875
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 2,
+            "worstAttackWindow": {
+              "startSeconds": 5.625,
+              "endSeconds": 6.125,
+              "attacks": 1
+            },
+            "maxSimultaneous": 2,
+            "maxSounding": 2,
+            "maxChordSpanSemitones": 7,
+            "maxSoundingSpanSemitones": 7,
+            "worstTopVoiceLeap": {
+              "startSeconds": 197.5625,
+              "semitones": 17,
+              "gapSeconds": 1
+            }
+          }
+        }
+      },
+      "candidate": {
+        "global": {
+          "peakAttacksPerSecond": 6,
+          "worstAttackWindow": {
+            "startSeconds": 113.3125,
+            "endSeconds": 113.8125,
+            "attacks": 3
+          },
+          "maxSimultaneous": 3,
+          "maxSounding": 3,
+          "maxChordSpanSemitones": 40,
+          "maxSoundingSpanSemitones": 40,
+          "worstTopVoiceLeap": {
+            "startSeconds": 29.1875,
+            "semitones": 40,
+            "gapSeconds": 0.8125
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 109.3125,
+              "endSeconds": 109.8125,
+              "attacks": 2
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 43.625,
+              "semitones": 10,
+              "gapSeconds": 0.5
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 2,
+            "worstAttackWindow": {
+              "startSeconds": 5.625,
+              "endSeconds": 6.125,
+              "attacks": 1
+            },
+            "maxSimultaneous": 2,
+            "maxSounding": 2,
+            "maxChordSpanSemitones": 7,
+            "maxSoundingSpanSemitones": 7,
+            "worstTopVoiceLeap": {
+              "startSeconds": 118.375,
+              "semitones": 24,
+              "gapSeconds": 1.3125
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "nirvana",
+      "level": "medium",
+      "inference": {
+        "applied": true,
+        "reason": "inferred"
+      },
+      "sourceSha256": "49a105c3679d77cadfb7afacb51af4253c493fea5ad45a715c2ff19d6948c73f",
+      "acceptedSha256": "c7baedb8c1c1953cb1e6b171b97feceb1d703fd3ac22fe3e36b2efbc0e2f07df",
+      "acceptedEventsUnchanged": true,
+      "candidatePath": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/output/tutorial-recovery/source-lane-candidates-v1/nirvana/m",
+      "beforeCount": 1108,
+      "candidateCount": 1113,
+      "assessment": {
+        "level": "medium",
+        "status": "pass",
+        "limits": {
+          "maxSim": 12,
+          "maxDensity": 16,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "before": {
+        "global": {
+          "peakAttacksPerSecond": 8,
+          "worstAttackWindow": {
+            "startSeconds": 23.875,
+            "endSeconds": 24.375,
+            "attacks": 4
+          },
+          "maxSimultaneous": 5,
+          "maxSounding": 5,
+          "maxChordSpanSemitones": 40,
+          "maxSoundingSpanSemitones": 40,
+          "worstTopVoiceLeap": {
+            "startSeconds": 29.125,
+            "semitones": 38,
+            "gapSeconds": 0.25
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 8,
+            "worstAttackWindow": {
+              "startSeconds": 107.125,
+              "endSeconds": 107.625,
+              "attacks": 4
+            },
+            "maxSimultaneous": 2,
+            "maxSounding": 2,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 104.875,
+              "semitones": 12,
+              "gapSeconds": 0.5
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 8,
+            "worstAttackWindow": {
+              "startSeconds": 53.6875,
+              "endSeconds": 54.1875,
+              "attacks": 4
+            },
+            "maxSimultaneous": 3,
+            "maxSounding": 3,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 53.125,
+              "semitones": 19,
+              "gapSeconds": 0.25
+            }
+          }
+        }
+      },
+      "candidate": {
+        "global": {
+          "peakAttacksPerSecond": 8,
+          "worstAttackWindow": {
+            "startSeconds": 23.875,
+            "endSeconds": 24.375,
+            "attacks": 4
+          },
+          "maxSimultaneous": 4,
+          "maxSounding": 5,
+          "maxChordSpanSemitones": 40,
+          "maxSoundingSpanSemitones": 40,
+          "worstTopVoiceLeap": {
+            "startSeconds": 29.125,
+            "semitones": 38,
+            "gapSeconds": 0.25
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 6,
+            "worstAttackWindow": {
+              "startSeconds": 107.125,
+              "endSeconds": 107.625,
+              "attacks": 3
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 43.375,
+              "semitones": 8,
+              "gapSeconds": 0.25
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 8,
+            "worstAttackWindow": {
+              "startSeconds": 53.6875,
+              "endSeconds": 54.1875,
+              "attacks": 4
+            },
+            "maxSimultaneous": 3,
+            "maxSounding": 4,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 117.625,
+              "semitones": 26,
+              "gapSeconds": 0.5625
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "nirvana",
+      "level": "advanced",
+      "inference": {
+        "applied": true,
+        "reason": "inferred"
+      },
+      "sourceSha256": "49a105c3679d77cadfb7afacb51af4253c493fea5ad45a715c2ff19d6948c73f",
+      "acceptedSha256": "51aa9701caa1ccfa479dba23d1380725dae41a99a2e9e2900e733b071680e3a3",
+      "acceptedEventsUnchanged": true,
+      "candidatePath": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/output/tutorial-recovery/source-lane-candidates-v1/nirvana/a",
+      "beforeCount": 1119,
+      "candidateCount": 1115,
+      "assessment": {
+        "level": "advanced",
+        "status": "pass",
+        "limits": {
+          "maxSim": 13,
+          "maxDensity": 18,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "before": {
+        "global": {
+          "peakAttacksPerSecond": 8,
+          "worstAttackWindow": {
+            "startSeconds": 23.875,
+            "endSeconds": 24.375,
+            "attacks": 4
+          },
+          "maxSimultaneous": 5,
+          "maxSounding": 5,
+          "maxChordSpanSemitones": 40,
+          "maxSoundingSpanSemitones": 40,
+          "worstTopVoiceLeap": {
+            "startSeconds": 29.125,
+            "semitones": 38,
+            "gapSeconds": 0.25
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 8,
+            "worstAttackWindow": {
+              "startSeconds": 107.125,
+              "endSeconds": 107.625,
+              "attacks": 4
+            },
+            "maxSimultaneous": 2,
+            "maxSounding": 2,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 104.875,
+              "semitones": 12,
+              "gapSeconds": 0.5
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 8,
+            "worstAttackWindow": {
+              "startSeconds": 53.6875,
+              "endSeconds": 54.1875,
+              "attacks": 4
+            },
+            "maxSimultaneous": 3,
+            "maxSounding": 3,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 53.125,
+              "semitones": 19,
+              "gapSeconds": 0.25
+            }
+          }
+        }
+      },
+      "candidate": {
+        "global": {
+          "peakAttacksPerSecond": 8,
+          "worstAttackWindow": {
+            "startSeconds": 23.875,
+            "endSeconds": 24.375,
+            "attacks": 4
+          },
+          "maxSimultaneous": 4,
+          "maxSounding": 5,
+          "maxChordSpanSemitones": 40,
+          "maxSoundingSpanSemitones": 40,
+          "worstTopVoiceLeap": {
+            "startSeconds": 29.125,
+            "semitones": 38,
+            "gapSeconds": 0.25
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 6,
+            "worstAttackWindow": {
+              "startSeconds": 107.125,
+              "endSeconds": 107.625,
+              "attacks": 3
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 43.375,
+              "semitones": 8,
+              "gapSeconds": 0.25
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 8,
+            "worstAttackWindow": {
+              "startSeconds": 53.6875,
+              "endSeconds": 54.1875,
+              "attacks": 4
+            },
+            "maxSimultaneous": 3,
+            "maxSounding": 4,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 117.625,
+              "semitones": 26,
+              "gapSeconds": 0.5625
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "acdc-fixed",
+      "level": "beginner",
+      "inference": {
+        "applied": true,
+        "reason": "inferred"
+      },
+      "sourceSha256": "073d25991b988a486aab6dd9b6140cae8fe3ffd770600808d346aa36b7160b3f",
+      "acceptedSha256": "807f0d4f2308b363b41485e250dcd550f11c30f9187f5b4a87963ee599cadd56",
+      "acceptedEventsUnchanged": true,
+      "candidatePath": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/output/tutorial-recovery/source-lane-candidates-v1/acdc-fixed/b",
+      "beforeCount": 138,
+      "candidateCount": 171,
+      "assessment": {
+        "level": "beginner",
+        "status": "pass",
+        "limits": {
+          "maxSim": 2,
+          "maxDensity": 6,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "before": {
+        "global": {
+          "peakAttacksPerSecond": 4,
+          "worstAttackWindow": {
+            "startSeconds": 14.9375,
+            "endSeconds": 15.4375,
+            "attacks": 2
+          },
+          "maxSimultaneous": 1,
+          "maxSounding": 1,
+          "maxChordSpanSemitones": 0,
+          "maxSoundingSpanSemitones": 0,
+          "worstTopVoiceLeap": {
+            "startSeconds": 102.1875,
+            "semitones": 17,
+            "gapSeconds": 1.875
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 14.9375,
+              "endSeconds": 15.4375,
+              "attacks": 2
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 102.1875,
+              "semitones": 17,
+              "gapSeconds": 1.875
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 0,
+            "worstAttackWindow": null,
+            "maxSimultaneous": 0,
+            "maxSounding": 0,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": null
+          }
+        }
+      },
+      "candidate": {
+        "global": {
+          "peakAttacksPerSecond": 4,
+          "worstAttackWindow": {
+            "startSeconds": 14.9375,
+            "endSeconds": 15.4375,
+            "attacks": 2
+          },
+          "maxSimultaneous": 1,
+          "maxSounding": 1,
+          "maxChordSpanSemitones": 0,
+          "maxSoundingSpanSemitones": 0,
+          "worstTopVoiceLeap": {
+            "startSeconds": 42.1875,
+            "semitones": 26,
+            "gapSeconds": 0.9375
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 14.9375,
+              "endSeconds": 15.4375,
+              "attacks": 2
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 42.1875,
+              "semitones": 26,
+              "gapSeconds": 0.9375
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 0,
+            "worstAttackWindow": null,
+            "maxSimultaneous": 0,
+            "maxSounding": 0,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": null
+          }
+        }
+      }
+    },
+    {
+      "name": "acdc-fixed",
+      "level": "easy",
+      "inference": {
+        "applied": true,
+        "reason": "inferred"
+      },
+      "sourceSha256": "073d25991b988a486aab6dd9b6140cae8fe3ffd770600808d346aa36b7160b3f",
+      "acceptedSha256": "c2f7402bae4a74b171fdf9fd90fa28d18b92ff7ca01a8c384860c37a7e8b0e63",
+      "acceptedEventsUnchanged": true,
+      "candidatePath": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/output/tutorial-recovery/source-lane-candidates-v1/acdc-fixed/e",
+      "beforeCount": 348,
+      "candidateCount": 315,
+      "assessment": {
+        "level": "easy",
+        "status": "pass",
+        "limits": {
+          "maxSim": 5,
+          "maxDensity": 12,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "before": {
+        "global": {
+          "peakAttacksPerSecond": 4,
+          "worstAttackWindow": {
+            "startSeconds": 14.9375,
+            "endSeconds": 15.4375,
+            "attacks": 2
+          },
+          "maxSimultaneous": 3,
+          "maxSounding": 3,
+          "maxChordSpanSemitones": 36,
+          "maxSoundingSpanSemitones": 36,
+          "worstTopVoiceLeap": {
+            "startSeconds": 68.375,
+            "semitones": 36,
+            "gapSeconds": 0.625
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 14.9375,
+              "endSeconds": 15.4375,
+              "attacks": 2
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 102.1875,
+              "semitones": 17,
+              "gapSeconds": 1.875
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 2,
+            "worstAttackWindow": {
+              "startSeconds": 5.5,
+              "endSeconds": 6,
+              "attacks": 1
+            },
+            "maxSimultaneous": 2,
+            "maxSounding": 2,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 103,
+              "semitones": 14,
+              "gapSeconds": 0.8125
+            }
+          }
+        }
+      },
+      "candidate": {
+        "global": {
+          "peakAttacksPerSecond": 6,
+          "worstAttackWindow": {
+            "startSeconds": 102.6875,
+            "endSeconds": 103.1875,
+            "attacks": 3
+          },
+          "maxSimultaneous": 3,
+          "maxSounding": 3,
+          "maxChordSpanSemitones": 36,
+          "maxSoundingSpanSemitones": 36,
+          "worstTopVoiceLeap": {
+            "startSeconds": 67.4375,
+            "semitones": 36,
+            "gapSeconds": 1
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 14.9375,
+              "endSeconds": 15.4375,
+              "attacks": 2
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 42.1875,
+              "semitones": 26,
+              "gapSeconds": 0.9375
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 2,
+            "worstAttackWindow": {
+              "startSeconds": 5.5,
+              "endSeconds": 6,
+              "attacks": 1
+            },
+            "maxSimultaneous": 2,
+            "maxSounding": 2,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 16.6875,
+              "semitones": 22,
+              "gapSeconds": 1
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "acdc-fixed",
+      "level": "medium",
+      "inference": {
+        "applied": true,
+        "reason": "inferred"
+      },
+      "sourceSha256": "073d25991b988a486aab6dd9b6140cae8fe3ffd770600808d346aa36b7160b3f",
+      "acceptedSha256": "9feb2f84793a0230df9407f64c26af1756d3a22f9193ab1e08f53ca7ffaa7dc3",
+      "acceptedEventsUnchanged": true,
+      "candidatePath": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/output/tutorial-recovery/source-lane-candidates-v1/acdc-fixed/m",
+      "beforeCount": 797,
+      "candidateCount": 820,
+      "assessment": {
+        "level": "medium",
+        "status": "pass",
+        "limits": {
+          "maxSim": 12,
+          "maxDensity": 16,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "before": {
+        "global": {
+          "peakAttacksPerSecond": 8,
+          "worstAttackWindow": {
+            "startSeconds": 14.625,
+            "endSeconds": 15.125,
+            "attacks": 4
+          },
+          "maxSimultaneous": 5,
+          "maxSounding": 6,
+          "maxChordSpanSemitones": 36,
+          "maxSoundingSpanSemitones": 36,
+          "worstTopVoiceLeap": {
+            "startSeconds": 68.0625,
+            "semitones": 36,
+            "gapSeconds": 0.3125
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 8,
+            "worstAttackWindow": {
+              "startSeconds": 14.625,
+              "endSeconds": 15.125,
+              "attacks": 4
+            },
+            "maxSimultaneous": 3,
+            "maxSounding": 4,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 102.0625,
+              "semitones": 16,
+              "gapSeconds": 1.75
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 6,
+            "worstAttackWindow": {
+              "startSeconds": 19.5625,
+              "endSeconds": 20.0625,
+              "attacks": 3
+            },
+            "maxSimultaneous": 3,
+            "maxSounding": 3,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 56.5625,
+              "semitones": 19,
+              "gapSeconds": 0.3125
+            }
+          }
+        }
+      },
+      "candidate": {
+        "global": {
+          "peakAttacksPerSecond": 8,
+          "worstAttackWindow": {
+            "startSeconds": 14.625,
+            "endSeconds": 15.125,
+            "attacks": 4
+          },
+          "maxSimultaneous": 5,
+          "maxSounding": 6,
+          "maxChordSpanSemitones": 36,
+          "maxSoundingSpanSemitones": 36,
+          "worstTopVoiceLeap": {
+            "startSeconds": 68.0625,
+            "semitones": 36,
+            "gapSeconds": 0.3125
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 8,
+            "worstAttackWindow": {
+              "startSeconds": 14.625,
+              "endSeconds": 15.125,
+              "attacks": 4
+            },
+            "maxSimultaneous": 3,
+            "maxSounding": 4,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 101.875,
+              "semitones": 26,
+              "gapSeconds": 1.5625
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 6,
+            "worstAttackWindow": {
+              "startSeconds": 19.5625,
+              "endSeconds": 20.0625,
+              "attacks": 3
+            },
+            "maxSimultaneous": 2,
+            "maxSounding": 2,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 16.6875,
+              "semitones": 22,
+              "gapSeconds": 1
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "acdc-fixed",
+      "level": "advanced",
+      "inference": {
+        "applied": true,
+        "reason": "inferred"
+      },
+      "sourceSha256": "073d25991b988a486aab6dd9b6140cae8fe3ffd770600808d346aa36b7160b3f",
+      "acceptedSha256": "cf6c98406981e7e31efdbfb2543b76b8d0f1f4c01c59a4fd6075bfbb4036f829",
+      "acceptedEventsUnchanged": true,
+      "candidatePath": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/output/tutorial-recovery/source-lane-candidates-v1/acdc-fixed/a",
+      "beforeCount": 803,
+      "candidateCount": 828,
+      "assessment": {
+        "level": "advanced",
+        "status": "pass",
+        "limits": {
+          "maxSim": 13,
+          "maxDensity": 18,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "before": {
+        "global": {
+          "peakAttacksPerSecond": 8,
+          "worstAttackWindow": {
+            "startSeconds": 14.625,
+            "endSeconds": 15.125,
+            "attacks": 4
+          },
+          "maxSimultaneous": 6,
+          "maxSounding": 6,
+          "maxChordSpanSemitones": 36,
+          "maxSoundingSpanSemitones": 36,
+          "worstTopVoiceLeap": {
+            "startSeconds": 68.0625,
+            "semitones": 36,
+            "gapSeconds": 0.3125
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 8,
+            "worstAttackWindow": {
+              "startSeconds": 14.625,
+              "endSeconds": 15.125,
+              "attacks": 4
+            },
+            "maxSimultaneous": 4,
+            "maxSounding": 4,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 102.0625,
+              "semitones": 16,
+              "gapSeconds": 1.75
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 6,
+            "worstAttackWindow": {
+              "startSeconds": 19.5625,
+              "endSeconds": 20.0625,
+              "attacks": 3
+            },
+            "maxSimultaneous": 3,
+            "maxSounding": 3,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 56.5625,
+              "semitones": 19,
+              "gapSeconds": 0.3125
+            }
+          }
+        }
+      },
+      "candidate": {
+        "global": {
+          "peakAttacksPerSecond": 8,
+          "worstAttackWindow": {
+            "startSeconds": 14.625,
+            "endSeconds": 15.125,
+            "attacks": 4
+          },
+          "maxSimultaneous": 6,
+          "maxSounding": 6,
+          "maxChordSpanSemitones": 36,
+          "maxSoundingSpanSemitones": 36,
+          "worstTopVoiceLeap": {
+            "startSeconds": 68.0625,
+            "semitones": 36,
+            "gapSeconds": 0.3125
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 8,
+            "worstAttackWindow": {
+              "startSeconds": 14.625,
+              "endSeconds": 15.125,
+              "attacks": 4
+            },
+            "maxSimultaneous": 4,
+            "maxSounding": 4,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 101.875,
+              "semitones": 26,
+              "gapSeconds": 1.5625
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 6,
+            "worstAttackWindow": {
+              "startSeconds": 19.5625,
+              "endSeconds": 20.0625,
+              "attacks": 3
+            },
+            "maxSimultaneous": 2,
+            "maxSounding": 2,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 16.6875,
+              "semitones": 22,
+              "gapSeconds": 1
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "metallica",
+      "level": "beginner",
+      "inference": {
+        "applied": true,
+        "reason": "inferred"
+      },
+      "sourceSha256": "a3c55cdb4f26ff55c2d4ffe1965b217ad52fad15557e540912fe956d5a8b0809",
+      "acceptedSha256": "8db0801942014d89bac012e03086c9d16b29797b6e4aaf0b1977ef264ba6f30c",
+      "acceptedEventsUnchanged": true,
+      "candidatePath": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/output/tutorial-recovery/source-lane-candidates-v1/metallica/b",
+      "beforeCount": 435,
+      "candidateCount": 354,
+      "assessment": {
+        "level": "beginner",
+        "status": "pass",
+        "limits": {
+          "maxSim": 2,
+          "maxDensity": 6,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "before": {
+        "global": {
+          "peakAttacksPerSecond": 4,
+          "worstAttackWindow": {
+            "startSeconds": 19,
+            "endSeconds": 19.5,
+            "attacks": 2
+          },
+          "maxSimultaneous": 1,
+          "maxSounding": 1,
+          "maxChordSpanSemitones": 0,
+          "maxSoundingSpanSemitones": 0,
+          "worstTopVoiceLeap": {
+            "startSeconds": 230.9375,
+            "semitones": 31,
+            "gapSeconds": 0.375
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 19,
+              "endSeconds": 19.5,
+              "attacks": 2
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 230.9375,
+              "semitones": 31,
+              "gapSeconds": 0.375
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 0,
+            "worstAttackWindow": null,
+            "maxSimultaneous": 0,
+            "maxSounding": 0,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": null
+          }
+        }
+      },
+      "candidate": {
+        "global": {
+          "peakAttacksPerSecond": 4,
+          "worstAttackWindow": {
+            "startSeconds": 19,
+            "endSeconds": 19.5,
+            "attacks": 2
+          },
+          "maxSimultaneous": 1,
+          "maxSounding": 1,
+          "maxChordSpanSemitones": 0,
+          "maxSoundingSpanSemitones": 0,
+          "worstTopVoiceLeap": {
+            "startSeconds": 258.75,
+            "semitones": 24,
+            "gapSeconds": 0.75
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 19,
+              "endSeconds": 19.5,
+              "attacks": 2
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 242.3125,
+              "semitones": 17,
+              "gapSeconds": 4.375
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 2,
+            "worstAttackWindow": {
+              "startSeconds": 258.75,
+              "endSeconds": 259.25,
+              "attacks": 1
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 259.25,
+              "semitones": 15,
+              "gapSeconds": 0.5
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "metallica",
+      "level": "easy",
+      "inference": {
+        "applied": true,
+        "reason": "inferred"
+      },
+      "sourceSha256": "a3c55cdb4f26ff55c2d4ffe1965b217ad52fad15557e540912fe956d5a8b0809",
+      "acceptedSha256": "c1e6aaf765deb8348328c3a8f5325dec1adaaf36c1222d7b6b46c0e6ed8457e6",
+      "acceptedEventsUnchanged": true,
+      "candidatePath": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/output/tutorial-recovery/source-lane-candidates-v1/metallica/e",
+      "beforeCount": 665,
+      "candidateCount": 665,
+      "assessment": {
+        "level": "easy",
+        "status": "pass",
+        "limits": {
+          "maxSim": 5,
+          "maxDensity": 12,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "before": {
+        "global": {
+          "peakAttacksPerSecond": 6,
+          "worstAttackWindow": {
+            "startSeconds": 20.125,
+            "endSeconds": 20.625,
+            "attacks": 3
+          },
+          "maxSimultaneous": 3,
+          "maxSounding": 3,
+          "maxChordSpanSemitones": 43,
+          "maxSoundingSpanSemitones": 43,
+          "worstTopVoiceLeap": {
+            "startSeconds": 195.8125,
+            "semitones": 43,
+            "gapSeconds": 0.0625
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 19,
+              "endSeconds": 19.5,
+              "attacks": 2
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 230.9375,
+              "semitones": 31,
+              "gapSeconds": 0.375
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 2,
+            "worstAttackWindow": {
+              "startSeconds": 5.9375,
+              "endSeconds": 6.4375,
+              "attacks": 1
+            },
+            "maxSimultaneous": 2,
+            "maxSounding": 2,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 182.625,
+              "semitones": 21,
+              "gapSeconds": 0.625
+            }
+          }
+        }
+      },
+      "candidate": {
+        "global": {
+          "peakAttacksPerSecond": 6,
+          "worstAttackWindow": {
+            "startSeconds": 20.125,
+            "endSeconds": 20.625,
+            "attacks": 3
+          },
+          "maxSimultaneous": 3,
+          "maxSounding": 3,
+          "maxChordSpanSemitones": 43,
+          "maxSoundingSpanSemitones": 44,
+          "worstTopVoiceLeap": {
+            "startSeconds": 236.3125,
+            "semitones": 44,
+            "gapSeconds": 0.375
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 19,
+              "endSeconds": 19.5,
+              "attacks": 2
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 242.3125,
+              "semitones": 17,
+              "gapSeconds": 4.375
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 2,
+            "worstAttackWindow": {
+              "startSeconds": 5.9375,
+              "endSeconds": 6.4375,
+              "attacks": 1
+            },
+            "maxSimultaneous": 2,
+            "maxSounding": 2,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 92.9375,
+              "semitones": 22,
+              "gapSeconds": 0.5625
+            }
+          }
+        }
+      },
+      "latePassage": {
+        "startSeconds": 229,
+        "endSeconds": 233,
+        "before": {
+          "global": {
+            "peakAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 229.8125,
+              "endSeconds": 230.3125,
+              "attacks": 2
+            },
+            "maxSimultaneous": 1,
+            "maxSounding": 1,
+            "maxChordSpanSemitones": 0,
+            "maxSoundingSpanSemitones": 0,
+            "worstTopVoiceLeap": {
+              "startSeconds": 230.9375,
+              "semitones": 31,
+              "gapSeconds": 0.375
+            }
+          },
+          "hands": {
+            "R": {
+              "peakAttacksPerSecond": 4,
+              "worstAttackWindow": {
+                "startSeconds": 229.8125,
+                "endSeconds": 230.3125,
+                "attacks": 2
+              },
+              "maxSimultaneous": 1,
+              "maxSounding": 1,
+              "maxChordSpanSemitones": 0,
+              "maxSoundingSpanSemitones": 0,
+              "worstTopVoiceLeap": {
+                "startSeconds": 230.9375,
+                "semitones": 31,
+                "gapSeconds": 0.375
+              }
+            },
+            "L": {
+              "peakAttacksPerSecond": 0,
+              "worstAttackWindow": null,
+              "maxSimultaneous": 0,
+              "maxSounding": 0,
+              "maxChordSpanSemitones": 0,
+              "maxSoundingSpanSemitones": 0,
+              "worstTopVoiceLeap": null
+            }
+          }
+        },
+        "candidate": {
+          "global": {
+            "peakAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 229.375,
+              "endSeconds": 229.875,
+              "attacks": 2
+            },
+            "maxSimultaneous": 2,
+            "maxSounding": 2,
+            "maxChordSpanSemitones": 28,
+            "maxSoundingSpanSemitones": 28,
+            "worstTopVoiceLeap": {
+              "startSeconds": 230.9375,
+              "semitones": 31,
+              "gapSeconds": 0.375
+            }
+          },
+          "hands": {
+            "R": {
+              "peakAttacksPerSecond": 4,
+              "worstAttackWindow": {
+                "startSeconds": 230.9375,
+                "endSeconds": 231.4375,
+                "attacks": 2
+              },
+              "maxSimultaneous": 1,
+              "maxSounding": 1,
+              "maxChordSpanSemitones": 0,
+              "maxSoundingSpanSemitones": 0,
+              "worstTopVoiceLeap": {
+                "startSeconds": 230.9375,
+                "semitones": 11,
+                "gapSeconds": 1.5625
+              }
+            },
+            "L": {
+              "peakAttacksPerSecond": 2,
+              "worstAttackWindow": {
+                "startSeconds": 229.4375,
+                "endSeconds": 229.9375,
+                "attacks": 1
+              },
+              "maxSimultaneous": 1,
+              "maxSounding": 1,
+              "maxChordSpanSemitones": 0,
+              "maxSoundingSpanSemitones": 0,
+              "worstTopVoiceLeap": {
+                "startSeconds": 232.875,
+                "semitones": 14,
+                "gapSeconds": 0.8125
+              }
+            }
+          }
+        }
+      },
+      "flaggedPassage": {
+        "startSeconds": 58,
+        "endSeconds": 62,
+        "before": {
+          "global": {
+            "peakAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 58.125,
+              "endSeconds": 58.625,
+              "attacks": 2
+            },
+            "maxSimultaneous": 2,
+            "maxSounding": 2,
+            "maxChordSpanSemitones": 28,
+            "maxSoundingSpanSemitones": 28,
+            "worstTopVoiceLeap": {
+              "startSeconds": 59.25,
+              "semitones": 14,
+              "gapSeconds": 0.6875
+            }
+          },
+          "hands": {
+            "R": {
+              "peakAttacksPerSecond": 4,
+              "worstAttackWindow": {
+                "startSeconds": 58.125,
+                "endSeconds": 58.625,
+                "attacks": 2
+              },
+              "maxSimultaneous": 1,
+              "maxSounding": 1,
+              "maxChordSpanSemitones": 0,
+              "maxSoundingSpanSemitones": 0,
+              "worstTopVoiceLeap": {
+                "startSeconds": 59.25,
+                "semitones": 14,
+                "gapSeconds": 0.6875
+              }
+            },
+            "L": {
+              "peakAttacksPerSecond": 2,
+              "worstAttackWindow": {
+                "startSeconds": 58.5625,
+                "endSeconds": 59.0625,
+                "attacks": 1
+              },
+              "maxSimultaneous": 1,
+              "maxSounding": 1,
+              "maxChordSpanSemitones": 0,
+              "maxSoundingSpanSemitones": 0,
+              "worstTopVoiceLeap": {
+                "startSeconds": 60.75,
+                "semitones": 4,
+                "gapSeconds": 1.0625
+              }
+            }
+          }
+        },
+        "candidate": {
+          "global": {
+            "peakAttacksPerSecond": 4,
+            "worstAttackWindow": {
+              "startSeconds": 58.125,
+              "endSeconds": 58.625,
+              "attacks": 2
+            },
+            "maxSimultaneous": 2,
+            "maxSounding": 2,
+            "maxChordSpanSemitones": 28,
+            "maxSoundingSpanSemitones": 28,
+            "worstTopVoiceLeap": {
+              "startSeconds": 60.75,
+              "semitones": 24,
+              "gapSeconds": 1.0625
+            }
+          },
+          "hands": {
+            "R": {
+              "peakAttacksPerSecond": 4,
+              "worstAttackWindow": {
+                "startSeconds": 58.125,
+                "endSeconds": 58.625,
+                "attacks": 2
+              },
+              "maxSimultaneous": 1,
+              "maxSounding": 1,
+              "maxChordSpanSemitones": 0,
+              "maxSoundingSpanSemitones": 0,
+              "worstTopVoiceLeap": {
+                "startSeconds": 59.125,
+                "semitones": 9,
+                "gapSeconds": 0.5625
+              }
+            },
+            "L": {
+              "peakAttacksPerSecond": 2,
+              "worstAttackWindow": {
+                "startSeconds": 58.5625,
+                "endSeconds": 59.0625,
+                "attacks": 1
+              },
+              "maxSimultaneous": 1,
+              "maxSounding": 1,
+              "maxChordSpanSemitones": 0,
+              "maxSoundingSpanSemitones": 0,
+              "worstTopVoiceLeap": {
+                "startSeconds": 61.3125,
+                "semitones": 15,
+                "gapSeconds": 0.5625
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "metallica",
+      "level": "medium",
+      "inference": {
+        "applied": true,
+        "reason": "inferred"
+      },
+      "sourceSha256": "a3c55cdb4f26ff55c2d4ffe1965b217ad52fad15557e540912fe956d5a8b0809",
+      "acceptedSha256": "75862ca13523e69ce06cfabc36952c9cad3a03cfe2f6792481a8392fb080e6a5",
+      "acceptedEventsUnchanged": true,
+      "candidatePath": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/output/tutorial-recovery/source-lane-candidates-v1/metallica/m",
+      "beforeCount": 1508,
+      "candidateCount": 1673,
+      "assessment": {
+        "level": "medium",
+        "status": "pass",
+        "limits": {
+          "maxSim": 12,
+          "maxDensity": 16,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "before": {
+        "global": {
+          "peakAttacksPerSecond": 10,
+          "worstAttackWindow": {
+            "startSeconds": 20.9375,
+            "endSeconds": 21.4375,
+            "attacks": 5
+          },
+          "maxSimultaneous": 4,
+          "maxSounding": 6,
+          "maxChordSpanSemitones": 50,
+          "maxSoundingSpanSemitones": 50,
+          "worstTopVoiceLeap": {
+            "startSeconds": 195.8125,
+            "semitones": 43,
+            "gapSeconds": 0.0625
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 10,
+            "worstAttackWindow": {
+              "startSeconds": 107.875,
+              "endSeconds": 108.375,
+              "attacks": 5
+            },
+            "maxSimultaneous": 3,
+            "maxSounding": 4,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 235,
+              "semitones": 29,
+              "gapSeconds": 0.1875
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 8,
+            "worstAttackWindow": {
+              "startSeconds": 189,
+              "endSeconds": 189.5,
+              "attacks": 4
+            },
+            "maxSimultaneous": 3,
+            "maxSounding": 3,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 182.625,
+              "semitones": 21,
+              "gapSeconds": 0.25
+            }
+          }
+        }
+      },
+      "candidate": {
+        "global": {
+          "peakAttacksPerSecond": 12,
+          "worstAttackWindow": {
+            "startSeconds": 201.1875,
+            "endSeconds": 201.6875,
+            "attacks": 6
+          },
+          "maxSimultaneous": 4,
+          "maxSounding": 6,
+          "maxChordSpanSemitones": 50,
+          "maxSoundingSpanSemitones": 50,
+          "worstTopVoiceLeap": {
+            "startSeconds": 195.8125,
+            "semitones": 43,
+            "gapSeconds": 0.0625
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 10,
+            "worstAttackWindow": {
+              "startSeconds": 107.875,
+              "endSeconds": 108.375,
+              "attacks": 5
+            },
+            "maxSimultaneous": 3,
+            "maxSounding": 4,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 57,
+              "semitones": 21,
+              "gapSeconds": 5.4375
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 8,
+            "worstAttackWindow": {
+              "startSeconds": 237.125,
+              "endSeconds": 237.625,
+              "attacks": 4
+            },
+            "maxSimultaneous": 2,
+            "maxSounding": 4,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 69.8125,
+              "semitones": 21,
+              "gapSeconds": 0.375
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "metallica",
+      "level": "advanced",
+      "inference": {
+        "applied": true,
+        "reason": "inferred"
+      },
+      "sourceSha256": "a3c55cdb4f26ff55c2d4ffe1965b217ad52fad15557e540912fe956d5a8b0809",
+      "acceptedSha256": "3bf7703b065f9277b3adb449040becde9b76adebf5ec00a9a0bb98f860fdbedf",
+      "acceptedEventsUnchanged": true,
+      "candidatePath": "/Users/reidar/Projectos/.keyspilli-worktrees/metal-delivery/output/tutorial-recovery/source-lane-candidates-v1/metallica/a",
+      "beforeCount": 1541,
+      "candidateCount": 1704,
+      "assessment": {
+        "level": "advanced",
+        "status": "pass",
+        "limits": {
+          "maxSim": 13,
+          "maxDensity": 18,
+          "minMedianIoi": 0.08
+        },
+        "passes": {
+          "maxSim": true,
+          "maxDensity": true,
+          "medianIoi": true
+        },
+        "failures": []
+      },
+      "before": {
+        "global": {
+          "peakAttacksPerSecond": 10,
+          "worstAttackWindow": {
+            "startSeconds": 19.8125,
+            "endSeconds": 20.3125,
+            "attacks": 5
+          },
+          "maxSimultaneous": 5,
+          "maxSounding": 6,
+          "maxChordSpanSemitones": 50,
+          "maxSoundingSpanSemitones": 50,
+          "worstTopVoiceLeap": {
+            "startSeconds": 195.8125,
+            "semitones": 43,
+            "gapSeconds": 0.0625
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 10,
+            "worstAttackWindow": {
+              "startSeconds": 29.9375,
+              "endSeconds": 30.4375,
+              "attacks": 5
+            },
+            "maxSimultaneous": 4,
+            "maxSounding": 4,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 235,
+              "semitones": 29,
+              "gapSeconds": 0.1875
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 8,
+            "worstAttackWindow": {
+              "startSeconds": 101.1875,
+              "endSeconds": 101.6875,
+              "attacks": 4
+            },
+            "maxSimultaneous": 3,
+            "maxSounding": 3,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 182.625,
+              "semitones": 21,
+              "gapSeconds": 0.25
+            }
+          }
+        }
+      },
+      "candidate": {
+        "global": {
+          "peakAttacksPerSecond": 12,
+          "worstAttackWindow": {
+            "startSeconds": 201.1875,
+            "endSeconds": 201.6875,
+            "attacks": 6
+          },
+          "maxSimultaneous": 5,
+          "maxSounding": 6,
+          "maxChordSpanSemitones": 50,
+          "maxSoundingSpanSemitones": 50,
+          "worstTopVoiceLeap": {
+            "startSeconds": 195.8125,
+            "semitones": 43,
+            "gapSeconds": 0.0625
+          }
+        },
+        "hands": {
+          "R": {
+            "peakAttacksPerSecond": 10,
+            "worstAttackWindow": {
+              "startSeconds": 29.9375,
+              "endSeconds": 30.4375,
+              "attacks": 5
+            },
+            "maxSimultaneous": 4,
+            "maxSounding": 4,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 57,
+              "semitones": 21,
+              "gapSeconds": 5.4375
+            }
+          },
+          "L": {
+            "peakAttacksPerSecond": 8,
+            "worstAttackWindow": {
+              "startSeconds": 101.1875,
+              "endSeconds": 101.6875,
+              "attacks": 4
+            },
+            "maxSimultaneous": 2,
+            "maxSounding": 4,
+            "maxChordSpanSemitones": 12,
+            "maxSoundingSpanSemitones": 12,
+            "worstTopVoiceLeap": {
+              "startSeconds": 69.8125,
+              "semitones": 21,
+              "gapSeconds": 0.375
+            }
+          }
+        }
+      }
+    }
+  ]
+}

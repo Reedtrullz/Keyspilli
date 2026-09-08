@@ -1,0 +1,17 @@
+{
+  "scope": "Local source Easy spacing; musical acceptance pending",
+  "hands": [
+    {
+      "hand": "R",
+      "minimumGapSeconds": 0.375
+    },
+    {
+      "hand": "L",
+      "minimumGapSeconds": 0.5
+    }
+  ],
+  "passage": {
+    "before": 54,
+    "after": 31
+  }
+}

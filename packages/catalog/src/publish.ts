@@ -26,6 +26,8 @@ export interface PublishBaseArtifactOptions {
    * all production writers use `strict`.
    */
   semanticValidation?: "strict";
+  /** Synchronous ownership/cancellation check after staging validation, before replacement. */
+  beforeSwap?: () => void;
   /** Runs after the filesystem swap; a failure leaves the new tree published. */
   afterSwap?: () => Promise<void> | void;
 }
@@ -113,6 +115,7 @@ export async function publishBaseArtifact<T>(
       }
 
       await rm(oldRoot, { recursive: true, force: true });
+      options.beforeSwap?.();
       if (existsSync(finalRoot)) await rename(finalRoot, oldRoot);
       try {
         await rename(newRoot, finalRoot);

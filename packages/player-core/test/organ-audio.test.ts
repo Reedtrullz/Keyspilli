@@ -1,3 +1,5 @@
+import { PlaybackEngine } from "../src/engine.js";
+import { DEFAULT_SETTINGS } from "../src/prefs.js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   CATHEDRAL_ENVELOPE,
@@ -239,6 +241,30 @@ describe("OrganAudioEngine", () => {
     expect(ctx.oscillators[0]!.wave).not.toBe(ctx.oscillators[1]!.wave);
     expect(ctx.gains.at(-2)!.gain.linearRamps[0]).toEqual([cathedralVelocityLevel(64) * 0.22, 10 + CATHEDRAL_ENVELOPE.attackSec]);
     expect(ctx.gains.at(-2)!.gain.targets.at(-1)).toEqual([0, 11, CATHEDRAL_ENVELOPE.releaseSec]);
+  });
+
+  it("schedules both piano-background hands into audible Cathedral gain buses", () => {
+    const audio = new OrganAudioEngine(0.2, "slow", "cathedral", 0.65);
+    const player = new PlaybackEngine(audio, [
+      { midi: 69, startSec: 0, durSec: 1, vel: 90, hand: "R" },
+      { midi: 45, startSec: 0, durSec: 1, vel: 90, hand: "L" },
+    ], 2, { tempoBpm: 120, timeSig: [4, 4] }, { ...DEFAULT_SETTINGS, backgroundMode: "piano", soundSource: "organ", organStyle: "cathedral" }, [{ beat: 0, durationBeats: 4, name: "Am", notes: [45, 52, 57] }]);
+    audio.setGains(1, 0.4);
+    player.start();
+    const ctx = FakeAudioContext.instances[0]!;
+    expect(ctx.oscillators).toHaveLength(2);
+    ctx.oscillators.forEach((oscillator, index) => {
+      expect(oscillator.starts).toEqual([10]);
+      const envelope = oscillator.connections[0] as FakeGain;
+      expect(envelope.gain.linearRamps[0]![0]).toBeGreaterThan(0);
+      expect(envelope.connections[0]).toBe(ctx.gains[index]);
+      expect(ctx.gains[index]!.gain.value).toBeGreaterThan(0);
+    });
+    audio.setGains(0.8, 0.6);
+    expect(ctx.gains[0]!.gain.value).toBe(0.8);
+    expect(ctx.gains[1]!.gain.value).toBe(0.6);
+    player.stop();
+    audio.dispose();
   });
 
   it("updates Cathedral Space without rebuilding its deterministic IR", () => {

@@ -1,0 +1,149 @@
+{
+  "scope": "Local Next.js player HTTP and MIDI exports against isolated catalog; not production worker or browser audio",
+  "rows": [
+    {
+      "name": "queen",
+      "level": "b",
+      "status": 200,
+      "sha256": "3d79c9e4e30ebd612fba84686e9ca344994730a08ef41a2b9c0fe153eae6e139"
+    },
+    {
+      "name": "queen",
+      "level": "e",
+      "status": 200,
+      "sha256": "0e5c3e8d544964e9d78308cf12c93a35b5f43dfa13e75f6a763c661dd10808f8"
+    },
+    {
+      "name": "queen",
+      "level": "m",
+      "status": 200,
+      "sha256": "c1dda97276ce17402ee698ed25c727d15641c9c2f865cba2914999a2f50e72eb"
+    },
+    {
+      "name": "queen",
+      "level": "a",
+      "status": 200,
+      "sha256": "cec90c27dc7963ecc07a1222b4b169244e2da00d5b69d6565366cb3d3e6f9d17"
+    },
+    {
+      "name": "metallica-old",
+      "level": "b",
+      "status": 200,
+      "sha256": "707e4bc0005acfded13c748c24261f06cc0e98e5d985299b2c56c87396f2aa8e"
+    },
+    {
+      "name": "metallica-old",
+      "level": "e",
+      "status": 200,
+      "sha256": "18b1b8cc6a511d5d0963315bfe3cbca7fffa64e44580fcf19af628dea08caee7"
+    },
+    {
+      "name": "metallica-old",
+      "level": "m",
+      "status": 200,
+      "sha256": "c2969630f7fed9b796399cec612b2b6af0d2e8e66666e7afb8ed5103d73e2c67"
+    },
+    {
+      "name": "metallica-old",
+      "level": "a",
+      "status": 200,
+      "sha256": "38cd6239d10d71178f3f726b0ad286e1b88b90be3cce1b2e3f83901425c449e7"
+    },
+    {
+      "name": "in-my-mind",
+      "level": "b",
+      "status": 200,
+      "sha256": "e919dad26c95f1498f58f3899ae428e84584dc86dbdd1a2bbf580fe194f7b63b"
+    },
+    {
+      "name": "in-my-mind",
+      "level": "e",
+      "status": 200,
+      "sha256": "b43ac1f530bb133103c3c18ab1d1be35dee1d118c5299e41d6317d7281b918a6"
+    },
+    {
+      "name": "in-my-mind",
+      "level": "m",
+      "status": 200,
+      "sha256": "556ef30bde1238762f2ea1f10f643ce48a33b1c8f2893f0302053ee87806bc2d"
+    },
+    {
+      "name": "in-my-mind",
+      "level": "a",
+      "status": 200,
+      "sha256": "556ef30bde1238762f2ea1f10f643ce48a33b1c8f2893f0302053ee87806bc2d"
+    },
+    {
+      "name": "nirvana",
+      "level": "b",
+      "status": 200,
+      "sha256": "5ba17c219e846483ac44c16d76437f0457cd8f8573a4c4416d72f565fb0829f2"
+    },
+    {
+      "name": "nirvana",
+      "level": "e",
+      "status": 200,
+      "sha256": "31f7cd08214a50d9e0277c54dcd5f0eec46105c0758b910aeaffa3cbff4530b7"
+    },
+    {
+      "name": "nirvana",
+      "level": "m",
+      "status": 200,
+      "sha256": "e32687ffd8844d27d79dfffae5986a59cc610d8a2a511aecefcce7fb5d629f76"
+    },
+    {
+      "name": "nirvana",
+      "level": "a",
+      "status": 200,
+      "sha256": "f44d523c26efdb198d3a94f5fc10acdc846dd92b842421905635249c49644c9d"
+    },
+    {
+      "name": "acdc-fixed",
+      "level": "b",
+      "status": 200,
+      "sha256": "7bddb0a5339e2fff6e90fca8c6995df84c441c7a1f1a680a6bf9b7b91643b3a4"
+    },
+    {
+      "name": "acdc-fixed",
+      "level": "e",
+      "status": 200,
+      "sha256": "980cda572f953f759d40d13695cb02428469effd4af51fb8b6d275e67d74b652"
+    },
+    {
+      "name": "acdc-fixed",
+      "level": "m",
+      "status": 200,
+      "sha256": "c00d45554602e5bc9fb28d25329a4edf690bb2c7970fd2f57bf207b1de464eaf"
+    },
+    {
+      "name": "acdc-fixed",
+      "level": "a",
+      "status": 200,
+      "sha256": "5cd996cf62127fe97233c2d0de60baef478c6f544287d090f2a6cf3194587c94"
+    },
+    {
+      "name": "metallica",
+      "level": "b",
+      "status": 200,
+      "sha256": "471f2d92676fda849f9929ace788dd4177f3482380282ed8f4c4caa2411b0def"
+    },
+    {
+      "name": "metallica",
+      "level": "e",
+      "status": 200,
+      "sha256": "489f4506b4103b11a1bb26b0ce20c1dd582c036ffa5f0e0fb7a26affe4797e37"
+    },
+    {
+      "name": "metallica",
+      "level": "m",
+      "status": 200,
+      "sha256": "cf399382f47e7e0cf3bbd65783178f3420c7082171e429b265b8ab08f7574c72"
+    },
+    {
+      "name": "metallica",
+      "level": "a",
+      "status": 200,
+      "sha256": "d1f7fe3523819c1d7368b3003b4c8d3dcbe505e845d72e1b527a99fd1bd1e59c"
+    }
+  ]
+}

@@ -1,3 +1,4 @@
+import { validateSourceArrangement, type SourceArrangement } from "./source-arrangement.js";
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
@@ -240,6 +241,7 @@ export interface ArrangementManifest {
   candidate?: ArrangementCandidateMetadata;
   /** Optional user-mediated discovery lineage; never changes upload timing authority. */
   sourceCandidateHandoff?: SourceCandidateHandoffLink;
+  sourceArrangement?: SourceArrangement;
   tempo: TempoProvenance;
   /** Absent for standard MIDI/MusicXML uploads without an audio transcription. */
   transcription?: TranscriptionProvenance;
@@ -728,6 +730,7 @@ export function validateArrangementManifest(value: unknown): string[] {
   }
   if (value.source !== undefined) validateSourceProvenance(value.source, "source", errors);
   if (value.candidate !== undefined) validateCandidateMetadata(value.candidate, "candidate", errors);
+  if (value.sourceArrangement !== undefined) errors.push(...validateSourceArrangement(value.sourceArrangement));
   if (value.sourceCandidateHandoff !== undefined) {
     errors.push(...validateSourceCandidateHandoffLink(value.sourceCandidateHandoff));
   }

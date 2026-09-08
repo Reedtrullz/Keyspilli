@@ -47,6 +47,20 @@ describe("playability audit diagnostics", () => {
     expect(metrics.simultaneousChordAttacks).toBe(4);
   });
 
+  it("locates worst windows without counting chord voices or a right-edge attack twice", () => {
+    const notes = [note(60, 2, "R", 1), note(72, 2, "R", 1), note(84, 2.5), note(40, 3, "L")];
+    const metrics = measurePlayability(notes, 120);
+    expect(metrics.global.worstAttackWindow).toEqual({ startSeconds: 1, endSeconds: 1.5, attacks: 2 });
+    expect(metrics.hands.R.maxChordSpanSemitones).toBe(12);
+    expect(metrics.hands.R.maxSoundingSpanSemitones).toBe(24);
+    expect(metrics.hands.R.worstTopVoiceLeap).toEqual({ startSeconds: 1.25, semitones: 12, gapSeconds: 0.25 });
+    expect(metrics.hands.L.maxChordSpanSemitones).toBe(0);
+    expect(measurePlayability([], 120).global.worstAttackWindow).toBeNull();
+    expect(measurePlayability([...notes].reverse(), 120)).toEqual(metrics);
+    // The released note ends at the new attack: spans do not overlap.
+    expect(measurePlayability([note(60, 0, "R", 1), note(84, 1)], 120).hands.R.maxSoundingSpanSemitones).toBe(0);
+  });
+
   it("identifies a true one-hand rapid line as dense", () => {
     const metrics = measurePlayability(rapidMonophonic(), 120);
     const assessment = assessPlayability(metrics, "medium");

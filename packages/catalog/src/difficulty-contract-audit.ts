@@ -200,7 +200,7 @@ function evaluateOrder(
 
 /**
  * Compare the unchanged six-level physical contract with the report-only
- * five-level public contract. Very Easy is checked independently for legacy
+ * four-level public contract. Deprecated levels is checked independently for legacy
  * compatibility and is never used as a public ordering edge.
  */
 export function evaluateDifficultyContract(

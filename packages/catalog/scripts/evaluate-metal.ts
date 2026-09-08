@@ -165,12 +165,25 @@ async function loadStems(directory: string): Promise<MetalStem[]> {
   const resolved = resolve(directory);
   const info = await stat(resolved);
   if (!info.isDirectory()) throw new Error(`--stems is not a directory: ${directory}`);
+  const sourceRoles = new Map<string, MetalStem["sourceStem"]>();
+  try {
+    const report = JSON.parse(await readFile(join(resolved, "report.json"), "utf8"));
+    if (!Array.isArray(report.stems)) throw new Error("stem report must contain a stems array");
+    for (const entry of report.stems) {
+      if (!entry || !STEM_ROLES.includes(entry.role)
+        || !(entry.sourceStem === entry.role || (entry.role === "guitar" && entry.sourceStem === "other"))
+        || sourceRoles.has(entry.role)) throw new Error("invalid or duplicate stem provenance in report.json");
+      sourceRoles.set(entry.role, entry.sourceStem);
+    }
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+  }
   const stems: MetalStem[] = [];
   for (const role of STEM_ROLES) {
     const path = join(resolved, `${role}.mid`);
     try {
       const loaded = await midiFile(path, `${role} stem`);
-      stems.push({ role, midi: loaded.parsed });
+      stems.push({ role, sourceStem: sourceRoles.get(role), midi: loaded.parsed });
     } catch (error) {
       const code = error && typeof error === "object" && "code" in error ? (error as { code?: string }).code : undefined;
       if (code === "ENOENT") continue;
@@ -266,9 +279,12 @@ async function run(options: CliOptions): Promise<string> {
         } : {}),
       } as ArrangementEvaluationCandidate["guitarHarmony"],
     };
-    variants = buildVariants(arrangement.parsed, metaFor(arrangement.parsed, options.fixtureId), {
+    // Match the worker -> MIDI -> catalog path, including its explicit
+    // sustain policy. Evaluate what a player receives, not an in-memory proxy.
+    variants = buildVariants(serialized, metaFor(serialized, options.fixtureId), {
       arrangementProfile: "metal",
-      normalizeRange: false,
+      audioDerived: true,
+      maxDurBeats: null,
       chords: arrangement.chords,
       ...(traceSink ? { trace: traceSink } : {}),
     });

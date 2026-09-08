@@ -84,6 +84,22 @@ describe("publishBaseArtifact", () => {
     expect(await readFile(join(root, "test-song", "a.txt"), "utf8")).toBe("old\n");
   });
 
+  it("checks ownership after complete staging and preserves the prior tree on rejection", async () => {
+    const root = await tempRoot();
+    await publishBaseArtifact("test-song", (stage) => writeManifest(stage), { artifactsRoot: root });
+    const old = await readFile(join(root, "test-song", "manifest.json"), "utf8");
+    let staged = false;
+    await expect(publishBaseArtifact("test-song", async (stage) => {
+      await writeManifest(stage);
+      staged = true;
+    }, { artifactsRoot: root, beforeSwap: () => {
+      expect(staged).toBe(true);
+      throw new Error("lease lost");
+    } })).rejects.toThrow("lease lost");
+    expect(await readFile(join(root, "test-song", "manifest.json"), "utf8")).toBe(old);
+    expect(existsSync(join(root, ".test-song.new"))).toBe(false);
+  });
+
   it("recovers a stale lock and rejects a live lock", async () => {
     const root = await tempRoot();
     const lock = join(root, ".test-song.lock");

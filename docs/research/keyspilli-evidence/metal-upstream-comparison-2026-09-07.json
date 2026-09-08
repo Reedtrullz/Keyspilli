@@ -1,0 +1,265 @@
+{
+  "schemaVersion": 1,
+  "status": "experimental-not-qualified",
+  "model": "High-resolution Piano Transcription with Pedals",
+  "package": "piano-transcription-inference==0.0.6",
+  "codeTerms": {
+    "declaration": "MIT License in official setup.py classifier and released PyPI metadata; no standalone LICENSE in upstream root",
+    "url": "https://github.com/qiuqiangkong/piano_transcription_inference/blob/master/setup.py"
+  },
+  "weightsTerms": {
+    "license": "CC-BY-4.0",
+    "url": "https://zenodo.org/records/4034264",
+    "sha256": "c3fa9730725bf4a762f1c14bc80cd5986eacda01b026f5a4a2525cd607876141"
+  },
+  "configurations": [
+    {
+      "config": {
+        "onset": 0.3,
+        "frame": 0.1
+      },
+      "scores": [
+        {
+          "id": "burgmuller",
+          "exact": {
+            "predictedCount": 291,
+            "referenceCount": 283,
+            "matches": 280,
+            "precision": 0.9621993127147767,
+            "recall": 0.9893992932862191,
+            "f1": 0.9756097560975611
+          },
+          "pitchClass": {
+            "predictedCount": 291,
+            "referenceCount": 283,
+            "matches": 280,
+            "precision": 0.9621993127147767,
+            "recall": 0.9893992932862191,
+            "f1": 0.9756097560975611
+          }
+        },
+        {
+          "id": "haydn",
+          "exact": {
+            "predictedCount": 161,
+            "referenceCount": 160,
+            "matches": 156,
+            "precision": 0.968944099378882,
+            "recall": 0.975,
+            "f1": 0.9719626168224299
+          },
+          "pitchClass": {
+            "predictedCount": 161,
+            "referenceCount": 160,
+            "matches": 156,
+            "precision": 0.968944099378882,
+            "recall": 0.975,
+            "f1": 0.9719626168224299
+          }
+        },
+        {
+          "id": "debussy",
+          "exact": {
+            "predictedCount": 283,
+            "referenceCount": 250,
+            "matches": 245,
+            "precision": 0.8657243816254417,
+            "recall": 0.98,
+            "f1": 0.9193245778611633
+          },
+          "pitchClass": {
+            "predictedCount": 283,
+            "referenceCount": 250,
+            "matches": 245,
+            "precision": 0.8657243816254417,
+            "recall": 0.98,
+            "f1": 0.9193245778611633
+          }
+        }
+      ]
+    },
+    {
+      "config": {
+        "onset": 0.5,
+        "frame": 0.2
+      },
+      "scores": [
+        {
+          "id": "burgmuller",
+          "exact": {
+            "predictedCount": 285,
+            "referenceCount": 283,
+            "matches": 280,
+            "precision": 0.9824561403508771,
+            "recall": 0.9893992932862191,
+            "f1": 0.9859154929577465
+          },
+          "pitchClass": {
+            "predictedCount": 285,
+            "referenceCount": 283,
+            "matches": 280,
+            "precision": 0.9824561403508771,
+            "recall": 0.9893992932862191,
+            "f1": 0.9859154929577465
+          }
+        },
+        {
+          "id": "haydn",
+          "exact": {
+            "predictedCount": 158,
+            "referenceCount": 160,
+            "matches": 156,
+            "precision": 0.9873417721518988,
+            "recall": 0.975,
+            "f1": 0.9811320754716981
+          },
+          "pitchClass": {
+            "predictedCount": 158,
+            "referenceCount": 160,
+            "matches": 156,
+            "precision": 0.9873417721518988,
+            "recall": 0.975,
+            "f1": 0.9811320754716981
+          }
+        },
+        {
+          "id": "debussy",
+          "exact": {
+            "predictedCount": 276,
+            "referenceCount": 250,
+            "matches": 245,
+            "precision": 0.8876811594202898,
+            "recall": 0.98,
+            "f1": 0.9315589353612167
+          },
+          "pitchClass": {
+            "predictedCount": 276,
+            "referenceCount": 250,
+            "matches": 245,
+            "precision": 0.8876811594202898,
+            "recall": 0.98,
+            "f1": 0.9315589353612167
+          }
+        }
+      ]
+    }
+  ],
+  "decision": "Strict configuration improves all three controls, but Debussy precision 0.8877 fails fixed 0.95 gate. No automatic piano-audio beta publication. No third configuration or third algorithm. No metal accuracy claim.",
+  "runtime": [
+    {
+      "id": "burgmuller",
+      "seconds": 10.600856542005204,
+      "notes": 291
+    },
+    {
+      "id": "haydn",
+      "seconds": 13.497160958999302,
+      "notes": 161
+    },
+    {
+      "id": "debussy",
+      "seconds": 13.448169749986846,
+      "notes": 283
+    }
+  ],
+  "monophonicTracker": {
+    "algorithm": "librosa.pyin",
+    "configurations": [
+      {
+        "scope": "invented monophonic harmonic control only; no real metal accuracy claim",
+        "config": {
+          "voicedProbability": 0.9,
+          "minimumSeconds": 0.08,
+          "hop": 220,
+          "sampleRate": 22050
+        },
+        "rows": [
+          {
+            "role": "bass",
+            "expected": 16,
+            "predicted": 0,
+            "matched": 0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "seconds": 8.426419750001514
+          },
+          {
+            "role": "vocals",
+            "expected": 16,
+            "predicted": 16,
+            "matched": 16,
+            "precision": 1.0,
+            "recall": 1.0,
+            "seconds": 5.5449276250146795
+          }
+        ]
+      },
+      {
+        "scope": "invented monophonic harmonic control only; no real metal accuracy claim",
+        "config": {
+          "voicedProbability": 0.8,
+          "minimumSeconds": 0.08,
+          "hop": 220,
+          "sampleRate": 22050
+        },
+        "rows": [
+          {
+            "role": "bass",
+            "expected": 16,
+            "predicted": 15,
+            "matched": 0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "seconds": 6.971128457982559
+          },
+          {
+            "role": "vocals",
+            "expected": 16,
+            "predicted": 16,
+            "matched": 16,
+            "precision": 1.0,
+            "recall": 1.0,
+            "seconds": 5.75285195800825
+          }
+        ]
+      }
+    ],
+    "realDiagnostic": {
+      "songId": "htKY2oD85rs",
+      "sourceWindowSeconds": [
+        30,
+        50
+      ],
+      "roles": [
+        {
+          "role": "vocals",
+          "seconds": 9.238836292002816,
+          "highConfidenceFrames": 18,
+          "frames": 2005,
+          "outcome": "experimental: separation does not prove monophony; no independent melody reference, no publishable events emitted"
+        },
+        {
+          "role": "bass",
+          "seconds": 7.310733874997823,
+          "highConfidenceFrames": 262,
+          "frames": 2005,
+          "outcome": "experimental: separation does not prove monophony; no independent melody reference, no publishable events emitted"
+        }
+      ],
+      "scoring": "not scored: independent reference unavailable; no confidence-to-correctness inference"
+    },
+    "decision": "Synthetic upper lane passes; bass onset segmentation fails both configurations. Real separated vocal/bass frames saved with confidence and native seconds, but competing voice evidence is unresolved; no automatic publication."
+  },
+  "baselineRolePreviews": {
+    "manifest": "output/metal-development/role-previews/manifest.json",
+    "scope": "first30seconds of three development songs, four cached BasicPitch roles each; renderable diagnostic only",
+    "referenceAccuracy": "unavailable; not scored against candidate-generated truth"
+  },
+  "reproducibility": {
+    "piano-challenger/run.py": "5863b65f6646cf1a1ddf97d8927a88086d2873f2e0d30f8cb66e76d02c7943c3",
+    "piano-challenger/postprocess.py": "ab60589e0683d41af49a0408d5b2396a40b8686a02d633327babebbf7b9d86ac",
+    "pyin-trial.py": "e9d901fc5c6b5c221fd0d41862f1ee1edbc7357014ed6284b95ebfedb5dc8b36",
+    "pyin-trial-long-window.py": "634874281a8558d31fffa9b605b7321d40e6beea8b4c22473bc2bdbb4dec113f",
+    "mono-real/track.py": "89e6cd1b09405fad4cdf82c49f050f72aabbe2cb551ecb1d3455b160559dea59"
+  }
+}

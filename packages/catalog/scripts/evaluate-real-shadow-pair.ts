@@ -20,6 +20,7 @@ import { dirname, isAbsolute, relative, resolve } from "node:path";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import {
+  PUBLIC_DIFFICULTY_ORDER,
   buildMetalArrangement,
   buildVariants,
   parseMidi,
@@ -853,7 +854,7 @@ interface DownstreamProductPathSummary {
   publicProjection: {
     status: "complete" | "blocked";
     method: "projectPublicSongRows";
-    expectedLevelCount: 5;
+    expectedLevelCount: number;
     levels: DownstreamPublicLevelSummary[];
     hiddenPhysicalLevels: DifficultyLevel[];
   };
@@ -968,7 +969,7 @@ function downstreamProductPath(item: ShadowCorpusItemInput): DownstreamProductPa
       publicProjection: {
         status: "blocked",
         method: "projectPublicSongRows",
-        expectedLevelCount: 5,
+        expectedLevelCount: PUBLIC_DIFFICULTY_ORDER.length,
         levels: [],
         hiddenPhysicalLevels: [],
       },
@@ -1035,7 +1036,7 @@ function downstreamProductPath(item: ShadowCorpusItemInput): DownstreamProductPa
       publicProjection: {
         status: "blocked",
         method: "projectPublicSongRows",
-        expectedLevelCount: 5,
+        expectedLevelCount: PUBLIC_DIFFICULTY_ORDER.length,
         levels: [],
         hiddenPhysicalLevels: [],
       },
@@ -1085,10 +1086,10 @@ function downstreamProductPath(item: ShadowCorpusItemInput): DownstreamProductPa
     ...variant.midi.issues.map((issue) => `${variant.level} MIDI: ${issue}`),
     ...variant.musicXml.issues.map((issue) => `${variant.level} MusicXML: ${issue}`),
   ]);
-  const publicProjectionStatus = publicLevels.length === 5 ? "complete" : "blocked";
+  const publicProjectionStatus = publicLevels.length === PUBLIC_DIFFICULTY_ORDER.length ? "complete" : "blocked";
   const catalogStatus = groupedSongs.length === 1
     && publicGroupedSongs.length === 1
-    && publicGroupedSongs[0]?.levels.length === 5
+    && publicGroupedSongs[0]?.levels.length === PUBLIC_DIFFICULTY_ORDER.length
     ? "validated"
     : "blocked";
   const blockers = [
@@ -1096,7 +1097,7 @@ function downstreamProductPath(item: ShadowCorpusItemInput): DownstreamProductPa
     ...(variants.length !== 6 ? [`expected six physical variants, received ${variants.length}`] : []),
     ...variantValidationErrors.map((issue) => `variant validation: ${issue}`),
     ...artifactIssues,
-    ...(publicProjectionStatus === "blocked" ? [`public projection returned ${publicLevels.length} of 5 levels`] : []),
+    ...(publicProjectionStatus === "blocked" ? [`public projection returned ${publicLevels.length} of ${PUBLIC_DIFFICULTY_ORDER.length} levels`] : []),
     ...(catalogStatus === "blocked" ? ["catalog grouping/public grouped projection was incomplete"] : []),
   ].map(redactText);
   return {
@@ -1108,7 +1109,7 @@ function downstreamProductPath(item: ShadowCorpusItemInput): DownstreamProductPa
     publicProjection: {
       status: publicProjectionStatus,
       method: "projectPublicSongRows",
-      expectedLevelCount: 5,
+      expectedLevelCount: PUBLIC_DIFFICULTY_ORDER.length,
       levels: publicLevels,
       hiddenPhysicalLevels: [...hiddenPhysicalLevels],
     },

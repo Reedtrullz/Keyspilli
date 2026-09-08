@@ -1,0 +1,210 @@
+{
+  "schemaVersion": 1,
+  "task": 4,
+  "status": "engineering-regressions-pass-audio-remains-experimental",
+  "iterations": 3,
+  "rejectedIteration": "All raw lows admitted before rhythm filtering harmed genuine high lead (8/16) and isolated/dyad regressions; reverted.",
+  "selectedChange": "Existing phrase selector identifies longer co-onset fundamentals before partials can disqualify their own low melody. The same cleaned evidence feeds upper contour, rhythm and harmony. Original raw evidence retained in trace. Final physical-key sustain shortened at re-strike across sources.",
+  "controlledIdentity": {
+    "clean": {
+      "matched": 16,
+      "expected": 16
+    },
+    "contaminated": {
+      "matched": 16,
+      "expected": 16,
+      "unmatchedIdentity": 0
+    },
+    "oppositeHighLead": {
+      "matched": 16,
+      "expected": 16,
+      "unmatchedIdentity": 0
+    },
+    "levels": "all six internal levels retain source-supported pitch-class/onset lineage in the controlled clean/contaminated fixture; includes all five public levels"
+  },
+  "checks": {
+    "midiTests": 363,
+    "catalogTests": 55,
+    "typechecks": [
+      "midi",
+      "catalog",
+      "transcribe"
+    ],
+    "allExitCodes": 0
+  },
+  "rows": [
+    {
+      "id": "1zN7J64IeBo",
+      "reportSha256": "bbacafa5230b5dff9cd1470ebb9d6db9b4f411c68883cff523549cd26346bca2",
+      "beforeGate": "pass",
+      "afterGate": "pass",
+      "beforeMaxSounding": 7,
+      "afterMaxSounding": 5,
+      "beforeNotes": 2134,
+      "afterNotes": 2145,
+      "variantChecks": {
+        "variants": "evaluated"
+      },
+      "failures": []
+    },
+    {
+      "id": "2lvs2FzF64o",
+      "reportSha256": "6df5195910a43294983303f61ade44dff838239da0f1b54ae6be06441f3a3f9b",
+      "beforeGate": "pass",
+      "afterGate": "pass",
+      "beforeMaxSounding": 7,
+      "afterMaxSounding": 6,
+      "beforeNotes": 1789,
+      "afterNotes": 1781,
+      "variantChecks": {
+        "variants": "evaluated"
+      },
+      "failures": []
+    },
+    {
+      "id": "7pOr3dBFAeY",
+      "reportSha256": "ced4e4b42390c2d20ec6b22e574c7354832d4c1bd6b986170dbfd8c7a5f47003",
+      "beforeGate": "pass",
+      "afterGate": "pass",
+      "beforeMaxSounding": 5,
+      "afterMaxSounding": 5,
+      "beforeNotes": 1141,
+      "afterNotes": 1141,
+      "variantChecks": {
+        "variants": "evaluated"
+      },
+      "failures": []
+    },
+    {
+      "id": "98xh5Hb9QAM",
+      "reportSha256": "93113964da848a9b1bec6e373a1c04d93dd2cf9fbebcc30e411b891222ad01a1",
+      "beforeGate": "pass",
+      "afterGate": "pass",
+      "beforeMaxSounding": 8,
+      "afterMaxSounding": 7,
+      "beforeNotes": 2385,
+      "afterNotes": 2376,
+      "variantChecks": {
+        "variants": "evaluated"
+      },
+      "failures": []
+    },
+    {
+      "id": "IrwXSfcJmnU",
+      "reportSha256": "5ac56bb1a26677717d61e2bbb0236eed37a50a374357ed475570f963f73d4a4b",
+      "beforeGate": "pass",
+      "afterGate": "pass",
+      "beforeMaxSounding": 5,
+      "afterMaxSounding": 4,
+      "beforeNotes": 996,
+      "afterNotes": 996,
+      "variantChecks": {
+        "variants": "evaluated"
+      },
+      "failures": []
+    },
+    {
+      "id": "L397TWLwrUU",
+      "reportSha256": "a174dcba9afa5ce28fa88ee16bf58aad5a3f8aa06409d86d6aaea6a7a459e9ad",
+      "beforeGate": "pass",
+      "afterGate": "pass",
+      "beforeMaxSounding": 7,
+      "afterMaxSounding": 5,
+      "beforeNotes": 1425,
+      "afterNotes": 1415,
+      "variantChecks": {
+        "variants": "evaluated"
+      },
+      "failures": []
+    },
+    {
+      "id": "_hzssKb9940",
+      "reportSha256": "e734a6a4c07ee187260e5dd56b86bd9f86d07dece1d3b6ce2d354b9ecb10d93e",
+      "beforeGate": "pass",
+      "afterGate": "pass",
+      "beforeMaxSounding": 7,
+      "afterMaxSounding": 5,
+      "beforeNotes": 2478,
+      "afterNotes": 2461,
+      "variantChecks": {
+        "variants": "evaluated"
+      },
+      "failures": []
+    },
+    {
+      "id": "htKY2oD85rs",
+      "reportSha256": "da2a42ccaabcee442648a139e634ceb55db2876ed2caabc299c0bcb99ad89487",
+      "beforeGate": "pass",
+      "afterGate": "pass",
+      "beforeMaxSounding": 8,
+      "afterMaxSounding": 6,
+      "beforeNotes": 1510,
+      "afterNotes": 1505,
+      "variantChecks": {
+        "variants": "evaluated"
+      },
+      "failures": []
+    },
+    {
+      "id": "jhat-xUQ6dw",
+      "reportSha256": "80af962504bdff88dc43b98fd579ad33c19e9a7e64129bfab3d8deba1f6ecb5e",
+      "beforeGate": "fail",
+      "afterGate": "pass",
+      "beforeMaxSounding": 9,
+      "afterMaxSounding": 7,
+      "beforeNotes": 4262,
+      "afterNotes": 4226,
+      "variantChecks": {
+        "variants": "evaluated"
+      },
+      "failures": []
+    },
+    {
+      "id": "kG4uQ6Tk7fY",
+      "reportSha256": "96804a2e096196e18cd5f523f0cc50e2ee56aec012cdf1e7dc123f8cfb1c5c36",
+      "beforeGate": "pass",
+      "afterGate": "pass",
+      "beforeMaxSounding": 7,
+      "afterMaxSounding": 6,
+      "beforeNotes": 2261,
+      "afterNotes": 2247,
+      "variantChecks": {
+        "variants": "evaluated"
+      },
+      "failures": []
+    },
+    {
+      "id": "kIBdpFJyFkc",
+      "reportSha256": "700ca21bebc5463bf6a2a2c25fbb0f1a6a529955f76b2bfdd56c59ccfeb2e26c",
+      "beforeGate": "pass",
+      "afterGate": "pass",
+      "beforeMaxSounding": 8,
+      "afterMaxSounding": 6,
+      "beforeNotes": 2470,
+      "afterNotes": 2470,
+      "variantChecks": {
+        "variants": "evaluated"
+      },
+      "failures": []
+    },
+    {
+      "id": "vfpgpf6QVnI",
+      "reportSha256": "85a010273087a3766479de7cd06d10368b4cefa03f653995127a435660d8ca0b",
+      "beforeGate": "pass",
+      "afterGate": "pass",
+      "beforeMaxSounding": 7,
+      "afterMaxSounding": 6,
+      "beforeNotes": 1809,
+      "afterNotes": 1805,
+      "variantChecks": {
+        "variants": "evaluated"
+      },
+      "failures": []
+    }
+  ],
+  "limitations": [
+    "No independently aligned real metal melody targets: structural replay is not musical approval.",
+    "Hand-span/collision/density warnings are diagnostic; these cached audio candidates are not qualified for automatic publication.",
+    "Twenty supported and six challenge holdouts remain untouched."
+  ]
+}

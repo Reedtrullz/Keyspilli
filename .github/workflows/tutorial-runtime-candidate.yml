@@ -1,0 +1,82 @@
+name: Tutorial runtime candidate
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/tutorial-runtime-candidate.yml'
+      - 'services/transcribe/src/**'
+      - 'services/transcribe/package.json'
+      - 'services/transcribe/tsconfig.json'
+      - 'packages/catalog/**'
+      - 'packages/midi/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.base.json'
+      - 'services/transcribe/test/test_tutorial_*.py'
+      - 'services/transcribe/Dockerfile.tutorial*'
+      - 'services/transcribe/requirements-tutorial.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tutorial-runtime-candidate-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  container-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - name: Require build disk headroom
+        run: test "$(df -B1 --output=avail . | tail -1)" -ge 32212254720
+      - name: Build candidate (includes real geometry import and synthetic tests)
+        run: docker build --platform linux/amd64 -f services/transcribe/Dockerfile.tutorial -t keyspilli-tutorial:candidate .
+      - name: Build worker candidate on native amd64
+        run: |
+          test "$(uname -m)" = x86_64
+          docker build --platform linux/amd64 -f services/transcribe/Dockerfile.tutorial --target worker -t keyspilli-tutorial-worker:candidate .
+      - name: Verify isolated default worker startup
+        timeout-minutes: 2
+        run: |
+          name=keyspilli-tutorial-worker-smoke
+          trap 'docker logs "$name" 2>&1 || true; docker rm -f "$name" >/dev/null 2>&1 || true' EXIT
+          docker run -d --name "$name" --network none --read-only \
+            --user 65532:65532 --cap-drop ALL --security-opt no-new-privileges \
+            --cpus 2 --memory 1g --pids-limit 128 \
+            --tmpfs /tmp:rw,nosuid,size=128m \
+            --tmpfs /data:rw,nosuid,size=128m,uid=65532,gid=65532,mode=0700 \
+            keyspilli-tutorial-worker:candidate
+          for attempt in $(seq 1 30); do
+            test "$(docker inspect --format '{{.State.Running}}' "$name")" = true || exit 1
+            worker_logs=$(docker logs "$name" 2>&1)
+            if grep -Fq '[worker] polling every 5000ms' <<< "$worker_logs"; then
+              sleep 5
+              test "$(docker inspect --format '{{.State.Running}}' "$name")" = true || exit 1
+              worker_logs=$(docker logs "$name" 2>&1)
+              if grep -Fq '[worker] poll error:' <<< "$worker_logs"; then
+                exit 1
+              fi
+              exit 0
+            fi
+            sleep 1
+          done
+          echo 'Worker did not reach its default polling loop within 30 seconds' >&2
+          exit 1
+      - name: Verify isolated CLI and dependency consistency
+        run: |
+          docker run --rm --network none keyspilli-tutorial:candidate --help
+          docker run --rm --network none --entrypoint python keyspilli-tutorial:candidate -m pip check
+      - name: Verify non-root geometry initialization
+        run: |
+          docker run --rm --network none --read-only --tmpfs /tmp:rw,size=128m --entrypoint python keyspilli-tutorial:candidate -c "from lumachords.keybed_detector import KeybedDetector; from lumachords.image_input import ImagePreprocessor; from lumachords.preferences import Preferences; from lumachords.runtime_config import RuntimeConfig, AppMode, ProdMode, LogLevel; KeybedDetector(Preferences(), RuntimeConfig(AppMode.HEADLESS, ProdMode.PROD, LogLevel.LOGLEVEL_NONE)).init_state()"
+      - name: Verify synthetic extraction and timing tests
+        run: docker run --rm --network none --read-only --tmpfs /tmp:rw,size=128m --entrypoint python keyspilli-tutorial:candidate -m unittest discover -s /app/test -p 'test_tutorial_*.py'
+      - name: Record resolved image and native package evidence
+        run: |
+          docker image inspect keyspilli-tutorial:candidate --format '{{.Id}}'
+          docker run --rm --network none --entrypoint python keyspilli-tutorial:candidate -m pip freeze
+          docker run --rm --network none --entrypoint dpkg-query keyspilli-tutorial:candidate -W

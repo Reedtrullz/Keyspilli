@@ -1,6 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { canonicalYoutubeUrl, insertJob, getSongsByBase } from "@keyspilli/catalog";
+import { canonicalYoutubeUrl, insertJob, enqueueImportJob, getSongsByBase } from "@keyspilli/catalog";
 import { applySongMetadata, resolveBaseId, SongUpdateError, type SongPatch } from "@/lib/song-update";
 import { parseTempoRequest, TempoRequestError, type TempoRequestPatch } from "@/lib/tempo-request";
 import { apiAuthorization } from "../../../lib/api-auth";
@@ -112,14 +112,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
   const id = `job-${crypto.randomUUID()}`;
-  insertJob({
+  const job = {
     id,
     youtubeUrl: canonicalUrl,
-    status: "queued",
+    status: "queued" as const,
     songId,
     error: null,
     createdAt: new Date().toISOString(),
     finishedAt: null,
-  });
-  return NextResponse.json({ jobId: id, tempoRole });
+  };
+  const queuedId = songId === null ? enqueueImportJob(job) : (insertJob(job), id);
+  return NextResponse.json({ jobId: queuedId, tempoRole });
 }

@@ -1,0 +1,764 @@
+{
+  "status": "isolated-linux-cli-smoke-passed",
+  "platform": "linux/amd64 under emulation on Apple Silicon",
+  "cpus": 4,
+  "memoryBytes": 2147483648,
+  "network": "none",
+  "rootFilesystem": "read-only",
+  "nonRoot": true,
+  "imageId": "sha256:aa23a869f45a706e3e924d6212cb587866405505cb2c4776561d4b5c465dc002",
+  "imageSizeBytes": 388874991,
+  "checks": [
+    {
+      "name": "cli",
+      "exitCode": 0,
+      "seconds": 9.245
+    },
+    {
+      "name": "pip-check",
+      "exitCode": 0,
+      "seconds": 7.959
+    },
+    {
+      "name": "geometry",
+      "exitCode": 0,
+      "seconds": 5.963
+    },
+    {
+      "name": "tests",
+      "exitCode": 0,
+      "seconds": 10.399
+    },
+    {
+      "name": "python-packages",
+      "exitCode": 0,
+      "seconds": 7.906
+    },
+    {
+      "name": "native-packages",
+      "exitCode": 0,
+      "seconds": 0.229
+    },
+    {
+      "name": "image",
+      "exitCode": 0,
+      "seconds": 0.039
+    },
+    {
+      "name": "extraction",
+      "exitCode": 0,
+      "seconds": 232.989
+    }
+  ],
+  "parity": {
+    "sourceSha256": "43430d3426471ae0b78499c6a73989f03b8f93b8b5db4e99ea40646a456226a2",
+    "referenceNotes": 1140,
+    "linuxNotes": 1140,
+    "exactNotes": true,
+    "exactMidiBytes": true
+  },
+  "levels": {
+    "scope": "Linux extracted MIDI through host Node22 reducer and artifact validators; not a Linux HTTP worker deployment.",
+    "rows": [
+      {
+        "level": "beginner",
+        "notes": 177,
+        "sha256": "85ad4e1e435a27d3de7c53304cfcae9752984a153cd6cd7c3af5ef74c445af9d"
+      },
+      {
+        "level": "easy",
+        "notes": 548,
+        "sha256": "20acfb7188bc6fce5a6e6970cd81bc7fbf977c32d374f4b062bbaae4e04e835f"
+      },
+      {
+        "level": "medium",
+        "notes": 1119,
+        "sha256": "31c24707a4ec7a821cc7ab0657e80bdb750c106fb73d0aabfa1a8a9a2ab29ba0"
+      },
+      {
+        "level": "advanced",
+        "notes": 1119,
+        "sha256": "31c24707a4ec7a821cc7ab0657e80bdb750c106fb73d0aabfa1a8a9a2ab29ba0"
+      }
+    ]
+  },
+  "developmentPixelPreservation": {
+    "scope": "Full development video scanline bytes before/after early crop; no heldout inputs.",
+    "rows": [
+      {
+        "id": "01",
+        "sourceSha256": "0a16a98e8cdd4624e3f11bad8c55b401791c7b7ca1d86617caa8ea5df0929d28",
+        "exactScanlines": [
+          {
+            "scanline": 610,
+            "bytes": 62638080,
+            "sha256": "eca52d002506017eb8930600a1c0499f6e9ecaee8283e3da8d83ef3f6e9caf53"
+          },
+          {
+            "scanline": 689,
+            "bytes": 62638080,
+            "sha256": "ebfaf33762ff46038b3af4dd4194b354c90b165d74555bbe8b99eaeb6c8db5bc"
+          }
+        ]
+      },
+      {
+        "id": "02",
+        "sourceSha256": "2b527553abe7290c65a6887bd3da792767027a1bdae7bd51036df54dc6b9a0ad",
+        "exactScanlines": [
+          {
+            "scanline": 564,
+            "bytes": 30585600,
+            "sha256": "fb152a0c640e675481482666551dd90fc3655c7726b19ca44f6146682fb9782e"
+          },
+          {
+            "scanline": 645,
+            "bytes": 30585600,
+            "sha256": "d9d99b09b2914f627208d35a37cc688efac54b9d90c1d40d3a76fafc641401bf"
+          }
+        ]
+      },
+      {
+        "id": "03",
+        "sourceSha256": "43430d3426471ae0b78499c6a73989f03b8f93b8b5db4e99ea40646a456226a2",
+        "exactScanlines": [
+          {
+            "scanline": 554,
+            "bytes": 25635840,
+            "sha256": "1c2370c330fe8fdb2afc7ec43f4af9121b1354360a2d7af33c31fc8e13855630"
+          },
+          {
+            "scanline": 633,
+            "bytes": 25635840,
+            "sha256": "e217e5a91af686d8d748001625ff25d06ca998ffa8231d8347295ca2f17d73b8"
+          }
+        ]
+      },
+      {
+        "id": "04",
+        "sourceSha256": "ce64d475074d7a488ff005d53f9e839c4e3eaf63c1f4407d6ff168c5a7651eda",
+        "exactScanlines": [
+          {
+            "scanline": 541,
+            "bytes": 38380800,
+            "sha256": "945e5cd0be3ddf9f75037267e126d7222d2492e89e5de07ce9a76abd95b2c199"
+          },
+          {
+            "scanline": 666,
+            "bytes": 38380800,
+            "sha256": "367732a5c71e1b4f394b80c1d3b56a162e09066b58b4db11e1f680dac0cc32ea"
+          }
+        ]
+      },
+      {
+        "id": "05",
+        "sourceSha256": "94083b5465ad50d2596739912d9ab867960986953f8161dddbeccfdb699b8ef4",
+        "exactScanlines": [
+          {
+            "scanline": 571,
+            "bytes": 66597120,
+            "sha256": "e563b093d6fb201a382b8343d0719aaf0a4fcf5671a9d6a778dddfa6be4fcfc8"
+          },
+          {
+            "scanline": 676,
+            "bytes": 66597120,
+            "sha256": "48ed9c1e0f5f7660cd161586f351cb414d6f04715d5ff7001126a35b5577e61f"
+          }
+        ]
+      },
+      {
+        "id": "06",
+        "sourceSha256": "a534e0b3d4cdada3e38ce7f9d1d99bf7e75ef38cd8a76f0e09fe597e2b00ca52",
+        "exactScanlines": [
+          {
+            "scanline": 599,
+            "bytes": 29606400,
+            "sha256": "6fe8f429ffd5c0ea3b69b0b677b0034fcfb47054fcf4f04ae60095a3eacc083a"
+          },
+          {
+            "scanline": 684,
+            "bytes": 29606400,
+            "sha256": "fbf18a505e1402718a7b7eb0c2a75bb7f954d0f3e4cda033c3b73665bfbde461"
+          }
+        ]
+      },
+      {
+        "id": "07",
+        "sourceSha256": "a874e33ec3afb3ac4d4c4571f2706445a42215bbce913b6c05fd7b047a8942b6",
+        "exactScanlines": [
+          {
+            "scanline": 607,
+            "bytes": 18136320,
+            "sha256": "9cf1d023aafcdf9fd8970a5b27b1157d6d4ecf0a4c8af902752f4a2af87e5cec"
+          },
+          {
+            "scanline": 687,
+            "bytes": 18136320,
+            "sha256": "ca0a09c6b9125cbe74e524dabae63cd6713e7050090d8777deb1a8cc8a5ef287"
+          }
+        ]
+      },
+      {
+        "id": "08",
+        "sourceSha256": "04523b84716de5f336d050ded06574a76eeaf28210186c362244ec0b595b84dd",
+        "exactScanlines": [
+          {
+            "scanline": 611,
+            "bytes": 90251520,
+            "sha256": "7d62697e194a840a982199fe2528e6edc2e8ae8b4d6c8ea03b772d39633754b1"
+          },
+          {
+            "scanline": 689,
+            "bytes": 90251520,
+            "sha256": "f411cd5c6681395d15d14b4d4efb8cdc71dba672ce1e2665356576b7de2ff0e9"
+          }
+        ]
+      },
+      {
+        "id": "09",
+        "sourceSha256": "be0263c5f41a99e94d81eb53b8ccb2fbd740bffb2460252a04e4d0ea8a0c0e0a",
+        "exactScanlines": [
+          {
+            "scanline": 607,
+            "bytes": 42385920,
+            "sha256": "c6dc9c697b2d7b4a40e34745dd2582c850f1ed7061b537460fab0cd1bbfb8b03"
+          },
+          {
+            "scanline": 687,
+            "bytes": 42385920,
+            "sha256": "d28c6ae445ff0ca1c4b57b9f429cb46bea3d7e263780c415fb3806d3c4c2de90"
+          }
+        ]
+      },
+      {
+        "id": "10",
+        "sourceSha256": "c1575c7445417f3aa65d9a5b18b70a7876b2375d828cb1eb7fd3d345a9f5d506",
+        "exactScanlines": [
+          {
+            "scanline": 607,
+            "bytes": 48483840,
+            "sha256": "4029a2b62e1ac66ec099dd1e9df8874780fa0d47a15605b5fad318a45248f085"
+          },
+          {
+            "scanline": 686,
+            "bytes": 48483840,
+            "sha256": "459e0d0f6ae9e0c71672e28896c3c47509a9ac0b0321fd313cd3abee9a103387"
+          }
+        ]
+      },
+      {
+        "id": "11",
+        "sourceSha256": "d57c21e8cda44e7d54fc60856ab5ea94941ef56ffa4db05a526cb5632514469a",
+        "exactScanlines": [
+          {
+            "scanline": 524,
+            "bytes": 40876800,
+            "sha256": "3b01af4fe3f2cddd2d4f919069f88f9f90edc9e72d98f93e8d2e380d78f32cd3"
+          },
+          {
+            "scanline": 625,
+            "bytes": 40876800,
+            "sha256": "26dfd26badb70253a9b6b2094699b34d98d1b7d4c9a43971603d7ffb19bb2e97"
+          }
+        ]
+      },
+      {
+        "id": "12",
+        "sourceSha256": "b62b9fc185fa1c5403a730c22c3581f282da8780bfdfa21c65759754b5b63c7b",
+        "exactScanlines": [
+          {
+            "scanline": 462,
+            "bytes": 26062080,
+            "sha256": "9147b5a7543d13471a3c00afad73657d938c226dd2efc86e8d90944b2020f52c"
+          },
+          {
+            "scanline": 545,
+            "bytes": 26062080,
+            "sha256": "c16a00e817c35e65297f9199f3bd6e44e46dc2d0f350feeba5ef25a52e8dd6d8"
+          }
+        ]
+      },
+      {
+        "id": "13",
+        "sourceSha256": "335b2112941cd718b48f40cf03697e18d6c05367d69b1a95dfd336d6897e3da1",
+        "exactScanlines": [
+          {
+            "scanline": 600,
+            "bytes": 40654080,
+            "sha256": "2f7e3de3d34b6a7e16131baa069284717f3b7d488d81eb0b7abb0322e98f4c23"
+          },
+          {
+            "scanline": 684,
+            "bytes": 40654080,
+            "sha256": "a1b21951eab0343c1f5fdea06d2ec86b07411c9e8c6f0a53255d966a852f29a4"
+          }
+        ]
+      },
+      {
+        "id": "14",
+        "sourceSha256": "e662d453f9586e3808925c17672828bf4c11c4c00e3fc75c54b9beba40351a0c",
+        "exactScanlines": [
+          {
+            "scanline": 585,
+            "bytes": 19499520,
+            "sha256": "8a22a47d1887ff346c39862752855add60c9b359a60619e1037607ceb97089e4"
+          },
+          {
+            "scanline": 669,
+            "bytes": 19499520,
+            "sha256": "eddd67cc6a12d53351d0e4e4fb8ea8d184d90e7e2967d957515b526dd6fb7cd6"
+          }
+        ]
+      },
+      {
+        "id": "15",
+        "sourceSha256": "ca6bd1e2efa494c289b76c9505a680fcabb8f7d6daa07602f53307b482963d67",
+        "exactScanlines": [
+          {
+            "scanline": 607,
+            "bytes": 81565440,
+            "sha256": "4850c3fc041f39dd44768de47138d42b1b72fc4d85a448252789621ceddadbaa"
+          },
+          {
+            "scanline": 686,
+            "bytes": 81565440,
+            "sha256": "d68a516f47132dfd74be8cac77b25b890722cfaac2548c472af6c028ad14d271"
+          }
+        ]
+      },
+      {
+        "id": "16",
+        "sourceSha256": "63469c0a3880acb8a4ec980d59f2d09d6f91b860632c6a2ade1d5954adccf820",
+        "exactScanlines": [
+          {
+            "scanline": 583,
+            "bytes": 37432320,
+            "sha256": "f6aae63d0faca2eb4d12b928cbf9400e3dc284c6588b00b090d5351b231ba829"
+          },
+          {
+            "scanline": 662,
+            "bytes": 37432320,
+            "sha256": "0f85301898ed54097ffaf5de743d0e83b3dc7f8b56fba92f44975c829e39afae"
+          }
+        ]
+      },
+      {
+        "id": "17",
+        "sourceSha256": "e27aabc85f5cb45fd4cd12842737c6f95ae8c908f473520e22bd4be514ad60cb",
+        "exactScanlines": [
+          {
+            "scanline": 566,
+            "bytes": 80067840,
+            "sha256": "6a0e77b9a1f830fcd213c232cdce8d2082b81ad4e8c5b14f78715e60de8c16f7"
+          },
+          {
+            "scanline": 645,
+            "bytes": 80067840,
+            "sha256": "3e60437f7e70cd3139626bd859424b63ce10b29cb573535009602785c09c173d"
+          }
+        ]
+      },
+      {
+        "id": "18",
+        "sourceSha256": "fd8fdf8ae6c81f74399e40a6d8bd9976810b50e0307fe10f05f3452902bc5256",
+        "exactScanlines": [
+          {
+            "scanline": 593,
+            "bytes": 25835520,
+            "sha256": "d40368bd33472965884612131339eb4e54902c3acdc6c2dfc9e974f25dfca319"
+          },
+          {
+            "scanline": 682,
+            "bytes": 25835520,
+            "sha256": "9e2b2613c55c501e4df6bfdd5ee962e046027572df2fe933c97371ea9fbb8d49"
+          }
+        ]
+      },
+      {
+        "id": "19",
+        "sourceSha256": "6a083495c6a9a5d3a170acad145d7bec75e98ee876fa8eaa66f06ecec287fea9",
+        "exactScanlines": [
+          {
+            "scanline": 607,
+            "bytes": 64942080,
+            "sha256": "cd0ead0c0c98ceaed2d05b7bfb22a60801e8c9e560ac798e1e4830159bfd1141"
+          },
+          {
+            "scanline": 686,
+            "bytes": 64942080,
+            "sha256": "4ef9a6ca2b9e80ea86f38492b980ca4757ccd08e42416a7daebf3cceed064a52"
+          }
+        ]
+      },
+      {
+        "id": "20",
+        "sourceSha256": "a8ca7f0fe0d671f3441315fd74cc0ae59d8bddc5809efcf5df9bf5511c064f6f",
+        "exactScanlines": [
+          {
+            "scanline": 563,
+            "bytes": 93004800,
+            "sha256": "f4644b1faea8479f67d4d64f13612f7ceb2d916a9ef2e794a1e20166d2eaba7e"
+          },
+          {
+            "scanline": 643,
+            "bytes": 93004800,
+            "sha256": "3890d2ab09efea435aced975fc2e7e1445bf1d4a00dffce5f8cdc30e2a7f354d"
+          }
+        ]
+      }
+    ]
+  },
+  "pythonPackages": [
+    "cffi==2.1.1",
+    "contourpy==1.3.3",
+    "crossfiledialog==1.3.1",
+    "cycler==0.12.1",
+    "ffmpeg-python==0.2.0",
+    "fonttools==4.64.0",
+    "future==1.0.0",
+    "kiwisolver==1.5.1",
+    "lumachords==0.1.4",
+    "matplotlib==3.11.1",
+    "mido==1.3.3",
+    "numpy==2.5.3",
+    "opencv-python-headless==4.10.0.84",
+    "packaging==26.3",
+    "pillow==12.3.0",
+    "platformdirs==4.11.7",
+    "pycparser==3.0",
+    "pyfluidsynth==1.4.0",
+    "pygame==2.6.1",
+    "pygame-menu==4.5.2",
+    "PyOpenGL==3.1.10",
+    "PyOpenGL-accelerate==3.1.10",
+    "pyparsing==3.3.2",
+    "pyperclip==1.11.0",
+    "python-dateutil==2.9.0.post0",
+    "python-rtmidi==1.5.8",
+    "pyvips==3.2.0",
+    "pyvips-binary==8.18.6",
+    "six==1.17.0",
+    "tqdm==4.70.0",
+    "typing_extensions==4.16.0",
+    "verovio==6.3.0",
+    "yt-dlp==2026.8.19"
+  ],
+  "nativePackages": [
+    "adduser\t3.134",
+    "apt\t2.6.1",
+    "base-files\t12.4+deb12u15",
+    "base-passwd\t3.6.1",
+    "bash\t5.2.15-2+b13",
+    "bsdutils\t1:2.38.1-5+deb12u3",
+    "ca-certificates\t20250419~deb12u1",
+    "coreutils\t9.1-1",
+    "dash\t0.5.12-2",
+    "debconf\t1.5.82",
+    "debian-archive-keyring\t2023.3+deb12u2",
+    "debianutils\t5.7-0.5~deb12u1",
+    "diffutils\t1:3.8-4",
+    "dpkg\t1.21.23",
+    "e2fsprogs\t1.47.0-2+b2",
+    "ffmpeg\t7:5.1.9-0+deb12u1",
+    "findutils\t4.9.0-4",
+    "fontconfig\t2.14.1-4",
+    "fontconfig-config\t2.14.1-4",
+    "fonts-dejavu-core\t2.37-6",
+    "gcc-12-base:amd64\t12.2.0-14+deb12u1",
+    "gpgv\t2.2.40-1.1+deb12u2",
+    "grep\t3.8-5",
+    "gzip\t1.12-1",
+    "hostname\t3.23+nmu1",
+    "init-system-helpers\t1.65.2+deb12u1",
+    "libacl1:amd64\t2.3.1-3",
+    "libaom3:amd64\t3.6.0-1+deb12u3",
+    "libapt-pkg6.0:amd64\t2.6.1",
+    "libasound2:amd64\t1.2.8-1+b1",
+    "libasound2-data\t1.2.8-1",
+    "libass9:amd64\t1:0.17.1-1+deb12u1",
+    "libasyncns0:amd64\t0.8-6+b3",
+    "libattr1:amd64\t1:2.5.1-4",
+    "libaudit-common\t1:3.0.9-1",
+    "libaudit1:amd64\t1:3.0.9-1",
+    "libavc1394-0:amd64\t0.5.4-5",
+    "libavcodec59:amd64\t7:5.1.9-0+deb12u1",
+    "libavdevice59:amd64\t7:5.1.9-0+deb12u1",
+    "libavfilter8:amd64\t7:5.1.9-0+deb12u1",
+    "libavformat59:amd64\t7:5.1.9-0+deb12u1",
+    "libavutil57:amd64\t7:5.1.9-0+deb12u1",
+    "libblas3:amd64\t3.11.0-2",
+    "libblkid1:amd64\t2.38.1-5+deb12u3",
+    "libbluray2:amd64\t1:1.3.4-1",
+    "libbrotli1:amd64\t1.0.9-2+b6",
+    "libbs2b0:amd64\t3.1.0+dfsg-7",
+    "libbsd0:amd64\t0.11.7-2",
+    "libbz2-1.0:amd64\t1.0.8-5+b1",
+    "libc-bin\t2.36-9+deb12u14",
+    "libc6:amd64\t2.36-9+deb12u14",
+    "libcaca0:amd64\t0.99.beta20-3+deb12u1",
+    "libcairo-gobject2:amd64\t1.16.0-7",
+    "libcairo2:amd64\t1.16.0-7",
+    "libcap-ng0:amd64\t0.8.3-1+b3",
+    "libcap2:amd64\t1:2.66-4+deb12u3+b1",
+    "libcdio-cdda2:amd64\t10.2+2.0.1-1",
+    "libcdio-paranoia2:amd64\t10.2+2.0.1-1",
+    "libcdio19:amd64\t2.1.0-4",
+    "libchromaprint1:amd64\t1.5.1-2+b1",
+    "libcjson1:amd64\t1.7.15-1+deb12u4",
+    "libcodec2-1.0:amd64\t1.0.5-1",
+    "libcom-err2:amd64\t1.47.0-2+b2",
+    "libcrypt1:amd64\t1:4.4.33-2",
+    "libdatrie1:amd64\t0.2.13-2+b1",
+    "libdav1d6:amd64\t1.0.0-2+deb12u1",
+    "libdb5.3:amd64\t5.3.28+dfsg2-1",
+    "libdbus-1-3:amd64\t1.14.10-1~deb12u1",
+    "libdc1394-25:amd64\t2.2.6-4",
+    "libdebconfclient0:amd64\t0.270",
+    "libdecor-0-0:amd64\t0.1.1-2",
+    "libdeflate0:amd64\t1.14-1",
+    "libdrm-amdgpu1:amd64\t2.4.114-1+b1",
+    "libdrm-common\t2.4.114-1",
+    "libdrm-intel1:amd64\t2.4.114-1+b1",
+    "libdrm-nouveau2:amd64\t2.4.114-1+b1",
+    "libdrm-radeon1:amd64\t2.4.114-1+b1",
+    "libdrm2:amd64\t2.4.114-1+b1",
+    "libedit2:amd64\t3.1-20221030-2",
+    "libegl-mesa0:amd64\t22.3.6-1+deb12u2",
+    "libegl1:amd64\t1.6.0-1",
+    "libelf1:amd64\t0.188-2.1",
+    "libepoxy0:amd64\t1.5.10-1",
+    "libexpat1:amd64\t2.5.0-1+deb12u3",
+    "libext2fs2:amd64\t1.47.0-2+b2",
+    "libffi8:amd64\t3.4.4-1",
+    "libflac12:amd64\t1.4.2+ds-2",
+    "libflite1:amd64\t2.2-5",
+    "libfluidsynth3:amd64\t2.3.1-2",
+    "libfontconfig1:amd64\t2.14.1-4",
+    "libfreetype6:amd64\t2.12.1+dfsg-5+deb12u4",
+    "libfribidi0:amd64\t1.0.8-2.1",
+    "libgbm1:amd64\t22.3.6-1+deb12u2",
+    "libgcc-s1:amd64\t12.2.0-14+deb12u1",
+    "libgcrypt20:amd64\t1.10.1-3+deb12u1",
+    "libgdbm6:amd64\t1.23-3",
+    "libgdk-pixbuf-2.0-0:amd64\t2.42.10+dfsg-1+deb12u4",
+    "libgdk-pixbuf2.0-common\t2.42.10+dfsg-1+deb12u4",
+    "libgfortran5:amd64\t12.2.0-14+deb12u1",
+    "libgl1:amd64\t1.6.0-1",
+    "libgl1-mesa-dri:amd64\t22.3.6-1+deb12u2",
+    "libglapi-mesa:amd64\t22.3.6-1+deb12u2",
+    "libglib2.0-0:amd64\t2.74.6-2+deb12u9",
+    "libglvnd0:amd64\t1.6.0-1",
+    "libglx-mesa0:amd64\t22.3.6-1+deb12u2",
+    "libglx0:amd64\t1.6.0-1",
+    "libgme0:amd64\t0.6.3-6",
+    "libgmp10:amd64\t2:6.2.1+dfsg1-1.1",
+    "libgnutls30:amd64\t3.7.9-2+deb12u7",
+    "libgomp1:amd64\t12.2.0-14+deb12u1",
+    "libgpg-error0:amd64\t1.46-1",
+    "libgraphite2-3:amd64\t1.3.14-1+deb12u1",
+    "libgsm1:amd64\t1.0.22-1",
+    "libgssapi-krb5-2:amd64\t1.20.1-2+deb12u5",
+    "libharfbuzz0b:amd64\t6.0.0+dfsg-3",
+    "libhogweed6:amd64\t3.8.1-2",
+    "libhwy1:amd64\t1.0.3-3+deb12u1",
+    "libicu72:amd64\t72.1-3+deb12u1",
+    "libidn2-0:amd64\t2.3.3-1+b1",
+    "libiec61883-0:amd64\t1.2.0-6+b1",
+    "libinstpatch-1.0-2:amd64\t1.1.6-1",
+    "libjack-jackd2-0:amd64\t1.9.21~dfsg-3",
+    "libjbig0:amd64\t2.1-6.1",
+    "libjpeg62-turbo:amd64\t1:2.1.5-2",
+    "libjxl0.7:amd64\t0.7.0-10+deb12u1",
+    "libk5crypto3:amd64\t1.20.1-2+deb12u5",
+    "libkeyutils1:amd64\t1.6.3-2",
+    "libkrb5-3:amd64\t1.20.1-2+deb12u5",
+    "libkrb5support0:amd64\t1.20.1-2+deb12u5",
+    "liblapack3:amd64\t3.11.0-2",
+    "liblcms2-2:amd64\t2.14-2+deb12u1",
+    "liblerc4:amd64\t4.0.0+ds-2",
+    "liblilv-0-0:amd64\t0.24.14-1",
+    "libllvm15:amd64\t1:15.0.6-4+b1",
+    "liblz4-1:amd64\t1.9.4-1",
+    "liblzma5:amd64\t5.4.1-1+deb12u1",
+    "libmbedcrypto7:amd64\t2.28.3-1",
+    "libmd0:amd64\t1.0.4-2",
+    "libmfx1:amd64\t22.5.4-1",
+    "libmount1:amd64\t2.38.1-5+deb12u3",
+    "libmp3lame0:amd64\t3.100-6",
+    "libmpg123-0:amd64\t1.31.2-1+deb12u1",
+    "libmysofa1:amd64\t1.3.1~dfsg0-1",
+    "libncursesw6:amd64\t6.4-4",
+    "libnettle8:amd64\t3.8.1-2",
+    "libnorm1:amd64\t1.5.9+dfsg-2",
+    "libnsl2:amd64\t1.3.0-2",
+    "libnuma1:amd64\t2.0.16-1",
+    "libogg0:amd64\t1.3.5-3",
+    "libopenal-data\t1:1.19.1-2",
+    "libopenal1:amd64\t1:1.19.1-2",
+    "libopenjp2-7:amd64\t2.5.0-2+deb12u3",
+    "libopenmpt0:amd64\t0.6.9-1",
+    "libopus0:amd64\t1.3.1-3",
+    "libp11-kit0:amd64\t0.24.1-2",
+    "libpam-modules:amd64\t1.5.2-6+deb12u2",
+    "libpam-modules-bin\t1.5.2-6+deb12u2",
+    "libpam-runtime\t1.5.2-6+deb12u2",
+    "libpam0g:amd64\t1.5.2-6+deb12u2",
+    "libpango-1.0-0:amd64\t1.50.12+ds-1",
+    "libpangocairo-1.0-0:amd64\t1.50.12+ds-1",
+    "libpangoft2-1.0-0:amd64\t1.50.12+ds-1",
+    "libpciaccess0:amd64\t0.17-2",
+    "libpcre2-8-0:amd64\t10.42-1",
+    "libpgm-5.3-0:amd64\t5.3.128~dfsg-2",
+    "libpixman-1-0:amd64\t0.42.2-1",
+    "libplacebo208:amd64\t4.208.0-3",
+    "libpng16-16:amd64\t1.6.39-2+deb12u5",
+    "libpocketsphinx3:amd64\t0.8+5prealpha+1-15",
+    "libpostproc56:amd64\t7:5.1.9-0+deb12u1",
+    "libpulse0:amd64\t16.1+dfsg1-2+b1",
+    "libquadmath0:amd64\t12.2.0-14+deb12u1",
+    "librabbitmq4:amd64\t0.11.0-1+deb12u3",
+    "librav1e0:amd64\t0.5.1-6",
+    "libraw1394-11:amd64\t2.1.2-2",
+    "libreadline8:amd64\t8.2-1.3",
+    "librist4:amd64\t0.2.7+dfsg-1",
+    "librsvg2-2:amd64\t2.54.7+dfsg-1~deb12u1",
+    "librubberband2:amd64\t3.1.2+dfsg0-1",
+    "libsamplerate0:amd64\t0.2.2-3",
+    "libsdl2-2.0-0:amd64\t2.26.5+dfsg-1",
+    "libseccomp2:amd64\t2.5.4-1+deb12u1",
+    "libselinux1:amd64\t3.4-1+b6",
+    "libsemanage-common\t3.4-1",
+    "libsemanage2:amd64\t3.4-1+b5",
+    "libsensors-config\t1:3.6.0-7.1",
+    "libsensors5:amd64\t1:3.6.0-7.1",
+    "libsepol2:amd64\t3.4-2.1",
+    "libserd-0-0:amd64\t0.30.16-1",
+    "libshine3:amd64\t3.1.1-2",
+    "libslang2:amd64\t2.3.3-3",
+    "libsmartcols1:amd64\t2.38.1-5+deb12u3",
+    "libsnappy1v5:amd64\t1.1.9-3",
+    "libsndfile1:amd64\t1.2.0-1+deb12u1",
+    "libsndio7.0:amd64\t1.9.0-0.3+b2",
+    "libsodium23:amd64\t1.0.18-1+deb12u1",
+    "libsord-0-0:amd64\t0.16.14+git221008-1",
+    "libsoxr0:amd64\t0.1.3-4",
+    "libspeex1:amd64\t1.2.1-2",
+    "libsphinxbase3:amd64\t0.8+5prealpha+1-16",
+    "libsqlite3-0:amd64\t3.40.1-2+deb12u2",
+    "libsratom-0-0:amd64\t0.6.14-1",
+    "libsrt1.5-gnutls:amd64\t1.5.1-1+deb12u1",
+    "libss2:amd64\t1.47.0-2+b2",
+    "libssh-gcrypt-4:amd64\t0.10.6-0+deb12u2",
+    "libssl3:amd64\t3.0.20-1~deb12u2",
+    "libstdc++6:amd64\t12.2.0-14+deb12u1",
+    "libsvtav1enc1:amd64\t1.4.1+dfsg-1",
+    "libswresample4:amd64\t7:5.1.9-0+deb12u1",
+    "libswscale6:amd64\t7:5.1.9-0+deb12u1",
+    "libsystemd0:amd64\t252.39-1~deb12u2",
+    "libtasn1-6:amd64\t4.19.0-2+deb12u1",
+    "libthai-data\t0.1.29-1",
+    "libthai0:amd64\t0.1.29-1",
+    "libtheora0:amd64\t1.1.1+dfsg.1-16.1+deb12u1",
+    "libtiff6:amd64\t4.5.0-6+deb12u4",
+    "libtinfo6:amd64\t6.4-4",
+    "libtirpc-common\t1.3.3+ds-1",
+    "libtirpc3:amd64\t1.3.3+ds-1",
+    "libtwolame0:amd64\t0.4.0-2",
+    "libudev1:amd64\t252.39-1~deb12u2",
+    "libudfread0:amd64\t1.1.2-1",
+    "libunistring2:amd64\t1.0-2",
+    "libusb-1.0-0:amd64\t2:1.0.26-1",
+    "libuuid1:amd64\t2.38.1-5+deb12u3",
+    "libva-drm2:amd64\t2.17.0-1",
+    "libva-x11-2:amd64\t2.17.0-1",
+    "libva2:amd64\t2.17.0-1",
+    "libvdpau1:amd64\t1.5-2",
+    "libvidstab1.1:amd64\t1.1.0-2+b1",
+    "libvorbis0a:amd64\t1.3.7-1",
+    "libvorbisenc2:amd64\t1.3.7-1",
+    "libvorbisfile3:amd64\t1.3.7-1",
+    "libvpx7:amd64\t1.12.0-1+deb12u5",
+    "libvulkan1:amd64\t1.3.239.0-1",
+    "libwayland-client0:amd64\t1.21.0-1",
+    "libwayland-cursor0:amd64\t1.21.0-1",
+    "libwayland-egl1:amd64\t1.21.0-1",
+    "libwayland-server0:amd64\t1.21.0-1",
+    "libwebp7:amd64\t1.2.4-0.2+deb12u1",
+    "libwebpmux3:amd64\t1.2.4-0.2+deb12u1",
+    "libx11-6:amd64\t2:1.8.4-2+deb12u2",
+    "libx11-data\t2:1.8.4-2+deb12u2",
+    "libx11-xcb1:amd64\t2:1.8.4-2+deb12u2",
+    "libx264-164:amd64\t2:0.164.3095+gitbaee400-3",
+    "libx265-199:amd64\t3.5-2+b1",
+    "libxau6:amd64\t1:1.0.9-1",
+    "libxcb-dri2-0:amd64\t1.15-1",
+    "libxcb-dri3-0:amd64\t1.15-1",
+    "libxcb-glx0:amd64\t1.15-1",
+    "libxcb-present0:amd64\t1.15-1",
+    "libxcb-randr0:amd64\t1.15-1",
+    "libxcb-render0:amd64\t1.15-1",
+    "libxcb-shape0:amd64\t1.15-1",
+    "libxcb-shm0:amd64\t1.15-1",
+    "libxcb-sync1:amd64\t1.15-1",
+    "libxcb-xfixes0:amd64\t1.15-1",
+    "libxcb1:amd64\t1.15-1",
+    "libxcursor1:amd64\t1:1.2.1-1",
+    "libxdmcp6:amd64\t1:1.1.2-3",
+    "libxext6:amd64\t2:1.3.4-1+b1",
+    "libxfixes3:amd64\t1:6.0.0-2",
+    "libxi6:amd64\t2:1.8-1+b1",
+    "libxkbcommon0:amd64\t1.5.0-1",
+    "libxml2:amd64\t2.9.14+dfsg-1.3~deb12u6",
+    "libxrandr2:amd64\t2:1.5.2-2+b1",
+    "libxrender1:amd64\t1:0.9.10-1.1",
+    "libxshmfence1:amd64\t1.3-1",
+    "libxss1:amd64\t1:1.2.3-1",
+    "libxv1:amd64\t2:1.0.11-1.1",
+    "libxvidcore4:amd64\t2:1.3.7-1",
+    "libxxf86vm1:amd64\t1:1.1.4-1+b2",
+    "libxxhash0:amd64\t0.8.1-1",
+    "libz3-4:amd64\t4.8.12-3.1",
+    "libzimg2:amd64\t3.0.4+ds1-1",
+    "libzmq5:amd64\t4.3.4-6",
+    "libzstd1:amd64\t1.5.4+dfsg2-5",
+    "libzvbi-common\t0.2.41-1+deb12u1",
+    "libzvbi0:amd64\t0.2.41-1+deb12u1",
+    "login\t1:4.13+dfsg1-1+deb12u2",
+    "logsave\t1.47.0-2+b2",
+    "mawk\t1.3.4.20200120-3.1",
+    "mount\t2.38.1-5+deb12u3",
+    "ncurses-base\t6.4-4",
+    "ncurses-bin\t6.4-4",
+    "netbase\t6.4",
+    "ocl-icd-libopencl1:amd64\t2.3.1-1",
+    "openssl\t3.0.20-1~deb12u2",
+    "passwd\t1:4.13+dfsg1-1+deb12u2",
+    "perl-base\t5.36.0-7+deb12u3",
+    "readline-common\t8.2-1.3",
+    "sed\t4.9-1+deb12u1",
+    "shared-mime-info\t2.2-1",
+    "sysvinit-utils\t3.06-4",
+    "tar\t1.34+dfsg-1.2+deb12u1",
+    "timgm6mb-soundfont\t1.3-5",
+    "tzdata\t2026b-0+deb12u1",
+    "usr-is-merged\t37~deb12u1",
+    "util-linux\t2.38.1-5+deb12u3",
+    "util-linux-extra\t2.38.1-5+deb12u3",
+    "x11-common\t1:7.7+23",
+    "xkb-data\t2.35.1-1",
+    "zlib1g:amd64\t1:1.2.13.dfsg-1"
+  ],
+  "sourceHashes": {
+    "services/transcribe/Dockerfile.tutorial": "19512e8eb8f1c63f24af6f251a034e141406e5a149a0e73511fa2387b5efe95f",
+    "services/transcribe/requirements-tutorial.txt": "f9b39287027232ff029d21d2c9d8b9b0af06683908a938dcbd1ca489cedfbe68",
+    "services/transcribe/src/tutorial_keys.py": "67767718ba5cc15a1b665a5067643d67d0ec57fb2bff4521503bfd6b8d4dab7b",
+    "services/transcribe/src/tutorial_timing.py": "bdb94ce874f09fd59759339f4e444783ccadcd2d1cd0aaabac93d6950440a652"
+  },
+  "limitations": [
+    "Two-CPU amd64-emulated full extraction timed out at120s FFmpeg limit; four-CPU run passes with unchanged timeout.",
+    "This image contains Python CLI only, not the complete Node HTTP worker.",
+    "Difficulty export validation ran in host Node22.",
+    "Native amd64 throughput, source rights and production deployment remain unverified.",
+    "pyvips source-build tooling and apt repositories are not fully hash-locked; this is resolved image evidence, not byte-reproducible rebuild proof.",
+    "Historical9/10 fresh and20/20 cached benchmark receipts predate these Linux fixes and remain unchanged."
+  ]
+}

@@ -110,6 +110,7 @@ def collect(mode: str) -> dict[str, Any]:
             "versionMatches": health.get("version") == web_env.get("VERSION")
             and health.get("image") == web.get("Config", {}).get("Image"),
             "sourceDiscoveryConfigured": health.get("capabilities", {}).get("sourceDiscoveryConfigured"),
+            "tutorialImportsMatch": health.get("capabilities", {}).get("tutorialImportsEnabled", False) == (web_env.get("KEYSPILLI_TUTORIAL_BETA") == "1"),
             "directAudioAmt": health.get("capabilities", {}).get("directAudioAmt"),
         },
         "worker": {
@@ -187,6 +188,7 @@ def evaluate(snapshot: dict[str, Any], mode: str) -> dict[str, Any]:
         "sourceDiscoveryConfigured": True,
         "directAudioAmt": False,
     }.items())
+    web_ok = web_ok and web.get("tutorialImportsMatch", True) is True
     checks["web"] = {"status": "healthy" if web_ok else "failed", **web}
     if not web_ok: failures.append("web_health_or_capability_mismatch")
     if isinstance(web.get("restarts"), int) and web["restarts"] > 0: warnings.append("web_restart_count_nonzero")

@@ -1,0 +1,96 @@
+{
+  "date": "2026-09-08",
+  "scope": "Native Ubuntu 24.04 amd64 packaging and default worker startup; not a full native YouTube import",
+  "run": {
+    "headSha": "a5b11f093b01ab139f70a88a6120d12f5d0f6c71",
+    "status": "completed",
+    "conclusion": "success",
+    "url": "https://github.com/Reedtrullz/Keyspilli/actions/runs/34219448139"
+  },
+  "steps": [
+    {
+      "name": "Set up job",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Check out repository",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Require build disk headroom",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Build candidate (includes real geometry import and synthetic tests)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Build worker candidate on native amd64",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Verify isolated default worker startup",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Verify isolated CLI and dependency consistency",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Verify non-root geometry initialization",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Verify synthetic extraction and timing tests",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Record resolved image and native package evidence",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Post Check out repository",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Complete job",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "images": {
+    "cli": "sha256:38df011bcbd172d9213a6231b4918ce980d9d39bab527213b0be35331c12b5f7",
+    "worker": "sha256:86916e86a1fe28eb67735905688f511445d145ed289a7c35007162b5d24378c7"
+  },
+  "checks": {
+    "pythonTests": 34,
+    "dependencyConsistency": true,
+    "geometryInitialization": true,
+    "defaultWorkerStartup": true,
+    "oneAdditionalPollInterval": true,
+    "goGcWorkaround": false,
+    "runtimeNetwork": "none",
+    "user": "65532:65532",
+    "readOnlyRoot": true,
+    "workerMemoryBytes": 1073741824,
+    "workerCpus": 2
+  },
+  "logSha256": "b74853cce452eb012ecba97ff134afc75ecefbfa04e3304a20788ba823d64543",
+  "limits": [
+    "No source media used or published in CI",
+    "Startup capacity only, not sustained import capacity",
+    "Previous complete HTTP proof remains emulated Linux",
+    "No production merge, image push or deployment"
+  ]
+}

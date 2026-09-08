@@ -818,4 +818,25 @@ describe("ingestSource .mxl", () => {
     }
     expect(maxSounding).toBeLessThanOrEqual(12);
   });
+  it("persists actual source-arrangement provenance at every level and rejects hash mismatch", async () => {
+    const sourceArrangement = {
+      beta: true as const, requestedUrl: "https://www.youtube.com/watch?v=abcdefghijk",
+      actualSourceUrl: "https://scores.example/verified.mid", sourceSha256: "a".repeat(64), realizationSha256: "b".repeat(64),
+      sourceKind: "verified-native-midi" as const, arrangementTitle: "Verified Piano", artist: "Tester", title: "Verified",
+      timingOwner: "selected-arrangement" as const, containsMelody: true, license: "CC0-1.0",
+      licenseEvidenceUrl: "https://scores.example/license", verificationEvidenceUrl: "https://scores.example/verified", candidateSetDigest: "c".repeat(64),
+    };
+    const buf = writeMidi(Array.from({ length: 32 }, (_, i) => ({ midi: 60 + i % 5, start: i, dur: .75, vel: 90, hand: "R" as const })), { tempoBpm: 120 });
+    const input = { buf, title: "Verified Piano", artist: "Tester", contentType: "youtube" as const, baseId: "source-assisted-provenance", cleanTranscription: false, arrangementProfile: "source" as const, sourceArrangement };
+    expect((await ingestSource(input)).error).toMatch(/hash mismatch/);
+    const result = await ingestSource({ ...input, sourceArtifactHash: sourceArrangement.sourceSha256 });
+    expect(result.error).toBeUndefined();
+    const manifest = JSON.parse(readFileSync(join(tmp, "artifacts", result.baseId, "manifest.json"), "utf8"));
+    expect(manifest.sourceArrangement).toEqual(sourceArrangement);
+    for (const level of ["vb", "b", "e", "m", "a"]) {
+      const artifact = JSON.parse(readFileSync(join(artifactsDir(result.baseId, level), "notes.json"), "utf8"));
+      expect(artifact.provenance.sourceArrangement).toEqual(sourceArrangement);
+    }
+  });
+
 });

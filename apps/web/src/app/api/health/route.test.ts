@@ -1,9 +1,10 @@
+import {tutorialImportsEnabled} from "../../../../../../packages/catalog/src/tutorial-imports";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const countSongs = vi.hoisted(() => vi.fn());
 const hasSourceCandidateProvider = vi.hoisted(() => vi.fn());
 
-vi.mock("@keyspilli/catalog", () => ({ countSongs }));
+vi.mock("@keyspilli/catalog", () => ({ countSongs, tutorialImportsEnabled }));
 vi.mock("../../../lib/source-candidate-provider", () => ({ hasSourceCandidateProvider }));
 
 import { GET } from "./route";
@@ -26,4 +27,14 @@ describe("health route capabilities", () => {
     });
     expect(hasSourceCandidateProvider).toHaveBeenCalledOnce();
   });
+});
+
+it("reports the private beta gate at request time",async()=>{
+ try {
+  vi.stubEnv("NODE_ENV","production");vi.stubEnv("KEYSPILLI_DATA_DIR","/private-beta");
+  vi.stubEnv("KEYSPILLI_TUTORIAL_BETA","");
+  expect((await (await GET()).json()).capabilities.tutorialImportsEnabled).toBe(false);
+  vi.stubEnv("KEYSPILLI_TUTORIAL_BETA","1");
+  expect((await (await GET()).json()).capabilities.tutorialImportsEnabled).toBe(true);
+ } finally {vi.unstubAllEnvs();}
 });

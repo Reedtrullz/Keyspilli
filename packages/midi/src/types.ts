@@ -10,6 +10,8 @@ export interface Note {
   /** 0-127 */
   vel: number;
   hand?: Hand;
+  /** Neutral tutorial track label, retained for opt-in source hand inference. */
+  sourceLane?: string;
   /** Source lane for role-aware learner arrangement; absent on legacy notes. */
   identitySource?: "vocals" | "guitar" | "other";
   /** optional lyric syllable for this note */
@@ -146,16 +148,14 @@ export const LEVEL_ORDER: DifficultyLevel[] = [
   "advanced",
 ];
 
-/** Client-facing five-level roll-up; physical six-level generation is unchanged. */
+/** Client-facing four-level roll-up; physical six-level generation is unchanged. */
 export type PublicDifficultyLevel =
-  | "very-beginner"
   | "beginner"
   | "easy"
   | "medium"
   | "advanced";
 
 export const PUBLIC_DIFFICULTY_ORDER = [
-  "very-beginner",
   "beginner",
   "easy",
   "medium",

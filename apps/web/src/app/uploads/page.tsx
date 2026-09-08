@@ -285,7 +285,7 @@ export default function UploadsPage() {
       {(errorPresence.mounted || donePresence.mounted) && <div className="upload-status-slot mb-4">
         {errorPresence.mounted && <p className="motion-presence text-red-600 text-sm" data-state={errorPresence.visible ? "open" : "closed"} aria-hidden={status !== "error"} role="alert">{error}</p>}
         {donePresence.mounted && result && <div className="motion-presence rounded-xl bg-green-50 p-4 text-sm" data-state={donePresence.visible ? "open" : "closed"} aria-hidden={status !== "done"} role="status">
-          Lesson created with five public levels.
+          Lesson created with four public levels.
           <div className="mt-2 flex flex-wrap gap-3">
             <Link href={`/player/${result.easySongId ?? result.songIds[0]}`} className="pressable text-indigo-700 font-medium underline">Open in the player →</Link>
             <button type="button" onClick={reset} className="pressable text-zinc-700 underline">Add another song</button>

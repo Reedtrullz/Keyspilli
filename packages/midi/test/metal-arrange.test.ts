@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildMetalArrangement, buildVariants, parseChordSymbol, rescueGuitarPreSelectorCandidates, selectGuitarLeadPath, validateVariants, verifyMonotonicity } from "../src/index.js";
+import { buildMetalArrangement, buildVariants, parseMidi, writeMidi, parseChordSymbol, rescueGuitarPreSelectorCandidates, selectGuitarLeadPath, validateVariants, verifyMonotonicity } from "../src/index.js";
 import type { MetalArrangementTraceEvent, Note, ParsedMidi } from "../src/index.js";
 
 function midi(notes: Note[], durationBeats = 16): ParsedMidi {
@@ -18,6 +18,81 @@ function midi(notes: Note[], durationBeats = 16): ParsedMidi {
 }
 
 describe("metal piano arranger", () => {
+  it("preserves a low theme despite sparse upper partials and a genuine high theme over low rhythm", () => {
+    const pitches = [45, 47, 48, 47, 45, 48, 50, 48, 43, 45, 47, 45, 41, 43, 45, 43];
+    const theme = pitches.map((pitch, start) => ({ midi: pitch, start, dur: 0.8, vel: 90 }));
+    const matched = (actual: Note[], expected: Note[]): number => {
+      const used = new Set<number>();
+      return expected.filter((note) => {
+        const index = actual.findIndex((candidate, i) => !used.has(i)
+          && candidate.midi % 12 === note.midi % 12
+          && Math.abs(candidate.start - note.start) * 0.5 <= 0.08);
+        if (index < 0) return false;
+        used.add(index);
+        return true;
+      }).length;
+    };
+    for (const contaminated of [false, true]) {
+      const noise = contaminated ? theme.filter((_, i) => i % 3 === 0)
+        .map((n) => ({ ...n, midi: n.midi + 19, start: n.start + 0.06, dur: 0.25, vel: 70 })) : [];
+      const result = buildMetalArrangement({ stems: [
+        { role: "guitar", midi: midi([...theme, ...noise]) },
+        { role: "bass", midi: midi([33, 33, 31, 29].map((pitch, i) => ({ midi: pitch, start: i * 4, dur: 3.8, vel: 75 }))) },
+      ] });
+      expect.soft(matched(result.parsed.notes, theme), `theme survival contaminated=${contaminated}`).toBe(theme.length);
+      expect.soft(result.ir.identity.length - matched(result.ir.identity, theme), `extra identity contaminated=${contaminated}`).toBe(0);
+      for (const variant of buildVariants(result.parsed, { title: "Identity regression", artist: "Synthetic" }, { arrangementProfile: "metal", audioDerived: true, chords: result.chords })) {
+        const retained = variant.notes.filter((n) => n.identitySource === "guitar");
+        expect(retained.length, variant.level).toBeGreaterThan(0);
+        expect(retained.every((n) => theme.some((source) => source.midi % 12 === n.midi % 12 && Math.abs(source.start - n.start) * 0.5 <= 0.08)), variant.level).toBe(true);
+      }
+    }
+    const high = theme.map((n) => ({ ...n, midi: n.midi + 24 }));
+    const rhythm = Array.from({ length: 32 }, (_, i) => ({ midi: 45, start: i * 0.5, dur: 0.4, vel: 100 }));
+    const result = buildMetalArrangement({ stems: [{ role: "guitar", midi: midi([...high, ...rhythm]) }] });
+    expect(matched(result.ir.identity, high)).toBe(high.length);
+    expect(result.ir.identity.length - matched(result.ir.identity, high)).toBe(0);
+  });
+
+  it("ends a physical key before another source retriggers it, including MIDI export", () => {
+    const result = buildMetalArrangement({ stems: [
+      { role: "vocals", midi: midi([66, 67, 69, 67].map((pitch, i) => ({ midi: pitch, start: i * 2, dur: 1.5, vel: 90 })), 8) },
+      ...(["guitar", "other"] as const).map((role, lane) => ({ role, midi: midi(Array.from({ length: 16 }, (_, i) => ({ midi: 47, start: i * 0.5 + lane * 0.2, dur: 0.6, vel: 80 - lane * 10 })), 8) })),
+      { role: "bass", midi: midi([{ midi: 35, start: 0, dur: 8, vel: 80 }], 8) },
+    ] });
+    const left = result.parsed.notes.filter((n) => n.hand === "L" && n.midi === 47);
+    expect(left.filter((n) => n.identitySource)).toHaveLength(32);
+    for (const notes of [left, parseMidi(writeMidi(left, { tempoBpm: 120 })).notes]) {
+      for (let i = 1; i < notes.length; i++) expect(notes[i - 1]!.start + notes[i - 1]!.dur).toBeLessThanOrEqual(notes[i]!.start + 1e-8);
+    }
+  });
+
+  it("aligns differently encoded stem tempos by elapsed time without mutating inputs", () => {
+    const vocals = midi(Array.from({ length: 16 }, (_, i) => ({ midi: 67 + i % 4, start: i, dur: 0.75, vel: 100 })));
+    const bass = midi([0, 4, 8, 12].map((start, i) => ({ midi: [36, 41, 43, 38][i]!, start, dur: 2, vel: 80 })));
+    const expected = buildMetalArrangement({ stems: [{ role: "vocals", midi: vocals }, { role: "bass", midi: bass }] });
+    const slower = { ...bass, tempoBpm: 60, durationBeats: 8, notes: bass.notes.map(n => ({ ...n, start: n.start / 2, dur: n.dur / 2 })) };
+    const before = structuredClone(slower);
+    const actual = buildMetalArrangement({ stems: [{ role: "vocals", midi: vocals }, { role: "bass", midi: slower }] });
+    expect(actual.parsed.notes).toEqual(expected.parsed.notes);
+    expect(actual.chords).toEqual(expected.chords);
+    expect(actual.ir.durationBeats).toBe(expected.ir.durationBeats);
+    expect(slower).toEqual(before);
+  });
+
+  it("respects native tempo changes across note boundaries", () => {
+    const lead = midi(Array.from({ length: 16 }, (_, i) => ({ midi: 67 + i % 4, start: i, dur: 0.75, vel: 100 })));
+    const native = midi([{ midi: 36, start: 3, dur: 3, vel: 80 }, { midi: 43, start: 6, dur: 2, vel: 80 }], 8);
+    native.tempoEvents = [
+      { tick: 0, beat: 0, microsecondsPerQuarter: 500000, bpm: 120 },
+      { tick: 1920, beat: 4, microsecondsPerQuarter: 1000000, bpm: 60 },
+    ];
+    const aligned = midi([{ midi: 36, start: 3, dur: 5, vel: 80 }, { midi: 43, start: 8, dur: 4, vel: 80 }], 12);
+    const run = (bass: ParsedMidi) => buildMetalArrangement({ stems: [{ role: "vocals", midi: lead }, { role: "bass", midi: bass }] });
+    expect(run(native).parsed.notes).toEqual(run(aligned).parsed.notes);
+    expect(run(native).chords).toEqual(run(aligned).chords);
+  });
+
   it("selects vocals then a guitar riff, infers power chords, and never pitches drums", () => {
     const vocals = Array.from({ length: 8 }, (_, i) => ({ midi: 67 + (i % 3), start: i, dur: 0.8, vel: 100 }));
     const guitar: Note[] = [

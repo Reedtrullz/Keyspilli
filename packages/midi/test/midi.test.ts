@@ -1263,6 +1263,77 @@ describe("buildVariants", () => {
     expect(advanced.chords).toEqual([]);
   });
 
+  it("limits each hand's local runs in source Easy", () => {
+    const notes: Note[] = [
+      ...Array.from({length:16},(_,i)=>({midi:72,start:i*4,dur:1,vel:80,hand:"R" as const})),
+      ...Array.from({length:16},(_,i)=>({midi:64+i%5,start:64+i*.25,dur:i===15?2:.25,vel:80,hand:"R" as const})),
+      ...Array.from({length:16},(_,i)=>({midi:40+i%3*7,start:64+i*.25,dur:.25,vel:80,hand:"L" as const})),
+    ];
+    const source: ParsedMidi = {format:1,division:480,tempoBpm:120,keySig:0,keyMode:0,timeSig:[4,4],
+      trackNames:["Right Hand","Left Hand"],durationBeats:70,notes};
+    const variants=buildVariants(source,{title:"Fast two-hand fill",artist:"Test"},{arrangementProfile:"source",maxDurBeats:null});
+    const easy=variants.find(v=>v.level==="easy")!;
+    for(const hand of ["R","L"] as const){
+      const starts=[...new Set(easy.notes.filter(n=>n.hand===hand).map(n=>n.start))].sort((a,b)=>a-b);
+      expect(Math.min(...starts.slice(1).map((s,i)=>(s-starts[i]!)*.5))).toBeGreaterThanOrEqual(hand==="R"?.375:.5);
+    }
+    expect(validateVariants(variants,{maxDurBeats:null})).toEqual([]);
+  });
+
+  it("preserves an accompaniment-only source ending in Beginner", () => {
+    const notes: Note[] = [
+      ...Array.from({ length: 16 }, (_, i) => ({ midi: 72, start: i * 2, dur: 1, vel: 80, hand: "R" as const })),
+      ...[48, 43, 40].map((midi, i) => ({ midi, start: 34 + i * 2, dur: i === 2 ? 4 : 1, vel: 80, hand: "L" as const })),
+    ];
+    const source: ParsedMidi = { format: 1, division: 480, tempoBpm: 120, keySig: 0, keyMode: 0,
+      timeSig: [4, 4], trackNames: ["Right Hand", "Left Hand"], durationBeats: 42, notes };
+    const variants = buildVariants(source, { title: "Accompaniment ending", artist: "Test" },
+      { arrangementProfile: "source", maxDurBeats: null });
+    const beginner = variants.find(v => v.level === "beginner")!;
+    expect(beginner.notes.some(n => n.midi === 40 && n.start === 38 && n.hand === "L")).toBe(true);
+    expect(validateVariants(variants, { maxDurBeats: null })).toEqual([]);
+  });
+
+  it("limits local Beginner bursts even in an otherwise sparse source", () => {
+    const notes: Note[] = [...Array.from({ length: 16 }, (_, i) => ({ midi: 72, start: i * 4, dur: 1, vel: 80, hand: "R" as const })),
+      ...Array.from({ length: 12 }, (_, i) => ({ midi: 72 + i % 5, start: 64 + i * 0.25, dur: i === 11 ? 2 : 0.25, vel: 80, hand: "R" as const }))];
+    const source: ParsedMidi = { format: 1, division: 480, tempoBpm: 120, keySig: 0, keyMode: 0,
+      timeSig: [4, 4], trackNames: ["Right Hand"], durationBeats: 70, notes };
+    const variants = buildVariants(source, { title: "Sparse then fast", artist: "Test" }, { arrangementProfile: "source", maxDurBeats: null });
+    const beginner = variants.find(v => v.level === "beginner")!.notes;
+    const starts = [...new Set(beginner.map(n => n.start))].sort((a,b)=>a-b);
+    expect(Math.min(...starts.slice(1).map((s,i)=>(s-starts[i]!)*.5))).toBeGreaterThanOrEqual(.375);
+    expect(beginner.some(n=>n.midi===73 && n.start===66.75)).toBe(true);
+    expect(validateVariants(variants,{maxDurBeats:null})).toEqual([]);
+  });
+
+  it("keeps a source ending through coarse-grid beginner matching", () => {
+    const notes: Note[] = [...Array.from({ length: 12 }, (_, i) => ({ midi: 72, start: i * 2, dur: 1, vel: 80, hand: "R" as const })),
+      { midi: 74, start: 24.125, dur: 1, vel: 80, hand: "R" }];
+    const source: ParsedMidi = { format: 1, division: 480, tempoBpm: 120, keySig: 0, keyMode: 0,
+      timeSig: [4, 4], trackNames: ["Right Hand"], durationBeats: 26, notes };
+    const variants = buildVariants(source, { title: "Off-grid ending", artist: "Test" }, { arrangementProfile: "source", maxDurBeats: null });
+    expect(variants.find((v) => v.level === "beginner")!.notes.some((n) => n.midi === 74 && n.start === 24.125)).toBe(true);
+    expect(validateVariants(variants)).toEqual([]);
+  });
+
+  it("preserves source-profile harmonic changes in easy reductions", () => {
+    const bass = [48, 43, 45, 41].map((midi, i) => ({ midi, start: i * 2, dur: 1, vel: 80, hand: "L" as const }));
+    const source: ParsedMidi = {
+      format: 1, division: 480, tempoBpm: 120, keySig: 0, keyMode: 0, timeSig: [4, 4],
+      trackNames: ["Left Hand", "Right Hand"], durationBeats: 8,
+      notes: [...bass, ...bass.map((n) => ({ ...n, midi: 72, hand: "R" as const }))],
+    };
+    const variants = buildVariants(source, { title: "Changing harmony", artist: "Test", key: "C" },
+      { arrangementProfile: "source", maxDurBeats: null });
+    for (const level of ["easy", "very-easy"] as const) {
+      const v = variants.find((v) => v.level === level)!;
+      expect(v.notes.filter((n) => n.hand === "L").map((n) => [n.start, n.midi]))
+        .toEqual(bass.map((n) => [n.start, n.midi]));
+      expect(validateArtifactFiles(v, writeVariantArtifacts(v, "Changing harmony", "Test"))).toEqual([]);
+    }
+  });
+
   it("roots easy-variant bass notes to the song key", () => {
     const src: ParsedMidi = {
       format: 0,

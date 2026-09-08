@@ -1,6 +1,8 @@
+import { inferSourceHandLanes } from "./source-hand-lanes.js";
 import { splitHands, detectBassPattern, detectKey, chordName } from "./analyze.js";
 import { Note, ParsedMidi, SongMeta, Variant, DifficultyLevel, LEVEL_ORDER, ChordLabel } from "./types.js";
 import { quantize } from "./quantize.js";
+import { midiBeatToNativeSeconds } from "./parse.js";
 import { BEGINNER_OFFGRID_CANDIDATE, LADDER_TOL, PLAYABILITY_LIMITS } from "./validate.js";
 import { sanitizeImportedNotes } from "./clean.js";
 import { validateChordLabels } from "./chords.js";
@@ -22,6 +24,8 @@ export interface VariantOptions {
   grid?: number;
   /** octave-shift notes outside the piano range (21-108) into it */
   normalizeRange?: boolean;
+  /** Opt-in tutorial lane inference for source profile; uncertain lanes abstain. */
+  inferSourceHands?: boolean;
   /**
    * Optional hard ceiling for imported note sustains, in beats.  Audio
    * transcriptions often inherit a detector's tail (or a pedal resonance)
@@ -32,7 +36,7 @@ export interface VariantOptions {
   maxDurBeats?: number | null;
   /**
    * Arrangement intent. `source` keeps the imported staff assignment as
-   * faithfully as possible (the historical direct-call behaviour). `learner`
+   * faithfully as possible, including retained bass pitches. `learner`
    * applies conservative two-hand, melody-over-chords shaping. `metal` uses
    * the same learner safety gates but treats the supplied RH/LH roles as a
    * semantic piano cover, retaining sparse harmonic anchors at every level.
@@ -2149,6 +2153,25 @@ function trimSamePitchOverlaps(notes: Note[], minDur = 0.125): Note[] {
  * than its playability budget. Selection-only (no start shifting) keeps the
  * source pitches intact and makes the result eligible for the RH ladder.
  */
+/** Limit short bursts without letting the rest of a sparse song hide them. */
+function spaceHandAttacks(notes: Note[], tempoBpm: number, minimumSeconds = 0.375): Note[] {
+  const spacing = minimumSeconds * tempoBpm / 60;
+  const kept: Note[][] = [];
+  for (const group of onsetGroups(notes)) {
+    const previous = kept.at(-1);
+    if (!previous || group[0]!.start - previous[0]!.start >= spacing - 1e-9) {
+      kept.push(group);
+    } else if (Math.max(...group.map(n => n.dur)) > Math.max(...previous.map(n => n.dur)) + 1e-9) {
+      // Favor a held landing over a short ornament; moving it later preserves spacing.
+      kept[kept.length - 1] = group;
+    }
+  }
+  return trimSamePitchOverlaps(kept.flatMap((group, i) => group.map(note => ({
+    ...note,
+    dur: Math.min(note.dur, kept[i + 1] ? kept[i + 1]![0]!.start - note.start : note.dur),
+  }))));
+}
+
 function capAttackDensity(notes: Note[], tempoBpm: number, maxDensity: number, minMedianIoi: number): Note[] {
   if (!notes.length || !Number.isFinite(tempoBpm) || tempoBpm <= 0) return notes;
   const span = maxNoteEnd(notes);
@@ -2720,6 +2743,24 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     const chordErrors = validateChordLabels(opts.chords);
     if (chordErrors.length) throw new Error(`invalid supplied chords: ${chordErrors.join("; ")}`);
   }
+  // Variants use a constant clock. Integrate source tempo changes before any
+  // reduction; otherwise later scalar-BPM playback stretches the wrong notes.
+  const sourceTempo = normalizeTempoBpm(src.tempoBpm);
+  if (src.tempoEvents?.length && (
+    !src.tempoEvents.some(event => event.tick === 0)
+    || src.tempoEvents.some(event => Math.abs(60_000_000 / event.microsecondsPerQuarter - sourceTempo) > 1e-6)
+  )) {
+    const source = src;
+    const beat = (value: number): number => midiBeatToNativeSeconds(source, value) * sourceTempo / 60;
+    src = { ...source, tempoBpm: sourceTempo, tempoEvents: undefined,
+      durationBeats: beat(source.durationBeats),
+      notes: source.notes.map(note => ({ ...note, start: beat(note.start), dur: beat(note.start + note.dur) - beat(note.start) })),
+    };
+    if (opts.chords) opts = { ...opts, chords: opts.chords.map(chord => ({ ...chord,
+      beat: beat(chord.beat),
+      ...(chord.durationBeats === undefined ? {} : { durationBeats: beat(chord.beat + chord.durationBeats) - beat(chord.beat) }),
+    })) };
+  }
   const grid = opts.grid ?? 0.25;
   const metalProfile = opts.arrangementProfile === "metal";
   const learnerProfile = opts.arrangementProfile === "learner";
@@ -2753,7 +2794,9 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   // the generic one-staff rebalance would undo that semantic separation.
   const innerVoiceArrangement = learnerProfile && opts.audioDerived === true && shouldRedistributeInnerVoices(imported);
   const arrangedImported = innerVoiceArrangement ? redistributeInnerVoices(imported) : imported;
-  const base = quantize(arrangedImported, { grid: 0.125, minDur: 0.125 });
+  const sourceHandInference = opts.arrangementProfile === "source" && opts.inferSourceHands
+    ? inferSourceHandLanes(arrangedImported) : undefined;
+  const base = quantize(sourceHandInference?.notes ?? arrangedImported, { grid: 0.125, minDur: 0.125 });
   const normalized = opts.normalizeRange === false ? base : normalizePianoRange(base);
   const shifted = base.filter((n, i) => normalized[i]!.midi !== n.midi);
   const sourceWarnings = shifted.length
@@ -2762,7 +2805,9 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   const arrangementWarnings = innerVoiceArrangement
     ? ["learner inner-voice redistribution applied (inferred staff assignment)"]
     : [];
-  const warnings = [...sourceWarnings, ...arrangementWarnings];
+  const warnings = [...sourceWarnings, ...arrangementWarnings,
+    ...(sourceHandInference ? [`tutorial source hand inference: ${sourceHandInference.reason} (not verified staff assignment)`] : []),
+  ];
   const splitSource = normalized;
   const hasExplicitHands = splitSource.some((n) => n.hand !== undefined);
   const unlabeledSource = splitSource.filter((n) => n.hand === undefined);
@@ -2896,10 +2941,9 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   const easyLhTexture = metalProfile
     ? metalLeftHandTexture(mediumLh, 0.75, 2)
     : trimSamePitchOverlaps(thinChord(mediumLh, 2).map((n) => (
-      // Learner imports already carry the source voicing. Re-rooting every
-      // attack to the global key erases real harmonic changes; keep the
-      // historical tonic revoice for the default/source profile only.
-      learnerProfile ? { ...n } : { ...n, midi: rootOf(n.midi, key) }
+      // Explicit source/learner imports already carry harmonic changes.
+      // Keep the historical tonic revoice only for the unspecified profile.
+      learnerProfile || opts.arrangementProfile === "source" ? { ...n } : { ...n, midi: rootOf(n.midi, key) }
     )));
   if (learnerTraceEnabled) {
     emitLearnerStageTrace(learnerTraceSink, "easy-rh-input", easyRhSource, [{
@@ -2934,7 +2978,10 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     easyAssembledSource,
     { grid: 0.125 },
   ));
-  const easy = capLevel("easy", easyUncapped);
+  const easy = capLevel("easy", opts.arrangementProfile === "source" ? [
+    ...spaceHandAttacks(easyUncapped.filter(note => note.hand !== "L"), tempo),
+    ...spaceHandAttacks(easyUncapped.filter(note => note.hand === "L"), tempo, 0.5),
+  ].sort((a, b) => a.start - b.start || a.midi - b.midi) : easyUncapped);
   if (learnerTraceEnabled) {
     const easyDecision = [...easyMelody, ...easyLhTexture];
     emitLearnerStageTrace(learnerTraceSink, "decision", easyDecision, [
@@ -3053,7 +3100,9 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     const ladderReduced = preserveRhLadder(
       sets[easier]!,
       sets[harder]!,
-      LADDER_TOL[easier] ?? 0.02,
+      // Source timing can sit halfway between the coarser Beginner grid.
+      // Match that rounding distance, then snap back to the harder onset.
+      opts.arrangementProfile === "source" && easier === "beginner" ? 0.13 : LADDER_TOL[easier] ?? 0.02,
       PLAYABILITY_LIMITS[easier]!.maxSim,
       pathologicalWall || metalBeginnerFallback,
       metalBeginnerFallback,
@@ -3157,6 +3206,14 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   if (learnerTraceEnabled) {
     emitLearnerStageTrace(learnerTraceSink, "easy-ladder", sets.easy!, [{ stage: "easy-playable", notes: easy }], "easy-ladder-preservation");
     emitLearnerStageTrace(learnerTraceSink, "final", sets.easy!, [{ stage: "easy-ladder", notes: sets.easy! }], "easy-public-final");
+  }
+  if (opts.arrangementProfile === "source") {
+    // A piano arrangement can finish in the bass after the RH part ends.
+    // Keep that actual ending as a single LH line, rather than silent bars.
+    const rhEnd = maxNoteEnd(sets.easy.filter(note => note.hand !== "L"));
+    const tail = onsetGroups(sets.easy.filter(note => note.hand === "L" && note.start >= rhEnd))
+      .map(group => group.reduce((a, b) => a.midi < b.midi ? a : b));
+    sets.beginner = spaceHandAttacks([...sets.beginner!, ...tail], tempo);
   }
   const scores: Record<DifficultyLevel, number> = {
     "very-beginner": 1,

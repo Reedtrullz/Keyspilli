@@ -1,0 +1,141 @@
+{
+  "scope": "Three real browser submissions through HTTP queue, live worker search/download/extraction, ingest, player and MIDI HTTP exports; no seeded MIDI or mocked transport. Not broad song coverage or production deployment.",
+  "browserPlayback": "Metallica advanced from 0:00 to 0:38 and paused; browser MIDI download event observed",
+  "rows": [
+    {
+      "name": "metallica",
+      "jobId": "job-029f5d64-1975-4469-8aee-c64d5c6323c8",
+      "inputUrl": "https://www.youtube.com/watch?v=tAGnKpE4NCI",
+      "playerUrl": "http://127.0.0.1:3103/player/preview-job-029f5d64-1975-4469-8aee-c64d5c6323c8-e",
+      "status": "done",
+      "elapsedSeconds": 19.841,
+      "selectedUrl": "https://www.youtube.com/watch?v=DzAGQbvDpns",
+      "attempts": [
+        {
+          "url": "https://www.youtube.com/watch?v=DzAGQbvDpns",
+          "status": "extracted-and-structurally-validated"
+        }
+      ],
+      "levels": [
+        {
+          "level": "beginner",
+          "notes": 435,
+          "referenceNotesIdentical": true,
+          "selectedCandidateNotesIdentical": true,
+          "httpStatus": 200
+        },
+        {
+          "level": "easy",
+          "notes": 665,
+          "referenceNotesIdentical": true,
+          "selectedCandidateNotesIdentical": true,
+          "httpStatus": 200
+        },
+        {
+          "level": "medium",
+          "notes": 1508,
+          "referenceNotesIdentical": true,
+          "selectedCandidateNotesIdentical": true,
+          "httpStatus": 200
+        },
+        {
+          "level": "advanced",
+          "notes": 1541,
+          "referenceNotesIdentical": true,
+          "selectedCandidateNotesIdentical": true,
+          "httpStatus": 200
+        }
+      ]
+    },
+    {
+      "name": "acdc",
+      "jobId": "job-d7e123bf-ee97-441e-b226-0cc84e55bc65",
+      "inputUrl": "https://www.youtube.com/watch?v=pAgnJDJN4VA",
+      "playerUrl": "http://127.0.0.1:3103/player/preview-job-d7e123bf-ee97-441e-b226-0cc84e55bc65-e",
+      "status": "done",
+      "elapsedSeconds": 12.238,
+      "selectedUrl": "https://www.youtube.com/watch?v=vo2EKse1FUM",
+      "attempts": [
+        {
+          "url": "https://www.youtube.com/watch?v=vo2EKse1FUM",
+          "status": "extracted-and-structurally-validated"
+        }
+      ],
+      "levels": [
+        {
+          "level": "beginner",
+          "notes": 138,
+          "referenceNotesIdentical": true,
+          "selectedCandidateNotesIdentical": true,
+          "httpStatus": 200
+        },
+        {
+          "level": "easy",
+          "notes": 348,
+          "referenceNotesIdentical": true,
+          "selectedCandidateNotesIdentical": true,
+          "httpStatus": 200
+        },
+        {
+          "level": "medium",
+          "notes": 797,
+          "referenceNotesIdentical": true,
+          "selectedCandidateNotesIdentical": true,
+          "httpStatus": 200
+        },
+        {
+          "level": "advanced",
+          "notes": 803,
+          "referenceNotesIdentical": true,
+          "selectedCandidateNotesIdentical": true,
+          "httpStatus": 200
+        }
+      ]
+    },
+    {
+      "name": "nirvana",
+      "jobId": "job-b7d20eff-acde-4e64-8bdc-0cbfe9f31a16",
+      "inputUrl": "https://www.youtube.com/watch?v=vabnZ9-ex7o",
+      "playerUrl": "http://127.0.0.1:3103/player/preview-job-b7d20eff-acde-4e64-8bdc-0cbfe9f31a16-e",
+      "status": "done",
+      "elapsedSeconds": 18.845,
+      "selectedUrl": "https://www.youtube.com/watch?v=YbCciu_p9VA",
+      "attempts": [
+        {
+          "url": "https://www.youtube.com/watch?v=YbCciu_p9VA",
+          "status": "extracted-and-structurally-validated"
+        }
+      ],
+      "levels": [
+        {
+          "level": "beginner",
+          "notes": 311,
+          "referenceNotesIdentical": false,
+          "selectedCandidateNotesIdentical": true,
+          "httpStatus": 200
+        },
+        {
+          "level": "easy",
+          "notes": 529,
+          "referenceNotesIdentical": false,
+          "selectedCandidateNotesIdentical": true,
+          "httpStatus": 200
+        },
+        {
+          "level": "medium",
+          "notes": 1359,
+          "referenceNotesIdentical": false,
+          "selectedCandidateNotesIdentical": true,
+          "httpStatus": 200
+        },
+        {
+          "level": "advanced",
+          "notes": 1367,
+          "referenceNotesIdentical": false,
+          "selectedCandidateNotesIdentical": true,
+          "httpStatus": 200
+        }
+      ]
+    }
+  ]
+}

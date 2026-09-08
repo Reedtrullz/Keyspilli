@@ -1,0 +1,28 @@
+{
+  "sourceBeginnerOnly": true,
+  "minimumSpacingSeconds": 0.375,
+  "cases": [
+    {
+      "song": "bohemian",
+      "notes": 601,
+      "minAttackGapSeconds": 0.375
+    },
+    {
+      "song": "nothing-else-matters",
+      "notes": 390,
+      "minAttackGapSeconds": 0.375
+    },
+    {
+      "song": "in-my-mind",
+      "notes": 236,
+      "minAttackGapSeconds": 0.4375
+    }
+  ],
+  "localTests": {
+    "midi": 370,
+    "catalog": 1085,
+    "midiTypecheck": "passed"
+  },
+  "higherLevelMidiByteIdentical": true,
+  "productionChanged": false
+}

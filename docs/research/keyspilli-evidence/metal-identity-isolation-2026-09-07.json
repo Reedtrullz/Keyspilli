@@ -1,0 +1,40 @@
+{
+  "scope": "invented controlled diagnostic, not song or held-out accuracy",
+  "rows": [
+    {
+      "id": "clean-low-riff",
+      "expectedAttacks": 16,
+      "matchedPitchClassOnsetAnyHand": 16,
+      "matchedPitchClassOnsetRH": 12,
+      "rhNotes": 12
+    },
+    {
+      "id": "clean-low-riff-and-bass",
+      "expectedAttacks": 16,
+      "matchedPitchClassOnsetAnyHand": 16,
+      "matchedPitchClassOnsetRH": 12,
+      "rhNotes": 12
+    },
+    {
+      "id": "same-riff-upper-register",
+      "expectedAttacks": 16,
+      "matchedPitchClassOnsetAnyHand": 16,
+      "matchedPitchClassOnsetRH": 16,
+      "rhNotes": 16
+    },
+    {
+      "id": "low-riff-with-upper-partial-contamination",
+      "expectedAttacks": 16,
+      "matchedPitchClassOnsetAnyHand": 15,
+      "matchedPitchClassOnsetRH": 8,
+      "rhNotes": 13
+    },
+    {
+      "id": "clean-vocal-melody-and-bass",
+      "expectedAttacks": 16,
+      "matchedPitchClassOnsetAnyHand": 16,
+      "matchedPitchClassOnsetRH": 16,
+      "rhNotes": 16
+    }
+  ]
+}

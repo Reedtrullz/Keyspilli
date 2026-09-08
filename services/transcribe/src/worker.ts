@@ -3,20 +3,29 @@
  * yt-dlp, transcribes with Basic Pitch (python venv), ingests the resulting
  * MIDI into the catalog, and marks the job done/error.
  */
+import { resolveTutorialLink } from "./tutorial-route.js";
+import { loadAutomaticSourceIndex, resolveAutomaticSymbolic } from "./automatic-symbolic.js";
 import { execFile } from "node:child_process";
-import { createHash } from "node:crypto";
-import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
-import { mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
+import { createHash, randomUUID } from "node:crypto";
+import { createReadStream, existsSync, readFileSync, statSync, writeFileSync, renameSync } from "node:fs";
+import { mkdir, readFile, rename, stat, statfs, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
+import { pathToFileURL } from "node:url";
 import {
+  tutorialImportsEnabled,
   claimJob,
-  getDb,
+  renewJobLease,
+  ownsJobLease,
   getQueuedJobs,
   requeueOrphaned,
   updateJob,
   getJob,
   getSong,
+  getSongsByBase,
+  readArrangementManifest,
+  validateStagedArtifactTree,
+  artifactsDir,
   resolveYoutubeAudio,
   transcribedDir,
   ROOT,
@@ -36,7 +45,7 @@ import { buildMetalArrangement, parseMidi, transcriptionMaxDurationBeats, writeM
 import { assessMetalRouting } from "./metal-routing.js";
 import { stemPipelineConfigFromEnv, transcribePitchedStems } from "./stem-pipeline.js";
 import { metalArrangementTracks } from "./metal-midi.js";
-import { normalizeYoutubeImportUrl } from "./youtube-url.js";
+import { normalizeYoutubeImportUrl, ytNetworkFlags } from "./youtube-url.js";
 import {
   isYoutubeBotChallenge,
   sanitizeProcessError,
@@ -77,6 +86,7 @@ async function persistMetalArrangement(dir: string, midi: Uint8Array): Promise<v
  * Values are optional and fall back to the global env defaults. */
 interface TranscriptionOverride {
   denseBand?: boolean;
+  accompanimentOnly?: boolean;
   onsetThreshold?: number;
   frameThreshold?: number;
   skipOnsetFilter?: boolean;
@@ -128,21 +138,11 @@ async function sha256File(path: string): Promise<string> {
   return hash.digest("hex");
 }
 
-const YT_COOKIE_FILE = process.env.KEYSPILLI_YT_COOKIES ?? "";
-const YT_PROXY = process.env.KEYSPILLI_YT_PROXY ?? "";
-
 interface YoutubeMeta {
   title: string;
   uploader: string;
   durationSec: number;
   acquisition: "downloaded" | "pre-seeded";
-}
-
-function ytNetworkFlags(): string[] {
-  return [
-    ...(YT_COOKIE_FILE ? ["--cookies", YT_COOKIE_FILE] : []),
-    ...(YT_PROXY ? ["--proxy", YT_PROXY] : []),
-  ];
 }
 
 async function ytDlp(args: string[], timeoutMs = 300_000): Promise<string> {
@@ -195,28 +195,23 @@ async function fetchYoutubeMeta(jobId: string, dir: string, youtubeUrl: string):
   return { title: title || "YouTube conversion", uploader: uploader || "YouTube", durationSec: duration, acquisition: "downloaded" };
 }
 
-async function processJob(jobId: string): Promise<void> {
+export async function processJob(jobId: string): Promise<void> {
   const job = getJob(jobId);
   if (!job) return;
   // Atomic claim: another worker may have taken it while we read metadata.
-  if (!claimJob(jobId)) return;
+  const owner = claimJob(jobId);
+  if (!owner) return;
+  const updateOwnedJob = (patch: Parameters<typeof updateJob>[1]) => updateJob(jobId, patch, owner);
   const existing = job.songId ? getSong(job.songId) : undefined;
   if (existing && existsSync(join(seedMidiDir(), `${existing.baseId}.mid`))) {
-    updateJob(jobId, { status: "done", songId: existing.id, finishedAt: new Date().toISOString() });
+    updateOwnedJob({ status: "done", songId: existing.id, finishedAt: new Date().toISOString() });
     console.log(`[worker] ${jobId} curated base (${existing.baseId}), kept existing artifacts`);
     return;
   }
   const dir = join(transcribedDir(), jobId);
-  // Separation plus three pitched-stem transcriptions can legitimately run
-  // much longer than the database's orphan threshold. Refresh the existing
-  // started_at lease so a worker restart cannot requeue and duplicate an
-  // active job. The status guard prevents this timer from reviving a job that
-  // has already transitioned to queued/error/done.
   const heartbeat = setInterval(() => {
     try {
-      getDb()
-        .prepare("UPDATE conversion_jobs SET started_at = datetime('now') WHERE id = ? AND status = 'processing'")
-        .run(jobId);
+      if (!renewJobLease(jobId, owner)) console.warn(`[worker] ${jobId} lost job lease; publication is disabled`);
     } catch (error) {
       console.warn(`[worker] ${jobId} heartbeat failed: ${(error as Error).message}`);
     }
@@ -224,6 +219,89 @@ async function processJob(jobId: string): Promise<void> {
   heartbeat.unref();
   try {
     await mkdir(dir, { recursive: true });
+    const disk = await statfs(dir);
+    if (disk.bavail * disk.bsize < STEM_PIPELINE_CONFIG.minFreeBytes) {
+      throw new Error("SOURCE_REVIEW_REQUIRED: insufficient free disk space; reclaim space before retrying");
+    }
+    if ((process.env.KEYSPILLI_TUTORIAL_BETA === "1" || process.env.KEYSPILLI_TUTORIAL_PREVIEW === "1") && !tutorialImportsEnabled())
+      throw new Error("SOURCE_REVIEW_REQUIRED: tutorial imports require an enabled runtime flag and data directory");
+    if (tutorialImportsEnabled()) {
+      if (existing) throw new Error("SOURCE_REVIEW_REQUIRED: tutorial preview cannot replace existing songs");
+      const checkActive = () => {
+        if (!ownsJobLease(jobId, owner) || getJob(jobId)?.status !== "processing") throw new Error("tutorial job cancelled");
+      };
+      const onProgress = (stage: string) => {
+        checkActive();
+        const progressPath = join(dir, "progress.json");
+        writeFileSync(progressPath + ".tmp", JSON.stringify({stage}));
+        renameSync(progressPath + ".tmp", progressPath);
+      };
+      const candidate = await resolveTutorialLink(normalizeYoutubeImportUrl(job.youtubeUrl), join(dir, "tutorial-" + randomUUID()), {checkActive,onProgress});
+      if (candidate.status !== "local-listening-candidate") throw new Error(candidate.attempts?.length ? "SOURCE_REVIEW_REQUIRED: tutorial extraction failed" : "SOURCE_REVIEW_REQUIRED: no matching tutorial found");
+      const buf = await readFile(candidate.midiPath);
+      const evidence = JSON.parse(await readFile(candidate.midiPath.replace(/\.mid$/, ".json"), "utf8"));
+      const baseId = "preview-" + jobId;
+      const sourceArrangement = {
+        beta: true as const, requestedUrl: job.youtubeUrl, actualSourceUrl: candidate.selectedUrl,
+        sourceSha256: evidence.sourceSha256, realizationSha256: createHash("sha256").update(buf).digest("hex"),
+        sourceKind: "tutorial-preview" as const, arrangementTitle: candidate.candidates.find((c: {url: string}) => c.url === candidate.selectedUrl)!.title,
+        artist: candidate.identity.artist, title: candidate.identity.title, timingOwner: "selected-arrangement" as const,
+        containsMelody: null, license: "unverified", licenseEvidenceUrl: "", verificationEvidenceUrl: candidate.selectedUrl,
+        candidateSetDigest: createHash("sha256").update(JSON.stringify(candidate.candidates)).digest("hex"),
+      };
+      onProgress("publishing");
+      const imported = await ingestSource({buf, baseId, title: candidate.identity.title, artist: candidate.identity.artist,
+        category: "Tutorial preview", contentType: "youtube", acquiredVia: "colored-keyboard-video",
+        sourceRef: candidate.selectedUrl, sourceArtifactHash: evidence.sourceSha256, sourceArrangement,
+        cleanTranscription: false, maxDurBeats: null, arrangementProfile: "source",
+      }, {beforeReplace: () => {
+        if (!ownsJobLease(jobId, owner) || getJob(jobId)?.status !== "processing" || getSongsByBase(baseId).length)
+          throw new Error("tutorial publication cancelled or already exists");
+      }});
+      if (imported.error) throw new Error(imported.error);
+      updateOwnedJob({status: "done", songId: imported.songIds.find(id => id.endsWith("-e"))!,
+        finishedAt: new Date().toISOString()});
+      return;
+    }
+    if (process.env.KEYSPILLI_SOURCE_ASSISTED_BETA === "1") {
+      if (existing) throw new Error("SOURCE_REVIEW_REQUIRED: beta imports cannot replace an existing song");
+      const indexPath = process.env.KEYSPILLI_VERIFIED_SOURCE_INDEX;
+      if (!indexPath) throw new Error("SOURCE_REVIEW_REQUIRED: no verified source index is configured");
+      const native = await resolveAutomaticSymbolic(normalizeYoutubeImportUrl(job.youtubeUrl), await loadAutomaticSourceIndex(indexPath), { accompanimentOnly: getOverride(jobId).accompanimentOnly === true });
+      await writeFile(join(dir, "source-route.json"), JSON.stringify(native.status === "candidate"
+        ? { status: native.status, provenance: native.provenance, attempts: native.attempts }
+        : native, null, 2));
+      if (native.status !== "candidate") throw new Error(`SOURCE_REVIEW_REQUIRED: ${native.reason}; ${native.attempts.map((a) => a.reason).join("; ")}`);
+      const baseId = `beta-native-${native.provenance.sourceSha256.slice(0, 24)}`;
+      const prior = getSongsByBase(baseId);
+      if (prior.length) {
+        const saved = await readArrangementManifest(baseId);
+        if (saved.status !== "valid" || saved.manifest.sourceArrangement?.sourceSha256 !== native.provenance.sourceSha256
+          || saved.manifest.sourceArrangement?.realizationSha256 !== native.provenance.realizationSha256
+          || ["vb", "b", "e", "m", "a"].some((level) => !prior.some((song) => song.level === level))
+          || (await validateStagedArtifactTree(artifactsDir(baseId, ""), saved.manifest)).length) {
+          throw new Error("SOURCE_REVIEW_REQUIRED: existing source artifacts are incomplete or inconsistent; retained for review");
+        }
+        updateOwnedJob({ status: "done", songId: prior.find((song) => song.id.endsWith("-e"))?.id ?? prior[0]!.id, finishedAt: new Date().toISOString() });
+        return;
+      }
+      await writeFile(join(dir, "selected-source.mid"), native.sourceBytes);
+      const canonical = native.arrangement.canonical!;
+      const buf = writeMidi(canonical.notes, { tempoBpm: canonical.tempoBpm, timeSig: canonical.timeSig,
+        tracks: metalArrangementTracks(canonical.notes) });
+      const imported = await ingestSource({ buf, baseId, sourceArtifactHash: native.provenance.sourceSha256,
+        title: native.provenance.arrangementTitle, artist: native.provenance.artist, category: "Source-assisted beta",
+        contentType: "youtube", acquiredVia: "verified-native-midi", sourceRef: `indexed:${native.provenance.sourceSha256}`,
+        cleanTranscription: false, maxDurBeats: null, arrangementProfile: "source", sourceArrangement: native.provenance,
+      }, { beforeReplace: () => {
+        const latest = getJob(jobId);
+        if (!ownsJobLease(jobId, owner) || !latest || latest.status !== "processing" || latest.songId !== job.songId || getSongsByBase(baseId).length) throw new Error("native publication cancelled or already exists");
+      } });
+      if (imported.error) throw new Error(imported.error);
+      updateOwnedJob({ status: "done", songId: imported.songIds.find((id) => id.endsWith("-e")) ?? imported.songIds[0]!, finishedAt: new Date().toISOString() });
+      return;
+    }
+
     const ov = getOverride(jobId);
     const dense = ov.denseBand === true;
     const onsetTh = requirePositiveFloat("override.onsetThreshold", String(ov.onsetThreshold ?? (dense ? 0.4 : ONSET_THRESHOLD)));
@@ -293,8 +371,7 @@ async function processJob(jobId: string): Promise<void> {
           title: existing?.title ?? meta.title,
         });
         // A bass-only or bleed-only result is structurally valid MIDI but not
-        // a recognizable cover. In auto mode this gate deliberately falls
-        // back to the established full-mix path instead of publishing it.
+        // a recognizable cover. Reject it without silently switching sources.
         if (arranged.stats.identityNotes < 8 || arranged.parsed.notes.length < 16) {
           throw new Error(
             `metal arranger produced too little identity (${arranged.stats.identityNotes} identity, `
@@ -354,27 +431,10 @@ async function processJob(jobId: string): Promise<void> {
           + `${arranged.stats.leftHandNotes} LH, ${arranged.stats.chordEvents} chords`,
         );
       } catch (error) {
-        if (STEM_PIPELINE_CONFIG.mode === "metal") throw error;
-        // transcribePitchedStems publishes its small diagnostic MIDIs before
-        // the musical routing gate runs. Remove them (and any arrangement
-        // from a prior failed attempt) when auto mode selects the legacy
-        // result, so rebuild code cannot mistake stale stem output for the
-        // source that was actually published.
-        await Promise.all([
-          rm(join(dir, "stem-midi"), { recursive: true, force: true }),
-          rm(join(dir, "arranged"), { recursive: true, force: true }),
-        ]);
-        stemRoleThresholds = undefined;
         const detail = error instanceof Error ? error.message : String(error);
-        const warning = "automatic metal stem route was unavailable or unsuitable; published legacy full-mix transcription";
-        console.warn(`[worker] ${jobId} ${warning}: ${detail}`);
-        metalArrangement = {
-          arranger: "keyspilli-metal-arranger",
-          version: "1",
-          strategy: "legacy-full-mix-fallback",
-          identitySource: "fallback-full-mix",
-          warnings: [warning],
-        };
+        // No full-mix fallback has passed the musical route gate. Preserve
+        // diagnostics and surface review instead of silently publishing it.
+        throw new Error(`SOURCE_REVIEW_REQUIRED: stem transcription unavailable or unsuitable: ${detail}. Use a verified native arrangement or supported source.`);
       }
     }
 
@@ -472,7 +532,7 @@ async function processJob(jobId: string): Promise<void> {
       // after deletion has completed.
       beforeReplace: () => {
         const latest = getJob(jobId);
-        if (!latest || latest.status !== "processing" || latest.songId !== job.songId) {
+        if (!ownsJobLease(jobId, owner) || !latest || latest.status !== "processing" || latest.songId !== job.songId) {
           throw new Error("conversion job was deleted or cancelled before publication");
         }
       },
@@ -481,20 +541,24 @@ async function processJob(jobId: string): Promise<void> {
     // Keep the conversion job pointed at the stable easy variant by its
     // level suffix; array order is an implementation detail of the ladder.
     const songId = result.songIds.find((id) => id.endsWith("-e")) ?? result.songIds[0]!;
-    updateJob(jobId, { status: "done", songId, finishedAt: new Date().toISOString() });
+    updateOwnedJob({ status: "done", songId, finishedAt: new Date().toISOString() });
     console.log(`[worker] ${jobId} done → ${songId}`);
   } catch (e) {
+    if (!ownsJobLease(jobId, owner)) {
+      console.warn(`[worker] ${jobId} no longer owns the job; retained current owner and status`);
+      return;
+    }
     const attempts = (job.attempts ?? 0) + 1;
     const detail = e instanceof Error ? e.message : String(e);
     const msg = `attempt ${attempts}: ${detail}`;
     // A YouTube bot challenge is tied to the worker's egress/session. Retrying
     // the same URL immediately with another attempt only hammers the blocked
     // IP, so surface an actionable terminal error instead.
-    if (!isYoutubeBotChallenge(e) && attempts < MAX_ATTEMPTS) {
-      updateJob(jobId, { status: "queued", error: msg, attempts });
+    if (!detail.startsWith("SOURCE_REVIEW_REQUIRED:") && !isYoutubeBotChallenge(e) && attempts < MAX_ATTEMPTS) {
+      updateOwnedJob({ status: "queued", error: msg, attempts });
       console.warn(`[worker] ${jobId} attempt ${attempts}/${MAX_ATTEMPTS} failed, requeued: ${detail}`);
     } else {
-      updateJob(jobId, { status: "error", error: msg, attempts, finishedAt: new Date().toISOString() });
+      updateOwnedJob({ status: "error", error: msg, attempts, finishedAt: new Date().toISOString() });
       console.error(`[worker] ${jobId} failed after ${attempts} attempts: ${detail}`);
     }
   } finally {
@@ -514,6 +578,7 @@ async function loop(): Promise<void> {
   console.log(`[worker] polling every ${POLL_MS}ms`);
   for (;;) {
     try {
+      requeueOrphaned();
       const jobs = getQueuedJobs();
       for (const j of jobs) await processJob(j.id);
     } catch (e) {
@@ -523,4 +588,4 @@ async function loop(): Promise<void> {
   }
 }
 
-void loop();
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) void loop();

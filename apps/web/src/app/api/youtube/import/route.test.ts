@@ -1,9 +1,14 @@
+import {tutorialImportsEnabled} from "../../../../../../../packages/catalog/src/tutorial-imports";
 import { NextRequest } from "next/server";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
+const activeJob = vi.hoisted(()=>vi.fn());
 const insertJob = vi.hoisted(() => vi.fn());
+const queue = vi.hoisted(() => vi.fn(async (_request: Request) => new Response(JSON.stringify({jobId:"preview-job"}),{status:200})));
+vi.mock("../route",()=>({POST:queue}));
+afterEach(()=>{vi.unstubAllEnvs();queue.mockClear();activeJob.mockReset();});
 
-vi.mock("@keyspilli/catalog", () => ({ insertJob }));
+vi.mock("@keyspilli/catalog", () => ({ tutorialImportsEnabled, insertJob, getDb:()=>({prepare:()=>({get:activeJob})}), canonicalYoutubeUrl: (url:string)=>url.includes("abcdefghijk") ? "https://www.youtube.com/watch?v=abcdefghijk" : null }));
 
 import { POST } from "./route";
 
@@ -33,4 +38,62 @@ describe("public YouTube import route", () => {
     });
     expect(insertJob).not.toHaveBeenCalled();
   });
+});
+
+
+describe("development tutorial preview",()=>{
+ function enable(){
+  vi.stubEnv("NODE_ENV","development");vi.stubEnv("KEYSPILLI_TUTORIAL_PREVIEW","1");
+  vi.stubEnv("KEYSPILLI_DATA_DIR","/tmp/isolated-preview");vi.stubEnv("KEYSPILLI_API_TOKEN","fixture-token");
+ }
+ it("queues a same-origin URL through the existing authenticated route",async()=>{
+  enable();
+  const response=await POST(requestFor({url:"https://youtu.be/abcdefghijk"},{origin:"https://keys.reidar.tech"}));
+  expect(response.status).toBe(200);expect(queue).toHaveBeenCalledOnce();
+  expect(await queue.mock.calls[0]![0].json()).toEqual({url:"https://youtu.be/abcdefghijk"});
+ });
+ it("rejects cross-origin requests and existing-song overrides",async()=>{
+  enable();
+  expect((await POST(requestFor({url:"https://youtu.be/abcdefghijk"},{origin:"https://attacker.example"}))).status).toBe(403);
+  expect((await POST(requestFor({url:"https://youtu.be/abcdefghijk",songId:"existing"},{origin:"https://keys.reidar.tech"}))).status).toBe(400);
+  expect(queue).not.toHaveBeenCalled();
+ });
+ it("stays disabled in production even when the preview flag is present",async()=>{
+  enable();vi.stubEnv("NODE_ENV","production");
+  expect((await POST(requestFor({url:"https://youtu.be/abcdefghijk"},{origin:"https://keys.reidar.tech"}))).status).toBe(410);
+  expect(queue).not.toHaveBeenCalled();
+ });
+});
+
+it("coalesces simultaneous preview submissions",async()=>{
+ vi.stubEnv("NODE_ENV","development");vi.stubEnv("KEYSPILLI_TUTORIAL_PREVIEW","1");
+ vi.stubEnv("KEYSPILLI_DATA_DIR","/tmp/isolated-preview");vi.stubEnv("KEYSPILLI_API_TOKEN","fixture-token");
+ let finish!:(response:Response)=>void;
+ queue.mockImplementationOnce(()=>new Promise(resolve=>{finish=resolve;}));
+ const first=POST(requestFor({url:"https://youtu.be/abcdefghijk"},{origin:"https://keys.reidar.tech"}));
+ const second=POST(requestFor({url:"https://youtube.com/watch?v=abcdefghijk"},{origin:"https://keys.reidar.tech"}));
+ await vi.waitFor(()=>expect(queue).toHaveBeenCalledOnce());
+ await new Promise(resolve=>setTimeout(resolve,30));
+ finish(new Response(JSON.stringify({jobId:"shared"})));
+ expect(await (await first).json()).toEqual({jobId:"shared"});
+ expect(await (await second).json()).toEqual({jobId:"shared"});
+ expect(queue).toHaveBeenCalledOnce();
+});
+
+it("returns a durable active job without submitting again",async()=>{
+ vi.stubEnv("NODE_ENV","development");vi.stubEnv("KEYSPILLI_TUTORIAL_PREVIEW","1");
+ vi.stubEnv("KEYSPILLI_DATA_DIR","/tmp/isolated-preview");vi.stubEnv("KEYSPILLI_API_TOKEN","fixture-token");
+ activeJob.mockReturnValue({id:"active-job"});
+ const response=await POST(requestFor({url:"https://youtu.be/abcdefghijk"},{origin:"https://keys.reidar.tech"}));
+ expect(await response.json()).toEqual({jobId:"active-job"});expect(queue).not.toHaveBeenCalled();
+});
+
+it("queues private beta in production with mutation auth and fails closed without data",async()=>{
+ vi.stubEnv("NODE_ENV","production");vi.stubEnv("KEYSPILLI_TUTORIAL_BETA","1");
+ vi.stubEnv("KEYSPILLI_DATA_DIR","/private-beta");vi.stubEnv("KEYSPILLI_API_TOKEN","fixture-token");
+ expect((await POST(requestFor({url:"https://youtu.be/abcdefghijk"},{origin:"https://keys.reidar.tech"}))).status).toBe(200);
+ expect(queue).toHaveBeenCalledOnce();
+ expect((await POST(requestFor({url:"https://youtu.be/abcdefghijk"},{origin:"https://attacker.example"}))).status).toBe(403);
+ vi.stubEnv("KEYSPILLI_DATA_DIR","");
+ expect((await POST(requestFor({url:"https://youtu.be/abcdefghijk"},{origin:"https://keys.reidar.tech"}))).status).toBe(410);
 });

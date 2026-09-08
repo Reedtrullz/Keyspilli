@@ -1,0 +1,313 @@
+{
+  "startedAt": "2026-09-08T01:15:43.475Z",
+  "origin": "http://127.0.0.1:3103",
+  "manifestSha256": "e589511bc5395c39e5829417db6b9389b12d842b7cfad7710f6766c8dcad2593",
+  "split": "heldout",
+  "cohortSize": 10,
+  "selectedCount": 10,
+  "selectedIds": [
+    "21",
+    "22",
+    "23",
+    "24",
+    "25",
+    "26",
+    "27",
+    "28",
+    "29",
+    "30"
+  ],
+  "rows": [
+    {
+      "id": "21",
+      "url": "https://www.youtube.com/watch?v=9jK-NcRmVcw",
+      "status": "failed",
+      "attempted": true,
+      "startedAt": "2026-09-08T01:15:43.477Z",
+      "exports": [],
+      "jobId": "job-61023f85-e171-45eb-9ffc-bd4d85860ded",
+      "jobStatus": "error",
+      "jobError": "Matching piano tutorials were found, but their notes could not be extracted reliably. No arrangement was published.",
+      "error": "Error: terminal job status: error",
+      "failureCode": "JOB_FAILED",
+      "finishedAt": "2026-09-08T01:17:14.670Z"
+    },
+    {
+      "id": "22",
+      "url": "https://www.youtube.com/watch?v=3YxaaGgTQYM",
+      "status": "failed",
+      "attempted": true,
+      "startedAt": "2026-09-08T01:17:14.671Z",
+      "exports": [],
+      "jobId": "job-f5a9f5a0-f337-4825-9510-eacd1a3c0db4",
+      "jobStatus": "error",
+      "jobError": "No matching piano tutorial was found for this song. No arrangement was published.",
+      "error": "Error: terminal job status: error",
+      "failureCode": "JOB_FAILED",
+      "finishedAt": "2026-09-08T01:17:24.924Z"
+    },
+    {
+      "id": "23",
+      "url": "https://www.youtube.com/watch?v=04F4xlWSFh0",
+      "status": "failed",
+      "attempted": true,
+      "startedAt": "2026-09-08T01:17:24.924Z",
+      "exports": [],
+      "jobId": "job-e47fde7a-05ee-41e6-8659-808b856f0d6f",
+      "jobStatus": "error",
+      "jobError": "Matching piano tutorials were found, but their notes could not be extracted reliably. No arrangement was published.",
+      "error": "Error: terminal job status: error",
+      "failureCode": "JOB_FAILED",
+      "finishedAt": "2026-09-08T01:18:16.166Z"
+    },
+    {
+      "id": "24",
+      "url": "https://www.youtube.com/watch?v=5abamRO41fE",
+      "status": "failed",
+      "attempted": true,
+      "startedAt": "2026-09-08T01:18:16.166Z",
+      "exports": [],
+      "jobId": "job-f1124fe1-86a4-40fc-8cf6-6bcabc4ef406",
+      "jobStatus": "error",
+      "jobError": "Matching piano tutorials were found, but their notes could not be extracted reliably. No arrangement was published.",
+      "error": "Error: terminal job status: error",
+      "failureCode": "JOB_FAILED",
+      "finishedAt": "2026-09-08T01:18:50.821Z"
+    },
+    {
+      "id": "25",
+      "url": "https://www.youtube.com/watch?v=CSvFpBOe8eY",
+      "status": "structural-candidate",
+      "attempted": true,
+      "startedAt": "2026-09-08T01:18:50.822Z",
+      "exports": [
+        {
+          "songId": "preview-job-4b0e01e5-a3b0-4a8b-8f18-71127bb72f33-b",
+          "bytes": 3279,
+          "sha256": "f2d706bcf2d0e02bd225a7073061ceed728a07baf525666453ad227597c2ddc4",
+          "notes": 349,
+          "noteEventsSha256": "cf6e69587e33f5277ad6c3477001aef8aed3cda60624dfeefc77a6e360fd332d"
+        },
+        {
+          "songId": "preview-job-4b0e01e5-a3b0-4a8b-8f18-71127bb72f33-e",
+          "bytes": 8055,
+          "sha256": "e11c1b08bf6b0a4665877f053055dbd7ff90f87a0343d201f24692ee450c2ea6",
+          "notes": 864,
+          "noteEventsSha256": "785d0674ea928bbc5a5b0b47261e0cc1c3f04069a5768f29f5be6a3114a0ad37"
+        },
+        {
+          "songId": "preview-job-4b0e01e5-a3b0-4a8b-8f18-71127bb72f33-m",
+          "bytes": 18236,
+          "sha256": "4ba58353431f5286035bdccce0ba816436de028675aabe5605659593ddcaf9c9",
+          "notes": 2149,
+          "noteEventsSha256": "0c7f65233a833e9649f7bae93ecffcec75536352685ca9bef661f25959445ac9"
+        },
+        {
+          "songId": "preview-job-4b0e01e5-a3b0-4a8b-8f18-71127bb72f33-a",
+          "bytes": 18594,
+          "sha256": "1d2b902c8b13cd8cc94f960657db112433e121a237e8373befdd5af7f11c845b",
+          "notes": 2194,
+          "noteEventsSha256": "a904a5b3a9b7bc44b76ef164641432b7c8533d3f819933f62e3ae42baedcb1ec"
+        }
+      ],
+      "jobId": "job-4b0e01e5-a3b0-4a8b-8f18-71127bb72f33",
+      "jobStatus": "done",
+      "jobError": null,
+      "songId": "preview-job-4b0e01e5-a3b0-4a8b-8f18-71127bb72f33-e",
+      "resolvedIdentity": {
+        "title": "Chop Suey!",
+        "artist": "System Of A Down"
+      },
+      "selectedSource": "https://www.youtube.com/watch?v=Q5QR8HIjXmE",
+      "finishedAt": "2026-09-08T01:19:28.097Z"
+    },
+    {
+      "id": "26",
+      "url": "https://www.youtube.com/watch?v=NU9JoFKlaZ0",
+      "status": "structural-candidate",
+      "attempted": true,
+      "startedAt": "2026-09-08T01:19:28.098Z",
+      "exports": [
+        {
+          "songId": "preview-job-5e87d1c9-dadf-4587-ad0d-46ae4a18736e-b",
+          "bytes": 1922,
+          "sha256": "678e929a5c5b174acfee3dfb33cb4fd72af340ceb41d5e0b62dfa6cb66d08739",
+          "notes": 194,
+          "noteEventsSha256": "d253695c25d4486c894f5de692b0a0526c09f20c3ad00ed6634477a68e9c112b"
+        },
+        {
+          "songId": "preview-job-5e87d1c9-dadf-4587-ad0d-46ae4a18736e-e",
+          "bytes": 2960,
+          "sha256": "c75f0506501f7d632968e0cad7b5b78ec657953e51578a6cb2570d9a9ccd7f33",
+          "notes": 308,
+          "noteEventsSha256": "a86fbf7ff25ee59686790503f7d0a5402801c60cc6e437b97f18df3ffc41daf2"
+        },
+        {
+          "songId": "preview-job-5e87d1c9-dadf-4587-ad0d-46ae4a18736e-m",
+          "bytes": 3583,
+          "sha256": "c5952d8e3df3928244fb33f09f24cd1da96bcbb94882f8d1d889debf19f30bfa",
+          "notes": 381,
+          "noteEventsSha256": "e9df10892ac9e00a0414f0ccdd753222568cfad0cfe07516c0adbd8bd2918525"
+        },
+        {
+          "songId": "preview-job-5e87d1c9-dadf-4587-ad0d-46ae4a18736e-a",
+          "bytes": 3615,
+          "sha256": "ca1f3bdb25d979578dd9f5c180f7e7d71471d9ff71cd331c6c6e153960791c95",
+          "notes": 385,
+          "noteEventsSha256": "81b6f4bc0f91b4a0938e3f39b05fb04876fed49392498a8c56b5b1e38036f783"
+        }
+      ],
+      "jobId": "job-5e87d1c9-dadf-4587-ad0d-46ae4a18736e",
+      "jobStatus": "done",
+      "jobError": null,
+      "songId": "preview-job-5e87d1c9-dadf-4587-ad0d-46ae4a18736e-e",
+      "resolvedIdentity": {
+        "title": "Wake Me Up When September Ends",
+        "artist": "Green Day"
+      },
+      "selectedSource": "https://www.youtube.com/watch?v=KgpKFDFE1XE",
+      "finishedAt": "2026-09-08T01:20:40.279Z"
+    },
+    {
+      "id": "27",
+      "url": "https://www.youtube.com/watch?v=8SbUC-UaAxE",
+      "status": "failed",
+      "attempted": true,
+      "startedAt": "2026-09-08T01:20:40.280Z",
+      "exports": [],
+      "jobId": "job-9a387d36-934c-4f2d-822d-fa320b71881e",
+      "jobStatus": "error",
+      "jobError": "Matching piano tutorials were found, but their notes could not be extracted reliably. No arrangement was published.",
+      "error": "Error: terminal job status: error",
+      "failureCode": "JOB_FAILED",
+      "finishedAt": "2026-09-08T01:23:11.896Z"
+    },
+    {
+      "id": "28",
+      "url": "https://www.youtube.com/watch?v=OZf9RbnaY5k",
+      "status": "failed",
+      "attempted": true,
+      "startedAt": "2026-09-08T01:23:11.896Z",
+      "exports": [],
+      "jobId": "job-7150f65f-f2f0-4b65-b85c-a08729ca6444",
+      "jobStatus": "error",
+      "jobError": "This source needs review; no new arrangement was published. Try another source or import a MIDI you have permission to use.",
+      "error": "Error: terminal job status: error",
+      "failureCode": "JOB_FAILED",
+      "finishedAt": "2026-09-08T01:23:18.097Z"
+    },
+    {
+      "id": "29",
+      "url": "https://www.youtube.com/watch?v=r00ikilDxW4",
+      "status": "structural-candidate",
+      "attempted": true,
+      "startedAt": "2026-09-08T01:23:18.098Z",
+      "exports": [
+        {
+          "songId": "preview-job-8f132887-3807-42a5-94b9-8059abdcc246-b",
+          "bytes": 3286,
+          "sha256": "de5d703bf4b8a6827c0c70cf7695b85deca9ccea1ba0cfaf6867582dcb92d6d5",
+          "notes": 347,
+          "noteEventsSha256": "6db399dc08197b6de0b9624694b35e96724673061fa7b199d661c59bf5e36732"
+        },
+        {
+          "songId": "preview-job-8f132887-3807-42a5-94b9-8059abdcc246-e",
+          "bytes": 6920,
+          "sha256": "a8f5f6999e0e0e424295f2a1a11ca0da2666268545de5ae71c2bb0e0cb84dd25",
+          "notes": 752,
+          "noteEventsSha256": "9c6b018abb5ff01808258810a7ddca7aabec24eb9d5f6b6b44f6e66b923a57e8"
+        },
+        {
+          "songId": "preview-job-8f132887-3807-42a5-94b9-8059abdcc246-m",
+          "bytes": 6979,
+          "sha256": "fbb457751b2449c4b86362df145b1709b4d812882de737e4294a0cf1090584a1",
+          "notes": 760,
+          "noteEventsSha256": "8435998819d7719945968d8d0e708deb9626f5872f77286488171efc61580e1b"
+        },
+        {
+          "songId": "preview-job-8f132887-3807-42a5-94b9-8059abdcc246-a",
+          "bytes": 6979,
+          "sha256": "fbb457751b2449c4b86362df145b1709b4d812882de737e4294a0cf1090584a1",
+          "notes": 760,
+          "noteEventsSha256": "8435998819d7719945968d8d0e708deb9626f5872f77286488171efc61580e1b"
+        }
+      ],
+      "jobId": "job-8f132887-3807-42a5-94b9-8059abdcc246",
+      "jobStatus": "done",
+      "jobError": null,
+      "songId": "preview-job-8f132887-3807-42a5-94b9-8059abdcc246-e",
+      "resolvedIdentity": {
+        "title": "21 Guns",
+        "artist": "Green Day"
+      },
+      "selectedSource": "https://www.youtube.com/watch?v=lCCKNq5_iuw",
+      "finishedAt": "2026-09-08T01:23:54.731Z"
+    },
+    {
+      "id": "30",
+      "url": "https://www.youtube.com/watch?v=6Ejga4kJUts",
+      "status": "structural-candidate",
+      "attempted": true,
+      "startedAt": "2026-09-08T01:23:54.732Z",
+      "exports": [
+        {
+          "songId": "preview-job-e4f801e9-ed8a-46ed-96d5-dfcb72ae9393-b",
+          "bytes": 5040,
+          "sha256": "cfe4762f6cc4ca1f8671395f338e202f052297ca6b64846994ab4aaab202710a",
+          "notes": 545,
+          "noteEventsSha256": "b999550e8dab065de8c479082cd7aeef6e3d9ded011b88c118857d0d0f6d4420"
+        },
+        {
+          "songId": "preview-job-e4f801e9-ed8a-46ed-96d5-dfcb72ae9393-e",
+          "bytes": 8195,
+          "sha256": "9f113769b3f288fb2862ac593a0effdb55137ef129c11bec0b1ddc83b2aaa860",
+          "notes": 854,
+          "noteEventsSha256": "ba49ce3f6782fb82a383f17de1c3910f5cc39f80e101cb1fea8a027bc4c1b7ad"
+        },
+        {
+          "songId": "preview-job-e4f801e9-ed8a-46ed-96d5-dfcb72ae9393-m",
+          "bytes": 18023,
+          "sha256": "755a46194a86368cb94f4eb00ec8fd44c4a6ad481ae9a0905078d4e7718d45d3",
+          "notes": 2068,
+          "noteEventsSha256": "1bec10cef798f85b7b2b0af9e55262fe466e3a2b8293869e7bc300aa99080e82"
+        },
+        {
+          "songId": "preview-job-e4f801e9-ed8a-46ed-96d5-dfcb72ae9393-a",
+          "bytes": 18815,
+          "sha256": "79cf56a6aedc41839cd1739cd2b60d5d016e86f465779fe48bc2e041d96d09f9",
+          "notes": 2167,
+          "noteEventsSha256": "9ab337761f745c21a66958acbf8a94be6ac6fe0f34f753ec0f86587c63006d17"
+        }
+      ],
+      "jobId": "job-e4f801e9-ed8a-46ed-96d5-dfcb72ae9393",
+      "jobStatus": "done",
+      "jobError": null,
+      "songId": "preview-job-e4f801e9-ed8a-46ed-96d5-dfcb72ae9393-e",
+      "resolvedIdentity": {
+        "title": "Zombie",
+        "artist": "The Cranberries"
+      },
+      "selectedSource": "https://www.youtube.com/watch?v=2jPQ8UaOYdA",
+      "finishedAt": "2026-09-08T01:24:35.534Z"
+    }
+  ],
+  "musicalAcceptance": "pending-listening",
+  "heldoutExecuted": true,
+  "candidateFreezeSha256": "ea861c48e6371d866ab3142b9d21beb916b49d91fda1c5491a949ff320ce31a9",
+  "candidateBeforeVerified": true,
+  "verificationScope": "Local source hashes only; operator must start preview and worker from this checkout. Does not attest deployed runtime.",
+  "candidateAfterVerified": true,
+  "unattemptedIds": [],
+  "summary": {
+    "completed": 4,
+    "denominator": 10,
+    "attempted": 10,
+    "unattempted": 0,
+    "failed": 6,
+    "invalidPublications": 0,
+    "releaseGate": false,
+    "musicalAcceptance": "pending-listening",
+    "usable": false
+  },
+  "finishedAt": "2026-09-08T01:24:35.581Z"
+}

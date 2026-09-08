@@ -624,7 +624,7 @@ async function controlledWithheld(record: ExternalResearchRecord, frozen: Frozen
 
 function capabilityEnvelope(): RegionShadowRehearsalReport["capabilityEnvelope"] {
   return [
-    { input: "USER/OPEN PERFORMANCE-SYMBOLIC WITH AUTHORITATIVE TIMING", intake: "valid local MIDI + provenance", timing: "native authoritative", ownership: "owned when roles/regions pass", arrangement: "six physical + five public in-memory when validation passes", status: "PARTIAL" },
+    { input: "USER/OPEN PERFORMANCE-SYMBOLIC WITH AUTHORITATIVE TIMING", intake: "valid local MIDI + provenance", timing: "native authoritative", ownership: "owned when roles/regions pass", arrangement: "six physical + four public in-memory when validation passes", status: "PARTIAL" },
     { input: "INDEPENDENT SCORE SYMBOLIC WITH HIGH-CONFIDENCE ALIGNMENT", intake: "supported", timing: "no current real production proof", ownership: "partial until independently aligned", arrangement: "not generally safe", status: "PARTIAL" },
     { input: "INDEPENDENT SCORE SYMBOLIC WITH PARTIAL/REJECTED ALIGNMENT", intake: "parsed but evaluation/firewall-aware", timing: "unsafe for target timing", ownership: "withheld", arrangement: "blocked", status: "BLOCKED" },
     { input: "MULTI-SOURCE WITH AUTHORITATIVE TIMED SOURCE", intake: "inventory supported", timing: "native source ranks above partial evidence", ownership: "policy deterministic; benchmark lane withheld", arrangement: "serviceable only for eligible non-benchmark source", status: "PARTIAL" },
