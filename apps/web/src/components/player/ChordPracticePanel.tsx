@@ -2,7 +2,6 @@
 
 import type { ChordPracticeSnapshot, ChordPracticeTarget } from "@keyspilli/player-core";
 import { useEffect, useRef } from "react";
-import { chordProvenance } from "./chord-provenance";
 import { dialogMotionClasses, useDialogMotion } from "./player-motion";
 
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
@@ -49,7 +48,7 @@ function PracticeKeyboard({ target, snapshot }: { target: ChordPracticeTarget; s
           return (
             <div
               key={midi}
-              className={`relative h-full border-r border-zinc-300 flex-1 flex items-end justify-center pb-2 text-[10px] font-medium ${
+              className={`relative h-full border-r border-zinc-300 flex-1 flex items-end justify-center pb-2 text-xs font-semibold ${
                 isWrong ? "bg-red-200 text-red-900" : isPlayed ? "bg-emerald-300 text-emerald-950" : active ? "bg-blue-200 text-blue-900" : "bg-white text-zinc-400"
               }`}
             >
@@ -71,7 +70,7 @@ function PracticeKeyboard({ target, snapshot }: { target: ChordPracticeTarget; s
               className={`absolute top-0 h-full rounded-b-md border border-zinc-900 shadow-sm ${isWrong ? "bg-red-500" : isPlayed ? "bg-emerald-500" : active ? "bg-blue-500" : "bg-zinc-900"}`}
               style={{ left: `${(previous + 1) * width - width * 0.31}%`, width: `${width * 0.62}%` }}
               title={active ? noteName(midi) : undefined}
-            />
+            >{active && <span className="absolute bottom-2 inset-x-0 text-center text-[11px] font-semibold text-white">{noteName(midi)}</span>}</div>
           );
         })}
       </div>
@@ -89,6 +88,8 @@ export function ChordPracticePanel({
   onSkip,
   onExit,
   presenceVisible = true,
+  scope = "arrangement",
+  inputStatus = "Computer keyboard available",
 }: {
   targets: ChordPracticeTarget[];
   snapshot: ChordPracticeSnapshot;
@@ -99,6 +100,8 @@ export function ChordPracticePanel({
   onExit: () => void;
   /** Parent-controlled visibility keeps the top-level exit action animated. */
   presenceVisible?: boolean;
+  scope?: "current" | "passage" | "arrangement";
+  inputStatus?: string;
 }) {
   const target = snapshot.target;
   const { requestClose, visible, closing } = useDialogMotion(onExit);
@@ -117,6 +120,8 @@ export function ChordPracticePanel({
       <div className="flex items-start gap-3 mb-4">
         <div className="flex-1">
           <p className="text-xs uppercase tracking-wide font-semibold text-indigo-700">Chord practice</p>
+          <p className="text-sm font-medium text-indigo-900 mt-1">{scope === "current" ? "Current bar" : scope === "passage" ? "Current passage (up to 4 bars)" : "Whole arrangement"} — {targets.length} {targets.length === 1 ? "chord" : "chords"}</p>
+          <p className="text-xs text-zinc-600 mt-1">Input: {inputStatus}</p>
           <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 mt-1">Play the chord together</h2>
           <p className="text-sm text-zinc-600 mt-1">The shown octave is a reference shape. Any octave is accepted, and note order does not matter.</p>
         </div>
@@ -125,7 +130,7 @@ export function ChordPracticePanel({
 
       {!targets.length && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          This arrangement has no usable chord timeline yet. Try a higher difficulty level or a song with chord data.
+          No usable chords in this practice scope. Select another bar or passage.
         </div>
       )}
 

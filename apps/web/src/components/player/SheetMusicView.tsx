@@ -56,6 +56,7 @@ function updateSheetState(values: Record<string, unknown>): void {
 }
 
 export function SheetMusicView({ songId, renderMode = "virtual" }: SheetMusicViewProps) {
+  const [zoom, setZoom] = useState(100);
   const [pages, setPages] = useState<PageMap>({});
   const [pageCount, setPageCount] = useState(0);
   const [activePage, setActivePage] = useState(1);
@@ -217,10 +218,20 @@ export function SheetMusicView({ songId, renderMode = "virtual" }: SheetMusicVie
     if (renderMode !== "virtual" || pageCount < 1 || error) return;
     const container = containerRef.current;
     if (!container || typeof IntersectionObserver === "undefined") return;
+    const visiblePages = new Set<Element>();
     const observer = new IntersectionObserver(
       (entries) => {
+        // Use the page occupying most of the viewport, not the last page in
+        // an observer batch, for both the visible page label and lazy window.
         for (const entry of entries) {
-          if (!entry.isIntersecting) continue;
+          if (entry.isIntersecting) visiblePages.add(entry.target);
+          else visiblePages.delete(entry.target);
+        }
+        const visible = [...visiblePages].map((target) => {
+          const rect = target.getBoundingClientRect();
+          return { target, height: Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0) };
+        }).filter((entry) => entry.height > 0).sort((a, b) => b.height - a.height);
+        for (const entry of visible.slice(0, 1)) {
           const page = Number((entry.target as HTMLElement).dataset.page);
           if (!Number.isInteger(page) || page < 1 || page > pageCount) continue;
           const start = Math.max(1, page - PAGE_RADIUS);
@@ -245,7 +256,7 @@ export function SheetMusicView({ songId, renderMode = "virtual" }: SheetMusicVie
             });
         }
       },
-      { root: null, rootMargin: "100% 0px", threshold: 0.01 },
+      { root: null, rootMargin: "0px", threshold: [0.01, 0.25, 0.5, 0.75, 1] },
     );
     for (const node of container.querySelectorAll<HTMLElement>(".sheet-svg__page[data-page]")) observer.observe(node);
     return () => observer.disconnect();
@@ -287,21 +298,28 @@ export function SheetMusicView({ songId, renderMode = "virtual" }: SheetMusicVie
       data-sheet-render-mode={renderMode}
       data-active-page={activePage}
     >
+      {renderMode === "virtual" && <div className="sheet-controls flex flex-wrap items-center gap-3 text-sm w-full">
+        <label>Score zoom <select aria-label="Score zoom" value={zoom} onChange={(event) => setZoom(Number(event.target.value))} className="min-h-11 rounded border border-zinc-300 bg-white px-2">
+          {[75, 100, 125, 150, 200].map((value) => <option key={value} value={value}>{value}%</option>)}
+        </select></label>
+        <button className="min-h-11 rounded border border-zinc-300 bg-white px-3" onClick={() => setZoom(100)}>Fit width</button>
+        <span>Page {activePage} of {pageCount}</span>
+        <span className="text-xs text-zinc-600">Original score · audio transpose does not change notation</span>
+      </div>}
       {mountedPages.map((page) => {
         const svg = pages[page];
         const props = {
           className: `sheet-svg__page${svg ? "" : " sheet-svg__page--placeholder"}${svg && renderMode === "virtual" ? " motion-scale-in" : ""}`,
-          key: page,
           "data-page": page,
           role: "group",
           "aria-label": `Sheet music page ${page} of ${pageCount}`,
           "aria-posinset": page,
           "aria-setsize": pageCount,
-          style: { "--sheet-page-aspect": `${dimensions.width} / ${dimensions.height}` } as CSSProperties,
+          style: { ...(renderMode === "virtual" ? { width: `${zoom}%`, alignSelf: "flex-start" } : {}), "--sheet-page-aspect": `${dimensions.width} / ${dimensions.height}` } as CSSProperties,
         };
-        if (svg) return <div {...props} dangerouslySetInnerHTML={{ __html: svg }} />;
+        if (svg) return <div key={page} {...props} dangerouslySetInnerHTML={{ __html: svg }} />;
         return (
-          <div {...props}>
+          <div key={page} {...props}>
             <span className="sheet-svg__page-status">Preparing page {page}…</span>
           </div>
         );

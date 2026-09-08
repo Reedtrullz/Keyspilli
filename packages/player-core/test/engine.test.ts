@@ -184,6 +184,97 @@ describe("PlaybackEngine", () => {
     expect(eng.grader).toBeNull();
   });
 
+  it("grades only the requested passage without rewinding", () => {
+    const { eng } = engine();
+    eng.startGrading(true, { startSec: 0.5, endSec: 1.5 });
+    expect(eng.time).toBe(0.5);
+    expect(eng.finishGrading()?.total).toBe(2);
+  });
+
+  it("rejects invalid and empty passages before mutating transport or grading", () => {
+    const { eng, audio } = engine();
+    eng.startGrading(false);
+    eng.start();
+    eng.tick(0.25);
+    const grader = eng.grader;
+    const cancelled = audio.cancelled;
+    for (const range of [
+      { startSec: NaN, endSec: 1 }, { startSec: 0, endSec: Infinity },
+      { startSec: 1, endSec: 0 }, { startSec: 2, endSec: 3 },
+      { startSec: 0.1, endSec: 0.4 },
+    ]) expect(() => eng.startGrading(true, range)).toThrow(RangeError);
+    expect(eng.time).toBe(0.25);
+    expect(eng.playing).toBe(true);
+    expect(eng.grader).toBe(grader);
+    expect(eng.waitMode).toBe(false);
+    expect(audio.cancelled).toBe(cancelled);
+  });
+
+  it("does not start an ornament-only passage or emit stale completion when repeating", () => {
+    const { eng, audio } = engine();
+    eng.setNotes([{ midi: 70, startSec: 0, durSec: 0.03, vel: 80 }], 1.5);
+    expect(() => eng.startGrading(true, { startSec: 0, endSec: 1 })).toThrow("No playable notes in this passage");
+    expect(audio.ensured).toBe(0);
+    expect(eng.grader).toBeNull();
+    eng.setNotes(notes, 1.5);
+    eng.startGrading(false, { startSec: 0, endSec: 0.5 });
+    eng.finishGrading();
+    eng.start();
+    const results: unknown[] = [];
+    eng.onChange = () => results.push(eng.gradeResult);
+    eng.startGrading(false, { startSec: 0.5, endSec: 1 });
+    expect(results).toEqual([null]);
+  });
+
+  it("clamps passage bounds and excludes the end onset and ornaments", () => {
+    const { eng } = engine();
+    eng.setNotes([...notes, { midi: 70, startSec: 0.25, durSec: 0.03, vel: 80 }], 1.5);
+    eng.startGrading(false, { startSec: -1, endSec: 0.5 });
+    expect(eng.gradingRange).toEqual({ startSec: 0, endSec: 0.5 });
+    expect(eng.finishGrading()?.total).toBe(1);
+    eng.startGrading(false, { startSec: 1, endSec: 10 });
+    expect(eng.gradingRange).toEqual({ startSec: 1, endSec: 1.5 });
+    expect(eng.gradeResult).toBeNull();
+  });
+
+  it.each([0.5, 10])("finishes a bounded run across a %s second tick and restores looping", (dt) => {
+    const { eng, audio } = engine();
+    const loop = { startSec: 0, endSec: 0.6 };
+    eng.setLoop(loop);
+    eng.startGrading(false, { startSec: 0.5, endSec: 1 });
+    eng.start();
+    eng.tick(0.4);
+    expect(eng.time).toBe(0.9);
+    expect(audio.noteOns.some(n => n.midi === 64)).toBe(false);
+    eng.tick(dt);
+    expect(eng.time).toBe(1);
+    expect(eng.playing).toBe(false);
+    expect(eng.grader).toBeNull();
+    expect(eng.gradeResult?.total).toBe(1);
+    expect(eng.finishGrading()).toBe(eng.gradeResult);
+    expect(eng.loop).toBe(loop);
+    eng.seek(0.5);
+    eng.start();
+    eng.tick(0.2);
+    expect(eng.time).toBe(0);
+  });
+
+  it.each(["keyboard", "microphone"])("advances %s wait input without a UI read and retains completion", (input) => {
+    const { eng, audio } = engine();
+    eng.startGrading(true, { startSec: 0.5, endSec: 1.25 });
+    const play = (midi: number) => input === "keyboard" ? eng.handleNoteOn(midi) : eng.handleMicNote(midi);
+    play(70);
+    expect(eng.time).toBe(0.5);
+    expect(audio.noteOns.filter(n => n.fromInput).length).toBe(input === "microphone" ? 1 : 0);
+    play(62);
+    expect(eng.time).toBe(1);
+    play(64);
+    expect(eng.time).toBe(1.25);
+    expect(eng.grader).toBeNull();
+    expect(eng.waitMode).toBe(false);
+    expect(eng.gradeResult).toMatchObject({ hit: 2, wrong: 1, missed: 0 });
+  });
+
   it("startGrading skips grace notes", () => {
     const { eng } = engine();
     eng.setNotes([...notes, { midi: 70, startSec: 0.25, durSec: 0.03, vel: 80 }], 1.5);

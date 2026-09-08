@@ -345,6 +345,24 @@ describe("detectPitch", () => {
 });
 
 describe("keyboard input", () => {
+  it("shifts one octave per Z/X press and releases held notes at their original pitch", () => {
+    const events: string[] = [];
+    const input = new KeyboardInput({ onNoteOn: (m) => events.push(`on:${m}`), onNoteOff: (m) => events.push(`off:${m}`) });
+    const key = (key: string, type = "keydown", repeat = false) => input.handleKey({ key, type, repeat, preventDefault() {} } as KeyboardEvent);
+    key("a");
+    key("z");
+    key("z", "keydown", true);
+    key("z", "keyup");
+    expect(input.octave).toBe(1);
+    key("a", "keyup");
+    key("a");
+    key("a", "keyup");
+    key("x");
+    key("x", "keyup");
+    expect(input.octave).toBe(2);
+    expect(events).toEqual(["on:60", "off:60", "on:48", "off:48"]);
+  });
+
   it("maps keys to midi with octave shift", () => {
     const events: string[] = [];
     const ki = new KeyboardInput({

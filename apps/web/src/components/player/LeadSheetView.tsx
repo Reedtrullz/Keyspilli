@@ -4,6 +4,8 @@ import React, { useMemo } from "react";
 import { measureIndex, pitchColor, secPerBeat, type ChordLabel, type PlayerSettings, type SongData } from "@keyspilli/player-core";
 import { chordProvenance } from "./chord-provenance";
 
+const LETTERS = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+
 export function LeadSheetView({ data, time, settings, chords }: { data: SongData; time: number; settings: PlayerSettings; chords: ChordLabel[] }) {
   const beatSec = secPerBeat(data.tempoBpm, settings.speed);
   const currentMeasure = measureIndex(
@@ -31,12 +33,18 @@ export function LeadSheetView({ data, time, settings, chords }: { data: SongData
   const mids = useMemo(() => notes.map((n) => n.midi), [notes]);
   const lo = Math.min(...mids, 55);
   const hi = Math.max(...mids, 72);
-  const measureChords = useMemo(
-    () => chords
-      .filter((c) => c.beat >= m.startBeat && c.beat < m.endBeat)
-      .map((chord) => ({ chord, provenance: chordProvenance(chord) })),
-    [chords, m.startBeat, m.endBeat],
-  );
+  const hasLyrics = useMemo(() => data.notes.some((note) => note.lyrics?.trim()), [data.notes]);
+  const hasMeasureLyrics = notes.some((note) => note.lyrics?.trim());
+  const measureChords = useMemo(() => {
+    const ordered = [...chords].sort((a, b) => a.beat - b.beat);
+    return ordered.filter((chord, index) => {
+      if (chord.beat >= m.startBeat) return chord.beat < m.endBeat;
+      // A previous label alone does not establish harmony across a rest.
+      const duration = chord.durationBeats;
+      const end = Math.min(chord.beat + (duration ?? 0), ordered[index + 1]?.beat ?? Infinity);
+      return Number.isFinite(duration) && duration! > 0 && end > m.startBeat;
+    }).map((chord) => ({ chord, provenance: chordProvenance(chord) }));
+  }, [chords, m.startBeat, m.endBeat]);
 
   return (
     <div className="overflow-x-auto">
@@ -48,7 +56,11 @@ export function LeadSheetView({ data, time, settings, chords }: { data: SongData
             const y = 28 + ((hi - n.midi) / (hi - lo || 1)) * (H - 80);
             return (
               <g key={i}>
+                <title>{`${LETTERS[((n.midi % 12) + 12) % 12]}${Math.floor(n.midi / 12) - 1}`}</title>
                 <circle cx={x} cy={y} r="10" fill={pitchColor(n.midi)} />
+                <text x={x} y={y - 13} textAnchor="middle" fontSize="12" fill="#18181b">
+                  {LETTERS[((n.midi % 12) + 12) % 12]}{Math.floor(n.midi / 12) - 1}
+                </text>
                 {n.lyrics && (
                   <text x={x} y={y + 34} textAnchor="middle" fontSize="13" fill="#3f3f46">
                     {n.lyrics}
@@ -58,7 +70,7 @@ export function LeadSheetView({ data, time, settings, chords }: { data: SongData
             );
           })}
           {measureChords.map(({ chord: c, provenance }, i) => {
-              const x = 80 + ((c.beat - m.startBeat) / measureBeats) * (W - 160);
+              const x = 80 + ((Math.max(c.beat, m.startBeat) - m.startBeat) / measureBeats) * (W - 160);
               const width = Math.max(36, c.name.length * 8 + 12);
               return (
                 <g key={`c${i}`} aria-label={`${c.name}: ${provenance.label}`}>
@@ -92,7 +104,13 @@ export function LeadSheetView({ data, time, settings, chords }: { data: SongData
           {time > 0 && <line x1={playX} y1="28" x2={playX} y2={H - 52} stroke="#dc2626" strokeWidth="2" />}
         </svg>
         <p className="text-xs text-zinc-500 mt-2">
-          Measure {currentMeasure + 1} of {data.measures.length} — dots follow the melody, chords below for your left hand.
+          Bar {currentMeasure + 1} of {data.measures.length} · {notes.length ? "Pitch labels follow the right-hand notes." : "No right-hand note onsets in this bar."}
+        </p>
+        <p className="text-sm text-zinc-600 mt-2">
+          {!hasLyrics ? "No lyrics available for this arrangement" : !hasMeasureLyrics ? "No sung words in this bar" : "Lyrics appear beside their notes."}
+        </p>
+        <p className="text-sm text-zinc-600 mt-2">
+          {measureChords.length ? "Chord labels below retain the selected source’s provenance." : "No chord shown for this bar — follow the written notes or rest."}
         </p>
       </div>
     </div>

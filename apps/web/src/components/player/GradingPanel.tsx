@@ -1,147 +1,30 @@
 "use client";
 
-import { detectPitch, type TimedNote } from "@keyspilli/player-core";
-import { useEffect, useRef, useState } from "react";
-import { dialogMotionClasses, useDialogMotion } from "./player-motion";
+import type { TimedNote, GradeResult } from "@keyspilli/player-core";
+import type { PracticeSetup } from "./PracticeSetupDialog";
 
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
-export function GradingPanel({
-  waitMode,
-  waitNote,
-  result,
-  onWaitToggle,
-  onExit,
-  onMicNote,
-  presenceVisible = true,
-}: {
+export function GradingPanel({ waitMode, waitNote, result, countIn, input, onExit, onRepeat, onDismiss }: {
   waitMode: boolean;
   waitNote: TimedNote | null | undefined;
-  result: { summary: string; accuracyPct: number; hit: number; missed: number; wrong: number; late: number; total: number } | null;
-  onWaitToggle: () => void;
+  result: GradeResult | null;
+  countIn: number | null;
+  input: PracticeSetup["input"];
   onExit: () => void;
-  onMicNote: (midi: number) => void;
-  /** Parent-controlled visibility keeps top-level practice actions animated. */
-  presenceVisible?: boolean;
+  onRepeat: () => void;
+  onDismiss: () => void;
 }) {
-  const [micOn, setMicOn] = useState(false);
-  const [micError, setMicError] = useState("");
-  const { requestClose, visible, closing } = useDialogMotion(onExit);
-  const motion = dialogMotionClasses(visible && presenceVisible, closing || !presenceVisible);
-  const streamRef = useRef<MediaStream | null>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
-  const onMicNoteRef = useRef(onMicNote);
-  onMicNoteRef.current = onMicNote;
-
-  useEffect(() => {
-    const panel = panelRef.current;
-    if (!panel) return;
-    if (closing || !presenceVisible) panel.setAttribute("inert", "");
-    else panel.removeAttribute("inert");
-  }, [closing, presenceVisible]);
-
-  useEffect(() => {
-    if (!micOn) return;
-    let cancelled = false;
-    let raf = 0;
-    let micCtx: AudioContext | null = null;
-    let lastMidi: number | null = null;
-    let lastFire = 0;
-    async function start() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        if (cancelled) {
-          stream.getTracks().forEach((t) => t.stop());
-          return;
-        }
-        streamRef.current = stream;
-        const ctx = new AudioContext();
-        micCtx = ctx;
-        const src = ctx.createMediaStreamSource(stream);
-        const analyser = ctx.createAnalyser();
-        analyser.fftSize = 2048;
-        src.connect(analyser);
-        const buf = new Float32Array(analyser.fftSize);
-        const tick = () => {
-          if (cancelled) return;
-          analyser.getFloatTimeDomainData(buf);
-          const midi = detectPitch(buf, ctx.sampleRate);
-          const now = performance.now();
-          if (midi !== null && midi !== lastMidi && now - lastFire > 120) {
-            lastFire = now;
-            lastMidi = midi;
-            onMicNoteRef.current(midi);
-          } else if (midi === null) {
-            lastMidi = null;
-          }
-          raf = requestAnimationFrame(tick);
-        };
-        raf = requestAnimationFrame(tick);
-      } catch (e) {
-        setMicError(`Microphone unavailable: ${(e as Error).message}`);
-        setMicOn(false);
-      }
-    }
-    void start();
-    return () => {
-      cancelled = true;
-      cancelAnimationFrame(raf);
-      streamRef.current?.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
-      void micCtx?.close();
-      micCtx = null;
-    };
-  }, [micOn]);
-
-  return (
-    <div
-      ref={panelRef}
-      className={`grading-panel absolute top-3 right-3 z-20 w-72 rounded-2xl border border-zinc-200 bg-white/95 shadow-lg p-4 ${motion.panel}`}
-      role="region"
-      aria-label="Practice grading"
-      aria-live="polite"
-      aria-hidden={closing || !presenceVisible}
-    >
-      <div className="flex justify-between items-center mb-2">
-        <h3 className="text-sm font-semibold">Practice mode</h3>
-        <button onClick={requestClose} className="text-xs px-2 py-1 rounded-lg border border-zinc-300">Exit</button>
-      </div>
-      <p className="text-xs text-zinc-500 mb-3">
-        Play along on your keyboard (computer keys A–K), a MIDI keyboard, or your microphone. Wait mode pauses until you hit the right note.
-      </p>
-      <label className="flex items-center gap-2 text-sm mb-3">
-        <input type="checkbox" checked={waitMode} onChange={onWaitToggle} />
-        Wait for each note
-      </label>
-      <button
-        onClick={() => setMicOn((m) => !m)}
-        aria-pressed={micOn}
-        className={`w-full px-3 py-2 rounded-xl text-sm border mb-2 ${micOn ? "bg-indigo-100 border-indigo-300 text-indigo-800" : "border-zinc-300 hover:bg-zinc-100"}`}
-      >
-        {micOn ? "🎤 Mic grading on — stop" : "🎤 Use microphone (acoustic piano)"}
-      </button>
-      {micError && <p className="text-xs text-red-600 mb-2" role="alert">{micError}</p>}
-      {waitMode && waitNote && (
-        <div className="rounded-xl bg-indigo-50 p-3 text-sm mb-2" role="status" aria-live="polite">
-          Play: <span className="font-bold">{NOTE_NAMES[waitNote.midi % 12]}{Math.floor(waitNote.midi / 12) - 1}</span>
-          <span className="text-zinc-500"> ({waitNote.hand === "L" ? "left hand" : "right hand"})</span>
-        </div>
-      )}
-      {result && (
-        <div className="rounded-xl bg-green-50 p-3 text-sm" role="status">
-          <div className="flex items-baseline gap-2 mb-1">
-            <span className="text-2xl font-bold">{result.accuracyPct}%</span>
-            <span className="text-zinc-600">{result.summary}</span>
-          </div>
-          <div className="text-xs text-zinc-500 flex gap-3">
-            <span>✓ {result.hit} hit</span>
-            <span>✗ {result.missed} missed</span>
-            <span>~ {result.wrong} wrong</span>
-            {result.late > 0 && <span>⏱ {result.late} late</span>}
-          </div>
-        </div>
-      )}
-      <p className="text-[11px] text-zinc-500 mt-2">Mic grading needs a quiet room; MIDI/keyboard grading is exact.</p>
+  return <div className="grading-panel border-b border-zinc-200 px-4 py-3 text-sm" role="region" aria-label="Practice grading">
+    <div className="flex flex-wrap items-center gap-3">
+      <strong>{result ? "Practice result" : countIn !== null ? `Count-in: ${countIn}` : waitMode ? "Wait for notes" : "Play along"}</strong>
+      <span className="text-zinc-600">{input === "keyboard" ? "Computer keyboard · A–K, Z/X octave" : input === "midi" ? "MIDI keyboard" : "Microphone · beta"}</span>
+      {!result && countIn !== null && <button onClick={onExit} className="ml-auto min-h-11 rounded-full border border-zinc-300 px-3">Cancel count-in</button>}
+      {result && <><button onClick={onRepeat} className="ml-auto min-h-11 rounded-full bg-zinc-900 px-3 text-white">Repeat passage</button><button onClick={onDismiss} className="min-h-11 rounded-full border border-zinc-300 px-3">Dismiss result</button></>}
     </div>
-  );
+    {countIn !== null && <p role="status" className="mt-2">Start in {countIn} {countIn === 1 ? "beat" : "beats"}…</p>}
+    {!result && countIn === null && waitMode && waitNote && <p role="status" className="mt-2">Play: <strong>{NOTE_NAMES[waitNote.midi % 12]}{Math.floor(waitNote.midi / 12) - 1}</strong> ({waitNote.hand === "L" ? "left hand" : "right hand"})</p>}
+    {!result && <p className="text-xs text-zinc-600 mt-2">Finish practice to change setup.</p>}
+    {result && <div role="status" className="mt-2"><strong>{result.accuracyPct}%</strong> · {result.summary}<p className="text-xs text-zinc-600 mt-1">{result.hit} hit · {result.missed} missed · {result.wrong} wrong · {result.late} late</p></div>}
+  </div>;
 }

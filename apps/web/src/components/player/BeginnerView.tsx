@@ -27,6 +27,12 @@ export function BeginnerView({ data, time, settings, chords }: { data: SongData;
       .map((n) => ({ ...n, midi: n.midi + settings.transpose })),
     [data.notes, m.startBeat, m.endBeat, settings.transpose],
   );
+  const nextMeasure = data.measures[currentMeasure + 1];
+  const nextNotes = useMemo(() => nextMeasure ? data.notes
+    .filter((note) => note.start >= nextMeasure.startBeat && note.start < nextMeasure.endBeat)
+    .slice(0, 8)
+    .map((note) => ({ ...note, midi: note.midi + settings.transpose })) : [],
+  [data.notes, nextMeasure, settings.transpose]);
   const measureBeats = m.endBeat - m.startBeat;
   const W = 880;
   const H = 300;
@@ -58,7 +64,7 @@ export function BeginnerView({ data, time, settings, chords }: { data: SongData;
           <span>Measure {currentMeasure + 1} of {data.measures.length}</span>
           <span>{data.key} · {data.tempoBpm} BPM</span>
         </div>
-        <svg viewBox={`0 0 ${W} ${H}`} className="player-notation-svg w-full" role="img" aria-label="Beginner notes view. Amber dotted chords are inferred; gray dotted chords have unknown provenance.">
+        <svg viewBox={`0 0 ${W} ${H}`} className="player-notation-svg w-full" role="img" aria-label="Note letters view. RH is right hand; LH is left hand; numbers indicate octave. Amber dotted chords are inferred; gray dotted chords have unknown provenance.">
           <rect x="0" y="0" width={W} height={H} fill="#fff" rx="12" />
           <line x1="24" y1="40" x2={W - 24} y2="40" stroke="#e4e4e7" />
           <line x1="24" y1="230" x2={W - 24} y2="230" stroke="#e4e4e7" />
@@ -73,10 +79,12 @@ export function BeginnerView({ data, time, settings, chords }: { data: SongData;
             const col = pitchColor(n.midi);
             return (
               <g key={i}>
-                <circle cx={x} cy={y} r="16" fill={col} stroke="#18181b" strokeWidth="1.5" />
+                <title>{`${n.hand === "L" ? "Left" : "Right"} hand: ${LETTERS[((n.midi % 12) + 12) % 12]}${Math.floor(n.midi / 12) - 1}`}</title>
+                <circle cx={x} cy={y} r="18" fill={col} stroke="#18181b" strokeWidth="1.5" />
                 <text x={x} y={y + 4} textAnchor="middle" fontSize="12" fontWeight="700" fill="#fff">
-                  {LETTERS[n.midi % 12]}
+                  {LETTERS[((n.midi % 12) + 12) % 12]}{Math.floor(n.midi / 12) - 1}
                 </text>
+                <text x={x} y={y - 22} textAnchor="middle" fontSize="11" fill="#3f3f46">{n.hand === "L" ? "LH" : "RH"}</text>
                 {n.lyrics && (
                   <text x={x} y={Math.min(255, y + 34)} textAnchor="middle" fontSize="12" fill="#52525b">
                     {n.lyrics}
@@ -119,6 +127,12 @@ export function BeginnerView({ data, time, settings, chords }: { data: SongData;
             })}
           {time > 0 && <line x1={playX} y1="40" x2={playX} y2="230" stroke="#dc2626" strokeWidth="2" />}
         </svg>
+        <p className="text-xs text-zinc-600">LH: left hand · RH: right hand · Number: octave (C4 is middle C)</p>
+        {nextMeasure && <p className="mt-3 text-sm text-zinc-700" aria-label="Next bar preview">
+          <strong>Next bar {currentMeasure + 2}: </strong>
+          {nextNotes.length ? nextNotes.map((note) => `${note.hand === "L" ? "LH" : "RH"} ${LETTERS[((note.midi % 12) + 12) % 12]}${Math.floor(note.midi / 12) - 1}`).join(" · ") : "No note onsets"}
+          {nextNotes.length === 8 && " …"}
+        </p>}
       </div>
     </div>
   );

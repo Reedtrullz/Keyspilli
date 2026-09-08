@@ -9,6 +9,7 @@ import {
   ChordGrader,
   completeChordDurations,
   dedupeChords,
+  detectPitch,
   KeyboardInput,
   MidiInput,
   PlaybackEngine,
@@ -44,6 +45,7 @@ import { SheetMusicView } from "./SheetMusicView";
 import { SettingsDialog } from "./SettingsDialog";
 import { DownloadDialog } from "./DownloadDialog";
 import { GradingPanel } from "./GradingPanel";
+import { PracticeSetupDialog, type PracticeSetup } from "./PracticeSetupDialog";
 import { useAnimatedSwitch, usePresence } from "./player-motion";
 import { levelLabel } from "../level-labels";
 import {
@@ -70,9 +72,9 @@ export type PlayerInitial = PlayerDetail | PlayerShell;
 
 const MODES: { id: ViewMode; label: string; hint: string }[] = [
   { id: "falling", label: "Fall Down", hint: "Notes fall onto the keyboard" },
-  { id: "beginner", label: "Beginner", hint: "Big colored notes + letters" },
+  { id: "beginner", label: "Note letters", hint: "Pitch letters, octaves, and hand cues" },
   { id: "sheet", label: "Sheet Music", hint: "Engraved score" },
-  { id: "leadsheet", label: "Lead Sheet", hint: "Lyrics + chords" },
+  { id: "leadsheet", label: "Lead Sheet", hint: "Melody and available chords or lyrics" },
 ];
 
 function playerVariantsForDisplay(song: Pick<SongRow, "difficulty">, variants: readonly SongRow[]): SongRow[] {
@@ -116,6 +118,8 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   // localStorage after mount. Avoids hydration mismatch on class names.
   const [sectionsCollapsed, setSectionsCollapsed] = useState(false);
   const [fullWidth, setFullWidth] = useState(false);
+  const [focusMode, setFocusMode] = useState(false);
+  const soundPreviewRef = useRef(false);
   useEffect(() => {
     setSectionsCollapsed(loadJson("keyspilli.sectionsCollapsed", false));
     setFullWidth(loadJson("keyspilli.fullWidth", false));
@@ -166,7 +170,26 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   const [showTempoSemanticsNotice, setShowTempoSemanticsNotice] = useState(false);
   const tempoNoticePresence = usePresence(showTempoSemanticsNotice);
   const [grading, setGrading] = useState(false);
-  const gradingPresence = usePresence(grading);
+  const gradingRef = useRef(false);
+  gradingRef.current = grading;
+  const [showPracticeSetup, setShowPracticeSetup] = useState(false);
+  const showPracticeSetupRef = useRef(false);
+  showPracticeSetupRef.current = showPracticeSetup;
+  const defaultPracticeSetup: PracticeSetup = { input: "keyboard", wait: false, scope: "current", countInBeats: 0 };
+  const [practiceSetup, setPracticeSetup] = useState<PracticeSetup>(defaultPracticeSetup);
+  const practiceSetupRef = useRef(practiceSetup);
+  practiceSetupRef.current = practiceSetup;
+  const lastAttemptRef = useRef<{ setup: PracticeSetup; range: LoopRegion } | null>(null);
+  const repeatRangeRef = useRef<LoopRegion | null>(null);
+  const [practiceError, setPracticeError] = useState("");
+  const [countIn, setCountIn] = useState<number | null>(null);
+  const countInRef = useRef<number | null>(null);
+  const countInTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const micCleanupRef = useRef<(() => void) | null>(null);
+  const micRequestRef = useRef(0);
+  const [micReady, setMicReady] = useState(false);
+  const [micPending, setMicPending] = useState(false);
+  const [micError, setMicError] = useState("");
   const [chordPracticeActive, setChordPracticeActive] = useState(false);
   const chordPracticePresence = usePresence(chordPracticeActive);
   const [modeMenuIdx, setModeMenuIdx] = useState(-1);
@@ -194,7 +217,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   useEffect(() => {
     const panel = adjustPanelRef.current;
     if (!panel) return;
-    if (isNarrowViewport && !showAdjust) panel.setAttribute("inert", "");
+    if (!showAdjust) panel.setAttribute("inert", "");
     else panel.removeAttribute("inert");
   }, [isNarrowViewport, showAdjust, adjustPresence.mounted]);
 
@@ -356,6 +379,15 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       // seek, grading start/finish), which call the setters directly.
       timeRef.current = snap.time;
       playingRef.current = snap.playing;
+      if (gradingRef.current && !engine.grader && engine.gradeResult) {
+        gradingRef.current = false;
+        setGrading(false);
+        setWaitMode(false);
+        setGradeResult(engine.gradeResult);
+        setTime(engine.time);
+        setPlaying(false);
+        releaseMicrophone();
+      }
     };
     engine.audio.sustainPedal = settings.sustainPedal;
     engineRef.current = engine;
@@ -433,7 +465,8 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   }, [playing]);
 
   const startPlayback = useCallback(() => {
-    if (chordPracticeActive) return;
+    if (chordPracticeActive || showPracticeSetupRef.current || countInRef.current !== null || (gradingRef.current && practiceSetupRef.current.wait)) return;
+    cancelSoundPreview();
     engineRef.current?.start();
     syncTransportState();
     void fetch(`/api/songs/${encodeURIComponent(initial.song.id)}/play`, { method: "POST" }).catch(() => {});
@@ -445,6 +478,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   }, []);
 
   const seek = useCallback((t: number) => {
+    if (gradingRef.current || showPracticeSetupRef.current) return;
     engineRef.current?.seek(t);
     syncTransportState();
   }, []);
@@ -463,6 +497,8 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       onNoteOff: (m) => handleNote(m, false),
     });
     const onKey = (e: KeyboardEvent) => {
+      if (e.type === "keyup") { ki.handleKey(e); return; }
+      if (showPracticeSetupRef.current || showSettingsRef.current || showDownloadRef.current) return;
       if (e.key === "Escape") {
         if (showModeMenuRef.current) {
           setShowModeMenu(false);
@@ -487,10 +523,10 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
           if (e.key === "n" || e.key === "N") {
             e.preventDefault();
             skipChordPracticeRef.current?.();
-          } else if (e.key === "h" || e.key === "H") {
+          } else if (e.shiftKey && e.key.toLowerCase() === "h") {
             e.preventDefault();
             hearChordPracticeRef.current?.();
-          }
+          } else ki.handleKey(e);
         } else {
           ki.handleKey(e);
         }
@@ -499,13 +535,17 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     window.addEventListener("keydown", onKey);
     window.addEventListener("keyup", onKey);
     const mi = new MidiInput({
-      onNoteOn: (m) => handleNote(m, true),
-      onNoteOff: (m) => handleNote(m, false),
+      onNoteOn: (m) => handleNote(m, true, "midi"),
+      onNoteOff: (m) => handleNote(m, false, "midi"),
     });
-    void mi.connect().then(setMidiConnected);
+    let disconnected = false;
+    void mi.connect().then((connected) => { if (disconnected) mi.disconnect(); else setMidiConnected(connected); });
+    const midiStatusTimer = window.setInterval(() => setMidiConnected(mi.connectedCount > 0), 1000);
     return () => {
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("keyup", onKey);
+      disconnected = true;
+      window.clearInterval(midiStatusTimer);
       mi.disconnect();
     };
   }, []);
@@ -586,7 +626,6 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     }
   }
 
-
   // Sweep pressed keys whose noteOff never arrived.
   useEffect(() => {
     const id = setInterval(() => {
@@ -604,7 +643,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     return () => clearInterval(id);
   }, []);
 
-  function handleNote(midi: number, on: boolean) {
+  function handleNote(midi: number, on: boolean, source: "keyboard" | "midi" = "keyboard") {
     const eng = engineRef.current;
     if (!eng) return;
     if (!on) {
@@ -616,6 +655,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       });
       return;
     }
+    if (showPracticeSetupRef.current || countInRef.current !== null || (gradingRef.current && practiceSetupRef.current.input !== source)) return;
     if (!eng.handleNoteOn(midi)) return;
     if (chordPracticeRef.current) {
       chordPracticeRef.current.play(midi);
@@ -624,20 +664,94 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     setPressedKeys((s) => new Map(s).set(midi, performance.now()));
   }
 
-  function handleMicNote(midi: number) {
-    // Current pitch detection is monophonic, so microphone input remains a
-    // note-practice feature and is intentionally not used to grade chords.
-    if (!chordPracticeRef.current) engineRef.current?.handleMicNote(midi);
+  function releaseMicrophone() {
+    micRequestRef.current++;
+    micCleanupRef.current?.();
+    micCleanupRef.current = null;
+    setMicReady(false);
+    setMicPending(false);
   }
 
+  async function enableMicrophone() {
+    if (micPending || micReady) return;
+    const request = ++micRequestRef.current;
+    setMicPending(true);
+    setMicError("");
+    let stream: MediaStream | null = null;
+    let ctx: AudioContext | null = null;
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) throw new Error("This browser does not support microphone capture.");
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (request !== micRequestRef.current) { stream.getTracks().forEach((track) => track.stop()); return; }
+      ctx = new AudioContext();
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 2048;
+      ctx.createMediaStreamSource(stream).connect(analyser);
+      const buffer = new Float32Array(analyser.fftSize);
+      let raf = 0;
+      let lastMidi: number | null = null;
+      let lastFire = 0;
+      const tick = () => {
+        if (request !== micRequestRef.current) return;
+        analyser.getFloatTimeDomainData(buffer);
+        const midi = detectPitch(buffer, ctx!.sampleRate);
+        const now = performance.now();
+        if (midi === null) lastMidi = null;
+        else if (midi !== lastMidi && now - lastFire > 120) {
+          lastMidi = midi;
+          lastFire = now;
+          if (gradingRef.current && countInRef.current === null && practiceSetupRef.current.input === "microphone") {
+            engineRef.current?.handleMicNote(midi);
+            syncTransportState();
+          }
+        }
+        raf = requestAnimationFrame(tick);
+      };
+      micCleanupRef.current = () => {
+        cancelAnimationFrame(raf);
+        stream?.getTracks().forEach((track) => track.stop());
+        void ctx?.close();
+      };
+      stream.getTracks().forEach((track) => track.addEventListener("ended", () => {
+        if (request !== micRequestRef.current) return;
+        releaseMicrophone();
+        setMicError("Microphone disconnected.");
+        if (gradingRef.current) finishGrading();
+      }, { once: true }));
+      raf = requestAnimationFrame(tick);
+      setMicReady(true);
+    } catch (error) {
+      stream?.getTracks().forEach((track) => track.stop());
+      void ctx?.close();
+      if (request === micRequestRef.current) setMicError(`Microphone unavailable: ${error instanceof Error ? error.message : "permission denied"}`);
+    } finally {
+      if (request === micRequestRef.current) setMicPending(false);
+    }
+  }
+
+  function cancelCountIn() {
+    if (countInTimerRef.current !== null) clearTimeout(countInTimerRef.current);
+    countInTimerRef.current = null;
+    countInRef.current = null;
+    setCountIn(null);
+    engineRef.current?.audio.cancelAll();
+  }
+
+  useEffect(() => () => {
+    if (countInTimerRef.current !== null) clearTimeout(countInTimerRef.current);
+    micRequestRef.current++;
+    micCleanupRef.current?.();
+  }, []);
+
   function toggleLoop() {
+    if (gradingRef.current) return;
     if (loop) {
       setLoopBeats(null);
       return;
     }
     const startBeat = initial.data.measures[currentMeasure]?.startBeat ?? 0;
     const measureBeats = initial.data.timeSig[0] * (4 / initial.data.timeSig[1]);
-    setLoopBeats({ startBeat, endBeat: startBeat + 4 * measureBeats });
+    setLoopBeats({ startBeat, endBeat: Math.min(initial.data.measures.at(-1)?.endBeat ?? startBeat + 4 * measureBeats, startBeat + 4 * measureBeats) });
   }
 
   function seekToSection(s: SongSection) {
@@ -645,12 +759,33 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   }
 
   function loopSection(s: SongSection) {
+    if (gradingRef.current) return;
     setLoopBeats({ startBeat: s.startBeat, endBeat: s.endBeat });
   }
 
   function seekToMeasure(i: number) {
     const m = initial.data.measures[i];
     if (m) seek(m.startBeat * secPerBeat(initial.data.tempoBpm, settings.speed));
+  }
+
+  function commitBar(input: HTMLInputElement) {
+    const value = input.valueAsNumber;
+    if (Number.isInteger(value)) seekToMeasure(Math.max(0, Math.min(initial.data.measures.length - 1, value - 1)));
+    input.value = String(Number.isInteger(value) ? Math.max(1, Math.min(initial.data.measures.length, value)) : currentMeasure + 1);
+  }
+
+  const loopStartBar = loopBeats ? Math.max(0, initial.data.measures.findIndex((m) => m.endBeat > loopBeats.startBeat)) + 1 : currentMeasure + 1;
+  const loopEndBar = loopBeats ? Math.max(0, initial.data.measures.findIndex((m) => m.endBeat >= loopBeats.endBeat)) + 1 : Math.min(initial.data.measures.length, currentMeasure + 4);
+  function commitLoopBar(input: HTMLInputElement, anchor: "start" | "end") {
+    if (gradingRef.current) return;
+    const value = input.valueAsNumber;
+    const start = anchor === "start" ? value : loopStartBar;
+    const end = anchor === "end" ? value : loopEndBar;
+    if (!Number.isInteger(value) || start < 1 || end > initial.data.measures.length || start > end) {
+      input.setCustomValidity("Choose whole bars with the end at or after the start."); input.reportValidity(); return;
+    }
+    input.setCustomValidity("");
+    setLoopBeats({ startBeat: initial.data.measures[start - 1]!.startBeat, endBeat: initial.data.measures[end - 1]!.endBeat });
   }
 
   function toggleFavorite() {
@@ -667,7 +802,36 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     saveJson("keyspilli.learned", next);
   }
 
+  function cancelSoundPreview() {
+    if (soundPreviewRef.current) engineRef.current?.audio.cancelAll();
+    soundPreviewRef.current = false;
+  }
+
+  function previewSound() {
+    const eng = engineRef.current;
+    if (!eng) return;
+    eng.stop();
+    syncTransportState();
+    eng.audio.cancelAll();
+    eng.audio.ensure();
+    soundPreviewRef.current = true;
+    [60, 64, 67].forEach((midi, index) => eng.audio.noteOn({ midi, startSec: 0, durSec: 0.25, vel: 85, hand: "R" }, index * 0.3));
+  }
+
   function updateSettings(p: Partial<PlayerSettings>) {
+    if (p.soundSource !== undefined || p.organStyle !== undefined) cancelSoundPreview();
+    if (gradingRef.current && (p.speed !== undefined || p.hand !== undefined || p.transpose !== undefined || p.soundSource !== undefined || p.organStyle !== undefined)) return;
+    if (p.mode !== undefined && p.mode !== settings.mode) {
+      if (gradingRef.current) finishGrading(false);
+      releaseMicrophone();
+      cancelCountIn();
+      setShowPracticeSetup(false);
+    }
+    if (p.speed !== undefined || p.hand !== undefined || p.transpose !== undefined) {
+      setGradeResult(null);
+      lastAttemptRef.current = null;
+      if (engineRef.current) engineRef.current.gradeResult = null;
+    }
     const next = { ...settings, ...p };
     setSettings(next);
     engineRef.current?.audio.setGains(next.voiceGain, next.pianoGain);
@@ -701,32 +865,111 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     });
   }
 
-  function startGrading(wait: boolean) {
+  function openPracticeSetup() {
+    cancelSoundPreview();
     if (chordPracticeActive) exitChordPractice(false);
-    setWaitMode(wait);
-    setGrading(true);
+    engineRef.current?.stop();
+    syncTransportState();
+    setShowSettings(false);
+    setShowModeMenu(false);
+    setPracticeError("");
+    setMicError("");
+    repeatRangeRef.current = null;
+    setPracticeSetup(defaultPracticeSetup);
+    showPracticeSetupRef.current = true;
+    setShowPracticeSetup(true);
+  }
+
+  function closePracticeSetup() {
+    releaseMicrophone();
+    showPracticeSetupRef.current = false;
+    setShowPracticeSetup(false);
+    window.requestAnimationFrame(() => practiceTriggerRef.current?.focus());
+  }
+
+  function beginPractice(setup: PracticeSetup, repeatRange?: LoopRegion) {
+    const eng = engineRef.current;
+    if (!eng || gradingRef.current || (setup.input === "microphone" && !micReady) || (setup.input === "midi" && !midiConnected)) return;
+    const range = repeatRange ?? (repeatRangeRef.current && setup.scope === practiceSetupRef.current.scope ? repeatRangeRef.current : null) ??
+      (setup.scope === "loop" ? loop : { startSec: setup.scope === "beginning" ? 0 : eng.time, endSec: duration });
+    if (!range) { setPracticeError("Select a loop before practicing it."); return; }
+    try { eng.startGrading(setup.wait, range); }
+    catch (error) { setPracticeError(error instanceof Error ? error.message : "Unable to start practice"); return; }
     setGradeResult(null);
-    engineRef.current?.startGrading(wait);
-    if (!wait) startPlayback();
+    setPracticeError("");
+    setPracticeSetup(setup);
+    practiceSetupRef.current = setup;
+    lastAttemptRef.current = { setup, range: eng.gradingRange! };
+    repeatRangeRef.current = null;
+    showPracticeSetupRef.current = false;
+    setShowPracticeSetup(false);
+    gradingRef.current = true;
+    setGrading(true);
+    setWaitMode(setup.wait);
+    syncTransportState();
+    const ready = () => {
+      countInRef.current = null;
+      countInTimerRef.current = null;
+      setCountIn(null);
+      if (!setup.wait) { eng.start(); syncTransportState(); }
+      // Leave focus on the stage so computer keys immediately play notes.
+      document.querySelector<HTMLElement>(".player-stage")?.focus();
+    };
+    if (setup.countInBeats === 4) {
+      let remaining = 4;
+      const beat = () => {
+        countInRef.current = remaining;
+        setCountIn(remaining);
+        eng.audio.ensure();
+        eng.audio.metronomeClick(remaining === 4 ? 0 : 1);
+        countInTimerRef.current = setTimeout(() => {
+          remaining--;
+          if (remaining > 0) beat(); else ready();
+        }, secPerBeat(initial.data.tempoBpm, settings.speed) * 1000);
+      };
+      beat();
+    } else ready();
   }
 
   function finishGrading(restoreFocus = true) {
+    const wasCounting = countInRef.current !== null;
+    gradingRef.current = false;
+    cancelCountIn();
     const result = engineRef.current?.finishGrading();
-    if (result) setGradeResult(result);
+    if (!wasCounting && result) setGradeResult(result);
+    else setGradeResult(null);
+    releaseMicrophone();
     syncTransportState();
     setGrading(false);
     setWaitMode(false);
     if (restoreFocus) window.requestAnimationFrame(() => practiceTriggerRef.current?.focus());
   }
 
+  function repeatPractice() {
+    const attempt = lastAttemptRef.current;
+    if (!attempt) return;
+    if (attempt.setup.input === "keyboard" || (attempt.setup.input === "midi" && midiConnected)) { beginPractice(attempt.setup, attempt.range); return; }
+    setPracticeSetup(attempt.setup);
+    setPracticeError("");
+    repeatRangeRef.current = attempt.range;
+    showPracticeSetupRef.current = true;
+    setShowPracticeSetup(true);
+  }
+
   function startChordPractice() {
-    if (grading) finishGrading(false);
+    cancelSoundPreview();
+    if (gradingRef.current) finishGrading(false);
+    releaseMicrophone();
+    setGradeResult(null);
     engineRef.current?.stop();
     chordPracticeTargetsRef.current = null; // recompute for the new session
     const session = new ChordGrader(chordPracticeTargets);
     chordPracticeRef.current = session;
     setChordPracticeActive(true);
     setChordPracticeSnapshot(session.snapshot());
+    syncTransportState();
+    setShowAdjust(false);
+    window.requestAnimationFrame(() => document.querySelector<HTMLElement>(".player-stage")?.focus());
   }
 
   function exitChordPractice(restoreFocus = true) {
@@ -823,8 +1066,8 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   );
 
   return (
-    <div className={`${fullWidth ? "w-full px-4 py-6" : "max-w-6xl mx-auto px-4 py-6"} page-shell player-page`}>
-      <div className="mb-3 flex items-center gap-2 flex-wrap">
+    <div className={`${fullWidth ? "w-full px-4 py-6" : "max-w-6xl mx-auto px-4 py-6"} page-shell player-page ${focusMode ? "player-focus" : ""}`}>
+      <div className="player-song-header mb-3 flex items-center gap-2 flex-wrap">
         <div>
           <h1 className="text-xl font-bold leading-tight truncate max-w-[70vw]" title={initial.song.title}>{initial.song.title}</h1>
           <div className="text-sm text-zinc-500">by {initial.song.artist}</div>
@@ -846,11 +1089,30 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
           )}
           {midiConnected && <span className="px-2 py-1 rounded-full bg-green-100 text-green-800">MIDI connected</span>}
         </div>
+        <div className="player-song-actions flex flex-wrap gap-2 w-full text-xs">            <button ref={downloadTriggerRef} onClick={() => setShowDownload(true)} className="pressable min-h-11 px-4 py-2 rounded-full border border-zinc-300 font-medium hover:bg-zinc-100" aria-label="Download sheet music and MIDI">
+              Download
+            </button>
+            <button
+              onClick={toggleFavorite}
+              aria-pressed={favorites.includes(initial.song.id)}
+              className={`pressable min-h-11 px-3 py-2 rounded-full border text-sm ${favorites.includes(initial.song.id) ? "bg-rose-100 border-rose-300" : "border-zinc-300 hover:bg-zinc-100"}`}
+              title="Add to favorites"
+            >
+              {favorites.includes(initial.song.id) ? "♥ Favorited" : "♡ Favorite"}
+            </button>
+            <button
+              onClick={toggleLearned}
+              aria-pressed={learned.includes(initial.song.id)}
+              className={`pressable min-h-11 px-3 py-2 rounded-full border text-sm ${learned.includes(initial.song.id) ? "bg-green-100 border-green-300" : "border-zinc-300 hover:bg-zinc-100"}`}
+              title="Mark as learned"
+            >
+              {learned.includes(initial.song.id) ? "✓ Learned" : "Learned?"}
+            </button></div>
       </div>
 
       {tempoNoticePresence.mounted && (
         <div
-          className="motion-presence mb-4 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-900"
+          className="player-tempo-notice motion-presence mb-3 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-900"
           data-state={tempoNoticePresence.visible ? "open" : "closed"}
           // Keep the closing notice in the accessibility tree until the
           // presence hook unmounts it; hiding a focused button mid-exit leaves
@@ -860,8 +1122,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
         >
           <div className="flex items-start gap-3">
             <p className="flex-1">
-              Practice tempo changes playback speed only and preserve the arrangement&apos;s beat coordinates. Source tempo
-              corrections are a separate maintainer calibration/rebuild action.
+              Speed changes how fast you practice. It does not change the arrangement’s notes.
             </p>
             <button onClick={dismissTempoSemanticsNotice} className="shrink-0 rounded-lg border border-indigo-300 px-2 py-1 text-xs font-medium hover:bg-indigo-100">
               Got it
@@ -870,6 +1131,8 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
         </div>
       )}
 
+      {focusMode && <SourceArrangementNotice source={initial.sourceArrangement} />}
+      {!focusMode && isNarrowViewport && settings.showAllKeys && settings.mode === "falling" && <p className="text-xs text-zinc-600 mb-2">88 keys selected. <button disabled={grading} className="underline min-h-11" onClick={() => updateSettings({ showAllKeys: false })}>Fit passage</button> for larger keys.</p>}
       <div className="player-options flex flex-wrap items-center gap-2 mb-4">
         <div className="player-primary-controls flex flex-wrap items-center gap-2">
           <div className="relative" ref={modeMenuRef}>
@@ -919,20 +1182,6 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
           )}
           </div>
 
-          <div className="flex gap-1" role="group" aria-label="Hands">
-          {(["L", "R", "both"] as const).map((h) => (
-            <button
-              key={h}
-              onClick={() => updateSettings({ hand: h })}
-              aria-pressed={settings.hand === h}
-              aria-label={h === "L" ? "Left hand" : h === "R" ? "Right hand" : "Both hands"}
-              className={`pressable min-w-11 min-h-11 px-3 py-2 rounded-full text-sm border ${settings.hand === h ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300"}`}
-            >
-              {h === "both" ? "All" : h}
-            </button>
-          ))}
-          </div>
-
           <button
             type="button"
             ref={adjustTriggerRef}
@@ -941,8 +1190,10 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
             aria-controls="player-adjust-panel"
             className="player-adjust-toggle pressable min-h-11 px-3 py-2 rounded-full border border-zinc-300 text-sm"
           >
-            {showAdjust ? "Done" : "Adjust"}
+            Adjust
           </button>
+
+          <button className="min-h-11 rounded-full border border-zinc-300 px-3 text-sm" aria-pressed={focusMode} onClick={() => { setFocusMode(!focusMode); setShowAdjust(false); window.scrollTo({ top: 0 }); }}>{focusMode ? "Exit focus" : "Focus"}</button>
         </div>
 
         <div
@@ -954,9 +1205,10 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
           data-state={adjustPresence.visible ? "open" : "closed"}
           role="group"
           aria-label="Player adjustments"
-          aria-hidden={isNarrowViewport && !showAdjust ? true : undefined}
+          aria-hidden={!showAdjust}
         >
           <button
+            hidden={settings.mode !== "falling"}
             onClick={() => updateSettings({ chordKeys: !settings.chordKeys })}
             aria-pressed={settings.chordKeys}
             className={`pressable min-h-11 px-3 py-2 rounded-full text-sm border ${settings.chordKeys ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300"}`}
@@ -971,11 +1223,12 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
             Metronome
           </button>
           <button
+            hidden={settings.mode !== "falling"}
             onClick={() => updateSettings({ showAllKeys: !settings.showAllKeys })}
             aria-pressed={settings.showAllKeys}
             className={`pressable min-h-11 px-3 py-2 rounded-full text-sm border ${settings.showAllKeys ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300"}`}
           >
-            88 Keys
+            {settings.showAllKeys ? "88 keys" : "Fit passage"}
           </button>
           <button
             onClick={toggleFullWidth}
@@ -985,31 +1238,20 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
             Full width
           </button>
           <div className="player-advanced-inline flex items-center gap-1" aria-label="Transpose">
-            <button onClick={() => updateSettings({ transpose: settings.transpose - 1 })} className="pressable min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Transpose down">−</button>
+            <button disabled={grading} onClick={() => updateSettings({ transpose: settings.transpose - 1 })} className="pressable min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Transpose down">−</button>
             <span className="px-2 text-xs font-medium">
               Key {songKeyLabel} {settings.transpose ? `(${settings.transpose > 0 ? "+" : ""}${settings.transpose})` : ""}
             </span>
-            <button onClick={() => updateSettings({ transpose: settings.transpose + 1 })} className="pressable min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Transpose up">+</button>
+            <button disabled={grading} onClick={() => updateSettings({ transpose: settings.transpose + 1 })} className="pressable min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Transpose up">+</button>
             {settings.transpose !== 0 && (
-              <button onClick={() => updateSettings({ transpose: 0 })} className="pressable min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs text-zinc-500" aria-label="Reset transpose">
+              <button disabled={grading} onClick={() => updateSettings({ transpose: 0 })} className="pressable min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs text-zinc-500" aria-label="Reset transpose">
                 Reset
               </button>
             )}
           </div>
-          <button
-            onClick={toggleLoop}
-            aria-pressed={!!loop}
-            className={`pressable min-h-11 px-3 py-1.5 rounded-full text-xs font-mono border ${loop ? "bg-indigo-100 border-indigo-300 text-indigo-800" : "border-zinc-300"}`}
-            title="Loop 4 measures from current position"
-          >
-            LOOP {loop ? "ON" : "OFF"}
-          </button>
 
           <div className="player-secondary-actions ml-auto flex flex-wrap justify-end gap-2 text-sm">
-            <button ref={downloadTriggerRef} onClick={() => setShowDownload(true)} className="pressable min-h-11 px-4 py-2 rounded-full bg-zinc-900 text-white font-medium hover:bg-zinc-700" aria-label="Download sheet music and MIDI">
-              Download Sheet &amp; MIDI
-            </button>
-            <button ref={settingsTriggerRef} onClick={() => setShowSettings(true)} className="pressable min-h-11 px-4 py-2 rounded-full border border-zinc-300 font-medium hover:bg-zinc-100" aria-label="Open settings">
+            <button ref={settingsTriggerRef} disabled={grading} onClick={() => setShowSettings(true)} className="pressable min-h-11 px-4 py-2 rounded-full border border-zinc-300 font-medium hover:bg-zinc-100" aria-label="Open settings">
               Settings
             </button>
             <button
@@ -1020,58 +1262,66 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
             >
               {chordPracticeActive ? "Exit chord practice" : "Chord practice"}
             </button>
-            <button
-              onClick={toggleFavorite}
-              aria-pressed={favorites.includes(initial.song.id)}
-              className={`pressable min-h-11 px-3 py-2 rounded-full border text-sm ${favorites.includes(initial.song.id) ? "bg-rose-100 border-rose-300" : "border-zinc-300 hover:bg-zinc-100"}`}
-              title="Add to favorites"
-            >
-              {favorites.includes(initial.song.id) ? "♥ Favorited" : "♡ Favorite"}
-            </button>
-            <button
-              onClick={toggleLearned}
-              aria-pressed={learned.includes(initial.song.id)}
-              className={`pressable min-h-11 px-3 py-2 rounded-full border text-sm ${learned.includes(initial.song.id) ? "bg-green-100 border-green-300" : "border-zinc-300 hover:bg-zinc-100"}`}
-              title="Mark as learned"
-            >
-              {learned.includes(initial.song.id) ? "✓ Learned" : "Learned?"}
-            </button>
+
           </div>
         </div>
       </div>
 
       <div className="player-surface rounded-2xl border border-zinc-200 bg-white mb-4">
         <div className="player-control-strip flex items-center gap-3 px-4 py-3 border-b border-zinc-100 flex-wrap">
-          <button onClick={togglePlay} disabled={chordPracticeActive} className="pressable w-12 h-12 rounded-full bg-zinc-900 text-white text-lg shadow-sm hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed" aria-label={playing ? "Pause" : "Play"} title={chordPracticeActive ? "Exit chord practice to play the arrangement" : undefined}>
+          <button onClick={togglePlay} disabled={chordPracticeActive || countIn !== null || (grading && waitMode)} className="pressable w-12 h-12 rounded-full bg-zinc-900 text-white text-lg shadow-sm hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed" aria-label={playing ? "Pause" : "Play"} title={chordPracticeActive ? "Exit chord practice to play the arrangement" : undefined}>
             {playing ? "❚❚" : "▶"}
           </button>
           <button
             ref={practiceTriggerRef}
-            onClick={() => grading ? finishGrading() : startGrading(false)}
+            onClick={() => grading ? finishGrading() : openPracticeSetup()}
             className={`pressable player-practice-button min-h-11 px-3 py-1.5 rounded-full border font-medium text-sm ${grading ? "bg-amber-100 border-amber-300" : "border-zinc-300 hover:bg-zinc-100"}`}
           >
             {grading ? "Finish practice" : "Practice"}
           </button>
-          <div className="player-measure-controls flex items-center gap-1">
-            <button onClick={() => seekToMeasure(Math.max(0, currentMeasure - 1))} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Previous measure">‹</button>
-            <span className="px-2 text-xs font-mono" title="Measure — click to jump">
-              {currentMeasure + 1}/{initial.data.measures.length}
-            </span>
-            <button onClick={() => seekToMeasure(Math.min(initial.data.measures.length - 1, currentMeasure + 1))} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Next measure">›</button>
+          <div className="flex gap-1" role="group" aria-label="Hands">
+          {(["L", "R", "both"] as const).map((h) => (
+            <button
+              key={h}
+              disabled={grading} onClick={() => updateSettings({ hand: h })}
+              aria-pressed={settings.hand === h}
+              aria-label={h === "L" ? "Left hand" : h === "R" ? "Right hand" : "Both hands"}
+              className={`pressable min-w-11 min-h-11 px-3 py-2 rounded-full text-sm border ${settings.hand === h ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300"}`}
+            >
+              {h === "both" ? "All" : h}
+            </button>
+          ))}
           </div>
           <div className="player-speed-controls flex items-center gap-1" aria-label="Practice speed">
-            <button onClick={() => updateSettings({ speed: Math.max(0.25, +(settings.speed - 0.1).toFixed(2)) })} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Decrease speed">−</button>
+            <span className="text-xs text-zinc-600">Speed</span>
+            <button disabled={grading} onClick={() => updateSettings({ speed: Math.max(0.25, +(settings.speed - 0.1).toFixed(2)) })} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Decrease speed">−</button>
             <span className="px-2 text-xs font-medium" title="Practice speed">{Math.round(settings.speed * 100)}%</span>
-            <button onClick={() => updateSettings({ speed: Math.min(2, +(settings.speed + 0.1).toFixed(2)) })} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Increase speed">+</button>
+            <button disabled={grading} onClick={() => updateSettings({ speed: Math.min(2, +(settings.speed + 0.1).toFixed(2)) })} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Increase speed">+</button>
+            <div className="player-speed-presets flex gap-1">{[0.5, 0.75, 1].map((speed) => <button key={speed} disabled={grading} aria-pressed={settings.speed === speed} className={`min-h-11 px-2 rounded-lg text-xs ${settings.speed === speed ? "bg-zinc-100 font-semibold" : "text-zinc-600 hover:bg-zinc-100"}`} onClick={() => updateSettings({ speed })}>{speed * 100}%</button>)}</div>
+          </div>
+
+        </div>
+
+        <div className="player-timeline">          <div className="player-measure-controls flex items-center gap-1">
+            <button disabled={grading} onClick={() => seekToMeasure(Math.max(0, currentMeasure - 1))} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Previous measure">‹</button>
+            <label className="flex items-center gap-1 text-xs">Bar <input key={currentMeasure} type="number" aria-label="Bar" min={1} max={initial.data.measures.length} step={1} defaultValue={currentMeasure + 1} disabled={grading}
+              onBlur={(event) => commitBar(event.currentTarget)} onKeyDown={(event) => { if (event.key === "Enter") commitBar(event.currentTarget); }} /></label>
+            <span className="text-xs text-zinc-500">/ {initial.data.measures.length}</span>
+            <button disabled={grading} onClick={() => seekToMeasure(Math.min(initial.data.measures.length - 1, currentMeasure + 1))} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Next measure">›</button>
           </div>
           <output role="timer" aria-label="Elapsed time" className="ml-auto text-xs text-zinc-500 font-mono tabular-nums text-right select-none flex items-center gap-1.5">
             <span>{fmtTime(time)}</span>
             <span className="text-zinc-300">/</span>
             <span>{fmtTime(duration)}</span>
             <span className="text-zinc-500">(-{fmtTime(Math.max(0, duration - time))})</span>
-          </output>
-        </div>
-
+          </output><details className="player-loop-controls text-xs">
+          <summary className="cursor-pointer min-h-11 flex items-center rounded-full border border-zinc-300 px-3">{loopBeats ? `Loop · Bars ${loopStartBar}–${loopEndBar}` : "Loop"}</summary>
+          <div className="flex flex-wrap items-center gap-2 py-2">
+            <label>Start bar <input key={`start-${loopStartBar}`} type="number" aria-label="Loop start bar" min={1} max={initial.data.measures.length} defaultValue={loopStartBar} disabled={grading} onBlur={(e) => commitLoopBar(e.currentTarget, "start")} onKeyDown={(e) => { if (e.key === "Enter") commitLoopBar(e.currentTarget, "start"); }} /></label>
+            <label>End bar <input key={`end-${loopEndBar}`} type="number" aria-label="Loop end bar" min={1} max={initial.data.measures.length} defaultValue={loopEndBar} disabled={grading} onBlur={(e) => commitLoopBar(e.currentTarget, "end")} onKeyDown={(e) => { if (e.key === "Enter") commitLoopBar(e.currentTarget, "end"); }} /></label>
+            <button disabled={grading} onClick={toggleLoop} className="min-h-11 rounded-lg border border-zinc-300 px-3">{loop ? "Clear loop" : "Enable loop"}</button>
+          </div>
+        </details></div>
         <div className="px-4 pb-3 border-b border-zinc-100">
           <input
             type="range"
@@ -1084,6 +1334,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
             style={{
               background: `linear-gradient(to right, #18181b 0%, #18181b ${(time / Math.max(1, duration)) * 100}%, #e4e4e7 ${(time / Math.max(1, duration)) * 100}%, #e4e4e7 100%)`,
             }}
+            disabled={grading}
             aria-label="Seek"
           />
         </div>
@@ -1110,16 +1361,21 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
           </div>
         )}
 
+        {(grading || gradeResult) && <GradingPanel waitMode={waitMode} waitNote={waitNote} result={gradeResult}
+          countIn={countIn} input={practiceSetup.input} onExit={finishGrading} onRepeat={repeatPractice}
+          onDismiss={() => { setGradeResult(null); if (engineRef.current) engineRef.current.gradeResult = null; }} />}
+
         <div
           className={`player-stage relative ${playing && !grading ? "cursor-pointer" : ""}`}
-          tabIndex={playing && !grading ? 0 : undefined}
+          tabIndex={0}
           onKeyDown={(event) => {
             if (!playing || grading || (event.key !== "Enter" && event.key !== " ")) return;
             event.preventDefault();
             event.stopPropagation();
             stopPlayback();
           }}
-          onClick={() => {
+          onClick={(event) => {
+            if ((event.target as HTMLElement).closest("button, summary, input, select, a")) return;
             if (playing && !grading) stopPlayback();
           }}
           role="region"
@@ -1127,6 +1383,8 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
         >
           {chordPracticePresence.mounted ? (
             <ChordPracticePanel
+              scope="passage"
+              inputStatus={midiConnected ? "MIDI connected · computer keyboard also available" : "Computer keyboard · A–K, Z/X octave"}
               targets={chordPracticeTargets}
               snapshot={chordPracticeSnapshot ?? new ChordGrader(chordPracticeTargets).snapshot()}
               active={chordPracticeActive}
@@ -1148,18 +1406,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
               </div>
             </div>
           )}
-          {gradingPresence.mounted && (
-            <GradingPanel
-              waitMode={waitMode}
-              waitNote={waitNote}
-              result={gradeResult}
-              onWaitToggle={() => setWaitMode((w) => !w)}
-              onExit={finishGrading}
-              onMicNote={handleMicNote}
-              presenceVisible={gradingPresence.visible}
-            />
-          )}
-          {playingNoticePresence.mounted && (
+          {playingNoticePresence.mounted && !grading && (
             <div
               className="motion-presence absolute top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-zinc-900/80 text-white text-xs"
               data-state={playingNoticePresence.visible ? "open" : "closed"}
@@ -1192,10 +1439,15 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
         </section>
       )}
 
+      {showPracticeSetup && <PracticeSetupDialog initialSetup={practiceSetup} hasLoop={!!loop && loop.endSec > loop.startSec}
+        midiConnected={midiConnected} micReady={micReady} micPending={micPending} micError={micError} error={practiceError}
+        onEnableMic={() => void enableMicrophone()} onInputChange={(input) => { if (input !== "microphone") releaseMicrophone(); }}
+        onStart={beginPractice} onCancel={closePracticeSetup} />}
       {showSettings && (
         <SettingsDialog
           settings={settings}
           onChange={updateSettings}
+          onPreview={previewSound}
           chordSource={chordSourcePreference}
           chordSources={{
             ug: chordSources.ug,
@@ -1205,6 +1457,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
           chordSourceStatus={selectedChordSource.fallbackReason}
           onChordSourceChange={updateChordSource}
           onClose={() => {
+            cancelSoundPreview();
             setShowSettings(false);
             window.requestAnimationFrame(() => settingsTriggerRef.current?.focus());
           }}

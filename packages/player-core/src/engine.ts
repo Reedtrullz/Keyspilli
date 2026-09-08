@@ -52,6 +52,9 @@ export class PlaybackEngine {
   playing = false;
   loop: LoopRegion | null = null;
   grader: Grader | null = null;
+  /** Retained after completion so the owner can render results and repeat. */
+  gradingRange: { startSec: number; endSec: number } | null = null;
+  gradeResult: GradeResult | null = null;
   /** Assigned by the owner whenever settings change. */
   settings: PlayerSettings;
   /** Optional beat-based source timeline used by chord background mode. */
@@ -105,7 +108,13 @@ export class PlaybackEngine {
 
   /** Advance by dt seconds (called from the owner's rAF loop). */
   tick(dt: number): void {
-    if (!this.playing) return;
+    if (!this.playing || (this.grader && this.waitMode)) return;
+    if (this.grader && this.gradingRange && this.time + dt >= this.gradingRange.endSec) {
+      this.time = this.gradingRange.endSec;
+      this.grader.tick(this.time);
+      this.finishGrading();
+      return;
+    }
     // When dt exceeded the clamp, rAF stalled (tab was hidden). Skip forward:
     // do not replay every note scheduled during the gap as an instant burst.
     if (dt > 0.5) {
@@ -118,7 +127,7 @@ export class PlaybackEngine {
       return;
     }
     const next = this.time + dt;
-    if (this.loop && next > this.loop.endSec) {
+    if (this.loop && !this.grader && next > this.loop.endSec) {
       this.time = this.loop.startSec;
       this.audio.cancelAll();
       this.lastScheduled = this.time;
@@ -226,29 +235,40 @@ export class PlaybackEngine {
     this.emit();
   }
 
-  startGrading(wait: boolean): void {
-    this.waitMode = wait;
-    this.stop();
-    this.seek(0);
-    // Skip grace notes and ornaments: they're decoration, not the content
-    // being practiced. Hand filtering already happened in the notes memo.
+  startGrading(wait: boolean, range?: { startSec: number; endSec: number }): void {
+    if (range && (!Number.isFinite(range.startSec) || !Number.isFinite(range.endSec))) {
+      throw new RangeError("Practice bounds must be finite");
+    }
+    const bounded = range ? {
+      startSec: Math.max(0, Math.min(this.duration, range.startSec)),
+      endSec: Math.max(0, Math.min(this.duration, range.endSec)),
+    } : null;
+    if (bounded && bounded.endSec <= bounded.startSec) throw new RangeError("Practice end must follow its start");
+    // Hand filtering already happened in the notes memo; ornaments are decoration.
     const minDurSec = 0.25 * (60 / this.song.tempoBpm / this.settings.speed);
-    const gradeable = this.notes.filter((n) => n.durSec >= minDurSec);
+    const gradeable = this.notes.filter((n) => n.durSec >= minDurSec &&
+      (!bounded || (n.startSec >= bounded.startSec && n.startSec < bounded.endSec)));
+    if (!gradeable.length) throw new RangeError("No playable notes in this passage");
+    if (this.playing || this.grader) this.audio.cancelAll();
+    this.playing = false;
+    this.gradingRange = bounded;
+    this.gradeResult = null;
+    this.waitMode = wait;
     this.grader = new Grader(gradeable, { waitMode: wait, bpm: this.song.tempoBpm, speed: this.settings.speed });
-    this.emit();
+    this.seek(bounded?.startSec ?? 0);
   }
 
   finishGrading(): GradeResult | null {
-    if (!this.grader) {
-      this.waitMode = false;
-      this.emit();
-      return null;
+    if (this.grader) {
+      this.playing = false;
+      this.audio.cancelAll();
+      this.lastChordScheduled = -1;
+      this.gradeResult = this.grader.result();
+      this.grader = null;
     }
-    const result = this.grader.result();
-    this.grader = null;
     this.waitMode = false;
     this.emit();
-    return result;
+    return this.gradeResult;
   }
 
   /**
@@ -257,15 +277,7 @@ export class PlaybackEngine {
    * instead of cutting song-scheduled notes at the same pitch (voice stealing).
    */
   handleNoteOn(midi: number): boolean {
-    if (this.grader && !this.grader.play(midi, this.time)) return false;
-    // Wait mode: the transport is paused; advance time past the accepted
-    // note so the UI shows progress and subsequent notes become reachable.
-    if (this.grader?.isWaitMode() && this.grader.lastAccepted()) {
-      const accepted = this.grader.lastAccepted()!;
-      this.time = accepted.startSec + accepted.durSec;
-      this.lastScheduled = this.time;
-      if (!this.playing) this.schedule(this.time, this.time + SCHEDULE_LOOKAHEAD);
-    }
+    if (!this.gradeInput(midi)) return false;
     this.audio.noteOn({ midi, startSec: 0, durSec: 0.4, vel: 100, hand: "R", fromInput: true });
     this.emit();
     return true;
@@ -277,11 +289,26 @@ export class PlaybackEngine {
 
   /** Mic-detected note: always sounds, but still feeds the grader. */
   handleMicNote(midi: number): void {
-    if (this.grader) this.grader.play(midi, this.time);
+    this.gradeInput(midi);
     this.audio.noteOn({ midi, startSec: 0, durSec: 0.35, vel: 90, hand: "R", fromInput: true });
     // Microphone input does not update pressedKeys in the React owner; emit a
     // snapshot so wait-note progress and other grading UI re-render immediately.
     this.emit();
+  }
+
+  /** Both input sources advance wait targets even without a UI reading waitNote. */
+  private gradeInput(midi: number): boolean {
+    if (!this.grader) return true;
+    const target = this.grader.currentWait;
+    if (!this.grader.play(midi, this.time)) return false;
+    if (target) {
+      this.time = Math.min(this.gradingRange?.endSec ?? this.duration,
+        Math.max(this.time, target.startSec + target.durSec));
+      this.lastScheduled = this.time;
+      if (this.gradingRange && !this.grader.currentWait) this.finishGrading();
+      else if (!this.playing) this.schedule(this.time, this.time + SCHEDULE_LOOKAHEAD);
+    }
+    return true;
   }
 
   get waitNote(): TimedNote | null {
@@ -289,6 +316,7 @@ export class PlaybackEngine {
   }
 
   private schedule(from: number, to: number): void {
+    if (this.grader && this.gradingRange) to = Math.min(to, this.gradingRange.endSec);
     from = Math.max(from, this.lastScheduled);
     const chordMode = this.settings.backgroundMode === "chord" && this.hasPlayableChord() && !!this.audio.playChord;
     if (chordMode) this.scheduleChords(from, to);
