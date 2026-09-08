@@ -1,0 +1,601 @@
+{
+  "startedAt": "2026-09-08T15:14:26.290Z",
+  "origin": "http://127.0.0.1:3317",
+  "manifestSha256": "7617858797769711d87049e8c8e830dc92cf03aeec22a2bc0767545e6efd4240",
+  "split": "development",
+  "cohortSize": 16,
+  "selectedCount": 16,
+  "selectedIds": [
+    "01",
+    "02",
+    "03",
+    "04",
+    "05",
+    "06",
+    "07",
+    "08",
+    "09",
+    "10",
+    "11",
+    "12",
+    "13",
+    "14",
+    "15",
+    "16"
+  ],
+  "rows": [
+    {
+      "id": "01",
+      "url": "https://www.youtube.com/watch?v=Sl4Xwqfy5Uw",
+      "status": "structural-candidate",
+      "attempted": true,
+      "startedAt": "2026-09-08T15:14:26.292Z",
+      "exports": [
+        {
+          "songId": "preview-job-a271ab2d-3aa2-4708-996d-bebb38841ab1-b",
+          "bytes": 2487,
+          "sha256": "09ef68260ffbb2b6bdc499db04256cddf0e2e71578792ffd0e582ef3c0a4b2b1",
+          "notes": 261,
+          "noteEventsSha256": "a04a272ee454246ca6ad3860aa4022409bf0d51213fefb24dab8678a49394932"
+        },
+        {
+          "songId": "preview-job-a271ab2d-3aa2-4708-996d-bebb38841ab1-e",
+          "bytes": 3914,
+          "sha256": "5a39de7c357af5d864d1ea9f8e3e087de5e07a8f7158c11d2e2e56f1a3462001",
+          "notes": 402,
+          "noteEventsSha256": "a34ba8fc0bc6c8779a46393f832144232b5a8d63b6eb0734c593f157f0b80011"
+        },
+        {
+          "songId": "preview-job-a271ab2d-3aa2-4708-996d-bebb38841ab1-m",
+          "bytes": 6795,
+          "sha256": "a62402890e16f115d82fd08547dc33e2edd0bb1809ec41a4acbc5c9bccda2c21",
+          "notes": 746,
+          "noteEventsSha256": "e72de2736db2af5a8960f0d86f2a12600fe4269a19ef0f040acdd75c0a18c49d"
+        },
+        {
+          "songId": "preview-job-a271ab2d-3aa2-4708-996d-bebb38841ab1-a",
+          "bytes": 6930,
+          "sha256": "69b73df273c6ddb3a4460ce797fcc2eed2d9ca993f970d080d2dfe16ef907bc0",
+          "notes": 763,
+          "noteEventsSha256": "c5b8ddc3087a4778ccd2178578672c145ca348ddea93a6c2aab29331deb028ca"
+        }
+      ],
+      "jobId": "job-a271ab2d-3aa2-4708-996d-bebb38841ab1",
+      "jobStatus": "done",
+      "jobError": null,
+      "songId": "preview-job-a271ab2d-3aa2-4708-996d-bebb38841ab1-e",
+      "resolvedIdentity": {
+        "title": "\"Take What You Want\"",
+        "artist": "OZZY OSBOURNE with Post Malone"
+      },
+      "selectedSource": "https://www.youtube.com/watch?v=eVhs0wWVHZI",
+      "finishedAt": "2026-09-08T15:14:44.548Z"
+    },
+    {
+      "id": "02",
+      "url": "https://www.youtube.com/watch?v=v2AC41dglnM",
+      "status": "structural-candidate",
+      "attempted": true,
+      "startedAt": "2026-09-08T15:14:44.548Z",
+      "exports": [
+        {
+          "songId": "preview-job-432c2cb8-f1d0-4484-a767-88d8c3512368-b",
+          "bytes": 2593,
+          "sha256": "8934dc28286076dcd31f3c830aaade4710b002bf4a8d93d5cfbef37047ca8bef",
+          "notes": 273,
+          "noteEventsSha256": "4b5e8d79fc924c19b912167ccc5e88a59a44a9c57c655909220dc98fb1cb1dfc"
+        },
+        {
+          "songId": "preview-job-432c2cb8-f1d0-4484-a767-88d8c3512368-e",
+          "bytes": 5055,
+          "sha256": "f914581c32a2f1adb3f1d0a96dc67d2b31fec2e837a3f8755337d2b56d442cc1",
+          "notes": 516,
+          "noteEventsSha256": "d3c471c26a29a1466efba46e9b313336eb6ad3685c82de06ca6380f3aba81953"
+        },
+        {
+          "songId": "preview-job-432c2cb8-f1d0-4484-a767-88d8c3512368-m",
+          "bytes": 8100,
+          "sha256": "678c95e9f3b5def23f0adc26d20720396f34b79f710d7a853d79caa05068054a",
+          "notes": 891,
+          "noteEventsSha256": "539ca6ad0102cd886fb3c4da88b5295644f41f1dec10cb00b659fb324e73eb2e"
+        },
+        {
+          "songId": "preview-job-432c2cb8-f1d0-4484-a767-88d8c3512368-a",
+          "bytes": 8116,
+          "sha256": "cc4f86309d5dbe2bfa6ea8fdba31fcb7eb7a06202cdf19a337f3d1860580ce16",
+          "notes": 893,
+          "noteEventsSha256": "6e82bbd5868b75573fd5db2b0e78a7d61006b2f6995ccbe1f0514fef68d7eee5"
+        }
+      ],
+      "jobId": "job-432c2cb8-f1d0-4484-a767-88d8c3512368",
+      "jobStatus": "done",
+      "jobError": null,
+      "songId": "preview-job-432c2cb8-f1d0-4484-a767-88d8c3512368-e",
+      "resolvedIdentity": {
+        "title": "Thunderstruck",
+        "artist": "AC/DC"
+      },
+      "selectedSource": "https://www.youtube.com/watch?v=ZRTbHWc_3ps",
+      "finishedAt": "2026-09-08T15:16:31.044Z"
+    },
+    {
+      "id": "03",
+      "url": "https://www.youtube.com/watch?v=vabnZ9-ex7o",
+      "status": "structural-candidate",
+      "attempted": true,
+      "startedAt": "2026-09-08T15:16:31.044Z",
+      "exports": [
+        {
+          "songId": "preview-job-f5884958-81d5-4302-a281-d398b05ee8a9-b",
+          "bytes": 1750,
+          "sha256": "85ad4e1e435a27d3de7c53304cfcae9752984a153cd6cd7c3af5ef74c445af9d",
+          "notes": 177,
+          "noteEventsSha256": "46eeeae36c81e57d274af0864477d1e79dfc4131ed91a407d1164a3584264584"
+        },
+        {
+          "songId": "preview-job-f5884958-81d5-4302-a281-d398b05ee8a9-e",
+          "bytes": 5339,
+          "sha256": "20acfb7188bc6fce5a6e6970cd81bc7fbf977c32d374f4b062bbaae4e04e835f",
+          "notes": 548,
+          "noteEventsSha256": "43634ba0940808b5fe52ac26e125385ac5d0e66aa92654356f2a1055c927d239"
+        },
+        {
+          "songId": "preview-job-f5884958-81d5-4302-a281-d398b05ee8a9-m",
+          "bytes": 10026,
+          "sha256": "31c24707a4ec7a821cc7ab0657e80bdb750c106fb73d0aabfa1a8a9a2ab29ba0",
+          "notes": 1119,
+          "noteEventsSha256": "bba7cae170dc2ce8bf8fa9b482a73dcce13aa9a276e791076cb2a57be9bed033"
+        },
+        {
+          "songId": "preview-job-f5884958-81d5-4302-a281-d398b05ee8a9-a",
+          "bytes": 10026,
+          "sha256": "31c24707a4ec7a821cc7ab0657e80bdb750c106fb73d0aabfa1a8a9a2ab29ba0",
+          "notes": 1119,
+          "noteEventsSha256": "bba7cae170dc2ce8bf8fa9b482a73dcce13aa9a276e791076cb2a57be9bed033"
+        }
+      ],
+      "jobId": "job-f5884958-81d5-4302-a281-d398b05ee8a9",
+      "jobStatus": "done",
+      "jobError": null,
+      "songId": "preview-job-f5884958-81d5-4302-a281-d398b05ee8a9-e",
+      "resolvedIdentity": {
+        "title": "Come As You Are",
+        "artist": "Nirvana"
+      },
+      "selectedSource": "https://www.youtube.com/watch?v=2oX_g5RdU6w",
+      "finishedAt": "2026-09-08T15:16:49.242Z"
+    },
+    {
+      "id": "04",
+      "url": "https://www.youtube.com/watch?v=tAGnKpE4NCI",
+      "status": "structural-candidate",
+      "attempted": true,
+      "startedAt": "2026-09-08T15:16:49.242Z",
+      "exports": [
+        {
+          "songId": "preview-job-6bd321f9-c844-47bb-8dd1-c7b6b021bc5e-b",
+          "bytes": 4063,
+          "sha256": "471f2d92676fda849f9929ace788dd4177f3482380282ed8f4c4caa2411b0def",
+          "notes": 435,
+          "noteEventsSha256": "ef507880870f33efc5e1bb66b4e6304ec52b5182f31a01c85dfc51f5aef40c78"
+        },
+        {
+          "songId": "preview-job-6bd321f9-c844-47bb-8dd1-c7b6b021bc5e-e",
+          "bytes": 6345,
+          "sha256": "489f4506b4103b11a1bb26b0ce20c1dd582c036ffa5f0e0fb7a26affe4797e37",
+          "notes": 665,
+          "noteEventsSha256": "5317c1195544d3a335998c1b515fc37c1d4289b5f9ea62c6b057ef20e7fd4aa7"
+        },
+        {
+          "songId": "preview-job-6bd321f9-c844-47bb-8dd1-c7b6b021bc5e-m",
+          "bytes": 13024,
+          "sha256": "cf399382f47e7e0cf3bbd65783178f3420c7082171e429b265b8ab08f7574c72",
+          "notes": 1508,
+          "noteEventsSha256": "78f1f9e1f2595e9feca46f43f4e06724ed82ffb44a293de338f00b1206cfc798"
+        },
+        {
+          "songId": "preview-job-6bd321f9-c844-47bb-8dd1-c7b6b021bc5e-a",
+          "bytes": 13283,
+          "sha256": "d1f7fe3523819c1d7368b3003b4c8d3dcbe505e845d72e1b527a99fd1bd1e59c",
+          "notes": 1541,
+          "noteEventsSha256": "b1b5e245ad765ce40f135bf7838c85ce3a7595f78db993540d5067254f726278"
+        }
+      ],
+      "jobId": "job-6bd321f9-c844-47bb-8dd1-c7b6b021bc5e",
+      "jobStatus": "done",
+      "jobError": null,
+      "songId": "preview-job-6bd321f9-c844-47bb-8dd1-c7b6b021bc5e-e",
+      "resolvedIdentity": {
+        "title": "Nothing Else Matters",
+        "artist": "Metallica"
+      },
+      "selectedSource": "https://www.youtube.com/watch?v=DzAGQbvDpns",
+      "finishedAt": "2026-09-08T15:17:13.480Z"
+    },
+    {
+      "id": "05",
+      "url": "https://www.youtube.com/watch?v=5anLPw0Efmo",
+      "status": "structural-candidate",
+      "attempted": true,
+      "startedAt": "2026-09-08T15:17:13.481Z",
+      "exports": [
+        {
+          "songId": "preview-job-e4757ce3-e841-4407-a7f2-10e99086a332-b",
+          "bytes": 2523,
+          "sha256": "3ae70b405b05b2d765a2e915efade15751d777002a8ebde81d6ce9e22bb8f251",
+          "notes": 264,
+          "noteEventsSha256": "c55ae56562bd74c67e668e878c1ca784fea2aa3e000f658d4620c8f2020c97bd"
+        },
+        {
+          "songId": "preview-job-e4757ce3-e841-4407-a7f2-10e99086a332-e",
+          "bytes": 4223,
+          "sha256": "6c0f163640b02b5ce4dcd1be6294b5d44d16eb467dfeade226fc2fd520453a30",
+          "notes": 438,
+          "noteEventsSha256": "593e649f35d4bc0e2798c4270871f90eab93fb28159028081a96d1b47f487547"
+        },
+        {
+          "songId": "preview-job-e4757ce3-e841-4407-a7f2-10e99086a332-m",
+          "bytes": 5365,
+          "sha256": "5a21d0a1410de50a846463d1f53b4e5231fd19e2908e4c26bf5b9d7de77abda2",
+          "notes": 578,
+          "noteEventsSha256": "4e33b9bf13e6dc56249097347efe77273c235bc47a1f2e1e48232fc7823904d2"
+        },
+        {
+          "songId": "preview-job-e4757ce3-e841-4407-a7f2-10e99086a332-a",
+          "bytes": 5365,
+          "sha256": "5a21d0a1410de50a846463d1f53b4e5231fd19e2908e4c26bf5b9d7de77abda2",
+          "notes": 578,
+          "noteEventsSha256": "4e33b9bf13e6dc56249097347efe77273c235bc47a1f2e1e48232fc7823904d2"
+        }
+      ],
+      "jobId": "job-e4757ce3-e841-4407-a7f2-10e99086a332",
+      "jobStatus": "done",
+      "jobError": null,
+      "songId": "preview-job-e4757ce3-e841-4407-a7f2-10e99086a332-e",
+      "resolvedIdentity": {
+        "title": "My Immortal",
+        "artist": "Evanescence"
+      },
+      "selectedSource": "https://www.youtube.com/watch?v=VFz8Ul4QqyM",
+      "finishedAt": "2026-09-08T15:18:17.833Z"
+    },
+    {
+      "id": "06",
+      "url": "https://www.youtube.com/watch?v=8sgycukafqQ",
+      "status": "structural-candidate",
+      "attempted": true,
+      "startedAt": "2026-09-08T15:18:17.833Z",
+      "exports": [
+        {
+          "songId": "preview-job-9f8f4bb4-753a-47a3-bbd4-7274046c045f-b",
+          "bytes": 2031,
+          "sha256": "7a561f5f48887f664b39dcb587650d4abae260adb984ee540a6469f66d6dc198",
+          "notes": 211,
+          "noteEventsSha256": "424e430bc3937be2ea109e10235d55b3f35347b07cf1ee6ff928e01b6fb37872"
+        },
+        {
+          "songId": "preview-job-9f8f4bb4-753a-47a3-bbd4-7274046c045f-e",
+          "bytes": 3838,
+          "sha256": "7c67df80f9ef4b6b25dd494ec1f35b2bacc96183ca99ee1f40eda51323ea816b",
+          "notes": 394,
+          "noteEventsSha256": "ec3dfd113f2a3843ceb4dbdee35badad7c011e21b074d74c6655b0c705a06a8c"
+        },
+        {
+          "songId": "preview-job-9f8f4bb4-753a-47a3-bbd4-7274046c045f-m",
+          "bytes": 6528,
+          "sha256": "45b1bc306a13e4429c0ea5e8a15c81faa4aff6eded5d800ea826f8cdfdcc7215",
+          "notes": 734,
+          "noteEventsSha256": "988f61d29c1d2d429b321dd665d72d03a7cbf3c3efca61b3d820886ba88ae2d7"
+        },
+        {
+          "songId": "preview-job-9f8f4bb4-753a-47a3-bbd4-7274046c045f-a",
+          "bytes": 6604,
+          "sha256": "61c2763be28004229a1f016ba57e8628bbcf1d35325bc12764d9b0c9c7fdde65",
+          "notes": 744,
+          "noteEventsSha256": "ffd75bfbbdf5239af080ab98945a691699320d204c53e13029529d74241b50bb"
+        }
+      ],
+      "jobId": "job-9f8f4bb4-753a-47a3-bbd4-7274046c045f",
+      "jobStatus": "done",
+      "jobError": null,
+      "songId": "preview-job-9f8f4bb4-753a-47a3-bbd4-7274046c045f-e",
+      "resolvedIdentity": {
+        "title": "What I've Done",
+        "artist": "Linkin Park"
+      },
+      "selectedSource": "https://www.youtube.com/watch?v=II_E0_IOYv4",
+      "finishedAt": "2026-09-08T15:18:38.017Z"
+    },
+    {
+      "id": "07",
+      "url": "https://www.youtube.com/watch?v=W3q8Od5qJio",
+      "status": "structural-candidate",
+      "attempted": true,
+      "startedAt": "2026-09-08T15:18:38.017Z",
+      "exports": [
+        {
+          "songId": "preview-job-ff7bbdbf-d54b-4aa8-8c74-df1d0bead594-b",
+          "bytes": 2343,
+          "sha256": "3939487fb09fa1409651db18f52fe0243c55df16fd357dbcf1065ba95f7fbdbd",
+          "notes": 244,
+          "noteEventsSha256": "1edf72b16183ea6ec8de13e539e84b4f6ec98043e3d3739f403438fe18a8f9e9"
+        },
+        {
+          "songId": "preview-job-ff7bbdbf-d54b-4aa8-8c74-df1d0bead594-e",
+          "bytes": 6879,
+          "sha256": "60cb7e9eef32d32190d8ac16441059a87224b11e9170742d1db173c67e4964fe",
+          "notes": 733,
+          "noteEventsSha256": "0604593d7c1659bfbbea56f02609a5d4dcd368523c27137cabec272710a30c0a"
+        },
+        {
+          "songId": "preview-job-ff7bbdbf-d54b-4aa8-8c74-df1d0bead594-m",
+          "bytes": 12385,
+          "sha256": "b01ec8c0e118cb8c4d614ecfb56d4269af0cae5f891ac34964bdfca1398aad76",
+          "notes": 1471,
+          "noteEventsSha256": "d793e84c5444034af46b222a008793eb205f64d56dab87193d56a14a798602a9"
+        },
+        {
+          "songId": "preview-job-ff7bbdbf-d54b-4aa8-8c74-df1d0bead594-a",
+          "bytes": 12385,
+          "sha256": "b01ec8c0e118cb8c4d614ecfb56d4269af0cae5f891ac34964bdfca1398aad76",
+          "notes": 1471,
+          "noteEventsSha256": "d793e84c5444034af46b222a008793eb205f64d56dab87193d56a14a798602a9"
+        }
+      ],
+      "jobId": "job-ff7bbdbf-d54b-4aa8-8c74-df1d0bead594",
+      "jobStatus": "done",
+      "jobError": null,
+      "songId": "preview-job-ff7bbdbf-d54b-4aa8-8c74-df1d0bead594-e",
+      "resolvedIdentity": {
+        "title": "Du Hast",
+        "artist": "Rammstein"
+      },
+      "selectedSource": "https://www.youtube.com/watch?v=whxYGwONfEg",
+      "finishedAt": "2026-09-08T15:19:52.449Z"
+    },
+    {
+      "id": "08",
+      "url": "https://www.youtube.com/watch?v=wEERFBI9eCg",
+      "status": "failed",
+      "attempted": true,
+      "startedAt": "2026-09-08T15:19:52.450Z",
+      "exports": [],
+      "jobId": "job-6441eb89-25f2-4652-b49e-585558f335ba",
+      "jobStatus": "error",
+      "jobError": "Matching piano tutorials were found, but their notes could not be extracted reliably. No arrangement was published.",
+      "error": "Error: terminal job status: error",
+      "failureCode": "JOB_FAILED",
+      "finishedAt": "2026-09-08T15:21:24.889Z"
+    },
+    {
+      "id": "09",
+      "url": "https://www.youtube.com/watch?v=DelhLppPSxY",
+      "status": "structural-candidate",
+      "attempted": true,
+      "startedAt": "2026-09-08T15:21:24.890Z",
+      "exports": [
+        {
+          "songId": "preview-job-904edb8b-bba1-49d4-bd96-f8d6f57dbfeb-b",
+          "bytes": 5281,
+          "sha256": "2d585950d438d0a287ffd27c3b619601e071b3be3c74aaa33a92b578822e69ea",
+          "notes": 575,
+          "noteEventsSha256": "4b547e38648beade2ad91b3c32126221f2f6732408cfeeef8e3d5b56d90afe5d"
+        },
+        {
+          "songId": "preview-job-904edb8b-bba1-49d4-bd96-f8d6f57dbfeb-e",
+          "bytes": 9904,
+          "sha256": "efa4ffb30f06f1da7ef125bbb94b95947e7bc72c32fcc5cb5fa5a40a29247fcc",
+          "notes": 1046,
+          "noteEventsSha256": "ffd6305df722b872cbee29137da03a9fd5f41f3fcf43ef583ac6effd301927b4"
+        },
+        {
+          "songId": "preview-job-904edb8b-bba1-49d4-bd96-f8d6f57dbfeb-m",
+          "bytes": 21794,
+          "sha256": "73f0474e49388aa7661927ba79cc7d60b78985ec2b49498bb9995c0fe97b7194",
+          "notes": 2598,
+          "noteEventsSha256": "6eaa5ae65d318233d637ec65bea5f76215723180bc8d6b513993bc6fcdd0ca5d"
+        },
+        {
+          "songId": "preview-job-904edb8b-bba1-49d4-bd96-f8d6f57dbfeb-a",
+          "bytes": 23223,
+          "sha256": "d8ba499fae506897f395584e0f45061b4e74eb92a39bf3a03d5dda9597985e8d",
+          "notes": 2778,
+          "noteEventsSha256": "13e376f9d2eed7bfc1f4050bff616aa0ff6f320d81a9404b8ace156c6c4b53b4"
+        }
+      ],
+      "jobId": "job-904edb8b-bba1-49d4-bd96-f8d6f57dbfeb",
+      "jobStatus": "done",
+      "jobError": null,
+      "songId": "preview-job-904edb8b-bba1-49d4-bd96-f8d6f57dbfeb-e",
+      "resolvedIdentity": {
+        "title": "Hail To The King",
+        "artist": "Avenged Sevenfold"
+      },
+      "selectedSource": "https://www.youtube.com/watch?v=eLp-Jk4OwHM",
+      "finishedAt": "2026-09-08T15:22:01.242Z"
+    },
+    {
+      "id": "10",
+      "url": "https://www.youtube.com/watch?v=u9Dg-g7t2l4",
+      "status": "structural-candidate",
+      "attempted": true,
+      "startedAt": "2026-09-08T15:22:01.243Z",
+      "exports": [
+        {
+          "songId": "preview-job-5f05f0d4-be80-4e8b-b47c-d9e54448671a-b",
+          "bytes": 2703,
+          "sha256": "b600c278c74bfe9a062ebdfc8d64f1ccd18179531a50bf0e5b569a9f1abe71bc",
+          "notes": 284,
+          "noteEventsSha256": "6243a54be254c616416dab0ffbf14c0d99dfd0a4bf9595ce93c4d734ec8e9fb2"
+        },
+        {
+          "songId": "preview-job-5f05f0d4-be80-4e8b-b47c-d9e54448671a-e",
+          "bytes": 4226,
+          "sha256": "e3d00661dfc7bdd1d520f4f071a5b9e376c8b0efd3b22b73d948425660b086a6",
+          "notes": 443,
+          "noteEventsSha256": "d13ed987c129226342ae88debd753f8b4fdf7a7a174e74fa7b8542a42e8808a1"
+        },
+        {
+          "songId": "preview-job-5f05f0d4-be80-4e8b-b47c-d9e54448671a-m",
+          "bytes": 5875,
+          "sha256": "6094646baef48f39fcda85dd5e54d33fe1c8763f29975aeb9d37ecc691e8a10f",
+          "notes": 642,
+          "noteEventsSha256": "38c15b5b29547259e082f5d33eff10f279bed2da67d24c97a3a590ab832ba532"
+        },
+        {
+          "songId": "preview-job-5f05f0d4-be80-4e8b-b47c-d9e54448671a-a",
+          "bytes": 5883,
+          "sha256": "12811db21433ea70397812bfa3eadbbe8ef81754a9626b18ac216bac0f326f74",
+          "notes": 643,
+          "noteEventsSha256": "8b39ae9139fded1f7d4cc967e5b4cfbdc396d617de513fe3d042da68e2d87199"
+        }
+      ],
+      "jobId": "job-5f05f0d4-be80-4e8b-b47c-d9e54448671a",
+      "jobStatus": "done",
+      "jobError": null,
+      "songId": "preview-job-5f05f0d4-be80-4e8b-b47c-d9e54448671a-e",
+      "resolvedIdentity": {
+        "title": "The Sound Of Silence",
+        "artist": "Disturbed"
+      },
+      "selectedSource": "https://www.youtube.com/watch?v=erUeqSrLB-A",
+      "finishedAt": "2026-09-08T15:23:27.723Z"
+    },
+    {
+      "id": "11",
+      "url": "https://www.youtube.com/watch?v=NeSpx7vZifc",
+      "status": "failed",
+      "attempted": true,
+      "startedAt": "2026-09-08T15:23:27.723Z",
+      "exports": [],
+      "jobId": "job-05387ff5-6665-4826-866b-9386a2507731",
+      "jobStatus": "error",
+      "jobError": "Matching piano tutorials were found, but their notes could not be extracted reliably. No arrangement was published.",
+      "error": "Error: terminal job status: error",
+      "failureCode": "JOB_FAILED",
+      "finishedAt": "2026-09-08T15:25:36.452Z"
+    },
+    {
+      "id": "12",
+      "url": "https://www.youtube.com/watch?v=X791IzOwt3Q",
+      "status": "failed",
+      "attempted": true,
+      "startedAt": "2026-09-08T15:25:36.453Z",
+      "exports": [],
+      "jobId": "job-17d2d3fd-3f9a-430c-bd6d-b1ef909745db",
+      "jobStatus": "error",
+      "jobError": "Matching piano tutorials were found, but their notes could not be extracted reliably. No arrangement was published.",
+      "error": "Error: terminal job status: error",
+      "failureCode": "JOB_FAILED",
+      "finishedAt": "2026-09-08T15:29:35.451Z"
+    },
+    {
+      "id": "13",
+      "url": "https://www.youtube.com/watch?v=eBG7P-K-r1Y",
+      "status": "structural-candidate",
+      "attempted": true,
+      "startedAt": "2026-09-08T15:29:35.451Z",
+      "exports": [
+        {
+          "songId": "preview-job-d425e8dd-6f23-490f-a65e-9be63335b45f-b",
+          "bytes": 3621,
+          "sha256": "3c4520acf3b8e22041c3bda5604770fce10690478ca4b185e355a845e8c4e2a8",
+          "notes": 387,
+          "noteEventsSha256": "1323f234416363f057bb84bcf3acad52f7dcb2a23145bf95b4d9c87122151b5d"
+        },
+        {
+          "songId": "preview-job-d425e8dd-6f23-490f-a65e-9be63335b45f-e",
+          "bytes": 11755,
+          "sha256": "3296ef6338727e759f241de3d06eae40f7b04ef22e173ce4930725f30bc37b4e",
+          "notes": 1268,
+          "noteEventsSha256": "8d398dbde78ae1fc5bf9c8759a20deafa42ecb79b935efa7d5b4a2864693a7d6"
+        },
+        {
+          "songId": "preview-job-d425e8dd-6f23-490f-a65e-9be63335b45f-m",
+          "bytes": 28699,
+          "sha256": "f2bf94c638bec793bcf2f5fae53d141c2caa0649c6f7d6175357429a96c8e14f",
+          "notes": 3365,
+          "noteEventsSha256": "9cd1645a56daf7529a4178205fd3c0e1eeb0930d54948810cb87a8271e87bd19"
+        },
+        {
+          "songId": "preview-job-d425e8dd-6f23-490f-a65e-9be63335b45f-a",
+          "bytes": 28955,
+          "sha256": "ea43b7e4d375e1f6c25235feca6815ed1ed26f50a209a010d3fde0a868591028",
+          "notes": 3397,
+          "noteEventsSha256": "aedf39d3a88989ebe907b60b1210e6a90912b7ba129373edbbdf81154c025cea"
+        }
+      ],
+      "jobId": "job-d425e8dd-6f23-490f-a65e-9be63335b45f",
+      "jobStatus": "done",
+      "jobError": null,
+      "songId": "preview-job-d425e8dd-6f23-490f-a65e-9be63335b45f-e",
+      "resolvedIdentity": {
+        "title": "Everlong",
+        "artist": "Foo Fighters"
+      },
+      "selectedSource": "https://www.youtube.com/watch?v=5BEodlQoypI",
+      "finishedAt": "2026-09-08T15:30:13.760Z"
+    },
+    {
+      "id": "14",
+      "url": "https://www.youtube.com/watch?v=Jgehvn5Yim0",
+      "status": "failed",
+      "attempted": true,
+      "startedAt": "2026-09-08T15:30:13.760Z",
+      "exports": [],
+      "jobId": "job-100c617f-9026-48e2-ae0e-b3a7629c315e",
+      "jobStatus": "error",
+      "jobError": "No matching piano tutorial was found for this song. No arrangement was published.",
+      "error": "Error: terminal job status: error",
+      "failureCode": "JOB_FAILED",
+      "finishedAt": "2026-09-08T15:30:19.824Z"
+    },
+    {
+      "id": "15",
+      "url": "https://www.youtube.com/watch?v=-51KCTiE2ZY",
+      "status": "failed",
+      "attempted": true,
+      "startedAt": "2026-09-08T15:30:19.825Z",
+      "exports": [],
+      "jobId": "job-9320ad97-41cb-421c-ab9a-7bcb53c05a56",
+      "jobStatus": "error",
+      "jobError": "No matching piano tutorial was found for this song. No arrangement was published.",
+      "error": "Error: terminal job status: error",
+      "failureCode": "JOB_FAILED",
+      "finishedAt": "2026-09-08T15:30:27.922Z"
+    },
+    {
+      "id": "16",
+      "url": "https://www.youtube.com/watch?v=DLlF2FMv968",
+      "status": "failed",
+      "attempted": true,
+      "startedAt": "2026-09-08T15:30:27.922Z",
+      "exports": [],
+      "jobId": "job-cddaf3e0-82f6-4f5f-b4c5-bc1c8cc26910",
+      "jobStatus": "error",
+      "jobError": "No matching piano tutorial was found for this song. No arrangement was published.",
+      "error": "Error: terminal job status: error",
+      "failureCode": "JOB_FAILED",
+      "finishedAt": "2026-09-08T15:30:34.014Z"
+    }
+  ],
+  "musicalAcceptance": "pending-listening",
+  "heldoutExecuted": false,
+  "candidateFreezeSha256": "3f66efb8944c94367f72159dcd0bbc8e2527716f2a55c84fbcfb0be3d6828155",
+  "candidateBeforeVerified": true,
+  "verificationScope": "Local source hashes only; operator must start preview and worker from this checkout. Does not attest deployed runtime.",
+  "candidateAfterVerified": true,
+  "unattemptedIds": [],
+  "summary": {
+    "completed": 10,
+    "denominator": 16,
+    "attempted": 16,
+    "unattempted": 0,
+    "failed": 6,
+    "invalidPublications": 0,
+    "releaseGate": false,
+    "musicalAcceptance": "pending-listening",
+    "usable": false
+  },
+  "finishedAt": "2026-09-08T15:30:34.034Z"
+}

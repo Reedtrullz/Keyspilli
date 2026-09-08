@@ -19,8 +19,9 @@ export function tutorialIdentity(meta: Record<string, unknown>) {
  if (!meta.artist && quoted) return {baseId:'private-proof',artist:quoted[1]!.trim(),title:quoted[2]!.trim()};
  const segments=meta.title.split(/\s+(?:[-–—]|\|+)\s+|:\s+/).map(s=>s.trim()).filter(Boolean);
  // Reversed official titles need supporting metadata; never infer an artist from a channel alone.
- const namedArtist = [meta.artist, ...(meta.artist ? [] : [meta.channel,meta.uploader])]
-  .find(value=>typeof value==='string' && segments.some(segment=>segment.toLowerCase()===value.trim().toLowerCase()));
+ const artistEvidence = [meta.artist, ...(meta.artist ? [] : [meta.channel,meta.uploader])];
+ const namedArtist = segments.find(segment=>artistEvidence.some(value=>typeof value==='string' &&
+  [segment,...segment.split(/\s+\/\s+/)].some(credit=>credit.toLowerCase()===value.trim().toLowerCase())));
  if(typeof namedArtist==='string' && segments.length>1){
   const artist=namedArtist.trim();
   const songSegments=segments.filter(segment=>segment.toLowerCase()!==artist.toLowerCase());
@@ -41,7 +42,7 @@ export function matchesTutorialIdentity(candidateTitle:string,target:{artist:str
  const artist=target.artist.replace(/^the /i,'');
  // Explicit collaboration markers permit reordered credits, but every full name is required.
  // Do not split band names on commas, ampersands, or 'and'.
- const artists=artist.split(/\s+(?:with|feat\.?|ft\.?|featuring)\s+/i);
+ const artists=artist.split(/\s+(?:with|feat\.?|ft\.?|featuring|\/)\s+/i);
  const artistMatches=(name:string)=>[name,name.replace(/\//g,'')].map(words).some(phrase=>!!phrase && hay.includes(' '+phrase+' '));
  const title=words(cleanCatalogTitle(target.title,target.artist));
  return (artistMatches(artist) || artists.length>1 && artists.every(artistMatches)) && !!title && hay.includes(' '+title+' ');

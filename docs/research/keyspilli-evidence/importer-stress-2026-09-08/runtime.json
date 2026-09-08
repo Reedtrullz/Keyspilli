@@ -1,0 +1,18 @@
+{
+  "node": "v22.22.3",
+  "commit": "a33b929130957524c1586611f4747d9a815383aa",
+  "health": {
+    "status": "healthy",
+    "version": "dev",
+    "commit": "dev",
+    "image": null,
+    "capabilities": {
+      "symbolicUpload": true,
+      "tutorialImportsEnabled": true,
+      "sourceDiscoveryConfigured": false,
+      "directAudioAmt": false
+    },
+    "songs": 0
+  },
+  "mode": "production build on native Mac; isolated data; no production publication"
+}

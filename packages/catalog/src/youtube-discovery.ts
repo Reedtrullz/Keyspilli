@@ -58,7 +58,8 @@ const TITLE_NOISE =
  * Reduce a catalog title copied from an upload into searchable song text.
  */
 export function cleanCatalogTitle(title: string, artist: string): string {
-  const stripped = title.replace(/\([^()]*\)/g, " ").replace(/\[[^\[\]]*\]/g, " ");
+  const stripped = title.replace(/\([^()]*\)/g, " ").replace(/\[[^\[\]]*\]/g, " ")
+    .replace(/\s+(?:full\s+)?(?:hd|hq|4k|8k)(?:\s+upgrade)?\s*$/i, "");
   const segments = stripped.split(/\s*(?:[-\u2013\u2014]|\|)\s*/).map((s) => s.trim()).filter(Boolean);
   const meaningful = segments.filter((segment) => !TITLE_NOISE.test(segment));
   const withoutArtist = meaningful.filter(

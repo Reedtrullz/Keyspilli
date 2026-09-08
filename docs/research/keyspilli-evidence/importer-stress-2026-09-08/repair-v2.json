@@ -1,0 +1,79 @@
+{
+  "startedAt": "2026-09-08T15:45:09.097Z",
+  "origin": "http://127.0.0.1:3317",
+  "manifestSha256": "7617858797769711d87049e8c8e830dc92cf03aeec22a2bc0767545e6efd4240",
+  "split": "development",
+  "cohortSize": 16,
+  "selectedCount": 1,
+  "selectedIds": [
+    "16"
+  ],
+  "rows": [
+    {
+      "id": "16",
+      "url": "https://www.youtube.com/watch?v=DLlF2FMv968",
+      "status": "structural-candidate",
+      "attempted": true,
+      "startedAt": "2026-09-08T15:45:09.098Z",
+      "exports": [
+        {
+          "songId": "preview-job-aeb9923b-c9d7-4fda-9e0f-17fa56770e1e-b",
+          "bytes": 3139,
+          "sha256": "22facb7010c9aad3e9b8d48e66d4c791f9f07030cb9b7cd087a308c008968ede",
+          "notes": 332,
+          "noteEventsSha256": "66636790acd4cb1039416f48d6e11c323a9aa2ca03adc7f49b6f7fcf91661690"
+        },
+        {
+          "songId": "preview-job-aeb9923b-c9d7-4fda-9e0f-17fa56770e1e-e",
+          "bytes": 5527,
+          "sha256": "9975df9c442880794814645ce499ee45cc2b3fac9beaa02a26350b2abd72c92a",
+          "notes": 568,
+          "noteEventsSha256": "b3765bc81bb66834bb7e195a79627ad61db234587388474443e8217966587ca8"
+        },
+        {
+          "songId": "preview-job-aeb9923b-c9d7-4fda-9e0f-17fa56770e1e-m",
+          "bytes": 13339,
+          "sha256": "526c36c5827be636fbde6e96456c832dcea4586919a4b5e0d39d47116e15f1a0",
+          "notes": 1529,
+          "noteEventsSha256": "4ba37d0d002eb1459a35bca9dcce444187d37b81a9e3ff8d01f35c94d896b5a3"
+        },
+        {
+          "songId": "preview-job-aeb9923b-c9d7-4fda-9e0f-17fa56770e1e-a",
+          "bytes": 14193,
+          "sha256": "c17bd56a04d2d1da62efd72d0173fb5abe645fdbf6190836d9a0eb02e41ca21d",
+          "notes": 1637,
+          "noteEventsSha256": "0066a0cd7928b2f94cd79891cebb6a614f45e54c2612adadf154c39a296c163f"
+        }
+      ],
+      "jobId": "job-aeb9923b-c9d7-4fda-9e0f-17fa56770e1e",
+      "jobStatus": "done",
+      "jobError": null,
+      "songId": "preview-job-aeb9923b-c9d7-4fda-9e0f-17fa56770e1e-e",
+      "resolvedIdentity": {
+        "title": "Numb / Encore",
+        "artist": "Linkin Park / JAY-Z"
+      },
+      "selectedSource": "https://www.youtube.com/watch?v=5NAq_ISB2Tg",
+      "finishedAt": "2026-09-08T15:45:35.721Z"
+    }
+  ],
+  "musicalAcceptance": "pending-listening",
+  "heldoutExecuted": false,
+  "candidateFreezeSha256": "2b853a2f778c341a303c4a2f6a1e3f4b1e66bb0c9edd3462a73797b94d4cc795",
+  "candidateBeforeVerified": true,
+  "verificationScope": "Local source hashes only; operator must start preview and worker from this checkout. Does not attest deployed runtime.",
+  "candidateAfterVerified": true,
+  "unattemptedIds": [],
+  "summary": {
+    "completed": 1,
+    "denominator": 1,
+    "attempted": 1,
+    "unattempted": 0,
+    "failed": 0,
+    "invalidPublications": 0,
+    "releaseGate": false,
+    "musicalAcceptance": "pending-listening",
+    "usable": false
+  },
+  "finishedAt": "2026-09-08T15:45:36.063Z"
+}

@@ -1,0 +1,12 @@
+{
+  "checks": [
+    "unauthenticated submission rejected",
+    "foreign/local URLs, missing URL and malformed JSON rejected",
+    "simultaneous identical submissions share one durable job",
+    "queued status survives independent requests",
+    "cancellation is terminal and repeated cancellation conflicts",
+    "no duplicate jobs or song publication"
+  ],
+  "status": "passed",
+  "scope": "Real HTTP on isolated production web build, without worker or source downloads."
+}
