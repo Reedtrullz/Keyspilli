@@ -43,9 +43,9 @@ export function matchesTutorialIdentity(candidateTitle:string,target:{artist:str
  const title=words(cleanCatalogTitle(target.title,target.artist));
  return artistPhrases.some(phrase=>!!phrase && hay.includes(' '+phrase+' ')) && !!title && hay.includes(' '+title+' ');
 }
-export function compareTutorialCandidates(a:ReturnType<typeof scoreCandidate>,b:ReturnType<typeof scoreCandidate>,requestedUrl:string) {
+export function compareTutorialCandidates(a:ReturnType<typeof scoreCandidate>,b:ReturnType<typeof scoreCandidate>,requestedUrl:string,snapshots:ReadonlySet<string>=new Set()) {
  const visual=(title:string)=>Number(/tutorial|synthesia/i.test(title));
- return Number(b.url===requestedUrl)-Number(a.url===requestedUrl) || visual(b.title)-visual(a.title) || b.score-a.score || a.videoId.localeCompare(b.videoId);
+ return Number(b.url===requestedUrl)-Number(a.url===requestedUrl) || Number(snapshots.has(b.videoId))-Number(snapshots.has(a.videoId)) || visual(b.title)-visual(a.title) || b.score-a.score || a.videoId.localeCompare(b.videoId);
 }
 const tutorialSignal=/tutorial|synthesia|piano sheet music|piano (?:cover|transcription|arrangement)/i;
 
@@ -140,8 +140,13 @@ const candidates=[...direct,...discovered.filter(c=>!direct.some(d=>d.videoId===
   if(/tutorial|synthesia/i.test(c.title)){ranked.score+=40;ranked.reasons.push('visual tutorial preferred');}
   return ranked;
  })
- .filter(c=>c.score>-100 && !/reaction|mashup|remix|nightcore|sped up|slowed/i.test(c.title) && tutorialSignal.test(c.title) && matchesTutorialIdentity(c.title,target))
- .sort((a,b)=>compareTutorialCandidates(a,b,url)).slice(0,6);
+ .filter(c=>c.score>-100 && !/reaction|mashup|remix|nightcore|sped up|slowed/i.test(c.title) && tutorialSignal.test(c.title) && matchesTutorialIdentity(c.title,target));
+const snapshots=new Set<string>();
+for(const c of candidates){
+ active();
+ if(await reuseTutorialSnapshot({videoId:c.videoId,artist,title,durationSeconds:c.durationSeconds}))snapshots.add(c.videoId);
+}
+candidates.sort((a,b)=>compareTutorialCandidates(a,b,url,snapshots)).splice(6);
 Object.assign(receipt,{identity:target,identityEvidence:'YouTube metadata and title matching; not independent musical identification',candidates,status:'no-supported-source'});
 await writeFile(join(out,'receipt.json'),JSON.stringify(receipt,null,2));
 for(const c of candidates){

@@ -42,8 +42,8 @@ async function assets(root:string,directory:string) {
  return {midi,json,midiHash,jsonHash,videoHash};
 }
 
-/** Reuse a verified local snapshot, never a claim that current remote bytes match. */
-export async function reuseTutorialSnapshot(identity:TutorialSnapshotIdentity,destination:string):Promise<boolean> {
+/** Omit destination to validate for ranking without copying. Remote bytes are not attested. */
+export async function reuseTutorialSnapshot(identity:TutorialSnapshotIdentity,destination?:string):Promise<boolean> {
  try{
   const {root,version,key}=await context(identity);
   const index=await confined(root,join(root,'.tutorial-cache',key));
@@ -53,12 +53,13 @@ export async function reuseTutorialSnapshot(identity:TutorialSnapshotIdentity,de
   if(!Number.isFinite(age)||age<0||age>MAX_AGE||entry.version!==version||!entry.identity||entry.identity.videoId!==identity.videoId||entry.identity.artist!==identity.artist||entry.identity.title!==identity.title||entry.identity.durationSeconds!==identity.durationSeconds)return false;
   if(typeof entry.directory!=='string')return false;
   const source=await confined(root,join(root,entry.directory));
-  const target=await confined(root,destination);
   const checked=await assets(root,source);
   if(checked.midiHash!==entry.midiHash||checked.jsonHash!==entry.jsonHash||checked.videoHash!==entry.videoHash)return false;
   // Hash the exact bytes copied as well, so a concurrent asset replacement fails closed.
   const [midi,json]=await Promise.all([readFile(checked.midi),readFile(checked.json)]);
   if(sha(midi)!==entry.midiHash||sha(json)!==entry.jsonHash)return false;
+  if(destination===undefined)return true;
+  const target=await confined(root,destination);
   await writeFile(join(target,'extracted.mid'),midi,{flag:'wx'});
   try {
    await writeFile(join(target,'extracted.json'),json,{flag:'wx'});

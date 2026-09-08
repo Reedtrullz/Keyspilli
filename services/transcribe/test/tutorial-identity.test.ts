@@ -67,3 +67,12 @@ it('tries an explicit visual tutorial before a more popular plain piano cover',a
  expect([cover,tutorial].sort((a,b)=>compareTutorialCandidates(a,b,'original'))[0]).toBe(tutorial);
  expect([tutorial,cover].sort((a,b)=>compareTutorialCandidates(a,b,cover.url))[0]).toBe(cover);
 });
+
+it('keeps a validated matching snapshot ahead of fresh candidates while honoring the requested source',async()=>{
+ const {compareTutorialCandidates}=await import('../src/tutorial-route.js');
+ const cached={videoId:'cached12345',url:'https://youtu.be/cached12345',title:'Artist - Song Piano Cover',uploader:'Artist',durationSeconds:200,isLive:false,score:50,reasons:[]};
+ const fresh=Array.from({length:6},(_,i)=>({...cached,videoId:'fresh'+i,url:'https://youtu.be/fresh'+i,title:'Artist - Song Piano Tutorial',score:80}));
+ const snapshots=new Set([cached.videoId]);
+ expect([...fresh,cached].sort((a,b)=>compareTutorialCandidates(a,b,'original',snapshots)).slice(0,6)[0]).toBe(cached);
+ expect([cached,fresh[0]!].sort((a,b)=>compareTutorialCandidates(a,b,fresh[0]!.url,snapshots))[0]).toBe(fresh[0]);
+});

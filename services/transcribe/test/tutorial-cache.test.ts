@@ -66,3 +66,12 @@ it('removes only its own partial copy when the second destination already exists
  expect(await readdir(target)).toEqual(['extracted.json']);
  expect(await readFile(join(target,'extracted.json'),'utf8')).toBe('existing evidence');
 });
+
+it('validates a snapshot for ranking without copying and rejects corrupt bytes',async()=>{
+ expect(await storeTutorialSnapshot(identity,source)).toBe(true);
+ expect(await reuseTutorialSnapshot(identity)).toBe(true);
+ expect(await readdir(target)).toEqual([]);
+ expect(await reuseTutorialSnapshot({...identity,title:'Other'})).toBe(false);
+ await writeFile(join(source,'video.mp4'),'tampered');
+ expect(await reuseTutorialSnapshot(identity)).toBe(false);
+});
