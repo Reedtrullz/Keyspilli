@@ -450,3 +450,21 @@ test("chords form one horizontal sequence on phones", async ({ page }) => {
   await bar.fill("4"); await bar.press("Enter");
   await expect.poll(() => row.evaluate((node) => node.scrollLeft)).toBe(0);
 });
+
+for (const viewport of [{ width: 1440, height: 900 }, { width: 1740, height: 1370 }]) {
+  test(`normal player uses the viewport at ${viewport.width}px`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await page.goto(`/player/${SONG}`);
+    await page.getByRole("button", { name: "Got it", exact: true }).click();
+    await expect(page.locator(".player-tempo-notice")).toHaveCount(0);
+    const canvas = page.getByLabel("Falling notes player");
+    await expect(canvas).toBeVisible();
+    const box = await canvas.boundingBox();
+    expect(box!.height).toBeGreaterThan(viewport.height * 0.5);
+    expect(box!.y + box!.height).toBeLessThanOrEqual(viewport.height);
+    const play = await page.getByRole("button", { name: "Play", exact: true }).boundingBox();
+    const adjust = await page.getByRole("button", { name: "Adjust", exact: true }).boundingBox();
+    expect(Math.abs(play!.y - adjust!.y)).toBeLessThan(8);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  });
+}
