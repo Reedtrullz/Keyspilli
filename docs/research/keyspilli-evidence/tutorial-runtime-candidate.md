@@ -60,7 +60,7 @@ Build caveat: pyvips3.2.0 came from the pinned source tarball and produced wheel
 `services/transcribe/Dockerfile.tutorial-worker` combines the local CLI candidate with Node22.22.3, npm-lockfile dependencies and the application source. Its Dockerfile-specific allowlist excludes local outputs, node_modules, Next caches and environment files. Build the CLI image first, then:
 
 ```sh
-docker build --platform linux/amd64 -f services/transcribe/Dockerfile.tutorial-worker -t keyspilli-tutorial-worker:candidate .
+docker build --platform linux/amd64 -f services/transcribe/Dockerfile.tutorial --target worker -t keyspilli-tutorial-worker:candidate .
 ```
 
 This is an isolated development preview image. It does not replace either production Dockerfile. Record both image identities because the local CLI base tag is mutable. The web command is `apps/web/node_modules/next/dist/bin/next dev apps/web --hostname 0.0.0.0 --port 3313`; the default image command starts the worker. Both containers share a fresh `/data` bind mount, run as the output directory's owner, use a read-only root and128MiB `/tmp` tmpfs. The web also requires a writable512MiB `/app/apps/web/.next` tmpfs and binds only127.0.0.1:3313. Configure the test API token and matching origin only on this isolated web process.
@@ -86,3 +86,13 @@ GitHub Actions run34219448139 passes on a5b11f0: both images build on Ubuntu24.0
 The combined build now rejects a stale local CLI base when either Python source or the requirements lock differs from the worker checkout. The CI trigger covers these Dockerfiles/ignore files, worker sources, relevant package sources/manifests, locks and compiler configuration. Evidence and native image IDs: `tutorial-native-runtime-2026-09-08.json`.
 
 The HTTP evaluator now measures free space on its actual output filesystem instead of a macOS-only mount path, retaining the30GiB limit. Five evaluator tests pass. Frozen benchmark receipts remain unchanged. Production gates and existing catalogue are unchanged.
+
+## Private beta and download relay — 8 September 2026
+
+The owner authorized private beta imports without a source-permission check. Provenance remains unverified; no rights verification is claimed. Pending listening review does not block this labelled beta. Existing songs remain preserved.
+
+The consolidated Dockerfile now builds the worker with `--target worker`; the older separate Dockerfile was removed. Runtime activation requires `KEYSPILLI_TUTORIAL_BETA=1` and the managed data directory. Rollback disables the beta.
+
+The owner authorized the Mac as a download relay. Its launchd agent is `~/Library/LaunchAgents/tech.reidar.keyspilli-download-relay.plist` (label `tech.reidar.keyspilli-download-relay`). OpenSSH reverse dynamic forwarding binds only VPS `127.0.0.1:18443`; worker host networking reaches it using `KEYSPILLI_YT_PROXY=socks5h://127.0.0.1:18443`. No public proxy listener is exposed. The Mac must be awake and connected for new imports; existing catalogue playback does not depend on it. Launchd restarts a disconnected SSH session. Inspect with `launchctl print gui/$(id -u)/tech.reidar.keyspilli-download-relay`; stop with `launchctl bootout gui/$(id -u)/tech.reidar.keyspilli-download-relay`.
+
+A disposable host-network container using the existing worker image successfully identified Nirvana dev03 via the relay after direct VPS clients failed YouTube bot challenges. This proves metadata acquisition, not a deployed end-to-end import.

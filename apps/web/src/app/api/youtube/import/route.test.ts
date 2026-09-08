@@ -1,3 +1,4 @@
+import {tutorialImportsEnabled} from "../../../../../../../packages/catalog/src/tutorial-imports";
 import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -7,7 +8,7 @@ const queue = vi.hoisted(() => vi.fn(async (_request: Request) => new Response(J
 vi.mock("../route",()=>({POST:queue}));
 afterEach(()=>{vi.unstubAllEnvs();queue.mockClear();activeJob.mockReset();});
 
-vi.mock("@keyspilli/catalog", () => ({ insertJob, getDb:()=>({prepare:()=>({get:activeJob})}), canonicalYoutubeUrl: (url:string)=>url.includes("abcdefghijk") ? "https://www.youtube.com/watch?v=abcdefghijk" : null }));
+vi.mock("@keyspilli/catalog", () => ({ tutorialImportsEnabled, insertJob, getDb:()=>({prepare:()=>({get:activeJob})}), canonicalYoutubeUrl: (url:string)=>url.includes("abcdefghijk") ? "https://www.youtube.com/watch?v=abcdefghijk" : null }));
 
 import { POST } from "./route";
 
@@ -85,4 +86,14 @@ it("returns a durable active job without submitting again",async()=>{
  activeJob.mockReturnValue({id:"active-job"});
  const response=await POST(requestFor({url:"https://youtu.be/abcdefghijk"},{origin:"https://keys.reidar.tech"}));
  expect(await response.json()).toEqual({jobId:"active-job"});expect(queue).not.toHaveBeenCalled();
+});
+
+it("queues private beta in production with mutation auth and fails closed without data",async()=>{
+ vi.stubEnv("NODE_ENV","production");vi.stubEnv("KEYSPILLI_TUTORIAL_BETA","1");
+ vi.stubEnv("KEYSPILLI_DATA_DIR","/private-beta");vi.stubEnv("KEYSPILLI_API_TOKEN","fixture-token");
+ expect((await POST(requestFor({url:"https://youtu.be/abcdefghijk"},{origin:"https://keys.reidar.tech"}))).status).toBe(200);
+ expect(queue).toHaveBeenCalledOnce();
+ expect((await POST(requestFor({url:"https://youtu.be/abcdefghijk"},{origin:"https://attacker.example"}))).status).toBe(403);
+ vi.stubEnv("KEYSPILLI_DATA_DIR","");
+ expect((await POST(requestFor({url:"https://youtu.be/abcdefghijk"},{origin:"https://keys.reidar.tech"}))).status).toBe(410);
 });

@@ -3,7 +3,7 @@ import {spawn} from 'node:child_process';
 import {mkdir,readFile,writeFile,statfs} from 'node:fs/promises';
 import {resolve,join} from 'node:path';
 import {sanitizeProcessError} from './errors.js';
-import {normalizeYoutubeImportUrl} from './youtube-url.js';
+import {normalizeYoutubeImportUrl,ytNetworkFlags} from './youtube-url.js';
 import {cleanCatalogTitle,parseYtDlpSearchOutput,scoreCandidate} from '../../../packages/catalog/src/youtube-discovery.js';
 import {parseMidi,buildVariants,validateVariants,writeVariantArtifacts,validateArtifactFiles,PUBLIC_DIFFICULTY_ORDER} from '../../../packages/midi/src/index.js';
 
@@ -120,7 +120,7 @@ const progress=(stage:string)=>{active();hooks.onProgress?.(stage);};
 try{
 progress('identifying');
 const disk=await statfs(out);if(disk.bavail*disk.bsize<30*1024**3)throw Error('SOURCE_REVIEW_REQUIRED: insufficient free disk space; at least 30GiB required');
-const call=(cmd:string,args:string[],timeout=120000)=>runTutorialProcess(cmd,args,Math.min(timeout,Math.max(1,deadline-Date.now())),boundedHooks);
+const call=(cmd:string,args:string[],timeout=120000)=>runTutorialProcess(cmd,cmd === "yt-dlp" ? [...ytNetworkFlags(), ...args] : args,Math.min(timeout,Math.max(1,deadline-Date.now())),boundedHooks);
 const meta=JSON.parse(await call('yt-dlp',['--no-playlist','--skip-download','--dump-json','--',url]));
 const target=tutorialIdentity(meta);
 const {artist,title}=target;

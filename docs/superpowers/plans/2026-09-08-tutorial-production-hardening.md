@@ -112,3 +112,10 @@ One clean Linux development-preview import is proven. Native production capacity
 Added a filtered PR native-Linux smoke and a three-file consistency guard against stale CLI base images. Native Ubuntu24.04 amd64 run34219448139 on a5b11f0 passes:34 Python tests, dependency checks, geometry initialization, worker build and default polling startup with one further interval. No GOGC workaround, runtime network, root privileges, image push or deployment. Worker startup uses2 CPUs/1GiB; this does not measure full native import throughput. The previous complete four-export HTTP proof remains the separate emulated-Linux run.
 
 Fixed evaluator disk preflight to inspect its output filesystem rather than /System/Volumes/Data;30GiB guard unchanged. Five evaluator tests pass. Independent workflow review and seven mocked lifecycle/error paths pass, including late crash and log-read failures. Native evidence: tutorial-native-runtime-2026-09-08.json. Musical acceptance, source rights and production release decisions remain open; historical benchmark receipts unchanged.
+
+### Owner-authorized private beta update — 8 September 2026
+- Owner waived arrangement-permission confirmation for this private beta. Keep source provenance unverified; no licence-verification claim.
+- Pending listening review is permitted for labelled beta imports; preserve existing songs.
+- Owner authorized the Mac download relay because VPS YouTube clients hit bot challenges. Installed launchd reverse SOCKS forwarding on VPS loopback only; metadata probe succeeds from a host-network container. Imports require the Mac awake and connected.
+- Shared proxy/cookie flags now cover metadata, discovery and downloads. Runtime beta flag covers page, import, cancellation, worker and health. Rollback disables it.
+- 1,857 workspace tests passed; focused typecheck and ops fixtures pass after fixing a missing shared-helper import. Consolidated production worker build, CI and deployed four-level import remain outstanding; this checkpoint does not close Phase 7.

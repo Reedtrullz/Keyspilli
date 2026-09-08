@@ -1,3 +1,4 @@
+import { tutorialImportsEnabled } from "@keyspilli/catalog";
 import { NextRequest, NextResponse } from "next/server";
 import {canonicalYoutubeUrl,getDb} from "@keyspilli/catalog";
 
@@ -9,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 /** The public product accepts user-supplied symbolic files, never audio as source authority. */
 export async function POST(_request: Request) {
-  if (process.env.KEYSPILLI_TUTORIAL_PREVIEW === "1" && process.env.NODE_ENV === "development" && process.env.KEYSPILLI_DATA_DIR) {
+  if (tutorialImportsEnabled()) {
     const {checkMutationAuth}=await import("../../../../lib/mutation-auth");
     const denied=checkMutationAuth(_request);if(denied)return denied;
     const body=await _request.json().catch(()=>null);

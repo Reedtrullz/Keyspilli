@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { normalizeYoutubeImportUrl } from "../src/youtube-url.js";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { normalizeYoutubeImportUrl, ytNetworkFlags } from "../src/youtube-url.js";
 
 describe("normalizeYoutubeImportUrl", () => {
   it("canonicalizes supported HTTPS video URL forms", () => {
@@ -21,5 +21,14 @@ describe("normalizeYoutubeImportUrl", () => {
     "--config-location=/etc/shadow",
   ])("rejects unsafe or non-video input %s", (value) => {
     expect(() => normalizeYoutubeImportUrl(value)).toThrow();
+  });
+});
+
+describe("YouTube network route", () => {
+  afterEach(() => vi.unstubAllEnvs());
+  it("passes operator proxy and cookies as separate arguments", () => {
+    vi.stubEnv("KEYSPILLI_YT_PROXY", "socks5h://127.0.0.1:18443");
+    vi.stubEnv("KEYSPILLI_YT_COOKIES", "/path with spaces/cookies.txt");
+    expect(ytNetworkFlags()).toEqual(["--cookies", "/path with spaces/cookies.txt", "--proxy", "socks5h://127.0.0.1:18443"]);
   });
 });

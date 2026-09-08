@@ -1,7 +1,8 @@
+import {tutorialImportsEnabled} from "../../../../../../../../packages/catalog/src/tutorial-imports";
 import Database from 'better-sqlite3';
 import {afterEach,beforeEach,expect,it,vi} from 'vitest';
 const getDb=vi.hoisted(()=>vi.fn());
-vi.mock('@keyspilli/catalog',()=>({getDb}));
+vi.mock('@keyspilli/catalog',()=>({getDb,tutorialImportsEnabled}));
 import {PATCH} from './route';
 import {publicJobError} from '../../../../../lib/job-error';
 let db:Database.Database;
@@ -31,4 +32,9 @@ it('rejects production, cross-origin, malformed, and missing job requests',async
  expect((await PATCH(request(undefined,{action:'cancel',delete:true}),params)).status).toBe(400);
  expect((await PATCH(request(),{params:Promise.resolve({id:'missing'})})).status).toBe(404);
  expect((db.prepare('SELECT status FROM conversion_jobs').get() as {status:string}).status).toBe('processing');
+});
+it('cancels private beta in production through existing mutation auth',async()=>{
+ vi.stubEnv('NODE_ENV','production');vi.stubEnv('KEYSPILLI_TUTORIAL_BETA','1');vi.stubEnv('KEYSPILLI_API_TOKEN','fixture-token');
+ expect((await PATCH(request(),params)).status).toBe(200);
+ expect((db.prepare('SELECT lease_owner FROM conversion_jobs').get() as {lease_owner:unknown}).lease_owner).toBeNull();
 });

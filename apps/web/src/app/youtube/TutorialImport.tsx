@@ -30,8 +30,8 @@ export default function TutorialImport(){
   void poll();return()=>{controller.abort();clearTimeout(timer);};
  },[jobId,refresh]);
  return <div className="page-shell max-w-2xl mx-auto px-4 py-10">
-  <h1 className="text-2xl font-bold">YouTube piano preview</h1>
-  <p className="my-4">Paste a recording link. Keyspilli will look for a matching piano tutorial and follow that arrangement. Results are experimental; source rights and melody inclusion are unverified.</p>
+  <h1 className="text-2xl font-bold">YouTube piano · Private beta</h1>
+  <p className="my-4">Paste a recording link. Keyspilli will look for a matching piano tutorial and follow that arrangement. Results are experimental and pending listening review; source rights and melody inclusion are unverified.</p>
   <form onSubmit={async e=>{
    e.preventDefault();if(!ready||submitting.current)return;submitting.current=true;setError("");setSongId("");setStage("");setStatus("Submitting");setJobId("");
    try{

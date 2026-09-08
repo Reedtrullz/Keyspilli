@@ -31,3 +31,10 @@ export function normalizeYoutubeImportUrl(value: unknown): string {
   }
   return `https://www.youtube.com/watch?v=${videoId}`;
 }
+
+/** Shared operator-configured acquisition route for all YouTube requests. */
+export function ytNetworkFlags(): string[] {
+  const cookies = process.env.KEYSPILLI_YT_COOKIES;
+  const proxy = process.env.KEYSPILLI_YT_PROXY;
+  return [...(cookies ? ["--cookies", cookies] : []), ...(proxy ? ["--proxy", proxy] : [])];
+}

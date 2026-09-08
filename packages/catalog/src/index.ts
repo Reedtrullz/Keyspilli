@@ -123,3 +123,5 @@ export type {
   ShadowEvaluationOptions,
   ShadowRoleNotes,
 } from "./shadow-evaluation.js";
+
+export { tutorialImportsEnabled } from "./tutorial-imports.js";

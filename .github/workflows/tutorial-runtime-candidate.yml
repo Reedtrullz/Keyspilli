@@ -38,7 +38,7 @@ jobs:
       - name: Build worker candidate on native amd64
         run: |
           test "$(uname -m)" = x86_64
-          docker build --platform linux/amd64 -f services/transcribe/Dockerfile.tutorial-worker -t keyspilli-tutorial-worker:candidate .
+          docker build --platform linux/amd64 -f services/transcribe/Dockerfile.tutorial --target worker -t keyspilli-tutorial-worker:candidate .
       - name: Verify isolated default worker startup
         timeout-minutes: 2
         run: |

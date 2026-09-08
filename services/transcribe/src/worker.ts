@@ -13,6 +13,7 @@ import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 import { pathToFileURL } from "node:url";
 import {
+  tutorialImportsEnabled,
   claimJob,
   renewJobLease,
   ownsJobLease,
@@ -44,7 +45,7 @@ import { buildMetalArrangement, parseMidi, transcriptionMaxDurationBeats, writeM
 import { assessMetalRouting } from "./metal-routing.js";
 import { stemPipelineConfigFromEnv, transcribePitchedStems } from "./stem-pipeline.js";
 import { metalArrangementTracks } from "./metal-midi.js";
-import { normalizeYoutubeImportUrl } from "./youtube-url.js";
+import { normalizeYoutubeImportUrl, ytNetworkFlags } from "./youtube-url.js";
 import {
   isYoutubeBotChallenge,
   sanitizeProcessError,
@@ -137,21 +138,11 @@ async function sha256File(path: string): Promise<string> {
   return hash.digest("hex");
 }
 
-const YT_COOKIE_FILE = process.env.KEYSPILLI_YT_COOKIES ?? "";
-const YT_PROXY = process.env.KEYSPILLI_YT_PROXY ?? "";
-
 interface YoutubeMeta {
   title: string;
   uploader: string;
   durationSec: number;
   acquisition: "downloaded" | "pre-seeded";
-}
-
-function ytNetworkFlags(): string[] {
-  return [
-    ...(YT_COOKIE_FILE ? ["--cookies", YT_COOKIE_FILE] : []),
-    ...(YT_PROXY ? ["--proxy", YT_PROXY] : []),
-  ];
 }
 
 async function ytDlp(args: string[], timeoutMs = 300_000): Promise<string> {
@@ -232,9 +223,9 @@ export async function processJob(jobId: string): Promise<void> {
     if (disk.bavail * disk.bsize < STEM_PIPELINE_CONFIG.minFreeBytes) {
       throw new Error("SOURCE_REVIEW_REQUIRED: insufficient free disk space; reclaim space before retrying");
     }
-    if (process.env.KEYSPILLI_TUTORIAL_PREVIEW === "1") {
-      if (process.env.NODE_ENV !== "development" || !process.env.KEYSPILLI_DATA_DIR)
-        throw new Error("SOURCE_REVIEW_REQUIRED: tutorial preview requires development mode and an isolated data directory");
+    if ((process.env.KEYSPILLI_TUTORIAL_BETA === "1" || process.env.KEYSPILLI_TUTORIAL_PREVIEW === "1") && !tutorialImportsEnabled())
+      throw new Error("SOURCE_REVIEW_REQUIRED: tutorial imports require an enabled runtime flag and data directory");
+    if (tutorialImportsEnabled()) {
       if (existing) throw new Error("SOURCE_REVIEW_REQUIRED: tutorial preview cannot replace existing songs");
       const checkActive = () => {
         if (!ownsJobLease(jobId, owner) || getJob(jobId)?.status !== "processing") throw new Error("tutorial job cancelled");

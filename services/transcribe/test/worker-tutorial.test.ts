@@ -47,3 +47,13 @@ it("cannot recreate a cancelled job's song",async()=>{
  resolver.run.mockImplementation(async()=>{getDb().prepare("DELETE FROM conversion_jobs WHERE id = ?").run("cancelled");return candidate();});
  await queue("cancelled");await processJob("cancelled");expect(getSongsByBase("preview-cancelled")).toHaveLength(0);
 });
+it("runs the explicit production beta with unverified provenance",async()=>{
+ const {processJob}=await import("../src/worker.js");const {getJob,readArrangementManifest}=await import("@keyspilli/catalog");
+ resolver.run.mockResolvedValue(candidate());await queue("production-beta");
+ vi.stubEnv("NODE_ENV","production");vi.stubEnv("KEYSPILLI_TUTORIAL_BETA","1");
+ try{await processJob("production-beta");}finally{vi.stubEnv("NODE_ENV","development");vi.stubEnv("KEYSPILLI_TUTORIAL_BETA","");}
+ expect(getJob("production-beta")?.status).toBe("done");
+ const manifest=await readArrangementManifest("preview-production-beta");
+ expect(manifest.status).toBe("valid");
+ if(manifest.status==="valid")expect(manifest.manifest.sourceArrangement).toMatchObject({beta:true,license:"unverified",containsMelody:null});
+});

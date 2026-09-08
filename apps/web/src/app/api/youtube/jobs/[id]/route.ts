@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getDb } from "@keyspilli/catalog";
+import { getDb, tutorialImportsEnabled } from "@keyspilli/catalog";
 import { apiAuthorization } from "../../../../../lib/api-auth";
 
 export const dynamic = "force-dynamic";
@@ -29,9 +29,9 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   return NextResponse.json({ ok: true });
 }
 
-/** Local tutorial preview cancellation retains the row and all source evidence. */
+/** Tutorial beta cancellation retains the row and all source evidence. */
 export async function PATCH(req: Request, {params}: {params: Promise<{id:string}>}) {
-  if(process.env.KEYSPILLI_TUTORIAL_PREVIEW!=="1" || process.env.NODE_ENV!=="development" || !process.env.KEYSPILLI_DATA_DIR)
+  if(!tutorialImportsEnabled())
     return NextResponse.json({error:"Tutorial preview cancellation is unavailable"},{status:410});
   const {checkMutationAuth}=await import("../../../../../lib/mutation-auth");
   const denied=checkMutationAuth(req);if(denied)return denied;
