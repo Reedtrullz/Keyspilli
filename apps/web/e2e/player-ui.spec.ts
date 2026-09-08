@@ -384,3 +384,32 @@ for (const width of [390, 1280]) {
     await expect.poll(() => panel.evaluate((node) => node.scrollLeft)).toBe(0);
   });
 }
+
+
+test("loop shortcuts retain their musical range and respect the last bar", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.goto(`/player/${SONG}`);
+  await expect(page.getByLabel("Seek")).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Previous measure" })).toBeDisabled();
+  const bar = page.getByRole("spinbutton", { name: "Bar", exact: true });
+  await bar.fill("3");
+  await bar.press("Enter");
+  await page.locator(".player-loop-controls summary").click();
+  await page.getByRole("button", { name: "Loop current bar", exact: true }).click();
+  await expect(page.getByLabel("Loop range: bars 3–3")).toBeVisible();
+  const marker = page.getByLabel("Loop range: bars 3–3");
+  const rangeStyle = await marker.getAttribute("style");
+  await page.getByRole("button", { name: "50%", exact: true }).click();
+  await expect(marker).toHaveAttribute("style", rangeStyle!);
+  await page.getByRole("button", { name: "Loop next 4 bars", exact: true }).click();
+  await expect(page.getByLabel("Loop range: bars 3–6")).toBeVisible();
+  await page.getByRole("button", { name: "Clear loop", exact: true }).click();
+  const max = (await bar.getAttribute("max"))!;
+  await bar.fill(max);
+  await bar.press("Enter");
+  await expect(page.getByRole("button", { name: "Next measure" })).toBeDisabled();
+  await page.getByRole("button", { name: "Loop next 4 bars", exact: true }).click();
+  await expect(page.getByLabel(`Loop range: bars ${max}–${max}`)).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await expect(page.getByLabel("Seek")).toHaveAttribute("aria-valuetext", new RegExp(`Bar ${max} of ${max}`));
+});

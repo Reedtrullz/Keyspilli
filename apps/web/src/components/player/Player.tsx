@@ -766,9 +766,14 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       setLoopBeats(null);
       return;
     }
-    const startBeat = initial.data.measures[currentMeasure]?.startBeat ?? 0;
-    const measureBeats = initial.data.timeSig[0] * (4 / initial.data.timeSig[1]);
-    setLoopBeats({ startBeat, endBeat: Math.min(initial.data.measures.at(-1)?.endBeat ?? startBeat + 4 * measureBeats, startBeat + 4 * measureBeats) });
+    loopCurrentBars(4);
+  }
+
+  function loopCurrentBars(count: number) {
+    if (gradingRef.current) return;
+    const start = initial.data.measures[currentMeasure];
+    const end = initial.data.measures[Math.min(initial.data.measures.length - 1, currentMeasure + count - 1)];
+    if (start && end) setLoopBeats({ startBeat: start.startBeat, endBeat: end.endBeat });
   }
 
   function seekToSection(s: SongSection) {
@@ -1311,35 +1316,44 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
           </div>
           <div className="player-speed-controls flex items-center gap-1" aria-label="Practice speed">
             <span className="text-xs text-zinc-600">Speed</span>
-            <button disabled={grading} onClick={() => updateSettings({ speed: Math.max(0.25, +(settings.speed - 0.1).toFixed(2)) })} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Decrease speed">−</button>
+            <button disabled={grading || settings.speed <= 0.25} onClick={() => updateSettings({ speed: Math.max(0.25, +(settings.speed - 0.1).toFixed(2)) })} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Decrease speed">−</button>
             <span className="px-2 text-xs font-medium" title="Practice speed">{Math.round(settings.speed * 100)}%</span>
-            <button disabled={grading} onClick={() => updateSettings({ speed: Math.min(2, +(settings.speed + 0.1).toFixed(2)) })} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Increase speed">+</button>
+            <button disabled={grading || settings.speed >= 2} onClick={() => updateSettings({ speed: Math.min(2, +(settings.speed + 0.1).toFixed(2)) })} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Increase speed">+</button>
             <div className="player-speed-presets flex gap-1">{[0.5, 0.75, 1].map((speed) => <button key={speed} disabled={grading} aria-pressed={settings.speed === speed} className={`min-h-11 px-2 rounded-lg text-xs ${settings.speed === speed ? "bg-zinc-100 font-semibold" : "text-zinc-600 hover:bg-zinc-100"}`} onClick={() => updateSettings({ speed })}>{speed * 100}%</button>)}</div>
           </div>
 
         </div>
 
         <div className="player-timeline">          <div className="player-measure-controls flex items-center gap-1">
-            <button disabled={grading} onClick={() => seekToMeasure(Math.max(0, currentMeasure - 1))} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Previous measure">‹</button>
+            <button disabled={grading || currentMeasure === 0} onClick={() => seekToMeasure(Math.max(0, currentMeasure - 1))} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Previous measure">‹</button>
             <label className="flex items-center gap-1 text-xs">Bar <input key={currentMeasure} type="number" aria-label="Bar" min={1} max={initial.data.measures.length} step={1} defaultValue={currentMeasure + 1} disabled={grading}
               onBlur={(event) => commitBar(event.currentTarget)} onKeyDown={(event) => { if (event.key === "Enter") commitBar(event.currentTarget); }} /></label>
             <span className="text-xs text-zinc-500">/ {initial.data.measures.length}</span>
-            <button disabled={grading} onClick={() => seekToMeasure(Math.min(initial.data.measures.length - 1, currentMeasure + 1))} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Next measure">›</button>
+            <button disabled={grading || currentMeasure >= initial.data.measures.length - 1} onClick={() => seekToMeasure(Math.min(initial.data.measures.length - 1, currentMeasure + 1))} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Next measure">›</button>
           </div>
           <output role="timer" aria-label="Elapsed time" className="ml-auto text-xs text-zinc-500 font-mono tabular-nums text-right select-none flex items-center gap-1.5">
             <span>{fmtTime(time)}</span>
             <span className="text-zinc-300">/</span>
             <span>{fmtTime(duration)}</span>
             <span className="text-zinc-500">(-{fmtTime(Math.max(0, duration - time))})</span>
-          </output><details className="player-loop-controls text-xs">
+          </output><details className="player-loop-controls text-xs" data-active={!!loop}>
           <summary className="cursor-pointer min-h-11 flex items-center rounded-full border border-zinc-300 px-3">{loopBeats ? `Loop · Bars ${loopStartBar}–${loopEndBar}` : "Loop"}</summary>
-          <div className="flex flex-wrap items-center gap-2 py-2">
+          <div className="player-loop-editor">
+            <p className="w-full text-sm text-zinc-600">Repeat a small passage until it feels comfortable.</p>
+            <div className="flex flex-wrap gap-2 w-full">
+              <button disabled={grading} onClick={() => loopCurrentBars(1)} className="min-h-11 rounded-lg border border-zinc-300 px-3">Loop current bar</button>
+              <button disabled={grading} onClick={() => loopCurrentBars(4)} className="min-h-11 rounded-lg border border-zinc-300 px-3">Loop next 4 bars</button>
+            </div>
             <label>Start bar <input key={`start-${loopStartBar}`} type="number" aria-label="Loop start bar" min={1} max={initial.data.measures.length} defaultValue={loopStartBar} disabled={grading} onBlur={(e) => commitLoopBar(e.currentTarget, "start")} onKeyDown={(e) => { if (e.key === "Enter") commitLoopBar(e.currentTarget, "start"); }} /></label>
             <label>End bar <input key={`end-${loopEndBar}`} type="number" aria-label="Loop end bar" min={1} max={initial.data.measures.length} defaultValue={loopEndBar} disabled={grading} onBlur={(e) => commitLoopBar(e.currentTarget, "end")} onKeyDown={(e) => { if (e.key === "Enter") commitLoopBar(e.currentTarget, "end"); }} /></label>
             <button disabled={grading} onClick={toggleLoop} className="min-h-11 rounded-lg border border-zinc-300 px-3">{loop ? "Clear loop" : "Enable loop"}</button>
           </div>
         </details></div>
         <div className="px-4 pb-3 border-b border-zinc-100">
+          {loop && <div className="player-loop-track">
+            <div role="img" aria-label={`Loop range: bars ${loopStartBar}–${loopEndBar}`} className="player-loop-range"
+              style={{ left: `${loop.startSec / Math.max(1, duration) * 100}%`, width: `${(loop.endSec - loop.startSec) / Math.max(1, duration) * 100}%` }} />
+          </div>}
           <input
             type="range"
             min={0}
@@ -1353,6 +1367,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
             }}
             disabled={!engineReady || grading}
             aria-label="Seek"
+            aria-valuetext={`Bar ${currentMeasure + 1} of ${initial.data.measures.length}, ${fmtTime(time)} of ${fmtTime(duration)}`}
           />
         </div>
         {sections.length > 1 && (
