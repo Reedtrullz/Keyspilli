@@ -123,11 +123,13 @@ const ChordItem = memo(function ChordItem({
   index,
   active,
   setSize,
+  showShapes,
 }: {
   chord: ChordLabel;
   index: number;
   active: boolean;
   setSize: number;
+  showShapes: boolean;
 }) {
   const provenance = chordProvenance(chord);
   return (
@@ -145,24 +147,34 @@ const ChordItem = memo(function ChordItem({
       <span className={`chord-strip-label text-[10px] font-semibold leading-tight ${provenance.textClass} ${provenance.dotted ? `border-b border-dotted ${provenance.borderClass}` : ""}`}>
         {chord.name}
       </span>
-      <MiniKeyboard notes={chord.notes} />
+      {provenance.dotted && <span className={`text-[10px] ${provenance.textClass}`}>{provenance.kind === "inferred" ? "Inferred" : "Unknown"}</span>}
+      {showShapes && <MiniKeyboard notes={chord.notes} />}
     </div>
   );
 });
 
 export const ChordStrip = memo(function ChordStrip({ chords, currentBeat }: ChordStripProps) {
   const stripRef = useRef<HTMLDivElement>(null);
+  const [expanded, setExpanded] = useState(false);
+  const [showShapes, setShowShapes] = useState(false);
   const previousActiveIdxRef = useRef<number | null>(null);
   const [scrollLeft, setScrollLeft] = useState(0);
   const [viewportWidth, setViewportWidth] = useState(CHORD_DEFAULT_VIEWPORT_WIDTH);
   // Find which chord is currently active
-  let activeIdx = 0;
+  let previousIdx = -1;
   for (let i = chords.length - 1; i >= 0; i--) {
     if (currentBeat >= chords[i]!.beat) {
-      activeIdx = i;
+      previousIdx = i;
       break;
     }
   }
+
+  const nextIdx = previousIdx + 1;
+  const previousChord = chords[previousIdx];
+  // Legacy labels last until the next event; an explicit duration can leave a gap.
+  const activeIdx = previousChord && (previousChord.durationBeats === undefined
+    || (Number.isFinite(previousChord.durationBeats) && currentBeat < previousChord.beat + previousChord.durationBeats))
+    ? previousIdx : -1;
 
   // Measure the real viewport after hydration. The deterministic fallback is
   // intentionally large enough for a useful first SSR paint and is replaced
@@ -181,13 +193,13 @@ export const ChordStrip = memo(function ChordStrip({ chords, currentBeat }: Chor
       resizeObserver?.disconnect();
       window.removeEventListener("resize", update);
     };
-  }, []);
+  }, [expanded]);
 
   const visibleCount = Math.max(1, Math.ceil(viewportWidth / CHORD_SLOT_WIDTH));
   const visibleStart = Math.max(0, Math.floor(scrollLeft / CHORD_SLOT_WIDTH) - CHORD_VIRTUAL_BUFFER);
   const visibleEnd = Math.min(chords.length, visibleStart + visibleCount + CHORD_VIRTUAL_BUFFER * 2);
   const currentChord = chords[activeIdx] ?? null;
-  const nextChord = activeIdx >= 0 ? chords[activeIdx + 1] ?? null : null;
+  const nextChord = chords[nextIdx] ?? null;
   const activeOutsideWindow = activeIdx >= 0
     && activeIdx < chords.length
     && (activeIdx < visibleStart || activeIdx >= visibleEnd)
@@ -230,12 +242,13 @@ export const ChordStrip = memo(function ChordStrip({ chords, currentBeat }: Chor
             chord={chord}
             index={index}
             setSize={chords.length}
+            showShapes={showShapes}
             active={index === activeIdx}
           />
         </div>
       );
     }),
-    [chords, renderedIndices],
+    [chords, renderedIndices, showShapes],
   );
 
   function handleScroll(event: React.UIEvent<HTMLDivElement>) {
@@ -257,31 +270,53 @@ export const ChordStrip = memo(function ChordStrip({ chords, currentBeat }: Chor
       root.querySelector(`[data-chord-idx="${previousIdx}"]`)?.removeAttribute("aria-current");
     }
     previousActiveIdxRef.current = activeIdx;
-  }, [activeIdx]);
+  }, [activeIdx, expanded]);
 
   // Keep the active chord visible even when the user scrolled elsewhere.
   useEffect(() => {
-    stripRef.current
-      ?.querySelector(`[data-chord-idx="${activeIdx}"]`)
-      ?.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "nearest", inline: "center" });
-  }, [activeIdx]);
+    const root = stripRef.current;
+    if (!expanded || !root) return;
+    const index = activeIdx >= 0 ? activeIdx : nextIdx;
+    if (index >= chords.length) return;
+    root.scrollTo({
+      left: Math.max(0, index * CHORD_SLOT_WIDTH - (root.clientWidth - CHORD_ITEM_WIDTH) / 2),
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
+    });
+  }, [activeIdx, nextIdx, expanded, chords.length]);
 
   if (chords.length === 0) return null;
 
   return (
     <>
-      <MiniKeyboardDefs />
-      <div className="chord-strip-summary sm:hidden" role="status" aria-live="polite" aria-atomic="true" aria-label="Current and next chord">
+      {showShapes && <MiniKeyboardDefs />}
+      <div className="chord-strip-summary" role="status" aria-live="polite" aria-atomic="true" aria-label="Current and next chord">
         <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500">Now</span>
-        <span className="text-sm font-semibold text-blue-700 truncate" title={currentChord?.name ?? "No chord"}>
+        <span className="text-sm font-semibold text-blue-700 truncate" title={currentChord ? chordProvenance(currentChord).label : "No chord"}>
           {currentChord?.name ?? "—"}
+          {currentChord && <small className="block text-[10px] font-normal">{chordProvenance(currentChord).label}</small>}
         </span>
         <span className="text-zinc-300" aria-hidden="true">→</span>
         <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500">Next</span>
-        <span className="text-sm font-medium text-zinc-700 truncate" title={nextChord?.name ?? "End"}>
+        <span className="text-sm font-medium text-zinc-700 truncate" title={nextChord ? chordProvenance(nextChord).label : "End"}>
           {nextChord?.name ?? "End"}
+          {nextChord && <small className="block text-[10px] font-normal">{chordProvenance(nextChord).label}</small>}
         </span>
       </div>
+      {chords.slice(nextIdx + 1, nextIdx + 3).length > 0 && (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1 text-xs text-zinc-600" aria-label="Upcoming chords">
+          <span>Then</span>
+          {chords.slice(nextIdx + 1, nextIdx + 3).map((chord, index) => {
+            const provenance = chordProvenance(chord);
+            return <span key={index} title={provenance.label} className={provenance.textClass}>{chord.name}{provenance.dotted ? ` (${provenance.kind})` : ""}</span>;
+          })}
+        </div>
+      )}
+      <details className="chord-progression-details" onToggle={(event) => setExpanded(event.currentTarget.open)}>
+        <summary className="cursor-pointer px-3 py-2 text-xs text-zinc-600">Full chord progression</summary>
+        <label className="flex items-center gap-2 px-3 py-2 text-xs text-zinc-700">
+          <input type="checkbox" checked={showShapes} onChange={(event) => setShowShapes(event.target.checked)} />
+          Show chord shapes
+        </label>
       <div
         ref={stripRef}
         onScroll={handleScroll}
@@ -296,12 +331,13 @@ export const ChordStrip = memo(function ChordStrip({ chords, currentBeat }: Chor
             position: "relative",
             width: chords.length * CHORD_SLOT_WIDTH,
             minWidth: chords.length * CHORD_SLOT_WIDTH,
-            height: CHORD_STRIP_HEIGHT,
+            height: showShapes ? CHORD_STRIP_HEIGHT + 16 : CHORD_STRIP_HEIGHT,
           }}
         >
           {chordItems}
         </div>
       </div>
+      </details>
     </>
   );
 });

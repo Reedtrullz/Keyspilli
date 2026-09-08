@@ -13,6 +13,7 @@ export function SettingsDialog({
   chordSourceStatus = null,
   onChordSourceChange,
   onClose,
+  onPreview,
 }: {
   settings: PlayerSettings;
   onChange: (p: Partial<PlayerSettings>) => void;
@@ -21,6 +22,7 @@ export function SettingsDialog({
   chordSourceStatus?: string | null;
   onChordSourceChange?: (source: ChordSourceId) => void;
   onClose: () => void;
+  onPreview?: () => void;
 }) {
 
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -104,7 +106,7 @@ export function SettingsDialog({
         if (e.target === e.currentTarget) requestClose();
       }}
     >
-      <div className={`bg-white rounded-2xl w-full max-w-md p-5 shadow-xl ${motion.panel}`}>
+      <div className={`bg-white rounded-2xl w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto p-5 shadow-xl ${motion.panel}`}>
         <div className="flex justify-between items-center mb-4">
           <h2 className="font-semibold">Settings</h2>
           <button autoFocus onClick={requestClose} className="px-2 py-1 rounded-lg hover:bg-zinc-100" aria-label="Close settings">×</button>
@@ -181,7 +183,10 @@ export function SettingsDialog({
         </div>
 
         <div className="mb-4">
-          <h3 className="text-sm font-medium mb-2">Sound</h3>
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <h3 className="text-sm font-medium">Sound</h3>
+            {onPreview && <button type="button" onClick={onPreview} className="min-h-11 px-3 rounded-lg border border-zinc-300 text-sm">Preview sound</button>}
+          </div>
           <div className="flex gap-2" role="radiogroup" aria-label="Sound">
             {(["synth", "sampled", "organ"] as const).map((s) => (
               <button
@@ -276,7 +281,7 @@ export function SettingsDialog({
 
         <div className="mb-2">
           <label className="flex justify-between text-sm mb-1">
-            <span>Voice</span>
+            <span>Right hand / input</span>
             <span className="font-mono text-xs">{Math.round(settings.voiceGain * 100)}%</span>
           </label>
           <input
@@ -286,12 +291,12 @@ export function SettingsDialog({
             value={Math.round(settings.voiceGain * 100)}
             onChange={(e) => onChange({ voiceGain: Number(e.target.value) / 100 })}
             className="w-full"
-            aria-label="Voice volume"
+            aria-label="Right hand / input volume"
           />
         </div>
         <div className="mb-4">
           <label className="flex justify-between text-sm mb-1">
-            <span>Piano</span>
+            <span>Left hand / accompaniment</span>
             <span className="font-mono text-xs">{Math.round(settings.pianoGain * 100)}%</span>
           </label>
           <input
@@ -301,7 +306,7 @@ export function SettingsDialog({
             value={Math.round(settings.pianoGain * 100)}
             onChange={(e) => onChange({ pianoGain: Number(e.target.value) / 100 })}
             className="w-full"
-            aria-label="Piano volume"
+            aria-label="Left hand / accompaniment volume"
           />
         </div>
         {settings.soundSource !== "organ" && (
@@ -316,16 +321,6 @@ export function SettingsDialog({
             <span className="text-xs text-zinc-500 ml-auto">Let notes ring past their written length</span>
           </label>
         )}
-
-        <label className="flex items-center gap-2 text-sm mb-4">
-          <input
-            type="checkbox"
-            checked={settings.showAllKeys}
-            onChange={(e) => onChange({ showAllKeys: e.target.checked })}
-          />
-          Show all 88 keys
-          <span className="text-xs text-zinc-500 ml-auto">Full piano instead of zoomed view</span>
-        </label>
 
         <button onClick={requestClose} className="w-full py-2.5 rounded-xl bg-zinc-900 text-white text-sm font-medium">
           Done

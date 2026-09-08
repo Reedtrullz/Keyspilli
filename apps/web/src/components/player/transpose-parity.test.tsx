@@ -34,6 +34,7 @@ describe("transpose visual/audio parity", () => {
     const midis = timed.map((n) => n.midi).sort((a, b) => b - a);
     const html = renderToStaticMarkup(createElement(BeginnerView, { data, time: 0, settings, chords: [] }));
     const ys = renderedYPositions(html).sort((a, b) => a - b);
+    expect(html).toContain("D4");
 
     const lo = Math.min(...midis, 55);
     const hi = Math.max(...midis, 72);
@@ -47,6 +48,7 @@ describe("transpose visual/audio parity", () => {
     const melody = timed.filter((n) => n.hand === "R");
     const html = renderToStaticMarkup(createElement(LeadSheetView, { data, time: 0, settings, chords: [] }));
     const ys = renderedYPositions(html).sort((a, b) => a - b);
+    expect(html).toContain("D4");
 
     const midis = melody.map((n) => n.midi).sort((a, b) => b - a);
     const lo = Math.min(...midis, 55);
@@ -55,4 +57,15 @@ describe("transpose visual/audio parity", () => {
     expect(ys).toHaveLength(expected.length);
     expected.forEach((y, i) => expect(ys[i]).toBeCloseTo(y, 5));
   });
+});
+
+
+it("note letters previews the next bar with hand, octave, and transpose", () => {
+  const song = { ...data, measures: [...data.measures, { index: 1, startBeat: 4, endBeat: 8 }],
+    notes: [...data.notes, { midi: 48, start: 4, dur: 1, vel: 80, hand: "L" as const }] };
+  const html = renderToStaticMarkup(createElement(BeginnerView, { data: song, time: 0,
+    settings: { ...DEFAULT_SETTINGS, transpose: 2 }, chords: [] }));
+  expect(html).toContain("Note letters view");
+  expect(html).toContain("Next bar 2:");
+  expect(html).toContain("LH D3");
 });

@@ -62,8 +62,8 @@ test("player loads and switches views", async ({ page }) => {
   await expect(page.locator("canvas")).toBeVisible();
   // view switcher
   await page.getByRole("button", { name: /View/ }).click();
-  await page.getByRole("menuitemradio", { name: /Beginner/ }).click();
-  await expect(page.getByLabel("Beginner notes view")).toBeVisible();
+  await page.getByRole("menuitemradio", { name: /Note letters/ }).click();
+  await expect(page.getByLabel("Note letters view")).toBeVisible();
   // lead sheet
   await page.getByRole("button", { name: /View/ }).click();
   await page.getByRole("menuitemradio", { name: /Lead Sheet/ }).click();
@@ -151,8 +151,8 @@ test("direct sheet routes start with a metadata shell and load player data on mo
   expect(detailRequests).toBe(0);
 
   await page.getByRole("button", { name: /View/ }).click();
-  await page.getByRole("menuitemradio", { name: /Beginner/ }).click();
-  await expect(page.getByLabel("Beginner notes view")).toBeVisible();
+  await page.getByRole("menuitemradio", { name: /Note letters/ }).click();
+  await expect(page.getByLabel("Note letters view")).toBeVisible();
   expect(detailRequests).toBeGreaterThan(0);
 });
 
@@ -179,8 +179,9 @@ test("direct sheet RSC payload excludes the large player detail", async ({ page 
 
 test("player controls: loop, tempo, transpose, hands", async ({ page }) => {
   await page.goto(`/player/${SONG}`);
-  await page.getByRole("button", { name: /LOOP OFF/ }).click();
-  await expect(page.getByRole("button", { name: /LOOP ON/ })).toBeVisible();
+  await page.locator(".player-loop-controls summary").click();
+  await page.getByRole("button", { name: "Enable loop", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Clear loop", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Decrease speed" }).click();
   await expect(page.getByText("90%")).toBeVisible();
   await page.getByRole("button", { name: "Right hand", exact: true }).click();
@@ -197,6 +198,7 @@ test("player controls: loop, tempo, transpose, hands", async ({ page }) => {
 
 test("chord mode distinguishes strict UG coverage from hybrid Auto", async ({ page }) => {
   await page.goto(`/player/${UG_SONG}`);
+  if (await page.getByRole("button", { name: "Adjust", exact: true }).getAttribute("aria-expanded") === "false") await page.getByRole("button", { name: "Adjust", exact: true }).click();
   await page.getByRole("button", { name: "Open settings" }).click();
   const dialog = page.getByRole("dialog", { name: "Player settings" });
   await expect(dialog).toBeVisible();
@@ -208,6 +210,7 @@ test("chord mode distinguishes strict UG coverage from hybrid Auto", async ({ pa
   await expect(page.locator('[role="dialog"][aria-label="Player settings"]')).toHaveCount(0);
   await expect(page.getByTestId("chord-mode-status")).toHaveText("UG opening (partial)");
 
+  if (await page.getByRole("button", { name: "Adjust", exact: true }).getAttribute("aria-expanded") === "false") await page.getByRole("button", { name: "Adjust", exact: true }).click();
   await page.getByRole("button", { name: "Open settings" }).click();
   const hybridDialog = page.getByRole("dialog", { name: "Player settings" });
   await hybridDialog.getByRole("radio", { name: "Auto" }).click();
@@ -218,13 +221,16 @@ test("chord mode distinguishes strict UG coverage from hybrid Auto", async ({ pa
 test("practice mode starts and exits cleanly", async ({ page }) => {
   await page.goto(`/player/${SONG}`);
   await page.getByRole("button", { name: "Practice", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Practice mode" })).toBeVisible();
-  await page.getByRole("button", { name: "Exit", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Practice mode" })).not.toBeVisible();
+  await page.getByRole("button", { name: "Start practice", exact: true }).click();
+  await expect(page.getByRole("region", { name: "Practice grading" })).toBeVisible();
+  await page.getByRole("button", { name: "Finish practice", exact: true }).click();
+  await page.getByRole("button", { name: "Dismiss result", exact: true }).click();
+  await expect(page.getByRole("region", { name: "Practice grading" })).not.toBeVisible();
 });
 
 test("chord practice shows a compact target and advances by chord", async ({ page }) => {
   await page.goto(`/player/${SONG}`);
+  await page.getByRole("button", { name: "Adjust", exact: true }).click();
   await page.getByRole("button", { name: "Chord practice", exact: true }).click();
   const panel = page.getByTestId("chord-practice-panel");
   await expect(panel).toBeVisible();
@@ -233,7 +239,7 @@ test("chord practice shows a compact target and advances by chord", async ({ pag
   await expect(panel.getByRole("button", { name: "Hear chord" })).toBeVisible();
   await panel.getByRole("button", { name: "Skip" }).click();
   await expect(panel.getByText(/Chord 2 of/)).toBeVisible();
-  await page.getByRole("button", { name: "Exit chord practice", exact: true }).click();
+  await panel.getByRole("button", { name: "Close", exact: true }).click();
   await expect(panel).not.toBeVisible();
 });
 

@@ -31,13 +31,44 @@ describe("ChordStrip", () => {
     expect(html).toContain('data-chord-idx="372"');
     expect(html).toContain('aria-posinset="373"');
     expect(html).toContain('aria-setsize="745"');
-    expect(html).toContain("<svg");
-    // Keep the high-cardinality keyboard visualization compact: each keyboard
-    // uses grouped paths rather than one SVG rect per key.
-    expect(html).not.toContain("<rect");
-    expect((html.match(/<path/g) ?? []).length).toBeGreaterThan(0);
-    expect(html).toContain('id="keyspilli-mini-keyboard-base"');
-    expect((html.match(/<use/g) ?? []).length).toBeGreaterThan(50);
+    expect(html).toContain("Full chord progression");
+    expect(html).toContain("Show chord shapes");
+    expect(html).not.toContain("<svg");
+    expect(html).not.toContain("sm:hidden");
+    expect(html).toContain('aria-label="Current and next chord"');
+
+  });
+
+  it("keeps inferred and unknown provenance visible in summary and full progression", () => {
+    const html = renderToStaticMarkup(createElement(ChordStrip, {
+      chords: [
+        { beat: 0, name: "C", notes: [60], sourceKind: "inferred" },
+        { beat: 4, name: "G7", notes: [67] },
+      ],
+      currentBeat: 1,
+    }));
+    expect(html).toContain('aria-label="C: Inferred chord"');
+    expect(html).toContain('aria-label="G7: Chord provenance unknown"');
+    expect((html.match(/Inferred chord/g) ?? []).length).toBeGreaterThanOrEqual(3);
+    expect((html.match(/Chord provenance unknown/g) ?? []).length).toBeGreaterThanOrEqual(3);
+    expect(html).toContain(">Inferred</span>");
+    expect(html).toContain(">Unknown</span>");
+  });
+
+  it("shows no current chord before the first event and through an explicit gap", () => {
+    const progression = [
+      { beat: 4, name: "C", notes: [60], durationBeats: 2 },
+      { beat: 12, name: "G7", notes: [67], durationBeats: 2 },
+    ];
+    for (const [beat, next] of [[0, "C"], [6, "G7"], [10, "G7"], [14, "End"]] as const) {
+      const html = renderToStaticMarkup(createElement(ChordStrip, { chords: progression, currentBeat: beat }));
+      const summary = html.split('aria-label="Current and next chord"')[1]!.split("</div>")[0]!;
+      expect(summary).toContain('title="No chord">—</span>');
+      expect(summary).toContain(`>${next}${next === "End" ? "</span>" : "<small"}`);
+      expect(html).not.toContain('aria-current="step"');
+    }
+    const active = renderToStaticMarkup(createElement(ChordStrip, { chords: progression, currentBeat: 5 }));
+    expect(active).toContain('aria-current="step"');
   });
 
   it("keeps an empty progression empty", () => {

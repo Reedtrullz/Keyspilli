@@ -39,12 +39,8 @@ export class KeyboardInput {
 
   handleKey(e: KeyboardEvent): void {
     const k = e.key.toLowerCase();
-    if (k === "z") {
-      this.octave = Math.max(0, this.octave - 1);
-      return;
-    }
-    if (k === "x") {
-      this.octave = Math.min(4, this.octave + 1);
+    if (k === "z" || k === "x") {
+      if (e.type === "keydown" && !e.repeat) this.setOctave(this.octave + (k === "z" ? -1 : 1));
       return;
     }
     const base = KEYMAP[k];

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import {
   createFallingChordIndex,
   createFallingNoteIndex,
@@ -93,15 +93,11 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    const W = 960;
-    const H = 540;
-    const KB_H = 140;
-    const LEFT_MARGIN = 32;
-    const RIGHT_MARGIN = 32;
-    const KEYBOARD_W = W - LEFT_MARGIN - RIGHT_MARGIN;
-    // Fit the fixed logical space onto the element's real size each time it
-    // changes, so narrow/mobile viewports scale instead of clipping.
     let appliedClientW = 0;
+    let appliedClientH = 0;
+    let appliedDpr = 0;
+    let keyboardWidthCache = 0;
+    let keyboardHeightCache = 0;
     let keyboardLowCache = Number.NaN;
     let keyboardHighCache = Number.NaN;
     let keyboardCache: ReturnType<typeof keyboardRects> | null = null;
@@ -112,16 +108,21 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
     const activeChordNotes = new Set<number>();
     let activeChordIndex = -2;
     let activeChordIndexSource: FallingChordIndex<Props["chords"][number]> | null = null;
+    let chordWidth = 0;
+    let measuredChordSource: FallingChordIndex<Props["chords"][number]> | null = null;
 
     const draw = () => {
       rafRef.current = 0;
-      const clientW = canvas.clientWidth;
-      if (clientW !== appliedClientW) {
-        const dpr = window.devicePixelRatio || 1;
-        canvas.width = Math.max(1, Math.round(clientW * dpr));
-        canvas.height = Math.max(1, Math.round(canvas.clientHeight * dpr));
-        ctx.setTransform(canvas.width / W, 0, 0, canvas.height / H, 0, 0);
-        appliedClientW = clientW;
+      const W = Math.max(1, canvas.clientWidth);
+      const H = Math.max(1, canvas.clientHeight);
+      const dpr = window.devicePixelRatio || 1;
+      if (W !== appliedClientW || H !== appliedClientH || dpr !== appliedDpr) {
+        canvas.width = Math.max(1, Math.round(W * dpr));
+        canvas.height = Math.max(1, Math.round(H * dpr));
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        appliedClientW = W;
+        appliedClientH = H;
+        appliedDpr = dpr;
       }
       // Read all state from refs (stable across frames)
       const now = liveTime.current;
@@ -139,7 +140,20 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
 
       const speed = s.speed;
       const lookahead = 3.2;
-      const areaHeight = H - KB_H - 10;
+      const KB_H = Math.min(W < 640 ? 96 : 140, H * 0.45);
+      const areaHeight = Math.max(1, H - KB_H - 10);
+      const chordIndex = chordIndexRef.current!;
+      const chordLabels = fallingChordRange(chordIndex, now / secPerBeat(bpm, speed), (now + lookahead) / secPerBeat(bpm, speed), chordRangeCache);
+      ctx.font = "800 14px system-ui, sans-serif";
+      // Keep pitch lanes fixed while time advances; measure once per chord set.
+      if (measuredChordSource !== chordIndex) {
+        chordWidth = 0;
+        for (const chord of chordIndex.events) chordWidth = Math.max(chordWidth, ctx.measureText(chord.name).width);
+        measuredChordSource = chordIndex;
+      }
+      const LEFT_MARGIN = Math.min(W * 0.25, Math.max(16, chordWidth + 16));
+      const RIGHT_MARGIN = 16;
+      const KEYBOARD_W = Math.max(1, W - LEFT_MARGIN - RIGHT_MARGIN);
       const pxPerSec = areaHeight / lookahead;
 
       // --- Beat grid lines ---
@@ -169,7 +183,6 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
 
       // --- Determine current chord ---
       const currentBeat = now / beatSec;
-      const chordIndex = chordIndexRef.current!;
       const activeChordEventIndex = lastFallingChordIndex(chordIndex, currentBeat);
       if (chordIndex !== activeChordIndexSource || activeChordEventIndex !== activeChordIndex) {
         activeChordNotes.clear();
@@ -198,14 +211,6 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
       }
 
       // --- Chord labels on the left margin ---
-      const chordMarginSec = 30 / pxPerSec;
-      const chordBeatPerSec = (bpm * speed) / 60;
-      const chordLabels = fallingChordRange(
-        chordIndex,
-        (now - chordMarginSec) * chordBeatPerSec,
-        (now + lookahead + chordMarginSec) * chordBeatPerSec,
-        chordRangeCache,
-      );
       for (let chordIdx = chordLabels.start; chordIdx < chordLabels.end; chordIdx++) {
         const c = chordIndex.events[chordIdx]!;
         const cSec = (c.beat * 60) / (bpm * speed);
@@ -217,7 +222,7 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
         ctx.textAlign = "right";
         ctx.textBaseline = "middle";
         ctx.fillStyle = isActive ? "#2563eb" : "#18181b";
-        ctx.fillText(c.name, LEFT_MARGIN - 10, y);
+        ctx.fillText(c.name, LEFT_MARGIN - 8, y, Math.max(1, LEFT_MARGIN - 12));
       }
 
       // --- Draw lyrics (right side) ---
@@ -237,7 +242,9 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
       }
 
       // --- Keyboard ---
-      if (keyboardLowCache !== low || keyboardHighCache !== high || !keyboardCache) {
+      if (keyboardLowCache !== low || keyboardHighCache !== high || keyboardWidthCache !== KEYBOARD_W || keyboardHeightCache !== KB_H || !keyboardCache) {
+        keyboardWidthCache = KEYBOARD_W;
+        keyboardHeightCache = KB_H;
         keyboardLowCache = low;
         keyboardHighCache = high;
         keyboardCache = keyboardRects({ width: KEYBOARD_W, lowMidi: low, highMidi: high, whiteHeight: KB_H });
@@ -277,7 +284,7 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
         } else {
           ctx.fillStyle = pk.has(w.midi) ? "#ffffff" : "#52525b";
         }
-        ctx.fillText(noteLabel(w.midi), kx + w.w / 2, H - 18);
+        if (ctx.measureText(noteLabel(w.midi)).width + 4 <= w.w) ctx.fillText(noteLabel(w.midi), kx + w.w / 2, H - 18);
       }
      for (const b of kb.blacks) {
        const kx = b.x + LEFT_MARGIN;
@@ -287,23 +294,23 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
        ctx.fillRect(kx, H - KB_H, b.w, KB_H * 0.62);
        if (isWaitB) {
          ctx.fillStyle = "#f59e0b";
-         ctx.fillRect(kx, H - KB_H * 0.62, b.w, KB_H * 0.62);
+         ctx.fillRect(kx, H - KB_H, b.w, KB_H * 0.62);
          ctx.strokeStyle = "#b45309";
          ctx.lineWidth = 3;
-         ctx.strokeRect(kx, H - KB_H * 0.62, b.w, KB_H * 0.62);
+         ctx.strokeRect(kx, H - KB_H, b.w, KB_H * 0.62);
        } else if (isChordB) {
          ctx.fillStyle = pitchColor(b.midi);
-          ctx.fillRect(kx, H - KB_H * 0.62, b.w, KB_H * 0.62);
+          ctx.fillRect(kx, H - KB_H, b.w, KB_H * 0.62);
           ctx.strokeStyle = pitchColor(b.midi);
           ctx.lineWidth = 2;
-          ctx.strokeRect(kx, H - KB_H * 0.62, b.w, KB_H * 0.62);
+          ctx.strokeRect(kx, H - KB_H, b.w, KB_H * 0.62);
         }
         if (b.w >= 17) {
-          ctx.font = "600 9px system-ui, sans-serif";
+          ctx.font = "600 11px system-ui, sans-serif";
           ctx.textAlign = "center";
           ctx.textBaseline = "alphabetic";
           ctx.fillStyle = pk.has(b.midi) || isChordB ? "#ffffff" : "#d4d4d8";
-          ctx.fillText(noteLabel(b.midi), kx + b.w / 2, H - 16);
+          if (ctx.measureText(noteLabel(b.midi)).width + 4 <= b.w) ctx.fillText(noteLabel(b.midi), kx + b.w / 2, H - KB_H * 0.38 - 8);
         }
       }
 
@@ -330,9 +337,7 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
       ctx.moveTo(LEFT_MARGIN, areaHeight);
       ctx.lineTo(W - RIGHT_MARGIN, areaHeight);
       ctx.stroke();
-      ctx.fillStyle = "#18181b";
-      ctx.font = "12px monospace";
-      ctx.fillText(`${now.toFixed(1)}s`, LEFT_MARGIN + 4, areaHeight - 6);
+
 
       // --- Loop region (dashed lines + tinted band) ---
       if (currentLoop) {
@@ -393,57 +398,64 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
         ctx.textAlign = "center";
       }
 
-      // --- Draw bars with hand differentiation ---
+      // Hand styling stays inside each pitch lane so dense chords do not overlap.
+      const currentLabels = new Set<string>();
       for (const b of bars) {
-        const bx = b.x + LEFT_MARGIN;
+        const bx = Math.max(LEFT_MARGIN, b.x + LEFT_MARGIN);
+        const width = Math.max(0, Math.min(b.width, W - RIGHT_MARGIN - bx));
+        if (!width) continue;
         const isLeft = b.hand === "L";
+        ctx.globalAlpha = isLeft ? 0.45 : 1;
+        ctx.fillStyle = b.color;
+        ctx.beginPath();
+        if (typeof ctx.roundRect === "function") ctx.roundRect(bx, b.y, width, b.height, 4);
+        else ctx.rect(bx, b.y, width, b.height);
+        ctx.fill();
+        ctx.globalAlpha = 1;
         if (isLeft) {
-          // Left-hand: wide, visible bars with note labels
-          ctx.globalAlpha = 0.5;
-          ctx.fillStyle = b.color;
-          ctx.beginPath();
-          if (typeof ctx.roundRect === "function") {
-            ctx.roundRect(bx - 6, b.y, b.width + 12, b.height, 4);
-          } else {
-            ctx.rect(bx - 6, b.y, b.width + 12, b.height);
-          }
-          ctx.fill();
-          ctx.globalAlpha = 1;
-          if (b.height >= 14) {
-            ctx.font = "600 10px system-ui, sans-serif";
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillStyle = b.color;
-            ctx.fillText(b.label, bx + b.width / 2, Math.min(b.y + b.height / 2, areaHeight - 4));
-          }
-        } else {
-          // Right-hand: vivid, compact, with note labels
-          ctx.fillStyle = b.color;
-          ctx.beginPath();
-          if (typeof ctx.roundRect === "function") {
-            ctx.roundRect(bx, b.y, b.width, b.height, 4);
-          } else {
-            ctx.rect(bx, b.y, b.width, b.height);
-          }
-          ctx.fill();
-          if (b.height >= 11) {
-            const fs = Math.min(13, Math.max(9, b.height - 6));
-            ctx.font = `600 ${fs}px system-ui, sans-serif`;
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.strokeStyle = "rgba(0,0,0,0.45)";
-            ctx.lineWidth = 3;
-            ctx.strokeText(b.label, bx + b.width / 2, Math.min(b.y + b.height / 2, H - 14));
-            ctx.fillStyle = "#ffffff";
-            ctx.fillText(b.label, bx + b.width / 2, Math.min(b.y + b.height / 2, H - 14));
-          }
+          ctx.fillStyle = "#312e81";
+          ctx.fillRect(bx, b.y, Math.min(2, width), b.height);
         }
+        ctx.font = "600 12px system-ui, sans-serif";
+        if (b.height >= 16 && ctx.measureText(b.label).width + 6 <= width) {
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          // A solid light label backing gives consistent contrast for every pitch colour.
+          const labelWidth = ctx.measureText(b.label).width;
+          const labelY = Math.max(8, Math.min(b.y + b.height / 2, areaHeight - 8));
+          ctx.fillStyle = "#fafafa";
+          ctx.fillRect(bx + (width - labelWidth) / 2 - 2, labelY - 7, labelWidth + 4, 14);
+          ctx.fillStyle = "#18181b";
+          ctx.fillText(b.label, bx + width / 2, labelY);
+        } else if (b.y + b.height >= areaHeight - 24 && b.y <= areaHeight) {
+          currentLabels.add(`${isLeft ? "L" : "R"} ${b.label}`);
+        }
+      }
+      if (currentLabels.size) {
+        let cue = [...currentLabels].join(" · ");
+        ctx.font = "600 12px system-ui, sans-serif";
+        ctx.textAlign = "left";
+        ctx.textBaseline = "top";
+        ctx.fillStyle = "#fafafa";
+        ctx.fillRect(LEFT_MARGIN, 24, KEYBOARD_W, 18);
+        ctx.fillStyle = "#18181b";
+        while (cue.length > 1 && ctx.measureText(cue).width > KEYBOARD_W - 8) cue = cue.slice(0, -2).trimEnd() + "…";
+        ctx.fillText(cue, LEFT_MARGIN + 4, 26);
       }
       if (playingRef.current) rafRef.current = requestAnimationFrame(draw);
     };
     drawRef.current = draw;
     draw();
+    const resize = () => {
+      cancelAnimationFrame(rafRef.current);
+      draw();
+    };
+    const observer = new ResizeObserver(resize);
+    observer.observe(canvas);
+    window.addEventListener("resize", resize);
     return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", resize);
       cancelAnimationFrame(rafRef.current);
       rafRef.current = 0;
       if (drawRef.current === draw) drawRef.current = null;
@@ -460,11 +472,9 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
   }, [playing]);
 
   return (
-    <div className="relative">
-      <canvas ref={canvasRef} aria-label="Falling notes player" className="w-full h-auto" style={{ aspectRatio: "960/540", width: "100%" }} />
-      <div className="player-stage-hint absolute bottom-2 left-3 text-[11px] text-zinc-500 pointer-events-none">
-        Keys: A–K / ; play · Z / X shift octave · practice graded
-      </div>
+    <div className="falling-canvas relative">
+      <canvas ref={canvasRef} aria-label="Falling notes player" className="block h-full w-full" />
+      <div className="absolute top-1 right-3 bg-white/90 px-1 text-[11px] text-zinc-700 pointer-events-none">LH: pale · RH: solid</div>
     </div>
   );
 }
