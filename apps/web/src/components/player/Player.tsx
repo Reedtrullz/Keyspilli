@@ -111,6 +111,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     return s;
   });
   const [time, setTime] = useState(0);
+  const [engineReady, setEngineReady] = useState(false);
   const [playing, setPlaying] = useState(false);
   const timeRef = useRef(time);
   const playingRef = useRef(playing);
@@ -391,6 +392,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     };
     engine.audio.sustainPedal = settings.sustainPedal;
     engineRef.current = engine;
+    setEngineReady(true);
     if (previous) {
       engine.seek(previous.time);
       if (previous.playing) engine.start();
@@ -1349,7 +1351,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
             style={{
               background: `linear-gradient(to right, #18181b 0%, #18181b ${(time / Math.max(1, duration)) * 100}%, #e4e4e7 ${(time / Math.max(1, duration)) * 100}%, #e4e4e7 100%)`,
             }}
-            disabled={grading}
+            disabled={!engineReady || grading}
             aria-label="Seek"
           />
         </div>

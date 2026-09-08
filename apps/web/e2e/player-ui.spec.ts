@@ -175,6 +175,8 @@ test("switching Organ styles preserves active transport", async ({ page }) => {
 });
 
 test("practice setup preserves the selected position", async ({ page }) => {
+  const client = await page.context().newCDPSession(page);
+  await client.send("Emulation.setCPUThrottlingRate", { rate: 6 });
   await page.goto(`/player/${SONG}`);
   const seek = page.getByLabel("Seek");
   await seek.fill("20");

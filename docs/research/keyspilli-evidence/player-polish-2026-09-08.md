@@ -49,3 +49,9 @@ The accepted live review is the primary before-state; [local integration baselin
 Reproduced the reported jump in both paused and playing states: at 20 seconds, choosing 50% changed bar 4 to bar 2. Notes and loop seconds were rescaled, but transport seconds stayed fixed. The shared Player settings synchronization now preserves `oldTime * oldSpeed / newSpeed`, installing the new duration and loop before seeking and restoring the prior playback state.
 
 Added two browser regressions cycling 50%, 75%, and 100%. Both failed before the fix. Afterward all 22 player UI browser checks passed against the rebuilt production app; all 175 web tests and web typecheck/build passed. Local preview rebuilt and restarted; existing browser tabs need a reload to load the fix. No deployment.
+
+## Release check: seek before initialization
+
+PR CI run 34273033380 passed build/unit checks but found two practice-position failures. CPU throttling reproduced the underlying issue locally: the server-rendered seek slider accepted a value before the playback engine initialized, losing the seek before practice opened. Keep the slider disabled until the engine is ready; the practice-position regression now runs with 6x CPU throttling and failed before this fix.
+
+The rebuilt production app passed 56 of 57 browser checks; the remaining upload test lacked its local seed MIDI fixture. After copying the existing ignored fixture, that upload check passed separately. Production build/type validation passed. No deployment at this checkpoint.
