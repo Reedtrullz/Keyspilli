@@ -38,7 +38,7 @@ docker run --rm --network none --read-only --tmpfs /tmp:rw,size=128m --memory 2g
 
 Use a fresh output name; the extractor rejects existing JSON/MIDI outputs. Capture the image digest, `pip freeze`, `dpkg-query -W`, full smoke output and a real extraction receipt before claiming container success. Linux native import failures or unavailable pinned wheels keep this gate closed; resolve them explicitly rather than silently removing dependencies.
 
-`.github/workflows/tutorial-runtime-candidate.yml` is a manual `workflow_dispatch` smoke job on Ubuntu 24.04, matching the existing pinned checkout action. It enforces 30 GiB free, builds this image, runs the CLI, dependency check, real geometry initialization and synthetic tests without runtime network access, then records image/package evidence in logs. It has read-only repository permissions and no push/deploy step. It was not dispatched during this work; it becomes usable after the workflow is available to GitHub. A passing job establishes packaging only.
+`.github/workflows/tutorial-runtime-candidate.yml` is a manual `workflow_dispatch` smoke job on Ubuntu 24.04, matching the existing pinned checkout action. It enforces 30 GiB free, builds this image, runs the CLI, dependency check, real geometry initialization and synthetic tests without runtime network access, then records image/package evidence in logs. It has read-only repository permissions and no push/deploy step. It now also runs on narrowly scoped pull requests and builds/checks the default worker on native amd64. A passing job establishes packaging and startup only; see the native result below.
 
 ## Remaining delivery gates
 
@@ -77,3 +77,12 @@ The combined image `sha256:bae7939e37a4f9c1bc87212379df6920818574a846495138346f3
 Evidence: `tutorial-linux-http-2026-09-08.json`; full local logs and MIDI files: `output/tutorial-recovery/linux-pipeline-v3`. The first two HTTP evaluations failed because the2GiB development web container was OOM-killed; both workers completed their jobs. The first job's four downloads were verified after web recovery. Those failure receipts remain immutable in the final evidence. The successful run uses3GiB for the web and2GiB for the worker, plus the explicitly documented QEMU workaround.
 
 This closes one clean Linux development-preview import check. It does not establish native-amd64 production throughput, all-song coverage, a new heldout score, source rights, musical acceptance or production readiness. No image push, merge or deployment occurred.
+
+
+## Native amd64 CI result — 8 September 2026
+
+GitHub Actions run34219448139 passes on a5b11f0: both images build on Ubuntu24.04 x86_64, all34 Python checks pass, pip consistency and real geometry initialization pass, and the default worker reaches its polling loop and survives another interval with no poll errors. The worker runs without GOGC or any emulation workaround, with2 CPUs/1GiB, non-root, read-only root, no network and disposable data. Startup capacity is verified; no real source media or full native import is exercised by this job.
+
+The combined build now rejects a stale local CLI base when either Python source or the requirements lock differs from the worker checkout. The CI trigger covers these Dockerfiles/ignore files, worker sources, relevant package sources/manifests, locks and compiler configuration. Evidence and native image IDs: `tutorial-native-runtime-2026-09-08.json`.
+
+The HTTP evaluator now measures free space on its actual output filesystem instead of a macOS-only mount path, retaining the30GiB limit. Five evaluator tests pass. Frozen benchmark receipts remain unchanged. Production gates and existing catalogue are unchanged.

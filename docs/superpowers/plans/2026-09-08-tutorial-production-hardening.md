@@ -105,3 +105,10 @@ Owner explicitly authorized local Docker smoke execution, superseding the earlie
 Added isolated combined web/worker smoke Dockerfile. Default amd64-QEMU esbuild crashes in Go GC; smoke-only GOGC=off permits startup. Two2GiB development web OOMs remain recorded failures. Their workers finish without data loss; first-job recovery verifies all four downloads. Final empty-data run with3GiB web/2GiB worker completes automatic original-link discovery, fresh download,1140-note extraction and four HTTP exports B177/E548/M1119/A1119, with zero restarts/OOM. Export hashes match the recovered run;175 image source files match checkout. Evidence: tutorial-linux-runtime-2026-09-08.json and tutorial-linux-http-2026-09-08.json.
 
 One clean Linux development-preview import is proven. Native production capacity, source-rights/redistribution obligations, musical/playability acceptance and deployment gates remain open. Prior frozen4/10 and fresh9/10 receipts remain unchanged; this development smoke is not a new benchmark. Existing app3103 and review8874 still return200.
+
+
+## Native runtime verification — 8 September 2026
+
+Added a filtered PR native-Linux smoke and a three-file consistency guard against stale CLI base images. Native Ubuntu24.04 amd64 run34219448139 on a5b11f0 passes:34 Python tests, dependency checks, geometry initialization, worker build and default polling startup with one further interval. No GOGC workaround, runtime network, root privileges, image push or deployment. Worker startup uses2 CPUs/1GiB; this does not measure full native import throughput. The previous complete four-export HTTP proof remains the separate emulated-Linux run.
+
+Fixed evaluator disk preflight to inspect its output filesystem rather than /System/Volumes/Data;30GiB guard unchanged. Five evaluator tests pass. Independent workflow review and seven mocked lifecycle/error paths pass, including late crash and log-read failures. Native evidence: tutorial-native-runtime-2026-09-08.json. Musical acceptance, source rights and production release decisions remain open; historical benchmark receipts unchanged.

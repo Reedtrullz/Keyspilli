@@ -123,7 +123,7 @@ export async function main() {
   let safeToContinue=false;
   try {
    await checkCandidate();
-   const disk=await statfs('/System/Volumes/Data'); if(disk.bavail*disk.bsize<30*1024**3) throw Error('DISK_GUARD: below 30GiB');
+   const disk=await statfs(out); if(disk.bavail*disk.bsize<30*1024**3) throw Error('DISK_GUARD: below 30GiB');
    row.attempted=true;
    if(split==='heldout') receipt.heldoutExecuted=true;
    await save();
