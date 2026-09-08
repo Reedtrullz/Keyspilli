@@ -155,6 +155,7 @@ const ChordItem = memo(function ChordItem({
 
 export const ChordStrip = memo(function ChordStrip({ chords, currentBeat }: ChordStripProps) {
   const stripRef = useRef<HTMLDivElement>(null);
+  const sequenceRef = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState(false);
   const [showShapes, setShowShapes] = useState(false);
   const previousActiveIdxRef = useRef<number | null>(null);
@@ -284,11 +285,16 @@ export const ChordStrip = memo(function ChordStrip({ chords, currentBeat }: Chor
     });
   }, [activeIdx, nextIdx, expanded, chords.length]);
 
+  useEffect(() => {
+    if (sequenceRef.current) sequenceRef.current.scrollLeft = 0;
+  }, [activeIdx, nextIdx]);
+
   if (chords.length === 0) return null;
 
   return (
     <>
       {showShapes && <MiniKeyboardDefs />}
+      <div ref={sequenceRef} className="chord-sequence" role="region" aria-label="Chord sequence" tabIndex={0}>
       <div className="chord-strip-summary" role="status" aria-live="polite" aria-atomic="true" aria-label="Current and next chord">
         <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500">Now</span>
         <span className="text-sm font-semibold text-blue-700 truncate" title={currentChord ? chordProvenance(currentChord).label : "No chord"}>
@@ -302,15 +308,20 @@ export const ChordStrip = memo(function ChordStrip({ chords, currentBeat }: Chor
           {nextChord && <small className="block text-[10px] font-normal">{chordProvenance(nextChord).label}</small>}
         </span>
       </div>
-      {chords.slice(nextIdx + 1, nextIdx + 3).length > 0 && (
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1 text-xs text-zinc-600" aria-label="Upcoming chords">
-          <span>Then</span>
-          {chords.slice(nextIdx + 1, nextIdx + 3).map((chord, index) => {
+      {chords.slice(nextIdx + 1, nextIdx + 8).length > 0 && (
+        <div className="chord-sequence-future" aria-label="Upcoming chords">
+          {chords.slice(nextIdx + 1, nextIdx + 8).map((chord, index) => {
             const provenance = chordProvenance(chord);
-            return <span key={index} title={provenance.label} className={provenance.textClass}>{chord.name}{provenance.dotted ? ` (${provenance.kind})` : ""}</span>;
+            return <React.Fragment key={index}>
+              <span className="text-zinc-300" aria-hidden="true">→</span>
+              <span className="chord-sequence-item text-sm font-medium text-zinc-700" title={provenance.label}>
+                {chord.name}<small className="block text-[10px] font-normal">{provenance.label}</small>
+              </span>
+            </React.Fragment>;
           })}
         </div>
       )}
+      </div>
       <details className="chord-progression-details" onToggle={(event) => setExpanded(event.currentTarget.open)}>
         <summary className="cursor-pointer px-3 py-2 text-xs text-zinc-600">Full chord progression</summary>
         <label className="flex items-center gap-2 px-3 py-2 text-xs text-zinc-700">

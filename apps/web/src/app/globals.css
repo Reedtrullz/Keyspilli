@@ -475,6 +475,11 @@ body {
   scrollbar-color: #d4d4d8 transparent;
 }
 
+.chord-sequence { display: flex; align-items: stretch; min-width: 0; overflow-x: auto; white-space: nowrap; border-bottom: 1px solid #f4f4f5; scrollbar-width: thin; }
+.chord-sequence:focus-visible { outline: 2px solid #4f46e5; outline-offset: -2px; }
+.chord-sequence > * { flex-shrink: 0; }
+.chord-sequence-future { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0.75rem 0.5rem 0; }
+.chord-sequence-item { flex-shrink: 0; }
 .chord-strip-summary {
   display: flex;
   align-items: center;
@@ -985,7 +990,7 @@ body:has(.player-focus) :where(.site-header, .site-footer) { display: none; }
   .player-timeline { padding-inline: 0.75rem; }
 }
 @media (max-height: 500px) and (min-width: 641px) {
-  .player-focus :where(.chord-strip-summary, [aria-label="Upcoming chords"], .chord-progression-details, [aria-label="Song sections"]) { display: none; }
+  .player-focus :where(.chord-sequence, .chord-progression-details, [aria-label="Song sections"]) { display: none; }
   .player-focus .player-options { margin-bottom: 0.25rem; }
 }
 
@@ -999,7 +1004,6 @@ body:has(.player-focus) :where(.site-header, .site-footer) { display: none; }
   .player-timeline output { font-size: 0.625rem; gap: 0.2rem; }
   .player-timeline output span:last-child { display: none; }
   .player-loop-controls summary { padding-inline: 0.5rem; }
-  .player-stage [aria-label="Upcoming chords"] { display: none; }
   .falling-canvas { height: max(210px, calc(100dvh - 650px)); }
 }
 

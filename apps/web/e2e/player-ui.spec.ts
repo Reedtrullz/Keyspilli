@@ -430,3 +430,23 @@ test("chord guide explains its markers and preserves the existing preference", a
   await guide.click();
   await expect(page.locator(".falling-canvas")).toContainText("Chord guide");
 });
+
+test("chords form one horizontal sequence on phones", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.goto(`/player/${SONG}`);
+  const row = page.getByRole("region", { name: "Chord sequence" });
+  await expect(row).toBeVisible();
+  const current = page.getByRole("status", { name: "Current and next chord" });
+  const future = page.getByLabel("Upcoming chords");
+  const first = await current.boundingBox();
+  const next = await future.boundingBox();
+  expect(Math.abs(first!.y - next!.y)).toBeLessThan(2);
+  expect(next!.x).toBeGreaterThanOrEqual(first!.x + first!.width - 1);
+  expect(await row.evaluate((node) => node.scrollWidth > node.clientWidth)).toBe(true);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await row.focus();
+  await page.keyboard.press("End");
+  const bar = page.getByRole("spinbutton", { name: "Bar", exact: true });
+  await bar.fill("4"); await bar.press("Enter");
+  await expect.poll(() => row.evaluate((node) => node.scrollLeft)).toBe(0);
+});
