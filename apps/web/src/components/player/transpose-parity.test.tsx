@@ -29,19 +29,14 @@ describe("transpose visual/audio parity", () => {
   const settings = { ...DEFAULT_SETTINGS, transpose: TRANSPOSE };
   const timed = resolveTimedNotes(data, settings.speed, TRANSPOSE);
 
-  it("BeginnerView maps every transposed audio pitch to its staff position", () => {
-    // The beginner view draws both hands inside the current measure.
-    const midis = timed.map((n) => n.midi).sort((a, b) => b - a);
+  it("note letters keeps every transposed audio pitch in a readable hand lane", () => {
     const html = renderToStaticMarkup(createElement(BeginnerView, { data, time: 0, settings, chords: [] }));
-    const ys = renderedYPositions(html).sort((a, b) => a - b);
+    const pitches = [...html.matchAll(/data-midi="(\d+)"/g)].map((m) => Number(m[1])).sort((a, b) => a - b);
+    expect(pitches).toEqual(timed.map((n) => n.midi).sort((a, b) => a - b));
+    expect(html).toContain("Right hand");
+    expect(html).toContain("Left hand");
+    expect(html).toContain('scope="col"');
     expect(html).toContain("D4");
-
-    const lo = Math.min(...midis, 55);
-    const hi = Math.max(...midis, 72);
-    const spread = Math.max(12, hi - lo);
-    const expected = midis.map((midi) => 40 + ((hi - midi) / spread) * 190);
-    expect(ys).toHaveLength(expected.length);
-    expected.forEach((y, i) => expect(ys[i]).toBeCloseTo(y, 5));
   });
 
   it("LeadSheetView maps right-hand audio pitches to melody positions", () => {

@@ -351,3 +351,36 @@ for (const playing of [false, true]) {
     }
   });
 }
+
+for (const width of [390, 1280]) {
+  test(`note letters stays readable and follows inside the panel at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('/player/f-f-chopin-nocturne-a/beginner');
+    const panel = page.getByRole('region', { name: 'Notes in this bar, scroll horizontally' });
+    await expect(panel).toBeVisible();
+    const badges = panel.locator('[data-midi]');
+    expect(await badges.count()).toBeGreaterThan(10);
+    const layout = await badges.evaluateAll((nodes) => nodes.map((node) => {
+      const box = node.getBoundingClientRect();
+      return { x: box.x, y: box.y, right: box.right, bottom: box.bottom, font: parseFloat(getComputedStyle(node).fontSize) };
+    }));
+    for (let i = 0; i < layout.length; i++) {
+      expect(layout[i]!.font).toBeGreaterThanOrEqual(14);
+      for (let j = i + 1; j < layout.length; j++) {
+        const a = layout[i]!, b = layout[j]!;
+        expect(a.right <= b.x || b.right <= a.x || a.bottom <= b.y || b.bottom <= a.y).toBe(true);
+      }
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.getByLabel('Seek').fill('4');
+    if (width === 390) await expect.poll(() => panel.evaluate((node) => node.scrollLeft)).toBeGreaterThan(0);
+    const active = panel.locator('th[aria-current]');
+    await expect(active).toHaveCount(1);
+    const panelBox = await panel.boundingBox();
+    const activeBox = await active.boundingBox();
+    expect(activeBox!.x).toBeGreaterThanOrEqual(panelBox!.x + 70);
+    expect(activeBox!.x + activeBox!.width).toBeLessThanOrEqual(panelBox!.x + panelBox!.width + 1);
+    await page.getByLabel('Seek').fill('0');
+    await expect.poll(() => panel.evaluate((node) => node.scrollLeft)).toBe(0);
+  });
+}

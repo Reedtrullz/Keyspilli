@@ -1003,3 +1003,20 @@ body:has(.player-focus) :where(.site-header, .site-footer) { display: none; }
 .player-focus :where(.player-stage, .player-mode-stack, .player-mode-layer-enter) { display: flex; flex-direction: column; flex: 1; min-height: 150px; }
 .player-focus .falling-canvas { flex: 1; height: auto; min-height: 150px; }
 .player-focus .player-options { flex-shrink: 0; }
+
+/* Keep pitch labels readable; dense bars scroll inside their own panel. */
+.note-letters-view { min-width: 0; }
+.note-letters-scroll { overflow-x: auto; border: 1px solid #e4e4e7; border-radius: 0.75rem; }
+.note-letters-scroll:focus-visible { outline: 2px solid #4f46e5; outline-offset: 3px; }
+.note-letters-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.875rem; }
+.note-letters-table th, .note-letters-table td { padding: 0.625rem; border-bottom: 1px solid #e4e4e7; border-right: 1px solid #f4f4f5; text-align: center; vertical-align: top; }
+.note-letters-table thead th { font-size: 0.75rem; font-weight: 500; color: #52525b; background: #fafafa; }
+.note-letters-table th:first-child { position: sticky; left: 0; min-width: 4.5rem; background: #fafafa; z-index: 1; }
+.note-letters-table td { min-width: 5.25rem; }
+.note-letters-table tr:last-child > * { border-bottom: 0; }
+.note-letters-table [data-current], .note-letters-table [aria-current] { background: #eef2ff; }
+.note-letter-stack { display: flex; flex-direction: column; gap: 0.375rem; min-height: 2.25rem; }
+.note-letter-badge { display: block; padding: 0.375rem 0.625rem; border: 1px solid #d4d4d8; border-left-width: 4px; border-radius: 0.5rem; background: #fff; color: #18181b; font-weight: 650; white-space: nowrap; }
+.note-letter-badge[data-sounding] { box-shadow: 0 0 0 2px #6366f1; }
+.note-letter-badge small, .note-letter-chord small { display: block; font-size: 0.6875rem; font-weight: 400; white-space: normal; }
+.note-letter-chord { display: block; min-width: 5rem; padding: 0.25rem; border-width: 1px; border-radius: 0.375rem; }
