@@ -92,3 +92,22 @@ it('matches explicit collaboration credits in either order without dropping an a
  ])expect(matchesTutorialIdentity(candidate,target)).toBe(false);
  expect(matchesTutorialIdentity('Wind Earth Fire - September piano',{artist:'Earth Wind & Fire',title:'September'})).toBe(false);
 });
+
+it('recognizes reversed joint credits only with a matching credited channel',()=>{
+ const title='Numb / Encore [Live] (Official Music Video) [4K Upgrade] - Linkin Park / JAY-Z';
+ expect(tutorialIdentity({title,channel:'Linkin Park'})).toMatchObject({artist:'Linkin Park / JAY-Z',title:'Numb / Encore'});
+ expect(tutorialIdentity({title,channel:'Unrelated channel'}).artist).not.toBe('Linkin Park / JAY-Z');
+});
+
+it('removes trailing upload quality labels from collaboration song titles',()=>{
+ expect(tutorialIdentity({title:'Lita Ford & Ozzy Osbourne - Close My Eyes Forever (Official Video) Full HD (Remastered & Upscaled)'}))
+  .toMatchObject({artist:'Lita Ford & Ozzy Osbourne',title:'Close My Eyes Forever'});
+});
+
+it('matches slash-separated collaboration credits in reordered tutorial titles',()=>{
+ const target={artist:'Linkin Park / JAY-Z',title:'Numb / Encore'};
+ for(const title of ['Jay Z Linkin Park - Numb Encore (Piano Tutorial)','Keyboard / Piano Tutorial | Linkin Park feat. Jay-Z - Numb Encore'])
+  expect(matchesTutorialIdentity(title,target)).toBe(true);
+ for(const title of ['Linkin Park - Numb Encore Piano Tutorial','Linkin Park feat. NotJay-Z - Numb Encore Piano Tutorial','Jay-Z Linkin Park - Numb Piano Tutorial'])
+  expect(matchesTutorialIdentity(title,target)).toBe(false);
+});

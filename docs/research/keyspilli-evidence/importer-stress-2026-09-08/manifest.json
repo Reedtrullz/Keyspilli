@@ -1,0 +1,162 @@
+{
+  "version": 3,
+  "boundary": "Development stress run. 4 explicit regressions plus12 new identities. First metadata search result chosen for every new case before tutorial discovery. Preserve all first-run outcomes; do not replace inputs. Excludes prior heldout identities. Repairs get separate receipts, not revised first-run scores.",
+  "sources": [
+    {
+      "id": "01",
+      "split": "development",
+      "url": "https://www.youtube.com/watch?v=Sl4Xwqfy5Uw",
+      "expectedArtist": "OZZY OSBOURNE with Post Malone",
+      "expectedTitle": "Take What You Want",
+      "cohort": "regression",
+      "format": "collaboration/live/quotes"
+    },
+    {
+      "id": "02",
+      "split": "development",
+      "url": "https://www.youtube.com/watch?v=v2AC41dglnM",
+      "expectedArtist": "AC/DC",
+      "expectedTitle": "Thunderstruck",
+      "cohort": "regression",
+      "format": "slash artist"
+    },
+    {
+      "id": "03",
+      "split": "development",
+      "url": "https://www.youtube.com/watch?v=vabnZ9-ex7o",
+      "expectedArtist": "Nirvana",
+      "expectedTitle": "Come As You Are",
+      "cohort": "regression",
+      "format": "known reference"
+    },
+    {
+      "id": "04",
+      "split": "development",
+      "url": "https://www.youtube.com/watch?v=tAGnKpE4NCI",
+      "expectedArtist": "Metallica",
+      "expectedTitle": "Nothing Else Matters",
+      "cohort": "regression",
+      "format": "colon title"
+    },
+    {
+      "id": "05",
+      "split": "development",
+      "url": "https://www.youtube.com/watch?v=5anLPw0Efmo",
+      "expectedArtist": "Evanescence",
+      "expectedTitle": "My Immortal",
+      "cohort": "new",
+      "observedTitle": "Evanescence - My Immortal (Official HD Music Video)",
+      "observedChannel": "Evanescence"
+    },
+    {
+      "id": "06",
+      "split": "development",
+      "url": "https://www.youtube.com/watch?v=8sgycukafqQ",
+      "expectedArtist": "Linkin Park",
+      "expectedTitle": "What I\u2019ve Done",
+      "cohort": "new",
+      "observedTitle": "What I've Done (Official Music Video) [4K Upgrade] - Linkin Park",
+      "observedChannel": "Linkin Park"
+    },
+    {
+      "id": "07",
+      "split": "development",
+      "url": "https://www.youtube.com/watch?v=W3q8Od5qJio",
+      "expectedArtist": "Rammstein",
+      "expectedTitle": "Du hast",
+      "cohort": "new",
+      "observedTitle": "Rammstein - Du Hast (Official 4K Video)",
+      "observedChannel": "Rammstein Official"
+    },
+    {
+      "id": "08",
+      "split": "development",
+      "url": "https://www.youtube.com/watch?v=wEERFBI9eCg",
+      "expectedArtist": "Nightwish",
+      "expectedTitle": "Wish I Had an Angel",
+      "cohort": "new",
+      "observedTitle": "Nightwish - Wish I Had An Angel (OFFICIAL VIDEO)",
+      "observedChannel": "Nightwish"
+    },
+    {
+      "id": "09",
+      "split": "development",
+      "url": "https://www.youtube.com/watch?v=DelhLppPSxY",
+      "expectedArtist": "Avenged Sevenfold",
+      "expectedTitle": "Hail to the King",
+      "cohort": "new",
+      "observedTitle": "Avenged Sevenfold - Hail To The King [Official Music Video]",
+      "observedChannel": "Avenged Sevenfold"
+    },
+    {
+      "id": "10",
+      "split": "development",
+      "url": "https://www.youtube.com/watch?v=u9Dg-g7t2l4",
+      "expectedArtist": "Disturbed",
+      "expectedTitle": "The Sound of Silence",
+      "cohort": "new",
+      "observedTitle": "Disturbed  - The Sound Of Silence (Official Music Video) [4K UPGRADE]",
+      "observedChannel": "Disturbed"
+    },
+    {
+      "id": "11",
+      "split": "development",
+      "url": "https://www.youtube.com/watch?v=NeSpx7vZifc",
+      "expectedArtist": "Aerosmith",
+      "expectedTitle": "Dream On",
+      "cohort": "new",
+      "observedTitle": "Aerosmith - Dream On (Live From Mexico City, 2016)",
+      "observedChannel": "Aerosmith"
+    },
+    {
+      "id": "12",
+      "split": "development",
+      "url": "https://www.youtube.com/watch?v=X791IzOwt3Q",
+      "expectedArtist": "Led Zeppelin",
+      "expectedTitle": "Stairway to Heaven",
+      "cohort": "new",
+      "observedTitle": "Stairway to Heaven (Remaster)",
+      "observedChannel": "Led Zeppelin"
+    },
+    {
+      "id": "13",
+      "split": "development",
+      "url": "https://www.youtube.com/watch?v=eBG7P-K-r1Y",
+      "expectedArtist": "Foo Fighters",
+      "expectedTitle": "Everlong",
+      "cohort": "new",
+      "observedTitle": "Foo Fighters - Everlong (Official HD Video)",
+      "observedChannel": "Foo Fighters"
+    },
+    {
+      "id": "14",
+      "split": "development",
+      "url": "https://www.youtube.com/watch?v=Jgehvn5Yim0",
+      "expectedArtist": "Guns N Roses",
+      "expectedTitle": "Knocking On Heavens Door",
+      "cohort": "new",
+      "observedTitle": "Knocking On Heavens Door - Guns N Roses Live In Tokyo 1992 HD",
+      "observedChannel": "WALDITO SURYA"
+    },
+    {
+      "id": "15",
+      "split": "development",
+      "url": "https://www.youtube.com/watch?v=-51KCTiE2ZY",
+      "expectedArtist": "Lita Ford & Ozzy Osbourne",
+      "expectedTitle": "Close My Eyes Forever",
+      "cohort": "new",
+      "observedTitle": "Lita Ford & Ozzy Osbourne - Close My Eyes Forever (Official Video) Full HD (Remastered & Upscaled)",
+      "observedChannel": "Enhanced Music Videos"
+    },
+    {
+      "id": "16",
+      "split": "development",
+      "url": "https://www.youtube.com/watch?v=DLlF2FMv968",
+      "expectedArtist": "Linkin Park / JAY-Z",
+      "expectedTitle": "Numb / Encore",
+      "cohort": "new",
+      "observedTitle": "Numb / Encore [Live] (Official Music Video) [4K Upgrade] - Linkin Park / JAY-Z",
+      "observedChannel": "Linkin Park"
+    }
+  ]
+}

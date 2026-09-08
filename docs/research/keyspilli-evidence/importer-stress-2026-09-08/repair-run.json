@@ -1,0 +1,61 @@
+{
+  "startedAt": "2026-09-08T15:39:10.178Z",
+  "origin": "http://127.0.0.1:3317",
+  "manifestSha256": "7617858797769711d87049e8c8e830dc92cf03aeec22a2bc0767545e6efd4240",
+  "split": "development",
+  "cohortSize": 16,
+  "selectedCount": 2,
+  "selectedIds": [
+    "15",
+    "16"
+  ],
+  "rows": [
+    {
+      "id": "15",
+      "url": "https://www.youtube.com/watch?v=-51KCTiE2ZY",
+      "status": "failed",
+      "attempted": true,
+      "startedAt": "2026-09-08T15:39:10.180Z",
+      "exports": [],
+      "jobId": "job-8c8f4f93-e3c4-499f-b5cc-0be5f5921365",
+      "jobStatus": "error",
+      "jobError": "Matching piano tutorials were found, but their notes could not be extracted reliably. No arrangement was published.",
+      "error": "Error: terminal job status: error",
+      "failureCode": "JOB_FAILED",
+      "finishedAt": "2026-09-08T15:39:36.775Z"
+    },
+    {
+      "id": "16",
+      "url": "https://www.youtube.com/watch?v=DLlF2FMv968",
+      "status": "failed",
+      "attempted": true,
+      "startedAt": "2026-09-08T15:39:36.775Z",
+      "exports": [],
+      "jobId": "job-fa133620-f012-4560-bc6b-cb9bf1deed31",
+      "jobStatus": "error",
+      "jobError": "No matching piano tutorial was found for this song. No arrangement was published.",
+      "error": "Error: terminal job status: error",
+      "failureCode": "JOB_FAILED",
+      "finishedAt": "2026-09-08T15:39:42.848Z"
+    }
+  ],
+  "musicalAcceptance": "pending-listening",
+  "heldoutExecuted": false,
+  "candidateFreezeSha256": "1de34a6458498445aea4bf2d75cc36cf0a0ab2cf26ba504d2aa12c6fe52bf216",
+  "candidateBeforeVerified": true,
+  "verificationScope": "Local source hashes only; operator must start preview and worker from this checkout. Does not attest deployed runtime.",
+  "candidateAfterVerified": true,
+  "unattemptedIds": [],
+  "summary": {
+    "completed": 0,
+    "denominator": 2,
+    "attempted": 2,
+    "unattempted": 0,
+    "failed": 2,
+    "invalidPublications": 0,
+    "releaseGate": false,
+    "musicalAcceptance": "pending-listening",
+    "usable": false
+  },
+  "finishedAt": "2026-09-08T15:39:42.867Z"
+}

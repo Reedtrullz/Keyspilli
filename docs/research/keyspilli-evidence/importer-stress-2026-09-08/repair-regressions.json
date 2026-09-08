@@ -1,0 +1,223 @@
+{
+  "startedAt": "2026-09-08T15:46:06.971Z",
+  "origin": "http://127.0.0.1:3317",
+  "manifestSha256": "7617858797769711d87049e8c8e830dc92cf03aeec22a2bc0767545e6efd4240",
+  "split": "development",
+  "cohortSize": 16,
+  "selectedCount": 4,
+  "selectedIds": [
+    "01",
+    "02",
+    "03",
+    "04"
+  ],
+  "rows": [
+    {
+      "id": "01",
+      "url": "https://www.youtube.com/watch?v=Sl4Xwqfy5Uw",
+      "status": "structural-candidate",
+      "attempted": true,
+      "startedAt": "2026-09-08T15:46:06.973Z",
+      "exports": [
+        {
+          "songId": "preview-job-957d5ec1-ece1-44ff-821e-8c6dfe07de08-b",
+          "bytes": 2487,
+          "sha256": "09ef68260ffbb2b6bdc499db04256cddf0e2e71578792ffd0e582ef3c0a4b2b1",
+          "notes": 261,
+          "noteEventsSha256": "a04a272ee454246ca6ad3860aa4022409bf0d51213fefb24dab8678a49394932"
+        },
+        {
+          "songId": "preview-job-957d5ec1-ece1-44ff-821e-8c6dfe07de08-e",
+          "bytes": 3914,
+          "sha256": "5a39de7c357af5d864d1ea9f8e3e087de5e07a8f7158c11d2e2e56f1a3462001",
+          "notes": 402,
+          "noteEventsSha256": "a34ba8fc0bc6c8779a46393f832144232b5a8d63b6eb0734c593f157f0b80011"
+        },
+        {
+          "songId": "preview-job-957d5ec1-ece1-44ff-821e-8c6dfe07de08-m",
+          "bytes": 6795,
+          "sha256": "a62402890e16f115d82fd08547dc33e2edd0bb1809ec41a4acbc5c9bccda2c21",
+          "notes": 746,
+          "noteEventsSha256": "e72de2736db2af5a8960f0d86f2a12600fe4269a19ef0f040acdd75c0a18c49d"
+        },
+        {
+          "songId": "preview-job-957d5ec1-ece1-44ff-821e-8c6dfe07de08-a",
+          "bytes": 6930,
+          "sha256": "69b73df273c6ddb3a4460ce797fcc2eed2d9ca993f970d080d2dfe16ef907bc0",
+          "notes": 763,
+          "noteEventsSha256": "c5b8ddc3087a4778ccd2178578672c145ca348ddea93a6c2aab29331deb028ca"
+        }
+      ],
+      "jobId": "job-957d5ec1-ece1-44ff-821e-8c6dfe07de08",
+      "jobStatus": "done",
+      "jobError": null,
+      "songId": "preview-job-957d5ec1-ece1-44ff-821e-8c6dfe07de08-e",
+      "resolvedIdentity": {
+        "title": "\"Take What You Want\"",
+        "artist": "OZZY OSBOURNE with Post Malone"
+      },
+      "selectedSource": "https://www.youtube.com/watch?v=eVhs0wWVHZI",
+      "finishedAt": "2026-09-08T15:46:13.151Z"
+    },
+    {
+      "id": "02",
+      "url": "https://www.youtube.com/watch?v=v2AC41dglnM",
+      "status": "structural-candidate",
+      "attempted": true,
+      "startedAt": "2026-09-08T15:46:13.152Z",
+      "exports": [
+        {
+          "songId": "preview-job-b5479345-0528-4c0b-850b-6303a065ed78-b",
+          "bytes": 2593,
+          "sha256": "8934dc28286076dcd31f3c830aaade4710b002bf4a8d93d5cfbef37047ca8bef",
+          "notes": 273,
+          "noteEventsSha256": "4b5e8d79fc924c19b912167ccc5e88a59a44a9c57c655909220dc98fb1cb1dfc"
+        },
+        {
+          "songId": "preview-job-b5479345-0528-4c0b-850b-6303a065ed78-e",
+          "bytes": 5055,
+          "sha256": "f914581c32a2f1adb3f1d0a96dc67d2b31fec2e837a3f8755337d2b56d442cc1",
+          "notes": 516,
+          "noteEventsSha256": "d3c471c26a29a1466efba46e9b313336eb6ad3685c82de06ca6380f3aba81953"
+        },
+        {
+          "songId": "preview-job-b5479345-0528-4c0b-850b-6303a065ed78-m",
+          "bytes": 8100,
+          "sha256": "678c95e9f3b5def23f0adc26d20720396f34b79f710d7a853d79caa05068054a",
+          "notes": 891,
+          "noteEventsSha256": "539ca6ad0102cd886fb3c4da88b5295644f41f1dec10cb00b659fb324e73eb2e"
+        },
+        {
+          "songId": "preview-job-b5479345-0528-4c0b-850b-6303a065ed78-a",
+          "bytes": 8116,
+          "sha256": "cc4f86309d5dbe2bfa6ea8fdba31fcb7eb7a06202cdf19a337f3d1860580ce16",
+          "notes": 893,
+          "noteEventsSha256": "6e82bbd5868b75573fd5db2b0e78a7d61006b2f6995ccbe1f0514fef68d7eee5"
+        }
+      ],
+      "jobId": "job-b5479345-0528-4c0b-850b-6303a065ed78",
+      "jobStatus": "done",
+      "jobError": null,
+      "songId": "preview-job-b5479345-0528-4c0b-850b-6303a065ed78-e",
+      "resolvedIdentity": {
+        "title": "Thunderstruck",
+        "artist": "AC/DC"
+      },
+      "selectedSource": "https://www.youtube.com/watch?v=ZRTbHWc_3ps",
+      "finishedAt": "2026-09-08T15:46:19.273Z"
+    },
+    {
+      "id": "03",
+      "url": "https://www.youtube.com/watch?v=vabnZ9-ex7o",
+      "status": "structural-candidate",
+      "attempted": true,
+      "startedAt": "2026-09-08T15:46:19.273Z",
+      "exports": [
+        {
+          "songId": "preview-job-754a490a-1501-48e3-9187-de4af2b0084e-b",
+          "bytes": 1750,
+          "sha256": "85ad4e1e435a27d3de7c53304cfcae9752984a153cd6cd7c3af5ef74c445af9d",
+          "notes": 177,
+          "noteEventsSha256": "46eeeae36c81e57d274af0864477d1e79dfc4131ed91a407d1164a3584264584"
+        },
+        {
+          "songId": "preview-job-754a490a-1501-48e3-9187-de4af2b0084e-e",
+          "bytes": 5339,
+          "sha256": "20acfb7188bc6fce5a6e6970cd81bc7fbf977c32d374f4b062bbaae4e04e835f",
+          "notes": 548,
+          "noteEventsSha256": "43634ba0940808b5fe52ac26e125385ac5d0e66aa92654356f2a1055c927d239"
+        },
+        {
+          "songId": "preview-job-754a490a-1501-48e3-9187-de4af2b0084e-m",
+          "bytes": 10026,
+          "sha256": "31c24707a4ec7a821cc7ab0657e80bdb750c106fb73d0aabfa1a8a9a2ab29ba0",
+          "notes": 1119,
+          "noteEventsSha256": "bba7cae170dc2ce8bf8fa9b482a73dcce13aa9a276e791076cb2a57be9bed033"
+        },
+        {
+          "songId": "preview-job-754a490a-1501-48e3-9187-de4af2b0084e-a",
+          "bytes": 10026,
+          "sha256": "31c24707a4ec7a821cc7ab0657e80bdb750c106fb73d0aabfa1a8a9a2ab29ba0",
+          "notes": 1119,
+          "noteEventsSha256": "bba7cae170dc2ce8bf8fa9b482a73dcce13aa9a276e791076cb2a57be9bed033"
+        }
+      ],
+      "jobId": "job-754a490a-1501-48e3-9187-de4af2b0084e",
+      "jobStatus": "done",
+      "jobError": null,
+      "songId": "preview-job-754a490a-1501-48e3-9187-de4af2b0084e-e",
+      "resolvedIdentity": {
+        "title": "Come As You Are",
+        "artist": "Nirvana"
+      },
+      "selectedSource": "https://www.youtube.com/watch?v=2oX_g5RdU6w",
+      "finishedAt": "2026-09-08T15:46:25.394Z"
+    },
+    {
+      "id": "04",
+      "url": "https://www.youtube.com/watch?v=tAGnKpE4NCI",
+      "status": "structural-candidate",
+      "attempted": true,
+      "startedAt": "2026-09-08T15:46:25.394Z",
+      "exports": [
+        {
+          "songId": "preview-job-01702e99-99ed-4e43-9156-48783ffedc2c-b",
+          "bytes": 4063,
+          "sha256": "471f2d92676fda849f9929ace788dd4177f3482380282ed8f4c4caa2411b0def",
+          "notes": 435,
+          "noteEventsSha256": "ef507880870f33efc5e1bb66b4e6304ec52b5182f31a01c85dfc51f5aef40c78"
+        },
+        {
+          "songId": "preview-job-01702e99-99ed-4e43-9156-48783ffedc2c-e",
+          "bytes": 6345,
+          "sha256": "489f4506b4103b11a1bb26b0ce20c1dd582c036ffa5f0e0fb7a26affe4797e37",
+          "notes": 665,
+          "noteEventsSha256": "5317c1195544d3a335998c1b515fc37c1d4289b5f9ea62c6b057ef20e7fd4aa7"
+        },
+        {
+          "songId": "preview-job-01702e99-99ed-4e43-9156-48783ffedc2c-m",
+          "bytes": 13024,
+          "sha256": "cf399382f47e7e0cf3bbd65783178f3420c7082171e429b265b8ab08f7574c72",
+          "notes": 1508,
+          "noteEventsSha256": "78f1f9e1f2595e9feca46f43f4e06724ed82ffb44a293de338f00b1206cfc798"
+        },
+        {
+          "songId": "preview-job-01702e99-99ed-4e43-9156-48783ffedc2c-a",
+          "bytes": 13283,
+          "sha256": "d1f7fe3523819c1d7368b3003b4c8d3dcbe505e845d72e1b527a99fd1bd1e59c",
+          "notes": 1541,
+          "noteEventsSha256": "b1b5e245ad765ce40f135bf7838c85ce3a7595f78db993540d5067254f726278"
+        }
+      ],
+      "jobId": "job-01702e99-99ed-4e43-9156-48783ffedc2c",
+      "jobStatus": "done",
+      "jobError": null,
+      "songId": "preview-job-01702e99-99ed-4e43-9156-48783ffedc2c-e",
+      "resolvedIdentity": {
+        "title": "Nothing Else Matters",
+        "artist": "Metallica"
+      },
+      "selectedSource": "https://www.youtube.com/watch?v=DzAGQbvDpns",
+      "finishedAt": "2026-09-08T15:46:31.522Z"
+    }
+  ],
+  "musicalAcceptance": "pending-listening",
+  "heldoutExecuted": false,
+  "candidateFreezeSha256": "57374c007f59c9331788ab022926833a8e21a3cd6ed550679da0b6b39a4ebef4",
+  "candidateBeforeVerified": true,
+  "verificationScope": "Local source hashes only; operator must start preview and worker from this checkout. Does not attest deployed runtime.",
+  "candidateAfterVerified": true,
+  "unattemptedIds": [],
+  "summary": {
+    "completed": 4,
+    "denominator": 4,
+    "attempted": 4,
+    "unattempted": 0,
+    "failed": 0,
+    "invalidPublications": 0,
+    "releaseGate": false,
+    "musicalAcceptance": "pending-listening",
+    "usable": false
+  },
+  "finishedAt": "2026-09-08T15:46:31.540Z"
+}
