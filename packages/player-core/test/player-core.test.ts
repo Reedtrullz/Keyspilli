@@ -13,7 +13,7 @@ import {
   lastFallingChordIndex,
   noteLabel,
   upcomingMidi,
-  measureMidiRange,
+  passageMidiRange,
 } from "../src/views/falling.js";
 import { loadSettings, saveSettings, DEFAULT_SETTINGS } from "../src/prefs.js";
 import type { SongData } from "../src/types.js";
@@ -203,31 +203,22 @@ describe("timeline", () => {
   });
 });
 
-describe("measureMidiRange", () => {
-  const tn = resolveTimedNotes(song, 1, 0); // notes at beats 0 (x2) and 1, tempo 120
-
-  it("covers the measure's notes with a margin", () => {
-    const r = measureMidiRange(tn, song.measures, 120, 1, 0, { lowMidi: 45, highMidi: 99 });
-    expect(r.lowMidi).toBe(45); // lowest visible midi 48 minus 3
-    expect(r.highMidi).toBeGreaterThanOrEqual(67);
-  });
-
-  it("is stable for any position within the same measure", () => {
-    const a = measureMidiRange(tn, song.measures, 120, 1, 0, { lowMidi: 45, highMidi: 99 });
-    const b = measureMidiRange(tn, song.measures, 120, 1, 0, { lowMidi: 45, highMidi: 99 });
-    expect(a).toEqual(b);
-  });
-
-  it("expands wide measures so edge notes remain visible and keeps the previous range when empty", () => {
-    const wide = tn.map((n, i) => ({ ...n, midi: 30 + ((i * 20) % 70) }));
-    const r = measureMidiRange(wide, song.measures, 120, 1, 0, { lowMidi: 22, highMidi: 109 });
-    expect(r.lowMidi).toBeLessThanOrEqual(30);
-    expect(r.highMidi).toBeGreaterThanOrEqual(90);
-    expect(r.highMidi - r.lowMidi).toBeLessThanOrEqual(87);
-    expect(measureMidiRange([], song.measures, 120, 1, 0, { lowMidi: 40, highMidi: 80 })).toEqual({
-      lowMidi: 40,
-      highMidi: 80,
-    });
+describe("passageMidiRange", () => {
+  it("includes late extremes regardless of speed, with padding and piano bounds", () => {
+    const arrangement = {
+      ...song,
+      notes: [
+        { midi: 60, start: 0, dur: 1, vel: 80, hand: "R" as const },
+        { midi: 36, start: 40, dur: 1, vel: 80, hand: "L" as const },
+        { midi: 96, start: 80, dur: 1, vel: 80, hand: "R" as const },
+      ],
+    };
+    for (const speed of [0.5, 1, 1.5]) {
+      expect(passageMidiRange(resolveTimedNotes(arrangement, speed, 0))).toEqual({ lowMidi: 33, highMidi: 99 });
+    }
+    expect(passageMidiRange(resolveTimedNotes(arrangement, 1, 2))).toEqual({ lowMidi: 35, highMidi: 101 });
+    expect(passageMidiRange([{ midi: 21 }, { midi: 108 }])).toEqual({ lowMidi: 21, highMidi: 108 });
+    expect(passageMidiRange([])).toEqual({ lowMidi: 45, highMidi: 99 });
   });
 });
 

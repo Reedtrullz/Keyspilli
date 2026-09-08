@@ -17,7 +17,7 @@ import {
   loadSettings,
   loadSongPrefs,
   measureIndex,
-  measureMidiRange,
+  passageMidiRange,
   resolveTimedNotes,
   saveJson,
   saveSettings,
@@ -337,25 +337,13 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     setChordPracticeSnapshot(session.snapshot());
   }, [chordPracticeActive, chordPracticeTargets]);
 
-  // Keyboard range is stable per measure so the piano doesn't re-center every
-  // frame; empty measures keep the previous range.
-  const lastMidiRangeRef = useRef({ lowMidi: 45, highMidi: 99 });
-  const midiRange = useMemo<{ lowMidi: number; highMidi: number }>(() => {
-    if (settings.showAllKeys) {
-      return { lowMidi: 21, highMidi: 108 };
-    }
-    const r = measureMidiRange(
-      notes,
-      initial.data.measures,
-      initial.data.tempoBpm,
-      settings.speed,
-      currentMeasure,
-      lastMidiRangeRef.current,
-    );
-    lastMidiRangeRef.current = r;
-    return r;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [notes, settings.speed, currentMeasure, settings.showAllKeys]);
+  // Fit the full arrangement once; seeking, speed and hand changes keep keys in place.
+  const midiRange = useMemo(
+    () => settings.showAllKeys
+      ? { lowMidi: 21, highMidi: 108 }
+      : passageMidiRange(resolveTimedNotes(initial.data, 1, settings.transpose)),
+    [initial.data, settings.transpose, settings.showAllKeys],
+  );
 
   // Engine lifecycle: one PlaybackEngine per mount, disposed on unmount.
   useEffect(() => {

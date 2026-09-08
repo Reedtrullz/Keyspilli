@@ -468,3 +468,46 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 1740, height: 137
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   });
 }
+
+test("Fit passage keeps keyboard labels fixed across bars and speed changes", async ({ page }) => {
+  await page.addInitScript(() => {
+    const clear = CanvasRenderingContext2D.prototype.clearRect;
+    const text = CanvasRenderingContext2D.prototype.fillText;
+    CanvasRenderingContext2D.prototype.clearRect = function (...args) {
+      this.canvas.dataset.keyboardLabels = "[]";
+      return clear.apply(this, args);
+    };
+    CanvasRenderingContext2D.prototype.fillText = function (...args) {
+      if (args[2] === this.canvas.clientHeight - 18) {
+        const labels = JSON.parse(this.canvas.dataset.keyboardLabels ?? "[]");
+        labels.push([args[0], args[1]]);
+        this.canvas.dataset.keyboardLabels = JSON.stringify(labels);
+      }
+      return text.apply(this, args);
+    };
+  });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/player/${SONG}`);
+  await page.getByRole("button", { name: "Got it", exact: true }).click();
+  await page.getByRole("button", { name: "Adjust", exact: true }).click();
+  const allKeys = page.getByRole("button", { name: "88 keys", exact: true });
+  if (await allKeys.isVisible()) await allKeys.click();
+  await expect(page.getByRole("button", { name: "Fit passage", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Adjust", exact: true }).click();
+  const canvas = page.getByLabel("Falling notes player");
+  // Compare rendered key names and positions; active-note colors may change on seek.
+  const labels = async () => {
+    await canvas.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+    return canvas.getAttribute("data-keyboard-labels");
+  };
+  await expect.poll(labels).toMatch(/^\[\[/);
+  const before = await labels();
+  const bar = page.getByRole("spinbutton", { name: "Bar", exact: true });
+  for (const value of ["4", (await bar.getAttribute("max"))!]) {
+    await bar.fill(value);
+    await bar.press("Enter");
+    await expect.poll(labels).toBe(before);
+  }
+  await page.getByRole("button", { name: "50%", exact: true }).click();
+  await expect.poll(labels).toBe(before);
+});

@@ -1,5 +1,5 @@
 import type { TimedNote } from "../timeline.js";
-import { pitchColor, type MeasureInfo } from "@keyspilli/midi";
+import { pitchColor } from "@keyspilli/midi";
 
 export interface KeyboardGeometry {
   whiteKeys: number[]; // midi of white keys
@@ -272,45 +272,20 @@ export function fallingBars(notes: TimedNote[], o: FallingLayoutOptions, out: Fa
   return out;
 }
 
-/**
- * Keyboard range for one measure (plus a beat of overlap), so the piano stays
- * put while playing through the measure instead of re-centering every frame.
- * Wide measures expand to the complete piano range used by the measure (up
- * to the 88-key MIDI bounds) instead of silently dropping notes outside a
- * median-centered window; empty measures return the previous range.
- */
-export function measureMidiRange(
-  notes: TimedNote[],
-  measures: MeasureInfo[],
-  tempoBpm: number,
-  speed: number,
-  measureIdx: number,
-  fallback: { lowMidi: number; highMidi: number },
-  _maxSpan = 54,
+/** Fixed keyboard range covering every note, with a small margin at either end. */
+export function passageMidiRange(
+  notes: readonly Pick<TimedNote, "midi">[],
 ): { lowMidi: number; highMidi: number } {
-  const m = measures[measureIdx];
-  if (!m) return fallback;
-  const next = measures[measureIdx + 1];
-  const secPerBeat = 60 / (tempoBpm * speed);
-  const startSec = m.startBeat * secPerBeat;
-  const endSec = (next?.endBeat ?? m.endBeat) * secPerBeat;
-  const mids: number[] = [];
-  for (const n of notes) {
-    if (n.startSec < endSec && n.startSec + n.durSec >= startSec) mids.push(n.midi);
+  if (notes.length === 0) return { lowMidi: 45, highMidi: 99 };
+  let lowMidi = 108;
+  let highMidi = 21;
+  for (const { midi } of notes) {
+    lowMidi = Math.min(lowMidi, midi - 3);
+    highMidi = Math.max(highMidi, midi + 3);
   }
-  if (mids.length === 0) return fallback;
-  mids.sort((a, b) => a - b);
-  let lowMidi = mids[0]! - 3;
-  let highMidi = mids[mids.length - 1]! + 3;
-  // Older versions centered a 54-semitone window on the median here. That
-  // made xOf() return -100 for legitimate notes at either edge of a wide
-  // measure, so the falling view silently omitted attacks. Keep the argument
-  // for API compatibility, but prefer a complete range (capped only by the
-  // real 88-key piano limits) so every note remains renderable.
-  void _maxSpan;
   return {
-    lowMidi: Math.max(21, lowMidi),
-    highMidi: Math.min(108, highMidi),
+    lowMidi: Math.max(21, Math.min(108, lowMidi)),
+    highMidi: Math.min(108, Math.max(21, highMidi)),
   };
 }
 
