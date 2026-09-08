@@ -1,0 +1,478 @@
+{
+  "startedAt": "2026-09-08T02:06:57.205Z",
+  "origin": "http://127.0.0.1:3103",
+  "manifestSha256": "68284bf55c542dac2634a9ba2e5147ae61164f254683dd2e1d58deecb94595d5",
+  "split": "heldout",
+  "cohortSize": 10,
+  "selectedCount": 10,
+  "selectedIds": [
+    "v2-01",
+    "v2-02",
+    "v2-03",
+    "v2-04",
+    "v2-05",
+    "v2-06",
+    "v2-07",
+    "v2-08",
+    "v2-09",
+    "v2-10"
+  ],
+  "rows": [
+    {
+      "id": "v2-01",
+      "url": "https://www.youtube.com/watch?v=kIBdpFJyFkc",
+      "status": "structural-candidate",
+      "attempted": true,
+      "startedAt": "2026-09-08T02:06:57.206Z",
+      "exports": [
+        {
+          "songId": "preview-job-a7ae6ee2-7b4f-47a5-9775-eebdc563ed5b-b",
+          "bytes": 2561,
+          "sha256": "faabab458b1ebd52b3eddd95737a0be14c3f354bac285fb467632b02c7a0a565",
+          "notes": 267,
+          "noteEventsSha256": "c5a9785a88fb810fb591cff6fb7ea17a4834deaa162c5c007886329d257ba6c4"
+        },
+        {
+          "songId": "preview-job-a7ae6ee2-7b4f-47a5-9775-eebdc563ed5b-e",
+          "bytes": 5661,
+          "sha256": "c55c11050a9a7e84edbc474298e254e4500fd9275b392da9d9f7b0b231783639",
+          "notes": 610,
+          "noteEventsSha256": "6d5064726bc1bb6758b11777846963d1dd86814a03b120562dfe3cc2fcf28a1b"
+        },
+        {
+          "songId": "preview-job-a7ae6ee2-7b4f-47a5-9775-eebdc563ed5b-m",
+          "bytes": 12119,
+          "sha256": "da8757cb203f86ebc19a3d96c1d97949a5f268d2fb39532e9a66670c1f61d2f5",
+          "notes": 1413,
+          "noteEventsSha256": "13ab47e8c0fcd30843cdaadc84bc590b6004af2836e44a1fc628c7e50e81d947"
+        },
+        {
+          "songId": "preview-job-a7ae6ee2-7b4f-47a5-9775-eebdc563ed5b-a",
+          "bytes": 12360,
+          "sha256": "c95439fd172fc49b264a9fa94a7e5cb46d72e81aedcc18a2e3fb9af75dc34607",
+          "notes": 1444,
+          "noteEventsSha256": "4a675236e80b9a2452a8a900ce68bd906d3ddfc4966cfe682bda073930c8d0f4"
+        }
+      ],
+      "jobId": "job-a7ae6ee2-7b4f-47a5-9775-eebdc563ed5b",
+      "jobStatus": "done",
+      "jobError": null,
+      "songId": "preview-job-a7ae6ee2-7b4f-47a5-9775-eebdc563ed5b-e",
+      "resolvedIdentity": {
+        "title": "Nemo",
+        "artist": "Nightwish"
+      },
+      "selectedSource": "https://www.youtube.com/watch?v=XTwWGK5WcCo",
+      "finishedAt": "2026-09-08T02:07:23.817Z"
+    },
+    {
+      "id": "v2-02",
+      "url": "https://www.youtube.com/watch?v=tMDFv5m18Pw",
+      "status": "structural-candidate",
+      "attempted": true,
+      "startedAt": "2026-09-08T02:07:23.817Z",
+      "exports": [
+        {
+          "songId": "preview-job-19a7af77-c72e-4f6e-9243-f19911501002-b",
+          "bytes": 4026,
+          "sha256": "b880eafc34852725fa6d5271a85a7e6ace75872841b8a640f2e7a7fbb2c03503",
+          "notes": 428,
+          "noteEventsSha256": "d9c4907923912fbd406a52ec2ca862b1fe7f922bda3f625087b023ea04fbbec7"
+        },
+        {
+          "songId": "preview-job-19a7af77-c72e-4f6e-9243-f19911501002-e",
+          "bytes": 10345,
+          "sha256": "9346af0467e0a8f89e4b2ac018d5a2f60ba1b182666290ccaa0da4bfff4f9e44",
+          "notes": 1110,
+          "noteEventsSha256": "e4ee1f5c5f1f106b733da23b3fde7004a786334444dcea93f962d14afc1b390a"
+        },
+        {
+          "songId": "preview-job-19a7af77-c72e-4f6e-9243-f19911501002-m",
+          "bytes": 31803,
+          "sha256": "c04586333722cbbee5ea2a996a21c6f8a0b6981c02313c16fb6219f8ed55b620",
+          "notes": 3777,
+          "noteEventsSha256": "f51f1e3e5ddb10bc2293f673dc20aad0c7ba3e9728bedf26eece3f06cb409bcd"
+        },
+        {
+          "songId": "preview-job-19a7af77-c72e-4f6e-9243-f19911501002-a",
+          "bytes": 32366,
+          "sha256": "f996d23fe4af42dc775b9ffea111f924988a8ae124de327158c8b181bdc40918",
+          "notes": 3848,
+          "noteEventsSha256": "67b504f829b2adca63f5d0796609ab843fe3b448a116b7c54ce885adb11b8b07"
+        }
+      ],
+      "jobId": "job-19a7af77-c72e-4f6e-9243-f19911501002",
+      "jobStatus": "done",
+      "jobError": null,
+      "songId": "preview-job-19a7af77-c72e-4f6e-9243-f19911501002-e",
+      "resolvedIdentity": {
+        "title": "Crazy Train",
+        "artist": "Ozzy Osbourne"
+      },
+      "selectedSource": "https://www.youtube.com/watch?v=UAAz7M-vPwI",
+      "finishedAt": "2026-09-08T02:10:30.317Z"
+    },
+    {
+      "id": "v2-03",
+      "url": "https://www.youtube.com/watch?v=kijpcUv-b8M",
+      "status": "failed",
+      "attempted": true,
+      "startedAt": "2026-09-08T02:10:30.318Z",
+      "exports": [],
+      "jobId": "job-dae2ab41-1f21-47b8-8387-34073ccb3fdb",
+      "jobStatus": "error",
+      "jobError": "Matching piano tutorials were found, but their notes could not be extracted reliably. No arrangement was published.",
+      "error": "Error: terminal job status: error",
+      "failureCode": "JOB_FAILED",
+      "finishedAt": "2026-09-08T02:12:05.451Z"
+    },
+    {
+      "id": "v2-04",
+      "url": "https://www.youtube.com/watch?v=iywaBOMvYLI",
+      "status": "structural-candidate",
+      "attempted": true,
+      "startedAt": "2026-09-08T02:12:05.452Z",
+      "exports": [
+        {
+          "songId": "preview-job-4c088e60-31df-4019-a35b-8a0a580a1d7d-b",
+          "bytes": 2799,
+          "sha256": "1571e6ac393ce57b03c90b7390f7c66efe1b84532a4985c053e9d4f27ca6a104",
+          "notes": 297,
+          "noteEventsSha256": "33d2989def1b630ba5311cb8b54ac8eef911332df4377761ce74714fc41838b7"
+        },
+        {
+          "songId": "preview-job-4c088e60-31df-4019-a35b-8a0a580a1d7d-e",
+          "bytes": 5948,
+          "sha256": "a03f1c03d9637a3ea5b3eca857dc005640138e3d3de15f9b5205c6d5b61ae07a",
+          "notes": 616,
+          "noteEventsSha256": "7fce7eded58e9d5163af758d7cbcd1fa3f6226b8cabc35e733c7cd4108ad384b"
+        },
+        {
+          "songId": "preview-job-4c088e60-31df-4019-a35b-8a0a580a1d7d-m",
+          "bytes": 14364,
+          "sha256": "2b9b5e2f257a2c8c286aa7a4a6d35a045b4b09bd56c71771335da5a6b598fa72",
+          "notes": 1678,
+          "noteEventsSha256": "6ca5bc2ed680342bcaea7ba3cd5e37cb297104f93ccbdb5fdad68212b5ebfda2"
+        },
+        {
+          "songId": "preview-job-4c088e60-31df-4019-a35b-8a0a580a1d7d-a",
+          "bytes": 14916,
+          "sha256": "e2cdc3046f096d6b851ec3d209d9700b6af71a68c34b4a4541c5ba4c4561b6e0",
+          "notes": 1747,
+          "noteEventsSha256": "7890136af349ee74a41853aabc3bd9a50b8858b7decfebe8ff052bc0f87c5b8e"
+        }
+      ],
+      "jobId": "job-4c088e60-31df-4019-a35b-8a0a580a1d7d",
+      "jobStatus": "done",
+      "jobError": null,
+      "songId": "preview-job-4c088e60-31df-4019-a35b-8a0a580a1d7d-e",
+      "resolvedIdentity": {
+        "title": "Toxicity",
+        "artist": "System Of A Down"
+      },
+      "selectedSource": "https://www.youtube.com/watch?v=9gShyqsZjPk",
+      "finishedAt": "2026-09-08T02:12:38.079Z"
+    },
+    {
+      "id": "v2-05",
+      "url": "https://www.youtube.com/watch?v=09LTT0xwdfw",
+      "status": "structural-candidate",
+      "attempted": true,
+      "startedAt": "2026-09-08T02:12:38.079Z",
+      "exports": [
+        {
+          "songId": "preview-job-114e7259-0fdb-4d7a-a7fb-ac7bcd2429f5-b",
+          "bytes": 2868,
+          "sha256": "8772ff3fcf7743b2f54b0222177047786bd493e344b095f80e0e16275dc0802b",
+          "notes": 302,
+          "noteEventsSha256": "a2f65092654ed0ca972157c8d22fa1b22b1a3f4e1db089e2287c786ff4b874b9"
+        },
+        {
+          "songId": "preview-job-114e7259-0fdb-4d7a-a7fb-ac7bcd2429f5-e",
+          "bytes": 5184,
+          "sha256": "b1034592401ed295b7544402b54255d13fe4bdf2034917311e1bbe16747541b7",
+          "notes": 531,
+          "noteEventsSha256": "c904dad15ad032b19dfc84dde5f0d8bdc22d98d7e2e593fcd5d4ddf25b4a538f"
+        },
+        {
+          "songId": "preview-job-114e7259-0fdb-4d7a-a7fb-ac7bcd2429f5-m",
+          "bytes": 9617,
+          "sha256": "215646cfb04d9f642b14c29973edae3bd6a86e4d6cf2c9f51f15de124916ebf4",
+          "notes": 1096,
+          "noteEventsSha256": "ee6b249d2451be7ca8b2fc8b688c78cd0c851a5a3dd4e863fa6de1e226cebd54"
+        },
+        {
+          "songId": "preview-job-114e7259-0fdb-4d7a-a7fb-ac7bcd2429f5-a",
+          "bytes": 9617,
+          "sha256": "215646cfb04d9f642b14c29973edae3bd6a86e4d6cf2c9f51f15de124916ebf4",
+          "notes": 1096,
+          "noteEventsSha256": "ee6b249d2451be7ca8b2fc8b688c78cd0c851a5a3dd4e863fa6de1e226cebd54"
+        }
+      ],
+      "jobId": "job-114e7259-0fdb-4d7a-a7fb-ac7bcd2429f5",
+      "jobStatus": "done",
+      "jobError": null,
+      "songId": "preview-job-114e7259-0fdb-4d7a-a7fb-ac7bcd2429f5-e",
+      "resolvedIdentity": {
+        "title": "Down With The Sickness",
+        "artist": "Disturbed"
+      },
+      "selectedSource": "https://www.youtube.com/watch?v=ccw3SZfD4A0",
+      "finishedAt": "2026-09-08T02:12:54.502Z"
+    },
+    {
+      "id": "v2-06",
+      "url": "https://www.youtube.com/watch?v=KrZHPOeOxQQ",
+      "status": "structural-candidate",
+      "attempted": true,
+      "startedAt": "2026-09-08T02:12:54.503Z",
+      "exports": [
+        {
+          "songId": "preview-job-8fe9e533-bf39-48f5-8fac-9252d9304494-b",
+          "bytes": 1371,
+          "sha256": "510851dad37233f26685f43a96898f224505e840e930f22a1bc31f1a00e9601e",
+          "notes": 140,
+          "noteEventsSha256": "2900a9d14eca7682504723453bbcf5b54306d7f8a342e49c2e78d3d1f0e0061f"
+        },
+        {
+          "songId": "preview-job-8fe9e533-bf39-48f5-8fac-9252d9304494-e",
+          "bytes": 2591,
+          "sha256": "ae961f6db1204c05cb274615ec81e5287f0c803ec60f2c1c2c2a3ef6fa27f73d",
+          "notes": 265,
+          "noteEventsSha256": "542a598188fcd707e6527cc5ef88c88a0c4b594defa9185ac99a798d8c34ca81"
+        },
+        {
+          "songId": "preview-job-8fe9e533-bf39-48f5-8fac-9252d9304494-m",
+          "bytes": 6442,
+          "sha256": "e8e6e4ae21572d78f40ad019fd221ceb1908c7796604b05dc19fd5164c064de4",
+          "notes": 749,
+          "noteEventsSha256": "386c8cfa6655587ea301e44146f007dec87b9fd0c26e6b3bf22f20642702d531"
+        },
+        {
+          "songId": "preview-job-8fe9e533-bf39-48f5-8fac-9252d9304494-a",
+          "bytes": 6682,
+          "sha256": "5adcbd49710cbccc4a66fc147503c626c21d30d19b11562632de77a034be034c",
+          "notes": 780,
+          "noteEventsSha256": "2e47d001eafd13691959f98c52231f1c892d00efea02e7bbd8515be90201ff11"
+        }
+      ],
+      "jobId": "job-8fe9e533-bf39-48f5-8fac-9252d9304494",
+      "jobStatus": "done",
+      "jobError": null,
+      "songId": "preview-job-8fe9e533-bf39-48f5-8fac-9252d9304494-e",
+      "resolvedIdentity": {
+        "title": "You Give Love A Bad Name",
+        "artist": "Bon Jovi"
+      },
+      "selectedSource": "https://www.youtube.com/watch?v=W1gvtslr0wk",
+      "finishedAt": "2026-09-08T02:13:10.843Z"
+    },
+    {
+      "id": "v2-07",
+      "url": "https://www.youtube.com/watch?v=StZcUAPRRac",
+      "status": "structural-candidate",
+      "attempted": true,
+      "startedAt": "2026-09-08T02:13:10.843Z",
+      "exports": [
+        {
+          "songId": "preview-job-5ad8da9a-4e56-4ade-ade5-4b2671d9581c-b",
+          "bytes": 2139,
+          "sha256": "d479c5af13955ca4a67f66cfb363c232a6b2cccb52c35cc7ab49ec1db18ea8e1",
+          "notes": 220,
+          "noteEventsSha256": "9697c112b747bb4c821da6c0fe2073f62f45a1729080b27124465f55b8a454cd"
+        },
+        {
+          "songId": "preview-job-5ad8da9a-4e56-4ade-ade5-4b2671d9581c-e",
+          "bytes": 4018,
+          "sha256": "b6f7dbd2c0f4f2d9369713f2d8ac308efa7728eb820110773128e4dfa7871339",
+          "notes": 423,
+          "noteEventsSha256": "7768a47a0478d0b662468aa62213dcafe7a992dba7f952b75ef5a82f15a427e9"
+        },
+        {
+          "songId": "preview-job-5ad8da9a-4e56-4ade-ade5-4b2671d9581c-m",
+          "bytes": 5547,
+          "sha256": "941cc8df5780f029495901e83710f1fd45083f25aabb0d007b44ba8fb0472599",
+          "notes": 595,
+          "noteEventsSha256": "2e9b955a34e88fe635b7c2f0a4ef60717d64ca4d8709bca8767b0d9117bf3bfc"
+        },
+        {
+          "songId": "preview-job-5ad8da9a-4e56-4ade-ade5-4b2671d9581c-a",
+          "bytes": 5547,
+          "sha256": "941cc8df5780f029495901e83710f1fd45083f25aabb0d007b44ba8fb0472599",
+          "notes": 595,
+          "noteEventsSha256": "2e9b955a34e88fe635b7c2f0a4ef60717d64ca4d8709bca8767b0d9117bf3bfc"
+        }
+      ],
+      "jobId": "job-5ad8da9a-4e56-4ade-ade5-4b2671d9581c",
+      "jobStatus": "done",
+      "jobError": null,
+      "songId": "preview-job-5ad8da9a-4e56-4ade-ade5-4b2671d9581c-e",
+      "resolvedIdentity": {
+        "title": "Sonne",
+        "artist": "Rammstein"
+      },
+      "selectedSource": "https://www.youtube.com/watch?v=KkbEcQ49qaw",
+      "finishedAt": "2026-09-08T02:13:37.312Z"
+    },
+    {
+      "id": "v2-08",
+      "url": "https://www.youtube.com/watch?v=NUTGr5t3MoY",
+      "status": "structural-candidate",
+      "attempted": true,
+      "startedAt": "2026-09-08T02:13:37.312Z",
+      "exports": [
+        {
+          "songId": "preview-job-e13936d8-dad0-4109-a396-993c41fd5a6e-b",
+          "bytes": 644,
+          "sha256": "5b5207080c1cd12f7cc1c5a27089ee8a1e1997685f543ac05c6427291c0dbedb",
+          "notes": 59,
+          "noteEventsSha256": "df8fbed988003906cdd501ad9c8c0000eea0e127987dfda4d7b2b370ba3e8d64"
+        },
+        {
+          "songId": "preview-job-e13936d8-dad0-4109-a396-993c41fd5a6e-e",
+          "bytes": 1332,
+          "sha256": "ae81115d8e2d4d00146cb397cbedd5b1b99f7ef2d126512c3e6421c2e9c4381f",
+          "notes": 139,
+          "noteEventsSha256": "07112520023062a749fd45980117038f0f5924779e78581c2735b0cc3c63e9f5"
+        },
+        {
+          "songId": "preview-job-e13936d8-dad0-4109-a396-993c41fd5a6e-m",
+          "bytes": 1623,
+          "sha256": "a18d789f158fbad92b0cc418f4445973be7e0205f4cbe963e3fc045b0ba14ce2",
+          "notes": 173,
+          "noteEventsSha256": "fb66b61bca7965d4e5f0a0f2f3f4127904b5f8f9216e24013cb08b2a4f70f876"
+        },
+        {
+          "songId": "preview-job-e13936d8-dad0-4109-a396-993c41fd5a6e-a",
+          "bytes": 1623,
+          "sha256": "a18d789f158fbad92b0cc418f4445973be7e0205f4cbe963e3fc045b0ba14ce2",
+          "notes": 173,
+          "noteEventsSha256": "fb66b61bca7965d4e5f0a0f2f3f4127904b5f8f9216e24013cb08b2a4f70f876"
+        }
+      ],
+      "jobId": "job-e13936d8-dad0-4109-a396-993c41fd5a6e",
+      "jobStatus": "done",
+      "jobError": null,
+      "songId": "preview-job-e13936d8-dad0-4109-a396-993c41fd5a6e-e",
+      "resolvedIdentity": {
+        "title": "Basket Case",
+        "artist": "Green Day"
+      },
+      "selectedSource": "https://www.youtube.com/watch?v=7Npy7X6mtI0",
+      "finishedAt": "2026-09-08T02:13:53.687Z"
+    },
+    {
+      "id": "v2-09",
+      "url": "https://www.youtube.com/watch?v=L397TWLwrUU",
+      "status": "structural-candidate",
+      "attempted": true,
+      "startedAt": "2026-09-08T02:13:53.687Z",
+      "exports": [
+        {
+          "songId": "preview-job-988b88a1-7b62-490d-8f08-4d1ec55f5db7-b",
+          "bytes": 1459,
+          "sha256": "ada95552bc423f356240c4360a1dc855df83f54400079b3fcf95842e4ec4a01f",
+          "notes": 146,
+          "noteEventsSha256": "86bd570c59c6deb8bd376e2edfabb9560a245d231a3a37bab109389785e18dd2"
+        },
+        {
+          "songId": "preview-job-988b88a1-7b62-490d-8f08-4d1ec55f5db7-e",
+          "bytes": 4263,
+          "sha256": "3194aa91ebd2e5df5ab1487ac93788fab60bb5ecb6bb97b082b2118bef60d22d",
+          "notes": 439,
+          "noteEventsSha256": "fbb84faae918bdb4e3631f39148fa903ad9ef2190d56a1aeb713eaa5c365cf9f"
+        },
+        {
+          "songId": "preview-job-988b88a1-7b62-490d-8f08-4d1ec55f5db7-m",
+          "bytes": 10900,
+          "sha256": "0b60431b09f9529fe8aa0287d7aa124371bcc96b682921fa186723d9384a220a",
+          "notes": 1247,
+          "noteEventsSha256": "352c80d3a6dd0d3015df5600439103638e2620280878d52a86d986d83452c7fd"
+        },
+        {
+          "songId": "preview-job-988b88a1-7b62-490d-8f08-4d1ec55f5db7-a",
+          "bytes": 11164,
+          "sha256": "9dceef319cd324c67e8e0007a9a78d346c1cae5aa405440b7770e8deb1ac1d2a",
+          "notes": 1280,
+          "noteEventsSha256": "cb23af4d61bdf4c840b55e1838d644e986913098a56e490f4e2d2c55d4df463f"
+        }
+      ],
+      "jobId": "job-988b88a1-7b62-490d-8f08-4d1ec55f5db7",
+      "jobStatus": "done",
+      "jobError": null,
+      "songId": "preview-job-988b88a1-7b62-490d-8f08-4d1ec55f5db7-e",
+      "resolvedIdentity": {
+        "title": "Breaking The Law",
+        "artist": "Judas Priest"
+      },
+      "selectedSource": "https://www.youtube.com/watch?v=q_YHMPGTYk8",
+      "finishedAt": "2026-09-08T02:14:18.184Z"
+    },
+    {
+      "id": "v2-10",
+      "url": "https://www.youtube.com/watch?v=0qanF-91aJo",
+      "status": "structural-candidate",
+      "attempted": true,
+      "startedAt": "2026-09-08T02:14:18.184Z",
+      "exports": [
+        {
+          "songId": "preview-job-6d265b49-1182-492c-b695-34948894a262-b",
+          "bytes": 2291,
+          "sha256": "49b3a36c13117f3ea62170a0f1562b0754417543a38dd3612ca58cadc653c775",
+          "notes": 242,
+          "noteEventsSha256": "f4f5d2f1ffba68ccf113718799b856a4bc620b2d3ac5d78282977b619f44d7cc"
+        },
+        {
+          "songId": "preview-job-6d265b49-1182-492c-b695-34948894a262-e",
+          "bytes": 4330,
+          "sha256": "e37967a52e5388530040477353565f4367a8f16af7b479bdc33bd3334531f479",
+          "notes": 447,
+          "noteEventsSha256": "6194772d1df3af6567a4b6178f71f797444bb4ec34744a58864e5d503f44d45d"
+        },
+        {
+          "songId": "preview-job-6d265b49-1182-492c-b695-34948894a262-m",
+          "bytes": 8510,
+          "sha256": "60b909a0d93df0fe9e0143c224fafb1f78f925e49794fedd1d90d6a0aae6890f",
+          "notes": 974,
+          "noteEventsSha256": "db2f25913abaa4829ab5345d0b68460ae2cbb3078dd27f031279d362209df4e9"
+        },
+        {
+          "songId": "preview-job-6d265b49-1182-492c-b695-34948894a262-a",
+          "bytes": 8534,
+          "sha256": "ae17dd913000ade4da4d748c6869d7ffbd4ad08b937743a0cccffe812a7ebce0",
+          "notes": 977,
+          "noteEventsSha256": "0b2198559d2a861d5026c825dbf44674b358d9998118d27ac466b74a32b132e4"
+        }
+      ],
+      "jobId": "job-6d265b49-1182-492c-b695-34948894a262",
+      "jobStatus": "done",
+      "jobError": null,
+      "songId": "preview-job-6d265b49-1182-492c-b695-34948894a262-e",
+      "resolvedIdentity": {
+        "title": "\"Paranoid\"",
+        "artist": "Black Sabbath"
+      },
+      "selectedSource": "https://www.youtube.com/watch?v=bcLPfIj4yaY",
+      "finishedAt": "2026-09-08T02:15:23.095Z"
+    }
+  ],
+  "musicalAcceptance": "pending-listening",
+  "heldoutExecuted": true,
+  "candidateFreezeSha256": "cd55a20fcffbd77c0555f808d1e37bf1ad53545f4c7e77ab037dde35d527ecdb",
+  "candidateBeforeVerified": true,
+  "verificationScope": "Local source hashes only; operator must start preview and worker from this checkout. Does not attest deployed runtime.",
+  "candidateAfterVerified": true,
+  "unattemptedIds": [],
+  "summary": {
+    "completed": 9,
+    "denominator": 10,
+    "attempted": 10,
+    "unattempted": 0,
+    "failed": 1,
+    "invalidPublications": 0,
+    "releaseGate": true,
+    "musicalAcceptance": "pending-listening",
+    "usable": false
+  },
+  "finishedAt": "2026-09-08T02:15:23.120Z"
+}

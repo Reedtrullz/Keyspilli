@@ -1,0 +1,137 @@
+{
+  "rule": "Declared pool, exclude prior30 identities, sort SHA256(keyspilli-prospective-v2|artist|title), take10; no replacements after extraction results.",
+  "pool": [
+    [
+      "Iron Maiden",
+      "Fear Of The Dark"
+    ],
+    [
+      "Black Sabbath",
+      "Paranoid"
+    ],
+    [
+      "Ozzy Osbourne",
+      "Crazy Train"
+    ],
+    [
+      "Judas Priest",
+      "Breaking The Law"
+    ],
+    [
+      "Rammstein",
+      "Sonne"
+    ],
+    [
+      "System Of A Down",
+      "Toxicity"
+    ],
+    [
+      "Slipknot",
+      "Duality"
+    ],
+    [
+      "Disturbed",
+      "Down With The Sickness"
+    ],
+    [
+      "Evanescence",
+      "Bring Me To Life"
+    ],
+    [
+      "Nightwish",
+      "Nemo"
+    ],
+    [
+      "Within Temptation",
+      "Ice Queen"
+    ],
+    [
+      "HammerFall",
+      "Hearts On Fire"
+    ],
+    [
+      "Europe",
+      "The Final Countdown"
+    ],
+    [
+      "Journey",
+      "Don't Stop Believin'"
+    ],
+    [
+      "Bon Jovi",
+      "You Give Love A Bad Name"
+    ],
+    [
+      "Queen",
+      "Somebody To Love"
+    ],
+    [
+      "Muse",
+      "Knights Of Cydonia"
+    ],
+    [
+      "Green Day",
+      "Basket Case"
+    ],
+    [
+      "Oasis",
+      "Wonderwall"
+    ],
+    [
+      "Led Zeppelin",
+      "Stairway To Heaven"
+    ]
+  ],
+  "selected": [
+    {
+      "artist": "Nightwish",
+      "title": "Nemo",
+      "selectionHash": "00c2ec8ed6ce2cf9d56abd48e28bc5ac46888b8eb6102583b2b25c4411d018e4"
+    },
+    {
+      "artist": "Ozzy Osbourne",
+      "title": "Crazy Train",
+      "selectionHash": "11220c9c9ee55c9218b6deec0a0ec9b71ec35fe1b8dbbba60846aaf0f620d3ff"
+    },
+    {
+      "artist": "Queen",
+      "title": "Somebody To Love",
+      "selectionHash": "1935308d68d51c8c0650469850dd21ca20ee763a0badeb328369b13fcf549825"
+    },
+    {
+      "artist": "System Of A Down",
+      "title": "Toxicity",
+      "selectionHash": "19b4a2968c16d00aec810f04da2d9976ce87e0d8bce9c89a97d86c4d95033796"
+    },
+    {
+      "artist": "Disturbed",
+      "title": "Down With The Sickness",
+      "selectionHash": "47f84a2c286d87ca90f7b3966b60dcb862cc35b05c0c377427382e4f9c61136c"
+    },
+    {
+      "artist": "Bon Jovi",
+      "title": "You Give Love A Bad Name",
+      "selectionHash": "8a8f00c96d79dfb69ce130bde1371a7c6c2da4fa0c8c4ea784fef11109cc9421"
+    },
+    {
+      "artist": "Rammstein",
+      "title": "Sonne",
+      "selectionHash": "8ea4391733d98dcc2660ac55b37587b65c959c3af8ec85b41d465b2b02ea6df0"
+    },
+    {
+      "artist": "Green Day",
+      "title": "Basket Case",
+      "selectionHash": "8fb317d06501f440a84a1f07b25b2dbf85e738b37ce6b0dc9df93191b8d93712"
+    },
+    {
+      "artist": "Judas Priest",
+      "title": "Breaking The Law",
+      "selectionHash": "a6f46480eb16bd838b2acef22396b96d4b1810eef6c9c32e3a46e90383678396"
+    },
+    {
+      "artist": "Black Sabbath",
+      "title": "Paranoid",
+      "selectionHash": "b098fe550c48ee28b4e50ada0bf29c639dc928bcb857132aed8a2d64035389ad"
+    }
+  ]
+}

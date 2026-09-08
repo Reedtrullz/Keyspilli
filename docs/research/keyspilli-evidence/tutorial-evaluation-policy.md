@@ -35,3 +35,10 @@ A later explicitly authorized held-out run uses exactly this command shape:
 There is no held-out subset selection. The release gate requires verified candidate hashes before and after with no intermediate change. Do not tune against held-out outcomes or recreate the freeze after seeing them.
 
 For targeted development reruns, replace the count with `ids=01,04,07` and keep `development`. IDs must be unique members of the development cohort. Receipts distinguish full cohort size, selected denominator, attempted imports, unattempted selected IDs, completed structural candidates and failed rows. A disk/check failure before submission is unattempted. A failed HTTP submission is attempted with unknown job ownership and stops the batch. Public job error text (bounded to 2000 characters), local failure reason and job status are retained. Targeted reruns do not replace earlier results or establish whole-cohort coverage.
+
+
+## Fresh prospective cohort after a failed frozen run
+
+The original v1 result remains4/10 and immutable. A later candidate may use a separately selected, sealed prospective cohort; this does not replace or improve the historical score. Declare the pool, exclusion rule and selection before any extraction, retain metadata search evidence, and never replace inputs after outcomes.
+
+Set `KEYSPILLI_EVALUATION_MANIFEST` to the absolute JSON path for both freeze and execution. A matching `.sha256` sidecar is mandatory. The candidate binds that manifest hash; a candidate frozen for another cohort is rejected. All ten prospective rows, candidate stability checks and existing structural/listening boundaries still apply. Default commands continue using the original manifest.
