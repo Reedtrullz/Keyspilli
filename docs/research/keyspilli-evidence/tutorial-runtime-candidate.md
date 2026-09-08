@@ -1,6 +1,6 @@
 # Tutorial extraction runtime candidate — 2026-09-08
 
-Status: **isolated Linux amd64 CLI image built and smoke-tested**, not deployed. Owner explicitly authorized the Docker smoke run. Production Dockerfile, worker routing and deployment configuration are unchanged. See the dated validation below; full HTTP worker packaging remains unverified.
+Status: **isolated Linux amd64 CLI image built and smoke-tested**, not deployed. Owner explicitly authorized the Docker smoke run. Production Dockerfile, worker routing and deployment configuration are unchanged. The dated validations below include a fresh combined Linux HTTP worker smoke pass; production packaging and deployment remain unverified.
 
 `services/transcribe/Dockerfile.tutorial` is a separate Python 3.12 CLI image for local, authorized tutorial media. It contains no Node worker, transcription models, Torch or Demucs. A Dockerfile-specific ignore file limits build context to the two Python sources, tests and requirements; local videos and the optional venv are excluded.
 
@@ -54,3 +54,26 @@ The first two-CPU real runs hit the existing120-second FFmpeg scanline deadline.
 `tutorial-linux-runtime-2026-09-08.json` records image identity, source hashes, resolved Python/native packages, checks, pixel preservation and exact MIDI parity. The image remains local; it was not pushed or deployed. Existing24 accepted difficulty note files are preserved.34 Python and89 worker tests pass. Native amd64 throughput and two-CPU capacity are not established by this emulated run. Use4 CPUs for reproducing the measured local emulation result.
 
 Build caveat: pyvips3.2.0 came from the pinned source tarball and produced wheel SHA256238588caf5f124a0434fda760aeb6e03b45fe89eb4a4fea1a49ff28928d47e39. Its isolated build tooling and Debian apt repository contents are not fully locked. Preserve the resulting image digest; do not claim byte-reproducible rebuilds.
+
+## Combined web/worker smoke image
+
+`services/transcribe/Dockerfile.tutorial-worker` combines the local CLI candidate with Node22.22.3, npm-lockfile dependencies and the application source. Its Dockerfile-specific allowlist excludes local outputs, node_modules, Next caches and environment files. Build the CLI image first, then:
+
+```sh
+docker build --platform linux/amd64 -f services/transcribe/Dockerfile.tutorial-worker -t keyspilli-tutorial-worker:candidate .
+```
+
+This is an isolated development preview image. It does not replace either production Dockerfile. Record both image identities because the local CLI base tag is mutable. The web command is `apps/web/node_modules/next/dist/bin/next dev apps/web --hostname 0.0.0.0 --port 3313`; the default image command starts the worker. Both containers share a fresh `/data` bind mount, run as the output directory's owner, use a read-only root and128MiB `/tmp` tmpfs. The web also requires a writable512MiB `/app/apps/web/.next` tmpfs and binds only127.0.0.1:3313. Configure the test API token and matching origin only on this isolated web process.
+
+Local amd64 QEMU exposed an esbuild0.28.2 Go garbage-collector crash at worker startup. `GOMAXPROCS=1` did not fix it; smoke-only `GOGC=off` allowed startup within the2GiB container limit. Do not add this workaround to production defaults or infer native-amd64 reliability from it. The development web exceeded2GiB while compiling routes with its default heap; `NODE_OPTIONS=--max-old-space-size=512` alone did not prevent a second2GiB OOM. The next smoke uses a3GiB web limit (including the writable Next tmpfs), while the worker retains2GiB. These are measured emulation constraints, not production sizing recommendations. Warm API routes without creating jobs before running the evaluator, whose15-second HTTP deadline is shorter than emulated Next cold compilation. Source data and extraction caches remain empty at submission.
+
+Use the existing `evaluate-tutorial-pipeline.ts` against3313 with an explicit development ID. Keep every failed receipt. If the web process fails while the worker continues, recover the same job and verify its downloads before a separate empty-data rerun; never resubmit blindly. Native production packaging, sustained concurrency, PDF export and universal song coverage are outside this smoke test.
+
+
+## Clean Linux HTTP result — 8 September 2026
+
+The combined image `sha256:bae7939e37a4f9c1bc87212379df6920818574a846495138346f3579e013113a` completes development input03 (Nirvana — Come As You Are) from an empty data directory through the actual HTTP import API. Discovery automatically selects2oX_g5RdU6w, downloads fresh media and extracts1140 notes. All four HTTP MIDI exports parse successfully: B177/E548/M1119/A1119 notes. Their SHA256 hashes exactly match the recovered first run. Both containers remain running with zero restarts and no OOM in this final run.175 relevant image source files match the checkout.
+
+Evidence: `tutorial-linux-http-2026-09-08.json`; full local logs and MIDI files: `output/tutorial-recovery/linux-pipeline-v3`. The first two HTTP evaluations failed because the2GiB development web container was OOM-killed; both workers completed their jobs. The first job's four downloads were verified after web recovery. Those failure receipts remain immutable in the final evidence. The successful run uses3GiB for the web and2GiB for the worker, plus the explicitly documented QEMU workaround.
+
+This closes one clean Linux development-preview import check. It does not establish native-amd64 production throughput, all-song coverage, a new heldout score, source rights, musical acceptance or production readiness. No image push, merge or deployment occurred.

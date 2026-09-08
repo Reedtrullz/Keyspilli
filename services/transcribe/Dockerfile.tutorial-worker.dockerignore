@@ -1,0 +1,17 @@
+**
+!package.json
+!package-lock.json
+!tsconfig.base.json
+!packages/
+!packages/**
+!services/
+!services/**
+!catalog/
+!catalog/**
+!apps/
+!apps/web/
+!apps/web/**
+**/node_modules
+**/.next
+**/__pycache__
+**/.env*
