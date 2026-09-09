@@ -1,6 +1,6 @@
 export interface InputCallbacks {
-  onNoteOn: (midi: number) => void;
-  onNoteOff: (midi: number) => void;
+  onNoteOn: (midi: number, identity?: string) => void;
+  onNoteOff: (midi: number, identity?: string) => void;
 }
 
 /** Computer-keyboard mapping: row keys = white keys, top row = black keys. */
@@ -25,20 +25,32 @@ export const KEYMAP: Record<string, number> = {
 };
 
 export class KeyboardInput {
-  private down = new Set<string>();
-  // physical base midi -> effective midi captured at press time, so an octave
-  // change while held releases the same pitch that was pressed.
-  private heldNotes = new Map<number, number>();
+  // Capture pitch by physical key so octave/modifier changes cannot lose a release.
+  private down = new Map<string, number>();
   octave = 2; // base octave offset from middle C
 
-  constructor(private cb: InputCallbacks) {}
+  constructor(private cb: InputCallbacks, private onOctaveChange?: (octave: number) => void) {}
 
   setOctave(value: number): void {
-    this.octave = Math.min(4, Math.max(0, value));
+    const next = Math.min(4, Math.max(0, Math.trunc(value)));
+    if (!Number.isFinite(next) || next === this.octave) return;
+    this.octave = next;
+    this.onOctaveChange?.(next);
+  }
+
+  releaseAll(): void {
+    for (const [key, midi] of this.down) this.cb.onNoteOff(midi, `key:${key}`);
+    this.down.clear();
   }
 
   handleKey(e: KeyboardEvent): void {
     const k = e.key.toLowerCase();
+    const physical = e.code || k;
+    if (e.type === "keyup") {
+      const midi = this.down.get(physical);
+      if (midi !== undefined) { e.preventDefault(); this.down.delete(physical); this.cb.onNoteOff(midi, `key:${physical}`); }
+      return;
+    }
     if (k === "z" || k === "x") {
       if (e.type === "keydown" && !e.repeat) this.setOctave(this.octave + (k === "z" ? -1 : 1));
       return;
@@ -46,18 +58,10 @@ export class KeyboardInput {
     const base = KEYMAP[k];
     if (base === undefined) return;
     e.preventDefault();
-    if (e.type === "keydown" && !e.repeat && !this.down.has(k)) {
-      this.down.add(k);
+    if (e.type === "keydown" && !e.repeat && !this.down.has(physical)) {
       const effective = base + (this.octave - 2) * 12;
-      this.heldNotes.set(base, effective);
-      this.cb.onNoteOn(effective);
-    } else if (e.type === "keyup" && this.down.has(k)) {
-      this.down.delete(k);
-      const physicalBase = base;
-      const effective =
-        this.heldNotes.get(physicalBase) ?? base + (this.octave - 2) * 12;
-      this.heldNotes.delete(physicalBase);
-      this.cb.onNoteOff(effective);
+      this.down.set(physical, effective);
+      this.cb.onNoteOn(effective, `key:${physical}`);
     }
   }
 }
@@ -69,20 +73,34 @@ export function midiSupported(): boolean {
 export class MidiInput {
   private handlers = new Map<string, { input: MIDIInput; handler: (e: MIDIMessageEvent) => void }>();
   private access: MIDIAccess | undefined;
+  private pending: Promise<boolean> | undefined;
+  private generation = 0;
+  private held = new Map<string, { midi: number; device: string }>();
 
   constructor(private cb: InputCallbacks) {}
 
-  async connect(): Promise<boolean> {
-    if (this.access) return this.handlers.size > 0;
-    if (!midiSupported()) return false;
-    try {
-      const access = await navigator.requestMIDIAccess();
+  connect(): Promise<boolean> {
+    if (this.access) return Promise.resolve(this.handlers.size > 0);
+    if (this.pending) return this.pending;
+    if (!midiSupported()) return Promise.resolve(false);
+    const generation = this.generation;
+    this.pending = navigator.requestMIDIAccess().then(access => {
+      if (generation !== this.generation) return false;
       this.access = access;
       access.onstatechange = () => this.rescan();
       this.rescan();
       return this.handlers.size > 0;
-    } catch {
-      return false;
+    }).catch(() => false).finally(() => {
+      if (generation === this.generation) this.pending = undefined;
+    });
+    return this.pending;
+  }
+
+  releaseAll(device?: string): void {
+    for (const [identity, note] of this.held) {
+      if (device !== undefined && note.device !== device) continue;
+      this.cb.onNoteOff(note.midi, identity);
+      this.held.delete(identity);
     }
   }
 
@@ -92,25 +110,35 @@ export class MidiInput {
 
   /** Remove all MIDI message handlers (call when the consumer unmounts). */
   disconnect(): void {
+    this.generation++; this.pending = undefined;
+    this.releaseAll();
     for (const { input } of this.handlers.values()) input.onmidimessage = null;
     this.handlers.clear();
     if (this.access) this.access.onstatechange = null;
     this.access = undefined;
   }
 
-  private makeHandler(): (e: MIDIMessageEvent) => void {
+  private makeHandler(device: string): (e: MIDIMessageEvent) => void {
     return (e) => {
       if (!e.data) return;
       const [status, note, vel] = e.data;
       if (status === undefined || note === undefined || vel === undefined) return;
-      if ((status & 0xf0) === 0x90 && vel > 0) this.cb.onNoteOn(note);
-      else if ((status & 0xf0) === 0x80 || ((status & 0xf0) === 0x90 && vel === 0)) this.cb.onNoteOff(note);
+      const identity = `midi:${device}:${status & 0x0f}:${note}`;
+      if ((status & 0xf0) === 0x90 && vel > 0) {
+        this.held.set(identity, { midi: note, device });
+        this.cb.onNoteOn(note, identity);
+      } else if ((status & 0xf0) === 0x80 || ((status & 0xf0) === 0x90 && vel === 0)) {
+        this.held.delete(identity);
+        this.cb.onNoteOff(note, identity);
+      }
     };
   }
 
   private attach(input: MIDIInput): void {
-    if (this.handlers.has(input.id)) return;
-    const handler = this.makeHandler();
+    const previous = this.handlers.get(input.id);
+    if (previous?.input === input) return;
+    if (previous) { this.releaseAll(input.id); previous.input.onmidimessage = null; }
+    const handler = this.makeHandler(input.id);
     input.onmidimessage = handler;
     this.handlers.set(input.id, { input, handler });
   }
@@ -119,12 +147,13 @@ export class MidiInput {
   private rescan(): void {
     if (!this.access) return;
     for (const input of this.access.inputs.values()) {
-      if ("onmidimessage" in input) this.attach(input);
+      if ("onmidimessage" in input && input.state !== "disconnected") this.attach(input);
     }
     const currentInputs = [...this.access.inputs.values()];
     for (const [id, entry] of this.handlers) {
       // Match by id first; fall back to identity so mocks without ids stay stable.
-      if (!this.access.inputs.has(id) && !currentInputs.includes(entry.input)) {
+      if (entry.input.state === "disconnected" || (!this.access.inputs.has(id) && !currentInputs.includes(entry.input))) {
+        this.releaseAll(id);
         entry.input.onmidimessage = null;
         this.handlers.delete(id);
       }

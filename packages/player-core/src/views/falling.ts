@@ -14,10 +14,10 @@ const WHITE = [0, 2, 4, 5, 7, 9, 11];
 const NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
 /** Short pitch label: letter for keys, octave appended on C (C4, C#4...). */
-export function noteLabel(midi: number): string {
+export function noteLabel(midi: number, includeOctave = false): string {
   const pc = NAMES[midi % 12]!;
   const octave = Math.floor(midi / 12) - 1;
-  return pc === "C" ? `${pc}${octave}` : pc;
+  return includeOctave || pc === "C" ? `${pc}${octave}` : pc;
 }
 
 export function keyboardGeometry(lowMidi: number, highMidi: number, width: number, whiteHeight = 160): KeyboardGeometry {
@@ -359,6 +359,7 @@ export function keyboardRects(o: { width: number; lowMidi: number; highMidi: num
   whites: { midi: number; x: number; w: number }[];
   blacks: { midi: number; x: number; w: number }[];
   whiteWidth: number;
+  whiteHeight: number;
 } {
   const { geometry: geo, xByMidi } = keyboardLayout(o.lowMidi, o.highMidi, o.width, o.whiteHeight);
   return {
@@ -367,7 +368,17 @@ export function keyboardRects(o: { width: number; lowMidi: number; highMidi: num
       return { midi, x: xByMidi.get(midi) ?? -100, w: geo.blackWidth };
     }),
     whiteWidth: geo.whiteWidth,
+    whiteHeight: o.whiteHeight,
   };
+}
+
+export function keyboardMidiAt(x: number, y: number, keys: ReturnType<typeof keyboardRects>): number | null {
+  if (!Number.isFinite(x) || !Number.isFinite(y) || x < 0 || y < 0 || y >= keys.whiteHeight) return null;
+  if (y < keys.whiteHeight * 0.62) {
+    const black = keys.blacks.find(key => x >= key.x && x < key.x + key.w);
+    if (black) return black.midi;
+  }
+  return keys.whites.find(key => x >= key.x && x < key.x + key.w)?.midi ?? null;
 }
 
 export { pitchColor };

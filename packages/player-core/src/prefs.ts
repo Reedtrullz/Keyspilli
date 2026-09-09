@@ -26,6 +26,9 @@ export const DEFAULT_SETTINGS: PlayerSettings = {
   transpose: 0,
   mode: "falling",
   showAllKeys: true,
+  keyboardLabels: "notes",
+  showKeyBindings: false,
+  stageTheme: "light",
 };
 
 function storage(): Storage | null {
@@ -71,6 +74,9 @@ export function loadSettings(): PlayerSettings {
       transpose: clampNum(Math.trunc(Number(raw.transpose)), -24, 24, DEFAULT_SETTINGS.transpose),
       mode: pickEnum(raw.mode, VIEW_MODES, DEFAULT_SETTINGS.mode),
       showAllKeys: pickBool(raw.showAllKeys, DEFAULT_SETTINGS.showAllKeys),
+      keyboardLabels: pickEnum(raw.keyboardLabels, ["notes", "octaves", "off"] as const, DEFAULT_SETTINGS.keyboardLabels),
+      showKeyBindings: pickBool(raw.showKeyBindings, DEFAULT_SETTINGS.showKeyBindings),
+      stageTheme: pickEnum(raw.stageTheme, ["light", "charcoal"] as const, DEFAULT_SETTINGS.stageTheme),
     };
   } catch {
     return { ...DEFAULT_SETTINGS };

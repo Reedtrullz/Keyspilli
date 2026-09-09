@@ -1,3 +1,4 @@
+import { openPlayerTool } from "./player-tools";
 import { expect, test } from "@playwright/test";
 
 const SONG = "f-f-chopin-nocturne-m";
@@ -62,7 +63,7 @@ test("full width mode expands the player and persists across reload", async ({ p
 
   await expect(root).toHaveClass(/max-w-6xl/);
 
-  if (await page.getByRole("button", { name: "Adjust", exact: true }).getAttribute("aria-expanded") == "false") await page.getByRole("button", { name: "Adjust", exact: true }).click();
+  await openPlayerTool(page, "Display");
   await page.getByRole("button", { name: "Full width" }).click();
   await expect(root).toHaveClass(/w-full/);
   await expect(root).not.toHaveClass(/max-w-6xl/);
@@ -80,7 +81,7 @@ test("full width player fits the 390px mobile viewport without horizontal scroll
   await page.goto(`/player/${SONG}`);
   await expect(page.locator("canvas").first()).toBeVisible();
 
-  await page.getByRole("button", { name: "Adjust", exact: true }).click();
+  await openPlayerTool(page, "Display");
   await page.getByRole("button", { name: "Full width" }).click();
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
@@ -95,8 +96,7 @@ test("organ sound controls persist across reload", async ({ page }) => {
     if (message.type() === "error") consoleErrors.push(message.text());
   });
   await page.goto(`/player/${SONG}`);
-  if (await page.getByRole("button", { name: "Adjust", exact: true }).getAttribute("aria-expanded") === "false") await page.getByRole("button", { name: "Adjust", exact: true }).click();
-  await page.getByRole("button", { name: "Open settings" }).click();
+  await openPlayerTool(page, "Sound");
 
   await page.getByRole("radio", { name: "Organ" }).click();
   await expect(page.getByRole("radio", { name: "Organ" })).toHaveAttribute("aria-checked", "true");
@@ -108,12 +108,11 @@ test("organ sound controls persist across reload", async ({ page }) => {
   await expect(page.getByLabel("Organ drive")).toHaveCount(0);
   await expect(page.getByRole("radiogroup", { name: "Rotary" })).toHaveCount(0);
   await page.getByLabel("Organ space").fill("78");
-  await page.getByRole("button", { name: "Done", exact: true }).click();
+  await page.getByRole("button", { name: "Close tools", exact: true }).click();
   await page.keyboard.press("a");
 
   await page.reload();
-  if (await page.getByRole("button", { name: "Adjust", exact: true }).getAttribute("aria-expanded") === "false") await page.getByRole("button", { name: "Adjust", exact: true }).click();
-  await page.getByRole("button", { name: "Open settings" }).click();
+  await openPlayerTool(page, "Sound");
   await expect(page.getByRole("radio", { name: "Organ" })).toHaveAttribute("aria-checked", "true");
   await expect(page.getByRole("radio", { name: "Cathedral", exact: true })).toHaveAttribute("aria-checked", "true");
   await expect(page.getByLabel("Organ space")).toHaveValue("78");
@@ -137,10 +136,9 @@ test("switching sound modes preserves active transport", async ({ page }) => {
   let previous = Number(await seek.inputValue());
 
   for (const sound of ["Organ", "Synth Piano", "Organ"]) {
-    if (await page.getByRole("button", { name: "Adjust", exact: true }).getAttribute("aria-expanded") === "false") await page.getByRole("button", { name: "Adjust", exact: true }).click();
-  await page.getByRole("button", { name: "Open settings" }).click();
+    await openPlayerTool(page, "Sound");
     await page.getByRole("radio", { name: sound }).click();
-    await page.getByRole("button", { name: "Done", exact: true }).click();
+    await page.getByRole("button", { name: "Close tools", exact: true }).click();
     await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
     await page.waitForTimeout(500);
     const current = Number(await seek.inputValue());
@@ -152,20 +150,18 @@ test("switching sound modes preserves active transport", async ({ page }) => {
 
 test("switching Organ styles preserves active transport", async ({ page }) => {
   await page.goto(`/player/${SONG}`);
-  if (await page.getByRole("button", { name: "Adjust", exact: true }).getAttribute("aria-expanded") === "false") await page.getByRole("button", { name: "Adjust", exact: true }).click();
-  await page.getByRole("button", { name: "Open settings" }).click();
+  await openPlayerTool(page, "Sound");
   await page.getByRole("radio", { name: "Organ" }).click();
-  await page.getByRole("button", { name: "Done", exact: true }).click();
+  await page.getByRole("button", { name: "Close tools", exact: true }).click();
   await page.getByRole("button", { name: "Play", exact: true }).click();
   await page.waitForTimeout(500);
   const seek = page.getByLabel("Seek");
   let previous = Number(await seek.inputValue());
 
   for (const style of ["Cathedral", "Rock", "Cathedral"]) {
-    if (await page.getByRole("button", { name: "Adjust", exact: true }).getAttribute("aria-expanded") === "false") await page.getByRole("button", { name: "Adjust", exact: true }).click();
-  await page.getByRole("button", { name: "Open settings" }).click();
+    await openPlayerTool(page, "Sound");
     await page.getByRole("radio", { name: style, exact: true }).click();
-    await page.getByRole("button", { name: "Done", exact: true }).click();
+    await page.getByRole("button", { name: "Close tools", exact: true }).click();
     await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
     await page.waitForTimeout(500);
     const current = Number(await seek.inputValue());
@@ -291,7 +287,7 @@ test("loop bar bounds define a single scored passage", async ({ page }) => {
 
 test("computer keys reach chord-practice targets", async ({ page }) => {
   await page.goto(`/player/${SONG}`);
-  await page.getByRole("button", { name: "Adjust", exact: true }).click();
+  await page.getByRole("button", { name: "Practice", exact: true }).click();
   await page.getByRole("button", { name: "Chord practice", exact: true }).click();
   const panel = page.getByTestId("chord-practice-panel");
   await expect(panel).toContainText("up to 4 bars");
@@ -306,10 +302,9 @@ test("sound preview pauses without moving the song position", async ({ page }) =
   await page.goto(`/player/${SONG}`);
   const seek = page.getByLabel("Seek");
   await seek.fill("20");
-  await page.getByRole("button", { name: "Adjust", exact: true }).click();
-  await page.getByRole("button", { name: "Open settings" }).click();
+  await openPlayerTool(page, "Sound");
   await page.getByRole("button", { name: "Preview sound" }).click();
-  await page.getByRole("button", { name: "Done", exact: true }).click();
+  await page.getByRole("button", { name: "Close tools", exact: true }).click();
   await expect(seek).toHaveValue("20");
   await expect(page.getByRole("button", { name: "Play", exact: true })).toBeVisible();
 });
@@ -416,14 +411,14 @@ test("loop shortcuts retain their musical range and respect the last bar", async
 
 test("chord guide explains its markers and preserves the existing preference", async ({ page }) => {
   await page.goto(`/player/${SONG}`);
-  await page.getByRole("button", { name: "Adjust", exact: true }).click();
+  await openPlayerTool(page, "Display");
   const guide = page.getByRole("button", { name: "Chord guide", exact: true });
   await expect(guide).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("#chord-guide-description")).toContainText("not notes to press now");
   await guide.click();
   await expect(guide).toHaveAttribute("aria-pressed", "false");
   await page.reload();
-  await page.getByRole("button", { name: "Adjust", exact: true }).click();
+  await openPlayerTool(page, "Display");
   await expect(guide).toHaveAttribute("aria-pressed", "false");
   await expect(page.locator(".falling-canvas")).not.toContainText("Chord guide");
   await expect(page.locator(".falling-canvas")).toContainText("Top strip: next note");
@@ -459,11 +454,11 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 1740, height: 137
     await expect(page.locator(".player-tempo-notice")).toHaveCount(0);
     const canvas = page.getByLabel("Falling notes player");
     await expect(canvas).toBeVisible();
-    const box = await canvas.boundingBox();
+    const box = await page.locator(".falling-canvas").boundingBox();
     expect(box!.height).toBeGreaterThan(viewport.height * 0.5);
     expect(box!.y + box!.height).toBeLessThanOrEqual(viewport.height);
     const play = await page.getByRole("button", { name: "Play", exact: true }).boundingBox();
-    const adjust = await page.getByRole("button", { name: "Adjust", exact: true }).boundingBox();
+    const adjust = await page.locator(".player-tools").boundingBox();
     expect(Math.abs(play!.y - adjust!.y)).toBeLessThan(8);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   });
@@ -489,11 +484,11 @@ test("Fit passage keeps keyboard labels fixed across bars and speed changes", as
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(`/player/${SONG}`);
   await page.getByRole("button", { name: "Got it", exact: true }).click();
-  await page.getByRole("button", { name: "Adjust", exact: true }).click();
+  await openPlayerTool(page, "Display");
   const allKeys = page.getByRole("button", { name: "88 keys", exact: true });
   if (await allKeys.isVisible()) await allKeys.click();
   await expect(page.getByRole("button", { name: "Fit passage", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Adjust", exact: true }).click();
+  await page.getByRole("button", { name: "Close tools" }).click();
   const canvas = page.getByLabel("Falling notes player");
   // Compare rendered key names and positions; active-note colors may change on seek.
   const labels = async () => {

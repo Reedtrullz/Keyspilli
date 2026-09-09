@@ -195,7 +195,7 @@ describe("MIDI reconnect held-note release through the engine", () => {
       // Adapter disappears and returns as a fresh device.
       mi.disconnect();
       access.inputs.delete(input.id);
-      expect(await mi.connect()).toBe(true);
+      expect(await mi.connect()).toBe(false); // access exists, but no device is attached yet
       const fresh: FakeMidiInput = { id: "in-b", onmidimessage: null };
       access.inputs.set(fresh.id, fresh);
       access.onstatechange?.();
@@ -213,4 +213,75 @@ describe("MIDI reconnect held-note release through the engine", () => {
       restore();
     }
   });
+});
+
+it("notifies octave changes and releases held notes idempotently", () => {
+  const events: string[] = [], octaves: number[] = [];
+  const input = new KeyboardInput({ onNoteOn: m => events.push(`on:${m}`), onNoteOff: m => events.push(`off:${m}`) }, octave => octaves.push(octave));
+  input.handleKey({ key: "a", type: "keydown", repeat: false, preventDefault() {} } as KeyboardEvent);
+  input.setOctave(3); input.setOctave(3);
+  input.releaseAll(); input.releaseAll();
+  expect(events).toEqual(["on:60", "off:60"]);
+  expect(octaves).toEqual([3]);
+});
+
+it("releases each MIDI device/channel owner on unplug and disconnect", async () => {
+  const a: FakeMidiInput = { id: "a", onmidimessage: null };
+  const b: FakeMidiInput = { id: "b", onmidimessage: null };
+  const restore = installNavigator([a, b]);
+  const released: string[] = [];
+  try {
+    const midi = new MidiInput({ onNoteOn() {}, onNoteOff: (_, id) => released.push(id!) });
+    await midi.connect();
+    for (const status of [0x90, 0x91]) a.onmidimessage!({ data: new Uint8Array([status, 60, 100]) });
+    b.onmidimessage!({ data: new Uint8Array([0x90, 60, 100]) });
+    access.inputs.delete("a"); access.onstatechange!();
+    expect(released).toEqual(["midi:a:0:60", "midi:a:1:60"]);
+    expect(midi.connectedCount).toBe(1);
+    midi.disconnect();
+    expect(released).toEqual(["midi:a:0:60", "midi:a:1:60", "midi:b:0:60"]);
+  } finally { restore(); }
+});
+
+it("deduplicates permission requests and ignores permission granted after disconnect", async () => {
+  const input: FakeMidiInput = { id: "a", onmidimessage: null };
+  const restore = installNavigator([input]);
+  try {
+    let resolve!: (value: MIDIAccess) => void;
+    Object.assign(navigator, { requestMIDIAccess: () => new Promise<MIDIAccess>(done => { resolve = done; }) });
+    const midi = new MidiInput({ onNoteOn() {}, onNoteOff() {} });
+    const pending = midi.connect();
+    expect(midi.connect()).toBe(pending);
+    midi.disconnect();
+    resolve(access as unknown as MIDIAccess);
+    expect(await pending).toBe(false);
+    expect(input.onmidimessage).toBeNull();
+    expect(midi.connectedCount).toBe(0);
+  } finally { restore(); }
+});
+
+it("rebinds a replacement MIDI port with the same device id", async () => {
+  const original: FakeMidiInput = { id: "a", onmidimessage: null };
+  const replacement: FakeMidiInput = { id: "a", onmidimessage: null };
+  const restore = installNavigator([original]);
+  const events: string[] = [];
+  try {
+    const midi = new MidiInput({ onNoteOn: () => events.push("on"), onNoteOff: () => events.push("off") });
+    await midi.connect();
+    original.onmidimessage!({ data: new Uint8Array([0x90, 60, 100]) });
+    access.inputs.set("a", replacement); access.onstatechange!();
+    expect(events).toEqual(["on", "off"]);
+    expect(original.onmidimessage).toBeNull();
+    replacement.onmidimessage!({ data: new Uint8Array([0x90, 64, 100]) });
+    expect(events).toEqual(["on", "off", "on"]);
+    midi.disconnect();
+  } finally { restore(); }
+});
+
+it("releases a shifted punctuation note when Shift is released before its physical key", () => {
+  const events: string[] = [];
+  const input = new KeyboardInput({ onNoteOn: midi => events.push(`on:${midi}`), onNoteOff: midi => events.push(`off:${midi}`) });
+  input.handleKey({ key: ";", code: "Comma", type: "keydown", repeat: false, preventDefault() {} } as KeyboardEvent);
+  input.handleKey({ key: ",", code: "Comma", type: "keyup", repeat: false, preventDefault() {} } as KeyboardEvent);
+  expect(events).toEqual(["on:76", "off:76"]);
 });

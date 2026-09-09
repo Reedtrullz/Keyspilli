@@ -75,3 +75,33 @@ describe("detectSections", () => {
     expect(sections.some((section) => section.endBeat - section.startBeat === 4)).toBe(false);
   });
 });
+
+it("reports progress using actual pickup and compound-meter boundaries", async () => {
+  const { measureProgressAt } = await import("../src/sections.js");
+  // Quarter-note spans for 4/4, 3/4, 6/8, and 12/8.
+  for (const span of [4, 3, 3, 6]) {
+    const measures = [{ startBeat: 0, endBeat: 1 }, { startBeat: 1, endBeat: 1 + span }];
+    expect(measureProgressAt(0.5, measures)).toEqual({ index: 0, fraction: 0.5 });
+    expect(measureProgressAt(1 + span / 2, measures)).toEqual({ index: 1, fraction: 0.5 });
+    expect(measureProgressAt(1, measures)).toEqual({ index: 1, fraction: 0 });
+    expect(measureProgressAt(1 + span, measures)).toBeNull();
+  }
+  expect(measureProgressAt(NaN, [])).toBeNull();
+  expect(measureProgressAt(0, [{ startBeat: 0, endBeat: 0 }])).toBeNull();
+});
+
+
+it("keeps bar progress stable when the engine preserves musical position at another speed", async () => {
+  const { measureProgressAt } = await import("../src/sections.js");
+  const { secPerBeat } = await import("../src/timeline.js");
+  const bars = [{ startBeat: 0, endBeat: 1 }, { startBeat: 1, endBeat: 7 }];
+  for (const beat of [0.5, 1, 2.5, 6.99, 1]) { // seek and loop wrap
+    const expected = measureProgressAt(beat, bars);
+    for (const speed of [0.5, 0.75, 1]) {
+      const time = beat * secPerBeat(66, speed);
+      const result = measureProgressAt(time / secPerBeat(66, speed), bars)!;
+      expect(result.index).toBe(expected!.index);
+      expect(result.fraction).toBeCloseTo(expected!.fraction, 10);
+    }
+  }
+});

@@ -3,16 +3,15 @@
 import { useEffect, useRef } from "react";
 import type { PlayerSettings } from "@keyspilli/player-core";
 import type { ChordSourceId, ChordSourceOption } from "./chord-sources";
-import { dialogMotionClasses, useDialogMotion, usePresence } from "./player-motion";
+import { usePresence } from "./player-motion";
 
-export function SettingsDialog({
+export function SoundControls({
   settings,
   onChange,
   chordSource = "auto",
   chordSources,
   chordSourceStatus = null,
   onChordSourceChange,
-  onClose,
   onPreview,
 }: {
   settings: PlayerSettings;
@@ -21,14 +20,10 @@ export function SettingsDialog({
   chordSources?: { ug: ChordSourceOption | null; generated: ChordSourceOption; auto: ChordSourceOption };
   chordSourceStatus?: string | null;
   onChordSourceChange?: (source: ChordSourceId) => void;
-  onClose: () => void;
   onPreview?: () => void;
 }) {
 
-  const dialogRef = useRef<HTMLDivElement>(null);
   const chordSourcePanelRef = useRef<HTMLDivElement>(null);
-  const { requestClose, visible, closing } = useDialogMotion(onClose);
-  const motion = dialogMotionClasses(visible, closing);
   const chordSourcePresent = settings.backgroundMode === "chord" && Boolean(chordSources && onChordSourceChange);
   const chordSourcePresence = usePresence(chordSourcePresent);
 
@@ -39,79 +34,8 @@ export function SettingsDialog({
     else panel.removeAttribute("inert");
   }, [chordSourcePresent, chordSourcePresence.mounted]);
 
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (closing) dialog.setAttribute("inert", "");
-    else dialog.removeAttribute("inert");
-  }, [closing]);
-
-  // Escape to close.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.stopPropagation();
-        requestClose();
-      }
-    };
-    window.addEventListener("keydown", onKey, true);
-    return () => window.removeEventListener("keydown", onKey, true);
-  }, [requestClose]);
-
-  // Focus trap: keep Tab/Shift+Tab cycling within the dialog.
-  useEffect(() => {
-    const el = dialogRef.current;
-    if (!el || closing) return;
-    const onFocusIn = (e: FocusEvent) => {
-      if (!el.contains(e.target as Node)) {
-        el.focus();
-      }
-    };
-    document.addEventListener("focusin", onFocusIn);
-    return () => document.removeEventListener("focusin", onFocusIn);
-  }, [closing]);
-
-  function handleDialogKeyDown(e: React.KeyboardEvent) {
-    if (e.key !== "Tab") return;
-    const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
-      "button, [href], input, select, textarea, [tabindex]:not([tabindex=\"-1\"])"
-    );
-    if (!focusable || focusable.length === 0) return;
-    const first = focusable[0]!;
-    const last = focusable[focusable.length - 1]!;
-    if (e.shiftKey) {
-      if (document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      }
-    } else {
-      if (document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    }
-  }
-
   return (
-    <div
-      className={`fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4 ${motion.overlay}`}
-      ref={dialogRef}
-      tabIndex={-1}
-      role="dialog"
-      aria-hidden={closing}
-      onKeyDown={handleDialogKeyDown}
-      aria-modal="true"
-      aria-label="Player settings"
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) requestClose();
-      }}
-    >
-      <div className={`bg-white rounded-2xl w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto p-5 shadow-xl ${motion.panel}`}>
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="font-semibold">Settings</h2>
-          <button autoFocus onClick={requestClose} className="px-2 py-1 rounded-lg hover:bg-zinc-100" aria-label="Close settings">×</button>
-        </div>
-
+    <>
         <div className="mb-4">
           <h3 className="text-sm font-medium mb-2">Background sound</h3>
           <div className="flex gap-2" role="radiogroup" aria-label="Background sound">
@@ -322,10 +246,6 @@ export function SettingsDialog({
           </label>
         )}
 
-        <button onClick={requestClose} className="w-full py-2.5 rounded-xl bg-zinc-900 text-white text-sm font-medium">
-          Done
-        </button>
-      </div>
-    </div>
+    </>
   );
 }

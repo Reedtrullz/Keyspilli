@@ -79,4 +79,25 @@ describe("SamplerAudioEngine", () => {
     await Promise.resolve();
     expect(dispose).toHaveBeenCalledTimes(1);
   });
+  it("releases only the sampled input voice and also clears a pre-load fallback voice", async () => {
+    const start = vi.fn(), stop = vi.fn();
+    pianoFactory.mockReturnValue({ ready: Promise.resolve(), setCC: vi.fn(), start, stop, dispose: vi.fn() });
+    const { AudioEngine } = await import("../src/audio.js");
+    vi.spyOn(AudioEngine.prototype, "noteOn").mockImplementation(() => {});
+    const fallbackOff = vi.spyOn(AudioEngine.prototype, "noteOff").mockImplementation(() => {});
+    const { SamplerAudioEngine } = await import("../src/sampler-audio.js");
+    const engine = new SamplerAudioEngine();
+    const note = { midi: 60, startSec: 0, durSec: 0.4, vel: 100 };
+    engine.noteOn({ ...note, fromInput: true });
+    await Promise.resolve();
+    engine.noteOn(note);
+    engine.noteOn({ ...note, fromInput: true });
+    engine.noteOff(60);
+    expect(start.mock.calls[0]![0]).toMatchObject({ duration: 0.4 });
+    expect(start.mock.calls[1]![0]).toMatchObject({ stopId: "input:60", duration: undefined });
+    expect(stop).toHaveBeenCalledExactlyOnceWith({ stopId: "input:60" });
+    expect(fallbackOff).toHaveBeenCalledExactlyOnceWith(60);
+    engine.dispose();
+  });
+
 });

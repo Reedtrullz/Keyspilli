@@ -1,0 +1,19 @@
+{
+  "method": "Headless Chromium, 1440x900, advanced Nocturne, synth, 100% speed, 5 seconds; frame cadence only, not perceived audio latency.",
+  "results": [
+    {
+      "label": "baseline",
+      "frames": 601,
+      "medianMs": 8.300000000000182,
+      "p95Ms": 9,
+      "over50ms": 0
+    },
+    {
+      "label": "instrument-ui",
+      "frames": 589,
+      "medianMs": 8.300000000000182,
+      "p95Ms": 9.199999999999818,
+      "over50ms": 1
+    }
+  ]
+}

@@ -513,21 +513,6 @@ body {
   min-width: 0;
 }
 
-.player-adjust-toggle {
-  display: inline-flex;
-}
-
-.player-advanced-panel {
-  display: none;
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #e4e4e7;
-  border-radius: 1rem;
-  background: #fafafa;
-}
-
-.player-advanced-panel[data-open="true"] { display: flex; }
-
 .player-practice-button {
   flex-shrink: 0;
 }
@@ -624,43 +609,6 @@ body {
   .player-primary-controls {
     width: 100%;
     justify-content: space-between;
-  }
-
-  .player-adjust-toggle {
-    display: inline-flex;
-  }
-
-  .player-advanced-panel {
-    display: none;
-    width: 100%;
-    padding: 0.65rem;
-    border: 1px solid #e4e4e7;
-    border-radius: 1rem;
-    background: rgb(244 244 245 / 0.58);
-  }
-
-  .player-advanced-panel[data-mounted="true"] {
-    display: flex;
-  }
-
-  .player-advanced-panel[data-state="open"] {
-    opacity: 1;
-    transform: translate3d(0, 0, 0);
-    visibility: visible;
-    animation: motion-rise-in var(--motion-duration-base) var(--motion-ease-standard) both;
-    transition: opacity var(--motion-duration-base) var(--motion-ease-standard),
-      transform var(--motion-duration-base) var(--motion-ease-standard),
-      visibility 0s linear 0s;
-  }
-
-  .player-advanced-panel[data-state="closed"] {
-    opacity: 0;
-    pointer-events: none;
-    transform: translate3d(0, 6px, 0);
-    visibility: hidden;
-    transition: opacity var(--motion-duration-base) var(--motion-ease-exit),
-      transform var(--motion-duration-base) var(--motion-ease-exit),
-      visibility 0s linear var(--motion-duration-base);
   }
 
   .player-secondary-actions {
@@ -1036,7 +984,6 @@ body:has(.player-focus) :where(.site-header, .site-footer) { display: none; }
 .player-page { padding-top: 0.75rem; }
 .player-control-strip .player-options { display: contents; }
 .player-control-strip .player-primary-controls { width: auto; margin-left: auto; border: 0; padding: 0; }
-.player-control-strip .player-advanced-panel { flex-basis: 100%; }
 .player-song-actions { margin-left: 0.5rem; }
 .player-workspace[data-falling="true"] { height: calc(100dvh - 4.5rem); min-height: 620px; display: flex; flex-direction: column; }
 .player-workspace[data-falling="true"] .player-surface { display: flex; flex-direction: column; flex: 1; min-height: 0; }
@@ -1054,3 +1001,19 @@ body:has(.player-focus) :where(.site-header, .site-footer) { display: none; }
 }
 
 .player-focus .player-workspace[data-falling="true"] :where(.player-stage, .player-mode-stack, .player-mode-layer-enter) { min-height: 150px; }
+
+/* Instrument tools never participate in the note-stage layout. */
+.player-control-strip { container: player-controls / inline-size; }
+.player-tools, .player-tool-triggers { display: flex; gap: .35rem; }
+.player-tools-compact { display: none; }
+.player-tool-panel { max-width: none; position: fixed; inset: auto 12px auto auto; margin: 0; width: min(420px, calc(100vw - 24px)); max-height: min(560px, calc(100dvh - 180px)); overflow: auto; border: 1px solid #d4d4d8; border-radius: 16px; padding: 16px; background: white; color: #18181b; box-shadow: 0 16px 48px #18181b24; z-index: 100; }
+.player-tool-panel::backdrop { background: #18181b55; }
+.player-tool-panel fieldset { min-width: 0; }
+.player-tool-panel select { width: 100%; min-height: 44px; border: 1px solid #d4d4d8; border-radius: 8px; padding: 8px; background: white; }
+@container player-controls (max-width: 1200px) {
+  .player-tool-triggers { display: none; }
+  .player-tools-compact { display: block; }
+}
+@media (max-width: 640px) {
+  .player-tool-panel { inset: auto 0 0 !important; width: 100%; max-height: 60dvh; border-radius: 18px 18px 0 0; padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+}

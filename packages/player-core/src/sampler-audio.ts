@@ -123,7 +123,7 @@ export class SamplerAudioEngine implements AudioLike {
     const ctx = this.ensure();
     const t = ctx.currentTime + when;
     if (this.piano && this.pianoReady) {
-      this.piano.start({ note: n.midi, time: t, duration: n.durSec, velocity: n.vel });
+      this.piano.start({ note: n.midi, time: t, duration: n.fromInput ? undefined : n.durSec, velocity: n.vel, ...(n.fromInput ? { stopId: `input:${n.midi}` } : {}) });
       return;
     }
     // Samples not ready yet: use fallback oscillator for immediate response.
@@ -136,8 +136,7 @@ export class SamplerAudioEngine implements AudioLike {
 
   noteOff(midi: number): void {
     if (this.piano && this.pianoReady) {
-      this.piano.stop(midi);
-      return;
+      this.piano.stop({ stopId: `input:${midi}` });
     }
     this.fallbackEngine?.noteOff(midi);
   }

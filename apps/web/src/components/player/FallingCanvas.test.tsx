@@ -34,6 +34,7 @@ it("redraws a paused height-only resize in CSS pixels with a DPR backing store",
   const raf = vi.fn();
   vi.stubGlobal("requestAnimationFrame", raf);
   vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  vi.stubGlobal("document", { addEventListener: vi.fn(), removeEventListener: vi.fn() });
   vi.stubGlobal("window", { devicePixelRatio: 2, addEventListener: vi.fn(), removeEventListener: vi.fn() });
   FallingCanvas({
     notes: [{ midi: 61, startSec: 0, durSec: 0.5, vel: 80 }],
@@ -73,6 +74,7 @@ it("clears chord guide markers at the exact chord end and restores them for the 
   vi.stubGlobal("ResizeObserver", class { constructor(callback: () => void) { redraw = callback; } observe() {} disconnect() {} });
   vi.stubGlobal("requestAnimationFrame", vi.fn());
   vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  vi.stubGlobal("document", { addEventListener: vi.fn(), removeEventListener: vi.fn() });
   vi.stubGlobal("window", { devicePixelRatio: 1, addEventListener: vi.fn(), removeEventListener: vi.fn() });
   const timeRef = { current: 0 };
   const settings = { ...DEFAULT_SETTINGS, chordKeys: true };
@@ -84,5 +86,31 @@ it("clears chord guide markers at the exact chord end and restores them for the 
   arc.mockClear(); timeRef.current = 1; redraw(); expect(arc).not.toHaveBeenCalled();
   arc.mockClear(); timeRef.current = 2; redraw(); expect(arc).toHaveBeenCalledTimes(1);
   arc.mockClear(); settings.chordKeys = false; redraw(); expect(arc).not.toHaveBeenCalled();
+  for (const cleanup of cleanups) cleanup?.();
+});
+
+it("keeps octave landmarks and computer hints distinct when note labels change", () => {
+  const fillText = vi.fn();
+  const ctx = new Proxy({ fillText, measureText: (text: string) => ({ width: text.length * 7 }) }, {
+    get: (target, key) => key in target ? target[key as keyof typeof target] : vi.fn(),
+  });
+  hooks.canvas = { clientWidth: 880, clientHeight: 400, width: 0, height: 0, getContext: () => ctx };
+  let redraw = () => {};
+  vi.stubGlobal("ResizeObserver", class { constructor(callback: () => void) { redraw = callback; } observe() {} disconnect() {} });
+  vi.stubGlobal("requestAnimationFrame", vi.fn()); vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  vi.stubGlobal("window", { devicePixelRatio: 2, addEventListener: vi.fn(), removeEventListener: vi.fn() });
+  vi.stubGlobal("document", { addEventListener: vi.fn(), removeEventListener: vi.fn() });
+  const settings = { ...DEFAULT_SETTINGS, keyboardLabels: "notes" as const, showKeyBindings: true };
+  FallingCanvas({ notes: [], time: 0, playing: false, settings, pressedKeys: new Map(), chords: [], tempoBpm: 120, lowMidi: 48, highMidi: 84, loop: null });
+  const cleanups = hooks.effects.map(effect => effect());
+  const labels = () => fillText.mock.calls.filter(([, , y]) => y === 382).map(([text]) => text);
+  expect(labels()).toContain("C4"); expect(labels()).toContain("C5");
+  Object.assign(settings, { keyboardLabels: "octaves" }); fillText.mockClear(); redraw();
+  expect(labels().every(label => /^C\d$/.test(label))).toBe(true);
+  Object.assign(settings, { keyboardLabels: "off" }); fillText.mockClear(); redraw();
+  expect(labels()).toEqual([]);
+  expect(fillText.mock.calls.some(([text, , y]) => text === "A" && y === 349)).toBe(true);
+  hooks.canvas.clientHeight = 140; fillText.mockClear(); redraw();
+  expect(fillText.mock.calls.some(([text]) => text === "A" || text === "W")).toBe(false);
   for (const cleanup of cleanups) cleanup?.();
 });

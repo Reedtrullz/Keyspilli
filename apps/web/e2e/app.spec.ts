@@ -1,3 +1,4 @@
+import { openPlayerTool } from "./player-tools";
 import { expect, test } from "@playwright/test";
 
 const SONG = "f-f-chopin-nocturne-m";
@@ -198,23 +199,21 @@ test("player controls: loop, tempo, transpose, hands", async ({ page }) => {
 
 test("chord mode distinguishes strict UG coverage from hybrid Auto", async ({ page }) => {
   await page.goto(`/player/${UG_SONG}`);
-  if (await page.getByRole("button", { name: "Adjust", exact: true }).getAttribute("aria-expanded") === "false") await page.getByRole("button", { name: "Adjust", exact: true }).click();
-  await page.getByRole("button", { name: "Open settings" }).click();
-  const dialog = page.getByRole("dialog", { name: "Player settings" });
+  await openPlayerTool(page, "Sound");
+  const dialog = page.getByRole("dialog", { name: "Sound settings" });
   await expect(dialog).toBeVisible();
   await dialog.getByRole("radio", { name: "Chord mode" }).click();
   await expect(dialog.getByText("Chord source")).toBeVisible();
   await expect(dialog.getByRole("radio", { name: "UG timeline" })).toBeEnabled();
   await dialog.getByRole("radio", { name: "UG timeline" }).click();
-  await dialog.getByRole("button", { name: "Done" }).click();
-  await expect(page.locator('[role="dialog"][aria-label="Player settings"]')).toHaveCount(0);
+  await dialog.getByRole("button", { name: "Close tools" }).click();
+  await expect(page.locator('[role="dialog"][aria-label="Sound settings"]')).toHaveCount(0);
   await expect(page.getByTestId("chord-mode-status")).toHaveText("UG opening (partial)");
 
-  if (await page.getByRole("button", { name: "Adjust", exact: true }).getAttribute("aria-expanded") === "false") await page.getByRole("button", { name: "Adjust", exact: true }).click();
-  await page.getByRole("button", { name: "Open settings" }).click();
-  const hybridDialog = page.getByRole("dialog", { name: "Player settings" });
+  await openPlayerTool(page, "Sound");
+  const hybridDialog = page.getByRole("dialog", { name: "Sound settings" });
   await hybridDialog.getByRole("radio", { name: "Auto" }).click();
-  await hybridDialog.getByRole("button", { name: "Done" }).click();
+  await hybridDialog.getByRole("button", { name: "Close tools" }).click();
   await expect(page.getByTestId("chord-mode-status")).toHaveText("UG + generated fallback");
 });
 
@@ -230,7 +229,7 @@ test("practice mode starts and exits cleanly", async ({ page }) => {
 
 test("chord practice shows a compact target and advances by chord", async ({ page }) => {
   await page.goto(`/player/${SONG}`);
-  await page.getByRole("button", { name: "Adjust", exact: true }).click();
+  await page.getByRole("button", { name: "Practice", exact: true }).click();
   await page.getByRole("button", { name: "Chord practice", exact: true }).click();
   const panel = page.getByTestId("chord-practice-panel");
   await expect(panel).toBeVisible();
