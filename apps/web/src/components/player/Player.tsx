@@ -12,6 +12,7 @@ import {
   detectPitch,
   KeyboardInput,
   MidiInput,
+  midiSupported,
   PlaybackEngine,
   loadJson,
   loadSettings,
@@ -42,7 +43,10 @@ import { buildChordPracticeTargets, selectPracticeChords } from "./chord-practic
 import { BeginnerView } from "./BeginnerView";
 import { LeadSheetView } from "./LeadSheetView";
 import { SheetMusicView } from "./SheetMusicView";
-import { SettingsDialog } from "./SettingsDialog";
+import { SoundControls } from "./SoundControls";
+import { createHeldInput } from "./held-input";
+import { InputStatus } from "./InputStatus";
+import { PlayerTools, type PlayerTool } from "./PlayerTools";
 import { DownloadDialog } from "./DownloadDialog";
 import { GradingPanel } from "./GradingPanel";
 import { PracticeSetupDialog, type PracticeSetup } from "./PracticeSetupDialog";
@@ -94,8 +98,6 @@ function playerVariantsForDisplay(song: Pick<SongRow, "difficulty">, variants: r
   return publicVariants;
 }
 
-/** Pressed keys drop if their noteOff was lost (common with USB-MIDI). */
-const GHOST_KEY_TIMEOUT_MS = 5000;
 const TEMPO_SEMANTICS_NOTICE_KEY = "keyspilli.tempo-semantics.v1";
 
 function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mode: ViewMode | null; focusTarget?: "practice" }) {
@@ -125,13 +127,9 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     setSectionsCollapsed(loadJson("keyspilli.sectionsCollapsed", false));
     setFullWidth(loadJson("keyspilli.fullWidth", false));
   }, []);
-  const settingsTriggerRef = useRef<HTMLButtonElement>(null);
   const downloadTriggerRef = useRef<HTMLButtonElement>(null);
   const practiceTriggerRef = useRef<HTMLButtonElement>(null);
-  const chordPracticeTriggerRef = useRef<HTMLButtonElement>(null);
   const modeMenuTriggerRef = useRef<HTMLButtonElement>(null);
-  const adjustTriggerRef = useRef<HTMLButtonElement>(null);
-  const adjustPanelRef = useRef<HTMLDivElement>(null);
   const sectionsExitRef = useRef<HTMLDivElement>(null);
   const modeMenuPanelRef = useRef<HTMLDivElement>(null);
 
@@ -150,21 +148,17 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   }, [loopBeats, initial.data.tempoBpm, settings.speed]);
   const sections: SongSection[] = initial.data.sections ?? [];
   const displayVariants = playerVariantsForDisplay(initial.song, initial.variants);
-  const [showSettings, setShowSettings] = useState(false);
   const [showModeMenu, setShowModeMenu] = useState(false);
   const [showDownload, setShowDownload] = useState(false);
-  const [showAdjust, setShowAdjust] = useState(false);
-  const showSettingsRef = useRef(showSettings);
+  const [openTool, setOpenTool] = useState<PlayerTool | null>(null);
+  const toolOpenRef = useRef(openTool !== null);
   const showDownloadRef = useRef(showDownload);
   const showModeMenuRef = useRef(showModeMenu);
-  const showAdjustRef = useRef(showAdjust);
-  showSettingsRef.current = showSettings;
+  toolOpenRef.current = openTool !== null;
   showDownloadRef.current = showDownload;
   showModeMenuRef.current = showModeMenu;
-  showAdjustRef.current = showAdjust;
   const [isNarrowViewport, setIsNarrowViewport] = useState(false);
   const modeMenuPresence = usePresence(showModeMenu);
-  const adjustPresence = usePresence(showAdjust);
   const modeSwitch = useAnimatedSwitch(settings.mode);
   const sectionsSwitch = useAnimatedSwitch(sectionsCollapsed);
   const playingNoticePresence = usePresence(playing);
@@ -199,6 +193,12 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   const [gradeResult, setGradeResult] = useState<{ summary: string; accuracyPct: number; hit: number; missed: number; wrong: number; late: number; total: number } | null>(null);
   const [pressedKeys, setPressedKeys] = useState<Map<number, number>>(new Map());
   const [midiConnected, setMidiConnected] = useState(false);
+  const [inputOctave, setInputOctave] = useState(2);
+  const [midiPending, setMidiPending] = useState(false);
+  const [midiError, setMidiError] = useState("");
+  const keyboardInputRef = useRef<KeyboardInput | null>(null);
+  const midiInputRef = useRef<MidiInput | null>(null);
+
   const [songKeyLabel, setSongKeyLabel] = useState(initial.data.key);
   const [favorites, setFavorites] = useState<string[]>(() => loadJson("keyspilli.favorites", [] as string[]));
   const [learned, setLearned] = useState<string[]>(() => loadJson("keyspilli.learned", [] as string[]));
@@ -214,13 +214,6 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     query.addEventListener("change", update);
     return () => query.removeEventListener("change", update);
   }, []);
-
-  useEffect(() => {
-    const panel = adjustPanelRef.current;
-    if (!panel) return;
-    if (!showAdjust) panel.setAttribute("inert", "");
-    else panel.removeAttribute("inert");
-  }, [isNarrowViewport, showAdjust, adjustPresence.mounted]);
 
   useEffect(() => {
     const layer = sectionsExitRef.current;
@@ -248,6 +241,11 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   }
 
   const engineRef = useRef<PlaybackEngine | null>(null);
+  const heldInputRef = useRef<ReturnType<typeof createHeldInput> | null>(null);
+  if (!heldInputRef.current) heldInputRef.current = createHeldInput(soundInputNote, midi => {
+    engineRef.current?.handleNoteOff(midi);
+    setPressedKeys(current => { const next = new Map(current); next.delete(midi); return next; });
+  });
   const audioSwapStateRef = useRef<{ time: number; playing: boolean } | null>(null);
   const chordPracticeRef = useRef<ChordGrader | null>(null);
   const modeMenuRef = useRef<HTMLDivElement>(null);
@@ -389,6 +387,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     }
     return () => {
       audioSwapStateRef.current = { time: engine.time, playing: engine.playing };
+      keyboardInputRef.current?.releaseAll(); midiInputRef.current?.releaseAll(); heldInputRef.current?.releaseAll();
       engineRef.current = null;
       engine.audio.dispose();
     };
@@ -498,20 +497,17 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   // Keyboard + MIDI input (one keydown listener; Escape handled first).
   useEffect(() => {
     const ki = new KeyboardInput({
-      onNoteOn: (m) => handleNote(m, true),
-      onNoteOff: (m) => handleNote(m, false),
-    });
+      onNoteOn: (m, identity) => handleNote(m, true, "keyboard", identity),
+      onNoteOff: (m, identity) => handleNote(m, false, "keyboard", identity),
+    }, setInputOctave);
+    keyboardInputRef.current = ki;
     const onKey = (e: KeyboardEvent) => {
       if (e.type === "keyup") { ki.handleKey(e); return; }
-      if (showPracticeSetupRef.current || showSettingsRef.current || showDownloadRef.current) return;
+      if (showPracticeSetupRef.current || toolOpenRef.current || showDownloadRef.current) return;
       if (e.key === "Escape") {
         if (showModeMenuRef.current) {
           setShowModeMenu(false);
           window.requestAnimationFrame(() => modeMenuTriggerRef.current?.focus());
-        }
-        if (showAdjustRef.current) {
-          setShowAdjust(false);
-          window.requestAnimationFrame(() => adjustTriggerRef.current?.focus());
         }
       } else if (e.key === " " && e.type === "keydown") {
         // Space = play/pause, but never hijack typing or focused controls.
@@ -522,7 +518,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       } else {
         const t = e.target as HTMLElement | null;
         const tagName = t?.tagName;
-        if (showSettingsRef.current || showDownloadRef.current || t?.isContentEditable || tagName === "INPUT" || tagName === "TEXTAREA" || tagName === "SELECT" || tagName === "BUTTON" || tagName === "A") return;
+        if (toolOpenRef.current || showDownloadRef.current || t?.isContentEditable || tagName === "INPUT" || tagName === "TEXTAREA" || tagName === "SELECT" || tagName === "BUTTON" || tagName === "A") return;
         if (chordPracticeActiveRef.current) {
           // Chord practice shortcuts
           if (e.key === "n" || e.key === "N") {
@@ -540,16 +536,22 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     window.addEventListener("keydown", onKey);
     window.addEventListener("keyup", onKey);
     const mi = new MidiInput({
-      onNoteOn: (m) => handleNote(m, true, "midi"),
-      onNoteOff: (m) => handleNote(m, false, "midi"),
+      onNoteOn: (m, identity) => handleNote(m, true, "midi", identity),
+      onNoteOff: (m, identity) => handleNote(m, false, "midi", identity),
     });
-    let disconnected = false;
-    void mi.connect().then((connected) => { if (disconnected) mi.disconnect(); else setMidiConnected(connected); });
+    midiInputRef.current = mi;
+    const release = () => { ki.releaseAll(); mi.releaseAll(); heldInputRef.current?.releaseAll(); };
+    const hidden = () => { if (document.hidden) release(); };
+    window.addEventListener("blur", release);
+    document.addEventListener("visibilitychange", hidden);
     const midiStatusTimer = window.setInterval(() => setMidiConnected(mi.connectedCount > 0), 1000);
     return () => {
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("keyup", onKey);
-      disconnected = true;
+      release();
+      keyboardInputRef.current = null; midiInputRef.current = null;
+      window.removeEventListener("blur", release);
+      document.removeEventListener("visibilitychange", hidden);
       window.clearInterval(midiStatusTimer);
       mi.disconnect();
     };
@@ -631,42 +633,35 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     }
   }
 
-  // Sweep pressed keys whose noteOff never arrived.
-  useEffect(() => {
-    const id = setInterval(() => {
-      setPressedKeys((m) => {
-        const now = performance.now();
-        const next = new Map<number, number>();
-        let changed = false;
-        for (const [midi, at] of m) {
-          if (now - at < GHOST_KEY_TIMEOUT_MS) next.set(midi, at);
-          else changed = true;
-        }
-        return changed ? next : m;
-      });
-    }, 2000);
-    return () => clearInterval(id);
-  }, []);
+  async function connectMidi() {
+    const input = midiInputRef.current;
+    if (!input || midiPending) return;
+    setMidiPending(true); setMidiError("");
+    const connected = await input.connect();
+    if (midiInputRef.current !== input) return;
+    setMidiPending(false); setMidiConnected(connected);
+    if (!connected) setMidiError("No MIDI keyboard available. Check its connection and browser permission, then retry.");
+  }
 
-  function handleNote(midi: number, on: boolean, source: "keyboard" | "midi" = "keyboard") {
+  useEffect(() => {
+    keyboardInputRef.current?.releaseAll(); midiInputRef.current?.releaseAll(); heldInputRef.current?.releaseAll();
+  }, [openTool, showPracticeSetup, settings.soundSource, settings.organStyle, grading]);
+
+  function handleNote(midi: number, on: boolean, source: "keyboard" | "midi" = "keyboard", identity = `${source}:${midi}`) {
+    if (!on) { heldInputRef.current?.release(identity); return; }
+    if (showPracticeSetupRef.current || toolOpenRef.current || countInRef.current !== null || (gradingRef.current && practiceSetupRef.current.input !== source)) return;
+    heldInputRef.current?.press(identity, midi);
+  }
+
+  function soundInputNote(midi: number): boolean {
     const eng = engineRef.current;
-    if (!eng) return;
-    if (!on) {
-      eng.handleNoteOff(midi);
-      setPressedKeys((s) => {
-        const n = new Map(s);
-        n.delete(midi);
-        return n;
-      });
-      return;
-    }
-    if (showPracticeSetupRef.current || countInRef.current !== null || (gradingRef.current && practiceSetupRef.current.input !== source)) return;
-    if (!eng.handleNoteOn(midi)) return;
+    if (!eng || !eng.handleNoteOn(midi)) return false;
     if (chordPracticeRef.current) {
       chordPracticeRef.current.play(midi);
       setChordPracticeSnapshot(chordPracticeRef.current.snapshot());
     }
-    setPressedKeys((s) => new Map(s).set(midi, performance.now()));
+    setPressedKeys(current => new Map(current).set(midi, performance.now()));
+    return true;
   }
 
   function releaseMicrophone() {
@@ -880,7 +875,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     if (chordPracticeActive) exitChordPractice(false);
     engineRef.current?.stop();
     syncTransportState();
-    setShowSettings(false);
+    setOpenTool(null);
     setShowModeMenu(false);
     setPracticeError("");
     setMicError("");
@@ -978,7 +973,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     setChordPracticeActive(true);
     setChordPracticeSnapshot(session.snapshot());
     syncTransportState();
-    setShowAdjust(false);
+    setOpenTool(null);
     window.requestAnimationFrame(() => document.querySelector<HTMLElement>(".player-stage")?.focus());
   }
 
@@ -987,7 +982,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     chordPracticeTargetsRef.current = null;
     setChordPracticeActive(false);
     setChordPracticeSnapshot(null);
-    if (restoreFocus) window.requestAnimationFrame(() => chordPracticeTriggerRef.current?.focus());
+    if (restoreFocus) window.requestAnimationFrame(() => practiceTriggerRef.current?.focus());
   }
 
   function skipChordPractice() {
@@ -1054,7 +1049,9 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     <>
       {viewMode === "falling" && <ChordStrip chords={visualChords} currentBeat={currentBeat} />}
       {viewMode === "falling" && (
-        <FallingCanvas
+        <FallingCanvas timeSig={initial.data.timeSig} measures={initial.data.measures} countIn={countIn} inputEnabled={!openTool && !showPracticeSetup && countIn === null && (!grading || practiceSetup.input === "keyboard")}
+                onKeyDown={(pointerId, midi) => handleNote(midi, true, "keyboard", `pointer:${pointerId}`)}
+                onKeyUp={pointerId => heldInputRef.current?.release(`pointer:${pointerId}`)} inputOctave={inputOctave} midiConnected={midiConnected} onResetOctave={() => keyboardInputRef.current?.setOctave(2)}
           notes={notes}
           time={time}
           timeRef={timeRef}
@@ -1156,6 +1153,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
           >
             {grading ? "Finish practice" : "Practice"}
           </button>
+
           <div className="flex gap-1" role="group" aria-label="Hands">
           {(["L", "R", "both"] as const).map((h) => (
             <button
@@ -1226,31 +1224,8 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
           )}
           </div>
 
-          <button
-            type="button"
-            ref={adjustTriggerRef}
-            onClick={() => setShowAdjust((visible) => !visible)}
-            aria-expanded={showAdjust}
-            aria-controls="player-adjust-panel"
-            className="player-adjust-toggle pressable min-h-11 px-3 py-2 rounded-full border border-zinc-300 text-sm"
-          >
-            Adjust
-          </button>
-
-          <button className="min-h-11 rounded-full border border-zinc-300 px-3 text-sm" aria-pressed={focusMode} onClick={() => { setFocusMode(!focusMode); setShowAdjust(false); window.scrollTo({ top: 0 }); }}>{focusMode ? "Exit focus" : "Focus"}</button>
-        </div>
-
-        <div
-          id="player-adjust-panel"
-          ref={adjustPanelRef}
-          className="player-advanced-panel flex flex-wrap items-center gap-2"
-          data-open={showAdjust}
-          data-mounted={adjustPresence.mounted}
-          data-state={adjustPresence.visible ? "open" : "closed"}
-          role="group"
-          aria-label="Player adjustments"
-          aria-hidden={!showAdjust}
-        >
+          <PlayerTools soundLabel={`${settings.soundSource === "organ" ? "Organ" : settings.soundSource === "sampled" ? "Piano" : "Synth"}${settings.soundSource !== "organ" && settings.sustainPedal ? " · sustain" : ""}`} open={openTool} onOpen={tool => { cancelSoundPreview(); setShowModeMenu(false); setOpenTool(tool); }}>
+            {tool => tool === "display" ? <div className="flex flex-wrap gap-2">
           <button
             hidden={settings.mode !== "falling"}
             onClick={() => updateSettings({ chordKeys: !settings.chordKeys })}
@@ -1259,13 +1234,6 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
             className={`pressable min-h-11 px-3 py-2 rounded-full text-sm border ${settings.chordKeys ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300"}`}
           >
             Chord guide
-          </button>
-          <button
-            onClick={() => updateSettings({ metronome: !settings.metronome })}
-            aria-pressed={settings.metronome}
-            className={`pressable min-h-11 px-3 py-2 rounded-full text-sm border ${settings.metronome ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300"}`}
-          >
-            Metronome
           </button>
           <button
             hidden={settings.mode !== "falling"}
@@ -1299,21 +1267,28 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
             Chord guide dots show the current chord’s voicing in its assigned octaves, not notes to press now. Check the chord label for inferred harmony. Colored strips at the top of keys show upcoming notes.
           </p>}
 
-          <div className="player-secondary-actions ml-auto flex flex-wrap justify-end gap-2 text-sm">
-            <button ref={settingsTriggerRef} disabled={grading} onClick={() => setShowSettings(true)} className="pressable min-h-11 px-4 py-2 rounded-full border border-zinc-300 font-medium hover:bg-zinc-100" aria-label="Open settings">
-              Settings
-            </button>
-            <button
-              onClick={() => chordPracticeActive ? exitChordPractice() : startChordPractice()}
-              ref={chordPracticeTriggerRef}
-              className={`pressable min-h-11 px-4 py-2 rounded-full border font-medium ${chordPracticeActive ? "bg-indigo-100 border-indigo-300 text-indigo-900" : "border-indigo-300 text-indigo-800 hover:bg-indigo-50"}`}
-              aria-pressed={chordPracticeActive}
-            >
-              {chordPracticeActive ? "Exit chord practice" : "Chord practice"}
-            </button>
+              <label className="w-full text-sm">Key labels<select aria-label="Key labels" value={settings.keyboardLabels} onChange={event => updateSettings({ keyboardLabels: event.target.value as PlayerSettings["keyboardLabels"] })}><option value="notes">Note names</option><option value="octaves">Octaves only</option><option value="off">Off</option></select></label>
+              <label className="w-full text-sm">Stage appearance<select aria-label="Stage appearance" value={settings.stageTheme} onChange={event => updateSettings({ stageTheme: event.target.value as PlayerSettings["stageTheme"] })}><option value="light">Light</option><option value="charcoal">Charcoal</option></select></label>
+              <label className="flex items-center gap-2 min-h-11 text-sm"><input type="checkbox" checked={settings.showKeyBindings} onChange={event => updateSettings({ showKeyBindings: event.target.checked })} />Computer-key hints</label>
+            </div> : tool === "sound" ? <fieldset disabled={grading}>
+                        <button
+            onClick={() => updateSettings({ metronome: !settings.metronome })}
+            aria-pressed={settings.metronome}
+            className={`pressable min-h-11 px-3 py-2 rounded-full text-sm border ${settings.metronome ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300"}`}
+          >
+            Metronome
+          </button>
 
-          </div>
+              <p className="mb-3 text-xs text-zinc-600">Visual bar progress is always available. Metronome clicks are silent in chord mode.</p>
+              <SoundControls settings={settings} onChange={updateSettings} onPreview={previewSound}
+                chordSource={chordSourcePreference} chordSources={chordSources}
+                chordSourceStatus={selectedChordSource.fallbackReason} onChordSourceChange={updateChordSource} />
+            </fieldset> : <InputStatus octave={inputOctave} midiConnected={midiConnected} pending={midiPending} error={midiError} supported={midiSupported()} onOctaveChange={octave => keyboardInputRef.current?.setOctave(octave)} onConnectMidi={connectMidi} />}
+          </PlayerTools>
+
+          <button className="min-h-11 rounded-full border border-zinc-300 px-3 text-sm" aria-pressed={focusMode} onClick={() => { setFocusMode(!focusMode); setOpenTool(null); window.scrollTo({ top: 0 }); }}>{focusMode ? "Exit focus" : "Focus"}</button>
         </div>
+
       </div>
 
         </div>
@@ -1444,7 +1419,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
           <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">
             {activeModeLabel} view active
           </p>
-          <p className="sr-only">When playback is active, press Enter or Space on the stage to pause. Computer keyboard A through K plays notes.</p>
+          <p className="sr-only">When playback is active, press Enter or Space on the stage to pause. Computer keys A through semicolon play notes. Z/X changes input octave.</p>
         </div>
       </div>
 
@@ -1467,30 +1442,10 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
         </section>
       )}
 
-      {showPracticeSetup && <PracticeSetupDialog initialSetup={practiceSetup} hasLoop={!!loop && loop.endSec > loop.startSec}
+      {showPracticeSetup && <PracticeSetupDialog onChordPractice={() => { showPracticeSetupRef.current = false; setShowPracticeSetup(false); startChordPractice(); }} initialSetup={practiceSetup} hasLoop={!!loop && loop.endSec > loop.startSec}
         midiConnected={midiConnected} micReady={micReady} micPending={micPending} micError={micError} error={practiceError}
         onEnableMic={() => void enableMicrophone()} onInputChange={(input) => { if (input !== "microphone") releaseMicrophone(); }}
         onStart={beginPractice} onCancel={closePracticeSetup} />}
-      {showSettings && (
-        <SettingsDialog
-          settings={settings}
-          onChange={updateSettings}
-          onPreview={previewSound}
-          chordSource={chordSourcePreference}
-          chordSources={{
-            ug: chordSources.ug,
-            generated: chordSources.generated,
-            auto: chordSources.auto,
-          }}
-          chordSourceStatus={selectedChordSource.fallbackReason}
-          onChordSourceChange={updateChordSource}
-          onClose={() => {
-            cancelSoundPreview();
-            setShowSettings(false);
-            window.requestAnimationFrame(() => settingsTriggerRef.current?.focus());
-          }}
-        />
-      )}
       {showDownload && <DownloadDialog songId={initial.song.id} hasSheetXml={initial.song.hasSheetXml === 1} onClose={() => {
         setShowDownload(false);
         window.requestAnimationFrame(() => downloadTriggerRef.current?.focus());

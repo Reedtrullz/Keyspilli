@@ -10,7 +10,8 @@ export type PracticeSetup = {
   countInBeats: 0 | 4;
 };
 
-export function PracticeSetupDialog({ initialSetup, hasLoop, midiConnected, micReady, micPending, micError, error, onEnableMic, onInputChange, onStart, onCancel }: {
+export function PracticeSetupDialog({ onChordPractice, initialSetup, hasLoop, midiConnected, micReady, micPending, micError, error, onEnableMic, onInputChange, onStart, onCancel }: {
+  onChordPractice?: () => void;
   initialSetup: PracticeSetup;
   hasLoop: boolean;
   midiConnected: boolean;
@@ -41,12 +42,12 @@ export function PracticeSetupDialog({ initialSetup, hasLoop, midiConnected, micR
         <label className="block text-sm">Input
           <select aria-label="Input" autoFocus className="block w-full mt-1 min-h-11 rounded-lg border border-zinc-300 px-3" value={setup.input}
             onChange={(e) => { const input = e.target.value as PracticeSetup["input"]; setSetup({ ...setup, input }); onInputChange(input); }}>
-            <option value="keyboard">Computer keyboard</option>
+            <option value="keyboard">Computer / on-screen keys</option>
             <option value="midi" disabled={!midiConnected}>{midiConnected ? "Connected MIDI keyboard" : "MIDI — no keyboard connected"}</option>
             <option value="microphone">Microphone (beta)</option>
           </select>
         </label>
-        {setup.input === "keyboard" && <p className="text-xs text-zinc-600">Use A–K for notes; Z/X shifts the octave.</p>}
+        {setup.input === "keyboard" && <p className="text-xs text-zinc-600">Use A–K or the on-screen piano for notes; Z/X shifts the computer-key octave.</p>}
         {setup.input === "microphone" && <div className="space-y-2 text-sm">
           <p className="text-zinc-600">Beta: single notes in a quiet room. Pitch detection can miss chords and repeated notes.</p>
           <button type="button" disabled={micReady || micPending} onClick={onEnableMic} className="min-h-11 rounded-lg border border-zinc-300 px-3 disabled:opacity-60">{micReady ? "Microphone ready" : micPending ? "Enabling microphone…" : "Enable microphone"}</button>
@@ -67,6 +68,7 @@ export function PracticeSetupDialog({ initialSetup, hasLoop, midiConnected, micR
             <option value={0}>Off</option><option value={4}>4 beats</option>
           </select>
         </label>
+        {onChordPractice && <button type="button" className="min-h-11 px-3 rounded-lg border border-indigo-300 text-indigo-800" onClick={onChordPractice}>Chord practice</button>}
         {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={requestClose} className="min-h-11 rounded-full border border-zinc-300 px-4">Cancel</button>

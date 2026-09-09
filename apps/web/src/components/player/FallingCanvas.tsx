@@ -8,10 +8,13 @@ import {
   fallingChordRange,
   fallingNoteRange,
   keyboardRects,
+  keyboardMidiAt,
+  KEYMAP,
   lastFallingChordIndex,
   noteLabel,
   pitchColor,
   secPerBeat,
+  measureProgressAt,
   upcomingMidi,
   type LoopRegion,
   type FallingChordIndex,
@@ -21,6 +24,14 @@ import {
 } from "@keyspilli/player-core";
 
 interface Props {
+  measures?: { startBeat: number; endBeat: number }[];
+  countIn?: number | null;
+  inputEnabled?: boolean;
+  onKeyDown?: (pointerId: number, midi: number) => void;
+  onKeyUp?: (pointerId: number) => void;
+  inputOctave?: number;
+  midiConnected?: boolean;
+  onResetOctave?: () => void;
   notes: TimedNote[];
   time: number;
   /** Live engine clock. When supplied it wins over the time prop so the
@@ -39,8 +50,21 @@ interface Props {
   waitNote?: TimedNote | null;
 }
 
-export function FallingCanvas({ notes, time, timeRef, playing, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop, waitNote, timeSig = [4, 4] }: Props) {
+export function FallingCanvas({ measures = [], countIn = null, inputEnabled = true, onKeyDown, onKeyUp, inputOctave = 2, midiConnected = false, onResetOctave, notes, time, timeRef, playing, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop, waitNote, timeSig = [4, 4] }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const rhythmLabelRef = useRef<HTMLSpanElement>(null);
+  const progressRef = useRef<HTMLProgressElement>(null);
+  const rhythmRef = useRef({ measures, countIn });
+  rhythmRef.current = { measures, countIn };
+  const selectedLabelRef = useRef<HTMLSpanElement>(null);
+  const pianoRef = useRef<HTMLDivElement>(null);
+  const keysRef = useRef<ReturnType<typeof keyboardRects> | null>(null);
+  const pointersRef = useRef(new Map<number, number | null>());
+  const selectedRef = useRef(60);
+  const callbacks = useRef({ onKeyDown, onKeyUp });
+  callbacks.current = { onKeyDown, onKeyUp };
+  const inputOctaveRef = useRef(inputOctave);
+  inputOctaveRef.current = inputOctave;
 
   // Individual refs for each prop — draw loop reads these instead of closures
   const fallbackTimeRef = useRef(time);
@@ -84,7 +108,7 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
   // the refs directly and does not need an extra React-driven draw.
   useEffect(() => {
     if (!playingRef.current) drawRef.current?.();
-  }, [notes, time, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop, waitNote, timeSig]);
+  }, [notes, time, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop, waitNote, timeSig, inputOctave, measures, countIn]);
 
   // Single rAF loop — draws once on mount and only schedules frames while
   // playing, reading state from refs.
@@ -135,10 +159,19 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
       const currentLoop = loopRef.current;
       const currentWaitNote = waitNoteRef.current;
       ctx.clearRect(0, 0, W, H);
-      ctx.fillStyle = "#fafafa";
+      const dark = s.stageTheme === "charcoal";
+      ctx.fillStyle = dark ? "#15181e" : "#fafafa";
       ctx.fillRect(0, 0, W, H);
 
       const speed = s.speed;
+      const progress = measureProgressAt(now / secPerBeat(bpm, speed), rhythmRef.current.measures);
+      if (progressRef.current) {
+        progressRef.current.hidden = !progress || rhythmRef.current.countIn !== null;
+        progressRef.current.value = progress?.fraction ?? 0;
+        const label = rhythmRef.current.countIn !== null ? `Count in: ${rhythmRef.current.countIn}` : progress ? `Bar ${progress.index + 1} progress` : "Bar progress";
+        if (rhythmLabelRef.current && rhythmLabelRef.current.textContent !== label.replace(" progress", "")) rhythmLabelRef.current.textContent = progress || rhythmRef.current.countIn !== null ? label.replace(" progress", "") : "";
+        if (progressRef.current.getAttribute("aria-label") !== label) progressRef.current.setAttribute("aria-label", label);
+      }
       const lookahead = 3.2;
       const KB_H = Math.min(W < 640 ? 96 : 140, H * 0.45);
       const areaHeight = Math.max(1, H - KB_H - 10);
@@ -167,7 +200,7 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
         if (y < 0 || y > areaHeight) continue;
         // Downbeat spacing follows the song's actual meter, not a hardcoded 4.
         const isDownbeat = b % (timeSigRef.current[0] * 4 / timeSigRef.current[1]) === 0;
-        ctx.strokeStyle = isDownbeat ? "rgba(24, 24, 27, 0.12)" : "rgba(24, 24, 27, 0.04)";
+        ctx.strokeStyle = dark ? (isDownbeat ? "#484e59" : "#2d323b") : (isDownbeat ? "rgba(24, 24, 27, 0.12)" : "rgba(24, 24, 27, 0.04)");
         ctx.lineWidth = isDownbeat ? 1.5 : 1;
         ctx.beginPath();
         ctx.moveTo(LEFT_MARGIN, y);
@@ -227,7 +260,7 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
         ctx.font = isActive ? "800 14px system-ui, sans-serif" : "700 13px system-ui, sans-serif";
         ctx.textAlign = "right";
         ctx.textBaseline = "middle";
-        ctx.fillStyle = isActive ? "#2563eb" : "#18181b";
+        ctx.fillStyle = isActive ? (dark ? "#93c5fd" : "#2563eb") : (dark ? "#e4e4e7" : "#18181b");
         ctx.fillText(c.name, LEFT_MARGIN - 8, y, Math.max(1, LEFT_MARGIN - 12));
       }
 
@@ -243,7 +276,7 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
         ctx.font = "13px system-ui, sans-serif";
         ctx.textAlign = "left";
         ctx.textBaseline = "middle";
-        ctx.fillStyle = "#52525b";
+        ctx.fillStyle = dark ? "#d4d4d8" : "#52525b";
         ctx.fillText(n.lyrics, W - RIGHT_MARGIN + 10, y);
       }
 
@@ -256,14 +289,27 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
         keyboardCache = keyboardRects({ width: KEYBOARD_W, lowMidi: low, highMidi: high, whiteHeight: KB_H });
       }
       const kb = keyboardCache!;
+      keysRef.current = kb;
+      const piano = pianoRef.current;
+      if (piano) {
+        piano.style.left = `${LEFT_MARGIN}px`; piano.style.width = `${KEYBOARD_W}px`; piano.style.height = `${KB_H}px`;
+      }
+      const showLabel = (midi: number) => s.keyboardLabels === "notes" || (s.keyboardLabels === "octaves" && midi % 12 === 0);
+      const hintFor = (midi: number) => Object.entries(KEYMAP).find(([, base]) => base + (inputOctaveRef.current - 2) * 12 === midi)?.[0].toUpperCase();
      for (const w of kb.whites) {
        const kx = w.x + LEFT_MARGIN;
        const isChord = s.chordKeys && activeChordNotes.has(w.midi) && !pk.has(w.midi);
        const isWait = currentWaitNote && w.midi === currentWaitNote.midi && !pk.has(w.midi);
        ctx.fillStyle = pk.has(w.midi) ? pitchColor(w.midi) : "#ffffff";
        ctx.fillRect(kx, H - KB_H, w.w - 1, KB_H);
+       ctx.lineWidth = 1;
        ctx.strokeStyle = "#d4d4d8";
        ctx.strokeRect(kx, H - KB_H, w.w - 1, KB_H);
+       if (pk.has(w.midi)) {
+         ctx.strokeStyle = "#18181b"; ctx.lineWidth = 2;
+         ctx.strokeRect(kx + 2, H - KB_H + 2, Math.max(1, w.w - 5), KB_H - 7);
+         ctx.lineWidth = 1;
+       }
        ctx.font = "600 12px system-ui, sans-serif";
        ctx.textAlign = "center";
        ctx.textBaseline = "alphabetic";
@@ -277,7 +323,20 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
        } else {
           ctx.fillStyle = pk.has(w.midi) ? "#ffffff" : "#52525b";
         }
-        if (ctx.measureText(noteLabel(w.midi)).width + 4 <= w.w) ctx.fillText(noteLabel(w.midi), kx + w.w / 2, H - 18);
+        if (showLabel(w.midi) && ctx.measureText(noteLabel(w.midi)).width + 4 <= w.w) {
+          const labelWidth = ctx.measureText(noteLabel(w.midi)).width;
+          ctx.fillStyle = "#ffffff"; ctx.fillRect(kx + (w.w - labelWidth) / 2 - 1, H - 30, labelWidth + 2, 15);
+          ctx.fillStyle = "#3f3f46"; ctx.fillText(noteLabel(w.midi), kx + w.w / 2, H - 18);
+        }
+        // Small bevels give keys depth without an animated shadow or new draw loop.
+        ctx.fillStyle = "#18181b18"; ctx.fillRect(kx, H - 4, w.w - 1, 4);
+        ctx.fillStyle = "#ffffff66"; ctx.fillRect(kx + 1, H - KB_H + 1, 1, KB_H - 6);
+        if (w.midi === 60) { ctx.fillStyle = "#4338ca"; ctx.fillRect(kx + w.w / 2 - 2, H - 10, 4, 3); }
+        const hint = s.showKeyBindings && KB_H >= 130 ? hintFor(w.midi) : undefined;
+        if (hint && ctx.measureText(hint).width + 4 <= w.w) {
+          ctx.fillStyle = "#f4f4f5"; ctx.fillRect(kx + w.w / 2 - Math.min(14, w.w - 2) / 2, H - 63, Math.min(14, w.w - 2), 15);
+          ctx.fillStyle = "#3f3f46"; ctx.fillText(hint, kx + w.w / 2, H - 51);
+        }
         if (isChord && !isWait) {
           ctx.beginPath();
           ctx.arc(kx + w.w / 2, H - 36, Math.min(4, w.w / 4), 0, Math.PI * 2);
@@ -291,6 +350,13 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
        const isWaitB = currentWaitNote && b.midi === currentWaitNote.midi && !pk.has(b.midi);
        ctx.fillStyle = pk.has(b.midi) ? pitchColor(b.midi) : "#27272a";
        ctx.fillRect(kx, H - KB_H, b.w, KB_H * 0.62);
+       ctx.fillStyle = "#ffffff22"; ctx.fillRect(kx + 2, H - KB_H + 2, Math.max(1, b.w - 4), 2);
+       ctx.fillStyle = "#00000055"; ctx.fillRect(kx, H - KB_H * 0.38 - 4, b.w, 4);
+       if (pk.has(b.midi)) {
+         ctx.strokeStyle = "#fafafa"; ctx.lineWidth = 2;
+         ctx.strokeRect(kx + 2, H - KB_H + 2, Math.max(1, b.w - 4), KB_H * 0.62 - 4);
+         ctx.lineWidth = 1;
+       }
        if (isWaitB) {
          ctx.fillStyle = "#f59e0b";
          ctx.fillRect(kx, H - KB_H, b.w, KB_H * 0.62);
@@ -309,7 +375,15 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
           ctx.textAlign = "center";
           ctx.textBaseline = "alphabetic";
           ctx.fillStyle = pk.has(b.midi) ? "#ffffff" : "#d4d4d8";
-          if (ctx.measureText(noteLabel(b.midi)).width + 4 <= b.w) ctx.fillText(noteLabel(b.midi), kx + b.w / 2, H - KB_H * 0.38 - 8);
+          if (showLabel(b.midi) && ctx.measureText(noteLabel(b.midi)).width + 4 <= b.w) {
+            ctx.fillStyle = "#27272a"; ctx.fillRect(kx + 1, H - KB_H * 0.38 - 21, b.w - 2, 15);
+            ctx.fillStyle = "#fafafa"; ctx.fillText(noteLabel(b.midi), kx + b.w / 2, H - KB_H * 0.38 - 8);
+          }
+          const hint = s.showKeyBindings && KB_H * 0.62 >= 52 ? hintFor(b.midi) : undefined;
+          if (hint && ctx.measureText(hint).width + 4 <= b.w) {
+            ctx.fillStyle = "#27272a"; ctx.fillRect(kx + 1, H - KB_H + 12, b.w - 2, 15);
+            ctx.fillStyle = "#fafafa"; ctx.fillText(hint, kx + b.w / 2, H - KB_H + 24);
+          }
         }
       }
 
@@ -374,7 +448,7 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
         else if (n.midi > high) above++;
       }
       ctx.font = "700 12px system-ui, sans-serif";
-      ctx.fillStyle = "#71717a";
+      ctx.fillStyle = dark ? "#d4d4d8" : "#71717a";
       if (below > 0) {
         ctx.beginPath();
         ctx.moveTo(LEFT_MARGIN + 2, H - KB_H + 8);
@@ -456,9 +530,72 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
     drawRef.current?.();
   }, [playing]);
 
+  function releasePointers() {
+    for (const id of pointersRef.current.keys()) callbacks.current.onKeyUp?.(id);
+    pointersRef.current.clear();
+  }
+  useEffect(() => {
+    releasePointers();
+    const hidden = () => { if (document.hidden) releasePointers(); };
+    window.addEventListener("blur", releasePointers);
+    window.addEventListener("resize", releasePointers);
+    document.addEventListener("visibilitychange", hidden);
+    return () => { releasePointers(); window.removeEventListener("blur", releasePointers); window.removeEventListener("resize", releasePointers); document.removeEventListener("visibilitychange", hidden); };
+  }, [inputEnabled, lowMidi, highMidi, settings.soundSource, settings.organStyle]);
+
+  function movePointer(id: number, clientX: number, clientY: number) {
+    const box = pianoRef.current?.getBoundingClientRect();
+    const keys = keysRef.current;
+    if (!box || !keys) return;
+    const midi = keyboardMidiAt(clientX - box.left, clientY - box.top, keys);
+    if (pointersRef.current.get(id) === midi) return;
+    callbacks.current.onKeyUp?.(id);
+    pointersRef.current.set(id, midi);
+    if (midi !== null) callbacks.current.onKeyDown?.(id, midi);
+  }
+
   return (
     <div className="falling-canvas relative">
-      <canvas ref={canvasRef} aria-label="Falling notes player" className="block h-full w-full" />
+      <canvas ref={canvasRef} aria-label="Falling notes player" aria-description="The indigo landmark marks middle C. The keyboard range stays fixed throughout the arrangement." className="block w-full" style={{ height: "calc(100% - 24px)" }} />
+      <div ref={pianoRef} className="piano-pointer-surface absolute bottom-6 touch-none outline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600"
+        role="button" tabIndex={0} aria-label="Piano keyboard" aria-disabled={!inputEnabled}
+        aria-description={inputEnabled ? "Play with touch, mouse or computer keys. Arrow keys select a note; Enter or Space holds it. The indigo mark is middle C." : "On-screen input is unavailable during setup, count-in, or a MIDI/microphone-only attempt."}
+        onPointerDown={event => {
+          if (!inputEnabled || (event.pointerType === "mouse" && event.button !== 0)) return;
+          event.preventDefault(); event.stopPropagation();
+          event.currentTarget.setPointerCapture(event.pointerId);
+          pointersRef.current.set(event.pointerId, null);
+          movePointer(event.pointerId, event.clientX, event.clientY);
+        }}
+        onPointerMove={event => { if (inputEnabled && pointersRef.current.has(event.pointerId)) movePointer(event.pointerId, event.clientX, event.clientY); }}
+        onPointerUp={event => { callbacks.current.onKeyUp?.(event.pointerId); pointersRef.current.delete(event.pointerId); }}
+        onPointerCancel={event => { callbacks.current.onKeyUp?.(event.pointerId); pointersRef.current.delete(event.pointerId); }}
+        onLostPointerCapture={event => { callbacks.current.onKeyUp?.(event.pointerId); pointersRef.current.delete(event.pointerId); }}
+        onClick={event => event.stopPropagation()}
+        onBlur={releasePointers}
+        onKeyDown={event => {
+          if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Enter", " "].includes(event.key)) return;
+          event.preventDefault(); event.stopPropagation();
+          if (!inputEnabled) return;
+          if (event.key === "Enter" || event.key === " ") {
+            if (!event.repeat) { const id = event.key === "Enter" ? -1 : -2; selectedRef.current = Math.min(highMidi, Math.max(lowMidi, selectedRef.current)); pointersRef.current.set(id, selectedRef.current); callbacks.current.onKeyDown?.(id, selectedRef.current); }
+          } else {
+            const step = event.key === "ArrowLeft" ? -1 : event.key === "ArrowRight" ? 1 : event.key === "ArrowUp" ? 12 : -12;
+            selectedRef.current = Math.min(highMidi, Math.max(lowMidi, selectedRef.current + step));
+            event.currentTarget.setAttribute("aria-label", `Piano keyboard, ${noteLabel(selectedRef.current, true)} selected`);
+            if (selectedLabelRef.current) selectedLabelRef.current.textContent = `${noteLabel(selectedRef.current, true)} selected`;
+          }
+        }}
+        onKeyUp={event => {
+          if (event.key === "Enter" || event.key === " ") { event.preventDefault(); event.stopPropagation(); const id = event.key === "Enter" ? -1 : -2; callbacks.current.onKeyUp?.(id); pointersRef.current.delete(id); }
+        }} />
+      <div className="piano-input-status flex h-6 items-center gap-2 px-3 text-[11px] bg-zinc-100 text-zinc-700 overflow-hidden whitespace-nowrap" onClick={event => event.stopPropagation()}>
+        <span className="min-w-0 truncate">{midiConnected ? "MIDI connected · " : "Computer keys · "}{noteLabel(60 + (inputOctave - 2) * 12)}–{noteLabel(76 + (inputOctave - 2) * 12, true)} · Z/X octave</span>
+        {(60 + (inputOctave - 2) * 12 < lowMidi || 76 + (inputOctave - 2) * 12 > highMidi) && <button className="shrink-0 underline" onClick={onResetOctave} title="Computer input extends outside the visible piano">Outside view · Reset</button>}
+        <span ref={selectedLabelRef} className="sr-only" aria-live="polite" />
+        <span ref={rhythmLabelRef} className="ml-auto shrink-0" />
+        <progress ref={progressRef} max={1} value={0} aria-label="Bar progress" className="h-1 w-12 shrink-0 accent-indigo-600 motion-reduce:hidden" />
+      </div>
       <div className="absolute top-1 right-3 bg-white/90 px-1 text-[11px] text-zinc-700 pointer-events-none">LH: pale · RH: solid{settings.chordKeys && <span> · <span className="text-indigo-500" aria-hidden="true">●</span> Chord guide</span>} · Top strip: next note</div>
     </div>
   );
