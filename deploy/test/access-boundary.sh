@@ -46,10 +46,13 @@ class Handler(BaseHTTPRequestHandler):
 
 HTTPServer(("0.0.0.0", int(sys.argv[1])), Handler).serve_forever()
 PY
+mkdir -p "$scratch_dir/test-users"
+printf 'beta %s\n' "$hash" >"$scratch_dir/test-users/beta.conf"
 cat >"$scratch_dir/Caddyfile" <<EOF
 http://example.test {
   basicauth {
     owner $hash
+    import /etc/caddy/test-users/*.conf
   }
   reverse_proxy host.docker.internal:$backend_port {
     header_up -Authorization
@@ -59,12 +62,14 @@ EOF
 
 docker run --rm \
   -v "$scratch_dir/Caddyfile:/etc/caddy/Caddyfile:ro" \
+  -v "$scratch_dir/test-users:/etc/caddy/test-users:ro" \
   caddy:2.6.2 \
   caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null 2>&1
 
 docker run -d --name "$container_name" -p "${port}:80" \
   --add-host host.docker.internal:host-gateway \
   -v "$scratch_dir/Caddyfile:/etc/caddy/Caddyfile:ro" \
+  -v "$scratch_dir/test-users:/etc/caddy/test-users:ro" \
   caddy:2.6.2 \
   caddy run --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null 2>&1
 
@@ -86,6 +91,8 @@ status_for() {
 [ "$(status_for /)" = 401 ]
 [ "$(status_for / -u "owner:wrong-password")" = 401 ]
 [ "$(status_for / -u "owner:${password}")" = 200 ]
+[ "$(status_for / -u "beta:${password}")" = 200 ]
+[ "$(status_for / -u "beta:wrong-password")" = 401 ]
 [ "$(status_for /uploads)" = 401 ]
 [ "$(status_for /uploads -u "owner:${password}")" = 200 ]
 
@@ -100,6 +107,7 @@ grep -q 'KEYSPILLI_ACCESS_USERNAME' "$playbook"
 grep -q 'KEYSPILLI_ACCESS_PASSWORD' "$playbook"
 grep -q 'keyspilli_access_password_hash' "$playbook"
 grep -q 'basicauth' "$template"
+grep -Fq 'import /etc/caddy/keyspilli-users/*.conf' "$template"
 grep -q 'status_code: \[401\]' "$playbook"
 grep -q 'url_username:' "$playbook"
 grep -q 'url_password:' "$playbook"
