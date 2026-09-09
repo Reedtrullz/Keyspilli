@@ -1003,13 +1003,14 @@ body:has(.player-focus) :where(.site-header, .site-footer) { display: none; }
 .player-focus .player-workspace[data-falling="true"] :where(.player-stage, .player-mode-stack, .player-mode-layer-enter) { min-height: 150px; }
 
 /* Instrument tools never participate in the note-stage layout. */
+.player-control-strip { container: player-controls / inline-size; }
 .player-tools, .player-tool-triggers { display: flex; gap: .35rem; }
 .player-tools-compact { display: none; }
 .player-tool-panel { max-width: none; position: fixed; inset: auto 12px auto auto; margin: 0; width: min(420px, calc(100vw - 24px)); max-height: min(560px, calc(100dvh - 180px)); overflow: auto; border: 1px solid #d4d4d8; border-radius: 16px; padding: 16px; background: white; color: #18181b; box-shadow: 0 16px 48px #18181b24; z-index: 100; }
 .player-tool-panel::backdrop { background: #18181b55; }
 .player-tool-panel fieldset { min-width: 0; }
 .player-tool-panel select { width: 100%; min-height: 44px; border: 1px solid #d4d4d8; border-radius: 8px; padding: 8px; background: white; }
-@media (max-width: 1100px) {
+@container player-controls (max-width: 1200px) {
   .player-tool-triggers { display: none; }
   .player-tools-compact { display: block; }
 }

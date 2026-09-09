@@ -76,7 +76,7 @@ export function PlayerTools({ open, onOpen, children, soundLabel }: {
         onClick={event => { trigger.current = event.currentTarget; onOpen(open === tool ? null : tool); }}>{names[tool]}{tool === "sound" && mounted && <span className="block text-[10px] leading-3 text-zinc-500">{soundLabel.split(" · ")[0]}</span>}</button>)}
     </div>
     <button className="player-tools-compact min-h-11 px-3 rounded-full border border-zinc-300 text-sm"
-      aria-expanded={open !== null} aria-controls="player-tool-panel"
+      title={mounted ? soundLabel : undefined} aria-description={mounted ? soundLabel : undefined} aria-expanded={open !== null} aria-controls="player-tool-panel"
       onClick={event => { trigger.current = event.currentTarget; onOpen(open ? null : "display"); }}>Tools</button>
     {mounted && open && createPortal(<dialog ref={panel} id="player-tool-panel" className="player-tool-panel"
       aria-label={`${names[open]} settings`} aria-modal={mobile ? true : undefined}

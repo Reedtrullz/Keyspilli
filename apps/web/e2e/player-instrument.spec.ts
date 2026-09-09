@@ -41,7 +41,8 @@ for (const width of [1440, 1024, 390]) {
       }
       await page.keyboard.press("Escape");
       await expect(panel).toHaveCount(0);
-      await expect(width < 1100 ? page.getByRole("button", { name: "Tools", exact: true }) : page.locator(".player-tool-triggers").getByRole("button", { name, exact: true })).toBeFocused();
+      const compact = page.getByRole("button", { name: "Tools", exact: true });
+      await expect(await compact.isVisible() ? compact : page.locator(".player-tool-triggers").getByRole("button", { name, exact: true })).toBeFocused();
     }
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   });

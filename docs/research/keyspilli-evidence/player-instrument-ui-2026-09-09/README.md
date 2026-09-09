@@ -10,7 +10,7 @@ Input owners share a note until the final physical owner releases it. Blur, hidd
 - Worktree: `player-instrument-ui`; branch `codex/player-instrument-ui`. Original `codex/organ` WIP was preserved.
 - Preview uses an isolated copy of local fixture data, on port 3002. Before captures use the existing PR #91 build in `player-polish` on temporary port 3003; its source matches the base for the player paths.
 - A–C are delivered together in one review branch, rather than three partially integrated releases. No merge or deployment was performed.
-- Native nonmodal dialogs on desktop and modal dialogs on phones replace the old wrapper. Panels disappear immediately rather than animating out. Key bevels use static rectangles rather than gradients. No dependencies were added.
+- Native nonmodal dialogs on desktop and modal dialogs on phones replace the old wrapper. Panels disappear immediately rather than animating out. Key bevels use static rectangles rather than gradients. No dependencies were added. A native container query collapses the three tools below 1200 CSS px of available toolbar width, avoiding platform-font wrapping inside the page’s fixed maximum width.
 
 ## Checks
 
