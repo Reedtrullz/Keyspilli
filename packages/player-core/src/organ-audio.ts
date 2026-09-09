@@ -1,3 +1,4 @@
+import { configurePlaybackSession } from "./audio-session.js";
 import { AudioEngine } from "./audio.js";
 import type { AudioLike } from "./engine.js";
 import type { TimedNote } from "./timeline.js";
@@ -198,6 +199,7 @@ export class OrganAudioEngine implements AudioLike {
   }
 
   private createGraph(): void {
+    configurePlaybackSession();
     const ctx = new AudioContext();
     this.ctx = ctx;
     this.voiceGainNode = ctx.createGain();

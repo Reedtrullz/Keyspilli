@@ -394,7 +394,7 @@ test("loop shortcuts retain their musical range and respect the last bar", async
   await expect(page.getByLabel("Loop range: bars 3–3")).toBeVisible();
   const marker = page.getByLabel("Loop range: bars 3–3");
   const rangeStyle = await marker.getAttribute("style");
-  await page.getByRole("button", { name: "50%", exact: true }).click();
+  await page.getByRole("combobox", { name: "Practice speed", exact: true }).selectOption("0.5");
   await expect(marker).toHaveAttribute("style", rangeStyle!);
   await page.getByRole("button", { name: "Loop next 4 bars", exact: true }).click();
   await expect(page.getByLabel("Loop range: bars 3–6")).toBeVisible();

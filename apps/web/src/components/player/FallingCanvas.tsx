@@ -173,7 +173,7 @@ export function FallingCanvas({ measures = [], countIn = null, inputEnabled = tr
         if (progressRef.current.getAttribute("aria-label") !== label) progressRef.current.setAttribute("aria-label", label);
       }
       const lookahead = 3.2;
-      const KB_H = Math.min(W < 640 ? 96 : 140, H * 0.45);
+      const KB_H = Math.min(W < 640 ? 96 : 140, H * 0.52);
       const areaHeight = Math.max(1, H - KB_H - 10);
       const chordIndex = chordIndexRef.current!;
       const chordLabels = fallingChordRange(chordIndex, now / secPerBeat(bpm, speed), (now + lookahead) / secPerBeat(bpm, speed), chordRangeCache);
@@ -184,8 +184,8 @@ export function FallingCanvas({ measures = [], countIn = null, inputEnabled = tr
         for (const chord of chordIndex.events) chordWidth = Math.max(chordWidth, ctx.measureText(chord.name).width);
         measuredChordSource = chordIndex;
       }
-      const LEFT_MARGIN = Math.min(W * 0.25, Math.max(16, chordWidth + 16));
-      const RIGHT_MARGIN = 16;
+      const LEFT_MARGIN = Math.min(W < 640 ? 44 : W * 0.25, Math.max(16, chordWidth + 16));
+      const RIGHT_MARGIN = W < 640 ? 4 : 16;
       const KEYBOARD_W = Math.max(1, W - LEFT_MARGIN - RIGHT_MARGIN);
       const pxPerSec = areaHeight / lookahead;
 
