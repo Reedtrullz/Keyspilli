@@ -3,6 +3,8 @@
   # password value is a bcrypt hash generated at deploy time from stdin.
   basicauth {
     {{ keyspilli_access_username }} {{ keyspilli_access_password_hash }}
+    # Optional host-managed test logins survive application deployments.
+    import /etc/caddy/keyspilli-users/*.conf
   }
   # Caddy's default response matcher excludes the vendor MusicXML MIME, so
   # keep the standard encodings and add it explicitly for sheet responses.
