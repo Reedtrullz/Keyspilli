@@ -277,3 +277,11 @@ it("rebinds a replacement MIDI port with the same device id", async () => {
     midi.disconnect();
   } finally { restore(); }
 });
+
+it("releases a shifted punctuation note when Shift is released before its physical key", () => {
+  const events: string[] = [];
+  const input = new KeyboardInput({ onNoteOn: midi => events.push(`on:${midi}`), onNoteOff: midi => events.push(`off:${midi}`) });
+  input.handleKey({ key: ";", code: "Comma", type: "keydown", repeat: false, preventDefault() {} } as KeyboardEvent);
+  input.handleKey({ key: ",", code: "Comma", type: "keyup", repeat: false, preventDefault() {} } as KeyboardEvent);
+  expect(events).toEqual(["on:76", "off:76"]);
+});

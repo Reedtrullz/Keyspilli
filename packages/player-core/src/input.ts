@@ -25,10 +25,8 @@ export const KEYMAP: Record<string, number> = {
 };
 
 export class KeyboardInput {
-  private down = new Set<string>();
-  // physical base midi -> effective midi captured at press time, so an octave
-  // change while held releases the same pitch that was pressed.
-  private heldNotes = new Map<number, number>();
+  // Capture pitch by physical key so octave/modifier changes cannot lose a release.
+  private down = new Map<string, number>();
   octave = 2; // base octave offset from middle C
 
   constructor(private cb: InputCallbacks, private onOctaveChange?: (octave: number) => void) {}
@@ -41,15 +39,18 @@ export class KeyboardInput {
   }
 
   releaseAll(): void {
-    for (const key of this.down) {
-      const midi = this.heldNotes.get(KEYMAP[key]!);
-      if (midi !== undefined) this.cb.onNoteOff(midi, `key:${key}`);
-    }
-    this.down.clear(); this.heldNotes.clear();
+    for (const [key, midi] of this.down) this.cb.onNoteOff(midi, `key:${key}`);
+    this.down.clear();
   }
 
   handleKey(e: KeyboardEvent): void {
     const k = e.key.toLowerCase();
+    const physical = e.code || k;
+    if (e.type === "keyup") {
+      const midi = this.down.get(physical);
+      if (midi !== undefined) { e.preventDefault(); this.down.delete(physical); this.cb.onNoteOff(midi, `key:${physical}`); }
+      return;
+    }
     if (k === "z" || k === "x") {
       if (e.type === "keydown" && !e.repeat) this.setOctave(this.octave + (k === "z" ? -1 : 1));
       return;
@@ -57,18 +58,10 @@ export class KeyboardInput {
     const base = KEYMAP[k];
     if (base === undefined) return;
     e.preventDefault();
-    if (e.type === "keydown" && !e.repeat && !this.down.has(k)) {
-      this.down.add(k);
+    if (e.type === "keydown" && !e.repeat && !this.down.has(physical)) {
       const effective = base + (this.octave - 2) * 12;
-      this.heldNotes.set(base, effective);
-      this.cb.onNoteOn(effective, `key:${k}`);
-    } else if (e.type === "keyup" && this.down.has(k)) {
-      this.down.delete(k);
-      const physicalBase = base;
-      const effective =
-        this.heldNotes.get(physicalBase) ?? base + (this.octave - 2) * 12;
-      this.heldNotes.delete(physicalBase);
-      this.cb.onNoteOff(effective, `key:${k}`);
+      this.down.set(physical, effective);
+      this.cb.onNoteOn(effective, `key:${physical}`);
     }
   }
 }

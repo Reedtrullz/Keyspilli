@@ -14,7 +14,7 @@ Input owners share a note until the final physical owner releases it. Blur, hidd
 
 ## Checks
 
-- Full workspace unit run: **1,898 passed** (179 web, 1,094 catalog, 8 engrave, 380 MIDI, 142 player-core, 95 transcribe).
+- Full workspace unit run: **1,899 passed** (179 web, 1,094 catalog, 8 engrave, 380 MIDI, 143 player-core, 95 transcribe).
 - Production browser subset: **59 passed**, using the new production build and isolated data on port 3002.
 - Workspace typecheck, production build, and `git diff --check`: passed.
 - Paused canvas/label checks were rerun after the final short-key hint adjustment: **3 passed**.
@@ -22,7 +22,7 @@ Input owners share a note until the final physical owner releases it. Blur, hidd
 
 The local browser subset covers the player, instrument interactions and application smoke/export flows; it is not the complete CI suite. Remote CI status is tracked on the PR.
 
-Meaningful regressions cover preference migration; label modes; paused/DPR resizing; key geometry and black-key precedence; shared/rejected input ownership; MIDI permission deduplication, late completion, hotplug and disconnect; sampled voice isolation; pickup/compound-meter progress; exact speed-position preservation; panel geometry/focus; MIDI opt-in; keyboard/mouse overlap; drag/outside release; multi-touch cancellation; and count-in gating.
+Meaningful regressions cover preference migration; label modes; paused/DPR resizing; key geometry and black-key precedence; shared/rejected input ownership; physical-key releases after octave or modifier changes; MIDI permission deduplication, late completion, hotplug and disconnect; sampled voice isolation; pickup/compound-meter progress; exact speed-position preservation; panel geometry/focus; MIDI opt-in; keyboard/mouse overlap; drag/outside release; multi-touch cancellation; and count-in gating.
 
 Visual captures use the same advanced Nocturne at 1440×900, 1740×1370, 1024×768, 390×844 and 844×390. Phone/landscape tool and charcoal captures use Focus. Full-page before/after captures include below-fold content; their image height is not the viewport height. Finite entrance animations are finished for screenshots. Browser assertions separately check that Focus keeps the keyboard in the viewport.
 
