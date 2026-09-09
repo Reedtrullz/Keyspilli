@@ -78,4 +78,7 @@ export interface PlayerSettings {
   transpose: number;
   mode: ViewMode;
   showAllKeys: boolean;
+  keyboardLabels: "notes" | "octaves" | "off";
+  showKeyBindings: boolean;
+  stageTheme: "light" | "charcoal";
 }

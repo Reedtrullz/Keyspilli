@@ -118,3 +118,12 @@ function lowerBound(values: number[], target: number): number {
   }
   return low;
 }
+
+/** Progress follows the imported bar boundaries, including pickups. */
+export function measureProgressAt(beat: number, measures: readonly Pick<MeasureInfo, "startBeat" | "endBeat">[]): { index: number; fraction: number } | null {
+  if (!Number.isFinite(beat)) return null;
+  const index = measures.findIndex(bar => Number.isFinite(bar.startBeat) && Number.isFinite(bar.endBeat) && beat >= bar.startBeat && beat < bar.endBeat);
+  if (index < 0) return null;
+  const bar = measures[index]!;
+  return { index, fraction: (beat - bar.startBeat) / (bar.endBeat - bar.startBeat) };
+}

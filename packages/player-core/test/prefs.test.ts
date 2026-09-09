@@ -139,3 +139,10 @@ describe("loadSongPrefs", () => {
     expect(loadSongPrefs("song-1")).toEqual({ speed: 0.5, transpose: 3, hand: "L", mode: "sheet" });
   });
 });
+
+it("preserves old preferences and validates piano display options", () => {
+  store.set(KEY, JSON.stringify({ speed: 0.75, stageTheme: "invalid", keyboardLabels: null, showKeyBindings: "yes" }));
+  expect(loadSettings()).toMatchObject({ speed: 0.75, stageTheme: "light", keyboardLabels: "notes", showKeyBindings: false });
+  saveSettings({ ...loadSettings(), stageTheme: "charcoal", keyboardLabels: "octaves", showKeyBindings: true });
+  expect(loadSettings()).toMatchObject({ stageTheme: "charcoal", keyboardLabels: "octaves", showKeyBindings: true });
+});
