@@ -208,7 +208,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   });
 
   useEffect(() => {
-    const query = window.matchMedia("(max-width: 640px)");
+    const query = window.matchMedia("(max-width: 640px), (max-width: 1000px) and (max-height: 500px)");
     const update = () => setIsNarrowViewport(query.matches);
     update();
     query.addEventListener("change", update);
@@ -1097,7 +1097,10 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
           )}
           {midiConnected && <span className="px-2 py-1 rounded-full bg-green-100 text-green-800">MIDI connected</span>}
         </div>
-        <div className="player-song-actions flex flex-wrap gap-2 text-xs">            <button ref={downloadTriggerRef} onClick={() => setShowDownload(true)} className="pressable min-h-11 px-4 py-2 rounded-full border border-zinc-300 font-medium hover:bg-zinc-100" aria-label="Download sheet music and MIDI">
+        {settings.mode === "falling" && <button className="player-mobile-range min-h-11 px-2 rounded-full border text-xs" disabled={grading} onClick={() => updateSettings({ showAllKeys: !settings.showAllKeys })}>{settings.showAllKeys ? "Fit keys" : "88 keys"}</button>}
+        <details className="player-song-actions text-xs" open={!isNarrowViewport}>
+          <summary className="player-song-menu min-h-11 rounded-full border border-zinc-300 px-3 cursor-pointer">Song</summary>
+          <div className="player-song-action-buttons flex flex-wrap gap-2">            <button ref={downloadTriggerRef} onClick={() => setShowDownload(true)} className="pressable min-h-11 px-4 py-2 rounded-full border border-zinc-300 font-medium hover:bg-zinc-100" aria-label="Download sheet music and MIDI">
               Download
             </button>
             <button
@@ -1115,7 +1118,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
               title="Mark as learned"
             >
               {learned.includes(initial.song.id) ? "✓ Learned" : "Learned?"}
-            </button></div>
+            </button></div></details>
       </div>
 
       {tempoNoticePresence.mounted && (
@@ -1140,7 +1143,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       )}
 
       {focusMode && <SourceArrangementNotice source={initial.sourceArrangement} />}
-      {!focusMode && isNarrowViewport && settings.showAllKeys && settings.mode === "falling" && <p className="text-xs text-zinc-600 mb-2">88 keys selected. <button disabled={grading} className="underline min-h-11" onClick={() => updateSettings({ showAllKeys: false })}>Fit passage</button> for larger keys.</p>}
+
       <div className="player-surface rounded-2xl border border-zinc-200 bg-white mb-4">
         <div className="player-control-strip flex items-center gap-3 px-4 py-3 border-b border-zinc-100 flex-wrap">
           <button onClick={togglePlay} disabled={chordPracticeActive || countIn !== null || (grading && waitMode)} className="pressable w-12 h-12 rounded-full bg-zinc-900 text-white text-lg shadow-sm hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed" aria-label={playing ? "Pause" : "Play"} title={chordPracticeActive ? "Exit chord practice to play the arrangement" : undefined}>
@@ -1167,6 +1170,9 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
             </button>
           ))}
           </div>
+          {isNarrowViewport && <select className="player-mobile-speed min-h-11 rounded-lg border border-zinc-300 text-xs" aria-label="Practice speed" disabled={grading} value={settings.speed} onChange={event => updateSettings({ speed: Number(event.target.value) })}>
+            {[...new Set([settings.speed, ...Array.from({ length: 36 }, (_, i) => +(0.25 + i * 0.05).toFixed(2))])].sort((a, b) => a - b).map(speed => <option key={speed} value={speed}>{Math.round(speed * 100)}%</option>)}
+          </select>}
           <div className="player-speed-controls flex items-center gap-1" aria-label="Practice speed">
             <span className="text-xs text-zinc-600">Speed</span>
             <button disabled={grading || settings.speed <= 0.25} onClick={() => updateSettings({ speed: Math.max(0.25, +(settings.speed - 0.1).toFixed(2)) })} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Decrease speed">−</button>
@@ -1318,7 +1324,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
             <button disabled={grading} onClick={toggleLoop} className="min-h-11 rounded-lg border border-zinc-300 px-3">{loop ? "Clear loop" : "Enable loop"}</button>
           </div>
         </details></div>
-        <div className="px-4 pb-3 border-b border-zinc-100">
+        <div className="player-seek-track px-4 pb-3 border-b border-zinc-100">
           {loop && <div className="player-loop-track">
             <div role="img" aria-label={`Loop range: bars ${loopStartBar}–${loopEndBar}`} className="player-loop-range"
               style={{ left: `${loop.startSec / Math.max(1, duration) * 100}%`, width: `${(loop.endSec - loop.startSec) / Math.max(1, duration) * 100}%` }} />

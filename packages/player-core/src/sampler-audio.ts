@@ -1,3 +1,4 @@
+import { configurePlaybackSession } from "./audio-session.js";
 import type { TimedNote } from "./timeline.js";
 import type { AudioLike } from "./engine.js";
 import { AudioEngine } from "./audio.js";
@@ -55,6 +56,7 @@ export class SamplerAudioEngine implements AudioLike {
       this.pianoReady = false;
       this.pianoFailed = false;
       this.piano = null;
+      configurePlaybackSession();
       this.ctx = new AudioContext();
       this.compressor = this.ctx.createDynamicsCompressor();
       this.compressor.threshold.value = -24;

@@ -17,5 +17,8 @@ export default defineConfig({
     baseURL: "http://127.0.0.1:3000",
     trace: "retain-on-failure",
   },
-  projects: [{ name: "chromium", use: { browserName: "chromium" } }],
+  projects: [
+    { name: "chromium", use: { browserName: "chromium" } },
+    { name: "webkit-mobile", testMatch: "player-mobile.spec.ts", use: { browserName: "webkit", isMobile: true, hasTouch: true } },
+  ],
 });

@@ -80,8 +80,8 @@ jobs:
       - name: Production build
         run: npm run build
 
-      - name: Install Playwright Chromium
-        run: npx --no-install playwright install --with-deps chromium
+      - name: Install Playwright browsers
+        run: npx --no-install playwright install --with-deps chromium webkit
         working-directory: apps/web
 
       - name: Verify Playwright Chromium launch

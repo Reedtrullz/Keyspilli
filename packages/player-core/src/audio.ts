@@ -1,3 +1,4 @@
+import { configurePlaybackSession } from "./audio-session.js";
 import type { TimedNote } from "./timeline.js";
 
 const NOTE_FREQ = (midi: number) => 440 * Math.pow(2, (midi - 69) / 12);
@@ -27,6 +28,7 @@ export class AudioEngine {
 
   ensure(): AudioContext {
     if (!this.ctx || this.ctx.state === "closed") {
+      configurePlaybackSession();
       this.ctx = new AudioContext();
       // Soft compressor prevents bass notes from clipping small speakers
       // while leaving quiet passages untouched.
