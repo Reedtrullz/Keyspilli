@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import glob
+import hashlib
 import json
 import os
 import re
@@ -52,9 +53,44 @@ def age_hours(path: str | None) -> float | None:
     return round((datetime.now(timezone.utc).timestamp() - os.path.getmtime(path)) / 3600, 3)
 
 
-def latest(pattern: str) -> str | None:
-    paths = glob.glob(pattern)
-    return max(paths, key=os.path.getmtime) if paths else None
+def file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def latest_coherent_pair(root: str = "/backups") -> dict[str, Path] | None:
+    backup_root = Path(root)
+    for manifest_path in sorted(
+        backup_root.glob("backup-manifest-*.json"),
+        key=lambda path: path.stat().st_mtime,
+        reverse=True,
+    ):
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            stamp = manifest["stamp"]
+            db_name = manifest["dbFile"]
+            archive_name = manifest["archiveFile"]
+            db_path = backup_root / db_name
+            archive_path = backup_root / archive_name
+            if (
+                manifest.get("complete") is not True
+                or not isinstance(stamp, str)
+                or manifest_path.name != f"backup-manifest-{stamp}.json"
+                or db_name != f"db-{stamp}.sqlite"
+                or archive_name != f"artifacts-{stamp}.tar.gz"
+                or not db_path.is_file()
+                or not archive_path.is_file()
+                or file_sha256(db_path) != manifest["dbSha256"]
+                or file_sha256(archive_path) != manifest["archiveSha256"]
+            ):
+                continue
+            return {"manifest": manifest_path, "db": db_path, "archive": archive_path}
+        except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError):
+            continue
+    return None
 
 
 def http_json(url: str) -> dict[str, Any]:
@@ -89,8 +125,9 @@ def collect(mode: str) -> dict[str, Any]:
     web_env = env_map(web)
     health = http_json("http://127.0.0.1:3008/api/health")
     disk_free = os.statvfs("/").f_bavail * os.statvfs("/").f_frsize
-    latest_db = latest("/backups/db-*.sqlite")
-    latest_archive = latest("/backups/artifacts-*.tar.gz")
+    backup_pair = latest_coherent_pair()
+    latest_db = backup_pair["db"] if backup_pair else None
+    latest_archive = backup_pair["archive"] if backup_pair else None
     logs = subprocess.run(
         ["docker", "logs", "--since", "24h", "keyspilli"],
         check=True,
@@ -123,6 +160,8 @@ def collect(mode: str) -> dict[str, Any]:
             "timerEnabled": run("systemctl", "is-enabled", "keyspilli-backup.timer") == "enabled",
             "timerActive": run("systemctl", "is-active", "keyspilli-backup.timer") == "active",
             "lastResult": run("systemctl", "show", "keyspilli-backup.service", "-p", "Result", "--value"),
+            "coherentPair": backup_pair is not None,
+            "latestManifest": backup_pair["manifest"].name if backup_pair else None,
             "latestDb": Path(latest_db).name if latest_db else None,
             "latestDbAgeHours": age_hours(latest_db),
             "latestArchive": Path(latest_archive).name if latest_archive else None,
@@ -152,13 +191,13 @@ def collect(mode: str) -> dict[str, Any]:
         if db_path and Path(db_path).is_file():
             with sqlite3.connect(f"file:{db_path}?mode=ro", uri=True) as database:
                 live_integrity = database.execute("PRAGMA integrity_check").fetchone()[0]
-        if latest_db:
-            with sqlite3.connect(f"file:{latest_db}?mode=ro", uri=True) as database:
+        if backup_pair:
+            with sqlite3.connect(f"file:{backup_pair['db']}?mode=ro", uri=True) as database:
                 backup_integrity = database.execute("PRAGMA integrity_check").fetchone()[0]
         archive_valid = False
-        if latest_archive:
+        if backup_pair:
             try:
-                with tarfile.open(latest_archive, "r:gz") as archive:
+                with tarfile.open(backup_pair["archive"], "r:gz") as archive:
                     archive_valid = next(iter(archive), None) is not None
             except (OSError, tarfile.TarError):
                 archive_valid = False
@@ -200,7 +239,12 @@ def evaluate(snapshot: dict[str, Any], mode: str) -> dict[str, Any]:
     if isinstance(worker.get("restarts"), int) and worker["restarts"] > 0: warnings.append("worker_restart_count_nonzero")
 
     backup = snapshot.get("backup", {})
-    backup_ok = backup.get("timerEnabled") is True and backup.get("timerActive") is True and backup.get("lastResult") == "success"
+    backup_ok = (
+        backup.get("timerEnabled") is True
+        and backup.get("timerActive") is True
+        and backup.get("lastResult") == "success"
+        and backup.get("coherentPair") is True
+    )
     for field, label in (("latestDbAgeHours", "latest_db_backup"), ("latestArchiveAgeHours", "latest_artifact_backup")):
         age = backup.get(field)
         if not isinstance(age, (int, float)) or age > BACKUP_FAIL_HOURS:
@@ -209,7 +253,10 @@ def evaluate(snapshot: dict[str, Any], mode: str) -> dict[str, Any]:
         elif age > BACKUP_WARN_HOURS:
             warnings.append(f"{label}_older_than_30h")
     checks["backup"] = {"status": "healthy" if backup_ok else "failed", **backup}
-    if not backup_ok and not any(value.startswith("latest_") for value in failures): failures.append("backup_timer_or_last_result_failed")
+    if backup.get("coherentPair") is not True:
+        failures.append("no_coherent_backup_pair")
+    elif not backup_ok and not any(value.startswith("latest_") for value in failures):
+        failures.append("backup_timer_or_last_result_failed")
 
     tls = snapshot.get("tlsDaysRemaining")
     tls_status = "failed" if not isinstance(tls, (int, float)) or tls < TLS_FAIL_DAYS else "warning" if tls < TLS_WARN_DAYS else "healthy"

@@ -10,7 +10,7 @@ cat >"$scratch/healthy.json" <<'JSON'
   "diskFreeBytes": 37580963840,
   "web": {"running": true, "healthy": true, "restarts": 0, "versionMatches": true, "sourceDiscoveryConfigured": true, "directAudioAmt": false},
   "worker": {"running": true, "restarts": 0},
-  "backup": {"timerEnabled": true, "timerActive": true, "lastResult": "success", "latestDbAgeHours": 2, "latestArchiveAgeHours": 2},
+  "backup": {"timerEnabled": true, "timerActive": true, "lastResult": "success", "coherentPair": true, "latestDbAgeHours": 2, "latestArchiveAgeHours": 2},
   "tlsDaysRemaining": 42,
   "caddyValid": true,
   "anonymousStatus": 401,

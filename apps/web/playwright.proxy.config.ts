@@ -17,7 +17,7 @@ export default defineConfig({
     ...(externalTarget
       ? []
       : [{
-          command: "npm run dev -- --port 3201",
+          command: "npm run start -- --port 3201",
           url: "http://127.0.0.1:3201",
           reuseExistingServer: false,
           timeout: 120_000,
@@ -25,6 +25,7 @@ export default defineConfig({
             KEYSPILLI_DATA_DIR: scratchDataDir,
             KEYSPILLI_E2E_SCRATCH_DIR: scratchDataDir,
             KEYSPILLI_API_TOKEN: "test-token-for-e2e",
+            KEYSPILLI_ORIGIN: "http://127.0.0.1:3201",
             NEXT_TELEMETRY_DISABLED: "1",
           },
         }]),

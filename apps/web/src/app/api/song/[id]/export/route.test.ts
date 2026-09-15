@@ -7,15 +7,17 @@ const getSongDetailShell = vi.hoisted(() => vi.fn());
 vi.mock("playwright", () => ({ chromium: { launch } }));
 vi.mock("@/lib/catalog-api", () => ({ getArtifactFile: vi.fn(), getSongDetailShell }));
 
-import { GET } from "./route";
+let GET: typeof import("./route").GET;
 
 const requestFor = (query: string) => new NextRequest(`http://127.0.0.1/api/song/song-a/export?${query}`);
 const params = Promise.resolve({ id: "song-a" });
 
 describe("song export route PDF failures", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    vi.resetModules();
+    ({ GET } = await import("./route"));
     launch.mockReset();
-    getSongDetailShell.mockReset();
+    getSongDetailShell.mockReset().mockResolvedValue({ song: { hasSheetXml: 1 }, variants: [] });
   });
 
   it("rejects unknown layouts before starting Chromium", async () => {
@@ -52,4 +54,36 @@ describe("song export route PDF failures", () => {
     });
     expect(launch).not.toHaveBeenCalled();
   });
+  it("preflights missing simplify songs before launching a browser", async () => {
+    getSongDetailShell.mockResolvedValueOnce(null);
+    expect((await GET(requestFor("type=pdf"), { params })).status).toBe(404);
+    expect(launch).not.toHaveBeenCalled();
+  });
+
+  it("bounds concurrent renders and closes a page created after the deadline", async () => {
+    vi.useFakeTimers();
+    let resolvePage!: (page: unknown) => void;
+    const latePage = { close: vi.fn().mockResolvedValue(undefined), goto: vi.fn() };
+    const browser = { isConnected: () => true, close: vi.fn().mockResolvedValue(undefined), newPage: vi.fn(() => new Promise(resolve => { resolvePage = resolve; })) };
+    launch.mockResolvedValue(browser);
+    try {
+      const first = GET(requestFor("type=pdf"), { params });
+      await vi.advanceTimersByTimeAsync(0);
+      const second = GET(requestFor("type=pdf"), { params });
+      await vi.advanceTimersByTimeAsync(0);
+      expect((await GET(requestFor("type=pdf"), { params })).status).toBe(503);
+      expect(browser.newPage).toHaveBeenCalledTimes(2);
+      await vi.advanceTimersByTimeAsync(90_000);
+      expect((await first).status).toBe(503);
+      expect((await second).status).toBe(503);
+      resolvePage(latePage);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(latePage.close).toHaveBeenCalledOnce();
+      expect(latePage.goto).not.toHaveBeenCalled();
+      launch.mockRejectedValueOnce(new Error("unavailable"));
+      expect((await GET(requestFor("type=pdf"), { params })).status).toBe(503);
+      expect(launch).toHaveBeenCalledTimes(2);
+    } finally { vi.useRealTimers(); }
+  });
+
 });

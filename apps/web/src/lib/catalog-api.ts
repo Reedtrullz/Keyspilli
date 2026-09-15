@@ -1,12 +1,13 @@
 import type { SourceArrangement } from "@keyspilli/catalog/src/source-arrangement.js";
 import { readFile } from "node:fs/promises";
-import { statSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { join } from "node:path";
 import { cache } from "react";
 import {
   arrangementManifestPath,
   artifactsDir,
+  dataDir,
   getSong,
   getSongsByBase,
   loadChordTimeline,
@@ -284,6 +285,7 @@ function artifactCacheKey(song: SongRow): string {
       artifactFileSignature(join(dir, "variant.mid")),
       artifactFileSignature(join(dir, "variant.xml")),
       artifactFileSignature(arrangementManifestPath(song.baseId)),
+      artifactFileSignature(join(dataDir(), "artifacts", `.${song.baseId}.reconciliation.json`)),
     ],
   });
 }
@@ -313,6 +315,9 @@ function unavailableArtifact(errors: string[], manifest?: ArrangementManifest): 
 }
 
 export async function loadSongArtifact(song: SongRow): Promise<{ data: SongData | null; artifact: SongArtifactStatus }> {
+  if (existsSync(join(dataDir(), "artifacts", `.${song.baseId}.reconciliation.json`))) {
+    return { data: null, artifact: unavailableArtifact(["ARTIFACT_RECONCILIATION_REQUIRED"]) };
+  }
   const manifestRead = await readArrangementManifest(song.baseId);
   if (manifestRead.status === "invalid") {
     return { data: null, artifact: unavailableArtifact(manifestRead.errors) };

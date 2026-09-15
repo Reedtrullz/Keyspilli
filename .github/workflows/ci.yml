@@ -91,8 +91,24 @@ jobs:
       - name: Validate private edge boundary
         run: bash deploy/test/access-boundary.sh
 
+      - name: Python ops fixtures and verifier tests
+        run: |
+          python3 deploy/test/test-live-verifier.py
+          python3 deploy/test/test-backup.py
+          bash deploy/test/ops-check.sh
+          transcribe_test_venv=.transcribe-test-venv
+          trap 'rm -rf "$transcribe_test_venv"' EXIT
+          python3 -m venv --system-site-packages "$transcribe_test_venv"
+          "$transcribe_test_venv/bin/python" -m pip install --disable-pip-version-check --no-cache-dir numpy soundfile mido opencv-python-headless
+          "$transcribe_test_venv/bin/python" -m unittest \
+            services/transcribe/test/test_tutorial_keys.py \
+            services/transcribe/test/test_tutorial_timing.py \
+            services/transcribe/test/test_separate_stems.py
+
       - name: End-to-end tests
-        run: npx playwright test
+        run: |
+          npx playwright test
+          npx playwright test --config=playwright.scratch.config.ts
         working-directory: apps/web
 
   build-and-push:
@@ -226,7 +242,7 @@ jobs:
           fi
 
           printf '%s\n' "$expected_host_key" > ~/.ssh/known_hosts
-          ssh -i ~/.ssh/id_rsa_racknerd -o BatchMode=yes -o StrictHostKeyChecking=yes deploy@198.23.137.16 'echo "SSH OK"'
+          ssh -i ~/.ssh/id_rsa_racknerd -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes deploy@198.23.137.16 'echo "SSH OK"'
 
       - name: Deploy immutable image tags
         shell: bash
@@ -361,16 +377,17 @@ jobs:
           fi
 
           printf '%s\n' "$expected_host_key" > ~/.ssh/known_hosts
-          ssh -i ~/.ssh/id_rsa_racknerd -o BatchMode=yes -o StrictHostKeyChecking=yes deploy@198.23.137.16 'echo "SSH OK"'
+          ssh -i ~/.ssh/id_rsa_racknerd -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes deploy@198.23.137.16 'echo "SSH OK"'
 
       - name: Re-ingest all sources and repair artifacts on VPS
         shell: bash
+        env:
+          REBUILD_BASE_ID: ${{ inputs.rebuild_base_id }}
+          REBUILD_TRANSCRIPTION_MODE: ${{ inputs.rebuild_transcription_mode }}
         run: |
           HOST="deploy@198.23.137.16"
-          SSH="ssh -i ~/.ssh/id_rsa_racknerd -o BatchMode=yes -o StrictHostKeyChecking=yes"
+          SSH="ssh -i ~/.ssh/id_rsa_racknerd -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes"
           COMPOSE="docker compose -f /opt/apps/keyspilli/compose.production.yml"
-          REBUILD_BASE_ID="${{ inputs.rebuild_base_id }}"
-          REBUILD_TRANSCRIPTION_MODE="${{ inputs.rebuild_transcription_mode }}"
           if [ -n "$REBUILD_BASE_ID" ] && [[ ! "$REBUILD_BASE_ID" =~ ^[a-z0-9][a-z0-9-]{0,119}$ ]]; then
             echo "Invalid rebuild_base_id; expected a catalog base id slug." >&2
             exit 1
@@ -412,7 +429,7 @@ jobs:
           $SSH $HOST "$COMPOSE exec -T -i worker sh -c 'set -eu; cat > /data/.manifest.json.tmp; mv -f /data/.manifest.json.tmp /data/manifest.json'" < catalog/manifest.json
           # Learner review data keeps known source-identity failures out of the
           # public catalogue while they are awaiting a replacement source.
-          $SSH $HOST "$COMPOSE exec -T -i worker sh -c 'cat > /data/learner-review.json'" < catalog/learner-review.json
+          $SSH $HOST "$COMPOSE exec -T -i worker sh -c 'set -eu; cat > /data/.learner-review.json.tmp; mv -f /data/.learner-review.json.tmp /data/learner-review.json'" < catalog/learner-review.json
           if [ -n "$REBUILD_BASE_ID" ]; then
             # A targeted run with an unknown base would otherwise let every
             # stage skip cleanly and still report success (verify-catalog
@@ -454,43 +471,12 @@ jobs:
             echo "targeted rebuild did not publish its requested completion marker: $REBUILD_BASE_ID" >&2
             exit 1
           fi
-      - name: Verify live catalog tempos
+      - name: Verify live catalog (F07: authenticated, base-targeted)
         shell: bash
-        run: |
-          python3 - <<'PY'
-          import json
-          import time
-          import urllib.request
-
-          url = 'https://keys.reidar.tech/api/songs?limit=1000'
-          req = urllib.request.Request(
-              url,
-              headers={
-                  'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36',
-                  'Accept': 'application/json',
-              },
-          )
-          data = None
-          last = None
-          for _ in range(10):
-              try:
-                  with urllib.request.urlopen(req, timeout=20) as response:
-                      data = json.loads(response.read().decode())
-                  break
-              except Exception as exc:
-                  last = exc
-                  time.sleep(5)
-          if data is None:
-              raise SystemExit(f'verify failed: {last}')
-          songs = data.get('songs', data)
-          non120 = [
-              s for s in songs
-              if s.get('tempo') and s['tempo'] != 120
-              and any(t in (s.get('title') or '').lower() for t in ('cover', 'piano', 'tutorial'))
-          ]
-          print(f'total={len(songs)} youtube-ish-non120={len(non120)}')
-          for s in non120[:5]:
-              print(s['id'], s['tempo'])
-          if not non120:
-              raise SystemExit('no live youtube song has a detected tempo != 120; rebuild may have failed')
-          PY
+        env:
+          KEYSPILLI_ACCESS_USERNAME: ${{ secrets.KEYSPILLI_ACCESS_USERNAME }}
+          KEYSPILLI_ACCESS_PASSWORD: ${{ secrets.KEYSPILLI_ACCESS_PASSWORD }}
+          KEYSPILLI_DEPLOY_URL: https://keys.reidar.tech
+          KEYSPILLI_EXPECTED_SHA: ${{ github.sha }}
+          KEYSPILLI_VERIFY_BASE_ID: ${{ inputs.rebuild_base_id }}
+        run: python3 deploy/keyspilli-live-verifier.py

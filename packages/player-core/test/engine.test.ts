@@ -428,6 +428,7 @@ describe("PlaybackEngine", () => {
   });
   it("skips forward on tab-background dt jumps without replaying notes", () => {
     const { eng } = engine();
+    eng.setNotes([...notes], 20); // This case skips within a song; end-of-song has its own regression.
     eng.start();
     eng.tick(10); // huge dt (simulating background tab)
     expect(eng.time).toBeCloseTo(10, 1); // playhead advances by the full gap
@@ -465,6 +466,7 @@ describe("PlaybackEngine", () => {
 
   it("hidden-tab skip cancels audio and does not replay missed notes", () => {
     const { eng, audio } = engine();
+    eng.setNotes([...notes], 20); // This case skips within a song; end-of-song has its own regression.
     eng.start();
     eng.tick(0.5); // advance normally to t=0.5
     const before = audio.noteOns.length;

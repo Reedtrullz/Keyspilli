@@ -5,10 +5,9 @@ import {
   artifactsDir,
   createLegacyBootstrapManifest,
   dataDir,
-  getDb,
+  commitCatalogPublication,
   getSong,
   getSongsByBase,
-  invalidateSongReadModel,
   parseTempoProvenance,
   publishBaseArtifact,
   readArrangementManifest,
@@ -544,28 +543,12 @@ export async function applySongMetadata(id: string, patch: SongPatch): Promise<S
     return { row, dirName: row.level, notesJson, variant, title, artist, keySig: k };
   });
 
-  const dbSets: string[] = [];
-  const dbParams: Record<string, unknown> = { baseId };
-  for (const [col, key] of [
-    ["title", "title"],
-    ["artist", "artist"],
-    ["category", "category"],
-    ["style", "style"],
-    ["mood", "mood"],
-    ["key", "key"],
-  ] as const) {
-    const value = key === "key"
-      ? normalizedKey
-      : (patch as Record<string, unknown>)[key];
-    if (value !== undefined) {
-      dbSets.push(`${col} = @${key}`);
-      dbParams[key] = value;
-    }
+  const rowPatch: Partial<SongRow> = {};
+  for (const key of ["title", "artist", "category", "style", "mood", "key"] as const) {
+    const value = key === "key" ? normalizedKey : patch[key];
+    if (value !== undefined) rowPatch[key] = value;
   }
-  if (requestedPlayback !== undefined) {
-    dbSets.push("tempo = @tempo");
-    dbParams.tempo = playbackTempo;
-  }
+  if (requestedPlayback !== undefined) rowPatch.tempo = playbackTempo;
   const durationFactor = durationScale(
     calibrationChanged,
     playbackChanged,
@@ -574,13 +557,10 @@ export async function applySongMetadata(id: string, patch: SongPatch): Promise<S
     playbackTempo,
     previousPlayback,
   );
-  if (durationFactor !== 1) {
-    // DB duration is integer seconds (see ingestSource), not beat units.
-    // SQLite's ROUND keeps the same whole-second contract as ingestion while
-    // preserving a potentially different legacy duration per level.
-    dbSets.push("duration = CAST(ROUND(duration * @durationFactor) AS INTEGER)");
-    dbParams.durationFactor = durationFactor;
-  }
+  const recoveryData = { baseId, rows: rows.map(row => ({ ...row,
+    ...rowPatch,
+    duration: Math.round(row.duration * durationFactor),
+  })) as SongRow[] };
 
   await publishBaseArtifact(
     baseId,
@@ -624,13 +604,8 @@ export async function applySongMetadata(id: string, patch: SongPatch): Promise<S
     {
       artifactsRoot: join(dataDir(), "artifacts"),
       semanticValidation: "strict",
-      afterSwap: () => {
-        if (!dbSets.length) return;
-        getDb().prepare(`UPDATE songs SET ${dbSets.join(", ")} WHERE base_id = @baseId`).run(dbParams);
-        // This metadata UPDATE bypasses the catalog write helpers; drop the
-        // grouped read-model snapshot after the artifact/database commit.
-        invalidateSongReadModel();
-      },
+      recoveryData,
+      afterSwap: () => commitCatalogPublication(recoveryData),
     },
   );
 

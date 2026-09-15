@@ -115,25 +115,17 @@ export class PlaybackEngine {
       this.finishGrading();
       return;
     }
-    // When dt exceeded the clamp, rAF stalled (tab was hidden). Skip forward:
-    // do not replay every note scheduled during the gap as an instant burst.
-    if (dt > 0.5) {
-      this.time += dt;
-      this.lastScheduled = this.time;
-      this.audio.cancelAll();
-      this.schedule(this.lastScheduled, this.time + SCHEDULE_LOOKAHEAD);
-      if (this.grader && !this.waitMode) this.grader.tick(this.time);
-      this.emit();
-      return;
-    }
+    if (!Number.isFinite(dt) || dt < 0) return;
     const next = this.time + dt;
-    if (this.loop && !this.grader && next > this.loop.endSec) {
-      this.time = this.loop.startSec;
+    const wrapped = this.loop && !this.grader && next >= this.loop.endSec;
+    this.time = wrapped && this.loop
+      ? this.loop.startSec + (dt > 0.5 ? (next - this.loop.startSec) % (this.loop.endSec - this.loop.startSec) : 0)
+      : next;
+    // Skip missed attacks after a stalled frame, while still processing loop/end state.
+    if (dt > 0.5 || wrapped) {
       this.audio.cancelAll();
       this.lastScheduled = this.time;
-      this.schedule(this.time, this.time + SCHEDULE_LOOKAHEAD);
-    } else {
-      this.time = next;
+      this.lastChordScheduled = -1;
     }
     if (this.time >= this.duration && !this.loop) {
       this.stop();
@@ -225,6 +217,8 @@ export class PlaybackEngine {
   }
 
   setLoop(region: LoopRegion | null): void {
+    if (region && (!Number.isFinite(region.startSec) || !Number.isFinite(region.endSec)
+      || region.startSec < 0 || region.endSec <= region.startSec)) throw new RangeError("Invalid loop bounds");
     this.loop = region;
   }
 

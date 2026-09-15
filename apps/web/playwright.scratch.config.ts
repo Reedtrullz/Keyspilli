@@ -13,7 +13,7 @@ export default defineConfig({
   timeout: 120_000,
   globalTeardown: "./e2e/scratch-global-teardown.ts",
   webServer: {
-    command: "npm run dev -- --port 3100",
+    command: "npm run start -- --port 3100",
     url: "http://127.0.0.1:3100",
     reuseExistingServer: false,
     timeout: 120_000,
@@ -21,6 +21,7 @@ export default defineConfig({
       KEYSPILLI_DATA_DIR: scratchDataDir,
       KEYSPILLI_E2E_SCRATCH_DIR: scratchDataDir,
       KEYSPILLI_API_TOKEN: "test-token-for-e2e",
+      KEYSPILLI_ORIGIN: "http://127.0.0.1:3100",
       NEXT_TELEMETRY_DISABLED: "1",
     },
   },

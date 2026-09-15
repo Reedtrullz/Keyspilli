@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { writeVariantArtifacts, type Variant } from "@keyspilli/midi";
 import { createLegacyBootstrapManifest } from "../src/artifact-manifest.js";
-import { agePublishLock, deleteBaseArtifact, publishBaseArtifact } from "../src/publish.js";
+import { deleteBaseArtifact, publishBaseArtifact, withBaseArtifactLock, reconcileBaseArtifact } from "../src/publish.js";
 
 async function tempRoot(): Promise<string> {
   return mkdtemp(join(tmpdir(), "keyspilli-publish-"));
@@ -100,22 +100,80 @@ describe("publishBaseArtifact", () => {
     expect(existsSync(join(root, ".test-song.new"))).toBe(false);
   });
 
-  it("recovers a stale lock and rejects a live lock", async () => {
+  it("never steals a live lock because of age and releases it on failure", async () => {
+    const root = await tempRoot();
+    await expect(withBaseArtifactLock("test-song", { artifactsRoot: root }, async () => {
+      await expect(withBaseArtifactLock("test-song", { artifactsRoot: root }, () => undefined))
+        .rejects.toThrow("already locked");
+      await withBaseArtifactLock("other-song", { artifactsRoot: root }, () => undefined);
+      throw new Error("writer failed");
+    })).rejects.toThrow("writer failed");
+    await withBaseArtifactLock("test-song", { artifactsRoot: root }, () => undefined);
+  });
+
+  it("excludes another process and recovers automatically after its death", async () => {
+    const root = await tempRoot();
+    const { spawn } = await import("node:child_process");
+    const child = spawn(process.execPath, ["-e", `
+      const Database = require('better-sqlite3');
+      const db = new Database(process.argv[1]);
+      db.exec('BEGIN EXCLUSIVE');
+      process.stdout.write('locked');
+      setInterval(() => {}, 1000);
+    `, join(root, ".test-song.lock.sqlite")], { stdio: ["ignore", "pipe", "pipe"] });
+    try {
+      await new Promise<void>((resolve, reject) => { child.stdout!.once("data", () => resolve()); child.once("error", reject); child.once("exit", () => reject(new Error("lock holder exited early"))); });
+      await expect(withBaseArtifactLock("test-song", { artifactsRoot: root }, () => undefined)).rejects.toThrow("already locked");
+    } finally {
+      const closed = new Promise<void>(resolve => child.once("close", () => resolve()));
+      child.kill("SIGKILL");
+      await closed;
+    }
+    await withBaseArtifactLock("test-song", { artifactsRoot: root }, () => undefined);
+  });
+
+  it("does not steal a legacy directory lock even when its timestamp is old", async () => {
     const root = await tempRoot();
     const lock = join(root, ".test-song.lock");
-    await publishBaseArtifact("test-song", async (stage) => {
-      await writeManifest(stage);
-    }, { artifactsRoot: root });
-    await import("node:fs/promises").then(({ mkdir }) => mkdir(lock));
-    await agePublishLock(lock, 10_000);
-    await publishBaseArtifact("test-song", async (stage) => {
-      await writeManifest(stage);
-    }, { artifactsRoot: root, staleLockMs: 100 });
+    await mkdir(lock);
+    const { utimes } = await import("node:fs/promises");
+    await utimes(lock, new Date(0), new Date(0));
+    await expect(withBaseArtifactLock("test-song", { artifactsRoot: root }, () => undefined))
+      .rejects.toThrow("legacy artifact lock");
+    expect(existsSync(lock)).toBe(true);
+  });
 
-    await import("node:fs/promises").then(({ mkdir }) => mkdir(lock));
-    await expect(publishBaseArtifact("test-song", async (stage) => {
-      await writeManifest(stage);
-    }, { artifactsRoot: root, staleLockMs: 60_000 })).rejects.toThrow("already locked");
+  it("journals a post-swap failure and preserves the backup until explicit reconciliation", async () => {
+    const root = await tempRoot();
+    await publishBaseArtifact("test-song", async stage => {
+      await writeManifest(stage); await writeFile(join(stage, "version"), "old");
+    }, { artifactsRoot: root });
+    await expect(publishBaseArtifact("test-song", async stage => {
+      await writeManifest(stage); await writeFile(join(stage, "version"), "new");
+    }, { artifactsRoot: root, afterSwap: () => { throw new Error("DB unavailable"); } }))
+      .rejects.toMatchObject({ code: "ARTIFACT_RECONCILIATION_REQUIRED", baseId: "test-song" });
+    expect(await readFile(join(root, ".test-song.old", "version"), "utf8")).toBe("old");
+    expect(existsSync(join(root, ".test-song.reconciliation.json"))).toBe(true);
+    await expect(publishBaseArtifact("test-song", stage => writeManifest(stage), { artifactsRoot: root }))
+      .rejects.toMatchObject({ code: "ARTIFACT_RECONCILIATION_REQUIRED" });
+    let reconciled = false;
+    await reconcileBaseArtifact("test-song", { artifactsRoot: root }, () => { reconciled = true; });
+    expect(reconciled).toBe(true);
+    expect(existsSync(join(root, ".test-song.old"))).toBe(false);
+    expect(existsSync(join(root, ".test-song.reconciliation.json"))).toBe(false);
+    expect(await readFile(join(root, "test-song", "version"), "utf8")).toBe("new");
+  });
+
+  it("recovers a crash before the swap without committing database rows", async () => {
+    const root = await tempRoot();
+    await mkdir(join(root, ".test-song.old"));
+    await writeFile(join(root, ".test-song.old", "version"), "old");
+    await mkdir(join(root, ".test-song.new"));
+    await writeFile(join(root, ".test-song.new", ".publication-id"), "pending");
+    await writeFile(join(root, ".test-song.reconciliation.json"), JSON.stringify({ version: 1, operation: "publish", token: "pending" }));
+    await reconcileBaseArtifact("test-song", { artifactsRoot: root }, () => { throw new Error("must not commit"); });
+    expect(await readFile(join(root, "test-song", "version"), "utf8")).toBe("old");
+    expect(existsSync(join(root, ".test-song.reconciliation.json"))).toBe(false);
   });
 
   it("requires the staged manifest before swapping", async () => {

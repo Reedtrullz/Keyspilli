@@ -1,5 +1,7 @@
 import { openPlayerTool } from "./player-tools";
 import { expect, test } from "@playwright/test";
+import { seedMidiDir } from "../../../packages/catalog/src/paths";
+import { join } from "node:path";
 
 const SONG = "f-f-chopin-nocturne-m";
 const UG_SONG = "the-theorist-elton-john-your-song-piano-cover-jz6ugvghbt8-a";
@@ -29,6 +31,7 @@ test("song library filters by difficulty", async ({ page }) => {
 test("song library groups difficulty levels into one card per song", async ({ page }) => {
   await page.goto("/songs");
   await page.getByLabel("Sort").selectOption("title");
+  await page.getByLabel("Search songs").fill("Vocalise");
   const vocalise = page.getByText("Vocalise № 1", { exact: true });
   await expect(vocalise).toHaveCount(1);
   const levels = page.getByRole("group", { name: /Difficulty levels for Vocalise/ });
@@ -291,7 +294,7 @@ test("PDF export rejects unknown layouts with a stable safe error", async ({ req
 
 test("upload flow creates a playable song", async ({ request }) => {
   const fs = await import("node:fs");
-  const buf = fs.readFileSync("../../data/seed-midi/f-abt-vocalise-o-1.mid");
+  const buf = fs.readFileSync(join(seedMidiDir(), "f-abt-vocalise-o-1.mid"));
   const res = await request.post("/api/uploads?title=Upload Test&artist=Keyspilli", {
     data: buf,
     headers: { authorization: "Bearer test-token-for-e2e" },

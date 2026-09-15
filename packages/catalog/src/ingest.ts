@@ -1,14 +1,15 @@
+import { commitCatalogPublication, type CatalogPublication } from "./reconcile.js";
 import { validateSourceArrangement, type SourceArrangement } from "./source-arrangement.js";
 import { createHash } from "node:crypto";
-import { mkdir, rename, rm, writeFile } from "node:fs/promises";
-import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { mkdir, rm, writeFile } from "node:fs/promises";
+import { basename, join } from "node:path";
 import { unzipSync } from "fflate";
 import {
   parseMidi,
   parseMusicXmlNotes,
   cleanTranscription,
   buildVariants,
+  assertSourceWorkload,
   normalizeTempoBpm,
   writeVariantArtifacts,
   validateArtifactFiles,
@@ -20,7 +21,7 @@ import {
   type ChordLabel,
   validateChordLabels,
 } from "@keyspilli/midi";
-import { replaceSongsByBase, getSongsByBase, SongRow } from "./db.js";
+import { getSongsByBase, SongRow } from "./db.js";
 import { dataDir, uploadsDir } from "./paths.js";
 import {
   parseTranscriptionProvenance,
@@ -33,7 +34,7 @@ import {
 } from "./artifact-manifest.js";
 import { canonicalizeSourceProvenance } from "./provenance.js";
 import { AUDIO_ONSET_DETECTOR_CONFIG, ONSET_MATCH_SEC, TRANSCRIPTION_FILTER_VERSION, TRANSCRIPTION_MAX_RECONSTRUCTED_DUR_BEATS } from "./transcribe.js";
-import { publishBaseArtifact } from "./publish.js";
+import { ArtifactReconciliationError, publishBaseArtifact } from "./publish.js";
 import { validateSourceCandidateHandoffLink, type SourceCandidateHandoffLink } from "./source-candidate-handoff.js";
 
 const LEVEL_CODE: Record<string, string> = {
@@ -237,7 +238,7 @@ function mxlScoreXml(buf: Uint8Array): string {
  * Parse a MIDI/MusicXML buffer, generate 6 difficulty variants, write
  * artifacts and DB rows. Returns the base id + created song ids.
  */
-export async function ingestSource(inp: IngestInput, options: IngestOptions = {}): Promise<{ baseId: string; songIds: string[]; error?: string }> {
+export async function ingestSource(inp: IngestInput, options: IngestOptions = {}): Promise<{ baseId: string; songIds: string[]; error?: string; code?: "ARTIFACT_RECONCILIATION_REQUIRED" }> {
   if (inp.baseId && !validBaseId(inp.baseId)) {
     return { baseId: "", songIds: [], error: "invalid base id" };
   }
@@ -258,6 +259,7 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
   if (inp.sourceArtifactHash !== undefined && !/^[0-9a-f]{64}$/.test(inp.sourceArtifactHash)) {
     return { baseId: "", songIds: [], error: "invalid sourceArtifactHash: expected 64 lowercase hexadecimal characters" };
   }
+  if (inp.buf.byteLength > 16 * 1024 * 1024) return { baseId: "", songIds: [], error: "source exceeds 16 MiB limit" };
   let parsed;
   let isMxl = false;
   let sourceIsXml = false;
@@ -269,6 +271,7 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
       : sourceIsXml
         ? parseMusicXmlNotes(new TextDecoder().decode(inp.buf))
         : parseMidi(inp.buf);
+    assertSourceWorkload(parsed);
   } catch (e) {
     return { baseId: "", songIds: [], error: `parse failed: ${(e as Error).message}` };
   }
@@ -339,7 +342,9 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
     : inp.contentType === "youtube" && arrangementProfile !== "metal"
       ? MAX_YOUTUBE_IMPORT_DUR_BEATS
       : null;
-  const variants = buildVariants(
+  let variants;
+  try {
+    variants = buildVariants(
     parsed,
     {
       title: inp.title,
@@ -354,6 +359,9 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
       ...(inp.chords ? { chords: inp.chords } : {}),
     },
   );
+  } catch (e) {
+    return { baseId: "", songIds: [], error: `arrangement failed: ${(e as Error).message}` };
+  }
   const validationErrors = validateVariants(variants, { maxDurBeats });
   if (validationErrors.length) {
     return { baseId: "", songIds: [], error: `validation failed: ${validationErrors.join("; ")}` };
@@ -458,8 +466,13 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
   const token = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
   const stageUpload = join(uploadRoot, `.${baseId}.staging-${token}.${uploadExt}`);
   const backupUpload = join(uploadRoot, `.${baseId}.backup-${token}.${uploadExt}`);
-  let movedUploadBackup = false;
-  let movedStageUpload = false;
+  const recoveryData: CatalogPublication = {
+    baseId, rows: prepared.map(item => item.row),
+    ...(inp.contentType === "upload" ? { upload: {
+      staged: basename(stageUpload), final: basename(finalUpload), backup: basename(backupUpload),
+      sha256: createHash("sha256").update(inp.buf).digest("hex"),
+    } } : {}),
+  };
   const configFingerprint = createHash("sha256")
     .update(JSON.stringify({
       pipeline: "ingest-v2",
@@ -537,33 +550,15 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
       artifactsRoot,
       semanticValidation: "strict",
       beforeSwap: options.beforeReplace,
-      afterSwap: async () => {
-        if (inp.contentType === "upload") {
-          if (existsSync(finalUpload)) {
-            await rename(finalUpload, backupUpload);
-            movedUploadBackup = true;
-          }
-          await rename(stageUpload, finalUpload);
-          movedStageUpload = true;
-        }
-        replaceSongsByBase(baseId, prepared.map((item) => item.row));
-        // Cleanup is best-effort after the DB commit. A transient unlink
-        // failure must not make a successfully published artifact look like
-        // a failed ingest.
-        await rm(backupUpload, { force: true }).catch(() => undefined);
-      },
+      recoveryData,
+      afterSwap: () => commitCatalogPublication(recoveryData),
     });
     return result;
   } catch (e) {
-    // A writer/preparation failure leaves the old artifact root untouched.
-    // If an auxiliary upload move failed before completion, restore its old
-    // sidecar; a post-swap DB failure intentionally leaves the new artifact
-    // tree in place for reconciliation by the catalog verifier.
-    if (!movedStageUpload && movedUploadBackup) {
-      await rename(backupUpload, finalUpload).catch(() => undefined);
+    if (e instanceof ArtifactReconciliationError) {
+      return { baseId, songIds: [], error: e.message, code: e.code };
     }
     await rm(stageUpload, { force: true });
-    await rm(backupUpload, { force: true });
     return { baseId: "", songIds: [], error: `publish failed: ${(e as Error).message}` };
   }
 }

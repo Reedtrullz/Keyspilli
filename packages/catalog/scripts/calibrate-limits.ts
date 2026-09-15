@@ -6,7 +6,7 @@
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { LEVEL_ORDER, PLAYABILITY_LIMITS } from "@keyspilli/midi";
-import { ROOT } from "../src/paths.js";
+import { dataDir } from "../src/paths.js";
 
 const LEVEL_CODE: Record<string, string> = {
   "very-beginner": "vb",
@@ -17,7 +17,7 @@ const LEVEL_CODE: Record<string, string> = {
   advanced: "a",
 };
 
-const artifactsRoot = join(ROOT, "data", "artifacts");
+const artifactsRoot = join(dataDir(), "artifacts");
 const rows: Record<string, { maxSim: number[]; density: number[]; ioi: number[] }> = {};
 for (const level of LEVEL_ORDER) rows[level] = { maxSim: [], density: [], ioi: [] };
 
