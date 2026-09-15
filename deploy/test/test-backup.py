@@ -147,6 +147,7 @@ def test_runner_pauses_pair_and_restores_only_its_pauses() -> None:
         assert sum(line.startswith("pause ") for line in lines) == 2
         assert sum(line.startswith("unpause ") for line in lines) == 2
         assert all("docker.sock" not in line for line in lines)
+        assert "--user 0:0" in next(line for line in lines if line.startswith("run "))
         manifest = json.loads(manifests(backups)[0].read_text())
         assert manifest["complete"] is True
         assert hashlib.sha256((backups / manifest["dbFile"]).read_bytes()).hexdigest() == manifest["dbSha256"]

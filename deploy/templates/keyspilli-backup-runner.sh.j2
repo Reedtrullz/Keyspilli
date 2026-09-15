@@ -80,8 +80,10 @@ image="$("$DOCKER_BIN" inspect keyspilli-worker --format '{% raw %}{{.Config.Ima
   || die "keyspilli-worker image is unavailable"
 [[ -n "$image" ]] || die "keyspilli-worker image is empty"
 
+# The one-shot backup writes root-owned host backups; do not inherit the worker UID.
 "$TIMEOUT_BIN" --foreground --signal=TERM --kill-after=30s "$BACKUP_TIMEOUT" \
   "$DOCKER_BIN" run --rm --name "$BACKUP_CONTAINER" \
+  --user 0:0 \
   --network none \
   --volumes-from keyspilli-worker \
   -v "$BACKUP_DIR:/backups" \
