@@ -2738,8 +2738,33 @@ function rootOf(midi: number, key: string): number {
  * Guarantee: each easier level is a strict simplification (subset or
  * equal notes) of the level above it.
  */
+/** Bound synchronous work for every importer, including sparse malicious timelines. */
+export function assertSourceWorkload(src: ParsedMidi, grid = 0.25): void {
+  const fail = () => { throw new Error("source workload exceeds supported limits (20000 notes, 4096 beats, 2048 measures, 200M grid-note pairs)"); };
+  if (!Number.isFinite(grid) || grid < 1 / 16 || grid > 4
+    || !Number.isFinite(src.durationBeats) || src.durationBeats < 0
+    || src.notes.length > 20_000
+    || (src.tempoEvents?.length ?? 0) > 20_000
+    || src.notes.length * (src.tempoEvents?.length ?? 0) > 40_000_000) fail();
+  let end = src.durationBeats;
+  for (const note of src.notes) {
+    if (!Number.isFinite(note.start) || !Number.isFinite(note.dur) || note.start < 0 || note.dur < 0) fail();
+    end = Math.max(end, note.start + note.dur);
+  }
+  const measureBeats = src.timeSig[0] * 4 / src.timeSig[1];
+  // ponytail: conservative work estimate for the synchronous arranger; move to a
+  // cancellable worker before raising this ceiling for very large scores.
+  if (!Number.isFinite(measureBeats) || measureBeats <= 0 || end > 4096
+    || Math.ceil(end / measureBeats) > 2048
+    || Math.ceil(end / grid) * src.notes.length > 200_000_000) fail();
+}
+
 export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOptions = {}): Variant[] {
+  assertSourceWorkload(src, opts.grid);
   if (opts.chords) {
+    if (opts.chords.length > 20_000 || opts.chords.some(chord => chord.beat + (chord.durationBeats ?? 0) > 4096)) {
+      throw new Error("source workload exceeds supplied chord limits");
+    }
     const chordErrors = validateChordLabels(opts.chords);
     if (chordErrors.length) throw new Error(`invalid supplied chords: ${chordErrors.join("; ")}`);
   }
@@ -2761,6 +2786,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
       ...(chord.durationBeats === undefined ? {} : { durationBeats: beat(chord.beat + chord.durationBeats) - beat(chord.beat) }),
     })) };
   }
+  assertSourceWorkload(src, opts.grid);
   const grid = opts.grid ?? 0.25;
   const metalProfile = opts.arrangementProfile === "metal";
   const learnerProfile = opts.arrangementProfile === "learner";

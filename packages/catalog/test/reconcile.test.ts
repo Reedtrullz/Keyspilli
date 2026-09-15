@@ -1,0 +1,36 @@
+import { afterAll, expect, it } from "vitest";
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { writeMidi } from "@keyspilli/midi";
+import { ingestSource } from "../src/ingest.js";
+import { getDb, getSongsByBase } from "../src/db.js";
+import { reconcileBaseArtifact } from "../src/publish.js";
+import { commitCatalogPublication } from "../src/reconcile.js";
+const previous = process.env.KEYSPILLI_DATA_DIR;
+const root = mkdtempSync(join(tmpdir(), "keyspilli-reconcile-"));
+process.env.KEYSPILLI_DATA_DIR = root;
+afterAll(() => {
+  getDb().close();
+  rmSync(root, { recursive: true, force: true });
+  if (previous === undefined) delete process.env.KEYSPILLI_DATA_DIR;
+  else process.env.KEYSPILLI_DATA_DIR = previous;
+});
+it("retains source and artifact backups after DB failure, then replays the commit", async () => {
+  const source = (offset: number) => writeMidi(Array.from({ length: 16 }, (_, i) => ({ midi: 60 + i % 7 + offset, start: i, dur: 1, vel: 80 })), { tempoBpm: 120 });
+  const input = { baseId: "recover-test", title: "Old", artist: "Test", category: "Upload", contentType: "upload" as const, acquiredVia: "upload" as const };
+  const old = source(0);
+  expect((await ingestSource({ ...input, buf: old })).error).toBeUndefined();
+  getDb().exec("CREATE TRIGGER fail_insert BEFORE INSERT ON songs BEGIN SELECT RAISE(ABORT, 'injected DB failure'); END");
+  const result = await ingestSource({ ...input, title: "New", buf: source(2) });
+  expect(result).toMatchObject({ baseId: "recover-test", code: "ARTIFACT_RECONCILIATION_REQUIRED" });
+  const backup = readdirSync(join(root, "uploads")).find(name => name.includes(".backup-"));
+  expect(backup).toBeTruthy();
+  expect(new Uint8Array(readFileSync(join(root, "uploads", backup!)))).toEqual(old);
+  expect(getSongsByBase("recover-test")[0]?.title).toBe("Old");
+  getDb().exec("DROP TRIGGER fail_insert; UPDATE songs SET plays = 7");
+  await reconcileBaseArtifact("recover-test", { artifactsRoot: join(root, "artifacts") }, commitCatalogPublication);
+  expect(getSongsByBase("recover-test").map(row => row.title)).toEqual(Array(6).fill("New"));
+  expect(getSongsByBase("recover-test").every(row => row.plays === 7)).toBe(true);
+  expect(readdirSync(join(root, "uploads")).some(name => name.includes(".backup-"))).toBe(false);
+});

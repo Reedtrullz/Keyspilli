@@ -253,3 +253,18 @@ describe("grouped songs route", () => {
     expect(body.songs[0].levels).toHaveLength(6);
   });
 });
+
+describe("pagination bounds", () => {
+  it.each(["abc", "1.5", "-1", "0", "500", "Infinity"])("normalizes limit=%s", async limit => {
+    listSongs.mockReset().mockReturnValue([]);
+    countSongs.mockReturnValue(0);
+    await GET(requestFor(`limit=${limit}&offset=NaN`));
+    expect(listSongs).toHaveBeenCalledWith(expect.objectContaining({ limit: 200, offset: 0 }));
+  });
+  it("preserves valid integer bounds", async () => {
+    listSongs.mockReset().mockReturnValue([]);
+    countSongs.mockReturnValue(0);
+    await GET(requestFor("limit=10&offset=20"));
+    expect(listSongs).toHaveBeenCalledWith(expect.objectContaining({ limit: 10, offset: 20 }));
+  });
+});

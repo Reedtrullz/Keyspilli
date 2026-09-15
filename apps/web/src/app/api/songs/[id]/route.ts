@@ -5,6 +5,7 @@ import { applySongMetadata, resolveBaseId, SongUpdateError, type SongPatch } fro
 import { parseTempoRequest, TempoRequestError, type TempoRequestPatch } from "@/lib/tempo-request";
 import { readdir, rm } from "node:fs/promises";
 import {
+  ArtifactReconciliationError,
   dataDir,
   deleteBaseArtifact,
   deleteBaseRows,
@@ -64,6 +65,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const rows = await applySongMetadata(id, patch);
     return NextResponse.json({ baseId: rows[0]!.baseId, songIds: rows.map((r) => r.id), tempoRole });
   } catch (e) {
+    if (e instanceof ArtifactReconciliationError) {
+      return NextResponse.json({ error: e.message, code: e.code, baseId: e.baseId, reconciliationRequired: true }, { status: 503 });
+    }
     if (e instanceof SongUpdateError) {
       return NextResponse.json({ error: e.message }, { status: e.status });
     }
@@ -111,9 +115,10 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json(
       {
         error: message,
+        ...(e instanceof ArtifactReconciliationError ? { code: e.code, baseId: e.baseId } : {}),
         ...(locked ? {} : { reconciliationRequired: true }),
       },
-      { status: locked ? 409 : 500 },
+      { status: locked ? 409 : e instanceof ArtifactReconciliationError ? 503 : 500 },
     );
   }
   return NextResponse.json({ deleted: baseId });

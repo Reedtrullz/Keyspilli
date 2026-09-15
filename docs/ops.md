@@ -778,3 +778,98 @@ interactions using `docs/private-alpha-feedback-guide.md`; do not include
 credentials, private paths, or source bytes by default. The objective local
 usage matrix and short read-only live baseline are recorded in
 `docs/research/keyspilli-evidence/private-alpha-usage-feedback-phase-2026-09-05.json`.
+
+
+## Live catalog verification (F07)
+
+CI and operator runs use `deploy/keyspilli-live-verifier.py`, which uses only
+the Python standard library. It verifies anonymous `/api/health` returns 401,
+authenticated health is healthy and exposes the expected deployment SHA, and
+the flat `/api/songs?limit=200&offset=...` response has the advertised
+`{songs,total}` shape. Pagination is bounded and fails closed on malformed,
+short, repeated, oversized, or changing-total pages. A targeted rebuild checks
+the requested `baseId` and a positive numeric tempo; it does not infer success
+from titles or require tempo 120.
+
+The workflow passes credentials, URL, SHA, and rebuild inputs through step
+environment variables. It does not interpolate secrets or workflow inputs into
+the verifier shell command.
+
+Run locally:
+
+    KEYSPILLI_DEPLOY_URL=https://keys.reidar.tech \
+    KEYSPILLI_ACCESS_USERNAME=... KEYSPILLI_ACCESS_PASSWORD=... \
+    KEYSPILLI_EXPECTED_SHA=$(git rev-parse HEAD) \
+    KEYSPILLI_VERIFY_BASE_ID=dear-god \
+    python3 deploy/keyspilli-live-verifier.py
+
+Fixture check:
+
+    python3 deploy/test/test-live-verifier.py
+
+## Backup and restore (F08)
+
+The systemd timer invokes the host-side
+`/usr/local/sbin/keyspilli-backup-runner`. The runner takes a host
+`flock`, inspects `keyspilli` and `keyspilli-worker`, and fails closed if
+either is missing or not running/unpaused. It pauses both before starting a
+separate backup container, and its exit trap unpauses only containers paused by
+that run. The runner bounds the backup container to 300 seconds, sends TERM,
+then KILL after 30 seconds, and explicitly removes the named container from
+its exit path. The backup container receives the data volume and `/backups`,
+but never a Docker socket. A timeout or failed unpause is a failed backup.
+
+`deploy/backup.sh` is data-only. It creates a consistent SQLite snapshot,
+validates the database and tar archive, and publishes the database and archive
+before publishing `backup-manifest-STAMP.json` last. The manifest names the
+paired files and records both SHA-256 checksums. The archive includes
+`artifacts/` recursively, so hidden `.BASE.reconciliation.json` and
+`.BASE.old` recovery state is retained with ordinary artifacts. It also
+includes the persisted source and provenance directories when present.
+
+Retention removes only an old manifest whose complete database/archive pair
+exists and whose recorded hashes still match. Orphaned or mismatched files
+remain for operator inspection; independent glob cleanup is never used. The
+ops monitor selects the newest coherent manifest pair and uses that same pair
+for ages, checksum validation, SQLite integrity, and archive checks.
+
+Run fixture checks:
+
+    python3 deploy/test/test-backup.py
+    bash deploy/test/ops-check.sh
+
+### Non-destructive restore drill
+
+Use a new, absent destination. The command verifies the committed pair and
+checksums, copies both files, runs SQLite `PRAGMA integrity_check`, validates
+safe tar members, and extracts the archive without changing the source backup:
+
+    bash deploy/restore-drill.sh \
+      /backups/backup-manifest-2026-09-15-020000.json \
+      /tmp/keyspilli-restore-drill-2026-09-15
+
+### Publication reconciliation recovery
+
+If a post-swap error leaves a `.BASE.reconciliation.json` marker in
+`data/artifacts/`, mutations for that base remain blocked until the journal
+is replayed:
+
+    KEYSPILLI_DATA_DIR=/data npm run reconcile-artifacts -w @keyspilli/catalog -- BASE_ID
+
+The CLI validates the published tree, replays the idempotent source/DB commit,
+or restores the prior tree from `.BASE.old` when the swap never committed.
+Do not manually delete reconciliation markers or `.BASE.old`; the CLI handles
+cleanup after successful recovery.
+
+## Artifact lock upgrade
+
+The active lock is the persistent hidden
+`.BASE_ID.lock.sqlite` file, acquired with SQLite `BEGIN EXCLUSIVE`. It is
+never deleted because another writer may still hold its inode. A legacy
+`.BASE_ID.lock` directory causes publication to fail closed. Stop old
+writers and perform the migration manually under maintenance; do not make
+backup, restore, or reconciliation silently remove a legacy lock.
+
+The pause is a bounded filesystem snapshot boundary. It does not claim that
+application transactions reached an application-level quiescent completion;
+reconciliation and the restore drill remain explicit recovery checks.

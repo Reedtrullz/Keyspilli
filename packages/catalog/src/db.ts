@@ -1,6 +1,6 @@
 import Database from "better-sqlite3";
 import { randomUUID } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { ROOT, dataDir, dbPath } from "./paths.js";
 import type { JobRow, SongFilters, SongRow } from "./db-types.js";
@@ -31,9 +31,6 @@ interface SongReadModelCache {
 
 let songReadModelGeneration = 0;
 let songReadModelCache: SongReadModelCache | undefined;
-let learnerReviewCachePath: string | undefined;
-let learnerReviewCacheSignature: string | undefined;
-let learnerReviewCache = new Set<string>();
 
 /** Invalidate the grouped catalogue raw-row snapshot after an out-of-band update. */
 export function invalidateSongReadModel(): void {
@@ -70,44 +67,6 @@ function policySignature(): string {
   ]
     .map(fileSignature)
     .join("|");
-}
-
-function policyBasesFromFile(path: string): ReadonlySet<string> {
-  if (!existsSync(path)) return new Set<string>();
-  const signature = fileSignature(path);
-  if (path === learnerReviewCachePath && signature === learnerReviewCacheSignature) {
-    return learnerReviewCache;
-  }
-  try {
-    const parsed = JSON.parse(readFileSync(path, "utf8")) as {
-      verdicts?: Record<string, { blocked?: boolean }>;
-    };
-    learnerReviewCachePath = path;
-    learnerReviewCacheSignature = signature;
-    learnerReviewCache = new Set(
-      Object.entries(parsed.verdicts ?? {}).filter(([, entry]) => entry?.blocked === true).map(([baseId]) => baseId),
-    );
-    return learnerReviewCache;
-  } catch {
-    // The existing learner-review gate fails open on malformed data.  The
-    // manifest loader itself still throws (and therefore fails closed) when
-    // it is used by hiddenBaseIds below.
-    learnerReviewCachePath = path;
-    learnerReviewCacheSignature = signature;
-    learnerReviewCache = new Set<string>();
-    return learnerReviewCache;
-  }
-}
-
-function learnerReviewBases(): ReadonlySet<string> {
-  const path = [join(dataDir(), "learner-review.json"), join(ROOT, "catalog", "learner-review.json")].find((candidate) => existsSync(candidate));
-  if (!path) {
-    learnerReviewCachePath = undefined;
-    learnerReviewCacheSignature = undefined;
-    learnerReviewCache = new Set<string>();
-    return blockedLearnerBases();
-  }
-  return policyBasesFromFile(path);
 }
 
 function mapSong(r: Record<string, unknown>): SongRow {
@@ -244,12 +203,13 @@ export function upsertSong(s: SongRow): void {
 export function replaceSongsByBase(baseId: string, rows: SongRow[]): void {
   const conn = getDb();
   const tx = conn.transaction((items: SongRow[]) => {
+    const plays = new Map((conn.prepare("SELECT id, plays FROM songs WHERE base_id = ?").all(baseId) as Array<{ id: string; plays: number }>).map(row => [row.id, row.plays]));
     conn.prepare("DELETE FROM songs WHERE base_id = ?").run(baseId);
     const stmt = conn.prepare(
       `INSERT INTO songs (id, base_id, title, artist, category, difficulty, difficulty_score, key, tempo, style, mood, bass_pattern, duration, content_type, acquired_via, source_youtube_url, has_sheet_xml, sections, plays, level, created_at)
        VALUES (@id, @baseId, @title, @artist, @category, @difficulty, @difficultyScore, @key, @tempo, @style, @mood, @bassPattern, @duration, @contentType, @acquiredVia, @sourceYoutubeUrl, @hasSheetXml, @sections, @plays, @level, @createdAt)`,
     );
-    for (const row of items) stmt.run(row);
+    for (const row of items) stmt.run({ ...row, plays: Math.max(row.plays, plays.get(row.id) ?? 0) });
   });
   tx(rows);
   invalidateSongReadModel();
@@ -262,13 +222,8 @@ export function removeSongsByBase(baseId: string): number {
   return result.changes;
 }
 
-function hiddenBaseIds(refreshLearnerReview = false): ReadonlySet<string> {
-  // Re-read the learner-review policy when the grouped snapshot is rebuilt.
-  // learner-review.ts intentionally keeps a path-only cache for its other
-  // callers; reading the selected file here prevents an atomic replacement
-  // from leaving this read model stale.  Malformed review data remains the
-  // documented fail-open behaviour, while manifest parsing stays fail-closed.
-  const blocked = refreshLearnerReview ? learnerReviewBases() : blockedLearnerBases();
+function hiddenBaseIds(): ReadonlySet<string> {
+  const blocked = blockedLearnerBases();
   return new Set([...blocked, ...disabledManifestBases()]);
 }
 
@@ -286,7 +241,7 @@ function visibleSongRowsSnapshot(): SongRow[] {
     return cached.rows;
   }
 
-  const hidden = hiddenBaseIds(true);
+  const hidden = hiddenBaseIds();
   const rows = (conn.prepare("SELECT * FROM songs").all() as Record<string, unknown>[])
     .filter((row) => !hidden.has(row.base_id as string))
     .map(mapSong);
@@ -298,7 +253,7 @@ function visibleSongRowsSnapshot(): SongRow[] {
   const dataAfter = songDataSignature(conn);
   const policyAfter = policySignature();
   if (dataAfter !== dataBefore || policyAfter !== policyBefore) {
-    const hiddenAfter = hiddenBaseIds(true);
+    const hiddenAfter = hiddenBaseIds();
     const freshRows = (conn.prepare("SELECT * FROM songs").all() as Record<string, unknown>[])
       .filter((row) => !hiddenAfter.has(row.base_id as string))
       .map(mapSong);
@@ -330,6 +285,12 @@ export function getSong(id: string): SongRow | undefined {
 
 export function getSongsByBase(baseId: string): SongRow[] {
   return (getDb().prepare("SELECT * FROM songs WHERE base_id = ? ORDER BY difficulty_score").all(baseId) as Record<string, unknown>[]).map(mapSong);
+}
+
+function pagination(f: SongFilters, cap: number): { limit: number; offset: number } {
+  const limit = Number.isSafeInteger(f.limit) && f.limit! > 0 ? f.limit! : 60;
+  const offset = Number.isSafeInteger(f.offset) && f.offset! >= 0 ? f.offset! : 0;
+  return { limit: Math.min(Number.isSafeInteger(cap) && cap > 0 ? cap : 200, limit), offset };
 }
 
 export function listSongs(f: SongFilters = {}, limitCap = 200): SongRow[] {
@@ -369,8 +330,7 @@ export function listSongs(f: SongFilters = {}, limitCap = 200): SongRow[] {
         : f.sort === "difficulty"
           ? "difficulty_score"
           : "plays DESC";
-  const limit = Math.min(limitCap, f.limit ?? 60);
-  const offset = f.offset ?? 0;
+  const { limit, offset } = pagination(f, limitCap);
   return (
     getDb()
       .prepare(
@@ -388,8 +348,8 @@ export function listSongsGrouped(f: SongFilters = {}): GroupedSong[] {
   let grouped = groupedSongsForFilters(f);
   const order = groupedOrder(f);
   grouped.sort(order);
-  const limit = Math.min(2000, f.limit ?? 60);
-  return grouped.slice(f.offset ?? 0, (f.offset ?? 0) + limit);
+  const { limit, offset } = pagination(f, 2000);
+  return grouped.slice(offset, offset + limit);
 }
 
 export interface GroupedSongsPage {
@@ -406,8 +366,7 @@ export function listSongsGroupedWithTotal(f: SongFilters = {}): GroupedSongsPage
   const grouped = groupedSongsForFilters(f);
   const order = groupedOrder(f);
   grouped.sort(order);
-  const offset = f.offset ?? 0;
-  const limit = Math.min(2000, f.limit ?? 60);
+  const { limit, offset } = pagination(f, 2000);
   return {
     songs: grouped.slice(offset, offset + limit),
     total: grouped.length,

@@ -1,4 +1,6 @@
-import { mkdir, readFile, rename, rm, stat, utimes, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import Database from "better-sqlite3";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { validateArtifactFiles, type Variant } from "@keyspilli/midi";
@@ -6,11 +8,9 @@ import { parseArrangementManifest } from "./artifact-manifest.js";
 import type { ArrangementManifest } from "./artifact-manifest.js";
 
 const BASE_ID_RE = /^[a-z0-9][a-z0-9-]{0,119}$/;
-const DEFAULT_STALE_LOCK_MS = 15 * 60 * 1000;
 
 export interface PublishBaseArtifactOptions {
   artifactsRoot: string;
-  staleLockMs?: number;
   /**
    * The complete base-level artifact contract.  Every normal publication is
    * a six-level arrangement, so these defaults are deliberately strict.  The
@@ -30,11 +30,12 @@ export interface PublishBaseArtifactOptions {
   beforeSwap?: () => void;
   /** Runs after the filesystem swap; a failure leaves the new tree published. */
   afterSwap?: () => Promise<void> | void;
+  /** Durable arguments for the operator reconciliation command. */
+  recoveryData?: unknown;
 }
 
 export interface ArtifactLockOptions {
   artifactsRoot: string;
-  staleLockMs?: number;
 }
 
 export interface DeleteBaseArtifactOptions extends ArtifactLockOptions {
@@ -46,6 +47,13 @@ export interface DeleteBaseArtifactOptions extends ArtifactLockOptions {
    * is intentionally not rolled back because the tree is already committed.
    */
   afterFilesystemDelete?: () => Promise<void> | void;
+}
+
+export class ArtifactReconciliationError extends Error {
+  readonly code = "ARTIFACT_RECONCILIATION_REQUIRED";
+  constructor(readonly baseId: string, cause?: unknown) {
+    super(`artifact reconciliation required for ${baseId}${cause instanceof Error ? `: ${cause.message}` : ""}`, { cause });
+  }
 }
 
 export const REQUIRED_ARTIFACT_LEVELS = ["a", "b", "e", "m", "ve", "vb"] as const;
@@ -63,15 +71,22 @@ export async function withBaseArtifactLock<T>(
 ): Promise<T> {
   if (!BASE_ID_RE.test(baseId)) throw new Error(`invalid base id: ${baseId}`);
   const root = options.artifactsRoot;
-  const lockRoot = join(root, `.${baseId}.lock`);
-  const staleLockMs = options.staleLockMs ?? DEFAULT_STALE_LOCK_MS;
-
   await mkdir(root, { recursive: true });
-  await acquireLock(lockRoot, staleLockMs);
+  // Legacy writers must be stopped and their directory locks recovered before upgrading.
+  if (existsSync(join(root, `.${baseId}.lock`))) throw new Error("legacy artifact lock requires operator recovery");
+  // SQLite's OS lock survives arbitrary writer duration and is released on process death.
+  // Never unlink this file: another process may already have its inode open.
+  const lock = new Database(join(root, `.${baseId}.lock.sqlite`), { timeout: 0 });
   try {
+    try {
+      lock.exec("BEGIN EXCLUSIVE");
+    } catch (error) {
+      if ((error as { code?: string }).code === "SQLITE_BUSY") throw new Error("artifact publish already locked");
+      throw error;
+    }
     return await operation();
   } finally {
-    await rm(lockRoot, { recursive: true, force: true }).catch(() => undefined);
+    lock.close();
   }
 }
 
@@ -93,6 +108,9 @@ export async function publishBaseArtifact<T>(
   const requiredFiles = options.requiredFiles ?? REQUIRED_ARTIFACT_FILES;
 
   return withBaseArtifactLock(baseId, options, async () => {
+    const journal = join(root, `.${baseId}.reconciliation.json`);
+    if (existsSync(journal)) throw new ArtifactReconciliationError(baseId);
+    let journalWritten = false;
     try {
       await recoverInterruptedPublish(finalRoot, newRoot, oldRoot);
       await rm(newRoot, { recursive: true, force: true });
@@ -116,6 +134,10 @@ export async function publishBaseArtifact<T>(
 
       await rm(oldRoot, { recursive: true, force: true });
       options.beforeSwap?.();
+      const token = randomUUID();
+      await writeFile(join(newRoot, ".publication-id"), token, { flush: true });
+      await writeFile(journal, JSON.stringify({ version: 1, operation: "publish", token, requiresCommit: Boolean(options.afterSwap), recoveryData: options.recoveryData }), { flag: "wx", flush: true });
+      journalWritten = true;
       if (existsSync(finalRoot)) await rename(finalRoot, oldRoot);
       try {
         await rename(newRoot, finalRoot);
@@ -123,10 +145,12 @@ export async function publishBaseArtifact<T>(
         if (!existsSync(finalRoot) && existsSync(oldRoot)) await rename(oldRoot, finalRoot).catch(() => undefined);
         throw error;
       }
-      await rm(oldRoot, { recursive: true, force: true });
       await options.afterSwap?.();
+      await rm(oldRoot, { recursive: true, force: true });
+      await rm(journal);
       return result;
     } catch (error) {
+      if (journalWritten) throw new ArtifactReconciliationError(baseId, error);
       await rm(newRoot, { recursive: true, force: true }).catch(() => undefined);
       throw error;
     }
@@ -262,14 +286,20 @@ export async function deleteBaseArtifact(
   const oldRoot = join(root, `.${baseId}.old`);
 
   return withBaseArtifactLock(baseId, options, async () => {
+    const journal = join(root, `.${baseId}.reconciliation.json`);
+    if (existsSync(journal)) throw new ArtifactReconciliationError(baseId);
     await recoverInterruptedPublish(finalRoot, newRoot, oldRoot);
+    await writeFile(journal, JSON.stringify({ version: 1, operation: "delete" }), { flag: "wx", flush: true });
     const existed = existsSync(finalRoot);
     await rm(finalRoot, { recursive: true, force: true });
     // A deletion is also a cleanup boundary for abandoned staged/backup
     // roots.  These are safe to remove only while the base lock is held.
     await rm(newRoot, { recursive: true, force: true });
     await rm(oldRoot, { recursive: true, force: true });
-    await options.afterFilesystemDelete?.();
+    try {
+      await options.afterFilesystemDelete?.();
+      await rm(journal);
+    } catch (error) { throw new ArtifactReconciliationError(baseId, error); }
     return { baseId, existed };
   });
 }
@@ -303,25 +333,6 @@ async function assertCompleteArtifactTree(
   }
 }
 
-async function acquireLock(lockRoot: string, staleLockMs: number): Promise<void> {
-  for (;;) {
-    try {
-      await mkdir(lockRoot);
-      await writeFile(join(lockRoot, "owner"), `${process.pid}\n`, "utf8");
-      return;
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
-      try {
-        const info = await stat(lockRoot);
-        if (Date.now() - info.mtimeMs <= staleLockMs) throw new Error("artifact publish already locked");
-        await rm(lockRoot, { recursive: true, force: true });
-      } catch (lockError) {
-        if ((lockError as Error).message === "artifact publish already locked") throw lockError;
-      }
-    }
-  }
-}
-
 async function recoverInterruptedPublish(finalRoot: string, newRoot: string, oldRoot: string): Promise<void> {
   // A complete current root wins over an abandoned backup. If the process
   // crashed after moving current to .old but before installing .new, restore
@@ -332,8 +343,39 @@ async function recoverInterruptedPublish(finalRoot: string, newRoot: string, old
   if (existsSync(newRoot)) await rm(newRoot, { recursive: true, force: true });
 }
 
-/** Test helper for failure-injection fixtures that need an old lock timestamp. */
-export async function agePublishLock(lockRoot: string, ageMs: number): Promise<void> {
-  const time = new Date(Date.now() - ageMs);
-  await utimes(lockRoot, time, time);
+
+/** Explicit recovery only: retries an idempotent DB/source commit under the writer lock. */
+export async function reconcileBaseArtifact(
+  baseId: string,
+  options: ArtifactLockOptions,
+  commit: (data: unknown, operation: "publish" | "delete") => Promise<void> | void,
+): Promise<void> {
+  await withBaseArtifactLock(baseId, options, async () => {
+    const root = options.artifactsRoot;
+    const journal = join(root, `.${baseId}.reconciliation.json`);
+    const entry = JSON.parse(await readFile(journal, "utf8"));
+    if (entry.version !== 1 || !["publish", "delete"].includes(entry.operation)) throw new Error("invalid reconciliation journal");
+    const final = join(root, baseId);
+    const old = join(root, `.${baseId}.old`);
+    const stage = join(root, `.${baseId}.new`);
+    if (entry.operation === "publish") {
+      if (typeof entry.token !== "string" || !entry.token) throw new Error("invalid publication token");
+      const installed = await readFile(join(final, ".publication-id"), "utf8").catch(() => null);
+      if (installed !== entry.token) {
+        const staged = await readFile(join(stage, ".publication-id"), "utf8").catch(() => null);
+        if (staged !== entry.token) throw new Error("ambiguous publication state; preserve journal and backups for investigation");
+        // The swap never committed; restore the previous tree without touching the DB.
+        if (!existsSync(final) && existsSync(old)) await rename(old, final);
+        await rm(stage, { recursive: true, force: true });
+        await rm(journal);
+        return;
+      }
+    } else {
+      await rm(final, { recursive: true, force: true });
+    }
+    if (entry.requiresCommit !== false) await commit(entry.recoveryData, entry.operation);
+    await rm(old, { recursive: true, force: true });
+    await rm(stage, { recursive: true, force: true });
+    await rm(journal);
+  });
 }

@@ -7,8 +7,19 @@ function includesLegacyVeryEasy(sp: URLSearchParams): boolean {
   return sp.get("legacy") === "1" || sp.get("legacy") === "true" || sp.get("difficulty") === "very-easy";
 }
 
+/** Normalize pagination: positive integer limit capped at 200, non-negative integer offset. */
+function safePage(sp: URLSearchParams) {
+  const limit = Number(sp.get("limit"));
+  const offset = Number(sp.get("offset"));
+  return {
+    limit: Number.isSafeInteger(limit) && limit > 0 ? Math.min(200, limit) : 200,
+    offset: Number.isSafeInteger(offset) && offset >= 0 ? offset : 0,
+  };
+}
+
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
+  const { limit, offset } = safePage(sp);
   const f: SongFilters = {
     difficulty: sp.get("difficulty") ?? undefined,
     key: sp.get("key") ?? undefined,
@@ -18,8 +29,8 @@ export async function GET(req: NextRequest) {
     category: sp.get("category") ?? undefined,
     q: sp.get("q") ?? undefined,
     sort: (sp.get("sort") as SongFilters["sort"]) ?? "popular",
-    limit: Number(sp.get("limit") ?? 60),
-    offset: Number(sp.get("offset") ?? 0),
+    limit,
+    offset,
   };
   if (sp.get("group") === "1") {
     const { songs, total } = listSongsGroupedWithTotal(f);

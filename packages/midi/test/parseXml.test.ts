@@ -231,14 +231,12 @@ describe("parseMusicXmlNotes", () => {
     expect(m.notes.map((n) => n.midi)).toEqual([64]);
   });
 
-  it("parses only the first part of a multi-part score", () => {
+  it("rejects multi-part scores rather than silently dropping instruments", () => {
     const xml = `<score-partwise version="4.0"><part id="P1"><measure number="1"><attributes><divisions>4</divisions></attributes>
 <note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration></note>
 </measure></part><part id="P2"><measure number="1"><attributes><divisions>4</divisions></attributes>
 <note><pitch><step>G</step><octave>3</octave></pitch><duration>4</duration></note>
 </measure></part></score-partwise>`;
-    const m = parseMusicXmlNotes(xml);
-    expect(m.notes).toHaveLength(1);
-    expect(m.notes[0]!.midi).toBe(60);
+    expect(() => parseMusicXmlNotes(xml)).toThrow(/multiple parts/);
   });
 });

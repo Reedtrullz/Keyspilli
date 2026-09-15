@@ -220,6 +220,18 @@ describe("catalog artifact export validation", () => {
     await expect(getArtifactFile(song().id, "variant.xml")).resolves.toBeInstanceOf(Buffer);
   });
 
+  it("blocks playback and cached exports while a publication needs reconciliation", async () => {
+    await writeExportFixture();
+    expect(await getArtifactFile(song().id, "variant.mid")).toBeInstanceOf(Buffer);
+    const journal = join(dataRoot, "artifacts", `.${song().baseId}.reconciliation.json`);
+    await writeFile(journal, "{}");
+    try {
+      expect(await getArtifactFile(song().id, "variant.mid")).toBeNull();
+      expect((await loadSongArtifact(song())).artifact.errors).toContain("ARTIFACT_RECONCILIATION_REQUIRED");
+    } finally { await rm(journal); }
+    expect(await getArtifactFile(song().id, "variant.mid")).toBeInstanceOf(Buffer);
+  });
+
   it("revalidates a cached export after an in-place artifact update", async () => {
     await writeExportFixture();
     const first = await getArtifactFile(song().id, "variant.mid");

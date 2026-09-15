@@ -37,3 +37,6 @@ output/
 # App runtime data
 apps/data/*.sqlite*
 *.tsbuildinfo
+
+# Python test/runtime bytecode
+__pycache__/

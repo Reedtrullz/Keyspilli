@@ -40,5 +40,9 @@
   },
   "engines": {
     "node": ">=20"
+  },
+  "overrides": {
+    "postcss": "^8.5.26",
+    "vite": "^7.3.6"
   }
 }

@@ -66,12 +66,16 @@ export default function UploadsForm({ tutorialEnabled }: { tutorialEnabled: bool
   const inputRef = useRef<HTMLInputElement>(null);
   const filePickerButtonRef = useRef<HTMLButtonElement>(null);
   const fileExitRef = useRef<HTMLDivElement>(null);
+  const discoveryGeneration = useRef(0);
+  const searchAbortRef = useRef<AbortController | null>(null);
   const errorPresence = usePresence(status === "error");
   const donePresence = usePresence(status === "done" && Boolean(result));
   const fileSwitch = useAnimatedSwitch(file);
   const targetId = `target-${(artist || "unknown-artist").toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${(title || "untitled").toLowerCase().replace(/[^a-z0-9]+/g, "-")}`.replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 100);
 
   function clearDiscovery(): void {
+    discoveryGeneration.current++;
+    searchAbortRef.current?.abort();
     setSearchState("idle");
     setCandidates([]);
     setSelectedHandoff(null);
@@ -81,12 +85,17 @@ export default function UploadsForm({ tutorialEnabled }: { tutorialEnabled: bool
 
   async function searchCandidates() {
     if (!artist.trim() || !title.trim()) return;
+    searchAbortRef.current?.abort();
+    const generation = ++discoveryGeneration.current;
+    const controller = new AbortController();
+    searchAbortRef.current = controller;
     setSearchState("searching");
     setCandidates([]);
     setCandidateError("");
     try {
-      const response = await fetch(`/api/source-candidates?${new URLSearchParams({ targetId, artist: artist.trim(), title: title.trim() })}`);
+      const response = await fetch(`/api/source-candidates?${new URLSearchParams({ targetId, artist: artist.trim(), title: title.trim() })}`, { signal: controller.signal });
       const data = await responseBody(response);
+      if (generation !== discoveryGeneration.current) return;
       if (!response.ok) {
         setCandidateError(typeof data.error === "string" ? data.error : "Source search is temporarily unavailable.");
         setSearchState(data.code === "SOURCE_SEARCH_RATE_LIMITED" ? "rate-limited" : "unavailable");
@@ -99,13 +108,14 @@ export default function UploadsForm({ tutorialEnabled }: { tutorialEnabled: bool
         : data.status === "provider-not-configured"
           ? "provider-not-configured"
           : "no-candidates");
-    } catch {
+    } catch (cause) {
+      if (controller.signal.aborted || generation !== discoveryGeneration.current) return;
       setCandidateError("Source search is temporarily unavailable.");
       setSearchState("unavailable");
     }
   }
-
   async function selectCandidate(candidateId: string) {
+    const generation = ++discoveryGeneration.current;
     setCandidateError("");
     try {
       const response = await fetch("/api/source-handoffs", {
@@ -114,15 +124,18 @@ export default function UploadsForm({ tutorialEnabled }: { tutorialEnabled: bool
         body: JSON.stringify({ candidateId, targetId, targetArtist: artist.trim(), targetTitle: title.trim() }),
       });
       const data = await responseBody(response);
+      if (generation !== discoveryGeneration.current) return;
       if (!response.ok) throw new Error(response.status === 404 ? "This source lead is no longer available. Search again." : String(data.error ?? "Candidate selection failed."));
       setSelectedHandoff(data.handoff as HandoffView);
       setTargetConfirmed(false);
     } catch (cause) {
+      if (generation !== discoveryGeneration.current) return;
       setCandidateError(cause instanceof Error ? cause.message : "Candidate selection failed.");
     }
   }
 
   async function confirmTarget(confirmed: boolean) {
+    const generation = ++discoveryGeneration.current;
     setTargetConfirmed(confirmed);
     if (!confirmed || !selectedHandoff) return;
     try {
@@ -132,9 +145,11 @@ export default function UploadsForm({ tutorialEnabled }: { tutorialEnabled: bool
         body: JSON.stringify({ userAffirmedTarget: true }),
       });
       const data = await responseBody(response);
+      if (generation !== discoveryGeneration.current) return;
       if (!response.ok) throw new Error(response.status === 404 ? "This source lead expired. Search and select it again." : String(data.error ?? "Target confirmation failed."));
       setSelectedHandoff(data.handoff as HandoffView);
     } catch (cause) {
+      if (generation !== discoveryGeneration.current) return;
       setTargetConfirmed(false);
       setCandidateError(cause instanceof Error ? cause.message : "Target confirmation failed.");
     }
@@ -144,6 +159,10 @@ export default function UploadsForm({ tutorialEnabled }: { tutorialEnabled: bool
     const layer = fileExitRef.current;
     if (layer) layer.setAttribute("inert", "");
   }, [fileSwitch.previous]);
+
+  useEffect(() => {
+    return () => { discoveryGeneration.current++; searchAbortRef.current?.abort(); };
+  }, []);
 
   function selectFile(next: File | null): void {
     setFile(next);

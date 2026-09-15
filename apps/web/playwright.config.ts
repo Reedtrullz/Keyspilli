@@ -5,12 +5,13 @@ export default defineConfig({
   timeout: 60_000,
   workers: process.env.CI ? 2 : undefined,
   webServer: {
-    command: process.env.CI ? "npm run start" : "npm run dev",
+    command: "npm run start",
     url: "http://127.0.0.1:3000",
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
     timeout: 120_000,
     env: {
       KEYSPILLI_API_TOKEN: "test-token-for-e2e",
+      KEYSPILLI_ORIGIN: "http://127.0.0.1:3000",
     },
   },
   use: {

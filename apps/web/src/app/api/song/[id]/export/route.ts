@@ -6,6 +6,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
 let browserPromise: Promise<Browser> | null = null;
+let activeRenders = 0;
 
 class PdfRenderError extends Error {}
 
@@ -16,7 +17,7 @@ async function getBrowser(): Promise<Browser> {
     browserPromise = null;
   }
 
-  const launch = chromium.launch({ headless: true, args: ["--no-sandbox"] });
+  const launch = chromium.launch({ headless: true, args: ["--no-sandbox"], timeout: 15_000 });
   browserPromise = launch.catch((error) => {
     // A failed launch must not poison every subsequent request with the same
     // rejected promise. This is particularly important after a browser path
@@ -122,9 +123,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     if (layout !== "simplify" && layout !== "classic") {
       return NextResponse.json({ error: "unknown PDF layout" }, { status: 400 });
     }
+    const shell = await getSongDetailShell(id);
+    if (!shell) return NextResponse.json({ error: "not found" }, { status: 404 });
     if (layout === "classic") {
-      const shell = await getSongDetailShell(id);
-      if (!shell) return NextResponse.json({ error: "not found" }, { status: 404 });
       if (shell.song.hasSheetXml !== 1) {
         return NextResponse.json(
           { error: "classic PDF unavailable", code: "CLASSIC_PDF_UNAVAILABLE" },
@@ -133,16 +134,46 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       }
     }
 
+    // ponytail: two renders per web process; a render queue is only needed at higher load.
+    if (activeRenders >= 2) return NextResponse.json({ error: "PDF render busy", code: "PDF_RENDER_BUSY" }, { status: 503, headers: { "Retry-After": "5" } });
+    activeRenders++;
     let page: Page | null = null;
     let browser: Browser | null = null;
+    let cancelled = false;
+    let cancel!: () => void;
+    const deadline = new Promise<never>((_, reject) => {
+      cancel = () => {
+        cancelled = true;
+        reject(new PdfRenderError("PDF render deadline or cancellation"));
+        if (page) void page.close().catch(() => undefined);
+        else if (browser) {
+          browserPromise = null;
+          void browser.close().catch(() => undefined);
+        }
+      };
+    });
+    const timer = setTimeout(cancel, 90_000);
+    req.signal.addEventListener("abort", cancel, { once: true });
+    if (req.signal.aborted) cancel();
+    const checkCancelled = () => { if (cancelled) throw new PdfRenderError("PDF render cancelled"); };
     try {
-      browser = await getBrowser();
-      page = await browser.newPage({ viewport: { width: 1240, height: 1754 } });
-      const origin = process.env.KEYSPILLI_ORIGIN ?? `http://127.0.0.1:${process.env.PORT ?? 3000}`;
-      await page.goto(`${origin}/export/${id}?layout=${layout}`, { waitUntil: "networkidle" });
-      await waitForExportReady(page, layout);
-      if (layout === "classic") await prepareClassicPdfCapture(page);
-      const pdf = await page.pdf({ format: "A4", printBackground: true });
+      const render = async () => {
+        checkCancelled();
+        browser = await getBrowser();
+        checkCancelled();
+        const created = await browser.newPage({ viewport: { width: 1240, height: 1754 } });
+        if (cancelled) { void created.close().catch(() => undefined); checkCancelled(); }
+        page = created;
+        const origin = process.env.KEYSPILLI_ORIGIN ?? `http://127.0.0.1:${process.env.PORT ?? 3000}`;
+        await page.goto(`${origin}/export/${id}?layout=${layout}`, { waitUntil: "networkidle" });
+        checkCancelled();
+        await waitForExportReady(page, layout);
+        checkCancelled();
+        if (layout === "classic") await prepareClassicPdfCapture(page);
+        checkCancelled();
+        return page.pdf({ format: "A4", printBackground: true });
+      };
+      const pdf = await Promise.race([render(), deadline]);
       return new NextResponse(new Uint8Array(pdf), {
         headers: {
           "Content-Type": "application/pdf",
@@ -156,12 +187,17 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         layout,
         error: e instanceof Error ? e.message : String(e),
       });
-      if (browser && !browser.isConnected()) browserPromise = null;
+      if (browser && !(browser as Browser).isConnected()) browserPromise = null;
       return pdfErrorResponse(renderFailure ? "PDF_RENDER_FAILED" : "PDF_GENERATION_UNAVAILABLE");
     } finally {
       // A page is request-scoped. Always close it, including navigation,
       // readiness, and PDF failures, so repeated downloads do not leak tabs.
-      await page?.close().catch(() => undefined);
+      clearTimeout(timer);
+      req.signal.removeEventListener("abort", cancel);
+      cancelled = true;
+      // Closing is best effort; a wedged Chromium must not hold admission forever.
+      void (page as Page | null)?.close().catch(() => undefined);
+      activeRenders--;
     }
   }
   return NextResponse.json({ error: "unknown type" }, { status: 400 });

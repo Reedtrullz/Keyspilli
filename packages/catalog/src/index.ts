@@ -125,3 +125,5 @@ export type {
 } from "./shadow-evaluation.js";
 
 export { tutorialImportsEnabled } from "./tutorial-imports.js";
+
+export { commitCatalogPublication, type CatalogPublication } from "./reconcile.js";

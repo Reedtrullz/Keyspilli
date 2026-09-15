@@ -213,3 +213,45 @@ describe("upload route", () => {
     }
   });
 });
+
+describe("upload admission and deadline", () => {
+  beforeEach(() => { process.env.KEYSPILLI_API_TOKEN = "test-token"; ingestSource.mockReset(); });
+  const request = (body: BodyInit = new Uint8Array([1, 2, 3])) => new NextRequest("https://keys.reidar.tech/api/uploads", {
+    method: "POST", headers: { authorization: "Bearer test-token" }, body,
+  });
+  it("holds admission through ingestion and releases it after failure", async () => {
+    let reject!: (error: Error) => void;
+    ingestSource.mockImplementationOnce(() => new Promise((_, fail) => { reject = fail; }));
+    const first = POST(request());
+    const caught = first.catch(error => error);
+    await vi.waitFor(() => expect(ingestSource).toHaveBeenCalledOnce());
+    expect((await POST(request())).status).toBe(503);
+    reject(new Error("injected"));
+    expect(await caught).toBeInstanceOf(Error);
+    ingestSource.mockResolvedValueOnce({ baseId: "upload", songIds: [] });
+    expect((await POST(request())).status).toBe(200);
+  });
+  it("uses one total body deadline, cancels the stream, and releases admission", async () => {
+    vi.useFakeTimers();
+    const cancelled = vi.fn();
+    let controller!: ReadableStreamDefaultController<Uint8Array>;
+    try {
+      const pending = POST(request(new ReadableStream({ start(c) { controller = c; }, cancel: cancelled })));
+      controller.enqueue(new Uint8Array([1]));
+      await vi.advanceTimersByTimeAsync(59_000);
+      controller.enqueue(new Uint8Array([2]));
+      await vi.advanceTimersByTimeAsync(1_000);
+      expect((await pending).status).toBe(408);
+      expect(cancelled).toHaveBeenCalledOnce();
+      expect(ingestSource).not.toHaveBeenCalled();
+    } finally { vi.useRealTimers(); }
+    ingestSource.mockResolvedValueOnce({ baseId: "upload", songIds: [] });
+    expect((await POST(request())).status).toBe(200);
+  });
+  it("reports a durable reconciliation state instead of rejecting the source", async () => {
+    ingestSource.mockResolvedValueOnce({ baseId: "upload-known", songIds: [], error: "DB failure", code: "ARTIFACT_RECONCILIATION_REQUIRED" });
+    const response = await POST(request());
+    expect(response.status).toBe(503);
+    expect(await response.json()).toMatchObject({ baseId: "upload-known", reconciliationRequired: true });
+  });
+});

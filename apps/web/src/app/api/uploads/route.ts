@@ -17,6 +17,8 @@ export const maxDuration = 60;
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
 class UploadTooLargeError extends Error {}
+class BodyDeadlineError extends Error {}
+let uploadActive = false;
 
 async function readBoundedBody(req: Request): Promise<Buffer> {
   const contentLength = req.headers.get("content-length");
@@ -29,18 +31,30 @@ async function readBoundedBody(req: Request): Promise<Buffer> {
   const reader = req.body.getReader();
   const chunks: Buffer[] = [];
   let total = 0;
+  let stop!: () => void;
+  const deadline = new Promise<never>((_, reject) => {
+    stop = () => {
+      reject(new BodyDeadlineError(req.signal.aborted ? "upload cancelled" : "body read timed out"));
+      void reader.cancel().catch(() => undefined);
+    };
+  });
+  const timer = setTimeout(stop, 60_000);
+  req.signal.addEventListener("abort", stop, { once: true });
+  if (req.signal.aborted) stop();
   try {
     while (true) {
-      const { done, value } = await reader.read();
+      const { done, value } = await Promise.race([reader.read(), deadline]);
       if (done) break;
       total += value.byteLength;
       if (total > MAX_UPLOAD_BYTES) {
-        await reader.cancel();
+        void reader.cancel().catch(() => undefined);
         throw new UploadTooLargeError("file too large (max 10 MB)");
       }
       chunks.push(Buffer.from(value));
     }
   } finally {
+    clearTimeout(timer);
+    req.signal.removeEventListener("abort", stop);
     reader.releaseLock();
   }
   return Buffer.concat(chunks, total);
@@ -49,6 +63,14 @@ async function readBoundedBody(req: Request): Promise<Buffer> {
 export async function POST(req: NextRequest) {
   const authResponse = checkMutationAuth(req);
   if (authResponse) return authResponse;
+  // ponytail: one synchronous arrangement per web process; use a worker queue
+  // before increasing throughput, so concurrent bodies cannot exhaust memory.
+  if (uploadActive) return NextResponse.json({ error: "upload busy", code: "UPLOAD_BUSY" }, { status: 503, headers: { "Retry-After": "5" } });
+  uploadActive = true;
+  try { return await handleUpload(req); } finally { uploadActive = false; }
+}
+
+async function handleUpload(req: NextRequest) {
   const startedAt = Date.now();
   const logUpload = (event: string, fields: Record<string, unknown> = {}) => {
     console.info("[upload]", { event, elapsedMs: Date.now() - startedAt, ...fields });
@@ -58,7 +80,7 @@ export async function POST(req: NextRequest) {
   try {
     buf = await readBoundedBody(req);
   } catch (error) {
-    const status = error instanceof UploadTooLargeError ? 400 : 422;
+    const status = error instanceof BodyDeadlineError ? 408 : error instanceof UploadTooLargeError ? 400 : 422;
     logUpload("failed", { category: error instanceof UploadTooLargeError ? "too-large" : "invalid-body" });
     return NextResponse.json({ error: error instanceof Error ? error.message : "invalid upload body" }, { status });
   }
@@ -112,6 +134,9 @@ export async function POST(req: NextRequest) {
     }
     logUpload("failed", { sourceHash, baseId, category: "ingest-error" });
     throw error;
+  }
+  if (result.code === "ARTIFACT_RECONCILIATION_REQUIRED") {
+    return NextResponse.json({ error: "Upload needs reconciliation", code: result.code, baseId: result.baseId, reconciliationRequired: true }, { status: 503 });
   }
   if (result.error) {
     if (handoff) saveSourceCandidateHandoff(rejectSourceCandidateHandoff(handoff, result.error));

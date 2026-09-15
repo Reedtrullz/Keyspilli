@@ -70,7 +70,8 @@
     "evaluate:cover-rh-cliff": "tsx scripts/evaluate-cover-rh-cliff.ts",
     "evaluate:beginner-offgrid-rh-frontier": "tsx scripts/evaluate-beginner-offgrid-rh-frontier.ts",
     "evaluate:real-shadow-pair": "tsx scripts/evaluate-real-shadow-pair.ts",
-    "evaluate:region-shadow": "tsx scripts/evaluate-region-shadow-rehearsal.ts"
+    "evaluate:region-shadow": "tsx scripts/evaluate-region-shadow-rehearsal.ts",
+    "reconcile-artifacts": "tsx scripts/reconcile-artifacts.ts"
   },
   "dependencies": {
     "@keyspilli/midi": "*",
@@ -83,6 +84,6 @@
     "@types/node": "^22.0.0",
     "tsx": "^4.19.0",
     "typescript": "^5.6.0",
-    "vitest": "^3.0.0"
+    "vitest": "^4.1.11"
   }
 }

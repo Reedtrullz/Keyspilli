@@ -63,39 +63,80 @@ function mergeTiedNotes(notes: ParsedXmlNote[], tolerance: number): Note[] {
 }
 
 /**
- * Minimal MusicXML → notes parser (score-partwise). Handles output from our
+ * Minimal MusicXML to notes parser (score-partwise). Handles output from our
  * own writer and common MuseScore/Sibelius exports: measures, divisions,
  * chords, staffs, tempo/key/time attributes.
  */
 export function parseMusicXmlNotes(xml: string): ParsedMidi {
-  const divisions = Math.max(1, parseInt(firstMatch(xml, /<divisions>(\d+)<\/divisions>/), 10) || 1);
-  // MusicXML permits fractional metronome values. Keep the explicit value so
-  // artifact validation can distinguish a real tempo direction from the
-  // parser's safe fallback when a source omitted one.
-  const tempoMatch = xml.match(/<per-minute>\s*([0-9]+(?:\.[0-9]+)?)\s*<\/per-minute>/i);
-  const tempo = tempoMatch ? Number.parseFloat(tempoMatch[1]!) : 120;
-  const beats = parseInt(firstMatch(xml, /<time><beats>(\d+)<\/beats><beat-type>(\d+)<\/beat-type><\/time>/) || firstMatch(xml, /<beats>(\d+)<\/beats>/), 10) || 4;
-  const beatType = parseInt(firstMatch(xml, /<beat-type>(\d+)<\/beat-type>/), 10) || 4;
+  let divisions = 1;
+  let minDivisions = Infinity;
+  const tempoValues = [
+    ...Array.from(xml.matchAll(/<per-minute>\s*([0-9]+(?:\.[0-9]+)?)\s*<\/per-minute>/gi), match => Number(match[1])),
+    ...Array.from(xml.matchAll(/<sound\b[^>]*\btempo\s*=\s*["']([0-9]+(?:\.[0-9]+)?)["']/gi), match => Number(match[1])),
+  ];
+  const tempo = tempoValues[0] ?? 120;
+  const tempoMetaPresent = tempoValues.length > 0;
+  if (tempo <= 0 || tempoValues.some(value => Math.abs(value - tempo) > 1e-6)) throw new Error("Unsupported: changing tempo");
+  for (const metronome of xml.matchAll(/<metronome\b[^>]*>[\s\S]*?<\/metronome>/g)) {
+    if (/<beat-unit-dot\b/.test(metronome[0]) || (/<beat-unit>/.test(metronome[0]) && !/<beat-unit>\s*quarter\s*<\/beat-unit>/.test(metronome[0]))) {
+      throw new Error("Unsupported: non-quarter metronome tempo");
+    }
+  }
+  const firstTempo = xml.search(/<per-minute>|<sound\b[^>]*\btempo\s*=/);
+  const firstNote = xml.search(/<note\b/);
+  if (firstNote >= 0 && firstTempo > firstNote && tempo !== 120) throw new Error("Unsupported: tempo begins after the first note");
+  let beats = 4;
+  let beatType = 4;
   const fifths = parseInt(firstMatch(xml, /<fifths>(-?\d+)<\/fifths>/), 10) || 0;
   const mode = firstMatch(xml, /<mode>(major|minor)<\/mode>/);
   const notes: ParsedXmlNote[] = [];
-  // Parse only the first part; multi-instrument exports are out of scope.
-  // ponytail: per-part divisions/attributes unsupported; add when uploads need it.
+  // Reject multiple parts; only single-part piano scores are supported.
+  const partMatches = xml.match(/<part(?![-\w])[^>]*>/g) ?? [];
+  if (partMatches.length > 1) {
+    throw new Error("Unsupported: multiple parts (expected single-part MusicXML)");
+  }
   const partBody = xml.match(/<part(?![-\w])[^>]*>([\s\S]*?)<\/part>/)?.[1] ?? xml;
-  const measures = partBody.match(/<measure(?:[ >])[^>]*>[\s\S]*?<\/measure>/g) ?? [];
-  const beatsPerMeasure = beats * (4 / beatType);
+  const measures = partBody.match(/<measure(?=[\s>])[^>]*>[\s\S]*?<\/measure>/g) ?? [];
+  let measureStart = 0;
   for (let mi = 0; mi < measures.length; mi++) {
     const m = measures[mi]!;
-    const measureStart = mi * beatsPerMeasure;
     let cursor = 0;
+    let measureEnd = 0;
     let lastStart = 0;
-    const els = m.match(/<(note|backup|forward)\b[^>]*>[\s\S]*?<\/(?:note|backup|forward)>/g) ?? [];
+    const els = m.match(/<(note|backup|forward|attributes)\b[^>]*>[\s\S]*?<\/(?:note|backup|forward|attributes)>/g) ?? [];
     for (const el of els) {
+      if (el.startsWith("<attributes")) {
+        const division = firstMatch(el, /<divisions>\s*([0-9.]+)\s*<\/divisions>/);
+        if (division) {
+          divisions = Number(division);
+          if (!Number.isFinite(divisions) || divisions <= 0) throw new Error("invalid MusicXML divisions");
+          minDivisions = Math.min(minDivisions, divisions);
+        }
+        const time = firstMatch(el, /<time\b[^>]*>([\s\S]*?)<\/time>/);
+        if (time) {
+          const nextBeats = Number(firstMatch(time, /<beats>\s*(\d+)\s*<\/beats>/));
+          const nextType = Number(firstMatch(time, /<beat-type>\s*(\d+)\s*<\/beat-type>/));
+          if (!nextBeats || !nextType) throw new Error("Unsupported: compound time signature");
+          if ((measureStart > 0 || cursor > 0) && (nextBeats !== beats || nextType !== beatType)) throw new Error("Unsupported: changing time signature");
+          beats = nextBeats;
+          beatType = nextType;
+        }
+        continue;
+      }
       if (el.startsWith("<backup") || el.startsWith("<forward")) {
-        const d = parseInt(firstMatch(el, /<duration>(\d+)<\/duration>/), 10) || 0;
+        const d = Number(firstMatch(el, /<duration>\s*([0-9]+(?:\.[0-9]+)?)\s*<\/duration>/)) || 0;
         cursor = el.startsWith("<backup")
           ? Math.max(0, cursor - d / divisions)
           : cursor + d / divisions;
+        measureEnd = Math.max(measureEnd, cursor);
+        continue;
+      }
+      // Advance cursor for rests without emitting a note.
+      if (/<(rest)\b/.test(el)) {
+        const dur = Number(firstMatch(el, /<duration>\s*([0-9]+(?:\.[0-9]+)?)\s*<\/duration>/)) || 0;
+        const durBeats = dur / divisions;
+        if (durBeats > 0) cursor += durBeats;
+        measureEnd = Math.max(measureEnd, cursor);
         continue;
       }
       const chord = /<chord\s*\/>/.test(el);
@@ -103,7 +144,7 @@ export function parseMusicXmlNotes(xml: string): ParsedMidi {
       if (!step) continue;
       const alter = parseInt(firstMatch(el, /<alter>(-?\d+)<\/alter>/), 10) || 0;
       const octave = parseInt(firstMatch(el, /<octave>(\d+)<\/octave>/), 10);
-      const dur = parseInt(firstMatch(el, /<duration>(\d+)<\/duration>/), 10) || 0;
+      const dur = Number(firstMatch(el, /<duration>\s*([0-9]+(?:\.[0-9]+)?)\s*<\/duration>/)) || 0;
       const staffRaw = firstMatch(el, /<staff>(\d+)<\/staff>/);
       const voiceRaw = firstMatch(el, /<voice>(\d+)<\/voice>/);
       const pc = STEP_PC[step]! + alter;
@@ -130,18 +171,23 @@ export function parseMusicXmlNotes(xml: string): ParsedMidi {
         tieStop,
         voiceId: voiceRaw || staffRaw || undefined,
       });
+      measureEnd = Math.max(measureEnd, cursor, start + durBeats);
     }
+    const implicit = /^<measure\b[^>]*(?:implicit\s*=\s*["']yes["']|number\s*=\s*["']0["'])/.test(m);
+    const meter = beats * 4 / beatType;
+    // Independent onset/duration rounding can overshoot a bar by one division.
+    measureStart += implicit ? measureEnd : measureEnd > meter + 1 / divisions + 1e-9 ? measureEnd : meter;
   }
   // A writer may round the onset and duration independently, so a tied
   // segment can end one division tick past its continuation onset.
-  const mergedNotes = mergeTiedNotes(notes, 1 / divisions + 1e-9)
+  const mergedNotes = mergeTiedNotes(notes, 1 / (Number.isFinite(minDivisions) ? minDivisions : divisions) + 1e-9)
     .sort((a, b) => a.start - b.start || a.midi - b.midi);
   const durationBeats = mergedNotes.reduce((m, n) => Math.max(m, n.start + n.dur), 0);
   return {
     format: 0,
     division: divisions,
     tempoBpm: tempo,
-    tempoMetaPresent: tempoMatch !== null,
+    tempoMetaPresent,
     keySig: fifths,
     keyMode: mode === "minor" ? 1 : 0,
     timeSig: [beats, beatType],

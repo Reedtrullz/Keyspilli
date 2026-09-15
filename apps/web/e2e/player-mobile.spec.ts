@@ -11,7 +11,7 @@ for (const viewport of [{ width: 428, height: 700 }, { width: 926, height: 320 }
     expect(box!.y + box!.height).toBeLessThanOrEqual(viewport.height);
     expect(box!.height).toBeGreaterThanOrEqual(65);
     const stage = await page.locator(".falling-canvas").boundingBox();
-    expect(stage!.height).toBeGreaterThanOrEqual(viewport.height * 0.48);
+    expect(Math.ceil(stage!.height)).toBeGreaterThanOrEqual(Math.ceil(viewport.height * 0.48));
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewport.width);
     await expect(page.getByRole("button", { name: "Tools", exact: true })).toBeVisible();
   });

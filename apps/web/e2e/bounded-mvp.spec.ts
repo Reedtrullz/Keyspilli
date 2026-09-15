@@ -57,10 +57,12 @@ test("scratch upload creates an Easy player with public levels and exports", asy
   await expect(legacyLevels.getByRole("link")).toHaveCount(5);
   await expect(legacyLevels.getByRole("link", { name: "Very Easy", exact: true })).toBeVisible();
 
-  for (const type of ["midi", "musicxml"] as const) {
+  for (const type of ["midi", "musicxml", "pdf&layout=simplify", "pdf&layout=classic"] as const) {
     const response = await request.get(`${easyHref!.replace(/^\/player\//, "/api/song/")}/export?type=${type}`);
     expect(response.status(), `${type} export`).toBe(200);
-    expect((await response.body()).byteLength, `${type} export bytes`).toBeGreaterThan(32);
+    const bytes = await response.body();
+    expect(bytes.byteLength, `${type} export bytes`).toBeGreaterThan(32);
+    if (type.startsWith("pdf")) expect(bytes.subarray(0, 4).toString()).toBe("%PDF");
   }
 });
 
@@ -146,4 +148,25 @@ test("source discovery distinguishes no results, rate limits, and metadata-only 
     buffer: Buffer.from(MUSIC_XML),
   });
   await expect(page.getByText(/lead expected a MIDI file.*actual file contents decide/i)).toBeVisible();
+});
+
+test("editing a target discards a delayed source search", async ({ page }) => {
+  let release!: () => void;
+  let started!: () => void;
+  const held = new Promise<void>(resolve => { release = resolve; });
+  const requested = new Promise<void>(resolve => { started = resolve; });
+  await page.route("**/api/source-candidates?**", async route => {
+    started();
+    await held;
+    await route.fulfill({ json: { status: "candidates-found", candidates: [{ candidateId: "stale", resultTitle: "Stale source result", provider: "test", identity: "IDENTITY_EXACT", rights: "UNKNOWN_RIGHTS", timing: "UNKNOWN_TIMING", symbolicFormat: "midi" }] } }).catch(() => undefined);
+  });
+  await page.goto("/uploads");
+  await page.getByLabel("Title (optional)").fill("Old song");
+  await page.getByLabel("Artist (optional)").fill("Band");
+  await page.getByRole("button", { name: "Find source leads" }).click();
+  await requested;
+  await page.getByLabel("Title (optional)").fill("New song");
+  release();
+  await expect(page.getByRole("button", { name: "Find source leads" })).toBeVisible();
+  await expect(page.getByText("Stale source result")).toHaveCount(0);
 });
