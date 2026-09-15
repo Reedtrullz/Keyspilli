@@ -471,7 +471,7 @@ jobs:
             echo "targeted rebuild did not publish its requested completion marker: $REBUILD_BASE_ID" >&2
             exit 1
           fi
-      - name: Verify live catalog (F07: authenticated, base-targeted)
+      - name: Verify authenticated live catalog and rebuild target
         shell: bash
         env:
           KEYSPILLI_ACCESS_USERNAME: ${{ secrets.KEYSPILLI_ACCESS_USERNAME }}
