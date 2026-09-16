@@ -94,6 +94,19 @@ describe("chord source selection", () => {
     expect(selectChordSource(sources, "auto").source?.id).toBe("auto");
   });
 
+  it("does not infer UG from an auto fallback label when the bundle has no UG source", () => {
+    const sources = resolveChordSources(song({
+      chordSources: {
+        schemaVersion: 1,
+        generated: { id: "generated", label: "Generated chords", chords: [{ beat: 0, name: "C", notes: [48, 52, 55] }], fallback: false },
+        ug: null,
+        auto: { id: "auto", label: "UG + generated fallback", chords: [{ beat: 0, name: "C", notes: [48, 52, 55] }], fallback: true },
+      },
+    }));
+
+    expect(sources.ug).toBeNull();
+  });
+
   it("fails closed to legacy chords for malformed or future source bundles", () => {
     const raw = { beat: 0, name: "Legacy generated", notes: [48, 52, 55], sourceKind: "generated" as const };
     for (const chordSources of [

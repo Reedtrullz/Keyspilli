@@ -55,6 +55,7 @@ export interface AccompanimentOptions {
 export type MelodySelection = "automatic" | "right-hand";
 export type MelodySelectionProvenance = "inferred" | "user-confirmed";
 export type MelodyUnresolvedReason = "ambiguous melody" | "right-hand part unavailable";
+export type MelodyAccompanimentSupportMode = "source-rhythm" | "quarter-note-pulse" | "fallback";
 
 export interface MelodyUnresolvedSpan {
   startBeat: number;
@@ -71,8 +72,14 @@ export interface MelodyAccompanimentProvenance {
   sourceNoteCount: number;
   melodyNoteIds: string[];
   unresolvedSpans: MelodyUnresolvedSpan[];
+  /** Number of source accompaniment notes retained after onset reduction. */
+  sourceSupportNoteCount: number;
+  /** Number of note events from the explicit pulse approximation. */
+  generatedNoteCount: number;
+  /** Beats covered by explicit pulses; source-rhythm beats are not counted here. */
   generatedBeats: number;
   fallbackBeats: number;
+  supportModes: MelodyAccompanimentSupportMode[];
 }
 
 export interface MelodyAccompanimentOptions {
@@ -509,6 +516,68 @@ function sourceAttackGroups(notes: readonly Note[]): Array<Array<{ note: Note; s
   return groups;
 }
 
+interface ReducedSourceSupport {
+  sourceIndex: number;
+  note: Note;
+}
+
+/** Keep the source attack grid while capping each accompaniment onset at three tones. */
+function reduceSourceSupport(
+  sourceNotes: readonly Note[],
+  selectedIndices: ReadonlySet<number>,
+  startBeat: number,
+  endBeat: number,
+): ReducedSourceSupport[] {
+  const candidates = sourceNotes
+    .map((note, sourceIndex) => ({ note, sourceIndex }))
+    .filter(({ note, sourceIndex }) => !selectedIndices.has(sourceIndex)
+      && playableSourceNote(note)
+      && note.start >= startBeat - EPSILON
+      && note.start < endBeat - EPSILON);
+  const groups = sourceAttackGroups(candidates.map(({ note }) => note));
+  const reduced: ReducedSourceSupport[] = [];
+  // ponytail: cap at three source tones per onset; add quality-aware voicing only for source-empty spans.
+  for (const group of groups) {
+    const onset = group
+      .map(({ sourceIndex }) => candidates[sourceIndex]!)
+      .sort((a, b) => a.note.midi - b.note.midi || b.note.dur - a.note.dur || b.note.vel - a.note.vel);
+    const bass = onset[0];
+    if (!bass) continue;
+    const withinOctave = onset.filter(({ note }) => note.midi - bass.note.midi <= MAX_LEFT_HAND_SPAN + EPSILON);
+    const chosen = [
+      bass,
+      ...withinOctave.filter(({ note }) => note.midi !== bass.note.midi).slice(-2),
+    ];
+    const seenPitches = new Set<number>();
+    for (const item of chosen.sort((a, b) => a.note.midi - b.note.midi)) {
+      if (seenPitches.has(item.note.midi)) continue;
+      seenPitches.add(item.note.midi);
+      reduced.push({
+        sourceIndex: item.sourceIndex,
+        note: { ...item.note, hand: "L" },
+      });
+    }
+  }
+  return reduced;
+}
+
+function pulseStarts(startBeat: number, endBeat: number): number[] {
+  const starts = [startBeat];
+  for (let beat = Math.ceil(startBeat + EPSILON); beat < endBeat - EPSILON; beat += 1) starts.push(beat);
+  return starts;
+}
+
+function pulseSupportNotes(voicing: readonly number[], startBeat: number, endBeat: number): Note[] {
+  // ponytail: quarter-beat pulses are an explicitly named approximation for source-empty accompaniment spans.
+  return pulseStarts(startBeat, endBeat).flatMap((beat) => voicing.map((midi) => ({
+    midi,
+    start: beat,
+    dur: Math.min(0.75, endBeat - beat),
+    vel: 54,
+    hand: "L" as const,
+  })));
+}
+
 function mergeUnresolvedSpans(spans: MelodyUnresolvedSpan[]): MelodyUnresolvedSpan[] {
   const ordered = [...spans].sort((a, b) => a.startBeat - b.startBeat || a.endBeat - b.endBeat);
   const merged: MelodyUnresolvedSpan[] = [];
@@ -642,14 +711,16 @@ function learningChordNotes(
   startBeat: number,
   endBeat: number,
 ): number[] | null {
-  if (isNoChord(chord.name) || !upper.length || !tryParseChordSymbol(chord.name)) return null;
+  if (isNoChord(chord.name) || !tryParseChordSymbol(chord.name)) return null;
   try {
     const parsed = tryParseChordSymbol(chord.name);
     if (!parsed) return null;
+    const shape = compactUpperShape(chord) ?? [...upper];
+    if (!shape.length) return null;
     const full = chordToNotes(chord.name, { octave: 4, bassOctave: 2, includeBass: true });
     const bass = full.find((midi) => midi < 60);
     if (bass === undefined) return null;
-    const support = supportUpperShape(chord, upper, bass, melody, startBeat, endBeat);
+    const support = supportUpperShape(chord, shape, bass, melody, startBeat, endBeat);
     if (!support) return null;
     const notes = [...new Set(support)];
     const expectedPitchClasses = new Set([
@@ -677,7 +748,14 @@ export function buildMelodyAccompaniment(
   const events = buildEvents(sourceNotes, chordTimeline, "melody-accompaniment", durationBeats);
   const fallbackEvents: Array<{ startBeat: number; endBeat: number; reason: AccompanimentFallbackReason }> = [];
   const effectiveChords: AccompanimentChord[] = [];
-  const covered: Array<{ startBeat: number; endBeat: number }> = [];
+  const chordCovered: Array<{ startBeat: number; endBeat: number }> = [];
+  const replacementCovered: Array<{ startBeat: number; endBeat: number }> = [];
+  const pulseCovered: Array<{ startBeat: number; endBeat: number }> = [];
+  const sourceIndicesToReplace = new Set<number>();
+  const sourceSupportByIndex = new Map<number, Note>();
+  const sourceSupportOutputIndices = new Set<number>();
+  const pulseNotes: Note[] = [];
+  const supportModes = new Set<MelodyAccompanimentSupportMode>();
 
   if (sourceNotes.length === 0) {
     const fallbackSpans = durationBeats > EPSILON
@@ -701,8 +779,11 @@ export function buildMelodyAccompaniment(
         sourceNoteCount: 0,
         melodyNoteIds: [],
         unresolvedSpans: selected.unresolvedSpans,
+        sourceSupportNoteCount: 0,
+        generatedNoteCount: 0,
         generatedBeats: 0,
         fallbackBeats: durationBeats,
+        supportModes: ["fallback"],
       },
     };
   }
@@ -712,6 +793,7 @@ export function buildMelodyAccompaniment(
       span.startBeat < event.endBeat - EPSILON && span.endBeat > event.startBeat + EPSILON,
     );
     if (unresolved) {
+      supportModes.add("fallback");
       fallbackEvents.push({
         startBeat: event.startBeat,
         endBeat: event.endBeat,
@@ -719,8 +801,38 @@ export function buildMelodyAccompaniment(
       });
       continue;
     }
+    const sourceSupport = sourceNotes
+      .map((note, sourceIndex) => ({ note, sourceIndex }))
+      .filter(({ note, sourceIndex }) => !selected.selectedIndices.has(sourceIndex) && overlaps(note, event.startBeat, event.endBeat));
+    const reducedSupport = reduceSourceSupport(sourceNotes, selected.selectedIndices, event.startBeat, event.endBeat);
     const notes = learningChordNotes(event.chord, event.notes ?? [], selected.melody, event.startBeat, event.endBeat);
+    if (!notes && sourceSupport.length === 0) {
+      supportModes.add("fallback");
+      fallbackEvents.push({
+        startBeat: event.startBeat,
+        endBeat: event.endBeat,
+        reason: event.notes?.length ? "no playable support voicing" : fallbackReason(event),
+      });
+      continue;
+    }
+    const replacementInterval = { startBeat: event.startBeat, endBeat: event.endBeat };
+    replacementCovered.push(replacementInterval);
+    if (sourceSupport.length > 0) {
+      supportModes.add("source-rhythm");
+      for (const { note, sourceIndex } of sourceSupport) {
+        if (note.start >= event.startBeat - EPSILON && note.start < event.endBeat - EPSILON) {
+          sourceIndicesToReplace.add(sourceIndex);
+        } else if (note.start < event.startBeat - EPSILON) {
+          sourceSupportOutputIndices.add(sourceIndex);
+        }
+      }
+      for (const item of reducedSupport) {
+        sourceSupportByIndex.set(item.sourceIndex, item.note);
+        sourceSupportOutputIndices.add(item.sourceIndex);
+      }
+    }
     if (!notes) {
+      supportModes.add("fallback");
       fallbackEvents.push({
         startBeat: event.startBeat,
         endBeat: event.endBeat,
@@ -738,23 +850,25 @@ export function buildMelodyAccompaniment(
       inferred: true,
       inferenceType: "voicing",
     });
-    covered.push({ startBeat: event.startBeat, endBeat: event.endBeat });
+    chordCovered.push(replacementInterval);
+    if (reducedSupport.length === 0 && sourceSupport.length === 0) {
+      supportModes.add("quarter-note-pulse");
+      pulseNotes.push(...pulseSupportNotes(notes, event.startBeat, event.endBeat));
+      pulseCovered.push(replacementInterval);
+    }
   }
 
-  const fallbackSpans = buildFallbackSpans(events, covered, fallbackEvents, durationBeats);
+  const fallbackSpans = buildFallbackSpans(events, chordCovered, fallbackEvents, durationBeats);
   const retainedNotes = sourceNotes.flatMap((note, index) => {
     if (selected.selectedIndices.has(index)) return [note];
-    return subtractCoveredIntervals(note, covered);
+    if (!sourceIndicesToReplace.has(index)) return [note];
+    if (sourceSupportByIndex.has(index)) return [];
+    return subtractCoveredIntervals(note, replacementCovered);
   });
-  const supportNotes = effectiveChords.flatMap((chord) => chord.notes.map((midi) => ({
-    midi,
-    start: chord.beat,
-    dur: chord.durationBeats ?? 1,
-    vel: 54,
-    hand: "L" as const,
-  })));
-  const generatedBeats = covered.reduce((sum, interval) => sum + Math.max(0, interval.endBeat - interval.startBeat), 0);
+  const supportNotes = [...sourceSupportByIndex.values(), ...pulseNotes];
+  const generatedBeats = pulseCovered.reduce((sum, interval) => sum + Math.max(0, interval.endBeat - interval.startBeat), 0);
   const fallbackBeats = fallbackSpans.reduce((sum, span) => sum + Math.max(0, span.endBeat - span.startBeat), 0);
+  if (supportModes.size === 0) supportModes.add("fallback");
   const melodyNoteIds = [...selected.selectedIndices].sort((a, b) => a - b).map((index) => selected.sourceIds[index]!);
   const provenance: MelodyAccompanimentProvenance = {
     schemaVersion: 1,
@@ -765,13 +879,16 @@ export function buildMelodyAccompaniment(
     sourceNoteCount: sourceNotes.length,
     melodyNoteIds,
     unresolvedSpans: selected.unresolvedSpans,
+    sourceSupportNoteCount: sourceSupportOutputIndices.size,
+    generatedNoteCount: pulseNotes.length,
     generatedBeats,
     fallbackBeats,
+    supportModes: [...supportModes],
   };
 
   return {
     style: "melody-accompaniment",
-    notes: retainedNotes,
+    notes: [...retainedNotes, ...supportNotes].sort((a, b) => a.start - b.start || a.midi - b.midi),
     chords: effectiveChords,
     displayChords: buildDisplayTimeline(events, effectiveChords),
     guidanceNotes: [...retainedNotes, ...supportNotes].sort((a, b) => a.start - b.start || a.midi - b.midi),

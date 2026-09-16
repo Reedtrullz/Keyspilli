@@ -41,7 +41,8 @@ describe("buildMelodyAccompaniment", () => {
       2,
     );
 
-    expect(result.notes.map((item) => item.midi)).toEqual([60, 62]);
+    expect(result.notes.filter((item) => item.hand === "R").map((item) => item.midi)).toEqual([60, 62]);
+    expect(result.notes.filter((item) => item.hand === "L").map((item) => item.midi)).toEqual([48, 50]);
     expect(result.chords).toHaveLength(1);
     expect(result.chords[0]!.notes.map((midi) => midi % 12)).toEqual(expect.arrayContaining([0, 4, 7]));
     expect(result.chords[0]!.suggestedHands.every((hand) => hand === "L")).toBe(true);
@@ -51,10 +52,83 @@ describe("buildMelodyAccompaniment", () => {
       selection: "automatic",
       selectionProvenance: "inferred",
       sourceFingerprint: "fixture-source-v1",
-      generatedBeats: 2,
+      sourceSupportNoteCount: 2,
+      generatedNoteCount: 0,
+      generatedBeats: 0,
       fallbackBeats: 0,
+      supportModes: ["source-rhythm"],
     });
     expect(result.provenance.melodyNoteIds).toHaveLength(2);
+  });
+
+  it("retains source accompaniment attacks while reducing dense voicings", () => {
+    const source = [
+      note(72, 0, 1, 100, "R"), note(74, 1, 1, 100, "R"), note(76, 2, 1, 100, "R"),
+      note(36, 0, 0.5, 60, "L"), note(40, 0, 0.5, 60, "L"), note(43, 0, 0.5, 60, "L"), note(48, 0, 0.5, 60, "L"),
+      note(38, 0.5, 0.5, 60, "L"), note(45, 0.5, 0.5, 60, "L"),
+      note(40, 1.5, 0.5, 60, "L"), note(47, 1.5, 0.5, 60, "L"),
+      note(41, 2.5, 0.5, 60, "L"), note(48, 2.5, 0.5, 60, "L"),
+    ];
+    const result = build(source, [chord(0, "C", 4)], "right-hand", 4);
+    const originalSupport = source.filter((item) => item.hand === "L");
+    const support = result.notes.filter((item) => item.hand === "L");
+
+    expect([...new Set(support.map((item) => item.start))]).toEqual([0, 0.5, 1.5, 2.5]);
+    expect(support.length).toBeLessThan(originalSupport.length);
+    expect(support.every((item) => originalSupport.some((sourceItem) => sourceItem.start === item.start))).toBe(true);
+    expect(support.some((item) => item.start === 1)).toBe(false);
+    expect(support.some((item) => item.start === 0 && item.midi === 36)).toBe(true);
+    expect(result.melody.map((item) => item.midi)).toEqual([72, 74, 76]);
+  });
+
+  it("keeps reducible source rhythm even when the chord cannot be voiced", () => {
+    const result = build(
+      [note(72, 0, 2, 100, "R"), note(36, 0, 0.5, 60, "L"), note(40, 0, 0.5, 60, "L"), note(43, 0, 0.5, 60, "L"), note(48, 0, 0.5, 60, "L")],
+      [chord(0, "not-a-chord", 2)],
+      "right-hand",
+      2,
+    );
+
+    expect(result.notes.filter((item) => item.hand === "L").map((item) => item.midi)).toEqual([36, 43, 48]);
+    expect(result.chords).toEqual([]);
+    expect(result.fallbackSpans).toEqual([{ startBeat: 0, endBeat: 2, reason: "unsupported chord" }]);
+  });
+
+  it("continues source accompaniment through a melody rest without inventing melody events", () => {
+    const result = build(
+      [note(72, 0, 1, 100, "R"), note(74, 2, 1, 100, "R"), note(48, 0, 0.5, 60, "L"), note(48, 1, 0.5, 60, "L"), note(48, 2, 0.5, 60, "L")],
+      [chord(0, "C", 3)],
+      "right-hand",
+      3,
+    );
+    const support = result.notes.filter((item) => item.hand === "L");
+    const guidedMelodyStarts = result.guidanceNotes
+      .filter((item) => item.hand === "R")
+      .map((item) => item.start);
+
+    expect([...new Set(support.map((item) => item.start))]).toEqual([0, 1, 2]);
+    expect(guidedMelodyStarts).toEqual([0, 2]);
+    expect(result.guidanceNotes.some((item) => item.hand === "R" && item.start === 1)).toBe(false);
+  });
+
+  it("uses a quality-aware pulse for a power chord without inventing its third", () => {
+    const result = build(
+      [note(72, 0, 3, 100, "R")],
+      [chord(0, "C5", 3)],
+      "right-hand",
+      3,
+    );
+    const support = result.notes.filter((item) => item.hand === "L");
+
+    expect([...new Set(support.map((item) => item.start))]).toEqual([0, 1, 2]);
+    expect(new Set(support.map((item) => item.midi % 12))).toEqual(new Set([0, 7]));
+    expect(support.some((item) => item.midi % 12 === 4)).toBe(false);
+    expect(result.provenance).toMatchObject({
+      generatedBeats: 3,
+      generatedNoteCount: 6,
+      sourceSupportNoteCount: 0,
+      supportModes: ["quarter-note-pulse"],
+    });
   });
 
   it("keeps a sustained line below short upper decoration", () => {
@@ -69,7 +143,8 @@ describe("buildMelodyAccompaniment", () => {
     );
 
     expect(result.melody.map((item) => item.midi)).toEqual([60, 62]);
-    expect(result.notes.map((item) => item.midi)).toEqual([60, 62]);
+    expect(result.notes.filter((item) => item.hand === "R").map((item) => item.midi)).toEqual([60, 62]);
+    expect(result.notes.filter((item) => item.hand === "L").map((item) => item.midi)).toEqual([74, 76]);
   });
 
   it("preserves a melody crossing hands while leaving support owned separately", () => {
@@ -85,7 +160,8 @@ describe("buildMelodyAccompaniment", () => {
 
     expect(result.melody.map((item) => item.midi)).toEqual([72, 69]);
     expect(result.melody.map((item) => item.hand)).toEqual(["R", "R"]);
-    expect(result.notes.map((item) => item.midi)).toEqual([72, 69]);
+    expect(result.notes.filter((item) => item.hand === "R").map((item) => item.midi)).toEqual([72, 69]);
+    expect(result.notes.filter((item) => item.hand === "L").map((item) => item.midi)).toEqual([55, 57]);
     expect(result.provenance.melodyNoteIds).toHaveLength(2);
   });
 
@@ -100,7 +176,8 @@ describe("buildMelodyAccompaniment", () => {
     const support = result.chords[0]!.notes;
     expect(Math.max(...support) - Math.min(...support)).toBeLessThanOrEqual(12);
     expect(support.every((midi) => midi < 48)).toBe(true);
-    expect(result.notes.map((item) => item.midi)).toEqual([50]);
+    expect(result.notes.filter((item) => item.hand === "R").map((item) => item.midi)).toEqual([50]);
+    expect(result.notes.filter((item) => item.hand === "L").map((item) => item.midi)).toEqual([36]);
   });
 
   it("keeps a held melody while support changes underneath it", () => {
@@ -172,7 +249,7 @@ describe("buildMelodyAccompaniment", () => {
     expect(result.chords.map((item) => item.beat)).toEqual([0, 3]);
     expect(result.notes).toContainEqual(heldMelody);
     expect(result.notes.find((item) => item.midi === 72)?.dur).toBe(4);
-    expect(result.notes.filter((item) => item.midi === 48)).toEqual([{ ...sustainedSupport, start: 2, dur: 1 }]);
+    expect(result.notes.filter((item) => item.midi === 48)).toEqual([sustainedSupport]);
   });
 
   it("feeds generated chords to playback while grading the same guidance events", () => {
@@ -202,9 +279,41 @@ describe("buildMelodyAccompaniment", () => {
 
     engine.start();
 
-    expect(audio.noteOns).toEqual([72]);
+    expect(audio.noteOns).toEqual([48, 72]);
     expect(audio.playedChords[0]).toEqual(result.chords[0]!.notes);
     expect(engine.gradingNotes.map((item) => item.midi)).toEqual(result.guidanceNotes.map((item) => item.midi));
+  });
+
+  it("keeps melody-accompaniment support on the note path when chord audio is disabled", () => {
+    const result = build(
+      [note(72, 0, 1, 100, "R"), note(48, 0, 1, 60, "L")],
+      [chord(0, "C", 2)],
+      "right-hand",
+      2,
+    );
+    const toTimed = (item: Note): TimedNote => ({
+      midi: item.midi,
+      startSec: item.start * 0.5,
+      durSec: item.dur * 0.5,
+      vel: item.vel,
+      hand: item.hand,
+    });
+    const audio = new AudioSpy();
+    const engine = new PlaybackEngine(
+      audio,
+      result.notes.map(toTimed),
+      1,
+      { tempoBpm: 120, timeSig: [4, 4] },
+      { ...DEFAULT_SETTINGS, backgroundMode: "chord" },
+      [],
+      result.guidanceNotes.map(toTimed),
+    );
+
+    engine.start();
+
+    expect(audio.playedChords).toEqual([]);
+    expect(audio.noteOns).toEqual(expect.arrayContaining(result.notes.map((item) => item.midi)));
+    expect(audio.noteOns).toContain(48);
   });
 
   it("builds a bounded preview plan with held melody and the active chord remainder", () => {
@@ -223,7 +332,7 @@ describe("buildMelodyAccompaniment", () => {
     });
     const engine = new PlaybackEngine(
       new AudioSpy(),
-      result.notes.map(toTimed),
+      result.melody.map(toTimed),
       2,
       { tempoBpm: 120, timeSig: [4, 4] },
       { ...DEFAULT_SETTINGS, backgroundMode: "chord" },

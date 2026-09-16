@@ -349,6 +349,7 @@ function findUgTimeline(data: UnknownRecord): {
       };
     }
   }
+  if (sourceBundle) return null;
   const directKeys = [
     "ugChordTimeline",
     "ugChords",

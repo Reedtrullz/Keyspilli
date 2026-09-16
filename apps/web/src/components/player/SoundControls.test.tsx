@@ -48,6 +48,20 @@ describe("SoundControls accompaniment styles", () => {
     expect(markup).toContain("Automatic melody");
     expect(markup).toContain("Use right-hand part");
     expect(markup).toContain("Reset saved selection");
-    expect(markup).toContain("beats generated");
+    expect(markup).toContain("source support notes");
+
+    const pulseArrangement = buildMelodyAccompaniment(
+      [{ midi: 72, start: 0, dur: 2, vel: 90, hand: "R" }],
+      [{ beat: 0, name: "C5", notes: [], durationBeats: 2 }],
+      { durationBeats: 2, sourceFingerprint: "fixture-source-v1", selection: "right-hand" },
+    );
+    const pulseMarkup = renderToStaticMarkup(createElement(SoundControls, {
+      settings: { ...DEFAULT_SETTINGS, backgroundMode: "chord", accompanimentStyle: "melody-accompaniment" },
+      onChange: () => {},
+      melodyArrangement: pulseArrangement,
+      rightHandAvailable: true,
+      onMelodySelectionChange: () => {},
+    }));
+    expect(pulseMarkup).toContain("pulse notes (quarter-note approximation)");
   });
 });

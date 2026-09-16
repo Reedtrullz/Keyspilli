@@ -203,7 +203,7 @@ export function buildAutoChordSource(
   const autoFallback = merged.provenance.fallback === true;
   return {
     id: "auto",
-    label: autoFallback ? "UG + generated fallback" : ugSource ? "UG timeline" : "Generated fallback",
+    label: autoFallback ? (ugSource ? "UG + generated fallback" : "Generated fallback") : ugSource ? "UG timeline" : "Generated fallback",
     chords: merged.chords,
     provenance: ugSource?.provenance ?? merged.provenance.sourceRef ?? null,
     provenanceInfo: merged.provenance,

@@ -367,8 +367,10 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   );
   const displayChords = settings.backgroundMode === "chord" ? accompaniment.displayChords : chords;
   const audioChords = useMemo(
-    () => filterAccompanimentChords(accompaniment.chords, settings.hand),
-    [accompaniment.chords, settings.hand],
+    () => settings.accompanimentStyle === "bass-chords"
+      ? filterAccompanimentChords(accompaniment.chords, settings.hand)
+      : [],
+    [accompaniment.chords, settings.accompanimentStyle, settings.hand],
   );
   const guidanceData = useMemo(() => ({
     ...initial.data,
@@ -1250,7 +1252,11 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
               role="status"
               title={melodyArrangement.provenance.unresolvedSpans.length ? "One or more melody phrases need confirmation." : undefined}
             >
-              {melodyArrangement.provenance.selectionProvenance === "user-confirmed" ? "User melody" : "Inferred melody"} · {melodyArrangement.provenance.generatedBeats.toFixed(0)} beats
+              {melodyArrangement.provenance.selectionProvenance === "user-confirmed" ? "User melody" : "Inferred melody"} · {melodyArrangement.provenance.generatedNoteCount > 0
+                ? `${melodyArrangement.provenance.generatedNoteCount} pulse notes · quarter-note approximation`
+                : melodyArrangement.provenance.sourceSupportNoteCount > 0
+                  ? `${melodyArrangement.provenance.sourceSupportNoteCount} source support notes`
+                  : "fallback"}
             </span>
           )}
           {midiConnected && <span className="px-2 py-1 rounded-full bg-green-100 text-green-800">MIDI connected</span>}

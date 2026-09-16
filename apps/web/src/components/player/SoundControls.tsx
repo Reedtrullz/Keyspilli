@@ -96,7 +96,11 @@ export function SoundControls({
                     <span className="text-xs font-medium text-zinc-700">Melody selection</span>
                     <span className="text-[11px] text-zinc-500" data-testid="melody-accompaniment-coverage">
                       {melodyArrangement.provenance.selectionProvenance === "user-confirmed" ? "User-selected" : "Inferred"}
-                      {" · "}{melodyArrangement.provenance.generatedBeats.toFixed(1)} beats generated
+                      {" · "}{melodyArrangement.provenance.sourceSupportNoteCount > 0
+                        ? `${melodyArrangement.provenance.sourceSupportNoteCount} source support notes`
+                        : "No source support"}
+                      {melodyArrangement.provenance.generatedNoteCount > 0
+                        && ` · ${melodyArrangement.provenance.generatedNoteCount} pulse notes (quarter-note approximation)`}
                       {melodyArrangement.provenance.fallbackBeats > 0 && ` · ${melodyArrangement.provenance.fallbackBeats.toFixed(1)} retained`}
                     </span>
                   </div>
