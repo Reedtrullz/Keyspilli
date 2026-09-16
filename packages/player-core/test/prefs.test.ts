@@ -57,14 +57,22 @@ describe("loadSettings", () => {
   });
 
   it("rejects unknown enum values", () => {
-    store.set(KEY, JSON.stringify({ mode: "bogus", hand: "X", backgroundMode: "flute", soundSource: "flute", organRotary: "warp", organStyle: "chapel" }));
+    store.set(KEY, JSON.stringify({ mode: "bogus", hand: "X", backgroundMode: "flute", accompanimentStyle: "free-jazz", soundSource: "flute", organRotary: "warp", organStyle: "chapel" }));
     const s = loadSettings();
     expect(s.mode).toBe("falling");
     expect(s.hand).toBe("both");
     expect(s.backgroundMode).toBe("piano");
+    expect(s.accompanimentStyle).toBe("melody-accompaniment");
     expect(s.soundSource).toBe(DEFAULT_SETTINGS.soundSource);
     expect(s.organRotary).toBe("slow");
     expect(s.organStyle).toBe("rock");
+  });
+
+  it("defaults legacy chord mode safely and persists the explicit style", () => {
+    store.set(KEY, JSON.stringify({ backgroundMode: "chord" }));
+    expect(loadSettings().accompanimentStyle).toBe("melody-accompaniment");
+    store.set(KEY, JSON.stringify({ backgroundMode: "chord", accompanimentStyle: "bass-chords" }));
+    expect(loadSettings().accompanimentStyle).toBe("bass-chords");
   });
 
   it("truncates fractional transpose", () => {

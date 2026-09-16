@@ -1,4 +1,5 @@
 import type { Note, ChordLabel, MeasureInfo, Section, PracticeAnnotation } from "@keyspilli/midi";
+import type { AccompanimentStyle } from "./accompaniment.js";
 
 export type { Note, ChordLabel, MeasureInfo, Section, PracticeAnnotation };
 
@@ -61,6 +62,7 @@ export interface PlayerSettings {
   voiceGain: number;
   pianoGain: number;
   backgroundMode: "piano" | "chord";
+  accompanimentStyle: AccompanimentStyle;
   /** Realtime playback timbre; this never changes the underlying notes. */
   soundSource: "synth" | "sampled" | "organ";
   /** Native organ voicing. Rock remains the backward-compatible default. */

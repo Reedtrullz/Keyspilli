@@ -318,7 +318,6 @@ export class PlaybackEngine {
     for (; i < this.notes.length; i++) {
       const n = this.notes[i]!;
       if (n.startSec >= to) break;
-      if (n.hand === "L" && chordMode && this.chordCoversBeat(n.startSec / secPerBeat(this.song.tempoBpm, this.settings.speed))) continue;
       this.audio.noteOn(n, Math.max(0, n.startSec - this.time));
     }
     // A missing source timeline falls back to the piano background, including
@@ -395,20 +394,6 @@ export class PlaybackEngine {
 
   private hasPlayableChord(): boolean {
     return this.chords.some((chord) => this.isPlayable(chord));
-  }
-
-  /** Return true only while a valid chord event is actually active. */
-  private chordCoversBeat(beat: number): boolean {
-    for (const chord of this.chords) {
-      if (chord.beat > beat + 1e-7) break;
-      if (!this.isPlayable(chord)) continue;
-      const duration = chord.durationBeats;
-      if (duration !== undefined && beat < chord.beat + duration - 1e-7) return true;
-      // Legacy source events without a span retain the old compatibility
-      // behaviour: they suppress LH only for the short engine fallback.
-      if (duration === undefined && beat < chord.beat + DEFAULT_CHORD_DURATION_SEC / secPerBeat(this.song.tempoBpm, this.settings.speed)) return true;
-    }
-    return false;
   }
 
   /**

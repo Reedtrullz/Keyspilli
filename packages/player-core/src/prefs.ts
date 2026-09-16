@@ -1,10 +1,12 @@
 import type { PlayerSettings } from "./types.js";
+import type { AccompanimentStyle } from "./accompaniment.js";
 
 const KEY = "keyspilli.prefs.v1";
 
 const VIEW_MODES = ["falling", "beginner", "sheet", "leadsheet"] as const;
 const HANDS = ["L", "R", "both"] as const;
 const BACKGROUNDS = ["piano", "chord"] as const;
+const ACCOMPANIMENT_STYLES = ["melody-accompaniment", "bass-chords"] as const satisfies readonly AccompanimentStyle[];
 const SOUND_SOURCES = ["synth", "sampled", "organ"] as const;
 const ORGAN_ROTARY_SPEEDS = ["slow", "fast"] as const;
 const ORGAN_STYLES = ["rock", "cathedral"] as const;
@@ -13,6 +15,7 @@ export const DEFAULT_SETTINGS: PlayerSettings = {
   voiceGain: 1,
   pianoGain: 0.4,
   backgroundMode: "piano",
+  accompanimentStyle: "melody-accompaniment",
   soundSource: "sampled",
   organStyle: "rock",
   organRotary: "slow",
@@ -61,6 +64,7 @@ export function loadSettings(): PlayerSettings {
       voiceGain: clampNum(raw.voiceGain, 0, 2, DEFAULT_SETTINGS.voiceGain),
       pianoGain: clampNum(raw.pianoGain, 0, 2, DEFAULT_SETTINGS.pianoGain),
       backgroundMode: pickEnum(raw.backgroundMode, BACKGROUNDS, DEFAULT_SETTINGS.backgroundMode),
+      accompanimentStyle: pickEnum(raw.accompanimentStyle, ACCOMPANIMENT_STYLES, DEFAULT_SETTINGS.accompanimentStyle),
       soundSource: pickEnum(raw.soundSource, SOUND_SOURCES, DEFAULT_SETTINGS.soundSource),
       organStyle: pickEnum(raw.organStyle, ORGAN_STYLES, DEFAULT_SETTINGS.organStyle),
       organRotary: pickEnum(raw.organRotary, ORGAN_ROTARY_SPEEDS, DEFAULT_SETTINGS.organRotary),

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import type { PlayerSettings } from "@keyspilli/player-core";
 import type { ChordSourceId, ChordSourceOption } from "./chord-sources";
 import { usePresence } from "./player-motion";
@@ -52,8 +52,36 @@ export function SoundControls({
             ))}
           </div>
           <p className="text-xs text-zinc-500 mt-1">
-            {settings.backgroundMode === "piano" ? "Plays the left hand as recorded" : "Synthesizes a chord on each change"}
+            {settings.backgroundMode === "piano"
+              ? "Original arrangement is retained"
+              : settings.accompanimentStyle === "bass-chords"
+                ? "Chart-based bass and chords replace the source passage where covered"
+                : "Melody is retained; original passage retained when accompaniment cannot be separated reliably"}
           </p>
+          {settings.backgroundMode === "chord" && (
+            <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+              <span className="text-xs font-medium text-zinc-700">Accompaniment style</span>
+              <div className="grid grid-cols-2 gap-2 mt-2" role="radiogroup" aria-label="Accompaniment style">
+                {(["melody-accompaniment", "bass-chords"] as const).map((style) => (
+                  <button
+                    key={style}
+                    type="button"
+                    onClick={() => onChange({ accompanimentStyle: style })}
+                    role="radio"
+                    aria-checked={settings.accompanimentStyle === style}
+                    className={`px-2 py-2 rounded-lg text-xs border ${settings.accompanimentStyle === style ? "bg-zinc-700 text-white border-zinc-700" : "border-zinc-300 bg-white"}`}
+                  >
+                    {style === "bass-chords" ? "Bass + chords" : "Melody + accompaniment"}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[11px] text-zinc-600 mt-2">
+                {settings.accompanimentStyle === "bass-chords"
+                  ? "For accompanying singing or another musician: source melody is omitted where the chord chart is covered."
+                  : "Keeps melody, bass identity, and riffs when ownership is known. Original passage retained when it is not."}
+              </p>
+            </div>
+          )}
           {chordSourcePresence.mounted && chordSources && onChordSourceChange && (
             <div
               ref={chordSourcePanelRef}

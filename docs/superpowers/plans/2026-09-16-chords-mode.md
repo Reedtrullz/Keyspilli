@@ -62,18 +62,18 @@ Acceptance: tone discovery remains forgiving; wrong notes remain visible; nothin
 
 ## Task 2 — Resolve safe accompaniment ownership
 
-- [ ] Trace source notes through selected learner arrangement, chord selection, scheduling, view conversion, hand filtering and grading. Record which existing producer, if any, can provide trustworthy replaceable-note ownership. Inspect callers of the MIDI accompaniment helpers before reusing them.
-- [ ] Define one small pure resolution helper in player-core (suggested `src/accompaniment.ts`) with exported types local to that module. It consumes immutable source notes, the already selected chord timeline and the selected accompaniment style; if trustworthy ownership exists, accept it explicitly. Return resolved notes, effective chord events and fallback spans/reasons for both engine and UI. No registry, factory or new dependency.
-- [ ] Carry stable source-note identity if ownership requires it. Do not match only MIDI pitch: repeated identical pitches at different beats are different events. If no trustworthy ownership exists, the Melody + accompaniment path falls back; do not manufacture a role detector to make a demonstration succeed.
-- [ ] Remove the unconditional `hand === "L"` suppression in the scheduler. Schedule the resolved result exactly once. Retain the current original-note/chord-duration conventions; avoid double rendering or double transpose.
-- [ ] Write engine/resolver regression fixtures before replacement logic:
+- [x] Trace source notes through selected learner arrangement, chord selection, scheduling, view conversion, hand filtering and grading. Record which existing producer, if any, can provide trustworthy replaceable-note ownership. Inspect callers of the MIDI accompaniment helpers before reusing them.
+- [x] Define one small pure resolution helper in player-core (suggested `src/accompaniment.ts`) with exported types local to that module. It consumes immutable source notes, the already selected chord timeline and the selected accompaniment style; if trustworthy ownership exists, accept it explicitly. Return resolved notes, effective chord events and fallback spans/reasons for both engine and UI. No registry, factory or new dependency.
+- [x] Carry stable source-note identity if ownership requires it. Do not match only MIDI pitch: repeated identical pitches at different beats are different events. If no trustworthy ownership exists, the Melody + accompaniment path falls back; do not manufacture a role detector to make a demonstration succeed.
+- [x] Remove the unconditional `hand === "L"` suppression in the scheduler. Schedule the resolved result exactly once. Retain the current original-note/chord-duration conventions; avoid double rendering or double transpose.
+- [x] Write engine/resolver regression fixtures before replacement logic:
   - L-tagged melody/riff with unknown role survives unchanged and receives no generated overlay.
   - Known accompaniment ownership replaces only those notes, including R-tagged accompaniment if supplied; protected L melody survives.
   - Repeated same-pitch notes outside a replacement span survive.
   - No source, unsupported chord, explicit no-chord and partial chart gaps fall back without dropped notes.
   - A note sustained across a replacement boundary has a deliberate, tested policy: preserve it and suppress conflicting generated replacement until safe, rather than cutting the sustained note or doubling it.
-- [ ] Run `npm run test -w @keyspilli/player-core -- test/engine.test.ts` plus the focused resolver test, and web chord-source/end-to-end contract tests.
-- [ ] Commit with a note explaining actual ownership availability and fallback coverage.
+- [x] Run `npm run test -w @keyspilli/player-core -- test/engine.test.ts` plus the focused resolver test, and web chord-source/end-to-end contract tests.
+- [x] Commit with a note explaining actual ownership availability and fallback coverage.
 
 Acceptance: no engine branch equates L with replaceable accompaniment; adding metadata without a functioning producer does not count as role-aware replacement. Safe fallback is an acceptable and visible outcome for legacy material.
 

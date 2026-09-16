@@ -294,7 +294,7 @@ describe("PlaybackEngine", () => {
     expect(audio.cancelled).toBeGreaterThan(0);
   });
 
-  it("plays source chords and omits the recorded left hand in chord mode", () => {
+  it("does not treat a left-hand label as replaceable accompaniment", () => {
     const sourceNotes: TimedNote[] = [
       { midi: 60, startSec: 0, durSec: 0.5, vel: 80, hand: "R" },
       { midi: 48, startSec: 0, durSec: 0.5, vel: 80, hand: "L" },
@@ -314,7 +314,7 @@ describe("PlaybackEngine", () => {
     );
     eng.start();
     expect(audio.playedChords).toEqual([{ midiNotes: [48, 52, 55], when: 0, durationSec: 1.2 }]);
-    expect(audio.noteOns.map((n) => n.midi)).not.toContain(48);
+    expect(audio.noteOns.map((n) => n.midi)).toContain(48);
     eng.tick(0.5);
     expect(audio.playedChords.map((c) => c.midiNotes)).toContainEqual([50, 53, 57]);
   });
@@ -439,15 +439,21 @@ describe("PlaybackEngine", () => {
     const audio = new FakeAudio();
     const eng = new PlaybackEngine(audio, notes, 1.5, SONG, { ...DEFAULT_SETTINGS, backgroundMode: "chord" }, []);
     eng.start();
+    eng.tick(0.2);
+    const timeBefore = eng.time;
+    const cancelledBefore = audio.cancelled;
     audio.noteOns = [];
+    audio.playedChords = [];
     eng.setTimeline(
-      [{ midi: 72, startSec: 0, durSec: 0.5, vel: 80 }],
-      0.5,
-      [{ beat: 0, name: "C", notes: [60, 64, 67] }],
+      [{ midi: 72, startSec: 0.25, durSec: 0.5, vel: 80 }],
+      1,
+      [{ beat: 1, durationBeats: 1, name: "C", notes: [60, 64, 67] }],
     );
-    eng.tick(0.02);
-    expect(audio.noteOns.some(n => n.midi === 72)).toBe(true);
-    expect(audio.playedChords.length).toBeGreaterThan(0);
+    expect(eng.time).toBeCloseTo(timeBefore, 5);
+    expect(eng.settings.backgroundMode).toBe("chord");
+    expect(audio.cancelled).toBeGreaterThan(cancelledBefore);
+    expect(audio.noteOns).toEqual([{ midi: 72, when: expect.closeTo(0.05, 5) }]);
+    expect(audio.playedChords).toHaveLength(0);
   });
 
   it("noteOff only targets input-originated voices", () => {
