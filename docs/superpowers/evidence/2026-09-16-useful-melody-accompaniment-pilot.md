@@ -29,11 +29,11 @@ The two available upload XML files are one-measure C-major scale fixtures, not a
 
 ## Reviewed pilot selection
 
-The parent review checked that every selected item is a real catalogue song, has a source-linked artifact manifest, has usable note/chord data, and contains a concrete 32-beat excerpt with simultaneous onsets or rests. The `expected` melody stream below is the existing `splitPianoRoles` baseline, not a claim of musical correctness; the tuples make the later correction/acceptance comparison reproducible.
+My bounded structural inspection checked that every selected item is a real catalogue song, has a source-linked artifact manifest, has usable note/chord data, and contains a concrete 32-beat excerpt with simultaneous onsets or rests. The `Baseline candidate notes` stream below is the existing `splitPianoRoles` algorithm output, not a claim of musical correctness or a reviewed oracle; the tuples make later independent correction/acceptance comparisons reproducible.
 
 `sourceArtifactHash` is the hash recorded by the canonical artifact manifest. The raw source path is included for traceability; it is never copied into this repository.
 
-| Category / song | Source path | `sourceArtifactHash` | Excerpt (beats) | Source notes | Baseline melody | Rests (gaps / beats) | Expected first notes `(midi,start,dur,hand)` |
+| Category / song | Source path | `sourceArtifactHash` | Excerpt (beats) | Source notes | Baseline candidate notes | Rests (gaps / beats) | Baseline candidate notes `(midi,start,dur,hand)` |
 | --- | --- | --- | ---: | ---: | ---: | ---: | --- |
 | standard / The Beatles — Blackbird | `seed-midi/the-beatles-blackbird.mid` | `3fc3fd74d567da56dd10ff05689ef2f57641efbbe200532aabc0ea5fbcea1e75` | 4–36 | 103 | 72 | 0 / 0 | `(43,4,1.25,L)`, `(55,4.625,0.625,L)`, `(60,5.25,0.625,R)`, `(55,5.875,1.875,L)`, `(47,6.5,1.25,L)` |
 | standard / The Beatles — Blackbird | `seed-midi/the-beatles-blackbird.mid` | `3fc3fd74d567da56dd10ff05689ef2f57641efbbe200532aabc0ea5fbcea1e75` | 68–100 | 123 | 74 | 0 / 0 | `(69,68.125,0.25,R)`, `(67,68.375,0.625,R)`, `(69,69,0.375,R)`, `(69,69.375,0.25,R)`, `(69,69.625,1.25,R)` |
@@ -46,11 +46,11 @@ The parent review checked that every selected item is a real catalogue song, has
 | YouTube / Hozier — Too Sweet | `transcribed/job-mslzvbcz-ysykq5/audio_basic_pitch.mid` | `31bf0d0a4de3c961e497806f421948186e287883f475b3b4941e9d9468403c1a` | 0–32 | 38 | 36 | 7 / 7.25 | `(67,0.375,0.5,R)`, `(60,0.625,0.375,R)`, `(55,0.875,0.25,R)`, `(46,1.125,0.625,R)`, `(53,1.25,0.375,R)` |
 | YouTube / Sabaton — En livstid i krig | `transcribed/job-mslzvbcz-ysxx9s/audio_basic_pitch.mid` | `f0de275015e35aca9e6eb83b7b3038b40c7917a4c99f806f607f12dd991d46c3` | 0–32 | 78 | 31 | 11 / 8.25 | `(79,0,0.625,R)`, `(70,1.5,1.375,R)`, `(50,1.75,1.25,L)`, `(46,2.625,0.375,L)`, `(74,3,0.75,R)` |
 
-This is ten distinct pilot excerpts across eight songs and two categories. The selection is structurally reviewed and ready for implementation; subjective musical acceptance and real-audio listening remain explicit follow-up gates.
+This is ten distinct pilot excerpts across eight songs and two categories. The selection is structurally inspected and ready for implementation; it is not musically reviewed. Independent notation/track audition or listening is still required before assigning a reviewed melody expectation, and uncertain examples remain unreviewed rather than assigned guessed truth.
 
 ## Honest baseline result
 
-For every pilot, the current player-core call was run as:
+For every pilot, the current player-core call was run by the reproducible diagnostic at [`2026-09-16-useful-melody-accompaniment-baseline.ts`](./2026-09-16-useful-melody-accompaniment-baseline.ts). Its core call is:
 
 ```ts
 resolveAccompaniment(notes, chords, "melody-accompaniment", { durationBeats })
@@ -58,12 +58,14 @@ resolveAccompaniment(notes, chords, "melody-accompaniment", { durationBeats })
 
 with no ownership producer. It generated zero accompaniment chords for every item and emitted fallback spans for every chord event (69, 23, 25, 172, 121, 12, 108, and 280 spans respectively for the eight songs). Reasons included `accompaniment ownership unavailable`, plus `no chord coverage` and `unsupported chord` on some songs. This confirms the reported failure mode: the default melody mode has no producer-owned source-note selection, so it cannot transform the passage.
 
-The existing selector did return non-empty candidate melody streams for all ten excerpts. It also exposed the required test pressure: the baseline sometimes selects low notes across hands, stretches no rests, and encounters extended chord labels such as `C#maj7`, `A#7`, `Dm7`, `Gsus47`, and `D#sus2maj7`. The pilot implementation must make ownership explicit, preserve the selected line, generate only owned support, and surface ambiguous spans for correction instead of silently treating the whole song as unavailable.
+The existing selector did return non-empty candidate streams for all ten excerpts. Those streams are diagnostic snapshots only: they can select low notes between upper attacks (for example in `Perfect` and `Too Sweet`) and therefore cannot be used as the oracle for a selector built on the same helper. The snapshots expose the required test pressure—cross-hand candidates, rests, and extended labels such as `C#maj7`, `A#7`, `Dm7`, `Gsus47`, and `D#sus2maj7`. The pilot implementation must make ownership explicit, preserve an independently confirmed line, generate only owned support, and surface ambiguous spans for correction instead of silently treating the whole song as unavailable.
+
+The diagnostic reads the canonical raw files and artifact manifests directly. It records manifest hashes plus note tuples; it does not copy source media into the repository and it never writes to canonical data. Independent musical expectations, original-versus-candidate audio/notation comparisons, and user feedback are intentionally absent from this checkpoint.
 
 ## Checkpoint status
 
 - [x] Canonical source coverage recorded without mutation.
-- [x] Ten source-linked real-song excerpts selected across two import categories.
+- [x] Ten source-linked real-song excerpts selected across two import categories; structural selection only.
 - [x] Baseline selector and current all-fallback behavior recorded with reproducible tuples/counts.
 - [ ] New producer, correction sidecar, generated support, and parity checks implemented.
 - [ ] Real Play/audio preview, visual display, grading, and saved-correction evidence captured.
