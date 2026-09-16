@@ -26,7 +26,8 @@ export interface ChordPracticeSnapshot {
   remainingPitchClasses: number[];
   lastWrongPitchClass: number | null;
   finished: boolean;
-  accuracyPct: number;
+  /** Percentage of chord targets completed; null when there are no targets. */
+  completionPct: number | null;
 }
 
 function pitchClass(midi: number): number {
@@ -171,8 +172,8 @@ export class ChordGrader {
     const expected = target ? [...new Set(target.notes.map(pitchClass))].sort((a, b) => a - b) : [];
     const playedPitchClasses = [...this.played].sort((a, b) => a - b);
     const remainingPitchClasses = expected.filter((pc) => !this.played.has(pc));
-    const accuracyPct = this.targets.length === 0
-      ? 100
+    const completionPct = this.targets.length === 0
+      ? null
       : Math.round((this.completed / this.targets.length) * 100);
     return {
       currentIndex: this.index,
@@ -185,7 +186,7 @@ export class ChordGrader {
       remainingPitchClasses,
       lastWrongPitchClass: this.lastWrong,
       finished: this.finished,
-      accuracyPct,
+      completionPct,
     };
   }
 }

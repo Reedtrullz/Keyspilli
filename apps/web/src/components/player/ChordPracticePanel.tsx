@@ -1,7 +1,7 @@
 "use client";
 
 import type { ChordPracticeSnapshot, ChordPracticeTarget } from "@keyspilli/player-core";
-import { useEffect, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import { dialogMotionClasses, useDialogMotion } from "./player-motion";
 
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
@@ -122,7 +122,7 @@ export function ChordPracticePanel({
           <p className="text-xs uppercase tracking-wide font-semibold text-indigo-700">Chord practice</p>
           <p className="text-sm font-medium text-indigo-900 mt-1">{scope === "current" ? "Current bar" : scope === "passage" ? "Current passage (up to 4 bars)" : "Whole arrangement"} — {targets.length} {targets.length === 1 ? "chord" : "chords"}</p>
           <p className="text-xs text-zinc-600 mt-1">Input: {inputStatus}</p>
-          <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 mt-1">Play the chord together</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 mt-1">Find the chord tones</h2>
           <p className="text-sm text-zinc-600 mt-1">The shown octave is a reference shape. Any octave is accepted, and note order does not matter.</p>
         </div>
         <button onClick={requestClose} className="min-h-11 px-3 rounded-xl border border-zinc-300 bg-white text-sm">Close</button>
@@ -176,7 +176,7 @@ export function ChordPracticePanel({
       {targets.length > 0 && snapshot.finished && (
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-950" role="status">
           <h3 className="text-xl font-bold">Chord practice complete</h3>
-          <p className="mt-2 text-sm">{snapshot.completed} completed · {snapshot.skipped} skipped · {snapshot.wrong} extra notes · {snapshot.accuracyPct}% shape accuracy.</p>
+          <p className="mt-2 text-sm">{snapshot.completed} completed · {snapshot.skipped} skipped · {snapshot.wrong} extra notes · {snapshot.completionPct ?? "—"}% completed.</p>
           <button onClick={onStart} className="mt-4 min-h-11 px-4 rounded-xl bg-indigo-700 text-white font-medium hover:bg-indigo-800">Try again</button>
         </div>
       )}

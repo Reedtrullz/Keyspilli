@@ -1,5 +1,9 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import type { ChordPracticeSnapshot } from "@keyspilli/player-core";
 import { buildChordPracticeTargets, compactPracticeVoicing, selectPracticeChords } from "./chord-practice";
+import { ChordPracticePanel } from "./ChordPracticePanel";
 
 describe("chord practice targets", () => {
   it("keeps a compact authored inversion as the reference shape", () => {
@@ -37,5 +41,61 @@ describe("chord practice targets", () => {
     ];
     const measures = [0, 4, 8, 12, 16, 20].map((startBeat, index) => ({ index, startBeat, endBeat: startBeat + 4 }));
     expect(selectPracticeChords(chords, measures, 1).map((chord) => chord.name)).toEqual(["G", "Am"]);
+  });
+
+  it("uses honest labels for tone discovery completion", () => {
+    const snapshot: ChordPracticeSnapshot = {
+      currentIndex: 1,
+      total: 1,
+      completed: 1,
+      skipped: 0,
+      wrong: 1,
+      target: null,
+      playedPitchClasses: [],
+      remainingPitchClasses: [],
+      lastWrongPitchClass: null,
+      finished: true,
+      completionPct: 100,
+    };
+    const html = renderToStaticMarkup(createElement(ChordPracticePanel, {
+      targets: [{ name: "C", notes: [60, 64, 67] }],
+      snapshot,
+      active: false,
+      onStart: () => {},
+      onHear: () => {},
+      onSkip: () => {},
+      onExit: () => {},
+    }));
+    expect(html).toContain("Find the chord tones");
+    expect(html).toContain("100% completed");
+    expect(html).not.toContain("shape accuracy");
+  });
+
+  it("renders an honest no-target state without a completion score", () => {
+    const snapshot: ChordPracticeSnapshot = {
+      currentIndex: 0,
+      total: 0,
+      completed: 0,
+      skipped: 0,
+      wrong: 0,
+      target: null,
+      playedPitchClasses: [],
+      remainingPitchClasses: [],
+      lastWrongPitchClass: null,
+      finished: true,
+      completionPct: null,
+    };
+    const html = renderToStaticMarkup(createElement(ChordPracticePanel, {
+      targets: [],
+      snapshot,
+      active: false,
+      onStart: () => {},
+      onHear: () => {},
+      onSkip: () => {},
+      onExit: () => {},
+    }));
+    expect(html).toContain("No usable chords in this practice scope");
+    expect(html).not.toContain("Chord practice complete");
+    expect(html).not.toContain("% completed");
   });
 });
