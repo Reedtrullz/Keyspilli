@@ -1,8 +1,8 @@
 # Backing-rhythm repair checkpoint
 
-Date: 2026-09-17  
-Branch: `codex/backing-rhythm-repair`  
-Base: deployed `origin/main` at `0a30d357ca3d646a817ac63380549fea9cdecee8`  
+Date: 2026-09-17
+Branch: `codex/backing-rhythm-repair`
+Base: deployed `origin/main` at `0a30d357ca3d646a817ac63380549fea9cdecee8`
 Scope: read-only source/runtime reproduction and a bounded implementation contract. No production code, catalogue data, or deployment was changed.
 
 ## Checkpoint status

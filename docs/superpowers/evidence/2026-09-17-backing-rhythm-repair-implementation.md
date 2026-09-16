@@ -1,8 +1,8 @@
 # Backing-rhythm repair implementation evidence
 
-Date: 2026-09-17  
-Branch: `codex/backing-rhythm-repair`  
-Base: deployed `origin/main` at `0a30d357ca3d646a817ac63380549fea9cdecee8`  
+Date: 2026-09-17
+Branch: `codex/backing-rhythm-repair`
+Base: deployed `origin/main` at `0a30d357ca3d646a817ac63380549fea9cdecee8`
 Data: canonical Keyspilli data at the point-in-time hashes recorded in the checkpoint report.
 
 ## Implemented contract
