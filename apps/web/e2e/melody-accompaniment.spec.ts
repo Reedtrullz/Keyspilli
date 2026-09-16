@@ -284,7 +284,8 @@ test("real audio events cover mode, hand filtering, seek, transpose, correction,
   const firstAttackMidis = (capture: AudioCapture): number[] => [...new Set(capture.events
     .filter((event) => event.type === "triangle" && event.relativeWhen < 0.4 && event.midi !== null)
     .map((event) => event.midi as number))].sort((a, b) => a - b);
-  expect(firstAttackMidis(hellCorrected)).not.toEqual(firstAttackMidis(hellAutomatic));
+  expect(firstAttackMidis(hellCorrected)).toEqual(expect.arrayContaining([72]));
+  expect(firstAttackMidis(hellAutomatic)).not.toContain(72);
 
   const sidecar = await page.evaluate((key) => JSON.parse(window.localStorage.getItem(key) ?? "null"), HELL_SIDECAR_KEY) as { selection?: string; provenance?: { selectionProvenance?: string } } | null;
   expect(sidecar).toMatchObject({ selection: "right-hand", provenance: { selectionProvenance: "user-confirmed" } });
