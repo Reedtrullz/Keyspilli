@@ -1,9 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { mkdtempSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
   countSongsGrouped,
+  countSongs,
+  listSongs,
   getDb,
   invalidateSongReadModel,
   listSongsGroupedWithTotal,
@@ -92,4 +94,30 @@ describe("grouped catalogue read-model cache", () => {
     unlinkSync(manifest);
     expect(countSongsGrouped({ artist: "Cache Test" })).toBe(10_002);
   });
+  it("filters import methods before pagination, preserving complete level groups and totals", () => {
+    mkdirSync(join(dataDir, "uploads"), { recursive: true });
+    for (const [index, contentType, extension] of [
+      [20000, "standard", null], [20001, "upload", "mid"],
+      [20002, "upload", "xml"], [20003, "upload", "mxl"],
+      [20004, "youtube", "mid"], [20005, "upload", null],
+    ] as const) {
+      const source = { ...row(index), title: "Import fixture", contentType };
+      for (const level of ["b", "e"] as const) upsertSong({ ...source, id: `${source.baseId}-${level}`, level, difficulty: level === "b" ? "beginner" : "easy" });
+      if (extension) writeFileSync(join(dataDir, "uploads", `${source.baseId}.${extension}`), "source fixture");
+    }
+    for (const [importMethod, expected] of [["midi", 2], ["sheet-music", 2], ["youtube", 1], ["other", 1], ["invalid", 0]] as const) {
+      const filters = { importMethod, q: "Import fixture", limit: 1 };
+      const page = listSongsGroupedWithTotal(filters);
+      expect(page.total).toBe(expected);
+      expect(page.songs).toHaveLength(Math.min(1, expected));
+      if (expected) expect(page.songs[0]!.levels).toHaveLength(2);
+      expect(countSongs(filters)).toBe(expected * 2);
+      expect(listSongs(filters)).toHaveLength(Math.min(1, expected));
+    }
+    // A retained input appearing after an earlier request must update classification.
+    writeFileSync(join(dataDir, "uploads", `${row(20005).baseId}.musicxml`), "source fixture");
+    expect(countSongsGrouped({ importMethod: "other", q: "Import fixture" })).toBe(0);
+    expect(countSongsGrouped({ importMethod: "sheet-music", q: "Import fixture" })).toBe(3);
+  });
+
 });

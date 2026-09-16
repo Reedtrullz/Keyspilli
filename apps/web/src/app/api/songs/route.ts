@@ -21,6 +21,7 @@ export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
   const { limit, offset } = safePage(sp);
   const f: SongFilters = {
+    importMethod: sp.get("importMethod") ?? undefined,
     difficulty: sp.get("difficulty") ?? undefined,
     key: sp.get("key") ?? undefined,
     style: sp.get("style") ?? undefined,
@@ -52,5 +53,5 @@ export async function GET(req: NextRequest) {
       total: groups.length === songs.length ? total : groups.length,
     });
   }
-  return NextResponse.json({ songs: listSongs(f), total: countSongs() });
+  return NextResponse.json({ songs: listSongs(f), total: countSongs(f) });
 }

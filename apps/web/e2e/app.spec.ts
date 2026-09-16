@@ -21,11 +21,24 @@ test("home page shows the catalog", async ({ page }) => {
   await expect(page.locator("a[href^='/player/']").first()).toBeVisible();
 });
 
-test("song library filters by difficulty", async ({ page }) => {
+test("song library filters by import method", async ({ page }) => {
   await page.goto("/songs");
-  await page.getByLabel("Difficulty", { exact: true }).selectOption("beginner");
+  await page.getByLabel("Import method", { exact: true }).selectOption("midi");
+  await expect(page.getByLabel("Difficulty", { exact: true })).toHaveCount(0);
   await expect(page.locator("a[href^='/player/']").first()).toBeVisible();
   await expect(page.getByRole("link", { name: "Open Beginner level" }).first()).toBeVisible();
+  for (const method of ["sheet-music", "youtube", "other", ""]) {
+    const response = page.waitForResponse(r => {
+      const url = new URL(r.url());
+      return url.pathname === "/api/songs" && (url.searchParams.get("importMethod") ?? "") === method;
+    });
+    await page.getByLabel("Import method", { exact: true }).selectOption(method);
+    const result = await response;
+    expect(result.status()).toBe(200);
+    const body = await result.json();
+    await expect(page.getByRole("status")).toHaveText(`${body.songs.length} songs`);
+    await expect(page.getByRole("group", { name: /Difficulty levels for/ })).toHaveCount(body.songs.length);
+  }
 });
 
 test("song library groups difficulty levels into one card per song", async ({ page }) => {

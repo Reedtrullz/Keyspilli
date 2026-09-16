@@ -35,6 +35,7 @@ export interface JobRow {
 }
 
 export interface SongFilters {
+  importMethod?: string;
   difficulty?: string;
   key?: string;
   style?: string;
