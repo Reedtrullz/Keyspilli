@@ -207,8 +207,7 @@ describe("buildMelodyAccompaniment", () => {
     );
 
     expect(result.melody.map((item) => item.midi)).toEqual([72, 74]);
-    expect(result.notes).toContainEqual({ ...heldSupport, hand: "L" });
-    expect(result.notes.find((item) => item.midi === heldSupport.midi)?.hand).toBe("L");
+    expect(result.notes.filter((item) => item.midi === heldSupport.midi)).toEqual([{ ...heldSupport, hand: "L" }]);
   });
 
   it("preserves extended tones and slash-bass meaning", () => {
