@@ -44,6 +44,14 @@ describe("grouped songs route", () => {
     projectPublicGroupedSongs.mockReset();
   });
 
+  it("passes import method to grouped filtering and preserves its total", async () => {
+    listSongsGroupedWithTotal.mockReturnValueOnce({ songs: [], total: 0 });
+    projectPublicGroupedSongs.mockReturnValueOnce([]);
+    const response = await GET(requestFor("group=1&importMethod=sheet-music"));
+    expect(listSongsGroupedWithTotal).toHaveBeenCalledWith(expect.objectContaining({ importMethod: "sheet-music" }));
+    expect(await response.json()).toEqual({ songs: [], total: 0 });
+  });
+
   it("projects only the fields consumed by SongBrowser", async () => {
     listSongsGroupedWithTotal.mockReturnValueOnce({
       songs: [

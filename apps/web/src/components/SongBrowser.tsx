@@ -45,7 +45,7 @@ export function SongBrowser() {
   const [songs, setSongs] = useState<GroupedSong[]>([]);
   const [input, setInput] = useState("");
   const [q, setQ] = useState("");
-  const [difficulty, setDifficulty] = useState("");
+  const [importMethod, setImportMethod] = useState("");
   const [key, setKey] = useState("");
   const [bass, setBass] = useState("");
   const [sort, setSort] = useState("popular");
@@ -59,19 +59,22 @@ export function SongBrowser() {
   useEffect(() => {
     const params = new URLSearchParams({ sort, limit: "2000", group: "1" });
     if (q) params.set("q", q);
-    if (difficulty) params.set("difficulty", difficulty);
+    if (importMethod) params.set("importMethod", importMethod);
     if (key) params.set("key", key);
     if (bass) params.set("bass", bass);
+    const controller = new AbortController();
     setLoading(true);
-    fetch(`/api/songs?${params}`)
-      .then((r) => r.json())
+    fetch(`/api/songs?${params}`, { signal: controller.signal })
+      .then((r) => { if (!r.ok) throw new Error("Could not load songs"); return r.json(); })
       .then((d) => {
+        if (controller.signal.aborted) return;
         setSongs(d.songs ?? []);
         setError("");
       })
-      .catch((e) => setError(String(e)))
-      .finally(() => setLoading(false));
-  }, [q, difficulty, key, bass, sort]);
+      .catch((e) => { if (!controller.signal.aborted) setError(String(e)); })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
+  }, [q, importMethod, key, bass, sort]);
 
   useEffect(() => {
     const t = setTimeout(() => setQ(input), 200);
@@ -86,7 +89,7 @@ export function SongBrowser() {
     [songs, favoritesOnly, favorites],
   );
   const experimentLabels = useMemo(() => experimentLabelsForSongs(visible), [visible]);
-  const activeFilterCount = [difficulty, key, bass, sort !== "popular" ? sort : "", favoritesOnly ? "favorites" : ""].filter(Boolean).length;
+  const activeFilterCount = [importMethod, key, bass, sort !== "popular" ? sort : "", favoritesOnly ? "favorites" : ""].filter(Boolean).length;
 
   return (
     <div aria-busy={loading}>
@@ -108,11 +111,12 @@ export function SongBrowser() {
           Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
         </button>
         <div id="song-library-filters" className="library-filters flex flex-wrap items-center gap-2" data-open={filtersOpen}>
-          <select value={difficulty} onChange={(e) => setDifficulty(e.target.value)} className="form-control px-2 py-2 rounded-lg border border-zinc-300 text-sm" aria-label="Difficulty">
-            <option value="">All difficulties</option>
-            {PUBLIC_DIFFICULTY_ORDER.map((d) => (
-              <option key={d} value={d}>{LEVEL_LABEL[d] ?? d}</option>
-            ))}
+          <select value={importMethod} onChange={(e) => setImportMethod(e.target.value)} className="form-control px-2 py-2 rounded-lg border border-zinc-300 text-sm" aria-label="Import method">
+            <option value="">All import methods</option>
+            <option value="midi">MIDI</option>
+            <option value="sheet-music">Sheet music (MusicXML)</option>
+            <option value="youtube">YouTube</option>
+            <option value="other">Other / unknown</option>
           </select>
           <select value={key} onChange={(e) => setKey(e.target.value)} className="form-control px-2 py-2 rounded-lg border border-zinc-300 text-sm" aria-label="Key">
             <option value="">All keys</option>

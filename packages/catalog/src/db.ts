@@ -1,6 +1,6 @@
 import Database from "better-sqlite3";
 import { randomUUID } from "node:crypto";
-import { existsSync, mkdirSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { ROOT, dataDir, dbPath } from "./paths.js";
 import type { JobRow, SongFilters, SongRow } from "./db-types.js";
@@ -287,6 +287,29 @@ export function getSongsByBase(baseId: string): SongRow[] {
   return (getDb().prepare("SELECT * FROM songs WHERE base_id = ? ORDER BY difficulty_score").all(baseId) as Record<string, unknown>[]).map(mapSong);
 }
 
+/** Use retained inputs, never generated sheet artifacts, to classify legacy uploads. */
+function matchingImportBases(method: string): Set<string> {
+  const files = new Set<string>();
+  for (const directory of ["uploads", "seed-midi"]) {
+    try {
+      for (const file of readdirSync(join(dataDir(), directory))) files.add(file);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
+  }
+  return new Set(visibleSongRowsSnapshot().filter((row) => {
+    let imported = "other";
+    if (row.contentType === "youtube" || row.acquiredVia === "youtube" || row.sourceYoutubeUrl) imported = "youtube";
+    else {
+      const midi = ["mid", "midi"].some(ext => files.has(`${row.baseId}.${ext}`));
+      const sheet = ["xml", "musicxml", "mxl"].some(ext => files.has(`${row.baseId}.${ext}`));
+      if (midi !== sheet) imported = sheet ? "sheet-music" : "midi";
+      else if (!sheet && row.contentType === "standard") imported = "midi"; // Legacy seeded catalogue was MIDI.
+    }
+    return imported === method;
+  }).map(row => row.baseId));
+}
+
 function pagination(f: SongFilters, cap: number): { limit: number; offset: number } {
   const limit = Number.isSafeInteger(f.limit) && f.limit! > 0 ? f.limit! : 60;
   const offset = Number.isSafeInteger(f.offset) && f.offset! >= 0 ? f.offset! : 0;
@@ -317,6 +340,11 @@ export function listSongs(f: SongFilters = {}, limitCap = 200): SongRow[] {
       conds.push(`${v} = @${k}`);
       params[k] = val;
     }
+  }
+  if (f.importMethod) {
+    const bases = [...matchingImportBases(f.importMethod)];
+    conds.push(`base_id IN (SELECT value FROM json_each(@importBases))`);
+    params.importBases = JSON.stringify(bases);
   }
   if (f.q) {
     conds.push("(title LIKE @q OR artist LIKE @q)");
@@ -378,7 +406,8 @@ function groupedSongsForFilters(f: SongFilters): GroupedSong[] {
   // partial six-level sets and makes the reported total depend on page size.
   // Read the complete visible snapshot: the previous listSongs(limit=10_000)
   // path silently truncated catalogues larger than 10,000 rows.
-  const all = visibleSongRowsSnapshot().filter((row) => matchesSongFilters(row, f));
+  const importBases = f.importMethod ? matchingImportBases(f.importMethod) : undefined;
+  const all = visibleSongRowsSnapshot().filter((row) => (!importBases || importBases.has(row.baseId)) && matchesSongFilters(row, f));
   // Grouping currently returns references to input rows.  Clone the cached
   // snapshot for request isolation so a caller cannot mutate future results.
   let grouped = groupSongs(all.map((row) => ({ ...row })));
@@ -434,7 +463,11 @@ export function countSongsGrouped(f: SongFilters = {}): number {
   return groupedSongsForFilters(f).length;
 }
 
-export function countSongs(): number {
+export function countSongs(f: SongFilters = {}): number {
+  if (f.importMethod) {
+    const bases = matchingImportBases(f.importMethod);
+    return visibleSongRowsSnapshot().filter(row => bases.has(row.baseId) && matchesSongFilters(row, f)).length;
+  }
   const hidden = [...hiddenBaseIds()];
   if (!hidden.length) return (getDb().prepare("SELECT COUNT(*) AS c FROM songs").get() as { c: number }).c;
   const placeholders = hidden.map(() => "?").join(", ");
