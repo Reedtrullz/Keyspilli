@@ -170,6 +170,6 @@ describe("Full player pipeline integration", () => {
     const snapshot = grader.snapshot();
     expect(snapshot.completed).toBe(2);
     expect(snapshot.finished).toBe(true);
-    expect(snapshot.accuracyPct ?? 100).toBe(100);
+    expect(snapshot.completionPct).toBe(100);
   });
 });

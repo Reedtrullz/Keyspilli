@@ -59,6 +59,8 @@ export class PlaybackEngine {
   settings: PlayerSettings;
   /** Optional beat-based source timeline used by chord background mode. */
   chords: ChordPlaybackLabel[];
+  /** Resolved guidance targets used for grading; audio scheduling stays on `notes` plus `chords`. */
+  gradingNotes: TimedNote[];
   /** Assigned by the owner whenever wait mode toggles. */
   waitMode = false;
   onChange: ((snap: EngineSnapshot) => void) | null = null;
@@ -73,9 +75,11 @@ export class PlaybackEngine {
     private readonly song: EngineSongMeta,
     settings: PlayerSettings,
     chords: ChordPlaybackLabel[] = [],
+    gradingNotes: TimedNote[] = notes,
   ) {
     this.settings = settings;
     this.chords = this.normalizeChordTimeline(chords);
+    this.gradingNotes = gradingNotes;
   }
 
   start(): void {
@@ -140,6 +144,7 @@ export class PlaybackEngine {
   setNotes(notes: TimedNote[], duration: number): void {
     if (this.notes === notes) return;
     this.notes = notes;
+    this.gradingNotes = notes;
     this.duration = duration;
     this.chords = this.normalizeChordTimeline(this.chords);
     // Mid-playback note changes (speed/transpose/hand) reschedule from now.
@@ -152,14 +157,16 @@ export class PlaybackEngine {
   }
 
   /** Update notes, duration, and chords in one atomic operation. */
-  setTimeline(notes: TimedNote[], duration: number, chords: ChordPlaybackLabel[]): void {
+  setTimeline(notes: TimedNote[], duration: number, chords: ChordPlaybackLabel[], gradingNotes: TimedNote[] = notes): void {
     const notesChanged = this.notes !== notes;
     const chordsChanged = this.chords !== chords;
-    if (!notesChanged && !chordsChanged) return;
+    const gradingNotesChanged = this.gradingNotes !== gradingNotes;
+    if (!notesChanged && !chordsChanged && !gradingNotesChanged) return;
     if (notesChanged) {
       this.notes = notes;
       this.duration = duration;
     }
+    if (gradingNotesChanged) this.gradingNotes = gradingNotes;
     if (chordsChanged) {
       this.chords = this.normalizeChordTimeline(chords);
     }
@@ -240,7 +247,7 @@ export class PlaybackEngine {
     if (bounded && bounded.endSec <= bounded.startSec) throw new RangeError("Practice end must follow its start");
     // Hand filtering already happened in the notes memo; ornaments are decoration.
     const minDurSec = 0.25 * (60 / this.song.tempoBpm / this.settings.speed);
-    const gradeable = this.notes.filter((n) => n.durSec >= minDurSec &&
+    const gradeable = this.gradingNotes.filter((n) => n.durSec >= minDurSec &&
       (!bounded || (n.startSec >= bounded.startSec && n.startSec < bounded.endSec)));
     if (!gradeable.length) throw new RangeError("No playable notes in this passage");
     if (this.playing || this.grader) this.audio.cancelAll();
@@ -318,7 +325,6 @@ export class PlaybackEngine {
     for (; i < this.notes.length; i++) {
       const n = this.notes[i]!;
       if (n.startSec >= to) break;
-      if (n.hand === "L" && chordMode && this.chordCoversBeat(n.startSec / secPerBeat(this.song.tempoBpm, this.settings.speed))) continue;
       this.audio.noteOn(n, Math.max(0, n.startSec - this.time));
     }
     // A missing source timeline falls back to the piano background, including
@@ -395,20 +401,6 @@ export class PlaybackEngine {
 
   private hasPlayableChord(): boolean {
     return this.chords.some((chord) => this.isPlayable(chord));
-  }
-
-  /** Return true only while a valid chord event is actually active. */
-  private chordCoversBeat(beat: number): boolean {
-    for (const chord of this.chords) {
-      if (chord.beat > beat + 1e-7) break;
-      if (!this.isPlayable(chord)) continue;
-      const duration = chord.durationBeats;
-      if (duration !== undefined && beat < chord.beat + duration - 1e-7) return true;
-      // Legacy source events without a span retain the old compatibility
-      // behaviour: they suppress LH only for the short engine fallback.
-      if (duration === undefined && beat < chord.beat + DEFAULT_CHORD_DURATION_SEC / secPerBeat(this.song.tempoBpm, this.settings.speed)) return true;
-    }
-    return false;
   }
 
   /**

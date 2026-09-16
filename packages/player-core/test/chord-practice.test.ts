@@ -21,6 +21,16 @@ describe("ChordGrader", () => {
     expect(grader.snapshot()).toMatchObject({ currentIndex: 0, wrong: 1, completed: 0 });
   });
 
+  it("reports completed target tones separately from extra notes", () => {
+    const grader = new ChordGrader([{ name: "C", notes: [60, 64, 67] }]);
+    grader.play(61);
+    grader.play(48);
+    grader.play(76);
+    grader.play(55);
+    expect(grader.snapshot()).toMatchObject({ completed: 1, wrong: 1, completionPct: 100 });
+    expect(grader.finished).toBe(true);
+  });
+
   it("reports partial progress and supports skipping", () => {
     const grader = new ChordGrader(targets);
     grader.play(60);
@@ -31,6 +41,6 @@ describe("ChordGrader", () => {
   });
 
   it("finishes empty practice safely", () => {
-    expect(new ChordGrader([]).snapshot()).toMatchObject({ finished: true, total: 0, accuracyPct: 100 });
+    expect(new ChordGrader([]).snapshot()).toMatchObject({ finished: true, total: 0, completionPct: null });
   });
 });

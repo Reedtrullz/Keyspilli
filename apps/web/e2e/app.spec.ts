@@ -11,7 +11,9 @@ const BRAHMS_SONG = "j-brahms-brahms-horn-trio-a";
 // fetches do not stall headless playback assertions.
 test.beforeEach(async ({ context }) => {
   await context.addInitScript(() => {
-    window.localStorage.setItem("keyspilli.prefs.v1", JSON.stringify({ soundSource: "synth" }));
+    if (!window.localStorage.getItem("keyspilli.prefs.v1")) {
+      window.localStorage.setItem("keyspilli.prefs.v1", JSON.stringify({ soundSource: "synth" }));
+    }
   });
 });
 
@@ -233,6 +235,83 @@ test("chord mode distinguishes strict UG coverage from hybrid Auto", async ({ pa
   await expect(page.getByTestId("chord-mode-status")).toHaveText("UG + generated fallback");
 });
 
+test("chord styles persist across source changes, seeking, guidance, and mobile keyboard navigation", async ({ page }) => {
+  await page.goto(`/player/${UG_SONG}`);
+  await openPlayerTool(page, "Sound");
+  let dialog = page.getByRole("dialog", { name: "Sound settings" });
+  await dialog.getByRole("radio", { name: "Chord mode" }).click();
+  const styles = dialog.getByRole("radiogroup", { name: "Accompaniment style" });
+  await expect(styles.getByRole("radio", { name: "Melody + accompaniment" })).toHaveAttribute("aria-checked", "true");
+  await expect(dialog).toContainText("Original passage retained");
+  await dialog.getByRole("radio", { name: "UG timeline" }).click();
+  await dialog.getByRole("button", { name: "Close tools" }).click();
+  await expect(page.getByTestId("accompaniment-fallback")).toContainText("Original passage retained");
+
+  await page.getByRole("slider", { name: "Seek" }).fill("1");
+  await openPlayerTool(page, "Sound");
+  dialog = page.getByRole("dialog", { name: "Sound settings" });
+  await dialog.getByRole("radio", { name: "Bass + chords" }).click();
+  await dialog.getByRole("radio", { name: "Generated" }).click();
+  await dialog.getByRole("button", { name: "Close tools" }).click();
+  await page.reload();
+  await openPlayerTool(page, "Sound");
+  dialog = page.getByRole("dialog", { name: "Sound settings" });
+  await expect(dialog.getByRole("radio", { name: "Bass + chords" })).toHaveAttribute("aria-checked", "true");
+  await expect(dialog.getByRole("radio", { name: "Generated" })).toHaveAttribute("aria-checked", "true");
+  await dialog.getByRole("button", { name: "Close tools" }).click();
+
+  await page.getByRole("button", { name: /View/ }).click();
+  await page.getByRole("menuitemradio", { name: /Note letters/ }).click();
+  await expect(page.getByLabel("Note letters view")).toBeVisible();
+  await page.getByRole("button", { name: "Practice", exact: true }).click();
+  await page.getByRole("button", { name: "Chord practice", exact: true }).click();
+  const practice = page.getByTestId("chord-practice-panel");
+  await expect(practice.getByRole("heading", { name: "Find the chord tones" })).toBeVisible();
+  await expect(practice).toContainText("Hand labels are suggested, not measured performance");
+  await practice.getByRole("button", { name: "Close", exact: true }).click();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.reload();
+  await page.getByRole("button", { name: "Tools", exact: true }).focus();
+  await page.keyboard.press("Enter");
+  dialog = page.getByRole("dialog", { name: "Display settings" });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole("button", { name: "Sound", exact: true }).focus();
+  await page.keyboard.press("Enter");
+  dialog = page.getByRole("dialog", { name: "Sound settings" });
+  await dialog.getByRole("radio", { name: "Melody + accompaniment" }).focus();
+  await page.keyboard.press("Space");
+  await expect(dialog.getByRole("radio", { name: "Melody + accompaniment" })).toHaveAttribute("aria-checked", "true");
+  await expect(page.locator(".player-page")).toHaveJSProperty("clientWidth", 390);
+});
+
+test("wait practice advances the visible playhead after an accepted generated target", async ({ page }) => {
+  await page.goto(`/player/${UG_SONG}`);
+  await openPlayerTool(page, "Sound");
+  const dialog = page.getByRole("dialog", { name: "Sound settings" });
+  await dialog.getByRole("radio", { name: "Chord mode" }).click();
+  await dialog.getByRole("radio", { name: "Bass + chords" }).click();
+  await dialog.getByRole("radio", { name: "Generated" }).click();
+  await dialog.getByRole("radio", { name: "Synth Piano" }).click();
+  await dialog.getByRole("button", { name: "Close tools" }).click();
+
+  const seek = page.getByRole("slider", { name: "Seek" });
+  await seek.fill("0.4");
+  await page.getByRole("button", { name: "Right hand", exact: true }).click();
+  await page.getByRole("button", { name: "Practice", exact: true }).click();
+  await page.getByLabel("Behavior", { exact: true }).selectOption("wait");
+  await page.getByLabel("Passage", { exact: true }).selectOption("current");
+  await page.getByRole("button", { name: "Start practice", exact: true }).click();
+
+  const grading = page.getByRole("region", { name: "Practice grading" });
+  await expect(grading).toContainText("Play: A#4 (right hand)");
+  await expect(seek).toHaveValue("0.4");
+  await page.keyboard.press("u");
+  await expect(grading).toContainText("Play: D#5 (right hand)");
+  await expect.poll(async () => Number(await seek.inputValue())).toBeGreaterThan(2);
+  await page.getByRole("button", { name: "Finish practice", exact: true }).click();
+});
+
 test("practice mode starts and exits cleanly", async ({ page }) => {
   await page.goto(`/player/${SONG}`);
   await page.getByRole("button", { name: "Practice", exact: true }).click();
@@ -249,7 +328,7 @@ test("chord practice shows a compact target and advances by chord", async ({ pag
   await page.getByRole("button", { name: "Chord practice", exact: true }).click();
   const panel = page.getByTestId("chord-practice-panel");
   await expect(panel).toBeVisible();
-  await expect(panel.getByRole("heading", { name: "Play the chord together" })).toBeVisible();
+  await expect(panel.getByRole("heading", { name: "Find the chord tones" })).toBeVisible();
   await expect(panel.getByLabel("Target notes")).toBeVisible();
   await expect(panel.getByRole("button", { name: "Hear chord" })).toBeVisible();
   await panel.getByRole("button", { name: "Skip" }).click();

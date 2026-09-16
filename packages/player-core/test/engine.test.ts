@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { PlaybackEngine, type AudioLike } from "../src/engine.js";
+import { filterAccompanimentChords, resolveAccompaniment } from "../src/accompaniment.js";
 import { DEFAULT_SETTINGS } from "../src/prefs.js";
 import type { PlayerSettings } from "../src/types.js";
 import { dedupeChords, secPerBeat, type TimedNote } from "../src/timeline.js";
@@ -294,7 +295,7 @@ describe("PlaybackEngine", () => {
     expect(audio.cancelled).toBeGreaterThan(0);
   });
 
-  it("plays source chords and omits the recorded left hand in chord mode", () => {
+  it("does not treat a left-hand label as replaceable accompaniment", () => {
     const sourceNotes: TimedNote[] = [
       { midi: 60, startSec: 0, durSec: 0.5, vel: 80, hand: "R" },
       { midi: 48, startSec: 0, durSec: 0.5, vel: 80, hand: "L" },
@@ -314,9 +315,58 @@ describe("PlaybackEngine", () => {
     );
     eng.start();
     expect(audio.playedChords).toEqual([{ midiNotes: [48, 52, 55], when: 0, durationSec: 1.2 }]);
-    expect(audio.noteOns.map((n) => n.midi)).not.toContain(48);
+    expect(audio.noteOns.map((n) => n.midi)).toContain(48);
     eng.tick(0.5);
     expect(audio.playedChords.map((c) => c.midiNotes)).toContainEqual([50, 53, 57]);
+  });
+
+  it("grades fully replaced and hand-filtered resolved guidance without duplicating scheduled audio", () => {
+    const source = [0, 1, 2, 3].map((start) => ({ midi: 72, start, dur: 0.5, vel: 80 }));
+    const chords = [0, 1, 2, 3].map((beat, index) => ({
+      beat,
+      durationBeats: 1,
+      name: ["C", "F", "G7", "C"][index]!,
+      notes: [],
+    }));
+    const resolved = resolveAccompaniment(source, chords, "bass-chords", { durationBeats: 4 });
+    const timed = (note: { midi: number; start: number; dur: number; vel: number; hand?: "L" | "R" }) => ({
+      midi: note.midi,
+      startSec: note.start * 0.5,
+      durSec: note.dur * 0.5,
+      vel: note.vel,
+      hand: note.hand,
+    });
+    const guidance = resolved.guidanceNotes.map(timed);
+    const audio = new FakeAudio();
+    const eng = new PlaybackEngine(
+      audio,
+      resolved.notes.map(timed),
+      2,
+      SONG,
+      { ...DEFAULT_SETTINGS, backgroundMode: "chord" },
+      resolved.chords,
+      guidance,
+    );
+
+    expect(resolved.notes).toHaveLength(0);
+    eng.startGrading(true);
+    expect(eng.grader?.currentWait?.midi).toBe(guidance[0]!.midi);
+    expect(eng.finishGrading()?.total).toBe(guidance.length);
+    expect(audio.playedChords).toHaveLength(0);
+
+    const rightGuidance = resolved.guidanceNotes.filter((note) => note.hand === "R").map(timed);
+    const rightAudio = new FakeAudio();
+    const right = new PlaybackEngine(
+      rightAudio,
+      [],
+      2,
+      SONG,
+      { ...DEFAULT_SETTINGS, backgroundMode: "chord", hand: "R" },
+      filterAccompanimentChords(resolved.chords, "R"),
+      rightGuidance,
+    );
+    right.startGrading(true);
+    expect(right.finishGrading()?.total).toBe(rightGuidance.length);
   });
 
   it("falls back to piano scheduling when chord mode has no timeline", () => {
@@ -365,6 +415,38 @@ describe("PlaybackEngine", () => {
     eng.seek(0.6);
     expect(audio.cancelled).toBeGreaterThan(before);
     expect(audio.playedChords.length).toBeGreaterThan(1);
+  });
+
+  it("rebuilds a generated voicing from the beginning when seeking", () => {
+    const source = [
+      { midi: 72, start: 0, dur: 0.5, vel: 80, hand: "R" as const },
+      { midi: 72, start: 1, dur: 0.5, vel: 80, hand: "R" as const },
+    ];
+    const chords = resolveAccompaniment(source, [
+      { beat: 0, durationBeats: 1, name: "C", notes: [] },
+      { beat: 1, durationBeats: 1, name: "F", notes: [] },
+    ], "bass-chords", { durationBeats: 2 }).chords;
+    const settings = { ...DEFAULT_SETTINGS, backgroundMode: "chord" as const };
+    const continuousAudio = new FakeAudio();
+    const continuous = new PlaybackEngine(continuousAudio, [], 1, SONG, settings, chords);
+    continuous.start();
+    continuous.tick(0.5);
+    const continuousF = continuousAudio.playedChords.at(-1)?.midiNotes;
+
+    const seekAudio = new FakeAudio();
+    const seeked = new PlaybackEngine(seekAudio, [], 1, SONG, settings, chords);
+    seeked.seek(0.5);
+    seeked.start();
+    expect(seekAudio.playedChords.at(-1)?.midiNotes).toEqual(continuousF);
+  });
+
+  it.each([-24, 24])("keeps generated chord MIDI valid at transpose %s", (transpose) => {
+    const source = [{ midi: 72, start: 0, dur: 0.5, vel: 80, hand: "R" as const }];
+    const chords = resolveAccompaniment(source, [{ beat: 0, durationBeats: 1, name: "B", notes: [] }], "bass-chords", { durationBeats: 1 }).chords;
+    const audio = new FakeAudio();
+    const eng = new PlaybackEngine(audio, [], 0.5, SONG, { ...DEFAULT_SETTINGS, backgroundMode: "chord", transpose }, chords);
+    eng.start();
+    expect(audio.playedChords[0]?.midiNotes.every((midi) => midi >= 0 && midi <= 127)).toBe(true);
   });
 
   it("passes sorted absolute MIDI voicings, preserving octaves and collapsing exact duplicates", () => {
@@ -439,15 +521,21 @@ describe("PlaybackEngine", () => {
     const audio = new FakeAudio();
     const eng = new PlaybackEngine(audio, notes, 1.5, SONG, { ...DEFAULT_SETTINGS, backgroundMode: "chord" }, []);
     eng.start();
+    eng.tick(0.2);
+    const timeBefore = eng.time;
+    const cancelledBefore = audio.cancelled;
     audio.noteOns = [];
+    audio.playedChords = [];
     eng.setTimeline(
-      [{ midi: 72, startSec: 0, durSec: 0.5, vel: 80 }],
-      0.5,
-      [{ beat: 0, name: "C", notes: [60, 64, 67] }],
+      [{ midi: 72, startSec: 0.25, durSec: 0.5, vel: 80 }],
+      1,
+      [{ beat: 1, durationBeats: 1, name: "C", notes: [60, 64, 67] }],
     );
-    eng.tick(0.02);
-    expect(audio.noteOns.some(n => n.midi === 72)).toBe(true);
-    expect(audio.playedChords.length).toBeGreaterThan(0);
+    expect(eng.time).toBeCloseTo(timeBefore, 5);
+    expect(eng.settings.backgroundMode).toBe("chord");
+    expect(audio.cancelled).toBeGreaterThan(cancelledBefore);
+    expect(audio.noteOns).toEqual([{ midi: 72, when: expect.closeTo(0.05, 5) }]);
+    expect(audio.playedChords).toHaveLength(0);
   });
 
   it("noteOff only targets input-originated voices", () => {

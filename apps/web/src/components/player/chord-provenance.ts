@@ -25,9 +25,16 @@ export function chordProvenance(chord: Pick<ChordLabel, "sourceKind" | "inferred
     ? ` (${chord.inferenceType.replaceAll("-", " ")})`
     : "";
   if (chord.inferred === true || chord.sourceKind === "inferred" || chord.inferenceType !== undefined) {
+    const sourceLabel = chord.sourceKind === "authored"
+      ? "Authored chord"
+      : chord.sourceKind === "generated"
+        ? "Generated chord"
+        : "Inferred chord";
     return {
       kind: "inferred",
-      label: `Inferred chord${inferenceDetail}`,
+      label: sourceLabel === "Inferred chord"
+        ? `Inferred chord${inferenceDetail}`
+        : `${sourceLabel} · inferred voicing${inferenceDetail}`,
       dotted: true,
       textClass: "text-amber-800",
       backgroundClass: "bg-amber-50",
