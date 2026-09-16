@@ -135,8 +135,8 @@ function audible(capture: AudioCapture & { sha256: string }): void {
   expect(capture.events.filter((event) => event.type === "triangle")).not.toHaveLength(0);
 }
 
-function fundamentalMidis(capture: AudioCapture): number[] {
-  return [...new Set(capture.events.filter((event) => event.type === "triangle" && event.midi !== null).map((event) => event.midi as number))].sort((a, b) => a - b);
+function fundamentalMidis(capture: AudioCapture, endSeconds = Number.POSITIVE_INFINITY): number[] {
+  return [...new Set(capture.events.filter((event) => event.type === "triangle" && event.midi !== null && event.relativeWhen < endSeconds).map((event) => event.midi as number))].sort((a, b) => a - b);
 }
 
 async function selectArrangement(page: Page, mode: "Original arrangement" | "Chord mode", melody?: "Automatic melody" | "Use right-hand part"): Promise<void> {
@@ -253,7 +253,8 @@ test("real audio events cover mode, hand filtering, seek, transpose, correction,
   await display.getByRole("button", { name: "Close tools", exact: true }).click();
   const transposed = await captureArrangement(page, testInfo, "blackbird-transposed", 7, 1_400);
   audible(transposed);
-  expect(fundamentalMidis(transposed)).toEqual(fundamentalMidis(bothHands).map((midi) => midi + 1));
+  // Compare the same requested window; Web Audio may expose starts scheduled after pause.
+  expect(fundamentalMidis(transposed, 1.4)).toEqual(fundamentalMidis(bothHands, 1.4).map((midi) => midi + 1));
   await openPlayerTool(page, "Display");
   await page.getByRole("dialog", { name: "Display settings" }).getByRole("button", { name: "Reset transpose", exact: true }).click();
   await page.getByRole("dialog", { name: "Display settings" }).getByRole("button", { name: "Close tools", exact: true }).click();

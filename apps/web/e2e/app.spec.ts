@@ -230,7 +230,7 @@ test("chord mode distinguishes strict UG coverage from hybrid Auto", async ({ pa
 
   await openPlayerTool(page, "Sound");
   const hybridDialog = page.getByRole("dialog", { name: "Sound settings" });
-  await hybridDialog.getByRole("radio", { name: "Auto" }).click();
+  await hybridDialog.getByRole("radio", { name: "Auto", exact: true }).click();
   await hybridDialog.getByRole("button", { name: "Close tools" }).click();
   await expect(page.getByTestId("chord-mode-status")).toHaveText("UG + generated fallback");
 });
@@ -242,10 +242,10 @@ test("chord styles persist across source changes, seeking, guidance, and mobile 
   await dialog.getByRole("radio", { name: "Chord mode" }).click();
   const styles = dialog.getByRole("radiogroup", { name: "Accompaniment style" });
   await expect(styles.getByRole("radio", { name: "Melody + accompaniment" })).toHaveAttribute("aria-checked", "true");
-  await expect(dialog).toContainText("Original passage retained");
+  await expect(dialog).toContainText("Original passage is retained");
   await dialog.getByRole("radio", { name: "UG timeline" }).click();
   await dialog.getByRole("button", { name: "Close tools" }).click();
-  await expect(page.getByTestId("accompaniment-fallback")).toContainText("Original passage retained");
+  await expect(page.getByTestId("chord-mode-status")).toHaveText("UG opening (partial)");
 
   await page.getByRole("slider", { name: "Seek" }).fill("1");
   await openPlayerTool(page, "Sound");
