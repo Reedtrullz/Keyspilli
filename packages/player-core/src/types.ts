@@ -43,6 +43,8 @@ export interface ChordSourceBundle {
 export interface SongData {
   notes: Note[];
   chords: ChordLabel[];
+  /** Canonical source/variant fingerprint used to reject stale derived choices. */
+  sourceFingerprint?: string;
   /** Optional chart-backed timeline; generated chords remain in `chords`. */
   ugChordTimeline?: ChordLabel[];
   chordProvenance?: ChordSourceProvenance;

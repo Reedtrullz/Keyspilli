@@ -332,8 +332,10 @@ export async function loadSongArtifact(song: SongRow): Promise<{ data: SongData 
 
   const notesPath = join(artifactsDir(song.baseId, song.level), "notes.json");
   let stored: SongData;
+  let notesContent: string;
   try {
-    stored = JSON.parse(await readFile(notesPath, "utf8")) as SongData;
+    notesContent = await readFile(notesPath, "utf8");
+    stored = JSON.parse(notesContent) as SongData;
   } catch {
     return {
       data: null,
@@ -348,7 +350,17 @@ export async function loadSongArtifact(song: SongRow): Promise<{ data: SongData 
   // The manifest is authoritative when present. Assigning the resolved value
   // here keeps downstream playback and seek code on the same runtime value;
   // the equality check above prevents this from masking a stale mirror.
-  const data = { ...stored, tempoBpm: tempo.bpm };
+  const data = {
+    ...stored,
+    tempoBpm: tempo.bpm,
+    ...(manifest?.sourceArtifactHash ? {
+      // The manifest hash identifies the original source bytes and can stay
+      // stable when a variant's derived notes are regenerated. Include the
+      // loaded notes content so a saved melody choice cannot survive variant
+      // drift, while retaining row identity across shared source variants.
+      sourceFingerprint: `variant:${song.baseId}:${song.level}:${song.id}:${manifest.sourceArtifactHash}:notes:${createHash("sha256").update(notesContent).digest("hex")}`,
+    } : {}),
+  };
   // Compute heuristic sections at load time so the player can offer practice
   // navigation without requiring every checked-in artifact to carry metadata.
   if (!data.sections && data.measures.length > 0) {

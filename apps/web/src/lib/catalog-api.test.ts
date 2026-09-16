@@ -1,4 +1,5 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { createHash } from "node:crypto";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -159,6 +160,38 @@ describe("catalog artifact manifest read boundary", () => {
     const loaded = await loadSongArtifact(song(120));
     expect(loaded.artifact).toEqual({ status: "valid", errors: [], manifest });
     expect(loaded.data?.tempoBpm).toBe(120);
+  });
+
+  it("binds loaded song data to the manifest and actual notes content", async () => {
+    const manifest = createLegacyBootstrapManifest("catalog-api-song", 120);
+    manifest.sourceArtifactHash = "a".repeat(64);
+    await writeArrangementManifestFile(arrangementManifestPath("catalog-api-song"), manifest);
+
+    const notesPath = join(dataRoot, "artifacts", "catalog-api-song", "a", "notes.json");
+    const firstNotes = {
+      notes: [
+        { midi: 60, start: 0, dur: 1, vel: 90, hand: "R" as const },
+        { midi: 62, start: 1, dur: 1, vel: 90, hand: "R" as const },
+        { midi: 64, start: 2, dur: 1, vel: 90, hand: "R" as const },
+      ],
+      chords: [],
+      measures: [{ index: 0, startBeat: 0, endBeat: 4 }],
+      key: "C",
+      tempoBpm: 120,
+      timeSig: [4, 4] as [number, number],
+    };
+    await writeFile(notesPath, JSON.stringify(firstNotes));
+    const first = await loadSongArtifact(song(120));
+    await writeFile(notesPath, JSON.stringify({
+      ...firstNotes,
+      notes: firstNotes.notes.map((note, index) => index === 1 ? { ...note, midi: 65 } : note),
+    }));
+    const second = await loadSongArtifact(song(120));
+
+    const firstNotesHash = createHash("sha256").update(JSON.stringify(firstNotes)).digest("hex");
+    expect(first.data?.sourceFingerprint).toBe(`variant:${song().baseId}:${song().level}:${song().id}:${manifest.sourceArtifactHash}:notes:${firstNotesHash}`);
+    expect(second.data?.sourceFingerprint).not.toBe(first.data?.sourceFingerprint);
+    expect(second.data?.sourceFingerprint).toContain(`variant:${song().baseId}:${song().level}:${song().id}:${manifest.sourceArtifactHash}:notes:`);
   });
 
   it("projects legacy MIDI-derived chords with generated provenance and duration metadata", async () => {

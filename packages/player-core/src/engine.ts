@@ -41,6 +41,11 @@ export interface EngineSongMeta {
 
 type ChordPlaybackLabel = ChordLabel & { durationBeats?: number };
 
+export interface PlaybackPreviewPlan {
+  notes: Array<{ note: TimedNote; when: number }>;
+  chords: Array<{ notes: number[]; when: number; durationSec: number }>;
+}
+
 /**
  * Plain (non-React) owner of all mutable playback state. The AudioEngine is
  * injected so the engine never touches browser context lifecycle, and the
@@ -316,6 +321,58 @@ export class PlaybackEngine {
     return this.grader?.currentWait ?? null;
   }
 
+  /** Build the bounded audible event list used by the player's preview button. */
+  previewPlan(startSec: number, endSec: number): PlaybackPreviewPlan {
+    const start = Math.max(0, Math.min(this.duration, startSec));
+    const end = Math.max(start, Math.min(this.duration, endSec));
+    if (end <= start + 1e-6) return { notes: [], chords: [] };
+
+    const notes = this.notes.flatMap((note) => {
+      const noteEnd = note.startSec + note.durSec;
+      const visibleStart = Math.max(start, note.startSec);
+      const visibleEnd = Math.min(end, noteEnd);
+      if (visibleEnd <= visibleStart + 1e-6) return [];
+      return [{
+        when: visibleStart - start,
+        note: {
+          ...note,
+          startSec: visibleStart - start,
+          durSec: visibleEnd - visibleStart,
+        },
+      }];
+    });
+
+    const chords: PlaybackPreviewPlan["chords"] = [];
+    let active = -1;
+    for (let index = 0; index < this.chords.length; index++) {
+      const chord = this.chords[index]!;
+      const chordStart = beatToSec(chord.beat, this.song.tempoBpm, this.settings.speed);
+      if (chordStart > start + 1e-6) break;
+      const chordEnd = chordStart + this.chordDurationSec(chord);
+      if (this.isPlayable(chord) && (chord.durationBeats === undefined || start < chordEnd - 1e-6)) active = index;
+    }
+    const addChord = (chord: ChordPlaybackLabel): void => {
+      const chordStart = beatToSec(chord.beat, this.song.tempoBpm, this.settings.speed);
+      const visibleStart = Math.max(start, chordStart);
+      const visibleEnd = Math.min(end, chordStart + this.chordDurationSec(chord));
+      const durationSec = visibleEnd - visibleStart;
+      const notes = this.chordMidiNotes(chord);
+      // Audio implementations clamp voices to a 0.2s minimum. Omit a shorter
+      // tail so preview never schedules beyond its advertised window.
+      if (!notes.length || durationSec <= 0.2) return;
+      chords.push({ notes, when: visibleStart - start, durationSec });
+    };
+    if (active >= 0) addChord(this.chords[active]!);
+    for (let index = Math.max(0, active + 1); index < this.chords.length; index++) {
+      const chord = this.chords[index]!;
+      const chordStart = beatToSec(chord.beat, this.song.tempoBpm, this.settings.speed);
+      if (chordStart < start - 1e-6) continue;
+      if (chordStart >= end - 1e-6) break;
+      addChord(chord);
+    }
+    return { notes, chords };
+  }
+
   private schedule(from: number, to: number): void {
     if (this.grader && this.gradingRange) to = Math.min(to, this.gradingRange.endSec);
     from = Math.max(from, this.lastScheduled);
@@ -382,17 +439,25 @@ export class PlaybackEngine {
 
   private playChord(chord: ChordPlaybackLabel, when: number): void {
     const playChord = this.audio.playChord;
-    if (!playChord || chord.notes.length === 0) return;
-    const transposed = chord.notes.map((midi) => midi + this.settings.transpose);
+    const midiNotes = this.chordMidiNotes(chord);
+    if (!playChord || midiNotes.length === 0) return;
     // Chord labels carry absolute MIDI notes. Keep inversions and octave
     // doublings, while making ordering deterministic and collapsing only
     // exact duplicate MIDI numbers (the audio contract has no voice identity).
-    const midiNotes = [...new Set(transposed)].sort((a, b) => a - b);
-    if (midiNotes.length === 0) return;
-    const durationSec = chord.durationBeats !== undefined
+    const durationSec = this.chordDurationSec(chord);
+    playChord.call(this.audio, midiNotes, when, durationSec);
+  }
+
+  private chordMidiNotes(chord: ChordPlaybackLabel): number[] {
+    if (!this.isPlayable(chord)) return [];
+    const transposed = chord.notes.map((midi) => midi + this.settings.transpose);
+    return [...new Set(transposed)].sort((a, b) => a - b);
+  }
+
+  private chordDurationSec(chord: ChordPlaybackLabel): number {
+    return chord.durationBeats !== undefined
       ? beatToSec(chord.durationBeats, this.song.tempoBpm, this.settings.speed)
       : DEFAULT_CHORD_DURATION_SEC;
-    playChord.call(this.audio, midiNotes, when, durationSec);
   }
 
   private isPlayable(chord: ChordPlaybackLabel): boolean {

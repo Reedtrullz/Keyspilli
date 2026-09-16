@@ -7,6 +7,7 @@ import {
   OrganAudioEngine,
   SamplerAudioEngine,
   ChordGrader,
+  buildMelodyAccompaniment,
   completeChordDurations,
   dedupeChords,
   detectPitch,
@@ -22,12 +23,15 @@ import {
   passageMidiRange,
   resolveAccompaniment,
   resolveTimedNotes,
+  sourceNoteIds,
   saveJson,
   saveSettings,
   saveSongPrefs,
   secPerBeat,
   DEFAULT_SETTINGS,
   type LoopRegion,
+  type MelodyAccompanimentResolution,
+  type MelodySelection,
   type ChordPracticeSnapshot,
   type PlayerSettings,
   type ViewMode,
@@ -105,6 +109,28 @@ function playerVariantsForDisplay(song: Pick<SongRow, "difficulty">, variants: r
 }
 
 const TEMPO_SEMANTICS_NOTICE_KEY = "keyspilli.tempo-semantics.v1";
+const MELODY_SELECTION_PREFIX = "keyspilli.melody-accompaniment.v1:";
+
+interface MelodySelectionSidecar {
+  schemaVersion: 1;
+  generatorVersion: "melody-accompaniment.v1";
+  sourceFingerprint: string;
+  selection: MelodySelection;
+  provenance: MelodyAccompanimentResolution["provenance"];
+}
+
+function melodySelectionKey(songId: string): string {
+  return MELODY_SELECTION_PREFIX + songId;
+}
+
+function sourceFingerprintForPlayer(initial: PlayerDetail): string | null {
+  if (initial.data.sourceFingerprint) return initial.data.sourceFingerprint;
+  // Legacy payloads have no manifest hash. Keep the complete deterministic
+  // source identity so any middle-note edit invalidates a saved override.
+  const ids = sourceNoteIds(initial.data.notes);
+  if (!ids.length) return null;
+  return `legacy:${initial.song.id}:${JSON.stringify(ids)}`;
+}
 
 function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mode: ViewMode | null; focusTarget?: "practice" }) {
   const [settings, setSettings] = useState<PlayerSettings>(() => ({
@@ -213,6 +239,9 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   const [favorites, setFavorites] = useState<string[]>([]);
   const [learned, setLearned] = useState<string[]>([]);
   const [chordSourcePreference, setChordSourcePreference] = useState<ChordSourceId>("auto");
+  const [melodySelection, setMelodySelection] = useState<MelodySelection>("automatic");
+  const [melodySelectionSaved, setMelodySelectionSaved] = useState(false);
+  const melodySourceFingerprint = useMemo(() => sourceFingerprintForPlayer(initial), [initial]);
 
   useEffect(() => {
     setFavorites(loadJson("keyspilli.favorites", [] as string[]));
@@ -220,6 +249,16 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     const value = loadJson("keyspilli.chordSource", "auto" as ChordSourceId);
     if (value === "ug" || value === "generated" || value === "auto") setChordSourcePreference(value);
   }, []);
+
+  useEffect(() => {
+    const saved = loadJson<MelodySelectionSidecar | null>(melodySelectionKey(initial.song.id), null);
+    const valid = saved?.schemaVersion === 1
+      && saved.generatorVersion === "melody-accompaniment.v1"
+      && saved.sourceFingerprint === melodySourceFingerprint
+      && (saved.selection === "automatic" || saved.selection === "right-hand");
+    setMelodySelection(valid ? saved.selection : "automatic");
+    setMelodySelectionSaved(valid);
+  }, [initial.song.id, melodySourceFingerprint]);
 
   useEffect(() => {
     const query = window.matchMedia("(max-width: 640px), (max-width: 1000px) and (max-height: 500px)");
@@ -307,11 +346,24 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     () => selectedChordSource.source?.chords ?? [],
     [selectedChordSource.source],
   );
+  const melodyArrangement = useMemo<MelodyAccompanimentResolution>(
+    () => buildMelodyAccompaniment(initial.data.notes, chords, {
+      durationBeats: arrangementEnd,
+      sourceFingerprint: melodySourceFingerprint,
+      selection: melodySelection,
+    }),
+    [arrangementEnd, chords, initial.data.notes, melodySelection, melodySourceFingerprint],
+  );
   const accompaniment = useMemo(
-    () => settings.backgroundMode === "chord"
-      ? resolveAccompaniment(initial.data.notes, chords, settings.accompanimentStyle, { durationBeats: arrangementEnd })
-      : { style: settings.accompanimentStyle, notes: initial.data.notes, chords: [], displayChords: [], guidanceNotes: initial.data.notes, fallbackSpans: [] },
-    [arrangementEnd, chords, initial.data.notes, settings.accompanimentStyle, settings.backgroundMode],
+    () => {
+      if (settings.backgroundMode !== "chord") {
+        return { style: settings.accompanimentStyle, notes: initial.data.notes, chords: [], displayChords: [], guidanceNotes: initial.data.notes, fallbackSpans: [] };
+      }
+      return settings.accompanimentStyle === "melody-accompaniment"
+        ? melodyArrangement
+        : resolveAccompaniment(initial.data.notes, chords, settings.accompanimentStyle, { durationBeats: arrangementEnd });
+    },
+    [arrangementEnd, chords, initial.data.notes, melodyArrangement, settings.accompanimentStyle, settings.backgroundMode],
   );
   const displayChords = settings.backgroundMode === "chord" ? accompaniment.displayChords : chords;
   const audioChords = useMemo(
@@ -852,7 +904,18 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     eng.audio.cancelAll();
     eng.audio.ensure();
     soundPreviewRef.current = true;
-    [60, 64, 67].forEach((midi, index) => eng.audio.noteOn({ midi, startSec: 0, durSec: 0.25, vel: 85, hand: "R" }, index * 0.3));
+    const secondsPerBeat = secPerBeat(initial.data.tempoBpm, settings.speed);
+    const startSec = eng.time >= duration - 0.05 ? 0 : eng.time;
+    const endSec = Math.min(duration, startSec + Math.max(1.5, secondsPerBeat * 4));
+    const preview = eng.previewPlan(startSec, endSec);
+    for (const { note, when } of preview.notes) eng.audio.noteOn(note, when);
+    if (settings.backgroundMode === "chord" && eng.audio.playChord) {
+      for (const chord of preview.chords) eng.audio.playChord(chord.notes, chord.when, chord.durationSec);
+    }
+    const hasChordPreview = settings.backgroundMode === "chord" && !!eng.audio.playChord && preview.chords.length > 0;
+    if (preview.notes.length === 0 && !hasChordPreview) {
+      [60, 64, 67].forEach((midi, index) => eng.audio.noteOn({ midi, startSec: 0, durSec: 0.25, vel: 85, hand: "R" }, index * 0.3));
+    }
   }
 
   function updateSettings(p: Partial<PlayerSettings>) {
@@ -886,6 +949,32 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   function updateChordSource(source: ChordSourceId) {
     setChordSourcePreference(source);
     saveJson("keyspilli.chordSource", source);
+  }
+
+  function updateMelodySelection(selection: MelodySelection) {
+    cancelSoundPreview();
+    setMelodySelection(selection);
+    if (melodySourceFingerprint) {
+      saveJson(melodySelectionKey(initial.song.id), {
+        schemaVersion: 1,
+        generatorVersion: "melody-accompaniment.v1",
+        sourceFingerprint: melodySourceFingerprint,
+        selection,
+        provenance: buildMelodyAccompaniment(initial.data.notes, chords, {
+          durationBeats: arrangementEnd,
+          sourceFingerprint: melodySourceFingerprint,
+          selection,
+        }).provenance,
+      } satisfies MelodySelectionSidecar);
+      setMelodySelectionSaved(true);
+    }
+  }
+
+  function resetMelodySelection() {
+    cancelSoundPreview();
+    setMelodySelection("automatic");
+    setMelodySelectionSaved(false);
+    try { localStorage.removeItem(melodySelectionKey(initial.song.id)); } catch { /* unavailable storage */ }
   }
 
   function toggleSectionsCollapsed() {
@@ -1055,6 +1144,9 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       "no owned source notes to replace": "Original passage retained — no owned accompaniment notes are available here.",
       "no source notes to replace": "Original passage retained — no source notes can be replaced here.",
       "sustained source note crosses accompaniment boundary": "Original passage retained — a sustained note crosses this chord boundary.",
+      "ambiguous melody": "Original passage retained — choose a melody source before replacing this phrase.",
+      "right-hand part unavailable": "Original passage retained — this source has no right-hand part label.",
+      "no playable support voicing": "Original passage retained — no collision-safe support voicing fits this phrase.",
     } as Record<string, string>)[activeAccompanimentFallback.reason]
     : null;
   const activeSection = sections.find((s) => {
@@ -1149,6 +1241,16 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
               title={selectedChordSource.fallbackReason ?? selectedChordSource.source?.provenance ?? undefined}
             >
               {chordModeBadge}
+            </span>
+          )}
+          {settings.backgroundMode === "chord" && settings.accompanimentStyle === "melody-accompaniment" && (
+            <span
+              className={`px-2 py-1 rounded-full font-medium ${melodyArrangement.provenance.selectionProvenance === "user-confirmed" ? "bg-indigo-100 text-indigo-800" : "bg-violet-100 text-violet-800"}`}
+              data-testid="melody-accompaniment-status"
+              role="status"
+              title={melodyArrangement.provenance.unresolvedSpans.length ? "One or more melody phrases need confirmation." : undefined}
+            >
+              {melodyArrangement.provenance.selectionProvenance === "user-confirmed" ? "User melody" : "Inferred melody"} · {melodyArrangement.provenance.generatedBeats.toFixed(0)} beats
             </span>
           )}
           {midiConnected && <span className="px-2 py-1 rounded-full bg-green-100 text-green-800">MIDI connected</span>}
@@ -1350,7 +1452,12 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
               <p className="mb-3 text-xs text-zinc-600">Visual bar progress is always available. Metronome clicks follow the active original or generated accompaniment.</p>
               <SoundControls settings={settings} onChange={updateSettings} onPreview={previewSound}
                 chordSource={chordSourcePreference} chordSources={chordSources}
-                chordSourceStatus={selectedChordSource.fallbackReason} onChordSourceChange={updateChordSource} />
+                chordSourceStatus={selectedChordSource.fallbackReason} onChordSourceChange={updateChordSource}
+                melodyArrangement={melodyArrangement}
+                rightHandAvailable={initial.data.notes.some((note) => note.hand === "R")}
+                hasSavedMelodySelection={melodySelectionSaved}
+                onMelodySelectionChange={updateMelodySelection}
+                onMelodySelectionReset={resetMelodySelection} />
             </fieldset> : <InputStatus octave={inputOctave} midiConnected={midiConnected} pending={midiPending} error={midiError} supported={midiSupported()} onOctaveChange={octave => keyboardInputRef.current?.setOctave(octave)} onConnectMidi={connectMidi} />}
           </PlayerTools>
 
