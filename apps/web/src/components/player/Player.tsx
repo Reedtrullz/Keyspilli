@@ -682,7 +682,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   function handleNote(midi: number, on: boolean, source: "keyboard" | "midi" = "keyboard", identity = `${source}:${midi}`) {
     if (!on) { heldInputRef.current?.release(identity); return; }
     if (showPracticeSetupRef.current || toolOpenRef.current || countInRef.current !== null || (gradingRef.current && practiceSetupRef.current.input !== source)) return;
-    heldInputRef.current?.press(identity, midi);
+    if (heldInputRef.current?.press(identity, midi)) syncTransportState();
   }
 
   function soundInputNote(midi: number): boolean {

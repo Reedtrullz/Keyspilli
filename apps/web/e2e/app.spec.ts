@@ -285,6 +285,33 @@ test("chord styles persist across source changes, seeking, guidance, and mobile 
   await expect(page.locator(".player-page")).toHaveJSProperty("clientWidth", 390);
 });
 
+test("wait practice advances the visible playhead after an accepted generated target", async ({ page }) => {
+  await page.goto(`/player/${UG_SONG}`);
+  await openPlayerTool(page, "Sound");
+  const dialog = page.getByRole("dialog", { name: "Sound settings" });
+  await dialog.getByRole("radio", { name: "Chord mode" }).click();
+  await dialog.getByRole("radio", { name: "Bass + chords" }).click();
+  await dialog.getByRole("radio", { name: "Generated" }).click();
+  await dialog.getByRole("radio", { name: "Synth Piano" }).click();
+  await dialog.getByRole("button", { name: "Close tools" }).click();
+
+  const seek = page.getByRole("slider", { name: "Seek" });
+  await seek.fill("0.4");
+  await page.getByRole("button", { name: "Right hand", exact: true }).click();
+  await page.getByRole("button", { name: "Practice", exact: true }).click();
+  await page.getByLabel("Behavior", { exact: true }).selectOption("wait");
+  await page.getByLabel("Passage", { exact: true }).selectOption("current");
+  await page.getByRole("button", { name: "Start practice", exact: true }).click();
+
+  const grading = page.getByRole("region", { name: "Practice grading" });
+  await expect(grading).toContainText("Play: A#4 (right hand)");
+  await expect(seek).toHaveValue("0.4");
+  await page.keyboard.press("u");
+  await expect(grading).toContainText("Play: D#5 (right hand)");
+  await expect.poll(async () => Number(await seek.inputValue())).toBeGreaterThan(2);
+  await page.getByRole("button", { name: "Finish practice", exact: true }).click();
+});
+
 test("practice mode starts and exits cleanly", async ({ page }) => {
   await page.goto(`/player/${SONG}`);
   await page.getByRole("button", { name: "Practice", exact: true }).click();
