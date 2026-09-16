@@ -67,9 +67,9 @@ The diagnostic reads the canonical raw files and artifact manifests directly. It
 - [x] Canonical source coverage recorded without mutation.
 - [x] Ten source-linked real-song excerpts selected across two import categories; structural selection only.
 - [x] Baseline selector and current all-fallback behavior recorded with reproducible tuples/counts.
-- [ ] New producer, correction sidecar, generated support, and parity checks implemented.
-- [ ] Real Play/audio preview, visual display, grading, and saved-correction evidence captured.
-- [ ] Selective-backfill dry-run produced from disposable copies only.
+- [x] New producer, correction sidecar, generated support, and parity checks implemented.
+- [x] Real Play/audio preview, visual display, grading, and saved-correction evidence captured.
+- [x] Bounded read-only selective dry-run produced with no changed paths; it does not publish or backfill.
 
 No claim is made here that the baseline melody is musically accepted or that the catalogue is safe for production backfill.
 
@@ -78,6 +78,8 @@ No claim is made here that the baseline melody is musically accepted or that the
 The new producer builds a separate derived learning arrangement: selected source melody notes remain source events, non-melody source notes are subtracted only under successfully generated support, and unresolved spans retain the original content with an actionable selection override. Playback, falling-note display and grading receive the same derived notes/chords. Variant fingerprints include the catalog row identity as well as the manifest hash, so six difficulty variants cannot share a saved selection accidentally.
 
 The bounded diagnostic at [`2026-09-16-useful-melody-accompaniment-dry-run.ts`](./2026-09-16-useful-melody-accompaniment-dry-run.ts) read the ten source-linked pilot artifacts and emitted no changed paths. It recorded both manifest `sourceArtifactHash` and raw `notes.json` SHA-256 values per row. Final output was written outside the repository during verification.
+
+With the diagnostic's mutually exclusive status field (`ambiguous` takes precedence over generated support), the final ten-row output contained 7 `success`, 1 `ambiguous`, and 2 `failure` rows; 8 rows still had both selected melody and generated support in the requested excerpt. A rerun against a disposable copy of the ten artifact directories (via `KEYSPILLI_MELODY_DATA_ROOT`) reproduced 7/1/2 with `changedPaths: []`; this status count is a bounded dry-run result, not a catalogue-wide rate.
 
 | Category / excerpt | Generated support (beats) | Retained fallback (beats) | Generated chord events | Fallback / unresolved evidence |
 | --- | ---: | ---: | ---: | --- |
@@ -94,11 +96,44 @@ The bounded diagnostic at [`2026-09-16-useful-melody-accompaniment-dry-run.ts`](
 
 Eight of ten pilot excerpts had both selected melody and generated support, covering both available real-song import categories. Every emitted event in the dry run had an actual simultaneous support span of at most one octave, no support pitch at or above the selected melody clearance boundary, and an actual lowest pitch class matching the chord root or slash bass. Representative emitted voicings were `Am [45,48,52]` (span 7), `C#maj7 [49,53,56,60]` (span 11), and `Fm7 [41,44,48,51,53]` (span 12). The synthetic edge tests emit `Cadd9 [48,50,52,55]`, `C7/E [40,43,46,48,52]` (actual lowest E2), and `Cmaj7/G [43,47,48,52,55]` (actual lowest G2).
 
-These are structural producer and event results, not human musical acceptance or recognition claims. The browser test used a disposable copy of the real Blackbird artifact and passed the actual Web Audio preview/Play path at desktop and 390px, plus seek, loop, transpose, left/right/both-hand filtering, chord-practice opening, correction, and reload persistence with no page or console errors. Original, automatic, and corrected canvas captures are retained in ignored Playwright output under `apps/web/test-results/`. An offline WAV comparison was not claimed because no local SoundFont was available; no remote media was downloaded.
+These are structural producer and event results, not human musical acceptance or recognition claims. The browser test used disposable copies of the real Blackbird and Hell artifacts and passed the actual Web Audio preview/Play path at desktop and 390px, plus seek, loop, transpose, left/right/both-hand filtering, chord-practice opening/acceptance, correction, and reload persistence with no page or console errors. Original, automatic, corrected, and practice audio/canvas captures are retained in ignored Playwright output under `apps/web/test-results/`. No local SoundFont was available, so the audio evidence uses the configured browser synth/Web Audio graph; no remote media was downloaded and no human listening verdict is inferred.
+
+## Captured audio and real-event evidence
+
+The test-only probe in [`melody-accompaniment.spec.ts`](../../apps/web/e2e/melody-accompaniment.spec.ts) duplicates the player master bus into a `MediaStreamAudioDestinationNode`, records WebM, decodes the recording in-browser, and logs oscillator starts as rounded MIDI events. It does not change production audio code or canonical data. The following values are from the Node 22 Chromium run whose artifacts are under `apps/web/test-results/melody-accompaniment-real--e4b6e-rection-and-practice-parity-chromium/`; recorder byte counts and hashes are run-specific.
+
+| Real excerpt / capture | Window | WebM bytes | Decoded RMS / peak | Oscillator events (all / triangle) | Unique triangle MIDI events |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Blackbird original | 7.0s / 2.0s | 32,508 | 0.1107 / 0.6436 | 51 / 34 | 45,47,55,60,65,67,71,74 |
+| Blackbird automatic melody + accompaniment | 7.0s / 2.0s | 32,508 | 0.1249 / 0.5367 | 39 / 25 | 45,48,52,55,65,67,71,74 |
+| Hell automatic, unresolved window | 10.7s / 2.2s | 36,372 | 0.0952 / 0.6035 | 55 / 34 | 41,44,48,51,53,68,72,77,79,84 |
+| Hell right-hand correction | 10.7s / 2.2s | 35,724 | 0.1033 / 0.6117 | 60 / 36 | 41,44,48,51,53,55,68,72,77,79,84 |
+| Hell chord-practice first accepted note | input event | 2,880 | 0.1735 / 0.8934 | 3 / 2 | 60 |
+
+The two Blackbird arrangement captures differ in both decoded signal and event content; left-hand-only capture produced 3 triangle events versus 17 for both hands over the same 1.4-second window, and the transposed capture shifted the observed set by one semitone. Hell surfaced the known `19.3–20.6 beats` ambiguity in the UI. Around that window, automatic playback had no `[44,48,51,55]` event set, while the corrected capture emitted the `G#maj7 [44,48,51,55]` voicing at approximately 0.99s into the recording. After reload, the sidecar still reported `right-hand` / `user-confirmed`. The practice capture contains a nonzero input voice and the status changed after the first target pitch was entered, so this is an actual grading event rather than a panel-visibility assertion.
+
+This proves browser-synth signal and event/display/grading plumbing for two real excerpts. It does not prove that the generated lines sound musically correct to a human, and it is not notation acceptance evidence.
+
+## Bounded stratified read-only evaluation
+
+[`2026-09-16-useful-melody-accompaniment-stratified.ts`](./2026-09-16-useful-melody-accompaniment-stratified.ts) opens the canonical SQLite database read-only, excludes the eight pilot base IDs and synthetic `keyspilli-upload-test-*` rows, then deterministically selects six artifact-backed `a` variants from each available import stratum. Every JSONL row records the manifest source hash, raw notes SHA-256, generator version, selected melody count, generated/fallback coverage, unresolved count, status, and `changedPaths: []`. The output from the bounded run is `/private/tmp/keyspilli-melody-accompaniment-stratified-20260916.jsonl`.
+
+Status is mutually exclusive for this report: an unresolved span is `ambiguous`, otherwise positive generated support is `success`, otherwise `failure`. These are structural coverage statuses, not musical-quality scores or catalogue-wide success claims.
+
+| Import stratum | Sampled | Structural success | Ambiguous | Failure |
+| --- | ---: | ---: | ---: | ---: |
+| standard | 6 | 4 | 2 | 0 |
+| YouTube | 6 | 4 | 2 | 0 |
+| upload | 6 | 4 | 1 | 1 |
+| **Total** | **18** | **12** | **5** | **1** |
+
+The upload sample includes small usage/import artifacts and is therefore useful for fail-closed behavior, not a claim of broad uploaded-song quality. The run was read-only and reported no changed paths; production publication, derived-artifact backfill, notation review, and human listening remain separate gates.
 
 ## Final evidence status
 
 - [x] New producer, protected melody/support split, ambiguity retention, collision-safe voicing, full source fingerprinting, and playback/grading preview parity implemented.
 - [x] Focused tests, full workspace suite, typecheck, production build, and isolated desktop/390px browser checks passed with Node 22 at `/Users/reidar/.nvm/versions/node/v22.22.3/bin`.
 - [x] Ten real-song excerpts dry-run with generated/fallback coverage; `changedPaths: []` and no canonical mutation.
-- [ ] Independent notation/audio listening verdicts, broader stratified coverage, production backfill, merge, deployment, and default enablement remain pending.
+- [x] Bounded 18-item stratified read-only run across standard, YouTube, and upload artifacts; exact status counts and hashes emitted with `changedPaths: []`.
+- [x] Browser-synth original/candidate audio and real oscillator/practice events captured for Blackbird and Hell.
+- [ ] Independent notation review and human listening verdicts remain pending; production backfill, merge, deployment, and default enablement remain pending.

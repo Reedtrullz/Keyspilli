@@ -116,5 +116,5 @@ New transcription models/stem separation, universal melody recognition, arbitrar
 - [x] Milestones 2–3 producer implementation and structural edge coverage completed: cross-hand selection, sustained-line preference, ambiguity spans, held melody across harmony changes, N.C. gaps, octave-bounded collision-safe support, extended tones, and actual slash-bass lows.
 - [x] Milestone 4 runtime/UI wiring completed: on-demand derived arrangement, versioned variant-bound local sidecar, actionable right-hand correction, reset/reload persistence, shared playback/display/grading inputs, and bounded preview plan.
 - [ ] Milestone 4 server-published derived artifacts and harmonic-input cache are intentionally not implemented; no production mutation was authorized.
-- [x] Milestone 5 focused/full tests, typecheck, build, real-artifact desktop/390px browser checks, and bounded read-only pilot dry run completed. The dry run reports `changedPaths: []`.
-- [ ] Offline original-versus-derived audio/notation listening, broader stratified evaluation, production canary/backfill procedure, merge, deployment, and default enablement remain pending.
+- [x] Milestone 5 focused/full tests, typecheck, build, real-artifact desktop/390px browser checks, browser-synth original-versus-derived audio/event captures, and bounded read-only pilot/stratified dry runs completed. The dry runs report `changedPaths: []`.
+- [ ] Independent notation review and human listening, production canary/backfill procedure, merge, deployment, and default enablement remain pending.

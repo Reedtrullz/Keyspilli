@@ -4,7 +4,7 @@ import { buildMelodyAccompaniment } from "../../../packages/player-core/src/acco
 import { tryParseChordSymbol } from "../../../packages/midi/src/chords.ts";
 import type { ChordLabel, Note } from "../../../packages/midi/src/types.ts";
 
-const DATA_ROOT = "/Users/reidar/Projectos/Keyspilli/data";
+const DATA_ROOT = process.env.KEYSPILLI_MELODY_DATA_ROOT ?? "/Users/reidar/Projectos/Keyspilli/data";
 
 const pilots = [
   ["the-beatles-blackbird", "standard-midi", 4, 36],
@@ -86,6 +86,7 @@ for (const [baseId, category, startBeat, endBeat] of pilots) {
     variant: "a",
     excerpt: [startBeat, endBeat],
     sourceFingerprint,
+    generatorVersion: result.provenance.generatorVersion,
     manifestSourceArtifactHash: manifest.sourceArtifactHash ?? null,
     notesJsonSha256: sourceHash(notesPath),
     sourceNotes: notes.filter((note) => note.start >= startBeat && note.start < endBeat).length,
@@ -99,6 +100,7 @@ for (const [baseId, category, startBeat, endBeat] of pilots) {
     allGeneratedSupportWithinOctave: generatedVoicings.every((voicing) => voicing.simultaneousSpan <= 12),
     allGeneratedSupportAvoidsMelody: generatedVoicings.every((voicing) => !voicing.collidesWithMelody),
     allGeneratedBassMeaningPreserved: generatedVoicings.every((voicing) => voicing.bassMeaningPreserved),
+    status: unresolvedSpans.length > 0 ? "ambiguous" : generatedBeats > 0 ? "success" : "failure",
     unresolvedSpans,
     fallbackReasons,
     bothMelodyAndSupport: melodyNotes > 0 && generatedBeats > 0,
