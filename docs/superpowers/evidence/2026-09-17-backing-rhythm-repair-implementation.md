@@ -11,6 +11,7 @@ Data: canonical Keyspilli data at the point-in-time hashes recorded in the check
 - Source accompaniment is reduced at its real attack groups: lowest source tone plus up to two higher tones within one octave. Chosen source durations and velocities remain intact, and source crossings are preserved rather than re-attacked at chord boundaries.
 - A parseable chord with no source accompaniment gets an explicit `quarter-note chord-quality pulse`. A power chord supplies root/fifth only; thirds and sevenths come from the chord symbol, and slash bass is retained.
 - Melody-mode support is returned as ordinary `Note` events and the Player passes no melody-mode chord timeline to `PlaybackEngine`. `bass-chords` retains the existing `playChord` path.
+- Held source support that crosses into the first resolved chord span is normalized to L ownership once, while retaining its source duration and velocity.
 - `MelodyAccompanimentProvenance` now distinguishes `sourceSupportNoteCount` from `generatedNoteCount`/`generatedBeats`; `supportModes` exposes `source-rhythm`, `quarter-note-pulse`, and `fallback` to the UI.
 - A valid source bundle with `ug: null` is authoritative. Fallback-only Auto is labelled `Generated fallback` and is not reclassified as UG.
 
@@ -65,7 +66,7 @@ The explicit RH result has `sourceSupportNoteCount = 382`, `generatedNoteCount =
 ## Verification
 
 ```text
-@keyspilli/player-core: 14 files, 182 tests passed
+@keyspilli/player-core: 14 files, 183 tests passed
 @keyspilli/web:        35 files, 202 tests passed
 @keyspilli/player-core typecheck: passed
 @keyspilli/web typecheck: passed

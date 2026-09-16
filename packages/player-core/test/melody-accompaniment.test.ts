@@ -78,6 +78,7 @@ describe("buildMelodyAccompaniment", () => {
     expect(support.every((item) => originalSupport.some((sourceItem) => sourceItem.start === item.start))).toBe(true);
     expect(support.some((item) => item.start === 1)).toBe(false);
     expect(support.some((item) => item.start === 0 && item.midi === 36)).toBe(true);
+    expect(support.find((item) => item.midi === 36)).toMatchObject({ start: 0, dur: 0.5, vel: 60, hand: "L" });
     expect(result.melody.map((item) => item.midi)).toEqual([72, 74, 76]);
   });
 
@@ -196,6 +197,20 @@ describe("buildMelodyAccompaniment", () => {
     expect(result.fallbackSpans).toEqual([]);
   });
 
+  it("reassigns held source support crossing the first chord span to the left hand", () => {
+    const heldSupport = note(60, 0, 4, 70, "R");
+    const result = build(
+      [note(72, 0, 1, 100, "R"), note(74, 2, 1, 100, "R"), heldSupport],
+      [chord(2, "C", 2)],
+      "automatic",
+      4,
+    );
+
+    expect(result.melody.map((item) => item.midi)).toEqual([72, 74]);
+    expect(result.notes).toContainEqual({ ...heldSupport, hand: "L" });
+    expect(result.notes.find((item) => item.midi === heldSupport.midi)?.hand).toBe("L");
+  });
+
   it("preserves extended tones and slash-bass meaning", () => {
     const result = build(
       [note(84, 0, 1, 80, "R"), note(84, 1, 1, 80, "R"), note(84, 2, 1, 80, "R")],
@@ -312,8 +327,7 @@ describe("buildMelodyAccompaniment", () => {
     engine.start();
 
     expect(audio.playedChords).toEqual([]);
-    expect(audio.noteOns).toEqual(expect.arrayContaining(result.notes.map((item) => item.midi)));
-    expect(audio.noteOns).toContain(48);
+    expect(audio.noteOns).toEqual(result.notes.map((item) => item.midi));
   });
 
   it("builds a bounded preview plan with held melody and the active chord remainder", () => {

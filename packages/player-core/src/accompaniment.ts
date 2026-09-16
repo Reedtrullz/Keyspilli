@@ -823,6 +823,7 @@ export function buildMelodyAccompaniment(
         if (note.start >= event.startBeat - EPSILON && note.start < event.endBeat - EPSILON) {
           sourceIndicesToReplace.add(sourceIndex);
         } else if (note.start < event.startBeat - EPSILON) {
+          sourceSupportByIndex.set(sourceIndex, { ...note, hand: "L" });
           sourceSupportOutputIndices.add(sourceIndex);
         }
       }
@@ -861,8 +862,8 @@ export function buildMelodyAccompaniment(
   const fallbackSpans = buildFallbackSpans(events, chordCovered, fallbackEvents, durationBeats);
   const retainedNotes = sourceNotes.flatMap((note, index) => {
     if (selected.selectedIndices.has(index)) return [note];
-    if (!sourceIndicesToReplace.has(index)) return [note];
     if (sourceSupportByIndex.has(index)) return [];
+    if (!sourceIndicesToReplace.has(index)) return [note];
     return subtractCoveredIntervals(note, replacementCovered);
   });
   const supportNotes = [...sourceSupportByIndex.values(), ...pulseNotes];
