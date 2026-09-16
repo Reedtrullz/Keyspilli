@@ -1,4 +1,5 @@
 import {
+  chordIntervals,
   chordToNotes,
   tryParseChordSymbol,
   type ChordLabel,
@@ -28,6 +29,8 @@ export interface AccompanimentResolution {
   style: AccompanimentStyle;
   notes: Note[];
   chords: AccompanimentChord[];
+  /** Chord labels for the UI, with generated voicings only where resolution succeeded. */
+  displayChords: ChordLabel[];
   /** Note events for visual guidance; audio uses source notes plus chords. */
   guidanceNotes: Note[];
   fallbackSpans: AccompanimentFallbackSpan[];
@@ -106,11 +109,15 @@ function isNoChord(name: string): boolean {
 }
 
 function compactUpperShape(chord: ChordLabel): number[] | null {
-  if (!tryParseChordSymbol(chord.name)) return null;
+  const parsed = tryParseChordSymbol(chord.name);
+  if (!parsed) return null;
   try {
-    const shape = chordToNotes(chord.name, { octave: 4, bassOctave: 4, maxNotes: 4 })
-      .filter((midi) => midi >= 60 && midi <= 96);
-    while (shape.length > 1 && Math.max(...shape) - Math.min(...shape) > 12) shape.pop();
+    // Build the upper shape from the quality itself. `chordToNotes` includes
+    // a slash bass, so using its maxNotes cap here could drop a seventh or
+    // altered tone before the RH shape is even voiced.
+    const rootMidi = 60 + parsed.rootPc;
+    const shape = [...new Set(chordIntervals(parsed.quality).map((interval) => rootMidi + (interval % 12)))]
+      .sort((a, b) => a - b);
     return shape.length > 0 && Math.max(...shape) - Math.min(...shape) <= 12 ? shape : null;
   } catch {
     return null;
@@ -241,6 +248,15 @@ function fallbackReason(event: ChordEvent): AccompanimentFallbackReason {
   return "unsupported chord";
 }
 
+function buildDisplayTimeline(events: readonly ChordEvent[], realized: readonly AccompanimentChord[]): ChordLabel[] {
+  const byBeat = new Map(realized.map((chord) => [chord.beat, chord]));
+  return events.map((event) => byBeat.get(event.startBeat) ?? {
+    ...event.chord,
+    beat: event.startBeat,
+    durationBeats: event.endBeat - event.startBeat,
+  });
+}
+
 /**
  * Resolve one source arrangement into one non-overlapping playback plan.
  * Unknown source ownership is a deliberate safe fallback: source notes stay
@@ -253,11 +269,13 @@ export function resolveAccompaniment(
   options: AccompanimentOptions = {},
 ): AccompanimentResolution {
   const durationBeats = timelineDuration(sourceNotes, chordTimeline, options.durationBeats);
+  const events = buildEvents(sourceNotes, chordTimeline, style, durationBeats);
   if (sourceNotes.length === 0) {
     return {
       style,
       notes: [],
       chords: [],
+      displayChords: buildDisplayTimeline(events, []),
       guidanceNotes: [],
       fallbackSpans: durationBeats > EPSILON
         ? [{ startBeat: 0, endBeat: durationBeats, reason: "no source notes" }]
@@ -265,7 +283,6 @@ export function resolveAccompaniment(
     };
   }
 
-  const events = buildEvents(sourceNotes, chordTimeline, style, durationBeats);
   const ids = sourceNoteIds(sourceNotes);
   const replaceable = options.replaceableSourceIds;
   const keep = sourceNotes.map(() => true);
@@ -328,6 +345,8 @@ export function resolveAccompaniment(
       notes: event.notes,
       durationBeats: event.endBeat - event.startBeat,
       suggestedHands: event.notes.map((_, index) => style === "bass-chords" && index === 0 ? "L" : "R"),
+      inferred: true,
+      inferenceType: "voicing",
     });
     covered.push({ startBeat: event.startBeat, endBeat: event.endBeat });
   }
@@ -357,6 +376,7 @@ export function resolveAccompaniment(
     style,
     notes: sourceNotes.filter((_, index) => keep[index]),
     chords: effectiveChords,
+    displayChords: buildDisplayTimeline(events, effectiveChords),
     guidanceNotes: [
       ...sourceNotes.filter((_, index) => keep[index]),
       ...effectiveChords.flatMap((chord) => chord.notes.map((midi, index) => ({

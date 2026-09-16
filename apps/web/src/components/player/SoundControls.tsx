@@ -47,7 +47,7 @@ export function SoundControls({
                 aria-checked={settings.backgroundMode === b}
                 className={`flex-1 px-3 py-2 rounded-xl text-sm border ${settings.backgroundMode === b ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300"}`}
               >
-                {b === "piano" ? "Piano background" : "Chord mode"}
+                {b === "piano" ? "Original arrangement" : "Chord mode"}
               </button>
             ))}
           </div>
@@ -91,7 +91,7 @@ export function SoundControls({
             >
               <div className="flex items-center justify-between gap-2 mb-2">
                 <span className="text-xs font-medium text-zinc-700">Chord source</span>
-                <span className="text-[11px] text-zinc-500">Used for sound + strip</span>
+                <span className="text-[11px] text-zinc-500">Used for chart labels and accompaniment choice</span>
               </div>
               <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Chord source">
                 <button
@@ -128,7 +128,13 @@ export function SoundControls({
                 </button>
               </div>
               <p className={`text-[11px] mt-2 ${chordSourceStatus ? "text-amber-700" : "text-zinc-500"}`} role={chordSourceStatus ? "status" : undefined}>
-                {chordSourceStatus ?? (chordSource === "auto" && chordSources.ug?.chords.length ? "Use the authored UG opening and generated continuation where the chart is uncovered." : "Using generated chord timeline.")}
+                {chordSourceStatus ?? (
+                  chordSource === "auto" && chordSources.ug?.chords.length
+                    ? "Use the authored UG opening and generated continuation where the chart is uncovered."
+                    : chordSource === "ug"
+                      ? "Using the authored UG chord timeline."
+                      : "Using generated chord timeline."
+                )}
               </p>
             </div>
           )}

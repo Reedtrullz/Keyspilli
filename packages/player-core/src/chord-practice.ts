@@ -9,11 +9,14 @@ import {
 export interface ChordPracticeTarget {
   name: string;
   notes: number[];
+  suggestedHands?: ("L" | "R")[];
   beat?: number;
   sourceKind?: ChordLabel["sourceKind"];
   inferred?: boolean;
   inferenceType?: ChordLabel["inferenceType"];
 }
+
+type ChordPracticeInput = ChordLabel & { suggestedHands?: readonly ("L" | "R")[] };
 
 export interface ChordPracticeSnapshot {
   currentIndex: number;
@@ -45,11 +48,22 @@ function fallbackVoicing(notes: readonly number[]): number[] {
     .map((pc) => 60 + pc);
 }
 
+function guidedHands(chord: ChordPracticeInput): ("L" | "R")[] | null {
+  const candidate = chord.suggestedHands;
+  return candidate && candidate.length === chord.notes.length && candidate.every((hand) => hand === "L" || hand === "R")
+    ? [...candidate]
+    : null;
+}
+
 /** Derive a compact, readable reference shape without changing catalogue data. */
-export function compactPracticeVoicing(chord: ChordLabel): { notes: number[]; inferred: boolean } {
+export function compactPracticeVoicing(chord: ChordPracticeInput): { notes: number[]; inferred: boolean; suggestedHands?: ("L" | "R")[] } {
   const supplied = validNotes(chord.notes);
+  const hands = guidedHands(chord);
   const compactSupplied = supplied.length > 0 && supplied.length <= 4 && supplied.at(-1)! - supplied[0]! <= 24;
-  if (compactSupplied) return { notes: supplied, inferred: Boolean(chord.inferred) };
+  const guidedSupplied = hands !== null && supplied.length === hands.length && supplied.length > 0;
+  if (compactSupplied || guidedSupplied) {
+    return { notes: supplied, inferred: Boolean(chord.inferred), ...(guidedSupplied ? { suggestedHands: hands } : {}) };
+  }
 
   if (tryParseChordSymbol(chord.name)) {
     try {
@@ -69,7 +83,7 @@ export function compactPracticeVoicing(chord: ChordLabel): { notes: number[]; in
  * octave is a reference voicing; ChordGrader compares pitch classes so a
  * learner can use a comfortable register.
  */
-export function buildChordPracticeTargets(chords: readonly ChordLabel[], transpose = 0): ChordPracticeTarget[] {
+export function buildChordPracticeTargets(chords: readonly ChordPracticeInput[], transpose = 0): ChordPracticeTarget[] {
   return chords.flatMap((chord) => {
     const voicing = compactPracticeVoicing(chord);
     if (voicing.notes.length === 0) return [];
@@ -84,6 +98,7 @@ export function buildChordPracticeTargets(chords: readonly ChordLabel[], transpo
     return [{
       name,
       notes: voicing.notes.map((note) => note + transpose),
+      ...(voicing.suggestedHands ? { suggestedHands: [...voicing.suggestedHands] } : {}),
       beat: chord.beat,
       sourceKind: chord.sourceKind,
       inferred: voicing.inferred || chord.inferred,
@@ -100,13 +115,25 @@ export function selectPracticeChords(
   spanMeasures = 4,
 ): ChordLabel[] {
   if (!chords.length) return [];
+  const ordered = [...chords].sort((a, b) => a.beat - b.beat);
   const startBeat = measures[currentMeasure]?.startBeat ?? 0;
   const endMeasure = Math.min(measures.length - 1, currentMeasure + Math.max(1, spanMeasures) - 1);
   const endBeat = measures[endMeasure]?.endBeat ?? startBeat + 16;
-  const active = chords.filter((chord) => chord.beat <= startBeat).at(-1);
-  const inWindow = chords.filter((chord) => chord.beat >= startBeat && chord.beat < endBeat);
-  const selected = active && active.beat < startBeat ? [active, ...inWindow] : inWindow;
+  const activeIndex = ordered.reduce((last, chord, index) => chord.beat <= startBeat ? index : last, -1);
+  const activeCandidate = activeIndex >= 0 ? ordered[activeIndex] : undefined;
+  const nextBeat = activeIndex >= 0 ? ordered[activeIndex + 1]?.beat : undefined;
+  const explicitEnd = activeCandidate && validPracticeDuration(activeCandidate.durationBeats)
+    ? activeCandidate.beat + activeCandidate.durationBeats
+    : undefined;
+  const activeEnd = Math.min(...[nextBeat, explicitEnd].filter((value): value is number => value !== undefined));
+  const active = activeCandidate && activeCandidate.beat < startBeat && activeEnd > startBeat ? activeCandidate : undefined;
+  const inWindow = ordered.filter((chord) => chord.beat >= startBeat && chord.beat < endBeat);
+  const selected = active ? [active, ...inWindow] : inWindow;
   return selected.filter((chord, index) => index === 0 || chord.beat !== selected[index - 1]!.beat || chord.name !== selected[index - 1]!.name);
+}
+
+function validPracticeDuration(duration: number | undefined): duration is number {
+  return duration !== undefined && Number.isFinite(duration) && duration > 0;
 }
 
 /**

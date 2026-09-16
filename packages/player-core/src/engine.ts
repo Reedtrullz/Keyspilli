@@ -59,6 +59,8 @@ export class PlaybackEngine {
   settings: PlayerSettings;
   /** Optional beat-based source timeline used by chord background mode. */
   chords: ChordPlaybackLabel[];
+  /** Resolved guidance targets used for grading; audio scheduling stays on `notes` plus `chords`. */
+  gradingNotes: TimedNote[];
   /** Assigned by the owner whenever wait mode toggles. */
   waitMode = false;
   onChange: ((snap: EngineSnapshot) => void) | null = null;
@@ -73,9 +75,11 @@ export class PlaybackEngine {
     private readonly song: EngineSongMeta,
     settings: PlayerSettings,
     chords: ChordPlaybackLabel[] = [],
+    gradingNotes: TimedNote[] = notes,
   ) {
     this.settings = settings;
     this.chords = this.normalizeChordTimeline(chords);
+    this.gradingNotes = gradingNotes;
   }
 
   start(): void {
@@ -140,6 +144,7 @@ export class PlaybackEngine {
   setNotes(notes: TimedNote[], duration: number): void {
     if (this.notes === notes) return;
     this.notes = notes;
+    this.gradingNotes = notes;
     this.duration = duration;
     this.chords = this.normalizeChordTimeline(this.chords);
     // Mid-playback note changes (speed/transpose/hand) reschedule from now.
@@ -152,14 +157,16 @@ export class PlaybackEngine {
   }
 
   /** Update notes, duration, and chords in one atomic operation. */
-  setTimeline(notes: TimedNote[], duration: number, chords: ChordPlaybackLabel[]): void {
+  setTimeline(notes: TimedNote[], duration: number, chords: ChordPlaybackLabel[], gradingNotes: TimedNote[] = notes): void {
     const notesChanged = this.notes !== notes;
     const chordsChanged = this.chords !== chords;
-    if (!notesChanged && !chordsChanged) return;
+    const gradingNotesChanged = this.gradingNotes !== gradingNotes;
+    if (!notesChanged && !chordsChanged && !gradingNotesChanged) return;
     if (notesChanged) {
       this.notes = notes;
       this.duration = duration;
     }
+    if (gradingNotesChanged) this.gradingNotes = gradingNotes;
     if (chordsChanged) {
       this.chords = this.normalizeChordTimeline(chords);
     }
@@ -240,7 +247,7 @@ export class PlaybackEngine {
     if (bounded && bounded.endSec <= bounded.startSec) throw new RangeError("Practice end must follow its start");
     // Hand filtering already happened in the notes memo; ornaments are decoration.
     const minDurSec = 0.25 * (60 / this.song.tempoBpm / this.settings.speed);
-    const gradeable = this.notes.filter((n) => n.durSec >= minDurSec &&
+    const gradeable = this.gradingNotes.filter((n) => n.durSec >= minDurSec &&
       (!bounded || (n.startSec >= bounded.startSec && n.startSec < bounded.endSec)));
     if (!gradeable.length) throw new RangeError("No playable notes in this passage");
     if (this.playing || this.grader) this.audio.cancelAll();

@@ -596,7 +596,7 @@ export function FallingCanvas({ measures = [], countIn = null, inputEnabled = tr
         <span ref={rhythmLabelRef} className="ml-auto shrink-0" />
         <progress ref={progressRef} max={1} value={0} aria-label="Bar progress" className="h-1 w-12 shrink-0 accent-indigo-600 motion-reduce:hidden" />
       </div>
-      <div className="absolute top-1 right-3 bg-white/90 px-1 text-[11px] text-zinc-700 pointer-events-none">LH: pale · RH: solid{settings.chordKeys && <span> · <span className="text-indigo-500" aria-hidden="true">●</span> Chord guide</span>} · Top strip: next note</div>
+      <div className="absolute top-1 right-3 bg-white/90 px-1 text-[11px] text-zinc-700 pointer-events-none">LH: pale with indigo edge · RH: solid{settings.chordKeys && <span> · <span className="text-indigo-500" aria-hidden="true">●</span> Chord guide</span>} · Top strip: next note</div>
     </div>
   );
 }

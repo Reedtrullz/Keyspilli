@@ -34,6 +34,7 @@ describe("resolveAccompaniment", () => {
 
     expect(result.notes).toEqual(notes);
     expect(result.chords).toEqual([]);
+    expect(result.displayChords.map((chord) => chord.name)).toEqual(["C", "G"]);
     expect(result.fallbackSpans).toEqual([
       { startBeat: 0, endBeat: 4, reason: "accompaniment ownership unavailable" },
       { startBeat: 4, endBeat: 8, reason: "accompaniment ownership unavailable" },
@@ -103,6 +104,8 @@ describe("resolveAccompaniment", () => {
       expect(Math.max(...upper) - Math.min(...upper)).toBeLessThanOrEqual(12);
     }
     expect(result.chords.map((chord) => chord.notes[0])).toEqual([36, 41, 43, 36]);
+    expect(result.chords.every((chord) => chord.suggestedHands[0] === "L" && chord.suggestedHands.slice(1).every((hand) => hand === "R"))).toBe(true);
+    expect(new Set(result.chords[2]!.notes.map((midi) => midi % 12))).toEqual(new Set([7, 11, 2, 5]));
     expect(result.guidanceNotes.filter((source) => source.hand === "L")).toHaveLength(4);
     expect(result.guidanceNotes.filter((source) => source.hand === "R")).toHaveLength(13);
   });
@@ -117,6 +120,50 @@ describe("resolveAccompaniment", () => {
 
     expect(result.chords.map((chord) => chord.notes[0])).toEqual([40, 45, 45]);
     expect(result.chords.every((chord) => chord.notes.length >= 3)).toBe(true);
+  });
+
+  it("keeps chord extensions when a slash bass consumes a voicing slot", () => {
+    const chords: ChordLabel[] = [
+      { beat: 0, durationBeats: 1, name: "Cadd9", notes: [] },
+      { beat: 1, durationBeats: 1, name: "C7/E", notes: [] },
+      { beat: 2, durationBeats: 1, name: "Cmaj7/G", notes: [] },
+    ];
+    const result = resolve([note(72, 0), note(72, 1), note(72, 2)], chords, "bass-chords", undefined, 3);
+
+    expect(new Set(result.chords[0]!.notes.map((midi) => midi % 12))).toEqual(new Set([0, 2, 4, 7]));
+    expect(new Set(result.chords[1]!.notes.map((midi) => midi % 12))).toEqual(new Set([0, 4, 7, 10]));
+    expect(new Set(result.chords[2]!.notes.map((midi) => midi % 12))).toEqual(new Set([0, 4, 7, 11]));
+    expect(result.chords.every((chord) => chord.inferred === true && chord.inferenceType === "voicing")).toBe(true);
+  });
+
+  it("keeps repeated chord events as separate deterministic changes", () => {
+    const chords: ChordLabel[] = [
+      { beat: 0, durationBeats: 1, name: "C", notes: [] },
+      { beat: 1, durationBeats: 1, name: "C", notes: [] },
+    ];
+    const result = resolve([note(72, 0), note(72, 1)], chords, "bass-chords", undefined, 2);
+
+    expect(result.chords).toHaveLength(2);
+    expect(result.chords[0]!.notes).toEqual(result.chords[1]!.notes);
+    expect(result.chords[0]!.suggestedHands).toEqual(result.chords[1]!.suggestedHands);
+  });
+
+  it("keeps fallback source labels beside realized voicings", () => {
+    const result = resolve(
+      [note(72, 0), note(72, 2)],
+      [
+        { beat: 0, durationBeats: 2, name: "C9", notes: [], sourceKind: "authored" },
+        { beat: 2, durationBeats: 2, name: "C", notes: [], sourceKind: "authored" },
+      ],
+      "bass-chords",
+      undefined,
+      4,
+    );
+
+    expect(result.chords).toHaveLength(1);
+    expect(result.displayChords.map((chord) => chord.name)).toEqual(["C9", "C"]);
+    expect(result.displayChords[0]).toMatchObject({ beat: 0, durationBeats: 2, notes: [] });
+    expect(result.displayChords[1]).toMatchObject({ beat: 2, durationBeats: 2, notes: result.chords[0]!.notes });
   });
 
   it("filters generated chord tones by their suggestions rather than source hand", () => {

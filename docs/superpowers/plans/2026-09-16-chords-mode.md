@@ -79,37 +79,37 @@ Acceptance: no engine branch equates L with replaceable accompaniment; adding me
 
 ## Task 3 — Add intentional Bass + chords realization
 
-- [ ] Add a small persisted style enum (suggested `"melody-accompaniment" | "bass-chords"`) under the existing chord background setting. Normalize missing/invalid values in prefs; keep original background mode available.
-- [ ] Realize Bass + chords from the selected harmonic timeline using the existing parser. Place a single bass note in LH and a compact upper shape in RH. Respect slash-chord bass. Keep the chord source label/provenance separate from the inferred voicing marker.
-- [ ] Use a bounded set of inversions/octave placements. Suggested initial RH register: C4–C6, each simultaneous RH shape at most 12 semitones; prefer a comfortable central shape and minimum voice movement from the prior chord. Keep a playable LH bass below it. Do not force four notes when fewer preserve chord identity. Preserve altered fifths and defining thirds/sevenths where supported. Use existing helpers/constants where possible and document any conservative omission. Unsupported shapes fall back honestly.
-- [ ] Resolve each progression deterministically from its beginning, so seeking to a chord produces the same voicing as continuous playback. No dependence on previously sounded audio state.
-- [ ] In covered spans this explicit preset replaces the source passage, including melody, as described in the UI. In uncovered spans preserve original playback and indicate fallback. Handle sustained source notes at boundaries using Task 2's tested policy.
-- [ ] Add tests for C–F–G7–C, C/E slash bass, a minor/suspended sequence, invalid symbols, repeated chords, partial spans, and transpose near MIDI bounds. Assert valid MIDI range, suggested hand spans, bass identity, deterministic seeking and no duplicate scheduling; avoid golden fixtures that merely duplicate the algorithm.
-- [ ] Run focused MIDI chord, resolver, engine and prefs tests. Commit.
+- [x] Add a small persisted style enum (suggested `"melody-accompaniment" | "bass-chords"`) under the existing chord background setting. Normalize missing/invalid values in prefs; keep original background mode available.
+- [x] Realize Bass + chords from the selected harmonic timeline using the existing parser. Place a single bass note in LH and a compact upper shape in RH. Respect slash-chord bass. Keep the chord source label/provenance separate from the inferred voicing marker.
+- [x] Use a bounded set of inversions/octave placements. Suggested initial RH register: C4–C6, each simultaneous RH shape at most 12 semitones; prefer a comfortable central shape and minimum voice movement from the prior chord. Keep a playable LH bass below it. Do not force four notes when fewer preserve chord identity. Preserve altered fifths and defining thirds/sevenths where supported. Use existing helpers/constants where possible and document any conservative omission. Unsupported shapes fall back honestly.
+- [x] Resolve each progression deterministically from its beginning, so seeking to a chord produces the same voicing as continuous playback. No dependence on previously sounded audio state.
+- [x] In covered spans this explicit preset replaces the source passage, including melody, as described in the UI. In uncovered spans preserve original playback and indicate fallback. Handle sustained source notes at boundaries using Task 2's tested policy.
+- [x] Add tests for C–F–G7–C, C/E slash bass, a minor/suspended sequence, invalid symbols, repeated chords, partial spans, and transpose near MIDI bounds. Assert valid MIDI range, suggested hand spans, bass identity, deterministic seeking and no duplicate scheduling; avoid golden fixtures that merely duplicate the algorithm.
+- [x] Run focused MIDI chord, resolver, engine and prefs tests. Commit.
 
 Acceptance: the new option is useful even when legacy source roles are unknown because the user explicitly chose a chart-based accompaniment. It is not presented as a faithful transcription.
 
 ## Task 4 — Integrate guidance and truthful controls
 
-- [ ] Wire SoundControls and Player to both styles and the shared resolution. Show concise fallback state without exposing implementation jargon. Preserve Auto/UG/generated source controls and coverage warnings.
-- [ ] Route generated guidance through the same resolved note events used by audio. Clearly distinguish reference/original notation if a static source score cannot reflect the generated arrangement; do not silently present it as the generated part.
-- [ ] Label LH/RH visual conventions accessibly, including the dim fill/stripe convention that prompted this investigation. Do not rely solely on color. Reuse current visual styling rather than redesign the player.
-- [ ] Use the selected reference realization for practice guidance where appropriate, but retain pitch-class completion rules. Reject the previous assumption that a two-octave reference is a compact one-hand grip; supply two-hand guidance or a smaller valid reference.
-- [ ] Review hand-only practice/input filters: selecting a hand must follow the resolved arrangement, not stale source assignments. Do not claim physical hand recognition from MIDI.
-- [ ] Extend transpose-parity/end-to-end tests to assert rendered pitches and scheduled pitches agree for both styles at nonzero transpose and after source/style changes.
-- [ ] Add one bounded browser flow to the existing player e2e suite: choose each style, switch source, seek, reopen persisted settings, open tone discovery, inspect labels and fallback, then repeat at 390px width and with keyboard navigation.
-- [ ] Commit the integrated UI.
+- [x] Wire SoundControls and Player to both styles and the shared resolution. Show concise fallback state without exposing implementation jargon. Preserve Auto/UG/generated source controls and coverage warnings.
+- [x] Route generated guidance through the same resolved note events used by audio. Clearly distinguish reference/original notation if a static source score cannot reflect the generated arrangement; do not silently present it as the generated part.
+- [x] Label LH/RH visual conventions accessibly, including the dim fill/stripe convention that prompted this investigation. Do not rely solely on color. Reuse current visual styling rather than redesign the player.
+- [x] Use the selected reference realization for practice guidance where appropriate, but retain pitch-class completion rules. Reject the previous assumption that a two-octave reference is a compact one-hand grip; supply two-hand guidance or a smaller valid reference.
+- [x] Review hand-only practice/input filters: selecting a hand must follow the resolved arrangement, not stale source assignments. Do not claim physical hand recognition from MIDI.
+- [x] Extend transpose-parity/end-to-end tests to assert rendered pitches and scheduled pitches agree for both styles at nonzero transpose and after source/style changes.
+- [x] Add one bounded browser flow to the existing player e2e suite: choose each style, switch source, seek, reopen persisted settings, open tone discovery, inspect labels and fallback, then repeat at 390px width and with keyboard navigation.
+- [x] Commit the integrated UI.
 
 Acceptance: a learner can tell what they are hearing, what they should play, which hand is suggested, when original notes are retained, and what their practice score means.
 
 ## Task 5 — Verify, review and hand off
 
-- [ ] Run `npm run typecheck`, `npm test`, `npm run build`. Run the relevant Playwright specs using existing scratch configuration and fixture instructions; avoid production writes and existing-data mutation. Record exact commands, result counts and failures.
-- [ ] Build a compact acceptance table: melody crossing hands; bass riff; slash-chord progression; dense low-register chord; partial UG chart; no available chords. Synthetic fixtures prove edge cases. Use representative available catalogue excerpts for integration without claiming a catalogue-wide musical audit.
-- [ ] Produce a short playable local preview or captured audio for each implemented preset if the existing runtime supports it. Inspect actual visual guidance and listen if tools permit. Mark physical-piano/human musical acceptance pending unless actually performed.
-- [ ] Review diff for hand/role conflation, stale note ownership, double transpose, stuck notes during mode changes, fallback coverage and score wording. Run additional tests only when fixes or unresolved evidence justify them.
-- [ ] Commit all scoped changes and open a draft PR if GitHub access permits. Provide before/after behavior, test evidence, remaining human acceptance and no-deploy status. If PR creation is blocked, leave a clean committed branch and report the exact blocker.
-- [ ] Update this plan's checkboxes and append an evidence-backed Obsidian project/daily note. Return branch/commit, PR link, preview/artifacts and fixed/deferred/blocked table.
+- [x] Run `npm run typecheck`, `npm test`, `npm run build`. Run the relevant Playwright specs using existing scratch configuration and fixture instructions; avoid production writes and existing-data mutation. Record exact commands, result counts and failures.
+- [x] Build a compact acceptance table: melody crossing hands; bass riff; slash-chord progression; dense low-register chord; partial UG chart; no available chords. Synthetic fixtures prove edge cases. Use representative available catalogue excerpts for integration without claiming a catalogue-wide musical audit.
+- [x] Produce a short playable local preview or captured audio for each implemented preset if the existing runtime supports it. Inspect actual visual guidance and listen if tools permit. Mark physical-piano/human musical acceptance pending unless actually performed.
+- [x] Review diff for hand/role conflation, stale note ownership, double transpose, stuck notes during mode changes, fallback coverage and score wording. Run additional tests only when fixes or unresolved evidence justify them.
+- [x] Commit all scoped changes and open a draft PR if GitHub access permits. Provide before/after behavior, test evidence, remaining human acceptance and no-deploy status. If PR creation is blocked, leave a clean committed branch and report the exact blocker.
+- [x] Update this plan's checkboxes and append an evidence-backed Obsidian project/daily note. Return branch/commit, PR link, preview/artifacts and fixed/deferred/blocked table.
 
 ## Explicitly deferred
 

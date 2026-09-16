@@ -17,25 +17,26 @@ function pitchClass(midi: number): number {
 }
 
 function sourceLabel(target: ChordPracticeTarget): string {
-  if (target.sourceKind === "authored") return "Charted chord";
-  if (target.sourceKind === "inferred" || target.inferred) return "Inferred voicing";
-  if (target.sourceKind === "generated") return "Generated from arrangement";
-  return "Chord source unknown";
+  const voicing = target.suggestedHands ? " · suggested voicing" : "";
+  if (target.sourceKind === "authored") return `Charted chord${voicing}`;
+  if (target.sourceKind === "inferred" || target.inferred) return `Inferred voicing${voicing}`;
+  if (target.sourceKind === "generated") return `Generated from arrangement${voicing}`;
+  return `Chord source unknown${voicing}`;
 }
 
 function PracticeKeyboard({ target, snapshot }: { target: ChordPracticeTarget; snapshot: ChordPracticeSnapshot }) {
   const lowest = Math.min(...target.notes);
+  const highest = Math.max(...target.notes);
   const startMidi = Math.max(12, Math.floor(lowest / 12) * 12);
-  // Build the exact two-octave C-to-B range rather than relying on note count
-  // when the target starts on a non-C boundary.
-  const firstWhite = Array.from({ length: 24 }, (_, index) => startMidi + index)
-    .filter((midi) => WHITE_PITCH_CLASSES.includes(pitchClass(midi)));
-  const whites = firstWhite.slice(0, 14);
+  const octaveCount = Math.max(2, Math.ceil((highest - startMidi + 1) / 12));
+  const visibleMidis = Array.from({ length: octaveCount * 12 }, (_, index) => startMidi + index);
+  const whites = visibleMidis.filter((midi) => WHITE_PITCH_CLASSES.includes(pitchClass(midi)));
   const whiteIndex = new Map(whites.map((midi, index) => [midi, index]));
   const targetSet = new Set(target.notes);
   const played = new Set(snapshot.playedPitchClasses);
   const width = 100 / Math.max(1, whites.length);
-  const blackMidis = Array.from({ length: 24 }, (_, index) => startMidi + index)
+  const targetIndex = new Map(target.notes.map((midi, index) => [midi, index]));
+  const blackMidis = visibleMidis
     .filter((midi) => BLACK_PITCH_CLASSES.includes(pitchClass(midi)) && whiteIndex.has(midi - 1));
 
   return (
@@ -52,7 +53,7 @@ function PracticeKeyboard({ target, snapshot }: { target: ChordPracticeTarget; s
                 isWrong ? "bg-red-200 text-red-900" : isPlayed ? "bg-emerald-300 text-emerald-950" : active ? "bg-blue-200 text-blue-900" : "bg-white text-zinc-400"
               }`}
             >
-              {active && <span>{noteName(midi)}</span>}
+              {active && <span>{target.suggestedHands?.[targetIndex.get(midi) ?? -1] === "L" ? "LH " : target.suggestedHands?.[targetIndex.get(midi) ?? -1] === "R" ? "RH " : ""}{noteName(midi)}</span>}
             </div>
           );
         })}
@@ -70,11 +71,11 @@ function PracticeKeyboard({ target, snapshot }: { target: ChordPracticeTarget; s
               className={`absolute top-0 h-full rounded-b-md border border-zinc-900 shadow-sm ${isWrong ? "bg-red-500" : isPlayed ? "bg-emerald-500" : active ? "bg-blue-500" : "bg-zinc-900"}`}
               style={{ left: `${(previous + 1) * width - width * 0.31}%`, width: `${width * 0.62}%` }}
               title={active ? noteName(midi) : undefined}
-            >{active && <span className="absolute bottom-2 inset-x-0 text-center text-[11px] font-semibold text-white">{noteName(midi)}</span>}</div>
+            >{active && <span className="absolute bottom-2 inset-x-0 text-center text-[11px] font-semibold text-white">{target.suggestedHands?.[targetIndex.get(midi) ?? -1] === "L" ? "LH " : target.suggestedHands?.[targetIndex.get(midi) ?? -1] === "R" ? "RH " : ""}{noteName(midi)}</span>}</div>
           );
         })}
       </div>
-      <span className="sr-only">Blue keys are the target. Green keys are already played. Red indicates an extra note.</span>
+      <span className="sr-only">Blue keys are the target. Green keys are already played. Red indicates an extra note. Hand labels are suggestions only.</span>
     </div>
   );
 }
@@ -123,7 +124,7 @@ export function ChordPracticePanel({
           <p className="text-sm font-medium text-indigo-900 mt-1">{scope === "current" ? "Current bar" : scope === "passage" ? "Current passage (up to 4 bars)" : "Whole arrangement"} — {targets.length} {targets.length === 1 ? "chord" : "chords"}</p>
           <p className="text-xs text-zinc-600 mt-1">Input: {inputStatus}</p>
           <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 mt-1">Find the chord tones</h2>
-          <p className="text-sm text-zinc-600 mt-1">The shown octave is a reference shape. Any octave is accepted, and note order does not matter.</p>
+          <p className="text-sm text-zinc-600 mt-1">The shown voicing is a reference shape. Any octave is accepted, and note order does not matter.</p>
         </div>
         <button onClick={requestClose} className="min-h-11 px-3 rounded-xl border border-zinc-300 bg-white text-sm">Close</button>
       </div>
@@ -143,11 +144,14 @@ export function ChordPracticePanel({
               {snapshot.finished ? `${snapshot.total} chords complete` : `Chord ${Math.min(snapshot.currentIndex + 1, snapshot.total)} of ${snapshot.total}`}
             </span>
           </div>
-          <div className="flex flex-wrap gap-2 mb-4" aria-label="Target notes">
-            {target.notes.map((midi) => (
-              <span key={midi} className="rounded-lg bg-zinc-100 px-2.5 py-1 text-sm font-mono text-zinc-800">{noteName(midi)}</span>
+          <div className="flex flex-wrap gap-2 mb-2" aria-label="Target notes">
+            {target.notes.map((midi, index) => (
+              <span key={`${midi}-${index}`} className="rounded-lg bg-zinc-100 px-2.5 py-1 text-sm font-mono text-zinc-800">{target.suggestedHands?.[index] === "L" ? "LH " : target.suggestedHands?.[index] === "R" ? "RH " : ""}{noteName(midi)}</span>
             ))}
           </div>
+          <p className="text-xs text-zinc-600 mb-4">
+            {target.suggestedHands ? "Hand labels are suggested, not measured performance." : "MIDI input does not reveal which physical hand played a note."}
+          </p>
           <PracticeKeyboard target={target} snapshot={snapshot} />
           <div className="mt-4 flex flex-wrap items-center gap-2">
             {!active && !snapshot.finished && (

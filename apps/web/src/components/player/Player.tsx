@@ -107,17 +107,10 @@ function playerVariantsForDisplay(song: Pick<SongRow, "difficulty">, variants: r
 const TEMPO_SEMANTICS_NOTICE_KEY = "keyspilli.tempo-semantics.v1";
 
 function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mode: ViewMode | null; focusTarget?: "practice" }) {
-  const [settings, setSettings] = useState<PlayerSettings>(() => {
-    const s = loadSettings();
-    // Per-song practice settings override global defaults for this song.
-    const songPrefs = loadSongPrefs(initial.song.id);
-    if (songPrefs.speed !== undefined) s.speed = songPrefs.speed;
-    if (songPrefs.transpose !== undefined) s.transpose = songPrefs.transpose;
-    if (songPrefs.mode !== undefined) s.mode = songPrefs.mode as ViewMode;
-    if (songPrefs.hand !== undefined) s.hand = songPrefs.hand;
-    if (mode) s.mode = mode;
-    return s;
-  });
+  const [settings, setSettings] = useState<PlayerSettings>(() => ({
+    ...DEFAULT_SETTINGS,
+    ...(mode ? { mode } : {}),
+  }));
   const [time, setTime] = useState(0);
   const [engineReady, setEngineReady] = useState(false);
   const [playing, setPlaying] = useState(false);
@@ -133,6 +126,17 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     setSectionsCollapsed(loadJson("keyspilli.sectionsCollapsed", false));
     setFullWidth(loadJson("keyspilli.fullWidth", false));
   }, []);
+  useEffect(() => {
+    const s = loadSettings();
+    // Per-song practice settings override global defaults for this song.
+    const songPrefs = loadSongPrefs(initial.song.id);
+    if (songPrefs.speed !== undefined) s.speed = songPrefs.speed;
+    if (songPrefs.transpose !== undefined) s.transpose = songPrefs.transpose;
+    if (songPrefs.mode !== undefined) s.mode = songPrefs.mode as ViewMode;
+    if (songPrefs.hand !== undefined) s.hand = songPrefs.hand;
+    if (mode) s.mode = mode;
+    setSettings(s);
+  }, [initial.song.id, mode]);
   const downloadTriggerRef = useRef<HTMLButtonElement>(null);
   const practiceTriggerRef = useRef<HTMLButtonElement>(null);
   const modeMenuTriggerRef = useRef<HTMLButtonElement>(null);
@@ -206,12 +210,16 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   const midiInputRef = useRef<MidiInput | null>(null);
 
   const [songKeyLabel, setSongKeyLabel] = useState(initial.data.key);
-  const [favorites, setFavorites] = useState<string[]>(() => loadJson("keyspilli.favorites", [] as string[]));
-  const [learned, setLearned] = useState<string[]>(() => loadJson("keyspilli.learned", [] as string[]));
-  const [chordSourcePreference, setChordSourcePreference] = useState<ChordSourceId>(() => {
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [learned, setLearned] = useState<string[]>([]);
+  const [chordSourcePreference, setChordSourcePreference] = useState<ChordSourceId>("auto");
+
+  useEffect(() => {
+    setFavorites(loadJson("keyspilli.favorites", [] as string[]));
+    setLearned(loadJson("keyspilli.learned", [] as string[]));
     const value = loadJson("keyspilli.chordSource", "auto" as ChordSourceId);
-    return value === "ug" || value === "generated" || value === "auto" ? value : "auto";
-  });
+    if (value === "ug" || value === "generated" || value === "auto") setChordSourcePreference(value);
+  }, []);
 
   useEffect(() => {
     const query = window.matchMedia("(max-width: 640px), (max-width: 1000px) and (max-height: 500px)");
@@ -302,10 +310,10 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   const accompaniment = useMemo(
     () => settings.backgroundMode === "chord"
       ? resolveAccompaniment(initial.data.notes, chords, settings.accompanimentStyle, { durationBeats: arrangementEnd })
-      : { style: settings.accompanimentStyle, notes: initial.data.notes, chords: [], guidanceNotes: initial.data.notes, fallbackSpans: [] },
+      : { style: settings.accompanimentStyle, notes: initial.data.notes, chords: [], displayChords: [], guidanceNotes: initial.data.notes, fallbackSpans: [] },
     [arrangementEnd, chords, initial.data.notes, settings.accompanimentStyle, settings.backgroundMode],
   );
-  const displayChords = accompaniment.chords.length ? accompaniment.chords : chords;
+  const displayChords = settings.backgroundMode === "chord" ? accompaniment.displayChords : chords;
   const audioChords = useMemo(
     () => filterAccompanimentChords(accompaniment.chords, settings.hand),
     [accompaniment.chords, settings.hand],
@@ -394,6 +402,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       { tempoBpm: initial.data.tempoBpm, timeSig: initial.data.timeSig },
       settings,
       audioChords,
+      guidanceNotes,
     );
     engine.onChange = (snap) => {
       // Per-frame updates go to a ref consumed by the canvas rAF loop.
@@ -439,14 +448,14 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     // timeline before seeking so the old duration cannot clamp the position.
     if (speedChanged) engine.stop();
     engine.setSettings(settings);
-    engine.setTimeline(notes, duration, audioChords);
+    engine.setTimeline(notes, duration, audioChords, guidanceNotes);
     engine.setLoop(loop);
     if (speedChanged) {
       engine.seek(position);
       if (wasPlaying) engine.start();
       syncTransportState();
     }
-  }, [audioChords, duration, loop, notes, settings]);
+  }, [audioChords, duration, guidanceNotes, loop, notes, settings]);
 
   // Discrete events (play/pause/seek) still update React state so buttons
   // and progress bar re-render; per-frame engine ticks only touch refs.
@@ -848,7 +857,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
 
   function updateSettings(p: Partial<PlayerSettings>) {
     if (p.soundSource !== undefined || p.organStyle !== undefined) cancelSoundPreview();
-    if (gradingRef.current && (p.speed !== undefined || p.hand !== undefined || p.transpose !== undefined || p.soundSource !== undefined || p.organStyle !== undefined)) return;
+    if (gradingRef.current && (p.speed !== undefined || p.hand !== undefined || p.transpose !== undefined || p.soundSource !== undefined || p.organStyle !== undefined || p.backgroundMode !== undefined || p.accompanimentStyle !== undefined)) return;
     if (p.mode !== undefined && p.mode !== settings.mode) {
       if (gradingRef.current) finishGrading(false);
       releaseMicrophone();
@@ -1033,6 +1042,21 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
         : selectedChordSource.source.label
       : "Piano fallback";
   const currentBeat = time / secPerBeat(initial.data.tempoBpm, settings.speed);
+  const activeAccompanimentFallback = accompaniment.fallbackSpans.find((span) =>
+    currentBeat >= span.startBeat && currentBeat < span.endBeat,
+  );
+  const accompanimentFallbackMessage = activeAccompanimentFallback
+    ? ({
+      "no source notes": "Original passage retained — no source notes are available here.",
+      "unsupported chord": "Original passage retained — this chord symbol is not supported.",
+      "explicit no-chord": "Original passage retained — the chart marks this as no chord.",
+      "no chord coverage": "Original passage retained — the chord chart does not cover this passage.",
+      "accompaniment ownership unavailable": "Original passage retained — accompaniment could not be separated reliably.",
+      "no owned source notes to replace": "Original passage retained — no owned accompaniment notes are available here.",
+      "no source notes to replace": "Original passage retained — no source notes can be replaced here.",
+      "sustained source note crosses accompaniment boundary": "Original passage retained — a sustained note crosses this chord boundary.",
+    } as Record<string, string>)[activeAccompanimentFallback.reason]
+    : null;
   const activeSection = sections.find((s) => {
     const spb = secPerBeat(initial.data.tempoBpm, settings.speed);
     return time >= s.startBeat * spb && time < s.endBeat * spb;
@@ -1091,7 +1115,16 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       )}
       {viewMode === "beginner" && <BeginnerView data={guidanceData} time={time} settings={settings} chords={displayChords} />}
       {viewMode === "leadsheet" && <LeadSheetView data={guidanceData} time={time} settings={settings} chords={displayChords} />}
-      {viewMode === "sheet" && <SheetMusicView songId={initial.song.id} />}
+      {viewMode === "sheet" && (
+        <div>
+          {settings.backgroundMode === "chord" && settings.accompanimentStyle === "bass-chords" && (
+            <p className="mx-4 mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900" role="status">
+              Sheet Music shows the original arrangement. Use Fall Down or Note letters for the Bass + chords guidance.
+            </p>
+          )}
+          <SheetMusicView songId={initial.song.id} />
+        </div>
+      )}
     </>
   );
 
@@ -1162,6 +1195,12 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
               Got it
             </button>
           </div>
+        </div>
+      )}
+
+      {settings.backgroundMode === "chord" && accompanimentFallbackMessage && (
+        <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900" data-testid="accompaniment-fallback" role="status">
+          {accompanimentFallbackMessage}
         </div>
       )}
 
@@ -1308,7 +1347,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
             Metronome
           </button>
 
-              <p className="mb-3 text-xs text-zinc-600">Visual bar progress is always available. Metronome clicks are silent in chord mode.</p>
+              <p className="mb-3 text-xs text-zinc-600">Visual bar progress is always available. Metronome clicks follow the active original or generated accompaniment.</p>
               <SoundControls settings={settings} onChange={updateSettings} onPreview={previewSound}
                 chordSource={chordSourcePreference} chordSources={chordSources}
                 chordSourceStatus={selectedChordSource.fallbackReason} onChordSourceChange={updateChordSource} />

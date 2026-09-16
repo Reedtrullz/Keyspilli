@@ -32,6 +32,17 @@ describe("chord practice targets", () => {
     expect(target).toMatchObject({ name: "D", notes: [50, 54, 57] });
   });
 
+  it("carries two-hand suggestions for a generated bass-and-chords reference", () => {
+    const [target] = buildChordPracticeTargets([{
+      beat: 0,
+      name: "C",
+      notes: [36, 67, 72, 76],
+      sourceKind: "authored",
+      suggestedHands: ["L", "R", "R", "R"],
+    }], 0);
+    expect(target).toMatchObject({ notes: [36, 67, 72, 76], suggestedHands: ["L", "R", "R", "R"] });
+  });
+
   it("limits the practice set to the current four-measure window", () => {
     const chords = [
       { beat: 0, name: "C", notes: [60, 64, 67] },
@@ -41,6 +52,17 @@ describe("chord practice targets", () => {
     ];
     const measures = [0, 4, 8, 12, 16, 20].map((startBeat, index) => ({ index, startBeat, endBeat: startBeat + 4 }));
     expect(selectPracticeChords(chords, measures, 1).map((chord) => chord.name)).toEqual(["G", "Am"]);
+  });
+
+  it("does not carry a chord past its explicit duration into a later bar", () => {
+    const chords = [
+      { beat: 0, durationBeats: 1, name: "C", notes: [60, 64, 67] },
+      { beat: 4, durationBeats: 2, name: "G", notes: [55, 59, 62] },
+    ];
+    const measures = [0, 2, 4].map((startBeat, index) => ({ index, startBeat, endBeat: startBeat + 2 }));
+
+    expect(selectPracticeChords(chords, measures, 1, 1).map((chord) => chord.name)).toEqual([]);
+    expect(selectPracticeChords(chords, measures, 2, 1).map((chord) => chord.name)).toEqual(["G"]);
   });
 
   it("uses honest labels for tone discovery completion", () => {
@@ -69,6 +91,29 @@ describe("chord practice targets", () => {
     expect(html).toContain("Find the chord tones");
     expect(html).toContain("100% completed");
     expect(html).not.toContain("shape accuracy");
+  });
+
+  it("labels reference hands as suggestions rather than measured performance", () => {
+    const snapshot: ChordPracticeSnapshot = {
+      currentIndex: 0,
+      total: 1,
+      completed: 0,
+      skipped: 0,
+      wrong: 0,
+      target: { name: "C", notes: [36, 67, 72, 76], suggestedHands: ["L", "R", "R", "R"] },
+      playedPitchClasses: [],
+      remainingPitchClasses: [0, 4, 7],
+      lastWrongPitchClass: null,
+      finished: false,
+      completionPct: 0,
+    };
+    const html = renderToStaticMarkup(createElement(ChordPracticePanel, {
+      targets: [snapshot.target!], snapshot, active: true,
+      onStart: () => {}, onHear: () => {}, onSkip: () => {}, onExit: () => {},
+    }));
+    expect(html).toContain("LH");
+    expect(html).toContain("RH");
+    expect(html).toContain("suggested, not measured performance");
   });
 
   it("renders an honest no-target state without a completion score", () => {

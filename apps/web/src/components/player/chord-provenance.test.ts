@@ -25,6 +25,10 @@ describe("chordProvenance", () => {
   });
 
   it("lets an inference flag win over a contradictory source label", () => {
-    expect(chordProvenance({ sourceKind: "authored", inferred: true })).toMatchObject({ kind: "inferred", dotted: true });
+    expect(chordProvenance({ sourceKind: "authored", inferred: true })).toMatchObject({
+      kind: "inferred",
+      dotted: true,
+      label: "Authored chord · inferred voicing",
+    });
   });
 });
