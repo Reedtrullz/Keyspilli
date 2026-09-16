@@ -17,7 +17,7 @@ type AudioCapture = {
 };
 
 type AudioProbeWindow = Window & {
-  __keyspilliAudioStart: () => void;
+  __keyspilliAudioStart: () => Promise<void>;
   __keyspilliAudioStop: () => Promise<AudioCapture>;
 };
 
@@ -57,16 +57,18 @@ async function installAudioProbe(page: Page): Promise<void> {
     }
     (window as unknown as { AudioContext: typeof AudioContext }).AudioContext = ProbedAudioContext;
     const exposed = window as unknown as Partial<AudioProbeWindow>;
-    exposed.__keyspilliAudioStart = () => {
+    exposed.__keyspilliAudioStart = async () => {
       if (!current) throw new Error("No Web Audio context exists; start playback before capturing");
       if (capture) throw new Error("Audio capture already running");
-      const probe = contexts.get(current);
+      const context = current;
+      await context.resume();
+      const probe = contexts.get(context);
       if (!probe) throw new Error("Web Audio probe was not installed");
       const recorder = new MediaRecorder(probe.destination.stream);
       const chunks: Blob[] = [];
       recorder.ondataavailable = (event) => { if (event.data.size) chunks.push(event.data); };
       recorder.start();
-      capture = { context: current, probe, startIndex: probe.events.length, startTime: current.currentTime, recorder, chunks };
+      capture = { context, probe, startIndex: probe.events.length, startTime: context.currentTime, recorder, chunks };
     };
     exposed.__keyspilliAudioStop = async () => {
       if (!capture) throw new Error("Audio capture is not running");
@@ -219,7 +221,7 @@ test("real artifact produces, previews, plays, corrects, and reloads melody supp
   expect(consoleErrors).toEqual([]);
 });
 
-test("real audio events prove mode, hand, seek, transpose, correction, and practice parity", async ({ page }, testInfo) => {
+test("real audio events cover mode, hand filtering, seek, transpose, correction, and practice flow", async ({ page }, testInfo) => {
   await installAudioProbe(page);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(`/player/${SONG_ID}`);
@@ -251,7 +253,7 @@ test("real audio events prove mode, hand, seek, transpose, correction, and pract
   await display.getByRole("button", { name: "Close tools", exact: true }).click();
   const transposed = await captureArrangement(page, testInfo, "blackbird-transposed", 7, 1_400);
   audible(transposed);
-  expect(fundamentalMidis(transposed).some((midi) => fundamentalMidis(bothHands).includes(midi - 1))).toBe(true);
+  expect(fundamentalMidis(transposed)).toEqual(fundamentalMidis(bothHands).map((midi) => midi + 1));
   await openPlayerTool(page, "Display");
   await page.getByRole("dialog", { name: "Display settings" }).getByRole("button", { name: "Reset transpose", exact: true }).click();
   await page.getByRole("dialog", { name: "Display settings" }).getByRole("button", { name: "Close tools", exact: true }).click();

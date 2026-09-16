@@ -100,17 +100,17 @@ These are structural producer and event results, not human musical acceptance or
 
 ## Captured audio and real-event evidence
 
-The test-only probe in [`melody-accompaniment.spec.ts`](../../apps/web/e2e/melody-accompaniment.spec.ts) duplicates the player master bus into a `MediaStreamAudioDestinationNode`, records WebM, decodes the recording in-browser, and logs oscillator starts as rounded MIDI events. It does not change production audio code or canonical data. The following values are from the Node 22 Chromium run whose artifacts are under `apps/web/test-results/melody-accompaniment-real--e4b6e-rection-and-practice-parity-chromium/`; recorder byte counts and hashes are run-specific.
+The test-only probe in [`melody-accompaniment.spec.ts`](../../apps/web/e2e/melody-accompaniment.spec.ts) duplicates the player master bus into a `MediaStreamAudioDestinationNode`, records WebM, decodes the recording in-browser, and logs oscillator starts as rounded MIDI events. It does not change production audio code or canonical data. The following values are from the latest Node 22 Chromium three-test scratch run whose artifacts are under `apps/web/test-results/melody-accompaniment-real--17f5e-orrection-and-practice-flow-chromium/`; recorder byte counts and hashes are run-specific.
 
 | Real excerpt / capture | Window | WebM bytes | Decoded RMS / peak | Oscillator events (all / triangle) | Unique triangle MIDI events |
 | --- | ---: | ---: | ---: | ---: | --- |
-| Blackbird original | 7.0s / 2.0s | 32,508 | 0.1107 / 0.6436 | 51 / 34 | 45,47,55,60,65,67,71,74 |
-| Blackbird automatic melody + accompaniment | 7.0s / 2.0s | 32,508 | 0.1249 / 0.5367 | 39 / 25 | 45,48,52,55,65,67,71,74 |
-| Hell automatic, unresolved window | 10.7s / 2.2s | 36,372 | 0.0952 / 0.6035 | 55 / 34 | 41,44,48,51,53,68,72,77,79,84 |
-| Hell right-hand correction | 10.7s / 2.2s | 35,724 | 0.1033 / 0.6117 | 60 / 36 | 41,44,48,51,53,55,68,72,77,79,84 |
-| Hell chord-practice first accepted note | input event | 2,880 | 0.1735 / 0.8934 | 3 / 2 | 60 |
+| Blackbird original | 7.0s / 2.0s | 32,826 | 0.1107 / 0.6728 | 51 / 34 | 45,47,55,60,65,67,71,74 |
+| Blackbird automatic melody + accompaniment | 7.0s / 2.0s | 32,826 | 0.1252 / 0.5293 | 39 / 25 | 45,48,52,55,65,67,71,74 |
+| Hell automatic, unresolved window | 10.7s / 2.2s | 35,724 | 0.0955 / 0.5981 | 55 / 34 | 41,44,48,51,53,68,72,77,79,84 |
+| Hell right-hand correction | 10.7s / 2.2s | 35,724 | 0.1034 / 0.6278 | 60 / 36 | 41,44,48,51,53,55,68,72,77,79,84 |
+| Hell chord-practice first accepted note | input event | 2,880 | 0.1675 / 0.8467 | 3 / 2 | 60 |
 
-The two Blackbird arrangement captures differ in both decoded signal and event content; left-hand-only capture produced 3 triangle events versus 17 for both hands over the same 1.4-second window, and the transposed capture shifted the observed set by one semitone. Hell surfaced the known `19.3–20.6 beats` ambiguity in the UI. Around that window, automatic playback had no `[44,48,51,55]` event set, while the corrected capture emitted the `G#maj7 [44,48,51,55]` voicing at approximately 0.99s into the recording. After reload, the sidecar still reported `right-hand` / `user-confirmed`. The practice capture contains a nonzero input voice and the status changed after the first target pitch was entered, so this is an actual grading event rather than a panel-visibility assertion.
+The two Blackbird arrangement captures differ in both decoded signal and event content; left-hand-only capture produced 3 triangle events versus 17 for both hands over the same 1.4-second window. That hand check establishes reduced event output only; it does not establish exact left/right partition parity. The transposed capture matched the complete observed fundamental set from the untransposed window after adding one semitone to every MIDI value. Hell surfaced the known `19.3–20.6 beats` ambiguity in the UI. Around that window, automatic playback had no `[44,48,51,55]` event set, while the corrected capture emitted the `G#maj7 [44,48,51,55]` voicing at approximately 0.99s into the recording. After reload, the sidecar still reported `right-hand` / `user-confirmed`. The practice capture contains a nonzero input voice and the status changed after the first target pitch was entered, so this is an actual grading event rather than a panel-visibility assertion.
 
 This proves browser-synth signal and event/display/grading plumbing for two real excerpts. It does not prove that the generated lines sound musically correct to a human, and it is not notation acceptance evidence.
 
