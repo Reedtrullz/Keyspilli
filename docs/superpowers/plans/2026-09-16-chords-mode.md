@@ -104,12 +104,20 @@ Acceptance: a learner can tell what they are hearing, what they should play, whi
 
 ## Task 5 — Verify, review and hand off
 
-- [x] Run `npm run typecheck`, `npm test`, `npm run build`. Run the relevant Playwright specs using existing scratch configuration and fixture instructions; avoid production writes and existing-data mutation. Record exact commands, result counts and failures.
+- [x] Run `npm run typecheck`, `npm test`, `npm run build`. Run the relevant Playwright specs using existing scratch configuration and fixture instructions; avoid production writes and existing-data mutation. Record exact commands, result counts and failures. The final wait-practice regression was observed red against the old behavior and green after the shared transport-sync fix.
 - [x] Build a compact acceptance table: melody crossing hands; bass riff; slash-chord progression; dense low-register chord; partial UG chart; no available chords. Synthetic fixtures prove edge cases. Use representative available catalogue excerpts for integration without claiming a catalogue-wide musical audit.
-- [x] Produce a short playable local preview or captured audio for each implemented preset if the existing runtime supports it. Inspect actual visual guidance and listen if tools permit. Mark physical-piano/human musical acceptance pending unless actually performed.
+- [x] Produce a short playable local preview or captured audio for each implemented preset if the existing runtime supports it. The isolated browser runtime supported capture; it exercised Play, seek, generated Bass + chords, UG source switching, and both play-along and wait practice, and saved a local WebM preview. Inspect actual visual guidance and listen if tools permit. Mark physical-piano/human musical acceptance pending unless actually performed.
 - [x] Review diff for hand/role conflation, stale note ownership, double transpose, stuck notes during mode changes, fallback coverage and score wording. Run additional tests only when fixes or unresolved evidence justify them.
 - [x] Commit all scoped changes and open a draft PR if GitHub access permits. Provide before/after behavior, test evidence, remaining human acceptance and no-deploy status. If PR creation is blocked, leave a clean committed branch and report the exact blocker.
 - [x] Update this plan's checkboxes and append an evidence-backed Obsidian project/daily note. Return branch/commit, PR link, preview/artifacts and fixed/deferred/blocked table.
+
+### Task 5 runtime evidence — 16 September 2026
+
+- [x] On isolated run-owned data, Play advanced the seek value while `Melody + accompaniment` was active (`0` → `1.16` seconds), remained active through `Bass + chords` (`Pause` visible), and remained active through `UG timeline` (`Pause` visible); pause held the playhead at `2.43` seconds across a 350 ms stability check.
+- [x] Seeking while playing into the generated `D#5` event realized the same guidance voicing: LH MIDI `39` (`D#2`) and RH MIDI `70,75` (`A#4,D#5`), with the generated chord label/provenance visible in Note letters view.
+- [x] Right-hand filtered timed play-along advanced from `0.4` to `1.15` seconds. Right-hand filtered wait practice presented generated targets `A#4` then `D#5`; accepted keyboard inputs advanced the visible playhead to `2.44` seconds and the target continued to `C5`.
+- [x] Browser instrumentation recorded 61 successful oscillator starts and 94 successful stops, one running AudioContext, one `audio/webm;codecs=opus` recorder, 109,325-byte WebM output, and zero console, page, unhandled-rejection, or instrumented audio errors. The preview has an Opus stereo stream; no human listening or physical-piano acceptance was performed.
+- [x] Focused regression: `wait practice advances the visible playhead after an accepted generated target` failed before the fix with seek `0.4`, then passed after `handleNote` synchronized transport state. Final isolated Playwright result: 1 passed; final CI run `35108745673` passed its automatic checks on commit `86e2176`.
 
 ## Explicitly deferred
 
