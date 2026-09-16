@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
-import type { PlayerSettings } from "@keyspilli/player-core";
+import type { MelodyAccompanimentResolution, MelodySelection, PlayerSettings } from "@keyspilli/player-core";
 import type { ChordSourceId, ChordSourceOption } from "./chord-sources";
 import { usePresence } from "./player-motion";
 
@@ -12,6 +12,11 @@ export function SoundControls({
   chordSources,
   chordSourceStatus = null,
   onChordSourceChange,
+  melodyArrangement,
+  rightHandAvailable = false,
+  hasSavedMelodySelection = false,
+  onMelodySelectionChange,
+  onMelodySelectionReset,
   onPreview,
 }: {
   settings: PlayerSettings;
@@ -20,6 +25,11 @@ export function SoundControls({
   chordSources?: { ug: ChordSourceOption | null; generated: ChordSourceOption; auto: ChordSourceOption };
   chordSourceStatus?: string | null;
   onChordSourceChange?: (source: ChordSourceId) => void;
+  melodyArrangement?: Pick<MelodyAccompanimentResolution, "provenance"> | null;
+  rightHandAvailable?: boolean;
+  hasSavedMelodySelection?: boolean;
+  onMelodySelectionChange?: (selection: MelodySelection) => void;
+  onMelodySelectionReset?: () => void;
   onPreview?: () => void;
 }) {
 
@@ -56,7 +66,7 @@ export function SoundControls({
               ? "Original arrangement is retained"
               : settings.accompanimentStyle === "bass-chords"
                 ? "Chart-based bass and chords replace the source passage where covered"
-                : "Melody is retained; original passage retained when accompaniment cannot be separated reliably"}
+                : "A selected melody is retained while sparse harmonic support is generated"}
           </p>
           {settings.backgroundMode === "chord" && (
             <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3">
@@ -78,8 +88,54 @@ export function SoundControls({
               <p className="text-[11px] text-zinc-600 mt-2">
                 {settings.accompanimentStyle === "bass-chords"
                   ? "For accompanying singing or another musician: source melody is omitted where the chord chart is covered."
-                  : "Keeps melody, bass identity, and riffs when ownership is known. Original passage retained when it is not."}
+                  : "Keeps the selected melody and adds sparse support. Original passage is retained where the chart is unavailable."}
               </p>
+              {settings.accompanimentStyle === "melody-accompaniment" && melodyArrangement && onMelodySelectionChange && (
+                <div className="mt-3 border-t border-zinc-200 pt-3" data-testid="melody-accompaniment-controls">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-medium text-zinc-700">Melody selection</span>
+                    <span className="text-[11px] text-zinc-500" data-testid="melody-accompaniment-coverage">
+                      {melodyArrangement.provenance.selectionProvenance === "user-confirmed" ? "User-selected" : "Inferred"}
+                      {" · "}{melodyArrangement.provenance.generatedBeats.toFixed(1)} beats generated
+                      {melodyArrangement.provenance.fallbackBeats > 0 && ` · ${melodyArrangement.provenance.fallbackBeats.toFixed(1)} retained`}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 mt-2" role="radiogroup" aria-label="Melody selection">
+                    <button
+                      type="button"
+                      onClick={() => onMelodySelectionChange("automatic")}
+                      role="radio"
+                      aria-checked={melodyArrangement.provenance.selection === "automatic"}
+                      className={`px-2 py-2 rounded-lg text-xs border ${melodyArrangement.provenance.selection === "automatic" ? "bg-indigo-700 text-white border-indigo-700" : "border-zinc-300 bg-white"}`}
+                    >
+                      Automatic melody
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onMelodySelectionChange("right-hand")}
+                      disabled={!rightHandAvailable}
+                      role="radio"
+                      aria-checked={melodyArrangement.provenance.selection === "right-hand"}
+                      className={`px-2 py-2 rounded-lg text-xs border ${melodyArrangement.provenance.selection === "right-hand" ? "bg-indigo-700 text-white border-indigo-700" : "border-zinc-300 bg-white"} disabled:opacity-50 disabled:cursor-not-allowed`}
+                      title={rightHandAvailable ? "Retains the source right-hand part; it may include chords." : "This source has no right-hand part label."}
+                    >
+                      Use right-hand part
+                    </button>
+                  </div>
+                  {melodyArrangement.provenance.unresolvedSpans.length > 0 && (
+                    <p className="text-[11px] text-amber-700 mt-2" role="status" data-testid="melody-accompaniment-ambiguity">
+                      {melodyArrangement.provenance.unresolvedSpans.some((span) => span.reason === "right-hand part unavailable")
+                        ? "No right-hand part is available; the automatic melody is retained."
+                        : `Ambiguous phrase at ${melodyArrangement.provenance.unresolvedSpans.map((span) => `${span.startBeat.toFixed(1)}–${span.endBeat.toFixed(1)} beats`).join(", ")}. Use right-hand part to correct it.`}
+                    </p>
+                  )}
+                  {hasSavedMelodySelection && onMelodySelectionReset && (
+                    <button type="button" onClick={onMelodySelectionReset} className="mt-2 min-h-9 px-2 rounded-lg border border-zinc-300 text-[11px]">
+                      Reset saved selection
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           )}
           {chordSourcePresence.mounted && chordSources && onChordSourceChange && (
@@ -143,7 +199,7 @@ export function SoundControls({
         <div className="mb-4">
           <div className="flex items-center justify-between gap-2 mb-2">
             <h3 className="text-sm font-medium">Sound</h3>
-            {onPreview && <button type="button" onClick={onPreview} className="min-h-11 px-3 rounded-lg border border-zinc-300 text-sm">Preview sound</button>}
+            {onPreview && <button type="button" onClick={onPreview} className="min-h-11 px-3 rounded-lg border border-zinc-300 text-sm">{settings.backgroundMode === "chord" ? "Preview arrangement" : "Preview sound"}</button>}
           </div>
           <div className="flex gap-2" role="radiogroup" aria-label="Sound">
             {(["synth", "sampled", "organ"] as const).map((s) => (

@@ -109,3 +109,12 @@ Gate: browser test starts from a real published pilot artifact, selects Melody +
 ## Deferred
 
 New transcription models/stem separation, universal melody recognition, arbitrary accompaniment styles, advanced fingering, perfect polyphonic voice separation and blanket catalogue regeneration. Reconsider only when measured pilot failures justify the added work.
+
+## Execution status — 2026-09-16
+
+- [x] Milestone 1 inventory, source-linked pilot selection, and honest all-fallback baseline recorded. Independent notation/audio review and human melody expectations remain pending.
+- [x] Milestones 2–3 producer implementation and structural edge coverage completed: cross-hand selection, sustained-line preference, ambiguity spans, held melody across harmony changes, N.C. gaps, octave-bounded collision-safe support, extended tones, and actual slash-bass lows.
+- [x] Milestone 4 runtime/UI wiring completed: on-demand derived arrangement, versioned variant-bound local sidecar, actionable right-hand correction, reset/reload persistence, shared playback/display/grading inputs, and bounded preview plan.
+- [ ] Milestone 4 server-published derived artifacts and harmonic-input cache are intentionally not implemented; no production mutation was authorized.
+- [x] Milestone 5 focused/full tests, typecheck, build, real-artifact desktop/390px browser checks, and bounded read-only pilot dry run completed. The dry run reports `changedPaths: []`.
+- [ ] Offline original-versus-derived audio/notation listening, broader stratified evaluation, production canary/backfill procedure, merge, deployment, and default enablement remain pending.

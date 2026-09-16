@@ -348,7 +348,16 @@ export async function loadSongArtifact(song: SongRow): Promise<{ data: SongData 
   // The manifest is authoritative when present. Assigning the resolved value
   // here keeps downstream playback and seek code on the same runtime value;
   // the equality check above prevents this from masking a stale mirror.
-  const data = { ...stored, tempoBpm: tempo.bpm };
+  const data = {
+    ...stored,
+    tempoBpm: tempo.bpm,
+    ...(manifest?.sourceArtifactHash ? {
+      // The source bytes can be shared by six difficulty variants. Bind the
+      // fingerprint to the selected row so a saved melody choice cannot cross
+      // variant boundaries even when their original hash is identical.
+      sourceFingerprint: `variant:${song.baseId}:${song.level}:${song.id}:${manifest.sourceArtifactHash}`,
+    } : {}),
+  };
   // Compute heuristic sections at load time so the player can offer practice
   // navigation without requiring every checked-in artifact to carry metadata.
   if (!data.sections && data.measures.length > 0) {

@@ -161,6 +161,16 @@ describe("catalog artifact manifest read boundary", () => {
     expect(loaded.data?.tempoBpm).toBe(120);
   });
 
+  it("binds loaded song data to the manifest source fingerprint", async () => {
+    const manifest = createLegacyBootstrapManifest("catalog-api-song", 120);
+    manifest.sourceArtifactHash = "a".repeat(64);
+    await writeArrangementManifestFile(arrangementManifestPath("catalog-api-song"), manifest);
+
+    const loaded = await loadSongArtifact(song(120));
+
+    expect(loaded.data?.sourceFingerprint).toBe(`variant:${song().baseId}:${song().level}:${song().id}:${manifest.sourceArtifactHash}`);
+  });
+
   it("projects legacy MIDI-derived chords with generated provenance and duration metadata", async () => {
     await writeLegacyGeneratedChordNotes();
 

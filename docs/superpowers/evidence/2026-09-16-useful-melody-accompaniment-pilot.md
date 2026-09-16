@@ -2,7 +2,7 @@
 
 Date: 2026-09-16
 Branch: `codex/useful-melody-accompaniment`
-Scope: read-only inspection of the canonical catalogue plus structural baseline runs. No canonical files, database rows, or production artifacts were changed.
+Scope: read-only canonical inspection, implementation, bounded real-song dry runs, and isolated browser checks. No canonical files, database rows, or production artifacts were changed.
 
 ## Source coverage
 
@@ -72,3 +72,33 @@ The diagnostic reads the canonical raw files and artifact manifests directly. It
 - [ ] Selective-backfill dry-run produced from disposable copies only.
 
 No claim is made here that the baseline melody is musically accepted or that the catalogue is safe for production backfill.
+
+## Implementation and real-song dry run
+
+The new producer builds a separate derived learning arrangement: selected source melody notes remain source events, non-melody source notes are subtracted only under successfully generated support, and unresolved spans retain the original content with an actionable selection override. Playback, falling-note display and grading receive the same derived notes/chords. Variant fingerprints include the catalog row identity as well as the manifest hash, so six difficulty variants cannot share a saved selection accidentally.
+
+The bounded diagnostic at [`2026-09-16-useful-melody-accompaniment-dry-run.ts`](./2026-09-16-useful-melody-accompaniment-dry-run.ts) read the ten source-linked pilot artifacts and emitted no changed paths. It recorded both manifest `sourceArtifactHash` and raw `notes.json` SHA-256 values per row. Final output was written outside the repository during verification.
+
+| Category / excerpt | Generated support (beats) | Retained fallback (beats) | Generated chord events | Fallback / unresolved evidence |
+| --- | ---: | ---: | ---: | --- |
+| standard / Blackbird 4–36 | 21.00 | 11.00 | 3 | no chord coverage; no playable support voicing |
+| standard / Blackbird 68–100 | 25.50 | 6.50 | 7 | no playable support voicing |
+| standard / Perfect 0–32 | 18.25 | 13.75 | 4 | no chord coverage; no playable support voicing |
+| standard / Perfect 32–64 | 23.25 | 8.75 | 10 | no playable support voicing |
+| standard / Teardrop 0–32 | 0.00 | 32.00 | 0 | no chord coverage; no playable support voicing |
+| standard / Dear God 0–32 | 15.00 | 17.00 | 7 | no chord coverage; no playable support voicing |
+| YouTube / Hell You Call a Dream 0–32 | 19.00 | 13.00 | 6 | no chord coverage; ambiguous melody at 19.25–20.625 |
+| YouTube / Pay Me My Money Down 0–32 | 25.00 | 7.00 | 3 | no chord coverage; no playable support voicing |
+| YouTube / Too Sweet 0–32 | 0.00 | 32.00 | 0 | no chord coverage; no playable support voicing |
+| YouTube / En livstid i krig 0–32 | 9.00 | 23.00 | 7 | no chord coverage; no playable support voicing; unsupported chord |
+
+Eight of ten pilot excerpts had both selected melody and generated support, covering both available real-song import categories. Every emitted event in the dry run had an actual simultaneous support span of at most one octave, no support pitch at or above the selected melody clearance boundary, and an actual lowest pitch class matching the chord root or slash bass. Representative emitted voicings were `Am [45,48,52]` (span 7), `C#maj7 [49,53,56,60]` (span 11), and `Fm7 [41,44,48,51,53]` (span 12). The synthetic edge tests emit `Cadd9 [48,50,52,55]`, `C7/E [40,43,46,48,52]` (actual lowest E2), and `Cmaj7/G [43,47,48,52,55]` (actual lowest G2).
+
+These are structural producer and event results, not human musical acceptance or recognition claims. The browser test used a disposable copy of the real Blackbird artifact and passed the actual Web Audio preview/Play path at desktop and 390px, plus seek, loop, transpose, left/right/both-hand filtering, chord-practice opening, correction, and reload persistence with no page or console errors. Original, automatic, and corrected canvas captures are retained in ignored Playwright output under `apps/web/test-results/`. An offline WAV comparison was not claimed because no local SoundFont was available; no remote media was downloaded.
+
+## Final evidence status
+
+- [x] New producer, protected melody/support split, ambiguity retention, collision-safe voicing, full source fingerprinting, and playback/grading preview parity implemented.
+- [x] Focused tests, full workspace suite, typecheck, production build, and isolated desktop/390px browser checks passed with Node 22 at `/Users/reidar/.nvm/versions/node/v22.22.3/bin`.
+- [x] Ten real-song excerpts dry-run with generated/fallback coverage; `changedPaths: []` and no canonical mutation.
+- [ ] Independent notation/audio listening verdicts, broader stratified coverage, production backfill, merge, deployment, and default enablement remain pending.

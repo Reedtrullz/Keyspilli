@@ -4,6 +4,8 @@ import type { Note } from "./types.js";
 export interface PianoRoleOptions {
   /** Treat starts within this many beats as one simultaneous onset. */
   onsetTolerance?: number;
+  /** Keep very short upper attacks from displacing a sustained line below them. */
+  preferSustainedLine?: boolean;
 }
 
 /** Role assigned by {@link splitPianoRoles}. */
@@ -74,6 +76,7 @@ function noteBaseIdentity(note: Note): string {
     numberToken(note.dur),
     numberToken(note.vel),
     note.hand ?? null,
+    note.sourceLane ?? null,
     note.identitySource ?? null,
     note.lyrics ?? null,
   ]);
@@ -86,6 +89,7 @@ function compareNotes(a: Note, b: Note): number {
     a.dur - b.dur ||
     a.vel - b.vel ||
     compareText(a.hand ?? "", b.hand ?? "") ||
+    compareText(a.sourceLane ?? "", b.sourceLane ?? "") ||
     compareText(a.identitySource ?? "", b.identitySource ?? "") ||
     compareText(a.lyrics ?? "", b.lyrics ?? "")
   );
@@ -201,12 +205,28 @@ function durationSalience(duration: number, typicalDuration: number): number {
   return clamp(duration / (typicalDuration * 1.5));
 }
 
+function isShortTopDecoration(
+  candidate: IndexedNote,
+  group: readonly IndexedNote[],
+  typicalDuration: number,
+): boolean {
+  if (group.length < 2 || candidate.note.midi !== highestMidi(group)) return false;
+  if (candidate.note.dur >= typicalDuration * 0.5) return false;
+  return group.some((other) =>
+    other !== candidate
+    && other.note.midi < candidate.note.midi
+    && other.note.dur >= typicalDuration * 0.75
+    && other.note.dur >= candidate.note.dur * 2,
+  );
+}
+
 function candidateEmission(
   groupIndex: number,
   candidate: IndexedNote,
   group: readonly IndexedNote[],
   groups: readonly (readonly IndexedNote[])[],
   typicalDuration: number,
+  preferSustainedLine: boolean,
 ): number {
   const minPitch = group.reduce((minimum, item) => Math.min(minimum, item.note.midi), Infinity);
   const maxPitch = highestMidi(group);
@@ -216,6 +236,9 @@ function candidateEmission(
   const velocity = clamp(candidate.note.vel / 127);
   const duration = durationSalience(candidate.note.dur, typicalDuration);
   const topContext = localTopLineContext(groupIndex, candidate, groups);
+  const sustainedLine = preferSustainedLine && candidate.note.dur > typicalDuration
+    ? clamp((candidate.note.dur / typicalDuration - 1) / 3)
+    : 0;
 
   // Upper-voice position and local context lead; salience and duration help
   // break ties without making a right-hand label equivalent to melody.
@@ -224,7 +247,8 @@ function candidateEmission(
     0.2 * topContext +
     0.12 * globalPitch +
     0.14 * velocity +
-    0.12 * duration
+    0.12 * duration +
+    0.35 * sustainedLine
   );
 }
 
@@ -285,12 +309,16 @@ export function splitPianoRoles(
   }
 
   const typicalDuration = median(playable.map(({ note }) => note.dur));
-  const candidates: Candidate[][] = groups.map((group, groupIndex) =>
-    group.map((item) => ({
+  const candidates: Candidate[][] = groups.map((group, groupIndex) => {
+    const filtered = options.preferSustainedLine
+      ? group.filter((item) => !isShortTopDecoration(item, group, typicalDuration))
+      : group;
+    const eligible = filtered.length > 0 ? filtered : group;
+    return eligible.map((item) => ({
       indexed: item,
-      emission: candidateEmission(groupIndex, item, group, groups, typicalDuration),
-    })),
-  );
+      emission: candidateEmission(groupIndex, item, group, groups, typicalDuration, options.preferSustainedLine === true),
+    }));
+  });
 
   // Viterbi-style dynamic programming keeps an upper voice coherent through
   // repeated contours and prevents a chord's highest note from winning solely
