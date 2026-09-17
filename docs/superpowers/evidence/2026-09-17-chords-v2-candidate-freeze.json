@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "phase": "candidate freeze before reserved evaluation",
+  "frozenAt": "2026-09-17T15:31:44+02:00",
+  "candidate": {
+    "branch": "codex/musically-useful-chords-mode",
+    "codeCommit": "ea68729045e82ef9ced14e0e0916c86991eeba4a",
+    "worktree": "/Users/reidar/.codex/worktrees/musically-useful-chords-mode",
+    "node": "/Users/reidar/.nvm/versions/node/v22.22.3/bin/node",
+    "generatorVersion": "melody-accompaniment.v2",
+    "workerThresholdNotes": 256,
+    "workerOptions": {
+      "allowRests": true,
+      "soundingPolicy": "coherent-phrase"
+    }
+  },
+  "developmentCapture": {
+    "fixture": "britney-spears-oops-i-did-it-again-a-scratch",
+    "sourceFingerprint": "variant:britney-spears-oops-i-did-it-again:a:britney-spears-oops-i-did-it-again-a:64d18aa4c23f7625a6eb0a7a234843a7a2278003d75cba9ea04efde7d8225ad4:notes:84153b6de3857351ce92086c8f5a28f9147073070948ed96fd39e6d6f8f212ae",
+    "window": {
+      "startBeat": 64,
+      "endBeat": 108,
+      "bpm": 95,
+      "uiSeekSeconds": 39.92,
+      "leadAndTailSeconds": 0.5
+    },
+    "instrument": "browser AudioEngine synth",
+    "comparisonArtifact": "apps/web/test-results/**/oops-section-2-audio-comparison.json",
+    "candidates": {
+      "original": {
+        "sha256": "bd45041fc3faeaa18ab3111afe0e274d3777bd77ada8c24854e56109a45ced6c",
+        "bytes": 464629,
+        "events": 1011,
+        "signal": { "rms": 0.07117607309746184, "peak": 0.9866757988929749, "samples": 212121 }
+      },
+      "coherent": {
+        "sha256": "d9e44b2820b3a59137142207cf72c05691568ae3d3c6ba836b4a5442fd1572c6",
+        "bytes": 448462,
+        "events": 657,
+        "signal": { "rms": 0.05399148214070148, "peak": 0.8365736603736877, "samples": 212121 }
+      },
+      "resume": {
+        "sha256": "6749f9edda7c110009adb7f0004a88c5558c8b627c7b0035e97703e4139e6407",
+        "bytes": 456699,
+        "events": 660,
+        "signal": { "rms": 0.054058895893608586, "peak": 0.8063964247703552, "samples": 212121 }
+      }
+    },
+    "resumeMethod": "test-only Worker.postMessage override; same browser AudioEngine synth",
+    "humanListening": "pending"
+  },
+  "verification": {
+    "webUnitTests": "205 passed",
+    "webTypecheck": "passed",
+    "webBuild": "passed",
+    "disposableMelodyE2E": "7 passed, 1 skipped",
+    "e2eCoverage": [
+      "Original and large arrangements trace source-view/worker execution without sync producer work",
+      "Full/Melody/Accompaniment role auditions are audible, distinct, and position-preserving",
+      "constructor failure, Original fallback, retry, and mode-change stale-error clearing",
+      "user correction, reset, versioned sidecar persistence, reload, seek/transpose/hand/practice flow",
+      "390px disposable-data controls"
+    ]
+  },
+  "reservedEvaluation": {
+    "source": "docs/superpowers/evidence/2026-09-17-chords-v2-baseline.json",
+    "bases": [
+      "w-h-doane-near-the-cross",
+      "c-v-alkan-prelude",
+      "beginner-piano-tutorial-easy-piano-jumbo-songbook-pay-me-my-money-down-mslzx940",
+      "dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo"
+    ],
+    "status": "not run after this freeze",
+    "melodyGoldLabels": "proposed; unreviewed"
+  },
+  "outcomes": {
+    "engineering": "verified",
+    "browserSignal": "verified non-silent and distinct captures; not a musical-quality result",
+    "sourceMusicalReview": "pending",
+    "humanListening": "pending",
+    "merge": "not performed",
+    "deployment": "not performed",
+    "catalogueMutation": "not performed"
+  },
+  "preservation": {
+    "preExistingUntrackedArtifact": "docs/superpowers/evidence/2026-09-17-backing-rhythm-repair-deployment.md",
+    "stagedOrModified": false
+  }
+}
