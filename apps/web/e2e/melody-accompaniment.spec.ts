@@ -179,7 +179,7 @@ test("real artifact produces, previews, plays, corrects, and reloads melody supp
   const dialog = page.getByRole("dialog", { name: "Sound settings" });
   await dialog.getByRole("radio", { name: "Chord mode", exact: true }).click();
   await expect(dialog.getByTestId("melody-accompaniment-controls")).toBeVisible();
-  await expect(dialog.getByTestId("melody-accompaniment-coverage")).toContainText("generated");
+  await expect(dialog.getByTestId("melody-accompaniment-coverage")).toContainText("source support");
   await expect(page.getByTestId("melody-accompaniment-status")).toContainText("Inferred melody");
   const automatic = await canvas.screenshot({ path: testInfo.outputPath("melody-automatic-candidate.png") });
   expect(automatic.equals(original)).toBe(false);
@@ -194,7 +194,7 @@ test("real artifact produces, previews, plays, corrects, and reloads melody supp
     generatorVersion?: string;
     selection?: string;
     sourceFingerprint?: string;
-    provenance?: { selectionProvenance?: string; generatedBeats?: number };
+    provenance?: { selectionProvenance?: string; sourceSupportNoteCount?: number; generatedNoteCount?: number };
   } | null;
   expect(sidecar).toMatchObject({
     generatorVersion: "melody-accompaniment.v1",
@@ -202,7 +202,8 @@ test("real artifact produces, previews, plays, corrects, and reloads melody supp
     provenance: { selectionProvenance: "user-confirmed" },
   });
   expect(sidecar?.sourceFingerprint).toContain("variant:the-beatles-blackbird:a:");
-  expect(sidecar?.provenance?.generatedBeats).toBeGreaterThan(0);
+  expect(sidecar?.provenance?.sourceSupportNoteCount).toBeGreaterThan(0);
+  expect(sidecar?.provenance?.generatedNoteCount).toBe(0);
 
   await dialog.getByRole("button", { name: "Preview arrangement", exact: true }).click();
   await page.getByRole("button", { name: "Play", exact: true }).click();
@@ -278,15 +279,13 @@ test("real audio events cover mode, hand filtering, seek, transpose, correction,
   await dialog.getByRole("button", { name: "Close tools", exact: true }).click();
   const hellCorrected = await captureArrangement(page, testInfo, "hell-right-hand-corrected", 10.7, 2_200);
   audible(hellCorrected);
-  expect(fundamentalMidis(hellCorrected)).not.toEqual(fundamentalMidis(hellAutomatic));
-  const correctedAmbiguityMidis = [...new Set(hellCorrected.events
-    .filter((event) => event.type === "triangle" && event.relativeWhen > 0.65 && event.relativeWhen < 1.45 && event.midi !== null)
+  // Source-note playback can preserve some of the same aggregate pitch set in both modes;
+  // compare the first captured attack where the user-confirmed selection changes the notes.
+  const firstAttackMidis = (capture: AudioCapture): number[] => [...new Set(capture.events
+    .filter((event) => event.type === "triangle" && event.relativeWhen < 0.4 && event.midi !== null)
     .map((event) => event.midi as number))].sort((a, b) => a - b);
-  expect(correctedAmbiguityMidis).toEqual(expect.arrayContaining([44, 48, 51, 55]));
-  const automaticAmbiguityMidis = [...new Set(hellAutomatic.events
-    .filter((event) => event.type === "triangle" && event.relativeWhen > 0.65 && event.relativeWhen < 1.45 && event.midi !== null)
-    .map((event) => event.midi as number))];
-  expect(automaticAmbiguityMidis).not.toEqual(expect.arrayContaining([44, 48, 51, 55]));
+  expect(firstAttackMidis(hellCorrected)).toEqual(expect.arrayContaining([72]));
+  expect(firstAttackMidis(hellAutomatic)).not.toContain(72);
 
   const sidecar = await page.evaluate((key) => JSON.parse(window.localStorage.getItem(key) ?? "null"), HELL_SIDECAR_KEY) as { selection?: string; provenance?: { selectionProvenance?: string } } | null;
   expect(sidecar).toMatchObject({ selection: "right-hand", provenance: { selectionProvenance: "user-confirmed" } });

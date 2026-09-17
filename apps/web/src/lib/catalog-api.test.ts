@@ -360,6 +360,15 @@ describe("catalog chart timeline merge", () => {
     expect(partialAuto.label).toBe("UG + generated fallback");
     expect(partialAuto.fallbackReason).toMatch(/generated|remaining/i);
     expect(partialAuto.provenanceInfo).toMatchObject({ kind: "chart", sourceRef: "ultimate-guitar:test", fallback: true });
+
+    const fallbackOnlyTimeline = {
+      ...fullTimeline,
+      baseId: "fallback-only-song",
+      provenance: { ...provenance, fallback: true, fallbackReason: "UG unavailable" },
+    };
+    const fallbackOnly = mergeChartTimeline(fallbackOnlyTimeline, [], 8);
+    const fallbackOnlyAuto = buildAutoChordSource(fallbackOnlyTimeline, fallbackOnly, null);
+    expect(fallbackOnlyAuto.label).toBe("Generated fallback");
   });
 
   it("fills partial or unvoiced chart positions from generated chords", () => {
