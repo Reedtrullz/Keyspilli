@@ -446,6 +446,23 @@ function buildEvents(
   });
 }
 
+function splitEventAtReviewSpans(
+  event: ChordEvent,
+  reviewSpans: readonly { startBeat: number; endBeat: number }[],
+): ChordEvent[] {
+  const boundaries = new Set<number>([event.startBeat, event.endBeat]);
+  for (const span of reviewSpans) {
+    if (span.endBeat <= event.startBeat + EPSILON || span.startBeat >= event.endBeat - EPSILON) continue;
+    boundaries.add(Math.max(event.startBeat, span.startBeat));
+    boundaries.add(Math.min(event.endBeat, span.endBeat));
+  }
+  const sorted = [...boundaries].sort((a, b) => a - b);
+  return sorted.slice(0, -1).flatMap((startBeat, index) => {
+    const endBeat = sorted[index + 1]!;
+    return endBeat > startBeat + EPSILON ? [{ ...event, startBeat, endBeat }] : [];
+  });
+}
+
 function contains(interval: { startBeat: number; endBeat: number }, beat: number): boolean {
   return interval.startBeat <= beat + EPSILON && beat < interval.endBeat - EPSILON;
 }
@@ -513,6 +530,10 @@ function buildFallbackSpans(
   for (const event of events) {
     boundaries.add(event.startBeat);
     boundaries.add(event.endBeat);
+  }
+  for (const event of fallbackEvents) {
+    boundaries.add(Math.max(0, Math.min(durationBeats, event.startBeat)));
+    boundaries.add(Math.max(0, Math.min(durationBeats, event.endBeat)));
   }
   const sortedBoundaries = [...boundaries].sort((a, b) => a - b);
   const fallbackSpans: AccompanimentFallbackSpan[] = [];
@@ -864,19 +885,13 @@ function selectMelodySource(
     durationBeats,
     sourceFingerprint,
   );
-  const hasOverridePrecedence = requestedSelection === "right-hand"
-    && (rightHandIndices.length > 0 || validatedOverrides.valid.length > 0 || validatedOverrides.invalidSpans.length > 0);
-  if (hasOverridePrecedence) {
+  const hasRightHandSelection = requestedSelection === "right-hand" && rightHandIndices.length > 0;
+  if (hasRightHandSelection) {
     const selectedIndices = new Set(rightHandIndices);
     applyPhraseOverrides(sourceNotes, ids, selectedIndices, validatedOverrides.valid);
     const protectedMelody = [...selectedIndices]
       .sort((a, b) => sourceNotes[a]!.start - sourceNotes[b]!.start || sourceNotes[a]!.midi - sourceNotes[b]!.midi || a - b)
       .map((index) => protectedSourceNote(sourceNotes[index]!, index, ids[index]!));
-    const rightHandUnavailable = rightHandIndices.length === 0
-      && validatedOverrides.valid.length === 0
-      && durationBeats > EPSILON
-      ? [{ startBeat: 0, endBeat: durationBeats, reason: "right-hand part unavailable" as const }]
-      : [];
     return {
       melody: protectedMelody.map((note) => ({ ...note })),
       protectedMelody,
@@ -888,7 +903,7 @@ function selectMelodySource(
         : validatedOverrides.valid.map(({ startBeat, endBeat }) => ({ startBeat, endBeat })),
       selection: "right-hand",
       selectionProvenance: "user-confirmed",
-      unresolvedSpans: mergeUnresolvedSpans([...validatedOverrides.invalidSpans, ...rightHandUnavailable]),
+      unresolvedSpans: mergeUnresolvedSpans(validatedOverrides.invalidSpans),
     };
   }
 
@@ -913,7 +928,10 @@ function selectMelodySource(
     ...validatedOverrides.invalidSpans,
   ]);
   if (requestedSelection === "right-hand" && rightHandIndices.length === 0 && durationBeats > EPSILON) {
-    unresolvedSpans.push({ startBeat: 0, endBeat: durationBeats, reason: "right-hand part unavailable" });
+    unresolvedSpans.push(...subtractOverrideRanges(
+      { startBeat: 0, endBeat: durationBeats, reason: "right-hand part unavailable" },
+      overrideRanges,
+    ));
   }
   return {
     melody: protectedMelody.map((note) => ({ ...sourceNotes[note.sourceIndex]! })),
@@ -928,22 +946,50 @@ function selectMelodySource(
   };
 }
 
-function arrangementStrategy(
-  supportModes: ReadonlySet<MelodyAccompanimentSupportMode>,
-  summary: ArrangementChangeSummary,
+function intervalChanged(
+  sourceNotes: readonly Note[],
+  outputEvents: readonly ArrangementEvent[],
+  startBeat: number,
+  endBeat: number,
+): boolean {
+  const outputNotes = outputEvents.map((event) => event.note);
+  const boundaries = new Set<number>([startBeat, endBeat]);
+  for (const note of [...sourceNotes, ...outputNotes]) {
+    if (!overlaps(note, startBeat, endBeat)) continue;
+    boundaries.add(Math.max(startBeat, Math.min(endBeat, note.start)));
+    boundaries.add(Math.max(startBeat, Math.min(endBeat, noteEnd(note))));
+  }
+  const sorted = [...boundaries].sort((a, b) => a - b);
+  for (let index = 0; index < sorted.length - 1; index++) {
+    const start = sorted[index]!;
+    const end = sorted[index + 1]!;
+    if (end <= start + EPSILON) continue;
+    const midpoint = (start + end) / 2;
+    if (!sameAudibleNotes(activeNotes(sourceNotes, midpoint), activeNotes(outputNotes, midpoint))) return true;
+  }
+  return false;
+}
+
+function localArrangementStrategy(
+  sourceNotes: readonly Note[],
+  outputEvents: readonly ArrangementEvent[],
+  startBeat: number,
+  endBeat: number,
 ): ArrangementPhrase["strategy"] {
-  if (summary.silentBeats >= summary.durationBeats - EPSILON) return "silence";
-  if (supportModes.has("source-rhythm")) return "source-reduction";
-  if (supportModes.has("quarter-note-pulse")) return "harmonic-backing";
+  const localEvents = outputEvents.filter((event) => overlaps(event.note, startBeat, endBeat));
+  if (localEvents.some((event) => event.role === "accompaniment" && event.sourceNoteIds.length > 0)) return "source-reduction";
+  if (localEvents.some((event) => event.role === "accompaniment" && event.sourceNoteIds.length === 0)) return "harmonic-backing";
+  const midpoint = (startBeat + endBeat) / 2;
+  if (activeNotes(sourceNotes, midpoint).length === 0 && activeNotes(localEvents.map((event) => event.note), midpoint).length === 0) return "silence";
   return "original";
 }
 
 function buildArrangementPhrases(
   durationBeats: number,
   selected: SelectedMelody,
-  summary: ArrangementChangeSummary,
-  supportModes: ReadonlySet<MelodyAccompanimentSupportMode>,
   fallbackSpans: readonly AccompanimentFallbackSpan[],
+  sourceNotes: readonly Note[],
+  outputEvents: readonly ArrangementEvent[],
 ): ArrangementPhrase[] {
   if (durationBeats <= EPSILON) return [];
   const boundaries = new Set<number>([0, durationBeats]);
@@ -952,8 +998,6 @@ function buildArrangementPhrases(
     boundaries.add(Math.max(0, Math.min(durationBeats, range.endBeat)));
   }
   const sortedBoundaries = [...boundaries].sort((a, b) => a - b);
-  const strategy = arrangementStrategy(supportModes, summary);
-  const change = summary.changedBeats > EPSILON ? "changed" : "unchanged";
   const overlapsRange = (startBeat: number, endBeat: number, range: { startBeat: number; endBeat: number }) =>
     range.startBeat < endBeat - EPSILON && range.endBeat > startBeat + EPSILON;
 
@@ -969,6 +1013,8 @@ function buildArrangementPhrases(
         .map((span) => span.reason),
     ])];
     const userSelected = selected.confirmedRanges.some((range) => overlapsRange(startBeat, endBeat, range));
+    const strategy = localArrangementStrategy(sourceNotes, outputEvents, startBeat, endBeat);
+    const change = intervalChanged(sourceNotes, outputEvents, startBeat, endBeat) ? "changed" : "unchanged";
     return [{
       startBeat,
       endBeat,
@@ -981,7 +1027,7 @@ function buildArrangementPhrases(
       }),
       strategy,
       change,
-      review: userSelected ? "user-selected" : reasons.length > 0 ? "needs-review" : "automatic",
+      review: reasons.length > 0 ? "needs-review" : userSelected ? "user-selected" : "automatic",
       reasons,
     }];
   });
@@ -1110,7 +1156,7 @@ export function buildMelodyAccompaniment(
       melody: [],
       protectedMelody: [],
       events: arrangementEvents,
-      phrases: buildArrangementPhrases(durationBeats, selected, changeSummary, new Set(["fallback"]), fallbackSpans),
+      phrases: buildArrangementPhrases(durationBeats, selected, fallbackSpans, sourceNotes, arrangementEvents),
       changeSummary,
       provenance: {
         schemaVersion: 1,
@@ -1130,7 +1176,7 @@ export function buildMelodyAccompaniment(
     };
   }
 
-  for (const event of events) {
+  for (const event of events.flatMap((item) => splitEventAtReviewSpans(item, selected.unresolvedSpans))) {
     const unresolved = selected.unresolvedSpans.find((span) =>
       span.startBeat < event.endBeat - EPSILON && span.endBeat > event.startBeat + EPSILON,
     );
@@ -1234,7 +1280,7 @@ export function buildMelodyAccompaniment(
   if (supportModes.size === 0) supportModes.add("fallback");
   const melodyNoteIds = [...selected.selectedIndices].sort((a, b) => a - b).map((index) => selected.sourceIds[index]!);
   const changeSummary = measureArrangementChanges(sourceNotes, arrangementEvents, durationBeats, selected.unresolvedSpans);
-  const phrases = buildArrangementPhrases(durationBeats, selected, changeSummary, supportModes, fallbackSpans);
+  const phrases = buildArrangementPhrases(durationBeats, selected, fallbackSpans, sourceNotes, arrangementEvents);
   const provenance: MelodyAccompanimentProvenance = {
     schemaVersion: 1,
     generatorVersion: "melody-accompaniment.v2",

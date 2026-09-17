@@ -204,6 +204,88 @@ describe("buildMelodyAccompaniment", () => {
     ]);
   });
 
+  it("splits a long chord event at a short ambiguity instead of withholding the whole interval", () => {
+    const result = buildMelodyAccompaniment([
+      note(72, 0, 0.3, 80),
+      note(72, 0, 0.3, 80),
+      note(60, 1, 1, 80),
+    ], [chord(0, "C", 16)], {
+      durationBeats: 16,
+      sourceFingerprint: "fixture-source-v2",
+    });
+
+    expect(result.fallbackSpans).toContainEqual({ startBeat: 0, endBeat: 0.3, reason: "ambiguous melody" });
+    expect(result.fallbackSpans.some((span) => span.startBeat === 0 && span.endBeat === 16)).toBe(false);
+    expect(result.chords.some((item) => item.beat >= 0.3 && (item.durationBeats ?? 0) > 15)).toBe(true);
+  });
+
+  it("keeps automatic melody and an unavailable-part warning outside a partial RH correction", () => {
+    const source = [note(72, 0, 1, 100), note(74, 2, 1, 100)];
+    const ids = sourceNoteIds(source);
+    const result = buildMelodyAccompaniment(source, [chord(0, "C", 3)], {
+      durationBeats: 3,
+      selection: "right-hand",
+      sourceFingerprint: "fixture-source-v2",
+      phraseOverrides: [{
+        startBeat: 0,
+        endBeat: 1,
+        sourceNoteIds: [ids[0]!],
+        sourceFingerprint: "fixture-source-v2",
+      }],
+    });
+
+    expect(result.melody.map((item) => [item.midi, item.start])).toEqual([[72, 0], [74, 2]]);
+    expect(result.provenance.unresolvedSpans).toContainEqual({
+      startBeat: 1,
+      endBeat: 3,
+      reason: "right-hand part unavailable",
+    });
+  });
+
+  it("computes local strategy and change per phrase", () => {
+    const source = [
+      note(72, 0, 1, 100, "R"),
+      note(74, 2, 1, 100, "R"),
+      note(48, 2, 0.5, 60, "L"),
+    ];
+    const ids = sourceNoteIds(source);
+    const result = buildMelodyAccompaniment(source, [
+      chord(0, "C", 2),
+      chord(2, "F", 2),
+    ], {
+      durationBeats: 4,
+      sourceFingerprint: "fixture-source-v2",
+      phraseOverrides: [{
+        startBeat: 0,
+        endBeat: 2,
+        sourceNoteIds: [ids[0]!],
+        sourceFingerprint: "fixture-source-v2",
+      }],
+    });
+
+    expect(result.phrases.map(({ startBeat, endBeat, strategy, change }) => [startBeat, endBeat, strategy, change])).toEqual([
+      [0, 2, "harmonic-backing", "changed"],
+      [2, 4, "source-reduction", "unchanged"],
+    ]);
+  });
+
+  it("keeps an invalid overlapping override visible in phrase review", () => {
+    const source = [note(72, 0, 1, 100), note(74, 2, 1, 100)];
+    const result = buildMelodyAccompaniment(source, [chord(0, "C", 3)], {
+      durationBeats: 3,
+      sourceFingerprint: "fixture-source-v2",
+      phraseOverrides: [
+        { startBeat: 0, endBeat: 2, sourceNoteIds: [], sourceFingerprint: "fixture-source-v2" },
+        { startBeat: 1, endBeat: 3, sourceNoteIds: [], sourceFingerprint: "fixture-source-v2" },
+      ],
+    });
+
+    expect(result.phrases.find((phrase) => phrase.startBeat === 1 && phrase.endBeat === 2)).toMatchObject({
+      review: "needs-review",
+      reasons: ["invalid phrase override"],
+    });
+  });
+
   it("fails closed for a stale phrase override instead of changing melody", () => {
     const source = [note(72, 0, 1, 100, "R")];
     const result = buildMelodyAccompaniment(source, [], {
@@ -336,14 +418,15 @@ describe("buildMelodyAccompaniment", () => {
     expect(result.chords.every((item) => Math.max(...item.notes) - Math.min(...item.notes) <= 12)).toBe(true);
   });
 
-  it("surfaces duplicate-onset ambiguity and offers a right-hand correction", () => {
+  it("surfaces duplicate-onset ambiguity while realizing the safe remainder", () => {
     const notes = [note(72, 0, 1, 80, "R"), note(72, 0, 1, 80, "R"), note(60, 1, 1, 80, "R")];
     const inferred = build(notes, [chord(0, "C", 2)], "automatic", 2);
     const corrected = build(notes, [chord(0, "C", 2)], "right-hand", 2);
 
     expect(inferred.provenance.unresolvedSpans.length).toBeGreaterThan(0);
-    expect(inferred.chords).toEqual([]);
-    expect(inferred.notes).toEqual(notes);
+    expect(inferred.chords).toHaveLength(1);
+    expect(inferred.chords[0]).toMatchObject({ beat: 1, durationBeats: 1 });
+    expect(inferred.notes.filter((item) => item.midi === 72 && item.start === 0)).toHaveLength(2);
     expect(inferred.fallbackSpans[0]!.reason).toBe("ambiguous melody");
     expect(corrected.provenance.selection).toBe("right-hand");
     expect(corrected.provenance.selectionProvenance).toBe("user-confirmed");
