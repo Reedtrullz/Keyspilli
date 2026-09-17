@@ -7,9 +7,9 @@ import { openPlayerTool } from "./player-tools";
 const SONG_ID = "the-beatles-blackbird-a-scratch";
 const OOPS_SONG_ID = "britney-spears-oops-i-did-it-again-a-scratch";
 const HELL_SONG_ID = "aria-ellys-music-the-warning-hell-you-call-a-dream-piano-cover-by-aria-ellys-mslzwo1d-a-scratch";
-const SIDECAR_KEY = `keyspilli.melody-accompaniment.v1:${SONG_ID}`;
-const OOPS_SIDECAR_KEY = `keyspilli.melody-accompaniment.v1:${OOPS_SONG_ID}`;
-const HELL_SIDECAR_KEY = `keyspilli.melody-accompaniment.v1:${HELL_SONG_ID}`;
+const SIDECAR_KEY = `keyspilli.melody-accompaniment.v2:${SONG_ID}`;
+const OOPS_SIDECAR_KEY = `keyspilli.melody-accompaniment.v2:${OOPS_SONG_ID}`;
+const HELL_SIDECAR_KEY = `keyspilli.melody-accompaniment.v2:${HELL_SONG_ID}`;
 
 type AudioCapture = {
   mimeType: string;
@@ -201,7 +201,7 @@ test("real artifact produces, previews, plays, corrects, and reloads melody supp
     provenance?: { selectionProvenance?: string; sourceSupportNoteCount?: number; generatedNoteCount?: number };
   } | null;
   expect(sidecar).toMatchObject({
-    generatorVersion: "melody-accompaniment.v1",
+    generatorVersion: "melody-accompaniment.v2",
     selection: "right-hand",
     provenance: { selectionProvenance: "user-confirmed" },
   });

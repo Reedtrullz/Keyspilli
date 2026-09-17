@@ -42,6 +42,7 @@ describe("SoundControls accompaniment styles", () => {
       hasSavedMelodySelection: true,
       onMelodySelectionChange: () => {},
       onMelodySelectionReset: () => {},
+      onPreview: () => {},
     }));
 
     expect(markup).toContain('data-testid="melody-accompaniment-controls"');
@@ -49,6 +50,8 @@ describe("SoundControls accompaniment styles", () => {
     expect(markup).toContain("Use right-hand part");
     expect(markup).toContain("Reset saved selection");
     expect(markup).toContain("source support notes");
+    expect(markup).toContain('data-testid="melody-audition-controls"');
+    expect(markup).toContain("Accompaniment includes retained source notes");
 
     const pulseArrangement = buildMelodyAccompaniment(
       [{ midi: 72, start: 0, dur: 2, vel: 90, hand: "R" }],

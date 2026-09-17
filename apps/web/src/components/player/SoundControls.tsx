@@ -5,6 +5,8 @@ import type { MelodyAccompanimentResolution, MelodySelection, PlayerSettings } f
 import type { ChordSourceId, ChordSourceOption } from "./chord-sources";
 import { usePresence } from "./player-motion";
 
+export type MelodyAuditionRole = "full" | "melody" | "accompaniment";
+
 export function SoundControls({
   settings,
   onChange,
@@ -25,12 +27,12 @@ export function SoundControls({
   chordSources?: { ug: ChordSourceOption | null; generated: ChordSourceOption; auto: ChordSourceOption };
   chordSourceStatus?: string | null;
   onChordSourceChange?: (source: ChordSourceId) => void;
-  melodyArrangement?: Pick<MelodyAccompanimentResolution, "provenance"> | null;
+  melodyArrangement?: Pick<MelodyAccompanimentResolution, "provenance" | "events"> | null;
   rightHandAvailable?: boolean;
   hasSavedMelodySelection?: boolean;
   onMelodySelectionChange?: (selection: MelodySelection) => void;
   onMelodySelectionReset?: () => void;
-  onPreview?: () => void;
+  onPreview?: (role?: MelodyAuditionRole) => void;
 }) {
 
   const chordSourcePanelRef = useRef<HTMLDivElement>(null);
@@ -138,6 +140,19 @@ export function SoundControls({
                       Reset saved selection
                     </button>
                   )}
+                  {onPreview && (
+                    <div className="mt-3 border-t border-zinc-200 pt-3" data-testid="melody-audition-controls">
+                      <span className="text-xs font-medium text-zinc-700">Audition</span>
+                      <div className="grid grid-cols-3 gap-2 mt-2" role="group" aria-label="Arrangement audition">
+                        <button type="button" onClick={() => onPreview("full")} className="px-2 py-2 rounded-lg text-xs border border-zinc-300 bg-white">Full</button>
+                        <button type="button" onClick={() => onPreview("melody")} className="px-2 py-2 rounded-lg text-xs border border-zinc-300 bg-white">Melody</button>
+                        <button type="button" onClick={() => onPreview("accompaniment")} className="px-2 py-2 rounded-lg text-xs border border-zinc-300 bg-white">Accompaniment</button>
+                      </div>
+                      <p className="text-[11px] text-zinc-500 mt-2">
+                        Accompaniment includes retained source notes when the producer could not classify them; it is not an isolated stem.
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -203,7 +218,7 @@ export function SoundControls({
         <div className="mb-4">
           <div className="flex items-center justify-between gap-2 mb-2">
             <h3 className="text-sm font-medium">Sound</h3>
-            {onPreview && <button type="button" onClick={onPreview} className="min-h-11 px-3 rounded-lg border border-zinc-300 text-sm">{settings.backgroundMode === "chord" ? "Preview arrangement" : "Preview sound"}</button>}
+            {onPreview && <button type="button" onClick={() => onPreview()} className="min-h-11 px-3 rounded-lg border border-zinc-300 text-sm">{settings.backgroundMode === "chord" ? "Preview arrangement" : "Preview sound"}</button>}
           </div>
           <div className="flex gap-2" role="radiogroup" aria-label="Sound">
             {(["synth", "sampled", "organ"] as const).map((s) => (
