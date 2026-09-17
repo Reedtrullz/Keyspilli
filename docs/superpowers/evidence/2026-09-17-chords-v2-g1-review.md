@@ -1,6 +1,6 @@
 # Chords v2 G1 review packet
 
-Status: T1/G1 source capture and amendments accepted by parent; T2 accounting is committed. T3/T4 corrective checkpoints and the T5 source-rhythm checkpoint are recorded, while real-song tuning and G2 remain gated.
+Status: T1/G1 source capture and amendments accepted by parent; T2 accounting is committed. T3/T4 corrective checkpoints, the continued T5 source-rhythm checkpoint, and a partial T6 sounding-limit checkpoint are recorded, while real-song tuning and G2 remain gated.
 
 ## Execution boundary
 
@@ -106,7 +106,9 @@ Verification after T4: full player-core `15 files / 200 tests PASS`; focused `me
 
 ## T5 source-rhythm and complete-phrase checkpoint
 
-Commit `de9cfd0` adds the missing no-chart source-reduction path and fixes the source-index mapping used by attack grouping. When there are no chord events, no unresolved review span, and dense non-melody source support is available, the producer retains the selected melody, keeps source attack timing, caps each attack at three support tones, and removes the redundant support events. It does not invent harmony or quantize rests.
+The parent accepted `de9cfd0` as a partial density/silence fix, not as T5 completion. Commit `55690fb` continues that checkpoint with exact synthetic fixtures for syncopated/pickup source attacks, repeated protected hooks, redundant source stacks, repeated chart chords, off-grid changes, 3/4-like, 6/8-like and unknown-meter grids. Local partial-chart gaps and one uncertain no-chart interval now reduce independently; a single global unresolved span no longer disables unrelated no-chart intervals. Exact repeated source stacks are reduced after their first attack, while broader motif protection still depends on explicit phrase selection.
+
+The sparse harmonic candidate now emits one supported attack at each distinct adjacent harmonic boundary. Adjacent repeated chart chords do not receive an unconditional quarter-note pattern, and off-grid chord changes remain off-grid. `generatedNoteCount` and `generatedBeats` are measured from rendered events after sounding-limit filtering.
 
 The complete dense synthetic phrase has this exact structural output:
 
@@ -120,9 +122,25 @@ support starts: 0,0,0,1,1,1,2,2,2
 
 Phrase planning now splits at confirmed/uncertain spans, fallback spans, and chord-planning event boundaries. The regression with notes only at the edges of `[1,3]` confirms that an empty midpoint is not enough to call a phrase `silence`; the phrase remains `original` when either its source or output overlaps the interval.
 
-T4 harmonic evidence remains separately bounded: `packages/midi/test/piano-accompaniment.test.ts` includes `keeps protected melody out of inferred left-hand evidence` and `measures generated left-hand notes without counting protected right-hand notes`; both pass in the full MIDI `17 files / 395 tests` run. The generated backing path therefore does not reuse protected melody as notes-derived harmony evidence.
+T4 harmonic evidence remains separately bounded. `buildMelodyAccompaniment` consumes a supplied chord timeline and does not infer harmony from its selected melody; the producer-level regression confirms that a missing chart returns no generated chords. The actual notes-derived catalog caller is `buildSectionAwarePianoCandidate`: it runs `splitPianoRoles`, passes `primaryRoles.accompaniment` into `simplifyPianoAccompaniment`, and only then unions the protected melody into the output. The catalog regression `passes only role-separated accompaniment into notes-derived harmony` asserts that the harmony input count is exactly the accompaniment count, not the full melody-plus-accompaniment stream. The existing MIDI tests `keeps protected melody out of inferred left-hand evidence` and `measures generated left-hand notes without counting protected right-hand notes` remain passing. This is caller/data-flow evidence, not musical harmony acceptance.
 
-Verification after T5: full player-core `15 files / 201 tests PASS`; focused `melody-accompaniment` `29/29`; full MIDI `17 files / 395 tests PASS`; focused catalog piano-section-builder `9 tests PASS`; MIDI/player-core/catalog typechecks pass. This checkpoint is synthetic and structural. It does not establish syncopation, pickup, 3/4, 6/8, total sounding playability, recognizability, harmonic plausibility, UI status correctness, real-song usefulness, or musical acceptance.
+## Full development-fixture structural comparison
+
+The current producer was run over the complete frozen Blackbird, Oops, and Hell development fixtures with their Player-equivalent normalized durations and automatic selection. These are exact source/output accounting and phrase-status comparisons, not listening results:
+
+| Fixture | Source → output notes | Changed / unchanged / silent beats | Review beats | Phrases; changed phrases | Strategy counts (`source-reduction`, `harmonic-backing`, `original`, `silence`) |
+|---|---:|---:|---:|---:|---|
+| Blackbird | 1,069 → 1,037 | 20.25 / 269.75 / 6.00 | 21.50 | 130; 25 | 114 / 0 / 15 / 1 |
+| Oops | 1,891 → 1,344 | 96.50 / 183.625 / 55.875 | 44.375 | 361; 253 | 282 / 12 / 60 / 7 |
+| Hell | 1,130 → 1,109 | 12.875 / 301.875 / 37.25 | 22.50 | 188; 37 | 139 / 2 / 45 / 2 |
+
+The output also retained explicit fallback/unresolved provenance: Blackbird 87 fallback spans and 20 unresolved spans; Oops 222 fallback spans and 54 unresolved spans; Hell 140 fallback spans and 27 unresolved spans. The increased structural reduction and sparse backing counts are not a success score; no automatic melody gold, harmonic review, playability review, or human musical acceptance exists for these fixtures.
+
+## T6 sounding-limit checkpoint
+
+The current T6 work adds a shared post-projection sounding pass. It preserves selected melody events, drops accompaniment before exceeding three simultaneously sounding notes per physical hand or a 12-semitone active span, removes same-pitch melody/support collisions, records `sounding limit exceeded`, and reports source/generated counts after the drops. Synthetic tests cover held overlap and same-pitch collision; the full voicing, pedal, low-register, and no-feasible-allocation matrix remains open.
+
+Verification for the continued T5/T6 checkpoint: focused player-core `41/41`, full player-core `15 files / 213 tests PASS`, full MIDI `17 files / 395 tests PASS`, focused catalog piano-section-builder `10/10`, full catalog `120 files / 1,103 tests PASS`, focused web SoundControls `2/2`, full web `35 files / 202 tests PASS`, and all four workspace typechecks pass. These are synthetic and structural checks. They do not establish syncopation, pickup, 3/4, 6/8, total sounding playability, recognizability, harmonic plausibility, UI status correctness, real-song usefulness, or musical acceptance.
 
 ## Reserved evaluation set
 
