@@ -335,12 +335,12 @@ it("allows an explicit melody rest without deleting the backing", () => {
 **Produces:** Timed supported harmony and reasoned unsupported intervals.
 
 - [x] Add fixtures for C5, C7/E, Cmaj7/G, add9, NC, chart gap, wrong timing, unknown harmony and a melody held across a chord change.
-- [x] Exclude protected melody from notes-derived harmonic evidence. Preserve explicit quality and slash bass from supported chart sources.
+- [ ] Prove protected melody exclusion in the actual seed/YouTube notes-derived pipeline. Preserve explicit quality and slash bass from supported chart sources; generic v2 tests are not runtime proof.
 - [x] Split planning intervals at uncertainty boundaries; preserve notes crossing boundaries exactly once. Do not trim protected melody to satisfy a planner interval.
 - [x] Verify a 0.3-beat ambiguity inside a 16-beat event does not mechanically mark all 16 beats unavailable; any musical phrase expansion must have a recorded reason.
 - [x] Test source reduction without chart separately from generated harmonic backing. Run focused parser/accompaniment tests and commit.
 
-T4 evidence: `a8943bb`, `0a37afd`, and `packages/player-core/test/melody-accompaniment.test.ts`; the full player-core suite was 200 passing tests before the T5 additions. The T4 output remains structural and local; no UI success state or musical acceptance is inferred.
+T4 evidence: `a8943bb`, `0a37afd`, and `packages/player-core/test/melody-accompaniment.test.ts`; the actual fallback origin is `packages/catalog/src/ingest.ts` → `packages/midi/src/simplify.ts:buildVariants/chordsAt` → `notes.json.chords` → `packages/catalog/src/chord-timeline.ts:generatedTimeline`. The current producer-level and generic MIDI tests do not prove selected-melody exclusion in that seed/YouTube path, so the harmony item remains open. The T4 output remains structural and local; no UI success state or musical acceptance is inferred.
 
 ### T5 — Build coherent backing rhythm candidates (2–3 days)
 
@@ -350,12 +350,12 @@ T4 evidence: `a8943bb`, `0a37afd`, and `packages/player-core/test/melody-accompa
 
 - [x] Add fixtures for syncopated source bass, repeated defining hook, redundant repeated chords, a pickup, 3/4, 6/8, unknown meter and an off-grid chord change.
 - [ ] Implement source attack selection that reduces repeated filler/doubling without quantizing protected gestures or filling rests.
-- [x] Implement one sparse harmonic alternative using supported structural attacks; meter-based gestures require known phase. Delete the unconditional quarter-note approximation from the new default path once covered.
+- [x] Implement one phase-aware sparse harmonic alternative using supported structural attacks; meter-based gestures require known phase and are supplied from the Player time signature. Delete the unconditional quarter-note approximation from the new default path once covered.
 - [ ] Select a coherent strategy using explicit evidence and playability checks, not whichever deletes the most notes. A simple original may correctly win unchanged.
 - [x] Compare full Oops and Blackbird development phrases against Original with the same automatic melody selection; record source-reduction and harmonic-backing strategy counts separately before broader integration.
 - [x] Run focused rhythm regressions and commit. If neither strategy produces useful phrasing, mark this gate failed rather than adding a menu of patterns.
 
-T5 checkpoint evidence: `de9cfd0` is the accepted partial density/silence checkpoint; `55690fb` continues it. The new exact synthetic timing fixtures cover syncopated/pickup source attacks, repeated protected hooks, redundant source stacks, repeated chart chords, off-grid changes, 3/4-like, 6/8-like and unknown-meter grids; local partial-chart gaps and one uncertain no-chart interval are covered without global reduction suppression. `sparseHarmonicSupportNotes` emits one supported attack at each distinct adjacent harmonic boundary and never resets a quarter-note pulse. The original repeated filler/doubling task remains unchecked: exact repeated source stacks are reduced, but broader motif protection still depends on explicit phrase selection and needs reviewed musical coverage. T6 now has held-overlap and same-pitch collision regressions; the full sounding-limit and voicing gate remains open.
+T5 checkpoint evidence: `de9cfd0` is the accepted partial density/silence checkpoint; `55690fb` continues it, and `ca839b0` adds the Player-supplied phase-aware sparse candidate. The exact timing fixtures cover syncopated/pickup source attacks, repeated protected hooks, redundant source stacks, repeated chart chords, off-grid changes, 3/4, 6/8, unknown meter, and phase-locked sparse starts. Local partial-chart gaps and one uncertain no-chart interval are covered without global reduction suppression. `sparseHarmonicSupportNotes` retains the harmonic boundary and adds at most two global phase attacks per complete measure when a validated time signature exists; with unknown meter it remains source/boundary-timed. The original repeated filler/doubling task and coherent strategy selection remain unchecked: exact repeated source stacks are reduced, but broader motif protection and full-phrase strategy usefulness still need reviewed musical coverage.
 
 ### T6 — Voice and enforce total sounding playability (2–3 days)
 
@@ -364,11 +364,13 @@ T5 checkpoint evidence: `de9cfd0` is the accepted partial density/silence checkp
 **Produces:** Final role-labelled Note events with physical hands and diagnostics.
 
 - [x] Add a held-overlap test where each onset has only two notes but four sound together; the output must satisfy total sounding limits or explicitly retain the phrase.
+- [x] Add interval-local sounding enforcement that counts melody and retained-unclassified notes, trims support with source lineage, and reports the rejected span.
+- [x] Add same-pitch and retained-unclassified overlap regressions, plus a late collision where earlier held support must survive.
 - [ ] Add same-pitch melody/support collision, low dense chord, extended shell, slash bass, cross-hand melody and no-feasible-allocation fixtures.
 - [ ] Enumerate a bounded set of existing chord voicing candidates; select valid candidates with least prior-voicing movement. Use finite deterministic tie-breaks.
 - [ ] Sweep note boundaries including held support. Drop/revoice/shorten support before rejecting a phrase; preserve selected melody values exactly. Account for same-pitch note-off behavior and existing pedal semantics.
 - [ ] Apply accompaniment velocity policy and verify synth, sampler and organ receive it where supported. Record instrument limitations instead of assuming MIDI velocity ensures balance.
-- [x] Run focused tests and commit. Parent reviews sound and event traces together.
+- [x] Run focused tests and commit. `ca839b0` passes focused player-core `47/47`, focused MIDI `120/120`, and the full workspace suite/typechecks; parent reviews sound and event traces together.
 
 **Gate G3 — musical pilot:** Before investing in full UI, compare complete Original/candidate phrases using section 8. Require actual useful backing change in Oops verse/chorus and a Blackbird phrase, plus no critical melody regressions. Record human listening as pending if no reviewer is available; independent UI/accounting work may continue, but do not mark the musical gate passed. A release for user testing remains explicitly experimental.
 
