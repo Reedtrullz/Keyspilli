@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { join } from "node:path";
 import { readFileSync, writeFileSync } from "node:fs";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { openPlayerTool } from "./player-tools";
 
 const SONG_ID = "the-beatles-blackbird-a-scratch";
@@ -23,6 +23,61 @@ type AudioProbeWindow = Window & {
   __keyspilliAudioStart: () => Promise<void>;
   __keyspilliAudioStop: () => Promise<AudioCapture>;
 };
+
+type MelodyArrangementTrace = {
+  phase: string;
+  execution: string;
+  noteCount: number;
+  key?: string;
+  error?: string;
+};
+
+type MelodyTraceWindow = Window & {
+  __keyspilliMelodyArrangementTraceEvents: MelodyArrangementTrace[];
+};
+
+async function installMelodyTrace(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const target = window as unknown as MelodyTraceWindow & {
+      __keyspilliMelodyArrangementTrace: (event: MelodyArrangementTrace) => void;
+    };
+    target.__keyspilliMelodyArrangementTraceEvents = [];
+    target.__keyspilliMelodyArrangementTrace = (event) => target.__keyspilliMelodyArrangementTraceEvents.push(event);
+  });
+}
+
+async function installWorkerConstructorFailure(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const target = window as unknown as Window & { __keyspilliOriginalWorker?: typeof Worker };
+    target.__keyspilliOriginalWorker = window.Worker;
+    const failure = function WorkerConstructorFailure(): never {
+      throw new Error("e2e worker constructor failure");
+    };
+    Object.defineProperty(window, "Worker", { configurable: true, value: failure });
+  });
+}
+
+async function restoreWorkerConstructor(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const target = window as unknown as Window & { __keyspilliOriginalWorker?: typeof Worker };
+    if (target.__keyspilliOriginalWorker) Object.defineProperty(window, "Worker", { configurable: true, value: target.__keyspilliOriginalWorker });
+  });
+}
+
+async function installResumePolicyOverride(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const originalPostMessage = Worker.prototype.postMessage;
+    Worker.prototype.postMessage = function (message: unknown, ...rest: unknown[]) {
+      if (message && typeof message === "object" && "options" in message) {
+        const request = message as { options?: Record<string, unknown> };
+        if (request.options) {
+          message = { ...request, options: { ...request.options, soundingPolicy: "resume" } };
+        }
+      }
+      return Reflect.apply(originalPostMessage, this, [message, ...rest]);
+    };
+  });
+}
 
 async function installAudioProbe(page: Page): Promise<void> {
   await page.addInitScript(() => {
@@ -143,12 +198,20 @@ function fundamentalMidis(capture: AudioCapture, endSeconds = Number.POSITIVE_IN
   return [...new Set(capture.events.filter((event) => event.type === "triangle" && event.midi !== null && event.relativeWhen < endSeconds).map((event) => event.midi as number))].sort((a, b) => a - b);
 }
 
-async function selectArrangement(page: Page, mode: "Original arrangement" | "Chord mode", melody?: "Automatic melody" | "Use right-hand part"): Promise<void> {
+async function selectArrangement(
+  page: Page,
+  mode: "Original arrangement" | "Chord mode",
+  melody?: "Automatic melody" | "Use right-hand part",
+  options: { waitForArrangement?: boolean } = {},
+): Promise<void> {
   await openPlayerTool(page, "Sound");
   const dialog = page.getByRole("dialog", { name: "Sound settings" });
   await dialog.getByRole("radio", { name: mode, exact: true }).click();
   if (melody) await dialog.getByRole("radio", { name: melody, exact: true }).click();
   await dialog.getByRole("button", { name: "Close tools", exact: true }).click();
+  if (mode === "Chord mode" && options.waitForArrangement !== false) {
+    await expect(page.getByTestId("melody-accompaniment-status")).toContainText(melody === "Use right-hand part" ? "User melody" : "Inferred melody");
+  }
 }
 
 async function bootAudio(page: Page): Promise<void> {
@@ -156,6 +219,26 @@ async function bootAudio(page: Page): Promise<void> {
   await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
   await page.waitForTimeout(100);
   await page.getByRole("button", { name: "Pause", exact: true }).click();
+}
+
+async function capturePreviewRole(
+  page: Page,
+  testInfo: { outputPath: (path: string) => string },
+  dialog: Locator,
+  role: "Full" | "Melody" | "Accompaniment",
+  label: string,
+): Promise<AudioCapture & { sha256: string }> {
+  await page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStart());
+  await dialog.getByRole("button", { name: role, exact: true }).click();
+  await page.waitForTimeout(2_200);
+  const capture = await page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStop());
+  const audio = Buffer.from(capture.base64, "base64");
+  saveCapture(testInfo, label, capture, audio);
+  return { ...capture, sha256: createHash("sha256").update(audio).digest("hex") };
+}
+
+async function melodyTrace(page: Page): Promise<MelodyArrangementTrace[]> {
+  return page.evaluate(() => (window as unknown as MelodyTraceWindow).__keyspilliMelodyArrangementTraceEvents);
 }
 
 test.beforeEach(async ({ context }) => {
@@ -207,7 +290,7 @@ test("real artifact produces, previews, plays, corrects, and reloads melody supp
   });
   expect(sidecar?.sourceFingerprint).toContain("variant:the-beatles-blackbird:a:");
   expect(sidecar?.provenance?.sourceSupportNoteCount).toBeGreaterThan(0);
-  expect(sidecar?.provenance?.generatedNoteCount).toBe(0);
+  expect(sidecar?.provenance?.generatedNoteCount).toBeGreaterThan(0);
 
   await dialog.getByRole("button", { name: "Preview arrangement", exact: true }).click();
   await page.getByRole("button", { name: "Play", exact: true }).click();
@@ -222,8 +305,143 @@ test("real artifact produces, previews, plays, corrects, and reloads melody supp
   await expect(reloadedDialog.getByTestId("melody-accompaniment-controls")).toBeVisible();
   await expect(reloadedDialog.getByRole("radio", { name: "Use right-hand part", exact: true })).toHaveAttribute("aria-checked", "true");
   await expect(page.getByTestId("melody-accompaniment-status")).toContainText("User melody");
-  expect(pageErrors).toEqual([]);
-  expect(consoleErrors).toEqual([]);
+  await reloadedDialog.getByRole("button", { name: "Reset saved selection", exact: true }).click();
+  await expect(reloadedDialog.getByRole("radio", { name: "Automatic melody", exact: true })).toHaveAttribute("aria-checked", "true");
+  expect(await page.evaluate((key) => localStorage.getItem(key), SIDECAR_KEY)).toBeNull();
+  await reloadedDialog.getByRole("button", { name: "Close tools", exact: true }).click();
+  await page.reload();
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+  await openPlayerTool(page, "Sound");
+  const resetDialog = page.getByRole("dialog", { name: "Sound settings" });
+  await expect(resetDialog.getByRole("radio", { name: "Automatic melody", exact: true })).toHaveAttribute("aria-checked", "true");
+  await expect(page.getByTestId("melody-accompaniment-status")).toContainText("Inferred melody");
+  expect(pageErrors, pageErrors.join("\n")).toEqual([]);
+  expect(consoleErrors, consoleErrors.join("\n")).toEqual([]);
+});
+
+test("browser trace keeps Original and large arrangements off the main-thread producer", async ({ page }) => {
+  await installMelodyTrace(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/player/${SONG_ID}`);
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+
+  let traces = await melodyTrace(page);
+  expect(traces.some((event) => event.phase === "source-view" && event.execution === "source")).toBe(true);
+  expect(traces.some((event) => event.phase === "sync-start")).toBe(false);
+
+  await selectArrangement(page, "Chord mode", "Automatic melody");
+  await expect(page.getByTestId("melody-accompaniment-status")).toContainText("Inferred melody");
+  traces = await melodyTrace(page);
+  expect(traces.some((event) => event.phase === "worker-request" && event.execution === "worker")).toBe(true);
+  expect(traces.some((event) => event.phase === "worker-ready" && event.execution === "worker")).toBe(true);
+  expect(traces.some((event) => event.phase === "sync-start")).toBe(false);
+});
+
+test("role audition renders three audible stems and preserves A/B position", async ({ page }, testInfo) => {
+  await installAudioProbe(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/player/${SONG_ID}`);
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+  await selectArrangement(page, "Chord mode", "Automatic melody");
+  await bootAudio(page);
+
+  const seek = page.getByLabel("Seek");
+  await seek.fill("2");
+  const positionBefore = await seek.inputValue();
+  await openPlayerTool(page, "Sound");
+  const dialog = page.getByRole("dialog", { name: "Sound settings" });
+  await expect(dialog.getByTestId("melody-audition-controls")).toBeVisible();
+
+  const full = await capturePreviewRole(page, testInfo, dialog, "Full", "blackbird-preview-full");
+  const melody = await capturePreviewRole(page, testInfo, dialog, "Melody", "blackbird-preview-melody");
+  const accompaniment = await capturePreviewRole(page, testInfo, dialog, "Accompaniment", "blackbird-preview-accompaniment");
+  for (const capture of [full, melody, accompaniment]) audible(capture);
+  expect(new Set([full.sha256, melody.sha256, accompaniment.sha256]).size).toBeGreaterThan(1);
+  expect(await seek.inputValue()).toBe(positionBefore);
+
+  await dialog.getByRole("button", { name: "Close tools", exact: true }).click();
+  await selectArrangement(page, "Original arrangement");
+  await expect.poll(() => seek.inputValue()).toBe(positionBefore);
+  await selectArrangement(page, "Chord mode", "Automatic melody");
+  await expect.poll(() => seek.inputValue()).toBe(positionBefore);
+});
+
+test("worker constructor failure retains real Original audio, retries, and clears on mode change", async ({ page }, testInfo) => {
+  await installAudioProbe(page);
+  await installMelodyTrace(page);
+  await installWorkerConstructorFailure(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/player/${SONG_ID}`);
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+  await selectArrangement(page, "Chord mode", "Automatic melody", { waitForArrangement: false });
+  const error = page.getByTestId("melody-accompaniment-error");
+  await expect(error).toContainText("Original playback is retained");
+  await expect(error.getByRole("button", { name: "Retry arrangement", exact: true })).toBeVisible();
+  expect((await melodyTrace(page)).some((event) => event.phase === "worker-error" && event.error?.includes("constructor failure"))).toBe(true);
+
+  await bootAudio(page);
+  const fallback = await captureArrangement(page, testInfo, "worker-failure-original-fallback", 1, 1_200);
+  audible(fallback);
+  await error.getByRole("button", { name: "Retry arrangement", exact: true }).click();
+  await expect(error).toContainText("Original playback is retained");
+
+  await selectArrangement(page, "Original arrangement");
+  await expect(page.getByTestId("melody-accompaniment-error")).toHaveCount(0);
+  await selectArrangement(page, "Chord mode", "Automatic melody", { waitForArrangement: false });
+  await expect(page.getByTestId("melody-accompaniment-error")).toContainText("Original playback is retained");
+  await restoreWorkerConstructor(page);
+  await page.getByTestId("melody-accompaniment-error").getByRole("button", { name: "Retry arrangement", exact: true }).click();
+  await expect(page.getByTestId("melody-accompaniment-status")).toContainText("Inferred melody");
+  await expect(page.getByTestId("melody-accompaniment-error")).toHaveCount(0);
+});
+
+test("complete Oops phrase captures Original, coherent and resume candidates with the same synth", async ({ page }, testInfo) => {
+  test.setTimeout(180_000);
+  await installAudioProbe(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/player/${OOPS_SONG_ID}`);
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+  await selectArrangement(page, "Original arrangement");
+  await bootAudio(page);
+  const startSeconds = 64 * 60 / 95 - 0.5;
+  const durationMs = Math.ceil((108 - 64) * 60 / 95 * 1000 + 1_000);
+  const original = await captureArrangement(page, testInfo, "oops-section-2-original", startSeconds, durationMs);
+  audible(original);
+
+  await selectArrangement(page, "Chord mode", "Automatic melody");
+  await expect(page.getByTestId("melody-accompaniment-status")).toContainText("Inferred melody");
+  const coherent = await captureArrangement(page, testInfo, "oops-section-2-coherent", startSeconds, durationMs);
+  audible(coherent);
+
+  const resumePage = await page.context().newPage();
+  try {
+    await installAudioProbe(resumePage);
+    await installResumePolicyOverride(resumePage);
+    await resumePage.setViewportSize({ width: 1440, height: 900 });
+    await resumePage.goto(`/player/${OOPS_SONG_ID}`);
+    await expect(resumePage.getByLabel("Falling notes player")).toBeVisible();
+    await selectArrangement(resumePage, "Chord mode", "Automatic melody");
+    await expect(resumePage.getByTestId("melody-accompaniment-status")).toContainText("Inferred melody");
+    await bootAudio(resumePage);
+    const resume = await captureArrangement(resumePage, testInfo, "oops-section-2-resume", startSeconds, durationMs);
+    audible(resume);
+    expect(coherent.sha256).not.toBe(original.sha256);
+    expect(resume.sha256).not.toBe(coherent.sha256);
+    expect(coherent.events.length).toBeLessThan(resume.events.length);
+    writeFileSync(testInfo.outputPath("oops-section-2-audio-comparison.json"), JSON.stringify({
+      sourceFingerprint: "variant:britney-spears-oops-i-did-it-again:a:britney-spears-oops-i-did-it-again-a:64d18aa4c23f7625a6eb0a7a234843a7a2278003d75cba9ea04efde7d8225ad4:notes:84153b6de3857351ce92086c8f5a28f9147073070948ed96fd39e6d6f8f212ae",
+      window: { startBeat: 64, endBeat: 108, bpm: 95 },
+      instrument: "browser AudioEngine synth",
+      candidates: {
+        original: { sha256: original.sha256, bytes: original.bytes, events: original.events.length, signal: original.signal },
+        coherent: { sha256: coherent.sha256, bytes: coherent.bytes, events: coherent.events.length, signal: coherent.signal },
+        resume: { sha256: resume.sha256, bytes: resume.bytes, events: resume.events.length, signal: resume.signal },
+      },
+      humanListening: "pending",
+    }, null, 2));
+  } finally {
+    await resumePage.close();
+  }
 });
 
 test("real audio events cover mode, hand filtering, seek, transpose, correction, and practice flow", async ({ page }, testInfo) => {
@@ -270,8 +488,7 @@ test("real audio events cover mode, hand filtering, seek, transpose, correction,
   let dialog = page.getByRole("dialog", { name: "Sound settings" });
   await dialog.getByRole("radio", { name: "Chord mode", exact: true }).click();
   await dialog.getByRole("radio", { name: "Automatic melody", exact: true }).click();
-  const expectedHellAmbiguity = process.env.KEYSPILLI_T1_MODE === "1" ? "18.5–19.8 beats" : "19.3–20.6 beats";
-  await expect(page.getByTestId("melody-accompaniment-ambiguity")).toContainText(expectedHellAmbiguity);
+  await expect(page.getByTestId("melody-accompaniment-ambiguity")).toContainText(process.env.KEYSPILLI_T1_MODE === "1" ? "18.5–19.8 beats" : "19.4–20.4 beats");
   await dialog.getByRole("button", { name: "Close tools", exact: true }).click();
   await bootAudio(page);
 

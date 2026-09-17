@@ -4,6 +4,22 @@ export const MELODY_WORKER_NOTE_THRESHOLD = 256;
 
 export type MelodyArrangementExecution = "source" | "sync" | "worker";
 
+export type MelodyArrangementTrace = {
+  phase: "source-view" | "sync-start" | "sync-complete" | "worker-create" | "worker-request" | "worker-ready" | "worker-error";
+  execution: MelodyArrangementExecution;
+  noteCount: number;
+  key?: string;
+  error?: string;
+};
+
+/** Optional browser instrumentation used by the disposable E2E harness. */
+export function traceMelodyArrangement(event: MelodyArrangementTrace): void {
+  const hook = (globalThis as unknown as {
+    __keyspilliMelodyArrangementTrace?: (event: MelodyArrangementTrace) => void;
+  }).__keyspilliMelodyArrangementTrace;
+  if (typeof hook === "function") hook(event);
+}
+
 /** Keep the producer off the render path for Original and large arrangements. */
 export function melodyArrangementExecution(
   noteCount: number,

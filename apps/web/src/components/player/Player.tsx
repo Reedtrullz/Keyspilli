@@ -47,7 +47,7 @@ import { FallingCanvas } from "./FallingCanvas";
 import { ChordStrip } from "./ChordStrip";
 import { ChordPracticePanel } from "./ChordPracticePanel";
 import { buildChordPracticeTargets, selectPracticeChords } from "./chord-practice";
-import { melodyArrangementExecution, MELODY_WORKER_NOTE_THRESHOLD } from "./melody-arrangement-runtime";
+import { melodyArrangementExecution, MELODY_WORKER_NOTE_THRESHOLD, traceMelodyArrangement } from "./melody-arrangement-runtime";
 import { BeginnerView } from "./BeginnerView";
 import { LeadSheetView } from "./LeadSheetView";
 import { SheetMusicView } from "./SheetMusicView";
@@ -513,8 +513,22 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     [arrangementEnd, chords, initial.data.notes, melodySelection, melodySourceFingerprint],
   );
   const synchronousMelodyArrangement = useMemo<MelodyAccompanimentResolution>(() => {
-    if (melodyArrangementExecutionMode !== "sync") return sourceMelodyView;
-    return buildMelodyAccompaniment(initial.data.notes, chords, {
+    if (melodyArrangementExecutionMode !== "sync") {
+      traceMelodyArrangement({
+        phase: "source-view",
+        execution: melodyArrangementExecutionMode,
+        noteCount: initial.data.notes.length,
+        key: melodyArrangementRequestKeyValue,
+      });
+      return sourceMelodyView;
+    }
+    traceMelodyArrangement({
+      phase: "sync-start",
+      execution: "sync",
+      noteCount: initial.data.notes.length,
+      key: melodyArrangementRequestKeyValue,
+    });
+    const resolution = buildMelodyAccompaniment(initial.data.notes, chords, {
       durationBeats: arrangementEnd,
       sourceFingerprint: melodySourceFingerprint,
       selection: melodySelection,
@@ -522,50 +536,66 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       soundingPolicy: "coherent-phrase",
       phraseOverrides: melodyPhraseOverrides,
     });
-  }, [arrangementEnd, chords, initial.data.notes, melodyArrangementExecutionMode, melodyPhraseOverrides, melodySelection, melodySourceFingerprint, sourceMelodyView]);
+    traceMelodyArrangement({
+      phase: "sync-complete",
+      execution: "sync",
+      noteCount: initial.data.notes.length,
+      key: melodyArrangementRequestKeyValue,
+    });
+    return resolution;
+  }, [arrangementEnd, chords, initial.data.notes, melodyArrangementExecutionMode, melodyArrangementRequestKeyValue, melodyPhraseOverrides, melodySelection, melodySourceFingerprint, sourceMelodyView]);
   const [workerMelodyArrangement, setWorkerMelodyArrangement] = useState<{ key: string; resolution: MelodyAccompanimentResolution } | null>(null);
-  const [workerState, setWorkerState] = useState<"idle" | "pending" | "ready" | "error">("idle");
-  const [workerError, setWorkerError] = useState<string | null>(null);
+  const [workerState, setWorkerState] = useState<{
+    key: string;
+    status: "pending" | "ready" | "error";
+    error?: string;
+  } | null>(null);
   const [workerRetry, setWorkerRetry] = useState(0);
   useEffect(() => {
     setWorkerMelodyArrangement(null);
-    setWorkerError(null);
+    setWorkerState(null);
     if (melodyArrangementExecutionMode !== "worker") {
-      setWorkerState(melodyArrangementRequested && initial.data.notes.length >= MELODY_WORKER_NOTE_THRESHOLD
-        ? "error"
-        : "idle");
       if (melodyArrangementRequested && initial.data.notes.length >= MELODY_WORKER_NOTE_THRESHOLD && !workerAvailable) {
-        setWorkerError("Background arrangement workers are unavailable; Original playback is retained.");
+        const error = "Background arrangement workers are unavailable; Original playback is retained.";
+        setWorkerState({ key: melodyArrangementRequestKeyValue, status: "error", error });
+        traceMelodyArrangement({ phase: "worker-error", execution: "source", noteCount: initial.data.notes.length, key: melodyArrangementRequestKeyValue, error });
       }
       return undefined;
     }
-    const worker = new Worker(new URL("../../workers/melody-accompaniment.worker.ts", import.meta.url), { type: "module" });
     let active = true;
     const requestId = Date.now() + Math.random();
-    setWorkerState("pending");
+    setWorkerState({ key: melodyArrangementRequestKeyValue, status: "pending" });
+    let worker: Worker;
+    const fail = (message: string) => {
+      if (!active) return;
+      setWorkerState({ key: melodyArrangementRequestKeyValue, status: "error", error: message });
+      traceMelodyArrangement({ phase: "worker-error", execution: "worker", noteCount: initial.data.notes.length, key: melodyArrangementRequestKeyValue, error: message });
+    };
+    try {
+      traceMelodyArrangement({ phase: "worker-create", execution: "worker", noteCount: initial.data.notes.length, key: melodyArrangementRequestKeyValue });
+      worker = new Worker(new URL("../../workers/melody-accompaniment.worker.ts", import.meta.url), { type: "module" });
+    } catch (error) {
+      fail(error instanceof Error ? error.message : "The background arrangement worker could not start; Original playback is retained.");
+      return () => { active = false; };
+    }
     worker.onmessage = (event: MessageEvent<{ requestId: number; requestKey: string; resolution?: MelodyAccompanimentResolution; error?: string }>) => {
       if (!active || event.data.requestId !== requestId || event.data.requestKey !== melodyArrangementRequestKeyValue) return;
       if (event.data.error) {
-        setWorkerState("error");
-        setWorkerError(event.data.error);
+        fail(event.data.error);
         return;
       }
       if (!event.data.resolution) {
-        setWorkerState("error");
-        setWorkerError("The background arrangement returned no result; Original playback is retained.");
+        fail("The background arrangement returned no result; Original playback is retained.");
         return;
       }
       setWorkerMelodyArrangement({ key: event.data.requestKey, resolution: event.data.resolution });
-      setWorkerState("ready");
-    };
-    const fail = (message: string) => {
-      if (!active) return;
-      setWorkerState("error");
-      setWorkerError(message);
+      setWorkerState({ key: melodyArrangementRequestKeyValue, status: "ready" });
+      traceMelodyArrangement({ phase: "worker-ready", execution: "worker", noteCount: initial.data.notes.length, key: melodyArrangementRequestKeyValue });
     };
     worker.onerror = () => fail("The background arrangement failed; Original playback is retained.");
     worker.onmessageerror = () => fail("The background arrangement response was invalid; Original playback is retained.");
     try {
+      traceMelodyArrangement({ phase: "worker-request", execution: "worker", noteCount: initial.data.notes.length, key: melodyArrangementRequestKeyValue });
       worker.postMessage({
         requestId,
         requestKey: melodyArrangementRequestKeyValue,
@@ -591,13 +621,15 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   const workerResolution = workerMelodyArrangement?.key === melodyArrangementRequestKeyValue
     ? workerMelodyArrangement.resolution
     : null;
+  const activeWorkerState = workerState?.key === melodyArrangementRequestKeyValue ? workerState : null;
+  const workerError = activeWorkerState?.error ?? null;
   const melodyArrangement = workerResolution ?? synchronousMelodyArrangement;
   const melodyArrangementPending = melodyArrangementWorkerRequired
     && melodyArrangementExecutionMode === "worker"
     && workerResolution === null
-    && workerState !== "error";
+    && activeWorkerState?.status !== "error";
   const melodyArrangementFailed = melodyArrangementWorkerRequired
-    && (melodyArrangementExecutionMode === "source" || workerState === "error");
+    && (melodyArrangementExecutionMode === "source" || activeWorkerState?.status === "error");
   const accompaniment = useMemo(
     () => {
       if (settings.backgroundMode !== "chord") {
@@ -1228,7 +1260,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
         phraseOverrides: melodyPhraseOverrides,
         // The cached provenance is informational only; the current producer
         // result is recomputed by the sync or worker path for this selection.
-        provenance: { ...melodyArrangement.provenance, selection },
+        provenance: { ...melodyArrangement.provenance, selection, selectionProvenance: "user-confirmed" },
       } satisfies MelodySelectionSidecar);
       setMelodySelectionSaved(true);
     }
@@ -1538,7 +1570,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
               </span>
               {melodyArrangementFailed && (
                 <div className="basis-full flex items-center gap-2 text-xs text-amber-800" data-testid="melody-accompaniment-error" role="alert">
-                  <span>{workerError ?? "Original playback remains available."}</span>
+                  <span>{workerError ? `${workerError}${workerError.includes("Original playback") ? "" : " Original playback is retained."}` : "Original playback remains available."}</span>
                   <button type="button" className="min-h-8 rounded-md border border-amber-300 bg-white px-2" onClick={() => setWorkerRetry(value => value + 1)}>Retry arrangement</button>
                 </div>
               )}

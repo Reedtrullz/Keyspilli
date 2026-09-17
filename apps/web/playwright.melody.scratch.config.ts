@@ -16,6 +16,14 @@ const fixtures = [
     acquiredVia: "midi-file",
   },
   {
+    baseId: "britney-spears-oops-i-did-it-again",
+    title: "Oops!... I Did It Again",
+    artist: "Britney Spears",
+    category: "Scratch full-phrase comparison artifact",
+    contentType: "standard",
+    acquiredVia: "midi-file",
+  },
+  {
     baseId: "aria-ellys-music-the-warning-hell-you-call-a-dream-piano-cover-by-aria-ellys-mslzwo1d",
     title: "Hell You Call a Dream",
     artist: "The Warning",
