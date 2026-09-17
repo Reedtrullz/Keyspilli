@@ -3,6 +3,7 @@ import type { ChordLabel, Note } from "@keyspilli/midi";
 
 type ArrangementRequest = {
   requestId: number;
+  requestKey: string;
   sourceNotes: readonly Note[];
   chordTimeline: readonly ChordLabel[];
   options: MelodyAccompanimentOptions;
@@ -19,10 +20,11 @@ scope.onmessage = (event) => {
   const request = event.data;
   try {
     const resolution = buildMelodyAccompaniment(request.sourceNotes, request.chordTimeline, request.options);
-    scope.postMessage({ requestId: request.requestId, resolution });
+    scope.postMessage({ requestId: request.requestId, requestKey: request.requestKey, resolution });
   } catch (error) {
     scope.postMessage({
       requestId: request.requestId,
+      requestKey: request.requestKey,
       error: error instanceof Error ? error.message : String(error),
     });
   }

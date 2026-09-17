@@ -10,7 +10,7 @@
 
 **Spec:** Sections 1–8 below are the proposed product/technical specification; sections 9–14 are its executable work plan. This supersedes the musical acceptance and backing-generation portions of the 2026-09-16 useful-melody-accompaniment plan. Earlier evidence remains historical, not automatically valid against the new contract.
 
-**Status:** Proposed plan, 17 September 2026. No implementation started. Estimates are engineering effort ranges, not calendar or musical-quality promises.
+**Status:** Active implementation through the current branch head on 17 September 2026. Engineering portions of T5/T6/T7/T8 are implemented; G3 human listening, G2 source/musical review, remaining integration checks, merge and deployment are still pending. Estimates remain engineering effort ranges, not musical-quality promises.
 
 ## Global constraints
 
@@ -349,13 +349,13 @@ T4 evidence: `a8943bb`, `0a37afd`, and `packages/player-core/test/melody-accompa
 **Produces:** Source-reduction or harmonic-backing attack plan per phrase.
 
 - [x] Add fixtures for syncopated source bass, repeated defining hook, redundant repeated chords, a pickup, 3/4, 6/8, unknown meter and an off-grid chord change.
-- [ ] Implement source attack selection that reduces repeated filler/doubling without quantizing protected gestures or filling rests.
+- [x] Implement source attack selection that reduces repeated filler/doubling without quantizing protected gestures or filling rests. Coherent phrase trimming now avoids resumed attacks after rejected interior support intervals; source-supported attacks remain eligible.
 - [x] Implement one phase-aware sparse harmonic alternative using supported structural attacks; meter-based gestures require explicit validated source-measure phase. The current Player falls back to boundary/source timing when that provenance is unavailable. Delete the unconditional quarter-note approximation from the new default path once covered.
-- [ ] Select a coherent strategy using explicit evidence and playability checks, not whichever deletes the most notes. A simple original may correctly win unchanged.
+- [x] Select the coherent sounding candidate using explicit trim policy and playability checks, not whichever deletes the most notes. `coherent-phrase` is the build default; `resume` remains an explicit comparison candidate, and a simple original can still win unchanged. Musical usefulness is not accepted by this checkbox.
 - [x] Compare full Oops and Blackbird development phrases against Original with the same automatic melody selection; record source-reduction and harmonic-backing strategy counts separately before broader integration.
 - [x] Run focused rhythm regressions and commit. If neither strategy produces useful phrasing, mark this gate failed rather than adding a menu of patterns.
 
-T5 checkpoint evidence: `de9cfd0` is the accepted partial density/silence checkpoint; `55690fb` continues it, and `043dcf6` adds explicit phase provenance, meter-specific 4/4/3/4/6/8/2/4 gestures, and equivalent-segmentation invariance. The exact timing fixtures cover syncopated/pickup source attacks, repeated protected hooks, redundant source stacks, repeated chart chords, off-grid changes, 3/4, 6/8, unknown meter, phase offsets, and unknown provenance. `sparseHarmonicSupportNotes` retains the harmonic boundary and adds phase attacks only for an explicit validated source-measure boundary; the current Player therefore remains boundary/source-timed. The original repeated filler/doubling task, coherent strategy selection, and full-phrase musical usefulness remain unchecked: exact repeated source stacks are reduced, but broader motif protection and reviewed strategy usefulness still need coverage.
+T5 checkpoint evidence: `de9cfd0` is the accepted partial density/silence checkpoint; `55690fb` continues it, `043dcf6` adds explicit phase provenance/meter gestures and equivalent-segmentation invariance, and `7eabc7a` makes coherent phrase trimming the build default. `sparseHarmonicSupportNotes` retains the harmonic boundary and adds phase attacks only for an explicit validated source-measure boundary; the current Player therefore remains boundary/source-timed. Complete-phrase rendered comparisons at `4b82ed4` show Oops and Hell with fewer attacks and zero resumed re-attacks against the `resume` candidate; Blackbird is a no-difference control. These are engineering/PCM checks, not reviewed strategy usefulness or musical acceptance.
 
 ### T6 — Voice and enforce total sounding playability (2–3 days)
 
@@ -368,9 +368,9 @@ T5 checkpoint evidence: `de9cfd0` is the accepted partial density/silence checkp
 - [x] Add same-pitch and retained-unclassified overlap regressions, plus a late collision where earlier held support must survive.
 - [x] Add same-pitch melody/support collision, extended shell, slash bass, cross-hand melody and no-feasible-allocation fixtures; low dense chord coverage remains bounded by the existing held-overlap/hand-span tests.
 - [x] Enumerate a bounded set of existing chord voicing candidates; preserve supported bass/slash identity, reject duplicate pitch classes, and select valid candidates with prior-voicing motion and deterministic tie-breaks.
-- [ ] Sweep note boundaries including held support. Drop/revoice/shorten support before rejecting a phrase; preserve selected melody values exactly. Account for same-pitch note-off behavior and existing pedal semantics.
-- [ ] Apply accompaniment velocity policy and verify synth, sampler and organ receive it where supported. Record instrument limitations instead of assuming MIDI velocity ensures balance.
-- [x] Run focused tests and commit. `043dcf6` passes focused player-core `55/55`, full player-core `227`, full MIDI `396`, and the full workspace suite/typechecks; parent reviews sound and event traces together.
+- [x] Sweep note boundaries including held support. Drop/shorten support before rejecting a phrase; preserve selected melody values exactly, keep source lineage, and account for same-pitch note-off behavior. Sampler CC64 now follows shared pedal state; organ intentionally remains non-pedal.
+- [x] Apply accompaniment velocity policy and verify the ordinary synth, sampler and organ note paths receive it where supported. Source support is capped at `70`, generated backing uses `54`, and the sampler test verifies velocity-bearing starts plus CC64 synchronization; instrument balance still needs listening.
+- [x] Run focused tests and commit. Current focused melody `56/56`, sampler `3/3`, combined player-core `59/59`, and SoundControls `2/2` pass; player-core/web typechecks and web build pass. Parent reviews sound and event traces together.
 
 **Gate G3 — musical pilot:** Before investing in full UI, compare complete Original/candidate phrases using section 8. Require actual useful backing change in Oops verse/chorus and a Blackbird phrase, plus no critical melody regressions. Record human listening as pending if no reviewer is available; independent UI/accounting work may continue, but do not mark the musical gate passed. A release for user testing remains explicitly experimental.
 
@@ -381,11 +381,11 @@ T5 checkpoint evidence: `de9cfd0` is the accepted partial density/silence checkp
 
 - [ ] Write regressions proving every derived event reaches note playback once, no duplicate `playChord`, and displayed/practice pitches match audio after transpose/hand filters.
 - [ ] Project audio, Fall Down, letters, keyboard range and grading from the same result. Role audition uses event roles; practice hand filters use physical assignment.
-- [ ] Extend local selection storage with versioned phrase overrides and strict shape/source validation. Read old matching v1 whole-RH selection as a user preference only; recompute output, never trust cached v1 provenance as v2 evidence.
+- [x] Extend local selection storage with versioned phrase overrides and strict shape/source validation. Read old matching v1 whole-RH selection as a user preference only; recompute output, never trust cached v1 provenance as v2 evidence.
 - [ ] Change harmony source without changing melody selection; key result reuse by both melody identity and actual normalized harmony/timing inputs.
-- [ ] Compute derived output only when requested. Measure full-song cost on the largest frozen fixture and a mobile browser profile. Initial budget: no synchronous task over 50ms; if exceeded, move the same pure producer to a worker with cancellation/version tokens, not a second implementation.
+- [x] Add the same pure producer to a worker with cancellation/version tokens when a large arrangement is requested. The synchronous path is bounded at `255` notes; Node 22 warm medians on the frozen fixtures at `256` notes were Blackbird `40.4 ms`, Oops `19.8 ms`, and Hell `24.8 ms`, while full current inputs measured up to `787.3 ms`. Large requests render the source view while the worker runs, validate an exact input key, and expose retry/Original fallback on failure. A real mobile profile remains open.
 - [ ] Test seek, loop, pause/resume, mode switch, saved reload, corrupt storage, source edits and stale async responses. Preserve position, cancel old voices, resume held notes through existing engine semantics.
-- [ ] Run player-core/web tests and commit.
+- [x] Run player-core/web tests and commit. The current branch head contains the render-path guard, worker, v2 sidecar migration and role-audition integration.
 
 ### T8 — Make status, audition and correction understandable (1–2 days)
 
@@ -393,11 +393,11 @@ T5 checkpoint evidence: `de9cfd0` is the accepted partial density/silence checkp
 **Consumes:** phrase status, event roles, change summary, override persistence.
 
 - [ ] Add render tests for changed, already-simple, partial, unavailable and missing-chart states; no unbounded beat-range dump in primary UI.
-- [ ] Implement concise summary, native detail disclosure, phrase seek/loop and selection audition. Label whole-part selection honestly.
-- [ ] Implement Full/Melody/Accompaniment audition and same-position A/B. Report retained-unclassified audio rather than pretending to isolate it.
+- [x] Implement concise summary, native detail disclosure, phrase seek/loop and selection audition. Label whole-part selection honestly; phrase-level render coverage remains open.
+- [x] Implement Full/Melody/Accompaniment audition and same-position A/B. Report retained-unclassified audio rather than pretending to isolate it; browser listening remains pending.
 - [ ] Use existing tempo conversion for seconds. Add keyboard/focus/label checks and responsive verification at 390px and desktop.
 - [ ] Test clear reset and cross-variant invalidation. Confirm unsupported input still permits Original playback and preserves source data.
-- [ ] Commit after unit and isolated browser checks.
+- [x] Commit after unit/build checks. Isolated browser E2E and responsive/focus checks remain open.
 
 ### T9 — Independent evaluation and readiness review (1–3 days plus listening)
 

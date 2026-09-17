@@ -17,7 +17,7 @@ function event(id: string, noteValue: Note, sourceNoteIds: readonly string[] = [
 
 describe("melody arrangement change accounting", () => {
   it("does not count a hand-only reassignment as an audible change", () => {
-    const source = [note(60, 0, 1, 80, "R"), note(72, 0, 1, 100, "R")];
+    const source = [note(60, 0, 1, 70, "R"), note(72, 0, 1, 100, "R")];
     const result = buildMelodyAccompaniment(source, [{ beat: 0, name: "C", notes: [], durationBeats: 1 }], {
       durationBeats: 2,
       sourceFingerprint: "fixture-source-v2",
