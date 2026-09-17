@@ -5,17 +5,66 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import { openPlayerTool } from "./player-tools";
 
 const SONG_ID = "the-beatles-blackbird-a-scratch";
+const UG_SONG_ID = "the-theorist-elton-john-your-song-piano-cover-jz6ugvghbt8-a-scratch";
 const OOPS_SONG_ID = "britney-spears-oops-i-did-it-again-a-scratch";
 const HELL_SONG_ID = "aria-ellys-music-the-warning-hell-you-call-a-dream-piano-cover-by-aria-ellys-mslzwo1d-a-scratch";
 const SIDECAR_KEY = `keyspilli.melody-accompaniment.v2:${SONG_ID}`;
 const OOPS_SIDECAR_KEY = `keyspilli.melody-accompaniment.v2:${OOPS_SONG_ID}`;
 const HELL_SIDECAR_KEY = `keyspilli.melody-accompaniment.v2:${HELL_SONG_ID}`;
+const FROZEN_CANDIDATE_COMMIT = "ea68729045e82ef9ced14e0e0916c86991eeba4a";
+const RESERVED_CANDIDATES = [
+  {
+    id: "w-h-doane-near-the-cross-a-scratch",
+    title: "Near the Cross",
+    artist: "W. H. Doane",
+    bpm: 112,
+    sourceNotesHash: "da39379165b5d13a03ef188a230765f3b08c1cc356d105766246b48a9a88b80e",
+    sourceArtifactHash: "09d4a33ac39f9429f3fdf3a45377a7010b36a1f501194b2dba10e91e45d51a0d",
+    sourceFingerprint: "variant:w-h-doane-near-the-cross:a:w-h-doane-near-the-cross-a:09d4a33ac39f9429f3fdf3a45377a7010b36a1f501194b2dba10e91e45d51a0d:notes:764b13112b7bc753a393262bf34b4d1aa60a3ec50c5b2356187f1213b1c96304",
+    window: { startBeat: 24, endBeat: 48, measures: 4, meter: "6/4", notes: 50, attacks: 13, mixedOnset: 0.923, held: 0.62, offgrid: null, upperDecoration: null },
+    selectionBasis: "source-only max mixed-onset four-measure window",
+  },
+  {
+    id: "c-v-alkan-prelude-a-scratch",
+    title: "Prélude",
+    artist: "C.-V. Alkan",
+    bpm: 60,
+    sourceNotesHash: "7fe0f9b6464a1727c74f3f25d1f81777d2e916b6c7e11ebeaf9733cc5043b05d",
+    sourceArtifactHash: "ae68944db2e646e14e0923a79b95b3a6e2658432e384e8741f3ab108dbc5ac80",
+    sourceFingerprint: "variant:c-v-alkan-prelude:a:c-v-alkan-prelude-a:ae68944db2e646e14e0923a79b95b3a6e2658432e384e8741f3ab108dbc5ac80:notes:50a78996e80fa2731574f881d0eabb3bfb75045069e1f046bc6a24b1e0753098",
+    window: { startBeat: 16, endBeat: 32, measures: 4, meter: "4/4", notes: 115, attacks: 28, mixedOnset: 1, held: null, offgrid: 0.252, upperDecoration: 0.569 },
+    selectionBasis: "source-only max upper-decoration/off-grid four-measure window",
+  },
+  {
+    id: "beginner-piano-tutorial-easy-piano-jumbo-songbook-pay-me-my-money-down-mslzx940-a-scratch",
+    title: "Easy Piano Jumbo Songbook - Pay Me My Money Down",
+    artist: "Beginner Piano Tutorial",
+    bpm: 152,
+    sourceNotesHash: "587458f078cc1f1248f9d8ebfe2079ab36e471de4d29a596631ee401e9dab4bf",
+    sourceArtifactHash: "0b034323353ce167cf24664a17bda435c963f58d75c40d75d3860804bb475677",
+    sourceFingerprint: "variant:beginner-piano-tutorial-easy-piano-jumbo-songbook-pay-me-my-money-down-mslzx940:a:beginner-piano-tutorial-easy-piano-jumbo-songbook-pay-me-my-money-down-mslzx940-a:0b034323353ce167cf24664a17bda435c963f58d75c40d75d3860804bb475677:notes:a39db919f07c250adba174560d3882882178dd942a37b136bfd870f490383f9e",
+    window: { startBeat: 28, endBeat: 44, measures: 4, meter: "4/4", notes: 35, attacks: 19, mixedOnset: 0.368, held: 0.314, offgrid: 0.514, upperDecoration: null },
+    selectionBasis: "source-only max mixed/off-grid four-measure window among usable Pay Me windows",
+  },
+  {
+    id: "dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo-a-scratch",
+    title: "Avenged Sevenfold - Dear God - Piano Cover",
+    artist: "Dadebrayant",
+    bpm: 75,
+    sourceNotesHash: "0e2b1ba6166434cb23ccf022440f4a9a4caff6f6a60f74b9bc4f84dabf636cde",
+    sourceArtifactHash: "8e4d4b9114800d69904dc4af35376b95ccd1d8c537aac3adbe812c72f0cf482e",
+    sourceFingerprint: "variant:dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo:a:dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo-a:8e4d4b9114800d69904dc4af35376b95ccd1d8c537aac3adbe812c72f0cf482e:notes:7f0ce6f0afdd4a7b6c04c1158339bb3440894cd5f77b686308a99fbe3d24b0b",
+    window: { startBeat: 96, endBeat: 128, measures: 8, meter: "4/4", notes: 166, attacks: 75, mixedOnset: 0.453, held: null, offgrid: 0.476, upperDecoration: 0.525 },
+    selectionBasis: "source-only max mixed/off-grid/upper-decoration eight-measure window",
+  },
+] as const;
 
 type AudioCapture = {
   mimeType: string;
   bytes: number;
   base64: string;
   signal: { rms: number; peak: number; samples: number };
+  decodedPcm: { sampleRate: number; samples: number; stride: number; values: number[] };
   events: Array<{ type: string; frequency: number; midi: number | null; relativeWhen: number }>;
 };
 
@@ -55,6 +104,37 @@ async function installWorkerConstructorFailure(page: Page): Promise<void> {
     };
     Object.defineProperty(window, "Worker", { configurable: true, value: failure });
   });
+}
+
+async function installWorkerPostMessageFailure(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const originalPostMessage = Worker.prototype.postMessage;
+    Worker.prototype.postMessage = function (message: unknown, ...rest: unknown[]) {
+      if (message && typeof message === "object" && "requestKey" in message) throw new Error("e2e worker postMessage failure");
+      return Reflect.apply(originalPostMessage, this, [message, ...rest]);
+    };
+  });
+}
+
+async function installDelayedWorker(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const originalPostMessage = Worker.prototype.postMessage;
+    Worker.prototype.postMessage = function (message: unknown, ...rest: unknown[]) {
+      if (message && typeof message === "object" && "requestKey" in message) {
+        setTimeout(() => {
+          try { Reflect.apply(originalPostMessage, this, [message, ...rest]); } catch {}
+        }, 1_000);
+        return;
+      }
+      return Reflect.apply(originalPostMessage, this, [message, ...rest]);
+    };
+  });
+}
+
+async function installStorageValue(page: Page, key: string, value: string): Promise<void> {
+  await page.addInitScript(({ key: storageKey, value: storageValue }) => {
+    window.localStorage.setItem(storageKey, storageValue);
+  }, { key, value });
 }
 
 async function restoreWorkerConstructor(page: Page): Promise<void> {
@@ -141,9 +221,14 @@ async function installAudioProbe(page: Page): Promise<void> {
       let binary = "";
       for (let offset = 0; offset < bytes.length; offset += 0x8000) binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
       let signal = { rms: 0, peak: 0, samples: 0 };
+      let decodedPcm = { sampleRate: 0, samples: 0, stride: 128, values: [] as number[] };
       try {
         const decoded = await session.context.decodeAudioData(buffer.slice(0));
         const samples = decoded.getChannelData(0);
+        const stride = 128;
+        const values = [];
+        for (let index = 0; index < samples.length; index += stride) values.push(Number((samples[index] ?? 0).toFixed(6)));
+        decodedPcm = { sampleRate: decoded.sampleRate, samples: samples.length, stride, values };
         const step = Math.max(1, Math.ceil(samples.length / 250_000));
         let sum = 0;
         let peak = 0;
@@ -160,7 +245,7 @@ async function installAudioProbe(page: Page): Promise<void> {
         const midi = 69 + 12 * Math.log2(event.frequency / 440);
         return { type: event.type, frequency: event.frequency, midi: Number.isFinite(midi) ? Math.round(midi) : null, relativeWhen: Number((event.when - session.startTime).toFixed(4)) };
       });
-      return { mimeType: blob.type, bytes: blob.size, base64: btoa(binary), signal, events };
+      return { mimeType: blob.type, bytes: blob.size, base64: btoa(binary), signal, decodedPcm, events };
     };
   });
 }
@@ -196,6 +281,70 @@ function audible(capture: AudioCapture & { sha256: string }): void {
 
 function fundamentalMidis(capture: AudioCapture, endSeconds = Number.POSITIVE_INFINITY): number[] {
   return [...new Set(capture.events.filter((event) => event.type === "triangle" && event.midi !== null && event.relativeWhen < endSeconds).map((event) => event.midi as number))].sort((a, b) => a - b);
+}
+
+type PcmComparison = {
+  sampleRate: number;
+  stride: number;
+  shiftBins: number;
+  shiftSamples: number;
+  overlap: number;
+  meanAbsoluteError: number;
+  rmsError: number;
+  maxAbsoluteError: number;
+  rmsTolerance: number;
+  withinTolerance: boolean;
+};
+
+function canonicalScheduledEventMultiset(capture: AudioCapture): string[] {
+  const firstWhen = Math.min(...capture.events.map((event) => event.relativeWhen));
+  return capture.events
+    .map((event) => `${event.type}|${event.midi ?? "null"}|${Math.round((event.relativeWhen - firstWhen) * 100)}`)
+    .sort();
+}
+
+function scheduledEventMultisetHash(capture: AudioCapture): string {
+  return createHash("sha256").update(JSON.stringify(canonicalScheduledEventMultiset(capture))).digest("hex");
+}
+
+function compareDecodedPcm(original: AudioCapture, candidate: AudioCapture): PcmComparison {
+  const source = original.decodedPcm;
+  const output = candidate.decodedPcm;
+  if (!source.values.length || !output.values.length || source.sampleRate !== output.sampleRate || source.stride !== output.stride) {
+    throw new Error("Decoded PCM comparison requires matching non-empty sample grids");
+  }
+  let best: PcmComparison | undefined;
+  const maxShiftBins = Math.min(32, Math.floor(Math.min(source.values.length, output.values.length) / 4));
+  for (let shiftBins = -maxShiftBins; shiftBins <= maxShiftBins; shiftBins++) {
+    const sourceStart = Math.max(0, shiftBins);
+    const outputStart = Math.max(0, -shiftBins);
+    const overlap = Math.min(source.values.length - sourceStart, output.values.length - outputStart);
+    if (overlap <= 0) continue;
+    let absolute = 0;
+    let squared = 0;
+    let maximum = 0;
+    for (let index = 0; index < overlap; index++) {
+      const error = Math.abs((source.values[sourceStart + index] ?? 0) - (output.values[outputStart + index] ?? 0));
+      absolute += error;
+      squared += error * error;
+      maximum = Math.max(maximum, error);
+    }
+    const comparison: PcmComparison = {
+      sampleRate: source.sampleRate,
+      stride: source.stride,
+      shiftBins,
+      shiftSamples: shiftBins * source.stride,
+      overlap,
+      meanAbsoluteError: absolute / overlap,
+      rmsError: Math.sqrt(squared / overlap),
+      maxAbsoluteError: maximum,
+      rmsTolerance: 0.02,
+      withinTolerance: false,
+    };
+    if (!best || comparison.rmsError < best.rmsError) best = comparison;
+  }
+  if (!best) throw new Error("Decoded PCM comparison had no overlapping samples");
+  return { ...best, withinTolerance: best.rmsError <= best.rmsTolerance };
 }
 
 async function selectArrangement(
@@ -322,19 +471,32 @@ test("real artifact produces, previews, plays, corrects, and reloads melody supp
 test("browser trace keeps Original and large arrangements off the main-thread producer", async ({ page }) => {
   await installMelodyTrace(page);
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto(`/player/${SONG_ID}`);
+  await page.goto(`/player/${UG_SONG_ID}`);
   await expect(page.getByLabel("Falling notes player")).toBeVisible();
 
   let traces = await melodyTrace(page);
   expect(traces.some((event) => event.phase === "source-view" && event.execution === "source")).toBe(true);
   expect(traces.some((event) => event.phase === "sync-start")).toBe(false);
 
-  await selectArrangement(page, "Chord mode", "Automatic melody");
+  await selectArrangement(page, "Chord mode");
   await expect(page.getByTestId("melody-accompaniment-status")).toContainText("Inferred melody");
   traces = await melodyTrace(page);
   expect(traces.some((event) => event.phase === "worker-request" && event.execution === "worker")).toBe(true);
   expect(traces.some((event) => event.phase === "worker-ready" && event.execution === "worker")).toBe(true);
   expect(traces.some((event) => event.phase === "sync-start")).toBe(false);
+
+  const firstRequestKey = traces.find((event) => event.phase === "worker-request")?.key;
+  expect(firstRequestKey).toBeTruthy();
+  await openPlayerTool(page, "Sound");
+  const dialog = page.getByRole("dialog", { name: "Sound settings" });
+  await dialog.getByRole("radio", { name: "UG timeline", exact: true }).click();
+  await expect(page.getByTestId("melody-accompaniment-status")).toContainText("Inferred melody");
+  await dialog.getByRole("button", { name: "Close tools", exact: true }).click();
+  const changedSourceTraces = await melodyTrace(page);
+  const requestKeys = changedSourceTraces.filter((event) => event.phase === "worker-request").map((event) => event.key);
+  expect(new Set(requestKeys).size).toBeGreaterThan(1);
+  expect(requestKeys.at(-1)).not.toBe(firstRequestKey);
+  expect(changedSourceTraces.some((event) => event.phase === "sync-start")).toBe(false);
 });
 
 test("role audition renders three audible stems and preserves A/B position", async ({ page }, testInfo) => {
@@ -392,6 +554,71 @@ test("worker constructor failure retains real Original audio, retries, and clear
   await restoreWorkerConstructor(page);
   await page.getByTestId("melody-accompaniment-error").getByRole("button", { name: "Retry arrangement", exact: true }).click();
   await expect(page.getByTestId("melody-accompaniment-status")).toContainText("Inferred melody");
+  await expect(page.getByTestId("melody-accompaniment-error")).toHaveCount(0);
+});
+
+test("worker postMessage failure keeps Original playback and a truthful retry state", async ({ page, browserName }, testInfo) => {
+  test.skip(browserName !== "chromium", "Audio and worker failure assertions use the Chromium harness");
+  await installAudioProbe(page);
+  await installMelodyTrace(page);
+  await installWorkerPostMessageFailure(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/player/${SONG_ID}`);
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+  await selectArrangement(page, "Chord mode", "Automatic melody", { waitForArrangement: false });
+  const error = page.getByTestId("melody-accompaniment-error");
+  await expect(error).toContainText("e2e worker postMessage failure");
+  await expect(error).toContainText("Original playback is retained");
+  expect((await melodyTrace(page)).some((event) => event.phase === "worker-error" && event.error?.includes("postMessage failure"))).toBe(true);
+  await bootAudio(page);
+  const fallback = await captureArrangement(page, testInfo, "worker-post-message-original-fallback", 1, 1_200);
+  expect(fallback.bytes).toBeGreaterThan(0);
+  expect(fallback.events.filter((event) => event.type === "triangle")).not.toHaveLength(0);
+  await selectArrangement(page, "Original arrangement");
+  await expect(page.getByTestId("melody-accompaniment-status")).toHaveCount(0);
+  await expect(page.getByTestId("melody-accompaniment-error")).toHaveCount(0);
+});
+
+test("stale worker replies cannot replace the latest source-keyed request", async ({ page }) => {
+  await installMelodyTrace(page);
+  await installDelayedWorker(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/player/${UG_SONG_ID}`);
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+  await selectArrangement(page, "Chord mode", "Automatic melody", { waitForArrangement: false });
+  await openPlayerTool(page, "Sound");
+  const dialog = page.getByRole("dialog", { name: "Sound settings" });
+  await dialog.getByRole("radio", { name: "UG timeline", exact: true }).click();
+  await dialog.getByRole("button", { name: "Close tools", exact: true }).click();
+  await expect(page.getByTestId("melody-accompaniment-status")).toContainText("Inferred melody", { timeout: 5_000 });
+  const traces = await melodyTrace(page);
+  const requests = traces.filter((event) => event.phase === "worker-request").map((event) => event.key).filter((key): key is string => !!key);
+  const ready = traces.filter((event) => event.phase === "worker-ready").at(-1);
+  expect(new Set(requests).size).toBeGreaterThanOrEqual(2);
+  expect(ready?.key).toBe(requests.at(-1));
+});
+
+test("corrupt or stale melody storage resets safely and Original has no derived status", async ({ page }) => {
+  await installStorageValue(page, HELL_SIDECAR_KEY, "{not-json");
+  await installStorageValue(page, SIDECAR_KEY, JSON.stringify({
+    schemaVersion: 2,
+    generatorVersion: "melody-accompaniment.v2",
+    sourceFingerprint: "a-different-variant",
+    selection: "right-hand",
+    provenance: { selection: "right-hand", selectionProvenance: "user-confirmed" },
+  }));
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/player/${HELL_SONG_ID}`);
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+  await selectArrangement(page, "Chord mode");
+  await openPlayerTool(page, "Sound");
+  const dialog = page.getByRole("dialog", { name: "Sound settings" });
+  await expect(dialog.getByRole("radio", { name: "Automatic melody", exact: true })).toHaveAttribute("aria-checked", "true");
+  await expect(dialog.getByRole("button", { name: "Reset saved selection", exact: true })).toHaveCount(0);
+  await expect(page.getByTestId("chord-mode-status")).toContainText(/Generated fallback|Generated chords|Piano/);
+  await dialog.getByRole("button", { name: "Close tools", exact: true }).click();
+  await selectArrangement(page, "Original arrangement");
+  await expect(page.getByTestId("melody-accompaniment-status")).toHaveCount(0);
   await expect(page.getByTestId("melody-accompaniment-error")).toHaveCount(0);
 });
 
@@ -535,6 +762,33 @@ test("real audio events cover mode, hand filtering, seek, transpose, correction,
   saveCapture(testInfo, "hell-chord-practice-accepted", practiceCapture);
   audible({ ...practiceCapture, sha256: createHash("sha256").update(Buffer.from(practiceCapture.base64, "base64")).digest("hex") });
   await expect(panel.getByRole("status")).not.toHaveText(before!);
+});
+
+test("derived guidance stays pitch-consistent in the visual view after transpose and hand filtering", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/player/${SONG_ID}/beginner`);
+  const view = page.getByLabel("Note letters view");
+  await expect(view).toBeVisible();
+  await selectArrangement(page, "Chord mode", "Automatic melody");
+  await page.getByLabel("Seek").fill("3");
+  const badges = view.locator("[data-midi]");
+  await expect(badges.first()).toBeVisible();
+  const automatic = (await badges.evaluateAll((nodes) => nodes.map((node) => Number(node.getAttribute("data-midi"))))).sort((a, b) => a - b);
+  expect(automatic.length).toBeGreaterThan(0);
+
+  await openPlayerTool(page, "Display");
+  const display = page.getByRole("dialog", { name: "Display settings" });
+  await display.getByRole("button", { name: "Transpose up", exact: true }).click();
+  await display.getByRole("button", { name: "Close tools", exact: true }).click();
+  await expect.poll(async () => badges.evaluateAll((nodes) => nodes.map((node) => Number(node.getAttribute("data-midi"))).sort((a, b) => a - b))).toEqual(automatic.map((midi) => midi + 1));
+
+  await openPlayerTool(page, "Display");
+  await page.getByRole("dialog", { name: "Display settings" }).getByRole("button", { name: "Reset transpose", exact: true }).click();
+  await page.getByRole("dialog", { name: "Display settings" }).getByRole("button", { name: "Close tools", exact: true }).click();
+  await page.getByRole("button", { name: "Right hand", exact: true }).click();
+  const rightHand = (await badges.evaluateAll((nodes) => nodes.map((node) => Number(node.getAttribute("data-midi"))))).sort((a, b) => a - b);
+  expect(rightHand.length).toBeGreaterThan(0);
+  expect(rightHand.every((midi) => automatic.includes(midi))).toBe(true);
 });
 
 test("T1 freezes the Oops intro control only", async ({ page }, testInfo) => {
@@ -692,6 +946,13 @@ test("real artifact keeps arrangement controls usable at 390px", async ({ page }
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`/player/${SONG_ID}`);
   await expect(page.getByLabel("Falling notes player")).toBeVisible();
+  const keyboard = page.getByRole("button", { name: "Piano keyboard", exact: true });
+  await expect(keyboard).toBeVisible();
+  await expect(keyboard).toHaveAttribute("aria-disabled", "false");
+  await keyboard.focus();
+  await expect(keyboard).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(keyboard).toBeFocused();
 
   await openPlayerTool(page, "Sound");
   let dialog = page.getByRole("dialog", { name: "Sound settings" });
@@ -734,5 +995,141 @@ test("real artifact keeps arrangement controls usable at 390px", async ({ page }
   await openPlayerTool(page, "Sound");
   dialog = page.getByRole("dialog", { name: "Sound settings" });
   await expect(dialog.getByRole("radio", { name: "Use right-hand part", exact: true })).toHaveAttribute("aria-checked", "true");
+  await expect(page.getByTestId("melody-accompaniment-status")).toContainText("User melody");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+type ReservedCaptureOutcome = {
+  status: "captured" | "error";
+  modeLabel: string;
+  humanRating: "pending";
+  seekSeconds: number;
+  durationMs: number;
+  audioPath?: string;
+  metadataPath?: string;
+  bytes?: number;
+  oscillatorEvents?: number;
+  triangleOscillatorEvents?: number;
+  fundamentalMidis?: number[];
+  sha256?: string;
+  signal?: AudioCapture["signal"];
+  canonicalScheduledEventCount?: number;
+  canonicalScheduledEventHash?: string;
+  scheduledEventMultisetChanged?: boolean;
+  alignedPcmComparison?: PcmComparison;
+  distinctFromOriginal?: boolean;
+  error?: string;
+};
+
+function reservedCaptureSummary(
+  label: string,
+  capture: AudioCapture & { sha256: string },
+  originalCapture: (AudioCapture & { sha256: string }) | undefined,
+  seekSeconds: number,
+  durationMs: number,
+  modeLabel: string,
+): ReservedCaptureOutcome {
+  const canonicalEvents = canonicalScheduledEventMultiset(capture);
+  const originalCanonicalEvents = originalCapture ? canonicalScheduledEventMultiset(originalCapture) : undefined;
+  const alignedPcmComparison = originalCapture ? compareDecodedPcm(originalCapture, capture) : undefined;
+  const scheduledEventMultisetChanged = originalCanonicalEvents ? JSON.stringify(canonicalEvents) !== JSON.stringify(originalCanonicalEvents) : false;
+  return {
+    status: "captured",
+    modeLabel,
+    humanRating: "pending",
+    seekSeconds,
+    durationMs,
+    audioPath: `captures/${label}.webm`,
+    metadataPath: `captures/${label}.json`,
+    bytes: capture.bytes,
+    oscillatorEvents: capture.events.length,
+    triangleOscillatorEvents: capture.events.filter((event) => event.type === "triangle").length,
+    fundamentalMidis: fundamentalMidis(capture),
+    sha256: capture.sha256,
+    signal: capture.signal,
+    canonicalScheduledEventCount: canonicalEvents.length,
+    canonicalScheduledEventHash: scheduledEventMultisetHash(capture),
+    scheduledEventMultisetChanged,
+    alignedPcmComparison,
+    distinctFromOriginal: originalCapture ? scheduledEventMultisetChanged || !alignedPcmComparison?.withinTolerance : false,
+  };
+}
+
+test("reserved evaluation captures complete phrases with automatic and manual outcomes separate", async ({ page }, testInfo) => {
+  test.setTimeout(420_000);
+  await installAudioProbe(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const outcomes = RESERVED_CANDIDATES.map((candidate) => {
+    const seekSeconds = Math.max(0, candidate.window.startBeat * 60 / candidate.bpm - 0.5);
+    const durationMs = Math.ceil((candidate.window.endBeat - candidate.window.startBeat) * 60 / candidate.bpm * 1000 + 1_000);
+    return {
+      candidate: {
+        id: candidate.id,
+        title: candidate.title,
+        artist: candidate.artist,
+        bpm: candidate.bpm,
+        sourceNotesHash: candidate.sourceNotesHash,
+        sourceArtifactHash: candidate.sourceArtifactHash,
+        sourceFingerprint: candidate.sourceFingerprint,
+        window: candidate.window,
+        selectionBasis: candidate.selectionBasis,
+      },
+      seekSeconds,
+      durationMs,
+      original: null as ReservedCaptureOutcome | null,
+      automatic: null as ReservedCaptureOutcome | null,
+      manual: null as ReservedCaptureOutcome | null,
+    };
+  });
+  const originalCaptures = new Map<string, AudioCapture & { sha256: string }>();
+
+  for (const outcome of outcomes) {
+    const candidate = RESERVED_CANDIDATES.find((item) => item.id === outcome.candidate.id)!;
+    const labelPrefix = `reserved-${candidate.id.replace(/-a-scratch$/, "")}`;
+    const modes = [
+      { key: "original" as const, selection: "Original arrangement" as const, melody: undefined, label: "Original full arrangement" },
+      { key: "automatic" as const, selection: "Chord mode" as const, melody: "Automatic melody" as const, label: "Automatic melody plus accompaniment" },
+      { key: "manual" as const, selection: "Chord mode" as const, melody: "Use right-hand part" as const, label: "User-confirmed right-hand melody plus accompaniment" },
+    ];
+    for (const mode of modes) {
+      try {
+        await page.goto(`/player/${candidate.id}`);
+        await expect(page.getByLabel("Falling notes player")).toBeVisible();
+        await selectArrangement(page, mode.selection, mode.melody);
+        await bootAudio(page);
+        const label = `${labelPrefix}-${mode.key}`;
+        const capture = await captureArrangement(page, testInfo, label, outcome.seekSeconds, outcome.durationMs);
+        audible(capture);
+        if (mode.key === "original") originalCaptures.set(candidate.id, capture);
+        const summary = reservedCaptureSummary(label, capture, originalCaptures.get(candidate.id), outcome.seekSeconds, outcome.durationMs, mode.label);
+        outcome[mode.key] = summary;
+      } catch (error) {
+        outcome[mode.key] = {
+          status: "error",
+          modeLabel: mode.label,
+          humanRating: "pending",
+          seekSeconds: outcome.seekSeconds,
+          durationMs: outcome.durationMs,
+          error: error instanceof Error ? error.message : String(error),
+        };
+      }
+    }
+  }
+
+  const packet = {
+    schemaVersion: 1,
+    candidateCommit: FROZEN_CANDIDATE_COMMIT,
+    instrument: "browser AudioEngine synth",
+    sourceSelectionFrozenBeforeCandidatePlayback: true,
+    tuningPerformedOnReservedOutputs: false,
+    humanRating: "pending",
+    outcomes,
+  };
+  writeFileSync(testInfo.outputPath("reserved-evaluation-outcomes.json"), JSON.stringify(packet, null, 2));
+  for (const outcome of outcomes) {
+    expect(outcome.original?.status, `${outcome.candidate.id} Original`).toBe("captured");
+    expect(outcome.automatic?.status, `${outcome.candidate.id} automatic`).toBe("captured");
+    expect(outcome.manual?.status, `${outcome.candidate.id} manual`).toBe("captured");
+    expect(outcome.automatic?.distinctFromOriginal, `${outcome.candidate.id} automatic must remain a distinct scheduled/PCM output`).toBe(true);
+  }
 });

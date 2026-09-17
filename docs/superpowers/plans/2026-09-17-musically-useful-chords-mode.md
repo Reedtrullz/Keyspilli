@@ -10,7 +10,7 @@
 
 **Spec:** Sections 1–8 below are the proposed product/technical specification; sections 9–14 are its executable work plan. This supersedes the musical acceptance and backing-generation portions of the 2026-09-16 useful-melody-accompaniment plan. Earlier evidence remains historical, not automatically valid against the new contract.
 
-**Status:** Active implementation through the current branch head on 17 September 2026. Engineering portions of T5/T6/T7/T8 are implemented; G3 human listening, G2 source/musical review, remaining integration checks, merge and deployment are still pending. Estimates remain engineering effort ranges, not musical-quality promises.
+**Status:** Active implementation through the current branch head on 17 September 2026. Engineering portions of T5/T6/T7/T8 and the reserved capture portion of T9 are verified; G3 human listening, G2 source/musical review, parent review, merge and deployment remain pending. Estimates remain engineering effort ranges, not musical-quality promises.
 
 ## Global constraints
 
@@ -379,12 +379,12 @@ T5 checkpoint evidence: `de9cfd0` is the accepted partial density/silence checkp
 **Files:** Player, extracted melody-selection helper/test, engine tests, catalog payload only if needed.
 **Consumes:** v2 result; outputs consistent audio/guidance/practice behavior.
 
-- [ ] Write regressions proving every derived event reaches note playback once, no duplicate `playChord`, and displayed/practice pitches match audio after transpose/hand filters.
-- [ ] Project audio, Fall Down, letters, keyboard range and grading from the same result. Role audition uses event roles; practice hand filters use physical assignment.
+- [x] Write regressions proving every derived event reaches note playback once, no duplicate `playChord`, and displayed/practice pitches match audio after transpose/hand filters. Player-core has the same-stream, audio/grading and no-duplicate regressions; browser E2E covers the transposed visual and hand-filter projections.
+- [x] Project audio, Fall Down, letters, keyboard range and grading from the same result. The final browser run passed the audio-event, visual pitch, guidance, grading, role-audition and 390px keyboard assertions.
 - [x] Extend local selection storage with versioned phrase overrides and strict shape/source validation. Read old matching v1 whole-RH selection as a user preference only; recompute output, never trust cached v1 provenance as v2 evidence.
-- [ ] Change harmony source without changing melody selection; key result reuse by both melody identity and actual normalized harmony/timing inputs.
+- [x] Change harmony source without changing melody selection; key result reuse by both melody identity and actual normalized harmony/timing inputs. The UG timeline control changed the source-keyed worker request while preserving the melody-mode path.
 - [x] Add the same pure producer to a worker with cancellation/version tokens when a large arrangement is requested. The synchronous path is bounded at `255` notes; Node 22 warm medians on the frozen fixtures at `256` notes were Blackbird `40.4 ms`, Oops `19.8 ms`, and Hell `24.8 ms`, while full current inputs measured up to `787.3 ms`. Large requests render the source view while the worker runs, validate an exact input key, and expose retry/Original fallback on failure. A real mobile profile remains open.
-- [ ] Test seek, loop, pause/resume, mode switch, saved reload, corrupt storage, source edits and stale async responses. Preserve position, cancel old voices, resume held notes through existing engine semantics.
+- [x] Test seek, loop, pause/resume, mode switch, saved reload, corrupt storage, source edits and stale async responses. Preserve position, cancel old voices, resume held notes through existing engine semantics. Final browser E2E covered transport, corrupt/stale sidecars, source-keyed requests, delayed stale workers, and Original fallback.
 - [x] Run player-core/web tests and commit. The current branch head contains the render-path guard, worker, v2 sidecar migration and role-audition integration.
 
 ### T8 — Make status, audition and correction understandable (1–2 days)
@@ -397,7 +397,7 @@ T5 checkpoint evidence: `de9cfd0` is the accepted partial density/silence checkp
 - [x] Implement Full/Melody/Accompaniment audition and same-position A/B. Report retained-unclassified audio rather than pretending to isolate it; browser listening remains pending.
 - [ ] Use existing tempo conversion for seconds. Add keyboard/focus/label checks and responsive verification at 390px and desktop.
 - [ ] Test clear reset and cross-variant invalidation. Confirm unsupported input still permits Original playback and preserves source data.
-- [x] Commit after unit/build checks. Isolated browser E2E and responsive/focus checks remain open.
+- [x] Commit after unit/build checks. Final isolated browser E2E passed 12 tests with 1 intentional skip; responsive/focus/truthful-status checks are included.
 
 ### T9 — Independent evaluation and readiness review (1–3 days plus listening)
 
@@ -405,10 +405,10 @@ T5 checkpoint evidence: `de9cfd0` is the accepted partial density/silence checkp
 **Consumes:** frozen candidate, untouched evaluation song set.
 **Produces:** honest song/phrase outcome table, listening files and draft PR readiness.
 
-- [ ] Freeze candidate SHA/parameters before evaluating the four reserved songs. Run deterministic checks and capture complete phrases.
-- [ ] Report all selected songs, including failures, with denominators by import category. Separate automatic and manually corrected results.
-- [ ] Obtain human rubric results or mark them pending. A nonzero waveform, fewer notes, zero warnings or passing CI never fills this column.
-- [ ] Resolve critical regressions. If evaluation drives tuning, relabel it development and reserve new examples before a broader claim.
+- [x] Freeze candidate SHA/parameters before evaluating the four reserved songs. Run deterministic checks and capture complete phrases. Candidate `ea68729045e82ef9ced14e0e0916c86991eeba4a` was frozen before playback; no reserved-output tuning occurred.
+- [x] Report all selected songs, including failures, with denominators by import category. Separate automatic and manually corrected results. The tracked packet contains 4/4 songs × Original/Automatic/User-confirmed outcomes with portable paths and SHA-256 integrity manifest.
+- [x] Obtain human rubric results or mark them pending. A nonzero waveform, fewer notes, zero warnings or passing CI never fills this column. Human ratings remain pending.
+- [x] Resolve critical regressions. If evaluation drives tuning, relabel it development and reserve new examples before a broader claim. Engineering regressions passed; no tuning was performed on reserved outputs, and no musical-support claim is made.
 - [ ] Run the repository's normal CI scope once after relevant focused checks pass; prepare a draft PR with behavior examples and limits. Do not alter tests to hide backing/melody changes.
 - [ ] Parent review: inspect source diff, compare exact hashes to evidence, audition complete phrases where possible, verify no song-specific production hacks and no retained-as-success metrics.
 
