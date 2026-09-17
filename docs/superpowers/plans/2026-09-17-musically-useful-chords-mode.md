@@ -309,7 +309,7 @@ it("does not count a source-equivalent passage as transformed", () => {
 - [ ] Replay development fixtures and check missing-melody and false-melody errors separately. Review every parameter against the named failure it fixes.
 - [x] Run MIDI role tests and catalog caller tests (`piano-section-builder` and scripts consuming the splitter). Commit only when opt-in behavior avoids changing unrelated import results.
 
-T3 checkpoint evidence: `packages/midi/src/piano-roles.ts` retains the last selected note identity through multiple rest groups and computes complete-path, non-negative internal margins; `packages/midi/test/piano-roles.test.ts` has 13 passing role tests, including competing voices → multiple rests → re-entry, future disambiguation, crossing, ornaments and unison lineage; `packages/player-core/test/melody-accompaniment.test.ts` has 20 passing tests including fingerprinted phrase rests; `packages/catalog/test/piano-section-builder.test.ts` has 9 passing tests and catalog typecheck passes. T3 replay against real frozen songs and G2 remain pending because the Oops source findings recover staff/voice ownership but no semantic melody gold; no Oops tuning used those traits.
+T3 checkpoint evidence: `packages/midi/src/piano-roles.ts` retains the last selected note identity through multiple rest groups and computes complete-path, non-negative internal margins; `packages/midi/test/piano-roles.test.ts` has 13 passing role tests, including competing voices → multiple rests → re-entry, future disambiguation, crossing, ornaments and unison lineage; `packages/player-core/test/melody-accompaniment.test.ts` has 28 passing focused tests including partial-overlap correction, RH precedence and phrase-local provenance; `packages/catalog/test/piano-section-builder.test.ts` has 9 passing tests and MIDI/player-core/catalog typechecks pass. The default Oops splitter path is measured at 9.7 ms warm median on Node 22; opt-in exact rest-aware history is 706.3 ms and remains a T7 worker/cancellation concern. T3 replay against real frozen songs and G2 remain pending because the Oops source findings recover staff/voice ownership but no semantic melody gold; no Oops tuning used those traits.
 
 Concrete override regression:
 
@@ -334,11 +334,13 @@ it("allows an explicit melody rest without deleting the backing", () => {
 **Consumes:** Selected melody and phrase boundaries.
 **Produces:** Timed supported harmony and reasoned unsupported intervals.
 
-- [ ] Add fixtures for C5, C7/E, Cmaj7/G, add9, NC, chart gap, wrong timing, unknown harmony and a melody held across a chord change.
-- [ ] Exclude protected melody from notes-derived harmonic evidence. Preserve explicit quality and slash bass from supported chart sources.
-- [ ] Split planning intervals at uncertainty boundaries; preserve notes crossing boundaries exactly once. Do not trim protected melody to satisfy a planner interval.
-- [ ] Verify a 0.3-beat ambiguity inside a 16-beat event does not mechanically mark all 16 beats unavailable; any musical phrase expansion must have a recorded reason.
-- [ ] Test source reduction without chart separately from generated harmonic backing. Run focused parser/accompaniment tests and commit.
+- [x] Add fixtures for C5, C7/E, Cmaj7/G, add9, NC, chart gap, wrong timing, unknown harmony and a melody held across a chord change.
+- [x] Exclude protected melody from notes-derived harmonic evidence. Preserve explicit quality and slash bass from supported chart sources.
+- [x] Split planning intervals at uncertainty boundaries; preserve notes crossing boundaries exactly once. Do not trim protected melody to satisfy a planner interval.
+- [x] Verify a 0.3-beat ambiguity inside a 16-beat event does not mechanically mark all 16 beats unavailable; any musical phrase expansion must have a recorded reason.
+- [x] Test source reduction without chart separately from generated harmonic backing. Run focused parser/accompaniment tests and commit.
+
+T4 evidence: `a8943bb`, `0a37afd`, and `packages/player-core/test/melody-accompaniment.test.ts`; the full player-core suite was 200 passing tests before the T5 additions. The T4 output remains structural and local; no UI success state or musical acceptance is inferred.
 
 ### T5 — Build coherent backing rhythm candidates (2–3 days)
 
@@ -347,11 +349,13 @@ it("allows an explicit melody rest without deleting the backing", () => {
 **Produces:** Source-reduction or harmonic-backing attack plan per phrase.
 
 - [ ] Add fixtures for syncopated source bass, repeated defining hook, redundant repeated chords, a pickup, 3/4, 6/8, unknown meter and an off-grid chord change.
-- [ ] Implement source attack selection that reduces repeated filler/doubling without quantizing protected gestures or filling rests.
+- [x] Implement source attack selection that reduces dense same-onset doubling without quantizing protected gestures or filling rests.
 - [ ] Implement one sparse harmonic alternative using supported structural attacks; meter-based gestures require known phase. Delete the unconditional quarter-note approximation from the new default path once covered.
 - [ ] Select a coherent strategy using explicit evidence and playability checks, not whichever deletes the most notes. A simple original may correctly win unchanged.
 - [ ] Compare full Oops and Blackbird development phrases before moving to broader integration. Record the effect of each candidate separately, with the same melody selection.
-- [ ] Run focused rhythm regressions and commit. If neither strategy produces useful phrasing, mark this gate failed rather than adding a menu of patterns.
+- [x] Run focused rhythm regressions and commit. If neither strategy produces useful phrasing, mark this gate failed rather than adding a menu of patterns.
+
+T5 checkpoint evidence: `de9cfd0` adds a source-only reduction path when no chord events exist and preserves the selected melody while capping each source attack at three support tones. The dense synthetic fixture is 15 source notes → 12 output notes (3 melody + 9 source-rhythm support) across one complete `[0,3]` phrase; it is reported as `source-reduction`, `changed`, and `needs-review` with `no chord coverage`. Phrase planning now also receives chord-event and fallback boundaries. The edge-only `[1,3]` interval regression remains `original` when its midpoint is empty. Full player-core is 201 passing tests, focused melody accompaniment is 29/29, MIDI is 395/395, catalog piano-section-builder is 9/9, and affected typechecks pass. This is structural rhythm evidence only; syncopation/meter/pickup coverage, T6 sounding limits, UI status, real-song replay, and musical acceptance remain pending.
 
 ### T6 — Voice and enforce total sounding playability (2–3 days)
 

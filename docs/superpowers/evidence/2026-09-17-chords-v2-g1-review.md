@@ -1,6 +1,6 @@
 # Chords v2 G1 review packet
 
-Status: T1/G1 source capture and amendments accepted by parent; T2 accounting is committed. T3 synthetic implementation is checkpointed, while real-song tuning and G2 remain gated.
+Status: T1/G1 source capture and amendments accepted by parent; T2 accounting is committed. T3/T4 corrective checkpoints and the T5 source-rhythm checkpoint are recorded, while real-song tuning and G2 remain gated.
 
 ## Execution boundary
 
@@ -86,7 +86,43 @@ Both commits produced exactly:
 {"notes":1668,"audibleEventMultisetSha256":"8be9d8554886dea6dbeff580ff30ad46385aeba3616b3f94976acc65c7c854ce"}
 ```
 
-The replay used only `docs/superpowers/evidence/2026-09-17-chords-v2-fixtures/oops/notes.json` and the pure player-core producer in isolated temporary Git worktrees; no catalog or production data was touched. This is a T2 preservation check, not a claim that the current uncommitted T3 selector has identical output or that the Oops melody is musically correct.
+The replay used only `docs/superpowers/evidence/2026-09-17-chords-v2-fixtures/oops/notes.json` and the pure player-core producer in isolated temporary Git worktrees; no catalog or production data was touched. This is a T2 preservation check, not a claim that the later T3/T4 producer has identical output or that the Oops melody is musically correct.
+
+## T3 corrective checkpoint
+
+The first T3 review found two concrete correction cases: a partial phrase override could suppress the entire overlapping ambiguity span, and the right-hand early return could bypass phrase overrides. The corrective tests now cover both cases plus phrase-local review provenance. Valid overrides subtract only their covered interval from selected-path uncertainty; phrase overrides take precedence over a global right-hand selection, while source accompaniment remains present. Arrangement phrases split at override/uncertainty boundaries so an automatic phrase is not labelled user-selected merely because a different phrase was corrected.
+
+The backward continuation calculation now rolls one exact map of reachable predecessor identities instead of materialising an all-song identity table for every group. A Node 22 one-shot on the frozen 1,891-note Oops fixture (`splitPianoRoles(notes, { preferSustainedLine: true, allowRests })`, four samples after one warm-up) measured warm median `9.7 ms` with rests disabled and `706.3 ms` with the opt-in rest state. This is a local measurement, not a benchmark claim; it demonstrates that legacy/default callers no longer pay the rest-history table cost. Exact rest-aware histories remain intentionally unpruned to preserve re-entry correctness, and the code records the T7 worker/cancellation upgrade path if the opt-in path remains above the 50 ms budget. No evaluation-song output or musical conclusion was drawn from this measurement.
+
+After the correction, the focused phrase suite has 23 passing player-core tests; the full player-core suite has 195 passing tests, the full MIDI suite has 395 passing tests, the catalog piano-section-builder suite has 9 passing tests, and MIDI/player-core/catalog typechecks pass.
+
+## T4 local uncertainty and phrase/harmony checkpoint
+
+The T4 implementation is in `a8943bb` with additional boundary coverage in `0a37afd`. A chord-planning event is split at each unresolved interval boundary; fallback spans include those boundaries, so a 0.3-beat ambiguity inside a 16-beat event does not make the remaining 15.7 beats unavailable. Protected melody source events remain intact and source reduction without a chart remains a separate fallback path.
+
+Phrase strategy and change are now calculated per local interval from the rendered event roles and exact audible event comparison. Review reasons take precedence over `user-selected`; an invalid override or fallback reason therefore remains visible even when it overlaps a valid correction. A right-hand request with no RH events and a partial valid override keeps automatic selection and an explicit unavailable-part warning outside the correction range.
+
+Verification after T4: full player-core `15 files / 200 tests PASS`; focused `melody-accompaniment` `28/28`; full MIDI `17 files / 395 tests PASS`; focused catalog piano-section-builder `9 tests PASS`; MIDI/player-core/catalog typechecks pass. These are structural checks only. No UI success wiring, Oops musical tuning, evaluation-song output, catalog rebuild, merge, deployment, or production mutation was performed.
+
+## T5 source-rhythm and complete-phrase checkpoint
+
+Commit `de9cfd0` adds the missing no-chart source-reduction path and fixes the source-index mapping used by attack grouping. When there are no chord events, no unresolved review span, and dense non-melody source support is available, the producer retains the selected melody, keeps source attack timing, caps each attack at three support tones, and removes the redundant support events. It does not invent harmony or quantize rests.
+
+The complete dense synthetic phrase has this exact structural output:
+
+```text
+source: 15 notes (3 selected melody + 12 support), attacks at 0, 1, 2
+output: 12 notes (3 melody + 9 source-rhythm support), no generated chords
+phrase: [0,3] strategy=source-reduction change=changed review=needs-review
+reason: no chord coverage
+support starts: 0,0,0,1,1,1,2,2,2
+```
+
+Phrase planning now splits at confirmed/uncertain spans, fallback spans, and chord-planning event boundaries. The regression with notes only at the edges of `[1,3]` confirms that an empty midpoint is not enough to call a phrase `silence`; the phrase remains `original` when either its source or output overlaps the interval.
+
+T4 harmonic evidence remains separately bounded: `packages/midi/test/piano-accompaniment.test.ts` includes `keeps protected melody out of inferred left-hand evidence` and `measures generated left-hand notes without counting protected right-hand notes`; both pass in the full MIDI `17 files / 395 tests` run. The generated backing path therefore does not reuse protected melody as notes-derived harmony evidence.
+
+Verification after T5: full player-core `15 files / 201 tests PASS`; focused `melody-accompaniment` `29/29`; full MIDI `17 files / 395 tests PASS`; focused catalog piano-section-builder `9 tests PASS`; MIDI/player-core/catalog typechecks pass. This checkpoint is synthetic and structural. It does not establish syncopation, pickup, 3/4, 6/8, total sounding playability, recognizability, harmonic plausibility, UI status correctness, real-song usefulness, or musical acceptance.
 
 ## Reserved evaluation set
 
@@ -111,4 +147,4 @@ Expected melody annotations remain proposed and unreviewed. No algorithm output 
 
 ## G1 decision requested
 
-Parent has accepted the frozen sources, provisional windows, and reserved set. The remaining G1 amendments are the corrected 21/21 hash validation, Player-equivalent runtime normalization, and the concrete proposed source-ID expectations above. T2 accounting may proceed after this packet is reviewed; do not start T3 melody tuning until the expectations and normalization are accepted. Human musical acceptance remains a separate later gate.
+Parent has accepted the frozen sources, provisional windows, and reserved set. G1 is structurally accepted with RH-part candidate evidence explicitly excluded from automatic-melody gold. T2, corrective T3, T4 local-interval work, and the T5 synthetic source-rhythm checkpoint are committed; real-song tuning, G2 source/musical review, and human musical acceptance remain separate later gates.
