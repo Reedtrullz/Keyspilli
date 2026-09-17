@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { ChordLabel, Note } from "@keyspilli/midi";
 import {
   buildMelodyAccompaniment,
+  enforceAccompanimentSoundingLimits,
   sourceNoteIds,
   type MelodySelection,
 } from "../src/accompaniment.js";
@@ -15,8 +16,13 @@ function chord(beat: number, name: string, durationBeats: number): ChordLabel {
   return { beat, name, durationBeats, notes: [] };
 }
 
-function build(notes: Note[], chords: ChordLabel[], selection?: MelodySelection, durationBeats = 8) {
-  return buildMelodyAccompaniment(notes, chords, { selection, durationBeats, sourceFingerprint: "fixture-source-v1" });
+function build(notes: Note[], chords: ChordLabel[], selection?: MelodySelection, durationBeats = 8, timeSig?: [number, number]) {
+  return buildMelodyAccompaniment(notes, chords, {
+    selection,
+    durationBeats,
+    sourceFingerprint: "fixture-source-v1",
+    ...(timeSig ? { timeSig } : {}),
+  });
 }
 
 class AudioSpy implements AudioLike {
@@ -377,7 +383,7 @@ describe("buildMelodyAccompaniment", () => {
     const result = build(
       [held, note(48, 0, 1, 60, "L"), note(53, 2, 1, 60, "L")],
       [chord(0, "C", 2), chord(2, "F", 2)],
-      "automatic",
+      "right-hand",
       4,
     );
 
@@ -573,6 +579,33 @@ describe("buildMelodyAccompaniment", () => {
     expect(result.provenance.generatedBeats).toBe(1.5);
   });
 
+  it.each([
+    ["4/4", [4, 4] as [number, number], [0, 2, 4, 6]],
+    ["3/4", [3, 4] as [number, number], [0, 1.5, 3, 4.5, 6, 7.5]],
+    ["6/8", [6, 8] as [number, number], [0, 1.5, 3, 4.5, 6, 7.5]],
+  ])("uses global %s phase for sparse harmonic backing", (_label, timeSig, expectedStarts) => {
+    const result = build(
+      [note(72, 0, 8, 100, "R")],
+      [chord(0, "C", 8)],
+      "right-hand",
+      8,
+      timeSig,
+    );
+    expect([...new Set(result.notes.filter((item) => item.hand === "L").map((item) => item.start))]).toEqual(expectedStarts);
+    expect(result.provenance.generatedNoteCount).toBe(expectedStarts.length * 3);
+  });
+
+  it("does not invent a meter phase when time signature is unavailable", () => {
+    const result = build(
+      [note(72, 0, 8, 100, "R")],
+      [chord(0, "C", 8)],
+      "right-hand",
+      8,
+    );
+
+    expect([...new Set(result.notes.filter((item) => item.hand === "L").map((item) => item.start))]).toEqual([0]);
+  });
+
   it("reduces a partial chart gap locally instead of requiring a whole-song no-chart path", () => {
     const result = build(
       [
@@ -653,6 +686,40 @@ describe("buildMelodyAccompaniment", () => {
     expect(result.melody[0]).toMatchObject(note(72, 0, 2, 100, "R"));
     expect(result.provenance.sourceSupportNoteCount).toBe(3);
     expect(result.fallbackSpans).toContainEqual({ startBeat: 1, endBeat: 2, reason: "sounding limit exceeded" });
+  });
+
+  it("trims a held support only after a late collision and preserves its earlier lineage", () => {
+    const result = build(
+      [
+        note(72, 0, 8, 100, "R"),
+        note(48, 0, 8, 60, "L"), note(52, 0, 8, 60, "L"), note(55, 0, 8, 60, "L"),
+        note(36, 7, 1, 60, "L"),
+      ],
+      [chord(0, "C", 8)],
+      "right-hand",
+      8,
+    );
+    const support = result.events
+      .filter((event) => event.role === "accompaniment" && event.note.hand === "L")
+      .map((event) => [event.note.midi, event.note.start, event.note.dur, event.sourceNoteIds.length] as const);
+
+    expect(support).toEqual([
+      [48, 0, 8, 1], [52, 0, 7, 1], [55, 0, 7, 1], [36, 7, 1, 1],
+    ]);
+    expect(result.fallbackSpans).toContainEqual({ startBeat: 7, endBeat: 8, reason: "sounding limit exceeded" });
+    expect(result.events.some((event) => event.note.midi === 52 && event.note.start === 0 && event.note.dur === 8)).toBe(false);
+  });
+
+  it("counts retained-unclassified same-hand sound before accepting support", () => {
+    const result = enforceAccompanimentSoundingLimits([
+      { id: "melody", note: note(72, 0, 4, 100, "L"), role: "melody", sourceNoteIds: ["melody"] },
+      { id: "retained", note: note(60, 0, 4, 70, "L"), role: "retained-unclassified", sourceNoteIds: ["retained"] },
+      { id: "support", note: note(48, 0, 4, 50, "L"), role: "accompaniment", sourceNoteIds: ["support"] },
+      { id: "generated", note: note(52, 0, 4, 50, "L"), role: "accompaniment", sourceNoteIds: [] },
+    ]);
+
+    expect(result.events.map((event) => event.id)).toEqual(["melody", "retained"]);
+    expect(result.fallbackSpans).toEqual([{ startBeat: 0, endBeat: 4, reason: "sounding limit exceeded" }]);
   });
 
   it("drops a same-pitch support collision instead of moving the selected melody", () => {

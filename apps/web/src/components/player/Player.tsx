@@ -349,6 +349,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   const melodyArrangement = useMemo<MelodyAccompanimentResolution>(
     () => buildMelodyAccompaniment(initial.data.notes, chords, {
       durationBeats: arrangementEnd,
+      timeSig: initial.data.timeSig,
       sourceFingerprint: melodySourceFingerprint,
       selection: melodySelection,
     }),

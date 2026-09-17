@@ -86,6 +86,8 @@ export interface MelodyAccompanimentProvenance {
 
 export interface MelodyAccompanimentOptions {
   durationBeats?: number;
+  /** Source meter used only for phase-aware sparse backing. */
+  timeSig?: readonly [number, number];
   sourceFingerprint?: string | null;
   selection?: MelodySelection;
   allowRests?: boolean;
@@ -574,48 +576,87 @@ interface SoundingLimitResult {
   fallbackSpans: Array<{ startBeat: number; endBeat: number; reason: "sounding limit exceeded" }>;
 }
 
-function enforceAccompanimentSoundingLimits(events: readonly ArrangementEvent[]): SoundingLimitResult {
-  const support = events.filter((event) => event.role === "accompaniment" && (event.note.hand === "L" || event.note.hand === "R"));
-  const melody = events.filter((event) => event.role === "melody");
+const MAX_SOUNDING_NOTES_PER_HAND = 3;
+
+function withinSoundingLimit(events: readonly ArrangementEvent[]): boolean {
+  if (events.length > MAX_SOUNDING_NOTES_PER_HAND) return false;
+  if (events.length < 2) return true;
+  return Math.max(...events.map((event) => event.note.midi)) - Math.min(...events.map((event) => event.note.midi)) <= 12 + EPSILON;
+}
+
+/**
+ * Enforce the physical-hand budget on the projected stream.
+ *
+ * Melody and retained-unclassified events are mandatory. Accompaniment is
+ * trimmed only over intervals where it loses the budget, preserving the
+ * sourceNoteIds on each surviving piece. A later collision therefore cannot
+ * erase an earlier held attack without a corresponding changed interval.
+ */
+export function enforceAccompanimentSoundingLimits(events: readonly ArrangementEvent[]): SoundingLimitResult {
+  const physical = events.filter((event) => event.note.hand === "L" || event.note.hand === "R");
+  const support = physical.filter((event) => event.role === "accompaniment");
+  const mandatory = physical.filter((event) => event.role === "melody" || event.role === "retained-unclassified");
   const boundaries = new Set<number>();
-  for (const event of [...support, ...melody]) {
+  for (const event of physical) {
     boundaries.add(event.note.start);
     boundaries.add(noteEnd(event.note));
   }
   const sortedBoundaries = [...boundaries].sort((a, b) => a - b);
-  const dropped = new Set<string>();
+  const rejectedById = new Map<string, Array<{ startBeat: number; endBeat: number }>>();
   const fallbackSpans: SoundingLimitResult["fallbackSpans"] = [];
+  const reject = (event: ArrangementEvent, startBeat: number, endBeat: number) => {
+    const intervals = rejectedById.get(event.id) ?? [];
+    intervals.push({ startBeat, endBeat });
+    rejectedById.set(event.id, intervals);
+  };
   for (let index = 0; index < sortedBoundaries.length - 1; index++) {
     const startBeat = sortedBoundaries[index]!;
     const endBeat = sortedBoundaries[index + 1]!;
     if (endBeat <= startBeat + EPSILON) continue;
-    const activeMelody = melody.filter((event) => overlaps(event.note, startBeat, endBeat));
+    const activeMandatory = mandatory.filter((event) => overlaps(event.note, startBeat, endBeat));
     for (const hand of ["L", "R"] as const) {
-      const active = support.filter((event) => !dropped.has(event.id)
-        && event.note.hand === hand
-        && overlaps(event.note, startBeat, endBeat));
-      if (active.length === 0) continue;
-      const collisionFree = active.filter((event) => !activeMelody.some((melodyEvent) => melodyEvent.note.midi === event.note.midi));
-      const ordered = [...collisionFree].sort((a, b) => a.note.midi - b.note.midi
-        || (a.sourceNoteIds.length > 0 ? -1 : 1) - (b.sourceNoteIds.length > 0 ? -1 : 1)
-        || b.note.dur - a.note.dur
-        || a.id.localeCompare(b.id));
-      const kept: ArrangementEvent[] = [];
-      const rejected = new Set<string>(active.filter((event) => !collisionFree.includes(event)).map((event) => event.id));
-      for (const event of ordered) {
-        const next = [...kept, event];
-        const span = Math.max(...next.map((item) => item.note.midi)) - Math.min(...next.map((item) => item.note.midi));
-        if (kept.length >= 3 || span > 12 + EPSILON) rejected.add(event.id);
-        else kept.push(event);
+      const handMandatory = activeMandatory.filter((event) => event.note.hand === hand);
+      const activeSupport = support.filter((event) => event.note.hand === hand && overlaps(event.note, startBeat, endBeat));
+      if (handMandatory.length === 0 && activeSupport.length === 0) continue;
+      const rejected = new Set<ArrangementEvent>();
+      const mandatoryFits = withinSoundingLimit(handMandatory);
+      if (!mandatoryFits) {
+        for (const event of activeSupport) {
+          rejected.add(event);
+          reject(event, startBeat, endBeat);
+        }
+      } else {
+        const ordered = [...activeSupport].sort((a, b) => a.note.midi - b.note.midi
+          || (a.sourceNoteIds.length > 0 ? -1 : 1) - (b.sourceNoteIds.length > 0 ? -1 : 1)
+          || b.note.dur - a.note.dur
+          || a.id.localeCompare(b.id));
+        const kept = [...handMandatory];
+        for (const event of ordered) {
+          if (activeMandatory.some((mandatoryEvent) => mandatoryEvent.note.midi === event.note.midi)
+            || !withinSoundingLimit([...kept, event])) {
+            rejected.add(event);
+            reject(event, startBeat, endBeat);
+          } else {
+            kept.push(event);
+          }
+        }
       }
-      if (rejected.size > 0) {
-        for (const id of rejected) dropped.add(id);
+      if (!mandatoryFits || rejected.size > 0) {
         fallbackSpans.push({ startBeat, endBeat, reason: "sounding limit exceeded" });
       }
     }
   }
   return {
-    events: events.filter((event) => !dropped.has(event.id)),
+    events: events.flatMap((event) => {
+      const rejected = rejectedById.get(event.id);
+      if (event.role !== "accompaniment" || !rejected?.length) return [event];
+      const pieces = subtractCoveredIntervals(event.note, rejected);
+      return pieces.map((note, index) => ({
+        ...event,
+        id: `${event.id}:piece:${index}`,
+        note,
+      }));
+    }),
     fallbackSpans,
   };
 }
@@ -825,18 +866,46 @@ function reduceSourceSupport(
   return reduced;
 }
 
-function sparseHarmonicSupportNotes(voicing: readonly number[], startBeat: number, endBeat: number): Note[] {
-  const dur = Math.min(0.75, endBeat - startBeat);
-  if (dur <= EPSILON) return [];
-  // ponytail: one attack at the supplied harmonic boundary; add meter-phase
-  // gestures only when timing metadata and a measured need justify them.
-  return voicing.map((midi) => ({
-    midi,
-    start: startBeat,
-    dur,
-    vel: 54,
-    hand: "L" as const,
-  }));
+function sparseMeterPulse(timeSig?: readonly [number, number]): number | null {
+  if (!timeSig) return null;
+  const [numerator, denominator] = timeSig;
+  if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || numerator <= 0 || denominator <= 0) return null;
+  const measureBeats = numerator * (4 / denominator);
+  return Number.isFinite(measureBeats) && measureBeats > EPSILON ? measureBeats / 2 : null;
+}
+
+function sparseHarmonicStarts(startBeat: number, endBeat: number, timeSig?: readonly [number, number]): number[] {
+  const starts = [startBeat];
+  const pulse = sparseMeterPulse(timeSig);
+  if (!pulse) return starts;
+  // Two phase-locked attacks per complete measure. The harmonic boundary is
+  // always retained; interior attacks use global measure phase so a
+  // mid-measure chord change does not reset a generic loop.
+  for (let beat = Math.ceil((startBeat + EPSILON) / pulse) * pulse; beat < endBeat - EPSILON; beat += pulse) {
+    if (beat > startBeat + EPSILON) starts.push(beat);
+  }
+  return starts;
+}
+
+function sparseHarmonicSupportNotes(
+  voicing: readonly number[],
+  startBeat: number,
+  endBeat: number,
+  timeSig?: readonly [number, number],
+): Note[] {
+  const starts = sparseHarmonicStarts(startBeat, endBeat, timeSig);
+  return starts.flatMap((beat, index) => {
+    const nextBeat = starts[index + 1] ?? endBeat;
+    const dur = Math.min(0.75, endBeat - beat, nextBeat - beat);
+    if (dur <= EPSILON) return [];
+    return voicing.map((midi) => ({
+      midi,
+      start: beat,
+      dur,
+      vel: 54,
+      hand: "L" as const,
+    }));
+  });
 }
 
 function mergeUnresolvedSpans(spans: MelodyUnresolvedSpan[]): MelodyUnresolvedSpan[] {
@@ -1319,7 +1388,7 @@ export function buildMelodyAccompaniment(
       const repeated = sparseKey === previousSparseKey && event.startBeat <= previousSparseEnd + EPSILON;
       if (!repeated) {
         supportModes.add("sparse-harmonic");
-        const sparseNotes = sparseHarmonicSupportNotes(notes, event.startBeat, event.endBeat);
+        const sparseNotes = sparseHarmonicSupportNotes(notes, event.startBeat, event.endBeat, options.timeSig);
         generatedSupportNotes.push(...sparseNotes);
       }
       previousSparseKey = sparseKey;
@@ -1394,9 +1463,9 @@ export function buildMelodyAccompaniment(
   const renderedGeneratedSupport = arrangementEvents
     .filter((event) => event.role === "accompaniment" && event.sourceNoteIds.length === 0)
     .map((event) => event.note);
-  const renderedSourceSupportCount = arrangementEvents
+  const renderedSourceSupportIds = new Set(arrangementEvents
     .filter((event) => event.role === "accompaniment" && event.sourceNoteIds.length > 0)
-    .length;
+    .flatMap((event) => event.sourceNoteIds));
   const generatedBeats = unionDuration(
     renderedGeneratedSupport.map((note) => ({ startBeat: note.start, endBeat: noteEnd(note) })),
     durationBeats,
@@ -1415,7 +1484,7 @@ export function buildMelodyAccompaniment(
     sourceNoteCount: sourceNotes.length,
     melodyNoteIds,
     unresolvedSpans: selected.unresolvedSpans,
-    sourceSupportNoteCount: renderedSourceSupportCount,
+    sourceSupportNoteCount: renderedSourceSupportIds.size,
     generatedNoteCount: renderedGeneratedSupport.length,
     generatedBeats,
     fallbackBeats,

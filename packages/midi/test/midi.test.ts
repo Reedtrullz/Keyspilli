@@ -517,6 +517,39 @@ describe("buildVariants", () => {
     expect(variants[5]!.notes.length).toBeGreaterThan(0);
   });
 
+  it("records the real notes.json chord fallback origin before player melody selection", () => {
+    const input: ParsedMidi = {
+      format: 0,
+      division: 480,
+      tempoBpm: 120,
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes: [
+        { midi: 48, start: 0, dur: 1, vel: 70 },
+        { midi: 52, start: 0, dur: 1, vel: 70 },
+        { midi: 55, start: 0, dur: 1, vel: 70 },
+        { midi: 72, start: 0, dur: 1, vel: 100 },
+      ],
+      trackNames: ["Piano"],
+      durationBeats: 4,
+    };
+    const variant = buildVariants(input, { title: "Fallback origin", artist: "Test" }, {
+      arrangementProfile: "source",
+      maxDurBeats: null,
+    }).find((candidate) => candidate.level === "advanced")!;
+
+    expect(variant.chords).toEqual([{
+      beat: 0,
+      name: "C",
+      notes: [48, 52, 55],
+      sourceKind: "generated",
+      inferred: true,
+      inferenceType: "voicing",
+      durationBeats: 4,
+    }]);
+  });
+
   it("revoices a one-staff chordal import for the learner profile", () => {
     const notes: Note[] = [];
     for (let i = 0; i < 24; i++) {
