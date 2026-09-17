@@ -646,6 +646,34 @@ describe("buildMelodyAccompaniment", () => {
     expect(labelOnly.provenance.generatedNoteCount).toBe(0);
     expect(labelOnly.provenance.supportModes).toEqual(["fallback"]);
     expect(labelOnly.fallbackSpans).toEqual([{ startBeat: 0, endBeat: 1, reason: "unverified chord source" }]);
+    expect(labelOnly.changeSummary.reviewBeats).toBe(1);
+    expect(labelOnly.phrases).toEqual([expect.objectContaining({
+      review: "needs-review",
+      reasons: ["unverified chord source"],
+    })]);
+
+    const sourceReduced = buildMelodyAccompaniment(
+      [
+        note(60, 0, 1, 100, "R"),
+        note(48, 0, 1, 60, "L"), note(52, 0, 1, 60, "L"), note(55, 0, 1, 60, "L"), note(59, 0, 1, 60, "L"),
+      ],
+      [generatedChord],
+      {
+        durationBeats: 1,
+        selection: "right-hand",
+        sourceFingerprint: "generated-harmony-v1",
+        harmonicSupport: "none",
+      },
+    );
+    expect(sourceReduced.provenance.sourceSupportNoteCount).toBe(3);
+    expect(sourceReduced.provenance.supportModes).toEqual(["source-rhythm"]);
+    expect(sourceReduced.fallbackSpans).toEqual([]);
+    expect(sourceReduced.changeSummary.reviewBeats).toBe(0);
+    expect(sourceReduced.phrases).toEqual([expect.objectContaining({
+      strategy: "source-reduction",
+      review: "user-selected",
+      reasons: [],
+    })]);
 
     const mixed = buildMelodyAccompaniment(
       [note(60, 0, 1, 100, "R"), note(62, 1, 1, 100, "R")],
@@ -845,6 +873,10 @@ describe("buildMelodyAccompaniment", () => {
       review: "needs-review",
       reasons: ["no chord coverage"],
     });
+    expect(result.changeSummary.reviewBeats).toBe(2);
+    expect(result.phrases
+      .filter((phrase) => phrase.review === "needs-review")
+      .reduce((total, phrase) => total + phrase.endBeat - phrase.startBeat, 0)).toBe(result.changeSummary.reviewBeats);
   });
 
   it("keeps reducing a clear no-chart interval outside one uncertain phrase", () => {

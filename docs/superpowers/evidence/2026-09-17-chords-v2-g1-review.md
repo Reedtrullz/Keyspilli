@@ -1,6 +1,6 @@
 # Chords v2 G1 review packet
 
-Status: T1/G1 source capture and amendments accepted by parent; T2 accounting is committed. T3/T4 corrective checkpoints, the T5 coherent-phrase policy, T6 sounding/velocity plumbing, and T7/T8 engineering integration are recorded through the current branch head, following `4b82ed4`. G3 human listening, G2 source/musical review, merge, and deployment remain gated.
+Status: T1/G1 source capture and amendments accepted by parent; T2 accounting is committed. T3/T4 corrective checkpoints, the T5 coherent-phrase policy, T6 sounding/velocity plumbing, and T7/T8 engineering integration are recorded through the current branch head. The label-only generated-harmony policy is implemented at `7775d5b`; G3 human listening, G2 source/musical review, merge, and deployment remain gated.
 
 ## Execution boundary
 
@@ -130,7 +130,7 @@ The follow-up source-path check uses a mixed fixture with an LH C triad and an u
 
 The requested negative fixture selects an LH note from a mixed source where the LH has only one pitch class. The precomputed generated chord includes that selected pitch, so the upper-RH fixture alone was insufficient. The current runtime producer does not emit the colliding generated voicing: its existing selected-melody clearance/sounding-limit path marks the span `sounding limit exceeded`, retains the selected source melody and source-rhythm support, and reports fallback. `simplifyPianoAccompaniment({ protectedNotes })` can infer/realize harmony from remaining notes, but adapting its semantic output to the current timed chord contract would be a new audible candidate.
 
-The new runtime-only candidate implements the smaller safe policy without touching the catalog: `generated` notes-derived harmony is label-only (`none`), `auto` allows harmonic generation only for events marked `sourceKind: "authored"` (`authored-only`), and an explicit `ug` chart source retains its existing harmonic generation (`all`). These policies are selected in `chord-sources.ts` and passed through both Player sync and worker requests; `resolveAccompaniment` and the Bass + chords path are unchanged. Label-only events remain in `displayChords`, keep selected-index source reduction, and report the honest fallback reason `unverified chord source` when no source support can replace them.
+The new runtime-only candidate implements the smaller safe policy without touching the catalog: `generated` notes-derived harmony is label-only (`none`), `auto` allows harmonic generation only for events marked `sourceKind: "authored"` (`authored-only`), and an explicit `ug` chart source retains its existing harmonic generation (`all`). These policies are selected in `chord-sources.ts` and passed through both Player sync and worker requests; `resolveAccompaniment` and the Bass + chords path are unchanged. Label-only events remain in `displayChords`; when selected-index source reduction succeeds, the label is provenance-only and does not create a fallback/review span. When no source support can replace a blocked label, the candidate reports the honest fallback reason `unverified chord source` and keeps that interval reviewable.
 
 The focused development fixture proves why the policy is needed: a selected R melody at MIDI 60 with generated C harmony produces lower L support `[36,40,43]` under the old all-support behavior, with no exact MIDI collision and no sounding-limit rejection. Under the new generated/label-only policy it retains only the selected source note, keeps the `C` display label, emits `0` generated support notes, and reports `unverified chord source`. A mixed authored-C/generated-G Auto fixture still generates C support while keeping G label-only. This is a new candidate prompted by the contract review, not reserved-output tuning; the preserved freeze/packet and retrospective-window caveat remain unchanged.
 
@@ -145,6 +145,28 @@ The following comparison predates the label-only candidate and is retained as hi
 | Hell | 1,130 → 1,099 | 100.625 / 214.125 / 37.250 | 22.500 | 222; 140 | 149 / 4 / 67 / 2 |
 
 The output also retained explicit fallback/unresolved provenance: Blackbird 80 fallback spans and 20 unresolved spans; Oops 267 fallback spans and 54 unresolved spans; Hell 170 fallback spans and 27 unresolved spans. Under the current default coherent-phrase sounding policy, generated support was Blackbird `0` notes/`0` beats, Oops `28`/`2.375`, and Hell `9`/`3`; source-linked re-attacks are `0` for all three. The increased structural reduction and sparse backing counts are not a success score; no automatic melody gold, harmonic review, playability review, or human musical acceptance exists for these fixtures.
+
+## Current `7775d5b` development-fixture impact
+
+The current candidate was replayed over the complete frozen Blackbird, Oops, and Hell development fixtures using the Player source-selection path: `resolveChordSources` → `selectChordSource("auto")` → generated-source dedupe/duration normalization → `buildMelodyAccompaniment`. The comparison baseline is an `fce18bc`-equivalent run with `harmonicSupport: "all"`; no source or catalog files were changed. The exact result is preserved in [current-candidate development evidence](./2026-09-17-chords-v2-current-candidate-development.json).
+
+| Fixture | Current output / source support / generated | Current changed / unchanged / review beats | Current phrase changed / unchanged / review | Delta vs fce18bc-equivalent output / generated |
+|---|---:|---:|---:|---:|
+| Blackbird | 1,025 / 416 / 0 | 252 / 38 / 60.375 | 147 / 20 / 77 | 0 / 0 |
+| Oops | 1,298 / 466 / 0 | 185.625 / 93 / 123.875 | 301 / 120 / 243 | -27 / -27 |
+| Hell | 1,085 / 418 / 0 | 119.5 / 195.25 / 96.375 | 167 / 126 / 165 | -17 / -17 |
+
+Generated support is zero in all three current runs; source-support counts are unchanged. Source-reduced label-only intervals are informational, while the explicit unverified-harmony fallback remains reviewable only where backing is actually unavailable (or another ambiguity/fallback span applies). Review beats and phrase-review intervals share that actionable-span union, so current review counts are policy/fallback accounting, not musical-quality scores. This current candidate supersedes the historical pre-label-only counts for output interpretation; the reserved capture packet remains unchanged.
+
+The frozen Oops development phrase `[64,108]` at 95 BPM was also captured through the browser AudioEngine synth at `7775d5b`. Artifacts are preserved under `apps/web/test-results/melody-accompaniment-compl-5ca33-didates-with-the-same-synth-chromium/`:
+
+| Capture | Events | WebM SHA-256 |
+|---|---:|---|
+| Original | 1,017 | `625ee52ddc6bed55f1ccc0aa1a12802b1ca31b0727ada8006d588f90843ce0b4` |
+| Current coherent | 624 | `7584001ede6b15a81b364ffa882f2bf94db117a829fc21d10738cbd5d463db31` |
+| Current resume comparison | 609 | `788581b7be9fc0871011cb8d0e8a03cfeeae00e58bf569c5882c0c5fbffd3bb5` |
+
+Human listening remains pending. The test-harness change only removed the obsolete coherent- versus resume-event-count ordering assertion; it did not overwrite or replace any reserved result.
 
 ## T6 sounding-limit checkpoint
 
@@ -169,7 +191,7 @@ Exact source fingerprints: Blackbird `variant:the-beatles-blackbird:a:the-beatle
 
 Blackbird is an honest no-difference control: its bounded window has no rejected interior interval. Oops and Hell show fewer support events and no resumed re-attacks under the coherent candidate, with nonzero rendered PCM differences against the onset-preserving candidate. This is rendered event/PCM evidence, not a claim that the candidate sounds musically better; human listening and actual browser AudioEngine capture remain pending.
 
-Verification for the continued T5/T6 checkpoint is recorded in the earlier engineering commits: focused melody `56/56`, sampler `3/3`, combined focused player-core `59/59`, SoundControls `2/2`, player-core/web typechecks, and web production build pass. The new label-only candidate at `fce18bcbc358a06281813192de95eb56f9f0e878` additionally passes player-core `15 files / 231 tests`, web `36 files / 207 tests`, player-core/web typechecks, web production build, focused melody `58/58`, chord-source policy `15/15`, the real-Blackbird Player E2E `1/1`, and the full isolated melody E2E `12 passed / 1 intentional skip`. These are synthetic/structural checks plus runtime contract/browser checks. They do not establish syncopation, pickup, 3/4, 6/8, total sounding/pedal playability, recognizability, harmonic plausibility, UI status correctness beyond the covered flow, real-song usefulness, or musical acceptance.
+Verification for the continued T5/T6 checkpoint is recorded in the earlier engineering commits: focused melody `56/56`, sampler `3/3`, combined focused player-core `59/59`, SoundControls `2/2`, player-core/web typechecks, and web production build pass. The label-only candidate at `7775d5b383289a28212dc9c2a8ec2e1f3b752d81` additionally passes player-core `15 files / 231 tests`, web `36 files / 207 tests`, player-core/web typechecks, web production build, focused melody `58/58`, chord-source policy `15/15`, the real-Blackbird Player E2E `1/1`, the full isolated melody E2E `12 passed / 1 intentional skip`, and the frozen-fixture Oops browser capture `1/1`. These are synthetic/structural checks plus runtime contract/browser checks. They do not establish syncopation, pickup, 3/4, 6/8, total sounding/pedal playability, recognizability, harmonic plausibility, UI status correctness beyond the covered flow, real-song usefulness, or musical acceptance.
 
 ## T7 worker and integrated rest-state checkpoint
 

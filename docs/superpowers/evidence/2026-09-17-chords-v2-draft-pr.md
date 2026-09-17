@@ -1,6 +1,6 @@
 # Draft PR — complete Chords v2 melody, accompaniment, worker, UX, and evaluation gates
 
-Draft only. Do not merge or deploy from this branch. The capture candidate remains frozen at `ea68729045e82ef9ced14e0e0916c86991eeba4a`; follow-up heads `4a71c6910b97dd38e9fc5f3a78104db5a4ef22f6` and `fce18bcbc358a06281813192de95eb56f9f0e878` contain evidence hardening plus the runtime-only generated-harmony source policy. No reserved-output tuning was performed.
+Draft only. Do not merge or deploy from this branch. The capture candidate remains frozen at `ea68729045e82ef9ced14e0e0916c86991eeba4a`; follow-up heads `4a71c6910b97dd38e9fc5f3a78104db5a4ef22f6` and `fce18bcbc358a06281813192de95eb56f9f0e878` contain evidence hardening, while `7775d5b383289a28212dc9c2a8ec2e1f3b752d81` contains the runtime-only generated-harmony source policy. No reserved-output tuning was performed.
 
 ## Scope: T2–T8
 
@@ -42,6 +42,30 @@ The source path is explicit: `buildVariants`/`chordsAt` writes notes-derived har
 
 The focused selected-R development fixture demonstrates the audible boundary: the old all-support path generated lower support `[36,40,43]` beside melody MIDI 60, with no exact MIDI collision and no sounding-limit rejection. The new generated/label-only candidate keeps the `C` display label, retains the selected source note, emits `0` generated support notes, and reports `unverified chord source`. A mixed Auto fixture still generates authored chart support while leaving generated continuation label-only. This is a new development candidate prompted by contract review; it does not retune or replace the frozen capture packet. Existing selected-index source reduction remains available where source support exists, with Original/local fallback otherwise.
 
+## Current `7775d5b` full development impact
+
+The reproducible comparison is in [current-candidate development evidence](./2026-09-17-chords-v2-current-candidate-development.json). It uses the frozen Blackbird/Oops/Hell fixture files, the same `resolveChordSources` → `selectChordSource("auto")` → generated-source dedupe/duration path used by Player, and compares the new policy with an `fce18bc`-equivalent `harmonicSupport: "all"` run:
+
+| Fixture | Current output / source support / generated | Current changed / unchanged / review beats | Current phrase changed / unchanged / review | Delta vs fce18bc-equivalent output / generated |
+| --- | ---: | ---: | ---: | ---: |
+| Blackbird | 1,025 / 416 / 0 | 252 / 38 / 60.375 | 147 / 20 / 77 | 0 / 0 |
+| Oops | 1,298 / 466 / 0 | 185.625 / 93 / 123.875 | 301 / 120 / 243 | -27 / -27 |
+| Hell | 1,085 / 418 / 0 | 119.5 / 195.25 / 96.375 | 167 / 126 / 165 | -17 / -17 |
+
+The current policy treats an unverified generated label as provenance-only when source reduction succeeds; it marks review only where backing is actually unavailable or melody selection is ambiguous. Review beats and phrase-review intervals use the same union of actionable fallback/ambiguity spans. The review counts therefore describe policy/fallback accounting, not musical quality. The historical/frozen comparison counts remain preserved as prior evidence and are superseded for current-candidate output interpretation.
+
+## Current Oops development audio
+
+The T1 frozen development fixture captured the full `[64,108]` development phrase at 95 BPM with the browser AudioEngine synth. The current runtime candidate is `7775d5b`; the test harness correction only removed the obsolete coherent-`<`-resume event-count ordering assumption. Audio artifacts are preserved in the worktree under `apps/web/test-results/melody-accompaniment-compl-5ca33-didates-with-the-same-synth-chromium/`:
+
+| Capture | Events | WebM SHA-256 |
+| --- | ---: | --- |
+| Original | 1,017 | `625ee52ddc6bed55f1ccc0aa1a12802b1ca31b0727ada8006d588f90843ce0b4` |
+| Current coherent | 624 | `7584001ede6b15a81b364ffa882f2bf94db117a829fc21d10738cbd5d463db31` |
+| Current resume comparison | 609 | `788581b7be9fc0871011cb8d0e8a03cfeeae00e58bf569c5882c0c5fbffd3bb5` |
+
+The current coherent/resume captures are audible, distinct from Original and each other, and human listening remains pending. The old reserved capture packet remains intact and is superseded for current-candidate output review; no old packet file was overwritten and no reserved result was replaced.
+
 ## Reserved browser evidence
 
 The packet contains one source-selected window per song, each with complete Original, Automatic melody, and User-confirmed right-hand captures. The frozen primary windows remain the only captured/human-review candidates. A second non-overlapping window is now prepared for deterministic retrospective producer comparison only; it was selected after the primary freeze and is explicitly **not** an untouched holdout. Player arrangement durations used by the deterministic producer were 96, 40, 84, and 504 beats respectively. Primary producer counts are Original / Automatic / Manual:
@@ -63,7 +87,7 @@ The retrospective deterministic windows are Near the Cross `0–24` beats, Prél
 | --- | --- | --- | --- |
 | T2 event accounting and interval semantics | Fixed/tested | Player-core suite 230/230; MIDI suite 397/397; window-clipped producer multisets and hashes in the reserved packet | No claim beyond the tested source/options fixtures |
 | T3 rests and local correction | Fixed/tested structurally | Rest-aware MIDI/player-core coverage, fingerprinted overrides, correction/reset/seek/loop browser checks | Semantic melody gold/source review and human recognizability review remain pending |
-| T4 source/harmony boundary | Runtime policy fixed/tested; source contract remains limited | Actual ingest → `buildVariants`/`chordsAt` → `notes.json.chords` → catalog API → Player path traced; mixed and selected-LH fixtures; generated `none` / Auto `authored-only` / UG `all` policy; selected-R low-voicing fixture proves sounding guard alone is insufficient; player-core and source-policy regressions pass | Historical `notes.json` still has no selected identity. No general selected-melody exclusion or musical harmony claim; protected-note re-inference remains a larger adapter/candidate |
+| T4 source/harmony boundary | Runtime policy fixed/tested; source contract remains limited | Actual ingest → `buildVariants`/`chordsAt` → `notes.json.chords` → catalog API → Player path traced; mixed and selected-LH fixtures; generated `none` / Auto `authored-only` / UG `all` policy; selected-R low-voicing fixture proves sounding guard alone is insufficient; full Blackbird/Oops/Hell impact and current Oops audio recorded at `7775d5b` | Historical `notes.json` still has no selected identity. No general selected-melody exclusion or musical harmony claim; protected-note re-inference remains a larger adapter/candidate |
 | T5 backing rhythm and sounding policy | Fixed/tested structurally | Source-reduction, sparse backing, meter/off-grid/pickup fixtures, lineage, coherent-phrase tests, producer captures | No live payload carries validated pickup-phase provenance; useful backing and human acceptance remain pending |
 | T6 sounding/voicing/velocity/pedal | Fixed/tested as engineering behavior | Focused player-core tests, bounded voicing/sounding trims, CC64/velocity paths, same-stream checks | Instrument balance, physical playability, and musical preference remain pending |
 | T7 worker/single stream/persistence | Fixed/tested | Full melody browser run; worker cancellation/keys/retry/stale guards; source fallback and persistence checks | Real mobile profile and production/catalog verification remain pending |

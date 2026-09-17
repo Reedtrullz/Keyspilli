@@ -1413,7 +1413,7 @@ export function buildMelodyAccompaniment(
       ? [{ startBeat: 0, endBeat: durationBeats, reason: "no source notes" as const }]
       : [];
     const arrangementEvents: ArrangementEvent[] = [];
-    const changeSummary = measureArrangementChanges(sourceNotes, arrangementEvents, durationBeats, selected.unresolvedSpans);
+    const changeSummary = measureArrangementChanges(sourceNotes, arrangementEvents, durationBeats, [...selected.unresolvedSpans, ...fallbackSpans]);
     return {
       style: "melody-accompaniment",
       notes: [],
@@ -1509,17 +1509,20 @@ export function buildMelodyAccompaniment(
       for (const item of reducedSupport) {
         sourceSupportByIndex.set(item.sourceIndex, item.note);
       }
+      if (reducedSupport.length > 0) chordCovered.push(replacementInterval);
     }
     if (!notes) {
       previousSparseKey = null;
       previousSparseStart = -Infinity;
       previousLearningVoicing = null;
-      supportModes.add("fallback");
-      fallbackEvents.push({
-        startBeat: event.startBeat,
-        endBeat: event.endBeat,
-        reason: event.notes?.length ? "no playable support voicing" : fallbackReason(event),
-      });
+      if (event.harmonicSupportAllowed || reducedSupport.length === 0) {
+        supportModes.add("fallback");
+        fallbackEvents.push({
+          startBeat: event.startBeat,
+          endBeat: event.endBeat,
+          reason: event.notes?.length ? "no playable support voicing" : fallbackReason(event),
+        });
+      }
       continue;
     }
     effectiveChords.push({
@@ -1534,7 +1537,7 @@ export function buildMelodyAccompaniment(
       ...(learning?.omittedPitchClasses.length ? { omittedPitchClasses: learning.omittedPitchClasses } : {}),
     });
     previousLearningVoicing = notes;
-    chordCovered.push(replacementInterval);
+    if (sourceSupport.length === 0 || reducedSupport.length === 0) chordCovered.push(replacementInterval);
     if (reducedSupport.length === 0 && sourceSupport.length === 0) {
       const sparseKey = notes.join(",");
       const repeated = sparseKey === previousSparseKey && event.startBeat <= previousSparseEnd + EPSILON;
@@ -1637,7 +1640,7 @@ export function buildMelodyAccompaniment(
   const fallbackBeats = fallbackSpans.reduce((sum, span) => sum + Math.max(0, span.endBeat - span.startBeat), 0);
   if (supportModes.size === 0) supportModes.add("fallback");
   const melodyNoteIds = [...selected.selectedIndices].sort((a, b) => a - b).map((index) => selected.sourceIds[index]!);
-  const changeSummary = measureArrangementChanges(sourceNotes, arrangementEvents, durationBeats, selected.unresolvedSpans);
+  const changeSummary = measureArrangementChanges(sourceNotes, arrangementEvents, durationBeats, [...selected.unresolvedSpans, ...fallbackSpans]);
   const phrases = buildArrangementPhrases(durationBeats, selected, fallbackSpans, sourceNotes, arrangementEvents, events);
   const provenance: MelodyAccompanimentProvenance = {
     schemaVersion: 1,
