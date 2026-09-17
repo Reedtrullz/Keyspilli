@@ -652,6 +652,8 @@ interface SelectedMelody {
   protectedMelody: ProtectedMelodyNote[];
   selectedIndices: Set<number>;
   sourceIds: string[];
+  sourceNotes: readonly Note[];
+  confirmedRanges: readonly { startBeat: number; endBeat: number }[];
   selection: MelodySelection;
   selectionProvenance: MelodySelectionProvenance;
   unresolvedSpans: MelodyUnresolvedSpan[];
@@ -808,6 +810,41 @@ function validatePhraseOverrides(
   return { valid, invalidSpans };
 }
 
+function applyPhraseOverrides(
+  sourceNotes: readonly Note[],
+  sourceIds: readonly string[],
+  selectedIndices: Set<number>,
+  overrides: readonly MelodyPhraseOverride[],
+): void {
+  for (const override of overrides) {
+    for (const [index, note] of sourceNotes.entries()) {
+      if (note.start >= override.startBeat - EPSILON && note.start < override.endBeat - EPSILON) selectedIndices.delete(index);
+    }
+    for (const id of override.sourceNoteIds) selectedIndices.add(sourceIds.indexOf(id));
+  }
+}
+
+function subtractOverrideRanges(
+  span: MelodyUnresolvedSpan,
+  ranges: readonly { startBeat: number; endBeat: number }[],
+): MelodyUnresolvedSpan[] {
+  let remaining: MelodyUnresolvedSpan[] = [{ ...span }];
+  for (const range of ranges) {
+    remaining = remaining.flatMap((candidate) => {
+      if (range.endBeat <= candidate.startBeat + EPSILON || range.startBeat >= candidate.endBeat - EPSILON) return [candidate];
+      const pieces: MelodyUnresolvedSpan[] = [];
+      if (candidate.startBeat < range.startBeat - EPSILON) {
+        pieces.push({ ...candidate, endBeat: range.startBeat });
+      }
+      if (candidate.endBeat > range.endBeat + EPSILON) {
+        pieces.push({ ...candidate, startBeat: range.endBeat });
+      }
+      return pieces;
+    });
+  }
+  return remaining.filter((candidate) => candidate.endBeat > candidate.startBeat + EPSILON);
+}
+
 function selectMelodySource(
   sourceNotes: readonly Note[],
   durationBeats: number,
@@ -820,22 +857,6 @@ function selectMelodySource(
   const rightHandIndices = sourceNotes
     .map((note, index) => playableSourceNote(note) && note.hand === "R" ? index : -1)
     .filter((index): index is number => index >= 0);
-  if (requestedSelection === "right-hand" && rightHandIndices.length > 0) {
-    const selectedIndices = new Set(rightHandIndices);
-    const protectedMelody = rightHandIndices.map((index) => protectedSourceNote(sourceNotes[index]!, index, ids[index]!));
-    return {
-      melody: rightHandIndices.map((index) => ({ ...sourceNotes[index]! })),
-      protectedMelody,
-      selectedIndices,
-      sourceIds: ids,
-      selection: "right-hand",
-      selectionProvenance: "user-confirmed",
-      unresolvedSpans: [],
-    };
-  }
-
-  const split = splitPianoRoles(sourceNotes, { preferSustainedLine: true, allowRests });
-  const selectedIndices = new Set(split.protectedMelody.map((note) => note.sourceIndex));
   const validatedOverrides = validatePhraseOverrides(
     phraseOverrides,
     sourceNotes,
@@ -843,12 +864,37 @@ function selectMelodySource(
     durationBeats,
     sourceFingerprint,
   );
-  for (const override of validatedOverrides.valid) {
-    for (const [index, note] of sourceNotes.entries()) {
-      if (note.start >= override.startBeat - EPSILON && note.start < override.endBeat - EPSILON) selectedIndices.delete(index);
-    }
-    for (const id of override.sourceNoteIds) selectedIndices.add(ids.indexOf(id));
+  const hasOverridePrecedence = requestedSelection === "right-hand"
+    && (rightHandIndices.length > 0 || validatedOverrides.valid.length > 0 || validatedOverrides.invalidSpans.length > 0);
+  if (hasOverridePrecedence) {
+    const selectedIndices = new Set(rightHandIndices);
+    applyPhraseOverrides(sourceNotes, ids, selectedIndices, validatedOverrides.valid);
+    const protectedMelody = [...selectedIndices]
+      .sort((a, b) => sourceNotes[a]!.start - sourceNotes[b]!.start || sourceNotes[a]!.midi - sourceNotes[b]!.midi || a - b)
+      .map((index) => protectedSourceNote(sourceNotes[index]!, index, ids[index]!));
+    const rightHandUnavailable = rightHandIndices.length === 0
+      && validatedOverrides.valid.length === 0
+      && durationBeats > EPSILON
+      ? [{ startBeat: 0, endBeat: durationBeats, reason: "right-hand part unavailable" as const }]
+      : [];
+    return {
+      melody: protectedMelody.map((note) => ({ ...note })),
+      protectedMelody,
+      selectedIndices,
+      sourceIds: ids,
+      sourceNotes,
+      confirmedRanges: rightHandIndices.length > 0
+        ? [{ startBeat: 0, endBeat: durationBeats }]
+        : validatedOverrides.valid.map(({ startBeat, endBeat }) => ({ startBeat, endBeat })),
+      selection: "right-hand",
+      selectionProvenance: "user-confirmed",
+      unresolvedSpans: mergeUnresolvedSpans([...validatedOverrides.invalidSpans, ...rightHandUnavailable]),
+    };
   }
+
+  const split = splitPianoRoles(sourceNotes, { preferSustainedLine: true, allowRests });
+  const selectedIndices = new Set(split.protectedMelody.map((note) => note.sourceIndex));
+  applyPhraseOverrides(sourceNotes, ids, selectedIndices, validatedOverrides.valid);
   const protectedMelody = [...split.protectedMelody]
     .filter((note) => selectedIndices.has(note.sourceIndex))
     .map((note) => protectedSourceNote(sourceNotes[note.sourceIndex]!, note.sourceIndex, ids[note.sourceIndex]!));
@@ -861,8 +907,8 @@ function selectMelodySource(
     ...split.pathEvidence.flatMap((span) => {
       const startBeat = Math.max(0, span.startBeat);
       const endBeat = Math.min(durationBeats, span.endBeat);
-      if (endBeat <= startBeat + EPSILON || overrideRanges.some((range) => range.startBeat < endBeat - EPSILON && range.endBeat > startBeat + EPSILON)) return [];
-      return [{ startBeat, endBeat, reason: "ambiguous melody" as const }];
+      if (endBeat <= startBeat + EPSILON) return [];
+      return subtractOverrideRanges({ startBeat, endBeat, reason: "ambiguous melody" }, overrideRanges);
     }),
     ...validatedOverrides.invalidSpans,
   ]);
@@ -874,6 +920,8 @@ function selectMelodySource(
     protectedMelody,
     selectedIndices,
     sourceIds: ids,
+    sourceNotes,
+    confirmedRanges: overrideRanges,
     selection: "automatic",
     selectionProvenance: validatedOverrides.valid.length > 0 ? "user-confirmed" : "inferred",
     unresolvedSpans: mergeUnresolvedSpans(unresolvedSpans),
@@ -898,21 +946,45 @@ function buildArrangementPhrases(
   fallbackSpans: readonly AccompanimentFallbackSpan[],
 ): ArrangementPhrase[] {
   if (durationBeats <= EPSILON) return [];
-  const reasons = [...new Set([
-    ...selected.unresolvedSpans.map((span) => span.reason),
-    ...fallbackSpans.map((span) => span.reason),
-  ])];
-  return [{
-    startBeat: 0,
-    endBeat: durationBeats,
-    melodySourceIds: selected.sourceIds.filter((_, index) => selected.selectedIndices.has(index)),
-    strategy: arrangementStrategy(supportModes, summary),
-    change: summary.changedBeats > EPSILON ? "changed" : "unchanged",
-    review: selected.selectionProvenance === "user-confirmed"
-      ? "user-selected"
-      : reasons.length > 0 ? "needs-review" : "automatic",
-    reasons,
-  }];
+  const boundaries = new Set<number>([0, durationBeats]);
+  for (const range of [...selected.confirmedRanges, ...selected.unresolvedSpans]) {
+    boundaries.add(Math.max(0, Math.min(durationBeats, range.startBeat)));
+    boundaries.add(Math.max(0, Math.min(durationBeats, range.endBeat)));
+  }
+  const sortedBoundaries = [...boundaries].sort((a, b) => a - b);
+  const strategy = arrangementStrategy(supportModes, summary);
+  const change = summary.changedBeats > EPSILON ? "changed" : "unchanged";
+  const overlapsRange = (startBeat: number, endBeat: number, range: { startBeat: number; endBeat: number }) =>
+    range.startBeat < endBeat - EPSILON && range.endBeat > startBeat + EPSILON;
+
+  return sortedBoundaries.slice(0, -1).flatMap((startBeat, index) => {
+    const endBeat = sortedBoundaries[index + 1]!;
+    if (endBeat <= startBeat + EPSILON) return [];
+    const reasons = [...new Set([
+      ...selected.unresolvedSpans
+        .filter((span) => overlapsRange(startBeat, endBeat, span))
+        .map((span) => span.reason),
+      ...fallbackSpans
+        .filter((span) => overlapsRange(startBeat, endBeat, span))
+        .map((span) => span.reason),
+    ])];
+    const userSelected = selected.confirmedRanges.some((range) => overlapsRange(startBeat, endBeat, range));
+    return [{
+      startBeat,
+      endBeat,
+      melodySourceIds: selected.sourceIds.filter((_, sourceIndex) => {
+        const note = selected.sourceNotes[sourceIndex];
+        return selected.selectedIndices.has(sourceIndex)
+          && note !== undefined
+          && note.start >= startBeat - EPSILON
+          && note.start < endBeat - EPSILON;
+      }),
+      strategy,
+      change,
+      review: userSelected ? "user-selected" : reasons.length > 0 ? "needs-review" : "automatic",
+      reasons,
+    }];
+  });
 }
 
 const MAX_LEFT_HAND_SPAN = 12;

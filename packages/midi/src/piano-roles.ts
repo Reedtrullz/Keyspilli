@@ -378,6 +378,9 @@ export function splitPianoRoles(
   // because it is in the right hand. The state key is the last non-rest note,
   // so multiple rest groups retain every distinct reconnection history instead
   // of merging them into one lossy null state.
+  // ponytail: exact rest history is O(groups × reachable last notes); bounded
+  // pruning would risk dropping a valid re-entry, so T7 must move long opt-in
+  // runs behind worker/cancellation if the measured latency remains too high.
   const lastNoteByIdentity = new Map<string, IndexedNote>();
   for (const group of groups) {
     for (const candidate of group) {
@@ -456,28 +459,15 @@ export function splitPianoRoles(
     stateIndex = state.previousStateIndex;
   }
 
-  const allLastIdentities: Array<string | null> = [null, ...lastNoteByIdentity.keys()];
-  const backward: Array<Map<string | null, number>> = new Array(candidates.length + 1);
-  backward[candidates.length] = new Map(allLastIdentities.map((identity) => [identity, 0]));
+  // Roll the suffix values instead of materialising every historical identity
+  // for every group. With rests disabled, the reachable keys are only the
+  // immediately preceding group; with rests enabled, the forward states still
+  // preserve each exact reconnect history without an unreachable all-song table.
+  let backwardNext = new Map<string | null, number>(
+    finalStates.map((state) => [state.lastIdentity, 0]),
+  );
+  const pathEvidence = new Array<PianoRolePathEvidence | undefined>(candidates.length);
   for (let groupIndex = candidates.length - 1; groupIndex >= 0; groupIndex--) {
-    const continuation = new Map<string | null, number>();
-    for (const previousIdentity of allLastIdentities) {
-      const previousLast = previousIdentity ? lastNoteByIdentity.get(previousIdentity)! : null;
-      let best = -Infinity;
-      for (const candidate of candidates[groupIndex]!) {
-        const nextIdentity = candidate.indexed?.identity ?? previousIdentity;
-        const score = candidate.emission
-          + candidateTransitionScore(previousLast, candidate, groups[groupIndex]!)
-          + (backward[groupIndex + 1]!.get(nextIdentity) ?? -Infinity);
-        best = Math.max(best, score);
-      }
-      continuation.set(previousIdentity, best);
-    }
-    backward[groupIndex] = continuation;
-  }
-
-  const pathEvidence: PianoRolePathEvidence[] = [];
-  for (let groupIndex = 0; groupIndex < candidates.length; groupIndex++) {
     const group = groups[groupIndex]!;
     const chosenIndex = selectedChoices[groupIndex]!;
     const chosen = candidates[groupIndex]![chosenIndex]!;
@@ -494,7 +484,7 @@ export function splitPianoRoles(
           prior.score
             + candidate.emission
             + candidateTransitionScore(previousLast, candidate, group)
-            + (backward[groupIndex + 1]!.get(nextIdentity) ?? -Infinity),
+            + (backwardNext.get(nextIdentity) ?? -Infinity),
         );
       }
       return best;
@@ -505,17 +495,41 @@ export function splitPianoRoles(
       .sort((a, b) => completeScores[b.index]! - completeScores[a.index]!
         || compareCandidates(a.candidate, b.candidate));
     const alternative = alternatives[0];
-    if (!alternative) continue;
-    const scoreMargin = Math.max(0, completeScores[chosenIndex]! - completeScores[alternative.index]!);
-    if (scoreMargin > PATH_AMBIGUITY_MARGIN + EPSILON) continue;
-    pathEvidence.push({
-      startBeat: Math.max(0, group[0]!.note.start),
-      endBeat: Math.max(group[0]!.note.start + 0.25, ...group.map(({ note }) => note.start + note.dur)),
-      selectedIdentity: chosen.indexed?.identity ?? null,
-      alternativeIdentity: alternative.candidate.indexed?.identity ?? null,
-      scoreMargin,
-    });
+    if (alternative) {
+      const scoreMargin = Math.max(0, completeScores[chosenIndex]! - completeScores[alternative.index]!);
+      if (scoreMargin <= PATH_AMBIGUITY_MARGIN + EPSILON) {
+        pathEvidence[groupIndex] = {
+          startBeat: Math.max(0, group[0]!.note.start),
+          endBeat: Math.max(group[0]!.note.start + 0.25, ...group.map(({ note }) => note.start + note.dur)),
+          selectedIdentity: chosen.indexed?.identity ?? null,
+          alternativeIdentity: alternative.candidate.indexed?.identity ?? null,
+          scoreMargin,
+        };
+      }
+    }
+
+    const previousIdentities = groupIndex === 0
+      ? [null]
+      : forwardStates[groupIndex - 1]!.map((state) => state.lastIdentity);
+    const continuation = new Map<string | null, number>();
+    for (const previousIdentity of previousIdentities) {
+      const previousLast = previousIdentity ? lastNoteByIdentity.get(previousIdentity)! : null;
+      let best = -Infinity;
+      for (const candidate of candidates[groupIndex]!) {
+        const nextIdentity = candidate.indexed?.identity ?? previousIdentity;
+        const score = candidate.emission
+          + candidateTransitionScore(previousLast, candidate, group)
+          + (backwardNext.get(nextIdentity) ?? -Infinity);
+        best = Math.max(best, score);
+      }
+      continuation.set(previousIdentity, best);
+    }
+    backwardNext = continuation;
   }
+
+  const resolvedPathEvidence = pathEvidence.filter(
+    (evidence): evidence is PianoRolePathEvidence => evidence !== undefined,
+  );
 
   const melodyIndexed = indexed
     .filter(({ identity }) => selected.has(identity))
@@ -533,6 +547,6 @@ export function splitPianoRoles(
     accompaniment: Object.freeze(accompaniment),
     protectedMelody: Object.freeze(protectedMelody),
     melodyMask: Object.freeze(melodyMask),
-    pathEvidence: Object.freeze(pathEvidence),
+    pathEvidence: Object.freeze(resolvedPathEvidence),
   });
 }

@@ -141,6 +141,69 @@ describe("buildMelodyAccompaniment", () => {
     expect(result.notes.some((item) => item.start < 2)).toBe(true);
   });
 
+  it("keeps unresolved ambiguity outside a partially overlapping phrase override", () => {
+    const source = [
+      note(48, 0, 1, 60), note(60, 0, 1, 80), note(61, 0, 1, 80),
+      note(48, 1, 1, 60), note(60, 1, 1, 80), note(61, 1, 1, 80),
+      note(72, 2, 1, 80),
+    ];
+    const ids = sourceNoteIds(source);
+    const result = buildMelodyAccompaniment(source, [], {
+      durationBeats: 3,
+      sourceFingerprint: "fixture-source-v2",
+      phraseOverrides: [{
+        startBeat: 0,
+        endBeat: 1,
+        sourceNoteIds: [ids[1]!],
+        sourceFingerprint: "fixture-source-v2",
+      }],
+    });
+
+    expect(result.provenance.unresolvedSpans).toEqual([
+      { startBeat: 1, endBeat: 2, reason: "ambiguous melody" },
+    ]);
+  });
+
+  it("gives a phrase override precedence over global right-hand selection", () => {
+    const source = [
+      note(72, 0, 1, 100, "R"), note(48, 0, 0.5, 60, "L"),
+      note(74, 2, 1, 100, "R"), note(50, 2, 0.5, 60, "L"),
+    ];
+    const result = buildMelodyAccompaniment(source, [], {
+      durationBeats: 3,
+      selection: "right-hand",
+      sourceFingerprint: "fixture-source-v2",
+      phraseOverrides: [{
+        startBeat: 0,
+        endBeat: 2,
+        sourceNoteIds: [],
+        sourceFingerprint: "fixture-source-v2",
+      }],
+    });
+
+    expect(result.melody.map((item) => [item.midi, item.start])).toEqual([[74, 2]]);
+    expect(result.notes.some((item) => item.midi === 48 && item.start === 0)).toBe(true);
+  });
+
+  it("keeps review provenance local to an overridden phrase", () => {
+    const source = [note(72, 0, 1, 100), note(74, 2, 1, 100)];
+    const result = buildMelodyAccompaniment(source, [chord(0, "C", 3)], {
+      durationBeats: 3,
+      sourceFingerprint: "fixture-source-v2",
+      phraseOverrides: [{
+        startBeat: 0,
+        endBeat: 1,
+        sourceNoteIds: [],
+        sourceFingerprint: "fixture-source-v2",
+      }],
+    });
+
+    expect(result.phrases.map(({ startBeat, endBeat, review }) => [startBeat, endBeat, review])).toEqual([
+      [0, 1, "user-selected"],
+      [1, 3, "automatic"],
+    ]);
+  });
+
   it("fails closed for a stale phrase override instead of changing melody", () => {
     const source = [note(72, 0, 1, 100, "R")];
     const result = buildMelodyAccompaniment(source, [], {
