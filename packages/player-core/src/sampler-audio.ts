@@ -32,7 +32,17 @@ export class SamplerAudioEngine implements AudioLike {
 
   voiceGain = 1;
   pianoGain = 0.4;
-  sustainPedal = true;
+  private _sustainPedal = true;
+
+  get sustainPedal(): boolean {
+    return this._sustainPedal;
+  }
+
+  set sustainPedal(value: boolean) {
+    this._sustainPedal = value;
+    this.syncPedal();
+    if (this.fallbackEngine) this.fallbackEngine.sustainPedal = value;
+  }
 
   /** True while samples are being fetched; UI may show a loading indicator. */
   get isLoading(): boolean {
@@ -186,10 +196,8 @@ export class SamplerAudioEngine implements AudioLike {
     this.fallbackEngine?.setGains(voice, piano);
   }
 
-  set sustainPedalSynced(value: boolean) {
-    this.sustainPedal = value;
-    this.syncPedal();
-  }
+  /** Backward-compatible alias for callers that explicitly request a sync. */
+  set sustainPedalSynced(value: boolean) { this.sustainPedal = value; }
 
   private applyGains(): void {
     if (this.ctx && this.voiceGainNode && this.pianoGainNode) {

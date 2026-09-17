@@ -4,6 +4,7 @@ import {
   buildMelodyAccompaniment,
   enforceAccompanimentSoundingLimits,
   sourceNoteIds,
+  type ArrangementEvent,
   type MelodySelection,
   type SparseBackingTiming,
 } from "../src/accompaniment.js";
@@ -38,6 +39,25 @@ class AudioSpy implements AudioLike {
   cancelAll(): void {}
   setGains(): void {}
   dispose(): void {}
+}
+
+function renderPhrase(events: readonly ArrangementEvent[], startBeat: number, endBeat: number): Float32Array {
+  const sampleRate = 8_000;
+  const secondsPerBeat = 0.5;
+  const frames = Math.ceil((endBeat - startBeat) * secondsPerBeat * sampleRate);
+  const output = new Float32Array(frames);
+  for (const event of events) {
+    const start = Math.max(0, Math.floor((event.note.start - startBeat) * secondsPerBeat * sampleRate));
+    const end = Math.min(frames, Math.ceil((event.note.start + event.note.dur - startBeat) * secondsPerBeat * sampleRate));
+    const frequency = 440 * 2 ** ((event.note.midi - 69) / 12);
+    for (let frame = start; frame < end; frame++) {
+      const elapsed = frame / sampleRate - (event.note.start - startBeat) * secondsPerBeat;
+      const remaining = event.note.dur * secondsPerBeat - elapsed;
+      const envelope = Math.min(1, elapsed / 0.006) * Math.min(1, Math.max(0, remaining) / 0.08);
+      output[frame] = (output[frame] ?? 0) + Math.sin(2 * Math.PI * frequency * elapsed) * envelope * (event.note.vel / 127) * 0.08;
+    }
+  }
+  return output;
 }
 
 describe("buildMelodyAccompaniment", () => {
@@ -847,6 +867,28 @@ describe("buildMelodyAccompaniment", () => {
     expect(result.events.filter((event) => event.sourceNoteIds.includes("top")).map((event) => [event.note.start, event.note.dur])).toEqual([[0, 3], [4, 4]]);
     expect(result.reattackCount).toBe(1);
     expect(result.fallbackSpans).toEqual([{ startBeat: 3, endBeat: 4, reason: "sounding limit exceeded" }]);
+  });
+
+  it("chooses the coherent complete-phrase candidate and compares rendered audio", () => {
+    const events: ArrangementEvent[] = [
+      { id: "melody", note: note(72, 0, 8, 100, "R"), role: "melody", sourceNoteIds: ["melody"] },
+      { id: "bass", note: note(48, 0, 8, 50, "L"), role: "accompaniment", sourceNoteIds: ["bass"] },
+      { id: "mid", note: note(52, 0, 8, 50, "L"), role: "accompaniment", sourceNoteIds: ["mid"] },
+      { id: "top", note: note(55, 0, 8, 50, "L"), role: "accompaniment", sourceNoteIds: ["top"] },
+      { id: "retained", note: note(60, 3, 1, 70, "L"), role: "retained-unclassified", sourceNoteIds: ["retained"] },
+    ];
+    const resume = enforceAccompanimentSoundingLimits(events, { policy: "resume" });
+    const coherent = enforceAccompanimentSoundingLimits(events, { policy: "coherent-phrase" });
+    const resumeAudio = renderPhrase(resume.events, 0, 8);
+    const coherentAudio = renderPhrase(coherent.events, 0, 8);
+    const difference = resumeAudio.reduce((sum, value, index) => sum + Math.abs(value - (coherentAudio[index] ?? 0)), 0);
+
+    expect(resume.reattackCount).toBe(1);
+    expect(coherent.reattackCount).toBe(0);
+    expect(coherent.events.filter((event) => event.sourceNoteIds.includes("top")).map((event) => [event.note.start, event.note.dur])).toEqual([[0, 3]]);
+    expect(resumeAudio.some((value) => Math.abs(value) > 0.001)).toBe(true);
+    expect(coherentAudio.some((value) => Math.abs(value) > 0.001)).toBe(true);
+    expect(difference).toBeGreaterThan(0.1);
   });
 
   it("drops a same-pitch support collision instead of moving the selected melody", () => {

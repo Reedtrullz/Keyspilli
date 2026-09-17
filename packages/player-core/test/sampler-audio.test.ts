@@ -100,4 +100,21 @@ describe("SamplerAudioEngine", () => {
     engine.dispose();
   });
 
+  it("updates sampled CC64 when the shared playback pedal changes", async () => {
+    const setCC = vi.fn();
+    pianoFactory.mockReturnValue({ ready: Promise.resolve(), setCC, start: vi.fn(), stop: vi.fn(), dispose: vi.fn() });
+    const { SamplerAudioEngine } = await import("../src/sampler-audio.js");
+    const engine = new SamplerAudioEngine();
+
+    engine.ensure();
+    await Promise.resolve();
+    await Promise.resolve();
+    engine.sustainPedal = false;
+    engine.sustainPedal = true;
+
+    expect(setCC).toHaveBeenLastCalledWith(64, 127);
+    expect(setCC.mock.calls.map(([controller, value]) => [controller, value])).toContainEqual([64, 0]);
+    engine.dispose();
+  });
+
 });

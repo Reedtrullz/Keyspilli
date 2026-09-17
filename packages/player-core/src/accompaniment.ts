@@ -106,11 +106,15 @@ export interface MelodyAccompanimentOptions {
   durationBeats?: number;
   /** Validated source phase for meter-aware sparse backing. */
   sparseBackingTiming?: SparseBackingTiming;
+  /** Prefer one coherent phrase over source-linked re-attacks after a trim. */
+  soundingPolicy?: SoundingLimitPolicy;
   sourceFingerprint?: string | null;
   selection?: MelodySelection;
   allowRests?: boolean;
   phraseOverrides?: readonly MelodyPhraseOverride[];
 }
+
+export type SoundingLimitPolicy = "resume" | "coherent-phrase";
 
 export interface MelodyPhraseOverride {
   startBeat: number;
@@ -590,10 +594,16 @@ function mergeFallbackEvents(
   return merged;
 }
 
-interface SoundingLimitResult {
+export interface SoundingLimitResult {
   events: ArrangementEvent[];
   fallbackSpans: Array<{ startBeat: number; endBeat: number; reason: "sounding limit exceeded" }>;
   reattackCount: number;
+}
+
+export interface SoundingLimitOptions {
+  policy?: SoundingLimitPolicy;
+  /** Original source attacks keyed by source-note identity. */
+  sourceAttackStarts?: ReadonlyMap<string, readonly number[]>;
 }
 
 const MAX_SOUNDING_NOTES_PER_HAND = 3;
@@ -612,7 +622,38 @@ function withinSoundingLimit(events: readonly ArrangementEvent[]): boolean {
  * sourceNoteIds on each surviving piece. A later collision therefore cannot
  * erase an earlier held attack without a corresponding changed interval.
  */
-export function enforceAccompanimentSoundingLimits(events: readonly ArrangementEvent[]): SoundingLimitResult {
+function sourceGestureSupportsReattack(
+  event: ArrangementEvent,
+  firstRejectedBeat: number,
+  sourceAttackStarts: ReadonlyMap<string, readonly number[]> | undefined,
+): boolean {
+  if (!sourceAttackStarts) return false;
+  return event.sourceNoteIds.some((sourceId) =>
+    sourceAttackStarts.get(sourceId)?.some((startBeat) =>
+      startBeat > event.note.start + EPSILON
+      && Math.abs(startBeat - firstRejectedBeat) <= EPSILON,
+    ) ?? false,
+  );
+}
+
+function chooseSoundingPieces(
+  event: ArrangementEvent,
+  rejected: readonly { startBeat: number; endBeat: number }[],
+  options: SoundingLimitOptions,
+): Note[] {
+  const resumed = subtractCoveredIntervals(event.note, rejected);
+  if (options.policy !== "coherent-phrase") return resumed;
+  const firstRejectedBeat = Math.min(...rejected.map((interval) => interval.startBeat));
+  if (sourceGestureSupportsReattack(event, firstRejectedBeat, options.sourceAttackStarts)) return resumed;
+  // ponytail: choose the no-resumption candidate once a held support fails;
+  // revoice only when a separately validated source attack exists.
+  return subtractCoveredIntervals(event.note, [{ startBeat: firstRejectedBeat, endBeat: noteEnd(event.note) }]);
+}
+
+export function enforceAccompanimentSoundingLimits(
+  events: readonly ArrangementEvent[],
+  options: SoundingLimitOptions = {},
+): SoundingLimitResult {
   const physical = events.filter((event) => event.note.hand === "L" || event.note.hand === "R");
   const support = physical.filter((event) => event.role === "accompaniment");
   const mandatory = physical.filter((event) => event.role === "melody" || event.role === "retained-unclassified");
@@ -671,7 +712,7 @@ export function enforceAccompanimentSoundingLimits(events: readonly ArrangementE
     events: events.flatMap((event) => {
       const rejected = rejectedById.get(event.id);
       if (event.role !== "accompaniment" || !rejected?.length) return [event];
-      const pieces = subtractCoveredIntervals(event.note, rejected);
+      const pieces = chooseSoundingPieces(event, rejected, options);
       reattackCount += pieces.filter((piece) => piece.start > event.note.start + EPSILON).length;
       return pieces.map((note, index) => ({
         ...event,
@@ -881,7 +922,7 @@ function reduceSourceSupport(
       seenPitches.add(item.note.midi);
       reduced.push({
         sourceIndex: item.sourceIndex,
-        note: { ...item.note, hand: "L" },
+        note: accompanimentNote(item.note),
       });
     }
     previousStackKey = stackKey;
@@ -945,7 +986,7 @@ function sparseHarmonicSupportNotes(
       midi,
       start: beat,
       dur,
-      vel: 54,
+      vel: SPARSE_BACKING_VELOCITY,
       hand: "L" as const,
     }));
   });
@@ -1220,6 +1261,16 @@ function buildArrangementPhrases(
 const MAX_LEFT_HAND_SPAN = 12;
 const MIN_MELODY_CLEARANCE = 2;
 const LOWEST_SUPPORT_MIDI = 36;
+const MAX_ACCOMPANIMENT_VELOCITY = 70;
+const SPARSE_BACKING_VELOCITY = 54;
+
+function accompanimentNote(note: Note): Note {
+  return {
+    ...note,
+    vel: Math.min(MAX_ACCOMPANIMENT_VELOCITY, Math.max(1, note.vel)),
+    hand: "L",
+  };
+}
 
 function supportUpperShape(
   chord: ChordLabel,
@@ -1449,7 +1500,7 @@ export function buildMelodyAccompaniment(
         if (note.start >= event.startBeat - EPSILON && note.start < event.endBeat - EPSILON) {
           sourceIndicesToReplace.add(sourceIndex);
         } else if (note.start < event.startBeat - EPSILON) {
-          sourceSupportByIndex.set(sourceIndex, { ...note, hand: "L" });
+          sourceSupportByIndex.set(sourceIndex, accompanimentNote(note));
         }
       }
       for (const item of reducedSupport) {
@@ -1564,7 +1615,16 @@ export function buildMelodyAccompaniment(
   }));
   const rawArrangementEvents = [...sourceEvents, ...generatedSupportEvents]
     .sort((a, b) => a.note.start - b.note.start || a.note.midi - b.note.midi || a.id.localeCompare(b.id));
-  const soundingLimits = enforceAccompanimentSoundingLimits(rawArrangementEvents);
+  const sourceAttackStarts = new Map<string, number[]>();
+  for (const [sourceIndex, sourceId] of selected.sourceIds.entries()) {
+    if (selected.selectedIndices.has(sourceIndex)) continue;
+    const source = sourceNotes[sourceIndex];
+    if (source) sourceAttackStarts.set(sourceId, [source.start]);
+  }
+  const soundingLimits = enforceAccompanimentSoundingLimits(rawArrangementEvents, {
+    policy: options.soundingPolicy ?? "coherent-phrase",
+    sourceAttackStarts,
+  });
   fallbackEvents.push(...soundingLimits.fallbackSpans);
   const arrangementEvents = soundingLimits.events;
   const fallbackSpans = buildFallbackSpans(events, chordCovered, mergeFallbackEvents(fallbackEvents), durationBeats);
