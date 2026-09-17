@@ -303,7 +303,7 @@ describe("buildMelodyAccompaniment", () => {
     expect(result.provenance.unresolvedSpans).toEqual([{ startBeat: 0, endBeat: 1, reason: "invalid phrase override" }]);
   });
 
-  it("uses a quality-aware pulse for a power chord without inventing its third", () => {
+  it("uses one sparse quality-aware attack for a power chord without inventing its third", () => {
     const result = build(
       [note(72, 0, 3, 100, "R")],
       [chord(0, "C5", 3)],
@@ -312,14 +312,14 @@ describe("buildMelodyAccompaniment", () => {
     );
     const support = result.notes.filter((item) => item.hand === "L");
 
-    expect([...new Set(support.map((item) => item.start))]).toEqual([0, 1, 2]);
+    expect([...new Set(support.map((item) => item.start))]).toEqual([0]);
     expect(new Set(support.map((item) => item.midi % 12))).toEqual(new Set([0, 7]));
     expect(support.some((item) => item.midi % 12 === 4)).toBe(false);
     expect(result.provenance).toMatchObject({
-      generatedBeats: 3,
-      generatedNoteCount: 6,
+      generatedBeats: 0.75,
+      generatedNoteCount: 2,
       sourceSupportNoteCount: 0,
-      supportModes: ["quarter-note-pulse"],
+      supportModes: ["sparse-harmonic"],
     });
   });
 
@@ -462,6 +462,19 @@ describe("buildMelodyAccompaniment", () => {
     })]);
   });
 
+  it("does not reuse protected melody as inferred harmony when the chart is absent", () => {
+    const result = buildMelodyAccompaniment(
+      [note(72, 0, 1, 100, "R"), note(74, 1, 1, 100, "R")],
+      [],
+      { durationBeats: 2, selection: "right-hand", sourceFingerprint: "fixture-source-v2" },
+    );
+
+    expect(result.chords).toEqual([]);
+    expect(result.notes.filter((item) => item.hand === "R").map((item) => item.midi)).toEqual([72, 74]);
+    expect(result.provenance.supportModes).toEqual(["fallback"]);
+    expect(result.fallbackSpans).toEqual([{ startBeat: 0, endBeat: 2, reason: "no chord coverage" }]);
+  });
+
   it("does not call an edge-only phrase silent when its midpoint is empty", () => {
     const result = buildMelodyAccompaniment(
       [note(72, 0, 0.1, 100), note(74, 2.9, 0.1, 100)],
@@ -474,6 +487,187 @@ describe("buildMelodyAccompaniment", () => {
     );
 
     expect(result.phrases.find((phrase) => phrase.startBeat === 1 && phrase.endBeat === 3)?.strategy).toBe("original");
+  });
+
+  it("preserves syncopated pickup attacks without quantizing source rhythm", () => {
+    const source = [
+      note(72, 0.25, 0.5, 100, "R"),
+      note(48, 0.25, 0.4, 60, "L"), note(52, 0.25, 0.4, 60, "L"), note(55, 0.25, 0.4, 60, "L"), note(60, 0.25, 0.4, 60, "L"),
+      note(74, 1.5, 0.5, 100, "R"),
+      note(50, 1.5, 0.4, 60, "L"), note(53, 1.5, 0.4, 60, "L"), note(57, 1.5, 0.4, 60, "L"), note(62, 1.5, 0.4, 60, "L"),
+      note(76, 2.75, 0.5, 100, "R"),
+      note(52, 2.75, 0.4, 60, "L"), note(55, 2.75, 0.4, 60, "L"), note(59, 2.75, 0.4, 60, "L"), note(64, 2.75, 0.4, 60, "L"),
+    ];
+    const result = buildMelodyAccompaniment(source, [], {
+      durationBeats: 4,
+      selection: "right-hand",
+      sourceFingerprint: "fixture-source-v2",
+    });
+
+    expect(result.melody.map((item) => [item.midi, item.start])).toEqual([[72, 0.25], [74, 1.5], [76, 2.75]]);
+    expect(result.notes.filter((item) => item.hand === "L").map((item) => item.start)).toEqual([
+      0.25, 0.25, 0.25, 1.5, 1.5, 1.5, 2.75, 2.75, 2.75,
+    ]);
+    expect(result.notes.some((item) => item.start === 1 || item.start === 2 || item.start === 3)).toBe(false);
+    expect(result.phrases).toEqual([expect.objectContaining({ startBeat: 0, endBeat: 4, strategy: "source-reduction", change: "changed" })]);
+  });
+
+  it("keeps a repeated defining hook when its phrase is explicitly protected", () => {
+    const source = [
+      note(76, 0, 0.5, 100, "R"), note(74, 1, 0.5, 100, "R"), note(76, 2, 0.5, 100, "R"), note(74, 3, 0.5, 100, "R"),
+      note(48, 0, 0.5, 60, "L"), note(52, 0, 0.5, 60, "L"), note(55, 0, 0.5, 60, "L"), note(60, 0, 0.5, 60, "L"),
+      note(50, 2, 0.5, 60, "L"), note(53, 2, 0.5, 60, "L"), note(57, 2, 0.5, 60, "L"), note(62, 2, 0.5, 60, "L"),
+    ];
+    const ids = sourceNoteIds(source);
+    const result = buildMelodyAccompaniment(source, [], {
+      durationBeats: 4,
+      sourceFingerprint: "fixture-source-v2",
+      phraseOverrides: [{
+        startBeat: 0,
+        endBeat: 4,
+        sourceNoteIds: ids.slice(0, 4),
+        sourceFingerprint: "fixture-source-v2",
+      }],
+    });
+
+    expect(result.melody.map((item) => item.midi)).toEqual([76, 74, 76, 74]);
+    expect(result.notes.filter((item) => item.hand === "R").map((item) => item.midi)).toEqual([76, 74, 76, 74]);
+    expect(result.notes.filter((item) => item.hand === "L")).toHaveLength(6);
+  });
+
+  it("drops redundant repeated upper support while retaining every bass attack", () => {
+    const source = [
+      note(72, 0, 0.5, 100, "R"), note(74, 1, 0.5, 100, "R"), note(76, 2, 0.5, 100, "R"),
+      note(48, 0, 0.5, 60, "L"), note(52, 0, 0.5, 60, "L"), note(55, 0, 0.5, 60, "L"),
+      note(48, 1, 0.5, 60, "L"), note(52, 1, 0.5, 60, "L"), note(55, 1, 0.5, 60, "L"),
+      note(48, 2, 0.5, 60, "L"), note(52, 2, 0.5, 60, "L"), note(55, 2, 0.5, 60, "L"),
+    ];
+    const result = buildMelodyAccompaniment(source, [], {
+      durationBeats: 3,
+      selection: "right-hand",
+      sourceFingerprint: "fixture-source-v2",
+    });
+    const support = result.notes.filter((item) => item.hand === "L");
+
+    expect(support.map((item) => [item.midi, item.start])).toEqual([
+      [48, 0], [52, 0], [55, 0], [48, 1], [48, 2],
+    ]);
+    expect(result.melody.map((item) => item.midi)).toEqual([72, 74, 76]);
+    expect(result.provenance.supportModes).toEqual(["source-rhythm"]);
+  });
+
+  it("uses one sparse attack for repeated harmony and keeps off-grid changes off-grid", () => {
+    const result = build(
+      [note(72, 0, 4, 100, "R")],
+      [chord(0, "C", 1), chord(1, "C", 1), chord(2, "C", 1), chord(3, "C", 1), chord(4.25, "F", 1.5)],
+      "right-hand",
+      5.75,
+    );
+    const support = result.notes.filter((item) => item.hand === "L");
+
+    expect([...new Set(support.map((item) => item.start))]).toEqual([0, 4.25]);
+    expect(support.every((item) => item.start === 0 || item.start === 4.25)).toBe(true);
+    expect(result.provenance.supportModes).toEqual(["sparse-harmonic"]);
+    expect(result.provenance.generatedNoteCount).toBe(support.length);
+    expect(result.provenance.generatedNoteCount).toBeGreaterThan(0);
+    expect(result.provenance.generatedBeats).toBe(1.5);
+  });
+
+  it("reduces a partial chart gap locally instead of requiring a whole-song no-chart path", () => {
+    const result = build(
+      [
+        note(72, 0, 1, 100, "R"),
+        note(48, 2.5, 0.5, 60, "L"), note(52, 2.5, 0.5, 60, "L"), note(55, 2.5, 0.5, 60, "L"), note(60, 2.5, 0.5, 60, "L"),
+        note(74, 4, 1, 100, "R"),
+      ],
+      [chord(0, "C", 2), chord(4, "F", 2)],
+      "right-hand",
+      6,
+    );
+
+    expect(result.notes.filter((item) => item.hand === "L" && item.start === 2.5)).toHaveLength(3);
+    expect(result.fallbackSpans).toContainEqual({ startBeat: 2, endBeat: 4, reason: "no chord coverage" });
+    expect(result.phrases.find((phrase) => phrase.startBeat === 2 && phrase.endBeat === 4)).toMatchObject({
+      strategy: "source-reduction",
+      change: "changed",
+      review: "needs-review",
+      reasons: ["no chord coverage"],
+    });
+  });
+
+  it("keeps reducing a clear no-chart interval outside one uncertain phrase", () => {
+    const result = buildMelodyAccompaniment([
+      note(72, 0, 1, 100, "R"),
+      note(48, 2, 0.5, 60, "L"), note(52, 2, 0.5, 60, "L"), note(55, 2, 0.5, 60, "L"), note(60, 2, 0.5, 60, "L"),
+      note(74, 2, 1, 100, "R"),
+    ], [], {
+      durationBeats: 3,
+      selection: "right-hand",
+      sourceFingerprint: "fixture-source-v2",
+      phraseOverrides: [{ startBeat: 0, endBeat: 1, sourceNoteIds: [], sourceFingerprint: "stale-source" }],
+    });
+
+    expect(result.provenance.unresolvedSpans).toEqual([{ startBeat: 0, endBeat: 1, reason: "invalid phrase override" }]);
+    expect(result.notes.filter((item) => item.hand === "L").map((item) => item.start)).toEqual([2, 2, 2]);
+    expect(result.provenance.supportModes).toEqual(["source-rhythm"]);
+  });
+
+  it.each([
+    ["3/4-like", [0.5, 1.5, 2.5]],
+    ["6/8-like", [0.75, 2.25, 3.75]],
+    ["unknown-meter", [0.37, 1.91, 3.14]],
+  ])("does not quantize %s source attacks when meter phase is unavailable", (_label, starts) => {
+    const source = starts.flatMap((start, index) => [
+      note(72 + index, start, 0.4, 100, "R"),
+      note(48 + index, start, 0.3, 60, "L"), note(52 + index, start, 0.3, 60, "L"),
+      note(55 + index, start, 0.3, 60, "L"), note(60 + index, start, 0.3, 60, "L"),
+    ]);
+    const result = buildMelodyAccompaniment(source, [], {
+      durationBeats: Math.max(...starts) + 1,
+      selection: "right-hand",
+      sourceFingerprint: "fixture-source-v2",
+    });
+
+    expect([...new Set(result.notes.filter((item) => item.hand === "L").map((item) => item.start))]).toEqual(starts);
+  });
+
+  it("drops held support before exceeding three sounding notes while preserving melody", () => {
+    const result = build(
+      [
+        note(72, 0, 2, 100, "R"),
+        note(48, 0, 2, 60, "L"), note(52, 0, 2, 60, "L"),
+        note(55, 1, 1, 60, "L"), note(59, 1, 1, 60, "L"),
+      ],
+      [chord(0, "C", 2)],
+      "right-hand",
+      2,
+    );
+    const support = result.events.filter((event) => event.role === "accompaniment" && event.note.hand === "L");
+
+    for (const beat of [0.5, 1.5]) {
+      const active = support.filter((event) => event.note.start <= beat && event.note.start + event.note.dur > beat);
+      expect(active.length).toBeLessThanOrEqual(3);
+      expect(active.length === 0 ? 0 : Math.max(...active.map((event) => event.note.midi)) - Math.min(...active.map((event) => event.note.midi))).toBeLessThanOrEqual(12);
+    }
+    expect(result.melody).toHaveLength(1);
+    expect(result.melody[0]).toMatchObject(note(72, 0, 2, 100, "R"));
+    expect(result.provenance.sourceSupportNoteCount).toBe(3);
+    expect(result.fallbackSpans).toContainEqual({ startBeat: 1, endBeat: 2, reason: "sounding limit exceeded" });
+  });
+
+  it("drops a same-pitch support collision instead of moving the selected melody", () => {
+    const result = build(
+      [note(72, 0, 2, 100, "R"), note(72, 0, 2, 60, "L")],
+      [chord(0, "C", 2)],
+      "right-hand",
+      2,
+    );
+
+    expect(result.melody).toHaveLength(1);
+    expect(result.melody[0]).toMatchObject(note(72, 0, 2, 100, "R"));
+    expect(result.notes).toEqual([note(72, 0, 2, 100, "R")]);
+    expect(result.provenance.sourceSupportNoteCount).toBe(0);
+    expect(result.fallbackSpans).toContainEqual({ startBeat: 0, endBeat: 2, reason: "sounding limit exceeded" });
   });
 
   it("fails closed when a source arrangement has no notes", () => {

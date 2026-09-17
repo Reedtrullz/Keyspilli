@@ -100,7 +100,7 @@ export function SoundControls({
                         ? `${melodyArrangement.provenance.sourceSupportNoteCount} source support notes`
                         : "No source support"}
                       {melodyArrangement.provenance.generatedNoteCount > 0
-                        && ` · ${melodyArrangement.provenance.generatedNoteCount} pulse notes (quarter-note approximation)`}
+                        && ` · ${melodyArrangement.provenance.generatedNoteCount} sparse backing notes`}
                       {melodyArrangement.provenance.fallbackBeats > 0 && ` · ${melodyArrangement.provenance.fallbackBeats.toFixed(1)} retained`}
                     </span>
                   </div>

@@ -62,6 +62,6 @@ describe("SoundControls accompaniment styles", () => {
       rightHandAvailable: true,
       onMelodySelectionChange: () => {},
     }));
-    expect(pulseMarkup).toContain("pulse notes (quarter-note approximation)");
+    expect(pulseMarkup).toContain("sparse backing notes");
   });
 });

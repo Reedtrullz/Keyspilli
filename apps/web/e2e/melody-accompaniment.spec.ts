@@ -411,7 +411,8 @@ if (process.env.KEYSPILLI_T1_MODE === "1") {
         await page.goto(`/player/${OOPS_SONG_ID}`);
         await expect(page.getByLabel("Falling notes player")).toBeVisible();
 
-        await selectArrangement(page, mode.selection, mode.melody);
+        if (mode.selection === "Chord mode") await selectArrangement(page, mode.selection, mode.melody);
+        else await selectArrangement(page, mode.selection);
         await bootAudio(page);
         const seekSeconds = Math.max(0, window.startBeat * 60 / OOPS_BPM - 0.5);
         const durationMs = Math.ceil((window.endBeat - window.startBeat) * 60 / OOPS_BPM * 1000 + 1_000);

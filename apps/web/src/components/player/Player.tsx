@@ -1253,7 +1253,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
               title={melodyArrangement.provenance.unresolvedSpans.length ? "One or more melody phrases need confirmation." : undefined}
             >
               {melodyArrangement.provenance.selectionProvenance === "user-confirmed" ? "User melody" : "Inferred melody"} · {melodyArrangement.provenance.generatedNoteCount > 0
-                ? `${melodyArrangement.provenance.generatedNoteCount} pulse notes · quarter-note approximation`
+                ? `${melodyArrangement.provenance.generatedNoteCount} sparse backing notes`
                 : melodyArrangement.provenance.sourceSupportNoteCount > 0
                   ? `${melodyArrangement.provenance.sourceSupportNoteCount} source support notes`
                   : "fallback"}

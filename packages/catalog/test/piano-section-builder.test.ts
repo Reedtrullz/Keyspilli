@@ -109,6 +109,16 @@ describe("buildSectionAwarePianoCandidate", () => {
     expect(result.diagnostics.outputs.cdFusedMedium!.noteCount).toBe(medium.length);
   });
 
+  it("passes only role-separated accompaniment into notes-derived harmony", () => {
+    const result = buildSectionAwarePianoCandidate(input());
+
+    expect(result.diagnostics.primary.melodyNoteCount).toBe(cMelody.length);
+    expect(result.diagnostics.primary.accompanimentNoteCount).toBe(cHarmony.length);
+    expect(result.diagnostics.accompaniment.easy.inputNoteCount).toBe(cHarmony.length);
+    expect(result.diagnostics.accompaniment.medium.inputNoteCount).toBe(cHarmony.length);
+    expect(result.diagnostics.accompaniment.easy.inputNoteCount).not.toBe(cMelody.length + cHarmony.length);
+  });
+
   it("is deterministic under reordered source notes and candidate declarations", () => {
     const base = buildSectionAwarePianoCandidate(input());
     const reordered = buildSectionAwarePianoCandidate(input({
