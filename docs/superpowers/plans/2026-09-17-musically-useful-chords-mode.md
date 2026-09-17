@@ -263,7 +263,7 @@ Do not broadly refactor Player, rewrite the catalogue pipeline, add plugins, or 
 - [x] Choose complete development phrases and four evaluation song bases by coverage criteria in section 8. Mark expected-note annotations as proposed until reviewed.
 - [x] Reproduce current Original/automatic/RH outputs with existing producer; record actual event differences and warning expansion, not just note totals.
 - [x] Reuse the existing E2E capture harness to freeze Original and current candidate audio. Record true role availability; do not call LH filtering isolated backing.
-- [ ] Parent reviews source identity, fixtures and the problem ledger before algorithm edits. Commit manifest/scripts with no private or unnecessary full-source media.
+- [x] Parent reviews source identity, fixtures and the problem ledger before algorithm edits. Commit manifest/scripts with no private or unnecessary full-source media.
 
 T1 evidence: `docs/superpowers/evidence/2026-09-17-chords-v2-baseline.json`, `docs/superpowers/evidence/2026-09-17-chords-v2-g1-review.md`, and `docs/superpowers/evidence/2026-09-17-chords-v2-oops-phrase-captures.json`. The four evaluation bases were selected from source traits before candidate output inspection; semantic Oops verse/chorus labels remain provisional because the source only has generic section labels.
 
@@ -302,12 +302,14 @@ it("does not count a source-equivalent passage as transformed", () => {
 **Consumes:** Frozen phrase truth and source IDs.
 **Produces:** Protected selected notes plus selection uncertainty and phrase overrides.
 
-- [ ] Add failing fixtures for a held melody with intervening backing attacks, a melody rest, a real re-entry, a crossing melody, an upper ornament, and audible-equivalent unison duplicates.
-- [ ] Add opt-in `allowRests` to `PianoRoleOptions`; extend DP with no-new-note state and held-note continuity. Default existing callers to unchanged behavior.
-- [ ] Expose enough candidate-path evidence to diagnose ambiguity. Replace unrelated top-two-pitch warnings in melody mode with selected-path disagreement; keep values uncalibrated and internal.
-- [ ] Implement `phraseOverrides`; validate finite ordered bounds, known source IDs and matching fingerprint. An empty ID list means deliberate rest, not missing data.
+- [x] Add failing fixtures for a held melody with intervening backing attacks, a melody rest, a real re-entry, a crossing melody, an upper ornament, and audible-equivalent unison duplicates.
+- [x] Add opt-in `allowRests` to `PianoRoleOptions`; extend DP with no-new-note state and held-note continuity. Default existing callers to unchanged behavior.
+- [x] Expose enough candidate-path evidence to diagnose ambiguity. Replace unrelated top-two-pitch warnings in melody mode with selected-path disagreement; keep values uncalibrated and internal.
+- [x] Implement `phraseOverrides`; validate finite ordered bounds, known source IDs and matching fingerprint. An empty ID list means deliberate rest, not missing data.
 - [ ] Replay development fixtures and check missing-melody and false-melody errors separately. Review every parameter against the named failure it fixes.
-- [ ] Run MIDI role tests and catalog caller tests (`piano-section-builder` and scripts consuming the splitter). Commit only when opt-in behavior avoids changing unrelated import results.
+- [x] Run MIDI role tests and catalog caller tests (`piano-section-builder` and scripts consuming the splitter). Commit only when opt-in behavior avoids changing unrelated import results.
+
+T3 checkpoint evidence: `packages/midi/src/piano-roles.ts` retains the last selected note identity through multiple rest groups and computes complete-path, non-negative internal margins; `packages/midi/test/piano-roles.test.ts` has 13 passing role tests, including competing voices → multiple rests → re-entry, future disambiguation, crossing, ornaments and unison lineage; `packages/player-core/test/melody-accompaniment.test.ts` has 20 passing tests including fingerprinted phrase rests; `packages/catalog/test/piano-section-builder.test.ts` has 9 passing tests and catalog typecheck passes. T3 replay against real frozen songs and G2 remain pending because the Oops source findings recover staff/voice ownership but no semantic melody gold; no Oops tuning used those traits.
 
 Concrete override regression:
 
@@ -316,7 +318,8 @@ it("allows an explicit melody rest without deleting the backing", () => {
   const source = [note(48, 0), note(50, 1), note(72, 2, 1, 80, "R")];
   const result = buildMelodyAccompaniment(source, [], {
     durationBeats: 3,
-    phraseOverrides: [{ startBeat: 0, endBeat: 2, sourceNoteIds: [] }]
+    sourceFingerprint: "fixture-source-v2",
+    phraseOverrides: [{ startBeat: 0, endBeat: 2, sourceNoteIds: [], sourceFingerprint: "fixture-source-v2" }]
   });
   expect(result.melody.filter(n => n.start < 2)).toHaveLength(0);
   expect(result.notes.some(n => n.start < 2)).toBe(true);
