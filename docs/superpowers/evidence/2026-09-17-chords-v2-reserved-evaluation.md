@@ -4,11 +4,13 @@ Candidate code was frozen at `ea68729045e82ef9ced14e0e0916c86991eeba4a` before p
 
 The preserved packet is [2026-09-17-chords-v2-capture-packet](2026-09-17-chords-v2-capture-packet/), with portable relative paths and a verified [SHA256SUMS.txt](2026-09-17-chords-v2-capture-packet/SHA256SUMS.txt). The tracked structured summary is [2026-09-17-chords-v2-reserved-evaluation.json](2026-09-17-chords-v2-reserved-evaluation.json).
 
-| Reserved phrase | Source-only window | Original | Automatic melody | User-confirmed right hand |
+| Reserved phrase | Source-only window | Producer events Original / Automatic / Manual | Decoded / requested seconds | Producer multiset changed |
 |---|---:|---:|---:|---:|
-| Near the Cross | 24–48 beats, 4×6/4 | captured · 223,777 B / 162 oscillator events | captured · 223,776 B / 150 oscillator events · event multiset changed · PCM RMS error 0.1224 | captured · 223,143 B / 153 oscillator events · event multiset changed · PCM RMS error 0.1149 |
-| Prélude | 16–32 beats, 4×4/4 | captured · 272,736 B / 357 oscillator events | captured · 274,009 B / 267 oscillator events · event multiset changed · PCM RMS error 0.1565 | captured · 273,056 B / 327 oscillator events · event multiset changed · PCM RMS error 0.1716 |
-| Pay Me My Money Down | 28–44 beats, 4×4/4 | captured · 118,169 B / 114 oscillator events | captured · 118,487 B / 111 oscillator events · event multiset changed · PCM RMS error 0.0999 | captured · 118,169 B / 114 oscillator events · event multiset changed · PCM RMS error 0.0989 |
-| Dear God | 96–128 beats, 8×4/4 | captured · 429,534 B / 531 oscillator events | captured · 429,200 B / 492 oscillator events · event multiset changed · PCM RMS error 0.1020 | captured · 429,200 B / 531 oscillator events · event multiset changed · PCM RMS error 0.1051 |
+| Near the Cross | 24–48 beats, 4×6/4 | 50 / 46 / 47 | 13.92 / 13.858 | Automatic yes; manual yes |
+| Prélude | 16–32 beats, 4×4/4 | 115 / 86 / 105 | 17.04 / 17.000 | Automatic yes; manual yes |
+| Pay Me My Money Down | 28–44 beats, 4×4/4 | 34 / 34 / 34 | 7.38 / 7.316 | Automatic yes; manual yes (hashes differ despite equal counts) |
+| Dear God | 96–128 beats, 8×4/4 | 165 / 154 / 165 | 26.64 / 26.600 | Automatic yes; manual yes (hash differs despite equal count) |
 
-PCM comparison used decoded mono audio sampled every 128 samples, aligned over the best overlapping shift within ±32 sample-grid bins, with an RMS tolerance of 0.02. WebM SHA-256 is retained for file integrity only and is not used as audible-difference proof. The table demonstrates complete same-instrument capture and engineering-level output separation; oscillator events, PCM divergence, and file size do not establish recognizability, plausible harmony, easier fingering, or musical usefulness. Human listening is the remaining acceptance input.
+The deterministic producer comparison uses the exact Player duration `max(note end, measure end)` (96, 40, 84, and 504 beats respectively), the frozen source fingerprint, the selected automatic/right-hand path, `allowRests=true`, `coherent-phrase`, and empty phrase overrides. It clips each `[midi,start,dur,vel]` event to the reserved phrase window before hashing. Full hashes and per-capture metadata are in [the structured summary](2026-09-17-chords-v2-reserved-evaluation.json) and [packet](2026-09-17-chords-v2-capture-packet/).
+
+The Blackbird Original repeat control decoded 2.58 / 2.58 seconds for a 2.5-second request. Its scheduled-event multiset changed and aligned PCM RMS error was 0.0737, so the packet labels oscillator/PCM/file-size differences as observed capture variation only. WebM SHA-256 remains an integrity check, not audible-difference proof. The deterministic producer multiset is the arrangement-change check; none of this establishes recognizability, plausible harmony, easier fingering, playability, or musical usefulness. Human listening remains pending.

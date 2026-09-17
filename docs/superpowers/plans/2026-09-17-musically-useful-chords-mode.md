@@ -397,7 +397,7 @@ T5 checkpoint evidence: `de9cfd0` is the accepted partial density/silence checkp
 - [x] Implement Full/Melody/Accompaniment audition and same-position A/B. Report retained-unclassified audio rather than pretending to isolate it; browser listening remains pending.
 - [ ] Use existing tempo conversion for seconds. Add keyboard/focus/label checks and responsive verification at 390px and desktop.
 - [ ] Test clear reset and cross-variant invalidation. Confirm unsupported input still permits Original playback and preserves source data.
-- [x] Commit after unit/build checks. Final isolated browser E2E passed 12 tests with 1 intentional skip; responsive/focus/truthful-status checks are included.
+- [x] Commit after unit/build checks. Final isolated browser E2E passed 12 tests with 1 intentional skip; responsive/focus/truthful-status checks are included. The CI-only 200% zoom overflow was traced to flex min-content sizing from the virtual chord track and fixed with `min-width: 0` at the layout boundary; the existing accessibility assertion remains unchanged.
 
 ### T9 — Independent evaluation and readiness review (1–3 days plus listening)
 
@@ -408,7 +408,7 @@ T5 checkpoint evidence: `de9cfd0` is the accepted partial density/silence checkp
 - [x] Freeze candidate SHA/parameters before evaluating the four reserved songs. Run deterministic checks and capture complete phrases. Candidate `ea68729045e82ef9ced14e0e0916c86991eeba4a` was frozen before playback; no reserved-output tuning occurred.
 - [x] Report all selected songs, including failures, with denominators by import category. Separate automatic and manually corrected results. The tracked packet contains 4/4 songs × Original/Automatic/User-confirmed outcomes with portable paths and SHA-256 integrity manifest.
 - [x] Obtain human rubric results or mark them pending. A nonzero waveform, fewer notes, zero warnings or passing CI never fills this column. Human ratings remain pending.
-- [x] Resolve critical regressions. If evaluation drives tuning, relabel it development and reserve new examples before a broader claim. Engineering regressions passed; no tuning was performed on reserved outputs, and no musical-support claim is made.
+- [x] Resolve critical regressions. If evaluation drives tuning, relabel it development and reserve new examples before a broader claim. Engineering regressions passed; the reserved packet uses decoded-duration gating and deterministic phrase-window producer multisets. A same-Original repeat control showed capture-metric variation, so oscillator/PCM metrics remain observational only; no tuning was performed on reserved outputs, and no musical-support claim is made.
 - [ ] Run the repository's normal CI scope once after relevant focused checks pass; prepare a draft PR with behavior examples and limits. Do not alter tests to hide backing/melody changes.
 - [ ] Parent review: inspect source diff, compare exact hashes to evidence, audition complete phrases where possible, verify no song-specific production hacks and no retained-as-success metrics.
 

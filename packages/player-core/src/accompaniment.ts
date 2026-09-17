@@ -602,8 +602,6 @@ export interface SoundingLimitResult {
 
 export interface SoundingLimitOptions {
   policy?: SoundingLimitPolicy;
-  /** Original source attacks keyed by source-note identity. */
-  sourceAttackStarts?: ReadonlyMap<string, readonly number[]>;
 }
 
 const MAX_SOUNDING_NOTES_PER_HAND = 3;
@@ -622,20 +620,6 @@ function withinSoundingLimit(events: readonly ArrangementEvent[]): boolean {
  * sourceNoteIds on each surviving piece. A later collision therefore cannot
  * erase an earlier held attack without a corresponding changed interval.
  */
-function sourceGestureSupportsReattack(
-  event: ArrangementEvent,
-  firstRejectedBeat: number,
-  sourceAttackStarts: ReadonlyMap<string, readonly number[]> | undefined,
-): boolean {
-  if (!sourceAttackStarts) return false;
-  return event.sourceNoteIds.some((sourceId) =>
-    sourceAttackStarts.get(sourceId)?.some((startBeat) =>
-      startBeat > event.note.start + EPSILON
-      && Math.abs(startBeat - firstRejectedBeat) <= EPSILON,
-    ) ?? false,
-  );
-}
-
 function chooseSoundingPieces(
   event: ArrangementEvent,
   rejected: readonly { startBeat: number; endBeat: number }[],
@@ -644,9 +628,6 @@ function chooseSoundingPieces(
   const resumed = subtractCoveredIntervals(event.note, rejected);
   if (options.policy !== "coherent-phrase") return resumed;
   const firstRejectedBeat = Math.min(...rejected.map((interval) => interval.startBeat));
-  if (sourceGestureSupportsReattack(event, firstRejectedBeat, options.sourceAttackStarts)) return resumed;
-  // ponytail: choose the no-resumption candidate once a held support fails;
-  // revoice only when a separately validated source attack exists.
   return subtractCoveredIntervals(event.note, [{ startBeat: firstRejectedBeat, endBeat: noteEnd(event.note) }]);
 }
 
@@ -1615,15 +1596,8 @@ export function buildMelodyAccompaniment(
   }));
   const rawArrangementEvents = [...sourceEvents, ...generatedSupportEvents]
     .sort((a, b) => a.note.start - b.note.start || a.note.midi - b.note.midi || a.id.localeCompare(b.id));
-  const sourceAttackStarts = new Map<string, number[]>();
-  for (const [sourceIndex, sourceId] of selected.sourceIds.entries()) {
-    if (selected.selectedIndices.has(sourceIndex)) continue;
-    const source = sourceNotes[sourceIndex];
-    if (source) sourceAttackStarts.set(sourceId, [source.start]);
-  }
   const soundingLimits = enforceAccompanimentSoundingLimits(rawArrangementEvents, {
     policy: options.soundingPolicy ?? "coherent-phrase",
-    sourceAttackStarts,
   });
   fallbackEvents.push(...soundingLimits.fallbackSpans);
   const arrangementEvents = soundingLimits.events;

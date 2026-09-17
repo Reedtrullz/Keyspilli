@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 import { join } from "node:path";
 import { readFileSync, writeFileSync } from "node:fs";
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import type { ChordLabel, Note } from "@keyspilli/midi";
+import { buildMelodyAccompaniment } from "@keyspilli/player-core";
 import { openPlayerTool } from "./player-tools";
 
 const SONG_ID = "the-beatles-blackbird-a-scratch";
@@ -12,6 +14,7 @@ const SIDECAR_KEY = `keyspilli.melody-accompaniment.v2:${SONG_ID}`;
 const OOPS_SIDECAR_KEY = `keyspilli.melody-accompaniment.v2:${OOPS_SONG_ID}`;
 const HELL_SIDECAR_KEY = `keyspilli.melody-accompaniment.v2:${HELL_SONG_ID}`;
 const FROZEN_CANDIDATE_COMMIT = "ea68729045e82ef9ced14e0e0916c86991eeba4a";
+const RESERVED_FIXTURE_ROOT = "/Users/reidar/.codex/worktrees/musically-useful-chords-mode/docs/superpowers/evidence/2026-09-17-chords-v2-evaluation-fixtures";
 const RESERVED_CANDIDATES = [
   {
     id: "w-h-doane-near-the-cross-a-scratch",
@@ -261,9 +264,45 @@ async function captureArrangement(page: Page, testInfo: { outputPath: (path: str
   await page.waitForTimeout(durationMs);
   await page.getByRole("button", { name: "Pause", exact: true }).click();
   const capture = await page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStop());
+  assertCompleteDecodedCapture(capture, durationMs, label);
   const audio = Buffer.from(capture.base64, "base64");
   saveCapture(testInfo, label, capture, audio);
   return { ...capture, sha256: createHash("sha256").update(audio).digest("hex") };
+}
+
+const CAPTURE_DURATION_TOLERANCE_SECONDS = 0.25;
+
+function decodedDurationSeconds(capture: AudioCapture): number {
+  return capture.decodedPcm.sampleRate > 0
+    ? capture.decodedPcm.samples / capture.decodedPcm.sampleRate
+    : 0;
+}
+
+function assertCompleteDecodedCapture(capture: AudioCapture, durationMs: number, label: string): void {
+  const requestedSeconds = durationMs / 1000;
+  const decodedSeconds = decodedDurationSeconds(capture);
+  if (!Number.isFinite(decodedSeconds) || decodedSeconds + CAPTURE_DURATION_TOLERANCE_SECONDS < requestedSeconds) {
+    throw new Error(`${label}: incomplete decoded capture (${decodedSeconds.toFixed(3)}s decoded; ${requestedSeconds.toFixed(3)}s requested)`);
+  }
+}
+
+async function captureReservedArrangement(
+  page: Page,
+  testInfo: { outputPath: (path: string) => string },
+  label: string,
+  startSeconds: number,
+  durationMs: number,
+): Promise<AudioCapture & { sha256: string }> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      return await captureArrangement(page, testInfo, label, startSeconds, durationMs);
+    } catch (error) {
+      lastError = error;
+      if (attempt === 0) await page.waitForTimeout(250);
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
 }
 
 function saveCapture(testInfo: { outputPath: (path: string) => string }, label: string, capture: AudioCapture, audio = Buffer.from(capture.base64, "base64")): void {
@@ -295,6 +334,72 @@ type PcmComparison = {
   rmsTolerance: number;
   withinTolerance: boolean;
 };
+
+type ProducerOutcome = {
+  eventCount: number;
+  eventMultisetHash: string;
+  changedFromOriginal: boolean;
+  windowStartBeat: number;
+  windowEndBeat: number;
+  arrangementEndBeats: number;
+};
+
+function canonicalProducerEventMultiset(
+  notes: readonly Note[],
+  window: { startBeat: number; endBeat: number },
+): string[] {
+  return notes.flatMap((note) => {
+    const start = Math.max(note.start, window.startBeat);
+    const end = Math.min(note.start + note.dur, window.endBeat);
+    return end > start ? [[note.midi, start, end - start, note.vel].join("|")] : [];
+  }).sort();
+}
+
+function producerOutcome(
+  notes: readonly Note[],
+  original: readonly Note[],
+  window: { startBeat: number; endBeat: number },
+  arrangementEndBeats: number,
+): ProducerOutcome {
+  const eventMultiset = canonicalProducerEventMultiset(notes, window);
+  return {
+    eventCount: eventMultiset.length,
+    eventMultisetHash: createHash("sha256").update(JSON.stringify(eventMultiset)).digest("hex"),
+    changedFromOriginal: JSON.stringify(eventMultiset) !== JSON.stringify(canonicalProducerEventMultiset(original, window)),
+    windowStartBeat: window.startBeat,
+    windowEndBeat: window.endBeat,
+    arrangementEndBeats,
+  };
+}
+
+function reservedProducerOutcomes(candidate: typeof RESERVED_CANDIDATES[number]): { original: ProducerOutcome; automatic: ProducerOutcome; manual: ProducerOutcome } {
+  const baseId = candidate.id.replace(/-a-scratch$/, "");
+  const source = JSON.parse(readFileSync(join(RESERVED_FIXTURE_ROOT, baseId, "a", "notes.json"), "utf8")) as {
+    notes: Note[];
+    chords: ChordLabel[];
+    sourceFingerprint?: string;
+    measures: Array<{ endBeat: number }>;
+  };
+  const arrangementEndBeats = Math.max(
+    0,
+    ...source.notes.map((note) => note.start + note.dur),
+    ...source.measures.map((measure) => measure.endBeat),
+  );
+  const build = (selection: "automatic" | "right-hand") => buildMelodyAccompaniment(source.notes, source.chords, {
+    durationBeats: arrangementEndBeats,
+    sourceFingerprint: source.sourceFingerprint,
+    selection,
+    allowRests: true,
+    soundingPolicy: "coherent-phrase",
+    phraseOverrides: [],
+  });
+  const original = producerOutcome(source.notes, source.notes, candidate.window, arrangementEndBeats);
+  return {
+    original,
+    automatic: producerOutcome(build("automatic").notes, source.notes, candidate.window, arrangementEndBeats),
+    manual: producerOutcome(build("right-hand").notes, source.notes, candidate.window, arrangementEndBeats),
+  };
+}
 
 function canonicalScheduledEventMultiset(capture: AudioCapture): string[] {
   const firstWhen = Math.min(...capture.events.map((event) => event.relativeWhen));
@@ -1013,11 +1118,15 @@ type ReservedCaptureOutcome = {
   fundamentalMidis?: number[];
   sha256?: string;
   signal?: AudioCapture["signal"];
+  decodedDurationSeconds?: number;
+  requestedDurationSeconds?: number;
+  producerEventCount?: number;
+  producerEventMultisetHash?: string;
+  producerEventMultisetChanged?: boolean;
   canonicalScheduledEventCount?: number;
   canonicalScheduledEventHash?: string;
   scheduledEventMultisetChanged?: boolean;
   alignedPcmComparison?: PcmComparison;
-  distinctFromOriginal?: boolean;
   error?: string;
 };
 
@@ -1028,6 +1137,8 @@ function reservedCaptureSummary(
   seekSeconds: number,
   durationMs: number,
   modeLabel: string,
+  producer: ProducerOutcome | undefined = undefined,
+  relativeDirectory = "captures",
 ): ReservedCaptureOutcome {
   const canonicalEvents = canonicalScheduledEventMultiset(capture);
   const originalCanonicalEvents = originalCapture ? canonicalScheduledEventMultiset(originalCapture) : undefined;
@@ -1039,19 +1150,23 @@ function reservedCaptureSummary(
     humanRating: "pending",
     seekSeconds,
     durationMs,
-    audioPath: `captures/${label}.webm`,
-    metadataPath: `captures/${label}.json`,
+    audioPath: `${relativeDirectory}/${label}.webm`,
+    metadataPath: `${relativeDirectory}/${label}.json`,
     bytes: capture.bytes,
     oscillatorEvents: capture.events.length,
     triangleOscillatorEvents: capture.events.filter((event) => event.type === "triangle").length,
     fundamentalMidis: fundamentalMidis(capture),
     sha256: capture.sha256,
     signal: capture.signal,
+    decodedDurationSeconds: decodedDurationSeconds(capture),
+    requestedDurationSeconds: durationMs / 1000,
+    producerEventCount: producer?.eventCount,
+    producerEventMultisetHash: producer?.eventMultisetHash,
+    producerEventMultisetChanged: producer?.changedFromOriginal,
     canonicalScheduledEventCount: canonicalEvents.length,
     canonicalScheduledEventHash: scheduledEventMultisetHash(capture),
     scheduledEventMultisetChanged,
     alignedPcmComparison,
-    distinctFromOriginal: originalCapture ? scheduledEventMultisetChanged || !alignedPcmComparison?.withinTolerance : false,
   };
 }
 
@@ -1076,12 +1191,47 @@ test("reserved evaluation captures complete phrases with automatic and manual ou
       },
       seekSeconds,
       durationMs,
+      producer: reservedProducerOutcomes(candidate),
       original: null as ReservedCaptureOutcome | null,
       automatic: null as ReservedCaptureOutcome | null,
       manual: null as ReservedCaptureOutcome | null,
     };
   });
   const originalCaptures = new Map<string, AudioCapture & { sha256: string }>();
+  const controlStartSeconds = 2;
+  const controlDurationMs = 2_500;
+  let controlOriginal: AudioCapture & { sha256: string } | undefined;
+  let controlOriginalOutcome: ReservedCaptureOutcome | null = null;
+  let controlRepeatOutcome: ReservedCaptureOutcome | null = null;
+
+  for (const [key, label] of [["first", "control-blackbird-original-a"], ["repeat", "control-blackbird-original-b"]] as const) {
+    try {
+      await page.goto(`/player/${SONG_ID}`);
+      await expect(page.getByLabel("Falling notes player")).toBeVisible();
+      await selectArrangement(page, "Original arrangement");
+      await bootAudio(page);
+      const capture = await captureReservedArrangement(page, testInfo, label, controlStartSeconds, controlDurationMs);
+      audible(capture);
+      const summary = reservedCaptureSummary(label, capture, controlOriginal, controlStartSeconds, controlDurationMs, "Original development repeat control", undefined, "controls");
+      if (key === "first") {
+        controlOriginal = capture;
+        controlOriginalOutcome = summary;
+      } else {
+        controlRepeatOutcome = summary;
+      }
+    } catch (error) {
+      const summary: ReservedCaptureOutcome = {
+        status: "error",
+        modeLabel: "Original development repeat control",
+        humanRating: "pending",
+        seekSeconds: controlStartSeconds,
+        durationMs: controlDurationMs,
+        error: error instanceof Error ? error.message : String(error),
+      };
+      if (key === "first") controlOriginalOutcome = summary;
+      else controlRepeatOutcome = summary;
+    }
+  }
 
   for (const outcome of outcomes) {
     const candidate = RESERVED_CANDIDATES.find((item) => item.id === outcome.candidate.id)!;
@@ -1098,11 +1248,11 @@ test("reserved evaluation captures complete phrases with automatic and manual ou
         await selectArrangement(page, mode.selection, mode.melody);
         await bootAudio(page);
         const label = `${labelPrefix}-${mode.key}`;
-        const capture = await captureArrangement(page, testInfo, label, outcome.seekSeconds, outcome.durationMs);
+        const capture = await captureReservedArrangement(page, testInfo, label, outcome.seekSeconds, outcome.durationMs);
         audible(capture);
-        if (mode.key === "original") originalCaptures.set(candidate.id, capture);
-        const summary = reservedCaptureSummary(label, capture, originalCaptures.get(candidate.id), outcome.seekSeconds, outcome.durationMs, mode.label);
+        const summary = reservedCaptureSummary(label, capture, originalCaptures.get(candidate.id), outcome.seekSeconds, outcome.durationMs, mode.label, outcome.producer[mode.key]);
         outcome[mode.key] = summary;
+        if (mode.key === "original") originalCaptures.set(candidate.id, capture);
       } catch (error) {
         outcome[mode.key] = {
           status: "error",
@@ -1117,19 +1267,34 @@ test("reserved evaluation captures complete phrases with automatic and manual ou
   }
 
   const packet = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     candidateCommit: FROZEN_CANDIDATE_COMMIT,
     instrument: "browser AudioEngine synth",
     sourceSelectionFrozenBeforeCandidatePlayback: true,
     tuningPerformedOnReservedOutputs: false,
     humanRating: "pending",
+    repeatControl: {
+      songId: SONG_ID,
+      mode: "Original arrangement",
+      seekSeconds: controlStartSeconds,
+      durationMs: controlDurationMs,
+      first: controlOriginalOutcome,
+      repeat: controlRepeatOutcome,
+      interpretation: controlRepeatOutcome?.status === "captured"
+        && !controlRepeatOutcome.scheduledEventMultisetChanged
+        && controlRepeatOutcome.alignedPcmComparison?.withinTolerance
+        ? "Repeat metrics stayed within tolerance; capture metrics are a secondary check."
+        : "Repeat metrics varied; capture metrics are observed capture variation only. Arrangement change relies on deterministic producer [midi,start,dur,vel] multisets.",
+    },
     outcomes,
   };
   writeFileSync(testInfo.outputPath("reserved-evaluation-outcomes.json"), JSON.stringify(packet, null, 2));
+  expect(controlOriginalOutcome?.status, "Original repeat control first capture").toBe("captured");
+  expect(controlRepeatOutcome?.status, "Original repeat control repeat capture").toBe("captured");
   for (const outcome of outcomes) {
     expect(outcome.original?.status, `${outcome.candidate.id} Original`).toBe("captured");
     expect(outcome.automatic?.status, `${outcome.candidate.id} automatic`).toBe("captured");
     expect(outcome.manual?.status, `${outcome.candidate.id} manual`).toBe("captured");
-    expect(outcome.automatic?.distinctFromOriginal, `${outcome.candidate.id} automatic must remain a distinct scheduled/PCM output`).toBe(true);
+    expect(outcome.automatic?.producerEventMultisetChanged, `${outcome.candidate.id} automatic producer output must change deterministically`).toBe(true);
   }
 });

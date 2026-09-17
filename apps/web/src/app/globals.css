@@ -987,12 +987,13 @@ body:has(.player-focus) :where(.site-header, .site-footer) { display: none; }
 .player-song-actions { margin-left: 0.5rem; }
 .player-workspace[data-falling="true"] { height: calc(100dvh - 4.5rem); min-height: 620px; display: flex; flex-direction: column; }
 .player-workspace[data-falling="true"] .player-surface { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-.player-workspace[data-falling="true"] :where(.player-stage, .player-mode-stack, .player-mode-layer-enter) { display: flex; flex-direction: column; flex: 1; min-height: 180px; }
+.player-workspace[data-falling="true"] :where(.player-stage, .player-mode-stack, .player-mode-layer-enter) { display: flex; flex-direction: column; flex: 1; min-width: 0; min-height: 180px; }
 .player-workspace[data-falling="true"] .falling-canvas { height: auto; flex: 1; min-height: 180px; }
 .player-workspace[data-falling="true"] :where(.player-control-strip, .player-timeline, [aria-label="Song sections"], .chord-sequence, .chord-progression-details) { flex-shrink: 0; }
 .player-focus .player-workspace { flex: 1; min-height: 0; height: auto; display: flex; flex-direction: column; }
 .player-focus .player-workspace[data-falling="true"] { min-height: 0; }
 .player-focus .player-workspace .falling-canvas { min-height: 150px; }
+.chord-progression-details { min-width: 0; }
 @media (max-width: 640px) {
   .player-song-actions { margin-left: 0; }
   .player-control-strip .player-primary-controls { width: 100%; margin-left: 0; justify-content: flex-start; }
