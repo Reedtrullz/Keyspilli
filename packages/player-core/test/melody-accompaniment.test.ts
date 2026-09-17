@@ -433,6 +433,22 @@ describe("buildMelodyAccompaniment", () => {
     expect(corrected.melody).toHaveLength(3);
   });
 
+  it("keeps source-rhythm reduction available without a chord chart", () => {
+    const source = [
+      note(72, 0, 1, 100, "R"),
+      note(48, 0, 0.5, 60, "L"),
+      note(50, 1, 0.5, 60, "L"),
+    ];
+    const result = buildMelodyAccompaniment(source, [], {
+      durationBeats: 2,
+      sourceFingerprint: "fixture-source-v2",
+    });
+
+    expect(result.chords).toEqual([]);
+    expect(result.notes).toEqual([...source].sort((a, b) => a.start - b.start || a.midi - b.midi));
+    expect(result.fallbackSpans).toEqual([{ startBeat: 0, endBeat: 2, reason: "no chord coverage" }]);
+  });
+
   it("fails closed when a source arrangement has no notes", () => {
     const result = build([], [chord(0, "C", 2)], "automatic", 2);
 
