@@ -62,4 +62,27 @@ describe("melody arrangement change accounting", () => {
     expect(summary).toMatchObject({ changedBeats: 2, unchangedBeats: 0, silentBeats: 0, alteredNotes: 1 });
     expect(summary.changedBeats + summary.unchangedBeats + summary.silentBeats).toBe(2);
   });
+
+  it("clips and unions overlapping review spans", () => {
+    const summary = measureArrangementChanges([], [], 4, [
+      { startBeat: -1, endBeat: 1 },
+      { startBeat: 0.5, endBeat: 2 },
+      { startBeat: 3, endBeat: 6 },
+    ]);
+
+    expect(summary.reviewBeats).toBe(3);
+    expect(summary.reviewBeats).toBeLessThanOrEqual(summary.durationBeats);
+  });
+
+  it("counts one removed member of a duplicate source event group", () => {
+    const source = [note(60, 0, 1, 80), note(60, 0, 1, 80)];
+    const [firstSourceId] = sourceNoteIds(source);
+    const summary = measureArrangementChanges(
+      source,
+      [event("event:0", note(60, 0, 1, 80), [firstSourceId!])],
+      1,
+    );
+
+    expect(summary).toMatchObject({ changedBeats: 1, removedNotes: 1, alteredNotes: 0, addedNotes: 0 });
+  });
 });
