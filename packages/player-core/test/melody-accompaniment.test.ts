@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { ChordLabel, Note } from "@keyspilli/midi";
 import {
   buildMelodyAccompaniment,
+  sourceNoteIds,
   type MelodySelection,
 } from "../src/accompaniment.js";
 import { DEFAULT_SETTINGS, PlaybackEngine, type AudioLike, type TimedNote } from "../src/index.js";
@@ -110,6 +111,51 @@ describe("buildMelodyAccompaniment", () => {
     expect([...new Set(support.map((item) => item.start))]).toEqual([0, 1, 2]);
     expect(guidedMelodyStarts).toEqual([0, 2]);
     expect(result.guidanceNotes.some((item) => item.hand === "R" && item.start === 1)).toBe(false);
+  });
+
+  it("uses the opt-in rest state for a held line and later re-entry", () => {
+    const result = buildMelodyAccompaniment(
+      [
+        note(72, 0, 2, 100),
+        note(48, 0, 0.5, 60),
+        note(50, 1, 0.5, 60),
+        note(74, 2, 1, 100),
+        note(52, 2, 0.5, 60),
+      ],
+      [],
+      { durationBeats: 3, sourceFingerprint: "fixture-source-v2", allowRests: true },
+    );
+
+    expect(result.melody.map((item) => [item.midi, item.start])).toEqual([[72, 0], [74, 2]]);
+  });
+
+  it("allows an explicit phrase rest without deleting accompaniment", () => {
+    const source = [note(48, 0), note(50, 1), note(72, 2, 1, 100, "R")];
+    const result = buildMelodyAccompaniment(source, [], {
+      durationBeats: 3,
+      sourceFingerprint: "fixture-source-v2",
+      phraseOverrides: [{ startBeat: 0, endBeat: 2, sourceNoteIds: [], sourceFingerprint: "fixture-source-v2" }],
+    });
+
+    expect(result.melody.filter((item) => item.start < 2)).toHaveLength(0);
+    expect(result.notes.some((item) => item.start < 2)).toBe(true);
+  });
+
+  it("fails closed for a stale phrase override instead of changing melody", () => {
+    const source = [note(72, 0, 1, 100, "R")];
+    const result = buildMelodyAccompaniment(source, [], {
+      durationBeats: 1,
+      sourceFingerprint: "fixture-source-v2",
+      phraseOverrides: [{
+        startBeat: 0,
+        endBeat: 1,
+        sourceNoteIds: [sourceNoteIds(source)[0]!],
+        sourceFingerprint: "stale-source",
+      }],
+    });
+
+    expect(result.melody).toEqual([source[0]]);
+    expect(result.provenance.unresolvedSpans).toEqual([{ startBeat: 0, endBeat: 1, reason: "invalid phrase override" }]);
   });
 
   it("uses a quality-aware pulse for a power chord without inventing its third", () => {

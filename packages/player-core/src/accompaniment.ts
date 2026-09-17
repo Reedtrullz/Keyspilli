@@ -21,6 +21,7 @@ export type AccompanimentFallbackReason =
   | "no source notes to replace"
   | "sustained source note crosses accompaniment boundary"
   | "ambiguous melody"
+  | "invalid phrase override"
   | "right-hand part unavailable"
   | "no playable support voicing";
 
@@ -54,7 +55,7 @@ export interface AccompanimentOptions {
 
 export type MelodySelection = "automatic" | "right-hand";
 export type MelodySelectionProvenance = "inferred" | "user-confirmed";
-export type MelodyUnresolvedReason = "ambiguous melody" | "right-hand part unavailable";
+export type MelodyUnresolvedReason = "ambiguous melody" | "invalid phrase override" | "right-hand part unavailable";
 export type MelodyAccompanimentSupportMode = "source-rhythm" | "quarter-note-pulse" | "fallback";
 
 export interface MelodyUnresolvedSpan {
@@ -86,6 +87,16 @@ export interface MelodyAccompanimentOptions {
   durationBeats?: number;
   sourceFingerprint?: string | null;
   selection?: MelodySelection;
+  allowRests?: boolean;
+  phraseOverrides?: readonly MelodyPhraseOverride[];
+}
+
+export interface MelodyPhraseOverride {
+  startBeat: number;
+  endBeat: number;
+  sourceNoteIds: readonly string[];
+  /** Overrides are valid only when their captured source identity matches. */
+  sourceFingerprint?: string | null;
 }
 
 export type ArrangementEventRole = "melody" | "accompaniment" | "retained-unclassified";
@@ -749,32 +760,61 @@ function mergeUnresolvedSpans(spans: MelodyUnresolvedSpan[]): MelodyUnresolvedSp
   return merged;
 }
 
-function findAmbiguousMelodySpans(notes: readonly Note[], durationBeats: number): MelodyUnresolvedSpan[] {
-  const spans: MelodyUnresolvedSpan[] = [];
-  for (const group of sourceAttackGroups(notes)) {
-    if (group.length < 2) continue;
-    const sorted = [...group].sort((a, b) => b.note.midi - a.note.midi || b.note.dur - a.note.dur || a.sourceIndex - b.sourceIndex);
-    const top = sorted[0]!;
-    const second = sorted[1]!;
-    const duplicatePitch = top.note.midi === second.note.midi;
-    const closeCompetingAttacks = top.note.midi - second.note.midi <= 2
-      && Math.abs(top.note.vel - second.note.vel) <= 8
-      && Math.abs(top.note.dur - second.note.dur) <= 0.25;
-    if (!duplicatePitch && !closeCompetingAttacks) continue;
-    const startBeat = Math.max(0, group[0]!.note.start);
-    const endBeat = Math.min(
-      durationBeats,
-      Math.max(startBeat + 0.25, ...group.map(({ note }) => noteEnd(note))),
-    );
-    if (endBeat > startBeat + EPSILON) spans.push({ startBeat, endBeat, reason: "ambiguous melody" });
+interface ValidatedPhraseOverrides {
+  valid: MelodyPhraseOverride[];
+  invalidSpans: MelodyUnresolvedSpan[];
+}
+
+function validatePhraseOverrides(
+  overrides: readonly MelodyPhraseOverride[] | undefined,
+  sourceNotes: readonly Note[],
+  sourceIds: readonly string[],
+  durationBeats: number,
+  sourceFingerprint: string | null,
+): ValidatedPhraseOverrides {
+  if (!overrides?.length) return { valid: [], invalidSpans: [] };
+  const sourceIndexById = new Map(sourceIds.map((id, index) => [id, index]));
+  const valid: MelodyPhraseOverride[] = [];
+  const invalidSpans: MelodyUnresolvedSpan[] = [];
+  let previousEnd = -Infinity;
+  for (const override of overrides) {
+    const finiteBounds = Number.isFinite(override.startBeat) && Number.isFinite(override.endBeat);
+    const startBeat = finiteBounds ? Math.max(0, override.startBeat) : 0;
+    const endBeat = finiteBounds ? Math.min(durationBeats, override.endBeat) : 0;
+    const ordered = startBeat >= previousEnd - EPSILON;
+    const boundsValid = finiteBounds
+      && override.startBeat >= -EPSILON
+      && override.endBeat > override.startBeat + EPSILON
+      && override.endBeat <= durationBeats + EPSILON
+      && endBeat > startBeat + EPSILON;
+    const uniqueIds = new Set(override.sourceNoteIds);
+    const idsValid = uniqueIds.size === override.sourceNoteIds.length
+      && override.sourceNoteIds.every((id) => sourceIndexById.has(id))
+      && override.sourceNoteIds.every((id) => {
+        const source = sourceNotes[sourceIndexById.get(id)!]!;
+        return source.start >= startBeat - EPSILON && source.start < endBeat - EPSILON;
+      });
+    const fingerprintValid = typeof sourceFingerprint === "string"
+      && override.sourceFingerprint === sourceFingerprint;
+    if (!boundsValid || !ordered || !idsValid || !fingerprintValid) {
+      if (finiteBounds && endBeat > startBeat + EPSILON) {
+        invalidSpans.push({ startBeat, endBeat, reason: "invalid phrase override" });
+      }
+      continue;
+    }
+    valid.push({ ...override, startBeat, endBeat, sourceNoteIds: [...override.sourceNoteIds] });
+    previousEnd = endBeat;
   }
-  return mergeUnresolvedSpans(spans);
+  return { valid, invalidSpans };
 }
 
 function selectMelodySource(
   sourceNotes: readonly Note[],
   durationBeats: number,
   requestedSelection: MelodySelection,
+  allowRests = false,
+  sourceFingerprint: string | null = null,
+  phraseOverrides?: readonly MelodyPhraseOverride[],
 ): SelectedMelody {
   const ids = sourceNoteIds(sourceNotes);
   const rightHandIndices = sourceNotes
@@ -794,12 +834,38 @@ function selectMelodySource(
     };
   }
 
-  const split = splitPianoRoles(sourceNotes, { preferSustainedLine: true });
+  const split = splitPianoRoles(sourceNotes, { preferSustainedLine: true, allowRests });
   const selectedIndices = new Set(split.protectedMelody.map((note) => note.sourceIndex));
+  const validatedOverrides = validatePhraseOverrides(
+    phraseOverrides,
+    sourceNotes,
+    ids,
+    durationBeats,
+    sourceFingerprint,
+  );
+  for (const override of validatedOverrides.valid) {
+    for (const [index, note] of sourceNotes.entries()) {
+      if (note.start >= override.startBeat - EPSILON && note.start < override.endBeat - EPSILON) selectedIndices.delete(index);
+    }
+    for (const id of override.sourceNoteIds) selectedIndices.add(ids.indexOf(id));
+  }
   const protectedMelody = [...split.protectedMelody]
-    .sort((a, b) => a.start - b.start || a.midi - b.midi || a.sourceIndex - b.sourceIndex)
+    .filter((note) => selectedIndices.has(note.sourceIndex))
     .map((note) => protectedSourceNote(sourceNotes[note.sourceIndex]!, note.sourceIndex, ids[note.sourceIndex]!));
-  const unresolvedSpans = findAmbiguousMelodySpans(sourceNotes, durationBeats);
+  for (const index of [...selectedIndices].filter((index) => !protectedMelody.some((note) => note.sourceIndex === index))) {
+    protectedMelody.push(protectedSourceNote(sourceNotes[index]!, index, ids[index]!));
+  }
+  protectedMelody.sort((a, b) => a.start - b.start || a.midi - b.midi || a.sourceIndex - b.sourceIndex);
+  const overrideRanges = validatedOverrides.valid.map(({ startBeat, endBeat }) => ({ startBeat, endBeat }));
+  const unresolvedSpans = mergeUnresolvedSpans([
+    ...split.pathEvidence.flatMap((span) => {
+      const startBeat = Math.max(0, span.startBeat);
+      const endBeat = Math.min(durationBeats, span.endBeat);
+      if (endBeat <= startBeat + EPSILON || overrideRanges.some((range) => range.startBeat < endBeat - EPSILON && range.endBeat > startBeat + EPSILON)) return [];
+      return [{ startBeat, endBeat, reason: "ambiguous melody" as const }];
+    }),
+    ...validatedOverrides.invalidSpans,
+  ]);
   if (requestedSelection === "right-hand" && rightHandIndices.length === 0 && durationBeats > EPSILON) {
     unresolvedSpans.push({ startBeat: 0, endBeat: durationBeats, reason: "right-hand part unavailable" });
   }
@@ -809,7 +875,7 @@ function selectMelodySource(
     selectedIndices,
     sourceIds: ids,
     selection: "automatic",
-    selectionProvenance: "inferred",
+    selectionProvenance: validatedOverrides.valid.length > 0 ? "user-confirmed" : "inferred",
     unresolvedSpans: mergeUnresolvedSpans(unresolvedSpans),
   };
 }
@@ -936,7 +1002,14 @@ export function buildMelodyAccompaniment(
 ): MelodyAccompanimentResolution {
   const durationBeats = timelineDuration(sourceNotes, chordTimeline, options.durationBeats);
   const requestedSelection = options.selection ?? "automatic";
-  const selected = selectMelodySource(sourceNotes, durationBeats, requestedSelection);
+  const selected = selectMelodySource(
+    sourceNotes,
+    durationBeats,
+    requestedSelection,
+    options.allowRests === true,
+    options.sourceFingerprint ?? null,
+    options.phraseOverrides,
+  );
   const events = buildEvents(sourceNotes, chordTimeline, "melody-accompaniment", durationBeats);
   const fallbackEvents: Array<{ startBeat: number; endBeat: number; reason: AccompanimentFallbackReason }> = [];
   const effectiveChords: AccompanimentChord[] = [];

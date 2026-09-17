@@ -117,6 +117,7 @@ export type {
   PianoNoteRole,
   ProtectedMelodyNote,
   PianoRoleSplit,
+  PianoRolePathEvidence,
 } from "./piano-roles.js";
 export {
   groupAttackClusters,
