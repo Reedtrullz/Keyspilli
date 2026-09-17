@@ -433,20 +433,47 @@ describe("buildMelodyAccompaniment", () => {
     expect(corrected.melody).toHaveLength(3);
   });
 
-  it("keeps source-rhythm reduction available without a chord chart", () => {
+  it("reduces dense source support without a chord chart while preserving melody", () => {
     const source = [
       note(72, 0, 1, 100, "R"),
-      note(48, 0, 0.5, 60, "L"),
-      note(50, 1, 0.5, 60, "L"),
+      note(48, 0, 0.5, 60, "L"), note(52, 0, 0.5, 60, "L"), note(55, 0, 0.5, 60, "L"), note(60, 0, 0.5, 60, "L"),
+      note(74, 1, 1, 100, "R"),
+      note(50, 1, 0.5, 60, "L"), note(53, 1, 0.5, 60, "L"), note(57, 1, 0.5, 60, "L"), note(62, 1, 0.5, 60, "L"),
+      note(76, 2, 1, 100, "R"),
+      note(52, 2, 0.5, 60, "L"), note(55, 2, 0.5, 60, "L"), note(59, 2, 0.5, 60, "L"), note(64, 2, 0.5, 60, "L"),
     ];
     const result = buildMelodyAccompaniment(source, [], {
-      durationBeats: 2,
+      durationBeats: 3,
       sourceFingerprint: "fixture-source-v2",
     });
 
     expect(result.chords).toEqual([]);
-    expect(result.notes).toEqual([...source].sort((a, b) => a.start - b.start || a.midi - b.midi));
-    expect(result.fallbackSpans).toEqual([{ startBeat: 0, endBeat: 2, reason: "no chord coverage" }]);
+    expect(result.melody.map((item) => item.midi)).toEqual([72, 74, 76]);
+    expect(result.notes.length).toBeLessThan(source.length);
+    expect(result.notes.filter((item) => item.hand === "L").map((item) => item.start)).toEqual([0, 0, 0, 1, 1, 1, 2, 2, 2]);
+    expect(result.provenance.supportModes).toEqual(["source-rhythm"]);
+    expect(result.phrases).toEqual([expect.objectContaining({
+      startBeat: 0,
+      endBeat: 3,
+      strategy: "source-reduction",
+      change: "changed",
+      review: "needs-review",
+      reasons: ["no chord coverage"],
+    })]);
+  });
+
+  it("does not call an edge-only phrase silent when its midpoint is empty", () => {
+    const result = buildMelodyAccompaniment(
+      [note(72, 0, 0.1, 100), note(74, 2.9, 0.1, 100)],
+      [],
+      {
+        durationBeats: 3,
+        sourceFingerprint: "fixture-source-v2",
+        phraseOverrides: [{ startBeat: 0, endBeat: 1, sourceNoteIds: [], sourceFingerprint: "fixture-source-v2" }],
+      },
+    );
+
+    expect(result.phrases.find((phrase) => phrase.startBeat === 1 && phrase.endBeat === 3)?.strategy).toBe("original");
   });
 
   it("fails closed when a source arrangement has no notes", () => {
