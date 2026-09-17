@@ -1,11 +1,14 @@
 import { createHash } from "node:crypto";
-import { writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { readFileSync, writeFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import { openPlayerTool } from "./player-tools";
 
 const SONG_ID = "the-beatles-blackbird-a-scratch";
+const OOPS_SONG_ID = "britney-spears-oops-i-did-it-again-a-scratch";
 const HELL_SONG_ID = "aria-ellys-music-the-warning-hell-you-call-a-dream-piano-cover-by-aria-ellys-mslzwo1d-a-scratch";
 const SIDECAR_KEY = `keyspilli.melody-accompaniment.v1:${SONG_ID}`;
+const OOPS_SIDECAR_KEY = `keyspilli.melody-accompaniment.v1:${OOPS_SONG_ID}`;
 const HELL_SIDECAR_KEY = `keyspilli.melody-accompaniment.v1:${HELL_SONG_ID}`;
 
 type AudioCapture = {
@@ -109,8 +112,9 @@ async function installAudioProbe(page: Page): Promise<void> {
 
 async function captureArrangement(page: Page, testInfo: { outputPath: (path: string) => string }, label: string, startSeconds: number, durationMs = 2_000): Promise<AudioCapture & { sha256: string }> {
   const seek = page.getByLabel("Seek");
-  await seek.fill(String(startSeconds));
-  await expect(seek).toHaveValue(String(startSeconds));
+  const seekValue = Number(startSeconds.toFixed(2));
+  await seek.fill(String(seekValue));
+  await expect(seek).toHaveValue(String(seekValue));
   await page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStart());
   await page.getByRole("button", { name: "Play", exact: true }).click();
   await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
@@ -266,7 +270,8 @@ test("real audio events cover mode, hand filtering, seek, transpose, correction,
   let dialog = page.getByRole("dialog", { name: "Sound settings" });
   await dialog.getByRole("radio", { name: "Chord mode", exact: true }).click();
   await dialog.getByRole("radio", { name: "Automatic melody", exact: true }).click();
-  await expect(page.getByTestId("melody-accompaniment-ambiguity")).toContainText("19.3–20.6 beats");
+  const expectedHellAmbiguity = process.env.KEYSPILLI_T1_MODE === "1" ? "18.5–19.8 beats" : "19.3–20.6 beats";
+  await expect(page.getByTestId("melody-accompaniment-ambiguity")).toContainText(expectedHellAmbiguity);
   await dialog.getByRole("button", { name: "Close tools", exact: true }).click();
   await bootAudio(page);
 
@@ -314,6 +319,156 @@ test("real audio events cover mode, hand filtering, seek, transpose, correction,
   audible({ ...practiceCapture, sha256: createHash("sha256").update(Buffer.from(practiceCapture.base64, "base64")).digest("hex") });
   await expect(panel.getByRole("status")).not.toHaveText(before!);
 });
+
+test("T1 freezes the Oops intro control only", async ({ page }, testInfo) => {
+  test.skip(process.env.KEYSPILLI_T1_MODE !== "1", "T1 production fixtures are not loaded");
+  await installAudioProbe(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/player/${OOPS_SONG_ID}`);
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+
+  await selectArrangement(page, "Original arrangement");
+  await bootAudio(page);
+  const original = await captureArrangement(page, testInfo, "oops-original", 0, 2_400);
+  audible(original);
+
+  await selectArrangement(page, "Chord mode", "Automatic melody");
+  const automatic = await captureArrangement(page, testInfo, "oops-automatic", 0, 2_400);
+  audible(automatic);
+
+  await selectArrangement(page, "Chord mode", "Use right-hand part");
+  const rightHand = await captureArrangement(page, testInfo, "oops-right-hand", 0, 2_400);
+  audible(rightHand);
+
+  const sidecar = await page.evaluate((key) => JSON.parse(window.localStorage.getItem(key) ?? "null"), OOPS_SIDECAR_KEY) as {
+    selection?: string;
+    provenance?: { selectionProvenance?: string };
+  } | null;
+  expect(sidecar).toMatchObject({ selection: "right-hand", provenance: { selectionProvenance: "user-confirmed" } });
+  writeFileSync(testInfo.outputPath("oops-summary.json"), JSON.stringify({
+    source: { bytes: original.bytes, events: original.events.length, sha256: original.sha256 },
+    automatic: { bytes: automatic.bytes, events: automatic.events.length, sha256: automatic.sha256 },
+    rightHand: { bytes: rightHand.bytes, events: rightHand.events.length, sha256: rightHand.sha256 },
+    sidecar,
+  }, null, 2));
+});
+
+const OOPS_PHRASE_WINDOWS = [
+  { id: "intro-control", startBeat: 0, endBeat: 16, sourceSectionId: "section-1", sourceSectionLabel: "Intro 1", provisionalLabel: "control" },
+  { id: "intro-development", startBeat: 16, endBeat: 32, sourceSectionId: "section-1", sourceSectionLabel: "Intro 1", provisionalLabel: "development" },
+  { id: "section-2", startBeat: 64, endBeat: 108, sourceSectionId: "section-2", sourceSectionLabel: "Section 2", provisionalLabel: "verse; semantic label unverified" },
+  { id: "section-3-transition", startBeat: 108, endBeat: 124, sourceSectionId: "section-3", sourceSectionLabel: "Section 3", provisionalLabel: "transition; semantic label unverified" },
+  { id: "section-4", startBeat: 124, endBeat: 188, sourceSectionId: "section-4", sourceSectionLabel: "Section 4", provisionalLabel: "chorus; semantic label unverified" },
+  { id: "section-2-ambiguity", startBeat: 83.5, endBeat: 89.5, sourceSectionId: "section-2", sourceSectionLabel: "Section 2", provisionalLabel: "reported ambiguity" },
+] as const;
+const OOPS_BPM = 95;
+const OOPS_CAPTURE_MODES = [
+  { id: "original", selection: "Original arrangement" as const, label: "Original full mix" },
+  { id: "automatic", selection: "Chord mode" as const, melody: "Automatic melody" as const, label: "Automatic full mix" },
+  { id: "right-hand", selection: "Chord mode" as const, melody: "Use right-hand part" as const, label: "User-confirmed right-hand melody" },
+] as const;
+
+type OopsPhraseManifestEntry = {
+  mode: string;
+  modeLabel: string;
+  window: (typeof OOPS_PHRASE_WINDOWS)[number];
+  fixture: string;
+  source: "production-equivalent API fixture";
+  seekSeconds: number;
+  durationMs: number;
+  audioPath: string;
+  metadataPath: string;
+  bytes: number;
+  events: number;
+  sha256: string;
+  signal: AudioCapture["signal"];
+};
+
+function appendOopsPhraseManifest(testInfo: { outputDir: string }, entry: OopsPhraseManifestEntry): void {
+  const manifestPath = process.env.KEYSPILLI_T1_MANIFEST_PATH ?? join(testInfo.outputDir, "oops-phrase-captures.json");
+  let manifest: { schemaVersion: number; fixture: string; source: string; entries: OopsPhraseManifestEntry[] } = {
+    schemaVersion: 1,
+    fixture: OOPS_SONG_ID,
+    source: "production-equivalent API fixture; full-mix browser captures",
+    entries: [],
+  };
+  try {
+    manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as typeof manifest;
+  } catch {}
+  manifest.entries = manifest.entries.filter((existing) => !(existing.mode === entry.mode && existing.window.id === entry.window.id));
+  manifest.entries.push(entry);
+  manifest.entries.sort((left, right) => `${left.mode}:${left.window.id}`.localeCompare(`${right.mode}:${right.window.id}`));
+  writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+}
+
+if (process.env.KEYSPILLI_T1_MODE === "1") {
+  for (const mode of OOPS_CAPTURE_MODES) {
+    for (const window of OOPS_PHRASE_WINDOWS) {
+      test(`T1 captures Oops ${mode.id} ${window.id}`, async ({ page }, testInfo) => {
+        test.setTimeout(90_000);
+        await installAudioProbe(page);
+        await page.setViewportSize({ width: 1440, height: 900 });
+        await page.goto(`/player/${OOPS_SONG_ID}`);
+        await expect(page.getByLabel("Falling notes player")).toBeVisible();
+
+        await selectArrangement(page, mode.selection, mode.melody);
+        await bootAudio(page);
+        const seekSeconds = Math.max(0, window.startBeat * 60 / OOPS_BPM - 0.5);
+        const durationMs = Math.ceil((window.endBeat - window.startBeat) * 60 / OOPS_BPM * 1000 + 1_000);
+        const label = `oops-${mode.id}-${window.id}`;
+        const capture = await captureArrangement(page, testInfo, label, seekSeconds, durationMs);
+        audible(capture);
+        appendOopsPhraseManifest(testInfo, {
+          mode: mode.id,
+          modeLabel: mode.label,
+          window,
+          fixture: OOPS_SONG_ID,
+          source: "production-equivalent API fixture",
+          seekSeconds,
+          durationMs,
+          audioPath: testInfo.outputPath(`${label}.webm`),
+          metadataPath: testInfo.outputPath(`${label}.json`),
+          bytes: capture.bytes,
+          events: capture.events.length,
+          sha256: capture.sha256,
+          signal: capture.signal,
+        });
+      });
+    }
+  }
+
+  test("T1 captures Oops automatic chorus with left-hand UI filter", async ({ page }, testInfo) => {
+    test.setTimeout(90_000);
+    const window = OOPS_PHRASE_WINDOWS.find((candidate) => candidate.id === "section-4")!;
+    await installAudioProbe(page);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(`/player/${OOPS_SONG_ID}`);
+    await expect(page.getByLabel("Falling notes player")).toBeVisible();
+    await selectArrangement(page, "Chord mode", "Automatic melody");
+    await page.getByRole("button", { name: "Left hand", exact: true }).click();
+    await bootAudio(page);
+    const seekSeconds = Math.max(0, window.startBeat * 60 / OOPS_BPM - 0.5);
+    const durationMs = Math.ceil((window.endBeat - window.startBeat) * 60 / OOPS_BPM * 1000 + 1_000);
+    const label = "oops-automatic-left-filtered-section-4";
+    const capture = await captureArrangement(page, testInfo, label, seekSeconds, durationMs);
+    audible(capture);
+    appendOopsPhraseManifest(testInfo, {
+      mode: "automatic-left-filtered",
+      modeLabel: "Automatic melody with Left hand UI filter; not an isolated stem",
+      window,
+      fixture: OOPS_SONG_ID,
+      source: "production-equivalent API fixture",
+      seekSeconds,
+      durationMs,
+      audioPath: testInfo.outputPath(`${label}.webm`),
+      metadataPath: testInfo.outputPath(`${label}.json`),
+      bytes: capture.bytes,
+      events: capture.events.length,
+      sha256: capture.sha256,
+      signal: capture.signal,
+    });
+  });
+}
 
 test("real artifact keeps arrangement controls usable at 390px", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });

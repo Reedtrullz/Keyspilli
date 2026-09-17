@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "w-h-doane-near-the-cross",
+  "identityStatus": "current",
+  "sourceArtifactHash": "09d4a33ac39f9429f3fdf3a45377a7010b36a1f501194b2dba10e91e45d51a0d",
+  "configFingerprint": "b52d02d451d20c3645b98c51c6d717798d2769915e3c9b367fe0cf4435eccd4c",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "seed:w-h-doane-near-the-cross.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 112,
+      "source": "override",
+      "resolvedAt": "2026-09-07T03:58:40.405Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 112,
+      "source": "override",
+      "resolvedAt": "2026-09-07T03:58:40.405Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-09-07T04:00:58.430Z"
+}

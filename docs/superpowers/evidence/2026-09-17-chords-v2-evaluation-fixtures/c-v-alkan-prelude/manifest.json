@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "c-v-alkan-prelude",
+  "identityStatus": "current",
+  "sourceArtifactHash": "ae68944db2e646e14e0923a79b95b3a6e2658432e384e8741f3ab108dbc5ac80",
+  "configFingerprint": "bd0466de122d21c5fee568c3967b632d267b87d41f96db69560c20976b4b6b90",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "seed:c-v-alkan-prelude.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 60,
+      "source": "override",
+      "resolvedAt": "2026-09-07T03:55:38.601Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 60,
+      "source": "override",
+      "resolvedAt": "2026-09-07T03:55:38.601Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-09-07T03:59:13.769Z"
+}

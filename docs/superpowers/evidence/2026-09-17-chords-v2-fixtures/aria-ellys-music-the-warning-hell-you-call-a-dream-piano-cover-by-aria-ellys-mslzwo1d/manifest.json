@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "baseId": "aria-ellys-music-the-warning-hell-you-call-a-dream-piano-cover-by-aria-ellys-mslzwo1d",
+  "identityStatus": "current",
+  "sourceArtifactHash": "7f91d0de3a130f5694f9ee3625300b12e7100f1c4f7b4310f2eb918ab625203d",
+  "configFingerprint": "5ee946dd59e08038f2e04a9302e9ffe09e224aa49adee43fe6091d90ca7bce60",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "youtube",
+    "acquiredVia": "youtube",
+    "sourceRef": "youtube:6eItF6yVVnE",
+    "sourceYoutubeUrl": "https://www.youtube.com/watch?v=6eItF6yVVnE"
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 95,
+      "source": "detected",
+      "resolvedAt": "2026-09-07T03:43:38.511Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 95,
+      "source": "detected",
+      "resolvedAt": "2026-09-07T03:43:38.511Z",
+      "role": "playback"
+    }
+  },
+  "transcription": {
+    "basicPitchVersion": "unknown",
+    "modelSerialization": "onnx",
+    "onsetThreshold": 0.65,
+    "frameThreshold": 0.45,
+    "tempo": 95,
+    "tempoSource": "detected",
+    "audioSource": "youtube",
+    "transcribedAt": "2026-08-10T01:21:33.750Z",
+    "pipeline": {
+      "filterVersion": "audio-onset-filter-v2",
+      "normalizerId": "midi-normalizer-v2",
+      "gridPolicyId": "beat-grid-v2",
+      "variantPolicyId": "learner-variant-ladder-v5-metal-piano-realism"
+    },
+    "postProcessing": {
+      "filterApplied": true,
+      "cleanupApplied": true,
+      "onsetMatchSec": 0.15,
+      "onsetDetector": {
+        "sampleRate": 22050,
+        "hopLength": 512,
+        "backtrack": true,
+        "delta": 0.07
+      },
+      "minVelocity": 30,
+      "minDurationBeats": 0.14,
+      "mergeWindowBeats": 0.125,
+      "maxPolyphony": 6,
+      "maxSounding": 8,
+      "maxDurationSec": 2.5,
+      "maxDurationBeats": 4,
+      "importedMaxDurationBeats": 1.5,
+      "importedMaxSounding": 12
+    }
+  },
+  "artifactWrittenAt": "2026-09-07T03:58:59.960Z"
+}

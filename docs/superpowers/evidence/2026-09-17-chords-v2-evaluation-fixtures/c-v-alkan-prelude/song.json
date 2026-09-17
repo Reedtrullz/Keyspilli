@@ -1,0 +1,23 @@
+{
+  "id": "c-v-alkan-prelude-a",
+  "baseId": "c-v-alkan-prelude",
+  "title": "Prélude",
+  "artist": "C.-V. Alkan",
+  "category": "Classical",
+  "difficulty": "advanced",
+  "difficultyScore": 4.6,
+  "key": "Em",
+  "tempo": 60,
+  "style": "classical",
+  "mood": "peaceful",
+  "bassPattern": "walking",
+  "duration": 40,
+  "contentType": "standard",
+  "acquiredVia": null,
+  "sourceYoutubeUrl": null,
+  "hasSheetXml": 1,
+  "sections": null,
+  "plays": 0,
+  "level": "a",
+  "createdAt": "2026-08-09T03:04:04.703Z"
+}

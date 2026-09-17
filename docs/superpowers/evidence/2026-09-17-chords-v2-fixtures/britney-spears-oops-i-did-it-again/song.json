@@ -1,0 +1,23 @@
+{
+  "id": "britney-spears-oops-i-did-it-again-a",
+  "baseId": "britney-spears-oops-i-did-it-again",
+  "title": "Oops I Did It Again",
+  "artist": "Britney Spears",
+  "category": "Pop",
+  "difficulty": "advanced",
+  "difficultyScore": 4.6,
+  "key": "C#m",
+  "tempo": 95,
+  "style": "pop",
+  "mood": "energetic",
+  "bassPattern": "arpeggio",
+  "duration": 210,
+  "contentType": "standard",
+  "acquiredVia": null,
+  "sourceYoutubeUrl": null,
+  "hasSheetXml": 1,
+  "sections": null,
+  "plays": 22,
+  "level": "a",
+  "createdAt": "2026-08-09T13:23:43.590Z"
+}
