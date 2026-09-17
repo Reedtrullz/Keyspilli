@@ -48,7 +48,7 @@ describe("buildMelodyAccompaniment", () => {
     expect(result.chords[0]!.suggestedHands.every((hand) => hand === "L")).toBe(true);
     expect(result.fallbackSpans).toEqual([]);
     expect(result.provenance).toMatchObject({
-      generatorVersion: "melody-accompaniment.v1",
+      generatorVersion: "melody-accompaniment.v2",
       selection: "automatic",
       selectionProvenance: "inferred",
       sourceFingerprint: "fixture-source-v1",

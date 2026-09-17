@@ -274,11 +274,13 @@ T1 evidence: `docs/superpowers/evidence/2026-09-17-chords-v2-baseline.json`, `do
 **Files:** `accompaniment.ts`, proposed change test; optionally melody-only module.
 **Produces:** `ArrangementPhrase`, `ArrangementEvent`, `ArrangementChangeSummary`, versioned v2 result.
 
-- [ ] Add failing tests using existing fixture helpers: hand-only reassignment is audibly unchanged; changed velocity is changed; silent tail is silent; missing chord annotation does not imply retained audio; adjacent intervals are not double-counted.
-- [ ] Implement exact event comparison and union duration accounting from rendered notes, independently of chord-generation success.
-- [ ] Attach source lineage at creation time; keep role separate from hand.
-- [ ] Verify `changedBeats + unchangedBeats + silentBeats == durationBeats` within timing epsilon and `reviewBeats <= durationBeats`.
-- [ ] Keep current arrangement behavior while replacing its misleading measurements. Run focused tests and commit.
+- [x] Add failing tests using existing fixture helpers: hand-only reassignment is audibly unchanged; changed velocity is changed; silent tail is silent; missing chord annotation does not imply retained audio; adjacent intervals are not double-counted.
+- [x] Implement exact event comparison and union duration accounting from rendered notes, independently of chord-generation success.
+- [x] Attach source lineage at creation time; keep role separate from hand.
+- [x] Verify `changedBeats + unchangedBeats + silentBeats == durationBeats` within timing epsilon and `reviewBeats <= durationBeats`.
+- [x] Keep current arrangement behavior while replacing its misleading measurements. Run focused tests and commit.
+
+T2 evidence: `packages/player-core/test/arrangement-change.test.ts`, `packages/player-core/src/accompaniment.ts`, focused player-core tests/typecheck. The v2 result exposes one event stream with source lineage, role metadata, phrase status, and exact audible change accounting; `notes` and `guidanceNotes` are projections of that stream.
 
 Concrete desired regression in the existing suite (new fields from section 4):
 

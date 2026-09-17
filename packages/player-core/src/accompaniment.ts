@@ -65,7 +65,7 @@ export interface MelodyUnresolvedSpan {
 
 export interface MelodyAccompanimentProvenance {
   schemaVersion: 1;
-  generatorVersion: "melody-accompaniment.v1";
+  generatorVersion: "melody-accompaniment.v2";
   sourceFingerprint: string | null;
   selection: MelodySelection;
   selectionProvenance: MelodySelectionProvenance;
@@ -88,9 +88,42 @@ export interface MelodyAccompanimentOptions {
   selection?: MelodySelection;
 }
 
+export type ArrangementEventRole = "melody" | "accompaniment" | "retained-unclassified";
+
+export interface ArrangementEvent {
+  id: string;
+  note: Note;
+  role: ArrangementEventRole;
+  sourceNoteIds: readonly string[];
+}
+
+export interface ArrangementPhrase {
+  startBeat: number;
+  endBeat: number;
+  melodySourceIds: readonly string[];
+  strategy: "source-reduction" | "harmonic-backing" | "original" | "silence";
+  change: "changed" | "unchanged";
+  review: "automatic" | "user-selected" | "needs-review";
+  reasons: readonly string[];
+}
+
+export interface ArrangementChangeSummary {
+  durationBeats: number;
+  changedBeats: number;
+  unchangedBeats: number;
+  silentBeats: number;
+  reviewBeats: number;
+  addedNotes: number;
+  removedNotes: number;
+  alteredNotes: number;
+}
+
 export interface MelodyAccompanimentResolution extends AccompanimentResolution {
   melody: Note[];
   protectedMelody: readonly ProtectedMelodyNote[];
+  events: readonly ArrangementEvent[];
+  phrases: readonly ArrangementPhrase[];
+  changeSummary: ArrangementChangeSummary;
   provenance: MelodyAccompanimentProvenance;
 }
 
@@ -141,6 +174,130 @@ export function sourceNoteIds(notes: readonly Note[]): string[] {
     occurrences.set(key, occurrence + 1);
     return `${key}#${occurrence}`;
   });
+}
+
+function audibleNoteKey(note: Note): string {
+  return JSON.stringify([note.midi, note.start, note.dur, note.vel]);
+}
+
+function sameAudibleNotes(left: readonly Note[], right: readonly Note[]): boolean {
+  if (left.length !== right.length) return false;
+  const counts = new Map<string, number>();
+  for (const note of left) {
+    const key = audibleNoteKey(note);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  for (const note of right) {
+    const key = audibleNoteKey(note);
+    const count = counts.get(key) ?? 0;
+    if (count === 0) return false;
+    if (count === 1) counts.delete(key);
+    else counts.set(key, count - 1);
+  }
+  return counts.size === 0;
+}
+
+function activeNotes(notes: readonly Note[], beat: number): Note[] {
+  return notes.filter((note) => note.start <= beat + EPSILON && noteEnd(note) > beat + EPSILON);
+}
+
+function clippedBoundaries(notes: readonly Note[], durationBeats: number): number[] {
+  const boundaries = new Set<number>([0, durationBeats]);
+  for (const note of notes) {
+    const start = Math.max(0, Math.min(durationBeats, note.start));
+    const end = Math.max(0, Math.min(durationBeats, noteEnd(note)));
+    if (end > start + EPSILON) {
+      boundaries.add(start);
+      boundaries.add(end);
+    }
+  }
+  return [...boundaries].sort((a, b) => a - b);
+}
+
+function unionDuration(
+  spans: readonly { startBeat: number; endBeat: number }[],
+  durationBeats: number,
+): number {
+  if (durationBeats <= EPSILON) return 0;
+  const clipped = spans
+    .map((span) => ({
+      startBeat: Math.max(0, Math.min(durationBeats, span.startBeat)),
+      endBeat: Math.max(0, Math.min(durationBeats, span.endBeat)),
+    }))
+    .filter((span) => span.endBeat > span.startBeat + EPSILON)
+    .sort((a, b) => a.startBeat - b.startBeat || a.endBeat - b.endBeat);
+  let total = 0;
+  let current: { startBeat: number; endBeat: number } | null = null;
+  for (const span of clipped) {
+    if (!current || span.startBeat > current.endBeat + EPSILON) {
+      if (current) total += current.endBeat - current.startBeat;
+      current = { ...span };
+    } else {
+      current.endBeat = Math.max(current.endBeat, span.endBeat);
+    }
+  }
+  if (current) total += current.endBeat - current.startBeat;
+  return total;
+}
+
+/** Compare source audio with the actually rendered note events. */
+export function measureArrangementChanges(
+  sourceNotes: readonly Note[],
+  events: readonly ArrangementEvent[],
+  durationBeats: number,
+  reviewSpans: readonly { startBeat: number; endBeat: number }[] = [],
+): ArrangementChangeSummary {
+  const duration = Math.max(0, Number.isFinite(durationBeats) ? durationBeats : 0);
+  const outputNotes = events.map((event) => event.note);
+  const boundaries = clippedBoundaries([...sourceNotes, ...outputNotes], duration);
+  let changedBeats = 0;
+  let unchangedBeats = 0;
+  let silentBeats = 0;
+  for (let index = 0; index < boundaries.length - 1; index++) {
+    const startBeat = boundaries[index]!;
+    const endBeat = boundaries[index + 1]!;
+    if (endBeat <= startBeat + EPSILON) continue;
+    const sourceActive = activeNotes(sourceNotes, (startBeat + endBeat) / 2);
+    const outputActive = activeNotes(outputNotes, (startBeat + endBeat) / 2);
+    if (sourceActive.length === 0 && outputActive.length === 0) silentBeats += endBeat - startBeat;
+    else if (sameAudibleNotes(sourceActive, outputActive)) unchangedBeats += endBeat - startBeat;
+    else changedBeats += endBeat - startBeat;
+  }
+
+  const sourceIds = sourceNoteIds(sourceNotes);
+  const sourceById = new Map(sourceIds.map((id, index) => [id, sourceNotes[index]!]));
+  const linkedEvents = new Map<string, ArrangementEvent[]>();
+  let addedNotes = 0;
+  for (const event of events) {
+    const knownIds = event.sourceNoteIds.filter((id) => sourceById.has(id));
+    if (knownIds.length === 0) {
+      addedNotes++;
+      continue;
+    }
+    for (const id of knownIds) {
+      const linked = linkedEvents.get(id) ?? [];
+      linked.push(event);
+      linkedEvents.set(id, linked);
+    }
+  }
+  let removedNotes = 0;
+  let alteredNotes = 0;
+  for (const [id, source] of sourceById) {
+    const linked = linkedEvents.get(id) ?? [];
+    if (linked.length === 0) removedNotes++;
+    else if (linked.length !== 1 || !sameAudibleNotes([source], [linked[0]!.note])) alteredNotes++;
+  }
+
+  return {
+    durationBeats: duration,
+    changedBeats,
+    unchangedBeats,
+    silentBeats,
+    reviewBeats: unionDuration(reviewSpans, duration),
+    addedNotes,
+    removedNotes,
+    alteredNotes,
+  };
 }
 
 function validDuration(value: number | undefined): value is number {
@@ -657,6 +814,41 @@ function selectMelodySource(
   };
 }
 
+function arrangementStrategy(
+  supportModes: ReadonlySet<MelodyAccompanimentSupportMode>,
+  summary: ArrangementChangeSummary,
+): ArrangementPhrase["strategy"] {
+  if (summary.silentBeats >= summary.durationBeats - EPSILON) return "silence";
+  if (supportModes.has("source-rhythm")) return "source-reduction";
+  if (supportModes.has("quarter-note-pulse")) return "harmonic-backing";
+  return "original";
+}
+
+function buildArrangementPhrases(
+  durationBeats: number,
+  selected: SelectedMelody,
+  summary: ArrangementChangeSummary,
+  supportModes: ReadonlySet<MelodyAccompanimentSupportMode>,
+  fallbackSpans: readonly AccompanimentFallbackSpan[],
+): ArrangementPhrase[] {
+  if (durationBeats <= EPSILON) return [];
+  const reasons = [...new Set([
+    ...selected.unresolvedSpans.map((span) => span.reason),
+    ...fallbackSpans.map((span) => span.reason),
+  ])];
+  return [{
+    startBeat: 0,
+    endBeat: durationBeats,
+    melodySourceIds: selected.sourceIds.filter((_, index) => selected.selectedIndices.has(index)),
+    strategy: arrangementStrategy(supportModes, summary),
+    change: summary.changedBeats > EPSILON ? "changed" : "unchanged",
+    review: selected.selectionProvenance === "user-confirmed"
+      ? "user-selected"
+      : reasons.length > 0 ? "needs-review" : "automatic",
+    reasons,
+  }];
+}
+
 const MAX_LEFT_HAND_SPAN = 12;
 const MIN_MELODY_CLEARANCE = 2;
 const LOWEST_SUPPORT_MIDI = 36;
@@ -761,6 +953,8 @@ export function buildMelodyAccompaniment(
     const fallbackSpans = durationBeats > EPSILON
       ? [{ startBeat: 0, endBeat: durationBeats, reason: "no source notes" as const }]
       : [];
+    const arrangementEvents: ArrangementEvent[] = [];
+    const changeSummary = measureArrangementChanges(sourceNotes, arrangementEvents, durationBeats, selected.unresolvedSpans);
     return {
       style: "melody-accompaniment",
       notes: [],
@@ -770,9 +964,12 @@ export function buildMelodyAccompaniment(
       fallbackSpans,
       melody: [],
       protectedMelody: [],
+      events: arrangementEvents,
+      phrases: buildArrangementPhrases(durationBeats, selected, changeSummary, new Set(["fallback"]), fallbackSpans),
+      changeSummary,
       provenance: {
         schemaVersion: 1,
-        generatorVersion: "melody-accompaniment.v1",
+        generatorVersion: "melody-accompaniment.v2",
         sourceFingerprint: options.sourceFingerprint ?? null,
         selection: selected.selection,
         selectionProvenance: selected.selectionProvenance,
@@ -860,20 +1057,42 @@ export function buildMelodyAccompaniment(
   }
 
   const fallbackSpans = buildFallbackSpans(events, chordCovered, fallbackEvents, durationBeats);
-  const retainedNotes = sourceNotes.flatMap((note, index) => {
-    if (selected.selectedIndices.has(index)) return [note];
-    if (sourceSupportByIndex.has(index)) return [];
-    if (!sourceIndicesToReplace.has(index)) return [note];
-    return subtractCoveredIntervals(note, replacementCovered);
+  const sourceEvents = sourceNotes.flatMap((note, index): ArrangementEvent[] => {
+    const sourceId = selected.sourceIds[index]!;
+    if (selected.selectedIndices.has(index)) {
+      return [{ id: `source:${sourceId}`, note, role: "melody", sourceNoteIds: [sourceId] }];
+    }
+    const reduced = sourceSupportByIndex.get(index);
+    if (reduced) {
+      return [{ id: `source:${sourceId}`, note: reduced, role: "accompaniment", sourceNoteIds: [sourceId] }];
+    }
+    if (!sourceIndicesToReplace.has(index)) {
+      return [{ id: `source:${sourceId}`, note, role: "retained-unclassified", sourceNoteIds: [sourceId] }];
+    }
+    return subtractCoveredIntervals(note, replacementCovered).map((piece, pieceIndex) => ({
+      id: `source:${sourceId}:piece:${pieceIndex}`,
+      note: piece,
+      role: "accompaniment",
+      sourceNoteIds: [sourceId],
+    }));
   });
-  const supportNotes = [...sourceSupportByIndex.values(), ...pulseNotes];
+  const pulseEvents: ArrangementEvent[] = pulseNotes.map((note, index) => ({
+    id: `generated:pulse:${index}`,
+    note,
+    role: "accompaniment",
+    sourceNoteIds: [],
+  }));
+  const arrangementEvents = [...sourceEvents, ...pulseEvents]
+    .sort((a, b) => a.note.start - b.note.start || a.note.midi - b.note.midi || a.id.localeCompare(b.id));
   const generatedBeats = pulseCovered.reduce((sum, interval) => sum + Math.max(0, interval.endBeat - interval.startBeat), 0);
   const fallbackBeats = fallbackSpans.reduce((sum, span) => sum + Math.max(0, span.endBeat - span.startBeat), 0);
   if (supportModes.size === 0) supportModes.add("fallback");
   const melodyNoteIds = [...selected.selectedIndices].sort((a, b) => a - b).map((index) => selected.sourceIds[index]!);
+  const changeSummary = measureArrangementChanges(sourceNotes, arrangementEvents, durationBeats, selected.unresolvedSpans);
+  const phrases = buildArrangementPhrases(durationBeats, selected, changeSummary, supportModes, fallbackSpans);
   const provenance: MelodyAccompanimentProvenance = {
     schemaVersion: 1,
-    generatorVersion: "melody-accompaniment.v1",
+    generatorVersion: "melody-accompaniment.v2",
     sourceFingerprint: options.sourceFingerprint ?? null,
     selection: selected.selection,
     selectionProvenance: selected.selectionProvenance,
@@ -889,13 +1108,16 @@ export function buildMelodyAccompaniment(
 
   return {
     style: "melody-accompaniment",
-    notes: [...retainedNotes, ...supportNotes].sort((a, b) => a.start - b.start || a.midi - b.midi),
+    notes: arrangementEvents.map(({ note }) => note),
     chords: effectiveChords,
     displayChords: buildDisplayTimeline(events, effectiveChords),
-    guidanceNotes: [...retainedNotes, ...supportNotes].sort((a, b) => a.start - b.start || a.midi - b.midi),
+    guidanceNotes: arrangementEvents.map(({ note }) => note),
     fallbackSpans,
     melody: selected.melody,
     protectedMelody: selected.protectedMelody,
+    events: arrangementEvents,
+    phrases,
+    changeSummary,
     provenance,
   };
 }
