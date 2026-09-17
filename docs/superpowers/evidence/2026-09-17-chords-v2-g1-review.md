@@ -146,9 +146,9 @@ The following comparison predates the label-only candidate and is retained as hi
 
 The output also retained explicit fallback/unresolved provenance: Blackbird 80 fallback spans and 20 unresolved spans; Oops 267 fallback spans and 54 unresolved spans; Hell 170 fallback spans and 27 unresolved spans. Under the current default coherent-phrase sounding policy, generated support was Blackbird `0` notes/`0` beats, Oops `28`/`2.375`, and Hell `9`/`3`; source-linked re-attacks are `0` for all three. The increased structural reduction and sparse backing counts are not a success score; no automatic melody gold, harmonic review, playability review, or human musical acceptance exists for these fixtures.
 
-## Current `7775d5b` development-fixture impact
+## Current `7775d5b` / `f0cb469` development-fixture impact
 
-The current candidate was replayed over the complete frozen Blackbird, Oops, and Hell development fixtures using the Player source-selection path: `resolveChordSources` → `selectChordSource("auto")` → generated-source dedupe/duration normalization → `buildMelodyAccompaniment`. The comparison baseline is an `fce18bc`-equivalent run with `harmonicSupport: "all"`; no source or catalog files were changed. The exact result is preserved in [current-candidate development evidence](./2026-09-17-chords-v2-current-candidate-development.json).
+The current candidate was replayed at `f0cb469` over the complete frozen Blackbird, Oops, and Hell development fixtures using the Player source-selection path: `resolveChordSources` → `selectChordSource("auto")` → generated-source dedupe/duration normalization → `buildMelodyAccompaniment`. The `7775d5b` source policy is unchanged by this status-only correction. The comparison baseline is an `fce18bc`-equivalent run with `harmonicSupport: "all"`; no source or catalog files were changed. The exact result is preserved in [current-candidate development evidence](./2026-09-17-chords-v2-current-candidate-development.json).
 
 | Fixture | Current output / source support / generated | Current changed / unchanged / review beats | Current phrase changed / unchanged / review | Delta vs fce18bc-equivalent output / generated |
 |---|---:|---:|---:|---:|
@@ -158,7 +158,7 @@ The current candidate was replayed over the complete frozen Blackbird, Oops, and
 
 Generated support is zero in all three current runs; source-support counts are unchanged. Source-reduced label-only intervals are informational, while the explicit unverified-harmony fallback remains reviewable only where backing is actually unavailable (or another ambiguity/fallback span applies). Review beats and phrase-review intervals share that actionable-span union, so current review counts are policy/fallback accounting, not musical-quality scores. This current candidate supersedes the historical pre-label-only counts for output interpretation; the reserved capture packet remains unchanged.
 
-The frozen Oops development phrase `[64,108]` at 95 BPM was also captured through the browser AudioEngine synth at `7775d5b`. Artifacts are preserved under `apps/web/test-results/melody-accompaniment-compl-5ca33-didates-with-the-same-synth-chromium/`:
+The frozen Oops development phrase `[64,108]` at 95 BPM was captured through the browser AudioEngine synth at `7775d5b`; `f0cb469` is status-only, so no audio recapture was performed. Artifacts are preserved under `apps/web/test-results/melody-accompaniment-compl-5ca33-didates-with-the-same-synth-chromium/`:
 
 | Capture | Events | WebM SHA-256 |
 |---|---:|---|

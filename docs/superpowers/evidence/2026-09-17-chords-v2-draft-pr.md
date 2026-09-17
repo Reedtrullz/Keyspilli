@@ -1,6 +1,6 @@
 # Draft PR — complete Chords v2 melody, accompaniment, worker, UX, and evaluation gates
 
-Draft only. Do not merge or deploy from this branch. The capture candidate remains frozen at `ea68729045e82ef9ced14e0e0916c86991eeba4a`; follow-up heads `4a71c6910b97dd38e9fc5f3a78104db5a4ef22f6` and `fce18bcbc358a06281813192de95eb56f9f0e878` contain evidence hardening, while `7775d5b383289a28212dc9c2a8ec2e1f3b752d81` contains the runtime-only generated-harmony source policy. No reserved-output tuning was performed.
+Draft only. Do not merge or deploy from this branch. The capture candidate remains frozen at `ea68729045e82ef9ced14e0e0916c86991eeba4a`; follow-up heads `4a71c6910b97dd38e9fc5f3a78104db5a4ef22f6` and `fce18bcbc358a06281813192de95eb56f9f0e878` contain evidence hardening, `7775d5b383289a28212dc9c2a8ec2e1f3b752d81` contains the runtime-only generated-harmony source policy, and `f0cb469` corrects actionable review accounting. No reserved-output tuning was performed.
 
 ## Scope: T2–T8
 
@@ -42,9 +42,9 @@ The source path is explicit: `buildVariants`/`chordsAt` writes notes-derived har
 
 The focused selected-R development fixture demonstrates the audible boundary: the old all-support path generated lower support `[36,40,43]` beside melody MIDI 60, with no exact MIDI collision and no sounding-limit rejection. The new generated/label-only candidate keeps the `C` display label, retains the selected source note, emits `0` generated support notes, and reports `unverified chord source`. A mixed Auto fixture still generates authored chart support while leaving generated continuation label-only. This is a new development candidate prompted by contract review; it does not retune or replace the frozen capture packet. Existing selected-index source reduction remains available where source support exists, with Original/local fallback otherwise.
 
-## Current `7775d5b` full development impact
+## Current `7775d5b` / `f0cb469` full development impact
 
-The reproducible comparison is in [current-candidate development evidence](./2026-09-17-chords-v2-current-candidate-development.json). It uses the frozen Blackbird/Oops/Hell fixture files, the same `resolveChordSources` → `selectChordSource("auto")` → generated-source dedupe/duration path used by Player, and compares the new policy with an `fce18bc`-equivalent `harmonicSupport: "all"` run:
+The reproducible comparison is in [current-candidate development evidence](./2026-09-17-chords-v2-current-candidate-development.json). It uses the frozen Blackbird/Oops/Hell fixture files, the same `resolveChordSources` → `selectChordSource("auto")` → generated-source dedupe/duration path used by Player, and compares the `7775d5b` source policy plus `f0cb469` status accounting with an `fce18bc`-equivalent `harmonicSupport: "all"` run:
 
 | Fixture | Current output / source support / generated | Current changed / unchanged / review beats | Current phrase changed / unchanged / review | Delta vs fce18bc-equivalent output / generated |
 | --- | ---: | ---: | ---: | ---: |
@@ -56,7 +56,7 @@ The current policy treats an unverified generated label as provenance-only when 
 
 ## Current Oops development audio
 
-The T1 frozen development fixture captured the full `[64,108]` development phrase at 95 BPM with the browser AudioEngine synth. The current runtime candidate is `7775d5b`; the test harness correction only removed the obsolete coherent-`<`-resume event-count ordering assumption. Audio artifacts are preserved in the worktree under `apps/web/test-results/melody-accompaniment-compl-5ca33-didates-with-the-same-synth-chromium/`:
+The T1 frozen development fixture captured the full `[64,108]` development phrase at 95 BPM with the browser AudioEngine synth. The audio candidate is `7775d5b`; `f0cb469` changes status accounting only and was not recaptured. The test harness correction only removed the obsolete coherent-`<`-resume event-count ordering assumption. Audio artifacts are preserved in the worktree under `apps/web/test-results/melody-accompaniment-compl-5ca33-didates-with-the-same-synth-chromium/`:
 
 | Capture | Events | WebM SHA-256 |
 | --- | ---: | --- |

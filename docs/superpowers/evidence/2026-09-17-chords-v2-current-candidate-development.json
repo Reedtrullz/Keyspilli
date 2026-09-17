@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
-  "candidateCommit": "7775d5b383289a28212dc9c2a8ec2e1f3b752d81",
+  "candidateCommit": "f0cb469464385addaced7e451c9e38aca82175f5",
+  "runtimePolicyCommit": "7775d5b383289a28212dc9c2a8ec2e1f3b752d81",
   "baselineCommit": "fce18bcbc358a06281813192de95eb56f9f0e878",
   "baselineMeaning": "fce18bc-equivalent producer run with harmonicSupport=all; no source or catalog files were changed",
   "source": "docs/superpowers/evidence/2026-09-17-chords-v2-fixtures via resolveChordSources/selectChordSource('auto') and the Player-equivalent normalization path",
