@@ -577,7 +577,7 @@ test("real artifact produces, previews, plays, corrects, and reloads melody supp
     generatorVersion?: string;
     selection?: string;
     sourceFingerprint?: string;
-    provenance?: { selectionProvenance?: string; sourceSupportNoteCount?: number; generatedNoteCount?: number };
+    provenance?: { selectionProvenance?: string; sourceSupportNoteCount?: number; generatedNoteCount?: number; supportModes?: string[] };
   } | null;
   expect(sidecar).toMatchObject({
     generatorVersion: "melody-accompaniment.v2",
@@ -586,7 +586,8 @@ test("real artifact produces, previews, plays, corrects, and reloads melody supp
   });
   expect(sidecar?.sourceFingerprint).toContain("variant:the-beatles-blackbird:a:");
   expect(sidecar?.provenance?.sourceSupportNoteCount).toBeGreaterThan(0);
-  expect(sidecar?.provenance?.generatedNoteCount).toBeGreaterThan(0);
+  expect(sidecar?.provenance?.generatedNoteCount).toBe(0);
+  expect(sidecar?.provenance?.supportModes).not.toContain("sparse-harmonic");
 
   await dialog.getByRole("button", { name: "Preview arrangement", exact: true }).click();
   await page.getByRole("button", { name: "Play", exact: true }).click();

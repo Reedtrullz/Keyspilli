@@ -616,6 +616,55 @@ describe("buildMelodyAccompaniment", () => {
     expect(result.provenance.supportModes).toEqual(["source-rhythm"]);
   });
 
+  it("keeps unverified harmony label-only even when its lower voicing avoids exact melody collision", () => {
+    const source = [note(60, 0, 1, 100, "R")];
+    const generatedChord: ChordLabel = {
+      beat: 0,
+      name: "C",
+      notes: [36, 40, 43],
+      sourceKind: "generated",
+      durationBeats: 1,
+    };
+    const generated = buildMelodyAccompaniment(source, [generatedChord], {
+      durationBeats: 1,
+      selection: "right-hand",
+      sourceFingerprint: "generated-harmony-v1",
+    });
+    expect(generated.notes.some((item) => item.midi === 60 && item.hand === "R")).toBe(true);
+    expect(generated.notes.some((item) => item.hand === "L" && item.midi !== 60)).toBe(true);
+    expect(generated.fallbackSpans).toEqual([]);
+
+    const labelOnly = buildMelodyAccompaniment(source, [generatedChord], {
+      durationBeats: 1,
+      selection: "right-hand",
+      sourceFingerprint: "generated-harmony-v1",
+      harmonicSupport: "none",
+    });
+    expect(labelOnly.displayChords).toEqual([expect.objectContaining({ name: "C", sourceKind: "generated" })]);
+    expect(labelOnly.chords).toEqual([]);
+    expect(labelOnly.notes).toEqual(source);
+    expect(labelOnly.provenance.generatedNoteCount).toBe(0);
+    expect(labelOnly.provenance.supportModes).toEqual(["fallback"]);
+    expect(labelOnly.fallbackSpans).toEqual([{ startBeat: 0, endBeat: 1, reason: "unverified chord source" }]);
+
+    const mixed = buildMelodyAccompaniment(
+      [note(60, 0, 1, 100, "R"), note(62, 1, 1, 100, "R")],
+      [
+        { ...generatedChord, sourceKind: "authored", durationBeats: 1 },
+        { ...generatedChord, beat: 1, name: "G", sourceKind: "generated", durationBeats: 1 },
+      ],
+      {
+        durationBeats: 2,
+        selection: "right-hand",
+        sourceFingerprint: "generated-harmony-v1",
+        harmonicSupport: "authored-only",
+      },
+    );
+    expect(mixed.chords).toEqual([expect.objectContaining({ beat: 0 })]);
+    expect(mixed.displayChords.map((item) => item.name)).toEqual(["C", "G"]);
+    expect(mixed.fallbackSpans).toContainEqual({ startBeat: 1, endBeat: 2, reason: "unverified chord source" });
+  });
+
   it("does not call an edge-only phrase silent when its midpoint is empty", () => {
     const result = buildMelodyAccompaniment(
       [note(72, 0, 0.1, 100), note(74, 2.9, 0.1, 100)],

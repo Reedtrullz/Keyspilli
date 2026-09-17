@@ -1,12 +1,12 @@
 # Draft PR — complete Chords v2 melody, accompaniment, worker, UX, and evaluation gates
 
-Draft only. Do not merge or deploy from this branch. The candidate arrangement was frozen at `ea68729045e82ef9ced14e0e0916c86991eeba4a`; follow-up head `4a71c6910b97dd38e9fc5f3a78104db5a4ef22f6` contains only the 200% zoom root-cause fix, dead reattack-plumbing removal, and evidence hardening. No reserved-output tuning was performed.
+Draft only. Do not merge or deploy from this branch. The capture candidate remains frozen at `ea68729045e82ef9ced14e0e0916c86991eeba4a`; follow-up heads `4a71c6910b97dd38e9fc5f3a78104db5a4ef22f6` and `fce18bcbc358a06281813192de95eb56f9f0e878` contain evidence hardening plus the runtime-only generated-harmony source policy. No reserved-output tuning was performed.
 
 ## Scope: T2–T8
 
 - **T2 — output accounting and interval semantics:** one derived note stream, explicit fallback/change accounting, deterministic `[midi,start,dur,vel]` event multisets, and no duplicate scheduling.
 - **T3 — melody rests and local correction:** explicit rest-aware selection, path continuity across rests, fingerprinted phrase overrides, automatic and right-hand choices, plus local seek/loop/correction/reset behavior.
-- **T4 — harmonic/source boundaries:** source provenance and generated/fallback paths are traced, with uncertainty interval splits. The actual seed/YouTube notes-derived path is tested with a mixed LH/upper-voice fixture, while the missing selected-melody identity/source lane remains an explicit source/data-contract blocker; no general exclusion claim is made.
+- **T4 — harmonic/source boundaries:** source provenance and generated/fallback paths are traced, with uncertainty interval splits. The actual seed/YouTube notes-derived path is tested with mixed and selected-LH fixtures; unverified generated harmony is now label-only for Melody + accompaniment, Auto gates support to authored chart events, and explicit UG chart events may retain support. The missing selected-melody identity/source lane remains an explicit source/data-contract limitation; no general exclusion claim is made.
 - **T5 — accompaniment and sounding rhythm:** source reduction, sparse harmonic candidates, meter/off-grid/pickup fixtures, source lineage, and coherent-phrase no-resumption policy are covered structurally. Where validated source-measure phase is absent, timing safely falls back to boundary/source timing.
 - **T6 — sounding, voicing, velocity, and pedal:** sounding limits, source-linked support trims, bounded voicing candidates, sampler CC64 handling, and velocity policy are implemented and tested as engineering behavior. Musical balance and playability remain human-review questions.
 - **T7 — worker, single stream, and persistence:** Original/source view, cancellable worker requests, exact source/chord/options keys, stale-result/error guards, constructor/`postMessage` retry, one derived stream for audio/guidance/grading, and reset handling are covered.
@@ -17,13 +17,17 @@ Draft only. Do not merge or deploy from this branch. The candidate arrangement w
 All commands used Node 22.22.3 from the isolated worktree:
 
 ```text
-npm test -w @keyspilli/player-core -- --run  15 files, 230 passed
-npm test -w @keyspilli/web -- --run           36 files, 206 passed
+npm test -w @keyspilli/player-core -- --run  15 files, 231 passed
+npm test -w @keyspilli/web -- --run           36 files, 207 passed
 npm test -w @keyspilli/midi -- --run          17 files, 397 passed
 npm test -w @keyspilli/player-core -- --run test/melody-accompaniment.test.ts
-                                                57 passed
+                                                58 passed
+npm test -w @keyspilli/web -- --run src/components/player/chord-sources.test.ts
+                                                15 passed
 npm run typecheck -w @keyspilli/web             passed
 npm run build -w @keyspilli/web                passed
+npm run e2e:melody-scratch -w @keyspilli/web -- --grep "real artifact produces, previews, plays, corrects, and reloads melody support"
+                                                1 passed
 npx --no-install playwright test --config=playwright.melody.scratch.config.ts
                                                 12 passed, 1 intentional skip, ~6.0 min
 e2e/player-ui.spec.ts --grep "practice remains keyboard accessible" \
@@ -31,6 +35,12 @@ e2e/player-ui.spec.ts --grep "practice remains keyboard accessible" \
 ```
 
 The existing accessibility assertion was preserved; the 200% failure was fixed at the flex/min-content boundary with `min-width: 0` on the player workspace/chord-details path. Packet integrity also passed from the packet directory with `(cd docs/superpowers/evidence/2026-09-17-chords-v2-capture-packet && shasum -c SHA256SUMS.txt)`. Earlier exact-head CI checks passed with deploy/publish/catalogue jobs skipped as expected for a draft PR; the final exact-head CI run for this follow-up is recorded separately after the current test/docs commit is pushed.
+
+## New runtime-only T4 candidate
+
+The source path is explicit: `buildVariants`/`chordsAt` writes notes-derived harmony to `notes.json.chords`; `chord-timeline.ts` and `catalog-api.ts` expose it as the generated source; `resolveChordSources` normalizes generated events as `sourceKind: "generated"`, explicit UG events as `authored`, and Auto as a mixed event-level timeline. `melodyHarmonicSupportPolicy` maps generated to `none`, Auto to `authored-only`, and explicit UG to `all`. The policy is passed through Player sync and worker requests only for Melody + accompaniment; Bass + chords still uses `resolveAccompaniment` unchanged.
+
+The focused selected-R development fixture demonstrates the audible boundary: the old all-support path generated lower support `[36,40,43]` beside melody MIDI 60, with no exact MIDI collision and no sounding-limit rejection. The new generated/label-only candidate keeps the `C` display label, retains the selected source note, emits `0` generated support notes, and reports `unverified chord source`. A mixed Auto fixture still generates authored chart support while leaving generated continuation label-only. This is a new development candidate prompted by contract review; it does not retune or replace the frozen capture packet. Existing selected-index source reduction remains available where source support exists, with Original/local fallback otherwise.
 
 ## Reserved browser evidence
 
@@ -53,7 +63,7 @@ The retrospective deterministic windows are Near the Cross `0–24` beats, Prél
 | --- | --- | --- | --- |
 | T2 event accounting and interval semantics | Fixed/tested | Player-core suite 230/230; MIDI suite 397/397; window-clipped producer multisets and hashes in the reserved packet | No claim beyond the tested source/options fixtures |
 | T3 rests and local correction | Fixed/tested structurally | Rest-aware MIDI/player-core coverage, fingerprinted overrides, correction/reset/seek/loop browser checks | Semantic melody gold/source review and human recognizability review remain pending |
-| T4 source/harmony boundary | Partial | Actual ingest → `buildVariants`/`chordsAt` → `notes.json.chords` → catalog API → Player path traced; mixed LH/upper fixture excludes its upper selected voice; negative LH-selected/no-clean-cluster fixture proves precomputed generated harmony can include the selected pitch; runtime player-core test fails safe and preserves source-rhythm support | Runtime has selected IDs after T3, but historical `notes.json` has no selected identity. Smallest no-catalog-change policy is label-only generated harmony plus existing source reduction/Original fallback; protected-note re-inference is feasible through `simplifyPianoAccompaniment` but needs a new adapter/candidate and fresh evaluation |
+| T4 source/harmony boundary | Runtime policy fixed/tested; source contract remains limited | Actual ingest → `buildVariants`/`chordsAt` → `notes.json.chords` → catalog API → Player path traced; mixed and selected-LH fixtures; generated `none` / Auto `authored-only` / UG `all` policy; selected-R low-voicing fixture proves sounding guard alone is insufficient; player-core and source-policy regressions pass | Historical `notes.json` still has no selected identity. No general selected-melody exclusion or musical harmony claim; protected-note re-inference remains a larger adapter/candidate |
 | T5 backing rhythm and sounding policy | Fixed/tested structurally | Source-reduction, sparse backing, meter/off-grid/pickup fixtures, lineage, coherent-phrase tests, producer captures | No live payload carries validated pickup-phase provenance; useful backing and human acceptance remain pending |
 | T6 sounding/voicing/velocity/pedal | Fixed/tested as engineering behavior | Focused player-core tests, bounded voicing/sounding trims, CC64/velocity paths, same-stream checks | Instrument balance, physical playability, and musical preference remain pending |
 | T7 worker/single stream/persistence | Fixed/tested | Full melody browser run; worker cancellation/keys/retry/stale guards; source fallback and persistence checks | Real mobile profile and production/catalog verification remain pending |
@@ -82,7 +92,7 @@ The supported coherent/resume behavior produced no observed output delta in thes
 
 ## Acceptance status
 
-Engineering/runtime integration is ready for parent review after the final exact-head CI check. Musical/source acceptance is pending. PR #100 remains draft and unmerged; no deployment, catalogue mutation, or production verification was performed.
+Engineering/runtime integration plus the new source-policy candidate is ready for parent review after the final exact-head CI check. Musical/source acceptance is pending. PR #100 remains draft and unmerged; no deployment, catalogue mutation, or production verification was performed.
 
 ## Review requests
 

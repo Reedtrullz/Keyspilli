@@ -23,6 +23,7 @@ export type AccompanimentFallbackReason =
   | "ambiguous melody"
   | "invalid phrase override"
   | "right-hand part unavailable"
+  | "unverified chord source"
   | "no playable support voicing"
   | "sounding limit exceeded";
 
@@ -60,6 +61,8 @@ export type MelodySelection = "automatic" | "right-hand";
 export type MelodySelectionProvenance = "inferred" | "user-confirmed";
 export type MelodyUnresolvedReason = "ambiguous melody" | "invalid phrase override" | "right-hand part unavailable";
 export type MelodyAccompanimentSupportMode = "source-rhythm" | "sparse-harmonic" | "fallback";
+/** Which chord labels may create new harmonic notes in Melody + accompaniment. */
+export type MelodyHarmonicSupportPolicy = "all" | "authored-only" | "none";
 
 export interface MelodyUnresolvedSpan {
   startBeat: number;
@@ -112,6 +115,8 @@ export interface MelodyAccompanimentOptions {
   selection?: MelodySelection;
   allowRests?: boolean;
   phraseOverrides?: readonly MelodyPhraseOverride[];
+  /** Generated/notes-derived labels can stay visible without creating audio support. */
+  harmonicSupport?: MelodyHarmonicSupportPolicy;
 }
 
 export type SoundingLimitPolicy = "resume" | "coherent-phrase";
@@ -182,6 +187,7 @@ interface ChordEvent {
   startBeat: number;
   endBeat: number;
   notes: number[] | null;
+  harmonicSupportAllowed: boolean;
 }
 
 function noteKey(note: Note): string {
@@ -450,6 +456,7 @@ function buildEvents(
   chords: readonly ChordLabel[],
   style: AccompanimentStyle,
   durationBeats: number,
+  harmonicSupport: MelodyHarmonicSupportPolicy = "all",
 ): ChordEvent[] {
   const byBeat = new Map<number, ChordLabel>();
   for (const chord of [...chords].sort((a, b) => a.beat - b.beat)) byBeat.set(chord.beat, chord);
@@ -461,13 +468,18 @@ function buildEvents(
     const rawEnd = eventEnd(chord, ordered[index + 1], durationBeats, sourceEnd);
     const endBeat = Math.min(durationBeats, rawEnd);
     if (endBeat <= startBeat + EPSILON) return [];
-    const generated = isNoChord(chord.name) ? null : generatedChordNotes(chord, style, previousUpper);
+    const harmonicSupportAllowed = harmonicSupport === "all"
+      || (harmonicSupport === "authored-only" && chord.sourceKind === "authored");
+    const generated = harmonicSupportAllowed && !isNoChord(chord.name)
+      ? generatedChordNotes(chord, style, previousUpper)
+      : null;
     if (generated) previousUpper = style === "bass-chords" ? generated.slice(1) : generated;
     return [{
       chord,
       startBeat,
       endBeat,
       notes: generated,
+      harmonicSupportAllowed,
     }];
   });
 }
@@ -533,6 +545,7 @@ function subtractCoveredIntervals(
 }
 
 function fallbackReason(event: ChordEvent): AccompanimentFallbackReason {
+  if (!event.harmonicSupportAllowed) return "unverified chord source";
   if (isNoChord(event.chord.name)) return "explicit no-chord";
   return "unsupported chord";
 }
@@ -1379,7 +1392,13 @@ export function buildMelodyAccompaniment(
     options.sourceFingerprint ?? null,
     options.phraseOverrides,
   );
-  const events = buildEvents(sourceNotes, chordTimeline, "melody-accompaniment", durationBeats);
+  const events = buildEvents(
+    sourceNotes,
+    chordTimeline,
+    "melody-accompaniment",
+    durationBeats,
+    options.harmonicSupport ?? "all",
+  );
   const fallbackEvents: Array<{ startBeat: number; endBeat: number; reason: AccompanimentFallbackReason }> = [];
   const effectiveChords: AccompanimentChord[] = [];
   const chordCovered: Array<{ startBeat: number; endBeat: number }> = [];
@@ -1451,15 +1470,17 @@ export function buildMelodyAccompaniment(
       .map((note, sourceIndex) => ({ note, sourceIndex }))
       .filter(({ note, sourceIndex }) => !selected.selectedIndices.has(sourceIndex) && overlaps(note, event.startBeat, event.endBeat));
     const reducedSupport = reduceSourceSupport(sourceNotes, selected.selectedIndices, event.startBeat, event.endBeat);
-    const learning = learningChordNotes(
-      event.chord,
-      event.notes ?? [],
-      selected.melody,
-      event.startBeat,
-      event.endBeat,
-      previousLearningVoicing,
-    );
-    const notes = learning?.notes ?? null;
+    const learning: LearningChordNotes | null = event.harmonicSupportAllowed
+      ? learningChordNotes(
+          event.chord,
+          event.notes ?? [],
+          selected.melody,
+          event.startBeat,
+          event.endBeat,
+          previousLearningVoicing,
+        )
+      : null;
+    const notes: number[] | null = learning?.notes ?? null;
     if (!notes && sourceSupport.length === 0) {
       previousSparseKey = null;
       previousSparseStart = -Infinity;

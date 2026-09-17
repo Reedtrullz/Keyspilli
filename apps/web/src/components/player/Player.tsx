@@ -32,6 +32,7 @@ import {
   type LoopRegion,
   type MelodyPhraseOverride,
   type MelodyAccompanimentResolution,
+  type MelodyHarmonicSupportPolicy,
   type MelodySelection,
   type ChordPracticeSnapshot,
   type PlayerSettings,
@@ -62,6 +63,7 @@ import { useAnimatedSwitch, usePresence } from "./player-motion";
 import { levelLabel } from "../level-labels";
 import {
   resolveChordSources,
+  melodyHarmonicSupportPolicy,
   selectChordSource,
   type ChordSourceId,
 } from "./chord-sources";
@@ -239,6 +241,7 @@ function melodyArrangementRequestKey(
   sourceFingerprint: string | null,
   selection: MelodySelection,
   phraseOverrides: readonly MelodyPhraseOverride[],
+  harmonicSupport: MelodyHarmonicSupportPolicy,
 ): string {
   return JSON.stringify({
     sourceNotes,
@@ -247,6 +250,7 @@ function melodyArrangementRequestKey(
     sourceFingerprint,
     selection,
     phraseOverrides,
+    harmonicSupport,
     allowRests: true,
     soundingPolicy: "coherent-phrase",
   });
@@ -480,6 +484,10 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     () => selectChordSource(chordSources, chordSourcePreference),
     [chordSources, chordSourcePreference],
   );
+  const melodySupportPolicy = useMemo(
+    () => melodyHarmonicSupportPolicy(selectedChordSource.source),
+    [selectedChordSource.source],
+  );
   // Existing artifacts still carry per-grid-slice chord spam; collapse runs of
   // the same chord before rendering. (New ingests dedupe in chordsAt.) The
   // source timeline keeps its supplied names/voicings intact.
@@ -505,8 +513,9 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       melodySourceFingerprint,
       melodySelection,
       melodyPhraseOverrides,
+      melodySupportPolicy,
     ),
-    [arrangementEnd, chords, initial.data.notes, melodyPhraseOverrides, melodySelection, melodySourceFingerprint],
+    [arrangementEnd, chords, initial.data.notes, melodyPhraseOverrides, melodySelection, melodySourceFingerprint, melodySupportPolicy],
   );
   const sourceMelodyView = useMemo(
     () => sourceMelodyArrangement(initial.data.notes, chords, arrangementEnd, melodySourceFingerprint, melodySelection),
@@ -535,6 +544,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       allowRests: true,
       soundingPolicy: "coherent-phrase",
       phraseOverrides: melodyPhraseOverrides,
+      harmonicSupport: melodySupportPolicy,
     });
     traceMelodyArrangement({
       phase: "sync-complete",
@@ -543,7 +553,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       key: melodyArrangementRequestKeyValue,
     });
     return resolution;
-  }, [arrangementEnd, chords, initial.data.notes, melodyArrangementExecutionMode, melodyArrangementRequestKeyValue, melodyPhraseOverrides, melodySelection, melodySourceFingerprint, sourceMelodyView]);
+  }, [arrangementEnd, chords, initial.data.notes, melodyArrangementExecutionMode, melodyArrangementRequestKeyValue, melodyPhraseOverrides, melodySelection, melodySourceFingerprint, melodySupportPolicy, sourceMelodyView]);
   const [workerMelodyArrangement, setWorkerMelodyArrangement] = useState<{ key: string; resolution: MelodyAccompanimentResolution } | null>(null);
   const [workerState, setWorkerState] = useState<{
     key: string;
@@ -608,6 +618,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
           allowRests: true,
           soundingPolicy: "coherent-phrase",
           phraseOverrides: melodyPhraseOverrides,
+          harmonicSupport: melodySupportPolicy,
         },
       });
     } catch (error) {
@@ -617,7 +628,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       active = false;
       worker.terminate();
     };
-  }, [arrangementEnd, chords, initial.data.notes, melodyArrangementExecutionMode, melodyArrangementRequested, melodyArrangementRequestKeyValue, melodyPhraseOverrides, melodySelection, melodySourceFingerprint, workerAvailable, workerRetry]);
+  }, [arrangementEnd, chords, initial.data.notes, melodyArrangementExecutionMode, melodyArrangementRequested, melodyArrangementRequestKeyValue, melodyPhraseOverrides, melodySelection, melodySourceFingerprint, melodySupportPolicy, workerAvailable, workerRetry]);
   const workerResolution = workerMelodyArrangement?.key === melodyArrangementRequestKeyValue
     ? workerMelodyArrangement.resolution
     : null;
@@ -1460,6 +1471,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       "sustained source note crosses accompaniment boundary": "Original passage retained — a sustained note crosses this chord boundary.",
       "ambiguous melody": "Original passage retained — choose a melody source before replacing this phrase.",
       "right-hand part unavailable": "Original passage retained — this source has no right-hand part label.",
+      "unverified chord source": "Original passage retained — notes-derived harmony is label-only here.",
       "no playable support voicing": "Original passage retained — no collision-safe support voicing fits this phrase.",
     } as Record<string, string>)[activeAccompanimentFallback.reason]
     : null;

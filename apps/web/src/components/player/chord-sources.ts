@@ -1,5 +1,5 @@
 import { chordToNotes, type ChordLabel } from "@keyspilli/midi";
-import { completeChordDurations, type ChordSourceProvenance, type SongData } from "@keyspilli/player-core";
+import { completeChordDurations, type ChordSourceProvenance, type MelodyHarmonicSupportPolicy, type SongData } from "@keyspilli/player-core";
 
 /**
  * The player can receive an optional source timeline without making the
@@ -41,6 +41,18 @@ export interface ChordSourceResolution {
   generated: ChordSourceOption;
   ug: ChordSourceOption | null;
   auto: ChordSourceOption;
+}
+
+/**
+ * Notes-derived harmony remains label-only for Melody + accompaniment. Auto
+ * may mix authored chart events with generated continuation, so its policy is
+ * checked again per event by the producer; the explicit UG source is the only
+ * whole-source chart path allowed to generate harmonic support.
+ */
+export function melodyHarmonicSupportPolicy(source: ChordSourceOption | null): MelodyHarmonicSupportPolicy {
+  if (source?.id === "ug") return "all";
+  if (source?.id === "auto") return "authored-only";
+  return "none";
 }
 
 export interface SelectedChordSource {

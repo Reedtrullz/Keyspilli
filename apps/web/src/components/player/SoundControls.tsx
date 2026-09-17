@@ -166,7 +166,7 @@ export function SoundControls({
             >
               <div className="flex items-center justify-between gap-2 mb-2">
                 <span className="text-xs font-medium text-zinc-700">Chord source</span>
-                <span className="text-[11px] text-zinc-500">Used for chart labels and accompaniment choice</span>
+                <span className="text-[11px] text-zinc-500">Labels always; explicit chart events may add support</span>
               </div>
               <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Chord source">
                 <button

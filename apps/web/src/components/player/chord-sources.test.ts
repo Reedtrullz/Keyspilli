@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { SongData } from "@keyspilli/player-core";
-import { normalizeChordTimeline, resolveChordSources, selectChordSource } from "./chord-sources";
+import { melodyHarmonicSupportPolicy, normalizeChordTimeline, resolveChordSources, selectChordSource } from "./chord-sources";
 
 const song = (extra: Record<string, unknown> = {}): SongData => ({
   notes: [{ midi: 60, start: 0, dur: 1, vel: 80, hand: "R" }],
@@ -92,6 +92,20 @@ describe("chord source selection", () => {
     ]));
     expect(sources.auto.chords.some((chord) => chord.beat > 4 && chord.beat < 132.5)).toBe(false);
     expect(selectChordSource(sources, "auto").source?.id).toBe("auto");
+  });
+
+  it("limits Melody + accompaniment trust to explicit chart origin", () => {
+    const sources = resolveChordSources(song({
+      notes: [{ midi: 60, start: 0, dur: 1, vel: 80, hand: "R" }],
+      chords: [{ beat: 0, name: "C", notes: [36, 40, 43], sourceKind: "generated" as const }],
+      ugChordTimeline: [{ beat: 0, name: "C", notes: [48, 52, 55] }],
+      chordProvenance: { provider: "ultimate-guitar", sourceRef: "ultimate-guitar:partial", fallback: true },
+    }));
+
+    expect(melodyHarmonicSupportPolicy(sources.generated)).toBe("none");
+    expect(melodyHarmonicSupportPolicy(sources.ug)).toBe("all");
+    expect(melodyHarmonicSupportPolicy(sources.auto)).toBe("authored-only");
+    expect(sources.auto.chords[0]?.sourceKind).toBe("authored");
   });
 
   it("does not infer UG from an auto fallback label when the bundle has no UG source", () => {
