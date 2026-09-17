@@ -46,6 +46,8 @@ export interface AccompanimentResolution {
 export interface AccompanimentChord extends ChordLabel {
   /** One suggested hand per sounding chord tone, in `notes` order. */
   suggestedHands: AccompanimentHand[];
+  /** Pitch classes intentionally omitted from an incomplete but defining shell. */
+  omittedPitchClasses?: number[];
 }
 
 export interface AccompanimentOptions {
@@ -80,14 +82,30 @@ export interface MelodyAccompanimentProvenance {
   generatedNoteCount: number;
   /** Beats covered by sparse harmonic backing; source-rhythm beats are not counted here. */
   generatedBeats: number;
+  /** New source-linked attacks created when sounding-limit trims split a held support. */
+  soundingReattackCount: number;
   fallbackBeats: number;
   supportModes: MelodyAccompanimentSupportMode[];
 }
 
+export type SparseBackingTimingProvenance = "source-measure-boundary" | "unknown";
+
+/**
+ * Meter phase is opt-in: a tuple alone does not establish a downbeat or rule
+ * out a pickup. Callers may use this only when the source measure boundary is
+ * independently validated; unknown provenance deliberately stays sparse at
+ * chord/source boundaries.
+ */
+export interface SparseBackingTiming {
+  timeSig: readonly [number, number];
+  measureStartBeat: number;
+  provenance: SparseBackingTimingProvenance;
+}
+
 export interface MelodyAccompanimentOptions {
   durationBeats?: number;
-  /** Source meter used only for phase-aware sparse backing. */
-  timeSig?: readonly [number, number];
+  /** Validated source phase for meter-aware sparse backing. */
+  sparseBackingTiming?: SparseBackingTiming;
   sourceFingerprint?: string | null;
   selection?: MelodySelection;
   allowRests?: boolean;
@@ -326,7 +344,7 @@ function isNoChord(name: string): boolean {
   return NO_CHORD.test(name.trim());
 }
 
-function compactUpperShape(chord: ChordLabel): number[] | null {
+function compactUpperShape(chord: ChordLabel, intervals?: readonly number[]): number[] | null {
   const parsed = tryParseChordSymbol(chord.name);
   if (!parsed) return null;
   try {
@@ -334,7 +352,7 @@ function compactUpperShape(chord: ChordLabel): number[] | null {
     // a slash bass, so using its maxNotes cap here could drop a seventh or
     // altered tone before the RH shape is even voiced.
     const rootMidi = 60 + parsed.rootPc;
-    const shape = [...new Set(chordIntervals(parsed.quality).map((interval) => rootMidi + (interval % 12)))]
+    const shape = [...new Set((intervals ?? chordIntervals(parsed.quality)).map((interval) => rootMidi + (interval % 12)))]
       .sort((a, b) => a - b);
     return shape.length > 0 && Math.max(...shape) - Math.min(...shape) <= 12 ? shape : null;
   } catch {
@@ -363,7 +381,8 @@ function candidateUpperVoicings(shape: readonly number[]): number[][] {
 function voicingScore(candidate: readonly number[], previous: readonly number[] | null): number {
   const centreDistance = Math.abs((candidate[0]! + candidate[candidate.length - 1]!) / 2 - 72);
   if (!previous) return centreDistance;
-  const movement = candidate.reduce((sum, midi, index) => sum + Math.abs(midi - (previous[index] ?? midi)), 0);
+  const movement = candidate.reduce((sum, midi, index) => sum + Math.abs(midi - (previous[index] ?? midi)), 0)
+    + Math.abs(candidate.length - previous.length) * 12;
   return movement * 100 + centreDistance;
 }
 
@@ -574,6 +593,7 @@ function mergeFallbackEvents(
 interface SoundingLimitResult {
   events: ArrangementEvent[];
   fallbackSpans: Array<{ startBeat: number; endBeat: number; reason: "sounding limit exceeded" }>;
+  reattackCount: number;
 }
 
 const MAX_SOUNDING_NOTES_PER_HAND = 3;
@@ -604,6 +624,7 @@ export function enforceAccompanimentSoundingLimits(events: readonly ArrangementE
   const sortedBoundaries = [...boundaries].sort((a, b) => a - b);
   const rejectedById = new Map<string, Array<{ startBeat: number; endBeat: number }>>();
   const fallbackSpans: SoundingLimitResult["fallbackSpans"] = [];
+  let reattackCount = 0;
   const reject = (event: ArrangementEvent, startBeat: number, endBeat: number) => {
     const intervals = rejectedById.get(event.id) ?? [];
     intervals.push({ startBeat, endBeat });
@@ -651,6 +672,7 @@ export function enforceAccompanimentSoundingLimits(events: readonly ArrangementE
       const rejected = rejectedById.get(event.id);
       if (event.role !== "accompaniment" || !rejected?.length) return [event];
       const pieces = subtractCoveredIntervals(event.note, rejected);
+      reattackCount += pieces.filter((piece) => piece.start > event.note.start + EPSILON).length;
       return pieces.map((note, index) => ({
         ...event,
         id: `${event.id}:piece:${index}`,
@@ -658,6 +680,7 @@ export function enforceAccompanimentSoundingLimits(events: readonly ArrangementE
       }));
     }),
     fallbackSpans,
+    reattackCount,
   };
 }
 
@@ -866,34 +889,54 @@ function reduceSourceSupport(
   return reduced;
 }
 
-function sparseMeterPulse(timeSig?: readonly [number, number]): number | null {
-  if (!timeSig) return null;
-  const [numerator, denominator] = timeSig;
-  if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || numerator <= 0 || denominator <= 0) return null;
-  const measureBeats = numerator * (4 / denominator);
-  return Number.isFinite(measureBeats) && measureBeats > EPSILON ? measureBeats / 2 : null;
+interface SparseMeterPattern {
+  measureBeats: number;
+  offsets: readonly number[];
+  measureStartBeat: number;
 }
 
-function sparseHarmonicStarts(startBeat: number, endBeat: number, timeSig?: readonly [number, number]): number[] {
+function sparseMeterPattern(timing?: SparseBackingTiming): SparseMeterPattern | null {
+  if (!timing || timing.provenance !== "source-measure-boundary") return null;
+  const [numerator, denominator] = timing.timeSig;
+  if (!Number.isInteger(numerator) || !Number.isInteger(denominator)
+    || numerator <= 0 || denominator <= 0 || !Number.isFinite(timing.measureStartBeat)) return null;
+  const measureBeats = numerator * (4 / denominator);
+  if (!Number.isFinite(measureBeats) || measureBeats <= EPSILON) return null;
+  const offsets = numerator === 2 && denominator === 4
+    ? [0, 1]
+    : numerator === 3 && denominator === 4
+      ? [0, 2]
+      : numerator === 4 && denominator === 4
+        ? [0, 2]
+        : numerator === 6 && denominator === 8
+          ? [0, 1.5]
+          : null;
+  return offsets ? { measureBeats, offsets, measureStartBeat: timing.measureStartBeat } : null;
+}
+
+function sparseHarmonicStarts(startBeat: number, endBeat: number, timing?: SparseBackingTiming): number[] {
   const starts = [startBeat];
-  const pulse = sparseMeterPulse(timeSig);
-  if (!pulse) return starts;
-  // Two phase-locked attacks per complete measure. The harmonic boundary is
-  // always retained; interior attacks use global measure phase so a
-  // mid-measure chord change does not reset a generic loop.
-  for (let beat = Math.ceil((startBeat + EPSILON) / pulse) * pulse; beat < endBeat - EPSILON; beat += pulse) {
-    if (beat > startBeat + EPSILON) starts.push(beat);
+  const pattern = sparseMeterPattern(timing);
+  if (!pattern) return starts;
+  const firstMeasure = Math.floor((startBeat - pattern.measureStartBeat) / pattern.measureBeats) - 1;
+  const lastMeasure = Math.ceil((endBeat - pattern.measureStartBeat) / pattern.measureBeats) + 1;
+  for (let measure = firstMeasure; measure <= lastMeasure; measure++) {
+    const measureStart = pattern.measureStartBeat + measure * pattern.measureBeats;
+    for (const offset of pattern.offsets) {
+      const beat = measureStart + offset;
+      if (beat > startBeat + EPSILON && beat < endBeat - EPSILON) starts.push(beat);
+    }
   }
-  return starts;
+  return [...new Set(starts)].sort((a, b) => a - b);
 }
 
 function sparseHarmonicSupportNotes(
   voicing: readonly number[],
   startBeat: number,
   endBeat: number,
-  timeSig?: readonly [number, number],
+  timing?: SparseBackingTiming,
 ): Note[] {
-  const starts = sparseHarmonicStarts(startBeat, endBeat, timeSig);
+  const starts = sparseHarmonicStarts(startBeat, endBeat, timing);
   return starts.flatMap((beat, index) => {
     const nextBeat = starts[index + 1] ?? endBeat;
     const dur = Math.min(0.75, endBeat - beat, nextBeat - beat);
@@ -1185,8 +1228,10 @@ function supportUpperShape(
   melody: readonly Note[],
   startBeat: number,
   endBeat: number,
+  previous: readonly number[] | null,
+  shapeOverride?: readonly number[],
 ): number[] | null {
-  const shape = compactUpperShape(chord) ?? [...upper];
+  const shape = shapeOverride ? [...shapeOverride] : compactUpperShape(chord) ?? [...upper];
   if (!shape.length) return null;
   const activeMelody = melody.filter((note) => overlaps(note, startBeat, endBeat));
   const lowestMelody = activeMelody.length ? Math.min(...activeMelody.map((note) => note.midi)) : null;
@@ -1200,12 +1245,14 @@ function supportUpperShape(
       for (const bassShift of [0, 12, -12, 24, -24, 36, -36]) {
         const revoicedBass = bass + bassShift;
         const notes = [...new Set([revoicedBass, ...shifted])];
+        const uniquePitchClasses = new Set(notes.map((midi) => midi % 12));
         const span = Math.max(...notes) - Math.min(...notes);
         const collidesWithMelody = lowestMelody !== null
           && notes.some((midi) => midi >= lowestMelody - MIN_MELODY_CLEARANCE);
         if (notes.every((midi) => Number.isInteger(midi) && midi >= LOWEST_SUPPORT_MIDI && midi <= 96)
           && revoicedBass <= Math.min(...shifted)
           && span <= MAX_LEFT_HAND_SPAN
+          && uniquePitchClasses.size === notes.length
           && !collidesWithMelody) {
           candidates.push({ bass: revoicedBass, upper: shifted, notes });
         }
@@ -1213,12 +1260,26 @@ function supportUpperShape(
     }
   }
   return candidates.sort((a, b) => {
+    const aMotion = previous ? voicingScore(a.notes, previous) : 0;
+    const bMotion = previous ? voicingScore(b.notes, previous) : 0;
     const aTopDistance = Math.abs(Math.max(...a.notes) - targetTop);
     const bTopDistance = Math.abs(Math.max(...b.notes) - targetTop);
-    return aTopDistance - bTopDistance
-      || (Math.max(...a.notes) - Math.min(...a.notes)) - (Math.max(...b.notes) - Math.min(...b.notes))
-      || Math.abs(a.bass - bass) - Math.abs(b.bass - bass);
+    return Math.abs(a.bass - bass) - Math.abs(b.bass - bass)
+      || aMotion - bMotion
+      || aTopDistance - bTopDistance
+      || (Math.max(...a.notes) - Math.min(...a.notes)) - (Math.max(...b.notes) - Math.min(...b.notes));
   })[0]?.notes ?? null;
+}
+
+interface LearningChordNotes {
+  notes: number[];
+  omittedPitchClasses: number[];
+}
+
+function shellIntervals(intervals: readonly number[]): number[] | null {
+  if (intervals.length <= 2 || !intervals.some((interval) => interval % 12 === 7)) return null;
+  const shell = intervals.filter((interval) => interval % 12 !== 7);
+  return shell.length >= 2 ? shell : null;
 }
 
 function learningChordNotes(
@@ -1227,27 +1288,43 @@ function learningChordNotes(
   melody: readonly Note[],
   startBeat: number,
   endBeat: number,
-): number[] | null {
+  previous: readonly number[] | null,
+): LearningChordNotes | null {
   if (isNoChord(chord.name) || !tryParseChordSymbol(chord.name)) return null;
   try {
     const parsed = tryParseChordSymbol(chord.name);
     if (!parsed) return null;
-    const shape = compactUpperShape(chord) ?? [...upper];
-    if (!shape.length) return null;
     const full = chordToNotes(chord.name, { octave: 4, bassOctave: 2, includeBass: true });
     const bass = full.find((midi) => midi < 60);
     if (bass === undefined) return null;
-    const support = supportUpperShape(chord, shape, bass, melody, startBeat, endBeat);
-    if (!support) return null;
-    const notes = [...new Set(support)];
-    const expectedPitchClasses = new Set([
-      ...chordIntervals(parsed.quality).map((interval) => (parsed.rootPc + interval) % 12),
-      bass % 12,
-    ]);
-    const actualPitchClasses = new Set(notes.map((midi) => midi % 12));
-    if ([...expectedPitchClasses].some((pitchClass) => !actualPitchClasses.has(pitchClass))) return null;
-    if (Math.min(...notes) % 12 !== bass % 12) return null;
-    return notes.every((midi) => Number.isInteger(midi) && midi >= 0 && midi <= 127) ? notes : null;
+    const intervals = chordIntervals(parsed.quality);
+    const fullShape = compactUpperShape(chord) ?? [...upper];
+    const shell = shellIntervals(intervals);
+    const candidates = [
+      { shape: fullShape, intervals, omittedPitchClasses: [] },
+      ...(shell ? [{
+        shape: compactUpperShape(chord, shell) ?? [],
+        intervals: shell,
+        omittedPitchClasses: intervals
+          .filter((interval) => !shell.includes(interval))
+          .map((interval) => (parsed.rootPc + interval) % 12),
+      }] : []),
+    ].filter((candidate) => candidate.shape.length > 0);
+    for (const candidate of candidates) {
+      const support = supportUpperShape(chord, candidate.shape, bass, melody, startBeat, endBeat, previous, candidate.shape);
+      if (!support) continue;
+      const notes = [...new Set(support)];
+      const expectedPitchClasses = new Set([
+        ...candidate.intervals.map((interval) => (parsed.rootPc + interval) % 12),
+        bass % 12,
+      ]);
+      const actualPitchClasses = new Set(notes.map((midi) => midi % 12));
+      if ([...expectedPitchClasses].some((pitchClass) => !actualPitchClasses.has(pitchClass))) continue;
+      if (Math.min(...notes) % 12 !== bass % 12) continue;
+      if (!notes.every((midi) => Number.isInteger(midi) && midi >= 0 && midi <= 127)) continue;
+      return { notes, omittedPitchClasses: candidate.omittedPitchClasses };
+    }
+    return null;
   } catch {
     return null;
   }
@@ -1309,6 +1386,7 @@ export function buildMelodyAccompaniment(
         sourceSupportNoteCount: 0,
         generatedNoteCount: 0,
         generatedBeats: 0,
+        soundingReattackCount: 0,
         fallbackBeats: durationBeats,
         supportModes: ["fallback"],
       },
@@ -1316,13 +1394,18 @@ export function buildMelodyAccompaniment(
   }
 
   let previousSparseKey: string | null = null;
+  let previousSparseStart = -Infinity;
   let previousSparseEnd = -Infinity;
+  let previousSparseGeneratedIndex = -1;
+  let previousLearningVoicing: number[] | null = null;
   for (const event of events.flatMap((item) => splitEventAtReviewSpans(item, selected.unresolvedSpans))) {
     const unresolved = selected.unresolvedSpans.find((span) =>
       span.startBeat < event.endBeat - EPSILON && span.endBeat > event.startBeat + EPSILON,
     );
     if (unresolved) {
       previousSparseKey = null;
+      previousSparseStart = -Infinity;
+      previousLearningVoicing = null;
       supportModes.add("fallback");
       fallbackEvents.push({
         startBeat: event.startBeat,
@@ -1335,9 +1418,19 @@ export function buildMelodyAccompaniment(
       .map((note, sourceIndex) => ({ note, sourceIndex }))
       .filter(({ note, sourceIndex }) => !selected.selectedIndices.has(sourceIndex) && overlaps(note, event.startBeat, event.endBeat));
     const reducedSupport = reduceSourceSupport(sourceNotes, selected.selectedIndices, event.startBeat, event.endBeat);
-    const notes = learningChordNotes(event.chord, event.notes ?? [], selected.melody, event.startBeat, event.endBeat);
+    const learning = learningChordNotes(
+      event.chord,
+      event.notes ?? [],
+      selected.melody,
+      event.startBeat,
+      event.endBeat,
+      previousLearningVoicing,
+    );
+    const notes = learning?.notes ?? null;
     if (!notes && sourceSupport.length === 0) {
       previousSparseKey = null;
+      previousSparseStart = -Infinity;
+      previousLearningVoicing = null;
       supportModes.add("fallback");
       fallbackEvents.push({
         startBeat: event.startBeat,
@@ -1350,6 +1443,7 @@ export function buildMelodyAccompaniment(
     replacementCovered.push(replacementInterval);
     if (sourceSupport.length > 0) {
       previousSparseKey = null;
+      previousSparseStart = -Infinity;
       supportModes.add("source-rhythm");
       for (const { note, sourceIndex } of sourceSupport) {
         if (note.start >= event.startBeat - EPSILON && note.start < event.endBeat - EPSILON) {
@@ -1364,6 +1458,8 @@ export function buildMelodyAccompaniment(
     }
     if (!notes) {
       previousSparseKey = null;
+      previousSparseStart = -Infinity;
+      previousLearningVoicing = null;
       supportModes.add("fallback");
       fallbackEvents.push({
         startBeat: event.startBeat,
@@ -1381,15 +1477,27 @@ export function buildMelodyAccompaniment(
       sourceKind: "generated",
       inferred: true,
       inferenceType: "voicing",
+      ...(learning?.omittedPitchClasses.length ? { omittedPitchClasses: learning.omittedPitchClasses } : {}),
     });
+    previousLearningVoicing = notes;
     chordCovered.push(replacementInterval);
     if (reducedSupport.length === 0 && sourceSupport.length === 0) {
-      const sparseKey = `${event.chord.name}:${notes.join(",")}`;
+      const sparseKey = notes.join(",");
       const repeated = sparseKey === previousSparseKey && event.startBeat <= previousSparseEnd + EPSILON;
       if (!repeated) {
         supportModes.add("sparse-harmonic");
-        const sparseNotes = sparseHarmonicSupportNotes(notes, event.startBeat, event.endBeat, options.timeSig);
+        previousSparseStart = event.startBeat;
+        previousSparseGeneratedIndex = generatedSupportNotes.length;
+        const sparseNotes = sparseHarmonicSupportNotes(notes, event.startBeat, event.endBeat, options.sparseBackingTiming);
         generatedSupportNotes.push(...sparseNotes);
+      } else {
+        generatedSupportNotes.splice(previousSparseGeneratedIndex);
+        generatedSupportNotes.push(...sparseHarmonicSupportNotes(
+          notes,
+          previousSparseStart,
+          event.endBeat,
+          options.sparseBackingTiming,
+        ));
       }
       previousSparseKey = sparseKey;
       previousSparseEnd = event.endBeat;
@@ -1487,6 +1595,7 @@ export function buildMelodyAccompaniment(
     sourceSupportNoteCount: renderedSourceSupportIds.size,
     generatedNoteCount: renderedGeneratedSupport.length,
     generatedBeats,
+    soundingReattackCount: soundingLimits.reattackCount,
     fallbackBeats,
     supportModes: [...supportModes],
   };

@@ -5,6 +5,7 @@ import {
   enforceAccompanimentSoundingLimits,
   sourceNoteIds,
   type MelodySelection,
+  type SparseBackingTiming,
 } from "../src/accompaniment.js";
 import { DEFAULT_SETTINGS, PlaybackEngine, type AudioLike, type TimedNote } from "../src/index.js";
 
@@ -16,12 +17,12 @@ function chord(beat: number, name: string, durationBeats: number): ChordLabel {
   return { beat, name, durationBeats, notes: [] };
 }
 
-function build(notes: Note[], chords: ChordLabel[], selection?: MelodySelection, durationBeats = 8, timeSig?: [number, number]) {
+function build(notes: Note[], chords: ChordLabel[], selection?: MelodySelection, durationBeats = 8, sparseBackingTiming?: SparseBackingTiming) {
   return buildMelodyAccompaniment(notes, chords, {
     selection,
     durationBeats,
     sourceFingerprint: "fixture-source-v1",
-    ...(timeSig ? { timeSig } : {}),
+    ...(sparseBackingTiming ? { sparseBackingTiming } : {}),
   });
 }
 
@@ -329,6 +330,36 @@ describe("buildMelodyAccompaniment", () => {
     });
   });
 
+  it("uses a labelled incomplete shell when low-register hand clearance rejects the full extension", () => {
+    const result = build(
+      [note(44, 0, 3, 100, "R")],
+      [chord(0, "Cadd9", 3)],
+      "right-hand",
+      3,
+    );
+    const generated = result.chords[0]!;
+
+    expect(generated.omittedPitchClasses).toEqual([7]);
+    expect(new Set(generated.notes.map((midi) => midi % 12))).toEqual(new Set([0, 2, 4]));
+    expect(generated.notes.every((midi) => midi >= 36 && midi <= 96)).toBe(true);
+    expect(Math.max(...generated.notes) - Math.min(...generated.notes)).toBeLessThanOrEqual(12);
+  });
+
+  it("keeps adjacent generated voicings within a small deterministic motion", () => {
+    const result = build(
+      [note(72, 0, 4, 100, "R")],
+      [chord(0, "C", 2), chord(2, "G", 2)],
+      "right-hand",
+      4,
+    );
+    const first = result.chords[0]!.notes;
+    const second = result.chords[1]!.notes;
+    const movement = second.reduce((sum, midi, index) => sum + Math.abs(midi - (first[index] ?? midi)), 0);
+
+    expect(movement).toBeLessThanOrEqual(24);
+    expect(result.chords.every((item) => Math.max(...item.notes) - Math.min(...item.notes) <= 12)).toBe(true);
+  });
+
   it("keeps a sustained line below short upper decoration", () => {
     const result = build(
       [
@@ -376,6 +407,53 @@ describe("buildMelodyAccompaniment", () => {
     expect(support.every((midi) => midi < 48)).toBe(true);
     expect(result.notes.filter((item) => item.hand === "R").map((item) => item.midi)).toEqual([50]);
     expect(result.notes.filter((item) => item.hand === "L").map((item) => item.midi)).toEqual([36]);
+  });
+
+  it("reports no feasible support instead of crossing a low melody silently", () => {
+    const result = build(
+      [note(36, 0, 2, 100, "R")],
+      [chord(0, "Cadd9", 2)],
+      "right-hand",
+      2,
+    );
+
+    expect(result.melody).toMatchObject([note(36, 0, 2, 100, "R")]);
+    expect(result.chords).toEqual([]);
+    expect(result.fallbackSpans).toContainEqual({ startBeat: 0, endBeat: 2, reason: "no playable support voicing" });
+  });
+
+  it("renders a complete candidate phrase through one same-instrument note stream", () => {
+    const result = build(
+      [note(72, 0, 8, 100, "R")],
+      [chord(0, "C", 8)],
+      "right-hand",
+      8,
+      { timeSig: [4, 4], measureStartBeat: 0, provenance: "source-measure-boundary" },
+    );
+    const toTimed = (item: Note): TimedNote => ({
+      midi: item.midi,
+      startSec: item.start * 0.5,
+      durSec: item.dur * 0.5,
+      vel: item.vel,
+      hand: item.hand,
+    });
+    const audio = new AudioSpy();
+    const engine = new PlaybackEngine(
+      audio,
+      result.notes.map(toTimed),
+      4,
+      { tempoBpm: 120, timeSig: [4, 4] },
+      { ...DEFAULT_SETTINGS, backgroundMode: "piano" },
+      [],
+      result.guidanceNotes.map(toTimed),
+    );
+
+    engine.start();
+    for (let index = 0; index < 8; index++) engine.tick(0.5);
+
+    expect(audio.playedChords).toEqual([]);
+    expect(audio.noteOns).toEqual(result.notes.map((item) => item.midi));
+    expect(result.guidanceNotes).toEqual(result.notes);
   });
 
   it("keeps a held melody while support changes underneath it", () => {
@@ -580,19 +658,31 @@ describe("buildMelodyAccompaniment", () => {
   });
 
   it.each([
-    ["4/4", [4, 4] as [number, number], [0, 2, 4, 6]],
-    ["3/4", [3, 4] as [number, number], [0, 1.5, 3, 4.5, 6, 7.5]],
-    ["6/8", [6, 8] as [number, number], [0, 1.5, 3, 4.5, 6, 7.5]],
-  ])("uses global %s phase for sparse harmonic backing", (_label, timeSig, expectedStarts) => {
+    ["4/4", { timeSig: [4, 4], measureStartBeat: 0, provenance: "source-measure-boundary" } as const, [0, 2, 4, 6]],
+    ["3/4", { timeSig: [3, 4], measureStartBeat: 0, provenance: "source-measure-boundary" } as const, [0, 2, 3, 5, 6]],
+    ["6/8", { timeSig: [6, 8], measureStartBeat: 0, provenance: "source-measure-boundary" } as const, [0, 1.5, 3, 4.5, 6, 7.5]],
+  ])("uses the validated %s phase for sparse harmonic backing", (_label, sparseBackingTiming, expectedStarts) => {
     const result = build(
       [note(72, 0, 8, 100, "R")],
       [chord(0, "C", 8)],
       "right-hand",
       8,
-      timeSig,
+      sparseBackingTiming,
     );
     expect([...new Set(result.notes.filter((item) => item.hand === "L").map((item) => item.start))]).toEqual(expectedStarts);
     expect(result.provenance.generatedNoteCount).toBe(expectedStarts.length * 3);
+  });
+
+  it("uses the supplied source measure phase instead of assuming beat zero", () => {
+    const result = build(
+      [note(72, 0, 8, 100, "R")],
+      [chord(0, "C", 8)],
+      "right-hand",
+      8,
+      { timeSig: [3, 4], measureStartBeat: 1, provenance: "source-measure-boundary" },
+    );
+
+    expect([...new Set(result.notes.filter((item) => item.hand === "L").map((item) => item.start))]).toEqual([0, 1, 3, 4, 6, 7]);
   });
 
   it("does not invent a meter phase when time signature is unavailable", () => {
@@ -604,6 +694,29 @@ describe("buildMelodyAccompaniment", () => {
     );
 
     expect([...new Set(result.notes.filter((item) => item.hand === "L").map((item) => item.start))]).toEqual([0]);
+  });
+
+  it("falls back to the harmonic boundary for unknown phase provenance", () => {
+    const result = build(
+      [note(72, 0, 8, 100, "R")],
+      [chord(0, "C", 8)],
+      "right-hand",
+      8,
+      { timeSig: [4, 4], measureStartBeat: 0, provenance: "unknown" },
+    );
+
+    expect([...new Set(result.notes.filter((item) => item.hand === "L").map((item) => item.start))]).toEqual([0]);
+  });
+
+  it("is invariant to equivalent adjacent chord segmentation", () => {
+    const timing = { timeSig: [4, 4], measureStartBeat: 0, provenance: "source-measure-boundary" } as const;
+    const source = [note(72, 0, 8, 100, "R")];
+    const merged = build(source, [chord(0, "C", 8)], "right-hand", 8, timing);
+    const split = build(source, [chord(0, "C", 4), chord(4, "C", 4)], "right-hand", 8, timing);
+
+    expect(split.notes).toEqual(merged.notes);
+    expect(split.provenance.generatedNoteCount).toBe(merged.provenance.generatedNoteCount);
+    expect(split.provenance.generatedBeats).toBe(merged.provenance.generatedBeats);
   });
 
   it("reduces a partial chart gap locally instead of requiring a whole-song no-chart path", () => {
@@ -720,6 +833,20 @@ describe("buildMelodyAccompaniment", () => {
 
     expect(result.events.map((event) => event.id)).toEqual(["melody", "retained"]);
     expect(result.fallbackSpans).toEqual([{ startBeat: 0, endBeat: 4, reason: "sounding limit exceeded" }]);
+  });
+
+  it("counts a reattack created by an interior sounding trim", () => {
+    const result = enforceAccompanimentSoundingLimits([
+      { id: "melody", note: note(72, 0, 8, 100, "R"), role: "melody", sourceNoteIds: ["melody"] },
+      { id: "bass", note: note(48, 0, 8, 50, "L"), role: "accompaniment", sourceNoteIds: ["bass"] },
+      { id: "mid", note: note(52, 0, 8, 50, "L"), role: "accompaniment", sourceNoteIds: ["mid"] },
+      { id: "top", note: note(55, 0, 8, 50, "L"), role: "accompaniment", sourceNoteIds: ["top"] },
+      { id: "retained", note: note(60, 3, 1, 70, "L"), role: "retained-unclassified", sourceNoteIds: ["retained"] },
+    ]);
+
+    expect(result.events.filter((event) => event.sourceNoteIds.includes("top")).map((event) => [event.note.start, event.note.dur])).toEqual([[0, 3], [4, 4]]);
+    expect(result.reattackCount).toBe(1);
+    expect(result.fallbackSpans).toEqual([{ startBeat: 3, endBeat: 4, reason: "sounding limit exceeded" }]);
   });
 
   it("drops a same-pitch support collision instead of moving the selected melody", () => {
