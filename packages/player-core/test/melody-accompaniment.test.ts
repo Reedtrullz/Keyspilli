@@ -294,6 +294,7 @@ describe("buildMelodyAccompaniment", () => {
       [0, 2, "harmonic-backing", "changed"],
       [2, 4, "source-reduction", "unchanged"],
     ]);
+    expect(result.phrases[1]).toMatchObject({ review: "automatic", reasons: ["already-simple"] });
   });
 
   it("keeps an invalid overlapping override visible in phrase review", () => {
@@ -577,6 +578,42 @@ describe("buildMelodyAccompaniment", () => {
     expect(result.notes.filter((item) => item.hand === "R").map((item) => item.midi)).toEqual([72, 74]);
     expect(result.provenance.supportModes).toEqual(["fallback"]);
     expect(result.fallbackSpans).toEqual([{ startBeat: 0, endBeat: 2, reason: "no chord coverage" }]);
+    expect(result.phrases[0]?.reasons).not.toContain("already-simple");
+  });
+
+  it("fails safe when a protected LH melody overlaps a notes-derived voicing", () => {
+    const source = [
+      note(48, 0, 1, 100, "L"),
+      note(52, 0, 1, 70, "R"),
+      note(55, 0, 1, 70, "R"),
+      note(60, 0, 1, 70, "R"),
+    ];
+    const sourceFingerprint = "lh-selected-negative-v1";
+    const ids = sourceNoteIds(source);
+    const result = buildMelodyAccompaniment(source, [{
+      beat: 0,
+      name: "C",
+      notes: [48, 52, 55],
+      sourceKind: "generated",
+      inferred: true,
+      inferenceType: "voicing",
+      durationBeats: 1,
+    }], {
+      durationBeats: 1,
+      sourceFingerprint,
+      phraseOverrides: [{
+        startBeat: 0,
+        endBeat: 1,
+        sourceNoteIds: [ids[0]!],
+        sourceFingerprint,
+      }],
+    });
+
+    expect(result.melody).toEqual([source[0]]);
+    expect(result.notes).toContainEqual(source[0]);
+    expect(result.notes.some((note) => [36, 40, 43].includes(note.midi))).toBe(false);
+    expect(result.fallbackSpans).toContainEqual({ startBeat: 0, endBeat: 1, reason: "sounding limit exceeded" });
+    expect(result.provenance.supportModes).toEqual(["source-rhythm"]);
   });
 
   it("does not call an edge-only phrase silent when its midpoint is empty", () => {

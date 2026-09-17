@@ -96,6 +96,13 @@
         "upperDecoration": null
       },
       "selectionBasis": "source-only max mixed-onset four-measure window",
+      "retrospectiveAdditionalWindow": {
+        "startBeat": 0,
+        "endBeat": 24,
+        "measures": 4,
+        "meter": "6/4",
+        "selectionBasis": "retrospective non-overlapping control window selected after primary freeze; not an untouched holdout"
+      },
       "seekSeconds": 12.357142857142858,
       "durationMs": 13858,
       "producer": {
@@ -122,6 +129,33 @@
           "windowStartBeat": 24,
           "windowEndBeat": 48,
           "arrangementEndBeats": 96
+        },
+        "retrospectiveAdditionalEvaluation": {
+          "selectionBasis": "retrospective non-overlapping control window selected after primary freeze; not an untouched holdout",
+          "original": {
+            "eventCount": 49,
+            "eventMultisetHash": "d1c87db967c690076c84d22f06a6efdf2090dd3a37aec9271603c3da7d01cb73",
+            "changedFromOriginal": false,
+            "windowStartBeat": 0,
+            "windowEndBeat": 24,
+            "arrangementEndBeats": 96
+          },
+          "automatic": {
+            "eventCount": 44,
+            "eventMultisetHash": "c8b6abb9a1ee6e0086f0124797c187ee4fedf3a07274016c05f4b52dffdadb4f",
+            "changedFromOriginal": true,
+            "windowStartBeat": 0,
+            "windowEndBeat": 24,
+            "arrangementEndBeats": 96
+          },
+          "manual": {
+            "eventCount": 45,
+            "eventMultisetHash": "464d4cee73981798c5a33c0534dd666dd7e34d401a91757784d5b9c91814e6d7",
+            "changedFromOriginal": true,
+            "windowStartBeat": 0,
+            "windowEndBeat": 24,
+            "arrangementEndBeats": 96
+          }
         }
       },
       "captures": {
@@ -238,6 +272,13 @@
         "upperDecoration": 0.569
       },
       "selectionBasis": "source-only max upper-decoration/off-grid four-measure window",
+      "retrospectiveAdditionalWindow": {
+        "startBeat": 0,
+        "endBeat": 16,
+        "measures": 4,
+        "meter": "4/4",
+        "selectionBasis": "retrospective non-overlapping control window selected after primary freeze; not an untouched holdout"
+      },
       "seekSeconds": 15.5,
       "durationMs": 17000,
       "producer": {
@@ -264,6 +305,33 @@
           "windowStartBeat": 16,
           "windowEndBeat": 32,
           "arrangementEndBeats": 40
+        },
+        "retrospectiveAdditionalEvaluation": {
+          "selectionBasis": "retrospective non-overlapping control window selected after primary freeze; not an untouched holdout",
+          "original": {
+            "eventCount": 113,
+            "eventMultisetHash": "284fabd2bdf97b10ff8bd382b0f7c5a5063f8dc25cf2ad49bcc2f360f7b06a7d",
+            "changedFromOriginal": false,
+            "windowStartBeat": 0,
+            "windowEndBeat": 16,
+            "arrangementEndBeats": 40
+          },
+          "automatic": {
+            "eventCount": 86,
+            "eventMultisetHash": "99eb2ec0ba47a2e7ae8d5d977f60f8719374bd05b1f84447e07a0344f491a476",
+            "changedFromOriginal": true,
+            "windowStartBeat": 0,
+            "windowEndBeat": 16,
+            "arrangementEndBeats": 40
+          },
+          "manual": {
+            "eventCount": 115,
+            "eventMultisetHash": "59f12ba796b8e6f7d3e07a3d9b585a9e1a44de5844edd3a31d7530409c06bd77",
+            "changedFromOriginal": true,
+            "windowStartBeat": 0,
+            "windowEndBeat": 16,
+            "arrangementEndBeats": 40
+          }
         }
       },
       "captures": {
@@ -380,6 +448,13 @@
         "upperDecoration": null
       },
       "selectionBasis": "source-only max mixed/off-grid four-measure window among usable Pay Me windows",
+      "retrospectiveAdditionalWindow": {
+        "startBeat": 0,
+        "endBeat": 16,
+        "measures": 4,
+        "meter": "4/4",
+        "selectionBasis": "retrospective non-overlapping control window selected after primary freeze; not an untouched holdout"
+      },
       "seekSeconds": 10.552631578947368,
       "durationMs": 7316,
       "producer": {
@@ -406,6 +481,33 @@
           "windowStartBeat": 28,
           "windowEndBeat": 44,
           "arrangementEndBeats": 84
+        },
+        "retrospectiveAdditionalEvaluation": {
+          "selectionBasis": "retrospective non-overlapping control window selected after primary freeze; not an untouched holdout",
+          "original": {
+            "eventCount": 17,
+            "eventMultisetHash": "38c9f4600a3db8e50977d8616b428c319a3632fda74e7fc41b898f1aa0d5a9af",
+            "changedFromOriginal": false,
+            "windowStartBeat": 0,
+            "windowEndBeat": 16,
+            "arrangementEndBeats": 84
+          },
+          "automatic": {
+            "eventCount": 16,
+            "eventMultisetHash": "4ecdac5344866413392795bb1d4894ab78892aa8690440e36f0b1964f74cc8af",
+            "changedFromOriginal": true,
+            "windowStartBeat": 0,
+            "windowEndBeat": 16,
+            "arrangementEndBeats": 84
+          },
+          "manual": {
+            "eventCount": 17,
+            "eventMultisetHash": "48ee614e48d87267465f575d8b64345d23c14fd86f1e2eda7a788860e092ff3d",
+            "changedFromOriginal": true,
+            "windowStartBeat": 0,
+            "windowEndBeat": 16,
+            "arrangementEndBeats": 84
+          }
         }
       },
       "captures": {
@@ -522,6 +624,13 @@
         "upperDecoration": 0.525
       },
       "selectionBasis": "source-only max mixed/off-grid/upper-decoration eight-measure window",
+      "retrospectiveAdditionalWindow": {
+        "startBeat": 64,
+        "endBeat": 96,
+        "measures": 8,
+        "meter": "4/4",
+        "selectionBasis": "retrospective non-overlapping control window selected after primary freeze; not an untouched holdout"
+      },
       "seekSeconds": 76.3,
       "durationMs": 26600,
       "producer": {
@@ -548,6 +657,33 @@
           "windowStartBeat": 96,
           "windowEndBeat": 128,
           "arrangementEndBeats": 504
+        },
+        "retrospectiveAdditionalEvaluation": {
+          "selectionBasis": "retrospective non-overlapping control window selected after primary freeze; not an untouched holdout",
+          "original": {
+            "eventCount": 181,
+            "eventMultisetHash": "ab4896093f15197b30af4b643267a30f215d2583b6382e973fc5164e99429bc9",
+            "changedFromOriginal": false,
+            "windowStartBeat": 64,
+            "windowEndBeat": 96,
+            "arrangementEndBeats": 504
+          },
+          "automatic": {
+            "eventCount": 153,
+            "eventMultisetHash": "eafb06646cc70d2483603732ad2015c44b6c69fabc305658bc262c4a25f649af",
+            "changedFromOriginal": true,
+            "windowStartBeat": 64,
+            "windowEndBeat": 96,
+            "arrangementEndBeats": 504
+          },
+          "manual": {
+            "eventCount": 181,
+            "eventMultisetHash": "4e41d9608f8f58158687dd7e5002cfce9cec430ecda5fef859da0b1848b9b499",
+            "changedFromOriginal": true,
+            "windowStartBeat": 64,
+            "windowEndBeat": 96,
+            "arrangementEndBeats": 504
+          }
         }
       },
       "captures": {

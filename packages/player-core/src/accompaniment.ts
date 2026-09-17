@@ -1221,6 +1221,7 @@ function buildArrangementPhrases(
     const userSelected = selected.confirmedRanges.some((range) => overlapsRange(startBeat, endBeat, range));
     const strategy = localArrangementStrategy(sourceNotes, outputEvents, startBeat, endBeat);
     const change = intervalChanged(sourceNotes, outputEvents, startBeat, endBeat) ? "changed" : "unchanged";
+    const alreadySimple = change === "unchanged" && reasons.length === 0;
     return [{
       startBeat,
       endBeat,
@@ -1234,7 +1235,7 @@ function buildArrangementPhrases(
       strategy,
       change,
       review: reasons.length > 0 ? "needs-review" : userSelected ? "user-selected" : "automatic",
-      reasons,
+      reasons: alreadySimple ? ["already-simple"] : reasons,
     }];
   });
 }

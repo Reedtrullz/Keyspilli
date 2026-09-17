@@ -335,12 +335,15 @@ it("allows an explicit melody rest without deleting the backing", () => {
 **Produces:** Timed supported harmony and reasoned unsupported intervals.
 
 - [x] Add fixtures for C5, C7/E, Cmaj7/G, add9, NC, chart gap, wrong timing, unknown harmony and a melody held across a chord change.
-- [ ] Prove protected melody exclusion in the actual seed/YouTube notes-derived pipeline. Preserve explicit quality and slash bass from supported chart sources; generic v2 tests are not runtime proof.
+- [x] Trace and test the actual seed/YouTube notes-derived path. A mixed fixture with an LH C triad and an upper selected voice records the expected LH-derived fallback chord and excludes that upper voice in this case; this is fixture evidence, not a general exclusion proof.
+- [ ] Add a general protected-melody exclusion contract. Blocker: `chordsAt(notes, ...)` receives only final variant notes and no selected-melody/source-note IDs or accompaniment-only lane survives in the current `notes.json` boundary. The minimal fix is to carry protected melody IDs or an explicit accompaniment source lane into chord derivation, then add source fixtures and re-evaluate; no source/data-contract change is made here.
+- [x] Add the negative mixed-source fixture where the selected melody is itself an LH note and the LH has no clean cluster. It demonstrates that the precomputed generated chord can include that selected pitch. The runtime producer currently fails safe: `learningChordNotes`/sounding limits reject the colliding generated voicing, while selected melody and source-rhythm support remain.
+- [ ] Choose a runtime-only policy for unverified generated harmony. The smallest safe option is to treat those chord labels as display-only for melody accompaniment and rely on existing selected-index source reduction/Original fallback; deriving protected-note harmony with `simplifyPianoAccompaniment({ protectedNotes })` is feasible but would require an adapter from semantic harmony to the current timed chord contract and would change audible output. Keep either option in a new candidate with fresh evaluation; do not alter the frozen reserved result here.
 - [x] Split planning intervals at uncertainty boundaries; preserve notes crossing boundaries exactly once. Do not trim protected melody to satisfy a planner interval.
 - [x] Verify a 0.3-beat ambiguity inside a 16-beat event does not mechanically mark all 16 beats unavailable; any musical phrase expansion must have a recorded reason.
 - [x] Test source reduction without chart separately from generated harmonic backing. Run focused parser/accompaniment tests and commit.
 
-T4 evidence: `a8943bb`, `0a37afd`, and `packages/player-core/test/melody-accompaniment.test.ts`; the actual fallback origin is `packages/catalog/src/ingest.ts` → `packages/midi/src/simplify.ts:buildVariants/chordsAt` → `notes.json.chords` → `packages/catalog/src/chord-timeline.ts:generatedTimeline`. The current producer-level and generic MIDI tests do not prove selected-melody exclusion in that seed/YouTube path, so the harmony item remains open. The T4 output remains structural and local; no UI success state or musical acceptance is inferred.
+T4 evidence: `a8943bb`, `0a37afd`, `packages/midi/test/midi.test.ts` (`records the real notes.json chord fallback origin before player melody selection` plus the negative LH-selected fixture), and `packages/player-core/test/melody-accompaniment.test.ts` (runtime fail-safe negative case). The actual fallback origin is `packages/catalog/src/ingest.ts` → `packages/midi/src/simplify.ts:buildVariants/chordsAt` → `notes.json.chords` → `packages/catalog/src/chord-timeline.ts:generatedTimeline` → `catalog-api` → `Player`. The mixed LH fixture excludes its upper selected voice, while the negative LH-selected/no-clean-cluster fixture shows that `chordsAt` can include the selected pitch. `chordsAt` has no selected-melody/source-note identity parameter and the historical `notes.json` boundary carries no protected source ID/source lane. Runtime already has selected indices/IDs after T3 and currently fails safe on the negative case; treating unverified generated harmony as label-only plus existing source reduction is the smallest no-catalog-change option, while protected-note re-inference would need an adapter and a new candidate. No general exclusion or musical harmony claim is made.
 
 ### T5 — Build coherent backing rhythm candidates (2–3 days)
 
@@ -392,12 +395,12 @@ T5 checkpoint evidence: `de9cfd0` is the accepted partial density/silence checkp
 **Files:** SoundControls/Player, their tests and isolated melody E2E.
 **Consumes:** phrase status, event roles, change summary, override persistence.
 
-- [ ] Add render tests for changed, already-simple, partial, unavailable and missing-chart states; no unbounded beat-range dump in primary UI.
+- [x] Add render tests for changed, unchanged versus reason-classified already-simple, partial, unavailable and missing-chart states; no unbounded beat-range dump in primary UI.
 - [x] Implement concise summary, native detail disclosure, phrase seek/loop and selection audition. Label whole-part selection honestly; phrase-level render coverage remains open.
 - [x] Implement Full/Melody/Accompaniment audition and same-position A/B. Report retained-unclassified audio rather than pretending to isolate it; browser listening remains pending.
-- [ ] Use existing tempo conversion for seconds. Add keyboard/focus/label checks and responsive verification at 390px and desktop.
-- [ ] Test clear reset and cross-variant invalidation. Confirm unsupported input still permits Original playback and preserves source data.
-- [x] Commit after unit/build checks. Final isolated browser E2E passed 12 tests with 1 intentional skip; responsive/focus/truthful-status checks are included. The CI-only 200% zoom overflow was traced to flex min-content sizing from the virtual chord track and fixed with `min-width: 0` at the layout boundary; the existing accessibility assertion remains unchanged.
+- [x] Use existing tempo conversion for seconds. Add keyboard/focus/label checks and responsive verification at 390px and desktop.
+- [x] Test clear reset and cross-variant invalidation. The real-artifact flow clears the current saved selection; the stale source-fingerprint flow ignores a different variant without clearing either sidecar; worker failure keeps Original audio and the explicit unavailable status.
+- [x] Commit after unit/build checks. The isolated browser checks cover phrase/status rendering, reset/source preservation, worker fallback, responsive/focus behavior and the 200% zoom regression. The CI-only 200% zoom overflow was traced to flex min-content sizing from the virtual chord track and fixed with `min-width: 0` at the layout boundary; the existing accessibility assertion remains unchanged.
 
 ### T9 — Independent evaluation and readiness review (1–3 days plus listening)
 

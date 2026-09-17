@@ -2,6 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { buildMelodyAccompaniment, DEFAULT_SETTINGS } from "@keyspilli/player-core";
+import type { ChordSourceOption } from "./chord-sources";
 import { SoundControls } from "./SoundControls";
 
 function render(style: "melody-accompaniment" | "bass-chords" = "melody-accompaniment") {
@@ -66,5 +67,60 @@ describe("SoundControls accompaniment styles", () => {
       onMelodySelectionChange: () => {},
     }));
     expect(pulseMarkup).toContain("sparse backing notes");
+  });
+
+  it("renders partial, unavailable, and missing-chart source status", () => {
+    const generated: ChordSourceOption = {
+      id: "generated",
+      label: "Generated chords",
+      chords: [{ beat: 0, name: "C", notes: [48, 52, 55] }],
+      provenance: null,
+      coverage: "full-song",
+      fallback: false,
+      fallbackReason: null,
+    };
+    const partialUg: ChordSourceOption = {
+      id: "ug",
+      label: "UG opening (partial)",
+      chords: [{ beat: 0, name: "C", notes: [48, 52, 55] }],
+      provenance: "ug-tabs",
+      coverage: "opening-section",
+      fallback: false,
+      fallbackReason: null,
+    };
+    const renderSourceStatus = (
+      chordSource: "auto" | "ug",
+      chordSources: { ug: ChordSourceOption | null; generated: ChordSourceOption; auto: ChordSourceOption },
+      chordSourceStatus: string,
+    ) => renderToStaticMarkup(createElement(SoundControls, {
+      settings: { ...DEFAULT_SETTINGS, backgroundMode: "chord" },
+      onChange: () => {},
+      chordSource,
+      chordSources,
+      chordSourceStatus,
+      onChordSourceChange: () => {},
+    }));
+
+    const partial = renderSourceStatus("auto", {
+      ug: partialUg,
+      generated,
+      auto: { ...generated, id: "auto", label: "UG + generated fallback", fallback: true },
+    }, "UG chart covers opening-section; generated chords fill uncovered chart events and the remaining song.");
+    expect(partial).toContain("UG chart covers opening-section; generated chords fill uncovered chart events and the remaining song.");
+
+    const unavailable = renderSourceStatus("ug", {
+      ug: null,
+      generated,
+      auto: { ...generated, id: "auto", label: "Generated fallback" },
+    }, "UG timeline is unavailable for this arrangement; using generated chords.");
+    expect(unavailable).toContain("UG timeline is unavailable for this arrangement; using generated chords.");
+
+    const missingChart: ChordSourceOption = { ...generated, chords: [] };
+    const missing = renderSourceStatus("auto", {
+      ug: null,
+      generated: missingChart,
+      auto: { ...missingChart, id: "auto", label: "Generated fallback", fallback: true },
+    }, "No chord timeline is available; using piano background.");
+    expect(missing).toContain("No chord timeline is available; using piano background.");
   });
 });

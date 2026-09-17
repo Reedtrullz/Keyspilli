@@ -534,6 +534,7 @@ describe("buildVariants", () => {
       trackNames: ["Piano"],
       durationBeats: 4,
     };
+    const selectedMelody = input.notes.find((note) => note.midi === 72)!;
     const variant = buildVariants(input, { title: "Fallback origin", artist: "Test" }, {
       arrangementProfile: "source",
       maxDurBeats: null,
@@ -548,6 +549,41 @@ describe("buildVariants", () => {
       inferenceType: "voicing",
       durationBeats: 4,
     }]);
+    // The actual catalog fallback path sees a mixed variant: a left-hand
+    // harmonic cluster and an upper selected voice. This fixture excludes the
+    // selected voice, but the source function has no selected-melody identity
+    // parameter, so this is not a general exclusion proof.
+    expect(variant.notes.some((note) => note.hand === "L")).toBe(true);
+    expect(variant.notes.some((note) => note.hand === "R" && note.midi === selectedMelody.midi)).toBe(true);
+    expect(variant.chords.every((chord) => !chord.notes.includes(selectedMelody.midi))).toBe(true);
+  });
+
+  it("records the negative fallback case when a selected LH voice has no clean LH cluster", () => {
+    const selectedMelody = { midi: 48, start: 0, dur: 1, vel: 100, hand: "L" as const };
+    const input: ParsedMidi = {
+      format: 0,
+      division: 480,
+      tempoBpm: 120,
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes: [
+        selectedMelody,
+        { midi: 52, start: 0, dur: 1, vel: 70, hand: "R" },
+        { midi: 55, start: 0, dur: 1, vel: 70, hand: "R" },
+        { midi: 60, start: 0, dur: 1, vel: 70, hand: "R" },
+      ],
+      trackNames: ["Piano"],
+      durationBeats: 4,
+    };
+    const variant = buildVariants(input, { title: "Negative fallback", artist: "Test" }, {
+      arrangementProfile: "source",
+      maxDurBeats: null,
+    }).find((candidate) => candidate.level === "advanced")!;
+
+    expect(new Set(variant.notes.filter((note) => note.hand === "L").map((note) => note.midi % 12)).size).toBe(1);
+    expect(variant.chords[0]?.sourceKind).toBe("generated");
+    expect(variant.chords[0]?.notes).toContain(selectedMelody.midi);
   });
 
   it("revoices a one-staff chordal import for the learner profile", () => {

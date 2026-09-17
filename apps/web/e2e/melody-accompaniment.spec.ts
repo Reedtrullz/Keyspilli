@@ -26,6 +26,13 @@ const RESERVED_CANDIDATES = [
     sourceFingerprint: "variant:w-h-doane-near-the-cross:a:w-h-doane-near-the-cross-a:09d4a33ac39f9429f3fdf3a45377a7010b36a1f501194b2dba10e91e45d51a0d:notes:764b13112b7bc753a393262bf34b4d1aa60a3ec50c5b2356187f1213b1c96304",
     window: { startBeat: 24, endBeat: 48, measures: 4, meter: "6/4", notes: 50, attacks: 13, mixedOnset: 0.923, held: 0.62, offgrid: null, upperDecoration: null },
     selectionBasis: "source-only max mixed-onset four-measure window",
+    retrospectiveAdditionalWindow: {
+      startBeat: 0,
+      endBeat: 24,
+      measures: 4,
+      meter: "6/4",
+      selectionBasis: "retrospective non-overlapping control window selected after primary freeze; not an untouched holdout",
+    },
   },
   {
     id: "c-v-alkan-prelude-a-scratch",
@@ -37,6 +44,13 @@ const RESERVED_CANDIDATES = [
     sourceFingerprint: "variant:c-v-alkan-prelude:a:c-v-alkan-prelude-a:ae68944db2e646e14e0923a79b95b3a6e2658432e384e8741f3ab108dbc5ac80:notes:50a78996e80fa2731574f881d0eabb3bfb75045069e1f046bc6a24b1e0753098",
     window: { startBeat: 16, endBeat: 32, measures: 4, meter: "4/4", notes: 115, attacks: 28, mixedOnset: 1, held: null, offgrid: 0.252, upperDecoration: 0.569 },
     selectionBasis: "source-only max upper-decoration/off-grid four-measure window",
+    retrospectiveAdditionalWindow: {
+      startBeat: 0,
+      endBeat: 16,
+      measures: 4,
+      meter: "4/4",
+      selectionBasis: "retrospective non-overlapping control window selected after primary freeze; not an untouched holdout",
+    },
   },
   {
     id: "beginner-piano-tutorial-easy-piano-jumbo-songbook-pay-me-my-money-down-mslzx940-a-scratch",
@@ -48,6 +62,13 @@ const RESERVED_CANDIDATES = [
     sourceFingerprint: "variant:beginner-piano-tutorial-easy-piano-jumbo-songbook-pay-me-my-money-down-mslzx940:a:beginner-piano-tutorial-easy-piano-jumbo-songbook-pay-me-my-money-down-mslzx940-a:0b034323353ce167cf24664a17bda435c963f58d75c40d75d3860804bb475677:notes:a39db919f07c250adba174560d3882882178dd942a37b136bfd870f490383f9e",
     window: { startBeat: 28, endBeat: 44, measures: 4, meter: "4/4", notes: 35, attacks: 19, mixedOnset: 0.368, held: 0.314, offgrid: 0.514, upperDecoration: null },
     selectionBasis: "source-only max mixed/off-grid four-measure window among usable Pay Me windows",
+    retrospectiveAdditionalWindow: {
+      startBeat: 0,
+      endBeat: 16,
+      measures: 4,
+      meter: "4/4",
+      selectionBasis: "retrospective non-overlapping control window selected after primary freeze; not an untouched holdout",
+    },
   },
   {
     id: "dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo-a-scratch",
@@ -59,6 +80,13 @@ const RESERVED_CANDIDATES = [
     sourceFingerprint: "variant:dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo:a:dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo-a:8e4d4b9114800d69904dc4af35376b95ccd1d8c537aac3adbe812c72f0cf482e:notes:7f0ce6f0afdd4a7b6c04c1158339bb3440894cd5f77b686308a99fbe3d24b0b",
     window: { startBeat: 96, endBeat: 128, measures: 8, meter: "4/4", notes: 166, attacks: 75, mixedOnset: 0.453, held: null, offgrid: 0.476, upperDecoration: 0.525 },
     selectionBasis: "source-only max mixed/off-grid/upper-decoration eight-measure window",
+    retrospectiveAdditionalWindow: {
+      startBeat: 64,
+      endBeat: 96,
+      measures: 8,
+      meter: "4/4",
+      selectionBasis: "retrospective non-overlapping control window selected after primary freeze; not an untouched holdout",
+    },
   },
 ] as const;
 
@@ -372,7 +400,11 @@ function producerOutcome(
   };
 }
 
-function reservedProducerOutcomes(candidate: typeof RESERVED_CANDIDATES[number]): { original: ProducerOutcome; automatic: ProducerOutcome; manual: ProducerOutcome } {
+type ProducerOutcomes = { original: ProducerOutcome; automatic: ProducerOutcome; manual: ProducerOutcome };
+
+function reservedProducerOutcomes(candidate: typeof RESERVED_CANDIDATES[number]): ProducerOutcomes & {
+  retrospectiveAdditionalEvaluation: ProducerOutcomes & { selectionBasis: string };
+} {
   const baseId = candidate.id.replace(/-a-scratch$/, "");
   const source = JSON.parse(readFileSync(join(RESERVED_FIXTURE_ROOT, baseId, "a", "notes.json"), "utf8")) as {
     notes: Note[];
@@ -393,11 +425,19 @@ function reservedProducerOutcomes(candidate: typeof RESERVED_CANDIDATES[number])
     soundingPolicy: "coherent-phrase",
     phraseOverrides: [],
   });
-  const original = producerOutcome(source.notes, source.notes, candidate.window, arrangementEndBeats);
+  const automaticNotes = build("automatic").notes;
+  const manualNotes = build("right-hand").notes;
+  const evaluate = (window: { startBeat: number; endBeat: number }): ProducerOutcomes => ({
+    original: producerOutcome(source.notes, source.notes, window, arrangementEndBeats),
+    automatic: producerOutcome(automaticNotes, source.notes, window, arrangementEndBeats),
+    manual: producerOutcome(manualNotes, source.notes, window, arrangementEndBeats),
+  });
   return {
-    original,
-    automatic: producerOutcome(build("automatic").notes, source.notes, candidate.window, arrangementEndBeats),
-    manual: producerOutcome(build("right-hand").notes, source.notes, candidate.window, arrangementEndBeats),
+    ...evaluate(candidate.window),
+    retrospectiveAdditionalEvaluation: {
+      selectionBasis: candidate.retrospectiveAdditionalWindow.selectionBasis,
+      ...evaluate(candidate.retrospectiveAdditionalWindow),
+    },
   };
 }
 
@@ -521,7 +561,9 @@ test("real artifact produces, previews, plays, corrects, and reloads melody supp
   await dialog.getByRole("radio", { name: "Chord mode", exact: true }).click();
   await expect(dialog.getByTestId("melody-accompaniment-controls")).toBeVisible();
   await expect(dialog.getByTestId("melody-accompaniment-coverage")).toContainText("source support");
+  await expect(page.getByTestId("chord-mode-status")).toHaveText("Chords estimated from notes");
   await expect(page.getByTestId("melody-accompaniment-status")).toContainText("Inferred melody");
+  await expect(page.getByTestId("melody-phrase-summary").locator("summary")).toHaveText(/Phrases: \d+ changed · \d+ unchanged · \d+ already simple/);
   const automatic = await canvas.screenshot({ path: testInfo.outputPath("melody-automatic-candidate.png") });
   expect(automatic.equals(original)).toBe(false);
 
@@ -643,6 +685,7 @@ test("worker constructor failure retains real Original audio, retries, and clear
   await selectArrangement(page, "Chord mode", "Automatic melody", { waitForArrangement: false });
   const error = page.getByTestId("melody-accompaniment-error");
   await expect(error).toContainText("Original playback is retained");
+  await expect(page.getByTestId("melody-accompaniment-status")).toHaveText("Original retained · arrangement unavailable");
   await expect(error.getByRole("button", { name: "Retry arrangement", exact: true })).toBeVisible();
   expect((await melodyTrace(page)).some((event) => event.phase === "worker-error" && event.error?.includes("constructor failure"))).toBe(true);
 
@@ -674,6 +717,7 @@ test("worker postMessage failure keeps Original playback and a truthful retry st
   const error = page.getByTestId("melody-accompaniment-error");
   await expect(error).toContainText("e2e worker postMessage failure");
   await expect(error).toContainText("Original playback is retained");
+  await expect(page.getByTestId("melody-accompaniment-status")).toHaveText("Original retained · arrangement unavailable");
   expect((await melodyTrace(page)).some((event) => event.phase === "worker-error" && event.error?.includes("postMessage failure"))).toBe(true);
   await bootAudio(page);
   const fallback = await captureArrangement(page, testInfo, "worker-post-message-original-fallback", 1, 1_200);
@@ -703,8 +747,14 @@ test("stale worker replies cannot replace the latest source-keyed request", asyn
   expect(ready?.key).toBe(requests.at(-1));
 });
 
-test("corrupt or stale melody storage resets safely and Original has no derived status", async ({ page }) => {
-  await installStorageValue(page, HELL_SIDECAR_KEY, "{not-json");
+test("stale cross-variant melody storage is ignored and Original has no derived status", async ({ page }) => {
+  await installStorageValue(page, HELL_SIDECAR_KEY, JSON.stringify({
+    schemaVersion: 2,
+    generatorVersion: "melody-accompaniment.v2",
+    sourceFingerprint: "variant:other-level:notes:stale",
+    selection: "right-hand",
+    provenance: { selection: "right-hand", selectionProvenance: "user-confirmed" },
+  }));
   await installStorageValue(page, SIDECAR_KEY, JSON.stringify({
     schemaVersion: 2,
     generatorVersion: "melody-accompaniment.v2",
@@ -720,7 +770,9 @@ test("corrupt or stale melody storage resets safely and Original has no derived 
   const dialog = page.getByRole("dialog", { name: "Sound settings" });
   await expect(dialog.getByRole("radio", { name: "Automatic melody", exact: true })).toHaveAttribute("aria-checked", "true");
   await expect(dialog.getByRole("button", { name: "Reset saved selection", exact: true })).toHaveCount(0);
-  await expect(page.getByTestId("chord-mode-status")).toContainText(/Generated fallback|Generated chords|Piano/);
+  expect(await page.evaluate((key) => localStorage.getItem(key), HELL_SIDECAR_KEY)).not.toBeNull();
+  expect(await page.evaluate((key) => localStorage.getItem(key), SIDECAR_KEY)).not.toBeNull();
+  await expect(page.getByTestId("chord-mode-status")).toHaveText("Chords estimated from notes");
   await dialog.getByRole("button", { name: "Close tools", exact: true }).click();
   await selectArrangement(page, "Original arrangement");
   await expect(page.getByTestId("melody-accompaniment-status")).toHaveCount(0);
@@ -1188,6 +1240,7 @@ test("reserved evaluation captures complete phrases with automatic and manual ou
         sourceFingerprint: candidate.sourceFingerprint,
         window: candidate.window,
         selectionBasis: candidate.selectionBasis,
+        retrospectiveAdditionalWindow: candidate.retrospectiveAdditionalWindow,
       },
       seekSeconds,
       durationMs,
@@ -1296,5 +1349,9 @@ test("reserved evaluation captures complete phrases with automatic and manual ou
     expect(outcome.automatic?.status, `${outcome.candidate.id} automatic`).toBe("captured");
     expect(outcome.manual?.status, `${outcome.candidate.id} manual`).toBe("captured");
     expect(outcome.automatic?.producerEventMultisetChanged, `${outcome.candidate.id} automatic producer output must change deterministically`).toBe(true);
+    const additional = outcome.producer.retrospectiveAdditionalEvaluation;
+    expect(additional.selectionBasis).toContain("not an untouched holdout");
+    expect(additional.automatic.windowEndBeat <= outcome.candidate.window.startBeat
+      || additional.automatic.windowStartBeat >= outcome.candidate.window.endBeat).toBe(true);
   }
 });
