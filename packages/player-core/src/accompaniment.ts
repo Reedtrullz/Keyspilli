@@ -625,6 +625,160 @@ function withinSoundingLimit(events: readonly ArrangementEvent[]): boolean {
   return Math.max(...events.map((event) => event.note.midi)) - Math.min(...events.map((event) => event.note.midi)) <= 12 + EPSILON;
 }
 
+type PhysicalHand = "L" | "R";
+
+function physicalHand(note: Note): PhysicalHand {
+  return note.hand === "R" ? "R" : "L";
+}
+
+function oppositeHand(hand: PhysicalHand): PhysicalHand {
+  return hand === "L" ? "R" : "L";
+}
+
+function crossesOppositeHandMelody(
+  note: Note,
+  hand: PhysicalHand,
+  mandatory: readonly ArrangementEvent[],
+  startBeat: number,
+  endBeat: number,
+): boolean {
+  const opposite = mandatory
+    .filter((event) => event.note.hand === oppositeHand(hand) && overlaps(event.note, startBeat, endBeat))
+    .map((event) => event.note.midi);
+  if (opposite.length === 0) return false;
+  const oppositeMin = Math.min(...opposite);
+  const oppositeMax = Math.max(...opposite);
+  if (hand === "L") {
+    return note.midi + MIN_MELODY_CLEARANCE >= oppositeMin;
+  }
+  return note.midi - MIN_MELODY_CLEARANCE <= oppositeMax;
+}
+
+function crossesOppositeHandSupport(
+  note: Note,
+  hand: PhysicalHand,
+  assignedSupport: readonly ArrangementEvent[],
+  startBeat: number,
+  endBeat: number,
+): boolean {
+  const opposite = assignedSupport
+    .filter((event) => event.note.hand === oppositeHand(hand) && overlaps(event.note, startBeat, endBeat))
+    .map((event) => event.note.midi);
+  if (opposite.length === 0) return false;
+  const oppositeMin = Math.min(...opposite);
+  const oppositeMax = Math.max(...opposite);
+  if (hand === "L") {
+    return note.midi + MIN_MELODY_CLEARANCE >= oppositeMin;
+  }
+  return note.midi - MIN_MELODY_CLEARANCE <= oppositeMax;
+}
+
+function supportFitsHand(
+  event: ArrangementEvent,
+  hand: PhysicalHand,
+  mandatory: readonly ArrangementEvent[],
+  assignedSupport: readonly ArrangementEvent[],
+): boolean {
+  const relevant = [...mandatory, ...assignedSupport].filter(({ note }) => overlaps(note, event.note.start, noteEnd(event.note)));
+  const boundaries = new Set<number>([event.note.start, noteEnd(event.note)]);
+  for (const candidate of relevant) {
+    boundaries.add(candidate.note.start);
+    boundaries.add(noteEnd(candidate.note));
+  }
+  const sortedBoundaries = [...boundaries].sort((a, b) => a - b);
+  const candidate = { ...event, note: { ...event.note, hand } };
+  for (let index = 0; index < sortedBoundaries.length - 1; index++) {
+    const startBeat = sortedBoundaries[index]!;
+    const endBeat = sortedBoundaries[index + 1]!;
+    if (endBeat <= startBeat + EPSILON || !overlaps(candidate.note, startBeat, endBeat)) continue;
+    const activeMandatory = mandatory.filter(({ note }) => overlaps(note, startBeat, endBeat));
+    const activeSameHandSupport = assignedSupport.filter(({ note }) => note.hand === hand && overlaps(note, startBeat, endBeat));
+    const activeSameHand = [
+      ...activeMandatory.filter(({ note }) => note.hand === hand),
+      ...activeSameHandSupport,
+      candidate,
+    ];
+    if (activeMandatory.some(({ note }) => note.hand === hand && note.midi === candidate.note.midi)
+      || activeSameHandSupport.some(({ note }) => note.midi === candidate.note.midi)
+      || !withinSoundingLimit(activeSameHand)
+      || crossesOppositeHandMelody(candidate.note, hand, activeMandatory, startBeat, endBeat)
+      || crossesOppositeHandSupport(candidate.note, hand, assignedSupport, startBeat, endBeat)) return false;
+  }
+  return true;
+}
+
+function hasSupportCollision(
+  note: Note,
+  hand: PhysicalHand,
+  assignedSupport: readonly ArrangementEvent[],
+  startBeat: number,
+  endBeat: number,
+): boolean {
+  return assignedSupport.some((event) => event.note.hand === hand
+      && event.note.midi === note.midi
+      && overlaps(event.note, startBeat, endBeat))
+    || crossesOppositeHandSupport(note, hand, assignedSupport, startBeat, endBeat);
+}
+
+function supportVelocity(note: Note, melody: readonly ArrangementEvent[]): number {
+  const absolute = Math.min(MAX_ACCOMPANIMENT_VELOCITY, Math.max(1, note.vel));
+  const localMelody = melody
+    .filter((event) => overlaps(event.note, note.start, noteEnd(note)))
+    .map((event) => event.note.vel);
+  if (localMelody.length === 0) return absolute;
+  return Math.min(absolute, Math.max(1, Math.min(...localMelody) - MELODY_SUPPORT_VELOCITY_MARGIN));
+}
+
+interface SupportAllocation {
+  events: ArrangementEvent[];
+  rejectedIds: ReadonlySet<string>;
+}
+
+function allocateSupport(
+  events: readonly ArrangementEvent[],
+): SupportAllocation {
+  const normalized = events.map((event) => event.role === "accompaniment"
+    ? { ...event, note: { ...event.note, hand: physicalHand(event.note) } }
+    : event);
+  const mandatory = normalized.filter((event) => event.role === "melody" || event.role === "retained-unclassified");
+  const support = normalized
+    .filter((event) => event.role === "accompaniment")
+    .sort((a, b) => a.note.start - b.note.start || a.note.midi - b.note.midi || a.id.localeCompare(b.id));
+  const assignedSupport: ArrangementEvent[] = [];
+  const allocatedById = new Map<string, ArrangementEvent>();
+  const rejectedIds = new Set<string>();
+  for (const event of support) {
+    const sourceHand = physicalHand(event.note);
+    const alternateHand = oppositeHand(sourceHand);
+    const hand = supportFitsHand(event, sourceHand, mandatory, assignedSupport)
+      ? sourceHand
+      : supportFitsHand(event, alternateHand, mandatory, assignedSupport)
+        ? alternateHand
+        : null;
+    if (!hand) {
+      // Keep a fixed source hand for the sounding-limit trimmer unless the
+      // source hand itself crosses an opposite-hand mandatory/support note or
+      // duplicates same-hand support. In those cases, retaining it would
+      // silently create a physical crossing/collision.
+      const supportStart = event.note.start;
+      const supportEnd = noteEnd(event.note);
+      if (crossesOppositeHandMelody(event.note, sourceHand, mandatory, supportStart, supportEnd)
+        || hasSupportCollision(event.note, sourceHand, assignedSupport, supportStart, supportEnd)) {
+        rejectedIds.add(event.id);
+      }
+      allocatedById.set(event.id, event);
+      continue;
+    }
+    const allocated = { ...event, note: { ...event.note, hand } };
+    allocatedById.set(event.id, allocated);
+    assignedSupport.push(allocated);
+  }
+  return {
+    events: normalized.map((event) => event.role === "accompaniment" ? allocatedById.get(event.id)! : event),
+    rejectedIds,
+  };
+}
+
 /**
  * Enforce the physical-hand budget on the projected stream.
  *
@@ -648,9 +802,12 @@ export function enforceAccompanimentSoundingLimits(
   events: readonly ArrangementEvent[],
   options: SoundingLimitOptions = {},
 ): SoundingLimitResult {
-  const physical = events.filter((event) => event.note.hand === "L" || event.note.hand === "R");
+  const allocation = allocateSupport(events);
+  const allocatedEvents = allocation.events;
+  const physical = allocatedEvents.filter((event) => event.note.hand === "L" || event.note.hand === "R");
   const support = physical.filter((event) => event.role === "accompaniment");
   const mandatory = physical.filter((event) => event.role === "melody" || event.role === "retained-unclassified");
+  const melody = allocatedEvents.filter((event) => event.role === "melody");
   const boundaries = new Set<number>();
   for (const event of physical) {
     boundaries.add(event.note.start);
@@ -670,9 +827,16 @@ export function enforceAccompanimentSoundingLimits(
     const endBeat = sortedBoundaries[index + 1]!;
     if (endBeat <= startBeat + EPSILON) continue;
     const activeMandatory = mandatory.filter((event) => overlaps(event.note, startBeat, endBeat));
+    const allocationRejected = support.filter((event) => allocation.rejectedIds.has(event.id) && overlaps(event.note, startBeat, endBeat));
+    for (const event of allocationRejected) reject(event, startBeat, endBeat);
+    if (allocationRejected.length > 0) {
+      fallbackSpans.push({ startBeat, endBeat, reason: "sounding limit exceeded" });
+    }
     for (const hand of ["L", "R"] as const) {
       const handMandatory = activeMandatory.filter((event) => event.note.hand === hand);
-      const activeSupport = support.filter((event) => event.note.hand === hand && overlaps(event.note, startBeat, endBeat));
+      const activeSupport = support.filter((event) => !allocation.rejectedIds.has(event.id)
+        && event.note.hand === hand
+        && overlaps(event.note, startBeat, endBeat));
       if (handMandatory.length === 0 && activeSupport.length === 0) continue;
       const rejected = new Set<ArrangementEvent>();
       const mandatoryFits = withinSoundingLimit(handMandatory);
@@ -703,13 +867,16 @@ export function enforceAccompanimentSoundingLimits(
     }
   }
   return {
-    events: events.flatMap((event) => {
-      const rejected = rejectedById.get(event.id);
-      if (event.role !== "accompaniment" || !rejected?.length) return [event];
-      const pieces = chooseSoundingPieces(event, rejected, options);
+    events: allocatedEvents.flatMap((event) => {
+      const balanced = event.role === "accompaniment"
+        ? { ...event, note: { ...event.note, vel: supportVelocity(event.note, melody) } }
+        : event;
+      const rejected = rejectedById.get(balanced.id);
+      if (balanced.role !== "accompaniment" || !rejected?.length) return [balanced];
+      const pieces = chooseSoundingPieces(balanced, rejected, options);
       reattackCount += pieces.filter((piece) => piece.start > event.note.start + EPSILON).length;
       return pieces.map((note, index) => ({
-        ...event,
+        ...balanced,
         id: `${event.id}:piece:${index}`,
         note,
       }));
@@ -1257,13 +1424,13 @@ const MAX_LEFT_HAND_SPAN = 12;
 const MIN_MELODY_CLEARANCE = 2;
 const LOWEST_SUPPORT_MIDI = 36;
 const MAX_ACCOMPANIMENT_VELOCITY = 70;
+const MELODY_SUPPORT_VELOCITY_MARGIN = 8;
 const SPARSE_BACKING_VELOCITY = 54;
 
 function accompanimentNote(note: Note): Note {
   return {
     ...note,
     vel: Math.min(MAX_ACCOMPANIMENT_VELOCITY, Math.max(1, note.vel)),
-    hand: "L",
   };
 }
 

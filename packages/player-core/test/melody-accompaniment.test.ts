@@ -381,7 +381,7 @@ describe("buildMelodyAccompaniment", () => {
     expect(result.chords.every((item) => Math.max(...item.notes) - Math.min(...item.notes) <= 12)).toBe(true);
   });
 
-  it("keeps a sustained line below short upper decoration", () => {
+  it("classifies short upper decoration when neither hand can safely own it", () => {
     const result = build(
       [
         note(60, 0, 1, 84, "R"), note(74, 0, 0.125, 70, "R"),
@@ -394,7 +394,11 @@ describe("buildMelodyAccompaniment", () => {
 
     expect(result.melody.map((item) => item.midi)).toEqual([60, 62]);
     expect(result.notes.filter((item) => item.hand === "R").map((item) => item.midi)).toEqual([60, 62]);
-    expect(result.notes.filter((item) => item.hand === "L").map((item) => item.midi)).toEqual([74, 76]);
+    expect(result.notes.filter((item) => item.hand === "L")).toEqual([]);
+    expect(result.fallbackSpans).toEqual([
+      { startBeat: 0, endBeat: 0.125, reason: "sounding limit exceeded" },
+      { startBeat: 1, endBeat: 1.125, reason: "sounding limit exceeded" },
+    ]);
   });
 
   it("preserves a melody crossing hands while leaving support owned separately", () => {
@@ -581,7 +585,7 @@ describe("buildMelodyAccompaniment", () => {
     expect(result.phrases[0]?.reasons).not.toContain("already-simple");
   });
 
-  it("fails safe when a protected LH melody overlaps a notes-derived voicing", () => {
+  it("preserves feasible source-R support beside a protected LH melody", () => {
     const source = [
       note(48, 0, 1, 100, "L"),
       note(52, 0, 1, 70, "R"),
@@ -612,7 +616,8 @@ describe("buildMelodyAccompaniment", () => {
     expect(result.melody).toEqual([source[0]]);
     expect(result.notes).toContainEqual(source[0]);
     expect(result.notes.some((note) => [36, 40, 43].includes(note.midi))).toBe(false);
-    expect(result.fallbackSpans).toContainEqual({ startBeat: 0, endBeat: 1, reason: "sounding limit exceeded" });
+    expect(result.notes.filter((note) => note.hand === "R").map((note) => note.midi)).toEqual([52, 55, 60]);
+    expect(result.fallbackSpans).toEqual([]);
     expect(result.provenance.supportModes).toEqual(["source-rhythm"]);
   });
 
@@ -1007,6 +1012,137 @@ describe("buildMelodyAccompaniment", () => {
     expect(resumeAudio.some((value) => Math.abs(value) > 0.001)).toBe(true);
     expect(coherentAudio.some((value) => Math.abs(value) > 0.001)).toBe(true);
     expect(difference).toBeGreaterThan(0.1);
+  });
+
+  it.each([
+    ["Hell", 23.5, 91, 79],
+    ["Oops", 80, 88, 92],
+  ])("preserves feasible source-R support for %s across held and overlapping intervals", (_fixture, beat, supportMidi, melodyMidi) => {
+    const source = [
+      note(melodyMidi, beat, 1, 96, "R"),
+      note(supportMidi, beat, 2, 72, "R"),
+      note(melodyMidi + 5, beat + 1, 1, 84, "R"),
+      note(supportMidi - 3, beat + 1, 0.5, 68, "R"),
+    ];
+    const ids = sourceNoteIds(source);
+    const sourceFingerprint = `${_fixture}-hand-allocation-v1`;
+    const result = buildMelodyAccompaniment(source, [chord(beat, "C", 2)], {
+      durationBeats: beat + 2,
+      selection: "right-hand",
+      sourceFingerprint,
+      phraseOverrides: [{
+        startBeat: beat,
+        endBeat: beat + 2,
+        sourceNoteIds: [ids[0]!, ids[2]!],
+        sourceFingerprint,
+      }],
+    });
+
+    expect(result.melody).toEqual([
+      expect.objectContaining(source[0]!),
+      expect.objectContaining(source[2]!),
+    ]);
+    expect(result.events
+      .filter((event) => event.role === "melody")
+      .map((event) => event.note)).toEqual([source[0], source[2]]);
+    expect(result.events
+      .filter((event) => event.sourceNoteIds.includes(ids[1]!) || event.sourceNoteIds.includes(ids[3]!))
+      .map((event) => [event.sourceNoteIds, event.note.hand, event.note.midi, event.note.start, event.note.dur]))
+      .toEqual([
+        [[ids[1]!], "R", supportMidi, beat, 2],
+        [[ids[3]!], "R", supportMidi - 3, beat + 1, 0.5],
+      ]);
+  });
+
+  it("falls back on an impossible low-melody crossing without moving or mutating the melody", () => {
+    const melody = note(36, 0, 2, 92, "R");
+    const support = note(60, 0, 2, 84, "L");
+    const result = enforceAccompanimentSoundingLimits([
+      { id: "melody", note: melody, role: "melody", sourceNoteIds: ["melody"] },
+      { id: "support", note: support, role: "accompaniment", sourceNoteIds: ["support"] },
+    ]);
+
+    expect(result.events).toEqual([{ id: "melody", note: melody, role: "melody", sourceNoteIds: ["melody"] }]);
+    expect(result.fallbackSpans).toEqual([{ startBeat: 0, endBeat: 2, reason: "sounding limit exceeded" }]);
+  });
+
+  it.each([
+    ["L support below R melody", note(72, 0, 2, 90, "R"), note(50, 0, 2, 70, "R"), "L"],
+    ["R support above L melody", note(48, 0, 2, 90, "L"), note(72, 0, 2, 70, "L"), "R"],
+  ])("uses one consistent opposite-hand register rule for %s", (_label, melody, support, expectedHand) => {
+    const result = enforceAccompanimentSoundingLimits([
+      { id: "melody", note: melody, role: "melody", sourceNoteIds: ["melody"] },
+      { id: "support", note: support, role: "accompaniment", sourceNoteIds: ["support"] },
+    ]);
+
+    expect(result.events.find((event) => event.id === "support")?.note.hand).toBe(expectedHand);
+    expect(result.events.find((event) => event.id === "melody")?.note).toEqual(melody);
+  });
+
+  it("keeps overlapping support voices in one ordered hand when melody is absent", () => {
+    const result = enforceAccompanimentSoundingLimits([
+      { id: "left-source", note: note(60, 0, 2, 60, "L"), role: "accompaniment", sourceNoteIds: ["left-source"] },
+      { id: "right-source", note: note(58, 0, 2, 60, "R"), role: "accompaniment", sourceNoteIds: ["right-source"] },
+    ]);
+
+    expect(result.events.map((event) => [event.id, event.note.hand])).toEqual([
+      ["left-source", "R"],
+      ["right-source", "R"],
+    ]);
+    expect(result.fallbackSpans).toEqual([]);
+  });
+
+  it("rejects an overlapping opposite-hand support duplicate without melody overlap", () => {
+    const result = enforceAccompanimentSoundingLimits([
+      { id: "left-source", note: note(48, 0, 2, 60, "L"), role: "accompaniment", sourceNoteIds: ["left-source"] },
+      { id: "right-source", note: note(48, 0, 2, 60, "R"), role: "accompaniment", sourceNoteIds: ["right-source"] },
+    ]);
+
+    expect(result.events.map((event) => event.id)).toEqual(["left-source"]);
+    expect(result.fallbackSpans).toEqual([{ startBeat: 0, endBeat: 2, reason: "sounding limit exceeded" }]);
+  });
+
+  it("does not let a rejected allocation consume a later safe support", () => {
+    const melody = note(36, 0, 2, 92, "R");
+    const result = enforceAccompanimentSoundingLimits([
+      { id: "melody", note: melody, role: "melody", sourceNoteIds: ["melody"] },
+      { id: "rejected", note: note(60, 0, 2, 84, "L"), role: "accompaniment", sourceNoteIds: ["rejected"] },
+      { id: "later", note: note(24, 1, 1, 64, "L"), role: "accompaniment", sourceNoteIds: ["later"] },
+    ]);
+
+    expect(result.events.map((event) => event.id)).toEqual(["melody", "later"]);
+    expect(result.events.find((event) => event.id === "later")?.note.hand).toBe("L");
+    expect(result.fallbackSpans).toEqual([
+      { startBeat: 0, endBeat: 1, reason: "sounding limit exceeded" },
+      { startBeat: 1, endBeat: 2, reason: "sounding limit exceeded" },
+    ]);
+  });
+
+  it("keeps source and generated support below a soft local melody by the same bounded margin", () => {
+    const result = enforceAccompanimentSoundingLimits([
+      { id: "melody", note: note(72, 0, 2, 60, "R"), role: "melody", sourceNoteIds: ["melody"] },
+      { id: "source-support", note: note(48, 0, 2, 110, "L"), role: "accompaniment", sourceNoteIds: ["source-support"] },
+      { id: "generated-support", note: note(52, 0, 2, 110, "L"), role: "accompaniment", sourceNoteIds: [] },
+    ]);
+
+    expect(result.events.filter((event) => event.role === "accompaniment").map((event) => event.note.vel)).toEqual([52, 52]);
+    expect(result.events.find((event) => event.id === "melody")?.note).toEqual(note(72, 0, 2, 60, "R"));
+  });
+
+  it("uses the weakest melody across a held support interval without reattacking for rebalance", () => {
+    const result = enforceAccompanimentSoundingLimits([
+      { id: "loud-melody", note: note(72, 0, 1, 100, "R"), role: "melody", sourceNoteIds: ["loud-melody"] },
+      { id: "soft-melody", note: note(74, 1, 1, 60, "R"), role: "melody", sourceNoteIds: ["soft-melody"] },
+      { id: "support", note: note(48, 0, 2, 110, "L"), role: "accompaniment", sourceNoteIds: ["support"] },
+    ]);
+
+    expect(result.events.filter((event) => event.role === "accompaniment")).toEqual([{
+      id: "support",
+      note: note(48, 0, 2, 52, "L"),
+      role: "accompaniment",
+      sourceNoteIds: ["support"],
+    }]);
+    expect(result.reattackCount).toBe(0);
   });
 
   it("drops a same-pitch support collision instead of moving the selected melody", () => {
