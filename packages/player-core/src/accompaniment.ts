@@ -61,6 +61,7 @@ export type MelodySelection = "automatic" | "right-hand";
 export type MelodySelectionProvenance = "inferred" | "user-confirmed";
 export type MelodyUnresolvedReason = "ambiguous melody" | "invalid phrase override" | "right-hand part unavailable";
 export type MelodyAccompanimentSupportMode = "source-rhythm" | "sparse-harmonic" | "fallback";
+export type SourceBackingMode = "default" | "conservative";
 /** Which chord labels may create new harmonic notes in Melody + accompaniment. */
 export type MelodyHarmonicSupportPolicy = "all" | "authored-only" | "none";
 
@@ -85,6 +86,8 @@ export interface MelodyAccompanimentProvenance {
   generatedNoteCount: number;
   /** Beats covered by sparse harmonic backing; source-rhythm beats are not counted here. */
   generatedBeats: number;
+  /** Present only when the opt-in source-only reduction path was requested. */
+  sourceBackingMode?: SourceBackingMode;
   /** New source-linked attacks created when sounding-limit trims split a held support. */
   soundingReattackCount: number;
   fallbackBeats: number;
@@ -117,6 +120,8 @@ export interface MelodyAccompanimentOptions {
   phraseOverrides?: readonly MelodyPhraseOverride[];
   /** Generated/notes-derived labels can stay visible without creating audio support. */
   harmonicSupport?: MelodyHarmonicSupportPolicy;
+  /** Opt-in source-only backing reduction; omitted/default leaves the existing path unchanged. */
+  sourceBackingMode?: SourceBackingMode;
 }
 
 export type SoundingLimitPolicy = "resume" | "coherent-phrase";
@@ -1483,6 +1488,66 @@ function protectedSupportSourceIndices(
   return protectedIndices;
 }
 
+interface ConservativeSourceReduction {
+  removed: Set<number>;
+  protected: Set<number>;
+}
+
+function conservativeSourceReduction(
+  sourceNotes: readonly Note[],
+  selectedIndices: ReadonlySet<number>,
+): ConservativeSourceReduction {
+  const playableAttackStarts = sourceNotes
+    .filter(playableSourceNote)
+    .map((note) => note.start)
+    .sort((left, right) => left - right);
+  const backing = sourceNotes
+    .map((note, sourceIndex) => ({ note, sourceIndex }))
+    .filter(({ note, sourceIndex }) => !selectedIndices.has(sourceIndex) && playableSourceNote(note))
+    .sort((left, right) => left.note.start - right.note.start || left.note.midi - right.note.midi || left.sourceIndex - right.sourceIndex);
+  const groups: Array<Array<{ note: Note; sourceIndex: number }>> = [];
+  for (const item of backing) {
+    const previous = groups[groups.length - 1];
+    if (previous && Math.abs(previous[0]!.note.start - item.note.start) <= EPSILON) previous.push(item);
+    else groups.push([item]);
+  }
+
+  const protectedIndices = new Set<number>();
+  const removed = new Set<number>();
+  for (let groupIndex = 0; groupIndex < groups.length; groupIndex++) {
+    const group = groups[groupIndex]!;
+    const lowestPlayable = group[0];
+    if (lowestPlayable) protectedIndices.add(lowestPlayable.sourceIndex);
+    for (const { note, sourceIndex } of group) {
+      const heldAcrossAttack = playableAttackStarts.some((attackStart) =>
+        attackStart > note.start + EPSILON && attackStart < noteEnd(note) - EPSILON,
+      );
+      if (note.identitySource !== undefined
+        || (note.hand === "R" && note.midi >= 75 && note.dur >= 0.5 - EPSILON)
+        || heldAcrossAttack) {
+        protectedIndices.add(sourceIndex);
+      }
+    }
+    const rightHand = group.filter(({ note }) => note.hand === "R");
+    if (rightHand.length < 2) continue;
+    const tupleKey = rightHand.map(({ note }) => note.midi).sort((left, right) => left - right).join(",");
+    const previousGroup = groups[groupIndex - 1];
+    const previousRightHand = previousGroup?.filter(({ note }) => note.hand === "R") ?? [];
+    const previousTupleKey = previousRightHand.length >= 2
+      ? previousRightHand.map(({ note }) => note.midi).sort((left, right) => left - right).join(",")
+      : null;
+    const adjacentAttack = previousGroup !== undefined
+      && group[0]!.note.start - previousGroup[0]!.note.start <= 1 + EPSILON;
+    if (previousTupleKey !== tupleKey || !adjacentAttack) continue;
+    if (rightHand.every(({ note }) => note.dur < 0.5 - EPSILON)) {
+      for (const { sourceIndex } of rightHand) {
+        if (!protectedIndices.has(sourceIndex)) removed.add(sourceIndex);
+      }
+    }
+  }
+  return { removed, protected: protectedIndices };
+}
+
 function sameCandidateAttack(left: Note, right: Note): boolean {
   return left.midi === right.midi && Math.abs(left.start - right.start) <= EPSILON;
 }
@@ -1717,12 +1782,19 @@ export function buildMelodyAccompaniment(
     options.sourceFingerprint ?? null,
     options.phraseOverrides,
   );
+  const conservativeSourceBacking = options.sourceBackingMode === "conservative";
+  const conservativeReduction = conservativeSourceBacking
+    ? conservativeSourceReduction(sourceNotes, selected.selectedIndices)
+    : { removed: new Set<number>(), protected: new Set<number>() };
+  const harmonicSupport = conservativeSourceBacking
+    ? "none"
+    : options.harmonicSupport ?? "all";
   const events = buildEvents(
     sourceNotes,
     chordTimeline,
     "melody-accompaniment",
     durationBeats,
-    options.harmonicSupport ?? "all",
+    harmonicSupport,
   );
   const fallbackEvents: Array<{ startBeat: number; endBeat: number; reason: AccompanimentFallbackReason }> = [];
   const effectiveChords: AccompanimentChord[] = [];
@@ -1763,6 +1835,7 @@ export function buildMelodyAccompaniment(
         sourceSupportNoteCount: 0,
         generatedNoteCount: 0,
         generatedBeats: 0,
+        ...(conservativeSourceBacking ? { sourceBackingMode: "conservative" as const } : {}),
         soundingReattackCount: 0,
         fallbackBeats: durationBeats,
         supportModes: ["fallback"],
@@ -1797,7 +1870,7 @@ export function buildMelodyAccompaniment(
       .map((note, sourceIndex) => ({ note, sourceIndex }))
       .filter(({ note, sourceIndex }) => !selected.selectedIndices.has(sourceIndex) && overlaps(note, event.startBeat, event.endBeat));
     const reducedSupport = reduceSourceSupport(sourceNotes, selected.selectedIndices, event.startBeat, event.endBeat);
-    const learning: LearningChordNotes | null = event.harmonicSupportAllowed
+    const learning: LearningChordNotes | null = !conservativeSourceBacking && event.harmonicSupportAllowed
       ? learningChordNotes(
           event.chord,
           event.notes ?? [],
@@ -1966,10 +2039,24 @@ export function buildMelodyAccompaniment(
     }
   }
 
+  if (conservativeSourceBacking) {
+    for (const sourceIndex of conservativeReduction.protected) {
+      const note = sourceNotes[sourceIndex];
+      if (!note || selected.selectedIndices.has(sourceIndex)) continue;
+      sourceIndicesToReplace.delete(sourceIndex);
+      sourceSupportByIndex.set(sourceIndex, accompanimentNote(note));
+    }
+  }
+
   const sourceEvents = sourceNotes.flatMap((note, index): ArrangementEvent[] => {
     const sourceId = selected.sourceIds[index]!;
     if (selected.selectedIndices.has(index)) {
       return [{ id: `source:${sourceId}`, note, role: "melody", sourceNoteIds: [sourceId] }];
+    }
+    if (conservativeReduction.removed.has(index)) return [];
+    if (conservativeReduction.protected.has(index)) {
+      const protectedNote = sourceSupportByIndex.get(index) ?? note;
+      return [{ id: `source:${sourceId}`, note: protectedNote, role: "retained-unclassified", sourceNoteIds: [sourceId] }];
     }
     const reduced = sourceSupportByIndex.get(index);
     if (reduced) {
@@ -2027,6 +2114,7 @@ export function buildMelodyAccompaniment(
     sourceSupportNoteCount: renderedSourceSupportIds.size,
     generatedNoteCount: renderedGeneratedSupport.length,
     generatedBeats,
+    ...(conservativeSourceBacking ? { sourceBackingMode: "conservative" as const } : {}),
     soundingReattackCount: soundingLimits.reattackCount,
     fallbackBeats,
     supportModes: [...supportModes],

@@ -110,6 +110,203 @@ describe("buildMelodyAccompaniment", () => {
     expect(result.melody.map((item) => item.midi)).toEqual([72, 74, 76]);
   });
 
+  it("keeps the implicit default source-backing path byte-equivalent", () => {
+    const source = [
+      note(84, 0, 1, 110, "R"),
+      note(48, 0, 0.25, 60, "L"), note(64, 0, 0.25, 55, "R"), note(67, 0, 0.25, 55, "R"),
+      note(84, 1, 1, 110, "R"),
+      note(64, 1, 0.25, 55, "R"), note(67, 1, 0.25, 55, "R"),
+      note(84, 2, 1, 110, "R"),
+      note(64, 2, 0.25, 55, "R"), note(67, 2, 0.25, 55, "R"),
+    ];
+    const implicit = buildMelodyAccompaniment(source, [], {
+      durationBeats: 3,
+      sourceFingerprint: "source-backing-default-v1",
+      allowRests: true,
+    });
+    const explicit = buildMelodyAccompaniment(source, [], {
+      durationBeats: 3,
+      sourceFingerprint: "source-backing-default-v1",
+      allowRests: true,
+      sourceBackingMode: "default",
+    });
+
+    expect(explicit).toEqual(implicit);
+
+    const chordedSource = [
+      note(72, 0, 1, 100, "R"), note(48, 0, 0.5, 60, "L"), note(64, 0, 0.5, 55, "R"), note(67, 0, 0.5, 55, "R"),
+      note(74, 1, 1, 100, "R"), note(50, 1, 0.5, 60, "L"), note(65, 1, 0.5, 55, "R"), note(69, 1, 0.5, 55, "R"),
+    ];
+    const chordedOptions = {
+      durationBeats: 2,
+      sourceFingerprint: "source-backing-default-chorded-v1",
+      allowRests: true,
+      harmonicSupport: "all" as const,
+      sparseBackingTiming: { timeSig: [2, 4] as const, measureStartBeat: 0, provenance: "source-measure-boundary" as const },
+    };
+    const implicitChorded = buildMelodyAccompaniment(chordedSource, [{ ...chord(0, "C", 2), sourceKind: "authored" }], chordedOptions);
+    const explicitChorded = buildMelodyAccompaniment(chordedSource, [{ ...chord(0, "C", 2), sourceKind: "authored" }], {
+      ...chordedOptions,
+      sourceBackingMode: "default",
+    });
+    expect(explicitChorded).toEqual(implicitChorded);
+  });
+
+  it("opt-in conservative source backing removes repeated short R voicings without generating notes", () => {
+    const source = [
+      note(84, 0, 1, 110, "R"),
+      note(48, 0, 0.25, 60, "L"), note(64, 0, 0.25, 55, "R"), note(67, 0, 0.25, 55, "R"),
+      note(84, 1, 1, 110, "R"),
+      note(64, 1, 0.25, 55, "R"), note(67, 1, 0.25, 55, "R"),
+      note(84, 2, 1, 110, "R"),
+      note(64, 2, 0.25, 55, "R"), note(67, 2, 0.25, 55, "R"),
+    ];
+    const defaultResult = buildMelodyAccompaniment(source, [], {
+      durationBeats: 3,
+      sourceFingerprint: "source-backing-conservative-v1",
+      allowRests: true,
+    });
+    const conservative = buildMelodyAccompaniment(source, [], {
+      durationBeats: 3,
+      sourceFingerprint: "source-backing-conservative-v1",
+      allowRests: true,
+      sourceBackingMode: "conservative",
+    });
+    const defaultSupportStarts = [...new Set(defaultResult.events
+      .filter((event) => event.role !== "melody")
+      .map((event) => event.note.start))];
+    const conservativeSupport = conservative.events.filter((event) => event.role !== "melody");
+    const conservativeSupportStarts = [...new Set(conservativeSupport.map((event) => event.note.start))];
+
+    expect(defaultSupportStarts).toEqual([0, 1, 2]);
+    expect(conservativeSupportStarts).toEqual([0, 1, 2]);
+    expect(conservativeSupport.filter((event) => event.note.start > 0).every((event) => event.note.midi === 64)).toBe(true);
+    expect(conservativeSupport.every((event) => event.sourceNoteIds.length > 0)).toBe(true);
+    expect(conservative.provenance.generatedNoteCount).toBe(0);
+    expect(conservative.provenance.sourceBackingMode).toBe("conservative");
+    expect(conservative.provenance.supportModes).toContain("source-rhythm");
+    expect(conservative.melody).toEqual(defaultResult.melody);
+  });
+
+  it("does not remove a non-adjacent recurrence after an intervening source tuple", () => {
+    const source = [
+      note(84, 0, 1, 110, "R"), note(64, 0, 0.25, 55, "R"), note(67, 0, 0.25, 55, "R"),
+      note(84, 1, 1, 110, "R"), note(65, 1, 0.25, 55, "R"), note(68, 1, 0.25, 55, "R"),
+      note(84, 2, 1, 110, "R"), note(64, 2, 0.25, 55, "R"), note(67, 2, 0.25, 55, "R"),
+    ];
+    const ids = sourceNoteIds(source);
+    const result = buildMelodyAccompaniment(source, [], {
+      durationBeats: 3,
+      sourceFingerprint: "source-backing-non-adjacent-v1",
+      allowRests: true,
+      sourceBackingMode: "conservative",
+    });
+    const support = result.events.filter((event) => event.role !== "melody");
+    const recurrenceIds = [ids[7]!, ids[8]!];
+
+    expect(recurrenceIds.every((id) => support.some((event) => event.sourceNoteIds.includes(id)))).toBe(true);
+    expect(support.every((event) => event.sourceNoteIds.length > 0)).toBe(true);
+  });
+
+  it("preserves conservative source bass, held, hook, and identity anchors", () => {
+    const identity = { ...note(64, 1, 0.25, 55, "R"), identitySource: "guitar" as const };
+    const held = { ...note(64, 2, 1.5, 55, "R"), identitySource: undefined };
+    const hook = note(80, 4, 0.5, 55, "R");
+    const source = [
+      note(84, 0, 1, 110, "R"),
+      note(48, 0, 0.25, 60, "L"), note(64, 0, 0.25, 55, "R"), note(67, 0, 0.25, 55, "R"),
+      note(84, 1, 1, 110, "R"), identity, note(67, 1, 0.25, 55, "R"),
+      note(84, 2, 1, 110, "R"), held, note(67, 2, 0.25, 55, "R"), note(36, 2, 0.25, 60, "L"),
+      note(84, 3, 1, 110, "R"), note(64, 3, 0.25, 55, "R"), note(67, 3, 0.25, 55, "R"),
+      note(84, 4, 1, 110, "R"), hook, note(64, 4, 0.25, 55, "R"), note(67, 4, 0.25, 55, "R"),
+      note(84, 5, 1, 110, "R"), note(64, 5, 0.25, 55, "R"), note(67, 5, 0.25, 55, "R"),
+    ];
+    const ids = sourceNoteIds(source);
+    const result = buildMelodyAccompaniment(source, [], {
+      durationBeats: 6,
+      sourceFingerprint: "source-backing-anchors-v1",
+      allowRests: true,
+      sourceBackingMode: "conservative",
+    });
+    const support = result.events.filter((event) => event.role !== "melody");
+    const sourceId = (item: Note) => ids[source.indexOf(item)]!;
+
+    expect(support.some((event) => event.sourceNoteIds.includes(sourceId(identity)))).toBe(true);
+    expect(support.some((event) => event.sourceNoteIds.includes(sourceId(held)))).toBe(true);
+    expect(support.some((event) => event.sourceNoteIds.includes(sourceId(hook)))).toBe(true);
+    expect(support.some((event) => event.note.midi === 36 && event.note.start === 2)).toBe(true);
+    expect(support.every((event) => event.sourceNoteIds.length > 0)).toBe(true);
+  });
+
+  it("preserves a held backing note across a later selected melody attack", () => {
+    const source = [
+      note(84, 0, 0.5, 110, "R"), note(48, 0, 0.25, 60, "L"), note(60, 0, 0.25, 55, "R"), note(64, 0, 0.25, 55, "R"),
+      note(84, 2, 0.5, 110, "R"), note(48, 2, 0.25, 60, "L"), note(60, 2, 1.5, 55, "R"), note(64, 2, 0.25, 55, "R"),
+    ];
+    const ids = sourceNoteIds(source);
+    const result = buildMelodyAccompaniment(source, [chord(0, "C", 4)], {
+      durationBeats: 4,
+      sourceFingerprint: "source-backing-held-melody-attack-v1",
+      allowRests: true,
+      sourceBackingMode: "conservative",
+      phraseOverrides: [{
+        startBeat: 0,
+        endBeat: 4,
+        sourceNoteIds: [ids[0]!, ids[4]!],
+        sourceFingerprint: "source-backing-held-melody-attack-v1",
+      }],
+    });
+
+    expect(result.events.some((event) => event.sourceNoteIds.includes(ids[6]!))).toBe(true);
+    expect(result.provenance.generatedNoteCount).toBe(0);
+  });
+
+  it("protects the lowest backing note even when it is labelled R", () => {
+    const source = [
+      note(84, 0, 1, 110, "R"), note(40, 0, 0.25, 55, "R"), note(64, 0, 0.25, 55, "R"),
+      note(84, 1, 1, 110, "R"), note(40, 1, 0.25, 55, "R"), note(64, 1, 0.25, 55, "R"),
+    ];
+    const ids = sourceNoteIds(source);
+    const result = buildMelodyAccompaniment(source, [], {
+      durationBeats: 2,
+      sourceFingerprint: "source-backing-r-bass-v1",
+      allowRests: true,
+      sourceBackingMode: "conservative",
+      phraseOverrides: [{
+        startBeat: 0,
+        endBeat: 2,
+        sourceNoteIds: [ids[0]!, ids[3]!],
+        sourceFingerprint: "source-backing-r-bass-v1",
+      }],
+    });
+
+    expect(result.events.some((event) => event.sourceNoteIds.includes(ids[4]!))).toBe(true);
+    expect(result.provenance.generatedNoteCount).toBe(0);
+  });
+
+  it("preserves source rests in conservative mode instead of filling them with harmony", () => {
+    const source = [
+      note(84, 0, 0.5, 110, "R"),
+      note(48, 0, 0.25, 60, "L"), note(64, 0, 0.25, 55, "R"), note(67, 0, 0.25, 55, "R"),
+      note(84, 3, 0.5, 110, "R"),
+      note(65, 3, 0.25, 55, "R"), note(68, 3, 0.25, 55, "R"),
+    ];
+    const result = buildMelodyAccompaniment(source, [{ ...chord(0, "C", 4), sourceKind: "authored" }], {
+      durationBeats: 4,
+      sourceFingerprint: "source-backing-rest-v1",
+      allowRests: true,
+      sourceBackingMode: "conservative",
+      harmonicSupport: "all",
+      sparseBackingTiming: { timeSig: [4, 4], measureStartBeat: 0, provenance: "source-measure-boundary" },
+    });
+    const backing = result.events.filter((event) => event.role !== "melody");
+
+    expect([...new Set(backing.map((event) => event.note.start))]).toEqual([0, 3]);
+    expect(backing.every((event) => event.sourceNoteIds.length > 0)).toBe(true);
+    expect(result.provenance.generatedNoteCount).toBe(0);
+    expect(result.chords).toEqual([]);
+  });
+
   it("keeps reducible source rhythm even when the chord cannot be voiced", () => {
     const result = build(
       [note(72, 0, 2, 100, "R"), note(36, 0, 0.5, 60, "L"), note(40, 0, 0.5, 60, "L"), note(43, 0, 0.5, 60, "L"), note(48, 0, 0.5, 60, "L")],

@@ -6,7 +6,7 @@ Scope: Task 2 only; no UI, catalogue, live data, merge, push, deployment, or pro
 
 ## Result
 
-Status: PARTIAL. The bounded producer selector correction is implemented and tested: it compares the actual merged source/protected/held candidate, protects the deterministic first structural source attack plus explicit `identitySource: "vocals"` evidence, carries protection across repeated sparse seams, and preserves source rests during regeneration. The Oops real-song rhythm limitation remains unresolved at `479/479`; no generated-only real change is claimed. The final Task 1 allocator remains the only final allocation pass.
+Status: PARTIAL. The bounded producer selector correction is implemented and tested: it compares the actual merged source/protected/held candidate, protects the deterministic first structural source attack plus explicit `identitySource: "vocals"` evidence, carries protection across repeated sparse seams, and preserves source rests during regeneration. A separate opt-in conservative source-only preview now reduces repeated short source voicing members without generated pitches; it does not change the Oops attack grid and is not presented as an automatic rhythm fix. The Oops real-song rhythm limitation remains unresolved at `479/479`; no generated-only real change is claimed. The final Task 1 allocator remains the only final allocation pass.
 
 ## TDD evidence
 
@@ -30,6 +30,10 @@ PATH=/Users/reidar/.nvm/versions/node/v22.22.3/bin:$PATH npm run test -w @keyspi
 Test Files  1 passed (1)
 Tests       76 passed (76)
 ```
+
+The source-only preview follow-up passed the focused producer suite at `83/83`
+and the full player-core suite at `256/256`, with typecheck and `git diff --check`
+passing. The default mode remains byte-equivalent in the dedicated regression.
 
 Full player-core suite:
 
@@ -83,6 +87,15 @@ Oops `[64,108]` exact current result:
 The preserved historical baseline was `84` notes / `55` attack locations in this window, `466` source-support notes, and maximum `8` attacks/measure. The current deltas are `+35` window support notes, `+21` window attack locations, `+135` source-support notes, and `+6` maximum attacks/measure. The current full stream explains the increase structurally: all `850/850` final backing events are source-linked, `0` are generated, and `249` are retained-unclassified source events. Candidate/identity attribution is explicit: `601` events are `source-rhythm-or-protected`, `249` are `retained-source`, every source identity is `unannotated`, and there are `0` `sparse-harmonic-generated` events. In `[64,108]`, the full stream contains `119` source-rhythm/protected events and `32` retained-source events; the attack union remains the source union. No current final attack location is newly synthesized, and no density increase is accepted through a generated-note quota.
 
 This is an identity/stream accounting result, not a claim that Oops is musically useful or human-playable. The historical artifact preserves aggregate metrics rather than its full old event lineage, so the exact old-to-new identity mapping is not claimed.
+
+The separate conservative source-only preview was also checked on the same
+Oops interval against the current worktree: `131` full backing events at the
+same `85` attack locations, `13` accompaniment events at `12` support-only
+attack locations, `0` generated events, and `131` source-linked final events.
+The default comparison is `151` full events / `85` attacks, `119` support
+events / `76` support attacks, and `0` generated. This is a selectable voicing
+density preview, not an automatic rhythm repair; support-only and full-stream
+denominators remain distinct.
 
 The corrected selector and seam/rest behavior are mechanism-level results from synthetic authored-chart fixtures. The exact real controls still use notes-derived/generated chord labels under `harmonicSupport: "authored-only"`, so they do not receive synthesized harmonic backing.
 
