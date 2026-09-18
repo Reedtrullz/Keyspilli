@@ -1468,6 +1468,120 @@ test("real artifact keeps arrangement controls usable at 390px", async ({ page }
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
+// The reported recording is Queen's Somebody To Love. The checked-in deterministic
+// fixture set does not include that artifact, so Oops exercises the same fallback
+// banner and phrase-review transitions without depending on production data.
+test("fallback and phrase metadata keep transport stable and review controls visible", async ({ page }, testInfo) => {
+  test.setTimeout(60_000);
+  const geometry = () => page.evaluate(() => {
+    const metadata = document.querySelector<HTMLElement>(".player-song-header > .ml-auto");
+    const surface = document.querySelector<HTMLElement>(".player-surface");
+    const phraseSummary = document.querySelector<HTMLDetailsElement>('[data-testid="melody-phrase-summary"]');
+    const fallback = document.querySelector<HTMLElement>('[data-testid="accompaniment-fallback"]');
+    const fallbackState = fallback?.getAttribute("data-active");
+    return {
+      surfaceTop: surface?.getBoundingClientRect().top ?? null,
+      metadataVisible: !!metadata && getComputedStyle(metadata).display !== "none",
+      metadataHeight: metadata?.getBoundingClientRect().height ?? null,
+      pillHeights: metadata ? Array.from(metadata.children).filter((child): child is HTMLElement => child.tagName === "SPAN").map(child => child.getBoundingClientRect().height) : [],
+      phraseSummaryVisible: !!phraseSummary && getComputedStyle(phraseSummary).display !== "none",
+      phraseSummaryOpen: phraseSummary?.open ?? false,
+      phraseText: phraseSummary?.querySelector<HTMLElement>("div.mt-2")?.textContent?.trim() ?? null,
+      fallbackActive: fallbackState === null ? !!fallback : fallbackState === "true",
+      fallbackMessage: fallback?.textContent?.trim() ?? null,
+      fallbackRole: fallback?.getAttribute("role") ?? null,
+      fallbackLive: fallback?.getAttribute("aria-live") ?? null,
+      fallbackHidden: fallback?.getAttribute("aria-hidden") ?? null,
+    };
+  });
+
+  await page.setViewportSize({ width: 1550, height: 560 });
+  await page.goto(`/player/${OOPS_SONG_ID}`);
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+  await selectArrangement(page, "Chord mode", "Automatic melody");
+  const phraseSummary = page.getByTestId("melody-phrase-summary");
+  const closedGeometry = await geometry();
+  expect(closedGeometry.metadataVisible).toBe(true);
+  expect(closedGeometry.phraseSummaryVisible).toBe(true);
+  expect(closedGeometry.phraseSummaryOpen).toBe(false);
+  expect(closedGeometry.pillHeights.length).toBeGreaterThan(0);
+  expect(closedGeometry.pillHeights.every((height) => height <= 40), JSON.stringify(closedGeometry)).toBe(true);
+  await phraseSummary.locator("summary").click();
+  await expect(phraseSummary).toHaveAttribute("open", "");
+
+  const openGeometry = await geometry();
+  expect(openGeometry.metadataVisible).toBe(true);
+  expect(openGeometry.phraseSummaryVisible).toBe(true);
+  expect(openGeometry.phraseSummaryOpen).toBe(true);
+  expect(openGeometry.pillHeights.length).toBeGreaterThan(0);
+  expect(openGeometry.pillHeights.every((height) => height <= 40), JSON.stringify(openGeometry)).toBe(true);
+
+  await page.getByRole("button", { name: "Play", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+  const states: Array<Awaited<ReturnType<typeof geometry>>> = [];
+  let activeFallbackSeen = false;
+  let inactiveFallbackSeenAfterActive = false;
+  let phraseChanged = false;
+  for (let attempt = 0; attempt < 60 && (!inactiveFallbackSeenAfterActive || !phraseChanged); attempt += 1) {
+    await page.waitForTimeout(250);
+    const state = await geometry();
+    states.push(state);
+    if (state.fallbackActive) activeFallbackSeen = true;
+    if (activeFallbackSeen && !state.fallbackActive) inactiveFallbackSeenAfterActive = true;
+    if (state.phraseText && state.phraseText !== openGeometry.phraseText) phraseChanged = true;
+  }
+  expect(activeFallbackSeen).toBe(true);
+  expect(inactiveFallbackSeenAfterActive).toBe(true);
+  expect(phraseChanged).toBe(true);
+  expect(new Set(states.filter((state) => state.fallbackActive).map((state) => state.fallbackMessage)).size).toBeGreaterThan(1);
+  expect(states.every((state) => state.surfaceTop === openGeometry.surfaceTop), JSON.stringify(states)).toBe(true);
+  const activeFallback = states.find((state) => state.fallbackActive)!;
+  const inactiveIndex = states.findIndex((state, index) => state.fallbackActive && states[index + 1]?.fallbackActive === false);
+  const inactiveFallback = inactiveIndex >= 0 ? states[inactiveIndex + 1] : undefined;
+  expect(activeFallback).toMatchObject({ fallbackRole: "status", fallbackLive: "polite", fallbackHidden: null });
+  expect(inactiveFallback).toMatchObject({ fallbackActive: false, fallbackRole: null, fallbackLive: null, fallbackHidden: "true" });
+  await page.getByRole("button", { name: "Pause", exact: true }).click();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.reload();
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+  await selectArrangement(page, "Chord mode", "Automatic melody");
+  const narrowPhraseSummary = page.getByTestId("melody-phrase-summary");
+  await expect(narrowPhraseSummary).toBeVisible();
+  await narrowPhraseSummary.locator("summary").click();
+  await expect(narrowPhraseSummary.getByText(/^Current phrase /)).toBeVisible();
+  const narrowOpenGeometry = await geometry();
+  expect(narrowOpenGeometry.phraseSummaryVisible).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath("fallback-layout-mobile.png"), fullPage: true });
+
+  await page.getByRole("button", { name: "Play", exact: true }).click();
+  const narrowStates: Array<Awaited<ReturnType<typeof geometry>>> = [];
+  let narrowActiveFallbackSeen = false;
+  let narrowInactiveFallbackSeenAfterActive = false;
+  for (let attempt = 0; attempt < 60 && !narrowInactiveFallbackSeenAfterActive; attempt += 1) {
+    await page.waitForTimeout(250);
+    const state = await geometry();
+    narrowStates.push(state);
+    if (state.fallbackActive) narrowActiveFallbackSeen = true;
+    if (narrowActiveFallbackSeen && !state.fallbackActive) narrowInactiveFallbackSeenAfterActive = true;
+  }
+  expect(narrowActiveFallbackSeen).toBe(true);
+  expect(narrowInactiveFallbackSeenAfterActive).toBe(true);
+  expect(new Set(narrowStates.filter((state) => state.fallbackActive).map((state) => state.fallbackMessage)).size).toBeGreaterThan(1);
+  expect(narrowStates.every((state) => state.surfaceTop === narrowOpenGeometry.surfaceTop), JSON.stringify(narrowStates)).toBe(true);
+  await page.getByRole("button", { name: "Pause", exact: true }).click();
+
+  await page.setViewportSize({ width: 926, height: 390 });
+  await page.reload();
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Play", exact: true })).toBeVisible();
+  const landscapeStage = await page.locator(".player-stage").boundingBox();
+  expect(landscapeStage?.height ?? 0).toBeGreaterThan(120);
+  expect(landscapeStage?.y ?? Infinity).toBeLessThan(390);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath("fallback-layout-landscape.png"), fullPage: true });
+});
+
 type ReservedCaptureOutcome = {
   status: "captured" | "error";
   modeLabel: string;
