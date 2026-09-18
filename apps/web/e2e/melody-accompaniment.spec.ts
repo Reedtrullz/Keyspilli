@@ -338,6 +338,20 @@ function saveCapture(testInfo: { outputPath: (path: string) => string }, label: 
   writeFileSync(testInfo.outputPath(`${label}.json`), JSON.stringify({ ...capture, base64: undefined }, null, 2));
 }
 
+function captureMetadata(capture: AudioCapture & { sha256: string }) {
+  return {
+    sha256: capture.sha256,
+    bytes: capture.bytes,
+    events: capture.events.length,
+    signal: capture.signal,
+    decodedPcm: {
+      sampleRate: capture.decodedPcm.sampleRate,
+      samples: capture.decodedPcm.samples,
+      durationSeconds: decodedDurationSeconds(capture),
+    },
+  };
+}
+
 function audible(capture: AudioCapture & { sha256: string }): void {
   expect(capture.bytes).toBeGreaterThan(0);
   expect(capture.signal.samples).toBeGreaterThan(0);
@@ -1023,11 +1037,7 @@ test("complete Oops phrase captures Original, coherent and resume candidates wit
       sourceFingerprint: "variant:britney-spears-oops-i-did-it-again:a:britney-spears-oops-i-did-it-again-a:64d18aa4c23f7625a6eb0a7a234843a7a2278003d75cba9ea04efde7d8225ad4:notes:84153b6de3857351ce92086c8f5a28f9147073070948ed96fd39e6d6f8f212ae",
       window: { startBeat: 64, endBeat: 108, bpm: 95 },
       instrument: "browser AudioEngine synth",
-      candidates: {
-        original: { sha256: original.sha256, bytes: original.bytes, events: original.events.length, signal: original.signal },
-        coherent: { sha256: coherent.sha256, bytes: coherent.bytes, events: coherent.events.length, signal: coherent.signal },
-        resume: { sha256: resume.sha256, bytes: resume.bytes, events: resume.events.length, signal: resume.signal },
-      },
+      candidates: { original: captureMetadata(original), coherent: captureMetadata(coherent), resume: captureMetadata(resume) },
       humanListening: "pending",
     }, null, 2));
   } finally {
@@ -1055,17 +1065,6 @@ test("complete Blackbird phrase captures Original and automatic candidates", asy
   expect(automatic.sha256).not.toBe(original.sha256);
   expect(automatic.events.length).toBeGreaterThan(0);
 
-  const captureMetadata = (capture: AudioCapture & { sha256: string }) => ({
-    sha256: capture.sha256,
-    bytes: capture.bytes,
-    events: capture.events.length,
-    signal: capture.signal,
-    decodedPcm: {
-      sampleRate: capture.decodedPcm.sampleRate,
-      samples: capture.decodedPcm.samples,
-      durationSeconds: decodedDurationSeconds(capture),
-    },
-  });
   writeFileSync(testInfo.outputPath("blackbird-phrase-14-26.5-audio-comparison.json"), JSON.stringify({
     candidateCommit: process.env.KEYSPILLI_CAPTURE_COMMIT ?? "uncommitted-worktree",
     sourceFingerprint: "variant:the-beatles-blackbird:a:the-beatles-blackbird-a:3fc3fd74d567da56dd10ff05689ef2f57641efbbe200532aabc0ea5fbcea1e75:notes:4529b839209ca52480d6dbab332ea211e709edfb660473b662a1a62ef56aa53e",
