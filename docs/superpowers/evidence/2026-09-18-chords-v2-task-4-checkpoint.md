@@ -3,7 +3,7 @@
 Date: 2026-09-18
 Worktree: `/Users/reidar/.codex/worktrees/musically-useful-chords-mode`
 Branch: `codex/musically-useful-chords-mode`
-Code/evidence checkpoint: `773e52c` (`test(web): record decoded capture durations`)
+Code/evidence checkpoint: `be31410` (`test(web): stabilize source preview capture`)
 
 ## Implemented truthfulness boundary
 
@@ -31,6 +31,8 @@ the Oops rhythm.
   transpose, correction, and practice flow`.
 - Complete Blackbird phrase capture: `1/1` passed on `9549980`.
 - Corrected Oops phrase capture: `1/1` passed on `773e52c`.
+- Oops default/source-only preview comparison: `1/1` passed on `be31410`;
+  default was reused, not rerendered.
 
 ## Current local audio evidence
 
@@ -60,13 +62,26 @@ The three captures are non-empty and differ in scheduled events/hash. Human
 listening, recognizability, accompaniment usefulness, and physical comfort are
 pending; `humanListening` remains `pending` in the manifest.
 
+### Oops default versus source-only preview
+
+Manifest:
+`docs/superpowers/evidence/2026-09-18-task-5-audio/oops-64-108/source-preview-capture/oops-section-2-source-preview-comparison.json`
+
+The manifest reuses the durable Original and default/coherent captures above
+and adds only the source-only preview. The exact options are
+`sourceBackingMode: "default"` for Default Automatic and
+`sourceBackingMode: "conservative"` for the preview. The preview has 780
+events, SHA-256
+`56b2939cbdca1d59669ad455a587084a4918d68b852c2c67a2ed880f075f2273`, and
+decoded PCM `1272726 / 44100 = 28.86 s`; `humanListening` remains `pending`.
+
 ### Blackbird `[14,26.5]` at 120 BPM
 
 Manifest:
 `docs/superpowers/evidence/2026-09-18-task-5-audio/blackbird-14-26.5/capture/blackbird-phrase-14-26.5-audio-comparison.json`
 
-Candidate `9549980` captured a complete source window plus 0.5 seconds of
-lead-in and 1 second of tail. Original and automatic both passed non-empty
+Candidate `9549980` captured beat `13` through beat `27.5`: a complete source
+window plus 0.5 seconds of lead-in and 0.5 seconds of tail. Original and automatic both passed non-empty
 audibility/decoded-duration checks and have different hashes/events. Original
 decoded PCM is `320166 / 44100 = 7.26 s`; automatic is
 `322811 / 44100 ≈ 7.32 s`. This is phrase-level wiring evidence, not a human

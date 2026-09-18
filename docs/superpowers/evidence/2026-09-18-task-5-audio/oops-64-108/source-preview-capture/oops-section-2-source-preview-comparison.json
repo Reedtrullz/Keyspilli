@@ -1,0 +1,70 @@
+{
+  "candidateCommit": "be31410",
+  "sourceFingerprint": "variant:britney-spears-oops-i-did-it-again:a:britney-spears-oops-i-did-it-again-a:64d18aa4c23f7625a6eb0a7a234843a7a2278003d75cba9ea04efde7d8225ad4:notes:84153b6de3857351ce92086c8f5a28f9147073070948ed96fd39e6d6f8f212ae",
+  "window": {
+    "startBeat": 64,
+    "endBeat": 108,
+    "bpm": 95
+  },
+  "capture": {
+    "startSeconds": 39.921052631578945,
+    "durationMs": 28790,
+    "startBeat": 63.208333333333336,
+    "endBeat": 108.7925,
+    "instrument": "browser AudioEngine synth"
+  },
+  "producerOptions": {
+    "original": {
+      "arrangement": "Original",
+      "sourceBackingMode": "n/a"
+    },
+    "default": {
+      "selection": "automatic",
+      "sourceBackingMode": "default",
+      "allowRests": true,
+      "soundingPolicy": "coherent-phrase",
+      "harmonicSupport": "authored-only"
+    },
+    "preview": {
+      "selection": "automatic",
+      "sourceBackingMode": "conservative",
+      "allowRests": true,
+      "soundingPolicy": "coherent-phrase",
+      "harmonicSupport": "authored-only"
+    }
+  },
+  "existingCandidates": {
+    "original": {
+      "artifact": "oops-64-108/final-capture/oops-section-2-original.{json,webm}",
+      "captureCommit": "773e52c",
+      "sourceBackingMode": "n/a",
+      "sha256": "7b20c3d299e1f874bdad75fc52e1ca9ef709c0558ad54eca375dba2957bff3e4",
+      "bytes": 464942,
+      "events": 1011
+    },
+    "default": {
+      "artifact": "oops-64-108/final-capture/oops-section-2-coherent.{json,webm}",
+      "captureCommit": "773e52c",
+      "sourceBackingMode": "default",
+      "sha256": "2fc4fc2cf4755eabb2d677e4373636ea73415cbee4d96d483e8bcd3ff6039cde",
+      "bytes": 450669,
+      "events": 735
+    }
+  },
+  "preview": {
+    "sha256": "56b2939cbdca1d59669ad455a587084a4918d68b852c2c67a2ed880f075f2273",
+    "bytes": 456374,
+    "events": 780,
+    "signal": {
+      "rms": 0.06017337913522614,
+      "peak": 0.7452824115753174,
+      "samples": 212121
+    },
+    "decodedPcm": {
+      "sampleRate": 44100,
+      "samples": 1272726,
+      "durationSeconds": 28.86
+    }
+  },
+  "humanListening": "pending"
+}

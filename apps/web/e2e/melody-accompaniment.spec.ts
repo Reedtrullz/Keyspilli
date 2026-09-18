@@ -1103,7 +1103,7 @@ test("complete Blackbird phrase captures Original and automatic candidates", asy
   const phraseStartSeconds = 14 * 60 / 120;
   const phraseEndSeconds = 26.5 * 60 / 120;
   expect(startSeconds).toBeCloseTo(phraseStartSeconds - 0.5, 6);
-  expect(startSeconds + durationMs / 1000).toBeCloseTo(phraseEndSeconds + 1, 3);
+  expect(startSeconds + durationMs / 1000).toBeCloseTo(phraseEndSeconds + 0.5, 3);
   await selectArrangement(page, "Original arrangement");
   await bootAudio(page);
   const original = await captureArrangement(page, testInfo, "blackbird-phrase-14-26.5-original", startSeconds, durationMs);
