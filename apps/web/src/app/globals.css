@@ -985,6 +985,7 @@ body:has(.player-focus) :where(.site-header, .site-footer) { display: none; }
 .player-control-strip .player-options { display: contents; }
 .player-control-strip .player-primary-controls { width: auto; margin-left: auto; border: 0; padding: 0; }
 .player-song-actions { margin-left: 0.5rem; }
+.player-fallback-slot { min-height: 40px; }
 .player-workspace[data-falling="true"] { height: calc(100dvh - 4.5rem); min-height: 620px; display: flex; flex-direction: column; }
 .player-workspace[data-falling="true"] .player-surface { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 .player-workspace[data-falling="true"] :where(.player-stage, .player-mode-stack, .player-mode-layer-enter) { display: flex; flex-direction: column; flex: 1; min-width: 0; min-height: 180px; }
@@ -1023,15 +1024,19 @@ body:has(.player-focus) :where(.site-header, .site-footer) { display: none; }
 @media (max-width: 640px), (max-width: 1000px) and (max-height: 500px) {
   .player-page { padding: 4px 8px; }
   .player-workspace[data-falling="true"] { height: auto; min-height: 0; }
-  .player-song-header { flex-wrap: nowrap; gap: 6px; margin-bottom: 4px; min-height: 48px; }
+  .player-song-header { flex-wrap: wrap; align-items: flex-start; gap: 6px; margin-bottom: 4px; min-height: 48px; }
   .player-song-header h1 { font-size: 16px; max-width: 42vw; }
-  .player-song-header > .ml-auto { display: none; }
+  .player-song-header > .player-song-metadata { display: none; }
+  .player-song-header > .player-song-metadata.player-song-metadata--mobile { display: flex; flex: 1 1 100%; width: 100%; margin-left: 0; justify-content: flex-start; }
+  .player-song-metadata > [data-testid="melody-phrase-summary"] { width: 100%; }
   .player-song-actions { position: relative; margin-left: auto; }
   .player-song-menu { display: flex; align-items: center; }
   .player-song-action-buttons { position: absolute; right: 0; top: 48px; z-index: 40; width: 240px; padding: 12px; background: white; border: 1px solid #d4d4d8; border-radius: 12px; box-shadow: 0 8px 24px #18181b24; }
   .player-mobile-range, .player-mobile-speed { display: block; }
   .player-mobile-speed { width: 64px; margin-left: auto; }
   .player-control-strip .player-speed-controls, .player-tempo-notice { display: none; }
+  .player-fallback-slot { min-height: 60px; }
+  .player-song-metadata > [data-testid="melody-phrase-summary"][open] { min-height: 160px; }
   .player-control-strip { padding: 4px 6px; gap: 4px; position: static; }
   .player-control-strip [aria-label="Hands"] { gap: 2px; }
   .player-control-strip [aria-label="Hands"] button { padding-inline: 8px; }

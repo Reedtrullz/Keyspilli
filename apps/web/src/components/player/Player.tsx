@@ -1603,6 +1603,8 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       "no playable support voicing": "Original passage retained — no collision-safe support voicing fits this phrase.",
     } as Record<string, string>)[activeAccompanimentFallback.reason]
     : null;
+  const accompanimentFallbackSlotMessage = accompanimentFallbackMessage ?? "Original passage retained — accompaniment fallback requires review.";
+  const hasAccompanimentFallbackSlot = settings.backgroundMode === "chord" && accompaniment.fallbackSpans.length > 0;
   const activeSection = sections.find((s) => {
     const spb = secPerBeat(initial.data.tempoBpm, settings.speed);
     return time >= s.startBeat * spb && time < s.endBeat * spb;
@@ -1678,12 +1680,12 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     <div className={`${fullWidth ? "w-full px-4 py-6" : "max-w-6xl mx-auto px-4 py-6"} page-shell player-page ${focusMode ? "player-focus" : ""}`}>
       <div className="player-workspace" data-falling={settings.mode === "falling" && !chordPracticeActive}>
       <div className="player-song-header mb-3 flex items-center gap-2 flex-wrap">
-        <div>
+        <div className="min-w-0">
           <h1 className="text-xl font-bold leading-tight truncate max-w-[70vw]" title={initial.song.title}>{initial.song.title}</h1>
           <div className="text-sm text-zinc-500">by {initial.song.artist}</div>
           <SourceArrangementNotice source={initial.sourceArrangement} />
         </div>
-        <div className="ml-auto flex gap-2 text-xs">
+        <div className={`player-song-metadata ml-auto flex min-w-0 max-w-full flex-wrap items-start justify-end gap-2 text-xs ${settings.backgroundMode === "chord" ? "player-song-metadata--mobile" : ""}`}>
           <span className="px-2 py-1 rounded-full bg-zinc-100 text-zinc-700 font-medium">{initial.song.key}</span>
           <span className="px-2 py-1 rounded-full bg-zinc-100 text-zinc-700 font-medium">{levelLabel(initial.song.difficulty)}</span>
           <span className="px-2 py-1 rounded-full bg-zinc-100 text-zinc-700 font-medium">{initial.song.tempo} BPM</span>
@@ -1717,7 +1719,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
                   <button type="button" className="min-h-8 rounded-md border border-amber-300 bg-white px-2" onClick={() => setWorkerRetry(value => value + 1)}>Retry arrangement</button>
                 </div>
               )}
-              <details className="basis-full text-xs text-zinc-600" data-testid="melody-phrase-summary">
+              <details className="basis-full min-w-0 text-xs text-zinc-600" data-testid="melody-phrase-summary">
                 <summary className="cursor-pointer rounded-full px-2 py-1 hover:bg-zinc-100">
                   Phrases: {phraseCounts.changed} changed · {phraseCounts.unchanged} unchanged{phraseCounts.review ? ` · ${phraseCounts.review} need review` : ""}
                 </summary>
@@ -1781,9 +1783,19 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
         </div>
       )}
 
-      {settings.backgroundMode === "chord" && accompanimentFallbackMessage && (
-        <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900" data-testid="accompaniment-fallback" role="status">
-          {accompanimentFallbackMessage}
+      {hasAccompanimentFallbackSlot && (
+        <div className="player-fallback-slot mb-3" data-testid="accompaniment-fallback-slot">
+          <div
+            className={`rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900 ${accompanimentFallbackMessage ? "" : "invisible"}`}
+            data-testid="accompaniment-fallback"
+            data-active={accompanimentFallbackMessage ? "true" : "false"}
+            aria-hidden={accompanimentFallbackMessage ? undefined : true}
+            role={accompanimentFallbackMessage ? "status" : undefined}
+            aria-live={accompanimentFallbackMessage ? "polite" : undefined}
+            aria-atomic={accompanimentFallbackMessage ? "true" : undefined}
+          >
+            {accompanimentFallbackSlotMessage}
+          </div>
         </div>
       )}
 
