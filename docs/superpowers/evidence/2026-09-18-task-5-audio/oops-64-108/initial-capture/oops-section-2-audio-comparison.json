@@ -1,0 +1,44 @@
+{
+  "candidateCommit": "5347cc3",
+  "baselineCommit": "fce18bcbc358a06281813192de95eb56f9f0e878",
+  "sourceFingerprint": "variant:britney-spears-oops-i-did-it-again:a:britney-spears-oops-i-did-it-again-a:64d18aa4c23f7625a6eb0a7a234843a7a2278003d75cba9ea04efde7d8225ad4:notes:84153b6de3857351ce92086c8f5a28f9147073070948ed96fd39e6d6f8f212ae",
+  "window": {
+    "startBeat": 64,
+    "endBeat": 108,
+    "bpm": 95
+  },
+  "instrument": "browser AudioEngine synth",
+  "candidates": {
+    "original": {
+      "sha256": "4d98da3c47a593bb1de85f0c594850e7ba954c7d2b357b9e5e5c1c92de0b9503",
+      "bytes": 462725,
+      "events": 1011,
+      "signal": {
+        "rms": 0.07134813778348265,
+        "peak": 0.9908941388130188,
+        "samples": 212121
+      }
+    },
+    "coherent": {
+      "sha256": "eab905544579920940d823e562c17efe49bda9afc67971ea2163628cbb2b146a",
+      "bytes": 450989,
+      "events": 735,
+      "signal": {
+        "rms": 0.056400758985770516,
+        "peak": 0.8757978677749634,
+        "samples": 212121
+      }
+    },
+    "resume": {
+      "sha256": "1d1021d1e977792696d99940d0e878adb382d59b240f3afd1394474fc011a316",
+      "bytes": 458917,
+      "events": 735,
+      "signal": {
+        "rms": 0.05640554253636557,
+        "peak": 0.811687171459198,
+        "samples": 212121
+      }
+    }
+  },
+  "humanListening": "pending"
+}

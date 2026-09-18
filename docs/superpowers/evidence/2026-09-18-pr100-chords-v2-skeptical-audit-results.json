@@ -1,0 +1,298 @@
+{
+  "reviewedHead": "a7087b1e5c3862a31abee66cd536330ac5c4a321",
+  "results": [
+    {
+      "id": "the-beatles-blackbird",
+      "sourceNotes": 1069,
+      "sourceChords": 68,
+      "outputNotes": 1025,
+      "melodyNotes": 554,
+      "sourceSupportNotes": 416,
+      "generatedNotes": 0,
+      "generatedBeats": 0,
+      "fallbackBeats": 60.375,
+      "fallbackReasons": {
+        "no chord coverage": 17.375,
+        "ambiguous melody": 35.625,
+        "sounding limit exceeded": 7.125,
+        "unverified chord source": 0.25
+      },
+      "supportModes": [
+        "source-rhythm",
+        "fallback"
+      ],
+      "unresolvedSpans": 25,
+      "unresolvedBeats": 38.125,
+      "maxSupportAttacksPerMeasure": 9,
+      "meanSupportAttacksPerMeasure": 5.45945945945946,
+      "minimumSupportAttackGapBeats": 0.25,
+      "minimumSupportAttackGapSeconds": 0.125,
+      "highSupportAssignedLeft": [],
+      "velocityCounterexample": null
+    },
+    {
+      "id": "britney-spears-oops-i-did-it-again",
+      "sourceNotes": 1891,
+      "sourceChords": 74,
+      "outputNotes": 1298,
+      "melodyNotes": 583,
+      "sourceSupportNotes": 466,
+      "generatedNotes": 0,
+      "generatedBeats": 0,
+      "fallbackBeats": 123.875,
+      "fallbackReasons": {
+        "ambiguous melody": 43.625,
+        "unverified chord source": 44,
+        "sounding limit exceeded": 30,
+        "no chord coverage": 6.25
+      },
+      "supportModes": [
+        "source-rhythm",
+        "fallback"
+      ],
+      "unresolvedSpans": 55,
+      "unresolvedBeats": 50.375,
+      "maxSupportAttacksPerMeasure": 8,
+      "meanSupportAttacksPerMeasure": 3.5952380952380953,
+      "minimumSupportAttackGapBeats": 0.125,
+      "minimumSupportAttackGapSeconds": 0.07894736842105263,
+      "highSupportAssignedLeft": [
+        {
+          "beat": 80,
+          "output": {
+            "midi": 88,
+            "start": 80,
+            "dur": 0.125,
+            "vel": 70,
+            "hand": "L"
+          },
+          "source": [
+            {
+              "midi": 88,
+              "start": 80,
+              "dur": 0.125,
+              "vel": 100,
+              "hand": "R"
+            }
+          ],
+          "activeMelody": [
+            {
+              "midi": 92,
+              "start": 80,
+              "dur": 0.25,
+              "vel": 100,
+              "hand": "R"
+            }
+          ]
+        },
+        {
+          "beat": 160,
+          "output": {
+            "midi": 88,
+            "start": 160,
+            "dur": 0.125,
+            "vel": 70,
+            "hand": "L"
+          },
+          "source": [
+            {
+              "midi": 88,
+              "start": 160,
+              "dur": 0.125,
+              "vel": 100,
+              "hand": "R"
+            }
+          ],
+          "activeMelody": [
+            {
+              "midi": 92,
+              "start": 160,
+              "dur": 0.25,
+              "vel": 100,
+              "hand": "R"
+            }
+          ]
+        },
+        {
+          "beat": 240,
+          "output": {
+            "midi": 88,
+            "start": 240,
+            "dur": 0.125,
+            "vel": 70,
+            "hand": "L"
+          },
+          "source": [
+            {
+              "midi": 88,
+              "start": 240,
+              "dur": 0.125,
+              "vel": 100,
+              "hand": "R"
+            }
+          ],
+          "activeMelody": [
+            {
+              "midi": 85,
+              "start": 240,
+              "dur": 0.5,
+              "vel": 100,
+              "hand": "R"
+            }
+          ]
+        }
+      ],
+      "velocityCounterexample": {
+        "support": {
+          "midi": 49,
+          "start": 204,
+          "dur": 2,
+          "vel": 70,
+          "hand": "L"
+        },
+        "melody": {
+          "midi": 106,
+          "start": 204,
+          "dur": 0.125,
+          "vel": 60,
+          "hand": "R"
+        }
+      },
+      "window": {
+        "startBeat": 64,
+        "endBeat": 108
+      },
+      "windowSupportNotes": 84,
+      "windowSupportAttacks": 55
+    },
+    {
+      "id": "aria-ellys-music-the-warning-hell-you-call-a-dream-piano-cover-by-aria-ellys-mslzwo1d",
+      "sourceNotes": 1130,
+      "sourceChords": 103,
+      "outputNotes": 1085,
+      "melodyNotes": 538,
+      "sourceSupportNotes": 418,
+      "generatedNotes": 0,
+      "generatedBeats": 0,
+      "fallbackBeats": 96.375,
+      "fallbackReasons": {
+        "no chord coverage": 18.5,
+        "unverified chord source": 10.25,
+        "ambiguous melody": 56.25,
+        "sounding limit exceeded": 11.375
+      },
+      "supportModes": [
+        "source-rhythm",
+        "fallback"
+      ],
+      "unresolvedSpans": 63,
+      "unresolvedBeats": 60.5,
+      "maxSupportAttacksPerMeasure": 11,
+      "meanSupportAttacksPerMeasure": 4,
+      "minimumSupportAttackGapBeats": 0.125,
+      "minimumSupportAttackGapSeconds": 0.07894736842105263,
+      "highSupportAssignedLeft": [
+        {
+          "beat": 23.5,
+          "output": {
+            "midi": 91,
+            "start": 23.5,
+            "dur": 0.375,
+            "vel": 52,
+            "hand": "L"
+          },
+          "source": [
+            {
+              "midi": 91,
+              "start": 23.5,
+              "dur": 0.375,
+              "vel": 52,
+              "hand": "R"
+            }
+          ],
+          "activeMelody": [
+            {
+              "midi": 79,
+              "start": 23.5,
+              "dur": 0.25,
+              "vel": 109,
+              "hand": "R"
+            }
+          ]
+        },
+        {
+          "beat": 8.25,
+          "output": {
+            "midi": 79,
+            "start": 8.25,
+            "dur": 0.625,
+            "vel": 70,
+            "hand": "L"
+          },
+          "source": [
+            {
+              "midi": 79,
+              "start": 8.25,
+              "dur": 0.625,
+              "vel": 81,
+              "hand": "R"
+            }
+          ],
+          "activeMelody": [
+            {
+              "midi": 84,
+              "start": 8.25,
+              "dur": 0.625,
+              "vel": 99,
+              "hand": "R"
+            }
+          ]
+        },
+        {
+          "beat": 8.875,
+          "output": {
+            "midi": 79,
+            "start": 8.875,
+            "dur": 0.75,
+            "vel": 61,
+            "hand": "L"
+          },
+          "source": [
+            {
+              "midi": 79,
+              "start": 8.875,
+              "dur": 0.75,
+              "vel": 61,
+              "hand": "R"
+            }
+          ],
+          "activeMelody": [
+            {
+              "midi": 84,
+              "start": 8.875,
+              "dur": 1.25,
+              "vel": 77,
+              "hand": "R"
+            }
+          ]
+        }
+      ],
+      "velocityCounterexample": {
+        "support": {
+          "midi": 56,
+          "start": 10.125,
+          "dur": 1.5,
+          "vel": 70,
+          "hand": "L"
+        },
+        "melody": {
+          "midi": 84,
+          "start": 10.125,
+          "dur": 0.5,
+          "vel": 68,
+          "hand": "R"
+        }
+      }
+    }
+  ]
+}

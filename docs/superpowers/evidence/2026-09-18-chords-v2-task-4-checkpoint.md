@@ -3,7 +3,7 @@
 Date: 2026-09-18
 Worktree: `/Users/reidar/.codex/worktrees/musically-useful-chords-mode`
 Branch: `codex/musically-useful-chords-mode`
-Code checkpoint: `5347cc3` (`fix(web): keep phrase status neutral`)
+Code/evidence checkpoint: `773e52c` (`test(web): record decoded capture durations`)
 
 ## Implemented truthfulness boundary
 
@@ -29,35 +29,55 @@ the Oops rhythm.
   `complete Oops phrase captures Original, coherent and resume candidates with
   the same synth` and `real audio events cover mode, hand filtering, seek,
   transpose, correction, and practice flow`.
+- Complete Blackbird phrase capture: `1/1` passed on `9549980`.
+- Corrected Oops phrase capture: `1/1` passed on `773e52c`.
 
 ## Current local audio evidence
 
-The disposable browser capture used the actual Player path and browser
-`AudioEngine` synth. It is engineering evidence only; hashes and event counts
-are integrity/coverage observations, not listening or quality scores.
+The disposable browser captures used the actual Player path and browser
+`AudioEngine` synth. They are engineering evidence only; hashes and event
+counts are integrity/coverage observations, not listening or quality scores.
+The durable copies and provenance are in
+`docs/superpowers/evidence/2026-09-18-task-5-audio/README.md`.
 
 ### Oops `[64,108)` at 95 BPM
 
 Manifest:
-`apps/web/test-results/melody-accompaniment-compl-5ca33-didates-with-the-same-synth-chromium/oops-section-2-audio-comparison.json`
+`docs/superpowers/evidence/2026-09-18-task-5-audio/oops-64-108/final-capture/oops-section-2-audio-comparison.json`
 
-Candidate `5347cc3`, source fingerprint from the frozen Oops fixture, decoded
-sample count `212121` at `44100 Hz` for each capture (`28.86 s`):
+Candidate `773e52c`, source fingerprint from the frozen Oops fixture. Each
+capture has `decodedPcm.samples = 1272726` at `44100 Hz`, which is `28.86 s`.
+The separate `signal.samples = 212121` value is a decimated probe count and
+must not be used as the duration:
 
-| Capture | Browser events | Bytes | SHA-256 | RMS |
-|---|---:|---:|---|---:|
-| Original | 1011 | 462725 | `4d98da3c47a593bb1de85f0c594850e7ba954c7d2b357b9e5e5c1c92de0b9503` | 0.07135 |
-| Coherent | 735 | 450989 | `eab905544579920940d823e562c17efe49bda9afc67971ea2163628cbb2b146a` | 0.05640 |
-| Resume | 735 | 458917 | `1d1021d1e977792696d99940d0e878adb382d59b240f3afd1394474fc011a316` | 0.05641 |
+| Capture | Browser events | Decoded PCM | Probe samples | Bytes | SHA-256 | RMS |
+|---|---:|---:|---:|---:|---|---:|
+| Original | 1011 | 1,272,726 / 44,100 Hz = 28.86 s | 212,121 | 464,942 | `7b20c3d299e1f874bdad75fc52e1ca9ef709c0558ad54eca375dba2957bff3e4` | 0.07144 |
+| Coherent | 735 | 1,272,726 / 44,100 Hz = 28.86 s | 212,121 | 450,669 | `2fc4fc2cf4755eabb2d677e4373636ea73415cbee4d96d483e8bcd3ff6039cde` | 0.05643 |
+| Resume | 735 | 1,272,726 / 44,100 Hz = 28.86 s | 212,121 | 458,917 | `fbb4f4ff32a2abe51be0ea30f8a2d8f7d73ca6114a02cfda22eeb2bc29c255c9` | 0.05621 |
 
 The three captures are non-empty and differ in scheduled events/hash. Human
 listening, recognizability, accompaniment usefulness, and physical comfort are
 pending; `humanListening` remains `pending` in the manifest.
 
+### Blackbird `[14,26.5]` at 120 BPM
+
+Manifest:
+`docs/superpowers/evidence/2026-09-18-task-5-audio/blackbird-14-26.5/capture/blackbird-phrase-14-26.5-audio-comparison.json`
+
+Candidate `9549980` captured a complete source window plus 0.5 seconds of
+lead-in and 1 second of tail. Original and automatic both passed non-empty
+audibility/decoded-duration checks and have different hashes/events. Original
+decoded PCM is `320166 / 44100 = 7.26 s`; automatic is
+`322811 / 44100 ≈ 7.32 s`. This is phrase-level wiring evidence, not a human
+musical rating; `humanListening` remains `pending`.
+
 ### Blackbird/Hell role and practice flow
 
-The same combined run produced non-empty decoded captures under:
-`apps/web/test-results/melody-accompaniment-real--17f5e-orrection-and-practice-flow-chromium/`
+The earlier combined run produced non-empty decoded captures under the
+disposable test-results directory and is preserved only by the short wiring
+copies under
+`docs/superpowers/evidence/2026-09-18-task-5-audio/blackbird-short-wiring/`.
 
 Observed coverage: Blackbird Original/Automatic `51/45` events, left-hand and
 both-hands filters `12/33`, and Hell automatic/right-hand corrected `36/51`;
@@ -73,7 +93,7 @@ verify wiring and playable-event projection, not musical quality.
 | Task 2 phrase/source strategy | Partial | Source-linked reduction/fallback works; real Oops attack grid remains unchanged at `479/479` |
 | Task 3 phrase-local correction UI | Fixed and browser-tested | Source hands are user-selected candidates, not melody truth |
 | Task 4 truthful status/audio coverage | Fixed and locally verified | Human listening and semantic usefulness remain pending |
-| Task 5 release handoff | Partial | Local commits/checks only; no push, merge, deploy, or production mutation |
+| Task 5 release handoff | Partial | Local commits/checks and durable captures complete; push, draft-PR update, and exact-head CI still pending; no merge, deploy, or production mutation |
 
 No production or catalogue data was changed. Pre-existing untracked audit,
 deployment, and plan artifacts remain preserved.
