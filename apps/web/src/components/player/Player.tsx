@@ -1685,7 +1685,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
           <div className="text-sm text-zinc-500">by {initial.song.artist}</div>
           <SourceArrangementNotice source={initial.sourceArrangement} />
         </div>
-        <div className="player-song-metadata ml-auto flex min-w-0 max-w-full flex-wrap items-start justify-end gap-2 text-xs">
+        <div className={`player-song-metadata ml-auto flex min-w-0 max-w-full flex-wrap items-start justify-end gap-2 text-xs ${settings.backgroundMode === "chord" ? "player-song-metadata--mobile" : ""}`}>
           <span className="px-2 py-1 rounded-full bg-zinc-100 text-zinc-700 font-medium">{initial.song.key}</span>
           <span className="px-2 py-1 rounded-full bg-zinc-100 text-zinc-700 font-medium">{levelLabel(initial.song.difficulty)}</span>
           <span className="px-2 py-1 rounded-full bg-zinc-100 text-zinc-700 font-medium">{initial.song.tempo} BPM</span>

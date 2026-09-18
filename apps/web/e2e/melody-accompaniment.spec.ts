@@ -1495,6 +1495,14 @@ test("fallback and phrase metadata keep transport stable and review controls vis
     };
   });
 
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/player/${OOPS_SONG_ID}`);
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+  await expect(page.locator(".player-song-metadata")).toBeHidden();
+  await expect(page.getByRole("button", { name: "Play", exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath("fallback-layout-original-mobile.png") });
+
   await page.setViewportSize({ width: 1550, height: 560 });
   await page.goto(`/player/${OOPS_SONG_ID}`);
   await expect(page.getByLabel("Falling notes player")).toBeVisible();
@@ -1552,7 +1560,7 @@ test("fallback and phrase metadata keep transport stable and review controls vis
   await expect(narrowPhraseSummary.getByText(/^Current phrase /)).toBeVisible();
   const narrowOpenGeometry = await geometry();
   expect(narrowOpenGeometry.phraseSummaryVisible).toBe(true);
-  await page.screenshot({ path: testInfo.outputPath("fallback-layout-mobile.png"), fullPage: true });
+  await page.screenshot({ path: testInfo.outputPath("fallback-layout-mobile.png") });
 
   await page.getByRole("button", { name: "Play", exact: true }).click();
   const narrowStates: Array<Awaited<ReturnType<typeof geometry>>> = [];
@@ -1579,7 +1587,7 @@ test("fallback and phrase metadata keep transport stable and review controls vis
   expect(landscapeStage?.height ?? 0).toBeGreaterThan(120);
   expect(landscapeStage?.y ?? Infinity).toBeLessThan(390);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.screenshot({ path: testInfo.outputPath("fallback-layout-landscape.png"), fullPage: true });
+  await page.screenshot({ path: testInfo.outputPath("fallback-layout-landscape.png") });
 });
 
 type ReservedCaptureOutcome = {

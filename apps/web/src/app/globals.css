@@ -1026,7 +1026,8 @@ body:has(.player-focus) :where(.site-header, .site-footer) { display: none; }
   .player-workspace[data-falling="true"] { height: auto; min-height: 0; }
   .player-song-header { flex-wrap: wrap; align-items: flex-start; gap: 6px; margin-bottom: 4px; min-height: 48px; }
   .player-song-header h1 { font-size: 16px; max-width: 42vw; }
-  .player-song-header > .player-song-metadata { display: flex; flex: 1 1 100%; width: 100%; margin-left: 0; justify-content: flex-start; }
+  .player-song-header > .player-song-metadata { display: none; }
+  .player-song-header > .player-song-metadata.player-song-metadata--mobile { display: flex; flex: 1 1 100%; width: 100%; margin-left: 0; justify-content: flex-start; }
   .player-song-metadata > [data-testid="melody-phrase-summary"] { width: 100%; }
   .player-song-actions { position: relative; margin-left: auto; }
   .player-song-menu { display: flex; align-items: center; }
