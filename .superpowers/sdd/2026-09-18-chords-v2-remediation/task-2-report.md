@@ -6,7 +6,7 @@ Scope: Task 2 only; no UI, catalogue, live data, merge, push, deployment, or pro
 
 ## Result
 
-Status: OPEN. The bounded producer selector correction is implemented and tested: it compares the actual merged source/protected/held candidate, protects only explicit `identitySource` evidence, carries protection across repeated sparse seams, and preserves source rests during regeneration. The Oops real-song rhythm limitation remains unresolved at `479/479`; no generated-only real change is claimed. The final Task 1 allocator remains the only final allocation pass.
+Status: PARTIAL. The bounded producer selector correction is implemented and tested: it compares the actual merged source/protected/held candidate, protects the deterministic first structural source attack plus explicit `identitySource: "vocals"` evidence, carries protection across repeated sparse seams, and preserves source rests during regeneration. The Oops real-song rhythm limitation remains unresolved at `479/479`; no generated-only real change is claimed. The final Task 1 allocator remains the only final allocation pass.
 
 ## TDD evidence
 
@@ -16,7 +16,7 @@ Fresh red run after adding the correction-focused identity, merged-candidate, se
 
 ```text
 Test Files  1 failed (1)
-Tests       2 failed | 72 passed (74)
+Tests       2 failed | 73 passed (75)
 ```
 
 The failures were the merged sparse candidate still selecting `sparse-harmonic` when retained protected attacks made the attack union no better, and the seam test retaining a `sourceLane`-only note. The generated-only label-only path stayed green. The follow-up added the multi-event held/protected seam and source-rest regressions.
@@ -26,23 +26,23 @@ The failures were the merged sparse candidate still selecting `sparse-harmonic` 
 Focused producer and arrangement-change tests:
 
 ```text
-pnpm exec vitest run packages/player-core/test/melody-accompaniment.test.ts packages/player-core/test/arrangement-change.test.ts
-Test Files  2 passed (2)
-Tests       81 passed (81)
+PATH=/Users/reidar/.nvm/versions/node/v22.22.3/bin:$PATH npm run test -w @keyspilli/player-core -- test/melody-accompaniment.test.ts
+Test Files  1 passed (1)
+Tests       76 passed (76)
 ```
 
 Full player-core suite:
 
 ```text
-pnpm exec vitest run packages/player-core
+PATH=/Users/reidar/.nvm/versions/node/v22.22.3/bin:$PATH npm run test -w @keyspilli/player-core
 Test Files  15 passed (15)
-Tests       248 passed (248)
+Tests       249 passed (249)
 ```
 
 Typecheck:
 
 ```text
-pnpm --filter @keyspilli/player-core exec tsc --noEmit
+PATH=/Users/reidar/.nvm/versions/node/v22.22.3/bin:$PATH npm run typecheck -w @keyspilli/player-core
 exit 0
 ```
 
@@ -50,7 +50,7 @@ exit 0
 
 - Sparse comparison is bounded to supported harmonic events with `source-measure-boundary` phase when source support exists; no pulse library, generated-note quota, or second producer was added.
 - The sparse candidate wins only when the merged candidate strictly reduces attack locations, with occupancy and bounded per-hand sounding penalty measured over retained/protected/held notes. Generated duplicates at preserved source pitches are filtered before the final allocator.
-- Protection is limited to explicit `identitySource` evidence; `sourceLane` remains available metadata, not reviewed hook identity. There is no first-attack or generated-note quota heuristic.
+- Protection is limited to the deterministic first structural source attack plus explicit `identitySource: "vocals"` evidence; `sourceLane` remains available metadata, not reviewed hook identity. There is no generated-note quota heuristic.
 - Sparse phase continues across adjacent equivalent chord events while carrying protected notes and source-rest boundaries through the regenerated candidate.
 - `strategy: "harmonic-backing"` takes precedence when generated backing is actually rendered; unchanged phrases now use neutral `reasons: []` instead of treating exact equality as musical success.
 - Notes-derived/generated-only harmony remains label-only under `harmonicSupport: "authored-only"`; its source reduction can still reduce dense source stacks, but it cannot synthesize support.
