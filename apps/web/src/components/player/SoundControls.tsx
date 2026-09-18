@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
-import type { MelodyAccompanimentResolution, MelodySelection, PlayerSettings } from "@keyspilli/player-core";
+import type { MelodyAccompanimentResolution, MelodySelection, PlayerSettings, SourceBackingMode } from "@keyspilli/player-core";
 import type { ChordSourceId, ChordSourceOption } from "./chord-sources";
 import { usePresence } from "./player-motion";
 
 export type MelodyAuditionRole = "full" | "melody" | "accompaniment";
+export type MelodyPhraseOverrideAction = "automatic" | "right-hand" | "left-hand" | "rest";
 
 export function SoundControls({
   settings,
@@ -15,9 +16,16 @@ export function SoundControls({
   chordSourceStatus = null,
   onChordSourceChange,
   melodyArrangement,
+  activeMelodyPhrase,
+  phraseSourceCandidates,
+  phraseOverrideAction = "automatic",
+  phraseOverrideConflict = false,
+  sourceBackingMode = "default",
   rightHandAvailable = false,
   hasSavedMelodySelection = false,
   onMelodySelectionChange,
+  onMelodyPhraseOverrideChange,
+  onSourceBackingModeChange,
   onMelodySelectionReset,
   onPreview,
 }: {
@@ -28,9 +36,16 @@ export function SoundControls({
   chordSourceStatus?: string | null;
   onChordSourceChange?: (source: ChordSourceId) => void;
   melodyArrangement?: Pick<MelodyAccompanimentResolution, "provenance" | "events"> | null;
+  activeMelodyPhrase?: MelodyAccompanimentResolution["phrases"][number] | null;
+  phraseSourceCandidates?: { rightHand: readonly string[]; leftHand: readonly string[] };
+  phraseOverrideAction?: MelodyPhraseOverrideAction | null;
+  phraseOverrideConflict?: boolean;
+  sourceBackingMode?: SourceBackingMode;
   rightHandAvailable?: boolean;
   hasSavedMelodySelection?: boolean;
   onMelodySelectionChange?: (selection: MelodySelection) => void;
+  onMelodyPhraseOverrideChange?: (action: MelodyPhraseOverrideAction) => void;
+  onSourceBackingModeChange?: (mode: SourceBackingMode) => void;
   onMelodySelectionReset?: () => void;
   onPreview?: (role?: MelodyAuditionRole) => void;
 }) {
@@ -128,12 +143,109 @@ export function SoundControls({
                       Use right-hand part
                     </button>
                   </div>
+                  {onSourceBackingModeChange && (
+                    <div className="mt-3 border-t border-zinc-200 pt-3" data-testid="source-backing-controls">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-medium text-zinc-700">Source backing</span>
+                        <span className="text-[11px] text-zinc-500">
+                          {sourceBackingMode === "conservative" ? "Source-only preview" : "Current source path"}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 mt-2" role="radiogroup" aria-label="Source backing">
+                        <button
+                          type="button"
+                          onClick={() => onSourceBackingModeChange("default")}
+                          role="radio"
+                          aria-checked={sourceBackingMode === "default"}
+                          className={`px-2 py-2 rounded-lg text-xs border ${sourceBackingMode === "default" ? "bg-zinc-700 text-white border-zinc-700" : "border-zinc-300 bg-white"}`}
+                        >
+                          Current source backing
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onSourceBackingModeChange("conservative")}
+                          role="radio"
+                          aria-checked={sourceBackingMode === "conservative"}
+                          className={`px-2 py-2 rounded-lg text-xs border ${sourceBackingMode === "conservative" ? "bg-amber-700 text-white border-amber-700" : "border-zinc-300 bg-white"}`}
+                        >
+                          Conservative source-only reduction
+                        </button>
+                      </div>
+                      <p className="text-[11px] text-zinc-600 mt-2">
+                        Preview only: removes narrowly repeated short source voicing members, keeps detectable bass, held, long/high-hook, and explicit identity anchors, and never adds inferred pitches. Confidence is limited; review before practice.
+                      </p>
+                    </div>
+                  )}
                   {melodyArrangement.provenance.unresolvedSpans.length > 0 && (
                     <p className="text-[11px] text-amber-700 mt-2" role="status" data-testid="melody-accompaniment-ambiguity">
                       {melodyArrangement.provenance.unresolvedSpans.some((span) => span.reason === "right-hand part unavailable")
                         ? "No right-hand part is available; the automatic melody is retained."
                         : `Ambiguous phrase at ${melodyArrangement.provenance.unresolvedSpans.map((span) => `${span.startBeat.toFixed(1)}–${span.endBeat.toFixed(1)} beats`).join(", ")}. Use right-hand part to correct it.`}
                     </p>
+                  )}
+                  {activeMelodyPhrase && onMelodyPhraseOverrideChange && phraseSourceCandidates && (
+                    <div className="mt-3 border-t border-zinc-200 pt-3" data-testid="melody-phrase-actions">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-medium text-zinc-700">Current phrase correction</span>
+                        <span className="text-[11px] text-zinc-500">{activeMelodyPhrase.review === "needs-review" ? "Needs review" : "Phrase-local"}</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 mt-2" role="radiogroup" aria-label="Current phrase melody choice">
+                        <button
+                          type="button"
+                          onClick={() => onMelodyPhraseOverrideChange("automatic")}
+                          role="radio"
+                          aria-checked={phraseOverrideAction === "automatic"}
+                          aria-disabled="false"
+                          className={`px-2 py-2 rounded-lg text-xs border ${phraseOverrideAction === "automatic" ? "bg-indigo-700 text-white border-indigo-700" : "border-zinc-300 bg-white"}`}
+                        >
+                          Use whole-part selection
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onMelodyPhraseOverrideChange("right-hand")}
+                          disabled={!phraseSourceCandidates.rightHand.length}
+                          role="radio"
+                          aria-checked={phraseOverrideAction === "right-hand"}
+                          aria-disabled={phraseSourceCandidates.rightHand.length > 0 ? "false" : "true"}
+                          className={`px-2 py-2 rounded-lg text-xs border ${phraseOverrideAction === "right-hand" ? "bg-indigo-700 text-white border-indigo-700" : "border-zinc-300 bg-white"} disabled:opacity-50 disabled:cursor-not-allowed`}
+                          title={phraseSourceCandidates.rightHand.length ? "Uses source right-hand notes in this phrase; they may contain chords." : "No source right-hand notes in this phrase."}
+                        >
+                          Source right-hand candidate
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onMelodyPhraseOverrideChange("left-hand")}
+                          disabled={!phraseSourceCandidates.leftHand.length}
+                          role="radio"
+                          aria-checked={phraseOverrideAction === "left-hand"}
+                          aria-disabled={phraseSourceCandidates.leftHand.length > 0 ? "false" : "true"}
+                          className={`px-2 py-2 rounded-lg text-xs border ${phraseOverrideAction === "left-hand" ? "bg-indigo-700 text-white border-indigo-700" : "border-zinc-300 bg-white"} disabled:opacity-50 disabled:cursor-not-allowed`}
+                          title={phraseSourceCandidates.leftHand.length ? "Uses source left-hand notes in this phrase; they may contain chords." : "No source left-hand notes in this phrase."}
+                        >
+                          Source left-hand candidate
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onMelodyPhraseOverrideChange("rest")}
+                          role="radio"
+                          aria-checked={phraseOverrideAction === "rest"}
+                          aria-disabled="false"
+                          className={`px-2 py-2 rounded-lg text-xs border ${phraseOverrideAction === "rest" ? "bg-indigo-700 text-white border-indigo-700" : "border-zinc-300 bg-white"}`}
+                        >
+                          Explicit rest
+                        </button>
+                      </div>
+                      <p className="text-[11px] text-zinc-500 mt-2">
+                        Source hands may contain chords; these are user-selected choices, not proof of melody.
+                      </p>
+                      {activeMelodyPhrase.review === "needs-review" && (
+                        <p className="text-[11px] text-amber-700 mt-1" role="status" data-testid="melody-phrase-review-reason">
+                          {phraseOverrideConflict
+                            ? "Needs review: a saved override overlaps this interval. Choose an option to replace only this interval; unrelated overrides stay intact."
+                            : "Needs review: stale or invalid phrase data is not applied to the melody."}
+                        </p>
+                      )}
+                    </div>
                   )}
                   {hasSavedMelodySelection && onMelodySelectionReset && (
                     <button type="button" onClick={onMelodySelectionReset} className="mt-2 min-h-9 px-2 rounded-lg border border-zinc-300 text-[11px]">

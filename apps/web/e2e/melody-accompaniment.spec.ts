@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { readFileSync, writeFileSync } from "node:fs";
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import type { ChordLabel, Note } from "@keyspilli/midi";
-import { buildMelodyAccompaniment } from "@keyspilli/player-core";
+import { buildMelodyAccompaniment, sourceNoteIds } from "@keyspilli/player-core";
 import { openPlayerTool } from "./player-tools";
 
 const SONG_ID = "the-beatles-blackbird-a-scratch";
@@ -504,9 +504,57 @@ async function selectArrangement(
   if (melody) await dialog.getByRole("radio", { name: melody, exact: true }).click();
   await dialog.getByRole("button", { name: "Close tools", exact: true }).click();
   if (mode === "Chord mode" && options.waitForArrangement !== false) {
-    await expect(page.getByTestId("melody-accompaniment-status")).toContainText(melody === "Use right-hand part" ? "User melody" : "Inferred melody");
+    const expectedMelody = melody === "Use right-hand part"
+      ? "User melody"
+      : "(?:Inferred melody|User melody)";
+    await expect(page.getByTestId("melody-accompaniment-status")).toHaveText(new RegExp(`^${expectedMelody} · whole-part selection · `));
   }
 }
+
+test("phrase-local overrides recompute the producer and keep invalid overlap reviewable", () => {
+  const source: Note[] = [
+    { midi: 72, start: 0, dur: 1, vel: 100, hand: "R" },
+    { midi: 48, start: 0, dur: 0.5, vel: 60, hand: "L" },
+    { midi: 74, start: 2, dur: 1, vel: 100, hand: "R" },
+    { midi: 50, start: 2, dur: 0.5, vel: 60, hand: "L" },
+  ];
+  const fingerprint = "task-3-fixture-source";
+  const ids = sourceNoteIds(source);
+  const automatic = buildMelodyAccompaniment(source, [], {
+    durationBeats: 3,
+    sourceFingerprint: fingerprint,
+    allowRests: true,
+  });
+  const phraseRest = buildMelodyAccompaniment(source, [], {
+    durationBeats: 3,
+    sourceFingerprint: fingerprint,
+    allowRests: true,
+    phraseOverrides: [{ startBeat: 0, endBeat: 2, sourceNoteIds: [], sourceFingerprint: fingerprint }],
+  });
+  expect(phraseRest.melody.some((note) => note.start < 2)).toBe(false);
+  expect(phraseRest.notes.some((note) => note.start < 2)).toBe(true);
+  expect(phraseRest.notes).not.toEqual(automatic.notes);
+
+  const staleRest = buildMelodyAccompaniment(source, [], {
+    durationBeats: 3,
+    sourceFingerprint: fingerprint,
+    allowRests: true,
+    phraseOverrides: [{ startBeat: 0, endBeat: 2, sourceNoteIds: [], sourceFingerprint: "stale-task-3-source" }],
+  });
+  expect(staleRest.provenance.unresolvedSpans).toContainEqual({ startBeat: 0, endBeat: 2, reason: "invalid phrase override" });
+  expect(staleRest.melody.some((note) => note.start < 2)).toBe(true);
+
+  const overlapping = buildMelodyAccompaniment(source, [], {
+    durationBeats: 3,
+    sourceFingerprint: fingerprint,
+    allowRests: true,
+    phraseOverrides: [
+      { startBeat: 0, endBeat: 2, sourceNoteIds: [ids[0]!], sourceFingerprint: fingerprint },
+      { startBeat: 1, endBeat: 3, sourceNoteIds: [], sourceFingerprint: fingerprint },
+    ],
+  });
+  expect(overlapping.provenance.unresolvedSpans).toContainEqual({ startBeat: 1, endBeat: 3, reason: "invalid phrase override" });
+});
 
 async function bootAudio(page: Page): Promise<void> {
   await page.getByRole("button", { name: "Play", exact: true }).click();
@@ -614,6 +662,147 @@ test("real artifact produces, previews, plays, corrects, and reloads melody supp
   await expect(page.getByTestId("melody-accompaniment-status")).toContainText("Inferred melody");
   expect(pageErrors, pageErrors.join("\n")).toEqual([]);
   expect(consoleErrors, consoleErrors.join("\n")).toEqual([]);
+});
+
+test("phrase-local source choices persist, reset one interval, and keep stale or overlapping records in review", async ({ page }) => {
+  type Sidecar = {
+    sourceFingerprint?: string;
+    selection?: string;
+    phraseOverrides?: Array<{ startBeat: number; endBeat: number; sourceNoteIds: string[]; sourceFingerprint?: string | null }>;
+  };
+  const readSidecar = () => page.evaluate((key) => JSON.parse(window.localStorage.getItem(key) ?? "null"), SIDECAR_KEY) as Promise<Sidecar | null>;
+  const openPhraseActions = async () => {
+    const summary = page.getByTestId("melody-phrase-summary");
+    const actions = page.getByTestId("melody-phrase-actions");
+    await expect(actions).toBeAttached({ timeout: 15_000 });
+    if (!await actions.isVisible()) await summary.locator("summary").click();
+    await expect(actions).toBeVisible();
+    return actions;
+  };
+  const seekToPhrase = async () => {
+    const summary = page.getByTestId("melody-phrase-summary");
+    const currentPhrase = summary.getByText(/^Current phrase /);
+    await expect(page.getByLabel("Seek")).toBeEnabled({ timeout: 15_000 });
+    const bar = page.getByRole("spinbutton", { name: "Bar", exact: true });
+    await bar.fill("1");
+    await bar.press("Enter");
+    await page.getByLabel("Seek").fill("0");
+    await expect(page.getByRole("spinbutton", { name: "Bar", exact: true })).toHaveValue("1");
+    await expect(page.getByLabel("Seek")).toHaveValue("0");
+    await expect(currentPhrase).toBeAttached({ timeout: 15_000 });
+  };
+  const enterPhrase = async (melody?: "Automatic melody" | "Use right-hand part") => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(`/player/${SONG_ID}`);
+    await expect(page.getByLabel("Falling notes player")).toBeVisible();
+    await selectArrangement(page, "Chord mode", melody);
+    await seekToPhrase();
+    await openPlayerTool(page, "Sound");
+    await expect(page.getByTestId("melody-accompaniment-controls")).toBeVisible();
+  };
+
+  await enterPhrase();
+  let actions = await openPhraseActions();
+  const rightHand = actions.getByRole("radio", { name: "Source right-hand candidate", exact: true });
+  const leftHand = actions.getByRole("radio", { name: "Source left-hand candidate", exact: true });
+  const sourceChoice = await rightHand.isEnabled() ? rightHand : leftHand;
+  const sourceChoiceName = await rightHand.isEnabled() ? "Source right-hand candidate" : "Source left-hand candidate";
+  await expect(sourceChoice).toBeEnabled();
+  await sourceChoice.click();
+  let sidecar = await readSidecar();
+  expect(sidecar?.selection).toBe("automatic");
+  expect(sidecar?.phraseOverrides).toHaveLength(1);
+  expect(sidecar?.phraseOverrides?.[0]?.sourceNoteIds.length).toBeGreaterThan(0);
+  const chosen = sidecar!.phraseOverrides![0]!;
+  const unrelated = { startBeat: 60, endBeat: 61, sourceNoteIds: [], sourceFingerprint: sidecar!.sourceFingerprint! };
+
+  await page.evaluate(({ key, value }) => window.localStorage.setItem(key, JSON.stringify(value)), {
+    key: SIDECAR_KEY,
+    value: { ...sidecar, phraseOverrides: [chosen, unrelated] },
+  });
+  await enterPhrase();
+  actions = await openPhraseActions();
+  await expect(actions.getByRole("radio", { name: sourceChoiceName, exact: true })).toHaveAttribute("aria-checked", "true");
+
+  await page.getByRole("radio", { name: "Use right-hand part", exact: true }).click();
+  await actions.getByRole("radio", { name: "Use whole-part selection", exact: true }).click();
+  sidecar = await readSidecar();
+  expect(sidecar?.selection).toBe("right-hand");
+  expect(sidecar?.phraseOverrides).toEqual(expect.arrayContaining([expect.objectContaining(unrelated)]));
+  expect(sidecar?.phraseOverrides?.some((override) => override.startBeat === chosen.startBeat && override.endBeat === chosen.endBeat)).toBe(false);
+
+  await page.evaluate(({ key, value, override }) => window.localStorage.setItem(key, JSON.stringify({
+    ...value,
+    phraseOverrides: [override, ...(value.phraseOverrides ?? [])],
+  })), {
+    key: SIDECAR_KEY,
+    value: sidecar!,
+    override: { ...chosen, sourceNoteIds: [], sourceFingerprint: "stale-task-3-source" },
+  });
+  await enterPhrase("Use right-hand part");
+  actions = await openPhraseActions();
+  await expect(page.getByTestId("melody-phrase-review-reason")).toContainText("not applied");
+  await expect(actions.getByRole("radio", { name: "Explicit rest", exact: true })).toHaveAttribute("aria-checked", "false");
+
+  const overlapping = {
+    ...sidecar,
+    phraseOverrides: [
+      chosen,
+      { startBeat: chosen.startBeat + 0.5, endBeat: chosen.endBeat + 0.5, sourceNoteIds: ["missing-source-id"], sourceFingerprint: sidecar?.sourceFingerprint },
+      { startBeat: chosen.startBeat + 1, endBeat: chosen.endBeat + 1, sourceNoteIds: ["missing-source-id-2"], sourceFingerprint: sidecar?.sourceFingerprint },
+      unrelated,
+    ],
+  };
+  await page.evaluate(({ key, value }) => window.localStorage.setItem(key, JSON.stringify(value)), { key: SIDECAR_KEY, value: overlapping });
+  await enterPhrase("Use right-hand part");
+  await page.getByLabel("Seek").fill("0.5");
+  await expect(page.getByLabel("Seek")).toHaveValue("0.5");
+  actions = await openPhraseActions();
+  await expect(page.getByTestId("melody-phrase-review-reason")).toContainText("saved override overlaps this interval");
+  await expect(actions.getByRole("radio", { name: "Use whole-part selection", exact: true })).toHaveAttribute("aria-checked", "false");
+  await actions.getByRole("radio", { name: "Use whole-part selection", exact: true }).click();
+  sidecar = await readSidecar();
+  expect(sidecar?.phraseOverrides).toEqual(expect.arrayContaining([expect.objectContaining(unrelated)]));
+  expect(sidecar?.phraseOverrides?.every((override) => !override.sourceNoteIds.some((id) => id.startsWith("missing-source-id")))).toBe(true);
+
+  const malformed = {
+    ...sidecar,
+    sourceFingerprint: undefined,
+    phraseOverrides: [{ ...chosen, sourceNoteIds: [], sourceFingerprint: undefined }],
+  };
+  await page.evaluate(({ key, value }) => window.localStorage.setItem(key, JSON.stringify(value)), { key: SIDECAR_KEY, value: malformed });
+  await enterPhrase("Use right-hand part");
+  actions = await openPhraseActions();
+  await expect(page.getByTestId("melody-phrase-review-reason")).toContainText("not applied");
+  await expect(actions.getByRole("radio", { name: "Explicit rest", exact: true })).toHaveAttribute("aria-checked", "false");
+  expect((await readSidecar())?.phraseOverrides).toHaveLength(1);
+});
+
+test("source-only backing reduction is a separate persisted preview choice", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/player/${SONG_ID}`);
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+  await selectArrangement(page, "Chord mode", "Automatic melody");
+  await openPlayerTool(page, "Sound");
+  const dialog = page.getByRole("dialog", { name: "Sound settings" });
+  const sourceBacking = dialog.getByTestId("source-backing-controls");
+  await expect(sourceBacking).toBeVisible();
+  await expect(sourceBacking.getByRole("radio", { name: "Current source backing", exact: true })).toHaveAttribute("aria-checked", "true");
+  await sourceBacking.getByRole("radio", { name: "Conservative source-only reduction", exact: true }).click();
+  await expect(sourceBacking.getByRole("radio", { name: "Conservative source-only reduction", exact: true })).toHaveAttribute("aria-checked", "true");
+  let sidecar = await page.evaluate((key) => JSON.parse(window.localStorage.getItem(key) ?? "null"), SIDECAR_KEY) as { selection?: string; sourceBackingMode?: string } | null;
+  expect(sidecar).toMatchObject({ selection: "automatic", sourceBackingMode: "conservative" });
+  await dialog.getByRole("button", { name: "Close tools", exact: true }).click();
+
+  await page.reload();
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+  await selectArrangement(page, "Chord mode", "Automatic melody");
+  await openPlayerTool(page, "Sound");
+  const reloaded = page.getByRole("dialog", { name: "Sound settings" }).getByTestId("source-backing-controls");
+  await expect(reloaded.getByRole("radio", { name: "Conservative source-only reduction", exact: true })).toHaveAttribute("aria-checked", "true");
+  await reloaded.getByRole("radio", { name: "Current source backing", exact: true }).click();
+  sidecar = await page.evaluate((key) => JSON.parse(window.localStorage.getItem(key) ?? "null"), SIDECAR_KEY) as { selection?: string; sourceBackingMode?: string } | null;
+  expect(sidecar).toMatchObject({ selection: "automatic", sourceBackingMode: "default" });
 });
 
 test("browser trace keeps Original and large arrangements off the main-thread producer", async ({ page }) => {

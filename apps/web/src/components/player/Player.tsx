@@ -34,6 +34,7 @@ import {
   type MelodyAccompanimentResolution,
   type MelodyHarmonicSupportPolicy,
   type MelodySelection,
+  type SourceBackingMode,
   type ChordPracticeSnapshot,
   type PlayerSettings,
   type ViewMode,
@@ -52,7 +53,7 @@ import { melodyArrangementExecution, MELODY_WORKER_NOTE_THRESHOLD, traceMelodyAr
 import { BeginnerView } from "./BeginnerView";
 import { LeadSheetView } from "./LeadSheetView";
 import { SheetMusicView } from "./SheetMusicView";
-import { SoundControls, type MelodyAuditionRole } from "./SoundControls";
+import { SoundControls, type MelodyAuditionRole, type MelodyPhraseOverrideAction } from "./SoundControls";
 import { createHeldInput } from "./held-input";
 import { InputStatus } from "./InputStatus";
 import { PlayerTools, type PlayerTool } from "./PlayerTools";
@@ -120,6 +121,7 @@ interface MelodySelectionSidecar {
   generatorVersion: "melody-accompaniment.v2";
   sourceFingerprint: string;
   selection: MelodySelection;
+  sourceBackingMode?: SourceBackingMode;
   phraseOverrides?: readonly MelodyPhraseOverride[];
   provenance: MelodyAccompanimentResolution["provenance"];
 }
@@ -134,41 +136,25 @@ function legacyMelodySelectionKey(songId: string): string {
 
 function validPhraseOverrides(
   value: unknown,
-  sourceNotes: SongData["notes"],
-  sourceFingerprint: string | null,
-  durationBeats: number,
 ): MelodyPhraseOverride[] {
-  if (!Array.isArray(value) || !sourceFingerprint) return [];
-  const ids = sourceNoteIds(sourceNotes);
-  const sourceIndexById = new Map(ids.map((id, index) => [id, index]));
-  let previousEnd = -Infinity;
-  const result: MelodyPhraseOverride[] = [];
-  for (const candidate of value) {
-    if (!candidate || typeof candidate !== "object") continue;
+  if (!Array.isArray(value)) return [];
+  // Keep records that are structurally safe for the core validator. It owns
+  // overlap, source-id, bounds, and fingerprint review; dropping them here
+  // would hide `needs-review` and make the original melody look accepted.
+  return value.flatMap((candidate) => {
+    if (!candidate || typeof candidate !== "object") return [];
     const override = candidate as Partial<MelodyPhraseOverride>;
-    const startBeat = override.startBeat;
-    const endBeat = override.endBeat;
-    if (typeof startBeat !== "number" || typeof endBeat !== "number"
-      || !Number.isFinite(startBeat) || !Number.isFinite(endBeat)
-      || startBeat < 0 || endBeat <= startBeat
-      || endBeat > durationBeats || startBeat < previousEnd
-      || override.sourceFingerprint !== sourceFingerprint
-      || !Array.isArray(override.sourceNoteIds)
-      || new Set(override.sourceNoteIds).size !== override.sourceNoteIds.length
-      || !override.sourceNoteIds.every((id): id is string => typeof id === "string" && sourceIndexById.has(id))) continue;
-    if (!override.sourceNoteIds.every((id) => {
-      const note = sourceNotes[sourceIndexById.get(id)!];
-      return note !== undefined && note.start >= startBeat && note.start < endBeat;
-    })) continue;
-    result.push({
-      startBeat,
-      endBeat,
-      sourceNoteIds: [...override.sourceNoteIds],
-      sourceFingerprint,
-    });
-    previousEnd = endBeat;
-  }
-  return result;
+    const sourceIdsAreSafe = Array.isArray(override.sourceNoteIds)
+      && override.sourceNoteIds.every((id): id is string => typeof id === "string");
+    return [{
+      startBeat: typeof override.startBeat === "number" ? override.startBeat : Number.NaN,
+      endBeat: typeof override.endBeat === "number" ? override.endBeat : Number.NaN,
+      sourceNoteIds: sourceIdsAreSafe ? [...(override.sourceNoteIds ?? [])] : [],
+      sourceFingerprint: sourceIdsAreSafe && typeof override.sourceFingerprint === "string"
+        ? override.sourceFingerprint
+        : null,
+    }];
+  });
 }
 
 function sourceFingerprintForPlayer(initial: PlayerDetail): string | null {
@@ -242,6 +228,7 @@ function melodyArrangementRequestKey(
   selection: MelodySelection,
   phraseOverrides: readonly MelodyPhraseOverride[],
   harmonicSupport: MelodyHarmonicSupportPolicy,
+  sourceBackingMode: SourceBackingMode,
 ): string {
   return JSON.stringify({
     sourceNotes,
@@ -251,6 +238,7 @@ function melodyArrangementRequestKey(
     selection,
     phraseOverrides,
     harmonicSupport,
+    sourceBackingMode,
     allowRests: true,
     soundingPolicy: "coherent-phrase",
   });
@@ -364,6 +352,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   const [learned, setLearned] = useState<string[]>([]);
   const [chordSourcePreference, setChordSourcePreference] = useState<ChordSourceId>("auto");
   const [melodySelection, setMelodySelection] = useState<MelodySelection>("automatic");
+  const [melodySourceBackingMode, setMelodySourceBackingMode] = useState<SourceBackingMode>("default");
   const [melodyPhraseOverrides, setMelodyPhraseOverrides] = useState<MelodyPhraseOverride[]>([]);
   const [melodySelectionSaved, setMelodySelectionSaved] = useState(false);
   const melodySourceFingerprint = useMemo(() => sourceFingerprintForPlayer(initial), [initial]);
@@ -377,22 +366,20 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
 
   useEffect(() => {
     const saved = loadJson<MelodySelectionSidecar | null>(melodySelectionKey(initial.song.id), null);
-    const valid = saved?.schemaVersion === 2
-      && saved.generatorVersion === "melody-accompaniment.v2"
-      && saved.sourceFingerprint === melodySourceFingerprint
-      && (saved.selection === "automatic" || saved.selection === "right-hand");
-    if (valid) {
-      setMelodySelection(saved.selection);
-      setMelodyPhraseOverrides(validPhraseOverrides(
+    const sidecarShapeValid = saved?.schemaVersion === 2
+      && saved.generatorVersion === "melody-accompaniment.v2";
+    if (sidecarShapeValid) {
+      const sourceMatches = typeof saved.sourceFingerprint === "string"
+        && saved.sourceFingerprint === melodySourceFingerprint;
+      const phraseOverrides = validPhraseOverrides(
         saved.phraseOverrides,
-        initial.data.notes,
-        melodySourceFingerprint,
-        Math.max(
-          initial.data.notes.reduce((max, note) => Math.max(max, note.start + note.dur), 0),
-          initial.data.measures.reduce((max, measure) => Math.max(max, measure.endBeat), 0),
-        ),
-      ));
-      setMelodySelectionSaved(true);
+      ).map((override) => sourceMatches ? override : { ...override, sourceFingerprint: null });
+      setMelodySelection(sourceMatches && (saved.selection === "automatic" || saved.selection === "right-hand")
+        ? saved.selection
+        : "automatic");
+      setMelodySourceBackingMode(sourceMatches && saved.sourceBackingMode === "conservative" ? "conservative" : "default");
+      setMelodyPhraseOverrides(phraseOverrides);
+      setMelodySelectionSaved(sourceMatches || phraseOverrides.length > 0);
       return;
     }
     // v1 provenance is deliberately ignored. A matching old whole-RH choice
@@ -401,6 +388,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     const legacyValid = legacy?.sourceFingerprint === melodySourceFingerprint
       && (legacy.selection === "automatic" || legacy.selection === "right-hand");
     setMelodySelection(legacyValid ? legacy.selection! : "automatic");
+    setMelodySourceBackingMode("default");
     setMelodyPhraseOverrides([]);
     setMelodySelectionSaved(legacyValid);
   }, [initial.data, initial.song.id, melodySourceFingerprint]);
@@ -514,8 +502,9 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       melodySelection,
       melodyPhraseOverrides,
       melodySupportPolicy,
+      melodySourceBackingMode,
     ),
-    [arrangementEnd, chords, initial.data.notes, melodyPhraseOverrides, melodySelection, melodySourceFingerprint, melodySupportPolicy],
+    [arrangementEnd, chords, initial.data.notes, melodyPhraseOverrides, melodySelection, melodySourceBackingMode, melodySourceFingerprint, melodySupportPolicy],
   );
   const sourceMelodyView = useMemo(
     () => sourceMelodyArrangement(initial.data.notes, chords, arrangementEnd, melodySourceFingerprint, melodySelection),
@@ -545,6 +534,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       soundingPolicy: "coherent-phrase",
       phraseOverrides: melodyPhraseOverrides,
       harmonicSupport: melodySupportPolicy,
+      sourceBackingMode: melodySourceBackingMode,
     });
     traceMelodyArrangement({
       phase: "sync-complete",
@@ -553,7 +543,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       key: melodyArrangementRequestKeyValue,
     });
     return resolution;
-  }, [arrangementEnd, chords, initial.data.notes, melodyArrangementExecutionMode, melodyArrangementRequestKeyValue, melodyPhraseOverrides, melodySelection, melodySourceFingerprint, melodySupportPolicy, sourceMelodyView]);
+  }, [arrangementEnd, chords, initial.data.notes, melodyArrangementExecutionMode, melodyArrangementRequestKeyValue, melodyPhraseOverrides, melodySelection, melodySourceBackingMode, melodySourceFingerprint, melodySupportPolicy, sourceMelodyView]);
   const [workerMelodyArrangement, setWorkerMelodyArrangement] = useState<{ key: string; resolution: MelodyAccompanimentResolution } | null>(null);
   const [workerState, setWorkerState] = useState<{
     key: string;
@@ -619,6 +609,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
           soundingPolicy: "coherent-phrase",
           phraseOverrides: melodyPhraseOverrides,
           harmonicSupport: melodySupportPolicy,
+          sourceBackingMode: melodySourceBackingMode,
         },
       });
     } catch (error) {
@@ -628,7 +619,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       active = false;
       worker.terminate();
     };
-  }, [arrangementEnd, chords, initial.data.notes, melodyArrangementExecutionMode, melodyArrangementRequested, melodyArrangementRequestKeyValue, melodyPhraseOverrides, melodySelection, melodySourceFingerprint, melodySupportPolicy, workerAvailable, workerRetry]);
+  }, [arrangementEnd, chords, initial.data.notes, melodyArrangementExecutionMode, melodyArrangementRequested, melodyArrangementRequestKeyValue, melodyPhraseOverrides, melodySelection, melodySourceBackingMode, melodySourceFingerprint, melodySupportPolicy, workerAvailable, workerRetry]);
   const workerResolution = workerMelodyArrangement?.key === melodyArrangementRequestKeyValue
     ? workerMelodyArrangement.resolution
     : null;
@@ -1268,10 +1259,93 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
         generatorVersion: "melody-accompaniment.v2",
         sourceFingerprint: melodySourceFingerprint,
         selection,
+        sourceBackingMode: melodySourceBackingMode,
         phraseOverrides: melodyPhraseOverrides,
         // The cached provenance is informational only; the current producer
         // result is recomputed by the sync or worker path for this selection.
-        provenance: { ...melodyArrangement.provenance, selection, selectionProvenance: "user-confirmed" },
+        provenance: { ...melodyArrangement.provenance, selection, selectionProvenance: "user-confirmed", sourceBackingMode: melodySourceBackingMode === "conservative" ? "conservative" : undefined },
+      } satisfies MelodySelectionSidecar);
+      setMelodySelectionSaved(true);
+    }
+  }
+
+  function updateSourceBackingMode(sourceBackingMode: SourceBackingMode) {
+    cancelSoundPreview();
+    setMelodySourceBackingMode(sourceBackingMode);
+    if (melodySourceFingerprint) {
+      saveJson(melodySelectionKey(initial.song.id), {
+        schemaVersion: 2,
+        generatorVersion: "melody-accompaniment.v2",
+        sourceFingerprint: melodySourceFingerprint,
+        selection: melodySelection,
+        sourceBackingMode,
+        phraseOverrides: melodyPhraseOverrides,
+        provenance: { ...melodyArrangement.provenance, sourceBackingMode: sourceBackingMode === "conservative" ? "conservative" : undefined },
+      } satisfies MelodySelectionSidecar);
+      setMelodySelectionSaved(true);
+    }
+  }
+
+  function updateMelodyPhraseOverride(action: MelodyPhraseOverrideAction) {
+    const phrase = activeMelodyPhrase;
+    if (!phrase || !melodySourceFingerprint) return;
+    const ids = sourceNoteIds(initial.data.notes);
+    const sourceIndexById = new Map(ids.map((id, index) => [id, index]));
+    const overlapsActivePhrase = (override: MelodyPhraseOverride) =>
+      Number.isFinite(override.startBeat) && Number.isFinite(override.endBeat)
+      && override.endBeat > override.startBeat + 1e-7
+      && override.startBeat < phrase.endBeat - 1e-7
+      && override.endBeat > phrase.startBeat + 1e-7;
+    const sourceIdsInRange = (override: MelodyPhraseOverride, startBeat: number, endBeat: number) => override.sourceNoteIds.filter((id) => {
+      const sourceIndex = sourceIndexById.get(id);
+      if (sourceIndex === undefined) return false;
+      const note = initial.data.notes[sourceIndex];
+      return note !== undefined && note.start >= startBeat - 1e-7 && note.start < endBeat - 1e-7;
+    });
+    const splitOverrideAroundPhrase = (override: MelodyPhraseOverride): MelodyPhraseOverride[] => {
+      const ranges = [
+        { startBeat: override.startBeat, endBeat: Math.min(override.endBeat, phrase.startBeat) },
+        { startBeat: Math.max(override.startBeat, phrase.endBeat), endBeat: override.endBeat },
+      ].filter(({ startBeat, endBeat }) => endBeat > startBeat + 1e-7);
+      return ranges.map(({ startBeat, endBeat }) => ({
+        ...override,
+        startBeat,
+        endBeat,
+        sourceNoteIds: sourceIdsInRange(override, startBeat, endBeat),
+      }));
+    };
+    const nextOverrides = melodyPhraseOverrides.flatMap((override) =>
+      overlapsActivePhrase(override) ? splitOverrideAroundPhrase(override) : [override],
+    );
+    if (action !== "automatic") {
+      const sourceIndices = initial.data.notes.map((note, index) => ({ note, index }))
+        .filter(({ note }) => note.start >= phrase.startBeat - 1e-7 && note.start < phrase.endBeat - 1e-7);
+      const selectedIds = action === "rest"
+        ? []
+        : sourceIndices
+          .filter(({ note }) => note.hand === (action === "right-hand" ? "R" : "L"))
+          .map(({ index }) => ids[index]!);
+      if (action !== "rest" && selectedIds.length === 0) return;
+      nextOverrides.push({
+        startBeat: phrase.startBeat,
+        endBeat: phrase.endBeat,
+        sourceNoteIds: selectedIds,
+        sourceFingerprint: melodySourceFingerprint,
+      });
+      nextOverrides.sort((a, b) => a.startBeat - b.startBeat || a.endBeat - b.endBeat);
+    }
+    cancelSoundPreview();
+    setMelodyPhraseOverrides(nextOverrides);
+    if (melodySourceFingerprint) {
+      saveJson(melodySelectionKey(initial.song.id), {
+        schemaVersion: 2,
+        generatorVersion: "melody-accompaniment.v2",
+        sourceFingerprint: melodySourceFingerprint,
+        selection: melodySelection,
+        sourceBackingMode: melodySourceBackingMode,
+        phraseOverrides: nextOverrides,
+        // Phrase choices are user-selected source candidates, not melody proof.
+        provenance: { ...melodyArrangement.provenance, selectionProvenance: "user-confirmed", sourceBackingMode: melodySourceBackingMode === "conservative" ? "conservative" : undefined },
       } satisfies MelodySelectionSidecar);
       setMelodySelectionSaved(true);
     }
@@ -1280,6 +1354,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   function resetMelodySelection() {
     cancelSoundPreview();
     setMelodySelection("automatic");
+    setMelodySourceBackingMode("default");
     setMelodyPhraseOverrides([]);
     setMelodySelectionSaved(false);
     try {
@@ -1456,6 +1531,59 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   const activeMelodyPhrase = melodyArrangement.phrases.find((phrase) =>
     currentBeat >= phrase.startBeat - 1e-7 && currentBeat < phrase.endBeat - 1e-7,
   );
+  const activePhraseSourceCandidates = useMemo(() => {
+    if (!activeMelodyPhrase) return { rightHand: [] as string[], leftHand: [] as string[] };
+    const ids = sourceNoteIds(initial.data.notes);
+    const candidates = { rightHand: [] as string[], leftHand: [] as string[] };
+    initial.data.notes.forEach((note, index) => {
+      if (note.start < activeMelodyPhrase.startBeat - 1e-7 || note.start >= activeMelodyPhrase.endBeat - 1e-7) return;
+      const id = ids[index];
+      if (!id) return;
+      if (note.hand === "R") candidates.rightHand.push(id);
+      if (note.hand === "L") candidates.leftHand.push(id);
+    });
+    return candidates;
+  }, [activeMelodyPhrase, initial.data.notes]);
+  const activePhraseOverrideConflict = useMemo(() => {
+    if (!activeMelodyPhrase) return false;
+    return melodyPhraseOverrides.some((override) => {
+      const exact = Math.abs(override.startBeat - activeMelodyPhrase.startBeat) < 1e-7
+        && Math.abs(override.endBeat - activeMelodyPhrase.endBeat) < 1e-7;
+      return !exact
+        && Number.isFinite(override.startBeat)
+        && Number.isFinite(override.endBeat)
+        && override.endBeat > override.startBeat + 1e-7
+        && override.startBeat < activeMelodyPhrase.endBeat - 1e-7
+        && override.endBeat > activeMelodyPhrase.startBeat + 1e-7;
+    });
+  }, [activeMelodyPhrase, melodyPhraseOverrides]);
+  const activePhraseOverrideAction = useMemo<MelodyPhraseOverrideAction | null>(() => {
+    if (!activeMelodyPhrase) return null;
+    const override = melodyPhraseOverrides.find((candidate) =>
+      Math.abs(candidate.startBeat - activeMelodyPhrase.startBeat) < 1e-7
+      && Math.abs(candidate.endBeat - activeMelodyPhrase.endBeat) < 1e-7,
+    );
+    if (!override) return activePhraseOverrideConflict ? null : "automatic";
+    const sourceIndexById = new Map(sourceNoteIds(initial.data.notes).map((id, index) => [id, index]));
+    const exactOverrideIsValid = override.sourceFingerprint === melodySourceFingerprint
+      && Number.isFinite(override.startBeat)
+      && Number.isFinite(override.endBeat)
+      && new Set(override.sourceNoteIds).size === override.sourceNoteIds.length
+      && override.sourceNoteIds.every((id) => {
+        const sourceIndex = sourceIndexById.get(id);
+        const note = sourceIndex === undefined ? undefined : initial.data.notes[sourceIndex];
+        return note !== undefined
+          && note.start >= activeMelodyPhrase.startBeat - 1e-7
+          && note.start < activeMelodyPhrase.endBeat - 1e-7;
+      });
+    if (!exactOverrideIsValid) return null;
+    if (override.sourceNoteIds.length === 0) return "rest";
+    if (override.sourceNoteIds.length === activePhraseSourceCandidates.rightHand.length
+      && override.sourceNoteIds.every((id) => activePhraseSourceCandidates.rightHand.includes(id))) return "right-hand";
+    if (override.sourceNoteIds.length === activePhraseSourceCandidates.leftHand.length
+      && override.sourceNoteIds.every((id) => activePhraseSourceCandidates.leftHand.includes(id))) return "left-hand";
+    return null;
+  }, [activeMelodyPhrase, activePhraseOverrideConflict, activePhraseSourceCandidates, initial.data.notes, melodyPhraseOverrides, melodySourceFingerprint]);
   const activeAccompanimentFallback = accompaniment.fallbackSpans.find((span) =>
     currentBeat >= span.startBeat && currentBeat < span.endBeat,
   );
@@ -1600,7 +1728,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
                     </span>
                     <button type="button" className="min-h-8 rounded-md border border-zinc-300 bg-white px-2" onClick={() => seek(activeMelodyPhrase.startBeat * secPerBeat(initial.data.tempoBpm, settings.speed))}>Seek</button>
                     <button type="button" className="min-h-8 rounded-md border border-zinc-300 bg-white px-2" onClick={() => setLoopBeats({ startBeat: activeMelodyPhrase.startBeat, endBeat: activeMelodyPhrase.endBeat })}>Loop</button>
-                    <span className="basis-full text-[11px] text-zinc-500">Automatic and right-hand choices apply to the whole part unless a phrase override is added.</span>
+                    <span className="basis-full text-[11px] text-zinc-500">Use whole-part selection to inherit the current automatic or right-hand choice; the other actions apply only to this phrase.</span>
                   </div>
                 )}
               </details>
@@ -1807,9 +1935,16 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
                 chordSource={chordSourcePreference} chordSources={chordSources}
                 chordSourceStatus={selectedChordSource.fallbackReason} onChordSourceChange={updateChordSource}
                 melodyArrangement={melodyArrangement}
+                activeMelodyPhrase={activeMelodyPhrase}
+                phraseSourceCandidates={activePhraseSourceCandidates}
+                phraseOverrideAction={activePhraseOverrideAction}
+                phraseOverrideConflict={activePhraseOverrideConflict}
+                sourceBackingMode={melodySourceBackingMode}
                 rightHandAvailable={initial.data.notes.some((note) => note.hand === "R")}
                 hasSavedMelodySelection={melodySelectionSaved}
                 onMelodySelectionChange={updateMelodySelection}
+                onMelodyPhraseOverrideChange={updateMelodyPhraseOverride}
+                onSourceBackingModeChange={updateSourceBackingMode}
                 onMelodySelectionReset={resetMelodySelection} />
             </fieldset> : <InputStatus octave={inputOctave} midiConnected={midiConnected} pending={midiPending} error={midiError} supported={midiSupported()} onOctaveChange={octave => keyboardInputRef.current?.setOctave(octave)} onConnectMidi={connectMidi} />}
           </PlayerTools>
