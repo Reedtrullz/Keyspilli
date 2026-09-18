@@ -1588,6 +1588,11 @@ test("fallback and phrase metadata keep transport stable and review controls vis
   expect(landscapeStage?.y ?? Infinity).toBeLessThan(390);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath("fallback-layout-landscape.png") });
+  writeFileSync(testInfo.outputPath("fallback-layout-geometry.json"), `${JSON.stringify({
+    wide: { viewport: { width: 1550, height: 560 }, closed: closedGeometry, open: openGeometry, playback: states },
+    mobile: { viewport: { width: 390, height: 844 }, open: narrowOpenGeometry, playback: narrowStates },
+    landscape: { viewport: { width: 926, height: 390 }, stage: landscapeStage },
+  }, null, 2)}\n`);
 });
 
 type ReservedCaptureOutcome = {

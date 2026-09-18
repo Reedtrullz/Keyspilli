@@ -1,0 +1,87 @@
+{
+  "task": "keyspilli-player-fallback-layout",
+  "reported_recording": {
+    "file": "/Users/reidar/Desktop/Screen Recording 2026-09-18 at 22.09.37.mov",
+    "song": "Somebody To Love",
+    "artist": "Queen",
+    "recorded_window": "1:31-1:40",
+    "fixture_mapping": "The checked-in deterministic fixture set has no Somebody To Love artifact; Oops exercises the same fallback and phrase-review transitions."
+  },
+  "baseline": {
+    "commit": "87d7626405b917c8e2f118a77706cbb6a74b8da9",
+    "node": "22.22.3",
+    "build": "passed",
+    "focused_command": "npm run e2e --workspace=@keyspilli/web -- --config=playwright.chords-v2.t1.config.ts --grep='browser trace keeps Original and large arrangements off the main-thread producer|stale worker replies cannot replace the latest source-keyed request|real audio events cover mode, hand filtering, seek, transpose, correction, and practice flow|reserved evaluation captures complete phrases with automatic and manual outcomes separate'",
+    "results": [
+      {
+        "test": "browser trace keeps Original and large arrangements off the main-thread producer",
+        "status": "failed",
+        "failure": "getByLabel('Falling notes player') not found at melody-accompaniment.spec.ts:838"
+      },
+      {
+        "test": "stale worker replies cannot replace the latest source-keyed request",
+        "status": "failed",
+        "failure": "getByLabel('Falling notes player') not found at melody-accompaniment.spec.ts:952"
+      },
+      {
+        "test": "real audio events cover mode, hand filtering, seek, transpose, correction, and practice flow",
+        "status": "failed",
+        "failure": "automatic first attacks were [53, 60, 68, 72]; assertion expected no MIDI 72 at melody-accompaniment.spec.ts:1206"
+      },
+      {
+        "test": "reserved evaluation captures complete phrases with automatic and manual outcomes separate",
+        "status": "failed",
+        "failure": "w-h-doane-near-the-cross-a-scratch Original expected captured, received error at melody-accompaniment.spec.ts:1660"
+      }
+    ],
+    "classification": {
+      "ug_player_failures": "fixture setup: playwright.chords-v2.t1.config.ts provisions only Blackbird, Oops, and Hell; UG_SONG_ID is not in that fixture list, so both tests fail before player render.",
+      "audio_expectation": "baseline failure: the same MIDI-72 assertion signature was observed in the PR full-suite run; not attributed to this layout change.",
+      "reserved_capture": "baseline failure: the same candidate and Original capture error were observed in the PR full-suite run; not attributed to this layout change."
+    }
+  },
+  "candidate": {
+    "commit": "149aa16a36ded5b6309815c1bc1f26da5bd8c3fc",
+    "focused_command": "npm run e2e --workspace=@keyspilli/web -- --config=playwright.chords-v2.t1.config.ts --grep='fallback and phrase metadata'",
+    "focused_result": "passed",
+    "geometry_artifact": "apps/web/test-results/melody-accompaniment-fallb-fd582-and-review-controls-visible-chromium/fallback-layout-geometry.json",
+    "geometry": {
+      "wide_1550x560": {
+        "closed_surface_top": 286,
+        "open_surface_top": 366.65625,
+        "playback_surface_tops": [366.65625],
+        "pill_heights": [24],
+        "active_fallback_messages": [
+          "Original passage retained — choose a melody source before replacing this phrase.",
+          "Original passage retained — notes-derived harmony is label-only here."
+        ],
+        "distinct_phrase_texts": 4
+      },
+      "mobile_390x844": {
+        "open_surface_top": 494.140625,
+        "playback_surface_tops": [494.140625],
+        "pill_heights": [24, 40],
+        "active_fallback_messages": [
+          "Original passage retained — choose a melody source before replacing this phrase.",
+          "Original passage retained — notes-derived harmony is label-only here."
+        ],
+        "distinct_phrase_texts": 4,
+        "original_mode_metadata": "hidden; Play and transport remain visible"
+      },
+      "landscape_926x390": {
+        "stage": {"x": 9, "y": 131, "width": 908, "height": 258},
+        "horizontal_overflow": false
+      }
+    },
+    "screenshots": [
+      "apps/web/test-results/melody-accompaniment-fallb-fd582-and-review-controls-visible-chromium/fallback-layout-original-mobile.png",
+      "apps/web/test-results/melody-accompaniment-fallb-fd582-and-review-controls-visible-chromium/fallback-layout-mobile.png",
+      "apps/web/test-results/melody-accompaniment-fallb-fd582-and-review-controls-visible-chromium/fallback-layout-landscape.png"
+    ]
+  },
+  "suite_snapshot": {
+    "last_full_melody_spec": "34/38 passed",
+    "unclassified_failures": 4,
+    "merge_or_deploy": "not performed"
+  }
+}
