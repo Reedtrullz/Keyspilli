@@ -1,12 +1,12 @@
 # Task 2 report — coherent phrase backing strategy
 
 Date: 2026-09-18
-Base: `56f40d5`
+Base: `e739cf7`
 Scope: Task 2 only; no UI, catalogue, live data, merge, push, deployment, or production mutation.
 
 ## Result
 
-Status: PARTIAL. The bounded producer selector correction is implemented and tested: it compares the actual merged source/protected/held candidate, protects the deterministic first structural source attack plus explicit `identitySource: "vocals"` evidence, carries protection across repeated sparse seams, and preserves source rests during regeneration. The Oops real-song rhythm limitation remains unresolved at `479/479`; no generated-only real change is claimed. The final Task 1 allocator remains the only final allocation pass.
+Status: OPEN. The bounded producer selector correction is implemented and tested: it compares the actual merged source/protected/held candidate, protects only explicit `identitySource` evidence, carries protection across repeated sparse seams, and preserves source rests during regeneration. The Oops real-song rhythm limitation remains unresolved at `479/479`; no generated-only real change is claimed. The final Task 1 allocator remains the only final allocation pass.
 
 ## TDD evidence
 
@@ -21,20 +21,22 @@ Tests       2 failed | 73 passed (75)
 
 The failures were the merged sparse candidate still selecting `sparse-harmonic` when retained protected attacks made the attack union no better, and the seam test retaining a `sourceLane`-only note. The generated-only label-only path stayed green. The follow-up added the multi-event held/protected seam and source-rest regressions.
 
+The final explicit-identity correction also produced a focused red result against `d20126b` (`1 failed | 75 skipped`, 76 selected test-file tests): the unannotated earliest source attack displaced an explicitly identified bass. Removing first-attack protection and honoring any explicit `identitySource` made that test green.
+
 ### GREEN
 
 Focused producer and arrangement-change tests:
 
 ```text
-PATH=/Users/reidar/.nvm/versions/node/v22.22.3/bin:$PATH npm run test -w @keyspilli/player-core -- test/melody-accompaniment.test.ts
-Test Files  1 passed (1)
-Tests       76 passed (76)
+pnpm exec vitest run packages/player-core/test/melody-accompaniment.test.ts packages/player-core/test/arrangement-change.test.ts
+Test Files  2 passed (2)
+Tests       82 passed (82)
 ```
 
 Full player-core suite:
 
 ```text
-PATH=/Users/reidar/.nvm/versions/node/v22.22.3/bin:$PATH npm run test -w @keyspilli/player-core
+pnpm exec vitest run packages/player-core
 Test Files  15 passed (15)
 Tests       249 passed (249)
 ```
@@ -42,7 +44,7 @@ Tests       249 passed (249)
 Typecheck:
 
 ```text
-PATH=/Users/reidar/.nvm/versions/node/v22.22.3/bin:$PATH npm run typecheck -w @keyspilli/player-core
+pnpm --filter @keyspilli/player-core exec tsc --noEmit
 exit 0
 ```
 
@@ -50,7 +52,7 @@ exit 0
 
 - Sparse comparison is bounded to supported harmonic events with `source-measure-boundary` phase when source support exists; no pulse library, generated-note quota, or second producer was added.
 - The sparse candidate wins only when the merged candidate strictly reduces attack locations, with occupancy and bounded per-hand sounding penalty measured over retained/protected/held notes. Generated duplicates at preserved source pitches are filtered before the final allocator.
-- Protection is limited to the deterministic first structural source attack plus explicit `identitySource: "vocals"` evidence; `sourceLane` remains available metadata, not reviewed hook identity. There is no generated-note quota heuristic.
+- Protection is limited to explicit `identitySource` evidence; `sourceLane` remains available metadata, not reviewed hook identity. There is no first-attack or generated-note quota heuristic.
 - Sparse phase continues across adjacent equivalent chord events while carrying protected notes and source-rest boundaries through the regenerated candidate.
 - `strategy: "harmonic-backing"` takes precedence when generated backing is actually rendered; unchanged phrases now use neutral `reasons: []` instead of treating exact equality as musical success.
 - Notes-derived/generated-only harmony remains label-only under `harmonicSupport: "authored-only"`; its source reduction can still reduce dense source stacks, but it cannot synthesize support.
@@ -99,4 +101,3 @@ The corrected selector and seam/rest behavior are mechanism-level results from s
 - `packages/player-core/test/melody-accompaniment.test.ts`
 - `docs/superpowers/evidence/2026-09-18-pr100-chords-v2-skeptical-audit-reproduce.ts`
 - `.superpowers/sdd/2026-09-18-chords-v2-remediation/task-2-report.md`
-- `docs/superpowers/evidence/2026-09-18-chords-v2-task-2-checkpoint.md`
