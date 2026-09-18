@@ -294,7 +294,7 @@ describe("buildMelodyAccompaniment", () => {
       [0, 2, "harmonic-backing", "changed"],
       [2, 4, "source-reduction", "unchanged"],
     ]);
-    expect(result.phrases[1]).toMatchObject({ review: "automatic", reasons: ["already-simple"] });
+    expect(result.phrases[1]).toMatchObject({ review: "automatic", reasons: [] });
   });
 
   it("keeps an invalid overlapping override visible in phrase review", () => {
@@ -569,6 +569,94 @@ describe("buildMelodyAccompaniment", () => {
       review: "needs-review",
       reasons: ["no chord coverage"],
     })]);
+  });
+
+  it("chooses sparse authored backing only when it reduces attacks and keeps protected bass and hooks", () => {
+    const source = [
+      note(72, 0, 0.5, 100, "R"),
+      note(74, 3, 0.5, 100, "R"),
+      { ...note(36, 0, 0.75, 60, "L"), sourceLane: "bass" },
+      { ...note(55, 0.5, 0.25, 64, "L"), sourceLane: "hook" },
+      ...[0.25, 0.75, 1, 1.25, 1.5, 1.75].flatMap((start) => [
+        note(40, start, 0.2, 58, "L"),
+        note(43, start, 0.2, 58, "L"),
+      ]),
+    ];
+    const ids = sourceNoteIds(source);
+    const result = buildMelodyAccompaniment(source, [{
+      ...chord(0, "C", 4),
+      sourceKind: "authored",
+    }], {
+      durationBeats: 4,
+      selection: "right-hand",
+      sourceFingerprint: "authored-phrase-v1",
+      sparseBackingTiming: { timeSig: [4, 4], measureStartBeat: 0, provenance: "source-measure-boundary" },
+    });
+    const support = result.events.filter((event) => event.role === "accompaniment");
+
+    expect(result.provenance.supportModes).toContain("sparse-harmonic");
+    expect([...new Set(support.map((event) => event.note.start))]).toEqual([0, 0.5, 2]);
+    expect(support.some((event) => event.sourceNoteIds.includes(ids[2]!))).toBe(true);
+    expect(support.some((event) => event.sourceNoteIds.includes(ids[3]!))).toBe(true);
+    expect(result.melody.map(({ midi, start, dur, vel, hand }) => ({ midi, start, dur, vel, hand }))).toEqual([source[0], source[1]]);
+    expect(support.some((event) => event.note.start === 1)).toBe(false);
+    expect(support.filter((event) => event.sourceNoteIds.length === 0).every((event) => event.note.start === 0 || event.note.start === 2)).toBe(true);
+  });
+
+  it("keeps a simple source phrase unchanged without a generated-note quota or review claim", () => {
+    const result = buildMelodyAccompaniment([
+      note(72, 0, 0.5, 100, "R"),
+      note(48, 0, 0.5, 60, "L"),
+      note(74, 2, 0.5, 100, "R"),
+    ], [{
+      ...chord(0, "C", 4),
+      sourceKind: "authored",
+    }], {
+      durationBeats: 4,
+      selection: "right-hand",
+      sourceFingerprint: "simple-phrase-v1",
+      sparseBackingTiming: { timeSig: [4, 4], measureStartBeat: 0, provenance: "source-measure-boundary" },
+    });
+
+    expect(result.provenance.generatedNoteCount).toBe(0);
+    expect(result.provenance.supportModes).toEqual(["source-rhythm"]);
+    expect(result.phrases).toEqual([expect.objectContaining({
+      strategy: "source-reduction",
+      change: "unchanged",
+      review: "user-selected",
+      reasons: [],
+    })]);
+  });
+
+  it("keeps generated-only harmony label-only while retaining source reduction", () => {
+    const source = [
+      note(72, 0, 0.5, 100, "R"),
+      note(48, 0, 0.5, 60, "L"),
+      note(52, 0, 0.5, 60, "L"),
+      note(55, 0, 0.5, 60, "L"),
+      note(60, 0, 0.5, 60, "L"),
+      note(74, 1, 0.5, 100, "R"),
+      note(50, 1, 0.5, 60, "L"),
+      note(53, 1, 0.5, 60, "L"),
+      note(57, 1, 0.5, 60, "L"),
+      note(62, 1, 0.5, 60, "L"),
+    ];
+    const result = buildMelodyAccompaniment(source, [{
+      ...chord(0, "C", 2),
+      sourceKind: "generated",
+    }], {
+      durationBeats: 2,
+      selection: "right-hand",
+      sourceFingerprint: "generated-only-v1",
+      harmonicSupport: "authored-only",
+      sparseBackingTiming: { timeSig: [4, 4], measureStartBeat: 0, provenance: "source-measure-boundary" },
+    });
+
+    expect(result.chords).toEqual([]);
+    expect(result.provenance.generatedNoteCount).toBe(0);
+    expect(result.provenance.supportModes).toEqual(["source-rhythm"]);
+    expect(result.notes.filter((item) => item.hand === "L").length).toBeLessThan(source.filter((item) => item.hand === "L").length);
+    expect(result.fallbackSpans).toEqual([]);
   });
 
   it("does not reuse protected melody as inferred harmony when the chart is absent", () => {
