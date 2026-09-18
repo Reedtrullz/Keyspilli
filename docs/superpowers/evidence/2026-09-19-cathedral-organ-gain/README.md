@@ -12,6 +12,8 @@ npx playwright test docs/superpowers/evidence/2026-09-19-cathedral-organ-gain/or
 
 The test asserts the exact Oops fixture state: Original arrangement, Organ, Cathedral, persisted 100/100 hand sliders. It records the real AudioParam targets for the right/manual and left/foundation buses while playing and while switching Cathedral → Rock → Cathedral.
 
+The default check is a regression gate: every recorded target on both buses must equal `1.0`. The historical baseline output below was captured with the same probe before the fix and would fail this assertion because newly-created graphs received `1.0/0.4`.
+
 Recorded comparison:
 
 - Baseline `df03e5747eda577353d807da258fe2adc054bd14`: newly-created graphs started at `1.0/0.4`.

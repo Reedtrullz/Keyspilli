@@ -112,5 +112,7 @@ test("reports real Cathedral gain buses across Oops engine recreation", async ({
   for (const snapshot of unique) {
     expect(snapshot.targets[0]).not.toHaveLength(0);
     expect(snapshot.targets[1]).not.toHaveLength(0);
+    expect(snapshot.targets[0].every((target) => target === 1)).toBe(true);
+    expect(snapshot.targets[1].every((target) => target === 1)).toBe(true);
   }
 });
