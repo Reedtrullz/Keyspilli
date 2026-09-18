@@ -56,15 +56,14 @@ The current policy treats an unverified generated label as provenance-only when 
 
 ## Current Oops development audio
 
-The T1 frozen development fixture captured the full `[64,108]` development phrase at 95 BPM with the browser AudioEngine synth. The audio candidate is `7775d5b`; `f0cb469` changes status accounting only and was not recaptured. The test harness correction only removed the obsolete coherent-`<`-resume event-count ordering assumption. Audio artifacts are preserved in the worktree under `apps/web/test-results/melody-accompaniment-compl-5ca33-didates-with-the-same-synth-chromium/`:
+The T1 frozen development fixture captured the full `[64,108]` development phrase at 95 BPM with the browser AudioEngine synth. Direct listening is in the bounded [current-candidate Oops packet](./2026-09-17-chords-v2-current-candidate-packet/): [Original](./2026-09-17-chords-v2-current-candidate-packet/oops-development-64-108-original.webm) and [Current Automatic](./2026-09-17-chords-v2-current-candidate-packet/oops-development-64-108-current-automatic.webm). The packet manifest records the recoverable source fingerprint, Player selection path, policy commits, decoded PCM completeness, ffprobe durations, event counts, and SHA-256 values.
 
-| Capture | Events | WebM SHA-256 |
-| --- | ---: | --- |
-| Original | 1,017 | `625ee52ddc6bed55f1ccc0aa1a12802b1ca31b0727ada8006d588f90843ce0b4` |
-| Current coherent | 624 | `7584001ede6b15a81b364ffa882f2bf94db117a829fc21d10738cbd5d463db31` |
-| Current resume comparison | 609 | `788581b7be9fc0871011cb8d0e8a03cfeeae00e58bf569c5882c0c5fbffd3bb5` |
+| Capture | Events | ffprobe duration | WebM SHA-256 |
+| --- | ---: | ---: | --- |
+| Original | 1,017 | 28.800089 s | `a959e544f244d3119a8b43a00dabe27f3cf240a45e1906908dbf1e5ca7f64c92` |
+| Current Automatic | 624 | 28.803113 s | `c0e2e1d3f43e775b4dce96ccd4dd589e05a8cbfa4f924154fd32beab01c9a9c9` |
 
-The current coherent/resume captures are audible, distinct from Original and each other, and human listening remains pending. The old reserved capture packet remains intact and is superseded for current-candidate output review; no old packet file was overwritten and no reserved result was replaced.
+Both decoded to 1,272,726 samples at 44.1 kHz (28.86 s) against the 28.79 s request and passed the existing capture completeness gate. The current Automatic policy is `authored-only` for the generated `variant:a:notes.json` source; `f0cb469` changes status accounting only. The resume comparison remains excluded from this bounded listening packet. The old reserved capture packet remains intact and historical; no old packet file was overwritten and no reserved result was replaced. Human musical listening remains pending.
 
 ## Reserved browser evidence
 

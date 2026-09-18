@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "packet": "2026-09-17-chords-v2-current-candidate",
+  "code": {
+    "checkoutCommit": "df09212e33c384036f8bd5d7978dc82facdcb3c5",
+    "runtimePolicyCommit": "7775d5b383289a28212dc9c2a8ec2e1f3b752d81",
+    "statusAccountingCommit": "f0cb469464385addaced7e451c9e38aca82175f5",
+    "comparisonCandidate": "7775d5b383289a28212dc9c2a8ec2e1f3b752d81",
+    "comparisonBaseline": "fce18bcbc358a06281813192de95eb56f9f0e878",
+    "node": "22.22.3",
+    "browser": "Chromium",
+    "instrument": "browser AudioEngine synth",
+    "test": "apps/web/e2e/melody-accompaniment.spec.ts :: complete Oops phrase captures Original, coherent and resume candidates with the same synth",
+    "testSha256": "eae0fa0398800479b1669544425aa6280b37cce52baa08abed269b6e0000155a",
+    "config": "apps/web/playwright.chords-v2.t1.config.ts",
+    "configSha256": "d55eb85efbafd91aa033904208aa009b8e4d8bf1a9a8a588dee870425571cf47"
+  },
+  "player": {
+    "sourcePath": "resolveChordSources(data) -> selectChordSource(auto) -> melodyHarmonicSupportPolicy(auto) -> buildMelodyAccompaniment",
+    "selectedSource": "generated variant:a:notes.json",
+    "automaticPolicy": "authored-only",
+    "sourcePolicyCommit": "7775d5b383289a28212dc9c2a8ec2e1f3b752d81"
+  },
+  "source": {
+    "fixtureId": "britney-spears-oops-i-did-it-again",
+    "variant": "a",
+    "sourceFingerprint": "variant:britney-spears-oops-i-did-it-again:a:britney-spears-oops-i-did-it-again-a:64d18aa4c23f7625a6eb0a7a234843a7a2278003d75cba9ea04efde7d8225ad4:notes:84153b6de3857351ce92086c8f5a28f9147073070948ed96fd39e6d6f8f212ae",
+    "notesPath": "docs/superpowers/evidence/2026-09-17-chords-v2-fixtures/britney-spears-oops-i-did-it-again/a/notes.json",
+    "notesSha256": "346c168afa388c8582fbd631a1e0d79ba8bd585caa49ad7a1082492b5ecb7f98",
+    "songPath": "docs/superpowers/evidence/2026-09-17-chords-v2-fixtures/britney-spears-oops-i-did-it-again/song.json",
+    "songSha256": "6a2c4b129b01ff0f1b3640b31d434b14898aacb5650abfab0191769f84bc002f",
+    "manifestPath": "docs/superpowers/evidence/2026-09-17-chords-v2-fixtures/britney-spears-oops-i-did-it-again/manifest.json",
+    "manifestSha256": "e14640e33da4cc82214da98c87def815b1c5a0338dc5b5f67bfc7dddd8ce85bd"
+  },
+  "window": {
+    "startBeat": 64,
+    "endBeat": 108,
+    "bpm": 95,
+    "phraseDurationSeconds": 27.789474,
+    "requestedCaptureDurationMs": 28790,
+    "requestedCaptureDurationSeconds": 28.79,
+    "decodedSampleRate": 44100,
+    "decodedSamples": 1272726,
+    "decodedPcmDurationSeconds": 28.86,
+    "durationToleranceSeconds": 0.25,
+    "durationComplete": true
+  },
+  "captures": {
+    "original": {
+      "file": "oops-development-64-108-original.webm",
+      "sha256": "a959e544f244d3119a8b43a00dabe27f3cf240a45e1906908dbf1e5ca7f64c92",
+      "bytes": 464942,
+      "ffprobeDurationSeconds": 28.800089,
+      "events": 1017,
+      "signalRms": 0.07799507570466023,
+      "signalPeak": 0.9783814549446106,
+      "signalSamples": 212121
+    },
+    "currentAutomatic": {
+      "file": "oops-development-64-108-current-automatic.webm",
+      "sha256": "c0e2e1d3f43e775b4dce96ccd4dd589e05a8cbfa4f924154fd32beab01c9a9c9",
+      "bytes": 450989,
+      "ffprobeDurationSeconds": 28.803113,
+      "events": 624,
+      "signalRms": 0.05474187968713336,
+      "signalPeak": 0.7871699929237366,
+      "signalSamples": 212121
+    }
+  },
+  "historical": {
+    "reservedPacket": "../2026-09-17-chords-v2-capture-packet/",
+    "resumeExcluded": true,
+    "humanListening": "pending"
+  }
+}
