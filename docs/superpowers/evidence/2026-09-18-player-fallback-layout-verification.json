@@ -41,7 +41,7 @@
     }
   },
   "candidate": {
-    "commit": "149aa16a36ded5b6309815c1bc1f26da5bd8c3fc",
+    "commit": "1b48da89635a8a10c206ad9a57ee4b03a4a66d95",
     "focused_command": "npm run e2e --workspace=@keyspilli/web -- --config=playwright.chords-v2.t1.config.ts --grep='fallback and phrase metadata'",
     "focused_result": "passed",
     "geometry_artifact": "apps/web/test-results/melody-accompaniment-fallb-fd582-and-review-controls-visible-chromium/fallback-layout-geometry.json",
