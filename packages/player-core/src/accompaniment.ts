@@ -1805,6 +1805,7 @@ export function buildMelodyAccompaniment(
     durationBeats,
   );
   const fallbackBeats = fallbackSpans.reduce((sum, span) => sum + Math.max(0, span.endBeat - span.startBeat), 0);
+  if (soundingLimits.fallbackSpans.length > 0) supportModes.add("fallback");
   if (supportModes.size === 0) supportModes.add("fallback");
   const melodyNoteIds = [...selected.selectedIndices].sort((a, b) => a - b).map((index) => selected.sourceIds[index]!);
   const changeSummary = measureArrangementChanges(sourceNotes, arrangementEvents, durationBeats, [...selected.unresolvedSpans, ...fallbackSpans]);

@@ -1160,6 +1160,16 @@ describe("buildMelodyAccompaniment", () => {
     expect(result.fallbackSpans).toContainEqual({ startBeat: 0, endBeat: 2, reason: "sounding limit exceeded" });
   });
 
+  it("reports fallback when the final allocator removes source-rhythm support", () => {
+    const result = buildMelodyAccompaniment(
+      [note(72, 0, 2, 100, "R"), note(72, 0, 2, 60, "L")],
+      [chord(0, "C", 2)],
+      { durationBeats: 2, selection: "right-hand", sourceFingerprint: "allocator-fallback-v1" },
+    );
+
+    expect(result.provenance.supportModes).toContain("fallback");
+  });
+
   it("fails closed when a source arrangement has no notes", () => {
     const result = build([], [chord(0, "C", 2)], "automatic", 2);
 
