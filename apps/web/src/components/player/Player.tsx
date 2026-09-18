@@ -1559,11 +1559,12 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   }, [activeMelodyPhrase, melodyPhraseOverrides]);
   const activePhraseOverrideAction = useMemo<MelodyPhraseOverrideAction | null>(() => {
     if (!activeMelodyPhrase) return null;
+    if (activePhraseOverrideConflict) return null;
     const override = melodyPhraseOverrides.find((candidate) =>
       Math.abs(candidate.startBeat - activeMelodyPhrase.startBeat) < 1e-7
       && Math.abs(candidate.endBeat - activeMelodyPhrase.endBeat) < 1e-7,
     );
-    if (!override) return activePhraseOverrideConflict ? null : "automatic";
+    if (!override) return "automatic";
     const sourceIndexById = new Map(sourceNoteIds(initial.data.notes).map((id, index) => [id, index]));
     const exactOverrideIsValid = override.sourceFingerprint === melodySourceFingerprint
       && Number.isFinite(override.startBeat)

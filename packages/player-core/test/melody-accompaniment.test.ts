@@ -188,6 +188,57 @@ describe("buildMelodyAccompaniment", () => {
     expect(conservative.melody).toEqual(defaultResult.melody);
   });
 
+  it("does not thin source backing inside an unresolved phrase", () => {
+    const source = [
+      note(84, 0, 1, 110, "R"),
+      note(48, 0, 0.25, 60, "L"), note(64, 0, 0.25, 55, "R"), note(67, 0, 0.25, 55, "R"),
+      note(84, 1, 1, 110, "R"),
+      note(64, 1, 0.25, 55, "R"), note(67, 1, 0.25, 55, "R"),
+      note(84, 2, 1, 110, "R"),
+      note(64, 2, 0.25, 55, "R"), note(67, 2, 0.25, 55, "R"),
+    ];
+    const ids = sourceNoteIds(source);
+    const result = buildMelodyAccompaniment(source, [], {
+      durationBeats: 3,
+      sourceFingerprint: "source-backing-unresolved-v1",
+      allowRests: true,
+      sourceBackingMode: "conservative",
+      phraseOverrides: [{
+        startBeat: 0,
+        endBeat: 3,
+        sourceNoteIds: ["missing-source-id"],
+        sourceFingerprint: "source-backing-unresolved-v1",
+      }],
+    });
+    const outputSourceIds = new Set(result.events.flatMap((event) => event.sourceNoteIds));
+
+    expect(result.provenance.unresolvedSpans).toEqual([
+      { startBeat: 0, endBeat: 3, reason: "invalid phrase override" },
+    ]);
+    expect(ids.every((id) => outputSourceIds.has(id))).toBe(true);
+    expect(result.provenance.generatedNoteCount).toBe(0);
+  });
+
+  it("keeps a non-repeated source stack outside the narrow opt-in rule", () => {
+    const source = [
+      note(90, 0, 1, 110, "R"),
+      note(48, 0, 0.25, 60, "L"),
+      note(64, 0, 0.25, 55, "R"), note(67, 0, 0.25, 55, "R"), note(70, 0, 0.25, 55, "R"), note(73, 0, 0.25, 55, "R"),
+      note(90, 1, 1, 110, "R"), note(50, 1, 0.25, 60, "L"), note(65, 1, 0.25, 55, "R"), note(68, 1, 0.25, 55, "R"),
+    ];
+    const ids = sourceNoteIds(source);
+    const result = buildMelodyAccompaniment(source, [], {
+      durationBeats: 2,
+      sourceFingerprint: "source-backing-stack-v1",
+      allowRests: true,
+      sourceBackingMode: "conservative",
+    });
+    const outputSourceIds = new Set(result.events.flatMap((event) => event.sourceNoteIds));
+
+    expect([ids[2], ids[3], ids[4], ids[5]].every((id) => outputSourceIds.has(id!))).toBe(true);
+    expect(result.provenance.generatedNoteCount).toBe(0);
+  });
+
   it("does not remove a non-adjacent recurrence after an intervening source tuple", () => {
     const source = [
       note(84, 0, 1, 110, "R"), note(64, 0, 0.25, 55, "R"), note(67, 0, 0.25, 55, "R"),

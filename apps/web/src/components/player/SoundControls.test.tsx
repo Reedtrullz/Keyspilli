@@ -52,9 +52,9 @@ describe("SoundControls accompaniment styles", () => {
     expect(markup).toContain('data-testid="melody-accompaniment-controls"');
     expect(markup).toContain("Automatic melody");
     expect(markup).toContain("Use right-hand part");
-    expect(markup).toContain("Reset saved selection");
+    expect(markup).toContain("Reset all saved choices");
     expect(markup).toContain('data-testid="source-backing-controls"');
-    expect(markup).toContain("Conservative source-only reduction");
+    expect(markup).toContain("Conservative source-only preview (whole song)");
     expect(markup).toContain("never adds inferred pitches");
     expect(markup).toContain("source support notes");
     expect(markup).toContain('data-testid="melody-audition-controls"');

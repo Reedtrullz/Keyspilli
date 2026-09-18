@@ -1496,6 +1496,7 @@ interface ConservativeSourceReduction {
 function conservativeSourceReduction(
   sourceNotes: readonly Note[],
   selectedIndices: ReadonlySet<number>,
+  protectedRanges: readonly { startBeat: number; endBeat: number }[] = [],
 ): ConservativeSourceReduction {
   const playableAttackStarts = sourceNotes
     .filter(playableSourceNote)
@@ -1519,6 +1520,9 @@ function conservativeSourceReduction(
     const lowestPlayable = group[0];
     if (lowestPlayable) protectedIndices.add(lowestPlayable.sourceIndex);
     for (const { note, sourceIndex } of group) {
+      if (protectedRanges.some((range) => overlaps(note, range.startBeat, range.endBeat))) {
+        protectedIndices.add(sourceIndex);
+      }
       const heldAcrossAttack = playableAttackStarts.some((attackStart) =>
         attackStart > note.start + EPSILON && attackStart < noteEnd(note) - EPSILON,
       );
@@ -1784,7 +1788,7 @@ export function buildMelodyAccompaniment(
   );
   const conservativeSourceBacking = options.sourceBackingMode === "conservative";
   const conservativeReduction = conservativeSourceBacking
-    ? conservativeSourceReduction(sourceNotes, selected.selectedIndices)
+    ? conservativeSourceReduction(sourceNotes, selected.selectedIndices, selected.unresolvedSpans)
     : { removed: new Set<number>(), protected: new Set<number>() };
   const harmonicSupport = conservativeSourceBacking
     ? "none"
@@ -1869,7 +1873,13 @@ export function buildMelodyAccompaniment(
     const sourceSupport = sourceNotes
       .map((note, sourceIndex) => ({ note, sourceIndex }))
       .filter(({ note, sourceIndex }) => !selected.selectedIndices.has(sourceIndex) && overlaps(note, event.startBeat, event.endBeat));
-    const reducedSupport = reduceSourceSupport(sourceNotes, selected.selectedIndices, event.startBeat, event.endBeat);
+    const reducedSupport = conservativeSourceBacking
+      ? sourceSupport
+        .filter(({ note }) => playableSourceNote(note)
+          && note.start >= event.startBeat - EPSILON
+          && note.start < event.endBeat - EPSILON)
+        .map(({ note, sourceIndex }) => ({ sourceIndex, note: accompanimentNote(note) }))
+      : reduceSourceSupport(sourceNotes, selected.selectedIndices, event.startBeat, event.endBeat);
     const learning: LearningChordNotes | null = !conservativeSourceBacking && event.harmonicSupportAllowed
       ? learningChordNotes(
           event.chord,
@@ -1952,7 +1962,7 @@ export function buildMelodyAccompaniment(
       for (const { note, sourceIndex } of sourceSupport) {
         if (note.start >= event.startBeat - EPSILON && note.start < event.endBeat - EPSILON) {
           if (protectedSourceIndices.has(sourceIndex)) sourceSupportByIndex.set(sourceIndex, accompanimentNote(note));
-          else sourceIndicesToReplace.add(sourceIndex);
+          else if (!conservativeSourceBacking) sourceIndicesToReplace.add(sourceIndex);
         } else if (note.start < event.startBeat - EPSILON) {
           sourceSupportByIndex.set(sourceIndex, accompanimentNote(note));
         }
@@ -2023,6 +2033,7 @@ export function buildMelodyAccompaniment(
     const midpoint = (startBeat + endBeat) / 2;
     if (events.some((event) => contains(event, midpoint))
       || selected.unresolvedSpans.some((span) => contains(span, midpoint))) continue;
+    if (conservativeSourceBacking) continue;
     const sourceSupport = sourceNotes
       .map((note, sourceIndex) => ({ note, sourceIndex }))
       .filter(({ note, sourceIndex }) => !selected.selectedIndices.has(sourceIndex)
@@ -2097,6 +2108,7 @@ export function buildMelodyAccompaniment(
     durationBeats,
   );
   const fallbackBeats = fallbackSpans.reduce((sum, span) => sum + Math.max(0, span.endBeat - span.startBeat), 0);
+  if (conservativeSourceBacking && sourceEvents.some((event) => event.role !== "melody")) supportModes.add("source-rhythm");
   if (soundingLimits.fallbackSpans.length > 0) supportModes.add("fallback");
   if (supportModes.size === 0) supportModes.add("fallback");
   const melodyNoteIds = [...selected.selectedIndices].sort((a, b) => a - b).map((index) => selected.sourceIds[index]!);

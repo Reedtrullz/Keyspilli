@@ -31,16 +31,18 @@ Test Files  1 passed (1)
 Tests       76 passed (76)
 ```
 
-The source-only preview follow-up passed the focused producer suite at `83/83`
-and the full player-core suite at `256/256`, with typecheck and `git diff --check`
+The source-only preview follow-up passed the focused producer suite at `85/85`
+and the full player-core suite at `258/258`, with typecheck and `git diff --check`
 passing. The default mode remains byte-equivalent in the dedicated regression.
+The follow-up also skips the generic three-tone and uncovered-span reducers in
+conservative mode, and protects unresolved phrase ranges from opt-in thinning.
 
 Full player-core suite:
 
 ```text
 PATH=/Users/reidar/.nvm/versions/node/v22.22.3/bin:$PATH npm run test -w @keyspilli/player-core
 Test Files  15 passed (15)
-Tests       249 passed (249)
+Tests       258 passed (258)
 ```
 
 Typecheck:
@@ -80,8 +82,8 @@ The reproduction now emits the complete `finalBackingStream`, the complete sourc
 Oops `[64,108]` exact current result:
 
 - Final accompaniment support: `119` notes, `76` attack locations.
-- Full final backing stream: `151` events in the window (`119` source-rhythm/protected accompaniment events plus `32` retained-source events), with the same `76` attack locations.
-- Source backing in the same window: `241` notes, `76` attack locations.
+- Full final backing stream: `151` events in the window (`119` source-rhythm/protected accompaniment events plus `32` retained-source events), with `85` attack locations.
+- Source backing in the same window: `241` notes, `85` attack locations.
 - The final attack-location list is exactly the source-location list: `64, 64.5, 65, 65.5, 66, 66.5, 67, 67.5, 68, 68.5, 69, 69.5, 70, 70.5, 71, 71.5, 72, 72.5, 73, 73.5, 74, 74.5, 75, 75.5, 77.5, 80, 80.5, 81, 81.5, 82, 82.5, 83, 83.5, 84, 84.5, 85, 85.5, 86, 86.5, 87, 87.5, 88, 88.5, 89, 89.5, 90, 90.5, 91, 91.5, 92, 92.5, 93, 93.5, 94, 94.5, 94.875, 95, 95.5, 96, 96.5, 97, 97.5, 98, 98.5, 99, 99.5, 99.75, 100, 100.5, 101, 101.5, 101.75, 102, 102.5, 103, 103.5, 104, 104.5, 105, 105.5, 105.875, 106, 106.5, 107, 107.5`.
 
 The preserved historical baseline was `84` notes / `55` attack locations in this window, `466` source-support notes, and maximum `8` attacks/measure. The current deltas are `+35` window support notes, `+21` window attack locations, `+135` source-support notes, and `+6` maximum attacks/measure. The current full stream explains the increase structurally: all `850/850` final backing events are source-linked, `0` are generated, and `249` are retained-unclassified source events. Candidate/identity attribution is explicit: `601` events are `source-rhythm-or-protected`, `249` are `retained-source`, every source identity is `unannotated`, and there are `0` `sparse-harmonic-generated` events. In `[64,108]`, the full stream contains `119` source-rhythm/protected events and `32` retained-source events; the attack union remains the source union. No current final attack location is newly synthesized, and no density increase is accepted through a generated-note quota.
@@ -89,13 +91,21 @@ The preserved historical baseline was `84` notes / `55` attack locations in this
 This is an identity/stream accounting result, not a claim that Oops is musically useful or human-playable. The historical artifact preserves aggregate metrics rather than its full old event lineage, so the exact old-to-new identity mapping is not claimed.
 
 The separate conservative source-only preview was also checked on the same
-Oops interval against the current worktree: `131` full backing events at the
-same `85` attack locations, `13` accompaniment events at `12` support-only
-attack locations, `0` generated events, and `131` source-linked final events.
+Oops interval against the current worktree: `157` full backing events at the
+same `85` attack locations, `37` accompaniment events at `24` support-only
+attack locations, `0` generated events, and `157` source-linked final events.
 The default comparison is `151` full events / `85` attacks, `119` support
-events / `76` support attacks, and `0` generated. This is a selectable voicing
-density preview, not an automatic rhythm repair; support-only and full-stream
-denominators remain distinct.
+events / `76` support attacks, and `0` generated. The complete fixture probe
+measured Blackbird `515` conservative events versus `487` default and Oops
+`922` versus `850`; the conservative path deliberately preserves source
+members outside the narrow repeated-short rule. This is a selectable
+source-only voicing preview, not an automatic rhythm repair; support-only and
+full-stream denominators remain distinct.
+
+Protected and unresolved source notes are emitted as `retained-unclassified`
+and remain mandatory input to the final sounding-limit pass. That pass still
+runs, but these notes bypass ordinary support allocation and velocity reduction;
+the preview is not a claim of safer density or physical playability.
 
 The corrected selector and seam/rest behavior are mechanism-level results from synthetic authored-chart fixtures. The exact real controls still use notes-derived/generated chord labels under `harmonicSupport: "authored-only"`, so they do not receive synthesized harmonic backing.
 

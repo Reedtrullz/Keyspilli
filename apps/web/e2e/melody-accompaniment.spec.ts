@@ -617,7 +617,7 @@ test("real artifact produces, previews, plays, corrects, and reloads melody supp
 
   await dialog.getByRole("radio", { name: "Use right-hand part", exact: true }).click();
   await expect(page.getByTestId("melody-accompaniment-status")).toContainText("User melody");
-  await expect(dialog.getByRole("button", { name: "Reset saved selection", exact: true })).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Reset all saved choices", exact: true })).toBeVisible();
   const corrected = await canvas.screenshot({ path: testInfo.outputPath("melody-user-corrected-candidate.png") });
   expect(corrected.equals(automatic)).toBe(false);
 
@@ -650,7 +650,7 @@ test("real artifact produces, previews, plays, corrects, and reloads melody supp
   await expect(reloadedDialog.getByTestId("melody-accompaniment-controls")).toBeVisible();
   await expect(reloadedDialog.getByRole("radio", { name: "Use right-hand part", exact: true })).toHaveAttribute("aria-checked", "true");
   await expect(page.getByTestId("melody-accompaniment-status")).toContainText("User melody");
-  await reloadedDialog.getByRole("button", { name: "Reset saved selection", exact: true }).click();
+  await reloadedDialog.getByRole("button", { name: "Reset all saved choices", exact: true }).click();
   await expect(reloadedDialog.getByRole("radio", { name: "Automatic melody", exact: true })).toHaveAttribute("aria-checked", "true");
   expect(await page.evaluate((key) => localStorage.getItem(key), SIDECAR_KEY)).toBeNull();
   await reloadedDialog.getByRole("button", { name: "Close tools", exact: true }).click();
@@ -759,7 +759,14 @@ test("phrase-local source choices persist, reset one interval, and keep stale or
   await expect(page.getByLabel("Seek")).toHaveValue("0.5");
   actions = await openPhraseActions();
   await expect(page.getByTestId("melody-phrase-review-reason")).toContainText("saved override overlaps this interval");
-  await expect(actions.getByRole("radio", { name: "Use whole-part selection", exact: true })).toHaveAttribute("aria-checked", "false");
+  for (const action of [
+    "Use whole-part selection",
+    "Source right-hand candidate",
+    "Source left-hand candidate",
+    "Explicit rest",
+  ]) {
+    await expect(actions.getByRole("radio", { name: action, exact: true })).toHaveAttribute("aria-checked", "false");
+  }
   await actions.getByRole("radio", { name: "Use whole-part selection", exact: true }).click();
   sidecar = await readSidecar();
   expect(sidecar?.phraseOverrides).toEqual(expect.arrayContaining([expect.objectContaining(unrelated)]));
@@ -788,8 +795,10 @@ test("source-only backing reduction is a separate persisted preview choice", asy
   const sourceBacking = dialog.getByTestId("source-backing-controls");
   await expect(sourceBacking).toBeVisible();
   await expect(sourceBacking.getByRole("radio", { name: "Current source backing", exact: true })).toHaveAttribute("aria-checked", "true");
-  await sourceBacking.getByRole("radio", { name: "Conservative source-only reduction", exact: true }).click();
-  await expect(sourceBacking.getByRole("radio", { name: "Conservative source-only reduction", exact: true })).toHaveAttribute("aria-checked", "true");
+  await sourceBacking.getByRole("radio", { name: "Conservative source-only preview (whole song)", exact: true }).click();
+  await expect(sourceBacking.getByRole("radio", { name: "Conservative source-only preview (whole song)", exact: true })).toHaveAttribute("aria-checked", "true");
+  await expect(page.getByTestId("melody-accompaniment-status")).toContainText("source support notes");
+  await expect(page.getByTestId("melody-accompaniment-status")).not.toContainText("sparse backing notes");
   let sidecar = await page.evaluate((key) => JSON.parse(window.localStorage.getItem(key) ?? "null"), SIDECAR_KEY) as { selection?: string; sourceBackingMode?: string } | null;
   expect(sidecar).toMatchObject({ selection: "automatic", sourceBackingMode: "conservative" });
   await dialog.getByRole("button", { name: "Close tools", exact: true }).click();
@@ -799,7 +808,9 @@ test("source-only backing reduction is a separate persisted preview choice", asy
   await selectArrangement(page, "Chord mode", "Automatic melody");
   await openPlayerTool(page, "Sound");
   const reloaded = page.getByRole("dialog", { name: "Sound settings" }).getByTestId("source-backing-controls");
-  await expect(reloaded.getByRole("radio", { name: "Conservative source-only reduction", exact: true })).toHaveAttribute("aria-checked", "true");
+  await expect(reloaded.getByRole("radio", { name: "Conservative source-only preview (whole song)", exact: true })).toHaveAttribute("aria-checked", "true");
+  await expect(page.getByTestId("melody-accompaniment-status")).toContainText("source support notes");
+  await expect(page.getByTestId("melody-accompaniment-status")).not.toContainText("sparse backing notes");
   await reloaded.getByRole("radio", { name: "Current source backing", exact: true }).click();
   sidecar = await page.evaluate((key) => JSON.parse(window.localStorage.getItem(key) ?? "null"), SIDECAR_KEY) as { selection?: string; sourceBackingMode?: string } | null;
   expect(sidecar).toMatchObject({ selection: "automatic", sourceBackingMode: "default" });
@@ -959,7 +970,7 @@ test("stale cross-variant melody storage is ignored and Original has no derived 
   await openPlayerTool(page, "Sound");
   const dialog = page.getByRole("dialog", { name: "Sound settings" });
   await expect(dialog.getByRole("radio", { name: "Automatic melody", exact: true })).toHaveAttribute("aria-checked", "true");
-  await expect(dialog.getByRole("button", { name: "Reset saved selection", exact: true })).toHaveCount(0);
+  await expect(dialog.getByRole("button", { name: "Reset all saved choices", exact: true })).toHaveCount(0);
   expect(await page.evaluate((key) => localStorage.getItem(key), HELL_SIDECAR_KEY)).not.toBeNull();
   expect(await page.evaluate((key) => localStorage.getItem(key), SIDECAR_KEY)).not.toBeNull();
   await expect(page.getByTestId("chord-mode-status")).toHaveText("Chords estimated from notes");

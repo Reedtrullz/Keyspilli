@@ -180,41 +180,45 @@ voicing members that match the immediately preceding source tuple.
 The Node 22 one-off comparison used the same fixture, source fingerprint,
 automatic melody selection, `allowRests: true`, coherent sound policy, and
 `harmonicSupport: "authored-only"` as the default reproduction. It was run
-against the current uncommitted worktree implementation; the historical JSON
-was not changed.
+against the current worktree implementation at the follow-up commit; the
+historical JSON was not changed.
 
 | Mode | Full final backing events | Full attacks | Support-only events | Support-only attacks | Generated | Source-linked final events |
 |---|---:|---:|---:|---:|---:|---:|
 | Default | 151 | 85 | 119 | 76 | 0 | 151 |
-| Conservative preview | 131 | 85 | 13 | 12 | 0 | 131 |
+| Conservative preview | 157 | 85 | 37 | 24 | 0 | 157 |
 
-The conservative preview therefore removes 20 events relative to the current
-default final stream in this interval while leaving the 85-attack source grid
-unchanged. It is a voicing-density experiment, not a rhythm repair. The
-support-only count is intentionally not the full-stream count because most
-remaining source-linked events are retained-unclassified anchors. No inferred
-or generated pitch is emitted in either mode.
+The conservative preview retains 6 more events than the current default final
+stream in this interval while leaving the 85-attack source grid unchanged. It
+is a source-only voicing preview, not a rhythm repair. The support-only count is
+intentionally not the full-stream count because most remaining source-linked
+events are retained-unclassified anchors. No inferred or generated pitch is
+emitted in either mode.
+
+Protected and unresolved source notes are emitted as `retained-unclassified`
+and remain mandatory input to the final sounding-limit pass. That pass still
+runs, but these notes bypass ordinary support allocation and velocity reduction;
+the preview is not a claim of safer density or physical playability.
 
 Per-measure classification and final lineage:
 
 | Measure | Span | Source notes | Source attacks | L/R | Bass | Hook | Held | Repeated R | Unclassified | Final events | Accomp. | Retained | Final attacks |
 |---:|---|---:|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| 17 | 64–68 | 22 | 8 | 5/17 | 3 | 1 | 5 | 17 | 1 | 15 | 15 | 0 | 8 |
-| 18 | 68–72 | 21 | 8 | 4/17 | 3 | 1 | 4 | 17 | 0 | 14 | 14 | 0 | 8 |
-| 19 | 72–76 | 22 | 8 | 6/16 | 4 | 1 | 3 | 16 | 2 | 14 | 14 | 0 | 8 |
-| 20 | 76–80 | 3 | 1 | 3/0 | 1 | 0 | 0 | 0 | 2 | 1 | 1 | 0 | 1 |
-| 21 | 80–84 | 24 | 8 | 6/18 | 5 | 1 | 3 | 18 | 0 | 15 | 11 | 4 | 8 |
-| 22 | 84–88 | 24 | 8 | 6/18 | 5 | 1 | 1 | 18 | 1 | 13 | 13 | 0 | 8 |
-| 23 | 88–92 | 25 | 8 | 4/21 | 4 | 1 | 1 | 21 | 0 | 11 | 11 | 0 | 8 |
-| 24 | 92–96 | 25 | 9 | 5/20 | 5 | 2 | 4 | 20 | 0 | 16 | 11 | 5 | 9 |
-| 25 | 96–100 | 26 | 9 | 6/20 | 5 | 1 | 4 | 20 | 0 | 18 | 11 | 7 | 9 |
-| 26 | 100–104 | 26 | 9 | 6/20 | 5 | 2 | 4 | 20 | 1 | 20 | 8 | 12 | 9 |
-| 27 | 104–108 | 23 | 9 | 4/19 | 4 | 3 | 3 | 19 | 0 | 14 | 10 | 4 | 9 |
+| 17 | 64–68 | 22 | 8 | 5/17 | 3 | 1 | 5 | 17 | 1 | 12 | 2 | 10 | 8 |
+| 18 | 68–72 | 21 | 8 | 4/17 | 3 | 1 | 4 | 17 | 0 | 11 | 1 | 10 | 8 |
+| 19 | 72–76 | 22 | 8 | 6/16 | 4 | 1 | 3 | 16 | 2 | 14 | 5 | 9 | 8 |
+| 20 | 76–80 | 3 | 1 | 3/0 | 1 | 0 | 0 | 0 | 2 | 3 | 2 | 1 | 1 |
+| 21 | 80–84 | 24 | 8 | 6/18 | 5 | 1 | 3 | 18 | 0 | 17 | 5 | 12 | 8 |
+| 22 | 84–88 | 24 | 8 | 6/18 | 5 | 1 | 1 | 18 | 1 | 14 | 5 | 9 | 8 |
+| 23 | 88–92 | 25 | 8 | 4/21 | 4 | 1 | 1 | 21 | 0 | 14 | 6 | 8 | 8 |
+| 24 | 92–96 | 25 | 9 | 5/20 | 5 | 2 | 4 | 20 | 0 | 17 | 2 | 15 | 9 |
+| 25 | 96–100 | 26 | 9 | 6/20 | 5 | 1 | 4 | 20 | 0 | 20 | 4 | 16 | 9 |
+| 26 | 100–104 | 26 | 9 | 6/20 | 5 | 2 | 4 | 20 | 1 | 20 | 3 | 17 | 9 |
+| 27 | 104–108 | 23 | 9 | 4/19 | 4 | 3 | 3 | 19 | 0 | 15 | 2 | 13 | 9 |
 
-All final events in each row are source-linked. The 32 retained events occur
-at source attacks `83.5, 95, 95.5, 96, 99.5, 100, 100.5, 101.75, 102,
-107.5`; they are not generated harmony and remain evidence-limited source
-material.
+All final events in each row are source-linked. The conservative preview emits
+`120` retained-unclassified events across all `85` source attack locations;
+they are not generated harmony and remain evidence-limited source material.
 
 Representative final lineage from the live stream:
 

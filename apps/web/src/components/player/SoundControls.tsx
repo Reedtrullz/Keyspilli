@@ -168,11 +168,11 @@ export function SoundControls({
                           aria-checked={sourceBackingMode === "conservative"}
                           className={`px-2 py-2 rounded-lg text-xs border ${sourceBackingMode === "conservative" ? "bg-amber-700 text-white border-amber-700" : "border-zinc-300 bg-white"}`}
                         >
-                          Conservative source-only reduction
+                          Conservative source-only preview (whole song)
                         </button>
                       </div>
                       <p className="text-[11px] text-zinc-600 mt-2">
-                        Preview only: removes narrowly repeated short source voicing members, keeps detectable bass, held, long/high-hook, and explicit identity anchors, and never adds inferred pitches. Confidence is limited; review before practice.
+                        Whole-song preview only: removes narrowly repeated short source voicing members, keeps unresolved spans source-only, and never adds inferred pitches. It does not repair the attack grid or prove physical playability; review before practice.
                       </p>
                     </div>
                   )}
@@ -249,7 +249,7 @@ export function SoundControls({
                   )}
                   {hasSavedMelodySelection && onMelodySelectionReset && (
                     <button type="button" onClick={onMelodySelectionReset} className="mt-2 min-h-9 px-2 rounded-lg border border-zinc-300 text-[11px]">
-                      Reset saved selection
+                      Reset all saved choices
                     </button>
                   )}
                   {onPreview && (
