@@ -635,33 +635,14 @@ function oppositeHand(hand: PhysicalHand): PhysicalHand {
   return hand === "L" ? "R" : "L";
 }
 
-function crossesOppositeHandMelody(
+function crossesOppositeHand(
   note: Note,
   hand: PhysicalHand,
-  mandatory: readonly ArrangementEvent[],
+  oppositeHandEvents: readonly ArrangementEvent[],
   startBeat: number,
   endBeat: number,
 ): boolean {
-  const opposite = mandatory
-    .filter((event) => event.note.hand === oppositeHand(hand) && overlaps(event.note, startBeat, endBeat))
-    .map((event) => event.note.midi);
-  if (opposite.length === 0) return false;
-  const oppositeMin = Math.min(...opposite);
-  const oppositeMax = Math.max(...opposite);
-  if (hand === "L") {
-    return note.midi + MIN_MELODY_CLEARANCE >= oppositeMin;
-  }
-  return note.midi - MIN_MELODY_CLEARANCE <= oppositeMax;
-}
-
-function crossesOppositeHandSupport(
-  note: Note,
-  hand: PhysicalHand,
-  assignedSupport: readonly ArrangementEvent[],
-  startBeat: number,
-  endBeat: number,
-): boolean {
-  const opposite = assignedSupport
+  const opposite = oppositeHandEvents
     .filter((event) => event.note.hand === oppositeHand(hand) && overlaps(event.note, startBeat, endBeat))
     .map((event) => event.note.midi);
   if (opposite.length === 0) return false;
@@ -701,8 +682,8 @@ function supportFitsHand(
     if (activeMandatory.some(({ note }) => note.hand === hand && note.midi === candidate.note.midi)
       || activeSameHandSupport.some(({ note }) => note.midi === candidate.note.midi)
       || !withinSoundingLimit(activeSameHand)
-      || crossesOppositeHandMelody(candidate.note, hand, activeMandatory, startBeat, endBeat)
-      || crossesOppositeHandSupport(candidate.note, hand, assignedSupport, startBeat, endBeat)) return false;
+      || crossesOppositeHand(candidate.note, hand, activeMandatory, startBeat, endBeat)
+      || crossesOppositeHand(candidate.note, hand, assignedSupport, startBeat, endBeat)) return false;
   }
   return true;
 }
@@ -717,7 +698,7 @@ function hasSupportCollision(
   return assignedSupport.some((event) => event.note.hand === hand
       && event.note.midi === note.midi
       && overlaps(event.note, startBeat, endBeat))
-    || crossesOppositeHandSupport(note, hand, assignedSupport, startBeat, endBeat);
+    || crossesOppositeHand(note, hand, assignedSupport, startBeat, endBeat);
 }
 
 function supportVelocity(note: Note, melody: readonly ArrangementEvent[]): number {
@@ -762,7 +743,7 @@ function allocateSupport(
       // silently create a physical crossing/collision.
       const supportStart = event.note.start;
       const supportEnd = noteEnd(event.note);
-      if (crossesOppositeHandMelody(event.note, sourceHand, mandatory, supportStart, supportEnd)
+      if (crossesOppositeHand(event.note, sourceHand, mandatory, supportStart, supportEnd)
         || hasSupportCollision(event.note, sourceHand, assignedSupport, supportStart, supportEnd)) {
         rejectedIds.add(event.id);
       }
