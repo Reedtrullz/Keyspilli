@@ -575,10 +575,12 @@ describe("buildMelodyAccompaniment", () => {
     const reviewedBassAtStart = { ...note(36, 0, 0.75, 60, "L"), identitySource: "other" as const };
     const reviewedHook = { ...note(55, 0.75, 0.25, 64, "L"), identitySource: "vocals" as const };
     const reviewedBassAtTwo = { ...note(36, 2, 0.75, 60, "L"), identitySource: "other" as const };
+    const unreviewedSourceNote = note(34, 1.25, 0.2, 58, "L");
     const laneOnlyMetadata = { ...note(47, 1.5, 0.2, 58, "L"), sourceLane: "hook" };
     const source = [
       note(72, 0, 0.5, 100, "R"),
       note(74, 3, 0.5, 100, "R"),
+      unreviewedSourceNote,
       reviewedBassAtStart,
       reviewedHook,
       ...[0.25, 0.75, 1, 1.25, 1.5, 1.75].flatMap((start) => [
@@ -591,6 +593,7 @@ describe("buildMelodyAccompaniment", () => {
     const ids = sourceNoteIds(source);
     const reviewedBassAtStartId = ids[source.indexOf(reviewedBassAtStart)]!;
     const reviewedHookId = ids[source.indexOf(reviewedHook)]!;
+    const unreviewedSourceNoteId = ids[source.indexOf(unreviewedSourceNote)]!;
     const laneOnlyMetadataId = ids[source.indexOf(laneOnlyMetadata)]!;
     const result = buildMelodyAccompaniment(source, [{
       ...chord(0, "C", 4),
@@ -606,6 +609,7 @@ describe("buildMelodyAccompaniment", () => {
     expect([...new Set(support.map((event) => event.note.start))]).toEqual([0, 0.75, 2]);
     expect(support.some((event) => event.sourceNoteIds.includes(reviewedBassAtStartId))).toBe(true);
     expect(support.some((event) => event.sourceNoteIds.includes(reviewedHookId))).toBe(true);
+    expect(support.some((event) => event.sourceNoteIds.includes(unreviewedSourceNoteId))).toBe(false);
     expect(support.some((event) => event.sourceNoteIds.includes(laneOnlyMetadataId))).toBe(false);
     expect(result.melody.map(({ midi, start, dur, vel, hand }) => ({ midi, start, dur, vel, hand }))).toEqual([source[0], source[1]]);
     expect(support.some((event) => event.note.start === 1)).toBe(false);
