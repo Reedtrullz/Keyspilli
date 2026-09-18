@@ -83,6 +83,7 @@ export class PlaybackEngine {
     gradingNotes: TimedNote[] = notes,
   ) {
     this.settings = settings;
+    this.audio.setGains(settings.voiceGain, settings.pianoGain);
     this.chords = this.normalizeChordTimeline(chords);
     this.gradingNotes = gradingNotes;
   }

@@ -178,10 +178,14 @@ describe("PlaybackEngine", () => {
   it.each([
     { voiceGain: 1, pianoGain: 1 },
     { voiceGain: 0.83, pianoGain: 0.57 },
-  ])("synchronizes restored hand gains onto a newly-created audio engine (%o)", (gains) => {
+  ])("initializes and resynchronizes hand gains on an engine recreation (%o)", (gains) => {
     const { eng, audio } = engine(gains);
-    eng.setSettings(eng.settings);
     expect(audio.gains).toEqual([{ voice: gains.voiceGain, piano: gains.pianoGain }]);
+    eng.setSettings(eng.settings);
+    expect(audio.gains).toEqual([
+      { voice: gains.voiceGain, piano: gains.pianoGain },
+      { voice: gains.voiceGain, piano: gains.pianoGain },
+    ]);
   });
 
   it("grades input through the engine and finishes with a result", () => {
