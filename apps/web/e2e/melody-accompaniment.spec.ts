@@ -1045,6 +1045,52 @@ test("complete Oops phrase captures Original, coherent and resume candidates wit
   }
 });
 
+test("complete Oops phrase captures the source-only preview without rerendering default", async ({ page }, testInfo) => {
+  test.setTimeout(120_000);
+  await installAudioProbe(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/player/${OOPS_SONG_ID}`);
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+
+  const startSeconds = 64 * 60 / 95 - 0.5;
+  const durationMs = Math.ceil((108 - 64) * 60 / 95 * 1000 + 1_000);
+  await selectArrangement(page, "Original arrangement");
+  await bootAudio(page);
+  await selectArrangement(page, "Chord mode", "Automatic melody");
+  await openPlayerTool(page, "Sound");
+  const dialog = page.getByRole("dialog", { name: "Sound settings" });
+  const sourceBacking = dialog.getByTestId("source-backing-controls");
+  await sourceBacking.getByRole("radio", { name: "Conservative source-only preview (whole song)", exact: true }).click();
+  await expect(sourceBacking.getByRole("radio", { name: "Conservative source-only preview (whole song)", exact: true })).toHaveAttribute("aria-checked", "true");
+  await dialog.getByRole("button", { name: "Close tools", exact: true }).click();
+
+  const preview = await captureReservedArrangement(page, testInfo, "oops-section-2-source-preview", startSeconds, durationMs);
+  audible(preview);
+  writeFileSync(testInfo.outputPath("oops-section-2-source-preview-comparison.json"), JSON.stringify({
+    candidateCommit: process.env.KEYSPILLI_CAPTURE_COMMIT ?? "uncommitted-worktree",
+    sourceFingerprint: "variant:britney-spears-oops-i-did-it-again:a:britney-spears-oops-i-did-it-again-a:64d18aa4c23f7625a6eb0a7a234843a7a2278003d75cba9ea04efde7d8225ad4:notes:84153b6de3857351ce92086c8f5a28f9147073070948ed96fd39e6d6f8f212ae",
+    window: { startBeat: 64, endBeat: 108, bpm: 95 },
+    capture: {
+      startSeconds,
+      durationMs,
+      startBeat: startSeconds * 95 / 60,
+      endBeat: (startSeconds + durationMs / 1000) * 95 / 60,
+      instrument: "browser AudioEngine synth",
+    },
+    producerOptions: {
+      original: { arrangement: "Original", sourceBackingMode: "n/a" },
+      default: { selection: "automatic", sourceBackingMode: "default", allowRests: true, soundingPolicy: "coherent-phrase", harmonicSupport: "authored-only" },
+      preview: { selection: "automatic", sourceBackingMode: "conservative", allowRests: true, soundingPolicy: "coherent-phrase", harmonicSupport: "authored-only" },
+    },
+    existingCandidates: {
+      original: { artifact: "oops-64-108/final-capture/oops-section-2-original.{json,webm}", captureCommit: "773e52c", sourceBackingMode: "n/a", sha256: "7b20c3d299e1f874bdad75fc52e1ca9ef709c0558ad54eca375dba2957bff3e4", bytes: 464942, events: 1011 },
+      default: { artifact: "oops-64-108/final-capture/oops-section-2-coherent.{json,webm}", captureCommit: "773e52c", sourceBackingMode: "default", sha256: "2fc4fc2cf4755eabb2d677e4373636ea73415cbee4d96d483e8bcd3ff6039cde", bytes: 450669, events: 735 },
+    },
+    preview: captureMetadata(preview),
+    humanListening: "pending",
+  }, null, 2));
+});
+
 test("complete Blackbird phrase captures Original and automatic candidates", async ({ page }, testInfo) => {
   test.setTimeout(120_000);
   await installAudioProbe(page);
@@ -1054,6 +1100,10 @@ test("complete Blackbird phrase captures Original and automatic candidates", asy
 
   const startSeconds = 14 * 60 / 120 - 0.5;
   const durationMs = Math.ceil((26.5 - 14) * 60 / 120 * 1000 + 1_000);
+  const phraseStartSeconds = 14 * 60 / 120;
+  const phraseEndSeconds = 26.5 * 60 / 120;
+  expect(startSeconds).toBeCloseTo(phraseStartSeconds - 0.5, 6);
+  expect(startSeconds + durationMs / 1000).toBeCloseTo(phraseEndSeconds + 1, 3);
   await selectArrangement(page, "Original arrangement");
   await bootAudio(page);
   const original = await captureArrangement(page, testInfo, "blackbird-phrase-14-26.5-original", startSeconds, durationMs);
@@ -1069,7 +1119,16 @@ test("complete Blackbird phrase captures Original and automatic candidates", asy
     candidateCommit: process.env.KEYSPILLI_CAPTURE_COMMIT ?? "uncommitted-worktree",
     sourceFingerprint: "variant:the-beatles-blackbird:a:the-beatles-blackbird-a:3fc3fd74d567da56dd10ff05689ef2f57641efbbe200532aabc0ea5fbcea1e75:notes:4529b839209ca52480d6dbab332ea211e709edfb660473b662a1a62ef56aa53e",
     window: { startBeat: 14, endBeat: 26.5, bpm: 120 },
-    capture: { startSeconds, durationMs, instrument: "browser AudioEngine synth" },
+    capture: {
+      startSeconds,
+      durationMs,
+      startBeat: startSeconds * 120 / 60,
+      endBeat: (startSeconds + durationMs / 1000) * 120 / 60,
+      phraseIncluded: startSeconds <= phraseStartSeconds && startSeconds + durationMs / 1000 >= phraseEndSeconds,
+      preRollSeconds: phraseStartSeconds - startSeconds,
+      tailSeconds: startSeconds + durationMs / 1000 - phraseEndSeconds,
+      instrument: "browser AudioEngine synth",
+    },
     producerOptions: {
       selection: "automatic",
       allowRests: true,
