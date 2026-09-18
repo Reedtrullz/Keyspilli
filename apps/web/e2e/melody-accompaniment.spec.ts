@@ -1035,6 +1035,53 @@ test("complete Oops phrase captures Original, coherent and resume candidates wit
   }
 });
 
+test("complete Blackbird phrase captures Original and automatic candidates", async ({ page }, testInfo) => {
+  test.setTimeout(120_000);
+  await installAudioProbe(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/player/${SONG_ID}`);
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+
+  const startSeconds = 14 * 60 / 120 - 0.5;
+  const durationMs = Math.ceil((26.5 - 14) * 60 / 120 * 1000 + 1_000);
+  await selectArrangement(page, "Original arrangement");
+  await bootAudio(page);
+  const original = await captureArrangement(page, testInfo, "blackbird-phrase-14-26.5-original", startSeconds, durationMs);
+  audible(original);
+
+  await selectArrangement(page, "Chord mode", "Automatic melody");
+  const automatic = await captureArrangement(page, testInfo, "blackbird-phrase-14-26.5-automatic", startSeconds, durationMs);
+  audible(automatic);
+  expect(automatic.sha256).not.toBe(original.sha256);
+  expect(automatic.events.length).toBeGreaterThan(0);
+
+  const captureMetadata = (capture: AudioCapture & { sha256: string }) => ({
+    sha256: capture.sha256,
+    bytes: capture.bytes,
+    events: capture.events.length,
+    signal: capture.signal,
+    decodedPcm: {
+      sampleRate: capture.decodedPcm.sampleRate,
+      samples: capture.decodedPcm.samples,
+      durationSeconds: decodedDurationSeconds(capture),
+    },
+  });
+  writeFileSync(testInfo.outputPath("blackbird-phrase-14-26.5-audio-comparison.json"), JSON.stringify({
+    candidateCommit: process.env.KEYSPILLI_CAPTURE_COMMIT ?? "uncommitted-worktree",
+    sourceFingerprint: "variant:the-beatles-blackbird:a:the-beatles-blackbird-a:3fc3fd74d567da56dd10ff05689ef2f57641efbbe200532aabc0ea5fbcea1e75:notes:4529b839209ca52480d6dbab332ea211e709edfb660473b662a1a62ef56aa53e",
+    window: { startBeat: 14, endBeat: 26.5, bpm: 120 },
+    capture: { startSeconds, durationMs, instrument: "browser AudioEngine synth" },
+    producerOptions: {
+      selection: "automatic",
+      allowRests: true,
+      soundingPolicy: "coherent-phrase",
+      harmonicSupport: "authored-only (resolved from automatic chord source)",
+    },
+    candidates: { original: captureMetadata(original), automatic: captureMetadata(automatic) },
+    humanListening: "pending",
+  }, null, 2));
+});
+
 test("real audio events cover mode, hand filtering, seek, transpose, correction, and practice flow", async ({ page }, testInfo) => {
   await installAudioProbe(page);
   await page.setViewportSize({ width: 1440, height: 900 });
