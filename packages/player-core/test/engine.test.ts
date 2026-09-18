@@ -12,6 +12,7 @@ class FakeAudio implements AudioLike {
   cancelled = 0;
   clicks: number[] = [];
   playedChords: { midiNotes: number[]; when: number; durationSec: number }[] = [];
+  gains: { voice: number; piano: number }[] = [];
   organControls: { rotary: "slow" | "fast"; drive: number; space: number }[] = [];
   ensure(): unknown {
     this.ensured++;
@@ -32,7 +33,9 @@ class FakeAudio implements AudioLike {
   cancelAll(): void {
     this.cancelled++;
   }
-  setGains(): void {}
+  setGains(voice: number, piano: number): void {
+    this.gains.push({ voice, piano });
+  }
   setOrganControls(rotary: "slow" | "fast", drive: number, space: number): void {
     this.organControls.push({ rotary, drive, space });
   }
@@ -170,6 +173,19 @@ describe("PlaybackEngine", () => {
     const { eng, audio } = engine();
     eng.setSettings({ ...eng.settings, organRotary: "fast", organDrive: 0.65, organSpace: 0.72 });
     expect(audio.organControls).toEqual([{ rotary: "fast", drive: 0.65, space: 0.72 }]);
+  });
+
+  it.each([
+    { voiceGain: 1, pianoGain: 1 },
+    { voiceGain: 0.83, pianoGain: 0.57 },
+  ])("initializes and resynchronizes hand gains on an engine recreation (%o)", (gains) => {
+    const { eng, audio } = engine(gains);
+    expect(audio.gains).toEqual([{ voice: gains.voiceGain, piano: gains.pianoGain }]);
+    eng.setSettings(eng.settings);
+    expect(audio.gains).toEqual([
+      { voice: gains.voiceGain, piano: gains.pianoGain },
+      { voice: gains.voiceGain, piano: gains.pianoGain },
+    ]);
   });
 
   it("grades input through the engine and finishes with a result", () => {

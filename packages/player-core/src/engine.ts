@@ -83,6 +83,7 @@ export class PlaybackEngine {
     gradingNotes: TimedNote[] = notes,
   ) {
     this.settings = settings;
+    this.audio.setGains(settings.voiceGain, settings.pianoGain);
     this.chords = this.normalizeChordTimeline(chords);
     this.gradingNotes = gradingNotes;
   }
@@ -206,6 +207,7 @@ export class PlaybackEngine {
     const metronomeChanged = this.settings.metronome !== settings.metronome;
     const sustainChanged = this.settings.sustainPedal !== settings.sustainPedal;
     this.settings = settings;
+    this.audio.setGains(settings.voiceGain, settings.pianoGain);
     this.audio.sustainPedal = settings.sustainPedal;
     this.audio.setOrganControls?.(settings.organRotary, settings.organDrive, settings.organSpace);
     if (backgroundChanged && this.playing) {
