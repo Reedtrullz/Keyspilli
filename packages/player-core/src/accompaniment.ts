@@ -1473,8 +1473,12 @@ function protectedSupportSourceIndices(
   sourceSupport: readonly { note: Note; sourceIndex: number }[],
 ): Set<number> {
   const protectedIndices = new Set<number>();
+  const firstAttack = [...sourceSupport]
+    .filter(({ note }) => playableSourceNote(note))
+    .sort((a, b) => a.note.start - b.note.start || a.note.midi - b.note.midi || a.sourceIndex - b.sourceIndex)[0];
+  if (firstAttack) protectedIndices.add(firstAttack.sourceIndex);
   for (const { note, sourceIndex } of sourceSupport) {
-    if (note.identitySource !== undefined) protectedIndices.add(sourceIndex);
+    if (note.identitySource === "vocals") protectedIndices.add(sourceIndex);
   }
   return protectedIndices;
 }
