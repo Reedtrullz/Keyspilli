@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 1,
+  "phase": "T1 source and baseline freeze; G1 parent review pending",
+  "capturedAt": "2026-09-17",
+  "worktree": {
+    "path": "/Users/reidar/.codex/worktrees/musically-useful-chords-mode",
+    "branch": "codex/musically-useful-chords-mode",
+    "head": "89f4ce7d547f765d70691b3712fc500745a97b45",
+    "base": "main at 89f4ce7d547f765d70691b3712fc500745a97b45",
+    "node": "/Users/reidar/.nvm/versions/node/v22.22.3/bin/node",
+    "diskFreeBeforeLongCapture": "61GiB"
+  },
+  "scope": {
+    "algorithmFilesChanged": false,
+    "catalogChanged": false,
+    "productionMutated": false,
+    "deploymentPerformed": false,
+    "sourceAcquisition": "read-only live API responses; credentials omitted",
+    "browserData": "fresh disposable SQLite and artifact copy per Playwright run"
+  },
+  "sourceTrace": [
+    "read-only source/artifact inventory -> catalog manifest and a/notes.json",
+    "GET /api/songs/<id> -> apps/web/src/app/api/songs/[id]/route.ts -> getSongDetail",
+    "apps/web/src/lib/catalog-api.ts -> resolveChordSources -> selectChordSource",
+    "apps/web/src/components/player/Player.tsx -> buildMelodyAccompaniment",
+    "live notes carry L/R hand labels but no sourceLane or identitySource fields",
+    "all three development fixtures have no UG chart; displayed auto source is Generated fallback, full-song, derived from variant:a/notes.json"
+  ],
+  "productionFixtures": [
+    {
+      "baseId": "the-beatles-blackbird",
+      "variantId": "the-beatles-blackbird-a",
+      "contentType": "standard",
+      "sourceRef": "seed:the-beatles-blackbird.mid",
+      "sourceArtifactHash": "3fc3fd74d567da56dd10ff05689ef2f57641efbbe200532aabc0ea5fbcea1e75",
+      "sourceFingerprint": "variant:the-beatles-blackbird:a:the-beatles-blackbird-a:3fc3fd74d567da56dd10ff05689ef2f57641efbbe200532aabc0ea5fbcea1e75:notes:4529b839209ca52480d6dbab332ea211e709edfb660473b662a1a62ef56aa53e",
+      "apiResponseSha256": "90e3da1075e1eb78bf80ce2f237b0c3a31785c2733a7604266bb21802813872e",
+      "apiNotes": { "count": 1069, "noteEndBeats": 294, "runtimeArrangementEndBeats": 296, "tempoBpm": 120, "timeSig": [4, 4], "chords": 68, "chordTimelineSha256": "690cb34f8af2fa2914acff44988056593ed6b50da799e630638e6027d6dda9b8" },
+      "sections": [[0, 16, "Intro 1"], [16, 264, "Section 2"], [264, 296, "Section 3"]],
+      "fixtureFilesSha256": { "notes.json": "5aa5671d42bd93c2ac65c1fd21c87aa049b8baead3dfb48ae265213e6f445c75", "manifest.json": "3ce655a3df2b975c2b324672d81d6e9444dda33250d19f94b3633ab141a403c9", "song.json": "860daa8e75955264ebb84bbce7e899c0abe54dd298f40fe787db6a0c33949e42" }
+    },
+    {
+      "baseId": "britney-spears-oops-i-did-it-again",
+      "variantId": "britney-spears-oops-i-did-it-again-a",
+      "contentType": "standard",
+      "sourceRef": "seed:britney-spears-oops-i-did-it-again.mid",
+      "sourceArtifactHash": "64d18aa4c23f7625a6eb0a7a234843a7a2278003d75cba9ea04efde7d8225ad4",
+      "sourceFingerprint": "variant:britney-spears-oops-i-did-it-again:a:britney-spears-oops-i-did-it-again-a:64d18aa4c23f7625a6eb0a7a234843a7a2278003d75cba9ea04efde7d8225ad4:notes:84153b6de3857351ce92086c8f5a28f9147073070948ed96fd39e6d6f8f212ae",
+      "apiResponseSha256": "6b92d0537c6e4abbe685aaa3eb8eb748cb73cafe4f869bdd04ede06346a70500",
+      "apiNotes": { "count": 1891, "noteEndBeats": 332.375, "runtimeArrangementEndBeats": 336, "tempoBpm": 95, "timeSig": [4, 4], "chords": 74, "chordTimelineSha256": "5fdc1ed32ca9b7bf84f2eb11610ad529559fa8ac01175fc7e695f52c07756636" },
+      "sections": [[0, 64, "Intro 1"], [64, 108, "Section 2"], [108, 124, "Section 3"], [124, 188, "Section 4"], [188, 220, "Section 5"], [220, 236, "Section 6"], [236, 336, "Section 7"]],
+      "fixtureFilesSha256": { "notes.json": "346c168afa388c8582fbd631a1e0d79ba8bd585caa49ad7a1082492b5ecb7f98", "manifest.json": "e14640e33da4cc82214da98c87def815b1c5a0338dc5b5f67bfc7dddd8ce85bd", "song.json": "6a2c4b129b01ff0f1b3640b31d434b14898aacb5650abfab0191769f84bc002f" }
+    },
+    {
+      "baseId": "aria-ellys-music-the-warning-hell-you-call-a-dream-piano-cover-by-aria-ellys-mslzwo1d",
+      "variantId": "aria-ellys-music-the-warning-hell-you-call-a-dream-piano-cover-by-aria-ellys-mslzwo1d-a",
+      "contentType": "youtube",
+      "sourceRef": "youtube:6eItF6yVVnE",
+      "sourceArtifactHash": "7f91d0de3a130f5694f9ee3625300b12e7100f1c4f7b4310f2eb918ab625203d",
+      "sourceFingerprint": "variant:aria-ellys-music-the-warning-hell-you-call-a-dream-piano-cover-by-aria-ellys-mslzwo1d:a:aria-ellys-music-the-warning-hell-you-call-a-dream-piano-cover-by-aria-ellys-mslzwo1d-a:7f91d0de3a130f5694f9ee3625300b12e7100f1c4f7b4310f2eb918ab625203d:notes:620a41b0fcf9f44301f6094c8173d2c918e56e1fb5545edf7f5fb13e3da8d5d3",
+      "apiResponseSha256": "9d68e1c9274e713087cfc96dc872d70f3d9a1a4c2c76579791625d3c00599081",
+      "apiNotes": { "count": 1130, "noteEndBeats": 350.75, "runtimeArrangementEndBeats": 352, "tempoBpm": 95, "timeSig": [4, 4], "chords": 103, "chordTimelineSha256": "ec84f6d0ac922680e942b26034b5a055ef2c2e1ce87c8def0d5e49ef5f61a82b" },
+      "sections": [[0, 28, "Section 1"], [28, 44, "Section 2"], [44, 108, "Section 3"], [108, 244, "Section 4"], [244, 352, "Section 5"]],
+      "fixtureFilesSha256": { "notes.json": "587680e888ee479a4be9c4c664b5910af88ecb2132863091e8b661b65040f6e4", "manifest.json": "dc1bbbc6f3f797096ce45f73001cbcfbb7a371b889a3a660a759c18285810150", "song.json": "8e3614442f891ccfe0a6aae85d2b09b95389a12fcb214ef1a1f765e91cebb93e" }
+    }
+  ],
+  "localSnapshotMismatch": [
+    { "baseId": "the-beatles-blackbird", "localNotesCount": 1069, "liveNotesCount": 1069, "localNotesArraySha256": "e362621ebce28afcb8a2aadb39d6977910644576233cf9a0b8e0e58ce8a085c3", "liveNotesArraySha256": "e362621ebce28afcb8a2aadb39d6977910644576233cf9a0b8e0e58ce8a085c3", "finding": "note arrays match; serialized local notes file includes different metadata" },
+    { "baseId": "britney-spears-oops-i-did-it-again", "localNotesCount": 1897, "liveNotesCount": 1891, "finding": "local checkout is not the frozen live fixture" },
+    { "baseId": "aria-ellys-music-the-warning-hell-you-call-a-dream-piano-cover-by-aria-ellys-mslzwo1d", "localNotesCount": 1452, "liveNotesCount": 1130, "localSourceArtifactHash": "13e9cd...", "liveSourceArtifactHash": "7f91d0de3a130f5694f9ee3625300b12e7100f1c4f7b4310f2eb918ab625203d", "finding": "major local/live snapshot mismatch; local artifact was not used for T1" }
+  ],
+  "baseline": {
+    "changeAccounting": "exact multiset of audible note fields [midi,start,dur,vel]; hand metadata is excluded from audible identity. Producer options match Player.tsx: arrangementEnd=max(note end, measure end), resolved auto source, generated chord dedupe and duration completion before buildMelodyAccompaniment.",
+    "fixtures": [
+      { "baseId": "the-beatles-blackbird", "source": { "notes": 1069, "attacks": 657, "hands": { "L": 521, "R": 548 }, "noteEndBeats": 294, "arrangementEndBeats": 296 }, "automatic": { "notes": 1042, "melody": 657, "sourceSupport": 378, "generated": 0, "chords": 38, "fallbackSpans": 49, "fallbackBeats": 155.75, "unresolved": 0, "changed": { "removed": 28, "added": 1 } }, "rightHand": { "notes": 1069, "melody": 548, "sourceSupport": 516, "generated": 0, "chords": 68, "fallbackSpans": 19, "fallbackBeats": 17.75, "unresolved": 0, "changed": { "removed": 0, "added": 0 } } },
+      { "baseId": "britney-spears-oops-i-did-it-again", "source": { "notes": 1891, "attacks": 625, "hands": { "L": 466, "R": 1425 }, "noteEndBeats": 332.375, "arrangementEndBeats": 336 }, "automatic": { "notes": 1668, "melody": 625, "sourceSupport": 438, "generated": 0, "chords": 45, "fallbackSpans": 40, "fallbackBeats": 238.875, "unresolved": 30, "reportedUiSpan": [83.5, 89.5], "changed": { "removed": 223, "added": 0 } }, "rightHand": { "notes": 1897, "melody": 1425, "sourceSupport": 451, "generated": 6, "chords": 74, "fallbackSpans": 11, "fallbackBeats": 9.125, "unresolved": 0, "changed": { "removed": 0, "added": 6 } } },
+      { "baseId": "aria-ellys-music-the-warning-hell-you-call-a-dream-piano-cover-by-aria-ellys-mslzwo1d", "source": { "notes": 1130, "attacks": 717, "hands": { "L": 595, "R": 535 }, "noteEndBeats": 350.75, "arrangementEndBeats": 352 }, "automatic": { "notes": 1113, "melody": 717, "sourceSupport": 368, "generated": 0, "chords": 36, "fallbackSpans": 88, "fallbackBeats": 279.25, "unresolved": [[18.5, 19.75], [258, 258.875]], "changed": { "removed": 20, "added": 3 } }, "rightHand": { "notes": 1161, "melody": 535, "sourceSupport": 578, "generated": 31, "chords": 103, "fallbackSpans": 21, "fallbackBeats": 18.875, "unresolved": 0, "changed": { "removed": 0, "added": 31 } } }
+    ],
+    "windows": [
+      { "baseId": "the-beatles-blackbird", "ranges": [{ "beats": [14, 26.5], "source": [47, 30], "automatic": [43, 30], "rightHand": [47, 30] }, { "beats": [36.5, 40], "source": [15, 8], "automatic": [15, 8], "rightHand": [15, 8] }] },
+      { "baseId": "britney-spears-oops-i-did-it-again", "ranges": [{ "beats": [0, 16], "source": [24, 18], "automatic": [24, 18], "rightHand": [24, 18] }, { "beats": [16, 32], "source": [32, 28], "automatic": [31, 28], "rightHand": [32, 28] }, { "beats": [32, 48], "source": [25, 23], "automatic": [24, 23], "rightHand": [25, 23] }, { "beats": [48, 68], "source": [56, 30], "automatic": [47, 30], "rightHand": [56, 30] }] },
+      { "baseId": "aria-ellys-music-the-warning-hell-you-call-a-dream-piano-cover-by-aria-ellys-mslzwo1d", "ranges": [{ "beats": [15.5, 18], "source": [9, 6], "automatic": [9, 6], "rightHand": [9, 6] }, { "beats": [28, 45.25], "source": [24, 18], "automatic": [24, 18], "rightHand": [24, 18] }, { "beats": [45.25, 56.25], "source": [39, 29], "automatic": [38, 29], "rightHand": [43, 29] }, { "beats": [56.25, 59.5], "source": [18, 9], "automatic": [17, 9], "rightHand": [18, 9] }] }
+    ]
+  },
+  "evaluationReservation": [
+    { "baseId": "w-h-doane-near-the-cross", "variantId": "w-h-doane-near-the-cross-a", "reason": "standard 6/4 mixed-hand held texture", "sourceTraits": { "notes": 195, "durationBeats": 96, "tempoBpm": 112, "hands": { "L": 114, "R": 81 }, "mixedOnsetRate": 0.941, "heldRate": 0.631 }, "sourceArtifactHash": "09d4a33ac39f9429f3fdf3a45377a7010b36a1f501194b2dba10e91e45d51a0d", "sourceFingerprint": "variant:w-h-doane-near-the-cross:a:w-h-doane-near-the-cross-a:09d4a33ac39f9429f3fdf3a45377a7010b36a1f501194b2dba10e91e45d51a0d:notes:764b13112b7bc753a393262bf34b4d1aa60a3ec50c5b2356187f1213b1c96304", "apiResponseSha256": "6bbb8d46ea7af536d4479d34bb897f0e8a2883acca326191d0fcb3d0be35d34", "fixtureFilesSha256": { "notes.json": "da39379165b5d13a03ef188a230765f3b08c1cc356d105766246b48a9a88b80e", "manifest.json": "80fc6f3a4cace092c22a75ffdd7bc1e141a6b27f396f7806ef90467a24dccf0e", "song.json": "60e1f345d509e51d8265ea21bc7126e1f91f7fe987cc7a82954d221a41fcf3cc" }, "expectedMelodyStatus": "proposed; unreviewed" },
+    { "baseId": "c-v-alkan-prelude", "variantId": "c-v-alkan-prelude-a", "reason": "standard 4/4 upper decoration and off-grid timing", "sourceTraits": { "notes": 287, "durationBeats": 40, "tempoBpm": 60, "hands": { "L": 104, "R": 183 }, "mixedOnsetRate": 0.914, "upperDecorationRate": 0.574, "offGridRate": 0.415, "heldRate": 0 }, "sourceArtifactHash": "ae68944db2e646e14e0923a79b95b3a6e2658432e384e8741f3ab108dbc5ac80", "sourceFingerprint": "variant:c-v-alkan-prelude:a:c-v-alkan-prelude-a:ae68944db2e646e14e0923a79b95b3a6e2658432e384e8741f3ab108dbc5ac80:notes:50a78996e80fa2731574f881d0eabb3bfb75045069e1f046bc6a24b1e0753098", "apiResponseSha256": "c6727b0a83df8f657547af9b1a323361a0f3e0b43e5063f50f15d68b0a93bfa5", "fixtureFilesSha256": { "notes.json": "7fe0f9b6464a1727c74f3f25d1f81777d2e916b6c7e11ebeaf9733cc5043b05d", "manifest.json": "592f18b63e9df64dea60e1c0abb1d7faf2a2cc73901587bc97d1a6373cba4aac", "song.json": "bd9dcbc8542f09341ace882ea56c8c734527ed0fb293c7822b2865d58b2e87a4" }, "expectedMelodyStatus": "proposed; unreviewed" },
+    { "baseId": "beginner-piano-tutorial-easy-piano-jumbo-songbook-pay-me-my-money-down-mslzx940", "variantId": "beginner-piano-tutorial-easy-piano-jumbo-songbook-pay-me-my-money-down-mslzx940-a", "reason": "YouTube 4/4 weak mixed-onset and off-grid/held stress case", "sourceTraits": { "notes": 151, "durationBeats": 76.625, "tempoBpm": 152, "hands": { "L": 60, "R": 91 }, "mixedOnsetRate": 0.261, "upperDecorationRate": 0.231, "offGridRate": 0.781, "heldRate": 0.166 }, "sourceArtifactHash": "0b034323353ce167cf24664a17bda435c963f58d75c40d75d3860804bb475677", "sourceFingerprint": "variant:beginner-piano-tutorial-easy-piano-jumbo-songbook-pay-me-my-money-down-mslzx940:a:beginner-piano-tutorial-easy-piano-jumbo-songbook-pay-me-my-money-down-mslzx940-a:0b034323353ce167cf24664a17bda435c963f58d75c40d75d3860804bb475677:notes:a39db919f07c250adba174560d3882882178dd942a37b136bfd870f490383f9e", "apiResponseSha256": "724179e4f0885f05797201a621088a50643659a7b00b763bb05966dd40597eb0", "fixtureFilesSha256": { "notes.json": "587458f078cc1f1248f9d8ebfe2079ab36e471de4d29a596631ee401e9dab4bf", "manifest.json": "20d01fbd446ce820bcdfa205b3a906933a54bb232c39618c03391acd49bfc64d", "song.json": "e320b78f65df763252aeddcc01f521c20d1c4a03ccc9f7e5b9ea0a4e18e41340" }, "expectedMelodyStatus": "proposed; unreviewed" },
+    { "baseId": "dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo", "variantId": "dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo-a", "reason": "YouTube 4/4 upper-decoration and off-grid mixed-hand stress case", "sourceTraits": { "notes": 2326, "durationBeats": 502.75, "tempoBpm": 75, "hands": { "L": 1078, "R": 1248 }, "mixedOnsetRate": 0.407, "upperDecorationRate": 0.804, "offGridRate": 0.762, "heldRate": 0.005 }, "sourceArtifactHash": "8e4d4b9114800d69904dc4af35376b95ccd1d8c537aac3adbe812c72f0cf482e", "sourceFingerprint": "variant:dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo:a:dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo-a:8e4d4b9114800d69904dc4af35376b95ccd1d8c537aac3adbe812c72f0cf482e:notes:7f0ce6f0afdd4a7b6c04c1158339bb3440894cd5f77b686308a99fbe3d24b0b6", "apiResponseSha256": "60c7cb4e61ad248afab5545dc26a2a9bbf8ac4c55485dd83a31b6fca490bba9f", "fixtureFilesSha256": { "notes.json": "0e2b1ba6166434cb23ccf022440f4a9a4caff6f6a60f74b9bc4f84dabf636cde", "manifest.json": "58aba31dd6df1776cc4be9caa56017620cdfe7cb30931231e23c99470873c356", "song.json": "62b2792be3510c9754ed449af6c838e2cf56fecd810b5d92de2dff545f6802a0" }, "expectedMelodyStatus": "proposed; unreviewed" }
+  ],
+  "oopsPhraseCapture": {
+    "testCommand": "PATH=/Users/reidar/.nvm/versions/node/v22.22.3/bin:$PATH npx --no-install playwright test --config=apps/web/playwright.chords-v2.t1.config.ts --grep 'T1 captures Oops'",
+    "result": "19 passed",
+    "manifest": "apps/web/test-results/oops-phrase-captures.json",
+    "windowSourceLabels": "Intro 1 and generic Section 2/3/4; verse, transition, and chorus labels are provisional and unverified",
+    "modes": ["original", "automatic", "right-hand", "automatic-left-filtered"],
+    "runtimeNormalization": "Player arrangementEnd is max(notes end, measure end): Blackbird 296, Oops 336, Hell 352. resolveChordSources selects the fallback auto timeline, then Player dedupes/completes generated durations before the producer. This reproduces Oops Automatic fallback 238.875 beats (UI 238.9) and RH fallback 9.125 beats (UI 9.1); earlier raw-note-end figures 235.25/5.5 were not the runtime pipeline.",
+    "leftFilteredDisclosure": "Automatic melody was selected before Left hand UI filtering; this is a full-mix UI-filter capture, not an isolated stem",
+    "capturePolicy": "each mode/window is a separate 90-second-bounded test; six windows cover control, development, Section 2, transition, Section 4, and the reported ambiguity"
+  },
+  "hashValidation": {
+    "script": "apps/web/scripts/validate-chords-v2-t1-evidence.mjs",
+    "command": "node apps/web/scripts/validate-chords-v2-t1-evidence.mjs",
+    "result": "T1 evidence hashes valid: 40 files; 19 captures",
+    "coverage": "21 fixture files (3 production controls + 4 evaluation bases, each notes/manifest/song) and 19 captured audio files with byte counts"
+  },
+  "findings": [
+    { "id": "T1-F01", "severity": "high", "status": "amended", "finding": "Oops Automatic removes 223 source events under the current intended one-melody-note-per-onset/source-support reduction; this count is not proof of a bad melody. Separately, the current heuristic emits 30 ambiguity spans, including the reported 83.5–89.5 region, and has no rest state or source-lane truth.", "impact": "T2 must account for intentional reduction separately from T3 rest/re-entry and selected-path uncertainty; musical usefulness remains unjudged" },
+    { "id": "T1-F02", "severity": "high", "status": "confirmed", "finding": "The current Oops source is not the old local snapshot: live has 1,891 notes while the external local artifact has 1,897", "impact": "all candidate and acceptance evidence must use the frozen live fixture" },
+    { "id": "T1-F03", "severity": "high", "status": "confirmed", "finding": "Hell live source differs materially from local checkout (1,130 vs 1,452 notes and different source artifact hash)", "impact": "prior local Hell evidence cannot be treated as current production evidence" },
+    { "id": "T1-F04", "severity": "medium", "status": "confirmed", "finding": "All three control fixtures use generated fallback chords derived from a/notes.json; no UG chart is available", "impact": "harmony and rhythm evaluation must preserve fallback provenance and distinguish inference from authored chart truth" },
+    { "id": "T1-F05", "severity": "medium", "status": "confirmed", "finding": "Automatic mode changes the audible event multiset on every control fixture; right-hand selection preserves source events except generated fallback additions on Oops/Hell", "impact": "change accounting and source-melody protection are required before musical acceptance" }
+  ],
+  "annotations": {
+    "expectedMelodyAnnotations": "RH-part override/candidate-anchor evidence only; automatic musical role is unverified; details are in docs/superpowers/evidence/2026-09-17-oops-proposed-melody-expectations.json",
+    "goldLabels": false,
+    "humanMusicalAcceptance": "not performed",
+    "browserSignalAssertions": "prove non-silent browser audio/events only; they do not prove recognizability or playability"
+  },
+  "evidencePaths": [
+    "docs/superpowers/evidence/2026-09-17-chords-v2-fixtures",
+    "docs/superpowers/evidence/2026-09-17-chords-v2-evaluation-fixtures",
+    "docs/superpowers/evidence/2026-09-17-chords-v2-oops-phrase-captures.json",
+    "docs/superpowers/evidence/2026-09-17-oops-proposed-melody-expectations.json",
+    "docs/superpowers/evidence/2026-09-17-oops-original-source-findings.md",
+    "apps/web/scripts/validate-chords-v2-t1-evidence.mjs",
+    "apps/web/playwright.chords-v2.t1.config.ts",
+    "apps/web/e2e/melody-accompaniment.spec.ts"
+  ],
+  "gate": "G1 source capture and amendments accepted by parent; T2 accounting is committed and T3 has a synthetic implementation checkpoint. Oops G2 remains unresolved pending source-semantic review or explicit bounded correction; no production or real-song tuning claim is made"
+}

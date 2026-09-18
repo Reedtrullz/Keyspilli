@@ -21,8 +21,11 @@ export type AccompanimentFallbackReason =
   | "no source notes to replace"
   | "sustained source note crosses accompaniment boundary"
   | "ambiguous melody"
+  | "invalid phrase override"
   | "right-hand part unavailable"
-  | "no playable support voicing";
+  | "unverified chord source"
+  | "no playable support voicing"
+  | "sounding limit exceeded";
 
 export interface AccompanimentFallbackSpan {
   startBeat: number;
@@ -44,6 +47,8 @@ export interface AccompanimentResolution {
 export interface AccompanimentChord extends ChordLabel {
   /** One suggested hand per sounding chord tone, in `notes` order. */
   suggestedHands: AccompanimentHand[];
+  /** Pitch classes intentionally omitted from an incomplete but defining shell. */
+  omittedPitchClasses?: number[];
 }
 
 export interface AccompanimentOptions {
@@ -54,8 +59,11 @@ export interface AccompanimentOptions {
 
 export type MelodySelection = "automatic" | "right-hand";
 export type MelodySelectionProvenance = "inferred" | "user-confirmed";
-export type MelodyUnresolvedReason = "ambiguous melody" | "right-hand part unavailable";
-export type MelodyAccompanimentSupportMode = "source-rhythm" | "quarter-note-pulse" | "fallback";
+export type MelodyUnresolvedReason = "ambiguous melody" | "invalid phrase override" | "right-hand part unavailable";
+export type MelodyAccompanimentSupportMode = "source-rhythm" | "sparse-harmonic" | "fallback";
+export type SourceBackingMode = "default" | "conservative";
+/** Which chord labels may create new harmonic notes in Melody + accompaniment. */
+export type MelodyHarmonicSupportPolicy = "all" | "authored-only" | "none";
 
 export interface MelodyUnresolvedSpan {
   startBeat: number;
@@ -65,7 +73,7 @@ export interface MelodyUnresolvedSpan {
 
 export interface MelodyAccompanimentProvenance {
   schemaVersion: 1;
-  generatorVersion: "melody-accompaniment.v1";
+  generatorVersion: "melody-accompaniment.v2";
   sourceFingerprint: string | null;
   selection: MelodySelection;
   selectionProvenance: MelodySelectionProvenance;
@@ -74,23 +82,94 @@ export interface MelodyAccompanimentProvenance {
   unresolvedSpans: MelodyUnresolvedSpan[];
   /** Number of source accompaniment notes retained after onset reduction. */
   sourceSupportNoteCount: number;
-  /** Number of note events from the explicit pulse approximation. */
+  /** Number of note events from sparse harmonic backing. */
   generatedNoteCount: number;
-  /** Beats covered by explicit pulses; source-rhythm beats are not counted here. */
+  /** Beats covered by sparse harmonic backing; source-rhythm beats are not counted here. */
   generatedBeats: number;
+  /** Present only when the opt-in source-only reduction path was requested. */
+  sourceBackingMode?: SourceBackingMode;
+  /** New source-linked attacks created when sounding-limit trims split a held support. */
+  soundingReattackCount: number;
   fallbackBeats: number;
   supportModes: MelodyAccompanimentSupportMode[];
 }
 
+export type SparseBackingTimingProvenance = "source-measure-boundary" | "unknown";
+
+/**
+ * Meter phase is opt-in: a tuple alone does not establish a downbeat or rule
+ * out a pickup. Callers may use this only when the source measure boundary is
+ * independently validated; unknown provenance deliberately stays sparse at
+ * chord/source boundaries.
+ */
+export interface SparseBackingTiming {
+  timeSig: readonly [number, number];
+  measureStartBeat: number;
+  provenance: SparseBackingTimingProvenance;
+}
+
 export interface MelodyAccompanimentOptions {
   durationBeats?: number;
+  /** Validated source phase for meter-aware sparse backing. */
+  sparseBackingTiming?: SparseBackingTiming;
+  /** Prefer one coherent phrase over source-linked re-attacks after a trim. */
+  soundingPolicy?: SoundingLimitPolicy;
   sourceFingerprint?: string | null;
   selection?: MelodySelection;
+  allowRests?: boolean;
+  phraseOverrides?: readonly MelodyPhraseOverride[];
+  /** Generated/notes-derived labels can stay visible without creating audio support. */
+  harmonicSupport?: MelodyHarmonicSupportPolicy;
+  /** Opt-in source-only backing reduction; omitted/default leaves the existing path unchanged. */
+  sourceBackingMode?: SourceBackingMode;
+}
+
+export type SoundingLimitPolicy = "resume" | "coherent-phrase";
+
+export interface MelodyPhraseOverride {
+  startBeat: number;
+  endBeat: number;
+  sourceNoteIds: readonly string[];
+  /** Overrides are valid only when their captured source identity matches. */
+  sourceFingerprint?: string | null;
+}
+
+export type ArrangementEventRole = "melody" | "accompaniment" | "retained-unclassified";
+
+export interface ArrangementEvent {
+  id: string;
+  note: Note;
+  role: ArrangementEventRole;
+  sourceNoteIds: readonly string[];
+}
+
+export interface ArrangementPhrase {
+  startBeat: number;
+  endBeat: number;
+  melodySourceIds: readonly string[];
+  strategy: "source-reduction" | "harmonic-backing" | "original" | "silence";
+  change: "changed" | "unchanged";
+  review: "automatic" | "user-selected" | "needs-review";
+  reasons: readonly string[];
+}
+
+export interface ArrangementChangeSummary {
+  durationBeats: number;
+  changedBeats: number;
+  unchangedBeats: number;
+  silentBeats: number;
+  reviewBeats: number;
+  addedNotes: number;
+  removedNotes: number;
+  alteredNotes: number;
 }
 
 export interface MelodyAccompanimentResolution extends AccompanimentResolution {
   melody: Note[];
   protectedMelody: readonly ProtectedMelodyNote[];
+  events: readonly ArrangementEvent[];
+  phrases: readonly ArrangementPhrase[];
+  changeSummary: ArrangementChangeSummary;
   provenance: MelodyAccompanimentProvenance;
 }
 
@@ -113,6 +192,7 @@ interface ChordEvent {
   startBeat: number;
   endBeat: number;
   notes: number[] | null;
+  harmonicSupportAllowed: boolean;
 }
 
 function noteKey(note: Note): string {
@@ -143,6 +223,130 @@ export function sourceNoteIds(notes: readonly Note[]): string[] {
   });
 }
 
+function audibleNoteKey(note: Note): string {
+  return JSON.stringify([note.midi, note.start, note.dur, note.vel]);
+}
+
+function sameAudibleNotes(left: readonly Note[], right: readonly Note[]): boolean {
+  if (left.length !== right.length) return false;
+  const counts = new Map<string, number>();
+  for (const note of left) {
+    const key = audibleNoteKey(note);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  for (const note of right) {
+    const key = audibleNoteKey(note);
+    const count = counts.get(key) ?? 0;
+    if (count === 0) return false;
+    if (count === 1) counts.delete(key);
+    else counts.set(key, count - 1);
+  }
+  return counts.size === 0;
+}
+
+function activeNotes(notes: readonly Note[], beat: number): Note[] {
+  return notes.filter((note) => note.start <= beat + EPSILON && noteEnd(note) > beat + EPSILON);
+}
+
+function clippedBoundaries(notes: readonly Note[], durationBeats: number): number[] {
+  const boundaries = new Set<number>([0, durationBeats]);
+  for (const note of notes) {
+    const start = Math.max(0, Math.min(durationBeats, note.start));
+    const end = Math.max(0, Math.min(durationBeats, noteEnd(note)));
+    if (end > start + EPSILON) {
+      boundaries.add(start);
+      boundaries.add(end);
+    }
+  }
+  return [...boundaries].sort((a, b) => a - b);
+}
+
+function unionDuration(
+  spans: readonly { startBeat: number; endBeat: number }[],
+  durationBeats: number,
+): number {
+  if (durationBeats <= EPSILON) return 0;
+  const clipped = spans
+    .map((span) => ({
+      startBeat: Math.max(0, Math.min(durationBeats, span.startBeat)),
+      endBeat: Math.max(0, Math.min(durationBeats, span.endBeat)),
+    }))
+    .filter((span) => span.endBeat > span.startBeat + EPSILON)
+    .sort((a, b) => a.startBeat - b.startBeat || a.endBeat - b.endBeat);
+  let total = 0;
+  let current: { startBeat: number; endBeat: number } | null = null;
+  for (const span of clipped) {
+    if (!current || span.startBeat > current.endBeat + EPSILON) {
+      if (current) total += current.endBeat - current.startBeat;
+      current = { ...span };
+    } else {
+      current.endBeat = Math.max(current.endBeat, span.endBeat);
+    }
+  }
+  if (current) total += current.endBeat - current.startBeat;
+  return total;
+}
+
+/** Compare source audio with the actually rendered note events. */
+export function measureArrangementChanges(
+  sourceNotes: readonly Note[],
+  events: readonly ArrangementEvent[],
+  durationBeats: number,
+  reviewSpans: readonly { startBeat: number; endBeat: number }[] = [],
+): ArrangementChangeSummary {
+  const duration = Math.max(0, Number.isFinite(durationBeats) ? durationBeats : 0);
+  const outputNotes = events.map((event) => event.note);
+  const boundaries = clippedBoundaries([...sourceNotes, ...outputNotes], duration);
+  let changedBeats = 0;
+  let unchangedBeats = 0;
+  let silentBeats = 0;
+  for (let index = 0; index < boundaries.length - 1; index++) {
+    const startBeat = boundaries[index]!;
+    const endBeat = boundaries[index + 1]!;
+    if (endBeat <= startBeat + EPSILON) continue;
+    const sourceActive = activeNotes(sourceNotes, (startBeat + endBeat) / 2);
+    const outputActive = activeNotes(outputNotes, (startBeat + endBeat) / 2);
+    if (sourceActive.length === 0 && outputActive.length === 0) silentBeats += endBeat - startBeat;
+    else if (sameAudibleNotes(sourceActive, outputActive)) unchangedBeats += endBeat - startBeat;
+    else changedBeats += endBeat - startBeat;
+  }
+
+  const sourceIds = sourceNoteIds(sourceNotes);
+  const sourceById = new Map(sourceIds.map((id, index) => [id, sourceNotes[index]!]));
+  const linkedEvents = new Map<string, ArrangementEvent[]>();
+  let addedNotes = 0;
+  for (const event of events) {
+    const knownIds = event.sourceNoteIds.filter((id) => sourceById.has(id));
+    if (knownIds.length === 0) {
+      addedNotes++;
+      continue;
+    }
+    for (const id of knownIds) {
+      const linked = linkedEvents.get(id) ?? [];
+      linked.push(event);
+      linkedEvents.set(id, linked);
+    }
+  }
+  let removedNotes = 0;
+  let alteredNotes = 0;
+  for (const [id, source] of sourceById) {
+    const linked = linkedEvents.get(id) ?? [];
+    if (linked.length === 0) removedNotes++;
+    else if (linked.length !== 1 || !sameAudibleNotes([source], [linked[0]!.note])) alteredNotes++;
+  }
+
+  return {
+    durationBeats: duration,
+    changedBeats,
+    unchangedBeats,
+    silentBeats,
+    reviewBeats: unionDuration(reviewSpans, duration),
+    addedNotes,
+    removedNotes,
+    alteredNotes,
+  };
+}
+
 function validDuration(value: number | undefined): value is number {
   return value !== undefined && Number.isFinite(value) && value > 0;
 }
@@ -155,7 +359,7 @@ function isNoChord(name: string): boolean {
   return NO_CHORD.test(name.trim());
 }
 
-function compactUpperShape(chord: ChordLabel): number[] | null {
+function compactUpperShape(chord: ChordLabel, intervals?: readonly number[]): number[] | null {
   const parsed = tryParseChordSymbol(chord.name);
   if (!parsed) return null;
   try {
@@ -163,7 +367,7 @@ function compactUpperShape(chord: ChordLabel): number[] | null {
     // a slash bass, so using its maxNotes cap here could drop a seventh or
     // altered tone before the RH shape is even voiced.
     const rootMidi = 60 + parsed.rootPc;
-    const shape = [...new Set(chordIntervals(parsed.quality).map((interval) => rootMidi + (interval % 12)))]
+    const shape = [...new Set((intervals ?? chordIntervals(parsed.quality)).map((interval) => rootMidi + (interval % 12)))]
       .sort((a, b) => a - b);
     return shape.length > 0 && Math.max(...shape) - Math.min(...shape) <= 12 ? shape : null;
   } catch {
@@ -192,7 +396,8 @@ function candidateUpperVoicings(shape: readonly number[]): number[][] {
 function voicingScore(candidate: readonly number[], previous: readonly number[] | null): number {
   const centreDistance = Math.abs((candidate[0]! + candidate[candidate.length - 1]!) / 2 - 72);
   if (!previous) return centreDistance;
-  const movement = candidate.reduce((sum, midi, index) => sum + Math.abs(midi - (previous[index] ?? midi)), 0);
+  const movement = candidate.reduce((sum, midi, index) => sum + Math.abs(midi - (previous[index] ?? midi)), 0)
+    + Math.abs(candidate.length - previous.length) * 12;
   return movement * 100 + centreDistance;
 }
 
@@ -256,6 +461,7 @@ function buildEvents(
   chords: readonly ChordLabel[],
   style: AccompanimentStyle,
   durationBeats: number,
+  harmonicSupport: MelodyHarmonicSupportPolicy = "all",
 ): ChordEvent[] {
   const byBeat = new Map<number, ChordLabel>();
   for (const chord of [...chords].sort((a, b) => a.beat - b.beat)) byBeat.set(chord.beat, chord);
@@ -267,14 +473,36 @@ function buildEvents(
     const rawEnd = eventEnd(chord, ordered[index + 1], durationBeats, sourceEnd);
     const endBeat = Math.min(durationBeats, rawEnd);
     if (endBeat <= startBeat + EPSILON) return [];
-    const generated = isNoChord(chord.name) ? null : generatedChordNotes(chord, style, previousUpper);
+    const harmonicSupportAllowed = harmonicSupport === "all"
+      || (harmonicSupport === "authored-only" && chord.sourceKind === "authored");
+    const generated = harmonicSupportAllowed && !isNoChord(chord.name)
+      ? generatedChordNotes(chord, style, previousUpper)
+      : null;
     if (generated) previousUpper = style === "bass-chords" ? generated.slice(1) : generated;
     return [{
       chord,
       startBeat,
       endBeat,
       notes: generated,
+      harmonicSupportAllowed,
     }];
+  });
+}
+
+function splitEventAtReviewSpans(
+  event: ChordEvent,
+  reviewSpans: readonly { startBeat: number; endBeat: number }[],
+): ChordEvent[] {
+  const boundaries = new Set<number>([event.startBeat, event.endBeat]);
+  for (const span of reviewSpans) {
+    if (span.endBeat <= event.startBeat + EPSILON || span.startBeat >= event.endBeat - EPSILON) continue;
+    boundaries.add(Math.max(event.startBeat, span.startBeat));
+    boundaries.add(Math.min(event.endBeat, span.endBeat));
+  }
+  const sorted = [...boundaries].sort((a, b) => a - b);
+  return sorted.slice(0, -1).flatMap((startBeat, index) => {
+    const endBeat = sorted[index + 1]!;
+    return endBeat > startBeat + EPSILON ? [{ ...event, startBeat, endBeat }] : [];
   });
 }
 
@@ -322,6 +550,7 @@ function subtractCoveredIntervals(
 }
 
 function fallbackReason(event: ChordEvent): AccompanimentFallbackReason {
+  if (!event.harmonicSupportAllowed) return "unverified chord source";
   if (isNoChord(event.chord.name)) return "explicit no-chord";
   return "unsupported chord";
 }
@@ -346,6 +575,10 @@ function buildFallbackSpans(
     boundaries.add(event.startBeat);
     boundaries.add(event.endBeat);
   }
+  for (const event of fallbackEvents) {
+    boundaries.add(Math.max(0, Math.min(durationBeats, event.startBeat)));
+    boundaries.add(Math.max(0, Math.min(durationBeats, event.endBeat)));
+  }
   const sortedBoundaries = [...boundaries].sort((a, b) => a - b);
   const fallbackSpans: AccompanimentFallbackSpan[] = [];
   for (let index = 0; index < sortedBoundaries.length - 1; index++) {
@@ -353,8 +586,8 @@ function buildFallbackSpans(
     const endBeat = sortedBoundaries[index + 1]!;
     if (endBeat <= startBeat + EPSILON) continue;
     const midpoint = (startBeat + endBeat) / 2;
-    if (covered.some((interval) => contains(interval, midpoint))) continue;
     const explicit = fallbackEvents.find((interval) => contains(interval, midpoint));
+    if (!explicit && covered.some((interval) => contains(interval, midpoint))) continue;
     fallbackSpans.push({
       startBeat,
       endBeat,
@@ -362,6 +595,281 @@ function buildFallbackSpans(
     });
   }
   return fallbackSpans;
+}
+
+function mergeFallbackEvents(
+  events: readonly { startBeat: number; endBeat: number; reason: AccompanimentFallbackReason }[],
+): Array<{ startBeat: number; endBeat: number; reason: AccompanimentFallbackReason }> {
+  const merged: Array<{ startBeat: number; endBeat: number; reason: AccompanimentFallbackReason }> = [];
+  for (const event of [...events].sort((a, b) => a.startBeat - b.startBeat || a.endBeat - b.endBeat)) {
+    const previous = merged[merged.length - 1];
+    if (previous && previous.reason === event.reason && event.startBeat <= previous.endBeat + EPSILON) {
+      previous.endBeat = Math.max(previous.endBeat, event.endBeat);
+    } else {
+      merged.push({ ...event });
+    }
+  }
+  return merged;
+}
+
+export interface SoundingLimitResult {
+  events: ArrangementEvent[];
+  fallbackSpans: Array<{ startBeat: number; endBeat: number; reason: "sounding limit exceeded" }>;
+  reattackCount: number;
+}
+
+export interface SoundingLimitOptions {
+  policy?: SoundingLimitPolicy;
+}
+
+const MAX_SOUNDING_NOTES_PER_HAND = 3;
+
+function withinSoundingLimit(events: readonly ArrangementEvent[]): boolean {
+  if (events.length > MAX_SOUNDING_NOTES_PER_HAND) return false;
+  if (events.length < 2) return true;
+  return Math.max(...events.map((event) => event.note.midi)) - Math.min(...events.map((event) => event.note.midi)) <= 12 + EPSILON;
+}
+
+type PhysicalHand = "L" | "R";
+
+function physicalHand(note: Note): PhysicalHand {
+  return note.hand === "R" ? "R" : "L";
+}
+
+function oppositeHand(hand: PhysicalHand): PhysicalHand {
+  return hand === "L" ? "R" : "L";
+}
+
+function crossesOppositeHand(
+  note: Note,
+  hand: PhysicalHand,
+  oppositeHandEvents: readonly ArrangementEvent[],
+  startBeat: number,
+  endBeat: number,
+): boolean {
+  const opposite = oppositeHandEvents
+    .filter((event) => event.note.hand === oppositeHand(hand) && overlaps(event.note, startBeat, endBeat))
+    .map((event) => event.note.midi);
+  if (opposite.length === 0) return false;
+  const oppositeMin = Math.min(...opposite);
+  const oppositeMax = Math.max(...opposite);
+  if (hand === "L") {
+    return note.midi + MIN_MELODY_CLEARANCE >= oppositeMin;
+  }
+  return note.midi - MIN_MELODY_CLEARANCE <= oppositeMax;
+}
+
+function supportFitsHand(
+  event: ArrangementEvent,
+  hand: PhysicalHand,
+  mandatory: readonly ArrangementEvent[],
+  assignedSupport: readonly ArrangementEvent[],
+): boolean {
+  const relevant = [...mandatory, ...assignedSupport].filter(({ note }) => overlaps(note, event.note.start, noteEnd(event.note)));
+  const boundaries = new Set<number>([event.note.start, noteEnd(event.note)]);
+  for (const candidate of relevant) {
+    boundaries.add(candidate.note.start);
+    boundaries.add(noteEnd(candidate.note));
+  }
+  const sortedBoundaries = [...boundaries].sort((a, b) => a - b);
+  const candidate = { ...event, note: { ...event.note, hand } };
+  for (let index = 0; index < sortedBoundaries.length - 1; index++) {
+    const startBeat = sortedBoundaries[index]!;
+    const endBeat = sortedBoundaries[index + 1]!;
+    if (endBeat <= startBeat + EPSILON || !overlaps(candidate.note, startBeat, endBeat)) continue;
+    const activeMandatory = mandatory.filter(({ note }) => overlaps(note, startBeat, endBeat));
+    const activeSameHandSupport = assignedSupport.filter(({ note }) => note.hand === hand && overlaps(note, startBeat, endBeat));
+    const activeSameHand = [
+      ...activeMandatory.filter(({ note }) => note.hand === hand),
+      ...activeSameHandSupport,
+      candidate,
+    ];
+    if (activeMandatory.some(({ note }) => note.hand === hand && note.midi === candidate.note.midi)
+      || activeSameHandSupport.some(({ note }) => note.midi === candidate.note.midi)
+      || !withinSoundingLimit(activeSameHand)
+      || crossesOppositeHand(candidate.note, hand, activeMandatory, startBeat, endBeat)
+      || crossesOppositeHand(candidate.note, hand, assignedSupport, startBeat, endBeat)) return false;
+  }
+  return true;
+}
+
+function hasSupportCollision(
+  note: Note,
+  hand: PhysicalHand,
+  assignedSupport: readonly ArrangementEvent[],
+  startBeat: number,
+  endBeat: number,
+): boolean {
+  return assignedSupport.some((event) => event.note.hand === hand
+      && event.note.midi === note.midi
+      && overlaps(event.note, startBeat, endBeat))
+    || crossesOppositeHand(note, hand, assignedSupport, startBeat, endBeat);
+}
+
+function supportVelocity(note: Note, melody: readonly ArrangementEvent[]): number {
+  const absolute = Math.min(MAX_ACCOMPANIMENT_VELOCITY, Math.max(1, note.vel));
+  const localMelody = melody
+    .filter((event) => overlaps(event.note, note.start, noteEnd(note)))
+    .map((event) => event.note.vel);
+  if (localMelody.length === 0) return absolute;
+  return Math.min(absolute, Math.max(1, Math.min(...localMelody) - MELODY_SUPPORT_VELOCITY_MARGIN));
+}
+
+interface SupportAllocation {
+  events: ArrangementEvent[];
+  rejectedIds: ReadonlySet<string>;
+}
+
+function allocateSupport(
+  events: readonly ArrangementEvent[],
+): SupportAllocation {
+  const normalized = events.map((event) => event.role === "accompaniment"
+    ? { ...event, note: { ...event.note, hand: physicalHand(event.note) } }
+    : event);
+  const mandatory = normalized.filter((event) => event.role === "melody" || event.role === "retained-unclassified");
+  const support = normalized
+    .filter((event) => event.role === "accompaniment")
+    .sort((a, b) => a.note.start - b.note.start || a.note.midi - b.note.midi || a.id.localeCompare(b.id));
+  const assignedSupport: ArrangementEvent[] = [];
+  const allocatedById = new Map<string, ArrangementEvent>();
+  const rejectedIds = new Set<string>();
+  for (const event of support) {
+    const sourceHand = physicalHand(event.note);
+    const alternateHand = oppositeHand(sourceHand);
+    const hand = supportFitsHand(event, sourceHand, mandatory, assignedSupport)
+      ? sourceHand
+      : supportFitsHand(event, alternateHand, mandatory, assignedSupport)
+        ? alternateHand
+        : null;
+    if (!hand) {
+      // Keep a fixed source hand for the sounding-limit trimmer unless the
+      // source hand itself crosses an opposite-hand mandatory/support note or
+      // duplicates same-hand support. In those cases, retaining it would
+      // silently create a physical crossing/collision.
+      const supportStart = event.note.start;
+      const supportEnd = noteEnd(event.note);
+      if (crossesOppositeHand(event.note, sourceHand, mandatory, supportStart, supportEnd)
+        || hasSupportCollision(event.note, sourceHand, assignedSupport, supportStart, supportEnd)) {
+        rejectedIds.add(event.id);
+      }
+      allocatedById.set(event.id, event);
+      continue;
+    }
+    const allocated = { ...event, note: { ...event.note, hand } };
+    allocatedById.set(event.id, allocated);
+    assignedSupport.push(allocated);
+  }
+  return {
+    events: normalized.map((event) => event.role === "accompaniment" ? allocatedById.get(event.id)! : event),
+    rejectedIds,
+  };
+}
+
+/**
+ * Enforce the physical-hand budget on the projected stream.
+ *
+ * Melody and retained-unclassified events are mandatory. Accompaniment is
+ * trimmed only over intervals where it loses the budget, preserving the
+ * sourceNoteIds on each surviving piece. A later collision therefore cannot
+ * erase an earlier held attack without a corresponding changed interval.
+ */
+function chooseSoundingPieces(
+  event: ArrangementEvent,
+  rejected: readonly { startBeat: number; endBeat: number }[],
+  options: SoundingLimitOptions,
+): Note[] {
+  const resumed = subtractCoveredIntervals(event.note, rejected);
+  if (options.policy !== "coherent-phrase") return resumed;
+  const firstRejectedBeat = Math.min(...rejected.map((interval) => interval.startBeat));
+  return subtractCoveredIntervals(event.note, [{ startBeat: firstRejectedBeat, endBeat: noteEnd(event.note) }]);
+}
+
+export function enforceAccompanimentSoundingLimits(
+  events: readonly ArrangementEvent[],
+  options: SoundingLimitOptions = {},
+): SoundingLimitResult {
+  const allocation = allocateSupport(events);
+  const allocatedEvents = allocation.events;
+  const physical = allocatedEvents.filter((event) => event.note.hand === "L" || event.note.hand === "R");
+  const support = physical.filter((event) => event.role === "accompaniment");
+  const mandatory = physical.filter((event) => event.role === "melody" || event.role === "retained-unclassified");
+  const melody = allocatedEvents.filter((event) => event.role === "melody");
+  const boundaries = new Set<number>();
+  for (const event of physical) {
+    boundaries.add(event.note.start);
+    boundaries.add(noteEnd(event.note));
+  }
+  const sortedBoundaries = [...boundaries].sort((a, b) => a - b);
+  const rejectedById = new Map<string, Array<{ startBeat: number; endBeat: number }>>();
+  const fallbackSpans: SoundingLimitResult["fallbackSpans"] = [];
+  let reattackCount = 0;
+  const reject = (event: ArrangementEvent, startBeat: number, endBeat: number) => {
+    const intervals = rejectedById.get(event.id) ?? [];
+    intervals.push({ startBeat, endBeat });
+    rejectedById.set(event.id, intervals);
+  };
+  for (let index = 0; index < sortedBoundaries.length - 1; index++) {
+    const startBeat = sortedBoundaries[index]!;
+    const endBeat = sortedBoundaries[index + 1]!;
+    if (endBeat <= startBeat + EPSILON) continue;
+    const activeMandatory = mandatory.filter((event) => overlaps(event.note, startBeat, endBeat));
+    const allocationRejected = support.filter((event) => allocation.rejectedIds.has(event.id) && overlaps(event.note, startBeat, endBeat));
+    for (const event of allocationRejected) reject(event, startBeat, endBeat);
+    if (allocationRejected.length > 0) {
+      fallbackSpans.push({ startBeat, endBeat, reason: "sounding limit exceeded" });
+    }
+    for (const hand of ["L", "R"] as const) {
+      const handMandatory = activeMandatory.filter((event) => event.note.hand === hand);
+      const activeSupport = support.filter((event) => !allocation.rejectedIds.has(event.id)
+        && event.note.hand === hand
+        && overlaps(event.note, startBeat, endBeat));
+      if (handMandatory.length === 0 && activeSupport.length === 0) continue;
+      const rejected = new Set<ArrangementEvent>();
+      const mandatoryFits = withinSoundingLimit(handMandatory);
+      if (!mandatoryFits) {
+        for (const event of activeSupport) {
+          rejected.add(event);
+          reject(event, startBeat, endBeat);
+        }
+      } else {
+        const ordered = [...activeSupport].sort((a, b) => a.note.midi - b.note.midi
+          || (a.sourceNoteIds.length > 0 ? -1 : 1) - (b.sourceNoteIds.length > 0 ? -1 : 1)
+          || b.note.dur - a.note.dur
+          || a.id.localeCompare(b.id));
+        const kept = [...handMandatory];
+        for (const event of ordered) {
+          if (activeMandatory.some((mandatoryEvent) => mandatoryEvent.note.midi === event.note.midi)
+            || !withinSoundingLimit([...kept, event])) {
+            rejected.add(event);
+            reject(event, startBeat, endBeat);
+          } else {
+            kept.push(event);
+          }
+        }
+      }
+      if (!mandatoryFits || rejected.size > 0) {
+        fallbackSpans.push({ startBeat, endBeat, reason: "sounding limit exceeded" });
+      }
+    }
+  }
+  return {
+    events: allocatedEvents.flatMap((event) => {
+      const balanced = event.role === "accompaniment"
+        ? { ...event, note: { ...event.note, vel: supportVelocity(event.note, melody) } }
+        : event;
+      const rejected = rejectedById.get(balanced.id);
+      if (balanced.role !== "accompaniment" || !rejected?.length) return [balanced];
+      const pieces = chooseSoundingPieces(balanced, rejected, options);
+      reattackCount += pieces.filter((piece) => piece.start > event.note.start + EPSILON).length;
+      return pieces.map((note, index) => ({
+        ...balanced,
+        id: `${event.id}:piece:${index}`,
+        note,
+      }));
+    }),
+    fallbackSpans,
+    reattackCount,
+  };
 }
 
 /**
@@ -484,6 +992,8 @@ interface SelectedMelody {
   protectedMelody: ProtectedMelodyNote[];
   selectedIndices: Set<number>;
   sourceIds: string[];
+  sourceNotes: readonly Note[];
+  confirmedRanges: readonly { startBeat: number; endBeat: number }[];
   selection: MelodySelection;
   selectionProvenance: MelodySelectionProvenance;
   unresolvedSpans: MelodyUnresolvedSpan[];
@@ -501,9 +1011,10 @@ function protectedSourceNote(note: Note, sourceIndex: number, identity: string):
   return Object.freeze({ ...note, sourceIndex, identity, role: "melody" });
 }
 
-function sourceAttackGroups(notes: readonly Note[]): Array<Array<{ note: Note; sourceIndex: number }>> {
-  const ordered = notes
-    .map((note, sourceIndex) => ({ note, sourceIndex }))
+function sourceAttackGroups(
+  items: readonly { note: Note; sourceIndex: number }[],
+): Array<Array<{ note: Note; sourceIndex: number }>> {
+  const ordered = items
     .filter(({ note }) => playableSourceNote(note))
     .sort((a, b) => a.note.start - b.note.start || a.note.midi - b.note.midi || a.sourceIndex - b.sourceIndex);
   const groups: Array<Array<{ note: Note; sourceIndex: number }>> = [];
@@ -534,12 +1045,14 @@ function reduceSourceSupport(
       && playableSourceNote(note)
       && note.start >= startBeat - EPSILON
       && note.start < endBeat - EPSILON);
-  const groups = sourceAttackGroups(candidates.map(({ note }) => note));
+  const groups = sourceAttackGroups(candidates);
   const reduced: ReducedSourceSupport[] = [];
-  // ponytail: cap at three source tones per onset; add quality-aware voicing only for source-empty spans.
+  let previousStackKey: string | null = null;
+  // ponytail: cap at three source tones per onset; collapse only exact repeated
+  // chordal stacks after the first attack. Protected hook notes stay selected
+  // through phrase overrides; add broader motif analysis only with reviewed data.
   for (const group of groups) {
-    const onset = group
-      .map(({ sourceIndex }) => candidates[sourceIndex]!)
+    const onset = [...group]
       .sort((a, b) => a.note.midi - b.note.midi || b.note.dur - a.note.dur || b.note.vel - a.note.vel);
     const bass = onset[0];
     if (!bass) continue;
@@ -548,34 +1061,82 @@ function reduceSourceSupport(
       bass,
       ...withinOctave.filter(({ note }) => note.midi !== bass.note.midi).slice(-2),
     ];
+    const stackKey = chosen.map(({ note }) => note.midi).join(",");
+    const repeatedChordStack = chosen.length >= 3 && stackKey === previousStackKey;
     const seenPitches = new Set<number>();
-    for (const item of chosen.sort((a, b) => a.note.midi - b.note.midi)) {
+    for (const item of (repeatedChordStack ? chosen.slice(0, 1) : chosen).sort((a, b) => a.note.midi - b.note.midi)) {
       if (seenPitches.has(item.note.midi)) continue;
       seenPitches.add(item.note.midi);
       reduced.push({
         sourceIndex: item.sourceIndex,
-        note: { ...item.note, hand: "L" },
+        note: accompanimentNote(item.note),
       });
     }
+    previousStackKey = stackKey;
   }
   return reduced;
 }
 
-function pulseStarts(startBeat: number, endBeat: number): number[] {
-  const starts = [startBeat];
-  for (let beat = Math.ceil(startBeat + EPSILON); beat < endBeat - EPSILON; beat += 1) starts.push(beat);
-  return starts;
+interface SparseMeterPattern {
+  measureBeats: number;
+  offsets: readonly number[];
+  measureStartBeat: number;
 }
 
-function pulseSupportNotes(voicing: readonly number[], startBeat: number, endBeat: number): Note[] {
-  // ponytail: quarter-beat pulses are an explicitly named approximation for source-empty accompaniment spans.
-  return pulseStarts(startBeat, endBeat).flatMap((beat) => voicing.map((midi) => ({
-    midi,
-    start: beat,
-    dur: Math.min(0.75, endBeat - beat),
-    vel: 54,
-    hand: "L" as const,
-  })));
+function sparseMeterPattern(timing?: SparseBackingTiming): SparseMeterPattern | null {
+  if (!timing || timing.provenance !== "source-measure-boundary") return null;
+  const [numerator, denominator] = timing.timeSig;
+  if (!Number.isInteger(numerator) || !Number.isInteger(denominator)
+    || numerator <= 0 || denominator <= 0 || !Number.isFinite(timing.measureStartBeat)) return null;
+  const measureBeats = numerator * (4 / denominator);
+  if (!Number.isFinite(measureBeats) || measureBeats <= EPSILON) return null;
+  const offsets = numerator === 2 && denominator === 4
+    ? [0, 1]
+    : numerator === 3 && denominator === 4
+      ? [0, 2]
+      : numerator === 4 && denominator === 4
+        ? [0, 2]
+        : numerator === 6 && denominator === 8
+          ? [0, 1.5]
+          : null;
+  return offsets ? { measureBeats, offsets, measureStartBeat: timing.measureStartBeat } : null;
+}
+
+function sparseHarmonicStarts(startBeat: number, endBeat: number, timing?: SparseBackingTiming): number[] {
+  const starts = [startBeat];
+  const pattern = sparseMeterPattern(timing);
+  if (!pattern) return starts;
+  const firstMeasure = Math.floor((startBeat - pattern.measureStartBeat) / pattern.measureBeats) - 1;
+  const lastMeasure = Math.ceil((endBeat - pattern.measureStartBeat) / pattern.measureBeats) + 1;
+  for (let measure = firstMeasure; measure <= lastMeasure; measure++) {
+    const measureStart = pattern.measureStartBeat + measure * pattern.measureBeats;
+    for (const offset of pattern.offsets) {
+      const beat = measureStart + offset;
+      if (beat > startBeat + EPSILON && beat < endBeat - EPSILON) starts.push(beat);
+    }
+  }
+  return [...new Set(starts)].sort((a, b) => a - b);
+}
+
+function sparseHarmonicSupportNotes(
+  voicing: readonly number[],
+  startBeat: number,
+  endBeat: number,
+  timing?: SparseBackingTiming,
+): Note[] {
+  const starts = sparseHarmonicStarts(startBeat, endBeat, timing);
+  return starts.flatMap((beat, index) => {
+    const nextBeat = starts[index + 1] ?? endBeat;
+    const dur = Math.min(0.75, endBeat - beat, nextBeat - beat);
+    if (dur <= EPSILON) return [];
+    return voicing.map((midi) => ({
+      midi,
+      start: beat,
+      dur,
+      vel: SPARSE_BACKING_VELOCITY,
+      hand: "L" as const,
+    }));
+  });
 }
 
 function mergeUnresolvedSpans(spans: MelodyUnresolvedSpan[]): MelodyUnresolvedSpan[] {
@@ -592,74 +1153,271 @@ function mergeUnresolvedSpans(spans: MelodyUnresolvedSpan[]): MelodyUnresolvedSp
   return merged;
 }
 
-function findAmbiguousMelodySpans(notes: readonly Note[], durationBeats: number): MelodyUnresolvedSpan[] {
-  const spans: MelodyUnresolvedSpan[] = [];
-  for (const group of sourceAttackGroups(notes)) {
-    if (group.length < 2) continue;
-    const sorted = [...group].sort((a, b) => b.note.midi - a.note.midi || b.note.dur - a.note.dur || a.sourceIndex - b.sourceIndex);
-    const top = sorted[0]!;
-    const second = sorted[1]!;
-    const duplicatePitch = top.note.midi === second.note.midi;
-    const closeCompetingAttacks = top.note.midi - second.note.midi <= 2
-      && Math.abs(top.note.vel - second.note.vel) <= 8
-      && Math.abs(top.note.dur - second.note.dur) <= 0.25;
-    if (!duplicatePitch && !closeCompetingAttacks) continue;
-    const startBeat = Math.max(0, group[0]!.note.start);
-    const endBeat = Math.min(
-      durationBeats,
-      Math.max(startBeat + 0.25, ...group.map(({ note }) => noteEnd(note))),
-    );
-    if (endBeat > startBeat + EPSILON) spans.push({ startBeat, endBeat, reason: "ambiguous melody" });
+interface ValidatedPhraseOverrides {
+  valid: MelodyPhraseOverride[];
+  invalidSpans: MelodyUnresolvedSpan[];
+}
+
+function validatePhraseOverrides(
+  overrides: readonly MelodyPhraseOverride[] | undefined,
+  sourceNotes: readonly Note[],
+  sourceIds: readonly string[],
+  durationBeats: number,
+  sourceFingerprint: string | null,
+): ValidatedPhraseOverrides {
+  if (!overrides?.length) return { valid: [], invalidSpans: [] };
+  const sourceIndexById = new Map(sourceIds.map((id, index) => [id, index]));
+  const valid: MelodyPhraseOverride[] = [];
+  const invalidSpans: MelodyUnresolvedSpan[] = [];
+  let previousEnd = -Infinity;
+  for (const override of overrides) {
+    const finiteBounds = Number.isFinite(override.startBeat) && Number.isFinite(override.endBeat);
+    const startBeat = finiteBounds ? Math.max(0, override.startBeat) : 0;
+    const endBeat = finiteBounds ? Math.min(durationBeats, override.endBeat) : 0;
+    const ordered = startBeat >= previousEnd - EPSILON;
+    const boundsValid = finiteBounds
+      && override.startBeat >= -EPSILON
+      && override.endBeat > override.startBeat + EPSILON
+      && override.endBeat <= durationBeats + EPSILON
+      && endBeat > startBeat + EPSILON;
+    const uniqueIds = new Set(override.sourceNoteIds);
+    const idsValid = uniqueIds.size === override.sourceNoteIds.length
+      && override.sourceNoteIds.every((id) => sourceIndexById.has(id))
+      && override.sourceNoteIds.every((id) => {
+        const source = sourceNotes[sourceIndexById.get(id)!]!;
+        return source.start >= startBeat - EPSILON && source.start < endBeat - EPSILON;
+      });
+    const fingerprintValid = typeof sourceFingerprint === "string"
+      && override.sourceFingerprint === sourceFingerprint;
+    if (!boundsValid || !ordered || !idsValid || !fingerprintValid) {
+      if (finiteBounds && endBeat > startBeat + EPSILON) {
+        invalidSpans.push({ startBeat, endBeat, reason: "invalid phrase override" });
+      }
+      continue;
+    }
+    valid.push({ ...override, startBeat, endBeat, sourceNoteIds: [...override.sourceNoteIds] });
+    previousEnd = endBeat;
   }
-  return mergeUnresolvedSpans(spans);
+  return { valid, invalidSpans };
+}
+
+function applyPhraseOverrides(
+  sourceNotes: readonly Note[],
+  sourceIds: readonly string[],
+  selectedIndices: Set<number>,
+  overrides: readonly MelodyPhraseOverride[],
+): void {
+  for (const override of overrides) {
+    for (const [index, note] of sourceNotes.entries()) {
+      if (note.start >= override.startBeat - EPSILON && note.start < override.endBeat - EPSILON) selectedIndices.delete(index);
+    }
+    for (const id of override.sourceNoteIds) selectedIndices.add(sourceIds.indexOf(id));
+  }
+}
+
+function subtractOverrideRanges(
+  span: MelodyUnresolvedSpan,
+  ranges: readonly { startBeat: number; endBeat: number }[],
+): MelodyUnresolvedSpan[] {
+  let remaining: MelodyUnresolvedSpan[] = [{ ...span }];
+  for (const range of ranges) {
+    remaining = remaining.flatMap((candidate) => {
+      if (range.endBeat <= candidate.startBeat + EPSILON || range.startBeat >= candidate.endBeat - EPSILON) return [candidate];
+      const pieces: MelodyUnresolvedSpan[] = [];
+      if (candidate.startBeat < range.startBeat - EPSILON) {
+        pieces.push({ ...candidate, endBeat: range.startBeat });
+      }
+      if (candidate.endBeat > range.endBeat + EPSILON) {
+        pieces.push({ ...candidate, startBeat: range.endBeat });
+      }
+      return pieces;
+    });
+  }
+  return remaining.filter((candidate) => candidate.endBeat > candidate.startBeat + EPSILON);
 }
 
 function selectMelodySource(
   sourceNotes: readonly Note[],
   durationBeats: number,
   requestedSelection: MelodySelection,
+  allowRests = false,
+  sourceFingerprint: string | null = null,
+  phraseOverrides?: readonly MelodyPhraseOverride[],
 ): SelectedMelody {
   const ids = sourceNoteIds(sourceNotes);
   const rightHandIndices = sourceNotes
     .map((note, index) => playableSourceNote(note) && note.hand === "R" ? index : -1)
     .filter((index): index is number => index >= 0);
-  if (requestedSelection === "right-hand" && rightHandIndices.length > 0) {
+  const validatedOverrides = validatePhraseOverrides(
+    phraseOverrides,
+    sourceNotes,
+    ids,
+    durationBeats,
+    sourceFingerprint,
+  );
+  const hasRightHandSelection = requestedSelection === "right-hand" && rightHandIndices.length > 0;
+  if (hasRightHandSelection) {
     const selectedIndices = new Set(rightHandIndices);
-    const protectedMelody = rightHandIndices.map((index) => protectedSourceNote(sourceNotes[index]!, index, ids[index]!));
+    applyPhraseOverrides(sourceNotes, ids, selectedIndices, validatedOverrides.valid);
+    const protectedMelody = [...selectedIndices]
+      .sort((a, b) => sourceNotes[a]!.start - sourceNotes[b]!.start || sourceNotes[a]!.midi - sourceNotes[b]!.midi || a - b)
+      .map((index) => protectedSourceNote(sourceNotes[index]!, index, ids[index]!));
     return {
-      melody: rightHandIndices.map((index) => ({ ...sourceNotes[index]! })),
+      melody: protectedMelody.map((note) => ({ ...note })),
       protectedMelody,
       selectedIndices,
       sourceIds: ids,
+      sourceNotes,
+      confirmedRanges: rightHandIndices.length > 0
+        ? [{ startBeat: 0, endBeat: durationBeats }]
+        : validatedOverrides.valid.map(({ startBeat, endBeat }) => ({ startBeat, endBeat })),
       selection: "right-hand",
       selectionProvenance: "user-confirmed",
-      unresolvedSpans: [],
+      unresolvedSpans: mergeUnresolvedSpans(validatedOverrides.invalidSpans),
     };
   }
 
-  const split = splitPianoRoles(sourceNotes, { preferSustainedLine: true });
+  const split = splitPianoRoles(sourceNotes, { preferSustainedLine: true, allowRests });
   const selectedIndices = new Set(split.protectedMelody.map((note) => note.sourceIndex));
+  applyPhraseOverrides(sourceNotes, ids, selectedIndices, validatedOverrides.valid);
   const protectedMelody = [...split.protectedMelody]
-    .sort((a, b) => a.start - b.start || a.midi - b.midi || a.sourceIndex - b.sourceIndex)
+    .filter((note) => selectedIndices.has(note.sourceIndex))
     .map((note) => protectedSourceNote(sourceNotes[note.sourceIndex]!, note.sourceIndex, ids[note.sourceIndex]!));
-  const unresolvedSpans = findAmbiguousMelodySpans(sourceNotes, durationBeats);
+  for (const index of [...selectedIndices].filter((index) => !protectedMelody.some((note) => note.sourceIndex === index))) {
+    protectedMelody.push(protectedSourceNote(sourceNotes[index]!, index, ids[index]!));
+  }
+  protectedMelody.sort((a, b) => a.start - b.start || a.midi - b.midi || a.sourceIndex - b.sourceIndex);
+  const overrideRanges = validatedOverrides.valid.map(({ startBeat, endBeat }) => ({ startBeat, endBeat }));
+  const unresolvedSpans = mergeUnresolvedSpans([
+    ...split.pathEvidence.flatMap((span) => {
+      const startBeat = Math.max(0, span.startBeat);
+      const endBeat = Math.min(durationBeats, span.endBeat);
+      if (endBeat <= startBeat + EPSILON) return [];
+      return subtractOverrideRanges({ startBeat, endBeat, reason: "ambiguous melody" }, overrideRanges);
+    }),
+    ...validatedOverrides.invalidSpans,
+  ]);
   if (requestedSelection === "right-hand" && rightHandIndices.length === 0 && durationBeats > EPSILON) {
-    unresolvedSpans.push({ startBeat: 0, endBeat: durationBeats, reason: "right-hand part unavailable" });
+    unresolvedSpans.push(...subtractOverrideRanges(
+      { startBeat: 0, endBeat: durationBeats, reason: "right-hand part unavailable" },
+      overrideRanges,
+    ));
   }
   return {
     melody: protectedMelody.map((note) => ({ ...sourceNotes[note.sourceIndex]! })),
     protectedMelody,
     selectedIndices,
     sourceIds: ids,
+    sourceNotes,
+    confirmedRanges: overrideRanges,
     selection: "automatic",
-    selectionProvenance: "inferred",
+    selectionProvenance: validatedOverrides.valid.length > 0 ? "user-confirmed" : "inferred",
     unresolvedSpans: mergeUnresolvedSpans(unresolvedSpans),
   };
+}
+
+function intervalChanged(
+  sourceNotes: readonly Note[],
+  outputEvents: readonly ArrangementEvent[],
+  startBeat: number,
+  endBeat: number,
+): boolean {
+  const outputNotes = outputEvents.map((event) => event.note);
+  const boundaries = new Set<number>([startBeat, endBeat]);
+  for (const note of [...sourceNotes, ...outputNotes]) {
+    if (!overlaps(note, startBeat, endBeat)) continue;
+    boundaries.add(Math.max(startBeat, Math.min(endBeat, note.start)));
+    boundaries.add(Math.max(startBeat, Math.min(endBeat, noteEnd(note))));
+  }
+  const sorted = [...boundaries].sort((a, b) => a - b);
+  for (let index = 0; index < sorted.length - 1; index++) {
+    const start = sorted[index]!;
+    const end = sorted[index + 1]!;
+    if (end <= start + EPSILON) continue;
+    const midpoint = (start + end) / 2;
+    if (!sameAudibleNotes(activeNotes(sourceNotes, midpoint), activeNotes(outputNotes, midpoint))) return true;
+  }
+  return false;
+}
+
+function localArrangementStrategy(
+  sourceNotes: readonly Note[],
+  outputEvents: readonly ArrangementEvent[],
+  startBeat: number,
+  endBeat: number,
+): ArrangementPhrase["strategy"] {
+  const localEvents = outputEvents.filter((event) => overlaps(event.note, startBeat, endBeat));
+  if (localEvents.some((event) => event.role === "accompaniment" && event.sourceNoteIds.length === 0)) return "harmonic-backing";
+  if (localEvents.some((event) => event.role === "accompaniment" && event.sourceNoteIds.length > 0)) return "source-reduction";
+  const hasSource = sourceNotes.some((note) => overlaps(note, startBeat, endBeat));
+  const hasOutput = outputEvents.some((event) => overlaps(event.note, startBeat, endBeat));
+  if (!hasSource && !hasOutput) return "silence";
+  return "original";
+}
+
+function buildArrangementPhrases(
+  durationBeats: number,
+  selected: SelectedMelody,
+  fallbackSpans: readonly AccompanimentFallbackSpan[],
+  sourceNotes: readonly Note[],
+  outputEvents: readonly ArrangementEvent[],
+  planningSpans: readonly { startBeat: number; endBeat: number }[] = [],
+): ArrangementPhrase[] {
+  if (durationBeats <= EPSILON) return [];
+  const boundaries = new Set<number>([0, durationBeats]);
+  for (const range of [...selected.confirmedRanges, ...selected.unresolvedSpans, ...fallbackSpans, ...planningSpans]) {
+    boundaries.add(Math.max(0, Math.min(durationBeats, range.startBeat)));
+    boundaries.add(Math.max(0, Math.min(durationBeats, range.endBeat)));
+  }
+  const sortedBoundaries = [...boundaries].sort((a, b) => a - b);
+  const overlapsRange = (startBeat: number, endBeat: number, range: { startBeat: number; endBeat: number }) =>
+    range.startBeat < endBeat - EPSILON && range.endBeat > startBeat + EPSILON;
+
+  return sortedBoundaries.slice(0, -1).flatMap((startBeat, index) => {
+    const endBeat = sortedBoundaries[index + 1]!;
+    if (endBeat <= startBeat + EPSILON) return [];
+    const reasons = [...new Set([
+      ...selected.unresolvedSpans
+        .filter((span) => overlapsRange(startBeat, endBeat, span))
+        .map((span) => span.reason),
+      ...fallbackSpans
+        .filter((span) => overlapsRange(startBeat, endBeat, span))
+        .map((span) => span.reason),
+    ])];
+    const userSelected = selected.confirmedRanges.some((range) => overlapsRange(startBeat, endBeat, range));
+    const strategy = localArrangementStrategy(sourceNotes, outputEvents, startBeat, endBeat);
+    const change = intervalChanged(sourceNotes, outputEvents, startBeat, endBeat) ? "changed" : "unchanged";
+    return [{
+      startBeat,
+      endBeat,
+      melodySourceIds: selected.sourceIds.filter((_, sourceIndex) => {
+        const note = selected.sourceNotes[sourceIndex];
+        return selected.selectedIndices.has(sourceIndex)
+          && note !== undefined
+          && note.start >= startBeat - EPSILON
+          && note.start < endBeat - EPSILON;
+      }),
+      strategy,
+      change,
+      review: reasons.length > 0 ? "needs-review" : userSelected ? "user-selected" : "automatic",
+      reasons,
+    }];
+  });
 }
 
 const MAX_LEFT_HAND_SPAN = 12;
 const MIN_MELODY_CLEARANCE = 2;
 const LOWEST_SUPPORT_MIDI = 36;
+const MAX_ACCOMPANIMENT_VELOCITY = 70;
+const MELODY_SUPPORT_VELOCITY_MARGIN = 8;
+const SPARSE_BACKING_VELOCITY = 54;
+
+function accompanimentNote(note: Note): Note {
+  return {
+    ...note,
+    vel: Math.min(MAX_ACCOMPANIMENT_VELOCITY, Math.max(1, note.vel)),
+  };
+}
 
 function supportUpperShape(
   chord: ChordLabel,
@@ -668,8 +1426,10 @@ function supportUpperShape(
   melody: readonly Note[],
   startBeat: number,
   endBeat: number,
+  previous: readonly number[] | null,
+  shapeOverride?: readonly number[],
 ): number[] | null {
-  const shape = compactUpperShape(chord) ?? [...upper];
+  const shape = shapeOverride ? [...shapeOverride] : compactUpperShape(chord) ?? [...upper];
   if (!shape.length) return null;
   const activeMelody = melody.filter((note) => overlaps(note, startBeat, endBeat));
   const lowestMelody = activeMelody.length ? Math.min(...activeMelody.map((note) => note.midi)) : null;
@@ -683,12 +1443,14 @@ function supportUpperShape(
       for (const bassShift of [0, 12, -12, 24, -24, 36, -36]) {
         const revoicedBass = bass + bassShift;
         const notes = [...new Set([revoicedBass, ...shifted])];
+        const uniquePitchClasses = new Set(notes.map((midi) => midi % 12));
         const span = Math.max(...notes) - Math.min(...notes);
         const collidesWithMelody = lowestMelody !== null
           && notes.some((midi) => midi >= lowestMelody - MIN_MELODY_CLEARANCE);
         if (notes.every((midi) => Number.isInteger(midi) && midi >= LOWEST_SUPPORT_MIDI && midi <= 96)
           && revoicedBass <= Math.min(...shifted)
           && span <= MAX_LEFT_HAND_SPAN
+          && uniquePitchClasses.size === notes.length
           && !collidesWithMelody) {
           candidates.push({ bass: revoicedBass, upper: shifted, notes });
         }
@@ -696,12 +1458,268 @@ function supportUpperShape(
     }
   }
   return candidates.sort((a, b) => {
+    const aMotion = previous ? voicingScore(a.notes, previous) : 0;
+    const bMotion = previous ? voicingScore(b.notes, previous) : 0;
     const aTopDistance = Math.abs(Math.max(...a.notes) - targetTop);
     const bTopDistance = Math.abs(Math.max(...b.notes) - targetTop);
-    return aTopDistance - bTopDistance
-      || (Math.max(...a.notes) - Math.min(...a.notes)) - (Math.max(...b.notes) - Math.min(...b.notes))
-      || Math.abs(a.bass - bass) - Math.abs(b.bass - bass);
+    return Math.abs(a.bass - bass) - Math.abs(b.bass - bass)
+      || aMotion - bMotion
+      || aTopDistance - bTopDistance
+      || (Math.max(...a.notes) - Math.min(...a.notes)) - (Math.max(...b.notes) - Math.min(...b.notes));
   })[0]?.notes ?? null;
+}
+
+interface LearningChordNotes {
+  notes: number[];
+  omittedPitchClasses: number[];
+}
+
+function protectedSupportSourceIndices(
+  sourceSupport: readonly { note: Note; sourceIndex: number }[],
+): Set<number> {
+  const protectedIndices = new Set<number>();
+  const firstAttack = [...sourceSupport]
+    .filter(({ note }) => playableSourceNote(note))
+    .sort((a, b) => a.note.start - b.note.start || a.note.midi - b.note.midi || a.sourceIndex - b.sourceIndex)[0];
+  if (firstAttack) protectedIndices.add(firstAttack.sourceIndex);
+  for (const { note, sourceIndex } of sourceSupport) {
+    if (note.identitySource === "vocals") protectedIndices.add(sourceIndex);
+  }
+  return protectedIndices;
+}
+
+interface ConservativeSourceReduction {
+  removed: Set<number>;
+  protected: Set<number>;
+}
+
+function conservativeSourceReduction(
+  sourceNotes: readonly Note[],
+  selectedIndices: ReadonlySet<number>,
+  protectedRanges: readonly { startBeat: number; endBeat: number }[] = [],
+): ConservativeSourceReduction {
+  const playableAttackStarts = sourceNotes
+    .filter(playableSourceNote)
+    .map((note) => note.start)
+    .sort((left, right) => left - right);
+  const backing = sourceNotes
+    .map((note, sourceIndex) => ({ note, sourceIndex }))
+    .filter(({ note, sourceIndex }) => !selectedIndices.has(sourceIndex) && playableSourceNote(note))
+    .sort((left, right) => left.note.start - right.note.start || left.note.midi - right.note.midi || left.sourceIndex - right.sourceIndex);
+  const groups: Array<Array<{ note: Note; sourceIndex: number }>> = [];
+  for (const item of backing) {
+    const previous = groups[groups.length - 1];
+    if (previous && Math.abs(previous[0]!.note.start - item.note.start) <= EPSILON) previous.push(item);
+    else groups.push([item]);
+  }
+
+  const protectedIndices = new Set<number>();
+  const removed = new Set<number>();
+  for (let groupIndex = 0; groupIndex < groups.length; groupIndex++) {
+    const group = groups[groupIndex]!;
+    const lowestPlayable = group[0];
+    if (lowestPlayable) protectedIndices.add(lowestPlayable.sourceIndex);
+    for (const { note, sourceIndex } of group) {
+      if (protectedRanges.some((range) => overlaps(note, range.startBeat, range.endBeat))) {
+        protectedIndices.add(sourceIndex);
+      }
+      const heldAcrossAttack = playableAttackStarts.some((attackStart) =>
+        attackStart > note.start + EPSILON && attackStart < noteEnd(note) - EPSILON,
+      );
+      if (note.identitySource !== undefined
+        || (note.hand === "R" && note.midi >= 75 && note.dur >= 0.5 - EPSILON)
+        || heldAcrossAttack) {
+        protectedIndices.add(sourceIndex);
+      }
+    }
+    const rightHand = group.filter(({ note }) => note.hand === "R");
+    if (rightHand.length < 2) continue;
+    const tupleKey = rightHand.map(({ note }) => note.midi).sort((left, right) => left - right).join(",");
+    const previousGroup = groups[groupIndex - 1];
+    const previousRightHand = previousGroup?.filter(({ note }) => note.hand === "R") ?? [];
+    const previousTupleKey = previousRightHand.length >= 2
+      ? previousRightHand.map(({ note }) => note.midi).sort((left, right) => left - right).join(",")
+      : null;
+    const adjacentAttack = previousGroup !== undefined
+      && group[0]!.note.start - previousGroup[0]!.note.start <= 1 + EPSILON;
+    if (previousTupleKey !== tupleKey || !adjacentAttack) continue;
+    if (rightHand.every(({ note }) => note.dur < 0.5 - EPSILON)) {
+      for (const { sourceIndex } of rightHand) {
+        if (!protectedIndices.has(sourceIndex)) removed.add(sourceIndex);
+      }
+    }
+  }
+  return { removed, protected: protectedIndices };
+}
+
+function sameCandidateAttack(left: Note, right: Note): boolean {
+  return left.midi === right.midi && Math.abs(left.start - right.start) <= EPSILON;
+}
+
+function mergeCandidateNotes(
+  retained: readonly Note[],
+  generated: readonly Note[],
+): Note[] {
+  const merged: Note[] = [];
+  for (const note of [...retained, ...generated]) {
+    if (!playableSourceNote(note) || merged.some((existing) => sameCandidateAttack(existing, note))) continue;
+    merged.push(note);
+  }
+  return merged;
+}
+
+interface MergedSparseCandidate {
+  merged: Note[];
+  generated: Note[];
+}
+
+function buildMergedSparseCandidate(
+  sparseNotes: readonly Note[],
+  protectedNotes: readonly Note[],
+): MergedSparseCandidate {
+  const merged = mergeCandidateNotes(protectedNotes, sparseNotes);
+  return {
+    merged,
+    generated: merged.filter((note) => !protectedNotes.some((preserved) => sameCandidateAttack(preserved, note))),
+  };
+}
+
+function sourceRestSpans(
+  sourceSupport: readonly Note[],
+  startBeat: number,
+  endBeat: number,
+): Array<{ startBeat: number; endBeat: number }> {
+  if (sourceSupport.length === 0) return [];
+  const boundaries = new Set<number>([startBeat, endBeat]);
+  for (const note of sourceSupport) {
+    if (!overlaps(note, startBeat, endBeat)) continue;
+    boundaries.add(Math.max(startBeat, note.start));
+    boundaries.add(Math.min(endBeat, noteEnd(note)));
+  }
+  const sorted = [...boundaries].sort((a, b) => a - b);
+  const rests: Array<{ startBeat: number; endBeat: number }> = [];
+  for (let index = 0; index < sorted.length - 1; index++) {
+    const restStart = sorted[index]!;
+    const restEnd = sorted[index + 1]!;
+    if (restEnd <= restStart + EPSILON) continue;
+    const midpoint = (restStart + restEnd) / 2;
+    if (!sourceSupport.some((note) => overlaps(note, midpoint, midpoint + EPSILON))) {
+      rests.push({ startBeat: restStart, endBeat: restEnd });
+    }
+  }
+  return rests;
+}
+
+function preserveSourceRests(
+  sparseNotes: readonly Note[],
+  sourceSupport: readonly Note[],
+  startBeat: number,
+  endBeat: number,
+): Note[] {
+  const rests = sourceRestSpans(sourceSupport, startBeat, endBeat);
+  if (rests.length === 0) return [...sparseNotes];
+  return sparseNotes.filter((note) => !rests.some((rest) =>
+    note.start >= rest.startBeat - EPSILON && note.start < rest.endBeat - EPSILON));
+}
+
+function firstAttackPitches(notes: readonly Note[]): number[] {
+  const firstStart = Math.min(...notes.map((note) => note.start));
+  return notes.filter((note) => Math.abs(note.start - firstStart) <= EPSILON).map((note) => note.midi);
+}
+
+function candidateNotesInSpan(
+  notes: readonly Note[],
+  startBeat: number,
+  endBeat: number,
+): Note[] {
+  return notes.filter((note) => overlaps(note, startBeat, endBeat));
+}
+
+function candidateAttackPitches(
+  notes: readonly Note[],
+  startBeat: number,
+  endBeat: number,
+): number[] {
+  const attacks = notes.filter((note) => note.start >= startBeat - EPSILON && note.start < endBeat - EPSILON);
+  return attacks.length ? firstAttackPitches(attacks) : [];
+}
+
+function candidateOccupancy(
+  notes: readonly Note[],
+  startBeat: number,
+  endBeat: number,
+): number {
+  return notes.reduce((total, note) => {
+    const overlapStart = Math.max(startBeat, note.start);
+    const overlapEnd = Math.min(endBeat, noteEnd(note));
+    return total + Math.max(0, overlapEnd - overlapStart);
+  }, 0);
+}
+
+function supportAllocationPenalty(
+  support: readonly Note[],
+  melody: readonly Note[],
+  startBeat: number,
+  endBeat: number,
+): number {
+  const boundaries = new Set<number>([startBeat, endBeat]);
+  for (const note of [...support, ...melody]) {
+    if (!overlaps(note, startBeat, endBeat)) continue;
+    boundaries.add(Math.max(startBeat, note.start));
+    boundaries.add(Math.min(endBeat, noteEnd(note)));
+  }
+  const sorted = [...boundaries].sort((a, b) => a - b);
+  let penalty = 0;
+  for (let index = 0; index < sorted.length - 1; index++) {
+    const intervalStart = sorted[index]!;
+    const intervalEnd = sorted[index + 1]!;
+    if (intervalEnd <= intervalStart + EPSILON) continue;
+    for (const hand of ["L", "R"] as const) {
+      const active = [
+        ...melody.filter((note) => physicalHand(note) === hand && overlaps(note, intervalStart, intervalEnd)),
+        ...support.filter((note) => physicalHand(note) === hand && overlaps(note, intervalStart, intervalEnd)),
+      ];
+      if (active.length > 0) {
+        penalty += Math.max(0, active.length - MAX_SOUNDING_NOTES_PER_HAND);
+        penalty += Math.max(0, Math.max(...active.map((note) => note.midi)) - Math.min(...active.map((note) => note.midi)) - MAX_LEFT_HAND_SPAN);
+      }
+    }
+  }
+  return penalty;
+}
+
+function shouldPreferSparseSupport(
+  sourceCandidate: readonly Note[],
+  sparseCandidate: readonly Note[],
+  melody: readonly Note[],
+  startBeat: number,
+  endBeat: number,
+  previousVoicing: readonly number[] | null,
+): boolean {
+  const sourceNotes = candidateNotesInSpan(sourceCandidate, startBeat, endBeat);
+  const sparseNotes = candidateNotesInSpan(sparseCandidate, startBeat, endBeat);
+  if (!sourceNotes.length || !sparseNotes.length) return false;
+  const sourceAttacks = new Set(sourceNotes
+    .filter((note) => note.start >= startBeat - EPSILON && note.start < endBeat - EPSILON)
+    .map((note) => note.start)).size;
+  const sparseAttacks = new Set(sparseNotes
+    .filter((note) => note.start >= startBeat - EPSILON && note.start < endBeat - EPSILON)
+    .map((note) => note.start)).size;
+  const sourcePenalty = supportAllocationPenalty(sourceCandidate, melody, startBeat, endBeat);
+  const sparsePenalty = supportAllocationPenalty(sparseCandidate, melody, startBeat, endBeat);
+  if (sparsePenalty > sourcePenalty) return false;
+  if (sparseAttacks < sourceAttacks) return true;
+  if (sparseAttacks > sourceAttacks
+    || candidateOccupancy(sparseCandidate, startBeat, endBeat) >= candidateOccupancy(sourceCandidate, startBeat, endBeat)) return false;
+  if (!previousVoicing) return false;
+  return voicingScore(candidateAttackPitches(sparseCandidate, startBeat, endBeat), previousVoicing)
+    < voicingScore(candidateAttackPitches(sourceCandidate, startBeat, endBeat), previousVoicing);
+}
+
+function shellIntervals(intervals: readonly number[]): number[] | null {
+  if (intervals.length <= 2 || !intervals.some((interval) => interval % 12 === 7)) return null;
+  const shell = intervals.filter((interval) => interval % 12 !== 7);
+  return shell.length >= 2 ? shell : null;
 }
 
 function learningChordNotes(
@@ -710,27 +1728,43 @@ function learningChordNotes(
   melody: readonly Note[],
   startBeat: number,
   endBeat: number,
-): number[] | null {
+  previous: readonly number[] | null,
+): LearningChordNotes | null {
   if (isNoChord(chord.name) || !tryParseChordSymbol(chord.name)) return null;
   try {
     const parsed = tryParseChordSymbol(chord.name);
     if (!parsed) return null;
-    const shape = compactUpperShape(chord) ?? [...upper];
-    if (!shape.length) return null;
     const full = chordToNotes(chord.name, { octave: 4, bassOctave: 2, includeBass: true });
     const bass = full.find((midi) => midi < 60);
     if (bass === undefined) return null;
-    const support = supportUpperShape(chord, shape, bass, melody, startBeat, endBeat);
-    if (!support) return null;
-    const notes = [...new Set(support)];
-    const expectedPitchClasses = new Set([
-      ...chordIntervals(parsed.quality).map((interval) => (parsed.rootPc + interval) % 12),
-      bass % 12,
-    ]);
-    const actualPitchClasses = new Set(notes.map((midi) => midi % 12));
-    if ([...expectedPitchClasses].some((pitchClass) => !actualPitchClasses.has(pitchClass))) return null;
-    if (Math.min(...notes) % 12 !== bass % 12) return null;
-    return notes.every((midi) => Number.isInteger(midi) && midi >= 0 && midi <= 127) ? notes : null;
+    const intervals = chordIntervals(parsed.quality);
+    const fullShape = compactUpperShape(chord) ?? [...upper];
+    const shell = shellIntervals(intervals);
+    const candidates = [
+      { shape: fullShape, intervals, omittedPitchClasses: [] },
+      ...(shell ? [{
+        shape: compactUpperShape(chord, shell) ?? [],
+        intervals: shell,
+        omittedPitchClasses: intervals
+          .filter((interval) => !shell.includes(interval))
+          .map((interval) => (parsed.rootPc + interval) % 12),
+      }] : []),
+    ].filter((candidate) => candidate.shape.length > 0);
+    for (const candidate of candidates) {
+      const support = supportUpperShape(chord, candidate.shape, bass, melody, startBeat, endBeat, previous, candidate.shape);
+      if (!support) continue;
+      const notes = [...new Set(support)];
+      const expectedPitchClasses = new Set([
+        ...candidate.intervals.map((interval) => (parsed.rootPc + interval) % 12),
+        bass % 12,
+      ]);
+      const actualPitchClasses = new Set(notes.map((midi) => midi % 12));
+      if ([...expectedPitchClasses].some((pitchClass) => !actualPitchClasses.has(pitchClass))) continue;
+      if (Math.min(...notes) % 12 !== bass % 12) continue;
+      if (!notes.every((midi) => Number.isInteger(midi) && midi >= 0 && midi <= 127)) continue;
+      return { notes, omittedPitchClasses: candidate.omittedPitchClasses };
+    }
+    return null;
   } catch {
     return null;
   }
@@ -744,23 +1778,43 @@ export function buildMelodyAccompaniment(
 ): MelodyAccompanimentResolution {
   const durationBeats = timelineDuration(sourceNotes, chordTimeline, options.durationBeats);
   const requestedSelection = options.selection ?? "automatic";
-  const selected = selectMelodySource(sourceNotes, durationBeats, requestedSelection);
-  const events = buildEvents(sourceNotes, chordTimeline, "melody-accompaniment", durationBeats);
+  const selected = selectMelodySource(
+    sourceNotes,
+    durationBeats,
+    requestedSelection,
+    options.allowRests === true,
+    options.sourceFingerprint ?? null,
+    options.phraseOverrides,
+  );
+  const conservativeSourceBacking = options.sourceBackingMode === "conservative";
+  const conservativeReduction = conservativeSourceBacking
+    ? conservativeSourceReduction(sourceNotes, selected.selectedIndices, selected.unresolvedSpans)
+    : { removed: new Set<number>(), protected: new Set<number>() };
+  const harmonicSupport = conservativeSourceBacking
+    ? "none"
+    : options.harmonicSupport ?? "all";
+  const events = buildEvents(
+    sourceNotes,
+    chordTimeline,
+    "melody-accompaniment",
+    durationBeats,
+    harmonicSupport,
+  );
   const fallbackEvents: Array<{ startBeat: number; endBeat: number; reason: AccompanimentFallbackReason }> = [];
   const effectiveChords: AccompanimentChord[] = [];
   const chordCovered: Array<{ startBeat: number; endBeat: number }> = [];
   const replacementCovered: Array<{ startBeat: number; endBeat: number }> = [];
-  const pulseCovered: Array<{ startBeat: number; endBeat: number }> = [];
   const sourceIndicesToReplace = new Set<number>();
   const sourceSupportByIndex = new Map<number, Note>();
-  const sourceSupportOutputIndices = new Set<number>();
-  const pulseNotes: Note[] = [];
+  const generatedSupportNotes: Note[] = [];
   const supportModes = new Set<MelodyAccompanimentSupportMode>();
 
   if (sourceNotes.length === 0) {
     const fallbackSpans = durationBeats > EPSILON
       ? [{ startBeat: 0, endBeat: durationBeats, reason: "no source notes" as const }]
       : [];
+    const arrangementEvents: ArrangementEvent[] = [];
+    const changeSummary = measureArrangementChanges(sourceNotes, arrangementEvents, durationBeats, [...selected.unresolvedSpans, ...fallbackSpans]);
     return {
       style: "melody-accompaniment",
       notes: [],
@@ -770,9 +1824,12 @@ export function buildMelodyAccompaniment(
       fallbackSpans,
       melody: [],
       protectedMelody: [],
+      events: arrangementEvents,
+      phrases: buildArrangementPhrases(durationBeats, selected, fallbackSpans, sourceNotes, arrangementEvents, events),
+      changeSummary,
       provenance: {
         schemaVersion: 1,
-        generatorVersion: "melody-accompaniment.v1",
+        generatorVersion: "melody-accompaniment.v2",
         sourceFingerprint: options.sourceFingerprint ?? null,
         selection: selected.selection,
         selectionProvenance: selected.selectionProvenance,
@@ -782,17 +1839,29 @@ export function buildMelodyAccompaniment(
         sourceSupportNoteCount: 0,
         generatedNoteCount: 0,
         generatedBeats: 0,
+        ...(conservativeSourceBacking ? { sourceBackingMode: "conservative" as const } : {}),
+        soundingReattackCount: 0,
         fallbackBeats: durationBeats,
         supportModes: ["fallback"],
       },
     };
   }
 
-  for (const event of events) {
+  let previousSparseKey: string | null = null;
+  let previousSparseStart = -Infinity;
+  let previousSparseEnd = -Infinity;
+  let previousSparseGeneratedIndex = -1;
+  let previousSparseProtectedNotes: Note[] = [];
+  let previousLearningVoicing: number[] | null = null;
+  for (const event of events.flatMap((item) => splitEventAtReviewSpans(item, selected.unresolvedSpans))) {
     const unresolved = selected.unresolvedSpans.find((span) =>
       span.startBeat < event.endBeat - EPSILON && span.endBeat > event.startBeat + EPSILON,
     );
     if (unresolved) {
+      previousSparseKey = null;
+      previousSparseStart = -Infinity;
+      previousSparseProtectedNotes = [];
+      previousLearningVoicing = null;
       supportModes.add("fallback");
       fallbackEvents.push({
         startBeat: event.startBeat,
@@ -804,9 +1873,73 @@ export function buildMelodyAccompaniment(
     const sourceSupport = sourceNotes
       .map((note, sourceIndex) => ({ note, sourceIndex }))
       .filter(({ note, sourceIndex }) => !selected.selectedIndices.has(sourceIndex) && overlaps(note, event.startBeat, event.endBeat));
-    const reducedSupport = reduceSourceSupport(sourceNotes, selected.selectedIndices, event.startBeat, event.endBeat);
-    const notes = learningChordNotes(event.chord, event.notes ?? [], selected.melody, event.startBeat, event.endBeat);
+    const reducedSupport = conservativeSourceBacking
+      ? sourceSupport
+        .filter(({ note }) => playableSourceNote(note)
+          && note.start >= event.startBeat - EPSILON
+          && note.start < event.endBeat - EPSILON)
+        .map(({ note, sourceIndex }) => ({ sourceIndex, note: accompanimentNote(note) }))
+      : reduceSourceSupport(sourceNotes, selected.selectedIndices, event.startBeat, event.endBeat);
+    const learning: LearningChordNotes | null = !conservativeSourceBacking && event.harmonicSupportAllowed
+      ? learningChordNotes(
+          event.chord,
+          event.notes ?? [],
+          selected.melody,
+          event.startBeat,
+          event.endBeat,
+          previousLearningVoicing,
+        )
+      : null;
+    const notes: number[] | null = learning?.notes ?? null;
+    const protectedSourceIndices = protectedSupportSourceIndices(sourceSupport);
+    const protectedNotes = sourceSupport
+      .filter(({ sourceIndex }) => protectedSourceIndices.has(sourceIndex))
+      .map(({ note }) => accompanimentNote(note));
+    const sparseKey = notes?.join(",") ?? null;
+    const repeatedSparseSpan = sparseKey !== null
+      && sparseKey === previousSparseKey
+      && event.startBeat <= previousSparseEnd + EPSILON;
+    const sparseSpanStart = repeatedSparseSpan ? previousSparseStart : event.startBeat;
+    const carriedProtectedNotes = repeatedSparseSpan
+      ? mergeCandidateNotes(previousSparseProtectedNotes, protectedNotes)
+      : protectedNotes;
+    const sparseSourceSupport = sourceNotes
+      .map((note, sourceIndex) => ({ note, sourceIndex }))
+      .filter(({ note, sourceIndex }) => !selected.selectedIndices.has(sourceIndex)
+        && playableSourceNote(note)
+        && overlaps(note, sparseSpanStart, event.endBeat))
+      .map(({ note }) => note);
+    const sparseRawCandidate = notes
+      ? preserveSourceRests(
+        sparseHarmonicSupportNotes(notes, sparseSpanStart, event.endBeat, options.sparseBackingTiming),
+        sparseSourceSupport,
+        sparseSpanStart,
+        event.endBeat,
+      )
+      : [];
+    const mergedSparseCandidate = buildMergedSparseCandidate(sparseRawCandidate, carriedProtectedNotes);
+    const sourceCandidate = mergeCandidateNotes(
+      protectedNotes,
+      reducedSupport.map(({ note }) => note),
+    );
+    const sparsePhaseValidated = options.sparseBackingTiming?.provenance === "source-measure-boundary";
+    const preferSparse = notes !== null
+      && sparseRawCandidate.length > 0
+      && (sourceSupport.length === 0 || (sparsePhaseValidated && (
+        reducedSupport.length === 0
+        || shouldPreferSparseSupport(
+          sourceCandidate,
+          mergedSparseCandidate.merged,
+          selected.melody,
+          event.startBeat,
+          event.endBeat,
+          previousLearningVoicing,
+        ))));
     if (!notes && sourceSupport.length === 0) {
+      previousSparseKey = null;
+      previousSparseStart = -Infinity;
+      previousSparseProtectedNotes = [];
+      previousLearningVoicing = null;
       supportModes.add("fallback");
       fallbackEvents.push({
         startBeat: event.startBeat,
@@ -818,27 +1951,40 @@ export function buildMelodyAccompaniment(
     const replacementInterval = { startBeat: event.startBeat, endBeat: event.endBeat };
     replacementCovered.push(replacementInterval);
     if (sourceSupport.length > 0) {
-      supportModes.add("source-rhythm");
+      if (!preferSparse) {
+        previousSparseKey = null;
+        previousSparseStart = -Infinity;
+        previousSparseProtectedNotes = [];
+        supportModes.add("source-rhythm");
+      } else {
+        supportModes.add("sparse-harmonic");
+      }
       for (const { note, sourceIndex } of sourceSupport) {
         if (note.start >= event.startBeat - EPSILON && note.start < event.endBeat - EPSILON) {
-          sourceIndicesToReplace.add(sourceIndex);
+          if (protectedSourceIndices.has(sourceIndex)) sourceSupportByIndex.set(sourceIndex, accompanimentNote(note));
+          else if (!conservativeSourceBacking) sourceIndicesToReplace.add(sourceIndex);
         } else if (note.start < event.startBeat - EPSILON) {
-          sourceSupportByIndex.set(sourceIndex, { ...note, hand: "L" });
-          sourceSupportOutputIndices.add(sourceIndex);
+          sourceSupportByIndex.set(sourceIndex, accompanimentNote(note));
         }
       }
-      for (const item of reducedSupport) {
-        sourceSupportByIndex.set(item.sourceIndex, item.note);
-        sourceSupportOutputIndices.add(item.sourceIndex);
+      if (!preferSparse) {
+        for (const item of reducedSupport) sourceSupportByIndex.set(item.sourceIndex, item.note);
+        if (reducedSupport.length > 0) chordCovered.push(replacementInterval);
       }
     }
     if (!notes) {
-      supportModes.add("fallback");
-      fallbackEvents.push({
-        startBeat: event.startBeat,
-        endBeat: event.endBeat,
-        reason: event.notes?.length ? "no playable support voicing" : fallbackReason(event),
-      });
+      previousSparseKey = null;
+      previousSparseStart = -Infinity;
+      previousSparseProtectedNotes = [];
+      previousLearningVoicing = null;
+      if (event.harmonicSupportAllowed || reducedSupport.length === 0) {
+        supportModes.add("fallback");
+        fallbackEvents.push({
+          startBeat: event.startBeat,
+          endBeat: event.endBeat,
+          reason: event.notes?.length ? "no playable support voicing" : fallbackReason(event),
+        });
+      }
       continue;
     }
     effectiveChords.push({
@@ -850,52 +1996,154 @@ export function buildMelodyAccompaniment(
       sourceKind: "generated",
       inferred: true,
       inferenceType: "voicing",
+      ...(learning?.omittedPitchClasses.length ? { omittedPitchClasses: learning.omittedPitchClasses } : {}),
     });
-    chordCovered.push(replacementInterval);
-    if (reducedSupport.length === 0 && sourceSupport.length === 0) {
-      supportModes.add("quarter-note-pulse");
-      pulseNotes.push(...pulseSupportNotes(notes, event.startBeat, event.endBeat));
-      pulseCovered.push(replacementInterval);
+    previousLearningVoicing = notes;
+    if (sourceSupport.length === 0 || reducedSupport.length === 0 || preferSparse) chordCovered.push(replacementInterval);
+    if (preferSparse) {
+      supportModes.add("sparse-harmonic");
+      if (!repeatedSparseSpan) {
+        previousSparseStart = event.startBeat;
+        previousSparseGeneratedIndex = generatedSupportNotes.length;
+        generatedSupportNotes.push(...mergedSparseCandidate.generated);
+      } else {
+        generatedSupportNotes.splice(previousSparseGeneratedIndex);
+        generatedSupportNotes.push(...mergedSparseCandidate.generated);
+      }
+      previousSparseKey = sparseKey;
+      previousSparseEnd = event.endBeat;
+      previousSparseProtectedNotes = carriedProtectedNotes;
     }
   }
 
-  const fallbackSpans = buildFallbackSpans(events, chordCovered, fallbackEvents, durationBeats);
-  const retainedNotes = sourceNotes.flatMap((note, index) => {
-    if (selected.selectedIndices.has(index)) return [note];
-    if (sourceSupportByIndex.has(index)) return [];
-    if (!sourceIndicesToReplace.has(index)) return [note];
-    return subtractCoveredIntervals(note, replacementCovered);
+  const planningBoundaries = new Set<number>([0, durationBeats]);
+  for (const event of events) {
+    planningBoundaries.add(event.startBeat);
+    planningBoundaries.add(event.endBeat);
+  }
+  for (const span of selected.unresolvedSpans) {
+    planningBoundaries.add(Math.max(0, Math.min(durationBeats, span.startBeat)));
+    planningBoundaries.add(Math.max(0, Math.min(durationBeats, span.endBeat)));
+  }
+  const sortedPlanningBoundaries = [...planningBoundaries].sort((a, b) => a - b);
+  for (let index = 0; index < sortedPlanningBoundaries.length - 1; index++) {
+    const startBeat = sortedPlanningBoundaries[index]!;
+    const endBeat = sortedPlanningBoundaries[index + 1]!;
+    if (endBeat <= startBeat + EPSILON) continue;
+    const midpoint = (startBeat + endBeat) / 2;
+    if (events.some((event) => contains(event, midpoint))
+      || selected.unresolvedSpans.some((span) => contains(span, midpoint))) continue;
+    if (conservativeSourceBacking) continue;
+    const sourceSupport = sourceNotes
+      .map((note, sourceIndex) => ({ note, sourceIndex }))
+      .filter(({ note, sourceIndex }) => !selected.selectedIndices.has(sourceIndex)
+        && playableSourceNote(note)
+        && note.start >= startBeat - EPSILON
+        && note.start < endBeat - EPSILON);
+    const reducedSupport = reduceSourceSupport(sourceNotes, selected.selectedIndices, startBeat, endBeat);
+    if (reducedSupport.length === 0 || reducedSupport.length >= sourceSupport.length) continue;
+    supportModes.add("source-rhythm");
+    replacementCovered.push({ startBeat, endBeat });
+    for (const { sourceIndex } of sourceSupport) sourceIndicesToReplace.add(sourceIndex);
+    for (const item of reducedSupport) {
+      sourceSupportByIndex.set(item.sourceIndex, item.note);
+    }
+  }
+
+  if (conservativeSourceBacking) {
+    for (const sourceIndex of conservativeReduction.protected) {
+      const note = sourceNotes[sourceIndex];
+      if (!note || selected.selectedIndices.has(sourceIndex)) continue;
+      sourceIndicesToReplace.delete(sourceIndex);
+      sourceSupportByIndex.set(sourceIndex, accompanimentNote(note));
+    }
+  }
+
+  const sourceEvents = sourceNotes.flatMap((note, index): ArrangementEvent[] => {
+    const sourceId = selected.sourceIds[index]!;
+    if (selected.selectedIndices.has(index)) {
+      return [{ id: `source:${sourceId}`, note, role: "melody", sourceNoteIds: [sourceId] }];
+    }
+    if (conservativeReduction.removed.has(index)) return [];
+    if (conservativeReduction.protected.has(index)) {
+      const protectedNote = sourceSupportByIndex.get(index) ?? note;
+      return [{ id: `source:${sourceId}`, note: protectedNote, role: "retained-unclassified", sourceNoteIds: [sourceId] }];
+    }
+    const reduced = sourceSupportByIndex.get(index);
+    if (reduced) {
+      return [{ id: `source:${sourceId}`, note: reduced, role: "accompaniment", sourceNoteIds: [sourceId] }];
+    }
+    if (!sourceIndicesToReplace.has(index)) {
+      return [{ id: `source:${sourceId}`, note, role: "retained-unclassified", sourceNoteIds: [sourceId] }];
+    }
+    return subtractCoveredIntervals(note, replacementCovered).map((piece, pieceIndex) => ({
+      id: `source:${sourceId}:piece:${pieceIndex}`,
+      note: piece,
+      role: "accompaniment",
+      sourceNoteIds: [sourceId],
+    }));
   });
-  const supportNotes = [...sourceSupportByIndex.values(), ...pulseNotes];
-  const generatedBeats = pulseCovered.reduce((sum, interval) => sum + Math.max(0, interval.endBeat - interval.startBeat), 0);
+  const generatedSupportEvents: ArrangementEvent[] = generatedSupportNotes.map((note, index) => ({
+    id: `generated:sparse:${index}`,
+    note,
+    role: "accompaniment",
+    sourceNoteIds: [],
+  }));
+  const rawArrangementEvents = [...sourceEvents, ...generatedSupportEvents]
+    .sort((a, b) => a.note.start - b.note.start || a.note.midi - b.note.midi || a.id.localeCompare(b.id));
+  const soundingLimits = enforceAccompanimentSoundingLimits(rawArrangementEvents, {
+    policy: options.soundingPolicy ?? "coherent-phrase",
+  });
+  fallbackEvents.push(...soundingLimits.fallbackSpans);
+  const arrangementEvents = soundingLimits.events;
+  const fallbackSpans = buildFallbackSpans(events, chordCovered, mergeFallbackEvents(fallbackEvents), durationBeats);
+  const renderedGeneratedSupport = arrangementEvents
+    .filter((event) => event.role === "accompaniment" && event.sourceNoteIds.length === 0)
+    .map((event) => event.note);
+  const renderedSourceSupportIds = new Set(arrangementEvents
+    .filter((event) => event.role === "accompaniment" && event.sourceNoteIds.length > 0)
+    .flatMap((event) => event.sourceNoteIds));
+  const generatedBeats = unionDuration(
+    renderedGeneratedSupport.map((note) => ({ startBeat: note.start, endBeat: noteEnd(note) })),
+    durationBeats,
+  );
   const fallbackBeats = fallbackSpans.reduce((sum, span) => sum + Math.max(0, span.endBeat - span.startBeat), 0);
+  if (conservativeSourceBacking && sourceEvents.some((event) => event.role !== "melody")) supportModes.add("source-rhythm");
+  if (soundingLimits.fallbackSpans.length > 0) supportModes.add("fallback");
   if (supportModes.size === 0) supportModes.add("fallback");
   const melodyNoteIds = [...selected.selectedIndices].sort((a, b) => a - b).map((index) => selected.sourceIds[index]!);
+  const changeSummary = measureArrangementChanges(sourceNotes, arrangementEvents, durationBeats, [...selected.unresolvedSpans, ...fallbackSpans]);
+  const phrases = buildArrangementPhrases(durationBeats, selected, fallbackSpans, sourceNotes, arrangementEvents, events);
   const provenance: MelodyAccompanimentProvenance = {
     schemaVersion: 1,
-    generatorVersion: "melody-accompaniment.v1",
+    generatorVersion: "melody-accompaniment.v2",
     sourceFingerprint: options.sourceFingerprint ?? null,
     selection: selected.selection,
     selectionProvenance: selected.selectionProvenance,
     sourceNoteCount: sourceNotes.length,
     melodyNoteIds,
     unresolvedSpans: selected.unresolvedSpans,
-    sourceSupportNoteCount: sourceSupportOutputIndices.size,
-    generatedNoteCount: pulseNotes.length,
+    sourceSupportNoteCount: renderedSourceSupportIds.size,
+    generatedNoteCount: renderedGeneratedSupport.length,
     generatedBeats,
+    ...(conservativeSourceBacking ? { sourceBackingMode: "conservative" as const } : {}),
+    soundingReattackCount: soundingLimits.reattackCount,
     fallbackBeats,
     supportModes: [...supportModes],
   };
 
   return {
     style: "melody-accompaniment",
-    notes: [...retainedNotes, ...supportNotes].sort((a, b) => a.start - b.start || a.midi - b.midi),
+    notes: arrangementEvents.map(({ note }) => note),
     chords: effectiveChords,
     displayChords: buildDisplayTimeline(events, effectiveChords),
-    guidanceNotes: [...retainedNotes, ...supportNotes].sort((a, b) => a.start - b.start || a.midi - b.midi),
+    guidanceNotes: arrangementEvents.map(({ note }) => note),
     fallbackSpans,
     melody: selected.melody,
     protectedMelody: selected.protectedMelody,
+    events: arrangementEvents,
+    phrases,
+    changeSummary,
     provenance,
   };
 }

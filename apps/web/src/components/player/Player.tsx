@@ -30,8 +30,11 @@ import {
   secPerBeat,
   DEFAULT_SETTINGS,
   type LoopRegion,
+  type MelodyPhraseOverride,
   type MelodyAccompanimentResolution,
+  type MelodyHarmonicSupportPolicy,
   type MelodySelection,
+  type SourceBackingMode,
   type ChordPracticeSnapshot,
   type PlayerSettings,
   type ViewMode,
@@ -46,10 +49,11 @@ import { FallingCanvas } from "./FallingCanvas";
 import { ChordStrip } from "./ChordStrip";
 import { ChordPracticePanel } from "./ChordPracticePanel";
 import { buildChordPracticeTargets, selectPracticeChords } from "./chord-practice";
+import { melodyArrangementExecution, MELODY_WORKER_NOTE_THRESHOLD, traceMelodyArrangement } from "./melody-arrangement-runtime";
 import { BeginnerView } from "./BeginnerView";
 import { LeadSheetView } from "./LeadSheetView";
 import { SheetMusicView } from "./SheetMusicView";
-import { SoundControls } from "./SoundControls";
+import { SoundControls, type MelodyAuditionRole, type MelodyPhraseOverrideAction } from "./SoundControls";
 import { createHeldInput } from "./held-input";
 import { InputStatus } from "./InputStatus";
 import { PlayerTools, type PlayerTool } from "./PlayerTools";
@@ -60,6 +64,7 @@ import { useAnimatedSwitch, usePresence } from "./player-motion";
 import { levelLabel } from "../level-labels";
 import {
   resolveChordSources,
+  melodyHarmonicSupportPolicy,
   selectChordSource,
   type ChordSourceId,
 } from "./chord-sources";
@@ -109,18 +114,47 @@ function playerVariantsForDisplay(song: Pick<SongRow, "difficulty">, variants: r
 }
 
 const TEMPO_SEMANTICS_NOTICE_KEY = "keyspilli.tempo-semantics.v1";
-const MELODY_SELECTION_PREFIX = "keyspilli.melody-accompaniment.v1:";
-
+const MELODY_SELECTION_PREFIX = "keyspilli.melody-accompaniment.v2:";
+const LEGACY_MELODY_SELECTION_PREFIX = "keyspilli.melody-accompaniment.v1:";
 interface MelodySelectionSidecar {
-  schemaVersion: 1;
-  generatorVersion: "melody-accompaniment.v1";
+  schemaVersion: 2;
+  generatorVersion: "melody-accompaniment.v2";
   sourceFingerprint: string;
   selection: MelodySelection;
+  sourceBackingMode?: SourceBackingMode;
+  phraseOverrides?: readonly MelodyPhraseOverride[];
   provenance: MelodyAccompanimentResolution["provenance"];
 }
 
 function melodySelectionKey(songId: string): string {
   return MELODY_SELECTION_PREFIX + songId;
+}
+
+function legacyMelodySelectionKey(songId: string): string {
+  return LEGACY_MELODY_SELECTION_PREFIX + songId;
+}
+
+function validPhraseOverrides(
+  value: unknown,
+): MelodyPhraseOverride[] {
+  if (!Array.isArray(value)) return [];
+  // Keep records that are structurally safe for the core validator. It owns
+  // overlap, source-id, bounds, and fingerprint review; dropping them here
+  // would hide `needs-review` and make the original melody look accepted.
+  return value.flatMap((candidate) => {
+    if (!candidate || typeof candidate !== "object") return [];
+    const override = candidate as Partial<MelodyPhraseOverride>;
+    const sourceIdsAreSafe = Array.isArray(override.sourceNoteIds)
+      && override.sourceNoteIds.every((id): id is string => typeof id === "string");
+    return [{
+      startBeat: typeof override.startBeat === "number" ? override.startBeat : Number.NaN,
+      endBeat: typeof override.endBeat === "number" ? override.endBeat : Number.NaN,
+      sourceNoteIds: sourceIdsAreSafe ? [...(override.sourceNoteIds ?? [])] : [],
+      sourceFingerprint: sourceIdsAreSafe && typeof override.sourceFingerprint === "string"
+        ? override.sourceFingerprint
+        : null,
+    }];
+  });
 }
 
 function sourceFingerprintForPlayer(initial: PlayerDetail): string | null {
@@ -130,6 +164,84 @@ function sourceFingerprintForPlayer(initial: PlayerDetail): string | null {
   const ids = sourceNoteIds(initial.data.notes);
   if (!ids.length) return null;
   return `legacy:${initial.song.id}:${JSON.stringify(ids)}`;
+}
+
+function sourceMelodyArrangement(
+  sourceNotes: SongData["notes"],
+  chords: MelodyAccompanimentResolution["displayChords"],
+  durationBeats: number,
+  sourceFingerprint: string | null,
+  selection: MelodySelection,
+): MelodyAccompanimentResolution {
+  const ids = sourceNoteIds(sourceNotes);
+  const events = sourceNotes.map((note, index) => ({
+    id: `source:${ids[index] ?? index}`,
+    note,
+    role: "retained-unclassified" as const,
+    sourceNoteIds: [ids[index] ?? `source:${index}`],
+  }));
+  return {
+    style: "melody-accompaniment",
+    notes: [...sourceNotes],
+    chords: [],
+    displayChords: [...chords],
+    guidanceNotes: [...sourceNotes],
+    fallbackSpans: [],
+    melody: [],
+    protectedMelody: [],
+    events,
+    phrases: [],
+    changeSummary: {
+      durationBeats,
+      changedBeats: 0,
+      unchangedBeats: durationBeats,
+      silentBeats: 0,
+      reviewBeats: 0,
+      addedNotes: 0,
+      removedNotes: 0,
+      alteredNotes: 0,
+    },
+    provenance: {
+      schemaVersion: 1,
+      generatorVersion: "melody-accompaniment.v2",
+      sourceFingerprint,
+      selection,
+      selectionProvenance: "inferred",
+      sourceNoteCount: sourceNotes.length,
+      melodyNoteIds: [],
+      unresolvedSpans: [],
+      sourceSupportNoteCount: 0,
+      generatedNoteCount: 0,
+      generatedBeats: 0,
+      soundingReattackCount: 0,
+      fallbackBeats: 0,
+      supportModes: ["fallback"],
+    },
+  };
+}
+
+function melodyArrangementRequestKey(
+  sourceNotes: SongData["notes"],
+  chords: MelodyAccompanimentResolution["displayChords"],
+  durationBeats: number,
+  sourceFingerprint: string | null,
+  selection: MelodySelection,
+  phraseOverrides: readonly MelodyPhraseOverride[],
+  harmonicSupport: MelodyHarmonicSupportPolicy,
+  sourceBackingMode: SourceBackingMode,
+): string {
+  return JSON.stringify({
+    sourceNotes,
+    chords,
+    durationBeats,
+    sourceFingerprint,
+    selection,
+    phraseOverrides,
+    harmonicSupport,
+    sourceBackingMode,
+    allowRests: true,
+    soundingPolicy: "coherent-phrase",
+  });
 }
 
 function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mode: ViewMode | null; focusTarget?: "practice" }) {
@@ -240,6 +352,8 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   const [learned, setLearned] = useState<string[]>([]);
   const [chordSourcePreference, setChordSourcePreference] = useState<ChordSourceId>("auto");
   const [melodySelection, setMelodySelection] = useState<MelodySelection>("automatic");
+  const [melodySourceBackingMode, setMelodySourceBackingMode] = useState<SourceBackingMode>("default");
+  const [melodyPhraseOverrides, setMelodyPhraseOverrides] = useState<MelodyPhraseOverride[]>([]);
   const [melodySelectionSaved, setMelodySelectionSaved] = useState(false);
   const melodySourceFingerprint = useMemo(() => sourceFingerprintForPlayer(initial), [initial]);
 
@@ -252,13 +366,32 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
 
   useEffect(() => {
     const saved = loadJson<MelodySelectionSidecar | null>(melodySelectionKey(initial.song.id), null);
-    const valid = saved?.schemaVersion === 1
-      && saved.generatorVersion === "melody-accompaniment.v1"
-      && saved.sourceFingerprint === melodySourceFingerprint
-      && (saved.selection === "automatic" || saved.selection === "right-hand");
-    setMelodySelection(valid ? saved.selection : "automatic");
-    setMelodySelectionSaved(valid);
-  }, [initial.song.id, melodySourceFingerprint]);
+    const sidecarShapeValid = saved?.schemaVersion === 2
+      && saved.generatorVersion === "melody-accompaniment.v2";
+    if (sidecarShapeValid) {
+      const sourceMatches = typeof saved.sourceFingerprint === "string"
+        && saved.sourceFingerprint === melodySourceFingerprint;
+      const phraseOverrides = validPhraseOverrides(
+        saved.phraseOverrides,
+      ).map((override) => sourceMatches ? override : { ...override, sourceFingerprint: null });
+      setMelodySelection(sourceMatches && (saved.selection === "automatic" || saved.selection === "right-hand")
+        ? saved.selection
+        : "automatic");
+      setMelodySourceBackingMode(sourceMatches && saved.sourceBackingMode === "conservative" ? "conservative" : "default");
+      setMelodyPhraseOverrides(phraseOverrides);
+      setMelodySelectionSaved(sourceMatches || phraseOverrides.length > 0);
+      return;
+    }
+    // v1 provenance is deliberately ignored. A matching old whole-RH choice
+    // remains a user preference, while the current producer recomputes v2.
+    const legacy = loadJson<{ sourceFingerprint?: string; selection?: MelodySelection } | null>(legacyMelodySelectionKey(initial.song.id), null);
+    const legacyValid = legacy?.sourceFingerprint === melodySourceFingerprint
+      && (legacy.selection === "automatic" || legacy.selection === "right-hand");
+    setMelodySelection(legacyValid ? legacy.selection! : "automatic");
+    setMelodySourceBackingMode("default");
+    setMelodyPhraseOverrides([]);
+    setMelodySelectionSaved(legacyValid);
+  }, [initial.data, initial.song.id, melodySourceFingerprint]);
 
   useEffect(() => {
     const query = window.matchMedia("(max-width: 640px), (max-width: 1000px) and (max-height: 500px)");
@@ -339,6 +472,10 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     () => selectChordSource(chordSources, chordSourcePreference),
     [chordSources, chordSourcePreference],
   );
+  const melodySupportPolicy = useMemo(
+    () => melodyHarmonicSupportPolicy(selectedChordSource.source),
+    [selectedChordSource.source],
+  );
   // Existing artifacts still carry per-grid-slice chord spam; collapse runs of
   // the same chord before rendering. (New ingests dedupe in chordsAt.) The
   // source timeline keeps its supplied names/voicings intact.
@@ -346,14 +483,155 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     () => selectedChordSource.source?.chords ?? [],
     [selectedChordSource.source],
   );
-  const melodyArrangement = useMemo<MelodyAccompanimentResolution>(
-    () => buildMelodyAccompaniment(initial.data.notes, chords, {
+  const melodyArrangementRequested = settings.backgroundMode === "chord"
+    && settings.accompanimentStyle === "melody-accompaniment";
+  const workerAvailable = typeof Worker !== "undefined";
+  const melodyArrangementExecutionMode = melodyArrangementExecution(
+    initial.data.notes.length,
+    melodyArrangementRequested,
+    workerAvailable,
+  );
+  const melodyArrangementWorkerRequired = melodyArrangementRequested
+    && initial.data.notes.length >= MELODY_WORKER_NOTE_THRESHOLD;
+  const melodyArrangementRequestKeyValue = useMemo(
+    () => melodyArrangementRequestKey(
+      initial.data.notes,
+      chords,
+      arrangementEnd,
+      melodySourceFingerprint,
+      melodySelection,
+      melodyPhraseOverrides,
+      melodySupportPolicy,
+      melodySourceBackingMode,
+    ),
+    [arrangementEnd, chords, initial.data.notes, melodyPhraseOverrides, melodySelection, melodySourceBackingMode, melodySourceFingerprint, melodySupportPolicy],
+  );
+  const sourceMelodyView = useMemo(
+    () => sourceMelodyArrangement(initial.data.notes, chords, arrangementEnd, melodySourceFingerprint, melodySelection),
+    [arrangementEnd, chords, initial.data.notes, melodySelection, melodySourceFingerprint],
+  );
+  const synchronousMelodyArrangement = useMemo<MelodyAccompanimentResolution>(() => {
+    if (melodyArrangementExecutionMode !== "sync") {
+      traceMelodyArrangement({
+        phase: "source-view",
+        execution: melodyArrangementExecutionMode,
+        noteCount: initial.data.notes.length,
+        key: melodyArrangementRequestKeyValue,
+      });
+      return sourceMelodyView;
+    }
+    traceMelodyArrangement({
+      phase: "sync-start",
+      execution: "sync",
+      noteCount: initial.data.notes.length,
+      key: melodyArrangementRequestKeyValue,
+    });
+    const resolution = buildMelodyAccompaniment(initial.data.notes, chords, {
       durationBeats: arrangementEnd,
       sourceFingerprint: melodySourceFingerprint,
       selection: melodySelection,
-    }),
-    [arrangementEnd, chords, initial.data.notes, melodySelection, melodySourceFingerprint],
-  );
+      allowRests: true,
+      soundingPolicy: "coherent-phrase",
+      phraseOverrides: melodyPhraseOverrides,
+      harmonicSupport: melodySupportPolicy,
+      sourceBackingMode: melodySourceBackingMode,
+    });
+    traceMelodyArrangement({
+      phase: "sync-complete",
+      execution: "sync",
+      noteCount: initial.data.notes.length,
+      key: melodyArrangementRequestKeyValue,
+    });
+    return resolution;
+  }, [arrangementEnd, chords, initial.data.notes, melodyArrangementExecutionMode, melodyArrangementRequestKeyValue, melodyPhraseOverrides, melodySelection, melodySourceBackingMode, melodySourceFingerprint, melodySupportPolicy, sourceMelodyView]);
+  const [workerMelodyArrangement, setWorkerMelodyArrangement] = useState<{ key: string; resolution: MelodyAccompanimentResolution } | null>(null);
+  const [workerState, setWorkerState] = useState<{
+    key: string;
+    status: "pending" | "ready" | "error";
+    error?: string;
+  } | null>(null);
+  const [workerRetry, setWorkerRetry] = useState(0);
+  useEffect(() => {
+    setWorkerMelodyArrangement(null);
+    setWorkerState(null);
+    if (melodyArrangementExecutionMode !== "worker") {
+      if (melodyArrangementRequested && initial.data.notes.length >= MELODY_WORKER_NOTE_THRESHOLD && !workerAvailable) {
+        const error = "Background arrangement workers are unavailable; Original playback is retained.";
+        setWorkerState({ key: melodyArrangementRequestKeyValue, status: "error", error });
+        traceMelodyArrangement({ phase: "worker-error", execution: "source", noteCount: initial.data.notes.length, key: melodyArrangementRequestKeyValue, error });
+      }
+      return undefined;
+    }
+    let active = true;
+    const requestId = Date.now() + Math.random();
+    setWorkerState({ key: melodyArrangementRequestKeyValue, status: "pending" });
+    let worker: Worker;
+    const fail = (message: string) => {
+      if (!active) return;
+      setWorkerState({ key: melodyArrangementRequestKeyValue, status: "error", error: message });
+      traceMelodyArrangement({ phase: "worker-error", execution: "worker", noteCount: initial.data.notes.length, key: melodyArrangementRequestKeyValue, error: message });
+    };
+    try {
+      traceMelodyArrangement({ phase: "worker-create", execution: "worker", noteCount: initial.data.notes.length, key: melodyArrangementRequestKeyValue });
+      worker = new Worker(new URL("../../workers/melody-accompaniment.worker.ts", import.meta.url), { type: "module" });
+    } catch (error) {
+      fail(error instanceof Error ? error.message : "The background arrangement worker could not start; Original playback is retained.");
+      return () => { active = false; };
+    }
+    worker.onmessage = (event: MessageEvent<{ requestId: number; requestKey: string; resolution?: MelodyAccompanimentResolution; error?: string }>) => {
+      if (!active || event.data.requestId !== requestId || event.data.requestKey !== melodyArrangementRequestKeyValue) return;
+      if (event.data.error) {
+        fail(event.data.error);
+        return;
+      }
+      if (!event.data.resolution) {
+        fail("The background arrangement returned no result; Original playback is retained.");
+        return;
+      }
+      setWorkerMelodyArrangement({ key: event.data.requestKey, resolution: event.data.resolution });
+      setWorkerState({ key: melodyArrangementRequestKeyValue, status: "ready" });
+      traceMelodyArrangement({ phase: "worker-ready", execution: "worker", noteCount: initial.data.notes.length, key: melodyArrangementRequestKeyValue });
+    };
+    worker.onerror = () => fail("The background arrangement failed; Original playback is retained.");
+    worker.onmessageerror = () => fail("The background arrangement response was invalid; Original playback is retained.");
+    try {
+      traceMelodyArrangement({ phase: "worker-request", execution: "worker", noteCount: initial.data.notes.length, key: melodyArrangementRequestKeyValue });
+      worker.postMessage({
+        requestId,
+        requestKey: melodyArrangementRequestKeyValue,
+        sourceNotes: initial.data.notes,
+        chordTimeline: chords,
+        options: {
+          durationBeats: arrangementEnd,
+          sourceFingerprint: melodySourceFingerprint,
+          selection: melodySelection,
+          allowRests: true,
+          soundingPolicy: "coherent-phrase",
+          phraseOverrides: melodyPhraseOverrides,
+          harmonicSupport: melodySupportPolicy,
+          sourceBackingMode: melodySourceBackingMode,
+        },
+      });
+    } catch (error) {
+      fail(error instanceof Error ? error.message : "The background arrangement could not start; Original playback is retained.");
+    }
+    return () => {
+      active = false;
+      worker.terminate();
+    };
+  }, [arrangementEnd, chords, initial.data.notes, melodyArrangementExecutionMode, melodyArrangementRequested, melodyArrangementRequestKeyValue, melodyPhraseOverrides, melodySelection, melodySourceBackingMode, melodySourceFingerprint, melodySupportPolicy, workerAvailable, workerRetry]);
+  const workerResolution = workerMelodyArrangement?.key === melodyArrangementRequestKeyValue
+    ? workerMelodyArrangement.resolution
+    : null;
+  const activeWorkerState = workerState?.key === melodyArrangementRequestKeyValue ? workerState : null;
+  const workerError = activeWorkerState?.error ?? null;
+  const melodyArrangement = workerResolution ?? synchronousMelodyArrangement;
+  const melodyArrangementPending = melodyArrangementWorkerRequired
+    && melodyArrangementExecutionMode === "worker"
+    && workerResolution === null
+    && activeWorkerState?.status !== "error";
+  const melodyArrangementFailed = melodyArrangementWorkerRequired
+    && (melodyArrangementExecutionMode === "source" || activeWorkerState?.status === "error");
   const accompaniment = useMemo(
     () => {
       if (settings.backgroundMode !== "chord") {
@@ -898,7 +1176,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     soundPreviewRef.current = false;
   }
 
-  function previewSound() {
+  function previewSound(role: MelodyAuditionRole = "full") {
     const eng = engineRef.current;
     if (!eng) return;
     eng.stop();
@@ -909,13 +1187,32 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     const secondsPerBeat = secPerBeat(initial.data.tempoBpm, settings.speed);
     const startSec = eng.time >= duration - 0.05 ? 0 : eng.time;
     const endSec = Math.min(duration, startSec + Math.max(1.5, secondsPerBeat * 4));
-    const preview = eng.previewPlan(startSec, endSec);
+    const preview = role === "full"
+      ? eng.previewPlan(startSec, endSec)
+      : {
+        notes: resolveTimedNotes({
+          ...initial.data,
+          notes: melodyArrangement.events
+            .filter((event) => role === "melody" ? event.role === "melody" : event.role !== "melody")
+            .map((event) => event.note),
+        }, settings.speed, settings.transpose)
+          .filter((note) => noteMatchesHand(note, settings.hand))
+          .flatMap((note) => {
+            const noteEnd = note.startSec + note.durSec;
+            const visibleStart = Math.max(startSec, note.startSec);
+            const visibleEnd = Math.min(endSec, noteEnd);
+            return visibleEnd > visibleStart + 1e-6
+              ? [{ when: visibleStart - startSec, note: { ...note, startSec: visibleStart - startSec, durSec: visibleEnd - visibleStart } }]
+              : [];
+          }),
+        chords: [],
+      };
     for (const { note, when } of preview.notes) eng.audio.noteOn(note, when);
-    if (settings.backgroundMode === "chord" && eng.audio.playChord) {
+    if (role === "full" && settings.backgroundMode === "chord" && eng.audio.playChord) {
       for (const chord of preview.chords) eng.audio.playChord(chord.notes, chord.when, chord.durationSec);
     }
-    const hasChordPreview = settings.backgroundMode === "chord" && !!eng.audio.playChord && preview.chords.length > 0;
-    if (preview.notes.length === 0 && !hasChordPreview) {
+    const hasChordPreview = role === "full" && settings.backgroundMode === "chord" && !!eng.audio.playChord && preview.chords.length > 0;
+    if (role === "full" && preview.notes.length === 0 && !hasChordPreview) {
       [60, 64, 67].forEach((midi, index) => eng.audio.noteOn({ midi, startSec: 0, durSec: 0.25, vel: 85, hand: "R" }, index * 0.3));
     }
   }
@@ -958,15 +1255,97 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     setMelodySelection(selection);
     if (melodySourceFingerprint) {
       saveJson(melodySelectionKey(initial.song.id), {
-        schemaVersion: 1,
-        generatorVersion: "melody-accompaniment.v1",
+        schemaVersion: 2,
+        generatorVersion: "melody-accompaniment.v2",
         sourceFingerprint: melodySourceFingerprint,
         selection,
-        provenance: buildMelodyAccompaniment(initial.data.notes, chords, {
-          durationBeats: arrangementEnd,
-          sourceFingerprint: melodySourceFingerprint,
-          selection,
-        }).provenance,
+        sourceBackingMode: melodySourceBackingMode,
+        phraseOverrides: melodyPhraseOverrides,
+        // The cached provenance is informational only; the current producer
+        // result is recomputed by the sync or worker path for this selection.
+        provenance: { ...melodyArrangement.provenance, selection, selectionProvenance: "user-confirmed", sourceBackingMode: melodySourceBackingMode === "conservative" ? "conservative" : undefined },
+      } satisfies MelodySelectionSidecar);
+      setMelodySelectionSaved(true);
+    }
+  }
+
+  function updateSourceBackingMode(sourceBackingMode: SourceBackingMode) {
+    cancelSoundPreview();
+    setMelodySourceBackingMode(sourceBackingMode);
+    if (melodySourceFingerprint) {
+      saveJson(melodySelectionKey(initial.song.id), {
+        schemaVersion: 2,
+        generatorVersion: "melody-accompaniment.v2",
+        sourceFingerprint: melodySourceFingerprint,
+        selection: melodySelection,
+        sourceBackingMode,
+        phraseOverrides: melodyPhraseOverrides,
+        provenance: { ...melodyArrangement.provenance, sourceBackingMode: sourceBackingMode === "conservative" ? "conservative" : undefined },
+      } satisfies MelodySelectionSidecar);
+      setMelodySelectionSaved(true);
+    }
+  }
+
+  function updateMelodyPhraseOverride(action: MelodyPhraseOverrideAction) {
+    const phrase = activeMelodyPhrase;
+    if (!phrase || !melodySourceFingerprint) return;
+    const ids = sourceNoteIds(initial.data.notes);
+    const sourceIndexById = new Map(ids.map((id, index) => [id, index]));
+    const overlapsActivePhrase = (override: MelodyPhraseOverride) =>
+      Number.isFinite(override.startBeat) && Number.isFinite(override.endBeat)
+      && override.endBeat > override.startBeat + 1e-7
+      && override.startBeat < phrase.endBeat - 1e-7
+      && override.endBeat > phrase.startBeat + 1e-7;
+    const sourceIdsInRange = (override: MelodyPhraseOverride, startBeat: number, endBeat: number) => override.sourceNoteIds.filter((id) => {
+      const sourceIndex = sourceIndexById.get(id);
+      if (sourceIndex === undefined) return false;
+      const note = initial.data.notes[sourceIndex];
+      return note !== undefined && note.start >= startBeat - 1e-7 && note.start < endBeat - 1e-7;
+    });
+    const splitOverrideAroundPhrase = (override: MelodyPhraseOverride): MelodyPhraseOverride[] => {
+      const ranges = [
+        { startBeat: override.startBeat, endBeat: Math.min(override.endBeat, phrase.startBeat) },
+        { startBeat: Math.max(override.startBeat, phrase.endBeat), endBeat: override.endBeat },
+      ].filter(({ startBeat, endBeat }) => endBeat > startBeat + 1e-7);
+      return ranges.map(({ startBeat, endBeat }) => ({
+        ...override,
+        startBeat,
+        endBeat,
+        sourceNoteIds: sourceIdsInRange(override, startBeat, endBeat),
+      }));
+    };
+    const nextOverrides = melodyPhraseOverrides.flatMap((override) =>
+      overlapsActivePhrase(override) ? splitOverrideAroundPhrase(override) : [override],
+    );
+    if (action !== "automatic") {
+      const sourceIndices = initial.data.notes.map((note, index) => ({ note, index }))
+        .filter(({ note }) => note.start >= phrase.startBeat - 1e-7 && note.start < phrase.endBeat - 1e-7);
+      const selectedIds = action === "rest"
+        ? []
+        : sourceIndices
+          .filter(({ note }) => note.hand === (action === "right-hand" ? "R" : "L"))
+          .map(({ index }) => ids[index]!);
+      if (action !== "rest" && selectedIds.length === 0) return;
+      nextOverrides.push({
+        startBeat: phrase.startBeat,
+        endBeat: phrase.endBeat,
+        sourceNoteIds: selectedIds,
+        sourceFingerprint: melodySourceFingerprint,
+      });
+      nextOverrides.sort((a, b) => a.startBeat - b.startBeat || a.endBeat - b.endBeat);
+    }
+    cancelSoundPreview();
+    setMelodyPhraseOverrides(nextOverrides);
+    if (melodySourceFingerprint) {
+      saveJson(melodySelectionKey(initial.song.id), {
+        schemaVersion: 2,
+        generatorVersion: "melody-accompaniment.v2",
+        sourceFingerprint: melodySourceFingerprint,
+        selection: melodySelection,
+        sourceBackingMode: melodySourceBackingMode,
+        phraseOverrides: nextOverrides,
+        // Phrase choices are user-selected source candidates, not melody proof.
+        provenance: { ...melodyArrangement.provenance, selectionProvenance: "user-confirmed", sourceBackingMode: melodySourceBackingMode === "conservative" ? "conservative" : undefined },
       } satisfies MelodySelectionSidecar);
       setMelodySelectionSaved(true);
     }
@@ -975,8 +1354,13 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   function resetMelodySelection() {
     cancelSoundPreview();
     setMelodySelection("automatic");
+    setMelodySourceBackingMode("default");
+    setMelodyPhraseOverrides([]);
     setMelodySelectionSaved(false);
-    try { localStorage.removeItem(melodySelectionKey(initial.song.id)); } catch { /* unavailable storage */ }
+    try {
+      localStorage.removeItem(melodySelectionKey(initial.song.id));
+      localStorage.removeItem(legacyMelodySelectionKey(initial.song.id));
+    } catch { /* unavailable storage */ }
   }
 
   function toggleSectionsCollapsed() {
@@ -1129,10 +1513,77 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     ? null
     : selectedChordSource.source
       ? selectedChordSource.fallback && selectedChordSource.source.id === "generated"
-        ? "Generated fallback"
-        : selectedChordSource.source.label
+        ? "Chords estimated from notes"
+        : selectedChordSource.source.label === "Generated fallback"
+          ? "Chords estimated from notes"
+          : selectedChordSource.source.label
       : "Piano fallback";
   const currentBeat = time / secPerBeat(initial.data.tempoBpm, settings.speed);
+  const phraseCounts = melodyArrangement.phrases.reduce(
+    (counts, phrase) => {
+      counts[phrase.change] += 1;
+      if (phrase.review === "needs-review") counts.review += 1;
+      return counts;
+    },
+    { changed: 0, unchanged: 0, review: 0 },
+  );
+  const activeMelodyPhrase = melodyArrangement.phrases.find((phrase) =>
+    currentBeat >= phrase.startBeat - 1e-7 && currentBeat < phrase.endBeat - 1e-7,
+  );
+  const activePhraseSourceCandidates = useMemo(() => {
+    if (!activeMelodyPhrase) return { rightHand: [] as string[], leftHand: [] as string[] };
+    const ids = sourceNoteIds(initial.data.notes);
+    const candidates = { rightHand: [] as string[], leftHand: [] as string[] };
+    initial.data.notes.forEach((note, index) => {
+      if (note.start < activeMelodyPhrase.startBeat - 1e-7 || note.start >= activeMelodyPhrase.endBeat - 1e-7) return;
+      const id = ids[index];
+      if (!id) return;
+      if (note.hand === "R") candidates.rightHand.push(id);
+      if (note.hand === "L") candidates.leftHand.push(id);
+    });
+    return candidates;
+  }, [activeMelodyPhrase, initial.data.notes]);
+  const activePhraseOverrideConflict = useMemo(() => {
+    if (!activeMelodyPhrase) return false;
+    return melodyPhraseOverrides.some((override) => {
+      const exact = Math.abs(override.startBeat - activeMelodyPhrase.startBeat) < 1e-7
+        && Math.abs(override.endBeat - activeMelodyPhrase.endBeat) < 1e-7;
+      return !exact
+        && Number.isFinite(override.startBeat)
+        && Number.isFinite(override.endBeat)
+        && override.endBeat > override.startBeat + 1e-7
+        && override.startBeat < activeMelodyPhrase.endBeat - 1e-7
+        && override.endBeat > activeMelodyPhrase.startBeat + 1e-7;
+    });
+  }, [activeMelodyPhrase, melodyPhraseOverrides]);
+  const activePhraseOverrideAction = useMemo<MelodyPhraseOverrideAction | null>(() => {
+    if (!activeMelodyPhrase) return null;
+    if (activePhraseOverrideConflict) return null;
+    const override = melodyPhraseOverrides.find((candidate) =>
+      Math.abs(candidate.startBeat - activeMelodyPhrase.startBeat) < 1e-7
+      && Math.abs(candidate.endBeat - activeMelodyPhrase.endBeat) < 1e-7,
+    );
+    if (!override) return "automatic";
+    const sourceIndexById = new Map(sourceNoteIds(initial.data.notes).map((id, index) => [id, index]));
+    const exactOverrideIsValid = override.sourceFingerprint === melodySourceFingerprint
+      && Number.isFinite(override.startBeat)
+      && Number.isFinite(override.endBeat)
+      && new Set(override.sourceNoteIds).size === override.sourceNoteIds.length
+      && override.sourceNoteIds.every((id) => {
+        const sourceIndex = sourceIndexById.get(id);
+        const note = sourceIndex === undefined ? undefined : initial.data.notes[sourceIndex];
+        return note !== undefined
+          && note.start >= activeMelodyPhrase.startBeat - 1e-7
+          && note.start < activeMelodyPhrase.endBeat - 1e-7;
+      });
+    if (!exactOverrideIsValid) return null;
+    if (override.sourceNoteIds.length === 0) return "rest";
+    if (override.sourceNoteIds.length === activePhraseSourceCandidates.rightHand.length
+      && override.sourceNoteIds.every((id) => activePhraseSourceCandidates.rightHand.includes(id))) return "right-hand";
+    if (override.sourceNoteIds.length === activePhraseSourceCandidates.leftHand.length
+      && override.sourceNoteIds.every((id) => activePhraseSourceCandidates.leftHand.includes(id))) return "left-hand";
+    return null;
+  }, [activeMelodyPhrase, activePhraseOverrideConflict, activePhraseSourceCandidates, initial.data.notes, melodyPhraseOverrides, melodySourceFingerprint]);
   const activeAccompanimentFallback = accompaniment.fallbackSpans.find((span) =>
     currentBeat >= span.startBeat && currentBeat < span.endBeat,
   );
@@ -1148,6 +1599,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       "sustained source note crosses accompaniment boundary": "Original passage retained — a sustained note crosses this chord boundary.",
       "ambiguous melody": "Original passage retained — choose a melody source before replacing this phrase.",
       "right-hand part unavailable": "Original passage retained — this source has no right-hand part label.",
+      "unverified chord source": "Original passage retained — notes-derived harmony is label-only here.",
       "no playable support voicing": "Original passage retained — no collision-safe support voicing fits this phrase.",
     } as Record<string, string>)[activeAccompanimentFallback.reason]
     : null;
@@ -1246,18 +1698,41 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
             </span>
           )}
           {settings.backgroundMode === "chord" && settings.accompanimentStyle === "melody-accompaniment" && (
-            <span
-              className={`px-2 py-1 rounded-full font-medium ${melodyArrangement.provenance.selectionProvenance === "user-confirmed" ? "bg-indigo-100 text-indigo-800" : "bg-violet-100 text-violet-800"}`}
-              data-testid="melody-accompaniment-status"
-              role="status"
-              title={melodyArrangement.provenance.unresolvedSpans.length ? "One or more melody phrases need confirmation." : undefined}
-            >
-              {melodyArrangement.provenance.selectionProvenance === "user-confirmed" ? "User melody" : "Inferred melody"} · {melodyArrangement.provenance.generatedNoteCount > 0
-                ? `${melodyArrangement.provenance.generatedNoteCount} pulse notes · quarter-note approximation`
-                : melodyArrangement.provenance.sourceSupportNoteCount > 0
-                  ? `${melodyArrangement.provenance.sourceSupportNoteCount} source support notes`
-                  : "fallback"}
-            </span>
+            <>
+              <span
+                className={`px-2 py-1 rounded-full font-medium ${melodyArrangementFailed ? "bg-amber-100 text-amber-800" : melodyArrangementPending ? "bg-zinc-100 text-zinc-700" : melodyArrangement.provenance.selectionProvenance === "user-confirmed" ? "bg-indigo-100 text-indigo-800" : "bg-violet-100 text-violet-800"}`}
+                data-testid="melody-accompaniment-status"
+                role="status"
+                title={melodyArrangementFailed ? workerError ?? undefined : melodyArrangement.provenance.unresolvedSpans.length ? "One or more melody phrases need confirmation." : undefined}
+              >
+                {melodyArrangementFailed ? "Original retained · arrangement unavailable" : melodyArrangementPending ? "Preparing arrangement · Original retained" : melodyArrangement.provenance.selectionProvenance === "user-confirmed" ? "User melody" : "Inferred melody"} {!melodyArrangementPending && !melodyArrangementFailed && "· whole-part selection · "}{!melodyArrangementPending && !melodyArrangementFailed && (melodyArrangement.provenance.generatedNoteCount > 0
+                  ? `${melodyArrangement.provenance.generatedNoteCount} sparse backing notes`
+                  : melodyArrangement.provenance.sourceSupportNoteCount > 0
+                    ? `${melodyArrangement.provenance.sourceSupportNoteCount} source support notes`
+                    : "fallback")}
+              </span>
+              {melodyArrangementFailed && (
+                <div className="basis-full flex items-center gap-2 text-xs text-amber-800" data-testid="melody-accompaniment-error" role="alert">
+                  <span>{workerError ? `${workerError}${workerError.includes("Original playback") ? "" : " Original playback is retained."}` : "Original playback remains available."}</span>
+                  <button type="button" className="min-h-8 rounded-md border border-amber-300 bg-white px-2" onClick={() => setWorkerRetry(value => value + 1)}>Retry arrangement</button>
+                </div>
+              )}
+              <details className="basis-full text-xs text-zinc-600" data-testid="melody-phrase-summary">
+                <summary className="cursor-pointer rounded-full px-2 py-1 hover:bg-zinc-100">
+                  Phrases: {phraseCounts.changed} changed · {phraseCounts.unchanged} unchanged{phraseCounts.review ? ` · ${phraseCounts.review} need review` : ""}
+                </summary>
+                {activeMelodyPhrase && (
+                  <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
+                    <span>
+                      Current phrase {activeMelodyPhrase.startBeat.toFixed(1)}–{activeMelodyPhrase.endBeat.toFixed(1)} beats · {activeMelodyPhrase.strategy} · {activeMelodyPhrase.change}
+                    </span>
+                    <button type="button" className="min-h-8 rounded-md border border-zinc-300 bg-white px-2" onClick={() => seek(activeMelodyPhrase.startBeat * secPerBeat(initial.data.tempoBpm, settings.speed))}>Seek</button>
+                    <button type="button" className="min-h-8 rounded-md border border-zinc-300 bg-white px-2" onClick={() => setLoopBeats({ startBeat: activeMelodyPhrase.startBeat, endBeat: activeMelodyPhrase.endBeat })}>Loop</button>
+                    <span className="basis-full text-[11px] text-zinc-500">Use whole-part selection to inherit the current automatic or right-hand choice; the other actions apply only to this phrase.</span>
+                  </div>
+                )}
+              </details>
+            </>
           )}
           {midiConnected && <span className="px-2 py-1 rounded-full bg-green-100 text-green-800">MIDI connected</span>}
         </div>
@@ -1460,9 +1935,16 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
                 chordSource={chordSourcePreference} chordSources={chordSources}
                 chordSourceStatus={selectedChordSource.fallbackReason} onChordSourceChange={updateChordSource}
                 melodyArrangement={melodyArrangement}
+                activeMelodyPhrase={activeMelodyPhrase}
+                phraseSourceCandidates={activePhraseSourceCandidates}
+                phraseOverrideAction={activePhraseOverrideAction}
+                phraseOverrideConflict={activePhraseOverrideConflict}
+                sourceBackingMode={melodySourceBackingMode}
                 rightHandAvailable={initial.data.notes.some((note) => note.hand === "R")}
                 hasSavedMelodySelection={melodySelectionSaved}
                 onMelodySelectionChange={updateMelodySelection}
+                onMelodyPhraseOverrideChange={updateMelodyPhraseOverride}
+                onSourceBackingModeChange={updateSourceBackingMode}
                 onMelodySelectionReset={resetMelodySelection} />
             </fieldset> : <InputStatus octave={inputOctave} midiConnected={midiConnected} pending={midiPending} error={midiError} supported={midiSupported()} onOctaveChange={octave => keyboardInputRef.current?.setOctave(octave)} onConnectMidi={connectMidi} />}
           </PlayerTools>

@@ -119,4 +119,95 @@ describe("splitPianoRoles", () => {
     expect(second.accompaniment.map((entry) => entry.midi)).toEqual(first.accompaniment.map((entry) => entry.midi));
     expect(new Set(second.protectedMelody.map((entry) => entry.sourceIndex))).toEqual(new Set([1, 3]));
   });
+
+  it("allows a held melody to rest while backing attacks underneath it", () => {
+    const split = splitPianoRoles([
+      note(72, 0, 2, 100),
+      note(48, 0, 0.5, 60),
+      note(50, 1, 0.5, 60),
+      note(74, 2, 1, 100),
+      note(52, 2, 0.5, 60),
+    ], { allowRests: true, preferSustainedLine: true });
+
+    expect(split.protectedMelody.map((entry) => entry.midi)).toEqual([72, 74]);
+    expect(split.protectedMelody.map((entry) => entry.start)).toEqual([0, 2]);
+  });
+
+  it("keeps a true rest before a later melodic re-entry", () => {
+    const split = splitPianoRoles([
+      note(72, 0, 1, 100),
+      note(50, 1, 0.5, 60),
+      note(74, 2, 1, 100),
+    ], { allowRests: true, preferSustainedLine: true });
+
+    expect(split.protectedMelody.map((entry) => entry.midi)).toEqual([72, 74]);
+    expect(split.protectedMelody.map((entry) => entry.start)).toEqual([0, 2]);
+  });
+
+  it("retains competing-voice history through multiple rests before re-entry", () => {
+    const split = splitPianoRoles([
+      note(60, 0, 1, 92),
+      note(72, 0, 0.5, 100),
+      note(48, 1, 0.25, 60),
+      note(50, 2, 0.25, 60),
+      note(62, 3, 1, 92),
+      note(74, 3, 0.5, 100),
+    ], { allowRests: true, preferSustainedLine: true });
+
+    expect(split.protectedMelody.map((entry) => entry.midi)).toEqual([72, 74]);
+    expect(split.protectedMelody.map((entry) => entry.start)).toEqual([0, 3]);
+  });
+
+  it("keeps a crossing melody when short upper decorations change hands", () => {
+    const split = splitPianoRoles([
+      note(60, 0, 1.5, 100, "L"),
+      note(76, 0, 0.125, 60, "R"),
+      note(62, 1, 1.5, 100, "R"),
+      note(77, 1, 0.125, 60, "R"),
+    ], { allowRests: true, preferSustainedLine: true });
+
+    expect(split.protectedMelody.map((entry) => entry.midi)).toEqual([60, 62]);
+    expect(split.protectedMelody.map((entry) => entry.hand)).toEqual(["L", "R"]);
+  });
+
+  it("reports near-tied selected-path alternatives instead of raw top-pitch warnings", () => {
+    const split = splitPianoRoles([
+      note(48, 0, 1, 60), note(60, 0, 1, 80), note(61, 0, 1, 80),
+      note(48, 1, 1, 60), note(60, 1, 1, 80), note(61, 1, 1, 80),
+    ]);
+
+    expect(split.pathEvidence.length).toBeGreaterThan(0);
+    expect(split.pathEvidence[0]).toMatchObject({
+      selectedIdentity: expect.any(String),
+      alternativeIdentity: expect.any(String),
+    });
+    expect(split.pathEvidence.every((span) => span.scoreMargin >= 0)).toBe(true);
+  });
+
+  it("uses later continuation to resolve a locally competitive onset", () => {
+    const prefix = [note(60, 0, 3, 80), note(64, 0, 0.5, 80)];
+    const local = splitPianoRoles(prefix, { preferSustainedLine: true });
+    const full = splitPianoRoles([
+      ...prefix,
+      note(64, 1, 1, 80),
+      note(65, 2, 1, 80),
+    ], { preferSustainedLine: true });
+
+    expect(local.melody.map((entry) => entry.midi)).toEqual([60]);
+    expect(full.melody.map((entry) => [entry.midi, entry.start])).toEqual([[64, 0], [64, 1], [65, 2]]);
+    expect(full.pathEvidence.some((span) => span.startBeat === 0)).toBe(false);
+  });
+
+  it("keeps exact unison duplicates audibly equivalent while retaining one source lineage", () => {
+    const split = splitPianoRoles([
+      note(60, 0, 1, 80),
+      note(60, 0, 1, 80),
+      note(62, 1, 1, 80),
+    ]);
+
+    expect(split.protectedMelody.map((entry) => entry.midi)).toEqual([60, 62]);
+    expect(split.protectedMelody.map((entry) => entry.sourceIndex)).toHaveLength(2);
+    expect(split.accompaniment.filter((entry) => entry.midi === 60)).toHaveLength(1);
+    expect(split.pathEvidence.some((span) => span.selectedIdentity && span.alternativeIdentity)).toBe(true);
+  });
 });

@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "britney-spears-oops-i-did-it-again",
+  "identityStatus": "current",
+  "sourceArtifactHash": "64d18aa4c23f7625a6eb0a7a234843a7a2278003d75cba9ea04efde7d8225ad4",
+  "configFingerprint": "c3bba201a65500e1375f1e3b37cc8b828ed2bc2fa9ad80417d526cb3488849e7",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "seed:britney-spears-oops-i-did-it-again.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 95,
+      "source": "override",
+      "resolvedAt": "2026-09-07T03:55:28.531Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 95,
+      "source": "override",
+      "resolvedAt": "2026-09-07T03:55:28.531Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-09-07T03:59:09.578Z"
+}

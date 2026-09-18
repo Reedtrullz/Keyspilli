@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "baseId": "beginner-piano-tutorial-easy-piano-jumbo-songbook-pay-me-my-money-down-mslzx940",
+  "identityStatus": "current",
+  "sourceArtifactHash": "0b034323353ce167cf24664a17bda435c963f58d75c40d75d3860804bb475677",
+  "configFingerprint": "947c98819edbf06971ba55d19b19cd4f199cd3544f045702337dfd3936affa7f",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "youtube",
+    "acquiredVia": "youtube",
+    "sourceRef": "youtube:fCHLiY-ozck",
+    "sourceYoutubeUrl": "https://www.youtube.com/watch?v=fCHLiY-ozck"
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 152,
+      "source": "detected",
+      "resolvedAt": "2026-09-07T03:44:48.666Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 152,
+      "source": "detected",
+      "resolvedAt": "2026-09-07T03:44:48.666Z",
+      "role": "playback"
+    }
+  },
+  "transcription": {
+    "basicPitchVersion": "unknown",
+    "modelSerialization": "onnx",
+    "onsetThreshold": 0.4,
+    "frameThreshold": 0.25,
+    "tempo": 152,
+    "tempoSource": "detected",
+    "audioSource": "youtube",
+    "transcribedAt": "2026-08-24T13:34:48.840Z",
+    "pipeline": {
+      "filterVersion": "audio-onset-filter-v2",
+      "normalizerId": "midi-normalizer-v2",
+      "gridPolicyId": "beat-grid-v2",
+      "variantPolicyId": "learner-variant-ladder-v5-metal-piano-realism"
+    },
+    "postProcessing": {
+      "filterApplied": true,
+      "cleanupApplied": true,
+      "onsetMatchSec": 0.35,
+      "onsetDetector": {
+        "sampleRate": 22050,
+        "hopLength": 512,
+        "backtrack": true,
+        "delta": 0.07
+      },
+      "minVelocity": 30,
+      "minDurationBeats": 0.14,
+      "mergeWindowBeats": 0.125,
+      "maxPolyphony": 6,
+      "maxSounding": 8,
+      "maxDurationSec": 2.5,
+      "maxDurationBeats": 6,
+      "importedMaxDurationBeats": 1.5,
+      "importedMaxSounding": 12
+    }
+  },
+  "artifactWrittenAt": "2026-09-07T03:59:05.030Z"
+}

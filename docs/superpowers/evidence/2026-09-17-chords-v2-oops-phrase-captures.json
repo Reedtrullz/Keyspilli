@@ -1,0 +1,501 @@
+{
+  "schemaVersion": 1,
+  "fixture": "britney-spears-oops-i-did-it-again-a-scratch",
+  "source": "production-equivalent API fixture; full-mix browser captures",
+  "entries": [
+    {
+      "mode": "automatic-left-filtered",
+      "modeLabel": "Automatic melody with Left hand UI filter; not an isolated stem",
+      "window": {
+        "id": "section-4",
+        "startBeat": 124,
+        "endBeat": 188,
+        "sourceSectionId": "section-4",
+        "sourceSectionLabel": "Section 4",
+        "provisionalLabel": "chorus; semantic label unverified"
+      },
+      "fixture": "britney-spears-oops-i-did-it-again-a-scratch",
+      "source": "production-equivalent API fixture",
+      "seekSeconds": 77.8157894736842,
+      "durationMs": 41422,
+      "audioPath": "/Users/reidar/.codex/worktrees/musically-useful-chords-mode/apps/web/test-results/melody-accompaniment-T1-ca-56be8-us-with-left-hand-UI-filter-chromium/oops-automatic-left-filtered-section-4.webm",
+      "metadataPath": "/Users/reidar/.codex/worktrees/musically-useful-chords-mode/apps/web/test-results/melody-accompaniment-T1-ca-56be8-us-with-left-hand-UI-filter-chromium/oops-automatic-left-filtered-section-4.json",
+      "bytes": 650077,
+      "events": 459,
+      "sha256": "c35dbd5959a0d90b5d77c0c03988d7587de08b057aab0e603a98a56a2a7c8a23",
+      "signal": {
+        "rms": 0.05680860800942886,
+        "peak": 0.505383312702179,
+        "samples": 228549
+      }
+    },
+    {
+      "mode": "automatic",
+      "modeLabel": "Automatic full mix",
+      "window": {
+        "id": "intro-control",
+        "startBeat": 0,
+        "endBeat": 16,
+        "sourceSectionId": "section-1",
+        "sourceSectionLabel": "Intro 1",
+        "provisionalLabel": "control"
+      },
+      "fixture": "britney-spears-oops-i-did-it-again-a-scratch",
+      "source": "production-equivalent API fixture",
+      "seekSeconds": 0,
+      "durationMs": 11106,
+      "audioPath": "/Users/reidar/.codex/worktrees/musically-useful-chords-mode/apps/web/test-results/melody-accompaniment-T1-ca-a33dd-ops-automatic-intro-control-chromium/oops-automatic-intro-control.webm",
+      "metadataPath": "/Users/reidar/.codex/worktrees/musically-useful-chords-mode/apps/web/test-results/melody-accompaniment-T1-ca-a33dd-ops-automatic-intro-control-chromium/oops-automatic-intro-control.json",
+      "bytes": 175212,
+      "events": 87,
+      "sha256": "a01221ea9e9a7e726c4c9886f58bc70e318a71a74e616a4c9c0eef5b2cf4328d",
+      "signal": {
+        "rms": 0.06754361293038726,
+        "peak": 0.5161261558532715,
+        "samples": 246078
+      }
+    },
+    {
+      "mode": "automatic",
+      "modeLabel": "Automatic full mix",
+      "window": {
+        "id": "intro-development",
+        "startBeat": 16,
+        "endBeat": 32,
+        "sourceSectionId": "section-1",
+        "sourceSectionLabel": "Intro 1",
+        "provisionalLabel": "development"
+      },
+      "fixture": "britney-spears-oops-i-did-it-again-a-scratch",
+      "source": "production-equivalent API fixture",
+      "seekSeconds": 9.605263157894736,
+      "durationMs": 11106,
+      "audioPath": "/Users/reidar/.codex/worktrees/musically-useful-chords-mode/apps/web/test-results/melody-accompaniment-T1-ca-4f56f-automatic-intro-development-chromium/oops-automatic-intro-development.webm",
+      "metadataPath": "/Users/reidar/.codex/worktrees/musically-useful-chords-mode/apps/web/test-results/melody-accompaniment-T1-ca-4f56f-automatic-intro-development-chromium/oops-automatic-intro-development.json",
+      "bytes": 179658,
+      "events": 105,
+      "sha256": "363dafbdea8866a4f94cb330133f75254a31310d674f95b065e44aa9a04807af",
+      "signal": {
+        "rms": 0.0660070919200274,
+        "peak": 0.4865185022354126,
+        "samples": 246078
+      }
+    },
+    {
+      "mode": "automatic",
+      "modeLabel": "Automatic full mix",
+      "window": {
+        "id": "section-2",
+        "startBeat": 64,
+        "endBeat": 108,
+        "sourceSectionId": "section-2",
+        "sourceSectionLabel": "Section 2",
+        "provisionalLabel": "verse; semantic label unverified"
+      },
+      "fixture": "britney-spears-oops-i-did-it-again-a-scratch",
+      "source": "production-equivalent API fixture",
+      "seekSeconds": 39.921052631578945,
+      "durationMs": 28790,
+      "audioPath": "/Users/reidar/.codex/worktrees/musically-useful-chords-mode/apps/web/test-results/melody-accompaniment-T1-captures-Oops-automatic-section-2-chromium/oops-automatic-section-2.webm",
+      "metadataPath": "/Users/reidar/.codex/worktrees/musically-useful-chords-mode/apps/web/test-results/melody-accompaniment-T1-captures-Oops-automatic-section-2-chromium/oops-automatic-section-2.json",
+      "bytes": 456708,
+      "events": 858,
+      "sha256": "2cf432cdbac823269d52019aef946db762cef6df3893426e072529a50633347f",
+      "signal": {
+        "rms": 0.0674941719930108,
+        "peak": 0.9961974620819092,
+        "samples": 212121
+      }
+    },
+    {
+      "mode": "automatic",
+      "modeLabel": "Automatic full mix",
+      "window": {
+        "id": "section-2-ambiguity",
+        "startBeat": 83.5,
+        "endBeat": 89.5,
+        "sourceSectionId": "section-2",
+        "sourceSectionLabel": "Section 2",
+        "provisionalLabel": "reported ambiguity"
+      },
+      "fixture": "britney-spears-oops-i-did-it-again-a-scratch",
+      "source": "production-equivalent API fixture",
+      "seekSeconds": 52.23684210526316,
+      "durationMs": 4790,
+      "audioPath": "/Users/reidar/.codex/worktrees/musically-useful-chords-mode/apps/web/test-results/melody-accompaniment-T1-ca-ef6a6-tomatic-section-2-ambiguity-chromium/oops-automatic-section-2-ambiguity.webm",
+      "metadataPath": "/Users/reidar/.codex/worktrees/musically-useful-chords-mode/apps/web/test-results/melody-accompaniment-T1-ca-ef6a6-tomatic-section-2-ambiguity-chromium/oops-automatic-section-2-ambiguity.json",
+      "bytes": 78542,
+      "events": 180,
+      "sha256": "e635f2f4e6b576bfc98af0a74c3c5f94ac4e7bb417372b983e0486c780e67e93",
+      "signal": {
+        "rms": 0.07505927647458886,
+        "peak": 0.926731526851654,
+        "samples": 214325
+      }
+    },
+    {
+      "mode": "automatic",
+      "modeLabel": "Automatic full mix",
+      "window": {
+        "id": "section-3-transition",
+        "startBeat": 108,
+        "endBeat": 124,
+        "sourceSectionId": "section-3",
+        "sourceSectionLabel": "Section 3",
+        "provisionalLabel": "transition; semantic label unverified"
+      },
+      "fixture": "britney-spears-oops-i-did-it-again-a-scratch",
+      "source": "production-equivalent API fixture",
+      "seekSeconds": 67.71052631578948,
+      "durationMs": 11106,
+      "audioPath": "/Users/reidar/.codex/worktrees/musically-useful-chords-mode/apps/web/test-results/melody-accompaniment-T1-ca-862b0-omatic-section-3-transition-chromium/oops-automatic-section-3-transition.webm",
+      "metadataPath": "/Users/reidar/.codex/worktrees/musically-useful-chords-mode/apps/web/test-results/melody-accompaniment-T1-ca-862b0-omatic-section-3-transition-chromium/oops-automatic-section-3-transition.json",
+      "bytes": 179972,
+      "events": 237,
+      "sha256": "9e35a3367f51237f2bbd5c0f46ff423f64b7889f1ea1ec8793aa0d41294f66d5",
+      "signal": {
+        "rms": 0.07682664127682941,
+        "peak": 0.9187195301055908,
+        "samples": 246078
+      }
+    },
+    {
+      "mode": "automatic",
+      "modeLabel": "Automatic full mix",
+      "window": {
+        "id": "section-4",
+        "startBeat": 124,
+        "endBeat": 188,
+        "sourceSectionId": "section-4",
+        "sourceSectionLabel": "Section 4",
+        "provisionalLabel": "chorus; semantic label unverified"
+      },
+      "fixture": "britney-spears-oops-i-did-it-again-a-scratch",
+      "source": "production-equivalent API fixture",
+      "seekSeconds": 77.8157894736842,
+      "durationMs": 41422,
+      "audioPath": "/Users/reidar/.codex/worktrees/musically-useful-chords-mode/apps/web/test-results/melody-accompaniment-T1-captures-Oops-automatic-section-4-chromium/oops-automatic-section-4.webm",
+      "metadataPath": "/Users/reidar/.codex/worktrees/musically-useful-chords-mode/apps/web/test-results/melody-accompaniment-T1-captures-Oops-automatic-section-4-chromium/oops-automatic-section-4.json",
+      "bytes": 666882,
+      "events": 1329,
+      "sha256": "1e4a657173ced8fb9a5442132b13f103dfc6a92516564d730c7f2b3ec5fb392e",
+      "signal": {
+        "rms": 0.07382549759919915,
+        "peak": 1.0089430809020996,
+        "samples": 228549
+      }
+    },
+    {
+      "mode": "original",
+      "modeLabel": "Original full mix",
+      "window": {
+        "id": "intro-control",
+        "startBeat": 0,
+        "endBeat": 16,
+        "sourceSectionId": "section-1",
+        "sourceSectionLabel": "Intro 1",
+        "provisionalLabel": "control"
+      },
+      "fixture": "britney-spears-oops-i-did-it-again-a-scratch",
+      "source": "production-equivalent API fixture",
+      "seekSeconds": 0,
+      "durationMs": 11106,
+      "audioPath": "/Users/reidar/.codex/worktrees/musically-useful-chords-mode/apps/web/test-results/melody-accompaniment-T1-captures-Oops-original-intro-control-chromium/oops-original-intro-control.webm",
+      "metadataPath": "/Users/reidar/.codex/worktrees/musically-useful-chords-mode/apps/web/test-results/melody-accompaniment-T1-captures-Oops-original-intro-control-chromium/oops-original-intro-control.json",
+      "bytes": 176185,
+      "events": 87,
+      "sha256": "75d5c7c7ad876e3237f2fc14ba5f564ae93ac1e88cd4de230eaa01e08fe60d6c",
+      "signal": {
+        "rms": 0.07634107156805549,
+        "peak": 0.5726257562637329,
+        "samples": 247401
+      }
+    },
+    {
+      "mode": "original",
+      "modeLabel": "Original full mix",
+      "window": {
+        "id": "intro-development",
+        "startBeat": 16,
+        "endBeat": 32,
+        "sourceSectionId": "section-1",
+        "sourceSectionLabel": "Intro 1",
+        "provisionalLabel": "development"
+      },
+      "fixture": "britney-spears-oops-i-did-it-again-a-scratch",
+      "source": "production-equivalent API fixture",
+      "seekSeconds": 9.605263157894736,
+      "durationMs": 11106,
+      "audioPath": "/Users/reidar/.codex/worktrees/musically-useful-chords-mode/apps/web/test-results/melody-accompaniment-T1-ca-73a25--original-intro-development-chromium/oops-original-intro-development.webm",
+      "metadataPath": "/Users/reidar/.codex/worktrees/musically-useful-chords-mode/apps/web/test-results/melody-accompaniment-T1-ca-73a25--original-intro-development-chromium/oops-original-intro-development.json",
+      "bytes": 179972,
+      "events": 111,
+      "sha256": "4cd8edb5258f80fa3764e78565fe764c63c9f8b5710b72d6b8c0511892899714",
+      "signal": {
+        "rms": 0.08321392304639891,
+        "peak": 0.5970466732978821,
+        "samples": 246078
+      }
+    },
+    {
+      "mode": "original",
+      "modeLabel": "Original full mix",
+      "window": {
+        "id": "section-2",
+        "startBeat": 64,
+        "endBeat": 108,
+        "sourceSectionId": "section-2",
+        "sourceSectionLabel": "Section 2",
+        "provisionalLabel": "verse; semantic label unverified"
+      },
+      "fixture": "britney-spears-oops-i-did-it-again-a-scratch",
+      "source": "production-equivalent API fixture",
+      "seekSeconds": 39.921052631578945,
+      "durationMs": 28790,
+      "audioPath": "/Users/reidar/.codex/worktrees/musically-useful-chords-mode/apps/web/test-results/melody-accompaniment-T1-captures-Oops-original-section-2-chromium/oops-original-section-2.webm",
+      "metadataPath": "/Users/reidar/.codex/worktrees/musically-useful-chords-mode/apps/web/test-results/melody-accompaniment-T1-captures-Oops-original-section-2-chromium/oops-original-section-2.json",
+      "bytes": 464942,
+      "events": 1017,
+      "sha256": "80901ad1c284905650154c62932d41b0b2dc1b227aebe89693de64f392875d0f",
+      "signal": {
+        "rms": 0.07779508359546519,
+        "peak": 0.921576201915741,
+        "samples": 212121
+      }
+    },
+    {
+      "mode": "original",
+      "modeLabel": "Original full mix",
+      "window": {
+        "id": "section-2-ambiguity",
+        "startBeat": 83.5,
+        "endBeat": 89.5,
+        "sourceSectionId": "section-2",
+        "sourceSectionLabel": "Section 2",
+        "provisionalLabel": "reported ambiguity"
+      },
+      "fixture": "britney-spears-oops-i-did-it-again-a-scratch",
+      "source": "production-equivalent API fixture",
+      "seekSeconds": 52.23684210526316,
+      "durationMs": 4790,
+      "audioPath": "/Users/reidar/.codex/worktrees/musically-useful-chords-mode/apps/web/test-results/melody-accompaniment-T1-ca-40368-riginal-section-2-ambiguity-chromium/oops-original-section-2-ambiguity.webm",
+      "metadataPath": "/Users/reidar/.codex/worktrees/musically-useful-chords-mode/apps/web/test-results/melody-accompaniment-T1-ca-40368-riginal-section-2-ambiguity-chromium/oops-original-section-2-ambiguity.json",
+      "bytes": 78542,
+      "events": 195,
+      "sha256": "90a85ac317799e3a28cb5b8c924ee48ffb17d11128f3936aef5292bb0277cd65",
+      "signal": {
+        "rms": 0.07699570785181606,
+        "peak": 0.8938340544700623,
+        "samples": 214325
+      }
+    },
+    {
+      "mode": "original",
+      "modeLabel": "Original full mix",
+      "window": {
+        "id": "section-3-transition",
+        "startBeat": 108,
+        "endBeat": 124,
+        "sourceSectionId": "section-3",
+        "sourceSectionLabel": "Section 3",
+        "provisionalLabel": "transition; semantic label unverified"
+      },
+      "fixture": "britney-spears-oops-i-did-it-again-a-scratch",
+      "source": "production-equivalent API fixture",
+      "seekSeconds": 67.71052631578948,
+      "durationMs": 11106,
+      "audioPath": "/Users/reidar/.codex/worktrees/musically-useful-chords-mode/apps/web/test-results/melody-accompaniment-T1-ca-21d03-iginal-section-3-transition-chromium/oops-original-section-3-transition.webm",
+      "metadataPath": "/Users/reidar/.codex/worktrees/musically-useful-chords-mode/apps/web/test-results/melody-accompaniment-T1-ca-21d03-iginal-section-3-transition-chromium/oops-original-section-3-transition.json",
+      "bytes": 179972,
+      "events": 261,
+      "sha256": "949bfc0f40001a7925198fa8f56629ff9fe5191cae855d8d438e1bd4ad73c0f9",
+      "signal": {
+        "rms": 0.07929942154349419,
+        "peak": 0.9167697429656982,
+        "samples": 246078
+      }
+    },
+    {
+      "mode": "original",
+      "modeLabel": "Original full mix",
+      "window": {
+        "id": "section-4",
+        "startBeat": 124,
+        "endBeat": 188,
+        "sourceSectionId": "section-4",
+        "sourceSectionLabel": "Section 4",
+        "provisionalLabel": "chorus; semantic label unverified"
+      },
+      "fixture": "britney-spears-oops-i-did-it-again-a-scratch",
+      "source": "production-equivalent API fixture",
+      "seekSeconds": 77.8157894736842,
+      "durationMs": 41422,
+      "audioPath": "/Users/reidar/.codex/worktrees/musically-useful-chords-mode/apps/web/test-results/melody-accompaniment-T1-captures-Oops-original-section-4-chromium/oops-original-section-4.webm",
+      "metadataPath": "/Users/reidar/.codex/worktrees/musically-useful-chords-mode/apps/web/test-results/melody-accompaniment-T1-captures-Oops-original-section-4-chromium/oops-original-section-4.json",
+      "bytes": 667834,
+      "events": 1467,
+      "sha256": "bb07e9d9401ba390cafc72622b9c55554b08370a7ccc8ecebdfd4e74f3f46ac2",
+      "signal": {
+        "rms": 0.07974311250462501,
+        "peak": 1.002294898033142,
+        "samples": 228549
+      }
+    },
+    {
+      "mode": "right-hand",
+      "modeLabel": "User-confirmed right-hand melody",
+      "window": {
+        "id": "intro-control",
+        "startBeat": 0,
+        "endBeat": 16,
+        "sourceSectionId": "section-1",
+        "sourceSectionLabel": "Intro 1",
+        "provisionalLabel": "control"
+      },
+      "fixture": "britney-spears-oops-i-did-it-again-a-scratch",
+      "source": "production-equivalent API fixture",
+      "seekSeconds": 0,
+      "durationMs": 11106,
+      "audioPath": "/Users/reidar/.codex/worktrees/musically-useful-chords-mode/apps/web/test-results/melody-accompaniment-T1-ca-b1ace-ps-right-hand-intro-control-chromium/oops-right-hand-intro-control.webm",
+      "metadataPath": "/Users/reidar/.codex/worktrees/musically-useful-chords-mode/apps/web/test-results/melody-accompaniment-T1-ca-b1ace-ps-right-hand-intro-control-chromium/oops-right-hand-intro-control.json",
+      "bytes": 175212,
+      "events": 87,
+      "sha256": "e3a16ddbbd5ef6615141faf75068faf3223bdbe2279aa453f4ec268010f9cb24",
+      "signal": {
+        "rms": 0.07631272708719063,
+        "peak": 0.5953956246376038,
+        "samples": 246078
+      }
+    },
+    {
+      "mode": "right-hand",
+      "modeLabel": "User-confirmed right-hand melody",
+      "window": {
+        "id": "intro-development",
+        "startBeat": 16,
+        "endBeat": 32,
+        "sourceSectionId": "section-1",
+        "sourceSectionLabel": "Intro 1",
+        "provisionalLabel": "development"
+      },
+      "fixture": "britney-spears-oops-i-did-it-again-a-scratch",
+      "source": "production-equivalent API fixture",
+      "seekSeconds": 9.605263157894736,
+      "durationMs": 11106,
+      "audioPath": "/Users/reidar/.codex/worktrees/musically-useful-chords-mode/apps/web/test-results/melody-accompaniment-T1-ca-11e52-ight-hand-intro-development-chromium/oops-right-hand-intro-development.webm",
+      "metadataPath": "/Users/reidar/.codex/worktrees/musically-useful-chords-mode/apps/web/test-results/melody-accompaniment-T1-ca-11e52-ight-hand-intro-development-chromium/oops-right-hand-intro-development.json",
+      "bytes": 179658,
+      "events": 111,
+      "sha256": "ee5b4d7ef4fc9b3cb057907abd7f9e8a32f00ec94146ee8d14d806499fe6f330",
+      "signal": {
+        "rms": 0.0832170896479129,
+        "peak": 0.6081242561340332,
+        "samples": 246078
+      }
+    },
+    {
+      "mode": "right-hand",
+      "modeLabel": "User-confirmed right-hand melody",
+      "window": {
+        "id": "section-2",
+        "startBeat": 64,
+        "endBeat": 108,
+        "sourceSectionId": "section-2",
+        "sourceSectionLabel": "Section 2",
+        "provisionalLabel": "verse; semantic label unverified"
+      },
+      "fixture": "britney-spears-oops-i-did-it-again-a-scratch",
+      "source": "production-equivalent API fixture",
+      "seekSeconds": 39.921052631578945,
+      "durationMs": 28790,
+      "audioPath": "/Users/reidar/.codex/worktrees/musically-useful-chords-mode/apps/web/test-results/melody-accompaniment-T1-captures-Oops-right-hand-section-2-chromium/oops-right-hand-section-2.webm",
+      "metadataPath": "/Users/reidar/.codex/worktrees/musically-useful-chords-mode/apps/web/test-results/melody-accompaniment-T1-captures-Oops-right-hand-section-2-chromium/oops-right-hand-section-2.json",
+      "bytes": 463976,
+      "events": 1017,
+      "sha256": "6358ba0ae734704ef0e1703cfdb4aa6aa3503ffed39dbda3d6c66e50c9c09b15",
+      "signal": {
+        "rms": 0.07781368271021091,
+        "peak": 0.9387248158454895,
+        "samples": 211680
+      }
+    },
+    {
+      "mode": "right-hand",
+      "modeLabel": "User-confirmed right-hand melody",
+      "window": {
+        "id": "section-2-ambiguity",
+        "startBeat": 83.5,
+        "endBeat": 89.5,
+        "sourceSectionId": "section-2",
+        "sourceSectionLabel": "Section 2",
+        "provisionalLabel": "reported ambiguity"
+      },
+      "fixture": "britney-spears-oops-i-did-it-again-a-scratch",
+      "source": "production-equivalent API fixture",
+      "seekSeconds": 52.23684210526316,
+      "durationMs": 4790,
+      "audioPath": "/Users/reidar/.codex/worktrees/musically-useful-chords-mode/apps/web/test-results/melody-accompaniment-T1-ca-88c05-ht-hand-section-2-ambiguity-chromium/oops-right-hand-section-2-ambiguity.webm",
+      "metadataPath": "/Users/reidar/.codex/worktrees/musically-useful-chords-mode/apps/web/test-results/melody-accompaniment-T1-ca-88c05-ht-hand-section-2-ambiguity-chromium/oops-right-hand-section-2-ambiguity.json",
+      "bytes": 78542,
+      "events": 195,
+      "sha256": "976c2d4b315dd40e3b99e5a89ae3e926cee3115c23a29683f1a88d19db769fd7",
+      "signal": {
+        "rms": 0.07749232241518943,
+        "peak": 0.9125906229019165,
+        "samples": 214325
+      }
+    },
+    {
+      "mode": "right-hand",
+      "modeLabel": "User-confirmed right-hand melody",
+      "window": {
+        "id": "section-3-transition",
+        "startBeat": 108,
+        "endBeat": 124,
+        "sourceSectionId": "section-3",
+        "sourceSectionLabel": "Section 3",
+        "provisionalLabel": "transition; semantic label unverified"
+      },
+      "fixture": "britney-spears-oops-i-did-it-again-a-scratch",
+      "source": "production-equivalent API fixture",
+      "seekSeconds": 67.71052631578948,
+      "durationMs": 11106,
+      "audioPath": "/Users/reidar/.codex/worktrees/musically-useful-chords-mode/apps/web/test-results/melody-accompaniment-T1-ca-3eb2f-t-hand-section-3-transition-chromium/oops-right-hand-section-3-transition.webm",
+      "metadataPath": "/Users/reidar/.codex/worktrees/musically-useful-chords-mode/apps/web/test-results/melody-accompaniment-T1-ca-3eb2f-t-hand-section-3-transition-chromium/oops-right-hand-section-3-transition.json",
+      "bytes": 179972,
+      "events": 261,
+      "sha256": "a2d33bf05035c17769f57a26e543628367b328592f3f512f1f48b1b3502346ee",
+      "signal": {
+        "rms": 0.07895371175135911,
+        "peak": 0.9245153665542603,
+        "samples": 246078
+      }
+    },
+    {
+      "mode": "right-hand",
+      "modeLabel": "User-confirmed right-hand melody",
+      "window": {
+        "id": "section-4",
+        "startBeat": 124,
+        "endBeat": 188,
+        "sourceSectionId": "section-4",
+        "sourceSectionLabel": "Section 4",
+        "provisionalLabel": "chorus; semantic label unverified"
+      },
+      "fixture": "britney-spears-oops-i-did-it-again-a-scratch",
+      "source": "production-equivalent API fixture",
+      "seekSeconds": 77.8157894736842,
+      "durationMs": 41422,
+      "audioPath": "/Users/reidar/.codex/worktrees/musically-useful-chords-mode/apps/web/test-results/melody-accompaniment-T1-captures-Oops-right-hand-section-4-chromium/oops-right-hand-section-4.webm",
+      "metadataPath": "/Users/reidar/.codex/worktrees/musically-useful-chords-mode/apps/web/test-results/melody-accompaniment-T1-captures-Oops-right-hand-section-4-chromium/oops-right-hand-section-4.json",
+      "bytes": 667834,
+      "events": 1467,
+      "sha256": "a31c64e352953b25a8c3a9949013144adc0bab3aac338770ebf29a611da3c7e3",
+      "signal": {
+        "rms": 0.07936796753610814,
+        "peak": 0.9909263849258423,
+        "samples": 228549
+      }
+    }
+  ]
+}

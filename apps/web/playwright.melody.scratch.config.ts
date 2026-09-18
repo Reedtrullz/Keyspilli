@@ -1,17 +1,54 @@
 import { defineConfig } from "@playwright/test";
 import Database from "better-sqlite3";
+import { createHash } from "node:crypto";
 import { cpSync, mkdirSync, mkdtempSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
 const sourceRoot = "/Users/reidar/Projectos/Keyspilli/data";
+const reservedFixtureRoot = "/Users/reidar/.codex/worktrees/musically-useful-chords-mode/docs/superpowers/evidence/2026-09-17-chords-v2-evaluation-fixtures";
 const scratchDataDir = mkdtempSync(join(tmpdir(), "keyspilli-web-e2e-"));
+const reservedSourceHashes: Record<string, { notes: string; sourceArtifact: string }> = {
+  "w-h-doane-near-the-cross": {
+    notes: "da39379165b5d13a03ef188a230765f3b08c1cc356d105766246b48a9a88b80e",
+    sourceArtifact: "09d4a33ac39f9429f3fdf3a45377a7010b36a1f501194b2dba10e91e45d51a0d",
+  },
+  "c-v-alkan-prelude": {
+    notes: "7fe0f9b6464a1727c74f3f25d1f81777d2e916b6c7e11ebeaf9733cc5043b05d",
+    sourceArtifact: "ae68944db2e646e14e0923a79b95b3a6e2658432e384e8741f3ab108dbc5ac80",
+  },
+  "beginner-piano-tutorial-easy-piano-jumbo-songbook-pay-me-my-money-down-mslzx940": {
+    notes: "587458f078cc1f1248f9d8ebfe2079ab36e471de4d29a596631ee401e9dab4bf",
+    sourceArtifact: "0b034323353ce167cf24664a17bda435c963f58d75c40d75d3860804bb475677",
+  },
+  "dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo": {
+    notes: "0e2b1ba6166434cb23ccf022440f4a9a4caff6f6a60f74b9bc4f84dabf636cde",
+    sourceArtifact: "8e4d4b9114800d69904dc4af35376b95ccd1d8c537aac3adbe812c72f0cf482e",
+  },
+};
+for (const [baseId, expected] of Object.entries(reservedSourceHashes)) {
+  const notesPath = join(reservedFixtureRoot, baseId, "a", "notes.json");
+  const manifestPath = join(reservedFixtureRoot, baseId, "manifest.json");
+  const notesHash = createHash("sha256").update(readFileSync(notesPath)).digest("hex");
+  const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as { sourceArtifactHash?: string };
+  if (notesHash !== expected.notes || manifest.sourceArtifactHash !== expected.sourceArtifact) {
+    throw new Error(`Reserved fixture hash mismatch for ${baseId}`);
+  }
+}
 const fixtures = [
   {
     baseId: "the-beatles-blackbird",
     title: "Blackbird",
     artist: "The Beatles",
     category: "Scratch real artifact",
+    contentType: "standard",
+    acquiredVia: "midi-file",
+  },
+  {
+    baseId: "britney-spears-oops-i-did-it-again",
+    title: "Oops!... I Did It Again",
+    artist: "Britney Spears",
+    category: "Scratch full-phrase comparison artifact",
     contentType: "standard",
     acquiredVia: "midi-file",
   },
@@ -23,13 +60,63 @@ const fixtures = [
     contentType: "youtube",
     acquiredVia: "youtube-transcription",
   },
+  {
+    baseId: "the-theorist-elton-john-your-song-piano-cover-jz6ugvghbt8",
+    title: "Your Song",
+    artist: "Elton John",
+    category: "Scratch UG source-key control",
+    contentType: "standard",
+    acquiredVia: "midi-file",
+  },
+  {
+    baseId: "w-h-doane-near-the-cross",
+    title: "Near the Cross",
+    artist: "W. H. Doane",
+    category: "Reserved standard evaluation",
+    contentType: "standard",
+    acquiredVia: "midi-file",
+    sourceRoot: reservedFixtureRoot,
+  },
+  {
+    baseId: "c-v-alkan-prelude",
+    title: "Prélude",
+    artist: "C.-V. Alkan",
+    category: "Reserved standard evaluation",
+    contentType: "standard",
+    acquiredVia: "midi-file",
+    sourceRoot: reservedFixtureRoot,
+  },
+  {
+    baseId: "beginner-piano-tutorial-easy-piano-jumbo-songbook-pay-me-my-money-down-mslzx940",
+    title: "Easy Piano Jumbo Songbook - Pay Me My Money Down",
+    artist: "Beginner Piano Tutorial",
+    category: "Reserved YouTube evaluation",
+    contentType: "youtube",
+    acquiredVia: "youtube",
+    sourceRoot: reservedFixtureRoot,
+  },
+  {
+    baseId: "dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo",
+    title: "Avenged Sevenfold - Dear God - Piano Cover",
+    artist: "Dadebrayant",
+    category: "Reserved YouTube evaluation",
+    contentType: "youtube",
+    acquiredVia: "youtube",
+    sourceRoot: reservedFixtureRoot,
+  },
 ];
 
 type Source = { key?: string; tempoBpm?: number; notes?: Array<{ start: number; dur: number }> };
 const songs = fixtures.map((fixture) => {
-  const sourceVariantDir = join(sourceRoot, "artifacts", fixture.baseId, "a");
+  const fixtureRoot = fixture.sourceRoot ?? sourceRoot;
+  const sourceVariantDir = fixture.sourceRoot
+    ? join(fixtureRoot, fixture.baseId, "a")
+    : join(fixtureRoot, "artifacts", fixture.baseId, "a");
+  const manifestPath = fixture.sourceRoot
+    ? join(fixtureRoot, fixture.baseId, "manifest.json")
+    : join(fixtureRoot, "artifacts", fixture.baseId, "manifest.json");
   cpSync(sourceVariantDir, join(scratchDataDir, "artifacts", fixture.baseId, "a"), { recursive: true });
-  cpSync(join(sourceRoot, "artifacts", fixture.baseId, "manifest.json"), join(scratchDataDir, "artifacts", fixture.baseId, "manifest.json"));
+  cpSync(manifestPath, join(scratchDataDir, "artifacts", fixture.baseId, "manifest.json"));
   const source = JSON.parse(readFileSync(join(sourceVariantDir, "notes.json"), "utf8")) as Source;
   const duration = Math.ceil(Math.max(0, ...(source.notes ?? []).map((note) => note.start + note.dur)));
   return {

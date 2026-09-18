@@ -6,6 +6,8 @@ export interface PianoRoleOptions {
   onsetTolerance?: number;
   /** Keep very short upper attacks from displacing a sustained line below them. */
   preferSustainedLine?: boolean;
+  /** Permit an explicit no-new-melody state between selected attacks. */
+  allowRests?: boolean;
 }
 
 /** Role assigned by {@link splitPianoRoles}. */
@@ -25,6 +27,15 @@ export interface ProtectedMelodyNote extends Readonly<Note> {
   readonly role: "melody";
 }
 
+/** Internal, uncalibrated evidence for a selected path and its nearest alternative. */
+export interface PianoRolePathEvidence {
+  readonly startBeat: number;
+  readonly endBeat: number;
+  readonly selectedIdentity: string | null;
+  readonly alternativeIdentity: string | null;
+  readonly scoreMargin: number;
+}
+
 /** Result of splitting a note stream into one protected upper voice and support. */
 export interface PianoRoleSplit {
   /** Frozen, canonical-time-ordered melody note values. */
@@ -35,6 +46,8 @@ export interface PianoRoleSplit {
   readonly protectedMelody: readonly ProtectedMelodyNote[];
   /** Source-index-aligned role mask; useful when preserving the original array. */
   readonly melodyMask: readonly boolean[];
+  /** Per-onset selected-path alternatives; not a calibrated confidence score. */
+  readonly pathEvidence: readonly PianoRolePathEvidence[];
 }
 
 interface IndexedNote {
@@ -44,8 +57,15 @@ interface IndexedNote {
 }
 
 interface Candidate {
-  readonly indexed: IndexedNote;
+  readonly indexed: IndexedNote | null;
   readonly emission: number;
+}
+
+interface PathState {
+  readonly lastIdentity: string | null;
+  readonly score: number;
+  readonly candidateIndex: number;
+  readonly previousStateIndex: number;
 }
 
 // Keep role grouping aligned with the detector/harmony onset contract.  A
@@ -54,6 +74,7 @@ interface Candidate {
 // attacks.
 const DEFAULT_ONSET_TOLERANCE = 0.08;
 const EPSILON = 1e-9;
+const PATH_AMBIGUITY_MARGIN = 0.16;
 
 function clamp(value: number, min = 0, max = 1): number {
   return Math.min(max, Math.max(min, value));
@@ -265,6 +286,34 @@ function transitionScore(previous: Note, current: Note): number {
   return (0.72 * continuity + 0.28 * articulation) * overlapPenalty;
 }
 
+function compareCandidates(a: Candidate, b: Candidate): number {
+  if (a.indexed === null && b.indexed === null) return 0;
+  if (a.indexed === null) return 1;
+  if (b.indexed === null) return -1;
+  return compareIndexed(a.indexed, b.indexed);
+}
+
+function restTransitionScore(previous: IndexedNote | null, group: readonly IndexedNote[]): number {
+  if (!previous) return 0.1;
+  const groupStart = group[0]?.note.start ?? previous.note.start;
+  if (previous.note.start + previous.note.dur > groupStart + EPSILON) return 0.9;
+  const bestContinuity = Math.max(
+    ...group.map(({ note }) => upperVoiceContinuity(previous.note, note)),
+    0,
+  );
+  return bestContinuity < 0.35 ? 0.78 : 0.1;
+}
+
+function candidateTransitionScore(
+  previous: IndexedNote | null,
+  current: Candidate,
+  group: readonly IndexedNote[],
+): number {
+  if (current.indexed === null) return restTransitionScore(previous, group);
+  if (!previous) return 0.1;
+  return transitionScore(previous.note, current.indexed.note);
+}
+
 function cloneNote(note: Note): Note {
   return { ...note };
 }
@@ -305,6 +354,7 @@ export function splitPianoRoles(
       accompaniment: Object.freeze(indexed.map(({ note }) => cloneNote(note))),
       protectedMelody: Object.freeze([]) as readonly ProtectedMelodyNote[],
       melodyMask: Object.freeze(notes.map(() => false)),
+      pathEvidence: Object.freeze([]) as readonly PianoRolePathEvidence[],
     });
   }
 
@@ -314,76 +364,172 @@ export function splitPianoRoles(
       ? group.filter((item) => !isShortTopDecoration(item, group, typicalDuration))
       : group;
     const eligible = filtered.length > 0 ? filtered : group;
-    return eligible.map((item) => ({
+    const notes = eligible.map((item) => ({
       indexed: item,
       emission: candidateEmission(groupIndex, item, group, groups, typicalDuration, options.preferSustainedLine === true),
     }));
+    return options.allowRests
+      ? [...notes, { indexed: null, emission: 0.12 }]
+      : notes;
   });
 
   // Viterbi-style dynamic programming keeps an upper voice coherent through
   // repeated contours and prevents a chord's highest note from winning solely
-  // because it is in the right hand.
-  const scores: number[][] = [];
-  const previousChoices: number[][] = [];
-  scores.push(candidates[0]!.map((candidate) => candidate.emission));
-  previousChoices.push(candidates[0]!.map(() => -1));
-
-  for (let groupIndex = 1; groupIndex < candidates.length; groupIndex++) {
+  // because it is in the right hand. The state key is the last non-rest note,
+  // so multiple rest groups retain every distinct reconnection history instead
+  // of merging them into one lossy null state.
+  // ponytail: exact rest history is O(groups × reachable last notes); bounded
+  // pruning would risk dropping a valid re-entry, so T7 must move long opt-in
+  // runs behind worker/cancellation if the measured latency remains too high.
+  const lastNoteByIdentity = new Map<string, IndexedNote>();
+  for (const group of groups) {
+    for (const candidate of group) {
+      if (candidate) lastNoteByIdentity.set(candidate.identity, candidate);
+    }
+  }
+  const forwardStates: PathState[][] = [];
+  for (let groupIndex = 0; groupIndex < candidates.length; groupIndex++) {
     const current = candidates[groupIndex]!;
-    const prior = candidates[groupIndex - 1]!;
-    const priorScores = scores[groupIndex - 1]!;
-    const currentScores: number[] = [];
-    const currentPrevious: number[] = [];
+    const priorStates = groupIndex === 0
+      ? [{ lastIdentity: null, score: 0, stateIndex: -1 }]
+      : forwardStates[groupIndex - 1]!.map((state, stateIndex) => ({
+        lastIdentity: state.lastIdentity,
+        score: state.score,
+        stateIndex,
+      }));
+    const states: PathState[] = [];
+    const stateByLastIdentity = new Map<string | null, number>();
 
-    for (let currentIndex = 0; currentIndex < current.length; currentIndex++) {
-      const currentCandidate = current[currentIndex]!;
-      let bestScore = -Infinity;
-      let bestPrevious = 0;
-
-      for (let previousIndex = 0; previousIndex < prior.length; previousIndex++) {
-        const previousCandidate = prior[previousIndex]!;
-        const score =
-          priorScores[previousIndex]! +
-          transitionScore(previousCandidate.indexed.note, currentCandidate.indexed.note);
-        if (
-          score > bestScore + EPSILON ||
-          (Math.abs(score - bestScore) <= EPSILON &&
-            compareIndexed(previousCandidate.indexed, prior[bestPrevious]!.indexed) < 0)
-        ) {
-          bestScore = score;
-          bestPrevious = previousIndex;
+    for (const prior of priorStates) {
+      const previousLast = prior.lastIdentity ? lastNoteByIdentity.get(prior.lastIdentity)! : null;
+      for (let currentIndex = 0; currentIndex < current.length; currentIndex++) {
+        const currentCandidate = current[currentIndex]!;
+        const lastIdentity = currentCandidate.indexed?.identity ?? prior.lastIdentity;
+        const score = prior.score
+          + currentCandidate.emission
+          + candidateTransitionScore(previousLast, currentCandidate, groups[groupIndex]!);
+        const existingIndex = stateByLastIdentity.get(lastIdentity);
+        const existing = existingIndex === undefined ? undefined : states[existingIndex];
+        const replace = !existing
+          || score > existing.score + EPSILON
+          || (Math.abs(score - existing.score) <= EPSILON
+            && compareCandidates(currentCandidate, current[existing.candidateIndex]!) < 0);
+        if (replace) {
+          const nextState: PathState = {
+            lastIdentity,
+            score,
+            candidateIndex: currentIndex,
+            previousStateIndex: prior.stateIndex,
+          };
+          if (existingIndex === undefined) {
+            stateByLastIdentity.set(lastIdentity, states.length);
+            states.push(nextState);
+          } else {
+            states[existingIndex] = nextState;
+          }
         }
       }
-
-      currentScores.push(currentCandidate.emission + bestScore);
-      currentPrevious.push(bestPrevious);
     }
-
-    scores.push(currentScores);
-    previousChoices.push(currentPrevious);
+    forwardStates.push(states);
   }
 
-  let selectedIndex = 0;
-  const finalScores = scores[scores.length - 1]!;
-  for (let index = 1; index < finalScores.length; index++) {
+  const finalStates = forwardStates[forwardStates.length - 1]!;
+  let finalStateIndex = 0;
+  for (let index = 1; index < finalStates.length; index++) {
     if (
-      finalScores[index]! > finalScores[selectedIndex]! + EPSILON ||
-      (Math.abs(finalScores[index]! - finalScores[selectedIndex]!) <= EPSILON &&
-        compareIndexed(
-          candidates[candidates.length - 1]![index]!.indexed,
-          candidates[candidates.length - 1]![selectedIndex]!.indexed,
+      finalStates[index]!.score > finalStates[finalStateIndex]!.score + EPSILON
+      || (Math.abs(finalStates[index]!.score - finalStates[finalStateIndex]!.score) <= EPSILON
+        && compareCandidates(
+          candidates[candidates.length - 1]![finalStates[index]!.candidateIndex]!,
+          candidates[candidates.length - 1]![finalStates[finalStateIndex]!.candidateIndex]!,
         ) < 0)
     ) {
-      selectedIndex = index;
+      finalStateIndex = index;
     }
   }
 
   const selected = new Set<string>();
+  const selectedChoices = new Array<number>(candidates.length);
+  let stateIndex = finalStateIndex;
   for (let groupIndex = candidates.length - 1; groupIndex >= 0; groupIndex--) {
-    const chosen = candidates[groupIndex]![selectedIndex]!;
-    selected.add(chosen.indexed.identity);
-    selectedIndex = previousChoices[groupIndex]![selectedIndex]!;
+    const state = forwardStates[groupIndex]![stateIndex]!;
+    selectedChoices[groupIndex] = state.candidateIndex;
+    const chosen = candidates[groupIndex]![state.candidateIndex]!;
+    if (chosen.indexed) selected.add(chosen.indexed.identity);
+    stateIndex = state.previousStateIndex;
   }
+
+  // Roll the suffix values instead of materialising every historical identity
+  // for every group. With rests disabled, the reachable keys are only the
+  // immediately preceding group; with rests enabled, the forward states still
+  // preserve each exact reconnect history without an unreachable all-song table.
+  let backwardNext = new Map<string | null, number>(
+    finalStates.map((state) => [state.lastIdentity, 0]),
+  );
+  const pathEvidence = new Array<PianoRolePathEvidence | undefined>(candidates.length);
+  for (let groupIndex = candidates.length - 1; groupIndex >= 0; groupIndex--) {
+    const group = groups[groupIndex]!;
+    const chosenIndex = selectedChoices[groupIndex]!;
+    const chosen = candidates[groupIndex]![chosenIndex]!;
+    const priorStates = groupIndex === 0
+      ? [{ lastIdentity: null, score: 0 }]
+      : forwardStates[groupIndex - 1]!.map((state) => ({ lastIdentity: state.lastIdentity, score: state.score }));
+    const completeScores = candidates[groupIndex]!.map((candidate) => {
+      let best = -Infinity;
+      for (const prior of priorStates) {
+        const previousLast = prior.lastIdentity ? lastNoteByIdentity.get(prior.lastIdentity)! : null;
+        const nextIdentity = candidate.indexed?.identity ?? prior.lastIdentity;
+        best = Math.max(
+          best,
+          prior.score
+            + candidate.emission
+            + candidateTransitionScore(previousLast, candidate, group)
+            + (backwardNext.get(nextIdentity) ?? -Infinity),
+        );
+      }
+      return best;
+    });
+    const alternatives = candidates[groupIndex]!
+      .map((candidate, index) => ({ candidate, index }))
+      .filter(({ index }) => index !== chosenIndex)
+      .sort((a, b) => completeScores[b.index]! - completeScores[a.index]!
+        || compareCandidates(a.candidate, b.candidate));
+    const alternative = alternatives[0];
+    if (alternative) {
+      const scoreMargin = Math.max(0, completeScores[chosenIndex]! - completeScores[alternative.index]!);
+      if (scoreMargin <= PATH_AMBIGUITY_MARGIN + EPSILON) {
+        pathEvidence[groupIndex] = {
+          startBeat: Math.max(0, group[0]!.note.start),
+          endBeat: Math.max(group[0]!.note.start + 0.25, ...group.map(({ note }) => note.start + note.dur)),
+          selectedIdentity: chosen.indexed?.identity ?? null,
+          alternativeIdentity: alternative.candidate.indexed?.identity ?? null,
+          scoreMargin,
+        };
+      }
+    }
+
+    const previousIdentities = groupIndex === 0
+      ? [null]
+      : forwardStates[groupIndex - 1]!.map((state) => state.lastIdentity);
+    const continuation = new Map<string | null, number>();
+    for (const previousIdentity of previousIdentities) {
+      const previousLast = previousIdentity ? lastNoteByIdentity.get(previousIdentity)! : null;
+      let best = -Infinity;
+      for (const candidate of candidates[groupIndex]!) {
+        const nextIdentity = candidate.indexed?.identity ?? previousIdentity;
+        const score = candidate.emission
+          + candidateTransitionScore(previousLast, candidate, group)
+          + (backwardNext.get(nextIdentity) ?? -Infinity);
+        best = Math.max(best, score);
+      }
+      continuation.set(previousIdentity, best);
+    }
+    backwardNext = continuation;
+  }
+
+  const resolvedPathEvidence = pathEvidence.filter(
+    (evidence): evidence is PianoRolePathEvidence => evidence !== undefined,
+  );
 
   const melodyIndexed = indexed
     .filter(({ identity }) => selected.has(identity))
@@ -401,5 +547,6 @@ export function splitPianoRoles(
     accompaniment: Object.freeze(accompaniment),
     protectedMelody: Object.freeze(protectedMelody),
     melodyMask: Object.freeze(melodyMask),
+    pathEvidence: Object.freeze(resolvedPathEvidence),
   });
 }
