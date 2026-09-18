@@ -56,6 +56,7 @@ describe("SoundControls accompaniment styles", () => {
     expect(markup).toContain('data-testid="source-backing-controls"');
     expect(markup).toContain("Conservative source-only preview (whole song)");
     expect(markup).toContain("never adds inferred pitches");
+    expect(markup).toContain("Temporal backing reduction is unavailable without reviewed source lane or phrase identity");
     expect(markup).toContain("source support notes");
     expect(markup).toContain('data-testid="melody-audition-controls"');
     expect(markup).toContain("Accompaniment includes retained source notes");

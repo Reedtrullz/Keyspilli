@@ -174,6 +174,9 @@ export function SoundControls({
                       <p className="text-[11px] text-zinc-600 mt-2">
                         Whole-song preview only: removes narrowly repeated short source voicing members, keeps unresolved spans source-only, and never adds inferred pitches. It does not repair the attack grid or prove physical playability; review before practice.
                       </p>
+                      <p className="text-[11px] text-amber-700 mt-1" role="note" data-testid="source-backing-temporal-limit">
+                        Temporal backing reduction is unavailable without reviewed source lane or phrase identity; this preview stays source-timed.
+                      </p>
                     </div>
                   )}
                   {melodyArrangement.provenance.unresolvedSpans.length > 0 && (

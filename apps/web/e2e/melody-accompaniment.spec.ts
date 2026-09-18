@@ -611,7 +611,7 @@ test("real artifact produces, previews, plays, corrects, and reloads melody supp
   await expect(dialog.getByTestId("melody-accompaniment-coverage")).toContainText("source support");
   await expect(page.getByTestId("chord-mode-status")).toHaveText("Chords estimated from notes");
   await expect(page.getByTestId("melody-accompaniment-status")).toContainText("Inferred melody");
-  await expect(page.getByTestId("melody-phrase-summary").locator("summary")).toHaveText(/Phrases: \d+ changed · \d+ unchanged · \d+ already simple/);
+  await expect(page.getByTestId("melody-phrase-summary").locator("summary")).toHaveText(/Phrases: \d+ changed · \d+ unchanged(?: · \d+ need review)?/);
   const automatic = await canvas.screenshot({ path: testInfo.outputPath("melody-automatic-candidate.png") });
   expect(automatic.equals(original)).toBe(false);
 
@@ -794,6 +794,7 @@ test("source-only backing reduction is a separate persisted preview choice", asy
   const dialog = page.getByRole("dialog", { name: "Sound settings" });
   const sourceBacking = dialog.getByTestId("source-backing-controls");
   await expect(sourceBacking).toBeVisible();
+  await expect(sourceBacking.getByTestId("source-backing-temporal-limit")).toContainText("reviewed source lane or phrase identity");
   await expect(sourceBacking.getByRole("radio", { name: "Current source backing", exact: true })).toHaveAttribute("aria-checked", "true");
   await sourceBacking.getByRole("radio", { name: "Conservative source-only preview (whole song)", exact: true }).click();
   await expect(sourceBacking.getByRole("radio", { name: "Conservative source-only preview (whole song)", exact: true })).toHaveAttribute("aria-checked", "true");
@@ -1017,7 +1018,7 @@ test("complete Oops phrase captures Original, coherent and resume candidates wit
     expect(coherent.events.length).toBeGreaterThan(0);
     expect(resume.events.length).toBeGreaterThan(0);
     writeFileSync(testInfo.outputPath("oops-section-2-audio-comparison.json"), JSON.stringify({
-      candidateCommit: "7775d5b383289a28212dc9c2a8ec2e1f3b752d81",
+      candidateCommit: process.env.KEYSPILLI_CAPTURE_COMMIT ?? "uncommitted-worktree",
       baselineCommit: "fce18bcbc358a06281813192de95eb56f9f0e878",
       sourceFingerprint: "variant:britney-spears-oops-i-did-it-again:a:britney-spears-oops-i-did-it-again-a:64d18aa4c23f7625a6eb0a7a234843a7a2278003d75cba9ea04efde7d8225ad4:notes:84153b6de3857351ce92086c8f5a28f9147073070948ed96fd39e6d6f8f212ae",
       window: { startBeat: 64, endBeat: 108, bpm: 95 },

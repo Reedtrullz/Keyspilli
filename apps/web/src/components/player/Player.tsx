@@ -1522,11 +1522,10 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   const phraseCounts = melodyArrangement.phrases.reduce(
     (counts, phrase) => {
       counts[phrase.change] += 1;
-      if (phrase.reasons.includes("already-simple")) counts.alreadySimple += 1;
       if (phrase.review === "needs-review") counts.review += 1;
       return counts;
     },
-    { changed: 0, unchanged: 0, alreadySimple: 0, review: 0 },
+    { changed: 0, unchanged: 0, review: 0 },
   );
   const activeMelodyPhrase = melodyArrangement.phrases.find((phrase) =>
     currentBeat >= phrase.startBeat - 1e-7 && currentBeat < phrase.endBeat - 1e-7,
@@ -1720,7 +1719,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
               )}
               <details className="basis-full text-xs text-zinc-600" data-testid="melody-phrase-summary">
                 <summary className="cursor-pointer rounded-full px-2 py-1 hover:bg-zinc-100">
-                  Phrases: {phraseCounts.changed} changed · {phraseCounts.unchanged} unchanged · {phraseCounts.alreadySimple} already simple{phraseCounts.review ? ` · ${phraseCounts.review} need review` : ""}
+                  Phrases: {phraseCounts.changed} changed · {phraseCounts.unchanged} unchanged{phraseCounts.review ? ` · ${phraseCounts.review} need review` : ""}
                 </summary>
                 {activeMelodyPhrase && (
                   <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
