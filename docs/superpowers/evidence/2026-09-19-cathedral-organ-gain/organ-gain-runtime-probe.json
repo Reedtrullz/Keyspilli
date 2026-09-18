@@ -1,0 +1,37 @@
+{
+  "fixture": "britney-spears-oops-i-did-it-again-a-scratch",
+  "settings": {
+    "soundSource": "organ",
+    "organStyle": "cathedral",
+    "backgroundMode": "piano",
+    "voiceGain": 1,
+    "pianoGain": 1,
+    "rightHandSlider": 100,
+    "leftHandSlider": 100,
+    "arrangement": "Original"
+  },
+  "probe": "intercepted real AudioContext GainNode bus AudioParam targets; first two createGain nodes are OrganAudioEngine manual/voice and foundation/piano buses",
+  "baseline": {
+    "commit": "df03e5747eda577353d807da258fe2adc054bd14",
+    "contexts": [
+      { "context": 0, "voiceTargets": [1, 1], "pianoTargets": [0.4, 1] },
+      { "context": 1, "voiceTargets": [1, 1], "pianoTargets": [0.4, 1] },
+      { "context": 2, "voiceTargets": [1], "pianoTargets": [0.4] }
+    ],
+    "interpretation": "The baseline starts recreated organ graphs with constructor defaults 1.0/0.4; later settings activity can update an older graph, but a newly-created graph is initially mismatched."
+  },
+  "candidate": {
+    "commit": "20a398a3fe733a6efcf2655dd8f2203f5cf5c3d9",
+    "contexts": [
+      { "context": 0, "voiceTargets": [1, 1], "pianoTargets": [1, 1] },
+      { "context": 1, "voiceTargets": [1, 1, 1], "pianoTargets": [1, 1, 1] },
+      { "context": 2, "voiceTargets": [1, 1], "pianoTargets": [1, 1] }
+    ],
+    "interpretation": "All initial and Cathedral/Rock/Cathedral recreated graphs receive 1.0/1.0 before playback scheduling."
+  },
+  "commands": [
+    "PATH=/Users/reidar/.nvm/versions/node/v22.22.3/bin:$PATH npm run build --workspace=@keyspilli/web",
+    "PATH=/Users/reidar/.nvm/versions/node/v22.22.3/bin:$PATH npx playwright test docs/superpowers/evidence/2026-09-19-cathedral-organ-gain/organ-gain-probe.spec.ts --config=apps/web/playwright.organ-gain.config.ts --project=chromium"
+  ],
+  "result": "one Oops fixture browser test passed on each revision; no production mutation or deploy"
+}
