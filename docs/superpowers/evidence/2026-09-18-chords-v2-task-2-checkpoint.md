@@ -1,7 +1,9 @@
 # Chords v2 Task 2 checkpoint — phrase strategy and Oops backing lineage
 
 Date: 2026-09-18
-Implementation base: `e739cf7`; final commit is reported with the handoff.
+Implementation base: `56f40d5`; the corrective follow-up is scoped for commit on this branch.
+
+Status: PARTIAL. The selector, reviewed-identity boundary, repeated sparse seam, source-rest, and melody-rest regressions are fixed and locally verified. Oops still has final/source attack-location equality at `479/479`, so the real-song rhythm goal remains open.
 
 The exact reproduction script now emits the full final backing stream and source backing stream, attack locations, and per-attack source/generated lineage. It also reads the preserved historical result only for comparison; it does not rewrite that JSON or the Task 1 checkpoint.
 
@@ -24,6 +26,17 @@ PATH=/Users/reidar/.nvm/versions/node/v22.22.3/bin:$PATH \
 ```
 
 All `850` final backing events are source-linked, with `0` generated events. The current output therefore explains its `+135` full source-support-note delta and `+35` window-note delta against the preserved historical aggregate as source identity/retention, not a generated-note quota. The current window has no synthesized attack locations.
+
+## Corrective follow-up verification
+
+- TDD red: focused player-core was `75` tests with `2` failures before the correction: merged protected attacks still selected sparse backing, and a `sourceLane`-only seam note was retained.
+- Focused green: `76/76` tests.
+- Full player-core: `15` files, `249/249` tests.
+- Player-core typecheck: exit `0`.
+- Exact fixture reproduction: Blackbird `454/454`, Oops `479/479`, Hell `470/471` final/source backing attack locations; all three controls rendered `0` generated notes.
+- `git diff --check`: clean at evidence update time.
+
+The synthetic authored-chart tests cover merged attack/occupancy scoring, explicit vocal protection, carried protection across adjacent sparse seams, source-rest preservation, and backing during a melody rest. They do not establish real-song musical acceptance.
 
 ## Boundary
 

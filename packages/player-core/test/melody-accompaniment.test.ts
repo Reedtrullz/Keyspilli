@@ -572,17 +572,26 @@ describe("buildMelodyAccompaniment", () => {
   });
 
   it("chooses sparse authored backing only when it reduces attacks and keeps protected bass and hooks", () => {
+    const reviewedBassAtStart = { ...note(36, 0, 0.75, 60, "L"), identitySource: "other" as const };
+    const reviewedHook = { ...note(55, 0.75, 0.25, 64, "L"), identitySource: "vocals" as const };
+    const reviewedBassAtTwo = { ...note(36, 2, 0.75, 60, "L"), identitySource: "other" as const };
+    const laneOnlyMetadata = { ...note(47, 1.5, 0.2, 58, "L"), sourceLane: "hook" };
     const source = [
       note(72, 0, 0.5, 100, "R"),
       note(74, 3, 0.5, 100, "R"),
-      { ...note(36, 0, 0.75, 60, "L"), sourceLane: "bass" },
-      { ...note(55, 0.5, 0.25, 64, "L"), sourceLane: "hook" },
+      reviewedBassAtStart,
+      reviewedHook,
       ...[0.25, 0.75, 1, 1.25, 1.5, 1.75].flatMap((start) => [
         note(40, start, 0.2, 58, "L"),
         note(43, start, 0.2, 58, "L"),
       ]),
+      laneOnlyMetadata,
+      reviewedBassAtTwo,
     ];
     const ids = sourceNoteIds(source);
+    const reviewedBassAtStartId = ids[source.indexOf(reviewedBassAtStart)]!;
+    const reviewedHookId = ids[source.indexOf(reviewedHook)]!;
+    const laneOnlyMetadataId = ids[source.indexOf(laneOnlyMetadata)]!;
     const result = buildMelodyAccompaniment(source, [{
       ...chord(0, "C", 4),
       sourceKind: "authored",
@@ -593,14 +602,132 @@ describe("buildMelodyAccompaniment", () => {
       sparseBackingTiming: { timeSig: [4, 4], measureStartBeat: 0, provenance: "source-measure-boundary" },
     });
     const support = result.events.filter((event) => event.role === "accompaniment");
-
     expect(result.provenance.supportModes).toContain("sparse-harmonic");
-    expect([...new Set(support.map((event) => event.note.start))]).toEqual([0, 0.5, 2]);
-    expect(support.some((event) => event.sourceNoteIds.includes(ids[2]!))).toBe(true);
-    expect(support.some((event) => event.sourceNoteIds.includes(ids[3]!))).toBe(true);
+    expect([...new Set(support.map((event) => event.note.start))]).toEqual([0, 0.75, 2]);
+    expect(support.some((event) => event.sourceNoteIds.includes(reviewedBassAtStartId))).toBe(true);
+    expect(support.some((event) => event.sourceNoteIds.includes(reviewedHookId))).toBe(true);
+    expect(support.some((event) => event.sourceNoteIds.includes(laneOnlyMetadataId))).toBe(false);
     expect(result.melody.map(({ midi, start, dur, vel, hand }) => ({ midi, start, dur, vel, hand }))).toEqual([source[0], source[1]]);
     expect(support.some((event) => event.note.start === 1)).toBe(false);
     expect(support.filter((event) => event.sourceNoteIds.length === 0).every((event) => event.note.start === 0 || event.note.start === 2)).toBe(true);
+  });
+
+  it("scores the merged sparse candidate after retaining explicit protected attacks", () => {
+    const reviewedHook = { ...note(55, 1, 0.25, 64, "L"), identitySource: "vocals" as const };
+    const source = [
+      note(72, 0, 0.5, 100, "R"),
+      note(74, 3, 0.5, 100, "R"),
+      reviewedHook,
+      note(40, 0, 0.25, 58, "L"),
+      note(43, 2, 0.2, 58, "L"),
+    ];
+    const result = buildMelodyAccompaniment(source, [{
+      ...chord(0, "C", 3),
+      sourceKind: "authored",
+    }], {
+      durationBeats: 4,
+      selection: "right-hand",
+      sourceFingerprint: "merged-candidate-v1",
+      sparseBackingTiming: { timeSig: [4, 4], measureStartBeat: 0, provenance: "source-measure-boundary" },
+    });
+
+    expect(result.provenance.supportModes).toEqual(["source-rhythm"]);
+    expect(result.phrases[0]?.strategy).toBe("source-reduction");
+    expect(result.events.some((event) => event.sourceNoteIds.includes(sourceNoteIds(source)[2]!))).toBe(true);
+    expect(result.events.filter((event) => event.role === "accompaniment" && event.sourceNoteIds.length === 0)).toHaveLength(0);
+    expect([...new Set(result.events
+      .filter((event) => event.role === "accompaniment")
+      .map((event) => event.note.start))]).toEqual([0, 1, 2]);
+  });
+
+  it("carries protected seams across adjacent sparse events without duplicate regeneration or filling source rests", () => {
+    const reviewedSeam = { ...note(36, 0, 1, 62, "L"), identitySource: "other" as const };
+    const reviewedRestSide = { ...note(55, 1.5, 0.25, 64, "L"), identitySource: "vocals" as const };
+    const reviewedAtTwo = { ...note(36, 2, 0.75, 62, "L"), identitySource: "other" as const };
+    const laneOnly = { ...note(47, 2.25, 0.2, 58, "L"), sourceLane: "hook" };
+    const source = [
+      note(72, 0, 0.5, 100, "R"),
+      note(74, 3, 0.5, 100, "R"),
+      reviewedSeam,
+      reviewedRestSide,
+      reviewedAtTwo,
+      laneOnly,
+      ...[0.25, 0.5, 0.75, 3].flatMap((start) => [
+        note(40, start, 0.2, 58, "L"),
+        note(43, start, 0.2, 58, "L"),
+      ]),
+    ];
+    const ids = sourceNoteIds(source);
+    const seamId = ids[source.indexOf(reviewedSeam)]!;
+    const restSideId = ids[source.indexOf(reviewedRestSide)]!;
+    const laneOnlyId = ids[source.indexOf(laneOnly)]!;
+    const result = buildMelodyAccompaniment(source, [
+      { ...chord(0, "C", 2), sourceKind: "authored" },
+      { ...chord(2, "C", 2), sourceKind: "authored" },
+    ], {
+      durationBeats: 4,
+      selection: "right-hand",
+      sourceFingerprint: "seam-rest-v1",
+      sparseBackingTiming: { timeSig: [2, 4], measureStartBeat: 0, provenance: "source-measure-boundary" },
+    });
+    const support = result.events.filter((event) => event.role === "accompaniment");
+
+    expect(result.provenance.supportModes).toContain("sparse-harmonic");
+    expect(support.filter((event) => event.sourceNoteIds.includes(seamId))).toHaveLength(1);
+    expect(support.some((event) => event.sourceNoteIds.includes(restSideId))).toBe(true);
+    expect(support.some((event) => event.sourceNoteIds.includes(laneOnlyId))).toBe(false);
+    expect(support.some((event) => event.note.midi === reviewedSeam.midi && event.note.start === 0 && event.sourceNoteIds.length === 0)).toBe(false);
+    expect(support.some((event) => event.note.start === 1 && event.sourceNoteIds.length === 0)).toBe(false);
+    expect(result.melody.map((item) => item.start)).toEqual([0, 3]);
+  });
+
+  it("does not blanket-mute supported harmonic backing during a melody rest", () => {
+    const result = buildMelodyAccompaniment([
+      note(72, 0, 0.5, 100, "R"),
+      note(74, 3, 0.5, 100, "R"),
+    ], [{ ...chord(0, "C", 4), sourceKind: "authored" }], {
+      durationBeats: 4,
+      selection: "right-hand",
+      sourceFingerprint: "melody-rest-generated-backing-v1",
+      sparseBackingTiming: { timeSig: [4, 4], measureStartBeat: 0, provenance: "source-measure-boundary" },
+    });
+
+    expect(result.melody.some((item) => item.start > 0.5 && item.start < 3)).toBe(false);
+    expect(result.events.some((event) => event.role === "accompaniment"
+      && event.sourceNoteIds.length === 0
+      && event.note.start === 2)).toBe(true);
+  });
+
+  it("preserves a source rest when a repeated sparse span is regenerated", () => {
+    const source = [
+      note(72, 0, 0.5, 100, "R"),
+      note(74, 3.5, 0.5, 100, "R"),
+      note(36, 0, 0.2, 60, "L"), note(40, 0, 0.2, 58, "L"), note(43, 0, 0.2, 58, "L"),
+      note(40, 0.25, 0.2, 58, "L"), note(43, 0.25, 0.2, 58, "L"),
+      note(40, 0.5, 0.2, 58, "L"), note(43, 0.5, 0.2, 58, "L"),
+      note(40, 0.75, 0.2, 58, "L"), note(43, 0.75, 0.2, 58, "L"),
+      { ...note(55, 1, 0.25, 64, "L"), identitySource: "vocals" as const },
+      note(40, 3, 0.2, 58, "L"), note(43, 3, 0.2, 58, "L"), note(46, 3, 0.2, 58, "L"),
+      note(40, 3.25, 0.2, 58, "L"), note(43, 3.25, 0.2, 58, "L"),
+      note(40, 3.5, 0.2, 58, "L"), note(43, 3.5, 0.2, 58, "L"),
+      note(40, 3.75, 0.2, 58, "L"), note(43, 3.75, 0.2, 58, "L"),
+    ];
+    const result = buildMelodyAccompaniment(source, [
+      { ...chord(0, "C", 2), sourceKind: "authored" },
+      { ...chord(2, "C", 2), sourceKind: "authored" },
+    ], {
+      durationBeats: 4,
+      selection: "right-hand",
+      sourceFingerprint: "repeated-sparse-source-rest-v1",
+      sparseBackingTiming: { timeSig: [2, 4], measureStartBeat: 0, provenance: "source-measure-boundary" },
+    });
+    const generatedStarts = [...new Set(result.events
+      .filter((event) => event.role === "accompaniment" && event.sourceNoteIds.length === 0)
+      .map((event) => event.note.start))];
+
+    expect(result.provenance.supportModes).toContain("sparse-harmonic");
+    expect(generatedStarts).toContain(3);
+    expect(generatedStarts).not.toContain(2);
   });
 
   it("keeps a simple source phrase unchanged without a generated-note quota or review claim", () => {

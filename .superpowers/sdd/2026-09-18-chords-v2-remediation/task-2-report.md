@@ -1,61 +1,57 @@
 # Task 2 report — coherent phrase backing strategy
 
 Date: 2026-09-18
-Base: `e739cf7`
+Base: `56f40d5`
 Scope: Task 2 only; no UI, catalogue, live data, merge, push, deployment, or production mutation.
 
 ## Result
 
-Status: DONE for the bounded producer selector. The implementation now compares a source-rhythm reduction with a sparse harmonic candidate only when the chord evidence is allowed and validated source-measure phase is available. Empty-source sparse generation keeps its existing boundary behavior. The final Task 1 allocator remains the only final allocation pass.
+Status: OPEN. The bounded producer selector correction is implemented and tested: it compares the actual merged source/protected/held candidate, protects only explicit `identitySource` evidence, carries protection across repeated sparse seams, and preserves source rests during regeneration. The Oops real-song rhythm limitation remains unresolved at `479/479`; no generated-only real change is claimed. The final Task 1 allocator remains the only final allocation pass.
 
 ## TDD evidence
 
 ### RED
 
-After adding the final focused strategy tests, before the producer change:
+Fresh red run after adding the correction-focused identity, merged-candidate, seam, and rest tests, before the correction:
 
 ```text
 Test Files  1 failed (1)
-Tests       2 failed | 70 passed (72)
+Tests       2 failed | 72 passed (74)
 ```
 
-The expected failures were the authored dense phrase not selecting sparse harmonic backing and the simple unchanged phrase still reporting `already-simple`. The generated-only label-only test was already covered by the existing fail-closed path and remained green in that red run; it was retained as a regression for the no-synthesis boundary.
-
-An earlier first run of the three tests failed 3/72, including the initial generated-only fixture shape; that fixture was tightened to contain four-note source stacks so its source reduction assertion tests the intended behavior.
+The failures were the merged sparse candidate still selecting `sparse-harmonic` when retained protected attacks made the attack union no better, and the seam test retaining a `sourceLane`-only note. The generated-only label-only path stayed green. The follow-up added the multi-event held/protected seam and source-rest regressions.
 
 ### GREEN
 
-Focused producer tests:
+Focused producer and arrangement-change tests:
 
 ```text
-PATH=/Users/reidar/.nvm/versions/node/v22.22.3/bin:$PATH \
-  npm run test -w @keyspilli/player-core -- test/melody-accompaniment.test.ts
-Test Files  1 passed (1)
-Tests       72 passed (72)
+pnpm exec vitest run packages/player-core/test/melody-accompaniment.test.ts packages/player-core/test/arrangement-change.test.ts
+Test Files  2 passed (2)
+Tests       81 passed (81)
 ```
 
 Full player-core suite:
 
 ```text
-PATH=/Users/reidar/.nvm/versions/node/v22.22.3/bin:$PATH \
-  npm run test -w @keyspilli/player-core
+pnpm exec vitest run packages/player-core
 Test Files  15 passed (15)
-Tests       245 passed (245)
+Tests       248 passed (248)
 ```
 
 Typecheck:
 
 ```text
-PATH=/Users/reidar/.nvm/versions/node/v22.22.3/bin:$PATH \
-  npm run typecheck -w @keyspilli/player-core
+pnpm --filter @keyspilli/player-core exec tsc --noEmit
 exit 0
 ```
 
 ## Producer change
 
 - Sparse comparison is bounded to supported harmonic events with `source-measure-boundary` phase when source support exists; no pulse library, generated-note quota, or second producer was added.
-- The sparse candidate wins only when it reduces attack locations without dropping the first source attack, explicit source-lane/voice anchors, or protected melody, and does not have a worse bounded per-hand sounding penalty. Generated duplicates at preserved source pitches are filtered before the final allocator.
-- Sparse phase continues across adjacent equivalent chord events through the existing prior-voicing/sparse-key state.
+- The sparse candidate wins only when the merged candidate strictly reduces attack locations, with occupancy and bounded per-hand sounding penalty measured over retained/protected/held notes. Generated duplicates at preserved source pitches are filtered before the final allocator.
+- Protection is limited to explicit `identitySource` evidence; `sourceLane` remains available metadata, not reviewed hook identity. There is no first-attack or generated-note quota heuristic.
+- Sparse phase continues across adjacent equivalent chord events while carrying protected notes and source-rest boundaries through the regenerated candidate.
 - `strategy: "harmonic-backing"` takes precedence when generated backing is actually rendered; unchanged phrases now use neutral `reasons: []` instead of treating exact equality as musical success.
 - Notes-derived/generated-only harmony remains label-only under `harmonicSupport: "authored-only"`; its source reduction can still reduce dense source stacks, but it cannot synthesize support.
 
@@ -65,11 +61,11 @@ The exact current-head reproduction was run with Node 22:
 
 ```sh
 PATH=/Users/reidar/.nvm/versions/node/v22.22.3/bin:$PATH \
-  npm exec --no -- tsx \
+  node_modules/.bin/tsx \
   docs/superpowers/evidence/2026-09-18-pr100-chords-v2-skeptical-audit-reproduce.ts
 ```
 
-The reproduction now emits the complete `finalBackingStream`, the complete source backing stream, every final attack location with source/generated lineage, and a comparison with the preserved historical JSON. The historical JSON and Task 1 checkpoint attribution were not changed.
+The reproduction now emits the complete `finalBackingStream`, the complete source backing stream, every final attack location with source/generated lineage, candidate-kind attribution, and source identity attribution. The historical JSON and Task 1 checkpoint attribution were not changed.
 
 | Fixture | Final notes | Source support | Generated | Max attacks/measure | Final backing events | Final/source attack locations | Added locations vs source |
 |---|---:|---:|---:|---:|---:|---:|---:|
@@ -80,16 +76,20 @@ The reproduction now emits the complete `finalBackingStream`, the complete sourc
 Oops `[64,108]` exact current result:
 
 - Final accompaniment support: `119` notes, `76` attack locations.
+- Full final backing stream: `151` events in the window (`119` source-rhythm/protected accompaniment events plus `32` retained-source events), with the same `76` attack locations.
 - Source backing in the same window: `241` notes, `76` attack locations.
 - The final attack-location list is exactly the source-location list: `64, 64.5, 65, 65.5, 66, 66.5, 67, 67.5, 68, 68.5, 69, 69.5, 70, 70.5, 71, 71.5, 72, 72.5, 73, 73.5, 74, 74.5, 75, 75.5, 77.5, 80, 80.5, 81, 81.5, 82, 82.5, 83, 83.5, 84, 84.5, 85, 85.5, 86, 86.5, 87, 87.5, 88, 88.5, 89, 89.5, 90, 90.5, 91, 91.5, 92, 92.5, 93, 93.5, 94, 94.5, 94.875, 95, 95.5, 96, 96.5, 97, 97.5, 98, 98.5, 99, 99.5, 99.75, 100, 100.5, 101, 101.5, 101.75, 102, 102.5, 103, 103.5, 104, 104.5, 105, 105.5, 105.875, 106, 106.5, 107, 107.5`.
 
-The preserved historical baseline was `84` notes / `55` attack locations in this window, `466` source-support notes, and maximum `8` attacks/measure. The current deltas are `+35` window support notes, `+21` window attack locations, `+135` source-support notes, and `+6` maximum attacks/measure. The current full stream explains the increase structurally: all `850/850` final backing events are source-linked, `0` are generated, and `249` are retained-unclassified source events. No current final attack location is newly synthesized, and no density increase is accepted through a generated-note quota.
+The preserved historical baseline was `84` notes / `55` attack locations in this window, `466` source-support notes, and maximum `8` attacks/measure. The current deltas are `+35` window support notes, `+21` window attack locations, `+135` source-support notes, and `+6` maximum attacks/measure. The current full stream explains the increase structurally: all `850/850` final backing events are source-linked, `0` are generated, and `249` are retained-unclassified source events. Candidate/identity attribution is explicit: `601` events are `source-rhythm-or-protected`, `249` are `retained-source`, every source identity is `unannotated`, and there are `0` `sparse-harmonic-generated` events. In `[64,108]`, the full stream contains `119` source-rhythm/protected events and `32` retained-source events; the attack union remains the source union. No current final attack location is newly synthesized, and no density increase is accepted through a generated-note quota.
 
 This is an identity/stream accounting result, not a claim that Oops is musically useful or human-playable. The historical artifact preserves aggregate metrics rather than its full old event lineage, so the exact old-to-new identity mapping is not claimed.
 
+The corrected selector and seam/rest behavior are mechanism-level results from synthetic authored-chart fixtures. The exact real controls still use notes-derived/generated chord labels under `harmonicSupport: "authored-only"`, so they do not receive synthesized harmonic backing.
+
 ## Concerns and non-claims
 
-- The authored synthetic test demonstrates the selector and preserves a source bass/hook; it is not a real-song acceptance result.
+- The authored synthetic tests demonstrate merged-candidate selection, explicit-identity preservation, seam carry, and source-rest handling; they are not a real-song acceptance result.
+- A supported melody rest keeps generated backing active; source rests suppress only sparse attacks that would fill a source-timing gap, and do not mute backing because the melody is resting.
 - The real Blackbird/Oops/Hell controls use generated/notes-derived chord labels under the authored-only policy, so they remain source-reduction/fallback paths with zero generated backing. The authored-only synthetic winner is not a fix claim for actual Oops.
 - No human listening, pedal-on acceptance, fingering review, global voice-leading, UI correction flow, catalogue mutation, deployment, merge, or live verification was performed.
 
@@ -99,3 +99,4 @@ This is an identity/stream accounting result, not a claim that Oops is musically
 - `packages/player-core/test/melody-accompaniment.test.ts`
 - `docs/superpowers/evidence/2026-09-18-pr100-chords-v2-skeptical-audit-reproduce.ts`
 - `.superpowers/sdd/2026-09-18-chords-v2-remediation/task-2-report.md`
+- `docs/superpowers/evidence/2026-09-18-chords-v2-task-2-checkpoint.md`

@@ -1478,14 +1478,113 @@ function protectedSupportSourceIndices(
     .sort((a, b) => a.note.start - b.note.start || a.note.midi - b.note.midi || a.sourceIndex - b.sourceIndex)[0];
   if (firstAttack) protectedIndices.add(firstAttack.sourceIndex);
   for (const { note, sourceIndex } of sourceSupport) {
-    if (note.sourceLane !== undefined || note.identitySource === "vocals") protectedIndices.add(sourceIndex);
+    if (note.identitySource === "vocals") protectedIndices.add(sourceIndex);
   }
   return protectedIndices;
+}
+
+function sameCandidateAttack(left: Note, right: Note): boolean {
+  return left.midi === right.midi && Math.abs(left.start - right.start) <= EPSILON;
+}
+
+function mergeCandidateNotes(
+  retained: readonly Note[],
+  generated: readonly Note[],
+): Note[] {
+  const merged: Note[] = [];
+  for (const note of [...retained, ...generated]) {
+    if (!playableSourceNote(note) || merged.some((existing) => sameCandidateAttack(existing, note))) continue;
+    merged.push(note);
+  }
+  return merged;
+}
+
+interface MergedSparseCandidate {
+  merged: Note[];
+  generated: Note[];
+}
+
+function buildMergedSparseCandidate(
+  sparseNotes: readonly Note[],
+  protectedNotes: readonly Note[],
+): MergedSparseCandidate {
+  const merged = mergeCandidateNotes(protectedNotes, sparseNotes);
+  return {
+    merged,
+    generated: merged.filter((note) => !protectedNotes.some((preserved) => sameCandidateAttack(preserved, note))),
+  };
+}
+
+function sourceRestSpans(
+  sourceSupport: readonly Note[],
+  startBeat: number,
+  endBeat: number,
+): Array<{ startBeat: number; endBeat: number }> {
+  if (sourceSupport.length === 0) return [];
+  const boundaries = new Set<number>([startBeat, endBeat]);
+  for (const note of sourceSupport) {
+    if (!overlaps(note, startBeat, endBeat)) continue;
+    boundaries.add(Math.max(startBeat, note.start));
+    boundaries.add(Math.min(endBeat, noteEnd(note)));
+  }
+  const sorted = [...boundaries].sort((a, b) => a - b);
+  const rests: Array<{ startBeat: number; endBeat: number }> = [];
+  for (let index = 0; index < sorted.length - 1; index++) {
+    const restStart = sorted[index]!;
+    const restEnd = sorted[index + 1]!;
+    if (restEnd <= restStart + EPSILON) continue;
+    const midpoint = (restStart + restEnd) / 2;
+    if (!sourceSupport.some((note) => overlaps(note, midpoint, midpoint + EPSILON))) {
+      rests.push({ startBeat: restStart, endBeat: restEnd });
+    }
+  }
+  return rests;
+}
+
+function preserveSourceRests(
+  sparseNotes: readonly Note[],
+  sourceSupport: readonly Note[],
+  startBeat: number,
+  endBeat: number,
+): Note[] {
+  const rests = sourceRestSpans(sourceSupport, startBeat, endBeat);
+  if (rests.length === 0) return [...sparseNotes];
+  return sparseNotes.filter((note) => !rests.some((rest) =>
+    note.start >= rest.startBeat - EPSILON && note.start < rest.endBeat - EPSILON));
 }
 
 function firstAttackPitches(notes: readonly Note[]): number[] {
   const firstStart = Math.min(...notes.map((note) => note.start));
   return notes.filter((note) => Math.abs(note.start - firstStart) <= EPSILON).map((note) => note.midi);
+}
+
+function candidateNotesInSpan(
+  notes: readonly Note[],
+  startBeat: number,
+  endBeat: number,
+): Note[] {
+  return notes.filter((note) => overlaps(note, startBeat, endBeat));
+}
+
+function candidateAttackPitches(
+  notes: readonly Note[],
+  startBeat: number,
+  endBeat: number,
+): number[] {
+  const attacks = notes.filter((note) => note.start >= startBeat - EPSILON && note.start < endBeat - EPSILON);
+  return attacks.length ? firstAttackPitches(attacks) : [];
+}
+
+function candidateOccupancy(
+  notes: readonly Note[],
+  startBeat: number,
+  endBeat: number,
+): number {
+  return notes.reduce((total, note) => {
+    const overlapStart = Math.max(startBeat, note.start);
+    const overlapEnd = Math.min(endBeat, noteEnd(note));
+    return total + Math.max(0, overlapEnd - overlapStart);
+  }, 0);
 }
 
 function supportAllocationPenalty(
@@ -1521,31 +1620,31 @@ function supportAllocationPenalty(
 }
 
 function shouldPreferSparseSupport(
-  reducedSupport: readonly ReducedSourceSupport[],
-  sparseSupport: readonly Note[],
-  protectedSourceIndices: ReadonlySet<number>,
-  sourceSupport: readonly { note: Note; sourceIndex: number }[],
+  sourceCandidate: readonly Note[],
+  sparseCandidate: readonly Note[],
   melody: readonly Note[],
   startBeat: number,
   endBeat: number,
   previousVoicing: readonly number[] | null,
 ): boolean {
-  if (!reducedSupport.length || !sparseSupport.length) return false;
-  const sourceAttacks = new Set(reducedSupport.map(({ note }) => note.start)).size;
-  const sparseAttacks = new Set(sparseSupport.map((note) => note.start)).size;
-  const protectedAttacks = new Set(sourceSupport
-    .filter(({ sourceIndex, note }) => protectedSourceIndices.has(sourceIndex) && playableSourceNote(note))
-    .map(({ note }) => note.start)).size;
-  const sourcePenalty = supportAllocationPenalty(reducedSupport.map(({ note }) => note), melody, startBeat, endBeat);
-  const sparsePenalty = supportAllocationPenalty(sparseSupport, melody, startBeat, endBeat);
+  const sourceNotes = candidateNotesInSpan(sourceCandidate, startBeat, endBeat);
+  const sparseNotes = candidateNotesInSpan(sparseCandidate, startBeat, endBeat);
+  if (!sourceNotes.length || !sparseNotes.length) return false;
+  const sourceAttacks = new Set(sourceNotes
+    .filter((note) => note.start >= startBeat - EPSILON && note.start < endBeat - EPSILON)
+    .map((note) => note.start)).size;
+  const sparseAttacks = new Set(sparseNotes
+    .filter((note) => note.start >= startBeat - EPSILON && note.start < endBeat - EPSILON)
+    .map((note) => note.start)).size;
+  const sourcePenalty = supportAllocationPenalty(sourceCandidate, melody, startBeat, endBeat);
+  const sparsePenalty = supportAllocationPenalty(sparseCandidate, melody, startBeat, endBeat);
   if (sparsePenalty > sourcePenalty) return false;
-  if (sparseAttacks < protectedAttacks) return false;
   if (sparseAttacks < sourceAttacks) return true;
-  if (sparseAttacks > sourceAttacks || sparseSupport.length > reducedSupport.length) return false;
-  if (sparseSupport.length < reducedSupport.length) return true;
+  if (sparseAttacks > sourceAttacks
+    || candidateOccupancy(sparseCandidate, startBeat, endBeat) >= candidateOccupancy(sourceCandidate, startBeat, endBeat)) return false;
   if (!previousVoicing) return false;
-  return voicingScore(firstAttackPitches(sparseSupport), previousVoicing)
-    < voicingScore(reducedSupport.filter(({ note }) => note.start === reducedSupport[0]!.note.start).map(({ note }) => note.midi), previousVoicing);
+  return voicingScore(candidateAttackPitches(sparseCandidate, startBeat, endBeat), previousVoicing)
+    < voicingScore(candidateAttackPitches(sourceCandidate, startBeat, endBeat), previousVoicing);
 }
 
 function shellIntervals(intervals: readonly number[]): number[] | null {
@@ -1675,6 +1774,7 @@ export function buildMelodyAccompaniment(
   let previousSparseStart = -Infinity;
   let previousSparseEnd = -Infinity;
   let previousSparseGeneratedIndex = -1;
+  let previousSparseProtectedNotes: Note[] = [];
   let previousLearningVoicing: number[] | null = null;
   for (const event of events.flatMap((item) => splitEventAtReviewSpans(item, selected.unresolvedSpans))) {
     const unresolved = selected.unresolvedSpans.find((span) =>
@@ -1683,6 +1783,7 @@ export function buildMelodyAccompaniment(
     if (unresolved) {
       previousSparseKey = null;
       previousSparseStart = -Infinity;
+      previousSparseProtectedNotes = [];
       previousLearningVoicing = null;
       supportModes.add("fallback");
       fallbackEvents.push({
@@ -1708,19 +1809,44 @@ export function buildMelodyAccompaniment(
       : null;
     const notes: number[] | null = learning?.notes ?? null;
     const protectedSourceIndices = protectedSupportSourceIndices(sourceSupport);
-    const sparseCandidate = notes
-      ? sparseHarmonicSupportNotes(notes, event.startBeat, event.endBeat, options.sparseBackingTiming)
+    const protectedNotes = sourceSupport
+      .filter(({ sourceIndex }) => protectedSourceIndices.has(sourceIndex))
+      .map(({ note }) => accompanimentNote(note));
+    const sparseKey = notes?.join(",") ?? null;
+    const repeatedSparseSpan = sparseKey !== null
+      && sparseKey === previousSparseKey
+      && event.startBeat <= previousSparseEnd + EPSILON;
+    const sparseSpanStart = repeatedSparseSpan ? previousSparseStart : event.startBeat;
+    const carriedProtectedNotes = repeatedSparseSpan
+      ? mergeCandidateNotes(previousSparseProtectedNotes, protectedNotes)
+      : protectedNotes;
+    const sparseSourceSupport = sourceNotes
+      .map((note, sourceIndex) => ({ note, sourceIndex }))
+      .filter(({ note, sourceIndex }) => !selected.selectedIndices.has(sourceIndex)
+        && playableSourceNote(note)
+        && overlaps(note, sparseSpanStart, event.endBeat))
+      .map(({ note }) => note);
+    const sparseRawCandidate = notes
+      ? preserveSourceRests(
+        sparseHarmonicSupportNotes(notes, sparseSpanStart, event.endBeat, options.sparseBackingTiming),
+        sparseSourceSupport,
+        sparseSpanStart,
+        event.endBeat,
+      )
       : [];
+    const mergedSparseCandidate = buildMergedSparseCandidate(sparseRawCandidate, carriedProtectedNotes);
+    const sourceCandidate = mergeCandidateNotes(
+      protectedNotes,
+      reducedSupport.map(({ note }) => note),
+    );
     const sparsePhaseValidated = options.sparseBackingTiming?.provenance === "source-measure-boundary";
     const preferSparse = notes !== null
-      && sparseCandidate.length > 0
+      && sparseRawCandidate.length > 0
       && (sourceSupport.length === 0 || (sparsePhaseValidated && (
         reducedSupport.length === 0
         || shouldPreferSparseSupport(
-          reducedSupport,
-          sparseCandidate,
-          protectedSourceIndices,
-          sourceSupport,
+          sourceCandidate,
+          mergedSparseCandidate.merged,
           selected.melody,
           event.startBeat,
           event.endBeat,
@@ -1729,6 +1855,7 @@ export function buildMelodyAccompaniment(
     if (!notes && sourceSupport.length === 0) {
       previousSparseKey = null;
       previousSparseStart = -Infinity;
+      previousSparseProtectedNotes = [];
       previousLearningVoicing = null;
       supportModes.add("fallback");
       fallbackEvents.push({
@@ -1744,6 +1871,7 @@ export function buildMelodyAccompaniment(
       if (!preferSparse) {
         previousSparseKey = null;
         previousSparseStart = -Infinity;
+        previousSparseProtectedNotes = [];
         supportModes.add("source-rhythm");
       } else {
         supportModes.add("sparse-harmonic");
@@ -1764,6 +1892,7 @@ export function buildMelodyAccompaniment(
     if (!notes) {
       previousSparseKey = null;
       previousSparseStart = -Infinity;
+      previousSparseProtectedNotes = [];
       previousLearningVoicing = null;
       if (event.harmonicSupportAllowed || reducedSupport.length === 0) {
         supportModes.add("fallback");
@@ -1790,30 +1919,17 @@ export function buildMelodyAccompaniment(
     if (sourceSupport.length === 0 || reducedSupport.length === 0 || preferSparse) chordCovered.push(replacementInterval);
     if (preferSparse) {
       supportModes.add("sparse-harmonic");
-      const sparseKey = notes.join(",");
-      const repeated = sparseKey === previousSparseKey && event.startBeat <= previousSparseEnd + EPSILON;
-      const protectedNotes = sourceSupport
-        .filter(({ sourceIndex }) => protectedSourceIndices.has(sourceIndex))
-        .map(({ note }) => note);
-      const sparseNotes = sparseCandidate.filter((candidate) => !protectedNotes.some((preserved) =>
-        preserved.midi === candidate.midi && Math.abs(preserved.start - candidate.start) <= EPSILON));
-      if (!repeated) {
+      if (!repeatedSparseSpan) {
         previousSparseStart = event.startBeat;
         previousSparseGeneratedIndex = generatedSupportNotes.length;
-        generatedSupportNotes.push(...sparseNotes);
+        generatedSupportNotes.push(...mergedSparseCandidate.generated);
       } else {
         generatedSupportNotes.splice(previousSparseGeneratedIndex);
-        const extendedSparseNotes = sparseHarmonicSupportNotes(
-          notes,
-          previousSparseStart,
-          event.endBeat,
-          options.sparseBackingTiming,
-        ).filter((candidate) => !protectedNotes.some((preserved) =>
-          preserved.midi === candidate.midi && Math.abs(preserved.start - candidate.start) <= EPSILON));
-        generatedSupportNotes.push(...extendedSparseNotes);
+        generatedSupportNotes.push(...mergedSparseCandidate.generated);
       }
       previousSparseKey = sparseKey;
       previousSparseEnd = event.endBeat;
+      previousSparseProtectedNotes = carriedProtectedNotes;
     }
   }
 

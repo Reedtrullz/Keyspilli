@@ -70,6 +70,15 @@ const results = fixtures.map(({ id, path }) => {
     sourceNoteId: ids[index]!,
     note,
   }]);
+  const sourceById = new Map(ids.map((sourceId, index) => [sourceId, data.notes[index]!]))
+  const candidateKind = (event: (typeof finalBackingEvents)[number]): string => event.sourceNoteIds.length === 0
+    ? "sparse-harmonic-generated"
+    : event.role === "retained-unclassified"
+      ? "retained-source"
+      : "source-rhythm-or-protected";
+  const identitySources = (event: (typeof finalBackingEvents)[number]): string[] => [...new Set(
+    event.sourceNoteIds.map((sourceId) => sourceById.get(sourceId)?.identitySource ?? "unannotated"),
+  )];
   const backingAttackProvenance = attackLocations(finalBackingEvents.map((event) => event.note)).map((startBeat) => {
     const events = finalBackingEvents.filter((event) => event.note.start === startBeat);
     return {
@@ -77,15 +86,26 @@ const results = fixtures.map(({ id, path }) => {
       sourceNoteIds: [...new Set(events.flatMap((event) => event.sourceNoteIds))],
       eventIds: events.map((event) => event.id),
       generatedEventCount: events.filter((event) => event.sourceNoteIds.length === 0).length,
+      candidateKinds: [...new Set(events.map(candidateKind))],
+      identitySources: [...new Set(events.flatMap(identitySources))],
     };
   });
+  const densityAttribution = Object.fromEntries(
+    [...new Set(finalBackingEvents.map(candidateKind))].map((kind) => {
+      const events = finalBackingEvents.filter((event) => candidateKind(event) === kind);
+      return [kind, {
+        events: events.length,
+        notes: events.length,
+        attackLocations: attackLocations(events.map((event) => event.note)).length,
+      }];
+    }),
+  );
   const sourceBackingAttackLocations = attackLocations(sourceBackingStream.map(({ note }) => note));
   const addedBackingAttackLocations = backingAttackProvenance.filter(({ startBeat }) => !sourceBackingAttackLocations.includes(startBeat));
   if (addedBackingAttackLocations.some(({ sourceNoteIds, generatedEventCount }) => sourceNoteIds.length === 0 && generatedEventCount === 0)) {
     throw new Error(`${id}: backing attack has no source or generated lineage`);
   }
   const historical = historicalResults.results.find((item) => item.id === id);
-  const sourceById = new Map(ids.map((sourceId, index) => [sourceId, data.notes[index]!]))
   const highSupport = supportEvents
     .filter((event) => event.note.midi >= 79)
     .sort((a, b) => b.note.midi - a.note.midi || a.note.start - b.note.start)
@@ -150,6 +170,7 @@ const results = fixtures.map(({ id, path }) => {
     sourceBackingAttackLocations,
     addedBackingAttackLocations,
     backingAttackProvenance,
+    densityAttribution,
     lineageSummary: {
       sourceLinkedFinalBackingEvents: finalBackingEvents.filter((event) => event.sourceNoteIds.length > 0).length,
       generatedFinalBackingEvents: finalBackingEvents.filter((event) => event.sourceNoteIds.length === 0).length,
