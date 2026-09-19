@@ -1,8 +1,8 @@
 # Frozen `8cd09a3` preview-lifecycle review
 
-Date: 2026-09-19 15:52–16:00  
-Exact head: `8cd09a38e2bd1d47fd88f198d817fe2d4037613e`  
-Reviewed delta: `8cbdf74bd9b9ba18e29379774610c0e401c13a32..8cd09a38e2bd1d47fd88f198d817fe2d4037613e`  
+Date: 2026-09-19 15:52–16:00
+Exact head: `8cd09a38e2bd1d47fd88f198d817fe2d4037613e`
+Reviewed delta: `8cbdf74bd9b9ba18e29379774610c0e401c13a32..8cd09a38e2bd1d47fd88f198d817fe2d4037613e`
 Scope: bounded read-only engineering review; no runtime, catalog, deploy, or source-data mutation.
 
 ## Accepted P1 reproduction
