@@ -18,7 +18,7 @@ import {
   type SongRow,
 } from "@keyspilli/catalog";
 import { chordToNotes, validateArtifactFiles, type ChordLabel, type Variant } from "@keyspilli/midi";
-import { completeChordDurations, detectSections, validateSparseBackingTiming, type ChordSourceBundle, type ChordSourceTimeline, type SongData } from "@keyspilli/player-core";
+import { completeChordDurations, detectSections, playbackTiming, validatePlaybackData, validateSparseBackingTiming, type ChordSourceBundle, type ChordSourceTimeline, type SongData } from "@keyspilli/player-core";
 
 type LoadedChordTimeline = NonNullable<Awaited<ReturnType<typeof loadChordTimeline>>>;
 type PlayerChord = Omit<ChordLabel, "sourceKind" | "inferred" | "inferenceType" | "durationBeats"> & {
@@ -361,6 +361,10 @@ export async function loadSongArtifact(song: SongRow): Promise<{ data: SongData 
       artifact: unavailableArtifact([`missing or corrupt ${song.level}/notes.json`], manifest ?? undefined),
     };
   }
+  const playbackErrors = validatePlaybackData(stored);
+  if (playbackErrors.length > 0) {
+    return { data: null, artifact: unavailableArtifact(playbackErrors, manifest ?? undefined) };
+  }
 
   const tempo = resolveArtifactPlaybackTempo(manifest, stored.tempoBpm, song.tempo);
   if (tempo.status === "invalid") {
@@ -382,11 +386,14 @@ export async function loadSongArtifact(song: SongRow): Promise<{ data: SongData 
     ? `${notesFingerprint}:timing:${sourceTimingIdentityHash(manifestTiming)}`
     : notesFingerprint;
   const timingCandidate = manifestTiming ?? record(stored.sourceTiming);
-  const sourceTiming = validateSparseBackingTiming(
+  const validatedSourceTiming = validateSparseBackingTiming(
     timingCandidate,
     loadedSourceFingerprint,
     arrangementDurationBeats(stored),
   );
+  const sourceTiming = validatedSourceTiming
+    ? playbackTiming({ ...stored, sourceTiming: validatedSourceTiming })
+    : undefined;
   const { sourceTiming: _storedSourceTiming, ...storedWithoutTiming } = stored;
   const data = {
     ...storedWithoutTiming,

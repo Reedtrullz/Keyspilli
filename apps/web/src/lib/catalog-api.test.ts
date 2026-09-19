@@ -216,10 +216,25 @@ describe("catalog artifact manifest read boundary", () => {
     const notes = {
       notes: [{ midi: 60, start: 0, dur: 24, vel: 80, hand: "R" as const }],
       chords: [],
-      measures: [{ index: 0, startBeat: 0, endBeat: 24 }],
+      measures: [
+        { index: 0, startBeat: 0, endBeat: 2 },
+        { index: 1, startBeat: 2, endBeat: 4 },
+        { index: 2, startBeat: 4, endBeat: 6 },
+        { index: 3, startBeat: 6, endBeat: 8 },
+        { index: 4, startBeat: 8, endBeat: 10 },
+        { index: 5, startBeat: 10, endBeat: 12 },
+        { index: 6, startBeat: 12, endBeat: 15 },
+        { index: 7, startBeat: 15, endBeat: 18 },
+        { index: 8, startBeat: 18, endBeat: 21 },
+        { index: 9, startBeat: 21, endBeat: 24 },
+      ],
       key: "C",
       tempoBpm: 120,
       timeSig: [6, 8],
+      timeSigEvents: [
+        { tick: 0, beat: 0, timeSig: [2, 4] },
+        { tick: 5760, beat: 12, timeSig: [6, 8] },
+      ],
     };
     const notesContent = JSON.stringify(notes);
     manifest.sourceTiming = { [song().id]: bindSourceTiming(manifest, notesContent) };
@@ -308,6 +323,54 @@ describe("catalog artifact manifest read boundary", () => {
     expect(loaded.data).not.toHaveProperty("sourceTiming");
   });
 
+  it("drops source timing that conflicts with the canonical meter", async () => {
+    const manifest = createLegacyBootstrapManifest("catalog-api-song", 120);
+    manifest.sourceArtifactHash = "a".repeat(64);
+    const timing = {
+      timeSig: [4, 4] as [number, number],
+      measureStartBeat: 0,
+      provenance: "source-measure-boundary" as const,
+    };
+    const notes = {
+      notes: [{ midi: 60, start: 0, dur: 8, vel: 80 }],
+      chords: [],
+      measures: [
+        { index: 0, startBeat: 0, endBeat: 4 },
+        { index: 1, startBeat: 4, endBeat: 8 },
+      ],
+      key: "C",
+      tempoBpm: 120,
+      timeSig: [6, 8],
+    };
+    const notesContent = JSON.stringify(notes);
+    const notesHash = createHash("sha256").update(notesContent).digest("hex");
+    const timingHash = createHash("sha256").update(JSON.stringify(timing)).digest("hex");
+    manifest.sourceTiming = {
+      [song().id]: {
+        ...timing,
+        sourceFingerprint: `variant:${song().baseId}:${song().level}:${song().id}:${manifest.sourceArtifactHash}:notes:${notesHash}:timing:${timingHash}`,
+      },
+    };
+    await writeFile(join(dataRoot, "artifacts", "catalog-api-song", "a", "notes.json"), notesContent);
+    await writeArrangementManifestFile(arrangementManifestPath("catalog-api-song"), manifest);
+
+    expect((await loadSongArtifact(song(120))).data).not.toHaveProperty("sourceTiming");
+  });
+
+  it("rejects malformed note timing and oversized durations at the loader boundary", async () => {
+    await writeFile(join(dataRoot, "artifacts", "catalog-api-song", "a", "notes.json"), JSON.stringify({
+      notes: [{ midi: 60, start: "0", dur: 1_000_000, vel: 80 }],
+      chords: [],
+      measures: [],
+      key: "C",
+      tempoBpm: 120,
+      timeSig: [4, 4],
+    }));
+    const loaded = await loadSongArtifact(song(120));
+    expect(loaded.data).toBeNull();
+    expect(loaded.artifact.status).toBe("unavailable");
+  });
+
   it("preserves meter declarations without promoting phase provenance", async () => {
     const manifest = createLegacyBootstrapManifest("catalog-api-song", 120);
     manifest.sourceArtifactHash = "a".repeat(64);
@@ -331,6 +394,33 @@ describe("catalog artifact manifest read boundary", () => {
       { tick: 5760, beat: 12, timeSig: [6, 8] },
     ]);
     expect(loaded.data).not.toHaveProperty("sourceTiming");
+  });
+
+  it("drops segmented sidecar timing when notes.json has no matching canonical events", async () => {
+    const manifest = createLegacyBootstrapManifest("catalog-api-song", 120);
+    manifest.sourceArtifactHash = "a".repeat(64);
+    const notes = {
+      notes: [],
+      chords: [],
+      measures: [
+        { index: 0, startBeat: 0, endBeat: 2 },
+        { index: 1, startBeat: 2, endBeat: 4 },
+        { index: 2, startBeat: 4, endBeat: 6 },
+        { index: 3, startBeat: 6, endBeat: 8 },
+        { index: 4, startBeat: 8, endBeat: 10 },
+        { index: 5, startBeat: 10, endBeat: 12 },
+        { index: 6, startBeat: 12, endBeat: 15 },
+      ],
+      key: "C",
+      tempoBpm: 120,
+      timeSig: [6, 8],
+    };
+    const notesContent = JSON.stringify(notes);
+    manifest.sourceTiming = { [song().id]: bindSourceTiming(manifest, notesContent) };
+    await writeFile(join(dataRoot, "artifacts", "catalog-api-song", "a", "notes.json"), notesContent);
+    await writeArrangementManifestFile(arrangementManifestPath("catalog-api-song"), manifest);
+
+    expect((await loadSongArtifact(song(120))).data).not.toHaveProperty("sourceTiming");
   });
 
   it("projects legacy MIDI-derived chords with generated provenance and duration metadata", async () => {
@@ -426,6 +516,44 @@ describe("catalog artifact export validation", () => {
 
     await expect(getArtifactFile(song().id, "variant.mid")).resolves.toBeNull();
     await expect(getArtifactFile(song().id, "variant.xml")).resolves.toBeNull();
+  });
+
+  it("serves exports when notes.json and rendered artifacts share meter events", async () => {
+    const dir = join(dataRoot, "artifacts", "catalog-api-song", "a");
+    const timeSigEvents = [
+      { tick: 0, beat: 0, timeSig: [2, 4] as [number, number] },
+      { tick: 1920, beat: 4, timeSig: [6, 8] as [number, number] },
+    ];
+    const measures = [
+      { index: 0, startBeat: 0, endBeat: 2 },
+      { index: 1, startBeat: 2, endBeat: 4 },
+      { index: 2, startBeat: 4, endBeat: 7 },
+    ];
+    await writeFile(join(dir, "notes.json"), JSON.stringify({
+      notes: exportNotes,
+      chords: [],
+      measures,
+      key: "C",
+      tempoBpm: 120,
+      timeSig: [6, 8],
+      timeSigEvents,
+    }));
+    await writeFile(join(dir, "variant.mid"), writeMidi(exportNotes, { tempoBpm: 120, timeSig: [6, 8], timeSigEvents }));
+    await writeFile(join(dir, "variant.xml"), writeMusicXml({
+      level: "beginner",
+      difficultyScore: 1,
+      notes: exportNotes,
+      chords: [],
+      measures,
+      bassPattern: "block",
+      key: "C",
+      tempoBpm: 120,
+      timeSig: [6, 8],
+      timeSigEvents,
+    }, "Catalog API Song", "Tester"));
+
+    await expect(getArtifactFile(song().id, "variant.mid")).resolves.toBeInstanceOf(Buffer);
+    await expect(getArtifactFile(song().id, "variant.xml")).resolves.toBeInstanceOf(Buffer);
   });
 
   it("blocks playback and cached exports while a publication needs reconciliation", async () => {

@@ -462,6 +462,42 @@ export function beatsPerMeasure(timeSig: [number, number]): number {
   return timeSig[0] * (4 / timeSig[1]);
 }
 
+// Keep loader and direct player callers on the same bounded work envelope as
+// the MIDI source pipeline. Invalid payloads fail closed before any fallback
+// array is allocated.
+export const MAX_PLAYBACK_NOTES = 100_000;
+export const MAX_PLAYBACK_MEASURES = 2_048;
+export const MAX_PLAYBACK_BEATS = 4_096;
+
+export function validatePlaybackData(
+  data: Pick<SongData, "notes" | "measures">,
+): string[] {
+  const errors: string[] = [];
+  if (!Array.isArray(data.notes)) errors.push("notes must be an array");
+  else if (data.notes.length > MAX_PLAYBACK_NOTES) errors.push(`notes exceed ${MAX_PLAYBACK_NOTES} events`);
+  else data.notes.forEach((note, index) => {
+    if (!note || typeof note !== "object"
+      || typeof note.start !== "number" || !Number.isFinite(note.start)
+      || typeof note.dur !== "number" || !Number.isFinite(note.dur)
+      || note.start < 0 || note.dur <= 0
+      || note.start + note.dur > MAX_PLAYBACK_BEATS) {
+      errors.push(`notes[${index}] has invalid timing`);
+    }
+  });
+  if (!Array.isArray(data.measures)) errors.push("measures must be an array");
+  else if (data.measures.length > MAX_PLAYBACK_MEASURES) errors.push(`measures exceed ${MAX_PLAYBACK_MEASURES} bars`);
+  else data.measures.forEach((measure, index) => {
+    if (!measure || typeof measure !== "object"
+      || typeof measure.startBeat !== "number" || !Number.isFinite(measure.startBeat)
+      || typeof measure.endBeat !== "number" || !Number.isFinite(measure.endBeat)
+      || measure.startBeat < 0 || measure.endBeat <= measure.startBeat
+      || measure.endBeat > MAX_PLAYBACK_BEATS) {
+      errors.push(`measures[${index}] has invalid timing`);
+    }
+  });
+  return errors;
+}
+
 /** Return the descriptive meter in force at a beat; this does not assert phase. */
 export function timeSignatureAtBeat(
   beat: number,
@@ -479,8 +515,10 @@ export function timeSignatureAtBeat(
 /** Build the scalar-meter map used when source measure phase is unknown. */
 export function arithmeticMeasures(durationBeats: number, timeSig: [number, number]): MeasureInfo[] {
   const width = beatsPerMeasure(timeSig);
-  if (!Number.isFinite(width) || width <= 0) return [];
-  const count = Math.max(1, Math.ceil(Math.max(0, durationBeats) / width));
+  if (!Number.isFinite(width) || width <= 0
+    || !Number.isFinite(durationBeats) || durationBeats < 0 || durationBeats > MAX_PLAYBACK_BEATS) return [];
+  const count = Math.max(1, Math.ceil(durationBeats / width));
+  if (count > MAX_PLAYBACK_MEASURES) return [];
   return Array.from({ length: count }, (_, index) => ({
     index,
     startBeat: index * width,
@@ -496,14 +534,25 @@ function measureBoundaryMatchesPhase(beat: number, phase: number, timeSig: reado
 }
 
 function sourceMeasuresMatchTiming(
-  data: Pick<SongData, "notes" | "measures">,
+  data: Pick<SongData, "notes" | "measures" | "timeSig" | "timeSigEvents">,
   timing: NonNullable<SongData["sourceTiming"]>,
 ): boolean {
   const measures = data.measures;
-  if (!measures.length) return false;
+  if (validatePlaybackData(data).length > 0 || !measures.length) return false;
+  if (timing.timeSig[0] !== data.timeSig[0] || timing.timeSig[1] !== data.timeSig[1]) return false;
+  const canonicalEvents = data.timeSigEvents?.length
+    ? data.timeSigEvents
+    : [{ beat: 0, timeSig: data.timeSig }];
   const events = timing.timeSigEvents?.length
     ? timing.timeSigEvents
     : [{ beat: timing.measureStartBeat, timeSig: timing.timeSig }];
+  if (canonicalEvents.length !== events.length
+    || canonicalEvents.some((event, index) => {
+      const candidate = events[index]!;
+      return event.beat !== candidate.beat
+        || event.timeSig[0] !== candidate.timeSig[0]
+        || event.timeSig[1] !== candidate.timeSig[1];
+    })) return false;
   const duration = Math.max(
     data.notes.reduce((max, note) => Math.max(max, note.start + note.dur), 0),
     measures.reduce((max, measure) => Math.max(max, measure.endBeat), 0),
@@ -532,7 +581,7 @@ function sourceMeasuresMatchTiming(
 
 /** Return source timing only when the stored measure map agrees with it. */
 export function playbackTiming(
-  data: Pick<SongData, "notes" | "measures" | "sourceTiming">,
+  data: Pick<SongData, "notes" | "measures" | "sourceTiming" | "timeSig" | "timeSigEvents">,
 ): SongData["sourceTiming"] {
   const timing = data.sourceTiming;
   if (timing?.provenance !== "source-measure-boundary"
@@ -544,8 +593,9 @@ export function playbackTiming(
 
 /** Use stored measure starts only when the catalog supplied validated phase. */
 export function playbackMeasures(
-  data: Pick<SongData, "notes" | "measures" | "timeSig" | "sourceTiming">,
+  data: Pick<SongData, "notes" | "measures" | "timeSig" | "timeSigEvents" | "sourceTiming">,
 ): MeasureInfo[] {
+  if (validatePlaybackData(data).length > 0) return [];
   if (playbackTiming(data)) return data.measures;
   const noteEnd = data.notes.reduce((max, note) => Number.isFinite(note.start + note.dur) ? Math.max(max, note.start + note.dur) : max, 0);
   const measureEnd = data.measures.reduce((max, measure) => Number.isFinite(measure.endBeat) ? Math.max(max, measure.endBeat) : max, 0);
