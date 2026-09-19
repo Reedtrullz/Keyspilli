@@ -21,6 +21,7 @@ import {
   loadSongPrefs,
   measureIndex,
   passageMidiRange,
+  playbackMeasures,
   resolveAccompaniment,
   resolveTimedNotes,
   sourceNoteIds,
@@ -460,6 +461,10 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     ),
     [initial.data.measures, initial.data.notes],
   );
+  const navigationMeasures = useMemo(
+    () => playbackMeasures({ ...initial.data, sourceTiming: sparseBackingTiming }),
+    [initial.data, sparseBackingTiming],
+  );
 
   const chordSources = useMemo(() => {
     const resolved = resolveChordSources(initial.data);
@@ -684,8 +689,8 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     initial.data.tempoBpm,
     settings.speed,
     initial.data.timeSig,
-    initial.data.measures.length,
-    initial.data.measures,
+    navigationMeasures.length,
+    navigationMeasures,
   );
   // Freeze chord-practice targets at session start: a seek changes the
   // current measure but must not silently discard accumulated progress.
@@ -693,11 +698,11 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   const chordPracticeTargets = useMemo(
     () => {
       if (chordPracticeActive && chordPracticeTargetsRef.current) return chordPracticeTargetsRef.current;
-      const next = buildChordPracticeTargets(selectPracticeChords(displayChords, initial.data.measures, currentMeasure), settings.transpose);
+      const next = buildChordPracticeTargets(selectPracticeChords(displayChords, navigationMeasures, currentMeasure), settings.transpose);
       chordPracticeTargetsRef.current = next;
       return next;
     },
-    [displayChords, initial.data.measures, currentMeasure, settings.transpose, chordPracticeActive],
+    [displayChords, navigationMeasures, currentMeasure, settings.transpose, chordPracticeActive],
   );
   // Playback applies transpose inside PlaybackEngine. Keep the visual chord
   // keys in the same transposed coordinate space as the falling notes without
@@ -738,7 +743,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       {
         tempoBpm: initial.data.tempoBpm,
         timeSig: initial.data.timeSig,
-        measureStarts: initial.data.measures.map((measure) => measure.startBeat),
+        measureStarts: navigationMeasures.map((measure) => measure.startBeat),
       },
       settings,
       audioChords,
@@ -1126,8 +1131,8 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
 
   function loopCurrentBars(count: number) {
     if (gradingRef.current) return;
-    const start = initial.data.measures[currentMeasure];
-    const end = initial.data.measures[Math.min(initial.data.measures.length - 1, currentMeasure + count - 1)];
+    const start = navigationMeasures[currentMeasure];
+    const end = navigationMeasures[Math.min(navigationMeasures.length - 1, currentMeasure + count - 1)];
     if (start && end) setLoopBeats({ startBeat: start.startBeat, endBeat: end.endBeat });
   }
 
@@ -1141,28 +1146,28 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   }
 
   function seekToMeasure(i: number) {
-    const m = initial.data.measures[i];
+    const m = navigationMeasures[i];
     if (m) seek(m.startBeat * secPerBeat(initial.data.tempoBpm, settings.speed));
   }
 
   function commitBar(input: HTMLInputElement) {
     const value = input.valueAsNumber;
-    if (Number.isInteger(value)) seekToMeasure(Math.max(0, Math.min(initial.data.measures.length - 1, value - 1)));
-    input.value = String(Number.isInteger(value) ? Math.max(1, Math.min(initial.data.measures.length, value)) : currentMeasure + 1);
+    if (Number.isInteger(value)) seekToMeasure(Math.max(0, Math.min(navigationMeasures.length - 1, value - 1)));
+    input.value = String(Number.isInteger(value) ? Math.max(1, Math.min(navigationMeasures.length, value)) : currentMeasure + 1);
   }
 
-  const loopStartBar = loopBeats ? Math.max(0, initial.data.measures.findIndex((m) => m.endBeat > loopBeats.startBeat)) + 1 : currentMeasure + 1;
-  const loopEndBar = loopBeats ? Math.max(0, initial.data.measures.findIndex((m) => m.endBeat >= loopBeats.endBeat)) + 1 : Math.min(initial.data.measures.length, currentMeasure + 4);
+  const loopStartBar = loopBeats ? Math.max(0, navigationMeasures.findIndex((m) => m.endBeat > loopBeats.startBeat)) + 1 : currentMeasure + 1;
+  const loopEndBar = loopBeats ? Math.max(0, navigationMeasures.findIndex((m) => m.endBeat >= loopBeats.endBeat)) + 1 : Math.min(navigationMeasures.length, currentMeasure + 4);
   function commitLoopBar(input: HTMLInputElement, anchor: "start" | "end") {
     if (gradingRef.current) return;
     const value = input.valueAsNumber;
     const start = anchor === "start" ? value : loopStartBar;
     const end = anchor === "end" ? value : loopEndBar;
-    if (!Number.isInteger(value) || start < 1 || end > initial.data.measures.length || start > end) {
+    if (!Number.isInteger(value) || start < 1 || end > navigationMeasures.length || start > end) {
       input.setCustomValidity("Choose whole bars with the end at or after the start."); input.reportValidity(); return;
     }
     input.setCustomValidity("");
-    setLoopBeats({ startBeat: initial.data.measures[start - 1]!.startBeat, endBeat: initial.data.measures[end - 1]!.endBeat });
+    setLoopBeats({ startBeat: navigationMeasures[start - 1]!.startBeat, endBeat: navigationMeasures[end - 1]!.endBeat });
   }
 
   function toggleFavorite() {
@@ -1652,7 +1657,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     <>
       {viewMode === "falling" && <ChordStrip chords={visualChords} currentBeat={currentBeat} />}
       {viewMode === "falling" && (
-        <FallingCanvas timeSig={initial.data.timeSig} measures={initial.data.measures} countIn={countIn} inputEnabled={!openTool && !showPracticeSetup && countIn === null && (!grading || practiceSetup.input === "keyboard")}
+        <FallingCanvas timeSig={initial.data.timeSig} measures={navigationMeasures} countIn={countIn} inputEnabled={!openTool && !showPracticeSetup && countIn === null && (!grading || practiceSetup.input === "keyboard")}
                 onKeyDown={(pointerId, midi) => handleNote(midi, true, "keyboard", `pointer:${pointerId}`)}
                 onKeyUp={pointerId => heldInputRef.current?.release(`pointer:${pointerId}`)} inputOctave={inputOctave} midiConnected={midiConnected} onResetOctave={() => keyboardInputRef.current?.setOctave(2)}
           notes={guidanceNotes}
@@ -1978,10 +1983,10 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
 
         <div className="player-timeline">          <div className="player-measure-controls flex items-center gap-1">
             <button disabled={grading || currentMeasure === 0} onClick={() => seekToMeasure(Math.max(0, currentMeasure - 1))} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Previous measure">‹</button>
-            <label className="flex items-center gap-1 text-xs">Bar <input key={currentMeasure} type="number" aria-label="Bar" min={1} max={initial.data.measures.length} step={1} defaultValue={currentMeasure + 1} disabled={grading}
+            <label className="flex items-center gap-1 text-xs">Bar <input key={currentMeasure} type="number" aria-label="Bar" min={1} max={navigationMeasures.length} step={1} defaultValue={currentMeasure + 1} disabled={grading}
               onBlur={(event) => commitBar(event.currentTarget)} onKeyDown={(event) => { if (event.key === "Enter") commitBar(event.currentTarget); }} /></label>
-            <span className="text-xs text-zinc-500">/ {initial.data.measures.length}</span>
-            <button disabled={grading || currentMeasure >= initial.data.measures.length - 1} onClick={() => seekToMeasure(Math.min(initial.data.measures.length - 1, currentMeasure + 1))} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Next measure">›</button>
+            <span className="text-xs text-zinc-500">/ {navigationMeasures.length}</span>
+            <button disabled={grading || currentMeasure >= navigationMeasures.length - 1} onClick={() => seekToMeasure(Math.min(navigationMeasures.length - 1, currentMeasure + 1))} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Next measure">›</button>
           </div>
           <output role="timer" aria-label="Elapsed time" className="ml-auto text-xs text-zinc-500 font-mono tabular-nums text-right select-none flex items-center gap-1.5">
             <span>{fmtTime(time)}</span>
@@ -1996,8 +2001,8 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
               <button disabled={grading} onClick={() => loopCurrentBars(1)} className="min-h-11 rounded-lg border border-zinc-300 px-3">Loop current bar</button>
               <button disabled={grading} onClick={() => loopCurrentBars(4)} className="min-h-11 rounded-lg border border-zinc-300 px-3">Loop next 4 bars</button>
             </div>
-            <label>Start bar <input key={`start-${loopStartBar}`} type="number" aria-label="Loop start bar" min={1} max={initial.data.measures.length} defaultValue={loopStartBar} disabled={grading} onBlur={(e) => commitLoopBar(e.currentTarget, "start")} onKeyDown={(e) => { if (e.key === "Enter") commitLoopBar(e.currentTarget, "start"); }} /></label>
-            <label>End bar <input key={`end-${loopEndBar}`} type="number" aria-label="Loop end bar" min={1} max={initial.data.measures.length} defaultValue={loopEndBar} disabled={grading} onBlur={(e) => commitLoopBar(e.currentTarget, "end")} onKeyDown={(e) => { if (e.key === "Enter") commitLoopBar(e.currentTarget, "end"); }} /></label>
+            <label>Start bar <input key={`start-${loopStartBar}`} type="number" aria-label="Loop start bar" min={1} max={navigationMeasures.length} defaultValue={loopStartBar} disabled={grading} onBlur={(e) => commitLoopBar(e.currentTarget, "start")} onKeyDown={(e) => { if (e.key === "Enter") commitLoopBar(e.currentTarget, "start"); }} /></label>
+            <label>End bar <input key={`end-${loopEndBar}`} type="number" aria-label="Loop end bar" min={1} max={navigationMeasures.length} defaultValue={loopEndBar} disabled={grading} onBlur={(e) => commitLoopBar(e.currentTarget, "end")} onKeyDown={(e) => { if (e.key === "Enter") commitLoopBar(e.currentTarget, "end"); }} /></label>
             <button disabled={grading} onClick={toggleLoop} className="min-h-11 rounded-lg border border-zinc-300 px-3">{loop ? "Clear loop" : "Enable loop"}</button>
           </div>
         </details></div>
@@ -2019,7 +2024,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
             }}
             disabled={!engineReady || grading}
             aria-label="Seek"
-            aria-valuetext={`Bar ${currentMeasure + 1} of ${initial.data.measures.length}, ${fmtTime(time)} of ${fmtTime(duration)}`}
+            aria-valuetext={`Bar ${currentMeasure + 1} of ${navigationMeasures.length}, ${fmtTime(time)} of ${fmtTime(duration)}`}
           />
         </div>
         {sections.length > 1 && (

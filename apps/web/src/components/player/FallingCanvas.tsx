@@ -50,6 +50,23 @@ interface Props {
   waitNote?: TimedNote | null;
 }
 
+export function beatGridPoints(
+  startBeat: number,
+  endBeat: number,
+  measures: readonly { startBeat: number; endBeat: number }[],
+): number[] {
+  const points = new Set<number>();
+  for (let beat = Math.floor(startBeat); beat <= Math.ceil(endBeat); beat++) {
+    if (beat >= 0 && beat >= startBeat - 1e-9 && beat <= endBeat + 1e-9) points.add(beat);
+  }
+  for (const measure of measures) {
+    for (const beat of [measure.startBeat, measure.endBeat]) {
+      if (Number.isFinite(beat) && beat >= 0 && beat >= startBeat - 1e-9 && beat <= endBeat + 1e-9) points.add(beat);
+    }
+  }
+  return [...points].sort((a, b) => a - b);
+}
+
 export function FallingCanvas({ measures = [], countIn = null, inputEnabled = true, onKeyDown, onKeyUp, inputOctave = 2, midiConnected = false, onResetOctave, notes, time, timeRef, playing, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop, waitNote, timeSig = [4, 4] }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rhythmLabelRef = useRef<HTMLSpanElement>(null);
@@ -193,8 +210,7 @@ export function FallingCanvas({ measures = [], countIn = null, inputEnabled = tr
       const beatSec = secPerBeat(bpm, speed);
       const startBeat = Math.floor((now - 0.5) / beatSec);
       const endBeat = Math.ceil((now + lookahead) / beatSec);
-      for (let b = startBeat; b <= endBeat; b++) {
-        if (b < 0) continue;
+      for (const b of beatGridPoints(startBeat, endBeat, rhythmRef.current.measures)) {
         const bSec = b * beatSec;
         const y = areaHeight - (bSec - now) * pxPerSec;
         if (y < 0 || y > areaHeight) continue;

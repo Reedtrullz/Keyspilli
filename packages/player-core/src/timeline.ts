@@ -1,4 +1,5 @@
 import type { SongData } from "./types.js";
+import type { MeasureInfo, MidiTimeSignatureEvent } from "@keyspilli/midi";
 import { chordName, tryParseChordSymbol, type ChordLabel, type ChordSourceKind } from "@keyspilli/midi";
 
 /** Converts beat-based song data into seconds given a speed multiplier. */
@@ -459,6 +460,45 @@ export function secPerBeat(bpm: number, speed: number): number {
 /** Beats in one measure for a time signature (3/4 -> 3, 6/8 -> 3). */
 export function beatsPerMeasure(timeSig: [number, number]): number {
   return timeSig[0] * (4 / timeSig[1]);
+}
+
+/** Return the descriptive meter in force at a beat; this does not assert phase. */
+export function timeSignatureAtBeat(
+  beat: number,
+  fallback: [number, number],
+  events?: readonly Pick<MidiTimeSignatureEvent, "beat" | "timeSig">[],
+): [number, number] {
+  let active = [...fallback] as [number, number];
+  for (const event of events ?? []) {
+    if (event.beat > beat + 1e-9) break;
+    active = [...event.timeSig] as [number, number];
+  }
+  return active;
+}
+
+/** Build the scalar-meter map used when source measure phase is unknown. */
+export function arithmeticMeasures(durationBeats: number, timeSig: [number, number]): MeasureInfo[] {
+  const width = beatsPerMeasure(timeSig);
+  if (!Number.isFinite(width) || width <= 0) return [];
+  const count = Math.max(1, Math.ceil(Math.max(0, durationBeats) / width));
+  return Array.from({ length: count }, (_, index) => ({
+    index,
+    startBeat: index * width,
+    endBeat: (index + 1) * width,
+  }));
+}
+
+/** Use stored measure starts only when the catalog supplied validated phase. */
+export function playbackMeasures(
+  data: Pick<SongData, "notes" | "measures" | "timeSig" | "sourceTiming">,
+): MeasureInfo[] {
+  const sourcePhase = data.sourceTiming?.provenance === "source-measure-boundary"
+    && typeof data.sourceTiming.sourceFingerprint === "string"
+    && data.sourceTiming.sourceFingerprint.length > 0;
+  if (sourcePhase && data.measures.length) return data.measures;
+  const noteEnd = data.notes.reduce((max, note) => Math.max(max, note.start + note.dur), 0);
+  const measureEnd = data.measures.reduce((max, measure) => Math.max(max, measure.endBeat), 0);
+  return arithmeticMeasures(Math.max(noteEnd, measureEnd), data.timeSig);
 }
 
 /** Index of the measure containing a beat in an explicit source measure map. */

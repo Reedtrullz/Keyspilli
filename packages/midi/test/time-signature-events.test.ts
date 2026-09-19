@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildVariants, parseMidi, writeMidi, writeMusicXml } from "../src/index.js";
+import { buildVariants, parseMidi, validateArtifactFiles, writeMidi, writeMusicXml } from "../src/index.js";
 
 function midiWithTrack(payload: number[]): Uint8Array {
   return new Uint8Array([
@@ -122,5 +122,16 @@ describe("MIDI time-signature events", () => {
     const xml = writeMusicXml(variant, "Meter", "Test");
     expect(xml).toContain("<time><beats>2</beats><beat-type>4</beat-type></time>");
     expect(xml).toContain("<time><beats>6</beats><beat-type>8</beat-type></time>");
+  });
+
+  it("rejects stale scalar-only MIDI and MusicXML meter artifacts", () => {
+    const variant = buildVariants(parseMidi(CHANGING_METER_MIDI), { title: "Meter", artist: "Test" }).at(-1)!;
+    const staleMidi = writeMidi(variant.notes, {
+      tempoBpm: variant.tempoBpm,
+      timeSig: variant.timeSig,
+    });
+    const staleXml = writeMusicXml({ ...variant, timeSigEvents: undefined }, "Meter", "Test");
+    const issues = validateArtifactFiles(variant, { midi: staleMidi, xml: staleXml });
+    expect(issues.filter((issue) => /time signature|meter/i.test(issue))).toHaveLength(2);
   });
 });

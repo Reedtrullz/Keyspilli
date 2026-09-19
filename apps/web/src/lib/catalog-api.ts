@@ -14,6 +14,7 @@ import {
   readArrangementManifest,
   resolveArtifactPlaybackTempo,
   type ArrangementManifest,
+  type SourceTimingMetadata,
   type SongRow,
 } from "@keyspilli/catalog";
 import { chordToNotes, validateArtifactFiles, type ChordLabel, type Variant } from "@keyspilli/midi";
@@ -97,6 +98,24 @@ function arrangementDurationBeats(data: SongData): number {
   const noteEnd = data.notes.reduce((max, note) => Math.max(max, note.start + note.dur), 0);
   const measureEnd = data.measures.reduce((max, measure) => Math.max(max, measure.endBeat), 0);
   return Math.max(noteEnd, measureEnd, 0);
+}
+
+function sourceTimingIdentityPayload(value: SourceTimingMetadata): Omit<SourceTimingMetadata, "sourceFingerprint"> {
+  return {
+    timeSig: [...value.timeSig] as [number, number],
+    measureStartBeat: value.measureStartBeat,
+    provenance: value.provenance,
+    ...(value.timeSigEvents ? {
+      timeSigEvents: value.timeSigEvents.map((event) => ({
+        beat: event.beat,
+        timeSig: [...event.timeSig] as [number, number],
+      })),
+    } : {}),
+  };
+}
+
+function sourceTimingIdentityHash(value: SourceTimingMetadata): string {
+  return createHash("sha256").update(JSON.stringify(sourceTimingIdentityPayload(value))).digest("hex");
 }
 
 function completePlayerChordDurations(chords: PlayerChord[], durationBeats: number): PlayerChord[] {
@@ -350,19 +369,24 @@ export async function loadSongArtifact(song: SongRow): Promise<{ data: SongData 
   // The manifest is authoritative when present. Assigning the resolved value
   // here keeps downstream playback and seek code on the same runtime value;
   // the equality check above prevents this from masking a stale mirror.
-  const loadedSourceFingerprint = manifest?.sourceArtifactHash
+  const notesFingerprint = manifest?.sourceArtifactHash
     ? `variant:${song.baseId}:${song.level}:${song.id}:${manifest.sourceArtifactHash}:notes:${createHash("sha256").update(notesContent).digest("hex")}`
     : stored.sourceFingerprint;
-  const storedTiming = record(stored.sourceTiming);
-  const timingCandidate = storedTiming
-    ? {
-        ...storedTiming,
-        ...(storedTiming.sourceFingerprint === undefined && loadedSourceFingerprint
-          ? { sourceFingerprint: loadedSourceFingerprint }
-          : {}),
-      }
-    : stored.sourceTiming;
-  const sourceTiming = validateSparseBackingTiming(timingCandidate, loadedSourceFingerprint);
+  // Source phase is a sidecar identity, not part of notes.json. Including its
+  // canonical payload in the loaded identity makes phase edits invalidate
+  // saved melody choices without creating a self-referential hash.
+  const manifestTiming = manifest?.sourceArtifactHash && manifest.sourceTiming
+    ? manifest.sourceTiming[song.id]
+    : undefined;
+  const loadedSourceFingerprint = manifestTiming && notesFingerprint
+    ? `${notesFingerprint}:timing:${sourceTimingIdentityHash(manifestTiming)}`
+    : notesFingerprint;
+  const timingCandidate = manifestTiming ?? record(stored.sourceTiming);
+  const sourceTiming = validateSparseBackingTiming(
+    timingCandidate,
+    loadedSourceFingerprint,
+    arrangementDurationBeats(stored),
+  );
   const { sourceTiming: _storedSourceTiming, ...storedWithoutTiming } = stored;
   const data = {
     ...storedWithoutTiming,
@@ -559,6 +583,7 @@ export async function getArtifactFile(id: string, name: "variant.mid" | "variant
       key: loaded.data.key,
       tempoBpm: loaded.data.tempoBpm,
       timeSig: loaded.data.timeSig,
+      timeSigEvents: loaded.data.timeSigEvents,
       measures: loaded.data.measures,
     };
     if (validateArtifactFiles(variant, { midi, xml }).length > 0) return null;

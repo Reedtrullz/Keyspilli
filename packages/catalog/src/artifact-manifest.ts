@@ -226,6 +226,18 @@ export interface ArrangementCandidateMetadata {
   };
 }
 
+/**
+ * Source-owned meter phase stored beside the immutable variant artifacts.
+ * Keeping this out of notes.json avoids a self-referential source fingerprint.
+ */
+export interface SourceTimingMetadata {
+  timeSig: [number, number];
+  measureStartBeat: number;
+  provenance: "source-measure-boundary";
+  sourceFingerprint: string;
+  timeSigEvents?: { beat: number; timeSig: [number, number] }[];
+}
+
 export interface ArrangementManifest {
   schemaVersion: typeof ARRANGEMENT_MANIFEST_SCHEMA_VERSION;
   baseId: string;
@@ -242,6 +254,8 @@ export interface ArrangementManifest {
   /** Optional user-mediated discovery lineage; never changes upload timing authority. */
   sourceCandidateHandoff?: SourceCandidateHandoffLink;
   sourceArrangement?: SourceArrangement;
+  /** Optional per-variant source-validated meter phase for sparse backing. */
+  sourceTiming?: Record<string, SourceTimingMetadata>;
   tempo: TempoProvenance;
   /** Absent for standard MIDI/MusicXML uploads without an audio transcription. */
   transcription?: TranscriptionProvenance;
@@ -332,6 +346,8 @@ const CANDIDATE_READINESS_CODES = new Set<GenerationCandidateReadinessCode>([
   "UNSUPPORTED_FORMAT",
   "REMOTE_CONTENT_INVALID",
 ]);
+const SOURCE_TIMING_MAX_EVENTS = 4096;
+const SOURCE_TIMING_MAX_BEAT = 4096;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -377,6 +393,57 @@ function validPositiveInteger(value: unknown): value is number {
 
 function validBpm(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value) && value >= 20 && value <= 300;
+}
+
+function validateSourceTimingMetadata(value: unknown, path = "sourceTiming"): string[] {
+  const errors: string[] = [];
+  if (!isRecord(value)) return [`${path} must be an object`];
+  const timeSig = value.timeSig;
+  if (!Array.isArray(timeSig) || timeSig.length !== 2 || !timeSig.every(validPositiveInteger)) {
+    errors.push(`${path}.timeSig must be two positive integers`);
+  }
+  if (typeof value.measureStartBeat !== "number"
+    || !Number.isFinite(value.measureStartBeat)
+    || Math.abs(value.measureStartBeat) > SOURCE_TIMING_MAX_BEAT) {
+    errors.push(`${path}.measureStartBeat must be finite and bounded`);
+  }
+  if (value.provenance !== "source-measure-boundary") {
+    errors.push(`${path}.provenance must be source-measure-boundary`);
+  }
+  if (typeof value.sourceFingerprint !== "string" || value.sourceFingerprint.trim() === "") {
+    errors.push(`${path}.sourceFingerprint must be a non-empty string`);
+  }
+  if (value.timeSigEvents !== undefined) {
+    if (!Array.isArray(value.timeSigEvents) || value.timeSigEvents.length === 0 || value.timeSigEvents.length > SOURCE_TIMING_MAX_EVENTS) {
+      errors.push(`${path}.timeSigEvents must contain 1-${SOURCE_TIMING_MAX_EVENTS} events`);
+    } else {
+      let previousBeat = -Infinity;
+      for (const [index, event] of value.timeSigEvents.entries()) {
+        if (!isRecord(event)
+          || typeof event.beat !== "number"
+          || !Number.isFinite(event.beat)
+          || event.beat < 0
+          || event.beat > SOURCE_TIMING_MAX_BEAT
+          || event.beat <= previousBeat
+          || !Array.isArray(event.timeSig)
+          || event.timeSig.length !== 2
+          || !event.timeSig.every(validPositiveInteger)) {
+          errors.push(`${path}.timeSigEvents[${index}] is invalid or out of order`);
+          continue;
+        }
+        previousBeat = event.beat;
+      }
+      const first = value.timeSigEvents[0];
+      if (isRecord(first) && first.beat !== 0) errors.push(`${path}.timeSigEvents must start at beat 0`);
+      const last = value.timeSigEvents[value.timeSigEvents.length - 1];
+      if (isRecord(last) && Array.isArray(timeSig) && timeSig.length === 2
+        && Array.isArray(last.timeSig)
+        && (last.timeSig[0] !== timeSig[0] || last.timeSig[1] !== timeSig[1])) {
+        errors.push(`${path}.timeSig must match the final time-signature event`);
+      }
+    }
+  }
+  return errors;
 }
 
 /**
@@ -731,6 +798,16 @@ export function validateArrangementManifest(value: unknown): string[] {
   if (value.source !== undefined) validateSourceProvenance(value.source, "source", errors);
   if (value.candidate !== undefined) validateCandidateMetadata(value.candidate, "candidate", errors);
   if (value.sourceArrangement !== undefined) errors.push(...validateSourceArrangement(value.sourceArrangement));
+  if (value.sourceTiming !== undefined) {
+    if (!isRecord(value.sourceTiming) || Object.keys(value.sourceTiming).length === 0) {
+      errors.push("sourceTiming must be a non-empty per-variant object");
+    } else {
+      for (const [variantId, timing] of Object.entries(value.sourceTiming)) {
+        if (!variantId.trim()) errors.push("sourceTiming variant keys must be non-empty");
+        errors.push(...validateSourceTimingMetadata(timing, `sourceTiming.${variantId}`));
+      }
+    }
+  }
   if (value.sourceCandidateHandoff !== undefined) {
     errors.push(...validateSourceCandidateHandoffLink(value.sourceCandidateHandoff));
   }

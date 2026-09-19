@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef } from "react";
-import { measureIndex, pitchColor, secPerBeat, type ChordLabel, type PlayerSettings, type SongData } from "@keyspilli/player-core";
+import { measureIndex, pitchColor, playbackMeasures, secPerBeat, timeSignatureAtBeat, type ChordLabel, type PlayerSettings, type SongData } from "@keyspilli/player-core";
 import { chordProvenance } from "./chord-provenance";
 
 const LETTERS = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
@@ -9,8 +9,9 @@ const pitchName = (midi: number) => `${LETTERS[((midi % 12) + 12) % 12]}${Math.f
 
 export function BeginnerView({ data, time, settings, chords }: { data: SongData; time: number; settings: PlayerSettings; chords: ChordLabel[] }) {
   const beat = time / secPerBeat(data.tempoBpm, settings.speed);
-  const currentMeasure = measureIndex(time, data.tempoBpm, settings.speed, data.timeSig, data.measures.length, data.measures);
-  const m = data.measures[currentMeasure] ?? data.measures[0]!;
+  const measures = useMemo(() => playbackMeasures(data), [data]);
+  const currentMeasure = measureIndex(time, data.tempoBpm, settings.speed, data.timeSig, measures.length, measures);
+  const m = measures[currentMeasure] ?? measures[0]!;
   const scroller = useRef<HTMLDivElement>(null);
   const activeCell = useRef<HTMLTableCellElement>(null);
   // Project only when the bar or settings change, not on every transport tick.
@@ -43,7 +44,7 @@ export function BeginnerView({ data, time, settings, chords }: { data: SongData;
       panel.scrollLeft += cellBox.left - panelBox.left - 88;
     }
   }, [activeIndex, currentMeasure]);
-  const nextMeasure = data.measures[currentMeasure + 1];
+  const nextMeasure = measures[currentMeasure + 1];
   const nextNotes = useMemo(() => nextMeasure ? data.notes
     .filter((note) => note.start >= nextMeasure.startBeat && note.start < nextMeasure.endBeat)
     .sort((a, b) => a.start - b.start)
@@ -52,7 +53,7 @@ export function BeginnerView({ data, time, settings, chords }: { data: SongData;
   return (
     <div className="note-letters-view p-4 sm:p-6" aria-label="Note letters view">
       <div className="flex flex-wrap justify-between gap-2 text-xs text-zinc-500 mb-3">
-        <span>Bar {currentMeasure + 1} of {data.measures.length}</span>
+        <span>Bar {currentMeasure + 1} of {measures.length}</span>
         <span>{data.key} · {data.tempoBpm} BPM</span>
       </div>
       <p className="text-sm text-zinc-600 mb-4">Scroll across the bar. Notes in the same column start together.</p>
@@ -62,7 +63,7 @@ export function BeginnerView({ data, time, settings, chords }: { data: SongData;
           <thead><tr><th scope="col">Beat</th>{columns.map((column, i) => <th
             key={column.start} scope="col" ref={i === activeIndex ? activeCell : undefined}
             aria-current={i === activeIndex ? "true" : undefined}>
-            {Number((1 + (column.start - m.startBeat) * data.timeSig[1] / 4).toFixed(2))}
+            {Number((1 + (column.start - m.startBeat) * timeSignatureAtBeat(column.start, data.timeSig, data.timeSigEvents)[1] / 4).toFixed(2))}
           </th>)}</tr></thead>
           <tbody>{(["R", "L"] as const).map((hand) => <tr key={hand}>
             <th scope="row"><span aria-hidden="true">{hand}H</span><span className="sr-only">{hand === "R" ? "Right" : "Left"} hand</span></th>

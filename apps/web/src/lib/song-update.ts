@@ -330,7 +330,7 @@ function updateManifest(
         }))
         .digest("hex")
     : source.configFingerprint;
-  return {
+  const next: ArrangementManifest = {
     ...source,
     ...(configFingerprint ? { configFingerprint } : {}),
     tempo: {
@@ -346,6 +346,8 @@ function updateManifest(
     baseId,
     artifactWrittenAt: now,
   };
+  if (calibrationChanged) delete next.sourceTiming;
+  return next;
 }
 
 /**
@@ -522,6 +524,7 @@ export async function applySongMetadata(id: string, patch: SongPatch): Promise<S
       ? stored.timeSigEvents.map((event) => ({ ...event, beat: event.beat * factor }))
       : stored.timeSigEvents;
     const key = normalizedKey ?? stored.key;
+    const { sourceTiming: _storedSourceTiming, ...storedWithoutTiming } = stored;
     const variant: Variant = {
       level: row.difficulty as Variant["level"],
       difficultyScore: row.difficultyScore,
@@ -538,7 +541,7 @@ export async function applySongMetadata(id: string, patch: SongPatch): Promise<S
     const artist = patch.artist ?? row.artist;
     const k = keySignature(key);
     const notesJson = JSON.stringify({
-      ...stored,
+      ...(calibrationChanged ? storedWithoutTiming : stored),
       notes,
       chords,
       measures,

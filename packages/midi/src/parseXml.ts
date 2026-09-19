@@ -1,4 +1,4 @@
-import { Note, ParsedMidi } from "./types.js";
+import { MidiTimeSignatureEvent, Note, ParsedMidi } from "./types.js";
 
 interface ParsedXmlNote extends Note {
   tieStart?: boolean;
@@ -87,6 +87,7 @@ export function parseMusicXmlNotes(xml: string): ParsedMidi {
   if (firstNote >= 0 && firstTempo > firstNote && tempo !== 120) throw new Error("Unsupported: tempo begins after the first note");
   let beats = 4;
   let beatType = 4;
+  const timeSigEvents: MidiTimeSignatureEvent[] = [];
   const fifths = parseInt(firstMatch(xml, /<fifths>(-?\d+)<\/fifths>/), 10) || 0;
   const mode = firstMatch(xml, /<mode>(major|minor)<\/mode>/);
   const notes: ParsedXmlNote[] = [];
@@ -117,7 +118,16 @@ export function parseMusicXmlNotes(xml: string): ParsedMidi {
           const nextBeats = Number(firstMatch(time, /<beats>\s*(\d+)\s*<\/beats>/));
           const nextType = Number(firstMatch(time, /<beat-type>\s*(\d+)\s*<\/beat-type>/));
           if (!nextBeats || !nextType) throw new Error("Unsupported: compound time signature");
-          if ((measureStart > 0 || cursor > 0) && (nextBeats !== beats || nextType !== beatType)) throw new Error("Unsupported: changing time signature");
+          if (cursor > 0 && (nextBeats !== beats || nextType !== beatType)) throw new Error("Unsupported: changing time signature mid-measure");
+          if (!timeSigEvents.length || timeSigEvents[timeSigEvents.length - 1]!.beat !== measureStart
+            || timeSigEvents[timeSigEvents.length - 1]!.timeSig[0] !== nextBeats
+            || timeSigEvents[timeSigEvents.length - 1]!.timeSig[1] !== nextType) {
+            timeSigEvents.push({
+              tick: Math.round(measureStart * divisions),
+              beat: measureStart,
+              timeSig: [nextBeats, nextType],
+            });
+          }
           beats = nextBeats;
           beatType = nextType;
         }
@@ -194,6 +204,7 @@ export function parseMusicXmlNotes(xml: string): ParsedMidi {
     notes: mergedNotes,
     trackNames: ["MusicXML"],
     durationBeats,
+    ...(timeSigEvents.length ? { timeSigEvents } : {}),
     title: firstMatch(xml, /<work-title>([\s\S]*?)<\/work-title>/),
   };
 }

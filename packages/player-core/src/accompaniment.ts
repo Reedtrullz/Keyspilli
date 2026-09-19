@@ -120,26 +120,36 @@ export interface SparseBackingTiming {
 export function validateSparseBackingTiming(
   value: unknown,
   sourceFingerprint: string | null | undefined,
+  durationBeats?: number,
 ): SparseBackingTiming | undefined {
   if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  if (durationBeats !== undefined && (!Number.isFinite(durationBeats) || durationBeats < 0)) return undefined;
   const candidate = value as Partial<SparseBackingTiming>;
   const timeSig = candidate.timeSig;
   if (!Array.isArray(timeSig) || timeSig.length !== 2
     || !timeSig.every((part) => Number.isInteger(part) && part > 0)) return undefined;
-  if (typeof candidate.measureStartBeat !== "number" || !Number.isFinite(candidate.measureStartBeat)) return undefined;
+  if (typeof candidate.measureStartBeat !== "number"
+    || !Number.isFinite(candidate.measureStartBeat)
+    || Math.abs(candidate.measureStartBeat) > MAX_VALIDATED_SPARSE_TIMING_BEAT) return undefined;
   if (candidate.provenance !== "source-measure-boundary") return undefined;
   if (typeof sourceFingerprint !== "string" || candidate.sourceFingerprint !== sourceFingerprint) return undefined;
   const timeSigEvents = candidate.timeSigEvents;
   if (timeSigEvents !== undefined) {
-    if (!Array.isArray(timeSigEvents) || timeSigEvents.length === 0) return undefined;
+    if (!Array.isArray(timeSigEvents)
+      || timeSigEvents.length === 0
+      || timeSigEvents.length > MAX_VALIDATED_SPARSE_TIMING_EVENTS) return undefined;
     let previousBeat = -Infinity;
     for (const event of timeSigEvents) {
       if (!event || typeof event !== "object" || !Array.isArray(event.timeSig) || event.timeSig.length !== 2
-        || !Number.isFinite(event.beat) || event.beat < 0 || event.beat <= previousBeat
+        || !Number.isFinite(event.beat) || event.beat < 0 || event.beat > MAX_VALIDATED_SPARSE_TIMING_BEAT
+        || (durationBeats !== undefined && event.beat > durationBeats + 1e-9)
+        || event.beat <= previousBeat
         || !event.timeSig.every((part: unknown) => typeof part === "number" && Number.isInteger(part) && part > 0)) return undefined;
       previousBeat = event.beat;
     }
     if (timeSigEvents[0]?.beat !== 0) return undefined;
+    const lastTimeSig = timeSigEvents[timeSigEvents.length - 1]?.timeSig;
+    if (lastTimeSig && (lastTimeSig[0] !== timeSig[0] || lastTimeSig[1] !== timeSig[1])) return undefined;
   }
   return {
     timeSig: [timeSig[0]!, timeSig[1]!],
@@ -232,6 +242,8 @@ export function filterAccompanimentChords(
 }
 
 const EPSILON = 1e-7;
+const MAX_VALIDATED_SPARSE_TIMING_EVENTS = 4096;
+const MAX_VALIDATED_SPARSE_TIMING_BEAT = 4096;
 const NO_CHORD = /^(?:-|N\.?C\.?|no[ -]?chord)$/i;
 
 interface ChordEvent {
