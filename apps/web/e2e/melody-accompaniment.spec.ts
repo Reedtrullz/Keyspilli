@@ -630,6 +630,14 @@ test("backing-only default omits source melody and keeps backing audio", async (
   // a same-pitch detuned triangle, so duplicate timestamp/pitch starts expose
   // source-note scheduling in this accompaniment-only preview.
   expect(new Set(triangleStarts).size).toBe(triangleStarts.length);
+
+  await auditionDialog.getByRole("button", { name: "Close tools", exact: true }).click();
+  const full = await captureArrangement(page, testInfo, "blackbird-backing-only-default-full", 6.5, 7_250);
+  audible(full);
+  const fullTriangleStarts = full.events
+    .filter((event) => event.type === "triangle" && event.midi !== null)
+    .map((event) => `${Math.round(event.relativeWhen * 1_000)}|${event.midi}`);
+  expect(new Set(fullTriangleStarts).size).toBe(fullTriangleStarts.length);
 });
 
 test("phrase-local overrides recompute the producer and keep invalid overlap reviewable", () => {
