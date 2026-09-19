@@ -53,6 +53,14 @@ const fixtures = [
     acquiredVia: "midi-file",
   },
   {
+    baseId: "queen-somebody-to-love",
+    title: "Somebody To Love",
+    artist: "Queen",
+    category: "Scratch canonical source evaluation",
+    contentType: "standard",
+    acquiredVia: "midi-file",
+  },
+  {
     baseId: "aria-ellys-music-the-warning-hell-you-call-a-dream-piano-cover-by-aria-ellys-mslzwo1d",
     title: "Hell You Call a Dream",
     artist: "The Warning",

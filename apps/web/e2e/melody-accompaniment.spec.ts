@@ -8,6 +8,7 @@ import {
   completeChordDurations,
   dedupeChords,
   playbackTiming,
+  resolveAccompaniment,
   sourceNoteIds,
   type SongData,
   validateSparseBackingTiming,
@@ -27,6 +28,7 @@ const SONG_ID = "the-beatles-blackbird-a-scratch";
 const NEAR_CROSS_SONG_ID = "w-h-doane-near-the-cross-a-scratch";
 const UG_SONG_ID = "the-theorist-elton-john-your-song-piano-cover-jz6ugvghbt8-a-scratch";
 const OOPS_SONG_ID = "britney-spears-oops-i-did-it-again-a-scratch";
+const QUEEN_SONG_ID = "queen-somebody-to-love-a-scratch";
 const HELL_SONG_ID = "aria-ellys-music-the-warning-hell-you-call-a-dream-piano-cover-by-aria-ellys-mslzwo1d-a-scratch";
 const SIDECAR_KEY = `keyspilli.melody-accompaniment.v2:${SONG_ID}`;
 const OOPS_SIDECAR_KEY = `keyspilli.melody-accompaniment.v2:${OOPS_SONG_ID}`;
@@ -595,6 +597,35 @@ async function selectArrangement(
   }
 }
 
+async function selectDefaultChordMode(page: Page): Promise<void> {
+  await openPlayerTool(page, "Sound");
+  const dialog = page.getByRole("dialog", { name: "Sound settings" });
+  await dialog.getByRole("radio", { name: "Chord mode", exact: true }).click();
+  await expect(dialog.getByRole("radio", { name: "Bass + chords", exact: true })).toHaveAttribute("aria-checked", "true");
+  await dialog.getByRole("button", { name: "Close tools", exact: true }).click();
+}
+
+function blackbirdSourceControlNote(): { midi: number; start: number; dur: number; expectedRelativeSeconds: number } {
+  const scratchRoot = process.env.KEYSPILLI_E2E_SCRATCH_DIR;
+  if (!scratchRoot) throw new Error("melody scratch root is not configured");
+  const source = JSON.parse(readFileSync(join(scratchRoot, "artifacts", "the-beatles-blackbird", "a", "notes.json"), "utf8")) as SongData;
+  const durationBeats = Math.max(
+    0,
+    ...source.notes.map((note) => note.start + note.dur),
+    ...source.measures.map((measure) => measure.endBeat),
+  );
+  const selected = selectChordSource(resolveChordSources(source), "auto").source;
+  const backing = resolveAccompaniment(source.notes, selected?.chords ?? [], "bass-chords", { durationBeats });
+  const backingAttackKeys = new Set(backing.chords.flatMap((chord) => chord.notes.map((midi) => `${chord.beat}|${midi}`)));
+  const note = source.notes.find((candidate) => candidate.hand === "R"
+    && candidate.start >= 14
+    && candidate.start < 26.5
+    && !backingAttackKeys.has(`${candidate.start}|${candidate.midi}`));
+  if (!note) throw new Error("Blackbird source-control note was not found outside backing attacks");
+  // captureArrangement starts one beat before the requested comparison window.
+  return { ...note, expectedRelativeSeconds: (note.start - 13) * 60 / 120 };
+}
+
 test("backing-only default omits source melody and keeps backing audio", async ({ page }, testInfo) => {
   await installMelodyTrace(page);
   await installAudioProbe(page);
@@ -638,6 +669,76 @@ test("backing-only default omits source melody and keeps backing audio", async (
     .filter((event) => event.type === "triangle" && event.midi !== null)
     .map((event) => `${Math.round(event.relativeWhen * 1_000)}|${event.midi}`);
   expect(new Set(fullTriangleStarts).size).toBe(fullTriangleStarts.length);
+});
+
+const CURRENT_PLAYER_COMPARISONS = [
+  { id: "blackbird", songId: SONG_ID, bpm: 120, startBeat: 14, endBeat: 26.5 },
+  { id: "oops", songId: OOPS_SONG_ID, bpm: 95, startBeat: 48, endBeat: 64 },
+  { id: "queen", songId: QUEEN_SONG_ID, bpm: 108, startBeat: 6, endBeat: 18 },
+] as const;
+
+test("current Player compares Original with fresh default backing on three canonical inputs", async ({ page }, testInfo) => {
+  test.setTimeout(180_000);
+  await installAudioProbe(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const sourceControl = blackbirdSourceControlNote();
+  const outcomes: Array<Record<string, unknown>> = [];
+
+  for (const comparison of CURRENT_PLAYER_COMPARISONS) {
+    const seekSeconds = Math.max(0, comparison.startBeat * 60 / comparison.bpm - 0.5);
+    const durationMs = Math.ceil((comparison.endBeat - comparison.startBeat) * 60 / comparison.bpm * 1_000 + 1_000);
+    await page.goto(`/player/${comparison.songId}`);
+    await expect(page.getByLabel("Falling notes player")).toBeVisible();
+
+    await selectArrangement(page, "Original arrangement");
+    await bootAudio(page);
+    const original = await captureArrangement(page, testInfo, `current-${comparison.id}-original`, seekSeconds, durationMs);
+    audible(original);
+
+    let sourceControlResult: Record<string, unknown> | undefined;
+    if (comparison.id === "blackbird") {
+      const sourceAttack = original.events.find((event) => event.type === "triangle"
+        && event.midi === sourceControl.midi
+        && Math.abs(event.relativeWhen - sourceControl.expectedRelativeSeconds) < 0.2);
+      expect(sourceAttack, `Original must schedule Blackbird source note ${sourceControl.midi}@${sourceControl.start}`).toBeDefined();
+      sourceControlResult = {
+        sourceNote: sourceControl,
+        originalAttack: sourceAttack ? { midi: sourceAttack.midi, relativeWhen: sourceAttack.relativeWhen } : null,
+      };
+    }
+
+    await selectDefaultChordMode(page);
+    await bootAudio(page);
+    const backing = await captureArrangement(page, testInfo, `current-${comparison.id}-backing-only`, seekSeconds, durationMs);
+    audible(backing);
+
+    if (comparison.id === "blackbird") {
+      const backingHasSourceAttack = backing.events.some((event) => event.type === "triangle"
+        && event.midi === sourceControl.midi
+        && Math.abs(event.relativeWhen - sourceControl.expectedRelativeSeconds) < 0.2);
+      expect(backingHasSourceAttack, "fresh backing-only transport must omit the discriminating source note").toBe(false);
+      sourceControlResult = { ...sourceControlResult, backingHasSourceAttack };
+    }
+
+    outcomes.push({
+      id: comparison.id,
+      songId: comparison.songId,
+      bpm: comparison.bpm,
+      window: { startBeat: comparison.startBeat, endBeat: comparison.endBeat },
+      settings: { instrument: "browser AudioEngine synth", speed: 1, transpose: 0, hand: "both", voiceGain: 1, pianoGain: 0.4 },
+      original: { ...captureMetadata(original), triangleEvents: original.events.filter((event) => event.type === "triangle").length },
+      backingOnly: { ...captureMetadata(backing), triangleEvents: backing.events.filter((event) => event.type === "triangle").length },
+      ...(sourceControlResult ? { sourceControl: sourceControlResult } : {}),
+    });
+  }
+
+  writeFileSync(testInfo.outputPath("current-player-canonical-comparisons.json"), JSON.stringify({
+    schemaVersion: 1,
+    instrument: "browser AudioEngine synth",
+    comparison: "same source, beat window, speed, transpose, hand, voice gain, piano gain; Original then fresh default Chord mode",
+    outcomes,
+  }, null, 2));
+  expect(outcomes).toHaveLength(3);
 });
 
 test("phrase-local overrides recompute the producer and keep invalid overlap reviewable", () => {
