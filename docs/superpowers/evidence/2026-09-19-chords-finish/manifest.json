@@ -3,6 +3,12 @@
   "baselineSha": "881881b8f9b9f8bc75f70dd4d6a551de6e62de6e",
   "capturedAt": "2026-09-19",
   "sourceEvidenceRule": "Source hand labels are not melody truth. A time-signature tuple and arithmetic measure list are not validated pickup/downbeat provenance.",
+  "t2TimingEvidence": {
+    "queenRegression": "docs/superpowers/evidence/2026-09-19-chords-finish/queen-meter-regression.md",
+    "externalSpec": "/Users/reidar/Documents/Codex/2026-09-19/chords-mode-source-evidence/outputs/queen-meter-regression-spec.md",
+    "rawSourceSha256": "4505d3a7cb3c24788e51905eb29a40c501a31f7bd07596d489f63f7430c7a74e",
+    "phasePolicy": "meter events are preserved but do not by themselves validate pickup/downbeat phase"
+  },
   "targets": [
     {
       "role": "required",

@@ -1,5 +1,7 @@
 import { tutorialSourceLane } from "./source-hand-lanes.js";
-import { Hand, MidiTempoEvent, Note, ParsedMidi } from "./types.js";
+import { Hand, MidiTempoEvent, MidiTimeSignatureEvent, Note, ParsedMidi } from "./types.js";
+
+const MAX_TIME_SIGNATURE_EVENTS = 4096;
 
 function inferTrackHand(names: string[]): Hand | undefined {
   const text = names.join(" ").toLowerCase();
@@ -54,6 +56,7 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
   const trackNotes: Note[][] = [];
   const trackNames: string[] = [];
   const tempos: MidiTempoEvent[] = [];
+  const timeSigEvents: MidiTimeSignatureEvent[] = [];
   let timeSig: [number, number] = [4, 4];
   let keySig = 0;
   let keyMode: 0 | 1 = 0;
@@ -104,7 +107,12 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
             const us = (buf[pos]! << 16) | (buf[pos + 1]! << 8) | buf[pos + 2]!;
             if (us > 0) tempos.push({ tick, beat: tick / division, microsecondsPerQuarter: us, bpm: 60_000_000 / us });
           } else if (type === 0x58 && len2 === 4) {
-            timeSig = [buf[pos]!, 1 << buf[pos + 1]!];
+            const numerator = buf[pos]!;
+            const denominatorExponent = buf[pos + 1]!;
+            if (numerator <= 0 || denominatorExponent >= 31) throw new Error("invalid MIDI time signature");
+            timeSig = [numerator, 1 << denominatorExponent];
+            if (timeSigEvents.length >= MAX_TIME_SIGNATURE_EVENTS) throw new Error("too many MIDI time-signature events");
+            timeSigEvents.push({ tick, beat: tick / division, timeSig: [...timeSig] });
           } else if (type === 0x59 && len2 === 2) {
             keySig = (buf[pos]! << 24) >> 24;
             keyMode = buf[pos + 1]! === 0 ? 0 : 1;
@@ -219,6 +227,7 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
     tempoBpm,
     tempoMetaPresent: tempos.length > 0,
     ...(tempos.length ? { tempoEvents: tempos.sort((a, b) => a.tick - b.tick || a.microsecondsPerQuarter - b.microsecondsPerQuarter) } : {}),
+    ...(timeSigEvents.length ? { timeSigEvents: timeSigEvents.sort((a, b) => a.tick - b.tick || a.timeSig[0] - b.timeSig[0] || a.timeSig[1] - b.timeSig[1]) } : {}),
     keySig,
     keyMode,
     timeSig,

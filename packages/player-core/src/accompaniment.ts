@@ -96,6 +96,11 @@ export interface MelodyAccompanimentProvenance {
 
 export type SparseBackingTimingProvenance = "source-measure-boundary" | "unknown";
 
+export interface SparseBackingTimeSignatureEvent {
+  beat: number;
+  timeSig: readonly [number, number];
+}
+
 /**
  * Meter phase is opt-in: a tuple alone does not establish a downbeat or rule
  * out a pickup. Callers may use this only when the source measure boundary is
@@ -106,6 +111,48 @@ export interface SparseBackingTiming {
   timeSig: readonly [number, number];
   measureStartBeat: number;
   provenance: SparseBackingTimingProvenance;
+  /** Source identity bound by the loader before timing reaches the player. */
+  sourceFingerprint?: string;
+  /** Optional absolute meter changes; the first event must establish beat zero. */
+  timeSigEvents?: readonly SparseBackingTimeSignatureEvent[];
+}
+
+export function validateSparseBackingTiming(
+  value: unknown,
+  sourceFingerprint: string | null | undefined,
+): SparseBackingTiming | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const candidate = value as Partial<SparseBackingTiming>;
+  const timeSig = candidate.timeSig;
+  if (!Array.isArray(timeSig) || timeSig.length !== 2
+    || !timeSig.every((part) => Number.isInteger(part) && part > 0)) return undefined;
+  if (typeof candidate.measureStartBeat !== "number" || !Number.isFinite(candidate.measureStartBeat)) return undefined;
+  if (candidate.provenance !== "source-measure-boundary") return undefined;
+  if (typeof sourceFingerprint !== "string" || candidate.sourceFingerprint !== sourceFingerprint) return undefined;
+  const timeSigEvents = candidate.timeSigEvents;
+  if (timeSigEvents !== undefined) {
+    if (!Array.isArray(timeSigEvents) || timeSigEvents.length === 0) return undefined;
+    let previousBeat = -Infinity;
+    for (const event of timeSigEvents) {
+      if (!event || typeof event !== "object" || !Array.isArray(event.timeSig) || event.timeSig.length !== 2
+        || !Number.isFinite(event.beat) || event.beat < 0 || event.beat <= previousBeat
+        || !event.timeSig.every((part: unknown) => typeof part === "number" && Number.isInteger(part) && part > 0)) return undefined;
+      previousBeat = event.beat;
+    }
+    if (timeSigEvents[0]?.beat !== 0) return undefined;
+  }
+  return {
+    timeSig: [timeSig[0]!, timeSig[1]!],
+    measureStartBeat: candidate.measureStartBeat,
+    provenance: "source-measure-boundary",
+    sourceFingerprint,
+    ...(timeSigEvents ? {
+      timeSigEvents: timeSigEvents.map((event) => ({
+        beat: event.beat,
+        timeSig: [event.timeSig[0]!, event.timeSig[1]!] as [number, number],
+      })),
+    } : {}),
+  };
 }
 
 export interface MelodyAccompanimentOptions {
@@ -1083,11 +1130,10 @@ interface SparseMeterPattern {
   measureStartBeat: number;
 }
 
-function sparseMeterPattern(timing?: SparseBackingTiming): SparseMeterPattern | null {
-  if (!timing || timing.provenance !== "source-measure-boundary") return null;
-  const [numerator, denominator] = timing.timeSig;
+function sparseMeterPattern(timeSig: readonly [number, number], measureStartBeat: number): SparseMeterPattern | null {
+  const [numerator, denominator] = timeSig;
   if (!Number.isInteger(numerator) || !Number.isInteger(denominator)
-    || numerator <= 0 || denominator <= 0 || !Number.isFinite(timing.measureStartBeat)) return null;
+    || numerator <= 0 || denominator <= 0 || !Number.isFinite(measureStartBeat)) return null;
   const measureBeats = numerator * (4 / denominator);
   if (!Number.isFinite(measureBeats) || measureBeats <= EPSILON) return null;
   const offsets = numerator === 2 && denominator === 4
@@ -1099,20 +1145,28 @@ function sparseMeterPattern(timing?: SparseBackingTiming): SparseMeterPattern | 
         : numerator === 6 && denominator === 8
           ? [0, 1.5]
           : null;
-  return offsets ? { measureBeats, offsets, measureStartBeat: timing.measureStartBeat } : null;
+  return offsets ? { measureBeats, offsets, measureStartBeat } : null;
 }
 
 function sparseHarmonicStarts(startBeat: number, endBeat: number, timing?: SparseBackingTiming): number[] {
   const starts = [startBeat];
-  const pattern = sparseMeterPattern(timing);
-  if (!pattern) return starts;
-  const firstMeasure = Math.floor((startBeat - pattern.measureStartBeat) / pattern.measureBeats) - 1;
-  const lastMeasure = Math.ceil((endBeat - pattern.measureStartBeat) / pattern.measureBeats) + 1;
-  for (let measure = firstMeasure; measure <= lastMeasure; measure++) {
-    const measureStart = pattern.measureStartBeat + measure * pattern.measureBeats;
-    for (const offset of pattern.offsets) {
-      const beat = measureStart + offset;
-      if (beat > startBeat + EPSILON && beat < endBeat - EPSILON) starts.push(beat);
+  if (!timing || timing.provenance !== "source-measure-boundary") return starts;
+  const events = timing.timeSigEvents?.length
+    ? timing.timeSigEvents
+    : [{ beat: timing.measureStartBeat, timeSig: timing.timeSig }];
+  for (let index = 0; index < events.length; index += 1) {
+    const event = events[index]!;
+    const nextBeat = events[index + 1]?.beat ?? endBeat;
+    const pattern = sparseMeterPattern(event.timeSig, index === 0 ? timing.measureStartBeat : event.beat);
+    if (!pattern) continue;
+    const firstMeasure = Math.floor((startBeat - pattern.measureStartBeat) / pattern.measureBeats) - 1;
+    const lastMeasure = Math.ceil((Math.min(endBeat, nextBeat) - pattern.measureStartBeat) / pattern.measureBeats) + 1;
+    for (let measure = firstMeasure; measure <= lastMeasure; measure++) {
+      const measureStart = pattern.measureStartBeat + measure * pattern.measureBeats;
+      for (const offset of pattern.offsets) {
+        const beat = measureStart + offset;
+        if (beat >= event.beat - EPSILON && beat > startBeat + EPSILON && beat < endBeat - EPSILON && beat < nextBeat - EPSILON) starts.push(beat);
+      }
     }
   }
   return [...new Set(starts)].sort((a, b) => a - b);

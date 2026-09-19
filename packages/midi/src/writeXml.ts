@@ -67,6 +67,20 @@ function xmlEscape(s: string): string {
  */
 export function writeMusicXml(variant: Variant, title: string, artist: string): string {
   const [num, den] = variant.timeSig;
+  const timeSigEvents = (variant.timeSigEvents ?? [])
+    .filter((event) => Number.isFinite(event.beat) && event.beat >= 0
+      && Number.isInteger(event.timeSig[0]) && event.timeSig[0] > 0
+      && Number.isInteger(event.timeSig[1]) && event.timeSig[1] > 0)
+    .slice()
+    .sort((a, b) => a.beat - b.beat || a.tick - b.tick);
+  const timeSigAt = (beat: number): [number, number] => {
+    let current: [number, number] = [num, den];
+    for (const event of timeSigEvents) {
+      if (event.beat > beat + 1e-9) break;
+      current = [...event.timeSig] as [number, number];
+    }
+    return current;
+  };
   const beatsPerMeasure = num * (4 / den);
   // Prefer the arrangement's explicit measure map, but synthesize any
   // missing tail measures so a malformed/incomplete source cannot silently
@@ -257,10 +271,14 @@ export function writeMusicXml(variant: Variant, title: string, artist: string): 
         rh.xml +
         (rh.cursor > 0 ? "<backup><duration>" + Math.round(rh.cursor * DIV) + "</duration></backup>" : "") +
         lh.xml;
+      const [measureNum, measureDen] = timeSigAt(m.startBeat);
+      const previousTimeSig = mi > 0 ? timeSigAt(measures[mi - 1]!.startBeat) : null;
+      const timeChanged = mi === 0 || previousTimeSig === null
+        || previousTimeSig[0] !== measureNum || previousTimeSig[1] !== measureDen;
       const keyTime =
         mi === 0
-          ? `<key><fifths>${fifths}</fifths><mode>${mode === 0 ? "major" : "minor"}</mode></key><time><beats>${num}</beats><beat-type>${den}</beat-type></time>`
-          : "";
+          ? `<key><fifths>${fifths}</fifths><mode>${mode === 0 ? "major" : "minor"}</mode></key><time><beats>${measureNum}</beats><beat-type>${measureDen}</beat-type></time>`
+          : timeChanged ? `<time><beats>${measureNum}</beats><beat-type>${measureDen}</beat-type></time>` : "";
       const tempoDir =
         mi === 0
           ? `<direction placement="above"><direction-type><metronome><beat-unit>quarter</beat-unit><per-minute>${bpm}</per-minute></metronome></direction-type></direction>`

@@ -461,6 +461,24 @@ export function beatsPerMeasure(timeSig: [number, number]): number {
   return timeSig[0] * (4 / timeSig[1]);
 }
 
+/** Index of the measure containing a beat in an explicit source measure map. */
+export function measureIndexAtBeat(
+  beat: number,
+  measures: readonly { startBeat: number; endBeat: number }[],
+): number {
+  if (!measures.length) return 0;
+  let low = 0;
+  let high = measures.length - 1;
+  while (low <= high) {
+    const middle = low + ((high - low) >> 1);
+    const measure = measures[middle]!;
+    if (beat < measure.startBeat) high = middle - 1;
+    else if (beat >= measure.endBeat) low = middle + 1;
+    else return middle;
+  }
+  return Math.max(0, Math.min(measures.length - 1, low));
+}
+
 /** Index of the measure containing timeSec, clamped to the song's range. */
 export function measureIndex(
   timeSec: number,
@@ -468,10 +486,13 @@ export function measureIndex(
   speed: number,
   timeSig: [number, number],
   measureCount: number,
+  measures?: readonly { startBeat: number; endBeat: number }[],
 ): number {
+  const beat = timeSec / secPerBeat(bpm, speed);
+  if (measures?.length) return measureIndexAtBeat(beat, measures);
   return Math.min(
     measureCount - 1,
-    Math.floor(timeSec / secPerBeat(bpm, speed) / beatsPerMeasure(timeSig)),
+    Math.floor(beat / beatsPerMeasure(timeSig)),
   );
 }
 

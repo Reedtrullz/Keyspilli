@@ -170,6 +170,7 @@ interface StoredVariant {
   notes: Variant["notes"];
   chords?: Variant["chords"];
   measures?: Variant["measures"];
+  timeSigEvents?: Variant["timeSigEvents"];
   key: string;
   tempoBpm: number;
   timeSig: [number, number];
@@ -515,6 +516,11 @@ export async function applySongMetadata(id: string, patch: SongPatch): Promise<S
     const measures = calibrationChanged
       ? rebuildMeasuresForCalibration(stored.measures, notes, chords, durationBeats, factor, stored.timeSig)
       : (stored.measures ?? buildMeasures(notes, stored.timeSig, chords, stored.durationBeats));
+    // Keep source meter declarations and beat coordinates together when a
+    // calibration edit rescales the stored arrangement.
+    const timeSigEvents = calibrationChanged && stored.timeSigEvents
+      ? stored.timeSigEvents.map((event) => ({ ...event, beat: event.beat * factor }))
+      : stored.timeSigEvents;
     const key = normalizedKey ?? stored.key;
     const variant: Variant = {
       level: row.difficulty as Variant["level"],
@@ -526,6 +532,7 @@ export async function applySongMetadata(id: string, patch: SongPatch): Promise<S
       key,
       tempoBpm: playbackTempo,
       timeSig: stored.timeSig,
+      ...(timeSigEvents ? { timeSigEvents } : {}),
     };
     const title = patch.title ?? row.title;
     const artist = patch.artist ?? row.artist;
@@ -538,6 +545,7 @@ export async function applySongMetadata(id: string, patch: SongPatch): Promise<S
       key,
       tempoBpm: playbackTempo,
       ...(durationBeats === undefined ? {} : { durationBeats }),
+      ...(timeSigEvents === undefined ? {} : { timeSigEvents }),
       provenance: nextNotesProvenance(stored, nextManifest.tempo),
     });
     return { row, dirName: row.level, notesJson, variant, title, artist, keySig: k };
@@ -585,6 +593,7 @@ export async function applySongMetadata(id: string, patch: SongPatch): Promise<S
             writeMidi(item.variant.notes, {
               tempoBpm: item.variant.tempoBpm,
               timeSig: item.variant.timeSig,
+              timeSigEvents: item.variant.timeSigEvents,
               keySig: item.keySig.fifths,
               keyMode: item.keySig.mode,
               title: `${item.title} (${item.row.difficulty})`,

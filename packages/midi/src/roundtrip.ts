@@ -62,6 +62,7 @@ export function writeVariantArtifacts(variant: Variant, title: string, artist: s
   const midi = writeMidi(variant.notes, {
     tempoBpm: variant.tempoBpm,
     timeSig: variant.timeSig,
+    timeSigEvents: variant.timeSigEvents,
     keySig: sig.fifths,
     keyMode: sig.mode,
     title: `${title} (${variant.level})`,

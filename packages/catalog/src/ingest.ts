@@ -449,6 +449,13 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
         key: v.key,
         tempoBpm: v.tempoBpm,
         timeSig: v.timeSig,
+        ...(v.timeSigEvents?.length ? {
+          timeSigEvents: v.timeSigEvents.map((event) => ({
+            tick: event.tick,
+            beat: event.beat,
+            timeSig: [...event.timeSig] as [number, number],
+          })),
+        } : {}),
         provenance,
       }) });
     } catch (e) {

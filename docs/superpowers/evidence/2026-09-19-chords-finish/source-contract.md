@@ -31,6 +31,10 @@ Therefore:
 - invalid signature, nonfinite phase, source mismatch, or unsupported provenance must fail closed to undefined timing;
 - unknown sources remain conservative and source-timed.
 
+## Meter-event transport decision
+
+The scalar final `timeSig` field cannot represent Queen's change from 2/4 at beat 0 to 6/8 at beat 12. `MidiTimeSignatureEvent[]` is therefore retained through parser output, variant measure construction, and catalog `notes.json` metadata. The event structure is descriptive transport only: meter declarations do not independently prove pickup or downbeat phase. Only explicit, fingerprinted `sourceTiming` metadata with `source-measure-boundary` provenance may enable sparse backing phase. Queen remains phase-unknown until that evidence exists.
+
 ## Target source decisions
 
 ### Oops I Did It Again — advanced, 95 BPM

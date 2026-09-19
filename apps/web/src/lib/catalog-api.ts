@@ -17,7 +17,7 @@ import {
   type SongRow,
 } from "@keyspilli/catalog";
 import { chordToNotes, validateArtifactFiles, type ChordLabel, type Variant } from "@keyspilli/midi";
-import { completeChordDurations, detectSections, type ChordSourceBundle, type ChordSourceTimeline, type SongData } from "@keyspilli/player-core";
+import { completeChordDurations, detectSections, validateSparseBackingTiming, type ChordSourceBundle, type ChordSourceTimeline, type SongData } from "@keyspilli/player-core";
 
 type LoadedChordTimeline = NonNullable<Awaited<ReturnType<typeof loadChordTimeline>>>;
 type PlayerChord = Omit<ChordLabel, "sourceKind" | "inferred" | "inferenceType" | "durationBeats"> & {
@@ -350,16 +350,31 @@ export async function loadSongArtifact(song: SongRow): Promise<{ data: SongData 
   // The manifest is authoritative when present. Assigning the resolved value
   // here keeps downstream playback and seek code on the same runtime value;
   // the equality check above prevents this from masking a stale mirror.
+  const loadedSourceFingerprint = manifest?.sourceArtifactHash
+    ? `variant:${song.baseId}:${song.level}:${song.id}:${manifest.sourceArtifactHash}:notes:${createHash("sha256").update(notesContent).digest("hex")}`
+    : stored.sourceFingerprint;
+  const storedTiming = record(stored.sourceTiming);
+  const timingCandidate = storedTiming
+    ? {
+        ...storedTiming,
+        ...(storedTiming.sourceFingerprint === undefined && loadedSourceFingerprint
+          ? { sourceFingerprint: loadedSourceFingerprint }
+          : {}),
+      }
+    : stored.sourceTiming;
+  const sourceTiming = validateSparseBackingTiming(timingCandidate, loadedSourceFingerprint);
+  const { sourceTiming: _storedSourceTiming, ...storedWithoutTiming } = stored;
   const data = {
-    ...stored,
+    ...storedWithoutTiming,
     tempoBpm: tempo.bpm,
     ...(manifest?.sourceArtifactHash ? {
       // The manifest hash identifies the original source bytes and can stay
       // stable when a variant's derived notes are regenerated. Include the
       // loaded notes content so a saved melody choice cannot survive variant
       // drift, while retaining row identity across shared source variants.
-      sourceFingerprint: `variant:${song.baseId}:${song.level}:${song.id}:${manifest.sourceArtifactHash}:notes:${createHash("sha256").update(notesContent).digest("hex")}`,
+      sourceFingerprint: loadedSourceFingerprint,
     } : {}),
+    ...(sourceTiming ? { sourceTiming } : {}),
   };
   // Compute heuristic sections at load time so the player can offer practice
   // navigation without requiring every checked-in artifact to carry metadata.

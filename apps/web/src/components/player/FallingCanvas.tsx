@@ -198,8 +198,13 @@ export function FallingCanvas({ measures = [], countIn = null, inputEnabled = tr
         const bSec = b * beatSec;
         const y = areaHeight - (bSec - now) * pxPerSec;
         if (y < 0 || y > areaHeight) continue;
-        // Downbeat spacing follows the song's actual meter, not a hardcoded 4.
-        const isDownbeat = b % (timeSigRef.current[0] * 4 / timeSigRef.current[1]) === 0;
+        // Prefer stored measure boundaries so meter changes remain aligned
+        // with the progress bar; scalar meter is the legacy fallback. This
+        // reflects catalog structure and does not validate source phase.
+        const sourceDownbeat = rhythmRef.current.measures.some((measure) => Math.abs(measure.startBeat - b) <= 1e-6);
+        const isDownbeat = rhythmRef.current.measures.length > 0
+          ? sourceDownbeat
+          : b % (timeSigRef.current[0] * 4 / timeSigRef.current[1]) === 0;
         ctx.strokeStyle = dark ? (isDownbeat ? "#484e59" : "#2d323b") : (isDownbeat ? "rgba(24, 24, 27, 0.12)" : "rgba(24, 24, 27, 0.04)");
         ctx.lineWidth = isDownbeat ? 1.5 : 1;
         ctx.beginPath();

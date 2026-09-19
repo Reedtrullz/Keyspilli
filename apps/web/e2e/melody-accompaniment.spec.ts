@@ -116,6 +116,15 @@ type MelodyTraceWindow = Window & {
   __keyspilliMelodyArrangementTraceEvents: MelodyArrangementTrace[];
 };
 
+type MelodyOptionTrace = {
+  requestKey: string;
+  sparseBackingTiming?: { timeSig?: number[]; measureStartBeat?: number; provenance?: string; sourceFingerprint?: string };
+};
+
+type MelodyOptionTraceWindow = Window & {
+  __keyspilliMelodyOptionTraceEvents: MelodyOptionTrace[];
+};
+
 async function installMelodyTrace(page: Page): Promise<void> {
   await page.addInitScript(() => {
     const target = window as unknown as MelodyTraceWindow & {
@@ -123,6 +132,26 @@ async function installMelodyTrace(page: Page): Promise<void> {
     };
     target.__keyspilliMelodyArrangementTraceEvents = [];
     target.__keyspilliMelodyArrangementTrace = (event) => target.__keyspilliMelodyArrangementTraceEvents.push(event);
+  });
+}
+
+async function installMelodyOptionTrace(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const target = window as unknown as MelodyOptionTraceWindow;
+    target.__keyspilliMelodyOptionTraceEvents = [];
+    const originalPostMessage = Worker.prototype.postMessage;
+    Worker.prototype.postMessage = function (message: unknown, ...rest: unknown[]) {
+      if (message && typeof message === "object" && "requestKey" in message) {
+        const request = message as { requestKey?: unknown; options?: { sparseBackingTiming?: MelodyOptionTrace["sparseBackingTiming"] } };
+        if (typeof request.requestKey === "string") {
+          target.__keyspilliMelodyOptionTraceEvents.push({
+            requestKey: request.requestKey,
+            ...(request.options?.sparseBackingTiming ? { sparseBackingTiming: request.options.sparseBackingTiming } : {}),
+          });
+        }
+      }
+      return Reflect.apply(originalPostMessage, this, [message, ...rest]);
+    };
   });
 }
 
@@ -603,6 +632,26 @@ test.beforeEach(async ({ context }) => {
     if (!window.localStorage.getItem("keyspilli.prefs.v1")) {
       window.localStorage.setItem("keyspilli.prefs.v1", JSON.stringify({ soundSource: "synth" }));
     }
+  });
+});
+
+test("real loader delivers validated timing to the worker and request key", async ({ page }) => {
+  await installMelodyOptionTrace(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/player/${SONG_ID}`);
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+  await selectArrangement(page, "Chord mode", "Automatic melody");
+
+  const traces = await page.evaluate(() => (window as unknown as MelodyOptionTraceWindow).__keyspilliMelodyOptionTraceEvents);
+  const timingTrace = traces.find((trace) => trace.sparseBackingTiming?.provenance === "source-measure-boundary");
+  expect(timingTrace?.sparseBackingTiming).toMatchObject({
+    timeSig: [4, 4],
+    measureStartBeat: 0,
+    provenance: "source-measure-boundary",
+  });
+  expect(timingTrace?.sparseBackingTiming?.sourceFingerprint).toContain("variant:the-beatles-blackbird:a:");
+  expect(JSON.parse(timingTrace!.requestKey)).toMatchObject({
+    sparseBackingTiming: timingTrace!.sparseBackingTiming,
   });
 });
 

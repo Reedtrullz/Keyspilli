@@ -14,6 +14,7 @@ export function LeadSheetView({ data, time, settings, chords }: { data: SongData
     settings.speed,
     data.timeSig,
     data.measures.length,
+    data.measures,
   );
   const m = data.measures[currentMeasure] ?? data.measures[0]!;
   // Match the transposed audio so visual pitch positions stay correct.

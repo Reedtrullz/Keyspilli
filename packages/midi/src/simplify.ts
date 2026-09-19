@@ -1,6 +1,6 @@
 import { inferSourceHandLanes } from "./source-hand-lanes.js";
 import { splitHands, detectBassPattern, detectKey, chordName } from "./analyze.js";
-import { Note, ParsedMidi, SongMeta, Variant, DifficultyLevel, LEVEL_ORDER, ChordLabel } from "./types.js";
+import { Note, ParsedMidi, SongMeta, Variant, DifficultyLevel, LEVEL_ORDER, ChordLabel, MidiTimeSignatureEvent } from "./types.js";
 import { quantize } from "./quantize.js";
 import { midiBeatToNativeSeconds } from "./parse.js";
 import { BEGINNER_OFFGRID_CANDIDATE, LADDER_TOL, PLAYABILITY_LIMITS } from "./validate.js";
@@ -18,6 +18,10 @@ import {
   type BeginnerOffGridRejectedCandidate,
 } from "./beginner-offgrid.js";
 import { selectProtectedSemanticLocalThinning } from "./density-normalization-audit.js";
+
+const MAX_SOURCE_TIME_SIG_EVENTS = 4096;
+const MAX_SOURCE_BEATS = 4096;
+const MAX_SOURCE_MEASURES = 2048;
 
 export interface VariantOptions {
   /** 16th-note grid (beats) used for note slicing */
@@ -2738,6 +2742,48 @@ function rootOf(midi: number, key: string): number {
  * Guarantee: each easier level is a strict simplification (subset or
  * equal notes) of the level above it.
  */
+function normalizeTimeSigEvents(events: readonly MidiTimeSignatureEvent[] | undefined): MidiTimeSignatureEvent[] {
+  if (!events?.length) return [];
+  if (events.length > MAX_SOURCE_TIME_SIG_EVENTS) {
+    throw new Error(`source workload exceeds supported limits (${MAX_SOURCE_TIME_SIG_EVENTS} time-signature events)`);
+  }
+  const sorted = [...events].sort((a, b) => a.beat - b.beat || a.tick - b.tick || a.timeSig[0] - b.timeSig[0] || a.timeSig[1] - b.timeSig[1]);
+  const normalized: MidiTimeSignatureEvent[] = [];
+  const signatureByTick = new Map<number, [number, number]>();
+  const signatureByBeat = new Map<number, [number, number]>();
+  for (const event of sorted) {
+    const [numerator, denominator] = event.timeSig;
+    if (!Number.isInteger(event.tick) || event.tick < 0 || !Number.isFinite(event.beat) || event.beat < 0
+      || event.beat > MAX_SOURCE_BEATS || !Number.isInteger(numerator) || numerator <= 0
+      || !Number.isInteger(denominator) || denominator <= 0) {
+      throw new Error("source workload contains an invalid time-signature event");
+    }
+    const tickSignature = signatureByTick.get(event.tick);
+    const beatSignature = signatureByBeat.get(event.beat);
+    if ((tickSignature && (tickSignature[0] !== numerator || tickSignature[1] !== denominator))
+      || (beatSignature && (beatSignature[0] !== numerator || beatSignature[1] !== denominator))) {
+      throw new Error("source workload contains contradictory time-signature events at one boundary");
+    }
+    signatureByTick.set(event.tick, [numerator, denominator]);
+    signatureByBeat.set(event.beat, [numerator, denominator]);
+    const previous = normalized.at(-1);
+    if (previous && (previous.tick === event.tick || Math.abs(previous.beat - event.beat) <= 1e-9)) {
+      if (previous.timeSig[0] !== numerator || previous.timeSig[1] !== denominator) {
+        throw new Error("source workload contains contradictory time-signature events at one boundary");
+      }
+      continue;
+    }
+    normalized.push({ tick: event.tick, beat: event.beat, timeSig: [numerator, denominator] });
+  }
+  return normalized;
+}
+
+function initialTimeSig(timeSig: [number, number], events: readonly MidiTimeSignatureEvent[]): [number, number] {
+  const atZero = events.find((event) => event.beat === 0);
+  if (atZero) return [...atZero.timeSig] as [number, number];
+  return events.length ? [4, 4] : [...timeSig] as [number, number];
+}
+
 /** Bound synchronous work for every importer, including sparse malicious timelines. */
 export function assertSourceWorkload(src: ParsedMidi, grid = 0.25): void {
   const fail = () => { throw new Error("source workload exceeds supported limits (20000 notes, 4096 beats, 2048 measures, 200M grid-note pairs)"); };
@@ -2751,12 +2797,29 @@ export function assertSourceWorkload(src: ParsedMidi, grid = 0.25): void {
     if (!Number.isFinite(note.start) || !Number.isFinite(note.dur) || note.start < 0 || note.dur < 0) fail();
     end = Math.max(end, note.start + note.dur);
   }
-  const measureBeats = src.timeSig[0] * 4 / src.timeSig[1];
+  const timeSigEvents = normalizeTimeSigEvents(src.timeSigEvents);
+  const effectiveInitialTimeSig = initialTimeSig(src.timeSig, timeSigEvents);
+  const measureBeats = effectiveInitialTimeSig[0] * 4 / effectiveInitialTimeSig[1];
   // ponytail: conservative work estimate for the synchronous arranger; move to a
   // cancellable worker before raising this ceiling for very large scores.
-  if (!Number.isFinite(measureBeats) || measureBeats <= 0 || end > 4096
-    || Math.ceil(end / measureBeats) > 2048
+  if (!Number.isInteger(effectiveInitialTimeSig[0]) || effectiveInitialTimeSig[0] <= 0
+    || !Number.isInteger(effectiveInitialTimeSig[1]) || effectiveInitialTimeSig[1] <= 0
+    || !Number.isFinite(measureBeats) || measureBeats <= 0 || end > MAX_SOURCE_BEATS
+    || Math.ceil(end / measureBeats) > MAX_SOURCE_MEASURES
     || Math.ceil(end / grid) * src.notes.length > 200_000_000) fail();
+  const boundedEvents = timeSigEvents.filter((event) => event.beat <= end + 1e-9);
+  const timeline = boundedEvents.length
+    ? [...(boundedEvents[0]!.beat > 0 ? [{ beat: 0, timeSig: [4, 4] as [number, number] }] : []), ...boundedEvents]
+    : [{ beat: 0, timeSig: effectiveInitialTimeSig }];
+  let measureWork = 0;
+  for (let index = 0; index < timeline.length; index += 1) {
+    const event = timeline[index]!;
+    const nextBeat = Math.min(timeline[index + 1]?.beat ?? end, end);
+    const width = event.timeSig[0] * (4 / event.timeSig[1]);
+    if (!Number.isFinite(width) || width <= 0) fail();
+    if (nextBeat > event.beat) measureWork += Math.ceil((nextBeat - event.beat) / width);
+    if (measureWork > MAX_SOURCE_MEASURES) fail();
+  }
 }
 
 export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOptions = {}): Variant[] {
@@ -2780,6 +2843,9 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     src = { ...source, tempoBpm: sourceTempo, tempoEvents: undefined,
       durationBeats: beat(source.durationBeats),
       notes: source.notes.map(note => ({ ...note, start: beat(note.start), dur: beat(note.start + note.dur) - beat(note.start) })),
+      ...(source.timeSigEvents?.length ? {
+        timeSigEvents: source.timeSigEvents.map((event) => ({ ...event, beat: beat(event.beat) })),
+      } : {}),
     };
     if (opts.chords) opts = { ...opts, chords: opts.chords.map(chord => ({ ...chord,
       beat: beat(chord.beat),
@@ -2787,6 +2853,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     })) };
   }
   assertSourceWorkload(src, opts.grid);
+  const sourceTimeSigEvents = normalizeTimeSigEvents(src.timeSigEvents);
   const grid = opts.grid ?? 0.25;
   const metalProfile = opts.arrangementProfile === "metal";
   const learnerProfile = opts.arrangementProfile === "learner";
@@ -3270,20 +3337,42 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
       key,
       tempoBpm: tempo,
       timeSig: src.timeSig,
-      measures: buildMeasures(notes, src.timeSig, src.durationBeats),
+      ...(sourceTimeSigEvents.length ? { timeSigEvents: sourceTimeSigEvents.map((event) => ({ ...event, timeSig: [...event.timeSig] as [number, number] })) } : {}),
+      measures: buildMeasures(notes, src.timeSig, src.durationBeats, sourceTimeSigEvents),
     };
   });
 }
 
-function buildMeasures(notes: Note[], timeSig: [number, number], arrangementEnd = 0): Variant["measures"] {
+function buildMeasures(
+  notes: Note[],
+  timeSig: [number, number],
+  arrangementEnd = 0,
+  timeSigEvents: readonly MidiTimeSignatureEvent[] = [],
+): Variant["measures"] {
   const [num, den] = timeSig;
-  const rawBeatsPerMeasure = num * (4 / den);
-  const beatsPerMeasure = Number.isFinite(rawBeatsPerMeasure) && rawBeatsPerMeasure > 0 ? rawBeatsPerMeasure : 4;
   const dur = Math.max(arrangementEnd, maxNoteEnd(notes), 1);
-  const count = Math.max(1, Math.ceil(dur / beatsPerMeasure));
-  return Array.from({ length: count }, (_, i) => ({
-    index: i,
-    startBeat: i * beatsPerMeasure,
-    endBeat: (i + 1) * beatsPerMeasure,
-  }));
+  const validEvents = timeSigEvents.filter((event) => event.beat <= dur + 1e-9);
+  const dedupedEvents = validEvents.filter((event, index, events) => index === 0 || event.beat > events[index - 1]!.beat);
+  const timeline = dedupedEvents.length
+    ? [
+        ...(dedupedEvents[0]!.beat > 0 ? [{ beat: 0, timeSig: [4, 4] as [number, number], tick: 0 }] : []),
+        ...dedupedEvents,
+      ]
+    : [{ beat: 0, timeSig: initialTimeSig(timeSig, timeSigEvents), tick: 0 }];
+  const measures: Variant["measures"] = [];
+  for (let index = 0; index < timeline.length; index += 1) {
+    const event = timeline[index]!;
+    const next = timeline[index + 1];
+    const rawBeatsPerMeasure = event.timeSig[0] * (4 / event.timeSig[1]);
+    const beatsPerMeasure = Number.isFinite(rawBeatsPerMeasure) && rawBeatsPerMeasure > 0 ? rawBeatsPerMeasure : 4;
+    const segmentEnd = next?.beat ?? dur;
+    let startBeat = event.beat;
+    while (startBeat < segmentEnd - 1e-9 || (!next && measures.length === 0)) {
+      const endBeat = next ? Math.min(startBeat + beatsPerMeasure, segmentEnd) : startBeat + beatsPerMeasure;
+      if (measures.length >= MAX_SOURCE_MEASURES) throw new Error("source workload exceeds supported limits (2048 measures)");
+      measures.push({ index: measures.length, startBeat, endBeat });
+      startBeat = endBeat;
+    }
+  }
+  return measures.length ? measures : [{ index: 0, startBeat: 0, endBeat: 4 }];
 }

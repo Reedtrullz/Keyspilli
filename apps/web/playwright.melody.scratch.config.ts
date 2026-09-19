@@ -1,7 +1,7 @@
 import { defineConfig } from "@playwright/test";
 import Database from "better-sqlite3";
 import { createHash } from "node:crypto";
-import { cpSync, mkdirSync, mkdtempSync, readFileSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -117,6 +117,14 @@ const songs = fixtures.map((fixture) => {
     : join(fixtureRoot, "artifacts", fixture.baseId, "manifest.json");
   cpSync(sourceVariantDir, join(scratchDataDir, "artifacts", fixture.baseId, "a"), { recursive: true });
   cpSync(manifestPath, join(scratchDataDir, "artifacts", fixture.baseId, "manifest.json"));
+  if (fixture.baseId === "the-beatles-blackbird") {
+    const scratchNotesPath = join(scratchDataDir, "artifacts", fixture.baseId, "a", "notes.json");
+    const scratchNotes = JSON.parse(readFileSync(scratchNotesPath, "utf8")) as Record<string, unknown>;
+    writeFileSync(scratchNotesPath, JSON.stringify({
+      ...scratchNotes,
+      sourceTiming: { timeSig: [4, 4], measureStartBeat: 0, provenance: "source-measure-boundary" },
+    }));
+  }
   const source = JSON.parse(readFileSync(join(sourceVariantDir, "notes.json"), "utf8")) as Source;
   const duration = Math.ceil(Math.max(0, ...(source.notes ?? []).map((note) => note.start + note.dur)));
   return {

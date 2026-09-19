@@ -9,7 +9,7 @@ const pitchName = (midi: number) => `${LETTERS[((midi % 12) + 12) % 12]}${Math.f
 
 export function BeginnerView({ data, time, settings, chords }: { data: SongData; time: number; settings: PlayerSettings; chords: ChordLabel[] }) {
   const beat = time / secPerBeat(data.tempoBpm, settings.speed);
-  const currentMeasure = measureIndex(time, data.tempoBpm, settings.speed, data.timeSig, data.measures.length);
+  const currentMeasure = measureIndex(time, data.tempoBpm, settings.speed, data.timeSig, data.measures.length, data.measures);
   const m = data.measures[currentMeasure] ?? data.measures[0]!;
   const scroller = useRef<HTMLDivElement>(null);
   const activeCell = useRef<HTMLTableCellElement>(null);

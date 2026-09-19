@@ -194,6 +194,78 @@ describe("catalog artifact manifest read boundary", () => {
     expect(second.data?.sourceFingerprint).toContain(`variant:${song().baseId}:${song().level}:${song().id}:${manifest.sourceArtifactHash}:notes:`);
   });
 
+  it("binds validated source timing to the loaded notes fingerprint", async () => {
+    const manifest = createLegacyBootstrapManifest("catalog-api-song", 120);
+    manifest.sourceArtifactHash = "a".repeat(64);
+    await writeArrangementManifestFile(arrangementManifestPath("catalog-api-song"), manifest);
+    await writeFile(join(dataRoot, "artifacts", "catalog-api-song", "a", "notes.json"), JSON.stringify({
+      notes: [],
+      chords: [],
+      measures: [],
+      key: "C",
+      tempoBpm: 120,
+      timeSig: [6, 8],
+      sourceTiming: {
+        timeSig: [6, 8],
+        measureStartBeat: -3,
+        provenance: "source-measure-boundary",
+        timeSigEvents: [{ beat: 0, timeSig: [2, 4] }, { beat: 12, timeSig: [6, 8] }],
+      },
+    }));
+
+    const loaded = await loadSongArtifact(song(120));
+    expect(loaded.data?.sourceTiming).toMatchObject({
+      timeSig: [6, 8],
+      measureStartBeat: -3,
+      provenance: "source-measure-boundary",
+      sourceFingerprint: loaded.data?.sourceFingerprint,
+      timeSigEvents: [{ beat: 0, timeSig: [2, 4] }, { beat: 12, timeSig: [6, 8] }],
+    });
+  });
+
+  it("drops source timing that carries a stale source identity", async () => {
+    const manifest = createLegacyBootstrapManifest("catalog-api-song", 120);
+    manifest.sourceArtifactHash = "a".repeat(64);
+    await writeArrangementManifestFile(arrangementManifestPath("catalog-api-song"), manifest);
+    await writeFile(join(dataRoot, "artifacts", "catalog-api-song", "a", "notes.json"), JSON.stringify({
+      notes: [],
+      chords: [],
+      measures: [],
+      key: "C",
+      tempoBpm: 120,
+      timeSig: [4, 4],
+      sourceTiming: { timeSig: [4, 4], measureStartBeat: 0, provenance: "source-measure-boundary", sourceFingerprint: "stale" },
+    }));
+
+    const loaded = await loadSongArtifact(song(120));
+    expect(loaded.data).not.toHaveProperty("sourceTiming");
+  });
+
+  it("preserves meter declarations without promoting phase provenance", async () => {
+    const manifest = createLegacyBootstrapManifest("catalog-api-song", 120);
+    manifest.sourceArtifactHash = "a".repeat(64);
+    await writeArrangementManifestFile(arrangementManifestPath("catalog-api-song"), manifest);
+    await writeFile(join(dataRoot, "artifacts", "catalog-api-song", "a", "notes.json"), JSON.stringify({
+      notes: [],
+      chords: [],
+      measures: [],
+      key: "C",
+      tempoBpm: 120,
+      timeSig: [6, 8],
+      timeSigEvents: [
+        { tick: 0, beat: 0, timeSig: [2, 4] },
+        { tick: 5760, beat: 12, timeSig: [6, 8] },
+      ],
+    }));
+
+    const loaded = await loadSongArtifact(song(120));
+    expect(loaded.data?.timeSigEvents).toEqual([
+      { tick: 0, beat: 0, timeSig: [2, 4] },
+      { tick: 5760, beat: 12, timeSig: [6, 8] },
+    ]);
+    expect(loaded.data).not.toHaveProperty("sourceTiming");
+  });
+
   it("projects legacy MIDI-derived chords with generated provenance and duration metadata", async () => {
     await writeLegacyGeneratedChordNotes();
 

@@ -1279,6 +1279,27 @@ describe("buildMelodyAccompaniment", () => {
     expect(result.provenance.generatedNoteCount).toBe(expectedStarts.length * 3);
   });
 
+  it("follows source meter changes instead of applying the final meter from beat zero", () => {
+    const result = build(
+      [note(72, 0, 18, 100, "R")],
+      [chord(0, "C", 18)],
+      "right-hand",
+      18,
+      {
+        timeSig: [6, 8],
+        measureStartBeat: 0,
+        provenance: "source-measure-boundary",
+        timeSigEvents: [
+          { beat: 0, timeSig: [2, 4] },
+          { beat: 12, timeSig: [6, 8] },
+        ],
+      },
+    );
+    expect([...new Set(result.notes.filter((item) => item.hand === "L").map((item) => item.start))]).toEqual([
+      0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13.5, 15, 16.5,
+    ]);
+  });
+
   it("uses the supplied source measure phase instead of assuming beat zero", () => {
     const result = build(
       [note(72, 0, 8, 100, "R")],

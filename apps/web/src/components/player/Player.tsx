@@ -24,6 +24,7 @@ import {
   resolveAccompaniment,
   resolveTimedNotes,
   sourceNoteIds,
+  validateSparseBackingTiming,
   saveJson,
   saveSettings,
   saveSongPrefs,
@@ -35,6 +36,7 @@ import {
   type MelodyHarmonicSupportPolicy,
   type MelodySelection,
   type SourceBackingMode,
+  type SparseBackingTiming,
   type ChordPracticeSnapshot,
   type PlayerSettings,
   type ViewMode,
@@ -49,7 +51,7 @@ import { FallingCanvas } from "./FallingCanvas";
 import { ChordStrip } from "./ChordStrip";
 import { ChordPracticePanel } from "./ChordPracticePanel";
 import { buildChordPracticeTargets, selectPracticeChords } from "./chord-practice";
-import { melodyArrangementExecution, MELODY_WORKER_NOTE_THRESHOLD, traceMelodyArrangement } from "./melody-arrangement-runtime";
+import { buildMelodyArrangementOptions, melodyArrangementExecution, MELODY_WORKER_NOTE_THRESHOLD, traceMelodyArrangement } from "./melody-arrangement-runtime";
 import { BeginnerView } from "./BeginnerView";
 import { LeadSheetView } from "./LeadSheetView";
 import { SheetMusicView } from "./SheetMusicView";
@@ -229,6 +231,7 @@ function melodyArrangementRequestKey(
   phraseOverrides: readonly MelodyPhraseOverride[],
   harmonicSupport: MelodyHarmonicSupportPolicy,
   sourceBackingMode: SourceBackingMode,
+  sparseBackingTiming?: SparseBackingTiming,
 ): string {
   return JSON.stringify({
     sourceNotes,
@@ -239,6 +242,7 @@ function melodyArrangementRequestKey(
     phraseOverrides,
     harmonicSupport,
     sourceBackingMode,
+    sparseBackingTiming,
     allowRests: true,
     soundingPolicy: "coherent-phrase",
   });
@@ -356,6 +360,10 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   const [melodyPhraseOverrides, setMelodyPhraseOverrides] = useState<MelodyPhraseOverride[]>([]);
   const [melodySelectionSaved, setMelodySelectionSaved] = useState(false);
   const melodySourceFingerprint = useMemo(() => sourceFingerprintForPlayer(initial), [initial]);
+  const sparseBackingTiming = useMemo(
+    () => validateSparseBackingTiming(initial.data.sourceTiming, melodySourceFingerprint),
+    [initial.data.sourceTiming, melodySourceFingerprint],
+  );
 
   useEffect(() => {
     setFavorites(loadJson("keyspilli.favorites", [] as string[]));
@@ -503,8 +511,21 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       melodyPhraseOverrides,
       melodySupportPolicy,
       melodySourceBackingMode,
+      sparseBackingTiming,
     ),
-    [arrangementEnd, chords, initial.data.notes, melodyPhraseOverrides, melodySelection, melodySourceBackingMode, melodySourceFingerprint, melodySupportPolicy],
+    [arrangementEnd, chords, initial.data.notes, melodyPhraseOverrides, melodySelection, melodySourceBackingMode, melodySourceFingerprint, melodySupportPolicy, sparseBackingTiming],
+  );
+  const melodyArrangementOptions = useMemo(
+    () => buildMelodyArrangementOptions({
+      durationBeats: arrangementEnd,
+      sourceFingerprint: melodySourceFingerprint,
+      selection: melodySelection,
+      phraseOverrides: melodyPhraseOverrides,
+      harmonicSupport: melodySupportPolicy,
+      sourceBackingMode: melodySourceBackingMode,
+      sparseBackingTiming,
+    }),
+    [arrangementEnd, melodyPhraseOverrides, melodySelection, melodySourceBackingMode, melodySourceFingerprint, melodySupportPolicy, sparseBackingTiming],
   );
   const sourceMelodyView = useMemo(
     () => sourceMelodyArrangement(initial.data.notes, chords, arrangementEnd, melodySourceFingerprint, melodySelection),
@@ -526,16 +547,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       noteCount: initial.data.notes.length,
       key: melodyArrangementRequestKeyValue,
     });
-    const resolution = buildMelodyAccompaniment(initial.data.notes, chords, {
-      durationBeats: arrangementEnd,
-      sourceFingerprint: melodySourceFingerprint,
-      selection: melodySelection,
-      allowRests: true,
-      soundingPolicy: "coherent-phrase",
-      phraseOverrides: melodyPhraseOverrides,
-      harmonicSupport: melodySupportPolicy,
-      sourceBackingMode: melodySourceBackingMode,
-    });
+    const resolution = buildMelodyAccompaniment(initial.data.notes, chords, melodyArrangementOptions);
     traceMelodyArrangement({
       phase: "sync-complete",
       execution: "sync",
@@ -543,7 +555,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       key: melodyArrangementRequestKeyValue,
     });
     return resolution;
-  }, [arrangementEnd, chords, initial.data.notes, melodyArrangementExecutionMode, melodyArrangementRequestKeyValue, melodyPhraseOverrides, melodySelection, melodySourceBackingMode, melodySourceFingerprint, melodySupportPolicy, sourceMelodyView]);
+  }, [chords, initial.data.notes, melodyArrangementExecutionMode, melodyArrangementOptions, melodyArrangementRequestKeyValue, sourceMelodyView]);
   const [workerMelodyArrangement, setWorkerMelodyArrangement] = useState<{ key: string; resolution: MelodyAccompanimentResolution } | null>(null);
   const [workerState, setWorkerState] = useState<{
     key: string;
@@ -601,16 +613,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
         requestKey: melodyArrangementRequestKeyValue,
         sourceNotes: initial.data.notes,
         chordTimeline: chords,
-        options: {
-          durationBeats: arrangementEnd,
-          sourceFingerprint: melodySourceFingerprint,
-          selection: melodySelection,
-          allowRests: true,
-          soundingPolicy: "coherent-phrase",
-          phraseOverrides: melodyPhraseOverrides,
-          harmonicSupport: melodySupportPolicy,
-          sourceBackingMode: melodySourceBackingMode,
-        },
+        options: melodyArrangementOptions,
       });
     } catch (error) {
       fail(error instanceof Error ? error.message : "The background arrangement could not start; Original playback is retained.");
@@ -619,7 +622,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       active = false;
       worker.terminate();
     };
-  }, [arrangementEnd, chords, initial.data.notes, melodyArrangementExecutionMode, melodyArrangementRequested, melodyArrangementRequestKeyValue, melodyPhraseOverrides, melodySelection, melodySourceBackingMode, melodySourceFingerprint, melodySupportPolicy, workerAvailable, workerRetry]);
+  }, [chords, initial.data.notes, melodyArrangementExecutionMode, melodyArrangementOptions, melodyArrangementRequested, melodyArrangementRequestKeyValue, workerAvailable, workerRetry]);
   const workerResolution = workerMelodyArrangement?.key === melodyArrangementRequestKeyValue
     ? workerMelodyArrangement.resolution
     : null;
@@ -682,6 +685,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     settings.speed,
     initial.data.timeSig,
     initial.data.measures.length,
+    initial.data.measures,
   );
   // Freeze chord-practice targets at session start: a seek changes the
   // current measure but must not silently discard accumulated progress.
@@ -731,7 +735,11 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       audio,
       notes,
       duration,
-      { tempoBpm: initial.data.tempoBpm, timeSig: initial.data.timeSig },
+      {
+        tempoBpm: initial.data.tempoBpm,
+        timeSig: initial.data.timeSig,
+        measureStarts: initial.data.measures.map((measure) => measure.startBeat),
+      },
       settings,
       audioChords,
       guidanceNotes,
