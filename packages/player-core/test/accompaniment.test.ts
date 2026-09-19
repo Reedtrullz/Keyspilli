@@ -27,6 +27,47 @@ function resolve(
 }
 
 describe("resolveAccompaniment", () => {
+  it("realizes a supported chart event without source-note ownership", () => {
+    const result = resolve([], [{ beat: 0, durationBeats: 2, name: "C", notes: [] }], "bass-chords", undefined, 2);
+
+    expect(result.notes).toEqual([]);
+    expect(result.chords).toHaveLength(1);
+    expect(result.guidanceNotes.map((item) => item.midi)).toEqual(result.chords[0]!.notes);
+    expect(result.fallbackSpans).toEqual([]);
+  });
+
+  it("does not retain a source note that crosses a backed chord boundary", () => {
+    const result = resolve(
+      [note(60, 0, 4)],
+      [
+        { beat: 0, durationBeats: 2, name: "C", notes: [] },
+        { beat: 2, durationBeats: 2, name: "G", notes: [] },
+      ],
+      "bass-chords",
+      undefined,
+      4,
+    );
+
+    expect(result.notes).toEqual([]);
+    expect(result.chords).toHaveLength(2);
+    expect(result.fallbackSpans).toEqual([]);
+  });
+
+  it("omits source notes when backing is unsupported or uncovered", () => {
+    const result = resolve(
+      [note(60, 0), note(62, 2)],
+      [{ beat: 0, durationBeats: 1, name: "C9", notes: [] }],
+      "bass-chords",
+      undefined,
+      4,
+    );
+
+    expect(result.notes).toEqual([]);
+    expect(result.chords).toEqual([]);
+    expect(result.fallbackSpans).toContainEqual({ startBeat: 0, endBeat: 1, reason: "unsupported chord" });
+    expect(result.fallbackSpans).toContainEqual({ startBeat: 1, endBeat: 4, reason: "no chord coverage" });
+  });
+
   it("preserves an unknown melody arrangement instead of guessing from hand labels", () => {
     const notes = [note(72, 0, 1, "L"), note(74, 1, 1, "R")];
 
@@ -53,19 +94,16 @@ describe("resolveAccompaniment", () => {
     expect(result.chords[0]!.notes.map((midi) => midi % 12)).toEqual([7, 0, 4]);
   });
 
-  it("keeps a sustained source note across a replacement boundary and suppresses the chord", () => {
+  it("omits a sustained source note and keeps the backed chord across a boundary", () => {
     const notes = [note(60, 1, 4, "R")];
     const chords = [{ beat: 2, durationBeats: 2, name: "C", notes: [48, 52, 55] }];
 
     const result = resolve(notes, chords, "bass-chords");
 
-    expect(result.notes).toEqual(notes);
-    expect(result.chords).toEqual([]);
-    expect(result.fallbackSpans).toContainEqual({
-      startBeat: 2,
-      endBeat: 4,
-      reason: "sustained source note crosses accompaniment boundary",
-    });
+    expect(result.notes).toEqual([]);
+    expect(result.chords).toHaveLength(1);
+    expect(result.fallbackSpans).toContainEqual({ startBeat: 0, endBeat: 2, reason: "no chord coverage" });
+    expect(result.fallbackSpans).toContainEqual({ startBeat: 4, endBeat: 8, reason: "no chord coverage" });
   });
 
   it("lets later no-chord events end earlier chord coverage", () => {
@@ -79,7 +117,7 @@ describe("resolveAccompaniment", () => {
 
     expect(result.chords).toHaveLength(1);
     expect(result.chords[0]).toMatchObject({ beat: 0, durationBeats: 4 });
-    expect(result.notes).toEqual([notes[1]]);
+    expect(result.notes).toEqual([]);
     expect(result.fallbackSpans).toContainEqual({ startBeat: 4, endBeat: 8, reason: "explicit no-chord" });
   });
 
@@ -173,7 +211,7 @@ describe("resolveAccompaniment", () => {
     expect(filterAccompanimentChords(result.chords, "R")[0]?.notes.length).toBe(3);
   });
 
-  it("falls back without dropping notes for missing source, unsupported, no-chord, and chart gaps", () => {
+  it("fails closed for missing source, unsupported, no-chord, and chart gaps", () => {
     const notes = [note(60, 1), note(62, 5), note(64, 10)];
     const chords: ChordLabel[] = [
       { beat: 0, durationBeats: 2, name: "C9", notes: [] },
@@ -183,18 +221,17 @@ describe("resolveAccompaniment", () => {
 
     const result = resolve(notes, chords, "bass-chords", new Set(sourceNoteIds(notes)), 10);
 
-    expect(result.notes).toEqual(notes);
-    expect(result.chords).toEqual([]);
+    expect(result.notes).toEqual([]);
+    expect(result.chords).toHaveLength(1);
     expect(result.fallbackSpans).toEqual([
       { startBeat: 0, endBeat: 2, reason: "unsupported chord" },
       { startBeat: 2, endBeat: 4, reason: "explicit no-chord" },
       { startBeat: 4, endBeat: 8, reason: "no chord coverage" },
-      { startBeat: 8, endBeat: 10, reason: "no source notes to replace" },
     ]);
 
-    const noSource = resolve([], chords, "bass-chords");
+    const noSource = resolve([], [{ beat: 0, durationBeats: 2, name: "C", notes: [] }], "bass-chords", undefined, 4);
     expect(noSource.notes).toEqual([]);
-    expect(noSource.chords).toEqual([]);
-    expect(noSource.fallbackSpans[0]).toEqual({ startBeat: 0, endBeat: 8, reason: "no source notes" });
+    expect(noSource.chords).toHaveLength(1);
+    expect(noSource.fallbackSpans).toContainEqual({ startBeat: 2, endBeat: 4, reason: "no chord coverage" });
   });
 });

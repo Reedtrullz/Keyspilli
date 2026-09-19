@@ -933,8 +933,8 @@ export function enforceAccompanimentSoundingLimits(
 
 /**
  * Resolve one source arrangement into one non-overlapping playback plan.
- * Unknown source ownership is a deliberate safe fallback: source notes stay
- * intact and no generated chord overlay is emitted.
+ * Melody + accompaniment preserves unknown source ownership. Bass + chords
+ * owns its output and omits source notes wherever backing cannot be realized.
  */
 export function resolveAccompaniment(
   sourceNotes: readonly Note[],
@@ -944,7 +944,7 @@ export function resolveAccompaniment(
 ): AccompanimentResolution {
   const durationBeats = timelineDuration(sourceNotes, chordTimeline, options.durationBeats);
   const events = buildEvents(sourceNotes, chordTimeline, style, durationBeats);
-  if (sourceNotes.length === 0) {
+  if (sourceNotes.length === 0 && style !== "bass-chords") {
     return {
       style,
       notes: [],
@@ -983,7 +983,7 @@ export function resolveAccompaniment(
       .map((note, index) => ({ note, index }))
       .filter(({ note }) => overlaps(note, event.startBeat, event.endBeat));
     const crossingBoundary = overlapping.some(({ note }) => !whollyInside(note, event.startBeat, event.endBeat));
-    if (crossingBoundary) {
+    if (crossingBoundary && style !== "bass-chords") {
       fallbackEvents.push({
         startBeat: event.startBeat,
         endBeat: event.endBeat,
@@ -1003,15 +1003,6 @@ export function resolveAccompaniment(
       });
       continue;
     }
-    if (style === "bass-chords" && overlapping.length === 0) {
-      fallbackEvents.push({
-        startBeat: event.startBeat,
-        endBeat: event.endBeat,
-        reason: "no source notes to replace",
-      });
-      continue;
-    }
-
     for (const { index } of replaceableNotes) keep[index] = false;
     effectiveChords.push({
       ...event.chord,
@@ -1026,14 +1017,15 @@ export function resolveAccompaniment(
   }
 
   const fallbackSpans = buildFallbackSpans(events, covered, fallbackEvents, durationBeats);
+  const retainedSourceNotes = style === "bass-chords" ? [] : sourceNotes.filter((_, index) => keep[index]);
 
   return {
     style,
-    notes: sourceNotes.filter((_, index) => keep[index]),
+    notes: retainedSourceNotes,
     chords: effectiveChords,
     displayChords: buildDisplayTimeline(events, effectiveChords),
     guidanceNotes: [
-      ...sourceNotes.filter((_, index) => keep[index]),
+      ...retainedSourceNotes,
       ...effectiveChords.flatMap((chord) => chord.notes.map((midi, index) => ({
         midi,
         start: chord.beat,
