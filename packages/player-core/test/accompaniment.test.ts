@@ -190,7 +190,7 @@ describe("resolveAccompaniment", () => {
     const result = resolve(
       [note(72, 0), note(72, 2)],
       [
-        { beat: 0, durationBeats: 2, name: "C9", notes: [], sourceKind: "authored" },
+        { beat: 0, durationBeats: 2, name: "C9", notes: [48, 52, 55], sourceKind: "authored" },
         { beat: 2, durationBeats: 2, name: "C", notes: [], sourceKind: "authored" },
       ],
       "bass-chords",
@@ -200,7 +200,7 @@ describe("resolveAccompaniment", () => {
 
     expect(result.chords).toHaveLength(1);
     expect(result.displayChords.map((chord) => chord.name)).toEqual(["C9", "C"]);
-    expect(result.displayChords[0]).toMatchObject({ beat: 0, durationBeats: 2, notes: [] });
+    expect(result.displayChords[0]).toMatchObject({ beat: 0, durationBeats: 2, notes: [48, 52, 55] });
     expect(result.displayChords[1]).toMatchObject({ beat: 2, durationBeats: 2, notes: result.chords[0]!.notes });
   });
 

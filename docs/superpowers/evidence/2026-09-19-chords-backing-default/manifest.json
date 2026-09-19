@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-09-19",
+  "capturedCodeHead": "9d0a037",
+  "node": "v22.22.3",
+  "productContract": {
+    "defaultStyle": "bass-chords",
+    "explicitStyle": "melody-accompaniment",
+    "legacyMelodyWithoutIntent": "migrates to bass-chords",
+    "unsupportedBacking": "silent with source melody omitted and fallback status"
+  },
+  "diagnostics": [
+    {
+      "id": "blackbird-frozen",
+      "path": "docs/superpowers/evidence/2026-09-17-chords-v2-fixtures/the-beatles-blackbird/a/notes.json",
+      "sha256": "5aa5671d42bd93c2ac65c1fd21c87aa049b8baead3dfb48ae265213e6f445c75",
+      "durationBeats": 296,
+      "sourceNotes": 1069,
+      "sourceChordCount": 68,
+      "selectedChordCount": 68,
+      "displayChordCount": 68,
+      "effectiveChordCount": 68,
+      "generatedNoteCount": 246,
+      "guidanceNoteCount": 246,
+      "sourceOutputNoteCount": 0,
+      "fallbackSpanCount": 19,
+      "fallbackBeats": 17.75,
+      "realizedCoverageBeats": 278.25,
+      "silentUncoveredBeats": 17.75,
+      "allSilent": false,
+      "sourceLeakage": false,
+      "fallbackReasons": { "no chord coverage": 19 }
+    },
+    {
+      "id": "oops-frozen",
+      "path": "docs/superpowers/evidence/2026-09-17-chords-v2-fixtures/britney-spears-oops-i-did-it-again/a/notes.json",
+      "sha256": "346c168afa388c8582fbd631a1e0d79ba8bd585caa49ad7a1082492b5ecb7f98",
+      "durationBeats": 336,
+      "sourceNotes": 1891,
+      "sourceChordCount": 74,
+      "selectedChordCount": 74,
+      "displayChordCount": 74,
+      "effectiveChordCount": 74,
+      "generatedNoteCount": 251,
+      "guidanceNoteCount": 251,
+      "sourceOutputNoteCount": 0,
+      "fallbackSpanCount": 11,
+      "fallbackBeats": 9.125,
+      "realizedCoverageBeats": 326.875,
+      "silentUncoveredBeats": 9.125,
+      "allSilent": false,
+      "sourceLeakage": false,
+      "fallbackReasons": { "no chord coverage": 11 }
+    },
+    {
+      "id": "queen-canonical",
+      "path": "/Users/reidar/Projectos/Keyspilli/data/artifacts/queen-somebody-to-love/a/notes.json",
+      "sha256": "4faced9af0bc543fd4f054c731a16ed58e977d8623f947ff6925b482f8b3ec7d",
+      "durationBeats": 540,
+      "sourceNotes": 2373,
+      "sourceChordCount": 113,
+      "selectedChordCount": 110,
+      "displayChordCount": 110,
+      "effectiveChordCount": 110,
+      "generatedNoteCount": 401,
+      "guidanceNoteCount": 401,
+      "sourceOutputNoteCount": 0,
+      "fallbackSpanCount": 1,
+      "fallbackBeats": 6,
+      "realizedCoverageBeats": 534,
+      "silentUncoveredBeats": 6,
+      "allSilent": false,
+      "sourceLeakage": false,
+      "fallbackReasons": { "no chord coverage": 1 }
+    }
+  ],
+  "audio": {
+    "instrument": "browser AudioEngine synth",
+    "window": { "requestedStartBeat": 14, "requestedEndBeat": 26.5, "captureStartBeat": 13, "captureEndBeat": 27.5, "tempoBpm": 120 },
+    "files": [
+      { "path": "audio-review/blackbird-14-26.5-before-melody-accompaniment.webm", "sha256": "5e0dad49fa440b1f51cdc2e6091e4580d1869eab8ee478dd7afd149938e93c33", "bytes": 114660, "origin": "prior actual Player capture", "captureCommit": "36bed6e1b9ea66aceb6fb3291131dd2d33c2e07e" },
+      { "path": "audio-review/blackbird-14-26.5-after-backing-only-default.webm", "sha256": "042bed5e0235a3052d6f9ffb08d4f6f1fb52af3a1709c82a1a6f054f216937c3", "bytes": 109900, "events": 16, "triangleEvents": 8, "durationSeconds": 7.319977324263038, "signal": { "rms": 0.03491839138167085, "peak": 0.26056864857673645 }, "origin": "actual Player transport capture", "captureCommit": "9d0a037" },
+      { "path": "audio-review/blackbird-current-passage-accompaniment-preview.webm", "sha256": "2a0a6d1e1d5e0b2c60f216cc939b60e2b07bbca064901a2b6856ba7852cb0eaa", "bytes": 19854, "events": 8, "triangleEvents": 4, "durationSeconds": 2.219977324263038, "signal": { "rms": 0.02191194949631303, "peak": 0.23917344212532043 }, "origin": "actual Player accompaniment audition", "captureCommit": "9d0a037" }
+    ]
+  },
+  "nonClaims": [
+    "No semantic melody identity or harmonic correctness is established.",
+    "No physical keyboard or human listening acceptance is established.",
+    "No catalog mutation, merge, deploy, or production verification was performed."
+  ]
+}
