@@ -3,6 +3,7 @@ import { PITCH_COLORS } from "./pitchColors.js";
 import { keySignature } from "./analyze.js";
 
 const DIV = 960;
+const MEASURE_BOUNDARY_TOLERANCE = 1 / DIV + 1e-9;
 
 interface XmlNoteSegment extends Note {
   tieStart?: boolean;
@@ -149,7 +150,15 @@ export function writeMusicXml(variant: Variant, title: string, artist: string): 
       // arrangements have contiguous measures, while this fallback keeps
       // hand-authored/test variants lossless.
       const boundary = measure.endBeat > cursor + 1e-9 ? measure.endBeat : end;
-      const segmentEnd = Math.min(end, boundary);
+      if (boundary - cursor > 0 && boundary - cursor <= MEASURE_BOUNDARY_TOLERANCE) {
+        cursor = boundary;
+        continue;
+      }
+      const boundedEnd = Math.min(end, boundary);
+      // Source timing normalization can leave a measure boundary a few
+      // microbeats before a quantized note end. Treat that remainder as part
+      // of the preceding segment instead of emitting a one-tick ghost note.
+      const segmentEnd = end - boundedEnd <= MEASURE_BOUNDARY_TOLERANCE ? end : boundedEnd;
       const segmentDur = segmentEnd - cursor;
       if (segmentDur <= 1e-9) break;
       const segment: XmlNoteSegment = {
@@ -161,7 +170,7 @@ export function writeMusicXml(variant: Variant, title: string, artist: string): 
         // post-barline segment as tie-start, including the final segment;
         // that left parser chains open and let later same-pitch re-attacks
         // steal their durations.
-        tieStart: segmentEnd < end - 1e-9,
+        tieStart: segmentEnd < end - MEASURE_BOUNDARY_TOLERANCE,
         tieStop: cursor > n.start + 1e-9,
         voice: voiceByNote.get(n),
       };

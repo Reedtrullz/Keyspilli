@@ -186,7 +186,11 @@ export function parseMusicXmlNotes(xml: string): ParsedMidi {
     const implicit = /^<measure\b[^>]*(?:implicit\s*=\s*["']yes["']|number\s*=\s*["']0["'])/.test(m);
     const meter = beats * 4 / beatType;
     // Independent onset/duration rounding can overshoot a bar by one division.
-    measureStart += implicit ? measureEnd : measureEnd > meter + 1 / divisions + 1e-9 ? measureEnd : meter;
+    // Clamp that format quantization back to the declared meter, while still
+    // honoring an explicitly padded short measure before a meter change.
+    const roundingTolerance = 2 / divisions + 1e-9;
+    const explicitShortMeasure = /<forward\b/.test(m) && measureEnd < meter - roundingTolerance;
+    measureStart += implicit || explicitShortMeasure || measureEnd > meter + roundingTolerance ? measureEnd : meter;
   }
   // A writer may round the onset and duration independently, so a tied
   // segment can end one division tick past its continuation onset.

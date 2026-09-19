@@ -464,6 +464,27 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     soundPreviewTokenRef.current += 1;
     setSoundPreviewStatus(null);
   }, []);
+  const finishSoundPreview = useCallback((phase: "complete" | "stopped") => {
+    const session = soundPreviewRef.current;
+    if (!session) return;
+    if (session.timer !== null) clearTimeout(session.timer);
+    engineRef.current?.audio.cancelAll();
+    soundPreviewRef.current = null;
+    soundPreviewTokenRef.current += 1;
+    const engine = engineRef.current;
+    if (engine) {
+      engine.seek(session.restoreTime);
+      if (session.wasPlaying) engine.start();
+      syncTransportState();
+    }
+    setSoundPreviewStatus({
+      role: session.role,
+      phase,
+      rangeLabel: session.rangeLabel,
+      startSec: session.startSec,
+      endSec: session.endSec,
+    });
+  }, []);
   const heldInputRef = useRef<ReturnType<typeof createHeldInput> | null>(null);
   if (!heldInputRef.current) heldInputRef.current = createHeldInput(soundInputNote, midi => {
     engineRef.current?.handleNoteOff(midi);
@@ -719,11 +740,14 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   // transport timeline. Tear that graph down whenever its source, routing,
   // external seek, or owning tool changes; cleanup also covers navigation/unmount.
   useEffect(() => {
-    if (openTool !== "sound") cancelSoundPreview();
+    if (openTool !== "sound") finishSoundPreview("complete");
+  }, [finishSoundPreview, openTool]);
+
+  useEffect(() => {
     return cancelSoundPreview;
   }, [cancelSoundPreview, chordSourcePreference, initial.song.id, loop, melodyArrangement,
     melodyArrangementRequestKeyValue, melodyPhraseOverrides, melodySelection,
-    melodySourceBackingMode, openTool, settings.accompanimentStyle, settings.backgroundMode,
+    melodySourceBackingMode, settings.accompanimentStyle, settings.backgroundMode,
     settings.hand, settings.mode, settings.metronome, settings.organDrive,
     settings.organRotary, settings.organSpace, settings.organStyle, settings.pianoGain,
     settings.soundSource, settings.speed, settings.sustainPedal, settings.transpose,
@@ -860,8 +884,10 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   // and progress bar re-render; per-frame engine ticks only touch refs.
   function syncTransportState() {
     if (!engineRef.current) return;
-    setTime(engineRef.current.time);
-    setPlaying(engineRef.current.playing);
+    timeRef.current = engineRef.current.time;
+    playingRef.current = engineRef.current.playing;
+    setTime(timeRef.current);
+    setPlaying(playingRef.current);
   }
 
   useEffect(() => {
@@ -908,9 +934,10 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   }, [chordPracticeActive, initial.song.id]);
 
   const stopPlayback = useCallback(() => {
+    cancelSoundPreview();
     engineRef.current?.stop();
     syncTransportState();
-  }, []);
+  }, [cancelSoundPreview]);
 
   const seek = useCallback((t: number) => {
     if (gradingRef.current || showPracticeSetupRef.current) return;
@@ -1241,17 +1268,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   }
 
   function stopSoundPreview() {
-    const session = soundPreviewRef.current;
-    if (!session) return;
-    const status: MelodyPreviewStatus = {
-      role: session.role,
-      phase: "stopped",
-      rangeLabel: session.rangeLabel,
-      startSec: session.startSec,
-      endSec: session.endSec,
-    };
-    cancelSoundPreview();
-    setSoundPreviewStatus(status);
+    finishSoundPreview("stopped");
   }
 
   function previewSound(role: MelodyAuditionRole = "full") {
@@ -1259,7 +1276,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     if (!eng) return;
     const previous = soundPreviewRef.current;
     const restoreTime = previous?.restoreTime ?? eng.time;
-    const wasPlaying = previous?.wasPlaying ?? eng.playing;
+    const wasPlaying = previous?.wasPlaying ?? (playing || eng.playing || playingRef.current);
     cancelSoundPreview();
     eng.stop();
     syncTransportState();
@@ -1335,21 +1352,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     session.timer = setTimeout(() => {
       const active = soundPreviewRef.current;
       if (!active || active.token !== token) return;
-      soundPreviewRef.current = null;
-      active.timer = null;
-      const currentEngine = engineRef.current;
-      if (!currentEngine) return;
-      currentEngine.audio.cancelAll();
-      currentEngine.seek(active.restoreTime);
-      if (active.wasPlaying) currentEngine.start();
-      syncTransportState();
-      setSoundPreviewStatus({
-        role: active.role,
-        phase: "complete",
-        rangeLabel: active.rangeLabel,
-        startSec: active.startSec,
-        endSec: active.endSec,
-      });
+      finishSoundPreview("complete");
     }, Math.max(50, (boundedEndSec - boundedStartSec) * 1000 + PREVIEW_TAIL_MS));
   }
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildVariants, parseMidi, validateArtifactFiles, writeMidi, writeMusicXml } from "../src/index.js";
+import { buildVariants, parseMidi, validateArtifactFiles, writeMidi, writeMusicXml, writeVariantArtifacts } from "../src/index.js";
 
 function midiWithTrack(payload: number[]): Uint8Array {
   return new Uint8Array([
@@ -122,6 +122,50 @@ describe("MIDI time-signature events", () => {
     const xml = writeMusicXml(variant, "Meter", "Test");
     expect(xml).toContain("<time><beats>2</beats><beat-type>4</beat-type></time>");
     expect(xml).toContain("<time><beats>6</beats><beat-type>8</beat-type></time>");
+  });
+
+  it("round-trips a padded short measure before a meter change", () => {
+    const parsed = parseMidi(CHANGING_METER_MIDI);
+    const variant = buildVariants({
+      ...parsed,
+      durationBeats: 9,
+      notes: [{ midi: 60, start: 0, dur: 1, vel: 100 }],
+      timeSig: [3, 4],
+      timeSigEvents: [
+        { tick: 0, beat: 0, timeSig: [4, 4] },
+        { tick: 2400, beat: 5, timeSig: [3, 4] },
+      ],
+    }, { title: "Mid-measure", artist: "Test" }).at(-1)!;
+    expect(validateArtifactFiles(variant, writeVariantArtifacts(variant, "Mid-measure", "Test"))).toEqual([]);
+  });
+
+  it("does not emit a ghost note when a quantized attack straddles a near boundary", () => {
+    const parsed = parseMidi(CHANGING_METER_MIDI);
+    const base = buildVariants({
+      ...parsed,
+      durationBeats: 9,
+      notes: [{ midi: 60, start: 0, dur: 1, vel: 100 }],
+      timeSig: [3, 4],
+      timeSigEvents: [
+        { tick: 0, beat: 0, timeSig: [4, 4] },
+        { tick: 2400, beat: 5, timeSig: [3, 4] },
+      ],
+    }, { title: "Near boundary", artist: "Test" }).at(-1)!;
+    const variant = {
+      ...base,
+      notes: [...base.notes, { midi: 64, start: 4.99999, dur: 0.125, vel: 100, hand: "R" as const }],
+      timeSigEvents: [
+        { tick: 0, beat: 0, timeSig: [4, 4] as [number, number] },
+        { tick: 2400, beat: 5.000006, timeSig: [3, 4] as [number, number] },
+      ],
+      measures: [
+        { index: 0, startBeat: 0, endBeat: 4 },
+        { index: 1, startBeat: 4, endBeat: 5.000006 },
+        { index: 2, startBeat: 5.000006, endBeat: 8.000006 },
+        { index: 3, startBeat: 8.000006, endBeat: 11.000006 },
+      ],
+    };
+    expect(validateArtifactFiles(variant, writeVariantArtifacts(variant, "Near boundary", "Test"))).toEqual([]);
   });
 
   it("rejects stale scalar-only MIDI and MusicXML meter artifacts", () => {
