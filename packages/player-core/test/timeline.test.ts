@@ -76,7 +76,7 @@ describe("phase-aware playback timeline", () => {
     }
   });
 
-  it("accepts a pickup-compatible map when explicit meter events reset phase", () => {
+  it("accepts explicit meter-event phase resets", () => {
     expect(playbackMeasures({
       notes: [{ midi: 60, start: 0, dur: 15, vel: 80 }],
       measures: [
@@ -100,6 +100,24 @@ describe("phase-aware playback timeline", () => {
         ],
       },
     })).toHaveLength(7);
+  });
+
+  it("accepts a complete full-width trailing bar beyond the final note", () => {
+    const measures = [
+      { index: 0, startBeat: 0, endBeat: 4 },
+      { index: 1, startBeat: 4, endBeat: 8 },
+    ];
+    expect(playbackMeasures({
+      notes: [{ midi: 60, start: 0, dur: 3, vel: 80 }],
+      measures,
+      timeSig: [4, 4],
+      sourceTiming: {
+        timeSig: [4, 4],
+        measureStartBeat: 0,
+        provenance: "source-measure-boundary",
+        sourceFingerprint: "variant:test",
+      },
+    })).toEqual(measures);
   });
 
   it("looks up the active descriptive meter without asserting its phase", () => {
