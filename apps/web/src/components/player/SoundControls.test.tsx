@@ -50,6 +50,9 @@ describe("SoundControls accompaniment styles", () => {
     }));
 
     expect(markup).toContain('data-testid="melody-accompaniment-controls"');
+    expect(markup).toContain('data-testid="advanced-arrangement-controls"');
+    expect(markup).toContain("Advanced arrangement controls");
+    expect(markup).not.toContain('data-testid="advanced-arrangement-controls" open');
     expect(markup).toContain("Automatic melody");
     expect(markup).toContain("Use right-hand part");
     expect(markup).toContain("Reset all saved choices");
@@ -59,6 +62,8 @@ describe("SoundControls accompaniment styles", () => {
     expect(markup).toContain("Temporal backing reduction is unavailable without reviewed source lane or phrase identity");
     expect(markup).toContain("source support notes");
     expect(markup).toContain('data-testid="melody-audition-controls"');
+    expect(markup).toContain("Compare Original");
+    expect(markup).toContain("Left hand / accompaniment");
     expect(markup).toContain("Accompaniment includes retained source notes");
 
     const pulseArrangement = buildMelodyAccompaniment(

@@ -53,11 +53,18 @@ import { FallingCanvas } from "./FallingCanvas";
 import { ChordStrip } from "./ChordStrip";
 import { ChordPracticePanel } from "./ChordPracticePanel";
 import { buildChordPracticeTargets, selectPracticeChords } from "./chord-practice";
-import { buildMelodyArrangementOptions, melodyArrangementExecution, MELODY_WORKER_NOTE_THRESHOLD, traceMelodyArrangement } from "./melody-arrangement-runtime";
+import {
+  buildMelodyArrangementOptions,
+  melodyArrangementExecution,
+  melodyArrangementResolutionFingerprint,
+  MELODY_WORKER_NOTE_THRESHOLD,
+  traceMelodyArrangement,
+} from "./melody-arrangement-runtime";
 import { BeginnerView } from "./BeginnerView";
 import { LeadSheetView } from "./LeadSheetView";
 import { SheetMusicView } from "./SheetMusicView";
 import { SoundControls, type MelodyAuditionRole, type MelodyPhraseOverrideAction } from "./SoundControls";
+import { melodyArrangementOutcome } from "./melody-arrangement-status";
 import { createHeldInput } from "./held-input";
 import { InputStatus } from "./InputStatus";
 import { PlayerTools, type PlayerTool } from "./PlayerTools";
@@ -558,12 +565,13 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       key: melodyArrangementRequestKeyValue,
     });
     const resolution = buildMelodyAccompaniment(initial.data.notes, chords, melodyArrangementOptions);
-    traceMelodyArrangement({
+    traceMelodyArrangement(() => ({
       phase: "sync-complete",
       execution: "sync",
       noteCount: initial.data.notes.length,
       key: melodyArrangementRequestKeyValue,
-    });
+      resolutionFingerprint: melodyArrangementResolutionFingerprint(resolution),
+    }));
     return resolution;
   }, [chords, initial.data.notes, melodyArrangementExecutionMode, melodyArrangementOptions, melodyArrangementRequestKeyValue, sourceMelodyView]);
   const [workerMelodyArrangement, setWorkerMelodyArrangement] = useState<{ key: string; resolution: MelodyAccompanimentResolution } | null>(null);
@@ -610,9 +618,16 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
         fail("The background arrangement returned no result; Original playback is retained.");
         return;
       }
-      setWorkerMelodyArrangement({ key: event.data.requestKey, resolution: event.data.resolution });
+      const resolution = event.data.resolution;
+      setWorkerMelodyArrangement({ key: event.data.requestKey, resolution });
       setWorkerState({ key: melodyArrangementRequestKeyValue, status: "ready" });
-      traceMelodyArrangement({ phase: "worker-ready", execution: "worker", noteCount: initial.data.notes.length, key: melodyArrangementRequestKeyValue });
+      traceMelodyArrangement(() => ({
+        phase: "worker-ready",
+        execution: "worker",
+        noteCount: initial.data.notes.length,
+        key: melodyArrangementRequestKeyValue,
+        resolutionFingerprint: melodyArrangementResolutionFingerprint(resolution),
+      }));
     };
     worker.onerror = () => fail("The background arrangement failed; Original playback is retained.");
     worker.onmessageerror = () => fail("The background arrangement response was invalid; Original playback is retained.");
@@ -1210,9 +1225,11 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       : {
         notes: resolveTimedNotes({
           ...initial.data,
-          notes: melodyArrangement.events
-            .filter((event) => role === "melody" ? event.role === "melody" : event.role !== "melody")
-            .map((event) => event.note),
+          notes: role === "original"
+            ? initial.data.notes
+            : melodyArrangement.events
+              .filter((event) => role === "melody" ? event.role === "melody" : event.role !== "melody")
+              .map((event) => event.note),
         }, settings.speed, settings.transpose)
           .filter((note) => noteMatchesHand(note, settings.hand))
           .flatMap((note) => {
@@ -1228,10 +1245,6 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     for (const { note, when } of preview.notes) eng.audio.noteOn(note, when);
     if (role === "full" && settings.backgroundMode === "chord" && eng.audio.playChord) {
       for (const chord of preview.chords) eng.audio.playChord(chord.notes, chord.when, chord.durationSec);
-    }
-    const hasChordPreview = role === "full" && settings.backgroundMode === "chord" && !!eng.audio.playChord && preview.chords.length > 0;
-    if (role === "full" && preview.notes.length === 0 && !hasChordPreview) {
-      [60, 64, 67].forEach((midi, index) => eng.audio.noteOn({ midi, startSec: 0, durSec: 0.25, vel: 85, hand: "R" }, index * 0.3));
     }
   }
 
@@ -1623,6 +1636,16 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     : null;
   const accompanimentFallbackSlotMessage = accompanimentFallbackMessage ?? "Original passage retained — accompaniment fallback requires review.";
   const hasAccompanimentFallbackSlot = settings.backgroundMode === "chord" && accompaniment.fallbackSpans.length > 0;
+  const melodyArrangementState = melodyArrangementFailed ? "failed" : melodyArrangementPending ? "pending" : "ready";
+  const melodyArrangementOutcomeText = melodyArrangementOutcome(melodyArrangementState, melodyArrangement);
+  const melodyArrangementCoverageText = melodyArrangement.provenance.sourceSupportNoteCount > 0
+    ? `${melodyArrangement.provenance.sourceSupportNoteCount} source support notes`
+    : melodyArrangement.provenance.generatedNoteCount > 0
+      ? `${melodyArrangement.provenance.generatedNoteCount} sparse backing notes`
+      : "no added support";
+  const melodyArrangementStatusText = melodyArrangementState !== "ready"
+    ? melodyArrangementOutcomeText
+    : `${melodyArrangement.provenance.selectionProvenance === "user-confirmed" ? "User melody" : "Inferred melody"} · whole-part selection · ${melodyArrangementOutcomeText} · ${melodyArrangementCoverageText}`;
   const activeSection = sections.find((s) => {
     const spb = secPerBeat(initial.data.tempoBpm, settings.speed);
     return time >= s.startBeat * spb && time < s.endBeat * spb;
@@ -1725,11 +1748,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
                 role="status"
                 title={melodyArrangementFailed ? workerError ?? undefined : melodyArrangement.provenance.unresolvedSpans.length ? "One or more melody phrases need confirmation." : undefined}
               >
-                {melodyArrangementFailed ? "Original retained · arrangement unavailable" : melodyArrangementPending ? "Preparing arrangement · Original retained" : melodyArrangement.provenance.selectionProvenance === "user-confirmed" ? "User melody" : "Inferred melody"} {!melodyArrangementPending && !melodyArrangementFailed && "· whole-part selection · "}{!melodyArrangementPending && !melodyArrangementFailed && (melodyArrangement.provenance.generatedNoteCount > 0
-                  ? `${melodyArrangement.provenance.generatedNoteCount} sparse backing notes`
-                  : melodyArrangement.provenance.sourceSupportNoteCount > 0
-                    ? `${melodyArrangement.provenance.sourceSupportNoteCount} source support notes`
-                    : "fallback")}
+                {melodyArrangementStatusText}
               </span>
               {melodyArrangementFailed && (
                 <div className="basis-full flex items-center gap-2 text-xs text-amber-800" data-testid="melody-accompaniment-error" role="alert">

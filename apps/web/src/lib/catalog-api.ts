@@ -14,6 +14,7 @@ import {
   readArrangementManifest,
   resolveArtifactPlaybackTempo,
   type ArrangementManifest,
+  type ChordTimelineArtifact,
   type SourceTimingMetadata,
   type SongRow,
 } from "@keyspilli/catalog";
@@ -237,6 +238,75 @@ export function buildAutoChordSource(
   };
 }
 
+function prepareGeneratedChordData(data: SongData): SongData {
+  const durationBeats = arrangementDurationBeats(data);
+  return {
+    ...data,
+    chords: completePlayerChordDurations(classifyGeneratedChords(data.chords), durationBeats),
+  };
+}
+
+/** Project loaded data through the same detail shape used by the player. */
+export function projectChordSources(data: SongData, timeline: ChordTimelineArtifact | null, level = "a"): SongData {
+  const prepared = prepareGeneratedChordData(data);
+  if (!timeline) return prepared;
+  const durationBeats = arrangementDurationBeats(prepared);
+  const generated = prepared.chords;
+  const merged = mergeChartTimeline(timeline, generated, durationBeats);
+  const strictChart = timeline.provenance.kind === "chart"
+    ? completePlayerChordDurations(
+        timeline.chords.flatMap((chord) => preserveChord(chord, Array.isArray(chord.notes) ? chord.notes : []) ?? []),
+        timeline.durationBeats,
+      )
+    : null;
+  const generatedSource: PlayerSourceOption = {
+    id: "generated",
+    label: "Generated chords",
+    chords: generated,
+    provenance: `variant:${level}:notes.json`,
+    provenanceInfo: {
+      sourceId: "midi-derived",
+      provider: "keyspilli",
+      kind: "midi-derived",
+      sourceRef: `variant:${level}:notes.json`,
+      confidence: "generated",
+    },
+    coverage: "full-song",
+    fallback: false,
+    fallbackReason: null,
+  };
+  const compactGeneratedSource = (({ chords: _chords, ...metadata }) => ({
+    ...metadata,
+    chordsRef: "data.chords" as const,
+  }))(generatedSource);
+  const ugSource: PlayerSourceOption | null = strictChart
+    ? {
+        id: "ug",
+        label: timeline.coverage === "opening-section" ? "UG opening (partial)" : "UG timeline",
+        chords: strictChart,
+        provenance: timeline.provenance.sourceRef,
+        provenanceInfo: timeline.provenance,
+        coverage: timeline.coverage,
+        fallback: false,
+        fallbackReason: null,
+      }
+    : null;
+  const autoSource = buildAutoChordSource(timeline, merged, ugSource);
+  const metadata = {
+    ...prepared,
+    chords: generated,
+    chordProvenance: merged.provenance,
+    chordSources: {
+      schemaVersion: 1,
+      generated: compactGeneratedSource,
+      ug: ugSource,
+      auto: autoSource,
+    } as unknown as ChordSourceBundle,
+  } as SongData;
+  if (timeline.provenance.kind === "chart") metadata.ugChordTimeline = strictChart ?? [];
+  return metadata;
+}
+
 export interface SongDetail {
   sourceArrangement?: SourceArrangement;
   song: SongRow;
@@ -438,96 +508,14 @@ async function loadSongDetailUncached(id: string): Promise<SongDetail | null> {
   const loaded = await loadSongArtifact(song);
   let data = loaded.data;
   if (data) {
-    // The duration is derived from the immutable note/measure arrays and is
-    // reused by each chord projection below. Avoid scanning the full
-    // arrangement once per projection on large songs.
-    const durationBeats = arrangementDurationBeats(data);
-    // Newer payloads expose an explicit generated source even when no chart
-    // exists. Complete known generated events here; the player keeps a
-    // legacy wall-clock fallback only for unclassified old events.
-    data = {
-      ...data,
-      chords: completePlayerChordDurations(classifyGeneratedChords(data.chords), durationBeats),
-    };
     // Chord charts live beside the immutable app image rather than in the
     // mutable song database. Keep the existing generated timeline intact and
     // expose a separate source timeline only when a verified chart exists.
     try {
       const timeline = await loadChordTimeline(song.baseId, { fallbackLevel: song.level });
-      if (timeline) {
-        const generated = completePlayerChordDurations(data.chords, durationBeats);
-        const merged = mergeChartTimeline(timeline, generated, durationBeats);
-        const strictChart = timeline.provenance.kind === "chart"
-          ? completePlayerChordDurations(
-              timeline.chords.flatMap((chord) => preserveChord(chord, Array.isArray(chord.notes) ? chord.notes : []) ?? []),
-              timeline.durationBeats,
-            )
-          : null;
-        const generatedSource: PlayerSourceOption = {
-          id: "generated",
-          label: "Generated chords",
-          chords: generated,
-          provenance: `variant:${song.level}:notes.json`,
-          provenanceInfo: {
-            sourceId: "midi-derived",
-            provider: "keyspilli",
-            kind: "midi-derived",
-            sourceRef: `variant:${song.level}:notes.json`,
-            confidence: "generated",
-          },
-          coverage: "full-song",
-          fallback: false,
-          fallbackReason: null,
-        };
-        // `data.chords` is the legacy/generated projection consumed by the
-        // player and simplified export. It is byte-for-byte identical to the
-        // generated source above, so retain one canonical copy and let the
-        // web boundary resolve this explicit reference. The compact marker is
-        // intentionally scoped to the generated source; authored/auto
-        // timelines remain self-contained and independently parity-testable.
-        const compactGeneratedSource = (({ chords: _chords, ...metadata }) => ({
-          ...metadata,
-          chordsRef: "data.chords" as const,
-        }))(generatedSource);
-        const ugSource: PlayerSourceOption | null = strictChart
-          ? {
-              id: "ug",
-              label: timeline.coverage === "opening-section" ? "UG opening (partial)" : "UG timeline",
-              chords: strictChart,
-              provenance: timeline.provenance.sourceRef,
-              provenanceInfo: timeline.provenance,
-              coverage: timeline.coverage,
-              fallback: false,
-              fallbackReason: null,
-            }
-          : null;
-        const autoSource = buildAutoChordSource(timeline, merged, ugSource);
-        const metadata = {
-          ...data,
-          chords: generated,
-          chordProvenance: merged.provenance,
-          chordSources: {
-            schemaVersion: 1,
-            generated: compactGeneratedSource,
-            ug: ugSource,
-            auto: autoSource,
-          } as unknown as ChordSourceBundle,
-        } as SongData & { chordProvenance?: unknown; ugChordTimeline?: unknown };
-        if (timeline.provenance.kind === "chart") {
-          // Backward compatibility: this field is now strict chart material;
-          // the hybrid projection is available under chordSources.auto.
-          metadata.ugChordTimeline = strictChart ?? [];
-        } else if (timeline.provenance.kind === "midi-derived") {
-          // Legacy notes.json files predate event-level provenance. The
-          // normalized MIDI-derived projection is the authoritative shape at
-          // this boundary: it stamps those events as generated and preserves
-          // their computed durations and optional inference metadata. Keep UG
-          // chart material separate in ugChordTimeline above.
-          metadata.chords = generated;
-        }
-        data = metadata;
-      }
+      data = projectChordSources(data, timeline, song.level);
     } catch {
+      data = projectChordSources(data, null, song.level);
       // A missing/invalid optional chart must never make a normal song fail to
       // load; the player will use its generated chord fallback.
     }

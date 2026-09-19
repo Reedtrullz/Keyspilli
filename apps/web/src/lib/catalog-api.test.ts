@@ -7,7 +7,8 @@ import { join } from "node:path";
 import type { ChordLabel } from "@keyspilli/midi";
 import { createLegacyBootstrapManifest, arrangementManifestPath, upsertSong, writeArrangementManifestFile, type SongRow, type SourceTimingMetadata } from "@keyspilli/catalog";
 import { writeMidi, writeMusicXml } from "@keyspilli/midi";
-import { buildAutoChordSource, getArtifactFile, getSongDetail, getSongDetailShell, loadSongArtifact, mergeChartTimeline } from "./catalog-api";
+import type { SongData } from "@keyspilli/player-core";
+import { buildAutoChordSource, getArtifactFile, getSongDetail, getSongDetailShell, loadSongArtifact, mergeChartTimeline, projectChordSources } from "./catalog-api";
 
 const dataRoot = mkdtempSync(join(tmpdir(), "keyspilli-catalog-api-"));
 const previousDataRoot = process.env.KEYSPILLI_DATA_DIR;
@@ -613,6 +614,35 @@ describe("catalog artifact export validation", () => {
 });
 
 describe("catalog chart timeline merge", () => {
+  it("projects strict chart and auto sources through the shared detail shape", () => {
+    const timeline = {
+      schemaVersion: 1 as const,
+      baseId: "projection-song",
+      title: "Projection Song",
+      artist: "Tester",
+      timeSig: [4, 4] as [number, number],
+      durationBeats: 4,
+      coverage: "opening-section" as const,
+      chords: [{ beat: 0, durationBeats: 4, name: "C", notes: [48, 52, 55], sourceKind: "authored" as const }],
+      provenance,
+    };
+    const data: SongData = {
+      notes: [{ midi: 60, start: 0, dur: 4, vel: 80, hand: "R" }],
+      chords: [{ beat: 0, durationBeats: 4, name: "G", notes: [43, 47, 50] }],
+      measures: [{ index: 0, startBeat: 0, endBeat: 4 }],
+      key: "C",
+      tempoBpm: 120,
+      timeSig: [4, 4],
+    };
+
+    const projected = projectChordSources(data, timeline);
+
+    expect(projected.ugChordTimeline).toEqual(timeline.chords);
+    expect(projected.chordSources?.ug).toMatchObject({ id: "ug", coverage: "opening-section" });
+    expect(projected.chordSources?.auto).toMatchObject({ id: "auto", fallback: true, coverage: "full-song" });
+    expect(projected.chordSources?.generated).toMatchObject({ id: "generated", chordsRef: "data.chords" });
+  });
+
   it("marks only partial or generated-filled merges as fallback", () => {
     const fullTimeline = {
       schemaVersion: 1 as const,

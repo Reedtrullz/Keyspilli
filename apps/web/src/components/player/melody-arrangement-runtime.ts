@@ -1,5 +1,6 @@
 import type {
   MelodyAccompanimentOptions,
+  MelodyAccompanimentResolution,
   MelodyHarmonicSupportPolicy,
   MelodyPhraseOverride,
   MelodySelection,
@@ -18,6 +19,7 @@ export type MelodyArrangementTrace = {
   execution: MelodyArrangementExecution;
   noteCount: number;
   key?: string;
+  resolutionFingerprint?: string;
   error?: string;
 };
 
@@ -43,12 +45,36 @@ export function buildMelodyArrangementOptions(input: {
   };
 }
 
+/** Compact deterministic output signature used to compare sync and worker producers. */
+export function melodyArrangementResolutionFingerprint(resolution: MelodyAccompanimentResolution): string {
+  const serialized = JSON.stringify({
+    style: resolution.style,
+    notes: resolution.notes,
+    chords: resolution.chords,
+    displayChords: resolution.displayChords,
+    guidanceNotes: resolution.guidanceNotes,
+    fallbackSpans: resolution.fallbackSpans,
+    melody: resolution.melody,
+    protectedMelody: resolution.protectedMelody,
+    events: resolution.events,
+    phrases: resolution.phrases,
+    changeSummary: resolution.changeSummary,
+    provenance: resolution.provenance,
+  });
+  let hash = 2_166_136_261;
+  for (let index = 0; index < serialized.length; index += 1) {
+    hash = Math.imul(hash ^ serialized.charCodeAt(index), 16_777_619);
+  }
+  return (hash >>> 0).toString(16).padStart(8, "0");
+}
+
 /** Optional browser instrumentation used by the disposable E2E harness. */
-export function traceMelodyArrangement(event: MelodyArrangementTrace): void {
+export function traceMelodyArrangement(event: MelodyArrangementTrace | (() => MelodyArrangementTrace)): void {
   const hook = (globalThis as unknown as {
     __keyspilliMelodyArrangementTrace?: (event: MelodyArrangementTrace) => void;
   }).__keyspilliMelodyArrangementTrace;
-  if (typeof hook === "function") hook(event);
+  if (typeof hook !== "function") return;
+  hook(typeof event === "function" ? event() : event);
 }
 
 /** Keep the producer off the render path for Original and large arrangements. */
