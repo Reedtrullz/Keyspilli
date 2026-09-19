@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildVariants, parseMidi, validateArtifactFiles, writeMidi, writeMusicXml, writeVariantArtifacts } from "../src/index.js";
+import { buildVariants, parseMidi, parseMusicXmlNotes, validateArtifactFiles, writeMidi, writeMusicXml, writeVariantArtifacts } from "../src/index.js";
 
 function midiWithTrack(payload: number[]): Uint8Array {
   return new Uint8Array([
@@ -156,6 +156,19 @@ describe("MIDI time-signature events", () => {
       ],
     };
     expect(validateArtifactFiles(variant, writeVariantArtifacts(variant, "Short", "Test"))).toEqual([]);
+  });
+
+  it("does not treat an underfilled ordinary measure as a short bar", () => {
+    const xml = `<score-partwise><part id="P1">
+      <measure number="1"><attributes><divisions>4</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>
+        <note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration><voice>1</voice><staff>1</staff></note>
+        <forward><duration>4</duration></forward>
+      </measure>
+      <measure number="2"><attributes><divisions>4</divisions></attributes>
+        <note><pitch><step>E</step><octave>4</octave></pitch><duration>4</duration><voice>1</voice><staff>1</staff></note>
+      </measure>
+    </part></score-partwise>`;
+    expect(parseMusicXmlNotes(xml).notes.map((note) => note.start)).toEqual([0, 4]);
   });
 
   it("does not emit a ghost note when a quantized attack straddles a near boundary", () => {

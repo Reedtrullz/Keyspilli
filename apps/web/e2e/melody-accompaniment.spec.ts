@@ -1176,17 +1176,25 @@ test("arrangement preview exposes stop/repeat and preserves stopped or playing t
   await seek.fill("2");
   await page.getByRole("button", { name: "Play", exact: true }).click();
   await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
-  const playingPosition = Number(await seek.inputValue());
   await openPlayerTool(page, "Sound");
   dialog = page.getByRole("dialog", { name: "Sound settings" });
   const playingStatus = dialog.getByTestId("arrangement-preview-status");
+  const playingPosition = Number(await seek.inputValue());
   await dialog.getByRole("button", { name: "Compare Original", exact: true }).click();
+  await expect(playingStatus.getByRole("status")).toHaveText(/Playing Original · bar \d+/);
+  await expect(playingStatus.getByRole("status")).toHaveText(/Last preview: Original · bar \d+/, { timeout: 5_000 });
+  await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+  expect(Math.abs(Number(await seek.inputValue()) - playingPosition)).toBeLessThan(0.25);
+  const playingRepeat = playingStatus.getByRole("button", { name: "Repeat preview", exact: true });
+  const repeatedPlayingPosition = Number(await seek.inputValue());
+  await playingRepeat.focus();
+  await playingRepeat.press("Space");
   await expect(playingStatus.getByRole("status")).toHaveText(/Playing Original · bar \d+/);
   const playingStop = playingStatus.getByRole("button", { name: "Stop preview", exact: true });
   await playingStop.focus();
   await playingStop.press("Enter");
   await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
-  expect(Math.abs(Number(await seek.inputValue()) - playingPosition)).toBeLessThan(0.25);
+  expect(Math.abs(Number(await seek.inputValue()) - repeatedPlayingPosition)).toBeLessThan(0.25);
 });
 
 test("sound preview controls stay keyboard-usable at 200%", async ({ page }) => {
@@ -1203,8 +1211,12 @@ test("sound preview controls stay keyboard-usable at 200%", async ({ page }) => 
 
   await dialog.getByRole("button", { name: "Compare Original", exact: true }).click();
   const status = dialog.getByTestId("arrangement-preview-status");
+  const compare = dialog.getByRole("button", { name: "Compare Original", exact: true });
+  await compare.focus();
+  await compare.press("Tab");
+  await expect(dialog.getByRole("button", { name: "Preview arrangement", exact: true })).toBeFocused();
+  await page.keyboard.press("Tab");
   const stop = status.getByRole("button", { name: "Stop preview", exact: true });
-  await stop.focus();
   await expect(stop).toBeFocused();
   await stop.press("Enter");
   const repeat = status.getByRole("button", { name: "Repeat preview", exact: true });

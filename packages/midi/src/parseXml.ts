@@ -193,8 +193,7 @@ export function parseMusicXmlNotes(xml: string): ParsedMidi {
     const nextBeats = nextTime ? Number(firstMatch(nextTime, /<beats>\s*(\d+)\s*<\/beats>/)) : beats;
     const nextType = nextTime ? Number(firstMatch(nextTime, /<beat-type>\s*(\d+)\s*<\/beat-type>/)) : beatType;
     const meterChangesNext = Boolean(nextTime) && (nextBeats !== beats || nextType !== beatType);
-    const explicitShortMeasure = measureEnd < meter - roundingTolerance
-      && (/<forward\b/.test(m) || meterChangesNext);
+    const explicitShortMeasure = measureEnd < meter - roundingTolerance && meterChangesNext;
     measureStart += implicit || explicitShortMeasure || measureEnd > meter + roundingTolerance ? measureEnd : meter;
   }
   // A writer may round the onset and duration independently, so a tied
