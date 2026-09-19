@@ -1,6 +1,6 @@
 import { inferSourceHandLanes } from "./source-hand-lanes.js";
 import { splitHands, detectBassPattern, detectKey, chordName } from "./analyze.js";
-import { Note, ParsedMidi, SongMeta, Variant, DifficultyLevel, LEVEL_ORDER, ChordLabel } from "./types.js";
+import { Note, ParsedMidi, SongMeta, Variant, DifficultyLevel, LEVEL_ORDER, ChordLabel, MidiTimeSignatureEvent } from "./types.js";
 import { quantize } from "./quantize.js";
 import { midiBeatToNativeSeconds } from "./parse.js";
 import { BEGINNER_OFFGRID_CANDIDATE, LADDER_TOL, PLAYABILITY_LIMITS } from "./validate.js";
@@ -18,6 +18,10 @@ import {
   type BeginnerOffGridRejectedCandidate,
 } from "./beginner-offgrid.js";
 import { selectProtectedSemanticLocalThinning } from "./density-normalization-audit.js";
+
+const MAX_SOURCE_TIME_SIG_EVENTS = 4096;
+const MAX_SOURCE_BEATS = 4096;
+const MAX_SOURCE_MEASURES = 2048;
 
 export interface VariantOptions {
   /** 16th-note grid (beats) used for note slicing */
@@ -51,6 +55,15 @@ export interface VariantOptions {
   audioDerived?: boolean;
   /** Authoritative harmony from a role-aware arranger. Avoid per-level re-inference. */
   chords?: ChordLabel[];
+  /**
+   * Experimental source-preserving candidate only. Protected identities rank
+   * ahead of unlabelled co-onset voices in the existing Advanced candidate and
+   * register-span caps; all hand, duration, and playability guards still apply.
+   * Lower levels may change through their existing ladder dependency, but this
+   * option is not applied directly to their selectors. Catalog ingestion leaves
+   * this unset.
+   */
+  protectedIdentitySources?: readonly NonNullable<Note["identitySource"]>[];
   /** Optional development-only lineage sidecar; never changes variant bytes. */
   trace?: MetalArrangementTraceSink;
 }
@@ -1974,7 +1987,13 @@ function selectEasyMelody(notes: Note[], grid: number, minDur: number, pads?: Se
 }
 
 /** Keep the highest `keep` voices per slice; pad pitches rank below real voices. */
-function topVoices(notes: Note[], grid: number, keep: number, pads?: Set<number>): Note[] {
+function topVoices(
+  notes: Note[],
+  grid: number,
+  keep: number,
+  pads?: Set<number>,
+  protectedIdentitySources: ReadonlySet<NonNullable<Note["identitySource"]>> = new Set(),
+): Note[] {
   const bySlice = new Map<number, Note[]>();
   for (const n of notes) {
     const k = Math.round(n.start / grid);
@@ -1985,9 +2004,11 @@ function topVoices(notes: Note[], grid: number, keep: number, pads?: Set<number>
   const out: Note[] = [];
   for (const ns of bySlice.values()) {
     const sorted = [...ns].sort((a, b) => {
+      const protectedA = a.identitySource && protectedIdentitySources.has(a.identitySource) ? 1 : 0;
+      const protectedB = b.identitySource && protectedIdentitySources.has(b.identitySource) ? 1 : 0;
       const pa = pads?.has(a.midi) ? 1 : 0;
       const pb = pads?.has(b.midi) ? 1 : 0;
-      return pa - pb || b.midi - a.midi;
+      return protectedB - protectedA || pa - pb || b.midi - a.midi;
     });
     for (const n of sorted.slice(0, keep)) out.push(n);
   }
@@ -2000,7 +2021,12 @@ function topVoices(notes: Note[], grid: number, keep: number, pads?: Set<number>
  * hand's melodic extreme (highest for RH, lowest for LH) is kept and only
  * unreachable inner/outer voices are removed, so the line survives.
  */
-function capSoundingSpan(notes: Note[], maxSpan: number, anchor: "high" | "low"): Note[] {
+function capSoundingSpan(
+  notes: Note[],
+  maxSpan: number,
+  anchor: "high" | "low",
+  protectedIdentitySources: ReadonlySet<NonNullable<Note["identitySource"]>> = new Set(),
+): Note[] {
   const sorted = [...notes].sort(
     (a, b) => a.start - b.start || (anchor === "high" ? b.midi - a.midi : a.midi - b.midi),
   );
@@ -2020,9 +2046,33 @@ function capSoundingSpan(notes: Note[], maxSpan: number, anchor: "high" | "low")
     const activeLow = minNumber(mids, n.midi);
     const span = activeHigh - activeLow;
     const extendsAnchor = anchor === "high" ? n.midi > activeHigh : n.midi < activeLow;
+    const protectedIncoming = n.identitySource !== undefined && protectedIdentitySources.has(n.identitySource);
+    const protectedActive = active.filter((entry) => entry.note.identitySource !== undefined
+      && protectedIdentitySources.has(entry.note.identitySource));
     if (span <= maxSpan) {
       active.push({ end: n.start + n.dur, midi: n.midi, note: n });
       out.push(n);
+    } else if (protectedIncoming) {
+      // Experimental source-preserving mode keeps the protected attack while
+      // still enforcing the hand's register span: discard unprotected held
+      // voices, and keep only protected predecessors that fit around it.
+      const kept: typeof active = [{ end: n.start + n.dur, midi: n.midi, note: n }];
+      for (const entry of [...protectedActive].sort((a, b) => Math.abs(a.midi - n.midi) - Math.abs(b.midi - n.midi))) {
+        const mids = kept.map((item) => item.midi);
+        if (Math.max(...mids, entry.midi) - Math.min(...mids, entry.midi) <= maxSpan) kept.push(entry);
+      }
+      const removed = new Set(active.filter((entry) => !kept.includes(entry)).map((entry) => entry.note));
+      for (let i = out.length - 1; i >= 0; i -= 1) {
+        const note = out[i];
+        if (note !== undefined && removed.has(note)) out.splice(i, 1);
+      }
+      active.length = 0;
+      active.push(...kept);
+      out.push(n);
+    } else if (protectedActive.length) {
+      // Do not let an unprotected accompaniment attack evict a protected
+      // source note merely to satisfy the span anchor.
+      continue;
     } else if (extendsAnchor) {
       const kept = active.filter((a) => Math.abs(a.midi - n.midi) <= maxSpan);
       const removed = new Set(active.filter((a) => !kept.includes(a)).map((a) => a.note));
@@ -2738,6 +2788,49 @@ function rootOf(midi: number, key: string): number {
  * Guarantee: each easier level is a strict simplification (subset or
  * equal notes) of the level above it.
  */
+function normalizeTimeSigEvents(events: readonly MidiTimeSignatureEvent[] | undefined): MidiTimeSignatureEvent[] {
+  if (!events?.length) return [];
+  if (events.length > MAX_SOURCE_TIME_SIG_EVENTS) {
+    throw new Error(`source workload exceeds supported limits (${MAX_SOURCE_TIME_SIG_EVENTS} time-signature events)`);
+  }
+  const sorted = [...events].sort((a, b) => a.beat - b.beat || a.tick - b.tick || a.timeSig[0] - b.timeSig[0] || a.timeSig[1] - b.timeSig[1]);
+  const normalized: MidiTimeSignatureEvent[] = [];
+  const signatureByTick = new Map<number, [number, number]>();
+  const signatureByBeat = new Map<number, [number, number]>();
+  for (const event of sorted) {
+    const [numerator, denominator] = event.timeSig;
+    if (!Number.isInteger(event.tick) || event.tick < 0 || !Number.isFinite(event.beat) || event.beat < 0
+      || event.beat > MAX_SOURCE_BEATS || !Number.isInteger(numerator) || numerator <= 0
+      || !Number.isInteger(denominator) || denominator <= 0) {
+      throw new Error("source workload contains an invalid time-signature event");
+    }
+    const tickSignature = signatureByTick.get(event.tick);
+    const beatSignature = signatureByBeat.get(event.beat);
+    if ((tickSignature && (tickSignature[0] !== numerator || tickSignature[1] !== denominator))
+      || (beatSignature && (beatSignature[0] !== numerator || beatSignature[1] !== denominator))) {
+      throw new Error("source workload contains contradictory time-signature events at one boundary");
+    }
+    signatureByTick.set(event.tick, [numerator, denominator]);
+    signatureByBeat.set(event.beat, [numerator, denominator]);
+    const previous = normalized.at(-1);
+    if (previous && (previous.tick === event.tick || Math.abs(previous.beat - event.beat) <= 1e-9)) {
+      if (previous.timeSig[0] !== numerator || previous.timeSig[1] !== denominator) {
+        throw new Error("source workload contains contradictory time-signature events at one boundary");
+      }
+      continue;
+    }
+    if (previous && previous.timeSig[0] === numerator && previous.timeSig[1] === denominator) continue;
+    normalized.push({ tick: event.tick, beat: event.beat, timeSig: [numerator, denominator] });
+  }
+  return normalized;
+}
+
+function initialTimeSig(timeSig: [number, number], events: readonly MidiTimeSignatureEvent[]): [number, number] {
+  const atZero = events.find((event) => event.beat === 0);
+  if (atZero) return [...atZero.timeSig] as [number, number];
+  return events.length ? [4, 4] : [...timeSig] as [number, number];
+}
+
 /** Bound synchronous work for every importer, including sparse malicious timelines. */
 export function assertSourceWorkload(src: ParsedMidi, grid = 0.25): void {
   const fail = () => { throw new Error("source workload exceeds supported limits (20000 notes, 4096 beats, 2048 measures, 200M grid-note pairs)"); };
@@ -2751,12 +2844,29 @@ export function assertSourceWorkload(src: ParsedMidi, grid = 0.25): void {
     if (!Number.isFinite(note.start) || !Number.isFinite(note.dur) || note.start < 0 || note.dur < 0) fail();
     end = Math.max(end, note.start + note.dur);
   }
-  const measureBeats = src.timeSig[0] * 4 / src.timeSig[1];
+  const timeSigEvents = normalizeTimeSigEvents(src.timeSigEvents);
+  const effectiveInitialTimeSig = initialTimeSig(src.timeSig, timeSigEvents);
+  const measureBeats = effectiveInitialTimeSig[0] * 4 / effectiveInitialTimeSig[1];
   // ponytail: conservative work estimate for the synchronous arranger; move to a
   // cancellable worker before raising this ceiling for very large scores.
-  if (!Number.isFinite(measureBeats) || measureBeats <= 0 || end > 4096
-    || Math.ceil(end / measureBeats) > 2048
+  if (!Number.isInteger(effectiveInitialTimeSig[0]) || effectiveInitialTimeSig[0] <= 0
+    || !Number.isInteger(effectiveInitialTimeSig[1]) || effectiveInitialTimeSig[1] <= 0
+    || !Number.isFinite(measureBeats) || measureBeats <= 0 || end > MAX_SOURCE_BEATS
+    || Math.ceil(end / measureBeats) > MAX_SOURCE_MEASURES
     || Math.ceil(end / grid) * src.notes.length > 200_000_000) fail();
+  const boundedEvents = timeSigEvents.filter((event) => event.beat <= end + 1e-9);
+  const timeline = boundedEvents.length
+    ? [...(boundedEvents[0]!.beat > 0 ? [{ beat: 0, timeSig: [4, 4] as [number, number] }] : []), ...boundedEvents]
+    : [{ beat: 0, timeSig: effectiveInitialTimeSig }];
+  let measureWork = 0;
+  for (let index = 0; index < timeline.length; index += 1) {
+    const event = timeline[index]!;
+    const nextBeat = Math.min(timeline[index + 1]?.beat ?? end, end);
+    const width = event.timeSig[0] * (4 / event.timeSig[1]);
+    if (!Number.isFinite(width) || width <= 0) fail();
+    if (nextBeat > event.beat) measureWork += Math.ceil((nextBeat - event.beat) / width);
+    if (measureWork > MAX_SOURCE_MEASURES) fail();
+  }
 }
 
 export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOptions = {}): Variant[] {
@@ -2780,6 +2890,9 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     src = { ...source, tempoBpm: sourceTempo, tempoEvents: undefined,
       durationBeats: beat(source.durationBeats),
       notes: source.notes.map(note => ({ ...note, start: beat(note.start), dur: beat(note.start + note.dur) - beat(note.start) })),
+      ...(source.timeSigEvents?.length ? {
+        timeSigEvents: source.timeSigEvents.map((event) => ({ ...event, beat: beat(event.beat) })),
+      } : {}),
     };
     if (opts.chords) opts = { ...opts, chords: opts.chords.map(chord => ({ ...chord,
       beat: beat(chord.beat),
@@ -2787,10 +2900,12 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     })) };
   }
   assertSourceWorkload(src, opts.grid);
+  const sourceTimeSigEvents = normalizeTimeSigEvents(src.timeSigEvents);
   const grid = opts.grid ?? 0.25;
   const metalProfile = opts.arrangementProfile === "metal";
   const learnerProfile = opts.arrangementProfile === "learner";
   const learnerSafetyProfile = learnerProfile || metalProfile;
+  const protectedIdentitySources = new Set(opts.protectedIdentitySources ?? []);
   const tempo = normalizeTempoBpm(meta.tempo ?? src.tempoBpm);
   // Every source type passes through the same conservative structural cleanup.
   // YouTube ingestion may additionally run cleanTranscription() beforehand;
@@ -2807,6 +2922,23 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     ? { record: (event) => { learnerTraceEvents.push(event); opts.trace?.record(event); } }
     : opts.trace;
   const learnerTraceSource = learnerLineageEnabled ? seedLearnerTrace(src.notes) : src.notes;
+  const sourceIdentityByTraceRef = new Map<string, Note["identitySource"]>();
+  if (protectedIdentitySources.size) {
+    for (const note of learnerTraceSource) {
+      for (const ref of learnerTraceRefs(note)) sourceIdentityByTraceRef.set(ref, note.identitySource);
+    }
+  }
+  const clearMixedProtectedIdentity = (notes: Note[]): Note[] => {
+    if (!protectedIdentitySources.size || !sourceIdentityByTraceRef.size) return notes;
+    return notes.map((note) => {
+      if (!note.identitySource || !protectedIdentitySources.has(note.identitySource)) return note;
+      const refs = learnerTraceRefs(note);
+      if (!refs.length) return { ...note, identitySource: undefined };
+      const identities = new Set(refs.map((ref) => sourceIdentityByTraceRef.get(ref)));
+      if (identities.size > 1 || identities.has(undefined)) return { ...note, identitySource: undefined };
+      return note;
+    });
+  };
   if (learnerTraceEnabled) {
     emitLearnerStageTrace(learnerTraceSink, "raw", learnerTraceSource, [], "learner-source");
   }
@@ -2824,6 +2956,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     ? inferSourceHandLanes(arrangedImported) : undefined;
   const base = quantize(sourceHandInference?.notes ?? arrangedImported, { grid: 0.125, minDur: 0.125 });
   const normalized = opts.normalizeRange === false ? base : normalizePianoRange(base);
+  const protectedNormalized = clearMixedProtectedIdentity(normalized);
   const shifted = base.filter((n, i) => normalized[i]!.midi !== n.midi);
   const sourceWarnings = shifted.length
     ? [`${shifted.length} source notes were octave-normalized into the piano range 21-108`]
@@ -2834,7 +2967,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   const warnings = [...sourceWarnings, ...arrangementWarnings,
     ...(sourceHandInference ? [`tutorial source hand inference: ${sourceHandInference.reason} (not verified staff assignment)`] : []),
   ];
-  const splitSource = normalized;
+  const splitSource = protectedNormalized;
   const hasExplicitHands = splitSource.some((n) => n.hand !== undefined);
   const unlabeledSource = splitSource.filter((n) => n.hand === undefined);
   const pathologicalWall = isDenseContinuousWall(
@@ -2876,14 +3009,14 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   const advancedRhSource = metalProfile ? reduceMetalRhRealism(rh, tempo, 8) : rh;
   const advancedSource = quantize(
     [
-      ...capSoundingSpan(topVoices(advancedRhSource, 0.125, 4, pads), 12, "high"),
+      ...capSoundingSpan(topVoices(advancedRhSource, 0.125, 4, pads, protectedIdentitySources), 12, "high", protectedIdentitySources),
       // Advanced keeps the imported LH attacks intact. Chord thinning is a
       // simplification operation; applying it here changed eighth-note bass
       // timing and introduced same-pitch overlaps in curated arrangements.
       // Learner rebalancing may intentionally keep a low bass plus a
       // mid-register shell (roughly a tenth); the historical 12-semitone
       // ceiling would discard the shell and recreate bass-only LH output.
-      ...capSoundingSpan(lh, innerVoiceArrangement ? 19 : 12, "low"),
+      ...capSoundingSpan(lh, innerVoiceArrangement ? 19 : 12, "low", protectedIdentitySources),
     ],
     { grid: 0.125 },
   );
@@ -3270,20 +3403,42 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
       key,
       tempoBpm: tempo,
       timeSig: src.timeSig,
-      measures: buildMeasures(notes, src.timeSig, src.durationBeats),
+      ...(sourceTimeSigEvents.length ? { timeSigEvents: sourceTimeSigEvents.map((event) => ({ ...event, timeSig: [...event.timeSig] as [number, number] })) } : {}),
+      measures: buildMeasures(notes, src.timeSig, src.durationBeats, sourceTimeSigEvents),
     };
   });
 }
 
-function buildMeasures(notes: Note[], timeSig: [number, number], arrangementEnd = 0): Variant["measures"] {
+function buildMeasures(
+  notes: Note[],
+  timeSig: [number, number],
+  arrangementEnd = 0,
+  timeSigEvents: readonly MidiTimeSignatureEvent[] = [],
+): Variant["measures"] {
   const [num, den] = timeSig;
-  const rawBeatsPerMeasure = num * (4 / den);
-  const beatsPerMeasure = Number.isFinite(rawBeatsPerMeasure) && rawBeatsPerMeasure > 0 ? rawBeatsPerMeasure : 4;
   const dur = Math.max(arrangementEnd, maxNoteEnd(notes), 1);
-  const count = Math.max(1, Math.ceil(dur / beatsPerMeasure));
-  return Array.from({ length: count }, (_, i) => ({
-    index: i,
-    startBeat: i * beatsPerMeasure,
-    endBeat: (i + 1) * beatsPerMeasure,
-  }));
+  const validEvents = timeSigEvents.filter((event) => event.beat <= dur + 1e-9);
+  const dedupedEvents = validEvents.filter((event, index, events) => index === 0 || event.beat > events[index - 1]!.beat);
+  const timeline = dedupedEvents.length
+    ? [
+        ...(dedupedEvents[0]!.beat > 0 ? [{ beat: 0, timeSig: [4, 4] as [number, number], tick: 0 }] : []),
+        ...dedupedEvents,
+      ]
+    : [{ beat: 0, timeSig: initialTimeSig(timeSig, timeSigEvents), tick: 0 }];
+  const measures: Variant["measures"] = [];
+  for (let index = 0; index < timeline.length; index += 1) {
+    const event = timeline[index]!;
+    const next = timeline[index + 1];
+    const rawBeatsPerMeasure = event.timeSig[0] * (4 / event.timeSig[1]);
+    const beatsPerMeasure = Number.isFinite(rawBeatsPerMeasure) && rawBeatsPerMeasure > 0 ? rawBeatsPerMeasure : 4;
+    const segmentEnd = next?.beat ?? dur;
+    let startBeat = event.beat;
+    while (startBeat < segmentEnd - 1e-9 || (!next && measures.length === 0)) {
+      const endBeat = next ? Math.min(startBeat + beatsPerMeasure, segmentEnd) : startBeat + beatsPerMeasure;
+      if (measures.length >= MAX_SOURCE_MEASURES) throw new Error("source workload exceeds supported limits (2048 measures)");
+      measures.push({ index: measures.length, startBeat, endBeat });
+      startBeat = endBeat;
+    }
+  }
+  return measures.length ? measures : [{ index: 0, startBeat: 0, endBeat: 4 }];
 }

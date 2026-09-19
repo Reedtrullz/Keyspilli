@@ -1,4 +1,4 @@
-import { openPlayerTool } from "./player-tools";
+import { openAdvancedArrangementControls, openPlayerTool } from "./player-tools";
 import { expect, test } from "@playwright/test";
 import { seedMidiDir } from "../../../packages/catalog/src/paths";
 import { join } from "node:path";
@@ -221,6 +221,7 @@ test("chord mode distinguishes strict UG coverage from hybrid Auto", async ({ pa
   const dialog = page.getByRole("dialog", { name: "Sound settings" });
   await expect(dialog).toBeVisible();
   await dialog.getByRole("radio", { name: "Chord mode" }).click();
+  await openAdvancedArrangementControls(page);
   await expect(dialog.getByText("Chord source")).toBeVisible();
   await expect(dialog.getByRole("radio", { name: "UG timeline" })).toBeEnabled();
   await dialog.getByRole("radio", { name: "UG timeline" }).click();
@@ -230,6 +231,7 @@ test("chord mode distinguishes strict UG coverage from hybrid Auto", async ({ pa
 
   await openPlayerTool(page, "Sound");
   const hybridDialog = page.getByRole("dialog", { name: "Sound settings" });
+  await openAdvancedArrangementControls(page);
   await hybridDialog.getByRole("radio", { name: "Auto", exact: true }).click();
   await hybridDialog.getByRole("button", { name: "Close tools" }).click();
   await expect(page.getByTestId("chord-mode-status")).toHaveText("UG + generated fallback");
@@ -240,7 +242,11 @@ test("chord styles persist across source changes, seeking, guidance, and mobile 
   await openPlayerTool(page, "Sound");
   let dialog = page.getByRole("dialog", { name: "Sound settings" });
   await dialog.getByRole("radio", { name: "Chord mode" }).click();
+  await openAdvancedArrangementControls(page);
   const styles = dialog.getByRole("radiogroup", { name: "Accompaniment style" });
+  await expect(styles.getByRole("radio", { name: "Bass + chords" })).toHaveAttribute("aria-checked", "true");
+  await expect(dialog).toContainText("Backing only");
+  await styles.getByRole("radio", { name: "Melody + accompaniment" }).click();
   await expect(styles.getByRole("radio", { name: "Melody + accompaniment" })).toHaveAttribute("aria-checked", "true");
   await expect(dialog).toContainText("Original passage is retained");
   await dialog.getByRole("radio", { name: "UG timeline" }).click();
@@ -250,12 +256,14 @@ test("chord styles persist across source changes, seeking, guidance, and mobile 
   await page.getByRole("slider", { name: "Seek" }).fill("1");
   await openPlayerTool(page, "Sound");
   dialog = page.getByRole("dialog", { name: "Sound settings" });
+  await openAdvancedArrangementControls(page);
   await dialog.getByRole("radio", { name: "Bass + chords" }).click();
   await dialog.getByRole("radio", { name: "Generated" }).click();
   await dialog.getByRole("button", { name: "Close tools" }).click();
   await page.reload();
   await openPlayerTool(page, "Sound");
   dialog = page.getByRole("dialog", { name: "Sound settings" });
+  await openAdvancedArrangementControls(page);
   await expect(dialog.getByRole("radio", { name: "Bass + chords" })).toHaveAttribute("aria-checked", "true");
   await expect(dialog.getByRole("radio", { name: "Generated" })).toHaveAttribute("aria-checked", "true");
   await dialog.getByRole("button", { name: "Close tools" }).click();
@@ -290,6 +298,7 @@ test("wait practice advances the visible playhead after an accepted generated ta
   await openPlayerTool(page, "Sound");
   const dialog = page.getByRole("dialog", { name: "Sound settings" });
   await dialog.getByRole("radio", { name: "Chord mode" }).click();
+  await openAdvancedArrangementControls(page);
   await dialog.getByRole("radio", { name: "Bass + chords" }).click();
   await dialog.getByRole("radio", { name: "Generated" }).click();
   await dialog.getByRole("radio", { name: "Synth Piano" }).click();

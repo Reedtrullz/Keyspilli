@@ -13,11 +13,12 @@ const ls = {
 
 vi.stubGlobal("localStorage", ls);
 
-const { DEFAULT_SETTINGS, loadSettings, saveJson, saveSettings, loadSongPrefs } = await import(
+const { DEFAULT_SETTINGS, loadSettings, saveAccompanimentStyleIntent, saveJson, saveSettings, loadSongPrefs } = await import(
   "../src/prefs.js"
 );
 
 const KEY = "keyspilli.prefs.v1";
+const STYLE_INTENT_KEY = "keyspilli.accompaniment-style-intent.v1";
 
 beforeEach(() => {
   store.clear();
@@ -62,16 +63,25 @@ describe("loadSettings", () => {
     expect(s.mode).toBe("falling");
     expect(s.hand).toBe("both");
     expect(s.backgroundMode).toBe("piano");
-    expect(s.accompanimentStyle).toBe("melody-accompaniment");
+    expect(s.accompanimentStyle).toBe("bass-chords");
     expect(s.soundSource).toBe(DEFAULT_SETTINGS.soundSource);
     expect(s.organRotary).toBe("slow");
     expect(s.organStyle).toBe("rock");
   });
 
-  it("defaults legacy chord mode safely and persists the explicit style", () => {
+  it("migrates legacy melody defaults and preserves marked melody intent", () => {
+    expect(DEFAULT_SETTINGS.accompanimentStyle).toBe("bass-chords");
     store.set(KEY, JSON.stringify({ backgroundMode: "chord" }));
+    expect(loadSettings().accompanimentStyle).toBe("bass-chords");
+    store.set(KEY, JSON.stringify({ backgroundMode: "chord", accompanimentStyle: "melody-accompaniment" }));
+    expect(loadSettings().accompanimentStyle).toBe("bass-chords");
+    saveAccompanimentStyleIntent("melody-accompaniment");
+    expect(JSON.parse(store.get(STYLE_INTENT_KEY) ?? "null")).toEqual({ style: "melody-accompaniment" });
     expect(loadSettings().accompanimentStyle).toBe("melody-accompaniment");
-    store.set(KEY, JSON.stringify({ backgroundMode: "chord", accompanimentStyle: "bass-chords" }));
+  });
+
+  it("does not infer melody intent from an ordinary settings save", () => {
+    saveSettings({ ...DEFAULT_SETTINGS, accompanimentStyle: "melody-accompaniment", speed: 0.75 });
     expect(loadSettings().accompanimentStyle).toBe("bass-chords");
   });
 

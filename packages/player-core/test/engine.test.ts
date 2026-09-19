@@ -136,6 +136,13 @@ describe("PlaybackEngine", () => {
     expect(audio.noteOns).toEqual([{ midi: 64, when: expect.closeTo(0.05, 5) }]);
   });
 
+  it("previewPlan returns no fabricated notes for an empty passage", () => {
+    const { eng } = engine();
+    eng.setNotes([{ midi: 60, startSec: 0, durSec: 0.1, vel: 80 }], 1);
+    expect(eng.previewPlan(0.2, 0.4)).toEqual({ notes: [], chords: [] });
+    expect(eng.previewPlan(10, 11)).toEqual({ notes: [], chords: [] });
+  });
+
   it("keeps the grader in sync when wait mode is toggled", () => {
     const { eng } = engine();
     eng.startGrading(false);

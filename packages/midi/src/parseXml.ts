@@ -1,4 +1,4 @@
-import { Note, ParsedMidi } from "./types.js";
+import { MidiTimeSignatureEvent, Note, ParsedMidi } from "./types.js";
 
 interface ParsedXmlNote extends Note {
   tieStart?: boolean;
@@ -87,6 +87,7 @@ export function parseMusicXmlNotes(xml: string): ParsedMidi {
   if (firstNote >= 0 && firstTempo > firstNote && tempo !== 120) throw new Error("Unsupported: tempo begins after the first note");
   let beats = 4;
   let beatType = 4;
+  const timeSigEvents: MidiTimeSignatureEvent[] = [];
   const fifths = parseInt(firstMatch(xml, /<fifths>(-?\d+)<\/fifths>/), 10) || 0;
   const mode = firstMatch(xml, /<mode>(major|minor)<\/mode>/);
   const notes: ParsedXmlNote[] = [];
@@ -117,7 +118,16 @@ export function parseMusicXmlNotes(xml: string): ParsedMidi {
           const nextBeats = Number(firstMatch(time, /<beats>\s*(\d+)\s*<\/beats>/));
           const nextType = Number(firstMatch(time, /<beat-type>\s*(\d+)\s*<\/beat-type>/));
           if (!nextBeats || !nextType) throw new Error("Unsupported: compound time signature");
-          if ((measureStart > 0 || cursor > 0) && (nextBeats !== beats || nextType !== beatType)) throw new Error("Unsupported: changing time signature");
+          if (cursor > 0 && (nextBeats !== beats || nextType !== beatType)) throw new Error("Unsupported: changing time signature mid-measure");
+          if (!timeSigEvents.length || timeSigEvents[timeSigEvents.length - 1]!.beat !== measureStart
+            || timeSigEvents[timeSigEvents.length - 1]!.timeSig[0] !== nextBeats
+            || timeSigEvents[timeSigEvents.length - 1]!.timeSig[1] !== nextType) {
+            timeSigEvents.push({
+              tick: Math.round(measureStart * divisions),
+              beat: measureStart,
+              timeSig: [nextBeats, nextType],
+            });
+          }
           beats = nextBeats;
           beatType = nextType;
         }
@@ -176,11 +186,19 @@ export function parseMusicXmlNotes(xml: string): ParsedMidi {
     const implicit = /^<measure\b[^>]*(?:implicit\s*=\s*["']yes["']|number\s*=\s*["']0["'])/.test(m);
     const meter = beats * 4 / beatType;
     // Independent onset/duration rounding can overshoot a bar by one division.
-    measureStart += implicit ? measureEnd : measureEnd > meter + 1 / divisions + 1e-9 ? measureEnd : meter;
+    // Clamp that format quantization back to the declared meter, while still
+    // honoring an explicitly padded short measure before a meter change.
+    const roundingTolerance = 2 / divisions + 1e-9;
+    const nextTime = firstMatch(measures[mi + 1] ?? "", /<time\b[^>]*>([\s\S]*?)<\/time>/);
+    const nextBeats = nextTime ? Number(firstMatch(nextTime, /<beats>\s*(\d+)\s*<\/beats>/)) : beats;
+    const nextType = nextTime ? Number(firstMatch(nextTime, /<beat-type>\s*(\d+)\s*<\/beat-type>/)) : beatType;
+    const meterChangesNext = Boolean(nextTime) && (nextBeats !== beats || nextType !== beatType);
+    const explicitShortMeasure = measureEnd < meter - roundingTolerance && meterChangesNext;
+    measureStart += implicit || explicitShortMeasure || measureEnd > meter + roundingTolerance ? measureEnd : meter;
   }
   // A writer may round the onset and duration independently, so a tied
   // segment can end one division tick past its continuation onset.
-  const mergedNotes = mergeTiedNotes(notes, 1 / (Number.isFinite(minDivisions) ? minDivisions : divisions) + 1e-9)
+  const mergedNotes = mergeTiedNotes(notes, 2 / (Number.isFinite(minDivisions) ? minDivisions : divisions) + 1e-9)
     .sort((a, b) => a.start - b.start || a.midi - b.midi);
   const durationBeats = mergedNotes.reduce((m, n) => Math.max(m, n.start + n.dur), 0);
   return {
@@ -194,6 +212,7 @@ export function parseMusicXmlNotes(xml: string): ParsedMidi {
     notes: mergedNotes,
     trackNames: ["MusicXML"],
     durationBeats,
+    ...(timeSigEvents.length ? { timeSigEvents } : {}),
     title: firstMatch(xml, /<work-title>([\s\S]*?)<\/work-title>/),
   };
 }

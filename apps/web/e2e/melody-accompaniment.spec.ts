@@ -3,12 +3,32 @@ import { join } from "node:path";
 import { readFileSync, writeFileSync } from "node:fs";
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import type { ChordLabel, Note } from "@keyspilli/midi";
-import { buildMelodyAccompaniment, sourceNoteIds } from "@keyspilli/player-core";
-import { openPlayerTool } from "./player-tools";
+import {
+  buildMelodyAccompaniment,
+  completeChordDurations,
+  dedupeChords,
+  playbackTiming,
+  resolveAccompaniment,
+  sourceNoteIds,
+  type SongData,
+  validateSparseBackingTiming,
+} from "@keyspilli/player-core";
+import {
+  melodyHarmonicSupportPolicy,
+  resolveChordSources,
+  selectChordSource,
+} from "../src/components/player/chord-sources";
+import {
+  buildMelodyArrangementOptions,
+  melodyArrangementResolutionFingerprint,
+} from "../src/components/player/melody-arrangement-runtime";
+import { openAdvancedArrangementControls, openPlayerTool } from "./player-tools";
 
 const SONG_ID = "the-beatles-blackbird-a-scratch";
+const NEAR_CROSS_SONG_ID = "w-h-doane-near-the-cross-a-scratch";
 const UG_SONG_ID = "the-theorist-elton-john-your-song-piano-cover-jz6ugvghbt8-a-scratch";
 const OOPS_SONG_ID = "britney-spears-oops-i-did-it-again-a-scratch";
+const QUEEN_SONG_ID = "queen-somebody-to-love-a-scratch";
 const HELL_SONG_ID = "aria-ellys-music-the-warning-hell-you-call-a-dream-piano-cover-by-aria-ellys-mslzwo1d-a-scratch";
 const SIDECAR_KEY = `keyspilli.melody-accompaniment.v2:${SONG_ID}`;
 const OOPS_SIDECAR_KEY = `keyspilli.melody-accompaniment.v2:${OOPS_SONG_ID}`;
@@ -101,7 +121,9 @@ type AudioCapture = {
 
 type AudioProbeWindow = Window & {
   __keyspilliAudioStart: () => Promise<void>;
+  __keyspilliAudioStartCalls: () => number;
   __keyspilliAudioStop: () => Promise<AudioCapture>;
+  __keyspilliAudioStopCalls: () => number;
 };
 
 type MelodyArrangementTrace = {
@@ -109,11 +131,21 @@ type MelodyArrangementTrace = {
   execution: string;
   noteCount: number;
   key?: string;
+  resolutionFingerprint?: string;
   error?: string;
 };
 
 type MelodyTraceWindow = Window & {
   __keyspilliMelodyArrangementTraceEvents: MelodyArrangementTrace[];
+};
+
+type MelodyOptionTrace = {
+  requestKey: string;
+  sparseBackingTiming?: { timeSig?: number[]; measureStartBeat?: number; provenance?: string; sourceFingerprint?: string };
+};
+
+type MelodyOptionTraceWindow = Window & {
+  __keyspilliMelodyOptionTraceEvents: MelodyOptionTrace[];
 };
 
 async function installMelodyTrace(page: Page): Promise<void> {
@@ -123,6 +155,26 @@ async function installMelodyTrace(page: Page): Promise<void> {
     };
     target.__keyspilliMelodyArrangementTraceEvents = [];
     target.__keyspilliMelodyArrangementTrace = (event) => target.__keyspilliMelodyArrangementTraceEvents.push(event);
+  });
+}
+
+async function installMelodyOptionTrace(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const target = window as unknown as MelodyOptionTraceWindow;
+    target.__keyspilliMelodyOptionTraceEvents = [];
+    const originalPostMessage = Worker.prototype.postMessage;
+    Worker.prototype.postMessage = function (message: unknown, ...rest: unknown[]) {
+      if (message && typeof message === "object" && "requestKey" in message) {
+        const request = message as { requestKey?: unknown; options?: { sparseBackingTiming?: MelodyOptionTrace["sparseBackingTiming"] } };
+        if (typeof request.requestKey === "string") {
+          target.__keyspilliMelodyOptionTraceEvents.push({
+            requestKey: request.requestKey,
+            ...(request.options?.sparseBackingTiming ? { sparseBackingTiming: request.options.sparseBackingTiming } : {}),
+          });
+        }
+      }
+      return Reflect.apply(originalPostMessage, this, [message, ...rest]);
+    };
   });
 }
 
@@ -192,13 +244,14 @@ async function installResumePolicyOverride(page: Page): Promise<void> {
 
 async function installAudioProbe(page: Page): Promise<void> {
   await page.addInitScript(() => {
-    type Probe = { destination: MediaStreamAudioDestinationNode; events: Array<{ type: string; frequency: number; when: number }> };
+    type Probe = { destination: MediaStreamAudioDestinationNode; events: Array<{ type: string; frequency: number; when: number }>; stopCalls: number };
     const contexts = new WeakMap<BaseAudioContext, Probe>();
     let current: AudioContext | null = null;
     let capture: { context: AudioContext; probe: Probe; startIndex: number; startTime: number; recorder: MediaRecorder; chunks: Blob[] } | null = null;
     const OriginalAudioContext = window.AudioContext;
     const OriginalConnect: Function = AudioNode.prototype.connect;
     const OriginalOscillatorStart: Function = OscillatorNode.prototype.start;
+    const OriginalOscillatorStop: Function = OscillatorNode.prototype.stop;
 
     (AudioNode.prototype as unknown as { connect: Function }).connect = function (destination: unknown, ...args: unknown[]) {
       const result = Reflect.apply(OriginalConnect, this, [destination, ...args]);
@@ -215,17 +268,24 @@ async function installAudioProbe(page: Page): Promise<void> {
       if (probe) probe.events.push({ type: oscillator.type, frequency: oscillator.frequency.value, when: when ?? oscillator.context.currentTime });
       return Reflect.apply(OriginalOscillatorStart, this, [when ?? 0]);
     };
+    (OscillatorNode.prototype as unknown as { stop: Function }).stop = function (when?: number) {
+      const probe = contexts.get((this as OscillatorNode).context);
+      if (probe) probe.stopCalls += 1;
+      return Reflect.apply(OriginalOscillatorStop, this, [when ?? 0]);
+    };
 
     class ProbedAudioContext extends OriginalAudioContext {
       constructor(options?: AudioContextOptions) {
         super(options);
-        const probe = { destination: this.createMediaStreamDestination(), events: [] };
+        const probe = { destination: this.createMediaStreamDestination(), events: [], stopCalls: 0 };
         contexts.set(this, probe);
         current = this;
       }
     }
     (window as unknown as { AudioContext: typeof AudioContext }).AudioContext = ProbedAudioContext;
     const exposed = window as unknown as Partial<AudioProbeWindow>;
+    exposed.__keyspilliAudioStartCalls = () => current ? contexts.get(current)?.events.length ?? 0 : 0;
+    exposed.__keyspilliAudioStopCalls = () => current ? contexts.get(current)?.stopCalls ?? 0 : 0;
     exposed.__keyspilliAudioStart = async () => {
       if (!current) throw new Error("No Web Audio context exists; start playback before capturing");
       if (capture) throw new Error("Audio capture already running");
@@ -362,6 +422,10 @@ function audible(capture: AudioCapture & { sha256: string }): void {
 
 function fundamentalMidis(capture: AudioCapture, endSeconds = Number.POSITIVE_INFINITY): number[] {
   return [...new Set(capture.events.filter((event) => event.type === "triangle" && event.midi !== null && event.relativeWhen < endSeconds).map((event) => event.midi as number))].sort((a, b) => a - b);
+}
+
+function scheduledAttackMidis(capture: AudioCapture, endSeconds = 0.1): number[] {
+  return fundamentalMidis(capture, endSeconds);
 }
 
 type PcmComparison = {
@@ -515,15 +579,167 @@ async function selectArrangement(
   await openPlayerTool(page, "Sound");
   const dialog = page.getByRole("dialog", { name: "Sound settings" });
   await dialog.getByRole("radio", { name: mode, exact: true }).click();
+  if (mode === "Chord mode") {
+    await dialog.getByRole("radio", { name: melody ? "Melody + accompaniment" : "Bass + chords", exact: true }).click();
+    await openAdvancedArrangementControls(page);
+  }
   if (melody) await dialog.getByRole("radio", { name: melody, exact: true }).click();
   await dialog.getByRole("button", { name: "Close tools", exact: true }).click();
   if (mode === "Chord mode" && options.waitForArrangement !== false) {
+    if (!melody) {
+      await expect(page.getByTestId("melody-accompaniment-status")).toHaveCount(0);
+      return;
+    }
     const expectedMelody = melody === "Use right-hand part"
       ? "User melody"
       : "(?:Inferred melody|User melody)";
     await expect(page.getByTestId("melody-accompaniment-status")).toHaveText(new RegExp(`^${expectedMelody} · whole-part selection · `));
   }
 }
+
+async function selectDefaultChordMode(page: Page): Promise<void> {
+  await openPlayerTool(page, "Sound");
+  const dialog = page.getByRole("dialog", { name: "Sound settings" });
+  await dialog.getByRole("radio", { name: "Chord mode", exact: true }).click();
+  await expect(dialog.getByRole("radio", { name: "Bass + chords", exact: true })).toHaveAttribute("aria-checked", "true");
+  await dialog.getByRole("button", { name: "Close tools", exact: true }).click();
+}
+
+function blackbirdSourceControlNote(): { midi: number; start: number; dur: number; expectedRelativeSeconds: number } {
+  const scratchRoot = process.env.KEYSPILLI_E2E_SCRATCH_DIR;
+  if (!scratchRoot) throw new Error("melody scratch root is not configured");
+  const source = JSON.parse(readFileSync(join(scratchRoot, "artifacts", "the-beatles-blackbird", "a", "notes.json"), "utf8")) as SongData;
+  const durationBeats = Math.max(
+    0,
+    ...source.notes.map((note) => note.start + note.dur),
+    ...source.measures.map((measure) => measure.endBeat),
+  );
+  const selected = selectChordSource(resolveChordSources(source), "auto").source;
+  const backing = resolveAccompaniment(source.notes, selected?.chords ?? [], "bass-chords", { durationBeats });
+  const backingAttackKeys = new Set(backing.chords.flatMap((chord) => chord.notes.map((midi) => `${chord.beat}|${midi}`)));
+  const note = source.notes.find((candidate) => candidate.hand === "R"
+    && candidate.start >= 14
+    && candidate.start < 26.5
+    && !backingAttackKeys.has(`${candidate.start}|${candidate.midi}`));
+  if (!note) throw new Error("Blackbird source-control note was not found outside backing attacks");
+  // captureArrangement starts one beat before the requested comparison window.
+  return { ...note, expectedRelativeSeconds: (note.start - 13) * 60 / 120 };
+}
+
+test("backing-only default omits source melody and keeps backing audio", async ({ page }, testInfo) => {
+  await installMelodyTrace(page);
+  await installAudioProbe(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/player/${SONG_ID}`);
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+
+  await openPlayerTool(page, "Sound");
+  const dialog = page.getByRole("dialog", { name: "Sound settings" });
+  await dialog.getByRole("radio", { name: "Chord mode", exact: true }).click();
+  await expect(dialog.getByRole("radio", { name: "Bass + chords", exact: true })).toHaveAttribute("aria-checked", "true");
+  await expect(dialog).toContainText("Backing only");
+  await expect(dialog.getByTestId("melody-accompaniment-controls")).toHaveCount(0);
+  await openAdvancedArrangementControls(page);
+  await expect(dialog.getByTestId("backing-audition-controls")).toBeVisible();
+  await expect(dialog.getByTestId("melody-accompaniment-controls")).toHaveCount(0);
+  await expect(page.getByTestId("melody-accompaniment-status")).toHaveCount(0);
+
+  const traces = await melodyTrace(page);
+  expect(traces.some((event) => event.phase === "worker-request")).toBe(false);
+  await dialog.getByRole("button", { name: "Close tools", exact: true }).click();
+  await bootAudio(page);
+  await openPlayerTool(page, "Sound");
+  await openAdvancedArrangementControls(page);
+  const auditionDialog = page.getByRole("dialog", { name: "Sound settings" });
+  await page.getByLabel("Seek").fill("7");
+  const capture = await capturePreviewRole(page, testInfo, auditionDialog, "Accompaniment", "blackbird-backing-only-default");
+  audible(capture);
+  const triangleStarts = capture.events
+    .filter((event) => event.type === "triangle" && event.midi !== null)
+    .map((event) => `${Math.round(event.relativeWhen * 1_000)}|${event.midi}`);
+  // playChord starts one fundamental oscillator per backing tone; noteOn adds
+  // a same-pitch detuned triangle, so duplicate timestamp/pitch starts expose
+  // source-note scheduling in this accompaniment-only preview.
+  expect(new Set(triangleStarts).size).toBe(triangleStarts.length);
+
+  await auditionDialog.getByRole("button", { name: "Close tools", exact: true }).click();
+  const full = await captureArrangement(page, testInfo, "blackbird-backing-only-default-full", 6.5, 7_250);
+  audible(full);
+  const fullTriangleStarts = full.events
+    .filter((event) => event.type === "triangle" && event.midi !== null)
+    .map((event) => `${Math.round(event.relativeWhen * 1_000)}|${event.midi}`);
+  expect(new Set(fullTriangleStarts).size).toBe(fullTriangleStarts.length);
+});
+
+const CURRENT_PLAYER_COMPARISONS = [
+  { id: "blackbird", songId: SONG_ID, bpm: 120, startBeat: 14, endBeat: 26.5 },
+  { id: "oops", songId: OOPS_SONG_ID, bpm: 95, startBeat: 48, endBeat: 64 },
+  { id: "queen", songId: QUEEN_SONG_ID, bpm: 108, startBeat: 6, endBeat: 18 },
+] as const;
+
+test("current Player compares Original with fresh default backing on three canonical inputs", async ({ page }, testInfo) => {
+  test.setTimeout(180_000);
+  await installAudioProbe(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const sourceControl = blackbirdSourceControlNote();
+  const outcomes: Array<Record<string, unknown>> = [];
+
+  for (const comparison of CURRENT_PLAYER_COMPARISONS) {
+    const seekSeconds = Math.max(0, comparison.startBeat * 60 / comparison.bpm - 0.5);
+    const durationMs = Math.ceil((comparison.endBeat - comparison.startBeat) * 60 / comparison.bpm * 1_000 + 1_000);
+    await page.goto(`/player/${comparison.songId}`);
+    await expect(page.getByLabel("Falling notes player")).toBeVisible();
+
+    await selectArrangement(page, "Original arrangement");
+    await bootAudio(page);
+    const original = await captureArrangement(page, testInfo, `current-${comparison.id}-original`, seekSeconds, durationMs);
+    audible(original);
+
+    let sourceControlResult: Record<string, unknown> | undefined;
+    if (comparison.id === "blackbird") {
+      const sourceAttack = original.events.find((event) => event.type === "triangle"
+        && event.midi === sourceControl.midi
+        && Math.abs(event.relativeWhen - sourceControl.expectedRelativeSeconds) < 0.2);
+      expect(sourceAttack, `Original must schedule Blackbird source note ${sourceControl.midi}@${sourceControl.start}`).toBeDefined();
+      sourceControlResult = {
+        sourceNote: sourceControl,
+        originalAttack: sourceAttack ? { midi: sourceAttack.midi, relativeWhen: sourceAttack.relativeWhen } : null,
+      };
+    }
+
+    await selectDefaultChordMode(page);
+    await bootAudio(page);
+    const backing = await captureArrangement(page, testInfo, `current-${comparison.id}-backing-only`, seekSeconds, durationMs);
+    audible(backing);
+
+    if (comparison.id === "blackbird") {
+      const backingHasSourceAttack = backing.events.some((event) => event.type === "triangle"
+        && event.midi === sourceControl.midi
+        && Math.abs(event.relativeWhen - sourceControl.expectedRelativeSeconds) < 0.2);
+      expect(backingHasSourceAttack, "fresh backing-only transport must omit the discriminating source note").toBe(false);
+      sourceControlResult = { ...sourceControlResult, backingHasSourceAttack };
+    }
+
+    outcomes.push({
+      id: comparison.id,
+      songId: comparison.songId,
+      bpm: comparison.bpm,
+      window: { startBeat: comparison.startBeat, endBeat: comparison.endBeat },
+      settings: { instrument: "browser AudioEngine synth", speed: 1, transpose: 0, hand: "both", voiceGain: 1, pianoGain: 0.4 },
+      original: { ...captureMetadata(original), triangleEvents: original.events.filter((event) => event.type === "triangle").length },
+      backingOnly: { ...captureMetadata(backing), triangleEvents: backing.events.filter((event) => event.type === "triangle").length },
+      ...(sourceControlResult ? { sourceControl: sourceControlResult } : {}),
+    });
+  }
+
+  writeFileSync(testInfo.outputPath("current-player-canonical-comparisons.json"), JSON.stringify({
+    schemaVersion: 1,
+    instrument: "browser AudioEngine synth",
+    comparison: "same source, beat window, speed, transpose, hand, voice gain, piano gain; Original then fresh default Chord mode",
+    outcomes,
+  }, null, 2));
+  expect(outcomes).toHaveLength(3);
+});
 
 test("phrase-local overrides recompute the producer and keep invalid overlap reviewable", () => {
   const source: Note[] = [
@@ -581,11 +797,11 @@ async function capturePreviewRole(
   page: Page,
   testInfo: { outputPath: (path: string) => string },
   dialog: Locator,
-  role: "Full" | "Melody" | "Accompaniment",
+  role: "Full" | "Original" | "Melody" | "Accompaniment",
   label: string,
 ): Promise<AudioCapture & { sha256: string }> {
   await page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStart());
-  await dialog.getByRole("button", { name: role, exact: true }).click();
+  await dialog.getByRole("button", { name: role === "Original" ? "Compare Original" : role, exact: true }).click();
   await page.waitForTimeout(2_200);
   const capture = await page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStop());
   const audio = Buffer.from(capture.base64, "base64");
@@ -606,6 +822,26 @@ test.beforeEach(async ({ context }) => {
   });
 });
 
+test("real loader delivers validated timing to the worker and request key", async ({ page }) => {
+  await installMelodyOptionTrace(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/player/${SONG_ID}`);
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+  await selectArrangement(page, "Chord mode", "Automatic melody");
+
+  const traces = await page.evaluate(() => (window as unknown as MelodyOptionTraceWindow).__keyspilliMelodyOptionTraceEvents);
+  const timingTrace = traces.find((trace) => trace.sparseBackingTiming?.provenance === "source-measure-boundary");
+  expect(timingTrace?.sparseBackingTiming).toMatchObject({
+    timeSig: [4, 4],
+    measureStartBeat: 0,
+    provenance: "source-measure-boundary",
+  });
+  expect(timingTrace?.sparseBackingTiming?.sourceFingerprint).toContain("variant:the-beatles-blackbird:a:");
+  expect(JSON.parse(timingTrace!.requestKey)).toMatchObject({
+    sparseBackingTiming: timingTrace!.sparseBackingTiming,
+  });
+});
+
 test("real artifact produces, previews, plays, corrects, and reloads melody support", async ({ page }, testInfo) => {
   const pageErrors: string[] = [];
   const consoleErrors: string[] = [];
@@ -621,6 +857,8 @@ test("real artifact produces, previews, plays, corrects, and reloads melody supp
   await openPlayerTool(page, "Sound");
   const dialog = page.getByRole("dialog", { name: "Sound settings" });
   await dialog.getByRole("radio", { name: "Chord mode", exact: true }).click();
+  await dialog.getByRole("radio", { name: "Melody + accompaniment", exact: true }).click();
+  await openAdvancedArrangementControls(page);
   await expect(dialog.getByTestId("melody-accompaniment-controls")).toBeVisible();
   await expect(dialog.getByTestId("melody-accompaniment-coverage")).toContainText("source support");
   await expect(page.getByTestId("chord-mode-status")).toHaveText("Chords estimated from notes");
@@ -661,6 +899,7 @@ test("real artifact produces, previews, plays, corrects, and reloads melody supp
   await expect(canvas).toBeVisible();
   await openPlayerTool(page, "Sound");
   const reloadedDialog = page.getByRole("dialog", { name: "Sound settings" });
+  await openAdvancedArrangementControls(page);
   await expect(reloadedDialog.getByTestId("melody-accompaniment-controls")).toBeVisible();
   await expect(reloadedDialog.getByRole("radio", { name: "Use right-hand part", exact: true })).toHaveAttribute("aria-checked", "true");
   await expect(page.getByTestId("melody-accompaniment-status")).toContainText("User melody");
@@ -672,6 +911,7 @@ test("real artifact produces, previews, plays, corrects, and reloads melody supp
   await expect(page.getByLabel("Falling notes player")).toBeVisible();
   await openPlayerTool(page, "Sound");
   const resetDialog = page.getByRole("dialog", { name: "Sound settings" });
+  await openAdvancedArrangementControls(page);
   await expect(resetDialog.getByRole("radio", { name: "Automatic melody", exact: true })).toHaveAttribute("aria-checked", "true");
   await expect(page.getByTestId("melody-accompaniment-status")).toContainText("Inferred melody");
   expect(pageErrors, pageErrors.join("\n")).toEqual([]);
@@ -712,6 +952,7 @@ test("phrase-local source choices persist, reset one interval, and keep stale or
     await selectArrangement(page, "Chord mode", melody);
     await seekToPhrase();
     await openPlayerTool(page, "Sound");
+    await openAdvancedArrangementControls(page);
     await expect(page.getByTestId("melody-accompaniment-controls")).toBeVisible();
   };
 
@@ -805,6 +1046,7 @@ test("source-only backing reduction is a separate persisted preview choice", asy
   await expect(page.getByLabel("Falling notes player")).toBeVisible();
   await selectArrangement(page, "Chord mode", "Automatic melody");
   await openPlayerTool(page, "Sound");
+  await openAdvancedArrangementControls(page);
   const dialog = page.getByRole("dialog", { name: "Sound settings" });
   const sourceBacking = dialog.getByTestId("source-backing-controls");
   await expect(sourceBacking).toBeVisible();
@@ -822,6 +1064,7 @@ test("source-only backing reduction is a separate persisted preview choice", asy
   await expect(page.getByLabel("Falling notes player")).toBeVisible();
   await selectArrangement(page, "Chord mode", "Automatic melody");
   await openPlayerTool(page, "Sound");
+  await openAdvancedArrangementControls(page);
   const reloaded = page.getByRole("dialog", { name: "Sound settings" }).getByTestId("source-backing-controls");
   await expect(reloaded.getByRole("radio", { name: "Conservative source-only preview (whole song)", exact: true })).toHaveAttribute("aria-checked", "true");
   await expect(page.getByTestId("melody-accompaniment-status")).toContainText("source support notes");
@@ -841,7 +1084,7 @@ test("browser trace keeps Original and large arrangements off the main-thread pr
   expect(traces.some((event) => event.phase === "source-view" && event.execution === "source")).toBe(true);
   expect(traces.some((event) => event.phase === "sync-start")).toBe(false);
 
-  await selectArrangement(page, "Chord mode");
+  await selectArrangement(page, "Chord mode", "Automatic melody");
   await expect(page.getByTestId("melody-accompaniment-status")).toContainText("Inferred melody");
   traces = await melodyTrace(page);
   expect(traces.some((event) => event.phase === "worker-request" && event.execution === "worker")).toBe(true);
@@ -851,6 +1094,7 @@ test("browser trace keeps Original and large arrangements off the main-thread pr
   const firstRequestKey = traces.find((event) => event.phase === "worker-request")?.key;
   expect(firstRequestKey).toBeTruthy();
   await openPlayerTool(page, "Sound");
+  await openAdvancedArrangementControls(page);
   const dialog = page.getByRole("dialog", { name: "Sound settings" });
   await dialog.getByRole("radio", { name: "UG timeline", exact: true }).click();
   await expect(page.getByTestId("melody-accompaniment-status")).toContainText("Inferred melody");
@@ -862,7 +1106,100 @@ test("browser trace keeps Original and large arrangements off the main-thread pr
   expect(changedSourceTraces.some((event) => event.phase === "sync-start")).toBe(false);
 });
 
-test("role audition renders three audible stems and preserves A/B position", async ({ page }, testInfo) => {
+test("advanced arrangement controls start collapsed with a visible original comparison", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/player/${SONG_ID}`);
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+  await openPlayerTool(page, "Sound");
+  const dialog = page.getByRole("dialog", { name: "Sound settings" });
+  await dialog.getByRole("radio", { name: "Chord mode", exact: true }).click();
+  const advanced = dialog.getByTestId("advanced-arrangement-controls");
+  await expect(advanced).toBeVisible();
+  await expect(advanced).not.toHaveAttribute("open");
+  await expect(dialog.getByRole("button", { name: "Compare Original", exact: true })).toBeVisible();
+  await advanced.locator("summary").press("Enter");
+  await expect(advanced).toHaveAttribute("open", "");
+});
+
+test("browser worker resolution matches the shared loader at the frozen milestone", async ({ page }) => {
+  await installMelodyTrace(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/player/${SONG_ID}`);
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+  await selectArrangement(page, "Chord mode", "Automatic melody");
+  await expect(page.getByTestId("melody-accompaniment-status")).toContainText("Inferred melody");
+
+  const ready = (await melodyTrace(page)).filter((event) => event.phase === "worker-ready").at(-1);
+  expect(ready?.execution).toBe("worker");
+  expect(ready?.resolutionFingerprint).toBeTruthy();
+
+  const scratchRoot = process.env.KEYSPILLI_E2E_SCRATCH_DIR;
+  if (!scratchRoot) throw new Error("melody scratch root is not configured");
+  const notesPath = join(scratchRoot, "artifacts", "the-beatles-blackbird", "a", "notes.json");
+  const manifestPath = join(scratchRoot, "artifacts", "the-beatles-blackbird", "manifest.json");
+  const notesBytes = readFileSync(notesPath);
+  const stored = JSON.parse(notesBytes.toString("utf8")) as SongData;
+  const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as {
+    sourceArtifactHash?: string;
+    sourceTiming?: Record<string, NonNullable<SongData["sourceTiming"]>>;
+  };
+  if (!manifest.sourceArtifactHash) throw new Error("scratch manifest has no source artifact hash");
+  const durationBeats = Math.max(
+    0,
+    ...stored.notes.map((note) => note.start + note.dur),
+    ...stored.measures.map((measure) => measure.endBeat),
+  );
+  const sourceFingerprint = `variant:the-beatles-blackbird:a:${SONG_ID}:${manifest.sourceArtifactHash}:notes:${createHash("sha256").update(notesBytes).digest("hex")}`;
+  const timingCandidate = manifest.sourceTiming?.[SONG_ID];
+  const timingIdentity = timingCandidate
+    ? (({ sourceFingerprint: _sourceFingerprint, ...identity }) => identity)(timingCandidate)
+    : undefined;
+  const loadedSourceFingerprint = timingIdentity
+    ? `${sourceFingerprint}:timing:${createHash("sha256").update(JSON.stringify(timingIdentity)).digest("hex")}`
+    : sourceFingerprint;
+  const data: SongData = {
+    ...stored,
+    sourceFingerprint: loadedSourceFingerprint,
+    sourceTiming: validateSparseBackingTiming(timingCandidate, loadedSourceFingerprint, durationBeats),
+  };
+  const sparseBackingTiming = validateSparseBackingTiming(data.sourceTiming, loadedSourceFingerprint, durationBeats);
+  const timing = playbackTiming({ ...data, sourceTiming: sparseBackingTiming });
+  const resolved = resolveChordSources(data);
+  const chordSources = {
+    ...resolved,
+    generated: {
+      ...resolved.generated,
+      chords: completeChordDurations(dedupeChords(resolved.generated.chords, { durationBeats }), durationBeats),
+    },
+  };
+  const selected = selectChordSource(chordSources, "auto");
+  const expected = buildMelodyAccompaniment(data.notes, selected.source?.chords ?? [], buildMelodyArrangementOptions({
+    durationBeats,
+    sourceFingerprint: loadedSourceFingerprint,
+    selection: "automatic",
+    phraseOverrides: [],
+    harmonicSupport: melodyHarmonicSupportPolicy(selected.source),
+    sourceBackingMode: "default",
+    sparseBackingTiming: timing,
+  }));
+  const expectedKey = JSON.stringify({
+    sourceNotes: data.notes,
+    chords: selected.source?.chords ?? [],
+    durationBeats,
+    sourceFingerprint: loadedSourceFingerprint,
+    selection: "automatic",
+    phraseOverrides: [],
+    harmonicSupport: melodyHarmonicSupportPolicy(selected.source),
+    sourceBackingMode: "default",
+    sparseBackingTiming: timing,
+    allowRests: true,
+    soundingPolicy: "coherent-phrase",
+  });
+  expect(ready?.key).toBe(expectedKey);
+  expect(ready?.resolutionFingerprint).toBe(melodyArrangementResolutionFingerprint(expected));
+});
+
+test("role audition renders four audible roles and preserves A/B position", async ({ page }, testInfo) => {
   await installAudioProbe(page);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(`/player/${SONG_ID}`);
@@ -871,17 +1208,26 @@ test("role audition renders three audible stems and preserves A/B position", asy
   await bootAudio(page);
 
   const seek = page.getByLabel("Seek");
-  await seek.fill("2");
-  const positionBefore = await seek.inputValue();
+  await seek.fill("0");
   await openPlayerTool(page, "Sound");
+  await openAdvancedArrangementControls(page);
   const dialog = page.getByRole("dialog", { name: "Sound settings" });
   await expect(dialog.getByTestId("melody-audition-controls")).toBeVisible();
 
+  const emptyMelody = await capturePreviewRole(page, testInfo, dialog, "Melody", "blackbird-preview-melody-empty");
+  expect(scheduledAttackMidis(emptyMelody)).toEqual([]);
+
+  await seek.fill("7");
+  const positionBefore = await seek.inputValue();
+  const original = await capturePreviewRole(page, testInfo, dialog, "Original", "blackbird-preview-original");
   const full = await capturePreviewRole(page, testInfo, dialog, "Full", "blackbird-preview-full");
   const melody = await capturePreviewRole(page, testInfo, dialog, "Melody", "blackbird-preview-melody");
   const accompaniment = await capturePreviewRole(page, testInfo, dialog, "Accompaniment", "blackbird-preview-accompaniment");
-  for (const capture of [full, melody, accompaniment]) audible(capture);
-  expect(new Set([full.sha256, melody.sha256, accompaniment.sha256]).size).toBeGreaterThan(1);
+  for (const capture of [original, full, melody, accompaniment]) audible(capture);
+  expect(scheduledAttackMidis(original)).toEqual(expect.arrayContaining([55, 71]));
+  expect(fundamentalMidis(original)).toContain(60);
+  expect(fundamentalMidis(full)).toContain(67);
+  expect(fundamentalMidis(full)).not.toContain(60);
   expect(await seek.inputValue()).toBe(positionBefore);
 
   await dialog.getByRole("button", { name: "Close tools", exact: true }).click();
@@ -889,6 +1235,228 @@ test("role audition renders three audible stems and preserves A/B position", asy
   await expect.poll(() => seek.inputValue()).toBe(positionBefore);
   await selectArrangement(page, "Chord mode", "Automatic melody");
   await expect.poll(() => seek.inputValue()).toBe(positionBefore);
+});
+
+test("arrangement preview cancels scheduled audio when its source changes", async ({ page }) => {
+  await installAudioProbe(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/player/${SONG_ID}`);
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+  await selectArrangement(page, "Chord mode", "Automatic melody");
+  await bootAudio(page);
+  const seek = page.getByLabel("Seek");
+  await seek.fill("7");
+  await openPlayerTool(page, "Sound");
+  await openAdvancedArrangementControls(page);
+  const dialog = page.getByRole("dialog", { name: "Sound settings" });
+  await page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStart());
+  await dialog.getByRole("button", { name: "Full", exact: true }).click();
+  await page.waitForTimeout(100);
+  const scheduled = await page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStopCalls());
+  expect(scheduled).toBeGreaterThan(0);
+
+  await dialog.getByRole("radio", { name: "Use right-hand part", exact: true }).click();
+  await expect.poll(() => page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStopCalls())).toBeGreaterThan(scheduled);
+});
+
+test("moving transport does not cancel a new preview, while an external seek does", async ({ page }) => {
+  await installAudioProbe(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/player/${SONG_ID}`);
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+  await selectArrangement(page, "Chord mode", "Automatic melody");
+  await bootAudio(page);
+  const seek = page.getByLabel("Seek");
+  await seek.fill("7");
+  await page.getByRole("button", { name: "Play", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+
+  await openPlayerTool(page, "Sound");
+  await openAdvancedArrangementControls(page);
+  const dialog = page.getByRole("dialog", { name: "Sound settings" });
+  await page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStart());
+  const startsBeforePreview = await page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStartCalls());
+  await dialog.getByRole("button", { name: "Full", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Play", exact: true })).toBeVisible();
+  await page.waitForTimeout(250);
+  const capture = await page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStop());
+  const startsAfterPreview = await page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStartCalls());
+  expect(startsAfterPreview).toBeGreaterThan(startsBeforePreview);
+  audible({ ...capture, sha256: "preview-race" });
+
+  await dialog.getByRole("button", { name: "Full", exact: true }).click();
+  const stopsBeforeSeek = await page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStopCalls());
+  await seek.fill("8");
+  await expect.poll(() => page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStopCalls())).toBeGreaterThan(stopsBeforeSeek);
+});
+
+test("arrangement preview exposes stop/repeat and preserves stopped or playing transport state", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/player/${SONG_ID}`);
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+  await selectArrangement(page, "Chord mode", "Automatic melody");
+  const seek = page.getByLabel("Seek");
+  await seek.fill("7");
+
+  await openPlayerTool(page, "Sound");
+  let dialog = page.getByRole("dialog", { name: "Sound settings" });
+  const status = dialog.getByTestId("arrangement-preview-status");
+  const stoppedPosition = Number(await seek.inputValue());
+  await dialog.getByRole("button", { name: "Compare Original", exact: true }).click();
+  await expect(status.getByRole("status")).toHaveText(/Playing Original · bar \d+/);
+  await expect(status.getByRole("button", { name: "Stop preview", exact: true })).toBeVisible();
+  const stopPreview = status.getByRole("button", { name: "Stop preview", exact: true });
+  await stopPreview.focus();
+  await stopPreview.press("Enter");
+  await expect(status.getByRole("status")).toHaveText(/Preview stopped: Original · bar \d+/);
+  expect(Number(await seek.inputValue())).toBeCloseTo(stoppedPosition, 2);
+  await expect(status.getByRole("button", { name: "Repeat preview", exact: true })).toBeVisible();
+  const repeatPreview = status.getByRole("button", { name: "Repeat preview", exact: true });
+  await repeatPreview.focus();
+  await repeatPreview.press("Space");
+  await expect(status.getByRole("status")).toHaveText(/Playing Original · bar \d+/);
+  await dialog.getByRole("button", { name: "Close tools", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Play", exact: true })).toBeVisible();
+
+  await openPlayerTool(page, "Sound");
+  dialog = page.getByRole("dialog", { name: "Sound settings" });
+  const naturalPosition = Number(await seek.inputValue());
+  const naturalStatus = dialog.getByTestId("arrangement-preview-status");
+  await dialog.getByRole("button", { name: "Compare Original", exact: true }).click();
+  await expect(naturalStatus.getByRole("status")).toHaveText(/Last preview: Original · bar \d+/, { timeout: 5_000 });
+  expect(Number(await seek.inputValue())).toBeCloseTo(naturalPosition, 2);
+  await dialog.getByRole("button", { name: "Close tools", exact: true }).click();
+
+  await seek.fill("2");
+  await page.getByRole("button", { name: "Play", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+  await openPlayerTool(page, "Sound");
+  dialog = page.getByRole("dialog", { name: "Sound settings" });
+  const playingStatus = dialog.getByTestId("arrangement-preview-status");
+  const playingPosition = Number(await seek.inputValue());
+  await dialog.getByRole("button", { name: "Compare Original", exact: true }).click();
+  await expect(playingStatus.getByRole("status")).toHaveText(/Playing Original · bar \d+/);
+  await expect(playingStatus.getByRole("status")).toHaveText(/Last preview: Original · bar \d+/, { timeout: 5_000 });
+  await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+  expect(Math.abs(Number(await seek.inputValue()) - playingPosition)).toBeLessThan(0.25);
+  const playingRepeat = playingStatus.getByRole("button", { name: "Repeat preview", exact: true });
+  const repeatedPlayingPosition = Number(await seek.inputValue());
+  await playingRepeat.focus();
+  await playingRepeat.press("Space");
+  await expect(playingStatus.getByRole("status")).toHaveText(/Playing Original · bar \d+/);
+  const playingStop = playingStatus.getByRole("button", { name: "Stop preview", exact: true });
+  await playingStop.focus();
+  await playingStop.press("Enter");
+  await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+  expect(Math.abs(Number(await seek.inputValue()) - repeatedPlayingPosition)).toBeLessThan(0.25);
+});
+
+test("sound preview controls stay keyboard-usable at 200%", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/player/${SONG_ID}`);
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+  await selectArrangement(page, "Chord mode", "Automatic melody");
+  await page.evaluate(() => { document.documentElement.style.zoom = "2"; });
+  await openPlayerTool(page, "Sound");
+  const dialog = page.getByRole("dialog", { name: "Sound settings" });
+  await expect(dialog).toBeVisible();
+  const geometry = await dialog.evaluate(node => ({ clientWidth: node.clientWidth, scrollWidth: node.scrollWidth }));
+  expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth + 1);
+
+  await dialog.getByRole("button", { name: "Compare Original", exact: true }).click();
+  const status = dialog.getByTestId("arrangement-preview-status");
+  const compare = dialog.getByRole("button", { name: "Compare Original", exact: true });
+  await compare.focus();
+  await compare.press("Tab");
+  await expect(dialog.getByRole("button", { name: "Preview arrangement", exact: true })).toBeFocused();
+  await page.keyboard.press("Tab");
+  const stop = status.getByRole("button", { name: "Stop preview", exact: true });
+  await expect(stop).toBeFocused();
+  await stop.press("Enter");
+  const repeat = status.getByRole("button", { name: "Repeat preview", exact: true });
+  await repeat.focus();
+  await expect(repeat).toBeFocused();
+  await repeat.press("Space");
+  await expect(status.getByRole("button", { name: "Stop preview", exact: true })).toBeVisible();
+});
+
+test("arrangement preview uses the selected loop and a six-beat current measure", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/player/${SONG_ID}`);
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+  await selectArrangement(page, "Chord mode", "Automatic melody");
+  await page.locator(".player-loop-controls summary").click();
+  await page.getByLabel("Loop start bar").fill("2");
+  await page.getByLabel("Loop start bar").press("Enter");
+  await page.getByLabel("Loop end bar").fill("3");
+  await page.getByLabel("Loop end bar").press("Enter");
+  await openPlayerTool(page, "Sound");
+  let dialog = page.getByRole("dialog", { name: "Sound settings" });
+  await dialog.getByRole("button", { name: "Compare Original", exact: true }).click();
+  let status = dialog.getByTestId("arrangement-preview-status");
+  await expect(status.getByRole("status")).toHaveText("Playing Original · bars 2–3");
+  expect(Number(await status.getAttribute("data-preview-end-sec")) - Number(await status.getAttribute("data-preview-start-sec"))).toBeCloseTo(4, 2);
+  await status.getByRole("button", { name: "Stop preview", exact: true }).click();
+  await dialog.getByRole("button", { name: "Close tools", exact: true }).click();
+
+  await page.goto(`/player/${NEAR_CROSS_SONG_ID}`);
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+  await selectArrangement(page, "Chord mode", "Automatic melody");
+  await openPlayerTool(page, "Sound");
+  dialog = page.getByRole("dialog", { name: "Sound settings" });
+  await dialog.getByRole("button", { name: "Compare Original", exact: true }).click();
+  status = dialog.getByTestId("arrangement-preview-status");
+  await expect(status.getByRole("status")).toHaveText("Playing Original · bar 1");
+  expect(Number(await status.getAttribute("data-preview-end-sec")) - Number(await status.getAttribute("data-preview-start-sec"))).toBeCloseTo(60 / 112 * 6, 2);
+});
+
+test("Chord mode labels Original sheet and download contracts", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/player/${SONG_ID}`);
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+  await selectArrangement(page, "Chord mode", "Automatic melody");
+
+  await page.getByRole("button", { name: /Download sheet music and MIDI/ }).click();
+  const download = page.getByRole("dialog", { name: /Download sheet music or MIDI/ });
+  await expect(download.getByRole("status")).toHaveText("Downloads use the stored Original arrangement. Chord mode changes playback and guidance only.");
+  await download.getByRole("button", { name: "Done", exact: true }).click();
+
+  await page.getByRole("button", { name: /View/ }).click();
+  await page.getByRole("menuitemradio", { name: /Sheet Music/ }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Sheet Music shows the stored Original arrangement while Chord mode is selected." })).toBeVisible();
+});
+
+test("melody arrangement feeds practice at the selected position", async ({ page }) => {
+  await installAudioProbe(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/player/${SONG_ID}`);
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+  await selectArrangement(page, "Chord mode", "Automatic melody");
+  await bootAudio(page);
+  await page.getByRole("button", { name: "Right hand", exact: true }).click();
+  const seek = page.getByLabel("Seek");
+  await seek.fill("7");
+  await page.getByRole("button", { name: "Practice", exact: true }).click();
+  const setup = page.getByRole("dialog", { name: "Set up practice" });
+  await setup.getByLabel("Behavior", { exact: true }).selectOption("wait");
+  await setup.getByLabel("Passage", { exact: true }).selectOption("current");
+  await setup.getByRole("button", { name: "Start practice", exact: true }).click();
+  await expect(page.getByRole("region", { name: "Practice grading" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Practice grading" }).getByRole("status")).toHaveText("Play: G4 (right hand)");
+  await expect(seek).toHaveValue("7");
+  await page.getByRole("button", { name: "Finish practice", exact: true }).click();
+
+  await page.getByRole("button", { name: "Practice", exact: true }).click();
+  const playAlongSetup = page.getByRole("dialog", { name: "Set up practice" });
+  await playAlongSetup.getByLabel("Passage", { exact: true }).selectOption("current");
+  await page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStart());
+  await playAlongSetup.getByRole("button", { name: "Start practice", exact: true }).click();
+  await expect(page.getByRole("region", { name: "Practice grading" })).toBeVisible();
+  await page.waitForTimeout(350);
+  await page.getByRole("button", { name: "Finish practice", exact: true }).click();
+  const practiceAudio = await page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStop());
+  expect(scheduledAttackMidis(practiceAudio)).toContain(67);
+  expect(scheduledAttackMidis(practiceAudio)).not.toContain(60);
 });
 
 test("worker constructor failure retains real Original audio, retries, and clears on mode change", async ({ page }, testInfo) => {
@@ -952,6 +1520,7 @@ test("stale worker replies cannot replace the latest source-keyed request", asyn
   await expect(page.getByLabel("Falling notes player")).toBeVisible();
   await selectArrangement(page, "Chord mode", "Automatic melody", { waitForArrangement: false });
   await openPlayerTool(page, "Sound");
+  await openAdvancedArrangementControls(page);
   const dialog = page.getByRole("dialog", { name: "Sound settings" });
   await dialog.getByRole("radio", { name: "UG timeline", exact: true }).click();
   await dialog.getByRole("button", { name: "Close tools", exact: true }).click();
@@ -981,8 +1550,9 @@ test("stale cross-variant melody storage is ignored and Original has no derived 
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(`/player/${HELL_SONG_ID}`);
   await expect(page.getByLabel("Falling notes player")).toBeVisible();
-  await selectArrangement(page, "Chord mode");
+  await selectArrangement(page, "Chord mode", "Automatic melody");
   await openPlayerTool(page, "Sound");
+  await openAdvancedArrangementControls(page);
   const dialog = page.getByRole("dialog", { name: "Sound settings" });
   await expect(dialog.getByRole("radio", { name: "Automatic melody", exact: true })).toHaveAttribute("aria-checked", "true");
   await expect(dialog.getByRole("button", { name: "Reset all saved choices", exact: true })).toHaveCount(0);
@@ -1058,6 +1628,7 @@ test("complete Oops phrase captures the source-only preview without rerendering 
   await bootAudio(page);
   await selectArrangement(page, "Chord mode", "Automatic melody");
   await openPlayerTool(page, "Sound");
+  await openAdvancedArrangementControls(page);
   const dialog = page.getByRole("dialog", { name: "Sound settings" });
   const sourceBacking = dialog.getByTestId("source-backing-controls");
   await sourceBacking.getByRole("radio", { name: "Conservative source-only preview (whole song)", exact: true }).click();
@@ -1181,6 +1752,7 @@ test("real audio events cover mode, hand filtering, seek, transpose, correction,
   await page.goto(`/player/${HELL_SONG_ID}`);
   await expect(page.getByLabel("Falling notes player")).toBeVisible();
   await openPlayerTool(page, "Sound");
+  await openAdvancedArrangementControls(page);
   let dialog = page.getByRole("dialog", { name: "Sound settings" });
   await dialog.getByRole("radio", { name: "Chord mode", exact: true }).click();
   await dialog.getByRole("radio", { name: "Automatic melody", exact: true }).click();
@@ -1191,6 +1763,7 @@ test("real audio events cover mode, hand filtering, seek, transpose, correction,
   const hellAutomatic = await captureArrangement(page, testInfo, "hell-automatic-ambiguous", 10.7, 2_200);
   audible(hellAutomatic);
   await openPlayerTool(page, "Sound");
+  await openAdvancedArrangementControls(page);
   dialog = page.getByRole("dialog", { name: "Sound settings" });
   await dialog.getByRole("radio", { name: "Use right-hand part", exact: true }).click();
   await expect(page.getByTestId("melody-accompaniment-ambiguity")).toHaveCount(0);
@@ -1210,6 +1783,7 @@ test("real audio events cover mode, hand filtering, seek, transpose, correction,
   await page.reload();
   await expect(page.getByLabel("Falling notes player")).toBeVisible();
   await openPlayerTool(page, "Sound");
+  await openAdvancedArrangementControls(page);
   dialog = page.getByRole("dialog", { name: "Sound settings" });
   await expect(dialog.getByRole("radio", { name: "Use right-hand part", exact: true })).toHaveAttribute("aria-checked", "true");
   await expect(page.getByTestId("melody-accompaniment-status")).toContainText("User melody");
@@ -1426,6 +2000,8 @@ test("real artifact keeps arrangement controls usable at 390px", async ({ page }
   await openPlayerTool(page, "Sound");
   let dialog = page.getByRole("dialog", { name: "Sound settings" });
   await dialog.getByRole("radio", { name: "Chord mode", exact: true }).click();
+  await dialog.getByRole("radio", { name: "Melody + accompaniment", exact: true }).click();
+  await openAdvancedArrangementControls(page);
   await expect(dialog.getByTestId("melody-accompaniment-controls")).toBeVisible();
   await dialog.getByRole("radio", { name: "Use right-hand part", exact: true }).click();
   await dialog.getByRole("button", { name: "Preview arrangement", exact: true }).click();
@@ -1462,6 +2038,7 @@ test("real artifact keeps arrangement controls usable at 390px", async ({ page }
   await page.getByTestId("chord-practice-panel").getByRole("button", { name: "Close", exact: true }).click();
 
   await openPlayerTool(page, "Sound");
+  await openAdvancedArrangementControls(page);
   dialog = page.getByRole("dialog", { name: "Sound settings" });
   await expect(dialog.getByRole("radio", { name: "Use right-hand part", exact: true })).toHaveAttribute("aria-checked", "true");
   await expect(page.getByTestId("melody-accompaniment-status")).toContainText("User melody");
@@ -1541,7 +2118,9 @@ test("fallback and phrase metadata keep transport stable and review controls vis
   expect(activeFallbackSeen).toBe(true);
   expect(inactiveFallbackSeenAfterActive).toBe(true);
   expect(phraseChanged).toBe(true);
-  expect(new Set(states.filter((state) => state.fallbackActive).map((state) => state.fallbackMessage)).size).toBeGreaterThan(1);
+  const activeFallbackMessages = new Set(states.filter((state) => state.fallbackActive).map((state) => state.fallbackMessage));
+  expect(activeFallbackMessages.size).toBeGreaterThan(0);
+  expect([...activeFallbackMessages].every((message) => message?.includes("Original passage retained"))).toBe(true);
   expect(states.every((state) => state.surfaceTop === openGeometry.surfaceTop), JSON.stringify(states)).toBe(true);
   const activeFallback = states.find((state) => state.fallbackActive)!;
   const inactiveIndex = states.findIndex((state, index) => state.fallbackActive && states[index + 1]?.fallbackActive === false);
@@ -1575,7 +2154,9 @@ test("fallback and phrase metadata keep transport stable and review controls vis
   }
   expect(narrowActiveFallbackSeen).toBe(true);
   expect(narrowInactiveFallbackSeenAfterActive).toBe(true);
-  expect(new Set(narrowStates.filter((state) => state.fallbackActive).map((state) => state.fallbackMessage)).size).toBeGreaterThan(1);
+  const narrowFallbackMessages = new Set(narrowStates.filter((state) => state.fallbackActive).map((state) => state.fallbackMessage));
+  expect(narrowFallbackMessages.size).toBeGreaterThan(0);
+  expect([...narrowFallbackMessages].every((message) => message?.includes("Original passage retained"))).toBe(true);
   expect(narrowStates.every((state) => state.surfaceTop === narrowOpenGeometry.surfaceTop), JSON.stringify(narrowStates)).toBe(true);
   await page.getByRole("button", { name: "Pause", exact: true }).click();
 

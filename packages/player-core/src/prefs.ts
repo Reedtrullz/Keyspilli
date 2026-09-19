@@ -2,6 +2,7 @@ import type { PlayerSettings } from "./types.js";
 import type { AccompanimentStyle } from "./accompaniment.js";
 
 const KEY = "keyspilli.prefs.v1";
+const ACCOMPANIMENT_STYLE_INTENT_KEY = "keyspilli.accompaniment-style-intent.v1";
 
 const VIEW_MODES = ["falling", "beginner", "sheet", "leadsheet"] as const;
 const HANDS = ["L", "R", "both"] as const;
@@ -15,7 +16,7 @@ export const DEFAULT_SETTINGS: PlayerSettings = {
   voiceGain: 1,
   pianoGain: 0.4,
   backgroundMode: "piano",
-  accompanimentStyle: "melody-accompaniment",
+  accompanimentStyle: "bass-chords",
   soundSource: "sampled",
   organStyle: "rock",
   organRotary: "slow",
@@ -55,16 +56,39 @@ function pickBool(v: unknown, fallback: boolean): boolean {
   return typeof v === "boolean" ? v : fallback;
 }
 
+function loadAccompanimentStyleIntent(s: Storage | null): AccompanimentStyle | null {
+  if (!s) return null;
+  try {
+    const raw = JSON.parse(s.getItem(ACCOMPANIMENT_STYLE_INTENT_KEY) ?? "null") as { style?: unknown } | null;
+    return ACCOMPANIMENT_STYLES.includes(raw?.style as AccompanimentStyle)
+      ? raw!.style as AccompanimentStyle
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Record only an explicit style-button choice; ordinary settings saves do not imply intent. */
+export function saveAccompanimentStyleIntent(style: AccompanimentStyle): void {
+  try {
+    storage()?.setItem(ACCOMPANIMENT_STYLE_INTENT_KEY, JSON.stringify({ style }));
+  } catch {
+    // Preference intent is advisory and must not break playback.
+  }
+}
+
 export function loadSettings(): PlayerSettings {
   const s = storage();
   if (!s) return { ...DEFAULT_SETTINGS };
   try {
     const raw = JSON.parse(s.getItem(KEY) ?? "{}") as Record<string, unknown>;
+    const explicitAccompanimentStyle = loadAccompanimentStyleIntent(s);
     return {
       voiceGain: clampNum(raw.voiceGain, 0, 2, DEFAULT_SETTINGS.voiceGain),
       pianoGain: clampNum(raw.pianoGain, 0, 2, DEFAULT_SETTINGS.pianoGain),
       backgroundMode: pickEnum(raw.backgroundMode, BACKGROUNDS, DEFAULT_SETTINGS.backgroundMode),
-      accompanimentStyle: pickEnum(raw.accompanimentStyle, ACCOMPANIMENT_STYLES, DEFAULT_SETTINGS.accompanimentStyle),
+      accompanimentStyle: explicitAccompanimentStyle
+        ?? (raw.accompanimentStyle === "bass-chords" ? "bass-chords" : DEFAULT_SETTINGS.accompanimentStyle),
       soundSource: pickEnum(raw.soundSource, SOUND_SOURCES, DEFAULT_SETTINGS.soundSource),
       organStyle: pickEnum(raw.organStyle, ORGAN_STYLES, DEFAULT_SETTINGS.organStyle),
       organRotary: pickEnum(raw.organRotary, ORGAN_ROTARY_SPEEDS, DEFAULT_SETTINGS.organRotary),

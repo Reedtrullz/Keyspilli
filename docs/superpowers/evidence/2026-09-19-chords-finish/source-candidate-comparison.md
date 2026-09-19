@@ -1,0 +1,537 @@
+# Source candidate comparison — 2026-09-19
+
+This is a read-only comparison of the pinned canonical artifacts under
+`/Users/reidar/Projectos/Keyspilli/data`. The “candidate” is derived in memory
+from the current MusicXML `staff=1/voice=1` lane, mapped to the stored R-hand
+notes, and run through the existing `selection: "right-hand"` producer path.
+It is a hand-override comparison, not independent source recovery, semantic
+approval, or a production data change.
+
+Reproduce it with Node `v22.22.3`:
+
+```sh
+export PATH=/Users/reidar/.nvm/versions/node/v22.22.3/bin:$PATH
+npx tsx docs/superpowers/evidence/2026-09-19-chords-finish/source-candidate-comparison.ts
+```
+
+The full-song comparison and the algorithmically selected worst 12-beat
+window use a shared controlled comparison tempo of `108 BPM` (`6.667 seconds`
+per 12-beat window). Physical playability diagnostics are also reported at the
+target tempos: Queen `108 BPM`, Oops `95 BPM`, and Blackbird `120 BPM`.
+Chord labels are held constant from the canonical `auto` source; this isolates
+melody identity selection and does not treat inferred chord labels as
+independent harmonic truth.
+
+## Candidate versus current
+
+| Target | Target BPM | Current automatic: melody / output / unresolved / fallback beats | Derived upper-staff hand override: melody / output / unresolved / fallback beats | Shared / differing melody source IDs | Worst 12-beat window: current / derived / shared / differing IDs |
+|---|---:|---:|---:|---:|---:|
+| Queen — Somebody To Love | 108 | 784 / 2072 / 182.375 / 223.625 | 1234 / 2345 / 0 / 160 | 592 / 834 | `[48,60)`: 35 / 76 / 31 / 49 |
+| Oops I Did It Again | 95 | 572 / 1438 / 42.625 / 114.25 | 1435 / 1895 / 0 / 78.25 | 455 / 1097 | `[240,252)`: 25 / 92 / 25 / 67 |
+| Blackbird | 120 | 554 / 1041 / 38.125 / 54.75 | 548 / 1067 / 0 / 17.75 | 460 / 182 | `[264,276)`: 29 / 34 / 20 / 23 |
+
+The derived candidate’s zero unresolved beats are expected from forcing the
+existing staff/voice lane through right-hand override semantics. They are not
+evidence that the original melody has been recovered.
+
+### Queen raw `-CANTO-` candidate A/B
+
+The raw MIDI provides a second, materially different candidate that does not
+depend on the stored L/R split: FF01 `-CANTO-`, track `5`, channel `3`, with
+`278` notes. It is evaluated as a disposable raw vocal-lane candidate, not
+declared to be the learner melody.
+
+| Whole-song 108 BPM diagnostic | Current automatic A | Raw `-CANTO-` candidate B |
+|---|---:|---:|
+| Melody / output events / attacks | `784 / 2072 / 963` | `278 / 278 / 278` |
+| Unresolved / fallback beats | `182.375 / 223.625` | `0 / 540` |
+| Median IOI / max simultaneous-sounding | `0.277778s / 6/7` | `0.289444s / 1/2` |
+| Worst top-voice leap | `32 st @ 84.722s` | `12 st @ 13.041s` |
+| Worst 0.5-second attack window | `30.833–31.333s / 8` | `74.505–75.005s / 4` |
+
+Raw candidate B covers only `167.333333` active beats of the `540`-beat song,
+with `17.494792` intro-rest beats, `116.807292` outro-rest beats, `372.666667`
+total rest beats, maximum polyphony `2`, and `0.427083` overlapping beats.
+The `540` fallback beats are expected because the candidate has no separate
+source-support lane; this is a raw vocal line, not a finished accompaniment.
+
+At the existing current-vs-derived bounded window `[48,60)` beats (selected
+before evaluating CANTO and therefore not a CANTO holdout), A has `92` notes /
+`40` attacks, median IOI `0.069444s`, and max simultaneous/sounding `6/6`;
+B has `17` notes / `17` attacks, median IOI `0.280556s`, and max
+simultaneous/sounding `1/2`. This is an honest bounded A/B diagnostic, not a
+musical acceptance result.
+
+The one-to-one raw-to-canonical comparison used `0.125` beat onset and
+duration tolerances. Of 278 raw CANTO notes, `233` found an onset-aligned
+canonical note: `116` matched pitch/onset/duration, `117` required a transform,
+including `88` onset-aligned pitch conflicts and `29` duration mismatches.
+`45` raw notes had no onset-aligned match; `2140` canonical notes remained
+outside this one-lane candidate. Mean matched onset and duration deltas were
+`0.025192` and `0.351529` beats. These losses are evidence for review, not an
+automatic rejection or promotion.
+
+The raw PIANO/CHOIR activity comparison is also preserved without assigning
+either role as melody: PIANO has `415.9375` active beats (intro `4.994792`,
+outro `5.140625`, max polyphony `6`), CHOIR has `186.453125` (intro
+`47.994792`, outro `5.390625`, max polyphony `4`), with PIANO-only
+`246.052083`, CHOIR-only `16.567708`, and shared-active `169.885417` beats.
+This is a source-layer handoff comparison only.
+
+### Current importer replay and source lineage
+
+The diagnostic now replays the real standard-MIDI path in memory: `parseMidi` →
+tempo normalization → `buildVariants` with the current learner profile and
+development-only trace. It pins the canonical notes, MusicXML, and raw MIDI
+input hashes for all three targets before evaluating them. Queen’s MIDI tempo
+events require the same normalized beat-clock conversion used by the importer;
+the CANTO sidecar therefore carries FF01 `-CANTO-`, raw track `5`, channel `3`,
+and maps its raw note tuples to the current trace roots after that conversion.
+All 278 CANTO roots map uniquely; no track identity was inferred from nearest
+canonical pitch.
+
+The current replay and stored artifact are not byte-equivalent: replayed
+Advanced has `2369` notes while the stored artifact has `2373`. Ignoring
+velocity, the stored artifact has `72` notes not present in replay and replay
+has `68` notes not present in the stored artifact; including velocity, the
+figures are `304` and `300`. That drift is reported rather than used to
+back-project current trace lineage onto the older artifact.
+
+| Replay stage | selected | rejected | notes / operation evidence |
+|---|---:|---:|---|
+| raw | 4718 | 0 | source input |
+| cleaned | 4464 | 254 | sanitizer |
+| learner-arranged | 3300 | 28 | 919 merges, 2381 replacements |
+| advanced-candidates | 2369 | 931 | candidate pruning |
+| advanced-playable | 2369 | 0 | 2134 retained, 235 duration changes |
+
+For the 278 CANTO roots in the current replay, the trace-backed final
+classification is: `111` verified 1/8-grid mappings, `0` verified octave
+mappings, `38` verified transforms outside that simple grid/octave class, and
+`129` genuinely rejected before selected Advanced output. There are `0`
+ambiguous source roots; one root has no Advanced-candidate event because it was
+already rejected earlier, so it is not counted as an unclassified drop. The
+stored artifact has a separate numeric-only fallback classification—`107` grid-like,
+ `3` octave-like, `123` same-onset coincidences, and `45` no-onset matches—but
+ those are not importer lineage and must not be called source transformations.
+
+The 38 non-grid replay transforms are retained as a separate bucket rather than
+being mislabeled as quantization; 24 final trace events report
+`DURATION_CHANGED`, while the remaining cases include upstream arrangement
+changes. The old `116 exact + 29 duration mismatch + 88 pitch conflict + 45
+loss` table remains a nearest-onset comparison against the stored artifact, not
+an importer-transform table.
+
+The 38 non-grid transforms break down by verified trace path as `13` raw
+retained → learner merged → Advanced retained → Advanced-playability duration
+changed, `16` raw retained → learner merged → Advanced retained → final retained
+but not explainable as a pure 1/8-grid endpoint mapping, and `9` raw retained →
+learner replaced → Advanced retained → Advanced-playability duration changed.
+The separate `111` grid mappings are the only roots called quantization here.
+
+The first-rejection causes are now pinned:
+
+| First rejection | Count | Trace reason |
+|---|---:|---|
+| learner-arranged | 1 | `range-and-hand-arrangement-rejected` |
+| advanced-candidates | 128 | `advanced-candidate-construction-rejected` |
+
+Thus the current causal route is Advanced candidate construction / voice
+pruning, not wholesale loss in the importer sanitizer or learner arrangement.
+At that rejection stage, `88/128` roots had at least one selected note within
+the same 1/8-beat onset window; `56` had a higher selected pitch, `86` had a
+lower selected pitch, and `72` had a selected note with the same inferred hand
+(`R=67`, `L=61`). These sets overlap and carry no role labels. The scan is
+contextual coexistence evidence only: it supports “candidate pruning among
+simultaneous texture,” but does not prove that a particular accompaniment note
+displaced a vocal line.
+
+Representative trace roots make the boundary concrete. A normalized CANTO
+`59` at beat `20.984165` becomes learner `L59` at beat `21`, then is rejected
+at Advanced candidates while `L40/L52` and `R64/R67` remain at that onset. A
+normalized CANTO `60` at beat `29.458039` becomes learner `R60`, is rejected at
+Advanced candidates, and has `L38/L48` retained nearby. Conversely, CANTO `62`
+at beat `19.484180` becomes learner `R62`, survives Advanced candidates, and
+is shortened from `1.5` to `0.5` beats by the Advanced-playability duration
+cap. These are trace examples, not semantic role judgments.
+
+The direct CANTO hand-override candidate remains a separate raw-line A/B and
+is not a useful full arranged result (`540` fallback beats and large source
+gaps). The bounded protected-root experiment below is the actual importer
+candidate used for listening renders; neither result is semantic approval.
+
+The concrete producer/import boundary is now clear: `parseMidi` flattens raw
+track/channel/FF01 identity before the public `Note` stream reaches
+`buildVariants`. A future source-preserving repair should carry that identity
+as a private per-note sidecar through sanitize, quantize, deduplication, and
+playability pruning, then expose it only in provenance diagnostics. This audit
+uses the smallest external tuple sidecar needed to prove the boundary and does
+not promote any role into runtime data.
+
+### Protected-root importer candidate
+
+The bounded behavioral experiment tags only the uniquely matched raw CANTO
+tuples as `identitySource: "vocals"` before the real learner importer runs.
+The opt-in `protectedIdentitySources` option affects the existing Advanced
+co-onset ranking and register-span caps only. It does not force a hand, bypass
+duration changes, append a second accompaniment, or relax the existing
+playability cap. Lower levels receive the candidate only through the existing
+Advanced-to-ladder dependency; normal catalog ingestion leaves the option
+unset.
+
+| Whole-song Queen replay at 108 BPM | Current replay | Protected CANTO candidate |
+|---|---:|---:|
+| CANTO roots retained | `149 / 278` (`53.597%`) | `248 / 278` (`89.209%`) |
+| Retained raw-source active beats | `84.650` | `135.327` |
+| Longest gap between retained raw-source spans | `145.780` beats | `116.812` beats |
+| Advanced notes / global attacks | `2369 / 969` | `2406 / 1008` |
+| Global max simultaneous / sounding | `7 / 7` | `7 / 7` |
+| RH notes / onsets | `1224 / 636` | `1269 / 660` |
+| LH notes / onsets | `1145 / 775` | `1137 / 784` |
+| RH max sounding span / top-voice leap | `12 st / 34 st @ 82.778s` | `12 st / 34 st @ 82.778s` |
+| LH max sounding span / top-voice leap | `12 st / 28 st @ 128.056s` | `12 st / 28 st @ 33.819s` |
+| Simultaneous chord attacks / same-pitch rearticulation onsets | `631 / 583` | `623 / 568` |
+| Alternating-hand attacks | `34` | `59` |
+
+The candidate changes the existing Advanced texture: compared with current
+replay it removes `108` exact note members and adds `145`, for `37` more notes
+overall. This is a changed accompaniment texture, not blind source-note
+appending. The remaining `30` CANTO drops are `29` Advanced-candidate
+rejections and one learner-arrangement rejection; therefore the candidate
+improves retention but does not establish full-song line recovery or finish
+the source-identity task.
+
+The default-invariance guards compare SHA-256 digests of every generated
+variant. First, the option-unset and `protectedIdentitySources: []` runs are
+identical for all three pinned targets. Second, an aggregate digest over those
+same all-level digests matches the clean `aca69ef` baseline for each pinned
+target (`a8852c71…`, `6f9fe1bf…`, `b6263197…`). This proves the unset option
+does not alter the pre-candidate algorithm under the pinned inputs/configuration;
+the protected path is still opt-in. A synthetic trace regression also verifies
+that two raw roots merged into one selected descendant are both retained, while
+a third root rejected at the cleaned stage is attributed to that first rejection
+rather than to Advanced.
+
+### Same-instrument listening renders
+
+The candidate renderer writes Original, current replay, and protected
+candidate MIDI from the same pinned Queen input, then renders each full song
+and the diagnostic window `[18,30)` beats at `108 BPM` through the same local
+FluidSynth SoundFont (`VintageDreamsWaves-v2.sf2`). The full renders decode to
+`302.486s` including release tail; diagnostic renders decode to `10.541s`.
+These are listenable comparison artifacts only, not audio-hash or subjective
+musical acceptance.
+
+The canonical note endpoint is `537.5` beats, while the last stored measure
+ends at `540` beats. The manifest exposes both, records `2.5` beats of terminal
+timeline padding, and sets `comparisonDurationBeats=540`. Whole-song
+arrangement, fallback, coverage, and playability totals use that same `540`
+beat measure-end duration; the MIDI/OGG event stream is not given synthetic
+notes for the terminal pad.
+
+| Label | Full song | Diagnostic `[18,30)` |
+|---|---|---|
+| Original | [`original-full.ogg`](audio-candidate-2026-09-19/original-full.ogg) | [`original-diagnostic-18-30-beats.ogg`](audio-candidate-2026-09-19/original-diagnostic-18-30-beats.ogg) |
+| Current replay | [`replay-full.ogg`](audio-candidate-2026-09-19/replay-full.ogg) | [`replay-diagnostic-18-30-beats.ogg`](audio-candidate-2026-09-19/replay-diagnostic-18-30-beats.ogg) |
+| Protected candidate | [`candidate-full.ogg`](audio-candidate-2026-09-19/candidate-full.ogg) | [`candidate-diagnostic-18-30-beats.ogg`](audio-candidate-2026-09-19/candidate-diagnostic-18-30-beats.ogg) |
+
+The symbolic/audio render manifest is
+[`manifest.json`](audio-candidate-2026-09-19/manifest.json). The renders do
+not change catalog files, runtime data, or deployment state.
+
+Recorded OGG SHA-256 values:
+
+| Artifact | SHA-256 |
+|---|---|
+| `original-full.ogg` | `b732a43fe67b191867b33b06f23e0ec6cfff80ec853d6614eb646529561e513c` |
+| `original-diagnostic-18-30-beats.ogg` | `55ee0c60641f69df85d7e442823e4ea05c8509cbce9be727bdd11f0072097312` |
+| `replay-full.ogg` | `63ad3e7566c27d89bdb268d680484cf60cb861012227873324d6ff5babf3ee48` |
+| `replay-diagnostic-18-30-beats.ogg` | `f1c7607027955427c1c7437c4a847bdd8e4855769b22680bce0c0da81f97697a` |
+| `candidate-full.ogg` | `987b18e4196c0673b332b51d5b72e47367d9bcb78d0250cf715d5d1ebf39dd0d` |
+| `candidate-diagnostic-18-30-beats.ogg` | `45c0a9613b277056e4e56085b1100aa31ee88618c50845fd4210d5d5ba092094` |
+
+Renderer provenance is FluidSynth `/opt/homebrew/bin/fluidsynth` `2.6.0`
+(`44100 Hz`) with SoundFont
+`VintageDreamsWaves-v2.sf2`, SHA-256
+`52132b2b83994f0067d3a66b93b4f1b67d53ff8c0d3be90d39f23f92b4585cdd`, then
+FFmpeg `/opt/homebrew/bin/ffmpeg` `8.1.2`, `libopus`, `128k`, stereo `48000
+Hz`. The exact per-file commands recorded in the manifest are:
+
+```sh
+fluidsynth -ni -F "$WAV" -r 44100 "$SOUNDFONT" "$MIDI"
+ffmpeg -hide_banner -loglevel error -y -i "$WAV" -ar 48000 -ac 2 -c:a libopus -b:a 128k "$OGG"
+```
+
+Regenerate the six MIDI inputs first, then run those two commands once per
+`*-full.mid` and `*-diagnostic-18-30-beats.mid`. Opus container bytes may differ
+with encoder builds/settings; the hashes above identify the committed artifacts,
+not a deterministic-byte acceptance claim.
+
+Recreate the symbolic render inputs with:
+
+```sh
+export PATH=/Users/reidar/.nvm/versions/node/v22.22.3/bin:$PATH
+export KEYSPILLI_SOURCE_CANDIDATE_RENDER_DIR="$PWD/docs/superpowers/evidence/2026-09-19-chords-finish/audio-candidate-2026-09-19"
+npx tsx docs/superpowers/evidence/2026-09-19-chords-finish/render-source-candidate.ts
+```
+
+### Chords-mode loader/producer bridge
+
+The disposable current-replay and protected-candidate Advanced variants were
+written as temporary `notes.json` artifacts, loaded through the real
+`loadSongArtifact` boundary, projected with `projectChordSources`, and passed
+through the same Chords-mode chain:
+`resolveChordSources/selectChordSource` → `buildMelodyArrangementOptions` →
+`buildMelodyAccompaniment`. Both selected `auto` with `authored-only` harmonic
+support, `automatic` selection, `allowRests: true`, `coherent-phrase`, and
+`sourceBackingMode: "default"`.
+
+Both bridge replays receive the canonical `comparisonDurationBeats=540`
+measure-end timeline (`noteEndBeats=537.5`, terminal padding `2.5`), so the
+fallback totals below include the same terminal span used by the player.
+
+The first bridge run (captured in commit `7c4bc57`) left the producer options
+unset for both replays:
+
+| Whole-song producer replay at 108 BPM | Current importer replay | Protected candidate replay |
+|---|---:|---:|
+| Loaded source notes | `2369` | `2406` |
+| Producer output events / attacks | `2128 / 968` | `2186 / 1008` |
+| Melody / support events | `795 / 1333` | `834 / 1352` |
+| Generated support events | `0` | `0` |
+| Fallback beats / unresolved spans | `241.250 / 91` | `289.125 / 104` |
+| Max simultaneous / sounding | `7 / 7` | `6 / 7` |
+| RH notes / onsets | `988 / 624` | `1066 / 651` |
+| LH notes / onsets | `1140 / 773` | `1120 / 785` |
+
+Relative to the current replay, the candidate producer output has `+58`
+events, `+40` attacks, `+39` melody events, `+19` support events, `+47.875`
+fallback beats, and `+13` unresolved spans. The exact whole-song audible
+event multiset comparison removes `219` members and adds `277`; these are
+texture changes, not a claim that the candidate is musically better. The
+candidate keeps the source line's `34`-semitone RH and `28`-semitone LH
+top-voice leap diagnostics, with the LH worst leap moving from `128.056s` to
+`33.819s` at 108 BPM.
+
+That default bridge was a failed usefulness iteration: the protected importer
+candidate reached the producer, but it increased fallback by `47.875` beats
+and unresolved spans by `13`. The next bounded check was therefore a source-
+role boundary hypothesis, not a candidate promotion.
+
+`identitySource` survives both `loadSongArtifact` and `projectChordSources`.
+In the default candidate replay, the projected stream contained `2195`
+unannotated notes and `211` vocal-tagged notes; the generic automatic splitter
+selected `131` vocal-tagged notes as melody, emitted `43` as accompaniment, and
+left `35` in retained-unclassified events. The identity does not vanish at the
+artifact/loader boundary; the shared producer simply has no semantic vocal-role
+priority.
+
+### Historical opt-in source-role bridge follow-up (8916ae3 only)
+
+At commit `8916ae3`, the bridge ran one minimal producer-side correction: only
+the protected candidate passed `protectedIdentitySources: ["vocals"]` to
+automatic selection. The correction selected all `211` tagged notes, but it
+worsened fallback and exposed a correctness problem: mandatory identity
+selection bypassed the normal splitter/sounding trim. The player-core hook,
+its test, and its live bridge caller were removed after that bounded check;
+this table is pinned historical evidence, not a current runtime path.
+
+| Whole-song producer replay at 108 BPM | Current replay | Candidate with vocal anchors |
+|---|---:|---:|
+| Loaded source notes | `2369` | `2406` |
+| Projected identity counts | `2369 unannotated` | `2195 unannotated / 211 vocals` |
+| Selected vocal melody notes | `0` | `211` |
+| Producer output events / attacks | `2128 / 968` | `2188 / 1008` |
+| Melody / support events | `795 / 1333` | `914 / 1274` |
+| Generated support events | `0` | `0` |
+| Fallback beats / unresolved spans | `241.250 / 91` | `289.375 / 104` |
+| Max simultaneous / sounding | `7 / 7` | `6 / 7` |
+| RH notes / onsets | `988 / 624` | `1068 / 651` |
+| LH notes / onsets | `1140 / 773` | `1120 / 785` |
+
+The historical correction selected all `211` tagged notes, but worsened
+fallback by `48.125` beats and left the same `104` unresolved spans. It also
+changed the event multiset by `232` current-only and `292` candidate-only
+members. This does not establish that the source lane is wrong; it establishes
+that this generic producer-level identity anchor is not a safe repair. The
+source investigation rule is active: stop algorithm tuning, retain the table as
+evidence only, and require a reviewed source-role/arrangement decision before
+any promotion.
+
+Reproduce this disposable bridge check with:
+
+```sh
+export PATH=/Users/reidar/.nvm/versions/node/v22.22.3/bin:$PATH
+npx tsx docs/superpowers/evidence/2026-09-19-chords-finish/bridge-chords-producer.ts
+```
+
+The temporary loader root is removed after the run. No catalog file, runtime
+artifact, deployment state, or semantic melody status is changed.
+
+Worst-window selection scans every 12-beat window from the start plus a final
+tail-aligned window, maximizes differing melody source IDs, then candidate
+melody count, then chooses the earliest tie. It is not a hand-selected musical
+example.
+
+## Physical diagnostics
+
+These are structural playability measurements, not musical acceptance. Values
+are `median IOI seconds; max simultaneous/sounding; worst top-voice leap at
+source seconds; worst 0.5-second attack window and count`.
+
+| Target / tempo | Current automatic | Derived upper-staff hand override |
+|---|---|---|
+| Queen / 108 | `0.277778; 6/7; 32 st @ 84.722s; 30.833–31.333s / 8` | `0.277778; 7/7; 32 st @ 81.667s; 30.833–31.333s / 8` |
+| Oops / 95 | `0.315789; 6/6; 38 st @ 132.316s; 128.842–129.342s / 7` | `0.315789; 6/6; 38 st @ 132.316s; 128.842–129.342s / 7` |
+| Blackbird / 120 | `0.1875; 4/4; 18 st @ 56.875s; 4.375–4.875s / 4` | `0.1875; 4/4; 18 st @ 56.875s; 4.375–4.875s / 4` |
+
+For the shared controlled `108 BPM` comparison, final attack counts were
+Queen `963/963`, Oops `614/614`, and Blackbird `657/657` for current/derived.
+The corresponding current/derived median IOI values were Queen
+`0.277778/0.277778`, Oops `0.277778/0.277778`, and Blackbird
+`0.208333/0.208333`. These diagnostics do not prove recognizability, comfort,
+balance, or musical acceptance.
+
+## Phase and identity evidence
+
+| Target | Raw MIDI evidence | Current score/runtime evidence | What the derived lane actually establishes |
+|---|---|---|---|
+| Queen | `4718` notes; FF03 track name `Somebody T`; `2/4` at beat `0`, `6/8` at beat `12`; first note ≈ `4.994792` | MusicXML declares only `6/8` at beat `0`; `notes.json` measures start `0,3,6,9,…`; staff/voice counts `1366/1153`; no lyrics | A concrete raw meter timeline and a reproducible structural lane. It does not supply validated source measure-boundary provenance or a melody legend. |
+| Oops | `3343` notes; FF03 track name `Oops! I Did It Again - Britney Spears`; `4/4` at beat `0` | MusicXML and runtime agree on `4/4`; staff/voice counts `1443/465`; no lyrics | A reproducible structural lane, but no semantic melody legend. |
+| Blackbird | `1112` notes; FF03 tracks `Remixed` ×6 and `GS/RESET`; `4/4` at beat `0`; first note at beat `4` | MusicXML and runtime agree on `4/4`; staff/voice counts `623/604`; no lyrics | An upper structural lane, but track names and stored L/R do not prove melody identity or pickup semantics. |
+
+### Raw track, text, channel, and program evidence
+
+The comparison script preserves each raw event’s absolute tick and quarter-note
+beat. The following is a compact rendering of that output; General MIDI
+program numbers are reported as raw numbers and are not treated as semantic
+role proof.
+
+Queen’s FF01 labels and channel/program timing are:
+
+| MIDI track | FF03 / FF01 at beat | program changes (`channel=program @ beat`) | note-ons (`channel:count, first–last beat`) |
+|---:|---|---|---|
+| 1 | FF03 `Somebody T` | — | — |
+| 2 | FF01 `PIANO @ 0` | `0=0 @ 2.5` | `0:1348, 4.994792–527.880208` |
+| 3 | FF01 `BASS @ 0` | `1=35 @ 2.5` | `1:751, 6–536.994792` |
+| 4 | FF01 `ORGAN @ 0` | `2=18 @ 2.5; 2=17 @ 191.973958; 2=18 @ 221.872396` | `2:187, 68.994792–518.994792` |
+| 5 | FF01 `-CANTO- @ 0` | `3=73 @ 2.5` | `3:278, 17.494792–414.755208` |
+| 6 | FF01 `OVERD.GT.1 @ 0` | `4=29 @ 2.5` | `4:698, 15.494792–536.994792` |
+| 7 | FF01 `OVERD.GT.2 @ 0` | `5=29 @ 2.5` | `5:75, 191.994792–227.984375` |
+| 8 | FF01 `CHOIR @ 0` | `6=52 @ 2.5` | `6:651, 47.994792–518.994792` |
+| 9 | FF01 `SYNVOX @ 0` | `7=54 @ 2.5` | `7:32, 41.994792–284.994792` |
+| 10 | FF01 `DIST. GT. @ 0` | `8=30 @ 2.447917` | `8:698, 15.536458–537.036458` |
+| 11 | FF01 `DRUM @ 0` | `9=0 @ 2.5` | percussion note-ons excluded |
+
+For Oops, the raw file has one FF03 track name at beat `0`, ten FF01 credit /
+metadata strings at beat `0`, and channel/program data beginning at beat `0`
+with later changes at beats `7.016667`, `28`, `32`, `80`, `112`, `116`, `117`,
+`160`, `192`, `193`, `196`, `204`, `208`, `232`, and `236`. Its raw note-on
+channels are `0,1,2,3,4,5,6,7,8,10,11,12,13,14,15`; no semantic melody label is
+present.
+
+For Blackbird, tracks 1–6 carry FF03 `Remixed` and track 7 carries FF03
+`GS/RESET`. Program changes occur at beat `4`: channel 0 (`0,0`), channel 1
+(`1,0`), channel 2 (`73,1`), channel 6 (`48,0`), channel 4 (`49,0`), and
+channel 5 (`0`). Their note-on counts are respectively `525,232,203,134,17,1`;
+the reset track has no notes. No FF01 semantic role label is present.
+
+The labels are source evidence only. In particular, `PIANO`, `BASS`, `ORGAN`,
+`-CANTO-`, and `CHOIR` do not identify a learner melody lane without a reviewed
+role mapping.
+
+## Importer provenance and source URL
+
+| Target | Catalog provenance | Current artifact provenance |
+|---|---|---|
+| Queen | `https://bitmidi.com/g-michae-queen-somebody-to-love-mid`; `queen-somebody-to-love.mid`; BitMidi free MIDI archive, private use; source `ug-tabs`; verified title `G.MICHAE-QUEEN.Somebody to love.mid` | `sourceArtifactHash=4505d3a7…c7a74e`; `kind=standard`; `sourceRef=manifest:queen-somebody-to-love.mid`; no score URL; tempo calibration/playback `108` from MIDI meta |
+| Oops | `https://bitmidi.com/britney-spears-oops-i-did-it-again-k-mid`; `britney-spears-oops-i-did-it-again.mid`; BitMidi free MIDI archive, private use; source `ug-tabs`; verified title `BRITNEY SPEARS.Oops I Did It Again k.mid` | `sourceArtifactHash=64d18aa4…225ad4`; `kind=standard`; `sourceRef=manifest:britney-spears-oops-i-did-it-again.mid`; no score URL; tempo calibration/playback `95` from MIDI meta |
+| Blackbird | `https://bitmidi.com/blackbird-1-mid`; `the-beatles-blackbird.mid`; BitMidi free MIDI archive, private use; source `ug-tabs`; verified title `Blackbird-1.mid` | `sourceArtifactHash=3fc3fd74…1e75`; `kind=standard`; `sourceRef=manifest:the-beatles-blackbird.mid`; no score URL; tempo calibration/playback `120` from MIDI meta |
+
+The local catalog URLs identify MIDI archive entries, not an independently
+identified original score or notation package. The generated/current
+MusicXML contains no semantic role legend, and the artifact notes provenance
+retains the MIDI manifest reference rather than a score URL.
+
+## Decision and exact missing artifact
+
+- Do not promote the derived upper-staff hand override. Its identity deltas
+  are large, especially Queen and Oops, and zero unresolved beats are an
+  expected consequence of the forced right-hand selection semantics.
+- Queen now has a concrete raw-vocal candidate to review, but it still needs a
+  provenance-preserving decision on the `-CANTO-` role mapping, the
+  onset/pitch/duration losses, and the PIANO/CHOIR handoffs. An independently
+  identified score/source package is one useful way to resolve that review,
+  but it is not the only admissible route; source-level role evidence or an
+  authorized bounded listening worksheet could also resolve it. The raw
+  `2/4 → 6/8` timeline and phase remain explicit review inputs.
+- Oops needs a reviewed staff/voice/color legend for the current source
+  version; the backup is structurally equivalent and adds no independent
+  semantic evidence.
+- Blackbird needs completed labels for the existing review worksheet’s
+  source-note IDs (`M/B/H/D/R/U`) and bounded-phrase listening notes; stored
+  L/R remains only a structural lane.
+
+Until those artifacts exist, retain Original on unresolved spans and keep the
+automatic melody status inferred/reviewable. No source file was copied,
+rewritten, imported, catalogued, or used to change runtime data in this audit.
+
+## Frozen `ba9e5a5` matching review addendum — 2026-09-19
+
+The raw CANTO one-to-one comparison does not establish 117 importer
+transformations. At the committed `0.125`-beat tolerance, 278 raw CANTO notes
+produce 116 exact matches, 29 same-pitch duration mismatches, 88 pitch
+conflicts, and 45 onset losses. A separate one-to-one check found 145 as the
+maximum same-pitch onset matching, exactly `116 + 29`; reversed matching-order
+variants were unchanged. Raw CANTO also has no simultaneous note-on groups,
+and all 88 pitch conflicts had no same-pitch canonical note within tolerance.
+They are nearest-onset cross-role matches against canonical R/L chord notes,
+not proven pitch transforms.
+
+Tolerance sensitivity confirms the classification risk: `0.0625` beats gives
+222 matched / 77 pitch conflicts / 29 duration conflicts / 56 losses, while
+`0.125` gives 233 / 88 / 29 / 45. The 11 additional matches are all pitch
+conflicts. The raw candidate covers 167.333 of 540 active beats, with 372.667
+rest beats, 17.494792 intro rest, 116.807292 outro rest, maximum polyphony 2,
+and 0.427083 overlapping beats. Its `fallbackBeats=540` and zero unresolved
+beats are right-hand selection semantics, not full-song melody coverage.
+
+The candidate manually parses FF01 `-CANTO-`, strips track/channel, forces
+`hand=R`, and bypasses the real importer/quantizer lineage. The A/B is numeric
+event/playability comparison only; its `[48,60)` window is inherited from the
+current-vs-derived worst-window selection, not a CANTO holdout, and no audio
+acceptance is established. The read-only diagnostic now keeps the raw
+track/channel/FF01 identity in a sidecar, follows unique source roots through
+the current importer replay, asserts pinned input hashes, and includes a small
+1/16-versus-1/8 grid/chord correspondence regression.
+
+## Frozen `aca69ef` independent verification addendum — 2026-09-19
+
+The exact detached checkout `aca69ef0178b3e3e3b511cb66962d51dcb427696` was
+clean and did not contain the uncommitted `protectedIdentitySources` candidate.
+The Node 22 evaluator passed all pinned input-hash assertions. An independent
+exact replay confirmed Advanced `2369` versus stored `2373`; even ignoring
+velocity, the content comparison had `72` stored-only and `68` replay-only
+notes, so the drift is not merely a four-note count difference. Trace claims
+apply to the current replay, not the older stored artifact.
+
+For the current replay, all `278` CANTO roots partition cleanly: `111`
+verified grid mappings, `38` non-grid transforms, `129` drops, and zero
+ambiguous or unresolved roots. The `129` drops are exactly `128`
+`advanced-candidate-construction-rejected` plus one
+`range-and-hand-arrangement-rejected`; selected-root operations are `125`
+retained plus `24` duration-changed. Stage-funnel totals and transform-path
+totals are internally consistent, giving high causal confidence for this
+pinned replay that loss occurs once in learner arrangement and primarily at
+Advanced candidate construction.
+
+The same-onset rejection counts (`88/128` with a selected nearby note, `56`
+higher pitch, `86` lower pitch, `72` same hand) remain contextual texture
+evidence, not proof that a particular accompaniment note displaced a CANTO
+root: the diagnostic scans all selected Advanced-candidate events in the onset
+window rather than root-linked siblings. At that frozen checkpoint, the
+raw-to-replay numeric fallback also compared pre-tempo-normalized CANTO
+coordinates, while lineage used the correct normalized clock; the current
+follow-up compares both on the normalized clock and adds a synthetic
+multi-root merge/early-reject trace fixture. No semantic, audio, or musical
+acceptance is implied.

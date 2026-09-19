@@ -37,6 +37,8 @@ export interface EngineSnapshot {
 export interface EngineSongMeta {
   tempoBpm: number;
   timeSig: [number, number];
+  /** Stored measure starts align metronome clicks; they do not validate source phase. */
+  measureStarts?: readonly number[];
 }
 
 type ChordPlaybackLabel = ChordLabel & { durationBeats?: number };
@@ -391,10 +393,16 @@ export class PlaybackEngine {
     if (this.settings.metronome && !chordMode) {
       const beat = 60 / this.song.tempoBpm / this.settings.speed;
       const perMeasure = beatsPerMeasure(this.song.timeSig);
-      for (let t = Math.ceil(from / beat) * beat; t < to; t += beat) {
-        const beatIndex = Math.round(t / beat);
+      const clickBeats = new Set<number>();
+      for (let beatIndex = Math.ceil(from / beat); beatIndex < to / beat; beatIndex += 1) clickBeats.add(beatIndex);
+      for (const startBeat of this.song.measureStarts ?? []) {
+        if (Number.isFinite(startBeat) && startBeat >= from / beat - 1e-6 && startBeat < to / beat) clickBeats.add(startBeat);
+      }
+      for (const beatIndex of [...clickBeats].sort((left, right) => left - right)) {
+        const t = beatIndex * beat;
+        const sourceDownbeat = this.song.measureStarts?.some((startBeat) => Math.abs(startBeat - beatIndex) <= 1e-6);
         this.audio.metronomeClick(
-          beatIndex % perMeasure === 0 ? 0 : 1,
+          (sourceDownbeat ?? (beatIndex % perMeasure === 0)) ? 0 : 1,
           Math.max(0, t - this.time),
         );
       }

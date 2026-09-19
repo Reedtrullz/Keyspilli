@@ -22,7 +22,7 @@ it("recognizes sound tempo regardless of attribute order and keeps metadata pres
 });
 it("rejects unrepresentable tempo and meter changes, including formatted XML", () => {
   expect(() => parseMusicXmlNotes(score(`<measure>${attr}<sound tempo="90"/>${note(4)}</measure><measure><sound tempo="120"/>${note(4)}</measure>`))).toThrow(/tempo/i);
-  expect(() => parseMusicXmlNotes(score(`<measure>${attr}${note(4)}</measure><measure><attributes><time>\n<beats>3</beats>\n<beat-type>4</beat-type>\n</time></attributes>${note(4)}</measure>`))).toThrow(/time signature/i);
+  expect(() => parseMusicXmlNotes(score(`<measure>${attr}${note(4)}<attributes><time>\n<beats>3</beats>\n<beat-type>4</beat-type>\n</time></attributes>${note(4)}</measure>`))).toThrow(/time signature/i);
 });
 
 it("accepts multiline measure tags and fractional division durations", () => {

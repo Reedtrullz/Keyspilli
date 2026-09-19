@@ -1,21 +1,23 @@
 "use client";
 
 import React, { useMemo } from "react";
-import { measureIndex, pitchColor, secPerBeat, type ChordLabel, type PlayerSettings, type SongData } from "@keyspilli/player-core";
+import { measureIndex, pitchColor, playbackMeasures, secPerBeat, type ChordLabel, type PlayerSettings, type SongData } from "@keyspilli/player-core";
 import { chordProvenance } from "./chord-provenance";
 
 const LETTERS = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
 export function LeadSheetView({ data, time, settings, chords }: { data: SongData; time: number; settings: PlayerSettings; chords: ChordLabel[] }) {
   const beatSec = secPerBeat(data.tempoBpm, settings.speed);
+  const measures = useMemo(() => playbackMeasures(data), [data]);
   const currentMeasure = measureIndex(
     time,
     data.tempoBpm,
     settings.speed,
     data.timeSig,
-    data.measures.length,
+    measures.length,
+    measures,
   );
-  const m = data.measures[currentMeasure] ?? data.measures[0]!;
+  const m = measures[currentMeasure] ?? measures[0]!;
   // Match the transposed audio so visual pitch positions stay correct.
   // The parent refreshes the transport UI at 10Hz. Memoize the active-measure
   // projection so playhead movement does not rescan every note in the song.
@@ -104,7 +106,7 @@ export function LeadSheetView({ data, time, settings, chords }: { data: SongData
           {time > 0 && <line x1={playX} y1="28" x2={playX} y2={H - 52} stroke="#dc2626" strokeWidth="2" />}
         </svg>
         <p className="text-xs text-zinc-500 mt-2">
-          Bar {currentMeasure + 1} of {data.measures.length} · {notes.length ? "Pitch labels follow the right-hand notes." : "No right-hand note onsets in this bar."}
+          Bar {currentMeasure + 1} of {measures.length} · {notes.length ? "Pitch labels follow the right-hand notes." : "No right-hand note onsets in this bar."}
         </p>
         <p className="text-sm text-zinc-600 mt-2">
           {!hasLyrics ? "No lyrics available for this arrangement" : !hasMeasureLyrics ? "No sung words in this bar" : "Lyrics appear beside their notes."}

@@ -103,6 +103,13 @@ export interface ChordNoteOptions extends ChordVoicingOptions {
   lyrics?: string;
 }
 
+/** A source-authored MIDI meter declaration in absolute quarter-note beats. */
+export interface MidiTimeSignatureEvent {
+  tick: number;
+  beat: number;
+  timeSig: [number, number];
+}
+
 export interface ParsedMidi {
   format: number;
   division: number;
@@ -117,6 +124,8 @@ export interface ParsedMidi {
   /** key mode: 0 major, 1 minor */
   keyMode: 0 | 1;
   timeSig: [number, number];
+  /** Explicit meter declarations, retained in source order for changes. */
+  timeSigEvents?: MidiTimeSignatureEvent[];
   notes: Note[];
   trackNames: string[];
   durationBeats: number;
@@ -188,6 +197,8 @@ export interface Variant {
   key: string;
   tempoBpm: number;
   timeSig: [number, number];
+  /** Explicit source meter declarations used to build measure boundaries. */
+  timeSigEvents?: MidiTimeSignatureEvent[];
   measures: MeasureInfo[];
 }
 

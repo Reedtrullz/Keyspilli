@@ -5,10 +5,12 @@ import { dialogMotionClasses, useDialogMotion } from "./player-motion";
 export function DownloadDialog({
   songId,
   hasSheetXml,
+  backgroundMode = "piano",
   onClose,
 }: {
   songId: string;
   hasSheetXml: boolean;
+  backgroundMode?: "piano" | "chord";
   onClose: () => void;
 }) {
   const items = [
@@ -93,6 +95,11 @@ export function DownloadDialog({
           <button autoFocus onClick={requestClose} className="px-2 py-1 rounded-lg hover:bg-zinc-100" aria-label="Close">×</button>
         </div>
         <p className="text-xs text-zinc-500 mb-4">Download this arrangement for practice. Source rights still apply.</p>
+        {backgroundMode === "chord" && (
+          <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900" role="status">
+            Downloads use the stored Original arrangement. Chord mode changes playback and guidance only.
+          </p>
+        )}
         <div className="space-y-2">
           {items.map((it) => (
             <a

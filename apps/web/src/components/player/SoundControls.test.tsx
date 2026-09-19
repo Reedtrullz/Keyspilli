@@ -5,25 +5,38 @@ import { buildMelodyAccompaniment, DEFAULT_SETTINGS } from "@keyspilli/player-co
 import type { ChordSourceOption } from "./chord-sources";
 import { SoundControls } from "./SoundControls";
 
-function render(style: "melody-accompaniment" | "bass-chords" = "melody-accompaniment") {
+function render(style?: "melody-accompaniment" | "bass-chords") {
   return renderToStaticMarkup(createElement(SoundControls, {
-    settings: { ...DEFAULT_SETTINGS, backgroundMode: "chord", accompanimentStyle: style },
+    settings: { ...DEFAULT_SETTINGS, backgroundMode: "chord", ...(style ? { accompanimentStyle: style } : {}) },
     onChange: () => {},
   }));
 }
 
 describe("SoundControls accompaniment styles", () => {
   it("explains both explicit styles and preserves their selected state", () => {
-    const melody = render();
+    const melody = render("melody-accompaniment");
     expect(melody).toContain("Melody + accompaniment");
     expect(melody).toContain("Original passage is retained");
     expect(melody).toContain('aria-label="Accompaniment style"');
     expect(melody).toContain('aria-checked="true"');
 
-    const bass = render("bass-chords");
+    const bass = render();
     expect(bass).toContain("Bass + chords");
-    expect(bass).toContain("source melody is omitted where the chord chart is covered");
+    expect(bass).toContain("Backing only");
+    expect(bass).toContain("source melody is omitted");
     expect(bass).toMatch(/Bass \+ chords[\s\S]*aria-checked="true"/);
+  });
+
+  it("exposes backing audition controls without melody controls by default", () => {
+    const markup = renderToStaticMarkup(createElement(SoundControls, {
+      settings: { ...DEFAULT_SETTINGS, backgroundMode: "chord" },
+      onChange: () => {},
+      onPreview: () => {},
+    }));
+
+    expect(markup).toContain('data-testid="backing-audition-controls"');
+    expect(markup).toContain("Accompaniment");
+    expect(markup).not.toContain('data-testid="melody-accompaniment-controls"');
   });
 
   it("exposes the inferred melody status and correction action", () => {
@@ -50,6 +63,9 @@ describe("SoundControls accompaniment styles", () => {
     }));
 
     expect(markup).toContain('data-testid="melody-accompaniment-controls"');
+    expect(markup).toContain('data-testid="advanced-arrangement-controls"');
+    expect(markup).toContain("Advanced arrangement controls");
+    expect(markup).not.toContain('data-testid="advanced-arrangement-controls" open');
     expect(markup).toContain("Automatic melody");
     expect(markup).toContain("Use right-hand part");
     expect(markup).toContain("Reset all saved choices");
@@ -59,6 +75,8 @@ describe("SoundControls accompaniment styles", () => {
     expect(markup).toContain("Temporal backing reduction is unavailable without reviewed source lane or phrase identity");
     expect(markup).toContain("source support notes");
     expect(markup).toContain('data-testid="melody-audition-controls"');
+    expect(markup).toContain("Compare Original");
+    expect(markup).toContain("Left hand / accompaniment");
     expect(markup).toContain("Accompaniment includes retained source notes");
 
     const pulseArrangement = buildMelodyAccompaniment(

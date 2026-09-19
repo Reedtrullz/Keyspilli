@@ -3,6 +3,7 @@ import { PITCH_COLORS } from "./pitchColors.js";
 import { keySignature } from "./analyze.js";
 
 const DIV = 960;
+const MEASURE_BOUNDARY_TOLERANCE = 1 / DIV + 1e-9;
 
 interface XmlNoteSegment extends Note {
   tieStart?: boolean;
@@ -67,6 +68,20 @@ function xmlEscape(s: string): string {
  */
 export function writeMusicXml(variant: Variant, title: string, artist: string): string {
   const [num, den] = variant.timeSig;
+  const timeSigEvents = (variant.timeSigEvents ?? [])
+    .filter((event) => Number.isFinite(event.beat) && event.beat >= 0
+      && Number.isInteger(event.timeSig[0]) && event.timeSig[0] > 0
+      && Number.isInteger(event.timeSig[1]) && event.timeSig[1] > 0)
+    .slice()
+    .sort((a, b) => a.beat - b.beat || a.tick - b.tick);
+  const timeSigAt = (beat: number): [number, number] => {
+    let current: [number, number] = [num, den];
+    for (const event of timeSigEvents) {
+      if (event.beat > beat + 1e-9) break;
+      current = [...event.timeSig] as [number, number];
+    }
+    return current;
+  };
   const beatsPerMeasure = num * (4 / den);
   // Prefer the arrangement's explicit measure map, but synthesize any
   // missing tail measures so a malformed/incomplete source cannot silently
@@ -135,7 +150,15 @@ export function writeMusicXml(variant: Variant, title: string, artist: string): 
       // arrangements have contiguous measures, while this fallback keeps
       // hand-authored/test variants lossless.
       const boundary = measure.endBeat > cursor + 1e-9 ? measure.endBeat : end;
-      const segmentEnd = Math.min(end, boundary);
+      if (boundary - cursor > 0 && boundary - cursor <= MEASURE_BOUNDARY_TOLERANCE) {
+        cursor = boundary;
+        continue;
+      }
+      const boundedEnd = Math.min(end, boundary);
+      // Source timing normalization can leave a measure boundary a few
+      // microbeats before a quantized note end. Treat that remainder as part
+      // of the preceding segment instead of emitting a one-tick ghost note.
+      const segmentEnd = end - boundedEnd <= MEASURE_BOUNDARY_TOLERANCE ? end : boundedEnd;
       const segmentDur = segmentEnd - cursor;
       if (segmentDur <= 1e-9) break;
       const segment: XmlNoteSegment = {
@@ -147,7 +170,7 @@ export function writeMusicXml(variant: Variant, title: string, artist: string): 
         // post-barline segment as tie-start, including the final segment;
         // that left parser chains open and let later same-pitch re-attacks
         // steal their durations.
-        tieStart: segmentEnd < end - 1e-9,
+        tieStart: segmentEnd < end - MEASURE_BOUNDARY_TOLERANCE,
         tieStop: cursor > n.start + 1e-9,
         voice: voiceByNote.get(n),
       };
@@ -257,10 +280,14 @@ export function writeMusicXml(variant: Variant, title: string, artist: string): 
         rh.xml +
         (rh.cursor > 0 ? "<backup><duration>" + Math.round(rh.cursor * DIV) + "</duration></backup>" : "") +
         lh.xml;
+      const [measureNum, measureDen] = timeSigAt(m.startBeat);
+      const previousTimeSig = mi > 0 ? timeSigAt(measures[mi - 1]!.startBeat) : null;
+      const timeChanged = mi === 0 || previousTimeSig === null
+        || previousTimeSig[0] !== measureNum || previousTimeSig[1] !== measureDen;
       const keyTime =
         mi === 0
-          ? `<key><fifths>${fifths}</fifths><mode>${mode === 0 ? "major" : "minor"}</mode></key><time><beats>${num}</beats><beat-type>${den}</beat-type></time>`
-          : "";
+          ? `<key><fifths>${fifths}</fifths><mode>${mode === 0 ? "major" : "minor"}</mode></key><time><beats>${measureNum}</beats><beat-type>${measureDen}</beat-type></time>`
+          : timeChanged ? `<time><beats>${measureNum}</beats><beat-type>${measureDen}</beat-type></time>` : "";
       const tempoDir =
         mi === 0
           ? `<direction placement="above"><direction-type><metronome><beat-unit>quarter</beat-unit><per-minute>${bpm}</per-minute></metronome></direction-type></direction>`

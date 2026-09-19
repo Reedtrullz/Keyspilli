@@ -1,0 +1,58 @@
+{
+  "candidateCommit": "36bed6e1b9ea66aceb6fb3291131dd2d33c2e07e",
+  "sourceFingerprint": "variant:the-beatles-blackbird:a:the-beatles-blackbird-a:3fc3fd74d567da56dd10ff05689ef2f57641efbbe200532aabc0ea5fbcea1e75:notes:4529b839209ca52480d6dbab332ea211e709edfb660473b662a1a62ef56aa53e",
+  "window": {
+    "startBeat": 14,
+    "endBeat": 26.5,
+    "bpm": 120
+  },
+  "capture": {
+    "startSeconds": 6.5,
+    "durationMs": 7250,
+    "startBeat": 13,
+    "endBeat": 27.5,
+    "phraseIncluded": true,
+    "preRollSeconds": 0.5,
+    "tailSeconds": 0.5,
+    "instrument": "browser AudioEngine synth"
+  },
+  "producerOptions": {
+    "selection": "automatic",
+    "allowRests": true,
+    "soundingPolicy": "coherent-phrase",
+    "harmonicSupport": "authored-only (resolved from automatic chord source)"
+  },
+  "candidates": {
+    "original": {
+      "sha256": "7755a9d760491a7e634fa4ffce400267e3d51bf3a37a0df885424ef5a84e2050",
+      "bytes": 114012,
+      "events": 162,
+      "signal": {
+        "rms": 0.09693698937528349,
+        "peak": 0.6554350852966309,
+        "samples": 160083
+      },
+      "decodedPcm": {
+        "sampleRate": 44100,
+        "samples": 320166,
+        "durationSeconds": 7.26
+      }
+    },
+    "automatic": {
+      "sha256": "5e0dad49fa440b1f51cdc2e6091e4580d1869eab8ee478dd7afd149938e93c33",
+      "bytes": 114660,
+      "events": 150,
+      "signal": {
+        "rms": 0.10619092364079107,
+        "peak": 0.5366564393043518,
+        "samples": 161406
+      },
+      "decodedPcm": {
+        "sampleRate": 44100,
+        "samples": 322811,
+        "durationSeconds": 7.319977324263038
+      }
+    }
+  },
+  "humanListening": "pending"
+}

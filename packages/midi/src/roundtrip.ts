@@ -56,12 +56,44 @@ function compareTempo(expected: number, actual: number, explicit: boolean, label
   return [];
 }
 
+function expectedTimeSigEvents(variant: Variant): { beat: number; timeSig: [number, number] }[] {
+  if (variant.timeSigEvents?.length) {
+    return variant.timeSigEvents.map((event) => ({ beat: event.beat, timeSig: [...event.timeSig] as [number, number] }));
+  }
+  return [{ beat: 0, timeSig: [...variant.timeSig] as [number, number] }];
+}
+
+function compareTimeSigEvents(
+  expected: { beat: number; timeSig: [number, number] }[],
+  actual: { beat: number; timeSig: [number, number] }[] | undefined,
+  label: string,
+): string[] {
+  const got = actual ?? [];
+  if (expected.length !== got.length) {
+    return [`${label}: time signature event count ${got.length} != source ${expected.length}`];
+  }
+  for (let i = 0; i < expected.length; i++) {
+    const source = expected[i]!;
+    const rendered = got[i]!;
+    if (source.timeSig[0] !== rendered.timeSig[0]
+      || source.timeSig[1] !== rendered.timeSig[1]
+      || Math.abs(source.beat - rendered.beat) > ROUNDTRIP_TOLERANCE) {
+      return [
+        `${label}: time signature ${rendered.timeSig[0]}/${rendered.timeSig[1]}@${rendered.beat.toFixed(3)}`
+        + ` != source ${source.timeSig[0]}/${source.timeSig[1]}@${source.beat.toFixed(3)}`,
+      ];
+    }
+  }
+  return [];
+}
+
 /** Render a generated variant exactly as ingest does. */
 export function writeVariantArtifacts(variant: Variant, title: string, artist: string): VariantArtifacts {
   const sig = keySignature(variant.key);
   const midi = writeMidi(variant.notes, {
     tempoBpm: variant.tempoBpm,
     timeSig: variant.timeSig,
+    timeSigEvents: variant.timeSigEvents,
     keySig: sig.fifths,
     keyMode: sig.mode,
     title: `${title} (${variant.level})`,
@@ -97,6 +129,7 @@ export function validateArtifactFiles(variant: Variant, artifacts: VariantArtifa
   try {
     const parsedMidi = parseMidi(artifacts.midi);
     issues.push(...compareTempo(variant.tempoBpm, parsedMidi.tempoBpm, parsedMidi.tempoMetaPresent === true, "midi roundtrip"));
+    issues.push(...compareTimeSigEvents(expectedTimeSigEvents(variant), parsedMidi.timeSigEvents, "midi roundtrip"));
     issues.push(...compareNotes(expectedNotes, parsedMidi.notes, "midi roundtrip"));
   } catch (e) {
     issues.push(`midi roundtrip parse failed: ${(e as Error).message}`);
@@ -104,6 +137,7 @@ export function validateArtifactFiles(variant: Variant, artifacts: VariantArtifa
   try {
     const parsedXml = parseMusicXmlNotes(artifacts.xml);
     issues.push(...compareTempo(variant.tempoBpm, parsedXml.tempoBpm, parsedXml.tempoMetaPresent === true, "xml roundtrip"));
+    issues.push(...compareTimeSigEvents(expectedTimeSigEvents(variant), parsedXml.timeSigEvents, "xml roundtrip"));
     issues.push(...compareNotes(expectedNotes, parsedXml.notes, "xml roundtrip"));
   } catch (e) {
     issues.push(`xml roundtrip parse failed: ${(e as Error).message}`);
