@@ -5,25 +5,38 @@ import { buildMelodyAccompaniment, DEFAULT_SETTINGS } from "@keyspilli/player-co
 import type { ChordSourceOption } from "./chord-sources";
 import { SoundControls } from "./SoundControls";
 
-function render(style: "melody-accompaniment" | "bass-chords" = "melody-accompaniment") {
+function render(style?: "melody-accompaniment" | "bass-chords") {
   return renderToStaticMarkup(createElement(SoundControls, {
-    settings: { ...DEFAULT_SETTINGS, backgroundMode: "chord", accompanimentStyle: style },
+    settings: { ...DEFAULT_SETTINGS, backgroundMode: "chord", ...(style ? { accompanimentStyle: style } : {}) },
     onChange: () => {},
   }));
 }
 
 describe("SoundControls accompaniment styles", () => {
   it("explains both explicit styles and preserves their selected state", () => {
-    const melody = render();
+    const melody = render("melody-accompaniment");
     expect(melody).toContain("Melody + accompaniment");
     expect(melody).toContain("Original passage is retained");
     expect(melody).toContain('aria-label="Accompaniment style"');
     expect(melody).toContain('aria-checked="true"');
 
-    const bass = render("bass-chords");
+    const bass = render();
     expect(bass).toContain("Bass + chords");
-    expect(bass).toContain("source melody is omitted where the chord chart is covered");
+    expect(bass).toContain("Backing only");
+    expect(bass).toContain("source melody is omitted");
     expect(bass).toMatch(/Bass \+ chords[\s\S]*aria-checked="true"/);
+  });
+
+  it("exposes backing audition controls without melody controls by default", () => {
+    const markup = renderToStaticMarkup(createElement(SoundControls, {
+      settings: { ...DEFAULT_SETTINGS, backgroundMode: "chord" },
+      onChange: () => {},
+      onPreview: () => {},
+    }));
+
+    expect(markup).toContain('data-testid="backing-audition-controls"');
+    expect(markup).toContain("Accompaniment");
+    expect(markup).not.toContain('data-testid="melody-accompaniment-controls"');
   });
 
   it("exposes the inferred melody status and correction action", () => {

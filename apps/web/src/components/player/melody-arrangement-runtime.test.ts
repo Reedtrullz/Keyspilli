@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { MelodyAccompanimentResolution, SparseBackingTiming } from "@keyspilli/player-core";
 import {
+  auditionNotesForRole,
   buildMelodyArrangementOptions,
   melodyArrangementExecution,
   melodyArrangementResolutionFingerprint,
@@ -8,6 +9,18 @@ import {
 } from "./melody-arrangement-runtime";
 
 describe("melody arrangement execution", () => {
+  it("does not audition melody events as Bass + chords backing", () => {
+    const melody = { midi: 72, start: 0, dur: 1, vel: 90 } as const;
+    const backing = { midi: 48, start: 0, dur: 1, vel: 60 } as const;
+    const events = [
+      { id: "melody", note: melody, role: "melody" as const, sourceNoteIds: ["m"] },
+      { id: "backing", note: backing, role: "accompaniment" as const, sourceNoteIds: ["b"] },
+    ];
+
+    expect(auditionNotesForRole("bass-chords", events, [])).toEqual([]);
+    expect(auditionNotesForRole("melody-accompaniment", events, [])).toEqual([backing]);
+  });
+
   it("does not run the producer for Original or disabled paths", () => {
     expect(melodyArrangementExecution(1_891, false, true)).toBe("source");
     expect(melodyArrangementExecution(1_891, true, false)).toBe("source");

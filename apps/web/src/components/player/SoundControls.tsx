@@ -99,7 +99,7 @@ export function SoundControls({
             {settings.backgroundMode === "piano"
               ? "Original arrangement is retained"
               : settings.accompanimentStyle === "bass-chords"
-                ? "Chart-based bass and chords replace the source passage where covered"
+                ? "Backing only: generated bass and chords play where the chart is supported; source melody is omitted and unsupported spans are silent."
                 : "A selected melody is retained while sparse harmonic support is generated"}
           </p>
           {settings.backgroundMode === "chord" && (
@@ -121,7 +121,7 @@ export function SoundControls({
               </div>
           <p className="text-[11px] text-zinc-600 mt-2">
             {settings.accompanimentStyle === "bass-chords"
-              ? "For accompanying singing or another musician: source melody is omitted where the chord chart is covered."
+              ? "Backing only for accompanying singing or another musician: source melody is omitted; unsupported chart spans are silent and marked unavailable."
               : "Keeps the selected melody and adds sparse support. Original passage is retained where the chart is unavailable."}
           </p>
           <details data-testid="advanced-arrangement-controls" className="mt-3">
@@ -290,6 +290,18 @@ export function SoundControls({
                   )}
                 </div>
                   )}
+            {settings.accompanimentStyle === "bass-chords" && onPreview && (
+              <div className="mt-3 border-t border-zinc-200 pt-3" data-testid="backing-audition-controls">
+                <span className="text-xs font-medium text-zinc-700">Backing audition</span>
+                <div className="grid grid-cols-2 gap-2 mt-2" role="group" aria-label="Backing audition">
+                  <button type="button" onClick={() => onPreview("full")} className="px-2 py-2 rounded-lg text-xs border border-zinc-300 bg-white">Full</button>
+                  <button type="button" onClick={() => onPreview("accompaniment")} className="px-2 py-2 rounded-lg text-xs border border-zinc-300 bg-white">Accompaniment</button>
+                </div>
+                <p className="text-[11px] text-zinc-500 mt-2">
+                  Uses the resolved backing bass and chords; uncovered spans are silent.
+                </p>
+              </div>
+            )}
             {chordSourcePresence.mounted && chordSources && onChordSourceChange && (
             <div
               ref={chordSourcePanelRef}

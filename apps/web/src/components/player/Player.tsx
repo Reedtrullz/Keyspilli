@@ -28,6 +28,7 @@ import {
   sourceNoteIds,
   validateSparseBackingTiming,
   saveJson,
+  saveAccompanimentStyleIntent,
   saveSettings,
   saveSongPrefs,
   secPerBeat,
@@ -55,6 +56,7 @@ import { ChordPracticePanel } from "./ChordPracticePanel";
 import { buildChordPracticeTargets, selectPracticeChords } from "./chord-practice";
 import {
   buildMelodyArrangementOptions,
+  auditionNotesForRole,
   melodyArrangementExecution,
   melodyArrangementResolutionFingerprint,
   MELODY_WORKER_NOTE_THRESHOLD,
@@ -1325,28 +1327,42 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     setSoundPreviewStatus(status);
     const preview = role === "full"
       ? eng.previewPlan(boundedStartSec, boundedEndSec)
-      : {
-        notes: resolveTimedNotes({
-          ...initial.data,
-          notes: role === "original"
-            ? initial.data.notes
-            : melodyArrangement.events
-              .filter((event) => role === "melody" ? event.role === "melody" : event.role !== "melody")
-              .map((event) => event.note),
-        }, settings.speed, settings.transpose)
-          .filter((note) => noteMatchesHand(note, settings.hand))
-          .flatMap((note) => {
-            const noteEnd = note.startSec + note.durSec;
-            const visibleStart = Math.max(boundedStartSec, note.startSec);
-            const visibleEnd = Math.min(boundedEndSec, noteEnd);
-            return visibleEnd > visibleStart + 1e-6
-              ? [{ when: visibleStart - boundedStartSec, note: { ...note, startSec: visibleStart - boundedStartSec, durSec: visibleEnd - visibleStart } }]
+      : (() => {
+        const auditionNotes = role === "original"
+          ? initial.data.notes
+          : role === "melody"
+            ? melodyArrangement.events.filter((event) => event.role === "melody").map((event) => event.note)
+            : auditionNotesForRole(settings.accompanimentStyle, melodyArrangement.events, accompaniment.notes);
+        const chords = role === "accompaniment"
+          && settings.backgroundMode === "chord"
+          && settings.accompanimentStyle === "bass-chords"
+          ? audioChords.flatMap((chord) => {
+            const chordStart = chord.beat * secondsPerBeat;
+            const chordEnd = chordStart + (chord.durationBeats ?? 1) * secondsPerBeat;
+            const visibleStart = Math.max(boundedStartSec, chordStart);
+            const visibleEnd = Math.min(boundedEndSec, chordEnd);
+            const durationSec = visibleEnd - visibleStart;
+            return chord.notes.length && durationSec > 0.2
+              ? [{ notes: chord.notes.map((midi) => midi + settings.transpose), when: visibleStart - boundedStartSec, durationSec }]
               : [];
-          }),
-        chords: [],
-      };
+          })
+          : [];
+        return {
+          notes: resolveTimedNotes({ ...initial.data, notes: auditionNotes }, settings.speed, settings.transpose)
+            .filter((note) => noteMatchesHand(note, settings.hand))
+            .flatMap((note) => {
+              const noteEnd = note.startSec + note.durSec;
+              const visibleStart = Math.max(boundedStartSec, note.startSec);
+              const visibleEnd = Math.min(boundedEndSec, noteEnd);
+              return visibleEnd > visibleStart + 1e-6
+                ? [{ when: visibleStart - boundedStartSec, note: { ...note, startSec: visibleStart - boundedStartSec, durSec: visibleEnd - visibleStart } }]
+                : [];
+            }),
+          chords,
+        };
+      })();
     for (const { note, when } of preview.notes) eng.audio.noteOn(note, when);
-    if (role === "full" && settings.backgroundMode === "chord" && eng.audio.playChord) {
+    if ((role === "full" || role === "accompaniment") && settings.backgroundMode === "chord" && eng.audio.playChord) {
       for (const chord of preview.chords) eng.audio.playChord(chord.notes, chord.when, chord.durationSec);
     }
     session.timer = setTimeout(() => {
@@ -1373,6 +1389,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     setSettings(next);
     engineRef.current?.audio.setGains(next.voiceGain, next.pianoGain);
     if (engineRef.current) engineRef.current.audio.sustainPedal = next.sustainPedal;
+    if (p.accompanimentStyle !== undefined) saveAccompanimentStyleIntent(p.accompanimentStyle);
     saveSettings(next);
     // Persist practice-relevant settings per song so switching songs restores them.
     saveSongPrefs(initial.song.id, {
@@ -1723,23 +1740,30 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   const activeAccompanimentFallback = accompaniment.fallbackSpans.find((span) =>
     currentBeat >= span.startBeat && currentBeat < span.endBeat,
   );
-  const accompanimentFallbackMessage = activeAccompanimentFallback
+  const accompanimentFallbackDetail = activeAccompanimentFallback
     ? ({
-      "no source notes": "Original passage retained — no source notes are available here.",
-      "unsupported chord": "Original passage retained — this chord symbol is not supported.",
-      "explicit no-chord": "Original passage retained — the chart marks this as no chord.",
-      "no chord coverage": "Original passage retained — the chord chart does not cover this passage.",
-      "accompaniment ownership unavailable": "Original passage retained — accompaniment could not be separated reliably.",
-      "no owned source notes to replace": "Original passage retained — no owned accompaniment notes are available here.",
-      "no source notes to replace": "Original passage retained — no source notes can be replaced here.",
-      "sustained source note crosses accompaniment boundary": "Original passage retained — a sustained note crosses this chord boundary.",
-      "ambiguous melody": "Original passage retained — choose a melody source before replacing this phrase.",
-      "right-hand part unavailable": "Original passage retained — this source has no right-hand part label.",
-      "unverified chord source": "Original passage retained — notes-derived harmony is label-only here.",
-      "no playable support voicing": "Original passage retained — no collision-safe support voicing fits this phrase.",
+      "no source notes": "no source notes are available here.",
+      "unsupported chord": "this chord symbol is not supported.",
+      "explicit no-chord": "the chart marks this as no chord.",
+      "no chord coverage": "the chord chart does not cover this passage.",
+      "accompaniment ownership unavailable": "accompaniment could not be separated reliably.",
+      "no owned source notes to replace": "no owned accompaniment notes are available here.",
+      "no source notes to replace": "no source notes can be replaced here.",
+      "sustained source note crosses accompaniment boundary": "a sustained note crosses this chord boundary.",
+      "ambiguous melody": "choose a melody source before replacing this phrase.",
+      "right-hand part unavailable": "this source has no right-hand part label.",
+      "unverified chord source": "notes-derived harmony is label-only here.",
+      "no playable support voicing": "no collision-safe support voicing fits this phrase.",
     } as Record<string, string>)[activeAccompanimentFallback.reason]
     : null;
-  const accompanimentFallbackSlotMessage = accompanimentFallbackMessage ?? "Original passage retained — accompaniment fallback requires review.";
+  const accompanimentFallbackMessage = accompanimentFallbackDetail
+    ? settings.accompanimentStyle === "bass-chords"
+      ? `Backing unavailable — source melody omitted: ${accompanimentFallbackDetail}`
+      : `Original passage retained — ${accompanimentFallbackDetail}`
+    : null;
+  const accompanimentFallbackSlotMessage = accompanimentFallbackMessage ?? (settings.accompanimentStyle === "bass-chords"
+    ? "Backing unavailable — source melody omitted: accompaniment fallback requires review."
+    : "Original passage retained — accompaniment fallback requires review.");
   const hasAccompanimentFallbackSlot = settings.backgroundMode === "chord" && accompaniment.fallbackSpans.length > 0;
   const melodyArrangementState = melodyArrangementFailed ? "failed" : melodyArrangementPending ? "pending" : "ready";
   const melodyArrangementOutcomeText = melodyArrangementOutcome(melodyArrangementState, melodyArrangement);

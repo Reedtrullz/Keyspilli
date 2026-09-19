@@ -1,9 +1,12 @@
 import type {
+  AccompanimentStyle,
+  ArrangementEvent,
   MelodyAccompanimentOptions,
   MelodyAccompanimentResolution,
   MelodyHarmonicSupportPolicy,
   MelodyPhraseOverride,
   MelodySelection,
+  Note,
   SourceBackingMode,
   SparseBackingTiming,
 } from "@keyspilli/player-core";
@@ -13,6 +16,15 @@ import type {
 export const MELODY_WORKER_NOTE_THRESHOLD = 256;
 
 export type MelodyArrangementExecution = "source" | "sync" | "worker";
+
+export function auditionNotesForRole(
+  style: AccompanimentStyle,
+  events: readonly ArrangementEvent[],
+  backingNotes: readonly Note[],
+): Note[] {
+  if (style === "bass-chords") return [...backingNotes];
+  return events.filter((event) => event.role !== "melody").map((event) => event.note);
+}
 
 export type MelodyArrangementTrace = {
   phase: "source-view" | "sync-start" | "sync-complete" | "worker-create" | "worker-request" | "worker-ready" | "worker-error";
