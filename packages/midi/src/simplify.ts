@@ -55,6 +55,15 @@ export interface VariantOptions {
   audioDerived?: boolean;
   /** Authoritative harmony from a role-aware arranger. Avoid per-level re-inference. */
   chords?: ChordLabel[];
+  /**
+   * Experimental source-preserving candidate only. Protected identities rank
+   * ahead of unlabelled co-onset voices in the existing Advanced candidate and
+   * register-span caps; all hand, duration, and playability guards still apply.
+   * Lower levels may change through their existing ladder dependency, but this
+   * option is not applied directly to their selectors. Catalog ingestion leaves
+   * this unset.
+   */
+  protectedIdentitySources?: readonly NonNullable<Note["identitySource"]>[];
   /** Optional development-only lineage sidecar; never changes variant bytes. */
   trace?: MetalArrangementTraceSink;
 }
@@ -1978,7 +1987,13 @@ function selectEasyMelody(notes: Note[], grid: number, minDur: number, pads?: Se
 }
 
 /** Keep the highest `keep` voices per slice; pad pitches rank below real voices. */
-function topVoices(notes: Note[], grid: number, keep: number, pads?: Set<number>): Note[] {
+function topVoices(
+  notes: Note[],
+  grid: number,
+  keep: number,
+  pads?: Set<number>,
+  protectedIdentitySources: ReadonlySet<NonNullable<Note["identitySource"]>> = new Set(),
+): Note[] {
   const bySlice = new Map<number, Note[]>();
   for (const n of notes) {
     const k = Math.round(n.start / grid);
@@ -1989,9 +2004,11 @@ function topVoices(notes: Note[], grid: number, keep: number, pads?: Set<number>
   const out: Note[] = [];
   for (const ns of bySlice.values()) {
     const sorted = [...ns].sort((a, b) => {
+      const protectedA = a.identitySource && protectedIdentitySources.has(a.identitySource) ? 1 : 0;
+      const protectedB = b.identitySource && protectedIdentitySources.has(b.identitySource) ? 1 : 0;
       const pa = pads?.has(a.midi) ? 1 : 0;
       const pb = pads?.has(b.midi) ? 1 : 0;
-      return pa - pb || b.midi - a.midi;
+      return protectedB - protectedA || pa - pb || b.midi - a.midi;
     });
     for (const n of sorted.slice(0, keep)) out.push(n);
   }
@@ -2004,7 +2021,12 @@ function topVoices(notes: Note[], grid: number, keep: number, pads?: Set<number>
  * hand's melodic extreme (highest for RH, lowest for LH) is kept and only
  * unreachable inner/outer voices are removed, so the line survives.
  */
-function capSoundingSpan(notes: Note[], maxSpan: number, anchor: "high" | "low"): Note[] {
+function capSoundingSpan(
+  notes: Note[],
+  maxSpan: number,
+  anchor: "high" | "low",
+  protectedIdentitySources: ReadonlySet<NonNullable<Note["identitySource"]>> = new Set(),
+): Note[] {
   const sorted = [...notes].sort(
     (a, b) => a.start - b.start || (anchor === "high" ? b.midi - a.midi : a.midi - b.midi),
   );
@@ -2024,9 +2046,33 @@ function capSoundingSpan(notes: Note[], maxSpan: number, anchor: "high" | "low")
     const activeLow = minNumber(mids, n.midi);
     const span = activeHigh - activeLow;
     const extendsAnchor = anchor === "high" ? n.midi > activeHigh : n.midi < activeLow;
+    const protectedIncoming = n.identitySource !== undefined && protectedIdentitySources.has(n.identitySource);
+    const protectedActive = active.filter((entry) => entry.note.identitySource !== undefined
+      && protectedIdentitySources.has(entry.note.identitySource));
     if (span <= maxSpan) {
       active.push({ end: n.start + n.dur, midi: n.midi, note: n });
       out.push(n);
+    } else if (protectedIncoming) {
+      // Experimental source-preserving mode keeps the protected attack while
+      // still enforcing the hand's register span: discard unprotected held
+      // voices, and keep only protected predecessors that fit around it.
+      const kept: typeof active = [{ end: n.start + n.dur, midi: n.midi, note: n }];
+      for (const entry of [...protectedActive].sort((a, b) => Math.abs(a.midi - n.midi) - Math.abs(b.midi - n.midi))) {
+        const mids = kept.map((item) => item.midi);
+        if (Math.max(...mids, entry.midi) - Math.min(...mids, entry.midi) <= maxSpan) kept.push(entry);
+      }
+      const removed = new Set(active.filter((entry) => !kept.includes(entry)).map((entry) => entry.note));
+      for (let i = out.length - 1; i >= 0; i -= 1) {
+        const note = out[i];
+        if (note !== undefined && removed.has(note)) out.splice(i, 1);
+      }
+      active.length = 0;
+      active.push(...kept);
+      out.push(n);
+    } else if (protectedActive.length) {
+      // Do not let an unprotected accompaniment attack evict a protected
+      // source note merely to satisfy the span anchor.
+      continue;
     } else if (extendsAnchor) {
       const kept = active.filter((a) => Math.abs(a.midi - n.midi) <= maxSpan);
       const removed = new Set(active.filter((a) => !kept.includes(a)).map((a) => a.note));
@@ -2858,6 +2904,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   const metalProfile = opts.arrangementProfile === "metal";
   const learnerProfile = opts.arrangementProfile === "learner";
   const learnerSafetyProfile = learnerProfile || metalProfile;
+  const protectedIdentitySources = new Set(opts.protectedIdentitySources ?? []);
   const tempo = normalizeTempoBpm(meta.tempo ?? src.tempoBpm);
   // Every source type passes through the same conservative structural cleanup.
   // YouTube ingestion may additionally run cleanTranscription() beforehand;
@@ -2874,6 +2921,23 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     ? { record: (event) => { learnerTraceEvents.push(event); opts.trace?.record(event); } }
     : opts.trace;
   const learnerTraceSource = learnerLineageEnabled ? seedLearnerTrace(src.notes) : src.notes;
+  const sourceIdentityByTraceRef = new Map<string, Note["identitySource"]>();
+  if (protectedIdentitySources.size) {
+    for (const note of learnerTraceSource) {
+      for (const ref of learnerTraceRefs(note)) sourceIdentityByTraceRef.set(ref, note.identitySource);
+    }
+  }
+  const clearMixedProtectedIdentity = (notes: Note[]): Note[] => {
+    if (!protectedIdentitySources.size || !sourceIdentityByTraceRef.size) return notes;
+    return notes.map((note) => {
+      if (!note.identitySource || !protectedIdentitySources.has(note.identitySource)) return note;
+      const refs = learnerTraceRefs(note);
+      if (!refs.length) return { ...note, identitySource: undefined };
+      const identities = new Set(refs.map((ref) => sourceIdentityByTraceRef.get(ref)));
+      if (identities.size > 1 || identities.has(undefined)) return { ...note, identitySource: undefined };
+      return note;
+    });
+  };
   if (learnerTraceEnabled) {
     emitLearnerStageTrace(learnerTraceSink, "raw", learnerTraceSource, [], "learner-source");
   }
@@ -2891,6 +2955,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     ? inferSourceHandLanes(arrangedImported) : undefined;
   const base = quantize(sourceHandInference?.notes ?? arrangedImported, { grid: 0.125, minDur: 0.125 });
   const normalized = opts.normalizeRange === false ? base : normalizePianoRange(base);
+  const protectedNormalized = clearMixedProtectedIdentity(normalized);
   const shifted = base.filter((n, i) => normalized[i]!.midi !== n.midi);
   const sourceWarnings = shifted.length
     ? [`${shifted.length} source notes were octave-normalized into the piano range 21-108`]
@@ -2901,7 +2966,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   const warnings = [...sourceWarnings, ...arrangementWarnings,
     ...(sourceHandInference ? [`tutorial source hand inference: ${sourceHandInference.reason} (not verified staff assignment)`] : []),
   ];
-  const splitSource = normalized;
+  const splitSource = protectedNormalized;
   const hasExplicitHands = splitSource.some((n) => n.hand !== undefined);
   const unlabeledSource = splitSource.filter((n) => n.hand === undefined);
   const pathologicalWall = isDenseContinuousWall(
@@ -2943,14 +3008,14 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   const advancedRhSource = metalProfile ? reduceMetalRhRealism(rh, tempo, 8) : rh;
   const advancedSource = quantize(
     [
-      ...capSoundingSpan(topVoices(advancedRhSource, 0.125, 4, pads), 12, "high"),
+      ...capSoundingSpan(topVoices(advancedRhSource, 0.125, 4, pads, protectedIdentitySources), 12, "high", protectedIdentitySources),
       // Advanced keeps the imported LH attacks intact. Chord thinning is a
       // simplification operation; applying it here changed eighth-note bass
       // timing and introduced same-pitch overlaps in curated arrangements.
       // Learner rebalancing may intentionally keep a low bass plus a
       // mid-register shell (roughly a tenth); the historical 12-semitone
       // ceiling would discard the shell and recreate bass-only LH output.
-      ...capSoundingSpan(lh, innerVoiceArrangement ? 19 : 12, "low"),
+      ...capSoundingSpan(lh, innerVoiceArrangement ? 19 : 12, "low", protectedIdentitySources),
     ],
     { grid: 0.125 },
   );

@@ -64,6 +64,12 @@ const targets = [
   },
 ] as const;
 
+const frozenDefaultVariantDigestByTargetId: Record<string, string> = {
+  "queen-somebody-to-love-a": "a8852c71541a204de9cd1558fe815349943c929aa046e682012ebe0f33561eb7",
+  "britney-spears-oops-i-did-it-again-a": "6f9fe1bf62919876ce1ca00ba6a45e91eae10b0e241e5f0184d2d5830a02b8a8",
+  "the-beatles-blackbird-a": "b6263197a0a25a752fc0da5548ac77d4eaef23edfecb7955a581daa51cc66bac",
+};
+
 function sha256(value: string | Uint8Array): string {
   return createHash("sha256").update(value).digest("hex");
 }
@@ -90,6 +96,28 @@ function multisetOnly(left: Map<string, number>, right: Map<string, number>): nu
   let count = 0;
   for (const [key, value] of left) count += Math.max(0, value - (right.get(key) ?? 0));
   return count;
+}
+
+function noteKeyWithVelocity(note: Pick<Note, "midi" | "start" | "dur" | "hand" | "vel">): string {
+  return JSON.stringify([note.midi, note.start, note.dur, note.hand ?? null, note.vel]);
+}
+
+function noteDiff(left: readonly Note[], right: readonly Note[]): Record<string, unknown> {
+  const leftWithoutVelocity = multiset(left);
+  const rightWithoutVelocity = multiset(right);
+  const leftWithVelocity = new Map<string, number>();
+  const rightWithVelocity = new Map<string, number>();
+  for (const note of left) leftWithVelocity.set(noteKeyWithVelocity(note), (leftWithVelocity.get(noteKeyWithVelocity(note)) ?? 0) + 1);
+  for (const note of right) rightWithVelocity.set(noteKeyWithVelocity(note), (rightWithVelocity.get(noteKeyWithVelocity(note)) ?? 0) + 1);
+  return {
+    leftNoteCount: left.length,
+    rightNoteCount: right.length,
+    leftOnlyIgnoringVelocity: multisetOnly(leftWithoutVelocity, rightWithoutVelocity),
+    rightOnlyIgnoringVelocity: multisetOnly(rightWithoutVelocity, leftWithoutVelocity),
+    leftOnlyIncludingVelocity: multisetOnly(leftWithVelocity, rightWithVelocity),
+    rightOnlyIncludingVelocity: multisetOnly(rightWithVelocity, leftWithVelocity),
+    interpretation: "Multiset content comparison; source lineage is reported separately and velocity-only changes are not counted as note-content drift.",
+  };
 }
 
 function replaceCandidateVelocity(xmlNotes: readonly Note[], currentNotes: readonly Note[]): Note[] {
@@ -136,7 +164,7 @@ function readAscii(data: Uint8Array, start: number, length: number): string {
   return String.fromCharCode(...data.slice(start, start + length)).replaceAll("\u0000", "").trim();
 }
 
-type RawTrackNote = {
+export type RawTrackNote = {
   trackIndex: number;
   channel: number;
   midi: number;
@@ -147,7 +175,7 @@ type RawTrackNote = {
 
 type RawNoteSource = { trackIndex: number; channel: number };
 
-function rawTrackMetadata(
+export function rawTrackMetadata(
   data: Uint8Array,
   division: number,
   noteSources: readonly RawNoteSource[] = [],
@@ -301,6 +329,20 @@ function unionBeats(spans: readonly { start: number; end: number }[], durationBe
   return total;
 }
 
+function longestGapBeats(spans: readonly { start: number; end: number }[], durationBeats: number): number {
+  const sorted = spans
+    .map((span) => ({ start: Math.max(0, Math.min(durationBeats, span.start)), end: Math.max(0, Math.min(durationBeats, span.end)) }))
+    .filter((span) => span.end > span.start)
+    .sort((left, right) => left.start - right.start || left.end - right.end);
+  let cursor = 0;
+  let longest = 0;
+  for (const span of sorted) {
+    longest = Math.max(longest, span.start - cursor);
+    cursor = Math.max(cursor, span.end);
+  }
+  return Number(Math.max(longest, durationBeats - cursor).toFixed(6));
+}
+
 function polyphonySummary(notes: readonly { start: number; dur: number }[], durationBeats: number): Record<string, number> {
   const boundaries = [...new Set([0, durationBeats, ...notes.flatMap((note) => [note.start, note.start + note.dur])])]
     .map((beat) => Math.max(0, Math.min(durationBeats, beat)))
@@ -438,7 +480,7 @@ function snappedEndpoints(note: Pick<Note, "start" | "dur">, grid: number): [num
   return [Math.round(note.start / grid) * grid, Math.round((note.start + note.dur) / grid) * grid];
 }
 
-function normalizeImporterTiming(
+export function normalizeImporterTiming(
   parsed: ParsedMidi,
   notes: readonly RawTrackNote[],
 ): { notes: RawTrackNote[]; transformed: boolean; sourceTempoBpm: number } {
@@ -457,6 +499,33 @@ function normalizeImporterTiming(
       start: beat(note.start),
       dur: beat(note.start + note.dur) - beat(note.start),
     })),
+  };
+}
+
+export function tagParsedSourceNotes(
+  parsed: ParsedMidi,
+  sourceNotes: readonly RawTrackNote[],
+  identitySource: NonNullable<Note["identitySource"]> = "vocals",
+): { parsed: ParsedMidi; matched: number; ambiguous: number } {
+  const used = new Set<number>();
+  let matched = 0;
+  let ambiguous = 0;
+  const notes = parsed.notes.map((note, index) => ({ ...note, __sourceIndex: index }));
+  for (const source of sourceNotes) {
+    const candidates = notes.filter((note) => !used.has(note.__sourceIndex) && sourceTuple(note) === sourceTuple(source));
+    if (candidates.length !== 1) {
+      ambiguous += 1;
+      continue;
+    }
+    const match = candidates[0]!;
+    used.add(match.__sourceIndex);
+    match.identitySource = identitySource;
+    matched += 1;
+  }
+  return {
+    parsed: { ...parsed, notes: notes.map(({ __sourceIndex: _sourceIndex, ...note }) => note) },
+    matched,
+    ambiguous,
   };
 }
 
@@ -604,11 +673,13 @@ function traceStageSummary(events: readonly MetalArrangementTraceEvent[]): Recor
 function traceCantoLineage(
   rawCantoNotes: readonly RawTrackNote[],
   events: readonly MetalArrangementTraceEvent[],
+  sourceRole?: "vocals" | "guitar" | "other",
+  canonicalDurationBeats?: number,
 ): Record<string, unknown> {
   const byKey = new Map(events.map((event) => [event.key, event]));
   const memo = new Map<string, Set<string>>();
   const rawEvents = events.filter((event) => event.stage === "raw" && event.note
-  );
+    && (sourceRole === undefined || event.source === sourceRole));
   const stages = ["cleaned", "learner-arranged", "advanced-candidates", "advanced-playable"] as const;
   const counts: Record<string, number> = {
     exactIdentity: 0,
@@ -635,6 +706,8 @@ function traceCantoLineage(
   const representativeDrops: Array<Record<string, unknown>> = [];
   const representativeEarlyDrops: Array<Record<string, unknown>> = [];
   const representativeTransforms: Array<Record<string, unknown>> = [];
+  const retainedRawSpans: Array<{ start: number; end: number }> = [];
+  let retainedRootCount = 0;
   const stageFunnel = Object.fromEntries(stages.map((stage) => [stage, { selected: 0, rejected: 0, noLineage: 0 }]));
   const examples: Record<string, Array<Record<string, unknown>>> = Object.fromEntries(
     Object.keys(counts).map((key) => [key, []]),
@@ -739,6 +812,8 @@ function traceCantoLineage(
       });
       continue;
     }
+    retainedRootCount += 1;
+    retainedRawSpans.push({ start: raw.start, end: raw.start + raw.dur });
     const final = finalEvents[0]!;
     const operation = final.operation ?? "NONE";
     finalOperations.set(operation, (finalOperations.get(operation) ?? 0) + 1);
@@ -761,6 +836,13 @@ function traceCantoLineage(
     if (kind === "otherTransform") nonGridTransformPaths.set(path, (nonGridTransformPaths.get(path) ?? 0) + 1);
     addExample(kind, raw, final.note, { operation: final.operation ?? null, linkedFinalEvents: finalEvents.length });
   }
+  const retainedSourceCoverage = canonicalDurationBeats === undefined ? null : {
+    retainedRootCount,
+    retainedRootFraction: rawCantoNotes.length ? Number((retainedRootCount / rawCantoNotes.length).toFixed(6)) : 0,
+    retainedSourceActiveBeats: Number(unionBeats(retainedRawSpans, canonicalDurationBeats).toFixed(6)),
+    retainedSourceGapBeats: longestGapBeats(retainedRawSpans, canonicalDurationBeats),
+    interpretation: "Coverage is based on raw source spans whose lineage reaches selected Advanced-playable output; it does not claim semantic ownership or continuous melody.",
+  };
   return {
     rawNoteCount: rawCantoNotes.length,
     counts,
@@ -772,11 +854,42 @@ function traceCantoLineage(
     representativeDrops,
     representativeEarlyDrops,
     representativeTransforms,
+    retainedSourceCoverage,
     stageFunnel,
     examples,
     interpretation: "Trace-backed for the current importer replay. A raw note is dropped only when no selected Advanced-playable event retains its source lineage; duplicate raw trace tuples remain ambiguous.",
   };
 }
+
+function assertLineageRegression(): void {
+  const note = (midi: number, start: number, dur = 1) => ({ midi, start, dur, vel: 90, hand: "R" as const });
+  const events: MetalArrangementTraceEvent[] = [
+    { key: "raw-a", stage: "raw", parentKeys: [], source: "vocals", note: note(60, 0) },
+    { key: "raw-b", stage: "raw", parentKeys: [], source: "vocals", note: note(64, 2) },
+    { key: "raw-c", stage: "raw", parentKeys: [], source: "vocals", note: note(67, 4) },
+    { key: "clean-a", stage: "cleaned", parentKeys: ["raw-a"], source: "vocals", selected: true, operation: "RETAINED", note: note(60, 0) },
+    { key: "clean-b", stage: "cleaned", parentKeys: ["raw-b"], source: "vocals", selected: true, operation: "RETAINED", note: note(64, 2) },
+    { key: "clean-c", stage: "cleaned", parentKeys: ["raw-c"], source: "vocals", selected: false, operation: "REJECTED", selectionReason: "synthetic-early-reject", note: note(67, 4) },
+    { key: "merged", stage: "learner-arranged", parentKeys: ["clean-a", "clean-b"], source: "vocals", selected: true, operation: "MERGED", note: note(60, 0, 3) },
+    { key: "advanced", stage: "advanced-candidates", parentKeys: ["merged"], source: "vocals", selected: true, operation: "RETAINED", note: note(60, 0, 3) },
+    { key: "playable", stage: "advanced-playable", parentKeys: ["advanced"], source: "vocals", selected: true, operation: "RETAINED", note: note(60, 0, 3) },
+  ];
+  const result = traceCantoLineage([
+    { trackIndex: 0, channel: 0, midi: 60, start: 0, dur: 1, vel: 90 },
+    { trackIndex: 0, channel: 0, midi: 64, start: 2, dur: 1, vel: 90 },
+    { trackIndex: 0, channel: 0, midi: 67, start: 4, dur: 1, vel: 90 },
+  ], events, "vocals", 6);
+  const counts = result.counts as Record<string, number>;
+  const coverage = result.retainedSourceCoverage as Record<string, number>;
+  const reasons = result.dropReasons as Record<string, number>;
+  if (counts.dropped !== 1 || counts.ambiguousRawTraceIdentity !== 0
+    || coverage.retainedRootCount !== 2
+    || reasons["cleaned|REJECTED|synthetic-early-reject"] !== 1) {
+    throw new Error(`lineage regression failed: ${JSON.stringify(result)}`);
+  }
+}
+
+assertLineageRegression();
 
 function eventIdsInWindow(
   result: MelodyAccompanimentResolution,
@@ -822,13 +935,32 @@ function worstWindow(
 
 function playabilitySummary(notes: readonly Note[], durationBeats: number, tempoBpm: number): Record<string, unknown> {
   const result = measurePlayability(notes, tempoBpm, durationBeats);
+  const hand = (value: typeof result.global) => ({
+    noteCount: value.noteCount,
+    onsetCount: value.onsetCount,
+    attacksPerSecond: value.attacksPerSecond,
+    medianIoiSeconds: value.medianIoiSeconds,
+    maxSimultaneous: value.maxSimultaneous,
+    maxSounding: value.maxSounding,
+    maxChordSpanSemitones: value.maxChordSpanSemitones,
+    maxSoundingSpanSemitones: value.maxSoundingSpanSemitones,
+    worstTopVoiceLeap: value.worstTopVoiceLeap,
+    worstAttackWindow: value.worstAttackWindow,
+  });
   return {
     attacks: result.global.onsetCount,
     medianIoiSeconds: result.global.medianIoiSeconds,
     maxSimultaneous: result.global.maxSimultaneous,
     maxSounding: result.global.maxSounding,
-    worstTopVoiceLeap: result.hands.R.worstTopVoiceLeap,
-    worstAttackWindow: result.global.worstAttackWindow,
+    simultaneousChordAttacks: result.simultaneousChordAttacks,
+    samePitchRearticulationOnsets: result.samePitchRearticulationOnsets,
+    alternatingHandAttacks: result.alternatingHandAttacks,
+    bursts: {
+      rapidIoiCount: result.bursts.rapidIoiCount,
+      rapidIoiFraction: result.bursts.rapidIoiFraction,
+      longestRapidRegionSeconds: result.bursts.longestRapidRegionSeconds,
+    },
+    hands: { R: hand(result.hands.R), L: hand(result.hands.L) },
   };
 }
 
@@ -870,6 +1002,10 @@ function boundedArrangementDiagnostics(
 
 function readJsonIfPresent(path: string): Record<string, unknown> | null {
   return existsSync(path) ? JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown> : null;
+}
+
+function variantDigests(variants: readonly { level: string }[]): Record<string, string> {
+  return Object.fromEntries(variants.map((variant) => [variant.level, sha256(JSON.stringify(variant))]));
 }
 
 function sourceProvenance(baseId: string, dataRootPath: string, data: SongData): Record<string, unknown> {
@@ -967,6 +1103,30 @@ function evaluateTarget(target: (typeof targets)[number]): Record<string, unknow
   const rawPianoSource = rawNoteSources.find((source) => source.label === "PIANO");
   const rawChoirSource = rawNoteSources.find((source) => source.label === "CHOIR");
   const rawCantoNotes = notesForSource(rawCantoSource);
+  const defaultVariants = buildVariants(
+    rawMidi,
+    { title: target.title, artist: target.artist },
+    { arrangementProfile: "learner", audioDerived: false, maxDurBeats: null },
+  );
+  const defaultVariantDigests = variantDigests(defaultVariants);
+  const explicitEmptyOptionVariants = buildVariants(
+    rawMidi,
+    { title: target.title, artist: target.artist },
+    {
+      arrangementProfile: "learner",
+      audioDerived: false,
+      maxDurBeats: null,
+      protectedIdentitySources: [],
+    },
+  );
+  const explicitEmptyOptionDigests = variantDigests(explicitEmptyOptionVariants);
+  const defaultOptionUnchanged = JSON.stringify(defaultVariantDigests) === JSON.stringify(explicitEmptyOptionDigests);
+  if (!defaultOptionUnchanged) throw new Error(`${target.id}: protectedIdentitySources=[] changed default variant output`);
+  const frozenDefaultVariantDigest = sha256(JSON.stringify(defaultVariantDigests));
+  const frozenDefaultAlgorithmUnchanged = frozenDefaultVariantDigest === frozenDefaultVariantDigestByTargetId[target.id];
+  if (!frozenDefaultAlgorithmUnchanged) {
+    throw new Error(`${target.id}: unset default variant output drifted from aca69ef (expected ${frozenDefaultVariantDigestByTargetId[target.id]}, got ${frozenDefaultVariantDigest})`);
+  }
   const normalizedCanto = normalizeImporterTiming(rawMidi, rawCantoNotes);
   const rawCantoAsNotes: Note[] = rawCantoNotes.map(({ trackIndex: _trackIndex, channel: _channel, ...note }) => ({ ...note, hand: "R" }));
   const rawCantoArrangement = rawCantoAsNotes.length > 0
@@ -985,20 +1145,62 @@ function evaluateTarget(target: (typeof targets)[number]): Record<string, unknow
       },
     );
     const replayAdvanced = replayVariants.find((variant) => variant.level === "advanced")?.notes ?? [];
+    const replayDigests = variantDigests(replayVariants);
+    const tracedDefaultUnchanged = JSON.stringify(replayDigests) === JSON.stringify(defaultVariantDigests);
+    if (!tracedDefaultUnchanged) throw new Error(`${target.id}: trace-enabled default variant output drifted from trace-disabled output`);
+    const tagged = tagParsedSourceNotes(rawMidi, rawCantoNotes);
+    const protectedTraceEvents: MetalArrangementTraceEvent[] = [];
+    const protectedVariants = buildVariants(
+      tagged.parsed,
+      { title: target.title, artist: target.artist },
+      {
+        arrangementProfile: "learner",
+        audioDerived: false,
+        maxDurBeats: null,
+        protectedIdentitySources: ["vocals"],
+        trace: { record: (event) => protectedTraceEvents.push(event) },
+      },
+    );
+    const protectedAdvanced = protectedVariants.find((variant) => variant.level === "advanced")?.notes ?? [];
     return {
       parsedInputNotes: rawMidi.notes.length,
       replayVariantNotes: Object.fromEntries(replayVariants.map((variant) => [variant.level, variant.notes.length])),
       replayAdvancedNotes: replayAdvanced.length,
       storedArtifactNotes: data.notes.length,
       replayMatchesStoredAdvancedNoteCount: replayAdvanced.length === data.notes.length,
+      defaultOptionUnchanged,
+      frozenDefaultAlgorithmUnchanged,
+      frozenDefaultVariantDigest,
+      defaultVariantDigests: replayDigests,
+      tracedDefaultUnchanged,
+      storedVsReplayContent: noteDiff(data.notes, replayAdvanced),
       traceStages: traceStageSummary(traceEvents),
       importerTimingNormalization: {
         transformed: normalizedCanto.transformed,
         sourceTempoBpm: normalizedCanto.sourceTempoBpm,
         interpretation: "The importer first converts non-constant MIDI tempo timing into its normalized beat clock; lineage classification below uses those transformed source coordinates.",
       },
-      rawCantoLineage: traceCantoLineage(normalizedCanto.notes, traceEvents),
-      rawCantoToReplayAdvanced: classifyRawToOutput(rawCantoNotes, replayAdvanced),
+      rawCantoLineage: traceCantoLineage(normalizedCanto.notes, traceEvents, undefined, canonicalDuration),
+      rawCantoToReplayAdvanced: classifyRawToOutput(normalizedCanto.notes, replayAdvanced),
+      protectedSourceExperiment: {
+        profile: "learner",
+        sourceTagging: {
+          label: "-CANTO-",
+          trackIndex: rawCantoSource.trackIndex,
+          channel: rawCantoSource.channel,
+          matchedParsedNotes: tagged.matched,
+          ambiguousParsedNotes: tagged.ambiguous,
+          handAllocation: "preserved from the existing importer; no hand is forced by the source identity tag",
+        },
+        variantNotes: Object.fromEntries(protectedVariants.map((variant) => [variant.level, variant.notes.length])),
+        advancedNotes: protectedAdvanced.length,
+        rawCantoLineage: traceCantoLineage(normalizedCanto.notes, protectedTraceEvents, "vocals", canonicalDuration),
+        rawCantoToAdvancedNumeric: classifyRawToOutput(normalizedCanto.notes, protectedAdvanced),
+        playabilityAt108Bpm: playabilitySummary(protectedAdvanced, canonicalDuration, comparisonTempoBpm),
+        baselinePlayabilityAt108Bpm: playabilitySummary(replayAdvanced, canonicalDuration, comparisonTempoBpm),
+        accompanimentDiff: noteDiff(replayAdvanced, protectedAdvanced),
+        intent: "Disposable source-identified experiment: raw CANTO roots are tagged as vocals before the existing learner importer. This is not automatic approval or a catalog artifact.",
+      },
       interpretation: "Read-only replay of the current standard-MIDI learner importer. The stored artifact was generated earlier; count or content drift is reported, not silently reconciled.",
     };
   })() : null;
@@ -1075,6 +1277,11 @@ function evaluateTarget(target: (typeof targets)[number]): Record<string, unknow
       phaseStatus: "Raw meter declarations are evidence for a diagnostic phase candidate, not validated source-measure-boundary provenance.",
     },
     targetTempoBpm: target.targetTempoBpm,
+    defaultInvariance: {
+      optionUnsetVsEmpty: defaultOptionUnchanged,
+      matchesAca69ef: frozenDefaultAlgorithmUnchanged,
+      allLevelDigest: frozenDefaultVariantDigest,
+    },
     currentAutomatic: arrangementSummary(current, canonicalDuration, target.targetTempoBpm),
     derivedUpperStaffHandOverride: arrangementSummary(candidate, canonicalDuration, target.targetTempoBpm),
     rawCantoCandidate: rawCantoArrangement ? arrangementSummary(rawCantoArrangement, canonicalDuration, comparisonTempoBpm) : null,
@@ -1091,18 +1298,21 @@ function evaluateTarget(target: (typeof targets)[number]): Record<string, unknow
   };
 }
 
-console.log(JSON.stringify({
-  schemaVersion: 1,
-  sourceMode: "read-only canonical artifacts; derived MusicXML staff/voice lane is compared through the existing right-hand override, not promoted as independent source recovery",
-  generatedAt: "2026-09-19",
-  comparisonTempoBpm,
-  windowBeats,
-  nonClaims: [
-    "The derived upper-staff/voice-1 hand-override comparison is not a semantic melody approval or independent source recovery.",
-    "Zero unresolved beats in the derived override are expected by its selection semantics and do not validate the source melody.",
-    "The raw -CANTO- lane is a bounded vocal-track candidate; its label and channel do not establish learner-melody ownership.",
-    "Raw MIDI meter events do not independently prove pickup/downbeat phase.",
-    "Event counts and structural playability diagnostics do not establish musical acceptance.",
-  ],
-  targets: targets.map(evaluateTarget),
-}, null, 2));
+if (process.argv[1]?.endsWith("source-candidate-comparison.ts")) {
+  console.log(JSON.stringify({
+    schemaVersion: 1,
+    sourceMode: "read-only canonical artifacts; derived MusicXML staff/voice lane is compared through the existing right-hand override, not promoted as independent source recovery",
+    generatedAt: "2026-09-19",
+    comparisonTempoBpm,
+    windowBeats,
+    nonClaims: [
+      "The derived upper-staff/voice-1 hand-override comparison is not a semantic melody approval or independent source recovery.",
+      "Zero unresolved beats in the derived override are expected by its selection semantics and do not validate the source melody.",
+      "The raw -CANTO- lane is a bounded vocal-track candidate; its label and channel do not establish learner-melody ownership.",
+      "Raw MIDI meter events do not independently prove pickup/downbeat phase.",
+      "Same-onset coexistence is contextual evidence only; it does not prove that a source note was displaced by an accompaniment note.",
+      "Event counts and structural playability diagnostics do not establish musical acceptance.",
+    ],
+    targets: targets.map(evaluateTarget),
+  }, null, 2));
+}

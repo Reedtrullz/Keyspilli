@@ -91,9 +91,11 @@ All 278 CANTO roots map uniquely; no track identity was inferred from nearest
 canonical pitch.
 
 The current replay and stored artifact are not byte-equivalent: replayed
-Advanced has `2369` notes while the stored artifact has `2373`. That drift is
-reported rather than used to back-project current trace lineage onto the older
-artifact.
+Advanced has `2369` notes while the stored artifact has `2373`. Ignoring
+velocity, the stored artifact has `72` notes not present in replay and replay
+has `68` notes not present in the stored artifact; including velocity, the
+figures are `304` and `300`. That drift is reported rather than used to
+back-project current trace lineage onto the older artifact.
 
 | Replay stage | selected | rejected | notes / operation evidence |
 |---|---:|---:|---|
@@ -139,9 +141,10 @@ pruning, not wholesale loss in the importer sanitizer or learner arrangement.
 At that rejection stage, `88/128` roots had at least one selected note within
 the same 1/8-beat onset window; `56` had a higher selected pitch, `86` had a
 lower selected pitch, and `72` had a selected note with the same inferred hand
-(`R=67`, `L=61`). These sets overlap and carry no role labels, so this supports
-“candidate pruning among simultaneous texture” but does not prove “vocal line
-removed in favor of accompaniment.”
+(`R=67`, `L=61`). These sets overlap and carry no role labels. The scan is
+contextual coexistence evidence only: it supports “candidate pruning among
+simultaneous texture,” but does not prove that a particular accompaniment note
+displaced a vocal line.
 
 Representative trace roots make the boundary concrete. A normalized CANTO
 `59` at beat `20.984165` becomes learner `L59` at beat `21`, then is rejected
@@ -152,9 +155,10 @@ at beat `19.484180` becomes learner `R62`, survives Advanced candidates, and
 is shortened from `1.5` to `0.5` beats by the Advanced-playability duration
 cap. These are trace examples, not semantic role judgments.
 
-No audio artifact is claimed here. The direct CANTO hand-override candidate is
-not a useful full arranged result (`540` fallback beats and large source
-gaps), so the A/B figures remain numerical/structural diagnostics only.
+The direct CANTO hand-override candidate remains a separate raw-line A/B and
+is not a useful full arranged result (`540` fallback beats and large source
+gaps). The bounded protected-root experiment below is the actual importer
+candidate used for listening renders; neither result is semantic approval.
 
 The concrete producer/import boundary is now clear: `parseMidi` flattens raw
 track/channel/FF01 identity before the public `Note` stream reaches
@@ -163,6 +167,119 @@ as a private per-note sidecar through sanitize, quantize, deduplication, and
 playability pruning, then expose it only in provenance diagnostics. This audit
 uses the smallest external tuple sidecar needed to prove the boundary and does
 not promote any role into runtime data.
+
+### Protected-root importer candidate
+
+The bounded behavioral experiment tags only the uniquely matched raw CANTO
+tuples as `identitySource: "vocals"` before the real learner importer runs.
+The opt-in `protectedIdentitySources` option affects the existing Advanced
+co-onset ranking and register-span caps only. It does not force a hand, bypass
+duration changes, append a second accompaniment, or relax the existing
+playability cap. Lower levels receive the candidate only through the existing
+Advanced-to-ladder dependency; normal catalog ingestion leaves the option
+unset.
+
+| Whole-song Queen replay at 108 BPM | Current replay | Protected CANTO candidate |
+|---|---:|---:|
+| CANTO roots retained | `149 / 278` (`53.597%`) | `248 / 278` (`89.209%`) |
+| Retained raw-source active beats | `84.650` | `135.327` |
+| Longest gap between retained raw-source spans | `145.780` beats | `116.812` beats |
+| Advanced notes / global attacks | `2369 / 969` | `2406 / 1008` |
+| Global max simultaneous / sounding | `7 / 7` | `7 / 7` |
+| RH notes / onsets | `1224 / 636` | `1269 / 660` |
+| LH notes / onsets | `1145 / 775` | `1137 / 784` |
+| RH max sounding span / top-voice leap | `12 st / 34 st @ 82.778s` | `12 st / 34 st @ 82.778s` |
+| LH max sounding span / top-voice leap | `12 st / 28 st @ 128.056s` | `12 st / 28 st @ 33.819s` |
+| Simultaneous chord attacks / same-pitch rearticulation onsets | `631 / 583` | `623 / 568` |
+| Alternating-hand attacks | `34` | `59` |
+
+The candidate changes the existing Advanced texture: compared with current
+replay it removes `108` exact note members and adds `145`, for `37` more notes
+overall. This is a changed accompaniment texture, not blind source-note
+appending. The remaining `30` CANTO drops are `29` Advanced-candidate
+rejections and one learner-arrangement rejection; therefore the candidate
+improves retention but does not establish full-song line recovery or finish
+the source-identity task.
+
+The default-invariance guards compare SHA-256 digests of every generated
+variant. First, the option-unset and `protectedIdentitySources: []` runs are
+identical for all three pinned targets. Second, an aggregate digest over those
+same all-level digests matches the clean `aca69ef` baseline for each pinned
+target (`a8852c71…`, `6f9fe1bf…`, `b6263197…`). This proves the unset option
+does not alter the pre-candidate algorithm under the pinned inputs/configuration;
+the protected path is still opt-in. A synthetic trace regression also verifies
+that two raw roots merged into one selected descendant are both retained, while
+a third root rejected at the cleaned stage is attributed to that first rejection
+rather than to Advanced.
+
+### Same-instrument listening renders
+
+The candidate renderer writes Original, current replay, and protected
+candidate MIDI from the same pinned Queen input, then renders each full song
+and the diagnostic window `[18,30)` beats at `108 BPM` through the same local
+FluidSynth SoundFont (`VintageDreamsWaves-v2.sf2`). The full renders decode to
+`302.486s` including release tail; diagnostic renders decode to `10.541s`.
+These are listenable comparison artifacts only, not audio-hash or subjective
+musical acceptance.
+
+| Label | Full song | Diagnostic `[18,30)` |
+|---|---|---|
+| Original | [`original-full.ogg`](audio-candidate-2026-09-19/original-full.ogg) | [`original-diagnostic-18-30-beats.ogg`](audio-candidate-2026-09-19/original-diagnostic-18-30-beats.ogg) |
+| Current replay | [`replay-full.ogg`](audio-candidate-2026-09-19/replay-full.ogg) | [`replay-diagnostic-18-30-beats.ogg`](audio-candidate-2026-09-19/replay-diagnostic-18-30-beats.ogg) |
+| Protected candidate | [`candidate-full.ogg`](audio-candidate-2026-09-19/candidate-full.ogg) | [`candidate-diagnostic-18-30-beats.ogg`](audio-candidate-2026-09-19/candidate-diagnostic-18-30-beats.ogg) |
+
+The symbolic/audio render manifest is
+[`manifest.json`](audio-candidate-2026-09-19/manifest.json). The renders do
+not change catalog files, runtime data, or deployment state.
+
+Recreate the symbolic render inputs with:
+
+```sh
+export PATH=/Users/reidar/.nvm/versions/node/v22.22.3/bin:$PATH
+export KEYSPILLI_SOURCE_CANDIDATE_RENDER_DIR="$PWD/docs/superpowers/evidence/2026-09-19-chords-finish/audio-candidate-2026-09-19"
+npx tsx docs/superpowers/evidence/2026-09-19-chords-finish/render-source-candidate.ts
+```
+
+### Chords-mode loader/producer bridge
+
+The disposable current-replay and protected-candidate Advanced variants were
+written as temporary `notes.json` artifacts, loaded through the real
+`loadSongArtifact` boundary, projected with `projectChordSources`, and passed
+through the same Chords-mode default chain:
+`resolveChordSources/selectChordSource` → `buildMelodyArrangementOptions` →
+`buildMelodyAccompaniment`. Both selected `auto` with `authored-only` harmonic
+support, `automatic` selection, `allowRests: true`, `coherent-phrase`, and
+`sourceBackingMode: "default"`.
+
+| Whole-song producer replay at 108 BPM | Current importer replay | Protected candidate replay |
+|---|---:|---:|
+| Loaded source notes | `2369` | `2406` |
+| Producer output events / attacks | `2128 / 968` | `2186 / 1008` |
+| Melody / support events | `795 / 1333` | `834 / 1352` |
+| Generated support events | `0` | `0` |
+| Fallback beats / unresolved spans | `241.250 / 91` | `289.125 / 104` |
+| Max simultaneous / sounding | `7 / 7` | `6 / 7` |
+| RH notes / onsets | `988 / 624` | `1066 / 651` |
+| LH notes / onsets | `1140 / 773` | `1120 / 785` |
+
+Relative to the current replay, the candidate producer output has `+58`
+events, `+40` attacks, `+39` melody events, `+19` support events, `+47.875`
+fallback beats, and `+13` unresolved spans. The exact whole-song audible
+event multiset comparison removes `219` members and adds `277`; these are
+texture changes, not a claim that the candidate is musically better. The
+candidate keeps the source line's `34`-semitone RH and `28`-semitone LH
+top-voice leap diagnostics, with the LH worst leap moving from `128.056s` to
+`33.819s` at 108 BPM.
+
+Reproduce this disposable bridge check with:
+
+```sh
+export PATH=/Users/reidar/.nvm/versions/node/v22.22.3/bin:$PATH
+npx tsx docs/superpowers/evidence/2026-09-19-chords-finish/bridge-chords-producer.ts
+```
+
+The temporary loader root is removed after the run. No catalog file, runtime
+artifact, deployment state, or semantic melody status is changed.
 
 Worst-window selection scans every 12-beat window from the start plus a final
 tail-aligned window, maximizes differing melody source IDs, then candidate
@@ -300,3 +417,34 @@ acceptance is established. The read-only diagnostic now keeps the raw
 track/channel/FF01 identity in a sidecar, follows unique source roots through
 the current importer replay, asserts pinned input hashes, and includes a small
 1/16-versus-1/8 grid/chord correspondence regression.
+
+## Frozen `aca69ef` independent verification addendum — 2026-09-19
+
+The exact detached checkout `aca69ef0178b3e3e3b511cb66962d51dcb427696` was
+clean and did not contain the uncommitted `protectedIdentitySources` candidate.
+The Node 22 evaluator passed all pinned input-hash assertions. An independent
+exact replay confirmed Advanced `2369` versus stored `2373`; even ignoring
+velocity, the content comparison had `72` stored-only and `68` replay-only
+notes, so the drift is not merely a four-note count difference. Trace claims
+apply to the current replay, not the older stored artifact.
+
+For the current replay, all `278` CANTO roots partition cleanly: `111`
+verified grid mappings, `38` non-grid transforms, `129` drops, and zero
+ambiguous or unresolved roots. The `129` drops are exactly `128`
+`advanced-candidate-construction-rejected` plus one
+`range-and-hand-arrangement-rejected`; selected-root operations are `125`
+retained plus `24` duration-changed. Stage-funnel totals and transform-path
+totals are internally consistent, giving high causal confidence for this
+pinned replay that loss occurs once in learner arrangement and primarily at
+Advanced candidate construction.
+
+The same-onset rejection counts (`88/128` with a selected nearby note, `56`
+higher pitch, `86` lower pitch, `72` same hand) remain contextual texture
+evidence, not proof that a particular accompaniment note displaced a CANTO
+root: the diagnostic scans all selected Advanced-candidate events in the onset
+window rather than root-linked siblings. At that frozen checkpoint, the
+raw-to-replay numeric fallback also compared pre-tempo-normalized CANTO
+coordinates, while lineage used the correct normalized clock; the current
+follow-up compares both on the normalized clock and adds a synthetic
+multi-root merge/early-reject trace fixture. No semantic, audio, or musical
+acceptance is implied.
