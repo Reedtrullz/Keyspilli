@@ -245,11 +245,14 @@ npx tsx docs/superpowers/evidence/2026-09-19-chords-finish/render-source-candida
 The disposable current-replay and protected-candidate Advanced variants were
 written as temporary `notes.json` artifacts, loaded through the real
 `loadSongArtifact` boundary, projected with `projectChordSources`, and passed
-through the same Chords-mode default chain:
+through the same Chords-mode chain:
 `resolveChordSources/selectChordSource` → `buildMelodyArrangementOptions` →
 `buildMelodyAccompaniment`. Both selected `auto` with `authored-only` harmonic
 support, `automatic` selection, `allowRests: true`, `coherent-phrase`, and
 `sourceBackingMode: "default"`.
+
+The first bridge run (captured in commit `7c4bc57`) left the producer options
+unset for both replays:
 
 | Whole-song producer replay at 108 BPM | Current importer replay | Protected candidate replay |
 |---|---:|---:|
@@ -270,6 +273,47 @@ texture changes, not a claim that the candidate is musically better. The
 candidate keeps the source line's `34`-semitone RH and `28`-semitone LH
 top-voice leap diagnostics, with the LH worst leap moving from `128.056s` to
 `33.819s` at 108 BPM.
+
+That default bridge was a failed usefulness iteration: the protected importer
+candidate reached the producer, but it increased fallback by `47.875` beats
+and unresolved spans by `13`. The next bounded check was therefore a source-
+role boundary hypothesis, not a candidate promotion.
+
+`identitySource` survives both `loadSongArtifact` and `projectChordSources`.
+In the default candidate replay, the projected stream contained `2195`
+unannotated notes and `211` vocal-tagged notes; the generic automatic splitter
+selected `131` vocal-tagged notes as melody, emitted `43` as accompaniment, and
+left `35` in retained-unclassified events. The identity does not vanish at the
+artifact/loader boundary; the shared producer simply has no semantic vocal-role
+priority.
+
+### Opt-in source-role bridge follow-up (not default)
+
+The bridge then ran one minimal producer-side correction: only the protected
+candidate passed `protectedIdentitySources: ["vocals"]` to automatic selection.
+The current replay remained at the default options. This option is unset by
+catalog ingestion and normal Player paths.
+
+| Whole-song producer replay at 108 BPM | Current replay | Candidate with vocal anchors |
+|---|---:|---:|
+| Loaded source notes | `2369` | `2406` |
+| Projected identity counts | `2369 unannotated` | `2195 unannotated / 211 vocals` |
+| Selected vocal melody notes | `0` | `211` |
+| Producer output events / attacks | `2128 / 968` | `2188 / 1008` |
+| Melody / support events | `795 / 1333` | `914 / 1274` |
+| Generated support events | `0` | `0` |
+| Fallback beats / unresolved spans | `241.250 / 91` | `289.375 / 104` |
+| Max simultaneous / sounding | `7 / 7` | `6 / 7` |
+| RH notes / onsets | `988 / 624` | `1068 / 651` |
+| LH notes / onsets | `1140 / 773` | `1120 / 785` |
+
+The correction selected all `211` tagged notes, but worsened fallback by
+`48.125` beats and left the same `104` unresolved spans. It also changed the
+event multiset by `232` current-only and `292` candidate-only members. This
+does not establish that the source lane is wrong; it establishes that a generic
+producer-level identity anchor is not a useful repair. The source investigation
+rule is now active: stop algorithm tuning, keep the candidate opt-in only, and
+require a reviewed source-role/arrangement decision before any promotion.
 
 Reproduce this disposable bridge check with:
 

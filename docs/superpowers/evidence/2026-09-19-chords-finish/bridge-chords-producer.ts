@@ -52,6 +52,15 @@ function difference(left: Map<string, number>, right: Map<string, number>): numb
   return total;
 }
 
+function identityCounts(notes: readonly Note[]): Record<string, number> {
+  const counts = new Map<string, number>();
+  for (const note of notes) {
+    const identity = note.identitySource ?? "unannotated";
+    counts.set(identity, (counts.get(identity) ?? 0) + 1);
+  }
+  return Object.fromEntries([...counts.entries()].sort(([left], [right]) => left.localeCompare(right)));
+}
+
 function variantData(variant: Variant, fingerprint: string): SongData {
   return {
     notes: variant.notes,
@@ -103,7 +112,11 @@ async function writeDisposableArtifact(root: string, id: string, variant: Varian
   return loaded.data;
 }
 
-function runPlayerProducer(data: SongData, id: string): Record<string, unknown> {
+function runPlayerProducer(
+  data: SongData,
+  id: string,
+  protectedIdentitySources: readonly NonNullable<Note["identitySource"]>[] = [],
+): Record<string, unknown> {
   const durationBeats = duration(data);
   const sourceFingerprint = data.sourceFingerprint ?? null;
   const sparseBackingTiming = validateSparseBackingTiming(data.sourceTiming, sourceFingerprint);
@@ -111,10 +124,7 @@ function runPlayerProducer(data: SongData, id: string): Record<string, unknown> 
   const projected = projectChordSources(data, null, "a");
   const selected = selectChordSource(resolveChordSources(projected), "auto");
   const harmonicSupport = melodyHarmonicSupportPolicy(selected.source);
-  const resolution = buildMelodyAccompaniment(
-    projected.notes,
-    selected.source?.chords ?? [],
-    buildMelodyArrangementOptions({
+  const arrangementOptions = buildMelodyArrangementOptions({
       durationBeats,
       sourceFingerprint,
       selection: "automatic",
@@ -122,12 +132,27 @@ function runPlayerProducer(data: SongData, id: string): Record<string, unknown> 
       harmonicSupport,
       sourceBackingMode: "default",
       sparseBackingTiming: timing,
-    }),
+  });
+  const resolution = buildMelodyAccompaniment(
+    projected.notes,
+    selected.source?.chords ?? [],
+    protectedIdentitySources.length > 0
+      ? { ...arrangementOptions, protectedIdentitySources }
+      : arrangementOptions,
   );
   const outputMetrics = measurePlayability(resolution.notes, tempoBpm, durationBeats);
   const eventMultiset = multiset(resolution.events.map((event) => event.note));
   const sourceIds = sourceNoteIds(projected.notes);
+  const sourceById = new Map(sourceIds.map((sourceId, index) => [sourceId, projected.notes[index]!])) as Map<string, Note>;
   const emittedSourceIds = new Set(resolution.events.flatMap((event) => event.sourceNoteIds));
+  const melodySourceIds = new Set(resolution.provenance.melodyNoteIds);
+  const identityCountsByRole = Object.fromEntries(([
+    "melody",
+    "accompaniment",
+    "retained-unclassified",
+  ] as const).map((role) => [role, identityCounts(resolution.events
+    .filter((event) => event.role === role)
+    .flatMap((event) => event.sourceNoteIds.map((sourceId) => sourceById.get(sourceId)).filter((note): note is Note => note !== undefined)))]));
   return {
     id,
     loaderAndProducer: "loadSongArtifact -> projectChordSources -> resolveChordSources/selectChordSource -> buildMelodyArrangementOptions -> buildMelodyAccompaniment",
@@ -136,6 +161,15 @@ function runPlayerProducer(data: SongData, id: string): Record<string, unknown> 
     selectedChordSource: selected.source?.id ?? null,
     selectedChordSourceFallback: selected.fallback,
     harmonicSupport,
+    protectedIdentitySources,
+    lineage: {
+      loadedIdentityCounts: identityCounts(data.notes),
+      projectedIdentityCounts: identityCounts(projected.notes),
+      selectedMelodyIdentityCounts: identityCounts(projected.notes.filter((_, index) => melodySourceIds.has(sourceIds[index]!))),
+      emittedEventIdentityCountsByRole: identityCountsByRole,
+      preservedThroughLoader: JSON.stringify(identityCounts(data.notes)) === JSON.stringify(identityCounts(projected.notes)),
+      interpretation: "identitySource survives the disposable loader and chord projection; baseline automatic selection is generic, while the candidate-only identity anchor is an experimental override, not semantic vocal ownership.",
+    },
     outputEvents: resolution.events.length,
     outputNotes: resolution.notes.length,
     outputAttacks: outputMetrics.global.onsetCount,
@@ -208,7 +242,7 @@ async function main(): Promise<void> {
     const currentData = await writeDisposableArtifact(disposableRoot, "queen-current-replay", current, `bridge:current:${sha256(JSON.stringify(current.notes))}`);
     const candidateData = await writeDisposableArtifact(disposableRoot, "queen-protected-candidate", candidate, `bridge:candidate:${sha256(JSON.stringify(candidate.notes))}`);
     const currentResult = runPlayerProducer(currentData, "current-replay");
-    const candidateResult = runPlayerProducer(candidateData, "protected-candidate-replay");
+    const candidateResult = runPlayerProducer(candidateData, "protected-candidate-replay", ["vocals"]);
     const currentEvents = currentResult.outputEventMultiset as Map<string, number>;
     const candidateEvents = candidateResult.outputEventMultiset as Map<string, number>;
     console.log(JSON.stringify({
@@ -227,6 +261,7 @@ async function main(): Promise<void> {
         soundingPolicy: "coherent-phrase",
         sourceBackingMode: "default",
         comparisonTempoBpm: tempoBpm,
+        protectedCandidateIdentitySources: ["vocals"],
       },
       currentReplay: { ...currentResult, outputEventMultiset: undefined },
       protectedCandidateReplay: { ...candidateResult, outputEventMultiset: undefined },
