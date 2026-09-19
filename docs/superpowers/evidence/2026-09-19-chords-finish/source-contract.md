@@ -21,6 +21,8 @@ startBeat = index × (timeSig numerator × 4 / denominator)
 
 The five pinned artifacts all begin with MusicXML measure 1, no implicit pickup flag, and an explicit time signature. That is useful descriptive evidence, but it does not prove that beat 0 is an authored downbeat or that a source pickup was absent. The current notes.json measure arrays are arithmetic projections, not independently authored phase records.
 
+Execution fixtures must match the pinned source identity before they are used for current-song acceptance. Compare sourceArtifactHash, note count/end, semantic notes payload, measures, and chord payload separately; do not mix a historical API fixture's enriched metadata or sourceFingerprint with a canonical artifact. A mismatch requires a disposable fixture regenerated from the pinned canonical source or remains an explicit blocker.
+
 Therefore:
 
 - missing phase provenance remains unknown;
@@ -61,7 +63,7 @@ Pinned ID: the-theorist-elton-john-your-song-piano-cover-jz6ugvghbt8-a.
 
 The canonical source is YouTube-derived with source artifact hash bcdbb1eef809fbf0bee0824a874e98ad3cea321e44d0d87ed0a9633b72371f0e. The curated UG timeline is sourceId ug-your-song, coverage opening-section, duration 128 beats, and 32 four-beat events. Generated continuation outside authored chart is not equivalent to authored backing or validated harmony.
 
-Decision: partial-coverage target; preserve original outside the chart and keep authored chart, generated labels, and notes-derived fallback distinct.
+Decision: partial-coverage target; forbid unsupported synthesized harmony outside the authored chart, but allow evidence-backed source-only reduction where the source path is defensible. Preserve Original only when no safe reduction path is established, and keep authored chart, source-only reduction, generated labels, and notes-derived fallback distinct.
 
 ### Hell You Call a Dream — advanced negative control
 

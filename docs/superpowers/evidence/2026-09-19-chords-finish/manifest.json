@@ -255,5 +255,67 @@
       "chordCoverage": "no catalog chord chart; automatic source is notes-derived fallback",
       "decision": "negative control for unsupported authored chord coverage; fallback must remain honest and audible"
     }
+  ],
+  "fixtureComparisons": [
+    {
+      "baseId": "britney-spears-oops-i-did-it-again",
+      "canonical": {
+        "notesCount": 1897,
+        "noteEndBeat": 332.375,
+        "notesArraySha256": "4147195a9018562c2b1d1c7ab7c6740d6173c822e60dfb26779ec6126306a90d",
+        "measuresSha256": "6a732d1df2ad305299c7797b70bf5f1e8280469066f90ee2c3d71b1d34ec8020",
+        "chordsSha256": "24bf54b728a9f85339399ac45679b2ac860ce4fbd32d63edcd375c703134412f",
+        "runtimeSourceFingerprint": "variant:britney-spears-oops-i-did-it-again:a:britney-spears-oops-i-did-it-again-a:64d18aa4c23f7625a6eb0a7a234843a7a2278003d75cba9ea04efde7d8225ad4:notes:337834fcd339a67e2aebbae3a8d3c3ae8eb8eb55c8529610e748c40bf80ca60a"
+      },
+      "frozenFixture": {
+        "notesCount": 1891,
+        "noteEndBeat": 332.375,
+        "notesArraySha256": "7d02257981cd6abf39575b38c8e1e1c9daef7737129fed2aad5025dcfa50c090",
+        "measuresSha256": "6a732d1df2ad305299c7797b70bf5f1e8280469066f90ee2c3d71b1d34ec8020",
+        "chordsSha256": "c42b959e8ec065c18e76bbb4c863b28d487634bc55244b95b629f2be4e49a84d",
+        "runtimeSourceFingerprint": "variant:britney-spears-oops-i-did-it-again:a:britney-spears-oops-i-did-it-again-a:64d18aa4c23f7625a6eb0a7a234843a7a2278003d75cba9ea04efde7d8225ad4:notes:84153b6de3857351ce92086c8f5a28f9147073070948ed96fd39e6d6f8f212ae"
+      },
+      "executionDecision": "historical fixture is not interchangeable with canonical data; use the frozen fixture only for historical replay and generate a disposable current-source fixture before current-song acceptance"
+    },
+    {
+      "baseId": "the-beatles-blackbird",
+      "canonical": {
+        "notesCount": 1069,
+        "noteEndBeat": 294,
+        "notesArraySha256": "042fefacf70152f1989d1caa6decb86274d1f49a906d2554fbe876902be1c7f1",
+        "measuresSha256": "a5063d4636eb7c9a90e179517672f3a4bdde187284b8f0017208fea9feefb4b9",
+        "chordsSha256": "cb9ba3500e2b3c404d27e620964f5d982d241a30bd9ec99212886cd70c4fddc6",
+        "runtimeSourceFingerprint": "variant:the-beatles-blackbird:a:the-beatles-blackbird-a:3fc3fd74d567da56dd10ff05689ef2f57641efbbe200532aabc0ea5fbcea1e75:notes:70f29a617731fd982e54592d98fb37c74d964ea6d275c011f04579f14b871256"
+      },
+      "frozenFixture": {
+        "notesCount": 1069,
+        "noteEndBeat": 294,
+        "notesArraySha256": "042fefacf70152f1989d1caa6decb86274d1f49a906d2554fbe876902be1c7f1",
+        "measuresSha256": "a5063d4636eb7c9a90e179517672f3a4bdde187284b8f0017208fea9feefb4b9",
+        "chordsSha256": "ea553bebca9bb9113d61ef25b0b6d19796adcdd0fa413ce424100bf9f80d2625",
+        "runtimeSourceFingerprint": "variant:the-beatles-blackbird:a:the-beatles-blackbird-a:3fc3fd74d567da56dd10ff05689ef2f57641efbbe200532aabc0ea5fbcea1e75:notes:4529b839209ca52480d6dbab332ea211e709edfb660473b662a1a62ef56aa53e"
+      },
+      "executionDecision": "note payload matches canonically; keep the frozen enriched API fixture for historical player replay, but do not combine its chord metadata or fingerprint with canonical notes"
+    },
+    {
+      "baseId": "aria-ellys-music-the-warning-hell-you-call-a-dream-piano-cover-by-aria-ellys-mslzwo1d",
+      "canonical": {
+        "notesCount": 1452,
+        "noteEndBeat": 364.75,
+        "notesArraySha256": "b3774bfa6dd7c7eee6873a30939a0d5e3a6b2055cea8eb9c3f408cebec47da4c",
+        "measuresSha256": "fa959de8e9571f99bf355a33d64dd309f5881d476cd86604e8179143812e4c0a",
+        "chordsSha256": "499487ad04e76457919380fc9bee4a5b1041423d517ac7e2830f2ec23e2abc7d",
+        "runtimeSourceFingerprint": "variant:aria-ellys-music-the-warning-hell-you-call-a-dream-piano-cover-by-aria-ellys-mslzwo1d:a:aria-ellys-music-the-warning-hell-you-call-a-dream-piano-cover-by-aria-ellys-mslzwo1d-a:13e9cd2ed273c7bf9f9a8a14a480ae5b8505e52d85eb3cfacdc51d6cb9f3af0a:notes:6c03998a78c9ba1052feafc87476e6ba38c47f4c824c96855684212cf04fb265"
+      },
+      "frozenFixture": {
+        "notesCount": 1130,
+        "noteEndBeat": 350.75,
+        "notesArraySha256": "fc268600b44c6cfa5bb6ffc43a5fdd5c232f1a27876bb377b92f05e0051151e0",
+        "measuresSha256": "2c4ba1a7ab46207a6399fc412db75ee9c5c8a2e54304b1026eaad1d3f70318fd",
+        "chordsSha256": "765120f1bf377af622f00667ec68c9e72950085956721e43d5fd802ffaf7d6cf",
+        "runtimeSourceFingerprint": "variant:aria-ellys-music-the-warning-hell-you-call-a-dream-piano-cover-by-aria-ellys-mslzwo1d:a:aria-ellys-music-the-warning-hell-you-call-a-dream-piano-cover-by-aria-ellys-mslzwo1d-a:7f91d0de3a130f5694f9ee3625300b12e7100f1c4f7b4310f2eb918ab625203d:notes:620a41b0fcf9f44301f6094c8173d2c918e56e1fb5545edf7f5fb13e3da8d5d3"
+      },
+      "executionDecision": "historical fixture is materially different from canonical data and has a different sourceArtifactHash; do not use it for current acceptance until a disposable fixture is regenerated from the pinned canonical source"
+    }
   ]
 }
