@@ -1,0 +1,259 @@
+{
+  "schemaVersion": 1,
+  "baselineSha": "881881b8f9b9f8bc75f70dd4d6a551de6e62de6e",
+  "capturedAt": "2026-09-19",
+  "sourceEvidenceRule": "Source hand labels are not melody truth. A time-signature tuple and arithmetic measure list are not validated pickup/downbeat provenance.",
+  "targets": [
+    {
+      "role": "required",
+      "songId": "britney-spears-oops-i-did-it-again-a",
+      "baseId": "britney-spears-oops-i-did-it-again",
+      "title": "Oops I Did It Again",
+      "artist": "Britney Spears",
+      "variant": "a",
+      "difficulty": "advanced",
+      "tempoBpm": 95,
+      "timeSig": [4, 4],
+      "sourceKind": "standard",
+      "sourceRef": "manifest:britney-spears-oops-i-did-it-again.mid",
+      "sourceArtifactHash": "64d18aa4c23f7625a6eb0a7a234843a7a2278003d75cba9ea04efde7d8225ad4",
+      "canonicalFiles": {
+        "manifest": {
+          "path": "/Users/reidar/Projectos/Keyspilli/data/artifacts/britney-spears-oops-i-did-it-again/manifest.json",
+          "sha256": "de8f40b8cf7fdbdfd38dacf3b0feb1fa8cf24f615eb118c768c8f308f357173d"
+        },
+        "notes": {
+          "path": "/Users/reidar/Projectos/Keyspilli/data/artifacts/britney-spears-oops-i-did-it-again/a/notes.json",
+          "sha256": "337834fcd339a67e2aebbae3a8d3c3ae8eb8eb55c8529610e748c40bf80ca60a"
+        },
+        "variantMidi": {
+          "path": "/Users/reidar/Projectos/Keyspilli/data/artifacts/britney-spears-oops-i-did-it-again/a/variant.mid",
+          "sha256": "001c03ee99636dc6c9f6eda9feeeeec060507c35d5a5431f0d1a586de6ea9d76"
+        },
+        "variantXml": {
+          "path": "/Users/reidar/Projectos/Keyspilli/data/artifacts/britney-spears-oops-i-did-it-again/a/variant.xml",
+          "sha256": "6e52b06ee3499f2c51031e1405b0b6def622c0b90349b62050e4c1e007306930"
+        }
+      },
+      "frozenFixture": {
+        "path": "docs/superpowers/evidence/2026-09-17-chords-v2-fixtures/britney-spears-oops-i-did-it-again",
+        "available": true,
+        "notesSha256": "346c168afa388c8582fbd631a1e0d79ba8bd585caa49ad7a1082492b5ecb7f98"
+      },
+      "musicXml": {
+        "firstMeasureNumber": 1,
+        "implicit": false,
+        "timeSigAtFirstMeasure": [4, 4],
+        "measureCount": 84,
+        "soundTagCount": 0
+      },
+      "derivedMeasures": "notes.json starts at [0,4]; packages/midi/src/simplify.ts buildMeasures derives starts as i * (num * 4 / den).",
+      "pickupDownbeat": "unknown; no independently authored phase or pickup metadata is carried through the runtime payload",
+      "melodyIdentity": "unverified; staff/voice evidence exists in a backup MusicXML but no semantic melody legend and no live sourceLane/identitySource fields",
+      "chordCoverage": "no catalog chord chart; automatic source is notes-derived fallback",
+      "decision": "required target; continue with conservative unknown-phase behavior and source investigation before enabling meter-phase sparse support"
+    },
+    {
+      "role": "required",
+      "songId": "the-beatles-blackbird-a",
+      "baseId": "the-beatles-blackbird",
+      "title": "Blackbird",
+      "artist": "The Beatles",
+      "variant": "a",
+      "difficulty": "advanced",
+      "tempoBpm": 120,
+      "timeSig": [4, 4],
+      "sourceKind": "standard",
+      "sourceRef": "manifest:the-beatles-blackbird.mid",
+      "sourceArtifactHash": "3fc3fd74d567da56dd10ff05689ef2f57641efbbe200532aabc0ea5fbcea1e75",
+      "canonicalFiles": {
+        "manifest": {
+          "path": "/Users/reidar/Projectos/Keyspilli/data/artifacts/the-beatles-blackbird/manifest.json",
+          "sha256": "bd3c983a1f88134bb276145fa0d3a8f91241107a4525295eb3d96109d0b82c2f"
+        },
+        "notes": {
+          "path": "/Users/reidar/Projectos/Keyspilli/data/artifacts/the-beatles-blackbird/a/notes.json",
+          "sha256": "70f29a617731fd982e54592d98fb37c74d964ea6d275c011f04579f14b871256"
+        },
+        "variantMidi": {
+          "path": "/Users/reidar/Projectos/Keyspilli/data/artifacts/the-beatles-blackbird/a/variant.mid",
+          "sha256": "eaa46a8de0eb088a41c3d17ab1a18dbc06fd3f9f1899cad990e365f1c756ab1c"
+        },
+        "variantXml": {
+          "path": "/Users/reidar/Projectos/Keyspilli/data/artifacts/the-beatles-blackbird/a/variant.xml",
+          "sha256": "2deba24d628ea9b80b3770e7984228a4b45c918549ae404f1db5c98822879395"
+        }
+      },
+      "frozenFixture": {
+        "path": "docs/superpowers/evidence/2026-09-17-chords-v2-fixtures/the-beatles-blackbird",
+        "available": true,
+        "notesSha256": "5aa5671d42bd93c2ac65c1fd21c87aa049b8baead3dfb48ae265213e6f445c75"
+      },
+      "musicXml": {
+        "firstMeasureNumber": 1,
+        "implicit": false,
+        "timeSigAtFirstMeasure": [4, 4],
+        "measureCount": 74,
+        "soundTagCount": 0
+      },
+      "derivedMeasures": "notes.json starts at [0,4]; packages/midi/src/simplify.ts buildMeasures derives starts as i * (num * 4 / den).",
+      "pickupDownbeat": "unknown; no independently authored phase or pickup metadata is carried through the runtime payload",
+      "melodyIdentity": "unverified; the accepted control worksheet deliberately leaves melody/backing/rest labels reviewer-owned and blank",
+      "chordCoverage": "no catalog chord chart; automatic source is notes-derived fallback",
+      "decision": "required control; preserve its source timing unless validated evidence supports reduction"
+    },
+    {
+      "role": "required",
+      "songId": "queen-somebody-to-love-a",
+      "baseId": "queen-somebody-to-love",
+      "title": "Somebody To Love",
+      "artist": "Queen",
+      "variant": "a",
+      "difficulty": "advanced",
+      "tempoBpm": 108,
+      "timeSig": [6, 8],
+      "sourceKind": "standard",
+      "sourceRef": "manifest:queen-somebody-to-love.mid",
+      "sourceArtifactHash": "4505d3a7cb3c24788e51905eb29a40c501a31f7bd07596d489f63f7430c7a74e",
+      "canonicalFiles": {
+        "manifest": {
+          "path": "/Users/reidar/Projectos/Keyspilli/data/artifacts/queen-somebody-to-love/manifest.json",
+          "sha256": "0093613fd0f404fca931090163ab2a9f96272aa82eef729f4da68587929a9135"
+        },
+        "notes": {
+          "path": "/Users/reidar/Projectos/Keyspilli/data/artifacts/queen-somebody-to-love/a/notes.json",
+          "sha256": "4faced9af0bc543fd4f054c731a16ed58e977d8623f947ff6925b482f8b3ec7d"
+        },
+        "variantMidi": {
+          "path": "/Users/reidar/Projectos/Keyspilli/data/artifacts/queen-somebody-to-love/a/variant.mid",
+          "sha256": "83be6c85627d6d861cd209d8b9411053ffe585712f142c8c0a83744ca1068d51"
+        },
+        "variantXml": {
+          "path": "/Users/reidar/Projectos/Keyspilli/data/artifacts/queen-somebody-to-love/a/variant.xml",
+          "sha256": "2e5f254a2d88aa4427e47d6d2773c956fd9d4c890a3edb7d54563f7e1fa6d594"
+        }
+      },
+      "frozenFixture": {
+        "path": null,
+        "available": false,
+        "notesSha256": null
+      },
+      "musicXml": {
+        "firstMeasureNumber": 1,
+        "implicit": false,
+        "timeSigAtFirstMeasure": [6, 8],
+        "measureCount": 180,
+        "soundTagCount": 0
+      },
+      "derivedMeasures": "notes.json starts at [0,3]; packages/midi/src/simplify.ts derives 6/8 measure starts as i * 3 quarter-note beats.",
+      "pickupDownbeat": "unknown; the 6/8 tuple establishes width but not whether beat 0 is an authored downbeat or a pickup boundary",
+      "melodyIdentity": "unverified; no checked-in semantic melody identity or source-lane contract",
+      "chordCoverage": "no catalog chord chart; automatic source is notes-derived fallback",
+      "decision": "required target; do not enable 6/8 phase gestures until source phase is validated"
+    },
+    {
+      "role": "required",
+      "songId": "the-theorist-elton-john-your-song-piano-cover-jz6ugvghbt8-a",
+      "baseId": "the-theorist-elton-john-your-song-piano-cover-jz6ugvghbt8",
+      "title": "Elton John - Your Song | The Theorist Piano Cover",
+      "artist": "The Theorist",
+      "variant": "a",
+      "difficulty": "advanced",
+      "tempoBpm": 129,
+      "timeSig": [4, 4],
+      "sourceKind": "youtube",
+      "sourceRef": "youtube:JZ6uGVghbT8",
+      "sourceArtifactHash": "bcdbb1eef809fbf0bee0824a874e98ad3cea321e44d0d87ed0a9633b72371f0e",
+      "canonicalFiles": {
+        "manifest": {
+          "path": "/Users/reidar/Projectos/Keyspilli/data/artifacts/the-theorist-elton-john-your-song-piano-cover-jz6ugvghbt8/manifest.json",
+          "sha256": "3c995622d4d7cdb2fd6d067e3c51e141fbe919deb93dfc53d8be57ec97f2bd4b"
+        },
+        "notes": {
+          "path": "/Users/reidar/Projectos/Keyspilli/data/artifacts/the-theorist-elton-john-your-song-piano-cover-jz6ugvghbt8/a/notes.json",
+          "sha256": "5bc202eecbcff8597163eb9fd154af01e07f4682989bc2e7aa5bd3d573e8fb99"
+        },
+        "variantMidi": {
+          "path": "/Users/reidar/Projectos/Keyspilli/data/artifacts/the-theorist-elton-john-your-song-piano-cover-jz6ugvghbt8/a/variant.mid",
+          "sha256": "1a67b0e425a4056051759e92f5f3f2bacf5f7f6dbc86ec47772d19b57365d811"
+        },
+        "variantXml": {
+          "path": "/Users/reidar/Projectos/Keyspilli/data/artifacts/the-theorist-elton-john-your-song-piano-cover-jz6ugvghbt8/a/variant.xml",
+          "sha256": "985b02c621a1c84a921ad359b92ea41eb5f893be833075c0f119581eedeb1421"
+        }
+      },
+      "frozenFixture": {
+        "path": null,
+        "available": false,
+        "notesSha256": null
+      },
+      "musicXml": {
+        "firstMeasureNumber": 1,
+        "implicit": false,
+        "timeSigAtFirstMeasure": [4, 4],
+        "measureCount": 127,
+        "soundTagCount": 0
+      },
+      "derivedMeasures": "notes.json starts at [0,4]; current runtime source fingerprint is built from the sourceArtifactHash plus loaded notes content.",
+      "pickupDownbeat": "unknown; current chart has explicit opening-section coverage through beat 128 but no independently validated pickup/phase contract",
+      "melodyIdentity": "unverified; YouTube-derived notes carry no semantic melody identity in the runtime payload",
+      "chordCoverage": {
+        "sourceId": "ug-your-song",
+        "coverage": "opening-section",
+        "durationBeats": 128,
+        "eventCount": 32,
+        "fallback": "generated continuation and notes-derived fallback outside authored chart"
+      },
+      "decision": "partial-coverage target; retain original outside the authored chart and keep generated continuation provenance separate"
+    },
+    {
+      "role": "negative-control",
+      "songId": "aria-ellys-music-the-warning-hell-you-call-a-dream-piano-cover-by-aria-ellys-mslzwo1d-a",
+      "baseId": "aria-ellys-music-the-warning-hell-you-call-a-dream-piano-cover-by-aria-ellys-mslzwo1d",
+      "title": "The Warning - Hell You Call a Dream (Piano Cover by Aria Ellys)",
+      "artist": "Aria Ellys Music",
+      "variant": "a",
+      "difficulty": "advanced",
+      "tempoBpm": 99,
+      "timeSig": [4, 4],
+      "sourceKind": "youtube",
+      "sourceRef": "youtube:6eItF6yVVnE",
+      "sourceArtifactHash": "13e9cd2ed273c7bf9f9a8a14a480ae5b8505e52d85eb3cfacdc51d6cb9f3af0a",
+      "canonicalFiles": {
+        "manifest": {
+          "path": "/Users/reidar/Projectos/Keyspilli/data/artifacts/aria-ellys-music-the-warning-hell-you-call-a-dream-piano-cover-by-aria-ellys-mslzwo1d/manifest.json",
+          "sha256": "f14790db8b0742a752cf4b6dd571fc56d49a9dfa27dc36263628a3a67fe8900c"
+        },
+        "notes": {
+          "path": "/Users/reidar/Projectos/Keyspilli/data/artifacts/aria-ellys-music-the-warning-hell-you-call-a-dream-piano-cover-by-aria-ellys-mslzwo1d/a/notes.json",
+          "sha256": "6c03998a78c9ba1052feafc87476e6ba38c47f4c824c96855684212cf04fb265"
+        },
+        "variantMidi": {
+          "path": "/Users/reidar/Projectos/Keyspilli/data/artifacts/aria-ellys-music-the-warning-hell-you-call-a-dream-piano-cover-by-aria-ellys-mslzwo1d/a/variant.mid",
+          "sha256": "e930e6c3a6c346a9277be23fa5aac01a068fb51efe69bd121b10343da6d4e567"
+        },
+        "variantXml": {
+          "path": "/Users/reidar/Projectos/Keyspilli/data/artifacts/aria-ellys-music-the-warning-hell-you-call-a-dream-piano-cover-by-aria-ellys-mslzwo1d/a/variant.xml",
+          "sha256": "5bbb4de5ad46728d22ede35d8c6a2eb5de120cc6e2f53bb88c22e9b5a7033acb"
+        }
+      },
+      "frozenFixture": {
+        "path": "docs/superpowers/evidence/2026-09-17-chords-v2-fixtures/aria-ellys-music-the-warning-hell-you-call-a-dream-piano-cover-by-aria-ellys-mslzwo1d",
+        "available": true,
+        "notesSha256": "587680e888ee479a4be9c4c664b5910af88ecb2132863091e8b661b65040f6e4"
+      },
+      "musicXml": {
+        "firstMeasureNumber": 1,
+        "implicit": false,
+        "timeSigAtFirstMeasure": [4, 4],
+        "measureCount": 92,
+        "soundTagCount": 0
+      },
+      "derivedMeasures": "notes.json starts at [0,4]; packages/midi/src/simplify.ts derives measure starts from the timeSig tuple.",
+      "pickupDownbeat": "unknown; detected YouTube transcription has no independently authored phase contract",
+      "melodyIdentity": "unverified; transcription metadata describes the pipeline but does not provide semantic melody gold",
+      "chordCoverage": "no catalog chord chart; automatic source is notes-derived fallback",
+      "decision": "negative control for unsupported authored chord coverage; fallback must remain honest and audible"
+    }
+  ]
+}
