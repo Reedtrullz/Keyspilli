@@ -24,7 +24,7 @@ PR must remain draft and must not be merged or deployed from this evidence.
 | T4 — simple controls, truthful outcomes, saved state | `SoundControls.tsx`, arrangement status, Player preference/reset paths, catalog/song-update handling, focused component/runtime tests, and the runtime checkpoint cover ordinary controls before Advanced disclosure, truthful result categories, saved settings, reset scope, and hand-volume labels. | Engineering behavior covered by focused tests/build. | G3 still needs parent review of the full default UX/geometry/accessibility contract; status/tests do not establish musical usefulness. |
 | T5 — same-passage A/B and transport safety | `Player.tsx`, preview lifecycle fixes, `previewPlan` empty-window regression, A/B bounds/identity tests, cancellation on source/mode/seek/navigation changes, worker/stale-reply cases, and the melody Playwright slice. The focused final slice passes worker parity, role audition, source cancellation, moving-transport/seek cancellation, Stop/Repeat, selected-loop bounds, and six-beat measure bounds. | Structurally verified for the scoped preview contract. | Repeat-practice cancellation remains defensive/instrumentation-limited: mutation evidence did not prove the aggregate stop-count assertion is boundary-specific, and native modal reachability was not established. This is not a musical acceptance claim. |
 | T6 — practice, sheet, labels, and export contracts | Runtime checkpoint verifies Chord-mode practice targets the derived arrangement and falling/labels/guidance paths use the active result. `DownloadDialog.tsx`, `BeginnerView.tsx`, `LeadSheetView.tsx`, engine tests, and E2E checks label sheet/download views as Original-backed when Chord mode is selected. | Contract and projection behavior verified; Original-backed derived exports are an intentional disclosed boundary for this scope. | Derived sheet/export generation is intentionally not implemented in this round; this is not a claim that Chord-mode notation/export has been accepted as derived output. G3 still needs human UX review. |
-| T7 — verification, review packet, and honest PR | Focused final verification: web typecheck, 9 focused component/runtime tests, production build, six targeted melody E2E tests, and a fresh Blackbird A/B capture. Earlier workspace test/typecheck/build evidence, exact hashes, OGG/SoundFont/encoder provenance, draft PR, this matrix, and source-review packet remain recorded. | Scoped engineering verification complete; final gate open. | The full scratch suite was not rerun after the focused worker-oracle correction. Human listening, target-tempo physical keyboard review, semantic source-role approval, and required-song musical acceptance are not complete. No merge/deploy. |
+| T7 — verification, review packet, and honest PR | Focused final verification: web typecheck, 9 focused component/runtime tests, production build, six targeted melody E2E tests, and a fresh Blackbird A/B capture. Earlier workspace test/typecheck/build evidence, exact hashes, OGG/SoundFont/encoder provenance, draft PR, this matrix, and source-review packet remain recorded. | Scoped engineering verification complete; final gate open. | The full scratch suite was not rerun after the focused worker-oracle correction. GitHub Automatic checks still fail in the broad catalog pipeline on XML round-trip tempo/time-signature/note-count mismatches already present at `abf9abd`/`3102207`; `container-smoke` passed and image/deploy/catalog-rebuild jobs were skipped. Human listening, target-tempo physical keyboard review, semantic source-role approval, and required-song musical acceptance are not complete. No merge/deploy. |
 
 ## G1–G4 gate status
 
@@ -65,6 +65,17 @@ Earlier workspace evidence at the prior runtime head recorded:
 These checks establish engineering integrity only. They do not establish
 recognizability, useful harmony, comfortable fingering, pedal cleanliness,
 balance, or human acceptance.
+
+## GitHub CI disposition after final push
+
+PR #103 run `35461044500` failed only in `Build catalog pipeline (db + artifacts)`
+because the broad catalog replay reports existing XML round-trip drift across
+unrelated songs (tempo/time-signature/note-count mismatches). The same
+Automatic checks job failed at `abf9abd` and `3102207`, before the final T5
+runtime/evidence commits. `container-smoke` run `35461044511` passed. Image
+build, deploy, and production catalog rebuild were skipped. This is recorded as
+a branch-level CI blocker, not silently called a green release gate; no
+catalog repair or deploy was undertaken in this scoped task.
 
 ## Concrete remaining source-review action
 
