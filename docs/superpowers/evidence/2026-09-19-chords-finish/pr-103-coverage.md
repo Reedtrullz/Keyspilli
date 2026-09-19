@@ -2,8 +2,8 @@
 
 Branch: `codex/finish-chords-mode`
 Base: `origin/main` / `881881b8f9b9f8bc75f70dd4d6a551de6e62de6e`
-Head: current branch tip (documentation follow-up to verified runtime head `abf9abd`)
-Scope: 25 commits, 72 changed files. This matrix covers the whole PR, not
+Head: `36bed6e1b9ea66aceb6fb3291131dd2d33c2e07e`
+Scope: 27 commits, 76 changed files. This matrix covers the whole PR, not
 only the later Queen source-candidate experiment.
 
 ## Current disposition
@@ -22,9 +22,9 @@ PR must remain draft and must not be merged or deployed from this evidence.
 | T2 — timing through parser/catalog/player/worker | `MidiTimeSignatureEvent[]` is carried through MIDI parsing, variant construction, roundtrip/catalog metadata, source-timing validation, Player/worker options, and request fingerprints. `queen-meter-regression.md`, `source-timing.test.ts`, `timeline.test.ts`, `time-signature-events.test.ts`, catalog tests, and the runtime checkpoint cover the path. | Engineering path verified. | Meter declarations do not prove pickup/downbeat phase. No target gets phase gestures without explicit fingerprinted `sourceTiming`; musical G1 remains open. |
 | T3 — automatic reduction, rhythm, and mechanical safety | Shared `buildMelodyAccompaniment` changes and regressions cover phrase overrides, rests, seams, coherent-phrase limits, source support, sparse timing, hand/span diagnostics, and final allocated events. `t3-canonical-loader-evaluation.md` gives default/conservative full-song summaries for all five targets. `source-candidate-comparison.md` freezes Queen importer lineage and exact default invariance. | Structural producer checks verified; musical gate partial. | Two melody hypotheses failed and triggered source investigation. The removed `8916ae3` player identity-anchor hook is historical failure evidence only. No default improvement is established for the three required songs; the Queen importer candidate is not a promoted Chords arrangement. |
 | T4 — simple controls, truthful outcomes, saved state | `SoundControls.tsx`, arrangement status, Player preference/reset paths, catalog/song-update handling, focused component/runtime tests, and the runtime checkpoint cover ordinary controls before Advanced disclosure, truthful result categories, saved settings, reset scope, and hand-volume labels. | Engineering behavior covered by focused tests/build. | G3 still needs parent review of the full default UX/geometry/accessibility contract; status/tests do not establish musical usefulness. |
-| T5 — same-passage A/B and transport safety | `Player.tsx`, preview lifecycle fixes, `previewPlan` empty-window regression, A/B bounds/identity tests, cancellation on source/mode/seek/navigation changes, worker/stale-reply cases, and the melody Playwright slice. | Mostly verified structurally. | Repeat-practice cancellation remains defensive/instrumentation-limited: mutation evidence did not prove the aggregate stop-count assertion is boundary-specific, and native modal reachability was not established. This is not a musical acceptance claim. |
-| T6 — practice, sheet, labels, and export contracts | Runtime checkpoint verifies Chord-mode practice targets the derived arrangement and falling/labels/guidance paths use the active result. `DownloadDialog.tsx`, `BeginnerView.tsx`, `LeadSheetView.tsx`, engine tests, and E2E checks label sheet/download views as Original-backed when Chord mode is selected. | Contract and projection behavior verified. | Derived sheet/export generation is intentionally not implemented in this round; Original-backed output is disclosed, not silently treated as Chord output. G3 remains partial. |
-| T7 — verification, review packet, and honest PR | Full workspace `npm test`, `npm run typecheck`, `npm run build`, scoped diagnostics, exact hashes, OGG/SoundFont/encoder provenance, draft PR, this matrix, and source-review packet. | Engineering verification complete for this scope; final gate open. | Human listening, target-tempo physical keyboard review, semantic source-role approval, and required-song musical acceptance are not complete. No merge/deploy. |
+| T5 — same-passage A/B and transport safety | `Player.tsx`, preview lifecycle fixes, `previewPlan` empty-window regression, A/B bounds/identity tests, cancellation on source/mode/seek/navigation changes, worker/stale-reply cases, and the melody Playwright slice. The focused final slice passes worker parity, role audition, source cancellation, moving-transport/seek cancellation, Stop/Repeat, selected-loop bounds, and six-beat measure bounds. | Structurally verified for the scoped preview contract. | Repeat-practice cancellation remains defensive/instrumentation-limited: mutation evidence did not prove the aggregate stop-count assertion is boundary-specific, and native modal reachability was not established. This is not a musical acceptance claim. |
+| T6 — practice, sheet, labels, and export contracts | Runtime checkpoint verifies Chord-mode practice targets the derived arrangement and falling/labels/guidance paths use the active result. `DownloadDialog.tsx`, `BeginnerView.tsx`, `LeadSheetView.tsx`, engine tests, and E2E checks label sheet/download views as Original-backed when Chord mode is selected. | Contract and projection behavior verified; Original-backed derived exports are an intentional disclosed boundary for this scope. | Derived sheet/export generation is intentionally not implemented in this round; this is not a claim that Chord-mode notation/export has been accepted as derived output. G3 still needs human UX review. |
+| T7 — verification, review packet, and honest PR | Focused final verification: web typecheck, 9 focused component/runtime tests, production build, six targeted melody E2E tests, and a fresh Blackbird A/B capture. Earlier workspace test/typecheck/build evidence, exact hashes, OGG/SoundFont/encoder provenance, draft PR, this matrix, and source-review packet remain recorded. | Scoped engineering verification complete; final gate open. | The full scratch suite was not rerun after the focused worker-oracle correction. Human listening, target-tempo physical keyboard review, semantic source-role approval, and required-song musical acceptance are not complete. No merge/deploy. |
 
 ## G1–G4 gate status
 
@@ -32,15 +32,28 @@ PR must remain draft and must not be merged or deployed from this evidence.
 |---|---|---|---|
 | G1 — source contract and feasible automatic path | Partial | Pinned manifests, canonical loader replay, meter-event transport, fail-closed timing validation, and raw Queen `-CANTO-` lineage. | Source identity and authored phase are still unknown on required material; a right-hand/staff/source label is not melody truth. |
 | G2 — producer/player integration and complete-song structural evidence | Partial | Sync/worker/player bridge, default/conservative five-target evaluator, final-event diagnostics, disposable Chords bridge, and default digest invariance. | The default Queen bridge remains `2128` vs `2186` events and `241.250` vs `289.125` fallback beats for current/candidate; the candidate changes texture and does not demonstrate useful arrangement. Structural output is not musical acceptance. |
-| G3 — default UX, A/B, and consistent practice | Partial | Focused UI/runtime tests, browser slices, same-target A/B traces, practice-target checks, and explicit Original export labels. | Full human UX/accessibility review and derived export acceptance are not complete; transport instrumentation has one known reachability/test-specific limit. |
+| G3 — default UX, A/B, and consistent practice | Partial | Focused UI/runtime tests, browser slices, same-target A/B traces, practice-target checks, and explicit Original-backed export labels under the declared contract. | Full human UX/accessibility review and musical acceptance are not complete; derived export generation remains an intentional scope boundary, and transport instrumentation has one known reachability/test-specific limit. |
 | G4 — final diff, musical packet, and actual acceptance | Open | Full diff reviewed into this matrix; source/audio packet is reproducible and bounded. | No reviewer has supplied semantic melody, listening, or keyboard judgments for the required repertoire. Draft PR stays open. |
 
-## Verification run at runtime head `abf9abd`
+## Verification run at runtime head `36bed6e`
 
 The current `36065e4` head adds only this coverage matrix and source-review
 packet; the verification below covers the unchanged runtime head.
 
 With Node `v22.22.3`:
+
+The final focused verification passed:
+
+- `npm run typecheck -w @keyspilli/web`.
+- `npm run test -w @keyspilli/web -- src/components/player/SoundControls.test.tsx src/components/player/end-to-end-contract.test.ts` — 9 tests.
+- `npm run build -w @keyspilli/web`.
+- The six targeted melody E2E tests covering worker parity, role audition,
+  source/seek cancellation, moving transport, Stop/Repeat, selected-loop
+  bounds, and six-beat measure bounds.
+- The fresh Blackbird Original/automatic browser-synth capture used by the
+  listening packet.
+
+Earlier workspace evidence at the prior runtime head recorded:
 
 - `npm test`: web `229`, catalog `1102`, engrave `8`, MIDI `405`, player-core `283`, and transcribe `95` tests passed (`2122` total; `209` files).
 - `npm run typecheck`: all workspace typechecks passed.
