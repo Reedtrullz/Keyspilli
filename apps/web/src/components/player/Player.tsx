@@ -444,6 +444,10 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   }
 
   const engineRef = useRef<PlaybackEngine | null>(null);
+  const cancelSoundPreview = useCallback(() => {
+    if (soundPreviewRef.current) engineRef.current?.audio.cancelAll();
+    soundPreviewRef.current = false;
+  }, []);
   const heldInputRef = useRef<ReturnType<typeof createHeldInput> | null>(null);
   if (!heldInputRef.current) heldInputRef.current = createHeldInput(soundInputNote, midi => {
     engineRef.current?.handleNoteOff(midi);
@@ -694,6 +698,20 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     () => resolveTimedNotes(guidanceData, settings.speed, settings.transpose),
     [guidanceData, settings.speed, settings.transpose],
   );
+
+  // Preview notes are scheduled directly on the audio graph, outside the
+  // transport timeline. Tear that graph down whenever its source, routing,
+  // playhead, or owning tool changes; cleanup also covers navigation/unmount.
+  useEffect(() => {
+    if (openTool !== "sound") cancelSoundPreview();
+    return cancelSoundPreview;
+  }, [cancelSoundPreview, chordSourcePreference, initial.song.id, loop, melodyArrangement,
+    melodyArrangementRequestKeyValue, melodyPhraseOverrides, melodySelection,
+    melodySourceBackingMode, openTool, settings.accompanimentStyle, settings.backgroundMode,
+    settings.hand, settings.mode, settings.metronome, settings.organDrive,
+    settings.organRotary, settings.organSpace, settings.organStyle, settings.pianoGain,
+    settings.soundSource, settings.speed, settings.sustainPedal, settings.transpose,
+    settings.voiceGain, time]);
 
   const duration = useMemo(
     () => Math.max(
@@ -1204,11 +1222,6 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     saveJson("keyspilli.learned", next);
   }
 
-  function cancelSoundPreview() {
-    if (soundPreviewRef.current) engineRef.current?.audio.cancelAll();
-    soundPreviewRef.current = false;
-  }
-
   function previewSound(role: MelodyAuditionRole = "full") {
     const eng = engineRef.current;
     if (!eng) return;
@@ -1249,7 +1262,6 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   }
 
   function updateSettings(p: Partial<PlayerSettings>) {
-    if (p.soundSource !== undefined || p.organStyle !== undefined) cancelSoundPreview();
     if (gradingRef.current && (p.speed !== undefined || p.hand !== undefined || p.transpose !== undefined || p.soundSource !== undefined || p.organStyle !== undefined || p.backgroundMode !== undefined || p.accompanimentStyle !== undefined)) return;
     if (p.mode !== undefined && p.mode !== settings.mode) {
       if (gradingRef.current) finishGrading(false);
@@ -1282,7 +1294,6 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   }
 
   function updateMelodySelection(selection: MelodySelection) {
-    cancelSoundPreview();
     setMelodySelection(selection);
     if (melodySourceFingerprint) {
       saveJson(melodySelectionKey(initial.song.id), {
@@ -1301,7 +1312,6 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   }
 
   function updateSourceBackingMode(sourceBackingMode: SourceBackingMode) {
-    cancelSoundPreview();
     setMelodySourceBackingMode(sourceBackingMode);
     if (melodySourceFingerprint) {
       saveJson(melodySelectionKey(initial.song.id), {
@@ -1365,7 +1375,6 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       });
       nextOverrides.sort((a, b) => a.startBeat - b.startBeat || a.endBeat - b.endBeat);
     }
-    cancelSoundPreview();
     setMelodyPhraseOverrides(nextOverrides);
     if (melodySourceFingerprint) {
       saveJson(melodySelectionKey(initial.song.id), {
@@ -1383,7 +1392,6 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   }
 
   function resetMelodySelection() {
-    cancelSoundPreview();
     setMelodySelection("automatic");
     setMelodySourceBackingMode("default");
     setMelodyPhraseOverrides([]);
@@ -1706,9 +1714,9 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       {viewMode === "leadsheet" && <LeadSheetView data={guidanceData} time={time} settings={settings} chords={displayChords} />}
       {viewMode === "sheet" && (
         <div>
-          {settings.backgroundMode === "chord" && settings.accompanimentStyle === "bass-chords" && (
+          {settings.backgroundMode === "chord" && (
             <p className="mx-4 mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900" role="status">
-              Sheet Music shows the original arrangement. Use Fall Down or Note letters for the Bass + chords guidance.
+              Sheet Music shows the stored Original arrangement while Chord mode is selected. Use Fall Down or Note letters for the active guidance.
             </p>
           )}
           <SheetMusicView songId={initial.song.id} />
@@ -1924,7 +1932,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
           )}
           </div>
 
-          <PlayerTools soundLabel={`${settings.soundSource === "organ" ? "Organ" : settings.soundSource === "sampled" ? "Piano" : "Synth"}${settings.soundSource !== "organ" && settings.sustainPedal ? " · sustain" : ""}`} open={openTool} onOpen={tool => { cancelSoundPreview(); setShowModeMenu(false); setOpenTool(tool); }}>
+          <PlayerTools soundLabel={`${settings.soundSource === "organ" ? "Organ" : settings.soundSource === "sampled" ? "Piano" : "Synth"}${settings.soundSource !== "organ" && settings.sustainPedal ? " · sustain" : ""}`} open={openTool} onOpen={tool => { setShowModeMenu(false); setOpenTool(tool); }}>
             {tool => tool === "display" ? <div className="flex flex-wrap gap-2">
           <button
             hidden={settings.mode !== "falling"}
@@ -2158,7 +2166,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
         midiConnected={midiConnected} micReady={micReady} micPending={micPending} micError={micError} error={practiceError}
         onEnableMic={() => void enableMicrophone()} onInputChange={(input) => { if (input !== "microphone") releaseMicrophone(); }}
         onStart={beginPractice} onCancel={closePracticeSetup} />}
-      {showDownload && <DownloadDialog songId={initial.song.id} hasSheetXml={initial.song.hasSheetXml === 1} onClose={() => {
+      {showDownload && <DownloadDialog songId={initial.song.id} hasSheetXml={initial.song.hasSheetXml === 1} backgroundMode={settings.backgroundMode} onClose={() => {
         setShowDownload(false);
         window.requestAnimationFrame(() => downloadTriggerRef.current?.focus());
       }} />}
