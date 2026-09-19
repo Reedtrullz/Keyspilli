@@ -1446,6 +1446,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     const range = repeatRange ?? (repeatRangeRef.current && setup.scope === practiceSetupRef.current.scope ? repeatRangeRef.current : null) ??
       (setup.scope === "loop" ? loop : { startSec: setup.scope === "beginning" ? 0 : eng.time, endSec: duration });
     if (!range) { setPracticeError("Select a loop before practicing it."); return; }
+    cancelSoundPreview();
     try { eng.startGrading(setup.wait, range); }
     catch (error) { setPracticeError(error instanceof Error ? error.message : "Unable to start practice"); return; }
     setGradeResult(null);
@@ -1501,6 +1502,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   function repeatPractice() {
     const attempt = lastAttemptRef.current;
     if (!attempt) return;
+    cancelSoundPreview();
     if (attempt.setup.input === "keyboard" || (attempt.setup.input === "midi" && midiConnected)) { beginPractice(attempt.setup, attempt.range); return; }
     setPracticeSetup(attempt.setup);
     setPracticeError("");
