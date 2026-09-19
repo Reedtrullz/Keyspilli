@@ -61,4 +61,3 @@ Player or player-core path.
 3. Any lost rest, hook, phrase, register, or role evidence.
 4. Separate implication for the Chords producer: promote a constrained source
    rule, retain Original on unresolved spans, or make no automatic change.
-

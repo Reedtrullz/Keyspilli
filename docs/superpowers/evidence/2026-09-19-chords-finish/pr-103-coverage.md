@@ -1,9 +1,9 @@
 # Draft PR #103 coverage — 19 September 2026
 
-Branch: `codex/finish-chords-mode`  
-Base: `origin/main` / `881881b8f9b9f8bc75f70dd4d6a551de6e62de6e`  
-Head: `abf9abd`  
-Scope: 24 commits, 70 changed files. This matrix covers the whole PR, not
+Branch: `codex/finish-chords-mode`
+Base: `origin/main` / `881881b8f9b9f8bc75f70dd4d6a551de6e62de6e`
+Head: current branch tip (documentation follow-up to verified runtime head `abf9abd`)
+Scope: 25 commits, 72 changed files. This matrix covers the whole PR, not
 only the later Queen source-candidate experiment.
 
 ## Current disposition
@@ -35,7 +35,10 @@ PR must remain draft and must not be merged or deployed from this evidence.
 | G3 — default UX, A/B, and consistent practice | Partial | Focused UI/runtime tests, browser slices, same-target A/B traces, practice-target checks, and explicit Original export labels. | Full human UX/accessibility review and derived export acceptance are not complete; transport instrumentation has one known reachability/test-specific limit. |
 | G4 — final diff, musical packet, and actual acceptance | Open | Full diff reviewed into this matrix; source/audio packet is reproducible and bounded. | No reviewer has supplied semantic melody, listening, or keyboard judgments for the required repertoire. Draft PR stays open. |
 
-## Verification run at `abf9abd`
+## Verification run at runtime head `abf9abd`
+
+The current `36065e4` head adds only this coverage matrix and source-review
+packet; the verification below covers the unchanged runtime head.
 
 With Node `v22.22.3`:
 
