@@ -1,16 +1,18 @@
 # T4–T7 runtime checkpoint
 
 Captured on 2026-09-19 from branch `codex/finish-chords-mode` after the
-scoped player/e2e changes. This is engineering evidence, not musical or
-keyboard acceptance.
+scoped player/e2e changes through the preview-race and practice-repeat fixes.
+This is engineering evidence, not musical or keyboard acceptance.
 
 ## Closed engineering checks
 
 - Arrangement audition now has one lifecycle boundary in `Player.tsx`:
-  source, role/routing, hand, instrument, mix, speed, transpose, playhead,
-  loop, tool close, navigation, and unmount clean up directly scheduled
-  preview voices. A browser probe observed oscillator `stop()` calls after a
-  running Full preview was changed to the right-hand source.
+  source, role/routing, hand, instrument, mix, speed, transpose, explicit
+  external seek, loop, tool close, navigation, and unmount clean up directly
+  scheduled preview voices. Internal transport synchronization during preview
+  startup does not masquerade as an external seek. A browser probe observed
+  oscillator `stop()` calls after a running Full preview was changed to the
+  right-hand source.
 - Audition uses actual scheduled note identity rather than encoded-audio hash
   inequality. At the Blackbird scratch fixture's beat-14 seek position,
   Original scheduled C4, Full scheduled G4 and did not schedule C4; an empty
@@ -23,6 +25,12 @@ keyboard acceptance.
   This is a contract warning; it does not rewrite the export payload.
 - `PlaybackEngine.previewPlan` has a focused empty-passage regression test;
   it returns no notes or chords for a genuine gap.
+- Practice startup cancels scheduled Sound preview voices both at
+  `beginPractice()` and at `repeatPractice()`, covering keyboard/MIDI direct
+  repeat and microphone repeat setup. The corrected handler-integration
+  regression dispatches Repeat while preview remains active and observes the
+  additional oscillator stops; it is not a claim of user interaction through
+  an obscuring native modal.
 
 ## Verification
 
@@ -35,6 +43,8 @@ web typecheck                                      passed
 web production build                               passed
 changed browser slice                               5 passed
 worker/stale-reply/real-audio browser slice         3 passed
+moving-preview + external-seek browser test          1 passed
+practice-repeat preview-cancellation browser test    1 passed
 ```
 
 The canonical loader evaluator also passed all five pinned artifacts in both
