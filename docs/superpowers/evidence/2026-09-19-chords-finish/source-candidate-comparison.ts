@@ -74,12 +74,25 @@ function sha256(value: string | Uint8Array): string {
   return createHash("sha256").update(value).digest("hex");
 }
 
+function durationEndpoints(data: SongData): {
+  noteEndBeats: number;
+  measureEndBeats: number;
+  comparisonDurationBeats: number;
+  terminalPaddingBeats: number;
+} {
+  const noteEndBeats = Math.max(0, ...data.notes.map((note) => note.start + note.dur));
+  const measureEndBeats = Math.max(0, ...data.measures.map((measure) => measure.endBeat));
+  const comparisonDurationBeats = Math.max(noteEndBeats, measureEndBeats);
+  return {
+    noteEndBeats,
+    measureEndBeats,
+    comparisonDurationBeats,
+    terminalPaddingBeats: Math.max(0, comparisonDurationBeats - noteEndBeats),
+  };
+}
+
 function duration(data: SongData): number {
-  return Math.max(
-    0,
-    ...data.notes.map((note) => note.start + note.dur),
-    ...data.measures.map((measure) => measure.endBeat),
-  );
+  return durationEndpoints(data).comparisonDurationBeats;
 }
 
 function noteKey(note: Pick<Note, "midi" | "start" | "dur" | "hand">): string {
@@ -1069,7 +1082,8 @@ function evaluateTarget(target: (typeof targets)[number]): Record<string, unknow
     return channel === undefined ? [] : [{ trackIndex: Number(track.trackIndex), channel, label: label.text! }];
   });
   const rawTrackData = rawTrackMetadata(rawMidiBytes, rawMidi.division, rawNoteSources);
-  const canonicalDuration = duration(data);
+  const canonicalDurationEndpoints = durationEndpoints(data);
+  const canonicalDuration = canonicalDurationEndpoints.comparisonDurationBeats;
   const candidateNotes = replaceCandidateVelocity(parsedXml.notes, data.notes);
   const canonicalSet = multiset(data.notes);
   const candidateSet = multiset(candidateNotes);
@@ -1239,7 +1253,7 @@ function evaluateTarget(target: (typeof targets)[number]): Record<string, unknow
       canonicalNotes: data.notes.length,
       candidateNotes: candidateNotes.length,
       rawMidiNotes: rawMidi.notes.length,
-      canonicalDurationBeats: canonicalDuration,
+      ...canonicalDurationEndpoints,
     },
     sourceEvidence: {
       rawMidiTrackNames: rawMidi.trackNames,

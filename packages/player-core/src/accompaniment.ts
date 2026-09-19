@@ -179,8 +179,6 @@ export interface MelodyAccompanimentOptions {
   harmonicSupport?: MelodyHarmonicSupportPolicy;
   /** Opt-in source-only backing reduction; omitted/default leaves the existing path unchanged. */
   sourceBackingMode?: SourceBackingMode;
-  /** Experimental bridge only: automatic selection treats these source identities as melody anchors. */
-  protectedIdentitySources?: readonly NonNullable<Note["identitySource"]>[];
 }
 
 export type SoundingLimitPolicy = "resume" | "coherent-phrase";
@@ -1313,7 +1311,6 @@ function selectMelodySource(
   allowRests = false,
   sourceFingerprint: string | null = null,
   phraseOverrides?: readonly MelodyPhraseOverride[],
-  protectedIdentitySources?: ReadonlySet<NonNullable<Note["identitySource"]>>,
 ): SelectedMelody {
   const ids = sourceNoteIds(sourceNotes);
   const rightHandIndices = sourceNotes
@@ -1350,11 +1347,6 @@ function selectMelodySource(
 
   const split = splitPianoRoles(sourceNotes, { preferSustainedLine: true, allowRests });
   const selectedIndices = new Set(split.protectedMelody.map((note) => note.sourceIndex));
-  for (const [index, note] of sourceNotes.entries()) {
-    if (playableSourceNote(note) && note.identitySource && protectedIdentitySources?.has(note.identitySource)) {
-      selectedIndices.add(index);
-    }
-  }
   applyPhraseOverrides(sourceNotes, ids, selectedIndices, validatedOverrides.valid);
   const protectedMelody = [...split.protectedMelody]
     .filter((note) => selectedIndices.has(note.sourceIndex))
@@ -1861,7 +1853,6 @@ export function buildMelodyAccompaniment(
     options.allowRests === true,
     options.sourceFingerprint ?? null,
     options.phraseOverrides,
-    options.protectedIdentitySources?.length ? new Set(options.protectedIdentitySources) : undefined,
   );
   const conservativeSourceBacking = options.sourceBackingMode === "conservative";
   const conservativeReduction = conservativeSourceBacking

@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseMidi } from "../../../../packages/midi/src/parse.ts";
 import { buildVariants } from "../../../../packages/midi/src/simplify.ts";
@@ -61,7 +61,10 @@ const candidate = buildVariants(tagged.parsed, { title, artist }, {
 }).find((variant) => variant.level === "advanced")?.notes;
 if (!candidate) throw new Error("protected candidate has no Advanced variant");
 
-const durationBeats = Math.max(0, ...canonical.notes.map((note) => note.start + note.dur));
+const noteEndBeats = Math.max(0, ...canonical.notes.map((note) => note.start + note.dur));
+const measureEndBeats = Math.max(0, ...canonical.measures.map((measure) => measure.endBeat));
+const comparisonDurationBeats = Math.max(noteEndBeats, measureEndBeats);
+const terminalPaddingBeats = Math.max(0, comparisonDurationBeats - noteEndBeats);
 const diagnosticWindow = { start: 18, end: 30 };
 const trim = (notes: readonly Note[]): Note[] => notes.flatMap((note) => {
   const start = Math.max(diagnosticWindow.start, note.start);
@@ -91,12 +94,26 @@ for (const [label, notes] of Object.entries(renders)) {
   files[`${label}DiagnosticMidi`] = diagnosticName;
 }
 const sha256File = (name: string): string => createHash("sha256").update(readFileSync(join(outRoot, name))).digest("hex");
+const audioFiles = {
+  originalFullOgg: "original-full.ogg",
+  originalDiagnosticOgg: "original-diagnostic-18-30-beats.ogg",
+  replayFullOgg: "replay-full.ogg",
+  replayDiagnosticOgg: "replay-diagnostic-18-30-beats.ogg",
+  candidateFullOgg: "candidate-full.ogg",
+  candidateDiagnosticOgg: "candidate-diagnostic-18-30-beats.ogg",
+} as const;
+const presentAudioFiles = Object.fromEntries(Object.entries(audioFiles).filter(([, name]) => existsSync(join(outRoot, name))));
+const soundfontPath = "/opt/homebrew/Cellar/fluid-synth/2.6.0/share/fluid-synth/sf2/VintageDreamsWaves-v2.sf2";
 const manifest = {
   schemaVersion: 1,
   title,
   artist,
   tempoBpm,
-  durationBeats,
+  durationBeats: comparisonDurationBeats,
+  noteEndBeats,
+  measureEndBeats,
+  terminalPaddingBeats,
+  comparisonDurationBeats,
   diagnosticWindowBeats: diagnosticWindow,
   source: {
     canonicalNotesSha256: createHash("sha256").update(readFileSync(notesPath)).digest("hex"),
@@ -108,6 +125,30 @@ const manifest = {
   noteCounts: { original: canonical.notes.length, replay: replay.length, candidate: candidate.length },
   files,
   fileSha256: Object.fromEntries(Object.values(files).map((name) => [name, sha256File(name)])),
+  audioFiles: presentAudioFiles,
+  audioFileSha256: Object.fromEntries(Object.values(presentAudioFiles).map((name) => [name, sha256File(name)])),
+  rendering: {
+    fluidsynth: {
+      executable: "/opt/homebrew/bin/fluidsynth",
+      version: "2.6.0",
+      sampleRate: 44100,
+      command: "fluidsynth -ni -F \"$WAV\" -r 44100 \"$SOUNDFONT\" \"$MIDI\"",
+    },
+    soundfont: {
+      path: soundfontPath,
+      identifier: "VintageDreamsWaves-v2.sf2",
+      sha256: createHash("sha256").update(readFileSync(soundfontPath)).digest("hex"),
+    },
+    encoder: {
+      executable: "/opt/homebrew/bin/ffmpeg",
+      version: "8.1.2",
+      codec: "libopus",
+      bitrate: "128k",
+      sampleRate: 48000,
+      channels: 2,
+      command: "ffmpeg -hide_banner -loglevel error -y -i \"$WAV\" -ar 48000 -ac 2 -c:a libopus -b:a 128k \"$OGG\"",
+    },
+  },
   notes: {
     replay: "The current parseMidi -> learner buildVariants Advanced result.",
     candidate: "The disposable learner result with only the raw CANTO tuples tagged as vocals; hand, duration, span, and playability guards remain active.",

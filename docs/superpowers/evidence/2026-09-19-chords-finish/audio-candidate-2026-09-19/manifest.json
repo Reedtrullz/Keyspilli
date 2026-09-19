@@ -3,7 +3,11 @@
   "title": "Somebody To Love",
   "artist": "Queen",
   "tempoBpm": 108,
-  "durationBeats": 537.5,
+  "durationBeats": 540,
+  "noteEndBeats": 537.5,
+  "measureEndBeats": 540,
+  "terminalPaddingBeats": 2.5,
+  "comparisonDurationBeats": 540,
   "diagnosticWindowBeats": {
     "start": 18,
     "end": 30
@@ -35,6 +39,44 @@
     "replay-diagnostic-18-30-beats.mid": "d3e8ff19749ad6a5a0cb284bc8535a71fe878f8ec869d863f3e6af6087b898ec",
     "candidate-full.mid": "a783b0b26ef221392ff3d42b7f7e897fda7128888553b07bd094c49c581ba283",
     "candidate-diagnostic-18-30-beats.mid": "cc3703a8875fa026c5c3ee8df74bc96cae64fee049622d404b10a875ab2c3699"
+  },
+  "audioFiles": {
+    "originalFullOgg": "original-full.ogg",
+    "originalDiagnosticOgg": "original-diagnostic-18-30-beats.ogg",
+    "replayFullOgg": "replay-full.ogg",
+    "replayDiagnosticOgg": "replay-diagnostic-18-30-beats.ogg",
+    "candidateFullOgg": "candidate-full.ogg",
+    "candidateDiagnosticOgg": "candidate-diagnostic-18-30-beats.ogg"
+  },
+  "audioFileSha256": {
+    "original-full.ogg": "b732a43fe67b191867b33b06f23e0ec6cfff80ec853d6614eb646529561e513c",
+    "original-diagnostic-18-30-beats.ogg": "55ee0c60641f69df85d7e442823e4ea05c8509cbce9be727bdd11f0072097312",
+    "replay-full.ogg": "63ad3e7566c27d89bdb268d680484cf60cb861012227873324d6ff5babf3ee48",
+    "replay-diagnostic-18-30-beats.ogg": "f1c7607027955427c1c7437c4a847bdd8e4855769b22680bce0c0da81f97697a",
+    "candidate-full.ogg": "987b18e4196c0673b332b51d5b72e47367d9bcb78d0250cf715d5d1ebf39dd0d",
+    "candidate-diagnostic-18-30-beats.ogg": "45c0a9613b277056e4e56085b1100aa31ee88618c50845fd4210d5d5ba092094"
+  },
+  "rendering": {
+    "fluidsynth": {
+      "executable": "/opt/homebrew/bin/fluidsynth",
+      "version": "2.6.0",
+      "sampleRate": 44100,
+      "command": "fluidsynth -ni -F \"$WAV\" -r 44100 \"$SOUNDFONT\" \"$MIDI\""
+    },
+    "soundfont": {
+      "path": "/opt/homebrew/Cellar/fluid-synth/2.6.0/share/fluid-synth/sf2/VintageDreamsWaves-v2.sf2",
+      "identifier": "VintageDreamsWaves-v2.sf2",
+      "sha256": "52132b2b83994f0067d3a66b93b4f1b67d53ff8c0d3be90d39f23f92b4585cdd"
+    },
+    "encoder": {
+      "executable": "/opt/homebrew/bin/ffmpeg",
+      "version": "8.1.2",
+      "codec": "libopus",
+      "bitrate": "128k",
+      "sampleRate": 48000,
+      "channels": 2,
+      "command": "ffmpeg -hide_banner -loglevel error -y -i \"$WAV\" -ar 48000 -ac 2 -c:a libopus -b:a 128k \"$OGG\""
+    }
   },
   "notes": {
     "replay": "The current parseMidi -> learner buildVariants Advanced result.",

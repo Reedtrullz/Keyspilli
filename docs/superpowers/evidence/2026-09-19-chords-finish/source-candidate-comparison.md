@@ -222,6 +222,13 @@ FluidSynth SoundFont (`VintageDreamsWaves-v2.sf2`). The full renders decode to
 These are listenable comparison artifacts only, not audio-hash or subjective
 musical acceptance.
 
+The canonical note endpoint is `537.5` beats, while the last stored measure
+ends at `540` beats. The manifest exposes both, records `2.5` beats of terminal
+timeline padding, and sets `comparisonDurationBeats=540`. Whole-song
+arrangement, fallback, coverage, and playability totals use that same `540`
+beat measure-end duration; the MIDI/OGG event stream is not given synthetic
+notes for the terminal pad.
+
 | Label | Full song | Diagnostic `[18,30)` |
 |---|---|---|
 | Original | [`original-full.ogg`](audio-candidate-2026-09-19/original-full.ogg) | [`original-diagnostic-18-30-beats.ogg`](audio-candidate-2026-09-19/original-diagnostic-18-30-beats.ogg) |
@@ -231,6 +238,34 @@ musical acceptance.
 The symbolic/audio render manifest is
 [`manifest.json`](audio-candidate-2026-09-19/manifest.json). The renders do
 not change catalog files, runtime data, or deployment state.
+
+Recorded OGG SHA-256 values:
+
+| Artifact | SHA-256 |
+|---|---|
+| `original-full.ogg` | `b732a43fe67b191867b33b06f23e0ec6cfff80ec853d6614eb646529561e513c` |
+| `original-diagnostic-18-30-beats.ogg` | `55ee0c60641f69df85d7e442823e4ea05c8509cbce9be727bdd11f0072097312` |
+| `replay-full.ogg` | `63ad3e7566c27d89bdb268d680484cf60cb861012227873324d6ff5babf3ee48` |
+| `replay-diagnostic-18-30-beats.ogg` | `f1c7607027955427c1c7437c4a847bdd8e4855769b22680bce0c0da81f97697a` |
+| `candidate-full.ogg` | `987b18e4196c0673b332b51d5b72e47367d9bcb78d0250cf715d5d1ebf39dd0d` |
+| `candidate-diagnostic-18-30-beats.ogg` | `45c0a9613b277056e4e56085b1100aa31ee88618c50845fd4210d5d5ba092094` |
+
+Renderer provenance is FluidSynth `/opt/homebrew/bin/fluidsynth` `2.6.0`
+(`44100 Hz`) with SoundFont
+`VintageDreamsWaves-v2.sf2`, SHA-256
+`52132b2b83994f0067d3a66b93b4f1b67d53ff8c0d3be90d39f23f92b4585cdd`, then
+FFmpeg `/opt/homebrew/bin/ffmpeg` `8.1.2`, `libopus`, `128k`, stereo `48000
+Hz`. The exact per-file commands recorded in the manifest are:
+
+```sh
+fluidsynth -ni -F "$WAV" -r 44100 "$SOUNDFONT" "$MIDI"
+ffmpeg -hide_banner -loglevel error -y -i "$WAV" -ar 48000 -ac 2 -c:a libopus -b:a 128k "$OGG"
+```
+
+Regenerate the six MIDI inputs first, then run those two commands once per
+`*-full.mid` and `*-diagnostic-18-30-beats.mid`. Opus container bytes may differ
+with encoder builds/settings; the hashes above identify the committed artifacts,
+not a deterministic-byte acceptance claim.
 
 Recreate the symbolic render inputs with:
 
@@ -250,6 +285,10 @@ through the same Chords-mode chain:
 `buildMelodyAccompaniment`. Both selected `auto` with `authored-only` harmonic
 support, `automatic` selection, `allowRests: true`, `coherent-phrase`, and
 `sourceBackingMode: "default"`.
+
+Both bridge replays receive the canonical `comparisonDurationBeats=540`
+measure-end timeline (`noteEndBeats=537.5`, terminal padding `2.5`), so the
+fallback totals below include the same terminal span used by the player.
 
 The first bridge run (captured in commit `7c4bc57`) left the producer options
 unset for both replays:
@@ -287,12 +326,15 @@ left `35` in retained-unclassified events. The identity does not vanish at the
 artifact/loader boundary; the shared producer simply has no semantic vocal-role
 priority.
 
-### Opt-in source-role bridge follow-up (not default)
+### Historical opt-in source-role bridge follow-up (8916ae3 only)
 
-The bridge then ran one minimal producer-side correction: only the protected
-candidate passed `protectedIdentitySources: ["vocals"]` to automatic selection.
-The current replay remained at the default options. This option is unset by
-catalog ingestion and normal Player paths.
+At commit `8916ae3`, the bridge ran one minimal producer-side correction: only
+the protected candidate passed `protectedIdentitySources: ["vocals"]` to
+automatic selection. The correction selected all `211` tagged notes, but it
+worsened fallback and exposed a correctness problem: mandatory identity
+selection bypassed the normal splitter/sounding trim. The player-core hook,
+its test, and its live bridge caller were removed after that bounded check;
+this table is pinned historical evidence, not a current runtime path.
 
 | Whole-song producer replay at 108 BPM | Current replay | Candidate with vocal anchors |
 |---|---:|---:|
@@ -307,13 +349,14 @@ catalog ingestion and normal Player paths.
 | RH notes / onsets | `988 / 624` | `1068 / 651` |
 | LH notes / onsets | `1140 / 773` | `1120 / 785` |
 
-The correction selected all `211` tagged notes, but worsened fallback by
-`48.125` beats and left the same `104` unresolved spans. It also changed the
-event multiset by `232` current-only and `292` candidate-only members. This
-does not establish that the source lane is wrong; it establishes that a generic
-producer-level identity anchor is not a useful repair. The source investigation
-rule is now active: stop algorithm tuning, keep the candidate opt-in only, and
-require a reviewed source-role/arrangement decision before any promotion.
+The historical correction selected all `211` tagged notes, but worsened
+fallback by `48.125` beats and left the same `104` unresolved spans. It also
+changed the event multiset by `232` current-only and `292` candidate-only
+members. This does not establish that the source lane is wrong; it establishes
+that this generic producer-level identity anchor is not a safe repair. The
+source investigation rule is active: stop algorithm tuning, retain the table as
+evidence only, and require a reviewed source-role/arrangement decision before
+any promotion.
 
 Reproduce this disposable bridge check with:
 

@@ -28,12 +28,21 @@ function sha256(value: string | Uint8Array): string {
   return createHash("sha256").update(value).digest("hex");
 }
 
-function duration(data: SongData): number {
-  return Math.max(
-    0,
-    ...data.notes.map((note) => note.start + note.dur),
-    ...data.measures.map((measure) => measure.endBeat),
-  );
+function durationEndpoints(data: SongData): {
+  noteEndBeats: number;
+  measureEndBeats: number;
+  comparisonDurationBeats: number;
+  terminalPaddingBeats: number;
+} {
+  const noteEndBeats = Math.max(0, ...data.notes.map((note) => note.start + note.dur));
+  const measureEndBeats = Math.max(0, ...data.measures.map((measure) => measure.endBeat));
+  const comparisonDurationBeats = Math.max(noteEndBeats, measureEndBeats);
+  return {
+    noteEndBeats,
+    measureEndBeats,
+    comparisonDurationBeats,
+    terminalPaddingBeats: Math.max(0, comparisonDurationBeats - noteEndBeats),
+  };
 }
 
 function audibleKey(note: Pick<Note, "midi" | "start" | "dur" | "vel">): string {
@@ -115,9 +124,9 @@ async function writeDisposableArtifact(root: string, id: string, variant: Varian
 function runPlayerProducer(
   data: SongData,
   id: string,
-  protectedIdentitySources: readonly NonNullable<Note["identitySource"]>[] = [],
+  comparisonDurationBeats: number,
 ): Record<string, unknown> {
-  const durationBeats = duration(data);
+  const durationBeats = comparisonDurationBeats;
   const sourceFingerprint = data.sourceFingerprint ?? null;
   const sparseBackingTiming = validateSparseBackingTiming(data.sourceTiming, sourceFingerprint);
   const timing = playbackTiming({ ...data, sourceTiming: sparseBackingTiming });
@@ -136,9 +145,7 @@ function runPlayerProducer(
   const resolution = buildMelodyAccompaniment(
     projected.notes,
     selected.source?.chords ?? [],
-    protectedIdentitySources.length > 0
-      ? { ...arrangementOptions, protectedIdentitySources }
-      : arrangementOptions,
+    arrangementOptions,
   );
   const outputMetrics = measurePlayability(resolution.notes, tempoBpm, durationBeats);
   const eventMultiset = multiset(resolution.events.map((event) => event.note));
@@ -161,14 +168,13 @@ function runPlayerProducer(
     selectedChordSource: selected.source?.id ?? null,
     selectedChordSourceFallback: selected.fallback,
     harmonicSupport,
-    protectedIdentitySources,
     lineage: {
       loadedIdentityCounts: identityCounts(data.notes),
       projectedIdentityCounts: identityCounts(projected.notes),
       selectedMelodyIdentityCounts: identityCounts(projected.notes.filter((_, index) => melodySourceIds.has(sourceIds[index]!))),
       emittedEventIdentityCountsByRole: identityCountsByRole,
       preservedThroughLoader: JSON.stringify(identityCounts(data.notes)) === JSON.stringify(identityCounts(projected.notes)),
-      interpretation: "identitySource survives the disposable loader and chord projection; baseline automatic selection is generic, while the candidate-only identity anchor is an experimental override, not semantic vocal ownership.",
+      interpretation: "identitySource survives the disposable loader and chord projection; baseline automatic selection is generic and is not semantic vocal ownership.",
     },
     outputEvents: resolution.events.length,
     outputNotes: resolution.notes.length,
@@ -226,6 +232,8 @@ function candidateSourceNotes(bytes: Uint8Array, parsed: ParsedMidi): RawTrackNo
 
 async function main(): Promise<void> {
   const bytes = await readFile(midiPath);
+  const canonicalData = JSON.parse(await readFile(join(dataRoot, "artifacts", baseId, "a", "notes.json"), "utf8")) as SongData;
+  const canonicalDurationEndpoints = durationEndpoints(canonicalData);
   const parsed = parseMidi(bytes);
   const canto = candidateSourceNotes(bytes, parsed);
   const tagged = tagParsedSourceNotes(parsed, canto);
@@ -241,8 +249,8 @@ async function main(): Promise<void> {
   try {
     const currentData = await writeDisposableArtifact(disposableRoot, "queen-current-replay", current, `bridge:current:${sha256(JSON.stringify(current.notes))}`);
     const candidateData = await writeDisposableArtifact(disposableRoot, "queen-protected-candidate", candidate, `bridge:candidate:${sha256(JSON.stringify(candidate.notes))}`);
-    const currentResult = runPlayerProducer(currentData, "current-replay");
-    const candidateResult = runPlayerProducer(candidateData, "protected-candidate-replay", ["vocals"]);
+    const currentResult = runPlayerProducer(currentData, "current-replay", canonicalDurationEndpoints.comparisonDurationBeats);
+    const candidateResult = runPlayerProducer(candidateData, "protected-candidate-replay", canonicalDurationEndpoints.comparisonDurationBeats);
     const currentEvents = currentResult.outputEventMultiset as Map<string, number>;
     const candidateEvents = candidateResult.outputEventMultiset as Map<string, number>;
     console.log(JSON.stringify({
@@ -253,6 +261,7 @@ async function main(): Promise<void> {
         rawCantoNotes: canto.length,
         currentImporterAdvancedNotes: current.notes.length,
         protectedImporterAdvancedNotes: candidate.notes.length,
+        durationEndpoints: canonicalDurationEndpoints,
       },
       loader: "disposable loadSongArtifact with legacy-bootstrap manifest; no catalog or production data written",
       settings: {
@@ -261,7 +270,6 @@ async function main(): Promise<void> {
         soundingPolicy: "coherent-phrase",
         sourceBackingMode: "default",
         comparisonTempoBpm: tempoBpm,
-        protectedCandidateIdentitySources: ["vocals"],
       },
       currentReplay: { ...currentResult, outputEventMultiset: undefined },
       protectedCandidateReplay: { ...candidateResult, outputEventMultiset: undefined },
