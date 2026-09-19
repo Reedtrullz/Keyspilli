@@ -2,7 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { ChordPracticeSnapshot } from "@keyspilli/player-core";
-import { buildChordPracticeTargets, compactPracticeVoicing, selectPracticeChords } from "./chord-practice";
+import { buildChordPracticeTargets, compactPracticeVoicing, projectActionableChordShapes, selectPracticeChords } from "./chord-practice";
 import { ChordPracticePanel } from "./ChordPracticePanel";
 
 describe("chord practice targets", () => {
@@ -30,6 +30,20 @@ describe("chord practice targets", () => {
   it("transposes the displayed target and playable notes together", () => {
     const [target] = buildChordPracticeTargets([{ beat: 0, name: "C", notes: [48, 52, 55], sourceKind: "generated" }], 2);
     expect(target).toMatchObject({ name: "D", notes: [50, 54, 57] });
+  });
+
+  it("keeps unsupported labels visible without creating actionable targets or shapes", () => {
+    const labels = [
+      { beat: 0, name: "C9", notes: [48, 52, 55], sourceKind: "authored" as const },
+      { beat: 4, name: "G", notes: [43, 47, 50], sourceKind: "generated" as const },
+    ];
+    const realized = [labels[1]!];
+
+    expect(buildChordPracticeTargets(realized).map((target) => target.name)).toEqual(["G"]);
+    expect(projectActionableChordShapes(labels, realized)).toEqual([
+      { ...labels[0], notes: [] },
+      labels[1],
+    ]);
   });
 
   it("carries two-hand suggestions for a generated bass-and-chords reference", () => {

@@ -53,7 +53,7 @@ import { PUBLIC_DIFFICULTY_ORDER, isPublicDifficultyLevel } from "@keyspilli/mid
 import { FallingCanvas } from "./FallingCanvas";
 import { ChordStrip } from "./ChordStrip";
 import { ChordPracticePanel } from "./ChordPracticePanel";
-import { buildChordPracticeTargets, selectPracticeChords } from "./chord-practice";
+import { buildChordPracticeTargets, projectActionableChordShapes, selectPracticeChords } from "./chord-practice";
 import {
   buildMelodyArrangementOptions,
   auditionNotesForRole,
@@ -715,11 +715,17 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     [arrangementEnd, chords, initial.data.notes, melodyArrangement, settings.accompanimentStyle, settings.backgroundMode],
   );
   const displayChords = settings.backgroundMode === "chord" ? accompaniment.displayChords : chords;
-  const audioChords = useMemo(
-    () => settings.accompanimentStyle === "bass-chords"
+  const actionableChords = useMemo(
+    () => settings.backgroundMode === "chord"
       ? filterAccompanimentChords(accompaniment.chords, settings.hand)
       : [],
-    [accompaniment.chords, settings.accompanimentStyle, settings.hand],
+    [accompaniment.chords, settings.backgroundMode, settings.hand],
+  );
+  const audioChords = useMemo(
+    () => settings.accompanimentStyle === "bass-chords"
+      ? actionableChords
+      : [],
+    [actionableChords, settings.accompanimentStyle],
   );
   const guidanceData = useMemo(() => ({
     ...initial.data,
@@ -778,18 +784,21 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   const chordPracticeTargets = useMemo(
     () => {
       if (chordPracticeActive && chordPracticeTargetsRef.current) return chordPracticeTargetsRef.current;
-      const next = buildChordPracticeTargets(selectPracticeChords(displayChords, navigationMeasures, currentMeasure), settings.transpose);
+      const sourceChords = settings.backgroundMode === "chord" ? actionableChords : displayChords;
+      const next = buildChordPracticeTargets(selectPracticeChords(sourceChords, navigationMeasures, currentMeasure), settings.transpose);
       chordPracticeTargetsRef.current = next;
       return next;
     },
-    [displayChords, navigationMeasures, currentMeasure, settings.transpose, chordPracticeActive],
+    [actionableChords, displayChords, navigationMeasures, currentMeasure, settings.backgroundMode, settings.transpose, chordPracticeActive],
   );
   // Playback applies transpose inside PlaybackEngine. Keep the visual chord
   // keys in the same transposed coordinate space as the falling notes without
   // feeding already-transposed values back into the audio scheduler.
   const visualChords = useMemo(
-    () => displayChords.map((c) => ({ ...c, notes: c.notes.map((midi) => midi + settings.transpose) })),
-    [displayChords, settings.transpose],
+    () => settings.backgroundMode === "chord"
+      ? projectActionableChordShapes(displayChords, actionableChords, settings.transpose)
+      : displayChords.map((c) => ({ ...c, notes: c.notes.map((midi) => midi + settings.transpose) })),
+    [actionableChords, displayChords, settings.backgroundMode, settings.transpose],
   );
 
   useEffect(() => {
