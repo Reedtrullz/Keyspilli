@@ -1126,7 +1126,7 @@ test("Chord mode labels Original sheet and download contracts", async ({ page })
   await expect(page.getByRole("status").filter({ hasText: "Sheet Music shows the stored Original arrangement while Chord mode is selected." })).toBeVisible();
 });
 
-test("melody arrangement feeds practice at the selected position", async ({ page }) => {
+test("melody arrangement feeds practice and repeat cancels a preview", async ({ page }) => {
   await installAudioProbe(page);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(`/player/${SONG_ID}`);
@@ -1164,10 +1164,14 @@ test("melody arrangement feeds practice at the selected position", async ({ page
   await soundDialog.getByRole("button", { name: "Full", exact: true }).click();
   await page.waitForTimeout(100);
   const previewStops = await page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStopCalls());
-  await soundDialog.getByRole("button", { name: "Close tools", exact: true }).click();
-  await page.getByRole("button", { name: "Repeat passage", exact: true }).click();
-  await expect(page.getByRole("region", { name: "Practice grading" })).toBeVisible();
+  await page.evaluate(() => {
+    const repeat = [...document.querySelectorAll("button")].find((button) => button.textContent?.trim() === "Repeat passage");
+    if (!(repeat instanceof HTMLButtonElement)) throw new Error("Repeat passage button is not mounted");
+    repeat.click();
+  });
   await expect.poll(() => page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStopCalls())).toBeGreaterThan(previewStops);
+  await soundDialog.getByRole("button", { name: "Close tools", exact: true }).click();
+  await expect(page.getByRole("region", { name: "Practice grading" })).toBeVisible();
   await page.getByRole("button", { name: "Finish practice", exact: true }).click();
 });
 
