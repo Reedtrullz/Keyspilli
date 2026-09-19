@@ -629,11 +629,11 @@ async function capturePreviewRole(
   page: Page,
   testInfo: { outputPath: (path: string) => string },
   dialog: Locator,
-  role: "Full" | "Melody" | "Accompaniment",
+  role: "Full" | "Original" | "Melody" | "Accompaniment",
   label: string,
 ): Promise<AudioCapture & { sha256: string }> {
   await page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStart());
-  await dialog.getByRole("button", { name: role, exact: true }).click();
+  await dialog.getByRole("button", { name: role === "Original" ? "Compare Original" : role, exact: true }).click();
   await page.waitForTimeout(2_200);
   const capture = await page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStop());
   const audio = Buffer.from(capture.base64, "base64");
@@ -948,6 +948,8 @@ test("advanced arrangement controls start collapsed with a visible original comp
   await expect(advanced).toBeVisible();
   await expect(advanced).not.toHaveAttribute("open");
   await expect(dialog.getByRole("button", { name: "Compare Original", exact: true })).toBeVisible();
+  await advanced.locator("summary").press("Enter");
+  await expect(advanced).toHaveAttribute("open", "");
 });
 
 test("browser worker resolution matches the shared loader at the frozen milestone", async ({ page }) => {
@@ -1020,11 +1022,12 @@ test("role audition renders three audible stems and preserves A/B position", asy
   const dialog = page.getByRole("dialog", { name: "Sound settings" });
   await expect(dialog.getByTestId("melody-audition-controls")).toBeVisible();
 
+  const original = await capturePreviewRole(page, testInfo, dialog, "Original", "blackbird-preview-original");
   const full = await capturePreviewRole(page, testInfo, dialog, "Full", "blackbird-preview-full");
   const melody = await capturePreviewRole(page, testInfo, dialog, "Melody", "blackbird-preview-melody");
   const accompaniment = await capturePreviewRole(page, testInfo, dialog, "Accompaniment", "blackbird-preview-accompaniment");
-  for (const capture of [full, melody, accompaniment]) audible(capture);
-  expect(new Set([full.sha256, melody.sha256, accompaniment.sha256]).size).toBeGreaterThan(1);
+  for (const capture of [original, full, melody, accompaniment]) audible(capture);
+  expect(new Set([original.sha256, full.sha256, melody.sha256, accompaniment.sha256]).size).toBeGreaterThan(1);
   expect(await seek.inputValue()).toBe(positionBefore);
 
   await dialog.getByRole("button", { name: "Close tools", exact: true }).click();
@@ -1032,6 +1035,23 @@ test("role audition renders three audible stems and preserves A/B position", asy
   await expect.poll(() => seek.inputValue()).toBe(positionBefore);
   await selectArrangement(page, "Chord mode", "Automatic melody");
   await expect.poll(() => seek.inputValue()).toBe(positionBefore);
+});
+
+test("melody arrangement feeds practice at the selected position", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/player/${SONG_ID}`);
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+  await selectArrangement(page, "Chord mode", "Automatic melody");
+  const seek = page.getByLabel("Seek");
+  await seek.fill("2");
+  await page.getByRole("button", { name: "Practice", exact: true }).click();
+  const setup = page.getByRole("dialog", { name: "Set up practice" });
+  await setup.getByLabel("Behavior", { exact: true }).selectOption("wait");
+  await setup.getByLabel("Passage", { exact: true }).selectOption("current");
+  await setup.getByRole("button", { name: "Start practice", exact: true }).click();
+  await expect(page.getByRole("region", { name: "Practice grading" })).toBeVisible();
+  await expect(seek).toHaveValue("2");
+  await page.getByRole("button", { name: "Finish practice", exact: true }).click();
 });
 
 test("worker constructor failure retains real Original audio, retries, and clears on mode change", async ({ page }, testInfo) => {
