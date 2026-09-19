@@ -14,11 +14,12 @@ interface TestChord {
 
 class ChordAudio implements AudioLike {
   chords: number[][] = [];
+  clicks: Array<{ beat: number; when: number }> = [];
   cancelled = 0;
   ensure() { return {}; }
   noteOn() {}
   noteOff() {}
-  metronomeClick() {}
+  metronomeClick(beat: number, when = 0) { this.clicks.push({ beat, when }); }
   cancelAll() { this.cancelled++; }
   setGains() {}
   dispose() {}
@@ -79,6 +80,23 @@ describe("F03: chord cursor resets on loop wrap", () => {
     expect(e.playing).toBe(false);
     expect(e.time).toBe(0);
     expect(() => e.setLoop({ startSec: 1, endSec: 1 })).toThrow(/loop/);
+  });
+
+  it("schedules fractional stored measure starts as downbeats", () => {
+    const audio = new ChordAudio();
+    const engine = new PlaybackEngine(
+      audio,
+      [],
+      2,
+      { tempoBpm: 120, timeSig: [6, 8], measureStarts: [0, 1.5, 4] },
+      { ...DEFAULT_SETTINGS, metronome: true, backgroundMode: "piano" },
+    );
+    engine.start();
+    audio.clicks.length = 0;
+    engine.seek(0.7);
+    expect(audio.clicks).toHaveLength(1);
+    expect(audio.clicks[0]?.beat).toBe(0);
+    expect(audio.clicks[0]?.when).toBeCloseTo(0.05, 6);
   });
 
 });

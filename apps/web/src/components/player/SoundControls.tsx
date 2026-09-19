@@ -5,7 +5,7 @@ import type { MelodyAccompanimentResolution, MelodySelection, PlayerSettings, So
 import type { ChordSourceId, ChordSourceOption } from "./chord-sources";
 import { usePresence } from "./player-motion";
 
-export type MelodyAuditionRole = "full" | "melody" | "accompaniment";
+export type MelodyAuditionRole = "full" | "original" | "melody" | "accompaniment";
 export type MelodyPhraseOverrideAction = "automatic" | "right-hand" | "left-hand" | "rest";
 
 export function SoundControls({
@@ -102,12 +102,15 @@ export function SoundControls({
                   </button>
                 ))}
               </div>
-              <p className="text-[11px] text-zinc-600 mt-2">
-                {settings.accompanimentStyle === "bass-chords"
-                  ? "For accompanying singing or another musician: source melody is omitted where the chord chart is covered."
-                  : "Keeps the selected melody and adds sparse support. Original passage is retained where the chart is unavailable."}
-              </p>
-              {settings.accompanimentStyle === "melody-accompaniment" && melodyArrangement && onMelodySelectionChange && (
+          <p className="text-[11px] text-zinc-600 mt-2">
+            {settings.accompanimentStyle === "bass-chords"
+              ? "For accompanying singing or another musician: source melody is omitted where the chord chart is covered."
+              : "Keeps the selected melody and adds sparse support. Original passage is retained where the chart is unavailable."}
+          </p>
+          <details data-testid="advanced-arrangement-controls" className="mt-3">
+            <summary className="cursor-pointer text-xs font-medium text-zinc-700">Advanced arrangement controls</summary>
+            <div className="mt-3">
+            {settings.accompanimentStyle === "melody-accompaniment" && melodyArrangement && onMelodySelectionChange && (
                 <div className="mt-3 border-t border-zinc-200 pt-3" data-testid="melody-accompaniment-controls">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs font-medium text-zinc-700">Melody selection</span>
@@ -269,10 +272,8 @@ export function SoundControls({
                     </div>
                   )}
                 </div>
-              )}
-            </div>
-          )}
-          {chordSourcePresence.mounted && chordSources && onChordSourceChange && (
+                  )}
+            {chordSourcePresence.mounted && chordSources && onChordSourceChange && (
             <div
               ref={chordSourcePanelRef}
               className="motion-presence mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3"
@@ -327,13 +328,24 @@ export function SoundControls({
                 )}
               </p>
             </div>
+            )}
+            </div>
+          </details>
+        </div>
           )}
         </div>
 
         <div className="mb-4">
           <div className="flex items-center justify-between gap-2 mb-2">
             <h3 className="text-sm font-medium">Sound</h3>
-            {onPreview && <button type="button" onClick={() => onPreview()} className="min-h-11 px-3 rounded-lg border border-zinc-300 text-sm">{settings.backgroundMode === "chord" ? "Preview arrangement" : "Preview sound"}</button>}
+            {onPreview && (
+              <div className="flex items-center gap-2">
+                {settings.backgroundMode === "chord" && (
+                  <button type="button" onClick={() => onPreview("original")} className="min-h-11 px-3 rounded-lg border border-zinc-300 text-sm">Compare Original</button>
+                )}
+                <button type="button" onClick={() => onPreview()} className="min-h-11 px-3 rounded-lg border border-zinc-300 text-sm">{settings.backgroundMode === "chord" ? "Preview arrangement" : "Preview sound"}</button>
+              </div>
+            )}
           </div>
           <div className="flex gap-2" role="radiogroup" aria-label="Sound">
             {(["synth", "sampled", "organ"] as const).map((s) => (

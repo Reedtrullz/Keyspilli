@@ -21,9 +21,12 @@ import {
   loadSongPrefs,
   measureIndex,
   passageMidiRange,
+  playbackMeasures,
+  playbackTiming,
   resolveAccompaniment,
   resolveTimedNotes,
   sourceNoteIds,
+  validateSparseBackingTiming,
   saveJson,
   saveSettings,
   saveSongPrefs,
@@ -35,6 +38,7 @@ import {
   type MelodyHarmonicSupportPolicy,
   type MelodySelection,
   type SourceBackingMode,
+  type SparseBackingTiming,
   type ChordPracticeSnapshot,
   type PlayerSettings,
   type ViewMode,
@@ -49,11 +53,18 @@ import { FallingCanvas } from "./FallingCanvas";
 import { ChordStrip } from "./ChordStrip";
 import { ChordPracticePanel } from "./ChordPracticePanel";
 import { buildChordPracticeTargets, selectPracticeChords } from "./chord-practice";
-import { melodyArrangementExecution, MELODY_WORKER_NOTE_THRESHOLD, traceMelodyArrangement } from "./melody-arrangement-runtime";
+import {
+  buildMelodyArrangementOptions,
+  melodyArrangementExecution,
+  melodyArrangementResolutionFingerprint,
+  MELODY_WORKER_NOTE_THRESHOLD,
+  traceMelodyArrangement,
+} from "./melody-arrangement-runtime";
 import { BeginnerView } from "./BeginnerView";
 import { LeadSheetView } from "./LeadSheetView";
 import { SheetMusicView } from "./SheetMusicView";
 import { SoundControls, type MelodyAuditionRole, type MelodyPhraseOverrideAction } from "./SoundControls";
+import { melodyArrangementOutcome } from "./melody-arrangement-status";
 import { createHeldInput } from "./held-input";
 import { InputStatus } from "./InputStatus";
 import { PlayerTools, type PlayerTool } from "./PlayerTools";
@@ -229,6 +240,7 @@ function melodyArrangementRequestKey(
   phraseOverrides: readonly MelodyPhraseOverride[],
   harmonicSupport: MelodyHarmonicSupportPolicy,
   sourceBackingMode: SourceBackingMode,
+  sparseBackingTiming?: SparseBackingTiming,
 ): string {
   return JSON.stringify({
     sourceNotes,
@@ -239,6 +251,7 @@ function melodyArrangementRequestKey(
     phraseOverrides,
     harmonicSupport,
     sourceBackingMode,
+    sparseBackingTiming,
     allowRests: true,
     soundingPolicy: "coherent-phrase",
   });
@@ -250,6 +263,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     ...(mode ? { mode } : {}),
   }));
   const [time, setTime] = useState(0);
+  const [seekVersion, setSeekVersion] = useState(0);
   const [engineReady, setEngineReady] = useState(false);
   const [playing, setPlaying] = useState(false);
   const timeRef = useRef(time);
@@ -356,6 +370,10 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   const [melodyPhraseOverrides, setMelodyPhraseOverrides] = useState<MelodyPhraseOverride[]>([]);
   const [melodySelectionSaved, setMelodySelectionSaved] = useState(false);
   const melodySourceFingerprint = useMemo(() => sourceFingerprintForPlayer(initial), [initial]);
+  const sparseBackingTiming = useMemo(
+    () => validateSparseBackingTiming(initial.data.sourceTiming, melodySourceFingerprint),
+    [initial.data.sourceTiming, melodySourceFingerprint],
+  );
 
   useEffect(() => {
     setFavorites(loadJson("keyspilli.favorites", [] as string[]));
@@ -427,6 +445,10 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   }
 
   const engineRef = useRef<PlaybackEngine | null>(null);
+  const cancelSoundPreview = useCallback(() => {
+    if (soundPreviewRef.current) engineRef.current?.audio.cancelAll();
+    soundPreviewRef.current = false;
+  }, []);
   const heldInputRef = useRef<ReturnType<typeof createHeldInput> | null>(null);
   if (!heldInputRef.current) heldInputRef.current = createHeldInput(soundInputNote, midi => {
     engineRef.current?.handleNoteOff(midi);
@@ -451,6 +473,14 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       initial.data.measures.reduce((max, measure) => Math.max(max, measure.endBeat), 0),
     ),
     [initial.data.measures, initial.data.notes],
+  );
+  const playbackTimingForPlayer = useMemo(
+    () => playbackTiming({ ...initial.data, sourceTiming: sparseBackingTiming }),
+    [initial.data, sparseBackingTiming],
+  );
+  const navigationMeasures = useMemo(
+    () => playbackMeasures({ ...initial.data, sourceTiming: playbackTimingForPlayer }),
+    [initial.data, playbackTimingForPlayer],
   );
 
   const chordSources = useMemo(() => {
@@ -503,8 +533,21 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       melodyPhraseOverrides,
       melodySupportPolicy,
       melodySourceBackingMode,
+      playbackTimingForPlayer,
     ),
-    [arrangementEnd, chords, initial.data.notes, melodyPhraseOverrides, melodySelection, melodySourceBackingMode, melodySourceFingerprint, melodySupportPolicy],
+    [arrangementEnd, chords, initial.data.notes, melodyPhraseOverrides, melodySelection, melodySourceBackingMode, melodySourceFingerprint, melodySupportPolicy, playbackTimingForPlayer],
+  );
+  const melodyArrangementOptions = useMemo(
+    () => buildMelodyArrangementOptions({
+      durationBeats: arrangementEnd,
+      sourceFingerprint: melodySourceFingerprint,
+      selection: melodySelection,
+      phraseOverrides: melodyPhraseOverrides,
+      harmonicSupport: melodySupportPolicy,
+      sourceBackingMode: melodySourceBackingMode,
+      sparseBackingTiming: playbackTimingForPlayer,
+    }),
+    [arrangementEnd, melodyPhraseOverrides, melodySelection, melodySourceBackingMode, melodySourceFingerprint, melodySupportPolicy, playbackTimingForPlayer],
   );
   const sourceMelodyView = useMemo(
     () => sourceMelodyArrangement(initial.data.notes, chords, arrangementEnd, melodySourceFingerprint, melodySelection),
@@ -526,24 +569,16 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       noteCount: initial.data.notes.length,
       key: melodyArrangementRequestKeyValue,
     });
-    const resolution = buildMelodyAccompaniment(initial.data.notes, chords, {
-      durationBeats: arrangementEnd,
-      sourceFingerprint: melodySourceFingerprint,
-      selection: melodySelection,
-      allowRests: true,
-      soundingPolicy: "coherent-phrase",
-      phraseOverrides: melodyPhraseOverrides,
-      harmonicSupport: melodySupportPolicy,
-      sourceBackingMode: melodySourceBackingMode,
-    });
-    traceMelodyArrangement({
+    const resolution = buildMelodyAccompaniment(initial.data.notes, chords, melodyArrangementOptions);
+    traceMelodyArrangement(() => ({
       phase: "sync-complete",
       execution: "sync",
       noteCount: initial.data.notes.length,
       key: melodyArrangementRequestKeyValue,
-    });
+      resolutionFingerprint: melodyArrangementResolutionFingerprint(resolution),
+    }));
     return resolution;
-  }, [arrangementEnd, chords, initial.data.notes, melodyArrangementExecutionMode, melodyArrangementRequestKeyValue, melodyPhraseOverrides, melodySelection, melodySourceBackingMode, melodySourceFingerprint, melodySupportPolicy, sourceMelodyView]);
+  }, [chords, initial.data.notes, melodyArrangementExecutionMode, melodyArrangementOptions, melodyArrangementRequestKeyValue, sourceMelodyView]);
   const [workerMelodyArrangement, setWorkerMelodyArrangement] = useState<{ key: string; resolution: MelodyAccompanimentResolution } | null>(null);
   const [workerState, setWorkerState] = useState<{
     key: string;
@@ -588,9 +623,16 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
         fail("The background arrangement returned no result; Original playback is retained.");
         return;
       }
-      setWorkerMelodyArrangement({ key: event.data.requestKey, resolution: event.data.resolution });
+      const resolution = event.data.resolution;
+      setWorkerMelodyArrangement({ key: event.data.requestKey, resolution });
       setWorkerState({ key: melodyArrangementRequestKeyValue, status: "ready" });
-      traceMelodyArrangement({ phase: "worker-ready", execution: "worker", noteCount: initial.data.notes.length, key: melodyArrangementRequestKeyValue });
+      traceMelodyArrangement(() => ({
+        phase: "worker-ready",
+        execution: "worker",
+        noteCount: initial.data.notes.length,
+        key: melodyArrangementRequestKeyValue,
+        resolutionFingerprint: melodyArrangementResolutionFingerprint(resolution),
+      }));
     };
     worker.onerror = () => fail("The background arrangement failed; Original playback is retained.");
     worker.onmessageerror = () => fail("The background arrangement response was invalid; Original playback is retained.");
@@ -601,16 +643,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
         requestKey: melodyArrangementRequestKeyValue,
         sourceNotes: initial.data.notes,
         chordTimeline: chords,
-        options: {
-          durationBeats: arrangementEnd,
-          sourceFingerprint: melodySourceFingerprint,
-          selection: melodySelection,
-          allowRests: true,
-          soundingPolicy: "coherent-phrase",
-          phraseOverrides: melodyPhraseOverrides,
-          harmonicSupport: melodySupportPolicy,
-          sourceBackingMode: melodySourceBackingMode,
-        },
+        options: melodyArrangementOptions,
       });
     } catch (error) {
       fail(error instanceof Error ? error.message : "The background arrangement could not start; Original playback is retained.");
@@ -619,7 +652,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       active = false;
       worker.terminate();
     };
-  }, [arrangementEnd, chords, initial.data.notes, melodyArrangementExecutionMode, melodyArrangementRequested, melodyArrangementRequestKeyValue, melodyPhraseOverrides, melodySelection, melodySourceBackingMode, melodySourceFingerprint, melodySupportPolicy, workerAvailable, workerRetry]);
+  }, [chords, initial.data.notes, melodyArrangementExecutionMode, melodyArrangementOptions, melodyArrangementRequested, melodyArrangementRequestKeyValue, workerAvailable, workerRetry]);
   const workerResolution = workerMelodyArrangement?.key === melodyArrangementRequestKeyValue
     ? workerMelodyArrangement.resolution
     : null;
@@ -667,6 +700,20 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     [guidanceData, settings.speed, settings.transpose],
   );
 
+  // Preview notes are scheduled directly on the audio graph, outside the
+  // transport timeline. Tear that graph down whenever its source, routing,
+  // external seek, or owning tool changes; cleanup also covers navigation/unmount.
+  useEffect(() => {
+    if (openTool !== "sound") cancelSoundPreview();
+    return cancelSoundPreview;
+  }, [cancelSoundPreview, chordSourcePreference, initial.song.id, loop, melodyArrangement,
+    melodyArrangementRequestKeyValue, melodyPhraseOverrides, melodySelection,
+    melodySourceBackingMode, openTool, settings.accompanimentStyle, settings.backgroundMode,
+    settings.hand, settings.mode, settings.metronome, settings.organDrive,
+    settings.organRotary, settings.organSpace, settings.organStyle, settings.pianoGain,
+    settings.soundSource, settings.speed, settings.sustainPedal, settings.transpose,
+    settings.voiceGain, seekVersion]);
+
   const duration = useMemo(
     () => Math.max(
       notes.reduce((m, n) => Math.max(m, n.startSec + n.durSec), 0),
@@ -681,7 +728,8 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     initial.data.tempoBpm,
     settings.speed,
     initial.data.timeSig,
-    initial.data.measures.length,
+    navigationMeasures.length,
+    navigationMeasures,
   );
   // Freeze chord-practice targets at session start: a seek changes the
   // current measure but must not silently discard accumulated progress.
@@ -689,11 +737,11 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   const chordPracticeTargets = useMemo(
     () => {
       if (chordPracticeActive && chordPracticeTargetsRef.current) return chordPracticeTargetsRef.current;
-      const next = buildChordPracticeTargets(selectPracticeChords(displayChords, initial.data.measures, currentMeasure), settings.transpose);
+      const next = buildChordPracticeTargets(selectPracticeChords(displayChords, navigationMeasures, currentMeasure), settings.transpose);
       chordPracticeTargetsRef.current = next;
       return next;
     },
-    [displayChords, initial.data.measures, currentMeasure, settings.transpose, chordPracticeActive],
+    [displayChords, navigationMeasures, currentMeasure, settings.transpose, chordPracticeActive],
   );
   // Playback applies transpose inside PlaybackEngine. Keep the visual chord
   // keys in the same transposed coordinate space as the falling notes without
@@ -731,7 +779,11 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       audio,
       notes,
       duration,
-      { tempoBpm: initial.data.tempoBpm, timeSig: initial.data.timeSig },
+      {
+        tempoBpm: initial.data.tempoBpm,
+        timeSig: initial.data.timeSig,
+        measureStarts: navigationMeasures.map((measure) => measure.startBeat),
+      },
       settings,
       audioChords,
       guidanceNotes,
@@ -848,6 +900,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   const seek = useCallback((t: number) => {
     if (gradingRef.current || showPracticeSetupRef.current) return;
     engineRef.current?.seek(t);
+    setSeekVersion(version => version + 1);
     syncTransportState();
   }, []);
 
@@ -1118,8 +1171,8 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
 
   function loopCurrentBars(count: number) {
     if (gradingRef.current) return;
-    const start = initial.data.measures[currentMeasure];
-    const end = initial.data.measures[Math.min(initial.data.measures.length - 1, currentMeasure + count - 1)];
+    const start = navigationMeasures[currentMeasure];
+    const end = navigationMeasures[Math.min(navigationMeasures.length - 1, currentMeasure + count - 1)];
     if (start && end) setLoopBeats({ startBeat: start.startBeat, endBeat: end.endBeat });
   }
 
@@ -1133,28 +1186,28 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   }
 
   function seekToMeasure(i: number) {
-    const m = initial.data.measures[i];
+    const m = navigationMeasures[i];
     if (m) seek(m.startBeat * secPerBeat(initial.data.tempoBpm, settings.speed));
   }
 
   function commitBar(input: HTMLInputElement) {
     const value = input.valueAsNumber;
-    if (Number.isInteger(value)) seekToMeasure(Math.max(0, Math.min(initial.data.measures.length - 1, value - 1)));
-    input.value = String(Number.isInteger(value) ? Math.max(1, Math.min(initial.data.measures.length, value)) : currentMeasure + 1);
+    if (Number.isInteger(value)) seekToMeasure(Math.max(0, Math.min(navigationMeasures.length - 1, value - 1)));
+    input.value = String(Number.isInteger(value) ? Math.max(1, Math.min(navigationMeasures.length, value)) : currentMeasure + 1);
   }
 
-  const loopStartBar = loopBeats ? Math.max(0, initial.data.measures.findIndex((m) => m.endBeat > loopBeats.startBeat)) + 1 : currentMeasure + 1;
-  const loopEndBar = loopBeats ? Math.max(0, initial.data.measures.findIndex((m) => m.endBeat >= loopBeats.endBeat)) + 1 : Math.min(initial.data.measures.length, currentMeasure + 4);
+  const loopStartBar = loopBeats ? Math.max(0, navigationMeasures.findIndex((m) => m.endBeat > loopBeats.startBeat)) + 1 : currentMeasure + 1;
+  const loopEndBar = loopBeats ? Math.max(0, navigationMeasures.findIndex((m) => m.endBeat >= loopBeats.endBeat)) + 1 : Math.min(navigationMeasures.length, currentMeasure + 4);
   function commitLoopBar(input: HTMLInputElement, anchor: "start" | "end") {
     if (gradingRef.current) return;
     const value = input.valueAsNumber;
     const start = anchor === "start" ? value : loopStartBar;
     const end = anchor === "end" ? value : loopEndBar;
-    if (!Number.isInteger(value) || start < 1 || end > initial.data.measures.length || start > end) {
+    if (!Number.isInteger(value) || start < 1 || end > navigationMeasures.length || start > end) {
       input.setCustomValidity("Choose whole bars with the end at or after the start."); input.reportValidity(); return;
     }
     input.setCustomValidity("");
-    setLoopBeats({ startBeat: initial.data.measures[start - 1]!.startBeat, endBeat: initial.data.measures[end - 1]!.endBeat });
+    setLoopBeats({ startBeat: navigationMeasures[start - 1]!.startBeat, endBeat: navigationMeasures[end - 1]!.endBeat });
   }
 
   function toggleFavorite() {
@@ -1169,11 +1222,6 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     const next = learned.includes(id) ? learned.filter((f) => f !== id) : [...learned, id];
     setLearned(next);
     saveJson("keyspilli.learned", next);
-  }
-
-  function cancelSoundPreview() {
-    if (soundPreviewRef.current) engineRef.current?.audio.cancelAll();
-    soundPreviewRef.current = false;
   }
 
   function previewSound(role: MelodyAuditionRole = "full") {
@@ -1192,9 +1240,11 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       : {
         notes: resolveTimedNotes({
           ...initial.data,
-          notes: melodyArrangement.events
-            .filter((event) => role === "melody" ? event.role === "melody" : event.role !== "melody")
-            .map((event) => event.note),
+          notes: role === "original"
+            ? initial.data.notes
+            : melodyArrangement.events
+              .filter((event) => role === "melody" ? event.role === "melody" : event.role !== "melody")
+              .map((event) => event.note),
         }, settings.speed, settings.transpose)
           .filter((note) => noteMatchesHand(note, settings.hand))
           .flatMap((note) => {
@@ -1211,14 +1261,9 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     if (role === "full" && settings.backgroundMode === "chord" && eng.audio.playChord) {
       for (const chord of preview.chords) eng.audio.playChord(chord.notes, chord.when, chord.durationSec);
     }
-    const hasChordPreview = role === "full" && settings.backgroundMode === "chord" && !!eng.audio.playChord && preview.chords.length > 0;
-    if (role === "full" && preview.notes.length === 0 && !hasChordPreview) {
-      [60, 64, 67].forEach((midi, index) => eng.audio.noteOn({ midi, startSec: 0, durSec: 0.25, vel: 85, hand: "R" }, index * 0.3));
-    }
   }
 
   function updateSettings(p: Partial<PlayerSettings>) {
-    if (p.soundSource !== undefined || p.organStyle !== undefined) cancelSoundPreview();
     if (gradingRef.current && (p.speed !== undefined || p.hand !== undefined || p.transpose !== undefined || p.soundSource !== undefined || p.organStyle !== undefined || p.backgroundMode !== undefined || p.accompanimentStyle !== undefined)) return;
     if (p.mode !== undefined && p.mode !== settings.mode) {
       if (gradingRef.current) finishGrading(false);
@@ -1251,7 +1296,6 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   }
 
   function updateMelodySelection(selection: MelodySelection) {
-    cancelSoundPreview();
     setMelodySelection(selection);
     if (melodySourceFingerprint) {
       saveJson(melodySelectionKey(initial.song.id), {
@@ -1270,7 +1314,6 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   }
 
   function updateSourceBackingMode(sourceBackingMode: SourceBackingMode) {
-    cancelSoundPreview();
     setMelodySourceBackingMode(sourceBackingMode);
     if (melodySourceFingerprint) {
       saveJson(melodySelectionKey(initial.song.id), {
@@ -1334,7 +1377,6 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       });
       nextOverrides.sort((a, b) => a.startBeat - b.startBeat || a.endBeat - b.endBeat);
     }
-    cancelSoundPreview();
     setMelodyPhraseOverrides(nextOverrides);
     if (melodySourceFingerprint) {
       saveJson(melodySelectionKey(initial.song.id), {
@@ -1352,7 +1394,6 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   }
 
   function resetMelodySelection() {
-    cancelSoundPreview();
     setMelodySelection("automatic");
     setMelodySourceBackingMode("default");
     setMelodyPhraseOverrides([]);
@@ -1405,6 +1446,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     const range = repeatRange ?? (repeatRangeRef.current && setup.scope === practiceSetupRef.current.scope ? repeatRangeRef.current : null) ??
       (setup.scope === "loop" ? loop : { startSec: setup.scope === "beginning" ? 0 : eng.time, endSec: duration });
     if (!range) { setPracticeError("Select a loop before practicing it."); return; }
+    cancelSoundPreview();
     try { eng.startGrading(setup.wait, range); }
     catch (error) { setPracticeError(error instanceof Error ? error.message : "Unable to start practice"); return; }
     setGradeResult(null);
@@ -1460,6 +1502,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   function repeatPractice() {
     const attempt = lastAttemptRef.current;
     if (!attempt) return;
+    cancelSoundPreview();
     if (attempt.setup.input === "keyboard" || (attempt.setup.input === "midi" && midiConnected)) { beginPractice(attempt.setup, attempt.range); return; }
     setPracticeSetup(attempt.setup);
     setPracticeError("");
@@ -1605,6 +1648,16 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     : null;
   const accompanimentFallbackSlotMessage = accompanimentFallbackMessage ?? "Original passage retained — accompaniment fallback requires review.";
   const hasAccompanimentFallbackSlot = settings.backgroundMode === "chord" && accompaniment.fallbackSpans.length > 0;
+  const melodyArrangementState = melodyArrangementFailed ? "failed" : melodyArrangementPending ? "pending" : "ready";
+  const melodyArrangementOutcomeText = melodyArrangementOutcome(melodyArrangementState, melodyArrangement);
+  const melodyArrangementCoverageText = melodyArrangement.provenance.sourceSupportNoteCount > 0
+    ? `${melodyArrangement.provenance.sourceSupportNoteCount} source support notes`
+    : melodyArrangement.provenance.generatedNoteCount > 0
+      ? `${melodyArrangement.provenance.generatedNoteCount} sparse backing notes`
+      : "no added support";
+  const melodyArrangementStatusText = melodyArrangementState !== "ready"
+    ? melodyArrangementOutcomeText
+    : `${melodyArrangement.provenance.selectionProvenance === "user-confirmed" ? "User melody" : "Inferred melody"} · whole-part selection · ${melodyArrangementOutcomeText} · ${melodyArrangementCoverageText}`;
   const activeSection = sections.find((s) => {
     const spb = secPerBeat(initial.data.tempoBpm, settings.speed);
     return time >= s.startBeat * spb && time < s.endBeat * spb;
@@ -1644,7 +1697,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     <>
       {viewMode === "falling" && <ChordStrip chords={visualChords} currentBeat={currentBeat} />}
       {viewMode === "falling" && (
-        <FallingCanvas timeSig={initial.data.timeSig} measures={initial.data.measures} countIn={countIn} inputEnabled={!openTool && !showPracticeSetup && countIn === null && (!grading || practiceSetup.input === "keyboard")}
+        <FallingCanvas timeSig={initial.data.timeSig} measures={navigationMeasures} countIn={countIn} inputEnabled={!openTool && !showPracticeSetup && countIn === null && (!grading || practiceSetup.input === "keyboard")}
                 onKeyDown={(pointerId, midi) => handleNote(midi, true, "keyboard", `pointer:${pointerId}`)}
                 onKeyUp={pointerId => heldInputRef.current?.release(`pointer:${pointerId}`)} inputOctave={inputOctave} midiConnected={midiConnected} onResetOctave={() => keyboardInputRef.current?.setOctave(2)}
           notes={guidanceNotes}
@@ -1665,9 +1718,9 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       {viewMode === "leadsheet" && <LeadSheetView data={guidanceData} time={time} settings={settings} chords={displayChords} />}
       {viewMode === "sheet" && (
         <div>
-          {settings.backgroundMode === "chord" && settings.accompanimentStyle === "bass-chords" && (
+          {settings.backgroundMode === "chord" && (
             <p className="mx-4 mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900" role="status">
-              Sheet Music shows the original arrangement. Use Fall Down or Note letters for the Bass + chords guidance.
+              Sheet Music shows the stored Original arrangement while Chord mode is selected. Use Fall Down or Note letters for the active guidance.
             </p>
           )}
           <SheetMusicView songId={initial.song.id} />
@@ -1707,11 +1760,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
                 role="status"
                 title={melodyArrangementFailed ? workerError ?? undefined : melodyArrangement.provenance.unresolvedSpans.length ? "One or more melody phrases need confirmation." : undefined}
               >
-                {melodyArrangementFailed ? "Original retained · arrangement unavailable" : melodyArrangementPending ? "Preparing arrangement · Original retained" : melodyArrangement.provenance.selectionProvenance === "user-confirmed" ? "User melody" : "Inferred melody"} {!melodyArrangementPending && !melodyArrangementFailed && "· whole-part selection · "}{!melodyArrangementPending && !melodyArrangementFailed && (melodyArrangement.provenance.generatedNoteCount > 0
-                  ? `${melodyArrangement.provenance.generatedNoteCount} sparse backing notes`
-                  : melodyArrangement.provenance.sourceSupportNoteCount > 0
-                    ? `${melodyArrangement.provenance.sourceSupportNoteCount} source support notes`
-                    : "fallback")}
+                {melodyArrangementStatusText}
               </span>
               {melodyArrangementFailed && (
                 <div className="basis-full flex items-center gap-2 text-xs text-amber-800" data-testid="melody-accompaniment-error" role="alert">
@@ -1887,7 +1936,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
           )}
           </div>
 
-          <PlayerTools soundLabel={`${settings.soundSource === "organ" ? "Organ" : settings.soundSource === "sampled" ? "Piano" : "Synth"}${settings.soundSource !== "organ" && settings.sustainPedal ? " · sustain" : ""}`} open={openTool} onOpen={tool => { cancelSoundPreview(); setShowModeMenu(false); setOpenTool(tool); }}>
+          <PlayerTools soundLabel={`${settings.soundSource === "organ" ? "Organ" : settings.soundSource === "sampled" ? "Piano" : "Synth"}${settings.soundSource !== "organ" && settings.sustainPedal ? " · sustain" : ""}`} open={openTool} onOpen={tool => { setShowModeMenu(false); setOpenTool(tool); }}>
             {tool => tool === "display" ? <div className="flex flex-wrap gap-2">
           <button
             hidden={settings.mode !== "falling"}
@@ -1970,10 +2019,10 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
 
         <div className="player-timeline">          <div className="player-measure-controls flex items-center gap-1">
             <button disabled={grading || currentMeasure === 0} onClick={() => seekToMeasure(Math.max(0, currentMeasure - 1))} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Previous measure">‹</button>
-            <label className="flex items-center gap-1 text-xs">Bar <input key={currentMeasure} type="number" aria-label="Bar" min={1} max={initial.data.measures.length} step={1} defaultValue={currentMeasure + 1} disabled={grading}
+            <label className="flex items-center gap-1 text-xs">Bar <input key={currentMeasure} type="number" aria-label="Bar" min={1} max={navigationMeasures.length} step={1} defaultValue={currentMeasure + 1} disabled={grading}
               onBlur={(event) => commitBar(event.currentTarget)} onKeyDown={(event) => { if (event.key === "Enter") commitBar(event.currentTarget); }} /></label>
-            <span className="text-xs text-zinc-500">/ {initial.data.measures.length}</span>
-            <button disabled={grading || currentMeasure >= initial.data.measures.length - 1} onClick={() => seekToMeasure(Math.min(initial.data.measures.length - 1, currentMeasure + 1))} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Next measure">›</button>
+            <span className="text-xs text-zinc-500">/ {navigationMeasures.length}</span>
+            <button disabled={grading || currentMeasure >= navigationMeasures.length - 1} onClick={() => seekToMeasure(Math.min(navigationMeasures.length - 1, currentMeasure + 1))} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Next measure">›</button>
           </div>
           <output role="timer" aria-label="Elapsed time" className="ml-auto text-xs text-zinc-500 font-mono tabular-nums text-right select-none flex items-center gap-1.5">
             <span>{fmtTime(time)}</span>
@@ -1988,8 +2037,8 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
               <button disabled={grading} onClick={() => loopCurrentBars(1)} className="min-h-11 rounded-lg border border-zinc-300 px-3">Loop current bar</button>
               <button disabled={grading} onClick={() => loopCurrentBars(4)} className="min-h-11 rounded-lg border border-zinc-300 px-3">Loop next 4 bars</button>
             </div>
-            <label>Start bar <input key={`start-${loopStartBar}`} type="number" aria-label="Loop start bar" min={1} max={initial.data.measures.length} defaultValue={loopStartBar} disabled={grading} onBlur={(e) => commitLoopBar(e.currentTarget, "start")} onKeyDown={(e) => { if (e.key === "Enter") commitLoopBar(e.currentTarget, "start"); }} /></label>
-            <label>End bar <input key={`end-${loopEndBar}`} type="number" aria-label="Loop end bar" min={1} max={initial.data.measures.length} defaultValue={loopEndBar} disabled={grading} onBlur={(e) => commitLoopBar(e.currentTarget, "end")} onKeyDown={(e) => { if (e.key === "Enter") commitLoopBar(e.currentTarget, "end"); }} /></label>
+            <label>Start bar <input key={`start-${loopStartBar}`} type="number" aria-label="Loop start bar" min={1} max={navigationMeasures.length} defaultValue={loopStartBar} disabled={grading} onBlur={(e) => commitLoopBar(e.currentTarget, "start")} onKeyDown={(e) => { if (e.key === "Enter") commitLoopBar(e.currentTarget, "start"); }} /></label>
+            <label>End bar <input key={`end-${loopEndBar}`} type="number" aria-label="Loop end bar" min={1} max={navigationMeasures.length} defaultValue={loopEndBar} disabled={grading} onBlur={(e) => commitLoopBar(e.currentTarget, "end")} onKeyDown={(e) => { if (e.key === "Enter") commitLoopBar(e.currentTarget, "end"); }} /></label>
             <button disabled={grading} onClick={toggleLoop} className="min-h-11 rounded-lg border border-zinc-300 px-3">{loop ? "Clear loop" : "Enable loop"}</button>
           </div>
         </details></div>
@@ -2011,7 +2060,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
             }}
             disabled={!engineReady || grading}
             aria-label="Seek"
-            aria-valuetext={`Bar ${currentMeasure + 1} of ${initial.data.measures.length}, ${fmtTime(time)} of ${fmtTime(duration)}`}
+            aria-valuetext={`Bar ${currentMeasure + 1} of ${navigationMeasures.length}, ${fmtTime(time)} of ${fmtTime(duration)}`}
           />
         </div>
         {sections.length > 1 && (
@@ -2121,7 +2170,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
         midiConnected={midiConnected} micReady={micReady} micPending={micPending} micError={micError} error={practiceError}
         onEnableMic={() => void enableMicrophone()} onInputChange={(input) => { if (input !== "microphone") releaseMicrophone(); }}
         onStart={beginPractice} onCancel={closePracticeSetup} />}
-      {showDownload && <DownloadDialog songId={initial.song.id} hasSheetXml={initial.song.hasSheetXml === 1} onClose={() => {
+      {showDownload && <DownloadDialog songId={initial.song.id} hasSheetXml={initial.song.hasSheetXml === 1} backgroundMode={settings.backgroundMode} onClose={() => {
         setShowDownload(false);
         window.requestAnimationFrame(() => downloadTriggerRef.current?.focus());
       }} />}

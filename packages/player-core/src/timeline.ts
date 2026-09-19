@@ -1,4 +1,5 @@
 import type { SongData } from "./types.js";
+import type { MeasureInfo, MidiTimeSignatureEvent } from "@keyspilli/midi";
 import { chordName, tryParseChordSymbol, type ChordLabel, type ChordSourceKind } from "@keyspilli/midi";
 
 /** Converts beat-based song data into seconds given a speed multiplier. */
@@ -461,6 +462,164 @@ export function beatsPerMeasure(timeSig: [number, number]): number {
   return timeSig[0] * (4 / timeSig[1]);
 }
 
+// Keep loader and direct player callers on the same bounded work envelope as
+// the MIDI source pipeline. Invalid payloads fail closed before any fallback
+// array is allocated.
+export const MAX_PLAYBACK_NOTES = 100_000;
+export const MAX_PLAYBACK_MEASURES = 2_048;
+export const MAX_PLAYBACK_BEATS = 4_096;
+
+export function validatePlaybackData(
+  data: Pick<SongData, "notes" | "measures">,
+): string[] {
+  const errors: string[] = [];
+  if (!Array.isArray(data.notes)) errors.push("notes must be an array");
+  else if (data.notes.length > MAX_PLAYBACK_NOTES) errors.push(`notes exceed ${MAX_PLAYBACK_NOTES} events`);
+  else data.notes.forEach((note, index) => {
+    if (!note || typeof note !== "object"
+      || typeof note.start !== "number" || !Number.isFinite(note.start)
+      || typeof note.dur !== "number" || !Number.isFinite(note.dur)
+      || note.start < 0 || note.dur <= 0
+      || note.start + note.dur > MAX_PLAYBACK_BEATS) {
+      errors.push(`notes[${index}] has invalid timing`);
+    }
+  });
+  if (!Array.isArray(data.measures)) errors.push("measures must be an array");
+  else if (data.measures.length > MAX_PLAYBACK_MEASURES) errors.push(`measures exceed ${MAX_PLAYBACK_MEASURES} bars`);
+  else data.measures.forEach((measure, index) => {
+    if (!measure || typeof measure !== "object"
+      || typeof measure.startBeat !== "number" || !Number.isFinite(measure.startBeat)
+      || typeof measure.endBeat !== "number" || !Number.isFinite(measure.endBeat)
+      || measure.startBeat < 0 || measure.endBeat <= measure.startBeat
+      || measure.endBeat > MAX_PLAYBACK_BEATS) {
+      errors.push(`measures[${index}] has invalid timing`);
+    }
+  });
+  return errors;
+}
+
+/** Return the descriptive meter in force at a beat; this does not assert phase. */
+export function timeSignatureAtBeat(
+  beat: number,
+  fallback: [number, number],
+  events?: readonly Pick<MidiTimeSignatureEvent, "beat" | "timeSig">[],
+): [number, number] {
+  let active = [...fallback] as [number, number];
+  for (const event of events ?? []) {
+    if (event.beat > beat + 1e-9) break;
+    active = [...event.timeSig] as [number, number];
+  }
+  return active;
+}
+
+/** Build the scalar-meter map used when source measure phase is unknown. */
+export function arithmeticMeasures(durationBeats: number, timeSig: [number, number]): MeasureInfo[] {
+  const width = beatsPerMeasure(timeSig);
+  if (!Number.isFinite(width) || width <= 0
+    || !Number.isFinite(durationBeats) || durationBeats < 0 || durationBeats > MAX_PLAYBACK_BEATS) return [];
+  const count = Math.max(1, Math.ceil(durationBeats / width));
+  if (count > MAX_PLAYBACK_MEASURES) return [];
+  return Array.from({ length: count }, (_, index) => ({
+    index,
+    startBeat: index * width,
+    endBeat: (index + 1) * width,
+  }));
+}
+
+function measureBoundaryMatchesPhase(beat: number, phase: number, timeSig: readonly [number, number]): boolean {
+  const width = timeSig[0] * (4 / timeSig[1]);
+  if (!Number.isFinite(width) || width <= 0) return false;
+  const steps = (beat - phase) / width;
+  return Math.abs(steps - Math.round(steps)) <= 1e-6;
+}
+
+function sourceMeasuresMatchTiming(
+  data: Pick<SongData, "notes" | "measures" | "timeSig" | "timeSigEvents">,
+  timing: NonNullable<SongData["sourceTiming"]>,
+): boolean {
+  const measures = data.measures;
+  if (validatePlaybackData(data).length > 0 || !measures.length) return false;
+  if (timing.timeSig[0] !== data.timeSig[0] || timing.timeSig[1] !== data.timeSig[1]) return false;
+  const canonicalEvents = data.timeSigEvents?.length
+    ? data.timeSigEvents
+    : [{ beat: 0, timeSig: data.timeSig }];
+  const events = timing.timeSigEvents?.length
+    ? timing.timeSigEvents
+    : [{ beat: timing.measureStartBeat, timeSig: timing.timeSig }];
+  if (canonicalEvents.length !== events.length
+    || canonicalEvents.some((event, index) => {
+      const candidate = events[index]!;
+      return event.beat !== candidate.beat
+        || event.timeSig[0] !== candidate.timeSig[0]
+        || event.timeSig[1] !== candidate.timeSig[1];
+    })) return false;
+  const duration = Math.max(
+    data.notes.reduce((max, note) => Math.max(max, note.start + note.dur), 0),
+    measures.reduce((max, measure) => Math.max(max, measure.endBeat), 0),
+  );
+  if (measures[0]!.startBeat > 1e-6 || measures[measures.length - 1]!.endBeat < duration - 1e-6) return false;
+  for (let index = 0; index < measures.length; index++) {
+    const measure = measures[index]!;
+    if (!Number.isFinite(measure.startBeat) || !Number.isFinite(measure.endBeat) || !(measure.endBeat > measure.startBeat)) return false;
+    if (index > 0 && Math.abs(measures[index - 1]!.endBeat - measure.startBeat) > 1e-6) return false;
+  }
+  for (const event of events) {
+    if (!measures.some((measure) => Math.abs(measure.startBeat - event.beat) <= 1e-6)) return false;
+  }
+  for (const measure of measures) {
+    let active = events[0]!;
+    for (const event of events) {
+      if (event.beat > measure.startBeat + 1e-9) break;
+      active = event;
+    }
+    if (!measureBoundaryMatchesPhase(measure.startBeat, active.beat, active.timeSig)) return false;
+    const expectedEnd = measure.startBeat + beatsPerMeasure(active.timeSig as [number, number]);
+    if (!Number.isFinite(expectedEnd) || Math.abs(measure.endBeat - expectedEnd) > 1e-6) return false;
+  }
+  return true;
+}
+
+/** Return source timing only when the stored measure map agrees with it. */
+export function playbackTiming(
+  data: Pick<SongData, "notes" | "measures" | "sourceTiming" | "timeSig" | "timeSigEvents">,
+): SongData["sourceTiming"] {
+  const timing = data.sourceTiming;
+  if (timing?.provenance !== "source-measure-boundary"
+    || typeof timing.sourceFingerprint !== "string"
+    || timing.sourceFingerprint.length === 0
+    || !sourceMeasuresMatchTiming(data, timing)) return undefined;
+  return timing;
+}
+
+/** Use stored measure starts only when the catalog supplied validated phase. */
+export function playbackMeasures(
+  data: Pick<SongData, "notes" | "measures" | "timeSig" | "timeSigEvents" | "sourceTiming">,
+): MeasureInfo[] {
+  if (validatePlaybackData(data).length > 0) return [];
+  if (playbackTiming(data)) return data.measures;
+  const noteEnd = data.notes.reduce((max, note) => Number.isFinite(note.start + note.dur) ? Math.max(max, note.start + note.dur) : max, 0);
+  const measureEnd = data.measures.reduce((max, measure) => Number.isFinite(measure.endBeat) ? Math.max(max, measure.endBeat) : max, 0);
+  return arithmeticMeasures(Math.max(noteEnd, measureEnd), data.timeSig);
+}
+
+/** Index of the measure containing a beat in an explicit source measure map. */
+export function measureIndexAtBeat(
+  beat: number,
+  measures: readonly { startBeat: number; endBeat: number }[],
+): number {
+  if (!measures.length) return 0;
+  let low = 0;
+  let high = measures.length - 1;
+  while (low <= high) {
+    const middle = low + ((high - low) >> 1);
+    const measure = measures[middle]!;
+    if (beat < measure.startBeat) high = middle - 1;
+    else if (beat >= measure.endBeat) low = middle + 1;
+    else return middle;
+  }
+  return Math.max(0, Math.min(measures.length - 1, low));
+}
+
 /** Index of the measure containing timeSec, clamped to the song's range. */
 export function measureIndex(
   timeSec: number,
@@ -468,10 +627,13 @@ export function measureIndex(
   speed: number,
   timeSig: [number, number],
   measureCount: number,
+  measures?: readonly { startBeat: number; endBeat: number }[],
 ): number {
+  const beat = timeSec / secPerBeat(bpm, speed);
+  if (measures?.length) return measureIndexAtBeat(beat, measures);
   return Math.min(
     measureCount - 1,
-    Math.floor(timeSec / secPerBeat(bpm, speed) / beatsPerMeasure(timeSig)),
+    Math.floor(beat / beatsPerMeasure(timeSig)),
   );
 }
 

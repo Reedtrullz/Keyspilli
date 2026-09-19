@@ -7,3 +7,8 @@ export async function openPlayerTool(page: Page, name: "Display" | "Sound" | "In
     .filter({ visible: true }).click();
   await panel.getByRole("button", { name, exact: true }).click();
 }
+
+export async function openAdvancedArrangementControls(page: Page): Promise<void> {
+  const disclosure = page.getByTestId("advanced-arrangement-controls");
+  if (await disclosure.getAttribute("open") === null) await disclosure.locator("summary").click();
+}

@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "title": "Somebody To Love",
+  "artist": "Queen",
+  "tempoBpm": 108,
+  "durationBeats": 537.5,
+  "diagnosticWindowBeats": {
+    "start": 18,
+    "end": 30
+  },
+  "source": {
+    "canonicalNotesSha256": "4faced9af0bc543fd4f054c731a16ed58e977d8623f947ff6925b482f8b3ec7d",
+    "rawMidiSha256": "4505d3a7cb3c24788e51905eb29a40c501a31f7bd07596d489f63f7430c7a74e",
+    "rawCantoTrackIndex": 5,
+    "rawCantoChannel": 3,
+    "rawCantoNotes": 278
+  },
+  "noteCounts": {
+    "original": 2373,
+    "replay": 2369,
+    "candidate": 2406
+  },
+  "files": {
+    "originalFullMidi": "original-full.mid",
+    "originalDiagnosticMidi": "original-diagnostic-18-30-beats.mid",
+    "replayFullMidi": "replay-full.mid",
+    "replayDiagnosticMidi": "replay-diagnostic-18-30-beats.mid",
+    "candidateFullMidi": "candidate-full.mid",
+    "candidateDiagnosticMidi": "candidate-diagnostic-18-30-beats.mid"
+  },
+  "fileSha256": {
+    "original-full.mid": "f41acec95896e7e9804812b8df252a133e0569c85bde66a643f9b5c29eeb52d8",
+    "original-diagnostic-18-30-beats.mid": "a2651e56248fe3f1422e3a9e8d9c9461640fc060ce5de48d43b29cb253728d6f",
+    "replay-full.mid": "dea3493836111d82029d8976670f5ef264bd8eb801a5055cfdf80f2f08c2af82",
+    "replay-diagnostic-18-30-beats.mid": "d3e8ff19749ad6a5a0cb284bc8535a71fe878f8ec869d863f3e6af6087b898ec",
+    "candidate-full.mid": "a783b0b26ef221392ff3d42b7f7e897fda7128888553b07bd094c49c581ba283",
+    "candidate-diagnostic-18-30-beats.mid": "cc3703a8875fa026c5c3ee8df74bc96cae64fee049622d404b10a875ab2c3699"
+  },
+  "notes": {
+    "replay": "The current parseMidi -> learner buildVariants Advanced result.",
+    "candidate": "The disposable learner result with only the raw CANTO tuples tagged as vocals; hand, duration, span, and playability guards remain active."
+  },
+  "nonClaims": [
+    "These are same-SoundFont symbolic renders for listening review, not audio-hash acceptance.",
+    "The protected candidate is not catalog data, semantic approval, or a deployment artifact."
+  ]
+}

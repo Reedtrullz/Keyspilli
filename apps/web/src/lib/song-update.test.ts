@@ -127,6 +127,25 @@ describe("applySongMetadata tempo roles", () => {
   });
 
   it("rescales beat-space only for an explicit calibration edit", async () => {
+    const manifestPath = join(root, "artifacts", baseId, "manifest.json");
+    const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+    manifest.sourceTiming = {
+      [`${baseId}-a`]: {
+        timeSig: [4, 4],
+        measureStartBeat: 0,
+        provenance: "source-measure-boundary",
+        sourceFingerprint: "persisted-source-timing",
+      },
+    };
+    await catalog.writeArrangementManifestFile(manifestPath, manifest);
+    for (const level of levels) {
+      const notesPath = join(root, "artifacts", baseId, level, "notes.json");
+      const value = JSON.parse(await readFile(notesPath, "utf8"));
+      value.sourceTiming = level === "a"
+        ? { timeSig: [4, 4], measureStartBeat: 0, provenance: "source-measure-boundary", sourceFingerprint: "persisted-source-timing" }
+        : { timeSig: [4, 4], measureStartBeat: 0, provenance: "source-measure-boundary" };
+      await writeFile(notesPath, JSON.stringify(value));
+    }
     await update.applySongMetadata(baseId, { calibrationTempo: 240 });
 
     const next = await stored();
@@ -145,9 +164,11 @@ describe("applySongMetadata tempo roles", () => {
       { index: 1, startBeat: 8, endBeat: 16 },
     ]);
     expect((next as { durationBeats?: number }).durationBeats).toBe(16);
-    const manifest = JSON.parse(await readFile(join(root, "artifacts", baseId, "manifest.json"), "utf8"));
-    expect(manifest.tempo.calibration).toMatchObject({ bpm: 240, source: "manual", role: "source-calibration" });
-    expect(manifest.tempo.playback.bpm).toBe(90);
+    const nextManifest = JSON.parse(await readFile(manifestPath, "utf8"));
+    expect(nextManifest.tempo.calibration).toMatchObject({ bpm: 240, source: "manual", role: "source-calibration" });
+    expect(nextManifest.tempo.playback.bpm).toBe(90);
+    expect(nextManifest).not.toHaveProperty("sourceTiming");
+    expect(next).not.toHaveProperty("sourceTiming");
     // Calibration doubles the canonical beat span; playback remains 90 BPM.
     expect(catalog.getSongsByBase(baseId).every((r) => r.duration === 8)).toBe(true);
   });

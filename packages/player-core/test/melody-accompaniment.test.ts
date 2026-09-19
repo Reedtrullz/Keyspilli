@@ -152,6 +152,36 @@ describe("buildMelodyAccompaniment", () => {
     expect(explicitChorded).toEqual(implicitChorded);
   });
 
+  it("keeps an opt-in source identity in automatic melody selection without changing the default", () => {
+    const source = [
+      { ...note(60, 0, 1, 80), identitySource: "vocals" as const },
+      note(72, 0, 1, 110),
+      note(74, 1, 1, 110),
+    ];
+    const implicit = buildMelodyAccompaniment(source, [], {
+      durationBeats: 2,
+      allowRests: true,
+      sourceFingerprint: "identity-anchor-v1",
+    });
+    const explicitEmpty = buildMelodyAccompaniment(source, [], {
+      durationBeats: 2,
+      allowRests: true,
+      sourceFingerprint: "identity-anchor-v1",
+      protectedIdentitySources: [],
+    });
+    const protectedSource = buildMelodyAccompaniment(source, [], {
+      durationBeats: 2,
+      allowRests: true,
+      sourceFingerprint: "identity-anchor-v1",
+      protectedIdentitySources: ["vocals"],
+    });
+
+    expect(explicitEmpty).toEqual(implicit);
+    expect(implicit.provenance.melodyNoteIds).not.toContain(sourceNoteIds(source)[0]);
+    expect(protectedSource.provenance.melodyNoteIds).toContain(sourceNoteIds(source)[0]);
+    expect(protectedSource.melody.some((item) => item.identitySource === "vocals")).toBe(true);
+  });
+
   it("opt-in conservative source backing removes repeated short R voicings without generating notes", () => {
     const source = [
       note(84, 0, 1, 110, "R"),
@@ -1277,6 +1307,27 @@ describe("buildMelodyAccompaniment", () => {
     );
     expect([...new Set(result.notes.filter((item) => item.hand === "L").map((item) => item.start))]).toEqual(expectedStarts);
     expect(result.provenance.generatedNoteCount).toBe(expectedStarts.length * 3);
+  });
+
+  it("follows source meter changes instead of applying the final meter from beat zero", () => {
+    const result = build(
+      [note(72, 0, 18, 100, "R")],
+      [chord(0, "C", 18)],
+      "right-hand",
+      18,
+      {
+        timeSig: [6, 8],
+        measureStartBeat: 0,
+        provenance: "source-measure-boundary",
+        timeSigEvents: [
+          { beat: 0, timeSig: [2, 4] },
+          { beat: 12, timeSig: [6, 8] },
+        ],
+      },
+    );
+    expect([...new Set(result.notes.filter((item) => item.hand === "L").map((item) => item.start))]).toEqual([
+      0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13.5, 15, 16.5,
+    ]);
   });
 
   it("uses the supplied source measure phase instead of assuming beat zero", () => {

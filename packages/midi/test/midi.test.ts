@@ -792,6 +792,38 @@ describe("buildVariants", () => {
     expect(trace.filter((event) => event.stage === "raw")).toHaveLength(3);
   });
 
+  it("keeps an opt-in protected source ahead of dense co-onset voices without changing the default", () => {
+    const source: ParsedMidi = {
+      format: 0,
+      division: 480,
+      tempoBpm: 108,
+      keySig: 0,
+      keyMode: 0,
+      timeSig: [4, 4],
+      notes: [
+        ...Array.from({ length: 5 }, (_, index) => ({ midi: 72 + index * 2, start: 0, dur: 1, vel: 80, hand: "R" as const })),
+        { midi: 48, start: 0, dur: 1, vel: 80, hand: "R" as const, identitySource: "vocals" as const },
+      ],
+      trackNames: ["Dense source"],
+      durationBeats: 2,
+    };
+    const options = { arrangementProfile: "learner" as const, maxDurBeats: null };
+    const defaultVariants = buildVariants(source, { title: "Dense source", artist: "Test" }, options);
+    const emptyProtectedVariants = buildVariants(source, { title: "Dense source", artist: "Test" }, {
+      ...options,
+      protectedIdentitySources: [],
+    });
+    expect(emptyProtectedVariants).toEqual(defaultVariants);
+
+    const protectedAdvanced = buildVariants(source, { title: "Dense source", artist: "Test" }, {
+      ...options,
+      protectedIdentitySources: ["vocals"],
+    }).find((variant) => variant.level === "advanced")!;
+    expect(protectedAdvanced.notes).toContainEqual(expect.objectContaining({ midi: 48, identitySource: "vocals" }));
+    expect(protectedAdvanced.notes.length).toBeLessThan(defaultVariants.find((variant) => variant.level === "advanced")!.notes.length);
+    expect(protectedAdvanced.notes.every((note) => note.dur > 0 && note.start >= 0)).toBe(true);
+  });
+
   it("classifies a learner range move as an octave shift", () => {
     const trace: Array<{ stage: string; operation?: string; parentKeys: string[] }> = [];
     const variants = buildVariants({

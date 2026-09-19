@@ -3,8 +3,25 @@ import { join } from "node:path";
 import { readFileSync, writeFileSync } from "node:fs";
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import type { ChordLabel, Note } from "@keyspilli/midi";
-import { buildMelodyAccompaniment, sourceNoteIds } from "@keyspilli/player-core";
-import { openPlayerTool } from "./player-tools";
+import {
+  buildMelodyAccompaniment,
+  completeChordDurations,
+  dedupeChords,
+  playbackTiming,
+  sourceNoteIds,
+  type SongData,
+  validateSparseBackingTiming,
+} from "@keyspilli/player-core";
+import {
+  melodyHarmonicSupportPolicy,
+  resolveChordSources,
+  selectChordSource,
+} from "../src/components/player/chord-sources";
+import {
+  buildMelodyArrangementOptions,
+  melodyArrangementResolutionFingerprint,
+} from "../src/components/player/melody-arrangement-runtime";
+import { openAdvancedArrangementControls, openPlayerTool } from "./player-tools";
 
 const SONG_ID = "the-beatles-blackbird-a-scratch";
 const UG_SONG_ID = "the-theorist-elton-john-your-song-piano-cover-jz6ugvghbt8-a-scratch";
@@ -101,7 +118,9 @@ type AudioCapture = {
 
 type AudioProbeWindow = Window & {
   __keyspilliAudioStart: () => Promise<void>;
+  __keyspilliAudioStartCalls: () => number;
   __keyspilliAudioStop: () => Promise<AudioCapture>;
+  __keyspilliAudioStopCalls: () => number;
 };
 
 type MelodyArrangementTrace = {
@@ -109,11 +128,21 @@ type MelodyArrangementTrace = {
   execution: string;
   noteCount: number;
   key?: string;
+  resolutionFingerprint?: string;
   error?: string;
 };
 
 type MelodyTraceWindow = Window & {
   __keyspilliMelodyArrangementTraceEvents: MelodyArrangementTrace[];
+};
+
+type MelodyOptionTrace = {
+  requestKey: string;
+  sparseBackingTiming?: { timeSig?: number[]; measureStartBeat?: number; provenance?: string; sourceFingerprint?: string };
+};
+
+type MelodyOptionTraceWindow = Window & {
+  __keyspilliMelodyOptionTraceEvents: MelodyOptionTrace[];
 };
 
 async function installMelodyTrace(page: Page): Promise<void> {
@@ -123,6 +152,26 @@ async function installMelodyTrace(page: Page): Promise<void> {
     };
     target.__keyspilliMelodyArrangementTraceEvents = [];
     target.__keyspilliMelodyArrangementTrace = (event) => target.__keyspilliMelodyArrangementTraceEvents.push(event);
+  });
+}
+
+async function installMelodyOptionTrace(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const target = window as unknown as MelodyOptionTraceWindow;
+    target.__keyspilliMelodyOptionTraceEvents = [];
+    const originalPostMessage = Worker.prototype.postMessage;
+    Worker.prototype.postMessage = function (message: unknown, ...rest: unknown[]) {
+      if (message && typeof message === "object" && "requestKey" in message) {
+        const request = message as { requestKey?: unknown; options?: { sparseBackingTiming?: MelodyOptionTrace["sparseBackingTiming"] } };
+        if (typeof request.requestKey === "string") {
+          target.__keyspilliMelodyOptionTraceEvents.push({
+            requestKey: request.requestKey,
+            ...(request.options?.sparseBackingTiming ? { sparseBackingTiming: request.options.sparseBackingTiming } : {}),
+          });
+        }
+      }
+      return Reflect.apply(originalPostMessage, this, [message, ...rest]);
+    };
   });
 }
 
@@ -192,13 +241,14 @@ async function installResumePolicyOverride(page: Page): Promise<void> {
 
 async function installAudioProbe(page: Page): Promise<void> {
   await page.addInitScript(() => {
-    type Probe = { destination: MediaStreamAudioDestinationNode; events: Array<{ type: string; frequency: number; when: number }> };
+    type Probe = { destination: MediaStreamAudioDestinationNode; events: Array<{ type: string; frequency: number; when: number }>; stopCalls: number };
     const contexts = new WeakMap<BaseAudioContext, Probe>();
     let current: AudioContext | null = null;
     let capture: { context: AudioContext; probe: Probe; startIndex: number; startTime: number; recorder: MediaRecorder; chunks: Blob[] } | null = null;
     const OriginalAudioContext = window.AudioContext;
     const OriginalConnect: Function = AudioNode.prototype.connect;
     const OriginalOscillatorStart: Function = OscillatorNode.prototype.start;
+    const OriginalOscillatorStop: Function = OscillatorNode.prototype.stop;
 
     (AudioNode.prototype as unknown as { connect: Function }).connect = function (destination: unknown, ...args: unknown[]) {
       const result = Reflect.apply(OriginalConnect, this, [destination, ...args]);
@@ -215,17 +265,24 @@ async function installAudioProbe(page: Page): Promise<void> {
       if (probe) probe.events.push({ type: oscillator.type, frequency: oscillator.frequency.value, when: when ?? oscillator.context.currentTime });
       return Reflect.apply(OriginalOscillatorStart, this, [when ?? 0]);
     };
+    (OscillatorNode.prototype as unknown as { stop: Function }).stop = function (when?: number) {
+      const probe = contexts.get((this as OscillatorNode).context);
+      if (probe) probe.stopCalls += 1;
+      return Reflect.apply(OriginalOscillatorStop, this, [when ?? 0]);
+    };
 
     class ProbedAudioContext extends OriginalAudioContext {
       constructor(options?: AudioContextOptions) {
         super(options);
-        const probe = { destination: this.createMediaStreamDestination(), events: [] };
+        const probe = { destination: this.createMediaStreamDestination(), events: [], stopCalls: 0 };
         contexts.set(this, probe);
         current = this;
       }
     }
     (window as unknown as { AudioContext: typeof AudioContext }).AudioContext = ProbedAudioContext;
     const exposed = window as unknown as Partial<AudioProbeWindow>;
+    exposed.__keyspilliAudioStartCalls = () => current ? contexts.get(current)?.events.length ?? 0 : 0;
+    exposed.__keyspilliAudioStopCalls = () => current ? contexts.get(current)?.stopCalls ?? 0 : 0;
     exposed.__keyspilliAudioStart = async () => {
       if (!current) throw new Error("No Web Audio context exists; start playback before capturing");
       if (capture) throw new Error("Audio capture already running");
@@ -362,6 +419,10 @@ function audible(capture: AudioCapture & { sha256: string }): void {
 
 function fundamentalMidis(capture: AudioCapture, endSeconds = Number.POSITIVE_INFINITY): number[] {
   return [...new Set(capture.events.filter((event) => event.type === "triangle" && event.midi !== null && event.relativeWhen < endSeconds).map((event) => event.midi as number))].sort((a, b) => a - b);
+}
+
+function scheduledAttackMidis(capture: AudioCapture, endSeconds = 0.1): number[] {
+  return fundamentalMidis(capture, endSeconds);
 }
 
 type PcmComparison = {
@@ -515,6 +576,7 @@ async function selectArrangement(
   await openPlayerTool(page, "Sound");
   const dialog = page.getByRole("dialog", { name: "Sound settings" });
   await dialog.getByRole("radio", { name: mode, exact: true }).click();
+  if (mode === "Chord mode") await openAdvancedArrangementControls(page);
   if (melody) await dialog.getByRole("radio", { name: melody, exact: true }).click();
   await dialog.getByRole("button", { name: "Close tools", exact: true }).click();
   if (mode === "Chord mode" && options.waitForArrangement !== false) {
@@ -581,11 +643,11 @@ async function capturePreviewRole(
   page: Page,
   testInfo: { outputPath: (path: string) => string },
   dialog: Locator,
-  role: "Full" | "Melody" | "Accompaniment",
+  role: "Full" | "Original" | "Melody" | "Accompaniment",
   label: string,
 ): Promise<AudioCapture & { sha256: string }> {
   await page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStart());
-  await dialog.getByRole("button", { name: role, exact: true }).click();
+  await dialog.getByRole("button", { name: role === "Original" ? "Compare Original" : role, exact: true }).click();
   await page.waitForTimeout(2_200);
   const capture = await page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStop());
   const audio = Buffer.from(capture.base64, "base64");
@@ -606,6 +668,26 @@ test.beforeEach(async ({ context }) => {
   });
 });
 
+test("real loader delivers validated timing to the worker and request key", async ({ page }) => {
+  await installMelodyOptionTrace(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/player/${SONG_ID}`);
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+  await selectArrangement(page, "Chord mode", "Automatic melody");
+
+  const traces = await page.evaluate(() => (window as unknown as MelodyOptionTraceWindow).__keyspilliMelodyOptionTraceEvents);
+  const timingTrace = traces.find((trace) => trace.sparseBackingTiming?.provenance === "source-measure-boundary");
+  expect(timingTrace?.sparseBackingTiming).toMatchObject({
+    timeSig: [4, 4],
+    measureStartBeat: 0,
+    provenance: "source-measure-boundary",
+  });
+  expect(timingTrace?.sparseBackingTiming?.sourceFingerprint).toContain("variant:the-beatles-blackbird:a:");
+  expect(JSON.parse(timingTrace!.requestKey)).toMatchObject({
+    sparseBackingTiming: timingTrace!.sparseBackingTiming,
+  });
+});
+
 test("real artifact produces, previews, plays, corrects, and reloads melody support", async ({ page }, testInfo) => {
   const pageErrors: string[] = [];
   const consoleErrors: string[] = [];
@@ -621,6 +703,7 @@ test("real artifact produces, previews, plays, corrects, and reloads melody supp
   await openPlayerTool(page, "Sound");
   const dialog = page.getByRole("dialog", { name: "Sound settings" });
   await dialog.getByRole("radio", { name: "Chord mode", exact: true }).click();
+  await openAdvancedArrangementControls(page);
   await expect(dialog.getByTestId("melody-accompaniment-controls")).toBeVisible();
   await expect(dialog.getByTestId("melody-accompaniment-coverage")).toContainText("source support");
   await expect(page.getByTestId("chord-mode-status")).toHaveText("Chords estimated from notes");
@@ -661,6 +744,7 @@ test("real artifact produces, previews, plays, corrects, and reloads melody supp
   await expect(canvas).toBeVisible();
   await openPlayerTool(page, "Sound");
   const reloadedDialog = page.getByRole("dialog", { name: "Sound settings" });
+  await openAdvancedArrangementControls(page);
   await expect(reloadedDialog.getByTestId("melody-accompaniment-controls")).toBeVisible();
   await expect(reloadedDialog.getByRole("radio", { name: "Use right-hand part", exact: true })).toHaveAttribute("aria-checked", "true");
   await expect(page.getByTestId("melody-accompaniment-status")).toContainText("User melody");
@@ -672,6 +756,7 @@ test("real artifact produces, previews, plays, corrects, and reloads melody supp
   await expect(page.getByLabel("Falling notes player")).toBeVisible();
   await openPlayerTool(page, "Sound");
   const resetDialog = page.getByRole("dialog", { name: "Sound settings" });
+  await openAdvancedArrangementControls(page);
   await expect(resetDialog.getByRole("radio", { name: "Automatic melody", exact: true })).toHaveAttribute("aria-checked", "true");
   await expect(page.getByTestId("melody-accompaniment-status")).toContainText("Inferred melody");
   expect(pageErrors, pageErrors.join("\n")).toEqual([]);
@@ -712,6 +797,7 @@ test("phrase-local source choices persist, reset one interval, and keep stale or
     await selectArrangement(page, "Chord mode", melody);
     await seekToPhrase();
     await openPlayerTool(page, "Sound");
+    await openAdvancedArrangementControls(page);
     await expect(page.getByTestId("melody-accompaniment-controls")).toBeVisible();
   };
 
@@ -805,6 +891,7 @@ test("source-only backing reduction is a separate persisted preview choice", asy
   await expect(page.getByLabel("Falling notes player")).toBeVisible();
   await selectArrangement(page, "Chord mode", "Automatic melody");
   await openPlayerTool(page, "Sound");
+  await openAdvancedArrangementControls(page);
   const dialog = page.getByRole("dialog", { name: "Sound settings" });
   const sourceBacking = dialog.getByTestId("source-backing-controls");
   await expect(sourceBacking).toBeVisible();
@@ -822,6 +909,7 @@ test("source-only backing reduction is a separate persisted preview choice", asy
   await expect(page.getByLabel("Falling notes player")).toBeVisible();
   await selectArrangement(page, "Chord mode", "Automatic melody");
   await openPlayerTool(page, "Sound");
+  await openAdvancedArrangementControls(page);
   const reloaded = page.getByRole("dialog", { name: "Sound settings" }).getByTestId("source-backing-controls");
   await expect(reloaded.getByRole("radio", { name: "Conservative source-only preview (whole song)", exact: true })).toHaveAttribute("aria-checked", "true");
   await expect(page.getByTestId("melody-accompaniment-status")).toContainText("source support notes");
@@ -851,6 +939,7 @@ test("browser trace keeps Original and large arrangements off the main-thread pr
   const firstRequestKey = traces.find((event) => event.phase === "worker-request")?.key;
   expect(firstRequestKey).toBeTruthy();
   await openPlayerTool(page, "Sound");
+  await openAdvancedArrangementControls(page);
   const dialog = page.getByRole("dialog", { name: "Sound settings" });
   await dialog.getByRole("radio", { name: "UG timeline", exact: true }).click();
   await expect(page.getByTestId("melody-accompaniment-status")).toContainText("Inferred melody");
@@ -862,7 +951,76 @@ test("browser trace keeps Original and large arrangements off the main-thread pr
   expect(changedSourceTraces.some((event) => event.phase === "sync-start")).toBe(false);
 });
 
-test("role audition renders three audible stems and preserves A/B position", async ({ page }, testInfo) => {
+test("advanced arrangement controls start collapsed with a visible original comparison", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/player/${SONG_ID}`);
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+  await openPlayerTool(page, "Sound");
+  const dialog = page.getByRole("dialog", { name: "Sound settings" });
+  await dialog.getByRole("radio", { name: "Chord mode", exact: true }).click();
+  const advanced = dialog.getByTestId("advanced-arrangement-controls");
+  await expect(advanced).toBeVisible();
+  await expect(advanced).not.toHaveAttribute("open");
+  await expect(dialog.getByRole("button", { name: "Compare Original", exact: true })).toBeVisible();
+  await advanced.locator("summary").press("Enter");
+  await expect(advanced).toHaveAttribute("open", "");
+});
+
+test("browser worker resolution matches the shared loader at the frozen milestone", async ({ page }) => {
+  await installMelodyTrace(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/player/${SONG_ID}`);
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+  await selectArrangement(page, "Chord mode", "Automatic melody");
+  await expect(page.getByTestId("melody-accompaniment-status")).toContainText("Inferred melody");
+
+  const ready = (await melodyTrace(page)).filter((event) => event.phase === "worker-ready").at(-1);
+  expect(ready?.execution).toBe("worker");
+  expect(ready?.resolutionFingerprint).toBeTruthy();
+
+  const scratchRoot = process.env.KEYSPILLI_E2E_SCRATCH_DIR;
+  if (!scratchRoot) throw new Error("melody scratch root is not configured");
+  const notesPath = join(scratchRoot, "artifacts", "the-beatles-blackbird", "a", "notes.json");
+  const manifestPath = join(scratchRoot, "artifacts", "the-beatles-blackbird", "manifest.json");
+  const notesBytes = readFileSync(notesPath);
+  const stored = JSON.parse(notesBytes.toString("utf8")) as SongData;
+  const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as { sourceArtifactHash?: string };
+  if (!manifest.sourceArtifactHash) throw new Error("scratch manifest has no source artifact hash");
+  const durationBeats = Math.max(
+    0,
+    ...stored.notes.map((note) => note.start + note.dur),
+    ...stored.measures.map((measure) => measure.endBeat),
+  );
+  const sourceFingerprint = `variant:the-beatles-blackbird:a:${SONG_ID}:${manifest.sourceArtifactHash}:notes:${createHash("sha256").update(notesBytes).digest("hex")}`;
+  const data: SongData = {
+    ...stored,
+    sourceFingerprint,
+    sourceTiming: validateSparseBackingTiming(stored.sourceTiming, sourceFingerprint, durationBeats),
+  };
+  const sparseBackingTiming = validateSparseBackingTiming(data.sourceTiming, sourceFingerprint, durationBeats);
+  const timing = playbackTiming({ ...data, sourceTiming: sparseBackingTiming });
+  const resolved = resolveChordSources(data);
+  const chordSources = {
+    ...resolved,
+    generated: {
+      ...resolved.generated,
+      chords: completeChordDurations(dedupeChords(resolved.generated.chords, { durationBeats }), durationBeats),
+    },
+  };
+  const selected = selectChordSource(chordSources, "auto");
+  const expected = buildMelodyAccompaniment(data.notes, selected.source?.chords ?? [], buildMelodyArrangementOptions({
+    durationBeats,
+    sourceFingerprint,
+    selection: "automatic",
+    phraseOverrides: [],
+    harmonicSupport: melodyHarmonicSupportPolicy(selected.source),
+    sourceBackingMode: "default",
+    sparseBackingTiming: timing,
+  }));
+  expect(ready?.resolutionFingerprint).toBe(melodyArrangementResolutionFingerprint(expected));
+});
+
+test("role audition renders four audible roles and preserves A/B position", async ({ page }, testInfo) => {
   await installAudioProbe(page);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(`/player/${SONG_ID}`);
@@ -871,17 +1029,25 @@ test("role audition renders three audible stems and preserves A/B position", asy
   await bootAudio(page);
 
   const seek = page.getByLabel("Seek");
-  await seek.fill("2");
-  const positionBefore = await seek.inputValue();
+  await seek.fill("0");
   await openPlayerTool(page, "Sound");
+  await openAdvancedArrangementControls(page);
   const dialog = page.getByRole("dialog", { name: "Sound settings" });
   await expect(dialog.getByTestId("melody-audition-controls")).toBeVisible();
 
+  const emptyMelody = await capturePreviewRole(page, testInfo, dialog, "Melody", "blackbird-preview-melody-empty");
+  expect(scheduledAttackMidis(emptyMelody)).toEqual([]);
+
+  await seek.fill("7");
+  const positionBefore = await seek.inputValue();
+  const original = await capturePreviewRole(page, testInfo, dialog, "Original", "blackbird-preview-original");
   const full = await capturePreviewRole(page, testInfo, dialog, "Full", "blackbird-preview-full");
   const melody = await capturePreviewRole(page, testInfo, dialog, "Melody", "blackbird-preview-melody");
   const accompaniment = await capturePreviewRole(page, testInfo, dialog, "Accompaniment", "blackbird-preview-accompaniment");
-  for (const capture of [full, melody, accompaniment]) audible(capture);
-  expect(new Set([full.sha256, melody.sha256, accompaniment.sha256]).size).toBeGreaterThan(1);
+  for (const capture of [original, full, melody, accompaniment]) audible(capture);
+  expect(scheduledAttackMidis(original)).toEqual(expect.arrayContaining([60]));
+  expect(scheduledAttackMidis(full)).toEqual(expect.arrayContaining([67]));
+  expect(scheduledAttackMidis(full)).not.toContain(60);
   expect(await seek.inputValue()).toBe(positionBefore);
 
   await dialog.getByRole("button", { name: "Close tools", exact: true }).click();
@@ -889,6 +1055,108 @@ test("role audition renders three audible stems and preserves A/B position", asy
   await expect.poll(() => seek.inputValue()).toBe(positionBefore);
   await selectArrangement(page, "Chord mode", "Automatic melody");
   await expect.poll(() => seek.inputValue()).toBe(positionBefore);
+});
+
+test("arrangement preview cancels scheduled audio when its source changes", async ({ page }) => {
+  await installAudioProbe(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/player/${SONG_ID}`);
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+  await selectArrangement(page, "Chord mode", "Automatic melody");
+  await bootAudio(page);
+  const seek = page.getByLabel("Seek");
+  await seek.fill("7");
+  await openPlayerTool(page, "Sound");
+  await openAdvancedArrangementControls(page);
+  const dialog = page.getByRole("dialog", { name: "Sound settings" });
+  await page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStart());
+  await dialog.getByRole("button", { name: "Full", exact: true }).click();
+  await page.waitForTimeout(100);
+  const scheduled = await page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStopCalls());
+  expect(scheduled).toBeGreaterThan(0);
+
+  await dialog.getByRole("radio", { name: "Use right-hand part", exact: true }).click();
+  await expect.poll(() => page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStopCalls())).toBeGreaterThan(scheduled);
+});
+
+test("moving transport does not cancel a new preview, while an external seek does", async ({ page }) => {
+  await installAudioProbe(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/player/${SONG_ID}`);
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+  await selectArrangement(page, "Chord mode", "Automatic melody");
+  await bootAudio(page);
+  const seek = page.getByLabel("Seek");
+  await seek.fill("7");
+  await page.getByRole("button", { name: "Play", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+
+  await openPlayerTool(page, "Sound");
+  await openAdvancedArrangementControls(page);
+  const dialog = page.getByRole("dialog", { name: "Sound settings" });
+  await page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStart());
+  const startsBeforePreview = await page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStartCalls());
+  await dialog.getByRole("button", { name: "Full", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Play", exact: true })).toBeVisible();
+  await page.waitForTimeout(250);
+  const capture = await page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStop());
+  const startsAfterPreview = await page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStartCalls());
+  expect(startsAfterPreview).toBeGreaterThan(startsBeforePreview);
+  audible({ ...capture, sha256: "preview-race" });
+
+  await dialog.getByRole("button", { name: "Full", exact: true }).click();
+  const stopsBeforeSeek = await page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStopCalls());
+  await seek.fill("8");
+  await expect.poll(() => page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStopCalls())).toBeGreaterThan(stopsBeforeSeek);
+});
+
+test("Chord mode labels Original sheet and download contracts", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/player/${SONG_ID}`);
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+  await selectArrangement(page, "Chord mode", "Automatic melody");
+
+  await page.getByRole("button", { name: /Download sheet music and MIDI/ }).click();
+  const download = page.getByRole("dialog", { name: /Download sheet music or MIDI/ });
+  await expect(download.getByRole("status")).toHaveText("Downloads use the stored Original arrangement. Chord mode changes playback and guidance only.");
+  await download.getByRole("button", { name: "Done", exact: true }).click();
+
+  await page.getByRole("button", { name: /View/ }).click();
+  await page.getByRole("menuitemradio", { name: /Sheet Music/ }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Sheet Music shows the stored Original arrangement while Chord mode is selected." })).toBeVisible();
+});
+
+test("melody arrangement feeds practice at the selected position", async ({ page }) => {
+  await installAudioProbe(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/player/${SONG_ID}`);
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+  await selectArrangement(page, "Chord mode", "Automatic melody");
+  await bootAudio(page);
+  await page.getByRole("button", { name: "Right hand", exact: true }).click();
+  const seek = page.getByLabel("Seek");
+  await seek.fill("7");
+  await page.getByRole("button", { name: "Practice", exact: true }).click();
+  const setup = page.getByRole("dialog", { name: "Set up practice" });
+  await setup.getByLabel("Behavior", { exact: true }).selectOption("wait");
+  await setup.getByLabel("Passage", { exact: true }).selectOption("current");
+  await setup.getByRole("button", { name: "Start practice", exact: true }).click();
+  await expect(page.getByRole("region", { name: "Practice grading" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Practice grading" }).getByRole("status")).toHaveText("Play: G4 (right hand)");
+  await expect(seek).toHaveValue("7");
+  await page.getByRole("button", { name: "Finish practice", exact: true }).click();
+
+  await page.getByRole("button", { name: "Practice", exact: true }).click();
+  const playAlongSetup = page.getByRole("dialog", { name: "Set up practice" });
+  await playAlongSetup.getByLabel("Passage", { exact: true }).selectOption("current");
+  await page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStart());
+  await playAlongSetup.getByRole("button", { name: "Start practice", exact: true }).click();
+  await expect(page.getByRole("region", { name: "Practice grading" })).toBeVisible();
+  await page.waitForTimeout(350);
+  await page.getByRole("button", { name: "Finish practice", exact: true }).click();
+  const practiceAudio = await page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStop());
+  expect(scheduledAttackMidis(practiceAudio)).toContain(67);
+  expect(scheduledAttackMidis(practiceAudio)).not.toContain(60);
 });
 
 test("worker constructor failure retains real Original audio, retries, and clears on mode change", async ({ page }, testInfo) => {
@@ -952,6 +1220,7 @@ test("stale worker replies cannot replace the latest source-keyed request", asyn
   await expect(page.getByLabel("Falling notes player")).toBeVisible();
   await selectArrangement(page, "Chord mode", "Automatic melody", { waitForArrangement: false });
   await openPlayerTool(page, "Sound");
+  await openAdvancedArrangementControls(page);
   const dialog = page.getByRole("dialog", { name: "Sound settings" });
   await dialog.getByRole("radio", { name: "UG timeline", exact: true }).click();
   await dialog.getByRole("button", { name: "Close tools", exact: true }).click();
@@ -983,6 +1252,7 @@ test("stale cross-variant melody storage is ignored and Original has no derived 
   await expect(page.getByLabel("Falling notes player")).toBeVisible();
   await selectArrangement(page, "Chord mode");
   await openPlayerTool(page, "Sound");
+  await openAdvancedArrangementControls(page);
   const dialog = page.getByRole("dialog", { name: "Sound settings" });
   await expect(dialog.getByRole("radio", { name: "Automatic melody", exact: true })).toHaveAttribute("aria-checked", "true");
   await expect(dialog.getByRole("button", { name: "Reset all saved choices", exact: true })).toHaveCount(0);
@@ -1058,6 +1328,7 @@ test("complete Oops phrase captures the source-only preview without rerendering 
   await bootAudio(page);
   await selectArrangement(page, "Chord mode", "Automatic melody");
   await openPlayerTool(page, "Sound");
+  await openAdvancedArrangementControls(page);
   const dialog = page.getByRole("dialog", { name: "Sound settings" });
   const sourceBacking = dialog.getByTestId("source-backing-controls");
   await sourceBacking.getByRole("radio", { name: "Conservative source-only preview (whole song)", exact: true }).click();
@@ -1181,6 +1452,7 @@ test("real audio events cover mode, hand filtering, seek, transpose, correction,
   await page.goto(`/player/${HELL_SONG_ID}`);
   await expect(page.getByLabel("Falling notes player")).toBeVisible();
   await openPlayerTool(page, "Sound");
+  await openAdvancedArrangementControls(page);
   let dialog = page.getByRole("dialog", { name: "Sound settings" });
   await dialog.getByRole("radio", { name: "Chord mode", exact: true }).click();
   await dialog.getByRole("radio", { name: "Automatic melody", exact: true }).click();
@@ -1191,6 +1463,7 @@ test("real audio events cover mode, hand filtering, seek, transpose, correction,
   const hellAutomatic = await captureArrangement(page, testInfo, "hell-automatic-ambiguous", 10.7, 2_200);
   audible(hellAutomatic);
   await openPlayerTool(page, "Sound");
+  await openAdvancedArrangementControls(page);
   dialog = page.getByRole("dialog", { name: "Sound settings" });
   await dialog.getByRole("radio", { name: "Use right-hand part", exact: true }).click();
   await expect(page.getByTestId("melody-accompaniment-ambiguity")).toHaveCount(0);
@@ -1210,6 +1483,7 @@ test("real audio events cover mode, hand filtering, seek, transpose, correction,
   await page.reload();
   await expect(page.getByLabel("Falling notes player")).toBeVisible();
   await openPlayerTool(page, "Sound");
+  await openAdvancedArrangementControls(page);
   dialog = page.getByRole("dialog", { name: "Sound settings" });
   await expect(dialog.getByRole("radio", { name: "Use right-hand part", exact: true })).toHaveAttribute("aria-checked", "true");
   await expect(page.getByTestId("melody-accompaniment-status")).toContainText("User melody");
@@ -1426,6 +1700,7 @@ test("real artifact keeps arrangement controls usable at 390px", async ({ page }
   await openPlayerTool(page, "Sound");
   let dialog = page.getByRole("dialog", { name: "Sound settings" });
   await dialog.getByRole("radio", { name: "Chord mode", exact: true }).click();
+  await openAdvancedArrangementControls(page);
   await expect(dialog.getByTestId("melody-accompaniment-controls")).toBeVisible();
   await dialog.getByRole("radio", { name: "Use right-hand part", exact: true }).click();
   await dialog.getByRole("button", { name: "Preview arrangement", exact: true }).click();
@@ -1462,6 +1737,7 @@ test("real artifact keeps arrangement controls usable at 390px", async ({ page }
   await page.getByTestId("chord-practice-panel").getByRole("button", { name: "Close", exact: true }).click();
 
   await openPlayerTool(page, "Sound");
+  await openAdvancedArrangementControls(page);
   dialog = page.getByRole("dialog", { name: "Sound settings" });
   await expect(dialog.getByRole("radio", { name: "Use right-hand part", exact: true })).toHaveAttribute("aria-checked", "true");
   await expect(page.getByTestId("melody-accompaniment-status")).toContainText("User melody");

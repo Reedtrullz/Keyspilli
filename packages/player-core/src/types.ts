@@ -1,5 +1,5 @@
-import type { Note, ChordLabel, MeasureInfo, Section, PracticeAnnotation } from "@keyspilli/midi";
-import type { AccompanimentStyle } from "./accompaniment.js";
+import type { Note, ChordLabel, MeasureInfo, Section, PracticeAnnotation, MidiTimeSignatureEvent } from "@keyspilli/midi";
+import type { AccompanimentStyle, SparseBackingTiming } from "./accompaniment.js";
 
 export type { Note, ChordLabel, MeasureInfo, Section, PracticeAnnotation };
 
@@ -45,6 +45,10 @@ export interface SongData {
   chords: ChordLabel[];
   /** Canonical source/variant fingerprint used to reject stale derived choices. */
   sourceFingerprint?: string;
+  /** Optional source-validated phase for meter-aware sparse backing. */
+  sourceTiming?: SparseBackingTiming;
+  /** Explicit source meter declarations; these do not prove downbeat phase. */
+  timeSigEvents?: MidiTimeSignatureEvent[];
   /** Optional chart-backed timeline; generated chords remain in `chords`. */
   ugChordTimeline?: ChordLabel[];
   chordProvenance?: ChordSourceProvenance;

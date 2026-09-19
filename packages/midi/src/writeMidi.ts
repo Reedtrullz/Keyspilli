@@ -1,4 +1,4 @@
-import { Note } from "./types.js";
+import { MidiTimeSignatureEvent, Note } from "./types.js";
 
 function varint(n: number): number[] {
   const out = [n & 0x7f];
@@ -84,6 +84,8 @@ function allocateChannels(notes: Note[]): Map<Note, number> {
 export interface WriteMidiOptions {
   tempoBpm: number;
   timeSig?: [number, number];
+  /** Optional source meter changes in absolute quarter-note beats. */
+  timeSigEvents?: readonly MidiTimeSignatureEvent[];
   keySig?: number;
   keyMode?: 0 | 1;
   title?: string;
@@ -96,6 +98,14 @@ export interface WriteMidiOptions {
 export function writeMidi(notes: Note[], opts: WriteMidiOptions): Uint8Array {
   const division = opts.division ?? 480;
   const [num, den] = opts.timeSig ?? [4, 4];
+  const timeSigEvents = (opts.timeSigEvents ?? [])
+    .filter((event) => Number.isFinite(event.beat) && event.beat >= 0
+      && Number.isInteger(event.timeSig[0]) && event.timeSig[0] > 0
+      && Number.isInteger(event.timeSig[1]) && event.timeSig[1] > 0
+      && Number.isInteger(Math.log2(event.timeSig[1])))
+    .slice()
+    .sort((a, b) => a.beat - b.beat || a.tick - b.tick);
+  const initialTimeSig = timeSigEvents.find((event) => event.beat === 0)?.timeSig ?? [num, den];
   const tempoUs = Math.round(60_000_000 / opts.tempoBpm);
   const tracks = opts.tracks && opts.tracks.length > 0
     ? opts.tracks
@@ -110,9 +120,16 @@ export function writeMidi(notes: Note[], opts: WriteMidiOptions): Uint8Array {
     if (track === tracks[0]) {
       events.push(
         { tick: 0, bytes: [0xff, 0x51, 0x03, (tempoUs >>> 16) & 0xff, (tempoUs >>> 8) & 0xff, tempoUs & 0xff] },
-        { tick: 0, bytes: [0xff, 0x58, 0x04, num, Math.round(Math.log2(den)), 24, 8] },
+        { tick: 0, bytes: [0xff, 0x58, 0x04, initialTimeSig[0]!, Math.round(Math.log2(initialTimeSig[1]!)), 24, 8] },
         { tick: 0, bytes: [0xff, 0x59, 0x02, opts.keySig ?? 0, opts.keyMode ?? 0] },
       );
+      for (const event of timeSigEvents) {
+        if (event.beat <= 0) continue;
+        events.push({
+          tick: Math.round(event.beat * division),
+          bytes: [0xff, 0x58, 0x04, event.timeSig[0], Math.round(Math.log2(event.timeSig[1])), 24, 8],
+        });
+      }
     }
     const explicitChannel = track.percussion ? 9 : track.channel;
     if (explicitChannel !== undefined && (!Number.isInteger(explicitChannel) || explicitChannel < 0 || explicitChannel > 15)) {
