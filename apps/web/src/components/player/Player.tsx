@@ -263,6 +263,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     ...(mode ? { mode } : {}),
   }));
   const [time, setTime] = useState(0);
+  const [seekVersion, setSeekVersion] = useState(0);
   const [engineReady, setEngineReady] = useState(false);
   const [playing, setPlaying] = useState(false);
   const timeRef = useRef(time);
@@ -701,7 +702,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
 
   // Preview notes are scheduled directly on the audio graph, outside the
   // transport timeline. Tear that graph down whenever its source, routing,
-  // playhead, or owning tool changes; cleanup also covers navigation/unmount.
+  // external seek, or owning tool changes; cleanup also covers navigation/unmount.
   useEffect(() => {
     if (openTool !== "sound") cancelSoundPreview();
     return cancelSoundPreview;
@@ -711,7 +712,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     settings.hand, settings.mode, settings.metronome, settings.organDrive,
     settings.organRotary, settings.organSpace, settings.organStyle, settings.pianoGain,
     settings.soundSource, settings.speed, settings.sustainPedal, settings.transpose,
-    settings.voiceGain, time]);
+    settings.voiceGain, seekVersion]);
 
   const duration = useMemo(
     () => Math.max(
@@ -899,6 +900,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   const seek = useCallback((t: number) => {
     if (gradingRef.current || showPracticeSetupRef.current) return;
     engineRef.current?.seek(t);
+    setSeekVersion(version => version + 1);
     syncTransportState();
   }, []);
 

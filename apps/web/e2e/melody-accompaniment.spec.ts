@@ -118,6 +118,7 @@ type AudioCapture = {
 
 type AudioProbeWindow = Window & {
   __keyspilliAudioStart: () => Promise<void>;
+  __keyspilliAudioStartCalls: () => number;
   __keyspilliAudioStop: () => Promise<AudioCapture>;
   __keyspilliAudioStopCalls: () => number;
 };
@@ -280,6 +281,7 @@ async function installAudioProbe(page: Page): Promise<void> {
     }
     (window as unknown as { AudioContext: typeof AudioContext }).AudioContext = ProbedAudioContext;
     const exposed = window as unknown as Partial<AudioProbeWindow>;
+    exposed.__keyspilliAudioStartCalls = () => current ? contexts.get(current)?.events.length ?? 0 : 0;
     exposed.__keyspilliAudioStopCalls = () => current ? contexts.get(current)?.stopCalls ?? 0 : 0;
     exposed.__keyspilliAudioStart = async () => {
       if (!current) throw new Error("No Web Audio context exists; start playback before capturing");
@@ -1075,6 +1077,37 @@ test("arrangement preview cancels scheduled audio when its source changes", asyn
 
   await dialog.getByRole("radio", { name: "Use right-hand part", exact: true }).click();
   await expect.poll(() => page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStopCalls())).toBeGreaterThan(scheduled);
+});
+
+test("moving transport does not cancel a new preview, while an external seek does", async ({ page }) => {
+  await installAudioProbe(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/player/${SONG_ID}`);
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+  await selectArrangement(page, "Chord mode", "Automatic melody");
+  await bootAudio(page);
+  const seek = page.getByLabel("Seek");
+  await seek.fill("7");
+  await page.getByRole("button", { name: "Play", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+
+  await openPlayerTool(page, "Sound");
+  await openAdvancedArrangementControls(page);
+  const dialog = page.getByRole("dialog", { name: "Sound settings" });
+  await page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStart());
+  const startsBeforePreview = await page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStartCalls());
+  await dialog.getByRole("button", { name: "Full", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Play", exact: true })).toBeVisible();
+  await page.waitForTimeout(250);
+  const capture = await page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStop());
+  const startsAfterPreview = await page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStartCalls());
+  expect(startsAfterPreview).toBeGreaterThan(startsBeforePreview);
+  audible({ ...capture, sha256: "preview-race" });
+
+  await dialog.getByRole("button", { name: "Full", exact: true }).click();
+  const stopsBeforeSeek = await page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStopCalls());
+  await seek.fill("8");
+  await expect.poll(() => page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStopCalls())).toBeGreaterThan(stopsBeforeSeek);
 });
 
 test("Chord mode labels Original sheet and download contracts", async ({ page }) => {
