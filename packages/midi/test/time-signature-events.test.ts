@@ -139,6 +139,25 @@ describe("MIDI time-signature events", () => {
     expect(validateArtifactFiles(variant, writeVariantArtifacts(variant, "Mid-measure", "Test"))).toEqual([]);
   });
 
+  it("round-trips an unpadded short measure before a meter change", () => {
+    const parsed = parseMidi(CHANGING_METER_MIDI);
+    const base = buildVariants(parsed, { title: "Short", artist: "Test" }).at(-1)!;
+    const variant = {
+      ...base,
+      notes: [{ midi: 60, start: 4, dur: 0.5, vel: 100, hand: "R" as const }],
+      timeSigEvents: [
+        { tick: 0, beat: 0, timeSig: [4, 4] as [number, number] },
+        { tick: 4320, beat: 4.5, timeSig: [3, 4] as [number, number] },
+      ],
+      measures: [
+        { index: 0, startBeat: 0, endBeat: 4 },
+        { index: 1, startBeat: 4, endBeat: 4.5 },
+        { index: 2, startBeat: 4.5, endBeat: 7.5 },
+      ],
+    };
+    expect(validateArtifactFiles(variant, writeVariantArtifacts(variant, "Short", "Test"))).toEqual([]);
+  });
+
   it("does not emit a ghost note when a quantized attack straddles a near boundary", () => {
     const parsed = parseMidi(CHANGING_METER_MIDI);
     const base = buildVariants({

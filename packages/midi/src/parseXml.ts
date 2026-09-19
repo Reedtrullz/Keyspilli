@@ -189,12 +189,17 @@ export function parseMusicXmlNotes(xml: string): ParsedMidi {
     // Clamp that format quantization back to the declared meter, while still
     // honoring an explicitly padded short measure before a meter change.
     const roundingTolerance = 2 / divisions + 1e-9;
-    const explicitShortMeasure = /<forward\b/.test(m) && measureEnd < meter - roundingTolerance;
+    const nextTime = firstMatch(measures[mi + 1] ?? "", /<time\b[^>]*>([\s\S]*?)<\/time>/);
+    const nextBeats = nextTime ? Number(firstMatch(nextTime, /<beats>\s*(\d+)\s*<\/beats>/)) : beats;
+    const nextType = nextTime ? Number(firstMatch(nextTime, /<beat-type>\s*(\d+)\s*<\/beat-type>/)) : beatType;
+    const meterChangesNext = Boolean(nextTime) && (nextBeats !== beats || nextType !== beatType);
+    const explicitShortMeasure = measureEnd < meter - roundingTolerance
+      && (/<forward\b/.test(m) || meterChangesNext);
     measureStart += implicit || explicitShortMeasure || measureEnd > meter + roundingTolerance ? measureEnd : meter;
   }
   // A writer may round the onset and duration independently, so a tied
   // segment can end one division tick past its continuation onset.
-  const mergedNotes = mergeTiedNotes(notes, 1 / (Number.isFinite(minDivisions) ? minDivisions : divisions) + 1e-9)
+  const mergedNotes = mergeTiedNotes(notes, 2 / (Number.isFinite(minDivisions) ? minDivisions : divisions) + 1e-9)
     .sort((a, b) => a.start - b.start || a.midi - b.midi);
   const durationBeats = mergedNotes.reduce((m, n) => Math.max(m, n.start + n.dur), 0);
   return {

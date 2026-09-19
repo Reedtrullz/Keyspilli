@@ -2819,6 +2819,7 @@ function normalizeTimeSigEvents(events: readonly MidiTimeSignatureEvent[] | unde
       }
       continue;
     }
+    if (previous && previous.timeSig[0] === numerator && previous.timeSig[1] === denominator) continue;
     normalized.push({ tick: event.tick, beat: event.beat, timeSig: [numerator, denominator] });
   }
   return normalized;
