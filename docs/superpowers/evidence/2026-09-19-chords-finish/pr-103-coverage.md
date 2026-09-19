@@ -2,8 +2,9 @@
 
 Branch: `codex/finish-chords-mode`
 Base: `origin/main` / `881881b8f9b9f8bc75f70dd4d6a551de6e62de6e`
-Head: `0d900a051b6606ee573fc39c8a43bbe290c18a50`
-Scope: 33 commits, 76 changed files. This matrix covers the whole PR, not
+Code head: `1346dcf0ce21d7e7248643daf81407c710e74a49`
+Code scope: 34 commits, 76 changed files. The branch tip after this code head
+contains evidence-only documentation. This matrix covers the whole PR, not
 only the later Queen source-candidate experiment.
 
 ## Current disposition
@@ -24,7 +25,7 @@ PR must remain draft and must not be merged or deployed from this evidence.
 | T4 — simple controls, truthful outcomes, saved state | `SoundControls.tsx`, arrangement status, Player preference/reset paths, catalog/song-update handling, focused component/runtime tests, and the runtime checkpoint cover ordinary controls before Advanced disclosure, truthful result categories, saved settings, reset scope, and hand-volume labels. | Engineering behavior covered by focused tests/build. | G3 still needs parent review of the full default UX/geometry/accessibility contract; status/tests do not establish musical usefulness. |
 | T5 — same-passage A/B and transport safety | `Player.tsx`, preview lifecycle fixes, `previewPlan` empty-window regression, A/B bounds/identity tests, cancellation on source/mode/seek/navigation changes, worker/stale-reply cases, and the melody Playwright slice. The final slice passes worker parity, role audition, source cancellation, moving-transport/seek cancellation, Stop/Repeat, natural-completion restoration, previously-playing Stop restoration, selected-loop bounds, six-beat measure bounds, and the 200% keyboard/overflow check. | Structurally verified for the scoped preview contract. | Repeat-practice cancellation remains defensive/instrumentation-limited: mutation evidence did not prove the aggregate stop-count assertion is boundary-specific, and native modal reachability was not established. This is not a musical acceptance claim. |
 | T6 — practice, sheet, labels, and export contracts | Runtime checkpoint verifies Chord-mode practice targets the derived arrangement and falling/labels/guidance paths use the active result. `DownloadDialog.tsx`, `BeginnerView.tsx`, `LeadSheetView.tsx`, engine tests, and E2E checks label sheet/download views as Original-backed when Chord mode is selected. | Contract and projection behavior verified; Original-backed derived exports are an intentional disclosed boundary for this scope. | Derived sheet/export generation is intentionally not implemented in this round; this is not a claim that Chord-mode notation/export has been accepted as derived output. G3 still needs human UX review. |
-| T7 — verification, review packet, and honest PR | Focused final verification: web typecheck, 9 focused component/runtime tests, production build, targeted melody E2E checks, full MIDI package tests (409), six-fixture/all-six-variant artifact replay, the arbitrary-forward negative regression, and a fresh Blackbird A/B capture. GitHub Automatic checks are green at `0d900a0`; exact hashes, OGG/SoundFont/encoder provenance, draft PR, this matrix, and source-review packet remain recorded. | Scoped engineering verification complete; final gate open. | Human listening, target-tempo physical keyboard review, semantic source-role approval, and required-song musical acceptance are not complete. No merge/deploy. |
+| T7 — verification, review packet, and honest PR | Focused final verification: web typecheck, 9 focused component/runtime tests, production build, targeted melody E2E checks, full MIDI package tests (409), six-fixture/all-six-variant artifact replay, the arbitrary-forward negative regression, and a fresh Blackbird A/B capture. Code checks are green at `0d900a0`; the evidence-only code head `1346dcf` is also green in GitHub Automatic checks. Exact hashes, OGG/SoundFont/encoder provenance, draft PR, this matrix, and source-review packet remain recorded. | Scoped engineering verification complete; final gate open. | Human listening, target-tempo physical keyboard review, semantic source-role approval, and required-song musical acceptance are not complete. No merge/deploy. |
 
 ## G1–G4 gate status
 
@@ -35,7 +36,7 @@ PR must remain draft and must not be merged or deployed from this evidence.
 | G3 — default UX, A/B, and consistent practice | Partial | Focused UI/runtime tests, browser slices, same-target A/B traces, practice-target checks, and explicit Original-backed export labels under the declared contract. | Full human UX/accessibility review and musical acceptance are not complete; derived export generation remains an intentional scope boundary, and transport instrumentation has one known reachability/test-specific limit. |
 | G4 — final diff, musical packet, and actual acceptance | Open | Full diff reviewed into this matrix; source/audio packet is reproducible and bounded. | No reviewer has supplied semantic melody, listening, or keyboard judgments for the required repertoire. Draft PR stays open. |
 
-## Verification run at runtime head `0d900a0`
+## Verification run at code head `0d900a0` (later branch tip is docs-only)
 
 With Node `v22.22.3`:
 
@@ -71,10 +72,11 @@ These checks establish engineering integrity only. They do not establish
 recognizability, useful harmony, comfortable fingering, pedal cleanliness,
 balance, or human acceptance.
 
-## GitHub CI disposition at runtime head `0d900a0`
+## GitHub CI disposition at code head and evidence-only follow-up
 
-PR #103 run [`35464267236`](https://github.com/Reedtrullz/Keyspilli/actions/runs/35464267236)
-passed the complete `Automatic checks` job, including the catalog pipeline,
+The code-head run [`35464267236`](https://github.com/Reedtrullz/Keyspilli/actions/runs/35464267236)
+and evidence-only follow-up run [`35464768337`](https://github.com/Reedtrullz/Keyspilli/actions/runs/35464768337)
+both passed the complete `Automatic checks` job, including the catalog pipeline,
 playability, chord-source, calibration, TypeScript, Vitest, production build,
 private-edge, Python, and end-to-end stages. This confirms the green result in
 `35463634329` on the prior parser head and closes the earlier catalog failure
