@@ -577,16 +577,60 @@ async function selectArrangement(
   await openPlayerTool(page, "Sound");
   const dialog = page.getByRole("dialog", { name: "Sound settings" });
   await dialog.getByRole("radio", { name: mode, exact: true }).click();
-  if (mode === "Chord mode") await openAdvancedArrangementControls(page);
+  if (mode === "Chord mode") {
+    await dialog.getByRole("radio", { name: melody ? "Melody + accompaniment" : "Bass + chords", exact: true }).click();
+    await openAdvancedArrangementControls(page);
+  }
   if (melody) await dialog.getByRole("radio", { name: melody, exact: true }).click();
   await dialog.getByRole("button", { name: "Close tools", exact: true }).click();
   if (mode === "Chord mode" && options.waitForArrangement !== false) {
+    if (!melody) {
+      await expect(page.getByTestId("melody-accompaniment-status")).toHaveCount(0);
+      return;
+    }
     const expectedMelody = melody === "Use right-hand part"
       ? "User melody"
       : "(?:Inferred melody|User melody)";
     await expect(page.getByTestId("melody-accompaniment-status")).toHaveText(new RegExp(`^${expectedMelody} · whole-part selection · `));
   }
 }
+
+test("backing-only default omits source melody and keeps backing audio", async ({ page }, testInfo) => {
+  await installMelodyTrace(page);
+  await installAudioProbe(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/player/${SONG_ID}`);
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+
+  await openPlayerTool(page, "Sound");
+  const dialog = page.getByRole("dialog", { name: "Sound settings" });
+  await dialog.getByRole("radio", { name: "Chord mode", exact: true }).click();
+  await expect(dialog.getByRole("radio", { name: "Bass + chords", exact: true })).toHaveAttribute("aria-checked", "true");
+  await expect(dialog).toContainText("Backing only");
+  await expect(dialog.getByTestId("melody-accompaniment-controls")).toHaveCount(0);
+  await openAdvancedArrangementControls(page);
+  await expect(dialog.getByTestId("backing-audition-controls")).toBeVisible();
+  await expect(dialog.getByTestId("melody-accompaniment-controls")).toHaveCount(0);
+  await expect(page.getByTestId("melody-accompaniment-status")).toHaveCount(0);
+
+  const traces = await melodyTrace(page);
+  expect(traces.some((event) => event.phase === "worker-request")).toBe(false);
+  await dialog.getByRole("button", { name: "Close tools", exact: true }).click();
+  await bootAudio(page);
+  await openPlayerTool(page, "Sound");
+  await openAdvancedArrangementControls(page);
+  const auditionDialog = page.getByRole("dialog", { name: "Sound settings" });
+  await page.getByLabel("Seek").fill("7");
+  const capture = await capturePreviewRole(page, testInfo, auditionDialog, "Accompaniment", "blackbird-backing-only-default");
+  audible(capture);
+  const triangleStarts = capture.events
+    .filter((event) => event.type === "triangle" && event.midi !== null)
+    .map((event) => `${Math.round(event.relativeWhen * 1_000)}|${event.midi}`);
+  // playChord starts one fundamental oscillator per backing tone; noteOn adds
+  // a same-pitch detuned triangle, so duplicate timestamp/pitch starts expose
+  // source-note scheduling in this accompaniment-only preview.
+  expect(new Set(triangleStarts).size).toBe(triangleStarts.length);
+});
 
 test("phrase-local overrides recompute the producer and keep invalid overlap reviewable", () => {
   const source: Note[] = [
@@ -704,6 +748,7 @@ test("real artifact produces, previews, plays, corrects, and reloads melody supp
   await openPlayerTool(page, "Sound");
   const dialog = page.getByRole("dialog", { name: "Sound settings" });
   await dialog.getByRole("radio", { name: "Chord mode", exact: true }).click();
+  await dialog.getByRole("radio", { name: "Melody + accompaniment", exact: true }).click();
   await openAdvancedArrangementControls(page);
   await expect(dialog.getByTestId("melody-accompaniment-controls")).toBeVisible();
   await expect(dialog.getByTestId("melody-accompaniment-coverage")).toContainText("source support");
@@ -930,7 +975,7 @@ test("browser trace keeps Original and large arrangements off the main-thread pr
   expect(traces.some((event) => event.phase === "source-view" && event.execution === "source")).toBe(true);
   expect(traces.some((event) => event.phase === "sync-start")).toBe(false);
 
-  await selectArrangement(page, "Chord mode");
+  await selectArrangement(page, "Chord mode", "Automatic melody");
   await expect(page.getByTestId("melody-accompaniment-status")).toContainText("Inferred melody");
   traces = await melodyTrace(page);
   expect(traces.some((event) => event.phase === "worker-request" && event.execution === "worker")).toBe(true);
@@ -1396,7 +1441,7 @@ test("stale cross-variant melody storage is ignored and Original has no derived 
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(`/player/${HELL_SONG_ID}`);
   await expect(page.getByLabel("Falling notes player")).toBeVisible();
-  await selectArrangement(page, "Chord mode");
+  await selectArrangement(page, "Chord mode", "Automatic melody");
   await openPlayerTool(page, "Sound");
   await openAdvancedArrangementControls(page);
   const dialog = page.getByRole("dialog", { name: "Sound settings" });
@@ -1846,6 +1891,7 @@ test("real artifact keeps arrangement controls usable at 390px", async ({ page }
   await openPlayerTool(page, "Sound");
   let dialog = page.getByRole("dialog", { name: "Sound settings" });
   await dialog.getByRole("radio", { name: "Chord mode", exact: true }).click();
+  await dialog.getByRole("radio", { name: "Melody + accompaniment", exact: true }).click();
   await openAdvancedArrangementControls(page);
   await expect(dialog.getByTestId("melody-accompaniment-controls")).toBeVisible();
   await dialog.getByRole("radio", { name: "Use right-hand part", exact: true }).click();

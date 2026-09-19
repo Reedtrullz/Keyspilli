@@ -244,6 +244,9 @@ test("chord styles persist across source changes, seeking, guidance, and mobile 
   await dialog.getByRole("radio", { name: "Chord mode" }).click();
   await openAdvancedArrangementControls(page);
   const styles = dialog.getByRole("radiogroup", { name: "Accompaniment style" });
+  await expect(styles.getByRole("radio", { name: "Bass + chords" })).toHaveAttribute("aria-checked", "true");
+  await expect(dialog).toContainText("Backing only");
+  await styles.getByRole("radio", { name: "Melody + accompaniment" }).click();
   await expect(styles.getByRole("radio", { name: "Melody + accompaniment" })).toHaveAttribute("aria-checked", "true");
   await expect(dialog).toContainText("Original passage is retained");
   await dialog.getByRole("radio", { name: "UG timeline" }).click();
