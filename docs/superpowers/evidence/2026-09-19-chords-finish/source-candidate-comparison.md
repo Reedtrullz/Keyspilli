@@ -34,6 +34,50 @@ The derived candidate’s zero unresolved beats are expected from forcing the
 existing staff/voice lane through right-hand override semantics. They are not
 evidence that the original melody has been recovered.
 
+### Queen raw `-CANTO-` candidate A/B
+
+The raw MIDI provides a second, materially different candidate that does not
+depend on the stored L/R split: FF01 `-CANTO-`, track `5`, channel `3`, with
+`278` notes. It is evaluated as a disposable raw vocal-lane candidate, not
+declared to be the learner melody.
+
+| Whole-song 108 BPM diagnostic | Current automatic A | Raw `-CANTO-` candidate B |
+|---|---:|---:|
+| Melody / output events / attacks | `784 / 2072 / 963` | `278 / 278 / 278` |
+| Unresolved / fallback beats | `182.375 / 223.625` | `0 / 540` |
+| Median IOI / max simultaneous-sounding | `0.277778s / 6/7` | `0.289444s / 1/2` |
+| Worst top-voice leap | `32 st @ 84.722s` | `12 st @ 13.041s` |
+| Worst 0.5-second attack window | `30.833–31.333s / 8` | `74.505–75.005s / 4` |
+
+Raw candidate B covers only `167.333333` active beats of the `540`-beat song,
+with `17.494792` intro-rest beats, `116.807292` outro-rest beats, `372.666667`
+total rest beats, maximum polyphony `2`, and `0.427083` overlapping beats.
+The `540` fallback beats are expected because the candidate has no separate
+source-support lane; this is a raw vocal line, not a finished accompaniment.
+
+At the existing current-vs-derived bounded window `[48,60)` beats (selected
+before evaluating CANTO and therefore not a CANTO holdout), A has `92` notes /
+`40` attacks, median IOI `0.069444s`, and max simultaneous/sounding `6/6`;
+B has `17` notes / `17` attacks, median IOI `0.280556s`, and max
+simultaneous/sounding `1/2`. This is an honest bounded A/B diagnostic, not a
+musical acceptance result.
+
+The one-to-one raw-to-canonical comparison used `0.125` beat onset and
+duration tolerances. Of 278 raw CANTO notes, `233` found an onset-aligned
+canonical note: `116` matched pitch/onset/duration, `117` required a transform,
+including `88` onset-aligned pitch conflicts and `29` duration mismatches.
+`45` raw notes had no onset-aligned match; `2140` canonical notes remained
+outside this one-lane candidate. Mean matched onset and duration deltas were
+`0.025192` and `0.351529` beats. These losses are evidence for review, not an
+automatic rejection or promotion.
+
+The raw PIANO/CHOIR activity comparison is also preserved without assigning
+either role as melody: PIANO has `415.9375` active beats (intro `4.994792`,
+outro `5.140625`, max polyphony `6`), CHOIR has `186.453125` (intro
+`47.994792`, outro `5.390625`, max polyphony `4`), with PIANO-only
+`246.052083`, CHOIR-only `16.567708`, and shared-active `169.885417` beats.
+This is a source-layer handoff comparison only.
+
 Worst-window selection scans every 12-beat window from the start plus a final
 tail-aligned window, maximizes differing melody source IDs, then candidate
 melody count, then chooses the earliest tie. It is not a hand-selected musical
@@ -124,9 +168,13 @@ retains the MIDI manifest reference rather than a score URL.
 - Do not promote the derived upper-staff hand override. Its identity deltas
   are large, especially Queen and Oops, and zero unresolved beats are an
   expected consequence of the forced right-hand selection semantics.
-- Queen needs an independently identified score/source package with a stable
-  URL, license, and hash that preserves the raw `2/4 → 6/8` timeline, plus a
-  reviewer-authored measure-boundary, phase, and role legend.
+- Queen now has a concrete raw-vocal candidate to review, but it still needs a
+  provenance-preserving decision on the `-CANTO-` role mapping, the
+  onset/pitch/duration losses, and the PIANO/CHOIR handoffs. An independently
+  identified score/source package is one useful way to resolve that review,
+  but it is not the only admissible route; source-level role evidence or an
+  authorized bounded listening worksheet could also resolve it. The raw
+  `2/4 → 6/8` timeline and phase remain explicit review inputs.
 - Oops needs a reviewed staff/voice/color legend for the current source
   version; the backup is structurally equivalent and adds no independent
   semantic evidence.

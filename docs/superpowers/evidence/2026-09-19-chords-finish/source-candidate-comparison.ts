@@ -115,7 +115,22 @@ function readAscii(data: Uint8Array, start: number, length: number): string {
   return String.fromCharCode(...data.slice(start, start + length)).replaceAll("\u0000", "").trim();
 }
 
-function rawTrackMetadata(data: Uint8Array, division: number): Array<Record<string, unknown>> {
+type RawTrackNote = {
+  trackIndex: number;
+  channel: number;
+  midi: number;
+  start: number;
+  dur: number;
+  vel: number;
+};
+
+type RawNoteSource = { trackIndex: number; channel: number };
+
+function rawTrackMetadata(
+  data: Uint8Array,
+  division: number,
+  noteSources: readonly RawNoteSource[] = [],
+): Array<Record<string, unknown>> {
   const readU32 = (offset: number) => ((data[offset]! << 24) | (data[offset + 1]! << 16) | (data[offset + 2]! << 8) | data[offset + 3]!) >>> 0;
   if (readAscii(data, 0, 4) !== "MThd") throw new Error("raw source is not a MIDI file");
   const headerLength = readU32(4);
@@ -133,6 +148,9 @@ function rawTrackMetadata(data: Uint8Array, division: number): Array<Record<stri
     const texts: Array<{ tick: number; beat: number; text: string }> = [];
     const programs: Array<{ tick: number; beat: number; channel: number; program: number }> = [];
     const channelNotes = new Map<number, { noteOnCount: number; firstNoteBeat: number | null; lastNoteBeat: number | null }>();
+    const activeNotes = new Map<string, Array<{ midi: number; start: number; vel: number; channel: number }>>();
+    const trackNotes: RawTrackNote[] = [];
+    const captureChannel = noteSources.some((source) => source.trackIndex === trackIndex);
     while (position < end) {
       const deltaPosition = { value: position };
       tick += readVarint(data, deltaPosition, end);
@@ -182,6 +200,19 @@ function rawTrackMetadata(data: Uint8Array, division: number): Array<Record<stri
       const note = data[position]!;
       const velocity = data[position + 1]!;
       position += 2;
+      if (captureChannel) {
+        const key = `${channel}:${note}`;
+        if (kind === 0x90 && velocity > 0 && noteSources.some((source) => source.trackIndex === trackIndex && source.channel === channel)) {
+          const pending = activeNotes.get(key) ?? [];
+          pending.push({ midi: note, start: tick / division, vel: velocity, channel });
+          activeNotes.set(key, pending);
+        } else if ((kind === 0x80 || (kind === 0x90 && velocity === 0)) && noteSources.some((source) => source.trackIndex === trackIndex && source.channel === channel)) {
+          const pending = activeNotes.get(key);
+          const started = pending?.shift();
+          if (pending?.length === 0) activeNotes.delete(key);
+          if (started) trackNotes.push({ trackIndex, channel, midi: started.midi, start: started.start, dur: Math.max(0.01, tick / division - started.start), vel: started.vel });
+        }
+      }
       if ((kind === 0x90 && velocity > 0) && channel !== 9) {
         const state = channelNotes.get(channel) ?? { noteOnCount: 0, firstNoteBeat: null, lastNoteBeat: null };
         const beat = Number((tick / division).toFixed(6));
@@ -191,12 +222,16 @@ function rawTrackMetadata(data: Uint8Array, division: number): Array<Record<stri
         channelNotes.set(channel, state);
       }
     }
+    for (const pending of activeNotes.values()) {
+      for (const started of pending) trackNotes.push({ trackIndex, channel: started.channel, midi: started.midi, start: started.start, dur: Math.max(0.01, tick / division - started.start), vel: started.vel });
+    }
     tracks.push({
       trackIndex,
       trackNames,
       texts,
       programs,
       channelNotes: Object.fromEntries([...channelNotes.entries()].sort(([left], [right]) => left - right)),
+      ...(trackNotes.length > 0 ? { notes: trackNotes.sort((left, right) => left.start - right.start || left.midi - right.midi) } : {}),
     });
     offset = end;
   }
@@ -224,6 +259,146 @@ function spanBeatsInWindow(
   endBeat: number,
 ): number {
   return spans.reduce((sum, span) => sum + Math.max(0, Math.min(endBeat, span.endBeat) - Math.max(startBeat, span.startBeat)), 0);
+}
+
+function unionBeats(spans: readonly { start: number; end: number }[], durationBeats: number): number {
+  const sorted = spans
+    .map((span) => ({ start: Math.max(0, Math.min(durationBeats, span.start)), end: Math.max(0, Math.min(durationBeats, span.end)) }))
+    .filter((span) => span.end > span.start)
+    .sort((left, right) => left.start - right.start || left.end - right.end);
+  let total = 0;
+  let current: { start: number; end: number } | null = null;
+  for (const span of sorted) {
+    if (!current || span.start > current.end) {
+      if (current) total += current.end - current.start;
+      current = { ...span };
+    } else {
+      current.end = Math.max(current.end, span.end);
+    }
+  }
+  if (current) total += current.end - current.start;
+  return total;
+}
+
+function polyphonySummary(notes: readonly { start: number; dur: number }[], durationBeats: number): Record<string, number> {
+  const boundaries = [...new Set([0, durationBeats, ...notes.flatMap((note) => [note.start, note.start + note.dur])])]
+    .map((beat) => Math.max(0, Math.min(durationBeats, beat)))
+    .sort((left, right) => left - right);
+  let overlapBeats = 0;
+  let maxPolyphony = 0;
+  for (let index = 0; index < boundaries.length - 1; index += 1) {
+    const start = boundaries[index]!;
+    const end = boundaries[index + 1]!;
+    if (end <= start) continue;
+    const active = notes.filter((note) => note.start <= start && note.start + note.dur > start).length;
+    maxPolyphony = Math.max(maxPolyphony, active);
+    if (active > 1) overlapBeats += end - start;
+  }
+  return { maxPolyphony, overlapBeats: Number(overlapBeats.toFixed(6)) };
+}
+
+function trackCoverage(notes: readonly RawTrackNote[], durationBeats: number): Record<string, unknown> {
+  const spans = notes.map((note) => ({ start: note.start, end: note.start + note.dur }));
+  const activeBeats = unionBeats(spans, durationBeats);
+  const firstStart = notes.length ? Math.min(...notes.map((note) => note.start)) : null;
+  const lastEnd = notes.length ? Math.max(...notes.map((note) => note.start + note.dur)) : null;
+  return {
+    noteCount: notes.length,
+    firstStartBeat: firstStart,
+    lastEndBeat: lastEnd,
+    activeBeats: Number(activeBeats.toFixed(6)),
+    restBeats: Number(Math.max(0, durationBeats - activeBeats).toFixed(6)),
+    introRestBeats: firstStart === null ? durationBeats : Number(Math.max(0, firstStart).toFixed(6)),
+    outroRestBeats: lastEnd === null ? 0 : Number(Math.max(0, durationBeats - lastEnd).toFixed(6)),
+    ...polyphonySummary(notes, durationBeats),
+  };
+}
+
+function activityComparison(
+  left: readonly RawTrackNote[],
+  right: readonly RawTrackNote[],
+  durationBeats: number,
+): Record<string, number> {
+  const boundaries = [...new Set([0, durationBeats, ...left.flatMap((note) => [note.start, note.start + note.dur]), ...right.flatMap((note) => [note.start, note.start + note.dur])])]
+    .map((beat) => Math.max(0, Math.min(durationBeats, beat)))
+    .sort((a, b) => a - b);
+  let leftOnly = 0;
+  let rightOnly = 0;
+  let both = 0;
+  for (let index = 0; index < boundaries.length - 1; index += 1) {
+    const start = boundaries[index]!;
+    const end = boundaries[index + 1]!;
+    if (end <= start) continue;
+    const leftActive = left.some((note) => note.start <= start && note.start + note.dur > start);
+    const rightActive = right.some((note) => note.start <= start && note.start + note.dur > start);
+    if (leftActive && rightActive) both += end - start;
+    else if (leftActive) leftOnly += end - start;
+    else if (rightActive) rightOnly += end - start;
+  }
+  return {
+    leftOnlyBeats: Number(leftOnly.toFixed(6)),
+    rightOnlyBeats: Number(rightOnly.toFixed(6)),
+    sharedActiveBeats: Number(both.toFixed(6)),
+  };
+}
+
+function rawToCanonicalMatch(rawNotes: readonly RawTrackNote[], canonicalNotes: readonly Note[]): Record<string, unknown> {
+  const onsetTolerance = 0.125;
+  const durationTolerance = 0.125;
+  const remaining = new Set(canonicalNotes.map((_, index) => index));
+  let exactMatches = 0;
+  let transformedMatches = 0;
+  let pitchMismatchMatches = 0;
+  let durationMismatchMatches = 0;
+  let onsetMismatchLosses = 0;
+  let durationDeltaTotal = 0;
+  let onsetDeltaTotal = 0;
+  for (const raw of [...rawNotes].sort((left, right) => left.start - right.start || left.midi - right.midi)) {
+    const samePitch = [...remaining]
+      .filter((index) => canonicalNotes[index]!.midi === raw.midi)
+      .sort((left, right) => {
+        const a = canonicalNotes[left]!;
+        const b = canonicalNotes[right]!;
+        return Math.abs(a.start - raw.start) - Math.abs(b.start - raw.start)
+          || Math.abs(a.dur - raw.dur) - Math.abs(b.dur - raw.dur)
+          || left - right;
+      });
+    const samePitchOnset = samePitch.find((index) => Math.abs(canonicalNotes[index]!.start - raw.start) <= onsetTolerance);
+    const sameOnsetDifferentPitch = [...remaining]
+      .filter((index) => Math.abs(canonicalNotes[index]!.start - raw.start) <= onsetTolerance)
+      .sort((left, right) => Math.abs(canonicalNotes[left]!.midi - raw.midi) - Math.abs(canonicalNotes[right]!.midi - raw.midi))[0];
+    const matchedIndex = samePitchOnset ?? sameOnsetDifferentPitch;
+    if (matchedIndex === undefined) {
+      onsetMismatchLosses += 1;
+      continue;
+    }
+    remaining.delete(matchedIndex);
+    const matched = canonicalNotes[matchedIndex]!;
+    const onsetDelta = Math.abs(matched.start - raw.start);
+    const durationDelta = Math.abs(matched.dur - raw.dur);
+    onsetDeltaTotal += onsetDelta;
+    durationDeltaTotal += durationDelta;
+    if (matched.midi !== raw.midi) pitchMismatchMatches += 1;
+    else if (durationDelta > durationTolerance) durationMismatchMatches += 1;
+    if (matched.midi === raw.midi && onsetDelta <= onsetTolerance && durationDelta <= durationTolerance) exactMatches += 1;
+    else transformedMatches += 1;
+  }
+  const matched = rawNotes.length - onsetMismatchLosses;
+  return {
+    rawNoteCount: rawNotes.length,
+    canonicalNoteCount: canonicalNotes.length,
+    matchedNotes: matched,
+    exactPitchOnsetDurationMatches: exactMatches,
+    transformedMatches,
+    pitchMismatchMatches,
+    durationMismatchMatches,
+    onsetMismatchLosses,
+    unmatchedRawNotes: rawNotes.length - matched,
+    unmatchedCanonicalNotes: remaining.size,
+    meanMatchedOnsetDeltaBeats: matched ? Number((onsetDeltaTotal / matched).toFixed(6)) : null,
+    meanMatchedDurationDeltaBeats: matched ? Number((durationDeltaTotal / matched).toFixed(6)) : null,
+    tolerances: { onsetBeats: onsetTolerance, durationBeats: durationTolerance, pitch: "exact MIDI pitch required for an exact match" },
+  };
 }
 
 function eventIdsInWindow(
@@ -298,6 +473,24 @@ function arrangementSummary(
   };
 }
 
+function boundedArrangementDiagnostics(
+  result: MelodyAccompanimentResolution,
+  startBeat: number,
+  endBeat: number,
+  tempoBpm: number,
+): Record<string, unknown> {
+  const notes = result.notes.flatMap((note) => {
+    const start = Math.max(startBeat, note.start);
+    const end = Math.min(endBeat, note.start + note.dur);
+    return end > start ? [{ ...note, start: start - startBeat, dur: end - start }] : [];
+  });
+  return {
+    noteCount: notes.length,
+    attackCount: new Set(notes.map((note) => note.start)).size,
+    playability: playabilitySummary(notes, endBeat - startBeat, tempoBpm),
+  };
+}
+
 function readJsonIfPresent(path: string): Record<string, unknown> | null {
   return existsSync(path) ? JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown> : null;
 }
@@ -341,7 +534,19 @@ function evaluateTarget(target: (typeof targets)[number]): Record<string, unknow
   const parsedXml = parseMusicXmlNotes(xml);
   const rawMidiBytes = readFileSync(midiPath);
   const rawMidi = parseMidi(rawMidiBytes);
-  const rawTrackData = rawTrackMetadata(rawMidiBytes, rawMidi.division);
+  const rawTrackLabels = ["PIANO", "CHOIR", "-CANTO-"];
+  const rawTrackMetadataWithoutNotes = rawTrackMetadata(rawMidiBytes, rawMidi.division);
+  const rawNoteSources = rawTrackMetadataWithoutNotes.flatMap((track) => {
+    const texts = Array.isArray(track.texts) ? track.texts as Array<{ text?: string }> : [];
+    const label = texts.find((event) => typeof event.text === "string" && rawTrackLabels.includes(event.text));
+    if (!label) return [];
+    const channels = track.channelNotes && typeof track.channelNotes === "object"
+      ? Object.keys(track.channelNotes as Record<string, unknown>).map(Number).filter(Number.isInteger)
+      : [];
+    const channel = channels[0];
+    return channel === undefined ? [] : [{ trackIndex: Number(track.trackIndex), channel, label: label.text! }];
+  });
+  const rawTrackData = rawTrackMetadata(rawMidiBytes, rawMidi.division, rawNoteSources);
   const canonicalDuration = duration(data);
   const candidateNotes = replaceCandidateVelocity(parsedXml.notes, data.notes);
   const canonicalSet = multiset(data.notes);
@@ -365,9 +570,44 @@ function evaluateTarget(target: (typeof targets)[number]): Record<string, unknow
   });
   const current = buildMelodyAccompaniment(data.notes, chordTimeline, options("automatic", currentFingerprint));
   const candidate = buildMelodyAccompaniment(candidateNotes, chordTimeline, options("right-hand", candidateFingerprint));
+  const notesForSource = (source: RawNoteSource | undefined): RawTrackNote[] => {
+    if (!source) return [];
+    const track = rawTrackData.find((item) => item.trackIndex === source.trackIndex);
+    return Array.isArray(track?.notes)
+      ? track.notes as RawTrackNote[]
+      : [];
+  };
+  const rawCantoSource = rawNoteSources.find((source) => source.label === "-CANTO-");
+  const rawPianoSource = rawNoteSources.find((source) => source.label === "PIANO");
+  const rawChoirSource = rawNoteSources.find((source) => source.label === "CHOIR");
+  const rawCantoNotes = notesForSource(rawCantoSource);
+  const rawCantoAsNotes: Note[] = rawCantoNotes.map(({ trackIndex: _trackIndex, channel: _channel, ...note }) => ({ ...note, hand: "R" }));
+  const rawCantoArrangement = rawCantoAsNotes.length > 0
+    ? buildMelodyAccompaniment(rawCantoAsNotes, chordTimeline, options("right-hand", `raw-midi:${target.baseId}:track:${rawCantoSource?.trackIndex}:channel:${rawCantoSource?.channel}`))
+    : null;
   const currentIds = new Set(current.provenance.melodyNoteIds);
   const candidateIds = new Set(candidate.provenance.melodyNoteIds);
   const xmlNoteBlocks = noteBlocks(xml);
+  const rawTrackEvidence = rawTrackData.map(({ notes: _notes, ...track }) => track);
+  const rawRoleActivity = rawCantoSource || rawPianoSource || rawChoirSource ? {
+    sources: rawNoteSources,
+    piano: trackCoverage(notesForSource(rawPianoSource), canonicalDuration),
+    choir: trackCoverage(notesForSource(rawChoirSource), canonicalDuration),
+    pianoChoirActivity: activityComparison(notesForSource(rawPianoSource), notesForSource(rawChoirSource), canonicalDuration),
+  } : null;
+  const selectedWindow = worstWindow(current, candidate, canonicalDuration);
+  const selectedStartBeat = selectedWindow.startBeat as number;
+  const selectedEndBeat = selectedWindow.endBeat as number;
+  const rawCantoWindowComparison = rawCantoArrangement ? {
+    window: {
+      startBeat: selectedStartBeat,
+      endBeat: selectedEndBeat,
+      selectionBasis: "The existing current-vs-derived worst window; not selected for the raw CANTO candidate and not an untouched holdout.",
+    },
+    comparisonTempoBpm,
+    currentAutomatic: boundedArrangementDiagnostics(current, selectedStartBeat, selectedEndBeat, comparisonTempoBpm),
+    rawCantoCandidate: boundedArrangementDiagnostics(rawCantoArrangement, selectedStartBeat, selectedEndBeat, comparisonTempoBpm),
+  } : null;
   return {
     id: target.id,
     title: target.title,
@@ -386,7 +626,17 @@ function evaluateTarget(target: (typeof targets)[number]): Record<string, unknow
       rawMidiTrackNames: rawMidi.trackNames,
       rawMidiTimeSigEvents: rawMidi.timeSigEvents ?? [],
       rawMidiFirstNoteBeat: rawMidi.notes[0]?.start ?? null,
-      rawMidiTrackMetadata: rawTrackData,
+      rawMidiTrackMetadata: rawTrackEvidence,
+      rawRoleActivity,
+      rawCantoCandidate: rawCantoSource ? {
+        label: rawCantoSource.label,
+        trackIndex: rawCantoSource.trackIndex,
+        channel: rawCantoSource.channel,
+        coverage: trackCoverage(rawCantoNotes, canonicalDuration),
+        transformAndMatch: rawToCanonicalMatch(rawCantoNotes, data.notes),
+        arrangementAt108Bpm: rawCantoArrangement ? arrangementSummary(rawCantoArrangement, canonicalDuration, comparisonTempoBpm) : null,
+        interpretation: "A disposable raw vocal-lane candidate. Its FF01 label, channel, and timing are source evidence only; no melody or learner-role approval is implied.",
+      } : null,
       currentXmlTimeSigEvents: parsedXml.timeSigEvents ?? [],
       currentMeasureStarts: data.measures.slice(0, 10).map((measure) => measure.startBeat),
       rawDeclaredMeasureStarts: declaredMeasureStarts(rawMidi.timeSigEvents, canonicalDuration),
@@ -402,6 +652,8 @@ function evaluateTarget(target: (typeof targets)[number]): Record<string, unknow
     targetTempoBpm: target.targetTempoBpm,
     currentAutomatic: arrangementSummary(current, canonicalDuration, target.targetTempoBpm),
     derivedUpperStaffHandOverride: arrangementSummary(candidate, canonicalDuration, target.targetTempoBpm),
+    rawCantoCandidate: rawCantoArrangement ? arrangementSummary(rawCantoArrangement, canonicalDuration, comparisonTempoBpm) : null,
+    rawCantoBoundedComparison: rawCantoWindowComparison,
     melodyIdentityComparison: {
       currentAutomaticMelodyNotes: currentIds.size,
       derivedUpperStaffOverrideMelodyNotes: candidateIds.size,
@@ -410,7 +662,7 @@ function evaluateTarget(target: (typeof targets)[number]): Record<string, unknow
       derivedOverrideUnresolvedSpans: candidate.provenance.unresolvedSpans,
       interpretation: "Zero unresolved beats here are expected from selecting the existing staff=1/voice=1 lane with right-hand override semantics; they are not evidence that the original source melody has been recovered.",
     },
-    worst12BeatWindow: worstWindow(current, candidate, canonicalDuration),
+    worst12BeatWindow: selectedWindow,
   };
 }
 
@@ -423,6 +675,7 @@ console.log(JSON.stringify({
   nonClaims: [
     "The derived upper-staff/voice-1 hand-override comparison is not a semantic melody approval or independent source recovery.",
     "Zero unresolved beats in the derived override are expected by its selection semantics and do not validate the source melody.",
+    "The raw -CANTO- lane is a bounded vocal-track candidate; its label and channel do not establish learner-melody ownership.",
     "Raw MIDI meter events do not independently prove pickup/downbeat phase.",
     "Event counts and structural playability diagnostics do not establish musical acceptance.",
   ],
