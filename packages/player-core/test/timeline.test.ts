@@ -51,6 +51,31 @@ describe("phase-aware playback timeline", () => {
     ]);
   });
 
+  it("rejects skipped, gapped, zero-length, and nonfinite stored bars", () => {
+    const timing = {
+      timeSig: [4, 4] as [number, number],
+      measureStartBeat: 0,
+      provenance: "source-measure-boundary" as const,
+      sourceFingerprint: "variant:test",
+    };
+    for (const measures of [
+      [{ index: 0, startBeat: 0, endBeat: 8 }],
+      [{ index: 0, startBeat: 0, endBeat: 4 }, { index: 1, startBeat: 5, endBeat: 9 }],
+      [{ index: 0, startBeat: 0, endBeat: 0 }],
+      [{ index: 0, startBeat: 0, endBeat: Number.NaN }],
+    ]) {
+      expect(playbackMeasures({
+        notes: [{ midi: 60, start: 0, dur: 8, vel: 80 }],
+        measures,
+        timeSig: [4, 4],
+        sourceTiming: timing,
+      }).slice(0, 2)).toEqual([
+        { index: 0, startBeat: 0, endBeat: 4 },
+        { index: 1, startBeat: 4, endBeat: 8 },
+      ]);
+    }
+  });
+
   it("accepts a pickup-compatible map when explicit meter events reset phase", () => {
     expect(playbackMeasures({
       notes: [{ midi: 60, start: 0, dur: 15, vel: 80 }],

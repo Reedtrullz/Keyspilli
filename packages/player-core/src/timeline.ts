@@ -496,15 +496,23 @@ function measureBoundaryMatchesPhase(beat: number, phase: number, timeSig: reado
 }
 
 function sourceMeasuresMatchTiming(
-  measures: readonly MeasureInfo[],
+  data: Pick<SongData, "notes" | "measures">,
   timing: NonNullable<SongData["sourceTiming"]>,
 ): boolean {
+  const measures = data.measures;
   if (!measures.length) return false;
   const events = timing.timeSigEvents?.length
     ? timing.timeSigEvents
     : [{ beat: timing.measureStartBeat, timeSig: timing.timeSig }];
-  for (let index = 1; index < measures.length; index++) {
-    if (Math.abs(measures[index - 1]!.endBeat - measures[index]!.startBeat) > 1e-6) return false;
+  const duration = Math.max(
+    data.notes.reduce((max, note) => Math.max(max, note.start + note.dur), 0),
+    measures.reduce((max, measure) => Math.max(max, measure.endBeat), 0),
+  );
+  if (measures[0]!.startBeat > 1e-6 || measures[measures.length - 1]!.endBeat < duration - 1e-6) return false;
+  for (let index = 0; index < measures.length; index++) {
+    const measure = measures[index]!;
+    if (!Number.isFinite(measure.startBeat) || !Number.isFinite(measure.endBeat) || !(measure.endBeat > measure.startBeat)) return false;
+    if (index > 0 && Math.abs(measures[index - 1]!.endBeat - measure.startBeat) > 1e-6) return false;
   }
   for (const event of events) {
     if (!measures.some((measure) => Math.abs(measure.startBeat - event.beat) <= 1e-6)) return false;
@@ -516,20 +524,31 @@ function sourceMeasuresMatchTiming(
       active = event;
     }
     if (!measureBoundaryMatchesPhase(measure.startBeat, active.beat, active.timeSig)) return false;
+    const expectedEnd = measure.startBeat + beatsPerMeasure(active.timeSig as [number, number]);
+    if (!Number.isFinite(expectedEnd) || Math.abs(measure.endBeat - expectedEnd) > 1e-6) return false;
   }
   return true;
+}
+
+/** Return source timing only when the stored measure map agrees with it. */
+export function playbackTiming(
+  data: Pick<SongData, "notes" | "measures" | "sourceTiming">,
+): SongData["sourceTiming"] {
+  const timing = data.sourceTiming;
+  if (timing?.provenance !== "source-measure-boundary"
+    || typeof timing.sourceFingerprint !== "string"
+    || timing.sourceFingerprint.length === 0
+    || !sourceMeasuresMatchTiming(data, timing)) return undefined;
+  return timing;
 }
 
 /** Use stored measure starts only when the catalog supplied validated phase. */
 export function playbackMeasures(
   data: Pick<SongData, "notes" | "measures" | "timeSig" | "sourceTiming">,
 ): MeasureInfo[] {
-  const sourcePhase = data.sourceTiming?.provenance === "source-measure-boundary"
-    && typeof data.sourceTiming.sourceFingerprint === "string"
-    && data.sourceTiming.sourceFingerprint.length > 0;
-  if (sourcePhase && sourceMeasuresMatchTiming(data.measures, data.sourceTiming!)) return data.measures;
-  const noteEnd = data.notes.reduce((max, note) => Math.max(max, note.start + note.dur), 0);
-  const measureEnd = data.measures.reduce((max, measure) => Math.max(max, measure.endBeat), 0);
+  if (playbackTiming(data)) return data.measures;
+  const noteEnd = data.notes.reduce((max, note) => Number.isFinite(note.start + note.dur) ? Math.max(max, note.start + note.dur) : max, 0);
+  const measureEnd = data.measures.reduce((max, measure) => Number.isFinite(measure.endBeat) ? Math.max(max, measure.endBeat) : max, 0);
   return arithmeticMeasures(Math.max(noteEnd, measureEnd), data.timeSig);
 }
 

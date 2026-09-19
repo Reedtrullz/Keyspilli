@@ -22,6 +22,7 @@ import {
   measureIndex,
   passageMidiRange,
   playbackMeasures,
+  playbackTiming,
   resolveAccompaniment,
   resolveTimedNotes,
   sourceNoteIds,
@@ -461,9 +462,13 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     ),
     [initial.data.measures, initial.data.notes],
   );
-  const navigationMeasures = useMemo(
-    () => playbackMeasures({ ...initial.data, sourceTiming: sparseBackingTiming }),
+  const playbackTimingForPlayer = useMemo(
+    () => playbackTiming({ ...initial.data, sourceTiming: sparseBackingTiming }),
     [initial.data, sparseBackingTiming],
+  );
+  const navigationMeasures = useMemo(
+    () => playbackMeasures({ ...initial.data, sourceTiming: playbackTimingForPlayer }),
+    [initial.data, playbackTimingForPlayer],
   );
 
   const chordSources = useMemo(() => {
@@ -516,9 +521,9 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       melodyPhraseOverrides,
       melodySupportPolicy,
       melodySourceBackingMode,
-      sparseBackingTiming,
+      playbackTimingForPlayer,
     ),
-    [arrangementEnd, chords, initial.data.notes, melodyPhraseOverrides, melodySelection, melodySourceBackingMode, melodySourceFingerprint, melodySupportPolicy, sparseBackingTiming],
+    [arrangementEnd, chords, initial.data.notes, melodyPhraseOverrides, melodySelection, melodySourceBackingMode, melodySourceFingerprint, melodySupportPolicy, playbackTimingForPlayer],
   );
   const melodyArrangementOptions = useMemo(
     () => buildMelodyArrangementOptions({
@@ -528,9 +533,9 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       phraseOverrides: melodyPhraseOverrides,
       harmonicSupport: melodySupportPolicy,
       sourceBackingMode: melodySourceBackingMode,
-      sparseBackingTiming,
+      sparseBackingTiming: playbackTimingForPlayer,
     }),
-    [arrangementEnd, melodyPhraseOverrides, melodySelection, melodySourceBackingMode, melodySourceFingerprint, melodySupportPolicy, sparseBackingTiming],
+    [arrangementEnd, melodyPhraseOverrides, melodySelection, melodySourceBackingMode, melodySourceFingerprint, melodySupportPolicy, playbackTimingForPlayer],
   );
   const sourceMelodyView = useMemo(
     () => sourceMelodyArrangement(initial.data.notes, chords, arrangementEnd, melodySourceFingerprint, melodySelection),
