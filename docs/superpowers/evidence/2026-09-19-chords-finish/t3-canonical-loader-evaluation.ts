@@ -327,7 +327,7 @@ async function evaluateData(target: Target, data: SongData, source: {
     },
     runtime: {
       node: process.version,
-      revision: "fb048c6",
+      revision: "d4e4006",
       cwd: process.cwd(),
     },
     durationBeats,
@@ -457,7 +457,7 @@ async function main(): Promise<void> {
     }
     console.log(JSON.stringify({
       schemaVersion: 1,
-      revision: "fb048c6",
+      revision: "d4e4006",
       capturedAt: "2026-09-19",
       sourceMode: "local canonical replay: production artifact bytes copied read-only into a disposable loader root; no deployed runtime claim",
       canonicalRoot,
