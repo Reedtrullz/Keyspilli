@@ -1,0 +1,169 @@
+{
+  "schemaVersion": 1,
+  "instrument": "browser AudioEngine synth",
+  "comparison": "same source, beat window, speed, transpose, hand, voice gain, piano gain; Original then fresh default Chord mode",
+  "outcomes": [
+    {
+      "id": "blackbird",
+      "songId": "the-beatles-blackbird-a-scratch",
+      "bpm": 120,
+      "window": {
+        "startBeat": 14,
+        "endBeat": 26.5
+      },
+      "settings": {
+        "instrument": "browser AudioEngine synth",
+        "speed": 1,
+        "transpose": 0,
+        "hand": "both",
+        "voiceGain": 1,
+        "pianoGain": 0.4
+      },
+      "original": {
+        "sha256": "6090c0a3e225e1d48237b70682366348c773e772b18db638573f73b193c30382",
+        "bytes": 114012,
+        "events": 162,
+        "signal": {
+          "rms": 0.09711074060073725,
+          "peak": 0.6820659041404724,
+          "samples": 160083
+        },
+        "decodedPcm": {
+          "sampleRate": 44100,
+          "samples": 320166,
+          "durationSeconds": 7.26
+        },
+        "triangleEvents": 108
+      },
+      "backingOnly": {
+        "sha256": "8875754669b8e663f8c4126345e2d2786f74f1dd0f120abae4cfde92f44cf28a",
+        "bytes": 118148,
+        "events": 16,
+        "signal": {
+          "rms": 0.03499267863231926,
+          "peak": 0.2555232644081116,
+          "samples": 161406
+        },
+        "decodedPcm": {
+          "sampleRate": 44100,
+          "samples": 322811,
+          "durationSeconds": 7.319977324263038
+        },
+        "triangleEvents": 8
+      },
+      "sourceControl": {
+        "sourceNote": {
+          "midi": 60,
+          "start": 14,
+          "dur": 0.625,
+          "vel": 95,
+          "hand": "R",
+          "expectedRelativeSeconds": 0.5
+        },
+        "originalAttack": {
+          "midi": 60,
+          "relativeWhen": 0.5229
+        },
+        "backingHasSourceAttack": false
+      }
+    },
+    {
+      "id": "oops",
+      "songId": "britney-spears-oops-i-did-it-again-a-scratch",
+      "bpm": 95,
+      "window": {
+        "startBeat": 48,
+        "endBeat": 64
+      },
+      "settings": {
+        "instrument": "browser AudioEngine synth",
+        "speed": 1,
+        "transpose": 0,
+        "hand": "both",
+        "voiceGain": 1,
+        "pianoGain": 0.4
+      },
+      "original": {
+        "sha256": "176219f977e2aee16bf752e15149a221c1fe5b19b35be4ec24566eecfbb46354",
+        "bytes": 167935,
+        "events": 114,
+        "signal": {
+          "rms": 0.0737983558045407,
+          "peak": 0.7929198145866394,
+          "samples": 246078
+        },
+        "decodedPcm": {
+          "sampleRate": 44100,
+          "samples": 492155,
+          "durationSeconds": 11.15997732426304
+        },
+        "triangleEvents": 76
+      },
+      "backingOnly": {
+        "sha256": "6338196660034294fdb90e1e34c02cd9fe36e5b4c758e8ace85b19da51138735",
+        "bytes": 145074,
+        "events": 6,
+        "signal": {
+          "rms": 0.024181996776963192,
+          "peak": 0.18289871513843536,
+          "samples": 246078
+        },
+        "decodedPcm": {
+          "sampleRate": 44100,
+          "samples": 492155,
+          "durationSeconds": 11.15997732426304
+        },
+        "triangleEvents": 3
+      }
+    },
+    {
+      "id": "queen",
+      "songId": "queen-somebody-to-love-a-scratch",
+      "bpm": 108,
+      "window": {
+        "startBeat": 6,
+        "endBeat": 18
+      },
+      "settings": {
+        "instrument": "browser AudioEngine synth",
+        "speed": 1,
+        "transpose": 0,
+        "hand": "both",
+        "voiceGain": 1,
+        "pianoGain": 0.4
+      },
+      "original": {
+        "sha256": "2e080b0b4fac2aee3f89ff09962e9926d50d3eca72722bc815d1ed6972af8465",
+        "bytes": 120788,
+        "events": 153,
+        "signal": {
+          "rms": 0.1096244317914483,
+          "peak": 0.8543630242347717,
+          "samples": 170667
+        },
+        "decodedPcm": {
+          "sampleRate": 44100,
+          "samples": 341333,
+          "durationSeconds": 7.739977324263038
+        },
+        "triangleEvents": 102
+      },
+      "backingOnly": {
+        "sha256": "3b521464f7e5313e7c6cf3ac8a8ec2a43d1644dd2f459fc98e58fd45cfe2c1c0",
+        "bytes": 123645,
+        "events": 32,
+        "signal": {
+          "rms": 0.031612040173036385,
+          "peak": 0.23840156197547913,
+          "samples": 170667
+        },
+        "decodedPcm": {
+          "sampleRate": 44100,
+          "samples": 341333,
+          "durationSeconds": 7.739977324263038
+        },
+        "triangleEvents": 16
+      }
+    }
+  ]
+}

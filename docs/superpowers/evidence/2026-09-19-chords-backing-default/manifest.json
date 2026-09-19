@@ -1,13 +1,19 @@
 {
   "schemaVersion": 1,
   "capturedAt": "2026-09-19",
-  "capturedCodeHead": "9d0a037",
+  "capturedCodeHead": "2c8353c",
   "node": "v22.22.3",
   "productContract": {
     "defaultStyle": "bass-chords",
     "explicitStyle": "melody-accompaniment",
     "legacyMelodyWithoutIntent": "migrates to bass-chords",
     "unsupportedBacking": "silent with source melody omitted and fallback status"
+  },
+  "loader": {
+    "dataRoot": "/Users/reidar/Projectos/Keyspilli/data",
+    "chartSelection": "resolveChordSources(data) -> selectChordSource(..., auto)",
+    "backingResolution": "resolveAccompaniment(data.notes, selected.chords, bass-chords)",
+    "canonicalPlayerInputs": "Blackbird, Oops, and Queen are loaded from the current canonical data tree by the scratch Player harness"
   },
   "diagnostics": [
     {
@@ -74,6 +80,111 @@
       "fallbackReasons": { "no chord coverage": 1 }
     }
   ],
+  "canonicalDiagnostics": [
+    {
+      "id": "blackbird-canonical",
+      "path": "/Users/reidar/Projectos/Keyspilli/data/artifacts/the-beatles-blackbird/a/notes.json",
+      "notesSha256": "70f29a617731fd982e54592d98fb37c74d964ea6d275c011f04579f14b871256",
+      "sourceArtifactHash": "3fc3fd74d567da56dd10ff05689ef2f57641efbbe200532aabc0ea5fbcea1e75",
+      "durationBeats": 296,
+      "sourceNotes": 1069,
+      "selectedSourceId": "auto",
+      "selectedSourceLabel": "Generated fallback",
+      "selectedChordCount": 68,
+      "effectiveChordCount": 68,
+      "generatedNoteCount": 246,
+      "guidanceNoteCount": 246,
+      "sourceOutputNoteCount": 0,
+      "fallbackSpanCount": 1,
+      "fallbackBeats": 14,
+      "realizedCoverageBeats": 282,
+      "allSilent": false,
+      "sourceLeakage": false,
+      "fallbackReasons": { "no chord coverage": 1 }
+    },
+    {
+      "id": "oops-canonical",
+      "path": "/Users/reidar/Projectos/Keyspilli/data/artifacts/britney-spears-oops-i-did-it-again/a/notes.json",
+      "notesSha256": "337834fcd339a67e2aebbae3a8d3c3ae8eb8eb55c8529610e748c40bf80ca60a",
+      "sourceArtifactHash": "64d18aa4c23f7625a6eb0a7a234843a7a2278003d75cba9ea04efde7d8225ad4",
+      "durationBeats": 336,
+      "sourceNotes": 1897,
+      "selectedSourceId": "auto",
+      "selectedSourceLabel": "Generated fallback",
+      "selectedChordCount": 65,
+      "effectiveChordCount": 65,
+      "generatedNoteCount": 217,
+      "guidanceNoteCount": 217,
+      "sourceOutputNoteCount": 0,
+      "fallbackSpanCount": 1,
+      "fallbackBeats": 48,
+      "realizedCoverageBeats": 288,
+      "allSilent": false,
+      "sourceLeakage": false,
+      "fallbackReasons": { "no chord coverage": 1 }
+    },
+    {
+      "id": "queen-canonical-current-loader",
+      "path": "/Users/reidar/Projectos/Keyspilli/data/artifacts/queen-somebody-to-love/a/notes.json",
+      "notesSha256": "4faced9af0bc543fd4f054c731a16ed58e977d8623f947ff6925b482f8b3ec7d",
+      "sourceArtifactHash": "4505d3a7cb3c24788e51905eb29a40c501a31f7bd07596d489f63f7430c7a74e",
+      "durationBeats": 540,
+      "sourceNotes": 2373,
+      "selectedSourceId": "auto",
+      "selectedSourceLabel": "Generated fallback",
+      "selectedChordCount": 110,
+      "effectiveChordCount": 110,
+      "generatedNoteCount": 401,
+      "guidanceNoteCount": 401,
+      "sourceOutputNoteCount": 0,
+      "fallbackSpanCount": 1,
+      "fallbackBeats": 6,
+      "realizedCoverageBeats": 534,
+      "allSilent": false,
+      "sourceLeakage": false,
+      "fallbackReasons": { "no chord coverage": 1 }
+    }
+  ],
+  "currentPlayerComparison": {
+    "test": "current Player compares Original with fresh default backing on three canonical inputs",
+    "command": "npm run e2e:melody-scratch -w @keyspilli/web -- --grep='current Player compares Original' --workers=1",
+    "result": "1 passed (59.0s)",
+    "codeHead": "2c8353c",
+    "instrument": "browser AudioEngine synth",
+    "settings": { "speed": 1, "transpose": 0, "hand": "both", "voiceGain": 1, "pianoGain": 0.4 },
+    "summaryPath": "current-player-canonical-comparisons.json",
+    "sourceControlAssertion": {
+      "source": "Blackbird canonical notes.json",
+      "sourceNote": { "midi": 60, "startBeat": 14, "durationBeats": 0.625, "hand": "R" },
+      "expectedRelativeSeconds": 0.5,
+      "originalAttackRelativeSeconds": 0.5229,
+      "backingHasSameTimedSourceAttack": false,
+      "basis": "exact source beat/MIDI attack absent from resolved backing attack set; not a pitch-only comparison"
+    },
+    "captures": [
+      {
+        "id": "blackbird",
+        "source": "/Users/reidar/Projectos/Keyspilli/data/artifacts/the-beatles-blackbird/a/notes.json",
+        "window": { "startBeat": 14, "endBeat": 26.5, "bpm": 120 },
+        "original": { "path": "audio-review/current-blackbird-original.webm", "sha256": "6090c0a3e225e1d48237b70682366348c773e772b18db638573f73b193c30382", "bytes": 114012, "events": 162, "triangleEvents": 108, "durationSeconds": 7.26, "rms": 0.09711074060073725, "peak": 0.6820659041404724 },
+        "backingOnly": { "path": "audio-review/current-blackbird-backing-only.webm", "sha256": "8875754669b8e663f8c4126345e2d2786f74f1dd0f120abae4cfde92f44cf28a", "bytes": 118148, "events": 16, "triangleEvents": 8, "durationSeconds": 7.319977324263038, "rms": 0.03499267863231926, "peak": 0.2555232644081116 }
+      },
+      {
+        "id": "oops",
+        "source": "/Users/reidar/Projectos/Keyspilli/data/artifacts/britney-spears-oops-i-did-it-again/a/notes.json",
+        "window": { "startBeat": 48, "endBeat": 64, "bpm": 95 },
+        "original": { "path": "audio-review/current-oops-original.webm", "sha256": "176219f977e2aee16bf752e15149a221c1fe5b19b35be4ec24566eecfbb46354", "bytes": 167935, "events": 114, "triangleEvents": 76, "durationSeconds": 11.15997732426304, "rms": 0.0737983558045407, "peak": 0.7929198145866394 },
+        "backingOnly": { "path": "audio-review/current-oops-backing-only.webm", "sha256": "6338196660034294fdb90e1e34c02cd9fe36e5b4c758e8ace85b19da51138735", "bytes": 145074, "events": 6, "triangleEvents": 3, "durationSeconds": 11.15997732426304, "rms": 0.024181996776963192, "peak": 0.18289871513843536 }
+      },
+      {
+        "id": "queen",
+        "source": "/Users/reidar/Projectos/Keyspilli/data/artifacts/queen-somebody-to-love/a/notes.json",
+        "window": { "startBeat": 6, "endBeat": 18, "bpm": 108 },
+        "original": { "path": "audio-review/current-queen-original.webm", "sha256": "2e080b0b4fac2aee3f89ff09962e9926d50d3eca72722bc815d1ed6972af8465", "bytes": 120788, "events": 153, "triangleEvents": 102, "durationSeconds": 7.739977324263038, "rms": 0.1096244317914483, "peak": 0.8543630242347717 },
+        "backingOnly": { "path": "audio-review/current-queen-backing-only.webm", "sha256": "3b521464f7e5313e7c6cf3ac8a8ec2a43d1644dd2f459fc98e58fd45cfe2c1c0", "bytes": 123645, "events": 32, "triangleEvents": 16, "durationSeconds": 7.739977324263038, "rms": 0.031612040173036385, "peak": 0.23840156197547913 }
+      }
+    ]
+  },
   "audio": {
     "instrument": "browser AudioEngine synth",
     "window": { "requestedStartBeat": 14, "requestedEndBeat": 26.5, "captureStartBeat": 13, "captureEndBeat": 27.5, "tempoBpm": 120 },
