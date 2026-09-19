@@ -24,14 +24,57 @@ describe("phase-aware playback timeline", () => {
     expect(playbackMeasures({
       notes: [],
       measures: descriptiveMeasures,
-      timeSig: [6, 8],
+      timeSig: [2, 4],
       sourceTiming: {
-        timeSig: [6, 8],
-        measureStartBeat: -1,
+        timeSig: [2, 4],
+        measureStartBeat: 0,
         provenance: "source-measure-boundary",
         sourceFingerprint: "variant:test",
       },
     })).toEqual(descriptiveMeasures);
+  });
+
+  it("falls back when validated timing and stored boundaries disagree", () => {
+    expect(playbackMeasures({
+      notes: [{ midi: 60, start: 0, dur: 6, vel: 80 }],
+      measures: descriptiveMeasures,
+      timeSig: [6, 8],
+      sourceTiming: {
+        timeSig: [6, 8],
+        measureStartBeat: 0,
+        provenance: "source-measure-boundary",
+        sourceFingerprint: "variant:test",
+      },
+    }).slice(0, 2)).toEqual([
+      { index: 0, startBeat: 0, endBeat: 3 },
+      { index: 1, startBeat: 3, endBeat: 6 },
+    ]);
+  });
+
+  it("accepts a pickup-compatible map when explicit meter events reset phase", () => {
+    expect(playbackMeasures({
+      notes: [{ midi: 60, start: 0, dur: 15, vel: 80 }],
+      measures: [
+        { index: 0, startBeat: 0, endBeat: 2 },
+        { index: 1, startBeat: 2, endBeat: 4 },
+        { index: 2, startBeat: 4, endBeat: 6 },
+        { index: 3, startBeat: 6, endBeat: 8 },
+        { index: 4, startBeat: 8, endBeat: 10 },
+        { index: 5, startBeat: 10, endBeat: 12 },
+        { index: 6, startBeat: 12, endBeat: 15 },
+      ],
+      timeSig: [6, 8],
+      sourceTiming: {
+        timeSig: [6, 8],
+        measureStartBeat: -3,
+        provenance: "source-measure-boundary",
+        sourceFingerprint: "variant:test",
+        timeSigEvents: [
+          { beat: 0, timeSig: [2, 4] },
+          { beat: 12, timeSig: [6, 8] },
+        ],
+      },
+    })).toHaveLength(7);
   });
 
   it("looks up the active descriptive meter without asserting its phase", () => {

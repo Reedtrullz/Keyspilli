@@ -488,6 +488,38 @@ export function arithmeticMeasures(durationBeats: number, timeSig: [number, numb
   }));
 }
 
+function measureBoundaryMatchesPhase(beat: number, phase: number, timeSig: readonly [number, number]): boolean {
+  const width = timeSig[0] * (4 / timeSig[1]);
+  if (!Number.isFinite(width) || width <= 0) return false;
+  const steps = (beat - phase) / width;
+  return Math.abs(steps - Math.round(steps)) <= 1e-6;
+}
+
+function sourceMeasuresMatchTiming(
+  measures: readonly MeasureInfo[],
+  timing: NonNullable<SongData["sourceTiming"]>,
+): boolean {
+  if (!measures.length) return false;
+  const events = timing.timeSigEvents?.length
+    ? timing.timeSigEvents
+    : [{ beat: timing.measureStartBeat, timeSig: timing.timeSig }];
+  for (let index = 1; index < measures.length; index++) {
+    if (Math.abs(measures[index - 1]!.endBeat - measures[index]!.startBeat) > 1e-6) return false;
+  }
+  for (const event of events) {
+    if (!measures.some((measure) => Math.abs(measure.startBeat - event.beat) <= 1e-6)) return false;
+  }
+  for (const measure of measures) {
+    let active = events[0]!;
+    for (const event of events) {
+      if (event.beat > measure.startBeat + 1e-9) break;
+      active = event;
+    }
+    if (!measureBoundaryMatchesPhase(measure.startBeat, active.beat, active.timeSig)) return false;
+  }
+  return true;
+}
+
 /** Use stored measure starts only when the catalog supplied validated phase. */
 export function playbackMeasures(
   data: Pick<SongData, "notes" | "measures" | "timeSig" | "sourceTiming">,
@@ -495,7 +527,7 @@ export function playbackMeasures(
   const sourcePhase = data.sourceTiming?.provenance === "source-measure-boundary"
     && typeof data.sourceTiming.sourceFingerprint === "string"
     && data.sourceTiming.sourceFingerprint.length > 0;
-  if (sourcePhase && data.measures.length) return data.measures;
+  if (sourcePhase && sourceMeasuresMatchTiming(data.measures, data.sourceTiming!)) return data.measures;
   const noteEnd = data.notes.reduce((max, note) => Math.max(max, note.start + note.dur), 0);
   const measureEnd = data.measures.reduce((max, measure) => Math.max(max, measure.endBeat), 0);
   return arithmeticMeasures(Math.max(noteEnd, measureEnd), data.timeSig);

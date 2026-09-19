@@ -1169,7 +1169,9 @@ function sparseHarmonicStarts(startBeat: number, endBeat: number, timing?: Spars
   for (let index = 0; index < events.length; index += 1) {
     const event = events[index]!;
     const nextBeat = events[index + 1]?.beat ?? endBeat;
-    const pattern = sparseMeterPattern(event.timeSig, index === 0 ? timing.measureStartBeat : event.beat);
+    // An explicit meter declaration is also the phase reset for its segment;
+    // the standalone anchor is used only when no event timeline is present.
+    const pattern = sparseMeterPattern(event.timeSig, event.beat);
     if (!pattern) continue;
     const firstMeasure = Math.floor((startBeat - pattern.measureStartBeat) / pattern.measureBeats) - 1;
     const lastMeasure = Math.ceil((Math.min(endBeat, nextBeat) - pattern.measureStartBeat) / pattern.measureBeats) + 1;
