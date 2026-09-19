@@ -9,7 +9,9 @@ separate intent marker.
 
 ## Code and commands
 
-- Captured runtime/test head: `2c8353c` (`test: compare backing against current original captures`)
+- Final runtime implementation head: `050a12144c6a8035ce61742ef60995fc0d27ebed`.
+- Player capture/test harness head: `2c8353c` (`test: compare backing against current original captures`).
+- Exact branch/evidence head checked by CI: `52d8b6c6b230aa330f1804a8852109fcaa26ea0d`; the final cleanup after that check is docs-only.
 - Node: `v22.22.3`
 - Frozen resolver diagnostic:
   `node --import tsx --input-type=module` with `resolveChordSources()` and
@@ -27,6 +29,9 @@ separate intent marker.
 - Result: 1 browser test passed; it captured current-head Original and fresh
   default backing on Blackbird, Oops, and Queen with the same source, window,
   instrument, speed, transpose, hand, and gain settings for each pair.
+- Final scratch browser slice: 5 tests passed, including the current-head
+  Original/backing comparison and the exact Blackbird source-note scheduling
+  distinction described below.
 
 ## Full-song structural diagnostic
 
@@ -52,6 +57,20 @@ comparison has these full-song results:
 | Queen | 2,373 | `auto` / Generated fallback | 110 / 110 | 401 | 534 / 540 beats | 6 beats / 1 span | 0 | yes |
 
 These canonical counts are recorded in [`manifest.json`](./manifest.json).
+
+### Frozen payload vs canonical loader reconciliation
+
+The frozen fixtures and current canonical files are not interchangeable derived
+payloads. `sourceArtifactHash` identifies source lineage; it does not make the
+derived note arrays or chord timelines identical.
+
+| Song | Frozen payload | Current canonical payload | Reconciliation |
+|---|---|---|---|
+| Blackbird | 1,069 source notes; 68 chord-timeline entries; file SHA-256 `5aa5671d42bd93c2ac65c1fd21c87aa049b8baead3df3f48ae265213e6f445c75`; `sourceArtifactHash` `3fc3fd74d567da56dd10ff05689ef2f57641efbbe200532aabc0ea5fbcea1e75` | 1,069 source notes; 68 chord-timeline entries; file SHA-256 `70f29a617731fd982e54592d98fb37c74d964ea6d275c011f04579f14b871256`; same `sourceArtifactHash` | The source-note arrays match, but the derived chord timeline differs (the frozen timeline starts at beat 5.25; the canonical timeline starts at beat 14). |
+| Oops | 1,891 source notes; 74 chord-timeline entries; file SHA-256 `346c168afa388c8582fbd631a1e0d79ba8bd585caa49ad7a1082492b5ecb7f98`; `sourceArtifactHash` `64d18aa4c23f7625a6eb0a7a234843a7a2278003d75cba9ea04efde7d8225ad4` | 1,897 source notes; 66 chord-timeline entries (65 selected/effective); file SHA-256 `337834fcd339a67e2aebbae3a8d3c3ae8eb8eb55c8529610e748c40bf80ca60a`; same `sourceArtifactHash` | Same source lineage, but the derived notes and chord timeline differ. Counts and coverage are therefore reported separately. |
+
+Queen has only a current canonical payload in this packet; it is not used as a
+frozen-versus-canonical reconciliation pair.
 
 ## Player captures
 
@@ -115,4 +134,7 @@ worktree and was only read for the diagnostic.
   review.
 - Source roles, pickup/downbeat phase, and semantic melody identity remain
   unverified for the required repertoire.
+- One local app-level seeded E2E attempt timed out before the player tool became
+  available. It is recorded as an unqualified timeout; no pass or causal
+  attribution is inferred.
 - No merge, deploy, production verification, or catalog mutation was performed.
