@@ -78,6 +78,92 @@ outro `5.140625`, max polyphony `6`), CHOIR has `186.453125` (intro
 `246.052083`, CHOIR-only `16.567708`, and shared-active `169.885417` beats.
 This is a source-layer handoff comparison only.
 
+### Current importer replay and source lineage
+
+The diagnostic now replays the real standard-MIDI path in memory: `parseMidi` →
+tempo normalization → `buildVariants` with the current learner profile and
+development-only trace. It pins the canonical notes, MusicXML, and raw MIDI
+input hashes for all three targets before evaluating them. Queen’s MIDI tempo
+events require the same normalized beat-clock conversion used by the importer;
+the CANTO sidecar therefore carries FF01 `-CANTO-`, raw track `5`, channel `3`,
+and maps its raw note tuples to the current trace roots after that conversion.
+All 278 CANTO roots map uniquely; no track identity was inferred from nearest
+canonical pitch.
+
+The current replay and stored artifact are not byte-equivalent: replayed
+Advanced has `2369` notes while the stored artifact has `2373`. That drift is
+reported rather than used to back-project current trace lineage onto the older
+artifact.
+
+| Replay stage | selected | rejected | notes / operation evidence |
+|---|---:|---:|---|
+| raw | 4718 | 0 | source input |
+| cleaned | 4464 | 254 | sanitizer |
+| learner-arranged | 3300 | 28 | 919 merges, 2381 replacements |
+| advanced-candidates | 2369 | 931 | candidate pruning |
+| advanced-playable | 2369 | 0 | 2134 retained, 235 duration changes |
+
+For the 278 CANTO roots in the current replay, the trace-backed final
+classification is: `111` verified 1/8-grid mappings, `0` verified octave
+mappings, `38` verified transforms outside that simple grid/octave class, and
+`129` genuinely rejected before selected Advanced output. There are `0`
+ambiguous source roots; one root has no Advanced-candidate event because it was
+already rejected earlier, so it is not counted as an unclassified drop. The
+stored artifact has a separate numeric-only fallback classification—`107` grid-like,
+ `3` octave-like, `123` same-onset coincidences, and `45` no-onset matches—but
+ those are not importer lineage and must not be called source transformations.
+
+The 38 non-grid replay transforms are retained as a separate bucket rather than
+being mislabeled as quantization; 24 final trace events report
+`DURATION_CHANGED`, while the remaining cases include upstream arrangement
+changes. The old `116 exact + 29 duration mismatch + 88 pitch conflict + 45
+loss` table remains a nearest-onset comparison against the stored artifact, not
+an importer-transform table.
+
+The 38 non-grid transforms break down by verified trace path as `13` raw
+retained → learner merged → Advanced retained → Advanced-playability duration
+changed, `16` raw retained → learner merged → Advanced retained → final retained
+but not explainable as a pure 1/8-grid endpoint mapping, and `9` raw retained →
+learner replaced → Advanced retained → Advanced-playability duration changed.
+The separate `111` grid mappings are the only roots called quantization here.
+
+The first-rejection causes are now pinned:
+
+| First rejection | Count | Trace reason |
+|---|---:|---|
+| learner-arranged | 1 | `range-and-hand-arrangement-rejected` |
+| advanced-candidates | 128 | `advanced-candidate-construction-rejected` |
+
+Thus the current causal route is Advanced candidate construction / voice
+pruning, not wholesale loss in the importer sanitizer or learner arrangement.
+At that rejection stage, `88/128` roots had at least one selected note within
+the same 1/8-beat onset window; `56` had a higher selected pitch, `86` had a
+lower selected pitch, and `72` had a selected note with the same inferred hand
+(`R=67`, `L=61`). These sets overlap and carry no role labels, so this supports
+“candidate pruning among simultaneous texture” but does not prove “vocal line
+removed in favor of accompaniment.”
+
+Representative trace roots make the boundary concrete. A normalized CANTO
+`59` at beat `20.984165` becomes learner `L59` at beat `21`, then is rejected
+at Advanced candidates while `L40/L52` and `R64/R67` remain at that onset. A
+normalized CANTO `60` at beat `29.458039` becomes learner `R60`, is rejected at
+Advanced candidates, and has `L38/L48` retained nearby. Conversely, CANTO `62`
+at beat `19.484180` becomes learner `R62`, survives Advanced candidates, and
+is shortened from `1.5` to `0.5` beats by the Advanced-playability duration
+cap. These are trace examples, not semantic role judgments.
+
+No audio artifact is claimed here. The direct CANTO hand-override candidate is
+not a useful full arranged result (`540` fallback beats and large source
+gaps), so the A/B figures remain numerical/structural diagnostics only.
+
+The concrete producer/import boundary is now clear: `parseMidi` flattens raw
+track/channel/FF01 identity before the public `Note` stream reaches
+`buildVariants`. A future source-preserving repair should carry that identity
+as a private per-note sidecar through sanitize, quantize, deduplication, and
+playability pruning, then expose it only in provenance diagnostics. This audit
+uses the smallest external tuple sidecar needed to prove the boundary and does
+not promote any role into runtime data.
+
 Worst-window selection scans every 12-beat window from the start plus a final
 tail-aligned window, maximizes differing melody source IDs, then candidate
 melody count, then chooses the earliest tie. It is not a hand-selected musical
@@ -185,3 +271,32 @@ retains the MIDI manifest reference rather than a score URL.
 Until those artifacts exist, retain Original on unresolved spans and keep the
 automatic melody status inferred/reviewable. No source file was copied,
 rewritten, imported, catalogued, or used to change runtime data in this audit.
+
+## Frozen `ba9e5a5` matching review addendum — 2026-09-19
+
+The raw CANTO one-to-one comparison does not establish 117 importer
+transformations. At the committed `0.125`-beat tolerance, 278 raw CANTO notes
+produce 116 exact matches, 29 same-pitch duration mismatches, 88 pitch
+conflicts, and 45 onset losses. A separate one-to-one check found 145 as the
+maximum same-pitch onset matching, exactly `116 + 29`; reversed matching-order
+variants were unchanged. Raw CANTO also has no simultaneous note-on groups,
+and all 88 pitch conflicts had no same-pitch canonical note within tolerance.
+They are nearest-onset cross-role matches against canonical R/L chord notes,
+not proven pitch transforms.
+
+Tolerance sensitivity confirms the classification risk: `0.0625` beats gives
+222 matched / 77 pitch conflicts / 29 duration conflicts / 56 losses, while
+`0.125` gives 233 / 88 / 29 / 45. The 11 additional matches are all pitch
+conflicts. The raw candidate covers 167.333 of 540 active beats, with 372.667
+rest beats, 17.494792 intro rest, 116.807292 outro rest, maximum polyphony 2,
+and 0.427083 overlapping beats. Its `fallbackBeats=540` and zero unresolved
+beats are right-hand selection semantics, not full-song melody coverage.
+
+The candidate manually parses FF01 `-CANTO-`, strips track/channel, forces
+`hand=R`, and bypasses the real importer/quantizer lineage. The A/B is numeric
+event/playability comparison only; its `[48,60)` window is inherited from the
+current-vs-derived worst-window selection, not a CANTO holdout, and no audio
+acceptance is established. The read-only diagnostic now keeps the raw
+track/channel/FF01 identity in a sidecar, follows unique source roots through
+the current importer replay, asserts pinned input hashes, and includes a small
+1/16-versus-1/8 grid/chord correspondence regression.
