@@ -52,16 +52,20 @@ External path audit:
 
 Remaining P2: `repeatPractice()` (`Player.tsx:1501-1510`) bypasses `openPracticeSetup`. Keyboard/MIDI repeat calls `beginPractice()` directly, and microphone repeat reopens setup without cancelling. `beginPractice()` (`:1443-1462`) never calls `cancelSoundPreview()`, while `PlaybackEngine.startGrading()` does not cancel audio when transport/grader are stopped. A user can finish practice, start a Sound preview from the result state, then click Repeat passage and leave preview voices overlapping practice. Centralize preview cancellation at practice start/repeat before calling this lifecycle fully closed.
 
-## P2 correction review: `8e668c6` + `bb4f76e` — 19-09-2026
+## P2 correction review: exact `bb4f76e` — 19-09-2026
 
-`beginPractice()` now calls `cancelSoundPreview()` immediately before
-`startGrading()`, and `repeatPractice()` cancels before branching. This covers
-direct keyboard/MIDI repeat and the microphone branch that reopens setup.
+Reviewed exact `bb4f76ef2b057b21ec10643b556fef62f536c581` atop
+`8e668c628a0123146d3b7fa0a20584fe10b75cd8`. `beginPractice()` now calls
+`cancelSoundPreview()` immediately before `startGrading()`, and
+`repeatPractice()` cancels before branching. These are small defensive guards
+for direct keyboard/MIDI repeat and the microphone branch that reopens setup.
 
-The regression was corrected after review: it samples oscillator stop calls
-after Full preview scheduling and dispatches the mounted Repeat passage React
-handler while the Sound dialog remains open, so closing the tool cannot provide
-the cancellation being asserted. This is a defensive handler-integration
-check, not a claim that a user can click an obscured result through a native
-modal dialog. The corrected targeted Chromium scratch test passed; web
-typecheck and diff-check passed under Node `v22.22.3`.
+The focused Chromium test passed once, but its direct DOM `button.click()` only
+proves mounted-handler integration while Sound remains open. In a disposable
+mutation copy, removing both guards still left the same test passing because
+aggregate oscillator stop totals were not tied to the preview’s active voices.
+`PlayerTools` uses native `showModal()`/`aria-modal` on mobile and non-modal
+`show()` on desktop, with desktop outside-pointer cleanup. A bounded real
+locator-click probe did not complete, so ordinary pointer reachability remains
+unproven. P2 is therefore an instrumentation/reachability follow-up, not a
+proven closed user-path claim.

@@ -25,12 +25,13 @@ This is engineering evidence, not musical or keyboard acceptance.
   This is a contract warning; it does not rewrite the export payload.
 - `PlaybackEngine.previewPlan` has a focused empty-passage regression test;
   it returns no notes or chords for a genuine gap.
-- Practice startup cancels scheduled Sound preview voices both at
+- Practice startup has small defensive preview-cancellation guards both at
   `beginPractice()` and at `repeatPractice()`, covering keyboard/MIDI direct
-  repeat and microphone repeat setup. The corrected handler-integration
-  regression dispatches Repeat while preview remains active and observes the
-  additional oscillator stops; it is not a claim of user interaction through
-  an obscuring native modal.
+  repeat and microphone repeat setup in code. No reliable user-path regression
+  currently proves this boundary: a direct handler experiment was removed
+  after mutation showed aggregate oscillator stop totals were not specific to
+  the active preview, and native modal reachability is blocked. Treat this as
+  an instrumentation/reachability follow-up, not a closed P2 claim.
 
 ## Verification
 
@@ -44,7 +45,6 @@ web production build                               passed
 changed browser slice                               5 passed
 worker/stale-reply/real-audio browser slice         3 passed
 moving-preview + external-seek browser test          1 passed
-practice-repeat preview-cancellation browser test    1 passed
 ```
 
 The canonical loader evaluator also passed all five pinned artifacts in both
