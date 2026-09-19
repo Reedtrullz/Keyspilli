@@ -7,6 +7,19 @@ import { usePresence } from "./player-motion";
 
 export type MelodyAuditionRole = "full" | "original" | "melody" | "accompaniment";
 export type MelodyPhraseOverrideAction = "automatic" | "right-hand" | "left-hand" | "rest";
+export type MelodyPreviewStatus = {
+  role: MelodyAuditionRole;
+  phase: "playing" | "complete" | "stopped";
+  rangeLabel: string;
+  startSec: number;
+  endSec: number;
+};
+
+function previewLabel(role: MelodyAuditionRole, backgroundMode: PlayerSettings["backgroundMode"]): string {
+  if (role === "original") return "Original";
+  if (role === "full") return backgroundMode === "chord" ? "Chord arrangement" : "Original arrangement";
+  return role === "melody" ? "Melody" : "Accompaniment";
+}
 
 export function SoundControls({
   settings,
@@ -28,6 +41,8 @@ export function SoundControls({
   onSourceBackingModeChange,
   onMelodySelectionReset,
   onPreview,
+  previewStatus,
+  onPreviewStop,
 }: {
   settings: PlayerSettings;
   onChange: (p: Partial<PlayerSettings>) => void;
@@ -48,6 +63,8 @@ export function SoundControls({
   onSourceBackingModeChange?: (mode: SourceBackingMode) => void;
   onMelodySelectionReset?: () => void;
   onPreview?: (role?: MelodyAuditionRole) => void;
+  previewStatus?: MelodyPreviewStatus | null;
+  onPreviewStop?: () => void;
 }) {
 
   const chordSourcePanelRef = useRef<HTMLDivElement>(null);
@@ -347,6 +364,25 @@ export function SoundControls({
               </div>
             )}
           </div>
+          {previewStatus && onPreview && (
+            <div
+              className="mb-3 flex items-center justify-between gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs text-indigo-950"
+              data-testid="arrangement-preview-status"
+              data-preview-start-sec={previewStatus.startSec}
+              data-preview-end-sec={previewStatus.endSec}
+            >
+              <span role="status" aria-live="polite">
+                {previewStatus.phase === "playing"
+                  ? `Playing ${previewLabel(previewStatus.role, settings.backgroundMode)} · ${previewStatus.rangeLabel}`
+                  : previewStatus.phase === "complete"
+                    ? `Last preview: ${previewLabel(previewStatus.role, settings.backgroundMode)} · ${previewStatus.rangeLabel}`
+                    : `Preview stopped: ${previewLabel(previewStatus.role, settings.backgroundMode)} · ${previewStatus.rangeLabel}`}
+              </span>
+              {previewStatus.phase === "playing"
+                ? onPreviewStop && <button type="button" onClick={onPreviewStop} className="min-h-9 shrink-0 rounded-lg border border-indigo-300 bg-white px-2">Stop preview</button>
+                : <button type="button" onClick={() => onPreview(previewStatus.role)} className="min-h-9 shrink-0 rounded-lg border border-indigo-300 bg-white px-2">Repeat preview</button>}
+            </div>
+          )}
           <div className="flex gap-2" role="radiogroup" aria-label="Sound">
             {(["synth", "sampled", "organ"] as const).map((s) => (
               <button

@@ -63,7 +63,7 @@ import {
 import { BeginnerView } from "./BeginnerView";
 import { LeadSheetView } from "./LeadSheetView";
 import { SheetMusicView } from "./SheetMusicView";
-import { SoundControls, type MelodyAuditionRole, type MelodyPhraseOverrideAction } from "./SoundControls";
+import { SoundControls, type MelodyAuditionRole, type MelodyPhraseOverrideAction, type MelodyPreviewStatus } from "./SoundControls";
 import { melodyArrangementOutcome } from "./melody-arrangement-status";
 import { createHeldInput } from "./held-input";
 import { InputStatus } from "./InputStatus";
@@ -106,6 +106,15 @@ const MODES: { id: ViewMode; label: string; hint: string }[] = [
 function noteMatchesHand(note: { hand?: "L" | "R" }, hand: PlayerSettings["hand"]): boolean {
   return hand === "both" || note.hand === hand;
 }
+
+type SoundPreviewSession = MelodyPreviewStatus & {
+  token: number;
+  restoreTime: number;
+  wasPlaying: boolean;
+  timer: ReturnType<typeof setTimeout> | null;
+};
+
+const PREVIEW_TAIL_MS = 650;
 
 function playerVariantsForDisplay(song: Pick<SongRow, "difficulty">, variants: readonly SongRow[]): SongRow[] {
   const byDifficulty = new Map(
@@ -273,7 +282,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   const [sectionsCollapsed, setSectionsCollapsed] = useState(false);
   const [fullWidth, setFullWidth] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
-  const soundPreviewRef = useRef(false);
+  const [soundPreviewStatus, setSoundPreviewStatus] = useState<MelodyPreviewStatus | null>(null);
   useEffect(() => {
     setSectionsCollapsed(loadJson("keyspilli.sectionsCollapsed", false));
     setFullWidth(loadJson("keyspilli.fullWidth", false));
@@ -445,9 +454,15 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   }
 
   const engineRef = useRef<PlaybackEngine | null>(null);
+  const soundPreviewRef = useRef<SoundPreviewSession | null>(null);
+  const soundPreviewTokenRef = useRef(0);
   const cancelSoundPreview = useCallback(() => {
-    if (soundPreviewRef.current) engineRef.current?.audio.cancelAll();
-    soundPreviewRef.current = false;
+    const session = soundPreviewRef.current;
+    if (session && session.timer !== null) clearTimeout(session.timer);
+    if (session) engineRef.current?.audio.cancelAll();
+    soundPreviewRef.current = null;
+    soundPreviewTokenRef.current += 1;
+    setSoundPreviewStatus(null);
   }, []);
   const heldInputRef = useRef<ReturnType<typeof createHeldInput> | null>(null);
   if (!heldInputRef.current) heldInputRef.current = createHeldInput(soundInputNote, midi => {
@@ -899,10 +914,11 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
 
   const seek = useCallback((t: number) => {
     if (gradingRef.current || showPracticeSetupRef.current) return;
+    cancelSoundPreview();
     engineRef.current?.seek(t);
     setSeekVersion(version => version + 1);
     syncTransportState();
-  }, []);
+  }, [cancelSoundPreview]);
 
   function togglePlay() {
     if (playing) stopPlayback();
@@ -1224,19 +1240,74 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     saveJson("keyspilli.learned", next);
   }
 
+  function stopSoundPreview() {
+    const session = soundPreviewRef.current;
+    if (!session) return;
+    const status: MelodyPreviewStatus = {
+      role: session.role,
+      phase: "stopped",
+      rangeLabel: session.rangeLabel,
+      startSec: session.startSec,
+      endSec: session.endSec,
+    };
+    cancelSoundPreview();
+    setSoundPreviewStatus(status);
+  }
+
   function previewSound(role: MelodyAuditionRole = "full") {
     const eng = engineRef.current;
     if (!eng) return;
+    const previous = soundPreviewRef.current;
+    const restoreTime = previous?.restoreTime ?? eng.time;
+    const wasPlaying = previous?.wasPlaying ?? eng.playing;
+    cancelSoundPreview();
     eng.stop();
     syncTransportState();
     eng.audio.cancelAll();
     eng.audio.ensure();
-    soundPreviewRef.current = true;
     const secondsPerBeat = secPerBeat(initial.data.tempoBpm, settings.speed);
-    const startSec = eng.time >= duration - 0.05 ? 0 : eng.time;
-    const endSec = Math.min(duration, startSec + Math.max(1.5, secondsPerBeat * 4));
+    const previewMeasureIndex = measureIndex(
+      eng.time,
+      initial.data.tempoBpm,
+      settings.speed,
+      initial.data.timeSig,
+      navigationMeasures.length,
+      navigationMeasures,
+    );
+    const currentMeasureForPreview = navigationMeasures[previewMeasureIndex];
+    const startSec = loop?.startSec ?? (currentMeasureForPreview
+      ? currentMeasureForPreview.startBeat * secondsPerBeat
+      : eng.time);
+    const endSec = loop?.endSec ?? (currentMeasureForPreview
+      ? currentMeasureForPreview.endBeat * secondsPerBeat
+      : Math.min(duration, eng.time + secondsPerBeat));
+    const boundedStartSec = Math.max(0, Math.min(duration, startSec));
+    const boundedEndSec = Math.max(boundedStartSec, Math.min(duration, endSec));
+    const startBarIndex = navigationMeasures.findIndex((measure) => measure.startBeat <= boundedStartSec / secondsPerBeat
+      && boundedStartSec / secondsPerBeat < measure.endBeat);
+    const endBarIndex = navigationMeasures.findIndex((measure) => measure.endBeat >= boundedEndSec / secondsPerBeat - 1e-6);
+    const rangeLabel = startBarIndex >= 0 && endBarIndex >= 0
+      ? startBarIndex === endBarIndex ? `bar ${startBarIndex + 1}` : `bars ${startBarIndex + 1}–${endBarIndex + 1}`
+      : "current passage";
+    const token = ++soundPreviewTokenRef.current;
+    const status: MelodyPreviewStatus = {
+      role,
+      phase: "playing",
+      rangeLabel,
+      startSec: boundedStartSec,
+      endSec: boundedEndSec,
+    };
+    const session: SoundPreviewSession = {
+      ...status,
+      token,
+      restoreTime,
+      wasPlaying,
+      timer: null,
+    };
+    soundPreviewRef.current = session;
+    setSoundPreviewStatus(status);
     const preview = role === "full"
-      ? eng.previewPlan(startSec, endSec)
+      ? eng.previewPlan(boundedStartSec, boundedEndSec)
       : {
         notes: resolveTimedNotes({
           ...initial.data,
@@ -1249,10 +1320,10 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
           .filter((note) => noteMatchesHand(note, settings.hand))
           .flatMap((note) => {
             const noteEnd = note.startSec + note.durSec;
-            const visibleStart = Math.max(startSec, note.startSec);
-            const visibleEnd = Math.min(endSec, noteEnd);
+            const visibleStart = Math.max(boundedStartSec, note.startSec);
+            const visibleEnd = Math.min(boundedEndSec, noteEnd);
             return visibleEnd > visibleStart + 1e-6
-              ? [{ when: visibleStart - startSec, note: { ...note, startSec: visibleStart - startSec, durSec: visibleEnd - visibleStart } }]
+              ? [{ when: visibleStart - boundedStartSec, note: { ...note, startSec: visibleStart - boundedStartSec, durSec: visibleEnd - visibleStart } }]
               : [];
           }),
         chords: [],
@@ -1261,6 +1332,25 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     if (role === "full" && settings.backgroundMode === "chord" && eng.audio.playChord) {
       for (const chord of preview.chords) eng.audio.playChord(chord.notes, chord.when, chord.durationSec);
     }
+    session.timer = setTimeout(() => {
+      const active = soundPreviewRef.current;
+      if (!active || active.token !== token) return;
+      soundPreviewRef.current = null;
+      active.timer = null;
+      const currentEngine = engineRef.current;
+      if (!currentEngine) return;
+      currentEngine.audio.cancelAll();
+      currentEngine.seek(active.restoreTime);
+      if (active.wasPlaying) currentEngine.start();
+      syncTransportState();
+      setSoundPreviewStatus({
+        role: active.role,
+        phase: "complete",
+        rangeLabel: active.rangeLabel,
+        startSec: active.startSec,
+        endSec: active.endSec,
+      });
+    }, Math.max(50, (boundedEndSec - boundedStartSec) * 1000 + PREVIEW_TAIL_MS));
   }
 
   function updateSettings(p: Partial<PlayerSettings>) {
@@ -1993,6 +2083,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
 
               <p className="mb-3 text-xs text-zinc-600">Visual bar progress is always available. Metronome clicks follow the active original or generated accompaniment.</p>
               <SoundControls settings={settings} onChange={updateSettings} onPreview={previewSound}
+                previewStatus={soundPreviewStatus} onPreviewStop={stopSoundPreview}
                 chordSource={chordSourcePreference} chordSources={chordSources}
                 chordSourceStatus={selectedChordSource.fallbackReason} onChordSourceChange={updateChordSource}
                 melodyArrangement={melodyArrangement}

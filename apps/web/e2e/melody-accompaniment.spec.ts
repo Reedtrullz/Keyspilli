@@ -24,6 +24,7 @@ import {
 import { openAdvancedArrangementControls, openPlayerTool } from "./player-tools";
 
 const SONG_ID = "the-beatles-blackbird-a-scratch";
+const NEAR_CROSS_SONG_ID = "w-h-doane-near-the-cross-a-scratch";
 const UG_SONG_ID = "the-theorist-elton-john-your-song-piano-cover-jz6ugvghbt8-a-scratch";
 const OOPS_SONG_ID = "britney-spears-oops-i-did-it-again-a-scratch";
 const HELL_SONG_ID = "aria-ellys-music-the-warning-hell-you-call-a-dream-piano-cover-by-aria-ellys-mslzwo1d-a-scratch";
@@ -984,7 +985,10 @@ test("browser worker resolution matches the shared loader at the frozen mileston
   const manifestPath = join(scratchRoot, "artifacts", "the-beatles-blackbird", "manifest.json");
   const notesBytes = readFileSync(notesPath);
   const stored = JSON.parse(notesBytes.toString("utf8")) as SongData;
-  const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as { sourceArtifactHash?: string };
+  const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as {
+    sourceArtifactHash?: string;
+    sourceTiming?: Record<string, NonNullable<SongData["sourceTiming"]>>;
+  };
   if (!manifest.sourceArtifactHash) throw new Error("scratch manifest has no source artifact hash");
   const durationBeats = Math.max(
     0,
@@ -992,12 +996,19 @@ test("browser worker resolution matches the shared loader at the frozen mileston
     ...stored.measures.map((measure) => measure.endBeat),
   );
   const sourceFingerprint = `variant:the-beatles-blackbird:a:${SONG_ID}:${manifest.sourceArtifactHash}:notes:${createHash("sha256").update(notesBytes).digest("hex")}`;
+  const timingCandidate = manifest.sourceTiming?.[SONG_ID];
+  const timingIdentity = timingCandidate
+    ? (({ sourceFingerprint: _sourceFingerprint, ...identity }) => identity)(timingCandidate)
+    : undefined;
+  const loadedSourceFingerprint = timingIdentity
+    ? `${sourceFingerprint}:timing:${createHash("sha256").update(JSON.stringify(timingIdentity)).digest("hex")}`
+    : sourceFingerprint;
   const data: SongData = {
     ...stored,
-    sourceFingerprint,
-    sourceTiming: validateSparseBackingTiming(stored.sourceTiming, sourceFingerprint, durationBeats),
+    sourceFingerprint: loadedSourceFingerprint,
+    sourceTiming: validateSparseBackingTiming(timingCandidate, loadedSourceFingerprint, durationBeats),
   };
-  const sparseBackingTiming = validateSparseBackingTiming(data.sourceTiming, sourceFingerprint, durationBeats);
+  const sparseBackingTiming = validateSparseBackingTiming(data.sourceTiming, loadedSourceFingerprint, durationBeats);
   const timing = playbackTiming({ ...data, sourceTiming: sparseBackingTiming });
   const resolved = resolveChordSources(data);
   const chordSources = {
@@ -1010,13 +1021,27 @@ test("browser worker resolution matches the shared loader at the frozen mileston
   const selected = selectChordSource(chordSources, "auto");
   const expected = buildMelodyAccompaniment(data.notes, selected.source?.chords ?? [], buildMelodyArrangementOptions({
     durationBeats,
-    sourceFingerprint,
+    sourceFingerprint: loadedSourceFingerprint,
     selection: "automatic",
     phraseOverrides: [],
     harmonicSupport: melodyHarmonicSupportPolicy(selected.source),
     sourceBackingMode: "default",
     sparseBackingTiming: timing,
   }));
+  const expectedKey = JSON.stringify({
+    sourceNotes: data.notes,
+    chords: selected.source?.chords ?? [],
+    durationBeats,
+    sourceFingerprint: loadedSourceFingerprint,
+    selection: "automatic",
+    phraseOverrides: [],
+    harmonicSupport: melodyHarmonicSupportPolicy(selected.source),
+    sourceBackingMode: "default",
+    sparseBackingTiming: timing,
+    allowRests: true,
+    soundingPolicy: "coherent-phrase",
+  });
+  expect(ready?.key).toBe(expectedKey);
   expect(ready?.resolutionFingerprint).toBe(melodyArrangementResolutionFingerprint(expected));
 });
 
@@ -1045,9 +1070,10 @@ test("role audition renders four audible roles and preserves A/B position", asyn
   const melody = await capturePreviewRole(page, testInfo, dialog, "Melody", "blackbird-preview-melody");
   const accompaniment = await capturePreviewRole(page, testInfo, dialog, "Accompaniment", "blackbird-preview-accompaniment");
   for (const capture of [original, full, melody, accompaniment]) audible(capture);
-  expect(scheduledAttackMidis(original)).toEqual(expect.arrayContaining([60]));
-  expect(scheduledAttackMidis(full)).toEqual(expect.arrayContaining([67]));
-  expect(scheduledAttackMidis(full)).not.toContain(60);
+  expect(scheduledAttackMidis(original)).toEqual(expect.arrayContaining([55, 71]));
+  expect(fundamentalMidis(original)).toContain(60);
+  expect(fundamentalMidis(full)).toContain(67);
+  expect(fundamentalMidis(full)).not.toContain(60);
   expect(await seek.inputValue()).toBe(positionBefore);
 
   await dialog.getByRole("button", { name: "Close tools", exact: true }).click();
@@ -1108,6 +1134,68 @@ test("moving transport does not cancel a new preview, while an external seek doe
   const stopsBeforeSeek = await page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStopCalls());
   await seek.fill("8");
   await expect.poll(() => page.evaluate(() => (window as unknown as AudioProbeWindow).__keyspilliAudioStopCalls())).toBeGreaterThan(stopsBeforeSeek);
+});
+
+test("arrangement preview exposes stop/repeat and preserves stopped or playing transport state", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/player/${SONG_ID}`);
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+  await selectArrangement(page, "Chord mode", "Automatic melody");
+  const seek = page.getByLabel("Seek");
+  await seek.fill("7");
+
+  await openPlayerTool(page, "Sound");
+  let dialog = page.getByRole("dialog", { name: "Sound settings" });
+  const status = dialog.getByTestId("arrangement-preview-status");
+  await dialog.getByRole("button", { name: "Compare Original", exact: true }).click();
+  await expect(status.getByRole("status")).toHaveText(/Playing Original · bar \d+/);
+  await expect(status.getByRole("button", { name: "Stop preview", exact: true })).toBeVisible();
+  await status.getByRole("button", { name: "Stop preview", exact: true }).click();
+  await expect(status.getByRole("status")).toHaveText(/Preview stopped: Original · bar \d+/);
+  await expect(status.getByRole("button", { name: "Repeat preview", exact: true })).toBeVisible();
+  await status.getByRole("button", { name: "Repeat preview", exact: true }).click();
+  await expect(status.getByRole("status")).toHaveText(/Playing Original · bar \d+/);
+  await dialog.getByRole("button", { name: "Close tools", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Play", exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Play", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+  await openPlayerTool(page, "Sound");
+  dialog = page.getByRole("dialog", { name: "Sound settings" });
+  await dialog.getByRole("button", { name: "Compare Original", exact: true }).click();
+  await expect(dialog.getByTestId("arrangement-preview-status").getByRole("status")).toHaveText(/Playing Original · bar \d+/);
+  await expect(dialog.getByTestId("arrangement-preview-status").getByRole("status")).toHaveText(/Last preview: Original · bar \d+/, { timeout: 5_000 });
+  await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+});
+
+test("arrangement preview uses the selected loop and a six-beat current measure", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/player/${SONG_ID}`);
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+  await selectArrangement(page, "Chord mode", "Automatic melody");
+  await page.locator(".player-loop-controls summary").click();
+  await page.getByLabel("Loop start bar").fill("2");
+  await page.getByLabel("Loop start bar").press("Enter");
+  await page.getByLabel("Loop end bar").fill("3");
+  await page.getByLabel("Loop end bar").press("Enter");
+  await openPlayerTool(page, "Sound");
+  let dialog = page.getByRole("dialog", { name: "Sound settings" });
+  await dialog.getByRole("button", { name: "Compare Original", exact: true }).click();
+  let status = dialog.getByTestId("arrangement-preview-status");
+  await expect(status.getByRole("status")).toHaveText("Playing Original · bars 2–3");
+  expect(Number(await status.getAttribute("data-preview-end-sec")) - Number(await status.getAttribute("data-preview-start-sec"))).toBeCloseTo(4, 2);
+  await status.getByRole("button", { name: "Stop preview", exact: true }).click();
+  await dialog.getByRole("button", { name: "Close tools", exact: true }).click();
+
+  await page.goto(`/player/${NEAR_CROSS_SONG_ID}`);
+  await expect(page.getByLabel("Falling notes player")).toBeVisible();
+  await selectArrangement(page, "Chord mode", "Automatic melody");
+  await openPlayerTool(page, "Sound");
+  dialog = page.getByRole("dialog", { name: "Sound settings" });
+  await dialog.getByRole("button", { name: "Compare Original", exact: true }).click();
+  status = dialog.getByTestId("arrangement-preview-status");
+  await expect(status.getByRole("status")).toHaveText("Playing Original · bar 1");
+  expect(Number(await status.getAttribute("data-preview-end-sec")) - Number(await status.getAttribute("data-preview-start-sec"))).toBeCloseTo(60 / 112 * 6, 2);
 });
 
 test("Chord mode labels Original sheet and download contracts", async ({ page }) => {
@@ -1817,7 +1905,9 @@ test("fallback and phrase metadata keep transport stable and review controls vis
   expect(activeFallbackSeen).toBe(true);
   expect(inactiveFallbackSeenAfterActive).toBe(true);
   expect(phraseChanged).toBe(true);
-  expect(new Set(states.filter((state) => state.fallbackActive).map((state) => state.fallbackMessage)).size).toBeGreaterThan(1);
+  const activeFallbackMessages = new Set(states.filter((state) => state.fallbackActive).map((state) => state.fallbackMessage));
+  expect(activeFallbackMessages.size).toBeGreaterThan(0);
+  expect([...activeFallbackMessages].every((message) => message?.includes("Original passage retained"))).toBe(true);
   expect(states.every((state) => state.surfaceTop === openGeometry.surfaceTop), JSON.stringify(states)).toBe(true);
   const activeFallback = states.find((state) => state.fallbackActive)!;
   const inactiveIndex = states.findIndex((state, index) => state.fallbackActive && states[index + 1]?.fallbackActive === false);
@@ -1851,7 +1941,9 @@ test("fallback and phrase metadata keep transport stable and review controls vis
   }
   expect(narrowActiveFallbackSeen).toBe(true);
   expect(narrowInactiveFallbackSeenAfterActive).toBe(true);
-  expect(new Set(narrowStates.filter((state) => state.fallbackActive).map((state) => state.fallbackMessage)).size).toBeGreaterThan(1);
+  const narrowFallbackMessages = new Set(narrowStates.filter((state) => state.fallbackActive).map((state) => state.fallbackMessage));
+  expect(narrowFallbackMessages.size).toBeGreaterThan(0);
+  expect([...narrowFallbackMessages].every((message) => message?.includes("Original passage retained"))).toBe(true);
   expect(narrowStates.every((state) => state.surfaceTop === narrowOpenGeometry.surfaceTop), JSON.stringify(narrowStates)).toBe(true);
   await page.getByRole("button", { name: "Pause", exact: true }).click();
 

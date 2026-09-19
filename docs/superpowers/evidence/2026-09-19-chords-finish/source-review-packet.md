@@ -1,10 +1,12 @@
-# Queen source-review packet — draft PR #103
+# Source-review packet — draft PR #103
 
-This packet separates importer/source evidence from the live Chords producer.
-It is a bounded human-review request, not a claim that the musical gate has
-passed.
+Start with the short playable comparison in [the listening packet](./audio-review-2026-09-19/README.md): Clip A is the Original source and Clip B is the actual Chords-mode automatic-melody Player output. The only user question is whether the melody is easier to recognise in A, B, or neither, and whether anything obvious is lost or added.
 
-## Review inputs
+This packet then provides an optional expert source-role worksheet. It
+separates importer/source evidence from the live Chords producer and is not a
+claim that the musical gate has passed.
+
+## Optional expert worksheet inputs
 
 - `source-candidate-comparison.md` — pinned Queen importer lineage and
   current-versus-candidate structural comparison.

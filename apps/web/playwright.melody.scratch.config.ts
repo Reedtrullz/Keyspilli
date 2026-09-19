@@ -116,14 +116,26 @@ const songs = fixtures.map((fixture) => {
     ? join(fixtureRoot, fixture.baseId, "manifest.json")
     : join(fixtureRoot, "artifacts", fixture.baseId, "manifest.json");
   cpSync(sourceVariantDir, join(scratchDataDir, "artifacts", fixture.baseId, "a"), { recursive: true });
-  cpSync(manifestPath, join(scratchDataDir, "artifacts", fixture.baseId, "manifest.json"));
+  const scratchManifestPath = join(scratchDataDir, "artifacts", fixture.baseId, "manifest.json");
+  cpSync(manifestPath, scratchManifestPath);
   if (fixture.baseId === "the-beatles-blackbird") {
-    const scratchNotesPath = join(scratchDataDir, "artifacts", fixture.baseId, "a", "notes.json");
-    const scratchNotes = JSON.parse(readFileSync(scratchNotesPath, "utf8")) as Record<string, unknown>;
-    writeFileSync(scratchNotesPath, JSON.stringify({
-      ...scratchNotes,
-      sourceTiming: { timeSig: [4, 4], measureStartBeat: 0, provenance: "source-measure-boundary" },
-    }));
+    // Timing is a manifest sidecar, not notes.json metadata. Bind the sidecar
+    // to the same loader fingerprint used by catalog-api, including the
+    // sidecar identity hash but excluding its own sourceFingerprint field.
+    const manifest = JSON.parse(readFileSync(scratchManifestPath, "utf8")) as Record<string, unknown>;
+    const sourceArtifactHash = typeof manifest.sourceArtifactHash === "string" ? manifest.sourceArtifactHash : "";
+    const notesBytes = readFileSync(join(scratchDataDir, "artifacts", fixture.baseId, "a", "notes.json"));
+    const notesFingerprint = `variant:${fixture.baseId}:a:${fixture.baseId}-a-scratch:${sourceArtifactHash}:notes:${createHash("sha256").update(notesBytes).digest("hex")}`;
+    const timingIdentity = { timeSig: [4, 4], measureStartBeat: 0, provenance: "source-measure-boundary" } as const;
+    const timingHash = createHash("sha256").update(JSON.stringify(timingIdentity)).digest("hex");
+    const songId = `${fixture.baseId}-a-scratch`;
+    writeFileSync(scratchManifestPath, JSON.stringify({
+      ...manifest,
+      sourceTiming: {
+        ...(manifest.sourceTiming && typeof manifest.sourceTiming === "object" ? manifest.sourceTiming : {}),
+        [songId]: { ...timingIdentity, sourceFingerprint: `${notesFingerprint}:timing:${timingHash}` },
+      },
+    }, null, 2));
   }
   const source = JSON.parse(readFileSync(join(sourceVariantDir, "notes.json"), "utf8")) as Source;
   const duration = Math.ceil(Math.max(0, ...(source.notes ?? []).map((note) => note.start + note.dur)));
