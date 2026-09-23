@@ -63,21 +63,20 @@ export function quantize(notes: Note[], opts: QuantizeOptions = {}): Note[] {
       const prevRefs = (prev as LearnerTaggedNote).learnerTraceRefs ?? [];
       const nextRefs = (n as LearnerTaggedNote).learnerTraceRefs ?? [];
       const representative = compareCollisionRepresentative(prev, n, prev.dur, dur) <= 0 ? prev : n;
-      if (!prevRefs.length && !nextRefs.length) {
-        out.set(key, {
-          ...representative,
-          start,
-          dur: Math.max(prev.dur, dur),
-          vel: Math.max(prev.vel, n.vel),
-        });
-        continue;
-      }
       const learnerTraceRefs = [...new Set([...prevRefs, ...nextRefs])].sort();
+      const sourceOrigins = [...new Map([
+        ...(prev.sourceOrigins ?? []), ...(n.sourceOrigins ?? []),
+      ].map((origin) => [origin.id, origin])).values()].sort((a, b) => a.id.localeCompare(b.id));
+      const identitySource = prev.identitySource !== undefined && prev.identitySource === n.identitySource
+        ? prev.identitySource
+        : undefined;
       const merged = {
         ...representative,
         start,
         dur: Math.max(prev.dur, dur),
         vel: Math.max(prev.vel, n.vel),
+        identitySource,
+        ...(sourceOrigins.length ? { sourceOrigins } : {}),
         ...(learnerTraceRefs.length ? { learnerTraceRefs } : {}),
       };
       out.set(key, merged);

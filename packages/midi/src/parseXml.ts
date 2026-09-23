@@ -47,6 +47,10 @@ function mergeTiedNotes(notes: ParsedXmlNote[], tolerance: number): Note[] {
       if (index >= 0) {
         const previous = queue[index]!;
         previous.dur = note.start + note.dur - previous.start;
+        previous.sourceOrigins = [...new Map([
+          ...(previous.sourceOrigins ?? []), ...(note.sourceOrigins ?? []),
+        ].map((origin) => [origin.id, origin])).values()].sort((a, b) => a.id.localeCompare(b.id));
+        if (previous.identitySource !== note.identitySource) previous.identitySource = undefined;
         if (note.tieStart) queue[index] = previous;
         else queue.splice(index, 1);
         merged = true;
@@ -170,6 +174,7 @@ export function parseMusicXmlNotes(xml: string): ParsedMidi {
       // reconstruct to one playable note.
       const tieStart = /<(?:tie|tied)\b[^>]*type\s*=\s*["'](?:start|continue)["']/i.test(el);
       const tieStop = /<(?:tie|tied)\b[^>]*type\s*=\s*["'](?:stop|continue)["']/i.test(el);
+      const noteIndex = notes.length;
       notes.push({
         midi,
         start: measureStart + start,
@@ -180,6 +185,8 @@ export function parseMusicXmlNotes(xml: string): ParsedMidi {
         tieStart,
         tieStop,
         voiceId: voiceRaw || staffRaw || undefined,
+        sourceOrigins: [{ id: `musicxml:${staffRaw || "?"}:${voiceRaw || "?"}:${noteIndex}`,
+          ...(staffRaw ? { staff: staffRaw } : {}), ...(voiceRaw ? { voice: voiceRaw } : {}) }],
       });
       measureEnd = Math.max(measureEnd, cursor, start + durBeats);
     }
