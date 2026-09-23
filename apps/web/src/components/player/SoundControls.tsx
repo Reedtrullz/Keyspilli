@@ -468,8 +468,23 @@ export function SoundControls({
               </>
             ) : (
               <>
+                <h3 className="text-sm font-medium mb-2">Registration</h3>
+                <div className="flex gap-2 mb-3" role="radiogroup" aria-label="Cathedral registration">
+                  {(["warm", "clear", "full"] as const).map((registration) => (
+                    <button
+                      key={registration}
+                      type="button"
+                      onClick={() => onChange({ organRegistration: registration })}
+                      role="radio"
+                      aria-checked={settings.organRegistration === registration}
+                      className={`flex-1 px-2 py-2 rounded-xl text-sm border ${settings.organRegistration === registration ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300"}`}
+                    >
+                      {registration[0]!.toUpperCase() + registration.slice(1)}
+                    </button>
+                  ))}
+                </div>
                 <label className="flex justify-between text-sm mb-1" htmlFor="organ-space">
-                  <span>Space</span>
+                  <span>Reverb</span>
                   <span className="font-mono text-xs">{Math.round(settings.organSpace * 100)}%</span>
                 </label>
                 <input
@@ -480,7 +495,7 @@ export function SoundControls({
                   value={Math.round(settings.organSpace * 100)}
                   onChange={(e) => onChange({ organSpace: Number(e.target.value) / 100 })}
                   className="w-full"
-                  aria-label="Organ space"
+                  aria-label="Organ reverb"
                 />
               </>
             )}

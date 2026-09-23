@@ -83,13 +83,14 @@ class FakeAudioContext {
   panners: FakePanner[] = [];
   shapers: FakeWaveShaper[] = [];
   convolvers: FakeConvolver[] = [];
+  filters: FakeFilter[] = [];
   waves: { real: Float32Array; imag: Float32Array }[] = [];
   closeCalls = 0;
 
   constructor() { FakeAudioContext.instances.push(this); }
   createOscillator() { const node = new FakeOscillator(); this.oscillators.push(node); return node as unknown as OscillatorNode; }
   createGain() { const node = new FakeGain(); this.gains.push(node); return node as unknown as GainNode; }
-  createBiquadFilter() { return new FakeFilter() as unknown as BiquadFilterNode; }
+  createBiquadFilter() { const filter = new FakeFilter(); this.filters.push(filter); return filter as unknown as BiquadFilterNode; }
   createStereoPanner() { const node = new FakePanner(); this.panners.push(node); return node as unknown as StereoPannerNode; }
   createWaveShaper() { const node = new FakeWaveShaper(); this.shapers.push(node); return node as unknown as WaveShaperNode; }
   createDynamicsCompressor() { return new FakeCompressor() as unknown as DynamicsCompressorNode; }
@@ -127,11 +128,23 @@ describe("tonewheel math", () => {
 });
 
 describe("cathedral spectrum", () => {
+  it("offers level-matched warm, clear, and full registrations", () => {
+    const warm = buildCathedralManualCoefficients("warm").real;
+    const clear = buildCathedralManualCoefficients("clear").real;
+    const full = buildCathedralManualCoefficients("full").real;
+    expect([...clear]).toEqual([...buildCathedralManualCoefficients().real]);
+    expect(warm[2]).toBeGreaterThan(clear[2]!);
+    expect(full.slice(6).reduce((sum, value) => sum + value, 0)).toBeGreaterThan(clear.slice(6).reduce((sum, value) => sum + value, 0));
+    for (const wave of [warm, clear, full, buildCathedralFoundationCoefficients("warm").real, buildCathedralFoundationCoefficients("full").real]) {
+      expect(wave.reduce((sum, value) => sum + value, 0)).toBeCloseTo(1, 2);
+    }
+  });
+
   it("freezes distinct safe manual and foundation pipe-rank spectra", () => {
     const manual = buildCathedralManualCoefficients().real;
     const foundation = buildCathedralFoundationCoefficients().real;
     expect([...manual].map((value) => Number(value.toFixed(3)))).toEqual([0, 0.08, 0.36, 0.04, 0.22, 0.04, 0.1, 0, 0.08, 0, 0.04, 0, 0.04]);
-    expect([...foundation].map((value) => Number(value.toFixed(3)))).toEqual([0, 0.34, 0.32, 0.05, 0.16, 0.03, 0.05, 0, 0.025, 0, 0.015, 0, 0.01]);
+    expect([...foundation].map((value) => Number(value.toFixed(3)))).toEqual([0, 0.29, 0.35, 0.05, 0.18, 0.03, 0.05, 0, 0.025, 0, 0.015, 0, 0.01]);
     expect([...manual, ...foundation].every((value) => Number.isFinite(value) && value >= 0 && value <= 1)).toBe(true);
     expect(manual[2]).toBeGreaterThan(foundation[2]!);
     expect(manual.slice(4).reduce((sum, value) => sum + value, 0)).toBeGreaterThan(foundation.slice(4).reduce((sum, value) => sum + value, 0));
@@ -174,10 +187,10 @@ describe("cathedral acoustics", () => {
     });
   }
 
-  it("maps Space to an intelligible dry mix and at most 75% wet", () => {
+  it("keeps a clear dry signal as reverb increases", () => {
     expect(cathedralSpaceMix(0)).toEqual({ dry: 1, wet: 0 });
-    expect(cathedralSpaceMix(1)).toEqual({ dry: 0.65, wet: 0.75 });
-    expect(cathedralSpaceMix(2)).toEqual({ dry: 0.65, wet: 0.75 });
+    expect(cathedralSpaceMix(1)).toEqual({ dry: 0.8, wet: 0.65 });
+    expect(cathedralSpaceMix(2)).toEqual({ dry: 0.8, wet: 0.65 });
   });
 });
 
@@ -239,8 +252,25 @@ describe("OrganAudioEngine", () => {
     expect(ctx.panners).toHaveLength(0);
     expect(ctx.oscillators).toHaveLength(2);
     expect(ctx.oscillators[0]!.wave).not.toBe(ctx.oscillators[1]!.wave);
+    expect(ctx.filters[2]!.type).toBe("highpass");
+    expect(ctx.filters[2]!.frequency.value).toBe(180);
+    expect(ctx.filters[1]!.connections).toContain(ctx.filters[2]);
+    expect(ctx.filters[2]!.connections).toContain(ctx.convolvers[0]);
     expect(ctx.gains.at(-2)!.gain.linearRamps[0]).toEqual([cathedralVelocityLevel(64) * 0.22, 10 + CATHEDRAL_ENVELOPE.attackSec]);
     expect(ctx.gains.at(-2)!.gain.targets.at(-1)).toEqual([0, 11, CATHEDRAL_ENVELOPE.releaseSec]);
+  });
+
+  it("preserves exact slider gains for Cathedral and Rock", () => {
+    const cathedral = new OrganAudioEngine(0.2, "slow", "cathedral", 0.65);
+    cathedral.ensure();
+    cathedral.setGains(1, 1);
+    const cathedralContext = FakeAudioContext.instances[0]!;
+    expect(cathedralContext.gains[0]!.gain.value).toBe(1);
+    expect(cathedralContext.gains[1]!.gain.value).toBe(1);
+    const rock = new OrganAudioEngine();
+    rock.ensure();
+    rock.setGains(1, 1);
+    expect(FakeAudioContext.instances[1]!.gains[1]!.gain.value).toBe(1);
   });
 
   it("schedules both piano-background hands into audible Cathedral gain buses", () => {

@@ -11,6 +11,7 @@ const ACCOMPANIMENT_STYLES = ["melody-accompaniment", "bass-chords"] as const sa
 const SOUND_SOURCES = ["synth", "sampled", "organ"] as const;
 const ORGAN_ROTARY_SPEEDS = ["slow", "fast"] as const;
 const ORGAN_STYLES = ["rock", "cathedral"] as const;
+const ORGAN_REGISTRATIONS = ["warm", "clear", "full"] as const;
 
 export const DEFAULT_SETTINGS: PlayerSettings = {
   voiceGain: 1,
@@ -19,6 +20,7 @@ export const DEFAULT_SETTINGS: PlayerSettings = {
   accompanimentStyle: "bass-chords",
   soundSource: "sampled",
   organStyle: "rock",
+  organRegistration: "clear",
   organRotary: "slow",
   organDrive: 0.2,
   organSpace: 0.65,
@@ -91,6 +93,7 @@ export function loadSettings(): PlayerSettings {
         ?? (raw.accompanimentStyle === "bass-chords" ? "bass-chords" : DEFAULT_SETTINGS.accompanimentStyle),
       soundSource: pickEnum(raw.soundSource, SOUND_SOURCES, DEFAULT_SETTINGS.soundSource),
       organStyle: pickEnum(raw.organStyle, ORGAN_STYLES, DEFAULT_SETTINGS.organStyle),
+      organRegistration: pickEnum(raw.organRegistration, ORGAN_REGISTRATIONS, DEFAULT_SETTINGS.organRegistration),
       organRotary: pickEnum(raw.organRotary, ORGAN_ROTARY_SPEEDS, DEFAULT_SETTINGS.organRotary),
       organDrive: clampNum(raw.organDrive, 0, 1, DEFAULT_SETTINGS.organDrive),
       organSpace: clampNum(raw.organSpace, 0, 1, DEFAULT_SETTINGS.organSpace),

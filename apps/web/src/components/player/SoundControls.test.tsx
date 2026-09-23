@@ -13,6 +13,19 @@ function render(style?: "melody-accompaniment" | "bass-chords") {
 }
 
 describe("SoundControls accompaniment styles", () => {
+  it("shows Cathedral registration and accurately names the reverb control", () => {
+    const markup = renderToStaticMarkup(createElement(SoundControls, {
+      settings: { ...DEFAULT_SETTINGS, soundSource: "organ", organStyle: "cathedral", organRegistration: "clear" },
+      onChange: () => {},
+    }));
+    expect(markup).toContain('aria-label="Cathedral registration"');
+    expect(markup).toContain("Warm");
+    expect(markup).toContain("Clear");
+    expect(markup).toContain("Full");
+    expect(markup).toContain('aria-label="Organ reverb"');
+    expect(markup).not.toContain('aria-label="Organ space"');
+  });
+
   it("explains both explicit styles and preserves their selected state", () => {
     const melody = render("melody-accompaniment");
     expect(melody).toContain("Melody + accompaniment");

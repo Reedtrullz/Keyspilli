@@ -91,15 +91,23 @@ describe("loadSettings", () => {
   });
 
   it("preserves organ sound and controls", () => {
-    store.set(KEY, JSON.stringify({ soundSource: "organ", organStyle: "cathedral", organRotary: "fast", organDrive: 0.73, organSpace: 0.81 }));
+    store.set(KEY, JSON.stringify({ soundSource: "organ", organStyle: "cathedral", organRegistration: "full", organRotary: "fast", organDrive: 0.73, organSpace: 0.81 }));
     expect(loadSettings()).toEqual({
       ...DEFAULT_SETTINGS,
       soundSource: "organ",
       organStyle: "cathedral",
+      organRegistration: "full",
       organRotary: "fast",
       organDrive: 0.73,
       organSpace: 0.81,
     });
+  });
+
+  it("uses Clear for missing or invalid Cathedral registrations", () => {
+    store.set(KEY, JSON.stringify({ organRegistration: "impossible" }));
+    expect(loadSettings().organRegistration).toBe("clear");
+    store.set(KEY, JSON.stringify({ organRegistration: "warm" }));
+    expect(loadSettings().organRegistration).toBe("warm");
   });
 
   it("clamps persisted organ drive", () => {

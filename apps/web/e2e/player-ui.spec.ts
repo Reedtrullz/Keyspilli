@@ -91,6 +91,7 @@ test("full width player fits the 390px mobile viewport without horizontal scroll
 });
 
 test("organ sound controls persist across reload", async ({ page }) => {
+  await page.setViewportSize({ width: 428, height: 562 });
   const consoleErrors: string[] = [];
   page.on("console", (message) => {
     if (message.type() === "error") consoleErrors.push(message.text());
@@ -105,9 +106,13 @@ test("organ sound controls persist across reload", async ({ page }) => {
   await page.getByRole("radio", { name: "Fast" }).click();
   await page.getByLabel("Organ drive").fill("67");
   await page.getByRole("radio", { name: "Cathedral", exact: true }).click();
+  const registration = await page.getByRole("radiogroup", { name: "Cathedral registration" }).boundingBox();
+  expect(registration!.x).toBeGreaterThanOrEqual(0);
+  expect(registration!.x + registration!.width).toBeLessThanOrEqual(428);
   await expect(page.getByLabel("Organ drive")).toHaveCount(0);
   await expect(page.getByRole("radiogroup", { name: "Rotary" })).toHaveCount(0);
-  await page.getByLabel("Organ space").fill("78");
+  await page.getByRole("radio", { name: "Full", exact: true }).click();
+  await page.getByLabel("Organ reverb").fill("78");
   await page.getByRole("button", { name: "Close tools", exact: true }).click();
   await page.keyboard.press("a");
 
@@ -115,12 +120,13 @@ test("organ sound controls persist across reload", async ({ page }) => {
   await openPlayerTool(page, "Sound");
   await expect(page.getByRole("radio", { name: "Organ" })).toHaveAttribute("aria-checked", "true");
   await expect(page.getByRole("radio", { name: "Cathedral", exact: true })).toHaveAttribute("aria-checked", "true");
-  await expect(page.getByLabel("Organ space")).toHaveValue("78");
+  await expect(page.getByRole("radio", { name: "Full", exact: true })).toHaveAttribute("aria-checked", "true");
+  await expect(page.getByLabel("Organ reverb")).toHaveValue("78");
   await page.getByRole("radio", { name: "Rock", exact: true }).click();
   await expect(page.getByRole("radio", { name: "Fast" })).toHaveAttribute("aria-checked", "true");
   await expect(page.getByLabel("Organ drive")).toHaveValue("67");
   await page.getByRole("radio", { name: "Cathedral", exact: true }).click();
-  await expect(page.getByLabel("Organ space")).toHaveValue("78");
+  await expect(page.getByLabel("Organ reverb")).toHaveValue("78");
   expect(consoleErrors).toEqual([]);
 });
 
@@ -168,6 +174,12 @@ test("switching Organ styles preserves active transport", async ({ page }) => {
     expect(current).toBeGreaterThan(previous);
     previous = current;
   }
+  await openPlayerTool(page, "Sound");
+  await page.getByRole("radio", { name: "Warm", exact: true }).click();
+  await page.getByRole("button", { name: "Close tools", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+  await page.waitForTimeout(500);
+  expect(Number(await seek.inputValue())).toBeGreaterThan(previous);
 });
 
 test("practice setup preserves the selected position", async ({ page }) => {
