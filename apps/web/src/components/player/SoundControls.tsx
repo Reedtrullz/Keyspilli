@@ -27,6 +27,8 @@ export function SoundControls({
   chordSource = "auto",
   chordSources,
   chordSourceStatus = null,
+  chordUnavailableReason = null,
+  sourceBacking = false,
   onChordSourceChange,
   melodyArrangement,
   activeMelodyPhrase,
@@ -49,6 +51,8 @@ export function SoundControls({
   chordSource?: ChordSourceId;
   chordSources?: { ug: ChordSourceOption | null; generated: ChordSourceOption; auto: ChordSourceOption };
   chordSourceStatus?: string | null;
+  chordUnavailableReason?: string | null;
+  sourceBacking?: boolean;
   onChordSourceChange?: (source: ChordSourceId) => void;
   melodyArrangement?: Pick<MelodyAccompanimentResolution, "provenance" | "events"> | null;
   activeMelodyPhrase?: MelodyAccompanimentResolution["phrases"][number] | null;
@@ -86,18 +90,22 @@ export function SoundControls({
             {(["piano", "chord"] as const).map((b) => (
               <button
                 key={b}
+                disabled={b === "chord" && Boolean(chordUnavailableReason)}
                 onClick={() => onChange({ backgroundMode: b })}
                 role="radio"
                 aria-checked={settings.backgroundMode === b}
-                className={`flex-1 px-3 py-2 rounded-xl text-sm border ${settings.backgroundMode === b ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300"}`}
+                className={`flex-1 px-3 py-2 rounded-xl text-sm border disabled:cursor-not-allowed disabled:opacity-50 ${settings.backgroundMode === b ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300"}`}
               >
                 {b === "piano" ? "Original arrangement" : "Chord mode"}
               </button>
             ))}
           </div>
+          {chordUnavailableReason && <p role="status" className="mt-1 text-xs text-amber-800">Chord mode unavailable: {chordUnavailableReason}</p>}
           <p className="text-xs text-zinc-500 mt-1">
             {settings.backgroundMode === "piano"
               ? "Original arrangement is retained"
+              : sourceBacking && settings.accompanimentStyle === "bass-chords"
+                ? "The Advanced piano figure plays with fewer repeated bass notes. No separate vocal melody is added."
               : settings.accompanimentStyle === "bass-chords"
                 ? "Backing only: generated bass and chords play where the chart is supported; source melody is omitted and unsupported spans are silent."
                 : "A selected melody is retained while sparse harmonic support is generated"}
@@ -111,16 +119,20 @@ export function SoundControls({
                     key={style}
                     type="button"
                     onClick={() => onChange({ accompanimentStyle: style })}
+                    disabled={sourceBacking && style === "melody-accompaniment"}
                     role="radio"
                     aria-checked={settings.accompanimentStyle === style}
-                    className={`px-2 py-2 rounded-lg text-xs border ${settings.accompanimentStyle === style ? "bg-zinc-700 text-white border-zinc-700" : "border-zinc-300 bg-white"}`}
+                    className={`px-2 py-2 rounded-lg text-xs border disabled:cursor-not-allowed disabled:opacity-50 ${settings.accompanimentStyle === style ? "bg-zinc-700 text-white border-zinc-700" : "border-zinc-300 bg-white"}`}
+                    title={sourceBacking && style === "melody-accompaniment" ? "A separate vocal melody is not available for this arrangement." : undefined}
                   >
-                    {style === "bass-chords" ? "Bass + chords" : "Melody + accompaniment"}
+                    {style === "bass-chords" ? sourceBacking ? "Source backing" : "Bass + chords" : "Melody + accompaniment"}
                   </button>
                 ))}
               </div>
           <p className="text-[11px] text-zinc-600 mt-2">
-            {settings.accompanimentStyle === "bass-chords"
+            {sourceBacking && settings.accompanimentStyle === "bass-chords"
+              ? "Practise the piano notes shown in Fall Down or Note letters, or sing over the backing."
+              : settings.accompanimentStyle === "bass-chords"
               ? "Backing only for accompanying singing or another musician: source melody is omitted; unsupported chart spans are silent and marked unavailable."
               : "Keeps the selected melody and adds sparse support. Original passage is retained where the chart is unavailable."}
           </p>

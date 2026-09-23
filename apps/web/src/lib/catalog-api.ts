@@ -311,6 +311,9 @@ export interface SongDetail {
   sourceArrangement?: SourceArrangement;
   song: SongRow;
   data: SongData | null;
+  /** Advanced source on other levels; Advanced already has it in `data`. */
+  chordData: SongData | null;
+  chordUnavailableReason: string | null;
   variants: SongRow[];
   artifact: SongArtifactStatus;
 }
@@ -507,22 +510,42 @@ async function loadSongDetailUncached(id: string): Promise<SongDetail | null> {
   if (!song) return null;
   const loaded = await loadSongArtifact(song);
   let data = loaded.data;
-  if (data) {
-    // Chord charts live beside the immutable app image rather than in the
-    // mutable song database. Keep the existing generated timeline intact and
-    // expose a separate source timeline only when a verified chart exists.
-    try {
-      const timeline = await loadChordTimeline(song.baseId, { fallbackLevel: song.level });
-      data = projectChordSources(data, timeline, song.level);
-    } catch {
-      data = projectChordSources(data, null, song.level);
-      // A missing/invalid optional chart must never make a normal song fail to
-      // load; the player will use its generated chord fallback.
-    }
-  }
   const variants = getSongsByBase(song.baseId);
+  const advanced = variants.find((variant) => variant.level === "a");
+  const advancedData = advanced
+    ? advanced.id === song.id ? loaded.data : (await loadSongArtifact(advanced)).data
+    : null;
+  const sharesTimeline = (left: SongData, right: SongData) =>
+    left.tempoBpm === right.tempoBpm
+    && left.timeSig[0] === right.timeSig[0]
+    && left.timeSig[1] === right.timeSig[1]
+    && JSON.stringify(left.timeSigEvents ?? []) === JSON.stringify(right.timeSigEvents ?? [])
+    && left.measures.slice(0, Math.min(left.measures.length, right.measures.length))
+      .every((measure, index) => measure.startBeat === right.measures[index]!.startBeat
+        && measure.endBeat === right.measures[index]!.endBeat);
+  const chordUnavailableReason = !advancedData
+    ? "The Advanced arrangement is unavailable."
+    : data && !sharesTimeline(data, advancedData)
+      ? "The Advanced arrangement has different timing from this level."
+      : null;
+  let chordData = chordUnavailableReason || advanced?.id === song.id ? null : advancedData;
+  const withChordSources = async (source: SongData, level: string): Promise<SongData> => {
+    try {
+      return projectChordSources(source, await loadChordTimeline(song.baseId, { fallbackLevel: level }), level);
+    } catch {
+      // An optional chart must never prevent the arrangement from loading.
+      return projectChordSources(source, null, level);
+    }
+  };
+  if (data) {
+    // Each level retains its own Original chart; Chords always uses Advanced.
+    [data, chordData] = await Promise.all([
+      withChordSources(data, song.level),
+      chordData ? withChordSources(chordData, "a") : Promise.resolve(null),
+    ]);
+  }
   const sourceArrangement = loaded.artifact.manifest?.sourceArrangement;
-  return { song, data, variants, artifact: loaded.artifact, ...(sourceArrangement ? { sourceArrangement } : {}) };
+  return { song, data, chordData, chordUnavailableReason, variants, artifact: loaded.artifact, ...(sourceArrangement ? { sourceArrangement } : {}) };
 }
 
 /**

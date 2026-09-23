@@ -13,6 +13,28 @@ function render(style?: "melody-accompaniment" | "bass-chords") {
 }
 
 describe("SoundControls accompaniment styles", () => {
+  it("labels reviewed source backing and disables a separate vocal melody", () => {
+    const markup = renderToStaticMarkup(createElement(SoundControls, {
+      settings: { ...DEFAULT_SETTINGS, backgroundMode: "chord" },
+      onChange: () => {},
+      sourceBacking: true,
+    }));
+    expect(markup).toContain("Source backing");
+    expect(markup).toMatch(/Melody \+ accompaniment<\/button>/);
+    expect(markup).toMatch(/disabled=""[^>]*>Melody \+ accompaniment/);
+    expect(markup).toContain("No separate vocal melody is added");
+  });
+
+  it("explains unavailable Advanced timing without exposing a playable Chord mode", () => {
+    const markup = renderToStaticMarkup(createElement(SoundControls, {
+      settings: DEFAULT_SETTINGS,
+      onChange: () => {},
+      chordUnavailableReason: "The Advanced arrangement has different timing from this level.",
+    }));
+    expect(markup).toMatch(/disabled=""[^>]*>Chord mode/);
+    expect(markup).toContain("Chord mode unavailable: The Advanced arrangement has different timing from this level.");
+  });
+
   it("shows Cathedral registration and accurately names the reverb control", () => {
     const markup = renderToStaticMarkup(createElement(SoundControls, {
       settings: { ...DEFAULT_SETTINGS, soundSource: "organ", organStyle: "cathedral", organRegistration: "clear" },
