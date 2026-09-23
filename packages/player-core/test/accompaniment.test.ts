@@ -94,6 +94,16 @@ describe("resolveAccompaniment", () => {
     expect(result.chords[0]!.notes.map((midi) => midi % 12)).toEqual([7, 0, 4]);
   });
 
+  it("uses neutral imported origins to keep co-onset correction IDs stable", () => {
+    const first = { ...note(60, 0, 1, "L"), sourceOrigins: [{ id: "midi:0:0", track: 0 }] };
+    const second = { ...note(60, 0, 1, "L"), sourceOrigins: [{ id: "midi:1:0", track: 1 }] };
+    const forward = sourceNoteIds([first, second]);
+    const reversed = sourceNoteIds([second, first]);
+    expect(forward[0]).toBe(reversed[1]);
+    expect(forward[1]).toBe(reversed[0]);
+    expect(forward[0]).not.toBe(forward[1]);
+  });
+
   it("omits a sustained source note and keeps the backed chord across a boundary", () => {
     const notes = [note(60, 1, 4, "R")];
     const chords = [{ beat: 2, durationBeats: 2, name: "C", notes: [48, 52, 55] }];

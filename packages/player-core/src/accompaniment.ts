@@ -264,6 +264,7 @@ function noteKey(note: Note): string {
     note.sourceLane ?? null,
     note.identitySource ?? null,
     note.lyrics ?? null,
+    ...(note.sourceOrigins?.length ? [note.sourceOrigins.map((origin) => origin.id).sort()] : []),
   ]);
 }
 
