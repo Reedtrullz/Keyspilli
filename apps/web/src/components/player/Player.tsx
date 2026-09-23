@@ -354,7 +354,12 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   const [showPracticeSetup, setShowPracticeSetup] = useState(false);
   const showPracticeSetupRef = useRef(false);
   showPracticeSetupRef.current = showPracticeSetup;
-  const defaultPracticeSetup: PracticeSetup = { input: "keyboard", wait: false, scope: "current", countInBeats: 0 };
+  const defaultPracticeSetup: PracticeSetup = {
+    input: "keyboard",
+    wait: settings.backgroundMode === "chord",
+    scope: settings.backgroundMode === "chord" ? (loop ? "loop" : "bars") : "current",
+    countInBeats: 0,
+  };
   const [practiceSetup, setPracticeSetup] = useState<PracticeSetup>(defaultPracticeSetup);
   const practiceSetupRef = useRef(practiceSetup);
   practiceSetupRef.current = practiceSetup;
@@ -1596,9 +1601,15 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   function beginPractice(setup: PracticeSetup, repeatRange?: LoopRegion) {
     const eng = engineRef.current;
     if (!eng || gradingRef.current || (setup.input === "microphone" && !micReady) || (setup.input === "midi" && !midiConnected)) return;
+    const firstBar = navigationMeasures[currentMeasure];
+    const lastBar = navigationMeasures[Math.min(navigationMeasures.length - 1, currentMeasure + 3)];
+    const barsRange = firstBar && lastBar ? {
+      startSec: firstBar.startBeat * secPerBeat(activeData.tempoBpm, settings.speed),
+      endSec: lastBar.endBeat * secPerBeat(activeData.tempoBpm, settings.speed),
+    } : null;
     const range = repeatRange ?? (repeatRangeRef.current && setup.scope === practiceSetupRef.current.scope ? repeatRangeRef.current : null) ??
-      (setup.scope === "loop" ? loop : { startSec: setup.scope === "beginning" ? 0 : eng.time, endSec: duration });
-    if (!range) { setPracticeError("Select a loop before practicing it."); return; }
+      (setup.scope === "loop" ? loop : setup.scope === "bars" ? barsRange : { startSec: setup.scope === "beginning" ? 0 : eng.time, endSec: duration });
+    if (!range) { setPracticeError(setup.scope === "loop" ? "Select a loop before practicing it." : "No measured passage is available here."); return; }
     cancelSoundPreview();
     try { eng.startGrading(setup.wait, range); }
     catch (error) { setPracticeError(error instanceof Error ? error.message : "Unable to start practice"); return; }

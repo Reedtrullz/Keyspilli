@@ -61,6 +61,15 @@ ambiguous passages. A listening pass for one song or a source-note count does
 not pass the musical gate for the mode. Original and optional melody arrangements
 retain the melody item above.
 
+The intended learner may not know how to play piano yet. Do not make that
+learner responsible for the real-keyboard playability gate. The project must
+arrange an independent player or teacher to assess fingering, releases, hand
+changes and sustained tempo. Separately, check that a beginner can start a
+short guided passage with computer or on-screen keys, see the next notes,
+repeat it and understand the result. An automated perfect score shows that
+the input and grading path works; it is not a human learning or playability
+result.
+
 ### 4. Runtime gate
 
 Rebuild is idempotent, DB/API/player behavior is correct, and deployment evidence exists.

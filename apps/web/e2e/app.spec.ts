@@ -322,6 +322,32 @@ test("wait practice shows the chord and keeps its onset until the other notes ar
   await page.getByRole("button", { name: "Finish practice", exact: true }).click();
 });
 
+test("Chords opens a short Wait exercise from the selected bar", async ({ page }) => {
+  await page.goto(`/player/${process.env.KEYSPILLI_PRACTICE_E2E_SONG ?? UG_SONG}`);
+  await openPlayerTool(page, "Sound");
+  const sound = page.getByRole("dialog", { name: "Sound settings" });
+  await sound.getByRole("radio", { name: "Chord mode" }).click();
+  await sound.getByRole("button", { name: "Close tools" }).click();
+  const bar = page.getByRole("spinbutton", { name: "Bar", exact: true });
+  await bar.fill("3");
+  await bar.press("Enter");
+  const startTime = await page.getByRole("slider", { name: "Seek" }).inputValue();
+
+  await page.getByRole("button", { name: "Practice", exact: true }).click();
+  const setup = page.getByRole("dialog", { name: "Set up practice" });
+  await expect(setup.getByRole("combobox", { name: "Behavior" })).toHaveValue("wait");
+  await expect(setup.getByRole("combobox", { name: "Passage" })).toHaveValue("bars");
+  await expect(setup.getByRole("option", { name: "Current 4 bars" })).toBeAttached();
+  await setup.getByRole("button", { name: "Start practice" }).click();
+  await expect(page.getByRole("region", { name: "Practice grading" })).toContainText("Wait for notes");
+  await expect(page.getByRole("slider", { name: "Seek" })).toHaveValue(startTime);
+  await page.getByRole("button", { name: "Finish practice" }).click();
+  await page.locator(".player-loop-controls summary").click();
+  await page.getByRole("button", { name: "Loop current bar" }).click();
+  await page.getByRole("button", { name: "Practice", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Set up practice" }).getByRole("combobox", { name: "Passage" })).toHaveValue("loop");
+});
+
 test("practice mode starts and exits cleanly", async ({ page }) => {
   await page.goto(`/player/${SONG}`);
   await page.getByRole("button", { name: "Practice", exact: true }).click();
