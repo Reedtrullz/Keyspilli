@@ -797,13 +797,20 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   );
   // Freeze chord-practice targets at session start: a seek changes the
   // current measure but must not silently discard accumulated progress.
-  const chordPracticeTargetsRef = useRef<ReturnType<typeof buildChordPracticeTargets> | null>(null);
+  const chordPracticeTargetsRef = useRef<{
+    sourceChords: typeof displayChords;
+    transpose: number;
+    targets: ReturnType<typeof buildChordPracticeTargets>;
+  } | null>(null);
+  const lastChordPracticeTargetsRef = useRef<ReturnType<typeof buildChordPracticeTargets> | null>(null);
+  const [chordPracticeNotice, setChordPracticeNotice] = useState("");
   const chordPracticeTargets = useMemo(
     () => {
-      if (chordPracticeActive && chordPracticeTargetsRef.current) return chordPracticeTargetsRef.current;
       const sourceChords = settings.backgroundMode === "chord" ? actionableChords : displayChords;
+      const previous = chordPracticeTargetsRef.current;
+      if (chordPracticeActive && previous?.sourceChords === sourceChords && previous.transpose === settings.transpose) return previous.targets;
       const next = buildChordPracticeTargets(selectPracticeChords(sourceChords, navigationMeasures, currentMeasure), settings.transpose);
-      chordPracticeTargetsRef.current = next;
+      chordPracticeTargetsRef.current = { sourceChords, transpose: settings.transpose, targets: next };
       return next;
     },
     [actionableChords, displayChords, navigationMeasures, currentMeasure, settings.backgroundMode, settings.transpose, chordPracticeActive],
@@ -819,7 +826,14 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   );
 
   useEffect(() => {
-    if (!chordPracticeActive) return;
+    if (!chordPracticeActive) {
+      lastChordPracticeTargetsRef.current = null;
+      return;
+    }
+    if (lastChordPracticeTargetsRef.current && lastChordPracticeTargetsRef.current !== chordPracticeTargets) {
+      setChordPracticeNotice("Chord tones restarted for the selected hand or sound.");
+    }
+    lastChordPracticeTargetsRef.current = chordPracticeTargets;
     const session = new ChordGrader(chordPracticeTargets);
     chordPracticeRef.current = session;
     setChordPracticeSnapshot(session.snapshot());
@@ -1655,6 +1669,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     if (gradingRef.current) finishGrading(false);
     releaseMicrophone();
     setGradeResult(null);
+    setChordPracticeNotice("");
     engineRef.current?.stop();
     chordPracticeTargetsRef.current = null; // recompute for the new session
     const session = new ChordGrader(chordPracticeTargets);
@@ -1671,6 +1686,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     chordPracticeTargetsRef.current = null;
     setChordPracticeActive(false);
     setChordPracticeSnapshot(null);
+    setChordPracticeNotice("");
     if (restoreFocus) window.requestAnimationFrame(() => practiceTriggerRef.current?.focus());
   }
 
@@ -1689,7 +1705,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     audio.playChord(target.notes, 0, 1.5);
   }
 
-  const waitNote = grading && waitMode ? engineRef.current?.waitNote : null;
+  const waitNotes = grading && waitMode ? engineRef.current?.waitNotes ?? [] : [];
   const activeModeLabel = MODES.find((m) => m.id === settings.mode)?.label ?? settings.mode;
   const chordModeBadge = settings.backgroundMode !== "chord"
     ? null
@@ -1859,7 +1875,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
           lowMidi={midiRange.lowMidi}
           highMidi={midiRange.highMidi}
           loop={loop}
-          waitNote={waitNote}
+          waitNotes={waitNotes}
         />
       )}
       {viewMode === "beginner" && <BeginnerView data={guidanceData} time={time} settings={settings} chords={displayChords} />}
@@ -2237,7 +2253,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
           </div>
         )}
 
-        {(grading || gradeResult) && <GradingPanel waitMode={waitMode} waitNote={waitNote} result={gradeResult}
+        {(grading || gradeResult) && <GradingPanel waitMode={waitMode} waitNotes={waitNotes} result={gradeResult}
           countIn={countIn} input={practiceSetup.input} onExit={finishGrading} onRepeat={repeatPractice}
           onDismiss={() => { setGradeResult(null); if (engineRef.current) engineRef.current.gradeResult = null; }} />}
 
@@ -2263,6 +2279,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
               inputStatus={midiConnected ? "MIDI connected · computer keyboard also available" : "Computer keyboard · A–K, Z/X octave"}
               targets={chordPracticeTargets}
               snapshot={chordPracticeSnapshot ?? new ChordGrader(chordPracticeTargets).snapshot()}
+              notice={chordPracticeNotice}
               active={chordPracticeActive}
               onStart={startChordPractice}
               onHear={hearChordPractice}
@@ -2317,7 +2334,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
         </section>
       )}
 
-      {showPracticeSetup && <PracticeSetupDialog onChordPractice={() => { showPracticeSetupRef.current = false; setShowPracticeSetup(false); startChordPractice(); }} initialSetup={practiceSetup} hasLoop={!!loop && loop.endSec > loop.startSec}
+      {showPracticeSetup && <PracticeSetupDialog onChordPractice={chordPracticeTargets.length ? () => { showPracticeSetupRef.current = false; setShowPracticeSetup(false); startChordPractice(); } : undefined} initialSetup={practiceSetup} hasLoop={!!loop && loop.endSec > loop.startSec}
         midiConnected={midiConnected} micReady={micReady} micPending={micPending} micError={micError} error={practiceError}
         onEnableMic={() => void enableMicrophone()} onInputChange={(input) => { if (input !== "microphone") releaseMicrophone(); }}
         onStart={beginPractice} onCancel={closePracticeSetup} />}
