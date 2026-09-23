@@ -1038,6 +1038,41 @@ export function resolveAccompaniment(
   };
 }
 
+export interface SharedBackingCandidateOptions {
+  durationBeats: number;
+  /** Beat ranges explicitly covered by the authored chart used for this song. */
+  authoredChartCoverage: readonly { startBeat: number; endBeat: number }[];
+}
+
+/**
+ * Candidate shared backing from chart-authored harmony. Chord attacks are
+ * projected once through `chords` and `guidanceNotes`; `notes` stays empty,
+ * so playback must not schedule a duplicate chord attack. No separate bass
+ * gesture is generated. Voicing durations follow each covered chart event's
+ * explicit beat boundary; uncovered, generated, and unknown labels stay silent.
+ */
+export function resolveSharedBackingCandidate(
+  _sourceNotes: readonly Note[],
+  chordTimeline: readonly ChordLabel[],
+  options: SharedBackingCandidateOptions,
+): AccompanimentResolution {
+  const covered = chordTimeline.filter((chord) => {
+    if (chord.sourceKind !== "authored") return false;
+    const start = chord.beat;
+    const end = start + (validDuration(chord.durationBeats) ? chord.durationBeats : 0);
+    return Number.isFinite(start) && end > start + EPSILON
+      && options.authoredChartCoverage.some((range) =>
+        Number.isFinite(range.startBeat) && Number.isFinite(range.endBeat)
+        && start >= range.startBeat - EPSILON && end <= range.endBeat + EPSILON);
+  });
+  // Bass/chords owns its output. An empty source list avoids scanning source
+  // notes against every chart event, keeping main-thread work chart-bounded.
+  const resolved = resolveAccompaniment([], covered, "bass-chords", {
+    durationBeats: options.durationBeats,
+  });
+  return { ...resolved, displayChords: resolved.chords };
+}
+
 interface SelectedMelody {
   melody: Note[];
   protectedMelody: ProtectedMelodyNote[];
