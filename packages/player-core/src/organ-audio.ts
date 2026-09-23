@@ -2,6 +2,7 @@ import { configurePlaybackSession } from "./audio-session.js";
 import { AudioEngine } from "./audio.js";
 import type { AudioLike } from "./engine.js";
 import type { TimedNote } from "./timeline.js";
+import type { PlayerSettings } from "./types.js";
 
 const DRAWBAR_RATIOS = [0.5, 1.5, 1, 2, 3, 4, 5, 6, 8] as const;
 const DRAWBAR_HARMONICS = [1, 3, 2, 4, 6, 8, 10, 12, 16] as const;
@@ -41,18 +42,24 @@ export function buildTonewheelCoefficients(registration: readonly number[]): {
 }
 
 const CATHEDRAL_MANUAL_SPECTRUM = [0, 0.08, 0.36, 0.04, 0.22, 0.04, 0.1, 0, 0.08, 0, 0.04, 0, 0.04] as const;
-const CATHEDRAL_FOUNDATION_SPECTRUM = [0, 0.34, 0.32, 0.05, 0.16, 0.03, 0.05, 0, 0.025, 0, 0.015, 0, 0.01] as const;
+const CATHEDRAL_FOUNDATION_SPECTRUM = [0, 0.29, 0.35, 0.05, 0.18, 0.03, 0.05, 0, 0.025, 0, 0.015, 0, 0.01] as const;
 
-function cathedralCoefficients(spectrum: readonly number[]): { real: Float32Array<ArrayBuffer>; imag: Float32Array<ArrayBuffer> } {
-  return { real: Float32Array.from(spectrum), imag: new Float32Array(spectrum.length) };
+type CathedralRegistration = PlayerSettings["organRegistration"];
+
+function cathedralCoefficients(spectrum: readonly number[], registration: CathedralRegistration): { real: Float32Array<ArrayBuffer>; imag: Float32Array<ArrayBuffer> } {
+  if (registration === "clear") return { real: Float32Array.from(spectrum), imag: new Float32Array(spectrum.length) };
+  const [low, middle, high] = registration === "warm" ? [1.3, 0.8, 0.5] : [0.85, 1.05, 1.6];
+  const voiced = spectrum.map((value, harmonic) => value * (harmonic <= 2 ? low : harmonic >= 6 ? high : middle));
+  const total = voiced.reduce((sum, value) => sum + value, 0);
+  return { real: Float32Array.from(voiced, (value) => value / total), imag: new Float32Array(spectrum.length) };
 }
 
-export function buildCathedralManualCoefficients(): { real: Float32Array<ArrayBuffer>; imag: Float32Array<ArrayBuffer> } {
-  return cathedralCoefficients(CATHEDRAL_MANUAL_SPECTRUM);
+export function buildCathedralManualCoefficients(registration: CathedralRegistration = "clear"): { real: Float32Array<ArrayBuffer>; imag: Float32Array<ArrayBuffer> } {
+  return cathedralCoefficients(CATHEDRAL_MANUAL_SPECTRUM, registration);
 }
 
-export function buildCathedralFoundationCoefficients(): { real: Float32Array<ArrayBuffer>; imag: Float32Array<ArrayBuffer> } {
-  return cathedralCoefficients(CATHEDRAL_FOUNDATION_SPECTRUM);
+export function buildCathedralFoundationCoefficients(registration: CathedralRegistration = "clear"): { real: Float32Array<ArrayBuffer>; imag: Float32Array<ArrayBuffer> } {
+  return cathedralCoefficients(CATHEDRAL_FOUNDATION_SPECTRUM, registration);
 }
 
 export function cathedralRankFrequencies(midi: number): {
@@ -71,7 +78,7 @@ export function cathedralVelocityLevel(velocity: number): number {
 
 export function cathedralSpaceMix(space: number): { dry: number; wet: number } {
   const amount = Math.min(1, Math.max(0, space));
-  return { dry: 1 - amount * 0.35, wet: amount * 0.75 };
+  return { dry: 1 - amount * 0.2, wet: amount * 0.65 };
 }
 
 function seededNoise(seed: number): () => number {
@@ -158,6 +165,7 @@ export class OrganAudioEngine implements AudioLike {
   private foundationWave: PeriodicWave | null = null;
   private cathedralLowCut: BiquadFilterNode | null = null;
   private cathedralHighCut: BiquadFilterNode | null = null;
+  private cathedralWetLowCut: BiquadFilterNode | null = null;
   private dryGain: GainNode | null = null;
   private wetGain: GainNode | null = null;
   private convolver: ConvolverNode | null = null;
@@ -173,7 +181,7 @@ export class OrganAudioEngine implements AudioLike {
   /** Kept for AudioLike compatibility; organ voices never gain a piano tail. */
   sustainPedal = false;
 
-  constructor(drive = 0.2, rotary: RotarySpeed = "slow", private readonly style: OrganStyle = "rock", space = 0.65) {
+  constructor(drive = 0.2, rotary: RotarySpeed = "slow", private readonly style: OrganStyle = "rock", space = 0.65, private readonly registration: CathedralRegistration = "clear") {
     this.drive = drive;
     this.rotary = rotary;
     this.space = space;
@@ -265,6 +273,7 @@ export class OrganAudioEngine implements AudioLike {
   private createCathedralGraph(ctx: AudioContext): void {
     this.cathedralLowCut = ctx.createBiquadFilter();
     this.cathedralHighCut = ctx.createBiquadFilter();
+    this.cathedralWetLowCut = ctx.createBiquadFilter();
     this.dryGain = ctx.createGain();
     this.wetGain = ctx.createGain();
     this.convolver = ctx.createConvolver();
@@ -273,11 +282,14 @@ export class OrganAudioEngine implements AudioLike {
     this.cathedralHighCut.type = "lowpass";
     this.cathedralHighCut.frequency.value = 8_500;
     this.cathedralHighCut.Q.value = 0.35;
+    this.cathedralWetLowCut.type = "highpass";
+    this.cathedralWetLowCut.frequency.value = 180;
     this.voiceGainNode!.connect(this.cathedralLowCut);
     this.pianoGainNode!.connect(this.cathedralLowCut);
     this.cathedralLowCut.connect(this.cathedralHighCut);
     this.cathedralHighCut.connect(this.dryGain);
-    this.cathedralHighCut.connect(this.convolver);
+    this.cathedralHighCut.connect(this.cathedralWetLowCut);
+    this.cathedralWetLowCut.connect(this.convolver);
     this.convolver.connect(this.wetGain);
     this.dryGain.connect(this.master!);
     this.wetGain.connect(this.master!);
@@ -286,8 +298,8 @@ export class OrganAudioEngine implements AudioLike {
     buffer.copyToChannel(impulse.left, 0);
     buffer.copyToChannel(impulse.right, 1);
     this.convolver.buffer = buffer;
-    const manual = buildCathedralManualCoefficients();
-    const foundation = buildCathedralFoundationCoefficients();
+    const manual = buildCathedralManualCoefficients(this.registration);
+    const foundation = buildCathedralFoundationCoefficients(this.registration);
     this.wave = ctx.createPeriodicWave(manual.real, manual.imag, { disableNormalization: true });
     this.foundationWave = ctx.createPeriodicWave(foundation.real, foundation.imag, { disableNormalization: true });
     this.applySpace();
@@ -488,7 +500,7 @@ export class OrganAudioEngine implements AudioLike {
     for (const node of [
       this.voiceGainNode, this.pianoGainNode, this.driveNode, this.lowFilter,
       this.highFilter, this.lowPanner, this.highPanner, this.lowLfoDepth,
-      this.highLfoDepth, this.cathedralLowCut, this.cathedralHighCut,
+      this.highLfoDepth, this.cathedralLowCut, this.cathedralHighCut, this.cathedralWetLowCut,
       this.dryGain, this.wetGain, this.convolver, this.master, this.compressor,
     ]) node?.disconnect();
     if (this.convolver) this.convolver.buffer = null;
@@ -509,6 +521,7 @@ export class OrganAudioEngine implements AudioLike {
     this.highLfoDepth = null;
     this.cathedralLowCut = null;
     this.cathedralHighCut = null;
+    this.cathedralWetLowCut = null;
     this.dryGain = null;
     this.wetGain = null;
     this.convolver = null;

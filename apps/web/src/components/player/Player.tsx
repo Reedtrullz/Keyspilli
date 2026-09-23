@@ -757,7 +757,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     melodyArrangementRequestKeyValue, melodyPhraseOverrides, melodySelection,
     melodySourceBackingMode, settings.accompanimentStyle, settings.backgroundMode,
     settings.hand, settings.mode, settings.metronome, settings.organDrive,
-    settings.organRotary, settings.organSpace, settings.organStyle, settings.pianoGain,
+    settings.organRotary, settings.organSpace, settings.organStyle, settings.organRegistration, settings.pianoGain,
     settings.soundSource, settings.speed, settings.sustainPedal, settings.transpose,
     settings.voiceGain, seekVersion]);
 
@@ -823,7 +823,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     const audio = settings.soundSource === "sampled"
       ? new SamplerAudioEngine()
       : settings.soundSource === "organ"
-        ? new OrganAudioEngine(settings.organDrive, settings.organRotary, settings.organStyle, settings.organSpace)
+        ? new OrganAudioEngine(settings.organDrive, settings.organRotary, settings.organStyle, settings.organSpace, settings.organRegistration)
         : new AudioEngine();
     const engine = new PlaybackEngine(
       audio,
@@ -870,7 +870,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       engine.audio.dispose();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings.soundSource, settings.organStyle]);
+  }, [settings.soundSource, settings.organStyle, settings.organRegistration]);
 
   useEffect(() => {
     const engine = engineRef.current;
@@ -1116,7 +1116,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
 
   useEffect(() => {
     keyboardInputRef.current?.releaseAll(); midiInputRef.current?.releaseAll(); heldInputRef.current?.releaseAll();
-  }, [openTool, showPracticeSetup, settings.soundSource, settings.organStyle, grading]);
+  }, [openTool, showPracticeSetup, settings.soundSource, settings.organStyle, settings.organRegistration, grading]);
 
   function handleNote(midi: number, on: boolean, source: "keyboard" | "midi" = "keyboard", identity = `${source}:${midi}`) {
     if (!on) { heldInputRef.current?.release(identity); return; }
@@ -1382,7 +1382,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   }
 
   function updateSettings(p: Partial<PlayerSettings>) {
-    if (gradingRef.current && (p.speed !== undefined || p.hand !== undefined || p.transpose !== undefined || p.soundSource !== undefined || p.organStyle !== undefined || p.backgroundMode !== undefined || p.accompanimentStyle !== undefined)) return;
+    if (gradingRef.current && (p.speed !== undefined || p.hand !== undefined || p.transpose !== undefined || p.soundSource !== undefined || p.organStyle !== undefined || p.organRegistration !== undefined || p.backgroundMode !== undefined || p.accompanimentStyle !== undefined)) return;
     if (p.mode !== undefined && p.mode !== settings.mode) {
       if (gradingRef.current) finishGrading(false);
       releaseMicrophone();

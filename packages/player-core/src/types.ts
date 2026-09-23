@@ -73,6 +73,7 @@ export interface PlayerSettings {
   soundSource: "synth" | "sampled" | "organ";
   /** Native organ voicing. Rock remains the backward-compatible default. */
   organStyle: "rock" | "cathedral";
+  organRegistration: "warm" | "clear" | "full";
   organRotary: "slow" | "fast";
   /** Normalized native-organ preamp drive. */
   organDrive: number;
