@@ -5,10 +5,14 @@ import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { resolveAccompaniment, type AccompanimentResolution } from "@keyspilli/player-core";
 import type { ChordLabel, Note } from "@keyspilli/midi";
+import { loadChordTimeline, type ChordTimelineArtifact } from "../src/chord-timeline.js";
+import { dataDir } from "../src/paths.js";
 
 type Base = { baseId: string; acquiredVia?: string | null };
 type Source = { notes: Note[]; chords: ChordLabel[]; measures: Array<{ startBeat?: number; endBeat?: number }>; timeSig?: unknown; timeSigEvents?: Array<{ beat: number; timeSig: unknown }> };
-type Resolver = (source: Source, durationBeats: number) => AccompanimentResolution;
+type TimelineContext = { chords: ChordTimelineArtifact["chords"]; coverage?: string; usedFallback: boolean; provenance: ChordTimelineArtifact["provenance"] } | null;
+type Resolver = (source: Source, durationBeats: number, catalogTimeline: TimelineContext) => AccompanimentResolution;
+type TimelineLoader = (baseId: string) => Promise<TimelineContext>;
 
 const currentResolver: Resolver = (source, durationBeats) => resolveAccompaniment(source.notes, source.chords, "bass-chords", { durationBeats });
 
@@ -29,12 +33,30 @@ function maximumOverlap(notes: readonly Pick<Note, "midi" | "start" | "dur">[]):
   return maximum;
 }
 
-export function evaluateAdvancedSource(baseId: string, bytes: Buffer, resolveCandidate: Resolver = currentResolver) {
+type Attack = { midi: number; start: number; dur: number; hand?: "L" | "R" };
+
+function onsetGeometry(attacks: readonly Attack[]) {
+  const byHand = { L: new Map<number, number[]>(), R: new Map<number, number[]>() };
+  for (const attack of attacks) if (attack.hand) {
+    const groups = byHand[attack.hand];
+    groups.set(attack.start, [...(groups.get(attack.start) ?? []), attack.midi]);
+  }
+  return Object.fromEntries((Object.entries(byHand) as Array<["L" | "R", Map<number, number[]>]>).map(([hand, groups]) => {
+    const ordered = [...groups].sort(([a], [b]) => a - b).map(([, pitches]) => pitches.sort((a, b) => a - b));
+    const representatives = ordered.map((pitches) => pitches[Math.floor((pitches.length - 1) / 2)]!);
+    return [hand, ordered.length ? {
+      maxSimultaneousSpanSemitones: Math.max(0, ...ordered.map((pitches) => pitches[pitches.length - 1]! - pitches[0]!)),
+      maxRepresentativeLeapSemitones: Math.max(0, ...representatives.slice(1).map((pitch, i) => Math.abs(pitch - representatives[i]!))),
+    } : null];
+  }));
+}
+
+export function evaluateAdvancedSource(baseId: string, bytes: Buffer, resolveCandidate: Resolver = currentResolver, catalogTimeline: TimelineContext = null) {
   const source = JSON.parse(bytes.toString("utf8")) as Source;
   if (!Array.isArray(source.notes) || !Array.isArray(source.chords) || !Array.isArray(source.measures)) throw new Error(`${baseId}: malformed Advanced notes.json`);
   const notes = source.notes;
   const durationBeats = Math.max(0, ...source.measures.map((m) => Number(m.endBeat) || 0), ...notes.map((n) => n.start + n.dur), ...source.chords.map((c) => c.beat + (c.durationBeats ?? 0)));
-  const resolved = resolveCandidate(source, durationBeats);
+  const resolved = resolveCandidate(source, durationBeats, catalogTimeline);
   const sourceEnd = Math.max(0, ...notes.map((n) => n.start + n.dur));
   const sourceGaps: Array<[number, number]> = [];
   let occupiedEnd = 0;
@@ -43,13 +65,14 @@ export function evaluateAdvancedSource(baseId: string, bytes: Buffer, resolveCan
     occupiedEnd = Math.max(occupiedEnd, note.start + note.dur);
   }
   const sourcePitch = notes.map((n) => n.midi);
-  const sourceAttacks = [...notes].sort((a, b) => a.start - b.start || a.midi - b.midi);
-  const attackLeaps = sourceAttacks.slice(1).map((n, i) => Math.abs(n.midi - sourceAttacks[i]!.midi));
-  const backingNotes = resolved.chords.flatMap((chord) => chord.notes.map((midi) => ({ midi, start: chord.beat, dur: chord.durationBeats ?? 0 })));
-  const backingAttacks = backingNotes.slice().sort((a, b) => a.start - b.start || a.midi - b.midi);
-  const backingEnd = Math.max(0, ...backingNotes.map((n) => n.start + n.dur));
+  const chordAttacks: Attack[] = resolved.chords.flatMap((chord) => chord.notes.map((midi, i) => ({ midi, start: chord.beat, dur: chord.durationBeats ?? 0, hand: chord.suggestedHands?.[i] })));
+  const noteAttacks: Attack[] = resolved.notes.map(({ midi, start, dur, hand }) => ({ midi, start, dur, hand }));
+  // Playback schedules both streams, including accidental duplicates.
+  const audioAttacks = [...noteAttacks, ...chordAttacks];
+  const attackKeys = audioAttacks.map((attack) => `${attack.midi}:${attack.start}:${attack.dur}`);
+  const duplicateAudioAttacks = attackKeys.length - new Set(attackKeys).size;
+  const audioEnd = Math.max(0, ...audioAttacks.map((n) => n.start + n.dur));
   const firstMeasure = source.measures[0]?.startBeat ?? 0;
-  const meters = source.timeSigEvents?.map((e) => JSON.stringify(e.timeSig)) ?? [];
   return {
     baseId,
     sourceSha256: createHash("sha256").update(bytes).digest("hex"),
@@ -65,29 +88,60 @@ export function evaluateAdvancedSource(baseId: string, bytes: Buffer, resolveCan
       minMidi: sourcePitch.length ? Math.min(...sourcePitch) : null,
       maxMidi: sourcePitch.length ? Math.max(...sourcePitch) : null,
       maximumHeldOverlap: maximumOverlap(notes),
-      maximumAttackLeapSemitones: Math.max(0, ...attackLeaps),
+      onsetGeometryByHand: onsetGeometry(notes),
+      unassignedHandAttacks: notes.filter((note) => note.hand !== "L" && note.hand !== "R").length,
       endingGapBeats: Math.max(0, durationBeats - sourceEnd),
     },
-    candidate: {
+    evaluationInput: {
+      chordTimeline: "raw-advanced-artifact",
+      exactPlayerTimeline: false,
+      catalogChordTimeline: catalogTimeline ? {
+        chordCount: catalogTimeline.chords.length,
+        coverage: catalogTimeline.coverage ?? null,
+        usedFallback: catalogTimeline.usedFallback,
+        provenance: catalogTimeline.provenance,
+      } : null,
+    },
+    timelineEvaluation: {
+      input: resolveCandidate === currentResolver ? "artifactGeneratedTimeline" : "injectedCandidate",
       chordEvents: resolved.chords.length,
-      audioChordNoteAttacks: backingNotes.length,
-      coveredBeats: unionLength(resolved.chords.map((c) => [c.beat, c.beat + (c.durationBeats ?? 0)])),
-      coveredFraction: durationBeats ? unionLength(resolved.chords.map((c) => [c.beat, c.beat + (c.durationBeats ?? 0)])) / durationBeats : 0,
+      audioNoteStreamAttacks: noteAttacks.length,
+      chordVoicingAttacks: chordAttacks.length,
+      audioAttacks: audioAttacks.length,
+      duplicateAudioAttacks,
+      coveredBeats: unionLength(audioAttacks.map((n) => [n.start, n.start + n.dur])),
+      chordVoicingCoveredBeats: unionLength(chordAttacks.map((n) => [n.start, n.start + n.dur])),
+      coveredFraction: durationBeats ? unionLength(audioAttacks.map((n) => [n.start, n.start + n.dur])) / durationBeats : 0,
       unsupportedSpans: resolved.fallbackSpans.map(({ startBeat, endBeat, reason }) => ({ startBeat, endBeat, reason })),
-      minMidi: backingNotes.length ? Math.min(...backingNotes.map((n) => n.midi)) : null,
-      maxMidi: backingNotes.length ? Math.max(...backingNotes.map((n) => n.midi)) : null,
-      maximumHeldOverlap: maximumOverlap(backingNotes),
-      maximumAttackLeapSemitones: Math.max(0, ...backingAttacks.slice(1).map((n, i) => Math.abs(n.midi - backingAttacks[i]!.midi))),
-      endingGapBeats: Math.max(0, durationBeats - backingEnd),
+      minMidi: audioAttacks.length ? Math.min(...audioAttacks.map((n) => n.midi)) : null,
+      maxMidi: audioAttacks.length ? Math.max(...audioAttacks.map((n) => n.midi)) : null,
+      maximumHeldOverlap: maximumOverlap(audioAttacks),
+      onsetGeometryByHand: onsetGeometry(audioAttacks),
+      unassignedHandAttacks: audioAttacks.filter((note) => note.hand !== "L" && note.hand !== "R").length,
+      endingGapBeats: Math.max(0, durationBeats - audioEnd),
     },
   };
 }
 
-export function evaluateVisibleAdvanced(bases: readonly Base[], hidden: ReadonlySet<string>, artifactRoot: string, resolveCandidate: Resolver = currentResolver) {
+export async function evaluateVisibleAdvanced(
+  bases: readonly Base[], hidden: ReadonlySet<string>, artifactRoot: string,
+  resolveCandidate: Resolver = currentResolver,
+  loadTimeline: TimelineLoader = async (baseId) => {
+    const timeline = await loadChordTimeline(baseId, { fallbackLevel: "a", runtimeDataDir: dataDir() });
+    return timeline ? { chords: timeline.chords, coverage: timeline.coverage, usedFallback: timeline.provenance.fallback === true, provenance: timeline.provenance } : null;
+  },
+) {
   const known = new Set(bases.map((base) => base.baseId));
   const artifacts = readdirSync(artifactRoot, { withFileTypes: true }).filter((e) => e.isDirectory() && existsSync(join(artifactRoot, e.name, "a", "notes.json"))).map((e) => e.name);
-  const rows = bases.filter((base) => !hidden.has(base.baseId)).map(({ baseId }) => evaluateAdvancedSource(baseId, readFileSync(join(artifactRoot, baseId, "a", "notes.json")), resolveCandidate)).sort((a, b) => a.baseId.localeCompare(b.baseId));
-  return { summary: { visibleBases: rows.length, hiddenBases: bases.filter((b) => hidden.has(b.baseId)).length, orphanAdvancedArtifacts: artifacts.filter((id) => !known.has(id)).length, songsWithUnsupportedSpans: rows.filter((r) => r.candidate.unsupportedSpans.length > 0).length }, rows };
+  const visible = bases.filter((base) => !hidden.has(base.baseId));
+  const rows = await Promise.all(visible.map(async ({ baseId }) => evaluateAdvancedSource(
+    baseId,
+    readFileSync(join(artifactRoot, baseId, "a", "notes.json")),
+    resolveCandidate,
+    await loadTimeline(baseId),
+  )));
+  rows.sort((a, b) => a.baseId.localeCompare(b.baseId));
+  return { summary: { visibleBases: rows.length, hiddenBases: bases.filter((b) => hidden.has(b.baseId)).length, orphanAdvancedArtifacts: artifacts.filter((id) => !known.has(id)).length, songsWithUnsupportedSpans: rows.filter((r) => r.timelineEvaluation.unsupportedSpans.length > 0).length }, rows };
 }
 
 if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
@@ -96,6 +150,6 @@ if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.m
   const bases = db.prepare("SELECT base_id AS baseId, MAX(acquired_via) AS acquiredVia FROM songs GROUP BY base_id").all() as Base[];
   db.close();
   const hidden = new Set([...disabledManifestBases(), ...blockedLearnerBases()]);
-  const report = evaluateVisibleAdvanced(bases, hidden, join(dataDir(), "artifacts"));
+  const report = await evaluateVisibleAdvanced(bases, hidden, join(dataDir(), "artifacts"));
   console.log(JSON.stringify(process.argv.includes("--rows") ? report : report.summary, null, 2));
 }
