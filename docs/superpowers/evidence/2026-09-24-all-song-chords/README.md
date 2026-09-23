@@ -33,7 +33,7 @@ The ignored scratch implementation and full diagnostic are at output/chords-all-
 
 - Added a read-only visible-base inventory and candidate evaluator. The evaluator counts both note and chord audio streams and reports duplicate scheduled attacks rather than hiding them. It records source hashes, unsupported spans, register and onset geometry, and labels raw-artifact versus injected-candidate inputs.
 - Preserved neutral source note origins and cleared semantic role on mixed quantize lineage. Player correction IDs now use those origins when present, preserving legacy IDs for records without them.
-- Node 22 checks: MIDI 19 files / 413 tests passed; player-core 18 files / 295 tests passed; focused catalogue ingestion, coverage and evaluator 3 files / 26 tests passed; MIDI, player-core, catalogue and web typechecks passed. No broad build, CI run, human listening gate or real-keyboard test was completed for this branch.
+- Node 22 checks: MIDI 19 files / 413 tests passed; player-core 18 files / 295 tests passed; focused catalogue ingestion, coverage and evaluator 3 files / 26 tests passed; MIDI, player-core, catalogue and web typechecks passed. Draft PR #106's only triggered `Tutorial runtime candidate` container-smoke passed; it is neither a Chords musical check nor full release CI. No human listening gate or real-keyboard test was completed for this branch.
 - Canonical checkout WIP, production data, catalogue artifacts, PR #105, merge and deployment were left untouched.
 
 ## Next implementation boundary
