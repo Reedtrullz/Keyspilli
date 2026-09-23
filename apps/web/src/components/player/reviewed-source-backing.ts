@@ -4,8 +4,7 @@ const winnerFingerprint = "variant:abba-the-winner-takes-it-all:a:abba-the-winne
 
 /** Excerpt-tested reduction of the user-selected Winner accompaniment source. */
 export function reviewedSourceBacking(data: SongData): SongData["notes"] | null {
-  const fingerprint = data.sourceFingerprint;
-  if (fingerprint !== winnerFingerprint && !fingerprint?.startsWith(`${winnerFingerprint}:timing:`)) return null;
+  if (data.sourceFingerprint !== winnerFingerprint) return null;
   if (data.timeSig[0] !== 4 || data.timeSig[1] !== 4
     || data.timeSigEvents?.some((event) => event.timeSig[0] !== 4 || event.timeSig[1] !== 4)) return null;
 

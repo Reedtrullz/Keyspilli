@@ -9,6 +9,7 @@ it("retains the source figure and first three left-hand attacks of each bar only
     sourceFingerprint: "variant:abba-the-winner-takes-it-all:a:abba-the-winner-takes-it-all-a:54fdc6dfba535308b19583a24ca6cb284813bb2ae84e42abe4cac8b062a57eb2:notes:9d9ae9b17b3bd10ebc973d549b12d1102606e66a9342a4702d449e7f73afd664" } as SongData;
   expect(reviewedSourceBacking(data)?.map((note) => `${note.hand}${note.start}`)).toEqual(["L0", "L1", "L2", "R3", "L4", "L5", "L6"]);
   expect(reviewedSourceBacking({ ...data, sourceFingerprint: "another source" })).toBeNull();
+  expect(reviewedSourceBacking({ ...data, sourceFingerprint: `${data.sourceFingerprint}:timing:changed` })).toBeNull();
   expect(reviewedSourceBacking({ ...data, timeSig: [3, 4] })).toBeNull();
   expect(reviewedSourceBacking({ ...data, timeSigEvents: [{ tick: 0, beat: 0, timeSig: [4, 4] }, { tick: 3840, beat: 4, timeSig: [3, 4] }] })).toBeNull();
 });

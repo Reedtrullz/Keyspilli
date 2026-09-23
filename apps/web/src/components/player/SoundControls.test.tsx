@@ -13,16 +13,16 @@ function render(style?: "melody-accompaniment" | "bass-chords") {
 }
 
 describe("SoundControls accompaniment styles", () => {
-  it("labels reviewed source backing and disables a separate vocal melody", () => {
+  it("shows the source-backed pilot without unavailable arrangement choices", () => {
     const markup = renderToStaticMarkup(createElement(SoundControls, {
       settings: { ...DEFAULT_SETTINGS, backgroundMode: "chord" },
       onChange: () => {},
       sourceBacking: true,
     }));
-    expect(markup).toContain("Source backing");
-    expect(markup).toMatch(/Melody \+ accompaniment<\/button>/);
-    expect(markup).toMatch(/disabled=""[^>]*>Melody \+ accompaniment/);
+    expect(markup).not.toContain("Melody + accompaniment");
+    expect(markup).not.toContain("Advanced arrangement controls");
     expect(markup).toContain("No separate vocal melody is added");
+    expect(markup).toContain("Practise the piano notes shown");
   });
 
   it("explains unavailable Advanced timing without exposing a playable Chord mode", () => {

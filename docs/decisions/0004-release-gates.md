@@ -48,6 +48,19 @@ Human playback/listening confirms melody, LH usefulness, rhythm, balance, and pl
 
 **Note:** This gate requires human judgment. Automated checks are supporting evidence only.
 
+### Chords backing-only interpretation (2026-09-23)
+
+Chords is one song-wide arrangement derived from Advanced; changing the selected
+difficulty does not require a different Chords arrangement. For a backing-only
+release, replace the melody item in the rubric with: the piano leaves room for
+singing and does not play the sung vocal line as its own part. Human review must
+also confirm recognizable harmony, characteristic accompaniment rhythm, usable
+bass, section transitions, endings, and real-keyboard playability. Listen to at
+least 10 representative songs across source types and include unsupported or
+ambiguous passages. A listening pass for one song or a source-note count does
+not pass the musical gate for the mode. Original and optional melody arrangements
+retain the melody item above.
+
 ### 4. Runtime gate
 
 Rebuild is idempotent, DB/API/player behavior is correct, and deployment evidence exists.
