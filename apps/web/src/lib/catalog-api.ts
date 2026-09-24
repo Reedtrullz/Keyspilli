@@ -406,7 +406,7 @@ function unavailableArtifact(errors: string[], manifest?: ArrangementManifest): 
   return { status: "unavailable", errors, ...(manifest ? { manifest } : {}) };
 }
 
-export async function loadSongArtifact(song: SongRow): Promise<{ data: SongData | null; artifact: SongArtifactStatus }> {
+export async function loadSongArtifact(song: Pick<SongRow, "id" | "baseId" | "level" | "tempo">): Promise<{ data: SongData | null; artifact: SongArtifactStatus }> {
   if (existsSync(join(dataDir(), "artifacts", `.${song.baseId}.reconciliation.json`))) {
     return { data: null, artifact: unavailableArtifact(["ARTIFACT_RECONCILIATION_REQUIRED"]) };
   }
@@ -495,6 +495,16 @@ export async function loadSongArtifact(song: SongRow): Promise<{ data: SongData 
   return { data, artifact: { status: "valid", errors: [], manifest: tempo.manifest } };
 }
 
+/** Attach the chord sources a Player sees for one loaded level. */
+export async function withChordSources(source: SongData, baseId: string, level: string): Promise<SongData> {
+  try {
+    return projectChordSources(source, await loadChordTimeline(baseId, { fallbackLevel: level }), level);
+  } catch {
+    // An optional chart must never prevent the arrangement from loading.
+    return projectChordSources(source, null, level);
+  }
+}
+
 /**
  * Load the complete player payload without memoization.
  *
@@ -529,19 +539,11 @@ async function loadSongDetailUncached(id: string): Promise<SongDetail | null> {
       ? "The Advanced arrangement has different timing from this level."
       : null;
   let chordData = chordUnavailableReason || advanced?.id === song.id ? null : advancedData;
-  const withChordSources = async (source: SongData, level: string): Promise<SongData> => {
-    try {
-      return projectChordSources(source, await loadChordTimeline(song.baseId, { fallbackLevel: level }), level);
-    } catch {
-      // An optional chart must never prevent the arrangement from loading.
-      return projectChordSources(source, null, level);
-    }
-  };
   if (data) {
     // Each level retains its own Original chart; Chords always uses Advanced.
     [data, chordData] = await Promise.all([
-      withChordSources(data, song.level),
-      chordData ? withChordSources(chordData, "a") : Promise.resolve(null),
+      withChordSources(data, song.baseId, song.level),
+      chordData ? withChordSources(chordData, song.baseId, "a") : Promise.resolve(null),
     ]);
   }
   const sourceArrangement = loaded.artifact.manifest?.sourceArrangement;
