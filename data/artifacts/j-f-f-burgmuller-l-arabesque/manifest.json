@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "j-f-f-burgmuller-l-arabesque",
+  "identityStatus": "current",
+  "sourceArtifactHash": "9b689a9b3f178e7bb2b5899d0559e223e9d8de7081d83fc087760ac2b4d378e1",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:j-f-f-burgmuller-l-arabesque.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 152,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:46.489Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 152,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:46.489Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:46.489Z"
+}

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "paparazzi",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "0e8331a4fe73a09f82a0f3ce4a250f9dc09690808c0478e9a7cec6705079f654",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 120,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:57.007Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 120,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:57.007Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:57.007Z"
+}

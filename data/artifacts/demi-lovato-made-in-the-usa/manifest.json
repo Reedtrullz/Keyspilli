@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "demi-lovato-made-in-the-usa",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "ff4d4994bf0d372cefa84084fc8609ca14afba6f556655ace9f87762b721d258",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 140,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:43.359Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 140,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:43.359Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:43.359Z"
+}

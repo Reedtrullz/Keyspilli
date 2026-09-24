@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "status-quo-whatever-you-want",
+  "identityStatus": "current",
+  "sourceArtifactHash": "79620c3df07591a7e739dad322729fe6d202960f53f3bf638127bad5ce2681c8",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:status-quo-whatever-you-want.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 98,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:49.924Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 98,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:49.924Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:49.924Z"
+}

@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "j-f-f-burgmuller-la-petite-reunion",
+  "identityStatus": "current",
+  "sourceArtifactHash": "c88010cace8858c30ca95e3075cf5e4afdde19b5ad7c37cceb96159f6c55326c",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:j-f-f-burgmuller-la-petite-reunion.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 152,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:46.560Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 152,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:46.560Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:46.560Z"
+}

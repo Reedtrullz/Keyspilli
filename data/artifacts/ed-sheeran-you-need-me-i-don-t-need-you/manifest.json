@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "ed-sheeran-you-need-me-i-don-t-need-you",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "81f3306e3b250d62d210a8264135b14ff755f79cc6dad1bca3689ffb29502ebe",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 170,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:44.537Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 170,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:44.537Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:44.537Z"
+}

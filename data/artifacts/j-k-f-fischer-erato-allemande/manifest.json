@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "j-k-f-fischer-erato-allemande",
+  "identityStatus": "current",
+  "sourceArtifactHash": "84de5ac70c1e8d0d3efd66eb3086468689257a5603d73b2e4136d62de7aa9475",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:j-k-f-fischer-erato-allemande.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 54,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:46.659Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 54,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:46.659Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:46.659Z"
+}

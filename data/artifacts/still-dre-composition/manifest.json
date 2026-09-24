@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "still-dre-composition",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "324d718727de24e6054caf24ef23caad596de3901a8f9cbfc04df593bfa1f2cf",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 92,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:02.735Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 92,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:02.735Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:02.735Z"
+}

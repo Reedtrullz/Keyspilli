@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "time-inception",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "4a77433d50d75d6fab7bee41f64c4ad6e11d7326584f398898dbd3a7ed0c62dd",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 125,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:04.474Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 125,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:04.474Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:04.474Z"
+}

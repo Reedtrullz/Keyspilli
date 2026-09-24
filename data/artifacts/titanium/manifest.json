@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "titanium",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "63ad642ebad6e5b48f17db072b284473b3aba5f651b9267b63cd2204ff1b95a7",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 135,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:04.653Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 135,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:04.653Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:04.653Z"
+}

@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "the-beatles-blackbird",
+  "identityStatus": "current",
+  "sourceArtifactHash": "3fc3fd74d567da56dd10ff05689ef2f57641efbbe200532aabc0ea5fbcea1e75",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:the-beatles-blackbird.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 120,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:50.063Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 120,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:50.063Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:50.063Z"
+}

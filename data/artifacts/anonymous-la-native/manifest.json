@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "anonymous-la-native",
+  "identityStatus": "current",
+  "sourceArtifactHash": "11b67439a04788d12690286d4f16b00d86a353c30359432700908d24f4ee8725",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:anonymous-la-native.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 91,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:41.162Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 91,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:41.162Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:41.162Z"
+}

@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "f-f-chopin-etude-a-moll",
+  "identityStatus": "current",
+  "sourceArtifactHash": "ebee39ee0f9bd743586cbcd4890d3f0e39f24808957302341316a734e42a7989",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:f-f-chopin-etude-a-moll.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 144,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:43.679Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 144,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:43.679Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:43.679Z"
+}

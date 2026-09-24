@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "c-debussy-deuxieme-arabesque",
+  "identityStatus": "current",
+  "sourceArtifactHash": "b7991339535a5436b01f4b0f8fe97304a60a0a7f38d16365692d82f6c6e22d8e",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:c-debussy-deuxieme-arabesque.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 120,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:42.110Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 120,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:42.110Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:42.110Z"
+}

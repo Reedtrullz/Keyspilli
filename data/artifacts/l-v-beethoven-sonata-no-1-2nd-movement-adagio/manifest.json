@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "l-v-beethoven-sonata-no-1-2nd-movement-adagio",
+  "identityStatus": "current",
+  "sourceArtifactHash": "d30ffa4c6831d238b5edce0094e5b4ebc0a67272948844c3e12785b7c794fe0a",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:l-v-beethoven-sonata-no-1-2nd-movement-adagio.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 46,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:47.288Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 46,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:47.288Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:47.288Z"
+}

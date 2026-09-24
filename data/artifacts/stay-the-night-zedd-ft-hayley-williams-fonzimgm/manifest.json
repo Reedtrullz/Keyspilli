@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "stay-the-night-zedd-ft-hayley-williams-fonzimgm",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "f6d3909ed8ddcdb7efa4a6fee67321e13d82323b911f27b4263a7925d7cf669e",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 126,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:02.583Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 126,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:02.583Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:02.583Z"
+}

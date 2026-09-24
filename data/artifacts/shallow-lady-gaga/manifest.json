@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "shallow-lady-gaga",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "9012342c20c876c13084edd4b9bd576e45750d12df29eb50fafaba39c5bf7b79",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 120,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:01.184Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 120,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:01.184Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:01.184Z"
+}

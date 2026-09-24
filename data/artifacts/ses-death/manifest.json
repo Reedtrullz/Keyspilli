@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "ses-death",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "dbdc0f589b08599055c4a8c66046c428fb55b731a68658ea0407d6907681519c",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 80,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:01.134Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 80,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:01.134Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:01.134Z"
+}

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "dr-dre-still-dre",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "bb4678b47bf5ae6e82fed1a6b5e4bf644525394aa0a4e3956b31fa1549e3c9a9",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 96,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:43.697Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 96,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:43.697Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:43.697Z"
+}

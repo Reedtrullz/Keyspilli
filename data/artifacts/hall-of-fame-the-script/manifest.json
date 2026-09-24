@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "hall-of-fame-the-script",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "2450fd47a8905c9898a1b8ca48440cca0a083c4e7df1a2029eb33aa39df11e3d",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 90,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:47.758Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 90,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:47.758Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:47.758Z"
+}

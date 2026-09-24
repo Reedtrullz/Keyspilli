@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "zelda-ocarina-of-time-hyrule-field",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "79126199837a58c82c8464847ef808d26d4c7ddbfb8d8dcb1054cd441f0c8a67",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 151,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:05.808Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 151,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:05.808Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:05.808Z"
+}

@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "c-v-alkan-toccatina",
+  "identityStatus": "current",
+  "sourceArtifactHash": "7233132c9b4568959d5d092b9bfac67eeebb8732e8bd74b006f6d06eaa56eb63",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:c-v-alkan-toccatina.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 180,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:42.835Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 180,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:42.835Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:42.835Z"
+}

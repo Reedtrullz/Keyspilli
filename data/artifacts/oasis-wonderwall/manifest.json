@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "oasis-wonderwall",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "4182b3baca469af1f0b5d4501a0af63129d3f236a66193f9b8d78d2a661c5711",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 90,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:55.816Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 90,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:55.816Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:55.816Z"
+}

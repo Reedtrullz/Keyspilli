@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "piano-cover-by-pianella-piano-ava-max-kings-queens-mslwtpef",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "b3a08883598e391b29d2ef00b261ae15bf9d93234b73ccf3bda51d53158c12fd",
+  "configFingerprint": "cf5a2da93c648fd6eeb6398b1bc18a8df6e10ac0282112e539a649f5142f34d1",
+  "tempo": {
+    "calibration": {
+      "bpm": 129,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:57.924Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 129,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:57.924Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:57.924Z"
+}

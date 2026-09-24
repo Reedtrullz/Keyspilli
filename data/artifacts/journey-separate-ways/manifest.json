@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "journey-separate-ways",
+  "identityStatus": "current",
+  "sourceArtifactHash": "67cf74afc7854a09026d10f39a65527b66e5e06d02be929d3873b2ea18baae3e",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:journey-separate-ways.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 120,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:47.008Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 120,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:47.008Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:47.008Z"
+}

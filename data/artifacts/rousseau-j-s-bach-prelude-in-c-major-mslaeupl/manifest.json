@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "rousseau-j-s-bach-prelude-in-c-major-mslaeupl",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "3aef619d26cb310ef186d087da003b44a6a4e857155e59ad5965174b368accf0",
+  "configFingerprint": "cf5a2da93c648fd6eeb6398b1bc18a8df6e10ac0282112e539a649f5142f34d1",
+  "tempo": {
+    "calibration": {
+      "bpm": 129,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:00.323Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 129,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:00.323Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:00.323Z"
+}

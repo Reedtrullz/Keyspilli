@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "j-brahms-waltz-no-10",
+  "identityStatus": "current",
+  "sourceArtifactHash": "c4ac9774b8215f8ef193230d61c86de7e39ab747ec86620a07a33e3ad63e2be1",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:j-brahms-waltz-no-10.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 160,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:46.412Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 160,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:46.412Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:46.412Z"
+}

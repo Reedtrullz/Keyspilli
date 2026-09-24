@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "ed-sheeran-perfect",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "9eedc213c406e42a15d734b8f561111331f29c7c62be74a815ed3724777a8eeb",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 48,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:44.272Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 48,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:44.272Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:44.272Z"
+}

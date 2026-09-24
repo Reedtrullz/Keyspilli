@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "the-daydream-tears",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "d3491ccda565f08b7fbcb490c0f036db1389a3c5735c1ec43f1caa8b748a7aa0",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 72,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:04.062Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 72,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:04.062Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:04.062Z"
+}

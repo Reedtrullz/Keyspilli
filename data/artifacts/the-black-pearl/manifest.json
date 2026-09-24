@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "the-black-pearl",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "a5eb89b14debf90729fbd8d365cb09361a689a5e8085839227945d014c0400bf",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 120,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:03.978Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 120,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:03.978Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:03.978Z"
+}

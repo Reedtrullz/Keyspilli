@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "bryan-adams-heaven",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "cbf101931a0a877ebc7035d5da2b50391f96545a0806c5cd36617ae901adb359",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 70,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:40.422Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 70,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:40.422Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:40.422Z"
+}

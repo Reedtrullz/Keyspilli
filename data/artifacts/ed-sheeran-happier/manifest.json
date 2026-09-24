@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "ed-sheeran-happier",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "0cc42f0daa3a043a7283abbe77c4edc5327da844a8610a31e4e6531c5fdcece3",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 90,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:44.144Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 90,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:44.144Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:44.144Z"
+}

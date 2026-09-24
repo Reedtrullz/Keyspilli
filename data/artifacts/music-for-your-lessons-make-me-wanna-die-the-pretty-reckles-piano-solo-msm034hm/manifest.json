@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "music-for-your-lessons-make-me-wanna-die-the-pretty-reckles-piano-solo-msm034hm",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "b0e0c1a0497cb353612ecb3376a6104d7583c9fb3a7bc1f605ec967f649a44f9",
+  "configFingerprint": "cf5a2da93c648fd6eeb6398b1bc18a8df6e10ac0282112e539a649f5142f34d1",
+  "tempo": {
+    "calibration": {
+      "bpm": 96,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:55.533Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 96,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:55.533Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:55.533Z"
+}

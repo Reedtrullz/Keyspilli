@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "super-mario-bros-main-theme",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "d0684fae6db3cacbfb01effd61ebeaef7f090ccab959c4d638c36ef0eae57eb4",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 180,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:02.900Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 180,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:02.900Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:02.900Z"
+}

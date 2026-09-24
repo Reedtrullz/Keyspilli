@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "never-gonna-give-you-up",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "487d3b505b109e5132ea715432f79c07b9435232d9f4aae54ee1c4bde656e864",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 114,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:55.619Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 114,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:55.619Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:55.619Z"
+}

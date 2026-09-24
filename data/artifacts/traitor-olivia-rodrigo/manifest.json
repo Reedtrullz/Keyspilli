@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "traitor-olivia-rodrigo",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "d1e02f0276a56d9c54114d8c954a2cbf232f0c177a069005ef6f21e9b4401a98",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 75,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:04.815Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 75,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:04.815Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:04.815Z"
+}

@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "f-behr-in-may",
+  "identityStatus": "current",
+  "sourceArtifactHash": "3ad66161a162c929a876a35bb7bdee12caa360ff63c5bbb500af35f58915f100",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:f-behr-in-may.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 60,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:43.645Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 60,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:43.645Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:43.645Z"
+}

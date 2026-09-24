@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "call-me-maybe-carly-rae-jepsen",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "d2724f95edc9a1b861b9ba4118844c8ad82c6a259663a3a15da42c49520c7b7b",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 120,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:41.718Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 120,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:41.718Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:41.718Z"
+}

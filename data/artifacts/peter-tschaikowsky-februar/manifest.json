@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "peter-tschaikowsky-februar",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "97bf949d6fce40ddce299e8f63e9ec4465d7d54c82fb06fd3c1aea855b3214af",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 117,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:57.628Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 117,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:57.628Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:57.628Z"
+}

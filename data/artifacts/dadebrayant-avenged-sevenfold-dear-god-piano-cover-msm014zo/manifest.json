@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "baseId": "dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo",
+  "identityStatus": "current",
+  "sourceArtifactHash": "8e4d4b9114800d69904dc4af35376b95ccd1d8c537aac3adbe812c72f0cf482e",
+  "configFingerprint": "ff810cca1b62ce4fc27cf7baf26c3906f983694ebada2ceab7b5e5ab22c64b9a",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "youtube",
+    "acquiredVia": "youtube",
+    "sourceRef": "youtube:Oh3_Y1dRWFY",
+    "sourceYoutubeUrl": "https://www.youtube.com/watch?v=Oh3_Y1dRWFY",
+    "sourceArtifactRef": "manifest:dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo.mid"
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 75,
+      "source": "override",
+      "resolvedAt": "2026-08-21T17:30:43.151Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 75,
+      "source": "override",
+      "resolvedAt": "2026-08-21T17:30:43.151Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:43.151Z"
+}

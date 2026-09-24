@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "olectralab-katyusha-piano-cover-mslzvw9f",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "3158cb2ed299a423123f3e99e472e494a3a2fada1e50eadaad2c8a28456aef1b",
+  "configFingerprint": "cf5a2da93c648fd6eeb6398b1bc18a8df6e10ac0282112e539a649f5142f34d1",
+  "tempo": {
+    "calibration": {
+      "bpm": 129,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:55.860Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 129,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:55.860Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:55.860Z"
+}

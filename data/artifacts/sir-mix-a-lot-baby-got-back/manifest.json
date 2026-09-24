@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "sir-mix-a-lot-baby-got-back",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "dea9fb193519561564f1096181153ea4dbaae96aa5ecc230d4bdae733af1a707",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 120,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:01.624Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 120,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:01.624Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:01.624Z"
+}

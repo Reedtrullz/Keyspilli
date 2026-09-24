@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "f-f-chopin-mazurka-op-6-no-1",
+  "identityStatus": "current",
+  "sourceArtifactHash": "8ca95d82c2d7a7f7b19d527ee9e3749e406753bdf54a4f278184d683ee5b7b47",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:f-f-chopin-mazurka-op-6-no-1.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 60,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:43.752Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 60,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:43.752Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:43.752Z"
+}

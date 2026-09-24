@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "zelda-ocarina-of-time-inside-the-deku-tree",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "98e53a65d90c40ef1f7dc81cb231200d2135a2924a3b1793d83675aa8a553b41",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 60,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:05.856Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 60,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:05.856Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:05.856Z"
+}

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "adele-hello",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "2f8b917136ceef664401b6f32301c214b61cc8ae43df460fbd65f7c6ed69471a",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 79,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:36.892Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 79,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:36.892Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:36.892Z"
+}

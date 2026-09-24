@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "super-mario-theme",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "e7f0181de2fe891dc80f9dadbb79cc7eb9c3b4f3a32e6e0c120ca46fbce0440c",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 95,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:02.946Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 95,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:02.946Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:02.946Z"
+}

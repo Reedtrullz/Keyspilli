@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "baseId": "bert-s-suggests-the-drug-in-me-is-reimagined-piano-cover-from-bert-s-suggest-msm04jfl",
+  "identityStatus": "current",
+  "sourceArtifactHash": "bd7f203e3166ceb9f3e972c25ec55d09f44264cb8b1022ed72c21e96c9e45f69",
+  "configFingerprint": "8f9758967dcc95d8fdf37b9adfdb64394b99afbb517f62425ac854628578c9c9",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "youtube",
+    "acquiredVia": "youtube",
+    "sourceRef": "youtube:lvirceDCbOw",
+    "sourceYoutubeUrl": "https://www.youtube.com/watch?v=lvirceDCbOw"
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 108,
+      "source": "detected",
+      "resolvedAt": "2026-08-24T13:35:33.396Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 108,
+      "source": "detected",
+      "resolvedAt": "2026-08-24T13:35:33.396Z",
+      "role": "playback"
+    }
+  },
+  "transcription": {
+    "basicPitchVersion": "unknown",
+    "modelSerialization": "default",
+    "onsetThreshold": 0.4,
+    "frameThreshold": 0.25,
+    "tempo": 107.7,
+    "tempoSource": "detected",
+    "audioSource": "youtube",
+    "transcribedAt": "2026-08-24T13:34:48.848Z",
+    "pipeline": {
+      "filterVersion": "audio-onset-filter-v1",
+      "normalizerId": "midi-normalizer-v2",
+      "gridPolicyId": "beat-grid-v2",
+      "variantPolicyId": "learner-variant-ladder-v3"
+    },
+    "postProcessing": {
+      "filterApplied": true,
+      "cleanupApplied": true,
+      "onsetMatchSec": 0.35,
+      "onsetDetector": {
+        "sampleRate": 22050,
+        "hopLength": 512,
+        "backtrack": true,
+        "delta": 0.07
+      },
+      "minVelocity": 30,
+      "minDurationBeats": 0.14,
+      "mergeWindowBeats": 0.125,
+      "maxPolyphony": 6,
+      "maxSounding": 8,
+      "maxDurationSec": 2.5,
+      "maxDurationBeats": 4,
+      "importedMaxDurationBeats": 1.5,
+      "importedMaxSounding": 12
+    }
+  },
+  "artifactWrittenAt": "2026-08-24T13:35:33.396Z"
+}

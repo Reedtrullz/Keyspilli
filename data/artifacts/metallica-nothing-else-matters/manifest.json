@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "metallica-nothing-else-matters",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "be4365a112891def1e471cbe8854efe5c4f1ade22a71c749dada7d7779bc78ee",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 130,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:54.601Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 130,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:54.601Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:54.601Z"
+}

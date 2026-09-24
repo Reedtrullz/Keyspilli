@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "f-j-haydn-sonate-i-ii-menuetto",
+  "identityStatus": "current",
+  "sourceArtifactHash": "37b97075c873529760c96539f9894ec6eb99cc1065d76344f7b1fc397d6b63d4",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:f-j-haydn-sonate-i-ii-menuetto.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 92,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:44.248Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 92,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:44.248Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:44.248Z"
+}

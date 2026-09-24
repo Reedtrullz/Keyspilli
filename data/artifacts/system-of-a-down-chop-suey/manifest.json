@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "system-of-a-down-chop-suey",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "36409ed2a17c8492a60ea1bb2326c4633d8476e97cf2b7a5661ce03e67b085ea",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 132,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:03.197Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 132,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:03.197Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:03.197Z"
+}

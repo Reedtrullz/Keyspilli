@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "l-v-beethoven-sonata-no-1-1st-movement-allegro",
+  "identityStatus": "current",
+  "sourceArtifactHash": "db70c788926524fb75fec6586903ae07e23166c11ac55e0106d97ba80675f75a",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:l-v-beethoven-sonata-no-1-1st-movement-allegro.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 190,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:47.204Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 190,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:47.204Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:47.204Z"
+}

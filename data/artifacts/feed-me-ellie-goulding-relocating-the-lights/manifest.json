@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "feed-me-ellie-goulding-relocating-the-lights",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "5c01ebe025d2023c8efd32fd1d182b74c12a95beecf3f08938995278c4b0bd06",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 117,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:46.022Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 117,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:46.022Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:46.022Z"
+}

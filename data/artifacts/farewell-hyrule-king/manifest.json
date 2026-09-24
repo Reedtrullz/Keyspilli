@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "farewell-hyrule-king",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "f679a7ca380fb6f207300e422ccba297720a69cd8cff1dd9c2de1ffe8c047483",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 80,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:45.962Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 80,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:45.962Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:45.962Z"
+}

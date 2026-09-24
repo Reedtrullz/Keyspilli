@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "piano-free-sheet-music-sabaton-christmas-truce-mslzztfn",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "b746ae6cf54a8efc8805f7707736caf6a819a2b58915131cee2558697c0811b5",
+  "configFingerprint": "cf5a2da93c648fd6eeb6398b1bc18a8df6e10ac0282112e539a649f5142f34d1",
+  "tempo": {
+    "calibration": {
+      "bpm": 92,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:58.362Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 92,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:58.362Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:58.362Z"
+}

@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "the-beatles-let-it-be",
+  "identityStatus": "current",
+  "sourceArtifactHash": "41af82c72141e3437e5a1e95ef39481673c1eca2fd09f699f258a3f209f95847",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:the-beatles-let-it-be.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 70,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:50.243Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 70,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:50.243Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:50.243Z"
+}

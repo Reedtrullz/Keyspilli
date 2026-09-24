@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "paul-gassa-yiruma-river-flows-in-you-emotional-piano-cover-msl98ing",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "134ea7fe06b75fca2ea83b7e0fc4cdfaec9bcd62339fdaff56a022f75ef9a568",
+  "configFingerprint": "cf5a2da93c648fd6eeb6398b1bc18a8df6e10ac0282112e539a649f5142f34d1",
+  "tempo": {
+    "calibration": {
+      "bpm": 144,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:57.238Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 144,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:57.238Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:57.238Z"
+}

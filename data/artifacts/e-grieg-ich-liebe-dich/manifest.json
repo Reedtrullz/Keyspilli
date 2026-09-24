@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "e-grieg-ich-liebe-dich",
+  "identityStatus": "current",
+  "sourceArtifactHash": "dc758a0b481832f2f883e9b5d278046f3f21bccdb9ec92ce147ceed588143e65",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:e-grieg-ich-liebe-dich.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 90,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:43.349Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 90,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:43.349Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:43.349Z"
+}

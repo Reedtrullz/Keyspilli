@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "labrinth-jealous",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "07cc70645477ff7b69604c35b6c4374d554555e18a7c08dbb69a90341306d62e",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 85,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:52.916Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 85,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:52.916Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:52.916Z"
+}

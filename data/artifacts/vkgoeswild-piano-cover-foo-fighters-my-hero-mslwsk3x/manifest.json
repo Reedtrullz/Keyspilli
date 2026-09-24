@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "vkgoeswild-piano-cover-foo-fighters-my-hero-mslwsk3x",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "0f5ab82aba44adb3ad4b97341ae5b877c3f4a4884a5c0b8fd0c0e6df1ee35530",
+  "configFingerprint": "cf5a2da93c648fd6eeb6398b1bc18a8df6e10ac0282112e539a649f5142f34d1",
+  "tempo": {
+    "calibration": {
+      "bpm": 112,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:05.224Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 112,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:05.224Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:05.224Z"
+}

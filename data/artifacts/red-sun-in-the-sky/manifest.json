@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "red-sun-in-the-sky",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "393b3dfcb28282913c3fd0089fa55c76230e7b9cfa0264aedef5955bc7d6e6e3",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 130,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:59.538Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 130,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:59.538Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:59.538Z"
+}

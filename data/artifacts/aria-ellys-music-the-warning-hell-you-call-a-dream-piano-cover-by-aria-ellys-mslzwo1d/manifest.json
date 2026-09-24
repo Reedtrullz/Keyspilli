@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "aria-ellys-music-the-warning-hell-you-call-a-dream-piano-cover-by-aria-ellys-mslzwo1d",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "13e9cd2ed273c7bf9f9a8a14a480ae5b8505e52d85eb3cfacdc51d6cb9f3af0a",
+  "configFingerprint": "cf5a2da93c648fd6eeb6398b1bc18a8df6e10ac0282112e539a649f5142f34d1",
+  "tempo": {
+    "calibration": {
+      "bpm": 99,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:37.992Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 99,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:37.992Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:37.992Z"
+}

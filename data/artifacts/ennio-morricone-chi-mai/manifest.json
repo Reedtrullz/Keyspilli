@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "ennio-morricone-chi-mai",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "e8900840af292628dabca3f84884dea1472296660bd7eab039ad684c96f03681",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 120,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:44.723Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 120,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:44.723Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:44.723Z"
+}

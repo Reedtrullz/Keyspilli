@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "still-dre-dr-dre-and-snoop-dogg",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "0a9903e8f4318d0efd79f23ff805a7789542caa9dde8ed9bc13cd91fe3e85cdc",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 90,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:02.782Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 90,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:02.782Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:02.782Z"
+}

@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "a-thousand-years",
+  "identityStatus": "current",
+  "sourceArtifactHash": "d9632e7073e5a49c4e627bff197571c9301df3f69d51c6f18ac27b1bcac769a3",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:a-thousand-years.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 160,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:40.573Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 160,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:40.573Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:40.573Z"
+}

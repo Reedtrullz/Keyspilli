@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "panic-at-the-disco-girlsgirlsboys",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "794b46e68f09859d9fee2bfa151d4bf29cd3e8b281224c3113f7dba9f95b6358",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 145,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:56.949Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 145,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:56.949Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:56.949Z"
+}

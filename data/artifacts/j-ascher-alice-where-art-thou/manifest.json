@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "j-ascher-alice-where-art-thou",
+  "identityStatus": "current",
+  "sourceArtifactHash": "5a351c004e7c9290991e44bd323c88ea8a802a07a81bf3b297948e5133edb702",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:j-ascher-alice-where-art-thou.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 90,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:45.394Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 90,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:45.394Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:45.394Z"
+}

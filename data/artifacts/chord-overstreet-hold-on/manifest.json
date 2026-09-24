@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "chord-overstreet-hold-on",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "d37d066334da54306ec83a6fc2bd40b2c9ab402316c771a518c0913c91db6d4a",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 120,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:42.005Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 120,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:42.005Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:42.005Z"
+}

@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "midnight-oil-beds-are-burning",
+  "identityStatus": "current",
+  "sourceArtifactHash": "606bdfa4014c1aa2355dfccc5f4889a42ece5b49cb6cee97bc4bdaf337ee7db3",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:midnight-oil-beds-are-burning.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 122,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:48.069Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 122,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:48.069Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:48.069Z"
+}

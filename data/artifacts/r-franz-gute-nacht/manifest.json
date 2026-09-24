@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "r-franz-gute-nacht",
+  "identityStatus": "current",
+  "sourceArtifactHash": "ef9b5829202e2645c3b8f3edf7449c3eb01f212eff56c23484bf95adc58d0f1c",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:r-franz-gute-nacht.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 81,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:49.096Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 81,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:49.096Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:49.096Z"
+}

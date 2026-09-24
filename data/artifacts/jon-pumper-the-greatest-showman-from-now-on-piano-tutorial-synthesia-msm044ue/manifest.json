@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "jon-pumper-the-greatest-showman-from-now-on-piano-tutorial-synthesia-msm044ue",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "f412fb95d56e664a2c1462ade0ba374aada5452efc3f94819b6fe8bf6fbe1be4",
+  "configFingerprint": "cf5a2da93c648fd6eeb6398b1bc18a8df6e10ac0282112e539a649f5142f34d1",
+  "tempo": {
+    "calibration": {
+      "bpm": 112,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:51.388Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 112,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:51.388Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:51.388Z"
+}

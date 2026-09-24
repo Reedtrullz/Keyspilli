@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "capital-cities-safe-and-sound",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "937da8c55930cbcd19239dc5e38e71f22ca569fcd0f445bb5333d2dd6b6cfaf9",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 118,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:41.825Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 118,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:41.825Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:41.825Z"
+}

@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "a-diabelli-28-melodische-ubungsstucke-no-3",
+  "identityStatus": "current",
+  "sourceArtifactHash": "b625d9a1559b614a99a30f83e9d8c39732a73f8c0c43e454060e0d14ae1fff84",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:a-diabelli-28-melodische-ubungsstucke-no-3.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 120,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:40.293Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 120,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:40.293Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:40.293Z"
+}

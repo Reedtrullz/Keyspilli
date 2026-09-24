@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "baseId": "keyspilli-upload-test-mt63crsw",
+  "identityStatus": "current",
+  "sourceArtifactHash": "bd6524f98752dd9190376e29dd0bce82d5bd5e57dcdbd549687e7836629434ff",
+  "configFingerprint": "d8bab40321ff58b7f33bdf6294e2362c069ed550eb5a1271413901511b396724",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "upload",
+    "acquiredVia": "upload",
+    "sourceRef": null,
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 110,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-23T17:38:49.680Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 110,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-23T17:38:49.680Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-23T17:38:49.680Z"
+}

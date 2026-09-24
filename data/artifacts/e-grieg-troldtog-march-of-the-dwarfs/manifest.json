@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "e-grieg-troldtog-march-of-the-dwarfs",
+  "identityStatus": "current",
+  "sourceArtifactHash": "9d73618b3ab01976b9138c57ce7e41db3256b0eaad8b9741c909d322c6fb369e",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:e-grieg-troldtog-march-of-the-dwarfs.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 120,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:43.467Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 120,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:43.467Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:43.467Z"
+}

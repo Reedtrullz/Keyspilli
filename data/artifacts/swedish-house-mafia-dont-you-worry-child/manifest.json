@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "swedish-house-mafia-dont-you-worry-child",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "e691eea9794e13612085f0643554a5049526bd206a5e31cdea7ab27e0db1898d",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 120,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:03.019Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 120,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:03.019Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:03.019Z"
+}

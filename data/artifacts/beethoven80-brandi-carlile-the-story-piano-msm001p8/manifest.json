@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "beethoven80-brandi-carlile-the-story-piano-msm001p8",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "b7b9ff21f28647b978931abbb535acd18ae738ee4f5583a27203fb4c6232356d",
+  "configFingerprint": "cf5a2da93c648fd6eeb6398b1bc18a8df6e10ac0282112e539a649f5142f34d1",
+  "tempo": {
+    "calibration": {
+      "bpm": 96,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:38.998Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 96,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:38.998Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:38.998Z"
+}

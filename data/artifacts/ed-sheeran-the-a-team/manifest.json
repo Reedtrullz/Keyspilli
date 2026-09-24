@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "ed-sheeran-the-a-team",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "44585516082a33ccf87170da9205af35f64057b0eea461206decc05db299b352",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 85,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:44.463Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 85,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:44.463Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:44.463Z"
+}

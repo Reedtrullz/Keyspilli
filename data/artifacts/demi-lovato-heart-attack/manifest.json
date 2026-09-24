@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "demi-lovato-heart-attack",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "9abbe8437d807438d40c6b14ad47c12f7aa9fc07e4f8d717ee4e95c9cc2a007a",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 150,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:43.297Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 150,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:43.297Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:43.297Z"
+}

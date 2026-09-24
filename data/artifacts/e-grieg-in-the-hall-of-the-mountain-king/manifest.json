@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "e-grieg-in-the-hall-of-the-mountain-king",
+  "identityStatus": "current",
+  "sourceArtifactHash": "0c256a809b5af1faef81b6aad6106088a71d76b12435d5f0775d4ceee60c917e",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:e-grieg-in-the-hall-of-the-mountain-king.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 138,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:43.389Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 138,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:43.389Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:43.389Z"
+}

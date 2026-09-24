@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "piano-man-piano",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "eb84979ea545a629788492e166ad18d2c0021d85d87585d9ecc64bac77d762a3",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 80,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:58.608Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 80,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:58.608Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:58.608Z"
+}

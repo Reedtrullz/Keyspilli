@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "sheet-music-mary-on-a-cross-ghost-piano-cover-w-lyrics-mslwt86i",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "ebd24913ce2d0826e55fdea5a04c0d48167ad1f8f0eaf3c2ea16f3f902b88926",
+  "configFingerprint": "cf5a2da93c648fd6eeb6398b1bc18a8df6e10ac0282112e539a649f5142f34d1",
+  "tempo": {
+    "calibration": {
+      "bpm": 129,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:01.388Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 129,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:01.388Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:01.388Z"
+}

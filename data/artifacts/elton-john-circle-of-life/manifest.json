@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "elton-john-circle-of-life",
+  "identityStatus": "current",
+  "sourceArtifactHash": "7d79987b9c0cf4d13d091199183a03a36a59f31d49f386851d4b67c8f157622c",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:elton-john-circle-of-life.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 180,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:43.557Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 180,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:43.557Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:43.557Z"
+}

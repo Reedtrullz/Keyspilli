@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "baseId": "piano-duet-tutorial-levva-livet-age-aleksandersen-mslzwgdw",
+  "identityStatus": "current",
+  "sourceArtifactHash": "c2fbe1ad62e483f43b53422f65309691cfb9924b98a2ae6b67570751d93ca764",
+  "configFingerprint": "49ba6f7e6933e7aa0b3bdb826715f69d1127d19f761833056a5b3cc4c224f0ae",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "youtube",
+    "acquiredVia": "youtube",
+    "sourceRef": "youtube:89mBR_9FZ-M",
+    "sourceYoutubeUrl": "https://www.youtube.com/watch?v=89mBR_9FZ-M"
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 136,
+      "source": "detected",
+      "resolvedAt": "2026-08-24T15:55:44.860Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 136,
+      "source": "detected",
+      "resolvedAt": "2026-08-24T15:55:44.860Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-24T15:55:44.860Z"
+}

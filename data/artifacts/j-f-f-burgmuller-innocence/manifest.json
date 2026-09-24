@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "j-f-f-burgmuller-innocence",
+  "identityStatus": "current",
+  "sourceArtifactHash": "39768b50abb623d24986b0e3993518ca92a6f1340d6154fc092f218cb6b97fee",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:j-f-f-burgmuller-innocence.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 112,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:46.470Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 112,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:46.470Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:46.470Z"
+}

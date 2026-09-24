@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "j-s-bach-ach-was-soll-ich-sunder-machen",
+  "identityStatus": "current",
+  "sourceArtifactHash": "a8142c537000308336635400d130667eb79cfc2c70ce8d7432aa63a7f5f66294",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:j-s-bach-ach-was-soll-ich-sunder-machen.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 60,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:46.715Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 60,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:46.715Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:46.715Z"
+}

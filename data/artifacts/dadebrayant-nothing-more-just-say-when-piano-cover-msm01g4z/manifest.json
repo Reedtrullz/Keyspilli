@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "dadebrayant-nothing-more-just-say-when-piano-cover-msm01g4z",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "6f80ff8d3eaf076c02e8e6f294527f96d1108a348b2bbe52b50fa135b034a2e3",
+  "configFingerprint": "cf5a2da93c648fd6eeb6398b1bc18a8df6e10ac0282112e539a649f5142f34d1",
+  "tempo": {
+    "calibration": {
+      "bpm": 144,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:42.925Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 144,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:42.925Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:42.925Z"
+}

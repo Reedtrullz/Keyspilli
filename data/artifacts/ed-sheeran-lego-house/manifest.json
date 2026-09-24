@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "ed-sheeran-lego-house",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "6b6f4e6094328c6dc45232c845b5c592f4bb0813543bad5961e6afe0d8db9640",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 80,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:44.222Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 80,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:44.222Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:44.222Z"
+}

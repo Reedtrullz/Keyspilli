@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "rinerion-adam-s-song-blink-182",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "a316b95e0c60f9ddbac3d75bf8fda0d440a587c6a40b3e81d2a8c386ea31fc21",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 131,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:59.906Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 131,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:59.906Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:59.906Z"
+}

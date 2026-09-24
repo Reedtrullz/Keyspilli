@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "coldplay-every-teardrop-is-a-waterfall",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "ec4198401a0f03d540312f55b7f7d0109b19d47a85f8e215d0e9f47bade4adac",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 120,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:42.542Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 120,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:42.542Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:42.542Z"
+}

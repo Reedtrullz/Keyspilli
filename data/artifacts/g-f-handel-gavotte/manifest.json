@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "g-f-handel-gavotte",
+  "identityStatus": "current",
+  "sourceArtifactHash": "5d24dcb8a435cb85465f48592a7d0a5674c5fe225e10667d5db571e80ed5cb67",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:g-f-handel-gavotte.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 92,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:44.624Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 92,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:44.624Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:44.624Z"
+}

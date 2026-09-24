@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "sia-chandelier",
+  "identityStatus": "current",
+  "sourceArtifactHash": "635119a328112670ee2af52a897c5f1736e9c63c5cd38d3182e4ca58e1d3936f",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:sia-chandelier.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 174,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:49.514Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 174,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:49.514Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:49.514Z"
+}

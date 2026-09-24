@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "evanescence-lithium",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "8fe7d228565b1273db8ac2f903a5ce3bea5b97ef232361fe24f1ff1396d75263",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 111,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:45.013Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 111,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:45.013Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:45.013Z"
+}

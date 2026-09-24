@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "aerosmith-i-dont-want-to-miss-a-thing",
+  "identityStatus": "current",
+  "sourceArtifactHash": "c3a6296f70f05750c1936043ab4bbe321981eda7a4b5fe56c3eba14ec22f008d",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:aerosmith-i-dont-want-to-miss-a-thing.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 120,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:41.088Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 120,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:41.088Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:41.088Z"
+}

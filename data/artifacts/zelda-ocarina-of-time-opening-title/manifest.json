@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "zelda-ocarina-of-time-opening-title",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "d13e2324dda7071dc53f8e113efc7c7852150da8235b0352bd29866e92ab71d8",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 73,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:06.103Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 73,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:06.103Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:06.103Z"
+}

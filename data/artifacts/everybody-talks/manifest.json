@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "everybody-talks",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "4ba43011c582678e71c567d409ff544368ac52c979f1d8db96a23ec8035180df",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 160,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:45.094Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 160,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:45.094Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:45.094Z"
+}

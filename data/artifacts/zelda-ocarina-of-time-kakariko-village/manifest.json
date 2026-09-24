@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "zelda-ocarina-of-time-kakariko-village",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "1d65ad7e34b320d6ebd578f029a02f0f5fb3ed17d48f8a1d5d81522ccdab495e",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 103,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:05.912Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 103,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:05.912Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:05.912Z"
+}

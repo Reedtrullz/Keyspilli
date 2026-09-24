@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "baseId": "keyspilli-upload-test-mswh0wlc",
+  "identityStatus": "current",
+  "sourceArtifactHash": "bd6524f98752dd9190376e29dd0bce82d5bd5e57dcdbd549687e7836629434ff",
+  "configFingerprint": "65dd5f8cd913cdb0467c6a95040506ebf6d4c5d51030220e41c0be6939f6368e",
+  "arrangementProfile": "learner",
+  "tempo": {
+    "calibration": {
+      "bpm": 110,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-17T00:03:48.874Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 110,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-17T00:03:48.874Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-17T00:03:48.874Z"
+}

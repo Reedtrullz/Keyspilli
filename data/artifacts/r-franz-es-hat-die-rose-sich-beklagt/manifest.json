@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "r-franz-es-hat-die-rose-sich-beklagt",
+  "identityStatus": "current",
+  "sourceArtifactHash": "b9fe48ea55750788172552fa161f0c6f491f8a8c13a581fda3e8a0316db1c12f",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:r-franz-es-hat-die-rose-sich-beklagt.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 40,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:49.072Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 40,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:49.072Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:49.072Z"
+}

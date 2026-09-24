@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "creedence-clearwater-revival-have-you-ever-seen-the-rain",
+  "identityStatus": "current",
+  "sourceArtifactHash": "76c942348f018193935c3e2fdfe264b6373194615140c0e1ef858bffa107dd1f",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:creedence-clearwater-revival-have-you-ever-seen-the-rain.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 115,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:42.976Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 115,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:42.976Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:42.976Z"
+}

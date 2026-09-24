@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "j-brahms-2-intermezzo",
+  "identityStatus": "current",
+  "sourceArtifactHash": "70a6fc324bbc38b067267655d4d5e87ab49dc2de2df99d213885277937e1e7a2",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:j-brahms-2-intermezzo.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 80,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:45.509Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 80,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:45.509Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:45.509Z"
+}

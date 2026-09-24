@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "baseId": "synthesiafreak-gavin-degraw-i-don-t-wanna-be-piano-cover-msm02nur",
+  "identityStatus": "current",
+  "sourceArtifactHash": "fba932d2d3f27f4be823ee11c2c462644b1d7215af5b5f4fcca040588186a8b4",
+  "configFingerprint": "66b6c19dc66707ebb2a2311145b9916c72128bc08e58347543a06193bc6b7773",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "youtube",
+    "acquiredVia": "youtube",
+    "sourceRef": "youtube:WfssCkNxGgg",
+    "sourceYoutubeUrl": "https://www.youtube.com/watch?v=WfssCkNxGgg"
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 152,
+      "source": "detected",
+      "resolvedAt": "2026-08-24T13:35:43.564Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 152,
+      "source": "detected",
+      "resolvedAt": "2026-08-24T13:35:43.564Z",
+      "role": "playback"
+    }
+  },
+  "transcription": {
+    "basicPitchVersion": "unknown",
+    "modelSerialization": "default",
+    "onsetThreshold": 0.4,
+    "frameThreshold": 0.25,
+    "tempo": 152,
+    "tempoSource": "detected",
+    "audioSource": "youtube",
+    "transcribedAt": "2026-08-24T13:34:48.863Z",
+    "pipeline": {
+      "filterVersion": "audio-onset-filter-v1",
+      "normalizerId": "midi-normalizer-v2",
+      "gridPolicyId": "beat-grid-v2",
+      "variantPolicyId": "learner-variant-ladder-v3"
+    },
+    "postProcessing": {
+      "filterApplied": true,
+      "cleanupApplied": true,
+      "onsetMatchSec": 0.35,
+      "onsetDetector": {
+        "sampleRate": 22050,
+        "hopLength": 512,
+        "backtrack": true,
+        "delta": 0.07
+      },
+      "minVelocity": 30,
+      "minDurationBeats": 0.14,
+      "mergeWindowBeats": 0.125,
+      "maxPolyphony": 6,
+      "maxSounding": 8,
+      "maxDurationSec": 2.5,
+      "maxDurationBeats": 6,
+      "importedMaxDurationBeats": 1.5,
+      "importedMaxSounding": 12
+    }
+  },
+  "artifactWrittenAt": "2026-08-24T13:35:43.564Z"
+}

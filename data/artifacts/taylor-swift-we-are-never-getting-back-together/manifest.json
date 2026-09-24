@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "taylor-swift-we-are-never-getting-back-together",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "2e51b9dceb5f15184c8aefd00930d0952ec1c09d844fa9141cc67a0e898f72c8",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 170,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:03.600Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 170,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:03.600Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:03.600Z"
+}

@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "j-f-f-burgmuller-progres",
+  "identityStatus": "current",
+  "sourceArtifactHash": "d28e280d333d8a97262a4ffeba00fab251d382cd9a17e45a517d6613cb03f722",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:j-f-f-burgmuller-progres.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 132,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:46.587Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 132,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:46.587Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:46.587Z"
+}

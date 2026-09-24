@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "abba-lay-all-your-love-on-me",
+  "identityStatus": "current",
+  "sourceArtifactHash": "1ff75be0c085c1bf06d8603034d55e287ec63ee8fce11dc77e3efb7ee2127d96",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:abba-lay-all-your-love-on-me.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 130,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:40.714Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 130,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:40.714Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:40.714Z"
+}

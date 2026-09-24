@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "c-j-brown-toccatina",
+  "identityStatus": "current",
+  "sourceArtifactHash": "158f49f07196516292ff667a2b2d2e791f0852425b32389396f7fec356ee64f3",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:c-j-brown-toccatina.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 108,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:42.598Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 108,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:42.598Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:42.598Z"
+}

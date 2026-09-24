@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "d-d-emmett-oh-boatman-haste",
+  "identityStatus": "current",
+  "sourceArtifactHash": "9de47c13635c5a3cdbd7e975cac458f82cbbd00596fb143811b453c27acc09e1",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:d-d-emmett-oh-boatman-haste.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 78,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:43.059Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 78,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:43.059Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:43.059Z"
+}

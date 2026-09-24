@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "queen-bohemian-rhapsody",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "8dc0b6160dbea1b78937414e6e20042f227ac633495abd6260c79cde99b6af47",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 72,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:59.112Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 72,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:59.112Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:59.112Z"
+}

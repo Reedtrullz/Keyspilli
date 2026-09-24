@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "c-debussy-prelude-4-les-sons-et-les-parfums-tournent-dans-l-",
+  "identityStatus": "current",
+  "sourceArtifactHash": "d8500c6ae6146ffd445da26f06fa9670bd48b88a7552ddd2122a7b2d4f56efa5",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:c-debussy-prelude-4-les-sons-et-les-parfums-tournent-dans-l-.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 84,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:42.186Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 84,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:42.186Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:42.186Z"
+}

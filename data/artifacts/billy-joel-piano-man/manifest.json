@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "billy-joel-piano-man",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "c467cde5a142a3db86b3f5cac3d9037f91972159918d43c27b59ee5d4b661d0b",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 120,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:39.483Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 120,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:39.483Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:39.483Z"
+}

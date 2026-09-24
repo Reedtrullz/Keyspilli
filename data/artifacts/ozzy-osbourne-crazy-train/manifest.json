@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "ozzy-osbourne-crazy-train",
+  "identityStatus": "current",
+  "sourceArtifactHash": "2d7882074b754c03e1efa9daeeabb77f2db5101b9039c5ef187e49e168111db2",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:ozzy-osbourne-crazy-train.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 67,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:48.422Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 67,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:48.422Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:48.422Z"
+}

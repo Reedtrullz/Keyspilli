@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "c-p-e-bach-rondo-in-e-flat-major",
+  "identityStatus": "current",
+  "sourceArtifactHash": "065d4729bb9467a86cf72d8e109822bf881952cadb1a4a2d7b0c06371b76c49a",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:c-p-e-bach-rondo-in-e-flat-major.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 66,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:42.658Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 66,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:42.658Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:42.658Z"
+}

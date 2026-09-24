@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "adele-skyfall",
+  "identityStatus": "current",
+  "sourceArtifactHash": "e56de5c014ff267a8ae8be82e6991920909e095a9a0845d38ef5a29da4ac9ede",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:adele-skyfall.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 75,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:41.000Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 75,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:41.000Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:41.000Z"
+}

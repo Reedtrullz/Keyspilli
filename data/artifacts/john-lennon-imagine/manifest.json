@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "john-lennon-imagine",
+  "identityStatus": "current",
+  "sourceArtifactHash": "6f50f9a1a9570a8f47c2af9c33decfe8be1685faddfe56231127c71e668844e3",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:john-lennon-imagine.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 73,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:46.830Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 73,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:46.830Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:46.830Z"
+}

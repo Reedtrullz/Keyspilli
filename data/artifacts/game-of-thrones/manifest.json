@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "game-of-thrones",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "7811bd4053129e30a525e06c8dcf587a1155489d2db2ff6ae59f54c057687f65",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 168,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:46.997Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 168,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:46.997Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:46.997Z"
+}

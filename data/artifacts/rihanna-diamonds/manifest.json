@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "rihanna-diamonds",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "1847e202b597be5e01f48a76df4a4d5622d3ea7d9981fb29b8870219fd048b14",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 92,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:59.668Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 92,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:59.668Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:59.668Z"
+}

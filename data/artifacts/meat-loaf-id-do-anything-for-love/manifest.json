@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "meat-loaf-id-do-anything-for-love",
+  "identityStatus": "current",
+  "sourceArtifactHash": "fbbfb623fc1575bcb5d5078582ddf272b7adf89015da6cdf72d76f755cf902f7",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:meat-loaf-id-do-anything-for-love.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 125,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:47.888Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 125,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:47.888Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:47.888Z"
+}

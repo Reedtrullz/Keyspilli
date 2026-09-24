@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "he-s-a-pirate-pirates-of-the-caribbean",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "be3ff31cc4ee866a3afbbea8028e42fbef1d06ba629102b6628ebd139d052599",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 200,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:48.441Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 200,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:48.441Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:48.441Z"
+}

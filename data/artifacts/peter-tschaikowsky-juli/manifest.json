@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "peter-tschaikowsky-juli",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "f98c2b525cddb0b6c4b8a7a5d02ed3c4a586c02caeb53dcb068216fb6e26d5e0",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 117,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:57.785Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 117,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:57.785Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:57.785Z"
+}

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "piano-cover-by-pianella-piano-hozier-too-sweet-mslzwyl8",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "31bf0d0a4de3c961e497806f421948186e287883f475b3b4941e9d9468403c1a",
+  "configFingerprint": "cf5a2da93c648fd6eeb6398b1bc18a8df6e10ac0282112e539a649f5142f34d1",
+  "tempo": {
+    "calibration": {
+      "bpm": 118,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:57.993Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 118,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:57.993Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:57.993Z"
+}

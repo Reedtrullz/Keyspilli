@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "t-i-sorry",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "0002b284dfb270e558fc7c66f7f8defb39c539e1bc0ccfbdb0d1f61db3e5b2cd",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 80,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:03.263Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 80,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:03.263Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:03.263Z"
+}

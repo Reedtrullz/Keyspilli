@@ -14,8 +14,17 @@ export interface Note {
   sourceLane?: string;
   /** Source lane for role-aware learner arrangement; absent on legacy notes. */
   identitySource?: "vocals" | "guitar" | "other";
+  /** Neutral source location; it carries no semantic role by itself. */
+  sourceOrigins?: SourceNoteOrigin[];
   /** optional lyric syllable for this note */
   lyrics?: string;
+}
+
+export interface SourceNoteOrigin {
+  id: string;
+  track?: number;
+  staff?: string;
+  voice?: string;
 }
 
 /** Provenance of a chord event; omitted on legacy chord labels. */

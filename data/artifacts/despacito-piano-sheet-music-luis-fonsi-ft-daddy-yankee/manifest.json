@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "despacito-piano-sheet-music-luis-fonsi-ft-daddy-yankee",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "903344f89e701e3bf686f862dd33cb5f37af5c0e1d4bc905e6cd4d7b42100dc3",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 89,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:43.521Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 89,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:43.521Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:43.521Z"
+}

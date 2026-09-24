@@ -93,6 +93,19 @@ function compareLearnerNotes(a: Note, b: Note): number {
     || text(a.lyrics ?? "", b.lyrics ?? "");
 }
 
+function quantizeSourceLanes(notes: Note[], options: Parameters<typeof quantize>[1]): Note[] {
+  const lanes = new Map<string, Note[]>();
+  for (const note of notes) {
+    const key = (note.sourceOrigins ?? []).map((origin) => origin.track !== undefined
+      ? `track:${origin.track}` : `staff:${origin.staff ?? "?"}:voice:${origin.voice ?? "?"}`).join("|") || "unidentified";
+    const lane = lanes.get(key) ?? [];
+    lane.push(note);
+    lanes.set(key, lane);
+  }
+  return [...lanes.values()].flatMap((lane) => quantize(lane, options))
+    .sort((a, b) => a.start - b.start || a.midi - b.midi);
+}
+
 /** Seed deterministic source IDs without using caller/input array order. */
 function seedLearnerTrace(notes: Note[]): LearnerInternalNote[] {
   const counts = new Map<string, number>();
@@ -2155,7 +2168,8 @@ function metalLeftHandTexture(notes: Note[], rhythmGap: number, harmonicVoices: 
 function trimSamePitchOverlaps(notes: Note[], minDur = 0.125): Note[] {
   const groups = new Map<string, Note[]>();
   for (const n of notes) {
-    const key = `${n.hand === "L" ? "L" : "R"}:${n.midi}`;
+    const origins = (n.sourceOrigins ?? []).map((origin) => origin.id).sort().join("|");
+    const key = `${n.hand === "L" ? "L" : "R"}:${n.midi}:${origins}`;
     const group = groups.get(key) ?? [];
     group.push({ ...n });
     groups.set(key, group);
@@ -2954,7 +2968,9 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   const arrangedImported = innerVoiceArrangement ? redistributeInnerVoices(imported) : imported;
   const sourceHandInference = opts.arrangementProfile === "source" && opts.inferSourceHands
     ? inferSourceHandLanes(arrangedImported) : undefined;
-  const base = quantize(sourceHandInference?.notes ?? arrangedImported, { grid: 0.125, minDur: 0.125 });
+  // Keep same-pitch collisions from different source lanes distinct. A single
+  // quantizer winner would silently swap or erase provenance at Advanced.
+  const base = quantizeSourceLanes(sourceHandInference?.notes ?? arrangedImported, { grid: 0.125, minDur: 0.125 });
   const normalized = opts.normalizeRange === false ? base : normalizePianoRange(base);
   const protectedNormalized = clearMixedProtectedIdentity(normalized);
   const shifted = base.filter((n, i) => normalized[i]!.midi !== n.midi);
@@ -3007,7 +3023,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   // piano texture; each easier level is then a reduction of the level above
   // so the ladder stays a true subset.
   const advancedRhSource = metalProfile ? reduceMetalRhRealism(rh, tempo, 8) : rh;
-  const advancedSource = quantize(
+  const advancedSource = quantizeSourceLanes(
     [
       ...capSoundingSpan(topVoices(advancedRhSource, 0.125, 4, pads, protectedIdentitySources), 12, "high", protectedIdentitySources),
       // Advanced keeps the imported LH attacks intact. Chord thinning is a

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "imogen-heap-hide-and-seek",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "7963595cb43488ddb1471529b3f3c08ebfe5b687d2103edc69c9e65d06d24561",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 110,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:49.204Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 110,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:49.204Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:49.204Z"
+}

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "zelda-ocarina-of-time-lost-woods",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "a994213a095596e96aa9785680a40fdb394e86b67c3a3b162ccf87bd67216258",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 140,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:06.054Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 140,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:06.054Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:06.054Z"
+}

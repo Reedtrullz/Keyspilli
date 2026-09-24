@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "bella-napoli-roy-bianco-die-abbrunzati-boys",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "6fa3b069d75bf3a5bbd6aeca15d175496c601b28de9ed9f195e6582a172f70ff",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 134,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:39.148Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 134,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:39.148Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:39.148Z"
+}

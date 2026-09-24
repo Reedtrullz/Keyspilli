@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "coldplay-the-scientist",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "9953da562e37a7d447c7707cf9256281e2edba13c8d802f4100c1c1cdf5885f4",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 136,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:42.591Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 136,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:42.591Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:42.591Z"
+}

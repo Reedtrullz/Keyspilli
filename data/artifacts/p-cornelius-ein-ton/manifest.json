@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "p-cornelius-ein-ton",
+  "identityStatus": "current",
+  "sourceArtifactHash": "631bcd481e09c1493191959ec3264c3513c4a93177ffc6d833dea4f4952b659b",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:p-cornelius-ein-ton.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 90,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:48.771Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 90,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:48.771Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:48.771Z"
+}

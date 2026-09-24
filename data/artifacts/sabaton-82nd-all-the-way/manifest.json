@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "sabaton-82nd-all-the-way",
+  "identityStatus": "current",
+  "sourceArtifactHash": "d6e0c3563799a46c793afe35c2e6913fd260aaad425401bdae057992f3ad64fc",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:sabaton-82nd-all-the-way.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 70,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:49.450Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 70,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:49.450Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:49.450Z"
+}

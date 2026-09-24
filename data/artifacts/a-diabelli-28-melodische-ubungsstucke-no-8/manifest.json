@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "a-diabelli-28-melodische-ubungsstucke-no-8",
+  "identityStatus": "current",
+  "sourceArtifactHash": "d66e23a9863871a2539449738f32d554f3cc56d9f87eea64debda0575ef5099f",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:a-diabelli-28-melodische-ubungsstucke-no-8.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 120,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:40.409Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 120,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:40.409Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:40.409Z"
+}

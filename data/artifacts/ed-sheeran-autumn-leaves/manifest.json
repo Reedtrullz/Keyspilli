@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "ed-sheeran-autumn-leaves",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "613a07f04901577aee1e83c7daa88bfff097ecd6ee3e88ce64dac98b33fb0899",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 160,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:44.077Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 160,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:44.077Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:44.077Z"
+}

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "christina-perri-jar-of-hearts",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "bf6960e8afe71ac06b0e5ad3184e4e0a181c50dbe00e13a118f08897d1d68f3a",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 40,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:42.127Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 40,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:42.127Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:42.127Z"
+}

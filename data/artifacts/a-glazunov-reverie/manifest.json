@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "a-glazunov-reverie",
+  "identityStatus": "current",
+  "sourceArtifactHash": "30265bc595c21fa151072872823b8f36c3e9eb0b9139d9b40427548fda406cce",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:a-glazunov-reverie.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 66,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:40.498Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 66,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:40.498Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:40.498Z"
+}

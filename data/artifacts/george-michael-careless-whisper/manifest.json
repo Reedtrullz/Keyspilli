@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "george-michael-careless-whisper",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "6444b10a07c9ca66fa0d61261bbb533580a3ac16f4b9b548f1bb3b057cb07f88",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 76,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:47.145Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 76,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:47.145Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:47.145Z"
+}

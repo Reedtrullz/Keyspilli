@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "keiko-matsui-midnight-stone",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "b78f6f5e2d572520910c5eeca5dce77832c1e5dd2a38751f44a1942c840e8518",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 100,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:52.048Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 100,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:52.048Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:52.048Z"
+}

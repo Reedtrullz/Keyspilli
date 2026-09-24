@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "turret-opera-satb",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "eef977b7cd1dcd0767a6dd8201256e99f8da990d8e3ecad3c4a14bb8e97f18fc",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 100,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:04.972Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 100,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:04.972Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:04.972Z"
+}

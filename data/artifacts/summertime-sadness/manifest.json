@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "summertime-sadness",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "9f1c9ca525dd1e23b2fe1b8b109dd45b6cb491b9ad3170f672cde99f90f3b20d",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 120,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:02.838Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 120,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:02.838Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:02.838Z"
+}

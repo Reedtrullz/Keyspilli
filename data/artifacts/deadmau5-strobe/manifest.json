@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "deadmau5-strobe",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "f7862f950bb1ba27e5a99910602029995c464c7fc405ced87552085cfc4fcf17",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 82,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:43.141Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 82,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:43.141Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:43.141Z"
+}

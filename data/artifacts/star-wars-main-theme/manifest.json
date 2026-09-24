@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "star-wars-main-theme",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "1d9f8dc3b68a81e65d56e379699b6f1025bdb2b3c9eb76de00675e015b86ec1e",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 80,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:02.006Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 80,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:02.006Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:02.006Z"
+}

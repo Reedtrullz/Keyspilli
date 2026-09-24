@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "maroon-5-maps",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "ff84b161b8347263e5fb9c065bb8980d06d6355d93fada9a645b0c09126fe935",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 118,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:54.147Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 118,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:54.147Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:54.147Z"
+}

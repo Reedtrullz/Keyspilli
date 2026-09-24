@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "30-seconds-2-mars-city-of-angels",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "f34893f0d7cdc5341269b02f2cae07d3064d7e9e134707452b955b07efa266a5",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 105,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:35.665Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 105,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:35.665Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:35.665Z"
+}

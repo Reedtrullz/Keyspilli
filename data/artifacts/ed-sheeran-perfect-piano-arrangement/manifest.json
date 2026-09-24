@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "ed-sheeran-perfect-piano-arrangement",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "a2a9941b52eea0800a13c778030750268a343dcc57e6e66f7d1a387d9f4c1790",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 94,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:44.382Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 94,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:44.382Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:44.382Z"
+}
