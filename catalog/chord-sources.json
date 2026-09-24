@@ -2,6 +2,33 @@
   "schemaVersion": 1,
   "entries": [
     {
+      "baseId": "adele-skyfall",
+      "canonicalTitle": "Skyfall",
+      "canonicalArtist": "Adele",
+      "fallbackSourceId": "midi-derived",
+      "sources": [
+        {
+          "id": "ug-skyfall",
+          "provider": "ultimate-guitar",
+          "kind": "chart",
+          "sourceRef": "ultimate-guitar:adele/skyfall",
+          "sourceUrl": "https://tabs.ultimate-guitar.com/tab/adele/skyfall-chords-1186885",
+          "artifactPath": "catalog/chord-timelines/skyfall.json",
+          "retrievedAt": "2026-09-24",
+          "confidence": "medium",
+          "priority": 0
+        },
+        {
+          "id": "midi-derived",
+          "provider": "keyspilli",
+          "kind": "midi-derived",
+          "sourceRef": "variant:advanced:notes.json",
+          "confidence": "fallback",
+          "priority": 100
+        }
+      ]
+    },
+    {
       "baseId": "the-theorist-elton-john-your-song-piano-cover-jz6ugvghbt8",
       "canonicalTitle": "Your Song",
       "canonicalArtist": "Elton John",

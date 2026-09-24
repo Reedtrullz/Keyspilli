@@ -11,8 +11,33 @@ import {
 } from "../src/index.js";
 
 const YOUR_SONG = "the-theorist-elton-john-your-song-piano-cover-jz6ugvghbt8";
+const SKYFALL = "adele-skyfall";
 
 describe("catalog chord source plumbing", () => {
+  it("uses Skyfall's chart through the intro, cadences, bridge, and outro", async () => {
+    const result = await resolveChordTimeline(SKYFALL, { runtimeDataDir: join(process.cwd(), "missing-runtime-data") });
+    expect(result?.usedFallback).toBe(false);
+    expect(result?.source.id).toBe("ug-skyfall");
+    expect(result?.timeline.coverage).toBe("full-song");
+
+    const chords = result?.timeline.chords ?? [];
+    const at = (beat: number) => chords.find((chord) => chord.beat <= beat && beat < chord.beat + chord.durationBeats)?.name;
+    expect([
+      at(4), at(18.75), at(20), at(24), at(26), at(40), at(44),
+      at(84), at(86), at(92), at(94), at(100), at(102),
+      at(123), at(124), at(126), at(136), at(148), at(150), at(200),
+      at(252), at(256), at(259), at(264), at(266), at(332), at(334), at(352),
+    ]).toEqual([
+      "N.C.", "Cm", "Fm", "Cm", "Ab", "Ddim", "G",
+      "F", "Fm", "F", "Fm", "F", "Fm",
+      "Eb", "Ddim", "G", "F", "F", "Fm", "Fm",
+      "N.C.", "F", "G", "Bb", "Bdim", "Ddim", "G", "Cm",
+    ]);
+    expect(chords[0]?.beat).toBe(0);
+    expect(chords.at(-1)!.beat + chords.at(-1)!.durationBeats).toBe(360);
+    expect(chords.every((chord, index) => index === 0 || chords[index - 1]!.beat + chords[index - 1]!.durationBeats === chord.beat)).toBe(true);
+  });
+
   it("loads the checked-in Your Song chart with external provenance", async () => {
     const result = await resolveChordTimeline(YOUR_SONG, { runtimeDataDir: join(process.cwd(), "missing-runtime-data") });
     expect(result).not.toBeNull();
