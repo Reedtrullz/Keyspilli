@@ -312,10 +312,12 @@ export class PlaybackEngine {
     const target = this.grader.currentWait;
     if (!this.grader.play(midi, this.time)) return false;
     if (target) {
+      const next = this.grader.currentWait;
+      const accepted = this.grader.lastAccepted() ?? target;
       this.time = Math.min(this.gradingRange?.endSec ?? this.duration,
-        Math.max(this.time, target.startSec + target.durSec));
+        Math.max(this.time, next?.startSec ?? accepted.startSec + accepted.durSec));
       this.lastScheduled = this.time;
-      if (this.gradingRange && !this.grader.currentWait) this.finishGrading();
+      if (this.gradingRange && !next) this.finishGrading();
       else if (!this.playing) this.schedule(this.time, this.time + SCHEDULE_LOOKAHEAD);
     }
     return true;
@@ -323,6 +325,10 @@ export class PlaybackEngine {
 
   get waitNote(): TimedNote | null {
     return this.grader?.currentWait ?? null;
+  }
+
+  get waitNotes(): TimedNote[] {
+    return this.grader?.currentWaitGroup ?? [];
   }
 
   /** Build the bounded audible event list used by the player's preview button. */
@@ -388,9 +394,8 @@ export class PlaybackEngine {
       if (n.startSec >= to) break;
       this.audio.noteOn(n, Math.max(0, n.startSec - this.time));
     }
-    // A missing source timeline falls back to the piano background, including
-    // its metronome behaviour, rather than silently muting the left hand.
-    if (this.settings.metronome && !chordMode) {
+    // The metronome follows the song timeline in either background mode.
+    if (this.settings.metronome) {
       const beat = 60 / this.song.tempoBpm / this.settings.speed;
       const perMeasure = beatsPerMeasure(this.song.timeSig);
       const clickBeats = new Set<number>();

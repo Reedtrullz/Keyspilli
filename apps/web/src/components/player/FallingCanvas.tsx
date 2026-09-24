@@ -47,7 +47,7 @@ interface Props {
   lowMidi: number;
   highMidi: number;
   loop: LoopRegion | null;
-  waitNote?: TimedNote | null;
+  waitNotes?: TimedNote[];
 }
 
 export function beatGridPoints(
@@ -67,7 +67,7 @@ export function beatGridPoints(
   return [...points].sort((a, b) => a - b);
 }
 
-export function FallingCanvas({ measures = [], countIn = null, inputEnabled = true, onKeyDown, onKeyUp, inputOctave = 2, midiConnected = false, onResetOctave, notes, time, timeRef, playing, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop, waitNote, timeSig = [4, 4] }: Props) {
+export function FallingCanvas({ measures = [], countIn = null, inputEnabled = true, onKeyDown, onKeyUp, inputOctave = 2, midiConnected = false, onResetOctave, notes, time, timeRef, playing, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop, waitNotes, timeSig = [4, 4] }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rhythmLabelRef = useRef<HTMLSpanElement>(null);
   const progressRef = useRef<HTMLProgressElement>(null);
@@ -94,7 +94,7 @@ export function FallingCanvas({ measures = [], countIn = null, inputEnabled = tr
   const lowMidiRef = useRef(lowMidi);
   const highMidiRef = useRef(highMidi);
   const loopRef = useRef(loop);
-  const waitNoteRef = useRef(waitNote);
+  const waitNotesRef = useRef(waitNotes);
   const timeSigRef = useRef(timeSig);
   const playingRef = useRef(playing);
   playingRef.current = playing;
@@ -116,7 +116,7 @@ export function FallingCanvas({ measures = [], countIn = null, inputEnabled = tr
   useEffect(() => { lowMidiRef.current = lowMidi; }, [lowMidi]);
   useEffect(() => { highMidiRef.current = highMidi; }, [highMidi]);
   useEffect(() => { loopRef.current = loop; }, [loop]);
-  useEffect(() => { waitNoteRef.current = waitNote; }, [waitNote]);
+  useEffect(() => { waitNotesRef.current = waitNotes; }, [waitNotes]);
   useEffect(() => { timeSigRef.current = timeSig; }, [timeSig]);
   const liveTime = timeRef ?? fallbackTimeRef;
 
@@ -125,7 +125,7 @@ export function FallingCanvas({ measures = [], countIn = null, inputEnabled = tr
   // the refs directly and does not need an extra React-driven draw.
   useEffect(() => {
     if (!playingRef.current) drawRef.current?.();
-  }, [notes, time, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop, waitNote, timeSig, inputOctave, measures, countIn]);
+  }, [notes, time, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop, waitNotes, timeSig, inputOctave, measures, countIn]);
 
   // Single rAF loop — draws once on mount and only schedules frames while
   // playing, reading state from refs.
@@ -174,7 +174,7 @@ export function FallingCanvas({ measures = [], countIn = null, inputEnabled = tr
       const low = lowMidiRef.current;
       const high = highMidiRef.current;
       const currentLoop = loopRef.current;
-      const currentWaitNote = waitNoteRef.current;
+      const currentWaitMidis = new Set(waitNotesRef.current?.map((note) => note.midi));
       ctx.clearRect(0, 0, W, H);
       const dark = s.stageTheme === "charcoal";
       ctx.fillStyle = dark ? "#15181e" : "#fafafa";
@@ -320,7 +320,7 @@ export function FallingCanvas({ measures = [], countIn = null, inputEnabled = tr
      for (const w of kb.whites) {
        const kx = w.x + LEFT_MARGIN;
        const isChord = s.chordKeys && activeChordNotes.has(w.midi) && !pk.has(w.midi);
-       const isWait = currentWaitNote && w.midi === currentWaitNote.midi && !pk.has(w.midi);
+       const isWait = currentWaitMidis.has(w.midi) && !pk.has(w.midi);
        ctx.fillStyle = pk.has(w.midi) ? pitchColor(w.midi) : "#ffffff";
        ctx.fillRect(kx, H - KB_H, w.w - 1, KB_H);
        ctx.lineWidth = 1;
@@ -368,7 +368,7 @@ export function FallingCanvas({ measures = [], countIn = null, inputEnabled = tr
      for (const b of kb.blacks) {
        const kx = b.x + LEFT_MARGIN;
        const isChordB = s.chordKeys && activeChordNotes.has(b.midi) && !pk.has(b.midi);
-       const isWaitB = currentWaitNote && b.midi === currentWaitNote.midi && !pk.has(b.midi);
+       const isWaitB = currentWaitMidis.has(b.midi) && !pk.has(b.midi);
        ctx.fillStyle = pk.has(b.midi) ? pitchColor(b.midi) : "#27272a";
        ctx.fillRect(kx, H - KB_H, b.w, KB_H * 0.62);
        ctx.fillStyle = "#ffffff22"; ctx.fillRect(kx + 2, H - KB_H + 2, Math.max(1, b.w - 4), 2);

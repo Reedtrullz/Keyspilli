@@ -82,8 +82,12 @@ export class Grader {
 
   /** Feed a played note (midi) at the given time. Returns true if accepted in wait mode. */
   play(midi: number, now: number): boolean {
-    if (this.waitMode && this.waitingFor) {
-      if (midi !== this.waitingFor.midi) {
+    const waitingFor = this.currentWait;
+    if (waitingFor) {
+      const onset = waitingFor.startSec;
+      const index = this.remaining.findIndex((note, index) => index >= this.remainingStart
+        && Math.abs(note.startSec - onset) <= 1e-6 && note.midi === midi);
+      if (index < 0) {
         this.wrongs++;
         return false;
       }
@@ -91,12 +95,9 @@ export class Grader {
       // so the temporal window check would permanently block progress.
       // Accept any correct-pitch press immediately.
       this.hits++;
-      const index = this.remaining.indexOf(this.waitingFor, this.remainingStart);
-      if (index >= this.remainingStart) {
-        this.remaining.splice(index, 1);
-        this.remainingCount--;
-      }
-      this.lastAcceptedNote = this.waitingFor;
+      this.lastAcceptedNote = this.remaining[index]!;
+      this.remaining.splice(index, 1);
+      this.remainingCount--;
       this.waitingFor = null;
       return true;
     }
@@ -151,6 +152,13 @@ export class Grader {
     return this.waitingFor;
   }
 
+  get currentWaitGroup(): TimedNote[] {
+    const first = this.currentWait;
+    if (!first) return [];
+    return this.remaining.filter((note, index) => index >= this.remainingStart
+      && Math.abs(note.startSec - first.startSec) <= 1e-6);
+  }
+
   isWaitMode(): boolean {
     return this.waitMode;
   }
@@ -168,7 +176,11 @@ export class Grader {
     const total = this.hits + this.wrongs + missed + this.late;
     const accuracyPct = total === 0 ? 100 : Math.round((this.hits / total) * 100);
     let summary = "";
-    if (accuracyPct >= 90) summary = "Great run — clean and in time.";
+    if (this.waitMode) {
+      if (accuracyPct >= 90) summary = "Great run — all notes found.";
+      else if (accuracyPct >= 70) summary = "Good work. A few notes to revisit.";
+      else summary = "Keep practising these notes.";
+    } else if (accuracyPct >= 90) summary = "Great run — clean and in time.";
     else if (accuracyPct >= 70) summary = "Good work. A few spots to polish.";
     else if (missed > this.wrongs) summary = "Most mistakes were missed notes.";
     else summary = "Many notes were technically right but off the beat.";

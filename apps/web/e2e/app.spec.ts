@@ -293,7 +293,7 @@ test("chord styles persist across source changes, seeking, guidance, and mobile 
   await expect(page.locator(".player-page")).toHaveJSProperty("clientWidth", 390);
 });
 
-test("wait practice advances the visible playhead after an accepted generated target", async ({ page }) => {
+test("wait practice shows the chord and keeps its onset until the other notes are played", async ({ page }) => {
   await page.goto(`/player/${UG_SONG}`);
   await openPlayerTool(page, "Sound");
   const dialog = page.getByRole("dialog", { name: "Sound settings" });
@@ -314,11 +314,38 @@ test("wait practice advances the visible playhead after an accepted generated ta
 
   const grading = page.getByRole("region", { name: "Practice grading" });
   await expect(grading).toContainText("Play: A#4 (right hand)");
+  await expect(grading).toContainText("D#5 (right hand)");
   await expect(seek).toHaveValue("0.4");
   await page.keyboard.press("u");
   await expect(grading).toContainText("Play: D#5 (right hand)");
-  await expect.poll(async () => Number(await seek.inputValue())).toBeGreaterThan(2);
+  await expect.poll(async () => Number(await seek.inputValue())).toBeLessThan(1);
   await page.getByRole("button", { name: "Finish practice", exact: true }).click();
+});
+
+test("Chords opens a short Wait exercise from the selected bar", async ({ page }) => {
+  await page.goto(`/player/${process.env.KEYSPILLI_PRACTICE_E2E_SONG ?? UG_SONG}`);
+  await openPlayerTool(page, "Sound");
+  const sound = page.getByRole("dialog", { name: "Sound settings" });
+  await sound.getByRole("radio", { name: "Chord mode" }).click();
+  await sound.getByRole("button", { name: "Close tools" }).click();
+  const bar = page.getByRole("spinbutton", { name: "Bar", exact: true });
+  await bar.fill("3");
+  await bar.press("Enter");
+  const startTime = await page.getByRole("slider", { name: "Seek" }).inputValue();
+
+  await page.getByRole("button", { name: "Practice", exact: true }).click();
+  const setup = page.getByRole("dialog", { name: "Set up practice" });
+  await expect(setup.getByRole("combobox", { name: "Behavior" })).toHaveValue("wait");
+  await expect(setup.getByRole("combobox", { name: "Passage" })).toHaveValue("bars");
+  await expect(setup.getByRole("option", { name: "Current 4 bars" })).toBeAttached();
+  await setup.getByRole("button", { name: "Start practice" }).click();
+  await expect(page.getByRole("region", { name: "Practice grading" })).toContainText("Wait for notes");
+  await expect(page.getByRole("slider", { name: "Seek" })).toHaveValue(startTime);
+  await page.getByRole("button", { name: "Finish practice" }).click();
+  await page.locator(".player-loop-controls summary").click();
+  await page.getByRole("button", { name: "Loop current bar" }).click();
+  await page.getByRole("button", { name: "Practice", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Set up practice" }).getByRole("combobox", { name: "Passage" })).toHaveValue("loop");
 });
 
 test("practice mode starts and exits cleanly", async ({ page }) => {
@@ -344,6 +371,26 @@ test("chord practice shows a compact target and advances by chord", async ({ pag
   await expect(panel.getByText(/Chord 2 of/)).toBeVisible();
   await panel.getByRole("button", { name: "Close", exact: true }).click();
   await expect(panel).not.toBeVisible();
+});
+
+test("changing hand while learning chord tones replaces stale targets", async ({ page }) => {
+  await page.goto(`/player/${UG_SONG}`);
+  await openPlayerTool(page, "Sound");
+  const sound = page.getByRole("dialog", { name: "Sound settings" });
+  await sound.getByRole("radio", { name: "Chord mode" }).click();
+  await openAdvancedArrangementControls(page);
+  await sound.getByRole("radio", { name: "Bass + chords" }).click();
+  await sound.getByRole("radio", { name: "Generated" }).click();
+  await sound.getByRole("button", { name: "Close tools" }).click();
+  await page.getByRole("button", { name: "Practice", exact: true }).click();
+  await page.getByRole("button", { name: "Chord practice", exact: true }).click();
+  const panel = page.getByTestId("chord-practice-panel");
+  await expect(panel.getByLabel("Target notes")).toContainText("RH");
+  await panel.getByRole("button", { name: "Skip" }).click();
+  await page.getByRole("button", { name: "Left hand", exact: true }).click();
+  await expect(panel.getByLabel("Target notes")).not.toContainText("RH");
+  await expect(panel).toContainText("Chord 1 of");
+  await expect(panel).toContainText("restarted for the selected hand");
 });
 
 test("download dialog offers free exports", async ({ page }) => {

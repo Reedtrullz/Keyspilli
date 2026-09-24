@@ -5,7 +5,7 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ChordLabel } from "@keyspilli/midi";
-import { createLegacyBootstrapManifest, arrangementManifestPath, upsertSong, writeArrangementManifestFile, type SongRow, type SourceTimingMetadata } from "@keyspilli/catalog";
+import { createLegacyBootstrapManifest, arrangementManifestPath, deleteSongsByBase, upsertSong, writeArrangementManifestFile, type SongRow, type SourceTimingMetadata } from "@keyspilli/catalog";
 import { writeMidi, writeMusicXml } from "@keyspilli/midi";
 import type { SongData } from "@keyspilli/player-core";
 import { buildAutoChordSource, getArtifactFile, getSongDetail, getSongDetailShell, loadSongArtifact, mergeChartTimeline, projectChordSources } from "./catalog-api";
@@ -139,9 +139,72 @@ async function writeExportFixture(options: {
 }
 
 beforeEach(async () => {
+  deleteSongsByBase("catalog-api-song");
   await rm(join(dataRoot, "artifacts", "catalog-api-song"), { recursive: true, force: true });
   await writeNotes();
   upsertSong(song());
+});
+
+it("loads one Advanced Chords source while retaining the selected Original level", async () => {
+  const beginner = { ...song(), id: "catalog-api-song-b", level: "b", difficulty: "beginner", difficultyScore: 2 };
+  upsertSong(beginner);
+  await writeFile(join(dataRoot, "artifacts", "catalog-api-song", "a", "notes.json"), JSON.stringify({
+    notes: [{ midi: 60, start: 0, dur: 1, vel: 80, hand: "R" }],
+    chords: [{ beat: 0, name: "C", notes: [48, 52, 55], durationBeats: 4 }],
+    measures: [{ index: 0, startBeat: 0, endBeat: 4 }, { index: 1, startBeat: 4, endBeat: 8 }],
+    key: "C", tempoBpm: 120, timeSig: [4, 4],
+  }));
+  await mkdir(join(dataRoot, "artifacts", "catalog-api-song", "b"), { recursive: true });
+  await writeFile(join(dataRoot, "artifacts", "catalog-api-song", "b", "notes.json"), JSON.stringify({
+    notes: [{ midi: 72, start: 0, dur: 1, vel: 80, hand: "R" }],
+    chords: [],
+    measures: [{ index: 0, startBeat: 0, endBeat: 4 }],
+    key: "C", tempoBpm: 120, timeSig: [4, 4],
+  }));
+
+  const advanced = await getSongDetail(song().id);
+  const selected = await getSongDetail(beginner.id);
+  expect(selected?.data?.notes[0]?.midi).toBe(72);
+  expect(selected?.data?.chords).toEqual([]);
+  expect(selected?.data?.chordSources?.auto.chords ?? []).toEqual([]);
+  expect(selected?.chordData?.notes[0]?.midi).toBe(60);
+  expect(advanced?.chordData).toBeNull();
+  expect(selected?.chordData?.chords).toEqual(advanced?.data?.chords);
+  expect(selected?.chordUnavailableReason).toBeNull();
+});
+
+it("marks Chords unavailable when a selected level has different timing", async () => {
+  const beginner = { ...song(90), id: "catalog-api-song-b", level: "b", difficulty: "beginner", difficultyScore: 2 };
+  upsertSong(beginner);
+  const dir = join(dataRoot, "artifacts", "catalog-api-song", "b");
+  await mkdir(dir, { recursive: true });
+  await writeFile(join(dir, "notes.json"), JSON.stringify({
+    notes: [{ midi: 72, start: 0, dur: 1, vel: 80, hand: "R" }],
+    chords: [], measures: [{ index: 0, startBeat: 0, endBeat: 4 }],
+    key: "C", tempoBpm: 90, timeSig: [4, 4],
+  }));
+  const selected = await getSongDetail(beginner.id);
+  expect(selected?.data?.notes[0]?.midi).toBe(72);
+  expect(selected?.chordData).toBeNull();
+  expect(selected?.chordUnavailableReason).toContain("different timing");
+});
+
+it("marks Chords unavailable when a shared bar boundary moves", async () => {
+  const beginner = { ...song(), id: "catalog-api-song-b", level: "b", difficulty: "beginner", difficultyScore: 2 };
+  upsertSong(beginner);
+  await writeFile(join(dataRoot, "artifacts", "catalog-api-song", "a", "notes.json"), JSON.stringify({
+    notes: [{ midi: 60, start: 0, dur: 1, vel: 80, hand: "R" }],
+    chords: [], measures: [{ index: 0, startBeat: 0, endBeat: 4 }],
+    key: "C", tempoBpm: 120, timeSig: [4, 4],
+  }));
+  const dir = join(dataRoot, "artifacts", "catalog-api-song", "b");
+  await mkdir(dir, { recursive: true });
+  await writeFile(join(dir, "notes.json"), JSON.stringify({
+    notes: [{ midi: 72, start: 0, dur: 1, vel: 80, hand: "R" }],
+    chords: [], measures: [{ index: 0, startBeat: 0, endBeat: 2 }, { index: 1, startBeat: 2, endBeat: 4 }],
+    key: "C", tempoBpm: 120, timeSig: [4, 4],
+  }));
+  expect((await getSongDetail(beginner.id))?.chordUnavailableReason).toContain("different timing");
 });
 
 describe("catalog artifact manifest read boundary", () => {
