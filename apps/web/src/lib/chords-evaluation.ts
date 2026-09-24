@@ -65,6 +65,52 @@ function attackMetrics(attacks: readonly Attack[], durationBeats: number) {
   };
 }
 
+/**
+ * Listener-facing checks that need no listening. Dead air: a source note
+ * starts while the backing's last strike is a full bar or more back.
+ * Alignment: backing strikes that land on a source onset. Clashes: the
+ * highest right-hand note at each onset stands in for the tune; on a whole
+ * beat it should be a tone of the sounding backing, and it should never sit a
+ * semitone (or minor ninth) from a sounding backing note.
+ */
+function listenerChecks(data: SongData, audio: readonly Attack[]) {
+  const strikes = [...new Set(audio.map((attack) => attack.start))].sort((a, b) => a - b);
+  const sourceOnsets = [...new Set(data.notes.map((note) => note.start))].sort((a, b) => a - b);
+  const onsetSet = new Set(sourceOnsets);
+  let deadAirBars = 0, longestWait = 0, last = -Infinity, i = 0;
+  for (const onset of sourceOnsets) {
+    while (i < strikes.length && strikes[i]! <= onset + 1e-7) last = strikes[i++]!;
+    const bar = data.measures.find((measure) => measure.startBeat <= onset && onset < measure.endBeat);
+    const barLength = bar ? bar.endBeat - bar.startBeat : 4;
+    const wait = onset - last;
+    if (Number.isFinite(wait)) longestWait = Math.max(longestWait, wait);
+    if (!(wait < barLength)) deadAirBars++;
+  }
+  const tops = new Map<number, number>();
+  for (const note of data.notes) if (note.hand !== "L") tops.set(note.start, Math.max(tops.get(note.start) ?? -Infinity, note.midi));
+  let strongBeat = 0, chordTone = 0, semitoneClashes = 0, tuneNotes = 0;
+  for (const [onset, midi] of tops) {
+    const sounding = audio.filter((attack) => attack.start <= onset + 1e-7 && onset < attack.start + attack.dur);
+    if (!sounding.length) continue;
+    tuneNotes++;
+    if (sounding.some((attack) => [1, 11].includes(((attack.midi - midi) % 12 + 12) % 12))) semitoneClashes++;
+    if (Math.abs(onset - Math.round(onset)) < 1e-7) {
+      strongBeat++;
+      if (sounding.some((attack) => (attack.midi - midi) % 12 === 0)) chordTone++;
+    }
+  }
+  return {
+    deadAirOnsets: deadAirBars,
+    longestWaitForStrikeBeats: longestWait,
+    strikes: strikes.length,
+    strikesOnSourceOnsets: strikes.filter((beat) => onsetSet.has(beat)).length,
+    strikesUnderOneBeatApart: strikes.slice(1).filter((beat, index) => beat - strikes[index]! < 1 - 1e-7).length,
+    tuneNotesOverBacking: tuneNotes,
+    strongBeatTuneChordToneShare: strongBeat ? chordTone / strongBeat : null,
+    tuneSemitoneClashShare: tuneNotes ? semitoneClashes / tuneNotes : null,
+  };
+}
+
 function noteAttacks(notes: readonly Note[]): Attack[] {
   return notes.map(({ midi, start, dur, hand }) => ({ midi, start, dur, hand }));
 }
@@ -125,8 +171,19 @@ export function evaluateChordsBacking(data: SongData, candidate?: ChordsCandidat
       chordVoicingCoveredBeats: unionLength(chordAttacks.map((attack) => [attack.start, attack.start + attack.dur])),
       unsupportedSpans: resolution.fallbackSpans.map(({ startBeat, endBeat, reason }) => ({ startBeat, endBeat, reason })),
       ...attackMetrics(audioAttacks, durationBeats),
+      listener: listenerChecks(data, audioAttacks),
     },
   };
+}
+
+function share(pairs: Array<[number, number]>): number | null {
+  const [hit, all] = pairs.reduce(([h, a], [x, y]) => [h + x, a + y], [0, 0]);
+  return all ? hit / all : null;
+}
+
+function median(values: Array<number | null>): number | null {
+  const known = values.filter((value): value is number => value !== null).sort((a, b) => a - b);
+  return known.length ? known[Math.floor((known.length - 1) / 2)]! : null;
 }
 
 export type ChordsEvaluationRow = {
@@ -193,6 +250,11 @@ export async function evaluateVisibleChords(
       songsWithDuplicateOnsetAttacks: count((row) => row.backing!.duplicateOnsetAttacks > 0),
       songsUnder80PercentCovered: count((row) => row.backing!.coveredFraction < 0.8),
       medianCoveredFraction: fractions.length ? fractions[Math.floor((fractions.length - 1) / 2)]! : null,
+      songsWithDeadAir: count((row) => row.backing!.listener.deadAirOnsets > 0),
+      deadAirOnsets: evaluated.reduce((total, row) => total + row.backing!.listener.deadAirOnsets, 0),
+      strikeOnSourceOnsetShare: share(evaluated.map((row) => [row.backing!.listener.strikesOnSourceOnsets, row.backing!.listener.strikes])),
+      medianStrongBeatTuneChordToneShare: median(evaluated.map((row) => row.backing!.listener.strongBeatTuneChordToneShare)),
+      medianTuneSemitoneClashShare: median(evaluated.map((row) => row.backing!.listener.tuneSemitoneClashShare)),
     },
     rows,
   };

@@ -55,6 +55,23 @@ Player-replay evaluator on the snapshot, before → after: songs with gaps 429 �
 
 A blind A/B listening page with ten songs (four tuning songs, Let It Be, and five held-out songs) collects verdicts; the synthesized clips judge chord fit, not tone. No listening verdict, pianist review or production run exists yet.
 
+## Strikes in the source rhythm, and checks that replace listening — 24 September (later)
+
+Listening result reported by the user: the harmony labels won on nearly every song. The one loss was drivers license, where the backing held one B♭ chord for 58 beats over a B♭ pedal. The labels there were plausible; the backing simply never struck again. Few clips sounded good because every chord was one held block.
+
+Bass + chords now re-strikes each chord where the source pianist's left hand strikes (the lowest note's onsets when a source has no hands). A beginner cap allows at most one strike per beat, including the next chord's strike. Wherever the source leaves more than a bar between strikes, the chord is struck again on the next downbeat. The evaluator gained listener checks that need no listening: dead air (a source note starts while the last backing strike is a bar or more back), strikes landing on source onsets, the tune's strong-beat chord-tone share and its semitone clash share, with the highest right-hand note standing in for the tune.
+
+| Snapshot, 464 artifacts | Today | Harmony labels, held | Harmony labels, struck |
+| --- | --- | --- | --- |
+| Songs with dead air | 460 | 453 | 36 |
+| Dead-air onsets | 92,113 | 89,588 | 123 |
+| Strikes on a source onset | 91.6% | 81.3% | 93.4% |
+| Strikes under a beat apart | 0 | 0 | 0 |
+| Median strong-beat tune chord-tone share | 0.51 | 0.82 | 0.82 |
+| Median tune semitone-clash share | 0.17 | 0.14 | 0.14 |
+
+The dead-air check flags drivers license under the held version (347 dead-air onsets, a 57.75-beat wait) and clears it when struck (0 onsets). That matches the listener's only loss. The remaining dead air includes short-bar songs where the one-strike-per-beat cap blocks the fill (verified for Adam's Song, all 2-beat bars). Through the Player path on the 459 visible songs: 37 songs and 124 onsets.
+
 ## Next implementation boundary
 
 1. Re-run the Player-replay evaluator against a refreshed read-only production freeze before comparing any new producer. Separate source rests and N.C. from missing harmony; retain exact meter/pickup boundaries.

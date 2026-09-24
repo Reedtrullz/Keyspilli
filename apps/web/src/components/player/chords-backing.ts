@@ -44,11 +44,12 @@ export function bassChordsBackground(
   chords: readonly ChordLabel[],
   arrangementEnd: number,
   sourceBackingNotes: Note[] | null,
+  measures: SongData["measures"],
 ): AccompanimentResolution {
   if (sourceBackingNotes) {
     return { style: "bass-chords", notes: sourceBackingNotes, chords: [], displayChords: [], guidanceNotes: sourceBackingNotes, fallbackSpans: [] };
   }
-  return resolveAccompaniment(notes, chords, "bass-chords", { durationBeats: arrangementEnd });
+  return resolveAccompaniment(notes, chords, "bass-chords", { durationBeats: arrangementEnd, sourceRhythmMeasures: measures });
 }
 
 export interface ChordsBackingReplay {
@@ -70,6 +71,6 @@ export function replayChordsBacking(data: SongData, preference: ChordSourceId = 
     selected,
     chords,
     reviewedSourceBacking: sourceBackingNotes !== null,
-    resolution: bassChordsBackground(data.notes, chords, arrangementEnd, sourceBackingNotes),
+    resolution: bassChordsBackground(data.notes, chords, arrangementEnd, sourceBackingNotes, data.measures),
   };
 }

@@ -712,9 +712,9 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       }
       return settings.accompanimentStyle === "melody-accompaniment"
         ? melodyArrangement
-        : bassChordsBackground(activeData.notes, chords, arrangementEnd, sourceBackingNotes);
+        : bassChordsBackground(activeData.notes, chords, arrangementEnd, sourceBackingNotes, activeData.measures);
     },
-    [arrangementEnd, chords, activeData.notes, melodyArrangement, settings.accompanimentStyle, settings.backgroundMode, sourceBackingNotes],
+    [arrangementEnd, chords, activeData.notes, activeData.measures, melodyArrangement, settings.accompanimentStyle, settings.backgroundMode, sourceBackingNotes],
   );
   const displayChords = settings.backgroundMode === "chord" ? accompaniment.displayChords : chords;
   const actionableChords = useMemo(

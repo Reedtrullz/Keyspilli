@@ -29,7 +29,7 @@ describe("Chords backing replay", () => {
     expect(replay.selected.source?.id).toBe("auto");
     expect(replay.chords.map((chord) => chord.name)).toEqual(["C", "G"]);
     expect(replay.reviewedSourceBacking).toBe(false);
-    expect(replay.resolution).toEqual(resolveAccompaniment(data.notes, replay.chords, "bass-chords", { durationBeats: 8 }));
+    expect(replay.resolution).toEqual(resolveAccompaniment(data.notes, replay.chords, "bass-chords", { durationBeats: 8, sourceRhythmMeasures: data.measures }));
   });
 });
 
