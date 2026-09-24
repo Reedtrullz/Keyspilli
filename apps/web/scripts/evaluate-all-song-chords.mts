@@ -3,7 +3,9 @@
  * Player's own load and backing path. Opens the catalogue database read-only;
  * point KEYSPILLI_DATA_DIR at a frozen snapshot to evaluate production input.
  *
- *   npx tsx apps/web/scripts/evaluate-all-song-chords.mts [--rows]
+ *   npx tsx apps/web/scripts/evaluate-all-song-chords.mts [--rows] [--gate]
+ *
+ * `--gate` lists songs failing CHORDS_TUNING.gate and exits 1 if any do.
  */
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
@@ -43,3 +45,10 @@ const report = await evaluateVisibleChords(advanced, load, {
   orphanAdvancedArtifacts: artifactBases.filter((id) => !known.has(id)).length,
 });
 console.log(JSON.stringify(process.argv.includes("--rows") ? report : report.summary, null, 2));
+if (process.argv.includes("--gate")) {
+  // CHORDS_TUNING.gate decides; failing songs are listed with their reasons.
+  const failed = report.rows.filter((row) => row.status !== "evaluated" || !row.backing?.gate.passed);
+  for (const row of failed) console.error(`${row.baseId}: ${row.status === "evaluated" ? row.backing!.gate.reasons.join("; ") : row.status}`);
+  console.error(`${report.rows.length - failed.length} of ${report.rows.length} visible songs pass the Chords gate`);
+  if (failed.length) process.exitCode = 1;
+}

@@ -1,4 +1,5 @@
 import type { SongRow } from "@keyspilli/catalog";
+import { CHORDS_TUNING } from "@keyspilli/midi";
 import type { AccompanimentResolution, Note, SongData } from "@keyspilli/player-core";
 import { replayChordsBacking, type ChordsBackingReplay } from "../components/player/chords-backing";
 
@@ -73,7 +74,7 @@ function attackMetrics(attacks: readonly Attack[], durationBeats: number) {
  * beat it should be a tone of the sounding backing, and it should never sit a
  * semitone (or minor ninth) from a sounding backing note.
  */
-function listenerChecks(data: SongData, audio: readonly Attack[]) {
+function listenerChecks(data: SongData, audio: readonly Attack[], labels: readonly { name: string; durationBeats?: number }[] = []) {
   const strikes = [...new Set(audio.map((attack) => attack.start))].sort((a, b) => a - b);
   const sourceOnsets = [...new Set(data.notes.map((note) => note.start))].sort((a, b) => a - b);
   const onsetSet = new Set(sourceOnsets);
@@ -99,7 +100,10 @@ function listenerChecks(data: SongData, audio: readonly Attack[]) {
       if (sounding.some((attack) => (attack.midi - midi) % 12 === 0)) chordTone++;
     }
   }
+  // Chord labels that last a beat or less read as flicker to a beginner.
+  const named = labels.filter((label) => !/^N\.?C\.?$/i.test(label.name.trim()));
   return {
+    oneBeatChordShare: named.length ? named.filter((label) => (label.durationBeats ?? 0) <= 1 + 1e-7).length / named.length : null,
     deadAirOnsets: deadAirBars,
     longestWaitForStrikeBeats: longestWait,
     strikes: strikes.length,
@@ -134,6 +138,7 @@ export function evaluateChordsBacking(data: SongData, candidate?: ChordsCandidat
   // doubled attack for the listener and an unpressable target for the learner.
   const audioAttacks = [...noteAttacks(resolution.notes), ...chordAttacks];
   const onsetKeys = audioAttacks.map((attack) => `${attack.midi}:${attack.start}`);
+  const listener = listenerChecks(data, audioAttacks, resolution.displayChords);
   const firstMeasure = data.measures[0]?.startBeat ?? 0;
   return {
     sourceFingerprint: data.sourceFingerprint ?? null,
@@ -171,7 +176,8 @@ export function evaluateChordsBacking(data: SongData, candidate?: ChordsCandidat
       chordVoicingCoveredBeats: unionLength(chordAttacks.map((attack) => [attack.start, attack.start + attack.dur])),
       unsupportedSpans: resolution.fallbackSpans.map(({ startBeat, endBeat, reason }) => ({ startBeat, endBeat, reason })),
       ...attackMetrics(audioAttacks, durationBeats),
-      listener: listenerChecks(data, audioAttacks),
+      listener,
+      gate: gateChordsBacking(listener),
     },
   };
 }
@@ -184,6 +190,28 @@ function share(pairs: Array<[number, number]>): number | null {
 function median(values: Array<number | null>): number | null {
   const known = values.filter((value): value is number => value !== null).sort((a, b) => a - b);
   return known.length ? known[Math.floor((known.length - 1) / 2)]! : null;
+}
+
+/**
+ * The per-song release gate from CHORDS_TUNING.gate: a backing that never
+ * stays silent through a bar while the song plays (beyond a few onsets),
+ * mostly agrees with the tune on strong beats, and rarely sits a semitone
+ * from it. Reasons name each failed check.
+ */
+export function gateChordsBacking(listener: ReturnType<typeof listenerChecks>, gate = CHORDS_TUNING.gate): { passed: boolean; reasons: string[] } {
+  const reasons: string[] = [];
+  if (listener.strikes === 0) reasons.push("no backing");
+  if (listener.oneBeatChordShare !== null && listener.oneBeatChordShare > gate.maxOneBeatChordShare) {
+    reasons.push(`${(listener.oneBeatChordShare * 100).toFixed(0)}% of chords last one beat or less`);
+  }
+  if (listener.deadAirOnsets > gate.maxDeadAirOnsets) reasons.push(`dead air at ${listener.deadAirOnsets} onsets`);
+  if (listener.strongBeatTuneChordToneShare !== null && listener.strongBeatTuneChordToneShare < gate.minStrongBeatTuneChordToneShare) {
+    reasons.push(`tune fits the chord on ${(listener.strongBeatTuneChordToneShare * 100).toFixed(0)}% of strong beats`);
+  }
+  if (listener.tuneSemitoneClashShare !== null && listener.tuneSemitoneClashShare > gate.maxTuneSemitoneClashShare) {
+    reasons.push(`tune clashes by a semitone on ${(listener.tuneSemitoneClashShare * 100).toFixed(0)}% of notes`);
+  }
+  return { passed: reasons.length === 0, reasons };
 }
 
 export type ChordsEvaluationRow = {
@@ -250,11 +278,14 @@ export async function evaluateVisibleChords(
       songsWithDuplicateOnsetAttacks: count((row) => row.backing!.duplicateOnsetAttacks > 0),
       songsUnder80PercentCovered: count((row) => row.backing!.coveredFraction < 0.8),
       medianCoveredFraction: fractions.length ? fractions[Math.floor((fractions.length - 1) / 2)]! : null,
+      gatePassed: count((row) => row.backing!.gate.passed),
+      gateFailed: count((row) => !row.backing!.gate.passed),
       songsWithDeadAir: count((row) => row.backing!.listener.deadAirOnsets > 0),
       deadAirOnsets: evaluated.reduce((total, row) => total + row.backing!.listener.deadAirOnsets, 0),
       strikeOnSourceOnsetShare: share(evaluated.map((row) => [row.backing!.listener.strikesOnSourceOnsets, row.backing!.listener.strikes])),
       medianStrongBeatTuneChordToneShare: median(evaluated.map((row) => row.backing!.listener.strongBeatTuneChordToneShare)),
       medianTuneSemitoneClashShare: median(evaluated.map((row) => row.backing!.listener.tuneSemitoneClashShare)),
+      medianOneBeatChordShare: median(evaluated.map((row) => row.backing!.listener.oneBeatChordShare)),
     },
     rows,
   };

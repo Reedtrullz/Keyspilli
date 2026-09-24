@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { resolveAccompaniment, type SongData } from "@keyspilli/player-core";
 import { replayChordsBacking } from "../components/player/chords-backing";
-import { evaluateVisibleChords, type AdvancedRow } from "./chords-evaluation";
+import { evaluateVisibleChords, gateChordsBacking, type AdvancedRow } from "./chords-evaluation";
 
 function song(overrides: Partial<SongData> = {}): SongData {
   return {
@@ -72,5 +72,24 @@ describe("all visible song Chords evaluation", () => {
       songsWithDuplicateOnsetAttacks: 1, songsWithUnsupportedSpans: 1, songsUnder80PercentCovered: 1,
       unsupportedBeatsByReason: { "fixture gap": 7 },
     });
+  });
+});
+
+describe("Chords gate", () => {
+  const listener = {
+    oneBeatChordShare: 0.1, deadAirOnsets: 0, longestWaitForStrikeBeats: 2, strikes: 40, strikesOnSourceOnsets: 38,
+    strikesUnderOneBeatApart: 0, tuneNotesOverBacking: 60, strongBeatTuneChordToneShare: 0.8, tuneSemitoneClashShare: 0.1,
+  };
+  const gate = { maxDeadAirOnsets: 4, minStrongBeatTuneChordToneShare: 0.6, maxTuneSemitoneClashShare: 0.25, maxOneBeatChordShare: 0.4, minMajMinAccuracy: 0.85, minRootAccuracy: 0.85 };
+
+  it("passes a backing inside every limit and names each failed check", () => {
+    expect(gateChordsBacking(listener, gate)).toEqual({ passed: true, reasons: [] });
+    expect(gateChordsBacking({ ...listener, strikes: 0, deadAirOnsets: 9, strongBeatTuneChordToneShare: 0.4, tuneSemitoneClashShare: 0.3, oneBeatChordShare: 0.5 }, gate).reasons).toEqual([
+      "no backing",
+      "50% of chords last one beat or less",
+      "dead air at 9 onsets",
+      "tune fits the chord on 40% of strong beats",
+      "tune clashes by a semitone on 30% of notes",
+    ]);
   });
 });

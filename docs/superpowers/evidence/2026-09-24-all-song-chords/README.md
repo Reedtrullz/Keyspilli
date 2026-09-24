@@ -2,9 +2,9 @@
 
 ## Decision
 
-The shared backing producer has **not** been replaced. The source evidence available to the current Player does not yet support a recognizable, vocal-free backing arrangement for every visible song. The authored-only candidate was reverted: it would silence almost all generated-only songs. A conservative unlabeled-source experiment was also rejected after exact-phrase replay. Neither the current route nor these rejected candidates satisfy the user's all-song goal.
+Chords mode now has one shared, deterministic backing for every visible song, built from its Advanced arrangement. It uses whole-arrangement harmony labels and strikes in the source pianist's left-hand rhythm. Checks replace per-song listening: a reference-chord benchmark (POP909-CL) and a catalogue gate. `docs/chords-tuning.md` describes the pipeline, every setting and both checks. Settings live in `packages/midi/src/chords-tuning.ts` for listening-based fine-tuning.
 
-Chords remains one Advanced-derived arrangement per song on PR #105, independent of the selected difficulty. The user accepted the experimental full-song Winner backing for singing, with residual sung-line uncertainty; that result does not generalize to the catalogue. The learner cannot provide a physical piano test, so keyboard playability requires an independent pianist or teacher.
+The earlier rejected probes below stay as history. Keyboard playability still needs an independent pianist or teacher; the learner cannot provide a physical piano test.
 
 ## Identity and evidence
 
@@ -72,12 +72,39 @@ Bass + chords now re-strikes each chord where the source pianist's left hand str
 
 The dead-air check flags drivers license under the held version (347 dead-air onsets, a 57.75-beat wait) and clears it when struck (0 onsets). That matches the listener's only loss. The remaining dead air includes short-bar songs where the one-strike-per-beat cap blocks the fill (verified for Adam's Song, all 2-beat bars). Through the Player path on the 459 visible songs: 37 songs and 124 onsets.
 
+## Reference benchmark and tuned defaults — 24 September (later)
+
+POP909-CL (MIT; 909 pop songs as piano MIDI with expert-reviewed chords) is scored by `packages/midi/scripts/chord-benchmark.ts`. Each song's score track goes through the catalogue's own `buildVariants`, so both labellers see exactly the Advanced notes the app would have. Every fifth song is held out. Settings were chosen by sweeping only the 728 tuning songs:
+- a possible chord change every beat,
+- change penalty 0.3,
+- bass weight 0.4,
+- major and minor triads only (sevenths, sus4 and dim cost accuracy),
+- notes held to the end of their half bar when naming chords (the pedal setting).
+
+The pedal costs one point of accuracy on POP909. It cuts one-beat chords on the sparser catalogue from 28% to 12%, against 14% in the reference, and raises the gate pass count from 328 to 387.
+
+| POP909-CL, 181 held-out songs | Stored labels | Harmony labels |
+| --- | --- | --- |
+| Right root | 48.0% | 88.0% |
+| Right major/minor | 17.3% | 87.3% |
+| Right sevenths vocabulary | 15.7% | 80.5% |
+| Chord-change agreement | 65.9% | 79.9% |
+
+Tuning songs score within a point of the held-out songs. The earlier sections' catalogue numbers used the first half-bar, sevenths-enabled settings and are superseded by these.
+
+Catalogue gate (`evaluate-all-song-chords.mts --gate`) with the tuned defaults on the staged snapshot:
+- 387 of 459 visible songs pass. The failures are mostly classical and sparse pieces where major/minor triads fit poorly: 55 fall short on tune fit, 25 on clashes, 5 on flicker and 3 on dead air.
+- No song is silent, and 28 have some dead air.
+- Medians: the tune fits the chord on 76% of strong beats, clashes by a semitone on 12% of notes, and 8% of chords last a beat or less.
+
+A dev-server run on the snapshot served `harmony-window` labels in the Player's data for Blackbird (Advanced) and drivers license (learner level, Chords from Advanced). The same page also carried the raw notes.json text in a development-only React debug payload, which the Player does not use.
+
 ## Next implementation boundary
 
-1. Re-run the Player-replay evaluator against a refreshed read-only production freeze before comparing any new producer. Separate source rests and N.C. from missing harmony; retain exact meter/pickup boundaries.
-2. Make source-role evidence available to the Player through a separately reviewed import/catalogue change. Where the original score lacks role proof or harmonic thirds, prepare fingerprinted per-song chart or accompaniment corrections and human review. No generic hand mute, power-chord carry or threshold relaxation can stand in for that evidence.
-3. Build the smallest shared producer only after complete Oops, Queen, Blackbird and Winner phrase timelines pass matched listening, including bar endings and sung-line exclusion. Use the same realized events for audio, labels, guidance and grading. Keep the optional melody path separate.
-4. Run candidate diagnostics on every visible base, then the existing minimum ten-song musical gate across source types, all known unsupported controls, and independent pianist/teacher keyboard review. All-song completion requires each visible song to be reviewed or an explicitly agreed exception policy; honest silence is not completion.
-5. Any catalogue rebuild, merge or production deployment needs a concrete reviewed batch and separate release authorization. No release approval is inferred from the Winner sing-along or passing tests.
+1. Listening-based fine-tuning of `CHORDS_TUNING` by the product owner. Re-run the benchmark (`--gate`) and the catalogue gate after each change.
+2. Decide what the Player does with songs that fail the gate: keep playing, label the backing as unverified, or hide it. The gate is a report today.
+3. Re-run the catalogue gate on a read-only production freeze before release. The staged snapshot is not production.
+4. Independent pianist or teacher review of keyboard span, releases and hand changes.
+5. Any merge or production deployment needs separate release authorization. The Winner fingerprint pilot still overrides production's exact Winner file.
 
 General music-theory principles used in the rejected experiment: [triads and inversion](https://openmusictheory.github.io/triads.html), [embellishing tones](https://openmusictheory.github.io/embellishingTones.html), [meter](https://openmusictheory.github.io/meter.html), and [keyboard voice leading](https://openmusictheory.github.io/melodicKeyboardStyle.html). These principles do not prove the imported song harmony.
