@@ -8,8 +8,6 @@ import {
   SamplerAudioEngine,
   ChordGrader,
   buildMelodyAccompaniment,
-  completeChordDurations,
-  dedupeChords,
   detectPitch,
   filterAccompanimentChords,
   KeyboardInput,
@@ -23,7 +21,6 @@ import {
   passageMidiRange,
   playbackMeasures,
   playbackTiming,
-  resolveAccompaniment,
   resolveTimedNotes,
   sourceNoteIds,
   validateSparseBackingTiming,
@@ -67,6 +64,7 @@ import { LeadSheetView } from "./LeadSheetView";
 import { SheetMusicView } from "./SheetMusicView";
 import { SoundControls, type MelodyAuditionRole, type MelodyPhraseOverrideAction, type MelodyPreviewStatus } from "./SoundControls";
 import { reviewedSourceBacking } from "./reviewed-source-backing";
+import { bassChordsBackground, playerArrangementEnd, playerChordSources } from "./chords-backing";
 import { melodyArrangementOutcome } from "./melody-arrangement-status";
 import { createHeldInput } from "./held-input";
 import { InputStatus } from "./InputStatus";
@@ -77,7 +75,6 @@ import { PracticeSetupDialog, type PracticeSetup } from "./PracticeSetupDialog";
 import { useAnimatedSwitch, usePresence } from "./player-motion";
 import { levelLabel } from "../level-labels";
 import {
-  resolveChordSources,
   melodyHarmonicSupportPolicy,
   selectChordSource,
   type ChordSourceId,
@@ -525,11 +522,8 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   hearChordPracticeRef.current = hearChordPractice;
 
   const arrangementEnd = useMemo(
-    () => Math.max(
-      activeData.notes.reduce((max, note) => Math.max(max, note.start + note.dur), 0),
-      activeData.measures.reduce((max, measure) => Math.max(max, measure.endBeat), 0),
-    ),
-    [activeData.measures, activeData.notes],
+    () => playerArrangementEnd(activeData),
+    [activeData],
   );
   const playbackTimingForPlayer = useMemo(
     () => playbackTiming({ ...activeData, sourceTiming: sparseBackingTiming }),
@@ -540,21 +534,10 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     [activeData, playbackTimingForPlayer],
   );
 
-  const chordSources = useMemo(() => {
-    const resolved = resolveChordSources(activeData);
-    return {
-      ...resolved,
-      // Keep the established inferred-chord naming/cleanup path unchanged;
-      // only source timelines bypass relabeling so their provenance is visible.
-      // Normalize through the generated source first. This stamps legacy
-      // generated events with sourceKind=generated while preserving explicit
-      // authored/inferred/unknown metadata on newer artifacts.
-      generated: {
-        ...resolved.generated,
-        chords: completeChordDurations(dedupeChords(resolved.generated.chords, { durationBeats: arrangementEnd }), arrangementEnd),
-      },
-    };
-  }, [activeData]);
+  const chordSources = useMemo(
+    () => playerChordSources(activeData, arrangementEnd),
+    [activeData, arrangementEnd],
+  );
   const selectedChordSource = useMemo(
     () => selectChordSource(chordSources, chordSourcePreference),
     [chordSources, chordSourcePreference],
@@ -727,14 +710,11 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       if (settings.backgroundMode !== "chord") {
         return { style: settings.accompanimentStyle, notes: activeData.notes, chords: [], displayChords: [], guidanceNotes: activeData.notes, fallbackSpans: [] };
       }
-      if (settings.accompanimentStyle === "bass-chords" && sourceBackingNotes) {
-        return { style: "bass-chords" as const, notes: sourceBackingNotes, chords: [], displayChords: [], guidanceNotes: sourceBackingNotes, fallbackSpans: [] };
-      }
       return settings.accompanimentStyle === "melody-accompaniment"
         ? melodyArrangement
-        : resolveAccompaniment(activeData.notes, chords, settings.accompanimentStyle, { durationBeats: arrangementEnd });
+        : bassChordsBackground(activeData.notes, chords, arrangementEnd, sourceBackingNotes, activeData.measures);
     },
-    [arrangementEnd, chords, activeData.notes, melodyArrangement, settings.accompanimentStyle, settings.backgroundMode, sourceBackingNotes],
+    [arrangementEnd, chords, activeData.notes, activeData.measures, melodyArrangement, settings.accompanimentStyle, settings.backgroundMode, sourceBackingNotes],
   );
   const displayChords = settings.backgroundMode === "chord" ? accompaniment.displayChords : chords;
   const actionableChords = useMemo(

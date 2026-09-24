@@ -18,14 +18,14 @@ import {
   type SourceTimingMetadata,
   type SongRow,
 } from "@keyspilli/catalog";
-import { chordToNotes, validateArtifactFiles, type ChordLabel, type Variant } from "@keyspilli/midi";
+import { chordToNotes, inferHarmonyTimeline, validateArtifactFiles, type ChordLabel, type Variant } from "@keyspilli/midi";
 import { completeChordDurations, detectSections, playbackTiming, validatePlaybackData, validateSparseBackingTiming, type ChordSourceBundle, type ChordSourceTimeline, type SongData } from "@keyspilli/player-core";
 
 type LoadedChordTimeline = NonNullable<Awaited<ReturnType<typeof loadChordTimeline>>>;
 type PlayerChord = Omit<ChordLabel, "sourceKind" | "inferred" | "inferenceType" | "durationBeats"> & {
   sourceKind?: "authored" | "inferred" | "generated" | "unknown";
   inferred?: boolean;
-  inferenceType?: "dyad-completion" | "carry-forward-root" | "nearest-symbol" | "subbeat-extension" | "voicing";
+  inferenceType?: "dyad-completion" | "carry-forward-root" | "nearest-symbol" | "subbeat-extension" | "voicing" | "harmony-window";
   duration?: number;
   durationBeats?: number;
 };
@@ -238,20 +238,31 @@ export function buildAutoChordSource(
   };
 }
 
-function prepareGeneratedChordData(data: SongData): SongData {
+function prepareGeneratedChordData(data: SongData, level: string): SongData {
   const durationBeats = arrangementDurationBeats(data);
+  // Chords always plays Advanced. Its stored per-onset labels are replaced by
+  // whole-arrangement harmony unless the artifact carries non-generated labels.
+  const chords = level === "a" && data.chords.every((chord) => (chord.sourceKind ?? "generated") === "generated")
+    ? inferHarmonyTimeline(data.notes, data.measures, { key: data.key })
+    : data.chords;
   return {
     ...data,
-    chords: completePlayerChordDurations(classifyGeneratedChords(data.chords), durationBeats),
+    chords: completePlayerChordDurations(classifyGeneratedChords(chords), durationBeats),
   };
 }
 
 /** Project loaded data through the same detail shape used by the player. */
-export function projectChordSources(data: SongData, timeline: ChordTimelineArtifact | null, level = "a"): SongData {
-  const prepared = prepareGeneratedChordData(data);
-  if (!timeline) return prepared;
+export function projectChordSources(data: SongData, loadedTimeline: ChordTimelineArtifact | null, level = "a"): SongData {
+  const prepared = prepareGeneratedChordData(data, level);
+  if (!loadedTimeline) return prepared;
   const durationBeats = arrangementDurationBeats(prepared);
   const generated = prepared.chords;
+  // The midi-derived "chart" is this artifact's stored labels read back from
+  // disk; it must carry the same harmony as the generated source.
+  const timeline: ChordTimelineArtifact = loadedTimeline.provenance.kind === "midi-derived"
+    && generated.some((chord) => chord.inferenceType === "harmony-window")
+    ? { ...loadedTimeline, chords: generated.map((chord) => ({ ...chord, durationBeats: chord.durationBeats ?? 0, sourceKind: "generated" as const })) }
+    : loadedTimeline;
   const merged = mergeChartTimeline(timeline, generated, durationBeats);
   const strictChart = timeline.provenance.kind === "chart"
     ? completePlayerChordDurations(
@@ -406,7 +417,7 @@ function unavailableArtifact(errors: string[], manifest?: ArrangementManifest): 
   return { status: "unavailable", errors, ...(manifest ? { manifest } : {}) };
 }
 
-export async function loadSongArtifact(song: SongRow): Promise<{ data: SongData | null; artifact: SongArtifactStatus }> {
+export async function loadSongArtifact(song: Pick<SongRow, "id" | "baseId" | "level" | "tempo">): Promise<{ data: SongData | null; artifact: SongArtifactStatus }> {
   if (existsSync(join(dataDir(), "artifacts", `.${song.baseId}.reconciliation.json`))) {
     return { data: null, artifact: unavailableArtifact(["ARTIFACT_RECONCILIATION_REQUIRED"]) };
   }
@@ -495,6 +506,16 @@ export async function loadSongArtifact(song: SongRow): Promise<{ data: SongData 
   return { data, artifact: { status: "valid", errors: [], manifest: tempo.manifest } };
 }
 
+/** Attach the chord sources a Player sees for one loaded level. */
+export async function withChordSources(source: SongData, baseId: string, level: string): Promise<SongData> {
+  try {
+    return projectChordSources(source, await loadChordTimeline(baseId, { fallbackLevel: level }), level);
+  } catch {
+    // An optional chart must never prevent the arrangement from loading.
+    return projectChordSources(source, null, level);
+  }
+}
+
 /**
  * Load the complete player payload without memoization.
  *
@@ -529,19 +550,11 @@ async function loadSongDetailUncached(id: string): Promise<SongDetail | null> {
       ? "The Advanced arrangement has different timing from this level."
       : null;
   let chordData = chordUnavailableReason || advanced?.id === song.id ? null : advancedData;
-  const withChordSources = async (source: SongData, level: string): Promise<SongData> => {
-    try {
-      return projectChordSources(source, await loadChordTimeline(song.baseId, { fallbackLevel: level }), level);
-    } catch {
-      // An optional chart must never prevent the arrangement from loading.
-      return projectChordSources(source, null, level);
-    }
-  };
   if (data) {
     // Each level retains its own Original chart; Chords always uses Advanced.
     [data, chordData] = await Promise.all([
-      withChordSources(data, song.level),
-      chordData ? withChordSources(chordData, "a") : Promise.resolve(null),
+      withChordSources(data, song.baseId, song.level),
+      chordData ? withChordSources(chordData, song.baseId, "a") : Promise.resolve(null),
     ]);
   }
   const sourceArrangement = loaded.artifact.manifest?.sourceArrangement;

@@ -1,4 +1,5 @@
 import {
+  CHORDS_TUNING,
   chordIntervals,
   chordToNotes,
   splitPianoRoles,
@@ -6,6 +7,7 @@ import {
   type ChordLabel,
   type Note,
   type ProtectedMelodyNote,
+  type StrikeTuning,
 } from "@keyspilli/midi";
 
 export type AccompanimentStyle = "melody-accompaniment" | "bass-chords";
@@ -55,6 +57,13 @@ export interface AccompanimentOptions {
   durationBeats?: number;
   /** Stable IDs for source notes that are explicitly replaceable. */
   replaceableSourceIds?: ReadonlySet<string>;
+  /**
+   * Bass + chords only: re-strike each chord in the source accompaniment's
+   * rhythm, using these bars to keep the backing from going silent.
+   */
+  sourceRhythmMeasures?: readonly { startBeat: number; endBeat: number }[];
+  /** Strike spacing and silence limits; defaults to CHORDS_TUNING.strikes. */
+  strikeTuning?: StrikeTuning;
 }
 
 export type MelodySelection = "automatic" | "right-hand";
@@ -409,6 +418,59 @@ export function measureArrangementChanges(
 
 function validDuration(value: number | undefined): value is number {
   return value !== undefined && Number.isFinite(value) && value > 0;
+}
+
+/**
+ * When the source pianist strikes the accompaniment: left-hand onsets, or
+ * the lowest note's onsets when the source carries no hands.
+ */
+function accompanimentOnsets(sourceNotes: readonly Note[]): number[] {
+  const left = sourceNotes.filter((note) => note.hand === "L");
+  if (left.length) return [...new Set(left.map((note) => note.start))].sort((a, b) => a - b);
+  const lowest = new Map<number, number>();
+  for (const note of sourceNotes) lowest.set(note.start, Math.min(lowest.get(note.start) ?? Infinity, note.midi));
+  return [...lowest.keys()].sort((a, b) => a - b);
+}
+
+/**
+ * Split one realized chord into strikes at the source's accompaniment
+ * onsets. A beginner strikes at most once per `minSpacingBeats` (the next
+ * chord's strike included), and wherever the source leaves more than
+ * `maxSilentBars` between strikes the chord is struck again on the next
+ * downbeat, or as soon after it as spacing allows, so the backing never goes
+ * quiet for that long while the song plays.
+ */
+function sourceRhythmStrikes(
+  chord: AccompanimentChord,
+  onsets: readonly number[],
+  measures: readonly { startBeat: number; endBeat: number }[],
+  tuning: StrikeTuning,
+): AccompanimentChord[] {
+  const start = chord.beat;
+  const end = start + (chord.durationBeats ?? 0);
+  const spacing = tuning.minSpacingBeats;
+  const strikes: number[] = [];
+  for (const beat of [start, ...onsets.filter((onset) => onset > start + EPSILON && onset <= end - spacing + EPSILON)]) {
+    if (!strikes.length || beat - strikes[strikes.length - 1]! >= spacing - EPSILON) strikes.push(beat);
+  }
+  const barAt = (beat: number) => measures.findIndex((measure) => measure.startBeat <= beat + EPSILON && beat < measure.endBeat - EPSILON);
+  const filled: number[] = [];
+  strikes.forEach((beat, index) => {
+    filled.push(beat);
+    const next = strikes[index + 1] ?? end;
+    for (let from = beat; ;) {
+      const bar = barAt(from);
+      if (bar < 0) break;
+      const limitBar = measures[Math.min(measures.length - 1, bar + Math.max(1, tuning.maxSilentBars) - 1)]!;
+      const silentLimit = limitBar.endBeat - measures[bar]!.startBeat;
+      if (next - from <= silentLimit + EPSILON) break;
+      const fill = Math.max(from + spacing, limitBar.endBeat);
+      if (next - fill < spacing - EPSILON) break;
+      filled.push(fill);
+      from = fill;
+    }
+  });
+  return filled.map((beat, index) => ({ ...chord, beat, durationBeats: (filled[index + 1] ?? end) - beat }));
 }
 
 function noteEnd(note: Note): number {
@@ -1019,15 +1081,19 @@ export function resolveAccompaniment(
 
   const fallbackSpans = buildFallbackSpans(events, covered, fallbackEvents, durationBeats);
   const retainedSourceNotes = style === "bass-chords" ? [] : sourceNotes.filter((_, index) => keep[index]);
+  const onsets = style === "bass-chords" && options.sourceRhythmMeasures ? accompanimentOnsets(sourceNotes) : null;
+  const struckChords = onsets
+    ? effectiveChords.flatMap((chord) => sourceRhythmStrikes(chord, onsets, options.sourceRhythmMeasures!, options.strikeTuning ?? CHORDS_TUNING.strikes))
+    : effectiveChords;
 
   return {
     style,
     notes: retainedSourceNotes,
-    chords: effectiveChords,
+    chords: struckChords,
     displayChords: buildDisplayTimeline(events, effectiveChords),
     guidanceNotes: [
       ...retainedSourceNotes,
-      ...effectiveChords.flatMap((chord) => chord.notes.map((midi, index) => ({
+      ...struckChords.flatMap((chord) => chord.notes.map((midi, index) => ({
         midi,
         start: chord.beat,
         dur: chord.durationBeats ?? 1,

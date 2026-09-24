@@ -1,4 +1,5 @@
 import { MidiTimeSignatureEvent, Note, ParsedMidi } from "./types.js";
+import { mergedNoteLineage } from "./quantize.js";
 
 interface ParsedXmlNote extends Note {
   tieStart?: boolean;
@@ -47,10 +48,7 @@ function mergeTiedNotes(notes: ParsedXmlNote[], tolerance: number): Note[] {
       if (index >= 0) {
         const previous = queue[index]!;
         previous.dur = note.start + note.dur - previous.start;
-        previous.sourceOrigins = [...new Map([
-          ...(previous.sourceOrigins ?? []), ...(note.sourceOrigins ?? []),
-        ].map((origin) => [origin.id, origin])).values()].sort((a, b) => a.id.localeCompare(b.id));
-        if (previous.identitySource !== note.identitySource) previous.identitySource = undefined;
+        Object.assign(previous, mergedNoteLineage(previous, note));
         if (note.tieStart) queue[index] = previous;
         else queue.splice(index, 1);
         merged = true;

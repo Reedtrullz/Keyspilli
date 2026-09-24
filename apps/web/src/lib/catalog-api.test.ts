@@ -487,21 +487,31 @@ describe("catalog artifact manifest read boundary", () => {
     expect((await loadSongArtifact(song(120))).data).not.toHaveProperty("sourceTiming");
   });
 
-  it("projects legacy MIDI-derived chords with generated provenance and duration metadata", async () => {
+  it("replaces Advanced generated labels with whole-arrangement harmony", async () => {
     await writeLegacyGeneratedChordNotes();
 
     const detail = await getSongDetail(song().id);
     expect(detail?.artifact.status).toBe("legacy");
     expect(detail?.data?.chords).toEqual([{
       beat: 0,
-      durationBeats: 2,
+      durationBeats: 4,
       name: "C",
-      notes: [48, 52, 55],
+      notes: [48, 60, 64, 67],
       sourceKind: "generated",
       inferred: true,
-      inferenceType: "nearest-symbol",
+      inferenceType: "harmony-window",
     }]);
+    expect(detail?.data?.chordSources?.auto.chords.map((chord) => chord.inferenceType)).toEqual(["harmony-window"]);
     expect(detail?.data).not.toHaveProperty("ugChordTimeline");
+  });
+
+  it("keeps stored labels on learner levels and authored labels on Advanced", async () => {
+    await writeLegacyGeneratedChordNotes();
+    const data = (await loadSongArtifact(song())).data!;
+    const stored = [{ beat: 0, durationBeats: 2, name: "C", notes: [48, 52, 55], sourceKind: "generated", inferred: true, inferenceType: "nearest-symbol" }];
+    expect(projectChordSources(data, null, "b").chords).toEqual(stored);
+    const authored = { ...data, chords: [{ beat: 0, name: "Am", notes: [57, 60, 64], sourceKind: "authored" as const }] };
+    expect(projectChordSources(authored, null, "a").chords).toEqual([{ ...authored.chords[0], durationBeats: 4 }]);
   });
 
   it("ships one generated chord timeline copy with an explicit compact reference", async () => {
