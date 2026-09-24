@@ -1,4 +1,5 @@
 export * from "./types.js";
+export { inferHarmonyTimeline, harmonySegments, type HarmonySegment } from "./harmony.js";
 export { parseMidi, midiBeatToNativeSeconds, midiTickToNativeSeconds } from "./parse.js";
 export { quantize } from "./quantize.js";
 export { splitHands, detectKey, keyName, chordName, detectBassPattern, melodyFrom, keySignature } from "./analyze.js";

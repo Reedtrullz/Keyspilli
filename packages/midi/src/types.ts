@@ -36,7 +36,8 @@ export type ChordInferenceType =
   | "carry-forward-root"
   | "nearest-symbol"
   | "subbeat-extension"
-  | "voicing";
+  | "voicing"
+  | "harmony-window";
 
 export interface ChordLabel {
   /** beat position */

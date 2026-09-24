@@ -169,6 +169,10 @@ export async function evaluateVisibleChords(
     chordSources[id] = (chordSources[id] ?? 0) + 1;
   }
   const fractions = evaluated.map((row) => row.backing!.coveredFraction).sort((a, b) => a - b);
+  const unsupportedBeatsByReason: Record<string, number> = {};
+  for (const row of evaluated) for (const span of row.backing!.unsupportedSpans) {
+    unsupportedBeatsByReason[span.reason] = (unsupportedBeatsByReason[span.reason] ?? 0) + span.endBeat - span.startBeat;
+  }
   return {
     summary: {
       visibleBases: rows.length,
@@ -183,6 +187,8 @@ export async function evaluateVisibleChords(
       originLabeledBases: count((row) => row.source!.originNoteCount > 0),
       chordSources,
       songsWithUnsupportedSpans: count((row) => row.backing!.unsupportedSpans.length > 0),
+      // "explicit no-chord" is a labeled rest; the other reasons are gaps.
+      unsupportedBeatsByReason,
       silentSongs: count((row) => row.backing!.attacks === 0),
       songsWithDuplicateOnsetAttacks: count((row) => row.backing!.duplicateOnsetAttacks > 0),
       songsUnder80PercentCovered: count((row) => row.backing!.coveredFraction < 0.8),

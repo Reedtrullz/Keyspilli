@@ -28,6 +28,7 @@ export type ChordInferenceType =
   | "nearest-symbol"
   | "subbeat-extension"
   | "voicing"
+  | "harmony-window"
   | (string & {});
 
 const EVENT_SOURCE_KINDS = new Set<ChordTimelineEventSourceKind>(["authored", "inferred", "generated", "unknown"]);

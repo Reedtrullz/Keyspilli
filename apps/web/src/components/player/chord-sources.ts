@@ -18,7 +18,7 @@ export type ChordSourceId = "auto" | "ug" | "generated";
 export interface PlayerChordMetadata {
   sourceKind?: "authored" | "inferred" | "generated" | "unknown";
   inferred?: boolean;
-  inferenceType?: "dyad-completion" | "carry-forward-root" | "nearest-symbol" | "subbeat-extension" | "voicing";
+  inferenceType?: "dyad-completion" | "carry-forward-root" | "nearest-symbol" | "subbeat-extension" | "voicing" | "harmony-window";
   duration?: number;
   durationBeats?: number;
 }

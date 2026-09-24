@@ -37,6 +37,24 @@ The ignored scratch implementation and full diagnostic are at output/chords-all-
 - Node 22 checks: MIDI 19 files / 413 tests passed; player-core 18 files / 295 tests passed; focused catalogue ingestion, coverage and evaluator 3 files / 26 tests passed; MIDI, player-core, catalogue and web typechecks passed. Draft PR #106's only triggered `Tutorial runtime candidate` container-smoke passed; it is neither a Chords musical check nor full release CI. No human listening gate or real-keyboard test was completed for this branch.
 - Canonical checkout WIP, production data, catalogue artifacts, PR #105, merge and deployment were left untouched.
 
+## Whole-arrangement harmony labels — 24 September (later)
+
+The weak link was the chord labels, not the backing realizer. The stored generated labels name each onset from the notes struck there, so arpeggios and single-note bass lines hold stale chords and bare left-hand fifths become power chords. On the staged all-song snapshot (upstream `d359a20b`, 464 Advanced artifacts, not production), 37% of generated events were power chords and minor outnumbered major two to one. Only 61% of sounding note-time inside each chord was a chord tone, and 38% of chord beats sat under a label with less than half chord tones.
+
+`inferHarmonyTimeline` (`packages/midi/src/harmony.ts`) scores triads, sevenths, sus4 and dim against every note sounding in each half bar (whole bar in odd meters), weighted by duration plus the lowest sounding note, with a mild diatonic prior and a best-path change penalty. Silent segments and a short pickup bar become N.C. It uses the sung line as evidence but copies no source note into the backing. The web projection uses it for Advanced chords whenever the artifact has only generated labels (authored labels and learner levels are unchanged), so Chords mode picks it up without a catalogue rebuild.
+
+| Snapshot, 464 artifacts | Stored labels | Harmony labels |
+| --- | --- | --- |
+| Mean chord-tone share per song | 0.59 | 0.88 |
+| Chord beats under a label with <50% chord tones | 37.9% | 0.04% |
+| Chord events | 33,619 | 26,717 |
+
+Chord-tone share is partly what the labeller optimizes, so it is not proof. Spot checks against well-known progressions: Canon in D, Let It Be, Imagine, Wonderwall, Perfect, Radioactive and River Flows in You come out as their textbook progressions; Blackbird recovers C–Cm–G and A7–D7; Yesterday is close. Someone You Loved is partial (slash chords become Fm7), and drivers license holds Bb for 58 beats. The Your Song UG chart is a fixed four-beat grid, not aligned to the cover, so it cannot score timing. Winner, Oops, Queen and Blackbird were the tuning songs; Yesterday, Someone You Loved, drivers license, River Flows, Radioactive and Another Love were held out and checked once.
+
+Player-replay evaluator on the snapshot, before → after: songs with gaps 429 → 180, silent songs 4 → 0, songs under 80% covered 24 → 1 (Lovely, whose source is 42% rests); gap beats 7,603 ("no chord coverage" and "unsupported chord") → 2, plus 1,500 beats of explicit N.C. over source silence. The Winner reviewed-source pilot still overrides its exact production fingerprint.
+
+A blind A/B listening page with ten songs (four tuning songs, Let It Be, and five held-out songs) collects verdicts; the synthesized clips judge chord fit, not tone. No listening verdict, pianist review or production run exists yet.
+
 ## Next implementation boundary
 
 1. Re-run the Player-replay evaluator against a refreshed read-only production freeze before comparing any new producer. Separate source rests and N.C. from missing harmony; retain exact meter/pickup boundaries.

@@ -68,6 +68,9 @@ describe("all visible song Chords evaluation", () => {
       unsupportedSpans: [{ startBeat: 1, endBeat: 8, reason: "fixture gap" }],
       onsetGeometryByHand: { L: { maxSimultaneousSpanSemitones: 0 }, R: { maxSimultaneousSpanSemitones: 3 } },
     });
-    expect(candidate.summary).toMatchObject({ songsWithDuplicateOnsetAttacks: 1, songsWithUnsupportedSpans: 1, songsUnder80PercentCovered: 1 });
+    expect(candidate.summary).toMatchObject({
+      songsWithDuplicateOnsetAttacks: 1, songsWithUnsupportedSpans: 1, songsUnder80PercentCovered: 1,
+      unsupportedBeatsByReason: { "fixture gap": 7 },
+    });
   });
 });
