@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "30-seconds-2-mars-bright-lights",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "9a57251c31ad1c5b570c3d83b375999f8965cd9caf5438b13d7d6e2b6d082e80",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 114,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:35.622Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 114,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:35.622Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:35.622Z"
+}

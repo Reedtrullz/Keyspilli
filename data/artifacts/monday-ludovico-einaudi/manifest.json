@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "monday-ludovico-einaudi",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "91018580ee205be90eed3d7cd0caf7b34025733f671bffd6b9dae05ee54f8d92",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 108,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:55.327Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 108,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:55.327Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:55.327Z"
+}

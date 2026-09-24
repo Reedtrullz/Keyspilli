@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "l-m-gottschalk-the-dying-swan",
+  "identityStatus": "current",
+  "sourceArtifactHash": "9b3ea21dcb38121aabf22f8f8f5a26ea2056a780f6811bdbc6c2769124d38b69",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:l-m-gottschalk-the-dying-swan.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 60,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:47.115Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 60,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:47.115Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:47.115Z"
+}

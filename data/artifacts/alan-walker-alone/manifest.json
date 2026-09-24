@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "alan-walker-alone",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "7b92282cf546740d91c23e0740723e1d8c73bd48e12e8a8d61d33bffa62fa7c5",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 175,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:37.366Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 175,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:37.366Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:37.366Z"
+}

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "zelda-ocarina-of-time-zeldas-lullaby",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "b9f9cf1663227e4b4cecfe7f35c59ece0a44b321d50bbbde8f151255e8f84f17",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 96,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:06.228Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 96,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:06.228Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:06.228Z"
+}

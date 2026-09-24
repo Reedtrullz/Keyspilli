@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "time-zimmer",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "e45534985ebd0ec8ddfd6ceef9a387bdd3a948236e18372cf4561c324c202270",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 63,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:04.530Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 63,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:04.530Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:04.530Z"
+}

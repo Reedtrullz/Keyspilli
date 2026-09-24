@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "l-v-beethoven-sonata-no-5-3rd-movement-prestissimo",
+  "identityStatus": "current",
+  "sourceArtifactHash": "aeb55b48e5f61de1faeabd07981a67c54c15b9f257de5b20ef202578860edd91",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:l-v-beethoven-sonata-no-5-3rd-movement-prestissimo.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 166,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:47.659Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 166,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:47.659Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:47.659Z"
+}

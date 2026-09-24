@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "ti-amo",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "1272e6c318ababea68b50bf572dcaa3d8bbb4df7b03b967a2ea5ef6be2f97edc",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 87,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:04.419Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 87,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:04.419Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:04.419Z"
+}

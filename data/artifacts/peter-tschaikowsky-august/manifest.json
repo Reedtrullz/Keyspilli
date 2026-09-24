@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "peter-tschaikowsky-august",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "81f3d06d6147cc327bd8bb68efa42b58c747ac124cbc1549315bf7a7dc863984",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 117,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:57.409Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 117,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:57.409Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:57.409Z"
+}

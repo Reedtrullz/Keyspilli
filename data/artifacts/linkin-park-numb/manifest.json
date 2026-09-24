@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "linkin-park-numb",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "18ab7d386d97093f832d3c30cae51ba9b3ba6c0ff95a8c2155b3c32902fa7774",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 120,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:53.283Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 120,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:53.283Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:53.283Z"
+}

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "zelda-s-lullaby",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "8d42799ca21e4676c514ff6667b2ae25b96b8515940820dc89111864a01f402d",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 110,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:06.284Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 110,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:06.284Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:06.284Z"
+}

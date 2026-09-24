@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "b-bartok-romanian-folk-dance-no-2-peasant-costume",
+  "identityStatus": "current",
+  "sourceArtifactHash": "34f4fe3c28f6c9a7433631edc97126c649d7733eba62603786a1331f62e61e7f",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:b-bartok-romanian-folk-dance-no-2-peasant-costume.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 150,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:41.475Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 150,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:41.475Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:41.475Z"
+}

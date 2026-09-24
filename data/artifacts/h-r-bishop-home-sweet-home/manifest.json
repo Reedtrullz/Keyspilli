@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "h-r-bishop-home-sweet-home",
+  "identityStatus": "current",
+  "sourceArtifactHash": "f5f7e4a7f59bf3f6890ec25b3f25d0a2c938cc84a1dfb0f55ab6fc1ac5d995f7",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:h-r-bishop-home-sweet-home.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 90,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:45.218Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 90,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:45.218Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:45.218Z"
+}

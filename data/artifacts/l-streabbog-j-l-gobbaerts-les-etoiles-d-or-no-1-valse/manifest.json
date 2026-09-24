@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "l-streabbog-j-l-gobbaerts-les-etoiles-d-or-no-1-valse",
+  "identityStatus": "current",
+  "sourceArtifactHash": "d2dee55c2b4942345aed733377d48cc91768fcd8fdd3dc6d84061eaeb754bee3",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:l-streabbog-j-l-gobbaerts-les-etoiles-d-or-no-1-valse.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 150,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:47.158Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 150,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:47.158Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:47.158Z"
+}

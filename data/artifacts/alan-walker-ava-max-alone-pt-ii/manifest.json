@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "alan-walker-ava-max-alone-pt-ii",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "4a893651fed2bcfd0a60bab5d333edf7da700925e337f7a5e8a81287d93966d0",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 175,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:37.439Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 175,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:37.439Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:37.439Z"
+}

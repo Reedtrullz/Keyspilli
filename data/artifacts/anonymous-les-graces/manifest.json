@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "anonymous-les-graces",
+  "identityStatus": "current",
+  "sourceArtifactHash": "fc60bd414fec124c37df6bef79e4748bb7c1310bdd2d59d354d93b7b864b1966",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:anonymous-les-graces.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 86,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:41.181Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 86,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:41.181Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:41.181Z"
+}

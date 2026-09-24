@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "f-j-haydn-sonate-i-i-allegro-con-brio",
+  "identityStatus": "current",
+  "sourceArtifactHash": "2f1eb6005ff4d15b39791df25612c574b02c9dd40865781c8919cd946f3e1e24",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:f-j-haydn-sonate-i-i-allegro-con-brio.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 120,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:44.177Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 120,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:44.177Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:44.177Z"
+}

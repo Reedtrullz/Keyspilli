@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "g-giordano-caro-mio-ben-come-once-again",
+  "identityStatus": "current",
+  "sourceArtifactHash": "267d08fb3fa8e594b84b8a179dd7a0077d7d2cce86547f90514649b673d82a34",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:g-giordano-caro-mio-ben-come-once-again.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 80,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:45.025Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 80,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:45.025Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:45.025Z"
+}

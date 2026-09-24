@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "see-you-again-wiz-khalifa-charlie-puth-piano-tutorial",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "222de6e4bd5b6284b4b93577dc38c36bc390c2de4d3020ccd2432d1c8f93c08b",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 80,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:00.904Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 80,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:00.904Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:00.904Z"
+}

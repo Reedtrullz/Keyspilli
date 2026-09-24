@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "h-carey-sally-in-our-alley",
+  "identityStatus": "current",
+  "sourceArtifactHash": "4468a81c78be880012815d44693f259a1b79c800ba075cb757ddc620808dbdd4",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:h-carey-sally-in-our-alley.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 60,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:45.191Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 60,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:45.191Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:45.191Z"
+}

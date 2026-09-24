@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "f-f-chopin-nocturne",
+  "identityStatus": "current",
+  "sourceArtifactHash": "e202d3941ce5f26397f57f59f0e2e4e3ad9e19061fa3c4dc596c5ee6a6a2548e",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:f-f-chopin-nocturne.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 66,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:43.810Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 66,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:43.810Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:43.810Z"
+}

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "sam-smith-stay-with-me",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "a7373cd607a96e20cb23afd52335fbb863e9ec488bf1abcf5d3842929f6407e2",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 89,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:00.829Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 89,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:00.829Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:00.829Z"
+}

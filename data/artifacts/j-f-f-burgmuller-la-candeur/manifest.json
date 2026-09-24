@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "j-f-f-burgmuller-la-candeur",
+  "identityStatus": "current",
+  "sourceArtifactHash": "ad185dbf3cb7e3e187cbe6e38c5ead706cf375b9d441f7191429027436b2a8e4",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:j-f-f-burgmuller-la-candeur.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 152,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:46.511Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 152,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:46.511Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:46.511Z"
+}

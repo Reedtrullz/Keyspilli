@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "zelda-ocarina-of-time-goron-city",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "9570494cdcadd539650d7ad4bd0f6b0484d2683005786ddd4ff20f7b000cc4f2",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 114,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:05.724Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 114,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:05.724Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:05.724Z"
+}

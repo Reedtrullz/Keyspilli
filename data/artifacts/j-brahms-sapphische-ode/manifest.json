@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "j-brahms-sapphische-ode",
+  "identityStatus": "current",
+  "sourceArtifactHash": "dcd5efac22b5e91b7c87685058784396adb9ec5d69915764265ad68158dbb6e1",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:j-brahms-sapphische-ode.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 68,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:46.378Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 68,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:46.378Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:46.378Z"
+}

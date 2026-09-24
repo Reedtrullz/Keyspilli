@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "baseId": "arian-kermanchi-just-tonight-the-pretty-reckless-piano-cover-video-msm04s3z",
+  "identityStatus": "current",
+  "sourceArtifactHash": "a7c67d216b7b3eb6d31a914c888fe115579c29ea539a897871865e206196de2e",
+  "configFingerprint": "46dd90c94d1addc5016ea2165d62a7cdbca9574e8f9f77da42596eff53b4a2e9",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "youtube",
+    "acquiredVia": "youtube",
+    "sourceRef": "youtube:xgdZ6qVhfr4",
+    "sourceYoutubeUrl": "https://www.youtube.com/watch?v=xgdZ6qVhfr4"
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 162,
+      "source": "detected",
+      "resolvedAt": "2026-08-24T13:35:18.575Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 162,
+      "source": "detected",
+      "resolvedAt": "2026-08-24T13:35:18.575Z",
+      "role": "playback"
+    }
+  },
+  "transcription": {
+    "basicPitchVersion": "unknown",
+    "modelSerialization": "default",
+    "onsetThreshold": 0.4,
+    "frameThreshold": 0.25,
+    "tempo": 161.5,
+    "tempoSource": "detected",
+    "audioSource": "youtube",
+    "transcribedAt": "2026-08-24T13:34:48.825Z",
+    "pipeline": {
+      "filterVersion": "audio-onset-filter-v1",
+      "normalizerId": "midi-normalizer-v2",
+      "gridPolicyId": "beat-grid-v2",
+      "variantPolicyId": "learner-variant-ladder-v3"
+    },
+    "postProcessing": {
+      "filterApplied": true,
+      "cleanupApplied": true,
+      "onsetMatchSec": 0.35,
+      "onsetDetector": {
+        "sampleRate": 22050,
+        "hopLength": 512,
+        "backtrack": true,
+        "delta": 0.07
+      },
+      "minVelocity": 30,
+      "minDurationBeats": 0.14,
+      "mergeWindowBeats": 0.125,
+      "maxPolyphony": 6,
+      "maxSounding": 8,
+      "maxDurationSec": 2.5,
+      "maxDurationBeats": 7,
+      "importedMaxDurationBeats": 1.5,
+      "importedMaxSounding": 12
+    }
+  },
+  "artifactWrittenAt": "2026-08-24T13:35:18.575Z"
+}

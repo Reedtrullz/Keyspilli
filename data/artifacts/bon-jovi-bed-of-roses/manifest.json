@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "bon-jovi-bed-of-roses",
+  "identityStatus": "current",
+  "sourceArtifactHash": "07775ecf2d6d47387d647ea9231ef12c5a6218f54bffc8af87340f89aad2de9e",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:bon-jovi-bed-of-roses.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 60,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:41.620Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 60,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:41.620Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:41.620Z"
+}

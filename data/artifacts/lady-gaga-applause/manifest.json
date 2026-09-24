@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "lady-gaga-applause",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "bac13b87737c792be8e729678b509f7f5eaecb7d5b70769fe501a389f26f97c3",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 70,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:52.964Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 70,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:52.964Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:52.964Z"
+}

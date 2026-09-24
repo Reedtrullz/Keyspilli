@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "titanic",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "70cc28be2f1f931f561a84a68452bda912a87688581e0305d9367300e20610e5",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 80,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:04.573Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 80,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:04.573Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:04.573Z"
+}

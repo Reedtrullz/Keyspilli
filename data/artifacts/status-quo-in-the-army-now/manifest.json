@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "status-quo-in-the-army-now",
+  "identityStatus": "current",
+  "sourceArtifactHash": "0cccaa9f5ad91707327ab6c1f311e30e3de6fb3c91d1695f862c646b8772ab65",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:status-quo-in-the-army-now.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 109,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:49.631Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 109,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:49.631Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:49.631Z"
+}

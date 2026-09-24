@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "metalpiano-sabaton-carolus-rex-piano-cover-mslzxtbj",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "bfc736f43416ed8a41d1838fb7207e2ffe865c0b6a32cd2a9605829069b9143a",
+  "configFingerprint": "cf5a2da93c648fd6eeb6398b1bc18a8df6e10ac0282112e539a649f5142f34d1",
+  "tempo": {
+    "calibration": {
+      "bpm": 92,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:54.689Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 92,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:54.689Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:54.689Z"
+}

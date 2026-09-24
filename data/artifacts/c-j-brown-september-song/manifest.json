@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "c-j-brown-september-song",
+  "identityStatus": "current",
+  "sourceArtifactHash": "4eaadd593d1a13f03cab0822ddb9ba0fba2832c28c0b7594acb1ffc5995c2874",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:c-j-brown-september-song.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 66,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:42.540Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 66,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:42.540Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:42.540Z"
+}

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "lovely-billie-eilish",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "3409839ecb5a4c43e3837f13dee4aaaf8e8a62a767c330ecfa2952be41c111a9",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 115,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:53.455Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 115,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:53.455Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:53.455Z"
+}

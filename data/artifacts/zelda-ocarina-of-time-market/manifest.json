@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "zelda-ocarina-of-time-market",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "aa5394459e5f7c3b05e11d1b96573e9d65f11f7075e35cd036d7bcd91268c67f",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 145,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:06.081Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 145,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:06.081Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:06.081Z"
+}

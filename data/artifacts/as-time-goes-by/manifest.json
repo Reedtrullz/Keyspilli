@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "as-time-goes-by",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "bbee376a5bc67ef453278510682d34919d82b68bd95545fcd71e8ded410c6a62",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 100,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:38.102Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 100,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:38.102Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:38.102Z"
+}

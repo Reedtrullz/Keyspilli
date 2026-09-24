@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "hopsin-ill-mind-of-hopsin-5",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "1eb313089698df1e10c88b65934a7892ed73773735600cea5321fa2dac7a502b",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 90,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:48.535Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 90,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:48.535Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:48.535Z"
+}

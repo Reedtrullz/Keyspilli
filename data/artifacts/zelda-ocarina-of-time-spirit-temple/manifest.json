@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "zelda-ocarina-of-time-spirit-temple",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "c03e071f9eca777574951e53e0feef543af2d1e42754809e910f6932ff097db3",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 70,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:06.169Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 70,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:06.169Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:06.169Z"
+}

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "adele-set-fire-to-the-rain",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "d9377fe5125b952399d6499e6bf995ce71bfdd7d79a01d6b7e5d9e2b15e270b2",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 108,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:36.979Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 108,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:36.979Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:36.979Z"
+}

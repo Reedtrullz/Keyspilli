@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "j-k-f-fischer-erato-praeludium",
+  "identityStatus": "current",
+  "sourceArtifactHash": "407d90786bcdbced5b4110fb6bec7ee34df35cc4f67745592e2c4f1d7fc0d799",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:j-k-f-fischer-erato-praeludium.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 60,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:46.691Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 60,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:46.691Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:46.691Z"
+}

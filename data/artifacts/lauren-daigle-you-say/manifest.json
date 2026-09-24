@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "lauren-daigle-you-say",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "9a4e0f2f7f4c558053d33aabee70b3301624517590f7f7fda324a677fe0e2f7d",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 74,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:53.041Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 74,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:53.041Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:53.041Z"
+}

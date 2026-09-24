@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "johann-pachelbel-canon-in-d",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "2170e06c762d5d675f7d37c1e4d7b49d9bdb51954a5e74c7d9a864bf2b78f0b2",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 100,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:51.217Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 100,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:51.217Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:51.217Z"
+}

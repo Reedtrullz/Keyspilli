@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "g-f-handel-ouverture",
+  "identityStatus": "current",
+  "sourceArtifactHash": "af5a13a038863a2c323e11bcb6c42377187c0d4382de1cdf42be19129a328f4b",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:g-f-handel-ouverture.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 104,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:44.669Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 104,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:44.669Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:44.669Z"
+}

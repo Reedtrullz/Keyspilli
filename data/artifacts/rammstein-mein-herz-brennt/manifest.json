@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "rammstein-mein-herz-brennt",
+  "identityStatus": "current",
+  "sourceArtifactHash": "e63b8c53cf8fbba5b7df28245cea8051394c857c5f5df57c8b55d2bc6402120b",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:rammstein-mein-herz-brennt.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 82,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:49.155Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 82,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:49.155Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:49.155Z"
+}

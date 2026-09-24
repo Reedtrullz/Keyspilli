@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "piano-see-you-again-wiz-khalifa",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "a27f01d2b2ded534b22f874508cb693f7d0105744f375bf5008ffb8aeb2c8c08",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 80,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:58.708Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 80,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:58.708Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:58.708Z"
+}

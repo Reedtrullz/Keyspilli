@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "the-beatles-help",
+  "identityStatus": "current",
+  "sourceArtifactHash": "278f693cc9859cedee170d7709c49b5e7a1c98de632ea3ed34092c7bff05279a",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:the-beatles-help.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 173,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:50.143Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 173,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:50.143Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:50.143Z"
+}

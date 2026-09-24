@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "peter-tschaikowsky-april",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "b9635b0244ad8cb1f7a8eac663df86aa90246d5419d385f78f3fa92d8075cf97",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 117,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:57.312Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 117,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:57.312Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:57.312Z"
+}

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "zelda-ocarina-of-time-zoras-domain",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "ac42c5e0179103ca4d0f828a9746b4296933b715040e4fbbbc48828cff586814",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 74,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:06.257Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 74,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:06.257Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:06.257Z"
+}

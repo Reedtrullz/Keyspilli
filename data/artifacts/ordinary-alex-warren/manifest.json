@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "ordinary-alex-warren",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "bf85d2eea55e0998539c5dceda10fd9bc9b4d4d0e1a69e63f686ed63cf4692e8",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 168,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:56.274Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 168,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:56.274Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:56.274Z"
+}

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "the-police-every-breath-you-take",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "c7604b33ce554e1e6f1aa7da47e905a5a968b94d37dd70201abdd7b7a1b40b82",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 115,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:04.222Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 115,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:04.222Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:04.222Z"
+}

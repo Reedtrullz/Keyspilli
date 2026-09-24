@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "israel-iz-kamakawiwo-ole-somewhere-over-the-rainbow",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "1d0aaa5e12d218e0943ba7c9e341a1d01667a6dec074a58876f505b16b4a48b9",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 120,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:49.245Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 120,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:49.245Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:49.245Z"
+}

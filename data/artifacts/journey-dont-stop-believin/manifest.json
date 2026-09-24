@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "journey-dont-stop-believin",
+  "identityStatus": "current",
+  "sourceArtifactHash": "08a07ee27a19467cc7257f18cc0b67311bebc02a135c7b814b2ef798585ec717",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:journey-dont-stop-believin.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 118,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:46.899Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 118,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:46.899Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:46.899Z"
+}

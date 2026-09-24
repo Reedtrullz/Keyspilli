@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "1-step-forward-3-steps-back-olivia-rodrigo",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "a7a6a1390ba2326b9339714b53d93c5c7516c1cf2aff2226e31860e681599bca",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 84,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:07:00.685Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 84,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:07:00.685Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:07:00.685Z"
+}

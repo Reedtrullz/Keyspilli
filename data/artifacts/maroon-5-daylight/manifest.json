@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "maroon-5-daylight",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "91b836c360385ec03f6741a5fc99c06677d583f0b839cadaf5786eeac013e6db",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 120,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:54.071Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 120,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:54.071Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:54.071Z"
+}

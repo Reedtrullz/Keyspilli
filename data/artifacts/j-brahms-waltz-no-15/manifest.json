@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "j-brahms-waltz-no-15",
+  "identityStatus": "current",
+  "sourceArtifactHash": "e081ef3fe7023cdf4656e1528df50534b2e3df863cd0a194a04a82206f783ace",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:j-brahms-waltz-no-15.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 116,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:46.439Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 116,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:46.439Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:46.439Z"
+}

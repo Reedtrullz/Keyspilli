@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "a-dvorak-als-die-alte-mutter",
+  "identityStatus": "current",
+  "sourceArtifactHash": "112c8943a0e4bb3ee6dcaa9678d131ed3ac34065671cb46a0b3659da187feaf1",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:a-dvorak-als-die-alte-mutter.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 90,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:40.447Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 90,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:40.447Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:40.447Z"
+}

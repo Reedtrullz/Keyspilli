@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "bonnie-tyler-total-eclipse-of-the-heart",
+  "identityStatus": "current",
+  "sourceArtifactHash": "58a723323f4e85764b563bd11acd171f1c8ead8c13f7a499cd35d6687909c945",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:bonnie-tyler-total-eclipse-of-the-heart.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 68,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:41.730Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 68,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:41.730Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:41.730Z"
+}

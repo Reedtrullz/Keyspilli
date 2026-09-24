@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "claribel-c-a-barnard-18301869-i-cannot-sing-the-old-songs",
+  "identityStatus": "current",
+  "sourceArtifactHash": "806b06d9e1add13cdf4f0343852f1bfa3df2f78f51676d13c9287b7b5fda7898",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:claribel-c-a-barnard-18301869-i-cannot-sing-the-old-songs.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 60,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:42.927Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 60,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:42.927Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:42.927Z"
+}

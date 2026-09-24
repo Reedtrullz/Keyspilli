@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "voletarium-countdown",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "e4bc39edb7186a377e57776bd4b96c71c4285b79a3d637a89c33908035e750a7",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 135,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:05.275Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 135,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:05.275Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:05.275Z"
+}

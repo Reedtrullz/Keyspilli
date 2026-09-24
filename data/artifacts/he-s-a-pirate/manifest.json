@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "he-s-a-pirate",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "01536a3a1b16a5618bf56175b2201ba992612ae3fbb6ba0f751d580e47c53745",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 120,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:48.364Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 120,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:48.364Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:48.364Z"
+}

@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "f-f-chopin-nocturne-no-1-in-b-flat-minor",
+  "identityStatus": "current",
+  "sourceArtifactHash": "97194fec7586ca37280a3a5641db96f09f515c8358ccba9a9dd6a0f427ff9330",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:f-f-chopin-nocturne-no-1-in-b-flat-minor.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 116,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:43.879Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 116,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:43.879Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:43.879Z"
+}

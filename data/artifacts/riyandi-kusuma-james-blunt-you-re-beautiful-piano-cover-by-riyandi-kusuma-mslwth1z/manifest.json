@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "baseId": "riyandi-kusuma-james-blunt-you-re-beautiful-piano-cover-by-riyandi-kusuma-mslwth1z",
+  "identityStatus": "current",
+  "sourceArtifactHash": "a4ea07e810f10a467af4af5639eed0cf6bc5c27ae49789202bf27f375fa71fb1",
+  "configFingerprint": "b688831bc813a6d2b32a3b975277d957e2daab6612d7247b4372bc033d2d9d38",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "youtube",
+    "acquiredVia": "youtube",
+    "sourceRef": "youtube:aTqD1CIFD1E",
+    "sourceYoutubeUrl": "https://www.youtube.com/watch?v=aTqD1CIFD1E"
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 162,
+      "source": "detected",
+      "resolvedAt": "2026-08-24T13:35:38.177Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 162,
+      "source": "detected",
+      "resolvedAt": "2026-08-24T13:35:38.177Z",
+      "role": "playback"
+    }
+  },
+  "transcription": {
+    "basicPitchVersion": "unknown",
+    "modelSerialization": "default",
+    "onsetThreshold": 0.4,
+    "frameThreshold": 0.25,
+    "tempo": 161.5,
+    "tempoSource": "detected",
+    "audioSource": "youtube",
+    "transcribedAt": "2026-08-24T13:34:48.855Z",
+    "pipeline": {
+      "filterVersion": "audio-onset-filter-v1",
+      "normalizerId": "midi-normalizer-v2",
+      "gridPolicyId": "beat-grid-v2",
+      "variantPolicyId": "learner-variant-ladder-v3"
+    },
+    "postProcessing": {
+      "filterApplied": true,
+      "cleanupApplied": true,
+      "onsetMatchSec": 0.35,
+      "onsetDetector": {
+        "sampleRate": 22050,
+        "hopLength": 512,
+        "backtrack": true,
+        "delta": 0.07
+      },
+      "minVelocity": 30,
+      "minDurationBeats": 0.14,
+      "mergeWindowBeats": 0.125,
+      "maxPolyphony": 6,
+      "maxSounding": 8,
+      "maxDurationSec": 2.5,
+      "maxDurationBeats": 7,
+      "importedMaxDurationBeats": 1.5,
+      "importedMaxSounding": 12
+    }
+  },
+  "artifactWrittenAt": "2026-08-24T13:35:38.177Z"
+}

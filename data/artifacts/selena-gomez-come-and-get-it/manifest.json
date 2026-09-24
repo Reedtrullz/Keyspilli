@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "selena-gomez-come-and-get-it",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "8e0a90f20e9864bcd23d6ee7ccc9cce3ad7bc2e509977914d52c80f2d0544138",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 140,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:01.012Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 140,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:01.012Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:01.012Z"
+}

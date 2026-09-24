@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "bruno-mars-when-i-was-your-man",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "1270116a48986c0c65038406f4ac8e7a2b044f9de54f665b9bb985abbc3f1fd0",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 74,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:40.355Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 74,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:40.355Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:40.355Z"
+}

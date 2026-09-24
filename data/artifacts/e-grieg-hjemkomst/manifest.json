@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "e-grieg-hjemkomst",
+  "identityStatus": "current",
+  "sourceArtifactHash": "c3b784d07108e5514b418855f414bc22c91ce27afd718efb6086a62c841e19ab",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:e-grieg-hjemkomst.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 60,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:43.318Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 60,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:43.318Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:43.318Z"
+}

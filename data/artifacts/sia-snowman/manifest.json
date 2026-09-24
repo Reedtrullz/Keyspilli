@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "sia-snowman",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "7a43302a6f69da3951d0cf0922dbd395ca303a3eed42030e1db7b869a3169dee",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 104,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:01.576Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 104,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:01.576Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:01.576Z"
+}

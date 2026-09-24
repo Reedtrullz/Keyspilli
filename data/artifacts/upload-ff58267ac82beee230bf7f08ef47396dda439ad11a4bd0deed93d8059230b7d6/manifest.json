@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "baseId": "upload-ff58267ac82beee230bf7f08ef47396dda439ad11a4bd0deed93d8059230b7d6",
+  "identityStatus": "current",
+  "sourceArtifactHash": "ff58267ac82beee230bf7f08ef47396dda439ad11a4bd0deed93d8059230b7d6",
+  "configFingerprint": "53a2ed8dc41a672946fe1f9863d30184ca750ecd118cde93bf368e5faf380448",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "upload",
+    "acquiredVia": "upload",
+    "sourceRef": "upload:ff58267ac82beee230bf7f08ef47396dda439ad11a4bd0deed93d8059230b7d6",
+    "sourceYoutubeUrl": null
+  },
+  "candidate": {
+    "candidateId": "upload-ff58267ac82beee230bf7f08ef47396dda439ad11a4bd0deed93d8059230b7d6",
+    "candidateClass": "GENERATION_CANDIDATE",
+    "provenanceClass": "USER_SUPPLIED_PRIVATE",
+    "timingAuthority": "NATIVE_AUTHORITATIVE",
+    "alignmentState": "NATIVE_AUTHORITATIVE",
+    "generationEligibility": {
+      "eligible": true,
+      "code": "READY_FOR_GENERATION"
+    }
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 120,
+      "source": "midi-meta",
+      "resolvedAt": "2026-09-06T10:56:03.643Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 120,
+      "source": "midi-meta",
+      "resolvedAt": "2026-09-06T10:56:03.643Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-09-06T10:56:03.643Z"
+}

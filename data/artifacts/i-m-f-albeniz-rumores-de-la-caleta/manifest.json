@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "i-m-f-albeniz-rumores-de-la-caleta",
+  "identityStatus": "current",
+  "sourceArtifactHash": "7ab91e79a7d48333b119aa8df08e5dd83a947ab7c07be79f9b11233c05b799cd",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:i-m-f-albeniz-rumores-de-la-caleta.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 60,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:45.264Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 60,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:45.264Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:45.264Z"
+}

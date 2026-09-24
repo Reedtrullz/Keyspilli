@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "rihanna-umbrella",
+  "identityStatus": "current",
+  "sourceArtifactHash": "4c4b87b6fe1db8cc96f57962a0a3c2eeb7e3c3fba2ce802a1bb0bca314d19874",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:rihanna-umbrella.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 87,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:49.253Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 87,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:49.253Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:49.253Z"
+}

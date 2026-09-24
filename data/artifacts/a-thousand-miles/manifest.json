@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "a-thousand-miles",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "1d56935e34e3159ec9a99d3ce30e61479cbd3d12a1423b680ebb6a2ff8218e68",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 100,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:36.370Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 100,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:36.370Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:36.370Z"
+}

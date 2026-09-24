@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "baseId": "atlantic-lights-the-greatest-showman-never-enough-loren-allred-piano-cover-msm021rx",
+  "identityStatus": "current",
+  "sourceArtifactHash": "bc22efd2ca683367febf8026655454f4ff5e1ae9d09d0ae65dcfa7691d293071",
+  "configFingerprint": "d6042f0457a5c495aecc61888c87fcd9fc6c3bbaf565ef6226db55c8c0ceb61b",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "youtube",
+    "acquiredVia": "youtube",
+    "sourceRef": "youtube:sClA-wbzm2c",
+    "sourceYoutubeUrl": "https://www.youtube.com/watch?v=sClA-wbzm2c"
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 129,
+      "source": "detected",
+      "resolvedAt": "2026-08-24T13:35:23.539Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 129,
+      "source": "detected",
+      "resolvedAt": "2026-08-24T13:35:23.539Z",
+      "role": "playback"
+    }
+  },
+  "transcription": {
+    "basicPitchVersion": "unknown",
+    "modelSerialization": "default",
+    "onsetThreshold": 0.4,
+    "frameThreshold": 0.25,
+    "tempo": 129.2,
+    "tempoSource": "detected",
+    "audioSource": "youtube",
+    "transcribedAt": "2026-08-24T13:34:48.832Z",
+    "pipeline": {
+      "filterVersion": "audio-onset-filter-v1",
+      "normalizerId": "midi-normalizer-v2",
+      "gridPolicyId": "beat-grid-v2",
+      "variantPolicyId": "learner-variant-ladder-v3"
+    },
+    "postProcessing": {
+      "filterApplied": true,
+      "cleanupApplied": true,
+      "onsetMatchSec": 0.35,
+      "onsetDetector": {
+        "sampleRate": 22050,
+        "hopLength": 512,
+        "backtrack": true,
+        "delta": 0.07
+      },
+      "minVelocity": 30,
+      "minDurationBeats": 0.14,
+      "mergeWindowBeats": 0.125,
+      "maxPolyphony": 6,
+      "maxSounding": 8,
+      "maxDurationSec": 2.5,
+      "maxDurationBeats": 5,
+      "importedMaxDurationBeats": 1.5,
+      "importedMaxSounding": 12
+    }
+  },
+  "artifactWrittenAt": "2026-08-24T13:35:23.539Z"
+}

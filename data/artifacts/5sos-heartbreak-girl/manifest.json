@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "5sos-heartbreak-girl",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "403b86e1123c6bc62beb5288b2116d7480bee04ee5c9487196246d13ae6b89ca",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 165,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:35.839Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 165,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:35.839Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:35.839Z"
+}

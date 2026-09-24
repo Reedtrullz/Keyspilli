@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "demons",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "690376bef0e8e83124799e09e68ffa67c010943c532169c03a264bc45e0eed9d",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 90,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:43.429Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 90,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:43.429Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:43.429Z"
+}

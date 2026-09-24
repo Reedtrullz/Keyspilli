@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "queen-somebody-to-love",
+  "identityStatus": "current",
+  "sourceArtifactHash": "4505d3a7cb3c24788e51905eb29a40c501a31f7bd07596d489f63f7430c7a74e",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:queen-somebody-to-love.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 108,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:48.975Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 108,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:48.975Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:48.975Z"
+}

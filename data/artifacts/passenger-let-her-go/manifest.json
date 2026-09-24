@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "passenger-let-her-go",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "2660b9de62e13ea61c93d6bd987a265464ed67f92079d93dee1317c9ce495ff0",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 70,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:57.151Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 70,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:57.151Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:57.151Z"
+}

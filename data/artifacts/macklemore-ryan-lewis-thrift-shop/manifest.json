@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "macklemore-ryan-lewis-thrift-shop",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "ca337d67a52ce9dc8aa2ebd89a06415b6b63020fcc0f686dca6795f02c267558",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 150,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:53.835Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 150,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:53.835Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:53.835Z"
+}

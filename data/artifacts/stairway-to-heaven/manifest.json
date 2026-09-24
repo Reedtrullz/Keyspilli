@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "stairway-to-heaven",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "8ca68a0adfc0e27e361b098b70f8a53b2b33bade8adf48b5ef7a80a4c9105bc3",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 74,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:01.745Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 74,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:01.745Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:01.745Z"
+}

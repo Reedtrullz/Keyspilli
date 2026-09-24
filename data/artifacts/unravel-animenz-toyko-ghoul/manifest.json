@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "unravel-animenz-toyko-ghoul",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "36b6dc92c9bf50123bec66bd7b88778ea16a134321308ae620b68e007c45e05a",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 130,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:05.051Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 130,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:05.051Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:05.051Z"
+}

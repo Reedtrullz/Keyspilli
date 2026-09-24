@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "avenged-sevenfold-afterlife",
+  "identityStatus": "current",
+  "sourceArtifactHash": "c1a6bf28385b9ff3a1d3b8bbb62427ba94cd311bfeaefb02196c5ae076a301f3",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:avenged-sevenfold-afterlife.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 150,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:41.258Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 150,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:41.258Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:41.258Z"
+}

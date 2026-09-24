@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "abba-the-winner-takes-it-all",
+  "identityStatus": "current",
+  "sourceArtifactHash": "6196bc7a45a9d3fe6c451ae8a9692de58655964254756603549227aaff2e9e8a",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:abba-the-winner-takes-it-all.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 124,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:40.883Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 124,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:40.883Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:40.883Z"
+}

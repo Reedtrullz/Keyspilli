@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "j-f-f-burgmuller-la-pastorale",
+  "identityStatus": "current",
+  "sourceArtifactHash": "192500ee12358537bf92811064ee4ad0b680c78302d5762175a3c32fe573a577",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:j-f-f-burgmuller-la-pastorale.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 100,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:46.534Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 100,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:46.534Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:46.534Z"
+}

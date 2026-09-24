@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "s-c-doonan-enchanted-island",
+  "identityStatus": "current",
+  "sourceArtifactHash": "313c8cdc875e47f3ffaaf475c2fdb427b27adcfbad816dfcb69a173e5c30bf16",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:s-c-doonan-enchanted-island.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 150,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:49.359Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 150,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:49.359Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:49.359Z"
+}

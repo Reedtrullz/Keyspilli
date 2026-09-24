@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "c-debussy-premiere-arabesque",
+  "identityStatus": "current",
+  "sourceArtifactHash": "6732dc10799ec0af47d19d9095562d0671864a750129e0279901def169a34757",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:c-debussy-premiere-arabesque.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 144,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:42.255Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 144,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:42.255Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:42.255Z"
+}

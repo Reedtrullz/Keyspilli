@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "g-f-handel-entree",
+  "identityStatus": "current",
+  "sourceArtifactHash": "a3bd76e941f62b2399e9a0de2eac4cf4ea910f640f7e8a8584ca3ad9dc42ff46",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:g-f-handel-entree.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 92,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:44.578Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 92,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:44.578Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:44.578Z"
+}

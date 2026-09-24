@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "zelda-ocarina-of-time-lon-lon-ranch",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "5b2298b0ad3d09767d94668230cc5474218c01bc314ba97d58c32a060760b468",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 85,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:06.023Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 85,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:06.023Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:06.023Z"
+}

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "mad-world-gary-jules",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "0baaa2055dd4046d5f29fe216bf96118b8f441c958487b83acd9c63bfce3fbdb",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 92,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:53.923Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 92,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:53.923Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:53.923Z"
+}

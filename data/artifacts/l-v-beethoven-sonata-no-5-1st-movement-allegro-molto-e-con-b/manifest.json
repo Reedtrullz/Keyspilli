@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "l-v-beethoven-sonata-no-5-1st-movement-allegro-molto-e-con-b",
+  "identityStatus": "current",
+  "sourceArtifactHash": "cabc8de6a267d8dc16bd9baed7d924c58c637b0147196a3d252a925fc6e5dcf9",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:l-v-beethoven-sonata-no-5-1st-movement-allegro-molto-e-con-b.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 164,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:47.551Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 164,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:47.551Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:47.551Z"
+}

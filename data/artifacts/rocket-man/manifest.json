@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "rocket-man",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "0ab3626e5ce27eff053f65f1100f2907a7079eb8233c8ea57505345b2808c9a0",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 80,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:00.252Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 80,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:00.252Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:00.252Z"
+}

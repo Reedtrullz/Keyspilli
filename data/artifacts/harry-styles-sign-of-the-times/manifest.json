@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "harry-styles-sign-of-the-times",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "a7c7f18e18fd41c53deeec404ba85b016dfbb0488aeee8f2828f8d4a57ef0e23",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 60,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:48.296Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 60,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:48.296Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:48.296Z"
+}

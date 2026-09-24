@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "what-was-i-made-for-billie-eilish",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "cd49509652ae78c9b5556932a632764e48394318cbac78c9f6f9fe0be5d787f5",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 80,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:05.396Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 80,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:05.396Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:05.396Z"
+}

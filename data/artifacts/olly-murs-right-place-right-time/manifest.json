@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "olly-murs-right-place-right-time",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "293e7c7f53f352a7645990de7e049123191cadaadf4f211b8e6a54c028ef7fcc",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 134,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:56.076Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 134,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:56.076Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:56.076Z"
+}

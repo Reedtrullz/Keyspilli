@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "a-adam-minuit-chretiens",
+  "identityStatus": "current",
+  "sourceArtifactHash": "13ec851eb00ca9aba345cad50f03bdb3b189f566f38d094a1e6b839765b3d678",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:a-adam-minuit-chretiens.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 112,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:40.171Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 112,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:40.171Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:40.171Z"
+}

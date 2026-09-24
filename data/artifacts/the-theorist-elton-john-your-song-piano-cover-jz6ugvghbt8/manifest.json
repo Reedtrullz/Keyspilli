@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "baseId": "the-theorist-elton-john-your-song-piano-cover-jz6ugvghbt8",
+  "identityStatus": "current",
+  "sourceArtifactHash": "bcdbb1eef809fbf0bee0824a874e98ad3cea321e44d0d87ed0a9633b72371f0e",
+  "configFingerprint": "86cf5c3b5ce02bcb1c885c2511e073f773325471785f247861b7d8a23b0486be",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "youtube",
+    "acquiredVia": "youtube",
+    "sourceRef": "youtube:JZ6uGVghbT8",
+    "sourceYoutubeUrl": "https://www.youtube.com/watch?v=JZ6uGVghbT8"
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 129,
+      "source": "override",
+      "resolvedAt": "2026-08-21T17:30:50.322Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 129,
+      "source": "override",
+      "resolvedAt": "2026-08-21T17:30:50.322Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:50.322Z"
+}

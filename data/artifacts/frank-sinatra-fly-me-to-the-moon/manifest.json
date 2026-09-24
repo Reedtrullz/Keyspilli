@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "frank-sinatra-fly-me-to-the-moon",
+  "identityStatus": "current",
+  "sourceArtifactHash": "5e7d492d2d143b449c69a9f35b3b7ae3372aea444153e690bf452e8870cef1a0",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:frank-sinatra-fly-me-to-the-moon.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 94,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:44.303Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 94,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:44.303Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:44.303Z"
+}

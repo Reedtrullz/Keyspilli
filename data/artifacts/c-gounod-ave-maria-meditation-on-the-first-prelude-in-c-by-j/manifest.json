@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "c-gounod-ave-maria-meditation-on-the-first-prelude-in-c-by-j",
+  "identityStatus": "current",
+  "sourceArtifactHash": "374fa21eccbaad7b994da5b8db779c65cc527a382bf819b82126dfcd678a4297",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:c-gounod-ave-maria-meditation-on-the-first-prelude-in-c-by-j.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 66,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:42.409Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 66,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:42.409Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:42.409Z"
+}

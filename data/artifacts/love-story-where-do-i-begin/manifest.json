@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "love-story-where-do-i-begin",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "cab626214d8dca310710c1e12ad56e91d464c481b2df59642ea3bae52d88baba",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 80,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:53.400Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 80,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:53.400Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:53.400Z"
+}

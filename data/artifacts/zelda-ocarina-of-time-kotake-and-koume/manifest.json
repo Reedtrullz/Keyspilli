@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "zelda-ocarina-of-time-kotake-and-koume",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "0b9b8abd35ed088d86af58b70bfa4294e42b38f5ceea34d05087eae8f0b1f9ef",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 108,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:05.984Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 108,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:05.984Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:05.984Z"
+}

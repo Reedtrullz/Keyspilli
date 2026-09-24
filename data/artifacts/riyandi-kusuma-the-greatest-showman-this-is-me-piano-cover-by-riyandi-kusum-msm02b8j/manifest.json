@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "riyandi-kusuma-the-greatest-showman-this-is-me-piano-cover-by-riyandi-kusum-msm02b8j",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "638d7d951229a3d2f87faa09e874732b9a49483ea23b86e88f0d073aebd9a1ab",
+  "configFingerprint": "cf5a2da93c648fd6eeb6398b1bc18a8df6e10ac0282112e539a649f5142f34d1",
+  "tempo": {
+    "calibration": {
+      "bpm": 96,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:00.085Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 96,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:00.085Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:00.085Z"
+}

@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "f-abt-vocalise-o-1",
+  "identityStatus": "current",
+  "sourceArtifactHash": "bd6524f98752dd9190376e29dd0bce82d5bd5e57dcdbd549687e7836629434ff",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:f-abt-vocalise-o-1.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 110,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:43.608Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 110,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:43.608Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:43.608Z"
+}

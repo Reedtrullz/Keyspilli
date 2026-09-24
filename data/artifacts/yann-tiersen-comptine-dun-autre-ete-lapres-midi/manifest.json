@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "yann-tiersen-comptine-dun-autre-ete-lapres-midi",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "423c3a85165261da816e97aea0e66c3ad3fb8551e1e2e7da29d5cf873624f0ee",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 100,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:05.543Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 100,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:05.543Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:05.543Z"
+}

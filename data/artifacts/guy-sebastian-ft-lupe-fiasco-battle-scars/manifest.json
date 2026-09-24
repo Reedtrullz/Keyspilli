@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "guy-sebastian-ft-lupe-fiasco-battle-scars",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "f6b47a268c4928a2cc0d9317d37fc87901a7e925a7bcb6383831fd0f021091ec",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 80,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:47.624Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 80,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:47.624Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:47.624Z"
+}

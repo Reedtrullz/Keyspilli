@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "gloria-gaynor-i-will-survive",
+  "identityStatus": "current",
+  "sourceArtifactHash": "df59b0eb90e4c2ecf9c8b9cf13cba3bcdd8c9ea9942bdb09ee54b7664538784a",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:gloria-gaynor-i-will-survive.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 115,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:45.083Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 115,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:45.083Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:45.083Z"
+}

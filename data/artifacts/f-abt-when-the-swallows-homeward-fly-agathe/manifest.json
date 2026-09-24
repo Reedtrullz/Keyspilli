@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "f-abt-when-the-swallows-homeward-fly-agathe",
+  "identityStatus": "current",
+  "sourceArtifactHash": "6d2b25530b4c8ebf87dd9533c3f8833d3f6caff808fd48aa5f5691d848f03efa",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:f-abt-when-the-swallows-homeward-fly-agathe.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 60,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:43.625Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 60,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:43.625Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:43.625Z"
+}

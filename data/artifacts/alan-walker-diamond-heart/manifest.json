@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "alan-walker-diamond-heart",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "5224aba3d86290bbdd4a63f48d7941e6dabd5f78c24ee50b93ba3a4473cb1451",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 90,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:37.512Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 90,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:37.512Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:37.512Z"
+}

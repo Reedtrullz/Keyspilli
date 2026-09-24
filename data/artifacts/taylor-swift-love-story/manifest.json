@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "taylor-swift-love-story",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "b6ad26bb0d19645d62b0a42093aa5958b5e37718ed5364468c5de7d452e32184",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 119,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:03.419Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 119,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:03.419Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:03.419Z"
+}

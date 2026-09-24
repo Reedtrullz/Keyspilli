@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "ryan-leslie-maybachs-diamonds",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "0fea1c5bfab2e682310596a00e969dd059e8a3b85c2127590b48ce4b73e4195a",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 60,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:00.558Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 60,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:00.558Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:00.558Z"
+}

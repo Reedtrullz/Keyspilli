@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "roar",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "d143804394c9b9780e79b0d5703c07ce21cf41e4bd5b567e85ff39dae1ecd1b1",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 112,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:00.159Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 112,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:00.159Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:00.159Z"
+}

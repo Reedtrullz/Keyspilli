@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "f-f-chopin-nocturne-no-3",
+  "identityStatus": "current",
+  "sourceArtifactHash": "5e53d35c6ac5ee13f53c2f40b676a257f5598c14d026b578f20134ebc5417fa6",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:f-f-chopin-nocturne-no-3.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 99,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:44.022Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 99,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:44.022Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:44.022Z"
+}

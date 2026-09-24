@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "alan-walker-k-391-ignite-midi",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "254ba559c4fe50094033d23e68942726d2761ce90ded5b584c8a5d1a65b311d3",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 90,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:37.736Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 90,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:37.736Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:37.736Z"
+}

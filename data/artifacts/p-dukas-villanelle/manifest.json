@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "p-dukas-villanelle",
+  "identityStatus": "current",
+  "sourceArtifactHash": "427eb1b9fc2e0abd7ba5dfa1ccc0bf1e1c90d680eb72ffa623f354e9cc5e72ba",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:p-dukas-villanelle.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 90,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:48.834Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 90,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:48.834Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:48.834Z"
+}

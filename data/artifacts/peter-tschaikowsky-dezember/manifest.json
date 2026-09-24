@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "peter-tschaikowsky-dezember",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "d6336a7e81a8c657250476a3d73988e07c88b3bac2d670be333ea3830544e852",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 117,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:57.525Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 117,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:57.525Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:57.525Z"
+}

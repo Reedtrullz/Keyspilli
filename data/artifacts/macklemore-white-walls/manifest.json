@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "macklemore-white-walls",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "aa46496d4c8b2acb3b82d51aff5a8b12aebe3a7a446f20eeb931de5455719e54",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 117,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:53.874Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 117,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:53.874Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:53.874Z"
+}

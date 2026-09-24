@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "taylor-swift-i-knew-you-were-trouble",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "3b66e62848359cf0453ee06cc1d9d5649336bce92716227aa73e65d807281035",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 155,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:03.346Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 155,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:03.346Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:03.346Z"
+}

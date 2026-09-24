@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "g-faure-apres-un-reve",
+  "identityStatus": "current",
+  "sourceArtifactHash": "a6a34e87018da5c40e21963c3387839221e68827f4827cc705be260d35eb45b1",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:g-faure-apres-un-reve.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 60,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:44.739Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 60,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:44.739Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:44.739Z"
+}

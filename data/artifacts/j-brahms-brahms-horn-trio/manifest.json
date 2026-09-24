@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "j-brahms-brahms-horn-trio",
+  "identityStatus": "current",
+  "sourceArtifactHash": "966841ebd41c0cc0f69800462c0326c1ff3ad28fd6ffd4172d49ff95f6add034",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:j-brahms-brahms-horn-trio.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 60,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:45.771Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 60,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:45.771Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:45.771Z"
+}

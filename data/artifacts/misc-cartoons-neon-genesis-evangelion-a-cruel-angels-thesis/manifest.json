@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "misc-cartoons-neon-genesis-evangelion-a-cruel-angels-thesis",
+  "identityStatus": "current",
+  "sourceArtifactHash": "145148cc61979e134f070f0c2bcfb2dc37fd9c34711dfc0fdeea4c797033834e",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:misc-cartoons-neon-genesis-evangelion-a-cruel-angels-thesis.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 76,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:48.190Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 76,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:48.190Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:48.190Z"
+}

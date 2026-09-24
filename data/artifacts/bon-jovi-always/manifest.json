@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "bon-jovi-always",
+  "identityStatus": "current",
+  "sourceArtifactHash": "a9fe18ed5f761bb3a4a6d62b54a0f54364f5cf50b6404745a8f7f945474603b4",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:bon-jovi-always.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 72,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:41.518Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 72,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:41.518Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:41.518Z"
+}

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "zelda-ocarina-of-time-gerudo-valley",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "9cc4ac5c4d7233792db6f8e9576eb7fdcfd58aedf5e0247ddda511384d26cca8",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 115,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:05.688Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 115,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:05.688Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:05.688Z"
+}

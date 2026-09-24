@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "top-piano-tutorials-we-are-charlie-kirk-spalexma-piano-tutorial-mslzw71l",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "a50683023bcdce42c11bec5d9de51e0d3a926d4b755892213540c1985635429c",
+  "configFingerprint": "cf5a2da93c648fd6eeb6398b1bc18a8df6e10ac0282112e539a649f5142f34d1",
+  "tempo": {
+    "calibration": {
+      "bpm": 136,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:04.741Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 136,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:04.741Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:04.741Z"
+}

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "break-free-ariana-grande-feat-zedd-arr-by-fonzi-m",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "de23b16f395a7a038c229279761b79d4b84a790623d6ac4c803e5994d6e354fc",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 130,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:40.198Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 130,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:40.198Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:40.198Z"
+}

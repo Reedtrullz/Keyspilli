@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "green-day-good-riddence",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "5a42631dbed23f92e7400aba3d19cb07b173c650865610bdfc44cdd7f573164a",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 90,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:47.576Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 90,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:47.576Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:47.576Z"
+}

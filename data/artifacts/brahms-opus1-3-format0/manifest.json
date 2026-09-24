@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "brahms-opus1-3-format0",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "278df65c12ff41e58d3b3c753a82d91a3db05e89028a2775e7738a7e322209e2",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 146,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:40.075Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 146,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:40.075Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:40.075Z"
+}

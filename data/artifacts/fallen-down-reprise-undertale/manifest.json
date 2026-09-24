@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "fallen-down-reprise-undertale",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "0efb973e31bc3025d0b0f1913aab16a106ffb0252878c3e7b9fa1bc9cf2fae6f",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 107,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:45.917Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 107,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:45.917Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:45.917Z"
+}

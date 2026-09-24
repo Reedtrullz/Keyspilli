@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "the-weeknd-blinding-lights",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "4152a66a67b773e1cb4b6eea80ef594723149204661fadbec2722d2f78c9f5fc",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 168,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:04.370Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 168,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:04.370Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:04.370Z"
+}

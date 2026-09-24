@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "c-czerny-50-melodische-ubungsstucke-no-6",
+  "identityStatus": "current",
+  "sourceArtifactHash": "bc112ad07760fc1e42fd33ac837ea34cd7a7bf47c3ac7521d8da132f7b102f65",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:c-czerny-50-melodische-ubungsstucke-no-6.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 135,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:42.060Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 135,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:42.060Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:42.060Z"
+}

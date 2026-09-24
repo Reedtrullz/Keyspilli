@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "the-pink-pather-theme",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "cf6840f68a97b4c12f22a45ce37fbd5fa8a3dacf2b8b01e3bf9fe30324424b36",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 124,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:04.128Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 124,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:04.128Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:04.128Z"
+}

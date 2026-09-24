@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "trevor-daniel-falling",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "aaba06e7870b20326eef6c8d00be58959bd42a13e166930b95cf1f923c3b2ca5",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 120,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:04.932Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 120,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:04.932Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:04.932Z"
+}

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "happier-than-ever",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "a337da27b06c66fbc3da323adc43ca1b5dc7fc4bde4003c8ddd2106432ece930",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 100,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:48.080Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 100,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:48.080Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:48.080Z"
+}

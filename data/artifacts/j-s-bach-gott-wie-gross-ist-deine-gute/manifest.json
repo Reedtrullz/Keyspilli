@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "j-s-bach-gott-wie-gross-ist-deine-gute",
+  "identityStatus": "current",
+  "sourceArtifactHash": "5c12f0a6f778a12dc06d7a37556eb8dea563f95a0d941a18163c4b41d088049b",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:j-s-bach-gott-wie-gross-ist-deine-gute.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 70,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:46.764Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 70,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:46.764Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:46.764Z"
+}

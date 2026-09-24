@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "e-grieg-albumblatt-in-e-minor",
+  "identityStatus": "current",
+  "sourceArtifactHash": "7b89a0c2e9d83afcf348ba374cc846ad1e045f78caf4f45d3cebcc2e8e53d746",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:e-grieg-albumblatt-in-e-minor.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 112,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:43.250Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 112,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:43.250Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:43.250Z"
+}

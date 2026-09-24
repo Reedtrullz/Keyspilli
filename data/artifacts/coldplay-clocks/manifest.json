@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "coldplay-clocks",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "6bdb2ec9b304376f7fff8deb1adaa1c0313d18716ea0c4dfa6fa54419a15355b",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 130,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:42.436Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 130,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:42.436Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:42.436Z"
+}

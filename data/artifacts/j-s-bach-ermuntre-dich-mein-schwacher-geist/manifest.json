@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "j-s-bach-ermuntre-dich-mein-schwacher-geist",
+  "identityStatus": "current",
+  "sourceArtifactHash": "aa1eb3d5952403b37b5c5f2f441b040b73cbff0c3cd1069d1fb3ec88c4b81107",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:j-s-bach-ermuntre-dich-mein-schwacher-geist.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 70,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:46.750Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 70,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:46.750Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:46.750Z"
+}

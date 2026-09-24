@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "the-beatles-yesterday",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "e7e0cfe07c46a94becfeb6926fd8f6af2762328ea7a822e14ce7ae4cddbc70b7",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 96,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:03.932Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 96,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:03.932Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:03.932Z"
+}

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "alan-walker-faded-2q8",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "63cbcfbb058935d78caa562f16aa6612474c32b4e946b53ebd7f06dbd7dffdbe",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 120,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:37.649Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 120,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:11:37.649Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:11:37.649Z"
+}

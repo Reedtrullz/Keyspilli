@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "the-office-opening-theme",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "6c9ced171b0d44d261d94f56591e05681c07301b8c1e6a4f8fdd825e7a1896c0",
+  "configFingerprint": "4f7276941ba24e28134961e264640ad7aaf3dad4dd05441e07c031633011ceef",
+  "tempo": {
+    "calibration": {
+      "bpm": 120,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:04.097Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 120,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:04.097Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:04.097Z"
+}

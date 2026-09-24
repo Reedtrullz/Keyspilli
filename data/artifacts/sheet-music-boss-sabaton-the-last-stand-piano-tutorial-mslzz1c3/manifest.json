@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseId": "sheet-music-boss-sabaton-the-last-stand-piano-tutorial-mslzz1c3",
+  "identityStatus": "migrated",
+  "sourceArtifactHash": "904ec30018dc7c119e7873ca1fa19aadbaeec8a0b72b7c3817cc9b1ec4a285d4",
+  "configFingerprint": "cf5a2da93c648fd6eeb6398b1bc18a8df6e10ac0282112e539a649f5142f34d1",
+  "tempo": {
+    "calibration": {
+      "bpm": 103,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:01.263Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 103,
+      "source": "legacy",
+      "resolvedAt": "2026-08-16T17:12:01.263Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-16T17:12:01.263Z"
+}

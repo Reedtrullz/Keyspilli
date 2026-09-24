@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "mary-hopkin-those-were-the-days",
+  "identityStatus": "current",
+  "sourceArtifactHash": "28ad9166ff01da3b2b50ce23654ed7517154b0492af5d5d7931149fc5fc93945",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:mary-hopkin-those-were-the-days.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 90,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:47.766Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 90,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:47.766Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:47.766Z"
+}

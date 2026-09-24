@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseId": "o-comeau-ellen-s-song",
+  "identityStatus": "current",
+  "sourceArtifactHash": "ef48cc5d390344aa93d3083884ae269f0dc696ac099fd4c19393a0917f7d79e3",
+  "configFingerprint": "66751d3dd3fd5d0934f9be25103534dd9f5ec2181ff8c474f09c1f070c081ff6",
+  "arrangementProfile": "learner",
+  "source": {
+    "kind": "standard",
+    "sourceRef": "manifest:o-comeau-ellen-s-song.mid",
+    "sourceYoutubeUrl": null
+  },
+  "tempo": {
+    "calibration": {
+      "bpm": 60,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:48.379Z",
+      "role": "source-calibration"
+    },
+    "playback": {
+      "bpm": 60,
+      "source": "midi-meta",
+      "resolvedAt": "2026-08-21T17:30:48.379Z",
+      "role": "playback"
+    }
+  },
+  "artifactWrittenAt": "2026-08-21T17:30:48.379Z"
+}
