@@ -29,6 +29,33 @@
       ]
     },
     {
+      "baseId": "frank-sinatra-my-way",
+      "canonicalTitle": "My Way",
+      "canonicalArtist": "Frank Sinatra",
+      "fallbackSourceId": "midi-derived",
+      "sources": [
+        {
+          "id": "ug-my-way",
+          "provider": "ultimate-guitar",
+          "kind": "chart",
+          "sourceRef": "ultimate-guitar:frank-sinatra/my-way",
+          "sourceUrl": "https://tabs.ultimate-guitar.com/tab/frank-sinatra/my-way-chords-383263",
+          "artifactPath": "catalog/chord-timelines/my-way.json",
+          "retrievedAt": "2026-09-25",
+          "confidence": "medium",
+          "priority": 0
+        },
+        {
+          "id": "midi-derived",
+          "provider": "keyspilli",
+          "kind": "midi-derived",
+          "sourceRef": "variant:advanced:notes.json",
+          "confidence": "fallback",
+          "priority": 100
+        }
+      ]
+    },
+    {
       "baseId": "the-theorist-elton-john-your-song-piano-cover-jz6ugvghbt8",
       "canonicalTitle": "Your Song",
       "canonicalArtist": "Elton John",

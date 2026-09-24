@@ -12,8 +12,26 @@ import {
 
 const YOUR_SONG = "the-theorist-elton-john-your-song-piano-cover-jz6ugvghbt8";
 const SKYFALL = "adele-skyfall";
+const MY_WAY = "frank-sinatra-my-way";
 
 describe("catalog chord source plumbing", () => {
+  it("uses My Way's chart at the descending verse bass, turnaround, and final cadence", async () => {
+    const result = await resolveChordTimeline(MY_WAY, { runtimeDataDir: join(process.cwd(), "missing-runtime-data") });
+    expect(result?.usedFallback).toBe(false);
+    expect(result?.source.id).toBe("ug-my-way");
+    expect(result?.timeline.coverage).toBe("full-song");
+
+    const chords = result?.timeline.chords ?? [];
+    const at = (beat: number) => chords.find((chord) => chord.beat <= beat && beat < chord.beat + chord.durationBeats)?.name;
+    expect([at(4), at(8), at(20), at(24), at(28), at(36), at(40), at(56), at(60), at(68), at(84), at(120), at(148), at(168), at(192), at(200), at(236), at(280), at(320), at(340)]).toEqual([
+      "N.C.", "D", "Dmaj7/C#", "D7/C", "B7", "Em7/D", "A7/C#", "G", "Gm/E", "Asus4", "Dmaj7/C#", "G", "D7", "F#m7", "D/F#", "D7/C", "Gm/E", "F#m7", "A7/E", "D",
+    ]);
+    expect(chords[0]?.beat).toBe(0);
+    expect(chords.at(-1)!.beat + chords.at(-1)!.durationBeats).toBe(352);
+    expect(chords.every((chord, index) => index === 0 || chords[index - 1]!.beat + chords[index - 1]!.durationBeats === chord.beat)).toBe(true);
+    expect(chords.every((chord) => chord.name === "N.C." || chordPitchClasses(chord.name).length > 0)).toBe(true);
+  });
+
   it("uses Skyfall's chart through the intro, cadences, bridge, and outro", async () => {
     const result = await resolveChordTimeline(SKYFALL, { runtimeDataDir: join(process.cwd(), "missing-runtime-data") });
     expect(result?.usedFallback).toBe(false);
