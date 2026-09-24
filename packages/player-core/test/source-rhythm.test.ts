@@ -43,6 +43,16 @@ describe("bass + chords in the source rhythm", () => {
       .toEqual([[0, "D"], [1.5, "D"]]);
   });
 
+  it("follows a stronger bass attack after a short pickup on an offset beat grid", () => {
+    const source: Note[] = [
+      { midi: 49, start: 0, dur: 1.5, vel: 75, hand: "L" },
+      { midi: 49, start: 2.5, dur: 0.125, vel: 75, hand: "L" },
+      { midi: 37, start: 2.625, dur: 0.5, vel: 65, hand: "L" },
+    ];
+    expect(strikes(source, [{ beat: 0, name: "C#m", durationBeats: 4 }], bars(1)))
+      .toEqual([[0, "C#m"], [2.625, "C#m"]]);
+  });
+
   it("strikes each downbeat when the left hand is silent for longer than a bar", () => {
     expect(strikes(left([0]), [{ beat: 0, name: "C", durationBeats: 12 }])).toEqual([[0, "C"], [4, "C"], [8, "C"]]);
     // A left-hand strike just after a bar line moves the fill to the next bar line.

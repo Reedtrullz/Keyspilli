@@ -428,16 +428,22 @@ function accompanimentOnsets(sourceNotes: readonly Note[], spacing: number): num
   const left = sourceNotes.filter((note) => note.hand === "L");
   if (left.length) {
     const durationByOnset = new Map<number, number>();
-    for (const note of left) durationByOnset.set(note.start, Math.max(durationByOnset.get(note.start) ?? 0, note.dur));
+    const lowestByOnset = new Map<number, number>();
+    for (const note of left) {
+      durationByOnset.set(note.start, Math.max(durationByOnset.get(note.start) ?? 0, note.dur));
+      lowestByOnset.set(note.start, Math.min(lowestByOnset.get(note.start) ?? Infinity, note.midi));
+    }
     const beats = [...durationByOnset.keys()].sort((a, b) => a - b);
-    // ponytail: duration approximates bass accents; use explicit rhythm labels if offbeat accents regress.
+    // ponytail: duration and bass octave approximate accents; use explicit rhythm labels if syncopation regresses.
     return beats.filter((beat, index) => {
       const next = beats[index + 1];
       if (next === undefined) return true;
       const duration = durationByOnset.get(beat)!;
       const nextDuration = durationByOnset.get(next)!;
-      return !(Math.abs(beat - Math.round(beat)) > EPSILON
-        && Math.abs(next - Math.round(next)) <= EPSILON
+      const leadsToDownbeat = Math.abs(beat - Math.round(beat)) > EPSILON
+        && Math.abs(next - Math.round(next)) <= EPSILON;
+      const leadsToLowerOctave = lowestByOnset.get(beat)! - lowestByOnset.get(next)! >= 12;
+      return !((leadsToDownbeat || leadsToLowerOctave)
         && next - beat <= spacing / 2 + EPSILON
         && nextDuration > duration + EPSILON
         && nextDuration >= duration * 2);

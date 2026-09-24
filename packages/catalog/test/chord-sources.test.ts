@@ -28,6 +28,10 @@ describe("catalog chord source plumbing", () => {
     expect([at(4), at(13.5), at(15), at(17.5), at(19), at(21.375), at(23.375), at(25.5), at(26.875), at(251.625), at(255.625), at(259.625), at(263.625), at(267.5), at(271.625), at(275.5), at(279.5), at(287.375), at(348.375), at(355)]).toEqual([
       "N.C.", "C#m", "F#m", "B", "E", "A", "F#m", "G#m", "C#m", "D", "A", "E", "B", "D", "A", "E", "G#", "C#m", "C#m", "N.C.",
     ]);
+    // In the later repeated progression, each new bass entry switches harmony on its first attack.
+    expect([at(205.875), at(206), at(208), at(213.875), at(221.875), at(225.875), at(229.875), at(233.875), at(237.75), at(239.75), at(241.75), at(245.75)]).toEqual([
+      "C#m", "F#m", "B", "F#m", "F#m", "E", "F#m", "C#m", "F#m", "B", "E", "F#m",
+    ]);
     expect(chords.at(-1)!.beat + chords.at(-1)!.durationBeats).toBe(376);
     expect(chords.every((chord, index) => index === 0 || chords[index - 1]!.beat + chords[index - 1]!.durationBeats === chord.beat)).toBe(true);
     expect(chords.every((chord) => chord.name === "N.C." || chordPitchClasses(chord.name).length > 0)).toBe(true);
