@@ -13,8 +13,26 @@ import {
 const YOUR_SONG = "the-theorist-elton-john-your-song-piano-cover-jz6ugvghbt8";
 const SKYFALL = "adele-skyfall";
 const MY_WAY = "frank-sinatra-my-way";
+const KINGS_QUEENS = "piano-cover-by-pianella-piano-ava-max-kings-queens-mslwtpef";
 
 describe("catalog chord source plumbing", () => {
+  it("uses the sounding-key Kings & Queens progression through Pianella's bridge and outro", async () => {
+    const result = await resolveChordTimeline(KINGS_QUEENS, { runtimeDataDir: join(process.cwd(), "missing-runtime-data") });
+    expect(result?.usedFallback).toBe(false);
+    expect(result?.source.id).toBe("ug-kings-and-queens-pianella");
+    expect(result?.timeline.coverage).toBe("full-song");
+    expect(result?.timeline.key).toBe("C#m");
+
+    const chords = result?.timeline.chords ?? [];
+    const at = (beat: number) => chords.find((chord) => chord.beat <= beat && beat < chord.beat + chord.durationBeats)?.name;
+    expect([at(4), at(13.5), at(15), at(17.5), at(19), at(21.375), at(23.375), at(25.5), at(26.875), at(251.625), at(255.625), at(259.625), at(263.625), at(267.5), at(271.625), at(275.5), at(279.5), at(287.375), at(348.375), at(355)]).toEqual([
+      "N.C.", "C#m", "F#m", "B", "E", "A", "F#m", "G#m", "C#m", "D", "A", "E", "B", "D", "A", "E", "G#", "C#m", "C#m", "N.C.",
+    ]);
+    expect(chords.at(-1)!.beat + chords.at(-1)!.durationBeats).toBe(376);
+    expect(chords.every((chord, index) => index === 0 || chords[index - 1]!.beat + chords[index - 1]!.durationBeats === chord.beat)).toBe(true);
+    expect(chords.every((chord) => chord.name === "N.C." || chordPitchClasses(chord.name).length > 0)).toBe(true);
+  });
+
   it("uses My Way's chart at the descending verse bass, turnaround, and final cadence", async () => {
     const result = await resolveChordTimeline(MY_WAY, { runtimeDataDir: join(process.cwd(), "missing-runtime-data") });
     expect(result?.usedFallback).toBe(false);

@@ -56,6 +56,33 @@
       ]
     },
     {
+      "baseId": "piano-cover-by-pianella-piano-ava-max-kings-queens-mslwtpef",
+      "canonicalTitle": "Kings & Queens",
+      "canonicalArtist": "Ava Max",
+      "fallbackSourceId": "midi-derived",
+      "sources": [
+        {
+          "id": "ug-kings-and-queens-pianella",
+          "provider": "ultimate-guitar",
+          "kind": "chart",
+          "sourceRef": "ultimate-guitar:ava-max/kings-and-queens",
+          "sourceUrl": "https://tabs.ultimate-guitar.com/tab/ava-max/kings-and-queens-chords-3024494",
+          "artifactPath": "catalog/chord-timelines/kings-and-queens-pianella.json",
+          "retrievedAt": "2026-09-25",
+          "confidence": "medium",
+          "priority": 0
+        },
+        {
+          "id": "midi-derived",
+          "provider": "keyspilli",
+          "kind": "midi-derived",
+          "sourceRef": "variant:advanced:notes.json",
+          "confidence": "fallback",
+          "priority": 100
+        }
+      ]
+    },
+    {
       "baseId": "the-theorist-elton-john-your-song-piano-cover-jz6ugvghbt8",
       "canonicalTitle": "Your Song",
       "canonicalArtist": "Elton John",
