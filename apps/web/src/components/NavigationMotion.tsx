@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useRef } from "react";
 
 type ViewTransitionDocument = Document & {
   startViewTransition?: (update: () => void | Promise<void>) => unknown;
@@ -15,6 +15,14 @@ type ViewTransitionDocument = Document & {
  */
 export function NavigationMotion() {
   const router = useRouter();
+  const pathname = usePathname();
+  const settleNavigation = useRef<(() => void) | null>(null);
+
+  // The new route has committed to the DOM; let the browser snapshot it.
+  useEffect(() => {
+    settleNavigation.current?.();
+    settleNavigation.current = null;
+  }, [pathname]);
 
   useEffect(() => {
     const onClick = (event: MouseEvent) => {
@@ -29,9 +37,23 @@ export function NavigationMotion() {
       const documentWithTransition = document as ViewTransitionDocument;
       if (typeof documentWithTransition.startViewTransition !== "function") return;
       event.preventDefault();
-      documentWithTransition.startViewTransition(() => {
-        router.push(`${url.pathname}${url.search}${url.hash}`);
-      });
+      documentWithTransition.startViewTransition(
+        () =>
+          new Promise<void>((resolve) => {
+            // router.push() returns before the next page renders. Resolving
+            // only once the pathname commits keeps the browser from capturing
+            // the old page as the "new" snapshot and then popping the real page
+            // in after the animation. Same-path navigations and slow routes
+            // fall back to a short cap so the page never stays frozen.
+            const done = () => {
+              clearTimeout(timeout);
+              resolve();
+            };
+            const timeout = setTimeout(done, url.pathname === window.location.pathname ? 0 : 1500);
+            settleNavigation.current = done;
+            router.push(`${url.pathname}${url.search}${url.hash}`);
+          }),
+      );
     };
 
     document.addEventListener("click", onClick, true);
