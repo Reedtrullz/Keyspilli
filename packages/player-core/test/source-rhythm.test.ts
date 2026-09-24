@@ -15,6 +15,34 @@ describe("bass + chords in the source rhythm", () => {
       [0, 1, 2, 3, 4, 5, 6, 7].map((beat) => [beat, "Bb"]));
   });
 
+  it("prefers a strong downbeat bass over its short pickup without erasing a real syncopation", () => {
+    const pulse: Note[] = [0, 4].flatMap((bar) => [
+      { midi: 38, start: bar, dur: 1.25, vel: 83, hand: "L" },
+      { midi: 38, start: bar + 1.5, dur: 0.375, vel: 70, hand: "L" },
+      { midi: 38, start: bar + 2, dur: 1.875, vel: 83, hand: "L" },
+    ]);
+    expect(strikes(pulse, [{ beat: 0, name: "D", durationBeats: 8 }], bars(2)))
+      .toEqual([[0, "D"], [2, "D"], [4, "D"], [6, "D"]]);
+
+    const aroundThirtySixSeconds: Note[] = [
+      { midi: 38, start: 0, dur: 1.375, vel: 80, hand: "L" },
+      { midi: 38, start: 1.5, dur: 0.375, vel: 70, hand: "L" },
+      { midi: 50, start: 2, dur: 2, vel: 80, hand: "L" },
+      { midi: 38, start: 2.75, dur: 0.25, vel: 70, hand: "L" },
+      { midi: 57, start: 3, dur: 1, vel: 80, hand: "L" },
+    ];
+    expect(strikes(aroundThirtySixSeconds, [{ beat: 0, name: "D", durationBeats: 4 }], bars(1)))
+      .toEqual([[0, "D"], [2, "D"], [3, "D"]]);
+
+    const syncopated: Note[] = [
+      { midi: 38, start: 0, dur: 1, vel: 80, hand: "L" },
+      { midi: 38, start: 1.5, dur: 1.5, vel: 80, hand: "L" },
+      { midi: 38, start: 2, dur: 0.25, vel: 60, hand: "L" },
+    ];
+    expect(strikes(syncopated, [{ beat: 0, name: "D", durationBeats: 4 }], bars(1)))
+      .toEqual([[0, "D"], [1.5, "D"]]);
+  });
+
   it("strikes each downbeat when the left hand is silent for longer than a bar", () => {
     expect(strikes(left([0]), [{ beat: 0, name: "C", durationBeats: 12 }])).toEqual([[0, "C"], [4, "C"], [8, "C"]]);
     // A left-hand strike just after a bar line moves the fill to the next bar line.

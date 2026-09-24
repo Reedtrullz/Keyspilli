@@ -424,9 +424,25 @@ function validDuration(value: number | undefined): value is number {
  * When the source pianist strikes the accompaniment: left-hand onsets, or
  * the lowest note's onsets when the source carries no hands.
  */
-function accompanimentOnsets(sourceNotes: readonly Note[]): number[] {
+function accompanimentOnsets(sourceNotes: readonly Note[], spacing: number): number[] {
   const left = sourceNotes.filter((note) => note.hand === "L");
-  if (left.length) return [...new Set(left.map((note) => note.start))].sort((a, b) => a - b);
+  if (left.length) {
+    const durationByOnset = new Map<number, number>();
+    for (const note of left) durationByOnset.set(note.start, Math.max(durationByOnset.get(note.start) ?? 0, note.dur));
+    const beats = [...durationByOnset.keys()].sort((a, b) => a - b);
+    // ponytail: duration approximates bass accents; use explicit rhythm labels if offbeat accents regress.
+    return beats.filter((beat, index) => {
+      const next = beats[index + 1];
+      if (next === undefined) return true;
+      const duration = durationByOnset.get(beat)!;
+      const nextDuration = durationByOnset.get(next)!;
+      return !(Math.abs(beat - Math.round(beat)) > EPSILON
+        && Math.abs(next - Math.round(next)) <= EPSILON
+        && next - beat <= spacing / 2 + EPSILON
+        && nextDuration > duration + EPSILON
+        && nextDuration >= duration * 2);
+    });
+  }
   const lowest = new Map<number, number>();
   for (const note of sourceNotes) lowest.set(note.start, Math.min(lowest.get(note.start) ?? Infinity, note.midi));
   return [...lowest.keys()].sort((a, b) => a - b);
@@ -1081,9 +1097,10 @@ export function resolveAccompaniment(
 
   const fallbackSpans = buildFallbackSpans(events, covered, fallbackEvents, durationBeats);
   const retainedSourceNotes = style === "bass-chords" ? [] : sourceNotes.filter((_, index) => keep[index]);
-  const onsets = style === "bass-chords" && options.sourceRhythmMeasures ? accompanimentOnsets(sourceNotes) : null;
+  const strikeTuning = options.strikeTuning ?? CHORDS_TUNING.strikes;
+  const onsets = style === "bass-chords" && options.sourceRhythmMeasures ? accompanimentOnsets(sourceNotes, strikeTuning.minSpacingBeats) : null;
   const struckChords = onsets
-    ? effectiveChords.flatMap((chord) => sourceRhythmStrikes(chord, onsets, options.sourceRhythmMeasures!, options.strikeTuning ?? CHORDS_TUNING.strikes))
+    ? effectiveChords.flatMap((chord) => sourceRhythmStrikes(chord, onsets, options.sourceRhythmMeasures!, strikeTuning))
     : effectiveChords;
 
   return {
