@@ -10,6 +10,52 @@ import {
 import { resolveChordSources, selectChordSource, type ChordSourceId, type ChordSourceResolution, type SelectedChordSource } from "./chord-sources";
 import { reviewedSourceBacking } from "./reviewed-source-backing";
 
+const clocksSourceFingerprint = "variant:coldplay-clocks:a:coldplay-clocks-a:6f318e8fcf70028535ded2b2509a0f4db10fa0b56a3987b469f760df582448fc:notes:053b40ebcf93fad16c80e470042cc1fa69b716c77a31f64a7cbb49ab77e90a51";
+
+function clocksPlayedVoicings(data: SongData, resolution: AccompanimentResolution): AccompanimentResolution {
+  if (data.sourceFingerprint !== clocksSourceFingerprint) return resolution;
+  const byBeat = new Map<number, Note[]>();
+  for (const note of data.notes) byBeat.set(note.start, [...(byBeat.get(note.start) ?? []), note]);
+  const playedStack = (beat: number) => {
+    const atBeat = byBeat.get(beat) ?? [];
+    if (!atBeat.some((note) => note.hand === "L")) return null;
+    // This pinned arrangement places its chord shell in LH plus the low RH
+    // voice (up to F4); the higher RH notes are its arpeggio and melody.
+    const stack = atBeat.filter((note) => note.hand === "L" || (note.hand === "R" && note.midi <= 65))
+      .sort((a, b) => a.midi - b.midi)
+      .filter((note, index, notes) => index === 0 || note.midi !== notes[index - 1]!.midi);
+    return stack.length >= 2 ? stack : null;
+  };
+  let changed = false;
+  const chords = resolution.chords.map((chord) => {
+    if (chord.sourceKind !== "authored") return chord;
+    // The RH-only ending repeats the first eight bars' harmony; borrow its
+    // already-played stacks instead of inventing new upper voicings there.
+    const sourceBeat = chord.beat >= 128 && chord.beat < 160 ? chord.beat - 128 : chord.beat;
+    const stack = playedStack(sourceBeat);
+    if (!stack) return chord;
+    changed = true;
+    return {
+      ...chord,
+      notes: stack.map((note) => note.midi),
+      suggestedHands: stack.map((note) => note.hand as "L" | "R"),
+      inferred: false,
+      inferenceType: undefined,
+    };
+  });
+  if (!changed) return resolution;
+  const byChordBeat = new Map(chords.map((chord) => [chord.beat, chord]));
+  return {
+    ...resolution,
+    chords,
+    displayChords: resolution.displayChords.map((label) => byChordBeat.get(label.beat) ?? label),
+    guidanceNotes: chords.flatMap((chord) => chord.notes.map((midi, index) => ({
+      midi, start: chord.beat, dur: chord.durationBeats ?? 1, vel: 70,
+      hand: chord.suggestedHands[index],
+    }))),
+  };
+}
+
 /**
  * The Player's Chords-mode backing path as pure functions. Player.tsx calls
  * these pieces from its memos; offline evaluation calls `replayChordsBacking`
@@ -40,16 +86,17 @@ export function playerChordSources(data: SongData, arrangementEnd: number): Chor
 
 /** Chords-mode background for the backing-only style. */
 export function bassChordsBackground(
-  notes: readonly Note[],
+  data: SongData,
   chords: readonly ChordLabel[],
   arrangementEnd: number,
   sourceBackingNotes: Note[] | null,
-  measures: SongData["measures"],
 ): AccompanimentResolution {
   if (sourceBackingNotes) {
     return { style: "bass-chords", notes: sourceBackingNotes, chords: [], displayChords: [], guidanceNotes: sourceBackingNotes, fallbackSpans: [] };
   }
-  return resolveAccompaniment(notes, chords, "bass-chords", { durationBeats: arrangementEnd, sourceRhythmMeasures: measures });
+  return clocksPlayedVoicings(data, resolveAccompaniment(data.notes, chords, "bass-chords", {
+    durationBeats: arrangementEnd, sourceRhythmMeasures: data.measures,
+  }));
 }
 
 export interface ChordsBackingReplay {
@@ -71,6 +118,6 @@ export function replayChordsBacking(data: SongData, preference: ChordSourceId = 
     selected,
     chords,
     reviewedSourceBacking: sourceBackingNotes !== null,
-    resolution: bassChordsBackground(data.notes, chords, arrangementEnd, sourceBackingNotes, data.measures),
+    resolution: bassChordsBackground(data, chords, arrangementEnd, sourceBackingNotes),
   };
 }
