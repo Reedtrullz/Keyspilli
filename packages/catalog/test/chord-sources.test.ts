@@ -15,8 +15,28 @@ const SKYFALL = "adele-skyfall";
 const AEROSMITH = "aerosmith-i-dont-want-to-miss-a-thing";
 const MY_WAY = "frank-sinatra-my-way";
 const KINGS_QUEENS = "piano-cover-by-pianella-piano-ava-max-kings-queens-mslwtpef";
+const IMAGINE = "john-lennon-imagine";
+const LET_IT_BE = "the-beatles-let-it-be";
 
 describe("catalog chord source plumbing", () => {
+  it.each([
+    [IMAGINE, "ug-imagine", 73, 224, [[0, "C"], [3, "Cmaj7"], [4, "F"], [50, "Am/E"], [52, "Dm7"], [112, "F"], [118, "E7"], [132, "Am"], [136, "Dm7"], [176, "F"], [220, "C"]]],
+    [LET_IT_BE, "ug-let-it-be", 70, 288, [[0, "N.C."], [4, "C"], [6, "G"], [10, "Fmaj7"], [11, "F6"], [52, "Am"], [91, "F6/C"], [100, "Am"], [132, "F"], [144, "G"], [180, "Am"], [219, "F6/C"], [228, "Am"], [282, "C"]]],
+  ] as const)("covers %s with the published harmony on its Advanced beat grid", async (baseId, sourceId, tempo, duration, examples) => {
+    const result = await resolveChordTimeline(baseId, { runtimeDataDir: join(process.cwd(), "missing-runtime-data") });
+    expect(result?.usedFallback).toBe(false);
+    expect(result?.source.id).toBe(sourceId);
+    expect(result?.timeline.coverage).toBe("full-song");
+    expect(result?.timeline.tempoBpm).toBe(tempo);
+    const chords = result?.timeline.chords ?? [];
+    const at = (beat: number) => chords.find((chord) => chord.beat <= beat && beat < chord.beat + chord.durationBeats)?.name;
+    for (const [beat, name] of examples) expect(at(beat)).toBe(name);
+    expect(chords[0]?.beat).toBe(0);
+    expect(chords.at(-1)!.beat + chords.at(-1)!.durationBeats).toBe(duration);
+    expect(chords.every((chord, index) => index === 0 || chords[index - 1]!.beat + chords[index - 1]!.durationBeats === chord.beat)).toBe(true);
+    expect(chords.every((chord) => chord.name === "N.C." || chordPitchClasses(chord.name).length > 0)).toBe(true);
+  });
+
   it("aligns Aerosmith's D-key chart with the Advanced intro, verses, bridge, and final chorus", async () => {
     const result = await resolveChordTimeline(AEROSMITH, { runtimeDataDir: join(process.cwd(), "missing-runtime-data") });
     expect(result?.usedFallback).toBe(false);

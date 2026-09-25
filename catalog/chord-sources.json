@@ -83,6 +83,33 @@
       ]
     },
     {
+      "baseId": "john-lennon-imagine",
+      "canonicalTitle": "Imagine",
+      "canonicalArtist": "John Lennon",
+      "fallbackSourceId": "midi-derived",
+      "sources": [
+        {
+          "id": "ug-imagine",
+          "provider": "ultimate-guitar",
+          "kind": "chart",
+          "sourceRef": "ultimate-guitar:john-lennon/imagine",
+          "sourceUrl": "https://tabs.ultimate-guitar.com/tab/john-lennon/imagine-chords-9306",
+          "artifactPath": "catalog/chord-timelines/imagine.json",
+          "retrievedAt": "2026-09-25",
+          "confidence": "medium",
+          "priority": 0
+        },
+        {
+          "id": "midi-derived",
+          "provider": "keyspilli",
+          "kind": "midi-derived",
+          "sourceRef": "variant:advanced:notes.json",
+          "confidence": "fallback",
+          "priority": 100
+        }
+      ]
+    },
+    {
       "baseId": "piano-cover-by-pianella-piano-ava-max-kings-queens-mslwtpef",
       "canonicalTitle": "Kings & Queens",
       "canonicalArtist": "Ava Max",
@@ -95,6 +122,33 @@
           "sourceRef": "ultimate-guitar:ava-max/kings-and-queens",
           "sourceUrl": "https://tabs.ultimate-guitar.com/tab/ava-max/kings-and-queens-chords-3024494",
           "artifactPath": "catalog/chord-timelines/kings-and-queens-pianella.json",
+          "retrievedAt": "2026-09-25",
+          "confidence": "medium",
+          "priority": 0
+        },
+        {
+          "id": "midi-derived",
+          "provider": "keyspilli",
+          "kind": "midi-derived",
+          "sourceRef": "variant:advanced:notes.json",
+          "confidence": "fallback",
+          "priority": 100
+        }
+      ]
+    },
+    {
+      "baseId": "the-beatles-let-it-be",
+      "canonicalTitle": "Let It Be",
+      "canonicalArtist": "The Beatles",
+      "fallbackSourceId": "midi-derived",
+      "sources": [
+        {
+          "id": "ug-let-it-be",
+          "provider": "ultimate-guitar",
+          "kind": "chart",
+          "sourceRef": "ultimate-guitar:the-beatles/let-it-be",
+          "sourceUrl": "https://tabs.ultimate-guitar.com/tab/the-beatles/let-it-be-chords-17427",
+          "artifactPath": "catalog/chord-timelines/let-it-be.json",
           "retrievedAt": "2026-09-25",
           "confidence": "medium",
           "priority": 0
