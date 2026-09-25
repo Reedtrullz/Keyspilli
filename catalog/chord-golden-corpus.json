@@ -42,6 +42,14 @@
       "advancedNotesSha256": "b7fea761f20fe174c64e599041ba3e67f669b9efad4ddf2834dbf45aa34c3b36",
       "timelineSha256": "b1d7460421acc3b09d887f0796b99cd2ad8af0c6c276247da57ca921f477fbd0",
       "acceptedAt": "2026-09-25"
+    },
+    {
+      "baseId": "coldplay-clocks",
+      "level": "a",
+      "sourceId": "ug-clocks",
+      "advancedNotesSha256": "053b40ebcf93fad16c80e470042cc1fa69b716c77a31f64a7cbb49ab77e90a51",
+      "timelineSha256": "d08081391a582c9a7837675115d2e0c018e8f08307d4255018e23b00ab6c85cf",
+      "acceptedAt": "2026-09-25"
     }
   ]
 }
