@@ -59,7 +59,7 @@ It lists each failing song with its reasons. Each check stands in for something 
 
 The report counts source onsets inside explicit N.C. spans separately as `intentionalSilenceOnsets`. The tune is approximated by the highest right-hand note, so these checks are weaker evidence than the benchmark. Use them to find songs worth a listen, and the benchmark to decide whether a setting is better.
 
-For the six owner-accepted reference songs, the local replay audit checks pinned Advanced notes, authored timeline, selected source, and realized backing digest:
+For the five current owner-accepted reference songs, the local replay audit checks pinned Advanced notes, authored timeline, selected source, and realized backing digest:
 
 ```bash
 KEYSPILLI_DATA_DIR=/path/to/data npx tsx apps/web/scripts/audit-golden-chords.mts --require-match
