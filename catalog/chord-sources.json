@@ -29,6 +29,33 @@
       ]
     },
     {
+      "baseId": "aerosmith-i-dont-want-to-miss-a-thing",
+      "canonicalTitle": "I Dont Want To Miss A Thing",
+      "canonicalArtist": "Aerosmith",
+      "fallbackSourceId": "midi-derived",
+      "sources": [
+        {
+          "id": "ug-i-dont-want-to-miss-a-thing",
+          "provider": "ultimate-guitar",
+          "kind": "chart",
+          "sourceRef": "ultimate-guitar:aerosmith/i-dont-want-to-miss-a-thing",
+          "sourceUrl": "https://tabs.ultimate-guitar.com/tab/aerosmith/i-dont-want-to-miss-a-thing-chords-59465",
+          "artifactPath": "catalog/chord-timelines/i-dont-want-to-miss-a-thing.json",
+          "retrievedAt": "2026-09-25",
+          "confidence": "medium",
+          "priority": 0
+        },
+        {
+          "id": "midi-derived",
+          "provider": "keyspilli",
+          "kind": "midi-derived",
+          "sourceRef": "variant:advanced:notes.json",
+          "confidence": "fallback",
+          "priority": 100
+        }
+      ]
+    },
+    {
       "baseId": "frank-sinatra-my-way",
       "canonicalTitle": "My Way",
       "canonicalArtist": "Frank Sinatra",

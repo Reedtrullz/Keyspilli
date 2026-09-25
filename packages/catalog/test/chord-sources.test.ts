@@ -12,10 +12,28 @@ import {
 
 const YOUR_SONG = "the-theorist-elton-john-your-song-piano-cover-jz6ugvghbt8";
 const SKYFALL = "adele-skyfall";
+const AEROSMITH = "aerosmith-i-dont-want-to-miss-a-thing";
 const MY_WAY = "frank-sinatra-my-way";
 const KINGS_QUEENS = "piano-cover-by-pianella-piano-ava-max-kings-queens-mslwtpef";
 
 describe("catalog chord source plumbing", () => {
+  it("aligns Aerosmith's D-key chart with the Advanced intro, verses, bridge, and final chorus", async () => {
+    const result = await resolveChordTimeline(AEROSMITH, { runtimeDataDir: join(process.cwd(), "missing-runtime-data") });
+    expect(result?.usedFallback).toBe(false);
+    expect(result?.source.id).toBe("ug-i-dont-want-to-miss-a-thing");
+    expect(result?.timeline.coverage).toBe("full-song");
+    expect(result?.timeline.key).toBe("D");
+    const chords = result?.timeline.chords ?? [];
+    const at = (beat: number) => chords.find((chord) => chord.beat <= beat && beat < chord.beat + chord.durationBeats)?.name;
+    expect([at(0), at(4), at(8), at(36), at(38), at(40), at(44), at(46), at(48), at(68), at(72), at(76), at(80), at(84), at(100), at(120), at(140), at(168), at(172), at(176), at(180), at(192), at(196), at(204), at(240), at(242), at(252), at(278), at(288), at(299)]).toEqual([
+      "N.C.", "A/B", "A/E", "D", "A/C#", "Bm", "G", "D/F#", "Em7/D", "F#m", "A", "D", "Em", "G", "D", "A7/E", "D", "C", "G", "Bb", "F", "Dm/A", "A", "D", "Bm", "A/C#", "D", "A", "D", "A",
+    ]);
+    expect(chords[0]?.beat).toBe(0);
+    expect(chords.at(-1)!.beat + chords.at(-1)!.durationBeats).toBe(300);
+    expect(chords.every((chord, index) => index === 0 || chords[index - 1]!.beat + chords[index - 1]!.durationBeats === chord.beat)).toBe(true);
+    expect(chords.every((chord) => chord.name === "N.C." || chordPitchClasses(chord.name).length > 0)).toBe(true);
+  });
+
   it("uses the sounding-key Kings & Queens progression through Pianella's bridge and outro", async () => {
     const result = await resolveChordTimeline(KINGS_QUEENS, { runtimeDataDir: join(process.cwd(), "missing-runtime-data") });
     expect(result?.usedFallback).toBe(false);
