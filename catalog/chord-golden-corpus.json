@@ -20,11 +20,27 @@
       "acceptedAt": "2026-09-25"
     },
     {
+      "baseId": "john-lennon-imagine",
+      "level": "a",
+      "sourceId": "ug-imagine",
+      "advancedNotesSha256": "157cd3dc92e6b3e819567d0cf51eab7a1c03a1b76c1cb3333e0b26d4e7fb8790",
+      "timelineSha256": "ef04458fb6b99cb72a9a38e44fb3a2c85314e8f913d08eebf7f501446f8004df",
+      "acceptedAt": "2026-09-25"
+    },
+    {
       "baseId": "piano-cover-by-pianella-piano-ava-max-kings-queens-mslwtpef",
       "level": "a",
       "sourceId": "ug-kings-and-queens-pianella",
       "advancedNotesSha256": "7ef169b7e2bda646d78c95a122064c61563f92e1c783178d6316ac15862d02f4",
       "timelineSha256": "7042195e809d6262145f2437901cf0e3b27f147948aedb973e79de15422f69ad",
+      "acceptedAt": "2026-09-25"
+    },
+    {
+      "baseId": "the-beatles-let-it-be",
+      "level": "a",
+      "sourceId": "ug-let-it-be",
+      "advancedNotesSha256": "b7fea761f20fe174c64e599041ba3e67f669b9efad4ddf2834dbf45aa34c3b36",
+      "timelineSha256": "b1d7460421acc3b09d887f0796b99cd2ad8af0c6c276247da57ca921f477fbd0",
       "acceptedAt": "2026-09-25"
     }
   ]
