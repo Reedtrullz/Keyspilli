@@ -66,6 +66,30 @@ describe("bass + chords in the source rhythm", () => {
     expect(result.chords.map(({ beat, durationBeats }) => [beat, durationBeats])).toEqual([[0, 1.75], [2, 1.75]]);
   });
 
+  it("does not turn a softer upper root octave in a bass arpeggio into a full-chord hit", () => {
+    const source: Note[] = [
+      { midi: 47, start: 0, dur: 0.5, vel: 85, hand: "L" },
+      { midi: 78, start: 0, dur: 0.5, vel: 76, hand: "R" },
+      { midi: 54, start: 0.5, dur: 1, vel: 85, hand: "L" },
+      { midi: 59, start: 1, dur: 0.375, vel: 65, hand: "L" },
+    ];
+    const result = resolveAccompaniment(source, [
+      { beat: 0, durationBeats: 2, name: "B", notes: [], sourceKind: "authored" },
+    ], "bass-chords", { durationBeats: 2, sourceRhythmMeasures: bars(1) });
+    expect(result.chords.map((chord) => chord.beat)).toEqual([0]);
+  });
+
+  it("keeps a separate upper-octave bass attack without an intervening arpeggio tone", () => {
+    const source: Note[] = [
+      { midi: 47, start: 0, dur: 0.5, vel: 85, hand: "L" },
+      { midi: 59, start: 1, dur: 0.375, vel: 65, hand: "L" },
+    ];
+    const result = resolveAccompaniment(source, [
+      { beat: 0, durationBeats: 2, name: "B", notes: [], sourceKind: "authored" },
+    ], "bass-chords", { durationBeats: 2, sourceRhythmMeasures: bars(1) });
+    expect(result.chords.map((chord) => chord.beat)).toEqual([0, 1]);
+  });
+
   it("keeps a syncopated chord hit with an octave-spread right-hand shape", () => {
     const source: Note[] = [
       { midi: 38, start: 0, dur: 1, vel: 70, hand: "L" },

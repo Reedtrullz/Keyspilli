@@ -503,8 +503,17 @@ function sourceRhythmStrikes(
       const heldStack = new Set(previousStack
         .filter((note) => note.dur > beat - previous + EPSILON)
         .map((note) => note.midi % 12)).size >= 2;
+      const arpeggiatedRootOctave = left.length === 1 && bassPc !== undefined
+        && left[0]!.midi % 12 === bassPc
+        && onsets.some((middle) => middle > previous + EPSILON && middle < beat - EPSILON
+          && (sourceByOnset.get(middle) ?? []).some((note) => note.hand === "L"
+            && note.midi % 12 === (bassPc + 7) % 12))
+        && (sourceByOnset.get(previous) ?? []).some((note) => note.hand === "L"
+          && note.midi === left[0]!.midi - 12
+          && note.vel > left[0]!.vel
+          && note.dur > left[0]!.dur);
       // ponytail: bass roots and simultaneous stacks approximate accents; use source role labels if this misses a real syncopation.
-      if (left.length && !strong && ((bassPc !== undefined && left.every((note) => note.midi % 12 !== bassPc)) || heldStack)) continue;
+      if (left.length && !strong && ((bassPc !== undefined && left.every((note) => note.midi % 12 !== bassPc)) || heldStack || arpeggiatedRootOctave)) continue;
     }
     strikes.push(beat);
   }
