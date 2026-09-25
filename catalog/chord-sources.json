@@ -2,6 +2,33 @@
   "schemaVersion": 1,
   "entries": [
     {
+      "baseId": "abba-the-winner-takes-it-all",
+      "canonicalTitle": "The Winner Takes It All",
+      "canonicalArtist": "ABBA",
+      "fallbackSourceId": "midi-derived",
+      "sources": [
+        {
+          "id": "ug-the-winner-takes-it-all",
+          "provider": "ultimate-guitar",
+          "kind": "chart",
+          "sourceRef": "ultimate-guitar:abba/the-winner-takes-it-all",
+          "sourceUrl": "https://tabs.ultimate-guitar.com/tab/abba/the-winner-takes-it-all-chords-18447",
+          "artifactPath": "catalog/chord-timelines/the-winner-takes-it-all.json",
+          "retrievedAt": "2026-09-25",
+          "confidence": "medium",
+          "priority": 0
+        },
+        {
+          "id": "midi-derived",
+          "provider": "keyspilli",
+          "kind": "midi-derived",
+          "sourceRef": "variant:advanced:notes.json",
+          "confidence": "fallback",
+          "priority": 100
+        }
+      ]
+    },
+    {
       "baseId": "adele-skyfall",
       "canonicalTitle": "Skyfall",
       "canonicalArtist": "Adele",
@@ -137,6 +164,33 @@
       ]
     },
     {
+      "baseId": "gloria-gaynor-i-will-survive",
+      "canonicalTitle": "I Will Survive",
+      "canonicalArtist": "Gloria Gaynor",
+      "fallbackSourceId": "midi-derived",
+      "sources": [
+        {
+          "id": "ug-i-will-survive",
+          "provider": "ultimate-guitar",
+          "kind": "chart",
+          "sourceRef": "ultimate-guitar:gloria-gaynor/i-will-survive",
+          "sourceUrl": "https://tabs.ultimate-guitar.com/tab/gloria-gaynor/i-will-survive-chords-154172",
+          "artifactPath": "catalog/chord-timelines/i-will-survive.json",
+          "retrievedAt": "2026-09-25",
+          "confidence": "medium",
+          "priority": 0
+        },
+        {
+          "id": "midi-derived",
+          "provider": "keyspilli",
+          "kind": "midi-derived",
+          "sourceRef": "variant:advanced:notes.json",
+          "confidence": "fallback",
+          "priority": 100
+        }
+      ]
+    },
+    {
       "baseId": "john-lennon-imagine",
       "canonicalTitle": "Imagine",
       "canonicalArtist": "John Lennon",
@@ -164,6 +218,114 @@
       ]
     },
     {
+      "baseId": "journey-dont-stop-believin",
+      "canonicalTitle": "Dont Stop Believin",
+      "canonicalArtist": "Journey",
+      "fallbackSourceId": "midi-derived",
+      "sources": [
+        {
+          "id": "ug-dont-stop-believin",
+          "provider": "ultimate-guitar",
+          "kind": "chart",
+          "sourceRef": "ultimate-guitar:journey/dont-stop-believin",
+          "sourceUrl": "https://tabs.ultimate-guitar.com/tab/journey/dont-stop-believin-chords-2970887",
+          "artifactPath": "catalog/chord-timelines/dont-stop-believin.json",
+          "retrievedAt": "2026-09-25",
+          "confidence": "medium",
+          "priority": 0
+        },
+        {
+          "id": "midi-derived",
+          "provider": "keyspilli",
+          "kind": "midi-derived",
+          "sourceRef": "variant:advanced:notes.json",
+          "confidence": "fallback",
+          "priority": 100
+        }
+      ]
+    },
+    {
+      "baseId": "katherine-cordova-coldplay-fix-you-advanced-piano-cover-mslws0x0",
+      "canonicalTitle": "Fix You",
+      "canonicalArtist": "Coldplay",
+      "fallbackSourceId": "midi-derived",
+      "sources": [
+        {
+          "id": "ug-fix-you",
+          "provider": "ultimate-guitar",
+          "kind": "chart",
+          "sourceRef": "ultimate-guitar:coldplay/fix-you",
+          "sourceUrl": "https://tabs.ultimate-guitar.com/tab/coldplay/fix-you-chords-202592",
+          "artifactPath": "catalog/chord-timelines/fix-you.json",
+          "retrievedAt": "2026-09-25",
+          "confidence": "medium",
+          "priority": 0
+        },
+        {
+          "id": "midi-derived",
+          "provider": "keyspilli",
+          "kind": "midi-derived",
+          "sourceRef": "variant:advanced:notes.json",
+          "confidence": "fallback",
+          "priority": 100
+        }
+      ]
+    },
+    {
+      "baseId": "mary-hopkin-those-were-the-days",
+      "canonicalTitle": "Those Were The Days",
+      "canonicalArtist": "Mary Hopkin",
+      "fallbackSourceId": "midi-derived",
+      "sources": [
+        {
+          "id": "ug-those-were-the-days",
+          "provider": "ultimate-guitar",
+          "kind": "chart",
+          "sourceRef": "ultimate-guitar:mary-hopkin/those-were-the-days",
+          "sourceUrl": "https://tabs.ultimate-guitar.com/tab/mary-hopkin/those-were-the-days-chords-81767",
+          "artifactPath": "catalog/chord-timelines/those-were-the-days.json",
+          "retrievedAt": "2026-09-25",
+          "confidence": "medium",
+          "priority": 0
+        },
+        {
+          "id": "midi-derived",
+          "provider": "keyspilli",
+          "kind": "midi-derived",
+          "sourceRef": "variant:advanced:notes.json",
+          "confidence": "fallback",
+          "priority": 100
+        }
+      ]
+    },
+    {
+      "baseId": "ozzy-osbourne-dreamer",
+      "canonicalTitle": "Dreamer",
+      "canonicalArtist": "Ozzy Osbourne",
+      "fallbackSourceId": "midi-derived",
+      "sources": [
+        {
+          "id": "ug-dreamer",
+          "provider": "ultimate-guitar",
+          "kind": "chart",
+          "sourceRef": "ultimate-guitar:ozzy-osbourne/dreamer",
+          "sourceUrl": "https://tabs.ultimate-guitar.com/tab/ozzy-osbourne/dreamer-chords-45164",
+          "artifactPath": "catalog/chord-timelines/dreamer.json",
+          "retrievedAt": "2026-09-25",
+          "confidence": "medium",
+          "priority": 0
+        },
+        {
+          "id": "midi-derived",
+          "provider": "keyspilli",
+          "kind": "midi-derived",
+          "sourceRef": "variant:advanced:notes.json",
+          "confidence": "fallback",
+          "priority": 100
+        }
+      ]
+    },
+    {
       "baseId": "piano-cover-by-pianella-piano-ava-max-kings-queens-mslwtpef",
       "canonicalTitle": "Kings & Queens",
       "canonicalArtist": "Ava Max",
@@ -176,6 +338,87 @@
           "sourceRef": "ultimate-guitar:ava-max/kings-and-queens",
           "sourceUrl": "https://tabs.ultimate-guitar.com/tab/ava-max/kings-and-queens-chords-3024494",
           "artifactPath": "catalog/chord-timelines/kings-and-queens-pianella.json",
+          "retrievedAt": "2026-09-25",
+          "confidence": "medium",
+          "priority": 0
+        },
+        {
+          "id": "midi-derived",
+          "provider": "keyspilli",
+          "kind": "midi-derived",
+          "sourceRef": "variant:advanced:notes.json",
+          "confidence": "fallback",
+          "priority": 100
+        }
+      ]
+    },
+    {
+      "baseId": "rousseau-john-legend-all-of-me-piano-cover-mslwrq3x",
+      "canonicalTitle": "All of Me",
+      "canonicalArtist": "John Legend",
+      "fallbackSourceId": "midi-derived",
+      "sources": [
+        {
+          "id": "ug-all-of-me",
+          "provider": "ultimate-guitar",
+          "kind": "chart",
+          "sourceRef": "ultimate-guitar:john-legend/all-of-me",
+          "sourceUrl": "https://tabs.ultimate-guitar.com/tab/john-legend/all-of-me-chords-1432996",
+          "artifactPath": "catalog/chord-timelines/all-of-me.json",
+          "retrievedAt": "2026-09-25",
+          "confidence": "medium",
+          "priority": 0
+        },
+        {
+          "id": "midi-derived",
+          "provider": "keyspilli",
+          "kind": "midi-derived",
+          "sourceRef": "variant:advanced:notes.json",
+          "confidence": "fallback",
+          "priority": 100
+        }
+      ]
+    },
+    {
+      "baseId": "status-quo-in-the-army-now",
+      "canonicalTitle": "In The Army Now",
+      "canonicalArtist": "Status Quo",
+      "fallbackSourceId": "midi-derived",
+      "sources": [
+        {
+          "id": "ug-in-the-army-now",
+          "provider": "ultimate-guitar",
+          "kind": "chart",
+          "sourceRef": "ultimate-guitar:status-quo/in-the-army-now",
+          "sourceUrl": "https://tabs.ultimate-guitar.com/tab/status-quo/in-the-army-now-chords-1772",
+          "artifactPath": "catalog/chord-timelines/in-the-army-now.json",
+          "retrievedAt": "2026-09-25",
+          "confidence": "medium",
+          "priority": 0
+        },
+        {
+          "id": "midi-derived",
+          "provider": "keyspilli",
+          "kind": "midi-derived",
+          "sourceRef": "variant:advanced:notes.json",
+          "confidence": "fallback",
+          "priority": 100
+        }
+      ]
+    },
+    {
+      "baseId": "the-beatles-help",
+      "canonicalTitle": "Help",
+      "canonicalArtist": "The Beatles",
+      "fallbackSourceId": "midi-derived",
+      "sources": [
+        {
+          "id": "ug-help",
+          "provider": "ultimate-guitar",
+          "kind": "chart",
+          "sourceRef": "ultimate-guitar:the-beatles/help",
+          "sourceUrl": "https://tabs.ultimate-guitar.com/tab/the-beatles/help-chords-17269",
+          "artifactPath": "catalog/chord-timelines/help.json",
           "retrievedAt": "2026-09-25",
           "confidence": "medium",
           "priority": 0
@@ -230,8 +473,8 @@
           "sourceRef": "ultimate-guitar:elton-john/your-song",
           "sourceUrl": "https://tabs.ultimate-guitar.com/tab/elton-john/your-song-chords-29113",
           "artifactPath": "catalog/chord-timelines/your-song.json",
-          "retrievedAt": "2026-08-16",
-          "confidence": "curated",
+          "retrievedAt": "2026-09-25",
+          "confidence": "medium",
           "priority": 0
         },
         {

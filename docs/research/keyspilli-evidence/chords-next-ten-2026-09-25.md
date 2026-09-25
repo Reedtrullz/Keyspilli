@@ -1,6 +1,8 @@
 # Next ten Chords targets — 25 September 2026
 
-These ten have active Advanced (`-a`) rows in the local 459-song visible catalogue. They are **proposed work**, not reviewed Chords arrangements or golden-corpus entries. Kings & Queens remains an available candidate outside the now five-song corpus. Rain and Aerosmith already have full authored Chords candidates, so this list focuses on other songs; Your Song has only an opening-section chart.
+**Follow-up:** All ten now have full-song local listening candidates. See the [source-aligned candidate review](chords-next-ten-candidate-review-2026-09-25.md) for current keys, timing, checks, and remaining listening decisions. The shortlist below records the earlier selection state; its source metadata and artifact-access notes were superseded by the review.
+
+At selection time, these ten had active Advanced (`-a`) rows in the local 459-song visible catalogue. They were **proposed work**, not reviewed Chords arrangements or golden-corpus entries. Kings & Queens remained an available candidate outside the now five-song corpus. Rain and Aerosmith already had full authored Chords candidates, so this list focused on other songs; Your Song then had only an opening-section chart.
 
 | Order | Song | Why work on it | First musical check |
 | --- | --- | --- | --- |

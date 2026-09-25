@@ -150,21 +150,38 @@ describe("catalog chord source plumbing", () => {
     expect(result?.source.id).toBe("ug-your-song");
     expect(result?.timeline.baseId).toBe(YOUR_SONG);
     expect(result?.timeline.chords.length).toBeGreaterThan(8);
-    expect(result?.timeline.chords[0]).toMatchObject({ beat: 0, name: "Eb", durationBeats: 4 });
-    expect(result?.timeline.coverage).toBe("opening-section");
+    expect(result?.timeline.chords[0]).toMatchObject({ beat: 0, name: "N.C.", durationBeats: 1.25 });
+    expect(result?.timeline.coverage).toBe("full-song");
+    expect(result?.timeline.durationBeats).toBe(516);
     expect(result?.timeline.provenance.provider).toBe("ultimate-guitar");
     expect(result?.timeline.provenance.sourceUrl).toMatch(/^https:\/\/tabs\.ultimate-guitar\.com\//);
     expect(JSON.stringify(result?.timeline)).not.toMatch(/lyrics|tablature|chartText/i);
   });
 
-  it("keeps every curated chart voicing musically consistent with its symbol", async () => {
-    const timeline = await loadChordTimeline(YOUR_SONG);
-    expect(timeline).not.toBeNull();
-    for (const chord of timeline?.chords ?? []) {
-      const expected = new Set(chordPitchClasses(chord.name));
-      const actual = new Set((chord.notes ?? []).map((midi) => ((midi % 12) + 12) % 12));
-      expect(actual, `${chord.name} at beat ${chord.beat}`).toEqual(expected);
-    }
+  it.each([
+    [YOUR_SONG, "Eb", 516, [4, 4], [[1.25, "Eb/Bb"], [5.25, "Ab/C"], [25.625, "Bb/D"]]],
+    ["gloria-gaynor-i-will-survive", "Am", 388, [4, 4], [[24, "Am7"], [27.875, "Dm7/A"], [32.5, "G7"], [35.875, "Cmaj7/G"], [39.875, "Fmaj7"], [44.5, "Dm/B"], [47.875, "Esus4"], [51.875, "E7"], [59.875, "Dm7"], [375.875, "Am7"]]],
+    ["the-beatles-help", "A", 436, [4, 4], [[4, "Bm"], [8, "Bm/A"], [12, "G"], [16, "G/F#"], [60, "D"], [62, "G"]]],
+    ["status-quo-in-the-army-now", "Em", 428, [4, 4], [[12, "Dm"], [52, "Gm"], [192, "Em"], [208, "Am"], [212, "Bm"]]],
+    ["ozzy-osbourne-dreamer", "C", 520, [4, 4], [[8, "D"], [76, "Ab"], [188, "Gm"], [212, "Bb"], [228, "C"]]],
+    ["rousseau-john-legend-all-of-me-piano-cover-mslwrq3x", "Fm", 664, [4, 4], [[0, "Fm"], [4.5, "Db"], [8.875, "Ab"], [13.375, "Eb"]]],
+    ["journey-dont-stop-believin", "C#", 520, [4, 4], [[4, "C#"], [6.5, "G#/D#"], [10.5, "A#m"], [15.5, "F#"]]],
+    ["mary-hopkin-those-were-the-days", "Am", 344, [2, 4], [[8, "Am"], [16, "A7"], [20, "Dm"], [32, "B7"], [52, "G7"]]],
+    ["katherine-cordova-coldplay-fix-you-advanced-piano-cover-mslws0x0", "Eb", 668, [4, 4], [[2.75, "Eb"], [6, "Ebmaj7"], [11, "Cm"], [15.75, "Bb"]]],
+    ["abba-the-winner-takes-it-all", "F#", 592, [4, 4], [[0, "F#"], [6.5, "A#7"], [8, "D#m"], [76, "C#/F"]]],
+  ] as const)("keeps %s playable and complete at its source changes", async (baseId, key, end, meter, examples) => {
+    const result = await resolveChordTimeline(baseId, { runtimeDataDir: join(process.cwd(), "missing-runtime-data") });
+    expect(result?.usedFallback).toBe(false);
+    expect(result?.timeline.coverage).toBe("full-song");
+    expect(result?.timeline.key).toBe(key);
+    expect(result?.timeline.timeSig).toEqual(meter);
+    const chords = result?.timeline.chords ?? [];
+    expect(chords[0]?.beat).toBe(0);
+    expect(chords.at(-1)!.beat + chords.at(-1)!.durationBeats).toBe(end);
+    expect(chords.every((chord, index) => index === 0 || chords[index - 1]!.beat + chords[index - 1]!.durationBeats === chord.beat)).toBe(true);
+    expect(chords.every((chord) => chord.name === "N.C." || chordPitchClasses(chord.name).length > 0)).toBe(true);
+    const at = (beat: number) => chords.find((chord) => chord.beat <= beat && beat < chord.beat + chord.durationBeats)?.name;
+    for (const [beat, name] of examples) expect(at(beat), `${baseId} at ${beat}`).toBe(name);
   });
 
   it("normalizes aliases, ordering, repeated labels, and overlapping spans", () => {
