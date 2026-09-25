@@ -56,6 +56,60 @@
       ]
     },
     {
+      "baseId": "coldplay-clocks",
+      "canonicalTitle": "Clocks",
+      "canonicalArtist": "Coldplay",
+      "fallbackSourceId": "midi-derived",
+      "sources": [
+        {
+          "id": "ug-clocks",
+          "provider": "ultimate-guitar",
+          "kind": "chart",
+          "sourceRef": "ultimate-guitar:coldplay/clocks",
+          "sourceUrl": "https://tabs.ultimate-guitar.com/tab/coldplay/clocks-chords-1085329",
+          "artifactPath": "catalog/chord-timelines/clocks.json",
+          "retrievedAt": "2026-09-25",
+          "confidence": "medium",
+          "priority": 0
+        },
+        {
+          "id": "midi-derived",
+          "provider": "keyspilli",
+          "kind": "midi-derived",
+          "sourceRef": "variant:advanced:notes.json",
+          "confidence": "fallback",
+          "priority": 100
+        }
+      ]
+    },
+    {
+      "baseId": "creedence-clearwater-revival-have-you-ever-seen-the-rain",
+      "canonicalTitle": "Have You Ever Seen The Rain",
+      "canonicalArtist": "Creedence Clearwater Revival",
+      "fallbackSourceId": "midi-derived",
+      "sources": [
+        {
+          "id": "ug-have-you-ever-seen-the-rain",
+          "provider": "ultimate-guitar",
+          "kind": "chart",
+          "sourceRef": "ultimate-guitar:creedence-clearwater-revival/have-you-ever-seen-the-rain",
+          "sourceUrl": "https://tabs.ultimate-guitar.com/tab/creedence-clearwater-revival/have-you-ever-seen-the-rain-chords-56479",
+          "artifactPath": "catalog/chord-timelines/have-you-ever-seen-the-rain.json",
+          "retrievedAt": "2026-09-25",
+          "confidence": "medium",
+          "priority": 0
+        },
+        {
+          "id": "midi-derived",
+          "provider": "keyspilli",
+          "kind": "midi-derived",
+          "sourceRef": "variant:advanced:notes.json",
+          "confidence": "fallback",
+          "priority": 100
+        }
+      ]
+    },
+    {
       "baseId": "frank-sinatra-my-way",
       "canonicalTitle": "My Way",
       "canonicalArtist": "Frank Sinatra",
