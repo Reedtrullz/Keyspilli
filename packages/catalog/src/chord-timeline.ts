@@ -509,7 +509,8 @@ export function normalizeChordTimeline(value: unknown, defaults?: { source?: Cho
       && previous.inferred === event.inferred
       && previous.inferenceType === event.inferenceType
       && previous.strikeSpacingBeats === event.strikeSpacingBeats;
-    if (samePayload && equalBeat(previous.beat + previous.durationBeats, event.beat)) {
+    // A separately authored event is an intentional new attack, even when its symbol repeats.
+    if (samePayload && event.sourceKind !== "authored" && equalBeat(previous.beat + previous.durationBeats, event.beat)) {
       previous.durationBeats = roundBeat(previous.durationBeats + event.durationBeats);
       continue;
     }

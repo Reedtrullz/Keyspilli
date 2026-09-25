@@ -37,6 +37,33 @@ describe("catalog chord source plumbing", () => {
     expect(chords.every((chord) => chord.name === "N.C." || chordPitchClasses(chord.name).length > 0)).toBe(true);
   });
 
+  it("retains authored repeated F and C onsets and the short chord ladders in both songs", async () => {
+    const imagine = (await resolveChordTimeline(IMAGINE))!.timeline.chords;
+    const letItBe = (await resolveChordTimeline(LET_IT_BE))!.timeline.chords;
+    const at = (chords: typeof imagine, beat: number) => chords.find((chord) => chord.beat === beat)?.name;
+    for (const [beat, name] of [[67.875, "F"], [96, "F"], [99.875, "Dm7"], [119, "E7/D"], [123.875, "C"], [176, "F"], [179.875, "Dm7"], [199, "E7/D"], [203.875, "C"]] as const) {
+      expect(at(imagine, beat), `Imagine beat ${beat}`).toBe(name);
+    }
+    for (const [beat, name] of [[5, "C"], [7, "G"], [20, "C"], [21, "C"], [33, "C/E"], [33.5, "Dm7"], [51, "Cmaj7/B"], [53, "Am"], [65, "C/E"], [65.5, "Dm7"], [99, "C"], [135, "Bb"], [135.5, "Am"], [137, "F"], [145, "F"], [227, "C"], [277, "C/E"], [277.5, "Dm"], [279, "Bb"], [279.5, "Am"], [281, "F"]] as const) {
+      expect(at(letItBe, beat), `Let It Be beat ${beat}`).toBe(name);
+    }
+  });
+
+  it("keeps adjacent authored repeats as independent attack boundaries", () => {
+    const input = {
+      schemaVersion: 1,
+      baseId: "test-song",
+      title: "Test Song",
+      artist: "Tester",
+      durationBeats: 4,
+      provenance: { sourceId: "chart", provider: "test", kind: "chart", sourceRef: "test" },
+      chords: [{ beat: 0, durationBeats: 2, name: "C" }, { beat: 2, durationBeats: 2, name: "C" }],
+    };
+    const once = normalizeChordTimeline(input);
+    expect(once.chords.map(({ beat }) => beat)).toEqual([0, 2]);
+    expect(normalizeChordTimeline(once)).toEqual(once);
+  });
+
   it("aligns Aerosmith's D-key chart with the Advanced intro, verses, bridge, and final chorus", async () => {
     const result = await resolveChordTimeline(AEROSMITH, { runtimeDataDir: join(process.cwd(), "missing-runtime-data") });
     expect(result?.usedFallback).toBe(false);

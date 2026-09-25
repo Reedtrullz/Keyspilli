@@ -311,6 +311,7 @@ export function normalizeChordTimeline(
     const previous = deduped.at(-1);
     if (
       previous
+      && chord.sourceKind !== "authored"
       && previous.name === chord.name
       && JSON.stringify(previous.notes) === JSON.stringify(chord.notes)
       && metadataKey(previous) === metadataKey(chord)
