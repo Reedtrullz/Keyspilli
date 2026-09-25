@@ -20,6 +20,7 @@ interface ManifestSong {
   mood?: string;
   key?: string;
   tempo?: number;
+  preserveSourceBeats?: boolean;
   sourceFile: string;
   sourceUrl: string;
   contentType?: "standard" | "youtube" | "upload";
@@ -58,6 +59,7 @@ async function processSong(s: ManifestSong): Promise<{ ok: boolean; error?: stri
     mood: s.mood,
     key: s.key,
     tempo: s.tempo,
+    preserveSourceBeats: s.preserveSourceBeats,
     contentType,
     acquiredVia,
     sourceYoutubeUrl: youtubeSource ? s.sourceUrl : null,
