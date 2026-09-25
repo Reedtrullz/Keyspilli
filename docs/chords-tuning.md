@@ -65,7 +65,7 @@ For the six owner-accepted reference songs, the local replay audit checks pinned
 KEYSPILLI_DATA_DIR=/path/to/data npx tsx apps/web/scripts/audit-golden-chords.mts --require-match
 ```
 
-An intentional phrasing candidate reports `DRIFT` until the owner has listened and accepted its new backing. Do not replace the accepted digests solely to make this audit pass.
+An unaccepted phrasing candidate reports `DRIFT` for each changed song until the owner has listened and accepted its new backing. Do not replace accepted digests solely to make this audit pass.
 
 ## Current results
 
