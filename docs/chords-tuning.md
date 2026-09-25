@@ -1,11 +1,11 @@
 # Tuning Chords mode
 
-Chords mode plays a bass note and a triad for every visible song, derived from its Advanced arrangement and shared by all difficulty levels. Every number that shapes it lives in [`packages/midi/src/chords-tuning.ts`](../packages/midi/src/chords-tuning.ts). This page explains what each one does and how to check a change without a listening round.
+Chords mode plays a bass note and a chord for every visible song, derived from its Advanced arrangement and shared by all difficulty levels. Global tuning values live in [`packages/midi/src/chords-tuning.ts`](../packages/midi/src/chords-tuning.ts); source-informed phrasing lives in [`packages/player-core/src/accompaniment.ts`](../packages/player-core/src/accompaniment.ts). Structural checks help locate passages to listen to, but do not establish musical quality.
 
 ## How the backing is made
 
 1. **Chord names.** `inferHarmonyTimeline` (`packages/midi/src/harmony.ts`) scores every major and minor triad against the notes sounding on each beat, weighted by how long they sound and by the lowest note. It then picks the best path through the song, paying a penalty for each change. Every note counts as evidence, including the sung line, because a backing that fights the tune is wrong. No source note is copied into the backing. Silence and a short pickup bar get no chord (N.C.). Authored chord charts and learner levels keep their own labels.
-2. **Strikes.** `resolveAccompaniment` (`packages/player-core/src/accompaniment.ts`) strikes each chord where the arrangement's left hand strikes, or where its bass note changes when a source has no hands. A beginner is asked to strike at most once a beat. When the source leaves a whole bar without a strike, the chord is struck again on the downbeat.
+2. **Strikes and releases.** `resolveAccompaniment` strikes each chord where the arrangement's left hand strikes, or where its bass note changes when a source has no hands. A beginner is asked to strike at most once a beat. For an authored chart, isolated non-root bass notes do not automatically re-strike the whole chord; a chart change still starts on time. A held source chord stack can suppress a synthetic barline strike. When fewer than two distinct chord tones remain held, the sounding chord can end up to a quarter beat before the next strike. The displayed chord label keeps the chart's full span. Generated timelines retain their existing strike and duration rules.
 3. **Voicing.** The existing voicing keeps the right-hand triad within an octave around middle C and moves it as little as possible between chords, with the bass in the left hand.
 
 The Winner pilot (`reviewed-source-backing.ts`) still overrides this for production's exact Winner Advanced file.
@@ -52,12 +52,20 @@ It lists each failing song with its reasons. Each check stands in for something 
 
 | Check | Stands in for | Gate |
 | --- | --- | --- |
-| Dead air: a note starts while the last strike is a bar or more back | "There are no chords here" | `maxDeadAirOnsets` |
+| Dead air: a source note starts after a bar without a strike or sounding backing, outside an explicit N.C. span | "There are no chords here" | `maxDeadAirOnsets` |
 | Share of the tune's strong-beat notes that are chord tones | Wrong chord | `minStrongBeatTuneChordToneShare` |
 | Share of tune notes a semitone from a backing note | Clash | `maxTuneSemitoneClashShare` |
 | Share of chords lasting one beat or less | Flicker, hard to follow | `maxOneBeatChordShare` |
 
-The tune is approximated by the highest right-hand note, so these checks are weaker evidence than the benchmark. Use them to find songs worth a listen, and the benchmark to decide whether a setting is better.
+The report counts source onsets inside explicit N.C. spans separately as `intentionalSilenceOnsets`. The tune is approximated by the highest right-hand note, so these checks are weaker evidence than the benchmark. Use them to find songs worth a listen, and the benchmark to decide whether a setting is better.
+
+For the six owner-accepted reference songs, the local replay audit checks pinned Advanced notes, authored timeline, selected source, and realized backing digest:
+
+```bash
+KEYSPILLI_DATA_DIR=/path/to/data npx tsx apps/web/scripts/audit-golden-chords.mts --require-match
+```
+
+An intentional phrasing candidate reports `DRIFT` until the owner has listened and accepted its new backing. Do not replace the accepted digests solely to make this audit pass.
 
 ## Current results
 

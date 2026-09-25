@@ -20,7 +20,7 @@ The strike counts and structural gates come from `KEYSPILLI_DATA_DIR=output/skyf
 1. **Treat symbols, change boundaries, repeated attacks, and voicing as separate decisions.** Skyfall needed better chord identity and coverage. My Way and Kings & Queens had mostly plausible symbols but misplaced attacks. Imagine and Let It Be needed the short intermediate chords the first charts skipped. Clocks needed a different *register and played shape* even though its chart and rhythm already passed the structural gate.
 2. **Use the source performance as timing evidence, with musical filters.** All 105 Clocks, 198 Kings & Queens, 166 Imagine, and 280 Let It Be realized strikes coincide with source note onsets. Yet an onset alone is insufficient: Kings & Queens' left-hand arpeggio generated three unwanted full-chord attacks, and My Way's short pickup preceded the stronger bass landing near 0:36. The nine off-source strikes in Skyfall and My Way deserve targeted listening; they are not automatically bugs, since a held chart chord may legitimately be re-struck through a sparse source passage.
 3. **Structural scores can disagree with a useful backing.** The generated Clocks backing scores a 0.955 strong-beat tune-chord-tone proxy versus 0.909 for the corrected chart backing, yet the owner's complaint concerned its wrong voicing. Generated Kings & Queens passes the structural gate while the accepted chart fails on intentionally unaccompanied spans. Generated Let It Be passes while the accepted higher-resolution chart fails on short labels. Skyfall's generated proxy also exceeds the chart's despite the owner's preference for the chart-backed result. These scores are triage signals, not a musical ranking or reason to alter a threshold until it passes.
-4. **The corpus currently freezes inputs, not what the listener heard.** Clocks' first and revised previews use the *same* Advanced-note and chord-timeline hashes but sound different: the opening Eb changed from `[39,67,70,75]` to the source-played `[51,58,63]`. A future voicing or strike-code change could likewise alter any accepted backing while all six corpus hashes remain valid. The current index is a provenance set, not yet a reproducible audio/Player-output reference.
+4. **At review time the corpus froze inputs, not what the listener heard.** Clocks' first and revised previews use the *same* Advanced-note and chord-timeline hashes but sound different: the opening Eb changed from `[39,67,70,75]` to the source-played `[51,58,63]`. A future voicing or strike-code change could likewise alter any accepted backing while all six input hashes remain valid. The follow-up below adds realized-output digests.
 
 ## Improvements worth making next
 
@@ -30,3 +30,24 @@ The strike counts and structural gates come from `KEYSPILLI_DATA_DIR=output/skyf
 4. **Report notation density and intentional silence separately from musical acceptance.** Review Let It Be's quick labels in a real practice passage and Kings & Queens' no-chord spans by listening. Keep the diagnostics visible; do not fill silence or remove the owner's requested chord ladders merely to make the gate green.
 
 No implementation or release decision follows from these proposals in this review.
+
+## Source-informed phrasing follow-up
+
+The six accepted backings now have deterministic `acceptedBackingSha256` digests of the Player's selected source, source fingerprint, and ordered strike beat, sounding duration, chord name, pitches, and hand assignment. `apps/web/scripts/audit-golden-chords.mts --require-match` matched all six before the phrasing code changed. It now reports `DRIFT` for all six: the new sound is a **candidate**, and the earlier owner decisions must not be transferred to it without listening. The input and chart pins still match.
+
+The candidate uses the Advanced performance to distinguish chart changes, complete chord attacks, isolated bass arpeggios, and releases. It keeps authored change boundaries and the My Way beat-44/46/47 correction; the Kings & Queens beat-170.25–184.25 sequence keeps its previously repaired attacks. A source-held stack suppresses an invented barline hit only while at least two harmonic pitch classes remain held. When only a bass octave continues to ring, the full chord can release early. Such releases create at most a quarter-beat gap before the next strike. Generated timelines retain their existing behavior.
+
+| Song | Accepted → candidate strikes | Candidate strikes on source onsets | Short release gaps before next strike |
+| --- | ---: | ---: | ---: |
+| Skyfall | 223 → 206 | 203/206 | 91 |
+| My Way | 197 → 179 | 174/179 | 134 |
+| Kings & Queens | 198 → 187 | 187/187 | 147 |
+| Imagine | 166 → 157 | 157/157 | 133 |
+| Let It Be | 280 → 255 | 255/255 | 40 |
+| Clocks | 105 → 105 | 105/105 | 88 |
+
+These are structural observations from the same local eight-artifact preview snapshot; 451 of 459 visible rows lack local Advanced artifacts. The evaluator now distinguishes an actual unsounded source onset from time since the previous attack, and counts source onsets inside explicit N.C. spans separately. It reports zero accidental dead-air onsets and 23 intentional-silence onsets among the eight available songs. Seven pass the structural gate; Let It Be still fails on its 70% short-label share. The improved pass count partly reflects the corrected silence definition, not a listening verdict. Kings & Queens' N.C. opening/tail and Skyfall's N.C. bar at beat 252 remain unfilled, and Let It Be's requested short chord ladders remain visible. Have You Ever Seen the Rain's sounding coverage falls from 0.976 to 0.783 in this candidate; that may be purposeful articulation or excessive space and warrants listening before wider adoption.
+
+I also checked whether Clocks' source-played-voicing rule could be generalized mechanically. In this snapshot, 25 of Skyfall's 144 compact simultaneous RH clusters and 9 of My Way's 90 contain at least two notes outside the realized chord pitch classes; Imagine has 0 of 52 and Let It Be 3 of 239 by that proxy. A cluster can be accompaniment, melody, or both, and pitch-class agreement with the current backing is not ground truth. This evidence does not justify replacing the other songs' accepted voicings without a matched listening comparison. Clocks keeps its pinned source-voicing correction.
+
+Next musical check: listen to the candidate in the local Player, especially Clocks beats 64–75 (source-supported repeated attacks now separated by short releases), My Way near 0:36, Kings & Queens at 1:19–1:26, Imagine's opening, and Let It Be's fast chord ladder. Keep the six accepted digests until the owner decides which changes sound better. Full-catalog and independent keyboard gates remain open.

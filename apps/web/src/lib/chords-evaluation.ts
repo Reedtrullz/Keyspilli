@@ -1,6 +1,6 @@
 import type { SongRow } from "@keyspilli/catalog";
 import { CHORDS_TUNING } from "@keyspilli/midi";
-import type { AccompanimentResolution, Note, SongData } from "@keyspilli/player-core";
+import type { AccompanimentFallbackSpan, AccompanimentResolution, Note, SongData } from "@keyspilli/player-core";
 import { replayChordsBacking, type ChordsBackingReplay } from "../components/player/chords-backing";
 
 /**
@@ -68,24 +68,29 @@ function attackMetrics(attacks: readonly Attack[], durationBeats: number) {
 
 /**
  * Listener-facing checks that need no listening. Dead air: a source note
- * starts while the backing's last strike is a full bar or more back.
+ * starts after a full bar without a strike or a sounding backing note, outside
+ * an explicit no-chord span.
  * Alignment: backing strikes that land on a source onset. Clashes: the
  * highest right-hand note at each onset stands in for the tune; on a whole
  * beat it should be a tone of the sounding backing, and it should never sit a
  * semitone (or minor ninth) from a sounding backing note.
  */
-function listenerChecks(data: SongData, audio: readonly Attack[], labels: readonly { name: string; durationBeats?: number }[] = []) {
+function listenerChecks(data: SongData, audio: readonly Attack[], labels: readonly { name: string; durationBeats?: number }[] = [], fallbackSpans: readonly AccompanimentFallbackSpan[] = []) {
   const strikes = [...new Set(audio.map((attack) => attack.start))].sort((a, b) => a - b);
   const sourceOnsets = [...new Set(data.notes.map((note) => note.start))].sort((a, b) => a - b);
   const onsetSet = new Set(sourceOnsets);
-  let deadAirBars = 0, longestWait = 0, last = -Infinity, i = 0;
+  let deadAirBars = 0, intentionalSilenceOnsets = 0, longestWait = 0, last = -Infinity, i = 0;
   for (const onset of sourceOnsets) {
+    if (fallbackSpans.some((span) => span.reason === "explicit no-chord" && span.startBeat <= onset && onset < span.endBeat)) {
+      intentionalSilenceOnsets++;
+      continue;
+    }
     while (i < strikes.length && strikes[i]! <= onset + 1e-7) last = strikes[i++]!;
     const bar = data.measures.find((measure) => measure.startBeat <= onset && onset < measure.endBeat);
     const barLength = bar ? bar.endBeat - bar.startBeat : 4;
     const wait = onset - last;
     if (Number.isFinite(wait)) longestWait = Math.max(longestWait, wait);
-    if (!(wait < barLength)) deadAirBars++;
+    if (!(wait < barLength) && !audio.some((attack) => attack.start <= onset + 1e-7 && onset < attack.start + attack.dur)) deadAirBars++;
   }
   const tops = new Map<number, number>();
   for (const note of data.notes) if (note.hand !== "L") tops.set(note.start, Math.max(tops.get(note.start) ?? -Infinity, note.midi));
@@ -105,6 +110,7 @@ function listenerChecks(data: SongData, audio: readonly Attack[], labels: readon
   return {
     oneBeatChordShare: named.length ? named.filter((label) => (label.durationBeats ?? 0) <= 1 + 1e-7).length / named.length : null,
     deadAirOnsets: deadAirBars,
+    intentionalSilenceOnsets,
     longestWaitForStrikeBeats: longestWait,
     strikes: strikes.length,
     strikesOnSourceOnsets: strikes.filter((beat) => onsetSet.has(beat)).length,
@@ -138,7 +144,7 @@ export function evaluateChordsBacking(data: SongData, candidate?: ChordsCandidat
   // doubled attack for the listener and an unpressable target for the learner.
   const audioAttacks = [...noteAttacks(resolution.notes), ...chordAttacks];
   const onsetKeys = audioAttacks.map((attack) => `${attack.midi}:${attack.start}`);
-  const listener = listenerChecks(data, audioAttacks, resolution.displayChords);
+  const listener = listenerChecks(data, audioAttacks, resolution.displayChords, resolution.fallbackSpans);
   const firstMeasure = data.measures[0]?.startBeat ?? 0;
   return {
     sourceFingerprint: data.sourceFingerprint ?? null,
@@ -282,6 +288,7 @@ export async function evaluateVisibleChords(
       gateFailed: count((row) => !row.backing!.gate.passed),
       songsWithDeadAir: count((row) => row.backing!.listener.deadAirOnsets > 0),
       deadAirOnsets: evaluated.reduce((total, row) => total + row.backing!.listener.deadAirOnsets, 0),
+      intentionalSilenceOnsets: evaluated.reduce((total, row) => total + row.backing!.listener.intentionalSilenceOnsets, 0),
       strikeOnSourceOnsetShare: share(evaluated.map((row) => [row.backing!.listener.strikesOnSourceOnsets, row.backing!.listener.strikes])),
       medianStrongBeatTuneChordToneShare: median(evaluated.map((row) => row.backing!.listener.strongBeatTuneChordToneShare)),
       medianTuneSemitoneClashShare: median(evaluated.map((row) => row.backing!.listener.tuneSemitoneClashShare)),

@@ -9,6 +9,112 @@ const strikes = (notes: Note[], chords: Array<{ beat: number; name: string; dura
     .chords.map((chord) => [chord.beat, chord.name]);
 
 describe("bass + chords in the source rhythm", () => {
+  it("leaves the source pianist's release gap while keeping repeated bass attacks", () => {
+    const source = left([0, 1, 2]).map((item) => ({ ...item, dur: 0.25 }));
+    const result = resolveAccompaniment(source, [
+      { beat: 0, durationBeats: 3, name: "Bb", notes: [], sourceKind: "authored" },
+    ], "bass-chords", { durationBeats: 3, sourceRhythmMeasures: bars(1) });
+    expect(result.chords.map(({ beat, durationBeats }) => [beat, durationBeats])).toEqual([
+      [0, 0.75], [1, 0.75], [2, 0.75],
+    ]);
+    expect(result.displayChords[0]).toMatchObject({ beat: 0, durationBeats: 3 });
+
+    const generated = resolveAccompaniment(source, [
+      { beat: 0, durationBeats: 3, name: "Bb", notes: [], sourceKind: "generated" },
+    ], "bass-chords", { durationBeats: 3, sourceRhythmMeasures: bars(1) });
+    expect(generated.chords.map((chord) => chord.durationBeats)).toEqual([1, 1, 1]);
+  });
+
+  it("skips a bass-only re-strike under a sustained source chord but keeps the next authored hit", () => {
+    const source: Note[] = [
+      { midi: 36, start: 0, dur: 0.5, vel: 70, hand: "L" },
+      ...[60, 64, 67].map((midi) => ({ midi, start: 0, dur: 2, vel: 70, hand: "R" as const })),
+      { midi: 48, start: 1, dur: 0.5, vel: 70, hand: "L" },
+      { midi: 36, start: 2, dur: 0.5, vel: 70, hand: "L" },
+      ...[60, 64, 67].map((midi) => ({ midi, start: 2, dur: 1, vel: 70, hand: "R" as const })),
+    ];
+    const result = resolveAccompaniment(source, [
+      { beat: 0, durationBeats: 2, name: "C", notes: [], sourceKind: "authored" },
+      { beat: 2, durationBeats: 2, name: "C", notes: [], sourceKind: "authored" },
+    ], "bass-chords", { durationBeats: 4, sourceRhythmMeasures: bars(1) });
+    expect(result.chords.map(({ beat, durationBeats }) => [beat, durationBeats])).toEqual([[0, 2], [2, 1.75]]);
+    expect(result.displayChords.map(({ beat, durationBeats }) => [beat, durationBeats])).toEqual([[0, 2], [2, 2]]);
+  });
+
+  it("does not mistake simultaneous melody notes for a held chord stack", () => {
+    const source: Note[] = [
+      { midi: 36, start: 0, dur: 0.25, vel: 70, hand: "L" },
+      { midi: 61, start: 0, dur: 2, vel: 70, hand: "R" },
+      { midi: 65, start: 0, dur: 2, vel: 70, hand: "R" },
+      { midi: 48, start: 1, dur: 0.25, vel: 70, hand: "L" },
+    ];
+    const result = resolveAccompaniment(source, [
+      { beat: 0, durationBeats: 2, name: "C", notes: [], sourceKind: "authored" },
+    ], "bass-chords", { durationBeats: 2, sourceRhythmMeasures: bars(1) });
+    expect(result.chords.map(({ beat, durationBeats }) => [beat, durationBeats])).toEqual([[0, 0.75], [1, 0.75]]);
+  });
+
+  it("skips a single fifth in the bass arpeggio but keeps the repeated root", () => {
+    const source: Note[] = [
+      { midi: 49, start: 0, dur: 0.75, vel: 70, hand: "L" },
+      { midi: 56, start: 1, dur: 0.75, vel: 70, hand: "L" },
+      { midi: 49, start: 2, dur: 0.5, vel: 70, hand: "L" },
+    ];
+    const result = resolveAccompaniment(source, [
+      { beat: 0, durationBeats: 4, name: "C#m", notes: [], sourceKind: "authored" },
+    ], "bass-chords", { durationBeats: 4, sourceRhythmMeasures: bars(1) });
+    expect(result.chords.map(({ beat, durationBeats }) => [beat, durationBeats])).toEqual([[0, 1.75], [2, 1.75]]);
+  });
+
+  it("keeps a syncopated chord hit with an octave-spread right-hand shape", () => {
+    const source: Note[] = [
+      { midi: 38, start: 0, dur: 1, vel: 70, hand: "L" },
+      { midi: 57, start: 2, dur: 1, vel: 70, hand: "L" },
+      ...[66, 74, 78].map((midi) => ({ midi, start: 2, dur: 1, vel: 70, hand: "R" as const })),
+    ];
+    const result = resolveAccompaniment(source, [
+      { beat: 0, durationBeats: 4, name: "D", notes: [], sourceKind: "authored" },
+    ], "bass-chords", { durationBeats: 4, sourceRhythmMeasures: bars(1) });
+    expect(result.chords.map((chord) => chord.beat)).toEqual([0, 2]);
+  });
+
+  it("does not invent a barline re-strike while the source chord stack is still held", () => {
+    const source: Note[] = [
+      { midi: 36, start: 0, dur: 0.5, vel: 70, hand: "L" },
+      ...[60, 64, 67].map((midi) => ({ midi, start: 0, dur: 6, vel: 70, hand: "R" as const })),
+    ];
+    const result = resolveAccompaniment(source, [
+      { beat: 0, durationBeats: 8, name: "C", notes: [], sourceKind: "authored" },
+    ], "bass-chords", { durationBeats: 8, sourceRhythmMeasures: bars(2) });
+    expect(result.chords.map((chord) => chord.beat)).toEqual([0]);
+  });
+
+  it("allows a barline re-strike when only one pitch class remains held", () => {
+    const source: Note[] = [
+      { midi: 36, start: 0, dur: 8, vel: 70, hand: "L" },
+      { midi: 60, start: 0, dur: 8, vel: 70, hand: "R" },
+      { midi: 64, start: 0, dur: 2, vel: 70, hand: "R" },
+      { midi: 67, start: 0, dur: 2, vel: 70, hand: "R" },
+    ];
+    const result = resolveAccompaniment(source, [
+      { beat: 0, durationBeats: 8, name: "C", notes: [], sourceKind: "authored" },
+    ], "bass-chords", { durationBeats: 8, sourceRhythmMeasures: bars(2) });
+    expect(result.chords.map((chord) => chord.beat)).toEqual([0, 4]);
+  });
+
+  it("releases the full chord when only a bass octave continues to ring", () => {
+    const source: Note[] = [
+      { midi: 36, start: 0, dur: 8, vel: 70, hand: "L" },
+      { midi: 60, start: 0, dur: 8, vel: 70, hand: "R" },
+      { midi: 64, start: 0, dur: 2, vel: 70, hand: "R" },
+      { midi: 67, start: 0, dur: 2, vel: 70, hand: "R" },
+    ];
+    const result = resolveAccompaniment(source, [
+      { beat: 0, durationBeats: 4, name: "C", notes: [], sourceKind: "authored" },
+    ], "bass-chords", { durationBeats: 4, sourceRhythmMeasures: bars(1) });
+    expect(result.chords.map((chord) => chord.durationBeats)).toEqual([3.75]);
+  });
+
   it("re-strikes a held chord where the pianist's left hand strikes, at most once a beat", () => {
     const pulse = left([0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5]);
     expect(strikes(pulse, [{ beat: 0, name: "Bb", durationBeats: 8 }], bars(2))).toEqual(

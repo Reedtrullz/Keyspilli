@@ -9,6 +9,7 @@
       "sourceId": "ug-skyfall",
       "advancedNotesSha256": "af41511639e95686e2bc88f8bc56bc7fc90ba70644c5870b05dad6773fd7eb18",
       "timelineSha256": "c83c03a73ecd65f565bf3ebb5dbd7ee04295b5a25ba9b0ef855414177980ebf8",
+      "acceptedBackingSha256": "eb03d48967cf7cf96a3e7aa3c318ff93198e7e6d929ba520eff0eec70a53fb2f",
       "acceptedAt": "2026-09-25"
     },
     {
@@ -17,6 +18,7 @@
       "sourceId": "ug-my-way",
       "advancedNotesSha256": "b56e9470adf34b817bcb9e484edb9ec270d817c8224f5757145d2fc3ece72442",
       "timelineSha256": "97988b88b7c1dcbfe31ecdcf03075b03c79fe8d8ffcfcf0776cb3c20c410300d",
+      "acceptedBackingSha256": "5fd8fe9f785087b2b8ee4c3efe3fa75ed9feff63724dfcd66ac045ecc8ad29cc",
       "acceptedAt": "2026-09-25"
     },
     {
@@ -25,6 +27,7 @@
       "sourceId": "ug-imagine",
       "advancedNotesSha256": "157cd3dc92e6b3e819567d0cf51eab7a1c03a1b76c1cb3333e0b26d4e7fb8790",
       "timelineSha256": "ef04458fb6b99cb72a9a38e44fb3a2c85314e8f913d08eebf7f501446f8004df",
+      "acceptedBackingSha256": "7c01beff6aca0dbbffd60185f18945fc1135764b4067df32ba4fde376265bfbb",
       "acceptedAt": "2026-09-25"
     },
     {
@@ -33,6 +36,7 @@
       "sourceId": "ug-kings-and-queens-pianella",
       "advancedNotesSha256": "7ef169b7e2bda646d78c95a122064c61563f92e1c783178d6316ac15862d02f4",
       "timelineSha256": "7042195e809d6262145f2437901cf0e3b27f147948aedb973e79de15422f69ad",
+      "acceptedBackingSha256": "0d519a7a40c5f9c2b26d2a071c38a6556eed1a457c2d59d67edf89ab2f0f9dd9",
       "acceptedAt": "2026-09-25"
     },
     {
@@ -41,6 +45,7 @@
       "sourceId": "ug-let-it-be",
       "advancedNotesSha256": "b7fea761f20fe174c64e599041ba3e67f669b9efad4ddf2834dbf45aa34c3b36",
       "timelineSha256": "b1d7460421acc3b09d887f0796b99cd2ad8af0c6c276247da57ca921f477fbd0",
+      "acceptedBackingSha256": "c05688a2e0674e1f69d7be8d90052b9cf303fdb9120a21d8b68ca3f3a7daf676",
       "acceptedAt": "2026-09-25"
     },
     {
@@ -49,6 +54,7 @@
       "sourceId": "ug-clocks",
       "advancedNotesSha256": "053b40ebcf93fad16c80e470042cc1fa69b716c77a31f64a7cbb49ab77e90a51",
       "timelineSha256": "d08081391a582c9a7837675115d2e0c018e8f08307d4255018e23b00ab6c85cf",
+      "acceptedBackingSha256": "ef673b47a839af407faa552c4b1c67889f23b01cc6a07ea42c6f6ba24e5356c9",
       "acceptedAt": "2026-09-25"
     }
   ]

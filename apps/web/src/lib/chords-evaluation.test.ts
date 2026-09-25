@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { resolveAccompaniment, type SongData } from "@keyspilli/player-core";
 import { replayChordsBacking } from "../components/player/chords-backing";
-import { evaluateVisibleChords, gateChordsBacking, type AdvancedRow } from "./chords-evaluation";
+import { evaluateChordsBacking, evaluateVisibleChords, gateChordsBacking, type AdvancedRow } from "./chords-evaluation";
 
 function song(overrides: Partial<SongData> = {}): SongData {
   return {
@@ -76,8 +76,23 @@ describe("all visible song Chords evaluation", () => {
 });
 
 describe("Chords gate", () => {
+  it("does not report dead air while a held chord is still sounding", () => {
+    const data = song({ notes: [
+      { midi: 48, start: 0, dur: 0.5, vel: 70, hand: "L" },
+      { midi: 60, start: 5, dur: 0.5, vel: 70, hand: "R" },
+    ] });
+    const candidate = (durationBeats: number, intentionalRest = false) => evaluateChordsBacking(data, () => ({
+      style: "bass-chords", notes: [], displayChords: [], guidanceNotes: [],
+      fallbackSpans: intentionalRest ? [{ startBeat: 4, endBeat: 8, reason: "explicit no-chord" }] : [],
+      chords: [{ beat: 0, durationBeats, name: "C", notes: [48, 52, 55], suggestedHands: ["L", "R", "R"] }],
+    }));
+    expect(candidate(8).backing.listener.deadAirOnsets).toBe(0);
+    expect(candidate(3).backing.listener.deadAirOnsets).toBe(1);
+    expect(candidate(3, true).backing.listener).toMatchObject({ deadAirOnsets: 0, intentionalSilenceOnsets: 1 });
+  });
+
   const listener = {
-    oneBeatChordShare: 0.1, deadAirOnsets: 0, longestWaitForStrikeBeats: 2, strikes: 40, strikesOnSourceOnsets: 38,
+    oneBeatChordShare: 0.1, deadAirOnsets: 0, intentionalSilenceOnsets: 0, longestWaitForStrikeBeats: 2, strikes: 40, strikesOnSourceOnsets: 38,
     strikesUnderOneBeatApart: 0, tuneNotesOverBacking: 60, strongBeatTuneChordToneShare: 0.8, tuneSemitoneClashShare: 0.1,
   };
   const gate = { maxDeadAirOnsets: 4, minStrongBeatTuneChordToneShare: 0.6, maxTuneSemitoneClashShare: 0.25, maxOneBeatChordShare: 0.4, minMajMinAccuracy: 0.85, minRootAccuracy: 0.85 };
