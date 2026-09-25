@@ -65,3 +65,24 @@ it("reuses Clocks' played stack in its right-hand-only ending and ignores other 
   const changed = replayChordsBacking({ ...data, sourceFingerprint: "another source" }, "ug");
   expect(changed.resolution.chords.find((chord) => chord.beat === 128)?.notes).not.toEqual([51, 58, 63]);
 });
+
+it("keeps the authored chord's full display span when its played stack re-strikes", () => {
+  const source: SongData = {
+    key: "Bbm", tempoBpm: 130, timeSig: [4, 4], sourceFingerprint: clocksFingerprint,
+    notes: [0, 1.5, 3].flatMap((start) => [
+      { midi: 51, start, dur: 0.75, vel: 68, hand: "L" as const },
+      { midi: 58, start, dur: 0.75, vel: 68, hand: "L" as const },
+      { midi: 63, start, dur: 0.75, vel: 68, hand: "R" as const },
+    ]),
+    chords: [], measures: [{ index: 0, startBeat: 0, endBeat: 4 }],
+  };
+  const timeline = normalizeChordTimeline({
+    schemaVersion: 1, baseId: "coldplay-clocks", title: "Clocks", artist: "Coldplay",
+    timeSig: [4, 4], durationBeats: 4, coverage: "full-song",
+    chords: [{ beat: 0, durationBeats: 4, name: "Eb" }],
+    provenance: { sourceId: "ug-clocks", provider: "ultimate-guitar", kind: "chart", sourceRef: "test:clocks" },
+  });
+  const replay = replayChordsBacking(projectChordSources(source, timeline));
+  expect(replay.resolution.chords.map((chord) => chord.beat)).toEqual([0, 1.5, 3]);
+  expect(replay.resolution.displayChords[0]).toMatchObject({ beat: 0, durationBeats: 4, notes: [51, 58, 63] });
+});

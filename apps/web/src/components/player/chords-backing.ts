@@ -48,7 +48,10 @@ function clocksPlayedVoicings(data: SongData, resolution: AccompanimentResolutio
   return {
     ...resolution,
     chords,
-    displayChords: resolution.displayChords.map((label) => byChordBeat.get(label.beat) ?? label),
+    displayChords: resolution.displayChords.map((label) => {
+      const voiced = byChordBeat.get(label.beat);
+      return voiced ? { ...label, notes: voiced.notes, inferred: voiced.inferred, inferenceType: voiced.inferenceType } : label;
+    }),
     guidanceNotes: chords.flatMap((chord) => chord.notes.map((midi, index) => ({
       midi, start: chord.beat, dur: chord.durationBeats ?? 1, vel: 70,
       hand: chord.suggestedHands[index],
