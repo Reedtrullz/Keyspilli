@@ -4,7 +4,7 @@ import { resolveAccompaniment, type Note } from "../src/index.js";
 const bars = (count: number, length = 4) =>
   Array.from({ length: count }, (_, i) => ({ startBeat: i * length, endBeat: (i + 1) * length }));
 const left = (starts: number[], midi = 46): Note[] => starts.map((start) => ({ midi, start, dur: 0.5, vel: 70, hand: "L" }));
-const strikes = (notes: Note[], chords: Array<{ beat: number; name: string; durationBeats: number }>, measures = bars(4)) =>
+const strikes = (notes: Note[], chords: Array<{ beat: number; name: string; durationBeats: number; strikeSpacingBeats?: number }>, measures = bars(4)) =>
   resolveAccompaniment(notes, chords.map((chord) => ({ ...chord, notes: [] })), "bass-chords", { durationBeats: 16, sourceRhythmMeasures: measures })
     .chords.map((chord) => [chord.beat, chord.name]);
 
@@ -51,6 +51,17 @@ describe("bass + chords in the source rhythm", () => {
     ];
     expect(strikes(source, [{ beat: 0, name: "C#m", durationBeats: 4 }], bars(1)))
       .toEqual([[0, "C#m"], [2.625, "C#m"]]);
+  });
+
+  it("widens only a curated chord's re-strike spacing while keeping later chord attacks", () => {
+    const source = left([0, 1, 2, 3, 4, 5]);
+    expect(strikes(source, [
+      { beat: 0, name: "C#m", durationBeats: 4, strikeSpacingBeats: 2 },
+      { beat: 4, name: "F#m", durationBeats: 2 },
+    ], bars(2))).toEqual([[0, "C#m"], [2, "C#m"], [4, "F#m"], [5, "F#m"]]);
+    expect(strikes(left([0, 0.5, 1, 1.5]), [
+      { beat: 0, name: "C#m", durationBeats: 2, strikeSpacingBeats: 0.5 },
+    ], bars(1))).toEqual([[0, "C#m"], [1, "C#m"]]);
   });
 
   it("strikes each downbeat when the left hand is silent for longer than a bar", () => {

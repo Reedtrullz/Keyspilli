@@ -9,6 +9,8 @@ import {
   type TimedNote,
 } from "@keyspilli/player-core";
 import { normalizeChordTimeline as normalizePlayerChordTimeline } from "./chord-sources";
+import { projectChordSources } from "../../lib/catalog-api";
+import { replayChordsBacking } from "./chords-backing";
 
 /**
  * A deliberately small audio boundary spy. The fixture is not testing Web
@@ -68,6 +70,35 @@ function syntheticMidi(): ParsedMidi {
 }
 
 describe("chord contract end to end", () => {
+  it("carries an authored re-strike spacing through the catalog and Player replay", () => {
+    const timeline = normalizeCatalogChordTimeline({
+      schemaVersion: 1,
+      baseId: "rhythm-contract",
+      title: "Rhythm contract",
+      artist: "Keyspilli",
+      timeSig: [4, 4],
+      durationBeats: 8,
+      coverage: "full-song",
+      chords: [
+        { beat: 0, durationBeats: 4, name: "C#m", strikeSpacingBeats: 2 },
+        { beat: 4, durationBeats: 4, name: "F#m" },
+      ],
+      provenance: { sourceId: "rhythm-contract", provider: "ultimate-guitar", kind: "chart", sourceRef: "test:rhythm-contract" },
+    });
+    const source = {
+      title: "Rhythm contract", artist: "Keyspilli", key: "C#m", tempoBpm: 120, timeSig: [4, 4] as [number, number],
+      notes: [0, 1, 2, 3, 4, 5].map((start) => ({ midi: start < 4 ? 49 : 42, start, dur: 0.5, vel: 70, hand: "L" as const })),
+      chords: [],
+      measures: [{ index: 0, startBeat: 0, endBeat: 4 }, { index: 1, startBeat: 4, endBeat: 8 }],
+    };
+    const replay = replayChordsBacking(projectChordSources(source, timeline));
+    expect(replay.selected.source?.id).toBe("ug");
+    expect(replay.selected.fallback).toBe(false);
+    expect(replay.resolution.chords.map(({ beat, name }) => [beat, name])).toEqual([
+      [0, "C#m"], [2, "C#m"], [4, "F#m"], [5, "F#m"],
+    ]);
+  });
+
   it("carries short symbolic LH stacks through catalog and chord playback", () => {
     const variant = buildVariants(
       {

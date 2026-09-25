@@ -470,7 +470,9 @@ function sourceRhythmStrikes(
 ): AccompanimentChord[] {
   const start = chord.beat;
   const end = start + (chord.durationBeats ?? 0);
-  const spacing = tuning.minSpacingBeats;
+  const spacing = Number.isFinite(chord.strikeSpacingBeats) && (chord.strikeSpacingBeats ?? 0) > 0
+    ? Math.max(tuning.minSpacingBeats, chord.strikeSpacingBeats!)
+    : tuning.minSpacingBeats;
   const strikes: number[] = [];
   for (const beat of [start, ...onsets.filter((onset) => onset > start + EPSILON && onset <= end - spacing + EPSILON)]) {
     if (!strikes.length || beat - strikes[strikes.length - 1]! >= spacing - EPSILON) strikes.push(beat);

@@ -21,6 +21,7 @@ export interface PlayerChordMetadata {
   inferenceType?: "dyad-completion" | "carry-forward-root" | "nearest-symbol" | "subbeat-extension" | "voicing" | "harmony-window";
   duration?: number;
   durationBeats?: number;
+  strikeSpacingBeats?: number;
 }
 
 export type PlayerChordLabel = Omit<ChordLabel, keyof PlayerChordMetadata> & PlayerChordMetadata;
@@ -172,6 +173,8 @@ function preservedMetadata(obj: UnknownRecord): PlayerChordMetadata {
 
   const durationBeats = finite(obj.durationBeats);
   const duration = finite(obj.duration);
+  const strikeSpacingBeats = finite(obj.strikeSpacingBeats);
+  if (strikeSpacingBeats !== null && strikeSpacingBeats > 0) metadata.strikeSpacingBeats = strikeSpacingBeats;
   if (durationBeats !== null && durationBeats > 0) metadata.durationBeats = durationBeats;
   if (duration !== null && duration > 0) {
     metadata.duration = duration;
@@ -189,6 +192,7 @@ function metadataKey(chord: PlayerChordLabel): string {
     chord.inferenceType ?? null,
     chord.duration ?? null,
     chord.durationBeats ?? null,
+    chord.strikeSpacingBeats ?? null,
   ]);
 }
 

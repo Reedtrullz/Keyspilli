@@ -52,6 +52,8 @@ export interface ChordLabel {
   inferenceType?: ChordInferenceType;
   /** Optional span in beats; legacy labels derive their span from the next event. */
   durationBeats?: number;
+  /** Curated minimum between re-strikes within this chord; changes still strike at their own beat. */
+  strikeSpacingBeats?: number;
 }
 
 /** Chord qualities supported by the lead-sheet parser and chord player. */
