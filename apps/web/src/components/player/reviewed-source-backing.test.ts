@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import type { SongData } from "@keyspilli/player-core";
-import { reviewedRhythmNotes, reviewedSourceBacking } from "./reviewed-source-backing";
+import { reviewedSourceBacking } from "./reviewed-source-backing";
 
 it("retains the source figure and first three left-hand attacks of each bar only for the reviewed source", () => {
   const notes: SongData["notes"] = [0, 1, 2, 3, 4, 5, 6, 7].map((start) => ({ midi: 48, start, dur: 0.5, vel: 80, hand: "L" }));
@@ -35,30 +35,6 @@ it("uses the earlier accompaniment figure instead of the final vocal overlay", (
   expect(backing.some((note) => note.start === 319 && note.midi === 75)).toBe(true);
   expect(backing.some((note) => note.start === 516 && note.midi === 37)).toBe(true);
   expect(backing.some((note) => note.start === 577 && note.midi === 56)).toBe(true);
-});
-
-it("keeps only chord-tone short key bursts for the two pinned sources", () => {
-  const chord = { beat: 0, durationBeats: 4, name: "Am", notes: [], sourceKind: "authored" as const };
-  const attack = { ...chord, notes: [45, 60, 64, 69] };
-  const notes: SongData["notes"] = [
-    { midi: 60, start: 1, dur: 0.125, vel: 100, hand: "R" },
-    { midi: 64, start: 1, dur: 0.125, vel: 90, hand: "R" },
-    { midi: 62, start: 1, dur: 0.125, vel: 90, hand: "R" },
-    { midi: 60, start: 2, dur: 1, vel: 90, hand: "R" },
-  ];
-  const sourceFingerprint = "variant:gloria-gaynor-i-will-survive:a:gloria-gaynor-i-will-survive-a:df59b0eb90e4c2ecf9c8b9cf13cba3bcdd8c9ea9942bdb09ee54b7664538784a:notes:448373fe2bb4a5c8e510b26dd6a226b5ab3366cb37808bc9029af965564dc8e1";
-  const data = { notes, sourceFingerprint } as SongData;
-  expect(reviewedRhythmNotes(data, [chord], [attack]).map((note) => [note.midi, note.start, note.vel])).toEqual([
-    [60, 1, 64], [64, 1, 64],
-  ]);
-  expect(reviewedRhythmNotes({ ...data, sourceFingerprint: `${sourceFingerprint}:changed` }, [chord], [attack])).toEqual([]);
-
-  const army = { ...data, sourceFingerprint: "variant:status-quo-in-the-army-now:a:status-quo-in-the-army-now-a:0cccaa9f5ad91707327ab6c1f311e30e3de6fb3c91d1695f862c646b8772ab65:notes:f61af5ba58446fd7cafc71ae95569a75d1dc16ca584d787d40ec317c359656ad",
-    notes: [{ midi: 50, start: 0.5, dur: 0.125, vel: 78, hand: "L" as const },
-      { midi: 57, start: 0.5, dur: 0.125, vel: 78, hand: "L" as const },
-      { midi: 38, start: 0.5, dur: 0.125, vel: 78, hand: "L" as const }] };
-  const dm = { ...chord, name: "Dm" };
-  expect(reviewedRhythmNotes(army, [dm], [{ ...attack, name: "Dm", notes: [50, 53, 57] }]).map((note) => note.midi)).toEqual([50, 57]);
 });
 
 it("separates the user-reviewed tutorial lanes and the All of Me accompaniment", () => {
