@@ -57,6 +57,15 @@
       "acceptedEndBeatExclusive": 177.875,
       "acceptedBackingSha256": "3904d59563f332068f0c887635f3248ded89d62090bd9b69b7f6111086c73f72",
       "acceptedAt": "2026-09-26"
+    },
+    {
+      "baseId": "gloria-gaynor-i-will-survive",
+      "level": "a",
+      "sourceId": "ug-i-will-survive",
+      "advancedNotesSha256": "24044d6bbf1cd0dd91e97ef349c94201b22159bfdd4addac3ec5ab512ae1fc94",
+      "timelineSha256": "9f37442fc48e8327076bf1098104aa0fc83d3fce7f0856bdddce84bdcc270a8d",
+      "acceptedBackingSha256": "6e4d5dc4ce9fcbe87940d60f95dce73b4dcbe9460ae84587c3ee12895c6b7d36",
+      "acceptedAt": "2026-09-26"
     }
   ]
 }

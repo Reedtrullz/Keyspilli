@@ -36,7 +36,13 @@ These five decisions concern the local draft-PR previews, not a deployed player.
 
 The owner listened to the local Fix You Chords variant and called it “perfect.” They selected the opening, described as 0:00–2:35, for the golden corpus and excluded the changed 2:36–4:26 section as an automation example. The exact source-grid boundary is beat 177.875 at 68 BPM (2:36.95): the last Bb notes end and the next Eb section begins there. The corpus pins only backing events before that beat, 422 notes from the green chord and blue rhythm lanes, with no later onsets or sounding tails. The full Chords variant is owner-accepted for this song; only the opening excerpt is an automation reference.
 
-Its Advanced notes, chart, and realized excerpt have separate SHA-256 pins in the [six-entry corpus index](../catalog/chord-golden-corpus.json). The replacement source MIDI and preview artifact are private ignored files; another host needs their verified transfer before it can replay this entry. This listening verdict does not establish release readiness or acceptance of the later section as an automation pattern.
+Its Advanced notes, chart, and realized excerpt have separate SHA-256 pins in the [corpus index](../catalog/chord-golden-corpus.json). The replacement source MIDI and preview artifact are private ignored files; another host needs their verified transfer before it can replay this entry. This listening verdict does not establish release readiness or acceptance of the later section as an automation pattern.
+
+## 2026-09-26 — I Will Survive full-song golden reference
+
+After hearing the 117 BPM chord-only local preview with the introduction and ending re-strikes reduced, the owner said **“I Will Survive sounds decent!”** and explicitly asked to add it to the golden corpus. This accepts the current **full-song** Chords backing as a working automation reference, with later polish welcome. It does not resolve every possible syncopation or establish a matched-recording or keyboard review.
+
+The [seven-entry corpus index](../catalog/chord-golden-corpus.json) pins the exact local Advanced artifact, authored chart, and 165 realized chord attacks; there are no added short-key notes and no excerpt cutoff. The seed MIDI is private and ignored by Git, so another host needs an exact source/artifact identity readback before using this reference. Draft PR #109 remains unmerged and undeployed.
 
 The [next-ten Chords shortlist](research/keyspilli-evidence/chords-next-ten-2026-09-25.md) proposes other active repertoire songs for future work. It is a research queue, not a listening verdict.
 
