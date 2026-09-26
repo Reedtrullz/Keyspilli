@@ -552,7 +552,8 @@ function sourceRhythmStrikes(
     const durationBeats = chord.sourceKind === "authored" && interval >= 1 - EPSILON && sourceDuration !== null
       ? Math.min(interval, Math.max(sourceDuration, interval - 0.25))
       : interval;
-    return { ...chord, beat, durationBeats };
+    return { ...chord, beat, durationBeats: chord.maxStrikeDurationBeats === undefined
+      ? durationBeats : Math.min(durationBeats, chord.maxStrikeDurationBeats) };
   });
 }
 

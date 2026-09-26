@@ -54,6 +54,8 @@ export interface ChordLabel {
   durationBeats?: number;
   /** Curated minimum between re-strikes within this chord; changes still strike at their own beat. */
   strikeSpacingBeats?: number;
+  /** Curated maximum sounding length of each re-strike; the harmony span remains unchanged. */
+  maxStrikeDurationBeats?: number;
 }
 
 /** Chord qualities supported by the lead-sheet parser and chord player. */

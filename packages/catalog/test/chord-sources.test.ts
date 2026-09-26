@@ -64,6 +64,15 @@ describe("catalog chord source plumbing", () => {
     expect(normalizeChordTimeline(once)).toEqual(once);
   });
 
+  it("keeps Help's sustained A7 entry and short late pulses under continuous harmony", async () => {
+    const chords = (await resolveChordTimeline("the-beatles-help"))!.timeline.chords;
+    expect(chords.filter(({ beat }) => beat >= 148 && beat < 172)
+      .map(({ beat, durationBeats, name, maxStrikeDurationBeats }) => [beat, durationBeats, name, maxStrikeDurationBeats])).toEqual([
+      [148, 8, "A7", undefined],
+      [156, 16, "A7", 1.75],
+    ]);
+  });
+
   it("aligns Aerosmith's D-key chart with the Advanced intro, verses, bridge, and final chorus", async () => {
     const result = await resolveChordTimeline(AEROSMITH, { runtimeDataDir: join(process.cwd(), "missing-runtime-data") });
     expect(result?.usedFallback).toBe(false);

@@ -99,6 +99,29 @@ describe("chord contract end to end", () => {
     ]);
   });
 
+  it("limits repeated chord holds while keeping the harmony continuous", () => {
+    const timeline = normalizeCatalogChordTimeline({
+      schemaVersion: 1, baseId: "hold-contract", title: "Hold contract", artist: "Keyspilli",
+      durationBeats: 16, coverage: "full-song",
+      chords: [
+        { beat: 0, durationBeats: 4, name: "C" },
+        { beat: 4, durationBeats: 12, name: "C", strikeSpacingBeats: 4, maxStrikeDurationBeats: 1.75 },
+      ],
+      provenance: { sourceId: "hold-contract", provider: "test", kind: "chart", sourceRef: "test:hold-contract" },
+    });
+    const source = {
+      title: "Hold contract", artist: "Keyspilli", key: "C", tempoBpm: 120, timeSig: [4, 4] as [number, number],
+      notes: [0, 4, 8, 12].map((start) => ({ midi: 48, start, dur: start === 0 ? 3.75 : 1, vel: 80, hand: "L" as const })),
+      chords: [],
+      measures: [0, 4, 8, 12].map((startBeat, index) => ({ index, startBeat, endBeat: startBeat + 4 })),
+    };
+    const replay = replayChordsBacking(projectChordSources(source, timeline));
+    expect(replay.selected.source?.chords.map(({ beat, durationBeats }) => [beat, durationBeats])).toEqual([[0, 4], [4, 12]]);
+    expect(replay.resolution.chords.map(({ beat, durationBeats }) => [beat, durationBeats])).toEqual([
+      [0, 3.75], [4, 1.75], [8, 1.75], [12, 1.75],
+    ]);
+  });
+
   it("carries short symbolic LH stacks through catalog and chord playback", () => {
     const variant = buildVariants(
       {

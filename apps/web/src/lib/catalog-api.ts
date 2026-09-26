@@ -66,6 +66,8 @@ function preserveChordMetadata(value: unknown): Omit<PlayerChord, "beat" | "name
   const duration = finite(obj.duration);
   const strikeSpacingBeats = finite(obj.strikeSpacingBeats);
   if (strikeSpacingBeats !== null && strikeSpacingBeats > 0) metadata.strikeSpacingBeats = strikeSpacingBeats;
+  const maxStrikeDurationBeats = finite(obj.maxStrikeDurationBeats);
+  if (maxStrikeDurationBeats !== null && maxStrikeDurationBeats > 0) metadata.maxStrikeDurationBeats = maxStrikeDurationBeats;
   if (durationBeats !== null && durationBeats > 0) metadata.durationBeats = durationBeats;
   if (duration !== null && duration > 0) {
     metadata.duration = duration;
