@@ -122,6 +122,10 @@ The local API serves 190 Chords events with no copied cover notes while Original
 
 **Reusable lesson:** when the reference recording and stored piano cover have different arrangement structure, a speed percentage cannot make them line up. Chords needs its own recording-aware timeline and clock, with attack checks against the target audio. Preserve the cover's grid for Original, and keep its pauses and extra ending out of a chart meant to follow the recording.
 
+### Official-recording attack pass — 26 Sep
+
+On the owner's further timing feedback, I measured low/mid piano transients at 10 ms resolution directly from the [official recording](https://www.youtube.com/watch?v=450p7goxZqg). The song holds a 126 BPM four-beat grid (63 BPM in two). The three choruses share nearly identical harmony, but a few first-chorus piano re-strikes differ from the second and final choruses. I used the later chorus's 21-event contour to repair missing or mistimed switches, then placed the first chorus's individual attacks on its own stronger piano transients. The same recording repeats its pre-chorus and refrain roughly 192 beats later; these audio-backed passages guided the earlier pre-chorus and refrain plus two ending refrain cycles. The first verse's piano changes fall near beats 32, 36, 40, 44 and repeat every 16 beats; the earlier cover-derived mapping left Db and Eb one to three beats late, so I moved its changes to the recorded four-beat grid while keeping sparse, supported Ab re-strikes. I also found the Player's generic one-bar silence limit inserting extra strikes between authored events (21 chorus attacks became 24 in replay even with no source notes); per-event strike spacing now keeps the official recording's 184 attacks exact. The arrangement remains chord-only with its separate 126 BPM clock. Mixed vocals limit precision at some individual strikes, so this is a stronger listening candidate, still awaiting owner acceptance.
+
 ## Don't Stop Believin': continue the played backing after 1:55 — 26 Sep
 
 **Superseded by the sectional correction below.** This intermediate candidate still carried the vocal line in the later right hand.

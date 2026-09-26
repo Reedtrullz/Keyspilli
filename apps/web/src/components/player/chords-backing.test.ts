@@ -214,17 +214,30 @@ it("plays the official All of Me intro into the verse without the cover's pause"
   const chart = (await resolveChordTimeline("rousseau-john-legend-all-of-me-piano-cover-mslwrq3x"))!.timeline;
   expect(chart.tempoBpm).toBe(126);
   const source: SongData = {
-    key: "Fm", tempoBpm: 126, timeSig: [4, 4], notes: [], chords: [],
+    key: "Fm", tempoBpm: 126, timeSig: [4, 4],
+    notes: [{ midi: 41, start: 34, dur: 1, vel: 80, hand: "L" }], chords: [],
     measures: arithmeticMeasures(chart.durationBeats, chart.timeSig),
   };
   const replay = replayChordsBacking(projectChordSources(source, chart));
   const attacks = replay.resolution.chords.map(({ beat, name }) => [beat, name]);
+  expect(replay.resolution.chords).toHaveLength(184);
   expect(attacks.slice(0, 10)).toEqual([
     [0, "Fm"], [1.5, "Fm"], [3, "Fm"], [4, "Db"], [5.5, "Db"],
     [7, "Db"], [8, "Ab"], [9.5, "Ab"], [11, "Ab"], [12, "Eb"],
   ]);
   expect(attacks.filter(([beat]) => (beat as number) >= 28 && (beat as number) <= 36))
-    .toEqual([[28, "Eb"], [30.25, "Eb"], [32, "Fm"], [36, "Fm"]]);
+    .toEqual([[28, "Eb"], [30.25, "Eb"], [32, "Fm"], [36, "Dbmaj7"]]);
+  expect(attacks.filter(([beat]) => (beat as number) >= 36 && (beat as number) <= 48))
+    .toEqual([[36, "Dbmaj7"], [40, "Ab"], [42, "Ab"], [44, "Eb/G"], [48, "Fm"]]);
+  const contour = (start: number, length: number) => replay.resolution.chords
+    .filter(({ beat }) => start <= beat && beat < start + length)
+    .map(({ beat, name }) => [beat - start, name]);
+  expect(contour(128, 64)).toHaveLength(21);
+  expect(contour(128, 64)).toContainEqual([17, "Bbm/Db"]);
+  expect(contour(128, 64)).toContainEqual([24.75, "Db/Eb"]);
+  expect(contour(448, 64)).toEqual(contour(320, 64));
+  expect(contour(96, 32)).toEqual(contour(288, 32));
+  for (const start of [192, 512, 544]) expect(contour(start, 32)).toEqual(contour(384, 32));
   expect(replay.resolution.notes).toEqual([]);
   expect(replay.resolution.chords.at(-1)!.beat).toBeLessThan(576);
   const original = await withChordSources({ ...source, tempoBpm: 129 }, chart.baseId, "a");
