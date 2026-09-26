@@ -10,6 +10,16 @@ Chords mode plays a bass note and a chord for every visible song, derived from i
 
 The Winner pilot (`reviewed-source-backing.ts`) still overrides this for production's exact Winner Advanced file.
 
+## Lessons for later automatic Chords arrangements
+
+These are evidence-backed design constraints from the [owner-reviewed corpus](../catalog/chord-golden-corpus.json), not rules already implemented for every song. The [candidate research log](research/keyspilli-evidence/chords-next-ten-candidate-review-2026-09-25.md) records the individual failures and corrections.
+
+1. **Choose the timing reference first.** A chart supplies harmonic vocabulary, but its capo, key, section order, and timing may differ from the app's Advanced cover. All of Me needed a separate 126 BPM official-recording clock while Rousseau Original remained 129 BPM. Verify tempo and beat phase at the intro and several later section boundaries; do not use a global speed change or unconstrained audio alignment to hide a locally late chart.
+2. **Infer musical roles by section.** Clocks already played useful chord stacks beneath right-hand decoration; Dreamer separated piano from vocal notes; Journey changed which hand supplied chords. Bass, simultaneous upper stacks, register, duration, and recurring passages are evidence. A single pitch cutoff or hand rule can copy a vocal line or miss the accompaniment.
+3. **Keep harmonic changes and repeated attacks separate.** Imagine and Let It Be needed short intermediate chords; My Way, Help, Kings & Queens, and All of Me needed attack timing corrections. Strong bass landings and played chord stacks help locate entries; an isolated arpeggio or upper octave is not automatically a full-chord re-strike. Score repeated hits by accent and phrase, with space where the source releases, rather than striking every beat or holding every chord to the next label.
+4. **Keep Chords playable and distinct.** The owner preferred chord-only I Will Survive and In the Army Now without copied short-key bursts. Those Were the Days needed a six-hit sung phrase without its difficult Advanced bassline. Source-played voicings can help, as in Clocks and Winner, but should be reduced to useful chord shells. Fix You's quiet opening is a valid reference; its denser later section is excluded from automation examples. Journey is accepted as a song-specific backing but excluded from this corpus.
+5. **Validate the rendered result and retain human judgment.** Pin source identity, chart bytes, and the exact Player backing; the All of Me audit must replay `chordData ?? data` because its Chords clock differs from Original. Treat structural scores as triage, compare against approved examples and unseen songs, and preserve explicit no-chord spans. A parsing or digest match is a regression check, not musical acceptance.
+
 ## The knobs
 
 | Setting | What you hear when you raise it |

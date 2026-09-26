@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { artifactsDir, getSong, ROOT } from "@keyspilli/catalog";
-import { loadSongArtifact, withChordSources } from "../src/lib/catalog-api";
+import { getSongDetail } from "../src/lib/catalog-api";
 import { replayChordsBacking } from "../src/components/player/chords-backing";
 
 const hash = (value: Uint8Array | string) => createHash("sha256").update(value).digest("hex");
@@ -23,9 +23,9 @@ for (const entry of corpus.entries) {
   }
   const song = getSong(`${entry.baseId}-${entry.level}`);
   if (!song) throw new Error(`${entry.baseId}: catalog row missing`);
-  const loaded = await loadSongArtifact(song);
-  if (!loaded.data) throw new Error(`${entry.baseId}: Advanced artifact missing`);
-  const data = await withChordSources(loaded.data, entry.baseId, entry.level);
+  const detail = await getSongDetail(song.id);
+  if (!detail?.data) throw new Error(`${entry.baseId}: Advanced artifact missing`);
+  const data = detail.chordData ?? detail.data;
   const replay = replayChordsBacking(data);
   if (replay.selected.source?.id !== "ug" || replay.selected.fallback) throw new Error(`${entry.baseId}: authored chart was not selected`);
   const end = entry.acceptedEndBeatExclusive;
