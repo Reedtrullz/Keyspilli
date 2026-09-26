@@ -66,6 +66,8 @@ export type ChordQuality =
   | "7"
   | "maj7"
   | "m7"
+  | "m9"
+  | "madd9"
   | "6"
   | "sus2"
   | "sus4"

@@ -362,10 +362,10 @@
           "id": "ug-all-of-me",
           "provider": "ultimate-guitar",
           "kind": "chart",
-          "sourceRef": "ultimate-guitar:john-legend/all-of-me",
-          "sourceUrl": "https://tabs.ultimate-guitar.com/tab/john-legend/all-of-me-chords-1432996",
+          "sourceRef": "ultimate-guitar:john-legend/all-of-me-chords-2469556",
+          "sourceUrl": "https://tabs.ultimate-guitar.com/tab/john-legend/all-of-me-chords-2469556",
           "artifactPath": "catalog/chord-timelines/all-of-me.json",
-          "retrievedAt": "2026-09-25",
+          "retrievedAt": "2026-09-26",
           "confidence": "medium",
           "priority": 0
         },

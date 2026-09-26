@@ -56,6 +56,10 @@ The owner reported that the previous Winner Chords mode played the original arra
 
 After hearing this distinct chord-only replacement, the owner said **“The Winner Takes It All sounds great! Add it to the golden corpus!”** This accepts the current full-song backing as a working automation reference. The [corpus index](../catalog/chord-golden-corpus.json) pins its exact local Advanced notes, authored timeline, and realized 156-strike backing without an excerpt cutoff. The earlier pilot sing-along verdict above applies to the earlier source reduction; neither verdict establishes independent keyboard review or deployment.
 
+## 2026-09-26 — All of Me new linked-chart candidate
+
+The owner found the earlier All of Me chord-only backing hard to recognize and asked for a version from [UG chart #2469556](https://tabs.ultimate-guitar.com/tab/john-legend/all-of-me-chords-2469556). The local draft now uses its fuller verse, pre-chorus, chorus, and refrain harmony on the Rousseau cover's Fm/Ab sounding grid. It has 145 authored display events, 204 realized chord strikes, no copied Advanced notes, and two source-measured N.C. rests. The source piano's last improvised cadence is treated as a cover-specific variation. [Research and timing notes](research/keyspilli-evidence/chords-next-ten-candidate-review-2026-09-25.md#owner-linked-chart-revision--26-sep). This replacement awaits the owner's listening verdict and stays outside the golden corpus.
+
 The [next-ten Chords shortlist](research/keyspilli-evidence/chords-next-ten-2026-09-25.md) proposes other active repertoire songs for future work. It is a research queue, not a listening verdict.
 
 The [earlier six-song review](research/keyspilli-evidence/chords-golden-corpus-review-2026-09-25.md) remains a historical analysis of the prior candidate set; its Kings & Queens inclusion has been superseded.
