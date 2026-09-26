@@ -8,6 +8,7 @@ import type { ChordLabel } from "@keyspilli/midi";
 import { createLegacyBootstrapManifest, arrangementManifestPath, deleteSongsByBase, upsertSong, writeArrangementManifestFile, type SongRow, type SourceTimingMetadata } from "@keyspilli/catalog";
 import { writeMidi, writeMusicXml } from "@keyspilli/midi";
 import type { SongData } from "@keyspilli/player-core";
+import { replayChordsBacking } from "../components/player/chords-backing";
 import { buildAutoChordSource, getArtifactFile, getSongDetail, getSongDetailShell, loadSongArtifact, mergeChartTimeline, projectChordSources } from "./catalog-api";
 
 const dataRoot = mkdtempSync(join(tmpdir(), "keyspilli-catalog-api-"));
@@ -143,6 +144,34 @@ beforeEach(async () => {
   await rm(join(dataRoot, "artifacts", "catalog-api-song"), { recursive: true, force: true });
   await writeNotes();
   upsertSong(song());
+});
+
+it("plays Dreamer from the official-timed chart without the sour video-extracted pitches", async () => {
+  const baseId = "ozzy-osbourne-dreamer";
+  const id = `${baseId}-a`;
+  const dir = join(dataRoot, "artifacts", baseId, "a");
+  upsertSong({ ...song(80), id, baseId, key: "Db", title: "Dreamer", artist: "Ozzy Osbourne" });
+  await mkdir(dir, { recursive: true });
+  await writeFile(join(dir, "notes.json"), JSON.stringify({
+    notes: [59, 60, 62, 63].map((midi) => ({ midi, start: 36.25, dur: 0.5, vel: 80, hand: "R", sourceLane: "blue keys" })),
+    chords: [], measures: Array.from({ length: 91 }, (_, index) => ({ index, startBeat: index * 4, endBeat: index * 4 + 4 })),
+    key: "Db", tempoBpm: 80, timeSig: [4, 4],
+  }));
+  try {
+    const detail = await getSongDetail(id);
+    expect(detail?.data?.notes.map((note) => note.midi)).toEqual([59, 60, 62, 63]);
+    expect(detail?.chordData?.notes).toEqual([]);
+    const backing = replayChordsBacking(detail!.chordData!);
+    expect(backing.selected.source?.id).toBe("ug");
+    expect(backing.resolution.notes).toEqual([]);
+    expect(backing.resolution.chords).toHaveLength(89);
+    expect(backing.resolution.chords[0]?.beat).toBe(7.7);
+    expect(backing.resolution.chords.find(({ name }) => name === "Ebm")?.beat).toBe(36.95);
+    expect(backing.resolution.chords.find(({ name }) => name === "Ebm")?.notes).toEqual([39, 70, 75, 78]);
+  } finally {
+    deleteSongsByBase(baseId);
+    await rm(join(dataRoot, "artifacts", baseId), { recursive: true, force: true });
+  }
 });
 
 it("loads one Advanced Chords source while retaining the selected Original level", async () => {

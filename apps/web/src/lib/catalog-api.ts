@@ -572,6 +572,27 @@ async function loadSongDetailUncached(id: string): Promise<SongDetail | null> {
         }, chart, "a");
       }
     }
+    if (song.baseId === "ozzy-osbourne-dreamer" && !chordUnavailableReason) {
+      const chart = await loadChordTimeline(song.baseId, { fallbackLevel: "a" });
+      if (chart?.tempoBpm === 80 && chart.chords[0]?.beat === 0 && chart.chords[0]?.name === "N.C.") {
+        // The tutorial's extracted blue lane contains false adjacent keys; Chords uses the reviewed chart.
+        // The official video's performance starts 1.65s later than the tutorial (2.2 beats at 80 BPM).
+        const offset = 2.2;
+        const officialChart = {
+          ...chart,
+          durationBeats: chart.durationBeats + offset,
+          chords: chart.chords.map((chord, index) => index === 0
+            ? { ...chord, durationBeats: chord.durationBeats + offset }
+            : { ...chord, beat: chord.beat + offset }),
+        };
+        chordData = projectChordSources({
+          notes: [], chords: [],
+          measures: arithmeticMeasures(officialChart.durationBeats, chart.timeSig)
+            .map((measure) => ({ ...measure, endBeat: Math.min(measure.endBeat, officialChart.durationBeats) })),
+          key: chart.key ?? advancedData?.key ?? data.key, tempoBpm: chart.tempoBpm, timeSig: chart.timeSig,
+        }, officialChart, "a");
+      }
+    }
   }
   const sourceArrangement = loaded.artifact.manifest?.sourceArrangement;
   return { song, data, chordData, chordUnavailableReason, variants, artifact: loaded.artifact, ...(sourceArrangement ? { sourceArrangement } : {}) };
