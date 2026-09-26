@@ -1000,6 +1000,8 @@
       "category": "Pop",
       "style": "pop",
       "mood": "energetic",
+      "tempo": 117,
+      "preserveSourceBeats": true,
       "sourceUrl": "https://bitmidi.com/i-will-survive-1-mid",
       "sourceFile": "gloria-gaynor-i-will-survive.mid",
       "license": "BitMidi (free MIDI archive; private use)",

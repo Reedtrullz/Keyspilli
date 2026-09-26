@@ -4,14 +4,14 @@
   "title": "I Will Survive",
   "artist": "Gloria Gaynor",
   "key": "Am",
-  "tempoBpm": 115,
+  "tempoBpm": 117,
   "timeSig": [4, 4],
   "durationBeats": 388,
   "coverage": "full-song",
   "chords": [
     {"beat": 0,"durationBeats": 8,"name": "N.C."},
     {"beat": 8,"durationBeats": 4,"name": "E7","strikeSpacingBeats": 1.5},
-    {"beat": 12,"durationBeats": 12,"name": "Ddim/B","strikeSpacingBeats": 1.5},
+    {"beat": 12,"durationBeats": 12,"name": "Ddim/B","strikeSpacingBeats": 12},
     {"beat": 24,"durationBeats": 3.875,"name": "Am7","strikeSpacingBeats": 1.5},
     {"beat": 27.875,"durationBeats": 4.625,"name": "Dm7/A","strikeSpacingBeats": 1.5},
     {"beat": 32.5,"durationBeats": 3.375,"name": "G7","strikeSpacingBeats": 1.5},
@@ -99,7 +99,8 @@
     {"beat": 364.5,"durationBeats": 3.375,"name": "Dm/B","strikeSpacingBeats": 1.5},
     {"beat": 367.875,"durationBeats": 4.0,"name": "Esus4","strikeSpacingBeats": 1.5},
     {"beat": 371.875,"durationBeats": 4.0,"name": "E7","strikeSpacingBeats": 1.5},
-    {"beat": 375.875,"durationBeats": 12.125,"name": "Am7","strikeSpacingBeats": 1.5}
+    {"beat": 375.875,"durationBeats": 3.625,"name": "Am7","strikeSpacingBeats": 1.5},
+    {"beat": 379.5,"durationBeats": 8.5,"name": "Am7","strikeSpacingBeats": 9}
   ],
   "provenance": {"sourceId": "ug-i-will-survive","provider": "ultimate-guitar","kind": "chart","sourceRef": "ultimate-guitar:gloria-gaynor/i-will-survive","sourceUrl": "https://tabs.ultimate-guitar.com/tab/gloria-gaynor/i-will-survive-chords-154172","retrievedAt": "2026-09-25","confidence": "medium"}
 }
