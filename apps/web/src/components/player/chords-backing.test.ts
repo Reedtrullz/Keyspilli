@@ -220,7 +220,7 @@ it("plays the official All of Me intro into the verse without the cover's pause"
   };
   const replay = replayChordsBacking(projectChordSources(source, chart));
   const attacks = replay.resolution.chords.map(({ beat, name }) => [beat, name]);
-  expect(replay.resolution.chords).toHaveLength(184);
+  expect(replay.resolution.chords).toHaveLength(179);
   expect(attacks.slice(0, 10)).toEqual([
     [0, "Fm"], [1.5, "Fm"], [3, "Fm"], [4, "Db"], [5.5, "Db"],
     [7, "Db"], [8, "Ab"], [9.5, "Ab"], [11, "Ab"], [12, "Eb"],
@@ -232,9 +232,18 @@ it("plays the official All of Me intro into the verse without the cover's pause"
   const contour = (start: number, length: number) => replay.resolution.chords
     .filter(({ beat }) => start <= beat && beat < start + length)
     .map(({ beat, name }) => [beat - start, name]);
-  expect(contour(128, 64)).toHaveLength(21);
-  expect(contour(128, 64)).toContainEqual([17, "Bbm/Db"]);
-  expect(contour(128, 64)).toContainEqual([24.75, "Db/Eb"]);
+  expect(contour(96, 32)).toEqual([
+    [0, "Bbm9"], [4, "Bbm9"], [8, "Ab"], [12, "Eb"],
+    [16, "Bbm9"], [20, "Bbm9"], [24, "Ab"], [28, "Eb"],
+  ]);
+  expect(contour(128, 64)).toHaveLength(20);
+  expect(contour(128, 64)).toContainEqual([16, "Bbm/Db"]);
+  expect(contour(128, 64)).toContainEqual([24, "Db/Eb"]);
+  expect(contour(192, 32)).toEqual([
+    [0, "Fmadd9"], [4, "Dbmaj7"], [8, "Ab"], [12, "Abadd9/Eb"],
+    [16, "Fmadd9"], [20, "Dbmaj7"], [24, "Ab"], [28, "Ebsus2"],
+  ]);
+  expect(contour(224, 64)).toContainEqual([60, "Eb"]);
   expect(contour(448, 64)).toEqual(contour(320, 64));
   expect(contour(96, 32)).toEqual(contour(288, 32));
   for (const start of [192, 512, 544]) expect(contour(start, 32)).toEqual(contour(384, 32));
