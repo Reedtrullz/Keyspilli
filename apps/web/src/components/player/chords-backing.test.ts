@@ -6,6 +6,31 @@ import { bassChordsBackground, replayChordsBacking } from "./chords-backing";
 
 const clocksFingerprint = "variant:coldplay-clocks:a:coldplay-clocks-a:6f318e8fcf70028535ded2b2509a0f4db10fa0b56a3987b469f760df582448fc:notes:053b40ebcf93fad16c80e470042cc1fa69b716c77a31f64a7cbb49ab77e90a51";
 const journeyFingerprint = "variant:journey-dont-stop-believin:a:journey-dont-stop-believin-a:08a07ee27a19467cc7257f18cc0b67311bebc02a135c7b814b2ef798585ec717:notes:d4fe2e2e14bb77889a37f6fe37a040df8c470897270c128c09675ab21a04b354";
+const winnerFingerprint = "variant:abba-the-winner-takes-it-all:a:abba-the-winner-takes-it-all-a:54fdc6dfba535308b19583a24ca6cb284813bb2ae84e42abe4cac8b062a57eb2:notes:9d9ae9b17b3bd10ebc973d549b12d1102606e66a9342a4702d449e7f73afd664";
+
+it("plays Winner as authored chord strikes with the dense source chord passage, not its Advanced notes", async () => {
+  const source = {
+    key: "F#", tempoBpm: 123, timeSig: [4, 4] as [number, number], sourceFingerprint: winnerFingerprint,
+    notes: [
+      { midi: 42, start: 292, dur: 1, vel: 80, hand: "L" as const },
+      { midi: 70, start: 292, dur: 1, vel: 80, hand: "R" as const },
+      { midi: 73, start: 292, dur: 1, vel: 80, hand: "R" as const },
+      { midi: 78, start: 292, dur: 1, vel: 80, hand: "R" as const },
+      { midi: 82, start: 294, dur: 1, vel: 80, hand: "R" as const },
+      { midi: 85, start: 294, dur: 1, vel: 80, hand: "R" as const },
+      { midi: 94, start: 294, dur: 1, vel: 80, hand: "R" as const },
+    ],
+    chords: [], measures: Array.from({ length: 148 }, (_, index) => ({ index, startBeat: index * 4, endBeat: index * 4 + 4 })),
+  } as SongData;
+  const timeline = (await resolveChordTimeline("abba-the-winner-takes-it-all"))!.timeline;
+  const replay = replayChordsBacking(projectChordSources(source, timeline));
+  expect(replay.selected.source?.id).toBe("ug");
+  expect(replay.reviewedSourceBacking).toBe(false);
+  expect(replay.resolution.notes).toEqual([]);
+  expect(replay.resolution.displayChords.length).toBeGreaterThan(0);
+  expect(replay.resolution.chords.filter(({ beat }) => 292 <= beat && beat < 300).map(({ beat, name }) => [beat, name]))
+    .toEqual([[292, "F#"], [294, "F#"], [296, "F#"], [298, "F#"]]);
+});
 
 it("mirrors Journey's piano sections and keeps Those Were the Days refrains chord-only", async () => {
   const journey = {

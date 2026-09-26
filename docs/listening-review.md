@@ -50,6 +50,10 @@ After listening to the simplified local Chords preview, the owner said **“Good
 
 The [eight-entry corpus index](../catalog/chord-golden-corpus.json) pins the exact local Advanced artifact, authored timeline, and 166 realized chord attacks with zero copied source notes and no excerpt cutoff. The owner's verdict followed review of the targeted refrain; it is not a separate matched full-song or physical-keyboard assessment. The source MIDI remains private and ignored by Git. Draft PR #109 is not merged or deployed.
 
+## 2026-09-26 — Winner chord-only replacement awaiting listening
+
+The owner reported that the current Winner Chords mode played the original arrangement. Exact local replay confirmed the problem: its special source reduction retained 1,201 of 1,533 Advanced notes and returned **no chord attacks or chord display labels**. The current draft removes that override and uses the authored chart throughout: zero copied source notes, 156 voiced chord attacks, and 27 source-timed chord strikes in the requested 2:22–2:49 passage. This is a new listening candidate; the earlier pilot sing-along acceptance above applies to the earlier source reduction, not to this chord-only replacement.
+
 The [next-ten Chords shortlist](research/keyspilli-evidence/chords-next-ten-2026-09-25.md) proposes other active repertoire songs for future work. It is a research queue, not a listening verdict.
 
 The [earlier six-song review](research/keyspilli-evidence/chords-golden-corpus-review-2026-09-25.md) remains a historical analysis of the prior candidate set; its Kings & Queens inclusion has been superseded.
