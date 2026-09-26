@@ -42,7 +42,13 @@ Its Advanced notes, chart, and realized excerpt have separate SHA-256 pins in th
 
 After hearing the 117 BPM chord-only local preview with the introduction and ending re-strikes reduced, the owner said **“I Will Survive sounds decent!”** and explicitly asked to add it to the golden corpus. This accepts the current **full-song** Chords backing as a working automation reference, with later polish welcome. It does not resolve every possible syncopation or establish a matched-recording or keyboard review.
 
-The [seven-entry corpus index](../catalog/chord-golden-corpus.json) pins the exact local Advanced artifact, authored chart, and 165 realized chord attacks; there are no added short-key notes and no excerpt cutoff. The seed MIDI is private and ignored by Git, so another host needs an exact source/artifact identity readback before using this reference. Draft PR #109 remains unmerged and undeployed.
+The [corpus index](../catalog/chord-golden-corpus.json) pins the exact local Advanced artifact, authored chart, and 165 realized chord attacks; there are no added short-key notes and no excerpt cutoff. The seed MIDI is private and ignored by Git, so another host needs an exact source/artifact identity readback before using this reference. Draft PR #109 remains unmerged and undeployed.
+
+## 2026-09-26 — Those Were the Days full-song golden reference
+
+After listening to the simplified local Chords preview, the owner said **“Good job! Add it to the golden corpus!”** This accepts the current backing as a full-song working reference at this quality level, including the repeated “Those, Were, The, Days, My, Friend” phrases. The previous Advanced bassline overlay has been removed; each refrain now uses six chord attacks with one bass note and a three-note right-hand shape.
+
+The [eight-entry corpus index](../catalog/chord-golden-corpus.json) pins the exact local Advanced artifact, authored timeline, and 166 realized chord attacks with zero copied source notes and no excerpt cutoff. The owner's verdict followed review of the targeted refrain; it is not a separate matched full-song or physical-keyboard assessment. The source MIDI remains private and ignored by Git. Draft PR #109 is not merged or deployed.
 
 The [next-ten Chords shortlist](research/keyspilli-evidence/chords-next-ten-2026-09-25.md) proposes other active repertoire songs for future work. It is a research queue, not a listening verdict.
 

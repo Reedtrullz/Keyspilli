@@ -66,6 +66,15 @@
       "timelineSha256": "9f37442fc48e8327076bf1098104aa0fc83d3fce7f0856bdddce84bdcc270a8d",
       "acceptedBackingSha256": "6e4d5dc4ce9fcbe87940d60f95dce73b4dcbe9460ae84587c3ee12895c6b7d36",
       "acceptedAt": "2026-09-26"
+    },
+    {
+      "baseId": "mary-hopkin-those-were-the-days",
+      "level": "a",
+      "sourceId": "ug-those-were-the-days",
+      "advancedNotesSha256": "5b76fc45646effb0b6dd9382fe7481c8505647dffdb29be6be36215ba02c1545",
+      "timelineSha256": "e061e273049c3766528f674b43d443c5e689114ecc77c8db3f8f4dfd0da3e5bf",
+      "acceptedBackingSha256": "32fca1267396701e260a4debddfc7d4544a77a6dbc6dc392d57d4bcb7ced1385",
+      "acceptedAt": "2026-09-26"
     }
   ]
 }
