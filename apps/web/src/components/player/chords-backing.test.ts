@@ -80,6 +80,31 @@ it("plays Clocks' struck source stacks instead of revoicing its chart symbols fr
   expect(replay.resolution.notes).toEqual([]);
 });
 
+it("plays All of Me as authored chord attacks instead of its near-original source notes", () => {
+  const source: SongData = {
+    key: "Fm", tempoBpm: 129, timeSig: [4, 4],
+    sourceFingerprint: "variant:rousseau-john-legend-all-of-me-piano-cover-mslwrq3x:a:rousseau-john-legend-all-of-me-piano-cover-mslwrq3x-a:504cf2504309905c76338b1e0bd0d4b5b09fd45f3029ba5ebdd1881274ae0d76:notes:2d8212fa850c7dfcbc3dbf0029f4b22a2ee93385fe686214b48b20db28865cfb",
+    notes: [
+      { midi: 41, start: 0, dur: 1, vel: 80, hand: "L" },
+      { midi: 65, start: 1, dur: 1, vel: 80, hand: "R" },
+      { midi: 72, start: 1, dur: 1, vel: 80, hand: "R" },
+      { midi: 37, start: 4, dur: 1, vel: 80, hand: "L" },
+    ],
+    chords: [], measures: [{ index: 0, startBeat: 0, endBeat: 4 }, { index: 1, startBeat: 4, endBeat: 8 }],
+  };
+  const timeline = normalizeChordTimeline({
+    schemaVersion: 1, baseId: "rousseau-john-legend-all-of-me-piano-cover-mslwrq3x", title: "All of Me", artist: "John Legend",
+    timeSig: [4, 4], durationBeats: 8, coverage: "full-song",
+    chords: [{ beat: 0, durationBeats: 4, name: "Fm" }, { beat: 4, durationBeats: 4, name: "Db" }],
+    provenance: { sourceId: "ug-all-of-me", provider: "ultimate-guitar", kind: "chart", sourceRef: "test:all-of-me" },
+  });
+
+  const replay = replayChordsBacking(projectChordSources(source, timeline));
+  expect(replay.selected.source?.id).toBe("ug");
+  expect(replay.resolution.notes).toEqual([]);
+  expect(replay.resolution.chords.map(({ beat, name }) => [beat, name])).toEqual([[0, "Fm"], [4, "Db"]]);
+});
+
 it("reuses Clocks' played stack in its right-hand-only ending and ignores other source fingerprints", () => {
   const source: SongData = {
     key: "Bbm", tempoBpm: 130, timeSig: [4, 4],

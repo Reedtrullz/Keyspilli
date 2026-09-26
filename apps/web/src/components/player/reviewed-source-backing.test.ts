@@ -37,7 +37,7 @@ it("uses the earlier accompaniment figure instead of the final vocal overlay", (
   expect(backing.some((note) => note.start === 577 && note.midi === 56)).toBe(true);
 });
 
-it("separates the user-reviewed tutorial lanes and the All of Me accompaniment", () => {
+it("separates the user-reviewed tutorial lanes", () => {
   const notes: SongData["notes"] = [
     { midi: 48, start: 0, dur: 1, vel: 70, hand: "L", sourceLane: "blue keys" },
     { midi: 72, start: 0, dur: 1, vel: 70, hand: "R", sourceLane: "green keys" },
@@ -49,12 +49,4 @@ it("separates the user-reviewed tutorial lanes and the All of Me accompaniment",
   const fix = { ...dreamer, tempoBpm: 68,
     sourceFingerprint: "variant:katherine-cordova-coldplay-fix-you-advanced-piano-cover-mslws0x0:a:katherine-cordova-coldplay-fix-you-advanced-piano-cover-mslws0x0-a:1e867afd1e1a389672199ebef7c355d0674b9995a40d655f7425f86b9967c851:notes:f251038e1ab8bdb0c5b23026d670fa819d5784580cf139db00e81ad1d09b2e9b" } as SongData;
   expect(reviewedSourceBacking(fix)?.map((note) => note.midi)).toEqual([48, 72]);
-
-  const cover = { ...dreamer, notes: [
-    { midi: 41, start: 0, dur: 1, vel: 80, hand: "L" as const },
-    { midi: 65, start: 1, dur: 1, vel: 80, hand: "R" as const },
-    { midi: 72, start: 1, dur: 1, vel: 80, hand: "R" as const },
-    { midi: 89, start: 2, dur: 1, vel: 80, hand: "R" as const },
-  ], sourceFingerprint: "variant:rousseau-john-legend-all-of-me-piano-cover-mslwrq3x:a:rousseau-john-legend-all-of-me-piano-cover-mslwrq3x-a:504cf2504309905c76338b1e0bd0d4b5b09fd45f3029ba5ebdd1881274ae0d76:notes:2d8212fa850c7dfcbc3dbf0029f4b22a2ee93385fe686214b48b20db28865cfb" } as SongData;
-  expect(reviewedSourceBacking(cover)?.map((note) => note.midi)).toEqual([41, 65, 72]);
 });
