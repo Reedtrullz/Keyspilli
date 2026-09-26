@@ -6,7 +6,9 @@ const fixYouFingerprint = "variant:katherine-cordova-coldplay-fix-you-advanced-p
 /** Backing lanes from the exact user-reviewed colored-key tutorials. */
 export function reviewedSourceBacking(data: SongData): SongData["notes"] | null {
   if (data.sourceFingerprint === dreamerFingerprint && data.tempoBpm === 80) {
-    return data.notes.filter((note) => note.sourceLane === "blue keys");
+    // The official video starts the same performance 1.65s after the tutorial (2.2 beats at 80 BPM).
+    return data.notes.filter((note) => note.sourceLane === "blue keys")
+      .map((note) => ({ ...note, start: note.start + 2.2 }));
   }
   if (data.sourceFingerprint === fixYouFingerprint && data.tempoBpm === 68) {
     return data.notes.filter((note) => note.sourceLane === "blue keys" || note.sourceLane === "green keys");
