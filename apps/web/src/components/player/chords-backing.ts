@@ -103,13 +103,17 @@ export function bassChordsBackground(
     durationBeats: arrangementEnd, sourceRhythmMeasures: data.measures,
   }));
   if (data.sourceFingerprint === journeySourceFingerprint) {
-    const played = data.notes.filter((note) => note.start < 228 && (note.start >= 164 || note.hand === "L"));
+    const rightCounts = new Map<number, number>();
+    for (const note of data.notes) if (note.hand === "R" && note.start >= 228) {
+      rightCounts.set(note.start, (rightCounts.get(note.start) ?? 0) + 1);
+    }
+    const played = data.notes.filter((note) => note.hand === "L" || (note.start >= 164
+      && (note.start < 228 || (rightCounts.get(note.start) ?? 0) >= 2)));
     return {
       ...resolution,
       notes: played,
-      chords: resolution.chords.filter((chord) => chord.beat >= 228),
-      guidanceNotes: [...played, ...resolution.guidanceNotes.filter((note) => note.start >= 228)]
-        .sort((a, b) => a.start - b.start || a.midi - b.midi),
+      chords: [],
+      guidanceNotes: played,
     };
   }
   if (data.sourceFingerprint === thoseDaysSourceFingerprint) {
