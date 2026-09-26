@@ -37,7 +37,7 @@ I copied only each production `a/notes.json` read-only into the isolated local p
 
 | Candidate | Source grid / chart events / realized chord attacks | Source-linked decisions and listening focus |
 | --- | --- | --- |
-| Your Song | Eb, 129 BPM, 4/4; 516 beats / 79 / 135 | Replaced the 128-beat opening-only chart. The first Eb/Bb, Ab/C, and Bb/D follow the cover's played bass; listen to expressive later verses and whether three-beat minimum strike spacing leaves enough support. |
+| Your Song | Eb, 129 BPM source grid (about 64.5 BPM felt pulse), 4/4; 516 beats / 98 chart events / 101 realized attacks after the 26 Sep correction | Replaced the 128-beat opening-only chart. The first Eb/Bb, Ab/C, and Bb/D follow the cover's played bass. Slower re-strike spacing follows the half-time pulse; owner listening remains needed. |
 | I Will Survive | Am, 115 BPM, 4/4; 388 / 91 / 169 | The Advanced part repeats a 32-beat cycle, including Dm over A, G7, Cmaj7 over G, and the B half-diminished function (`Dm/B`). Several chord stacks precede their repeated bass pulse by roughly 0.5–0.625 beats; the chart now follows the played stack where harmonic identity is clear. A held Am replaces two unsupported ending changes. The E-to-diminished introduction and chromatic B passage need listening. |
 | Help | A, 173 BPM, 4/4; 436 / 58 / 190 | Preserved the Bm→Bm/A→G→G/F# descent and D→G→A ladder. Check that the brisk two-beat strike spacing feels natural at this tempo. |
 | In the Army Now | Em metadata, 109 BPM, 4/4; 428 / 61 / 185 | The source starts in D minor and moves to E minor near beat 192. The chart includes that modulation and limits repeated rock chords to two-beat spacing. |
@@ -82,3 +82,9 @@ The Winner Takes It All 9d9ae9b17b3bd10ebc973d549b12d1102606e66a9342a4702d449e7f
 - The existing golden output audit still reports **Skyfall, My Way, and Imagine as `DRIFT`**, while Let It Be and Clocks match. This predates the ten-song work and is documented in the [golden review](chords-golden-corpus-review-2026-09-25.md#source-informed-phrasing-follow-up). Input and timeline pins match. Do not repin those three merely to make the audit green; their current phrasing needs the owner's listening decision.
 
 Next: the owner listens to these ten local candidates, starting with Dreamer, Your Song, Journey, and Fix You. Record exact timestamps for any wrong chord or off-beat re-strike. Only then decide which candidates enter the golden corpus and use those accepted rendered outputs to evaluate an automatic new-song workflow.
+
+## Your Song pulse correction — 26 Sep
+
+The owner heard that Your Song still missed the beat and suggested 64 BPM. The Theorist cover lasts about four minutes. Its pinned Advanced artifact spans 516 beats at 129 BPM (240 seconds), so changing that tempo field alone to 64 would double playback time. [The Theorist's published score](https://www.musicnotes.com/sheetmusic/the-theorist/your-song/MN0197891) marks about 128 BPM; the owner is hearing its natural half-time pulse at about 64 BPM. The source grid and chart change boundaries remain intact.
+
+The chart previously allowed full-chord re-strikes every three source beats, or 1.5 beats of the felt pulse. Replay of the exact Player backing against the pinned Advanced notes produced 133 attacks, 36 of them within existing chord spans. Several early ones at source beats 8.25, 16.25, 28.625, and 49.875 had no simultaneous left-hand attack. Setting an eight-source-beat minimum (four felt beats) yielded 101 attacks, with just four within-chord repeats; those four occur at played source onsets around 1:38, 3:22, 3:41, and 3:53. The 98 authored change boundaries and 240-second duration are unchanged. This is a timing candidate, not a listening acceptance verdict.
