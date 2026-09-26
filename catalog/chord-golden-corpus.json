@@ -75,6 +75,15 @@
       "timelineSha256": "e061e273049c3766528f674b43d443c5e689114ecc77c8db3f8f4dfd0da3e5bf",
       "acceptedBackingSha256": "32fca1267396701e260a4debddfc7d4544a77a6dbc6dc392d57d4bcb7ced1385",
       "acceptedAt": "2026-09-26"
+    },
+    {
+      "baseId": "abba-the-winner-takes-it-all",
+      "level": "a",
+      "sourceId": "ug-the-winner-takes-it-all",
+      "advancedNotesSha256": "9d9ae9b17b3bd10ebc973d549b12d1102606e66a9342a4702d449e7f73afd664",
+      "timelineSha256": "16b5b19012af41e5b9cd9107af36966a6a94159f6aebe7510beda8be039c4762",
+      "acceptedBackingSha256": "5577a338bfef5a85c300d6c14234a6219eb4e2beecfb5a8584dbecfa88eb4c6c",
+      "acceptedAt": "2026-09-26"
     }
   ]
 }
