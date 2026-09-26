@@ -164,7 +164,7 @@ describe("catalog chord source plumbing", () => {
   it.each([
     [YOUR_SONG, "Eb", 516, [4, 4], [[1.25, "Eb/Bb"], [5.25, "Ab/C"], [25.625, "Bb/D"]]],
     ["gloria-gaynor-i-will-survive", "Am", 388, [4, 4], [[24, "Am7"], [27.875, "Dm7/A"], [32.5, "G7"], [35.875, "Cmaj7/G"], [39.875, "Fmaj7"], [44.5, "Dm/B"], [47.875, "Esus4"], [51.875, "E7"], [59.875, "Dm7"], [375.875, "Am7"]]],
-    ["the-beatles-help", "A", 436, [4, 4], [[4, "Bm"], [10, "Bm/A"], [10.5, "G"], [18, "G/F#"], [60, "D"], [62, "G"]]],
+    ["the-beatles-help", "A", 436, [4, 4], [[4, "Bm"], [10, "Bm"], [10.5, "G"], [18, "G/F#"], [60, "D"], [62, "G"]]],
     ["status-quo-in-the-army-now", "Em", 428, [4, 4], [[12, "Dm"], [52, "Gm"], [192, "Em"], [208, "Am"], [212, "Bm"]]],
     ["ozzy-osbourne-dreamer", "Db", 364, [4, 4], [[5.5, "Db"], [34.75, "Ebm"], [84.5, "Bbm"], [176.125, "Ebm"], [344.25, "Db"]]],
     ["rousseau-john-legend-all-of-me-piano-cover-mslwrq3x", "Fm", 664, [4, 4], [[0, "Fm"], [4.5, "Db"], [8.875, "Ab"], [13.375, "Eb"], [44.875, "Fm"], [52.125, "Db"]]],

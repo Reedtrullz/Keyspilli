@@ -10,8 +10,7 @@
   "coverage": "full-song",
   "chords": [
     {"beat": 0,"durationBeats": 4,"name": "N.C."},
-    {"beat": 4,"durationBeats": 6,"name": "Bm","strikeSpacingBeats": 2},
-    {"beat": 10,"durationBeats": 0.5,"name": "Bm/A","strikeSpacingBeats": 2},
+    {"beat": 4,"durationBeats": 6.5,"name": "Bm","strikeSpacingBeats": 2},
     {"beat": 10.5,"durationBeats": 7.5,"name": "G","strikeSpacingBeats": 2},
     {"beat": 18,"durationBeats": 2,"name": "G/F#","strikeSpacingBeats": 2},
     {"beat": 20,"durationBeats": 8,"name": "E","strikeSpacingBeats": 2},
@@ -32,7 +31,7 @@
     {"beat": 116.0,"durationBeats": 14.0,"name": "G","strikeSpacingBeats": 2},
     {"beat": 130.0,"durationBeats": 2.0,"name": "F#m","strikeSpacingBeats": 2},
     {"beat": 132.0,"durationBeats": 16.0,"name": "E","strikeSpacingBeats": 2},
-    {"beat": 148.0,"durationBeats": 24.0,"name": "A7","strikeSpacingBeats": 2},
+    {"beat": 148.0,"durationBeats": 24.0,"name": "A7","strikeSpacingBeats": 4},
     {"beat": 172.0,"durationBeats": 8.0,"name": "C#m","strikeSpacingBeats": 2},
     {"beat": 180.0,"durationBeats": 8.0,"name": "F#m","strikeSpacingBeats": 2},
     {"beat": 188.0,"durationBeats": 2.0,"name": "D","strikeSpacingBeats": 2},
