@@ -30,6 +30,8 @@ it("plays Winner as authored chord strikes with the dense source chord passage, 
   expect(replay.resolution.displayChords.length).toBeGreaterThan(0);
   expect(replay.resolution.chords.filter(({ beat }) => 292 <= beat && beat < 300).map(({ beat, name }) => [beat, name]))
     .toEqual([[292, "F#"], [294, "F#"], [296, "F#"], [298, "F#"]]);
+  expect(replay.resolution.chords.find(({ beat }) => beat === 292)?.notes).toEqual([42, 70, 73, 78]);
+  expect(replay.resolution.chords.find(({ beat }) => beat === 294)?.notes).toEqual([42, 73, 78, 82]);
 });
 
 it("mirrors Journey's piano sections and keeps Those Were the Days refrains chord-only", async () => {

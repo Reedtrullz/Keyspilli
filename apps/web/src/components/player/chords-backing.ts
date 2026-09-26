@@ -11,13 +11,15 @@ import { resolveChordSources, selectChordSource, type ChordSourceId, type ChordS
 import { reviewedSourceBacking } from "./reviewed-source-backing";
 
 const clocksSourceFingerprint = "variant:coldplay-clocks:a:coldplay-clocks-a:6f318e8fcf70028535ded2b2509a0f4db10fa0b56a3987b469f760df582448fc:notes:053b40ebcf93fad16c80e470042cc1fa69b716c77a31f64a7cbb49ab77e90a51";
+const winnerSourceFingerprint = "variant:abba-the-winner-takes-it-all:a:abba-the-winner-takes-it-all-a:54fdc6dfba535308b19583a24ca6cb284813bb2ae84e42abe4cac8b062a57eb2:notes:9d9ae9b17b3bd10ebc973d549b12d1102606e66a9342a4702d449e7f73afd664";
 const journeySourceFingerprint = "variant:journey-dont-stop-believin:a:journey-dont-stop-believin-a:08a07ee27a19467cc7257f18cc0b67311bebc02a135c7b814b2ef798585ec717:notes:d4fe2e2e14bb77889a37f6fe37a040df8c470897270c128c09675ab21a04b354";
 const thoseDaysSourceFingerprint = "variant:mary-hopkin-those-were-the-days:a:mary-hopkin-those-were-the-days-a:28ad9166ff01da3b2b50ce23654ed7517154b0492af5d5d7931149fc5fc93945:notes:5b76fc45646effb0b6dd9382fe7481c8505647dffdb29be6be36215ba02c1545";
 
 function sourcePlayedVoicings(data: SongData, selected: readonly ChordLabel[], resolution: AccompanimentResolution): AccompanimentResolution {
   const clocks = data.sourceFingerprint === clocksSourceFingerprint;
   const days = data.sourceFingerprint === thoseDaysSourceFingerprint;
-  if (!clocks && !days) return resolution;
+  const winner = data.sourceFingerprint === winnerSourceFingerprint;
+  if (!clocks && !days && !winner) return resolution;
   const chartVoicings = new Map(selected.filter((event) => days && event.sourceKind === "authored" && event.notes.length > 0)
     .map((event) => [event.beat, event.notes] as const));
   const byBeat = new Map<number, Note[]>();
@@ -32,20 +34,39 @@ function sourcePlayedVoicings(data: SongData, selected: readonly ChordLabel[], r
       .filter((note, index, notes) => index === 0 || note.midi !== notes[index - 1]!.midi);
     return stack.length >= 2 ? stack : null;
   };
+  const winnerVoicing = (chord: AccompanimentResolution["chords"][number]) => {
+    const chordPcs = new Set(chord.notes.map((midi) => midi % 12));
+    const seen = new Set<number>();
+    const played = (byBeat.get(chord.beat) ?? [])
+      .filter((note) => note.hand === "R" && chordPcs.has(note.midi % 12))
+      .sort((a, b) => a.midi - b.midi)
+      .filter((note) => {
+        if (seen.has(note.midi % 12)) return false;
+        seen.add(note.midi % 12);
+        return true;
+      })
+      .slice(0, chord.notes.length - 1);
+    // Prefer the played chord stack; incomplete stacks retain the chart's full harmony.
+    const right = played.length === chord.notes.length - 1
+      ? played.map((note) => note.midi) : chord.notes.slice(1);
+    const octaveDrop = Math.max(0, Math.ceil((Math.max(...right) - 85) / 12)) * 12;
+    return [chord.notes[0]!, ...right.map((midi) => midi - octaveDrop)];
+  };
   let changed = false;
   const chords = resolution.chords.map((chord) => {
-    if (chord.sourceKind !== "authored") return chord;
+    if (chord.sourceKind !== "authored" || chord.notes.length < 2) return chord;
     // Clocks' RH-only ending repeats the first eight bars' played stacks.
     const sourceBeat = clocks && chord.beat >= 128 && chord.beat < 160 ? chord.beat - 128 : chord.beat;
     const stack = clocks ? playedStack(sourceBeat) : null;
     // Those Were the Days uses the authored beginner shape at each sung hit.
-    const notes = chartVoicings.get(chord.beat) ?? stack?.map((note) => note.midi);
+    const notes = winner ? winnerVoicing(chord) : chartVoicings.get(chord.beat) ?? stack?.map((note) => note.midi);
     if (!notes) return chord;
     changed = true;
     return {
       ...chord,
       notes,
-      suggestedHands: stack ? stack.map((note) => note.hand as "L" | "R")
+      suggestedHands: winner ? notes.map((_, index) => index === 0 ? "L" as const : "R" as const)
+        : stack ? stack.map((note) => note.hand as "L" | "R")
         : notes.map((_, index) => index === 0 ? "L" as const : "R" as const),
       inferred: false,
       inferenceType: undefined,
