@@ -104,8 +104,26 @@ export function bassChordsBackground(
   }));
   if (data.sourceFingerprint === journeySourceFingerprint) {
     // This chordal RH phrase repeats exactly; the RH elsewhere carries the vocal line.
-    const played = data.notes.filter((note) => note.hand === "L" || (note.hand === "R"
-      && ((note.start >= 164 && note.start < 228) || (note.start >= 308 && note.start < 372))));
+    const laterBassOnly = (beat: number) => (beat >= 244 && beat < 308) || beat >= 372;
+    // Later LH verses shift an octave up and add upper runs; keep their low chord shell.
+    const played = data.notes.filter((note) => (note.hand === "L" && !(laterBassOnly(note.start) && note.midi > 49))
+      || (note.hand === "R" && ((note.start >= 164 && note.start < 228) || (note.start >= 308 && note.start < 372))))
+      .map((note) => {
+        if (note.hand !== "L" || (note.start < 228 || (note.start >= 308 && note.start < 372))) return note;
+        const nextChange = chords.find((chord) => chord.sourceKind === "authored" && chord.beat > note.start)?.beat ?? arrangementEnd;
+        return { ...note, dur: Math.min(note.dur, nextChange - note.start, note.start < 308 ? 308 - note.start : arrangementEnd - note.start) };
+      });
+    const byBeat = new Map<number, Note[]>();
+    for (const note of played) if (note.hand === "L" && laterBassOnly(note.start)) {
+      byBeat.set(note.start, [...(byBeat.get(note.start) ?? []), note]);
+    }
+    for (const group of byBeat.values()) {
+      const lowest = group.reduce((a, b) => a.midi < b.midi ? a : b);
+      if (lowest.midi >= 37 && !group.some((note) => note.midi === lowest.midi - 12)) {
+        played.push({ ...lowest, midi: lowest.midi - 12 });
+      }
+    }
+    played.sort((a, b) => a.start - b.start || a.midi - b.midi);
     return {
       ...resolution,
       notes: played,
