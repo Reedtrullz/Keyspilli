@@ -8,9 +8,11 @@ import {
   type SongData,
 } from "@keyspilli/player-core";
 import { resolveChordSources, selectChordSource, type ChordSourceId, type ChordSourceResolution, type SelectedChordSource } from "./chord-sources";
-import { reviewedSourceBacking } from "./reviewed-source-backing";
+import { reviewedRhythmNotes, reviewedSourceBacking } from "./reviewed-source-backing";
 
 const clocksSourceFingerprint = "variant:coldplay-clocks:a:coldplay-clocks-a:6f318e8fcf70028535ded2b2509a0f4db10fa0b56a3987b469f760df582448fc:notes:053b40ebcf93fad16c80e470042cc1fa69b716c77a31f64a7cbb49ab77e90a51";
+const journeySourceFingerprint = "variant:journey-dont-stop-believin:a:journey-dont-stop-believin-a:08a07ee27a19467cc7257f18cc0b67311bebc02a135c7b814b2ef798585ec717:notes:d4fe2e2e14bb77889a37f6fe37a040df8c470897270c128c09675ab21a04b354";
+const thoseDaysSourceFingerprint = "variant:mary-hopkin-those-were-the-days:a:mary-hopkin-those-were-the-days-a:28ad9166ff01da3b2b50ce23654ed7517154b0492af5d5d7931149fc5fc93945:notes:5b76fc45646effb0b6dd9382fe7481c8505647dffdb29be6be36215ba02c1545";
 
 function clocksPlayedVoicings(data: SongData, resolution: AccompanimentResolution): AccompanimentResolution {
   if (data.sourceFingerprint !== clocksSourceFingerprint) return resolution;
@@ -97,9 +99,41 @@ export function bassChordsBackground(
   if (sourceBackingNotes) {
     return { style: "bass-chords", notes: sourceBackingNotes, chords: [], displayChords: [], guidanceNotes: sourceBackingNotes, fallbackSpans: [] };
   }
-  return clocksPlayedVoicings(data, resolveAccompaniment(data.notes, chords, "bass-chords", {
+  const resolution = clocksPlayedVoicings(data, resolveAccompaniment(data.notes, chords, "bass-chords", {
     durationBeats: arrangementEnd, sourceRhythmMeasures: data.measures,
   }));
+  if (data.sourceFingerprint === journeySourceFingerprint) {
+    const played = data.notes.filter((note) => note.start < 228 && (note.start >= 164 || note.hand === "L"));
+    return {
+      ...resolution,
+      notes: played,
+      chords: resolution.chords.filter((chord) => chord.beat >= 228),
+      guidanceNotes: [...played, ...resolution.guidanceNotes.filter((note) => note.start >= 228)]
+        .sort((a, b) => a.start - b.start || a.midi - b.midi),
+    };
+  }
+  if (data.sourceFingerprint === thoseDaysSourceFingerprint) {
+    const inPhrase = (beat: number) => [36, 118, 200, 282].some((start) => start <= beat && beat < start + 12);
+    const rightCounts = new Map<number, number>();
+    for (const note of data.notes) if (note.hand === "R" && inPhrase(note.start)) {
+      rightCounts.set(note.start, (rightCounts.get(note.start) ?? 0) + 1);
+    }
+    const played = data.notes.filter((note) => inPhrase(note.start)
+      && (note.hand === "L" || (rightCounts.get(note.start) ?? 0) >= 2));
+    return {
+      ...resolution,
+      notes: played,
+      chords: resolution.chords.filter((chord) => !inPhrase(chord.beat)),
+      guidanceNotes: [...played, ...resolution.guidanceNotes.filter((note) => !inPhrase(note.start))]
+        .sort((a, b) => a.start - b.start || a.midi - b.midi),
+    };
+  }
+  const rhythm = reviewedRhythmNotes(data, chords, resolution.chords);
+  return rhythm.length ? {
+    ...resolution,
+    notes: [...resolution.notes, ...rhythm].sort((a, b) => a.start - b.start || a.midi - b.midi),
+    guidanceNotes: [...resolution.guidanceNotes, ...rhythm].sort((a, b) => a.start - b.start || a.midi - b.midi),
+  } : resolution;
 }
 
 export interface ChordsBackingReplay {

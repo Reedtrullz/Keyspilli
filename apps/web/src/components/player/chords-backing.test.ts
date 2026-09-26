@@ -2,9 +2,49 @@ import { expect, it } from "vitest";
 import { normalizeChordTimeline } from "@keyspilli/catalog";
 import type { SongData } from "@keyspilli/player-core";
 import { projectChordSources } from "../../lib/catalog-api";
-import { replayChordsBacking } from "./chords-backing";
+import { bassChordsBackground, replayChordsBacking } from "./chords-backing";
 
 const clocksFingerprint = "variant:coldplay-clocks:a:coldplay-clocks-a:6f318e8fcf70028535ded2b2509a0f4db10fa0b56a3987b469f760df582448fc:notes:053b40ebcf93fad16c80e470042cc1fa69b716c77a31f64a7cbb49ab77e90a51";
+
+it("mirrors Journey's piano sections and the repeated Those Were the Days phrase only for pinned sources", () => {
+  const journey = {
+    notes: [
+      { midi: 37, start: 4, dur: 1, vel: 80, hand: "L" as const },
+      { midi: 73, start: 4, dur: 1, vel: 80, hand: "R" as const },
+      { midi: 37, start: 164, dur: 1, vel: 80, hand: "L" as const },
+      { midi: 68, start: 164, dur: 1, vel: 80, hand: "R" as const },
+      { midi: 37, start: 228, dur: 1, vel: 80, hand: "L" as const },
+    ],
+    measures: Array.from({ length: 59 }, (_, index) => ({ index, startBeat: index * 4, endBeat: index * 4 + 4 })),
+    sourceFingerprint: "variant:journey-dont-stop-believin:a:journey-dont-stop-believin-a:08a07ee27a19467cc7257f18cc0b67311bebc02a135c7b814b2ef798585ec717:notes:d4fe2e2e14bb77889a37f6fe37a040df8c470897270c128c09675ab21a04b354",
+  } as SongData;
+  const journeyChords = [
+    { beat: 4, durationBeats: 160, name: "C#", notes: [], sourceKind: "authored" as const },
+    { beat: 164, durationBeats: 64, name: "F#", notes: [], sourceKind: "authored" as const },
+    { beat: 228, durationBeats: 4, name: "C#", notes: [], sourceKind: "authored" as const },
+  ];
+  const journeyBacking = bassChordsBackground(journey, journeyChords, 232, null);
+  expect(journeyBacking.notes.map((note) => [note.start, note.midi])).toEqual([[4, 37], [164, 37], [164, 68]]);
+  expect(journeyBacking.chords.every((chord) => chord.beat >= 228)).toBe(true);
+  expect(bassChordsBackground({ ...journey, sourceFingerprint: "other" }, journeyChords, 232, null).notes).toEqual([]);
+
+  const days = { ...journey,
+    sourceFingerprint: "variant:mary-hopkin-those-were-the-days:a:mary-hopkin-those-were-the-days-a:28ad9166ff01da3b2b50ce23654ed7517154b0492af5d5d7931149fc5fc93945:notes:5b76fc45646effb0b6dd9382fe7481c8505647dffdb29be6be36215ba02c1545",
+    notes: [
+      { midi: 40, start: 36, dur: 1, vel: 80, hand: "L" as const },
+      { midi: 62, start: 40, dur: 1, vel: 80, hand: "R" as const },
+      { midi: 68, start: 40, dur: 1, vel: 80, hand: "R" as const },
+      { midi: 71, start: 41, dur: 1, vel: 80, hand: "R" as const },
+      { midi: 38, start: 48, dur: 1, vel: 80, hand: "L" as const },
+    ],
+  } as SongData;
+  const daysBacking = bassChordsBackground(days, [
+    { beat: 36, durationBeats: 12, name: "E7", notes: [], sourceKind: "authored" },
+    { beat: 48, durationBeats: 4, name: "Dm", notes: [], sourceKind: "authored" },
+  ], 52, null);
+  expect(daysBacking.notes.map((note) => note.midi)).toEqual([40, 62, 68]);
+  expect(daysBacking.chords.every((chord) => chord.beat >= 48)).toBe(true);
+});
 
 it("plays Clocks' struck source stacks instead of revoicing its chart symbols from the arpeggio", () => {
   const source: SongData = {
