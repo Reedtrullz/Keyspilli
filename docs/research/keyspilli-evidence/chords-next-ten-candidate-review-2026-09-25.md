@@ -106,6 +106,12 @@ The owner heard that 102-event chart-backed version and struggled to recognize A
 
 Exact local Player replay selects the UG chart without fallback and plays **145 display events, 204 chord strikes, and zero copied Advanced notes**. The first seven intro chords each strike three times on the source piano's played onsets; the last Eb strikes twice before the opening pause. The structural Chords gate passes with one dead-air onset; the local song API serves the new source URL and all 145 events. All 2,213 workspace tests, workspace typecheck, and all 18 authored-chart validations pass. This is a new listening candidate, not musical acceptance or a golden-corpus addition. The Advanced source and the nine existing golden pins are unchanged.
 
+### Tempo listening trial — 26 Sep
+
+The owner hears the 129 BPM preview as rushed and suggested 95 BPM, pointing to [John Legend's official video](https://www.youtube.com/watch?v=450p7goxZqg). That video's metadata says 5:07; the exact [Rousseau piano cover](https://www.youtube.com/watch?v=b3E6E6hYSSI) is 5:16, matching the locally preserved source audio's 315.7 seconds. The Advanced grid spans 664 beats at 129 BPM, about 5:09. [Licensed piano sheet music](https://www.musicnotes.com/sheetmusic/john-legend/all-of-me/MN0129850) marks 63 BPM in two; a [lead sheet](https://www.musicnotes.com/sheetmusic/john-legend/all-of-me/MN0135404) marks 126 BPM in four. Thus 129 is plausible as a double-time grid. Changing its playback BPM to 95 without moving notes would lengthen the preview to about 6:59; merely relabeling it 95 while rescaling beats would leave the audible pace unchanged. Neither is evidence that the chart attacks are correctly placed.
+
+For a reversible listening comparison, the owner's local Chrome All of Me tab now uses the existing per-song 75% speed preset, an effective 96.75 BPM and about 6:51 runtime. The player preserved bar 43 while changing speed. Its global speed preference was restored to 100%; this song's preference remains 75%. No source artifact, authored chart, PR code, or golden-corpus entry changed. The owner has not judged this slower trial yet; compare its feel with the original, then decide whether to retime chord attacks or make a tempo change.
+
 ## Don't Stop Believin': continue the played backing after 1:55 — 26 Sep
 
 **Superseded by the sectional correction below.** This intermediate candidate still carried the vocal line in the later right hand.
