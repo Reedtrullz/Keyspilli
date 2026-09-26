@@ -1,7 +1,7 @@
 import { inferSourceHandLanes } from "./source-hand-lanes.js";
 import { splitHands, detectBassPattern, detectKey, chordName } from "./analyze.js";
 import { Note, ParsedMidi, SongMeta, Variant, DifficultyLevel, LEVEL_ORDER, ChordLabel, MidiTimeSignatureEvent } from "./types.js";
-import { quantize } from "./quantize.js";
+import { mergedNoteLineage, quantize } from "./quantize.js";
 import { midiBeatToNativeSeconds } from "./parse.js";
 import { BEGINNER_OFFGRID_CANDIDATE, LADDER_TOL, PLAYABILITY_LIMITS } from "./validate.js";
 import { sanitizeImportedNotes } from "./clean.js";
@@ -91,19 +91,6 @@ function compareLearnerNotes(a: Note, b: Note): number {
     || text(a.hand ?? "", b.hand ?? "")
     || text(a.identitySource ?? "", b.identitySource ?? "")
     || text(a.lyrics ?? "", b.lyrics ?? "");
-}
-
-function quantizeSourceLanes(notes: Note[], options: Parameters<typeof quantize>[1]): Note[] {
-  const lanes = new Map<string, Note[]>();
-  for (const note of notes) {
-    const key = (note.sourceOrigins ?? []).map((origin) => origin.track !== undefined
-      ? `track:${origin.track}` : `staff:${origin.staff ?? "?"}:voice:${origin.voice ?? "?"}`).join("|") || "unidentified";
-    const lane = lanes.get(key) ?? [];
-    lane.push(note);
-    lanes.set(key, lane);
-  }
-  return [...lanes.values()].flatMap((lane) => quantize(lane, options))
-    .sort((a, b) => a.start - b.start || a.midi - b.midi);
 }
 
 /** Seed deterministic source IDs without using caller/input array order. */
@@ -2168,8 +2155,7 @@ function metalLeftHandTexture(notes: Note[], rhythmGap: number, harmonicVoices: 
 function trimSamePitchOverlaps(notes: Note[], minDur = 0.125): Note[] {
   const groups = new Map<string, Note[]>();
   for (const n of notes) {
-    const origins = (n.sourceOrigins ?? []).map((origin) => origin.id).sort().join("|");
-    const key = `${n.hand === "L" ? "L" : "R"}:${n.midi}:${origins}`;
+    const key = `${n.hand === "L" ? "L" : "R"}:${n.midi}`;
     const group = groups.get(key) ?? [];
     group.push({ ...n });
     groups.set(key, group);
@@ -2190,6 +2176,7 @@ function trimSamePitchOverlaps(notes: Note[], minDur = 0.125): Note[] {
         // written duration.
         prev.dur = Math.max(prev.dur, n.dur);
         prev.vel = Math.max(prev.vel, n.vel);
+        Object.assign(prev, mergedNoteLineage(prev, n));
         const prevRefs = learnerTraceRefs(prev);
         const nextRefs = learnerTraceRefs(n);
         const mergedRefs = [...new Set([...prevRefs, ...nextRefs])].sort();
@@ -2968,9 +2955,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   const arrangedImported = innerVoiceArrangement ? redistributeInnerVoices(imported) : imported;
   const sourceHandInference = opts.arrangementProfile === "source" && opts.inferSourceHands
     ? inferSourceHandLanes(arrangedImported) : undefined;
-  // Keep same-pitch collisions from different source lanes distinct. A single
-  // quantizer winner would silently swap or erase provenance at Advanced.
-  const base = quantizeSourceLanes(sourceHandInference?.notes ?? arrangedImported, { grid: 0.125, minDur: 0.125 });
+  const base = quantize(sourceHandInference?.notes ?? arrangedImported, { grid: 0.125, minDur: 0.125 });
   const normalized = opts.normalizeRange === false ? base : normalizePianoRange(base);
   const protectedNormalized = clearMixedProtectedIdentity(normalized);
   const shifted = base.filter((n, i) => normalized[i]!.midi !== n.midi);
@@ -3023,7 +3008,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   // piano texture; each easier level is then a reduction of the level above
   // so the ladder stays a true subset.
   const advancedRhSource = metalProfile ? reduceMetalRhRealism(rh, tempo, 8) : rh;
-  const advancedSource = quantizeSourceLanes(
+  const advancedSource = quantize(
     [
       ...capSoundingSpan(topVoices(advancedRhSource, 0.125, 4, pads, protectedIdentitySources), 12, "high", protectedIdentitySources),
       // Advanced keeps the imported LH attacks intact. Chord thinning is a

@@ -37,7 +37,7 @@
 
 ## Work package 1: Freeze and measure the visible catalogue
 
-**Files:** `packages/catalog/scripts/` for a read-only backing coverage command, one focused `packages/catalog/test/` test, `docs/listening-review.md` for the evaluation index.
+**Files:** `apps/web/scripts/evaluate-all-song-chords.mts` and `apps/web/src/lib/chords-evaluation.ts` (Player-replay coverage and evaluation, with a focused test), `docs/listening-review.md` for the evaluation index.
 
 - [x] Add a read-only command that enumerates visible song bases using the same hidden-base policy as `countSongs()`. For each Advanced source record the base ID, exact artifact hash/fingerprint, acquisition type, measures/meter, source roles, chord event count/kind, and missing-chord status. Keep song-level output local/ignored if it contains private uploads; commit only aggregate counts and safe test fixtures.
 - [x] Write a fixture with one visible base, one hidden base and one unlisted artifact. Assert the command reports exactly the visible base, plus a separate hidden/orphan count. Run the focused test on Node 22.
@@ -49,7 +49,7 @@
 
 **Files:** `packages/midi/src/parse.ts`, `packages/midi/src/parseXml.ts`, `packages/midi/src/types.ts`, transformation points in `packages/midi/src/simplify.ts`, and focused parser/round-trip tests. Reuse the current `identitySource` and `sourceLane` fields where their meanings fit; retain raw track/staff/voice as neutral evidence, not an inferred role.
 
-- [ ] First write a synthetic multitrack MIDI and two-staff MusicXML test. A vocal-labeled note and an accompaniment note share pitch/onset; their source identities must survive parse, normalization, Advanced selection and serialization without being merged or swapped. Relabel the source as unknown and assert no vocal/accompaniment semantic claim is made.
+- [ ] First write a synthetic multitrack MIDI and two-staff MusicXML test. A vocal-labeled note and an accompaniment note share pitch/onset; both source origins must survive parse, normalization, Advanced selection and serialization on one playable note, never as two simultaneous strikes of one key and never swapped; the conflicting parents leave it without a semantic role. Relabel the source as unknown and assert no vocal/accompaniment semantic claim is made.
 - [ ] Trace every transformation that merges or replaces notes and record its parent IDs before implementing identity propagation. A merged event with conflicting parents must be explicitly mixed/unknown, never promoted to accompaniment.
 - [ ] Implement the narrowest sidecar or note metadata path that makes those tests pass. Pin a Queen CANTO replay as a diagnostic, not a global synonym for vocals.
 
@@ -59,10 +59,12 @@
 
 **Files:** `packages/player-core/src/accompaniment.ts`, a focused producer test, `apps/web/src/components/player/Player.tsx`, `apps/web/src/components/player/chord-practice.ts` only if target projection changes.
 
-- [ ] Create a failing producer test from the exact Oops/Queen/Blackbird development phrases and synthetic authored, labeled, unlabeled, rest, pickup and meter-change examples. The expected output is an independently checked chord/attack timeline, not the old generator's labels.
-- [ ] Use an authored chart for its stated coverage only. Use role-labeled accompaniment source attacks where identity is proved. For unlabelled material, admit a harmonic event only when local source evidence supports its root and quality; use source attack timing or validated measure phase, and leave ambiguous intervals unavailable. Do not copy unknown Advanced notes into `notes` or guidance.
-- [ ] Keep audio, labels, hand assignment, guidance and grading derived from the same realized events. A repeated bass gesture may have a separate note event, but its guidance/practice contract must include it. Keep optional Melody + accompaniment explicit.
-- [ ] Compare the candidate to current Chords with matched source/window/tempo/instrument/levels. The known Oops stale B5 span must change only where source evidence supports a correction; the Blackbird figure and Queen meter change must not be flattened into generic blocks. Reject a candidate that merely raises note counts or sound level.
+- [x] Create a failing producer test from the exact Oops/Queen/Blackbird development phrases and synthetic authored, labeled, unlabeled, rest, pickup and meter-change examples. The expected output is an independently checked chord/attack timeline, not the old generator's labels.
+- [x] Use an authored chart for its stated coverage only. Use role-labeled accompaniment source attacks where identity is proved. For unlabelled material, admit a harmonic event only when local source evidence supports its root and quality; use source attack timing or validated measure phase, and leave ambiguous intervals unavailable. Do not copy unknown Advanced notes into `notes` or guidance.
+- [x] Keep audio, labels, hand assignment, guidance and grading derived from the same realized events. A repeated bass gesture may have a separate note event, but its guidance/practice contract must include it. Keep optional Melody + accompaniment explicit.
+- [x] Compare the candidate to current Chords with matched source/window/tempo/instrument/levels. The known Oops stale B5 span must change only where source evidence supports a correction; the Blackbird figure and Queen meter change must not be flattened into generic blocks. Reject a candidate that merely raises note counts or sound level.
+
+Status, 24 September: implemented as whole-arrangement harmony labels (`packages/midi/src/harmony.ts`) and source-rhythm strikes (`resolveAccompaniment` `sourceRhythmMeasures`). They are compared by the POP909-CL reference benchmark and the catalogue gate instead of per-song listening. Unlabelled material uses every note as harmonic evidence and copies none into the backing; source-role separation is no longer required for backing-only Chords. Settings: `packages/midi/src/chords-tuning.ts`; guide: `docs/chords-tuning.md`.
 
 **Done when:** the shared path is exercised for every eligible visible song, with exact unsupported spans reported and no silent reversion to current generated backing. It is a candidate until the musical gate passes.
 

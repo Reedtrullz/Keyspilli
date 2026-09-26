@@ -36,7 +36,8 @@ export type ChordInferenceType =
   | "carry-forward-root"
   | "nearest-symbol"
   | "subbeat-extension"
-  | "voicing";
+  | "voicing"
+  | "harmony-window";
 
 export interface ChordLabel {
   /** beat position */
@@ -51,6 +52,10 @@ export interface ChordLabel {
   inferenceType?: ChordInferenceType;
   /** Optional span in beats; legacy labels derive their span from the next event. */
   durationBeats?: number;
+  /** Curated minimum between re-strikes within this chord; changes still strike at their own beat. */
+  strikeSpacingBeats?: number;
+  /** Curated maximum sounding length of each re-strike; the harmony span remains unchanged. */
+  maxStrikeDurationBeats?: number;
 }
 
 /** Chord qualities supported by the lead-sheet parser and chord player. */
@@ -61,6 +66,8 @@ export type ChordQuality =
   | "7"
   | "maj7"
   | "m7"
+  | "m9"
+  | "madd9"
   | "6"
   | "sus2"
   | "sus4"

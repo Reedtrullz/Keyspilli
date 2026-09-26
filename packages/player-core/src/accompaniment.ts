@@ -1,4 +1,5 @@
 import {
+  CHORDS_TUNING,
   chordIntervals,
   chordToNotes,
   splitPianoRoles,
@@ -6,6 +7,7 @@ import {
   type ChordLabel,
   type Note,
   type ProtectedMelodyNote,
+  type StrikeTuning,
 } from "@keyspilli/midi";
 
 export type AccompanimentStyle = "melody-accompaniment" | "bass-chords";
@@ -55,6 +57,13 @@ export interface AccompanimentOptions {
   durationBeats?: number;
   /** Stable IDs for source notes that are explicitly replaceable. */
   replaceableSourceIds?: ReadonlySet<string>;
+  /**
+   * Bass + chords only: re-strike each chord in the source accompaniment's
+   * rhythm, using these bars to keep the backing from going silent.
+   */
+  sourceRhythmMeasures?: readonly { startBeat: number; endBeat: number }[];
+  /** Strike spacing and silence limits; defaults to CHORDS_TUNING.strikes. */
+  strikeTuning?: StrikeTuning;
 }
 
 export type MelodySelection = "automatic" | "right-hand";
@@ -409,6 +418,143 @@ export function measureArrangementChanges(
 
 function validDuration(value: number | undefined): value is number {
   return value !== undefined && Number.isFinite(value) && value > 0;
+}
+
+/**
+ * When the source pianist strikes the accompaniment: left-hand onsets, or
+ * the lowest note's onsets when the source carries no hands.
+ */
+function accompanimentOnsets(sourceNotes: readonly Note[], spacing: number): number[] {
+  const left = sourceNotes.filter((note) => note.hand === "L");
+  if (left.length) {
+    const durationByOnset = new Map<number, number>();
+    const lowestByOnset = new Map<number, number>();
+    for (const note of left) {
+      durationByOnset.set(note.start, Math.max(durationByOnset.get(note.start) ?? 0, note.dur));
+      lowestByOnset.set(note.start, Math.min(lowestByOnset.get(note.start) ?? Infinity, note.midi));
+    }
+    const beats = [...durationByOnset.keys()].sort((a, b) => a - b);
+    // ponytail: duration and bass octave approximate accents; use explicit rhythm labels if syncopation regresses.
+    return beats.filter((beat, index) => {
+      const next = beats[index + 1];
+      if (next === undefined) return true;
+      const duration = durationByOnset.get(beat)!;
+      const nextDuration = durationByOnset.get(next)!;
+      const leadsToDownbeat = Math.abs(beat - Math.round(beat)) > EPSILON
+        && Math.abs(next - Math.round(next)) <= EPSILON;
+      const leadsToLowerOctave = lowestByOnset.get(beat)! - lowestByOnset.get(next)! >= 12;
+      return !((leadsToDownbeat || leadsToLowerOctave)
+        && next - beat <= spacing / 2 + EPSILON
+        && nextDuration > duration + EPSILON
+        && nextDuration >= duration * 2);
+    });
+  }
+  const lowest = new Map<number, number>();
+  for (const note of sourceNotes) lowest.set(note.start, Math.min(lowest.get(note.start) ?? Infinity, note.midi));
+  return [...lowest.keys()].sort((a, b) => a - b);
+}
+
+function sourceChordStack(notes: readonly Note[], chordPcs: ReadonlySet<number>): Note[] {
+  const left = notes.filter((note) => note.hand === "L");
+  const right = notes.filter((note) => note.hand === "R").sort((a, b) => a.midi - b.midi);
+  const harmonicRight = right.filter((note) => chordPcs.has(note.midi % 12));
+  const rightStack = right.length >= 2 && right[right.length - 1]!.midi - right[0]!.midi <= 12
+    && new Set(harmonicRight.map((note) => note.midi % 12)).size >= 2
+    && right.length - harmonicRight.length <= 1 ? harmonicRight : [];
+  return [...left, ...rightStack];
+}
+
+/**
+ * Split one realized chord into strikes at the source's accompaniment
+ * onsets. A beginner strikes at most once per `minSpacingBeats` (the next
+ * chord's strike included), and wherever the source leaves more than
+ * `maxSilentBars` between strikes the chord is struck again on the next
+ * downbeat, or as soon after it as spacing allows. Authored charts use the
+ * source's chord attacks and note releases to avoid unnecessary full-chord
+ * re-strikes and leave short gaps when the pianist releases early.
+ */
+function sourceRhythmStrikes(
+  chord: AccompanimentChord,
+  onsets: readonly number[],
+  measures: readonly { startBeat: number; endBeat: number }[],
+  tuning: StrikeTuning,
+  sourceByOnset: ReadonlyMap<number, readonly Note[]>,
+  hasLeftHand: boolean,
+): AccompanimentChord[] {
+  const start = chord.beat;
+  const end = start + (chord.durationBeats ?? 0);
+  const spacing = Number.isFinite(chord.strikeSpacingBeats) && (chord.strikeSpacingBeats ?? 0) > 0
+    ? Math.max(tuning.minSpacingBeats, chord.strikeSpacingBeats!)
+    : tuning.minSpacingBeats;
+  const chordPcs = new Set(chord.notes.map((midi) => midi % 12));
+  const strikes = [start];
+  const symbol = chord.sourceKind === "authored" && hasLeftHand ? tryParseChordSymbol(chord.name) : null;
+  const bassPc = symbol?.bassPc ?? symbol?.rootPc;
+  for (const beat of onsets) {
+    if (beat <= start + EPSILON || beat > end - spacing + EPSILON) continue;
+    const previous = strikes[strikes.length - 1]!;
+    if (beat - previous < spacing - EPSILON) continue;
+    if (chord.sourceKind === "authored" && hasLeftHand) {
+      const atBeat = sourceByOnset.get(beat) ?? [];
+      const left = atBeat.filter((note) => note.hand === "L");
+      const stack = sourceChordStack(atBeat, chordPcs);
+      const strong = new Set(left.map((note) => note.midi % 12)).size >= 2 || stack.length > left.length;
+      const previousStack = sourceChordStack(sourceByOnset.get(previous) ?? [], chordPcs);
+      const heldStack = new Set(previousStack
+        .filter((note) => note.dur > beat - previous + EPSILON)
+        .map((note) => note.midi % 12)).size >= 2;
+      const arpeggiatedRootOctave = left.length === 1 && bassPc !== undefined
+        && left[0]!.midi % 12 === bassPc
+        && onsets.some((middle) => middle > previous + EPSILON && middle < beat - EPSILON
+          && (sourceByOnset.get(middle) ?? []).some((note) => note.hand === "L"
+            && note.midi % 12 === (bassPc + 7) % 12))
+        && (sourceByOnset.get(previous) ?? []).some((note) => note.hand === "L"
+          && note.midi === left[0]!.midi - 12
+          && note.vel > left[0]!.vel
+          && note.dur > left[0]!.dur);
+      // ponytail: bass roots and simultaneous stacks approximate accents; use source role labels if this misses a real syncopation.
+      if (left.length && !strong && ((bassPc !== undefined && left.every((note) => note.midi % 12 !== bassPc)) || heldStack || arpeggiatedRootOctave)) continue;
+    }
+    strikes.push(beat);
+  }
+  const barAt = (beat: number) => measures.findIndex((measure) => measure.startBeat <= beat + EPSILON && beat < measure.endBeat - EPSILON);
+  const filled: number[] = [];
+  strikes.forEach((beat, index) => {
+    filled.push(beat);
+    const next = strikes[index + 1] ?? end;
+    const sourceStack = chord.sourceKind === "authored" ? sourceChordStack(sourceByOnset.get(beat) ?? [], chordPcs) : [];
+    for (let from = beat; ;) {
+      const bar = barAt(from);
+      if (bar < 0) break;
+      const limitBar = measures[Math.min(measures.length - 1, bar + Math.max(1, tuning.maxSilentBars) - 1)]!;
+      const silentLimit = limitBar.endBeat - measures[bar]!.startBeat;
+      if (next - from <= silentLimit + EPSILON) break;
+      const fill = Math.max(from + spacing, limitBar.endBeat);
+      if (next - fill < spacing - EPSILON) break;
+      if (chord.sourceKind === "authored" && new Set(sourceStack
+        .filter((note) => note.dur > fill - beat + EPSILON)
+        .map((note) => note.midi % 12)).size >= 2) {
+        from = fill;
+        continue;
+      }
+      filled.push(fill);
+      from = fill;
+    }
+  });
+  return filled.map((beat, index) => {
+    const interval = (filled[index + 1] ?? end) - beat;
+    const stack = sourceChordStack(sourceByOnset.get(beat) ?? [], chordPcs);
+    const durationByPc = new Map<number, number>();
+    for (const note of stack) durationByPc.set(note.midi % 12, Math.max(durationByPc.get(note.midi % 12) ?? 0, note.dur));
+    const durations = [...durationByPc.values()].sort((a, b) => b - a);
+    const sourceDuration = durations[durations.length > 1 ? 1 : 0] ?? null;
+    // An authored chord may release before the next hit; its display label still spans the full chart event.
+    const durationBeats = chord.sourceKind === "authored" && interval >= 1 - EPSILON && sourceDuration !== null
+      ? Math.min(interval, Math.max(sourceDuration, interval - 0.25))
+      : interval;
+    return { ...chord, beat, durationBeats: chord.maxStrikeDurationBeats === undefined
+      ? durationBeats : Math.min(durationBeats, chord.maxStrikeDurationBeats) };
+  });
 }
 
 function noteEnd(note: Note): number {
@@ -1019,15 +1165,24 @@ export function resolveAccompaniment(
 
   const fallbackSpans = buildFallbackSpans(events, covered, fallbackEvents, durationBeats);
   const retainedSourceNotes = style === "bass-chords" ? [] : sourceNotes.filter((_, index) => keep[index]);
+  const strikeTuning = options.strikeTuning ?? CHORDS_TUNING.strikes;
+  const onsets = style === "bass-chords" && options.sourceRhythmMeasures ? accompanimentOnsets(sourceNotes, strikeTuning.minSpacingBeats) : null;
+  const hasAuthored = effectiveChords.some((chord) => chord.sourceKind === "authored");
+  const sourceByOnset = new Map<number, Note[]>();
+  if (onsets && hasAuthored) for (const note of sourceNotes) sourceByOnset.set(note.start, [...(sourceByOnset.get(note.start) ?? []), note]);
+  const hasLeftHand = hasAuthored && sourceNotes.some((note) => note.hand === "L");
+  const struckChords = onsets
+    ? effectiveChords.flatMap((chord) => sourceRhythmStrikes(chord, onsets, options.sourceRhythmMeasures!, strikeTuning, sourceByOnset, hasLeftHand))
+    : effectiveChords;
 
   return {
     style,
     notes: retainedSourceNotes,
-    chords: effectiveChords,
+    chords: struckChords,
     displayChords: buildDisplayTimeline(events, effectiveChords),
     guidanceNotes: [
       ...retainedSourceNotes,
-      ...effectiveChords.flatMap((chord) => chord.notes.map((midi, index) => ({
+      ...struckChords.flatMap((chord) => chord.notes.map((midi, index) => ({
         midi,
         start: chord.beat,
         dur: chord.durationBeats ?? 1,

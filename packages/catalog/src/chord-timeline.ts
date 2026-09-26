@@ -28,6 +28,7 @@ export type ChordInferenceType =
   | "nearest-symbol"
   | "subbeat-extension"
   | "voicing"
+  | "harmony-window"
   | (string & {});
 
 const EVENT_SOURCE_KINDS = new Set<ChordTimelineEventSourceKind>(["authored", "inferred", "generated", "unknown"]);
@@ -37,6 +38,10 @@ export interface ChordTimelineEvent {
   beat: number;
   /** Normalized positive span; never crosses the next event. */
   durationBeats: number;
+  /** Curated minimum between source-rhythm re-strikes within this event. */
+  strikeSpacingBeats?: number;
+  /** Curated maximum sounding length of each strike without ending the harmony span. */
+  maxStrikeDurationBeats?: number;
   name: string;
   /** Optional playable voicing supplied by a catalog curator. */
   notes?: number[];
@@ -112,6 +117,8 @@ interface TimelineInputEvent {
   beat?: unknown;
   startBeat?: unknown;
   durationBeats?: unknown;
+  strikeSpacingBeats?: unknown;
+  maxStrikeDurationBeats?: unknown;
   /** Legacy alias accepted by generated notes exports. */
   duration?: unknown;
   endBeat?: unknown;
@@ -265,6 +272,8 @@ function eventFingerprint(event: ParsedTimelineEvent): string {
     sourceKind: event.sourceKind,
     inferred: event.inferred ?? null,
     inferenceType: event.inferenceType ?? null,
+    strikeSpacingBeats: event.strikeSpacingBeats ?? null,
+    maxStrikeDurationBeats: event.maxStrikeDurationBeats ?? null,
   });
 }
 
@@ -408,6 +417,12 @@ export function normalizeChordTimeline(value: unknown, defaults?: { source?: Cho
       continue;
     }
     const duration = event.durationBeats ?? event.duration;
+    if (event.strikeSpacingBeats !== undefined && (!finite(event.strikeSpacingBeats) || event.strikeSpacingBeats <= 0)) {
+      errors.push(`${path}.strikeSpacingBeats must be positive`);
+    }
+    if (event.maxStrikeDurationBeats !== undefined && (!finite(event.maxStrikeDurationBeats) || event.maxStrikeDurationBeats <= 0)) {
+      errors.push(`${path}.maxStrikeDurationBeats must be positive`);
+    }
     const end = event.endBeat;
     if (duration !== undefined && (!finite(duration) || duration <= 0)) errors.push(`${path}.durationBeats must be positive`);
     if (end !== undefined && (!finite(end) || end <= (beatRaw as number))) errors.push(`${path}.endBeat must be after beat`);
@@ -426,6 +441,8 @@ export function normalizeChordTimeline(value: unknown, defaults?: { source?: Cho
       sourceKind,
       ...(inferred === undefined ? {} : { inferred }),
       ...(inferenceType === undefined ? {} : { inferenceType }),
+      ...(finite(event.strikeSpacingBeats) && event.strikeSpacingBeats > 0 ? { strikeSpacingBeats: event.strikeSpacingBeats } : {}),
+      ...(finite(event.maxStrikeDurationBeats) && event.maxStrikeDurationBeats > 0 ? { maxStrikeDurationBeats: event.maxStrikeDurationBeats } : {}),
       inputIndex: index,
       ...(parsedDuration === undefined ? {} : { explicitDuration: parsedDuration }),
       ...(parsedEnd === undefined ? {} : { explicitEnd: parsedEnd }),
@@ -481,6 +498,8 @@ export function normalizeChordTimeline(value: unknown, defaults?: { source?: Cho
       sourceKind: event.sourceKind,
       ...(event.inferred === undefined ? {} : { inferred: event.inferred }),
       ...(event.inferenceType === undefined ? {} : { inferenceType: event.inferenceType }),
+      ...(event.strikeSpacingBeats === undefined ? {} : { strikeSpacingBeats: event.strikeSpacingBeats }),
+      ...(event.maxStrikeDurationBeats === undefined ? {} : { maxStrikeDurationBeats: event.maxStrikeDurationBeats }),
     });
   }
 
@@ -497,8 +516,11 @@ export function normalizeChordTimeline(value: unknown, defaults?: { source?: Cho
       && JSON.stringify(previous.notes ?? []) === JSON.stringify(event.notes ?? [])
       && previous.sourceKind === event.sourceKind
       && previous.inferred === event.inferred
-      && previous.inferenceType === event.inferenceType;
-    if (samePayload && equalBeat(previous.beat + previous.durationBeats, event.beat)) {
+      && previous.inferenceType === event.inferenceType
+      && previous.strikeSpacingBeats === event.strikeSpacingBeats
+      && previous.maxStrikeDurationBeats === event.maxStrikeDurationBeats;
+    // A separately authored event is an intentional new attack, even when its symbol repeats.
+    if (samePayload && event.sourceKind !== "authored" && equalBeat(previous.beat + previous.durationBeats, event.beat)) {
       previous.durationBeats = roundBeat(previous.durationBeats + event.durationBeats);
       continue;
     }

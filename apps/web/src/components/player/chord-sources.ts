@@ -18,9 +18,11 @@ export type ChordSourceId = "auto" | "ug" | "generated";
 export interface PlayerChordMetadata {
   sourceKind?: "authored" | "inferred" | "generated" | "unknown";
   inferred?: boolean;
-  inferenceType?: "dyad-completion" | "carry-forward-root" | "nearest-symbol" | "subbeat-extension" | "voicing";
+  inferenceType?: "dyad-completion" | "carry-forward-root" | "nearest-symbol" | "subbeat-extension" | "voicing" | "harmony-window";
   duration?: number;
   durationBeats?: number;
+  strikeSpacingBeats?: number;
+  maxStrikeDurationBeats?: number;
 }
 
 export type PlayerChordLabel = Omit<ChordLabel, keyof PlayerChordMetadata> & PlayerChordMetadata;
@@ -172,6 +174,10 @@ function preservedMetadata(obj: UnknownRecord): PlayerChordMetadata {
 
   const durationBeats = finite(obj.durationBeats);
   const duration = finite(obj.duration);
+  const strikeSpacingBeats = finite(obj.strikeSpacingBeats);
+  if (strikeSpacingBeats !== null && strikeSpacingBeats > 0) metadata.strikeSpacingBeats = strikeSpacingBeats;
+  const maxStrikeDurationBeats = finite(obj.maxStrikeDurationBeats);
+  if (maxStrikeDurationBeats !== null && maxStrikeDurationBeats > 0) metadata.maxStrikeDurationBeats = maxStrikeDurationBeats;
   if (durationBeats !== null && durationBeats > 0) metadata.durationBeats = durationBeats;
   if (duration !== null && duration > 0) {
     metadata.duration = duration;
@@ -189,6 +195,8 @@ function metadataKey(chord: PlayerChordLabel): string {
     chord.inferenceType ?? null,
     chord.duration ?? null,
     chord.durationBeats ?? null,
+    chord.strikeSpacingBeats ?? null,
+    chord.maxStrikeDurationBeats ?? null,
   ]);
 }
 
@@ -307,6 +315,7 @@ export function normalizeChordTimeline(
     const previous = deduped.at(-1);
     if (
       previous
+      && chord.sourceKind !== "authored"
       && previous.name === chord.name
       && JSON.stringify(previous.notes) === JSON.stringify(chord.notes)
       && metadataKey(previous) === metadataKey(chord)

@@ -38,6 +38,8 @@ describe("chord symbols", () => {
     expect(chordPitchClasses("Cdim")).toEqual([0, 3, 6]);
     expect(chordPitchClasses("Caug")).toEqual([0, 4, 8]);
     expect(chordPitchClasses("Cadd9")).toEqual([0, 4, 7, 2]);
+    expect(chordPitchClasses("Fm9")).toEqual([5, 8, 0, 3, 7]);
+    expect(chordPitchClasses("Fmadd9")).toEqual([5, 8, 0, 7]);
     expect(chordPitchClasses("C/B")).toEqual([0, 4, 7, 11]);
   });
 
@@ -47,6 +49,7 @@ describe("chord symbols", () => {
     expect(chordToNotes("C/E", { octave: 4, bassOctave: 3 })).toEqual([52, 60, 64, 67]);
     expect(chordToNotes("C", { octave: 4, includeBass: true, bassOctave: 3 })).toEqual([48, 60, 64, 67]);
     expect(chordToNotes("Cadd9", { octave: 4 })).toEqual([60, 64, 67, 74]);
+    expect(chordToNotes("Fm9", { octave: 4 })).toEqual([65, 68, 72, 75, 79]);
     expect(chordToNoteEvents("Am", { octave: 3, start: 2, dur: 2, vel: 72 }).map((n) => [n.midi, n.start, n.dur, n.vel])).toEqual([
       [57, 2, 2, 72],
       [60, 2, 2, 72],

@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Owner-accepted working Chords backing references, including bounded excerpts; further polish is expected. This is not the ten-song musical release gate.",
+  "baselineCommit": "2faf8b9ab33f73c78ad9e23792de7cce530906b8",
+  "entries": [
+    {
+      "baseId": "adele-skyfall",
+      "level": "a",
+      "sourceId": "ug-skyfall",
+      "advancedNotesSha256": "af41511639e95686e2bc88f8bc56bc7fc90ba70644c5870b05dad6773fd7eb18",
+      "timelineSha256": "c83c03a73ecd65f565bf3ebb5dbd7ee04295b5a25ba9b0ef855414177980ebf8",
+      "acceptedBackingSha256": "eb03d48967cf7cf96a3e7aa3c318ff93198e7e6d929ba520eff0eec70a53fb2f",
+      "acceptedAt": "2026-09-25"
+    },
+    {
+      "baseId": "frank-sinatra-my-way",
+      "level": "a",
+      "sourceId": "ug-my-way",
+      "advancedNotesSha256": "b56e9470adf34b817bcb9e484edb9ec270d817c8224f5757145d2fc3ece72442",
+      "timelineSha256": "97988b88b7c1dcbfe31ecdcf03075b03c79fe8d8ffcfcf0776cb3c20c410300d",
+      "acceptedBackingSha256": "5fd8fe9f785087b2b8ee4c3efe3fa75ed9feff63724dfcd66ac045ecc8ad29cc",
+      "acceptedAt": "2026-09-25"
+    },
+    {
+      "baseId": "john-lennon-imagine",
+      "level": "a",
+      "sourceId": "ug-imagine",
+      "advancedNotesSha256": "157cd3dc92e6b3e819567d0cf51eab7a1c03a1b76c1cb3333e0b26d4e7fb8790",
+      "timelineSha256": "ef04458fb6b99cb72a9a38e44fb3a2c85314e8f913d08eebf7f501446f8004df",
+      "acceptedBackingSha256": "7c01beff6aca0dbbffd60185f18945fc1135764b4067df32ba4fde376265bfbb",
+      "acceptedAt": "2026-09-25"
+    },
+    {
+      "baseId": "the-beatles-let-it-be",
+      "level": "a",
+      "sourceId": "ug-let-it-be",
+      "advancedNotesSha256": "b7fea761f20fe174c64e599041ba3e67f669b9efad4ddf2834dbf45aa34c3b36",
+      "timelineSha256": "b1d7460421acc3b09d887f0796b99cd2ad8af0c6c276247da57ca921f477fbd0",
+      "acceptedBackingSha256": "10eee395aeff09df182278a38557b5431971486d0b5e8d97cd5c7ad972ae98c2",
+      "acceptedAt": "2026-09-25"
+    },
+    {
+      "baseId": "coldplay-clocks",
+      "level": "a",
+      "sourceId": "ug-clocks",
+      "advancedNotesSha256": "053b40ebcf93fad16c80e470042cc1fa69b716c77a31f64a7cbb49ab77e90a51",
+      "timelineSha256": "d08081391a582c9a7837675115d2e0c018e8f08307d4255018e23b00ab6c85cf",
+      "acceptedBackingSha256": "f79fe9a2c55f33ed23f0c12efb849da3d5e2eb8bb2ac64d2debf3deb8aefc171",
+      "acceptedAt": "2026-09-25"
+    },
+    {
+      "baseId": "katherine-cordova-coldplay-fix-you-advanced-piano-cover-mslws0x0",
+      "level": "a",
+      "sourceId": "ug-fix-you",
+      "advancedNotesSha256": "f251038e1ab8bdb0c5b23026d670fa819d5784580cf139db00e81ad1d09b2e9b",
+      "timelineSha256": "999945d6b2e19bcd771c035734f694ecd0859d431c561f869f0d36808fe4f124",
+      "acceptedEndBeatExclusive": 177.875,
+      "acceptedBackingSha256": "3904d59563f332068f0c887635f3248ded89d62090bd9b69b7f6111086c73f72",
+      "acceptedAt": "2026-09-26"
+    },
+    {
+      "baseId": "gloria-gaynor-i-will-survive",
+      "level": "a",
+      "sourceId": "ug-i-will-survive",
+      "advancedNotesSha256": "24044d6bbf1cd0dd91e97ef349c94201b22159bfdd4addac3ec5ab512ae1fc94",
+      "timelineSha256": "9f37442fc48e8327076bf1098104aa0fc83d3fce7f0856bdddce84bdcc270a8d",
+      "acceptedBackingSha256": "6e4d5dc4ce9fcbe87940d60f95dce73b4dcbe9460ae84587c3ee12895c6b7d36",
+      "acceptedAt": "2026-09-26"
+    },
+    {
+      "baseId": "mary-hopkin-those-were-the-days",
+      "level": "a",
+      "sourceId": "ug-those-were-the-days",
+      "advancedNotesSha256": "5b76fc45646effb0b6dd9382fe7481c8505647dffdb29be6be36215ba02c1545",
+      "timelineSha256": "e061e273049c3766528f674b43d443c5e689114ecc77c8db3f8f4dfd0da3e5bf",
+      "acceptedBackingSha256": "32fca1267396701e260a4debddfc7d4544a77a6dbc6dc392d57d4bcb7ced1385",
+      "acceptedAt": "2026-09-26"
+    },
+    {
+      "baseId": "abba-the-winner-takes-it-all",
+      "level": "a",
+      "sourceId": "ug-the-winner-takes-it-all",
+      "advancedNotesSha256": "9d9ae9b17b3bd10ebc973d549b12d1102606e66a9342a4702d449e7f73afd664",
+      "timelineSha256": "16b5b19012af41e5b9cd9107af36966a6a94159f6aebe7510beda8be039c4762",
+      "acceptedBackingSha256": "5577a338bfef5a85c300d6c14234a6219eb4e2beecfb5a8584dbecfa88eb4c6c",
+      "acceptedAt": "2026-09-26"
+    }
+  ]
+}

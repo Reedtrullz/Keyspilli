@@ -13,6 +13,8 @@ const QUALITY_INTERVALS: Record<ChordQuality, readonly number[]> = {
   "7": [0, 4, 7, 10],
   maj7: [0, 4, 7, 11],
   m7: [0, 3, 7, 10],
+  m9: [0, 3, 7, 10, 14],
+  madd9: [0, 3, 7, 14],
   "6": [0, 4, 7, 9],
   sus2: [0, 2, 7],
   sus4: [0, 5, 7],
@@ -28,6 +30,8 @@ const QUALITY_SUFFIX: Record<ChordQuality, string> = {
   "7": "7",
   maj7: "maj7",
   m7: "m7",
+  m9: "m9",
+  madd9: "madd9",
   "6": "6",
   sus2: "sus2",
   sus4: "sus4",
@@ -93,6 +97,8 @@ function parseQuality(raw: string): ChordQuality {
   // Keep the case-sensitive M/m aliases before lower-casing the remainder.
   if (suffix === "M7" || suffix === "Δ7" || /^maj(?:or)?7$/i.test(suffix)) return "maj7";
   if (suffix === "m7" || suffix === "-7" || /^(?:min|minor)7$/i.test(suffix)) return "m7";
+  if (suffix === "m9" || /^(?:min|minor)9$/i.test(suffix)) return "m9";
+  if (suffix === "madd9" || /^(?:min|minor)add9$/i.test(suffix)) return "madd9";
   if (suffix === "M6" || /^maj(?:or)?6$/i.test(suffix) || suffix === "6") return "6";
   if (suffix === "7" || /^dom(?:inant)?7$/i.test(suffix)) return "7";
   if (/^sus2$/i.test(suffix)) return "sus2";
