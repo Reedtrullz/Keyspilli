@@ -18,7 +18,7 @@ In the updated local Winner pilot, Chords practice opens on the current four bar
 
 ## 2026-09-25 — Working Chords golden corpus
 
-The owner accepted these **Advanced-derived Chords backing** candidates as useful references at their current quality level. The machine-readable index is [`catalog/chord-golden-corpus.json`](../catalog/chord-golden-corpus.json); it pins each local preview's production Advanced notes hash, authored timeline hash, source-map ID, and accepted realized backing digest. The source artifacts remain outside Git. This is a calibration set for future chordification work, with further musical polish welcome, not a claim that the mode's ten-song release gate passed.
+The owner accepted these five **Advanced-derived Chords backing** candidates as useful full-song references at their current quality level. The machine-readable index is [`catalog/chord-golden-corpus.json`](../catalog/chord-golden-corpus.json); it pins each accepted source, authored timeline, and realized backing digest. The source artifacts remain outside Git. This is a calibration set for future chordification work, with further musical polish welcome, not a claim that the mode's ten-song release gate passed.
 
 | Song | Owner listening decision | Known follow-up |
 | --- | --- | --- |
@@ -31,6 +31,12 @@ The owner accepted these **Advanced-derived Chords backing** candidates as usefu
 These five decisions concern the local draft-PR previews, not a deployed player. Imagine and Let It Be apply to the higher-resolution charts at `94cced0f`; Clocks applies to the source-stack and chord-display revision at `c3705af8`. These owner judgments do not replace independent pianist/teacher assessment, beginner practice observation, or the separate release gates in [ADR 0004](decisions/0004-release-gates.md).
 
 **Kings & Queens is outside the golden corpus.** The owner had accepted an earlier working version, but after hearing the later 0:20/0:47 timing edits said it is somewhat better yet still imperfect and explicitly asked to keep it outside the corpus. Its authored Chords preview remains available for later polish. The earlier `catalog/learner-review.json` verdict concerns the original arrangement, separately from Chords backing.
+
+## 2026-09-26 — Fix You opening excerpt
+
+The owner listened to the local Fix You Chords variant and called it “perfect.” They selected the opening, described as 0:00–2:35, for the golden corpus and excluded the changed 2:36–4:26 section as an automation example. The exact source-grid boundary is beat 177.875 at 68 BPM (2:36.95): the last Bb notes end and the next Eb section begins there. The corpus pins only backing events before that beat, 422 notes from the green chord and blue rhythm lanes, with no later onsets or sounding tails. The full Chords variant is owner-accepted for this song; only the opening excerpt is an automation reference.
+
+Its Advanced notes, chart, and realized excerpt have separate SHA-256 pins in the [six-entry corpus index](../catalog/chord-golden-corpus.json). The replacement source MIDI and preview artifact are private ignored files; another host needs their verified transfer before it can replay this entry. This listening verdict does not establish release readiness or acceptance of the later section as an automation pattern.
 
 The [next-ten Chords shortlist](research/keyspilli-evidence/chords-next-ten-2026-09-25.md) proposes other active repertoire songs for future work. It is a research queue, not a listening verdict.
 

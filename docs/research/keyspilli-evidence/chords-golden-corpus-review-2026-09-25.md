@@ -1,6 +1,6 @@
 # Chords golden corpus: historical six-song review — 25 September 2026
 
-**Current status:** The owner later removed Kings & Queens from the working golden corpus after hearing further timing edits. This report preserves the earlier six-song snapshot and its measurements; the [current five-song index](../../../catalog/chord-golden-corpus.json) and [listening log](../../listening-review.md) supersede its membership claims.
+**Current status:** The owner later removed Kings & Queens from the working golden corpus after hearing further timing edits and accepted only Fix You's opening excerpt as a new reference. This report preserves the earlier six-song snapshot and its measurements; the [current six-entry index](../../../catalog/chord-golden-corpus.json) and [listening log](../../listening-review.md) supersede its membership claims.
 
 ## Scope and evidence
 

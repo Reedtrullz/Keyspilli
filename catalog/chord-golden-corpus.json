@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "purpose": "Owner-accepted working Chords backing references; further polish is expected. This is not the ten-song musical release gate.",
+  "purpose": "Owner-accepted working Chords backing references, including bounded excerpts; further polish is expected. This is not the ten-song musical release gate.",
   "baselineCommit": "2faf8b9ab33f73c78ad9e23792de7cce530906b8",
   "entries": [
     {
@@ -47,6 +47,16 @@
       "timelineSha256": "d08081391a582c9a7837675115d2e0c018e8f08307d4255018e23b00ab6c85cf",
       "acceptedBackingSha256": "f79fe9a2c55f33ed23f0c12efb849da3d5e2eb8bb2ac64d2debf3deb8aefc171",
       "acceptedAt": "2026-09-25"
+    },
+    {
+      "baseId": "katherine-cordova-coldplay-fix-you-advanced-piano-cover-mslws0x0",
+      "level": "a",
+      "sourceId": "ug-fix-you",
+      "advancedNotesSha256": "f251038e1ab8bdb0c5b23026d670fa819d5784580cf139db00e81ad1d09b2e9b",
+      "timelineSha256": "999945d6b2e19bcd771c035734f694ecd0859d431c561f869f0d36808fe4f124",
+      "acceptedEndBeatExclusive": 177.875,
+      "acceptedBackingSha256": "3904d59563f332068f0c887635f3248ded89d62090bd9b69b7f6111086c73f72",
+      "acceptedAt": "2026-09-26"
     }
   ]
 }
