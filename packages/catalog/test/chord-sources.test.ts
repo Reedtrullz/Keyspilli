@@ -64,12 +64,20 @@ describe("catalog chord source plumbing", () => {
     expect(normalizeChordTimeline(once)).toEqual(once);
   });
 
-  it("keeps Help's sustained A7 entry and short late pulses under continuous harmony", async () => {
+  it("keeps Help's sustained A7 entry and bar-anchored late pulses under continuous harmony", async () => {
     const chords = (await resolveChordTimeline("the-beatles-help"))!.timeline.chords;
     expect(chords.filter(({ beat }) => beat >= 148 && beat < 172)
-      .map(({ beat, durationBeats, name, maxStrikeDurationBeats }) => [beat, durationBeats, name, maxStrikeDurationBeats])).toEqual([
-      [148, 8, "A7", undefined],
-      [156, 16, "A7", 1.75],
+      .map(({ beat, durationBeats, name, strikeSpacingBeats, maxStrikeDurationBeats }) =>
+        [beat, durationBeats, name, strikeSpacingBeats, maxStrikeDurationBeats])).toEqual([
+      [148, 8, "A7", 4, undefined],
+      [156, 2.5, "A7", 2, 1.75],
+      [158.5, 1.5, "A7", 2, 1.75],
+      [160, 2.5, "A7", 2, 1.75],
+      [162.5, 1.5, "A7", 2, 1.75],
+      [164, 2, "A7", 2, 1.75],
+      [166, 2, "A7", 2, 1.75],
+      [168, 2, "A7", 2, 1.75],
+      [170, 2, "A7", 2, 1.75],
     ]);
   });
 
