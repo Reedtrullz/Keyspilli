@@ -20,28 +20,43 @@ it("mirrors Journey's piano sections and the repeated Those Were the Days phrase
       { midi: 85, start: 229, dur: 0.5, vel: 80, hand: "R" as const },
       { midi: 89, start: 229, dur: 0.5, vel: 80, hand: "R" as const },
       { midi: 63, start: 232, dur: 0.5, vel: 80, hand: "R" as const },
+      { midi: 42, start: 308, dur: 1, vel: 80, hand: "L" as const },
+      { midi: 63, start: 308, dur: 1, vel: 80, hand: "R" as const },
+      { midi: 66, start: 308, dur: 1, vel: 80, hand: "R" as const },
+      { midi: 70, start: 308, dur: 1, vel: 80, hand: "R" as const },
       { midi: 42, start: 324, dur: 1, vel: 80, hand: "L" as const },
       { midi: 63, start: 324, dur: 1, vel: 80, hand: "R" as const },
       { midi: 66, start: 324, dur: 1, vel: 80, hand: "R" as const },
       { midi: 70, start: 324, dur: 1, vel: 80, hand: "R" as const },
+      { midi: 37, start: 372, dur: 1, vel: 80, hand: "L" as const },
+      { midi: 61, start: 372, dur: 0.5, vel: 80, hand: "R" as const },
+      { midi: 65, start: 372, dur: 0.5, vel: 80, hand: "R" as const },
+      { midi: 66, start: 372, dur: 1, vel: 80, hand: "R" as const },
+      { midi: 37, start: 388, dur: 1, vel: 80, hand: "L" as const },
+      { midi: 80, start: 388, dur: 0.5, vel: 80, hand: "R" as const },
+      { midi: 85, start: 388, dur: 0.5, vel: 80, hand: "R" as const },
+      { midi: 89, start: 388, dur: 0.5, vel: 80, hand: "R" as const },
     ],
-    measures: Array.from({ length: 82 }, (_, index) => ({ index, startBeat: index * 4, endBeat: index * 4 + 4 })),
+    measures: Array.from({ length: 98 }, (_, index) => ({ index, startBeat: index * 4, endBeat: index * 4 + 4 })),
     sourceFingerprint: "variant:journey-dont-stop-believin:a:journey-dont-stop-believin-a:08a07ee27a19467cc7257f18cc0b67311bebc02a135c7b814b2ef798585ec717:notes:d4fe2e2e14bb77889a37f6fe37a040df8c470897270c128c09675ab21a04b354",
   } as SongData;
   const journeyChords = [
     { beat: 4, durationBeats: 160, name: "C#", notes: [], sourceKind: "authored" as const },
     { beat: 164, durationBeats: 64, name: "F#", notes: [], sourceKind: "authored" as const },
-    { beat: 228, durationBeats: 96, name: "C#", notes: [], sourceKind: "authored" as const },
-    { beat: 324, durationBeats: 4, name: "F#", notes: [], sourceKind: "authored" as const },
+    { beat: 228, durationBeats: 80, name: "C#", notes: [], sourceKind: "authored" as const },
+    { beat: 308, durationBeats: 16, name: "F#", notes: [], sourceKind: "authored" as const },
+    { beat: 324, durationBeats: 48, name: "C#", notes: [], sourceKind: "authored" as const },
+    { beat: 372, durationBeats: 20, name: "F#", notes: [], sourceKind: "authored" as const },
   ];
-  const journeyBacking = bassChordsBackground(journey, journeyChords, 328, null);
+  const journeyBacking = bassChordsBackground(journey, journeyChords, 392, null);
   expect(journeyBacking.notes.map((note) => [note.start, note.midi])).toEqual([
-    [4, 37], [164, 37], [164, 68], [228, 37], [228, 61], [228, 65],
-    [229, 80], [229, 85], [229, 89], [324, 42], [324, 63], [324, 66], [324, 70],
+    [4, 37], [164, 37], [164, 68], [228, 37],
+    [308, 42], [308, 63], [308, 66], [308, 70],
+    [324, 42], [324, 63], [324, 66], [324, 70], [372, 37], [388, 37],
   ]);
   expect(journeyBacking.chords).toEqual([]);
   expect(journeyBacking.guidanceNotes).toEqual(journeyBacking.notes);
-  expect(bassChordsBackground({ ...journey, sourceFingerprint: "other" }, journeyChords, 328, null).notes).toEqual([]);
+  expect(bassChordsBackground({ ...journey, sourceFingerprint: "other" }, journeyChords, 392, null).notes).toEqual([]);
 
   const days = { ...journey,
     sourceFingerprint: "variant:mary-hopkin-those-were-the-days:a:mary-hopkin-those-were-the-days-a:28ad9166ff01da3b2b50ce23654ed7517154b0492af5d5d7931149fc5fc93945:notes:5b76fc45646effb0b6dd9382fe7481c8505647dffdb29be6be36215ba02c1545",

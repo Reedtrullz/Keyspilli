@@ -103,12 +103,9 @@ export function bassChordsBackground(
     durationBeats: arrangementEnd, sourceRhythmMeasures: data.measures,
   }));
   if (data.sourceFingerprint === journeySourceFingerprint) {
-    const rightCounts = new Map<number, number>();
-    for (const note of data.notes) if (note.hand === "R" && note.start >= 228) {
-      rightCounts.set(note.start, (rightCounts.get(note.start) ?? 0) + 1);
-    }
-    const played = data.notes.filter((note) => note.hand === "L" || (note.start >= 164
-      && (note.start < 228 || (rightCounts.get(note.start) ?? 0) >= 2)));
+    // This chordal RH phrase repeats exactly; the RH elsewhere carries the vocal line.
+    const played = data.notes.filter((note) => note.hand === "L" || (note.hand === "R"
+      && ((note.start >= 164 && note.start < 228) || (note.start >= 308 && note.start < 372))));
     return {
       ...resolution,
       notes: played,
