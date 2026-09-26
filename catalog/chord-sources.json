@@ -364,7 +364,7 @@
           "kind": "chart",
           "sourceRef": "ultimate-guitar:john-legend/all-of-me-chords-2469556",
           "sourceUrl": "https://tabs.ultimate-guitar.com/tab/john-legend/all-of-me-chords-2469556",
-          "artifactPath": "catalog/chord-timelines/all-of-me.json",
+          "artifactPath": "catalog/chord-timelines/all-of-me-official.json",
           "retrievedAt": "2026-09-26",
           "confidence": "medium",
           "priority": 0

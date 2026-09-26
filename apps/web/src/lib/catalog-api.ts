@@ -19,7 +19,7 @@ import {
   type SongRow,
 } from "@keyspilli/catalog";
 import { chordToNotes, inferHarmonyTimeline, validateArtifactFiles, type ChordLabel, type Variant } from "@keyspilli/midi";
-import { completeChordDurations, detectSections, playbackTiming, validatePlaybackData, validateSparseBackingTiming, type ChordSourceBundle, type ChordSourceTimeline, type SongData } from "@keyspilli/player-core";
+import { arithmeticMeasures, completeChordDurations, detectSections, playbackTiming, validatePlaybackData, validateSparseBackingTiming, type ChordSourceBundle, type ChordSourceTimeline, type SongData } from "@keyspilli/player-core";
 
 type LoadedChordTimeline = NonNullable<Awaited<ReturnType<typeof loadChordTimeline>>>;
 type PlayerChord = Omit<ChordLabel, "sourceKind" | "inferred" | "inferenceType" | "durationBeats"> & {
@@ -513,7 +513,9 @@ export async function loadSongArtifact(song: Pick<SongRow, "id" | "baseId" | "le
 /** Attach the chord sources a Player sees for one loaded level. */
 export async function withChordSources(source: SongData, baseId: string, level: string): Promise<SongData> {
   try {
-    return projectChordSources(source, await loadChordTimeline(baseId, { fallbackLevel: level }), level);
+    const timeline = await loadChordTimeline(baseId, { fallbackLevel: level });
+    // A chart timed to a different recording cannot label the source player's bars.
+    return projectChordSources(source, timeline?.tempoBpm !== undefined && timeline.tempoBpm !== source.tempoBpm ? null : timeline, level);
   } catch {
     // An optional chart must never prevent the arrangement from loading.
     return projectChordSources(source, null, level);
@@ -560,6 +562,16 @@ async function loadSongDetailUncached(id: string): Promise<SongDetail | null> {
       withChordSources(data, song.baseId, song.level),
       chordData ? withChordSources(chordData, song.baseId, "a") : Promise.resolve(null),
     ]);
+    if (song.baseId === "rousseau-john-legend-all-of-me-piano-cover-mslwrq3x" && !chordUnavailableReason) {
+      const chart = await loadChordTimeline(song.baseId, { fallbackLevel: "a" });
+      if (chart?.tempoBpm === 126 && chart.timeSig[0] === 4 && chart.timeSig[1] === 4) {
+        // The reviewed Chords target is the official recording; Original remains the Rousseau cover.
+        chordData = projectChordSources({
+          notes: [], chords: [], measures: arithmeticMeasures(chart.durationBeats, chart.timeSig),
+          key: chart.key ?? advancedData?.key ?? data.key, tempoBpm: chart.tempoBpm, timeSig: chart.timeSig,
+        }, chart, "a");
+      }
+    }
   }
   const sourceArrangement = loaded.artifact.manifest?.sourceArrangement;
   return { song, data, chordData, chordUnavailableReason, variants, artifact: loaded.artifact, ...(sourceArrangement ? { sourceArrangement } : {}) };

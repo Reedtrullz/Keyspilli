@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { normalizeChordTimeline, resolveChordTimeline } from "@keyspilli/catalog";
-import type { SongData } from "@keyspilli/player-core";
-import { projectChordSources } from "../../lib/catalog-api";
+import { arithmeticMeasures, type SongData } from "@keyspilli/player-core";
+import { projectChordSources, withChordSources } from "../../lib/catalog-api";
 import { bassChordsBackground, replayChordsBacking } from "./chords-backing";
 
 const clocksFingerprint = "variant:coldplay-clocks:a:coldplay-clocks-a:6f318e8fcf70028535ded2b2509a0f4db10fa0b56a3987b469f760df582448fc:notes:053b40ebcf93fad16c80e470042cc1fa69b716c77a31f64a7cbb49ab77e90a51";
@@ -208,6 +208,27 @@ it("plays All of Me as authored chord attacks instead of its near-original sourc
   expect(replay.selected.source?.id).toBe("ug");
   expect(replay.resolution.notes).toEqual([]);
   expect(replay.resolution.chords.map(({ beat, name }) => [beat, name])).toEqual([[0, "Fm"], [4, "Db"]]);
+});
+
+it("plays the official All of Me intro into the verse without the cover's pause", async () => {
+  const chart = (await resolveChordTimeline("rousseau-john-legend-all-of-me-piano-cover-mslwrq3x"))!.timeline;
+  expect(chart.tempoBpm).toBe(126);
+  const source: SongData = {
+    key: "Fm", tempoBpm: 126, timeSig: [4, 4], notes: [], chords: [],
+    measures: arithmeticMeasures(chart.durationBeats, chart.timeSig),
+  };
+  const replay = replayChordsBacking(projectChordSources(source, chart));
+  const attacks = replay.resolution.chords.map(({ beat, name }) => [beat, name]);
+  expect(attacks.slice(0, 10)).toEqual([
+    [0, "Fm"], [1.5, "Fm"], [3, "Fm"], [4, "Db"], [5.5, "Db"],
+    [7, "Db"], [8, "Ab"], [9.5, "Ab"], [11, "Ab"], [12, "Eb"],
+  ]);
+  expect(attacks.filter(([beat]) => (beat as number) >= 28 && (beat as number) <= 36))
+    .toEqual([[28, "Eb"], [30.25, "Eb"], [32, "Fm"], [36, "Fm"]]);
+  expect(replay.resolution.notes).toEqual([]);
+  expect(replay.resolution.chords.at(-1)!.beat).toBeLessThan(576);
+  const original = await withChordSources({ ...source, tempoBpm: 129 }, chart.baseId, "a");
+  expect(original.chordSources?.ug?.chords ?? []).toHaveLength(0);
 });
 
 it("reuses Clocks' played stack in its right-hand-only ending and ignores other source fingerprints", () => {

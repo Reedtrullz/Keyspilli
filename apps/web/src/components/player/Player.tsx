@@ -886,7 +886,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       engine.audio.dispose();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings.soundSource, settings.organStyle, settings.organRegistration]);
+  }, [settings.soundSource, settings.organStyle, settings.organRegistration, activeData.tempoBpm]);
 
   useEffect(() => {
     const engine = engineRef.current;
@@ -2338,7 +2338,9 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
         <h2 className="font-semibold text-zinc-800 mb-2">About this arrangement</h2>
         <p>
           Key of {activeData.key} · {activeData.tempoBpm} BPM · {activeData.timeSig[0]}/{activeData.timeSig[1]} ·
-          {" "}{sourceBackingNotes && settings.backgroundMode === "chord" ? "source accompaniment" : `${initial.song.bassPattern} bass`} · {sourceBackingNotes && settings.backgroundMode === "chord" ? sourceBackingNotes.length : activeData.notes.length} notes
+          {" "}{settings.backgroundMode === "chord" && activeData.notes.length === 0
+            ? `chord backing · ${displayChords.length} chords`
+            : `${sourceBackingNotes && settings.backgroundMode === "chord" ? "source accompaniment" : `${initial.song.bassPattern} bass`} · ${sourceBackingNotes && settings.backgroundMode === "chord" ? sourceBackingNotes.length : activeData.notes.length} notes`}
         </p>
         <p className="mt-2 text-zinc-500">
           Practice tips: slow it to 50% first, loop tricky measures, and use Practice mode to get graded feedback.
