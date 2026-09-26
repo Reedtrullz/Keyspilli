@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { normalizeChordTimeline } from "@keyspilli/catalog";
+import { normalizeChordTimeline, resolveChordTimeline } from "@keyspilli/catalog";
 import type { SongData } from "@keyspilli/player-core";
 import { projectChordSources } from "../../lib/catalog-api";
 import { bassChordsBackground, replayChordsBacking } from "./chords-backing";
@@ -7,7 +7,7 @@ import { bassChordsBackground, replayChordsBacking } from "./chords-backing";
 const clocksFingerprint = "variant:coldplay-clocks:a:coldplay-clocks-a:6f318e8fcf70028535ded2b2509a0f4db10fa0b56a3987b469f760df582448fc:notes:053b40ebcf93fad16c80e470042cc1fa69b716c77a31f64a7cbb49ab77e90a51";
 const journeyFingerprint = "variant:journey-dont-stop-believin:a:journey-dont-stop-believin-a:08a07ee27a19467cc7257f18cc0b67311bebc02a135c7b814b2ef798585ec717:notes:d4fe2e2e14bb77889a37f6fe37a040df8c470897270c128c09675ab21a04b354";
 
-it("mirrors Journey's piano sections and the repeated Those Were the Days phrase only for pinned sources", () => {
+it("mirrors Journey's piano sections and keeps Those Were the Days refrains chord-only", async () => {
   const journey = {
     notes: [
       { midi: 37, start: 4, dur: 1, vel: 80, hand: "L" as const },
@@ -61,6 +61,8 @@ it("mirrors Journey's piano sections and the repeated Those Were the Days phrase
 
   const days = { ...journey,
     sourceFingerprint: "variant:mary-hopkin-those-were-the-days:a:mary-hopkin-those-were-the-days-a:28ad9166ff01da3b2b50ce23654ed7517154b0492af5d5d7931149fc5fc93945:notes:5b76fc45646effb0b6dd9382fe7481c8505647dffdb29be6be36215ba02c1545",
+    key: "Am", tempoBpm: 90, timeSig: [2, 4] as [number, number], chords: [],
+    measures: Array.from({ length: 172 }, (_, index) => ({ index, startBeat: index * 2, endBeat: index * 2 + 2 })),
     notes: [
       { midi: 40, start: 36, dur: 1, vel: 80, hand: "L" as const },
       { midi: 62, start: 40, dur: 1, vel: 80, hand: "R" as const },
@@ -69,12 +71,18 @@ it("mirrors Journey's piano sections and the repeated Those Were the Days phrase
       { midi: 38, start: 48, dur: 1, vel: 80, hand: "L" as const },
     ],
   } as SongData;
-  const daysBacking = bassChordsBackground(days, [
-    { beat: 36, durationBeats: 12, name: "E7", notes: [], sourceKind: "authored" },
-    { beat: 48, durationBeats: 4, name: "Dm", notes: [], sourceKind: "authored" },
-  ], 52, null);
-  expect(daysBacking.notes.map((note) => note.midi)).toEqual([40, 62, 68]);
-  expect(daysBacking.chords.every((chord) => chord.beat >= 48)).toBe(true);
+  const timeline = (await resolveChordTimeline("mary-hopkin-those-were-the-days"))!.timeline;
+  const daysBacking = replayChordsBacking(projectChordSources(days, timeline)).resolution;
+  expect(daysBacking.notes).toEqual([]);
+  expect(daysBacking.chords.filter(({ beat }) => beat >= 36 && beat < 48).map(({ beat, name }) => [beat, name])).toEqual([
+    [36, "E"], [40, "E7"], [41, "E7"], [42, "E7"], [44, "A7"], [46, "A7"],
+  ]);
+  expect(daysBacking.chords.filter(({ beat }) => beat >= 118 && beat < 130).map(({ beat, name }) => [beat, name])).toEqual([
+    [118, "E"], [122, "E7"], [124, "E7"], [125, "E7"], [126, "A7"], [128, "A7"],
+  ]);
+  expect(daysBacking.chords.find(({ beat }) => beat === 36)?.notes).toEqual([40, 64, 68, 71]);
+  expect(daysBacking.chords.find(({ beat }) => beat === 40)?.notes).toEqual([40, 62, 68, 71]);
+  expect(daysBacking.chords.find(({ beat }) => beat === 44)?.notes).toEqual([45, 61, 64, 67]);
 });
 
 it("keeps Journey's later verse in the opening piano register without upper runs or held pedals", () => {

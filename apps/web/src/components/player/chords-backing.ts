@@ -14,8 +14,12 @@ const clocksSourceFingerprint = "variant:coldplay-clocks:a:coldplay-clocks-a:6f3
 const journeySourceFingerprint = "variant:journey-dont-stop-believin:a:journey-dont-stop-believin-a:08a07ee27a19467cc7257f18cc0b67311bebc02a135c7b814b2ef798585ec717:notes:d4fe2e2e14bb77889a37f6fe37a040df8c470897270c128c09675ab21a04b354";
 const thoseDaysSourceFingerprint = "variant:mary-hopkin-those-were-the-days:a:mary-hopkin-those-were-the-days-a:28ad9166ff01da3b2b50ce23654ed7517154b0492af5d5d7931149fc5fc93945:notes:5b76fc45646effb0b6dd9382fe7481c8505647dffdb29be6be36215ba02c1545";
 
-function clocksPlayedVoicings(data: SongData, resolution: AccompanimentResolution): AccompanimentResolution {
-  if (data.sourceFingerprint !== clocksSourceFingerprint) return resolution;
+function sourcePlayedVoicings(data: SongData, selected: readonly ChordLabel[], resolution: AccompanimentResolution): AccompanimentResolution {
+  const clocks = data.sourceFingerprint === clocksSourceFingerprint;
+  const days = data.sourceFingerprint === thoseDaysSourceFingerprint;
+  if (!clocks && !days) return resolution;
+  const chartVoicings = new Map(selected.filter((event) => days && event.sourceKind === "authored" && event.notes.length > 0)
+    .map((event) => [event.beat, event.notes] as const));
   const byBeat = new Map<number, Note[]>();
   for (const note of data.notes) byBeat.set(note.start, [...(byBeat.get(note.start) ?? []), note]);
   const playedStack = (beat: number) => {
@@ -31,16 +35,18 @@ function clocksPlayedVoicings(data: SongData, resolution: AccompanimentResolutio
   let changed = false;
   const chords = resolution.chords.map((chord) => {
     if (chord.sourceKind !== "authored") return chord;
-    // The RH-only ending repeats the first eight bars' harmony; borrow its
-    // already-played stacks instead of inventing new upper voicings there.
-    const sourceBeat = chord.beat >= 128 && chord.beat < 160 ? chord.beat - 128 : chord.beat;
-    const stack = playedStack(sourceBeat);
-    if (!stack) return chord;
+    // Clocks' RH-only ending repeats the first eight bars' played stacks.
+    const sourceBeat = clocks && chord.beat >= 128 && chord.beat < 160 ? chord.beat - 128 : chord.beat;
+    const stack = clocks ? playedStack(sourceBeat) : null;
+    // Those Were the Days uses the authored beginner shape at each sung hit.
+    const notes = chartVoicings.get(chord.beat) ?? stack?.map((note) => note.midi);
+    if (!notes) return chord;
     changed = true;
     return {
       ...chord,
-      notes: stack.map((note) => note.midi),
-      suggestedHands: stack.map((note) => note.hand as "L" | "R"),
+      notes,
+      suggestedHands: stack ? stack.map((note) => note.hand as "L" | "R")
+        : notes.map((_, index) => index === 0 ? "L" as const : "R" as const),
       inferred: false,
       inferenceType: undefined,
     };
@@ -99,7 +105,7 @@ export function bassChordsBackground(
   if (sourceBackingNotes) {
     return { style: "bass-chords", notes: sourceBackingNotes, chords: [], displayChords: [], guidanceNotes: sourceBackingNotes, fallbackSpans: [] };
   }
-  const resolution = clocksPlayedVoicings(data, resolveAccompaniment(data.notes, chords, "bass-chords", {
+  const resolution = sourcePlayedVoicings(data, chords, resolveAccompaniment(data.notes, chords, "bass-chords", {
     durationBeats: arrangementEnd, sourceRhythmMeasures: data.measures,
   }));
   if (data.sourceFingerprint === journeySourceFingerprint) {
@@ -129,22 +135,6 @@ export function bassChordsBackground(
       notes: played,
       chords: [],
       guidanceNotes: played,
-    };
-  }
-  if (data.sourceFingerprint === thoseDaysSourceFingerprint) {
-    const inPhrase = (beat: number) => [36, 118, 200, 282].some((start) => start <= beat && beat < start + 12);
-    const rightCounts = new Map<number, number>();
-    for (const note of data.notes) if (note.hand === "R" && inPhrase(note.start)) {
-      rightCounts.set(note.start, (rightCounts.get(note.start) ?? 0) + 1);
-    }
-    const played = data.notes.filter((note) => inPhrase(note.start)
-      && (note.hand === "L" || (rightCounts.get(note.start) ?? 0) >= 2));
-    return {
-      ...resolution,
-      notes: played,
-      chords: resolution.chords.filter((chord) => !inPhrase(chord.beat)),
-      guidanceNotes: [...played, ...resolution.guidanceNotes.filter((note) => !inPhrase(note.start))]
-        .sort((a, b) => a.start - b.start || a.midi - b.midi),
     };
   }
   return resolution;
