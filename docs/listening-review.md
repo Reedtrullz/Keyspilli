@@ -66,11 +66,15 @@ This accepts the current full-song Chords backing as a working automation refere
 
 After the official-recording sync revision, the owner said **“Help sounds good! Add it to the golden corpus!”** This accepts the current full-song, chord-only backing as a working automation reference. Chords plays the authored chart's 190 strikes at 190 BPM with no copied Advanced notes; Original/Advanced remains at 173 BPM. The [corpus index](../catalog/chord-golden-corpus.json) pins the exact Advanced notes, authored timeline, and Player replay digest without an excerpt cutoff. It is the eleventh working reference. The source artifact remains private and ignored by Git; this verdict does not establish independent keyboard review or deployment. Draft PR #109 remains unmerged and undeployed.
 
+## 2026-09-27 — Your Song full-song golden reference
+
+After the linked-recording timing review, the owner listened to the unchanged Your Song Chords preview, said **“It sounds alright!”**, and explicitly asked to add it to the golden corpus. This accepts the current full-song backing as the twelfth working reference, with later attack-timing polish welcome. The [corpus index](../catalog/chord-golden-corpus.json) pins the Theorist Advanced notes, the owner-linked authored chart, and the exact 101-strike Player backing at 129 BPM (about 64.5 BPM felt pulse), with zero copied source notes and no excerpt cutoff. The [timing review](research/keyspilli-evidence/chords-next-ten-candidate-review-2026-09-25.md#your-song-linked-recording-sync-review--27-sep) found section-dependent offsets against Elton John's recording; that measured limitation remains, and the owner's acceptance does not establish exact recording sync or independent keyboard review. The source artifact remains private and ignored by Git. Draft PR #109 remains unmerged and undeployed.
+
 The [next-ten Chords shortlist](research/keyspilli-evidence/chords-next-ten-2026-09-25.md) proposes other active repertoire songs for future work. It is a research queue, not a listening verdict.
 
 ## 2026-09-27 — Dreamer set aside
 
-After the latest chord-only Dreamer revision, the owner asked to stop work on it for this round and explicitly keep it outside the golden corpus. This is a scope decision, not a listening acceptance of that revision. Your Song and In the Army Now remain the active listening candidates from the ten-song round; Help was subsequently accepted.
+After the latest chord-only Dreamer revision, the owner asked to stop work on it for this round and explicitly keep it outside the golden corpus. This is a scope decision, not a listening acceptance of that revision. In the Army Now remains the active listening candidate from the ten-song round; Help and Your Song were subsequently accepted.
 
 The [earlier six-song review](research/keyspilli-evidence/chords-golden-corpus-review-2026-09-25.md) remains a historical analysis of the prior candidate set; its Kings & Queens inclusion has been superseded.
 

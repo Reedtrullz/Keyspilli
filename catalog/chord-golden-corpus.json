@@ -102,6 +102,15 @@
       "timelineSha256": "d6f0dd1eaa35b15e653e5a059d700644f2a99da7f94200b6ac0c87ec21350ae7",
       "acceptedBackingSha256": "30e839d9f77a887f853cff96b54259125099aa34fc16c35bc633e64462195331",
       "acceptedAt": "2026-09-27"
+    },
+    {
+      "baseId": "the-theorist-elton-john-your-song-piano-cover-jz6ugvghbt8",
+      "level": "a",
+      "sourceId": "ug-your-song",
+      "advancedNotesSha256": "b1a3051fc7e6f0fbc29d9449f6b8f188fc83507bb944b47ad8b1f0cbd73cd72a",
+      "timelineSha256": "9e0222f0f949f0fda1b01dcddf50ee08b1b9333fcc5449a231f749b13bee5dd0",
+      "acceptedBackingSha256": "d965fe88354636081ec509cc2ba109b21f48d294c8fa4f4da887faa65d87f11c",
+      "acceptedAt": "2026-09-27"
     }
   ]
 }
