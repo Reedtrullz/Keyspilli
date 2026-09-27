@@ -380,6 +380,42 @@ material is missing and never publishes a dated partial backup. `/backups` is
 currently local to the VPS; copy the dated files off-box if disaster recovery
 outside that host is required.
 
+### Data retention and backup cost
+
+The 14-day rule in `deploy/backup.sh` applies only to complete, hash-verified
+backup cohorts. The script can delete those old cohorts; this is distinct from
+retaining live catalog and tutorial data. Confirm the deployed script, timer,
+latest coherent pair, restore drill, duration, and actual free space on the host
+before relying on this rule. None of the checks below activates live-data
+deletion.
+
+| Class | Owner and references | Retention decision |
+| --- | --- | --- |
+| Active or retryable jobs | SQLite job state, lease, and `transcribed/<job id>` | Keep source and attempt bytes through completion, retry, or cancellation reconciliation. |
+| Accepted artifacts and sources | Catalog rows, six-level artifact tree, prepared chord timeline, source provenance, uploads and seed/transcribed inputs | Keep with the song and backup. A metadata edit or re-ingest does not authorize deletion. |
+| Review-needed or failed attempts | Job error, source-handoff/reconciliation records, candidate media and symbolic outputs | Keep until the owner resolves the review and a verified backup/restore path exists. |
+| Tutorial snapshot index | `transcribed/.tutorial-cache` entry pointing to an attempt directory | The 24-hour reuse limit controls lookup only; expiry does not authorize deleting the index or its referenced assets. |
+| Unreferenced intermediates | A specific staging/old directory or temporary file with no job, catalog, handoff, cache, journal, or backup reference | Inventory only. Retain on ambiguous ownership; deletion requires a separate reviewed list, recovery evidence, and authorization. |
+
+For a dry-run inventory, read SQLite jobs and catalog rows first, then list
+`artifacts/`, `transcribed/` (including hidden files), `uploads/`,
+`seed-midi/`, and backup manifests with sizes and modification times. Compare
+exact IDs and paths with jobs, source references, prepared timelines, cache
+indexes, and reconciliation journals. A missing current catalog row alone is
+insufficient evidence that a file is disposable. Existing read-only `find`,
+`du`, SQLite queries, and the ops check can report these classes; no janitor or
+new inventory command is warranted until a real dry run exposes a gap.
+
+A bounded **synthetic** cost probe on 27 September 2026 used 9,449,472 input
+bytes (4 MiB artifact, 4 MiB tutorial video, 1 MiB seed, small SQLite DB).
+On this Mac, `tar -czf` took 0.1968 s and produced 9,441,962 bytes; archive
+readback took 0.0087 s; initial SHA-256 hashing took 0.0055 s; checking one
+manifest and both hashes for a retention decision took 0.0052 s. No files
+were deleted. The method used a temporary fixture, timed `tar`, `tar -tzf`,
+streaming SHA-256, then verified manifest hashes. These numbers do not predict
+the host's pause length, production media volume, backup freshness, or retention
+activation; measure those on the live host before broadening tutorial imports.
+
 Restore:
 
 ```bash

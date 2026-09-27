@@ -32,6 +32,6 @@ Implementation branch: `codex/audit-remediation`, based on audited `origin/main`
 | #119 tutorial progress | Implemented locally | Server/revisit copy, reconciliation/cancellation distinctions, dense async source formatted | Live tutorial service unverified |
 | #119 full-output golden gate | Implemented locally | Optional accepted playback hash and separate strict gate; generated-note mutation changes the full digest; no pins added | Current private artifact snapshot differs from accepted input hashes, so candidate replay and owner listening remain pending |
 | #119 portable browser fixtures | Implemented locally | Private source roots require explicit environment variables; eight Chromium and one mobile WebKit synthetic checks pass without private files | Further multi-page score navigation check pending |
-| #119 retention policy | Pending | Task 11 | Synthetic cost measurement and live operational verification |
+| #119 retention policy | Policy documented; operational acceptance pending | `docs/ops.md` classifies live data, review evidence and backup rotation; 9.45 MB synthetic archive/hash/retention probe; backup and ops fixtures pass | Live backup duration/freshness, actual rotation and host capacity remain unverified; no live-data deletion enabled |
 
 Musical acceptance, live backup measurements, merge and deployment are separate owner gates. Tests and synthetic fixtures do not establish them.
