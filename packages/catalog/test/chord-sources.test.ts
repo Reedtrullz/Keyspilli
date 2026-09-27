@@ -19,6 +19,31 @@ const IMAGINE = "john-lennon-imagine";
 const LET_IT_BE = "the-beatles-let-it-be";
 
 describe("catalog chord source plumbing", () => {
+  it("loads a persisted prepared backing and invalidates cache on publication, refusing wrong-song data", async () => {
+    const runtimeDataDir = await mkdtemp(join(process.cwd(), ".prepared-test-"));
+    try {
+      const mappingPath = join(runtimeDataDir, "map.json");
+      await writeFile(mappingPath, JSON.stringify({ schemaVersion: 1, entries: [] }));
+      const options = { runtimeDataDir, mappingPath };
+      expect(await resolveChordTimeline("test-song", options)).toBeNull();
+      const dir = join(runtimeDataDir, "artifacts", "test-song");
+      await mkdir(dir, { recursive: true });
+      const path = join(dir, "chord-timeline.json");
+      const timeline = { schemaVersion: 1, baseId: "test-song", title: "Test", artist: "Tester",
+        durationBeats: 4, chords: [{ beat: 0, durationBeats: 4, name: "C" }],
+        provenance: { sourceId: "prepared", provider: "keyspilli", kind: "midi-derived", sourceRef: "prepared:exact-source" } };
+      await writeFile(path, JSON.stringify(timeline));
+      const loaded = await resolveChordTimeline("test-song", options);
+      expect(loaded?.usedFallback).toBe(false);
+      expect(loaded?.timeline.provenance.sourceRef).toBe("prepared:exact-source");
+      expect(loaded?.timeline.chords[0]?.name).toBe("C");
+      await writeFile(path, JSON.stringify({ ...timeline, baseId: "another-song" }));
+      await expect(resolveChordTimeline("test-song", options)).rejects.toThrow("this prepared song");
+      await writeFile(path, JSON.stringify({ ...timeline, provenance: { ...timeline.provenance, sourceRef: "unprepared" } }));
+      await expect(resolveChordTimeline("test-song", options)).rejects.toThrow("this prepared song");
+    } finally { await rm(runtimeDataDir, { recursive: true, force: true }); }
+  });
+
   it.each([
     [IMAGINE, "ug-imagine", 73, 224, [[0, "C"], [3, "Cmaj7"], [4, "F"], [50, "Am/E"], [52, "Dm7"], [112, "F"], [118, "E7"], [132, "Am"], [136, "Dm7"], [176, "F"], [220, "C"]]],
     [LET_IT_BE, "ug-let-it-be", 70, 288, [[0, "N.C."], [4, "C"], [6, "G"], [10, "Fmaj7"], [11, "F6"], [52, "Am"], [91, "F6/C"], [100, "Am"], [132, "F"], [144, "G"], [180, "Am"], [219, "F6/C"], [228, "Am"], [282, "C"]]],

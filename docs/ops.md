@@ -873,3 +873,10 @@ backup, restore, or reconciliation silently remove a legacy lock.
 The pause is a bounded filesystem snapshot boundary. It does not claim that
 application transactions reached an application-level quiescent completion;
 reconciliation and the restore drill remain explicit recovery checks.
+
+
+## Persisted approved Chords packages
+
+An approved song may include `artifacts/<baseId>/chord-timeline.json` alongside its six-level artifact tree. The timeline must identify the same base and carry `prepared:<source fingerprint>` provenance. The catalog loader prefers this per-song timeline over image-bundled charts; Player still verifies its source fingerprint. Runtime timeline file changes participate in cache invalidation. Publish the entire artifact tree through `publishBaseArtifact` with strict validation and the existing catalog reconciliation callback. Preserve all unrelated catalog rows and files.
+
+This file lives inside the existing artifacts backup/restore boundary and survives immutable image upgrades. It is not a raw-upload endpoint or automatic musical approval. Verify the exact Original notes/clock and realized Chords events after publication. The `song-bundle.mts install` command remains an isolated-catalog tool, not a live catalog replacement.

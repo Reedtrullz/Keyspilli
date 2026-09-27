@@ -674,6 +674,7 @@ function timelineDependencyPaths(
   }
   const level = options.fallbackLevel ?? "a";
   paths.push(join(options.runtimeDataDir ?? dataDir(), "artifacts", baseId, level, "notes.json"));
+  paths.push(join(options.runtimeDataDir ?? dataDir(), "artifacts", baseId, "chord-timeline.json"));
   return [...new Set(paths.map((path) => resolve(path)))];
 }
 
@@ -708,6 +709,20 @@ function rememberTimeline(key: string, value: ChordTimelineResolution | null): v
 /** Resolve the best checked-in chart, then fall back to generated MIDI chords. */
 async function resolveChordTimelineUncached(baseId: string, options: ChordTimelineLoadOptions = {}): Promise<ChordTimelineResolution | null> {
   const warnings: string[] = [];
+  // Approved packages travel with the song's artifact tree, so normal data
+  // backups and application upgrades preserve their exact prepared backing.
+  if (!/^[a-z0-9][a-z0-9-]{0,119}$/.test(baseId)) throw new Error("invalid chord base id");
+  try {
+    const timeline = parseChordTimeline(await readJson(join(options.runtimeDataDir ?? dataDir(), "artifacts", baseId, "chord-timeline.json")));
+    if (timeline.baseId !== baseId || !timeline.provenance.sourceRef.startsWith("prepared:")) {
+      throw new Error("persisted backing must identify this prepared song");
+    }
+    const p = timeline.provenance;
+    return { timeline, source: { id: p.sourceId, provider: p.provider, kind: p.kind,
+      sourceRef: p.sourceRef, sourceUrl: p.sourceUrl }, usedFallback: false, warnings };
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+  }
   let map: ChordSourceMap = { schemaVersion: 1, entries: [] };
   try {
     map = await loadChordSourceMap(options.mappingPath);
