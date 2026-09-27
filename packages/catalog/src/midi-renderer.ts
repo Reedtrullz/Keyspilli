@@ -99,6 +99,9 @@ export interface WavMetrics {
   rms: number;
   silenceRatio: number;
   clippingCount: number;
+  /** Before normalization: gain reduction cannot repair already clipped PCM. */
+  rawPeak?: number;
+  rawClippingCount?: number;
   sha256: string;
 }
 
@@ -147,7 +150,8 @@ export interface MidiAudioRenderer {
 interface WavPcmData {
   sampleRate: number;
   channels: number;
-  samples: number[];
+  sampleCount: number;
+  sampleAt: (index: number) => number;
 }
 
 interface FileBytes {
@@ -291,10 +295,9 @@ function decodeWav(bytes: Uint8Array): WavPcmData {
   if (![8, 16, 24, 32, 64].includes(bits) || !Number.isInteger(bytesPerSample) || data.length % (channels * bytesPerSample) !== 0) {
     throw new MidiRendererError("INVALID_WAV", `Unsupported or truncated WAV PCM format: ${format}/${bits}bit`);
   }
-  const samples: number[] = [];
   const readSample = (offset: number): number => {
-    if (format === 3 && bits === 32) return Math.max(-1, Math.min(1, view.getFloat32(offset, true)));
-    if (format === 3 && bits === 64) return Math.max(-1, Math.min(1, view.getFloat64(offset, true)));
+    if (format === 3 && bits === 32) return view.getFloat32(offset, true);
+    if (format === 3 && bits === 64) return view.getFloat64(offset, true);
     if (format !== 1) throw new MidiRendererError("INVALID_WAV", `Unsupported WAV audio format: ${format}`);
     if (bits === 8) return (view.getUint8(offset) - 128) / 128;
     if (bits === 16) return view.getInt16(offset, true) / 32768;
@@ -304,21 +307,27 @@ function decodeWav(bytes: Uint8Array): WavPcmData {
     }
     return view.getInt32(offset, true) / 2147483648;
   };
-  for (let offset = data.offset; offset < data.offset + data.length; offset += bytesPerSample) samples.push(readSample(offset));
-  return { sampleRate, channels, samples };
+  // Read the existing buffer in place; an expanding JS array exhausts memory on long songs.
+  return { sampleRate, channels, sampleCount: data.length / bytesPerSample,
+    sampleAt: (index) => readSample(data.offset + index * bytesPerSample) };
 }
 
 function canonicalPcm16Wav(data: WavPcmData, targetPeak: number): { bytes: Uint8Array; metrics: Omit<WavMetrics, "sha256"> } {
-  let peak = 0;
-  for (const sample of data.samples) peak = Math.max(peak, Math.abs(sample));
+  let peak = 0, rawClippingCount = 0;
+  for (let index = 0; index < data.sampleCount; index++) {
+    const sample = data.sampleAt(index);
+    if (!Number.isFinite(sample)) throw new MidiRendererError("INVALID_WAV", "Non-finite PCM sample");
+    peak = Math.max(peak, Math.abs(sample));
+    if (Math.abs(sample) >= 32767 / 32768) rawClippingCount++;
+  }
   const scale = peak > 0 ? targetPeak / peak : 1;
-  const pcm = new Int16Array(data.samples.length);
+  const pcm = new Int16Array(data.sampleCount);
   let canonicalPeak = 0;
   let sumSquares = 0;
   let silence = 0;
   let clipping = 0;
-  for (let index = 0; index < data.samples.length; index++) {
-    const value = Math.max(-32768, Math.min(32767, Math.round(data.samples[index]! * scale * 32767)));
+  for (let index = 0; index < data.sampleCount; index++) {
+    const value = Math.max(-32768, Math.min(32767, Math.round(data.sampleAt(index) * scale * 32767)));
     pcm[index] = value;
     const normalized = Math.abs(value) / 32768;
     canonicalPeak = Math.max(canonicalPeak, normalized);
@@ -346,7 +355,7 @@ function canonicalPcm16Wav(data: WavPcmData, targetPeak: number): { bytes: Uint8
   const bytes = new Uint8Array(44 + payloadBytes);
   bytes.set(new Uint8Array(header), 0);
   bytes.set(new Uint8Array(pcm.buffer), 44);
-  const frameCount = data.channels ? data.samples.length / data.channels : 0;
+  const frameCount = data.channels ? data.sampleCount / data.channels : 0;
   const durationSeconds = data.sampleRate > 0 ? frameCount / data.sampleRate : 0;
   return {
     bytes,
@@ -355,12 +364,14 @@ function canonicalPcm16Wav(data: WavPcmData, targetPeak: number): { bytes: Uint8
       channels: data.channels,
       bitsPerSample: 16,
       frameCount,
-      sampleCount: data.samples.length,
+      sampleCount: data.sampleCount,
       durationSeconds: round(durationSeconds),
       peak: round(canonicalPeak),
-      rms: round(data.samples.length ? Math.sqrt(sumSquares / data.samples.length) : 0),
-      silenceRatio: round(data.samples.length ? silence / data.samples.length : 0),
+      rms: round(data.sampleCount ? Math.sqrt(sumSquares / data.sampleCount) : 0),
+      silenceRatio: round(data.sampleCount ? silence / data.sampleCount : 0),
       clippingCount: clipping,
+      rawPeak: peak,
+      rawClippingCount,
     },
   };
 }

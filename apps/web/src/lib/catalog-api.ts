@@ -25,7 +25,7 @@ type LoadedChordTimeline = NonNullable<Awaited<ReturnType<typeof loadChordTimeli
 type PlayerChord = Omit<ChordLabel, "sourceKind" | "inferred" | "inferenceType" | "durationBeats"> & {
   sourceKind?: "authored" | "inferred" | "generated" | "unknown";
   inferred?: boolean;
-  inferenceType?: "dyad-completion" | "carry-forward-root" | "nearest-symbol" | "subbeat-extension" | "voicing" | "harmony-window";
+  inferenceType?: ChordLabel["inferenceType"];
   duration?: number;
   durationBeats?: number;
 };

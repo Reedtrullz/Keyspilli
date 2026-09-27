@@ -9,6 +9,16 @@ const strikes = (notes: Note[], chords: Array<{ beat: number; name: string; dura
     .chords.map((chord) => [chord.beat, chord.name]);
 
 describe("bass + chords in the source rhythm", () => {
+  it("keeps prepared harmony labels across phrases but releases the backing in real rests", () => {
+    const source = left([1, 4], 48);
+    const chord = { beat: 0, durationBeats: 8, name: "C", notes: [], sourceKind: "inferred" as const, inferenceType: "learner-harmonization" as const };
+    const result = resolveAccompaniment(source, [chord], "bass-chords", { durationBeats: 8, sourceRhythmMeasures: bars(2) });
+    expect(result.chords.map(c => [c.beat, c.durationBeats])).toEqual([[1, 0.5], [4, 0.5]]);
+    expect(result.displayChords[0]).toMatchObject({ beat: 0, durationBeats: 8 });
+    expect(result.chords.every(c => c.sourceKind === "inferred")).toBe(true);
+    const pickup = resolveAccompaniment(left([0.5, 4.5], 48), [chord], "bass-chords", { durationBeats: 8, sourceRhythmMeasures: bars(2) });
+    expect(pickup.chords.map(c => [c.beat, c.durationBeats])).toEqual([[0.5, 0.5], [4.5, 0.5]]);
+  });
   it("leaves the source pianist's release gap while keeping repeated bass attacks", () => {
     const source = left([0, 1, 2]).map((item) => ({ ...item, dur: 0.25 }));
     const result = resolveAccompaniment(source, [

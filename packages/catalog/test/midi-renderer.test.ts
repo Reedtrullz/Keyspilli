@@ -45,6 +45,17 @@ async function fixture(): Promise<{ dir: string; midiPath: string; soundfontPath
 }
 
 describe("FluidSynth MIDI renderer", () => {
+  it("retains raw clipping evidence after normalized output is no longer clipped", async () => {
+    const f = await fixture();
+    try {
+      const execFile: ExecFilePromise = async (_file, args) => {
+        await writeFile(args[args.indexOf("-F") + 1]!, wavPcm16([32767, -32768, 1000, 0]));
+        return { stdout: "", stderr: "" };
+      };
+      const result = await createFluidSynthRenderer({ execFile }).render({ ...f, outputPath: join(f.dir, "out.wav") });
+      expect(result.wav).toMatchObject({ rawClippingCount: 2, rawPeak: 1, clippingCount: 0, sampleCount: 4 });
+    } finally { await rm(f.dir, { recursive: true, force: true }); }
+  });
   it("resolves explicit settings before environment defaults", () => {
     expect(resolveFluidSynthConfig({ soundfontPath: "/explicit/piano.sf2", executable: "/explicit/fluidsynth", sampleRate: 48_000 }, {
       KEYSPILLI_SOUNDFONT: "/env/piano.sf2",

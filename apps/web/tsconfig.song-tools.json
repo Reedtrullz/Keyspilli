@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "scripts/prepare-song.mts",
+    "scripts/prepare-catalog-chords.mts",
+    "scripts/song-bundle.mts",
+    "scripts/render-prepared-chords.mts",
+    "scripts/review-song-audio.mts"
+  ],
+  "exclude": ["node_modules"]
+}

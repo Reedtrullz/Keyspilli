@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.song-tools.json",
     "test": "vitest run",
     "e2e": "playwright test",
     "e2e:scratch": "playwright test --config=playwright.scratch.config.ts",

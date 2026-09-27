@@ -19,7 +19,7 @@ export interface PlayerChordMetadata {
   reviewReason?: string;
   sourceKind?: "authored" | "inferred" | "generated" | "unknown";
   inferred?: boolean;
-  inferenceType?: "dyad-completion" | "carry-forward-root" | "nearest-symbol" | "subbeat-extension" | "voicing" | "harmony-window";
+  inferenceType?: ChordLabel["inferenceType"];
   duration?: number;
   durationBeats?: number;
   strikeSpacingBeats?: number;

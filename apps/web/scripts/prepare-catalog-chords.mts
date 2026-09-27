@@ -16,6 +16,7 @@ import { resolveTimedNotes } from "../../../packages/player-core/src/timeline.js
 import { getSongDetail, projectChordSources } from "../src/lib/catalog-api.js";
 import { replayChordsBacking } from "../src/components/player/chords-backing.js";
 import { evaluateChordsBacking, snapshotChordsBacking } from "../src/lib/chords-evaluation.js";
+import { diagnosePreparedChords, repairPreparedHarmony } from "../src/lib/chords-preparation.js";
 
 const [inventoryPath, outputPath] = process.argv.slice(2);
 assert(inventoryPath && outputPath && process.env.KEYSPILLI_DATA_DIR, "usage: KEYSPILLI_DATA_DIR=/snapshot tsx prepare-catalog-chords.mts INVENTORY_JSON OUTPUT_DIR");
@@ -48,8 +49,10 @@ if (process.argv.includes("--verify")) {
 }
 const sourceMap: ChordSourceMap = JSON.parse(readFileSync("catalog/chord-sources.json", "utf8"));
 const preserved = new Set(sourceMap.entries.filter(e => e.sources.some(s => s.artifactPath)).map(e => e.baseId));
-const generator = hash(execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" })
-  + execFileSync("git", ["diff", "--", "packages", "apps/web/src"], { encoding: "utf8" }) + readFileSync(new URL(import.meta.url), "utf8"));
+const sourceFiles = execFileSync("git", ["ls-files", "--cached", "--others", "--exclude-standard", "-z", "--",
+  "packages/midi/src", "packages/player-core/src", "packages/catalog/src", "apps/web/src/lib", "apps/web/src/components/player", "package-lock.json"], { encoding: "utf8" });
+const generator = hash(String(process.argv.includes("--repair")) + [...new Set(sourceFiles.split("\0").filter(Boolean))].sort()
+  .map(path => `${path}:${hash(readFileSync(path))}`).join("\n") + readFileSync(new URL(import.meta.url), "utf8"));
 const overridesPath = join(out, "harmonizations.json");
 const overrides = existsSync(overridesPath) ? JSON.parse(readFileSync(overridesPath, "utf8")) : {};
 const map: ChordSourceMap = { schemaVersion: 1, entries: [...sourceMap.entries] };
@@ -84,6 +87,11 @@ for (const { representative: song } of inventory) {
         durationBeats: Math.max(...input.measures.map(m => m.endBeat), ...input.notes.map(n => n.start + n.dur)), coverage: "full-song",
         chords: labels.map(c => ({ ...c, sourceKind: "inferred", inferred: true, inferenceType: "learner-harmonization" })),
         provenance: { sourceId: "prepared", provider: "keyspilli", kind: "midi-derived", sourceRef: `prepared:${input.sourceFingerprint}`, confidence: "inferred arrangement" } });
+      if (process.argv.includes("--repair") && !overrides[song.baseId]) {
+        const repair = repairPreparedHarmony(input, timeline);
+        timeline = repair.timeline;
+        json(join(dir, "repair.json"), repair);
+      }
       json(join(dir, "timeline.json"), timeline);
       mapping = { baseId: song.baseId, canonicalTitle: song.title, canonicalArtist: song.artist,
         sources: [{ id: "prepared", provider: "keyspilli", kind: "midi-derived" as const,
@@ -112,13 +120,14 @@ for (const { representative: song } of inventory) {
     const midi = writeMidi(captured, { tempoBpm: playerData.tempoBpm, timeSig: playerData.timeSig, timeSigEvents: playerData.timeSigEvents,
       tracks: [{ name: "Left hand", notes: captured.filter(n => n.hand === "L") }, { name: "Right hand", notes: captured.filter(n => n.hand !== "L") }] });
     assert.deepEqual(canonical(parseMidi(midi).notes, 480), canonical(captured, 480), "MIDI round trip changed notes");
-    const xml = writeMusicXml({ ...playerData, notes: captured, chords: replay.chords, level: "a", difficultyScore: 0, bassPattern: "block" }, `${song.title} — Chords`, song.artist);
+    const xml = writeMusicXml({ ...playerData, notes: captured, chords: replay.chords, level: "advanced", difficultyScore: 0, bassPattern: "block" }, `${song.title} — Chords`, song.artist);
     const parsedXml = parseMusicXmlNotes(xml);
     assert.deepEqual(canonical(parsedXml.notes, 960), canonical(captured, 960), "MusicXML round trip changed notes");
     atomic(join(dir, "chords.mid"), midi); atomic(join(dir, "chords.musicxml"), xml);
     json(join(dir, "playback.json"), { baseId: song.baseId, title: song.title, status: preserved.has(song.baseId) ? "preserved" : "prepared candidate", inputPins: {}, advanced: original, playerData, snapshot, resolution: replay.resolution });
     const metrics = evaluateChordsBacking(playerData);
-    const files = Object.fromEntries(["chords.mid", "chords.musicxml", "playback.json", ...(timeline ? ["timeline.json"] : [])].map(name => [name, hash(readFileSync(join(dir, name)))]));
+    json(join(dir, "diagnosis.json"), diagnosePreparedChords(playerData));
+    const files = Object.fromEntries(["chords.mid", "chords.musicxml", "playback.json", "diagnosis.json", ...(timeline ? ["timeline.json"] : [])].map(name => [name, hash(readFileSync(join(dir, name)))]));
     receipt = { ...song, generator, inputHash, sourceFingerprint: input.sourceFingerprint, status: preserved.has(song.baseId) ? "preserved" : "prepared-candidate",
       assessment: "structural checks only; not a musical acceptance", files, mapping, metrics,
       references: overrides[song.baseId]?.references ?? [], rationale: overrides[song.baseId]?.rationale ?? "Contextual learner harmonization from the existing Advanced arrangement.",

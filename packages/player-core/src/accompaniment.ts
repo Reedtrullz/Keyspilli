@@ -1189,7 +1189,7 @@ export function resolveAccompaniment(
       durationBeats: event.endBeat - event.startBeat,
       suggestedHands: event.notes.map((_, index) => style === "bass-chords" && index === 0 ? "L" : "R"),
       inferred: true,
-      inferenceType: "voicing",
+      inferenceType: event.chord.inferenceType ?? "voicing",
     });
     covered.push({ startBeat: event.startBeat, endBeat: event.endBeat });
   }
@@ -1202,9 +1202,27 @@ export function resolveAccompaniment(
   const sourceByOnset = new Map<number, Note[]>();
   if (onsets) for (const note of sourceNotes) sourceByOnset.set(note.start, [...(sourceByOnset.get(note.start) ?? []), note]);
   const hasLeftHand = hasAuthored && sourceNotes.some((note) => note.hand === "L");
-  const struckChords = onsets
+  let struckChords = onsets
     ? effectiveChords.flatMap((chord) => sourceRhythmStrikes(chord, onsets, options.sourceRhythmMeasures!, strikeTuning, sourceByOnset, hasLeftHand))
     : effectiveChords;
+
+  if (struckChords.some(chord => chord.sourceKind === "inferred" && chord.inferenceType === "learner-harmonization")) {
+    const phrases: Array<{ start: number; end: number }> = [];
+    // ponytail: half-beat whole-source rests mark phrases; role/section annotations can refine this later.
+    for (const note of [...sourceNotes].sort((a, b) => a.start - b.start)) {
+      const last = phrases.at(-1);
+      if (last && note.start - last.end < 0.5) last.end = Math.max(last.end, note.start + note.dur);
+      else phrases.push({ start: note.start, end: note.start + note.dur });
+    }
+    struckChords = struckChords.flatMap(chord => {
+      if (chord.sourceKind !== "inferred" || chord.inferenceType !== "learner-harmonization") return [chord];
+      return phrases.flatMap(phrase => {
+        const beat = Math.max(chord.beat, phrase.start);
+        const end = Math.min(chord.beat + (chord.durationBeats ?? 0), phrase.end);
+        return end > beat + EPSILON ? [{ ...chord, beat, durationBeats: end - beat }] : [];
+      });
+    });
+  }
 
   return {
     style,

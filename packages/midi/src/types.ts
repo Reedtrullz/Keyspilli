@@ -37,6 +37,7 @@ export type ChordInferenceType =
   | "nearest-symbol"
   | "subbeat-extension"
   | "voicing"
+  | "learner-harmonization"
   | "harmony-window";
 
 export interface ChordLabel {
