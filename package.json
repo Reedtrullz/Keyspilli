@@ -39,7 +39,7 @@
     "evaluate:beginner-offgrid-rh-frontier": "npm run evaluate:beginner-offgrid-rh-frontier -w @keyspilli/catalog --"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22.22.3 <23"
   },
   "overrides": {
     "postcss": "^8.5.26",

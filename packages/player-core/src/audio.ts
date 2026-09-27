@@ -16,7 +16,7 @@ export class AudioEngine {
   private master: GainNode | null = null;
   private voiceGainNode: GainNode | null = null;
   private pianoGainNode: GainNode | null = null;
-  private active = new Map<number, { osc: OscillatorNode; gain: GainNode; fromInput?: boolean }[]>();
+  private active = new Map<number, { oscs: OscillatorNode[]; gain: GainNode; fromInput?: boolean }[]>();
   private activeChords = new Set<{ oscs: OscillatorNode[]; gain: GainNode }>();
   private activeClicks = new Set<{ osc: OscillatorNode; gain: GainNode }>();
   private visibilityHandler: (() => void) | null = null;
@@ -147,7 +147,10 @@ export class AudioEngine {
 
     gain.gain.setValueAtTime(0, t);
     gain.gain.linearRampToValueAtTime(peak, t + 0.005);
-    if (n.durSec < 0.2) {
+    if (n.fromInput) {
+      // Physical input keeps a quieter piano-like body until explicit release.
+      gain.gain.setTargetAtTime(peak * 0.2, t + decay * 0.7, 0.18);
+    } else if (n.durSec < 0.2) {
       // Staccato notes: sharp falloff instead of a 4x-too-long tail.
       gain.gain.setTargetAtTime(0, t + 0.005, 0.015);
     } else if (this.sustainPedal) {
@@ -170,11 +173,13 @@ export class AudioEngine {
     // ponytail: sustain tail scales with note length so short notes don't ring
     // 3x their written duration; cap at 0.6s for long notes.
     const tail = this.sustainPedal && n.durSec >= 0.2 ? Math.min(0.6, n.durSec * 0.4) : 0.05;
-    const stopAt = t + decay + tail;
-    osc1.stop(stopAt);
-    osc2.stop(stopAt);
-    osc3.stop(stopAt);
-    const entry = { osc: osc1, gain, fromInput: n.fromInput ?? false };
+    if (!n.fromInput) {
+      const stopAt = t + decay + tail;
+      osc1.stop(stopAt);
+      osc2.stop(stopAt);
+      osc3.stop(stopAt);
+    }
+    const entry = { oscs: [osc1, osc2, osc3], gain, fromInput: n.fromInput ?? false };
     const list = this.active.get(n.midi) ?? [];
     list.push(entry);
     this.active.set(n.midi, list);
@@ -206,7 +211,7 @@ export class AudioEngine {
       try {
         e.gain.gain.cancelScheduledValues(t);
         e.gain.gain.setTargetAtTime(0, t, 0.03);
-        e.osc.stop(t + 0.12);
+        for (const osc of e.oscs) osc.stop(t + 0.12);
       } catch {}
     }
     if (remaining.length > 0) {
@@ -224,7 +229,7 @@ export class AudioEngine {
         try {
           e.gain.gain.cancelScheduledValues(t);
           e.gain.gain.setTargetAtTime(0, t, 0.01);
-          e.osc.stop(t + 0.05);
+          for (const osc of e.oscs) osc.stop(t + 0.05);
         } catch {}
       }
     }
@@ -342,8 +347,7 @@ export class AudioEngine {
 
   dispose(): void {
     this.stopVisibilityTracking();
-    this.cancelChords();
-    this.cancelClicks();
+    this.cancelAll();
     if (this.ctx && this.ctx.state !== "closed") {
       void this.ctx.close();
     }

@@ -424,6 +424,7 @@ export class OrganAudioEngine implements AudioLike {
   }
 
   playChord(midiNotes: number[], when: number, durationSec: number): void {
+    if (!Number.isFinite(durationSec) || durationSec <= 0) return;
     const ctx = this.ensure();
     if (this.fallback) {
       this.fallback.sustainPedal = false;
@@ -432,7 +433,7 @@ export class OrganAudioEngine implements AudioLike {
     }
     if (!this.pianoGainNode) return;
     const start = ctx.currentTime + when;
-    const duration = Math.max(0.2, Math.min(8, durationSec));
+    const duration = Math.min(8, durationSec);
     for (const midi of [...new Set(midiNotes)].sort((a, b) => a - b)) {
       this.startVoice(midi, 100, false, this.pianoGainNode, this.style === "cathedral" ? this.foundationWave : this.wave, start, duration);
     }

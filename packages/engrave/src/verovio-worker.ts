@@ -40,21 +40,27 @@ type WorkerRequestInput =
 type PendingRender = {
   resolve: (response: WorkerResponse) => void;
   reject: (error: Error) => void;
+  timer: ReturnType<typeof setTimeout>;
 };
 
+export const VEROVIO_REQUEST_TIMEOUT_MS = 30_000;
 let verovioWorker: Worker | null = null;
+let workerGeneration = 0;
 let nextRequestId = 1;
 const pendingRenders = new Map<number, PendingRender>();
 
 function rejectPendingRenders(error: Error): void {
-  for (const pending of pendingRenders.values()) pending.reject(error);
+  for (const pending of pendingRenders.values()) {
+    clearTimeout(pending.timer);
+    pending.reject(error);
+  }
   pendingRenders.clear();
 }
 
-function disposeWorker(error: Error): void {
-  const worker = verovioWorker;
+function disposeWorker(error: Error, worker: Worker): void {
+  if (verovioWorker !== worker) return;
   verovioWorker = null;
-  worker?.terminate();
+  worker.terminate();
   rejectPendingRenders(error);
 }
 
@@ -70,11 +76,14 @@ function getVerovioWorker(): Worker {
     type: "module",
     name: "keyspilli-verovio",
   });
+  workerGeneration += 1;
   worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
+    if (verovioWorker !== worker) return;
     const response = event.data;
     const pending = pendingRenders.get(response.id);
     if (!pending) return;
     pendingRenders.delete(response.id);
+    clearTimeout(pending.timer);
     if (response.type === "error") {
       pending.reject(new Error(response.error));
       return;
@@ -82,7 +91,7 @@ function getVerovioWorker(): Worker {
     pending.resolve(response);
   };
   worker.onerror = () => {
-    disposeWorker(new Error("Verovio worker failed"));
+    disposeWorker(new Error("Verovio worker failed"), worker);
   };
   verovioWorker = worker;
   return worker;
@@ -99,11 +108,13 @@ function request(request: WorkerRequestInput): Promise<WorkerResponse> {
       return;
     }
 
-    pendingRenders.set(id, { resolve, reject });
+    const timer = setTimeout(() => disposeWorker(new Error("Verovio worker request timed out"), worker), VEROVIO_REQUEST_TIMEOUT_MS);
+    pendingRenders.set(id, { resolve, reject, timer });
     try {
       worker.postMessage({ id, ...request } satisfies WorkerRequest);
     } catch (error) {
       pendingRenders.delete(id);
+      clearTimeout(timer);
       reject(error instanceof Error ? error : new Error(String(error)));
     }
   });
@@ -116,7 +127,7 @@ class WorkerScoreSession implements MusicXmlWorkerSession {
   private _height = 2200;
   private closed = false;
 
-  constructor(sessionId: number) {
+  constructor(sessionId: number, private readonly generation: number) {
     this.sessionId = sessionId;
   }
 
@@ -134,7 +145,7 @@ class WorkerScoreSession implements MusicXmlWorkerSession {
 
   /** Prepare/layout the score once. Rendering individual pages is cheap after this. */
   async prepare(): Promise<this> {
-    if (this.closed) throw new Error("Verovio worker session is closed");
+    if (this.closed || this.generation !== workerGeneration || !verovioWorker) throw new Error("Verovio worker session is closed");
     const response = await request({ type: "prepare", sessionId: this.sessionId });
     if (response.type !== "prepared" || response.sessionId !== this.sessionId) {
       throw new Error("Verovio worker returned an invalid prepare response");
@@ -146,7 +157,7 @@ class WorkerScoreSession implements MusicXmlWorkerSession {
   }
 
   async renderPage(page: number): Promise<string> {
-    if (this.closed) throw new Error("Verovio worker session is closed");
+    if (this.closed || this.generation !== workerGeneration || !verovioWorker) throw new Error("Verovio worker session is closed");
     if (!Number.isInteger(page) || page < 1 || (this._pageCount > 0 && page > this._pageCount)) {
       throw new RangeError(`Verovio page ${page} is outside 1–${this._pageCount || "?"}`);
     }
@@ -160,8 +171,9 @@ class WorkerScoreSession implements MusicXmlWorkerSession {
   async close(): Promise<void> {
     if (this.closed) return;
     this.closed = true;
+    if (this.generation !== workerGeneration || !verovioWorker) return;
     try {
-      const response = await request({ type: "close", sessionId: this.sessionId });
+    const response = await request({ type: "close", sessionId: this.sessionId });
       if (response.type !== "closed" || response.sessionId !== this.sessionId) {
         throw new Error("Verovio worker returned an invalid close response");
       }
@@ -183,7 +195,7 @@ class WorkerScoreSession implements MusicXmlWorkerSession {
 export async function openMusicXmlInWorker(xml: string, opts: RenderOptions = {}): Promise<MusicXmlWorkerSession> {
   const opened = await request({ type: "open", xml, options: opts });
   if (opened.type !== "opened") throw new Error("Verovio worker returned an invalid open response");
-  const session = new WorkerScoreSession(opened.sessionId);
+  const session = new WorkerScoreSession(opened.sessionId, workerGeneration);
   await session.prepare();
   return session;
 }

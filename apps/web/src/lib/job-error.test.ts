@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { publicJobError } from "./job-error";
 
+it("gives a safe operator action for a publication needing reconciliation", () => {
+  expect(publicJobError("attempt 1: ARTIFACT_RECONCILIATION_REQUIRED: /private/data/secret"))
+    .toBe("Import saved an artifact but needs operator reconciliation before it can be used. Do not retry this job.");
+});
+
 describe("public conversion errors", () => {
   it("turns YouTube bot challenges into an actionable safe message", () => {
     expect(publicJobError("attempt 2: Command failed: yt-dlp --proxy https://user:secret@example.test\nERROR: LOGIN_REQUIRED")).toContain("YouTube blocked server-side extraction");

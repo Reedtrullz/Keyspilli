@@ -1,11 +1,11 @@
 import { NextRequest } from "next/server";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { mkdtempSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { GenericSourceCandidate } from "@keyspilli/catalog";
-import { listSourceCandidateHandoffs } from "@keyspilli/catalog";
+import { acceptSourceCandidateHandoff, affirmSourceCandidateHandoff, bindSourceCandidateUpload, getSourceCandidateHandoff, listSourceCandidateHandoffs, saveSourceCandidateHandoff } from "@keyspilli/catalog";
 import { POST } from "./route";
 import { POST as confirm } from "./[id]/confirm/route";
 import { setSourceCandidateProviderForTests } from "../../../lib/source-candidate-provider";
@@ -138,6 +138,29 @@ describe("source handoff routes", () => {
     const confirmed = await confirm(request({ userAffirmedTarget: true }, `https://keys.reidar.tech/api/source-handoffs/${id}/confirm`), { params: Promise.resolve({ id }) });
     expect(confirmed.status).toBe(200);
     await expect(confirmed.json()).resolves.toMatchObject({ handoff: { handoffId: id, userAffirmedTarget: true, state: "AWAITING_USER_FILE" } });
+    const duplicate = await confirm(request({ userAffirmedTarget: true }, `https://keys.reidar.tech/api/source-handoffs/${id}/confirm`), { params: Promise.resolve({ id }) });
+    expect(duplicate.status).toBe(200);
+    expect(getSourceCandidateHandoff(id)).toMatchObject({ userAffirmedTarget: true, state: "AWAITING_USER_FILE" });
+  });
+
+  it("does not erase an accepted upload when a delayed confirmation resumes", async () => {
+    const created = await POST(request({ targetId: "target-route-song", targetArtist: "Route Band", targetTitle: "Route Song", candidateId: "lead-route" }));
+    const id = (await created.json()).handoff.handoffId as string;
+    const req = request({ userAffirmedTarget: true }, `https://keys.reidar.tech/api/source-handoffs/${id}/confirm`);
+    let entered!: () => void;
+    let resume!: (value: unknown) => void;
+    const reading = new Promise<void>((resolve) => { entered = resolve; });
+    vi.spyOn(req, "json").mockImplementation(() => { entered(); return new Promise((resolve) => { resume = resolve; }); });
+    const pending = confirm(req, { params: Promise.resolve({ id }) });
+    await reading;
+    const original = getSourceCandidateHandoff(id)!;
+    const bound = bindSourceCandidateUpload(affirmSourceCandidateHandoff(original), {
+      uploadedSourceSha256: "a".repeat(64), uploadedFormat: "midi", intakeCandidateId: `upload-${"a".repeat(64)}`,
+    });
+    saveSourceCandidateHandoff(acceptSourceCandidateHandoff(bound.handoff));
+    resume({ userAffirmedTarget: true });
+    expect((await pending).status).toBe(200);
+    expect(getSourceCandidateHandoff(id)).toMatchObject({ state: "GENERATION_ACCEPTED", uploadedSourceSha256: "a".repeat(64), intakeCandidateId: `upload-${"a".repeat(64)}` });
   });
 
   it("rejects the route without the mutation authorization contract", async () => {

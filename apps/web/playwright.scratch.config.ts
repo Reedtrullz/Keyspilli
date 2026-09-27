@@ -8,7 +8,7 @@ process.env.KEYSPILLI_E2E_SCRATCH_DIR = scratchDataDir;
 
 export default defineConfig({
   testDir: "./e2e",
-  testMatch: "bounded-mvp.spec.ts",
+  testMatch: ["bounded-mvp.spec.ts", "mobile-scratch.spec.ts"],
   workers: 1,
   timeout: 120_000,
   globalTeardown: "./e2e/scratch-global-teardown.ts",
@@ -29,5 +29,8 @@ export default defineConfig({
     baseURL: "http://127.0.0.1:3100",
     trace: "retain-on-failure",
   },
-  projects: [{ name: "chromium", use: { browserName: "chromium" } }],
+  projects: [
+    { name: "chromium", testMatch: "bounded-mvp.spec.ts", use: { browserName: "chromium" } },
+    { name: "webkit-mobile", testMatch: "mobile-scratch.spec.ts", dependencies: ["chromium"], use: { browserName: "webkit", isMobile: true, hasTouch: true, viewport: { width: 428, height: 700 } } },
+  ],
 });

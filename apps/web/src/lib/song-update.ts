@@ -10,6 +10,7 @@ import {
   getSongsByBase,
   parseTempoProvenance,
   publishBaseArtifact,
+  stagePreparedBacking,
   readArrangementManifest,
   temposAgree,
   writeArrangementManifestFile,
@@ -492,7 +493,7 @@ export async function applySongMetadata(id: string, patch: SongPatch): Promise<S
     now,
   );
 
-  const writes = loaded.variants.map(({ row, stored }) => {
+  const writes = loaded.variants.map(({ row, stored, notesJson: originalNotesJson }) => {
     const factor = calibrationTempo / previousCalibration;
     const notes = calibrationChanged
       ? stored.notes.map((note) => ({ ...note, start: note.start * factor, dur: note.dur * factor }))
@@ -540,7 +541,7 @@ export async function applySongMetadata(id: string, patch: SongPatch): Promise<S
     const title = patch.title ?? row.title;
     const artist = patch.artist ?? row.artist;
     const k = keySignature(key);
-    const notesJson = JSON.stringify({
+    const notesJson = !calibrationChanged && !playbackChanged && normalizedKey === undefined ? originalNotesJson : JSON.stringify({
       ...(calibrationChanged ? storedWithoutTiming : stored),
       notes,
       chords,
@@ -612,6 +613,10 @@ export async function applySongMetadata(id: string, patch: SongPatch): Promise<S
       // The manifest is written last and acts as the commit marker for the
       // staged six-level set.
       await writeArrangementManifestFile(join(stage, "manifest.json"), nextManifest);
+      await stagePreparedBacking(baseId, stage).catch((error: Error) => {
+        if (error.message.startsWith("SOURCE_REVIEW_REQUIRED:")) throw new SongUpdateError(409, error.message);
+        throw error;
+      });
     },
     {
       artifactsRoot: join(dataDir(), "artifacts"),

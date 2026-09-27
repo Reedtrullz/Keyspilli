@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { openPlayerTool } from "./player-tools";
 
 test.describe.configure({ mode: "serial" });
 
@@ -18,6 +19,9 @@ const MUSIC_XML = `<?xml version="1.0" encoding="UTF-8"?>
   </measure></part>
 </score-partwise>`;
 const UPLOAD_QUERY = "/api/songs?q=Scratch%20MusicXML&limit=20";
+const LONG_MUSIC_XML = MUSIC_XML.replace("</part>", `${Array.from({ length: 79 }, (_, index) =>
+  `<measure number="${index + 2}"><note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration><type>whole</type></note></measure>`
+).join("")}</part>`);
 
 test("scratch upload creates an Easy player with public levels and exports", async ({ page, request }) => {
   const initialCatalog = await request.get(UPLOAD_QUERY);
@@ -43,6 +47,8 @@ test("scratch upload creates an Easy player with public levels and exports", asy
   const uploadResponse = await request.get(UPLOAD_QUERY);
   const uploadedSongs = (await uploadResponse.json()).songs as Array<{ id: string; difficulty: string }>;
   expect(uploadedSongs).toHaveLength(6);
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Recently added" }).locator("..").getByText("Scratch MusicXML")).toBeVisible();
   const veryEasyId = uploadedSongs.find((song) => song.difficulty === "very-easy")?.id;
   expect(veryEasyId).toBeTruthy();
 
@@ -64,6 +70,113 @@ test("scratch upload creates an Easy player with public levels and exports", asy
     expect(bytes.byteLength, `${type} export bytes`).toBeGreaterThan(32);
     if (type.startsWith("pdf")) expect(bytes.subarray(0, 4).toString()).toBe("%PDF");
   }
+
+  await page.evaluate((songId) => localStorage.setItem(`keyspilli.song-prefs.v1:${songId}`, JSON.stringify({ transpose: 2 })), veryEasyId!);
+  await page.goto(`/player/${veryEasyId}/sheet`);
+  await expect(page.getByText(/Sheet Music stays in the original key/)).toBeVisible();
+  const trigger = page.getByRole("button", { name: /Download sheet music and MIDI/ });
+  await trigger.click();
+  const dialog = page.getByRole("dialog", { name: "Download sheet music or MIDI" });
+  await expect(dialog).toBeVisible();
+  expect(await dialog.evaluate((element) => (element as HTMLDialogElement).open)).toBe(true);
+  await expect(dialog.getByText(/Downloads stay in the original key/)).toBeVisible();
+  await dialog.getByRole("button", { name: "Close" }).focus();
+  await page.keyboard.press("Tab");
+  await expect(dialog.getByRole("link", { name: /Simplify PDF/ })).toBeFocused();
+  await page.keyboard.press("Shift+Tab");
+  await expect(dialog.getByRole("button", { name: "Close" })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expect(trigger).toBeFocused();
+  await page.evaluate((songId) => localStorage.setItem(`keyspilli.song-prefs.v1:${songId}`, JSON.stringify({ transpose: 0 })), veryEasyId!);
+  await page.reload();
+  await expect(page.getByText(/Sheet Music stays in the original key/)).toHaveCount(0);
+});
+
+test("synthetic long score renders and navigates beyond the first page", async ({ page, request }) => {
+  const songs = (await (await request.get(UPLOAD_QUERY)).json()).songs as Array<{ id: string; difficulty: string }>;
+  const easyId = songs.find((song) => song.difficulty === "easy")?.id;
+  expect(easyId).toBeTruthy();
+  await page.route("**/api/v1/sheet/*", (route) => route.fulfill({ status: 200, contentType: "application/vnd.recordare.musicxml+xml", body: LONG_MUSIC_XML }));
+  await page.goto(`/player/${easyId}/sheet`);
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __sheetPageCount?: number }).__sheetPageCount ?? 0)).toBeGreaterThan(1);
+  const secondPage = page.getByRole("group", { name: /Sheet music page 2 of/ });
+  await secondPage.scrollIntoViewIfNeeded();
+  await expect(secondPage.locator("svg").first()).toBeVisible();
+});
+
+test("synthetic player seeks, loops, and keeps transpose within saved bounds", async ({ page, request }) => {
+  const songs = (await (await request.get(UPLOAD_QUERY)).json()).songs as Array<{ id: string; difficulty: string }>;
+  const easyId = songs.find((song) => song.difficulty === "easy")?.id;
+  expect(easyId).toBeTruthy();
+  await page.goto(`/player/${easyId}`);
+  const seek = page.getByRole("slider", { name: "Seek" });
+  await expect(seek).toBeEnabled();
+  await seek.fill("1");
+  await expect(seek).toHaveValue("1");
+  await page.locator(".player-loop-controls summary").click();
+  await page.getByRole("button", { name: "Enable loop" }).click();
+  await expect(page.getByRole("button", { name: "Clear loop" })).toBeVisible();
+  await openPlayerTool(page, "Display");
+  const display = page.getByRole("dialog", { name: "Display settings" });
+  const up = display.getByRole("button", { name: "Transpose up" });
+  for (let i = 0; i < 24; i++) await up.click();
+  await expect(up).toBeDisabled();
+  await expect(display.getByLabel("Transpose", { exact: true })).toContainText("(+24)");
+  await page.reload();
+  await openPlayerTool(page, "Display");
+  await expect(page.getByRole("dialog", { name: "Display settings" }).getByRole("button", { name: "Transpose up" })).toBeDisabled();
+});
+
+test("upload rejects oversize files, freezes details while busy, and retries", async ({ page }) => {
+  await page.goto("/uploads");
+  await page.getByLabel("Title (optional)").fill("Busy Retry Song");
+  const picker = page.locator('input[type="file"]');
+  await picker.setInputFiles({ name: "large.musicxml", mimeType: "application/xml", buffer: Buffer.alloc(10 * 1024 * 1024 + 1) });
+  let uploads = 0;
+  await page.route("**/api/uploads?**", async (route) => {
+    uploads++;
+    await route.continue();
+  });
+  await page.getByRole("button", { name: "Upload & create lesson" }).click();
+  await expect(page.locator(".upload-status-slot [role=alert]")).toContainText("File too large");
+  expect(uploads).toBe(0);
+
+  await page.getByRole("button", { name: "Remove" }).click();
+  await picker.setInputFiles({ name: "retry.musicxml", mimeType: "application/xml", buffer: Buffer.from(MUSIC_XML.replace("<score-partwise", "<!-- retry fixture -->\n<score-partwise")) });
+  let release!: () => void;
+  const pending = new Promise<void>((resolve) => { release = resolve; });
+  await page.unroute("**/api/uploads?**");
+  await page.route("**/api/uploads?**", async (route) => {
+    uploads++;
+    await pending;
+    await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ code: "UPLOAD_BUSY", error: "upload busy" }) });
+  });
+  await page.getByRole("button", { name: "Upload & create lesson" }).click();
+  await expect(page.getByRole("button", { name: "Validating and generating…" })).toBeDisabled();
+  await expect(page.getByLabel("Title (optional)")).toBeDisabled();
+  expect(uploads).toBe(1);
+  release();
+  await expect(page.locator(".upload-status-slot [role=alert]")).toContainText("Another upload is in progress");
+  await page.unroute("**/api/uploads?**");
+  await page.getByRole("button", { name: "Upload & create lesson" }).click();
+  await expect(page.getByRole("link", { name: /Open in the player/ })).toBeVisible();
+  await page.getByRole("link", { name: /Open in the player/ }).click();
+  await expect(page).toHaveURL(/\/player\//);
+});
+
+test("upload reconciliation requires a catalog check before retry", async ({ page }) => {
+  await page.goto("/uploads");
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "reconcile.musicxml", mimeType: "application/xml", buffer: Buffer.from(MUSIC_XML),
+  });
+  await page.route("**/api/uploads?**", (route) => route.fulfill({
+    status: 503, contentType: "application/json",
+    body: JSON.stringify({ code: "ARTIFACT_RECONCILIATION_REQUIRED", reconciliationRequired: true }),
+  }));
+  await page.getByRole("button", { name: "Upload & create lesson" }).click();
+  await expect(page.locator(".upload-status-slot [role=alert]")).toContainText("needs catalog reconciliation");
+  await expect(page.getByRole("button", { name: "Upload & create lesson" })).toBeDisabled();
 });
 
 test("scratch upload reports malformed symbolic content without publishing", async ({ page, request }) => {

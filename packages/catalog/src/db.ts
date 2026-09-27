@@ -1,6 +1,6 @@
 import Database from "better-sqlite3";
 import { randomUUID } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { ROOT, dataDir, dbPath } from "./paths.js";
 import type { JobRow, SongFilters, SongRow } from "./db-types.js";
@@ -351,7 +351,9 @@ export function listSongs(f: SongFilters = {}, limitCap = 200): SongRow[] {
     params.q = `%${f.q}%`;
   }
   const order =
-    f.sort === "title"
+    f.sort === "newest"
+      ? "created_at DESC, base_id"
+      : f.sort === "title"
       ? "title COLLATE NOCASE"
       : f.sort === "artist"
         ? "artist COLLATE NOCASE"
@@ -448,7 +450,9 @@ function matchesSongFilters(row: SongRow, f: SongFilters): boolean {
 
 function groupedOrder(f: SongFilters): (a: GroupedSong, b: GroupedSong) => number {
   const order =
-    f.sort === "title"
+    f.sort === "newest"
+      ? (a: GroupedSong, b: GroupedSong) => b.lastCreatedAt.localeCompare(a.lastCreatedAt) || a.representative.baseId.localeCompare(b.representative.baseId)
+      : f.sort === "title"
       ? (a: GroupedSong, b: GroupedSong) => a.representative.title.localeCompare(b.representative.title)
       : f.sort === "artist"
         ? (a: GroupedSong, b: GroupedSong) => a.representative.artist.localeCompare(b.representative.artist)
@@ -551,9 +555,26 @@ export function renewJobLease(id: string, owner: string): boolean {
 }
 
 export function requeueOrphaned(): number {
+  const conn = getDb();
+  const root = join(dataDir(), "artifacts");
+  const pending: Array<{ id: string; owner: string }> = [];
+  if (existsSync(root)) for (const name of readdirSync(root)) {
+    if (!name.endsWith(".reconciliation.json")) continue;
+    try {
+      const data = JSON.parse(readFileSync(join(root, name), "utf8")) as { recoveryData?: { job?: { id?: string; owner?: string } } };
+      if (typeof data.recoveryData?.job?.id === "string" && typeof data.recoveryData.job.owner === "string")
+        pending.push({ id: data.recoveryData.job.id, owner: data.recoveryData.job.owner });
+    } catch { /* A malformed journal remains for explicit operator review. */ }
+  }
   // Legacy rows have no lease; use their old started_at until reclaimed once.
-  return getDb().prepare("UPDATE conversion_jobs SET status = 'queued', lease_owner = NULL, lease_expires_at = NULL WHERE status = 'processing' AND ((lease_expires_at IS NOT NULL AND lease_expires_at <= ?) OR (lease_expires_at IS NULL AND (started_at IS NULL OR julianday(started_at) <= julianday(?))))")
-    .run(Date.now(), new Date(Date.now() - JOB_LEASE_MS).toISOString()).changes;
+  const stale = "status = 'processing' AND ((lease_expires_at IS NOT NULL AND lease_expires_at <= ?) OR (lease_expires_at IS NULL AND (started_at IS NULL OR julianday(started_at) <= julianday(?))))";
+  const now = Date.now(), legacyCutoff = new Date(now - JOB_LEASE_MS).toISOString();
+  return conn.transaction(() => {
+    const mark = conn.prepare(`UPDATE conversion_jobs SET status = 'error', error = 'ARTIFACT_RECONCILIATION_REQUIRED: interrupted publication', finished_at = ?, lease_owner = NULL, lease_expires_at = NULL WHERE id = ? AND lease_owner = ? AND ${stale}`);
+    for (const job of pending) mark.run(new Date(now).toISOString(), job.id, job.owner, now, legacyCutoff);
+    return conn.prepare(`UPDATE conversion_jobs SET status = 'queued', lease_owner = NULL, lease_expires_at = NULL WHERE ${stale}`)
+      .run(now, legacyCutoff).changes;
+  }).immediate();
 }
 
 export function deleteSongsByBase(baseId: string): number {

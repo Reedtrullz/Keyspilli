@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import Database from "better-sqlite3";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { claimJob, renewJobLease, ownsJobLease, deleteBaseRows, getDb, getJob, getQueuedJobs, insertJob, enqueueImportJob, requeueOrphaned, updateJob, upsertSong } from "../src/db.js";
@@ -77,6 +77,18 @@ describe("conversion jobs", () => {
     expect(getJob("stale-1")!.status).toBe("queued");
     expect(getJob("fresh-1")!.status).toBe("processing");
     expect(requeueOrphaned()).toBe(0);
+  });
+
+  it("classifies an expired publication journal for operator reconciliation", () => {
+    insertJob(job("journal-1", "queued"));
+    const owner = claimJob("journal-1")!;
+    getDb().prepare("UPDATE conversion_jobs SET lease_expires_at = 0 WHERE id = 'journal-1'").run();
+    const artifacts = join(dataDir, "artifacts");
+    mkdirSync(artifacts, { recursive: true });
+    writeFileSync(join(artifacts, ".journal-base.reconciliation.json"), JSON.stringify({ recoveryData: { job: { id: "journal-1", owner } } }));
+    expect(requeueOrphaned()).toBe(0);
+    expect(getJob("journal-1")).toMatchObject({ status: "error", songId: null });
+    expect(getJob("journal-1")?.error).toContain("ARTIFACT_RECONCILIATION_REQUIRED");
   });
 
   it("keeps a healthy 20-minute lease and rejects stale ownership after crash/reclaim", () => {

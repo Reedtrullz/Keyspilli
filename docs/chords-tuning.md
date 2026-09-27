@@ -85,6 +85,12 @@ It is not a waveform hash or an accepted digest. Legacy full-song acceptance has
 clock and source-note stream, so `MATCH` alone cannot certify that those fields stayed unchanged.
 Compare the observed hashes across runs without changing the accepted corpus.
 
+The corpus may separately pin `acceptedPlaybackSha256` after independent listening.
+The audit reports `playbackStatus` as `UNPINNED`, `MATCH`, or `DRIFT` against
+the full clock-and-playback snapshot. `--require-playback-match` fails for both
+missing and drifted pins; the older `--require-match` still checks only its
+legacy accepted digest. No full-output pins are inferred from the legacy pins.
+
 Both audit scripts now load `getSongDetail` and replay `chordData ?? data`; this matters for
 All of Me's 126 BPM / 576-beat Chords arrangement and Help's 190 BPM clock. Use an isolated
 database/artifact snapshot because the standard detail loader initializes the catalog connection.

@@ -34,7 +34,7 @@ const SIDECAR_KEY = `keyspilli.melody-accompaniment.v2:${SONG_ID}`;
 const OOPS_SIDECAR_KEY = `keyspilli.melody-accompaniment.v2:${OOPS_SONG_ID}`;
 const HELL_SIDECAR_KEY = `keyspilli.melody-accompaniment.v2:${HELL_SONG_ID}`;
 const FROZEN_CANDIDATE_COMMIT = "ea68729045e82ef9ced14e0e0916c86991eeba4a";
-const RESERVED_FIXTURE_ROOT = "/Users/reidar/.codex/worktrees/musically-useful-chords-mode/docs/superpowers/evidence/2026-09-17-chords-v2-evaluation-fixtures";
+const RESERVED_FIXTURE_ROOT = process.env.KEYSPILLI_E2E_RESERVED_FIXTURE_ROOT ?? "";
 const RESERVED_CANDIDATES = [
   {
     id: "w-h-doane-near-the-cross-a-scratch",

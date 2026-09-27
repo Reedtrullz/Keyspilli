@@ -13,7 +13,7 @@ const ls = {
 
 vi.stubGlobal("localStorage", ls);
 
-const { DEFAULT_SETTINGS, loadSettings, saveAccompanimentStyleIntent, saveJson, saveSettings, loadSongPrefs } = await import(
+const { DEFAULT_SETTINGS, loadSettings, saveAccompanimentStyleIntent, saveJson, saveSettings, loadSongPrefs, loadStringList } = await import(
   "../src/prefs.js"
 );
 
@@ -47,6 +47,8 @@ describe("loadSettings", () => {
     const s = loadSettings();
     expect(s.voiceGain).toBe(2);
     expect(s.transpose).toBe(-24);
+    store.set(KEY, JSON.stringify({ transpose: 100 }));
+    expect(loadSettings().transpose).toBe(24);
   });
 
   it("uses defaults for NaN-like values", () => {
@@ -171,4 +173,15 @@ it("preserves old preferences and validates piano display options", () => {
   expect(loadSettings()).toMatchObject({ speed: 0.75, stageTheme: "light", keyboardLabels: "notes", showKeyBindings: false });
   saveSettings({ ...loadSettings(), stageTheme: "charcoal", keyboardLabels: "octaves", showKeyBindings: true });
   expect(loadSettings()).toMatchObject({ stageTheme: "charcoal", keyboardLabels: "octaves", showKeyBindings: true });
+});
+
+it("rejects corrupt saved lists and per-song view modes", () => {
+  for (const value of ["{}", "null", "[\"ok\",7]"]) {
+    store.set("keyspilli.favorites", value);
+    expect(loadStringList("keyspilli.favorites")).toEqual([]);
+  }
+  store.set("keyspilli.learned", '["song-e"]');
+  expect(loadStringList("keyspilli.learned")).toEqual(["song-e"]);
+  store.set("keyspilli.song-prefs.v1:song-1", '{"mode":"bogus","speed":0.5}');
+  expect(loadSongPrefs("song-1")).toEqual({ speed: 0.5 });
 });

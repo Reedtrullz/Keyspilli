@@ -48,6 +48,8 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
   const format = (buf[8]! << 8) | buf[9]!;
   const ntrks = (buf[10]! << 8) | buf[11]!;
   const division = (buf[12]! << 8) | buf[13]!;
+  if (format !== 0 && format !== 1) throw new Error(`unsupported MIDI format ${format} (only format 0/1 supported)`);
+  if (format === 0 && ntrks !== 1) throw new Error("MIDI format 0 must have one track");
   if (division & 0x8000) throw new Error("SMPTE timing not supported");
   if (division === 0) throw new Error("invalid MIDI division: must be positive");
   if (ntrks === 0 || ntrks > 512) throw new Error("invalid track count");

@@ -26,6 +26,69 @@ function firstMatch(s: string, re: RegExp): string {
   return s.match(re)?.[1] ?? "";
 }
 
+/** Validate the MusicXML subset before regex extraction can mistake comments for music. */
+function cleanMusicXml(xml: string): string {
+  const stack: string[] = [];
+  let roots = 0;
+  let clean = "";
+  for (let pos = 0; pos < xml.length;) {
+    const open = xml.indexOf("<", pos);
+    const text = xml.slice(pos, open < 0 ? xml.length : open);
+    if (/&(?!(?:amp|lt|gt|quot|apos|#\d+|#x[0-9a-fA-F]+);)/.test(text)) throw new Error("invalid MusicXML entity");
+    if (!stack.length && text.trim()) throw new Error("invalid MusicXML text outside document");
+    clean += text;
+    if (open < 0) break;
+    if (xml.startsWith("<!--", open)) {
+      const end = xml.indexOf("-->", open + 4);
+      if (end < 0 || xml.slice(open + 4, end).includes("--")) throw new Error("invalid MusicXML comment");
+      clean += " ";
+      pos = end + 3;
+      continue;
+    }
+    if (xml.startsWith("<?", open)) {
+      const end = xml.indexOf("?>", open + 2);
+      if (end < 0) throw new Error("invalid MusicXML processing instruction");
+      pos = end + 2;
+      continue;
+    }
+    if (xml.startsWith("<!", open)) throw new Error("unsupported MusicXML declaration");
+    let end = open + 1;
+    let quote = "";
+    for (; end < xml.length; end++) {
+      const char = xml[end]!;
+      if (quote) { if (char === quote) quote = ""; }
+      else if (char === '"' || char === "'") quote = char;
+      else if (char === ">") break;
+    }
+    if (end >= xml.length) throw new Error("invalid MusicXML tag");
+    const tag = xml.slice(open, end + 1);
+    const match = tag.match(/^<(\/?)([A-Za-z_][\w:.-]*)\b/);
+    if (!match) throw new Error("invalid MusicXML tag");
+    const name = match[2]!;
+    if (match[1]) {
+      if (!/^<\/[A-Za-z_][\w:.-]*\s*>$/.test(tag) || stack.pop() !== name) throw new Error("invalid MusicXML closing tag");
+    } else {
+      if (!stack.length) {
+        if (name !== "score-partwise" || ++roots !== 1) throw new Error("invalid MusicXML document root");
+      }
+      const suffix = tag.match(/\/\s*>$/)?.[0] ?? ">";
+      let attributes = tag.slice(match[0].length, tag.length - suffix.length);
+      while (attributes.trim()) {
+        const attr = attributes.match(/^\s+([A-Za-z_:][\w:.-]*)\s*=\s*(["'])([^<]*?)\2/);
+        if (!attr || /&(?!(?:amp|lt|gt|quot|apos|#\d+|#x[0-9a-fA-F]+);)/.test(attr[3]!)) throw new Error("invalid MusicXML attribute");
+        attributes = attributes.slice(attr[0].length);
+      }
+      if (!/\/\s*>$/.test(tag)) stack.push(name);
+    }
+    clean += tag;
+    pos = end + 1;
+  }
+  if (stack.length || roots !== 1 || !/^\s*<score-partwise\b/.test(clean) || !/<\/score-partwise>\s*$/.test(clean)) {
+    throw new Error("invalid MusicXML document");
+  }
+  return clean;
+}
+
 /** Merge tied MusicXML segments back into one playable note. Multiple
  * same-pitch ties can overlap, so keep a FIFO-style queue and match the
  * continuation whose previous segment ends exactly at the current onset. */
@@ -70,6 +133,11 @@ function mergeTiedNotes(notes: ParsedXmlNote[], tolerance: number): Note[] {
  * chords, staffs, tempo/key/time attributes.
  */
 export function parseMusicXmlNotes(xml: string): ParsedMidi {
+  xml = cleanMusicXml(xml);
+  if (/<(?:repeat|ending)\b/i.test(xml)) throw new Error("Unsupported MusicXML repeat or ending playback order");
+  if (/<(?:segno|coda|dalsegno|dacapo|tocoda|fine)\b|\b(?:dalsegno|dacapo|tocoda|fine)\s*=/i.test(xml)) {
+    throw new Error("Unsupported MusicXML navigation playback order");
+  }
   let divisions = 1;
   let minDivisions = Infinity;
   const tempoValues = [

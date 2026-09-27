@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useRef } from "react";
 import { measureIndex, pitchColor, playbackMeasures, secPerBeat, timeSignatureAtBeat, type ChordLabel, type PlayerSettings, type SongData } from "@keyspilli/player-core";
 import { chordProvenance } from "./chord-provenance";
+import { displayChordName } from "./chord-practice";
 
 const LETTERS = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 const pitchName = (midi: number) => `${LETTERS[((midi % 12) + 12) % 12]}${Math.floor(midi / 12) - 1}`;
@@ -81,8 +82,9 @@ export function BeginnerView({ data, time, settings, chords }: { data: SongData;
           {columns.some((column) => column.chords.length) && <tr>
             <th scope="row">Chord</th>{columns.map((column) => <td key={column.start}>{column.chords.map((chord, i) => {
               const provenance = chordProvenance(chord);
-              return <span key={i} title={`${chord.name}: ${provenance.label}`} className={`note-letter-chord ${provenance.textClass} ${provenance.backgroundClass} ${provenance.borderClass}`} style={{ borderStyle: provenance.dotted ? "dotted" : "solid" }}>
-                {chord.name}<small>{provenance.label}</small>
+              const name = displayChordName(chord.name, settings.transpose);
+              return <span key={i} title={`${name}: ${provenance.label}`} className={`note-letter-chord ${provenance.textClass} ${provenance.backgroundClass} ${provenance.borderClass}`} style={{ borderStyle: provenance.dotted ? "dotted" : "solid" }}>
+                {name}<small>{provenance.label}</small>
               </span>;
             })}</td>)}
           </tr>}

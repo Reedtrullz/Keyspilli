@@ -153,6 +153,7 @@ function scoreForVerovio(xml) {
 
 async function prepareSession(session) {
   const toolkit = await loadVerovio();
+  preparedScoreCache.clear(); // Every entry owns this same mutable toolkit.
   setRenderOptions(toolkit, session.options);
   if (!toolkit.loadData(scoreForVerovio(session.xml))) throw new Error("Verovio loadData failed");
   session.toolkit = toolkit;

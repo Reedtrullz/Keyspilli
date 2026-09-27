@@ -71,7 +71,7 @@ describe("F03: chord cursor resets on loop wrap", () => {
     const beforeWrap = a.chords.length;
     e.tick(0.3); // 0.6 > 0.5 loop end, wraps to startSec
     expect(a.chords.length).toBeGreaterThan(beforeWrap);
-    expect(e.time).toBeLessThanOrEqual(0.01);
+    expect(e.time).toBeCloseTo(0.1);
     e.stop();
   });
   it("stops at the end after a long frame and rejects zero-length loops", () => {

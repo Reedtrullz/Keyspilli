@@ -14,6 +14,24 @@ const SCALE_MIDI = HEX(`
 `);
 
 describe("parseMusicXmlNotes", () => {
+  it("ignores comments and rejects malformed or unsupported song form", () => {
+    const note = '<note><pitch><step>C</step><octave>4</octave></pitch><duration>1</duration></note>';
+    const head = '<?xml version="1.0"?><score-partwise><part id="P1"><measure><attributes><divisions>1</divisions></attributes>';
+    const tail = '</measure></part></score-partwise>';
+    const parsed = parseMusicXmlNotes(`${head}<!--${note}<sound tempo="80"/>--> ${note.repeat(4)}${tail}`);
+    expect(parsed.notes).toHaveLength(4);
+    expect(parsed.durationBeats).toBe(4);
+    expect(parsed.tempoBpm).toBe(120);
+    expect(() => parseMusicXmlNotes(`${head}${note.repeat(4)}</part></score-partwise>`)).toThrow(/invalid MusicXML/i);
+    expect(() => parseMusicXmlNotes(`${head}${note.repeat(4)}${tail}${head}${note.repeat(4)}${tail}`)).toThrow(/invalid MusicXML/i);
+    expect(() => parseMusicXmlNotes(`${head}<note bogus>${note}</note>${tail}`)).toThrow(/invalid MusicXML/i);
+    expect(() => parseMusicXmlNotes(`${head}<note text="<note>">${note}</note>${tail}`)).toThrow(/invalid MusicXML/i);
+    expect(() => parseMusicXmlNotes(`${head}<barline><repeat direction="forward"/></barline>${note.repeat(4)}${tail}`)).toThrow(/unsupported.*repeat/i);
+    expect(() => parseMusicXmlNotes(`${head}${note.repeat(4)}<barline><repeat direction="backward" times="2"/></barline>${tail}`)).toThrow(/unsupported.*repeat/i);
+    expect(() => parseMusicXmlNotes(`${head}<barline><ending number="1" type="start"/></barline>${note.repeat(4)}${tail}`)).toThrow(/unsupported.*ending/i);
+    expect(() => parseMusicXmlNotes(`${head}<direction><direction-type><segno/></direction-type></direction>${note.repeat(4)}${tail}`)).toThrow(/unsupported.*navigation/i);
+    expect(() => parseMusicXmlNotes(`<!DOCTYPE score-partwise [<!ENTITY x "${note}">]>${head}&x;${tail}`)).toThrow(/unsupported|invalid MusicXML/i);
+  });
   it("round-trips interleaved grand-staff note starts", () => {
     const variant: Variant = {
       level: "advanced",

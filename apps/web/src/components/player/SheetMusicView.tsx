@@ -189,7 +189,13 @@ export function SheetMusicView({ songId, renderMode = "virtual" }: SheetMusicVie
           updateSheetState({ __sheetReady: true });
           // Warm the next page without growing the DOM. IntersectionObserver
           // will request the remaining bounded window as the user scrolls.
-          void Promise.all(pageRange(2, Math.min(count, INITIAL_PAGES)).map(renderPage));
+          void Promise.all(pageRange(2, Math.min(count, INITIAL_PAGES)).map(renderPage)).catch((reason) => {
+            if (cancelled) return;
+            const message = String(reason instanceof Error ? reason.message : reason);
+            setReady(false);
+            setError(message);
+            updateSheetState({ __sheetReady: false, __sheetError: message });
+          });
         }
       } catch (e) {
         if (!cancelled && !(e instanceof DOMException && e.name === "AbortError")) {
@@ -251,6 +257,7 @@ export function SheetMusicView({ songId, renderMode = "virtual" }: SheetMusicVie
           void Promise.all(pageRange(start, end).map((candidate) => renderPageRef.current(candidate)))
             .catch((reason) => {
               const message = String(reason instanceof Error ? reason.message : reason);
+              setReady(false);
               setError(message);
               updateSheetState({ __sheetReady: false, __sheetError: message });
             });
@@ -304,7 +311,6 @@ export function SheetMusicView({ songId, renderMode = "virtual" }: SheetMusicVie
         </select></label>
         <button className="min-h-11 rounded border border-zinc-300 bg-white px-3" onClick={() => setZoom(100)}>Fit width</button>
         <span>Page {activePage} of {pageCount}</span>
-        <span className="text-xs text-zinc-600">Original score · audio transpose does not change notation</span>
       </div>}
       {mountedPages.map((page) => {
         const svg = pages[page];

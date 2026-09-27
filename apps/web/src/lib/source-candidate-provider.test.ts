@@ -189,6 +189,22 @@ describe("Brave source candidate provider", () => {
     expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 
+  it("keeps the deadline through a stalled HTTP response body", async () => {
+    let calls = 0;
+    const fetchImpl: typeof fetch = async (_input, init) => {
+      calls++;
+      return new Response(new ReadableStream({ start(controller) {
+        init?.signal?.addEventListener("abort", () => controller.error(new DOMException("Aborted", "AbortError")), { once: true });
+      } }), { status: 200 });
+    };
+    const provider = createBraveSourceCandidateProvider({ apiKey: "test-key", fetchImpl, timeoutMs: 100, retryDelayMs: 0 });
+    await expect(Promise.race([
+      provider(target),
+      new Promise((_, reject) => setTimeout(() => reject(new Error("response body stayed pending")), 500)),
+    ])).rejects.toThrow("AbortError");
+    expect(calls).toBe(2);
+  });
+
   it("replays a frozen provider response to the same normalized candidates", async () => {
     const provider = createBraveSourceCandidateProvider({
       apiKey: "test-key",

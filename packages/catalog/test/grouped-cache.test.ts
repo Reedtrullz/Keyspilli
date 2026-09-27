@@ -6,6 +6,7 @@ import {
   countSongsGrouped,
   countSongs,
   listSongs,
+  listSongsGrouped,
   getDb,
   invalidateSongReadModel,
   listSongsGroupedWithTotal,
@@ -118,6 +119,15 @@ describe("grouped catalogue read-model cache", () => {
     writeFileSync(join(dataDir, "uploads", `${row(20005).baseId}.musicxml`), "source fixture");
     expect(countSongsGrouped({ importMethod: "other", q: "Import fixture" })).toBe(0);
     expect(countSongsGrouped({ importMethod: "sheet-music", q: "Import fixture" })).toBe(3);
+  });
+
+  it("puts a new unplayed song ahead of 200 older played songs before pagination", () => {
+    const conn = getDb();
+    conn.prepare("UPDATE songs SET plays = 10 WHERE title LIKE 'Cache Song %' AND base_id IN (SELECT base_id FROM songs ORDER BY base_id LIMIT 200)").run();
+    upsertSong({ ...row(30000), title: "Newest fixture", createdAt: "2026-09-27T00:00:00Z" });
+    invalidateSongReadModel();
+    expect(listSongsGrouped({ sort: "popular", limit: 200 }).some(song => song.representative.title === "Newest fixture")).toBe(false);
+    expect(listSongsGrouped({ sort: "newest", limit: 12 })[0]?.representative.title).toBe("Newest fixture");
   });
 
 });

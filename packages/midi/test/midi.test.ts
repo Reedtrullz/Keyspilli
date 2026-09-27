@@ -52,6 +52,20 @@ const SCALE_MIDI = HEX(`
 `);
 
 describe("parseMidi", () => {
+  it("rejects format-2, unknown formats and multi-track format-0 files", () => {
+    const bytes = new Uint8Array(SCALE_MIDI);
+    for (const format of [2, 3]) {
+      const changed = new Uint8Array(bytes);
+      changed[8] = 0;
+      changed[9] = format;
+      expect(() => parseMidi(changed)).toThrow(/unsupported MIDI format/i);
+    }
+    const changed = new Uint8Array(bytes);
+    changed[10] = 0;
+    changed[11] = 2;
+    expect(() => parseMidi(changed)).toThrow(/format 0.*one track/i);
+    expect(parseMidi(bytes).notes).toHaveLength(8);
+  });
   it("parses a hand-built scale fixture", () => {
     const m = parseMidi(SCALE_MIDI);
     expect(m.tempoBpm).toBe(120);

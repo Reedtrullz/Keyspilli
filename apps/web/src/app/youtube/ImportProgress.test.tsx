@@ -29,5 +29,7 @@ describe("import progress", () => {
     expect(render("done")).toContain("Your piano lesson is ready");
     expect(render("error", "publishing", 95)).not.toContain('role="progressbar"');
     expect(render("error", "", 0, 0, true)).toContain("Preview cancelled");
+    expect(render("queued")).toContain("revisit this job");
+    expect(renderToStaticMarkup(<ImportProgress status="error" stage="" furthest={0} elapsedSeconds={0} cancelled={false} reconciliationRequired />)).toContain("Do not retry this job");
   });
 });

@@ -44,6 +44,7 @@ function craftZip(entries: Array<{ name: string; uncompressed: number }>): Uint8
   const cd = Buffer.concat(parts);
   const eocd = Buffer.alloc(22);
   eocd.writeUInt32LE(0x06054b50, 0);
+  eocd.writeUInt16LE(entries.length, 8);
   eocd.writeUInt16LE(entries.length, 10);
   eocd.writeUInt32LE(cdSize, 12);
   eocd.writeUInt32LE(4, 16); // central directory starts after the 4-byte local-header prefix
@@ -149,6 +150,42 @@ describe("ingestSource .mxl", () => {
   it("rejects a crafted central directory whose entries exceed the 64MB cap", async () => {
     const res = await ingest(craftZip([{ name: "score.musicxml", uncompressed: 65 * 1024 * 1024 }]));
     expect(res.error).toContain("expands beyond");
+    const aggregate = await ingest(craftZip([
+      { name: "first.xml", uncompressed: 33 * 1024 * 1024 },
+      { name: "second.xml", uncompressed: 33 * 1024 * 1024 },
+    ]));
+    expect(aggregate.error).toContain("expands beyond");
+  });
+
+  it("rejects mismatched ZIP entry counts and spanning metadata", async () => {
+    const bytes = zipSync({ "score.musicxml": new TextEncoder().encode(scoreXml([60, 62, 64, 65, 67, 69, 71, 72])) });
+    const end = bytes.length - 22;
+    const copy = () => new Uint8Array(bytes);
+    for (const [offset, value] of [[8, 0], [10, 0], [4, 1], [6, 1], [8, 0xffff], [10, 0xffff]] as const) {
+      const malformed = copy();
+      new DataView(malformed.buffer).setUint16(end + offset, value, true);
+      expect((await ingest(malformed)).error).toMatch(/invalid|unsupported|zip64/i);
+    }
+    const malformed = copy();
+    new DataView(malformed.buffer).setUint32(end + 12, 1, true);
+    expect((await ingest(malformed)).error).toMatch(/central directory/i);
+  });
+
+  it("bounds actual extraction when the declared size lies", async () => {
+    const bytes = zipSync({ "score.musicxml": new Uint8Array(65 * 1024 * 1024) });
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    const end = bytes.length - 22;
+    const central = view.getUint32(end + 16, true);
+    view.setUint32(central + 24, 1, true);
+    view.setUint32(22, 1, true);
+    expect((await ingest(bytes)).error).toMatch(/expands beyond|invalid.*size/i);
+  });
+
+  it("rejects central and local headers that disagree", async () => {
+    const bytes = zipSync({ "score.musicxml": new TextEncoder().encode(scoreXml([60, 62, 64, 65, 67, 69, 71, 72])) });
+    const malformed = new Uint8Array(bytes);
+    new DataView(malformed.buffer).setUint32(22, 1, true);
+    expect((await ingest(malformed)).error).toMatch(/invalid.*local header/i);
   });
 
   it("uses the variant tempo for duration when a tempo override is forwarded", async () => {

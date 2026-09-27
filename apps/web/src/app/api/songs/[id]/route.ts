@@ -43,7 +43,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const authResponse = checkAuth(req);
   if (authResponse) return authResponse;
   const { id } = await params;
-  const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
+  const parsed: unknown = await req.json().catch(() => null);
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return NextResponse.json({ error: "JSON object required" }, { status: 400 });
+  const body = parsed as Record<string, unknown>;
   const patch = {} as SongPatch & TempoRequestPatch;
   for (const k of ["title", "artist", "key", "category", "style", "mood"] as const) {
     const v = body[k];
