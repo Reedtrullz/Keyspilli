@@ -19,6 +19,9 @@ const MUSIC_XML = `<?xml version="1.0" encoding="UTF-8"?>
   </measure></part>
 </score-partwise>`;
 const UPLOAD_QUERY = "/api/songs?q=Scratch%20MusicXML&limit=20";
+const LONG_MUSIC_XML = MUSIC_XML.replace("</part>", `${Array.from({ length: 79 }, (_, index) =>
+  `<measure number="${index + 2}"><note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration><type>whole</type></note></measure>`
+).join("")}</part>`);
 
 test("scratch upload creates an Easy player with public levels and exports", async ({ page, request }) => {
   const initialCatalog = await request.get(UPLOAD_QUERY);
@@ -44,6 +47,8 @@ test("scratch upload creates an Easy player with public levels and exports", asy
   const uploadResponse = await request.get(UPLOAD_QUERY);
   const uploadedSongs = (await uploadResponse.json()).songs as Array<{ id: string; difficulty: string }>;
   expect(uploadedSongs).toHaveLength(6);
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Recently added" }).locator("..").getByText("Scratch MusicXML")).toBeVisible();
   const veryEasyId = uploadedSongs.find((song) => song.difficulty === "very-easy")?.id;
   expect(veryEasyId).toBeTruthy();
 
@@ -86,6 +91,18 @@ test("scratch upload creates an Easy player with public levels and exports", asy
   await page.evaluate((songId) => localStorage.setItem(`keyspilli.song-prefs.v1:${songId}`, JSON.stringify({ transpose: 0 })), veryEasyId!);
   await page.reload();
   await expect(page.getByText(/Sheet Music stays in the original key/)).toHaveCount(0);
+});
+
+test("synthetic long score renders and navigates beyond the first page", async ({ page, request }) => {
+  const songs = (await (await request.get(UPLOAD_QUERY)).json()).songs as Array<{ id: string; difficulty: string }>;
+  const easyId = songs.find((song) => song.difficulty === "easy")?.id;
+  expect(easyId).toBeTruthy();
+  await page.route("**/api/v1/sheet/*", (route) => route.fulfill({ status: 200, contentType: "application/vnd.recordare.musicxml+xml", body: LONG_MUSIC_XML }));
+  await page.goto(`/player/${easyId}/sheet`);
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __sheetPageCount?: number }).__sheetPageCount ?? 0)).toBeGreaterThan(1);
+  const secondPage = page.getByRole("group", { name: /Sheet music page 2 of/ });
+  await secondPage.scrollIntoViewIfNeeded();
+  await expect(secondPage.locator("svg").first()).toBeVisible();
 });
 
 test("synthetic player seeks, loops, and keeps transpose within saved bounds", async ({ page, request }) => {

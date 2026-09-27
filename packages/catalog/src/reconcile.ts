@@ -48,7 +48,7 @@ export async function commitCatalogPublication(raw: unknown): Promise<void> {
     const songId = `${data.baseId}-e`;
     const result = db.prepare(`UPDATE conversion_jobs SET status = 'done', song_id = ?, error = NULL,
       finished_at = ?, lease_owner = NULL, lease_expires_at = NULL
-      WHERE id = ? AND song_id IS NULL AND
+      WHERE id = ? AND
       ((status = 'processing' AND lease_owner = ?) OR
        (status = 'error' AND error LIKE '%ARTIFACT_RECONCILIATION_REQUIRED%'))`)
       .run(songId, new Date().toISOString(), data.job.id, data.job.owner);

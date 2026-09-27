@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { writeMidi } from "@keyspilli/midi";
 import { ingestSource } from "../src/ingest.js";
-import { getDb, getSongsByBase } from "../src/db.js";
+import { claimJob, getDb, getJob, getSongsByBase, insertJob } from "../src/db.js";
 import { reconcileBaseArtifact } from "../src/publish.js";
 import { commitCatalogPublication } from "../src/reconcile.js";
 const previous = process.env.KEYSPILLI_DATA_DIR;
@@ -33,4 +33,18 @@ it("retains source and artifact backups after DB failure, then replays the commi
   expect(getSongsByBase("recover-test").map(row => row.title)).toEqual(Array(6).fill("New"));
   expect(getSongsByBase("recover-test").every(row => row.plays === 7)).toBe(true);
   expect(readdirSync(join(root, "uploads")).some(name => name.includes(".backup-"))).toBe(false);
+});
+
+it("links a replacement publication for a job already bound to that base", async () => {
+  const baseId = "linked-replacement";
+  const source = (offset: number) => writeMidi(Array.from({ length: 16 }, (_, i) => ({ midi: 60 + i % 7 + offset, start: i, dur: 1, vel: 80 })), { tempoBpm: 120 });
+  const input = { baseId, title: "Existing", artist: "Test", category: "Upload", contentType: "upload" as const, acquiredVia: "upload" as const };
+  expect((await ingestSource({ ...input, buf: source(0) })).error).toBeUndefined();
+  insertJob({ id: "replacement-job", youtubeUrl: "https://www.youtube.com/watch?v=abcdefghijk", status: "queued", songId: `${baseId}-e`, error: null, createdAt: new Date().toISOString(), finishedAt: null });
+  const owner = claimJob("replacement-job");
+  expect(owner).toBeTruthy();
+  const result = await ingestSource({ ...input, title: "Replaced", buf: source(2) }, { job: { id: "replacement-job", owner: owner! } });
+  expect(result.error).toBeUndefined();
+  expect(getJob("replacement-job")).toMatchObject({ status: "done", songId: `${baseId}-e` });
+  expect(getSongsByBase(baseId).map(row => row.title)).toEqual(Array(6).fill("Replaced"));
 });
