@@ -1362,16 +1362,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
         const chords = role === "accompaniment"
           && settings.backgroundMode === "chord"
           && settings.accompanimentStyle === "bass-chords"
-          ? audioChords.flatMap((chord) => {
-            const chordStart = chord.beat * secondsPerBeat;
-            const chordEnd = chordStart + (chord.durationBeats ?? 1) * secondsPerBeat;
-            const visibleStart = Math.max(boundedStartSec, chordStart);
-            const visibleEnd = Math.min(boundedEndSec, chordEnd);
-            const durationSec = visibleEnd - visibleStart;
-            return chord.notes.length && durationSec > 0.2
-              ? [{ notes: chord.notes.map((midi) => midi + settings.transpose), when: visibleStart - boundedStartSec, durationSec }]
-              : [];
-          })
+          ? eng.previewPlan(boundedStartSec, boundedEndSec).chords
           : [];
         return {
           notes: resolveTimedNotes({ ...activeData, notes: auditionNotes }, settings.speed, settings.transpose)

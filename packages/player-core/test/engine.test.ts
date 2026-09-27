@@ -100,8 +100,8 @@ describe("PlaybackEngine", () => {
     eng.start();
     eng.tick(0.5);
     eng.tick(0.5);
-    eng.tick(0.5); // 1.5 > loop end -> wrap to loop start (same as legacy player)
-    expect(eng.time).toBe(0);
+    eng.tick(0.5); // 1.5 > loop end -> preserve 0.3s overshoot
+    expect(eng.time).toBeCloseTo(0.3);
     expect(audio.cancelled).toBeGreaterThan(0);
     expect(eng.playing).toBe(true);
   });
@@ -297,7 +297,7 @@ describe("PlaybackEngine", () => {
     eng.seek(0.5);
     eng.start();
     eng.tick(0.2);
-    expect(eng.time).toBe(0);
+    expect(eng.time).toBeCloseTo(0.1);
   });
 
   it.each(["keyboard", "microphone"])("advances %s wait input without a UI read and retains completion", (input) => {
@@ -354,7 +354,7 @@ describe("PlaybackEngine", () => {
       ],
     );
     eng.start();
-    expect(audio.playedChords).toEqual([{ midiNotes: [48, 52, 55], when: 0, durationSec: 1.2 }]);
+    expect(audio.playedChords).toEqual([{ midiNotes: [48, 52, 55], when: 0, durationSec: 1 }]);
     expect(audio.noteOns.map((n) => n.midi)).toContain(48);
     eng.tick(0.5);
     expect(audio.playedChords.map((c) => c.midiNotes)).toContainEqual([50, 53, 57]);
@@ -500,7 +500,7 @@ describe("PlaybackEngine", () => {
       [{ beat: 0, name: "C", notes: [67, 48, 60, 60, 48, 72] }],
     );
     eng.start();
-    expect(audio.playedChords).toEqual([{ midiNotes: [50, 62, 69, 74], when: 0, durationSec: 1.2 }]);
+    expect(audio.playedChords).toEqual([{ midiNotes: [50, 62, 69, 74], when: 0, durationSec: 1 }]);
   });
 
   it("converts chord duration beats using tempo and playback speed", () => {
@@ -515,6 +515,45 @@ describe("PlaybackEngine", () => {
     );
     eng.start();
     expect(audio.playedChords).toEqual([{ midiNotes: [48, 55, 60], when: 0, durationSec: 1 }]);
+  });
+
+  it("plays only the remaining chord tail after seeking and leaves a rest silent", () => {
+    const audio = new FakeAudio();
+    const eng = new PlaybackEngine(audio, [], 3, SONG, { ...DEFAULT_SETTINGS, backgroundMode: "chord" },
+      [{ beat: 0, durationBeats: 4, name: "C", notes: [48, 52, 55] }]);
+    eng.seek(1.9);
+    eng.start();
+    expect(audio.playedChords).toEqual([{ midiNotes: [48, 52, 55], when: 0, durationSec: expect.closeTo(0.1, 6) }]);
+    audio.playedChords.length = 0;
+    eng.seek(2.1);
+    expect(audio.playedChords).toHaveLength(0);
+  });
+
+  it("clips notes and chords at the loop end and rejects attacks after it", () => {
+    const audio = new FakeAudio();
+    const eng = new PlaybackEngine(audio, [
+      { midi: 60, startSec: 0.96, durSec: 0.4, vel: 80 },
+      { midi: 62, startSec: 1.02, durSec: 0.2, vel: 80 },
+    ], 2, SONG, { ...DEFAULT_SETTINGS, backgroundMode: "chord", metronome: true },
+    [{ beat: 1.9, durationBeats: 1, name: "C", notes: [48] },
+      { beat: 2.04, durationBeats: 1, name: "G", notes: [43] }]);
+    eng.setLoop({ startSec: 0, endSec: 1 });
+    eng.seek(0.95);
+    eng.start();
+    expect(audio.events).toEqual([{ midi: 60, startSec: 0.96, durSec: expect.closeTo(0.04, 6), vel: 80 }]);
+    expect(audio.playedChords).toEqual([{ midiNotes: [48], when: 0, durationSec: expect.closeTo(0.05, 6) }]);
+    expect(audio.noteOns.map((note) => note.midi)).not.toContain(62);
+    expect(audio.clicks).toHaveLength(0);
+  });
+
+  it("keeps 0.125-second chords in playback and bounded previews", () => {
+    const audio = new FakeAudio();
+    const eng = new PlaybackEngine(audio, [], 1, SONG, { ...DEFAULT_SETTINGS, backgroundMode: "chord" },
+      [{ beat: 0, durationBeats: 0.25, name: "C", notes: [48, 52, 55] }]);
+    eng.start();
+    expect(audio.playedChords[0]?.durationSec).toBeCloseTo(0.125);
+    expect(eng.previewPlan(0, 0.125).chords[0]?.durationSec).toBeCloseTo(0.125);
+    expect(eng.previewPlan(0.05, 0.1).chords[0]?.durationSec).toBeCloseTo(0.05);
   });
 
   it("converts a deduped next-onset span at the active tempo", () => {
@@ -614,12 +653,13 @@ describe("chord silence across transport changes", () => {
   ];
 
   it("seeking during playback cancels stale chord voices", () => {
-    const { eng, audio } = engine({ backgroundMode: "chord" }, chords);
+    const audio = new FakeAudio();
+    const eng = new PlaybackEngine(audio, [], 4, SONG, { ...DEFAULT_SETTINGS, backgroundMode: "chord" }, chords);
     eng.start();
     expect(audio.playedChords.length).toBeGreaterThan(0);
     const before = audio.cancelled;
     audio.playedChords.length = 0;
-    eng.seek(2);
+    eng.seek(2.1);
     expect(audio.cancelled).toBeGreaterThan(before);
     eng.tick(0.02);
     // Re-scheduling sounds the active chord at the new playhead exactly once.
@@ -648,7 +688,7 @@ describe("chord silence across transport changes", () => {
     const before = audio.cancelled;
     eng.tick(0.5); // crosses loop end
     expect(audio.cancelled).toBeGreaterThan(before);
-    expect(eng.time).toBe(0);
+    expect(eng.time).toBeCloseTo(0.3);
   });
 });
 
@@ -668,9 +708,11 @@ describe("speed-stable loops", () => {
     fast.eng.setLoop({ startSec: 0, endSec: secPerBeat(120, 1) * 4 }); // beats 1-4 at x1
     fast.eng.start();
     let wrapsFast = 0;
+    let lastFast = 0;
     for (let i = 0; i < 200; i++) {
       fast.eng.tick(0.1);
-      if (fast.eng.time === 0) wrapsFast++;
+      if (fast.eng.time < lastFast) wrapsFast++;
+      lastFast = fast.eng.time;
     }
     expect(wrapsFast).toBeGreaterThan(0);
 
@@ -678,10 +720,12 @@ describe("speed-stable loops", () => {
     slow.eng.setLoop({ startSec: 0, endSec: secPerBeat(120, 0.5) * 4 }); // same beats at x0.5
     slow.eng.start();
     let elapsedToWrap = 0;
+    let lastSlow = 0;
     while (elapsedToWrap < 20) {
       slow.eng.tick(0.1);
       elapsedToWrap += 0.1;
-      if (slow.eng.time === 0) break;
+      if (slow.eng.time < lastSlow) break;
+      lastSlow = slow.eng.time;
     }
     // 4 beats at 120bpm spans 2s at x1 and must span exactly 4s at x0.5.
     expect(elapsedToWrap).toBeCloseTo(4, 1);

@@ -131,7 +131,7 @@ export class PlaybackEngine {
     const next = this.time + dt;
     const wrapped = this.loop && !this.grader && next >= this.loop.endSec;
     this.time = wrapped && this.loop
-      ? this.loop.startSec + (dt > 0.5 ? (next - this.loop.startSec) % (this.loop.endSec - this.loop.startSec) : 0)
+      ? this.loop.startSec + (next - this.loop.startSec) % (this.loop.endSec - this.loop.startSec)
       : next;
     // Skip missed attacks after a stalled frame, while still processing loop/end state.
     if (dt > 0.5 || wrapped) {
@@ -234,8 +234,14 @@ export class PlaybackEngine {
 
   setLoop(region: LoopRegion | null): void {
     if (region && (!Number.isFinite(region.startSec) || !Number.isFinite(region.endSec)
-      || region.startSec < 0 || region.endSec <= region.startSec)) throw new RangeError("Invalid loop bounds");
+      || region.startSec < 0 || region.endSec <= region.startSec || region.endSec > this.duration)) throw new RangeError("Invalid loop bounds");
     this.loop = region;
+    if (this.playing) {
+      this.audio.cancelAll();
+      this.lastScheduled = this.time;
+      this.lastChordScheduled = -1;
+      this.schedule(this.time, this.time + SCHEDULE_LOOKAHEAD);
+    }
   }
 
   /** Toggle wait mode for an active run and keep the grader in sync. */
@@ -362,7 +368,7 @@ export class PlaybackEngine {
       const chordStart = beatToSec(chord.beat, this.song.tempoBpm, this.settings.speed);
       if (chordStart > start + 1e-6) break;
       const chordEnd = chordStart + this.chordDurationSec(chord);
-      if (this.isPlayable(chord) && (chord.durationBeats === undefined || start < chordEnd - 1e-6)) active = index;
+      if (this.isPlayable(chord) && start < chordEnd - 1e-6) active = index;
     }
     const addChord = (chord: ChordPlaybackLabel): void => {
       const chordStart = beatToSec(chord.beat, this.song.tempoBpm, this.settings.speed);
@@ -370,9 +376,7 @@ export class PlaybackEngine {
       const visibleEnd = Math.min(end, chordStart + this.chordDurationSec(chord));
       const durationSec = visibleEnd - visibleStart;
       const notes = this.chordMidiNotes(chord);
-      // Audio implementations clamp voices to a 0.2s minimum. Omit a shorter
-      // tail so preview never schedules beyond its advertised window.
-      if (!notes.length || durationSec <= 0.2) return;
+      if (!notes.length || durationSec <= 1e-6) return;
       chords.push({ notes, when: visibleStart - start, durationSec });
     };
     if (active >= 0) addChord(this.chords[active]!);
@@ -387,15 +391,18 @@ export class PlaybackEngine {
   }
 
   private schedule(from: number, to: number): void {
-    if (this.grader && this.gradingRange) to = Math.min(to, this.gradingRange.endSec);
+    const endpoint = this.scheduleEndpoint();
+    to = Math.min(to, endpoint);
     from = Math.max(from, this.lastScheduled);
+    if (to <= from) return;
     const chordMode = this.settings.backgroundMode === "chord" && this.hasPlayableChord() && !!this.audio.playChord;
     if (chordMode) this.scheduleChords(from, to);
     let i = firstNoteAtOrAfter(this.notes, from);
     for (; i < this.notes.length; i++) {
       const n = this.notes[i]!;
       if (n.startSec >= to) break;
-      this.audio.noteOn(n, Math.max(0, n.startSec - this.time));
+      const durSec = Math.min(n.durSec, endpoint - n.startSec);
+      if (durSec > 0) this.audio.noteOn(durSec === n.durSec ? n : { ...n, durSec }, Math.max(0, n.startSec - this.time));
     }
     // The metronome follows the song timeline in either background mode.
     if (this.settings.metronome) {
@@ -431,12 +438,11 @@ export class PlaybackEngine {
       let active = -1;
       for (let i = 0; i < this.chords.length; i++) {
         const chord = this.chords[i]!;
-        const end = chord.beat + (chord.durationBeats ?? 0);
         if (chordAt(chord) > from + 1e-6) break;
-        if (this.isPlayable(chord) && (chord.durationBeats === undefined || from < beatToSec(end, this.song.tempoBpm, speed))) active = i;
+        if (this.isPlayable(chord) && from < chordAt(chord) + this.chordDurationSec(chord) - 1e-6) active = i;
       }
       if (active >= 0) {
-        this.playChord(this.chords[active]!, 0);
+        this.playChord(this.chords[active]!, from);
         cursor = active;
       }
     }
@@ -449,21 +455,30 @@ export class PlaybackEngine {
         continue;
       }
       if (eventSec >= to) break;
-      if (this.isPlayable(chord)) this.playChord(chord, Math.max(0, eventSec - this.time));
+      if (this.isPlayable(chord)) this.playChord(chord, eventSec);
       cursor = i;
     }
     this.lastChordScheduled = cursor;
   }
 
-  private playChord(chord: ChordPlaybackLabel, when: number): void {
+  private playChord(chord: ChordPlaybackLabel, startSec: number): void {
     const playChord = this.audio.playChord;
     const midiNotes = this.chordMidiNotes(chord);
     if (!playChord || midiNotes.length === 0) return;
     // Chord labels carry absolute MIDI notes. Keep inversions and octave
     // doublings, while making ordering deterministic and collapsing only
     // exact duplicate MIDI numbers (the audio contract has no voice identity).
-    const durationSec = this.chordDurationSec(chord);
-    playChord.call(this.audio, midiNotes, when, durationSec);
+    const chordEndSec = beatToSec(chord.beat, this.song.tempoBpm, this.settings.speed) + this.chordDurationSec(chord);
+    const durationSec = Math.min(chordEndSec, this.scheduleEndpoint()) - startSec;
+    if (durationSec > 1e-6) {
+      playChord.call(this.audio, midiNotes, Math.max(0, startSec - this.time), durationSec);
+    }
+  }
+
+  private scheduleEndpoint(): number {
+    return Math.min(this.duration, this.grader
+      ? this.gradingRange?.endSec ?? this.duration
+      : this.loop?.endSec ?? this.duration);
   }
 
   private chordMidiNotes(chord: ChordPlaybackLabel): number[] {

@@ -348,6 +348,13 @@ describe("OrganAudioEngine", () => {
     expect(voices.map((voice) => voice.stops[0])).toEqual([11.8, 11.8, 11.8]);
   });
 
+  it("uses the supplied duration for a short chord", () => {
+    const engine = new OrganAudioEngine();
+    engine.playChord([60], 0, 0.125);
+    const voice = FakeAudioContext.instances[0]!.oscillators[2]!;
+    expect(voice.stops[0]).toBeCloseTo(10.425, 6);
+  });
+
   it("ramps shared rotary speed and updates bounded shared drive", () => {
     const engine = new OrganAudioEngine(0.2, "slow");
     engine.ensure();

@@ -22,6 +22,8 @@ Implementation branch: `codex/audit-remediation`, based on audited `origin/main`
 | #129 sampled clicks | Implemented locally | Scheduled click tracked and stopped/disconnected by cancelAll | Audible pause/seek check pending |
 | #130 oscillator input | Implemented locally | Held input avoids scheduled cutoff; all oscillators stop on noteOff/cancelAll/dispose; repeated pitch fixture passes | Keyboard hardware check pending |
 | #131 sampler pedal fallback | Implemented locally | Fallback creation copies current sustain state | Independent listening needed |
+| #115–#116 scheduling intervals | Implemented locally | Seeked chord tails, loop and song endpoint clipping, overshoot and rest cases; engine/organ suites passed | Real playback and listening needed |
+| #123 short chord preview | Implemented locally | 0.125-second chord retained in engine preview; accompaniment preview shares the engine plan; organ honors the supplied span | Browser preview listening needed |
 | #114–#123 except #118/#120/#121/#122, #128–#136 except #128–#132/#134–#136, remaining #119 items | Pending | See implementation plan and audit reports in this checkout | Engineering fixes and independent checks |
 
 Musical acceptance, live backup measurements, merge and deployment are separate owner gates. Tests and synthetic fixtures do not establish them.
