@@ -125,6 +125,7 @@ export interface IngestInput {
 /** Optional deterministic hook used by integration tests to exercise rollback. */
 export interface IngestOptions {
   beforeReplace?: () => void;
+  job?: { id: string; owner: string };
 }
 
 function slugify(s: string): string {
@@ -541,6 +542,7 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
   const backupUpload = join(uploadRoot, `.${baseId}.backup-${token}.${uploadExt}`);
   const recoveryData: CatalogPublication = {
     baseId, rows: prepared.map(item => item.row),
+    ...(options.job ? { job: options.job } : {}),
     ...(inp.contentType === "upload" ? { upload: {
       staged: basename(stageUpload), final: basename(finalUpload), backup: basename(backupUpload),
       sha256: createHash("sha256").update(inp.buf).digest("hex"),

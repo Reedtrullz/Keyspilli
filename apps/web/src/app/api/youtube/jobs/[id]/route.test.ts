@@ -2,8 +2,8 @@ import {tutorialImportsEnabled} from "../../../../../../../../packages/catalog/s
 import Database from 'better-sqlite3';
 import {afterEach,beforeEach,expect,it,vi} from 'vitest';
 const getDb=vi.hoisted(()=>vi.fn());
-vi.mock('@keyspilli/catalog',()=>({getDb,tutorialImportsEnabled}));
-import {PATCH} from './route';
+vi.mock('@keyspilli/catalog',()=>({getDb,tutorialImportsEnabled,dataDir:()=>'/isolated',getSongsByBase:()=>[],withBaseArtifactLock:async(_id:string,_options:unknown,operation:()=>unknown)=>operation()}));
+import {DELETE,PATCH} from './route';
 import {publicJobError} from '../../../../../lib/job-error';
 let db:Database.Database;
 const params={params:Promise.resolve({id:'job-test'})};
@@ -37,4 +37,12 @@ it('cancels private beta in production through existing mutation auth',async()=>
  vi.stubEnv('NODE_ENV','production');vi.stubEnv('KEYSPILLI_TUTORIAL_BETA','1');vi.stubEnv('KEYSPILLI_API_TOKEN','fixture-token');
  expect((await PATCH(request(),params)).status).toBe(200);
  expect((db.prepare('SELECT lease_owner FROM conversion_jobs').get() as {lease_owner:unknown}).lease_owner).toBeNull();
+});
+it('deletes only an unclaimed queued job',async()=>{
+ vi.stubEnv('KEYSPILLI_API_TOKEN','fixture-token');
+ const deletion=()=>DELETE(new Request('http://localhost:3000/api/youtube/jobs/job-test',{method:'DELETE',headers:{authorization:'Bearer fixture-token'}}),params);
+ expect((await deletion()).status).toBe(409);
+ db.prepare("UPDATE conversion_jobs SET status = 'queued'").run();
+ expect((await deletion()).status).toBe(200);
+ expect((await deletion()).status).toBe(404);
 });

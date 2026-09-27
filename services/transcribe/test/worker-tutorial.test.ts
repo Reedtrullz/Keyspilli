@@ -1,10 +1,21 @@
 import {afterAll,expect,it,vi} from "vitest";
-import {mkdtempSync,writeFileSync,rmSync} from "node:fs";
+import {existsSync,mkdtempSync,writeFileSync,rmSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
 import {writeMidi} from "@keyspilli/midi";
 const resolver=vi.hoisted(()=>({run:vi.fn()}));
+const publication=vi.hoisted(()=>({afterFence:null as null|(()=>Promise<void>),beforeJournalRemoval:null as null|(()=>void)}));
 vi.mock("../src/tutorial-route.js",()=>({resolveTutorialLink:resolver.run}));
+vi.mock("node:fs/promises",async original=>{
+ const actual=await original<typeof import("node:fs/promises")>();
+ return {...actual,rm:async(...args:Parameters<typeof actual.rm>)=>{
+  if(String(args[0]).endsWith(".reconciliation.json") && publication.beforeJournalRemoval){const hook=publication.beforeJournalRemoval;publication.beforeJournalRemoval=null;hook();}
+  return actual.rm(...args);
+ },writeFile:async(...args:Parameters<typeof actual.writeFile>)=>{
+  await actual.writeFile(...args);
+  if(String(args[0]).endsWith("/.publication-id") && publication.afterFence){const hook=publication.afterFence;publication.afterFence=null;await hook();}
+ }};
+});
 const dir=mkdtempSync(join(tmpdir(),"keyspilli-tutorial-worker-"));
 vi.stubEnv("KEYSPILLI_DATA_DIR",dir);
 vi.stubEnv("KEYSPILLI_TUTORIAL_PREVIEW","1");
@@ -46,6 +57,59 @@ it("cannot recreate a cancelled job's song",async()=>{
  const {processJob}=await import("../src/worker.js");const {getDb,getSongsByBase}=await import("@keyspilli/catalog");
  resolver.run.mockImplementation(async()=>{getDb().prepare("DELETE FROM conversion_jobs WHERE id = ?").run("cancelled");return candidate();});
  await queue("cancelled");await processJob("cancelled");expect(getSongsByBase("preview-cancelled")).toHaveLength(0);
+});
+it("refuses cancellation after publication commits and keeps the job linked",async()=>{
+ const {processJob}=await import("../src/worker.js");
+ const {getJob,getSongsByBase}=await import("@keyspilli/catalog");
+ const {PATCH}=await import("../../../apps/web/src/app/api/youtube/jobs/[id]/route.js");
+ resolver.run.mockResolvedValue(candidate());await queue("cancel-fence");
+ let status=0;
+ publication.afterFence=async()=>{
+  const response=await PATCH(new Request("http://localhost:3000/api/youtube/jobs/cancel-fence",{method:"PATCH",headers:{origin:"http://localhost:3000","content-type":"application/json"},body:JSON.stringify({action:"cancel"})}),{params:Promise.resolve({id:"cancel-fence"})});
+  status=response.status;
+ };
+ try{await processJob("cancel-fence");}finally{publication.afterFence=null;}
+ expect(status).toBe(409);
+ expect(getSongsByBase("preview-cancel-fence")).toHaveLength(6);
+ expect(getJob("cancel-fence")).toMatchObject({status:"done",songId:"preview-cancel-fence-e"});
+});
+it("accepts cancellation before publication and leaves no song",async()=>{
+ const {processJob}=await import("../src/worker.js");
+ const {getJob,getSongsByBase}=await import("@keyspilli/catalog");
+ const {PATCH}=await import("../../../apps/web/src/app/api/youtube/jobs/[id]/route.js");
+ await queue("cancel-before");
+ resolver.run.mockImplementation(async()=>{
+  const response=await PATCH(new Request("http://localhost:3000/api/youtube/jobs/cancel-before",{method:"PATCH",headers:{origin:"http://localhost:3000","content-type":"application/json"},body:JSON.stringify({action:"cancel"})}),{params:Promise.resolve({id:"cancel-before"})});
+  expect(response.status).toBe(200);
+  return candidate();
+ });
+ await processJob("cancel-before");
+ expect(getSongsByBase("preview-cancel-before")).toHaveLength(0);
+ expect(getJob("cancel-before")).toMatchObject({status:"error",error:"TUTORIAL_PREVIEW_CANCELLED",songId:null});
+});
+it("commits the song link before removing the publication journal",async()=>{
+ const {processJob}=await import("../src/worker.js");
+ const {getJob}=await import("@keyspilli/catalog");
+ resolver.run.mockResolvedValue(candidate());await queue("linked-at-commit");
+ let atCommit: ReturnType<typeof getJob>;
+ publication.beforeJournalRemoval=()=>{atCommit=getJob("linked-at-commit");};
+ try{await processJob("linked-at-commit");}finally{publication.beforeJournalRemoval=null;}
+ expect(atCommit).toMatchObject({status:"done",songId:"preview-linked-at-commit-e"});
+});
+it("keeps a recovery-needed publication terminal and replays its job link",async()=>{
+ const {processJob}=await import("../src/worker.js");
+ const {commitCatalogPublication,getDb,getJob,getSongsByBase,reconcileBaseArtifact}=await import("@keyspilli/catalog");
+ resolver.run.mockResolvedValue(candidate());await queue("recovery-needed");
+ const trigger="fail_recovery_job_link";
+ publication.afterFence=async()=>{getDb().exec(`CREATE TRIGGER ${trigger} BEFORE UPDATE OF status ON conversion_jobs WHEN NEW.id = 'recovery-needed' AND NEW.status = 'done' BEGIN SELECT RAISE(ABORT, 'synthetic job link failure'); END`);};
+ try{await processJob("recovery-needed");}finally{publication.afterFence=null;getDb().exec(`DROP TRIGGER IF EXISTS ${trigger}`);}
+ expect(getJob("recovery-needed")).toMatchObject({status:"error",songId:null});
+ expect(getJob("recovery-needed")?.error).toContain("ARTIFACT_RECONCILIATION_REQUIRED");
+ expect(getSongsByBase("preview-recovery-needed")).toHaveLength(0);
+ expect(existsSync(join(dir,"artifacts",".preview-recovery-needed.reconciliation.json"))).toBe(true);
+ await reconcileBaseArtifact("preview-recovery-needed",{artifactsRoot:join(dir,"artifacts")},commitCatalogPublication);
+ expect(getJob("recovery-needed")).toMatchObject({status:"done",songId:"preview-recovery-needed-e"});
+ expect(getSongsByBase("preview-recovery-needed")).toHaveLength(6);
 });
 it("runs the explicit production beta with unverified provenance",async()=>{
  const {processJob}=await import("../src/worker.js");const {getJob,readArrangementManifest}=await import("@keyspilli/catalog");

@@ -407,6 +407,18 @@ export function getSourceCandidateHandoff(handoffId: string): SourceCandidateHan
   }
 }
 
+/** Read and affirm under one SQLite write transaction so an older request cannot erase an upload binding. */
+export function confirmSourceCandidateHandoff(handoffId: string): SourceCandidateHandoff | null {
+  return getDb().transaction(() => {
+    const current = getSourceCandidateHandoff(handoffId);
+    if (!current || current.state === "EXPIRED") return null;
+    if (current.userAffirmedTarget && current.uploadedSourceSha256) return current;
+    const affirmed = affirmSourceCandidateHandoff(current);
+    saveSourceCandidateHandoff(affirmed);
+    return affirmed;
+  }).immediate();
+}
+
 export function cleanupExpiredSourceCandidateHandoffs(now = new Date()): number {
   return getDb().prepare("DELETE FROM source_candidate_handoffs WHERE expires_at <= ?").run(now.toISOString()).changes;
 }

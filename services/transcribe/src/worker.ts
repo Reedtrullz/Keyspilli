@@ -201,7 +201,9 @@ export async function processJob(jobId: string): Promise<void> {
   // Atomic claim: another worker may have taken it while we read metadata.
   const owner = claimJob(jobId);
   if (!owner) return;
-  const updateOwnedJob = (patch: Parameters<typeof updateJob>[1]) => updateJob(jobId, patch, owner);
+  const updateOwnedJob = (patch: Parameters<typeof updateJob>[1]) => {
+    if (!updateJob(jobId, patch, owner)) throw new Error(`job ${jobId} ownership changed before update`);
+  };
   const existing = job.songId ? getSong(job.songId) : undefined;
   if (existing && existsSync(join(seedMidiDir(), `${existing.baseId}.mid`))) {
     updateOwnedJob({ status: "done", songId: existing.id, finishedAt: new Date().toISOString() });
@@ -254,13 +256,11 @@ export async function processJob(jobId: string): Promise<void> {
         category: "Tutorial preview", contentType: "youtube", acquiredVia: "colored-keyboard-video",
         sourceRef: candidate.selectedUrl, sourceArtifactHash: evidence.sourceSha256, sourceArrangement,
         cleanTranscription: false, maxDurBeats: null, arrangementProfile: "source",
-      }, {beforeReplace: () => {
+      }, {job: {id: jobId, owner}, beforeReplace: () => {
         if (!ownsJobLease(jobId, owner) || getJob(jobId)?.status !== "processing" || getSongsByBase(baseId).length)
           throw new Error("tutorial publication cancelled or already exists");
       }});
-      if (imported.error) throw new Error(imported.error);
-      updateOwnedJob({status: "done", songId: imported.songIds.find(id => id.endsWith("-e"))!,
-        finishedAt: new Date().toISOString()});
+      if (imported.error) throw new Error(imported.code ? `${imported.code}: ${imported.error}` : imported.error);
       return;
     }
     if (process.env.KEYSPILLI_SOURCE_ASSISTED_BETA === "1") {
@@ -293,12 +293,11 @@ export async function processJob(jobId: string): Promise<void> {
         title: native.provenance.arrangementTitle, artist: native.provenance.artist, category: "Source-assisted beta",
         contentType: "youtube", acquiredVia: "verified-native-midi", sourceRef: `indexed:${native.provenance.sourceSha256}`,
         cleanTranscription: false, maxDurBeats: null, arrangementProfile: "source", sourceArrangement: native.provenance,
-      }, { beforeReplace: () => {
+      }, { job: {id: jobId, owner}, beforeReplace: () => {
         const latest = getJob(jobId);
         if (!ownsJobLease(jobId, owner) || !latest || latest.status !== "processing" || latest.songId !== job.songId || getSongsByBase(baseId).length) throw new Error("native publication cancelled or already exists");
       } });
-      if (imported.error) throw new Error(imported.error);
-      updateOwnedJob({ status: "done", songId: imported.songIds.find((id) => id.endsWith("-e")) ?? imported.songIds[0]!, finishedAt: new Date().toISOString() });
+      if (imported.error) throw new Error(imported.code ? `${imported.code}: ${imported.error}` : imported.error);
       return;
     }
 
@@ -526,10 +525,9 @@ export async function processJob(jobId: string): Promise<void> {
       ...(chords ? { chords } : {}),
       transcription,
     }, {
-      // DELETE removes the queued job while holding the same base artifact
-      // lock used by ingestSource. Re-check inside that lock immediately
-      // before the swap so an already-claimed worker cannot resurrect a base
-      // after deletion has completed.
+      job: {id: jobId, owner},
+      // Re-check the owned lease under the artifact lock before swapping, so
+      // cancellation or deletion cannot resurrect a base.
       beforeReplace: () => {
         const latest = getJob(jobId);
         if (!ownsJobLease(jobId, owner) || !latest || latest.status !== "processing" || latest.songId !== job.songId) {
@@ -537,11 +535,10 @@ export async function processJob(jobId: string): Promise<void> {
         }
       },
     });
-    if (result.error) throw new Error(result.error);
+    if (result.error) throw new Error(result.code ? `${result.code}: ${result.error}` : result.error);
     // Keep the conversion job pointed at the stable easy variant by its
     // level suffix; array order is an implementation detail of the ladder.
     const songId = result.songIds.find((id) => id.endsWith("-e")) ?? result.songIds[0]!;
-    updateOwnedJob({ status: "done", songId, finishedAt: new Date().toISOString() });
     console.log(`[worker] ${jobId} done → ${songId}`);
   } catch (e) {
     if (!ownsJobLease(jobId, owner)) {
@@ -554,7 +551,7 @@ export async function processJob(jobId: string): Promise<void> {
     // A YouTube bot challenge is tied to the worker's egress/session. Retrying
     // the same URL immediately with another attempt only hammers the blocked
     // IP, so surface an actionable terminal error instead.
-    if (!detail.startsWith("SOURCE_REVIEW_REQUIRED:") && !isYoutubeBotChallenge(e) && attempts < MAX_ATTEMPTS) {
+    if (!detail.startsWith("SOURCE_REVIEW_REQUIRED:") && !detail.startsWith("ARTIFACT_RECONCILIATION_REQUIRED:") && !isYoutubeBotChallenge(e) && attempts < MAX_ATTEMPTS) {
       updateOwnedJob({ status: "queued", error: msg, attempts });
       console.warn(`[worker] ${jobId} attempt ${attempts}/${MAX_ATTEMPTS} failed, requeued: ${detail}`);
     } else {

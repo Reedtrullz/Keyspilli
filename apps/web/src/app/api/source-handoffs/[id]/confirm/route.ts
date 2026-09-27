@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
-  affirmSourceCandidateHandoff,
-  getSourceCandidateHandoff,
+  confirmSourceCandidateHandoff,
   handoffClientView,
-  saveSourceCandidateHandoff,
 } from "@keyspilli/catalog";
 import { checkMutationAuth } from "../../../../../lib/mutation-auth";
 
@@ -14,14 +12,6 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
   const authResponse = checkMutationAuth(req);
   if (authResponse) return authResponse;
   const params = await context.params;
-  const handoff = getSourceCandidateHandoff(params.id);
-  if (!handoff || handoff.state === "EXPIRED") {
-    console.info("[source-handoff]", { event: "confirmation-expired", elapsedMs: Date.now() - startedAt });
-    return NextResponse.json(
-      { error: "source candidate handoff not found or expired", code: "SOURCE_HANDOFF_EXPIRED" },
-      { status: 404 },
-    );
-  }
   let body: unknown = null;
   try { body = await req.json(); } catch { /* handled below */ }
   if (!body || typeof body !== "object" || (body as Record<string, unknown>).userAffirmedTarget !== true) {
@@ -32,8 +22,14 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
     );
   }
   try {
-    const affirmed = affirmSourceCandidateHandoff(handoff);
-    saveSourceCandidateHandoff(affirmed);
+    const affirmed = confirmSourceCandidateHandoff(params.id);
+    if (!affirmed) {
+      console.info("[source-handoff]", { event: "confirmation-expired", elapsedMs: Date.now() - startedAt });
+      return NextResponse.json(
+        { error: "source candidate handoff not found or expired", code: "SOURCE_HANDOFF_EXPIRED" },
+        { status: 404 },
+      );
+    }
     console.info("[source-handoff]", { event: "confirmed", elapsedMs: Date.now() - startedAt });
     return NextResponse.json({ handoff: handoffClientView(affirmed) });
   } catch (error) {
