@@ -64,6 +64,10 @@ This accepts the current full-song Chords backing as a working automation refere
 
 The [next-ten Chords shortlist](research/keyspilli-evidence/chords-next-ten-2026-09-25.md) proposes other active repertoire songs for future work. It is a research queue, not a listening verdict.
 
+## 2026-09-27 — Dreamer set aside
+
+After the latest chord-only Dreamer revision, the owner asked to stop work on it for this round and explicitly keep it outside the golden corpus. This is a scope decision, not a listening acceptance of that revision. Your Song, Help, and In the Army Now remain the active listening candidates from the ten-song round.
+
 The [earlier six-song review](research/keyspilli-evidence/chords-golden-corpus-review-2026-09-25.md) remains a historical analysis of the prior candidate set; its Kings & Queens inclusion has been superseded.
 
 ### Source-informed phrasing candidate — listening follow-up
